@@ -1,63 +1,82 @@
 package broadcast
 
 import (
-	"BroadcastBenchmark/peer"
+	"BenchmarkBroadcast/peer"
 	"fmt"
 	"github.com/satori/go.uuid"
 )
 
 var peers []peer.Peer
+var tempQueue []peer.Peer
 
-func Broadcast(nodes int, latencty int, peersPerNode int, bandwidth int, blocksize int) (int, int) {
+func Broadcast(nodes int, latency int, peersPerNode int, bandwidth int, blocksize int) (int, int) {
+
+	blocksSentInParallel := bandwidth / blocksize
 
 	for i := 0; i < nodes; i++ {
 		peers = append(peers, peer.New())
-
 	}
 
 	for i := range peers {
 		computeDistance(peers[i], peersPerNode)
 	}
 
-	/*for i := 0; i < nodes; i++ {
+	SendMessage(peers[0], nodes, blocksSentInParallel)
 
-		fmt.Printf("\n peer %v \n", peers[i].Nr)
-		for hash := range peers[i].PeerMap {
-			fmt.Printf("%v ", FindByHash(hash))
-		}
+	ComputePathLatency()
+
+	systemLatency, nrOfHops := ComputeSystemLatencyAndHopNumber()
+	/*for i := range peers {
+		fmt.Printf("Peer %v latency %v path %v \n", peers[i].Nr, peers[i].Latency, peers[i].Path)
 	}*/
 
-	SendMessage(peers[0], nodes)
-
-	return 10, 20
+	return systemLatency * latency, nrOfHops
 }
 
-/*func FindByHash(hash uuid.UUID) int {
-	for _, user := range peers {
-		if user.Id == hash {
-			return user.Nr
+func ComputePathLatency() {
+	for index := range peers {
+		pathLatency := 0
+		for _, val := range peers[index].Path {
+			pathLatency += peers[val].Latency
+		}
+		peers[index].PathLatency = pathLatency
+	}
+}
+
+func ComputeSystemLatencyAndHopNumber() (int, int) {
+	systemLatency, nrOfHops := 0, 0
+	for i := range peers {
+		if len(peers[i].Path) > nrOfHops {
+			nrOfHops = len(peers[i].Path)
+		}
+
+		if peers[i].PathLatency > systemLatency {
+			systemLatency = peers[i].PathLatency
 		}
 	}
-	return -1
-}*/
 
-func SendMessage(user peer.Peer, nodes int) {
+	return systemLatency, nrOfHops
+}
 
+func SendMessage(user peer.Peer, nodes int, blocksSentInParallel int) {
+
+	var totalNodeLatency int
+	var nodesToSend int
 	visited := make([]int, nodes)
 	var queue []peer.Peer
 
 	visited[user.Nr] = 1
 
 	queue = append(queue, user)
+	tempQueue = append(tempQueue, user)
 
 	for len(queue) != 0 {
 
+		nodesToSend = 0
 		var neighbor peer.Peer
 
 		node := queue[0]
 		queue = append(queue[:0], queue[1:]...)
-
-		//fmt.Printf("User %v \n", node.Nr)
 
 		for key := range node.PeerMap {
 			for _, user := range peers {
@@ -68,32 +87,34 @@ func SendMessage(user peer.Peer, nodes int) {
 
 			if visited[neighbor.Nr] == 0 {
 				visited[neighbor.Nr] = 1
-
+				nodesToSend++
+				neighbor.ParentNode = node.Nr
+				(&neighbor).SetPeerPath(node.Path, node.Nr)
 				queue = append(queue, neighbor)
+				tempQueue = append(tempQueue, neighbor)
 			}
 
+		}
+
+		if nodesToSend%blocksSentInParallel == 0 {
+			totalNodeLatency = nodesToSend / blocksSentInParallel
+		} else {
+			totalNodeLatency = nodesToSend/blocksSentInParallel + 1
+		}
+		node.Latency = totalNodeLatency
+
+		for i := range peers {
+			if peers[i].Nr == node.Nr {
+				peers[i].Latency = node.Latency
+				peers[i].ParentNode = node.ParentNode
+				for _, k := range node.Path {
+					peers[i].Path = append(peers[i].Path, k)
+				}
+			}
 		}
 
 	}
 
-	/*if user.Message == "" {
-
-		for _, node := range msgPath {
-			user.MessagePath = append(user.MessagePath, node)
-		}
-		user.MessagePath = append(user.MessagePath, user.Nr)
-
-		fmt.Printf("Node %v got the message %v and has path %v !\n", user.Id, user.Message, user.MessagePath)
-
-		user.Message = message
-		for k := range user.PeerMap {
-			id := GetUserById(k)
-			if id >= 0 {
-
-				SendMessage(&peers[id], message, user.MessagePath)
-			}
-		}
-	}*/
 }
 
 func computeDistance(node peer.Peer, peersPerNode int) {
