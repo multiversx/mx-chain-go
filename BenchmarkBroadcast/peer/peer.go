@@ -13,7 +13,6 @@ type Peer struct {
 	Path        []int
 	PathLatency int
 	Latency     int
-	ParentNode  int
 }
 
 func New() Peer {
@@ -26,7 +25,6 @@ func New() Peer {
 		make(map[uuid.UUID]int),
 		path,
 		0,
-		-1,
 		-1,
 	}
 	ct++
@@ -45,4 +43,7 @@ func (peer *Peer) SetPeerPath(path []int, senderId int) {
 	}
 	peer.Path = append(peer.Path, senderId)
 
+}
+func ResetCounter() {
+	ct = 0
 }

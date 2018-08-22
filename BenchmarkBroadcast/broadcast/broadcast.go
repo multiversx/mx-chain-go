@@ -7,10 +7,10 @@ import (
 )
 
 var peers []peer.Peer
-var tempQueue []peer.Peer
 
-func Broadcast(nodes int, latency int, peersPerNode int, bandwidth int, blocksize int) (int, int) {
+func Broadcast(nodes int, latency int, peersPerNode int, bandwidth int, blocksize int) (int, int, int) {
 
+	peer.ResetCounter()
 	blocksSentInParallel := bandwidth / blocksize
 
 	for i := 0; i < nodes; i++ {
@@ -21,19 +21,18 @@ func Broadcast(nodes int, latency int, peersPerNode int, bandwidth int, blocksiz
 		computeDistance(peers[i], peersPerNode)
 	}
 
-	SendMessage(peers[0], nodes, blocksSentInParallel)
+	lonelyNodes := SendMessage(peers[0], nodes, blocksSentInParallel)
 
 	ComputePathLatency()
 
 	systemLatency, nrOfHops := ComputeSystemLatencyAndHopNumber()
-	/*for i := range peers {
-		fmt.Printf("Peer %v latency %v path %v \n", peers[i].Nr, peers[i].Latency, peers[i].Path)
-	}*/
 
-	return systemLatency * latency, nrOfHops
+	peers = peers[:0]
+	return systemLatency * latency, nrOfHops, lonelyNodes
 }
 
 func ComputePathLatency() {
+
 	for index := range peers {
 		pathLatency := 0
 		for _, val := range peers[index].Path {
@@ -44,6 +43,7 @@ func ComputePathLatency() {
 }
 
 func ComputeSystemLatencyAndHopNumber() (int, int) {
+
 	systemLatency, nrOfHops := 0, 0
 	for i := range peers {
 		if len(peers[i].Path) > nrOfHops {
@@ -58,8 +58,8 @@ func ComputeSystemLatencyAndHopNumber() (int, int) {
 	return systemLatency, nrOfHops
 }
 
-func SendMessage(user peer.Peer, nodes int, blocksSentInParallel int) {
-
+func SendMessage(user peer.Peer, nodes int, blocksSentInParallel int) int {
+	lonelyNode := 0
 	var totalNodeLatency int
 	var nodesToSend int
 	visited := make([]int, nodes)
@@ -68,7 +68,6 @@ func SendMessage(user peer.Peer, nodes int, blocksSentInParallel int) {
 	visited[user.Nr] = 1
 
 	queue = append(queue, user)
-	tempQueue = append(tempQueue, user)
 
 	for len(queue) != 0 {
 
@@ -88,10 +87,9 @@ func SendMessage(user peer.Peer, nodes int, blocksSentInParallel int) {
 			if visited[neighbor.Nr] == 0 {
 				visited[neighbor.Nr] = 1
 				nodesToSend++
-				neighbor.ParentNode = node.Nr
 				(&neighbor).SetPeerPath(node.Path, node.Nr)
 				queue = append(queue, neighbor)
-				tempQueue = append(tempQueue, neighbor)
+
 			}
 
 		}
@@ -106,7 +104,6 @@ func SendMessage(user peer.Peer, nodes int, blocksSentInParallel int) {
 		for i := range peers {
 			if peers[i].Nr == node.Nr {
 				peers[i].Latency = node.Latency
-				peers[i].ParentNode = node.ParentNode
 				for _, k := range node.Path {
 					peers[i].Path = append(peers[i].Path, k)
 				}
@@ -115,9 +112,18 @@ func SendMessage(user peer.Peer, nodes int, blocksSentInParallel int) {
 
 	}
 
+	for _, val := range visited {
+		if val == 0 {
+			lonelyNode++
+		}
+	}
+
+	return lonelyNode
+
 }
 
 func computeDistance(node peer.Peer, peersPerNode int) {
+
 	distanceToPeers := make([]int, len(peers))
 	distanceMap := make(map[uuid.UUID]int)
 	var nodeID []byte = (node.Id).Bytes()
