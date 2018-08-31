@@ -1,1 +1,1 @@
-# elrond-go
+# elrond-go-sandbox
