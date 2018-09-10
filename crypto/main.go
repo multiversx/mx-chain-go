@@ -1,7 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"gopkg.in/dedis/kyber.v2/group/edwards25519"
+)
+
+var curve = edwards25519.NewBlakeSHA256Ed25519()
 
 func main() {
-	fmt.Println("hello")
+	privateKey := curve.Scalar().Pick(curve.RandomStream())
+	publicKey := curve.Point().Mul(privateKey, curve.Point().Base())
+
+	fmt.Printf("Generated private key: %s\n", privateKey)
+	fmt.Printf("Derived public key: %s\n\n", publicKey)
 }
