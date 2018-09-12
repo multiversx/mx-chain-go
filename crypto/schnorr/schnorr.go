@@ -19,6 +19,7 @@ type Signature struct {
 type Group interface {
 	G() kyber.Point
 	Mul(kyber.Scalar, kyber.Point) kyber.Point
+	Sub(a, b kyber.Point) kyber.Point
 }
 
 type Ed25519Group struct {
@@ -30,6 +31,10 @@ func (group Ed25519Group) G() kyber.Point {
 
 func (group Ed25519Group) Mul(scalar kyber.Scalar, point kyber.Point) kyber.Point {
 	return curve.Point().Mul(scalar, point)
+}
+
+func (group Ed25519Group) Sub(a, b kyber.Point) kyber.Point {
+	return curve.Point().Sub(a, b)
 }
 
 func Hash(s string) kyber.Scalar {
@@ -69,8 +74,8 @@ func PublicKey(m string, S Signature) kyber.Point {
 	e := Hash(m + S.r.String())
 
 	// y = (r - s * G) * (1 / e)
-	y := curve.Point().Sub(S.r, group.Mul(S.s, g))
-	y = curve.Point().Mul(curve.Scalar().Div(curve.Scalar().One(), e), y)
+	y := group.Sub(S.r, group.Mul(S.s, g))
+	y = group.Mul(curve.Scalar().Div(curve.Scalar().One(), e), y)
 
 	return y
 }
@@ -79,14 +84,12 @@ func PublicKey(m string, S Signature) kyber.Point {
 // s: Signature
 // y: Public key
 func Verify(m string, S Signature, y kyber.Point) bool {
-	// Create a generator.
-	g := curve.Point().Base()
 
 	// e = Hash(m || r)
 	e := Hash(m + S.r.String())
 
 	// Attempt to reconstruct 's * G' with a provided signature; s * G = r - e * y
-	sGv := curve.Point().Sub(S.r, group.Mul(e, y))
+	sGv := group.Sub(S.r, group.Mul(e, y))
 
 	// Construct the actual 's * G'
 	sG := group.Mul(S.s, g)
