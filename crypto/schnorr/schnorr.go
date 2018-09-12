@@ -3,6 +3,7 @@ package schnorr
 // https://medium.com/coinmonks/schnorr-signatures-in-go-80a7fbfe0fe4
 
 import (
+	"elrond-go-sandbox/crypto/ed25519"
 	"fmt"
 	"gopkg.in/dedis/kyber.v2"
 	"gopkg.in/dedis/kyber.v2/group/edwards25519"
@@ -26,37 +27,6 @@ type Group interface {
 	Inv(scalar kyber.Scalar) kyber.Scalar
 }
 
-type Ed25519Group struct {
-}
-
-func (group Ed25519Group) G() kyber.Point {
-	return curve.Point().Base()
-}
-
-func (group Ed25519Group) RandomScalar() kyber.Scalar {
-	return curve.Scalar().Pick(curve.RandomStream())
-}
-
-func (group Ed25519Group) Mul(scalar kyber.Scalar, point kyber.Point) kyber.Point {
-	return curve.Point().Mul(scalar, point)
-}
-
-func (group Ed25519Group) PointSub(a, b kyber.Point) kyber.Point {
-	return curve.Point().Sub(a, b)
-}
-
-func (group Ed25519Group) ScalarSub(a, b kyber.Scalar) kyber.Scalar {
-	return curve.Scalar().Sub(a, b)
-}
-
-func (group Ed25519Group) ScalarMul(a, b kyber.Scalar) kyber.Scalar {
-	return curve.Scalar().Mul(a, b)
-}
-
-func (group Ed25519Group) Inv(scalar kyber.Scalar) kyber.Scalar {
-	return curve.Scalar().Div(curve.Scalar().One(), scalar)
-}
-
 func Hash(s string, point kyber.Point) kyber.Scalar {
 	sha256.Reset()
 	sha256.Write([]byte(s + point.String()))
@@ -64,7 +34,7 @@ func Hash(s string, point kyber.Point) kyber.Scalar {
 	return curve.Scalar().SetBytes(sha256.Sum(nil))
 }
 
-var group = Ed25519Group{}
+var group = ed25519.Group{}
 var g = group.G()
 
 // m: Message
