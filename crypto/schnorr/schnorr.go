@@ -22,6 +22,7 @@ type Group interface {
 	Mul(kyber.Scalar, kyber.Point) kyber.Point
 	PointSub(a, b kyber.Point) kyber.Point
 	ScalarSub(a, b kyber.Scalar) kyber.Scalar
+	ScalarMul(scalar kyber.Scalar) kyber.Scalar
 	Inv(scalar kyber.Scalar) kyber.Scalar
 }
 
@@ -46,6 +47,10 @@ func (group Ed25519Group) PointSub(a, b kyber.Point) kyber.Point {
 
 func (group Ed25519Group) ScalarSub(a, b kyber.Scalar) kyber.Scalar {
 	return curve.Scalar().Sub(a, b)
+}
+
+func (group Ed25519Group) ScalarMul(a, b kyber.Scalar) kyber.Scalar {
+	return curve.Scalar().Mul(a, b)
 }
 
 func (group Ed25519Group) Inv(scalar kyber.Scalar) kyber.Scalar {
@@ -76,7 +81,7 @@ func Sign(m string, x kyber.Scalar) Signature {
 	e := Hash(m + r.String())
 
 	// s = k - e * x
-	s := group.ScalarSub(k, curve.Scalar().Mul(e, x))
+	s := group.ScalarSub(k, group.ScalarMul(e, x))
 
 	return Signature{r: r, s: s}
 }
