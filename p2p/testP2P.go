@@ -7,8 +7,7 @@ import "elrond-go-sandbox/p2p/ex08BenchmarkSendPackets"
 //a import "./ex03ONetTesting"
 //a import "./ex04TestDiscovery"
 //a import "./ex05ChatWithGossipPeerDiscovery"
-//a import "./ex06Floodsub"
-//import "./ex07BenchmarkP2P"
+//import "./ex06Floodsub"
 
 func main() {
 	//comment and uncomment which test do you want to run
@@ -31,8 +30,8 @@ func main() {
 	//example 6, test floodsub implementation
 	//ex06Floodsub.Main()
 
-	//example 7, benchmark libP2P against multiple nodes
-	//ex07BenchmarkP2P.Main()
+	//example 7, test peer chat and gossip
+	//ex07ChatWithGossip.Main()
 
 	//example 8, benchmark libP2P against multiple nodes
 	ex08BenchmarkSendPackets.Main()
