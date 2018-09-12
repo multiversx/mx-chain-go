@@ -57,9 +57,9 @@ func (group Ed25519Group) Inv(scalar kyber.Scalar) kyber.Scalar {
 	return curve.Scalar().Div(curve.Scalar().One(), scalar)
 }
 
-func Hash(s string) kyber.Scalar {
+func Hash(s string, point kyber.Point) kyber.Scalar {
 	sha256.Reset()
-	sha256.Write([]byte(s))
+	sha256.Write([]byte(s + point.String()))
 
 	return curve.Scalar().SetBytes(sha256.Sum(nil))
 }
@@ -78,7 +78,7 @@ func Sign(m string, x kyber.Scalar) Signature {
 	r := group.Mul(k, g)
 
 	// Hash(m || r)
-	e := Hash(m + r.String())
+	e := Hash(m, r)
 
 	// s = k - e * x
 	s := group.ScalarSub(k, group.ScalarMul(e, x))
@@ -91,7 +91,7 @@ func Sign(m string, x kyber.Scalar) Signature {
 func PublicKey(m string, S Signature) kyber.Point {
 
 	// e = Hash(m || r)
-	e := Hash(m + S.r.String())
+	e := Hash(m, S.r)
 
 	// y = (r - s * G) * (1 / e)
 	y := group.PointSub(S.r, group.Mul(S.s, g))
@@ -106,7 +106,7 @@ func PublicKey(m string, S Signature) kyber.Point {
 func Verify(m string, S Signature, y kyber.Point) bool {
 
 	// e = Hash(m || r)
-	e := Hash(m + S.r.String())
+	e := Hash(m, S.r)
 
 	// Attempt to reconstruct 's * G' with a provided signature; s * G = r - e * y
 	sGv := group.PointSub(S.r, group.Mul(e, y))
