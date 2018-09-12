@@ -18,6 +18,7 @@ type Signature struct {
 
 type Group interface {
 	G() kyber.Point
+	RandomScalar() kyber.Scalar
 	Mul(kyber.Scalar, kyber.Point) kyber.Point
 	PointSub(a, b kyber.Point) kyber.Point
 	ScalarSub(a, b kyber.Scalar) kyber.Scalar
@@ -28,6 +29,10 @@ type Ed25519Group struct {
 
 func (group Ed25519Group) G() kyber.Point {
 	return curve.Point().Base()
+}
+
+func (group Ed25519Group) RandomScalar() kyber.Scalar {
+	return curve.Scalar().Pick(curve.RandomStream())
 }
 
 func (group Ed25519Group) Mul(scalar kyber.Scalar, point kyber.Point) kyber.Point {
@@ -57,7 +62,7 @@ var g = group.G()
 func Sign(m string, x kyber.Scalar) Signature {
 
 	// Pick a random k from allowed set.
-	k := curve.Scalar().Pick(curve.RandomStream())
+	k := group.RandomScalar()
 
 	// r = k * G (a.k.a the same operation as r = g^k)
 	r := group.Mul(k, g)
