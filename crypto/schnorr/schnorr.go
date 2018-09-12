@@ -16,6 +16,17 @@ type Signature struct {
 	s kyber.Scalar
 }
 
+type Group interface {
+	G() kyber.Point
+}
+
+type Ed25519Group struct {
+}
+
+func (group Ed25519Group) G() kyber.Point {
+	return curve.Point().Base()
+}
+
 func Hash(s string) kyber.Scalar {
 	sha256.Reset()
 	sha256.Write([]byte(s))
@@ -23,11 +34,12 @@ func Hash(s string) kyber.Scalar {
 	return curve.Scalar().SetBytes(sha256.Sum(nil))
 }
 
+var group = Ed25519Group{}
+var g = group.G()
+
 // m: Message
 // x: Private key
 func Sign(m string, x kyber.Scalar) Signature {
-	// Get the base of the curve.
-	g := curve.Point().Base()
 
 	// Pick a random k from allowed set.
 	k := curve.Scalar().Pick(curve.RandomStream())
@@ -47,8 +59,6 @@ func Sign(m string, x kyber.Scalar) Signature {
 // m: Message
 // S: Signature
 func PublicKey(m string, S Signature) kyber.Point {
-	// Create a generator.
-	g := curve.Point().Base()
 
 	// e = Hash(m || r)
 	e := Hash(m + S.r.String())
