@@ -19,7 +19,7 @@ func NewBlock(nonce int, timeStamp string, signature string, hash string, prevha
 	return b
 }
 
-func (b Block) SetNonce(nonce int) {
+func (b *Block) SetNonce(nonce int) {
 	b.nonce = nonce
 }
 
@@ -27,7 +27,7 @@ func (b Block) GetNonce() int {
 	return b.nonce
 }
 
-func (b Block) SetTimeStamp(timeStamp string) {
+func (b *Block) SetTimeStamp(timeStamp string) {
 	b.timeStamp = timeStamp
 }
 
@@ -35,7 +35,7 @@ func (b Block) GetTimeStamp() string {
 	return b.timeStamp
 }
 
-func (b Block) SetSignature(signature string) {
+func (b *Block) SetSignature(signature string) {
 	b.signature = signature
 }
 
@@ -51,7 +51,7 @@ func (b Block) GetHash() string {
 	return b.hash
 }
 
-func (b Block) SetPrevHash(prevHash string) {
+func (b *Block) SetPrevHash(prevHash string) {
 	b.prevHash = prevHash
 }
 
