@@ -3,14 +3,9 @@ package schnorr
 // https://medium.com/coinmonks/schnorr-signatures-in-go-80a7fbfe0fe4
 
 import (
-	"elrond-go-sandbox/crypto/ed25519"
 	"fmt"
 	"gopkg.in/dedis/kyber.v2"
-	"gopkg.in/dedis/kyber.v2/group/edwards25519"
 )
-
-var curve = edwards25519.NewBlakeSHA256Ed25519()
-var sha256 = curve.Hash()
 
 type Signature struct {
 	r kyber.Point
@@ -23,23 +18,17 @@ type Group interface {
 	Mul(kyber.Scalar, kyber.Point) kyber.Point
 	PointSub(a, b kyber.Point) kyber.Point
 	ScalarSub(a, b kyber.Scalar) kyber.Scalar
-	ScalarMul(scalar kyber.Scalar) kyber.Scalar
+	ScalarMul(a, b kyber.Scalar) kyber.Scalar
 	Inv(scalar kyber.Scalar) kyber.Scalar
 }
 
-func Hash(s string, point kyber.Point) kyber.Scalar {
-	sha256.Reset()
-	sha256.Write([]byte(s + point.String()))
-
-	return curve.Scalar().SetBytes(sha256.Sum(nil))
-}
-
-var group = ed25519.Group{}
-var g = group.G()
+type hash func(string, kyber.Point) kyber.Scalar
 
 // m: Message
 // x: Private key
-func Sign(m string, x kyber.Scalar) Signature {
+func Sign(group Group, m string, x kyber.Scalar, h hash) Signature {
+
+	var g = group.G()
 
 	// Pick a random k from allowed set.
 	k := group.RandomScalar()
@@ -48,7 +37,7 @@ func Sign(m string, x kyber.Scalar) Signature {
 	r := group.Mul(k, g)
 
 	// Hash(m || r)
-	e := Hash(m, r)
+	e := h(m, r)
 
 	// s = k - e * x
 	s := group.ScalarSub(k, group.ScalarMul(e, x))
@@ -58,10 +47,12 @@ func Sign(m string, x kyber.Scalar) Signature {
 
 // m: Message
 // S: Signature
-func PublicKey(m string, S Signature) kyber.Point {
+func PublicKey(group Group, m string, S Signature, h hash) kyber.Point {
+
+	var g = group.G()
 
 	// e = Hash(m || r)
-	e := Hash(m, S.r)
+	e := h(m, S.r)
 
 	// y = (r - s * G) * (1 / e)
 	y := group.PointSub(S.r, group.Mul(S.s, g))
@@ -73,10 +64,12 @@ func PublicKey(m string, S Signature) kyber.Point {
 // m: Message
 // s: Signature
 // y: Public key
-func Verify(m string, S Signature, y kyber.Point) bool {
+func Verify(group Group, m string, S Signature, y kyber.Point, h func(string, kyber.Point) kyber.Scalar) bool {
+
+	var g = group.G()
 
 	// e = Hash(m || r)
-	e := Hash(m, S.r)
+	e := h(m, S.r)
 
 	// Attempt to reconstruct 's * G' with a provided signature; s * G = r - e * y
 	sGv := group.PointSub(S.r, group.Mul(e, y))
