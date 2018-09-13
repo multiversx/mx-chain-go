@@ -21,7 +21,7 @@ type hash func(string, kyber.Point) kyber.Scalar
 // x: Private key
 func Sign(group Group, m string, x kyber.Scalar, h hash) (kyber.Point, kyber.Scalar) {
 
-	var g = group.Generator()
+	g := group.Generator()
 
 	k := group.RandomScalar()
 
@@ -37,7 +37,7 @@ func Sign(group Group, m string, x kyber.Scalar, h hash) (kyber.Point, kyber.Sca
 
 func PublicKey(group Group, m string, r kyber.Point, s kyber.Scalar, h hash) kyber.Point {
 
-	var g = group.Generator()
+	g := group.Generator()
 
 	e := h(m, r)
 
@@ -48,7 +48,7 @@ func PublicKey(group Group, m string, r kyber.Point, s kyber.Scalar, h hash) kyb
 // y: Public key
 func Verify(group Group, m string, r kyber.Point, s kyber.Scalar, y kyber.Point, h func(string, kyber.Point) kyber.Scalar) bool {
 
-	var g = group.Generator()
+	g := group.Generator()
 
 	e := h(m, r)
 
