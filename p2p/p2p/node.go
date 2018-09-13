@@ -30,7 +30,7 @@ type Node struct {
 	queue *MessageQueue
 
 	OnMsgRecvBroadcast func(sender *Node, topic string, msg *floodsub.Message)
-	OnMsgRecv          func(sender *Node, peerID string, message string)
+	OnMsgRecv          func(sender *Node, peerID string, m *Message)
 }
 
 func GenSwarm(ctx context.Context, port int) *swarm.Swarm {
@@ -117,21 +117,39 @@ func randPeerNetParamsOrFatal(port int) P2PParams {
 	return *NewP2PParams(port)
 }
 
-func (node *Node) SendDirect(peerID string, message string) {
+func (node *Node) sendDirectRAW(peerID string, message string) error {
 	chanSend, ok := node.chansSend[peerID]
+
 	if !ok {
-		fmt.Printf("Can not send to %v. Not connected?\n", peerID)
-		return
+		return &NodeError{PeerRecv: peerID, PeerSend: node.P2pNode.ID().Pretty(), Err: fmt.Sprintf("Can not send to %v. Not connected?\n", peerID)}
 	}
 
 	select {
 	case chanSend <- message:
 	default:
-		fmt.Printf("Can not send to %v. Pipe full! Message discarded!\n", peerID)
+		return &NodeError{PeerRecv: peerID, PeerSend: node.P2pNode.ID().Pretty(), Err: fmt.Sprintf("Can not send to %v. Pipe full! Message discarded!\n", peerID)}
 	}
+
+	return nil
 }
 
-func (node *Node) Broadcast(message string, excs []string) {
+func (node *Node) SendDirectString(peerID string, message string) error {
+	m := NewMessage(node.P2pNode.ID().Pretty(), message)
+
+	return node.sendDirectRAW(peerID, m.ToJson())
+}
+
+func (node *Node) SendDirectMessage(peerID string, m *Message) error {
+	if m == nil {
+		return &NodeError{PeerRecv: peerID, PeerSend: node.P2pNode.ID().Pretty(), Err: fmt.Sprintf("Can not send NIL message!\n")}
+	}
+
+	return node.sendDirectRAW(peerID, m.ToJson())
+}
+
+func (node *Node) broadcastRAW(message string, excs []string) error {
+	var errFound = &NodeError{}
+
 	for _, pid := range node.P2pNode.Peerstore().Peers() {
 		peerID := peer.ID(pid).Pretty()
 
@@ -151,8 +169,38 @@ func (node *Node) Broadcast(message string, excs []string) {
 			continue
 		}
 
-		node.SendDirect(peerID, message)
+		err := node.sendDirectRAW(peerID, message)
+
+		if err != nil {
+			errNode, _ := err.(*NodeError)
+			errFound.NestedErrors = append(errFound.NestedErrors, *errNode)
+		}
 	}
+
+	if len(errFound.NestedErrors) == 0 {
+		return nil
+	}
+
+	if len(errFound.NestedErrors) == 1 {
+		return &errFound.NestedErrors[0]
+	}
+
+	errFound.Err = "Multiple errors found!"
+	return errFound
+}
+
+func (node *Node) BroadcastString(message string, excs []string) error {
+	m := NewMessage(node.P2pNode.ID().Pretty(), message)
+
+	return node.broadcastRAW(m.ToJson(), excs)
+}
+
+func (node *Node) BroadcastMessage(m *Message, excs []string) error {
+	if m == nil {
+		return &NodeError{PeerRecv: "", PeerSend: node.P2pNode.ID().Pretty(), Err: fmt.Sprintf("Can not broadcast NIL message!\n")}
+	}
+
+	return node.broadcastRAW(m.ToJson(), excs)
 }
 
 func (node *Node) streamHandler(stream libP2PNet.Stream) {
@@ -176,9 +224,16 @@ func (node *Node) streamHandler(stream libP2PNet.Stream) {
 
 			if str != "\n" {
 				str = strings.Trim(str, "\n")
+
+				m := FromJson(str)
+
+				if m == nil {
+					continue
+				}
+
 				sha3 := crypto.SHA3_256.New()
 				base64 := base64.StdEncoding
-				hash := base64.EncodeToString(sha3.Sum([]byte(str)))
+				hash := base64.EncodeToString(sha3.Sum([]byte(m.Payload)))
 
 				if queue.Contains(hash) {
 					continue
@@ -187,7 +242,7 @@ func (node *Node) streamHandler(stream libP2PNet.Stream) {
 				queue.Add(hash)
 
 				if node.OnMsgRecv != nil {
-					node.OnMsgRecv(node, stream.Conn().RemotePeer().Pretty(), str)
+					node.OnMsgRecv(node, stream.Conn().RemotePeer().Pretty(), m)
 				}
 			}
 		}

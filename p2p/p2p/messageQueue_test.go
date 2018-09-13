@@ -79,7 +79,7 @@ func TestMessageQueueMemLeak(t *testing.T) {
 	for {
 		mq.Add(strconv.Itoa(i))
 
-		if time.Now().Sub(timeStart) > time.Second*10 {
+		if time.Now().Sub(timeStart) > time.Second*5 {
 			return
 		}
 

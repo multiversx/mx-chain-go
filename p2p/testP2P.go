@@ -1,6 +1,8 @@
 package main
 
-import "elrond-go-sandbox/p2p/ex08BenchmarkSendPackets"
+import "github.com/ElrondNetwork/elrond-go-sandbox/p2p/ex09BenchmarkDirectSendMultiple"
+
+//import "elrond-go-sandbox/p2p/ex09BenchmarkDirectSendMultiple"
 
 //a import "./ex01ChatLibP2P"
 //a import "./ex02AdvChatLibP2P"
@@ -34,5 +36,7 @@ func main() {
 	//ex07ChatWithGossip.Main()
 
 	//example 8, benchmark libP2P against multiple nodes
-	ex08BenchmarkSendPackets.Main()
+	//ex08BenchmarkSendPackets.Main()
+
+	ex09BenchmarkDirectSendMultiple.Main()
 }
