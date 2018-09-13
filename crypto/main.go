@@ -21,15 +21,15 @@ func main() {
 
 	message := "We're gonna be signing this!"
 
-	signature := schnorr.Sign(group, message, privateKey, ed25519.Hash)
-	fmt.Printf("Signature %s\n\n", signature)
+	r, s := schnorr.Sign(group, message, privateKey, ed25519.Hash)
+	fmt.Printf("Signature (r=%s, s=%s)\n\n", r, s)
 
-	derivedPublicKey := schnorr.PublicKey(group, message, signature, ed25519.Hash)
+	derivedPublicKey := schnorr.PublicKey(group, message, r, s, ed25519.Hash)
 	fmt.Printf("Derived public key: %s\n", derivedPublicKey)
 	fmt.Printf("Are the original and derived public keys the same? %t\n", publicKey.Equal(derivedPublicKey))
-	fmt.Printf("Is the signature legit w.r.t the original public key? %t\n\n", schnorr.Verify(group, message, signature, publicKey, ed25519.Hash))
+	fmt.Printf("Is the signature legit w.r.t the original public key? %t\n\n", schnorr.Verify(group, message, r, s, publicKey, ed25519.Hash))
 
 	fakePublicKey := curve.Point().Mul(curve.Scalar().Neg(curve.Scalar().One()), publicKey)
 	fmt.Printf("Fake public key: %s\n", fakePublicKey)
-	fmt.Printf("Is the signature legit w.r.t a fake public key? %t\n", schnorr.Verify(group, message, signature, fakePublicKey, ed25519.Hash))
+	fmt.Printf("Is the signature legit w.r.t a fake public key? %t\n", schnorr.Verify(group, message, r, s, fakePublicKey, ed25519.Hash))
 }
