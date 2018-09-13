@@ -37,3 +37,12 @@ func (group Group) ScalarMul(a, b kyber.Scalar) kyber.Scalar {
 func (group Group) Inv(scalar kyber.Scalar) kyber.Scalar {
 	return curve.Scalar().Div(curve.Scalar().One(), scalar)
 }
+
+var sha256 = curve.Hash()
+
+func Hash(s string, point kyber.Point) kyber.Scalar {
+	sha256.Reset()
+	sha256.Write([]byte(s + point.String()))
+
+	return curve.Scalar().SetBytes(sha256.Sum(nil))
+}
