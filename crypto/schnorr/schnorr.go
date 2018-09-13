@@ -18,19 +18,15 @@ type Group interface {
 
 type hash func(string, kyber.Point) kyber.Scalar
 
-// m: Message
 // x: Private key
 func Sign(group Group, m string, x kyber.Scalar, h hash) (kyber.Point, kyber.Scalar) {
 
 	var g = group.Generator()
 
-	// Pick a random k from allowed set.
 	k := group.RandomScalar()
 
-	// r = k * G (a.k.a the same operation as r = g^k)
 	r := group.Mul(k, g)
 
-	// Hash(m || r)
 	e := h(m, r)
 
 	// s = k - e * x
@@ -39,38 +35,23 @@ func Sign(group Group, m string, x kyber.Scalar, h hash) (kyber.Point, kyber.Sca
 	return r, s
 }
 
-// m: Message
-// S: Signature
 func PublicKey(group Group, m string, r kyber.Point, s kyber.Scalar, h hash) kyber.Point {
 
 	var g = group.Generator()
 
-	// e = Hash(m || r)
 	e := h(m, r)
 
-	// y = (r - s * G) * (1 / e)
-	y := group.PointSub(r, group.Mul(s, g))
-	y = group.Mul(group.Inv(e), y)
-
-	return y
+	// (1 / e) * (r - s * G)
+	return group.Mul(group.Inv(e), group.PointSub(r, group.Mul(s, g)))
 }
 
-// m: Message
-// s: Signature
 // y: Public key
 func Verify(group Group, m string, r kyber.Point, s kyber.Scalar, y kyber.Point, h func(string, kyber.Point) kyber.Scalar) bool {
 
 	var g = group.Generator()
 
-	// e = Hash(m || r)
 	e := h(m, r)
 
-	// Attempt to reconstruct 's * G' with a provided signature; s * G = r - e * y
-	sGv := group.PointSub(r, group.Mul(e, y))
-
-	// Construct the actual 's * G'
-	sG := group.Mul(s, g)
-
-	// Equality check; ensure signature and public key outputs to s * G.
-	return sG.Equal(sGv)
+	// s * G = r - e * y
+	return group.Mul(s, g).Equal(group.PointSub(r, group.Mul(e, y)))
 }
