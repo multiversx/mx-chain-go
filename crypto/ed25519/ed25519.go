@@ -10,7 +10,7 @@ var curve = edwards25519.NewBlakeSHA256Ed25519()
 type Group struct {
 }
 
-func (group Group) G() kyber.Point {
+func (group Group) Generator() kyber.Point {
 	return curve.Point().Base()
 }
 

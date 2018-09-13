@@ -7,7 +7,7 @@ import (
 )
 
 type Group interface {
-	G() kyber.Point
+	Generator() kyber.Point
 	RandomScalar() kyber.Scalar
 	Mul(kyber.Scalar, kyber.Point) kyber.Point
 	PointSub(a, b kyber.Point) kyber.Point
@@ -22,7 +22,7 @@ type hash func(string, kyber.Point) kyber.Scalar
 // x: Private key
 func Sign(group Group, m string, x kyber.Scalar, h hash) (kyber.Point, kyber.Scalar) {
 
-	var g = group.G()
+	var g = group.Generator()
 
 	// Pick a random k from allowed set.
 	k := group.RandomScalar()
@@ -43,7 +43,7 @@ func Sign(group Group, m string, x kyber.Scalar, h hash) (kyber.Point, kyber.Sca
 // S: Signature
 func PublicKey(group Group, m string, r kyber.Point, s kyber.Scalar, h hash) kyber.Point {
 
-	var g = group.G()
+	var g = group.Generator()
 
 	// e = Hash(m || r)
 	e := h(m, r)
@@ -60,7 +60,7 @@ func PublicKey(group Group, m string, r kyber.Point, s kyber.Scalar, h hash) kyb
 // y: Public key
 func Verify(group Group, m string, r kyber.Point, s kyber.Scalar, y kyber.Point, h func(string, kyber.Point) kyber.Scalar) bool {
 
-	var g = group.G()
+	var g = group.Generator()
 
 	// e = Hash(m || r)
 	e := h(m, r)

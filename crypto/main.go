@@ -12,7 +12,7 @@ var group = ed25519.Group{}
 
 func main() {
 	privateKey := group.RandomScalar()
-	publicKey := group.Mul(privateKey, group.G())
+	publicKey := group.Mul(privateKey, group.Generator())
 
 	fmt.Printf("Generated private key: %s\n", privateKey)
 	fmt.Printf("Derived public key: %s\n\n", publicKey)
@@ -28,7 +28,7 @@ func main() {
 	fmt.Printf("Is the signature legit w.r.t the original public key? %t\n\n", schnorr.Verify(group, message, r, s, publicKey, ed25519.Hash))
 
 	fakePrivateKey := group.RandomScalar()
-	fakePublicKey := group.Mul(fakePrivateKey, group.G())
+	fakePublicKey := group.Mul(fakePrivateKey, group.Generator())
 	fmt.Printf("Fake public key: %s\n", fakePublicKey)
 	fmt.Printf("Is the signature legit w.r.t a fake public key? %t\n", schnorr.Verify(group, message, r, s, fakePublicKey, ed25519.Hash))
 }
