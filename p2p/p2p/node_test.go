@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"github.com/libp2p/go-libp2p-peerstore"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 var counter1 int32
 var counter2 int32
+var counter3 int32
 
 func TestRecreationSameNode(t *testing.T) {
 
@@ -35,29 +37,29 @@ func TestSimpleSend2NodesPingPong(t *testing.T) {
 
 	var val int32 = 0
 
-	node1.OnMsgRecv = func(sender *Node, peerID string, message string) {
-		fmt.Printf("Got message from peerID %v: %v\n", peerID, message)
+	node1.OnMsgRecv = func(sender *Node, peerID string, m *Message) {
+		fmt.Printf("Got message from peerID %v: %v\n", peerID, m.Payload)
 
-		if message == "Ping" {
+		if m.Payload == "Ping" {
 			atomic.AddInt32(&val, 1)
-			sender.SendDirect(peerID, "Pong")
+			sender.SendDirectString(peerID, "Pong")
 		}
 	}
 
-	node2.OnMsgRecv = func(sender *Node, peerID string, message string) {
-		fmt.Printf("Got message from peerID %v: %v\n", peerID, message)
+	node2.OnMsgRecv = func(sender *Node, peerID string, m *Message) {
+		fmt.Printf("Got message from peerID %v: %v\n", peerID, m.Payload)
 
-		if message == "Ping" {
-			sender.SendDirect(peerID, "Pong")
+		if m.Payload == "Ping" {
+			sender.SendDirectString(peerID, "Pong")
 		}
 
-		if message == "Pong" {
+		if m.Payload == "Pong" {
 			atomic.AddInt32(&val, 1)
 		}
 
 	}
 
-	node2.SendDirect(node1.P2pNode.ID().Pretty(), "Ping")
+	node2.SendDirectString(node1.P2pNode.ID().Pretty(), "Ping")
 
 	time.Sleep(time.Second)
 
@@ -70,16 +72,16 @@ func TestSimpleSend2NodesPingPong(t *testing.T) {
 
 }
 
-func recv1(sender *Node, peerID string, message string) {
+func recv1(sender *Node, peerID string, m *Message) {
 	atomic.AddInt32(&counter1, 1)
-	fmt.Printf("%v > %v: Got message from peerID %v: %v\n", time.Now(), sender.P2pNode.ID().Pretty(), peerID, message)
-	sender.Broadcast(message, []string{peerID})
+	fmt.Printf("%v > %v: Got message from peerID %v: %v\n", time.Now(), sender.P2pNode.ID().Pretty(), peerID, m.Payload)
+	sender.BroadcastString(m.Payload, []string{peerID})
 }
 
-func recv2(sender *Node, peerID string, message string) {
+func recv2(sender *Node, peerID string, m *Message) {
 	atomic.AddInt32(&counter2, 1)
-	fmt.Printf("%v > %v: Got message from peerID %v: %v\n", time.Now(), sender.P2pNode.ID().Pretty(), peerID, message)
-	sender.Broadcast(message, []string{peerID})
+	fmt.Printf("%v > %v: Got message from peerID %v: %v\n", time.Now(), sender.P2pNode.ID().Pretty(), peerID, m.Payload)
+	sender.BroadcastString(m.Payload, []string{peerID})
 }
 
 func TestSimpleBroadcast5nodesInline(t *testing.T) {
@@ -102,7 +104,7 @@ func TestSimpleBroadcast5nodesInline(t *testing.T) {
 	fmt.Println()
 	fmt.Println()
 
-	node1.Broadcast("Boo", []string{})
+	node1.BroadcastString("Boo", []string{})
 
 	time.Sleep(time.Second)
 
@@ -140,7 +142,7 @@ func TestSimpleBroadcast5nodesBeterConnected(t *testing.T) {
 	fmt.Println()
 	fmt.Println()
 
-	node1.Broadcast("Boo", []string{})
+	node1.BroadcastString("Boo", []string{})
 
 	time.Sleep(time.Second)
 
@@ -153,4 +155,120 @@ func TestSimpleBroadcast5nodesBeterConnected(t *testing.T) {
 	node3.P2pNode.Close()
 	node4.P2pNode.Close()
 	node5.P2pNode.Close()
+}
+
+func TestMessageHops(t *testing.T) {
+	node1 := CreateNewNode(context.Background(), 8000, []string{})
+	node2 := CreateNewNode(context.Background(), 8001, []string{node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()})
+
+	time.Sleep(time.Second)
+
+	m := NewMessage(node1.P2pNode.ID().Pretty(), "A")
+
+	var recv *Message = nil
+
+	counter3 = 0
+
+	node1.OnMsgRecv = func(sender *Node, peerID string, m *Message) {
+
+		if counter3 < 10 {
+			atomic.AddInt32(&counter3, 1)
+
+			fmt.Printf("Node 1, recv %v, resending...\n", *m)
+			m.AddHop(sender.P2pNode.ID().Pretty())
+			sender.BroadcastMessage(m, []string{})
+
+			recv = m
+		}
+	}
+
+	node2.OnMsgRecv = func(sender *Node, peerID string, m *Message) {
+
+		if counter3 < 10 {
+			atomic.AddInt32(&counter3, 1)
+
+			fmt.Printf("Node 2, recv %v, resending...\n", *m)
+			m.AddHop(sender.P2pNode.ID().Pretty())
+			sender.BroadcastMessage(m, []string{})
+
+			recv = m
+		}
+	}
+
+	node1.BroadcastMessage(m, []string{})
+
+	time.Sleep(time.Second)
+
+	if counter3 != 2 {
+		t.Fatal(fmt.Sprintf("Shuld have been 2 iterations (messageQueue filtering), got %v!", counter3))
+	}
+
+	if recv == nil {
+		t.Fatal("Not broadcasted?")
+	}
+
+	if recv.Hops != 2 {
+		t.Fatal("Hops should have been 2")
+	}
+
+	if recv.Peers[0] != node1.P2pNode.ID().Pretty() {
+		t.Fatal("hop 1 sould have been node's 1")
+	}
+
+	if recv.Peers[1] != node2.P2pNode.ID().Pretty() {
+		t.Fatal("hop 2 sould have been node's 2")
+	}
+
+	if recv.Peers[2] != node1.P2pNode.ID().Pretty() {
+		t.Fatal("hope 3 sould have been node's 1")
+	}
+
+	node1.P2pNode.Close()
+	node2.P2pNode.Close()
+
+}
+
+func TestSendingNilShouldReturnError(t *testing.T) {
+	node1 := CreateNewNode(context.Background(), 9000, []string{})
+
+	err := node1.BroadcastMessage(nil, []string{})
+
+	if err == nil {
+		t.Fatal("Should have received error on broadcasting NIL")
+	}
+
+	err = node1.SendDirectMessage("", nil)
+
+	if err == nil {
+		t.Fatal("Should have received error on sending NIL")
+	}
+}
+
+func TestMultipleErrorsOnBroadcasting(t *testing.T) {
+	node1 := CreateNewNode(context.Background(), 10000, []string{})
+
+	node1.P2pNode.Peerstore().AddAddr("A", node1.P2pNode.Addrs()[0], peerstore.PermanentAddrTTL)
+
+	err := node1.BroadcastString("aaa", []string{})
+
+	if err == nil {
+		t.Fatal("Should have received an error")
+	}
+
+	if len(err.(*NodeError).NestedErrors) != 0 {
+		t.Fatal("Should have had 0 nested errs")
+	}
+
+	node1.P2pNode.Peerstore().AddAddr("B", node1.P2pNode.Addrs()[0], peerstore.PermanentAddrTTL)
+
+	err = node1.BroadcastString("aaa", []string{})
+
+	if err == nil {
+		t.Fatal("Should have received an error")
+	}
+
+	if len(err.(*NodeError).NestedErrors) != 2 {
+		t.Fatal("Should have had 2 nested errs")
+	}
+
 }
