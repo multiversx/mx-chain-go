@@ -8,26 +8,19 @@ import (
 	"fmt"
 	"github.com/ipfs/go-ipfs-addr"
 	"github.com/libp2p/go-floodsub"
-	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-protocol"
-	"github.com/libp2p/go-libp2p/p2p/host/basic"
-	"strings"
-
-	//"github.com/libp2p/go-libp2p"
-	//"github.com/libp2p/go-libp2p-crypto"
-	//"github.com/multiformats/go-multiaddr"
-
 	"github.com/libp2p/go-libp2p-host"
 	"github.com/libp2p/go-libp2p-metrics"
 	libP2PNet "github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
+	"github.com/libp2p/go-libp2p-protocol"
 	"github.com/libp2p/go-libp2p-swarm"
-	tu2 "github.com/libp2p/go-libp2p-swarm/testing"
-	//"github.com/libp2p/go-libp2p/p2p/host/basic"
+	tu "github.com/libp2p/go-libp2p-swarm/testing"
+	"github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/libp2p/go-tcp-transport"
+	"strings"
 	"time"
-	//mrand "math/rand"
 )
 
 type Node struct {
@@ -43,12 +36,12 @@ type Node struct {
 func GenSwarm(ctx context.Context, port int) *swarm.Swarm {
 	p := randPeerNetParamsOrFatal(port)
 
-	ps := pstore.NewPeerstore()
+	ps := pstore.NewPeerstore(pstoremem.NewKeyBook(), pstoremem.NewAddrBook(), pstoremem.NewPeerMetadata())
 	ps.AddPubKey(p.ID, p.PubKey)
 	ps.AddPrivKey(p.ID, p.PrivKey)
 	s := swarm.NewSwarm(ctx, p.ID, ps, metrics.NewBandwidthCounter())
 
-	tcpTransport := tcp.NewTCPTransport(tu2.GenUpgrader(s))
+	tcpTransport := tcp.NewTCPTransport(tu.GenUpgrader(s))
 	tcpTransport.DisableReuseport = false
 
 	if err := s.AddTransport(tcpTransport); err != nil {
@@ -102,7 +95,7 @@ func (node *Node) ConnectToAddresses(ctx context.Context, addresses []string) {
 		if err != nil {
 			panic(err)
 		}
-		pinfo, _ := peerstore.InfoFromP2pAddr(addr.Multiaddr())
+		pinfo, _ := pstore.InfoFromP2pAddr(addr.Multiaddr())
 
 		if err := node.P2pNode.Connect(ctx, *pinfo); err != nil {
 			fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", address, err)

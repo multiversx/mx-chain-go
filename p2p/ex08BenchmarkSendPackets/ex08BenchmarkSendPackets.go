@@ -2,9 +2,9 @@ package ex08BenchmarkSendPackets
 
 import (
 	"context"
-	"elrond-go-sandbox/p2p/config"
-	"elrond-go-sandbox/p2p/p2p"
 	"fmt"
+	"github.com/ElrondNetwork/p2p/config"
+	"github.com/ElrondNetwork/p2p/p2p"
 	"os"
 	"os/signal"
 	"path/filepath"
