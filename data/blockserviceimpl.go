@@ -11,9 +11,9 @@ type BlockServiceImpl struct {
 
 func (BlockServiceImpl) CalculateHash(block Block) string {
 	message := strconv.Itoa(block.GetNonce()) + block.GetTimeStamp() + block.GetMetaData() + block.GetPrevHash()
-	//	return hasher.HasherSha256{""}.CalculateHash(message).(string)
-	var h hasher.IHasher = &hasher.HasherSha256{""}
-	return h.CalculateHash(message).(string)
+	var h hasher.HasherSha256
+	hash := h.CalculateHash(message)
+	return hash.(string)
 }
 
 func (bsi BlockServiceImpl) PrintImpl() {

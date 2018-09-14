@@ -8,8 +8,11 @@ import (
 
 func TestBlock(t *testing.T) {
 
+	var bsi BlockServiceImpl
+
 	block := NewBlock(0, time.Now().String(), "", "", "", "Test")
-	block.SetHash(BlockServiceImpl{}.CalculateHash(block))
+	hash := bsi.CalculateHash(block)
+	block.SetHash(hash)
 
 	if block.GetHash() == "" {
 		t.Fatal("Hash was not set")
