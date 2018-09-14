@@ -39,7 +39,7 @@ func PrepareBuff(sender string, nums int) string {
 }
 
 func recv(sender *p2p.Node, peerID string, m *p2p.Message) {
-	splt := strings.Split(m.Payload, "|")
+	splt := strings.Split(string(m.Payload), "|")
 
 	if len(splt) != 4 {
 		fmt.Println("Malformed message received!")
