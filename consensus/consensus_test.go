@@ -4,5 +4,5 @@ import "testing"
 
 func TestConsensus(t *testing.T) {
 
-	t.Fatal("Eroare")
+	t.Fatal("Error")
 }
