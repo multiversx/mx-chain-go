@@ -1,33 +1,20 @@
 package data
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"github.com/davecgh/go-spew/spew"
-	"strconv"
+	_ "github.com/davecgh/go-spew/spew"
 	"testing"
 	"time"
 )
 
 func TestBlock(t *testing.T) {
 
-	//	block := NewBlock(0, time.Now().String(), "", "", "", "Test")
-	block := Block{0, time.Now().String(), "", "", "", "Test"}
-	x := CalculateBlockHash(block)
-	block.SetHash(x)
+	block := NewBlock(0, time.Now().String(), "", "", "", "Test")
+	block.SetHash(BlockServiceImpl{}.CalculateHash(block))
 
-	if block.GetNonce() != 0 {
-		t.Fatal("Eroare nonce")
+	if block.GetHash() == "" {
+		t.Fatal("Hash was not set")
 	}
 
-	spew.Dump(block)
+	//	spew.Dump(block)
 	block.Print()
-}
-
-func CalculateBlockHash(block Block) string {
-	message := strconv.Itoa(block.GetNonce()) + block.GetTimeStamp() + block.GetMetaData() + block.GetPrevHash()
-	h := sha256.New()
-	h.Write([]byte(message))
-	hashed := h.Sum(nil)
-	return hex.EncodeToString(hashed)
 }
