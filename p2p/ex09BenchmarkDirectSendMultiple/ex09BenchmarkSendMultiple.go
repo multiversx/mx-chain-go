@@ -2,8 +2,8 @@ package ex09BenchmarkDirectSendMultiple
 
 import (
 	"context"
-	"elrond-go-sandbox/p2p/p2p"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/p2p"
 	"github.com/ipfs/go-ipfs-addr"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"os"
@@ -43,15 +43,15 @@ func PrepareBuff(sender string, nums int) string {
 		unix%time.Second.Nanoseconds(), sender, string(buff))
 }
 
-func recv(sender *p2p.Node, peerID string, message string) {
-	splt := strings.Split(message, "|")
+func recv(sender *p2p.Node, peerID string, m *p2p.Message) {
+	splt := strings.Split(m.Payload, "|")
 
 	if splt[0] == "STAT" {
 
-		fmt.Printf("Got stat msg: %v\n", message)
+		fmt.Printf("Got stat msg: %v\n", m.Payload)
 
 		if len(splt) != 5 {
-			fmt.Printf("Malformed stats message received %v\n!", message)
+			fmt.Printf("Malformed stats message received %v\n!", m.Payload)
 			return
 		}
 
@@ -62,7 +62,7 @@ func recv(sender *p2p.Node, peerID string, message string) {
 			val, err := strconv.Atoi(splt[i])
 
 			if err != nil {
-				fmt.Printf("Malformed stats message received %v [%v]\n!", message, err)
+				fmt.Printf("Malformed stats message received %v [%v]\n!", m.Payload, err)
 				return
 			}
 
@@ -80,7 +80,7 @@ func recv(sender *p2p.Node, peerID string, message string) {
 	}
 
 	if len(splt) != 4 {
-		fmt.Printf("Malformed message received %v!\n", message)
+		fmt.Printf("Malformed message received %v!\n", m.Payload)
 		return
 	}
 
@@ -177,7 +177,7 @@ func shutdownHandler(node *p2p.Node, peerID string, chanStop chan os.Signal) {
 		}
 		pinfo, _ := peerstore.InfoFromP2pAddr(addr.Multiaddr())
 
-		node.SendDirect(pinfo.ID.Pretty(), str)
+		node.SendDirectString(pinfo.ID.Pretty(), str)
 
 		time.Sleep(time.Second * 20)
 	}
@@ -255,7 +255,7 @@ func Main() {
 
 		data := PrepareBuff(node.P2pNode.ID().Pretty(), maxPakSize)
 
-		node.Broadcast(data, []string{})
+		node.BroadcastString(data, []string{})
 
 		fmt.Printf("Sent %v bytes...\n", len(data))
 	}
