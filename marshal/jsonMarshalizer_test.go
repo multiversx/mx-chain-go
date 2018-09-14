@@ -14,7 +14,7 @@ type testingJM struct {
 	Arr []int
 }
 
-var marshalizer = Json()
+var marshalizer = &JsonMarshalizer{}
 
 func TestMarshalUnmarshal(t *testing.T) {
 
@@ -42,30 +42,26 @@ func TestMarshalUnmarshal(t *testing.T) {
 }
 
 func TestNullsOnMarshal(t *testing.T) {
-	jm := Json()
-
-	_, err := jm.Marshal(nil)
+	_, err := marshalizer.Marshal(nil)
 
 	assert.NotNil(t, err)
 }
 
 func TestNullsOnUnmarshal(t *testing.T) {
-	jm := Json()
-
 	buff := []byte{}
 
 	//error on nil object
-	err := jm.Unmarshal(nil, buff)
+	err := marshalizer.Unmarshal(nil, buff)
 	assert.NotNil(t, err)
 
 	//error on nil buffer
 	tjm := &testingJM{}
 
-	err = jm.Unmarshal(tjm, nil)
+	err = marshalizer.Unmarshal(tjm, nil)
 	assert.NotNil(t, err)
 
 	//error on empty buff
-	err = jm.Unmarshal(tjm, buff[:])
+	err = marshalizer.Unmarshal(tjm, buff[:])
 	assert.NotNil(t, err)
 }
 

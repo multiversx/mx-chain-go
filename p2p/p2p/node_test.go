@@ -3,7 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/service"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/stretchr/testify/assert"
 	"sync/atomic"
@@ -19,10 +19,10 @@ func TestRecreationSameNode(t *testing.T) {
 
 	port := 4000
 
-	node1, err := CreateNewNode(context.Background(), port, []string{}, marshal.Json())
+	node1, err := CreateNewNode(context.Background(), port, []string{}, service.GetMarshalizerService())
 	assert.Nil(t, err)
 
-	node2, err := CreateNewNode(context.Background(), port, []string{}, marshal.Json())
+	node2, err := CreateNewNode(context.Background(), port, []string{}, service.GetMarshalizerService())
 	assert.Nil(t, err)
 
 	if node1.P2pNode.ID().Pretty() != node2.P2pNode.ID().Pretty() {
@@ -31,13 +31,13 @@ func TestRecreationSameNode(t *testing.T) {
 }
 
 func TestSimpleSend2NodesPingPong(t *testing.T) {
-	node1, err := CreateNewNode(context.Background(), 5000, []string{}, marshal.Json())
+	node1, err := CreateNewNode(context.Background(), 5000, []string{}, service.GetMarshalizerService())
 	assert.Nil(t, err)
 
 	fmt.Println(node1.P2pNode.Addrs()[0].String())
 
 	node2, err := CreateNewNode(context.Background(), 5001, []string{node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()},
-		marshal.Json())
+		service.GetMarshalizerService())
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -94,7 +94,7 @@ func recv2(sender *Node, peerID string, m *Message) {
 func TestSimpleBroadcast5nodesInline(t *testing.T) {
 	counter1 = 0
 
-	marsh := marshal.Json()
+	marsh := service.GetMarshalizerService()
 
 	node1, err := CreateNewNode(context.Background(), 6000, []string{}, marsh)
 	assert.Nil(t, err)
@@ -141,7 +141,7 @@ func TestSimpleBroadcast5nodesInline(t *testing.T) {
 func TestSimpleBroadcast5nodesBeterConnected(t *testing.T) {
 	counter2 = 0
 
-	marsh := marshal.Json()
+	marsh := service.GetMarshalizerService()
 
 	node1, err := CreateNewNode(context.Background(), 7000, []string{}, marsh)
 	assert.Nil(t, err)
@@ -187,7 +187,7 @@ func TestSimpleBroadcast5nodesBeterConnected(t *testing.T) {
 }
 
 func TestMessageHops(t *testing.T) {
-	marsh := marshal.Json()
+	marsh := service.GetMarshalizerService()
 
 	node1, err := CreateNewNode(context.Background(), 8000, []string{}, marsh)
 	assert.Nil(t, err)
@@ -263,7 +263,7 @@ func TestMessageHops(t *testing.T) {
 }
 
 func TestSendingNilShouldReturnError(t *testing.T) {
-	node1, err := CreateNewNode(context.Background(), 9000, []string{}, marshal.Json())
+	node1, err := CreateNewNode(context.Background(), 9000, []string{}, service.GetMarshalizerService())
 	assert.Nil(t, err)
 
 	err = node1.BroadcastMessage(nil, []string{})
@@ -275,7 +275,7 @@ func TestSendingNilShouldReturnError(t *testing.T) {
 }
 
 func TestMultipleErrorsOnBroadcasting(t *testing.T) {
-	node1, err := CreateNewNode(context.Background(), 10000, []string{}, marshal.Json())
+	node1, err := CreateNewNode(context.Background(), 10000, []string{}, service.GetMarshalizerService())
 	assert.Nil(t, err)
 
 	node1.P2pNode.Peerstore().AddAddr("A", node1.P2pNode.Addrs()[0], peerstore.PermanentAddrTTL)

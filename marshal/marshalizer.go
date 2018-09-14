@@ -6,8 +6,8 @@ type Marshalizer interface {
 	Version() string
 }
 
-var jsn = &JsonMarshalizer{}
-
-func Json() Marshalizer {
-	return jsn
-}
+//var jsn = &JsonMarshalizer{}
+//
+//func Json() Marshalizer {
+//	return jsn
+//}

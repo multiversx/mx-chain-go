@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/service"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -109,7 +110,10 @@ func Main() {
 
 	fmt.Printf("Config data read as: %v\n", config)
 
-	node := p2p.CreateNewNode(context.Background(), config.Port, config.Peers)
+	node, err := p2p.CreateNewNode(context.Background(), config.Port, config.Peers, service.GetMarshalizerService())
+	if err != nil {
+		panic(err)
+	}
 	node.OnMsgRecv = recv
 
 	//only seeder sends

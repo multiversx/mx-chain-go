@@ -2,13 +2,13 @@ package p2p
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/service"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestMarshalUnmarshal(t *testing.T) {
-	mrsh := marshal.Json()
+	mrsh := service.GetMarshalizerService()
 
 	m1 := NewMessage("p1", []byte("ABCDEF"), mrsh)
 	fmt.Println("Original:")
@@ -28,7 +28,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 }
 
 func TestAddHop(t *testing.T) {
-	m1 := NewMessage("p1", []byte("ABCDEF"), marshal.Json())
+	m1 := NewMessage("p1", []byte("ABCDEF"), service.GetMarshalizerService())
 
 	if (len(m1.Peers) != 1) || (m1.Hops != 0) {
 		assert.Fail(t, "Should have been 1 peer and 0 hops")
@@ -53,7 +53,7 @@ func TestNewMessageWithNil(t *testing.T) {
 }
 
 func TestMessageWithNilsMarshalizers(t *testing.T) {
-	m := NewMessage("", []byte{}, marshal.Json())
+	m := NewMessage("", []byte{}, service.GetMarshalizerService())
 
 	m.marsh = nil
 
