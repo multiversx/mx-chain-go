@@ -18,6 +18,7 @@ func init() {
 
 func InjectDefaultServices() {
 	PutService("IBlockService", data.BlockServiceImpl{})
+	PutService("IBlockChainService", data.BlockChainServiceImpl{})
 	PutService("Marshalizer", &marshal.JsonMarshalizer{})
 }
 
@@ -36,6 +37,10 @@ func PutService(key interface{}, value interface{}) {
 
 func GetBlockService() data.IBlockService {
 	return GetService("IBlockService").(data.IBlockService)
+}
+
+func GetBlockChainService() data.IBlockChainService {
+	return GetService("IBlockChainService").(data.IBlockChainService)
 }
 
 func GetMarshalizerService() marshal.Marshalizer {

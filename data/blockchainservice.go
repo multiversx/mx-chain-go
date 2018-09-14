@@ -1,5 +1,7 @@
 package data
 
-type BlockChainService interface {
-	AddBlock(BlockChain, Block)
+type IBlockChainService interface {
+	AddBlock(*BlockChain, Block)
+	GetCurrentBlock(*BlockChain) Block
+	Print(*BlockChain)
 }

@@ -9,8 +9,13 @@ import (
 func main() {
 
 	block := data.NewBlock(0, time.Now().String(), "", "", "", "")
-	hash := service.GetBlockService().CalculateHash(block)
+	hash := service.GetBlockService().CalculateHash(&block)
 	block.SetHash(hash)
-	block.Print()
+	service.GetBlockService().Print(&block)
 
+	blockChain := data.NewBlockChain(nil)
+	service.GetBlockChainService().AddBlock(&blockChain, data.NewBlock(0, time.Now().String(), "", "", "", ""))
+	service.GetBlockChainService().AddBlock(&blockChain, data.NewBlock(1, time.Now().String(), "", "", "", ""))
+	service.GetBlockChainService().AddBlock(&blockChain, data.NewBlock(2, time.Now().String(), "", "", "", ""))
+	service.GetBlockChainService().Print(&blockChain)
 }

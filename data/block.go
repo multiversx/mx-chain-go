@@ -1,9 +1,5 @@
 package data
 
-import (
-	"fmt"
-)
-
 type Block struct {
 	nonce     int
 	timeStamp string
@@ -65,8 +61,4 @@ func (b *Block) SetMetaData(metaData string) {
 
 func (b *Block) GetMetaData() string {
 	return b.metaData
-}
-
-func (b *Block) Print() {
-	fmt.Println(b)
 }
