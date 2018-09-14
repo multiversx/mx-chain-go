@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/service"
 	"github.com/ipfs/go-ipfs-addr"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"os"
@@ -44,14 +45,14 @@ func PrepareBuff(sender string, nums int) string {
 }
 
 func recv(sender *p2p.Node, peerID string, m *p2p.Message) {
-	splt := strings.Split(m.Payload, "|")
+	splt := strings.Split(string(m.Payload), "|")
 
 	if splt[0] == "STAT" {
 
-		fmt.Printf("Got stat msg: %v\n", m.Payload)
+		fmt.Printf("Got stat msg: %v\n", string(m.Payload))
 
 		if len(splt) != 5 {
-			fmt.Printf("Malformed stats message received %v\n!", m.Payload)
+			fmt.Printf("Malformed stats message received %v\n!", string(m.Payload))
 			return
 		}
 
@@ -238,7 +239,10 @@ func Main() {
 		i++
 	}
 
-	node := p2p.CreateNewNode(context.Background(), port, peers)
+	node, err := p2p.CreateNewNode(context.Background(), port, peers, service.GetMarshalizerService())
+	if err != nil {
+		panic(err)
+	}
 	node.OnMsgRecv = recv
 
 	go shutdownHandler(node, masterPeerID, chanStop)
