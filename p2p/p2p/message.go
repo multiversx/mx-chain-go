@@ -1,33 +1,45 @@
 package p2p
 
-import "encoding/json"
+import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/pkg/errors"
+)
 
 type Message struct {
-	Payload string
+	marsh   *marshal.Marshalizer
+	Payload []byte
 
 	Hops  int
 	Peers []string
 }
 
-func NewMessage(peerID string, payload string) *Message {
-	return &Message{Payload: payload, Hops: 0, Peers: []string{peerID}}
-}
-
-func (m *Message) ToJson() string {
-	b, err := json.Marshal(m)
-
-	if err != nil {
-		panic(err)
+func NewMessage(peerID string, payload []byte, mrsh marshal.Marshalizer) *Message {
+	if mrsh == nil {
+		panic("Nil marshalizer when creating a new Message!")
 	}
 
-	return string(b)
+	return &Message{Payload: payload, Hops: 0, Peers: []string{peerID}, marsh: &mrsh}
 }
 
-func FromJson(s string) *Message {
-	m := Message{}
-	json.Unmarshal([]byte(s), &m)
+func (m *Message) ToByteArray() ([]byte, error) {
+	if m.marsh == nil {
+		return nil, errors.New("Uninitialized marshalizer!")
+	}
 
-	return &m
+	return (*m.marsh).Marshal(m)
+}
+
+func CreateFromByteArray(mrsh marshal.Marshalizer, buff []byte) (*Message, error) {
+	m := &Message{}
+	m.marsh = &mrsh
+
+	if mrsh == nil {
+		return nil, errors.New("Uninitialized marshalizer!")
+	}
+
+	err := mrsh.Unmarshal(m, buff)
+
+	return m, err
 }
 
 func (m *Message) AddHop(peerID string) {

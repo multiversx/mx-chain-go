@@ -6,6 +6,7 @@ import (
 	"crypto"
 	"encoding/base64"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ipfs/go-ipfs-addr"
 	"github.com/libp2p/go-floodsub"
 	"github.com/libp2p/go-libp2p-host"
@@ -19,21 +20,22 @@ import (
 	tu "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/libp2p/go-libp2p/p2p/host/basic"
 	"github.com/libp2p/go-tcp-transport"
-	"strings"
+	"github.com/pkg/errors"
 	"time"
 )
 
 type Node struct {
-	P2pNode   host.Host
-	chansSend map[string]chan string
+	P2pNode host.Host
 
-	queue *MessageQueue
+	chansSend map[string]chan []byte
+	queue     *MessageQueue
+	marsh     marshal.Marshalizer
 
 	OnMsgRecvBroadcast func(sender *Node, topic string, msg *floodsub.Message)
 	OnMsgRecv          func(sender *Node, peerID string, m *Message)
 }
 
-func GenSwarm(ctx context.Context, port int) *swarm.Swarm {
+func GenSwarm(ctx context.Context, port int) (*swarm.Swarm, error) {
 	p := randPeerNetParamsOrFatal(port)
 
 	ps := pstore.NewPeerstore(pstoremem.NewKeyBook(), pstoremem.NewAddrBook(), pstoremem.NewPeerMetadata())
@@ -44,25 +46,35 @@ func GenSwarm(ctx context.Context, port int) *swarm.Swarm {
 	tcpTransport := tcp.NewTCPTransport(tu.GenUpgrader(s))
 	tcpTransport.DisableReuseport = false
 
-	if err := s.AddTransport(tcpTransport); err != nil {
-		panic(err)
+	err := s.AddTransport(tcpTransport)
+	if err != nil {
+		return nil, err
 	}
 
-	if err := s.Listen(p.Addr); err != nil {
-		panic(err)
+	err = s.Listen(p.Addr)
+	if err != nil {
+		return nil, err
 	}
 
 	s.Peerstore().AddAddrs(p.ID, s.ListenAddresses(), pstore.PermanentAddrTTL)
 
-	return s
+	return s, nil
 }
 
-func CreateNewNode(ctx context.Context, port int, addresses []string) *Node {
+func CreateNewNode(ctx context.Context, port int, addresses []string, mrsh marshal.Marshalizer) (*Node, error) {
+	if mrsh == nil {
+		return nil, errors.New("Marshalizer is nil! Can't create node!")
+	}
+
 	var node Node
+	node.marsh = mrsh
 
 	timeStart := time.Now()
 
-	netw := GenSwarm(ctx, port)
+	netw, err := GenSwarm(ctx, port)
+	if err != nil {
+		return nil, err
+	}
 	h := basichost.New(netw)
 
 	fmt.Printf("Node: %v has the following addr table: \n", h.ID().Pretty())
@@ -75,14 +87,14 @@ func CreateNewNode(ctx context.Context, port int, addresses []string) *Node {
 	fmt.Printf("Created node in %v\n", time.Now().Sub(timeStart))
 
 	node.P2pNode = h
-	node.chansSend = make(map[string](chan string))
+	node.chansSend = make(map[string](chan []byte))
 	node.queue = NewMessageQueue(50000)
 
 	node.addRWHandlers("benchmark/nolimit/1.0.0.0")
 
 	node.ConnectToAddresses(ctx, addresses)
 
-	return &node
+	return &node, nil
 }
 
 func (node *Node) ConnectToAddresses(ctx context.Context, addresses []string) {
@@ -117,7 +129,7 @@ func randPeerNetParamsOrFatal(port int) P2PParams {
 	return *NewP2PParams(port)
 }
 
-func (node *Node) sendDirectRAW(peerID string, message string) error {
+func (node *Node) sendDirectRAW(peerID string, buff []byte) error {
 	chanSend, ok := node.chansSend[peerID]
 
 	if !ok {
@@ -125,7 +137,7 @@ func (node *Node) sendDirectRAW(peerID string, message string) error {
 	}
 
 	select {
-	case chanSend <- message:
+	case chanSend <- buff:
 	default:
 		return &NodeError{PeerRecv: peerID, PeerSend: node.P2pNode.ID().Pretty(), Err: fmt.Sprintf("Can not send to %v. Pipe full! Message discarded!\n", peerID)}
 	}
@@ -133,10 +145,19 @@ func (node *Node) sendDirectRAW(peerID string, message string) error {
 	return nil
 }
 
-func (node *Node) SendDirectString(peerID string, message string) error {
-	m := NewMessage(node.P2pNode.ID().Pretty(), message)
+func (node *Node) SendDirectBuff(peerID string, buff []byte) error {
+	m := NewMessage(node.P2pNode.ID().Pretty(), buff, node.marsh)
 
-	return node.sendDirectRAW(peerID, m.ToJson())
+	buff, err := m.ToByteArray()
+	if err != nil {
+		return &NodeError{PeerRecv: peerID, PeerSend: node.P2pNode.ID().Pretty(), Err: err.Error()}
+	}
+
+	return node.sendDirectRAW(peerID, buff)
+}
+
+func (node *Node) SendDirectString(peerID string, message string) error {
+	return node.SendDirectBuff(peerID, []byte(message))
 }
 
 func (node *Node) SendDirectMessage(peerID string, m *Message) error {
@@ -144,10 +165,15 @@ func (node *Node) SendDirectMessage(peerID string, m *Message) error {
 		return &NodeError{PeerRecv: peerID, PeerSend: node.P2pNode.ID().Pretty(), Err: fmt.Sprintf("Can not send NIL message!\n")}
 	}
 
-	return node.sendDirectRAW(peerID, m.ToJson())
+	buff, err := m.ToByteArray()
+	if err != nil {
+		return &NodeError{PeerRecv: peerID, PeerSend: node.P2pNode.ID().Pretty(), Err: err.Error()}
+	}
+
+	return node.sendDirectRAW(peerID, buff)
 }
 
-func (node *Node) broadcastRAW(message string, excs []string) error {
+func (node *Node) broadcastRAW(buff []byte, excs []string) error {
 	var errFound = &NodeError{}
 
 	for _, pid := range node.P2pNode.Peerstore().Peers() {
@@ -169,7 +195,7 @@ func (node *Node) broadcastRAW(message string, excs []string) error {
 			continue
 		}
 
-		err := node.sendDirectRAW(peerID, message)
+		err := node.sendDirectRAW(peerID, buff)
 
 		if err != nil {
 			errNode, _ := err.(*NodeError)
@@ -189,10 +215,19 @@ func (node *Node) broadcastRAW(message string, excs []string) error {
 	return errFound
 }
 
-func (node *Node) BroadcastString(message string, excs []string) error {
-	m := NewMessage(node.P2pNode.ID().Pretty(), message)
+func (node *Node) BroadcastBuff(buff []byte, excs []string) error {
+	m := NewMessage(node.P2pNode.ID().Pretty(), buff, node.marsh)
 
-	return node.broadcastRAW(m.ToJson(), excs)
+	buff, err := m.ToByteArray()
+	if err != nil {
+		return &NodeError{PeerRecv: "", PeerSend: node.P2pNode.ID().Pretty(), Err: err.Error()}
+	}
+
+	return node.broadcastRAW(buff, excs)
+}
+
+func (node *Node) BroadcastString(message string, excs []string) error {
+	return node.BroadcastBuff([]byte(message), excs)
 }
 
 func (node *Node) BroadcastMessage(m *Message, excs []string) error {
@@ -200,7 +235,12 @@ func (node *Node) BroadcastMessage(m *Message, excs []string) error {
 		return &NodeError{PeerRecv: "", PeerSend: node.P2pNode.ID().Pretty(), Err: fmt.Sprintf("Can not broadcast NIL message!\n")}
 	}
 
-	return node.broadcastRAW(m.ToJson(), excs)
+	buff, err := m.ToByteArray()
+	if err != nil {
+		return &NodeError{PeerRecv: "", PeerSend: node.P2pNode.ID().Pretty(), Err: err.Error()}
+	}
+
+	return node.broadcastRAW(buff, excs)
 }
 
 func (node *Node) streamHandler(stream libP2PNet.Stream) {
@@ -208,7 +248,7 @@ func (node *Node) streamHandler(stream libP2PNet.Stream) {
 
 	chanSend, ok := node.chansSend[peerID]
 	if !ok {
-		chanSend = make(chan string, 10000)
+		chanSend = make(chan []byte, 10000)
 		node.chansSend[peerID] = chanSend
 	}
 
@@ -216,43 +256,48 @@ func (node *Node) streamHandler(stream libP2PNet.Stream) {
 
 	go func(rw *bufio.ReadWriter, queue *MessageQueue) {
 		for {
-			str, _ := rw.ReadString('\n')
+			buff, _ := rw.ReadBytes(byte('\n'))
 
-			if str == "" {
+			if len(buff) == 0 {
 				continue
 			}
 
-			if str != "\n" {
-				str = strings.Trim(str, "\n")
+			if (len(buff) == 1) && (buff[0] == byte('\n')) {
+				continue
+			}
 
-				m := FromJson(str)
+			if buff[len(buff)-1] == byte('\n') {
+				buff = buff[0 : len(buff)-1]
+			}
 
-				if m == nil {
-					continue
-				}
+			m, err := CreateFromByteArray(node.marsh, buff)
 
-				sha3 := crypto.SHA3_256.New()
-				base64 := base64.StdEncoding
-				hash := base64.EncodeToString(sha3.Sum([]byte(m.Payload)))
+			if err != nil {
+				continue
+			}
 
-				if queue.Contains(hash) {
-					continue
-				}
+			sha3 := crypto.SHA3_256.New()
+			base64 := base64.StdEncoding
+			hash := base64.EncodeToString(sha3.Sum([]byte(m.Payload)))
 
-				queue.Add(hash)
+			if queue.Contains(hash) {
+				continue
+			}
 
-				if node.OnMsgRecv != nil {
-					node.OnMsgRecv(node, stream.Conn().RemotePeer().Pretty(), m)
-				}
+			queue.Add(hash)
+
+			if node.OnMsgRecv != nil {
+				node.OnMsgRecv(node, stream.Conn().RemotePeer().Pretty(), m)
 			}
 		}
+
 	}(rw, node.queue)
 
-	go func(rw *bufio.ReadWriter, chanSend chan string) {
+	go func(rw *bufio.ReadWriter, chanSend chan []byte) {
 		for {
 			data := <-chanSend
 
-			rw.WriteString(fmt.Sprintf("%s\n", data))
+			rw.Write(append(data, byte('\n')))
 			rw.Flush()
 		}
 	}(rw, chanSend)
