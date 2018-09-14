@@ -37,8 +37,8 @@ func PrepareBuff(sender string, nums int) string {
 		unix%time.Second.Nanoseconds(), sender, string(buff))
 }
 
-func recv(sender *p2p.Node, peerID string, message string) {
-	splt := strings.Split(message, "|")
+func recv(sender *p2p.Node, peerID string, m *p2p.Message) {
+	splt := strings.Split(m.Payload, "|")
 
 	if len(splt) != 4 {
 		fmt.Println("Malformed message received!")
@@ -48,7 +48,7 @@ func recv(sender *p2p.Node, peerID string, message string) {
 	tstamp1, _ := strconv.Atoi(splt[0])
 	tstamp2, _ := strconv.Atoi(splt[1])
 	senderMsg := splt[2]
-	num := len(message)
+	num := len(m.Payload)
 
 	duration := time.Now().Sub(time.Unix(int64(tstamp1), int64(tstamp2)))
 
@@ -118,7 +118,7 @@ func Main() {
 
 		data := PrepareBuff(node.P2pNode.ID().Pretty(), config.Size)
 
-		node.Broadcast(data, []string{})
+		node.BroadcastString(data, []string{})
 
 		fmt.Printf("Sent %v bytes...\n", len(data))
 	}
