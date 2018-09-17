@@ -7,11 +7,7 @@ import "elrond-go-sandbox/crypto/math"
 type hash func(string, math.Point) math.Scalar
 
 // x: Private key
-func Sign(group math.Group, m string, x math.Scalar, h hash) (math.Point, math.Scalar) {
-
-	g := group.Generator()
-
-	k := group.RandomScalar()
+func Sign(group math.Group, g math.Point, k math.Scalar, m string, x math.Scalar, h hash) (math.Point, math.Scalar) {
 
 	r := group.Mul(k, g)
 
@@ -23,9 +19,7 @@ func Sign(group math.Group, m string, x math.Scalar, h hash) (math.Point, math.S
 	return r, s
 }
 
-func PublicKey(group math.Group, m string, r math.Point, s math.Scalar, h hash) math.Point {
-
-	g := group.Generator()
+func PublicKey(group math.Group, g math.Point, m string, r math.Point, s math.Scalar, h hash) math.Point {
 
 	e := h(m, r)
 
@@ -34,9 +28,7 @@ func PublicKey(group math.Group, m string, r math.Point, s math.Scalar, h hash) 
 }
 
 // y: Public key
-func Verify(group math.Group, m string, r math.Point, s math.Scalar, y math.Point, h hash) bool {
-
-	g := group.Generator()
+func Verify(group math.Group, g math.Point, m string, r math.Point, s math.Scalar, y math.Point, h hash) bool {
 
 	e := h(m, r)
 

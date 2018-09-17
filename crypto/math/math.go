@@ -5,8 +5,6 @@ type Point interface{}
 type Scalar interface{}
 
 type Group interface {
-	Generator() Point
-	RandomScalar() Scalar
 	Mul(Scalar, Point) Point
 	PointSub(a, b Point) Point
 	ScalarSub(a, b Scalar) Scalar
