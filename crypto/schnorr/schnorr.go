@@ -14,6 +14,7 @@ type Group interface {
 	ScalarSub(a, b kyber.Scalar) kyber.Scalar
 	ScalarMul(a, b kyber.Scalar) kyber.Scalar
 	Inv(scalar kyber.Scalar) kyber.Scalar
+	Equal(a, b kyber.Point) bool
 }
 
 type hash func(string, kyber.Point) kyber.Scalar
@@ -53,5 +54,5 @@ func Verify(group Group, m string, r kyber.Point, s kyber.Scalar, y kyber.Point,
 	e := h(m, r)
 
 	// s * G = r - e * y
-	return group.Mul(s, g).Equal(group.PointSub(r, group.Mul(e, y)))
+	return group.Equal(group.Mul(s, g), group.PointSub(r, group.Mul(e, y)))
 }
