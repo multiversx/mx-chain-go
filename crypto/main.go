@@ -24,7 +24,7 @@ func main() {
 
 	derivedPublicKey := schnorr.PublicKey(group, message, r, s, ed25519.Hash)
 	fmt.Printf("Derived public key: %s\n", derivedPublicKey)
-	fmt.Printf("Are the original and derived public keys the same? %t\n", publicKey.Equal(derivedPublicKey))
+	fmt.Printf("Are the original and derived public keys the same? %t\n", group.Equal(publicKey, derivedPublicKey))
 	fmt.Printf("Is the signature legit w.r.t the original public key? %t\n\n", schnorr.Verify(group, message, r, s, publicKey, ed25519.Hash))
 
 	fakePrivateKey := group.RandomScalar()
