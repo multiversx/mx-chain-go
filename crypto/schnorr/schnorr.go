@@ -46,7 +46,7 @@ func PublicKey(group Group, m string, r kyber.Point, s kyber.Scalar, h hash) kyb
 }
 
 // y: Public key
-func Verify(group Group, m string, r kyber.Point, s kyber.Scalar, y kyber.Point, h func(string, kyber.Point) kyber.Scalar) bool {
+func Verify(group Group, m string, r kyber.Point, s kyber.Scalar, y kyber.Point, h hash) bool {
 
 	g := group.Generator()
 
