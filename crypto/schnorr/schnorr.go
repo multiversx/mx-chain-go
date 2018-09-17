@@ -1,26 +1,13 @@
 package schnorr
 
+import "elrond-go-sandbox/crypto/math"
+
 // https://medium.com/coinmonks/schnorr-signatures-in-go-80a7fbfe0fe4
 
-type Point interface{}
-
-type Scalar interface{}
-
-type Group interface {
-	Generator() Point
-	RandomScalar() Scalar
-	Mul(Scalar, Point) Point
-	PointSub(a, b Point) Point
-	ScalarSub(a, b Scalar) Scalar
-	ScalarMul(a, b Scalar) Scalar
-	Inv(scalar Scalar) Scalar
-	Equal(a, b Point) bool
-}
-
-type hash func(string, Point) Scalar
+type hash func(string, math.Point) math.Scalar
 
 // x: Private key
-func Sign(group Group, m string, x Scalar, h hash) (Point, Scalar) {
+func Sign(group math.Group, m string, x math.Scalar, h hash) (math.Point, math.Scalar) {
 
 	g := group.Generator()
 
@@ -36,7 +23,7 @@ func Sign(group Group, m string, x Scalar, h hash) (Point, Scalar) {
 	return r, s
 }
 
-func PublicKey(group Group, m string, r Point, s Scalar, h hash) Point {
+func PublicKey(group math.Group, m string, r math.Point, s math.Scalar, h hash) math.Point {
 
 	g := group.Generator()
 
@@ -47,7 +34,7 @@ func PublicKey(group Group, m string, r Point, s Scalar, h hash) Point {
 }
 
 // y: Public key
-func Verify(group Group, m string, r Point, s Scalar, y Point, h hash) bool {
+func Verify(group math.Group, m string, r math.Point, s math.Scalar, y math.Point, h hash) bool {
 
 	g := group.Generator()
 
