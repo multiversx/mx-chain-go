@@ -6,32 +6,44 @@ import "elrond-go-sandbox/crypto/math"
 
 type hash func(string, math.Point) math.Scalar
 
+type signature struct {
+	group math.Group
+	h     hash
+}
+
+func NewSig(group math.Group, h hash) *signature {
+	sig := new(signature)
+	sig.group = group
+	sig.h = h
+	return sig
+}
+
 // x: Private key
-func Sign(group math.Group, g math.Point, k math.Scalar, m string, x math.Scalar, h hash) (math.Point, math.Scalar) {
+func (sig signature) Sign(g math.Point, k math.Scalar, m string, x math.Scalar) (math.Point, math.Scalar) {
 
-	r := group.Mul(k, g)
+	r := sig.group.Mul(k, g)
 
-	e := h(m, r)
+	e := sig.h(m, r)
 
 	// s = k - e * x
-	s := group.ScalarSub(k, group.ScalarMul(e, x))
+	s := sig.group.ScalarSub(k, sig.group.ScalarMul(e, x))
 
 	return r, s
 }
 
-func PublicKey(group math.Group, g math.Point, m string, r math.Point, s math.Scalar, h hash) math.Point {
+func (sig signature) PublicKey(g math.Point, m string, r math.Point, s math.Scalar) math.Point {
 
-	e := h(m, r)
+	e := sig.h(m, r)
 
 	// (1 / e) * (r - s * G)
-	return group.Mul(group.Inv(e), group.PointSub(r, group.Mul(s, g)))
+	return sig.group.Mul(sig.group.Inv(e), sig.group.PointSub(r, sig.group.Mul(s, g)))
 }
 
 // y: Public key
-func Verify(group math.Group, g math.Point, m string, r math.Point, s math.Scalar, y math.Point, h hash) bool {
+func (sig signature) Verify(g math.Point, m string, r math.Point, s math.Scalar, y math.Point) bool {
 
-	e := h(m, r)
+	e := sig.h(m, r)
 
 	// s * G = r - e * y
-	return group.Equal(group.Mul(s, g), group.PointSub(r, group.Mul(e, y)))
+	return sig.group.Equal(sig.group.Mul(s, g), sig.group.PointSub(r, sig.group.Mul(e, y)))
 }

@@ -23,8 +23,16 @@ func (group Group) Mul(scalar math.Scalar, point math.Point) math.Point {
 	return curve.Point().Mul(scalar.(kyber.Scalar), point.(kyber.Point))
 }
 
+func (group Group) PointAdd(a, b math.Point) math.Point {
+	return curve.Point().Add(a.(kyber.Point), b.(kyber.Point))
+}
+
 func (group Group) PointSub(a, b math.Point) math.Point {
 	return curve.Point().Sub(a.(kyber.Point), b.(kyber.Point))
+}
+
+func (group Group) ScalarAdd(a, b math.Scalar) math.Scalar {
+	return curve.Scalar().Add(a.(kyber.Scalar), b.(kyber.Scalar))
 }
 
 func (group Group) ScalarSub(a, b math.Scalar) math.Scalar {

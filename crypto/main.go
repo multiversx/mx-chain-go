@@ -9,6 +9,8 @@ import (
 )
 
 var group = ed25519.Group{}
+var hash = ed25519.Hash
+var sig = schnorr.NewSig(group, hash)
 
 func main() {
 	privateKey := group.RandomScalar()
@@ -22,16 +24,16 @@ func main() {
 	g := group.Generator()
 	k := group.RandomScalar()
 
-	r, s := schnorr.Sign(group, g, k, message, privateKey, ed25519.Hash)
+	r, s := sig.Sign(g, k, message, privateKey)
 	fmt.Printf("Signature (r=%s, s=%s)\n\n", r, s)
 
-	derivedPublicKey := schnorr.PublicKey(group, g, message, r, s, ed25519.Hash)
+	derivedPublicKey := sig.PublicKey(g, message, r, s)
 	fmt.Printf("Derived public key: %s\n", derivedPublicKey)
 	fmt.Printf("Are the original and derived public keys the same? %t\n", group.Equal(publicKey, derivedPublicKey))
-	fmt.Printf("Is the signature legit w.r.t the original public key? %t\n\n", schnorr.Verify(group, g, message, r, s, publicKey, ed25519.Hash))
+	fmt.Printf("Is the signature legit w.r.t the original public key? %t\n\n", sig.Verify(g, message, r, s, publicKey))
 
 	fakePrivateKey := group.RandomScalar()
 	fakePublicKey := group.Mul(fakePrivateKey, group.Generator())
 	fmt.Printf("Fake public key: %s\n", fakePublicKey)
-	fmt.Printf("Is the signature legit w.r.t a fake public key? %t\n", schnorr.Verify(group, g, message, r, s, fakePublicKey, ed25519.Hash))
+	fmt.Printf("Is the signature legit w.r.t a fake public key? %t\n", sig.Verify(g, message, r, s, fakePublicKey))
 }
