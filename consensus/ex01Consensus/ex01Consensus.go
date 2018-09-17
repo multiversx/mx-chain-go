@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+var CONSENSUS_GROUP_SIZE = 21
+var ROUND_TIME = 4
+var SELF_ID = 1
+
 func main() {
 
 	block := data.NewBlock(0, time.Now().String(), "", "", "", "")

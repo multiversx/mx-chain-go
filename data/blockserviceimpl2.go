@@ -12,7 +12,7 @@ type BlockServiceImpl2 struct {
 
 func (BlockServiceImpl2) CalculateHash(block *Block) string {
 	message := strconv.Itoa(block.GetNonce()) + block.GetMetaData() + block.GetPrevHash()
-	var h hasher.HasherSha256
+	var h hasher.Sha256Impl
 	hash := h.CalculateHash(message)
 	return hash.(string)
 }
