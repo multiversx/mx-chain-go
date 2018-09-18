@@ -17,15 +17,15 @@ func NewSig(group math.Group, h hash) *signature {
 }
 
 // ei: Private keys
-func (sig signature) Sign(g math.Point, k []math.Scalar, L math.Scalar, Pi []math.Point, m string, ei []math.Scalar) (math.Point, math.Scalar) {
+func (sig signature) Sign(g math.Point, ki []math.Scalar, L math.Scalar, Pi []math.Point, m string, ei []math.Scalar) (math.Point, math.Scalar) {
 
-	ri := sig.mulRange(k, g)
+	ri := sig.mulRange(ki, g)
 
 	r := sig.sumPoints(ri)
 
 	ci := sig.hRange(L, Pi, r, m)
 
-	si := sig.sumScalarRange(k, ci, ei)
+	si := sig.sumScalarRange(ki, ci, ei)
 
 	s := sig.sumScalar(si)
 
