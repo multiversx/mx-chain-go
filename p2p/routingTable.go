@@ -176,6 +176,27 @@ func (rt *RoutingTable) NearestPeers(maxNo int) []peer.ID {
 	return peers
 }
 
+func (rt *RoutingTable) NearestPeersAll() []peer.ID {
+	peers := []peer.ID{}
+
+	for i := 0; i < len(rt.dists3); i++ {
+		//get the peers by using the distance as key.
+		//started from smallest
+		distPeers := rt.dists1[rt.dists3[i]]
+
+		for j := 0; j < len(distPeers); j++ {
+			if distPeers[j] == rt.current {
+				//ignore current peer
+				continue
+			}
+
+			peers = append(peers, distPeers[j])
+		}
+	}
+
+	return peers
+}
+
 func (rt *RoutingTable) Print() {
 	for _, dist := range rt.dists3 {
 		fmt.Printf("Distance %d:\n", dist)

@@ -185,7 +185,7 @@ func TestClosestPeers(t *testing.T) {
 }
 
 func TestLargeSetOfPeers(t *testing.T) {
-	node, err := NewNode(context.Background(), 4000, []string{}, service.GetMarshalizerService())
+	node, err := NewNode(context.Background(), 4000, []string{}, service.GetMarshalizerService(), 10000)
 
 	assert.Nil(t, err)
 
