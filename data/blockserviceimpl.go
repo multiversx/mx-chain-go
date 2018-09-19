@@ -3,19 +3,24 @@ package data
 import (
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hasher"
+	"github.com/davecgh/go-spew/spew"
 	"strconv"
 )
 
 type BlockServiceImpl struct {
 }
 
-func (BlockServiceImpl) CalculateHash(block Block) string {
+func (BlockServiceImpl) CalculateHash(block *Block) string {
 	message := strconv.Itoa(block.GetNonce()) + block.GetTimeStamp() + block.GetMetaData() + block.GetPrevHash()
-	//	return hasher.HasherSha256{""}.CalculateHash(message).(string)
-	var h hasher.IHasher = &hasher.HasherSha256{""}
-	return h.CalculateHash(message).(string)
+	var h hasher.Sha256Impl
+	hash := h.CalculateHash(message)
+	return hash.(string)
 }
 
 func (bsi BlockServiceImpl) PrintImpl() {
 	fmt.Printf("Implementation type: %T\n", bsi)
+}
+
+func (BlockServiceImpl) Print(block *Block) {
+	spew.Dump(block)
 }

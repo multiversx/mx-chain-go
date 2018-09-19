@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hasher"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
@@ -18,6 +19,8 @@ func init() {
 
 func InjectDefaultServices() {
 	PutService("IBlockService", data.BlockServiceImpl{})
+	PutService("IBlockChainService", data.BlockChainServiceImpl{})
+	PutService("IHasherService", hasher.Sha256Impl{})
 	PutService("Marshalizer", &marshal.JsonMarshalizer{})
 }
 
@@ -36,6 +39,14 @@ func PutService(key interface{}, value interface{}) {
 
 func GetBlockService() data.IBlockService {
 	return GetService("IBlockService").(data.IBlockService)
+}
+
+func GetBlockChainService() data.IBlockChainService {
+	return GetService("IBlockChainService").(data.IBlockChainService)
+}
+
+func GetHasherService() hasher.IHasherService {
+	return GetService("IHasherService").(hasher.IHasherService)
 }
 
 func GetMarshalizerService() marshal.Marshalizer {

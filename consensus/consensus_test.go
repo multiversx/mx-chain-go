@@ -1,8 +1,12 @@
 package consensus
 
-import "testing"
+import (
+	"testing"
+)
 
-func TestConsensus(t *testing.T) {
+func TestAnswerType(t *testing.T) {
 
-	t.Fatal("Error")
+	if AT_AGREE != 0 || AT_DISAGREE != 1 || AT_NOT_ANSWERED != 2 || AT_NOT_AVAILABLE != 3 {
+		t.Fatal("Wrong values in answer type enum")
+	}
 }

@@ -1,6 +1,7 @@
 package data
 
 type IBlockService interface {
-	CalculateHash(block Block) string
+	CalculateHash(*Block) string
 	PrintImpl()
+	Print(*Block)
 }

@@ -1,9 +1,19 @@
 package data
 
 type BlockChain struct {
-	Blocks []Block
+	blocks []Block
 }
 
-func (bc BlockChain) AddBlock(b Block) {
-	bc.Blocks = append(bc.Blocks, b)
+func NewBlockChain(blocks []Block) BlockChain {
+
+	blockChain := BlockChain{blocks}
+	return blockChain
+}
+
+func (bc *BlockChain) SetBlocks(blocks []Block) {
+	bc.blocks = blocks
+}
+
+func (bc *BlockChain) GetBlocks() []Block {
+	return bc.blocks
 }
