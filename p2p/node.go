@@ -11,7 +11,6 @@ import (
 	"github.com/libp2p/go-floodsub"
 	"github.com/libp2p/go-libp2p-host"
 	"github.com/libp2p/go-libp2p-metrics"
-	"github.com/libp2p/go-libp2p-net"
 	libP2PNet "github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
@@ -29,9 +28,6 @@ import (
 type Node struct {
 	P2pNode host.Host
 
-	mutConnected sync.RWMutex
-	connected    map[peer.ID]string
-
 	mutChansSend sync.RWMutex
 	chansSend    map[string]chan []byte
 
@@ -41,11 +37,10 @@ type Node struct {
 	marsh marshal.Marshalizer
 
 	rt *RoutingTable
+	cn *ConnNotifier
 
 	OnMsgRecvBroadcast func(sender *Node, topic string, msg *floodsub.Message)
 	OnMsgRecv          func(sender *Node, peerID string, m *Message)
-
-	MaxAllowedPeers int
 }
 
 func GenSwarm(ctx context.Context, port int) (*swarm.Swarm, error) {
@@ -74,15 +69,15 @@ func GenSwarm(ctx context.Context, port int) (*swarm.Swarm, error) {
 	return s, nil
 }
 
-func NewNode(ctx context.Context, port int, addresses []string, mrsh marshal.Marshalizer) (*Node, error) {
+func NewNode(ctx context.Context, port int, addresses []string, mrsh marshal.Marshalizer, maxAllowedPeers int) (*Node, error) {
 	if mrsh == nil {
 		return nil, errors.New("Marshalizer is nil! Can't create node!")
 	}
 
 	var node Node
 	node.marsh = mrsh
-	node.MaxAllowedPeers = 10
-	node.connected = make(map[peer.ID]string)
+	node.cn = NewConnNotifier(&node)
+	node.cn.MaxPeersAllowed = maxAllowedPeers
 
 	timeStart := time.Now()
 
@@ -110,6 +105,30 @@ func NewNode(ctx context.Context, port int, addresses []string, mrsh marshal.Mar
 	node.ConnectToAddresses(ctx, addresses)
 
 	node.rt = NewRoutingTable(h.ID())
+	//register the notifier
+	node.P2pNode.Network().Notify(node.cn)
+	node.cn.OnDoSimpleTask = func(cn *ConnNotifier) {
+		TaskMonitorConnections(cn)
+	}
+	node.cn.OnGetKnownPeers = func(cn *ConnNotifier) []peer.ID {
+		return cn.node.rt.NearestPeersAll()
+	}
+	node.cn.OnNeedToConnectToOtherPeer = func(cn *ConnNotifier, pid peer.ID) error {
+		pinfo := node.P2pNode.Peerstore().PeerInfo(pid)
+
+		if err := node.P2pNode.Connect(ctx, pinfo); err != nil {
+			return err
+		} else {
+			stream, err := node.P2pNode.NewStream(ctx, pinfo.ID, "benchmark/nolimit/1.0.0.0")
+			if err != nil {
+				return err
+			} else {
+				node.streamHandler(stream)
+			}
+		}
+
+		return nil
+	}
 
 	return &node, nil
 }
@@ -120,15 +139,6 @@ func (node *Node) ConnectToAddresses(ctx context.Context, addresses []string) {
 	timeStart := time.Now()
 
 	for _, address := range addresses {
-
-		node.mutConnected.RLock()
-		var len = len(node.connected)
-		node.mutConnected.RUnlock()
-
-		if len >= node.MaxAllowedPeers {
-			return
-		}
-
 		addr, err := ipfsaddr.ParseString(address)
 		if err != nil {
 			panic(err)
@@ -275,29 +285,37 @@ func (node *Node) BroadcastMessage(m *Message, excs []string) error {
 func (node *Node) streamHandler(stream libP2PNet.Stream) {
 	peerID := stream.Conn().RemotePeer().Pretty()
 
-	node.mutConnected.Lock()
-	v, found := node.connected[stream.Conn().RemotePeer()]
-
-	if stream.Stat().Direction == net.DirInbound {
-		if !found {
-			node.connected[stream.Conn().RemotePeer()] = "I"
-		} else {
-			if v == "O" {
-				node.connected[stream.Conn().RemotePeer()] = "I/O"
-			}
-		}
-	} else {
-		if stream.Stat().Direction == net.DirOutbound {
-			if !found {
-				node.connected[stream.Conn().RemotePeer()] = "O"
-			} else {
-				if v == "I" {
-					node.connected[stream.Conn().RemotePeer()] = "I/O"
-				}
-			}
-		}
-	}
-	node.mutConnected.Unlock()
+	//node.mutConnected.Lock()
+	//if len(node.connected) >= node.MaxAllowedPeers{
+	//	node.mutConnected.Unlock()
+	//
+	//	stream.Conn().Close()
+	//
+	//	return
+	//}
+	//
+	//v, found := node.connected[stream.Conn().RemotePeer()]
+	//
+	//if stream.Stat().Direction == net.DirInbound {
+	//	if !found {
+	//		node.connected[stream.Conn().RemotePeer()] = "I"
+	//	} else {
+	//		if v == "O" {
+	//			node.connected[stream.Conn().RemotePeer()] = "I/O"
+	//		}
+	//	}
+	//} else {
+	//	if stream.Stat().Direction == net.DirOutbound {
+	//		if !found {
+	//			node.connected[stream.Conn().RemotePeer()] = "O"
+	//		} else {
+	//			if v == "I" {
+	//				node.connected[stream.Conn().RemotePeer()] = "I/O"
+	//			}
+	//		}
+	//	}
+	//}
+	//node.mutConnected.Unlock()
 
 	node.mutChansSend.Lock()
 	chanSend, ok := node.chansSend[peerID]
@@ -365,7 +383,7 @@ func (node *Node) addRWHandlers(protocolID protocol.ID) {
 	node.P2pNode.SetStreamHandler(protocolID, node.streamHandler)
 }
 
-func (node *Node) Bootstrap(ctx context.Context, cps []ClusterParameter, nConns int) {
+func (node *Node) Bootstrap(ctx context.Context, cps []ClusterParameter) {
 	node.mutBootstrap.Lock()
 	defer node.mutBootstrap.Unlock()
 
@@ -392,31 +410,40 @@ func (node *Node) Bootstrap(ctx context.Context, cps []ClusterParameter, nConns 
 		}
 	}
 
-	peersToConnect := node.rt.NearestPeers(nConns)
+	node.cn.Start()
 
-	for _, peer := range peersToConnect {
-		pinfo := node.P2pNode.Peerstore().PeerInfo(peer)
-
-		if err := node.P2pNode.Connect(ctx, pinfo); err != nil {
-			fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", pinfo.Addrs, err)
-		} else {
-			stream, err := node.P2pNode.NewStream(ctx, pinfo.ID, "benchmark/nolimit/1.0.0.0")
-			if err != nil {
-				fmt.Printf("Streaming the peer '%v' failed with error %v\n", pinfo.Addrs, err)
-			} else {
-				node.streamHandler(stream)
-			}
-		}
-	}
-
+	//peersToConnect := node.rt.NearestPeersAll()
+	//
+	//for i := 0; i < len(peersToConnect); i++ {
+	//	pinfo := node.P2pNode.Peerstore().PeerInfo(peersToConnect[i])
+	//
+	//	if err := node.P2pNode.Connect(ctx, pinfo); err != nil {
+	//		fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", pinfo.Addrs, err)
+	//	} else {
+	//		stream, err := node.P2pNode.NewStream(ctx, pinfo.ID, "benchmark/nolimit/1.0.0.0")
+	//		if err != nil {
+	//			fmt.Printf("Streaming the peer '%v' failed with error %v\n", pinfo.Addrs, err)
+	//		} else {
+	//			node.streamHandler(stream)
+	//		}
+	//	}
+	//
+	//	node.mutConnected.RLock()
+	//	valConnected := len(node.connected)
+	//	node.mutConnected.RUnlock()
+	//
+	//	if valConnected >= node.MaxAllowedPeers {
+	//		break
+	//	}
+	//}
 }
 
-func (node *Node) PrintConnected() {
-	fmt.Printf("Node %s has the following connections:\n", node.P2pNode.ID().Pretty())
-	node.mutConnected.Lock()
-	defer node.mutConnected.Unlock()
-
-	for k, v := range node.connected {
-		fmt.Printf("\t - %v type %s, distance %d\n", k, v, ComputeDistanceAD(node.P2pNode.ID(), k))
-	}
-}
+//func (node *Node) PrintConnected() {
+//	fmt.Printf("Node %s has the following connections:\n", node.P2pNode.ID().Pretty())
+//	node.mutConnected.Lock()
+//	defer node.mutConnected.Unlock()
+//
+//	for k, v := range node.connected {
+//		fmt.Printf("\t - %v type %s, distance %d\n", k, v, ComputeDistanceAD(node.P2pNode.ID(), k))
+//	}
+//}
