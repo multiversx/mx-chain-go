@@ -1,7 +1,7 @@
 package p2p
 
 import (
-	"fmt"
+	_ "fmt"
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multiaddr"
@@ -161,7 +161,7 @@ func (cn *ConnNotifier) ListenClose(netw net.Network, ma multiaddr.Multiaddr) {}
 
 // called when a connection opened
 func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
-	fmt.Printf("Connected %s: %v\n", netw.LocalPeer().Pretty(), conn.RemotePeer())
+	//fmt.Printf("Connected %s: %v\n", netw.LocalPeer().Pretty(), conn.RemotePeer())
 
 	//refuse other connections
 	if cn.MaxPeersAllowed < len(cn.node.P2pNode.Network().Conns()) {
@@ -171,7 +171,7 @@ func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
 
 // called when a connection closed
 func (cn *ConnNotifier) Disconnected(netw net.Network, conn net.Conn) {
-	fmt.Printf("Disconnected %s: %v\n", netw.LocalPeer().Pretty(), conn.RemotePeer())
+	//fmt.Printf("Disconnected %s: %v\n", netw.LocalPeer().Pretty(), conn.RemotePeer())
 }
 
 // called when a stream opened

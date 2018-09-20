@@ -15,17 +15,22 @@ func TestRoundState(t *testing.T) {
 
 func TestRoundBehaviour(t *testing.T) {
 
+	var csi ChronologyServiceImpl
+
 	genesisRoundTimeStamp := time.Date(2018, time.September, 18, 14, 0, 0, 0, time.UTC)
 
-	r := ChronologyServiceImpl{}.GetRoundFromDateTime(genesisRoundTimeStamp, time.Now(), time.Duration(4*time.Second))
+	duration := time.Duration(4 * time.Second)
+	division := csi.CreateRoundTimeDivision(duration)
 
-	roundState := ChronologyServiceImpl{}.GetRoundState(r, time.Now())
+	round := csi.CreateRoundFromDateTime(genesisRoundTimeStamp, time.Now(), duration, division)
+
+	roundState := csi.GetRoundStateFromDateTime(round, time.Now())
 
 	if roundState < RS_START_ROUND || roundState > RS_END_ROUND {
 		t.Fatal("Wrong round state")
 	}
 
-	spew.Dump(r)
+	spew.Dump(round)
 	spew.Dump(roundState)
-	spew.Dump(ChronologyServiceImpl{}.GetRoundStateName(roundState))
+	spew.Dump(csi.GetRoundStateName(roundState))
 }

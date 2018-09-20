@@ -1,4 +1,4 @@
-package main
+package garbage
 
 import "github.com/ElrondNetwork/elrond-go-sandbox/p2p/ex09BenchmarkDirectSendMultiple"
 
