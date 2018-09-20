@@ -3,8 +3,8 @@ package ex08BenchmarkSendPackets
 import (
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/config"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/p2p"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/service"
 	"os"
 	"os/signal"
@@ -100,34 +100,34 @@ func Main() {
 
 	fmt.Printf("Node started...reading '%s' config file\n", filename)
 
-	var config config.JsonConfig
+	//var config config.JsonConfig
 
-	err := config.ReadFromFile(filename)
+	//err := config.ReadFromFile(filename)
 
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("Config data read as: %v\n", config)
-
-	node, err := p2p.CreateNewNode(context.Background(), config.Port, config.Peers, service.GetMarshalizerService())
-	if err != nil {
-		panic(err)
-	}
-	node.OnMsgRecv = recv
-
-	//only seeder sends
-	for len(config.Peers) == 0 {
-		time.Sleep(time.Second * 2)
-
-		data := PrepareBuff(node.P2pNode.ID().Pretty(), config.Size)
-
-		node.BroadcastString(data, []string{})
-
-		fmt.Printf("Sent %v bytes...\n", len(data))
-	}
-
-	fmt.Println("Waiting...")
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//fmt.Printf("Config data read as: %v\n", config)
+	//
+	//node, err := p2p.NewNode(context.Background(), config.Port, config.Peers, service.GetMarshalizerService())
+	//if err != nil {
+	//	panic(err)
+	//}
+	//node.OnMsgRecv = recv
+	//
+	////only seeder sends
+	//for len(config.Peers) == 0 {
+	//	time.Sleep(time.Second * 2)
+	//
+	//	data := PrepareBuff(node.P2pNode.ID().Pretty(), config.Size)
+	//
+	//	node.BroadcastString(data, []string{})
+	//
+	//	fmt.Printf("Sent %v bytes...\n", len(data))
+	//}
+	//
+	//fmt.Println("Waiting...")
 
 	select {}
 }

@@ -3,5 +3,6 @@ package consensus
 import "github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 
 type IConsensusService interface {
-	computeLeader(nodes []string, round *chronology.Round) string
+	ComputeLeader(nodes []string, round *chronology.Round) (string, error)
+	IsNodeLeader(node string, nodes []string, round *chronology.Round) (bool, error)
 }

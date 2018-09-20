@@ -6,11 +6,13 @@ type Round struct {
 	index             int64
 	startTimeStamp    time.Time
 	roundTimeDuration time.Duration
+	roundTimeDivision []time.Duration
+	roundState        RoundState
 }
 
-func NewRound(index int64, startTimeStamp time.Time, roundTimeDuration time.Duration) Round {
+func NewRound(index int64, startTimeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration, roundState RoundState) Round {
 
-	r := Round{index, startTimeStamp, roundTimeDuration}
+	r := Round{index, startTimeStamp, roundTimeDuration, roundTimeDivision, roundState}
 	return r
 }
 
@@ -36,4 +38,20 @@ func (r *Round) SetRoundTimeDuration(roundTimeDuration time.Duration) {
 
 func (r *Round) GetRoundTimeDuration() time.Duration {
 	return r.roundTimeDuration
+}
+
+func (r *Round) SetRoundTimeDivision(roundTimeDivision []time.Duration) {
+	r.roundTimeDivision = roundTimeDivision
+}
+
+func (r *Round) GetRoundTimeDivision() []time.Duration {
+	return r.roundTimeDivision
+}
+
+func (r *Round) SetRoundState(roundState RoundState) {
+	r.roundState = roundState
+}
+
+func (r *Round) GetRoundState() RoundState {
+	return r.roundState
 }

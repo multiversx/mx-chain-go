@@ -1,8 +1,11 @@
 package p2p
 
 import (
+	"crypto/ecdsa"
 	"fmt"
+	"github.com/btcsuite/btcd/btcec"
 	ci "github.com/libp2p/go-libp2p-crypto"
+	cr "github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
 	mrand "math/rand"
@@ -34,10 +37,16 @@ func init() {
 func (params *P2PParams) GeneratePrivPubKeys(seed int) {
 	r := mrand.New(mrand.NewSource(int64(seed)))
 
-	prvKey, pubKey, _ := ci.GenerateKeyPairWithReader(ci.RSA, 2048, r)
+	prvKey, err := ecdsa.GenerateKey(btcec.S256(), r)
 
-	params.PrivKey = prvKey
-	params.PubKey = pubKey
+	if err != nil {
+		panic(err)
+	}
+
+	k := (*cr.Secp256k1PrivateKey)(prvKey)
+
+	params.PrivKey = k
+	params.PubKey = k.GetPublic()
 }
 
 func (params *P2PParams) GenerateIDFromPubKey() {

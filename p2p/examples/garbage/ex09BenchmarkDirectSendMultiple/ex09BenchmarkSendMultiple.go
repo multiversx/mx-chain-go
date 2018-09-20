@@ -3,7 +3,7 @@ package ex09BenchmarkDirectSendMultiple
 import (
 	"context"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/service"
 	"github.com/ipfs/go-ipfs-addr"
 	"github.com/libp2p/go-libp2p-peerstore"
@@ -239,7 +239,7 @@ func Main() {
 		i++
 	}
 
-	node, err := p2p.CreateNewNode(context.Background(), port, peers, service.GetMarshalizerService())
+	node, err := p2p.NewNode(context.Background(), port, peers, service.GetMarshalizerService())
 	if err != nil {
 		panic(err)
 	}
