@@ -102,38 +102,40 @@ func StartRounds(ch chan string) {
 
 		time.Sleep(10 * time.Millisecond)
 
-		chr.UpdateRoundFromDateTime(GenesisRoundTimeStamp, time.Now(), Round)
+		now := time.Now()
 
-		roundState := chr.GetRoundStateFromDateTime(Round, time.Now())
+		chr.UpdateRoundFromDateTime(GenesisRoundTimeStamp, now, Round)
+
+		roundState := chr.GetRoundStateFromDateTime(Round, now)
 
 		switch roundState {
 		case chronology.RS_PROPOSE_BLOCK:
 			if Round.GetRoundState() == roundState {
 				if DoProposeBlock(ch) {
-					Round.SetRoundState(chronology.RS_SEND_COMITMENT_HASH)
+					Round.SetRoundState(chronology.RS_COMITMENT_HASH)
 				}
 			}
-		case chronology.RS_SEND_COMITMENT_HASH:
+		case chronology.RS_COMITMENT_HASH:
 			if Round.GetRoundState() == roundState {
-				if DoSendComitmentHash(ch) {
-					Round.SetRoundState(chronology.RS_SEND_BITMAP)
+				if DoComitmentHash(ch) {
+					Round.SetRoundState(chronology.RS_BITMAP)
 				}
 			}
-		case chronology.RS_SEND_BITMAP:
+		case chronology.RS_BITMAP:
 			if Round.GetRoundState() == roundState {
-				if DoSendBitmap(ch) {
-					Round.SetRoundState(chronology.RS_SEND_COMITMENT)
+				if DoBitmap(ch) {
+					Round.SetRoundState(chronology.RS_COMITMENT)
 				}
 			}
-		case chronology.RS_SEND_COMITMENT:
+		case chronology.RS_COMITMENT:
 			if Round.GetRoundState() == roundState {
-				if DoSendComitment(ch) {
-					Round.SetRoundState(chronology.RS_SEND_AGGREGATE_COMITMENT)
+				if DoComitment(ch) {
+					Round.SetRoundState(chronology.RS_AGGREGATE_COMITMENT)
 				}
 			}
-		case chronology.RS_SEND_AGGREGATE_COMITMENT:
+		case chronology.RS_AGGREGATE_COMITMENT:
 			if Round.GetRoundState() == roundState {
-				if DoSendAggregateComitment(ch) {
+				if DoAggregateComitment(ch) {
 					Round.SetRoundState(chronology.RS_END_ROUND)
 				}
 			}
@@ -142,12 +144,6 @@ func StartRounds(ch chan string) {
 	}
 
 	close(ch)
-}
-
-func FormatTime(time time.Time) string {
-
-	str := fmt.Sprintf("%.4d-%.2d-%.2d %.2d:%.2d:%.2d.%.9d ", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), time.Nanosecond())
-	return str
 }
 
 func DoProposeBlock(ch chan string) bool {
@@ -169,22 +165,22 @@ func DoProposeBlock(ch chan string) bool {
 	return true
 }
 
-func DoSendComitmentHash(ch chan string) bool {
+func DoComitmentHash(ch chan string) bool {
 	ch <- FormatTime(time.Now()) + "Step 2: Send comitment hash..."
 	return true
 }
 
-func DoSendBitmap(ch chan string) bool {
+func DoBitmap(ch chan string) bool {
 	ch <- FormatTime(time.Now()) + "Step 3: Send bitmap..."
 	return true
 }
 
-func DoSendComitment(ch chan string) bool {
+func DoComitment(ch chan string) bool {
 	ch <- FormatTime(time.Now()) + "Step 4: Send comitment..."
 	return true
 }
 
-func DoSendAggregateComitment(ch chan string) bool {
+func DoAggregateComitment(ch chan string) bool {
 
 	ch <- FormatTime(time.Now()) + "Step 5: Send aggregate comitment..."
 
@@ -227,4 +223,10 @@ func ResetValidators() {
 	for i := 0; i < len(Nodes); i++ {
 		Validators[Nodes[i]] = RoundStateValidation{false, false, false, false, false}
 	}
+}
+
+func FormatTime(time time.Time) string {
+
+	str := fmt.Sprintf("%.4d-%.2d-%.2d %.2d:%.2d:%.2d.%.9d ", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), time.Nanosecond())
+	return str
 }

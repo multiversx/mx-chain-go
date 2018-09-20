@@ -60,13 +60,13 @@ func (c ChronologyServiceImpl) CreateRoundTimeDivision(duration time.Duration) [
 			d = append(d, time.Duration(0*duration/100))
 		case RS_PROPOSE_BLOCK:
 			d = append(d, time.Duration(25*duration/100))
-		case RS_SEND_COMITMENT_HASH:
+		case RS_COMITMENT_HASH:
 			d = append(d, time.Duration(40*duration/100))
-		case RS_SEND_BITMAP:
+		case RS_BITMAP:
 			d = append(d, time.Duration(55*duration/100))
-		case RS_SEND_COMITMENT:
+		case RS_COMITMENT:
 			d = append(d, time.Duration(70*duration/100))
-		case RS_SEND_AGGREGATE_COMITMENT:
+		case RS_AGGREGATE_COMITMENT:
 			d = append(d, time.Duration(85*duration/100))
 		case RS_END_ROUND:
 			d = append(d, time.Duration(100*duration/100))
@@ -110,14 +110,14 @@ func (c ChronologyServiceImpl) GetRoundStateName(roundState RoundState) string {
 		return ("RS_START_ROUND")
 	case RS_PROPOSE_BLOCK:
 		return ("RS_PROPOSE_BLOCK")
-	case RS_SEND_COMITMENT_HASH:
-		return ("RS_SEND_COMITMENT_HASH")
-	case RS_SEND_BITMAP:
-		return ("RS_SEND_BITMAP")
-	case RS_SEND_COMITMENT:
-		return ("RS_SEND_COMITMENT")
-	case RS_SEND_AGGREGATE_COMITMENT:
-		return ("RS_SEND_AGGREGATE_COMITMENT")
+	case RS_COMITMENT_HASH:
+		return ("RS_COMITMENT_HASH")
+	case RS_BITMAP:
+		return ("RS_BITMAP")
+	case RS_COMITMENT:
+		return ("RS_COMITMENT")
+	case RS_AGGREGATE_COMITMENT:
+		return ("RS_AGGREGATE_COMITMENT")
 	case RS_END_ROUND:
 		return ("RS_END_ROUND")
 	case RS_AFTER_ROUND:
