@@ -1,8 +1,9 @@
-package p2p
+package p2p_test
 
 import (
 	"context"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/service"
 	"github.com/libp2p/go-libp2p-peer"
 	tu "github.com/libp2p/go-testutil"
@@ -17,26 +18,26 @@ func TestCalculateDistanceDifferentLengths(t *testing.T) {
 	buff1 := []byte{0, 0}
 	buff2 := []byte{255}
 
-	assert.Equal(t, uint64(8), ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
+	assert.Equal(t, uint64(8), p2p.ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
 
 	buff1 = []byte{0}
 	buff2 = []byte{1, 0}
 
-	assert.Equal(t, uint64(1), ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
+	assert.Equal(t, uint64(1), p2p.ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
 }
 
 func TestCalculateDistanceLarge(t *testing.T) {
 	buff1 := []byte{0}
 	buff2 := []byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
 
-	assert.Equal(t, uint64(8*14), ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
+	assert.Equal(t, uint64(8*14), p2p.ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
 }
 
 func TestCalculateDistance(t *testing.T) {
 	pid1 := getPID([]byte{0, 0, 0, 1})
 	pid2 := getPID([]byte{1, 0, 0, 0})
 
-	assert.Equal(t, uint64(2), ComputeDistanceAD(pid1, pid2))
+	assert.Equal(t, uint64(2), p2p.ComputeDistanceAD(pid1, pid2))
 }
 
 func TestRoutingTable(t *testing.T) {
@@ -44,7 +45,7 @@ func TestRoutingTable(t *testing.T) {
 	pid2 := getPID([]byte{1, 0, 0, 0})
 	pid3 := getPID([]byte{0, 0, 0, 3})
 
-	rt := NewRoutingTable(pid1)
+	rt := p2p.NewRoutingTable(pid1)
 	assert.Equal(t, 1, rt.Len())
 	rt.Update(pid2)
 	assert.Equal(t, 2, rt.Len())
@@ -75,7 +76,7 @@ func TestRoutingTableNotFound(t *testing.T) {
 	pid1 := getPID([]byte{0, 0, 0, 1})
 	pid2 := getPID([]byte{1, 0, 0, 0})
 
-	rt := NewRoutingTable(pid1)
+	rt := p2p.NewRoutingTable(pid1)
 	assert.True(t, rt.Has(pid1))
 	assert.False(t, rt.Has(pid2))
 
@@ -88,7 +89,7 @@ func TestRoutingTableMultiple(t *testing.T) {
 	pid1 := getPID([]byte{0, 0, 0, 1})
 	pid2 := getPID([]byte{1, 0, 0, 0})
 
-	rt := NewRoutingTable(pid1)
+	rt := p2p.NewRoutingTable(pid1)
 	assert.Equal(t, 1, rt.Len())
 	rt.Update(pid2)
 	assert.Equal(t, 2, rt.Len())
@@ -108,7 +109,7 @@ func getPID(buff []byte) peer.ID {
 // and set GOMAXPROCS above 1
 func TestTableMultithreaded(t *testing.T) {
 	local := peer.ID("localPeer")
-	tab := NewRoutingTable(local)
+	tab := p2p.NewRoutingTable(local)
 	var peers []peer.ID
 	for i := 0; i < 500; i++ {
 		peers = append(peers, tu.RandPeerIDFatal(t))
@@ -149,7 +150,7 @@ func TestClosestPeers(t *testing.T) {
 	pid5 := getPID([]byte{0, 0, 1, 0})
 	pid6 := getPID([]byte{255, 0, 0, 0})
 
-	rt := NewRoutingTable(pid1)
+	rt := p2p.NewRoutingTable(pid1)
 	rt.Update(pid2)
 	rt.Update(pid3)
 	rt.Update(pid6)
@@ -185,14 +186,14 @@ func TestClosestPeers(t *testing.T) {
 }
 
 func TestLargeSetOfPeers(t *testing.T) {
-	node, err := NewNode(context.Background(), 4000, []string{}, service.GetMarshalizerService(), 10000)
+	node, err := p2p.NewNode(context.Background(), 4000, []string{}, service.GetMarshalizerService(), 10000)
 
 	assert.Nil(t, err)
 
-	rt := NewRoutingTable(node.P2pNode.ID())
+	rt := p2p.NewRoutingTable(node.P2pNode.ID())
 
 	for i := 1; i <= 200; i++ {
-		param := NewP2PParams(4000 + i)
+		param := p2p.NewConnectParams(4000 + i)
 
 		rt.Update(param.ID)
 
@@ -210,21 +211,21 @@ func TestLargeSetOfPeers(t *testing.T) {
 
 	peers := rt.NearestPeers(13)
 
-	for _, peer := range peers {
-		fmt.Println("-", peer.Pretty())
+	for _, p := range peers {
+		fmt.Println("-", p.Pretty())
 	}
 }
 
 func TestLonelyPeers(t *testing.T) {
-	peers := []P2PParams{}
-	rts := []RoutingTable{}
+	peers := make([]p2p.ConnectParams, 0)
+	rts := make([]p2p.RoutingTable, 0)
 	nearest := map[peer.ID][]peer.ID{}
 
 	for i := 0; i < 300; i++ {
-		peer := *NewP2PParams(4000 + i)
-		peers = append(peers, peer)
+		p := *p2p.NewConnectParams(4000 + i)
+		peers = append(peers, p)
 
-		rt := NewRoutingTable(peer.ID)
+		rt := p2p.NewRoutingTable(p.ID)
 
 		rts = append(rts, *rt)
 		//nearest = append(nearest, []kbucket.ID{})
@@ -259,11 +260,11 @@ func TestLonelyPeers(t *testing.T) {
 	}
 }
 
-func testLonelyPeer(start peer.ID, peers []P2PParams, conn map[peer.ID][]peer.ID) {
+func testLonelyPeer(start peer.ID, peers []p2p.ConnectParams, conn map[peer.ID][]peer.ID) {
 	reached := make(map[peer.ID]bool)
 
 	for i := 0; i < len(peers); i++ {
-		reached[peers[i].ID] = (peers[i].ID == start)
+		reached[peers[i].ID] = peers[i].ID == start
 	}
 
 	job := make(map[peer.ID]bool)
@@ -314,58 +315,17 @@ func traverseRec2(conn map[peer.ID][]peer.ID, reached map[peer.ID]bool, job map[
 	traverseRec2(conn, reached, job)
 }
 
-func traverseRec(current peer.ID, conn map[peer.ID][]peer.ID, reached map[peer.ID]bool) {
-	peersToTraverse := []peer.ID{}
-	peersToCheck := conn[current]
-
-	if peersToCheck == nil {
-		return
-	}
-
-	//mark reached on map[current]
-	for i := 0; i < len(peersToCheck); i++ {
-		peerID := peersToCheck[i]
-
-		if !reached[peerID] {
-			peersToTraverse = append(peersToTraverse, peerID)
-			reached[peerID] = true
-		} else {
-			//check to see if all sub-peers are reached
-			peersToTraverse2 := conn[peerID]
-
-			traverse := false
-			for _, peerCnt := range peersToTraverse2 {
-				if reached[peerCnt] {
-					traverse = true
-					break
-				}
-			}
-
-			if traverse {
-				peersToTraverse = append(peersToTraverse, peerID)
-			}
-		}
-	}
-
-	//traverse not reached peers
-	for i := 0; i < len(peersToTraverse); i++ {
-		peerID := peersToCheck[i]
-
-		traverseRec(peerID, conn, reached)
-	}
-}
-
 func BenchmarkRoutingTable(t *testing.B) {
-	params := []P2PParams{}
+	params := make([]p2p.ConnectParams, 0)
 
 	for i := 0; i < t.N; i++ {
-		params = append(params, *NewP2PParams(4000 + i))
+		params = append(params, *p2p.NewConnectParams(4000 + i))
 	}
 }
 
 func BenchmarkAdd(t *testing.B) {
 	local := peer.ID("localPeer")
-	tab := NewRoutingTable(local)
+	tab := p2p.NewRoutingTable(local)
 
 	for i := 0; i < t.N; i++ {
 		tab.Update(tu.RandPeerIDFatal(t))

@@ -97,7 +97,7 @@ func NewNode(ctx context.Context, port int, addresses []string, mrsh marshal.Mar
 	fmt.Printf("Created node in %v\n", time.Now().Sub(timeStart))
 
 	node.P2pNode = h
-	node.chansSend = make(map[string](chan []byte))
+	node.chansSend = make(map[string]chan []byte)
 	node.queue = NewMessageQueue(50000)
 
 	node.addRWHandlers("benchmark/nolimit/1.0.0.0")
@@ -107,11 +107,11 @@ func NewNode(ctx context.Context, port int, addresses []string, mrsh marshal.Mar
 	node.rt = NewRoutingTable(h.ID())
 	//register the notifier
 	node.P2pNode.Network().Notify(node.cn)
-	node.cn.OnDoSimpleTask = func(cn *ConnNotifier) {
-		TaskMonitorConnections(cn)
+	node.cn.OnDoSimpleTask = func(this interface{}) {
+		TaskMonitorConnections(node.cn)
 	}
 	node.cn.OnGetKnownPeers = func(cn *ConnNotifier) []peer.ID {
-		return cn.node.rt.NearestPeersAll()
+		return cn.Node.rt.NearestPeersAll()
 	}
 	node.cn.OnNeedToConnectToOtherPeer = func(cn *ConnNotifier, pid peer.ID) error {
 		pinfo := node.P2pNode.Peerstore().PeerInfo(pid)
@@ -123,7 +123,7 @@ func NewNode(ctx context.Context, port int, addresses []string, mrsh marshal.Mar
 			if err != nil {
 				return err
 			} else {
-				node.streamHandler(stream)
+				node.StreamHandler(stream)
 			}
 		}
 
@@ -152,7 +152,7 @@ func (node *Node) ConnectToAddresses(ctx context.Context, addresses []string) {
 			if err != nil {
 				fmt.Printf("Streaming the peer '%v' failed with error %v\n", address, err)
 			} else {
-				node.streamHandler(stream)
+				node.StreamHandler(stream)
 				peers++
 			}
 		}
@@ -161,8 +161,8 @@ func (node *Node) ConnectToAddresses(ctx context.Context, addresses []string) {
 	fmt.Printf("Connected to %d peers in %v\n", peers, time.Now().Sub(timeStart))
 }
 
-func randPeerNetParamsOrFatal(port int) P2PParams {
-	return *NewP2PParams(port)
+func randPeerNetParamsOrFatal(port int) ConnectParams {
+	return *NewConnectParams(port)
 }
 
 func (node *Node) sendDirectRAW(peerID string, buff []byte) error {
@@ -282,7 +282,7 @@ func (node *Node) BroadcastMessage(m *Message, excs []string) error {
 	return node.broadcastRAW(buff, excs)
 }
 
-func (node *Node) streamHandler(stream libP2PNet.Stream) {
+func (node *Node) StreamHandler(stream libP2PNet.Stream) {
 	peerID := stream.Conn().RemotePeer().Pretty()
 
 	//node.mutConnected.Lock()
@@ -350,8 +350,8 @@ func (node *Node) streamHandler(stream libP2PNet.Stream) {
 			}
 
 			sha3 := crypto.SHA3_256.New()
-			base64 := base64.StdEncoding
-			hash := base64.EncodeToString(sha3.Sum([]byte(m.Payload)))
+			b64 := base64.StdEncoding
+			hash := b64.EncodeToString(sha3.Sum([]byte(m.Payload)))
 
 			if queue.ContainsAndAdd(hash) {
 				continue
@@ -380,7 +380,7 @@ func (node *Node) streamHandler(stream libP2PNet.Stream) {
 }
 
 func (node *Node) addRWHandlers(protocolID protocol.ID) {
-	node.P2pNode.SetStreamHandler(protocolID, node.streamHandler)
+	node.P2pNode.SetStreamHandler(protocolID, node.StreamHandler)
 }
 
 func (node *Node) Bootstrap(ctx context.Context, cps []ClusterParameter) {
@@ -388,7 +388,7 @@ func (node *Node) Bootstrap(ctx context.Context, cps []ClusterParameter) {
 	defer node.mutBootstrap.Unlock()
 
 	for _, cp := range cps {
-		for idx, peer := range cp.Peers() {
+		for idx, p := range cp.Peers() {
 			str := cp.Addrs()[idx].String()
 
 			addr, err := ipfsaddr.ParseString(str)
@@ -405,8 +405,8 @@ func (node *Node) Bootstrap(ctx context.Context, cps []ClusterParameter) {
 
 			ma := pinfo.Addrs[0]
 
-			node.P2pNode.Peerstore().AddAddr(peer, ma, pstore.PermanentAddrTTL)
-			node.rt.Update(peer)
+			node.P2pNode.Peerstore().AddAddr(p, ma, pstore.PermanentAddrTTL)
+			node.rt.Update(p)
 		}
 	}
 
