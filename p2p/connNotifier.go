@@ -2,24 +2,27 @@ package p2p
 
 import (
 	_ "fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multiaddr"
-	"sync"
+	//"sync"
 	"time"
 )
 
 type ConnNotifier struct {
-	node *Node
+	execution.RoutineWrapper
 
-	stopConnKeeper chan bool
+	Node *Node
 
-	mutStat sync.RWMutex
-	stat    GoRoutineStat
+	//stopConnKeeper chan bool
+
+	//mutStat sync.RWMutex
+	//stat    GoRoutineStat
 
 	MaxPeersAllowed int
 
-	OnDoSimpleTask             func(sender *ConnNotifier)
+	//OnDoSimpleTask             func(sender *ConnNotifier)
 	OnGetKnownPeers            func(sender *ConnNotifier) []peer.ID
 	OnNeedToConnectToOtherPeer func(sender *ConnNotifier, pid peer.ID) error
 
@@ -31,60 +34,63 @@ func NewConnNotifier(n *Node) *ConnNotifier {
 		panic("Nil node!")
 	}
 
-	return &ConnNotifier{node: n, stopConnKeeper: make(chan bool, 1), stat: CLOSED}
+	cn := ConnNotifier{Node: n}
+	cn.RoutineWrapper = *execution.NewRoutineWrapper()
+
+	return &cn
 }
 
-func (cn *ConnNotifier) Stat() GoRoutineStat {
-	cn.mutStat.RLock()
-	defer cn.mutStat.RUnlock()
-
-	return cn.stat
-}
-
-func (cn *ConnNotifier) Start() {
-	cn.mutStat.Lock()
-	if cn.stat != CLOSED {
-		cn.mutStat.Unlock()
-		return
-	}
-
-	cn.stat = STARTED
-	cn.mutStat.Unlock()
-
-	go cn.connKeeper()
-}
-
-func (cn *ConnNotifier) Stop() {
-	cn.mutStat.Lock()
-	defer cn.mutStat.Unlock()
-
-	if cn.stat == STARTED {
-		cn.stat = CLOSING
-
-		cn.stopConnKeeper <- true
-	}
-
-}
-
-func (cn *ConnNotifier) connKeeper() {
-	defer func() {
-		cn.mutStat.Lock()
-		cn.stat = CLOSED
-		cn.mutStat.Unlock()
-	}()
-
-	for {
-
-		select {
-		default:
-			if cn.OnDoSimpleTask != nil {
-				cn.OnDoSimpleTask(cn)
-			}
-		case <-cn.stopConnKeeper:
-			return
-		}
-	}
-}
+//func (cn *ConnNotifier) Stat() GoRoutineStat {
+//	cn.mutStat.RLock()
+//	defer cn.mutStat.RUnlock()
+//
+//	return cn.stat
+//}
+//
+//func (cn *ConnNotifier) Start() {
+//	cn.mutStat.Lock()
+//	if cn.stat != CLOSED {
+//		cn.mutStat.Unlock()
+//		return
+//	}
+//
+//	cn.stat = STARTED
+//	cn.mutStat.Unlock()
+//
+//	go cn.connKeeper()
+//}
+//
+//func (cn *ConnNotifier) Stop() {
+//	cn.mutStat.Lock()
+//	defer cn.mutStat.Unlock()
+//
+//	if cn.stat == STARTED {
+//		cn.stat = CLOSING
+//
+//		cn.stopConnKeeper <- true
+//	}
+//
+//}
+//
+//func (cn *ConnNotifier) connKeeper() {
+//	defer func() {
+//		cn.mutStat.Lock()
+//		cn.stat = CLOSED
+//		cn.mutStat.Unlock()
+//	}()
+//
+//	for {
+//
+//		select {
+//		default:
+//			if cn.OnDoSimpleTask != nil {
+//				cn.OnDoSimpleTask(cn)
+//			}
+//		case <-cn.stopConnKeeper:
+//			return
+//		}
+//	}
+//}
 
 func TaskMonitorConnections(cn *ConnNotifier) (testOutput int) {
 	if cn.MaxPeersAllowed < 1 {
@@ -96,9 +102,9 @@ func TaskMonitorConnections(cn *ConnNotifier) (testOutput int) {
 		time.Sleep(time.Millisecond * 100)
 	}()
 
-	conns := cn.node.P2pNode.Network().Conns()
+	conns := cn.Node.P2pNode.Network().Conns()
 
-	knownPeers := []peer.ID{}
+	knownPeers := make([]peer.ID, 0)
 
 	if cn.OnGetKnownPeers != nil {
 		knownPeers = cn.OnGetKnownPeers(cn)
@@ -138,7 +144,7 @@ func TaskMonitorConnections(cn *ConnNotifier) (testOutput int) {
 			peerID := knownPeers[cn.indexKnownPeers]
 			cn.indexKnownPeers++
 
-			if cn.node.P2pNode.Network().Connectedness(peerID) == net.NotConnected {
+			if cn.Node.P2pNode.Network().Connectedness(peerID) == net.NotConnected {
 				if cn.OnNeedToConnectToOtherPeer != nil {
 					err := cn.OnNeedToConnectToOtherPeer(cn, peerID)
 					if err == nil {
@@ -164,7 +170,7 @@ func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
 	//fmt.Printf("Connected %s: %v\n", netw.LocalPeer().Pretty(), conn.RemotePeer())
 
 	//refuse other connections
-	if cn.MaxPeersAllowed < len(cn.node.P2pNode.Network().Conns()) {
+	if cn.MaxPeersAllowed < len(cn.Node.P2pNode.Network().Conns()) {
 		conn.Close()
 	}
 }

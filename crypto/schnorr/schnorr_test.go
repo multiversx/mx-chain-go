@@ -1,18 +1,17 @@
-package main
-
-// https://medium.com/coinmonks/schnorr-signatures-in-go-80a7fbfe0fe4
+package schnorr_test
 
 import (
 	"elrond-go-sandbox/crypto/ed25519"
 	"elrond-go-sandbox/crypto/schnorr"
 	"fmt"
+	"testing"
 )
 
 var group = ed25519.Group{}
 var hash = ed25519.Hash
 var sig = schnorr.NewSig(group, hash)
 
-func main() {
+func TestSignVerify(t *testing.T) {
 	privateKey := group.RandomScalar()
 	publicKey := group.Mul(privateKey, group.Generator())
 

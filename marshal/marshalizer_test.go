@@ -1,7 +1,8 @@
-package marshal
+package marshal_test
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
@@ -14,9 +15,19 @@ type testingJM struct {
 	Arr []int
 }
 
-var marshalizer = &JsonMarshalizer{}
+func TestJsonMarshalizer(t *testing.T) {
+	Suite(t, &marshal.JsonMarshalizer{})
+}
 
-func TestMarshalUnmarshal(t *testing.T) {
+func Suite(t *testing.T, marshalizer marshal.Marshalizer) {
+	TestingMarshalUnmarshal(t, marshalizer)
+	TestingNullsOnMarshal(t, marshalizer)
+	TestingNullsOnUnmarshal(t, marshalizer)
+	TestingIntMarshaling(t, marshalizer)
+	TestingConcurrency5Secs(t, marshalizer)
+}
+
+func TestingMarshalUnmarshal(t *testing.T, marshalizer marshal.Marshalizer) {
 
 	tjm := testingJM{Str: "AAA", Val: 10, Arr: []int{1, 2, 3, 5, 6, 7}}
 
@@ -41,14 +52,14 @@ func TestMarshalUnmarshal(t *testing.T) {
 	assert.Equal(t, tjm, *tjm2, "Objects not equal!")
 }
 
-func TestNullsOnMarshal(t *testing.T) {
+func TestingNullsOnMarshal(t *testing.T, marshalizer marshal.Marshalizer) {
 	_, err := marshalizer.Marshal(nil)
 
 	assert.NotNil(t, err)
 }
 
-func TestNullsOnUnmarshal(t *testing.T) {
-	buff := []byte{}
+func TestingNullsOnUnmarshal(t *testing.T, marshalizer marshal.Marshalizer) {
+	buff := make([]byte, 0)
 
 	//error on nil object
 	err := marshalizer.Unmarshal(nil, buff)
@@ -65,7 +76,7 @@ func TestNullsOnUnmarshal(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestIntMarshaling(t *testing.T) {
+func TestingIntMarshaling(t *testing.T, marshalizer marshal.Marshalizer) {
 	tjm := testingJM{Val: time.Now().Nanosecond()}
 	tjm2 := &testingJM{}
 
@@ -81,7 +92,7 @@ func TestIntMarshaling(t *testing.T) {
 	assert.Equal(t, tjm, *tjm2)
 }
 
-func TestConcurrency5Secs(t *testing.T) {
+func TestingConcurrency5Secs(t *testing.T, marshalizer marshal.Marshalizer) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -93,7 +104,7 @@ func TestConcurrency5Secs(t *testing.T) {
 
 		start := time.Now()
 		for time.Now().Sub(start) < time.Second*5 {
-			TestIntMarshaling(t)
+			TestingIntMarshaling(t, marshalizer)
 
 			counter1++
 		}
@@ -104,7 +115,7 @@ func TestConcurrency5Secs(t *testing.T) {
 
 		start := time.Now()
 		for time.Now().Sub(start) < time.Second*5 {
-			TestIntMarshaling(t)
+			TestingIntMarshaling(t, marshalizer)
 
 			counter2++
 		}

@@ -155,7 +155,7 @@ func CountOneBits(num byte) uint64 {
 
 func (rt *RoutingTable) NearestPeers(maxNo int) []peer.ID {
 	found := 0
-	peers := []peer.ID{}
+	peers := make([]peer.ID, 0)
 
 	for i := 0; i < len(rt.dists3) && found < maxNo; i++ {
 		//get the peers by using the distance as key.
@@ -177,7 +177,7 @@ func (rt *RoutingTable) NearestPeers(maxNo int) []peer.ID {
 }
 
 func (rt *RoutingTable) NearestPeersAll() []peer.ID {
-	peers := []peer.ID{}
+	peers := make([]peer.ID, 0)
 
 	for i := 0; i < len(rt.dists3); i++ {
 		//get the peers by using the distance as key.

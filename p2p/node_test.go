@@ -1,8 +1,9 @@
-package p2p
+package p2p_test
 
 import (
 	"context"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/service"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/stretchr/testify/assert"
@@ -20,10 +21,10 @@ func TestRecreationSameNode(t *testing.T) {
 
 	port := 4000
 
-	node1, err := NewNode(context.Background(), port, []string{}, service.GetMarshalizerService(), 10)
+	node1, err := p2p.NewNode(context.Background(), port, []string{}, service.GetMarshalizerService(), 10)
 	assert.Nil(t, err)
 
-	node2, err := NewNode(context.Background(), port, []string{}, service.GetMarshalizerService(), 10)
+	node2, err := p2p.NewNode(context.Background(), port, []string{}, service.GetMarshalizerService(), 10)
 	assert.Nil(t, err)
 
 	if node1.P2pNode.ID().Pretty() != node2.P2pNode.ID().Pretty() {
@@ -32,12 +33,12 @@ func TestRecreationSameNode(t *testing.T) {
 }
 
 func TestSimpleSend2NodesPingPong(t *testing.T) {
-	node1, err := NewNode(context.Background(), 5000, []string{}, service.GetMarshalizerService(), 10)
+	node1, err := p2p.NewNode(context.Background(), 5000, []string{}, service.GetMarshalizerService(), 10)
 	assert.Nil(t, err)
 
 	fmt.Println(node1.P2pNode.Addrs()[0].String())
 
-	node2, err := NewNode(context.Background(), 5001, []string{node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()},
+	node2, err := p2p.NewNode(context.Background(), 5001, []string{node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()},
 		service.GetMarshalizerService(), 10)
 	assert.Nil(t, err)
 
@@ -45,7 +46,7 @@ func TestSimpleSend2NodesPingPong(t *testing.T) {
 
 	var val int32 = 0
 
-	node1.OnMsgRecv = func(sender *Node, peerID string, m *Message) {
+	node1.OnMsgRecv = func(sender *p2p.Node, peerID string, m *p2p.Message) {
 		fmt.Printf("Got message from peerID %v: %v\n", peerID, string(m.Payload))
 
 		if string(m.Payload) == "Ping" {
@@ -54,7 +55,7 @@ func TestSimpleSend2NodesPingPong(t *testing.T) {
 		}
 	}
 
-	node2.OnMsgRecv = func(sender *Node, peerID string, m *Message) {
+	node2.OnMsgRecv = func(sender *p2p.Node, peerID string, m *p2p.Message) {
 		fmt.Printf("Got message from peerID %v: %v\n", peerID, string(m.Payload))
 
 		if string(m.Payload) == "Ping" {
@@ -80,13 +81,13 @@ func TestSimpleSend2NodesPingPong(t *testing.T) {
 
 }
 
-func recv1(sender *Node, peerID string, m *Message) {
+func recv1(sender *p2p.Node, peerID string, m *p2p.Message) {
 	atomic.AddInt32(&counter1, 1)
 	fmt.Printf("%v > %v: Got message from peerID %v: %v\n", time.Now(), sender.P2pNode.ID().Pretty(), peerID, string(m.Payload))
 	sender.BroadcastBuff(m.Payload, []string{peerID})
 }
 
-func recv2(sender *Node, peerID string, m *Message) {
+func recv2(sender *p2p.Node, peerID string, m *p2p.Message) {
 	atomic.AddInt32(&counter2, 1)
 	fmt.Printf("%v > %v: Got message from peerID %v: %v\n", time.Now(), sender.P2pNode.ID().Pretty(), peerID, string(m.Payload))
 	sender.BroadcastString(string(m.Payload), []string{peerID})
@@ -97,19 +98,19 @@ func TestSimpleBroadcast5nodesInline(t *testing.T) {
 
 	marsh := service.GetMarshalizerService()
 
-	node1, err := NewNode(context.Background(), 6100, []string{}, marsh, 10)
+	node1, err := p2p.NewNode(context.Background(), 6100, []string{}, marsh, 10)
 	assert.Nil(t, err)
 
-	node2, err := NewNode(context.Background(), 6101, []string{node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()}, marsh, 10)
+	node2, err := p2p.NewNode(context.Background(), 6101, []string{node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()}, marsh, 10)
 	assert.Nil(t, err)
 
-	node3, err := NewNode(context.Background(), 6102, []string{node2.P2pNode.Addrs()[0].String() + "/ipfs/" + node2.P2pNode.ID().Pretty()}, marsh, 10)
+	node3, err := p2p.NewNode(context.Background(), 6102, []string{node2.P2pNode.Addrs()[0].String() + "/ipfs/" + node2.P2pNode.ID().Pretty()}, marsh, 10)
 	assert.Nil(t, err)
 
-	node4, err := NewNode(context.Background(), 6103, []string{node3.P2pNode.Addrs()[0].String() + "/ipfs/" + node3.P2pNode.ID().Pretty()}, marsh, 10)
+	node4, err := p2p.NewNode(context.Background(), 6103, []string{node3.P2pNode.Addrs()[0].String() + "/ipfs/" + node3.P2pNode.ID().Pretty()}, marsh, 10)
 	assert.Nil(t, err)
 
-	node5, err := NewNode(context.Background(), 6104, []string{node4.P2pNode.Addrs()[0].String() + "/ipfs/" + node4.P2pNode.ID().Pretty()}, marsh, 10)
+	node5, err := p2p.NewNode(context.Background(), 6104, []string{node4.P2pNode.Addrs()[0].String() + "/ipfs/" + node4.P2pNode.ID().Pretty()}, marsh, 10)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -144,20 +145,20 @@ func TestSimpleBroadcast5nodesBeterConnected(t *testing.T) {
 
 	marsh := service.GetMarshalizerService()
 
-	node1, err := NewNode(context.Background(), 7000, []string{}, marsh, 10)
+	node1, err := p2p.NewNode(context.Background(), 7000, []string{}, marsh, 10)
 	assert.Nil(t, err)
 
-	node2, err := NewNode(context.Background(), 7001, []string{node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()}, marsh, 10)
+	node2, err := p2p.NewNode(context.Background(), 7001, []string{node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()}, marsh, 10)
 	assert.Nil(t, err)
 
-	node3, err := NewNode(context.Background(), 7002, []string{node2.P2pNode.Addrs()[0].String() + "/ipfs/" + node2.P2pNode.ID().Pretty(),
+	node3, err := p2p.NewNode(context.Background(), 7002, []string{node2.P2pNode.Addrs()[0].String() + "/ipfs/" + node2.P2pNode.ID().Pretty(),
 		node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()}, marsh, 10)
 	assert.Nil(t, err)
 
-	node4, err := NewNode(context.Background(), 7003, []string{node3.P2pNode.Addrs()[0].String() + "/ipfs/" + node3.P2pNode.ID().Pretty()}, marsh, 10)
+	node4, err := p2p.NewNode(context.Background(), 7003, []string{node3.P2pNode.Addrs()[0].String() + "/ipfs/" + node3.P2pNode.ID().Pretty()}, marsh, 10)
 	assert.Nil(t, err)
 
-	node5, err := NewNode(context.Background(), 7004, []string{node4.P2pNode.Addrs()[0].String() + "/ipfs/" + node4.P2pNode.ID().Pretty(),
+	node5, err := p2p.NewNode(context.Background(), 7004, []string{node4.P2pNode.Addrs()[0].String() + "/ipfs/" + node4.P2pNode.ID().Pretty(),
 		node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()}, marsh, 10)
 	assert.Nil(t, err)
 
@@ -190,22 +191,22 @@ func TestSimpleBroadcast5nodesBeterConnected(t *testing.T) {
 func TestMessageHops(t *testing.T) {
 	marsh := service.GetMarshalizerService()
 
-	node1, err := NewNode(context.Background(), 8000, []string{}, marsh, 10)
+	node1, err := p2p.NewNode(context.Background(), 8000, []string{}, marsh, 10)
 	assert.Nil(t, err)
 
-	node2, err := NewNode(context.Background(), 8001, []string{node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()}, marsh, 10)
+	node2, err := p2p.NewNode(context.Background(), 8001, []string{node1.P2pNode.Addrs()[0].String() + "/ipfs/" + node1.P2pNode.ID().Pretty()}, marsh, 10)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
 
-	m := NewMessage(node1.P2pNode.ID().Pretty(), []byte("A"), marsh)
+	m := p2p.NewMessage(node1.P2pNode.ID().Pretty(), []byte("A"), marsh)
 
 	mut := sync.RWMutex{}
-	var recv *Message = nil
+	var recv *p2p.Message = nil
 
 	counter3 = 0
 
-	node1.OnMsgRecv = func(sender *Node, peerID string, m *Message) {
+	node1.OnMsgRecv = func(sender *p2p.Node, peerID string, m *p2p.Message) {
 
 		if counter3 < 10 {
 			atomic.AddInt32(&counter3, 1)
@@ -220,7 +221,7 @@ func TestMessageHops(t *testing.T) {
 		}
 	}
 
-	node2.OnMsgRecv = func(sender *Node, peerID string, m *Message) {
+	node2.OnMsgRecv = func(sender *p2p.Node, peerID string, m *p2p.Message) {
 
 		if counter3 < 10 {
 			atomic.AddInt32(&counter3, 1)
@@ -271,7 +272,7 @@ func TestMessageHops(t *testing.T) {
 }
 
 func TestSendingNilShouldReturnError(t *testing.T) {
-	node1, err := NewNode(context.Background(), 9000, []string{}, service.GetMarshalizerService(), 10)
+	node1, err := p2p.NewNode(context.Background(), 9000, []string{}, service.GetMarshalizerService(), 10)
 	assert.Nil(t, err)
 
 	err = node1.BroadcastMessage(nil, []string{})
@@ -283,7 +284,7 @@ func TestSendingNilShouldReturnError(t *testing.T) {
 }
 
 func TestMultipleErrorsOnBroadcasting(t *testing.T) {
-	node1, err := NewNode(context.Background(), 10000, []string{}, service.GetMarshalizerService(), 10)
+	node1, err := p2p.NewNode(context.Background(), 10000, []string{}, service.GetMarshalizerService(), 10)
 	assert.Nil(t, err)
 
 	node1.P2pNode.Peerstore().AddAddr("A", node1.P2pNode.Addrs()[0], peerstore.PermanentAddrTTL)
@@ -291,7 +292,7 @@ func TestMultipleErrorsOnBroadcasting(t *testing.T) {
 	err = node1.BroadcastString("aaa", []string{})
 	assert.NotNil(t, err)
 
-	if len(err.(*NodeError).NestedErrors) != 0 {
+	if len(err.(*p2p.NodeError).NestedErrors) != 0 {
 		t.Fatal("Should have had 0 nested errs")
 	}
 
@@ -300,35 +301,35 @@ func TestMultipleErrorsOnBroadcasting(t *testing.T) {
 	err = node1.BroadcastString("aaa", []string{})
 	assert.NotNil(t, err)
 
-	if len(err.(*NodeError).NestedErrors) != 2 {
+	if len(err.(*p2p.NodeError).NestedErrors) != 2 {
 		t.Fatal("Should have had 2 nested errs")
 	}
 
 }
 
 func TestCreateNodeWithNilMarshalizer(t *testing.T) {
-	_, err := NewNode(context.Background(), 11000, []string{}, nil, 10)
+	_, err := p2p.NewNode(context.Background(), 11000, []string{}, nil, 10)
 	assert.NotNil(t, err)
 }
 
 func TestBootstrap(t *testing.T) {
 	startPort := 12000
-	endPort := 12099
-	nConns := 8
+	endPort := 12009
+	nConns := 3
 
-	nodes := []*Node{}
+	nodes := make([]*p2p.Node, 0)
 
-	cp := NewClusterParameter("127.0.0.1", startPort, endPort)
+	cp := p2p.NewClusterParameter("127.0.0.1", startPort, endPort)
 
-	recv := make(map[string]*Message)
+	recv := make(map[string]*p2p.Message)
 	mut := sync.RWMutex{}
 
 	mapHops := make(map[int]int)
 
 	for i := startPort; i <= endPort; i++ {
-		node, err := NewNode(context.Background(), i, []string{}, service.GetMarshalizerService(), nConns)
+		node, err := p2p.NewNode(context.Background(), i, []string{}, service.GetMarshalizerService(), nConns)
 
-		node.OnMsgRecv = func(sender *Node, peerID string, m *Message) {
+		node.OnMsgRecv = func(sender *p2p.Node, peerID string, m *p2p.Message) {
 
 			m.AddHop(sender.P2pNode.ID().Pretty())
 
@@ -349,7 +350,7 @@ func TestBootstrap(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(nodes))
 
-	cps := []ClusterParameter{*cp}[:]
+	cps := []p2p.ClusterParameter{*cp}[:]
 
 	for i := 0; i < len(nodes); i++ {
 		node := nodes[i]
@@ -378,7 +379,7 @@ func TestBootstrap(t *testing.T) {
 
 	//broadcastind something
 	fmt.Println("Broadcasting a message...")
-	m := NewMessage(nodes[0].P2pNode.ID().Pretty(), []byte{65, 66, 67}, service.GetMarshalizerService())
+	m := p2p.NewMessage(nodes[0].P2pNode.ID().Pretty(), []byte{65, 66, 67}, service.GetMarshalizerService())
 
 	nodes[0].BroadcastMessage(m, []string{})
 	mut.Lock()

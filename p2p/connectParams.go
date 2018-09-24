@@ -11,13 +11,7 @@ import (
 	mrand "math/rand"
 )
 
-// NOTE: for real network tests, use ZeroLocalTCPAddress so the kernel
-// assigns an unused TCP port. otherwise you may get clashes. This
-// function remains here so that p2p/net/mock (which does not touch the
-// real network) can assign different addresses to peers.
-var ZeroLocalTCPAddress ma.Multiaddr
-
-type P2PParams struct {
+type ConnectParams struct {
 	ID      peer.ID
 	PrivKey ci.PrivKey
 	PubKey  ci.PubKey
@@ -25,16 +19,7 @@ type P2PParams struct {
 	Port    int
 }
 
-func init() {
-	// initialize ZeroLocalTCPAddress
-	maddr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
-	if err != nil {
-		panic(err)
-	}
-	ZeroLocalTCPAddress = maddr
-}
-
-func (params *P2PParams) GeneratePrivPubKeys(seed int) {
+func (params *ConnectParams) GeneratePrivPubKeys(seed int) {
 	r := mrand.New(mrand.NewSource(int64(seed)))
 
 	prvKey, err := ecdsa.GenerateKey(btcec.S256(), r)
@@ -49,12 +34,12 @@ func (params *P2PParams) GeneratePrivPubKeys(seed int) {
 	params.PubKey = k.GetPublic()
 }
 
-func (params *P2PParams) GenerateIDFromPubKey() {
+func (params *ConnectParams) GenerateIDFromPubKey() {
 	params.ID, _ = peer.IDFromPublicKey(params.PubKey)
 }
 
-func NewP2PParams(port int) *P2PParams {
-	params := new(P2PParams)
+func NewConnectParams(port int) *ConnectParams {
+	params := new(ConnectParams)
 
 	params.Port = port
 	params.GeneratePrivPubKeys(port)
