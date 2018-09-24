@@ -13,6 +13,11 @@ func TestRoundState(t *testing.T) {
 	}
 }
 
+func TestEpochBehaviour(t *testing.T) {
+	e := NewEpoch(1, time.Now())
+	EpochServiceImpl{}.Print(&e)
+}
+
 func TestRoundBehaviour(t *testing.T) {
 
 	var csi ChronologyServiceImpl

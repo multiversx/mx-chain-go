@@ -1,12 +1,12 @@
 package data
 
 type Block struct {
-	nonce     int
-	timeStamp string
-	signature string
-	hash      string
-	prevHash  string
-	metaData  string
+	Nonce     int
+	TimeStamp string
+	Signature string
+	Hash      string
+	PrevHash  string
+	MetaData  string
 }
 
 func NewBlock(nonce int, timeStamp string, signature string, hash string, prevhash string, metaData string) Block {
@@ -16,49 +16,49 @@ func NewBlock(nonce int, timeStamp string, signature string, hash string, prevha
 }
 
 func (b *Block) SetNonce(nonce int) {
-	b.nonce = nonce
+	b.Nonce = nonce
 }
 
 func (b *Block) GetNonce() int {
-	return b.nonce
+	return b.Nonce
 }
 
 func (b *Block) SetTimeStamp(timeStamp string) {
-	b.timeStamp = timeStamp
+	b.TimeStamp = timeStamp
 }
 
 func (b *Block) GetTimeStamp() string {
-	return b.timeStamp
+	return b.TimeStamp
 }
 
 func (b *Block) SetSignature(signature string) {
-	b.signature = signature
+	b.Signature = signature
 }
 
 func (b *Block) GetSignature() string {
-	return b.signature
+	return b.Signature
 }
 
 func (b *Block) SetHash(hash string) {
-	b.hash = hash
+	b.Hash = hash
 }
 
 func (b *Block) GetHash() string {
-	return b.hash
+	return b.Hash
 }
 
 func (b *Block) SetPrevHash(prevHash string) {
-	b.prevHash = prevHash
+	b.PrevHash = prevHash
 }
 
 func (b *Block) GetPrevHash() string {
-	return b.prevHash
+	return b.PrevHash
 }
 
 func (b *Block) SetMetaData(metaData string) {
-	b.metaData = metaData
+	b.MetaData = metaData
 }
 
 func (b *Block) GetMetaData() string {
-	return b.metaData
+	return b.MetaData
 }
