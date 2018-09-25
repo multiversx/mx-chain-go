@@ -1,4 +1,4 @@
-package hashing
+package blake2b
 
 import (
 	"encoding/hex"
