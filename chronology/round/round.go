@@ -2,13 +2,91 @@ package chronology
 
 import (
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"time"
 )
 
-type ChronologyServiceImpl struct {
+type Round struct {
+	index             int64
+	startTimeStamp    time.Time
+	roundTimeDuration time.Duration
+	roundTimeDivision []time.Duration
+	roundState        RoundState
 }
 
-func (c ChronologyServiceImpl) CreateRoundFromDateTime(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration) *Round {
+func New(index int64, startTimeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration, roundState RoundState) Round {
+
+	r := Round{index, startTimeStamp, roundTimeDuration, roundTimeDivision, roundState}
+	return r
+}
+
+func (r *Round) SetIndex(index int64) {
+	r.index = index
+}
+
+func (r *Round) GetIndex() int64 {
+	return r.index
+}
+
+func (r *Round) SetStartTimeStamp(startTimeStamp time.Time) {
+	r.startTimeStamp = startTimeStamp
+}
+
+func (r *Round) GetStartTimeStamp() time.Time {
+	return r.startTimeStamp
+}
+
+func (r *Round) SetRoundTimeDuration(roundTimeDuration time.Duration) {
+	r.roundTimeDuration = roundTimeDuration
+}
+
+func (r *Round) GetRoundTimeDuration() time.Duration {
+	return r.roundTimeDuration
+}
+
+func (r *Round) SetRoundTimeDivision(roundTimeDivision []time.Duration) {
+	r.roundTimeDivision = roundTimeDivision
+}
+
+func (r *Round) GetRoundTimeDivision() []time.Duration {
+	return r.roundTimeDivision
+}
+
+func (r *Round) SetRoundState(roundState RoundState) {
+	r.roundState = roundState
+}
+
+func (r *Round) GetRoundState() RoundState {
+	return r.roundState
+}
+
+// A RoundState specifies in which state is the current round
+type RoundState int
+
+const (
+	RS_BEFORE_ROUND RoundState = iota
+	RS_START_ROUND
+	RS_PROPOSE_BLOCK
+	RS_COMITMENT_HASH
+	RS_BITMAP
+	RS_COMITMENT
+	RS_AGGREGATE_COMITMENT
+	RS_END_ROUND
+	RS_AFTER_ROUND
+	RS_ABORDED
+	RS_UNKNOWN
+)
+
+// impl
+
+type RoundImpl struct {
+}
+
+func (ri RoundImpl) Print(round *Round) {
+	spew.Dump(round)
+}
+
+func (ri RoundImpl) CreateRoundFromDateTime(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration) *Round {
 
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
@@ -28,7 +106,7 @@ func (c ChronologyServiceImpl) CreateRoundFromDateTime(genesisRoundTimeStamp tim
 	return &r
 }
 
-func (c ChronologyServiceImpl) UpdateRoundFromDateTime(genesisRoundTimeStamp time.Time, timeStamp time.Time, round *Round) {
+func (ri RoundImpl) UpdateRoundFromDateTime(genesisRoundTimeStamp time.Time, timeStamp time.Time, round *Round) {
 
 	if round == nil {
 		fmt.Print("round should be not null")
@@ -50,7 +128,7 @@ func (c ChronologyServiceImpl) UpdateRoundFromDateTime(genesisRoundTimeStamp tim
 	}
 }
 
-func (c ChronologyServiceImpl) CreateRoundTimeDivision(duration time.Duration) []time.Duration {
+func (ri RoundImpl) CreateRoundTimeDivision(duration time.Duration) []time.Duration {
 
 	var d []time.Duration
 
@@ -76,7 +154,7 @@ func (c ChronologyServiceImpl) CreateRoundTimeDivision(duration time.Duration) [
 	return d
 }
 
-func (c ChronologyServiceImpl) GetRoundStateFromDateTime(round *Round, timeStamp time.Time) RoundState {
+func (ri RoundImpl) GetRoundStateFromDateTime(round *Round, timeStamp time.Time) RoundState {
 
 	if round == nil {
 		return RS_UNKNOWN
@@ -101,7 +179,7 @@ func (c ChronologyServiceImpl) GetRoundStateFromDateTime(round *Round, timeStamp
 	return RS_UNKNOWN
 }
 
-func (c ChronologyServiceImpl) GetRoundStateName(roundState RoundState) string {
+func (ri RoundImpl) GetRoundStateName(roundState RoundState) string {
 
 	switch roundState {
 	case RS_BEFORE_ROUND:

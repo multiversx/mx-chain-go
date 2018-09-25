@@ -1,5 +1,5 @@
 package hasher
 
-type IHasherService interface {
+type Hasher interface {
 	CalculateHash(interface{}) interface{}
 }

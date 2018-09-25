@@ -2,15 +2,16 @@ package hasher
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hasher/sha256"
 	"testing"
 )
 
 func TestHasher(t *testing.T) {
 
-	var sha256 Sha256Impl
+	si := hasher.Sha256Impl{}
 
-	h1 := sha256.CalculateHash("a")
-	h2 := sha256.CalculateHash("b")
+	h1 := si.CalculateHash("a")
+	h2 := si.CalculateHash("b")
 
 	if h1 == h2 {
 		t.Fatal("Same hash for different arguments")

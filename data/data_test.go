@@ -1,86 +1,92 @@
 package data
 
 import (
+	block "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	blockchain "github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"testing"
 	"time"
 )
 
 func TestBlock(t *testing.T) {
 
-	var bsi BlockServiceImpl
+	bs := GetBlockerService()
 
-	block := NewBlock(0, time.Now().String(), "", "", "", "Test")
-	hash := bsi.CalculateHash(&block)
+	block := block.New(0, time.Now().String(), "", "", "", "Test")
+	hash := bs.CalculateHash(&block)
 	block.SetHash(hash)
 
 	if block.GetHash() == "" {
 		t.Fatal("Hash was not set")
 	}
 
-	bsi.Print(&block)
+	bs.Print(&block)
 }
 
 func TestAddNewBlocksToBlockChain(t *testing.T) {
 
-	var bcsi BlockChainServiceImpl
-	var blockChain BlockChain
-	var block Block
-	var currentBlock *Block
+	bs := GetBlockerService()
+	bcs := GetBlockChainerService()
 
-	block = NewBlock(0, time.Now().String(), "", "", "", "")
-	block.SetPrevHash("")
-	block.SetHash(BlockServiceImpl{}.CalculateHash(&block))
-	bcsi.AddBlock(&blockChain, block)
+	var blockChain blockchain.BlockChain
+	var b block.Block
+	var currentBlock *block.Block
 
-	block = NewBlock(1, time.Now().String(), "", "", "", "")
-	currentBlock = bcsi.GetCurrentBlock(&blockChain)
-	block.SetPrevHash(currentBlock.GetHash())
-	block.SetHash(BlockServiceImpl{}.CalculateHash(&block))
-	bcsi.AddBlock(&blockChain, block)
+	b = block.New(0, time.Now().String(), "", "", "", "")
+	b.SetPrevHash("")
+	b.SetHash(bs.CalculateHash(&b))
+	bcs.AddBlock(&blockChain, b)
 
-	block = NewBlock(2, time.Now().String(), "", "", "", "")
-	currentBlock = bcsi.GetCurrentBlock(&blockChain)
-	block.SetPrevHash(currentBlock.GetHash())
-	block.SetHash(BlockServiceImpl{}.CalculateHash(&block))
-	bcsi.AddBlock(&blockChain, block)
+	b = block.New(1, time.Now().String(), "", "", "", "")
+	currentBlock = bcs.GetCurrentBlock(&blockChain)
+	b.SetPrevHash(currentBlock.GetHash())
+	b.SetHash(bs.CalculateHash(&b))
+	bcs.AddBlock(&blockChain, b)
 
-	if len(blockChain.blocks) != 3 {
+	b = block.New(2, time.Now().String(), "", "", "", "")
+	currentBlock = bcs.GetCurrentBlock(&blockChain)
+	b.SetPrevHash(currentBlock.GetHash())
+	b.SetHash(bs.CalculateHash(&b))
+	bcs.AddBlock(&blockChain, b)
+
+	if len(blockChain.GetBlocks()) != 3 {
 		t.Fatal("Error: blocks count not match")
 	}
 
-	if bcsi.GetCurrentBlock(&blockChain).nonce != 2 {
+	if bcs.GetCurrentBlock(&blockChain).GetNonce() != 2 {
 		t.Fatal("Error: nonce not match")
 	}
 
-	bcsi.Print(&blockChain)
+	bcs.Print(&blockChain)
 }
 
 func TestAddSameModifiedBlockToBlockChain(t *testing.T) {
 
-	var bcsi BlockChainServiceImpl
-	var blockChain BlockChain
-	var block Block
+	bs := GetBlockerService()
+	bcs := GetBlockChainerService()
 
-	block = NewBlock(0, time.Now().String(), "", "", "", "")
-	block.SetPrevHash("")
-	block.SetHash(BlockServiceImpl{}.CalculateHash(&block))
-	bcsi.AddBlock(&blockChain, block)
+	var blockChain blockchain.BlockChain
+	var b block.Block
 
-	block.SetNonce(1)
-	block.SetPrevHash(block.GetHash())
-	block.SetHash(BlockServiceImpl{}.CalculateHash(&block))
-	bcsi.AddBlock(&blockChain, block)
+	b = block.New(0, time.Now().String(), "", "", "", "")
+	b.SetPrevHash("")
+	b.SetHash(bs.CalculateHash(&b))
+	bcs.AddBlock(&blockChain, b)
 
-	block.SetNonce(2)
-	block.SetPrevHash(block.GetHash())
-	block.SetHash(BlockServiceImpl{}.CalculateHash(&block))
-	bcsi.AddBlock(&blockChain, block)
+	b.SetNonce(1)
+	b.SetPrevHash(b.GetHash())
+	b.SetHash(bs.CalculateHash(&b))
+	bcs.AddBlock(&blockChain, b)
 
-	if len(blockChain.blocks) != 3 {
+	b.SetNonce(2)
+	b.SetPrevHash(b.GetHash())
+	b.SetHash(bs.CalculateHash(&b))
+	bcs.AddBlock(&blockChain, b)
+
+	if len(blockChain.GetBlocks()) != 3 {
 		t.Fatal("Error: blocks count not match")
 	}
 
-	if bcsi.GetCurrentBlock(&blockChain).nonce != 2 {
+	if bcs.GetCurrentBlock(&blockChain).GetNonce() != 2 {
 		t.Fatal("Error: last block nonce not match")
 	}
 
@@ -88,5 +94,28 @@ func TestAddSameModifiedBlockToBlockChain(t *testing.T) {
 		t.Fatal("Error: first block nonce not match")
 	}
 
-	bcsi.Print(&blockChain)
+	bcs.Print(&blockChain)
+}
+
+func TestServiceProvider(t *testing.T) {
+
+	PutService("Blocker", block.BlockImpl1{})
+	bs := GetBlockerService()
+
+	switch bs.(type) {
+	case block.BlockImpl1:
+		bs.PrintImpl()
+	default:
+		t.Fatal("Service implementation selecation error")
+	}
+
+	PutService("Blocker", block.BlockImpl2{})
+	bs = GetBlockerService()
+
+	switch bs.(type) {
+	case block.BlockImpl2:
+		bs.PrintImpl()
+	default:
+		t.Fatal("Service implementation selecation error")
+	}
 }
