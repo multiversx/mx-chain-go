@@ -121,15 +121,17 @@ func TestingSendToSelf(t *testing.T, mesType int) {
 func TestingSimpleSend2NodesPingPong(t *testing.T, mesType int) {
 	fmt.Println()
 
-	node1, err := createMessenger(mesType, 5000, 10, getDefaultMarshlizer())
+	node1, err := createMessenger(mesType, 5100, 10, getDefaultMarshlizer())
 	assert.Nil(t, err)
 
-	node2, err := createMessenger(mesType, 5001, 10, getDefaultMarshlizer())
+	node2, err := createMessenger(mesType, 5101, 10, getDefaultMarshlizer())
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
 
 	node1.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0]})
+
+	time.Sleep(time.Second)
 
 	fmt.Printf("Node 1 is %s\n", node1.Addrs()[0])
 	fmt.Printf("Node 2 is %s\n", node2.Addrs()[0])
