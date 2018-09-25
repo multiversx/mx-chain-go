@@ -3,10 +3,11 @@ package p2p
 import (
 	"container/list"
 	"fmt"
+	"sync"
+
 	"github.com/gogo/protobuf/sortkeys"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/pkg/errors"
-	"sync"
 )
 
 type RoutingTable struct {
@@ -198,14 +199,14 @@ func (rt *RoutingTable) NearestPeersAll() []peer.ID {
 }
 
 func (rt *RoutingTable) Print() {
-	for _, dist := range rt.dists3 {
-		fmt.Printf("Distance %d:\n", dist)
+	for i := 0; i < len(rt.dists3); i++ {
+		fmt.Printf("Distance %d:\n", rt.dists3[i])
 
-		pids := rt.dists1[dist]
+		pids := rt.dists1[rt.dists3[i]]
 
-		for _, pid := range pids {
-			fmt.Printf("\t %v", pid.Pretty())
-			if pid == rt.current {
+		for j := 0; j < len(pids); j++ {
+			fmt.Printf("\t %v", pids[j].Pretty())
+			if pids[j] == rt.current {
 				fmt.Printf("*")
 			}
 			fmt.Println()

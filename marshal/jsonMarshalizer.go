@@ -2,6 +2,7 @@ package marshal
 
 import (
 	"encoding/json"
+
 	"github.com/pkg/errors"
 )
 

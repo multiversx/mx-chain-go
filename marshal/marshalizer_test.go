@@ -2,11 +2,12 @@ package marshal_test
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/stretchr/testify/assert"
 )
 
 type testingJM struct {

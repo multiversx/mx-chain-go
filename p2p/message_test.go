@@ -2,10 +2,11 @@ package p2p_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/service"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestMarshalUnmarshal(t *testing.T) {
