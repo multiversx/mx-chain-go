@@ -5,15 +5,15 @@ import (
 )
 
 type DiscoveryNotifier struct {
-	mes *Messenger
+	mes Messenger
 }
 
-func NewDiscoveryNotifier(m *Messenger) *DiscoveryNotifier {
+func NewDiscoveryNotifier(m Messenger) *DiscoveryNotifier {
 	return &DiscoveryNotifier{mes: m}
 }
 
 func (n *DiscoveryNotifier) HandlePeerFound(pi pstore.PeerInfo) {
-	peers := (*n.mes).Peers()
+	peers := n.mes.Peers()
 
 	found := false
 
@@ -31,8 +31,8 @@ func (n *DiscoveryNotifier) HandlePeerFound(pi pstore.PeerInfo) {
 	//fmt.Printf("%s found peer %s\n", n.node.P2pNode.ID().Pretty(), pi.ID.Pretty())
 
 	for i := 0; i < len(pi.Addrs); i++ {
-		(*n.mes).AddAddr(pi.ID, pi.Addrs[i], pstore.PermanentAddrTTL)
+		n.mes.AddAddr(pi.ID, pi.Addrs[i], pstore.PermanentAddrTTL)
 	}
 
-	(*n.mes).RouteTable().Update(pi.ID)
+	n.mes.RouteTable().Update(pi.ID)
 }

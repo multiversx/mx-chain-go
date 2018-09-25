@@ -1,7 +1,6 @@
 package p2p
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"encoding/base64"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/btcsuite/btcutil/base58"
-	cr "github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multiaddr"
@@ -25,89 +23,6 @@ func init() {
 	mutGloballyRegPeers = &sync.Mutex{}
 	GloballyRegisteredPeers = make(map[peer.ID]*MemoryMessenger)
 }
-
-//-------------------------------------MockConn
-type MockConn struct {
-	localPeer  peer.ID
-	remotePeer peer.ID
-}
-
-func (mc *MockConn) Close() error {
-	return nil
-}
-
-func (mc *MockConn) LocalPeer() peer.ID {
-	return mc.localPeer
-}
-
-func (mc *MockConn) LocalPrivateKey() cr.PrivKey {
-	panic("implement me")
-}
-
-func (mc *MockConn) RemotePeer() peer.ID {
-	return mc.remotePeer
-}
-
-func (mc MockConn) RemotePublicKey() cr.PubKey {
-	panic("implement me")
-}
-
-func (mc MockConn) LocalMultiaddr() multiaddr.Multiaddr {
-	panic("implement me")
-}
-
-func (mc MockConn) RemoteMultiaddr() multiaddr.Multiaddr {
-	panic("implement me")
-}
-
-func (mc MockConn) NewStream() (net.Stream, error) {
-	panic("implement me")
-}
-
-func (mc MockConn) GetStreams() []net.Stream {
-	panic("implement me")
-}
-
-func (mc MockConn) Stat() net.Stat {
-	panic("implement me")
-}
-
-//-------------------------------------end MockConn
-
-//-------------------------------------MockMultiAddr
-type MockMultiAddr struct {
-	buff []byte
-}
-
-func (mma *MockMultiAddr) Equal(obj multiaddr.Multiaddr) bool {
-	return bytes.Equal(mma.buff, obj.Bytes())
-}
-
-func (mma *MockMultiAddr) Bytes() []byte {
-	return mma.buff
-}
-
-func (mma *MockMultiAddr) String() string {
-	return string(mma.buff)
-}
-
-func (mma *MockMultiAddr) Protocols() []multiaddr.Protocol {
-	panic("implement me")
-}
-
-func (*MockMultiAddr) Encapsulate(multiaddr.Multiaddr) multiaddr.Multiaddr {
-	panic("implement me")
-}
-
-func (mma *MockMultiAddr) Decapsulate(multiaddr.Multiaddr) multiaddr.Multiaddr {
-	panic("implement me")
-}
-
-func (mma *MockMultiAddr) ValueForProtocol(code int) (string, error) {
-	panic("implement me")
-}
-
-//-------------------------------------end MockMultiAddr
 
 type MemoryMessenger struct {
 	peerID peer.ID
@@ -195,10 +110,11 @@ func (mm *MemoryMessenger) RouteTable() *RoutingTable {
 	return mm.rt
 }
 
-func (mm *MemoryMessenger) Addrs() []multiaddr.Multiaddr {
-	b := []byte(mm.peerID.Pretty())
+func (mm *MemoryMessenger) Addrs() []string {
+	//b := []byte(mm.peerID.Pretty())
 
-	return []multiaddr.Multiaddr{&MockMultiAddr{buff: b}}
+	//return []multiaddr.Multiaddr{&MockMultiAddr{buff: b}}
+	return []string{string(mm.peerID.Pretty())}
 }
 
 func (mm *MemoryMessenger) GetOnRecvMsg() func(caller Messenger, peerID string, m *Message) {
@@ -280,6 +196,12 @@ func (mm *MemoryMessenger) sendDirectRAW(peerID string, buff []byte) error {
 		return &NodeError{PeerRecv: peerID, PeerSend: mm.ID().Pretty(), Err: "Attempt to write on a closed messenger!\n"}
 	}
 	mm.mutClosed.RUnlock()
+
+	if peerID == mm.ID().Pretty() {
+		//send to self allowed
+		mm.gotNewMessage(mm, buff)
+		return nil
+	}
 
 	mm.mutConnectedPeers.Lock()
 	val, ok := mm.connectedPeers[peer.ID(base58.Decode(peerID))]

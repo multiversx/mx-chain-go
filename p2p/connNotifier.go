@@ -42,7 +42,7 @@ func NewConnNotifier(m Messenger) *ConnNotifier {
 	return &cn
 }
 
-func TaskMonitorConnections(cn ConnNotifier) (testOutput int) {
+func TaskMonitorConnections(cn *ConnNotifier) (testOutput int) {
 	if cn.MaxPeersAllowed < 1 {
 		//won't try to connect to other peers
 		return 1
@@ -57,7 +57,7 @@ func TaskMonitorConnections(cn ConnNotifier) (testOutput int) {
 	knownPeers := make([]peer.ID, 0)
 
 	if cn.OnGetKnownPeers != nil {
-		knownPeers = cn.OnGetKnownPeers(&cn)
+		knownPeers = cn.OnGetKnownPeers(cn)
 	}
 
 	inConns := 0
@@ -97,7 +97,7 @@ func TaskMonitorConnections(cn ConnNotifier) (testOutput int) {
 
 			if cn.Mes.Connectedness(peerID) == net.NotConnected {
 				if cn.OnNeedToConnectToOtherPeer != nil {
-					err := cn.OnNeedToConnectToOtherPeer(&cn, peerID)
+					err := cn.OnNeedToConnectToOtherPeer(cn, peerID)
 					if err == nil {
 						//connection succeed
 						return 0

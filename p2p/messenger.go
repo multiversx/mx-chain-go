@@ -21,7 +21,7 @@ type Messenger interface {
 	Conns() []net.Conn
 	Marshalizer() marshal.Marshalizer
 	RouteTable() *RoutingTable
-	Addrs() []ma.Multiaddr
+	Addrs() []string
 
 	GetOnRecvMsg() func(caller Messenger, peerID string, m *Message)
 	SetOnRecvMsg(f func(caller Messenger, peerID string, m *Message))

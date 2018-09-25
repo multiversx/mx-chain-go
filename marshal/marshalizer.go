@@ -6,6 +6,16 @@ type Marshalizer interface {
 	Version() string
 }
 
+var DMarsh Marshalizer
+
+func init() {
+	DMarsh = &JsonMarshalizer{}
+}
+
+func DefaultMarshalizer() Marshalizer {
+	return DMarsh
+}
+
 //var jsn = &JsonMarshalizer{}
 //
 //func Json() Marshalizer {

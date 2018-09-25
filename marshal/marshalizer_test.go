@@ -20,6 +20,10 @@ func TestJsonMarshalizer(t *testing.T) {
 	Suite(t, &marshal.JsonMarshalizer{})
 }
 
+func TestDefaultMarshalizerIsNotNil(t *testing.T) {
+	assert.NotNil(t, marshal.DefaultMarshalizer())
+}
+
 func Suite(t *testing.T, marshalizer marshal.Marshalizer) {
 	TestingMarshalUnmarshal(t, marshalizer)
 	TestingNullsOnMarshal(t, marshalizer)

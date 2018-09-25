@@ -1,6 +1,7 @@
-package p2p
+package p2p_test
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"fmt"
@@ -11,8 +12,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,16 +36,21 @@ func getDefaultMarshlizer() marshal.Marshalizer {
 	return defaultMarshalizer
 }
 
-func TestSuite(t *testing.T) {
+func TestSuiteMemoryMessenger(t *testing.T) {
 	Suite(t, MEMORY)
 }
 
-//func TestSimple(t *testing.T){
-//	TestingBootstrap(t, MEMORY)
+func TestSuiteNetMessenger(t *testing.T) {
+	Suite(t, NETWORK)
+}
+
+//func TestManual(t *testing.T){
+//	TestingSendToSelf(t, NETWORK)
 //}
 
 func Suite(t *testing.T, mesType int) {
 	TestingRecreationSameNode(t, mesType)
+	TestingSendToSelf(t, mesType)
 	TestingSimpleSend2NodesPingPong(t, mesType)
 	TestingSimpleBroadcast5nodesInline(t, mesType)
 	TestingSimpleBroadcast5nodesBeterConnected(t, mesType)
@@ -55,15 +61,17 @@ func Suite(t *testing.T, mesType int) {
 	TestingBootstrap(t, mesType)
 }
 
-func createMessenger(mesType int, port int, maxAllowedPeers int, marsh marshal.Marshalizer) (Messenger, error) {
+func createMessenger(mesType int, port int, maxAllowedPeers int, marsh marshal.Marshalizer) (p2p.Messenger, error) {
 	switch mesType {
 	case MEMORY:
 		sha3 := crypto.SHA3_256.New()
 		id := peer.ID(sha3.Sum([]byte("Name" + strconv.Itoa(port))))
 
-		return NewMemoryMessenger(marsh, id, maxAllowedPeers)
+		return p2p.NewMemoryMessenger(marsh, id, maxAllowedPeers)
 	case NETWORK:
-		return nil, nil
+		cp := p2p.NewConnectParamsFromPort(port)
+
+		return p2p.NewNetMessenger(context.Background(), marsh, *cp, []string{}, maxAllowedPeers)
 	default:
 		panic("Type not defined!")
 	}
@@ -86,6 +94,30 @@ func TestingRecreationSameNode(t *testing.T, mesType int) {
 	}
 }
 
+func TestingSendToSelf(t *testing.T, mesType int) {
+	node, err := createMessenger(mesType, 4500, 10, getDefaultMarshlizer())
+	assert.Nil(t, err)
+
+	var counter int32
+
+	node.SetOnRecvMsg(func(caller p2p.Messenger, peerID string, m *p2p.Message) {
+		fmt.Printf("Got message: %v\n", m.Payload)
+
+		if bytes.Equal(m.Payload, []byte{65, 66, 67}) {
+			atomic.AddInt32(&counter, 1)
+		}
+	})
+
+	node.SendDirectString(node.ID().Pretty(), "ABC")
+
+	time.Sleep(time.Second)
+
+	if atomic.LoadInt32(&counter) != int32(1) {
+		assert.Fail(t, "Should have been 1 (message received to self)")
+	}
+
+}
+
 func TestingSimpleSend2NodesPingPong(t *testing.T, mesType int) {
 	fmt.Println()
 
@@ -97,14 +129,14 @@ func TestingSimpleSend2NodesPingPong(t *testing.T, mesType int) {
 
 	time.Sleep(time.Second)
 
-	node1.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0].String()})
+	node1.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0]})
 
 	fmt.Printf("Node 1 is %s\n", node1.Addrs()[0])
 	fmt.Printf("Node 2 is %s\n", node2.Addrs()[0])
 
 	var val int32 = 0
 
-	node1.SetOnRecvMsg(func(caller Messenger, peerID string, m *Message) {
+	node1.SetOnRecvMsg(func(caller p2p.Messenger, peerID string, m *p2p.Message) {
 		fmt.Printf("%v: got message from peerID %v: %v\n", caller.ID().Pretty(), peerID, string(m.Payload))
 
 		if string(m.Payload) == "Ping" {
@@ -113,7 +145,7 @@ func TestingSimpleSend2NodesPingPong(t *testing.T, mesType int) {
 		}
 	})
 
-	node2.SetOnRecvMsg(func(caller Messenger, peerID string, m *Message) {
+	node2.SetOnRecvMsg(func(caller p2p.Messenger, peerID string, m *p2p.Message) {
 		fmt.Printf("%v: got message from peerID %v: %v\n", caller.ID().Pretty(), peerID, string(m.Payload))
 
 		if string(m.Payload) == "Ping" {
@@ -139,13 +171,13 @@ func TestingSimpleSend2NodesPingPong(t *testing.T, mesType int) {
 	node2.Close()
 }
 
-func recv1(caller Messenger, peerID string, m *Message) {
+func recv1(caller p2p.Messenger, peerID string, m *p2p.Message) {
 	atomic.AddInt32(&counter1, 1)
 	fmt.Printf("%v > %v: Got message from peerID %v: %v\n", time.Now(), caller.ID().Pretty(), peerID, string(m.Payload))
 	caller.BroadcastBuff(m.Payload, []string{peerID})
 }
 
-func recv2(caller Messenger, peerID string, m *Message) {
+func recv2(caller p2p.Messenger, peerID string, m *p2p.Message) {
 	atomic.AddInt32(&counter2, 1)
 	fmt.Printf("%v > %v: Got message from peerID %v: %v\n", time.Now(), caller.ID().Pretty(), peerID, string(m.Payload))
 	caller.BroadcastString(string(m.Payload), []string{peerID})
@@ -179,10 +211,10 @@ func TestingSimpleBroadcast5nodesInline(t *testing.T, mesType int) {
 
 	time.Sleep(time.Second)
 
-	node2.ConnectToAddresses(context.Background(), []string{node1.Addrs()[0].String()})
-	node3.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0].String()})
-	node4.ConnectToAddresses(context.Background(), []string{node3.Addrs()[0].String()})
-	node5.ConnectToAddresses(context.Background(), []string{node4.Addrs()[0].String()})
+	node2.ConnectToAddresses(context.Background(), []string{node1.Addrs()[0]})
+	node3.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0]})
+	node4.ConnectToAddresses(context.Background(), []string{node3.Addrs()[0]})
+	node5.ConnectToAddresses(context.Background(), []string{node4.Addrs()[0]})
 
 	node1.SetOnRecvMsg(recv1)
 	node2.SetOnRecvMsg(recv1)
@@ -237,10 +269,10 @@ func TestingSimpleBroadcast5nodesBeterConnected(t *testing.T, mesType int) {
 
 	time.Sleep(time.Second)
 
-	node2.ConnectToAddresses(context.Background(), []string{node1.Addrs()[0].String()})
-	node3.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0].String(), node1.Addrs()[0].String()})
-	node4.ConnectToAddresses(context.Background(), []string{node3.Addrs()[0].String()})
-	node5.ConnectToAddresses(context.Background(), []string{node4.Addrs()[0].String(), node1.Addrs()[0].String()})
+	node2.ConnectToAddresses(context.Background(), []string{node1.Addrs()[0]})
+	node3.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0], node1.Addrs()[0]})
+	node4.ConnectToAddresses(context.Background(), []string{node3.Addrs()[0]})
+	node5.ConnectToAddresses(context.Background(), []string{node4.Addrs()[0], node1.Addrs()[0]})
 
 	time.Sleep(time.Second)
 
@@ -253,12 +285,15 @@ func TestingSimpleBroadcast5nodesBeterConnected(t *testing.T, mesType int) {
 	fmt.Println()
 	fmt.Println()
 
-	node1.BroadcastString("Boo", []string{})
+	msgPayload := "Boo"
+
+	node1.SendDirectString(node1.ID().Pretty(), msgPayload)
+	node1.BroadcastString(msgPayload, []string{})
 
 	time.Sleep(time.Second)
 
-	if atomic.LoadInt32(&counter2) != 4 {
-		t.Fatal("Should have been 4 (traversed 4 peers), got", counter2)
+	if atomic.LoadInt32(&counter2) != 5 {
+		t.Fatal("Should have been 5 (traversed all peers), got", counter2)
 	}
 
 	node1.Close()
@@ -284,16 +319,16 @@ func TestingMessageHops(t *testing.T, mesType int) {
 
 	time.Sleep(time.Second)
 
-	node1.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0].String()})
+	node1.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0]})
 
-	m := NewMessage(node1.ID().Pretty(), []byte("A"), marsh)
+	m := p2p.NewMessage(node1.ID().Pretty(), []byte("A"), marsh)
 
 	mut := sync.RWMutex{}
-	var recv *Message = nil
+	var recv *p2p.Message = nil
 
 	counter3 = 0
 
-	node1.SetOnRecvMsg(func(caller Messenger, peerID string, m *Message) {
+	node1.SetOnRecvMsg(func(caller p2p.Messenger, peerID string, m *p2p.Message) {
 
 		if counter3 < 10 {
 			atomic.AddInt32(&counter3, 1)
@@ -308,7 +343,7 @@ func TestingMessageHops(t *testing.T, mesType int) {
 		}
 	})
 
-	node2.SetOnRecvMsg(func(caller Messenger, peerID string, m *Message) {
+	node2.SetOnRecvMsg(func(caller p2p.Messenger, peerID string, m *p2p.Message) {
 
 		if counter3 < 10 {
 			atomic.AddInt32(&counter3, 1)
@@ -377,23 +412,25 @@ func TestingMultipleErrorsOnBroadcasting(t *testing.T, mesType int) {
 	err = node1.BroadcastString("aaa", []string{})
 	assert.NotNil(t, err)
 
-	node1.AddAddr("A", node1.Addrs()[0], peerstore.PermanentAddrTTL)
+	//node1.AddAddr("A", node1.Addrs()[0], peerstore.PermanentAddrTTL)
 
 	err = node1.BroadcastString("aaa", []string{})
 	assert.NotNil(t, err)
 
-	if len(err.(*NodeError).NestedErrors) != 0 {
+	if len(err.(*p2p.NodeError).NestedErrors) != 0 {
 		t.Fatal("Should have had 0 nested errs")
 	}
 
-	node1.AddAddr("B", node1.Addrs()[0], peerstore.PermanentAddrTTL)
+	//TO DO: re-think test
 
-	err = node1.BroadcastString("aaa", []string{"aaa", "bbbbb"})
-	assert.NotNil(t, err)
-
-	if len(err.(*NodeError).NestedErrors) != 2 {
-		t.Fatal("Should have had 2 nested errs")
-	}
+	//node1.AddAddr("B", node1.Addrs()[0], peerstore.PermanentAddrTTL)
+	//
+	//err = node1.BroadcastString("aaa", []string{"aaa", "bbbbb"})
+	//assert.NotNil(t, err)
+	//
+	//if len(err.(*NodeError).NestedErrors) != 2 {
+	//	t.Fatal("Should have had 2 nested errs")
+	//}
 
 }
 
@@ -408,9 +445,9 @@ func TestingBootstrap(t *testing.T, mesType int) {
 	endPort := 12009
 	nConns := 4
 
-	nodes := make([]*Messenger, 0)
+	nodes := make([]*p2p.Messenger, 0)
 
-	recv := make(map[string]*Message)
+	recv := make(map[string]*p2p.Message)
 	mut := sync.RWMutex{}
 
 	mapHops := make(map[int]int)
@@ -418,7 +455,7 @@ func TestingBootstrap(t *testing.T, mesType int) {
 	for i := startPort; i <= endPort; i++ {
 		node, err := createMessenger(mesType, i, nConns, getDefaultMarshlizer())
 
-		node.SetOnRecvMsg(func(caller Messenger, peerID string, m *Message) {
+		node.SetOnRecvMsg(func(caller p2p.Messenger, peerID string, m *p2p.Message) {
 
 			m.AddHop(caller.ID().Pretty())
 
@@ -459,7 +496,7 @@ func TestingBootstrap(t *testing.T, mesType int) {
 
 	//broadcastind something
 	fmt.Println("Broadcasting a message...")
-	m := NewMessage((*nodes[0]).ID().Pretty(), []byte{65, 66, 67}, getDefaultMarshlizer())
+	m := p2p.NewMessage((*nodes[0]).ID().Pretty(), []byte{65, 66, 67}, getDefaultMarshlizer())
 
 	(*nodes[0]).BroadcastMessage(m, []string{})
 	mut.Lock()
