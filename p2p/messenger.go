@@ -23,7 +23,7 @@ type Messenger interface {
 	RouteTable() *RoutingTable
 	Addrs() []string
 
-	GetOnRecvMsg() func(caller Messenger, peerID string, m *Message)
+	OnRecvMsg() func(caller Messenger, peerID string, m *Message)
 	SetOnRecvMsg(f func(caller Messenger, peerID string, m *Message))
 
 	ConnectToAddresses(ctx context.Context, addresses []string)

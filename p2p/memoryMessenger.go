@@ -117,7 +117,7 @@ func (mm *MemoryMessenger) Addrs() []string {
 	return []string{string(mm.peerID.Pretty())}
 }
 
-func (mm *MemoryMessenger) GetOnRecvMsg() func(caller Messenger, peerID string, m *Message) {
+func (mm *MemoryMessenger) OnRecvMsg() func(caller Messenger, peerID string, m *Message) {
 	return mm.onMsgRecv
 }
 

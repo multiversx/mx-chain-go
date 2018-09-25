@@ -199,7 +199,7 @@ func (nm *NetMessenger) Addrs() []string {
 	return addrs
 }
 
-func (nm *NetMessenger) GetOnRecvMsg() func(caller Messenger, peerID string, m *Message) {
+func (nm *NetMessenger) OnRecvMsg() func(caller Messenger, peerID string, m *Message) {
 	return nm.onMsgRecv
 }
 
