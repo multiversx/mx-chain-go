@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hasher"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
@@ -24,7 +24,7 @@ func InjectDefaultServices() {
 	PutService("IBlockChainService", data.BlockChainServiceImpl{})
 	PutService("IChronologyService", chronology.ChronologyServiceImpl{})
 	PutService("IConsensusService", consensus.ConsensusServiceImpl{})
-	PutService("IHasherService", hasher.Sha256Impl{})
+	PutService("IHasherService", hashing.Sha256Impl{})
 	PutService("Marshalizer", &marshal.JsonMarshalizer{})
 }
 
@@ -57,8 +57,8 @@ func GetConsensusService() consensus.IConsensusService {
 	return GetService("IConsensusService").(consensus.IConsensusService)
 }
 
-func GetHasherService() hasher.IHasherService {
-	return GetService("IHasherService").(hasher.IHasherService)
+func GetHasherService() hashing.IHasherService {
+	return GetService("IHasherService").(hashing.IHasherService)
 }
 
 func GetMarshalizerService() marshal.Marshalizer {
