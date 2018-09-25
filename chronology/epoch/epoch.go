@@ -1,13 +1,16 @@
 package chronology
 
-import "time"
+import (
+	"github.com/davecgh/go-spew/spew"
+	"time"
+)
 
 type Epoch struct {
 	index          int64
 	startTimeStamp time.Time
 }
 
-func NewEpoch(index int64, startTimeStamp time.Time) Epoch {
+func New(index int64, startTimeStamp time.Time) Epoch {
 
 	e := Epoch{index, startTimeStamp}
 	return e
@@ -27,4 +30,13 @@ func (e *Epoch) SetStartTimeStamp(startTimeStamp time.Time) {
 
 func (e *Epoch) GetStartTimeStamp() time.Time {
 	return e.startTimeStamp
+}
+
+// impl
+
+type EpochImpl struct {
+}
+
+func (ei EpochImpl) Print(epoch *Epoch) {
+	spew.Dump(epoch)
 }
