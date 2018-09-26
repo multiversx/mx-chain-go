@@ -25,15 +25,25 @@ func (sig signature) GetL(P []math.Point) math.Scalar {
 // ei: Private keys
 func (sig signature) Sign(g math.Point, ki []math.Scalar, L math.Scalar, Pi []math.Point, m string, ei []math.Scalar) (math.Point, math.Scalar) {
 
-	ri := sig.mulRange(ki, g)
+	ri := make([]math.Point, len(ki))
+	ci := make([]math.Scalar, len(Pi))
+	si := make([]math.Scalar, len(ki))
+
+	for i := 0; i < len(ki); i++ {
+		ri[i] = sig.group.Mul(ki[i], g)
+	}
 
 	r := sig.sumPoints(ri)
 
-	ci := sig.hRange(L, Pi, r, m)
+	for i := 0; i < len(Pi); i++ {
+		ci[i] = sig.hash(L, Pi[i], r, m)
+	}
 
-	si := sig.sumScalarRange(ki, ci, ei)
+	for i := 0; i < len(ki); i++ {
+		si[i] = sig.group.ScalarAdd(ki[i], sig.group.ScalarMul(ci[i], ei[i]))
+	}
 
-	s := sig.sumScalar(si)
+	s := sig.sumScalars(si)
 
 	return r, s
 }
@@ -41,9 +51,18 @@ func (sig signature) Sign(g math.Point, ki []math.Scalar, L math.Scalar, Pi []ma
 // Pi: Public keys
 func (sig signature) Verify(g math.Point, L math.Scalar, m string, r math.Point, s math.Scalar, Pi []math.Point) bool {
 
-	ci := sig.hRange(L, Pi, r, m)
+	ci := make([]math.Scalar, len(Pi))
+	qi := make([]math.Point, len(Pi))
 
-	x := sig.group.PointSub(sig.group.Mul(s, g), sig.sumPoints(sig.mulRangeManyPoints(ci, Pi)))
+	for i := 0; i < len(Pi); i++ {
+		ci[i] = sig.hash(L, Pi[i], r, m)
+	}
+
+	for i := 0; i < len(Pi); i++ {
+		qi[i] = sig.group.Mul(ci[i], Pi[i])
+	}
+
+	x := sig.group.PointSub(sig.group.Mul(s, g), sig.sumPoints(qi))
 
 	return sig.group.Equal(x, r)
 }
@@ -64,18 +83,7 @@ func (sig signature) sumPoints(p []math.Point) math.Point {
 	return sum
 }
 
-func (sig signature) sumScalarRange(k []math.Scalar, c []math.Scalar, e []math.Scalar) []math.Scalar {
-
-	s := make([]math.Scalar, len(k))
-
-	for i := 0; i < len(k); i++ {
-		s[i] = sig.group.ScalarAdd(k[i], sig.group.ScalarMul(c[i], e[i]))
-	}
-
-	return s
-}
-
-func (sig signature) sumScalar(s []math.Scalar) math.Scalar {
+func (sig signature) sumScalars(s []math.Scalar) math.Scalar {
 
 	var sum = s[0]
 
@@ -84,37 +92,4 @@ func (sig signature) sumScalar(s []math.Scalar) math.Scalar {
 	}
 
 	return sum
-}
-
-func (sig signature) mulRange(k []math.Scalar, g math.Point) []math.Point {
-
-	r := make([]math.Point, len(k))
-
-	for i := 0; i < len(k); i++ {
-		r[i] = sig.group.Mul(k[i], g)
-	}
-
-	return r
-}
-
-func (sig signature) mulRangeManyPoints(s []math.Scalar, p []math.Point) []math.Point {
-
-	r := make([]math.Point, len(s))
-
-	for i := 0; i < len(s); i++ {
-		r[i] = sig.group.Mul(s[i], p[i])
-	}
-
-	return r
-}
-
-func (sig signature) hRange(L math.Scalar, P []math.Point, r math.Point, m string) []math.Scalar {
-
-	c := make([]math.Scalar, len(P))
-
-	for i := 0; i < len(P); i++ {
-		c[i] = sig.hash(L, P[i], r, m)
-	}
-
-	return c
 }
