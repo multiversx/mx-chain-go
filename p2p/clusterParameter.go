@@ -18,7 +18,7 @@ func NewClusterParameter(ipAddr string, stPort int, enPort int) *ClusterParamete
 	cp := ClusterParameter{ipAddress: ipAddr, startPort: stPort, endPort: enPort}
 
 	for i := stPort; i <= enPort; i++ {
-		param := NewP2PParams(i)
+		param := NewConnectParams(i)
 
 		cp.peers = append(cp.peers, param.ID)
 		ma, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d/ipfs/%s", ipAddr, i, param.ID.Pretty()))

@@ -1,7 +1,8 @@
-package p2p
+package p2p_test
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"runtime"
 	"strconv"
 	"testing"
@@ -9,7 +10,7 @@ import (
 )
 
 func TestMessageQueue1(t *testing.T) {
-	mq := NewMessageQueue(50)
+	mq := p2p.NewMessageQueue(50)
 
 	//test adding 20 elements
 	i := 0
@@ -74,7 +75,7 @@ func TestMessageQueueMemLeak(t *testing.T) {
 
 	i := 0
 
-	mq := NewMessageQueue(5000)
+	mq := p2p.NewMessageQueue(5000)
 
 	for {
 		mq.Add(strconv.Itoa(i))
@@ -116,9 +117,9 @@ func bToMb(b uint64) uint64 {
 }
 
 func TestCleanEmptyQueue(t *testing.T) {
-	mq1 := NewMessageQueue(0)
+	mq1 := p2p.NewMessageQueue(0)
 
-	mq1.clean()
+	mq1.Clean()
 
 	if mq1.Len() != 0 {
 		t.Error("mq1 should have had a length of 0!")
