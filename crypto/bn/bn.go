@@ -16,6 +16,14 @@ func NewSig(group math.Group, h hash) *signature {
 	return sig
 }
 
+func (sig signature) GetL(P []math.Point) math.Scalar {
+	s := make([]string, len(P))
+	for i := 0; i < len(P); i++ {
+		s[i] = sig.group.PointToString(P[i])
+	}
+	return sig.h(s...)
+}
+
 // ei: Private keys
 func (sig signature) Sign(g math.Point, ki []math.Scalar, L math.Scalar, Pi []math.Point, m string, ei []math.Scalar) (math.Point, math.Scalar) {
 

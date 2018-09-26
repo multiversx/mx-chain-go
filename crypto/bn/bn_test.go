@@ -23,25 +23,6 @@ func makeRandomScalars(n int) []math.Scalar {
 	return k
 }
 
-func mulRange(k []math.Scalar, g math.Point) []math.Point {
-
-	var p = make([]math.Point, len(k))
-
-	for i := 0; i < len(k); i++ {
-		p[i] = group.Mul(k[i], g)
-	}
-
-	return p
-}
-
-func hashPublicKeys(p []math.Point) math.Scalar {
-	s := make([]string, len(p))
-	for i := 0; i < len(p); i++ {
-		s[i] = group.PointToString(p[i])
-	}
-	return hash(s...)
-}
-
 func TestSignVerify(t *testing.T) {
 
 	signersCount := 3
@@ -50,7 +31,11 @@ func TestSignVerify(t *testing.T) {
 
 	privateKeys := makeRandomScalars(signersCount)
 
-	publicKeys := mulRange(privateKeys, g)
+	var publicKeys = make([]math.Point, len(privateKeys))
+
+	for i := 0; i < len(privateKeys); i++ {
+		publicKeys[i] = group.Mul(privateKeys[i], g)
+	}
 
 	fmt.Printf("Generated private keys: %v\n", privateKeys)
 	fmt.Printf("Derived public keys: %v\n\n", publicKeys)
@@ -59,7 +44,7 @@ func TestSignVerify(t *testing.T) {
 
 	k := makeRandomScalars(signersCount)
 
-	L := hashPublicKeys(publicKeys)
+	L := sig.GetL(publicKeys)
 
 	r, s := sig.Sign(g, k, L, publicKeys, message, privateKeys)
 	fmt.Printf("Signature (r=%s, s=%s)\n\n", r, s)
@@ -67,7 +52,7 @@ func TestSignVerify(t *testing.T) {
 
 	privateKeys[1] = group.RandomScalar()
 	publicKeys[1] = group.Mul(privateKeys[1], g)
-	L = hashPublicKeys(publicKeys)
+	L = sig.GetL(publicKeys)
 
 	fmt.Printf("Is the signature legit w.r.t a fake public key? %t\n", sig.Verify(g, L, message, r, s, publicKeys))
 }
