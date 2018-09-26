@@ -16,3 +16,5 @@ type Group interface {
 	ScalarToString(a Scalar) string
 	PointToString(a Point) string
 }
+
+type Hash func(s ...string) Scalar

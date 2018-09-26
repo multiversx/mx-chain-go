@@ -2,14 +2,12 @@ package bn
 
 import "elrond-go-sandbox/crypto/math"
 
-type hash func(s ...string) math.Scalar
-
 type signature struct {
 	group math.Group
-	h     hash
+	h     math.Hash
 }
 
-func NewSig(group math.Group, h hash) *signature {
+func NewSig(group math.Group, h math.Hash) *signature {
 	sig := new(signature)
 	sig.group = group
 	sig.h = h
