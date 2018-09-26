@@ -51,7 +51,9 @@ type NetMessenger struct {
 	dn   *DiscoveryNotifier
 
 	onMsgRecv func(caller Messenger, peerID string, m *Message)
-	//OnMsgRecv          func(caller *Node, peerID string, m *Message)
+
+	mutClosed sync.RWMutex
+	closed    bool
 }
 
 func genUpgrader(n *swarm.Swarm) *tptu.Upgrader {
@@ -106,7 +108,7 @@ func NewNetMessenger(ctx context.Context, mrsh marshal.Marshalizer, cp ConnectPa
 	var node NetMessenger
 	node.marsh = mrsh
 	node.cn = NewConnNotifier(&node)
-	node.cn.MaxPeersAllowed = maxAllowedPeers
+	node.cn.MaxAllowedPeers = maxAllowedPeers
 
 	timeStart := time.Now()
 
@@ -141,9 +143,9 @@ func NewNetMessenger(ctx context.Context, mrsh marshal.Marshalizer, cp ConnectPa
 		TaskMonitorConnections(node.cn)
 	}
 	node.cn.OnGetKnownPeers = func(cn *ConnNotifier) []peer.ID {
-		return cn.Mes.RouteTable().NearestPeersAll()
+		return cn.Msgr.RouteTable().NearestPeersAll()
 	}
-	node.cn.OnNeedToConnectToOtherPeer = func(cn *ConnNotifier, pid peer.ID) error {
+	node.cn.OnNeedToConn = func(cn *ConnNotifier, pid peer.ID) error {
 		pinfo := node.p2pNode.Peerstore().PeerInfo(pid)
 
 		if err := node.p2pNode.Connect(ctx, pinfo); err != nil {
@@ -160,10 +162,17 @@ func NewNetMessenger(ctx context.Context, mrsh marshal.Marshalizer, cp ConnectPa
 		return nil
 	}
 
+	node.mutClosed = sync.RWMutex{}
+	node.closed = false
+
 	return &node, nil
 }
 
 func (nm *NetMessenger) Close() error {
+	nm.mutClosed.Lock()
+	nm.closed = true
+	nm.mutClosed.Unlock()
+
 	nm.p2pNode.Close()
 
 	return nil
@@ -239,6 +248,13 @@ func (nm *NetMessenger) ConnectToAddresses(ctx context.Context, addresses []stri
 }
 
 func (nm *NetMessenger) sendDirectRAW(peerID string, buff []byte) error {
+	nm.mutClosed.RLock()
+	if nm.closed {
+		nm.mutClosed.RUnlock()
+		return &NodeError{PeerRecv: "", PeerSend: nm.ID().Pretty(), Err: "Attempt to write on a closed messenger!\n"}
+	}
+	nm.mutClosed.RUnlock()
+
 	if peerID == nm.ID().Pretty() {
 		//send to self allowed
 		nm.gotNewMessage(buff, nm.ID())
@@ -292,6 +308,13 @@ func (nm *NetMessenger) SendDirectMessage(peerID string, m *Message) error {
 }
 
 func (nm *NetMessenger) broadcastRAW(buff []byte, excs []string) error {
+	nm.mutClosed.RLock()
+	if nm.closed {
+		nm.mutClosed.RUnlock()
+		return &NodeError{PeerRecv: "", PeerSend: nm.ID().Pretty(), Err: "Attempt to write on a closed messenger!\n"}
+	}
+	nm.mutClosed.RUnlock()
+
 	var errFound = &NodeError{}
 
 	peers := nm.Peers()
@@ -437,6 +460,13 @@ func (nm *NetMessenger) gotNewMessage(buff []byte, remotePeer peer.ID) {
 }
 
 func (nm *NetMessenger) Bootstrap(ctx context.Context) {
+	nm.mutClosed.RLock()
+	if nm.closed {
+		nm.mutClosed.RUnlock()
+		return
+	}
+	nm.mutClosed.RUnlock()
+
 	nm.mutBootstrap.Lock()
 	defer nm.mutBootstrap.Unlock()
 

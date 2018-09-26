@@ -1,4 +1,4 @@
-package marshal
+package mock
 
 import (
 	"encoding/json"
@@ -6,10 +6,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-type JsonMarshalizer struct {
+type MockMarshalizer struct {
 }
 
-func (j *JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
+func (m *MockMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	if obj == nil {
 		return nil, errors.New("NIL object to serilize from!")
 	}
@@ -17,7 +17,7 @@ func (j *JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	return json.Marshal(obj)
 }
 
-func (j *JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
+func (m *MockMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	if obj == nil {
 		return errors.New("NIL object to serilize to!")
 	}

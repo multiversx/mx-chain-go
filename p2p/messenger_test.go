@@ -13,13 +13,15 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
+	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	MEMORY int = iota
-	NETWORK
+	Memory int = iota
+	Network
 )
 
 var counter1 int32
@@ -30,23 +32,24 @@ var defaultMarshalizer marshal.Marshalizer
 
 func getDefaultMarshlizer() marshal.Marshalizer {
 	if defaultMarshalizer == nil {
-		defaultMarshalizer = &marshal.JsonMarshalizer{}
+		defaultMarshalizer = &mock.MockMarshalizer{}
 	}
 
 	return defaultMarshalizer
 }
 
 func TestSuiteMemoryMessenger(t *testing.T) {
-	Suite(t, MEMORY)
+	Suite(t, Network)
 }
 
 func TestSuiteNetMessenger(t *testing.T) {
-	Suite(t, NETWORK)
+	Suite(t, Memory)
 }
 
-//func TestManual(t *testing.T){
-//	TestingSendToSelf(t, NETWORK)
-//}
+func TestDummy(t *testing.T) {
+	TestingClosedNodes(t, Memory)
+	TestingClosedNodes(t, Network)
+}
 
 func Suite(t *testing.T, mesType int) {
 	TestingRecreationSameNode(t, mesType)
@@ -63,12 +66,12 @@ func Suite(t *testing.T, mesType int) {
 
 func createMessenger(mesType int, port int, maxAllowedPeers int, marsh marshal.Marshalizer) (p2p.Messenger, error) {
 	switch mesType {
-	case MEMORY:
+	case Memory:
 		sha3 := crypto.SHA3_256.New()
 		id := peer.ID(sha3.Sum([]byte("Name" + strconv.Itoa(port))))
 
 		return p2p.NewMemoryMessenger(marsh, id, maxAllowedPeers)
-	case NETWORK:
+	case Network:
 		cp := p2p.NewConnectParamsFromPort(port)
 
 		return p2p.NewNetMessenger(context.Background(), marsh, *cp, []string{}, maxAllowedPeers)
@@ -133,8 +136,15 @@ func TestingSimpleSend2NodesPingPong(t *testing.T, mesType int) {
 
 	time.Sleep(time.Second)
 
+	assert.Equal(t, net.Connected, node1.Connectedness(node2.ID()))
+	assert.Equal(t, net.Connected, node2.Connectedness(node1.ID()))
+	assert.Equal(t, net.NotConnected, node1.Connectedness(peer.ID("AAA")))
+
 	fmt.Printf("Node 1 is %s\n", node1.Addrs()[0])
 	fmt.Printf("Node 2 is %s\n", node2.Addrs()[0])
+
+	fmt.Printf("Node 1 has the addresses: %v", node1.Addrs())
+	fmt.Printf("Node 2 has the addresses: %v", node2.Addrs())
 
 	var val int32 = 0
 
@@ -308,8 +318,6 @@ func TestingSimpleBroadcast5nodesBeterConnected(t *testing.T, mesType int) {
 func TestingMessageHops(t *testing.T, mesType int) {
 	fmt.Println()
 
-	marsh := &marshal.JsonMarshalizer{}
-
 	node1, err := createMessenger(mesType, 8000, 10, getDefaultMarshlizer())
 	assert.Nil(t, err)
 
@@ -323,7 +331,7 @@ func TestingMessageHops(t *testing.T, mesType int) {
 
 	node1.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0]})
 
-	m := p2p.NewMessage(node1.ID().Pretty(), []byte("A"), marsh)
+	m := p2p.NewMessage(node1.ID().Pretty(), []byte("A"), getDefaultMarshlizer())
 
 	mut := sync.RWMutex{}
 	var recv *p2p.Message = nil
@@ -414,26 +422,12 @@ func TestingMultipleErrorsOnBroadcasting(t *testing.T, mesType int) {
 	err = node1.BroadcastString("aaa", []string{})
 	assert.NotNil(t, err)
 
-	//node1.AddAddr("A", node1.Addrs()[0], peerstore.PermanentAddrTTL)
-
 	err = node1.BroadcastString("aaa", []string{})
 	assert.NotNil(t, err)
 
 	if len(err.(*p2p.NodeError).NestedErrors) != 0 {
 		t.Fatal("Should have had 0 nested errs")
 	}
-
-	//TO DO: re-think test
-
-	//node1.AddAddr("B", node1.Addrs()[0], peerstore.PermanentAddrTTL)
-	//
-	//err = node1.BroadcastString("aaa", []string{"aaa", "bbbbb"})
-	//assert.NotNil(t, err)
-	//
-	//if len(err.(*NodeError).NestedErrors) != 2 {
-	//	t.Fatal("Should have had 2 nested errs")
-	//}
-
 }
 
 func TestingCreateNodeWithNilMarshalizer(t *testing.T, mesType int) {
@@ -551,4 +545,22 @@ func TestingBootstrap(t *testing.T, mesType int) {
 	fmt.Println("Did not recv:", notRecv)
 
 	assert.Equal(t, notRecv, 0)
+}
+
+func TestingClosedNodes(t *testing.T, mesType int) {
+	fmt.Println()
+
+	node1, err := createMessenger(mesType, 13000, 10, getDefaultMarshlizer())
+	assert.Nil(t, err)
+
+	node1.Close()
+
+	node1.Bootstrap(context.Background())
+
+	err = node1.SendDirectString("a", "a")
+	assert.NotNil(t, err)
+
+	err = node1.BroadcastString("a", []string{})
+	assert.NotNil(t, err)
+
 }

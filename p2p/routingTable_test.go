@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//var counterRT1 int
-
 func TestCalculateDistanceDifferentLengths(t *testing.T) {
 	buff1 := []byte{0, 0}
 	buff2 := []byte{255}
@@ -255,12 +253,6 @@ func TestLonelyPeers(t *testing.T) {
 		nearestPeers := rts[i].NearestPeers(10)
 
 		nearest[peer.ID(peers[i])] = nearestPeers
-
-		//fmt.Printf("%s has: ", peers[i].ID.Pretty())
-		//for j := 0; j < len(nearestPeers); j++{
-		//	fmt.Printf("%s, ", nearestPeers[j].Pretty())
-		//}
-		//fmt.Println()
 	}
 
 	for i := 0; i < len(peers); i++ {

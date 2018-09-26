@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
@@ -94,7 +95,7 @@ func (mm *MemoryMessenger) Conns() []net.Conn {
 
 	mm.mutConnectedPeers.Lock()
 	for k := range mm.connectedPeers {
-		c := &MockConn{localPeer: mm.peerID, remotePeer: k}
+		c := &mock.MockConn{LocalP: mm.peerID, RemoteP: k}
 		conns = append(conns, c)
 	}
 	mm.mutConnectedPeers.Unlock()
@@ -111,9 +112,6 @@ func (mm *MemoryMessenger) RouteTable() *RoutingTable {
 }
 
 func (mm *MemoryMessenger) Addrs() []string {
-	//b := []byte(mm.peerID.Pretty())
-
-	//return []multiaddr.Multiaddr{&MockMultiAddr{buff: b}}
 	return []string{string(mm.peerID.Pretty())}
 }
 
@@ -193,6 +191,7 @@ func (mm *MemoryMessenger) gotNewMessage(sender *MemoryMessenger, buff []byte) {
 func (mm *MemoryMessenger) sendDirectRAW(peerID string, buff []byte) error {
 	mm.mutClosed.RLock()
 	if mm.closed {
+		mm.mutClosed.RUnlock()
 		return &NodeError{PeerRecv: peerID, PeerSend: mm.ID().Pretty(), Err: "Attempt to write on a closed messenger!\n"}
 	}
 	mm.mutClosed.RUnlock()
@@ -247,6 +246,7 @@ func (mm *MemoryMessenger) SendDirectMessage(peerID string, m *Message) error {
 func (mm *MemoryMessenger) broadcastRAW(buff []byte, excs []string) error {
 	mm.mutClosed.RLock()
 	if mm.closed {
+		mm.mutClosed.RUnlock()
 		return &NodeError{PeerRecv: "", PeerSend: mm.ID().Pretty(), Err: "Attempt to write on a closed messenger!\n"}
 	}
 	mm.mutClosed.RUnlock()
