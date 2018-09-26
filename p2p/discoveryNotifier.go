@@ -28,8 +28,6 @@ func (n *DiscoveryNotifier) HandlePeerFound(pi pstore.PeerInfo) {
 		return
 	}
 
-	//fmt.Printf("%s found peer %s\n", n.node.P2pNode.ID().Pretty(), pi.ID.Pretty())
-
 	for i := 0; i < len(pi.Addrs); i++ {
 		n.mes.AddAddr(pi.ID, pi.Addrs[i], pstore.PermanentAddrTTL)
 	}

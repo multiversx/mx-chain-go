@@ -21,7 +21,7 @@ func TestJsonMarshalizer(t *testing.T) {
 }
 
 func TestDefaultMarshalizerIsNotNil(t *testing.T) {
-	assert.NotNil(t, marshal.DefaultMarshalizer())
+	assert.NotNil(t, marshal.DefMarsh)
 }
 
 func Suite(t *testing.T, marshalizer marshal.Marshalizer) {
@@ -43,7 +43,6 @@ func TestingMarshalUnmarshal(t *testing.T, marshalizer marshal.Marshalizer) {
 
 	assert.Nil(t, err)
 
-	fmt.Printf("Marshaled with %v:\n", marshalizer.Version())
 	fmt.Println(string(buff))
 
 	tjm2 := &testingJM{}
@@ -77,7 +76,7 @@ func TestingNullsOnUnmarshal(t *testing.T, marshalizer marshal.Marshalizer) {
 	assert.NotNil(t, err)
 
 	//error on empty buff
-	err = marshalizer.Unmarshal(tjm, buff[:])
+	err = marshalizer.Unmarshal(tjm, buff)
 	assert.NotNil(t, err)
 }
 
@@ -88,9 +87,6 @@ func TestingIntMarshaling(t *testing.T, marshalizer marshal.Marshalizer) {
 	buff, err := marshalizer.Marshal(tjm)
 
 	assert.Nil(t, err)
-
-	//fmt.Println(buff)
-	//fmt.Println(string(buff))
 
 	err = marshalizer.Unmarshal(tjm2, buff)
 

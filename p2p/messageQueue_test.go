@@ -83,7 +83,7 @@ func TestMessageQueueMemLeak(t *testing.T) {
 		mq.Add(strconv.Itoa(i))
 
 		if time.Now().Sub(timeStart) > time.Second*5 {
-			return
+			break
 		}
 
 		if time.Now().Sub(timeIntermed) >= time.Second {
@@ -97,8 +97,8 @@ func TestMessageQueueMemLeak(t *testing.T) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	if bToMb(m.Alloc) > 5 {
-		t.Fatal("Allocated memory should have been less than 5 MiB!")
+	if bToMb(m.Alloc) > 10 {
+		t.Fatal("Allocated memory should have been less than 10 MiB!")
 	}
 
 }

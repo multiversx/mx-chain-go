@@ -1,4 +1,4 @@
-package p2p
+package mock
 
 import (
 	cr "github.com/libp2p/go-libp2p-crypto"
@@ -8,8 +8,8 @@ import (
 )
 
 type MockConn struct {
-	localPeer  peer.ID
-	remotePeer peer.ID
+	LocalP  peer.ID
+	RemoteP peer.ID
 }
 
 func (mc *MockConn) Close() error {
@@ -17,7 +17,7 @@ func (mc *MockConn) Close() error {
 }
 
 func (mc *MockConn) LocalPeer() peer.ID {
-	return mc.localPeer
+	return mc.LocalP
 }
 
 func (mc *MockConn) LocalPrivateKey() cr.PrivKey {
@@ -25,7 +25,7 @@ func (mc *MockConn) LocalPrivateKey() cr.PrivKey {
 }
 
 func (mc *MockConn) RemotePeer() peer.ID {
-	return mc.remotePeer
+	return mc.RemoteP
 }
 
 func (mc MockConn) RemotePublicKey() cr.PubKey {

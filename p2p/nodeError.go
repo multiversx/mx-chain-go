@@ -1,5 +1,3 @@
-//+build !test
-
 package p2p
 
 type NodeError struct {

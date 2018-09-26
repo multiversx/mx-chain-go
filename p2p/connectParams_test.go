@@ -65,7 +65,4 @@ func TestNewConnectParams(t *testing.T) {
 	assert.Equal(t, 0, bytes.Compare(buffPubKeyComputed, buffPubKey))
 
 	assert.Equal(t, pid, params.ID.Pretty())
-
-	//cp := p2p.NewConnectParams("0.0.0.0", 4000, )
-
 }

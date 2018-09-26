@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/ipfs/go-ipfs-addr"
 	"github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
@@ -43,7 +43,7 @@ func TestStartingStoppingWorkingRoutine(t *testing.T) {
 
 	cn.Start()
 
-	assert.Equal(t, execution.STARTED, cn.Stat())
+	assert.Equal(t, execution.Started, cn.Stat())
 
 	//wait 0.5 sec
 	time.Sleep(time.Millisecond * 500)
@@ -53,34 +53,34 @@ func TestStartingStoppingWorkingRoutine(t *testing.T) {
 
 	cn.Stop()
 	//since go routine is still waiting, status should be CLOSING
-	assert.Equal(t, execution.CLOSING, cn.Stat())
+	assert.Equal(t, execution.Closing, cn.Stat())
 	//starting should not produce effects here
 	cn.Start()
-	assert.Equal(t, execution.CLOSING, cn.Stat())
+	assert.Equal(t, execution.Closing, cn.Stat())
 
 	time.Sleep(time.Second)
 
 	//it should have stopped
-	assert.Equal(t, execution.CLOSED, cn.Stat())
+	assert.Equal(t, execution.Closed, cn.Stat())
 }
 
 func TestTaskNotDoingStuffOn0MaxPeers(t *testing.T) {
 	cn := p2p.NewConnNotifier(&p2p.MemoryMessenger{})
 
-	cn.MaxPeersAllowed = 0
+	cn.MaxAllowedPeers = 0
 
 	result := p2p.TaskMonitorConnections(cn)
 
-	assert.Equal(t, 1, result)
+	assert.Equal(t, p2p.WontConnect, result)
 }
 
-func TestTryToConnect(t *testing.T) {
+func TestTryToConnectWithSuccess(t *testing.T) {
 	mut := sync.Mutex{}
 	lastString := ""
 
 	node, err := p2p.NewNetMessenger(
 		context.Background(),
-		marshal.DefaultMarshalizer(),
+		&mock.MockMarshalizer{},
 		*p2p.NewConnectParamsFromPort(4000),
 		[]string{},
 		10)
@@ -88,12 +88,12 @@ func TestTryToConnect(t *testing.T) {
 
 	cn := p2p.NewConnNotifier(node)
 
-	cn.MaxPeersAllowed = 10
+	cn.MaxAllowedPeers = 10
 	cn.OnGetKnownPeers = func(cn *p2p.ConnNotifier) []peer.ID {
 		return []peer.ID{"aaa", "bbb"}
 	}
 
-	cn.OnNeedToConnectToOtherPeer = func(cn *p2p.ConnNotifier, id peer.ID) error {
+	cn.OnNeedToConn = func(cn *p2p.ConnNotifier, id peer.ID) error {
 		mut.Lock()
 		lastString = string(id)
 		mut.Unlock()
@@ -103,23 +103,30 @@ func TestTryToConnect(t *testing.T) {
 
 	result := p2p.TaskMonitorConnections(cn)
 
-	assert.Equal(t, 0, result)
+	assert.Equal(t, p2p.SuccessfullyConnected, result)
 	mut.Lock()
 	assert.Equal(t, "aaa", lastString)
 	mut.Unlock()
 
 	result = p2p.TaskMonitorConnections(cn)
 
-	assert.Equal(t, 0, result)
+	assert.Equal(t, p2p.SuccessfullyConnected, result)
 	mut.Lock()
 	assert.Equal(t, "bbb", lastString)
 	mut.Unlock()
 }
 
 func TestRemoveInboundPeers(t *testing.T) {
+	//steps:
+	// - create 3 nodes
+	// - node 1 has a limit of 2 peers to connect to
+	// - node 2 and node 3 connects to node 1
+	// - run the function that checks the connections and the function will determine that there are too many inbound
+	//   connections, will close the first connection and will return the status OnlyInboundConnections
+
 	node1, err := p2p.NewNetMessenger(
 		context.Background(),
-		marshal.DefaultMarshalizer(),
+		&mock.MockMarshalizer{},
 		*p2p.NewConnectParamsFromPort(5000),
 		[]string{},
 		10)
@@ -127,7 +134,7 @@ func TestRemoveInboundPeers(t *testing.T) {
 
 	node2, err := p2p.NewNetMessenger(
 		context.Background(),
-		marshal.DefaultMarshalizer(),
+		&mock.MockMarshalizer{},
 		*p2p.NewConnectParamsFromPort(5001),
 		[]string{},
 		10)
@@ -135,14 +142,14 @@ func TestRemoveInboundPeers(t *testing.T) {
 
 	node3, err := p2p.NewNetMessenger(
 		context.Background(),
-		marshal.DefaultMarshalizer(),
+		&mock.MockMarshalizer{},
 		*p2p.NewConnectParamsFromPort(5002),
 		[]string{},
 		10)
 	assert.Nil(t, err)
 
 	cn := p2p.NewConnNotifier(node1)
-	cn.MaxPeersAllowed = 2
+	cn.MaxAllowedPeers = 2
 
 	time.Sleep(time.Second)
 
@@ -152,17 +159,17 @@ func TestRemoveInboundPeers(t *testing.T) {
 	time.Sleep(time.Second)
 
 	result := p2p.TaskMonitorConnections(cn)
-	assert.Equal(t, 2, result)
+	assert.Equal(t, p2p.OnlyInboundConnections, result)
 
 	time.Sleep(time.Second)
 
-	assert.Equal(t, 1, len(cn.Mes.Conns()))
+	assert.Equal(t, 1, len(cn.Msgr.Conns()))
 }
 
-func TestTryToConnect2(t *testing.T) {
+func TestTryToConnect3PeersWithSuccess(t *testing.T) {
 	node1, err := p2p.NewNetMessenger(
 		context.Background(),
-		marshal.DefaultMarshalizer(),
+		&mock.MockMarshalizer{},
 		*p2p.NewConnectParamsFromPort(6000),
 		[]string{},
 		10)
@@ -170,7 +177,7 @@ func TestTryToConnect2(t *testing.T) {
 
 	node2, err := p2p.NewNetMessenger(
 		context.Background(),
-		marshal.DefaultMarshalizer(),
+		&mock.MockMarshalizer{},
 		*p2p.NewConnectParamsFromPort(6001),
 		[]string{},
 		10)
@@ -178,14 +185,14 @@ func TestTryToConnect2(t *testing.T) {
 
 	node3, err := p2p.NewNetMessenger(
 		context.Background(),
-		marshal.DefaultMarshalizer(),
+		&mock.MockMarshalizer{},
 		*p2p.NewConnectParamsFromPort(6002),
 		[]string{},
 		10)
 	assert.Nil(t, err)
 
 	cn := p2p.NewConnNotifier(node1)
-	cn.MaxPeersAllowed = 4
+	cn.MaxAllowedPeers = 4
 
 	addresses := []string{node2.Addrs()[0], node3.Addrs()[0]}
 
@@ -210,7 +217,7 @@ func TestTryToConnect2(t *testing.T) {
 		mapAddr[addr.ID()] = ma
 	}
 
-	cn.OnNeedToConnectToOtherPeer = func(cn *p2p.ConnNotifier, pid peer.ID) error {
+	cn.OnNeedToConn = func(cn *p2p.ConnNotifier, pid peer.ID) error {
 		mutMapAddr.Lock()
 		defer mutMapAddr.Unlock()
 
@@ -220,7 +227,7 @@ func TestTryToConnect2(t *testing.T) {
 			return errors.New("Should not entered here!")
 		}
 
-		cn.Mes.ConnectToAddresses(context.Background(), []string{addr.String() + "/ipfs/" + pid.Pretty()})
+		cn.Msgr.ConnectToAddresses(context.Background(), []string{addr.String() + "/ipfs/" + pid.Pretty()})
 
 		if err != nil {
 			return err
@@ -236,15 +243,15 @@ func TestTryToConnect2(t *testing.T) {
 	time.Sleep(time.Second)
 
 	result := p2p.TaskMonitorConnections(cn)
-	assert.Equal(t, 0, result)
-	assert.Equal(t, 1, len(cn.Mes.Conns()))
+	assert.Equal(t, p2p.SuccessfullyConnected, result)
+	assert.Equal(t, 1, len(cn.Msgr.Conns()))
 
 	result = p2p.TaskMonitorConnections(cn)
-	assert.Equal(t, 0, result)
-	assert.Equal(t, 2, len(cn.Mes.Conns()))
+	assert.Equal(t, p2p.SuccessfullyConnected, result)
+	assert.Equal(t, 2, len(cn.Msgr.Conns()))
 
 	result = p2p.TaskMonitorConnections(cn)
-	assert.Equal(t, 3, result)
-	assert.Equal(t, 2, len(cn.Mes.Conns()))
+	assert.Equal(t, p2p.NothingDone, result)
+	assert.Equal(t, 2, len(cn.Msgr.Conns()))
 
 }

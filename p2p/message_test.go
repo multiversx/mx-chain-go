@@ -64,5 +64,4 @@ func TestMessageWithNilsMarshalizers(t *testing.T) {
 
 	_, err = p2p.CreateFromByteArray(nil, []byte{})
 	assert.NotNil(t, err)
-
 }
