@@ -4,7 +4,6 @@ import (
 	"elrond-go-sandbox/crypto/bn"
 	"elrond-go-sandbox/crypto/ed25519"
 	"elrond-go-sandbox/crypto/math"
-	"fmt"
 	"testing"
 )
 
@@ -37,9 +36,6 @@ func TestSignVerify(t *testing.T) {
 		publicKeys[i] = group.Mul(privateKeys[i], g)
 	}
 
-	fmt.Printf("Generated private keys: %v\n", privateKeys)
-	fmt.Printf("Derived public keys: %v\n\n", publicKeys)
-
 	message := "We're gonna be signing this!"
 
 	k := makeRandomScalars(signersCount)
@@ -47,12 +43,20 @@ func TestSignVerify(t *testing.T) {
 	L := sig.GetL(publicKeys)
 
 	r, s := sig.Sign(g, k, L, publicKeys, message, privateKeys)
-	fmt.Printf("Signature (r=%s, s=%s)\n\n", r, s)
-	fmt.Printf("Is the signature legit w.r.t the original public keys? %t\n\n", sig.Verify(g, L, message, r, s, publicKeys))
+
+	isSignatureCorrect := sig.Verify(g, L, message, r, s, publicKeys)
+
+	if !isSignatureCorrect {
+		t.Errorf("Expected signature to be correct")
+	}
 
 	privateKeys[1] = group.RandomScalar()
 	publicKeys[1] = group.Mul(privateKeys[1], g)
 	L = sig.GetL(publicKeys)
 
-	fmt.Printf("Is the signature legit w.r.t a fake public key? %t\n", sig.Verify(g, L, message, r, s, publicKeys))
+	isSignatureCorrect = sig.Verify(g, L, message, r, s, publicKeys)
+
+	if isSignatureCorrect {
+		t.Errorf("Expected signature to be incorrect")
+	}
 }
