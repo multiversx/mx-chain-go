@@ -23,46 +23,46 @@ func (sig signature) GetL(P []math.Point) math.Scalar {
 }
 
 // ei: Private keys
-func (sig signature) Sign(g math.Point, ki []math.Scalar, L math.Scalar, Pi []math.Point, m string, ei []math.Scalar) (math.Point, math.Scalar) {
+func (sig signature) Sign(g math.Point, k []math.Scalar, L math.Scalar, P []math.Point, m string, e []math.Scalar) (math.Point, math.Scalar) {
 
-	ri := make([]math.Point, len(ki))
-	ci := make([]math.Scalar, len(Pi))
-	si := make([]math.Scalar, len(ki))
+	R := make([]math.Point, len(k))
+	c := make([]math.Scalar, len(P))
+	S := make([]math.Scalar, len(k))
 
-	for i := 0; i < len(ki); i++ {
-		ri[i] = sig.group.Mul(ki[i], g)
+	for i := 0; i < len(k); i++ {
+		R[i] = sig.group.Mul(k[i], g)
 	}
 
-	r := sig.sumPoints(ri)
+	r := sig.sumPoints(R)
 
-	for i := 0; i < len(Pi); i++ {
-		ci[i] = sig.hash(L, Pi[i], r, m)
+	for i := 0; i < len(P); i++ {
+		c[i] = sig.hash(L, P[i], r, m)
 	}
 
-	for i := 0; i < len(ki); i++ {
-		si[i] = sig.group.ScalarAdd(ki[i], sig.group.ScalarMul(ci[i], ei[i]))
+	for i := 0; i < len(k); i++ {
+		S[i] = sig.group.ScalarAdd(k[i], sig.group.ScalarMul(c[i], e[i]))
 	}
 
-	s := sig.sumScalars(si)
+	s := sig.sumScalars(S)
 
 	return r, s
 }
 
 // Pi: Public keys
-func (sig signature) Verify(g math.Point, L math.Scalar, m string, r math.Point, s math.Scalar, Pi []math.Point) bool {
+func (sig signature) Verify(g math.Point, L math.Scalar, m string, r math.Point, s math.Scalar, P []math.Point) bool {
 
-	ci := make([]math.Scalar, len(Pi))
-	qi := make([]math.Point, len(Pi))
+	c := make([]math.Scalar, len(P))
+	cP := make([]math.Point, len(P))
 
-	for i := 0; i < len(Pi); i++ {
-		ci[i] = sig.hash(L, Pi[i], r, m)
+	for i := 0; i < len(P); i++ {
+		c[i] = sig.hash(L, P[i], r, m)
 	}
 
-	for i := 0; i < len(Pi); i++ {
-		qi[i] = sig.group.Mul(ci[i], Pi[i])
+	for i := 0; i < len(P); i++ {
+		cP[i] = sig.group.Mul(c[i], P[i])
 	}
 
-	x := sig.group.PointSub(sig.group.Mul(s, g), sig.sumPoints(qi))
+	x := sig.group.PointSub(sig.group.Mul(s, g), sig.sumPoints(cP))
 
 	return sig.group.Equal(x, r)
 }
