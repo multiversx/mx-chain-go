@@ -26,7 +26,7 @@ func (sig signature) GetL(P []math.Point) math.Scalar {
 func (sig signature) Sign(g math.Point, k []math.Scalar, L math.Scalar, P []math.Point, m string, e []math.Scalar) (math.Point, math.Scalar) {
 
 	R := make([]math.Point, len(k))
-	c := make([]math.Scalar, len(P))
+	c := make([]math.Scalar, len(k))
 	S := make([]math.Scalar, len(k))
 
 	for i := 0; i < len(k); i++ {
@@ -35,7 +35,7 @@ func (sig signature) Sign(g math.Point, k []math.Scalar, L math.Scalar, P []math
 
 	r := math.AddPoints(sig.group, R)
 
-	for i := 0; i < len(P); i++ {
+	for i := 0; i < len(k); i++ {
 		c[i] = sig.hash(L, P[i], r, m)
 	}
 
