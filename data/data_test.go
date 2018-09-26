@@ -1,10 +1,11 @@
 package data
 
 import (
-	block "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	blockchain "github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"testing"
 	"time"
+
+	block "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	blockchain "github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 )
 
 func TestBlock(t *testing.T) {

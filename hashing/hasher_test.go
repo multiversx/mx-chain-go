@@ -1,32 +1,57 @@
 package hashing_test
 
 import (
-	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	blake2b "github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
+	sha256 "github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 )
 
 func TestSha256(t *testing.T) {
-	Suite(t, &hashing.Sha256{})
+	hashing.PutService("Hasher", sha256.Sha256Impl{})
+	Suite(t, hashing.GetHasherService())
 }
 
 func TestBlake2b(t *testing.T) {
-	Suite(t, &hashing.Blake2b{})
+	hashing.PutService("Hasher", blake2b.Blake2bImpl{})
+	Suite(t, hashing.GetHasherService())
 }
 
 func Suite(t *testing.T, h hashing.Hasher) {
-	TestingHasher(t, h)
+	TestingCalculateHash(t, h)
+	TestingCalculateEmptyHash(t, h)
+	TestingNilReturn(t, h)
+	TestingCalculateHashWithNil(t, h)
 }
 
-func TestingHasher(t *testing.T, h hashing.Hasher) {
+func TestingCalculateHash(t *testing.T, h hashing.Hasher) {
 
 	h1 := h.CalculateHash("a")
 	h2 := h.CalculateHash("b")
 
-	if h1 == h2 {
-		t.Fatal("Same hash for different arguments")
-	}
+	assert.NotEqual(t, h1, h2)
 
-	fmt.Printf("Hash 1 = %s\nHash 2 = %s\n", h1, h2)
+}
+
+func TestingCalculateEmptyHash(t *testing.T, h hashing.Hasher) {
+	h1 := h.CalculateHash("")
+	h2 := h.EmptyHash()
+
+	assert.Equal(t, h1, h2)
+
+}
+
+func TestingNilReturn(t *testing.T, h hashing.Hasher) {
+	h1 := h.CalculateHash("a")
+	assert.NotNil(t, h1)
+}
+
+func TestingCalculateHashWithNil(t *testing.T, h hashing.Hasher) {
+	h1 := h.CalculateHash(nil)
+	h2 := []byte{}
+
+	assert.Equal(t, h1, h2)
 }

@@ -1,8 +1,6 @@
-package hasher
+package hashing
 
-import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/hasher/sha256"
-)
+import "github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 
 var services map[interface{}]interface{}
 
@@ -16,7 +14,7 @@ func init() {
 }
 
 func InjectDefaultServices() {
-	PutService("Hasher", hasher.Sha256Impl{})
+	PutService("Hasher", hashing.Sha256Impl{})
 }
 
 func GetService(key interface{}) interface{} {
