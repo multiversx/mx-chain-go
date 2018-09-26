@@ -13,4 +13,6 @@ type Group interface {
 	ScalarMul(a, b Scalar) Scalar
 	Inv(scalar Scalar) Scalar
 	Equal(a, b Point) bool
+	ScalarToString(a Scalar) string
+	PointToString(a Point) string
 }

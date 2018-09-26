@@ -2,7 +2,7 @@ package bn
 
 import "elrond-go-sandbox/crypto/math"
 
-type hash func(math.Scalar, math.Point, math.Point, string) math.Scalar
+type hash func(s ...string) math.Scalar
 
 type signature struct {
 	group math.Group
@@ -40,6 +40,11 @@ func (sig signature) Verify(g math.Point, L math.Scalar, m string, r math.Point,
 	x := sig.group.PointSub(sig.group.Mul(s, g), sig.sumPoints(sig.mulRangeManyPoints(ci, Pi)))
 
 	return sig.group.Equal(x, r)
+}
+
+func (sig signature) hash(a math.Scalar, b math.Point, c math.Point, d string) math.Scalar {
+
+	return sig.h(sig.group.ScalarToString(a), sig.group.PointToString(b), sig.group.PointToString(c), d)
 }
 
 func (sig signature) sumPoints(p []math.Point) math.Point {
@@ -102,7 +107,7 @@ func (sig signature) hRange(L math.Scalar, P []math.Point, r math.Point, m strin
 	c := make([]math.Scalar, len(P))
 
 	for i := 0; i < len(P); i++ {
-		c[i] = sig.h(L, P[i], r, m)
+		c[i] = sig.hash(L, P[i], r, m)
 	}
 
 	return c

@@ -9,8 +9,7 @@ import (
 )
 
 var group = ed25519.Group{}
-var hash = ed25519.HashBN
-var hashPublicKeys = ed25519.HashBNPublicKeys
+var hash = ed25519.Hash
 var sig = bn.NewSig(group, hash)
 
 func makeRandomScalars(n int) []math.Scalar {
@@ -33,6 +32,14 @@ func mulRange(k []math.Scalar, g math.Point) []math.Point {
 	}
 
 	return p
+}
+
+func hashPublicKeys(p []math.Point) math.Scalar {
+	s := make([]string, len(p))
+	for i := 0; i < len(p); i++ {
+		s[i] = group.PointToString(p[i])
+	}
+	return hash(s...)
 }
 
 func TestSignVerify(t *testing.T) {

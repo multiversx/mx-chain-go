@@ -4,6 +4,7 @@ import (
 	"elrond-go-sandbox/crypto/math"
 	"gopkg.in/dedis/kyber.v2"
 	"gopkg.in/dedis/kyber.v2/group/edwards25519"
+	"strings"
 )
 
 var curve = edwards25519.NewBlakeSHA256Ed25519()
@@ -51,30 +52,18 @@ func (group Group) Equal(a, b math.Point) bool {
 	return a.(kyber.Point).Equal(b.(kyber.Point))
 }
 
+func (group Group) PointToString(a math.Point) string {
+	return a.(kyber.Point).String()
+}
+
+func (group Group) ScalarToString(a math.Scalar) string {
+	return a.(kyber.Scalar).String()
+}
+
 var sha256 = curve.Hash()
 
-func Hash(s string, point math.Point) math.Scalar {
+func Hash(s ...string) math.Scalar {
 	sha256.Reset()
-	sha256.Write([]byte(s + point.(kyber.Point).String()))
-
-	return curve.Scalar().SetBytes(sha256.Sum(nil))
-}
-
-func HashBN(a math.Scalar, b math.Point, c math.Point, d string) math.Scalar {
-	sha256.Reset()
-	sha256.Write([]byte(a.(kyber.Scalar).String() + b.(kyber.Point).String() + c.(kyber.Point).String() + d))
-
-	return curve.Scalar().SetBytes(sha256.Sum(nil))
-}
-
-func HashBNPublicKeys(p []math.Point) math.Scalar {
-	sha256.Reset()
-
-	result := ""
-	for i := 0; i < len(p); i++ {
-		result += p[i].(kyber.Point).String()
-	}
-	sha256.Write([]byte(result))
-
+	sha256.Write([]byte(strings.Join(s, "")))
 	return curve.Scalar().SetBytes(sha256.Sum(nil))
 }
