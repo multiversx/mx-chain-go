@@ -33,7 +33,7 @@ func (sig signature) Sign(g math.Point, k []math.Scalar, L math.Scalar, P []math
 		R[i] = sig.group.Mul(k[i], g)
 	}
 
-	r := sig.sumPoints(R)
+	r := math.AddPoints(sig.group, R)
 
 	for i := 0; i < len(P); i++ {
 		c[i] = sig.hash(L, P[i], r, m)
@@ -43,7 +43,7 @@ func (sig signature) Sign(g math.Point, k []math.Scalar, L math.Scalar, P []math
 		S[i] = sig.group.ScalarAdd(k[i], sig.group.ScalarMul(c[i], e[i]))
 	}
 
-	s := sig.sumScalars(S)
+	s := math.AddScalars(sig.group, S)
 
 	return r, s
 }
@@ -62,7 +62,7 @@ func (sig signature) Verify(g math.Point, L math.Scalar, m string, r math.Point,
 		cP[i] = sig.group.Mul(c[i], P[i])
 	}
 
-	x := sig.group.PointSub(sig.group.Mul(s, g), sig.sumPoints(cP))
+	x := sig.group.PointSub(sig.group.Mul(s, g), math.AddPoints(sig.group, cP))
 
 	return sig.group.Equal(x, r)
 }
@@ -70,26 +70,4 @@ func (sig signature) Verify(g math.Point, L math.Scalar, m string, r math.Point,
 func (sig signature) hash(a math.Scalar, b math.Point, c math.Point, d string) math.Scalar {
 
 	return sig.h(sig.group.ScalarToString(a), sig.group.PointToString(b), sig.group.PointToString(c), d)
-}
-
-func (sig signature) sumPoints(p []math.Point) math.Point {
-
-	var sum = p[0]
-
-	for i := 1; i < len(p); i++ {
-		sum = sig.group.PointAdd(sum, p[i])
-	}
-
-	return sum
-}
-
-func (sig signature) sumScalars(s []math.Scalar) math.Scalar {
-
-	var sum = s[0]
-
-	for i := 1; i < len(s); i++ {
-		sum = sig.group.ScalarAdd(sum, s[i])
-	}
-
-	return sum
 }

@@ -18,3 +18,25 @@ type Group interface {
 }
 
 type Hash func(s ...string) Scalar
+
+func AddPoints(g Group, p []Point) Point {
+
+	var sum = p[0]
+
+	for i := 1; i < len(p); i++ {
+		sum = g.PointAdd(sum, p[i])
+	}
+
+	return sum
+}
+
+func AddScalars(g Group, s []Scalar) Scalar {
+
+	var sum = s[0]
+
+	for i := 1; i < len(s); i++ {
+		sum = g.ScalarAdd(sum, s[i])
+	}
+
+	return sum
+}
