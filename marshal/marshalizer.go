@@ -15,9 +15,3 @@ func init() {
 func DefaultMarshalizer() Marshalizer {
 	return DMarsh
 }
-
-//var jsn = &JsonMarshalizer{}
-//
-//func Json() Marshalizer {
-//	return jsn
-//}
