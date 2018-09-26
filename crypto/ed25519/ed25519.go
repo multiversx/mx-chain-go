@@ -59,3 +59,22 @@ func Hash(s string, point math.Point) math.Scalar {
 
 	return curve.Scalar().SetBytes(sha256.Sum(nil))
 }
+
+func HashBN(a math.Scalar, b math.Point, c math.Point, d string) math.Scalar {
+	sha256.Reset()
+	sha256.Write([]byte(a.(kyber.Scalar).String() + b.(kyber.Point).String() + c.(kyber.Point).String() + d))
+
+	return curve.Scalar().SetBytes(sha256.Sum(nil))
+}
+
+func HashBNPublicKeys(p []math.Point) math.Scalar {
+	sha256.Reset()
+
+	result := ""
+	for i := 0; i < len(p); i++ {
+		result += p[i].(kyber.Point).String()
+	}
+	sha256.Write([]byte(result))
+
+	return curve.Scalar().SetBytes(sha256.Sum(nil))
+}

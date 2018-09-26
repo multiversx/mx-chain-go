@@ -37,7 +37,7 @@ func (sig signature) Verify(g math.Point, L math.Scalar, m string, r math.Point,
 
 	ci := sig.hRange(L, Pi, r, m)
 
-	x := sig.group.PointSub(sig.group.Mul(s, g), sig.sumPoints(sig.mulRange(ci, Pi)))
+	x := sig.group.PointSub(sig.group.Mul(s, g), sig.sumPoints(sig.mulRangeManyPoints(ci, Pi)))
 
 	return sig.group.Equal(x, r)
 }
@@ -81,6 +81,17 @@ func (sig signature) mulRange(k []math.Scalar, g math.Point) []math.Point {
 
 	for i := 0; i < len(k); i++ {
 		r[i] = sig.group.Mul(k[i], g)
+	}
+
+	return r
+}
+
+func (sig signature) mulRangeManyPoints(s []math.Scalar, p []math.Point) []math.Point {
+
+	r := make([]math.Point, len(s))
+
+	for i := 0; i < len(s); i++ {
+		r[i] = sig.group.Mul(s[i], p[i])
 	}
 
 	return r
