@@ -46,11 +46,6 @@ func TestSuiteNetMessenger(t *testing.T) {
 	Suite(t, Memory)
 }
 
-func TestDummy(t *testing.T) {
-	TestingClosedNodes(t, Memory)
-	TestingClosedNodes(t, Network)
-}
-
 func Suite(t *testing.T, mesType int) {
 	TestingRecreationSameNode(t, mesType)
 	TestingSendToSelf(t, mesType)
@@ -62,6 +57,7 @@ func Suite(t *testing.T, mesType int) {
 	TestingMultipleErrorsOnBroadcasting(t, mesType)
 	TestingCreateNodeWithNilMarshalizer(t, mesType)
 	TestingBootstrap(t, mesType)
+	TestingClosedNodes(t, mesType)
 }
 
 func createMessenger(mesType int, port int, maxAllowedPeers int, marsh marshal.Marshalizer) (p2p.Messenger, error) {

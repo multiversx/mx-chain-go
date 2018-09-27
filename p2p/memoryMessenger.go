@@ -153,6 +153,7 @@ func (mm *MemoryMessenger) ConnectToAddresses(ctx context.Context, addresses []s
 func (mm *MemoryMessenger) gotNewMessage(sender *MemoryMessenger, buff []byte) {
 	mm.mutClosed.RLock()
 	if mm.closed {
+		mm.mutClosed.RUnlock()
 		return
 	}
 	mm.mutClosed.RUnlock()
@@ -343,17 +344,23 @@ func (mm *MemoryMessenger) doBootstrap() {
 		}
 		mm.mutClosed.RUnlock()
 
+		temp := make(map[peer.ID]*MemoryMessenger, 0)
+
 		mutGloballyRegPeers.Lock()
 		for k, v := range GloballyRegisteredPeers {
 			if !mm.rt.Has(k) {
 				mm.rt.Update(k)
 
-				mm.mutConnectedPeers.Lock()
-				mm.connectedPeers[k] = v
-				mm.mutConnectedPeers.Unlock()
+				temp[k] = v
 			}
 		}
 		mutGloballyRegPeers.Unlock()
+
+		mm.mutConnectedPeers.Lock()
+		for k, v := range temp {
+			mm.connectedPeers[k] = v
+		}
+		mm.mutConnectedPeers.Unlock()
 
 		time.Sleep(time.Second)
 	}
