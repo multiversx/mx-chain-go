@@ -1,7 +1,7 @@
 package hashing
 
 type Hasher interface {
-	CalculateHash(interface{}) []byte
+	Compute(string) []byte
 	EmptyHash() []byte
-	HashSize() int
+	Size() int
 }

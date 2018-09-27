@@ -2,28 +2,34 @@ package hashing
 
 import "github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 
-var services map[interface{}]interface{}
+var services map[string]Hasher
+
+const Hash = "hasher"
+
+var DefHasher Hasher
 
 func init() {
 
 	if services == nil {
-		services = make(map[interface{}]interface{})
+		services = make(map[string]Hasher)
 	}
+
+	DefHasher = hashing.Sha256{}
 
 	InjectDefaultServices()
 }
 
 func InjectDefaultServices() {
-	PutService("Hasher", hashing.Sha256Impl{})
+	PutService(Hash, DefHasher)
 }
 
-func GetService(key interface{}) interface{} {
+func GetService(key string) Hasher {
 	return services[key]
 }
 
-func PutService(key interface{}, value interface{}) {
+func PutService(key string, value Hasher) {
 
-	if key == nil || value == nil {
+	if key == "" || value == nil {
 		return
 	}
 
@@ -31,5 +37,5 @@ func PutService(key interface{}, value interface{}) {
 }
 
 func GetHasherService() Hasher {
-	return GetService("Hasher").(Hasher)
+	return GetService(Hash).(Hasher)
 }

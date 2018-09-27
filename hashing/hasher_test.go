@@ -11,12 +11,12 @@ import (
 )
 
 func TestSha256(t *testing.T) {
-	hashing.PutService("Hasher", sha256.Sha256Impl{})
+	hashing.PutService(hashing.Hash, sha256.Sha256{})
 	Suite(t, hashing.GetHasherService())
 }
 
 func TestBlake2b(t *testing.T) {
-	hashing.PutService("Hasher", blake2b.Blake2bImpl{})
+	hashing.PutService(hashing.Hash, blake2b.Blake2b{})
 	Suite(t, hashing.GetHasherService())
 }
 
@@ -24,20 +24,20 @@ func Suite(t *testing.T, h hashing.Hasher) {
 	TestingCalculateHash(t, h)
 	TestingCalculateEmptyHash(t, h)
 	TestingNilReturn(t, h)
-	TestingCalculateHashWithNil(t, h)
+
 }
 
 func TestingCalculateHash(t *testing.T, h hashing.Hasher) {
 
-	h1 := h.CalculateHash("a")
-	h2 := h.CalculateHash("b")
+	h1 := h.Compute("a")
+	h2 := h.Compute("b")
 
 	assert.NotEqual(t, h1, h2)
 
 }
 
 func TestingCalculateEmptyHash(t *testing.T, h hashing.Hasher) {
-	h1 := h.CalculateHash("")
+	h1 := h.Compute("")
 	h2 := h.EmptyHash()
 
 	assert.Equal(t, h1, h2)
@@ -45,13 +45,6 @@ func TestingCalculateEmptyHash(t *testing.T, h hashing.Hasher) {
 }
 
 func TestingNilReturn(t *testing.T, h hashing.Hasher) {
-	h1 := h.CalculateHash("a")
+	h1 := h.Compute("a")
 	assert.NotNil(t, h1)
-}
-
-func TestingCalculateHashWithNil(t *testing.T, h hashing.Hasher) {
-	h1 := h.CalculateHash(nil)
-	h2 := []byte{}
-
-	assert.Equal(t, h1, h2)
 }
