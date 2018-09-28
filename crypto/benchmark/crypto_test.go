@@ -20,6 +20,7 @@ import (
 	"github.com/dedis/kyber/util/key"
 	"github.com/dedis/kyber/util/random"
 	"github.com/dedis/kyber/xof/blake2xb"
+	"github.com/pkg/errors"
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -46,12 +47,12 @@ func (m *cosiSuite) RandomStream() cipher.Stream { return m.r }
 var testSuite = &cosiSuite{edwards25519.NewBlakeSHA256Ed25519(), blake2xb.New(nil)}
 
 /* CoSi */
-func cosiSign(message []byte, privates []kyber.Scalar, n int, f int, masks []*cosi.Mask, byteMasks [][]byte) (sigs [][]byte) {
+func cosiSign(message []byte, privates []kyber.Scalar, n int, f int, masks []*cosi.Mask, byteMasks [][]byte) ([][]byte, error) {
 	// Compute commitments
 	var v []kyber.Scalar // random
 	var V []kyber.Point  // commitment
 	var err error
-	sigs = make([][]byte, n-f)
+	sigs := make([][]byte, n-f)
 
 	for i := 0; i < n-f; i++ {
 		x, X := cosi.Commit(testSuite)
@@ -63,6 +64,7 @@ func cosiSign(message []byte, privates []kyber.Scalar, n int, f int, masks []*co
 	aggV, aggMask, err := cosi.AggregateCommitments(testSuite, V, byteMasks)
 	if err != nil {
 		fmt.Println("Cosi commitment aggregation failed", err)
+		return nil, errors.New("Cosi commitment aggregation failed")
 	}
 
 	// Set aggregate mask in nodes
@@ -76,6 +78,7 @@ func cosiSign(message []byte, privates []kyber.Scalar, n int, f int, masks []*co
 		ci, err := cosi.Challenge(testSuite, aggV, masks[i].AggregatePublic, message)
 		if err != nil {
 			fmt.Println("CoSi challenge creation failed", err)
+			return nil, errors.New("CoSi challenge creation failed")
 		}
 		c = append(c, ci)
 	}
@@ -91,6 +94,7 @@ func cosiSign(message []byte, privates []kyber.Scalar, n int, f int, masks []*co
 	aggr, err := cosi.AggregateResponses(testSuite, r)
 	if err != nil {
 		fmt.Println("CoSi responses aggregation failed", err)
+		return nil, errors.New("CoSi responses aggregation failed")
 	}
 
 	for i := 0; i < n-f; i++ {
@@ -98,13 +102,14 @@ func cosiSign(message []byte, privates []kyber.Scalar, n int, f int, masks []*co
 		sigs[i], err = cosi.Sign(testSuite, aggV, aggr, masks[i])
 		if err != nil {
 			fmt.Println("CoSi signing failed", err)
+			return nil, errors.New("CoSi signing failed")
 		}
 	}
 
-	return sigs
+	return sigs, nil
 }
 
-func cosiVerify(message []byte, sig [][]byte, publics []kyber.Point, n int, f int) {
+func cosiVerify(message []byte, sig [][]byte, publics []kyber.Point, n int, f int) error {
 	for i := 0; i < n-f; i++ {
 		// Set policy depending on threshold f and then Verify
 		var p cosi.Policy
@@ -115,34 +120,41 @@ func cosiVerify(message []byte, sig [][]byte, publics []kyber.Point, n int, f in
 		}
 		if err := cosi.Verify(testSuite, publics, message, sig[i], p); err != nil {
 			fmt.Println("CoSi verification failed")
+			return errors.New("CoSi verification failed")
 		}
 	}
+	return nil
 }
 
 /* TBLS */
-func tblsSign(msg []byte, suite pairing.Suite, pubPoly *share.PubPoly, priPoly *share.PriPoly, n int, f int) (sig []byte) {
+func tblsSign(msg []byte, suite pairing.Suite, pubPoly *share.PubPoly, priPoly *share.PriPoly, n int, f int) ([]byte, error) {
 	var err error
 	sigShares := make([][]byte, 0)
 	for _, x := range priPoly.Shares(n) {
 		sig, err := tbls.Sign(suite, x, msg)
 		if err != nil {
 			fmt.Println("TBLS share sign failed", err)
+			return nil, errors.New("TBLS share sign failed")
 		}
 		sigShares = append(sigShares, sig)
 	}
+	var sig []byte
 	sig, err = tbls.Recover(suite, pubPoly, msg, sigShares, f, n)
 	if err != nil {
 		fmt.Println("TBLS threshold sign failed", err)
+		return nil, errors.New("TBLS threshold sign failed")
 	}
-	return sig
+	return sig, nil
 }
 
-func tblsVerify(sig []byte, msg []byte, suite pairing.Suite, pubKey kyber.Point) {
+func tblsVerify(sig []byte, msg []byte, suite pairing.Suite, pubKey kyber.Point) error {
 	err := bls.Verify(suite, pubKey, msg, sig)
 
 	if err != nil {
 		fmt.Println("TBLS threshold sign failed", err)
+		return errors.New("TBLS threshold sign failed")
 	}
+	return nil
 }
 
 func benchmarkMultiSig(b *testing.B, n int, f int) {
@@ -176,10 +188,16 @@ func benchmarkMultiSig(b *testing.B, n int, f int) {
 	nameTbls := fmt.Sprintf("Tbls group size: %d, offline: %d", n, f)
 
 	var sigs [][][]byte
+	var sig [][]byte
+	var err error
 
 	b.Run(nameCosi+"sign", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			sigs = append(sigs, cosiSign(msg, privates, n, f, masks, byteMasks))
+			sig, err = cosiSign(msg, privates, n, f, masks, byteMasks)
+			if err != nil {
+				return
+			}
+			sigs = append(sigs, sig)
 		}
 	})
 
@@ -204,7 +222,10 @@ func benchmarkMultiSig(b *testing.B, n int, f int) {
 
 	b.Run(nameTbls+"sign", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			sigTbls = tblsSign(msg, suite, pubPoly, priPoly, n, t)
+			sigTbls, err = tblsSign(msg, suite, pubPoly, priPoly, n, t)
+			if err != nil {
+				return
+			}
 			sigsTbls = append(sigsTbls, sigTbls)
 		}
 	})
