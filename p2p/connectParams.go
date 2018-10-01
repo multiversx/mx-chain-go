@@ -3,18 +3,18 @@ package p2p
 import (
 	"crypto/ecdsa"
 	"fmt"
+	mrand "math/rand"
+
 	"github.com/btcsuite/btcd/btcec"
-	ci "github.com/libp2p/go-libp2p-crypto"
 	cr "github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
-	mrand "math/rand"
 )
 
 type ConnectParams struct {
 	ID      peer.ID
-	PrivKey ci.PrivKey
-	PubKey  ci.PubKey
+	PrivKey cr.PrivKey
+	PubKey  cr.PubKey
 	Addr    ma.Multiaddr
 	Port    int
 }
@@ -38,13 +38,31 @@ func (params *ConnectParams) GenerateIDFromPubKey() {
 	params.ID, _ = peer.IDFromPublicKey(params.PubKey)
 }
 
-func NewConnectParams(port int) *ConnectParams {
+func NewConnectParamsFromPort(port int) *ConnectParams {
 	params := new(ConnectParams)
 
 	params.Port = port
 	params.GeneratePrivPubKeys(port)
 	params.GenerateIDFromPubKey()
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
+
+	if err != nil {
+		panic(err)
+	}
+
+	params.Addr = addr
+
+	return params
+}
+
+func NewConnectParams(ipAddr string, port int, privKey cr.PrivKey) *ConnectParams {
+	params := new(ConnectParams)
+
+	params.Port = port
+	params.PrivKey = privKey
+	params.PubKey = privKey.GetPublic()
+	params.GenerateIDFromPubKey()
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ipAddr, port))
 
 	if err != nil {
 		panic(err)

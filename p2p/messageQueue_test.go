@@ -2,11 +2,13 @@ package p2p_test
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"runtime"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMessageQueue1(t *testing.T) {
@@ -81,7 +83,7 @@ func TestMessageQueueMemLeak(t *testing.T) {
 		mq.Add(strconv.Itoa(i))
 
 		if time.Now().Sub(timeStart) > time.Second*5 {
-			return
+			break
 		}
 
 		if time.Now().Sub(timeIntermed) >= time.Second {
@@ -95,8 +97,8 @@ func TestMessageQueueMemLeak(t *testing.T) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	if bToMb(m.Alloc) > 5 {
-		t.Fatal("Allocated memory should have been less than 5 MiB!")
+	if bToMb(m.Alloc) > 10 {
+		t.Fatal("Allocated memory should have been less than 10 MiB!")
 	}
 
 }
@@ -124,4 +126,17 @@ func TestCleanEmptyQueue(t *testing.T) {
 	if mq1.Len() != 0 {
 		t.Error("mq1 should have had a length of 0!")
 	}
+}
+
+func TestContainsAndAdd(t *testing.T) {
+	mq := p2p.NewMessageQueue(50)
+
+	contains := mq.ContainsAndAdd("AAA")
+
+	assert.False(t, contains)
+
+	contains = mq.ContainsAndAdd("AAA")
+
+	assert.True(t, contains)
+
 }

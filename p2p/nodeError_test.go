@@ -1,8 +1,9 @@
 package p2p_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
 func TestNodeError(t *testing.T) {

@@ -1,18 +1,25 @@
 package execution
 
-import "sync"
+import (
+	"sync"
+	"time"
+)
 
 type RoutineStat int
 
 const (
 	// go routine is not started
-	CLOSED RoutineStat = iota
+	Closed RoutineStat = iota
 	// go routine is running
-	STARTED
+	Started
 	// go routine will close
-	CLOSING
+	Closing
 )
 
+//RoutineWrapper can manage the execution of a go-routine.
+//The event OnDoSimpleTask will be called periodically (if needed with a desired delay that can be set
+// in the DurCalls field. Implicitly, this field has 0 value)
+//Parameter field is used if one needs to pass some data to the executed event handler.
 type RoutineWrapper struct {
 	Parameter interface{}
 	stopper   chan bool
@@ -21,22 +28,24 @@ type RoutineWrapper struct {
 	stat    RoutineStat
 
 	OnDoSimpleTask func(parameter interface{})
+
+	DurCalls time.Duration
 }
 
 func NewRoutineWrapper() *RoutineWrapper {
-	rw := RoutineWrapper{stopper: make(chan bool, 1), stat: CLOSED}
+	rw := RoutineWrapper{stopper: make(chan bool, 1), stat: Closed, DurCalls: 0}
 
 	return &rw
 }
 
 func (rw *RoutineWrapper) Start() {
 	rw.mutStat.Lock()
-	if rw.stat != CLOSED {
+	if rw.stat != Closed {
 		rw.mutStat.Unlock()
 		return
 	}
 
-	rw.stat = STARTED
+	rw.stat = Started
 	rw.mutStat.Unlock()
 
 	go rw.runner()
@@ -46,8 +55,8 @@ func (rw *RoutineWrapper) Stop() {
 	rw.mutStat.Lock()
 	defer rw.mutStat.Unlock()
 
-	if rw.stat == STARTED {
-		rw.stat = CLOSING
+	if rw.stat == Started {
+		rw.stat = Closing
 
 		rw.stopper <- true
 	}
@@ -57,17 +66,33 @@ func (rw *RoutineWrapper) Stop() {
 func (rw *RoutineWrapper) runner() {
 	defer func() {
 		rw.mutStat.Lock()
-		rw.stat = CLOSED
+		rw.stat = Closed
 		rw.mutStat.Unlock()
 	}()
 
 	for {
-
+		//do task
 		select {
 		default:
 			if rw.OnDoSimpleTask != nil {
 				rw.OnDoSimpleTask(rw.Parameter)
 			}
+		case <-rw.stopper:
+			return
+		}
+
+		//wait if necessary, otherwise continue
+		if rw.DurCalls == 0 {
+			continue
+		}
+
+		time.Sleep(rw.DurCalls)
+
+		//re-test whether there is a stop condition that might have arrived in sleep interval
+		//otherwise, continue
+		select {
+		default:
+			continue
 		case <-rw.stopper:
 			return
 		}
