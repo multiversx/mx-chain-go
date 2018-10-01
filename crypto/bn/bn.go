@@ -2,97 +2,72 @@ package bn
 
 import "elrond-go-sandbox/crypto/math"
 
-type hash func(math.Scalar, math.Point, math.Point, string) math.Scalar
-
 type signature struct {
 	group math.Group
-	h     hash
+	h     math.Hash
 }
 
-func NewSig(group math.Group, h hash) *signature {
+func NewSig(group math.Group, h math.Hash) *signature {
 	sig := new(signature)
 	sig.group = group
 	sig.h = h
 	return sig
 }
 
+func (sig signature) GetL(P []math.Point) math.Scalar {
+	s := make([]string, len(P))
+	for i := 0; i < len(P); i++ {
+		s[i] = sig.group.PointToString(P[i])
+	}
+	return sig.h(s...)
+}
+
 // ei: Private keys
-func (sig signature) Sign(g math.Point, ki []math.Scalar, L math.Scalar, Pi []math.Point, m string, ei []math.Scalar) (math.Point, math.Scalar) {
+func (sig signature) Sign(g math.Point, k []math.Scalar, L math.Scalar, P []math.Point, m string, e []math.Scalar) (math.Point, math.Scalar) {
 
-	ri := sig.mulRange(ki, g)
+	R := make([]math.Point, len(k))
+	c := make([]math.Scalar, len(k))
+	S := make([]math.Scalar, len(k))
 
-	r := sig.sumPoints(ri)
+	for i := 0; i < len(k); i++ {
+		R[i] = sig.group.Mul(k[i], g)
+	}
 
-	ci := sig.hRange(L, Pi, r, m)
+	r := math.AddPoints(sig.group, R)
 
-	si := sig.sumScalarRange(ki, ci, ei)
+	for i := 0; i < len(k); i++ {
+		c[i] = sig.hash(L, P[i], r, m)
+	}
 
-	s := sig.sumScalar(si)
+	for i := 0; i < len(k); i++ {
+		S[i] = sig.group.ScalarAdd(k[i], sig.group.ScalarMul(c[i], e[i]))
+	}
+
+	s := math.AddScalars(sig.group, S)
 
 	return r, s
 }
 
 // Pi: Public keys
-func (sig signature) Verify(g math.Point, L math.Scalar, m string, r math.Point, s math.Scalar, Pi []math.Point) bool {
+func (sig signature) Verify(g math.Point, L math.Scalar, m string, r math.Point, s math.Scalar, P []math.Point) bool {
 
-	ci := sig.hRange(L, Pi, r, m)
+	c := make([]math.Scalar, len(P))
+	cP := make([]math.Point, len(P))
 
-	x := sig.group.PointSub(sig.group.Mul(s, g), sig.sumPoints(sig.mulRange(ci, Pi)))
+	for i := 0; i < len(P); i++ {
+		c[i] = sig.hash(L, P[i], r, m)
+	}
+
+	for i := 0; i < len(P); i++ {
+		cP[i] = sig.group.Mul(c[i], P[i])
+	}
+
+	x := sig.group.PointSub(sig.group.Mul(s, g), math.AddPoints(sig.group, cP))
 
 	return sig.group.Equal(x, r)
 }
 
-func (sig signature) sumPoints(p []math.Point) math.Point {
+func (sig signature) hash(a math.Scalar, b math.Point, c math.Point, d string) math.Scalar {
 
-	var sum = p[0]
-
-	for i := 1; i < len(p); i++ {
-		sum = sig.group.PointAdd(sum, p[i])
-	}
-
-	return sum
-}
-
-func (sig signature) sumScalarRange(k []math.Scalar, c []math.Scalar, e []math.Scalar) []math.Scalar {
-
-	s := make([]math.Scalar, len(k))
-
-	for i := 0; i < len(k); i++ {
-		s[i] = sig.group.ScalarAdd(k[i], sig.group.ScalarMul(c[i], e[i]))
-	}
-
-	return s
-}
-
-func (sig signature) sumScalar(s []math.Scalar) math.Scalar {
-
-	var sum = s[0]
-
-	for i := 1; i < len(s); i++ {
-		sum = sig.group.ScalarAdd(sum, s[i])
-	}
-
-	return sum
-}
-
-func (sig signature) mulRange(k []math.Scalar, g math.Point) []math.Point {
-
-	r := make([]math.Point, len(k))
-
-	for i := 0; i < len(k); i++ {
-		r[i] = sig.group.Mul(k[i], g)
-	}
-
-	return r
-}
-
-func (sig signature) hRange(L math.Scalar, P []math.Point, r math.Point, m string) []math.Scalar {
-
-	c := make([]math.Scalar, len(P))
-
-	for i := 0; i < len(P); i++ {
-		c[i] = sig.h(L, P[i], r, m)
-	}
-
-	return c
+	return sig.h(sig.group.ScalarToString(a), sig.group.PointToString(b), sig.group.PointToString(c), d)
 }
