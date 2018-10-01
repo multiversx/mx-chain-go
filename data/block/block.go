@@ -1,8 +1,8 @@
-package data
+package block
 
 import (
 	"fmt"
-	sha256 "github.com/ElrondNetwork/elrond-go-sandbox/hasher/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hasher/sha256"
 	"github.com/davecgh/go-spew/spew"
 	"strconv"
 )

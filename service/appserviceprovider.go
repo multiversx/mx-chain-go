@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
@@ -17,7 +16,6 @@ func init() {
 }
 
 func InjectDefaultServices() {
-	PutService("IConsensusService", consensus.ConsensusServiceImpl{})
 	PutService("Marshalizer", &marshal.JsonMarshalizer{})
 }
 
@@ -32,10 +30,6 @@ func PutService(key interface{}, value interface{}) {
 	}
 
 	services[key] = value
-}
-
-func GetConsensusService() consensus.IConsensusService {
-	return GetService("IConsensusService").(consensus.IConsensusService)
 }
 
 func GetMarshalizerService() marshal.Marshalizer {

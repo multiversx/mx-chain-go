@@ -1,4 +1,4 @@
-package data
+package blockchain
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -6,20 +6,20 @@ import (
 )
 
 type BlockChain struct {
-	blocks []data.Block
+	blocks []block.Block
 }
 
-func New(blocks []data.Block) BlockChain {
+func New(blocks []block.Block) BlockChain {
 
 	blockChain := BlockChain{blocks}
 	return blockChain
 }
 
-func (bc *BlockChain) SetBlocks(blocks []data.Block) {
+func (bc *BlockChain) SetBlocks(blocks []block.Block) {
 	bc.blocks = blocks
 }
 
-func (bc *BlockChain) GetBlocks() []data.Block {
+func (bc *BlockChain) GetBlocks() []block.Block {
 	return bc.blocks
 }
 
@@ -28,11 +28,11 @@ func (bc *BlockChain) GetBlocks() []data.Block {
 type BlockChainImpl struct {
 }
 
-func (BlockChainImpl) AddBlock(blockchain *BlockChain, block data.Block) {
+func (BlockChainImpl) AddBlock(blockchain *BlockChain, block block.Block) {
 	blockchain.blocks = append(blockchain.blocks, block)
 }
 
-func (BlockChainImpl) GetCurrentBlock(blockChain *BlockChain) *data.Block {
+func (BlockChainImpl) GetCurrentBlock(blockChain *BlockChain) *block.Block {
 	if blockChain == nil || len(blockChain.blocks) == 0 {
 		return nil
 	}

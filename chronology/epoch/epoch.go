@@ -1,4 +1,4 @@
-package chronology
+package epoch
 
 import (
 	"github.com/davecgh/go-spew/spew"

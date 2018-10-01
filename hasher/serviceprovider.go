@@ -16,7 +16,7 @@ func init() {
 }
 
 func InjectDefaultServices() {
-	PutService("Hasher", hasher.Sha256Impl{})
+	PutService("Hasher", sha256.Sha256Impl{})
 }
 
 func GetService(key interface{}) interface{} {

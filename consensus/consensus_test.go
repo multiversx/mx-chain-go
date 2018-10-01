@@ -16,19 +16,20 @@ func TestAnswerType(t *testing.T) {
 
 func TestComputeLeader(t *testing.T) {
 
-	var chr chronology.ChronologyServiceImpl
+	rs := chronology.GetRounderService()
+
 	var cns ConsensusServiceImpl
 
 	genesisRoundTimeStamp := time.Date(2018, time.September, 18, 14, 0, 0, 0, time.UTC)
 
 	duration := time.Duration(4 * time.Second)
-	division := chr.CreateRoundTimeDivision(duration)
+	division := rs.CreateRoundTimeDivision(duration)
 
-	round := chr.CreateRoundFromDateTime(genesisRoundTimeStamp, time.Now(), duration, division)
+	round := rs.CreateRoundFromDateTime(genesisRoundTimeStamp, time.Now(), duration, division)
 
 	nodes := []string{"1", "2", "3"}
 
-	node, err := cns.ComputeLeader(nodes, round)
+	node, err := cns.ComputeLeader(nodes, &round)
 
 	if err != nil {
 		t.Fatal(err)
@@ -39,20 +40,21 @@ func TestComputeLeader(t *testing.T) {
 
 func TestNodeLeader(t *testing.T) {
 
-	var chr chronology.ChronologyServiceImpl
+	rs := chronology.GetRounderService()
+
 	var cns ConsensusServiceImpl
 
 	genesisRoundTimeStamp := time.Date(2018, time.September, 18, 14, 0, 0, 0, time.UTC)
 
 	duration := time.Duration(4 * time.Second)
-	division := chr.CreateRoundTimeDivision(duration)
+	division := rs.CreateRoundTimeDivision(duration)
 
-	round := chr.CreateRoundFromDateTime(genesisRoundTimeStamp, time.Now(), duration, division)
+	round := rs.CreateRoundFromDateTime(genesisRoundTimeStamp, time.Now(), duration, division)
 
 	node := "3"
 	nodes := []string{"1", "2", "3"}
 
-	bIsLeader, err := cns.IsNodeLeader(node, nodes, round)
+	bIsLeader, err := cns.IsNodeLeader(node, nodes, &round)
 
 	if err != nil {
 		t.Fatal(err)

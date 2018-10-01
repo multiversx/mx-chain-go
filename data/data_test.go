@@ -1,8 +1,8 @@
 package data
 
 import (
-	block "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	blockchain "github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"testing"
 	"time"
 )

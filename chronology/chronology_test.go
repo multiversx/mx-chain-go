@@ -1,8 +1,8 @@
 package chronology
 
 import (
-	epoch "github.com/ElrondNetwork/elrond-go-sandbox/chronology/epoch"
-	round "github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/epoch"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
 	"github.com/davecgh/go-spew/spew"
 	"testing"
 	"time"
@@ -10,7 +10,7 @@ import (
 
 func TestRoundState(t *testing.T) {
 
-	if round.RS_START_ROUND != 1 || round.RS_PROPOSE_BLOCK != 2 || round.RS_END_ROUND != 7 {
+	if round.RS_START_ROUND != 1 || round.RS_BLOCK != 2 || round.RS_END_ROUND != 7 {
 		t.Fatal("Wrong values in round state enum")
 	}
 }
@@ -34,7 +34,7 @@ func TestRoundBehaviour(t *testing.T) {
 
 	r := rs.CreateRoundFromDateTime(genesisRoundTimeStamp, time.Now(), duration, division)
 
-	roundState := rs.GetRoundStateFromDateTime(r, time.Now())
+	roundState := rs.GetRoundStateFromDateTime(&r, time.Now())
 
 	if roundState < round.RS_START_ROUND || roundState > round.RS_END_ROUND {
 		t.Fatal("Wrong round state")

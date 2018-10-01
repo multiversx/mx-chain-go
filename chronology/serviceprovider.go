@@ -1,8 +1,8 @@
 package chronology
 
 import (
-	epoch "github.com/ElrondNetwork/elrond-go-sandbox/chronology/epoch"
-	round "github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/epoch"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
 )
 
 var services map[interface{}]interface{}
