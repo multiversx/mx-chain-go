@@ -54,5 +54,3 @@ var (
 	xorIn   = xorInUnaligned
 	copyOut = copyOutUnaligned
 )
-
-const xorImplementationUnaligned = "unaligned"

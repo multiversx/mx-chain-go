@@ -51,7 +51,7 @@ func TestStreamKind(t *testing.T) {
 	for i, test := range tests {
 		// using plainReader to inhibit input limit errors.
 		s := NewStream(newPlainReader(unhex(test.input)), 0)
-		kind, len, err := s.Kind()
+		kind, l, err := s.Kind()
 		if err != nil {
 			t.Errorf("test %d: Kind returned error: %v", i, err)
 			continue
@@ -59,8 +59,8 @@ func TestStreamKind(t *testing.T) {
 		if kind != test.wantKind {
 			t.Errorf("test %d: kind mismatch: got %d, want %d", i, kind, test.wantKind)
 		}
-		if len != test.wantLen {
-			t.Errorf("test %d: len mismatch: got %d, want %d", i, len, test.wantLen)
+		if l != test.wantLen {
+			t.Errorf("test %d: len mismatch: got %d, want %d", i, l, test.wantLen)
 		}
 	}
 }
@@ -229,12 +229,12 @@ testfor:
 func TestStreamList(t *testing.T) {
 	s := NewStream(bytes.NewReader(unhex("C80102030405060708")), 0)
 
-	len, err := s.List()
+	l, err := s.List()
 	if err != nil {
 		t.Fatalf("List error: %v", err)
 	}
-	if len != 8 {
-		t.Fatalf("List returned invalid length, got %d, want 8", len)
+	if l != 8 {
+		t.Fatalf("List returned invalid length, got %d, want 8", l)
 	}
 
 	for i := uint64(1); i <= 8; i++ {

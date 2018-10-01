@@ -17,17 +17,8 @@
 package mockCrypto
 
 import (
-	"errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/mockCrypto/sha3"
-	"math/big"
 )
-
-var (
-	secp256k1N, _  = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
-	secp256k1halfN = new(big.Int).Div(secp256k1N, big.NewInt(2))
-)
-
-var errInvalidPubkey = errors.New("invalid secp256k1 public key")
 
 type Keccak256 struct {
 }
@@ -45,81 +36,3 @@ func (k *Keccak256) EmptyHash() []byte {
 func (*Keccak256) Size() int {
 	return 32
 }
-
-//
-//
-//// Keccak256 calculates and returns the Keccak256 hash of the input data.
-//func Keccak256(data ...[]byte) []byte {
-//	d := sha3.NewKeccak256()
-//	for _, b := range data {
-//		d.Write(b)
-//	}
-//	return d.Sum(nil)
-//}
-//
-//// blake2b calculates and returns the blake2b hash of the input data.
-//func Blake2b(data ...[]byte) []byte {
-//	b2b := blake2b.Blake2b{}
-//
-//	buff := make([]byte, 0)
-//
-//	for _, b := range data {
-//		buff = append(buff, b...)
-//	}
-//
-//	return b2b.Compute(string(buff))
-//}
-//
-//// sha256 calculates and returns the sha256 hash of the input data.
-//func Sha256(data ...[]byte) []byte {
-//	sha := sha256.Sha256{}
-//
-//	buff := make([]byte, 0)
-//
-//	for _, b := range data {
-//		buff = append(buff, b...)
-//	}
-//
-//	return sha.Compute(string(buff))
-//}
-//
-//// Keccak256Hash calculates and returns the Keccak256 hash of the input data,
-//// converting it to an internal Hash data structure.
-//func Keccak256Hash(data ...[]byte) (h encoding.Hash) {
-//	d := sha3.NewKeccak256()
-//	for _, b := range data {
-//		d.Write(b)
-//	}
-//	d.Sum(h[:0])
-//	return h
-//}
-//
-//// Blake2bHash calculates and returns the Blacke2b hash of the input data,
-//// converting it to an internal Hash data structure.
-//func Blake2bHash(data ...[]byte) (h encoding.Hash) {
-//	b2b := blake2b.Blake2b{}
-//
-//	buff := make([]byte, 0)
-//
-//	for _, b := range data {
-//		buff = append(buff, b...)
-//	}
-//
-//	h.SetBytes(b2b.Compute(string(buff)))
-//	return h
-//}
-//
-//// Sha256 calculates and returns the Sha256 hash of the input data,
-//// converting it to an internal Hash data structure.
-//func Sha256Hash(data ...[]byte) (h encoding.Hash) {
-//	sha256 := sha256.Sha256{}
-//
-//	buff := make([]byte, 0)
-//
-//	for _, b := range data {
-//		buff = append(buff, b...)
-//	}
-//
-//	h.SetBytes(sha256.Compute(string(buff)))
-//	return h
-//}

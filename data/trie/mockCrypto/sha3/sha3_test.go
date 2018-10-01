@@ -62,14 +62,14 @@ type KeccakKats struct {
 	}
 }
 
-func testUnalignedAndGeneric(t *testing.T, testf func(impl string)) {
+func testUnalignedAndGeneric(testf func(impl string)) {
 	xorInOrig, copyOutOrig := xorIn, copyOut
 	xorIn, copyOut = xorInGeneric, copyOutGeneric
 	testf("generic")
-	if xorImplementationUnaligned != "generic" {
-		xorIn, copyOut = xorInUnaligned, copyOutUnaligned
-		testf("unaligned")
-	}
+
+	xorIn, copyOut = xorInUnaligned, copyOutUnaligned
+	testf("unaligned")
+
 	xorIn, copyOut = xorInOrig, copyOutOrig
 }
 
@@ -77,7 +77,7 @@ func testUnalignedAndGeneric(t *testing.T, testf func(impl string)) {
 // ShortMsgKATs from https://github.com/gvanas/KeccakCodePackage
 // (The testvectors are stored in keccakKats.json.deflate due to their length.)
 func TestKeccakKats(t *testing.T) {
-	testUnalignedAndGeneric(t, func(impl string) {
+	testUnalignedAndGeneric(func(impl string) {
 		// Read the KATs.
 		deflated, err := os.Open(katFilename)
 		if err != nil {
@@ -117,7 +117,7 @@ func TestKeccakKats(t *testing.T) {
 // TestUnalignedWrite tests that writing data in an arbitrary pattern with
 // small input buffers.
 func TestUnalignedWrite(t *testing.T) {
-	testUnalignedAndGeneric(t, func(impl string) {
+	testUnalignedAndGeneric(func(impl string) {
 		buf := sequentialBytes(0x10000)
 		for alg, df := range testDigests {
 			d := df()
@@ -147,7 +147,7 @@ func TestUnalignedWrite(t *testing.T) {
 
 // TestAppend checks that appending works when reallocation is necessary.
 func TestAppend(t *testing.T) {
-	testUnalignedAndGeneric(t, func(impl string) {
+	testUnalignedAndGeneric(func(impl string) {
 		d := New224()
 
 		for capacity := 2; capacity <= 66; capacity += 64 {
@@ -167,7 +167,7 @@ func TestAppend(t *testing.T) {
 
 // TestAppendNoRealloc tests that appending works when no reallocation is necessary.
 func TestAppendNoRealloc(t *testing.T) {
-	testUnalignedAndGeneric(t, func(impl string) {
+	testUnalignedAndGeneric(func(impl string) {
 		buf := make([]byte, 1, 200)
 		d := New224()
 		d.Write([]byte{0xcc})
@@ -182,7 +182,7 @@ func TestAppendNoRealloc(t *testing.T) {
 // TestSqueezing checks that squeezing the full output a single time produces
 // the same output as repeatedly squeezing the instance.
 func TestSqueezing(t *testing.T) {
-	testUnalignedAndGeneric(t, func(impl string) {
+	testUnalignedAndGeneric(func(impl string) {
 		for functionName, newShakeHash := range testShakes {
 			d0 := newShakeHash()
 			d0.Write([]byte(testString))

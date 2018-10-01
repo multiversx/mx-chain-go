@@ -13,8 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
-package eth
+package trie
 
 import (
 	"fmt"
@@ -64,8 +63,8 @@ func (n *fullNode) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, nodes)
 }
 
-func (n *fullNode) copy() *fullNode   { copy := *n; return &copy }
-func (n *shortNode) copy() *shortNode { copy := *n; return &copy }
+func (n *fullNode) copy() *fullNode   { cpy := *n; return &cpy }
+func (n *shortNode) copy() *shortNode { cpy := *n; return &cpy }
 
 // nodeFlag contains caching-related metadata about a node.
 type nodeFlag struct {

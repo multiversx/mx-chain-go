@@ -13,8 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
-package eth
+package trie
 
 import (
 	"fmt"
@@ -23,34 +22,11 @@ import (
 	"time"
 )
 
-//var (
-//	memcacheFlushTimeTimer  = metrics.NewRegisteredResettingTimer("trie/memcache/flush/time", nil)
-//	memcacheFlushNodesMeter = metrics.NewRegisteredMeter("trie/memcache/flush/nodes", nil)
-//	memcacheFlushSizeMeter  = metrics.NewRegisteredMeter("trie/memcache/flush/size", nil)
-//
-//	memcacheGCTimeTimer  = metrics.NewRegisteredResettingTimer("trie/memcache/gc/time", nil)
-//	memcacheGCNodesMeter = metrics.NewRegisteredMeter("trie/memcache/gc/nodes", nil)
-//	memcacheGCSizeMeter  = metrics.NewRegisteredMeter("trie/memcache/gc/size", nil)
-//
-//	memcacheCommitTimeTimer  = metrics.NewRegisteredResettingTimer("trie/memcache/commit/time", nil)
-//	memcacheCommitNodesMeter = metrics.NewRegisteredMeter("trie/memcache/commit/nodes", nil)
-//	memcacheCommitSizeMeter  = metrics.NewRegisteredMeter("trie/memcache/commit/size", nil)
-//)
-
-// DatabaseReader wraps the Get and Has method of a backing store for the trie.
-type DatabaseReader interface {
-	// Get retrieves the value associated with key from the database.
-	Get(key []byte) (value []byte, err error)
-
-	// Has retrieves whether a key is present in the database.
-	Has(key []byte) (bool, error)
-}
-
 // Database is an intermediate write layer between the trie data structures and
 // the disk database. The aim is to accumulate trie writes in-memory and only
 // periodically flush a couple tries to disk, garbage collecting the remainder.
 type Database struct {
-	diskdb DB // Persistent storage for matured trie nodes
+	diskdb PersistDB // Persistent storage for matured trie nodes
 
 	nodes  map[encoding.Hash]*cachedNode // Data and references relationships of a node
 	oldest encoding.Hash                 // Oldest tracked node, flush-list head
@@ -75,7 +51,7 @@ type Database struct {
 
 // NewDatabase creates a new trie database to store ephemeral trie content before
 // its written out to disk or garbage collected.
-func NewDatabase(diskdb DB) *Database {
+func NewDatabase(diskdb PersistDB) *Database {
 	return &Database{
 		diskdb:    diskdb,
 		nodes:     map[encoding.Hash]*cachedNode{{}: {}},
@@ -84,7 +60,7 @@ func NewDatabase(diskdb DB) *Database {
 }
 
 // DiskDB retrieves the persistent storage backing the trie database.
-func (db *Database) DiskDB() DatabaseReader {
+func (db *Database) DiskDB() PersistDB {
 	return db.diskdb
 }
 
@@ -257,13 +233,6 @@ func (db *Database) Dereference(root encoding.Hash) {
 	db.gcnodes += uint64(nodes - len(db.nodes))
 	db.gcsize += storage - db.nodesSize
 	db.gctime += time.Since(start)
-
-	//memcacheGCTimeTimer.Update(time.Since(start))
-	//memcacheGCSizeMeter.Mark(int64(storage - db.nodesSize))
-	//memcacheGCNodesMeter.Mark(int64(nodes - len(db.nodes)))
-
-	//log.Debug("Dereferenced trie from memory database", "nodes", nodes-len(db.nodes), "size", storage-db.nodesSize, "time", time.Since(start),
-	//	"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
 }
 
 // dereference is the private locked version of Dereference.
@@ -335,7 +304,6 @@ func (db *Database) Cap(limit encoding.StorageSize) error {
 	if flushPreimages {
 		for hash, preimage := range db.preimages {
 			if err := batch.Put(db.secureKey(hash[:]), preimage); err != nil {
-				//log.Error("Failed to commit preimage from trie database", "err", err)
 				db.lock.RUnlock()
 				return err
 			}
@@ -360,7 +328,6 @@ func (db *Database) Cap(limit encoding.StorageSize) error {
 		// If we exceeded the ideal batch size, commit and reset
 		if batch.ValueSize() >= IdealBatchSize {
 			if err := batch.Write(); err != nil {
-				//log.Error("Failed to write flush list to disk", "err", err)
 				db.lock.RUnlock()
 				return err
 			}
@@ -403,13 +370,6 @@ func (db *Database) Cap(limit encoding.StorageSize) error {
 	db.flushsize += storage - db.nodesSize
 	db.flushtime += time.Since(start)
 
-	//memcacheFlushTimeTimer.Update(time.Since(start))
-	//memcacheFlushSizeMeter.Mark(int64(storage - db.nodesSize))
-	//memcacheFlushNodesMeter.Mark(int64(nodes - len(db.nodes)))
-	//
-	//log.Debug("Persisted nodes from memory database", "nodes", nodes-len(db.nodes), "size", storage-db.nodesSize, "time", time.Since(start),
-	//	"flushnodes", db.flushnodes, "flushsize", db.flushsize, "flushtime", db.flushtime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
-
 	return nil
 }
 
@@ -430,7 +390,6 @@ func (db *Database) Commit(node encoding.Hash, report bool) error {
 	// Move all of the accumulated preimages into a write batch
 	for hash, preimage := range db.preimages {
 		if err := batch.Put(db.secureKey(hash[:]), preimage); err != nil {
-			//log.Error("Failed to commit preimage from trie database", "err", err)
 			db.lock.RUnlock()
 			return err
 		}
@@ -464,17 +423,6 @@ func (db *Database) Commit(node encoding.Hash, report bool) error {
 	db.preimagesSize = 0
 
 	db.uncache(node)
-
-	//memcacheCommitTimeTimer.Update(time.Since(start))
-	//memcacheCommitSizeMeter.Mark(int64(storage - db.nodesSize))
-	//memcacheCommitNodesMeter.Mark(int64(nodes - len(db.nodes)))
-
-	//logger := log.Info
-	//if !report {
-	//	logger = log.Debug
-	//}
-	//logger("Persisted trie from memory database", "nodes", nodes-len(db.nodes)+int(db.flushnodes), "size", storage-db.nodesSize+db.flushsize, "time", time.Since(start)+db.flushtime,
-	//	"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
 
 	// Reset the garbage collection statistics
 	db.gcnodes, db.gcsize, db.gctime = 0, 0, 0
@@ -565,7 +513,7 @@ func (db *Database) verifyIntegrity() {
 		db.accumulate(child, reachable)
 	}
 	// Find any unreachable but cached nodes
-	unreachable := []string{}
+	unreachable := make([]string, 0)
 	for hash, node := range db.nodes {
 		if _, ok := reachable[hash]; !ok {
 			unreachable = append(unreachable, fmt.Sprintf("%x: {Node: %v, Parents: %d, Prev: %x, Next: %x}",
