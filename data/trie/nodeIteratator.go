@@ -3,12 +3,11 @@ package eth
 import (
 	"bytes"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
 )
 
-var emptyState = crypto.Keccak256Hash(nil)
+var emptyState = DefaultHasher().Compute(string(""))
 
 // Iterator is a key-value trie iterator that traverses a Trie.
 type Iterator struct {
@@ -118,7 +117,10 @@ func (e seekError) Error() string {
 }
 
 func newNodeIterator(trie *Trie, start []byte) NodeIterator {
-	if trie.Hash() == emptyState {
+	h := encoding.Hash{}
+	h.SetBytes(emptyState)
+
+	if trie.Hash() == h {
 		return new(nodeIterator)
 	}
 	it := &nodeIterator{trie: trie}

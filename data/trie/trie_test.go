@@ -21,8 +21,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/mockCrypto"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -37,6 +37,8 @@ import (
 func init() {
 	spew.Config.Indent = "    "
 	spew.Config.DisableMethods = false
+
+	SetDefaultHasher(&mockCrypto.Keccak256{})
 }
 
 // Used for testing
@@ -574,14 +576,14 @@ func BenchmarkHash(b *testing.B) {
 			nonce   = uint64(random.Int63())
 			balance = new(big.Int).Rand(random, new(big.Int).Exp(encoding.Big2, encoding.Big256, nil))
 			root    = emptyRoot
-			code    = crypto.Keccak256(nil)
+			code    = DefaultHasher().Compute("")
 		)
 		accounts[i], _ = rlp.EncodeToBytes([]interface{}{nonce, balance, root, code})
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
 	for i := 0; i < len(addresses); i++ {
-		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
+		trie.Update(DefaultHasher().Compute(string(addresses[i][:])), accounts[i])
 	}
 	b.ResetTimer()
 	b.ReportAllocs()

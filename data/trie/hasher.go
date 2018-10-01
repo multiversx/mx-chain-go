@@ -1,28 +1,42 @@
 package eth
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/crypto/sha3"
+	//"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/crypto/sha3"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
-	"hash"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"sync"
 )
 
 type hasher struct {
-	tmp        sliceBuffer
-	sha        keccakState
+	tmp sliceBuffer
+	//sha        keccakState
 	cachegen   uint16
 	cachelimit uint16
 	onleaf     LeafCallback
 }
 
+var defHasher hashing.Hasher
+
+func DefaultHasher() hashing.Hasher {
+	if defHasher == nil {
+		defHasher = hashing.GetHasherService()
+	}
+
+	return defHasher
+}
+
+func SetDefaultHasher(h hashing.Hasher) {
+	defHasher = h
+}
+
 // keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
 // Read to get a variable amount of data from the hash state. Read is faster than Sum
 // because it doesn't copy the internal state, but also modifies the internal state.
-type keccakState interface {
-	hash.Hash
-	Read([]byte) (int, error)
-}
+//type keccakState interface {
+//	hash.Hash
+//	Read([]byte) (int, error)
+//}
 
 type sliceBuffer []byte
 
@@ -40,7 +54,7 @@ var hasherPool = sync.Pool{
 	New: func() interface{} {
 		return &hasher{
 			tmp: make(sliceBuffer, 0, 550), // cap is as large as a full fullNode.
-			sha: sha3.NewKeccak256().(keccakState),
+			//sha: sha3.NewKeccak256().(keccakState),
 		}
 	},
 }
@@ -193,9 +207,5 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 }
 
 func (h *hasher) makeHashNode(data []byte) hashNode {
-	n := make(hashNode, h.sha.Size())
-	h.sha.Reset()
-	h.sha.Write(data)
-	h.sha.Read(n)
-	return n
+	return hashNode(DefaultHasher().Compute(string(data)))
 }
