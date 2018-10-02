@@ -18,28 +18,19 @@ var MAX_CONNECTION_PEERS int
 var GENESIS_TIME_STAMP = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 var ROUND_DURATION time.Duration
 var ID int
-var TEST_SINGLE_INSTANCE = true
+var TEST_SINGLE_INSTANCE = false
 
 func main() {
 
 	bcs := data.GetBlockChainerService()
 
 	// Parse options from the command line
-	NODES = *flag.Int("nodes", 3, "consensus group size")
-	ID = *flag.Int("id", 2, "node name")
+	NODES = *flag.Int("nodes", 21, "consensus group size")
+	ID = *flag.Int("id", 0, "node name")
 	START_PORT = *flag.Int("start_port", 4000, "port")
-	MAX_CONNECTION_PEERS = *flag.Int("max_connection_peers", 10, "max connections with peers")
-	ROUND_DURATION = *flag.Duration("round_duration", 4*time.Second, "round duration")
+	MAX_CONNECTION_PEERS = *flag.Int("max_connection_peers", 4, "max connections with peers")
+	ROUND_DURATION = *flag.Duration("round_duration", 600*time.Millisecond, "round duration")
 	flag.Parse()
-
-	consensusGroup := make([]string, NODES)
-
-	for i := 0; i < NODES; i++ {
-		consensusGroup[i] = string(i)
-	}
-
-	v := validators.Validators{}
-	v.SetConsensusGroup(consensusGroup)
 
 	if TEST_SINGLE_INSTANCE {
 
@@ -67,6 +58,15 @@ func main() {
 		}
 
 		spew.Printf("\n\n")
+
+		consensusGroup := make([]string, NODES)
+
+		for i := 0; i < NODES; i++ {
+			consensusGroup[i] = string(i)
+		}
+
+		v := validators.Validators{}
+		v.SetConsensusGroup(consensusGroup)
 
 		v.SetSelf(string(ID))
 		csi := consensus.NewConsensusServiceImpl(node, &v, GENESIS_TIME_STAMP, ROUND_DURATION)
@@ -126,6 +126,15 @@ func main() {
 		}
 
 		spew.Printf("\n\n")
+
+		consensusGroup := make([]string, NODES)
+
+		for i := 0; i < NODES; i++ {
+			consensusGroup[i] = nodes[i].P2pNode.ID().Pretty()
+		}
+
+		v := validators.Validators{}
+		v.SetConsensusGroup(consensusGroup)
 
 		var csis []*consensus.ConsensusServiceImpl
 

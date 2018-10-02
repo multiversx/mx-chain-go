@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -38,6 +39,9 @@ type ConsensusServiceImpl struct {
 	P2PNode *p2p.Node
 
 	ChRcvMsg chan []byte
+
+	SyncTime    sync.SyncTime
+	ClockOffset time.Duration
 }
 
 type RoundStateValidation struct {
@@ -55,6 +59,7 @@ func NewConsensusServiceImpl(p2pNode *p2p.Node, v *validators.Validators, genesi
 	csi.DoRun = true
 	csi.DoLog = true
 
+	csi.SyncTime = sync.New()
 	csi.ChRcvMsg = make(chan []byte)
 
 	csi.P2PNode = p2pNode
@@ -76,9 +81,10 @@ func NewConsensusServiceImpl(p2pNode *p2p.Node, v *validators.Validators, genesi
 	csi.RoundDuration = roundDuration
 	csi.RoundDivision = chronology.GetRounderService().CreateRoundTimeDivision(roundDuration)
 
-	csi.Round = rs.CreateRoundFromDateTime(csi.GenesisTime, time.Now(), csi.RoundDuration, csi.RoundDivision)
-
+	csi.ClockOffset = csi.SyncTime.GetClockOffset()
 	csi.SelfRoundState = round.RS_UNKNOWN
+
+	csi.Round = rs.CreateRoundFromDateTime(csi.GenesisTime, csi.GetCurrentTime(), csi.RoundDuration, csi.RoundDivision)
 
 	return &csi
 }
@@ -87,28 +93,27 @@ func (c *ConsensusServiceImpl) StartRounds() {
 
 	rs := chronology.GetRounderService()
 
+	c.ClockOffset = c.SyncTime.GetClockOffset()
 	c.SelfRoundState = round.RS_START_ROUND
 
-	c.Round = rs.CreateRoundFromDateTime(c.GenesisTime, time.Now(), c.RoundDuration, c.RoundDivision)
+	c.Round = rs.CreateRoundFromDateTime(c.GenesisTime, c.GetCurrentTime(), c.RoundDuration, c.RoundDivision)
 
 	for c.DoRun {
 
-		time.Sleep(10 * time.Millisecond)
-
-		now := time.Now()
+		time.Sleep(5 * time.Millisecond)
 
 		oldRoundIndex := c.Round.GetIndex()
 		oldRoundState := c.Round.GetRoundState()
 
-		rs.UpdateRoundFromDateTime(c.GenesisTime, now, &c.Round)
+		rs.UpdateRoundFromDateTime(c.GenesisTime, c.GetCurrentTime(), &c.Round)
 
 		if oldRoundIndex != c.Round.GetIndex() {
-			c.Log(fmt.Sprintf("\n"+FormatTime(time.Now())+"################################################## ROUND %d BEGINS ##################################################\n", c.Round.GetIndex()))
+			c.Log(fmt.Sprintf("\n"+FormatTime(c.GetCurrentTime())+"################################################## ROUND %d BEGINS ##################################################\n", c.Round.GetIndex()))
 			c.InitRound()
 		}
 
 		if oldRoundState != c.Round.GetRoundState() {
-			c.Log(fmt.Sprintf("\n" + FormatTime(time.Now()) + ".................... SUBROUND " + rs.GetRoundStateName(c.Round.GetRoundState()) + " BEGINS ....................\n"))
+			c.Log(fmt.Sprintf("\n" + FormatTime(c.GetCurrentTime()) + ".................... SUBROUND " + rs.GetRoundStateName(c.Round.GetRoundState()) + " BEGINS ....................\n"))
 		}
 
 		timeRoundState := c.Round.GetRoundState()
@@ -183,8 +188,10 @@ func (c *ConsensusServiceImpl) OptimizeRoundState(timeRoundState round.RoundStat
 	if timeRoundState != c.SelfRoundState {
 		select {
 		case rcvMsg := <-c.ChRcvMsg:
-			if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
-				//c.Log(fmt.Sprintf("\n" + FormatTime(time.Now())+"Received message in round time transition state: %s -> %s", rs.GetRoundStateName(timeRoundState), rs.GetRoundStateName(c.SelfRoundState)))
+			if c.SelfRoundState != round.RS_ABORDED {
+				if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+					//c.Log(fmt.Sprintf("\n" + FormatTime(c.SyncTime.GetCurrentTime())+"Received message in round time transition state: %s -> %s", rs.GetRoundStateName(timeRoundState), rs.GetRoundStateName(c.SelfRoundState)))
+				}
 			}
 		default:
 		}
@@ -192,8 +199,18 @@ func (c *ConsensusServiceImpl) OptimizeRoundState(timeRoundState round.RoundStat
 }
 
 func (c *ConsensusServiceImpl) DoStartRound() bool {
-	c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 0: Preparing for this round"))
-	return true
+
+	rs := chronology.GetRounderService()
+
+	for c.SelfRoundState != round.RS_ABORDED {
+		time.Sleep(5 * time.Millisecond)
+
+		c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 0: Preparing for this round"))
+		return true
+	}
+
+	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 0: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_START_ROUND)))
+	return false
 }
 
 func (c *ConsensusServiceImpl) DoBlock() bool {
@@ -201,27 +218,28 @@ func (c *ConsensusServiceImpl) DoBlock() bool {
 	rs := chronology.GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 
 		if c.SendMessage(round.RS_BLOCK) {
 			return true
 		}
 
-		if rs.GetRoundStateFromDateTime(&c.Round, time.Now()) != round.RS_BLOCK {
-			c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 1: Postponed the " + rs.GetRoundStateName(round.RS_BLOCK) + " subround"))
+		if rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime()) != round.RS_BLOCK {
+			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 1: Extended the " + rs.GetRoundStateName(round.RS_BLOCK) + " subround"))
 			return true // Try to give a chance to this round if the block from leader will arrive later
 		}
 
 		select {
 		case rcvMsg := <-c.ChRcvMsg:
 			if c.ConsumeReceivedMessage(&rcvMsg, round.RS_BLOCK) {
-				c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 1: Synchronized block"))
+				c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 1: Synchronized block"))
 				return true
 			}
 		default:
 		}
 	}
 
+	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 1: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_BLOCK)))
 	return false
 }
 
@@ -230,20 +248,30 @@ func (c *ConsensusServiceImpl) DoComitmentHash() bool {
 	rs := chronology.GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 
 		c.SendMessage(round.RS_COMITMENT_HASH)
 
-		if rs.GetRoundStateFromDateTime(&c.Round, time.Now()) != round.RS_COMITMENT_HASH {
-			c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 2: Postponed the " + rs.GetRoundStateName(round.RS_COMITMENT_HASH) + " subround"))
+		if rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime()) != round.RS_COMITMENT_HASH {
+			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 2: Extended the " + rs.GetRoundStateName(round.RS_COMITMENT_HASH) + " subround"))
 			return true // Try to give a chance to this round if the necesary comitment hashes will arrive later
 		}
 
 		select {
 		case rcvMsg := <-c.ChRcvMsg:
+			consensusType := CT_PBFT
+
+			if !c.IsNodeLeaderInCurrentRound(c.Node) {
+				consensusType = CT_FULL
+			}
+
 			if c.ConsumeReceivedMessage(&rcvMsg, round.RS_COMITMENT_HASH) {
-				if ok, n := c.CheckConsensus(round.RS_COMITMENT_HASH, CT_PBFT, true); ok {
-					c.Log(fmt.Sprintf(FormatTime(time.Now())+"Step 2: Received %d from %d comitment hashes, which are enough", n, len(c.Nodes)))
+				if ok, n := c.CheckConsensus(round.RS_COMITMENT_HASH, consensusType, true); ok {
+					if n == len(c.Nodes) {
+						c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 2: Received all (%d from %d) comitment hashes", n, len(c.Nodes)))
+					} else {
+						c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 2: Received %d from %d comitment hashes, which are enough", n, len(c.Nodes)))
+					}
 					return true
 				}
 			}
@@ -251,6 +279,7 @@ func (c *ConsensusServiceImpl) DoComitmentHash() bool {
 		}
 	}
 
+	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 2: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_COMITMENT_HASH)))
 	return false
 }
 
@@ -259,14 +288,14 @@ func (c *ConsensusServiceImpl) DoBitmap() bool {
 	rs := chronology.GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 
 		if c.SendMessage(round.RS_BITMAP) {
 			return true
 		}
 
-		if rs.GetRoundStateFromDateTime(&c.Round, time.Now()) != round.RS_BITMAP {
-			c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 3: Postponed the " + rs.GetRoundStateName(round.RS_BITMAP) + " subround"))
+		if rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime()) != round.RS_BITMAP {
+			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 3: Extended the " + rs.GetRoundStateName(round.RS_BITMAP) + " subround"))
 			return true // Try to give a chance to this round if the bitmap from leader will arrive later
 		}
 
@@ -274,7 +303,11 @@ func (c *ConsensusServiceImpl) DoBitmap() bool {
 		case rcvMsg := <-c.ChRcvMsg:
 			if c.ConsumeReceivedMessage(&rcvMsg, round.RS_BITMAP) {
 				if ok, n := c.CheckConsensus(round.RS_BITMAP, CT_PBFT, true); ok {
-					c.Log(fmt.Sprintf(FormatTime(time.Now())+"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d comitment hashes, which are enough", n, len(c.Nodes)))
+					addMessage := "BUT I WAS NOT selected in this bitmap"
+					if c.IsNodeInBitmapGroup(c.Node) {
+						addMessage = "AND I WAS selected in this bitmap"
+					}
+					c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d comitment hashes, which are enough, %s", n, len(c.Nodes), addMessage))
 					return true
 				}
 			}
@@ -282,6 +315,7 @@ func (c *ConsensusServiceImpl) DoBitmap() bool {
 		}
 	}
 
+	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 3: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_BITMAP)))
 	return false
 }
 
@@ -290,20 +324,20 @@ func (c *ConsensusServiceImpl) DoComitment() bool {
 	rs := chronology.GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 
 		c.SendMessage(round.RS_COMITMENT)
 
-		if rs.GetRoundStateFromDateTime(&c.Round, time.Now()) != round.RS_COMITMENT {
-			c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 4: Postponed the " + rs.GetRoundStateName(round.RS_COMITMENT) + " subround"))
-			return true // Try to give a chance to this round if the necesary comitment hashes will arrive later
+		if rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime()) != round.RS_COMITMENT {
+			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 4: Extended the " + rs.GetRoundStateName(round.RS_COMITMENT) + " subround"))
+			return true // Try to give a chance to this round if the necesary comitments will arrive later
 		}
 
 		select {
 		case rcvMsg := <-c.ChRcvMsg:
 			if c.ConsumeReceivedMessage(&rcvMsg, round.RS_COMITMENT) {
 				if ok, n := c.CheckConsensus(round.RS_COMITMENT, CT_PBFT, true); ok {
-					c.Log(fmt.Sprintf(FormatTime(time.Now())+"Step 4: Received %d from %d comitments, which are matching with bitmap and are enough", n, len(c.Nodes)))
+					c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 4: Received %d from %d comitments, which are matching with bitmap and are enough", n, len(c.Nodes)))
 					return true
 				}
 			}
@@ -311,6 +345,7 @@ func (c *ConsensusServiceImpl) DoComitment() bool {
 		}
 	}
 
+	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 4: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_COMITMENT)))
 	return false
 }
 
@@ -319,20 +354,20 @@ func (c *ConsensusServiceImpl) DoSignature() bool {
 	rs := chronology.GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 
 		c.SendMessage(round.RS_SIGNATURE)
 
-		if rs.GetRoundStateFromDateTime(&c.Round, time.Now()) != round.RS_SIGNATURE {
-			c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 5: Postponed the " + rs.GetRoundStateName(round.RS_SIGNATURE) + " subround"))
-			return true // Try to give a chance to this round if the necesary comitment hashes will arrive later
+		if rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime()) != round.RS_SIGNATURE {
+			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 5: Extended the " + rs.GetRoundStateName(round.RS_SIGNATURE) + " subround"))
+			return true // Try to give a chance to this round if the necesary signatures will arrive later
 		}
 
 		select {
 		case rcvMsg := <-c.ChRcvMsg:
 			if c.ConsumeReceivedMessage(&rcvMsg, round.RS_SIGNATURE) {
 				if ok, n := c.CheckConsensus(round.RS_SIGNATURE, CT_PBFT, true); ok {
-					c.Log(fmt.Sprintf(FormatTime(time.Now())+"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough", n, len(c.Nodes)))
+					c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough", n, len(c.Nodes)))
 					return true
 				}
 			}
@@ -340,6 +375,7 @@ func (c *ConsensusServiceImpl) DoSignature() bool {
 		}
 	}
 
+	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 5: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_SIGNATURE)))
 	return false
 }
 
@@ -349,23 +385,23 @@ func (c *ConsensusServiceImpl) DoEndRound() bool {
 	rs := chronology.GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 
 		if ok, _ := c.CheckConsensus(round.RS_SIGNATURE, CT_PBFT, true); ok {
 
 			bcs.AddBlock(&c.BlockChain, c.Block)
 
 			if c.IsNodeLeaderInCurrentRound(c.Node) {
-				c.Log(fmt.Sprintf("\n"+FormatTime(time.Now())+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.GetNonce()))
+				c.Log(fmt.Sprintf("\n"+FormatTime(c.GetCurrentTime())+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.GetNonce()))
 			} else {
-				c.Log(fmt.Sprintf("\n"+FormatTime(time.Now())+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.GetNonce()))
+				c.Log(fmt.Sprintf("\n"+FormatTime(c.GetCurrentTime())+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.GetNonce()))
 			}
 
 			return true
 		}
 
-		if rs.GetRoundStateFromDateTime(&c.Round, time.Now()) != round.RS_END_ROUND {
-			c.Log(fmt.Sprintf("\n" + FormatTime(time.Now()) + ">>>>>>>>>>>>>>>>>>>> THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n"))
+		if rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime()) != round.RS_END_ROUND {
+			c.Log(fmt.Sprintf("\n" + FormatTime(c.GetCurrentTime()) + ">>>>>>>>>>>>>>>>>>>> THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n"))
 			return true
 		}
 
@@ -421,6 +457,10 @@ func (c *ConsensusServiceImpl) SendMessage(roundState round.RoundState) bool {
 
 			return c.SendBitmap()
 		case round.RS_COMITMENT:
+			if !c.IsNodeInBitmapGroup(c.Node) {
+				return false
+			}
+
 			if c.Validators[c.Node].Comitment {
 				return false
 			}
@@ -432,6 +472,10 @@ func (c *ConsensusServiceImpl) SendMessage(roundState round.RoundState) bool {
 
 			return c.SendComitment()
 		case round.RS_SIGNATURE:
+			if !c.IsNodeInBitmapGroup(c.Node) {
+				return false
+			}
+
 			if c.Validators[c.Node].Signature {
 				return false
 			}
@@ -459,9 +503,9 @@ func (c *ConsensusServiceImpl) SendBlock() bool {
 	currentBlock := bcs.GetCurrentBlock(&c.BlockChain)
 
 	if currentBlock == nil {
-		c.Block = block.New(0, time.Now().String(), c.Node, "", "", c.GetMessageTypeName(MT_BLOCK))
+		c.Block = block.New(0, c.GetCurrentTime().String(), c.Node, "", "", c.GetMessageTypeName(MT_BLOCK))
 	} else {
-		c.Block = block.New(currentBlock.GetNonce()+1, time.Now().String(), c.Node, "", currentBlock.GetHash(), c.GetMessageTypeName(MT_BLOCK))
+		c.Block = block.New(currentBlock.GetNonce()+1, c.GetCurrentTime().String(), c.Node, "", currentBlock.GetHash(), c.GetMessageTypeName(MT_BLOCK))
 	}
 
 	c.Block.Hash = bs.CalculateHash(&c.Block)
@@ -474,7 +518,7 @@ func (c *ConsensusServiceImpl) SendBlock() bool {
 		return false
 	}
 
-	c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 1: Sending block"))
+	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 1: Sending block"))
 
 	rsv := c.Validators[c.Node]
 	rsv.Block = true
@@ -503,7 +547,7 @@ func (c *ConsensusServiceImpl) SendComitmentHash() bool {
 		return false
 	}
 
-	c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 2: Sending comitment hash"))
+	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 2: Sending comitment hash"))
 
 	rsv := c.Validators[c.Node]
 	rsv.ComitmentHash = true
@@ -538,7 +582,7 @@ func (c *ConsensusServiceImpl) SendBitmap() bool {
 		return false
 	}
 
-	c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 3: Sending bitmap"))
+	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 3: Sending bitmap"))
 
 	for i := 0; i < len(c.Nodes); i++ {
 		if c.Validators[c.Nodes[i]].ComitmentHash {
@@ -571,7 +615,7 @@ func (c *ConsensusServiceImpl) SendComitment() bool {
 		return false
 	}
 
-	c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 4: Sending comitment"))
+	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 4: Sending comitment"))
 
 	rsv := c.Validators[c.Node]
 	rsv.Comitment = true
@@ -600,7 +644,7 @@ func (c *ConsensusServiceImpl) SendSignature() bool {
 		return false
 	}
 
-	c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Step 5: Sending signature"))
+	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 5: Sending signature"))
 
 	rsv := c.Validators[c.Node]
 	rsv.Signature = true
@@ -617,29 +661,31 @@ func (c *ConsensusServiceImpl) CheckIfBlockIsValid(receivedBlock *block.Block) b
 	currentBlock := bcs.GetCurrentBlock(&c.BlockChain)
 
 	if currentBlock == nil {
-		//if receivedBlock.Nonce != 0 {
-		//	c.Log(fmt.Sprintf("Nonce not match"))
-		//	return false
-		//}
-		//
-		//if receivedBlock.PrevHash != "" {
-		//	c.Log(fmt.Sprintf("Hash not match"))
-		//	return false
-		//}
+		if receivedBlock.GetNonce() == 0 {
+			if receivedBlock.PrevHash != "" {
+				c.Log(fmt.Sprintf("Hash not match: local block hash is %s and node received block with previous hash %s", currentBlock.GetHash(), receivedBlock.GetHash()))
+				return false
+			}
+		} else if receivedBlock.GetNonce() > 0 { // to resolve the situation when a node comes later in the network and it have not implemented the bootstrap mechanism (he will accept the first block received)
+			c.Log(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block with nonce %d", -1, receivedBlock.GetNonce()))
+			c.Log(fmt.Sprintf("\n"+FormatTime(c.GetCurrentTime())+">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET <<<<<<<<<<<<<<<<<<<<\n", receivedBlock.GetNonce()))
+		}
 
-		// to avoid the case when a node comes later in the network and it have not implemented the bootstrap mechanism (he will accept the first block received)
 		return true
 	}
 
-	if receivedBlock.Nonce != currentBlock.Nonce+1 {
-		c.Log(fmt.Sprintf("Nonce not match"))
+	if receivedBlock.GetNonce() < currentBlock.GetNonce()+1 {
+		c.Log(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block with nonce %d", currentBlock.GetNonce(), receivedBlock.GetNonce()))
 		return false
-	}
 
-	if receivedBlock.PrevHash != currentBlock.Hash {
-		c.Log(fmt.Sprintf("Hash not match"))
-
-		return false
+	} else if receivedBlock.GetNonce() == currentBlock.GetNonce()+1 {
+		if receivedBlock.GetPrevHash() != currentBlock.GetHash() {
+			c.Log(fmt.Sprintf("Hash not match: local block hash is %s and node received block with previous hash %s", currentBlock.GetHash(), receivedBlock.GetHash()))
+			return false
+		}
+	} else if receivedBlock.GetNonce() > currentBlock.GetNonce()+1 { // to resolve the situation when a node misses some blocks and it have not implemented the bootstrap mechanism (he will accept the next block received)
+		c.Log(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block with nonce %d", currentBlock.GetNonce(), receivedBlock.GetNonce()))
+		c.Log(fmt.Sprintf("\n"+FormatTime(c.GetCurrentTime())+">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET <<<<<<<<<<<<<<<<<<<<\n", receivedBlock.GetNonce()))
 	}
 
 	return true
@@ -904,6 +950,7 @@ func (c *ConsensusServiceImpl) CheckConsensus(roundState round.RoundState, conse
 }
 
 func (c *ConsensusServiceImpl) InitRound() {
+	c.ClockOffset = c.SyncTime.GetClockOffset()
 	c.SelfRoundState = round.RS_START_ROUND
 	c.ResetValidators()
 	c.ResetBlock()
@@ -964,13 +1011,16 @@ func (c *ConsensusServiceImpl) GetMessageTypeName(messageType MessageType) strin
 }
 
 func (c *ConsensusServiceImpl) recv(sender *p2p.Node, peerID string, m *p2p.Message) {
-	c.Log(fmt.Sprintf(FormatTime(time.Now())+"Peer with ID = %s got a message from peer with ID = %s which traversed peers: %s\n", sender.P2pNode.ID().Pretty(), peerID, m.Peers))
+	//c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Peer with ID = %s got a message from peer with ID = %s which traversed %d peers\n", sender.P2pNode.ID().Pretty(), peerID, len(m.Peers)))
 	m.AddHop(sender.P2pNode.ID().Pretty())
 	c.ChRcvMsg <- m.Payload
-	sender.BroadcastMessage(m, m.Peers)
+	//sender.BroadcastMessage(m, m.Peers)
+	sender.BroadcastMessage(m, []string{})
 }
 
 func (c *ConsensusServiceImpl) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round.RoundState) bool {
+
+	//	rs := chronology.GetRounderService()
 
 	msgType, msgData := c.DecodeMessage(rcvMsg)
 
@@ -979,8 +1029,8 @@ func (c *ConsensusServiceImpl) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundS
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.GetSignature()
 
-		if timeRoundState > round.RS_BLOCK {
-			c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Received late " + c.GetMessageTypeName(MT_BLOCK)))
+		if timeRoundState > round.RS_BLOCK || c.SelfRoundState > round.RS_BLOCK {
+			//			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_BLOCK) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
 		}
 
 		if c.IsNodeLeaderInCurrentRound(node) {
@@ -1003,13 +1053,13 @@ func (c *ConsensusServiceImpl) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundS
 
 		if c.IsNodeLeaderInCurrentRound(c.Node) {
 			if c.IsComitmentHashDirty(c.PBFTThreshold) {
-				c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Avoid getting more comitment hashes, they are already enough"))
+				//				c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Avoid getting more comitment hashes, they are already enough"))
 				return false
 			}
 		}
 
-		if timeRoundState > round.RS_COMITMENT_HASH {
-			c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Received late " + c.GetMessageTypeName(MT_COMITMENT_HASH)))
+		if timeRoundState > round.RS_COMITMENT_HASH || c.SelfRoundState > round.RS_COMITMENT_HASH {
+			//			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_COMITMENT_HASH) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
 		}
 
 		if c.IsNodeInValidationGroup(node) {
@@ -1026,8 +1076,8 @@ func (c *ConsensusServiceImpl) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundS
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.GetSignature()
 
-		if timeRoundState > round.RS_BITMAP {
-			c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Received late " + c.GetMessageTypeName(MT_BITMAP)))
+		if timeRoundState > round.RS_BITMAP || c.SelfRoundState > round.RS_BITMAP {
+			//			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_BITMAP) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
 		}
 
 		if c.IsNodeLeaderInCurrentRound(node) {
@@ -1058,8 +1108,8 @@ func (c *ConsensusServiceImpl) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundS
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.GetSignature()
 
-		if timeRoundState > round.RS_COMITMENT {
-			c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Received late " + c.GetMessageTypeName(MT_COMITMENT)))
+		if timeRoundState > round.RS_COMITMENT || c.SelfRoundState > round.RS_COMITMENT {
+			//			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_COMITMENT) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
 		}
 
 		if c.IsNodeInBitmapGroup(node) {
@@ -1076,8 +1126,8 @@ func (c *ConsensusServiceImpl) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundS
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.GetSignature()
 
-		if timeRoundState > round.RS_SIGNATURE {
-			c.Log(fmt.Sprintf(FormatTime(time.Now()) + "Received late " + c.GetMessageTypeName(MT_SIGNATURE)))
+		if timeRoundState > round.RS_SIGNATURE || c.SelfRoundState > round.RS_SIGNATURE {
+			//			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_SIGNATURE) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
 		}
 
 		if c.IsNodeInBitmapGroup(node) {
@@ -1099,7 +1149,7 @@ func (c *ConsensusServiceImpl) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundS
 func (c *ConsensusServiceImpl) DecodeMessage(rcvMsg *[]byte) (MessageType, interface{}) {
 
 	if ok, msgBlock := c.IsBlockInMessage(rcvMsg); ok {
-		//c.Log(fmt.Sprintf(FormatTime(time.Now())+"Got a message with %s for block with Signature = %s and Nonce = %d and Hash = %s\n", msgBlock.MetaData, msgBlock.Signature, msgBlock.Nonce, msgBlock.Hash))
+		//c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Got a message with %s for block with Signature = %s and Nonce = %d and Hash = %s\n", msgBlock.MetaData, msgBlock.Signature, msgBlock.Nonce, msgBlock.Hash))
 		if strings.Contains(msgBlock.GetMetaData(), c.GetMessageTypeName(MT_BLOCK)) {
 			return MT_BLOCK, msgBlock
 		}
@@ -1137,4 +1187,8 @@ func (c *ConsensusServiceImpl) IsBlockInMessage(rcvMsg *[]byte) (bool, *block.Bl
 	}
 
 	return true, &msgBlock
+}
+
+func (c *ConsensusServiceImpl) GetCurrentTime() time.Time {
+	return time.Now().Add(c.ClockOffset)
 }
