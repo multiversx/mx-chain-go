@@ -9,17 +9,17 @@ import (
 type SyncTime struct {
 	mut         sync.RWMutex
 	clockOffset time.Duration
+	syncPeriod  time.Duration
 }
 
-func New() SyncTime {
-	s := SyncTime{}
+func New(syncPeriod time.Duration) SyncTime {
+	s := SyncTime{clockOffset: 0, syncPeriod: syncPeriod}
 	go s.synchronize()
 	return s
 }
 
 func (s *SyncTime) synchronize() {
 	for {
-		time.Sleep(100 * time.Millisecond)
 		r, err := ntp.Query("time.google.com")
 
 		s.mut.Lock()
@@ -31,6 +31,7 @@ func (s *SyncTime) synchronize() {
 		}
 
 		s.mut.Unlock()
+		time.Sleep(s.syncPeriod)
 	}
 }
 

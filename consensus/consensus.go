@@ -9,8 +9,9 @@ type ConsensusType int
 
 const (
 	CT_NONE ConsensusType = iota
+	CT_ONE
 	CT_PBFT
-	CT_FULL
+	CT_ALL
 )
 
 // An Answer specifies an answer of the node
