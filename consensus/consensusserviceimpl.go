@@ -147,7 +147,7 @@ func (c *ConsensusServiceImpl) StartRounds() {
 	close(c.ChRcvMsg)
 }
 
-func (c *ConsensusServiceImpl) UpdateRound() (int64, round.RoundState) {
+func (c *ConsensusServiceImpl) UpdateRound() (int, round.RoundState) {
 
 	rs := chronology.GetRounderService()
 
@@ -984,7 +984,7 @@ func (c *ConsensusServiceImpl) ComputeLeader(nodes []string, round *round.Round)
 		return "", errors.New("List of nodes is empty")
 	}
 
-	index := round.GetIndex() % int64(len(nodes))
+	index := round.GetIndex() % len(nodes)
 	return nodes[index], nil
 }
 

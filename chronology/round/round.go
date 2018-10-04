@@ -7,24 +7,24 @@ import (
 )
 
 type Round struct {
-	index             int64
+	index             int
 	startTimeStamp    time.Time
 	roundTimeDuration time.Duration
 	roundTimeDivision []time.Duration
 	roundState        RoundState
 }
 
-func New(index int64, startTimeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration, roundState RoundState) Round {
+func New(index int, startTimeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration, roundState RoundState) Round {
 
 	r := Round{index, startTimeStamp, roundTimeDuration, roundTimeDivision, roundState}
 	return r
 }
 
-func (r *Round) SetIndex(index int64) {
+func (r *Round) SetIndex(index int) {
 	r.index = index
 }
 
-func (r *Round) GetIndex() int64 {
+func (r *Round) GetIndex() int {
 	return r.index
 }
 
@@ -92,8 +92,8 @@ func (ri RoundImpl) CreateRoundFromDateTime(genesisRoundTimeStamp time.Time, tim
 
 	var r Round
 
-	r.SetIndex(delta / roundTimeDuration.Nanoseconds())
-	r.SetStartTimeStamp(genesisRoundTimeStamp.Add(time.Duration(r.GetIndex() * roundTimeDuration.Nanoseconds())))
+	r.SetIndex(int(delta / roundTimeDuration.Nanoseconds()))
+	r.SetStartTimeStamp(genesisRoundTimeStamp.Add(time.Duration(int64(r.GetIndex()) * roundTimeDuration.Nanoseconds())))
 	r.SetRoundTimeDuration(roundTimeDuration)
 	r.SetRoundTimeDivision(roundTimeDivision)
 	r.SetRoundState(ri.GetRoundStateFromDateTime(&r, timeStamp))
@@ -109,11 +109,11 @@ func (ri RoundImpl) UpdateRoundFromDateTime(genesisRoundTimeStamp time.Time, tim
 
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
-	index := delta / round.GetRoundTimeDuration().Nanoseconds()
+	index := int(delta / round.GetRoundTimeDuration().Nanoseconds())
 
 	if round.GetIndex() != index {
 		round.SetIndex(index)
-		round.SetStartTimeStamp(genesisRoundTimeStamp.Add(time.Duration(index * round.GetRoundTimeDuration().Nanoseconds())))
+		round.SetStartTimeStamp(genesisRoundTimeStamp.Add(time.Duration(int64(index) * round.GetRoundTimeDuration().Nanoseconds())))
 	}
 
 	round.SetRoundState(ri.GetRoundStateFromDateTime(round, timeStamp))
