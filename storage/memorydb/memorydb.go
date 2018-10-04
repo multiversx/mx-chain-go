@@ -44,6 +44,9 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 
 // returns true if the given key is present in the persistance medium
 func (s *DB) Has(key []byte) (bool, error) {
+	s.mutx.RLock()
+	defer s.mutx.RUnlock()
+
 	_, ok := s.db[string(key)]
 
 	return ok, nil
@@ -61,8 +64,11 @@ func (s *DB) Close() error {
 	return nil
 }
 
-// Deletes the data associated to the given key
-func (s *DB) Delete(key []byte) error {
+// Removes the data associated to the given key
+func (s *DB) Remove(key []byte) error {
+	s.mutx.Lock()
+	defer s.mutx.Unlock()
+
 	delete(s.db, string(key))
 
 	return nil

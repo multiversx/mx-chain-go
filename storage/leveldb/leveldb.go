@@ -66,8 +66,8 @@ func (s *DB) Close() error {
 	return s.db.Close()
 }
 
-// Deletes the data associated to the given key
-func (s *DB) Delete(key []byte) error {
+// Removes the data associated to the given key
+func (s *DB) Remove(key []byte) error {
 	return s.db.Delete(key, nil)
 }
 

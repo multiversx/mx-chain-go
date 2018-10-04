@@ -1,13 +1,10 @@
 package storage
 
 import (
+	"sync"
+
 	"github.com/pkg/errors"
 )
-
-type StorageUnit struct {
-	persister Persister
-	cacher    Cacher
-}
 
 type Persister interface {
 	// Add the value to the (key, val) persistance medium
@@ -25,8 +22,8 @@ type Persister interface {
 	// Closes the files/resources associated to the persistance medium
 	Close() error
 
-	// Deletes the data associated to the given key
-	Delete(key []byte) error
+	// Removes the data associated to the given key
+	Remove(key []byte) error
 
 	// Removes the persistance medium stored data
 	Destroy() error
@@ -37,23 +34,23 @@ type Cacher interface {
 	Clear()
 
 	// Add adds a value to the cache.  Returns true if an eviction occurred.
-	Add(key, value []byte) (evicted bool)
+	Put(key, value []byte) (evicted bool)
 
 	// Get looks up a key's value from the cache.
 	Get(key []byte) (value []byte, ok bool)
 
-	// Contains checks if a key is in the cache, without updating the
+	// Has checks if a key is in the cache, without updating the
 	// recent-ness or deleting it for being stale.
-	Contains(key []byte) bool
+	Has(key []byte) bool
 
 	// Peek returns the key value (or undefined if not found) without updating
 	// the "recently used"-ness of the key.
 	Peek(key []byte) (value []byte, ok bool)
 
-	// ContainsOrAdd checks if a key is in the cache  without updating the
+	// HasOrAdd checks if a key is in the cache  without updating the
 	// recent-ness or deleting it for being stale,  and if not, adds the value.
 	// Returns whether found and whether an eviction occurred.
-	ContainsOrAdd(key, value []byte) (ok, evicted bool)
+	HasOrAdd(key, value []byte) (ok, evicted bool)
 
 	// Remove removes the provided key from the cache.
 	Remove(key []byte)
@@ -66,6 +63,12 @@ type Cacher interface {
 
 	// Len returns the number of items in the cache.
 	Len() int
+}
+
+type StorageUnit struct {
+	lock      sync.RWMutex
+	persister Persister
+	cacher    Cacher
 }
 
 func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
@@ -89,7 +92,10 @@ func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
 
 // add data to both cache and persistance medium
 func (s *StorageUnit) Put(key, data []byte) error {
-	s.cacher.Add(key, data)
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.cacher.Put(key, data)
 	err := s.persister.Put(key, data)
 
 	return err
@@ -97,6 +103,9 @@ func (s *StorageUnit) Put(key, data []byte) error {
 
 // search the data associated to the key in
 func (s *StorageUnit) Get(key []byte) ([]byte, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	v, ok := s.cacher.Get(key)
 	var err error
 
@@ -110,7 +119,7 @@ func (s *StorageUnit) Get(key []byte) ([]byte, error) {
 		}
 
 		// if found in persistance unit, add it in cache
-		s.cacher.Add(key, v)
+		s.cacher.Put(key, v)
 	}
 
 	return v, nil
@@ -118,8 +127,11 @@ func (s *StorageUnit) Get(key []byte) ([]byte, error) {
 
 // check if the key is in the storageUnit.
 // it first checks the cache and if not present it checks the db
-func (s *StorageUnit) Contains(key []byte) (bool, error) {
-	has := s.cacher.Contains(key)
+func (s *StorageUnit) Has(key []byte) (bool, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	has := s.cacher.Has(key)
 
 	if has {
 		return has, nil
@@ -131,8 +143,11 @@ func (s *StorageUnit) Contains(key []byte) (bool, error) {
 // checks if the key is present in the storage and if not adds it.
 // it updates the cache either way
 // it returns if the value was originally found
-func (s *StorageUnit) ContainsOrAdd(key []byte, value []byte) (bool, error) {
-	has := s.cacher.Contains(key)
+func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	has := s.cacher.Has(key)
 
 	if has {
 		return has, nil
@@ -144,7 +159,7 @@ func (s *StorageUnit) ContainsOrAdd(key []byte, value []byte) (bool, error) {
 	}
 
 	//add it to the cache
-	s.cacher.Add(key, value)
+	s.cacher.Put(key, value)
 
 	if !has {
 		// add it also to the persistance unit
@@ -159,8 +174,11 @@ func (s *StorageUnit) ContainsOrAdd(key []byte, value []byte) (bool, error) {
 
 // deletes the data associated to the given key from both cache and persistance medium
 func (s *StorageUnit) Delete(key []byte) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	s.cacher.Remove(key)
-	err := s.persister.Delete(key)
+	err := s.persister.Remove(key)
 
 	return err
 }
@@ -172,6 +190,9 @@ func (s *StorageUnit) ClearCache() {
 
 //clean up both the cache and db
 func (s *StorageUnit) DestroyUnit() error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	s.cacher.Clear()
 	s.persister.Close()
 	return s.persister.Destroy()

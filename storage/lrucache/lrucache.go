@@ -29,7 +29,7 @@ func (c *LRUCache) Clear() {
 }
 
 // Add adds a value to the cache.  Returns true if an eviction occurred.
-func (c *LRUCache) Add(key, value []byte) (evicted bool) {
+func (c *LRUCache) Put(key, value []byte) (evicted bool) {
 	return c.cache.Add(string(key), value)
 }
 
@@ -43,9 +43,9 @@ func (c *LRUCache) Get(key []byte) (value []byte, ok bool) {
 	return value, ok
 }
 
-// Contains checks if a key is in the cache, without updating the
+// Has checks if a key is in the cache, without updating the
 // recent-ness or deleting it for being stale.
-func (c *LRUCache) Contains(key []byte) bool {
+func (c *LRUCache) Has(key []byte) bool {
 	return c.cache.Contains(string(key))
 }
 
@@ -62,10 +62,10 @@ func (c *LRUCache) Peek(key []byte) (value []byte, ok bool) {
 	return value, ok
 }
 
-// ContainsOrAdd checks if a key is in the cache  without updating the
+// HasOrAdd checks if a key is in the cache  without updating the
 // recent-ness or deleting it for being stale,  and if not, adds the value.
 // Returns whether found and whether an eviction occurred.
-func (c *LRUCache) ContainsOrAdd(key, value []byte) (ok, evicted bool) {
+func (c *LRUCache) HasOrAdd(key, value []byte) (ok, evicted bool) {
 	return c.cache.ContainsOrAdd(string(key), value)
 }
 

@@ -1,159 +1,134 @@
 package memorydb_test
 
 import (
-	"ElrondNetwork/elrond-go-sandbox/storage"
-	"ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	"fmt"
-	"reflect"
 	"testing"
+
+	"ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestMemoryDB(t *testing.T) {
-	memdb, err := memorydb.New()
-	if err != nil {
-		t.Fatalf(fmt.Sprintf("Failed to create memorydb: %s", err))
-	}
+func TestInitNoError(t *testing.T) {
+	mdb, err := memorydb.New()
 
-	Suite(t, memdb)
+	assert.Nil(t, err, "failed to create memorydb: %s", err)
+
+	err = mdb.Init()
+	assert.Nil(t, err, "error initializing db")
 }
 
-func Suite(t *testing.T, p storage.Persister) {
-	TestingInitNoError(t, p)
-	TestingPutNoError(t, p)
-	TestingGetPresent(t, p)
-	TestingGetNotPresent(t, p)
-	TestingHasPresent(t, p)
-	TestingHasNotPresent(t, p)
-	TestingDeletePresent(t, p)
-	TestingDeleteNotPresent(t, p)
-	TestingClose(t, p)
-	TestingDestroy(t, p)
-}
-
-func TestingInitNoError(t *testing.T, p storage.Persister) {
-	err := p.Init()
-	if err != nil {
-		t.Fatalf("error initializing db")
-	}
-}
-
-func TestingPutNoError(t *testing.T, p storage.Persister) {
+func TestPutNoError(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
+	mdb, err := memorydb.New()
 
-	err := p.Put(key, val)
+	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	if err != nil {
-		t.Errorf("error saving in db")
-	}
+	err = mdb.Put(key, val)
+
+	assert.Nil(t, err, "error saving in db")
 }
 
-func TestingGetPresent(t *testing.T, p storage.Persister) {
+func TestGetPresent(t *testing.T) {
 	key, val := []byte("key1"), []byte("value1")
+	mdb, err := memorydb.New()
 
-	err := p.Put(key, val)
+	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	if err != nil {
-		t.Errorf("error saving in db")
-	}
+	err = mdb.Put(key, val)
 
-	v, err := p.Get(key)
+	assert.Nil(t, err, "error saving in db")
 
-	if err != nil {
-		t.Errorf(err.Error())
-	}
+	v, err := mdb.Get(key)
 
-	if !reflect.DeepEqual(v, val) {
-		t.Errorf("read:%s but expected: %s", v, val)
-	}
+	assert.Nil(t, err, "error not expected but got %s", err)
+	assert.Equal(t, val, v, "expected %s but got %s", val, v)
 }
 
-func TestingGetNotPresent(t *testing.T, p storage.Persister) {
+func TestGetNotPresent(t *testing.T) {
 	key := []byte("key2")
+	mdb, err := memorydb.New()
 
-	v, err := p.Get(key)
+	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	if err == nil {
-		t.Errorf("error expected but got nil, value %s", v)
-	}
+	v, err := mdb.Get(key)
+
+	assert.NotNil(t, err, "error expected but got nil, value %s", v)
 }
 
-func TestingHasPresent(t *testing.T, p storage.Persister) {
+func TestHasPresent(t *testing.T) {
 	key, val := []byte("key3"), []byte("value3")
+	mdb, err := memorydb.New()
 
-	err := p.Put(key, val)
+	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	if err != nil {
-		t.Errorf("error saving in db")
-	}
+	err = mdb.Put(key, val)
 
-	has, err := p.Has(key)
+	assert.Nil(t, err, "error saving in db")
 
-	if err != nil {
-		t.Errorf(err.Error())
-	}
+	has, err := mdb.Has(key)
 
-	if !has {
-		t.Errorf("value expected but not found")
-	}
+	assert.Nil(t, err, "error not expected but got %s", err)
+	assert.True(t, has, "value expected but not found")
 }
 
-func TestingHasNotPresent(t *testing.T, p storage.Persister) {
+func TestHasNotPresent(t *testing.T) {
 	key := []byte("key4")
+	mdb, err := memorydb.New()
 
-	has, err := p.Has(key)
+	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	if err != nil {
-		t.Errorf("no error expected but got %s", err)
-	}
+	has, err := mdb.Has(key)
 
-	if has {
-		t.Errorf("value not expected but found")
-	}
+	assert.Nil(t, err, "no error expected but got %s", err)
+	assert.False(t, has, "value not expected but found")
 }
 
-func TestingDeletePresent(t *testing.T, p storage.Persister) {
+func TestDeletePresent(t *testing.T) {
 	key, val := []byte("key5"), []byte("value5")
+	mdb, err := memorydb.New()
 
-	err := p.Put(key, val)
+	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	if err != nil {
-		t.Errorf("error saving in db")
-	}
+	err = mdb.Put(key, val)
 
-	err = p.Delete(key)
+	assert.Nil(t, err, "error saving in db")
 
-	if err != nil {
-		t.Errorf("no error expected but got %s", err)
-	}
+	err = mdb.Remove(key)
 
-	has, err := p.Has(key)
+	assert.Nil(t, err, "no error expected but got %s", err)
 
-	if has {
-		t.Errorf("element not expected as already deleted")
-	}
+	has, err := mdb.Has(key)
+
+	assert.False(t, has, "element not expected as already deleted")
 }
 
-func TestingDeleteNotPresent(t *testing.T, p storage.Persister) {
+func TestDeleteNotPresent(t *testing.T) {
 	key := []byte("key6")
+	mdb, err := memorydb.New()
 
-	err := p.Delete(key)
+	assert.Nil(t, err, "failed to create memorydb: %s", err)
 
-	if err != nil {
-		t.Errorf("no error expected but got %s", err)
-	}
+	err = mdb.Remove(key)
+
+	assert.Nil(t, err, "no error expected but got %s", err)
 }
 
-func TestingClose(t *testing.T, p storage.Persister) {
-	err := p.Close()
+func TestClose(t *testing.T) {
+	mdb, err := memorydb.New()
 
-	if err != nil {
-		t.Errorf("no error expected but got %s", err)
-	}
+	assert.Nil(t, err, "failed to create memorydb: %s", err)
+
+	err = mdb.Close()
+
+	assert.Nil(t, err, "no error expected but got %s", err)
 }
 
-func TestingDestroy(t *testing.T, p storage.Persister) {
-	err := p.Destroy()
-	if err != nil {
-		t.Errorf("no error expected but got %s", err)
-	}
+func TestDestroy(t *testing.T) {
+	mdb, err := memorydb.New()
+
+	assert.Nil(t, err, "failed to create memorydb: %s", err)
+
+	err = mdb.Destroy()
+
+	assert.Nil(t, err, "no error expected but got %s", err)
 }
