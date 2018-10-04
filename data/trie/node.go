@@ -25,7 +25,7 @@ import (
 
 var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "[17]"}
 
-type node interface {
+type Node interface {
 	fstring(string) string
 	cache() (hashNode, bool)
 	canUnload(cachegen, cachelimit uint16) bool
@@ -33,12 +33,12 @@ type node interface {
 
 type (
 	fullNode struct {
-		Children [17]node // Actual trie node data to encode/decode (needs custom encoder)
+		Children [17]Node // Actual trie node data to encode/decode (needs custom encoder)
 		flags    nodeFlag
 	}
 	shortNode struct {
 		Key   []byte
-		Val   node
+		Val   Node
 		flags nodeFlag
 	}
 	hashNode  []byte
@@ -51,7 +51,7 @@ var nilValueNode = valueNode(nil)
 
 // EncodeRLP encodes a full node into the consensus RLP format.
 func (n *fullNode) EncodeRLP(w io.Writer) error {
-	var nodes [17]node
+	var nodes [17]Node
 
 	for i, child := range &n.Children {
 		if child != nil {
@@ -115,7 +115,7 @@ func (n valueNode) fstring(ind string) string {
 	return fmt.Sprintf("%x ", []byte(n))
 }
 
-func mustDecodeNode(hash, buf []byte, cachegen uint16) node {
+func mustDecodeNode(hash, buf []byte, cachegen uint16) Node {
 	n, err := decodeNode(hash, buf, cachegen)
 	if err != nil {
 		panic(fmt.Sprintf("node %x: %v", hash, err))
@@ -124,7 +124,7 @@ func mustDecodeNode(hash, buf []byte, cachegen uint16) node {
 }
 
 // decodeNode parses the RLP encoding of a trie node.
-func decodeNode(hash, buf []byte, cachegen uint16) (node, error) {
+func decodeNode(hash, buf []byte, cachegen uint16) (Node, error) {
 	if len(buf) == 0 {
 		return nil, io.ErrUnexpectedEOF
 	}
@@ -144,7 +144,7 @@ func decodeNode(hash, buf []byte, cachegen uint16) (node, error) {
 	}
 }
 
-func decodeShort(hash, elems []byte, cachegen uint16) (node, error) {
+func decodeShort(hash, elems []byte, cachegen uint16) (Node, error) {
 	kbuf, rest, err := rlp.SplitString(elems)
 	if err != nil {
 		return nil, err
@@ -187,7 +187,7 @@ func decodeFull(hash, elems []byte, cachegen uint16) (*fullNode, error) {
 
 const hashLen = len(encoding.Hash{})
 
-func decodeRef(buf []byte, cachegen uint16) (node, []byte, error) {
+func decodeRef(buf []byte, cachegen uint16) (Node, []byte, error) {
 	kind, val, rest, err := rlp.Split(buf)
 	if err != nil {
 		return nil, buf, err
@@ -221,14 +221,14 @@ func (n rawNode) fstring(ind string) string     { panic("this should never end u
 // rawFullNode represents only the useful data content of a full node, with the
 // caches and flags stripped out to minimize its data storage. This type honors
 // the same RLP encoding as the original parent.
-type rawFullNode [17]node
+type rawFullNode [17]Node
 
 func (n rawFullNode) canUnload(uint16, uint16) bool { panic("this should never end up in a live trie") }
 func (n rawFullNode) cache() (hashNode, bool)       { panic("this should never end up in a live trie") }
 func (n rawFullNode) fstring(ind string) string     { panic("this should never end up in a live trie") }
 
 func (n rawFullNode) EncodeRLP(w io.Writer) error {
-	var nodes [17]node
+	var nodes [17]Node
 
 	for i, child := range n {
 		if child != nil {
@@ -245,7 +245,7 @@ func (n rawFullNode) EncodeRLP(w io.Writer) error {
 // the same RLP encoding as the original parent.
 type rawShortNode struct {
 	Key []byte
-	Val node
+	Val Node
 }
 
 func (n rawShortNode) canUnload(uint16, uint16) bool { panic("this should never end up in a live trie") }

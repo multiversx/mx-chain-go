@@ -2,10 +2,6 @@ package trie
 
 import "github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 
-type Node interface {
-	node
-}
-
 type NodeFlag struct {
 	nodeFlag
 }
@@ -52,15 +48,11 @@ func (sn *ShortNode) Flags() NodeFlag {
 
 //Database export the unexported fields needed in tests
 
-func (db *Database) NodesTest() map[encoding.Hash]*cachedNode {
+func (db *DBWriteCache) NodesTest() map[encoding.Hash]*cachedNode {
 	return db.nodes
 }
 
 //Trie export the unexported fields needed in tests
-
-func (t *Trie) DB() *Database {
-	return t.db
-}
 
 func (t *Trie) RootNode() Node {
 	return t.root

@@ -105,7 +105,7 @@ type NodeIterator interface {
 // trie, which can be resumed at a later invocation.
 type nodeIteratorState struct {
 	hash    encoding.Hash // Hash of the node being iterated (nil if not standalone)
-	node    node          // Trie node being iterated
+	node    Node          // Trie node being iterated
 	parent  encoding.Hash // Hash of the first full ancestor node (nil if current is the root)
 	index   int           // Child to be processed next
 	pathlen int           // Length of the path to this node
@@ -135,7 +135,7 @@ func newNodeIterator(trie *Trie, start []byte) NodeIterator {
 	h := encoding.Hash{}
 	h.SetBytes(emptyState)
 
-	if trie.Hash() == h {
+	if bytes.Equal(trie.Root(), h.Bytes()) {
 		return new(nodeIterator)
 	}
 	it := &nodeIterator{trie: trie}
@@ -259,10 +259,10 @@ func (it *nodeIterator) seek(prefix []byte) error {
 func (it *nodeIterator) peek(descend bool) (*nodeIteratorState, *int, []byte, error) {
 	if len(it.stack) == 0 {
 		// Initialize the iterator if we've just started.
-		root := it.trie.Hash()
+		root := it.trie.Root()
 		state := &nodeIteratorState{node: it.trie.root, index: -1}
-		if root != EmptyRoot {
-			state.hash = root
+		if !bytes.Equal(root, GetEmptyRoot().Bytes()) {
+			state.hash = encoding.BytesToHash(root)
 		}
 		err := state.resolve(it.trie, nil)
 		return state, nil, nil, err

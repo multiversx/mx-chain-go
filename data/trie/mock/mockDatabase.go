@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package mockDatabase
+package mock
 
 import (
 	"errors"
@@ -24,12 +24,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 )
 
+var errMockDataBase = errors.New("MockDatabase generic error")
+
 /*
  * This is a test memory database. Do not use for any production it does not get persisted
  */
-type MemDatabase struct {
+type MockDatabase struct {
 	db   map[string][]byte
 	lock sync.RWMutex
+	Fail bool
 }
 
 type kv struct {
@@ -37,7 +40,11 @@ type kv struct {
 	del  bool
 }
 
-func (db *MemDatabase) Init() error {
+func (db *MockDatabase) Init() error {
+	if db.Fail {
+		return errMockDataBase
+	}
+
 	if db == nil {
 		db.lock.Lock()
 		db.db = make(map[string][]byte, 0)
@@ -47,24 +54,36 @@ func (db *MemDatabase) Init() error {
 	return nil
 }
 
-func (db *MemDatabase) Close() error {
+func (db *MockDatabase) Close() error {
+	if db.Fail {
+		return errMockDataBase
+	}
+
 	return nil
 }
 
-func (db *MemDatabase) Destroy() error {
+func (db *MockDatabase) Destroy() error {
+	if db.Fail {
+		return errMockDataBase
+	}
+
 	db.lock.Lock()
 	defer db.lock.Unlock()
 	db.db = make(map[string][]byte, 0)
 	return nil
 }
 
-func NewMemDatabase() *MemDatabase {
-	return &MemDatabase{
+func NewMemDatabase() *MockDatabase {
+	return &MockDatabase{
 		db: make(map[string][]byte),
 	}
 }
 
-func (db *MemDatabase) Put(key []byte, value []byte) error {
+func (db *MockDatabase) Put(key []byte, value []byte) error {
+	if db.Fail {
+		return errMockDataBase
+	}
+
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
@@ -72,7 +91,11 @@ func (db *MemDatabase) Put(key []byte, value []byte) error {
 	return nil
 }
 
-func (db *MemDatabase) Has(key []byte) (bool, error) {
+func (db *MockDatabase) Has(key []byte) (bool, error) {
+	if db.Fail {
+		return false, errMockDataBase
+	}
+
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -80,7 +103,11 @@ func (db *MemDatabase) Has(key []byte) (bool, error) {
 	return ok, nil
 }
 
-func (db *MemDatabase) Get(key []byte) ([]byte, error) {
+func (db *MockDatabase) Get(key []byte) ([]byte, error) {
+	if db.Fail {
+		return nil, errMockDataBase
+	}
+
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -90,7 +117,7 @@ func (db *MemDatabase) Get(key []byte) ([]byte, error) {
 	return nil, errors.New("not found")
 }
 
-func (db *MemDatabase) Keys() [][]byte {
+func (db *MockDatabase) Keys() [][]byte {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -101,7 +128,11 @@ func (db *MemDatabase) Keys() [][]byte {
 	return keys
 }
 
-func (db *MemDatabase) Delete(key []byte) error {
+func (db *MockDatabase) Delete(key []byte) error {
+	if db.Fail {
+		return errMockDataBase
+	}
+
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
@@ -109,8 +140,8 @@ func (db *MemDatabase) Delete(key []byte) error {
 	return nil
 }
 
-func (db *MemDatabase) NewBatch() trie.Batch {
-	return &MemBatch{db: db}
+func (db *MockDatabase) NewBatch() trie.Batch {
+	return &MockBatch{db: db}
 }
 
-func (db *MemDatabase) Len() int { return len(db.db) }
+func (db *MockDatabase) Len() int { return len(db.db) }

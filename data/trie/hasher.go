@@ -19,7 +19,6 @@ import (
 	//"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/crypto/sha3"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"sync"
 )
 
@@ -28,20 +27,6 @@ type hasher struct {
 	cachegen   uint16
 	cachelimit uint16
 	onleaf     LeafCallback
-}
-
-var defHasher hashing.Hasher
-
-func DefaultHasher() hashing.Hasher {
-	if defHasher == nil {
-		defHasher = hashing.GetHasherService()
-	}
-
-	return defHasher
-}
-
-func SetDefaultHasher(h hashing.Hasher) {
-	defHasher = h
 }
 
 type sliceBuffer []byte
@@ -76,7 +61,7 @@ func returnHasherToPool(h *hasher) {
 
 // hash collapses a node down into a hash node, also returning a copy of the
 // original node initialized with the computed hash to replace the original one.
-func (h *hasher) hash(n node, db *Database, force bool) (node, node, error) {
+func (h *hasher) hash(n Node, db DBWriteCacher, force bool) (Node, Node, error) {
 	// If we're not storing the node, just hashing, use available cached data
 	if hash, dirty := n.cache(); hash != nil {
 		if db == nil {
@@ -123,7 +108,7 @@ func (h *hasher) hash(n node, db *Database, force bool) (node, node, error) {
 // hashChildren replaces the children of a node with their hashes if the encoded
 // size of the child is larger than a hash, returning the collapsed node as well
 // as a replacement for the original node with the child hashes cached in.
-func (h *hasher) hashChildren(original node, db *Database) (node, node, error) {
+func (h *hasher) hashChildren(original Node, db DBWriteCacher) (Node, Node, error) {
 	var err error
 
 	switch n := original.(type) {
@@ -165,7 +150,7 @@ func (h *hasher) hashChildren(original node, db *Database) (node, node, error) {
 // store hashes the node n and if we have a storage layer specified, it writes
 // the key/value pair to it and tracks any node->child references as well as any
 // node->external trie references.
-func (h *hasher) store(n node, db *Database, force bool) (node, error) {
+func (h *hasher) store(n Node, db DBWriteCacher, force bool) (Node, error) {
 	// Don't store hashes or empty nodes.
 	if _, isHash := n.(hashNode); n == nil || isHash {
 		return n, nil
@@ -186,11 +171,7 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 
 	if db != nil {
 		// We are pooling the trie nodes into an intermediate memory cache
-		hash := encoding.BytesToHash(hash)
-
-		db.lock.Lock()
-		db.insert(hash, h.tmp, n)
-		db.lock.Unlock()
+		db.InsertWithLock(hash, h.tmp, n)
 
 		// Track external references from account->storage trie
 		if h.onleaf != nil {

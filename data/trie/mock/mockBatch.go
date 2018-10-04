@@ -13,29 +13,47 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-package mockDatabase
+package mock
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+	"github.com/pkg/errors"
+)
 
-type MemBatch struct {
-	db     *MemDatabase
+var errMockBatch = errors.New("MockBatch generic error")
+
+type MockBatch struct {
+	db     *MockDatabase
 	writes []kv
 	size   int
+	Fail   bool
 }
 
-func (b *MemBatch) Put(key, value []byte) error {
+func (b *MockBatch) Put(key, value []byte) error {
+	if b.Fail {
+		return errMockBatch
+	}
+
 	b.writes = append(b.writes, kv{encoding.CopyBytes(key), encoding.CopyBytes(value), false})
 	b.size += len(value)
 	return nil
 }
 
-func (b *MemBatch) Delete(key []byte) error {
+func (b *MockBatch) Delete(key []byte) error {
+	if b.Fail {
+		return errMockBatch
+	}
+
 	b.writes = append(b.writes, kv{encoding.CopyBytes(key), nil, true})
 	b.size += 1
 	return nil
 }
 
-func (b *MemBatch) Write() error {
+func (b *MockBatch) Write() error {
+	if b.Fail {
+		return errMockBatch
+	}
+
 	b.db.lock.Lock()
 	defer b.db.lock.Unlock()
 
@@ -49,11 +67,11 @@ func (b *MemBatch) Write() error {
 	return nil
 }
 
-func (b *MemBatch) ValueSize() int {
+func (b *MockBatch) ValueSize() int {
 	return b.size
 }
 
-func (b *MemBatch) Reset() {
+func (b *MockBatch) Reset() {
 	b.writes = b.writes[:0]
 	b.size = 0
 }

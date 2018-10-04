@@ -24,7 +24,7 @@ import (
 // cachedNode is all the information we know about a single cached node in the
 // memory database write layer.
 type cachedNode struct {
-	node node   // Cached collapsed trie node, or raw rlp data
+	node Node   // Cached collapsed trie node, or raw rlp data
 	size uint16 // Byte size of the useful cached data
 
 	parents  uint16                   // Number of live nodes referencing this one
@@ -49,7 +49,7 @@ func (n *cachedNode) rlp() []byte {
 
 // obj returns the decoded and expanded trie node, either directly from the cache,
 // or by regenerating it from the rlp encoded blob.
-func (n *cachedNode) obj(hash encoding.Hash, cachegen uint16) node {
+func (n *cachedNode) obj(hash encoding.Hash, cachegen uint16) Node {
 	if node, ok := n.node.(rawNode); ok {
 		return mustDecodeNode(hash[:], node, cachegen)
 	}
@@ -71,7 +71,7 @@ func (n *cachedNode) childs() []encoding.Hash {
 
 // gatherChildren traverses the node hierarchy of a collapsed storage node and
 // retrieves all the hashnode children.
-func gatherChildren(n node, children *[]encoding.Hash) {
+func gatherChildren(n Node, children *[]encoding.Hash) {
 	switch n := n.(type) {
 	case *rawShortNode:
 		gatherChildren(n.Val, children)
@@ -92,7 +92,7 @@ func gatherChildren(n node, children *[]encoding.Hash) {
 
 // simplifyNode traverses the hierarchy of an expanded memory node and discards
 // all the internal caches, returning a node that only contains the raw data.
-func simplifyNode(n node) node {
+func simplifyNode(n Node) Node {
 	switch n := n.(type) {
 	case *shortNode:
 		// Short nodes discard the flags and cascade
@@ -118,7 +118,7 @@ func simplifyNode(n node) node {
 
 // expandNode traverses the node hierarchy of a collapsed storage node and converts
 // all fields and keys into expanded memory form.
-func expandNode(hash hashNode, n node, cachegen uint16) node {
+func expandNode(hash hashNode, n Node, cachegen uint16) Node {
 	switch n := n.(type) {
 	case *rawShortNode:
 		// Short nodes need key and child expansion

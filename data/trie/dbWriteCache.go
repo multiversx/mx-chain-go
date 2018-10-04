@@ -22,11 +22,11 @@ import (
 	"time"
 )
 
-// Database is an intermediate write layer between the trie data structures and
+// CachedWriteDBA is an intermediate write layer between the trie data structures and
 // the disk database. The aim is to accumulate trie writes in-memory and only
 // periodically flush a couple tries to disk, garbage collecting the remainder.
-type Database struct {
-	diskdb PersistDB // Persistent storage for matured trie nodes
+type DBWriteCache struct {
+	persistdb PersisterBatcher // Persistent storage for matured trie nodes
 
 	nodes  map[encoding.Hash]*cachedNode // Data and references relationships of a node
 	oldest encoding.Hash                 // Oldest tracked node, flush-list head
@@ -51,35 +51,35 @@ type Database struct {
 
 // NewDatabase creates a new trie database to store ephemeral trie content before
 // its written out to disk or garbage collected.
-func NewDatabase(diskdb PersistDB) *Database {
-	return &Database{
-		diskdb:    diskdb,
+func NewDBWriteCache(persistdb PersisterBatcher) *DBWriteCache {
+	return &DBWriteCache{
+		persistdb: persistdb,
 		nodes:     map[encoding.Hash]*cachedNode{{}: {}},
 		preimages: make(map[encoding.Hash][]byte),
 	}
 }
 
 // DiskDB retrieves the persistent storage backing the trie database.
-func (db *Database) DiskDB() PersistDB {
-	return db.diskdb
+func (db *DBWriteCache) PersistDB() PersisterBatcher {
+	return db.persistdb
 }
 
 // InsertBlob writes a new reference tracked blob to the memory database if it's
 // yet unknown. This method should only be used for non-trie nodes that require
 // reference counting, since trie nodes are garbage collected directly through
 // their embedded children.
-func (db *Database) InsertBlob(hash encoding.Hash, blob []byte) {
+func (db *DBWriteCache) InsertBlob(hash []byte, blob []byte) {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	db.insert(hash, blob, rawNode(blob))
+	db.insert(encoding.BytesToHash(hash), blob, rawNode(blob))
 }
 
 // insert inserts a collapsed trie node into the memory database. This method is
 // a more generic version of InsertBlob, supporting both raw blob insertions as
 // well ex trie node insertions. The blob must always be specified to allow proper
 // size tracking.
-func (db *Database) insert(hash encoding.Hash, blob []byte, node node) {
+func (db *DBWriteCache) insert(hash encoding.Hash, blob []byte, node Node) {
 	// If the node's already cached, skip
 	if _, ok := db.nodes[hash]; ok {
 		return
@@ -110,7 +110,7 @@ func (db *Database) insert(hash encoding.Hash, blob []byte, node node) {
 // yet unknown. The method will make a copy of the slice.
 //
 // Note, this method assumes that the database's lock is held!
-func (db *Database) insertPreimage(hash encoding.Hash, preimage []byte) {
+func (db *DBWriteCache) insertPreimage(hash encoding.Hash, preimage []byte) {
 	if _, ok := db.preimages[hash]; ok {
 		return
 	}
@@ -120,41 +120,43 @@ func (db *Database) insertPreimage(hash encoding.Hash, preimage []byte) {
 
 // node retrieves a cached trie node from memory, or returns nil if none can be
 // found in the memory cache.
-func (db *Database) node(hash encoding.Hash, cachegen uint16) node {
+func (db *DBWriteCache) CachedNode(hash []byte, cachegen uint16) Node {
 	// Retrieve the node from cache if available
+	h := encoding.BytesToHash(hash)
+
 	db.lock.RLock()
-	node := db.nodes[hash]
+	node := db.nodes[h]
 	db.lock.RUnlock()
 
 	if node != nil {
-		return node.obj(hash, cachegen)
+		return node.obj(h, cachegen)
 	}
 	// Content unavailable in memory, attempt to retrieve from disk
-	enc, err := db.diskdb.Get(hash[:])
+	enc, err := db.persistdb.Get(h[:])
 	if err != nil || enc == nil {
 		return nil
 	}
-	return mustDecodeNode(hash[:], enc, cachegen)
+	return mustDecodeNode(h[:], enc, cachegen)
 }
 
 // Node retrieves an encoded cached trie node from memory. If it cannot be found
 // cached, the method queries the persistent database for the content.
-func (db *Database) Node(hash encoding.Hash) ([]byte, error) {
+func (db *DBWriteCache) Node(hash []byte) ([]byte, error) {
 	// Retrieve the node from cache if available
 	db.lock.RLock()
-	node := db.nodes[hash]
+	node := db.nodes[encoding.BytesToHash(hash)]
 	db.lock.RUnlock()
 
 	if node != nil {
 		return node.rlp(), nil
 	}
 	// Content unavailable in memory, attempt to retrieve from disk
-	return db.diskdb.Get(hash[:])
+	return db.persistdb.Get(hash[:])
 }
 
 // preimage retrieves a cached trie node pre-image from memory. If it cannot be
 // found cached, the method queries the persistent database for the content.
-func (db *Database) preimage(hash encoding.Hash) ([]byte, error) {
+func (db *DBWriteCache) preimage(hash encoding.Hash) ([]byte, error) {
 	// Retrieve the node from cache if available
 	db.lock.RLock()
 	preimage := db.preimages[hash]
@@ -164,13 +166,13 @@ func (db *Database) preimage(hash encoding.Hash) ([]byte, error) {
 		return preimage, nil
 	}
 	// Content unavailable in memory, attempt to retrieve from disk
-	return db.diskdb.Get(db.secureKey(hash[:]))
+	return db.persistdb.Get(db.secureKey(hash[:]))
 }
 
 // secureKey returns the database key for the preimage of key, as an ephemeral
 // buffer. The caller must not hold onto the return value because it will become
 // invalid on the next call.
-func (db *Database) secureKey(key []byte) []byte {
+func (db *DBWriteCache) secureKey(key []byte) []byte {
 	buf := append(db.seckeybuf[:0], encoding.SecureKeyPrefix...)
 	buf = append(buf, key...)
 	return buf
@@ -179,7 +181,7 @@ func (db *Database) secureKey(key []byte) []byte {
 // Nodes retrieves the hashes of all the nodes cached within the memory database.
 // This method is extremely expensive and should only be used to validate internal
 // states in test code.
-func (db *Database) Nodes() []encoding.Hash {
+func (db *DBWriteCache) nodesUnused() []encoding.Hash {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -189,19 +191,20 @@ func (db *Database) Nodes() []encoding.Hash {
 			hashes = append(hashes, hash)
 		}
 	}
+
 	return hashes
 }
 
 // Reference adds a new reference from a parent node to a child node.
-func (db *Database) Reference(child encoding.Hash, parent encoding.Hash) {
+func (db *DBWriteCache) Reference(child []byte, parent []byte) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
-	db.reference(child, parent)
+	db.reference(encoding.BytesToHash(child), encoding.BytesToHash(parent))
 }
 
 // reference is the private locked version of Reference.
-func (db *Database) reference(child encoding.Hash, parent encoding.Hash) {
+func (db *DBWriteCache) reference(child encoding.Hash, parent encoding.Hash) {
 	// If the node does not exist, it's a node pulled from disk, skip
 	node, ok := db.nodes[child]
 	if !ok {
@@ -218,9 +221,10 @@ func (db *Database) reference(child encoding.Hash, parent encoding.Hash) {
 }
 
 // Dereference removes an existing reference from a root node.
-func (db *Database) Dereference(root encoding.Hash) {
+func (db *DBWriteCache) Dereference(root []byte) {
 	// Sanity check to ensure that the meta-root is not removed
-	if root == (encoding.Hash{}) {
+	rHash := encoding.BytesToHash(root)
+	if rHash == (encoding.Hash{}) {
 		//log.Error("Attempted to dereference the trie cache meta root")
 		return
 	}
@@ -228,7 +232,7 @@ func (db *Database) Dereference(root encoding.Hash) {
 	defer db.lock.Unlock()
 
 	nodes, storage, start := len(db.nodes), db.nodesSize, time.Now()
-	db.dereference(root, encoding.Hash{})
+	db.dereference(rHash, encoding.Hash{})
 
 	db.gcnodes += uint64(nodes - len(db.nodes))
 	db.gcsize += storage - db.nodesSize
@@ -236,7 +240,7 @@ func (db *Database) Dereference(root encoding.Hash) {
 }
 
 // dereference is the private locked version of Dereference.
-func (db *Database) dereference(child encoding.Hash, parent encoding.Hash) {
+func (db *DBWriteCache) dereference(child encoding.Hash, parent encoding.Hash) {
 	// Dereference the parent-child
 	node := db.nodes[parent]
 
@@ -283,7 +287,7 @@ func (db *Database) dereference(child encoding.Hash, parent encoding.Hash) {
 
 // Cap iteratively flushes old but still referenced trie nodes until the total
 // memory usage goes below the given threshold.
-func (db *Database) Cap(limit encoding.StorageSize) error {
+func (db *DBWriteCache) Cap(limit float64) error {
 	// Create a database batch to flush persistent data out. It is important that
 	// outside code doesn't see an inconsistent state (referenced data removed from
 	// memory cache during commit but not yet in persistent storage). This is ensured
@@ -291,7 +295,7 @@ func (db *Database) Cap(limit encoding.StorageSize) error {
 	db.lock.RLock()
 
 	nodes, storage, start := len(db.nodes), db.nodesSize, time.Now()
-	batch := db.diskdb.NewBatch()
+	batch := db.persistdb.NewBatch()
 
 	// db.nodesSize only contains the useful data in the cache, but when reporting
 	// the total memory consumption, the maintenance metadata is also needed to be
@@ -318,7 +322,8 @@ func (db *Database) Cap(limit encoding.StorageSize) error {
 	}
 	// Keep committing nodes from the flush-list until we're below allowance
 	oldest := db.oldest
-	for size > limit && oldest != (encoding.Hash{}) {
+
+	for size > encoding.StorageSize(limit) && oldest != (encoding.Hash{}) {
 		// Fetch the oldest referenced node and push into the batch
 		node := db.nodes[oldest]
 		if err := batch.Put(oldest[:], node.rlp()); err != nil {
@@ -377,7 +382,7 @@ func (db *Database) Cap(limit encoding.StorageSize) error {
 // to disk, forcefully tearing down all references in both directions.
 //
 // As a side effect, all pre-images accumulated up to this point are also written.
-func (db *Database) Commit(node encoding.Hash, report bool) error {
+func (db *DBWriteCache) Commit(node []byte, report bool) error {
 	// Create a database batch to flush persistent data out. It is important that
 	// outside code doesn't see an inconsistent state (referenced data removed from
 	// memory cache during commit but not yet in persistent storage). This is ensured
@@ -385,7 +390,7 @@ func (db *Database) Commit(node encoding.Hash, report bool) error {
 	db.lock.RLock()
 
 	//start := time.Now()
-	batch := db.diskdb.NewBatch()
+	batch := db.persistdb.NewBatch()
 
 	// Move all of the accumulated preimages into a write batch
 	for hash, preimage := range db.preimages {
@@ -402,7 +407,7 @@ func (db *Database) Commit(node encoding.Hash, report bool) error {
 	}
 	// Move the trie itself into the batch, flushing if enough data is accumulated
 	//nodes, storage := len(db.nodes), db.nodesSize
-	if err := db.commit(node, batch); err != nil {
+	if err := db.commit(encoding.BytesToHash(node), batch); err != nil {
 		//log.Error("Failed to commit trie from trie database", "err", err)
 		db.lock.RUnlock()
 		return err
@@ -422,7 +427,7 @@ func (db *Database) Commit(node encoding.Hash, report bool) error {
 	db.preimages = make(map[encoding.Hash][]byte)
 	db.preimagesSize = 0
 
-	db.uncache(node)
+	db.uncache(encoding.BytesToHash(node))
 
 	// Reset the garbage collection statistics
 	db.gcnodes, db.gcsize, db.gctime = 0, 0, 0
@@ -432,7 +437,7 @@ func (db *Database) Commit(node encoding.Hash, report bool) error {
 }
 
 // commit is the private locked version of Commit.
-func (db *Database) commit(hash encoding.Hash, batch Batch) error {
+func (db *DBWriteCache) commit(hash encoding.Hash, batch Batch) error {
 	// If the node does not exist, it's a previously committed node
 	node, ok := db.nodes[hash]
 	if !ok {
@@ -460,7 +465,7 @@ func (db *Database) commit(hash encoding.Hash, batch Batch) error {
 // persisted trie is removed from the cache. The reason behind the two-phase
 // commit is to ensure consistent data availability while moving from memory
 // to disk.
-func (db *Database) uncache(hash encoding.Hash) {
+func (db *DBWriteCache) uncache(hash encoding.Hash) {
 	// If the node does not exist, we're done on this path
 	node, ok := db.nodes[hash]
 	if !ok {
@@ -488,7 +493,7 @@ func (db *Database) uncache(hash encoding.Hash) {
 
 // Size returns the current storage size of the memory cache in front of the
 // persistent database layer.
-func (db *Database) Size() (encoding.StorageSize, encoding.StorageSize) {
+func (db *DBWriteCache) Size() (float64, float64) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -496,7 +501,7 @@ func (db *Database) Size() (encoding.StorageSize, encoding.StorageSize) {
 	// the total memory consumption, the maintenance metadata is also needed to be
 	// counted. For every useful node, we track 2 extra hashes as the flushlist.
 	var flushlistSize = encoding.StorageSize((len(db.nodes) - 1) * 2 * encoding.HashLength)
-	return db.nodesSize + flushlistSize, db.preimagesSize
+	return float64(db.nodesSize + flushlistSize), float64(db.preimagesSize)
 }
 
 // verifyIntegrity is a debug method to iterate over the entire trie stored in
@@ -505,7 +510,7 @@ func (db *Database) Size() (encoding.StorageSize, encoding.StorageSize) {
 // missing.
 //
 // This method is extremely CPU and memory intensive, only use when must.
-func (db *Database) verifyIntegrity() {
+func (db *DBWriteCache) verifyIntegrity() {
 	// Iterate over all the cached nodes and accumulate them into a set
 	reachable := map[encoding.Hash]struct{}{{}: {}}
 
@@ -527,7 +532,7 @@ func (db *Database) verifyIntegrity() {
 
 // accumulate iterates over the trie defined by hash and accumulates all the
 // cached children found in memory.
-func (db *Database) accumulate(hash encoding.Hash, reachable map[encoding.Hash]struct{}) {
+func (db *DBWriteCache) accumulate(hash encoding.Hash, reachable map[encoding.Hash]struct{}) {
 	// Mark the node reachable if present in the memory cache
 	node, ok := db.nodes[hash]
 	if !ok {
@@ -539,4 +544,11 @@ func (db *Database) accumulate(hash encoding.Hash, reachable map[encoding.Hash]s
 	for _, child := range node.childs() {
 		db.accumulate(child, reachable)
 	}
+}
+
+func (db *DBWriteCache) InsertWithLock(hash []byte, blob []byte, node Node) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	db.insert(encoding.BytesToHash(hash), blob, node)
 }
