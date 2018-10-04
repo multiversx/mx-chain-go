@@ -17,10 +17,8 @@ func TestRoundState(t *testing.T) {
 
 func TestEpochBehaviour(t *testing.T) {
 
-	es := GetEpocherService()
-
 	e := epoch.New(1, time.Now())
-	es.Print(&e)
+	spew.Dump(e)
 }
 
 func TestRoundBehaviour(t *testing.T) {
@@ -43,4 +41,51 @@ func TestRoundBehaviour(t *testing.T) {
 	spew.Dump(r)
 	spew.Dump(roundState)
 	spew.Dump(rs.GetRoundStateName(roundState))
+}
+
+func TestComputeLeader(t *testing.T) {
+
+	var chr Chronology
+	rs := GetRounderService()
+
+	genesisRoundTimeStamp := time.Date(2018, time.September, 18, 14, 0, 0, 0, time.UTC)
+
+	duration := time.Duration(4 * time.Second)
+	division := rs.CreateRoundTimeDivision(duration)
+
+	round := rs.CreateRoundFromDateTime(genesisRoundTimeStamp, time.Now(), duration, division)
+
+	nodes := []string{"1", "2", "3"}
+
+	node, err := chr.ComputeLeader(nodes, &round)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	spew.Dump(node)
+}
+
+func TestNodeLeader(t *testing.T) {
+
+	var chr Chronology
+	rs := GetRounderService()
+
+	genesisRoundTimeStamp := time.Date(2018, time.September, 18, 14, 0, 0, 0, time.UTC)
+
+	duration := time.Duration(4 * time.Second)
+	division := rs.CreateRoundTimeDivision(duration)
+
+	round := rs.CreateRoundFromDateTime(genesisRoundTimeStamp, time.Now(), duration, division)
+
+	node := "3"
+	nodes := []string{"1", "2", "3"}
+
+	bIsLeader, err := chr.IsNodeLeader(node, nodes, &round)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	spew.Dump(bIsLeader)
 }

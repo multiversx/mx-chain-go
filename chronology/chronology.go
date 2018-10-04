@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
+
 	"strings"
 	"time"
 )
@@ -28,7 +30,7 @@ type Rounder interface {
 	GetRoundStateName(roundState round.RoundState) string
 }
 
-const SLEEP_TIME = 1
+const SLEEP_TIME = 5
 
 type Chronology struct {
 	Node  string
@@ -53,7 +55,7 @@ type Chronology struct {
 	PBFTThreshold      int
 	ConsensusThreshold ConsensusThreshold
 
-	P2PNode *p2p.Node
+	P2PNode *p2p.Messenger
 
 	ChRcvMsg chan []byte
 
@@ -69,7 +71,7 @@ type RoundStateValidation struct {
 	Signature     bool
 }
 
-func New(p2pNode *p2p.Node, v *validators.Validators, genesisRoundTimeStamp time.Time, roundDuration time.Duration) *Chronology {
+func New(p2pNode *p2p.Messenger, v *validators.Validators, genesisRoundTimeStamp time.Time, roundDuration time.Duration) *Chronology {
 	csi := Chronology{}
 	rs := GetRounderService()
 
@@ -79,7 +81,7 @@ func New(p2pNode *p2p.Node, v *validators.Validators, genesisRoundTimeStamp time
 	csi.ChRcvMsg = make(chan []byte, len(v.GetConsensusGroup()))
 
 	csi.P2PNode = p2pNode
-	csi.P2PNode.OnMsgRecv = csi.recv
+	(*csi.P2PNode).SetOnRecvMsg(csi.recv)
 
 	csi.Node = v.GetSelf()
 	csi.Nodes = v.GetConsensusGroup()
@@ -540,6 +542,8 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 						rsv.ComitmentHash = true
 						c.Validators[node] = rsv
 						return true
+					} else {
+						fmt.Printf("Received block hash: %s  Current block hash: %s", rcvBlock.GetHash(), c.Block.GetHash())
 					}
 				}
 			}
@@ -800,11 +804,7 @@ func (c *Chronology) SendBlock() bool {
 
 	c.Block.Hash = bs.CalculateHash(&c.Block)
 
-	json := marshal.JsonMarshalizer{}
-	message, err := json.Marshal(c.Block)
-
-	if err != nil {
-		fmt.Printf(err.Error() + "\n")
+	if !c.BroadcastBlock(&c.Block) {
 		return false
 	}
 
@@ -814,26 +814,17 @@ func (c *Chronology) SendBlock() bool {
 	rsv.Block = true
 	c.Validators[c.Node] = rsv
 
-	c.P2PNode.BroadcastString(string(message), []string{})
 	return true
 }
 
 func (c *Chronology) SendComitmentHash() bool {
-
-	//if c.Block.Nonce == -1 {
-	//	return false
-	//}
 
 	block := c.Block
 
 	block.Signature = c.Node
 	block.MetaData = c.GetMessageTypeName(MT_COMITMENT_HASH)
 
-	json := marshal.JsonMarshalizer{}
-	message, err := json.Marshal(block)
-
-	if err != nil {
-		fmt.Printf(err.Error() + "\n")
+	if !c.BroadcastBlock(&block) {
 		return false
 	}
 
@@ -843,15 +834,10 @@ func (c *Chronology) SendComitmentHash() bool {
 	rsv.ComitmentHash = true
 	c.Validators[c.Node] = rsv
 
-	c.P2PNode.BroadcastString(string(message), []string{})
 	return true
 }
 
 func (c *Chronology) SendBitmap() bool {
-
-	//if c.Block.Nonce == -1 {
-	//	return false
-	//}
 
 	block := c.Block
 
@@ -864,11 +850,7 @@ func (c *Chronology) SendBitmap() bool {
 		}
 	}
 
-	json := marshal.JsonMarshalizer{}
-	message, err := json.Marshal(block)
-
-	if err != nil {
-		fmt.Printf(err.Error() + "\n")
+	if !c.BroadcastBlock(&block) {
 		return false
 	}
 
@@ -882,26 +864,17 @@ func (c *Chronology) SendBitmap() bool {
 		}
 	}
 
-	c.P2PNode.BroadcastString(string(message), []string{})
 	return true
 }
 
 func (c *Chronology) SendComitment() bool {
-
-	//if c.Block.Nonce == -1 {
-	//	return false
-	//}
 
 	block := c.Block
 
 	block.Signature = c.Node
 	block.MetaData = c.GetMessageTypeName(MT_COMITMENT)
 
-	json := marshal.JsonMarshalizer{}
-	message, err := json.Marshal(block)
-
-	if err != nil {
-		fmt.Printf(err.Error() + "\n")
+	if !c.BroadcastBlock(&block) {
 		return false
 	}
 
@@ -911,26 +884,17 @@ func (c *Chronology) SendComitment() bool {
 	rsv.Comitment = true
 	c.Validators[c.Node] = rsv
 
-	c.P2PNode.BroadcastString(string(message), []string{})
 	return true
 }
 
 func (c *Chronology) SendSignature() bool {
-
-	//if c.Block.Nonce == -1 {
-	//	return false
-	//}
 
 	block := c.Block
 
 	block.Signature = c.Node
 	block.MetaData = c.GetMessageTypeName(MT_SIGNATURE)
 
-	json := marshal.JsonMarshalizer{}
-	message, err := json.Marshal(block)
-
-	if err != nil {
-		fmt.Printf(err.Error() + "\n")
+	if !c.BroadcastBlock(&block) {
 		return false
 	}
 
@@ -940,7 +904,23 @@ func (c *Chronology) SendSignature() bool {
 	rsv.Signature = true
 	c.Validators[c.Node] = rsv
 
-	c.P2PNode.BroadcastString(string(message), []string{})
+	return true
+}
+
+func (c *Chronology) BroadcastBlock(block *block.Block) bool {
+	marsh := &mock.MockMarshalizer{}
+
+	message, err := marsh.Marshal(block)
+
+	if err != nil {
+		fmt.Printf(err.Error() + "\n")
+		return false
+	}
+
+	//	m := p2p.NewMessage((*c.P2PNode).ID().Pretty(), message, marsh)
+	//	(*c.P2PNode).BroadcastMessage(m, []string{})
+	(*c.P2PNode).BroadcastString(string(message), []string{})
+
 	return true
 }
 
@@ -1312,9 +1292,9 @@ func (c *Chronology) GetMessageTypeName(messageType MessageType) string {
 	}
 }
 
-func (c *Chronology) recv(sender *p2p.Node, peerID string, m *p2p.Message) {
+func (c *Chronology) recv(sender p2p.Messenger, peerID string, m *p2p.Message) {
 	//c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Peer with ID = %s got a message from peer with ID = %s which traversed %d peers\n", sender.P2pNode.ID().Pretty(), peerID, len(m.Peers)))
-	m.AddHop(sender.P2pNode.ID().Pretty())
+	m.AddHop(sender.ID().Pretty())
 	c.ChRcvMsg <- m.Payload
 	//sender.BroadcastMessage(m, m.Peers)
 	sender.BroadcastMessage(m, []string{})
