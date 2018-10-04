@@ -2,7 +2,7 @@ package block
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hasher/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/davecgh/go-spew/spew"
 	"strconv"
 )
@@ -77,9 +77,10 @@ type BlockImpl1 struct {
 
 func (BlockImpl1) CalculateHash(block *Block) string {
 	message := strconv.Itoa(block.GetNonce()) + block.GetTimeStamp() + block.GetMetaData() + block.GetPrevHash()
-	var h sha256.Sha256Impl
-	hash := h.CalculateHash(message)
-	return hash.(string)
+	var h hashing.Sha256
+
+	hash := h.Compute(message)
+	return string(hash)
 }
 
 func (bi BlockImpl1) PrintImpl() {
@@ -97,9 +98,9 @@ type BlockImpl2 struct {
 
 func (BlockImpl2) CalculateHash(block *Block) string {
 	message := strconv.Itoa(block.GetNonce()) + block.GetMetaData() + block.GetPrevHash()
-	var h sha256.Sha256Impl
-	hash := h.CalculateHash(message)
-	return hash.(string)
+	var h hashing.Sha256
+	hash := h.Compute(message)
+	return string(hash)
 }
 
 func (bi BlockImpl2) PrintImpl() {

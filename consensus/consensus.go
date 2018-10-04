@@ -1,20 +1,21 @@
 package consensus
 
 type Consensus struct {
-	response AnswerType
+	Agreement AgreementType
+	Answer    AnswerType
 }
 
-// A ConsensusType specifies in which mode we should make a consensus
-type ConsensusType int
+// An AgreementType specifies the type of consensus (PBFT = 2/3 + 1)
+type AgreementType int
 
 const (
-	CT_NONE ConsensusType = iota
-	CT_ONE
-	CT_PBFT
-	CT_ALL
+	AT_NONE AgreementType = iota
+	AT_ONE
+	AT_PBFT
+	AT_ALL
 )
 
-// An Answer specifies an answer of the node
+// An AnswerType specifies an answer of the node
 type AnswerType int
 
 const (

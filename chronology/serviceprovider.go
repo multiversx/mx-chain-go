@@ -1,7 +1,6 @@
 package chronology
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/epoch"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
 )
 
@@ -17,7 +16,6 @@ func init() {
 }
 
 func InjectDefaultServices() {
-	PutService("Epocher", epoch.EpochImpl{})
 	PutService("Rounder", round.RoundImpl{})
 }
 
@@ -32,10 +30,6 @@ func PutService(key interface{}, value interface{}) {
 	}
 
 	services[key] = value
-}
-
-func GetEpocherService() Epocher {
-	return GetService("Epocher").(Epocher)
 }
 
 func GetRounderService() Rounder {

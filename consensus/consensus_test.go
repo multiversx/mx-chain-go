@@ -18,8 +18,6 @@ func TestComputeLeader(t *testing.T) {
 
 	rs := chronology.GetRounderService()
 
-	var cns ConsensusServiceImpl
-
 	genesisRoundTimeStamp := time.Date(2018, time.September, 18, 14, 0, 0, 0, time.UTC)
 
 	duration := time.Duration(4 * time.Second)
@@ -29,7 +27,7 @@ func TestComputeLeader(t *testing.T) {
 
 	nodes := []string{"1", "2", "3"}
 
-	node, err := cns.ComputeLeader(nodes, &round)
+	node, err := ComputeLeader(nodes, &round)
 
 	if err != nil {
 		t.Fatal(err)
