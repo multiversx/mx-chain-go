@@ -3,7 +3,9 @@ package p2p
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"math"
 	mrand "math/rand"
+	"net"
 
 	"github.com/btcsuite/btcd/btcec"
 	cr "github.com/libp2p/go-libp2p-crypto"
@@ -43,6 +45,31 @@ func NewConnectParamsFromPort(port int) *ConnectParams {
 
 	params.Port = port
 	params.GeneratePrivPubKeys(port)
+	params.GenerateIDFromPubKey()
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
+
+	if err != nil {
+		panic(err)
+	}
+
+	params.Addr = addr
+
+	return params
+}
+
+func NewConnectParamsFromPortAndIP(port int, IP net.IP) *ConnectParams {
+	params := new(ConnectParams)
+
+	seed := 0
+
+	for i := 0; i < len(IP); i++ {
+		seed += int(IP[i]) * int(math.Pow(float64(256), float64(len(IP)-1-i)))
+	}
+
+	seed *= port
+
+	params.Port = port
+	params.GeneratePrivPubKeys(seed)
 	params.GenerateIDFromPubKey()
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
 

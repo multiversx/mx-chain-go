@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto"
 	"flag"
+	"fmt"
+	"net"
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
@@ -19,9 +21,10 @@ import (
 	"time"
 )
 
-var NODES int
+var CGS int
 var START_PORT int
 var END_PORT int
+var SYNC bool
 var MAX_ALLOWED_PEERS int
 var GENESIS_TIME_STAMP = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 var ROUND_DURATION time.Duration
@@ -32,12 +35,18 @@ func main() {
 	bcs := data.GetBlockChainerService()
 
 	// Parse options from the command line
-	NODES = *flag.Int("nodes", 21, "consensus group size")
+	CGS = *flag.Int("size", 21, "consensus group size")
+	MAX_ALLOWED_PEERS = *flag.Int("peers", 4, "max allowed peers")
+	ROUND_DURATION = *flag.Duration("duration", 4000*time.Millisecond, "round duration in milliseconds")
 	START_PORT = *flag.Int("start_port", 4000, "start port")
-	END_PORT = *flag.Int("end_port", 4020, "end port")
-	MAX_ALLOWED_PEERS = *flag.Int("max_allowed_peers", 4, "max allowed peers")
-	ROUND_DURATION = *flag.Duration("round_duration", 8000*time.Millisecond, "round duration")
+	END_PORT = *flag.Int("end_port", 4015, "end port")
+	SYNC = *flag.Bool("sync", false, "sync mode")
 	flag.Parse()
+
+	if START_PORT < 4000 || END_PORT > 4000+CGS-1 || CGS < 1 || START_PORT > END_PORT || MAX_ALLOWED_PEERS < 1 || MAX_ALLOWED_PEERS > CGS-1 {
+		fmt.Println("Eroare parametrii de intrare")
+		return
+	}
 
 	marsh := &mock.MockMarshalizer{}
 
@@ -76,46 +85,10 @@ func main() {
 
 	time.Sleep(time.Second)
 
-	/*
-		var nodes []*p2p.Node
-
-		for i := 0; i < NODES; i++ {
-			node, err := p2p.NewNode(context.Background(), START_PORT+i, []string{}, service.GetMarshalizerService(), MAX_CONNECTION_PEERS)
-
-			if err != nil {
-				spew.Printf("Error NewNode\n")
-				return
-			}
-
-			nodes = append(nodes, node)
-		}
-
-		cp := p2p.NewClusterParameter("127.0.0.1", START_PORT, START_PORT+NODES-1)
-
-		time.Sleep(time.Second)
-
-		for i := 0; i < NODES; i++ {
-			nodes[i].Bootstrap(context.Background(), []p2p.ClusterParameter{*cp})
-		}
-
-		time.Sleep(time.Second)
-
-		for i := 0; i < NODES; i++ {
-			conns := nodes[i].P2pNode.Network().Conns()
-
-			spew.Printf("Node %s is connected to: \n", nodes[i].P2pNode.ID().Pretty())
-
-			for j := 0; j < len(conns); j++ {
-				spew.Printf("\t- %s\n", conns[j].RemotePeer().Pretty())
-			}
-		}
-
-		spew.Printf("\n\n")
-	*/
 	consensusGroup := make([]string, 0)
 
-	for i := 0; i < len(nodes); i++ {
-		consensusGroup = append(consensusGroup, (*nodes[i]).ID().Pretty())
+	for i := 4000; i < 4000+CGS; i++ {
+		consensusGroup = append(consensusGroup, p2p.NewConnectParamsFromPort(i).ID.Pretty())
 	}
 
 	v := validators.Validators{}
@@ -124,10 +97,10 @@ func main() {
 	var chrs []*chronology.Chronology
 
 	for i := 0; i < len(nodes); i++ {
-		v.SetSelf(consensusGroup[i])
+		v.SetSelf(consensusGroup[START_PORT-4000+i])
 		chr := chronology.New(nodes[i], &v, GENESIS_TIME_STAMP, ROUND_DURATION)
 		chr.DoLog = i == 0
-		chr.DoSyncMode = true
+		chr.DoSyncMode = SYNC
 		chrs = append(chrs, chr)
 	}
 
@@ -180,10 +153,24 @@ func createMessenger(mesType int, port int, maxAllowedPeers int, marsh marshal.M
 
 		return p2p.NewMemoryMessenger(marsh, id, maxAllowedPeers)
 	case Network:
+		//		cp := p2p.NewConnectParamsFromPortAndIP(port, GetOutboundIP())
 		cp := p2p.NewConnectParamsFromPort(port)
 
 		return p2p.NewNetMessenger(context.Background(), marsh, *cp, []string{}, maxAllowedPeers)
 	default:
 		panic("Type not defined!")
 	}
+}
+
+// Get preferred outbound ip of this machine
+func GetOutboundIP() net.IP {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP
 }

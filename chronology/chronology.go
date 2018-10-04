@@ -170,7 +170,11 @@ func (c *Chronology) UpdateRound() (int, round.RoundState) {
 	rs.UpdateRoundFromDateTime(c.GenesisTime, c.GetCurrentTime(), &c.Round)
 
 	if oldRoundIndex != c.Round.GetIndex() {
-		c.Log(fmt.Sprintf("\n"+FormatTime(c.GetCurrentTime())+"################################################## ROUND %d BEGINS ##################################################\n", c.Round.GetIndex()))
+		leader, err := c.GetLeader()
+		if err != nil {
+			leader = "Unknown"
+		}
+		c.Log(fmt.Sprintf("\n"+FormatTime(c.GetCurrentTime())+"############################## ROUND %d BEGINS WITH LEADER  %s  ##############################\n", c.Round.GetIndex(), leader))
 		c.InitRound()
 	}
 
@@ -189,9 +193,7 @@ func (c *Chronology) UpdateRound() (int, round.RoundState) {
 	return c.Round.GetIndex(), roundState
 }
 
-/*
-Check node round state vs. time round state and decide if node state could be changed analyzing his tasks which have been done in current round
-*/
+//Check node round state vs. time round state and decide if node state could be changed analyzing his tasks which have been done in current round
 func (c *Chronology) OptimizeRoundState(roundState round.RoundState) {
 
 	//rs := chronology.GetRounderService()
@@ -492,7 +494,7 @@ func (c *Chronology) DoEndRound() bool {
 
 func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round.RoundState) bool {
 
-	//rs := chronology.GetRounderService()
+	//rs := GetRounderService()
 
 	msgType, msgData := c.DecodeMessage(rcvMsg)
 
@@ -501,9 +503,9 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.GetSignature()
 
-		if timeRoundState > round.RS_BLOCK || c.SelfRoundState > round.RS_BLOCK {
-			//c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_BLOCK) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
-		}
+		//if timeRoundState > round.RS_BLOCK || c.SelfRoundState > round.RS_BLOCK {
+		//	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_BLOCK) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
+		//}
 
 		if c.Subround.Block != SS_FINISHED {
 			if c.IsNodeLeaderInCurrentRound(node) {
@@ -523,16 +525,9 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.GetSignature()
 
-		//if c.IsNodeLeaderInCurrentRound(c.Node) {
-		//	if c.IsComitmentHashDirty(c.PBFTThreshold) {
-		//		//c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Avoid getting more comitment hashes, they are already enough"))
-		//		return false
-		//	}
+		//if timeRoundState > round.RS_COMITMENT_HASH || c.SelfRoundState > round.RS_COMITMENT_HASH {
+		//	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_COMITMENT_HASH) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
 		//}
-
-		if timeRoundState > round.RS_COMITMENT_HASH || c.SelfRoundState > round.RS_COMITMENT_HASH {
-			//c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_COMITMENT_HASH) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
-		}
 
 		if c.Subround.ComitmentHash != SS_FINISHED {
 			if c.IsNodeInValidationGroup(node) {
@@ -542,8 +537,6 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 						rsv.ComitmentHash = true
 						c.Validators[node] = rsv
 						return true
-					} else {
-						fmt.Printf("Received block hash: %s  Current block hash: %s", rcvBlock.GetHash(), c.Block.GetHash())
 					}
 				}
 			}
@@ -552,9 +545,9 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.GetSignature()
 
-		if timeRoundState > round.RS_BITMAP || c.SelfRoundState > round.RS_BITMAP {
-			//c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_BITMAP) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
-		}
+		//if timeRoundState > round.RS_BITMAP || c.SelfRoundState > round.RS_BITMAP {
+		//	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_BITMAP) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
+		//}
 
 		if c.Subround.Bitmap != SS_FINISHED {
 			if c.IsNodeLeaderInCurrentRound(node) {
@@ -586,9 +579,9 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.GetSignature()
 
-		if timeRoundState > round.RS_COMITMENT || c.SelfRoundState > round.RS_COMITMENT {
-			//c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_COMITMENT) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
-		}
+		//if timeRoundState > round.RS_COMITMENT || c.SelfRoundState > round.RS_COMITMENT {
+		//	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_COMITMENT) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
+		//}
 
 		if c.Subround.Comitment != SS_FINISHED {
 			if c.IsNodeInBitmapGroup(node) {
@@ -606,9 +599,9 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.GetSignature()
 
-		if timeRoundState > round.RS_SIGNATURE || c.SelfRoundState > round.RS_SIGNATURE {
-			//c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_SIGNATURE) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
-		}
+		//if timeRoundState > round.RS_SIGNATURE || c.SelfRoundState > round.RS_SIGNATURE {
+		//	c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Received late " + c.GetMessageTypeName(MT_SIGNATURE) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
+		//}
 
 		if c.Subround.Signature != SS_FINISHED {
 			if c.IsNodeInBitmapGroup(node) {
@@ -695,9 +688,9 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				return false
 			}
 
-			//if c.Validators[c.Node].Block {
-			//	return false
-			//}
+			if c.Validators[c.Node].Block {
+				return false
+			}
 
 			if !c.IsNodeLeaderInCurrentRound(c.Node) {
 				return false
@@ -713,7 +706,6 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				return false
 			}
 
-			//if !c.IsBlockDirty(c.ConsensusThreshold.Block) {
 			if c.Subround.Block != SS_FINISHED {
 				roundState = round.RS_BLOCK
 				continue
@@ -725,15 +717,14 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				return false
 			}
 
-			//if c.Validators[c.Node].Bitmap {
-			//	return false
-			//}
+			if c.Validators[c.Node].Bitmap {
+				return false
+			}
 
 			if !c.IsNodeLeaderInCurrentRound(c.Node) {
 				return false
 			}
 
-			//if !c.IsComitmentHashDirty(c.ConsensusThreshold.ComitmentHash) {
 			if c.Subround.ComitmentHash != SS_FINISHED {
 				roundState = round.RS_COMITMENT_HASH
 				continue
@@ -749,7 +740,6 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				return false
 			}
 
-			//if ok, _ := c.IsBitmapInComitmentHash(c.ConsensusThreshold.Bitmap); !ok {
 			if c.Subround.Bitmap != SS_FINISHED {
 				roundState = round.RS_BITMAP
 				continue
@@ -769,7 +759,6 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				return false
 			}
 
-			//if ok, _ := c.IsBitmapInComitment(c.ConsensusThreshold.Comitment); !ok {
 			if c.Subround.Comitment != SS_FINISHED {
 				roundState = round.RS_COMITMENT
 				continue
@@ -917,9 +906,9 @@ func (c *Chronology) BroadcastBlock(block *block.Block) bool {
 		return false
 	}
 
-	//	m := p2p.NewMessage((*c.P2PNode).ID().Pretty(), message, marsh)
-	//	(*c.P2PNode).BroadcastMessage(m, []string{})
-	(*c.P2PNode).BroadcastString(string(message), []string{})
+	//(*c.P2PNode).BroadcastString(string(message), []string{})
+	m := p2p.NewMessage((*c.P2PNode).ID().Pretty(), message, marsh)
+	(*c.P2PNode).BroadcastMessage(m, []string{})
 
 	return true
 }
@@ -1198,22 +1187,22 @@ func (c *Chronology) ResetSubround() {
 	c.Subround = Subround{SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED}
 }
 
-func (c *Chronology) SetPreviousSubroundsFinished(roundState round.RoundState) {
-	for i := round.RS_BLOCK; i < roundState; i++ {
-		switch i {
-		case round.RS_BLOCK:
-			c.Subround.Block = SS_FINISHED
-		case round.RS_COMITMENT_HASH:
-			c.Subround.ComitmentHash = SS_FINISHED
-		case round.RS_BITMAP:
-			c.Subround.Bitmap = SS_FINISHED
-		case round.RS_COMITMENT:
-			c.Subround.Comitment = SS_FINISHED
-		case round.RS_SIGNATURE:
-			c.Subround.Signature = SS_FINISHED
-		}
-	}
-}
+//func (c *Chronology) SetPreviousSubroundsFinished(roundState round.RoundState) {
+//	for i := round.RS_BLOCK; i < roundState; i++ {
+//		switch i {
+//		case round.RS_BLOCK:
+//			c.Subround.Block = SS_FINISHED
+//		case round.RS_COMITMENT_HASH:
+//			c.Subround.ComitmentHash = SS_FINISHED
+//		case round.RS_BITMAP:
+//			c.Subround.Bitmap = SS_FINISHED
+//		case round.RS_COMITMENT:
+//			c.Subround.Comitment = SS_FINISHED
+//		case round.RS_SIGNATURE:
+//			c.Subround.Signature = SS_FINISHED
+//		}
+//	}
+//}
 
 func (c *Chronology) ResetConsensusThreshold() {
 	if c.IsNodeLeaderInCurrentRound(c.Node) {
