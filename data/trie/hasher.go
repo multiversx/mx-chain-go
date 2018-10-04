@@ -19,6 +19,7 @@ import (
 	//"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/crypto/sha3"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"sync"
 )
 
@@ -27,6 +28,7 @@ type hasher struct {
 	cachegen   uint16
 	cachelimit uint16
 	onleaf     LeafCallback
+	hsh        hashing.Hasher
 }
 
 type sliceBuffer []byte
@@ -49,9 +51,10 @@ var hasherPool = sync.Pool{
 	},
 }
 
-func newHasher(cachegen, cachelimit uint16, onleaf LeafCallback) *hasher {
+func newHasher(cachegen, cachelimit uint16, onleaf LeafCallback, hsh hashing.Hasher) *hasher {
 	h := hasherPool.Get().(*hasher)
 	h.cachegen, h.cachelimit, h.onleaf = cachegen, cachelimit, onleaf
+	h.hsh = hsh
 	return h
 }
 
@@ -193,5 +196,5 @@ func (h *hasher) store(n Node, db DBWriteCacher, force bool) (Node, error) {
 }
 
 func (h *hasher) makeHashNode(data []byte) hashNode {
-	return hashNode(DefaultHasher().Compute(string(data)))
+	return hashNode(h.hsh.Compute(string(data)))
 }

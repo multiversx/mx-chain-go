@@ -20,9 +20,10 @@ import (
 	"errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
-var emptyState = DefaultHasher().Compute(string(""))
+var emptyState []byte
 
 // Iterator is a key-value trie iterator that traverses a Trie.
 type Iterator struct {
@@ -116,6 +117,8 @@ type nodeIterator struct {
 	stack []*nodeIteratorState // Hierarchy of trie nodes persisting the iteration state
 	path  []byte               // Path to the current node
 	err   error                // Failure set in case of an internal error in the iterator
+
+	hasher hashing.Hasher
 }
 
 // errIteratorEnd is stored in nodeIterator.err when iteration is done.
@@ -131,14 +134,14 @@ func (e seekError) Error() string {
 	return "seek error: " + e.err.Error()
 }
 
-func newNodeIterator(trie *Trie, start []byte) NodeIterator {
+func newNodeIterator(trie *Trie, start []byte, hasher hashing.Hasher) NodeIterator {
 	h := encoding.Hash{}
-	h.SetBytes(emptyState)
+	h.SetBytes(getEmptyState(hasher))
 
 	if bytes.Equal(trie.Root(), h.Bytes()) {
 		return new(nodeIterator)
 	}
-	it := &nodeIterator{trie: trie}
+	it := &nodeIterator{trie: trie, hasher: hasher}
 	it.err = it.seek(start)
 	return it
 }
@@ -182,7 +185,7 @@ func (it *nodeIterator) LeafBlob() []byte {
 func (it *nodeIterator) LeafProof() [][]byte {
 	if len(it.stack) > 0 {
 		if _, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
-			hasher := newHasher(0, 0, nil)
+			hasher := newHasher(0, 0, nil, it.hasher)
 			proofs := make([][]byte, 0, len(it.stack))
 
 			for i, item := range it.stack[:len(it.stack)-1] {
@@ -261,7 +264,7 @@ func (it *nodeIterator) peek(descend bool) (*nodeIteratorState, *int, []byte, er
 		// Initialize the iterator if we've just started.
 		root := it.trie.Root()
 		state := &nodeIteratorState{node: it.trie.root, index: -1}
-		if !bytes.Equal(root, GetEmptyRoot().Bytes()) {
+		if !bytes.Equal(root, GetEmptyRoot(it.hasher).Bytes()) {
 			state.hash = encoding.BytesToHash(root)
 		}
 		err := state.resolve(it.trie, nil)
@@ -354,4 +357,12 @@ func (it *nodeIterator) pop() {
 	parent := it.stack[len(it.stack)-1]
 	it.path = it.path[:parent.pathlen]
 	it.stack = it.stack[:len(it.stack)-1]
+}
+
+func getEmptyState(hasher hashing.Hasher) []byte {
+	if emptyState == nil {
+		emptyState = hasher.Compute("")
+	}
+
+	return emptyState
 }

@@ -17,6 +17,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -60,7 +61,7 @@ func TestAddressHexChecksum(t *testing.T) {
 		{"0x000000000000000000000000000000000000000a", "0x000000000000000000000000000000000000000A"},
 	}
 	for i, test := range tests {
-		output := HexToAddress(test.Input).Hex()
+		output := HexToAddress(test.Input).Hex(mock.HasherMock{})
 		if output != test.Output {
 			t.Errorf("test #%d: failed to match when it should (%s != %s)", i, output, test.Output)
 		}
@@ -69,7 +70,7 @@ func TestAddressHexChecksum(t *testing.T) {
 
 func TestAddressFromPubKey(t *testing.T) {
 	//test error
-	_, err := AddressFromPubKeyBytes([]byte{45, 56})
+	_, err := FromPubKeyBytes([]byte{45, 56})
 
 	switch e := err.(type) {
 	case *ErrorWrongSize:
@@ -82,7 +83,7 @@ func TestAddressFromPubKey(t *testing.T) {
 	//test trim
 	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ")
 
-	adr, err := AddressFromPubKeyBytes(buff)
+	adr, err := FromPubKeyBytes(buff)
 	assert.Nil(t, err)
 
 	assert.Equal(t, []byte("FGHIJKLMNOPQRSTUVXYZ"), adr.Bytes())

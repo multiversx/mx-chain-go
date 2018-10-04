@@ -1,14 +1,10 @@
 package state
 
 import (
-	"bytes"
 	//"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/pkg/errors"
 	"math/big"
-	"strconv"
 )
 
 type Account struct {
@@ -27,93 +23,13 @@ type AccountState struct {
 	hasher   hashing.Hasher
 }
 
-func NewAccountState(address Address, account Account) *AccountState {
+func NewAccountState(address Address, account Account, hasher hashing.Hasher) *AccountState {
 	acState := AccountState{Account: account, Addr: address}
-	acState.hasher = DefHasher
+	acState.hasher = hasher
 
-	acState.AddrHash = DefHasher.Compute(address.String())
+	acState.AddrHash = acState.hasher.Compute(address.Hex(hasher))
 
 	return &acState
-}
-
-func (as *AccountState) RetrieveCode(srch trie.Trier) error {
-	if as.CodeHash == nil {
-		as.Code = nil
-		return nil
-	}
-
-	if srch == nil {
-		return errors.New("attempt to search on a nil trie")
-	}
-
-	if len(as.CodeHash) != encoding.HashLength {
-		return errors.New("attempt to search a hash not normalized to" +
-			strconv.Itoa(encoding.HashLength) + "bytes")
-	}
-
-	val, err := srch.Get(as.CodeHash)
-
-	if err != nil {
-		return err
-	}
-
-	as.Code = val
-	return nil
-}
-
-func (as *AccountState) RetrieveData(srch trie.Trier) error {
-	if as.Root == nil {
-		as.Data = nil
-		return nil
-	}
-
-	if srch == nil {
-		return errors.New("attempt to search on a nil trie")
-	}
-
-	if len(as.Root) != encoding.HashLength {
-		return errors.New("attempt to search a hash not normalized to" +
-			strconv.Itoa(encoding.HashLength) + "bytes")
-	}
-
-	if !bytes.Equal(as.Root, as.AddrHash) {
-		return errors.New("can not retrieve data from other root hash")
-	}
-
-	dataTrie, err := srch.Recreate(as.Root, srch.DBW())
-	if err != nil {
-		return err
-	}
-
-	as.Data = dataTrie
-	return nil
-}
-
-func (as *AccountState) PutCode(srch trie.Trier, code []byte) error {
-	if (code == nil) || (len(code) == 0) {
-		as.resetDataCode()
-		return nil
-	}
-
-	as.CodeHash = as.hasher.Compute(string(code))
-	as.Code = code
-
-	err := srch.Update(as.CodeHash, as.Code)
-	if err != nil {
-		as.resetDataCode()
-		return err
-	}
-
-	as.Root = as.AddrHash
-
-	dataTrie, err := srch.Recreate(as.Root, srch.DBW())
-	if err != nil {
-		as.resetDataCode()
-		return err
-	}
-
-	as.Data = dataTrie
-	return nil
 }
 
 func (as *AccountState) resetDataCode() {

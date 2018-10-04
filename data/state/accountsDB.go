@@ -1,180 +1,167 @@
 package state
 
 import (
+	"errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"sync"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"strconv"
 )
 
 type AccountsDB struct {
-	tr trie.Trier
+	//should use a concurrent trie
+	mainTrie trie.Trier
+	hasher   hashing.Hasher
+	marsh    marshal.Marshalizer
 
 	prevRoot []byte
-
-	mutStates      sync.RWMutex
-	statesAccessed []AccountState
 }
 
-func NewAccounts(tr trie.Trier) (*AccountsDB, error) {
-	if tr == nil {
-		return nil, ErrorNilTrie
+func NewAccountsDB(tr trie.Trier, hasher hashing.Hasher, marsh marshal.Marshalizer) *AccountsDB {
+	adb := AccountsDB{mainTrie: tr, hasher: hasher, marsh: marsh}
+
+	return &adb
+}
+
+func (adb *AccountsDB) RetrieveCode(state *AccountState) error {
+	if state.CodeHash == nil {
+		state.Code = nil
+		return nil
 	}
 
-	ac := &AccountsDB{tr: tr}
-	ac.prevRoot = ac.tr.Root()
-	ac.mutStates = sync.RWMutex{}
-	ac.statesAccessed = make([]AccountState, 0)
+	if adb.mainTrie == nil {
+		return errors.New("attempt to search on a nil trie")
+	}
 
-	return ac, nil
-}
+	if len(state.CodeHash) != encoding.HashLength {
+		return errors.New("attempt to search a hash not normalized to" +
+			strconv.Itoa(encoding.HashLength) + "bytes")
+	}
 
-//func (a *Accounts) Put(key []byte, value []byte) error {
-//	return a.tr.Update(key, value)
-//}
-//
-//func (a *Accounts) Get(key []byte) ([]byte, error) {
-//	return a.tr.Get(key)
-//}
-//
-//func (a *Accounts) Delete(key []byte) error {
-//	return a.tr.Delete(key)
-//}
-
-func (a *AccountsDB) Commit() error {
-	a.mutStates.Lock()
-	defer a.mutStates.Unlock()
-
-	hash, err := a.tr.Commit(nil)
+	val, err := adb.mainTrie.Get(state.CodeHash)
 
 	if err != nil {
 		return err
 	}
 
-	a.prevRoot = hash
+	state.Code = val
 	return nil
 }
 
-func (a *AccountsDB) Undo() error {
-	a.mutStates.Lock()
-	defer a.mutStates.Unlock()
+func (adb *AccountsDB) RetrieveData(state *AccountState) error {
+	if state.Root == nil {
+		state.Data = nil
+		return nil
+	}
 
-	ac, err := a.tr.Recreate(a.prevRoot, a.tr.DBW())
+	if adb.mainTrie == nil {
+		return errors.New("attempt to search on a nil trie")
+	}
+
+	if len(state.Root) != encoding.HashLength {
+		return errors.New("attempt to search a hash not normalized to" +
+			strconv.Itoa(encoding.HashLength) + "bytes")
+	}
+
+	dataTrie, err := adb.mainTrie.Recreate(state.Root, adb.mainTrie.DBW())
+	if err != nil {
+		//node does not exists, create new one
+		dataTrie, err = adb.mainTrie.Recreate(make([]byte, 0), adb.mainTrie.DBW())
+		if err != nil {
+			return err
+		}
+
+		state.Root = dataTrie.Root()
+	}
+
+	state.Data = dataTrie
+	return nil
+}
+
+func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
+	if (code == nil) || (len(code) == 0) {
+		state.resetDataCode()
+		return nil
+	}
+
+	if adb.mainTrie == nil {
+		return errors.New("attempt to search on a nil trie")
+	}
+
+	state.CodeHash = state.hasher.Compute(string(code))
+	state.Code = code
+
+	err := adb.mainTrie.Update(state.CodeHash, state.Code)
+	if err != nil {
+		state.resetDataCode()
+		return err
+	}
+
+	dataTrie, err := adb.mainTrie.Recreate(make([]byte, 0), adb.mainTrie.DBW())
+	if err != nil {
+		state.resetDataCode()
+		return err
+	}
+
+	//should drop the variables from the code inside dataTrie, recomputing the root
+
+	state.Data = dataTrie
+	return nil
+}
+
+func (adb *AccountsDB) HasAccount(address Address) (bool, error) {
+	if adb.mainTrie == nil {
+		return false, errors.New("attempt to search on a nil trie")
+	}
+
+	adrHash := adb.hasher.Compute(string(address.Bytes()))
+
+	val, err := adb.mainTrie.Get(adrHash)
+
+	if err != nil {
+		return false, err
+	}
+
+	return val != nil, nil
+}
+
+func (adb *AccountsDB) SaveAccountState(state *AccountState) error {
+	if state == nil {
+		return errors.New("can not save nil account")
+	}
+
+	if adb.mainTrie == nil {
+		return errors.New("attempt to search on a nil trie")
+	}
+
+	buff, err := adb.marsh.Marshal(state.Account)
 
 	if err != nil {
 		return err
 	}
 
-	a.tr = ac
-
-	//undo on all data tries belonging to last accounts accessed
+	err = adb.mainTrie.Update(state.AddrHash, buff)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (a *AccountsDB) Root() []byte {
-	return a.tr.Root()
-}
-
-//func (a *Accounts) GetOrCreateAcntState(address Address) (*AccountState, error){
-//	adrHash := DefHasher.Compute(address.String())
+//func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error){
+//	if adb.mainTrie == nil {
+//		return nil, errors.New("attempt to search on a nil trie")
+//	}
 //
-//	data, err := a.Get(adrHash)
+//	found, err := adb.HasAccount(address)
 //	if err != nil{
 //		return nil, err
 //	}
 //
-//	if data == nil{
-//		acState := NewAccountState(address, Account{})
+//	if !found{
+//		acntState := NewAccountState()
 //
 //
 //	}
-//
-//
-//
-//
-//
-//	account := Account{}
-//	err = DefMarsh.Unmarshal(&account, data)
-//	if err != nil{
-//		return nil, err
-//	}
-//
-//	//fetch code from code hash
-//	if account.CodeHash != nil{
-//		c, err := a.Get(account.CodeHash)
-//		if err != nil{
-//			return nil, err
-//		}
-//
-//		account.SetCode(c)
-//	}
-//
-//	//fetch data from data hash
-//	if account.DataHash != nil{
-//		d, err := a.Get(account.DataHash)
-//		if err != nil{
-//			return nil, err
-//		}
-//
-//		account.SetData(d)
-//	}
-//
-//	return &account, nil
-//}
-//
-//func (a *Accounts) CreateAcntState(address Address) (*AccountState, error){
-//	adrHash := DefHasher.Compute(address.String())
-//
-//	data, err := a.Get(adrHash)
-//	if err != nil{
-//		return nil, err
-//	}
-//
-//	if data != nil{
-//		return nil, errors.New("account already exists")
-//	}
-//
-//
-//}
-//
-//func (a *Accounts) createAcntState(address Address) (*AccountState, error) {
-//	acState := NewAccountState(address, Account{})
-//
-//
-//
-//}
-//
-//func (a *Accounts) PutAcntState(state AccountState) error{
-//
-//
-//
-//}
-//
-//
-//func (a *Accounts) PutAccount(address Address, account Account) error{
-//	//compute code hash and save it to accounter
-//	if !(account.Code() == nil || len(account.Code()) == 0){
-//		codeHash := DefHasher.Compute(string(account.Code()))
-//		account.CodeHash = codeHash
-//
-//		a.Put(account.CodeHash, account.Code())
-//	}
-//
-//	//compute data hash and save it to accounter
-//	if !(account.Data() == nil || len(account.Data()) == 0) {
-//		dataHash := DefHasher.Compute(string(account.Data()))
-//		account.DataHash = dataHash
-//
-//		a.Put(account.DataHash, account.Data())
-//	}
-//
-//	//save entire account
-//	bAccount, err := DefMarsh.Marshal(account)
-//	if err != nil{
-//		return err
-//	}
-//
-//	adrHash := DefHasher.Compute(address.String())
-//
-//	err = a.Put(adrHash, bAccount)
-//	return err
 //}

@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/pkg/errors"
 )
 
@@ -45,6 +46,8 @@ type Trie struct {
 	// new nodes are tagged with the current generation and unloaded
 	// when their generation is older than than cachegen-cachelimit.
 	cachegen, cachelimit uint16
+
+	hsh hashing.Hasher
 }
 
 // SetCacheLimit sets the number of 'cache generations' to keep.
@@ -53,9 +56,9 @@ func (t *Trie) SetCacheLimit(l uint16) {
 	t.cachelimit = l
 }
 
-func GetEmptyRoot() encoding.Hash {
+func GetEmptyRoot(hasher hashing.Hasher) encoding.Hash {
 	if bytes.Equal(emptyRoot.Bytes(), encoding.Hash{}.Bytes()) {
-		emptyRoot.SetBytes(DefaultHasher().Compute("ROOT_NODE"))
+		emptyRoot.SetBytes(hasher.Compute("ROOT_NODE"))
 	}
 
 	return emptyRoot
@@ -73,7 +76,7 @@ func (t *Trie) newFlag() nodeFlag {
 // trie is initially empty and does not require a database. Otherwise,
 // New will panic if db is nil and returns a MissingNodeError if root does
 // not exist in the database. Accessing the trie loads nodes from db on demand.
-func NewTrie(root []byte, dbw DBWriteCacher) (*Trie, error) {
+func NewTrie(root []byte, dbw DBWriteCacher, hsh hashing.Hasher) (*Trie, error) {
 	if dbw == nil {
 		return nil, errors.New("trie.New called without a database")
 	}
@@ -83,6 +86,7 @@ func NewTrie(root []byte, dbw DBWriteCacher) (*Trie, error) {
 	trie := &Trie{
 		dbw:          dbw,
 		originalRoot: rHash,
+		hsh:          hsh,
 	}
 	if rHash != (encoding.Hash{}) && rHash != emptyRoot {
 		rootnode, err := trie.resolveHash(root[:], nil)
@@ -97,7 +101,7 @@ func NewTrie(root []byte, dbw DBWriteCacher) (*Trie, error) {
 // NodeIterator returns an iterator that returns nodes of the trie. Iteration starts at
 // the key after the given start key.
 func (t *Trie) NodeIterator(start []byte) NodeIterator {
-	return newNodeIterator(t, start)
+	return newNodeIterator(t, start, t.hsh)
 }
 
 // Get returns the value for key stored in the trie.
@@ -425,7 +429,7 @@ func (t *Trie) hashRoot(db DBWriteCacher, onleaf LeafCallback) (Node, Node, erro
 	if t.root == nil {
 		return hashNode(emptyRoot.Bytes()), nil, nil
 	}
-	h := newHasher(t.cachegen, t.cachelimit, onleaf)
+	h := newHasher(t.cachegen, t.cachelimit, onleaf, t.hsh)
 	defer returnHasherToPool(h)
 	return h.hash(t.root, db, true)
 }
@@ -435,7 +439,7 @@ func (t *Trie) DBW() DBWriteCacher {
 }
 
 func (t *Trie) Recreate(root []byte, dbw DBWriteCacher) (Trier, error) {
-	return NewTrie(root, dbw)
+	return NewTrie(root, dbw, t.hsh)
 }
 
 // Copy returns a copy of Trie.

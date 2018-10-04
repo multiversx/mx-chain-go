@@ -22,14 +22,14 @@ import (
 
 var errMockBatch = errors.New("MockBatch generic error")
 
-type MockBatch struct {
-	db     *MockDatabase
+type BatchMock struct {
+	db     *DatabaseMock
 	writes []kv
 	size   int
 	Fail   bool
 }
 
-func (b *MockBatch) Put(key, value []byte) error {
+func (b *BatchMock) Put(key, value []byte) error {
 	if b.Fail {
 		return errMockBatch
 	}
@@ -39,7 +39,7 @@ func (b *MockBatch) Put(key, value []byte) error {
 	return nil
 }
 
-func (b *MockBatch) Delete(key []byte) error {
+func (b *BatchMock) Delete(key []byte) error {
 	if b.Fail {
 		return errMockBatch
 	}
@@ -49,7 +49,7 @@ func (b *MockBatch) Delete(key []byte) error {
 	return nil
 }
 
-func (b *MockBatch) Write() error {
+func (b *BatchMock) Write() error {
 	if b.Fail {
 		return errMockBatch
 	}
@@ -67,11 +67,11 @@ func (b *MockBatch) Write() error {
 	return nil
 }
 
-func (b *MockBatch) ValueSize() int {
+func (b *BatchMock) ValueSize() int {
 	return b.size
 }
 
-func (b *MockBatch) Reset() {
+func (b *BatchMock) Reset() {
 	b.writes = b.writes[:0]
 	b.size = 0
 }

@@ -17,7 +17,10 @@
 //EIP-55 standard https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md
 package state
 
-import "encoding/hex"
+import (
+	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+)
 
 //how eth SC addr is computed: https://ethereum.stackexchange.com/questions/760/how-is-the-address-of-an-ethereum-contract-computed
 
@@ -39,9 +42,9 @@ func (adr *Address) SetBytes(b []byte) {
 }
 
 // Hex returns an EIP55-compliant hex string representation of the address.
-func (adr *Address) Hex() string {
+func (adr *Address) Hex(hasher hashing.Hasher) string {
 	unchecksummed := hex.EncodeToString(adr.Bytes())
-	hash := DefHasher.Compute(unchecksummed)
+	hash := hasher.Compute(unchecksummed)
 
 	result := []byte(unchecksummed)
 	for i := 0; i < len(result); i++ {
@@ -56,10 +59,6 @@ func (adr *Address) Hex() string {
 		}
 	}
 	return "0x" + string(result)
-}
-
-func (adr *Address) String() string {
-	return adr.Hex()
 }
 
 // IsHexAddress verifies whether a string can represent a valid hex-encoded
@@ -119,7 +118,7 @@ func FromHex(s string) []byte {
 	return h
 }
 
-func AddressFromPubKeyBytes(pubKey []byte) (*Address, error) {
+func FromPubKeyBytes(pubKey []byte) (*Address, error) {
 	if len(pubKey) < AdrLen {
 		return nil, NewErrorWrongSize(20, len(pubKey))
 	}

@@ -17,25 +17,9 @@
 //Adapted by Elrond Team
 package trie
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-
 // Code using batches should try to add this much data to the batch.
 // The value was determined empirically.
 const IdealBatchSize = 100 * 1024
-
-var defHasher hashing.Hasher
-
-func DefaultHasher() hashing.Hasher {
-	if defHasher == nil {
-		defHasher = hashing.GetHasherService()
-	}
-
-	return defHasher
-}
-
-func SetDefaultHasher(h hashing.Hasher) {
-	defHasher = h
-}
 
 // LeafCallback is a callback type invoked when a trie operation reaches a leaf
 // node. It's used by state sync and commit to allow handling external references
@@ -44,7 +28,7 @@ type LeafCallback func(leaf []byte, parent []byte) error
 
 type Persister interface {
 	// Add the value to the (key, val) persistance medium
-	Put(key []byte, value []byte) error
+	Put(key, val []byte) error
 
 	// gets the value associated to the key
 	Get(key []byte) ([]byte, error)
@@ -58,8 +42,8 @@ type Persister interface {
 	// Closes the files/resources associated to the persistance medium
 	Close() error
 
-	// Deletes the data associated to the given key
-	Delete(key []byte) error
+	// Removes the data associated to the given key
+	Remove(key []byte) error
 
 	// Removes the persistance medium stored data
 	Destroy() error

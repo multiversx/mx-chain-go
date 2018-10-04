@@ -29,7 +29,7 @@ var errMockDataBase = errors.New("MockDatabase generic error")
 /*
  * This is a test memory database. Do not use for any production it does not get persisted
  */
-type MockDatabase struct {
+type DatabaseMock struct {
 	db   map[string][]byte
 	lock sync.RWMutex
 	Fail bool
@@ -40,7 +40,13 @@ type kv struct {
 	del  bool
 }
 
-func (db *MockDatabase) Init() error {
+func NewDatabaseMock() *DatabaseMock {
+	return &DatabaseMock{
+		db: make(map[string][]byte),
+	}
+}
+
+func (db *DatabaseMock) Init() error {
 	if db.Fail {
 		return errMockDataBase
 	}
@@ -54,7 +60,7 @@ func (db *MockDatabase) Init() error {
 	return nil
 }
 
-func (db *MockDatabase) Close() error {
+func (db *DatabaseMock) Close() error {
 	if db.Fail {
 		return errMockDataBase
 	}
@@ -62,7 +68,7 @@ func (db *MockDatabase) Close() error {
 	return nil
 }
 
-func (db *MockDatabase) Destroy() error {
+func (db *DatabaseMock) Destroy() error {
 	if db.Fail {
 		return errMockDataBase
 	}
@@ -73,13 +79,7 @@ func (db *MockDatabase) Destroy() error {
 	return nil
 }
 
-func NewMemDatabase() *MockDatabase {
-	return &MockDatabase{
-		db: make(map[string][]byte),
-	}
-}
-
-func (db *MockDatabase) Put(key []byte, value []byte) error {
+func (db *DatabaseMock) Put(key []byte, value []byte) error {
 	if db.Fail {
 		return errMockDataBase
 	}
@@ -91,7 +91,7 @@ func (db *MockDatabase) Put(key []byte, value []byte) error {
 	return nil
 }
 
-func (db *MockDatabase) Has(key []byte) (bool, error) {
+func (db *DatabaseMock) Has(key []byte) (bool, error) {
 	if db.Fail {
 		return false, errMockDataBase
 	}
@@ -103,7 +103,7 @@ func (db *MockDatabase) Has(key []byte) (bool, error) {
 	return ok, nil
 }
 
-func (db *MockDatabase) Get(key []byte) ([]byte, error) {
+func (db *DatabaseMock) Get(key []byte) ([]byte, error) {
 	if db.Fail {
 		return nil, errMockDataBase
 	}
@@ -117,7 +117,7 @@ func (db *MockDatabase) Get(key []byte) ([]byte, error) {
 	return nil, errors.New("not found")
 }
 
-func (db *MockDatabase) Keys() [][]byte {
+func (db *DatabaseMock) Keys() [][]byte {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -128,7 +128,7 @@ func (db *MockDatabase) Keys() [][]byte {
 	return keys
 }
 
-func (db *MockDatabase) Delete(key []byte) error {
+func (db *DatabaseMock) Remove(key []byte) error {
 	if db.Fail {
 		return errMockDataBase
 	}
@@ -140,8 +140,8 @@ func (db *MockDatabase) Delete(key []byte) error {
 	return nil
 }
 
-func (db *MockDatabase) NewBatch() trie.Batch {
-	return &MockBatch{db: db}
+func (db *DatabaseMock) NewBatch() trie.Batch {
+	return &BatchMock{db: db}
 }
 
-func (db *MockDatabase) Len() int { return len(db.db) }
+func (db *DatabaseMock) Len() int { return len(db.db) }
