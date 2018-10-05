@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/statistic"
 
 	"strings"
 	"time"
@@ -61,6 +62,8 @@ type Chronology struct {
 
 	SyncTime    sync.SyncTime
 	ClockOffset time.Duration
+
+	ChronologyStatistic *statistic.ChronologyStatistic
 }
 
 type RoundStateValidation struct {
@@ -71,7 +74,7 @@ type RoundStateValidation struct {
 	Signature     bool
 }
 
-func New(p2pNode *p2p.Messenger, v *validators.Validators, genesisRoundTimeStamp time.Time, roundDuration time.Duration) *Chronology {
+func New(p2pNode *p2p.Messenger, v *validators.Validators, chronologyStatistic *statistic.ChronologyStatistic, genesisRoundTimeStamp time.Time, roundDuration time.Duration) *Chronology {
 	csi := Chronology{}
 	rs := GetRounderService()
 
@@ -79,6 +82,7 @@ func New(p2pNode *p2p.Messenger, v *validators.Validators, genesisRoundTimeStamp
 
 	csi.SyncTime = sync.New(roundDuration)
 	csi.ChRcvMsg = make(chan []byte, len(v.GetConsensusGroup()))
+	//csi.ChRcvMsg = make(chan []byte)
 
 	csi.P2PNode = p2pNode
 	(*csi.P2PNode).SetOnRecvMsg(csi.recv)
@@ -99,11 +103,12 @@ func New(p2pNode *p2p.Messenger, v *validators.Validators, genesisRoundTimeStamp
 	csi.RoundDivision = GetRounderService().CreateRoundTimeDivision(roundDuration)
 	csi.Round = rs.CreateRoundFromDateTime(csi.GenesisTime, csi.GetCurrentTime(), csi.RoundDuration, csi.RoundDivision)
 
+	csi.ChronologyStatistic = chronologyStatistic
+
 	return &csi
 }
 
 func (c *Chronology) StartRounds() {
-
 	for c.DoRun {
 
 		time.Sleep(SLEEP_TIME * time.Millisecond)
@@ -161,7 +166,6 @@ func (c *Chronology) StartRounds() {
 }
 
 func (c *Chronology) UpdateRound() (int, round.RoundState) {
-
 	rs := GetRounderService()
 
 	oldRoundIndex := c.Round.GetIndex()
@@ -170,10 +174,19 @@ func (c *Chronology) UpdateRound() (int, round.RoundState) {
 	rs.UpdateRoundFromDateTime(c.GenesisTime, c.GetCurrentTime(), &c.Round)
 
 	if oldRoundIndex != c.Round.GetIndex() {
+		if c.DoLog { // only for statistic
+			c.ChronologyStatistic.AddRound()
+		}
+
 		leader, err := c.GetLeader()
 		if err != nil {
 			leader = "Unknown"
 		}
+
+		if leader == c.Node {
+			leader += " (MY TURN)"
+		}
+
 		c.Log(fmt.Sprintf("\n"+FormatTime(c.GetCurrentTime())+"############################## ROUND %d BEGINS WITH LEADER  %s  ##############################\n", c.Round.GetIndex(), leader))
 		c.InitRound()
 	}
@@ -195,7 +208,6 @@ func (c *Chronology) UpdateRound() (int, round.RoundState) {
 
 //Check node round state vs. time round state and decide if node state could be changed analyzing his tasks which have been done in current round
 func (c *Chronology) OptimizeRoundState(roundState round.RoundState) {
-
 	//rs := chronology.GetRounderService()
 
 	switch roundState {
@@ -220,7 +232,6 @@ func (c *Chronology) OptimizeRoundState(roundState round.RoundState) {
 }
 
 func (c *Chronology) DoStartRound() bool {
-
 	rs := GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
@@ -235,7 +246,6 @@ func (c *Chronology) DoStartRound() bool {
 }
 
 func (c *Chronology) DoBlock() bool {
-
 	rs := GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
@@ -280,7 +290,6 @@ func (c *Chronology) DoBlock() bool {
 }
 
 func (c *Chronology) DoComitmentHash() bool {
-
 	rs := GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
@@ -291,7 +300,11 @@ func (c *Chronology) DoComitmentHash() bool {
 		timeRoundState := rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime())
 
 		if timeRoundState > round.RS_COMITMENT_HASH {
-			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 2: Extended the " + rs.GetRoundStateName(round.RS_COMITMENT_HASH) + " subround"))
+			if c.GetComitmentHashes() < c.PBFTThreshold {
+				c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 2: Extended the "+rs.GetRoundStateName(round.RS_COMITMENT_HASH)+" subround. Got only %d from %d commitment hashes which are not enough", c.GetComitmentHashes(), len(c.Nodes)))
+			} else {
+				c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 2: Extended the " + rs.GetRoundStateName(round.RS_COMITMENT_HASH) + " subround"))
+			}
 			c.Subround.ComitmentHash = SS_EXTENDED
 			return true // Try to give a chance to this round if the necesary comitment hashes will arrive later
 		}
@@ -322,7 +335,6 @@ func (c *Chronology) DoComitmentHash() bool {
 }
 
 func (c *Chronology) DoBitmap() bool {
-
 	rs := GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
@@ -371,7 +383,6 @@ func (c *Chronology) DoBitmap() bool {
 }
 
 func (c *Chronology) DoComitment() bool {
-
 	rs := GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
@@ -382,7 +393,7 @@ func (c *Chronology) DoComitment() bool {
 		timeRoundState := rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime())
 
 		if timeRoundState > round.RS_COMITMENT {
-			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 4: Extended the " + rs.GetRoundStateName(round.RS_COMITMENT) + " subround"))
+			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 4: Extended the "+rs.GetRoundStateName(round.RS_COMITMENT)+" subround. Got only %d from %d commitments which are not enough", c.GetComitments(), len(c.Nodes)))
 			c.Subround.Comitment = SS_EXTENDED
 			return true // Try to give a chance to this round if the necesary comitments will arrive later
 		}
@@ -409,7 +420,6 @@ func (c *Chronology) DoComitment() bool {
 }
 
 func (c *Chronology) DoSignature() bool {
-
 	rs := GetRounderService()
 
 	for c.SelfRoundState != round.RS_ABORDED {
@@ -420,7 +430,7 @@ func (c *Chronology) DoSignature() bool {
 		timeRoundState := rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime())
 
 		if timeRoundState > round.RS_SIGNATURE {
-			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime()) + "Step 5: Extended the " + rs.GetRoundStateName(round.RS_SIGNATURE) + " subround"))
+			c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 5: Extended the "+rs.GetRoundStateName(round.RS_SIGNATURE)+" subround. Got only %d from %d sigantures which are not enough", c.GetSignatures(), len(c.Nodes)))
 			c.Subround.Signature = SS_EXTENDED
 			return true // Try to give a chance to this round if the necesary signatures will arrive later
 		}
@@ -447,7 +457,6 @@ func (c *Chronology) DoSignature() bool {
 }
 
 func (c *Chronology) DoEndRound() bool {
-
 	bcs := data.GetBlockChainerService()
 	rs := GetRounderService()
 
@@ -474,6 +483,9 @@ func (c *Chronology) DoEndRound() bool {
 		if bActionDone {
 			bActionDone = false
 			if ok, _ := c.CheckConsensus(round.RS_BLOCK, round.RS_SIGNATURE); ok {
+				if c.DoLog {
+					c.ChronologyStatistic.AddRoundWithBlock()
+				} // only for statistic
 
 				bcs.AddBlock(&c.BlockChain, c.Block)
 
@@ -493,7 +505,6 @@ func (c *Chronology) DoEndRound() bool {
 }
 
 func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round.RoundState) bool {
-
 	//rs := GetRounderService()
 
 	msgType, msgData := c.DecodeMessage(rcvMsg)
@@ -622,6 +633,7 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 }
 
 func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundState round.RoundState) (bool, int) {
+	rs := GetRounderService()
 
 	var n int
 	var ok bool
@@ -631,6 +643,7 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 		case round.RS_BLOCK:
 			if c.Subround.Block != SS_FINISHED {
 				if ok, n = c.IsBlock(c.ConsensusThreshold.Block); ok {
+					c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 1: Subround %s has been finished", rs.GetRoundStateName(round.RS_BLOCK)))
 					c.Subround.Block = SS_FINISHED
 				} else {
 					return false, n
@@ -639,8 +652,10 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 		case round.RS_COMITMENT_HASH:
 			if c.Subround.ComitmentHash != SS_FINISHED {
 				if ok, n = c.IsComitmentHash(c.ConsensusThreshold.ComitmentHash); ok {
+					c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 2: Subround %s has been finished", rs.GetRoundStateName(round.RS_COMITMENT_HASH)))
 					c.Subround.ComitmentHash = SS_FINISHED
 				} else if ok, n = c.IsComitmentHashInBitmap(c.ConsensusThreshold.Bitmap); ok {
+					c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 2: Subround %s has been finished", rs.GetRoundStateName(round.RS_COMITMENT_HASH)))
 					c.Subround.ComitmentHash = SS_FINISHED
 				} else {
 					return false, n
@@ -649,6 +664,7 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 		case round.RS_BITMAP:
 			if c.Subround.Bitmap != SS_FINISHED {
 				if ok, n = c.IsComitmentHashInBitmap(c.ConsensusThreshold.Bitmap); ok {
+					c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 3: Subround %s has been finished", rs.GetRoundStateName(round.RS_BITMAP)))
 					c.Subround.Bitmap = SS_FINISHED
 				} else {
 					return false, n
@@ -657,6 +673,7 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 		case round.RS_COMITMENT:
 			if c.Subround.Comitment != SS_FINISHED {
 				if ok, n = c.IsBitmapInComitment(c.ConsensusThreshold.Comitment); ok {
+					c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 4: Subround %s has been finished", rs.GetRoundStateName(round.RS_COMITMENT)))
 					c.Subround.Comitment = SS_FINISHED
 				} else {
 					return false, n
@@ -665,6 +682,7 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 		case round.RS_SIGNATURE:
 			if c.Subround.Signature != SS_FINISHED {
 				if ok, n = c.IsComitmentInSignature(c.ConsensusThreshold.Signature); ok {
+					c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Step 5: Subround %s has been finished", rs.GetRoundStateName(round.RS_SIGNATURE)))
 					c.Subround.Signature = SS_FINISHED
 				} else {
 					return false, n
@@ -679,7 +697,6 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 }
 
 func (c *Chronology) SendMessage(roundState round.RoundState) bool {
-
 	for {
 		switch roundState {
 
@@ -779,7 +796,6 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 }
 
 func (c *Chronology) SendBlock() bool {
-
 	bs := data.GetBlockerService()
 	bcs := data.GetBlockChainerService()
 
@@ -807,7 +823,6 @@ func (c *Chronology) SendBlock() bool {
 }
 
 func (c *Chronology) SendComitmentHash() bool {
-
 	block := c.Block
 
 	block.Signature = c.Node
@@ -827,7 +842,6 @@ func (c *Chronology) SendComitmentHash() bool {
 }
 
 func (c *Chronology) SendBitmap() bool {
-
 	block := c.Block
 
 	block.Signature = c.Node
@@ -857,7 +871,6 @@ func (c *Chronology) SendBitmap() bool {
 }
 
 func (c *Chronology) SendComitment() bool {
-
 	block := c.Block
 
 	block.Signature = c.Node
@@ -877,7 +890,6 @@ func (c *Chronology) SendComitment() bool {
 }
 
 func (c *Chronology) SendSignature() bool {
-
 	block := c.Block
 
 	block.Signature = c.Node
@@ -914,7 +926,6 @@ func (c *Chronology) BroadcastBlock(block *block.Block) bool {
 }
 
 func (c *Chronology) CheckIfBlockIsValid(receivedBlock *block.Block) bool {
-
 	bcs := data.GetBlockChainerService()
 
 	currentBlock := bcs.GetCurrentBlock(&c.BlockChain)
@@ -951,7 +962,6 @@ func (c *Chronology) CheckIfBlockIsValid(receivedBlock *block.Block) bool {
 }
 
 func (c *Chronology) ComputeLeader(nodes []string, round *round.Round) (string, error) {
-
 	if round == nil {
 		return "", errors.New("Round is null")
 	}
@@ -969,7 +979,6 @@ func (c *Chronology) ComputeLeader(nodes []string, round *round.Round) (string, 
 }
 
 func (c *Chronology) IsNodeLeader(node string, nodes []string, round *round.Round) (bool, error) {
-
 	v, err := c.ComputeLeader(nodes, round)
 
 	if err != nil {
@@ -981,7 +990,6 @@ func (c *Chronology) IsNodeLeader(node string, nodes []string, round *round.Roun
 }
 
 func (c *Chronology) IsNodeLeaderInCurrentRound(node string) bool {
-
 	leader, err := c.GetLeader()
 
 	if err != nil {
@@ -993,7 +1001,6 @@ func (c *Chronology) IsNodeLeaderInCurrentRound(node string) bool {
 }
 
 func (c *Chronology) IsNodeInValidationGroup(node string) bool {
-
 	for i := 0; i < len(c.Nodes); i++ {
 		if c.Nodes[i] == node {
 			return true
@@ -1007,73 +1014,7 @@ func (c *Chronology) IsNodeInBitmapGroup(node string) bool {
 	return c.Validators[node].Bitmap
 }
 
-func (c *Chronology) IsBlockDirty(threshold int) bool {
-	for n, i := 0, 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].Block {
-			n++
-			if n >= threshold {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-func (c *Chronology) IsComitmentHashDirty(threshold int) bool {
-	for n, i := 0, 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].ComitmentHash {
-			n++
-			if n >= threshold {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-func (c *Chronology) IsBitmapDirty(threshold int) bool {
-	for n, i := 0, 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].Bitmap {
-			n++
-			if n >= threshold {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-func (c *Chronology) IsComitmentDirty(threshold int) bool {
-	for n, i := 0, 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].Comitment {
-			n++
-			if n >= threshold {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-func (c *Chronology) IsSignatureDirty(threshold int) bool {
-	for n, i := 0, 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].Signature {
-			n++
-			if n >= threshold {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
 func (c *Chronology) IsBlock(threshold int) (bool, int) {
-
 	n := 0
 
 	for i := 0; i < len(c.Nodes); i++ {
@@ -1086,7 +1027,6 @@ func (c *Chronology) IsBlock(threshold int) (bool, int) {
 }
 
 func (c *Chronology) IsComitmentHash(threshold int) (bool, int) {
-
 	n := 0
 
 	for i := 0; i < len(c.Nodes); i++ {
@@ -1099,7 +1039,6 @@ func (c *Chronology) IsComitmentHash(threshold int) (bool, int) {
 }
 
 func (c *Chronology) IsComitmentHashInBitmap(threshold int) (bool, int) {
-
 	n := 0
 
 	for i := 0; i < len(c.Nodes); i++ {
@@ -1115,7 +1054,6 @@ func (c *Chronology) IsComitmentHashInBitmap(threshold int) (bool, int) {
 }
 
 func (c *Chronology) IsBitmapInComitment(threshold int) (bool, int) {
-
 	n := 0
 
 	for i := 0; i < len(c.Nodes); i++ {
@@ -1131,7 +1069,6 @@ func (c *Chronology) IsBitmapInComitment(threshold int) (bool, int) {
 }
 
 func (c *Chronology) IsComitmentInSignature(threshold int) (bool, int) {
-
 	n := 0
 
 	for i := 0; i < len(c.Nodes); i++ {
@@ -1146,8 +1083,43 @@ func (c *Chronology) IsComitmentInSignature(threshold int) (bool, int) {
 	return n >= threshold, n
 }
 
-func (c *Chronology) GetLeader() (string, error) {
+func (c *Chronology) GetComitmentHashes() int {
+	n := 0
 
+	for i := 0; i < len(c.Nodes); i++ {
+		if c.Validators[c.Nodes[i]].ComitmentHash {
+			n++
+		}
+	}
+
+	return n
+}
+
+func (c *Chronology) GetComitments() int {
+	n := 0
+
+	for i := 0; i < len(c.Nodes); i++ {
+		if c.Validators[c.Nodes[i]].Comitment {
+			n++
+		}
+	}
+
+	return n
+}
+
+func (c *Chronology) GetSignatures() int {
+	n := 0
+
+	for i := 0; i < len(c.Nodes); i++ {
+		if c.Validators[c.Nodes[i]].Signature {
+			n++
+		}
+	}
+
+	return n
+}
+
+func (c *Chronology) GetLeader() (string, error) {
 	if c.Round.GetIndex() == -1 {
 		return "", errors.New("Round is not set")
 	}
@@ -1187,23 +1159,6 @@ func (c *Chronology) ResetSubround() {
 	c.Subround = Subround{SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED}
 }
 
-//func (c *Chronology) SetPreviousSubroundsFinished(roundState round.RoundState) {
-//	for i := round.RS_BLOCK; i < roundState; i++ {
-//		switch i {
-//		case round.RS_BLOCK:
-//			c.Subround.Block = SS_FINISHED
-//		case round.RS_COMITMENT_HASH:
-//			c.Subround.ComitmentHash = SS_FINISHED
-//		case round.RS_BITMAP:
-//			c.Subround.Bitmap = SS_FINISHED
-//		case round.RS_COMITMENT:
-//			c.Subround.Comitment = SS_FINISHED
-//		case round.RS_SIGNATURE:
-//			c.Subround.Signature = SS_FINISHED
-//		}
-//	}
-//}
-
 func (c *Chronology) ResetConsensusThreshold() {
 	if c.IsNodeLeaderInCurrentRound(c.Node) {
 		c.ConsensusThreshold = ConsensusThreshold{1, c.PBFTThreshold, c.PBFTThreshold, c.PBFTThreshold, c.PBFTThreshold}
@@ -1219,7 +1174,6 @@ func (c *Chronology) Log(message string) {
 }
 
 func FormatTime(time time.Time) string {
-
 	str := fmt.Sprintf("%.4d-%.2d-%.2d %.2d:%.2d:%.2d.%.9d ", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), time.Nanosecond())
 	return str
 }
@@ -1262,7 +1216,6 @@ const (
 )
 
 func (c *Chronology) GetMessageTypeName(messageType MessageType) string {
-
 	switch messageType {
 	case MT_BLOCK:
 		return ("<BLOCK>")
@@ -1290,7 +1243,6 @@ func (c *Chronology) recv(sender p2p.Messenger, peerID string, m *p2p.Message) {
 }
 
 func (c *Chronology) DecodeMessage(rcvMsg *[]byte) (MessageType, interface{}) {
-
 	if ok, msgBlock := c.IsBlockInMessage(rcvMsg); ok {
 		//c.Log(fmt.Sprintf(FormatTime(c.GetCurrentTime())+"Got a message with %s for block with Signature = %s and Nonce = %d and Hash = %s\n", msgBlock.MetaData, msgBlock.Signature, msgBlock.Nonce, msgBlock.Hash))
 		if strings.Contains(msgBlock.GetMetaData(), c.GetMessageTypeName(MT_BLOCK)) {
@@ -1318,7 +1270,6 @@ func (c *Chronology) DecodeMessage(rcvMsg *[]byte) (MessageType, interface{}) {
 }
 
 func (c *Chronology) IsBlockInMessage(rcvMsg *[]byte) (bool, *block.Block) {
-
 	var msgBlock block.Block
 
 	json := marshal.JsonMarshalizer{}

@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/statistic"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/libp2p/go-libp2p-peer"
 
@@ -21,39 +22,39 @@ import (
 	"time"
 )
 
-var CGS int
-var START_PORT int
-var END_PORT int
-var SYNC bool
-var MAX_ALLOWED_PEERS int
+var CONSENSUS_GROUP_SIZE *int
+var FIRST_NODE_ID *int
+var LAST_NODE_ID *int
+var SYNC_MODE *bool
+var MAX_ALLOWED_PEERS *int
 var GENESIS_TIME_STAMP = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
-var ROUND_DURATION time.Duration
-var ID int
+var ROUND_DURATION *time.Duration
 
 func main() {
-
 	bcs := data.GetBlockChainerService()
 
 	// Parse options from the command line
-	CGS = *flag.Int("size", 21, "consensus group size")
-	MAX_ALLOWED_PEERS = *flag.Int("peers", 4, "max allowed peers")
-	ROUND_DURATION = *flag.Duration("duration", 4000*time.Millisecond, "round duration in milliseconds")
-	START_PORT = *flag.Int("start_port", 4000, "start port")
-	END_PORT = *flag.Int("end_port", 4015, "end port")
-	SYNC = *flag.Bool("sync", false, "sync mode")
+	CONSENSUS_GROUP_SIZE = flag.Int("size", 21, "consensus group size which validate proposed block by the leader")
+	MAX_ALLOWED_PEERS = flag.Int("peers", 4, "max connections allowed by each peer")
+	ROUND_DURATION = flag.Duration("duration", 4000*time.Millisecond, "round duration in milliseconds")
+	FIRST_NODE_ID = flag.Int("first", 1, "first node ID. This ID should be between 1 and consensus group size")
+	LAST_NODE_ID = flag.Int("last", 21, "last node ID. This ID should be between 1 and consensus group size, but also greater or equal than first node ID")
+	SYNC_MODE = flag.Bool("sync", false, "sync mode in subrounds will be used")
 	flag.Parse()
 
-	if START_PORT < 4000 || END_PORT > 4000+CGS-1 || CGS < 1 || START_PORT > END_PORT || MAX_ALLOWED_PEERS < 1 || MAX_ALLOWED_PEERS > CGS-1 {
+	if *FIRST_NODE_ID < 1 || *LAST_NODE_ID > *CONSENSUS_GROUP_SIZE || *CONSENSUS_GROUP_SIZE < 1 || *FIRST_NODE_ID > *LAST_NODE_ID || *MAX_ALLOWED_PEERS < 1 || *MAX_ALLOWED_PEERS > *CONSENSUS_GROUP_SIZE-1 {
 		fmt.Println("Eroare parametrii de intrare")
 		return
+	} else {
+		fmt.Printf("size = %d\npeers = %d\nduration = %d\nfirst = %d\nlast = %d\nsync = %v\n\n", *CONSENSUS_GROUP_SIZE, *MAX_ALLOWED_PEERS, *ROUND_DURATION, *FIRST_NODE_ID, *LAST_NODE_ID, *SYNC_MODE)
 	}
 
 	marsh := &mock.MockMarshalizer{}
 
 	var nodes []*p2p.Messenger
 
-	for i := START_PORT; i <= END_PORT; i++ {
-		node, err := createMessenger(Network, i, MAX_ALLOWED_PEERS, marsh)
+	for i := *FIRST_NODE_ID; i <= *LAST_NODE_ID; i++ {
+		node, err := createMessenger(Network, 4000+i-1, *MAX_ALLOWED_PEERS, marsh)
 
 		if err != nil {
 			continue
@@ -87,20 +88,22 @@ func main() {
 
 	consensusGroup := make([]string, 0)
 
-	for i := 4000; i < 4000+CGS; i++ {
-		consensusGroup = append(consensusGroup, p2p.NewConnectParamsFromPort(i).ID.Pretty())
+	for i := 1; i <= *CONSENSUS_GROUP_SIZE; i++ {
+		consensusGroup = append(consensusGroup, p2p.NewConnectParamsFromPort(4000+i-1).ID.Pretty())
 	}
 
 	v := validators.Validators{}
 	v.SetConsensusGroup(consensusGroup)
 
+	chronologyStatistic := statistic.NewChronologyStatistic()
+
 	var chrs []*chronology.Chronology
 
 	for i := 0; i < len(nodes); i++ {
-		v.SetSelf(consensusGroup[START_PORT-4000+i])
-		chr := chronology.New(nodes[i], &v, GENESIS_TIME_STAMP, ROUND_DURATION)
+		v.SetSelf(consensusGroup[*FIRST_NODE_ID+i-1])
+		chr := chronology.New(nodes[i], &v, &chronologyStatistic, GENESIS_TIME_STAMP, *ROUND_DURATION)
 		chr.DoLog = i == 0
-		chr.DoSyncMode = SYNC
+		chr.DoSyncMode = *SYNC_MODE
 		chrs = append(chrs, chr)
 	}
 
@@ -130,6 +133,7 @@ func main() {
 			if currentBlock.GetNonce() > oldNounce[i] {
 				oldNounce[i] = currentBlock.GetNonce()
 				spew.Dump(currentBlock)
+				fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% rate of hit **********\n", chronologyStatistic.GetRounds(), chronologyStatistic.GetRoundsWithBlock(), float64(chronologyStatistic.GetRoundsWithBlock())*100/float64(chronologyStatistic.GetRounds()))
 			}
 		}
 	}
