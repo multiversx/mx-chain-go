@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	//"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -21,15 +22,33 @@ type AccountState struct {
 	Code     []byte
 	Data     trie.Trier
 	hasher   hashing.Hasher
+	prevRoot []byte
 }
 
 func NewAccountState(address Address, account Account, hasher hashing.Hasher) *AccountState {
-	acState := AccountState{Account: account, Addr: address}
+	acState := AccountState{Account: account, Addr: address, prevRoot: account.Root}
+	if acState.Balance == nil {
+		//an account is inconsistent if Balance is nil.
+		acState.Balance = big.NewInt(0)
+	}
+
 	acState.hasher = hasher
 
-	acState.AddrHash = acState.hasher.Compute(address.Hex(hasher))
+	acState.AddrHash = address.ComputeHash(hasher)
 
 	return &acState
+}
+
+func (as *AccountState) Dirty() bool {
+	if as.Data == nil {
+		return false
+	}
+
+	if (as.prevRoot == nil) || (as.Root == nil) {
+		return true
+	}
+
+	return !bytes.Equal(as.Data.Root(), as.prevRoot)
 }
 
 func (as *AccountState) resetDataCode() {
@@ -39,39 +58,3 @@ func (as *AccountState) resetDataCode() {
 	as.Root = nil
 	as.Data = nil
 }
-
-//func (as *AccountState)Get(key []byte) ([]byte, error){
-//	if as.Data == nil{
-//		return nil, errors.New("nil data trie, can not retrieve")
-//	}
-//
-//	if len(key) != encoding.HashLength{
-//		return nil, errors.New("key is not normalized")
-//	}
-//
-//	return as.Data.Get(key)
-//}
-//
-//func (as *AccountState)Put(key []byte, value []byte) (error){
-//	if as.Data == nil{
-//		return errors.New("nil data trie, can not put")
-//	}
-//
-//	//try to get, maybe it has same value, won't set dirty flag
-//	data, err := as.Data.Get(key)
-//	if err != nil{
-//		return err
-//	}
-//
-//	if bytes.Equal(data, value){
-//		return nil
-//	}
-//
-//	as.dirty = true
-//
-//	return as.Data.Update(key, value)
-//}
-//
-//func (as *AccountState)Dirty() bool{
-//	return as.dirty
-//}

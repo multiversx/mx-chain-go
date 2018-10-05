@@ -41,6 +41,11 @@ func (adr *Address) SetBytes(b []byte) {
 	copy(adr[AdrLen-len(b):], b)
 }
 
+// Computes the hash of the address array of bytes
+func (adr *Address) ComputeHash(hasher hashing.Hasher) []byte {
+	return hasher.Compute(string((*adr)[:]))
+}
+
 // Hex returns an EIP55-compliant hex string representation of the address.
 func (adr *Address) Hex(hasher hashing.Hasher) string {
 	unchecksummed := hex.EncodeToString(adr.Bytes())

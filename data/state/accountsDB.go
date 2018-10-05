@@ -7,19 +7,28 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"strconv"
+	"sync"
 )
 
 type AccountsDB struct {
 	//should use a concurrent trie
-	mainTrie trie.Trier
+	MainTrie trie.Trier
 	hasher   hashing.Hasher
 	marsh    marshal.Marshalizer
 
 	prevRoot []byte
+
+	mutUsedAccounts   sync.RWMutex
+	usedStateAccounts map[string]*AccountState
 }
 
 func NewAccountsDB(tr trie.Trier, hasher hashing.Hasher, marsh marshal.Marshalizer) *AccountsDB {
-	adb := AccountsDB{mainTrie: tr, hasher: hasher, marsh: marsh}
+	adb := AccountsDB{MainTrie: tr, hasher: hasher, marsh: marsh}
+
+	adb.mutUsedAccounts = sync.RWMutex{}
+	adb.usedStateAccounts = make(map[string]*AccountState, 0)
+
+	adb.prevRoot = tr.Root()
 
 	return &adb
 }
@@ -30,7 +39,7 @@ func (adb *AccountsDB) RetrieveCode(state *AccountState) error {
 		return nil
 	}
 
-	if adb.mainTrie == nil {
+	if adb.MainTrie == nil {
 		return errors.New("attempt to search on a nil trie")
 	}
 
@@ -39,7 +48,7 @@ func (adb *AccountsDB) RetrieveCode(state *AccountState) error {
 			strconv.Itoa(encoding.HashLength) + "bytes")
 	}
 
-	val, err := adb.mainTrie.Get(state.CodeHash)
+	val, err := adb.MainTrie.Get(state.CodeHash)
 
 	if err != nil {
 		return err
@@ -55,7 +64,7 @@ func (adb *AccountsDB) RetrieveData(state *AccountState) error {
 		return nil
 	}
 
-	if adb.mainTrie == nil {
+	if adb.MainTrie == nil {
 		return errors.New("attempt to search on a nil trie")
 	}
 
@@ -64,10 +73,10 @@ func (adb *AccountsDB) RetrieveData(state *AccountState) error {
 			strconv.Itoa(encoding.HashLength) + "bytes")
 	}
 
-	dataTrie, err := adb.mainTrie.Recreate(state.Root, adb.mainTrie.DBW())
+	dataTrie, err := adb.MainTrie.Recreate(state.Root, adb.MainTrie.DBW())
 	if err != nil {
 		//node does not exists, create new one
-		dataTrie, err = adb.mainTrie.Recreate(make([]byte, 0), adb.mainTrie.DBW())
+		dataTrie, err = adb.MainTrie.Recreate(make([]byte, 0), adb.MainTrie.DBW())
 		if err != nil {
 			return err
 		}
@@ -85,20 +94,20 @@ func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 		return nil
 	}
 
-	if adb.mainTrie == nil {
+	if adb.MainTrie == nil {
 		return errors.New("attempt to search on a nil trie")
 	}
 
 	state.CodeHash = state.hasher.Compute(string(code))
 	state.Code = code
 
-	err := adb.mainTrie.Update(state.CodeHash, state.Code)
+	err := adb.MainTrie.Update(state.CodeHash, state.Code)
 	if err != nil {
 		state.resetDataCode()
 		return err
 	}
 
-	dataTrie, err := adb.mainTrie.Recreate(make([]byte, 0), adb.mainTrie.DBW())
+	dataTrie, err := adb.MainTrie.Recreate(make([]byte, 0), adb.MainTrie.DBW())
 	if err != nil {
 		state.resetDataCode()
 		return err
@@ -111,13 +120,13 @@ func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 }
 
 func (adb *AccountsDB) HasAccount(address Address) (bool, error) {
-	if adb.mainTrie == nil {
+	if adb.MainTrie == nil {
 		return false, errors.New("attempt to search on a nil trie")
 	}
 
-	adrHash := adb.hasher.Compute(string(address.Bytes()))
+	adrHash := address.ComputeHash(adb.hasher)
 
-	val, err := adb.mainTrie.Get(adrHash)
+	val, err := adb.MainTrie.Get(adrHash)
 
 	if err != nil {
 		return false, err
@@ -131,7 +140,7 @@ func (adb *AccountsDB) SaveAccountState(state *AccountState) error {
 		return errors.New("can not save nil account")
 	}
 
-	if adb.mainTrie == nil {
+	if adb.MainTrie == nil {
 		return errors.New("attempt to search on a nil trie")
 	}
 
@@ -141,7 +150,9 @@ func (adb *AccountsDB) SaveAccountState(state *AccountState) error {
 		return err
 	}
 
-	err = adb.mainTrie.Update(state.AddrHash, buff)
+	adb.trackAccountState(state)
+
+	err = adb.MainTrie.Update(state.AddrHash, buff)
 	if err != nil {
 		return err
 	}
@@ -149,19 +160,120 @@ func (adb *AccountsDB) SaveAccountState(state *AccountState) error {
 	return nil
 }
 
-//func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error){
-//	if adb.mainTrie == nil {
-//		return nil, errors.New("attempt to search on a nil trie")
-//	}
-//
-//	found, err := adb.HasAccount(address)
-//	if err != nil{
-//		return nil, err
-//	}
-//
-//	if !found{
-//		acntState := NewAccountState()
-//
-//
-//	}
-//}
+func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error) {
+	has, err := adb.HasAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	adrHash := address.ComputeHash(adb.hasher)
+
+	if has {
+		val, err := adb.MainTrie.Get(adrHash)
+		if err != nil {
+			return nil, err
+		}
+
+		acnt := Account{}
+
+		err = adb.marsh.Unmarshal(&acnt, val)
+		if err != nil {
+			return nil, err
+		}
+
+		state := NewAccountState(address, acnt, adb.hasher)
+
+		adb.trackAccountState(state)
+
+		return state, nil
+	}
+
+	state := NewAccountState(address, Account{}, adb.hasher)
+
+	err = adb.SaveAccountState(state)
+	if err != nil {
+		return nil, err
+	}
+
+	return state, nil
+}
+
+func (adb *AccountsDB) Undo() error {
+	adb.mutUsedAccounts.Lock()
+	defer adb.mutUsedAccounts.Unlock()
+
+	//Step 1. iterate through tracked account states map and replace their data roots with prev data roots
+	for _, v := range adb.usedStateAccounts {
+		if !v.Dirty() {
+			continue
+		}
+
+		v.Root = v.prevRoot
+		newtrie, err := v.Data.Recreate(v.prevRoot, v.Data.DBW())
+		if err != nil {
+			return err
+		}
+
+		v.Data = newtrie
+	}
+
+	//step 2. clean used accounts map
+	adb.usedStateAccounts = make(map[string]*AccountState, 0)
+
+	//Step 3. replace current trie by the original one
+	newtrie, err := adb.MainTrie.Recreate(adb.prevRoot, adb.MainTrie.DBW())
+
+	if err != nil {
+		return err
+	}
+
+	adb.MainTrie = newtrie
+
+	return nil
+}
+
+func (adb *AccountsDB) Commit() error {
+	adb.mutUsedAccounts.Lock()
+	defer adb.mutUsedAccounts.Unlock()
+
+	//Step 1. iterate through tracked account states map and commits the new tries
+	for _, v := range adb.usedStateAccounts {
+		if v.Dirty() {
+			hash, err := v.Data.Commit(nil)
+			if err != nil {
+				return err
+			}
+
+			v.Root = hash
+			v.prevRoot = hash
+		}
+
+		buff, err := adb.marsh.Marshal(v.Account)
+		if err != nil {
+			return err
+		}
+		adb.MainTrie.Update(v.AddrHash, buff)
+	}
+
+	//step 2. clean used accounts map
+	adb.usedStateAccounts = make(map[string]*AccountState, 0)
+
+	//Step 3. commit main trie
+	hash, err := adb.MainTrie.Commit(nil)
+	if err != nil {
+		return err
+	}
+	adb.prevRoot = hash
+
+	return nil
+}
+
+func (adb *AccountsDB) trackAccountState(state *AccountState) {
+	//add account to used accounts to track the modifications in data trie for committing/undoing
+	adb.mutUsedAccounts.Lock()
+	_, ok := adb.usedStateAccounts[string(state.AddrHash)]
+	if !ok {
+		adb.usedStateAccounts[string(state.AddrHash)] = state
+	}
+	adb.mutUsedAccounts.Unlock()
+}
