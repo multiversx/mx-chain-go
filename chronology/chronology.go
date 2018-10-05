@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/epoch"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/sync"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/synctime"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -38,7 +38,7 @@ type Chronology struct {
 	Nodes []string
 
 	Block      block.Block
-	BlockChain blockchain.BlockChain
+	BlockChain *blockchain.BlockChain
 
 	Round         round.Round
 	GenesisTime   time.Time
@@ -60,7 +60,7 @@ type Chronology struct {
 
 	ChRcvMsg chan []byte
 
-	SyncTime    sync.SyncTime
+	SyncTime    *synctime.SyncTime
 	ClockOffset time.Duration
 
 	ChronologyStatistic *statistic.ChronologyStatistic
@@ -74,13 +74,13 @@ type RoundStateValidation struct {
 	Signature     bool
 }
 
-func New(p2pNode *p2p.Messenger, v *validators.Validators, chronologyStatistic *statistic.ChronologyStatistic, genesisRoundTimeStamp time.Time, roundDuration time.Duration) *Chronology {
+func New(p2pNode *p2p.Messenger, v *validators.Validators, chronologyStatistic *statistic.ChronologyStatistic, syncTime *synctime.SyncTime, blockChain *blockchain.BlockChain, genesisRoundTimeStamp time.Time, roundDuration time.Duration) *Chronology {
 	csi := Chronology{}
 	rs := GetRounderService()
 
 	csi.DoRun = true
 
-	csi.SyncTime = sync.New(roundDuration)
+	csi.SyncTime = syncTime
 	csi.ChRcvMsg = make(chan []byte, len(v.GetConsensusGroup()))
 	//csi.ChRcvMsg = make(chan []byte)
 
@@ -94,7 +94,7 @@ func New(p2pNode *p2p.Messenger, v *validators.Validators, chronologyStatistic *
 
 	csi.Validators = make(map[string]RoundStateValidation)
 
-	csi.BlockChain = blockchain.New(nil)
+	csi.BlockChain = blockChain
 
 	csi.InitRound()
 
@@ -457,7 +457,6 @@ func (c *Chronology) DoSignature() bool {
 }
 
 func (c *Chronology) DoEndRound() bool {
-	bcs := data.GetBlockChainerService()
 	rs := GetRounderService()
 
 	bActionDone := true
@@ -487,7 +486,7 @@ func (c *Chronology) DoEndRound() bool {
 					c.ChronologyStatistic.AddRoundWithBlock()
 				} // only for statistic
 
-				bcs.AddBlock(&c.BlockChain, c.Block)
+				c.BlockChain.AddBlock(c.Block)
 
 				if c.IsNodeLeaderInCurrentRound(c.Node) {
 					c.Log(fmt.Sprintf("\n"+FormatTime(c.GetCurrentTime())+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.GetNonce()))
@@ -520,7 +519,7 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 
 		if c.Subround.Block != SS_FINISHED {
 			if c.IsNodeLeaderInCurrentRound(node) {
-				if !c.CheckIfBlockIsValid(rcvBlock) {
+				if !c.BlockChain.CheckIfBlockIsValid(rcvBlock) {
 					c.SelfRoundState = round.RS_ABORDED
 					return false
 				}
@@ -797,9 +796,8 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 
 func (c *Chronology) SendBlock() bool {
 	bs := data.GetBlockerService()
-	bcs := data.GetBlockChainerService()
 
-	currentBlock := bcs.GetCurrentBlock(&c.BlockChain)
+	currentBlock := c.BlockChain.GetCurrentBlock()
 
 	if currentBlock == nil {
 		c.Block = block.New(0, c.GetCurrentTime().String(), c.Node, "", "", c.GetMessageTypeName(MT_BLOCK))
@@ -921,42 +919,6 @@ func (c *Chronology) BroadcastBlock(block *block.Block) bool {
 	//(*c.P2PNode).BroadcastString(string(message), []string{})
 	m := p2p.NewMessage((*c.P2PNode).ID().Pretty(), message, marsh)
 	(*c.P2PNode).BroadcastMessage(m, []string{})
-
-	return true
-}
-
-func (c *Chronology) CheckIfBlockIsValid(receivedBlock *block.Block) bool {
-	bcs := data.GetBlockChainerService()
-
-	currentBlock := bcs.GetCurrentBlock(&c.BlockChain)
-
-	if currentBlock == nil {
-		if receivedBlock.GetNonce() == 0 {
-			if receivedBlock.PrevHash != "" {
-				c.Log(fmt.Sprintf("Hash not match: local block hash is %s and node received block with previous hash %s", currentBlock.GetHash(), receivedBlock.GetHash()))
-				return false
-			}
-		} else if receivedBlock.GetNonce() > 0 { // to resolve the situation when a node comes later in the network and it have not implemented the bootstrap mechanism (he will accept the first block received)
-			c.Log(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block with nonce %d", -1, receivedBlock.GetNonce()))
-			c.Log(fmt.Sprintf("\n"+FormatTime(c.GetCurrentTime())+">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET <<<<<<<<<<<<<<<<<<<<\n", receivedBlock.GetNonce()))
-		}
-
-		return true
-	}
-
-	if receivedBlock.GetNonce() < currentBlock.GetNonce()+1 {
-		c.Log(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block with nonce %d", currentBlock.GetNonce(), receivedBlock.GetNonce()))
-		return false
-
-	} else if receivedBlock.GetNonce() == currentBlock.GetNonce()+1 {
-		if receivedBlock.GetPrevHash() != currentBlock.GetHash() {
-			c.Log(fmt.Sprintf("Hash not match: local block hash is %s and node received block with previous hash %s", currentBlock.GetHash(), receivedBlock.GetHash()))
-			return false
-		}
-	} else if receivedBlock.GetNonce() > currentBlock.GetNonce()+1 { // to resolve the situation when a node misses some blocks and it have not implemented the bootstrap mechanism (he will accept the next block received)
-		c.Log(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block with nonce %d", currentBlock.GetNonce(), receivedBlock.GetNonce()))
-		c.Log(fmt.Sprintf("\n"+FormatTime(c.GetCurrentTime())+">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET <<<<<<<<<<<<<<<<<<<<\n", receivedBlock.GetNonce()))
-	}
 
 	return true
 }

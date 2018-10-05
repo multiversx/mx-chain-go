@@ -9,8 +9,9 @@ import (
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/synctime"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/validators"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
@@ -31,8 +32,6 @@ var GENESIS_TIME_STAMP = time.Date(time.Now().Year(), time.Now().Month(), time.N
 var ROUND_DURATION *time.Duration
 
 func main() {
-	bcs := data.GetBlockChainerService()
-
 	// Parse options from the command line
 	CONSENSUS_GROUP_SIZE = flag.Int("size", 21, "consensus group size which validate proposed block by the leader")
 	MAX_ALLOWED_PEERS = flag.Int("peers", 4, "max connections allowed by each peer")
@@ -46,7 +45,7 @@ func main() {
 		fmt.Println("Eroare parametrii de intrare")
 		return
 	} else {
-		fmt.Printf("size = %d\npeers = %d\nduration = %d\nfirst = %d\nlast = %d\nsync = %v\n\n", *CONSENSUS_GROUP_SIZE, *MAX_ALLOWED_PEERS, *ROUND_DURATION, *FIRST_NODE_ID, *LAST_NODE_ID, *SYNC_MODE)
+		fmt.Printf("size = %d\npeers = %d\nduration = %d\nfirst = %d\nlast = %d\nsynctime = %v\n\n", *CONSENSUS_GROUP_SIZE, *MAX_ALLOWED_PEERS, *ROUND_DURATION, *FIRST_NODE_ID, *LAST_NODE_ID, *SYNC_MODE)
 	}
 
 	marsh := &mock.MockMarshalizer{}
@@ -97,11 +96,15 @@ func main() {
 
 	chronologyStatistic := statistic.NewChronologyStatistic()
 
+	syncTime := synctime.New(*ROUND_DURATION)
+
 	var chrs []*chronology.Chronology
 
 	for i := 0; i < len(nodes); i++ {
 		v.SetSelf(consensusGroup[*FIRST_NODE_ID+i-1])
-		chr := chronology.New(nodes[i], &v, &chronologyStatistic, GENESIS_TIME_STAMP, *ROUND_DURATION)
+		blockChain := blockchain.New(nil, &syncTime, i == 0)
+
+		chr := chronology.New(nodes[i], &v, &chronologyStatistic, &syncTime, &blockChain, GENESIS_TIME_STAMP, *ROUND_DURATION)
 		chr.DoLog = i == 0
 		chr.DoSyncMode = *SYNC_MODE
 		chrs = append(chrs, chr)
@@ -125,7 +128,7 @@ func main() {
 				continue
 			}
 
-			currentBlock := bcs.GetCurrentBlock(&chrs[i].BlockChain)
+			currentBlock := chrs[i].BlockChain.GetCurrentBlock()
 			if currentBlock == nil {
 				continue
 			}

@@ -2,7 +2,6 @@ package data
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 )
 
 var services map[interface{}]interface{}
@@ -18,7 +17,6 @@ func init() {
 
 func InjectDefaultServices() {
 	PutService("Blocker", block.BlockImpl1{})
-	PutService("BlockChainer", blockchain.BlockChainImpl{})
 }
 
 func GetService(key interface{}) interface{} {
@@ -36,8 +34,4 @@ func PutService(key interface{}, value interface{}) {
 
 func GetBlockerService() Blocker {
 	return GetService("Blocker").(Blocker)
-}
-
-func GetBlockChainerService() BlockChainer {
-	return GetService("BlockChainer").(BlockChainer)
 }
