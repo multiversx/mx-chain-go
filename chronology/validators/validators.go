@@ -7,22 +7,14 @@ type Validators struct {
 	Self           string
 }
 
-func (v *Validators) SetConsensusGroup(consensusGroup []string) {
+func New(consensusGroup []string) Validators {
+	v := Validators{}
+
 	v.ConsensusGroup = make([]string, len(consensusGroup))
 
 	for i := 0; i < len(consensusGroup); i++ {
 		v.ConsensusGroup[i] = consensusGroup[i]
 	}
-}
 
-func (v *Validators) GetConsensusGroup() []string {
-	return v.ConsensusGroup
-}
-
-func (v *Validators) SetSelf(self string) {
-	v.Self = self
-}
-
-func (v *Validators) GetSelf() string {
-	return v.Self
+	return v
 }

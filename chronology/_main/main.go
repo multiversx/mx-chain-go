@@ -92,24 +92,21 @@ func main() {
 		consensusGroup = append(consensusGroup, p2p.NewConnectParamsFromPort(4000+i-1).ID.Pretty())
 	}
 
-	v := validators.Validators{}
-	v.SetConsensusGroup(consensusGroup)
+	vld := validators.New(consensusGroup)
 
-	PBFTThreshold := len(v.GetConsensusGroup())*2/3 + 1
-	cns := consensus.New()
-	cns.Threshold = consensus.Threshold{1, PBFTThreshold, PBFTThreshold, PBFTThreshold, PBFTThreshold}
+	PBFTThreshold := len(vld.ConsensusGroup)*2/3 + 1
+	cns := consensus.New(consensus.Threshold{1, PBFTThreshold, PBFTThreshold, PBFTThreshold, PBFTThreshold})
 
-	chronologyStatistic := statistic.NewChronologyStatistic()
-
-	syncTime := synctime.New(*ROUND_DURATION)
+	sync := synctime.New(*ROUND_DURATION)
 
 	var chrs []*chronology.Chronology
 
 	for i := 0; i < len(nodes); i++ {
-		v.SetSelf(consensusGroup[*FIRST_NODE_ID+i-1])
-		blockChain := blockchain.New(nil, &syncTime, i == 0)
+		vld.Self = consensusGroup[*FIRST_NODE_ID+i-1]
+		bc := blockchain.New(nil, &sync, i == 0)
+		stats := statistic.New()
 
-		chr := chronology.New(nodes[i], &v, &cns, &chronologyStatistic, &syncTime, &blockChain, GENESIS_TIME_STAMP, *ROUND_DURATION)
+		chr := chronology.New(nodes[i], &vld, &cns, &stats, &sync, &bc, GENESIS_TIME_STAMP, *ROUND_DURATION)
 		chr.DoLog = i == 0
 		chr.DoSyncMode = *SYNC_MODE
 		chrs = append(chrs, chr)
@@ -141,7 +138,7 @@ func main() {
 			if currentBlock.GetNonce() > oldNounce[i] {
 				oldNounce[i] = currentBlock.GetNonce()
 				spew.Dump(currentBlock)
-				fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n", chronologyStatistic.GetRounds(), chronologyStatistic.GetRoundsWithBlock(), float64(chronologyStatistic.GetRoundsWithBlock())*100/float64(chronologyStatistic.GetRounds()))
+				fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n", chrs[i].Stats.GetRounds(), chrs[i].Stats.GetRoundsWithBlock(), float64(chrs[i].Stats.GetRoundsWithBlock())*100/float64(chrs[i].Stats.GetRounds()))
 			}
 		}
 	}

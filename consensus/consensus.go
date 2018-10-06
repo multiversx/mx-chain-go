@@ -6,8 +6,8 @@ type Consensus struct {
 	Threshold
 }
 
-func New() Consensus {
-	c := Consensus{AgreementType: AT_NONE, ResponseType: RT_NONE}
+func New(threshold Threshold) Consensus {
+	c := Consensus{AgreementType: AT_NONE, ResponseType: RT_NONE, Threshold: threshold}
 	return c
 }
 

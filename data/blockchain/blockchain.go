@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/synctime"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/davecgh/go-spew/spew"
 )
 
 type BlockChain struct {
@@ -64,10 +63,6 @@ func (bc *BlockChain) GetCurrentBlock() *block.Block {
 	}
 
 	return &bc.Blocks[len(bc.Blocks)-1]
-}
-
-func (bc *BlockChain) Print() {
-	spew.Dump(bc)
 }
 
 func (bc *BlockChain) Log(message string) {

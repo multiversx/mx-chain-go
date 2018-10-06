@@ -58,9 +58,6 @@ type Chronology struct {
 
 	Validators map[string]RoundStateValidation
 
-	//PBFTThreshold      int
-	//ConsensusThreshold ConsensusThreshold
-
 	P2PNode *p2p.Messenger
 
 	ChRcvMsg chan []byte
@@ -68,7 +65,7 @@ type Chronology struct {
 	SyncTime    *synctime.SyncTime
 	ClockOffset time.Duration
 
-	ChronologyStatistic *statistic.ChronologyStatistic
+	Stats *statistic.Chronology
 }
 
 type RoundStateValidation struct {
@@ -79,23 +76,22 @@ type RoundStateValidation struct {
 	Signature     bool
 }
 
-func New(p2pNode *p2p.Messenger, validators *validators.Validators, consensus *consensus.Consensus, chronologyStatistic *statistic.ChronologyStatistic, syncTime *synctime.SyncTime, blockChain *blockchain.BlockChain, genesisRoundTimeStamp time.Time, roundDuration time.Duration) *Chronology {
+func New(p2pNode *p2p.Messenger, validators *validators.Validators, consensus *consensus.Consensus, stats *statistic.Chronology, syncTime *synctime.SyncTime, blockChain *blockchain.BlockChain, genesisRoundTimeStamp time.Time, roundDuration time.Duration) *Chronology {
 	csi := Chronology{}
 	rs := GetRounderService()
 
 	csi.DoRun = true
 
 	csi.SyncTime = syncTime
-	csi.ChRcvMsg = make(chan []byte, len(validators.GetConsensusGroup()))
+	csi.ChRcvMsg = make(chan []byte, len(validators.ConsensusGroup))
 	//csi.ChRcvMsg = make(chan []byte)
 
 	csi.P2PNode = p2pNode
 	(*csi.P2PNode).SetOnRecvMsg(csi.recv)
 
-	csi.Node = validators.GetSelf()
-	csi.Nodes = validators.GetConsensusGroup()
+	csi.Node = validators.Self
+	csi.Nodes = validators.ConsensusGroup
 
-	//csi.PBFTThreshold = len(csi.Nodes)*2/3 + 1
 	csi.Consensus = consensus
 
 	csi.Validators = make(map[string]RoundStateValidation)
@@ -109,7 +105,7 @@ func New(p2pNode *p2p.Messenger, validators *validators.Validators, consensus *c
 	csi.RoundDivision = GetRounderService().CreateRoundTimeDivision(roundDuration)
 	csi.Round = rs.CreateRoundFromDateTime(csi.GenesisTime, csi.GetCurrentTime(), csi.RoundDuration, csi.RoundDivision)
 
-	csi.ChronologyStatistic = chronologyStatistic
+	csi.Stats = stats
 
 	return &csi
 }
@@ -180,9 +176,7 @@ func (c *Chronology) UpdateRound() (int, round.RoundState) {
 	rs.UpdateRoundFromDateTime(c.GenesisTime, c.GetCurrentTime(), &c.Round)
 
 	if oldRoundIndex != c.Round.GetIndex() {
-		if c.DoLog { // only for statistic
-			c.ChronologyStatistic.AddRound()
-		}
+		c.Stats.AddRound() // only for statistic
 
 		leader, err := c.GetLeader()
 		if err != nil {
@@ -488,9 +482,7 @@ func (c *Chronology) DoEndRound() bool {
 		if bActionDone {
 			bActionDone = false
 			if ok, _ := c.CheckConsensus(round.RS_BLOCK, round.RS_SIGNATURE); ok {
-				if c.DoLog {
-					c.ChronologyStatistic.AddRoundWithBlock()
-				} // only for statistic
+				c.Stats.AddRoundWithBlock() // only for statistic
 
 				c.BlockChain.AddBlock(c.Block)
 

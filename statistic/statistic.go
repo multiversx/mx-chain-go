@@ -2,39 +2,39 @@ package statistic
 
 import "sync"
 
-type ChronologyStatistic struct {
+type Chronology struct {
 	mut              sync.RWMutex
-	Rounds           int
-	RoundsWithBlocks int
+	rounds           int
+	roundsWithBlocks int
 }
 
-func NewChronologyStatistic() ChronologyStatistic {
-	c := ChronologyStatistic{Rounds: 0, RoundsWithBlocks: 0}
+func New() Chronology {
+	c := Chronology{rounds: 0, roundsWithBlocks: 0}
 	return c
 }
 
-func (c *ChronologyStatistic) AddRound() {
+func (c *Chronology) AddRound() {
 	c.mut.Lock()
-	c.Rounds++
+	c.rounds++
 	c.mut.Unlock()
 }
 
-func (c *ChronologyStatistic) AddRoundWithBlock() {
+func (c *Chronology) AddRoundWithBlock() {
 	c.mut.Lock()
-	c.RoundsWithBlocks++
+	c.roundsWithBlocks++
 	c.mut.Unlock()
 }
 
-func (c *ChronologyStatistic) GetRounds() int {
+func (c *Chronology) GetRounds() int {
 	c.mut.RLock()
-	rounds := c.Rounds
+	rounds := c.rounds
 	c.mut.RUnlock()
 	return rounds
 }
 
-func (c *ChronologyStatistic) GetRoundsWithBlock() int {
+func (c *Chronology) GetRoundsWithBlock() int {
 	c.mut.RLock()
-	roundsWithBlocks := c.RoundsWithBlocks
+	roundsWithBlocks := c.roundsWithBlocks
 	c.mut.RUnlock()
 	return roundsWithBlocks
 }
