@@ -1,8 +1,14 @@
 package consensus
 
 type Consensus struct {
-	Agreement AgreementType
-	Answer    AnswerType
+	AgreementType
+	ResponseType
+	Threshold
+}
+
+func New() Consensus {
+	c := Consensus{AgreementType: AT_NONE, ResponseType: RT_NONE}
+	return c
 }
 
 // An AgreementType specifies the type of consensus (PBFT = 2/3 + 1)
@@ -15,16 +21,24 @@ const (
 	AT_ALL
 )
 
-// An AnswerType specifies an answer of the node
-type AnswerType int
+// An ResponseType specifies a response of the node
+type ResponseType int
 
 const (
-	// the validator agrees on consensus
-	AT_AGREE AnswerType = iota
-	// the validator disagree on consensus
-	AT_DISAGREE
 	// the validator did not answer (yet)
-	AT_NOT_ANSWERED
+	RT_NONE ResponseType = iota
+	// the validator agrees on consensus
+	RT_AGREE
+	// the validator disagree on consensus
+	RT_DISAGREE
 	// the validator is not available
-	AT_NOT_AVAILABLE
+	RT_NOT_AVAILABLE
 )
+
+type Threshold struct {
+	Block         int
+	ComitmentHash int
+	Bitmap        int
+	Comitment     int
+	Signature     int
+}

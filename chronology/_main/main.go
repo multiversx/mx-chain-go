@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/synctime"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/validators"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -94,6 +95,10 @@ func main() {
 	v := validators.Validators{}
 	v.SetConsensusGroup(consensusGroup)
 
+	PBFTThreshold := len(v.GetConsensusGroup())*2/3 + 1
+	cns := consensus.New()
+	cns.Threshold = consensus.Threshold{1, PBFTThreshold, PBFTThreshold, PBFTThreshold, PBFTThreshold}
+
 	chronologyStatistic := statistic.NewChronologyStatistic()
 
 	syncTime := synctime.New(*ROUND_DURATION)
@@ -104,7 +109,7 @@ func main() {
 		v.SetSelf(consensusGroup[*FIRST_NODE_ID+i-1])
 		blockChain := blockchain.New(nil, &syncTime, i == 0)
 
-		chr := chronology.New(nodes[i], &v, &chronologyStatistic, &syncTime, &blockChain, GENESIS_TIME_STAMP, *ROUND_DURATION)
+		chr := chronology.New(nodes[i], &v, &cns, &chronologyStatistic, &syncTime, &blockChain, GENESIS_TIME_STAMP, *ROUND_DURATION)
 		chr.DoLog = i == 0
 		chr.DoSyncMode = *SYNC_MODE
 		chrs = append(chrs, chr)
@@ -136,7 +141,7 @@ func main() {
 			if currentBlock.GetNonce() > oldNounce[i] {
 				oldNounce[i] = currentBlock.GetNonce()
 				spew.Dump(currentBlock)
-				fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% rate of hit **********\n", chronologyStatistic.GetRounds(), chronologyStatistic.GetRoundsWithBlock(), float64(chronologyStatistic.GetRoundsWithBlock())*100/float64(chronologyStatistic.GetRounds()))
+				fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n", chronologyStatistic.GetRounds(), chronologyStatistic.GetRoundsWithBlock(), float64(chronologyStatistic.GetRoundsWithBlock())*100/float64(chronologyStatistic.GetRounds()))
 			}
 		}
 	}
