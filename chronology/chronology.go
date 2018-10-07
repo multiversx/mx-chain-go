@@ -43,10 +43,8 @@ type Chronology struct {
 
 	Consensus *consensus.Consensus
 
-	Round         round.Round
-	GenesisTime   time.Time
-	RoundDuration time.Duration
-	RoundDivision []time.Duration
+	Round       *round.Round
+	GenesisTime time.Time
 
 	Subround Subround
 
@@ -76,9 +74,8 @@ type RoundStateValidation struct {
 	Signature     bool
 }
 
-func New(p2pNode *p2p.Messenger, validators *validators.Validators, consensus *consensus.Consensus, stats *statistic.Chronology, syncTime *synctime.SyncTime, blockChain *blockchain.BlockChain, genesisRoundTimeStamp time.Time, roundDuration time.Duration) *Chronology {
+func New(p2pNode *p2p.Messenger, validators *validators.Validators, consensus *consensus.Consensus, round *round.Round, stats *statistic.Chronology, syncTime *synctime.SyncTime, blockChain *blockchain.BlockChain, genesisRoundTimeStamp time.Time) *Chronology {
 	csi := Chronology{}
-	rs := GetRounderService()
 
 	csi.DoRun = true
 
@@ -100,10 +97,8 @@ func New(p2pNode *p2p.Messenger, validators *validators.Validators, consensus *c
 
 	csi.InitRound()
 
+	csi.Round = round
 	csi.GenesisTime = genesisRoundTimeStamp
-	csi.RoundDuration = roundDuration
-	csi.RoundDivision = GetRounderService().CreateRoundTimeDivision(roundDuration)
-	csi.Round = rs.CreateRoundFromDateTime(csi.GenesisTime, csi.GetCurrentTime(), csi.RoundDuration, csi.RoundDivision)
 
 	csi.Stats = stats
 
@@ -168,12 +163,10 @@ func (c *Chronology) StartRounds() {
 }
 
 func (c *Chronology) UpdateRound() (int, round.RoundState) {
-	rs := GetRounderService()
-
 	oldRoundIndex := c.Round.GetIndex()
 	oldRoundState := c.Round.GetRoundState()
 
-	rs.UpdateRoundFromDateTime(c.GenesisTime, c.GetCurrentTime(), &c.Round)
+	c.Round.UpdateRoundFromDateTime(c.GenesisTime, c.GetCurrentTime())
 
 	if oldRoundIndex != c.Round.GetIndex() {
 		c.Stats.AddRound() // only for statistic
@@ -192,7 +185,7 @@ func (c *Chronology) UpdateRound() (int, round.RoundState) {
 	}
 
 	if oldRoundState != c.Round.GetRoundState() {
-		c.Log(fmt.Sprintf("\n" + c.GetFormatedCurrentTime() + ".................... SUBROUND " + rs.GetRoundStateName(c.Round.GetRoundState()) + " BEGINS ....................\n"))
+		c.Log(fmt.Sprintf("\n" + c.GetFormatedCurrentTime() + ".................... SUBROUND " + c.Round.GetRoundStateName(c.Round.GetRoundState()) + " BEGINS ....................\n"))
 	}
 
 	roundState := c.SelfRoundState
@@ -208,8 +201,6 @@ func (c *Chronology) UpdateRound() (int, round.RoundState) {
 
 //Check node round state vs. time round state and decide if node state could be changed analyzing his tasks which have been done in current round
 func (c *Chronology) OptimizeRoundState(roundState round.RoundState) {
-	//rs := chronology.GetRounderService()
-
 	switch roundState {
 	case round.RS_BLOCK:
 		if c.SelfRoundState == round.RS_START_ROUND {
@@ -232,8 +223,6 @@ func (c *Chronology) OptimizeRoundState(roundState round.RoundState) {
 }
 
 func (c *Chronology) DoStartRound() bool {
-	rs := GetRounderService()
-
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
 
@@ -241,13 +230,11 @@ func (c *Chronology) DoStartRound() bool {
 		return true
 	}
 
-	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 0: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_START_ROUND)))
+	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 0: Aborded round %d in subround %s", c.Round.GetIndex(), c.Round.GetRoundStateName(round.RS_START_ROUND)))
 	return false
 }
 
 func (c *Chronology) DoBlock() bool {
-	rs := GetRounderService()
-
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
 
@@ -260,10 +247,10 @@ func (c *Chronology) DoBlock() bool {
 			}
 		}
 
-		timeRoundState := rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime())
+		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 		if timeRoundState > round.RS_BLOCK {
-			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 1: Extended the " + rs.GetRoundStateName(round.RS_BLOCK) + " subround"))
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 1: Extended the " + c.Round.GetRoundStateName(round.RS_BLOCK) + " subround"))
 			c.Subround.Block = SS_EXTENDED
 			return true // Try to give a chance to this round if the block from leader will arrive later
 		}
@@ -285,25 +272,23 @@ func (c *Chronology) DoBlock() bool {
 		}
 	}
 
-	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 1: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_BLOCK)))
+	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 1: Aborded round %d in subround %s", c.Round.GetIndex(), c.Round.GetRoundStateName(round.RS_BLOCK)))
 	return false
 }
 
 func (c *Chronology) DoComitmentHash() bool {
-	rs := GetRounderService()
-
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
 
 		bActionDone := c.SendMessage(round.RS_COMITMENT_HASH)
 
-		timeRoundState := rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime())
+		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 		if timeRoundState > round.RS_COMITMENT_HASH {
 			if c.GetComitmentHashes() < c.Consensus.Threshold.ComitmentHash {
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Extended the "+rs.GetRoundStateName(round.RS_COMITMENT_HASH)+" subround. Got only %d from %d commitment hashes which are not enough", c.GetComitmentHashes(), len(c.Nodes)))
+				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)+" subround. Got only %d from %d commitment hashes which are not enough", c.GetComitmentHashes(), len(c.Nodes)))
 			} else {
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 2: Extended the " + rs.GetRoundStateName(round.RS_COMITMENT_HASH) + " subround"))
+				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 2: Extended the " + c.Round.GetRoundStateName(round.RS_COMITMENT_HASH) + " subround"))
 			}
 			c.Subround.ComitmentHash = SS_EXTENDED
 			return true // Try to give a chance to this round if the necesary comitment hashes will arrive later
@@ -330,13 +315,11 @@ func (c *Chronology) DoComitmentHash() bool {
 		}
 	}
 
-	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_COMITMENT_HASH)))
+	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Aborded round %d in subround %s", c.Round.GetIndex(), c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)))
 	return false
 }
 
 func (c *Chronology) DoBitmap() bool {
-	rs := GetRounderService()
-
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
 
@@ -349,10 +332,10 @@ func (c *Chronology) DoBitmap() bool {
 			}
 		}
 
-		timeRoundState := rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime())
+		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 		if timeRoundState > round.RS_BITMAP {
-			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 3: Extended the " + rs.GetRoundStateName(round.RS_BITMAP) + " subround"))
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 3: Extended the " + c.Round.GetRoundStateName(round.RS_BITMAP) + " subround"))
 			c.Subround.Bitmap = SS_EXTENDED
 			return true // Try to give a chance to this round if the bitmap from leader will arrive later
 		}
@@ -378,22 +361,20 @@ func (c *Chronology) DoBitmap() bool {
 		}
 	}
 
-	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 3: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_BITMAP)))
+	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 3: Aborded round %d in subround %s", c.Round.GetIndex(), c.Round.GetRoundStateName(round.RS_BITMAP)))
 	return false
 }
 
 func (c *Chronology) DoComitment() bool {
-	rs := GetRounderService()
-
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
 
 		bActionDone := c.SendMessage(round.RS_COMITMENT)
 
-		timeRoundState := rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime())
+		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 		if timeRoundState > round.RS_COMITMENT {
-			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Extended the "+rs.GetRoundStateName(round.RS_COMITMENT)+" subround. Got only %d from %d commitments which are not enough", c.GetComitments(), len(c.Nodes)))
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT)+" subround. Got only %d from %d commitments which are not enough", c.GetComitments(), len(c.Nodes)))
 			c.Subround.Comitment = SS_EXTENDED
 			return true // Try to give a chance to this round if the necesary comitments will arrive later
 		}
@@ -415,22 +396,20 @@ func (c *Chronology) DoComitment() bool {
 		}
 	}
 
-	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_COMITMENT)))
+	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Aborded round %d in subround %s", c.Round.GetIndex(), c.Round.GetRoundStateName(round.RS_COMITMENT)))
 	return false
 }
 
 func (c *Chronology) DoSignature() bool {
-	rs := GetRounderService()
-
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
 
 		bActionDone := c.SendMessage(round.RS_SIGNATURE)
 
-		timeRoundState := rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime())
+		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 		if timeRoundState > round.RS_SIGNATURE {
-			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Extended the "+rs.GetRoundStateName(round.RS_SIGNATURE)+" subround. Got only %d from %d sigantures which are not enough", c.GetSignatures(), len(c.Nodes)))
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Extended the "+c.Round.GetRoundStateName(round.RS_SIGNATURE)+" subround. Got only %d from %d sigantures which are not enough", c.GetSignatures(), len(c.Nodes)))
 			c.Subround.Signature = SS_EXTENDED
 			return true // Try to give a chance to this round if the necesary signatures will arrive later
 		}
@@ -452,19 +431,17 @@ func (c *Chronology) DoSignature() bool {
 		}
 	}
 
-	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_SIGNATURE)))
+	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Aborded round %d in subround %s", c.Round.GetIndex(), c.Round.GetRoundStateName(round.RS_SIGNATURE)))
 	return false
 }
 
 func (c *Chronology) DoEndRound() bool {
-	rs := GetRounderService()
-
 	bActionDone := true
 
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
 
-		timeRoundState := rs.GetRoundStateFromDateTime(&c.Round, c.GetCurrentTime())
+		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 		if timeRoundState > round.RS_END_ROUND {
 			c.Log(fmt.Sprintf("\n" + c.GetFormatedCurrentTime() + ">>>>>>>>>>>>>>>>>>>> THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n"))
@@ -497,13 +474,11 @@ func (c *Chronology) DoEndRound() bool {
 		}
 	}
 
-	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 6: Aborded round %d in subround %s", c.Round.GetIndex(), rs.GetRoundStateName(round.RS_END_ROUND)))
+	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 6: Aborded round %d in subround %s", c.Round.GetIndex(), c.Round.GetRoundStateName(round.RS_END_ROUND)))
 	return false
 }
 
 func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round.RoundState) bool {
-	//rs := GetRounderService()
-
 	msgType, msgData := c.DecodeMessage(rcvMsg)
 
 	switch msgType {
@@ -630,8 +605,6 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 }
 
 func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundState round.RoundState) (bool, int) {
-	rs := GetRounderService()
-
 	var n int
 	var ok bool
 
@@ -640,7 +613,7 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 		case round.RS_BLOCK:
 			if c.Subround.Block != SS_FINISHED {
 				if ok, n = c.IsBlock(c.Consensus.Threshold.Block); ok {
-					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 1: Subround %s has been finished", rs.GetRoundStateName(round.RS_BLOCK)))
+					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 1: Subround %s has been finished", c.Round.GetRoundStateName(round.RS_BLOCK)))
 					c.Subround.Block = SS_FINISHED
 				} else {
 					return false, n
@@ -653,10 +626,10 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 					threshold = len(c.Nodes)
 				}
 				if ok, n = c.IsComitmentHash(threshold); ok {
-					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Subround %s has been finished", rs.GetRoundStateName(round.RS_COMITMENT_HASH)))
+					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Subround %s has been finished", c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)))
 					c.Subround.ComitmentHash = SS_FINISHED
 				} else if ok, n = c.IsComitmentHashInBitmap(c.Consensus.Threshold.Bitmap); ok {
-					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Subround %s has been finished", rs.GetRoundStateName(round.RS_COMITMENT_HASH)))
+					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Subround %s has been finished", c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)))
 					c.Subround.ComitmentHash = SS_FINISHED
 				} else {
 					return false, n
@@ -665,7 +638,7 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 		case round.RS_BITMAP:
 			if c.Subround.Bitmap != SS_FINISHED {
 				if ok, n = c.IsComitmentHashInBitmap(c.Consensus.Threshold.Bitmap); ok {
-					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 3: Subround %s has been finished", rs.GetRoundStateName(round.RS_BITMAP)))
+					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 3: Subround %s has been finished", c.Round.GetRoundStateName(round.RS_BITMAP)))
 					c.Subround.Bitmap = SS_FINISHED
 				} else {
 					return false, n
@@ -674,7 +647,7 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 		case round.RS_COMITMENT:
 			if c.Subround.Comitment != SS_FINISHED {
 				if ok, n = c.IsBitmapInComitment(c.Consensus.Threshold.Comitment); ok {
-					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Subround %s has been finished", rs.GetRoundStateName(round.RS_COMITMENT)))
+					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Subround %s has been finished", c.Round.GetRoundStateName(round.RS_COMITMENT)))
 					c.Subround.Comitment = SS_FINISHED
 				} else {
 					return false, n
@@ -683,7 +656,7 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 		case round.RS_SIGNATURE:
 			if c.Subround.Signature != SS_FINISHED {
 				if ok, n = c.IsComitmentInSignature(c.Consensus.Threshold.Signature); ok {
-					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Subround %s has been finished", rs.GetRoundStateName(round.RS_SIGNATURE)))
+					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Subround %s has been finished", c.Round.GetRoundStateName(round.RS_SIGNATURE)))
 					c.Subround.Signature = SS_FINISHED
 				} else {
 					return false, n

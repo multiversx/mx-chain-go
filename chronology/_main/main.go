@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/synctime"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
@@ -86,6 +87,8 @@ func main() {
 
 	time.Sleep(time.Second)
 
+	// START chronology settings
+
 	consensusGroup := make([]string, 0)
 
 	for i := 1; i <= *CONSENSUS_GROUP_SIZE; i++ {
@@ -99,14 +102,17 @@ func main() {
 
 	sync := synctime.New(*ROUND_DURATION)
 
+	division := []time.Duration{time.Duration(*ROUND_DURATION * 5 / 100), time.Duration(*ROUND_DURATION * 25 / 100), time.Duration(*ROUND_DURATION * 40 / 100), time.Duration(*ROUND_DURATION * 55 / 100), time.Duration(*ROUND_DURATION * 70 / 100), time.Duration(*ROUND_DURATION * 85 / 100), time.Duration(*ROUND_DURATION * 100 / 100)}
+
 	var chrs []*chronology.Chronology
 
 	for i := 0; i < len(nodes); i++ {
 		vld.Self = consensusGroup[*FIRST_NODE_ID+i-1]
 		bc := blockchain.New(nil, &sync, i == 0)
 		stats := statistic.New()
+		round := round.NewRoundFromDateTime(GENESIS_TIME_STAMP, sync.GetCurrentTime(), *ROUND_DURATION, division)
 
-		chr := chronology.New(nodes[i], &vld, &cns, &stats, &sync, &bc, GENESIS_TIME_STAMP, *ROUND_DURATION)
+		chr := chronology.New(nodes[i], &vld, &cns, &round, &stats, &sync, &bc, GENESIS_TIME_STAMP)
 		chr.DoLog = i == 0
 		chr.DoSyncMode = *SYNC_MODE
 		chrs = append(chrs, chr)
