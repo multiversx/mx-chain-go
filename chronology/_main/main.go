@@ -103,6 +103,7 @@ func main() {
 	sync := synctime.New(*ROUND_DURATION)
 
 	division := []time.Duration{time.Duration(*ROUND_DURATION * 5 / 100), time.Duration(*ROUND_DURATION * 25 / 100), time.Duration(*ROUND_DURATION * 40 / 100), time.Duration(*ROUND_DURATION * 55 / 100), time.Duration(*ROUND_DURATION * 70 / 100), time.Duration(*ROUND_DURATION * 85 / 100), time.Duration(*ROUND_DURATION * 100 / 100)}
+	subround := round.Subround{round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED}
 
 	var chrs []*chronology.Chronology
 
@@ -110,13 +111,15 @@ func main() {
 		vld.Self = consensusGroup[*FIRST_NODE_ID+i-1]
 		bc := blockchain.New(nil, &sync, i == 0)
 		stats := statistic.New()
-		round := round.NewRoundFromDateTime(GENESIS_TIME_STAMP, sync.GetCurrentTime(), *ROUND_DURATION, division)
+		round := round.NewRoundFromDateTime(GENESIS_TIME_STAMP, sync.GetCurrentTime(), *ROUND_DURATION, division, subround)
 
 		chr := chronology.New(nodes[i], &vld, &cns, &round, &stats, &sync, &bc, GENESIS_TIME_STAMP)
 		chr.DoLog = i == 0
 		chr.DoSyncMode = *SYNC_MODE
 		chrs = append(chrs, chr)
 	}
+
+	subround.Block = round.SS_FINISHED
 
 	for i := 0; i < len(nodes); i++ {
 		go chrs[i].StartRounds()

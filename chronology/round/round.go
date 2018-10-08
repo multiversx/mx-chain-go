@@ -6,57 +6,17 @@ import (
 )
 
 type Round struct {
-	index             int
-	startTimeStamp    time.Time
-	roundTimeDuration time.Duration
-	roundTimeDivision []time.Duration
-	roundState        RoundState
+	Index        int
+	TimeStamp    time.Time
+	TimeDuration time.Duration
+	TimeDivision []time.Duration
+	State        RoundState
+	Subround
 }
 
-func NewRound(index int, startTimeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration, roundState RoundState) Round {
-
-	r := Round{index, startTimeStamp, roundTimeDuration, roundTimeDivision, roundState}
+func NewRound(index int, startTimeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration, roundState RoundState, subround Subround) Round {
+	r := Round{index, startTimeStamp, roundTimeDuration, roundTimeDivision, roundState, subround}
 	return r
-}
-
-func (r *Round) SetIndex(index int) {
-	r.index = index
-}
-
-func (r *Round) GetIndex() int {
-	return r.index
-}
-
-func (r *Round) SetStartTimeStamp(startTimeStamp time.Time) {
-	r.startTimeStamp = startTimeStamp
-}
-
-func (r *Round) GetStartTimeStamp() time.Time {
-	return r.startTimeStamp
-}
-
-func (r *Round) SetRoundTimeDuration(roundTimeDuration time.Duration) {
-	r.roundTimeDuration = roundTimeDuration
-}
-
-func (r *Round) GetRoundTimeDuration() time.Duration {
-	return r.roundTimeDuration
-}
-
-func (r *Round) SetRoundTimeDivision(roundTimeDivision []time.Duration) {
-	r.roundTimeDivision = roundTimeDivision
-}
-
-func (r *Round) GetRoundTimeDivision() []time.Duration {
-	return r.roundTimeDivision
-}
-
-func (r *Round) SetRoundState(roundState RoundState) {
-	r.roundState = roundState
-}
-
-func (r *Round) GetRoundState() RoundState {
-	return r.roundState
 }
 
 // A RoundState specifies in which state is the current round
@@ -80,17 +40,39 @@ func (r *Round) Print() {
 	spew.Dump(r)
 }
 
-func NewRoundFromDateTime(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration) Round {
+type Subround struct {
+	Block         SubroundState
+	ComitmentHash SubroundState
+	Bitmap        SubroundState
+	Comitment     SubroundState
+	Signature     SubroundState
+}
+
+// A SubroundState specifies what kind of state could have a subround
+type SubroundState int
+
+const (
+	SS_NOTFINISHED SubroundState = iota
+	SS_EXTENDED
+	SS_FINISHED
+)
+
+func (r *Round) ResetSubround() {
+	r.Subround = Subround{SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED}
+}
+
+func NewRoundFromDateTime(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration, subround Subround) Round {
 
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
 	var r Round
 
-	r.SetIndex(int(delta / roundTimeDuration.Nanoseconds()))
-	r.SetStartTimeStamp(genesisRoundTimeStamp.Add(time.Duration(int64(r.GetIndex()) * roundTimeDuration.Nanoseconds())))
-	r.SetRoundTimeDuration(roundTimeDuration)
-	r.SetRoundTimeDivision(roundTimeDivision)
-	r.SetRoundState(r.GetRoundStateFromDateTime(timeStamp))
+	r.Index = int(delta / roundTimeDuration.Nanoseconds())
+	r.TimeStamp = genesisRoundTimeStamp.Add(time.Duration(int64(r.Index) * roundTimeDuration.Nanoseconds()))
+	r.TimeDuration = roundTimeDuration
+	r.TimeDivision = roundTimeDivision
+	r.State = r.GetRoundStateFromDateTime(timeStamp)
+	r.Subround = subround
 
 	return r
 }
@@ -99,14 +81,14 @@ func (r *Round) UpdateRoundFromDateTime(genesisRoundTimeStamp time.Time, timeSta
 
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
-	index := int(delta / r.GetRoundTimeDuration().Nanoseconds())
+	index := int(delta / r.TimeDuration.Nanoseconds())
 
-	if r.GetIndex() != index {
-		r.SetIndex(index)
-		r.SetStartTimeStamp(genesisRoundTimeStamp.Add(time.Duration(int64(index) * r.GetRoundTimeDuration().Nanoseconds())))
+	if r.Index != index {
+		r.Index = index
+		r.TimeStamp = genesisRoundTimeStamp.Add(time.Duration(int64(index) * r.TimeDuration.Nanoseconds()))
 	}
 
-	r.SetRoundState(r.GetRoundStateFromDateTime(timeStamp))
+	r.State = r.GetRoundStateFromDateTime(timeStamp)
 }
 
 //func (r *Round) CreateRoundTimeDivision(duration time.Duration) []time.Duration {
@@ -137,17 +119,17 @@ func (r *Round) UpdateRoundFromDateTime(genesisRoundTimeStamp time.Time, timeSta
 
 func (r *Round) GetRoundStateFromDateTime(timeStamp time.Time) RoundState {
 
-	delta := timeStamp.Sub(r.GetStartTimeStamp()).Nanoseconds()
+	delta := timeStamp.Sub(r.TimeStamp).Nanoseconds()
 
 	if delta < 0 {
 		return RS_BEFORE_ROUND
 	}
 
-	if delta > r.GetRoundTimeDuration().Nanoseconds() {
+	if delta > r.TimeDuration.Nanoseconds() {
 		return RS_AFTER_ROUND
 	}
 
-	for i, v := range r.GetRoundTimeDivision() {
+	for i, v := range r.TimeDivision {
 		if delta <= v.Nanoseconds() {
 			return RS_START_ROUND + RoundState(i)
 		}
