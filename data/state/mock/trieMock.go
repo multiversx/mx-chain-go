@@ -251,5 +251,5 @@ func (mdbw *DBWriteCacherMock) RetrieveMockTrie(root []byte) (trie.Trier, error)
 		return mt, nil
 	}
 
-	return val, nil
+	return val.Copy(), nil
 }

@@ -327,10 +327,10 @@ func TestAccountsDB_CommitUndo_2okAccounts_ShouldWork(t *testing.T) {
 	assert.Equal(t, newState2.Balance, big.NewInt(50))
 	assert.NotNil(t, newState2.Root)
 	//get data
-	err = adb.RetrieveData(state2)
+	err = adb.RetrieveData(newState2)
 	assert.Nil(t, err)
-	assert.NotNil(t, state2.Data)
-	val, err := state2.Data.Get([]byte{65, 66, 67})
+	assert.NotNil(t, newState2.Data)
+	val, err := newState2.Data.Get([]byte{65, 66, 67})
 	assert.Nil(t, err)
 	assert.Equal(t, val, []byte{68, 69, 70})
 	//snapshot data root for state 2
@@ -344,17 +344,19 @@ func TestAccountsDB_CommitUndo_2okAccounts_ShouldWork(t *testing.T) {
 	//we change data in both of them
 	//but call undo, checking that the modifications did not persist
 
-	state1.Balance = big.NewInt(41)
-	state2.Balance = big.NewInt(51)
-	err = state2.Data.Update([]byte{1, 2, 3}, []byte{4, 5, 6})
+	newState1.Balance = big.NewInt(41)
+	newState2.Balance = big.NewInt(51)
+	err = newState2.Data.Update([]byte{1, 2, 3}, []byte{4, 5, 6})
 	assert.Nil(t, err)
 
 	//modifications complete
 	//check dirty on state2
-	assert.True(t, state2.Dirty())
+	assert.True(t, newState2.Dirty())
+	//saving data root to Root
+	newState2.Root = newState2.Data.Root()
 
-	adb.SaveAccountState(state1)
-	adb.SaveAccountState(state2)
+	adb.SaveAccountState(newState1)
+	adb.SaveAccountState(newState2)
 	fmt.Printf("data ROOT as state2.ROOT: %v\n", state2.Root)
 	fmt.Printf("data ROOT as ROOT(): %v\n", state2.Data.Root())
 
