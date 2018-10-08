@@ -2,7 +2,7 @@ package main
 
 import "github.com/gin-gonic/gin"
 
-type APIer interface {
+type Handler interface {
 	AppStatus(*gin.Context)
 	Balance(*gin.Context)
 	CheckFreePort(*gin.Context)
