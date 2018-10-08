@@ -1,9 +1,5 @@
 package data
 
-import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-)
-
 var services map[interface{}]interface{}
 
 func init() {
@@ -16,7 +12,7 @@ func init() {
 }
 
 func InjectDefaultServices() {
-	PutService("Blocker", block.BlockImpl1{})
+	//PutService("Blocker", block.BlockImpl1{})
 }
 
 func GetService(key interface{}) interface{} {
@@ -32,6 +28,6 @@ func PutService(key interface{}, value interface{}) {
 	services[key] = value
 }
 
-func GetBlockerService() Blocker {
-	return GetService("Blocker").(Blocker)
-}
+//func GetBlockerService() Blocker {
+//	return GetService("Blocker").(Blocker)
+//}

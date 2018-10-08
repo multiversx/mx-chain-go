@@ -14,11 +14,6 @@ type Round struct {
 	Subround
 }
 
-func NewRound(index int, startTimeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration, roundState RoundState, subround Subround) Round {
-	r := Round{index, startTimeStamp, roundTimeDuration, roundTimeDivision, roundState, subround}
-	return r
-}
-
 // A RoundState specifies in which state is the current round
 type RoundState int
 
@@ -36,10 +31,6 @@ const (
 	RS_UNKNOWN
 )
 
-func (r *Round) Print() {
-	spew.Dump(r)
-}
-
 type Subround struct {
 	Block         SubroundState
 	ComitmentHash SubroundState
@@ -56,10 +47,6 @@ const (
 	SS_EXTENDED
 	SS_FINISHED
 )
-
-func (r *Round) ResetSubround() {
-	r.Subround = Subround{SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED}
-}
 
 func NewRoundFromDateTime(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration, subround Subround) Round {
 
@@ -90,32 +77,6 @@ func (r *Round) UpdateRoundFromDateTime(genesisRoundTimeStamp time.Time, timeSta
 
 	r.State = r.GetRoundStateFromDateTime(timeStamp)
 }
-
-//func (r *Round) CreateRoundTimeDivision(duration time.Duration) []time.Duration {
-//
-//	var d []time.Duration
-//
-//	for i := RS_START_ROUND; i <= RS_END_ROUND; i++ {
-//		switch i {
-//		case RS_START_ROUND:
-//			d = append(d, time.Duration(5*duration/100))
-//		case RS_BLOCK:
-//			d = append(d, time.Duration(25*duration/100))
-//		case RS_COMITMENT_HASH:
-//			d = append(d, time.Duration(40*duration/100))
-//		case RS_BITMAP:
-//			d = append(d, time.Duration(55*duration/100))
-//		case RS_COMITMENT:
-//			d = append(d, time.Duration(70*duration/100))
-//		case RS_SIGNATURE:
-//			d = append(d, time.Duration(85*duration/100))
-//		case RS_END_ROUND:
-//			d = append(d, time.Duration(100*duration/100))
-//		}
-//	}
-//
-//	return d
-//}
 
 func (r *Round) GetRoundStateFromDateTime(timeStamp time.Time) RoundState {
 
@@ -166,4 +127,12 @@ func (r *Round) GetRoundStateName(roundState RoundState) string {
 	default:
 		return ("Undifined round state")
 	}
+}
+
+func (r *Round) Print() {
+	spew.Dump(r)
+}
+
+func (r *Round) ResetSubround() {
+	r.Subround = Subround{SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED}
 }

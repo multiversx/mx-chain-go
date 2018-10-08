@@ -44,6 +44,10 @@ func (s *SyncTime) GetClockOffset() time.Duration {
 	return clockOffset
 }
 
+func (s *SyncTime) GetFormatedCurrentTime() string {
+	return s.FormatTime(s.GetCurrentTime())
+}
+
 func (s *SyncTime) FormatTime(time time.Time) string {
 	str := fmt.Sprintf("%.4d-%.2d-%.2d %.2d:%.2d:%.2d.%.9d ", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), time.Nanosecond())
 	return str
@@ -51,8 +55,4 @@ func (s *SyncTime) FormatTime(time time.Time) string {
 
 func (s *SyncTime) GetCurrentTime() time.Time {
 	return time.Now().Add(s.GetClockOffset())
-}
-
-func (s *SyncTime) GetFormatedCurrentTime() string {
-	return s.FormatTime(s.GetCurrentTime())
 }

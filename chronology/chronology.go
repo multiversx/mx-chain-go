@@ -3,12 +3,10 @@ package chronology
 import (
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/epoch"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/synctime"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -20,83 +18,42 @@ import (
 	"time"
 )
 
-type Epocher interface {
-	Print(epoch *epoch.Epoch)
-}
-
-type Rounder interface {
-	CreateRoundFromDateTime(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDuration time.Duration, roundTimeDivision []time.Duration) round.Round
-	UpdateRoundFromDateTime(genesisRoundTimeStamp time.Time, timeStamp time.Time, round *round.Round)
-	CreateRoundTimeDivision(time.Duration) []time.Duration
-	GetRoundStateFromDateTime(round *round.Round, timeStamp time.Time) round.RoundState
-	GetRoundStateName(roundState round.RoundState) string
-}
-
 const SLEEP_TIME = 5
 
-type Chronology struct {
-	Node  string
-	Nodes []string
-
-	Block      block.Block
-	BlockChain *blockchain.BlockChain
-
-	Consensus *consensus.Consensus
-
-	Round       *round.Round
+type ChronologyIn struct {
 	GenesisTime time.Time
+	P2PNode     *p2p.Messenger
+	Block       *block.Block
+	BlockChain  *blockchain.BlockChain
+	Validators  *validators.Validators
+	Consensus   *consensus.Consensus
+	Round       *round.Round
+	Statistic   *statistic.Chronology
+	SyncTime    *synctime.SyncTime
+}
 
-	SelfRoundState round.RoundState
-
+type Chronology struct {
 	DoRun      bool
 	DoLog      bool
 	DoSyncMode bool
 
-	Validators map[string]RoundStateValidation
+	*ChronologyIn
 
-	P2PNode *p2p.Messenger
-
-	ChRcvMsg chan []byte
-
-	SyncTime    *synctime.SyncTime
-	ClockOffset time.Duration
-
-	Stats *statistic.Chronology
+	SelfRoundState round.RoundState
+	ChRcvMsg       chan []byte
+	ClockOffset    time.Duration
 }
 
-type RoundStateValidation struct {
-	Block         bool
-	ComitmentHash bool
-	Bitmap        bool
-	Comitment     bool
-	Signature     bool
-}
-
-func New(p2pNode *p2p.Messenger, validators *validators.Validators, consensus *consensus.Consensus, round *round.Round, stats *statistic.Chronology, syncTime *synctime.SyncTime, blockChain *blockchain.BlockChain, genesisRoundTimeStamp time.Time) *Chronology {
+func New(chronologyIn *ChronologyIn) *Chronology {
 	csi := Chronology{}
 
 	csi.DoRun = true
 
-	csi.SyncTime = syncTime
-	csi.ChRcvMsg = make(chan []byte, len(validators.ConsensusGroup))
-	//csi.ChRcvMsg = make(chan []byte)
+	csi.ChronologyIn = chronologyIn
 
-	csi.P2PNode = p2pNode
+	csi.ChRcvMsg = make(chan []byte, len(chronologyIn.Validators.ConsensusGroup))
+
 	(*csi.P2PNode).SetOnRecvMsg(csi.recv)
-
-	csi.Node = validators.Self
-	csi.Nodes = validators.ConsensusGroup
-
-	csi.Consensus = consensus
-
-	csi.Validators = make(map[string]RoundStateValidation)
-
-	csi.BlockChain = blockChain
-
-	csi.Round = round
-	csi.GenesisTime = genesisRoundTimeStamp
-
-	csi.Stats = stats
 
 	csi.InitRound()
 
@@ -167,14 +124,14 @@ func (c *Chronology) UpdateRound() (int, round.RoundState) {
 	c.Round.UpdateRoundFromDateTime(c.GenesisTime, c.GetCurrentTime())
 
 	if oldRoundIndex != c.Round.Index {
-		c.Stats.AddRound() // only for statistic
+		c.Statistic.AddRound() // only for statistic
 
 		leader, err := c.GetLeader()
 		if err != nil {
 			leader = "Unknown"
 		}
 
-		if leader == c.Node {
+		if leader == c.Validators.Self {
 			leader += " (MY TURN)"
 		}
 
@@ -284,7 +241,7 @@ func (c *Chronology) DoComitmentHash() bool {
 
 		if timeRoundState > round.RS_COMITMENT_HASH {
 			if c.GetComitmentHashes() < c.Consensus.Threshold.ComitmentHash {
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)+" subround. Got only %d from %d commitment hashes which are not enough", c.GetComitmentHashes(), len(c.Nodes)))
+				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)+" subround. Got only %d from %d commitment hashes which are not enough", c.GetComitmentHashes(), len(c.Validators.ConsensusGroup)))
 			} else {
 				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 2: Extended the " + c.Round.GetRoundStateName(round.RS_COMITMENT_HASH) + " subround"))
 			}
@@ -303,10 +260,10 @@ func (c *Chronology) DoComitmentHash() bool {
 		if bActionDone {
 			bActionDone = false
 			if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_COMITMENT_HASH); ok {
-				if n == len(c.Nodes) {
-					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Received all (%d from %d) comitment hashes", n, len(c.Nodes)))
+				if n == len(c.Validators.ConsensusGroup) {
+					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Received all (%d from %d) comitment hashes", n, len(c.Validators.ConsensusGroup)))
 				} else {
-					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Received %d from %d comitment hashes, which are enough", n, len(c.Nodes)))
+					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Received %d from %d comitment hashes, which are enough", n, len(c.Validators.ConsensusGroup)))
 				}
 				return true
 			}
@@ -350,10 +307,10 @@ func (c *Chronology) DoBitmap() bool {
 			bActionDone = false
 			if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_BITMAP); ok {
 				addMessage := "BUT I WAS NOT selected in this bitmap"
-				if c.IsNodeInBitmapGroup(c.Node) {
+				if c.IsNodeInBitmapGroup(c.Validators.Self) {
 					addMessage = "AND I WAS selected in this bitmap"
 				}
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d comitment hashes, which are enough, %s", n, len(c.Nodes), addMessage))
+				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d comitment hashes, which are enough, %s", n, len(c.Validators.ConsensusGroup), addMessage))
 				return true
 			}
 		}
@@ -372,7 +329,7 @@ func (c *Chronology) DoComitment() bool {
 		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 		if timeRoundState > round.RS_COMITMENT {
-			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT)+" subround. Got only %d from %d commitments which are not enough", c.GetComitments(), len(c.Nodes)))
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT)+" subround. Got only %d from %d commitments which are not enough", c.GetComitments(), len(c.Validators.ConsensusGroup)))
 			c.Round.Comitment = round.SS_EXTENDED
 			return true // Try to give a chance to this round if the necesary comitments will arrive later
 		}
@@ -388,7 +345,7 @@ func (c *Chronology) DoComitment() bool {
 		if bActionDone {
 			bActionDone = false
 			if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_COMITMENT); ok {
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Received %d from %d comitments, which are matching with bitmap and are enough", n, len(c.Nodes)))
+				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Received %d from %d comitments, which are matching with bitmap and are enough", n, len(c.Validators.ConsensusGroup)))
 				return true
 			}
 		}
@@ -407,7 +364,7 @@ func (c *Chronology) DoSignature() bool {
 		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 		if timeRoundState > round.RS_SIGNATURE {
-			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Extended the "+c.Round.GetRoundStateName(round.RS_SIGNATURE)+" subround. Got only %d from %d sigantures which are not enough", c.GetSignatures(), len(c.Nodes)))
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Extended the "+c.Round.GetRoundStateName(round.RS_SIGNATURE)+" subround. Got only %d from %d sigantures which are not enough", c.GetSignatures(), len(c.Validators.ConsensusGroup)))
 			c.Round.Signature = round.SS_EXTENDED
 			return true // Try to give a chance to this round if the necesary signatures will arrive later
 		}
@@ -423,7 +380,7 @@ func (c *Chronology) DoSignature() bool {
 		if bActionDone {
 			bActionDone = false
 			if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_SIGNATURE); ok {
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough", n, len(c.Nodes)))
+				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough", n, len(c.Validators.ConsensusGroup)))
 				return true
 			}
 		}
@@ -457,14 +414,14 @@ func (c *Chronology) DoEndRound() bool {
 		if bActionDone {
 			bActionDone = false
 			if ok, _ := c.CheckConsensus(round.RS_BLOCK, round.RS_SIGNATURE); ok {
-				c.Stats.AddRoundWithBlock() // only for statistic
+				c.Statistic.AddRoundWithBlock() // only for statistic
 
-				c.BlockChain.AddBlock(c.Block)
+				c.BlockChain.AddBlock(*c.Block)
 
-				if c.IsNodeLeaderInCurrentRound(c.Node) {
-					c.Log(fmt.Sprintf("\n"+c.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.GetNonce()))
+				if c.IsNodeLeaderInCurrentRound(c.Validators.Self) {
+					c.Log(fmt.Sprintf("\n"+c.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.Nonce))
 				} else {
-					c.Log(fmt.Sprintf("\n"+c.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.GetNonce()))
+					c.Log(fmt.Sprintf("\n"+c.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.Nonce))
 				}
 
 				return true
@@ -482,7 +439,7 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 	switch msgType {
 	case MT_BLOCK:
 		rcvBlock := msgData.(*block.Block)
-		node := rcvBlock.GetSignature()
+		node := rcvBlock.Signature
 
 		//if timeRoundState > round.RS_BLOCK || c.SelfRoundState > round.RS_BLOCK {
 		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_BLOCK) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
@@ -495,16 +452,16 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 					return false
 				}
 
-				rsv := c.Validators[node]
+				rsv := c.Validators.ValidationMap[node]
 				rsv.Block = true
-				c.Validators[node] = rsv
-				c.Block = *rcvBlock
+				c.Validators.ValidationMap[node] = rsv
+				*c.Block = *rcvBlock
 				return true
 			}
 		}
 	case MT_COMITMENT_HASH:
 		rcvBlock := msgData.(*block.Block)
-		node := rcvBlock.GetSignature()
+		node := rcvBlock.Signature
 
 		//if timeRoundState > round.RS_COMITMENT_HASH || c.SelfRoundState > round.RS_COMITMENT_HASH {
 		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_COMITMENT_HASH) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
@@ -512,11 +469,11 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 
 		if c.Round.ComitmentHash != round.SS_FINISHED {
 			if c.IsNodeInValidationGroup(node) {
-				if !c.Validators[node].ComitmentHash {
-					if rcvBlock.GetHash() == c.Block.GetHash() {
-						rsv := c.Validators[node]
+				if !c.Validators.ValidationMap[node].ComitmentHash {
+					if rcvBlock.Hash == c.Block.Hash {
+						rsv := c.Validators.ValidationMap[node]
 						rsv.ComitmentHash = true
-						c.Validators[node] = rsv
+						c.Validators.ValidationMap[node] = rsv
 						return true
 					}
 				}
@@ -524,7 +481,7 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		}
 	case MT_BITMAP:
 		rcvBlock := msgData.(*block.Block)
-		node := rcvBlock.GetSignature()
+		node := rcvBlock.Signature
 
 		//if timeRoundState > round.RS_BITMAP || c.SelfRoundState > round.RS_BITMAP {
 		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_BITMAP) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
@@ -532,8 +489,8 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 
 		if c.Round.Bitmap != round.SS_FINISHED {
 			if c.IsNodeLeaderInCurrentRound(node) {
-				if rcvBlock.GetHash() == c.Block.GetHash() {
-					nodes := strings.Split(rcvBlock.GetMetaData()[len(c.GetMessageTypeName(MT_BITMAP))+1:], ",")
+				if rcvBlock.Hash == c.Block.Hash {
+					nodes := strings.Split(rcvBlock.MetaData[len(c.GetMessageTypeName(MT_BITMAP))+1:], ",")
 					if len(nodes) < c.Consensus.Threshold.Bitmap {
 						c.SelfRoundState = round.RS_ABORDED
 						return false
@@ -547,9 +504,9 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 					}
 
 					for i := 0; i < len(nodes); i++ {
-						rsv := c.Validators[nodes[i]]
+						rsv := c.Validators.ValidationMap[nodes[i]]
 						rsv.Bitmap = true
-						c.Validators[nodes[i]] = rsv
+						c.Validators.ValidationMap[nodes[i]] = rsv
 					}
 
 					return true
@@ -558,7 +515,7 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		}
 	case MT_COMITMENT:
 		rcvBlock := msgData.(*block.Block)
-		node := rcvBlock.GetSignature()
+		node := rcvBlock.Signature
 
 		//if timeRoundState > round.RS_COMITMENT || c.SelfRoundState > round.RS_COMITMENT {
 		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_COMITMENT) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
@@ -566,11 +523,11 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 
 		if c.Round.Comitment != round.SS_FINISHED {
 			if c.IsNodeInBitmapGroup(node) {
-				if !c.Validators[node].Comitment {
-					if rcvBlock.GetHash() == c.Block.GetHash() {
-						rsv := c.Validators[node]
+				if !c.Validators.ValidationMap[node].Comitment {
+					if rcvBlock.Hash == c.Block.Hash {
+						rsv := c.Validators.ValidationMap[node]
 						rsv.Comitment = true
-						c.Validators[node] = rsv
+						c.Validators.ValidationMap[node] = rsv
 						return true
 					}
 				}
@@ -578,7 +535,7 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		}
 	case MT_SIGNATURE:
 		rcvBlock := msgData.(*block.Block)
-		node := rcvBlock.GetSignature()
+		node := rcvBlock.Signature
 
 		//if timeRoundState > round.RS_SIGNATURE || c.SelfRoundState > round.RS_SIGNATURE {
 		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_SIGNATURE) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
@@ -586,11 +543,11 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 
 		if c.Round.Signature != round.SS_FINISHED {
 			if c.IsNodeInBitmapGroup(node) {
-				if !c.Validators[node].Signature {
-					if rcvBlock.GetHash() == c.Block.GetHash() {
-						rsv := c.Validators[node]
+				if !c.Validators.ValidationMap[node].Signature {
+					if rcvBlock.Hash == c.Block.Hash {
+						rsv := c.Validators.ValidationMap[node]
 						rsv.Signature = true
-						c.Validators[node] = rsv
+						c.Validators.ValidationMap[node] = rsv
 						return true
 					}
 				}
@@ -620,8 +577,8 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 		case round.RS_COMITMENT_HASH:
 			if c.Round.ComitmentHash != round.SS_FINISHED {
 				threshold := c.Consensus.Threshold.ComitmentHash
-				if !c.IsNodeLeaderInCurrentRound(c.Node) {
-					threshold = len(c.Nodes)
+				if !c.IsNodeLeaderInCurrentRound(c.Validators.Self) {
+					threshold = len(c.Validators.ConsensusGroup)
 				}
 				if ok, n = c.IsComitmentHash(threshold); ok {
 					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Subround %s has been finished", c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)))
@@ -677,11 +634,11 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				return false
 			}
 
-			if c.Validators[c.Node].Block {
+			if c.Validators.ValidationMap[c.Validators.Self].Block {
 				return false
 			}
 
-			if !c.IsNodeLeaderInCurrentRound(c.Node) {
+			if !c.IsNodeLeaderInCurrentRound(c.Validators.Self) {
 				return false
 			}
 
@@ -691,7 +648,7 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				return false
 			}
 
-			if c.Validators[c.Node].ComitmentHash {
+			if c.Validators.ValidationMap[c.Validators.Self].ComitmentHash {
 				return false
 			}
 
@@ -706,11 +663,11 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				return false
 			}
 
-			if c.Validators[c.Node].Bitmap {
+			if c.Validators.ValidationMap[c.Validators.Self].Bitmap {
 				return false
 			}
 
-			if !c.IsNodeLeaderInCurrentRound(c.Node) {
+			if !c.IsNodeLeaderInCurrentRound(c.Validators.Self) {
 				return false
 			}
 
@@ -725,7 +682,7 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				return false
 			}
 
-			if c.Validators[c.Node].Comitment {
+			if c.Validators.ValidationMap[c.Validators.Self].Comitment {
 				return false
 			}
 
@@ -734,7 +691,7 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				continue
 			}
 
-			if !c.IsNodeInBitmapGroup(c.Node) {
+			if !c.IsNodeInBitmapGroup(c.Validators.Self) {
 				return false
 			}
 
@@ -744,7 +701,7 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				return false
 			}
 
-			if c.Validators[c.Node].Signature {
+			if c.Validators.ValidationMap[c.Validators.Self].Signature {
 				return false
 			}
 
@@ -753,7 +710,7 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 				continue
 			}
 
-			if !c.IsNodeInBitmapGroup(c.Node) {
+			if !c.IsNodeInBitmapGroup(c.Validators.Self) {
 				return false
 			}
 
@@ -768,35 +725,33 @@ func (c *Chronology) SendMessage(roundState round.RoundState) bool {
 }
 
 func (c *Chronology) SendBlock() bool {
-	bs := data.GetBlockerService()
-
 	currentBlock := c.BlockChain.GetCurrentBlock()
 
 	if currentBlock == nil {
-		c.Block = block.New(0, c.GetCurrentTime().String(), c.Node, "", "", c.GetMessageTypeName(MT_BLOCK))
+		*c.Block = block.New(0, c.GetCurrentTime().String(), c.Validators.Self, "", "", c.GetMessageTypeName(MT_BLOCK))
 	} else {
-		c.Block = block.New(currentBlock.GetNonce()+1, c.GetCurrentTime().String(), c.Node, "", currentBlock.GetHash(), c.GetMessageTypeName(MT_BLOCK))
+		*c.Block = block.New(currentBlock.Nonce+1, c.GetCurrentTime().String(), c.Validators.Self, "", currentBlock.Hash, c.GetMessageTypeName(MT_BLOCK))
 	}
 
-	c.Block.Hash = bs.CalculateHash(&c.Block)
+	c.Block.Hash = c.Block.CalculateHash()
 
-	if !c.BroadcastBlock(&c.Block) {
+	if !c.BroadcastBlock(c.Block) {
 		return false
 	}
 
 	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 1: Sending block"))
 
-	rsv := c.Validators[c.Node]
+	rsv := c.Validators.ValidationMap[c.Validators.Self]
 	rsv.Block = true
-	c.Validators[c.Node] = rsv
+	c.Validators.ValidationMap[c.Validators.Self] = rsv
 
 	return true
 }
 
 func (c *Chronology) SendComitmentHash() bool {
-	block := c.Block
+	block := *c.Block
 
-	block.Signature = c.Node
+	block.Signature = c.Validators.Self
 	block.MetaData = c.GetMessageTypeName(MT_COMITMENT_HASH)
 
 	if !c.BroadcastBlock(&block) {
@@ -805,22 +760,22 @@ func (c *Chronology) SendComitmentHash() bool {
 
 	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 2: Sending comitment hash"))
 
-	rsv := c.Validators[c.Node]
+	rsv := c.Validators.ValidationMap[c.Validators.Self]
 	rsv.ComitmentHash = true
-	c.Validators[c.Node] = rsv
+	c.Validators.ValidationMap[c.Validators.Self] = rsv
 
 	return true
 }
 
 func (c *Chronology) SendBitmap() bool {
-	block := c.Block
+	block := *c.Block
 
-	block.Signature = c.Node
+	block.Signature = c.Validators.Self
 	block.MetaData = c.GetMessageTypeName(MT_BITMAP)
 
-	for i := 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].ComitmentHash {
-			block.MetaData += "," + c.Nodes[i]
+	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
+		if c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].ComitmentHash {
+			block.MetaData += "," + c.Validators.ConsensusGroup[i]
 		}
 	}
 
@@ -830,11 +785,11 @@ func (c *Chronology) SendBitmap() bool {
 
 	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 3: Sending bitmap"))
 
-	for i := 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].ComitmentHash {
-			rsv := c.Validators[c.Nodes[i]]
+	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
+		if c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].ComitmentHash {
+			rsv := c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]]
 			rsv.Bitmap = true
-			c.Validators[c.Nodes[i]] = rsv
+			c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]] = rsv
 		}
 	}
 
@@ -842,9 +797,9 @@ func (c *Chronology) SendBitmap() bool {
 }
 
 func (c *Chronology) SendComitment() bool {
-	block := c.Block
+	block := *c.Block
 
-	block.Signature = c.Node
+	block.Signature = c.Validators.Self
 	block.MetaData = c.GetMessageTypeName(MT_COMITMENT)
 
 	if !c.BroadcastBlock(&block) {
@@ -853,17 +808,17 @@ func (c *Chronology) SendComitment() bool {
 
 	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 4: Sending comitment"))
 
-	rsv := c.Validators[c.Node]
+	rsv := c.Validators.ValidationMap[c.Validators.Self]
 	rsv.Comitment = true
-	c.Validators[c.Node] = rsv
+	c.Validators.ValidationMap[c.Validators.Self] = rsv
 
 	return true
 }
 
 func (c *Chronology) SendSignature() bool {
-	block := c.Block
+	block := *c.Block
 
-	block.Signature = c.Node
+	block.Signature = c.Validators.Self
 	block.MetaData = c.GetMessageTypeName(MT_SIGNATURE)
 
 	if !c.BroadcastBlock(&block) {
@@ -872,9 +827,9 @@ func (c *Chronology) SendSignature() bool {
 
 	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 5: Sending signature"))
 
-	rsv := c.Validators[c.Node]
+	rsv := c.Validators.ValidationMap[c.Validators.Self]
 	rsv.Signature = true
-	c.Validators[c.Node] = rsv
+	c.Validators.ValidationMap[c.Validators.Self] = rsv
 
 	return true
 }
@@ -936,8 +891,8 @@ func (c *Chronology) IsNodeLeaderInCurrentRound(node string) bool {
 }
 
 func (c *Chronology) IsNodeInValidationGroup(node string) bool {
-	for i := 0; i < len(c.Nodes); i++ {
-		if c.Nodes[i] == node {
+	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
+		if c.Validators.ConsensusGroup[i] == node {
 			return true
 		}
 	}
@@ -946,14 +901,14 @@ func (c *Chronology) IsNodeInValidationGroup(node string) bool {
 }
 
 func (c *Chronology) IsNodeInBitmapGroup(node string) bool {
-	return c.Validators[node].Bitmap
+	return c.Validators.ValidationMap[node].Bitmap
 }
 
 func (c *Chronology) IsBlock(threshold int) (bool, int) {
 	n := 0
 
-	for i := 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].Block {
+	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
+		if c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].Block {
 			n++
 		}
 	}
@@ -964,8 +919,8 @@ func (c *Chronology) IsBlock(threshold int) (bool, int) {
 func (c *Chronology) IsComitmentHash(threshold int) (bool, int) {
 	n := 0
 
-	for i := 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].ComitmentHash {
+	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
+		if c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].ComitmentHash {
 			n++
 		}
 	}
@@ -976,9 +931,9 @@ func (c *Chronology) IsComitmentHash(threshold int) (bool, int) {
 func (c *Chronology) IsComitmentHashInBitmap(threshold int) (bool, int) {
 	n := 0
 
-	for i := 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].Bitmap {
-			if !c.Validators[c.Nodes[i]].ComitmentHash {
+	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
+		if c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].Bitmap {
+			if !c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].ComitmentHash {
 				return false, n
 			}
 			n++
@@ -991,9 +946,9 @@ func (c *Chronology) IsComitmentHashInBitmap(threshold int) (bool, int) {
 func (c *Chronology) IsBitmapInComitment(threshold int) (bool, int) {
 	n := 0
 
-	for i := 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].Bitmap {
-			if !c.Validators[c.Nodes[i]].Comitment {
+	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
+		if c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].Bitmap {
+			if !c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].Comitment {
 				return false, n
 			}
 			n++
@@ -1006,9 +961,9 @@ func (c *Chronology) IsBitmapInComitment(threshold int) (bool, int) {
 func (c *Chronology) IsComitmentInSignature(threshold int) (bool, int) {
 	n := 0
 
-	for i := 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].Comitment {
-			if !c.Validators[c.Nodes[i]].Signature {
+	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
+		if c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].Comitment {
+			if !c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].Signature {
 				return false, n
 			}
 			n++
@@ -1021,8 +976,8 @@ func (c *Chronology) IsComitmentInSignature(threshold int) (bool, int) {
 func (c *Chronology) GetComitmentHashes() int {
 	n := 0
 
-	for i := 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].ComitmentHash {
+	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
+		if c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].ComitmentHash {
 			n++
 		}
 	}
@@ -1033,8 +988,8 @@ func (c *Chronology) GetComitmentHashes() int {
 func (c *Chronology) GetComitments() int {
 	n := 0
 
-	for i := 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].Comitment {
+	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
+		if c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].Comitment {
 			n++
 		}
 	}
@@ -1045,8 +1000,8 @@ func (c *Chronology) GetComitments() int {
 func (c *Chronology) GetSignatures() int {
 	n := 0
 
-	for i := 0; i < len(c.Nodes); i++ {
-		if c.Validators[c.Nodes[i]].Signature {
+	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
+		if c.Validators.ValidationMap[c.Validators.ConsensusGroup[i]].Signature {
 			n++
 		}
 	}
@@ -1059,34 +1014,24 @@ func (c *Chronology) GetLeader() (string, error) {
 		return "", errors.New("Round is not set")
 	}
 
-	if c.Nodes == nil {
-		return "", errors.New("List of nodes is null")
+	if c.Validators.ConsensusGroup == nil {
+		return "", errors.New("List of Validators.ConsensusGroup is null")
 	}
 
-	if len(c.Nodes) == 0 {
+	if len(c.Validators.ConsensusGroup) == 0 {
 		return "", errors.New("List of nodes is empty")
 	}
 
-	index := c.Round.Index % len(c.Nodes)
-	return c.Nodes[index], nil
+	index := c.Round.Index % len(c.Validators.ConsensusGroup)
+	return c.Validators.ConsensusGroup[index], nil
 }
 
 func (c *Chronology) InitRound() {
 	c.ClockOffset = c.SyncTime.GetClockOffset()
 	c.SelfRoundState = round.RS_START_ROUND
-	c.ResetValidators()
-	c.ResetBlock()
+	c.Validators.ResetValidationMap()
+	c.Block.ResetBlock()
 	c.Round.ResetSubround()
-}
-
-func (c *Chronology) ResetValidators() {
-	for i := 0; i < len(c.Nodes); i++ {
-		c.Validators[c.Nodes[i]] = RoundStateValidation{false, false, false, false, false}
-	}
-}
-
-func (c *Chronology) ResetBlock() {
-	c.Block = block.New(-1, "", "", "", "", "")
 }
 
 // A MessageType specifies what kind of message was received
@@ -1131,23 +1076,23 @@ func (c *Chronology) recv(sender p2p.Messenger, peerID string, m *p2p.Message) {
 func (c *Chronology) DecodeMessage(rcvMsg *[]byte) (MessageType, interface{}) {
 	if ok, msgBlock := c.IsBlockInMessage(rcvMsg); ok {
 		//c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Got a message with %s for block with Signature = %s and Nonce = %d and Hash = %s\n", msgBlock.MetaData, msgBlock.Signature, msgBlock.Nonce, msgBlock.Hash))
-		if strings.Contains(msgBlock.GetMetaData(), c.GetMessageTypeName(MT_BLOCK)) {
+		if strings.Contains(msgBlock.MetaData, c.GetMessageTypeName(MT_BLOCK)) {
 			return MT_BLOCK, msgBlock
 		}
 
-		if strings.Contains(msgBlock.GetMetaData(), c.GetMessageTypeName(MT_COMITMENT_HASH)) {
+		if strings.Contains(msgBlock.MetaData, c.GetMessageTypeName(MT_COMITMENT_HASH)) {
 			return MT_COMITMENT_HASH, msgBlock
 		}
 
-		if strings.Contains(msgBlock.GetMetaData(), c.GetMessageTypeName(MT_BITMAP)) {
+		if strings.Contains(msgBlock.MetaData, c.GetMessageTypeName(MT_BITMAP)) {
 			return MT_BITMAP, msgBlock
 		}
 
-		if strings.Contains(msgBlock.GetMetaData(), c.GetMessageTypeName(MT_COMITMENT)) {
+		if strings.Contains(msgBlock.MetaData, c.GetMessageTypeName(MT_COMITMENT)) {
 			return MT_COMITMENT, msgBlock
 		}
 
-		if strings.Contains(msgBlock.GetMetaData(), c.GetMessageTypeName(MT_SIGNATURE)) {
+		if strings.Contains(msgBlock.MetaData, c.GetMessageTypeName(MT_SIGNATURE)) {
 			return MT_SIGNATURE, msgBlock
 		}
 	}

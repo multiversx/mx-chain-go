@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/synctime"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -30,7 +31,7 @@ var FIRST_NODE_ID *int
 var LAST_NODE_ID *int
 var SYNC_MODE *bool
 var MAX_ALLOWED_PEERS *int
-var GENESIS_TIME_STAMP = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+var GENESIS_TIME = time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 var ROUND_DURATION *time.Duration
 
 func main() {
@@ -95,31 +96,30 @@ func main() {
 		consensusGroup = append(consensusGroup, p2p.NewConnectParamsFromPort(4000+i-1).ID.Pretty())
 	}
 
-	vld := validators.New(consensusGroup)
-
-	PBFTThreshold := len(vld.ConsensusGroup)*2/3 + 1
-	cns := consensus.New(consensus.Threshold{1, PBFTThreshold, PBFTThreshold, PBFTThreshold, PBFTThreshold})
-
-	sync := synctime.New(*ROUND_DURATION)
+	PBFTThreshold := len(consensusGroup)*2/3 + 1
 
 	division := []time.Duration{time.Duration(*ROUND_DURATION * 5 / 100), time.Duration(*ROUND_DURATION * 25 / 100), time.Duration(*ROUND_DURATION * 40 / 100), time.Duration(*ROUND_DURATION * 55 / 100), time.Duration(*ROUND_DURATION * 70 / 100), time.Duration(*ROUND_DURATION * 85 / 100), time.Duration(*ROUND_DURATION * 100 / 100)}
 	subround := round.Subround{round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED}
 
+	syncTime := synctime.New(*ROUND_DURATION)
+
 	var chrs []*chronology.Chronology
 
 	for i := 0; i < len(nodes); i++ {
-		vld.Self = consensusGroup[*FIRST_NODE_ID+i-1]
-		bc := blockchain.New(nil, &sync, i == 0)
-		stats := statistic.New()
-		round := round.NewRoundFromDateTime(GENESIS_TIME_STAMP, sync.GetCurrentTime(), *ROUND_DURATION, division, subround)
+		block := block.New(-1, "", "", "", "", "")
+		blockChain := blockchain.New(nil, &syncTime, i == 0)
+		validators := validators.New(consensusGroup, consensusGroup[*FIRST_NODE_ID+i-1])
+		consensus := consensus.New(consensus.Threshold{1, PBFTThreshold, PBFTThreshold, PBFTThreshold, PBFTThreshold})
+		round := round.NewRoundFromDateTime(GENESIS_TIME, syncTime.GetCurrentTime(), *ROUND_DURATION, division, subround)
+		statistic := statistic.New()
 
-		chr := chronology.New(nodes[i], &vld, &cns, &round, &stats, &sync, &bc, GENESIS_TIME_STAMP)
+		chronologyIn := chronology.ChronologyIn{GenesisTime: GENESIS_TIME, P2PNode: nodes[i], Block: &block, BlockChain: &blockChain, Validators: &validators, Consensus: &consensus, Round: &round, Statistic: &statistic, SyncTime: &syncTime}
+		chr := chronology.New(&chronologyIn)
 		chr.DoLog = i == 0
 		chr.DoSyncMode = *SYNC_MODE
+
 		chrs = append(chrs, chr)
 	}
-
-	subround.Block = round.SS_FINISHED
 
 	for i := 0; i < len(nodes); i++ {
 		go chrs[i].StartRounds()
@@ -144,10 +144,10 @@ func main() {
 				continue
 			}
 
-			if currentBlock.GetNonce() > oldNounce[i] {
-				oldNounce[i] = currentBlock.GetNonce()
+			if currentBlock.Nonce > oldNounce[i] {
+				oldNounce[i] = currentBlock.Nonce
 				spew.Dump(currentBlock)
-				fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n", chrs[i].Stats.GetRounds(), chrs[i].Stats.GetRoundsWithBlock(), float64(chrs[i].Stats.GetRoundsWithBlock())*100/float64(chrs[i].Stats.GetRounds()))
+				fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n", chrs[i].Statistic.GetRounds(), chrs[i].Statistic.GetRoundsWithBlock(), float64(chrs[i].Statistic.GetRoundsWithBlock())*100/float64(chrs[i].Statistic.GetRounds()))
 			}
 		}
 	}
