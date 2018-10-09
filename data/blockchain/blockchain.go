@@ -7,6 +7,8 @@ import (
 
 	"ElrondNetwork/elrond-go-sandbox/config"
 
+	"sync"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,20 +23,20 @@ const (
 type UnitType uint8
 
 type BlockChainService interface {
+	Has(unitType UnitType, key []byte) bool
 	Get(unitType UnitType, key []byte) []byte
-	Put(unitType UnitType, key []byte)
-	GetLocal(unitType UnitType, key []byte) []byte
-	Contains(unitType UnitType, key []byte) bool
-	GetAllLocal(unitType UnitType, keys [][]byte) map[string][]byte
+	Put(unitType UnitType, key []byte, value []byte)
+	GetAll(unitType UnitType, keys [][]byte) map[string][]byte
 }
 
 type BlockChain struct {
+	lock          sync.RWMutex
 	genesisBlock  *block.Block
 	currentBlock  *block.Block
 	localHeight   *big.Int
 	networkHeight *big.Int
 	badBlocks     storage.Cacher
-	chain         map[UnitType]storage.Storer
+	chain         map[UnitType]*storage.StorageUnit
 }
 
 // NewData returns an initialized blockchain
@@ -70,7 +72,7 @@ func NewData() (*BlockChain, error) {
 		localHeight:   big.NewInt(-1),
 		networkHeight: big.NewInt(-1),
 		badBlocks:     badBlocksCache,
-		chain: map[UnitType]storage.Storer{
+		chain: map[UnitType]*storage.StorageUnit{
 			TransactionUnit: txStorage,
 			BlockUnit:       blStorage,
 			BlockHeaderUnit: blHeadStorage,
@@ -78,4 +80,85 @@ func NewData() (*BlockChain, error) {
 	}
 
 	return data, nil
+}
+
+func (bc *BlockChain) Has(unitType UnitType, key []byte) bool {
+	bc.lock.RLock()
+	storer := bc.chain[unitType]
+	bc.lock.RUnlock()
+
+	if storer == nil {
+		log.Debug("no such unit type %d", unitType)
+		return false
+	}
+
+	has, err := storer.Has(key)
+
+	if err != nil {
+		log.Debug("not found %s", key)
+	}
+
+	return has
+}
+
+func (bc *BlockChain) Get(unitType UnitType, key []byte) []byte {
+	bc.lock.RLock()
+	storer := bc.chain[unitType]
+	bc.lock.RUnlock()
+
+	if storer == nil {
+		log.Debug("no such unit type %d", unitType)
+		return nil
+	}
+
+	elem, err := storer.Get(key)
+
+	if err != nil {
+		log.Debug("not found %s", key)
+	}
+
+	return elem
+}
+
+func (bc *BlockChain) Put(unitType UnitType, key []byte, value []byte) {
+	bc.lock.RLock()
+	storer := bc.chain[unitType]
+	bc.lock.RUnlock()
+
+	if storer == nil {
+		log.Debug("no such unit type %d", unitType)
+		return
+	}
+
+	err := storer.Put(key, value)
+
+	if err != nil {
+		log.Error("not able to put key %s into unit %d", key, unitType)
+	}
+}
+
+func (bc *BlockChain) GetAll(unitType UnitType, keys [][]byte) map[string][]byte {
+	bc.lock.RLock()
+	storer := bc.chain[unitType]
+	bc.lock.RUnlock()
+
+	if storer == nil {
+		log.Debug("no such unit type %d", unitType)
+		return nil
+	}
+
+	m := map[string][]byte{}
+
+	for _, key := range keys {
+		val, err := storer.Get(key)
+
+		if err != nil {
+			log.Debug("could not find value for key %s", key)
+			continue
+		}
+
+		m[string(key)] = val
+	}
+
+	return m
 }

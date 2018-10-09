@@ -1,6 +1,6 @@
 @0x9096faa5d587481d;
 using Go = import "/go.capnp";
-$Go.package("header");
+$Go.package("block");
 $Go.import("_");
 
 struct Header $Go.doc("header information, attachable to blocks or miniblocks"){
@@ -13,4 +13,6 @@ struct Header $Go.doc("header information, attachable to blocks or miniblocks"){
     timeStamp @4:List(UInt8);
     round @5:UInt32;
     blockHash @6: List(UInt8);
+    signature @7: List(UInt8);
+    commitment @8: List(UInt8);
 }

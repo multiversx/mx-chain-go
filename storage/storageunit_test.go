@@ -7,6 +7,8 @@ import (
 
 	"ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 
+	"ElrondNetwork/elrond-go-sandbox/config"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -199,7 +201,7 @@ func TestHasOrAddPresent(t *testing.T) {
 func TestDeleteNotPresent(t *testing.T) {
 	key := []byte("key12")
 	s := initStorageUnit(t, 10)
-	err := s.Delete(key)
+	err := s.Remove(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
 }
@@ -216,7 +218,7 @@ func TestDeleteNotPresentCache(t *testing.T) {
 
 	s.ClearCache()
 
-	err = s.Delete(key)
+	err = s.Remove(key)
 	assert.Nil(t, err, "expected no error, but got %s", err)
 
 	has, err = s.Has(key)
@@ -235,7 +237,7 @@ func TestDeletePresent(t *testing.T) {
 	assert.Nil(t, err, "expected no error, but got %s", err)
 	assert.True(t, has, "expected to find key")
 
-	err = s.Delete(key)
+	err = s.Remove(key)
 
 	assert.Nil(t, err, "expected no error, but got %s", err)
 
@@ -261,4 +263,121 @@ func TestDestroyUnitNoError(t *testing.T) {
 	s := initStorageUnit(t, 10)
 	err := s.DestroyUnit()
 	assert.Nil(t, err, "no error expected, but got %s", err)
+}
+
+func TestCreateCacheFromConfWrongType(t *testing.T) {
+	cacheConfig := &config.CacheConfig{
+		Size: 10,
+		Type: 100,
+	}
+
+	cacher, err := storage.CreateCacheFromConf(cacheConfig)
+
+	assert.NotNil(t, err, "error expected")
+	assert.Nil(t, cacher, "cacher expected to be nil, but got %s", cacher)
+}
+
+func TestCreateCacheFromConfOK(t *testing.T) {
+	cacheConfig := &config.CacheConfig{
+		Size: 10,
+		Type: config.LRUCache,
+	}
+
+	cacher, err := storage.CreateCacheFromConf(cacheConfig)
+
+	assert.Nil(t, err, "no error expected but got %s", err)
+	assert.NotNil(t, cacher, "valid cacher expected but got nil")
+}
+
+func TestCreateDBFromConfWrongType(t *testing.T) {
+	dbConfig := &config.DBConfig{
+		Type:     100,
+		FileName: "testdb",
+	}
+
+	persister, err := storage.CreateDBFromConf(dbConfig)
+
+	assert.NotNil(t, err, "error expected")
+	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
+}
+
+func TestCreateDBFromConfWrongFileName(t *testing.T) {
+	dbConfig := &config.DBConfig{
+		Type:     config.LvlDB,
+		FileName: "",
+	}
+
+	persister, err := storage.CreateDBFromConf(dbConfig)
+
+	assert.NotNil(t, err, "error expected")
+	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
+}
+
+func TestCreateDBFromConfOk(t *testing.T) {
+	dbConfig := &config.DBConfig{
+		Type:     config.LvlDB,
+		FileName: "tmp",
+	}
+
+	persister, err := storage.CreateDBFromConf(dbConfig)
+
+	assert.Nil(t, err, "no error expected")
+	assert.NotNil(t, persister, "valid persister expected but got nil")
+
+	persister.Destroy()
+}
+
+func TestNewStorageUnitFromConfWrongCacheConfig(t *testing.T) {
+	stUnit := &config.StorageUnitConfig{
+		CacheConf: &config.CacheConfig{
+			Size: 10,
+			Type: 100,
+		},
+		DBConf: &config.DBConfig{
+			FileName: "Blocks",
+			Type:     config.LvlDB,
+		},
+	}
+
+	storer, err := storage.NewStorageUnitFromConf(stUnit)
+
+	assert.NotNil(t, err, "error expected")
+	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
+}
+
+func TestNewStorageUnitFromConfWrongDBConfig(t *testing.T) {
+	stUnit := &config.StorageUnitConfig{
+		CacheConf: &config.CacheConfig{
+			Size: 10,
+			Type: config.LRUCache,
+		},
+		DBConf: &config.DBConfig{
+			FileName: "Blocks",
+			Type:     100,
+		},
+	}
+
+	storer, err := storage.NewStorageUnitFromConf(stUnit)
+
+	assert.NotNil(t, err, "error expected")
+	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
+}
+
+func TestNewStorageUnitFromConfOk(t *testing.T) {
+	stUnit := &config.StorageUnitConfig{
+		CacheConf: &config.CacheConfig{
+			Size: 10,
+			Type: config.LRUCache,
+		},
+		DBConf: &config.DBConfig{
+			FileName: "Blocks",
+			Type:     config.LvlDB,
+		},
+	}
+
+	storer, err := storage.NewStorageUnitFromConf(stUnit)
+
+	assert.Nil(t, err, "no error expected but got %s", err)
+	assert.NotNil(t, storer, "valid storer expected but got nil")
+	storer.DestroyUnit()
 }
