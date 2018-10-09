@@ -107,7 +107,7 @@ func main() {
 
 	for i := 0; i < len(nodes); i++ {
 		block := block.New(-1, "", "", "", "", "")
-		blockChain := blockchain.New(nil, &syncTime, i == 0)
+		blockChain := blockchain.New(nil, syncTime, i == 0)
 		validators := validators.New(consensusGroup, consensusGroup[*FIRST_NODE_ID+i-1])
 		consensus := consensus.New(consensus.Threshold{1, PBFTThreshold, PBFTThreshold, PBFTThreshold, PBFTThreshold})
 		round := round.NewRoundFromDateTime(GENESIS_TIME, syncTime.GetCurrentTime(), *ROUND_DURATION, division, subround)

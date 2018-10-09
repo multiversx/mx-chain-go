@@ -21,6 +21,14 @@ import (
 
 const SLEEP_TIME = 5
 
+type Response int
+
+const (
+	R_False Response = iota
+	R_True
+	R_None
+)
+
 type ChronologyIn struct {
 	GenesisTime time.Time
 	P2PNode     *p2p.Messenger
@@ -63,59 +71,61 @@ func New(chronologyIn *ChronologyIn) *Chronology {
 
 func (c *Chronology) StartRounds() {
 	for c.DoRun {
-
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-
-		_, roundState := c.UpdateRound()
-
-		switch roundState {
-		case round.RS_START_ROUND:
-			if c.SelfRoundState == roundState {
-				if c.DoStartRound() {
-					c.SelfRoundState = round.RS_BLOCK
-				}
-			}
-		case round.RS_BLOCK:
-			if c.SelfRoundState == roundState {
-				if c.DoBlock() {
-					c.SelfRoundState = round.RS_COMITMENT_HASH
-				}
-			}
-		case round.RS_COMITMENT_HASH:
-			if c.SelfRoundState == roundState {
-				if c.DoComitmentHash() {
-					c.SelfRoundState = round.RS_BITMAP
-				}
-			}
-		case round.RS_BITMAP:
-			if c.SelfRoundState == roundState {
-				if c.DoBitmap() {
-					c.SelfRoundState = round.RS_COMITMENT
-				}
-			}
-		case round.RS_COMITMENT:
-			if c.SelfRoundState == roundState {
-				if c.DoComitment() {
-					c.SelfRoundState = round.RS_SIGNATURE
-				}
-			}
-		case round.RS_SIGNATURE:
-			if c.SelfRoundState == roundState {
-				if c.DoSignature() {
-					c.SelfRoundState = round.RS_END_ROUND
-				}
-			}
-		case round.RS_END_ROUND:
-			if c.SelfRoundState == roundState {
-				if c.DoEndRound() {
-					c.SelfRoundState = round.RS_BEFORE_ROUND
-				}
-			}
-		default:
-		}
+		c.StartRoundOneTime()
 	}
 
 	close(c.ChRcvMsg)
+}
+
+func (c *Chronology) StartRoundOneTime() {
+	_, roundState := c.UpdateRound()
+
+	switch roundState {
+	case round.RS_START_ROUND:
+		if c.SelfRoundState == roundState {
+			if c.DoStartRound() {
+				c.SelfRoundState = round.RS_BLOCK
+			}
+		}
+	case round.RS_BLOCK:
+		if c.SelfRoundState == roundState {
+			if c.DoBlock() {
+				c.SelfRoundState = round.RS_COMITMENT_HASH
+			}
+		}
+	case round.RS_COMITMENT_HASH:
+		if c.SelfRoundState == roundState {
+			if c.DoComitmentHash() {
+				c.SelfRoundState = round.RS_BITMAP
+			}
+		}
+	case round.RS_BITMAP:
+		if c.SelfRoundState == roundState {
+			if c.DoBitmap() {
+				c.SelfRoundState = round.RS_COMITMENT
+			}
+		}
+	case round.RS_COMITMENT:
+		if c.SelfRoundState == roundState {
+			if c.DoComitment() {
+				c.SelfRoundState = round.RS_SIGNATURE
+			}
+		}
+	case round.RS_SIGNATURE:
+		if c.SelfRoundState == roundState {
+			if c.DoSignature() {
+				c.SelfRoundState = round.RS_END_ROUND
+			}
+		}
+	case round.RS_END_ROUND:
+		if c.SelfRoundState == roundState {
+			if c.DoEndRound() {
+				c.SelfRoundState = round.RS_BEFORE_ROUND
+			}
+		}
+	default:
+	}
 }
 
 func (c *Chronology) UpdateRound() (int, round.RoundState) {
@@ -181,50 +191,39 @@ func (c *Chronology) OptimizeRoundState(roundState round.RoundState) {
 func (c *Chronology) DoStartRound() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-
-		c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 0: Preparing for this round"))
-		return true
+		switch c.DoStartRoundOneTime() {
+		case R_None:
+			continue
+		case R_False:
+			return false
+		case R_True:
+			return true
+		default:
+			return false
+		}
 	}
 
 	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 0: Aborded round %d in subround %s", c.Round.Index, c.Round.GetRoundStateName(round.RS_START_ROUND)))
 	return false
 }
 
+func (c *Chronology) DoStartRoundOneTime() Response {
+	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 0: Preparing for this round"))
+	return R_True
+}
+
 func (c *Chronology) DoBlock() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-
-		bActionDone := c.SendMessage(round.RS_BLOCK)
-
-		if bActionDone {
-			bActionDone = false
-			if ok, _ := c.CheckConsensus(round.RS_BLOCK, round.RS_BLOCK); ok {
-				return true
-			}
-		}
-
-		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
-
-		if timeRoundState > round.RS_BLOCK {
-			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 1: Extended the " + c.Round.GetRoundStateName(round.RS_BLOCK) + " subround"))
-			c.Round.Subround.Block = round.SS_EXTENDED
-			return true // Try to give a chance to this round if the block from leader will arrive later
-		}
-
-		select {
-		case rcvMsg := <-c.ChRcvMsg:
-			if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
-				bActionDone = true
-			}
+		switch c.DoBlockOneTime() {
+		case R_None:
+			continue
+		case R_False:
+			return false
+		case R_True:
+			return true
 		default:
-		}
-
-		if bActionDone {
-			bActionDone = false
-			if ok, _ := c.CheckConsensus(round.RS_BLOCK, round.RS_BLOCK); ok {
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 1: Synchronized block"))
-				return true
-			}
+			return false
 		}
 	}
 
@@ -232,42 +231,55 @@ func (c *Chronology) DoBlock() bool {
 	return false
 }
 
+func (c *Chronology) DoBlockOneTime() Response {
+	bActionDone := c.SendMessage(round.RS_BLOCK)
+
+	if bActionDone {
+		bActionDone = false
+		if ok, _ := c.CheckConsensus(round.RS_BLOCK, round.RS_BLOCK); ok {
+			return R_True
+		}
+	}
+
+	timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
+
+	if timeRoundState > round.RS_BLOCK {
+		c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 1: Extended the " + c.Round.GetRoundStateName(round.RS_BLOCK) + " subround"))
+		c.Round.Subround.Block = round.SS_EXTENDED
+		return R_True // Try to give a chance to this round if the block from leader will arrive later
+	}
+
+	select {
+	case rcvMsg := <-c.ChRcvMsg:
+		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+			bActionDone = true
+		}
+	default:
+	}
+
+	if bActionDone {
+		bActionDone = false
+		if ok, _ := c.CheckConsensus(round.RS_BLOCK, round.RS_BLOCK); ok {
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 1: Synchronized block"))
+			return R_True
+		}
+	}
+
+	return R_None
+}
+
 func (c *Chronology) DoComitmentHash() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-
-		bActionDone := c.SendMessage(round.RS_COMITMENT_HASH)
-
-		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
-
-		if timeRoundState > round.RS_COMITMENT_HASH {
-			if c.GetComitmentHashes() < c.Consensus.Threshold.ComitmentHash {
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)+" subround. Got only %d from %d commitment hashes which are not enough", c.GetComitmentHashes(), len(c.Validators.ConsensusGroup)))
-			} else {
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 2: Extended the " + c.Round.GetRoundStateName(round.RS_COMITMENT_HASH) + " subround"))
-			}
-			c.Round.ComitmentHash = round.SS_EXTENDED
-			return true // Try to give a chance to this round if the necesary comitment hashes will arrive later
-		}
-
-		select {
-		case rcvMsg := <-c.ChRcvMsg:
-			if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
-				bActionDone = true
-			}
+		switch c.DoComitmentHashOneTime() {
+		case R_None:
+			continue
+		case R_False:
+			return false
+		case R_True:
+			return true
 		default:
-		}
-
-		if bActionDone {
-			bActionDone = false
-			if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_COMITMENT_HASH); ok {
-				if n == len(c.Validators.ConsensusGroup) {
-					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Received all (%d from %d) comitment hashes", n, len(c.Validators.ConsensusGroup)))
-				} else {
-					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Received %d from %d comitment hashes, which are enough", n, len(c.Validators.ConsensusGroup)))
-				}
-				return true
-			}
+			return false
 		}
 	}
 
@@ -275,45 +287,56 @@ func (c *Chronology) DoComitmentHash() bool {
 	return false
 }
 
+func (c *Chronology) DoComitmentHashOneTime() Response {
+	bActionDone := c.SendMessage(round.RS_COMITMENT_HASH)
+
+	timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
+
+	if timeRoundState > round.RS_COMITMENT_HASH {
+		if c.GetComitmentHashes() < c.Consensus.Threshold.ComitmentHash {
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)+" subround. Got only %d from %d commitment hashes which are not enough", c.GetComitmentHashes(), len(c.Validators.ConsensusGroup)))
+		} else {
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 2: Extended the " + c.Round.GetRoundStateName(round.RS_COMITMENT_HASH) + " subround"))
+		}
+		c.Round.ComitmentHash = round.SS_EXTENDED
+		return R_True // Try to give a chance to this round if the necesary comitment hashes will arrive later
+	}
+
+	select {
+	case rcvMsg := <-c.ChRcvMsg:
+		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+			bActionDone = true
+		}
+	default:
+	}
+
+	if bActionDone {
+		bActionDone = false
+		if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_COMITMENT_HASH); ok {
+			if n == len(c.Validators.ConsensusGroup) {
+				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Received all (%d from %d) comitment hashes", n, len(c.Validators.ConsensusGroup)))
+			} else {
+				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Received %d from %d comitment hashes, which are enough", n, len(c.Validators.ConsensusGroup)))
+			}
+			return R_True
+		}
+	}
+
+	return R_None
+}
+
 func (c *Chronology) DoBitmap() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-
-		bActionDone := c.SendMessage(round.RS_BITMAP)
-
-		if bActionDone {
-			bActionDone = false
-			if ok, _ := c.CheckConsensus(round.RS_BLOCK, round.RS_BITMAP); ok {
-				return true
-			}
-		}
-
-		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
-
-		if timeRoundState > round.RS_BITMAP {
-			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 3: Extended the " + c.Round.GetRoundStateName(round.RS_BITMAP) + " subround"))
-			c.Round.Bitmap = round.SS_EXTENDED
-			return true // Try to give a chance to this round if the bitmap from leader will arrive later
-		}
-
-		select {
-		case rcvMsg := <-c.ChRcvMsg:
-			if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
-				bActionDone = true
-			}
+		switch c.DoBitmapOneTime() {
+		case R_None:
+			continue
+		case R_False:
+			return false
+		case R_True:
+			return true
 		default:
-		}
-
-		if bActionDone {
-			bActionDone = false
-			if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_BITMAP); ok {
-				addMessage := "BUT I WAS NOT selected in this bitmap"
-				if c.IsNodeInBitmapGroup(c.Validators.Self) {
-					addMessage = "AND I WAS selected in this bitmap"
-				}
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d comitment hashes, which are enough, %s", n, len(c.Validators.ConsensusGroup), addMessage))
-				return true
-			}
+			return false
 		}
 	}
 
@@ -321,34 +344,59 @@ func (c *Chronology) DoBitmap() bool {
 	return false
 }
 
+func (c *Chronology) DoBitmapOneTime() Response {
+	bActionDone := c.SendMessage(round.RS_BITMAP)
+
+	if bActionDone {
+		bActionDone = false
+		if ok, _ := c.CheckConsensus(round.RS_BLOCK, round.RS_BITMAP); ok {
+			return R_True
+		}
+	}
+
+	timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
+
+	if timeRoundState > round.RS_BITMAP {
+		c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 3: Extended the " + c.Round.GetRoundStateName(round.RS_BITMAP) + " subround"))
+		c.Round.Bitmap = round.SS_EXTENDED
+		return R_True // Try to give a chance to this round if the bitmap from leader will arrive later
+	}
+
+	select {
+	case rcvMsg := <-c.ChRcvMsg:
+		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+			bActionDone = true
+		}
+	default:
+	}
+
+	if bActionDone {
+		bActionDone = false
+		if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_BITMAP); ok {
+			addMessage := "BUT I WAS NOT selected in this bitmap"
+			if c.IsNodeInBitmapGroup(c.Validators.Self) {
+				addMessage = "AND I WAS selected in this bitmap"
+			}
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d comitment hashes, which are enough, %s", n, len(c.Validators.ConsensusGroup), addMessage))
+			return R_True
+		}
+	}
+
+	return R_None
+}
+
 func (c *Chronology) DoComitment() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-
-		bActionDone := c.SendMessage(round.RS_COMITMENT)
-
-		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
-
-		if timeRoundState > round.RS_COMITMENT {
-			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT)+" subround. Got only %d from %d commitments which are not enough", c.GetComitments(), len(c.Validators.ConsensusGroup)))
-			c.Round.Comitment = round.SS_EXTENDED
-			return true // Try to give a chance to this round if the necesary comitments will arrive later
-		}
-
-		select {
-		case rcvMsg := <-c.ChRcvMsg:
-			if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
-				bActionDone = true
-			}
+		switch c.DoComitmentOneTime() {
+		case R_None:
+			continue
+		case R_False:
+			return false
+		case R_True:
+			return true
 		default:
-		}
-
-		if bActionDone {
-			bActionDone = false
-			if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_COMITMENT); ok {
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Received %d from %d comitments, which are matching with bitmap and are enough", n, len(c.Validators.ConsensusGroup)))
-				return true
-			}
+			return false
 		}
 	}
 
@@ -356,34 +404,48 @@ func (c *Chronology) DoComitment() bool {
 	return false
 }
 
+func (c *Chronology) DoComitmentOneTime() Response {
+	bActionDone := c.SendMessage(round.RS_COMITMENT)
+
+	timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
+
+	if timeRoundState > round.RS_COMITMENT {
+		c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT)+" subround. Got only %d from %d commitments which are not enough", c.GetComitments(), len(c.Validators.ConsensusGroup)))
+		c.Round.Comitment = round.SS_EXTENDED
+		return R_True // Try to give a chance to this round if the necesary comitments will arrive later
+	}
+
+	select {
+	case rcvMsg := <-c.ChRcvMsg:
+		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+			bActionDone = true
+		}
+	default:
+	}
+
+	if bActionDone {
+		bActionDone = false
+		if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_COMITMENT); ok {
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Received %d from %d comitments, which are matching with bitmap and are enough", n, len(c.Validators.ConsensusGroup)))
+			return R_True
+		}
+	}
+
+	return R_None
+}
+
 func (c *Chronology) DoSignature() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-
-		bActionDone := c.SendMessage(round.RS_SIGNATURE)
-
-		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
-
-		if timeRoundState > round.RS_SIGNATURE {
-			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Extended the "+c.Round.GetRoundStateName(round.RS_SIGNATURE)+" subround. Got only %d from %d sigantures which are not enough", c.GetSignatures(), len(c.Validators.ConsensusGroup)))
-			c.Round.Signature = round.SS_EXTENDED
-			return true // Try to give a chance to this round if the necesary signatures will arrive later
-		}
-
-		select {
-		case rcvMsg := <-c.ChRcvMsg:
-			if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
-				bActionDone = true
-			}
+		switch c.DoSignatureOneTime() {
+		case R_None:
+			continue
+		case R_False:
+			return false
+		case R_True:
+			return true
 		default:
-		}
-
-		if bActionDone {
-			bActionDone = false
-			if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_SIGNATURE); ok {
-				c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough", n, len(c.Validators.ConsensusGroup)))
-				return true
-			}
+			return false
 		}
 	}
 
@@ -391,47 +453,91 @@ func (c *Chronology) DoSignature() bool {
 	return false
 }
 
+func (c *Chronology) DoSignatureOneTime() Response {
+	bActionDone := c.SendMessage(round.RS_SIGNATURE)
+
+	timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
+
+	if timeRoundState > round.RS_SIGNATURE {
+		c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Extended the "+c.Round.GetRoundStateName(round.RS_SIGNATURE)+" subround. Got only %d from %d sigantures which are not enough", c.GetSignatures(), len(c.Validators.ConsensusGroup)))
+		c.Round.Signature = round.SS_EXTENDED
+		return R_True // Try to give a chance to this round if the necesary signatures will arrive later
+	}
+
+	select {
+	case rcvMsg := <-c.ChRcvMsg:
+		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+			bActionDone = true
+		}
+	default:
+	}
+
+	if bActionDone {
+		bActionDone = false
+		if ok, n := c.CheckConsensus(round.RS_BLOCK, round.RS_SIGNATURE); ok {
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough", n, len(c.Validators.ConsensusGroup)))
+			return R_True
+		}
+	}
+
+	return R_None
+}
+
 func (c *Chronology) DoEndRound() bool {
 	bActionDone := true
 
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-
-		timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
-
-		if timeRoundState > round.RS_END_ROUND {
-			c.Log(fmt.Sprintf("\n" + c.GetFormatedCurrentTime() + ">>>>>>>>>>>>>>>>>>>> THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n"))
+		switch c.DoEndRoundOneTime(&bActionDone) {
+		case R_None:
+			continue
+		case R_False:
+			return false
+		case R_True:
 			return true
-		}
-
-		select {
-		case rcvMsg := <-c.ChRcvMsg:
-			if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
-				bActionDone = true
-			}
 		default:
-		}
-
-		if bActionDone {
-			bActionDone = false
-			if ok, _ := c.CheckConsensus(round.RS_BLOCK, round.RS_SIGNATURE); ok {
-				c.Statistic.AddRoundWithBlock() // only for statistic
-
-				c.BlockChain.AddBlock(*c.Block)
-
-				if c.IsNodeLeaderInCurrentRound(c.Validators.Self) {
-					c.Log(fmt.Sprintf("\n"+c.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.Nonce))
-				} else {
-					c.Log(fmt.Sprintf("\n"+c.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.Nonce))
-				}
-
-				return true
-			}
+			return false
 		}
 	}
 
 	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 6: Aborded round %d in subround %s", c.Round.Index, c.Round.GetRoundStateName(round.RS_END_ROUND)))
 	return false
+}
+
+func (c *Chronology) DoEndRoundOneTime(bActionDone *bool) Response {
+	timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
+
+	if timeRoundState > round.RS_END_ROUND {
+		c.Log(fmt.Sprintf("\n" + c.GetFormatedCurrentTime() + ">>>>>>>>>>>>>>>>>>>> THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n"))
+		return R_True
+	}
+
+	select {
+	case rcvMsg := <-c.ChRcvMsg:
+		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+			*bActionDone = true
+		}
+	default:
+	}
+
+	if *bActionDone {
+		*bActionDone = false
+		if ok, _ := c.CheckConsensus(round.RS_BLOCK, round.RS_SIGNATURE); ok {
+			c.Statistic.AddRoundWithBlock() // only for statistic
+
+			c.BlockChain.AddBlock(*c.Block)
+
+			if c.IsNodeLeaderInCurrentRound(c.Validators.Self) {
+				c.Log(fmt.Sprintf("\n"+c.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.Nonce))
+			} else {
+				c.Log(fmt.Sprintf("\n"+c.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", c.Block.Nonce))
+			}
+
+			return R_True
+		}
+	}
+
+	return R_None
 }
 
 func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round.RoundState) bool {

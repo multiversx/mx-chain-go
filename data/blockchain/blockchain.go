@@ -3,7 +3,7 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/synctime"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -11,10 +11,10 @@ import (
 type BlockChain struct {
 	DoLog    bool
 	Blocks   []block.Block
-	SyncTime *synctime.SyncTime
+	SyncTime *ntp.SyncTime
 }
 
-func New(blocks []block.Block, syncTime *synctime.SyncTime, doLog bool) BlockChain {
+func New(blocks []block.Block, syncTime *ntp.SyncTime, doLog bool) BlockChain {
 	blockChain := BlockChain{DoLog: doLog, Blocks: blocks, SyncTime: syncTime}
 	return blockChain
 }
