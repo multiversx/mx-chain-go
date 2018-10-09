@@ -1,45 +1,81 @@
-package data
+package blockchain
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/davecgh/go-spew/spew"
+	"ElrondNetwork/elrond-go-sandbox/data/block"
+	"ElrondNetwork/elrond-go-sandbox/storage"
+	"math/big"
+
+	"ElrondNetwork/elrond-go-sandbox/config"
+
+	"github.com/sirupsen/logrus"
 )
 
+var log = logrus.WithField("prefix", "blockchain")
+
+const (
+	TransactionUnit UnitType = 0
+	BlockUnit       UnitType = 1
+	BlockHeaderUnit UnitType = 2
+)
+
+type UnitType uint8
+
+type BlockChainService interface {
+	Get(unitType UnitType, key []byte) []byte
+	Put(unitType UnitType, key []byte)
+	GetLocal(unitType UnitType, key []byte) []byte
+	Contains(unitType UnitType, key []byte) bool
+	GetAllLocal(unitType UnitType, keys [][]byte) map[string][]byte
+}
+
 type BlockChain struct {
-	blocks []data.Block
+	genesisBlock  *block.Block
+	currentBlock  *block.Block
+	localHeight   *big.Int
+	networkHeight *big.Int
+	badBlocks     storage.Cacher
+	chain         map[UnitType]storage.Storer
 }
 
-func New(blocks []data.Block) BlockChain {
+// NewData returns an initialized blockchain
+func NewData() (*BlockChain, error) {
+	// TODO: choose the blockchain config based on some parameter/env variable/config variable
+	// currently testnet blockchain config is the only valid one
 
-	blockChain := BlockChain{blocks}
-	return blockChain
-}
+	txStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.TxStorage)
 
-func (bc *BlockChain) SetBlocks(blocks []data.Block) {
-	bc.blocks = blocks
-}
-
-func (bc *BlockChain) GetBlocks() []data.Block {
-	return bc.blocks
-}
-
-// impl
-
-type BlockChainImpl struct {
-}
-
-func (BlockChainImpl) AddBlock(blockchain *BlockChain, block data.Block) {
-	blockchain.blocks = append(blockchain.blocks, block)
-}
-
-func (BlockChainImpl) GetCurrentBlock(blockChain *BlockChain) *data.Block {
-	if blockChain == nil || len(blockChain.blocks) == 0 {
-		return nil
+	if err != nil {
+		log.Fatalf("transaction storage could not be created: %s", err)
 	}
 
-	return &blockChain.blocks[len(blockChain.blocks)-1]
-}
+	blStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.BlockStorage)
+	if err != nil {
+		log.Fatalf("block storage could not be created: %s", err)
+	}
 
-func (BlockChainImpl) Print(blockChain *BlockChain) {
-	spew.Dump(blockChain)
+	blHeadStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.BlockHeaderStorage)
+	if err != nil {
+		log.Fatalf("block header storage could not be created: %s", err)
+	}
+
+	badBlocksCache, err := storage.CreateCacheFromConf(config.TestnetBlockchainConfig.BBlockCache)
+
+	if err != nil {
+		log.Fatalf("bad block cache could not be created: %s", err)
+	}
+
+	data := &BlockChain{
+		genesisBlock:  nil,
+		currentBlock:  nil,
+		localHeight:   big.NewInt(-1),
+		networkHeight: big.NewInt(-1),
+		badBlocks:     badBlocksCache,
+		chain: map[UnitType]storage.Storer{
+			TransactionUnit: txStorage,
+			BlockUnit:       blStorage,
+			BlockHeaderUnit: blHeadStorage,
+		},
+	}
+
+	return data, nil
 }
