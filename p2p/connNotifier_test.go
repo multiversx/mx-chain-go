@@ -80,7 +80,7 @@ func TestTryToConnectWithSuccess(t *testing.T) {
 
 	node, err := p2p.NewNetMessenger(
 		context.Background(),
-		&mock.MockMarshalizer{},
+		&mock.MarshalizerMock{},
 		*p2p.NewConnectParamsFromPort(4000),
 		[]string{},
 		10)
@@ -126,7 +126,7 @@ func TestRemoveInboundPeers(t *testing.T) {
 
 	node1, err := p2p.NewNetMessenger(
 		context.Background(),
-		&mock.MockMarshalizer{},
+		&mock.MarshalizerMock{},
 		*p2p.NewConnectParamsFromPort(5000),
 		[]string{},
 		10)
@@ -134,7 +134,7 @@ func TestRemoveInboundPeers(t *testing.T) {
 
 	node2, err := p2p.NewNetMessenger(
 		context.Background(),
-		&mock.MockMarshalizer{},
+		&mock.MarshalizerMock{},
 		*p2p.NewConnectParamsFromPort(5001),
 		[]string{},
 		10)
@@ -142,7 +142,7 @@ func TestRemoveInboundPeers(t *testing.T) {
 
 	node3, err := p2p.NewNetMessenger(
 		context.Background(),
-		&mock.MockMarshalizer{},
+		&mock.MarshalizerMock{},
 		*p2p.NewConnectParamsFromPort(5002),
 		[]string{},
 		10)
@@ -169,7 +169,7 @@ func TestRemoveInboundPeers(t *testing.T) {
 func TestTryToConnect3PeersWithSuccess(t *testing.T) {
 	node1, err := p2p.NewNetMessenger(
 		context.Background(),
-		&mock.MockMarshalizer{},
+		&mock.MarshalizerMock{},
 		*p2p.NewConnectParamsFromPort(6000),
 		[]string{},
 		10)
@@ -177,7 +177,7 @@ func TestTryToConnect3PeersWithSuccess(t *testing.T) {
 
 	node2, err := p2p.NewNetMessenger(
 		context.Background(),
-		&mock.MockMarshalizer{},
+		&mock.MarshalizerMock{},
 		*p2p.NewConnectParamsFromPort(6001),
 		[]string{},
 		10)
@@ -185,7 +185,7 @@ func TestTryToConnect3PeersWithSuccess(t *testing.T) {
 
 	node3, err := p2p.NewNetMessenger(
 		context.Background(),
-		&mock.MockMarshalizer{},
+		&mock.MarshalizerMock{},
 		*p2p.NewConnectParamsFromPort(6002),
 		[]string{},
 		10)

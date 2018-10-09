@@ -446,6 +446,11 @@ func (nm *NetMessenger) gotNewMessage(buff []byte, remotePeer peer.ID) {
 		return
 	}
 
+	err = m.Verify()
+	if err != nil {
+		return
+	}
+
 	sha3 := crypto.SHA3_256.New()
 	b64 := base64.StdEncoding
 	hash := b64.EncodeToString(sha3.Sum([]byte(m.Payload)))

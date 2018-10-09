@@ -95,7 +95,7 @@ func (mm *MemoryMessenger) Conns() []net.Conn {
 
 	mm.mutConnectedPeers.Lock()
 	for k := range mm.connectedPeers {
-		c := &mock.MockConn{LocalP: mm.peerID, RemoteP: k}
+		c := &mock.ConnMock{LocalP: mm.peerID, RemoteP: k}
 		conns = append(conns, c)
 	}
 	mm.mutConnectedPeers.Unlock()
@@ -172,6 +172,11 @@ func (mm *MemoryMessenger) gotNewMessage(sender *MemoryMessenger, buff []byte) {
 
 	m, err := CreateFromByteArray(mm.marsh, buff)
 
+	if err != nil {
+		return
+	}
+
+	err = m.Verify()
 	if err != nil {
 		return
 	}
