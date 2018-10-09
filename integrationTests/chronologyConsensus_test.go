@@ -54,7 +54,7 @@ func TestChronology(t *testing.T) {
 		// set ChronologyIn parameters
 		syncTime := ntp.NewSyncTime(ROUND_DURATION, ntp.Query)
 		block := block.New(-1, "", "", "", "", "")
-		blockChain := blockchain.New(nil, &syncTime, i == 0)
+		blockChain := blockchain.New(nil, syncTime, i == 0)
 		validators := validators.New(consensusGroup, consensusGroup[FIRST_NODE_ID+i-1])
 		consensus := consensus.New(consensus.Threshold{1, PBFTThreshold, PBFTThreshold, PBFTThreshold, PBFTThreshold})
 		round := round.NewRoundFromDateTime(GENESIS_TIME, syncTime.GetCurrentTime(), ROUND_DURATION, createRoundTimeDivision(ROUND_DURATION), round.Subround{round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED})
