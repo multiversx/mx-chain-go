@@ -1,6 +1,9 @@
 package storage
 
 import (
+	"ElrondNetwork/elrond-go-sandbox/config"
+	"ElrondNetwork/elrond-go-sandbox/storage/leveldb"
+	"ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -65,29 +68,20 @@ type Cacher interface {
 	Len() int
 }
 
+type Storer interface {
+	Put(key, data []byte) error
+	Get(key []byte) ([]byte, error)
+	Has(key []byte) (bool, error)
+	HasOrAdd(key []byte, value []byte) (bool, error)
+	Remove(key []byte) error
+	ClearCache()
+	DestroyUnit() error
+}
+
 type StorageUnit struct {
 	lock      sync.RWMutex
 	persister Persister
 	cacher    Cacher
-}
-
-func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
-	if p == nil {
-		return nil, errors.New("expected not nil persister")
-	}
-
-	if c == nil {
-		return nil, errors.New("expected not nil cacher")
-	}
-
-	sUnit := &StorageUnit{
-		persister: p,
-		cacher:    c,
-	}
-
-	sUnit.persister.Init()
-
-	return sUnit, nil
 }
 
 // add data to both cache and persistance medium
@@ -173,7 +167,7 @@ func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
 }
 
 // deletes the data associated to the given key from both cache and persistance medium
-func (s *StorageUnit) Delete(key []byte) error {
+func (s *StorageUnit) Remove(key []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -196,4 +190,85 @@ func (s *StorageUnit) DestroyUnit() error {
 	s.cacher.Clear()
 	s.persister.Close()
 	return s.persister.Destroy()
+}
+
+func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
+	if p == nil {
+		return nil, errors.New("expected not nil persister")
+	}
+
+	if c == nil {
+		return nil, errors.New("expected not nil cacher")
+	}
+
+	sUnit := &StorageUnit{
+		persister: p,
+		cacher:    c,
+	}
+
+	sUnit.persister.Init()
+
+	return sUnit, nil
+}
+
+func NewStorageUnitFromConf(conf *config.StorageUnitConfig) (*StorageUnit, error) {
+	var cache Cacher
+	var db Persister
+	var err error
+
+	cache, err = CreateCacheFromConf(conf.CacheConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	db, err = CreateDBFromConf(conf.DBConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	st, err := NewStorageUnit(cache, db)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return st, err
+}
+
+func CreateCacheFromConf(conf *config.CacheConfig) (Cacher, error) {
+	var cacher Cacher
+	var err error
+
+	switch conf.Type {
+	case config.LRUCache:
+		cacher, err = lrucache.NewCache(int(conf.Size))
+		// add other implementations if required
+	default:
+		return nil, errors.New("not supported cache type")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return cacher, nil
+}
+
+func CreateDBFromConf(conf *config.DBConfig) (Persister, error) {
+	var db Persister
+	var err error
+
+	switch conf.Type {
+	case config.LvlDB:
+		db, err = leveldb.NewDB(conf.FileName)
+	default:
+		return nil, errors.New("nit supported db type")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
