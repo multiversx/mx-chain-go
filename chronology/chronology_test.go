@@ -3,6 +3,7 @@ package chronology
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/epoch"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/davecgh/go-spew/spew"
 
 	"testing"
@@ -120,4 +121,19 @@ func createRoundTimeDivision(duration time.Duration) []time.Duration {
 	}
 
 	return d
+}
+
+func TestA(t *testing.T) {
+	c := New(&ChronologyIn{})
+
+	c.OnNeedToBroadcastBlock = func(block *block.Block) bool {
+		//put test logic here.
+
+		return false
+	}
+
+	c.ReceivedBlock(nil)
+
+	c.doBlockOneTime()
+
 }

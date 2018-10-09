@@ -11,8 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
+	//"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	//"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/statistic"
 
 	"strings"
@@ -31,14 +31,14 @@ const (
 
 type ChronologyIn struct {
 	GenesisTime time.Time
-	P2PNode     *p2p.Messenger
-	Block       *block.Block
-	BlockChain  *blockchain.BlockChain
-	Validators  *validators.Validators
-	Consensus   *consensus.Consensus
-	Round       *round.Round
-	Statistic   *statistic.Chronology
-	SyncTime    *ntp.SyncTime
+	//P2PNode     *p2p.Messenger
+	Block      *block.Block
+	BlockChain *blockchain.BlockChain
+	Validators *validators.Validators
+	Consensus  *consensus.Consensus
+	Round      *round.Round
+	Statistic  *statistic.Chronology
+	SyncTime   *ntp.SyncTime
 }
 
 type Chronology struct {
@@ -49,8 +49,10 @@ type Chronology struct {
 	*ChronologyIn
 
 	SelfRoundState round.RoundState
-	ChRcvMsg       chan []byte
+	ChRcvBlk       chan *block.Block
 	ClockOffset    time.Duration
+
+	OnNeedToBroadcastBlock func(block *block.Block) bool
 }
 
 func New(chronologyIn *ChronologyIn) *Chronology {
@@ -60,9 +62,9 @@ func New(chronologyIn *ChronologyIn) *Chronology {
 
 	csi.ChronologyIn = chronologyIn
 
-	csi.ChRcvMsg = make(chan []byte, len(chronologyIn.Validators.ConsensusGroup))
+	csi.ChRcvBlk = make(chan *block.Block, len(chronologyIn.Validators.ConsensusGroup))
 
-	(*csi.P2PNode).SetOnRecvMsg(csi.recv)
+	//(*csi.P2PNode).SetOnRecvMsg(csi.recv)
 
 	csi.InitRound()
 
@@ -75,7 +77,7 @@ func (c *Chronology) StartRounds() {
 		c.startRoundOneTime()
 	}
 
-	close(c.ChRcvMsg)
+	close(c.ChRcvBlk)
 }
 
 func (c *Chronology) startRoundOneTime() {
@@ -177,9 +179,9 @@ func (c *Chronology) OptimizeRoundState(roundState round.RoundState) {
 
 	if roundState < round.RS_START_ROUND || roundState > round.RS_END_ROUND || roundState != c.SelfRoundState {
 		select {
-		case rcvMsg := <-c.ChRcvMsg:
+		case rcvBlk := <-c.ChRcvBlk:
 			if c.SelfRoundState >= round.RS_START_ROUND && c.SelfRoundState <= round.RS_END_ROUND {
-				if c.ConsumeReceivedMessage(&rcvMsg, c.Round.State) {
+				if c.ConsumeReceivedBlock(rcvBlk, c.Round.State) {
 					//c.Log(fmt.Sprintf("\n" + FormatTime(c.SyncTime.GetCurrentTime())+"Received message in time round state %s and self round state %s", rs.GetRoundStateName(c.Round.GetRoundState()), rs.GetRoundStateName(c.SelfRoundState)))
 				}
 			}
@@ -250,8 +252,8 @@ func (c *Chronology) doBlockOneTime() Response {
 	}
 
 	select {
-	case rcvMsg := <-c.ChRcvMsg:
-		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+	case rcvBlk := <-c.ChRcvBlk:
+		if c.ConsumeReceivedBlock(rcvBlk, timeRoundState) {
 			bActionDone = true
 		}
 	default:
@@ -303,8 +305,8 @@ func (c *Chronology) doComitmentHashOneTime() Response {
 	}
 
 	select {
-	case rcvMsg := <-c.ChRcvMsg:
-		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+	case rcvBlk := <-c.ChRcvBlk:
+		if c.ConsumeReceivedBlock(rcvBlk, timeRoundState) {
 			bActionDone = true
 		}
 	default:
@@ -363,8 +365,8 @@ func (c *Chronology) doBitmapOneTime() Response {
 	}
 
 	select {
-	case rcvMsg := <-c.ChRcvMsg:
-		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+	case rcvBlk := <-c.ChRcvBlk:
+		if c.ConsumeReceivedBlock(rcvBlk, timeRoundState) {
 			bActionDone = true
 		}
 	default:
@@ -416,8 +418,8 @@ func (c *Chronology) doComitmentOneTime() Response {
 	}
 
 	select {
-	case rcvMsg := <-c.ChRcvMsg:
-		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+	case rcvBlk := <-c.ChRcvBlk:
+		if c.ConsumeReceivedBlock(rcvBlk, timeRoundState) {
 			bActionDone = true
 		}
 	default:
@@ -465,8 +467,8 @@ func (c *Chronology) doSignatureOneTime() Response {
 	}
 
 	select {
-	case rcvMsg := <-c.ChRcvMsg:
-		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+	case rcvBlk := <-c.ChRcvBlk:
+		if c.ConsumeReceivedBlock(rcvBlk, timeRoundState) {
 			bActionDone = true
 		}
 	default:
@@ -513,8 +515,8 @@ func (c *Chronology) doEndRoundOneTime(bActionDone *bool) Response {
 	}
 
 	select {
-	case rcvMsg := <-c.ChRcvMsg:
-		if c.ConsumeReceivedMessage(&rcvMsg, timeRoundState) {
+	case rcvBlk := <-c.ChRcvBlk:
+		if c.ConsumeReceivedBlock(rcvBlk, timeRoundState) {
 			*bActionDone = true
 		}
 	default:
@@ -540,8 +542,8 @@ func (c *Chronology) doEndRoundOneTime(bActionDone *bool) Response {
 	return R_None
 }
 
-func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round.RoundState) bool {
-	msgType, msgData := c.DecodeMessage(rcvMsg)
+func (c *Chronology) ConsumeReceivedBlock(rcvBlk *block.Block, timeRoundState round.RoundState) bool {
+	msgType, msgData := c.DecodeMessage(rcvBlk)
 
 	switch msgType {
 	case MT_BLOCK:
@@ -942,20 +944,26 @@ func (c *Chronology) SendSignature() bool {
 }
 
 func (c *Chronology) BroadcastBlock(block *block.Block) bool {
-	marsh := &mock.MockMarshalizer{}
-
-	message, err := marsh.Marshal(block)
-
-	if err != nil {
-		fmt.Printf(err.Error() + "\n")
-		return false
+	if c.OnNeedToBroadcastBlock != nil {
+		return c.OnNeedToBroadcastBlock(block)
 	}
 
-	//(*c.P2PNode).BroadcastString(string(message), []string{})
-	m := p2p.NewMessage((*c.P2PNode).ID().Pretty(), message, marsh)
-	(*c.P2PNode).BroadcastMessage(m, []string{})
+	return false
 
-	return true
+	//marsh := &mock.MockMarshalizer{}
+	//
+	//message, err := marsh.Marshal(block)
+	//
+	//if err != nil {
+	//	fmt.Printf(err.Error() + "\n")
+	//	return false
+	//}
+	//
+	////(*c.P2PNode).BroadcastString(string(message), []string{})
+	//m := p2p.NewMessage((*c.P2PNode).ID().Pretty(), message, marsh)
+	//(*c.P2PNode).BroadcastMessage(m, []string{})
+	//
+	//return true
 }
 
 func (c *Chronology) ComputeLeader(nodes []string, round *round.Round) (string, error) {
@@ -1172,36 +1180,39 @@ func (c *Chronology) GetMessageTypeName(messageType MessageType) string {
 	}
 }
 
-func (c *Chronology) recv(sender p2p.Messenger, peerID string, m *p2p.Message) {
-	//c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Peer with ID = %s got a message from peer with ID = %s which traversed %d peers\n", sender.P2pNode.ID().Pretty(), peerID, len(m.Peers)))
-	m.AddHop(sender.ID().Pretty())
-	c.ChRcvMsg <- m.Payload
-	//sender.BroadcastMessage(m, m.Peers)
-	sender.BroadcastMessage(m, []string{})
+func (c *Chronology) ReceivedBlock(blk *block.Block) {
+	c.ChRcvBlk <- blk
 }
 
-func (c *Chronology) DecodeMessage(rcvMsg *[]byte) (MessageType, interface{}) {
-	if ok, msgBlock := c.IsBlockInMessage(rcvMsg); ok {
-		//c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Got a message with %s for block with Signature = %s and Nonce = %d and Hash = %s\n", msgBlock.MetaData, msgBlock.Signature, msgBlock.Nonce, msgBlock.Hash))
-		if strings.Contains(msgBlock.MetaData, c.GetMessageTypeName(MT_BLOCK)) {
-			return MT_BLOCK, msgBlock
-		}
+//func (c *Chronology) recv(sender p2p.Messenger, peerID string, m *p2p.Message) {
+//	//c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Peer with ID = %s got a message from peer with ID = %s which traversed %d peers\n", sender.P2pNode.ID().Pretty(), peerID, len(m.Peers)))
+//	m.AddHop(sender.ID().Pretty())
+//	c.ChRcvMsg <- m.Payload
+//	//sender.BroadcastMessage(m, m.Peers)
+//	sender.BroadcastMessage(m, []string{})
+//}
 
-		if strings.Contains(msgBlock.MetaData, c.GetMessageTypeName(MT_COMITMENT_HASH)) {
-			return MT_COMITMENT_HASH, msgBlock
-		}
+func (c *Chronology) DecodeMessage(rcvBlk *block.Block) (MessageType, interface{}) {
 
-		if strings.Contains(msgBlock.MetaData, c.GetMessageTypeName(MT_BITMAP)) {
-			return MT_BITMAP, msgBlock
-		}
+	//c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Got a message with %s for block with Signature = %s and Nonce = %d and Hash = %s\n", msgBlock.MetaData, msgBlock.Signature, msgBlock.Nonce, msgBlock.Hash))
+	if strings.Contains(rcvBlk.MetaData, c.GetMessageTypeName(MT_BLOCK)) {
+		return MT_BLOCK, rcvBlk
+	}
 
-		if strings.Contains(msgBlock.MetaData, c.GetMessageTypeName(MT_COMITMENT)) {
-			return MT_COMITMENT, msgBlock
-		}
+	if strings.Contains(rcvBlk.MetaData, c.GetMessageTypeName(MT_COMITMENT_HASH)) {
+		return MT_COMITMENT_HASH, rcvBlk
+	}
 
-		if strings.Contains(msgBlock.MetaData, c.GetMessageTypeName(MT_SIGNATURE)) {
-			return MT_SIGNATURE, msgBlock
-		}
+	if strings.Contains(rcvBlk.MetaData, c.GetMessageTypeName(MT_BITMAP)) {
+		return MT_BITMAP, rcvBlk
+	}
+
+	if strings.Contains(rcvBlk.MetaData, c.GetMessageTypeName(MT_COMITMENT)) {
+		return MT_COMITMENT, rcvBlk
+	}
+
+	if strings.Contains(rcvBlk.MetaData, c.GetMessageTypeName(MT_SIGNATURE)) {
+		return MT_SIGNATURE, rcvBlk
 	}
 
 	return MT_UNKNOWN, nil
