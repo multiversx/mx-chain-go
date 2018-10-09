@@ -72,55 +72,55 @@ func New(chronologyIn *ChronologyIn) *Chronology {
 func (c *Chronology) StartRounds() {
 	for c.DoRun {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		c.StartRoundOneTime()
+		c.startRoundOneTime()
 	}
 
 	close(c.ChRcvMsg)
 }
 
-func (c *Chronology) StartRoundOneTime() {
+func (c *Chronology) startRoundOneTime() {
 	_, roundState := c.UpdateRound()
 
 	switch roundState {
 	case round.RS_START_ROUND:
 		if c.SelfRoundState == roundState {
-			if c.DoStartRound() {
+			if c.doStartRound() {
 				c.SelfRoundState = round.RS_BLOCK
 			}
 		}
 	case round.RS_BLOCK:
 		if c.SelfRoundState == roundState {
-			if c.DoBlock() {
+			if c.doBlock() {
 				c.SelfRoundState = round.RS_COMITMENT_HASH
 			}
 		}
 	case round.RS_COMITMENT_HASH:
 		if c.SelfRoundState == roundState {
-			if c.DoComitmentHash() {
+			if c.doComitmentHash() {
 				c.SelfRoundState = round.RS_BITMAP
 			}
 		}
 	case round.RS_BITMAP:
 		if c.SelfRoundState == roundState {
-			if c.DoBitmap() {
+			if c.doBitmap() {
 				c.SelfRoundState = round.RS_COMITMENT
 			}
 		}
 	case round.RS_COMITMENT:
 		if c.SelfRoundState == roundState {
-			if c.DoComitment() {
+			if c.doComitment() {
 				c.SelfRoundState = round.RS_SIGNATURE
 			}
 		}
 	case round.RS_SIGNATURE:
 		if c.SelfRoundState == roundState {
-			if c.DoSignature() {
+			if c.doSignature() {
 				c.SelfRoundState = round.RS_END_ROUND
 			}
 		}
 	case round.RS_END_ROUND:
 		if c.SelfRoundState == roundState {
-			if c.DoEndRound() {
+			if c.doEndRound() {
 				c.SelfRoundState = round.RS_BEFORE_ROUND
 			}
 		}
@@ -188,10 +188,10 @@ func (c *Chronology) OptimizeRoundState(roundState round.RoundState) {
 	}
 }
 
-func (c *Chronology) DoStartRound() bool {
+func (c *Chronology) doStartRound() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch c.DoStartRoundOneTime() {
+		switch c.doStartRoundOneTime() {
 		case R_None:
 			continue
 		case R_False:
@@ -207,15 +207,15 @@ func (c *Chronology) DoStartRound() bool {
 	return false
 }
 
-func (c *Chronology) DoStartRoundOneTime() Response {
+func (c *Chronology) doStartRoundOneTime() Response {
 	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 0: Preparing for this round"))
 	return R_True
 }
 
-func (c *Chronology) DoBlock() bool {
+func (c *Chronology) doBlock() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch c.DoBlockOneTime() {
+		switch c.doBlockOneTime() {
 		case R_None:
 			continue
 		case R_False:
@@ -231,7 +231,7 @@ func (c *Chronology) DoBlock() bool {
 	return false
 }
 
-func (c *Chronology) DoBlockOneTime() Response {
+func (c *Chronology) doBlockOneTime() Response {
 	bActionDone := c.SendMessage(round.RS_BLOCK)
 
 	if bActionDone {
@@ -268,10 +268,10 @@ func (c *Chronology) DoBlockOneTime() Response {
 	return R_None
 }
 
-func (c *Chronology) DoComitmentHash() bool {
+func (c *Chronology) doComitmentHash() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch c.DoComitmentHashOneTime() {
+		switch c.doComitmentHashOneTime() {
 		case R_None:
 			continue
 		case R_False:
@@ -287,14 +287,14 @@ func (c *Chronology) DoComitmentHash() bool {
 	return false
 }
 
-func (c *Chronology) DoComitmentHashOneTime() Response {
+func (c *Chronology) doComitmentHashOneTime() Response {
 	bActionDone := c.SendMessage(round.RS_COMITMENT_HASH)
 
 	timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 	if timeRoundState > round.RS_COMITMENT_HASH {
-		if c.GetComitmentHashes() < c.Consensus.Threshold.ComitmentHash {
-			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)+" subround. Got only %d from %d commitment hashes which are not enough", c.GetComitmentHashes(), len(c.Validators.ConsensusGroup)))
+		if c.GetComitmentHashesCount() < c.Consensus.Threshold.ComitmentHash {
+			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)+" subround. Got only %d from %d commitment hashes which are not enough", c.GetComitmentHashesCount(), len(c.Validators.ConsensusGroup)))
 		} else {
 			c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Step 2: Extended the " + c.Round.GetRoundStateName(round.RS_COMITMENT_HASH) + " subround"))
 		}
@@ -325,10 +325,10 @@ func (c *Chronology) DoComitmentHashOneTime() Response {
 	return R_None
 }
 
-func (c *Chronology) DoBitmap() bool {
+func (c *Chronology) doBitmap() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch c.DoBitmapOneTime() {
+		switch c.doBitmapOneTime() {
 		case R_None:
 			continue
 		case R_False:
@@ -344,7 +344,7 @@ func (c *Chronology) DoBitmap() bool {
 	return false
 }
 
-func (c *Chronology) DoBitmapOneTime() Response {
+func (c *Chronology) doBitmapOneTime() Response {
 	bActionDone := c.SendMessage(round.RS_BITMAP)
 
 	if bActionDone {
@@ -385,10 +385,10 @@ func (c *Chronology) DoBitmapOneTime() Response {
 	return R_None
 }
 
-func (c *Chronology) DoComitment() bool {
+func (c *Chronology) doComitment() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch c.DoComitmentOneTime() {
+		switch c.doComitmentOneTime() {
 		case R_None:
 			continue
 		case R_False:
@@ -404,13 +404,13 @@ func (c *Chronology) DoComitment() bool {
 	return false
 }
 
-func (c *Chronology) DoComitmentOneTime() Response {
+func (c *Chronology) doComitmentOneTime() Response {
 	bActionDone := c.SendMessage(round.RS_COMITMENT)
 
 	timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 	if timeRoundState > round.RS_COMITMENT {
-		c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT)+" subround. Got only %d from %d commitments which are not enough", c.GetComitments(), len(c.Validators.ConsensusGroup)))
+		c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 4: Extended the "+c.Round.GetRoundStateName(round.RS_COMITMENT)+" subround. Got only %d from %d commitments which are not enough", c.GetComitmentsCount(), len(c.Validators.ConsensusGroup)))
 		c.Round.Comitment = round.SS_EXTENDED
 		return R_True // Try to give a chance to this round if the necesary comitments will arrive later
 	}
@@ -434,10 +434,10 @@ func (c *Chronology) DoComitmentOneTime() Response {
 	return R_None
 }
 
-func (c *Chronology) DoSignature() bool {
+func (c *Chronology) doSignature() bool {
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch c.DoSignatureOneTime() {
+		switch c.doSignatureOneTime() {
 		case R_None:
 			continue
 		case R_False:
@@ -453,13 +453,13 @@ func (c *Chronology) DoSignature() bool {
 	return false
 }
 
-func (c *Chronology) DoSignatureOneTime() Response {
+func (c *Chronology) doSignatureOneTime() Response {
 	bActionDone := c.SendMessage(round.RS_SIGNATURE)
 
 	timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 	if timeRoundState > round.RS_SIGNATURE {
-		c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Extended the "+c.Round.GetRoundStateName(round.RS_SIGNATURE)+" subround. Got only %d from %d sigantures which are not enough", c.GetSignatures(), len(c.Validators.ConsensusGroup)))
+		c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 5: Extended the "+c.Round.GetRoundStateName(round.RS_SIGNATURE)+" subround. Got only %d from %d sigantures which are not enough", c.GetSignaturesCount(), len(c.Validators.ConsensusGroup)))
 		c.Round.Signature = round.SS_EXTENDED
 		return R_True // Try to give a chance to this round if the necesary signatures will arrive later
 	}
@@ -483,12 +483,12 @@ func (c *Chronology) DoSignatureOneTime() Response {
 	return R_None
 }
 
-func (c *Chronology) DoEndRound() bool {
+func (c *Chronology) doEndRound() bool {
 	bActionDone := true
 
 	for c.SelfRoundState != round.RS_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch c.DoEndRoundOneTime(&bActionDone) {
+		switch c.doEndRoundOneTime(&bActionDone) {
 		case R_None:
 			continue
 		case R_False:
@@ -504,7 +504,7 @@ func (c *Chronology) DoEndRound() bool {
 	return false
 }
 
-func (c *Chronology) DoEndRoundOneTime(bActionDone *bool) Response {
+func (c *Chronology) doEndRoundOneTime(bActionDone *bool) Response {
 	timeRoundState := c.Round.GetRoundStateFromDateTime(c.GetCurrentTime())
 
 	if timeRoundState > round.RS_END_ROUND {
@@ -674,7 +674,7 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 		switch i {
 		case round.RS_BLOCK:
 			if c.Round.Block != round.SS_FINISHED {
-				if ok, n = c.IsBlock(c.Consensus.Threshold.Block); ok {
+				if ok, n = c.IsBlockReceived(c.Consensus.Threshold.Block); ok {
 					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 1: Subround %s has been finished", c.Round.GetRoundStateName(round.RS_BLOCK)))
 					c.Round.Block = round.SS_FINISHED
 				} else {
@@ -687,7 +687,7 @@ func (c *Chronology) CheckConsensus(startRoundState round.RoundState, endRoundSt
 				if !c.IsNodeLeaderInCurrentRound(c.Validators.Self) {
 					threshold = len(c.Validators.ConsensusGroup)
 				}
-				if ok, n = c.IsComitmentHash(threshold); ok {
+				if ok, n = c.IsComitmentHashReceived(threshold); ok {
 					c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Step 2: Subround %s has been finished", c.Round.GetRoundStateName(round.RS_COMITMENT_HASH)))
 					c.Round.ComitmentHash = round.SS_FINISHED
 				} else if ok, n = c.IsComitmentHashInBitmap(c.Consensus.Threshold.Bitmap); ok {
@@ -1011,7 +1011,7 @@ func (c *Chronology) IsNodeInBitmapGroup(node string) bool {
 	return c.Validators.ValidationMap[node].Bitmap
 }
 
-func (c *Chronology) IsBlock(threshold int) (bool, int) {
+func (c *Chronology) IsBlockReceived(threshold int) (bool, int) {
 	n := 0
 
 	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
@@ -1023,7 +1023,7 @@ func (c *Chronology) IsBlock(threshold int) (bool, int) {
 	return n >= threshold, n
 }
 
-func (c *Chronology) IsComitmentHash(threshold int) (bool, int) {
+func (c *Chronology) IsComitmentHashReceived(threshold int) (bool, int) {
 	n := 0
 
 	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
@@ -1080,7 +1080,7 @@ func (c *Chronology) IsComitmentInSignature(threshold int) (bool, int) {
 	return n >= threshold, n
 }
 
-func (c *Chronology) GetComitmentHashes() int {
+func (c *Chronology) GetComitmentHashesCount() int {
 	n := 0
 
 	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
@@ -1092,7 +1092,7 @@ func (c *Chronology) GetComitmentHashes() int {
 	return n
 }
 
-func (c *Chronology) GetComitments() int {
+func (c *Chronology) GetComitmentsCount() int {
 	n := 0
 
 	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
@@ -1104,7 +1104,7 @@ func (c *Chronology) GetComitments() int {
 	return n
 }
 
-func (c *Chronology) GetSignatures() int {
+func (c *Chronology) GetSignaturesCount() int {
 	n := 0
 
 	for i := 0; i < len(c.Validators.ConsensusGroup); i++ {
