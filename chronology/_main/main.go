@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/synctime"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -101,7 +101,7 @@ func main() {
 	division := []time.Duration{time.Duration(*ROUND_DURATION * 5 / 100), time.Duration(*ROUND_DURATION * 25 / 100), time.Duration(*ROUND_DURATION * 40 / 100), time.Duration(*ROUND_DURATION * 55 / 100), time.Duration(*ROUND_DURATION * 70 / 100), time.Duration(*ROUND_DURATION * 85 / 100), time.Duration(*ROUND_DURATION * 100 / 100)}
 	subround := round.Subround{round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED}
 
-	syncTime := synctime.New(*ROUND_DURATION)
+	syncTime := ntp.NewSyncTime(*ROUND_DURATION, ntp.Query)
 
 	var chrs []*chronology.Chronology
 
@@ -113,7 +113,7 @@ func main() {
 		round := round.NewRoundFromDateTime(GENESIS_TIME, syncTime.GetCurrentTime(), *ROUND_DURATION, division, subround)
 		statistic := statistic.New()
 
-		chronologyIn := chronology.ChronologyIn{GenesisTime: GENESIS_TIME, P2PNode: nodes[i], Block: &block, BlockChain: &blockChain, Validators: &validators, Consensus: &consensus, Round: &round, Statistic: &statistic, SyncTime: &syncTime}
+		chronologyIn := chronology.ChronologyIn{GenesisTime: GENESIS_TIME, P2PNode: nodes[i], Block: &block, BlockChain: &blockChain, Validators: &validators, Consensus: &consensus, Round: &round, Statistic: &statistic, SyncTime: syncTime}
 		chr := chronology.New(&chronologyIn)
 		chr.DoLog = i == 0
 		chr.DoSyncMode = *SYNC_MODE

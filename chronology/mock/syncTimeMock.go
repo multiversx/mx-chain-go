@@ -10,6 +10,10 @@ type SyncTimeMock struct {
 	RefTime     time.Time
 }
 
+func NewSyncTimeMock(clockOffset time.Duration, refTime time.Time) *SyncTimeMock {
+	return &SyncTimeMock{ClockOffset: clockOffset, RefTime: refTime}
+}
+
 func (stm *SyncTimeMock) GetClockOffset() time.Duration {
 	return stm.ClockOffset
 }

@@ -27,13 +27,13 @@ type LeapIndicator uint8
 
 const (
 	// LeapNoWarning indicates no impending leap second.
-	LeapNoWarning LeapIndicator = 0
+	//LeapNoWarning LeapIndicator = 0
 
 	// LeapAddSecond indicates the last minute of the day has 61 seconds.
-	LeapAddSecond = 1
+	//LeapAddSecond = 1
 
 	// LeapDelSecond indicates the last minute of the day has 59 seconds.
-	LeapDelSecond = 2
+	//LeapDelSecond = 2
 
 	// LeapNotInSync indicates an unsynchronized leap second.
 	LeapNotInSync = 3

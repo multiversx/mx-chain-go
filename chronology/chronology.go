@@ -3,8 +3,9 @@ package chronology
 import (
 	"errors"
 	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/synctime"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -29,7 +30,7 @@ type ChronologyIn struct {
 	Consensus   *consensus.Consensus
 	Round       *round.Round
 	Statistic   *statistic.Chronology
-	SyncTime    *synctime.SyncTime
+	SyncTime    *ntp.SyncTime
 }
 
 type Chronology struct {

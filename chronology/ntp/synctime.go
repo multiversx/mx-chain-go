@@ -20,10 +20,10 @@ type SyncTime struct {
 	query       func(host string) (*Response, error)
 }
 
-func NewSyncTime(syncPeriod time.Duration, query func(host string) (*Response, error)) SyncTime {
+func NewSyncTime(syncPeriod time.Duration, query func(host string) (*Response, error)) *SyncTime {
 	s := SyncTime{clockOffset: 0, syncPeriod: syncPeriod, query: query}
 	go s.synchronize()
-	return s
+	return &s
 }
 
 func (s *SyncTime) synchronize() {

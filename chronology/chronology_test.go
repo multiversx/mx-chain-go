@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/epoch"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/synctime"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -132,7 +132,7 @@ func TestChronology(t *testing.T) {
 	for i := 0; i < len(nodes); i++ {
 
 		// set ChronologyIn parameters
-		syncTime := synctime.New(ROUND_DURATION)
+		syncTime := ntp.NewSyncTime(ROUND_DURATION, ntp.Query)
 		block := block.New(-1, "", "", "", "", "")
 		blockChain := blockchain.New(nil, &syncTime, i == 0)
 		validators := validators.New(consensusGroup, consensusGroup[FIRST_NODE_ID+i-1])
@@ -141,7 +141,7 @@ func TestChronology(t *testing.T) {
 		statistic := statistic.New()
 
 		// create ChronologyIn
-		chronologyIn := ChronologyIn{GenesisTime: GENESIS_TIME, P2PNode: nodes[i], Block: &block, BlockChain: &blockChain, Validators: &validators, Consensus: &consensus, Round: &round, Statistic: &statistic, SyncTime: &syncTime}
+		chronologyIn := ChronologyIn{GenesisTime: GENESIS_TIME, P2PNode: nodes[i], Block: &block, BlockChain: &blockChain, Validators: &validators, Consensus: &consensus, Round: &round, Statistic: &statistic, SyncTime: syncTime}
 
 		// create Chronology
 		chr := New(&chronologyIn)
