@@ -78,50 +78,56 @@ func (m *Message) Sign(params *ConnectParams) error {
 	return nil
 }
 
-func (m *Message) Verify() error {
+func (m *Message) Verify() (bool, error) {
 	if m.Sig == nil || m.PubKey == nil {
-		m.isSigned = false
-		return nil
+		return false, nil
 	}
 
 	if len(m.Sig) == 0 || len(m.PubKey) == 0 {
-		m.isSigned = false
-		return nil
+		return false, nil
 	}
 
 	if len(m.Peers) == 0 {
 		m.isSigned = false
-		return nil
+		return false, nil
 	}
 
 	pubKey, err := crypto.UnmarshalPublicKey(m.PubKey)
 	if err != nil {
-		m.isSigned = false
-		return err
+		return false, err
 	}
 
 	id, err := peer.IDFromPublicKey(pubKey)
 	if err != nil {
-		m.isSigned = false
-		return err
+		return false, err
 	}
 
 	if id.Pretty() != m.Peers[0] {
 		m.isSigned = false
-		return errors.New("wrong id/public key pair")
+		return false, errors.New("wrong id/public key pair")
 	}
 
 	verif, err := pubKey.Verify(append(m.Payload, []byte(m.Type)...), m.Sig)
+	if err != nil {
+		return false, err
+	}
+
+	if !verif {
+		m.isSigned = false
+		return false, errors.New("wrong signature")
+	}
+
+	return true, nil
+}
+
+func (m *Message) VerifyAndSetSigned() error {
+	signed, err := m.Verify()
+
 	if err != nil {
 		m.isSigned = false
 		return err
 	}
 
-	if !verif {
-		m.isSigned = false
-		return errors.New("wrong signature")
-	}
-
-	m.isSigned = true
+	m.isSigned = signed
 	return nil
 }

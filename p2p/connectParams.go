@@ -3,7 +3,7 @@ package p2p
 import (
 	"crypto/ecdsa"
 	"fmt"
-	mrand "math/rand"
+	"math/rand"
 
 	"github.com/btcsuite/btcd/btcec"
 	cr "github.com/libp2p/go-libp2p-crypto"
@@ -20,7 +20,7 @@ type ConnectParams struct {
 }
 
 func (params *ConnectParams) GeneratePrivPubKeys(seed int) {
-	r := mrand.New(mrand.NewSource(int64(seed)))
+	r := rand.New(rand.NewSource(int64(seed)))
 
 	prvKey, err := ecdsa.GenerateKey(btcec.S256(), r)
 

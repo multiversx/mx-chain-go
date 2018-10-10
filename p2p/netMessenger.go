@@ -446,7 +446,7 @@ func (nm *NetMessenger) gotNewMessage(buff []byte, remotePeer peer.ID) {
 		return
 	}
 
-	err = m.Verify()
+	err = m.VerifyAndSetSigned()
 	if err != nil {
 		return
 	}

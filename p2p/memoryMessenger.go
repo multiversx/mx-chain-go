@@ -176,7 +176,7 @@ func (mm *MemoryMessenger) gotNewMessage(sender *MemoryMessenger, buff []byte) {
 		return
 	}
 
-	err = m.Verify()
+	err = m.VerifyAndSetSigned()
 	if err != nil {
 		return
 	}

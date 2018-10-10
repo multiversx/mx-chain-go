@@ -99,7 +99,7 @@ func TestMessage_Verify_NilParams_ShouldFalse(t *testing.T) {
 	mes := p2p.Message{Payload: []byte{65, 66, 67}}
 	mes.SetSigned(true)
 
-	err := mes.Verify()
+	err := mes.VerifyAndSetSigned()
 	assert.Nil(t, err)
 
 	assert.False(t, mes.Signed())
@@ -112,7 +112,7 @@ func TestMessage_Verify_EmptyParams_ShouldFalse(t *testing.T) {
 	mes.PubKey = make([]byte, 0)
 	mes.SetSigned(true)
 
-	err := mes.Verify()
+	err := mes.VerifyAndSetSigned()
 	assert.Nil(t, err)
 
 	assert.False(t, mes.Signed())
@@ -128,7 +128,7 @@ func TestMessage_Verify_EmptyPeers_ShouldFalse(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, mes.Signed())
 
-	err = mes.Verify()
+	err = mes.VerifyAndSetSigned()
 	assert.Nil(t, err)
 
 	assert.False(t, mes.Signed())
@@ -145,7 +145,7 @@ func TestMessage_Verify_WrongPubKey_ShouldErr(t *testing.T) {
 	mes.PubKey = []byte{65, 66, 67}
 	mes.AddHop(param.ID.Pretty())
 
-	err = mes.Verify()
+	err = mes.VerifyAndSetSigned()
 	assert.NotNil(t, err)
 
 	assert.False(t, mes.Signed())
@@ -164,7 +164,7 @@ func TestMessage_Verify_MismatchID_ShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 	mes.AddHop(param.ID.Pretty())
 
-	err = mes.Verify()
+	err = mes.VerifyAndSetSigned()
 	assert.NotNil(t, err)
 
 	assert.False(t, mes.Signed())
@@ -183,7 +183,7 @@ func TestMessage_Verify_WrongSig_ShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 	mes.AddHop(param.ID.Pretty())
 
-	err = mes.Verify()
+	err = mes.VerifyAndSetSigned()
 	assert.NotNil(t, err)
 
 	assert.False(t, mes.Signed())
@@ -202,7 +202,7 @@ func TestMessage_Verify_TamperedPayload_ShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 	mes.AddHop(param.ID.Pretty())
 
-	err = mes.Verify()
+	err = mes.VerifyAndSetSigned()
 	assert.NotNil(t, err)
 
 	assert.False(t, mes.Signed())
@@ -220,7 +220,7 @@ func TestMessage_Verify_Values_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	mes.AddHop(param.ID.Pretty())
 
-	err = mes.Verify()
+	err = mes.VerifyAndSetSigned()
 	assert.Nil(t, err)
 
 	assert.True(t, mes.Signed())
@@ -245,7 +245,7 @@ func BenchmarkMessage_SignVerif(b *testing.B) {
 		err := mes.Sign(param)
 		assert.Nil(b, err)
 
-		err = mes.Verify()
+		err = mes.VerifyAndSetSigned()
 		assert.Nil(b, err)
 	}
 }
