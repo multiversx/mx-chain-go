@@ -5,11 +5,15 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/node"
+	"github.com/gin-gonic/gin"
 	"gotest.tools/assert"
 )
 
 func TestAppStatusRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/appstatus", nil)
@@ -19,7 +23,9 @@ func TestAppStatusRoute(t *testing.T) {
 }
 
 func TestBalanceRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/balance", nil)
@@ -29,7 +35,9 @@ func TestBalanceRoute(t *testing.T) {
 }
 
 func TestCheckFreePortRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/checkfreeport", nil)
@@ -39,7 +47,9 @@ func TestCheckFreePortRoute(t *testing.T) {
 }
 
 func TestExitRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/exit", nil)
@@ -48,7 +58,9 @@ func TestExitRoute(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 func TestGenerateKeyRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/generatepublickeyandprivateKey", nil)
@@ -57,7 +69,9 @@ func TestGenerateKeyRoute(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 func TestGetBlockFromHashRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/getblockfromhash", nil)
@@ -66,7 +80,9 @@ func TestGetBlockFromHashRoute(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 func TestGetNextPrivateKeyRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/getNextPrivateKey", nil)
@@ -75,7 +91,9 @@ func TestGetNextPrivateKeyRoute(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 func TestGetShardRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/getprivatepublickeyshard", nil)
@@ -84,7 +102,9 @@ func TestGetShardRoute(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 func TestGetStatsRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/getStats", nil)
@@ -93,7 +113,9 @@ func TestGetStatsRoute(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 func TestGetTransactionFromHashRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/gettransactionfromhash", nil)
@@ -102,7 +124,9 @@ func TestGetTransactionFromHashRoute(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 func TestPingRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/ping", nil)
@@ -111,7 +135,9 @@ func TestPingRoute(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 func TestReceiptRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/receipt", nil)
@@ -120,7 +146,9 @@ func TestReceiptRoute(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 func TestSendRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/send", nil)
@@ -129,7 +157,9 @@ func TestSendRoute(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 func TestSendMultipleTransactionsRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/sendMultipleTransactions", nil)
@@ -139,7 +169,9 @@ func TestSendMultipleTransactionsRoute(t *testing.T) {
 }
 
 func TestSendMultipleTransactionsToAllShardsRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/sendMultipleTransactionsToAllShards", nil)
@@ -149,7 +181,9 @@ func TestSendMultipleTransactionsToAllShardsRoute(t *testing.T) {
 }
 
 func TestShardOfAddressRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/shardofaddress", nil)
@@ -159,7 +193,9 @@ func TestShardOfAddressRoute(t *testing.T) {
 }
 
 func TestStartRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/start", nil)
@@ -169,7 +205,9 @@ func TestStartRoute(t *testing.T) {
 }
 
 func TestStatusRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/status", nil)
@@ -179,7 +217,9 @@ func TestStatusRoute(t *testing.T) {
 }
 
 func TestStopRoute(t *testing.T) {
-	router := SetupRouter()
+	router := gin.Default()
+
+	node.Routes(router.Group("/node"))
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/node/stop", nil)

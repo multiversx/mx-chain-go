@@ -1,4 +1,4 @@
-package elrond
+package node
 
 import "github.com/gin-gonic/gin"
 
