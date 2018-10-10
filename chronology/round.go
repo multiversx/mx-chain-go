@@ -1,8 +1,9 @@
-package round
+package chronology
 
 import (
-	"github.com/davecgh/go-spew/spew"
 	"time"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 type Round struct {
