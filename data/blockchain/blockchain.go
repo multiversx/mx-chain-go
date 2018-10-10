@@ -9,6 +9,7 @@ import (
 
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,19 +23,20 @@ const (
 
 type UnitType uint8
 
-type BlockChainService interface {
-	Has(unitType UnitType, key []byte) bool
-	Get(unitType UnitType, key []byte) []byte
-	Put(unitType UnitType, key []byte, value []byte)
-	GetAll(unitType UnitType, keys [][]byte) map[string][]byte
+type BlockChainStorageService interface {
+	Has(unitType UnitType, key []byte) (bool, error)
+	Get(unitType UnitType, key []byte) ([]byte, error)
+	Put(unitType UnitType, key []byte, value []byte) error
+	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
+	Destroy() error
 }
 
 type BlockChain struct {
 	lock          sync.RWMutex
-	genesisBlock  *block.Block
-	currentBlock  *block.Block
-	localHeight   *big.Int
-	networkHeight *big.Int
+	GenesisBlock  *block.Block
+	CurrentBlock  *block.Block
+	LocalHeight   *big.Int
+	NetworkHeight *big.Int
 	badBlocks     storage.Cacher
 	chain         map[UnitType]*storage.StorageUnit
 }
@@ -47,30 +49,36 @@ func NewData() (*BlockChain, error) {
 	txStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.TxStorage)
 
 	if err != nil {
-		log.Fatalf("transaction storage could not be created: %s", err)
+		panic(err)
 	}
 
 	blStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.BlockStorage)
 	if err != nil {
-		log.Fatalf("block storage could not be created: %s", err)
+		txStorage.DestroyUnit()
+		panic(err)
 	}
 
 	blHeadStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.BlockHeaderStorage)
 	if err != nil {
-		log.Fatalf("block header storage could not be created: %s", err)
+		txStorage.DestroyUnit()
+		blStorage.DestroyUnit()
+		panic(err)
 	}
 
 	badBlocksCache, err := storage.CreateCacheFromConf(config.TestnetBlockchainConfig.BBlockCache)
 
 	if err != nil {
-		log.Fatalf("bad block cache could not be created: %s", err)
+		txStorage.DestroyUnit()
+		blStorage.DestroyUnit()
+		blHeadStorage.DestroyUnit()
+		panic(err)
 	}
 
 	data := &BlockChain{
-		genesisBlock:  nil,
-		currentBlock:  nil,
-		localHeight:   big.NewInt(-1),
-		networkHeight: big.NewInt(-1),
+		GenesisBlock:  nil,
+		CurrentBlock:  nil,
+		LocalHeight:   big.NewInt(-1),
+		NetworkHeight: big.NewInt(-1),
 		badBlocks:     badBlocksCache,
 		chain: map[UnitType]*storage.StorageUnit{
 			TransactionUnit: txStorage,
@@ -82,69 +90,53 @@ func NewData() (*BlockChain, error) {
 	return data, nil
 }
 
-func (bc *BlockChain) Has(unitType UnitType, key []byte) bool {
+func (bc *BlockChain) Has(unitType UnitType, key []byte) (bool, error) {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]
 	bc.lock.RUnlock()
 
 	if storer == nil {
-		log.Debug("no such unit type %d", unitType)
-		return false
+		log.Error("no such unit type ", unitType)
+		return false, errors.New("no such unit type")
 	}
 
-	has, err := storer.Has(key)
-
-	if err != nil {
-		log.Debug("not found %s", key)
-	}
-
-	return has
+	return storer.Has(key)
 }
 
-func (bc *BlockChain) Get(unitType UnitType, key []byte) []byte {
+func (bc *BlockChain) Get(unitType UnitType, key []byte) ([]byte, error) {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]
 	bc.lock.RUnlock()
 
 	if storer == nil {
-		log.Debug("no such unit type %d", unitType)
-		return nil
+		log.Error("no such unit type ", unitType)
+		return nil, errors.New("no such unit type")
 	}
 
-	elem, err := storer.Get(key)
-
-	if err != nil {
-		log.Debug("not found %s", key)
-	}
-
-	return elem
+	return storer.Get(key)
 }
 
-func (bc *BlockChain) Put(unitType UnitType, key []byte, value []byte) {
+func (bc *BlockChain) Put(unitType UnitType, key []byte, value []byte) error {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]
 	bc.lock.RUnlock()
 
 	if storer == nil {
-		log.Debug("no such unit type %d", unitType)
-		return
+		log.Error("no such unit type ", unitType)
+		return errors.New("no such unit type")
 	}
 
-	err := storer.Put(key, value)
-
-	if err != nil {
-		log.Error("not able to put key %s into unit %d", key, unitType)
-	}
+	return storer.Put(key, value)
 }
 
-func (bc *BlockChain) GetAll(unitType UnitType, keys [][]byte) map[string][]byte {
+func (bc *BlockChain) GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error) {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]
 	bc.lock.RUnlock()
 
 	if storer == nil {
-		log.Debug("no such unit type %d", unitType)
-		return nil
+		log.Error("no such unit type ", unitType)
+		return nil, errors.New("no such unit type")
 	}
 
 	m := map[string][]byte{}
@@ -153,12 +145,36 @@ func (bc *BlockChain) GetAll(unitType UnitType, keys [][]byte) map[string][]byte
 		val, err := storer.Get(key)
 
 		if err != nil {
-			log.Debug("could not find value for key %s", key)
-			continue
+			log.Debug("could not find value for key ", key)
+			return nil, err
 		}
 
 		m[string(key)] = val
 	}
 
-	return m
+	return m, nil
+}
+
+func (bc *BlockChain) Destroy() error {
+	bc.lock.Lock()
+	defer bc.lock.Unlock()
+
+	var err error
+
+	for _, v := range bc.chain {
+		err = v.DestroyUnit()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (bc *BlockChain) IsBadBlock(blockHash []byte) bool {
+	return bc.badBlocks.Has(blockHash)
+}
+
+func (bc *BlockChain) PutBadBlock(key []byte, value []byte) {
+	bc.badBlocks.Put(key, value)
 }

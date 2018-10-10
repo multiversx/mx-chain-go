@@ -1,6 +1,9 @@
 package config
 
-import "math/big"
+import (
+	"math/big"
+	"path/filepath"
+)
 
 type CacheType uint8
 type DBType uint8
@@ -25,7 +28,7 @@ var (
 				Type: LRUCache,
 			},
 			DBConf: &DBConfig{
-				FileName: "Blocks",
+				FileName: filepath.Join(DefaultPath(), "Blocks"),
 				Type:     LvlDB,
 			},
 		},
@@ -36,7 +39,7 @@ var (
 				Type: LRUCache,
 			},
 			DBConf: &DBConfig{
-				FileName: "Blocks",
+				FileName: filepath.Join(DefaultPath(), "BlockHeaders"),
 				Type:     LvlDB,
 			},
 		},
@@ -47,7 +50,7 @@ var (
 				Type: LRUCache,
 			},
 			DBConf: &DBConfig{
-				FileName: "Transactions",
+				FileName: filepath.Join(DefaultPath(), "Transactions"),
 				Type:     LvlDB,
 			},
 		},
