@@ -24,7 +24,7 @@ import (
 
 //how eth SC addr is computed: https://ethereum.stackexchange.com/questions/760/how-is-the-address-of-an-ethereum-contract-computed
 
-const AdrLen = 20
+const AdrLen = 32
 
 type adrBuff [AdrLen]byte
 
@@ -140,7 +140,7 @@ func FromHex(s string) []byte {
 
 func FromPubKeyBytes(pubKey []byte) (*Address, error) {
 	if len(pubKey) < AdrLen {
-		return nil, NewErrorWrongSize(20, len(pubKey))
+		return nil, NewErrorWrongSize(AdrLen, len(pubKey))
 	}
 
 	adr := Address{}

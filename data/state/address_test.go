@@ -22,7 +22,67 @@ import (
 	"testing"
 )
 
+var testAddrHasher = &mock.HasherMock{}
+
+func TestAddress_FromPubKeyBytes_LowNoOfBytes_ShouldErr(t *testing.T) {
+	buff := []byte("ABCDEF")
+
+	_, err := FromPubKeyBytes(buff)
+	assert.NotNil(t, err)
+	fmt.Println(err.Error())
+}
+
+func TestAddress_FromPubKeyBytes_Values_ShouldWork(t *testing.T) {
+	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
+
+	adr, err := FromPubKeyBytes(buff)
+	assert.Nil(t, err)
+
+	fmt.Println(adr.Hex(testAddrHasher))
+}
+
+func TestAddress_Hash_Values_ShouldWork(t *testing.T) {
+	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
+
+	adr, err := FromPubKeyBytes(buff)
+	assert.Nil(t, err)
+
+	assert.Equal(t, adr.Hash(testAddrHasher), testAddrHasher.Compute(string(adr.Bytes())))
+}
+
+func TestAddress_IsHexAddress_Values_ShouldWork(t *testing.T) {
+	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
+
+	adr, err := FromPubKeyBytes(buff)
+	assert.Nil(t, err)
+
+	assert.True(t, IsHexAddress(adr.Hex(testAddrHasher)))
+	fmt.Printf("Address: %v\n", adr.Hex(testAddrHasher))
+}
+
+func TestAddress_IsHexAddress_BadAddrs_ShouldRetFalse(t *testing.T) {
+	//invalid characters
+	assert.False(t, IsHexAddress("ABCDEFGH"))
+	//odd numbers of hexa chars
+	assert.False(t, IsHexAddress("0x434445464748494A4B4c4d4e4F5051525354555658595A31323435363738393"))
+}
+
+func TestAddress_HexToAddress_Values_ShouldWork(t *testing.T) {
+	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
+
+	adr, err := FromPubKeyBytes(buff)
+	assert.Nil(t, err)
+
+	adr2 := HexToAddress(adr.Hex(testAddrHasher))
+
+	assert.Equal(t, adr, adr2)
+}
+
 func TestIsHexAddress(t *testing.T) {
+	if AdrLen != 20 {
+		t.Skip("Test not valid on a different address length of 20!")
+	}
+
 	tests := []struct {
 		str string
 		exp bool
@@ -46,6 +106,10 @@ func TestIsHexAddress(t *testing.T) {
 }
 
 func TestAddressHexChecksum(t *testing.T) {
+	if AdrLen != 20 {
+		t.Skip("Test not valid on a different address length of 20!")
+	}
+
 	var tests = []struct {
 		Input  string
 		Output string
@@ -69,6 +133,10 @@ func TestAddressHexChecksum(t *testing.T) {
 }
 
 func TestAddressFromPubKey(t *testing.T) {
+	if AdrLen != 20 {
+		t.Skip("Test not valid on a different address length of 20!")
+	}
+
 	//test error
 	_, err := FromPubKeyBytes([]byte{45, 56})
 
