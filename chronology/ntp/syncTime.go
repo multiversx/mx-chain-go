@@ -8,9 +8,8 @@ import (
 
 type SyncTimer interface {
 	GetClockOffset() time.Duration
-	GetFormatedCurrentTime() string
-	FormatTime(time time.Time) string
-	GetCurrentTime() time.Time
+	GetFormatedCurrentTime(time.Duration) string
+	GetCurrentTime(time.Duration) time.Time
 }
 
 type SyncTime struct {
@@ -37,26 +36,23 @@ func (s *SyncTime) doSync() {
 	r, err := s.query("time.google.com")
 
 	s.mut.Lock()
+	defer s.mut.Unlock()
 
 	if err != nil {
 		s.clockOffset = 0
 	} else {
 		s.clockOffset = r.ClockOffset
 	}
-
-	s.mut.Unlock()
 }
 
 func (s *SyncTime) GetClockOffset() time.Duration {
 	s.mut.RLock()
-	clockOffset := s.clockOffset
-	s.mut.RUnlock()
-
-	return clockOffset
+	defer s.mut.RUnlock()
+	return s.clockOffset
 }
 
-func (s *SyncTime) GetFormatedCurrentTime() string {
-	return s.FormatTime(s.GetCurrentTime())
+func (s *SyncTime) GetFormatedCurrentTime(clockOffset time.Duration) string {
+	return s.FormatTime(s.GetCurrentTime(clockOffset))
 }
 
 func (s *SyncTime) FormatTime(time time.Time) string {
@@ -64,10 +60,6 @@ func (s *SyncTime) FormatTime(time time.Time) string {
 	return str
 }
 
-func (s *SyncTime) getCurrentTime(ref time.Time) time.Time {
-	return ref.Add(s.GetClockOffset())
-}
-
-func (s *SyncTime) GetCurrentTime() time.Time {
-	return s.getCurrentTime(time.Now())
+func (s *SyncTime) GetCurrentTime(clockOffset time.Duration) time.Time {
+	return time.Now().Add(clockOffset)
 }
