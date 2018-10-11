@@ -2,9 +2,10 @@ package integrationTests
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"math/big"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
@@ -33,15 +34,15 @@ func createAddress(t *testing.T, buff []byte) *state.Address {
 	return adr
 }
 
-func createAccountState(_ *testing.T, address state.Address) *state.AccountState {
+func createAccountState(address state.Address) *state.AccountState {
 	return state.NewAccountState(address, state.Account{}, testHasher)
 }
 
 func TestAccountsDB_RetrieveCode_Found_ShouldWork(t *testing.T) {
-	testHash := testHasher.Compute("ABCDEFGHJIJKLMNOP")
+	testHash := testHasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := createAddress(t, testHash)
-	st := createAccountState(t, *adr)
+	st := createAccountState(*adr)
 	st.CodeHash = testHasher.Compute("12345")
 
 	adb := createAccountsDB(t)
@@ -58,10 +59,10 @@ func TestAccountsDB_RetrieveData_WithSomeValues_ShouldWork(t *testing.T) {
 	//test simulates creation of a new account, data trie retrieval,
 	//adding a (key, value) pair in that data trie, commiting changes
 	//and then reloading the data trie based on the root hash generated before
-	testHash := testHasher.Compute("ABCDEFGHJIJKLMNOP")
+	testHash := testHasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := createAddress(t, testHash)
-	st := createAccountState(t, *adr)
+	st := createAccountState(*adr)
 	st.Root = testHasher.Compute("12345")
 
 	adb := createAccountsDB(t)
@@ -93,11 +94,11 @@ func TestAccountsDB_RetrieveData_WithSomeValues_ShouldWork(t *testing.T) {
 }
 
 func TestAccountsDB_PutCode_EmptyCodeHash_ShouldRetNil(t *testing.T) {
-	testHash := testHasher.Compute("ABCDEFGHJIJKLMNOP")
+	testHash := testHasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := createAddress(t, testHash)
-	st := createAccountState(t, *adr)
-	st.Root = st.AddrHash
+	st := createAccountState(*adr)
+	st.Root = st.Addr.Hash(testHasher)
 
 	adb := createAccountsDB(t)
 
@@ -108,10 +109,10 @@ func TestAccountsDB_PutCode_EmptyCodeHash_ShouldRetNil(t *testing.T) {
 }
 
 func TestAccountsDB_PutCode_WithSomeValues_ShouldWork(t *testing.T) {
-	testHash := testHasher.Compute("ABCDEFGHJIJKLMNOP")
+	testHash := testHasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := createAddress(t, testHash)
-	st := createAccountState(t, *adr)
+	st := createAccountState(*adr)
 	st.Root = testHasher.Compute("12345")
 
 	adb := createAccountsDB(t)
@@ -137,10 +138,10 @@ func TestAccountsDB_PutCode_WithSomeValues_ShouldWork(t *testing.T) {
 }
 
 func TestAccountsDB_HasAccount_NotFound_ShouldRetFalse(t *testing.T) {
-	testHash := testHasher.Compute("ABCDEFGHJIJKLMNOP")
+	testHash := testHasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := createAddress(t, testHash)
-	st := createAccountState(t, *adr)
+	st := createAccountState(*adr)
 	st.Root = testHasher.Compute("12345")
 
 	adb := createAccountsDB(t)
@@ -152,10 +153,10 @@ func TestAccountsDB_HasAccount_NotFound_ShouldRetFalse(t *testing.T) {
 }
 
 func TestAccountsDB_HasAccount_Found_ShouldRetTrue(t *testing.T) {
-	testHash := testHasher.Compute("ABCDEFGHJIJKLMNOP")
+	testHash := testHasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := createAddress(t, testHash)
-	st := createAccountState(t, *adr)
+	st := createAccountState(*adr)
 	st.Root = testHasher.Compute("12345")
 
 	adb := createAccountsDB(t)
@@ -168,10 +169,10 @@ func TestAccountsDB_HasAccount_Found_ShouldRetTrue(t *testing.T) {
 }
 
 func TestAccountsDB_SaveAccountState_WithSomeValues_ShouldWork(t *testing.T) {
-	testHash := testHasher.Compute("ABCDEFGHJIJKLMNOP")
+	testHash := testHasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := createAddress(t, testHash)
-	st := createAccountState(t, *adr)
+	st := createAccountState(*adr)
 	st.Root = testHasher.Compute("12345")
 
 	adb := createAccountsDB(t)
@@ -183,10 +184,10 @@ func TestAccountsDB_SaveAccountState_WithSomeValues_ShouldWork(t *testing.T) {
 
 func TestAccountsDB_GetOrCreateAccount_ReturnExistingAccnt_ShouldWork(t *testing.T) {
 	//test when the account exists
-	testHash := testHasher.Compute("ABCDEFGHJIJKLMNOP")
+	testHash := testHasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := createAddress(t, testHash)
-	st := createAccountState(t, *adr)
+	st := createAccountState(*adr)
 	st.Balance = big.NewInt(40)
 
 	adb := createAccountsDB(t)
@@ -200,10 +201,10 @@ func TestAccountsDB_GetOrCreateAccount_ReturnExistingAccnt_ShouldWork(t *testing
 
 func TestAccountsDB_GetOrCreateAccount_ReturnNotFoundAccnt_ShouldWork(t *testing.T) {
 	//test when the account does not exists
-	testHash := testHasher.Compute("ABCDEFGHJIJKLMNOP")
+	testHash := testHasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := createAddress(t, testHash)
-	st := createAccountState(t, *adr)
+	st := createAccountState(*adr)
 	st.Balance = big.NewInt(40)
 
 	adb := createAccountsDB(t)
@@ -219,10 +220,10 @@ func TestAccountsDB_Commit_2okAccounts_ShouldWork(t *testing.T) {
 	//test creates 2 accounts (one with a data root)
 	//verifies that commit saves the new tries and that can be loaded back
 
-	testHash1 := testHasher.Compute("ABCDEFGHJIJKLMNOP")
+	testHash1 := testHasher.Compute("ABCDEFGHIJKLMNOP")
 	adr1 := createAddress(t, testHash1)
 
-	testHash2 := testHasher.Compute("ABCDEFGHJIJKLMNOPQ")
+	testHash2 := testHasher.Compute("ABCDEFGHIJKLMNOPQ")
 	adr2 := createAddress(t, testHash2)
 
 	adb := createAccountsDB(t)
@@ -280,10 +281,10 @@ func TestAccountsDB_CommitUndo_2okAccounts_ShouldWork(t *testing.T) {
 	//the states retrieved alters data
 	//undo should not persist the modifications
 
-	testHash1 := testHasher.Compute("ABCDEFGHJIJKLMNOP")
+	testHash1 := testHasher.Compute("ABCDEFGHIJKLMNOP")
 	adr1 := createAddress(t, testHash1)
 
-	testHash2 := testHasher.Compute("ABCDEFGHJIJKLMNOPQ")
+	testHash2 := testHasher.Compute("ABCDEFGHIJKLMNOPQ")
 	adr2 := createAddress(t, testHash2)
 
 	adb := createAccountsDB(t)

@@ -35,9 +35,10 @@ type DatabaseMock struct {
 	Fail bool
 }
 
-type kv struct {
-	k, v []byte
-	del  bool
+type keyValuePair struct {
+	key []byte
+	val []byte
+	del bool
 }
 
 func NewDatabaseMock() *DatabaseMock {

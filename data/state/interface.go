@@ -1,18 +1,12 @@
 package state
 
-//var DefHasher hashing.Hasher
-//var DefMarsh marshal.Marshalizer
-//
-//func init() {
-//	DefHasher = &mock.MockHasher{}
-//	DefMarsh = &mock.MockMarshalizer{}
-//}
-
-type Accounter interface {
-	Put(key []byte, value []byte) error
-	Get(key []byte) ([]byte, error)
-	Delete(key []byte) error
-	Commit() error
+type AccountsHandler interface {
+	RetrieveCode(state *AccountState) error
+	RetrieveData(state *AccountState) error
+	PutCode(state *AccountState, code []byte) error
+	HasAccount(address Address) (bool, error)
+	SaveAccountState(state *AccountState) error
+	GetOrCreateAccount(address Address) (*AccountState, error)
 	Undo() error
-	Root() []byte
+	Commit() error
 }

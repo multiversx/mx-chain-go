@@ -2,17 +2,18 @@ package state
 
 import (
 	"errors"
+	"strconv"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"strconv"
-	"sync"
 )
 
 type AccountsDB struct {
 	//should use a concurrent trie
-	MainTrie trie.Trier
+	MainTrie trie.PatriciaMerkelTree
 	hasher   hashing.Hasher
 	marsh    marshal.Marshalizer
 
@@ -22,7 +23,7 @@ type AccountsDB struct {
 	usedStateAccounts map[string]*AccountState
 }
 
-func NewAccountsDB(tr trie.Trier, hasher hashing.Hasher, marsh marshal.Marshalizer) *AccountsDB {
+func NewAccountsDB(tr trie.PatriciaMerkelTree, hasher hashing.Hasher, marsh marshal.Marshalizer) *AccountsDB {
 	adb := AccountsDB{MainTrie: tr, hasher: hasher, marsh: marsh}
 
 	adb.mutUsedAccounts = sync.RWMutex{}
@@ -90,7 +91,7 @@ func (adb *AccountsDB) RetrieveData(state *AccountState) error {
 
 func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 	if (code == nil) || (len(code) == 0) {
-		state.resetDataCode()
+		state.reset()
 		return nil
 	}
 
@@ -103,17 +104,15 @@ func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 
 	err := adb.MainTrie.Update(state.CodeHash, state.Code)
 	if err != nil {
-		state.resetDataCode()
+		state.reset()
 		return err
 	}
 
 	dataTrie, err := adb.MainTrie.Recreate(make([]byte, 0), adb.MainTrie.DBW())
 	if err != nil {
-		state.resetDataCode()
+		state.reset()
 		return err
 	}
-
-	//should drop the variables from the code inside dataTrie, recomputing the root
 
 	state.Data = dataTrie
 	return nil
@@ -124,9 +123,7 @@ func (adb *AccountsDB) HasAccount(address Address) (bool, error) {
 		return false, errors.New("attempt to search on a nil trie")
 	}
 
-	adrHash := address.ComputeHash(adb.hasher)
-
-	val, err := adb.MainTrie.Get(adrHash)
+	val, err := adb.MainTrie.Get(address.Hash(adb.hasher))
 
 	if err != nil {
 		return false, err
@@ -137,7 +134,7 @@ func (adb *AccountsDB) HasAccount(address Address) (bool, error) {
 
 func (adb *AccountsDB) SaveAccountState(state *AccountState) error {
 	if state == nil {
-		return errors.New("can not save nil account")
+		return errors.New("can not save nil account state")
 	}
 
 	if adb.MainTrie == nil {
@@ -152,7 +149,7 @@ func (adb *AccountsDB) SaveAccountState(state *AccountState) error {
 
 	adb.trackAccountState(state)
 
-	err = adb.MainTrie.Update(state.AddrHash, buff)
+	err = adb.MainTrie.Update(state.Addr.Hash(adb.hasher), buff)
 	if err != nil {
 		return err
 	}
@@ -166,10 +163,8 @@ func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error
 		return nil, err
 	}
 
-	adrHash := address.ComputeHash(adb.hasher)
-
 	if has {
-		val, err := adb.MainTrie.Get(adrHash)
+		val, err := adb.MainTrie.Get(address.Hash(adb.hasher))
 		if err != nil {
 			return nil, err
 		}
@@ -252,7 +247,7 @@ func (adb *AccountsDB) Commit() error {
 		if err != nil {
 			return err
 		}
-		adb.MainTrie.Update(v.AddrHash, buff)
+		adb.MainTrie.Update(v.Addr.Hash(adb.hasher), buff)
 	}
 
 	//step 2. clean used accounts map
@@ -271,9 +266,9 @@ func (adb *AccountsDB) Commit() error {
 func (adb *AccountsDB) trackAccountState(state *AccountState) {
 	//add account to used accounts to track the modifications in data trie for committing/undoing
 	adb.mutUsedAccounts.Lock()
-	_, ok := adb.usedStateAccounts[string(state.AddrHash)]
+	_, ok := adb.usedStateAccounts[string(state.Addr.Hash(adb.hasher))]
 	if !ok {
-		adb.usedStateAccounts[string(state.AddrHash)] = state
+		adb.usedStateAccounts[string(state.Addr.Hash(adb.hasher))] = state
 	}
 	adb.mutUsedAccounts.Unlock()
 }

@@ -26,24 +26,31 @@ import (
 
 const AdrLen = 20
 
-type Address [AdrLen]byte
+type adrBuff [AdrLen]byte
+
+type Address struct {
+	adrBuff
+	hash []byte
+}
 
 func (adr *Address) Bytes() []byte {
-	return adr[:]
+	return adr.adrBuff[:]
 }
 
 // SetBytes sets the address to the value of b.
 // If b is larger than len(a) it will panic.
 func (adr *Address) SetBytes(b []byte) {
-	if len(b) > len(adr) {
+	if len(b) > len(adr.adrBuff) {
 		b = b[len(b)-AdrLen:]
 	}
-	copy(adr[AdrLen-len(b):], b)
+	copy(adr.adrBuff[AdrLen-len(b):], b)
+	//hash needs to be recomputed
+	adr.hash = nil
 }
 
 // Computes the hash of the address array of bytes
-func (adr *Address) ComputeHash(hasher hashing.Hasher) []byte {
-	return hasher.Compute(string((*adr)[:]))
+func (adr *Address) computeHash(hasher hashing.Hasher) []byte {
+	return hasher.Compute(string(adr.adrBuff[:]))
 }
 
 // Hex returns an EIP55-compliant hex string representation of the address.
@@ -64,6 +71,14 @@ func (adr *Address) Hex(hasher hashing.Hasher) string {
 		}
 	}
 	return "0x" + string(result)
+}
+
+func (adr *Address) Hash(hasher hashing.Hasher) []byte {
+	if adr.hash == nil {
+		adr.hash = adr.computeHash(hasher)
+	}
+
+	return adr.hash
 }
 
 // IsHexAddress verifies whether a string can represent a valid hex-encoded

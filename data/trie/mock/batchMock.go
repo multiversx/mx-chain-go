@@ -24,7 +24,7 @@ var errMockBatch = errors.New("MockBatch generic error")
 
 type BatchMock struct {
 	db     *DatabaseMock
-	writes []kv
+	writes []keyValuePair
 	size   int
 	Fail   bool
 }
@@ -34,7 +34,7 @@ func (b *BatchMock) Put(key, value []byte) error {
 		return errMockBatch
 	}
 
-	b.writes = append(b.writes, kv{encoding.CopyBytes(key), encoding.CopyBytes(value), false})
+	b.writes = append(b.writes, keyValuePair{encoding.CopyBytes(key), encoding.CopyBytes(value), false})
 	b.size += len(value)
 	return nil
 }
@@ -44,7 +44,7 @@ func (b *BatchMock) Delete(key []byte) error {
 		return errMockBatch
 	}
 
-	b.writes = append(b.writes, kv{encoding.CopyBytes(key), nil, true})
+	b.writes = append(b.writes, keyValuePair{encoding.CopyBytes(key), nil, true})
 	b.size += 1
 	return nil
 }
@@ -59,10 +59,10 @@ func (b *BatchMock) Write() error {
 
 	for _, kv := range b.writes {
 		if kv.del {
-			delete(b.db.db, string(kv.k))
+			delete(b.db.db, string(kv.key))
 			continue
 		}
-		b.db.db[string(kv.k)] = kv.v
+		b.db.db[string(kv.key)] = kv.val
 	}
 	return nil
 }

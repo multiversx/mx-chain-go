@@ -1,6 +1,7 @@
-package trie
+package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"sync"
 )
@@ -8,12 +9,12 @@ import (
 //A trie implementation that sould be concurrent safe
 
 type ConcurrentTrie struct {
-	*Trie
+	*trie.Trie
 	mutTrie sync.RWMutex
 }
 
-func NewConcurrentTrie(root []byte, dbw DBWriteCacher, hsh hashing.Hasher) (*ConcurrentTrie, error) {
-	tr, err := NewTrie(root, dbw, hsh)
+func NewConcurrentTrie(root []byte, dbw trie.DBWriteCacher, hsh hashing.Hasher) (*ConcurrentTrie, error) {
+	tr, err := trie.NewTrie(root, dbw, hsh)
 
 	if err != nil {
 		return nil, err
@@ -56,25 +57,25 @@ func (ct *ConcurrentTrie) Root() []byte {
 	return ct.Trie.Root()
 }
 
-func (ct *ConcurrentTrie) Commit(onleaf LeafCallback) (root []byte, err error) {
+func (ct *ConcurrentTrie) Commit(onleaf trie.LeafCallback) (root []byte, err error) {
 	ct.mutTrie.Lock()
 	defer ct.mutTrie.Unlock()
 
 	return ct.Trie.Commit(onleaf)
 }
 
-func (ct *ConcurrentTrie) DBW() DBWriteCacher {
+func (ct *ConcurrentTrie) DBW() trie.DBWriteCacher {
 	return ct.DBW()
 }
 
-func (ct *ConcurrentTrie) Recreate(root []byte, dbw DBWriteCacher) (Trier, error) {
+func (ct *ConcurrentTrie) Recreate(root []byte, dbw trie.DBWriteCacher) (trie.PatriciaMerkelTree, error) {
 	ct.mutTrie.Lock()
 	defer ct.mutTrie.Unlock()
 
 	return ct.Trie.Recreate(root, dbw)
 }
 
-func (ct *ConcurrentTrie) Copy() Trier {
+func (ct *ConcurrentTrie) Copy() trie.PatriciaMerkelTree {
 	ct.mutTrie.Lock()
 	defer ct.mutTrie.Unlock()
 

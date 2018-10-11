@@ -114,8 +114,6 @@ func (mt *TrieMock) Root() []byte {
 		buff.Write(val)
 	}
 
-	//fmt.Println("ROOT:" + buff.String())
-
 	hash := HasherMock{}
 	return hash.Compute(buff.String())
 }
@@ -135,7 +133,7 @@ func (mt *TrieMock) DBW() trie.DBWriteCacher {
 	return mt.mdbwc
 }
 
-func (mt *TrieMock) Recreate(root []byte, dbw trie.DBWriteCacher) (trie.Trier, error) {
+func (mt *TrieMock) Recreate(root []byte, dbw trie.DBWriteCacher) (trie.PatriciaMerkelTree, error) {
 	if mt.Fail {
 		return nil, errMockTrie
 	}
@@ -148,7 +146,7 @@ func (mt *TrieMock) Recreate(root []byte, dbw trie.DBWriteCacher) (trie.Trier, e
 	return mock.RetrieveMockTrie(root)
 }
 
-func (mt *TrieMock) Copy() trie.Trier {
+func (mt *TrieMock) Copy() trie.PatriciaMerkelTree {
 	newTrie := NewMockTrieWithDBW(mt.mdbwc)
 
 	mt.mutData.RLock()
@@ -178,13 +176,13 @@ func (mt *TrieMock) Copy() trie.Trier {
 
 type DBWriteCacherMock struct {
 	mutTries sync.RWMutex
-	tries    map[string]trie.Trier
+	tries    map[string]trie.PatriciaMerkelTree
 }
 
 func NewMockDBWriteCacher() *DBWriteCacherMock {
 	mdbwc := DBWriteCacherMock{}
 	mdbwc.mutTries = sync.RWMutex{}
-	mdbwc.tries = make(map[string]trie.Trier)
+	mdbwc.tries = make(map[string]trie.PatriciaMerkelTree)
 	return &mdbwc
 }
 
@@ -235,7 +233,7 @@ func (mdbw *DBWriteCacherMock) AppendMockTrie(mockTrie *TrieMock) {
 	mdbw.tries[string(mockTrie.Root())] = mockTrie
 }
 
-func (mdbw *DBWriteCacherMock) RetrieveMockTrie(root []byte) (trie.Trier, error) {
+func (mdbw *DBWriteCacherMock) RetrieveMockTrie(root []byte) (trie.PatriciaMerkelTree, error) {
 	mdbw.mutTries.Lock()
 	defer mdbw.mutTries.Unlock()
 

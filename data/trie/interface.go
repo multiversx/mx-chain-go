@@ -67,7 +67,7 @@ type Batch interface {
 }
 
 //Patricia Merkel Tree interface
-type Trier interface {
+type PatriciaMerkelTree interface {
 	SetCacheLimit(l uint16)
 	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
@@ -75,8 +75,8 @@ type Trier interface {
 	Root() []byte
 	Commit(onleaf LeafCallback) (root []byte, err error)
 	DBW() DBWriteCacher
-	Recreate(root []byte, dbw DBWriteCacher) (Trier, error)
-	Copy() Trier
+	Recreate(root []byte, dbw DBWriteCacher) (PatriciaMerkelTree, error)
+	Copy() PatriciaMerkelTree
 }
 
 type DBWriteCacher interface {

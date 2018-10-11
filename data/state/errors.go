@@ -2,10 +2,7 @@ package state
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 )
-
-var ErrorNilTrie = errors.New("nil trie is not allowed")
 
 type ErrorWrongSize struct {
 	Exp int

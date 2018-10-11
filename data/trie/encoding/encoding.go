@@ -278,7 +278,6 @@ func CopyBytes(b []byte) (copiedBytes []byte) {
 // Common big integers often used
 var (
 	Big2   = big.NewInt(2)
-	Big0   = big.NewInt(0)
 	Big256 = big.NewInt(256)
 )
 

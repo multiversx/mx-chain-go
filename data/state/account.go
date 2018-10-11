@@ -2,12 +2,12 @@ package state
 
 import (
 	"bytes"
-	//"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"math/big"
 )
 
+//The struct that will be serialized/deserialized
 type Account struct {
 	Nonce    uint64
 	Balance  *big.Int
@@ -15,16 +15,17 @@ type Account struct {
 	Root     []byte
 }
 
+//Struct that wraps Account and add functionalities to it
 type AccountState struct {
 	Account
 	Addr     Address
-	AddrHash []byte
 	Code     []byte
-	Data     trie.Trier
+	Data     trie.PatriciaMerkelTree
 	hasher   hashing.Hasher
 	prevRoot []byte
 }
 
+//Create new wrapper for an Account (that has just been retrieved)
 func NewAccountState(address Address, account Account, hasher hashing.Hasher) *AccountState {
 	acState := AccountState{Account: account, Addr: address, prevRoot: account.Root}
 	if acState.Balance == nil {
@@ -34,11 +35,15 @@ func NewAccountState(address Address, account Account, hasher hashing.Hasher) *A
 
 	acState.hasher = hasher
 
-	acState.AddrHash = address.ComputeHash(hasher)
-
 	return &acState
 }
 
+//Returns true if data inside data trie has changed
+//Useful when we track all data tries that need to be committed/undo-ed in persistence unit
+//The status is computed as a difference between previous root hash of the data trie and the current
+//root hash of the data trie. When committing data to persistence, prevRoot becomes Root as it will
+//cause Dirty() to return false. When undo-ing data trie, Root will become prevRoot and so Dirty() will
+//also return false
 func (as *AccountState) Dirty() bool {
 	if as.Data == nil {
 		return false
@@ -51,7 +56,8 @@ func (as *AccountState) Dirty() bool {
 	return !bytes.Equal(as.Data.Root(), as.prevRoot)
 }
 
-func (as *AccountState) resetDataCode() {
+//Resets (nils) the fields inside Account
+func (as *AccountState) reset() {
 	//reset code and data
 	as.CodeHash = nil
 	as.Code = nil

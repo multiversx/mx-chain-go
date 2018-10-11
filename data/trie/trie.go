@@ -438,12 +438,12 @@ func (t *Trie) DBW() DBWriteCacher {
 	return t.dbw
 }
 
-func (t *Trie) Recreate(root []byte, dbw DBWriteCacher) (Trier, error) {
+func (t *Trie) Recreate(root []byte, dbw DBWriteCacher) (PatriciaMerkelTree, error) {
 	return NewTrie(root, dbw, t.hsh)
 }
 
 // Copy returns a copy of Trie.
-func (t *Trie) Copy() Trier {
+func (t *Trie) Copy() PatriciaMerkelTree {
 	cpy := *t
 	return &cpy
 }
