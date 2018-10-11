@@ -32,7 +32,7 @@ var defaultMarshalizer marshal.Marshalizer
 
 func getDefaultMarshlizer() marshal.Marshalizer {
 	if defaultMarshalizer == nil {
-		defaultMarshalizer = &mock.MockMarshalizer{}
+		defaultMarshalizer = &mock.MarshalizerMock{}
 	}
 
 	return defaultMarshalizer

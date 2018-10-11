@@ -13,3 +13,7 @@ func (m *Message) SetMarshalizer(newMarsh *marshal.Marshalizer) {
 func (mq *MessageQueue) Clean() {
 	mq.clean()
 }
+
+func (m *Message) SetSigned(signed bool) {
+	m.isSigned = signed
+}
