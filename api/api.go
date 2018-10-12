@@ -9,6 +9,7 @@ import (
 func main() {
 	r := gin.Default()
 
+	node.CORSMiddleware(r)
 	node.Routes(r.Group("/node"))
 
 	viper.SetDefault("address", "127.0.0.1")
