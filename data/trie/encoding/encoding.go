@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package encoding
 
 import (
@@ -28,10 +29,10 @@ import (
 const badNibble = ^uint64(0)
 const uintBits = 32 << (uint64(^uint(0)) >> 63)
 
-// secureKeyPrefix is the database key prefix used to store trie node preimages.
+// SecureKeyPrefix is the database key prefix used to store trie node preimages.
 var SecureKeyPrefix = []byte("secure-key-")
 
-// secureKeyLength is the length of the above prefix + 32byte hash.
+// SecureKeyLength is the length of the above prefix + 32byte hash.
 const SecureKeyLength = 11 + 32
 
 // Encode encodes b as a hex string with 0x prefix.

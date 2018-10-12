@@ -26,9 +26,7 @@ import (
 
 var errMockDataBase = errors.New("MockDatabase generic error")
 
-/*
- * This is a test memory database. Do not use for any production it does not get persisted
- */
+// DatabaseMock is used in testing
 type DatabaseMock struct {
 	db   map[string][]byte
 	lock sync.RWMutex

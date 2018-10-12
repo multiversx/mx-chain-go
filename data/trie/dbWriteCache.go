@@ -13,16 +13,18 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"sync"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 )
 
-// CachedWriteDBA is an intermediate write layer between the trie data structures and
+// DBWriteCache is an intermediate write layer between the trie data structures and
 // the disk database. The aim is to accumulate trie writes in-memory and only
 // periodically flush a couple tries to disk, garbage collecting the remainder.
 type DBWriteCache struct {
@@ -49,7 +51,7 @@ type DBWriteCache struct {
 	lock sync.RWMutex
 }
 
-// NewDatabase creates a new trie database to store ephemeral trie content before
+// NewDBWriteCache creates a new trie database to store ephemeral trie content before
 // its written out to disk or garbage collected.
 func NewDBWriteCache(persistdb PersisterBatcher) *DBWriteCache {
 	return &DBWriteCache{
@@ -59,7 +61,7 @@ func NewDBWriteCache(persistdb PersisterBatcher) *DBWriteCache {
 	}
 }
 
-// DiskDB retrieves the persistent storage backing the trie database.
+// PersistDB retrieves the persistent storage backing the trie database.
 func (db *DBWriteCache) PersistDB() PersisterBatcher {
 	return db.persistdb
 }
@@ -118,7 +120,7 @@ func (db *DBWriteCache) insertPreimage(hash encoding.Hash, preimage []byte) {
 	db.preimagesSize += encoding.StorageSize(encoding.HashLength + len(preimage))
 }
 
-// node retrieves a cached trie node from memory, or returns nil if none can be
+// CachedNode retrieves a cached trie node from memory, or returns nil if none can be
 // found in the memory cache.
 func (db *DBWriteCache) CachedNode(hash []byte, cachegen uint16) Node {
 	// Retrieve the node from cache if available
@@ -546,6 +548,7 @@ func (db *DBWriteCache) accumulate(hash encoding.Hash, reachable map[encoding.Ha
 	}
 }
 
+// InsertWithLock inserts data but is concurrent safe
 func (db *DBWriteCache) InsertWithLock(hash []byte, blob []byte, node Node) {
 	db.lock.Lock()
 	defer db.lock.Unlock()

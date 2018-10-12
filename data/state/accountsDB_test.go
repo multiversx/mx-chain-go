@@ -1,12 +1,14 @@
 package state
 
 import (
+	"encoding/base64"
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
 )
 
 var testHasher = mock.HasherMock{}
@@ -611,7 +613,7 @@ func TestAccountsDB_Commit_MalfunctionTrie_ShouldErr(t *testing.T) {
 
 	state2.Data.(*mock.TrieMock).Fail = true
 
-	err = adb.Commit()
+	_, err = adb.Commit()
 	assert.NotNil(t, err)
 }
 
@@ -648,7 +650,7 @@ func TestAccountsDB_Commit_MalfunctionMainTrie_ShouldErr(t *testing.T) {
 
 	adb.MainTrie.(*mock.TrieMock).Fail = true
 
-	err = adb.Commit()
+	_, err = adb.Commit()
 	assert.NotNil(t, err)
 }
 
@@ -688,7 +690,7 @@ func TestAccountsDB_Commit_MalfunctionMarshalizer_ShouldErr(t *testing.T) {
 		adb.marsh.(*mock.MarshalizerMock).Fail = false
 	}()
 
-	err = adb.Commit()
+	_, err = adb.Commit()
 	assert.NotNil(t, err)
 }
 
@@ -722,10 +724,11 @@ func TestAccountsDB_Commit_2okAccounts_ShouldWork(t *testing.T) {
 
 	//states are now prepared, committing
 
-	err = adb.Commit()
+	h, err := adb.Commit()
 	assert.Nil(t, err)
+	fmt.Printf("Result hash: %v\n", base64.StdEncoding.EncodeToString(h))
 
-	fmt.Printf("Data committed! Root: %d\n", adb.MainTrie.Root())
+	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
 
 	//reloading a new trie to test if data is inside
 	newTrie, err := adb.MainTrie.Recreate(adb.MainTrie.Root(), adb.MainTrie.DBW())
@@ -749,128 +752,4 @@ func TestAccountsDB_Commit_2okAccounts_ShouldWork(t *testing.T) {
 	val, err := newState2.Data.Get([]byte{65, 66, 67})
 	assert.Nil(t, err)
 	assert.Equal(t, val, []byte{68, 69, 70})
-}
-
-func TestAccountsDB_CommitUndo_2okAccounts_ShouldWork(t *testing.T) {
-	//test creates 2 accounts (one with a data root)
-	//verifies that commit saves the new tries and that can be loaded back
-	//the states retrieved alters data
-	//undo should not persist the modifications
-
-	testHash1 := testHasher.Compute("ABCDEFGHIJKLMNOP")
-	adr1 := createAddress(t, testHash1)
-
-	testHash2 := testHasher.Compute("ABCDEFGHIJKLMNOPQ")
-	adr2 := createAddress(t, testHash2)
-
-	adb := createAccountsDB()
-
-	//first account has the balance of 40
-	state1, err := adb.GetOrCreateAccount(*adr1)
-	assert.Nil(t, err)
-	state1.Balance = big.NewInt(40)
-
-	//second account has the balance of 50 and something in data root
-	state2, err := adb.GetOrCreateAccount(*adr2)
-	assert.Nil(t, err)
-
-	state2.Balance = big.NewInt(50)
-	state2.Root = make([]byte, encoding.HashLength)
-	err = adb.RetrieveData(state2)
-	assert.Nil(t, err)
-
-	state2.Data.Update([]byte{65, 66, 67}, []byte{68, 69, 70})
-
-	//states are now prepared, committing
-
-	err = adb.Commit()
-	assert.Nil(t, err)
-
-	fmt.Printf("Data committed! Root: %d\n", adb.MainTrie.Root())
-
-	//reloading a new trie to test if data is inside
-	newTrie, err := adb.MainTrie.Recreate(adb.MainTrie.Root(), adb.MainTrie.DBW())
-	assert.Nil(t, err)
-	newAdb := NewAccountsDB(newTrie, testHasher, &testMarshalizer)
-
-	//checking state1
-	newState1, err := newAdb.GetOrCreateAccount(*adr1)
-	assert.Nil(t, err)
-	assert.Equal(t, newState1.Balance, big.NewInt(40))
-
-	//checking state2
-	newState2, err := newAdb.GetOrCreateAccount(*adr2)
-	assert.Nil(t, err)
-	assert.Equal(t, newState2.Balance, big.NewInt(50))
-	assert.NotNil(t, newState2.Root)
-	//get data
-	err = adb.RetrieveData(newState2)
-	assert.Nil(t, err)
-	assert.NotNil(t, newState2.Data)
-	val, err := newState2.Data.Get([]byte{65, 66, 67})
-	assert.Nil(t, err)
-	assert.Equal(t, val, []byte{68, 69, 70})
-	//snapshot data root for state 2
-	snapshotDataRoot := state2.Root
-	fmt.Printf("data ROOT: %v\n", snapshotDataRoot)
-
-	//snapshot root hash
-	snapshotRoot1 := adb.MainTrie.Root()
-
-	//so far we have received both states
-	//we change data in both of them
-	//but call undo, checking that the modifications did not persist
-
-	newState1.Balance = big.NewInt(41)
-	newState2.Balance = big.NewInt(51)
-	err = newState2.Data.Update([]byte{1, 2, 3}, []byte{4, 5, 6})
-	assert.Nil(t, err)
-
-	//modifications complete
-	//check dirty on state2
-	assert.True(t, newState2.Dirty())
-	//saving data root to Root
-	newState2.Root = newState2.Data.Root()
-
-	adb.SaveAccountState(newState1)
-	adb.SaveAccountState(newState2)
-	fmt.Printf("data ROOT as state2.ROOT: %v\n", state2.Root)
-	fmt.Printf("data ROOT as ROOT(): %v\n", state2.Data.Root())
-
-	//snapshot root hash
-	snapshotRoot2 := adb.MainTrie.Root()
-
-	//call undo
-	err = adb.Undo()
-
-	//reload state1 and state2
-
-	//checking state1
-	newNewState1, err := newAdb.GetOrCreateAccount(*adr1)
-	assert.Nil(t, err)
-	assert.Equal(t, newNewState1.Balance, big.NewInt(40))
-
-	//checking state2
-	newNewState2, err := newAdb.GetOrCreateAccount(*adr2)
-	assert.Nil(t, err)
-	assert.Equal(t, newNewState2.Balance, big.NewInt(50))
-	assert.NotNil(t, newNewState2.Root)
-	assert.Equal(t, newState2.Root, snapshotDataRoot)
-	//get data
-	err = adb.RetrieveData(newNewState2)
-	assert.Nil(t, err)
-	assert.NotNil(t, newNewState2.Data)
-	val, err = newNewState2.Data.Get([]byte{65, 66, 67})
-	assert.Nil(t, err)
-	assert.Equal(t, val, []byte{68, 69, 70})
-	//this will not be found
-	val, err = newNewState2.Data.Get([]byte{1, 2, 3})
-	fmt.Printf("data ROOT as ROOT 2: %v\n", newNewState2.Root)
-	fmt.Printf("data ROOT as ROOT() 2: %v\n", newNewState2.Data.Root())
-	assert.Nil(t, err)
-	assert.Nil(t, val)
-
-	//test roots
-	assert.Equal(t, snapshotRoot1, adb.MainTrie.Root())
-	assert.NotEqual(t, snapshotRoot2, adb.MainTrie.Root())
 }

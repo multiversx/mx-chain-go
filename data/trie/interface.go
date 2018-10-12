@@ -15,8 +15,10 @@
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 //Adapted by Elrond Team
+
 package trie
 
+// IdealBatchSize
 // Code using batches should try to add this much data to the batch.
 // The value was determined empirically.
 const IdealBatchSize = 100 * 1024
@@ -26,17 +28,18 @@ const IdealBatchSize = 100 * 1024
 // between account and storage tries.
 type LeafCallback func(leaf []byte, parent []byte) error
 
+// Persister is used for persistent storage
 type Persister interface {
-	// Add the value to the (key, val) persistance medium
+	// Put the value to the (key, val) persistance medium
 	Put(key, val []byte) error
 
-	// gets the value associated to the key
+	// Get the value associated to the key
 	Get(key []byte) ([]byte, error)
 
-	// returns true if the given key is present in the persistance medium
+	// Has returns true if the given key is present in the persistance medium
 	Has(key []byte) (bool, error)
 
-	// initialized the persistance medium and prepares it for usage
+	// Init the persistance medium and prepares it for usage
 	Init() error
 
 	// Closes the files/resources associated to the persistance medium
@@ -45,11 +48,11 @@ type Persister interface {
 	// Removes the data associated to the given key
 	Remove(key []byte) error
 
-	// Removes the persistance medium stored data
+	// Destroy removes the persistance medium stored data
 	Destroy() error
 }
 
-// Database wraps all database operations. All methods are safe for concurrent use.
+// PersisterBatcher wraps all database operations. All methods are safe for concurrent use.
 type PersisterBatcher interface {
 	Persister
 	NewBatch() Batch
@@ -66,7 +69,7 @@ type Batch interface {
 	Reset()
 }
 
-//Patricia Merkel Tree interface
+// PatriciaMerkelTree used in all tries implementations
 type PatriciaMerkelTree interface {
 	SetCacheLimit(l uint16)
 	Get(key []byte) ([]byte, error)
@@ -79,6 +82,7 @@ type PatriciaMerkelTree interface {
 	Copy() PatriciaMerkelTree
 }
 
+// DBWriteCacher used in Patricia Merkel Tree sub layer
 type DBWriteCacher interface {
 	PersistDB() PersisterBatcher
 	InsertBlob(hash []byte, blob []byte)

@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie_test
 
 import (
@@ -20,15 +21,16 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/mock"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"math/rand"
 	"reflect"
 	"testing"
 	"testing/quick"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/mock"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
 

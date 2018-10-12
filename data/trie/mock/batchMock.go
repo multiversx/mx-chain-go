@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package mock
 
 import (
@@ -22,6 +23,7 @@ import (
 
 var errMockBatch = errors.New("MockBatch generic error")
 
+// BatchMock is used for testing
 type BatchMock struct {
 	db     *DatabaseMock
 	writes []keyValuePair

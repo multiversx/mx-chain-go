@@ -15,24 +15,29 @@
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 //EIP-55 standard https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md
+
 package state
 
 import (
 	"encoding/hex"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
 //how eth SC addr is computed: https://ethereum.stackexchange.com/questions/760/how-is-the-address-of-an-ethereum-contract-computed
 
+// AdrLen will hold the address length in bytes
 const AdrLen = 32
 
 type adrBuff [AdrLen]byte
 
+// Address will hold the address of an account
 type Address struct {
 	adrBuff
 	hash []byte
 }
 
+// Bytes returns the data corresponding to this address
 func (adr *Address) Bytes() []byte {
 	return adr.adrBuff[:]
 }
@@ -73,6 +78,8 @@ func (adr *Address) Hex(hasher hashing.Hasher) string {
 	return "0x" + string(result)
 }
 
+// Hash return the address corresponding hash
+// Value is instantiated once (at the first Hash() call
 func (adr *Address) Hash(hasher hashing.Hasher) []byte {
 	if adr.hash == nil {
 		adr.hash = adr.computeHash(hasher)
@@ -138,6 +145,8 @@ func FromHex(s string) []byte {
 	return h
 }
 
+// FromPubKeyBytes copies the bytes received as parameters, trimming if necessary
+// and outputs a new Address obj
 func FromPubKeyBytes(pubKey []byte) (*Address, error) {
 	if len(pubKey) < AdrLen {
 		return nil, NewErrorWrongSize(AdrLen, len(pubKey))

@@ -13,18 +13,21 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"io"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
 )
 
 var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "[17]"}
 
+// Nodes used interface
 type Node interface {
 	fstring(string) string
 	cache() (hashNode, bool)
@@ -227,6 +230,7 @@ func (n rawFullNode) canUnload(uint16, uint16) bool { panic("this should never e
 func (n rawFullNode) cache() (hashNode, bool)       { panic("this should never end up in a live trie") }
 func (n rawFullNode) fstring(ind string) string     { panic("this should never end up in a live trie") }
 
+// EncodeRLP does encoding of the node
 func (n rawFullNode) EncodeRLP(w io.Writer) error {
 	var nodes [17]Node
 

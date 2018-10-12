@@ -13,14 +13,15 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie
 
 import (
-	//"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/crypto/sha3"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"sync"
 )
 
 type hasher struct {
@@ -38,6 +39,7 @@ func (b *sliceBuffer) Write(data []byte) (n int, err error) {
 	return len(data), nil
 }
 
+// Resets the sliceBuffer
 func (b *sliceBuffer) Reset() {
 	*b = (*b)[:0]
 }
