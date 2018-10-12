@@ -6,7 +6,7 @@ $Go.import("_");
 struct Block $Go.doc("Block of data, containing hashes of transaction"){
     miniBlocks @0:List(MiniBlock);
     struct MiniBlock {
-        txHashes @0:List(UInt8);
+        txHashes @0:List(List(UInt8));
         destShardID @1:UInt32;
     }
 }

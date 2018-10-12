@@ -1,42 +1,45 @@
 package storage
 
 import (
-	"ElrondNetwork/elrond-go-sandbox/config"
-	"ElrondNetwork/elrond-go-sandbox/storage/leveldb"
-	"ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 
 	"github.com/pkg/errors"
 )
 
+// Persister provides storage of data services in a database like construct
 type Persister interface {
-	// Add the value to the (key, val) persistance medium
+	// Put add the value to the (key, val) persistance medium
 	Put(key, val []byte) error
 
-	// gets the value associated to the key
+	// Get gets the value associated to the key
 	Get(key []byte) ([]byte, error)
 
-	// returns true if the given key is present in the persistance medium
+	// Has returns true if the given key is present in the persistance medium
 	Has(key []byte) (bool, error)
 
-	// initialized the persistance medium and prepares it for usage
+	// Init initializes the persistance medium and prepares it for usage
 	Init() error
 
-	// Closes the files/resources associated to the persistance medium
+	// Close closes the files/resources associated to the persistance medium
 	Close() error
 
-	// Removes the data associated to the given key
+	// Remove removes the data associated to the given key
 	Remove(key []byte) error
 
-	// Removes the persistance medium stored data
+	// Destroy removes the persistance medium stored data
 	Destroy() error
 }
 
+// Cacher provides caching services
 type Cacher interface {
 	// Clear is used to completely clear the cache.
 	Clear()
 
-	// Add adds a value to the cache.  Returns true if an eviction occurred.
+	// Put adds a value to the cache.  Returns true if an eviction occurred.
 	Put(key, value []byte) (evicted bool)
 
 	// Get looks up a key's value from the cache.
@@ -68,6 +71,8 @@ type Cacher interface {
 	Len() int
 }
 
+// Storer provides storage services in a two layered storage construct, where the first layer is
+// represented by a cache and second layer by a persitent storage (DB-like)
 type Storer interface {
 	Put(key, data []byte) error
 	Get(key []byte) ([]byte, error)
@@ -78,13 +83,15 @@ type Storer interface {
 	DestroyUnit() error
 }
 
+// StorageUnit represents a storer's data bank
+// holding the cache and persistance unit
 type StorageUnit struct {
 	lock      sync.RWMutex
 	persister Persister
 	cacher    Cacher
 }
 
-// add data to both cache and persistance medium
+// Put adds data to both cache and persistance medium
 func (s *StorageUnit) Put(key, data []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -95,7 +102,9 @@ func (s *StorageUnit) Put(key, data []byte) error {
 	return err
 }
 
-// search the data associated to the key in
+// Get searches the data associated to the key in the cache first and if not
+// found it further searches it in the associated database.
+// In case it is found in the database, the cache is updated with the value as well.
 func (s *StorageUnit) Get(key []byte) ([]byte, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -119,7 +128,7 @@ func (s *StorageUnit) Get(key []byte) ([]byte, error) {
 	return v, nil
 }
 
-// check if the key is in the storageUnit.
+// Has checks if the key is in the storageUnit.
 // it first checks the cache and if not present it checks the db
 func (s *StorageUnit) Has(key []byte) (bool, error) {
 	s.lock.RLock()
@@ -134,7 +143,7 @@ func (s *StorageUnit) Has(key []byte) (bool, error) {
 	return s.persister.Has(key)
 }
 
-// checks if the key is present in the storage and if not adds it.
+// HasOrAdd checks if the key is present in the storage and if not adds it.
 // it updates the cache either way
 // it returns if the value was originally found
 func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
@@ -166,7 +175,7 @@ func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
 	return has, err
 }
 
-// deletes the data associated to the given key from both cache and persistance medium
+// Remove removes the data associated to the given key from both cache and persistance medium
 func (s *StorageUnit) Remove(key []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -177,12 +186,12 @@ func (s *StorageUnit) Remove(key []byte) error {
 	return err
 }
 
-// clean up the entire cache
+// ClearCache cleans up the entire cache
 func (s *StorageUnit) ClearCache() {
 	s.cacher.Clear()
 }
 
-//clean up both the cache and db
+// DestroyUnit cleans up both the cache and db
 func (s *StorageUnit) DestroyUnit() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -192,6 +201,8 @@ func (s *StorageUnit) DestroyUnit() error {
 	return s.persister.Destroy()
 }
 
+// NewStorageUnit is the constructor for the storage unit, creating a new storage unit
+// from the given cacher and persister.
 func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
 	if p == nil {
 		return nil, errors.New("expected not nil persister")
@@ -211,6 +222,7 @@ func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
 	return sUnit, nil
 }
 
+// NewStorageUnitFromConf creates a new storage unit from a storage unit config
 func NewStorageUnitFromConf(conf *config.StorageUnitConfig) (*StorageUnit, error) {
 	var cache Cacher
 	var db Persister
@@ -237,6 +249,7 @@ func NewStorageUnitFromConf(conf *config.StorageUnitConfig) (*StorageUnit, error
 	return st, err
 }
 
+//CreateCacheFromConf creates a new cache from a cache config
 func CreateCacheFromConf(conf *config.CacheConfig) (Cacher, error) {
 	var cacher Cacher
 	var err error
@@ -255,6 +268,7 @@ func CreateCacheFromConf(conf *config.CacheConfig) (Cacher, error) {
 	return cacher, nil
 }
 
+// CreateDBFromConf creates a new database from database config
 func CreateDBFromConf(conf *config.DBConfig) (Persister, error) {
 	var db Persister
 	var err error

@@ -1,20 +1,18 @@
 package storage_test
 
 import (
-	"ElrondNetwork/elrond-go-sandbox/storage"
-	"ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 	"testing"
 
-	"ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-
-	"ElrondNetwork/elrond-go-sandbox/config"
-
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 )
 
 func initStorageUnit(t *testing.T, cSize int) *storage.StorageUnit {
 	mdb, err1 := memorydb.New()
-	cache, err2 := lrucache.NewCache(10)
+	cache, err2 := lrucache.NewCache(cSize)
 
 	assert.Nil(t, err1, "failed creating db: %s", err1)
 	assert.Nil(t, err2, "no error expected but got %s", err2)

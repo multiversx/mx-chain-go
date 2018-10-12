@@ -1,10 +1,10 @@
 package blockchain_test
 
 import (
-	"ElrondNetwork/elrond-go-sandbox/config"
-	"ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/stretchr/testify/assert"
 )
 

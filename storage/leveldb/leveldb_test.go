@@ -1,10 +1,10 @@
 package leveldb_test
 
 import (
-	"ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"io/ioutil"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/stretchr/testify/assert"
 )
 

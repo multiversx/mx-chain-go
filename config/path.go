@@ -6,7 +6,7 @@ import (
 	"runtime"
 )
 
-// Path in user's home
+// DefaultPath gives back the path to a default location in user HOME to be used for Elrond application storage
 func DefaultPath() string {
 	home := os.Getenv("HOME")
 
