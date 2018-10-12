@@ -96,8 +96,19 @@ func (s *StorageUnit) Put(key, data []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	// no need to add if already present in cache
+	has := s.cacher.Has(key)
+
+	if has {
+		return nil
+	}
+
 	s.cacher.Put(key, data)
 	err := s.persister.Put(key, data)
+
+	if err != nil {
+		s.cacher.Remove(key)
+	}
 
 	return err
 }
