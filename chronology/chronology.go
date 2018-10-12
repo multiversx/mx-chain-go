@@ -2,6 +2,7 @@ package chronology
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
@@ -9,15 +10,19 @@ import (
 
 const SLEEP_TIME = 0
 
+type Subround int
+
 const (
-	RS_BEFORE_ROUND = -1
-	RS_AFTER_ROUND  = -2
-	RS_UNKNOWN      = -3
+	SR_UNKNOWN               = math.MinInt32
+	SR_ABORDED               = math.MinInt32 + 1
+	SR_BEFORE_ROUND Subround = math.MinInt32 + 2
+	SR_AFTER_ROUND  Subround = math.MaxInt32
 )
 
-type SubRounder interface {
-	DoWork(*Chronology) bool
-	Next() int
+type Subrounder interface {
+	DoWork() bool
+	Next() Subround
+	Current() Subround
 	EndTime() int64
 	Name() string
 }
@@ -30,11 +35,12 @@ type Chronology struct {
 	round       *Round
 	genesisTime time.Time
 
-	selfRoundState int
-	timeRoundState int
-	clockOffset    time.Duration
+	selfSubRound Subround
+	timeSubRound Subround
+	clockOffset  time.Duration
 
-	subRounders []SubRounder
+	subRounders []Subrounder
+	subRounds   map[Subround]int
 
 	syncTime ntp.SyncTimer
 	rounds   int // only for statistic
@@ -48,21 +54,32 @@ func NewChronology(doLog bool, doSyncMode bool, round *Round, genesisTime time.T
 	chr.doSyncMode = doSyncMode
 	chr.round = round
 	chr.genesisTime = genesisTime
-	chr.selfRoundState = 0
-	chr.timeRoundState = RS_BEFORE_ROUND
+	chr.selfSubRound = SR_BEFORE_ROUND
+	chr.timeSubRound = SR_BEFORE_ROUND
 	chr.clockOffset = syncTime.GetClockOffset()
 	chr.syncTime = syncTime
-	chr.subRounders = make([]SubRounder, 0)
+	chr.subRounders = make([]Subrounder, 0)
+	chr.subRounds = make(map[Subround]int)
 
 	return chr
 }
 
 func (chr *Chronology) initRound() {
-	chr.selfRoundState = 0
+	chr.selfSubRound = SR_BEFORE_ROUND
+
+	if len(chr.subRounders) > 0 {
+		chr.selfSubRound = chr.subRounders[0].Current()
+	}
+
 	chr.clockOffset = chr.syncTime.GetClockOffset()
 }
 
-func (chr *Chronology) AddSubRounder(subRounder SubRounder) {
+func (chr *Chronology) AddSubRounder(subRounder Subrounder) {
+	if chr.subRounds == nil {
+		chr.subRounds = make(map[Subround]int)
+	}
+
+	chr.subRounds[subRounder.Current()] = len(chr.subRounders)
 	chr.subRounders = append(chr.subRounders, subRounder)
 }
 
@@ -74,26 +91,25 @@ func (chr *Chronology) StartRounds() {
 }
 
 func (chr *Chronology) startRound() {
-	roundState := chr.UpdateRound()
+	subRound := chr.UpdateRound()
 
-	sr := chr.LoadSubRounder(roundState)
-
-	if chr.selfRoundState == roundState {
+	if chr.selfSubRound == subRound {
+		sr := chr.LoadSubRounder(subRound)
 		if sr != nil {
-			if sr.DoWork(chr) {
-				chr.selfRoundState = sr.Next()
+			if sr.DoWork() {
+				chr.selfSubRound = sr.Next()
 			}
 		}
 	}
 }
 
-func (chr *Chronology) UpdateRound() int {
+func (chr *Chronology) UpdateRound() Subround {
 	oldRoundIndex := chr.round.index
-	oldTimeRoundState := chr.timeRoundState
+	oldTimeSubRound := chr.timeSubRound
 
 	currentTime := chr.syncTime.GetCurrentTime(chr.clockOffset)
 	chr.round.UpdateRound(chr.genesisTime, currentTime)
-	chr.timeRoundState = chr.GetRoundStateFromDateTime(currentTime)
+	chr.timeSubRound = chr.GetSubRoundFromDateTime(currentTime)
 
 	if oldRoundIndex != chr.round.index {
 		chr.rounds++ // only for statistic
@@ -107,54 +123,55 @@ func (chr *Chronology) UpdateRound() int {
 		//	leader += " (MY TURN)"
 		//}
 
-		//chr.Log(fmt.Sprintf("\n"+chr.syncTime.GetFormatedCurrentTimeWithOffset(chr.clockOffset)+"############################## ROUND %d BEGINS WITH LEADER  %s  ##############################\n", chr.round.Index, leader))
-		chr.Log(fmt.Sprintf("\n"+chr.syncTime.GetFormatedCurrentTime(chr.clockOffset)+"############################## ROUND %d BEGINS ##############################\n", chr.round.index))
+		//chr.Log(fmt.Sprintf("\n"+chr.GetFormatedCurrentTime()+"############################## ROUND %d BEGINS WITH LEADER  %s  ##############################\n", chr.round.Index, leader))
+		chr.Log(fmt.Sprintf("\n"+chr.GetFormatedCurrentTime()+"############################## ROUND %d BEGINS ##############################\n", chr.round.index))
 		chr.initRound()
 	}
 
-	if oldTimeRoundState != chr.timeRoundState {
-		sr := chr.LoadSubRounder(chr.timeRoundState)
+	if oldTimeSubRound != chr.timeSubRound {
+		sr := chr.LoadSubRounder(chr.timeSubRound)
 		if sr != nil {
-			chr.Log(fmt.Sprintf("\n" + chr.syncTime.GetFormatedCurrentTime(chr.clockOffset) + ".................... SUBROUND " + sr.Name() + " BEGINS ....................\n"))
+			chr.Log(fmt.Sprintf("\n" + chr.GetFormatedCurrentTime() + ".................... SUBROUND " + sr.Name() + " BEGINS ....................\n"))
 		}
 	}
 
-	roundState := chr.selfRoundState
+	subRound := chr.selfSubRound
 
 	if chr.doSyncMode {
-		roundState = chr.timeRoundState
+		subRound = chr.timeSubRound
 	}
 
-	return roundState
+	return subRound
 }
 
-func (chr *Chronology) LoadSubRounder(roundState int) SubRounder {
-	if roundState < 0 || roundState >= len(chr.subRounders) {
+func (chr *Chronology) LoadSubRounder(subRound Subround) Subrounder {
+	index := chr.subRounds[subRound]
+	if index < 0 || index >= len(chr.subRounders) {
 		return nil
 	}
 
-	return chr.subRounders[roundState]
+	return chr.subRounders[index]
 }
 
-func (chr *Chronology) GetRoundStateFromDateTime(timeStamp time.Time) int {
+func (chr *Chronology) GetSubRoundFromDateTime(timeStamp time.Time) Subround {
 
 	delta := timeStamp.Sub(chr.round.timeStamp).Nanoseconds()
 
 	if delta < 0 {
-		return RS_BEFORE_ROUND
+		return SR_BEFORE_ROUND
 	}
 
 	if delta > chr.round.timeDuration.Nanoseconds() {
-		return RS_AFTER_ROUND
+		return SR_AFTER_ROUND
 	}
 
 	for i := 0; i < len(chr.subRounders); i++ {
 		if delta <= chr.subRounders[i].EndTime() {
-			return i
+			return chr.subRounders[i].Current()
 		}
 	}
 
-	return RS_UNKNOWN
+	return SR_UNKNOWN
 }
 
 func (chr *Chronology) Log(message string) {
@@ -163,14 +180,34 @@ func (chr *Chronology) Log(message string) {
 	}
 }
 
-//func (chr *Chronology) GetRoundIndex() int {
-//	return chr.round.index
-//}
-//
-//func (chr *Chronology) GetSelfRoundState() int {
-//	return chr.selfRoundState
-//}
-//
-//func (chr *Chronology) GetTimeRoundState() int {
-//	return chr.timeRoundState
-//}
+func (chr *Chronology) GetRoundIndex() int {
+	return chr.round.index
+}
+
+func (chr *Chronology) GetSelfSubRound() Subround {
+	return chr.selfSubRound
+}
+
+func (chr *Chronology) SetSelfSubRound(subRound Subround) {
+	chr.selfSubRound = subRound
+}
+
+func (chr *Chronology) GetTimeSubRound() Subround {
+	return chr.timeSubRound
+}
+
+func (chr *Chronology) GetClockOffset() time.Duration {
+	return chr.clockOffset
+}
+
+func (chr *Chronology) GetSyncTimer() ntp.SyncTimer {
+	return chr.syncTime
+}
+
+func (chr *Chronology) GetFormatedCurrentTime() string {
+	return chr.syncTime.GetFormatedCurrentTime(chr.clockOffset)
+}
+
+func (chr *Chronology) GetCurrentTime() time.Time {
+	return chr.syncTime.GetCurrentTime(chr.clockOffset)
+}
