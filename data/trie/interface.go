@@ -28,30 +28,6 @@ const IdealBatchSize = 100 * 1024
 // between account and storage tries.
 type LeafCallback func(leaf []byte, parent []byte) error
 
-// Persister is used for persistent storage
-type Persister interface {
-	// Put the value to the (key, val) persistance medium
-	Put(key, val []byte) error
-
-	// Get the value associated to the key
-	Get(key []byte) ([]byte, error)
-
-	// Has returns true if the given key is present in the persistance medium
-	Has(key []byte) (bool, error)
-
-	// Init the persistance medium and prepares it for usage
-	Init() error
-
-	// Closes the files/resources associated to the persistance medium
-	Close() error
-
-	// Removes the data associated to the given key
-	Remove(key []byte) error
-
-	// Destroy removes the persistance medium stored data
-	Destroy() error
-}
-
 // PersisterBatcher wraps all database operations. All methods are safe for concurrent use.
 type PersisterBatcher interface {
 	Persister

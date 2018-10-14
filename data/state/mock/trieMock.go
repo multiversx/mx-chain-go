@@ -58,9 +58,9 @@ func (mt *TrieMock) Get(key []byte) ([]byte, error) {
 	if mt.FailGet {
 		if mt.TTFGet <= 0 {
 			return nil, errMockTrie
-		} else {
-			mt.TTFGet--
 		}
+
+		mt.TTFGet--
 	}
 
 	mt.mutData.RLock()
@@ -84,9 +84,9 @@ func (mt *TrieMock) Update(key, value []byte) error {
 	if mt.FailUpdate {
 		if mt.TTFUpdate <= 0 {
 			return errMockTrie
-		} else {
-			mt.TTFUpdate--
 		}
+
+		mt.TTFUpdate--
 	}
 
 	mt.mutData.Lock()
