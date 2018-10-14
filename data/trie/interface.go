@@ -18,6 +18,10 @@
 
 package trie
 
+import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+)
+
 // IdealBatchSize
 // Code using batches should try to add this much data to the batch.
 // The value was determined empirically.
@@ -30,7 +34,7 @@ type LeafCallback func(leaf []byte, parent []byte) error
 
 // PersisterBatcher wraps all database operations. All methods are safe for concurrent use.
 type PersisterBatcher interface {
-	Persister
+	storage.Persister
 	NewBatch() Batch
 }
 
