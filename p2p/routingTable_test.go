@@ -1,18 +1,18 @@
 package p2p_test
 
 import (
-	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"math/rand"
+	"strconv"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/service"
 	"github.com/libp2p/go-libp2p-peer"
 	tu "github.com/libp2p/go-testutil"
 	"github.com/stretchr/testify/assert"
-	"math/rand"
-	"testing"
 )
-
-//var counterRT1 int
 
 func TestCalculateDistanceDifferentLengths(t *testing.T) {
 	buff1 := []byte{0, 0}
@@ -160,6 +160,9 @@ func TestClosestPeers(t *testing.T) {
 	peers := rt.NearestPeers(100)
 	assert.Equal(t, 5, len(peers))
 
+	peers = rt.NearestPeersAll()
+	assert.Equal(t, 5, len(peers))
+
 	assert.Equal(t, pid3, peers[0])
 	assert.Equal(t, pid2, peers[1])
 	assert.Equal(t, pid4, peers[2])
@@ -186,21 +189,19 @@ func TestClosestPeers(t *testing.T) {
 }
 
 func TestLargeSetOfPeers(t *testing.T) {
-	node, err := p2p.NewNode(context.Background(), 4000, []string{}, service.GetMarshalizerService(), 10000)
+	id := "Node0"
 
-	assert.Nil(t, err)
-
-	rt := p2p.NewRoutingTable(node.P2pNode.ID())
+	rt := p2p.NewRoutingTable(peer.ID(id))
 
 	for i := 1; i <= 200; i++ {
-		param := p2p.NewConnectParams(4000 + i)
+		id = "Node" + strconv.Itoa(i)
 
-		rt.Update(param.ID)
+		rt.Update(peer.ID(id))
 
-		found := rt.Has(param.ID)
+		found := rt.Has(peer.ID(id))
 
 		if !found {
-			fmt.Printf("Peer %s not found!\n", param.ID.Pretty())
+			fmt.Printf("Peer %s not found!\n", id)
 		}
 	}
 
@@ -211,21 +212,26 @@ func TestLargeSetOfPeers(t *testing.T) {
 
 	peers := rt.NearestPeers(13)
 
-	for _, p := range peers {
-		fmt.Println("-", p.Pretty())
+	for i := 0; i < len(peers); i++ {
+		fmt.Println("-", peers[i].Pretty())
 	}
 }
 
 func TestLonelyPeers(t *testing.T) {
-	peers := make([]p2p.ConnectParams, 0)
+	peers := make([]string, 0)
 	rts := make([]p2p.RoutingTable, 0)
 	nearest := map[peer.ID][]peer.ID{}
 
-	for i := 0; i < 300; i++ {
-		p := *p2p.NewConnectParams(4000 + i)
+	//use a simple hash method
+	h := sha256.New()
+
+	for i := 0; i < 200; i++ {
+		h.Write([]byte("Node" + strconv.Itoa(i)))
+		hashed := h.Sum(nil)
+		p := hex.EncodeToString(hashed)
 		peers = append(peers, p)
 
-		rt := p2p.NewRoutingTable(p.ID)
+		rt := p2p.NewRoutingTable(peer.ID(p))
 
 		rts = append(rts, *rt)
 		//nearest = append(nearest, []kbucket.ID{})
@@ -237,7 +243,7 @@ func TestLonelyPeers(t *testing.T) {
 				continue
 			}
 
-			rts[i].Update(peers[j].ID)
+			rts[i].Update(peer.ID(peers[j]))
 		}
 	}
 
@@ -246,40 +252,39 @@ func TestLonelyPeers(t *testing.T) {
 	for i := 0; i < len(peers); i++ {
 		nearestPeers := rts[i].NearestPeers(10)
 
-		nearest[peers[i].ID] = nearestPeers
-
-		//fmt.Printf("%s has: ", peers[i].ID.Pretty())
-		//for j := 0; j < len(nearestPeers); j++{
-		//	fmt.Printf("%s, ", nearestPeers[j].Pretty())
-		//}
-		//fmt.Println()
+		nearest[peer.ID(peers[i])] = nearestPeers
 	}
 
 	for i := 0; i < len(peers); i++ {
-		testLonelyPeer(peers[i].ID, peers, nearest)
+		assert.Equal(t, 0, testLonelyPeer(peers[i], peers, nearest))
 	}
 }
 
-func testLonelyPeer(start peer.ID, peers []p2p.ConnectParams, conn map[peer.ID][]peer.ID) {
+func testLonelyPeer(start string, peers []string, conn map[peer.ID][]peer.ID) int {
 	reached := make(map[peer.ID]bool)
 
 	for i := 0; i < len(peers); i++ {
-		reached[peers[i].ID] = peers[i].ID == start
+		reached[peer.ID(peers[i])] = peers[i] == start
 	}
 
 	job := make(map[peer.ID]bool)
-	job[start] = false
+	job[peer.ID(start)] = false
 
 	//traverseRec(start, conn, reached)
 	traverseRec2(conn, reached, job)
 
-	fmt.Printf("%s has not reached: ", start.Pretty())
+	notReached := 0
+
+	fmt.Printf("%s has not reached: ", start)
 	for i := 0; i < len(peers); i++ {
-		if !reached[peers[i].ID] {
-			fmt.Printf("%s, ", peers[i].ID.Pretty())
+		if !reached[peer.ID(peers[i])] {
+			fmt.Printf("%s, ", peers[i])
+			notReached++
 		}
 	}
 	fmt.Println()
+
+	return notReached
 }
 
 func traverseRec2(conn map[peer.ID][]peer.ID, reached map[peer.ID]bool, job map[peer.ID]bool) {
@@ -313,14 +318,6 @@ func traverseRec2(conn map[peer.ID][]peer.ID, reached map[peer.ID]bool, job map[
 	}
 
 	traverseRec2(conn, reached, job)
-}
-
-func BenchmarkRoutingTable(t *testing.B) {
-	params := make([]p2p.ConnectParams, 0)
-
-	for i := 0; i < t.N; i++ {
-		params = append(params, *p2p.NewConnectParams(4000 + i))
-	}
 }
 
 func BenchmarkAdd(t *testing.B) {
