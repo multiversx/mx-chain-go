@@ -58,16 +58,22 @@ func (m *Message) Signed() bool {
 }
 
 func (m *Message) Sign(params *ConnectParams) error {
-	if params.PubKey == nil || params.PrivKey == nil || params.ID == "" {
-		return errors.New("Invalid private key/public key/ID tuple!")
+	return m.SignWithPrivateKey(params.PrivKey)
+}
+
+func (m *Message) SignWithPrivateKey(sk crypto.PrivKey) error {
+	if sk == nil {
+		return errors.New("Invalid private key tuple!")
 	}
 
-	pkey, err := crypto.MarshalPublicKey(params.PubKey)
+	pk := sk.GetPublic()
+
+	pkey, err := crypto.MarshalPublicKey(pk)
 	if err != nil {
 		return err
 	}
 
-	sig, err := params.PrivKey.Sign(append(m.Payload, []byte(m.Type)...))
+	sig, err := sk.Sign(append(m.Payload, []byte(m.Type)...))
 	if err != nil {
 		return err
 	}
