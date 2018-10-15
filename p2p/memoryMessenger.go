@@ -18,6 +18,8 @@ import (
 )
 
 var mutGloballyRegPeers *sync.Mutex
+
+// GloballyRegisteredPeers is the main map used for in memory communication
 var GloballyRegisteredPeers map[peer.ID]*MemoryMessenger
 
 func init() {
@@ -25,6 +27,7 @@ func init() {
 	GloballyRegisteredPeers = make(map[peer.ID]*MemoryMessenger)
 }
 
+// MemoryMessenger is a fake memory Messenger used for testing
 type MemoryMessenger struct {
 	peerID peer.ID
 
@@ -43,6 +46,7 @@ type MemoryMessenger struct {
 	closed    bool
 }
 
+// NewMemoryMessenger instantiate a new memory Messenger
 func NewMemoryMessenger(m marshal.Marshalizer, pid peer.ID, maxAllowedPeers int) (*MemoryMessenger, error) {
 	if m == nil {
 		return nil, errors.New("Marshalizer is nil! Can't create messenger!")
@@ -67,6 +71,7 @@ func NewMemoryMessenger(m marshal.Marshalizer, pid peer.ID, maxAllowedPeers int)
 	return &mm, nil
 }
 
+// Closes a MemoryMessenger. Receiving and sending data is no longer possible
 func (mm *MemoryMessenger) Close() error {
 	mm.mutClosed.Lock()
 	mm.closed = true
@@ -74,10 +79,12 @@ func (mm *MemoryMessenger) Close() error {
 	return nil
 }
 
+// ID returns the current id
 func (mm *MemoryMessenger) ID() peer.ID {
 	return mm.peerID
 }
 
+// Peers returns the connected peers list
 func (mm *MemoryMessenger) Peers() []peer.ID {
 	peers := make([]peer.ID, 0)
 
@@ -90,6 +97,7 @@ func (mm *MemoryMessenger) Peers() []peer.ID {
 	return peers
 }
 
+// Conns return the connections made by this memory messenger
 func (mm *MemoryMessenger) Conns() []net.Conn {
 	conns := make([]net.Conn, 0)
 
@@ -103,10 +111,12 @@ func (mm *MemoryMessenger) Conns() []net.Conn {
 	return conns
 }
 
+// Marshalizer is used to return the used marshalizer object
 func (mm *MemoryMessenger) Marshalizer() marshal.Marshalizer {
 	return mm.marsh
 }
 
+// RouteTable will return the RoutingTable object
 func (mm *MemoryMessenger) RouteTable() *RoutingTable {
 	return mm.rt
 }

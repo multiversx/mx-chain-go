@@ -9,19 +9,21 @@ import (
 	"time"
 )
 
+// ResultType will signal the result
 type ResultType int
 
 const (
-	//Won't try to connect to other peers
+	// WontConnect will not try to connect to other peers
 	WontConnect ResultType = iota
-	// There are only inbound connections
+	// OnlyInboundConnections means that there are only inbound connections
 	OnlyInboundConnections
-	// Successfully connected to a peer
+	// SuccessfullyConnected signals that has successfully connected to a peer
 	SuccessfullyConnected
-	// Nothing done
+	// NothingDone nothing has been done
 	NothingDone
 )
 
+// ConnNotifier is used to manage the connections to other peers
 type ConnNotifier struct {
 	execution.RoutineWrapper
 
@@ -35,6 +37,7 @@ type ConnNotifier struct {
 	indexKnownPeers int
 }
 
+// NewConnNotifier will create a new object and link-it to the messenger provided as parameter
 func NewConnNotifier(m Messenger) *ConnNotifier {
 	if m == nil {
 		panic("Nil messenger!")
@@ -49,9 +52,9 @@ func NewConnNotifier(m Messenger) *ConnNotifier {
 	return &cn
 }
 
-//TaskMonitorConnections monitors the connections. It should not be called to often as the
-//connections are not done instantly. Even if the connection is made in a short time, there is a delay
-//until the connected peer might close down the connections because it reached the maximum limit.
+// TaskMonitorConnections monitors the connections. It should not be called to often as the
+// connections are not done instantly. Even if the connection is made in a short time, there is a delay
+// until the connected peer might close down the connections because it reached the maximum limit.
 func TaskMonitorConnections(cn *ConnNotifier) ResultType {
 	if cn.MaxAllowedPeers < 1 {
 		//won't try to connect to other peers
@@ -116,13 +119,13 @@ func TaskMonitorConnections(cn *ConnNotifier) ResultType {
 	return NothingDone
 }
 
-// called when network starts listening on an addr
+// Listen is called when network starts listening on an addr
 func (cn *ConnNotifier) Listen(netw net.Network, ma multiaddr.Multiaddr) {}
 
-// called when network starts listening on an addr
+// ListenClose is called when network starts listening on an addr
 func (cn *ConnNotifier) ListenClose(netw net.Network, ma multiaddr.Multiaddr) {}
 
-// called when a connection opened
+// Connected is called when a connection opened
 func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
 	//refuse other connections
 	if cn.MaxAllowedPeers < len(cn.Msgr.Conns()) {
@@ -130,10 +133,11 @@ func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
 	}
 }
 
-// called when a connection closed
+// Disconnected is called when a connection closed
 func (cn *ConnNotifier) Disconnected(netw net.Network, conn net.Conn) {}
 
-// called when a stream opened
+// OpenedStream is called when a stream opened
 func (cn *ConnNotifier) OpenedStream(netw net.Network, stream net.Stream) {}
 
+// ClosedStream is called when a stream was closed
 func (cn *ConnNotifier) ClosedStream(netw net.Network, stream net.Stream) {}

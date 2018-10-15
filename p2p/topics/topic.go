@@ -1,7 +1,6 @@
 package topics
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 
@@ -60,7 +59,11 @@ func (t *Topic) AddEventHandler(event OnTopicReceived) {
 }
 
 // NewMessageReceived is called from the lower data layer
-func (t *Topic) NewMessageReceived(message p2p.Message) {
+func (t *Topic) NewMessageReceived(message *p2p.Message) error {
+	if message == nil {
+		return errors.New("nil message can not be processed")
+	}
+
 	// create new instance of the object
 	newObj := reflect.New(reflect.TypeOf(t.ObjTemplate)).Interface()
 
@@ -68,17 +71,21 @@ func (t *Topic) NewMessageReceived(message p2p.Message) {
 	err := t.marsh.Unmarshal(newObj, message.Payload)
 
 	if err != nil {
-		t.log(err)
-		return
+		return err
 	}
 
 	//add to the channel so it can be consumed async
 	t.objPump <- newObj
+	return nil
 }
 
 // Broadcast should be called whenever a hight order struct needs to send over the wire an object
 // Optionally, the message can be authenticated with a provided privateKey
 func (t *Topic) Broadcast(data interface{}, peerID peer.ID, skForSigning crypto2.PrivKey) error {
+	if data == nil {
+		return errors.New("can not process nil data")
+	}
+
 	//assemle the message
 	mes := p2p.Message{}
 	mes.Type = t.Name
@@ -117,8 +124,4 @@ func (t *Topic) processData() {
 			t.mutEventBus.RUnlock()
 		}
 	}
-}
-
-func (t *Topic) log(err error) {
-	fmt.Printf("Error processing received message: %v\n", err.Error())
 }
