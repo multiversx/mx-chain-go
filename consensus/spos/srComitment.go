@@ -18,10 +18,10 @@ func NewSRComitment(doLog bool, endTime int64, cns *Consensus) SRComitment {
 	return sr
 }
 
-func (sr *SRComitment) DoWork() bool {
-	for sr.cns.chr.GetSelfSubRound() != chronology.SR_ABORDED {
+func (sr *SRComitment) DoWork(chr *chronology.Chronology) bool {
+	for chr.GetSelfSubround() != chronology.SR_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch sr.doComitment() {
+		switch sr.doComitment(chr) {
 		case R_None:
 			continue
 		case R_False:
@@ -33,24 +33,24 @@ func (sr *SRComitment) DoWork() bool {
 		}
 	}
 
-	sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime()+"Step 4: Aborded round %d in subround %s", sr.cns.chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 4: Aborded round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
 	return false
 }
 
-func (sr *SRComitment) doComitment() Response {
+func (sr *SRComitment) doComitment(chr *chronology.Chronology) Response {
 	bActionDone := sr.cns.SendMessage(chronology.Subround(SR_COMITMENT))
 
-	timeSubRound := sr.cns.chr.GetSubRoundFromDateTime(sr.cns.chr.GetCurrentTime())
+	timeSubRound := chr.GetSubroundFromDateTime(chr.GetCurrentTime())
 
 	if timeSubRound > chronology.Subround(SR_COMITMENT) {
-		sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime()+"Step 4: Extended the "+sr.Name()+" subround. Got only %d from %d commitments which are not enough", sr.cns.GetComitmentsCount(), len(sr.cns.ConsensusGroup)))
+		sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 4: Extended the "+sr.Name()+" subround. Got only %d from %d commitments which are not enough", sr.cns.GetComitmentsCount(), len(sr.cns.ConsensusGroup)))
 		sr.cns.RoundStatus.Comitment = SS_EXTENDED
 		return R_True // Try to give a chance to this round if the necesary comitments will arrive later
 	}
 
 	select {
 	case rcvMsg := <-sr.cns.ChRcvMsg:
-		if sr.cns.ConsumeReceivedMessage(&rcvMsg, timeSubRound) {
+		if sr.cns.ConsumeReceivedMessage(&rcvMsg, chr) {
 			bActionDone = true
 		}
 	default:
@@ -59,7 +59,7 @@ func (sr *SRComitment) doComitment() Response {
 	if bActionDone {
 		bActionDone = false
 		if ok, n := sr.cns.CheckConsensus(chronology.Subround(SR_BLOCK), chronology.Subround(SR_COMITMENT)); ok {
-			sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime()+"Step 4: Received %d from %d comitments, which are matching with bitmap and are enough", n, len(sr.cns.ConsensusGroup)))
+			sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 4: Received %d from %d comitments, which are matching with bitmap and are enough", n, len(sr.cns.ConsensusGroup)))
 			return R_True
 		}
 	}

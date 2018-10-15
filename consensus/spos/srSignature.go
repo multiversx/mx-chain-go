@@ -18,10 +18,10 @@ func NewSRSignature(doLog bool, endTime int64, cns *Consensus) SRSignature {
 	return sr
 }
 
-func (sr *SRSignature) DoWork() bool {
-	for sr.cns.chr.GetSelfSubRound() != chronology.SR_ABORDED {
+func (sr *SRSignature) DoWork(chr *chronology.Chronology) bool {
+	for chr.GetSelfSubround() != chronology.SR_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch sr.doSignature() {
+		switch sr.doSignature(chr) {
 		case R_None:
 			continue
 		case R_False:
@@ -33,24 +33,24 @@ func (sr *SRSignature) DoWork() bool {
 		}
 	}
 
-	sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime()+"Step 5: Aborded round %d in subround %s", sr.cns.chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 5: Aborded round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
 	return false
 }
 
-func (sr *SRSignature) doSignature() Response {
+func (sr *SRSignature) doSignature(chr *chronology.Chronology) Response {
 	bActionDone := sr.cns.SendMessage(chronology.Subround(SR_SIGNATURE))
 
-	timeSubRound := sr.cns.chr.GetSubRoundFromDateTime(sr.cns.chr.GetCurrentTime())
+	timeSubRound := chr.GetSubroundFromDateTime(chr.GetCurrentTime())
 
 	if timeSubRound > chronology.Subround(SR_SIGNATURE) {
-		sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime()+"Step 5: Extended the "+sr.Name()+" subround. Got only %d from %d sigantures which are not enough", sr.cns.GetSignaturesCount(), len(sr.cns.ConsensusGroup)))
+		sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 5: Extended the "+sr.Name()+" subround. Got only %d from %d sigantures which are not enough", sr.cns.GetSignaturesCount(), len(sr.cns.ConsensusGroup)))
 		sr.cns.RoundStatus.Signature = SS_EXTENDED
 		return R_True // Try to give a chance to this round if the necesary signatures will arrive later
 	}
 
 	select {
 	case rcvMsg := <-sr.cns.ChRcvMsg:
-		if sr.cns.ConsumeReceivedMessage(&rcvMsg, timeSubRound) {
+		if sr.cns.ConsumeReceivedMessage(&rcvMsg, chr) {
 			bActionDone = true
 		}
 	default:
@@ -59,7 +59,7 @@ func (sr *SRSignature) doSignature() Response {
 	if bActionDone {
 		bActionDone = false
 		if ok, n := sr.cns.CheckConsensus(chronology.Subround(SR_BLOCK), chronology.Subround(SR_SIGNATURE)); ok {
-			sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime()+"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough", n, len(sr.cns.ConsensusGroup)))
+			sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough", n, len(sr.cns.ConsensusGroup)))
 			return R_True
 		}
 	}

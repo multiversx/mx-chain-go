@@ -18,10 +18,10 @@ func NewSRStartRound(doLog bool, endTime int64, cns *Consensus) SRStartRound {
 	return sr
 }
 
-func (sr *SRStartRound) DoWork() bool {
-	for sr.cns.chr.GetSelfSubRound() != chronology.SR_ABORDED {
+func (sr *SRStartRound) DoWork(chr *chronology.Chronology) bool {
+	for chr.GetSelfSubround() != chronology.SR_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch sr.doStartRound() {
+		switch sr.doStartRound(chr) {
 		case R_None:
 			continue
 		case R_False:
@@ -33,12 +33,21 @@ func (sr *SRStartRound) DoWork() bool {
 		}
 	}
 
-	sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime()+"Step 0: Aborded round %d in subround %s", sr.cns.chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 0: Aborded round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
 	return false
 }
 
-func (sr *SRStartRound) doStartRound() Response {
-	sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime() + "Step 0: Preparing for this round"))
+func (sr *SRStartRound) doStartRound(chr *chronology.Chronology) Response {
+	leader, err := sr.cns.GetLeader()
+	if err != nil {
+		leader = "Unknown"
+	}
+
+	if leader == sr.cns.Self {
+		leader += " (MY TURN)"
+	}
+
+	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 0: Preparing for this round with leader %s ", leader))
 
 	sr.cns.Block.ResetBlock()
 	sr.cns.ResetRoundStatus()

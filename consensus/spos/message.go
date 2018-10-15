@@ -257,7 +257,7 @@ func (cns *Consensus) ReceiveMessage(sender p2p.Messenger, peerID string, m *p2p
 	sender.BroadcastMessage(m, []string{})
 }
 
-func (cns *Consensus) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState chronology.Subround) bool {
+func (cns *Consensus) ConsumeReceivedMessage(rcvMsg *[]byte, chr *chronology.Chronology) bool {
 	msgType, msgData := cns.DecodeMessage(rcvMsg)
 
 	switch msgType {
@@ -272,7 +272,7 @@ func (cns *Consensus) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState chro
 		if cns.RoundStatus.Block != SS_FINISHED {
 			if cns.IsNodeLeaderInCurrentRound(node) {
 				if !cns.BlockChain.CheckIfBlockIsValid(rcvBlock) {
-					cns.chr.SetSelfSubRound(chronology.SR_ABORDED)
+					chr.SetSelfSubround(chronology.SR_ABORDED)
 					return false
 				}
 
@@ -316,13 +316,13 @@ func (cns *Consensus) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState chro
 				if rcvBlock.Hash == cns.Block.Hash {
 					nodes := strings.Split(rcvBlock.MetaData[len(cns.GetMessageTypeName(MT_BITMAP))+1:], ",")
 					if len(nodes) < cns.Threshold.Bitmap {
-						cns.chr.SetSelfSubRound(chronology.SR_ABORDED)
+						chr.SetSelfSubround(chronology.SR_ABORDED)
 						return false
 					}
 
 					for i := 0; i < len(nodes); i++ {
 						if !cns.IsNodeInValidationGroup(nodes[i]) {
-							cns.chr.SetSelfSubRound(chronology.SR_ABORDED)
+							chr.SetSelfSubround(chronology.SR_ABORDED)
 							return false
 						}
 					}

@@ -18,7 +18,7 @@ func TestStartRound(t *testing.T) {
 	th := NewThreshold(1, 2*len(vld.ConsensusGroup)/3, 2*len(vld.ConsensusGroup)/3, 2*len(vld.ConsensusGroup)/3, 2*len(vld.ConsensusGroup)/3)
 	rs := NewRoundStatus(SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED)
 
-	cns := NewConsensus(true, vld, th, rs)
+	cns := NewConsensus(true, vld, th, rs, nil)
 
 	bl := block.NewBlock(-1, "", "", "", "", "")
 	cns.Block = &bl
@@ -40,9 +40,9 @@ func TestStartRound(t *testing.T) {
 	chr := chronology.NewChronology(true, true, &rnd, genesisTime, syncTime)
 	sr.cns.chr = &chr
 
-	sr.DoWork()
+	sr.DoWork(&chr)
 
-	chr.SetSelfSubRound(chronology.SR_ABORDED)
+	chr.SetSelfSubround(chronology.SR_ABORDED)
 
-	sr.DoWork()
+	sr.DoWork(&chr)
 }

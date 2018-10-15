@@ -8,7 +8,7 @@ import (
 
 func TestConsensus(t *testing.T) {
 
-	cns := NewConsensus(true, Validators{}, Threshold{}, RoundStatus{})
+	cns := NewConsensus(true, Validators{}, Threshold{}, RoundStatus{}, nil)
 	cns.ResetRoundStatus()
 
 	assert.Equal(t, cns.RoundStatus.Block, SS_NOTFINISHED)

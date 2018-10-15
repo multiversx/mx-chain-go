@@ -84,11 +84,11 @@ type Consensus struct {
 	ChRcvMsg chan []byte
 }
 
-func NewConsensus(doLog bool, validators Validators, threshold Threshold, roundStatus RoundStatus) Consensus {
-	cns := Consensus{doLog: doLog, Validators: validators, Threshold: threshold, RoundStatus: roundStatus}
+func NewConsensus(doLog bool, validators Validators, threshold Threshold, roundStatus RoundStatus, chr *chronology.Chronology) Consensus {
+	cns := Consensus{doLog: doLog, Validators: validators, Threshold: threshold, RoundStatus: roundStatus, chr: chr}
 
 	cns.ChRcvMsg = make(chan []byte, len(cns.Validators.ConsensusGroup))
-	//(*cns.P2PNode).SetOnRecvMsg(cns.ReceiveMessage)
+	//	(*cns.P2PNode).SetOnRecvMsg(cns.ReceiveMessage)
 	return cns
 }
 

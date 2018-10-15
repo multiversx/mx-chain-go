@@ -18,10 +18,10 @@ func NewSRBitmap(doLog bool, endTime int64, cns *Consensus) SRBitmap {
 	return sr
 }
 
-func (sr *SRBitmap) DoWork() bool {
-	for sr.cns.chr.GetSelfSubRound() != chronology.SR_ABORDED {
+func (sr *SRBitmap) DoWork(chr *chronology.Chronology) bool {
+	for chr.GetSelfSubround() != chronology.SR_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch sr.doBitmap() {
+		switch sr.doBitmap(chr) {
 		case R_None:
 			continue
 		case R_False:
@@ -33,11 +33,11 @@ func (sr *SRBitmap) DoWork() bool {
 		}
 	}
 
-	sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime()+"Step 3: Aborded round %d in subround %s", sr.cns.chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 3: Aborded round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
 	return false
 }
 
-func (sr *SRBitmap) doBitmap() Response {
+func (sr *SRBitmap) doBitmap(chr *chronology.Chronology) Response {
 	bActionDone := sr.cns.SendMessage(chronology.Subround(SR_BITMAP))
 
 	if bActionDone {
@@ -47,17 +47,17 @@ func (sr *SRBitmap) doBitmap() Response {
 		}
 	}
 
-	timeSubRound := sr.cns.chr.GetSubRoundFromDateTime(sr.cns.chr.GetCurrentTime())
+	timeSubRound := chr.GetSubroundFromDateTime(chr.GetCurrentTime())
 
 	if timeSubRound > chronology.Subround(SR_BITMAP) {
-		sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime() + "Step 3: Extended the " + sr.Name() + " subround"))
+		sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime() + "Step 3: Extended the " + sr.Name() + " subround"))
 		sr.cns.RoundStatus.Bitmap = SS_EXTENDED
 		return R_True // Try to give a chance to this round if the bitmap from leader will arrive later
 	}
 
 	select {
 	case rcvMsg := <-sr.cns.ChRcvMsg:
-		if sr.cns.ConsumeReceivedMessage(&rcvMsg, timeSubRound) {
+		if sr.cns.ConsumeReceivedMessage(&rcvMsg, chr) {
 			bActionDone = true
 		}
 	default:
@@ -70,7 +70,7 @@ func (sr *SRBitmap) doBitmap() Response {
 			if sr.cns.IsNodeInBitmapGroup(sr.cns.Self) {
 				addMessage = "AND I WAS selected in this bitmap"
 			}
-			sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime()+"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d comitment hashes, which are enough, %s", n, len(sr.cns.ConsensusGroup), addMessage))
+			sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d comitment hashes, which are enough, %s", n, len(sr.cns.ConsensusGroup), addMessage))
 			return R_True
 		}
 	}

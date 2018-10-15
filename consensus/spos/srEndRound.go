@@ -19,11 +19,11 @@ func NewSREndRound(doLog bool, endTime int64, cns *Consensus) SREndRound {
 	return sr
 }
 
-func (sr *SREndRound) DoWork() bool {
+func (sr *SREndRound) DoWork(chr *chronology.Chronology) bool {
 	bActionDone := true
-	for sr.cns.chr.GetSelfSubRound() != chronology.SR_ABORDED {
+	for chr.GetSelfSubround() != chronology.SR_ABORDED {
 		time.Sleep(SLEEP_TIME * time.Millisecond)
-		switch sr.doEndRound(&bActionDone) {
+		switch sr.doEndRound(chr, &bActionDone) {
 		case R_None:
 			continue
 		case R_False:
@@ -35,21 +35,21 @@ func (sr *SREndRound) DoWork() bool {
 		}
 	}
 
-	sr.Log(fmt.Sprintf(sr.cns.chr.GetFormatedCurrentTime()+"Step 6: Aborded round %d in subround %s", sr.cns.chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 6: Aborded round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
 	return false
 }
 
-func (sr *SREndRound) doEndRound(bActionDone *bool) Response {
-	timeSubRound := sr.cns.chr.GetSubRoundFromDateTime(sr.cns.chr.GetCurrentTime())
+func (sr *SREndRound) doEndRound(chr *chronology.Chronology, bActionDone *bool) Response {
+	timeSubRound := chr.GetSubroundFromDateTime(chr.GetCurrentTime())
 
 	if timeSubRound > chronology.Subround(SR_END_ROUND) {
-		sr.Log(fmt.Sprintf("\n" + sr.cns.chr.GetFormatedCurrentTime() + ">>>>>>>>>>>>>>>>>>>> THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n"))
+		sr.Log(fmt.Sprintf("\n" + chr.GetFormatedCurrentTime() + ">>>>>>>>>>>>>>>>>>>> THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n"))
 		return R_True
 	}
 
 	select {
 	case rcvMsg := <-sr.cns.ChRcvMsg:
-		if sr.cns.ConsumeReceivedMessage(&rcvMsg, timeSubRound) {
+		if sr.cns.ConsumeReceivedMessage(&rcvMsg, chr) {
 			*bActionDone = true
 		}
 	default:
@@ -63,9 +63,9 @@ func (sr *SREndRound) doEndRound(bActionDone *bool) Response {
 			sr.cns.BlockChain.AddBlock(*sr.cns.Block)
 
 			if sr.cns.IsNodeLeaderInCurrentRound(sr.cns.Self) {
-				sr.Log(fmt.Sprintf("\n"+sr.cns.chr.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", sr.cns.Block.Nonce))
+				sr.Log(fmt.Sprintf("\n"+chr.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", sr.cns.Block.Nonce))
 			} else {
-				sr.Log(fmt.Sprintf("\n"+sr.cns.chr.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", sr.cns.Block.Nonce))
+				sr.Log(fmt.Sprintf("\n"+chr.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", sr.cns.Block.Nonce))
 			}
 
 			return R_True

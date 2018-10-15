@@ -43,7 +43,7 @@ func (bc *BlockChain) CheckIfBlockIsValid(receivedBlock *block.Block) bool {
 			}
 		} else if receivedBlock.Nonce > 0 { // to resolve the situation when a node comes later in the network and it have not implemented the bootstrap mechanism (he will accept the first block received)
 			bc.Log(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block with nonce %d", -1, receivedBlock.Nonce))
-			bc.Log(fmt.Sprintf("\n"+bc.SyncTime.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET <<<<<<<<<<<<<<<<<<<<\n", receivedBlock.Nonce))
+			bc.Log(fmt.Sprintf("\n"+bc.SyncTime.GetFormatedCurrentTime(bc.SyncTime.GetClockOffset())+">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET <<<<<<<<<<<<<<<<<<<<\n", receivedBlock.Nonce))
 		}
 
 		return true
@@ -60,7 +60,7 @@ func (bc *BlockChain) CheckIfBlockIsValid(receivedBlock *block.Block) bool {
 		}
 	} else if receivedBlock.Nonce > currentBlock.Nonce+1 { // to resolve the situation when a node misses some Blocks and it have not implemented the bootstrap mechanism (he will accept the next block received)
 		bc.Log(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block with nonce %d", currentBlock.Nonce, receivedBlock.Nonce))
-		bc.Log(fmt.Sprintf("\n"+bc.SyncTime.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET <<<<<<<<<<<<<<<<<<<<\n", receivedBlock.Nonce))
+		bc.Log(fmt.Sprintf("\n"+bc.SyncTime.GetFormatedCurrentTime(bc.SyncTime.GetClockOffset())+">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET <<<<<<<<<<<<<<<<<<<<\n", receivedBlock.Nonce))
 	}
 
 	return true
