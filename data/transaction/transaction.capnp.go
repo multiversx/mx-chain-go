@@ -34,9 +34,9 @@ func (s Transaction) String() string {
 	return str
 }
 
-func (s Transaction) Nonce() (capnp.UInt8List, error) {
+func (s Transaction) Nonce() ([]byte, error) {
 	p, err := s.Struct.Ptr(0)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Transaction) HasNonce() bool {
@@ -44,24 +44,13 @@ func (s Transaction) HasNonce() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Transaction) SetNonce(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(0, v.List.ToPtr())
+func (s Transaction) SetNonce(v []byte) error {
+	return s.Struct.SetData(0, v)
 }
 
-// NewNonce sets the nonce field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Transaction) NewNonce(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(0, l.List.ToPtr())
-	return l, err
-}
-
-func (s Transaction) Value() (capnp.UInt8List, error) {
+func (s Transaction) Value() ([]byte, error) {
 	p, err := s.Struct.Ptr(1)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Transaction) HasValue() bool {
@@ -69,24 +58,13 @@ func (s Transaction) HasValue() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Transaction) SetValue(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(1, v.List.ToPtr())
+func (s Transaction) SetValue(v []byte) error {
+	return s.Struct.SetData(1, v)
 }
 
-// NewValue sets the value field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Transaction) NewValue(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(1, l.List.ToPtr())
-	return l, err
-}
-
-func (s Transaction) RcvAddr() (capnp.UInt8List, error) {
+func (s Transaction) RcvAddr() ([]byte, error) {
 	p, err := s.Struct.Ptr(2)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Transaction) HasRcvAddr() bool {
@@ -94,24 +72,13 @@ func (s Transaction) HasRcvAddr() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Transaction) SetRcvAddr(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(2, v.List.ToPtr())
+func (s Transaction) SetRcvAddr(v []byte) error {
+	return s.Struct.SetData(2, v)
 }
 
-// NewRcvAddr sets the rcvAddr field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Transaction) NewRcvAddr(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(2, l.List.ToPtr())
-	return l, err
-}
-
-func (s Transaction) SndAddr() (capnp.UInt8List, error) {
+func (s Transaction) SndAddr() ([]byte, error) {
 	p, err := s.Struct.Ptr(3)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Transaction) HasSndAddr() bool {
@@ -119,24 +86,13 @@ func (s Transaction) HasSndAddr() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Transaction) SetSndAddr(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(3, v.List.ToPtr())
+func (s Transaction) SetSndAddr(v []byte) error {
+	return s.Struct.SetData(3, v)
 }
 
-// NewSndAddr sets the sndAddr field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Transaction) NewSndAddr(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(3, l.List.ToPtr())
-	return l, err
-}
-
-func (s Transaction) GasPrice() (capnp.UInt8List, error) {
+func (s Transaction) GasPrice() ([]byte, error) {
 	p, err := s.Struct.Ptr(4)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Transaction) HasGasPrice() bool {
@@ -144,24 +100,13 @@ func (s Transaction) HasGasPrice() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Transaction) SetGasPrice(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(4, v.List.ToPtr())
+func (s Transaction) SetGasPrice(v []byte) error {
+	return s.Struct.SetData(4, v)
 }
 
-// NewGasPrice sets the gasPrice field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Transaction) NewGasPrice(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(4, l.List.ToPtr())
-	return l, err
-}
-
-func (s Transaction) GasLimit() (capnp.UInt8List, error) {
+func (s Transaction) GasLimit() ([]byte, error) {
 	p, err := s.Struct.Ptr(5)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Transaction) HasGasLimit() bool {
@@ -169,24 +114,13 @@ func (s Transaction) HasGasLimit() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Transaction) SetGasLimit(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(5, v.List.ToPtr())
+func (s Transaction) SetGasLimit(v []byte) error {
+	return s.Struct.SetData(5, v)
 }
 
-// NewGasLimit sets the gasLimit field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Transaction) NewGasLimit(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(5, l.List.ToPtr())
-	return l, err
-}
-
-func (s Transaction) Data() (capnp.UInt8List, error) {
+func (s Transaction) Data() ([]byte, error) {
 	p, err := s.Struct.Ptr(6)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Transaction) HasData() bool {
@@ -194,24 +128,13 @@ func (s Transaction) HasData() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Transaction) SetData(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(6, v.List.ToPtr())
+func (s Transaction) SetData(v []byte) error {
+	return s.Struct.SetData(6, v)
 }
 
-// NewData sets the data field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Transaction) NewData(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(6, l.List.ToPtr())
-	return l, err
-}
-
-func (s Transaction) Signature() (capnp.UInt8List, error) {
+func (s Transaction) Signature() ([]byte, error) {
 	p, err := s.Struct.Ptr(7)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Transaction) HasSignature() bool {
@@ -219,24 +142,13 @@ func (s Transaction) HasSignature() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Transaction) SetSignature(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(7, v.List.ToPtr())
+func (s Transaction) SetSignature(v []byte) error {
+	return s.Struct.SetData(7, v)
 }
 
-// NewSignature sets the signature field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Transaction) NewSignature(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(7, l.List.ToPtr())
-	return l, err
-}
-
-func (s Transaction) Challenge() (capnp.UInt8List, error) {
+func (s Transaction) Challenge() ([]byte, error) {
 	p, err := s.Struct.Ptr(8)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Transaction) HasChallenge() bool {
@@ -244,24 +156,13 @@ func (s Transaction) HasChallenge() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Transaction) SetChallenge(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(8, v.List.ToPtr())
+func (s Transaction) SetChallenge(v []byte) error {
+	return s.Struct.SetData(8, v)
 }
 
-// NewChallenge sets the challenge field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Transaction) NewChallenge(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(8, l.List.ToPtr())
-	return l, err
-}
-
-func (s Transaction) PubKey() (capnp.UInt8List, error) {
+func (s Transaction) PubKey() ([]byte, error) {
 	p, err := s.Struct.Ptr(9)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Transaction) HasPubKey() bool {
@@ -269,19 +170,8 @@ func (s Transaction) HasPubKey() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Transaction) SetPubKey(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(9, v.List.ToPtr())
-}
-
-// NewPubKey sets the pubKey field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Transaction) NewPubKey(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(9, l.List.ToPtr())
-	return l, err
+func (s Transaction) SetPubKey(v []byte) error {
+	return s.Struct.SetData(9, v)
 }
 
 // Transaction_List is a list of Transaction.
@@ -310,35 +200,34 @@ func (p Transaction_Promise) Struct() (Transaction, error) {
 	return Transaction{s}, err
 }
 
-const schema_933ccff820d2c436 = "x\xdal\xd2?k\x14O\x1c\x06\xf0\xe7;\xbb{{" +
-	"\x17~\xfc\xe4\x98\x05\xd3\xc8M!\"bL\xce\xff\x04" +
-	"\xc1$ \x88Zd\xdd\x14\x0a\"Lv\xc7\xcb\xc2\xde" +
-	"\xec\xb9\xb3whec\xa3\xd8\xa5U\xf4E(Xh" +
-	"g\xc0F\x94\x14v\xe9|\x03v\x82\xc5\xca\xf7\x10\x0c" +
-	"\x97t\x0f\x9fg\x1ef\x8aY:N+\xa2\x1f\x1c\x15" +
-	"@<\x1f\xb4\x9a\xde\xef\x13\x1fvw\xf6\xf6\xd0\xbd@" +
-	"\xcd\xc5O\xbb\xea\xd7\xd7+\xdb\x08\xe6B\xa0\xffsN" +
-	"\xc8.\x85\xb2K\xbds1]\x12\xb8\xdc\x98\xa2*m" +
-	"\xb60\x08\xcb\x05\xa7m\xb6Y>Z\xcct\xad\x17\xeb" +
-	"J[\xa7\xd3:/\xed\xfe|&\xd5#;Z\xde\xf8" +
-	"'\xc0:Q\xec\x93h\xeeo\xbf\x8e?~\x7f\xbe\x83" +
-	"\xd8\x17\xb4\xbaD\xf4\x1f\xd0\xa75\xd1ll\x19\xc5\x8b" +
-	"\xf6\xdf\x89J\x0b\xed\x9c\xca\x87\xa3\xc2\x0c\x8d\xad\x9d\xaa" +
-	"\xb7\x8c\xdaw\x8b\x1a;\x93\xa9\x07e\xa5\x86\xe5$\xb7" +
-	"\x03\xa5\x9d3\xb5\x03\x10\x9f\xf4|\xc0'@v\xe8," +
-	"\x90\xf8\xe4Q\xa2HP\x97(\"\xf6cS\x9fg?" +
-	"\xcf.DD\x02\x90}Z\x03\x92\xd3\xec\xd7\xd9=/" +
-	"\"\x0f\x90\xd7\xa6\xbe\xc2~\x8f\xdd\xf7#\xf2\x01y\x97" +
-	"n\x00\xc9\x1d\xf6\x9a=\x08\"\x0a\x00\xf9p\xea#\xf6" +
-	"\x17\xec\xadVD-@>\xa3S@\xf2\x94\xfd\x0d{" +
-	"\x18F\x14\x02\xf2\x15\xdd\x06\x92\x97\xec\xef\xd9\xdb\xed\x88" +
-	"\xda\x80|7\xf5\xb7\xec\xdf\xd8;\x9d\x88:\x80\xfcB" +
-	"\xcb@\xf2\x99\xfd\x07\x09\xea\xd9\xd2\xa6\x86\xfe\x07\xad{" +
-	"D-\x08\x8e\xbd\x89.\xc6\xb3\xf8\xa4J'\xabYV" +
-	"\xcd\xb2\xb3\xd9!\xdc\x0c\xb4[\xaf\xf2\xd4\x008\xa4\xba" +
-	"\x95\x0f\xf3\xfa`u\x84?\xc7\xecq\x97\x0f\xac\xae\xc7" +
-	"\x15h\xf6IM\xba\xa5\x8b\xc2\xd8\xc1\xc1\xea\xeah\xbc" +
-	"y\xd3<\x9e\xd1?\x01\x00\x00\xff\xffE\x97\x8d\x9b"
+const schema_933ccff820d2c436 = "x\xdaL\xd1\xcb\x8a\x13M\x18\xc6\xf1\xe7\xa9t\xe7\xf0" +
+	"1\xe1K\xa8\x16#\x08)q\x10\x95Q'\x1e\xc3\xa0" +
+	"\xcc\x01\xdd\xa8\x8b\x89=k\xa1\xec\xb4IC\xd2\x09]" +
+	"\x9d\x80n\xdc\xbb\x9d\x0b\xf0Ft\xe7\xac\x85Y\xb8\x9b" +
+	"\x8bp\xa7\xb8hy\xa3\x13zW\xff\x1fU\xf5.\xde" +
+	"\xd6\xaf=\xd5\xf3/*`\xd0\xf1\xabE\xf7\xf7\xb5\xcf" +
+	"\xa7'ggh_e\xf1\xf0\xeb\xa9\xf9\xf9\xed\xf11" +
+	"\xfc\xffj@\xef\xc7{j\x9f5\xed\xb3{\xef\x19\x1f" +
+	")\xf4\x8b\xa1\xcd\xed\x9d<\xb3^\xeal\x94'\xb3T" +
+	"\xe2\xfc|;\xb2\xf3t\xbes$\xb2\xfb\x97\x0e\xc9\x81" +
+	"GU\xbc>\xfe4\xf8\xf2\xfd\xe3\x09\x06\x9e\xe2\xfe6" +
+	"\xb9\x01\xf4x\xa0\x8a\xa3ql\xe4A\xfd\xdf\x1f&\x9a" +
+	"X\xe7L2\x9dO\xe2i\x9c\xe6\xce\xe4\xe3\xd8\x94\x86" +
+	"\x98\x85\x8b\x87\xe6\xed,3\xd3\xd92IG\xc6:\x17" +
+	"\xe7\x0e\xc0\xe0z\xc5\x03<\x02\xba\xc1\xbb@\xe8\xb1\xc2" +
+	"\xb0E\xc56\x19P\xbc\xb9\xf2\xbax \xaeT@\x05" +
+	"\xe86\x0f\x80pC\xbc#^\xa9\x04\xac\x00\xfa\xc2\xca" +
+	"[\xe2\x97\xc5=/\xa0\x07\xe8K|\x0e\x84\x1d\xf1M" +
+	"q\xdf\x0f\xe8\x03\xfa\xca\xca\x8d\xf8\x96x\xb5\x1a\xb0\x0a" +
+	"\xe8\x1b\xbc\x09\x84\x9b\xe2\xdb\xe2\xb5Z\xc0\x1a\xa0o\xf1" +
+	"\x15\x10n\x89\xf7\xc5\xeb\xf5\x80u@?X\xf9}\xf1" +
+	"=\xf1F#`\x03\xd0O\xb8\x03\x84}\xf1\xa7T\xec" +
+	"\xa6\xb34\x8a\xd9\x84b\x13\xec.\xedd\xb1\xae\x0fY" +
+	"\xb4\xdc\x1f\x0e\xb3u\xbbtX\xeebd\xdda\x96D" +
+	"1\x80\xb2\xbdL\xa6I^\xb2\xffe\xe5\xeb\x0b.\x19" +
+	"\xa56_d\xe0zP\x11\x8d\xedd\x12\xa7\xa3\x92\xed" +
+	"\xce\x17o^\xc4\xef\xce\xf3O\x00\x00\x00\xff\xff\xc3\xe1" +
+	"{6"
 
 func init() {
 	schemas.Register(schema_933ccff820d2c436,

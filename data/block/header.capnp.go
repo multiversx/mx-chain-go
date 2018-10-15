@@ -34,9 +34,9 @@ func (s Header) String() string {
 	return str
 }
 
-func (s Header) Nonce() (capnp.UInt8List, error) {
+func (s Header) Nonce() ([]byte, error) {
 	p, err := s.Struct.Ptr(0)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Header) HasNonce() bool {
@@ -44,24 +44,13 @@ func (s Header) HasNonce() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Header) SetNonce(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(0, v.List.ToPtr())
+func (s Header) SetNonce(v []byte) error {
+	return s.Struct.SetData(0, v)
 }
 
-// NewNonce sets the nonce field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Header) NewNonce(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(0, l.List.ToPtr())
-	return l, err
-}
-
-func (s Header) PrevHash() (capnp.UInt8List, error) {
+func (s Header) PrevHash() ([]byte, error) {
 	p, err := s.Struct.Ptr(1)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Header) HasPrevHash() bool {
@@ -69,24 +58,13 @@ func (s Header) HasPrevHash() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Header) SetPrevHash(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(1, v.List.ToPtr())
+func (s Header) SetPrevHash(v []byte) error {
+	return s.Struct.SetData(1, v)
 }
 
-// NewPrevHash sets the prevHash field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Header) NewPrevHash(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(1, l.List.ToPtr())
-	return l, err
-}
-
-func (s Header) PubKeys() (capnp.PointerList, error) {
+func (s Header) PubKeys() (capnp.DataList, error) {
 	p, err := s.Struct.Ptr(2)
-	return capnp.PointerList{List: p.List()}, err
+	return capnp.DataList{List: p.List()}, err
 }
 
 func (s Header) HasPubKeys() bool {
@@ -94,16 +72,16 @@ func (s Header) HasPubKeys() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Header) SetPubKeys(v capnp.PointerList) error {
+func (s Header) SetPubKeys(v capnp.DataList) error {
 	return s.Struct.SetPtr(2, v.List.ToPtr())
 }
 
 // NewPubKeys sets the pubKeys field to a newly
-// allocated capnp.PointerList, preferring placement in s's segment.
-func (s Header) NewPubKeys(n int32) (capnp.PointerList, error) {
-	l, err := capnp.NewPointerList(s.Struct.Segment(), n)
+// allocated capnp.DataList, preferring placement in s's segment.
+func (s Header) NewPubKeys(n int32) (capnp.DataList, error) {
+	l, err := capnp.NewDataList(s.Struct.Segment(), n)
 	if err != nil {
-		return capnp.PointerList{}, err
+		return capnp.DataList{}, err
 	}
 	err = s.Struct.SetPtr(2, l.List.ToPtr())
 	return l, err
@@ -117,9 +95,9 @@ func (s Header) SetShardId(v uint32) {
 	s.Struct.SetUint32(0, v)
 }
 
-func (s Header) TimeStamp() (capnp.UInt8List, error) {
+func (s Header) TimeStamp() ([]byte, error) {
 	p, err := s.Struct.Ptr(3)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Header) HasTimeStamp() bool {
@@ -127,19 +105,8 @@ func (s Header) HasTimeStamp() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Header) SetTimeStamp(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(3, v.List.ToPtr())
-}
-
-// NewTimeStamp sets the timeStamp field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Header) NewTimeStamp(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(3, l.List.ToPtr())
-	return l, err
+func (s Header) SetTimeStamp(v []byte) error {
+	return s.Struct.SetData(3, v)
 }
 
 func (s Header) Round() uint32 {
@@ -150,9 +117,9 @@ func (s Header) SetRound(v uint32) {
 	s.Struct.SetUint32(4, v)
 }
 
-func (s Header) BlockHash() (capnp.UInt8List, error) {
+func (s Header) BlockHash() ([]byte, error) {
 	p, err := s.Struct.Ptr(4)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Header) HasBlockHash() bool {
@@ -160,24 +127,13 @@ func (s Header) HasBlockHash() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Header) SetBlockHash(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(4, v.List.ToPtr())
+func (s Header) SetBlockHash(v []byte) error {
+	return s.Struct.SetData(4, v)
 }
 
-// NewBlockHash sets the blockHash field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Header) NewBlockHash(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(4, l.List.ToPtr())
-	return l, err
-}
-
-func (s Header) Signature() (capnp.UInt8List, error) {
+func (s Header) Signature() ([]byte, error) {
 	p, err := s.Struct.Ptr(5)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Header) HasSignature() bool {
@@ -185,24 +141,13 @@ func (s Header) HasSignature() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Header) SetSignature(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(5, v.List.ToPtr())
+func (s Header) SetSignature(v []byte) error {
+	return s.Struct.SetData(5, v)
 }
 
-// NewSignature sets the signature field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Header) NewSignature(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(5, l.List.ToPtr())
-	return l, err
-}
-
-func (s Header) Commitment() (capnp.UInt8List, error) {
+func (s Header) Commitment() ([]byte, error) {
 	p, err := s.Struct.Ptr(6)
-	return capnp.UInt8List{List: p.List()}, err
+	return []byte(p.Data()), err
 }
 
 func (s Header) HasCommitment() bool {
@@ -210,19 +155,8 @@ func (s Header) HasCommitment() bool {
 	return p.IsValid() || err != nil
 }
 
-func (s Header) SetCommitment(v capnp.UInt8List) error {
-	return s.Struct.SetPtr(6, v.List.ToPtr())
-}
-
-// NewCommitment sets the commitment field to a newly
-// allocated capnp.UInt8List, preferring placement in s's segment.
-func (s Header) NewCommitment(n int32) (capnp.UInt8List, error) {
-	l, err := capnp.NewUInt8List(s.Struct.Segment(), n)
-	if err != nil {
-		return capnp.UInt8List{}, err
-	}
-	err = s.Struct.SetPtr(6, l.List.ToPtr())
-	return l, err
+func (s Header) SetCommitment(v []byte) error {
+	return s.Struct.SetData(6, v)
 }
 
 // Header_List is a list of Header.
@@ -251,34 +185,33 @@ func (p Header_Promise) Struct() (Header, error) {
 	return Header{s}, err
 }
 
-const schema_9096faa5d587481d = "x\xdad\xd01\x8b\x13A\x1c\x05\xf0\xf7fw\x93\x9c" +
-	"\x88p\xcc\x82\x0aJ\x16\xb1\x10\xf1\x8c9\x9bC\x10\x13" +
-	"\xb1\x88\xda\xdc\xde\xda(\xa78\xc9\xae\x97\xc5\xecL\xd8" +
-	"\x9d\xc8YY\x89p(\x1c\x08\xb6V\x82\x9f\xe1@\xb0" +
-	"\xf1#hmica\xa9\xcd\xca\xec!B\xae\x9b\xff" +
-	"\xef\xbd\x19\xfe\xcc\x95c\x1c\x88~pR\x00\xf1\xa9\xa0" +
-	"UW/\xcf}?\xf8]~F|\x91\xac\xcf\x8e^" +
-	"}\xfd\xf0\xe7\xdd>\x82v\x1b\xe8\xff\xda\xa3\\a[" +
-	"\xae\xb0{u\xc8\x9a\xd8\xa8\xb3Yit\xba\xb6\x13\x98" +
-	"\xb5J\xe9tlv{\xa9\xb2\xaa7\x9e\x99\xc9\xd3\xde" +
-	"4SiV^\x9e\xa8\xb9\x9e_\x1b5\x03\xb0I\xc6" +
-	">E\xfd\xe8\xed\xfb\xf8\xd3\xb7\xbd/\x88}\xc1\xe1\x05" +
-	"\xf28\xd0\xe7\x01\xeb\xc3[Q\x1e\xe8'\xa6,\x94\xcd" +
-	"\x8d\xbe\x14)k\xd5d\xaa\xc6\xb3,\xb2&j\x9e\xaf" +
-	"\"SFE\xae\xf3\x1b\x87#\x10\x9f\xf7|\xc0'\xb0" +
-	"\xfas\x1d\x88\x7fxL|\x0a\xae\x92!\x09H\xf2\x0e" +
-	"\xb0E\x8f\xc9\x19\xc7B\x84\x14\x80<\xcd\x9b@\x12:" +
-	"\x1fP\x90^H\x0f\x90\xd7\x1b\xdep|\xcb\xd5}/" +
-	"\xa4\x0f\xc8!\xb7\x80d\xe0|\xdby\xc0\x90\x01 \xef" +
-	"s\x1dH\xee9\x7f\xec\xbc\xe5\x87l\x01\xf2a\xd3\xdf" +
-	"v\xbe\xeb\xbc\x1d\x84l\x03r\xd1\xb8u\xbe\xef\xbc\xd3" +
-	"\x0a\xd9\x01\xe4\x1b>\x00\x92\xd7\xce?R\xb0\xab\x8d\x9e" +
-	"d<\x01nzd\x0b\xc2\x1d\xeby\x99=\x1b\xa9j" +
-	"\x0a`)z1_\x8c\xeff\xcf\xab\x7f\xbc\x94VS" +
-	"U\xa6\xb7Sv \xd8\x01k\x9b\x17YbU\x01\xce" +
-	"\x97\xaa\xdd\xd2,\xf4\xffb\xf3\xcb#U\x81\xd3\xe5e" +
-	"\xaa|G+\xbb(\xc1#{NLQ\xe4\xb6\xc8\xe0" +
-	"i\xbb\x94\xfd\x0d\x00\x00\xff\xff\xa8\x9f};"
+const schema_9096faa5d587481d = "x\xdaD\xd01k\x14A\x1c\x05\xf0\xf7fv\xef\xae" +
+	"\xf0\xc2-;`\x84\x84[$B\x8ahLD\x086" +
+	"\xd1T\xa76\x19\xb7\xb3\x10\xe6\xf6Vo\xc9\xed\xee\xb1" +
+	";'X\xa5\x12\xc1J\x10l\xad\xfc\x12\x01\xc1\xc6\x8f" +
+	"\xa0\xb5\xa5 \x82\x814\x09\x86\x95\xb9p\xa6|?\xde" +
+	"c\x86\x7f\xef\xd7}\xb1\xe5_\x15\x80^\xf6[M\xfd" +
+	"\xfa\xfa\x8f\xa3\xd3\xea\x0b\xf42\xd9\xac\x0e\xde|\xfbt" +
+	"\xf6\xe1\x1d\xfcv\x1b\x08\x8e\xcf\x82\xf3vp\xde\xbfs" +
+	"\x97\x0d\xb1\xd3\x8c\x8c5\x9b\xc3I)\x92\x83\xcdqj" +
+	"Fiu+1\xd3bzow0O\xfb\xa4\xf6(" +
+	"\x9ag\xef?\xea\xcf\xdf\xdf~\x85\xf6\x04\x1f\xac\x93W" +
+	"\x80-\x1e\xb1\xb9\x18E\x99_</\xab\xdc\xd8\xac," +
+	"6\"c\xadI\xc6f8I#[F\xc3I\x99\x1c" +
+	"\xd4QYEyVd\xbb\x17\x11\xd0k\xd2\x03<\x02" +
+	"\xc1\xefm@\xff\x94\xd4'\x82\x01\xa9\xe8\xf0\xf8\x11\xa0" +
+	"\xffH\xea\xbf\x82\x81\x10\x8a\x02\x08N\xf7\x00}\"\x19" +
+	"\xf7(H\xa9(\x81\xb0\xcb= \xeeP2V\x14\x0c" +
+	"<\xa9\xe8\x01a\xc0'@\xdcs\xbe\xe2\xdc\xa7\xa2\x0f" +
+	"\x84\xd7\xb8\x0d\xc4\xcay\xe4\xbc\xe5)\xb6\x80pu\xde" +
+	"_q\xbe\xee\xbc\xed+\xb6\x81\xf0\xc6\xdc\xd7\x9c\xdfv" +
+	"\xdei)v\x80\xf0&\x9f\x02\xf1\x86\xf3\x1d\x0a\xf6\x8b" +
+	"\xb2HRv!\xd8\x05\x9bi\x95\xbe\x1c\x98z\x0c`" +
+	"a\x87\xd3\xd9\xf0q\xfa\xaa\xe6\x12\xb8/9\xe7%\xf0" +
+	"\xb0\x1e\x9bj\xf4p\xc4\x0e\x04;`c\xb3<\x8d\xad" +
+	"\xc9\xc1\xe9b\xda\xaf\xcaYq\xd9\x98\x1fq`jp" +
+	"\xfc\xff\xc1:{Q\x18;\xab\xc0\xcbO$e\x9eg" +
+	"6O!\x0b\xbb\xc0\x7f\x01\x00\x00\xff\xff\x9a\xbbw&"
 
 func init() {
 	schemas.Register(schema_9096faa5d587481d,
