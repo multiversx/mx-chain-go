@@ -5,6 +5,8 @@ import (
 	"sync"
 )
 
+// MessageQueue implements a queue where first string in will be the first string out
+// It is concurent safe and has a maxCapacity set
 type MessageQueue struct {
 	queue map[string]bool
 	list  *list.List
@@ -13,6 +15,7 @@ type MessageQueue struct {
 	maxCapacity int
 }
 
+// NewMessageQueue creates a new instance of the MessageQueue struct
 func NewMessageQueue(maxCapacity int) *MessageQueue {
 	return &MessageQueue{
 		queue:       make(map[string]bool),
@@ -22,6 +25,8 @@ func NewMessageQueue(maxCapacity int) *MessageQueue {
 	}
 }
 
+// ContainsAndAdd atomically adds the hash if the string was not found. It returns the existence of this string
+// before it was added
 func (mq *MessageQueue) ContainsAndAdd(hash string) bool {
 	mq.mut.Lock()
 	defer mq.mut.Unlock()
@@ -35,6 +40,7 @@ func (mq *MessageQueue) ContainsAndAdd(hash string) bool {
 	return false
 }
 
+// Contains returns true if the hash is present in the map
 func (mq *MessageQueue) Contains(hash string) bool {
 	mq.mut.RLock()
 	defer mq.mut.RUnlock()
@@ -43,7 +49,6 @@ func (mq *MessageQueue) Contains(hash string) bool {
 }
 
 func (mq *MessageQueue) contains(hash string) bool {
-
 	_, ok := mq.queue[hash]
 	return ok
 }
@@ -55,6 +60,7 @@ func (mq *MessageQueue) add(hash string) {
 	mq.queue[hash] = true
 }
 
+// Adds a string in the message queue after which it checks if it has to remove old items
 func (mq *MessageQueue) Add(hash string) {
 	mq.mut.Lock()
 	defer mq.mut.Unlock()
@@ -66,6 +72,7 @@ func (mq *MessageQueue) Add(hash string) {
 	mq.add(hash)
 }
 
+// Len returns the size of this MessageQueue
 func (mq *MessageQueue) Len() int {
 	mq.mut.RLock()
 	defer mq.mut.RUnlock()

@@ -111,7 +111,7 @@ func (mm *MemoryMessenger) Conns() []net.Conn {
 	return conns
 }
 
-// Marshalizer is used to return the used marshalizer object
+// Marshalizer returns the used marshalizer object
 func (mm *MemoryMessenger) Marshalizer() marshal.Marshalizer {
 	return mm.marsh
 }
@@ -121,18 +121,22 @@ func (mm *MemoryMessenger) RouteTable() *RoutingTable {
 	return mm.rt
 }
 
+// Addrs will return all addresses bind to current messenger
 func (mm *MemoryMessenger) Addrs() []string {
 	return []string{string(mm.peerID.Pretty())}
 }
 
+// OnRecvMsg returns the function used as callback whenever a new message arrives
 func (mm *MemoryMessenger) OnRecvMsg() func(caller Messenger, peerID string, m *Message) {
 	return mm.onMsgRecv
 }
 
+// SetOnRecvMsg sets the function used as callback whenever a new message arrives
 func (mm *MemoryMessenger) SetOnRecvMsg(f func(caller Messenger, peerID string, m *Message)) {
 	mm.onMsgRecv = f
 }
 
+// ConnectToAddresses is used to explicitly connect to a well known set of addresses
 func (mm *MemoryMessenger) ConnectToAddresses(ctx context.Context, addresses []string) {
 	for i := 0; i < len(addresses); i++ {
 		addr := peer.ID(base58.Decode(addresses[i]))
@@ -231,6 +235,7 @@ func (mm *MemoryMessenger) sendDirectRAW(peerID string, buff []byte) error {
 	return nil
 }
 
+// SendDirectBuff allows to send a slice of bytes directly to a peer. It assumes that the connection has been done already
 func (mm *MemoryMessenger) SendDirectBuff(peerID string, buff []byte) error {
 	m := NewMessage(mm.ID().Pretty(), buff, mm.marsh)
 
@@ -242,10 +247,12 @@ func (mm *MemoryMessenger) SendDirectBuff(peerID string, buff []byte) error {
 	return mm.sendDirectRAW(peerID, buff)
 }
 
+// SendDirectString allows to send a string to a peer. It assumes that the connection has been done already
 func (mm *MemoryMessenger) SendDirectString(peerID string, message string) error {
 	return mm.SendDirectBuff(peerID, []byte(message))
 }
 
+// SendDirectMessage allows to send a message directly to a peer. It assumes that the connection has been done already
 func (mm *MemoryMessenger) SendDirectMessage(peerID string, m *Message) error {
 	if m == nil {
 		return &NodeError{PeerRecv: peerID, PeerSend: mm.ID().Pretty(), Err: fmt.Sprintf("Can not send NIL message!\n")}
@@ -314,6 +321,7 @@ func (mm *MemoryMessenger) broadcastRAW(buff []byte, excs []string) error {
 	return errFound
 }
 
+// BroadcastBuff allows to send a slice of bytes directly to a all connected peers
 func (mm *MemoryMessenger) BroadcastBuff(buff []byte, excs []string) error {
 	m := NewMessage(mm.peerID.Pretty(), buff, mm.marsh)
 
@@ -325,10 +333,12 @@ func (mm *MemoryMessenger) BroadcastBuff(buff []byte, excs []string) error {
 	return mm.broadcastRAW(buff, excs)
 }
 
+// BroadcastString allows to send a string directly to a all connected peers
 func (mm *MemoryMessenger) BroadcastString(message string, excs []string) error {
 	return mm.BroadcastBuff([]byte(message), excs)
 }
 
+// BroadcastMessage allows to send a message directly to a all connected peers
 func (mm *MemoryMessenger) BroadcastMessage(m *Message, excs []string) error {
 	if m == nil {
 		return &NodeError{PeerRecv: "", PeerSend: mm.ID().Pretty(), Err: fmt.Sprintf("Can not broadcast NIL message!\n")}
@@ -342,10 +352,12 @@ func (mm *MemoryMessenger) BroadcastMessage(m *Message, excs []string) error {
 	return mm.broadcastRAW(buff, excs)
 }
 
+// StreamHandler is a dummy function. Will panic
 func (mm *MemoryMessenger) StreamHandler(stream net.Stream) {
 	panic("implement me")
 }
 
+// Bootstrap will try to connect to as many peers as possible
 func (mm *MemoryMessenger) Bootstrap(ctx context.Context) {
 	go mm.doBootstrap()
 }
@@ -382,6 +394,7 @@ func (mm *MemoryMessenger) doBootstrap() {
 
 }
 
+// PrintConnected displays the connected peers
 func (mm *MemoryMessenger) PrintConnected() {
 	conns := mm.Conns()
 
@@ -393,6 +406,7 @@ func (mm *MemoryMessenger) PrintConnected() {
 	}
 }
 
+// AddAddr adds a new address to peer store
 func (mm *MemoryMessenger) AddAddr(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration) {
 	mutGloballyRegPeers.Lock()
 	val, ok := GloballyRegisteredPeers[p]
@@ -407,6 +421,7 @@ func (mm *MemoryMessenger) AddAddr(p peer.ID, addr multiaddr.Multiaddr, ttl time
 	mm.mutConnectedPeers.Unlock()
 }
 
+// Connectedness tests for a connection between self and another peer
 func (mm *MemoryMessenger) Connectedness(pid peer.ID) net.Connectedness {
 	mm.mutConnectedPeers.Lock()
 	_, ok := mm.connectedPeers[pid]

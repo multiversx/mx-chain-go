@@ -12,6 +12,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+// Messenger is used to communicate with another libP2P nodes
 type Messenger interface {
 	io.Closer
 

@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
@@ -20,25 +21,29 @@ type OnTopicReceived func(name string, data interface{})
 //  - the message is received (if it passes the authentication filter)
 //  - a new object with the same type of ObjTemplate is created
 //  - this new object will be used to unmarshal received data
-//  - an async func will call each and every event registered on eventBus
+//  - an async func will call each and every event handler registered on eventBus
 //  - there is a method to be called to broadcast new messages
 type Topic struct {
 	Name        string
 	ObjTemplate interface{}
 	marsh       marshal.Marshalizer
+	hasher      hashing.Hasher
 
 	objPump chan interface{}
 
 	mutEventBus sync.RWMutex
 	eventBus    []OnTopicReceived
 
-	OnNeedToSendMessage func(topic string, mes *p2p.Message) error
+	OnNeedToSendMessage func(topic string, buff []byte) error
+
+	queue *p2p.MessageQueue
 }
 
 // NewTopic creates a new Topic struct
-func NewTopic(name string, objTemplate interface{}, marsh marshal.Marshalizer) *Topic {
-	topic := Topic{Name: name, ObjTemplate: objTemplate, marsh: marsh}
+func NewTopic(name string, objTemplate interface{}, marsh marshal.Marshalizer, hasher hashing.Hasher, maxCapacity int) *Topic {
+	topic := Topic{Name: name, ObjTemplate: objTemplate, marsh: marsh, hasher: hasher}
 	topic.objPump = make(chan interface{}, 10000)
+	topic.queue = p2p.NewMessageQueue(maxCapacity)
 
 	go topic.processData()
 
@@ -59,16 +64,45 @@ func (t *Topic) AddEventHandler(event OnTopicReceived) {
 }
 
 // NewMessageReceived is called from the lower data layer
-func (t *Topic) NewMessageReceived(message *p2p.Message) error {
-	if message == nil {
-		return errors.New("nil message can not be processed")
+// it will ignore nils, improper formatted messages or tampered messages
+func (t *Topic) NewMessageReceived(buff []byte) error {
+	//buffer sanity checks
+	if len(buff) == 0 {
+		return nil
+	}
+
+	if (len(buff) == 1) && (buff[0] == byte('\n')) {
+		return nil
+	}
+
+	if buff[len(buff)-1] == byte('\n') {
+		buff = buff[0 : len(buff)-1]
+	}
+
+	//unmarshaling the message
+	message, err := p2p.CreateFromByteArray(t.marsh, buff)
+
+	if err != nil {
+		return nil
+	}
+
+	//check authentication
+	err = message.VerifyAndSetSigned()
+	if err != nil {
+		return nil
+	}
+
+	//check hash for multiple receives
+	hash := t.hasher.Compute(string(message.Payload))
+	if t.queue.ContainsAndAdd(string(hash)) {
+		return nil
 	}
 
 	// create new instance of the object
 	newObj := reflect.New(reflect.TypeOf(t.ObjTemplate)).Interface()
 
 	//unmarshal data from the message
-	err := t.marsh.Unmarshal(newObj, message.Payload)
+	err = t.marsh.Unmarshal(newObj, message.Payload)
 
 	if err != nil {
 		return err
@@ -108,7 +142,12 @@ func (t *Topic) Broadcast(data interface{}, peerID peer.ID, skForSigning crypto2
 		return errors.New("send to nil the assembled message?")
 	}
 
-	return t.OnNeedToSendMessage(t.Name, &mes)
+	buff, err := mes.ToByteArray()
+	if err != nil {
+		return err
+	}
+
+	return t.OnNeedToSendMessage(t.Name, buff)
 }
 
 func (t *Topic) processData() {

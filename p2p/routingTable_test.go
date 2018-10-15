@@ -18,26 +18,26 @@ func TestCalculateDistanceDifferentLengths(t *testing.T) {
 	buff1 := []byte{0, 0}
 	buff2 := []byte{255}
 
-	assert.Equal(t, uint64(8), p2p.ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
+	assert.Equal(t, uint32(8), p2p.ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
 
 	buff1 = []byte{0}
 	buff2 = []byte{1, 0}
 
-	assert.Equal(t, uint64(1), p2p.ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
+	assert.Equal(t, uint32(1), p2p.ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
 }
 
 func TestCalculateDistanceLarge(t *testing.T) {
 	buff1 := []byte{0}
 	buff2 := []byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
 
-	assert.Equal(t, uint64(8*14), p2p.ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
+	assert.Equal(t, uint32(8*14), p2p.ComputeDistanceAD(peer.ID(string(buff1)), peer.ID(string(buff2))))
 }
 
 func TestCalculateDistance(t *testing.T) {
 	pid1 := getPID([]byte{0, 0, 0, 1})
 	pid2 := getPID([]byte{1, 0, 0, 0})
 
-	assert.Equal(t, uint64(2), p2p.ComputeDistanceAD(pid1, pid2))
+	assert.Equal(t, uint32(2), p2p.ComputeDistanceAD(pid1, pid2))
 }
 
 func TestRoutingTable(t *testing.T) {
@@ -51,24 +51,24 @@ func TestRoutingTable(t *testing.T) {
 	assert.Equal(t, 2, rt.Len())
 	dist, err := rt.GetDistance(pid2)
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(2), dist)
+	assert.Equal(t, uint32(2), dist)
 
 	rt.Update(pid3)
 	assert.Equal(t, 3, rt.Len())
 	dist, err = rt.GetDistance(pid3)
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(1), dist)
+	assert.Equal(t, uint32(1), dist)
 
 	peers, dists := rt.Peers()
 
 	assert.Equal(t, peers[0], pid3)
-	assert.Equal(t, dists[0], uint64(1))
+	assert.Equal(t, dists[0], uint32(1))
 
 	assert.Equal(t, peers[1], pid2)
-	assert.Equal(t, dists[1], uint64(2))
+	assert.Equal(t, dists[1], uint32(2))
 
 	assert.Equal(t, peers[2], pid1)
-	assert.Equal(t, dists[2], uint64(0))
+	assert.Equal(t, dists[2], uint32(0))
 
 }
 
@@ -97,7 +97,7 @@ func TestRoutingTableMultiple(t *testing.T) {
 	assert.Equal(t, 2, rt.Len())
 	dist, err := rt.GetDistance(pid2)
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(2), dist)
+	assert.Equal(t, uint32(2), dist)
 }
 
 func getPID(buff []byte) peer.ID {

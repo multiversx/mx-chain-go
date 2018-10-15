@@ -10,32 +10,36 @@ import (
 	"github.com/pkg/errors"
 )
 
+// RoutingTable maintains the distances between current peer and other peers
+// It implements a Kademlia algorithm
 type RoutingTable struct {
 	list    *list.List
 	current peer.ID
 	mut     sync.RWMutex
-	dists1  map[uint64][]peer.ID
-	dists2  map[peer.ID]uint64
-	dists3  []uint64
+	dists1  map[uint32][]peer.ID
+	dists2  map[peer.ID]uint32
+	dists3  []uint32
 
-	ComputeDistance func(pid1 peer.ID, pid2 peer.ID) uint64
+	ComputeDistance func(pid1 peer.ID, pid2 peer.ID) uint32
 }
 
+// NewRoutingTable creates a new instance of the RoutingTable struct
 func NewRoutingTable(crt peer.ID) *RoutingTable {
 	rt := &RoutingTable{current: crt, list: list.New(),
-		dists1: make(map[uint64][]peer.ID), dists2: make(map[peer.ID]uint64),
+		dists1: make(map[uint32][]peer.ID), dists2: make(map[peer.ID]uint32),
 		ComputeDistance: ComputeDistanceAD}
 	rt.Update(crt)
 
 	return rt
 }
 
-func (rt *RoutingTable) Peers() ([]peer.ID, []uint64) {
+// Peers return the peers known and their corresponding distances
+func (rt *RoutingTable) Peers() ([]peer.ID, []uint32) {
 	rt.mut.RLock()
 	defer rt.mut.RUnlock()
 
 	ps := make([]peer.ID, 0, rt.list.Len())
-	dists := make([]uint64, 0, rt.list.Len())
+	dists := make([]uint32, 0, rt.list.Len())
 	for e := rt.list.Front(); e != nil; e = e.Next() {
 		id := e.Value.(peer.ID)
 		ps = append(ps, id)
@@ -45,6 +49,7 @@ func (rt *RoutingTable) Peers() ([]peer.ID, []uint64) {
 	return ps, dists
 }
 
+// Has return true if the current RoutingTable has a peer id
 func (rt *RoutingTable) Has(id peer.ID) bool {
 	rt.mut.RLock()
 	defer rt.mut.RUnlock()
@@ -58,6 +63,7 @@ func (rt *RoutingTable) Has(id peer.ID) bool {
 	return false
 }
 
+// Len returns the length (no. of known peers)
 func (rt *RoutingTable) Len() int {
 	rt.mut.RLock()
 	defer rt.mut.RUnlock()
@@ -65,12 +71,13 @@ func (rt *RoutingTable) Len() int {
 	return rt.list.Len()
 }
 
+// Update inserts or modifies a peer inside RoutingTable
 func (rt *RoutingTable) Update(p peer.ID) {
 	rt.mut.Lock()
 	defer rt.mut.Unlock()
 
 	//compute distance (current - p)
-	dist := uint64(0)
+	dist := uint32(0)
 	if rt.ComputeDistance != nil {
 		dist = rt.ComputeDistance(rt.current, p)
 	}
@@ -86,7 +93,7 @@ func (rt *RoutingTable) Update(p peer.ID) {
 		//distance is new, append to list
 		rt.dists3 = append(rt.dists3, dist)
 		//keep sorted
-		sortkeys.Uint64s(rt.dists3[:])
+		sortkeys.Uint32s(rt.dists3[:])
 	}
 
 	//search the peer is array of peers
@@ -107,18 +114,20 @@ func (rt *RoutingTable) Update(p peer.ID) {
 	rt.dists1[dist] = pids
 }
 
-func (rt *RoutingTable) GetDistance(p peer.ID) (uint64, error) {
+// GetDistance returns the distance (in Kademlia values) between current peer and provided peer
+func (rt *RoutingTable) GetDistance(p peer.ID) (uint32, error) {
 	rt.mut.RLock()
 	defer rt.mut.RUnlock()
 
 	if !rt.Has(p) {
-		return uint64(0), errors.New(fmt.Sprintf("Peer ID %v was not found!", p.Pretty()))
+		return uint32(0), errors.New(fmt.Sprintf("Peer ID %v was not found!", p.Pretty()))
 	}
 
 	return rt.dists2[p], nil
 }
 
-func ComputeDistanceAD(p1 peer.ID, p2 peer.ID) uint64 {
+// ComputeDistanceAD is a function to compute the Kademlia developed by Elrond Team
+func ComputeDistanceAD(p1 peer.ID, p2 peer.ID) uint32 {
 	buff1 := []byte(p1)
 	buff2 := []byte(p2)
 
@@ -130,7 +139,7 @@ func ComputeDistanceAD(p1 peer.ID, p2 peer.ID) uint64 {
 		buff2 = append([]byte{0}, buff2...)
 	}
 
-	var sum uint64 = 0
+	var sum uint32 = 0
 	for i := 0; i < len(buff1); i++ {
 		sum += CountOneBits(buff1[i] ^ buff2[i])
 	}
@@ -138,8 +147,9 @@ func ComputeDistanceAD(p1 peer.ID, p2 peer.ID) uint64 {
 	return sum
 }
 
-func CountOneBits(num byte) uint64 {
-	var sum uint64 = 0
+// CountOneBits counts the bits inside a byte
+func CountOneBits(num byte) uint32 {
+	var sum uint32 = 0
 
 	operand := byte(128)
 
@@ -154,6 +164,7 @@ func CountOneBits(num byte) uint64 {
 	return sum
 }
 
+// NearestPeers returns the first n peers of the routing table sorted ASC by their distance
 func (rt *RoutingTable) NearestPeers(maxNo int) []peer.ID {
 	found := 0
 	peers := make([]peer.ID, 0)
@@ -177,6 +188,7 @@ func (rt *RoutingTable) NearestPeers(maxNo int) []peer.ID {
 	return peers
 }
 
+// NearestPeersAll returns all the known peers sorted ASC
 func (rt *RoutingTable) NearestPeersAll() []peer.ID {
 	peers := make([]peer.ID, 0)
 
@@ -198,6 +210,7 @@ func (rt *RoutingTable) NearestPeersAll() []peer.ID {
 	return peers
 }
 
+// Prints all known peers with their distances sorted ASC
 func (rt *RoutingTable) Print() {
 	for i := 0; i < len(rt.dists3); i++ {
 		fmt.Printf("Distance %d:\n", rt.dists3[i])

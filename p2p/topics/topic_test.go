@@ -119,16 +119,16 @@ func TestTopic_Broadcast_NoOneToSend_ShouldErr(t *testing.T) {
 func TestTopic_Broadcast_SendOK_ShouldWork(t *testing.T) {
 	topic := NewTopic("test", "", &mockMarshalizer)
 
-	topic.OnNeedToSendMessage = func(topic string, mes *p2p.Message) error {
+	topic.OnNeedToSendMessage = func(topic string, buff []byte) error {
 		if topic != "test" {
 			return errors.New("should have been test")
 		}
 
-		if mes == nil {
+		if buff == nil {
 			return errors.New("should have not been nil")
 		}
 
-		fmt.Printf("Message: %v\n", mes)
+		fmt.Printf("Message: %v\n", buff)
 		return nil
 	}
 
