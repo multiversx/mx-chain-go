@@ -6,12 +6,14 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
+// Round defines the data needed by the round
 type Round struct {
 	index        int
 	timeStamp    time.Time
 	timeDuration time.Duration
 }
 
+// NewRound defines a new Round object
 func NewRound(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDuration time.Duration) Round {
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
@@ -24,6 +26,7 @@ func NewRound(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDur
 	return rnd
 }
 
+// UpdateRound updates the index and the time stamp of the round depending of the genesis time and the current time given
 func (rnd *Round) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
@@ -35,6 +38,7 @@ func (rnd *Round) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Ti
 	}
 }
 
+// Print method just spew to the console the Round object in some pretty format
 func (rnd *Round) Print() {
 	spew.Dump(rnd)
 }

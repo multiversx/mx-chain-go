@@ -29,26 +29,25 @@ type SRStartRound struct {
 	Hits int
 }
 
-func (sr *SRStartRound) DoWork() bool {
-	time.Sleep(time.Millisecond * 1)
+func (sr *SRStartRound) DoWork(chr *Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoStartRound with %d hits\n", sr.Hits)
 	return true
 }
 
-func (s *SRStartRound) Current() Subround {
+func (sr *SRStartRound) Current() Subround {
 	return SR_START_ROUND
 }
 
-func (s *SRStartRound) Next() Subround {
+func (sr *SRStartRound) Next() Subround {
 	return SR_BLOCK
 }
 
-func (s *SRStartRound) EndTime() int64 {
+func (sr *SRStartRound) EndTime() int64 {
 	return int64(5 * ROUND_TIME_DURATION / 100)
 }
 
-func (s *SRStartRound) Name() string {
+func (sr *SRStartRound) Name() string {
 	return "<START_ROUND>"
 }
 
@@ -58,26 +57,25 @@ type SRBlock struct {
 	Hits int
 }
 
-func (sr *SRBlock) DoWork() bool {
-	time.Sleep(time.Millisecond * 1)
+func (sr *SRBlock) DoWork(chr *Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoBlock with %d hits\n", sr.Hits)
 	return true
 }
 
-func (s *SRBlock) Current() Subround {
+func (sr *SRBlock) Current() Subround {
 	return SR_BLOCK
 }
 
-func (s *SRBlock) Next() Subround {
+func (sr *SRBlock) Next() Subround {
 	return SR_COMITMENT_HASH
 }
 
-func (s *SRBlock) EndTime() int64 {
+func (sr *SRBlock) EndTime() int64 {
 	return int64(25 * ROUND_TIME_DURATION / 100)
 }
 
-func (s *SRBlock) Name() string {
+func (sr *SRBlock) Name() string {
 	return "<BLOCK>"
 }
 
@@ -87,26 +85,25 @@ type SRComitmentHash struct {
 	Hits int
 }
 
-func (sr *SRComitmentHash) DoWork() bool {
-	time.Sleep(time.Millisecond * 1)
+func (sr *SRComitmentHash) DoWork(chr *Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoComitmentHash with %d hits\n", sr.Hits)
 	return true
 }
 
-func (s *SRComitmentHash) Current() Subround {
+func (sr *SRComitmentHash) Current() Subround {
 	return SR_COMITMENT_HASH
 }
 
-func (s *SRComitmentHash) Next() Subround {
+func (sr *SRComitmentHash) Next() Subround {
 	return SR_BITMAP
 }
 
-func (s *SRComitmentHash) EndTime() int64 {
+func (sr *SRComitmentHash) EndTime() int64 {
 	return int64(40 * ROUND_TIME_DURATION / 100)
 }
 
-func (s *SRComitmentHash) Name() string {
+func (sr *SRComitmentHash) Name() string {
 	return "<COMITMENT_HASH>"
 }
 
@@ -116,26 +113,25 @@ type SRBitmap struct {
 	Hits int
 }
 
-func (sr *SRBitmap) DoWork() bool {
-	time.Sleep(time.Millisecond * 1)
+func (sr *SRBitmap) DoWork(chr *Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoBitmap with %d hits\n", sr.Hits)
 	return true
 }
 
-func (s *SRBitmap) Current() Subround {
+func (sr *SRBitmap) Current() Subround {
 	return SR_BITMAP
 }
 
-func (s *SRBitmap) Next() Subround {
+func (sr *SRBitmap) Next() Subround {
 	return SR_COMITMENT
 }
 
-func (s *SRBitmap) EndTime() int64 {
+func (sr *SRBitmap) EndTime() int64 {
 	return int64(55 * ROUND_TIME_DURATION / 100)
 }
 
-func (s *SRBitmap) Name() string {
+func (sr *SRBitmap) Name() string {
 	return "<BITMAP>"
 }
 
@@ -145,26 +141,25 @@ type SRComitment struct {
 	Hits int
 }
 
-func (sr *SRComitment) DoWork() bool {
-	time.Sleep(time.Millisecond * 1)
+func (sr *SRComitment) DoWork(chr *Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoComitment with %d hits\n", sr.Hits)
 	return true
 }
 
-func (s *SRComitment) Current() Subround {
+func (sr *SRComitment) Current() Subround {
 	return SR_COMITMENT
 }
 
-func (s *SRComitment) Next() Subround {
+func (sr *SRComitment) Next() Subround {
 	return SR_SIGNATURE
 }
 
-func (s *SRComitment) EndTime() int64 {
+func (sr *SRComitment) EndTime() int64 {
 	return int64(70 * ROUND_TIME_DURATION / 100)
 }
 
-func (s *SRComitment) Name() string {
+func (sr *SRComitment) Name() string {
 	return "<COMITMENT>"
 }
 
@@ -174,26 +169,25 @@ type SRSignature struct {
 	Hits int
 }
 
-func (sr *SRSignature) DoWork() bool {
-	time.Sleep(time.Millisecond * 1)
+func (sr *SRSignature) DoWork(chr *Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoSignature with %d hits\n", sr.Hits)
 	return true
 }
 
-func (s *SRSignature) Current() Subround {
+func (sr *SRSignature) Current() Subround {
 	return SR_SIGNATURE
 }
 
-func (s *SRSignature) Next() Subround {
+func (sr *SRSignature) Next() Subround {
 	return SR_END_ROUND
 }
 
-func (s *SRSignature) EndTime() int64 {
+func (sr *SRSignature) EndTime() int64 {
 	return int64(85 * ROUND_TIME_DURATION / 100)
 }
 
-func (s *SRSignature) Name() string {
+func (sr *SRSignature) Name() string {
 	return "<SIGNATURE>"
 }
 
@@ -203,26 +197,25 @@ type SREndRound struct {
 	Hits int
 }
 
-func (sr *SREndRound) DoWork() bool {
-	time.Sleep(time.Millisecond * 1)
+func (sr *SREndRound) DoWork(chr *Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoEndRound with %d hits\n", sr.Hits)
 	return true
 }
 
-func (s *SREndRound) Current() Subround {
+func (sr *SREndRound) Current() Subround {
 	return SR_END_ROUND
 }
 
-func (s *SREndRound) Next() Subround {
+func (sr *SREndRound) Next() Subround {
 	return SR_START_ROUND
 }
 
-func (s *SREndRound) EndTime() int64 {
+func (sr *SREndRound) EndTime() int64 {
 	return int64(100 * ROUND_TIME_DURATION / 100)
 }
 
-func (s *SREndRound) Name() string {
+func (sr *SREndRound) Name() string {
 	return "<END_ROUND>"
 }
 
@@ -232,23 +225,22 @@ func TestStartRound(t *testing.T) {
 	currentTime := genesisTime
 
 	rnd := NewRound(genesisTime, currentTime, ROUND_TIME_DURATION)
-	syncTime := &ntp.LocalTime{ROUND_TIME_DURATION + 1}
+	syncTime := &ntp.LocalTime{ClockOffset: ROUND_TIME_DURATION + 1}
 
 	chr := NewChronology(true, true, &rnd, genesisTime, syncTime)
 
-	//chr.AddSubRounder(&spos.SRStartRound{true, 5 * ROUND_TIME_DURATION / 100})
-	chr.AddSubRounder(&SRStartRound{})
-	chr.AddSubRounder(&SRBlock{})
-	chr.AddSubRounder(&SRComitmentHash{})
-	chr.AddSubRounder(&SRBitmap{})
-	chr.AddSubRounder(&SRComitment{})
-	chr.AddSubRounder(&SRSignature{})
-	chr.AddSubRounder(&SREndRound{})
+	chr.AddSubrounder(&SRStartRound{})
+	chr.AddSubrounder(&SRBlock{})
+	chr.AddSubrounder(&SRComitmentHash{})
+	chr.AddSubrounder(&SRBitmap{})
+	chr.AddSubrounder(&SRComitment{})
+	chr.AddSubrounder(&SRSignature{})
+	chr.AddSubrounder(&SREndRound{})
 
 	for {
 		chr.startRound()
-		if len(chr.subRounders) > 0 {
-			if chr.selfSubRound == chr.subRounders[len(chr.subRounders)-1].Next() {
+		if len(chr.subrounders) > 0 {
+			if chr.selfSubround == chr.subrounders[len(chr.subrounders)-1].Next() {
 				break
 			}
 		}
@@ -261,36 +253,36 @@ func TestRoundState(t *testing.T) {
 	rnd := NewRound(currentTime, currentTime, ROUND_TIME_DURATION)
 	chr := Chronology{round: &rnd}
 
-	state := chr.GetSubRoundFromDateTime(currentTime.Add(-1 * time.Hour))
+	state := chr.GetSubroundFromDateTime(currentTime.Add(-1 * time.Hour))
 	assert.Equal(t, SR_BEFORE_ROUND, state)
 
-	state = chr.GetSubRoundFromDateTime(currentTime.Add(1 * time.Hour))
+	state = chr.GetSubroundFromDateTime(currentTime.Add(1 * time.Hour))
 	assert.Equal(t, SR_AFTER_ROUND, state)
 
-	state = chr.GetSubRoundFromDateTime(currentTime)
+	state = chr.GetSubroundFromDateTime(currentTime)
 	assert.Equal(t, SR_UNKNOWN, state)
 
-	chr.AddSubRounder(&SRStartRound{})
+	chr.AddSubrounder(&SRStartRound{})
 
-	state = chr.GetSubRoundFromDateTime(currentTime)
+	state = chr.GetSubroundFromDateTime(currentTime)
 	assert.NotEqual(t, SR_UNKNOWN, state)
 }
 
 func TestLoadSubrounder(t *testing.T) {
 	chr := Chronology{}
 
-	sr := chr.LoadSubRounder(SR_BEFORE_ROUND)
+	sr := chr.loadSubrounder(SR_BEFORE_ROUND)
 	assert.Nil(t, sr)
 
-	sr = chr.LoadSubRounder(SR_AFTER_ROUND)
+	sr = chr.loadSubrounder(SR_AFTER_ROUND)
 	assert.Nil(t, sr)
 
-	chr.AddSubRounder(&SRStartRound{})
+	chr.AddSubrounder(&SRStartRound{})
 
-	sr = chr.LoadSubRounder(SR_START_ROUND)
+	sr = chr.loadSubrounder(SR_START_ROUND)
 	assert.NotNil(t, sr)
 
-	assert.Equal(t, sr.Name(), chr.subRounders[0].Name())
+	assert.Equal(t, sr.Name(), chr.subrounders[0].Name())
 }
 
 func TestGetters(t *testing.T) {
@@ -298,20 +290,23 @@ func TestGetters(t *testing.T) {
 	currentTime := genesisTime
 
 	rnd := NewRound(genesisTime, currentTime, ROUND_TIME_DURATION)
-	syncTime := &ntp.LocalTime{0}
+	syncTime := &ntp.LocalTime{ClockOffset: 0}
 
 	chr := NewChronology(true, true, &rnd, genesisTime, syncTime)
 
 	assert.Equal(t, 0, chr.GetRoundIndex())
-	assert.Equal(t, SR_BEFORE_ROUND, chr.GetSelfSubRound())
+	assert.Equal(t, SR_BEFORE_ROUND, chr.GetSelfSubround())
 
-	chr.SetSelfSubRound(SR_START_ROUND)
-	assert.Equal(t, SR_START_ROUND, chr.GetSelfSubRound())
+	chr.SetSelfSubround(SR_START_ROUND)
+	assert.Equal(t, SR_START_ROUND, chr.GetSelfSubround())
 
-	assert.Equal(t, SR_BEFORE_ROUND, chr.GetTimeSubRound())
+	assert.Equal(t, SR_BEFORE_ROUND, chr.GetTimeSubround())
 	assert.Equal(t, time.Duration(0), chr.GetClockOffset())
 	assert.NotNil(t, chr.GetSyncTimer())
 	assert.Equal(t, time.Duration(0), chr.GetSyncTimer().GetClockOffset())
+
+	chr.SetClockOffset(time.Duration(5))
+	assert.Equal(t, time.Duration(5), chr.GetClockOffset())
 
 	fmt.Printf("%v\n%v", chr.GetCurrentTime(), chr.GetFormatedCurrentTime())
 }
