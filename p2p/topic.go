@@ -1,4 +1,4 @@
-package topics
+package p2p
 
 import (
 	"reflect"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/pkg/errors"
@@ -36,14 +35,14 @@ type Topic struct {
 
 	OnNeedToSendMessage func(topic string, buff []byte) error
 
-	queue *p2p.MessageQueue
+	queue *MessageQueue
 }
 
 // NewTopic creates a new Topic struct
 func NewTopic(name string, objTemplate interface{}, marsh marshal.Marshalizer, hasher hashing.Hasher, maxCapacity int) *Topic {
 	topic := Topic{Name: name, ObjTemplate: objTemplate, marsh: marsh, hasher: hasher}
 	topic.objPump = make(chan interface{}, 10000)
-	topic.queue = p2p.NewMessageQueue(maxCapacity)
+	topic.queue = NewMessageQueue(maxCapacity)
 
 	go topic.processData()
 
@@ -80,7 +79,7 @@ func (t *Topic) NewMessageReceived(buff []byte) error {
 	}
 
 	//unmarshaling the message
-	message, err := p2p.CreateFromByteArray(t.marsh, buff)
+	message, err := CreateFromByteArray(t.marsh, buff)
 
 	if err != nil {
 		return nil
@@ -121,9 +120,8 @@ func (t *Topic) Broadcast(data interface{}, peerID peer.ID, skForSigning crypto2
 	}
 
 	//assemle the message
-	mes := p2p.Message{}
+	mes := NewMessage(peerID.Pretty(), nil, t.marsh)
 	mes.Type = t.Name
-	mes.AddHop(peerID.Pretty())
 	payload, err := t.marsh.Marshal(data)
 	if err != nil {
 		return err

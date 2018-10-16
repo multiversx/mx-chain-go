@@ -1,4 +1,4 @@
-package topics
+package p2p
 
 import (
 	"sync"

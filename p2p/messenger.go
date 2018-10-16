@@ -23,20 +23,10 @@ type Messenger interface {
 	RouteTable() *RoutingTable
 	Addrs() []string
 
-	OnRecvMsg() func(caller Messenger, peerID string, m *Message)
-	SetOnRecvMsg(f func(caller Messenger, peerID string, m *Message))
-
 	ConnectToAddresses(ctx context.Context, addresses []string)
 
-	SendDirectBuff(peerID string, buff []byte) error
-	SendDirectString(peerID string, message string) error
-	SendDirectMessage(peerID string, m *Message) error
+	TopicHolder() *TopicHolder
 
-	BroadcastBuff(buff []byte, excs []string) error
-	BroadcastString(message string, excs []string) error
-	BroadcastMessage(m *Message, excs []string) error
-
-	StreamHandler(stream net.Stream)
 	Bootstrap(ctx context.Context)
 	PrintConnected()
 
