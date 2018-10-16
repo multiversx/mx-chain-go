@@ -11,27 +11,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
-const ROUND_TIME_DURATION = time.Duration(4000 * time.Millisecond)
-const SLEEP_TIME = 5
+const roundTimeDuration = time.Duration(4000 * time.Millisecond)
+const sleepTime = 5
 
 type Subround int
 
 const (
-	SR_START_ROUND Subround = iota
-	SR_BLOCK
-	SR_COMITMENT_HASH
-	SR_BITMAP
-	SR_COMITMENT
-	SR_SIGNATURE
-	SR_END_ROUND
+	srStartRound Subround = iota
+	srBlock
+	srComitmentHash
+	srBitmap
+	srComitment
+	srSignature
+	srEndRound
 )
 
 type Response int
 
 const (
-	R_False Response = iota
-	R_True
-	R_None
+	rFalse Response = iota
+	rTrue
+	rNone
 )
 
 type RoundStatus struct {
@@ -42,18 +42,18 @@ type RoundStatus struct {
 	Signature     SubroundStatus
 }
 
-func NewRoundStatus(block SubroundStatus, comitmentHash SubroundStatus, bitmap SubroundStatus, comitment SubroundStatus, signature SubroundStatus) RoundStatus {
+func NewRoundStatus(block SubroundStatus, comitmentHash SubroundStatus, bitmap SubroundStatus, comitment SubroundStatus, signature SubroundStatus) *RoundStatus {
 	rs := RoundStatus{Block: block, ComitmentHash: comitmentHash, Bitmap: bitmap, Comitment: comitment, Signature: signature}
-	return rs
+	return &rs
 }
 
 // A SubroundStatus specifies what kind of status could have a subround
 type SubroundStatus int
 
 const (
-	SS_NOTFINISHED SubroundStatus = iota
-	SS_EXTENDED
-	SS_FINISHED
+	ssNotFinished SubroundStatus = iota
+	ssExtended
+	ssFinished
 )
 
 type Threshold struct {
@@ -64,17 +64,17 @@ type Threshold struct {
 	Signature     int
 }
 
-func NewThreshold(block int, comitmentHash int, bitmap int, comitment int, signature int) Threshold {
+func NewThreshold(block int, comitmentHash int, bitmap int, comitment int, signature int) *Threshold {
 	th := Threshold{Block: block, ComitmentHash: comitmentHash, Bitmap: bitmap, Comitment: comitment, Signature: signature}
-	return th
+	return &th
 }
 
 type Consensus struct {
 	doLog bool
 
-	Validators
-	Threshold
-	RoundStatus
+	*Validators
+	*Threshold
+	*RoundStatus
 
 	Block      *block.Block
 	BlockChain *blockchain.BlockChain
@@ -84,12 +84,12 @@ type Consensus struct {
 	ChRcvMsg chan []byte
 }
 
-func NewConsensus(doLog bool, validators Validators, threshold Threshold, roundStatus RoundStatus, chr *chronology.Chronology) Consensus {
+func NewConsensus(doLog bool, validators *Validators, threshold *Threshold, roundStatus *RoundStatus, chr *chronology.Chronology) *Consensus {
 	cns := Consensus{doLog: doLog, Validators: validators, Threshold: threshold, RoundStatus: roundStatus, chr: chr}
 
 	cns.ChRcvMsg = make(chan []byte, len(cns.Validators.ConsensusGroup))
 	//	(*cns.P2PNode).SetOnRecvMsg(cns.ReceiveMessage)
-	return cns
+	return &cns
 }
 
 func (cns *Consensus) CheckConsensus(startRoundState chronology.Subround, endRoundState chronology.Subround) (bool, int) {
@@ -98,54 +98,54 @@ func (cns *Consensus) CheckConsensus(startRoundState chronology.Subround, endRou
 
 	for i := startRoundState; i <= endRoundState; i++ {
 		switch i {
-		case chronology.Subround(SR_BLOCK):
-			if cns.RoundStatus.Block != SS_FINISHED {
+		case chronology.Subround(srBlock):
+			if cns.RoundStatus.Block != ssFinished {
 				if ok, n = cns.IsBlockReceived(cns.Threshold.Block); ok {
 					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 1: Subround <BLOCK> has been finished"))
-					cns.RoundStatus.Block = SS_FINISHED
+					cns.RoundStatus.Block = ssFinished
 				} else {
 					return false, n
 				}
 			}
-		case chronology.Subround(SR_COMITMENT_HASH):
-			if cns.RoundStatus.ComitmentHash != SS_FINISHED {
+		case chronology.Subround(srComitmentHash):
+			if cns.RoundStatus.ComitmentHash != ssFinished {
 				threshold := cns.Threshold.ComitmentHash
 				if !cns.IsNodeLeaderInCurrentRound(cns.Self) {
 					threshold = len(cns.ConsensusGroup)
 				}
 				if ok, n = cns.IsComitmentHashReceived(threshold); ok {
 					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 2: Subround <COMITMENT_HASH> has been finished"))
-					cns.RoundStatus.ComitmentHash = SS_FINISHED
+					cns.RoundStatus.ComitmentHash = ssFinished
 				} else if ok, n = cns.IsComitmentHashInBitmap(cns.Threshold.Bitmap); ok {
 					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 2: Subround <COMITMENT_HASH> has been finished"))
-					cns.RoundStatus.ComitmentHash = SS_FINISHED
+					cns.RoundStatus.ComitmentHash = ssFinished
 				} else {
 					return false, n
 				}
 			}
-		case chronology.Subround(SR_BITMAP):
-			if cns.RoundStatus.Bitmap != SS_FINISHED {
+		case chronology.Subround(srBitmap):
+			if cns.RoundStatus.Bitmap != ssFinished {
 				if ok, n = cns.IsComitmentHashInBitmap(cns.Threshold.Bitmap); ok {
 					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 3: Subround <BITMAP> has been finished"))
-					cns.RoundStatus.Bitmap = SS_FINISHED
+					cns.RoundStatus.Bitmap = ssFinished
 				} else {
 					return false, n
 				}
 			}
-		case chronology.Subround(SR_COMITMENT):
-			if cns.RoundStatus.Comitment != SS_FINISHED {
+		case chronology.Subround(srComitment):
+			if cns.RoundStatus.Comitment != ssFinished {
 				if ok, n = cns.IsBitmapInComitment(cns.Threshold.Comitment); ok {
 					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 4: Subround <COMITMENT> has been finished"))
-					cns.RoundStatus.Comitment = SS_FINISHED
+					cns.RoundStatus.Comitment = ssFinished
 				} else {
 					return false, n
 				}
 			}
-		case chronology.Subround(SR_SIGNATURE):
-			if cns.RoundStatus.Signature != SS_FINISHED {
+		case chronology.Subround(srSignature):
+			if cns.RoundStatus.Signature != ssFinished {
 				if ok, n = cns.IsComitmentInSignature(cns.Threshold.Signature); ok {
 					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 5: Subround <SIGNATURE> has been finished"))
-					cns.RoundStatus.Signature = SS_FINISHED
+					cns.RoundStatus.Signature = ssFinished
 				} else {
 					return false, n
 				}
@@ -187,7 +187,11 @@ func (cns *Consensus) GetLeader() (string, error) {
 }
 
 func (cns *Consensus) ResetRoundStatus() {
-	cns.RoundStatus = RoundStatus{SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED}
+	cns.RoundStatus.Block = ssNotFinished
+	cns.RoundStatus.ComitmentHash = ssNotFinished
+	cns.RoundStatus.Bitmap = ssNotFinished
+	cns.RoundStatus.Comitment = ssNotFinished
+	cns.RoundStatus.Signature = ssNotFinished
 }
 
 func (cns *Consensus) Log(message string) {

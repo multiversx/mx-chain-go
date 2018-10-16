@@ -8,21 +8,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 )
 
-// SLEEP_TIME defines the time in milliseconds between each iteration made in StartRounds method
-const SLEEP_TIME = 5
+// sleepTime defines the time in milliseconds between each iteration made in StartRounds method
+const sleepTime = 5
 
 // Subround defines the type used to reffer the current subround
 type Subround int
 
 const (
-	// SR_UNKNOWN defines an unknown state of the round
-	SR_UNKNOWN Subround = math.MinInt64 // xzxzx
-	// SR_ABORDED defines an aborded state of the round
-	SR_ABORDED Subround = math.MinInt64 + 1 // xzxzxz
-	// SR_BEFORE_ROUND defines the state of the round before it's start
-	SR_BEFORE_ROUND Subround = math.MinInt64 + 2 // xzxzxz
-	// SR_AFTER_ROUND defines the state of the round after it's finish
-	SR_AFTER_ROUND Subround = math.MaxInt64
+	// SrUnknown defines an unknown state of the round
+	SrUnknown Subround = math.MinInt64 // xzxzx
+	// SrCanceled defines an aborded state of the round
+	SrCanceled Subround = math.MinInt64 + 1 // xzxzxz
+	// SrBeforeRound defines the state of the round before it's start
+	SrBeforeRound Subround = math.MinInt64 + 2 // xzxzxz
+	// SrAfterRound defines the state of the round after it's finish
+	SrAfterRound Subround = math.MaxInt64
 )
 
 // Subrounder defines an interface which chronology deals with
@@ -56,7 +56,7 @@ type Chronology struct {
 }
 
 // NewChronology defines a new Chronology object
-func NewChronology(doLog bool, doSyncMode bool, round *Round, genesisTime time.Time, syncTime ntp.SyncTimer) Chronology {
+func NewChronology(doLog bool, doSyncMode bool, round *Round, genesisTime time.Time, syncTime ntp.SyncTimer) *Chronology {
 	chr := Chronology{}
 
 	chr.doLog = doLog
@@ -66,8 +66,8 @@ func NewChronology(doLog bool, doSyncMode bool, round *Round, genesisTime time.T
 	chr.round = round
 	chr.genesisTime = genesisTime
 
-	chr.selfSubround = SR_BEFORE_ROUND
-	chr.timeSubround = SR_BEFORE_ROUND
+	chr.selfSubround = SrBeforeRound
+	chr.timeSubround = SrBeforeRound
 	chr.clockOffset = syncTime.GetClockOffset()
 
 	chr.subrounders = make([]Subrounder, 0)
@@ -77,12 +77,12 @@ func NewChronology(doLog bool, doSyncMode bool, round *Round, genesisTime time.T
 
 	chr.rounds = 0
 
-	return chr
+	return &chr
 }
 
 // initRound is call when a new round begins and do some init stuff
 func (chr *Chronology) initRound() {
-	chr.selfSubround = SR_BEFORE_ROUND
+	chr.selfSubround = SrBeforeRound
 
 	if len(chr.subrounders) > 0 {
 		chr.selfSubround = chr.subrounders[0].Current()
@@ -104,7 +104,7 @@ func (chr *Chronology) AddSubrounder(subRounder Subrounder) {
 // StartRounds actually starts the chronology and runs the subrounders loaded
 func (chr *Chronology) StartRounds() {
 	for chr.DoRun {
-		time.Sleep(SLEEP_TIME * time.Millisecond)
+		time.Sleep(sleepTime * time.Millisecond)
 		chr.startRound()
 	}
 }
@@ -170,11 +170,11 @@ func (chr *Chronology) GetSubroundFromDateTime(timeStamp time.Time) Subround {
 	delta := timeStamp.Sub(chr.round.timeStamp).Nanoseconds()
 
 	if delta < 0 {
-		return SR_BEFORE_ROUND
+		return SrBeforeRound
 	}
 
 	if delta > chr.round.timeDuration.Nanoseconds() {
-		return SR_AFTER_ROUND
+		return SrAfterRound
 	}
 
 	for i := 0; i < len(chr.subrounders); i++ {
@@ -183,7 +183,7 @@ func (chr *Chronology) GetSubroundFromDateTime(timeStamp time.Time) Subround {
 		}
 	}
 
-	return SR_UNKNOWN
+	return SrUnknown
 }
 
 // log do logs of the chronology if doLog variable is set on true

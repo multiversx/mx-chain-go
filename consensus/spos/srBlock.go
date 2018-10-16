@@ -15,46 +15,46 @@ type SRBlock struct {
 	OnSendMessage     func(chronology.Subround) bool
 }
 
-func NewSRBlock(doLog bool, endTime int64, cns *Consensus, onReceivedMessage func(*[]byte, *chronology.Chronology) bool, onSendMessage func(chronology.Subround) bool) SRBlock {
+func NewSRBlock(doLog bool, endTime int64, cns *Consensus, onReceivedMessage func(*[]byte, *chronology.Chronology) bool, onSendMessage func(chronology.Subround) bool) *SRBlock {
 	sr := SRBlock{doLog: doLog, endTime: endTime, cns: cns, OnReceivedMessage: onReceivedMessage, OnSendMessage: onSendMessage}
-	return sr
+	return &sr
 }
 
 func (sr *SRBlock) DoWork(chr *chronology.Chronology) bool {
-	for chr.GetSelfSubround() != chronology.SR_ABORDED {
-		time.Sleep(SLEEP_TIME * time.Millisecond)
+	for chr.GetSelfSubround() != chronology.SrCanceled {
+		time.Sleep(sleepTime * time.Millisecond)
 		switch sr.doBlock(chr) {
-		case R_None:
+		case rNone:
 			continue
-		case R_False:
+		case rFalse:
 			return false
-		case R_True:
+		case rTrue:
 			return true
 		default:
 			return false
 		}
 	}
 
-	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 1: Aborded round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 1: Canceled round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
 	return false
 }
 
 func (sr *SRBlock) doBlock(chr *chronology.Chronology) Response {
-	bActionDone := sr.OnSendMessage(chronology.Subround(SR_BLOCK))
+	bActionDone := sr.OnSendMessage(chronology.Subround(srBlock))
 
 	if bActionDone {
 		bActionDone = false
-		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SR_BLOCK), chronology.Subround(SR_BLOCK)); ok {
-			return R_True
+		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(srBlock), chronology.Subround(srBlock)); ok {
+			return rTrue
 		}
 	}
 
 	timeSubRound := chr.GetSubroundFromDateTime(chr.GetCurrentTime())
 
-	if timeSubRound > chronology.Subround(SR_BLOCK) {
+	if timeSubRound > chronology.Subround(srBlock) {
 		sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime() + "Step 1: Extended the " + sr.Name() + " subround"))
-		sr.cns.RoundStatus.Block = SS_EXTENDED
-		return R_True // Try to give a chance to this round if the block from leader will arrive later
+		sr.cns.RoundStatus.Block = ssExtended
+		return rTrue // Try to give a chance to this round if the block from leader will arrive later
 	}
 
 	select {
@@ -67,21 +67,21 @@ func (sr *SRBlock) doBlock(chr *chronology.Chronology) Response {
 
 	if bActionDone {
 		bActionDone = false
-		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SR_BLOCK), chronology.Subround(SR_BLOCK)); ok {
+		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(srBlock), chronology.Subround(srBlock)); ok {
 			sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime() + "Step 1: Synchronized block"))
-			return R_True
+			return rTrue
 		}
 	}
 
-	return R_None
+	return rNone
 }
 
 func (sr *SRBlock) Current() chronology.Subround {
-	return chronology.Subround(SR_BLOCK)
+	return chronology.Subround(srBlock)
 }
 
 func (sr *SRBlock) Next() chronology.Subround {
-	return chronology.Subround(SR_COMITMENT_HASH)
+	return chronology.Subround(srComitmentHash)
 }
 
 func (sr *SRBlock) EndTime() int64 {

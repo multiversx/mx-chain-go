@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,39 +11,104 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStartRound(t *testing.T) {
+func InitSRStartRound() (*chronology.Chronology, *SRStartRound) {
+	genesisTime := time.Now()
+	currentTime := genesisTime
 
-	sr := NewSRStartRound(true, int64(5*ROUND_TIME_DURATION/100), nil)
+	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
 
-	vld := NewValidators([]string{"1", "2", "3"}, "2")
-	th := NewThreshold(1, 2*len(vld.ConsensusGroup)/3, 2*len(vld.ConsensusGroup)/3, 2*len(vld.ConsensusGroup)/3, 2*len(vld.ConsensusGroup)/3)
-	rs := NewRoundStatus(SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED)
+	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{ClockOffset: 0})
 
-	cns := NewConsensus(true, vld, th, rs, nil)
+	vld := NewValidators([]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
+	pbft := 2*len(vld.ConsensusGroup)/3 + 1
+	th := NewThreshold(1, pbft, pbft, pbft, pbft)
+	rs := NewRoundStatus(ssNotFinished, ssNotFinished, ssNotFinished, ssNotFinished, ssNotFinished)
 
-	bl := block.NewBlock(-1, "", "", "", "", "")
-	cns.Block = &bl
-	sr.cns = &cns
+	cns := NewConsensus(true, vld, th, rs, chr)
+	cns.Block = block.NewBlock(-1, "", "", "", "", "")
 
-	assert.Equal(t, sr.EndTime(), int64(5*ROUND_TIME_DURATION/100))
-	assert.Equal(t, sr.Current(), chronology.Subround(SR_START_ROUND))
-	assert.Equal(t, sr.Next(), chronology.Subround(SR_BLOCK))
-	assert.Equal(t, sr.Name(), "<START_ROUND>")
+	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), cns, nil, nil)
+	chr.AddSubrounder(sr)
 
-	genesisTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
-	currentTime := time.Now()
-	//	genesisTime := time.Now()
-	//	currentTime := genesisTime
+	return chr, sr
+}
 
-	rnd := chronology.NewRound(genesisTime, currentTime, ROUND_TIME_DURATION)
-	syncTime := &ntp.LocalTime{0}
+func TestNewSRStartRound(t *testing.T) {
+	sr := NewSRBlock(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	assert.NotNil(t, sr)
+}
 
-	chr := chronology.NewChronology(true, true, &rnd, genesisTime, syncTime)
-	sr.cns.chr = &chr
+func TestStartRound_DoWork1(t *testing.T) {
 
-	sr.DoWork(&chr)
+	chr, sr := InitSRStartRound()
 
-	chr.SetSelfSubround(chronology.SR_ABORDED)
+	fmt.Printf("1: Test case when consensus group is empty -> rNone\n")
 
-	sr.DoWork(&chr)
+	sr.cns.Validators.ConsensusGroup = nil
+
+	r := sr.doStartRound(chr)
+
+	assert.Equal(t, rNone, r)
+}
+
+func TestStartRound_DoWork2(t *testing.T) {
+
+	chr, sr := InitSRStartRound()
+
+	fmt.Printf("2: Test case when I am the leader -> true\n")
+
+	sr.cns.Self = "1"
+
+	r := sr.DoWork(chr)
+
+	assert.Equal(t, true, r)
+}
+
+func TestStartRound_DoWork3(t *testing.T) {
+
+	chr, sr := InitSRStartRound()
+
+	fmt.Printf("3: Test case when I am NOT the leader -> true\n")
+
+	r := sr.DoWork(chr)
+
+	assert.Equal(t, true, r)
+}
+
+func TestStartRound_DoWork4(t *testing.T) {
+
+	chr, sr := InitSRStartRound()
+
+	fmt.Printf("4: Test case when subround is canceled -> false\n")
+
+	chr.SetSelfSubround(chronology.Subround(chronology.SrCanceled))
+
+	r := sr.DoWork(chr)
+
+	assert.Equal(t, false, r)
+}
+
+func TestSRStartRound_Current(t *testing.T) {
+	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	assert.Equal(t, chronology.Subround(srStartRound), sr.Current())
+}
+
+func TestSRStartRound_Next(t *testing.T) {
+	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	assert.Equal(t, chronology.Subround(srBlock), sr.Next())
+}
+
+func TestSRStartRound_EndTime(t *testing.T) {
+	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	assert.Equal(t, int64(100*roundTimeDuration/100), sr.EndTime())
+}
+
+func TestSRStartRound_Name(t *testing.T) {
+	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	assert.Equal(t, "<START_ROUND>", sr.Name())
+}
+
+func TestSRStartRound_Log(t *testing.T) {
+	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	sr.Log("Test SRStartRound")
 }

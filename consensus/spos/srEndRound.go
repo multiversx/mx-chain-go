@@ -8,48 +8,50 @@ import (
 )
 
 type SREndRound struct {
-	doLog            bool
-	endTime          int64
-	cns              *Consensus
-	roundsWithBlocks int // only for statistic
+	doLog             bool
+	endTime           int64
+	cns               *Consensus
+	roundsWithBlocks  int // only for statistic
+	OnReceivedMessage func(*[]byte, *chronology.Chronology) bool
+	OnSendMessage     func(chronology.Subround) bool
 }
 
-func NewSREndRound(doLog bool, endTime int64, cns *Consensus) SREndRound {
-	sr := SREndRound{doLog: doLog, endTime: endTime, cns: cns}
-	return sr
+func NewSREndRound(doLog bool, endTime int64, cns *Consensus, onReceivedMessage func(*[]byte, *chronology.Chronology) bool, onSendMessage func(chronology.Subround) bool) *SREndRound {
+	sr := SREndRound{doLog: doLog, endTime: endTime, cns: cns, OnReceivedMessage: onReceivedMessage, OnSendMessage: onSendMessage}
+	return &sr
 }
 
 func (sr *SREndRound) DoWork(chr *chronology.Chronology) bool {
 	bActionDone := true
-	for chr.GetSelfSubround() != chronology.SR_ABORDED {
-		time.Sleep(SLEEP_TIME * time.Millisecond)
+	for chr.GetSelfSubround() != chronology.SrCanceled {
+		time.Sleep(sleepTime * time.Millisecond)
 		switch sr.doEndRound(chr, &bActionDone) {
-		case R_None:
+		case rNone:
 			continue
-		case R_False:
+		case rFalse:
 			return false
-		case R_True:
+		case rTrue:
 			return true
 		default:
 			return false
 		}
 	}
 
-	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 6: Aborded round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 6: Canceled round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
 	return false
 }
 
 func (sr *SREndRound) doEndRound(chr *chronology.Chronology, bActionDone *bool) Response {
 	timeSubRound := chr.GetSubroundFromDateTime(chr.GetCurrentTime())
 
-	if timeSubRound > chronology.Subround(SR_END_ROUND) {
+	if timeSubRound > chronology.Subround(srEndRound) {
 		sr.Log(fmt.Sprintf("\n" + chr.GetFormatedCurrentTime() + ">>>>>>>>>>>>>>>>>>>> THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n"))
-		return R_True
+		return rTrue
 	}
 
 	select {
 	case rcvMsg := <-sr.cns.ChRcvMsg:
-		if sr.cns.ConsumeReceivedMessage(&rcvMsg, chr) {
+		if sr.OnReceivedMessage(&rcvMsg, chr) {
 			*bActionDone = true
 		}
 	default:
@@ -57,7 +59,7 @@ func (sr *SREndRound) doEndRound(chr *chronology.Chronology, bActionDone *bool) 
 
 	if *bActionDone {
 		*bActionDone = false
-		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SR_BLOCK), chronology.Subround(SR_SIGNATURE)); ok {
+		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(srBlock), chronology.Subround(srSignature)); ok {
 			sr.roundsWithBlocks++ // only for statistic
 
 			sr.cns.BlockChain.AddBlock(*sr.cns.Block)
@@ -68,19 +70,19 @@ func (sr *SREndRound) doEndRound(chr *chronology.Chronology, bActionDone *bool) 
 				sr.Log(fmt.Sprintf("\n"+chr.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", sr.cns.Block.Nonce))
 			}
 
-			return R_True
+			return rTrue
 		}
 	}
 
-	return R_None
+	return rNone
 }
 
 func (sr *SREndRound) Current() chronology.Subround {
-	return chronology.Subround(SR_END_ROUND)
+	return chronology.Subround(srEndRound)
 }
 
 func (sr *SREndRound) Next() chronology.Subround {
-	return chronology.Subround(SR_START_ROUND)
+	return chronology.Subround(srStartRound)
 }
 
 func (sr *SREndRound) EndTime() int64 {

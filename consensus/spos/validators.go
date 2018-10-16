@@ -9,9 +9,9 @@ type RoundValidation struct {
 	Signature     bool
 }
 
-func NewRoundValidation(block bool, comitmentHash bool, bitmap bool, comitment bool, signature bool) RoundValidation {
+func NewRoundValidation(block bool, comitmentHash bool, bitmap bool, comitment bool, signature bool) *RoundValidation {
 	rv := RoundValidation{Block: block, ComitmentHash: comitmentHash, Bitmap: bitmap, Comitment: comitment, Signature: signature}
-	return rv
+	return &rv
 }
 
 type Validators struct {
@@ -22,7 +22,7 @@ type Validators struct {
 	ValidationMap  map[string]RoundValidation
 }
 
-func NewValidators(consensusGroup []string, self string) Validators {
+func NewValidators(consensusGroup []string, self string) *Validators {
 	var v Validators
 
 	v.ConsensusGroup = make([]string, len(consensusGroup))
@@ -36,7 +36,7 @@ func NewValidators(consensusGroup []string, self string) Validators {
 	v.ValidationMap = make(map[string]RoundValidation)
 	v.ResetValidationMap()
 
-	return v
+	return &v
 }
 
 func (vld *Validators) ResetValidationMap() {

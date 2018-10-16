@@ -13,9 +13,9 @@ type Epoch struct {
 }
 
 // NewEpoch defines a new Epoch object
-func NewEpoch(index int, genesisTime time.Time) Epoch {
+func NewEpoch(index int, genesisTime time.Time) *Epoch {
 	epc := Epoch{index, genesisTime}
-	return epc
+	return &epc
 }
 
 // Print method just spew to the console the Epoch object in some pretty format

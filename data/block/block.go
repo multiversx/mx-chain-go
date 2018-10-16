@@ -16,13 +16,13 @@ type Block struct {
 	MetaData  string
 }
 
-func NewBlock(nonce int, timeStamp string, signature string, hash string, prevhash string, metaData string) Block {
+func NewBlock(nonce int, timeStamp string, signature string, hash string, prevhash string, metaData string) *Block {
 	b := Block{nonce, timeStamp, signature, hash, prevhash, metaData}
-	return b
+	return &b
 }
 
 func (b *Block) ResetBlock() {
-	*b = NewBlock(-1, "", "", "", "", "")
+	b = NewBlock(-1, "", "", "", "", "")
 }
 
 func (b *Block) CalculateHash() string {

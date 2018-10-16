@@ -11,12 +11,12 @@ import (
 type BlockChain struct {
 	DoLog    bool
 	Blocks   []block.Block
-	SyncTime *ntp.SyncTime
+	SyncTime ntp.SyncTimer
 }
 
-func New(blocks []block.Block, syncTime *ntp.SyncTime, doLog bool) BlockChain {
+func NewBlockChain(blocks []block.Block, syncTime ntp.SyncTimer, doLog bool) *BlockChain {
 	blockChain := BlockChain{DoLog: doLog, Blocks: blocks, SyncTime: syncTime}
-	return blockChain
+	return &blockChain
 }
 
 func (bc *BlockChain) AddBlock(block block.Block) {

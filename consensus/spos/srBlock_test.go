@@ -10,119 +10,157 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func SndWithSuccess(chronology.Subround) bool {
-	fmt.Printf("message was sent with success\n")
-	return true
-}
-
-func SndWithoutSuccess(chronology.Subround) bool {
-	fmt.Printf("message was NOT sent with success\n")
-	return false
-}
-
-func RcvWithSuccess(rcvMsg *[]byte, chr *chronology.Chronology) bool {
-	fmt.Printf("message was consumed with success\n")
-	return true
-}
-
-func RcvWithoutSuccessAndAbord(rcvMsg *[]byte, chr *chronology.Chronology) bool {
-
-	fmt.Printf("message was consumed with success, but this round should be aborded\n")
-	chr.SetSelfSubround(chronology.SR_ABORDED)
-	return false
-}
-
-func RcvWithoutSuccess(rcvMsg *[]byte, chr *chronology.Chronology) bool {
-	fmt.Printf("message was NOT consumed with success\n")
-	return false
-}
-
-func TestNewSRBlock(t *testing.T) {
-	sr := NewSRBlock(true, int64(100*ROUND_TIME_DURATION/100), nil, nil, nil)
-	assert.NotNil(t, sr)
-}
-
-func TestSRBlock_DoWork(t *testing.T) {
+func InitSRBlock() (*chronology.Chronology, *SRBlock) {
 	genesisTime := time.Now()
 	currentTime := genesisTime
 
-	rnd := chronology.NewRound(genesisTime, currentTime, ROUND_TIME_DURATION)
+	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
 
-	chr := chronology.NewChronology(true, true, &rnd, genesisTime, &ntp.LocalTime{ClockOffset: 0})
+	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{ClockOffset: 0})
 
-	vld := NewValidators([]string{"1", "2", "3"}, "2")
-	th := NewThreshold(1, 2*len(vld.ConsensusGroup)/3, 2*len(vld.ConsensusGroup)/3, 2*len(vld.ConsensusGroup)/3, 2*len(vld.ConsensusGroup)/3)
-	rs := NewRoundStatus(SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED, SS_NOTFINISHED)
+	vld := NewValidators([]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
+	pbft := 2*len(vld.ConsensusGroup)/3 + 1
+	th := NewThreshold(1, pbft, pbft, pbft, pbft)
+	rs := NewRoundStatus(ssNotFinished, ssNotFinished, ssNotFinished, ssNotFinished, ssNotFinished)
 
-	cns := NewConsensus(true, vld, th, rs, &chr)
+	cns := NewConsensus(true, vld, th, rs, chr)
 
-	sr := NewSRBlock(true, int64(100*ROUND_TIME_DURATION/100), &cns, nil, nil)
-	chr.AddSubrounder(&sr)
+	sr := NewSRBlock(true, int64(100*roundTimeDuration/100), cns, nil, nil)
+	chr.AddSubrounder(sr)
 
-	fmt.Printf("1: Test case when send message is done but consensus is not done -> R_None\n")
+	return chr, sr
+}
+
+func TestNewSRBlock(t *testing.T) {
+	sr := NewSRBlock(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	assert.NotNil(t, sr)
+}
+
+func TestSRBlock_DoWork1(t *testing.T) {
+
+	chr, sr := InitSRBlock()
+
+	fmt.Printf("1: Test case when send message is done but consensus is not done -> rNone\n")
+
 	sr.OnSendMessage = SndWithSuccess
-	r := sr.doBlock(&chr)
-	assert.Equal(t, r, R_None)
 
-	fmt.Printf("2: Test case when send message and consensus is done -> R_True\n")
+	r := sr.doBlock(chr)
+
+	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Block)
+	assert.Equal(t, rNone, r)
+}
+
+func TestSRBlock_DoWork2(t *testing.T) {
+
+	chr, sr := InitSRBlock()
+
+	fmt.Printf("2: Test case when send message and consensus is done -> rTrue\n")
+
+	sr.OnSendMessage = SndWithSuccess
+
 	rv := sr.cns.ValidationMap[sr.cns.Self]
 	rv.Block = true
 	sr.cns.ValidationMap[sr.cns.Self] = rv
-	r = sr.doBlock(&chr)
-	assert.Equal(t, r, R_True)
 
-	fmt.Printf("3: Test case when time has expired -> R_True\n")
+	r := sr.doBlock(chr)
+
+	assert.Equal(t, ssFinished, sr.cns.RoundStatus.Block)
+	assert.Equal(t, rTrue, r)
+}
+
+func TestSRBlock_DoWork3(t *testing.T) {
+
+	chr, sr := InitSRBlock()
+
+	fmt.Printf("3: Test case when time has expired -> rTrue\n")
+
 	sr.OnSendMessage = SndWithoutSuccess
+
 	chr.SetClockOffset(time.Duration(sr.endTime + 1))
-	r = sr.doBlock(&chr)
-	assert.Equal(t, r, R_True)
 
-	fmt.Printf("4: Test case when receive message is done but consensus is not done -> R_None\n")
-	rv = sr.cns.ValidationMap[sr.cns.Self]
-	rv.Block = false
-	sr.cns.ValidationMap[sr.cns.Self] = rv
-	chr.SetClockOffset(0)
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	r := sr.doBlock(chr)
+
+	assert.Equal(t, ssExtended, sr.cns.RoundStatus.Block)
+	assert.Equal(t, rTrue, r)
+}
+
+func TestSRBlock_DoWork4(t *testing.T) {
+
+	chr, sr := InitSRBlock()
+
+	fmt.Printf("4: Test case when receive message is done but consensus is not done -> rNone\n")
+
+	sr.OnSendMessage = SndWithoutSuccess
 	sr.OnReceivedMessage = RcvWithSuccess
-	r = sr.doBlock(&chr)
-	assert.Equal(t, r, R_None)
 
-	fmt.Printf("5: Test case when receive message and consensus is done -> R_True\n")
-	rv = sr.cns.ValidationMap[sr.cns.Self]
+	sr.cns.ChRcvMsg <- []byte("Message has come")
+
+	r := sr.doBlock(chr)
+
+	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Block)
+	assert.Equal(t, rNone, r)
+}
+
+func TestSRBlock_DoWork5(t *testing.T) {
+
+	chr, sr := InitSRBlock()
+
+	fmt.Printf("5: Test case when receive message and consensus is done -> true\n")
+
+	sr.OnSendMessage = SndWithoutSuccess
+	sr.OnReceivedMessage = RcvWithSuccess
+
+	sr.cns.ChRcvMsg <- []byte("Message has come")
+
+	rv := sr.cns.ValidationMap[sr.cns.Self]
 	rv.Block = true
 	sr.cns.ValidationMap[sr.cns.Self] = rv
-	sr.cns.ChRcvMsg <- []byte("Message has come")
-	r2 := sr.DoWork(&chr)
-	assert.Equal(t, r2, true)
 
-	fmt.Printf("6: Test case when receive message is done but round should be aborded -> R_None\n")
+	r := sr.DoWork(chr)
+
+	assert.Equal(t, ssFinished, sr.cns.RoundStatus.Block)
+	assert.Equal(t, true, r)
+}
+
+func TestSRBlock_DoWork6(t *testing.T) {
+
+	chr, sr := InitSRBlock()
+
+	fmt.Printf("6: Test case when receive message is done but round should be canceled -> false\n")
+
+	sr.OnSendMessage = SndWithoutSuccess
+	sr.OnReceivedMessage = RcvWithoutSuccessAndCancel
+
 	sr.cns.ChRcvMsg <- []byte("Message has come")
-	sr.OnReceivedMessage = RcvWithoutSuccessAndAbord
-	r2 = sr.DoWork(&chr)
-	assert.Equal(t, r2, false)
+
+	r := sr.DoWork(chr)
+
+	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Block)
+	assert.Equal(t, chronology.SrCanceled, chr.GetSelfSubround())
+	assert.Equal(t, false, r)
 }
 
 func TestSRBlock_Current(t *testing.T) {
-	sr := NewSRBlock(true, int64(100*ROUND_TIME_DURATION/100), nil, nil, nil)
-	assert.Equal(t, sr.Current(), chronology.Subround(SR_BLOCK))
+	sr := NewSRBlock(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	assert.Equal(t, chronology.Subround(srBlock), sr.Current())
 }
 
 func TestSRBlock_Next(t *testing.T) {
-	sr := NewSRBlock(true, int64(100*ROUND_TIME_DURATION/100), nil, nil, nil)
-	assert.Equal(t, sr.Next(), chronology.Subround(SR_COMITMENT_HASH))
+	sr := NewSRBlock(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	assert.Equal(t, chronology.Subround(srComitmentHash), sr.Next())
 }
 
 func TestSRBlock_EndTime(t *testing.T) {
-	sr := NewSRBlock(true, int64(100*ROUND_TIME_DURATION/100), nil, nil, nil)
-	assert.Equal(t, sr.EndTime(), int64(100*ROUND_TIME_DURATION/100))
+	sr := NewSRBlock(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	assert.Equal(t, int64(100*roundTimeDuration/100), sr.EndTime())
 }
 
 func TestSRBlock_Name(t *testing.T) {
-	sr := NewSRBlock(true, int64(100*ROUND_TIME_DURATION/100), nil, nil, nil)
-	assert.Equal(t, sr.Name(), "<BLOCK>")
+	sr := NewSRBlock(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	assert.Equal(t, "<BLOCK>", sr.Name())
 }
 
 func TestSRBlock_Log(t *testing.T) {
-	sr := NewSRBlock(true, int64(100*ROUND_TIME_DURATION/100), nil, nil, nil)
-	sr.Log("Test")
+	sr := NewSRBlock(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	sr.Log("Test SRBlock")
 }

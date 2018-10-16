@@ -11,19 +11,19 @@ func TestRound(t *testing.T) {
 	genesisTime := time.Now()
 	currentTime := genesisTime
 
-	rnd := NewRound(genesisTime, currentTime, ROUND_TIME_DURATION)
+	rnd := NewRound(genesisTime, currentTime, roundTimeDuration)
 
 	rnd.Print()
 
 	assert.Equal(t, rnd.index, 0)
 	assert.Equal(t, rnd.timeStamp, genesisTime)
-	assert.Equal(t, rnd.timeDuration, ROUND_TIME_DURATION)
+	assert.Equal(t, rnd.timeDuration, roundTimeDuration)
 
-	currentTime = currentTime.Add(ROUND_TIME_DURATION)
+	currentTime = currentTime.Add(roundTimeDuration)
 
 	rnd.UpdateRound(genesisTime, currentTime)
 
 	assert.Equal(t, rnd.index, 1)
-	assert.Equal(t, rnd.timeStamp, genesisTime.Add(ROUND_TIME_DURATION))
-	assert.Equal(t, rnd.timeDuration, ROUND_TIME_DURATION)
+	assert.Equal(t, rnd.timeStamp, genesisTime.Add(roundTimeDuration))
+	assert.Equal(t, rnd.timeDuration, roundTimeDuration)
 }

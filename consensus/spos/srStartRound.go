@@ -8,39 +8,42 @@ import (
 )
 
 type SRStartRound struct {
-	doLog   bool
-	endTime int64
-	cns     *Consensus
+	doLog             bool
+	endTime           int64
+	cns               *Consensus
+	OnReceivedMessage func(*[]byte, *chronology.Chronology) bool
+	OnSendMessage     func(chronology.Subround) bool
 }
 
-func NewSRStartRound(doLog bool, endTime int64, cns *Consensus) SRStartRound {
-	sr := SRStartRound{doLog: doLog, endTime: endTime, cns: cns}
-	return sr
+func NewSRStartRound(doLog bool, endTime int64, cns *Consensus, onReceivedMessage func(*[]byte, *chronology.Chronology) bool, onSendMessage func(chronology.Subround) bool) *SRStartRound {
+	sr := SRStartRound{doLog: doLog, endTime: endTime, cns: cns, OnReceivedMessage: onReceivedMessage, OnSendMessage: onSendMessage}
+	return &sr
 }
 
 func (sr *SRStartRound) DoWork(chr *chronology.Chronology) bool {
-	for chr.GetSelfSubround() != chronology.SR_ABORDED {
-		time.Sleep(SLEEP_TIME * time.Millisecond)
+	for chr.GetSelfSubround() != chronology.SrCanceled {
+		time.Sleep(sleepTime * time.Millisecond)
 		switch sr.doStartRound(chr) {
-		case R_None:
+		case rNone:
 			continue
-		case R_False:
+		case rFalse:
 			return false
-		case R_True:
+		case rTrue:
 			return true
 		default:
 			return false
 		}
 	}
 
-	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 0: Aborded round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 0: Canceled round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
 	return false
 }
 
 func (sr *SRStartRound) doStartRound(chr *chronology.Chronology) Response {
 	leader, err := sr.cns.GetLeader()
+
 	if err != nil {
-		leader = "Unknown"
+		return rNone
 	}
 
 	if leader == sr.cns.Self {
@@ -53,15 +56,15 @@ func (sr *SRStartRound) doStartRound(chr *chronology.Chronology) Response {
 	sr.cns.ResetRoundStatus()
 	sr.cns.ResetValidationMap()
 
-	return R_True
+	return rTrue
 }
 
 func (sr *SRStartRound) Current() chronology.Subround {
-	return chronology.Subround(SR_START_ROUND)
+	return chronology.Subround(srStartRound)
 }
 
 func (sr *SRStartRound) Next() chronology.Subround {
-	return chronology.Subround(SR_BLOCK)
+	return chronology.Subround(srBlock)
 }
 
 func (sr *SRStartRound) EndTime() int64 {
