@@ -1,10 +1,11 @@
 package ed25519
 
 import (
-	"elrond-go-sandbox/crypto/math"
+	"strings"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/math"
 	"gopkg.in/dedis/kyber.v2"
 	"gopkg.in/dedis/kyber.v2/group/edwards25519"
-	"strings"
 )
 
 var curve = edwards25519.NewBlakeSHA256Ed25519()
