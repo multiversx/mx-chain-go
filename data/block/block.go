@@ -3,8 +3,8 @@ package block
 import (
 	"io"
 
-	"github.com/glycerine/go-capnproto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnproto1"
+	"github.com/glycerine/go-capnproto"
 )
 
 type MiniBlock struct {
@@ -109,107 +109,55 @@ func HeaderCapnToGo(src capnproto1.HeaderCapn, dest *Header) *Header {
 	var n int
 
 	// Nonce
-	n = src.Nonce().Len()
-	dest.Nonce = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.Nonce[i] = byte(src.Nonce().At(i))
-	}
+	dest.Nonce = src.Nonce()
 
 	// PrevHash
-	n = src.PrevHash().Len()
-	dest.PrevHash = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.PrevHash[i] = byte(src.PrevHash().At(i))
-	}
+	dest.PrevHash = src.PrevHash()
 
 	// PubKeys
 	n = src.PubKeys().Len()
 	dest.PubKeys = make([][]byte, n)
 	for i := 0; i < n; i++ {
-		dest.PubKeys[i] = UInt8ListToSliceByte(capn.UInt8List(src.PubKeys().At(i)))
+		dest.PubKeys[i] = src.PubKeys().At(i)
 	}
 
+	// ShardId
 	dest.ShardId = src.ShardId()
 
 	// TimeStamp
-	n = src.TimeStamp().Len()
-	dest.TimeStamp = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.TimeStamp[i] = byte(src.TimeStamp().At(i))
-	}
+	dest.TimeStamp = src.TimeStamp()
 
+	// Round
 	dest.Round = src.Round()
 
 	// BlockHash
-	n = src.BlockHash().Len()
-	dest.BlockHash = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.BlockHash[i] = byte(src.BlockHash().At(i))
-	}
+	dest.BlockHash = src.BlockHash()
 
 	// Signature
-	n = src.Signature().Len()
-	dest.Signature = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.Signature[i] = byte(src.Signature().At(i))
-	}
+	dest.Signature = src.Signature()
 
 	// Commitment
-	n = src.Commitment().Len()
-	dest.Commitment = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.Commitment[i] = byte(src.Commitment().At(i))
-	}
+	dest.Commitment = src.Commitment()
 
 	return dest
 }
 
 func HeaderGoToCapn(seg *capn.Segment, src *Header) capnproto1.HeaderCapn {
 	dest := capnproto1.AutoNewHeaderCapn(seg)
-
-	mylist1 := seg.NewUInt8List(len(src.Nonce))
-	for i := range src.Nonce {
-		mylist1.Set(i, uint8(src.Nonce[i]))
-	}
-	dest.SetNonce(mylist1)
-
-	mylist2 := seg.NewUInt8List(len(src.PrevHash))
-	for i := range src.PrevHash {
-		mylist2.Set(i, uint8(src.PrevHash[i]))
-	}
-	dest.SetPrevHash(mylist2)
-
-	mylist3 := seg.NewPointerList(len(src.PubKeys))
+	dest.SetNonce(src.Nonce)
+	dest.SetPrevHash(src.PrevHash)
+	myList3 := seg.NewDataList(len(src.PubKeys))
 	for i := range src.PubKeys {
-		mylist3.Set(i, capn.Object(SliceByteToUInt8List(seg, src.PubKeys[i])))
+		myList3.Set(i, src.PubKeys[i])
 	}
-	dest.SetPubKeys(mylist3)
+
+	dest.SetPubKeys(myList3)
 	dest.SetShardId(src.ShardId)
-
-	mylist4 := seg.NewUInt8List(len(src.TimeStamp))
-	for i := range src.TimeStamp {
-		mylist4.Set(i, uint8(src.TimeStamp[i]))
-	}
-	dest.SetTimeStamp(mylist4)
+	dest.SetTimeStamp(src.TimeStamp)
 	dest.SetRound(src.Round)
-
-	mylist5 := seg.NewUInt8List(len(src.BlockHash))
-	for i := range src.BlockHash {
-		mylist5.Set(i, uint8(src.BlockHash[i]))
-	}
-	dest.SetBlockHash(mylist5)
-
-	mylist6 := seg.NewUInt8List(len(src.Signature))
-	for i := range src.Signature {
-		mylist6.Set(i, uint8(src.Signature[i]))
-	}
-	dest.SetSignature(mylist6)
-
-	mylist7 := seg.NewUInt8List(len(src.Commitment))
-	for i := range src.Commitment {
-		mylist7.Set(i, uint8(src.Commitment[i]))
-	}
-	dest.SetCommitment(mylist7)
+	dest.SetBlockHash(src.BlockHash)
+	dest.SetSignature(src.Signature)
+	dest.SetCommitment(src.Commitment)
 
 	return dest
 }
@@ -243,7 +191,7 @@ func MiniBlockCapnToGo(src capnproto1.MiniBlockCapn, dest *MiniBlock) *MiniBlock
 	n = src.TxHashes().Len()
 	dest.TxHashes = make([][]byte, n)
 	for i := 0; i < n; i++ {
-		dest.TxHashes[i] = UInt8ListToSliceByte(capn.UInt8List(src.TxHashes().At(i)))
+		dest.TxHashes[i] = src.TxHashes().At(i)
 	}
 
 	dest.DestShardID = src.DestShardID()
@@ -254,44 +202,14 @@ func MiniBlockCapnToGo(src capnproto1.MiniBlockCapn, dest *MiniBlock) *MiniBlock
 func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnproto1.MiniBlockCapn {
 	dest := capnproto1.AutoNewMiniBlockCapn(seg)
 
-	mylist1 := seg.NewPointerList(len(src.TxHashes))
+	mylist1 := seg.NewDataList(len(src.TxHashes))
+
 	for i := range src.TxHashes {
-		mylist1.Set(i, capn.Object(SliceByteToUInt8List(seg, src.TxHashes[i])))
+		mylist1.Set(i, src.TxHashes[i])
 	}
+
 	dest.SetTxHashes(mylist1)
 	dest.SetDestShardID(src.DestShardID)
 
 	return dest
-}
-
-func SliceByteToUInt8List(seg *capn.Segment, m []byte) capn.UInt8List {
-	lst := seg.NewUInt8List(len(m))
-	for i := range m {
-		lst.Set(i, uint8(m[i]))
-	}
-	return lst
-}
-
-func UInt8ListToSliceByte(p capn.UInt8List) []byte {
-	v := make([]byte, p.Len())
-	for i := range v {
-		v[i] = byte(p.At(i))
-	}
-	return v
-}
-
-func SliceMiniBlockToMiniBlockCapnList(seg *capn.Segment, m []MiniBlock) capnproto1.MiniBlockCapn_List {
-	lst := capnproto1.NewMiniBlockCapnList(seg, len(m))
-	for i := range m {
-		lst.Set(i, MiniBlockGoToCapn(seg, &m[i]))
-	}
-	return lst
-}
-
-func MiniBlockCapnListToSliceMiniBlock(p capnproto1.MiniBlockCapn_List) []MiniBlock {
-	v := make([]MiniBlock, p.Len())
-	for i := range v {
-		MiniBlockCapnToGo(p.At(i), &v[i])
-	}
-	return v
 }

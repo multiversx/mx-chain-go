@@ -44,77 +44,35 @@ func TransactionCapnToGo(src capnproto1.TransactionCapn, dest *Transaction) *Tra
 		dest = &Transaction{}
 	}
 
-	var n int
-
 	// Nonce
-	n = src.Nonce().Len()
-	dest.Nonce = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.Nonce[i] = byte(src.Nonce().At(i))
-	}
+	dest.Nonce = src.Nonce()
 
 	// Value
-	n = src.Value().Len()
-	dest.Value = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.Value[i] = byte(src.Value().At(i))
-	}
+	dest.Value = src.Value()
 
 	// RcvAddr
-	n = src.RcvAddr().Len()
-	dest.RcvAddr = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.RcvAddr[i] = byte(src.RcvAddr().At(i))
-	}
+	dest.RcvAddr = src.RcvAddr()
 
 	// SndAddr
-	n = src.SndAddr().Len()
-	dest.SndAddr = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.SndAddr[i] = byte(src.SndAddr().At(i))
-	}
+	dest.SndAddr = src.SndAddr()
 
 	// GasPrice
-	n = src.GasPrice().Len()
-	dest.GasPrice = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.GasPrice[i] = byte(src.GasPrice().At(i))
-	}
+	dest.GasPrice = src.GasPrice()
 
 	// GasLimit
-	n = src.GasLimit().Len()
-	dest.GasLimit = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.GasLimit[i] = byte(src.GasLimit().At(i))
-	}
+	dest.GasLimit = src.GasLimit()
 
 	// Data
-	n = src.Data().Len()
-	dest.Data = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.Data[i] = byte(src.Data().At(i))
-	}
+	dest.Data = src.Data()
 
 	// Signature
-	n = src.Signature().Len()
-	dest.Signature = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.Signature[i] = byte(src.Signature().At(i))
-	}
+	dest.Signature = src.Signature()
 
 	// Challenge
-	n = src.Challenge().Len()
-	dest.Challenge = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.Challenge[i] = byte(src.Challenge().At(i))
-	}
+	dest.Challenge = src.Challenge()
 
 	// PubKey
-	n = src.PubKey().Len()
-	dest.PubKey = make([]byte, n)
-	for i := 0; i < n; i++ {
-		dest.PubKey[i] = byte(src.PubKey().At(i))
-	}
+	dest.PubKey = src.PubKey()
 
 	return dest
 }
@@ -122,81 +80,25 @@ func TransactionCapnToGo(src capnproto1.TransactionCapn, dest *Transaction) *Tra
 func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnproto1.TransactionCapn {
 	dest := capnproto1.AutoNewTransactionCapn(seg)
 
-	mylist1 := seg.NewUInt8List(len(src.Nonce))
-	for i := range src.Nonce {
-		mylist1.Set(i, uint8(src.Nonce[i]))
-	}
-	dest.SetNonce(mylist1)
+	dest.SetNonce(src.Nonce)
 
-	mylist2 := seg.NewUInt8List(len(src.Value))
-	for i := range src.Value {
-		mylist2.Set(i, uint8(src.Value[i]))
-	}
-	dest.SetValue(mylist2)
+	dest.SetValue(src.Value)
 
-	mylist3 := seg.NewUInt8List(len(src.RcvAddr))
-	for i := range src.RcvAddr {
-		mylist3.Set(i, uint8(src.RcvAddr[i]))
-	}
-	dest.SetRcvAddr(mylist3)
+	dest.SetRcvAddr(src.RcvAddr)
 
-	mylist4 := seg.NewUInt8List(len(src.SndAddr))
-	for i := range src.SndAddr {
-		mylist4.Set(i, uint8(src.SndAddr[i]))
-	}
-	dest.SetSndAddr(mylist4)
+	dest.SetSndAddr(src.SndAddr)
 
-	mylist5 := seg.NewUInt8List(len(src.GasPrice))
-	for i := range src.GasPrice {
-		mylist5.Set(i, uint8(src.GasPrice[i]))
-	}
-	dest.SetGasPrice(mylist5)
+	dest.SetGasPrice(src.GasPrice)
 
-	mylist6 := seg.NewUInt8List(len(src.GasLimit))
-	for i := range src.GasLimit {
-		mylist6.Set(i, uint8(src.GasLimit[i]))
-	}
-	dest.SetGasLimit(mylist6)
+	dest.SetGasLimit(src.GasLimit)
 
-	mylist7 := seg.NewUInt8List(len(src.Data))
-	for i := range src.Data {
-		mylist7.Set(i, uint8(src.Data[i]))
-	}
-	dest.SetData(mylist7)
+	dest.SetData(src.Data)
 
-	mylist8 := seg.NewUInt8List(len(src.Signature))
-	for i := range src.Signature {
-		mylist8.Set(i, uint8(src.Signature[i]))
-	}
-	dest.SetSignature(mylist8)
+	dest.SetSignature(src.Signature)
 
-	mylist9 := seg.NewUInt8List(len(src.Challenge))
-	for i := range src.Challenge {
-		mylist9.Set(i, uint8(src.Challenge[i]))
-	}
-	dest.SetChallenge(mylist9)
+	dest.SetChallenge(src.Challenge)
 
-	mylist10 := seg.NewUInt8List(len(src.PubKey))
-	for i := range src.PubKey {
-		mylist10.Set(i, uint8(src.PubKey[i]))
-	}
-	dest.SetPubKey(mylist10)
+	dest.SetPubKey(src.PubKey)
 
 	return dest
-}
-
-func SliceByteToUInt8List(seg *capn.Segment, m []byte) capn.UInt8List {
-	lst := seg.NewUInt8List(len(m))
-	for i := range m {
-		lst.Set(i, uint8(m[i]))
-	}
-	return lst
-}
-
-func UInt8ListToSliceByte(p capn.UInt8List) []byte {
-	v := make([]byte, p.Len())
-	for i := range v {
-		v[i] = byte(p.At(i))
-	}
-	return v
 }

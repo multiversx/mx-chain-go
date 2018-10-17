@@ -9,19 +9,19 @@ struct BlockCapn {
 } 
 
 struct HeaderCapn { 
-   nonce       @0:   List(UInt8); 
-   prevHash    @1:   List(UInt8); 
-   pubKeys     @2:   List(List(UInt8)); 
+   nonce       @0:   Data;
+   prevHash    @1:   Data;
+   pubKeys     @2:   List(Data);
    shardId     @3:   UInt32; 
-   timeStamp   @4:   List(UInt8); 
+   timeStamp   @4:   Data;
    round       @5:   UInt32; 
-   blockHash   @6:   List(UInt8); 
-   signature   @7:   List(UInt8); 
-   commitment  @8:   List(UInt8); 
+   blockHash   @6:   Data;
+   signature   @7:   Data;
+   commitment  @8:   Data;
 } 
 
 struct MiniBlockCapn { 
-   txHashes     @0:   List(List(UInt8)); 
+   txHashes     @0:   List(Data);
    destShardID  @1:   UInt32; 
 } 
 

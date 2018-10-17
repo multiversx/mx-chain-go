@@ -5,11 +5,12 @@ import (
 
 	"reflect"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"math/rand"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"fmt"
+	"math/rand"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
 func benchMarshalTransactions(b *testing.B, m marshal.Marshalizer) {
@@ -24,6 +25,7 @@ func benchMarshalTransactions(b *testing.B, m marshal.Marshalizer) {
 	for i := 0; i < b.N; i++ {
 		m.Marshal(dArray[i%l])
 	}
+
 }
 
 func benchMarshalHeaders(b *testing.B, m marshal.Marshalizer) {

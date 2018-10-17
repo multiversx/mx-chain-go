@@ -144,24 +144,24 @@ func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct
 func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(8, 7)) }
 func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(8, 7)) }
 func ReadRootHeaderCapn(s *C.Segment) HeaderCapn { return HeaderCapn(s.Root(0).ToStruct()) }
-func (s HeaderCapn) Nonce() C.UInt8List          { return C.UInt8List(C.Struct(s).GetObject(0)) }
-func (s HeaderCapn) SetNonce(v C.UInt8List)      { C.Struct(s).SetObject(0, C.Object(v)) }
-func (s HeaderCapn) PrevHash() C.UInt8List       { return C.UInt8List(C.Struct(s).GetObject(1)) }
-func (s HeaderCapn) SetPrevHash(v C.UInt8List)   { C.Struct(s).SetObject(1, C.Object(v)) }
-func (s HeaderCapn) PubKeys() C.PointerList      { return C.PointerList(C.Struct(s).GetObject(2)) }
-func (s HeaderCapn) SetPubKeys(v C.PointerList)  { C.Struct(s).SetObject(2, C.Object(v)) }
+func (s HeaderCapn) Nonce() []byte               { return C.Struct(s).GetObject(0).ToData() }
+func (s HeaderCapn) SetNonce(v []byte)           { C.Struct(s).SetObject(0, s.Segment.NewData(v)) }
+func (s HeaderCapn) PrevHash() []byte            { return C.Struct(s).GetObject(1).ToData() }
+func (s HeaderCapn) SetPrevHash(v []byte)        { C.Struct(s).SetObject(1, s.Segment.NewData(v)) }
+func (s HeaderCapn) PubKeys() C.DataList         { return C.DataList(C.Struct(s).GetObject(2)) }
+func (s HeaderCapn) SetPubKeys(v C.DataList)     { C.Struct(s).SetObject(2, C.Object(v)) }
 func (s HeaderCapn) ShardId() uint32             { return C.Struct(s).Get32(0) }
 func (s HeaderCapn) SetShardId(v uint32)         { C.Struct(s).Set32(0, v) }
-func (s HeaderCapn) TimeStamp() C.UInt8List      { return C.UInt8List(C.Struct(s).GetObject(3)) }
-func (s HeaderCapn) SetTimeStamp(v C.UInt8List)  { C.Struct(s).SetObject(3, C.Object(v)) }
+func (s HeaderCapn) TimeStamp() []byte           { return C.Struct(s).GetObject(3).ToData() }
+func (s HeaderCapn) SetTimeStamp(v []byte)       { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
 func (s HeaderCapn) Round() uint32               { return C.Struct(s).Get32(4) }
 func (s HeaderCapn) SetRound(v uint32)           { C.Struct(s).Set32(4, v) }
-func (s HeaderCapn) BlockHash() C.UInt8List      { return C.UInt8List(C.Struct(s).GetObject(4)) }
-func (s HeaderCapn) SetBlockHash(v C.UInt8List)  { C.Struct(s).SetObject(4, C.Object(v)) }
-func (s HeaderCapn) Signature() C.UInt8List      { return C.UInt8List(C.Struct(s).GetObject(5)) }
-func (s HeaderCapn) SetSignature(v C.UInt8List)  { C.Struct(s).SetObject(5, C.Object(v)) }
-func (s HeaderCapn) Commitment() C.UInt8List     { return C.UInt8List(C.Struct(s).GetObject(6)) }
-func (s HeaderCapn) SetCommitment(v C.UInt8List) { C.Struct(s).SetObject(6, C.Object(v)) }
+func (s HeaderCapn) BlockHash() []byte           { return C.Struct(s).GetObject(4).ToData() }
+func (s HeaderCapn) SetBlockHash(v []byte)       { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
+func (s HeaderCapn) Signature() []byte           { return C.Struct(s).GetObject(5).ToData() }
+func (s HeaderCapn) SetSignature(v []byte)       { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
+func (s HeaderCapn) Commitment() []byte          { return C.Struct(s).GetObject(6).ToData() }
+func (s HeaderCapn) SetCommitment(v []byte)      { C.Struct(s).SetObject(6, s.Segment.NewData(v)) }
 func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -177,29 +177,11 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Nonce()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -214,6 +196,25 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.PrevHash()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"pubKeys\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.PubKeys()
 		{
 			err = b.WriteByte('[')
 			if err != nil {
@@ -237,22 +238,6 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 			}
 			err = b.WriteByte(']')
 		}
-		if err != nil {
-			return err
-		}
-	}
-	err = b.WriteByte(',')
-	if err != nil {
-		return err
-	}
-	_, err = b.WriteString("\"pubKeys\":")
-	if err != nil {
-		return err
-	}
-	{
-		s := s.PubKeys()
-		_ = s
-		_, err = b.WriteString("\"untyped list\"")
 		if err != nil {
 			return err
 		}
@@ -286,29 +271,11 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.TimeStamp()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -342,29 +309,11 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.BlockHash()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -379,29 +328,11 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Signature()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -416,29 +347,11 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Commitment()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -470,29 +383,11 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.Nonce()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -507,6 +402,25 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.PrevHash()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("pubKeys = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.PubKeys()
 		{
 			err = b.WriteByte('[')
 			if err != nil {
@@ -530,22 +444,6 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 			}
 			err = b.WriteByte(']')
 		}
-		if err != nil {
-			return err
-		}
-	}
-	_, err = b.WriteString(", ")
-	if err != nil {
-		return err
-	}
-	_, err = b.WriteString("pubKeys = ")
-	if err != nil {
-		return err
-	}
-	{
-		s := s.PubKeys()
-		_ = s
-		_, err = b.WriteString("\"untyped list\"")
 		if err != nil {
 			return err
 		}
@@ -579,29 +477,11 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.TimeStamp()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -635,29 +515,11 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.BlockHash()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -672,29 +534,11 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.Signature()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -709,29 +553,11 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.Commitment()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -772,8 +598,8 @@ func NewMiniBlockCapn(s *C.Segment) MiniBlockCapn      { return MiniBlockCapn(s.
 func NewRootMiniBlockCapn(s *C.Segment) MiniBlockCapn  { return MiniBlockCapn(s.NewRootStruct(8, 1)) }
 func AutoNewMiniBlockCapn(s *C.Segment) MiniBlockCapn  { return MiniBlockCapn(s.NewStructAR(8, 1)) }
 func ReadRootMiniBlockCapn(s *C.Segment) MiniBlockCapn { return MiniBlockCapn(s.Root(0).ToStruct()) }
-func (s MiniBlockCapn) TxHashes() C.PointerList        { return C.PointerList(C.Struct(s).GetObject(0)) }
-func (s MiniBlockCapn) SetTxHashes(v C.PointerList)    { C.Struct(s).SetObject(0, C.Object(v)) }
+func (s MiniBlockCapn) TxHashes() C.DataList           { return C.DataList(C.Struct(s).GetObject(0)) }
+func (s MiniBlockCapn) SetTxHashes(v C.DataList)       { C.Struct(s).SetObject(0, C.Object(v)) }
 func (s MiniBlockCapn) DestShardID() uint32            { return C.Struct(s).Get32(0) }
 func (s MiniBlockCapn) SetDestShardID(v uint32)        { C.Struct(s).Set32(0, v) }
 func (s MiniBlockCapn) WriteJSON(w io.Writer) error {
@@ -791,8 +617,29 @@ func (s MiniBlockCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.TxHashes()
-		_ = s
-		_, err = b.WriteString("\"untyped list\"")
+		{
+			err = b.WriteByte('[')
+			if err != nil {
+				return err
+			}
+			for i, s := range s.ToArray() {
+				if i != 0 {
+					_, err = b.WriteString(", ")
+				}
+				if err != nil {
+					return err
+				}
+				buf, err = json.Marshal(s)
+				if err != nil {
+					return err
+				}
+				_, err = b.Write(buf)
+				if err != nil {
+					return err
+				}
+			}
+			err = b.WriteByte(']')
+		}
 		if err != nil {
 			return err
 		}
@@ -843,8 +690,29 @@ func (s MiniBlockCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.TxHashes()
-		_ = s
-		_, err = b.WriteString("\"untyped list\"")
+		{
+			err = b.WriteByte('[')
+			if err != nil {
+				return err
+			}
+			for i, s := range s.ToArray() {
+				if i != 0 {
+					_, err = b.WriteString(", ")
+				}
+				if err != nil {
+					return err
+				}
+				buf, err = json.Marshal(s)
+				if err != nil {
+					return err
+				}
+				_, err = b.Write(buf)
+				if err != nil {
+					return err
+				}
+			}
+			err = b.WriteByte(']')
+		}
 		if err != nil {
 			return err
 		}

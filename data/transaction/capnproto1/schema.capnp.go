@@ -22,26 +22,26 @@ func AutoNewTransactionCapn(s *C.Segment) TransactionCapn {
 func ReadRootTransactionCapn(s *C.Segment) TransactionCapn {
 	return TransactionCapn(s.Root(0).ToStruct())
 }
-func (s TransactionCapn) Nonce() C.UInt8List         { return C.UInt8List(C.Struct(s).GetObject(0)) }
-func (s TransactionCapn) SetNonce(v C.UInt8List)     { C.Struct(s).SetObject(0, C.Object(v)) }
-func (s TransactionCapn) Value() C.UInt8List         { return C.UInt8List(C.Struct(s).GetObject(1)) }
-func (s TransactionCapn) SetValue(v C.UInt8List)     { C.Struct(s).SetObject(1, C.Object(v)) }
-func (s TransactionCapn) RcvAddr() C.UInt8List       { return C.UInt8List(C.Struct(s).GetObject(2)) }
-func (s TransactionCapn) SetRcvAddr(v C.UInt8List)   { C.Struct(s).SetObject(2, C.Object(v)) }
-func (s TransactionCapn) SndAddr() C.UInt8List       { return C.UInt8List(C.Struct(s).GetObject(3)) }
-func (s TransactionCapn) SetSndAddr(v C.UInt8List)   { C.Struct(s).SetObject(3, C.Object(v)) }
-func (s TransactionCapn) GasPrice() C.UInt8List      { return C.UInt8List(C.Struct(s).GetObject(4)) }
-func (s TransactionCapn) SetGasPrice(v C.UInt8List)  { C.Struct(s).SetObject(4, C.Object(v)) }
-func (s TransactionCapn) GasLimit() C.UInt8List      { return C.UInt8List(C.Struct(s).GetObject(5)) }
-func (s TransactionCapn) SetGasLimit(v C.UInt8List)  { C.Struct(s).SetObject(5, C.Object(v)) }
-func (s TransactionCapn) Data() C.UInt8List          { return C.UInt8List(C.Struct(s).GetObject(6)) }
-func (s TransactionCapn) SetData(v C.UInt8List)      { C.Struct(s).SetObject(6, C.Object(v)) }
-func (s TransactionCapn) Signature() C.UInt8List     { return C.UInt8List(C.Struct(s).GetObject(7)) }
-func (s TransactionCapn) SetSignature(v C.UInt8List) { C.Struct(s).SetObject(7, C.Object(v)) }
-func (s TransactionCapn) Challenge() C.UInt8List     { return C.UInt8List(C.Struct(s).GetObject(8)) }
-func (s TransactionCapn) SetChallenge(v C.UInt8List) { C.Struct(s).SetObject(8, C.Object(v)) }
-func (s TransactionCapn) PubKey() C.UInt8List        { return C.UInt8List(C.Struct(s).GetObject(9)) }
-func (s TransactionCapn) SetPubKey(v C.UInt8List)    { C.Struct(s).SetObject(9, C.Object(v)) }
+func (s TransactionCapn) Nonce() []byte         { return C.Struct(s).GetObject(0).ToData() }
+func (s TransactionCapn) SetNonce(v []byte)     { C.Struct(s).SetObject(0, s.Segment.NewData(v)) }
+func (s TransactionCapn) Value() []byte         { return C.Struct(s).GetObject(1).ToData() }
+func (s TransactionCapn) SetValue(v []byte)     { C.Struct(s).SetObject(1, s.Segment.NewData(v)) }
+func (s TransactionCapn) RcvAddr() []byte       { return C.Struct(s).GetObject(2).ToData() }
+func (s TransactionCapn) SetRcvAddr(v []byte)   { C.Struct(s).SetObject(2, s.Segment.NewData(v)) }
+func (s TransactionCapn) SndAddr() []byte       { return C.Struct(s).GetObject(3).ToData() }
+func (s TransactionCapn) SetSndAddr(v []byte)   { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
+func (s TransactionCapn) GasPrice() []byte      { return C.Struct(s).GetObject(4).ToData() }
+func (s TransactionCapn) SetGasPrice(v []byte)  { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
+func (s TransactionCapn) GasLimit() []byte      { return C.Struct(s).GetObject(5).ToData() }
+func (s TransactionCapn) SetGasLimit(v []byte)  { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
+func (s TransactionCapn) Data() []byte          { return C.Struct(s).GetObject(6).ToData() }
+func (s TransactionCapn) SetData(v []byte)      { C.Struct(s).SetObject(6, s.Segment.NewData(v)) }
+func (s TransactionCapn) Signature() []byte     { return C.Struct(s).GetObject(7).ToData() }
+func (s TransactionCapn) SetSignature(v []byte) { C.Struct(s).SetObject(7, s.Segment.NewData(v)) }
+func (s TransactionCapn) Challenge() []byte     { return C.Struct(s).GetObject(8).ToData() }
+func (s TransactionCapn) SetChallenge(v []byte) { C.Struct(s).SetObject(8, s.Segment.NewData(v)) }
+func (s TransactionCapn) PubKey() []byte        { return C.Struct(s).GetObject(9).ToData() }
+func (s TransactionCapn) SetPubKey(v []byte)    { C.Struct(s).SetObject(9, s.Segment.NewData(v)) }
 func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -57,29 +57,11 @@ func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Nonce()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -94,29 +76,11 @@ func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Value()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -131,29 +95,11 @@ func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.RcvAddr()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -168,29 +114,11 @@ func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.SndAddr()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -205,29 +133,11 @@ func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.GasPrice()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -242,29 +152,11 @@ func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.GasLimit()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -279,29 +171,11 @@ func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Data()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -316,29 +190,11 @@ func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Signature()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -353,29 +209,11 @@ func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Challenge()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -390,29 +228,11 @@ func (s TransactionCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.PubKey()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -444,29 +264,11 @@ func (s TransactionCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.Nonce()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -481,29 +283,11 @@ func (s TransactionCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.Value()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -518,29 +302,11 @@ func (s TransactionCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.RcvAddr()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -555,29 +321,11 @@ func (s TransactionCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.SndAddr()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -592,29 +340,11 @@ func (s TransactionCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.GasPrice()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -629,29 +359,11 @@ func (s TransactionCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.GasLimit()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -666,29 +378,11 @@ func (s TransactionCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.Data()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -703,29 +397,11 @@ func (s TransactionCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.Signature()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -740,29 +416,11 @@ func (s TransactionCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.Challenge()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -777,29 +435,11 @@ func (s TransactionCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.PubKey()
-		{
-			err = b.WriteByte('[')
-			if err != nil {
-				return err
-			}
-			for i, s := range s.ToArray() {
-				if i != 0 {
-					_, err = b.WriteString(", ")
-				}
-				if err != nil {
-					return err
-				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
-				if err != nil {
-					return err
-				}
-			}
-			err = b.WriteByte(']')
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
 		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
