@@ -93,6 +93,22 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:e3cc0fb0191d4e485bf4c5e491af30a69aa30d2fe71b6ab9540f5ff788638fc1"
+  name = "github.com/glycerine/go-capnproto"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6f6ad2aa5034b3da7b23fcbdca4a499a22339b7d"
+
+[[projects]]
+  branch = "master"
+  digest = "1:fbcf1dc8aedf3276e4590a539debcf8d6b641331519a74c4bd83714ad3db6bb3"
+  name = "github.com/glycerine/rbtree"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "80eebfe947f79f7b746dc7a2ef39fd98db275853"
+
+[[projects]]
   digest = "1:d68801525369786c99880084140da0ec56cd786f12cede164b21ba8de22e2fdd"
   name = "github.com/gogo/protobuf"
   packages = [
@@ -855,6 +871,7 @@
     "github.com/dedis/kyber/util/key",
     "github.com/dedis/kyber/util/random",
     "github.com/dedis/kyber/xof/blake2xb",
+    "github.com/glycerine/go-capnproto",
     "github.com/gogo/protobuf/sortkeys",
     "github.com/hashicorp/golang-lru",
     "github.com/ipfs/go-ipfs-addr",

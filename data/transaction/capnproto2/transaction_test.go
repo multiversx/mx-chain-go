@@ -1,4 +1,4 @@
-package transaction_test
+package capnproto2_test
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"zombiezen.com/go/capnproto2"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction/capnproto2"
 )
 
 type Serializer interface {
@@ -30,7 +30,7 @@ type Tx struct {
 	PubKey    []byte
 }
 
-func newTransaction(tx *transaction.Transaction, a *Tx) {
+func newTransaction(tx *capnproto2.TxCapnp, a *Tx) {
 	tx.SetRcvAddr(a.RcvAddr)
 	tx.SetSndAddr(a.SndAddr)
 	tx.SetPubKey(a.PubKey)
@@ -56,7 +56,7 @@ func BenchmarkPopulateCapnp(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, segment, _ := capnp.NewMessage(capnp.SingleSegment(nil))
-		record, _ := transaction.NewRootTransaction(segment)
+		record, _ := capnproto2.NewRootTxCapnp(segment)
 		newTransaction(&record, txs[i%1000])
 	}
 }
@@ -65,7 +65,7 @@ func (x *CapnpSerializer) Marshal(obj interface{}) []byte {
 	txObj := obj.(*Tx)
 
 	m, s, _ := capnp.NewMessage(x.arena)
-	tx, _ := transaction.NewRootTransaction(s)
+	tx, _ := capnproto2.NewRootTxCapnp(s)
 	newTransaction(&tx, txObj)
 	b, _ := m.Marshal()
 	return b
@@ -75,7 +75,7 @@ func (x *CapnpSerializer) Unmarshal(d []byte, obj interface{}) error {
 	txObj := obj.(*Tx)
 
 	m, _ := capnp.Unmarshal(d)
-	tx, _ := transaction.ReadRootTransaction(m)
+	tx, _ := capnproto2.ReadRootTxCapnp(m)
 
 	txObj.Nonce, _ = tx.Nonce()
 	txObj.Value, _ = tx.Value()

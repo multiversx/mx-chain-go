@@ -1,9 +1,9 @@
 @0x9096faa5d587481d;
 using Go = import "/go.capnp";
-$Go.package("block");
+$Go.package("capnproto");
 $Go.import("_");
 
-struct Header $Go.doc("header information, attachable to blocks or miniblocks"){
+struct HeaderCapnp $Go.doc("header information, attachable to blocks or miniblocks"){
     nonce @0 :Data;
     prevHash @1:Data;
     # temporary keep list of public keys of signers in header
