@@ -45,7 +45,7 @@ func NewConnNotifier(m Messenger) *ConnNotifier {
 
 	cn := ConnNotifier{Msgr: m}
 	cn.RoutineWrapper = *execution.NewRoutineWrapper()
-	//there is a 100 ms delay between calls so the connecting and disconnecting is not done
+	//there is a delay between calls so the connecting and disconnecting is not done
 	//very often (take into account that doing a connection is a lengthy process)
 	cn.RoutineWrapper.DurCalls = 1000 * time.Millisecond
 

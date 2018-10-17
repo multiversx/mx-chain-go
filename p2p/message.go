@@ -65,13 +65,8 @@ func (m *Message) Signed() bool {
 	return m.isSigned
 }
 
-// Signs the message with the ConnectParams info
-func (m *Message) Sign(params *ConnectParams) error {
-	return m.SignWithPrivateKey(params.PrivKey)
-}
-
-// SignWithPrivateKey signs the message with the private key
-func (m *Message) SignWithPrivateKey(sk crypto.PrivKey) error {
+// Signs the message with the private key
+func (m *Message) Sign(sk crypto.PrivKey) error {
 	if sk == nil {
 		return errors.New("Invalid private key tuple!")
 	}

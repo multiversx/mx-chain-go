@@ -234,7 +234,6 @@ func TestLonelyPeers(t *testing.T) {
 		rt := p2p.NewRoutingTable(peer.ID(p))
 
 		rts = append(rts, *rt)
-		//nearest = append(nearest, []kbucket.ID{})
 	}
 
 	for i := 0; i < len(peers); i++ {
@@ -270,7 +269,6 @@ func testLonelyPeer(start string, peers []string, conn map[peer.ID][]peer.ID) in
 	job := make(map[peer.ID]bool)
 	job[peer.ID(start)] = false
 
-	//traverseRec(start, conn, reached)
 	traverseRec2(conn, reached, job)
 
 	notReached := 0

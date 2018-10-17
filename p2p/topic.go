@@ -4,15 +4,12 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	crypto2 "github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-peer"
 	"github.com/pkg/errors"
 )
 
 // OnTopicReceived is the signature for the event handler used by Topic struct
-type OnTopicReceived func(name string, data interface{})
+type OnTopicReceived func(name string, data interface{}, msgInfo *MessageInfo)
 
 // Topic struct defines a type of message that can be received and broadcast
 // The use of empty interface gives this struct's a generic use
@@ -26,23 +23,28 @@ type Topic struct {
 	Name        string
 	ObjTemplate interface{}
 	marsh       marshal.Marshalizer
-	hasher      hashing.Hasher
 
-	objPump chan interface{}
+	objPump chan MessageInfo
 
 	mutEventBus sync.RWMutex
 	eventBus    []OnTopicReceived
 
-	OnNeedToSendMessage func(topic string, buff []byte) error
+	OnNeedToSendMessage func(mes *Message, flagSign bool) error
+}
 
-	queue *MessageQueue
+// MessageInfo will retain additional info about the message, should we care
+// when receiving an object on current topic
+type MessageInfo struct {
+	Object interface{}
+	Signed bool
+	Hops   int
+	Peers  []string
 }
 
 // NewTopic creates a new Topic struct
-func NewTopic(name string, objTemplate interface{}, marsh marshal.Marshalizer, hasher hashing.Hasher, maxCapacity int) *Topic {
-	topic := Topic{Name: name, ObjTemplate: objTemplate, marsh: marsh, hasher: hasher}
-	topic.objPump = make(chan interface{}, 10000)
-	topic.queue = NewMessageQueue(maxCapacity)
+func NewTopic(name string, objTemplate interface{}, marsh marshal.Marshalizer) *Topic {
+	topic := Topic{Name: name, ObjTemplate: objTemplate, marsh: marsh}
+	topic.objPump = make(chan MessageInfo, 10000)
 
 	go topic.processData()
 
@@ -64,63 +66,34 @@ func (t *Topic) AddEventHandler(event OnTopicReceived) {
 
 // NewMessageReceived is called from the lower data layer
 // it will ignore nils, improper formatted messages or tampered messages
-func (t *Topic) NewMessageReceived(buff []byte) error {
-	//buffer sanity checks
-	if len(buff) == 0 {
-		return nil
-	}
-
-	if (len(buff) == 1) && (buff[0] == byte('\n')) {
-		return nil
-	}
-
-	if buff[len(buff)-1] == byte('\n') {
-		buff = buff[0 : len(buff)-1]
-	}
-
-	//unmarshaling the message
-	message, err := CreateFromByteArray(t.marsh, buff)
-
-	if err != nil {
-		return nil
-	}
-
-	//check authentication
-	err = message.VerifyAndSetSigned()
-	if err != nil {
-		return nil
-	}
-
-	//check hash for multiple receives
-	hash := t.hasher.Compute(string(message.Payload))
-	if t.queue.ContainsAndAdd(string(hash)) {
-		return nil
-	}
-
+func (t *Topic) NewMessageReceived(message *Message) error {
 	// create new instance of the object
 	newObj := reflect.New(reflect.TypeOf(t.ObjTemplate)).Interface()
 
-	//unmarshal data from the message
-	err = t.marsh.Unmarshal(newObj, message.Payload)
+	if message == nil {
+		return errors.New("nil message not allowed")
+	}
 
+	//unmarshal data from the message
+	err := t.marsh.Unmarshal(newObj, message.Payload)
 	if err != nil {
 		return err
 	}
 
 	//add to the channel so it can be consumed async
-	t.objPump <- newObj
+	t.objPump <- MessageInfo{Object: newObj, Peers: message.Peers, Signed: message.isSigned, Hops: message.Hops}
 	return nil
 }
 
-// Broadcast should be called whenever a hight order struct needs to send over the wire an object
-// Optionally, the message can be authenticated with a provided privateKey
-func (t *Topic) Broadcast(data interface{}, peerID peer.ID, skForSigning crypto2.PrivKey) error {
+// Broadcast should be called whenever a higher order struct needs to send over the wire an object
+// Optionally, the message can be authenticated
+func (t *Topic) Broadcast(data interface{}, flagSign bool) error {
 	if data == nil {
 		return errors.New("can not process nil data")
 	}
 
-	//assemle the message
-	mes := NewMessage(peerID.Pretty(), nil, t.marsh)
+	//assemble the message
+	mes := NewMessage("", nil, t.marsh)
 	mes.Type = t.Name
 	payload, err := t.marsh.Marshal(data)
 	if err != nil {
@@ -128,24 +101,11 @@ func (t *Topic) Broadcast(data interface{}, peerID peer.ID, skForSigning crypto2
 	}
 	mes.Payload = payload
 
-	//if sk was provided, sign the message
-	if skForSigning != nil {
-		err = mes.SignWithPrivateKey(skForSigning)
-		if err != nil {
-			return err
-		}
-	}
-
 	if t.OnNeedToSendMessage == nil {
 		return errors.New("send to nil the assembled message?")
 	}
 
-	buff, err := mes.ToByteArray()
-	if err != nil {
-		return err
-	}
-
-	return t.OnNeedToSendMessage(t.Name, buff)
+	return t.OnNeedToSendMessage(mes, flagSign)
 }
 
 func (t *Topic) processData() {
@@ -156,7 +116,7 @@ func (t *Topic) processData() {
 			//call each event handler from the list
 			t.mutEventBus.RLock()
 			for i := 0; i < len(t.eventBus); i++ {
-				t.eventBus[i](t.Name, obj)
+				t.eventBus[i](t.Name, obj.Object, &obj)
 			}
 			t.mutEventBus.RUnlock()
 		}

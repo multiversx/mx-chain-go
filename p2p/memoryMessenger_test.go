@@ -14,25 +14,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testNetMarshalizer = &mock.MarshalizerMock{}
-var testNetHasher = &mock.HasherMock{}
+var testMemoryMarshalizer = &mock.MarshalizerMock{}
+var testMemoryHasher = &mock.HasherMock{}
 
-func createNetMessenger(t *testing.T, port int, nConns int) (*p2p.NetMessenger, error) {
+func createMemoryMessenger(t *testing.T, port int, nConns int) (*p2p.MemoryMessenger, error) {
 	cp, err := p2p.NewConnectParamsFromPort(port)
 	assert.Nil(t, err)
 
-	return p2p.NewNetMessenger(context.Background(), testNetMarshalizer, testNetHasher, cp, nConns)
+	return p2p.NewMemoryMessenger(testMemoryMarshalizer, testMemoryHasher, cp.ID, nConns)
 }
 
-func TestNetMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
+func TestMemoryMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
 	fmt.Println()
 
 	port := 4000
 
-	node1, err := createNetMessenger(t, port, 10)
+	node1, err := createMemoryMessenger(t, port, 10)
 	assert.Nil(t, err)
 
-	node2, err := createNetMessenger(t, port, 10)
+	node2, err := createMemoryMessenger(t, port, 10)
 	assert.Nil(t, err)
 
 	if node1.ID().Pretty() != node2.ID().Pretty() {
@@ -40,13 +40,13 @@ func TestNetMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
-	node, err := createNetMessenger(t, 4500, 10)
+func TestMemoryMessenger_SendToSelf_ShouldWork(t *testing.T) {
+	node, err := createMemoryMessenger(t, 4500, 10)
 	assert.Nil(t, err)
 
 	var counter int32
 
-	node.AddTopic(p2p.NewTopic("test topic", "", testNetMarshalizer))
+	node.AddTopic(p2p.NewTopic("test topic", "", testMemoryMarshalizer))
 	node.GetTopic("test topic").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		fmt.Printf("Got message: %v\n", *data.(*string))
 
@@ -65,13 +65,13 @@ func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
 
 }
 
-func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
+func TestMemoryMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	fmt.Println()
 
-	node1, err := createNetMessenger(t, 5100, 10)
+	node1, err := createMemoryMessenger(t, 5100, 10)
 	assert.Nil(t, err)
 
-	node2, err := createNetMessenger(t, 5101, 10)
+	node2, err := createMemoryMessenger(t, 5101, 10)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -92,11 +92,11 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	var val int32 = 0
 
 	//create 2 topics on each node
-	node1.AddTopic(p2p.NewTopic("ping", "", testNetMarshalizer))
-	node1.AddTopic(p2p.NewTopic("pong", "", testNetMarshalizer))
+	node1.AddTopic(p2p.NewTopic("ping", "", testMemoryMarshalizer))
+	node1.AddTopic(p2p.NewTopic("pong", "", testMemoryMarshalizer))
 
-	node2.AddTopic(p2p.NewTopic("ping", "", testNetMarshalizer))
-	node2.AddTopic(p2p.NewTopic("pong", "", testNetMarshalizer))
+	node2.AddTopic(p2p.NewTopic("ping", "", testMemoryMarshalizer))
+	node2.AddTopic(p2p.NewTopic("pong", "", testMemoryMarshalizer))
 
 	//assign some event handlers on topics
 	node1.GetTopic("ping").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
@@ -142,14 +142,14 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	node2.Close()
 }
 
-func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
+func TestMemoryMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 	fmt.Println()
 
-	nodes := make([]*p2p.NetMessenger, 0)
+	nodes := make([]*p2p.MemoryMessenger, 0)
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
-		node, err := createNetMessenger(t, 6100+i, 10)
+		node, err := createMemoryMessenger(t, 6100+i, 10)
 		assert.Nil(t, err)
 
 		nodes = append(nodes, node)
@@ -184,7 +184,7 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		node.AddTopic(p2p.NewTopic("test", "", testNetMarshalizer))
+		node.AddTopic(p2p.NewTopic("test", "", testMemoryMarshalizer))
 		node.GetTopic("test").AddEventHandler(recv)
 	}
 
@@ -207,14 +207,14 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing.T) {
+func TestMemoryMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing.T) {
 	fmt.Println()
 
-	nodes := make([]*p2p.NetMessenger, 0)
+	nodes := make([]*p2p.MemoryMessenger, 0)
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
-		node, err := createNetMessenger(t, 7000+i, 10)
+		node, err := createMemoryMessenger(t, 7000+i, 10)
 		assert.Nil(t, err)
 
 		nodes = append(nodes, node)
@@ -257,7 +257,7 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 		node := nodes[i]
 		node.PrintConnected()
 
-		node.AddTopic(p2p.NewTopic("test", "", testNetMarshalizer))
+		node.AddTopic(p2p.NewTopic("test", "", testMemoryMarshalizer))
 		node.GetTopic("test").AddEventHandler(recv)
 	}
 
@@ -280,34 +280,34 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 	}
 }
 
-func TestNetMessenger_SendingNil_ShouldErr(t *testing.T) {
-	node1, err := createNetMessenger(t, 9000, 10)
+func TestMemoryMessenger_SendingNil_ShouldErr(t *testing.T) {
+	node1, err := createMemoryMessenger(t, 9000, 10)
 	assert.Nil(t, err)
 
-	node1.AddTopic(p2p.NewTopic("test", "", testNetMarshalizer))
+	node1.AddTopic(p2p.NewTopic("test", "", testMemoryMarshalizer))
 	err = node1.GetTopic("test").Broadcast(nil, false)
 	assert.NotNil(t, err)
 }
 
-func TestNetMessenger_CreateNodeWithNilMarshalizer_ShouldErr(t *testing.T) {
+func TestMemoryMessenger_CreateNodeWithNilMarshalizer_ShouldErr(t *testing.T) {
 	cp, err := p2p.NewConnectParamsFromPort(11000)
 	assert.Nil(t, err)
 
-	_, err = p2p.NewNetMessenger(context.Background(), nil, testNetHasher, cp, 10)
+	_, err = p2p.NewMemoryMessenger(nil, testMemoryHasher, cp.ID, 10)
 
 	assert.NotNil(t, err)
 }
 
-func TestNetMessenger_CreateNodeWithNilHasher_ShouldErr(t *testing.T) {
+func TestMemoryMessenger_CreateNodeWithNilHasher_ShouldErr(t *testing.T) {
 	cp, err := p2p.NewConnectParamsFromPort(12000)
 	assert.Nil(t, err)
 
-	_, err = p2p.NewNetMessenger(context.Background(), testNetMarshalizer, nil, cp, 10)
+	_, err = p2p.NewMemoryMessenger(testMemoryMarshalizer, nil, cp.ID, 10)
 
 	assert.NotNil(t, err)
 }
 
-func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testing.T) {
+func TestMemoryMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
@@ -327,9 +327,9 @@ func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testin
 
 	//prepare messengers
 	for i := startPort; i <= endPort; i++ {
-		node, err := createNetMessenger(t, i, nConns)
+		node, err := createMemoryMessenger(t, i, nConns)
 
-		err = node.AddTopic(p2p.NewTopic("test topic", "", testNetMarshalizer))
+		err = node.AddTopic(p2p.NewTopic("test topic", "", testMemoryMarshalizer))
 		assert.Nil(t, err)
 
 		node.GetTopic("test topic").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
@@ -437,7 +437,7 @@ func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testin
 	assert.Equal(t, notRecv, 0)
 }
 
-func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
+func TestMemoryMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 	//stress test to check if the node is able to cope
 	//with unmarshaling a bad object
 	//both structs have the same fields but incompatible types
@@ -455,10 +455,10 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 		Data  []byte
 	}
 
-	node1, err := createNetMessenger(t, 13000, 10)
+	node1, err := createMemoryMessenger(t, 13000, 10)
 	assert.Nil(t, err)
 
-	node2, err := createNetMessenger(t, 13001, 10)
+	node2, err := createMemoryMessenger(t, 13001, 10)
 	assert.Nil(t, err)
 
 	//connect nodes
@@ -468,8 +468,8 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 	time.Sleep(time.Second)
 
 	//create topics for each node
-	node1.AddTopic(p2p.NewTopic("test", struct1{}, testNetMarshalizer))
-	node2.AddTopic(p2p.NewTopic("test", struct2{}, testNetMarshalizer))
+	node1.AddTopic(p2p.NewTopic("test", struct1{}, testMemoryMarshalizer))
+	node2.AddTopic(p2p.NewTopic("test", struct2{}, testMemoryMarshalizer))
 
 	counter := int32(0)
 
@@ -488,14 +488,14 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 	assert.Equal(t, int32(0), atomic.LoadInt32(&counter))
 }
 
-func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T) {
+func TestMemoryMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T) {
 	//stress test to check if the node is able to cope
 	//with receiving on an inexistent topic
 
-	node1, err := createNetMessenger(t, 14000, 10)
+	node1, err := createMemoryMessenger(t, 14000, 10)
 	assert.Nil(t, err)
 
-	node2, err := createNetMessenger(t, 14001, 10)
+	node2, err := createMemoryMessenger(t, 14001, 10)
 	assert.Nil(t, err)
 
 	//connect nodes
@@ -505,8 +505,8 @@ func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T)
 	time.Sleep(time.Second)
 
 	//create topics for each node
-	node1.AddTopic(p2p.NewTopic("test1", "", testNetMarshalizer))
-	node2.AddTopic(p2p.NewTopic("test2", "", testNetMarshalizer))
+	node1.AddTopic(p2p.NewTopic("test1", "", testMemoryMarshalizer))
+	node2.AddTopic(p2p.NewTopic("test2", "", testMemoryMarshalizer))
 
 	counter := int32(0)
 
@@ -525,7 +525,7 @@ func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T)
 	assert.Equal(t, int32(0), atomic.LoadInt32(&counter))
 }
 
-func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testing.T) {
+func TestMemoryMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
@@ -545,9 +545,9 @@ func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *test
 
 	//prepare messengers
 	for i := startPort; i <= endPort; i++ {
-		node, err := createNetMessenger(t, i, nConns)
+		node, err := createMemoryMessenger(t, i, nConns)
 
-		err = node.AddTopic(p2p.NewTopic("test topic", "", testNetMarshalizer))
+		err = node.AddTopic(p2p.NewTopic("test topic", "", testMemoryMarshalizer))
 		assert.Nil(t, err)
 
 		node.GetTopic("test topic").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {

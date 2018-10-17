@@ -70,6 +70,10 @@ func TestMessageQueue1(t *testing.T) {
 }
 
 func TestMessageQueueMemLeak(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
+
 	timeStart := time.Now()
 	timeIntermed := time.Now()
 
@@ -97,8 +101,8 @@ func TestMessageQueueMemLeak(t *testing.T) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	if bToMb(m.Alloc) > 10 {
-		t.Fatal("Allocated memory should have been less than 10 MiB!")
+	if bToMb(m.Alloc) > bToMb(m.TotalAlloc) {
+		t.Fatal("Allocated memory should have been less than total memory!")
 	}
 
 }

@@ -2,13 +2,12 @@ package p2p
 
 import (
 	"crypto/ecdsa"
-	"fmt"
 	"math/rand"
 
 	"github.com/btcsuite/btcd/btcec"
 	cr "github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-peer"
-	ma "github.com/multiformats/go-multiaddr"
+	"github.com/pkg/errors"
 )
 
 // ConnectParams is used to instantiate a Messenger object
@@ -17,7 +16,6 @@ type ConnectParams struct {
 	ID      peer.ID
 	PrivKey cr.PrivKey
 	PubKey  cr.PubKey
-	Addr    ma.Multiaddr
 	Port    int
 }
 
@@ -47,40 +45,34 @@ func (params *ConnectParams) GenerateIDFromPubKey() {
 // NewConnectParamsFromPort will generate a new ConnectParams object by using the port
 // as a seed for the random generation object
 // SHOULD BE USED ONLY IN TESTING!!!
-func NewConnectParamsFromPort(port int) *ConnectParams {
+func NewConnectParamsFromPort(port int) (*ConnectParams, error) {
+	if port < 0 || port > 65535 {
+		return nil, errors.New("port outside [0, 65535]")
+	}
+
 	params := new(ConnectParams)
 
 	params.Port = port
 	params.GeneratePrivPubKeys(port)
 	params.GenerateIDFromPubKey()
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
 
-	if err != nil {
-		panic(err)
-	}
-
-	params.Addr = addr
-
-	return params
+	return params, nil
 }
 
 // NewConnectParams is used to generate a new ConnectParams. This is the proper
 // way to initialize the object. The private key provided is used for
 // data and channel encryption and can be used for authentication of messages
-func NewConnectParams(ipAddr string, port int, privKey cr.PrivKey) *ConnectParams {
+func NewConnectParams(port int, privKey cr.PrivKey) (*ConnectParams, error) {
+	if port < 0 || port > 65535 {
+		return nil, errors.New("port outside [0, 65535]")
+	}
+
 	params := new(ConnectParams)
 
 	params.Port = port
 	params.PrivKey = privKey
 	params.PubKey = privKey.GetPublic()
 	params.GenerateIDFromPubKey()
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ipAddr, port))
 
-	if err != nil {
-		panic(err)
-	}
-
-	params.Addr = addr
-
-	return params
+	return params, nil
 }
