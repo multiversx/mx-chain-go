@@ -110,7 +110,7 @@ func main() {
 		blockChain := blockchain.New(nil, syncTime, i == 0)
 		validators := validators.New(consensusGroup, consensusGroup[*FIRST_NODE_ID+i-1])
 		consensus := consensus.New(consensus.Threshold{1, PBFTThreshold, PBFTThreshold, PBFTThreshold, PBFTThreshold})
-		round := round.NewRoundFromDateTime(GENESIS_TIME, syncTime.GetCurrentTime(), *ROUND_DURATION, division, subround)
+		round := round.NewRoundFromDateTime(GENESIS_TIME, syncTime.CurrentTime(), *ROUND_DURATION, division, subround)
 		statistic := statistic.New()
 
 		chronologyIn := chronology.ChronologyIn{GenesisTime: GENESIS_TIME, P2PNode: nodes[i], Block: &block, BlockChain: &blockChain, Validators: &validators, Consensus: &consensus, Round: &round, Statistic: &statistic, SyncTime: syncTime}

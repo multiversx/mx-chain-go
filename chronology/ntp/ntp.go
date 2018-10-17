@@ -173,7 +173,7 @@ type Response struct {
 	// responded to the client's NTP query.
 	Time time.Time
 
-	// ClockOffset is the estimated offset of the client clock relative to
+	// Offset is the estimated offset of the client clock relative to
 	// the server. Add this to the client's system clock time to obtain a
 	// more accurate time.
 	ClockOffset time.Duration

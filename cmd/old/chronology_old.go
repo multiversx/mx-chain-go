@@ -180,7 +180,7 @@ func (c *Chronology) OptimizeRoundState(roundState round.RoundState) {
 		case rcvMsg := <-c.ChRcvMsg:
 			if c.SelfRoundState >= round.RS_START_ROUND && c.SelfRoundState <= round.RS_END_ROUND {
 				if c.ConsumeReceivedMessage(&rcvMsg, c.Round.State) {
-					//c.Log(fmt.Sprintf("\n" + FormatTime(c.SyncTime.GetCurrentTime())+"Received message in time round state %s and self round state %s", rs.GetRoundStateName(c.Round.GetRoundState()), rs.GetRoundStateName(c.SelfRoundState)))
+					//c.Log(fmt.Sprintf("\n" + FormatTime(c.SyncTime.CurrentTime())+"Received message in time round state %s and self round state %s", rs.GetRoundStateName(c.Round.GetRoundState()), rs.GetRoundStateName(c.SelfRoundState)))
 				}
 			}
 		default:
@@ -549,7 +549,7 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		node := rcvBlock.Signature
 
 		//if timeRoundState > round.RS_BLOCK || c.SelfRoundState > round.RS_BLOCK {
-		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_BLOCK) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
+		//	c.Log(fmt.Sprintf(c.FormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_BLOCK) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
 		//}
 
 		if c.Round.Block != round.SS_FINISHED {
@@ -571,7 +571,7 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		node := rcvBlock.Signature
 
 		//if timeRoundState > round.RS_COMITMENT_HASH || c.SelfRoundState > round.RS_COMITMENT_HASH {
-		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_COMITMENT_HASH) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
+		//	c.Log(fmt.Sprintf(c.FormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_COMITMENT_HASH) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
 		//}
 
 		if c.Round.ComitmentHash != round.SS_FINISHED {
@@ -591,7 +591,7 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		node := rcvBlock.Signature
 
 		//if timeRoundState > round.RS_BITMAP || c.SelfRoundState > round.RS_BITMAP {
-		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_BITMAP) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
+		//	c.Log(fmt.Sprintf(c.FormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_BITMAP) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
 		//}
 
 		if c.Round.Bitmap != round.SS_FINISHED {
@@ -625,7 +625,7 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		node := rcvBlock.Signature
 
 		//if timeRoundState > round.RS_COMITMENT || c.SelfRoundState > round.RS_COMITMENT {
-		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_COMITMENT) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
+		//	c.Log(fmt.Sprintf(c.FormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_COMITMENT) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
 		//}
 
 		if c.Round.Comitment != round.SS_FINISHED {
@@ -645,7 +645,7 @@ func (c *Chronology) ConsumeReceivedMessage(rcvMsg *[]byte, timeRoundState round
 		node := rcvBlock.Signature
 
 		//if timeRoundState > round.RS_SIGNATURE || c.SelfRoundState > round.RS_SIGNATURE {
-		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_SIGNATURE) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
+		//	c.Log(fmt.Sprintf(c.FormatedCurrentTime() + "Received late " + c.GetMessageTypeName(MT_SIGNATURE) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
 		//}
 
 		if c.Round.Signature != round.SS_FINISHED {
@@ -1134,7 +1134,7 @@ func (c *Chronology) GetLeader() (string, error) {
 }
 
 func (c *Chronology) InitRound() {
-	c.ClockOffset = c.SyncTime.GetClockOffset()
+	c.ClockOffset = c.SyncTime.ClockOffset()
 	c.SelfRoundState = round.RS_START_ROUND
 	c.Validators.ResetValidationMap()
 	c.Block.ResetBlock()
@@ -1173,7 +1173,7 @@ func (c *Chronology) GetMessageTypeName(messageType MessageType) string {
 }
 
 func (c *Chronology) recv(sender p2p.Messenger, peerID string, m *p2p.Message) {
-	//c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Peer with ID = %s got a message from peer with ID = %s which traversed %d peers\n", sender.P2pNode.ID().Pretty(), peerID, len(m.Peers)))
+	//c.Log(fmt.Sprintf(c.FormatedCurrentTime()+"Peer with ID = %s got a message from peer with ID = %s which traversed %d peers\n", sender.P2pNode.ID().Pretty(), peerID, len(m.Peers)))
 	m.AddHop(sender.ID().Pretty())
 	c.ChRcvMsg <- m.Payload
 	//sender.BroadcastMessage(m, m.Peers)
@@ -1182,7 +1182,7 @@ func (c *Chronology) recv(sender p2p.Messenger, peerID string, m *p2p.Message) {
 
 func (c *Chronology) DecodeMessage(rcvMsg *[]byte) (MessageType, interface{}) {
 	if ok, msgBlock := c.IsBlockInMessage(rcvMsg); ok {
-		//c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Got a message with %s for block with Signature = %s and Nonce = %d and Hash = %s\n", msgBlock.MetaData, msgBlock.Signature, msgBlock.Nonce, msgBlock.Hash))
+		//c.Log(fmt.Sprintf(c.FormatedCurrentTime()+"Got a message with %s for block with Signature = %s and Nonce = %d and Hash = %s\n", msgBlock.MetaData, msgBlock.Signature, msgBlock.Nonce, msgBlock.Hash))
 		if strings.Contains(msgBlock.MetaData, c.GetMessageTypeName(MT_BLOCK)) {
 			return MT_BLOCK, msgBlock
 		}

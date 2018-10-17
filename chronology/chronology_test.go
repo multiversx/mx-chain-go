@@ -223,7 +223,8 @@ func TestStartRound(t *testing.T) {
 	currentTime := genesisTime
 
 	rnd := NewRound(genesisTime, currentTime, roundTimeDuration)
-	syncTime := &ntp.LocalTime{ClockOffset: roundTimeDuration + 1}
+	syncTime := &ntp.LocalTime{}
+	syncTime.SetClockOffset(roundTimeDuration + 1)
 
 	chr := NewChronology(true, true, rnd, genesisTime, syncTime)
 
@@ -288,23 +289,23 @@ func TestGetters(t *testing.T) {
 	currentTime := genesisTime
 
 	rnd := NewRound(genesisTime, currentTime, roundTimeDuration)
-	syncTime := &ntp.LocalTime{ClockOffset: 0}
+	syncTime := &ntp.LocalTime{}
 
 	chr := NewChronology(true, true, rnd, genesisTime, syncTime)
 
-	assert.Equal(t, 0, chr.GetRoundIndex())
-	assert.Equal(t, SrBeforeRound, chr.GetSelfSubround())
+	assert.Equal(t, 0, chr.Round().Index())
+	assert.Equal(t, SrBeforeRound, chr.SelfSubround())
 
 	chr.SetSelfSubround(srStartRound)
-	assert.Equal(t, srStartRound, chr.GetSelfSubround())
+	assert.Equal(t, srStartRound, chr.SelfSubround())
 
-	assert.Equal(t, SrBeforeRound, chr.GetTimeSubround())
-	assert.Equal(t, time.Duration(0), chr.GetClockOffset())
-	assert.NotNil(t, chr.GetSyncTimer())
-	assert.Equal(t, time.Duration(0), chr.GetSyncTimer().GetClockOffset())
+	assert.Equal(t, SrBeforeRound, chr.TimeSubround())
+	assert.Equal(t, time.Duration(0), chr.ClockOffset())
+	assert.NotNil(t, chr.SyncTime())
+	assert.Equal(t, time.Duration(0), chr.SyncTime().ClockOffset())
 
 	chr.SetClockOffset(time.Duration(5))
-	assert.Equal(t, time.Duration(5), chr.GetClockOffset())
+	assert.Equal(t, time.Duration(5), chr.ClockOffset())
 
-	fmt.Printf("%v\n%v", chr.GetCurrentTime(), chr.GetFormatedCurrentTime())
+	fmt.Printf("%v\n%v", chr.SyncTime().CurrentTime(chr.ClockOffset()), chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()))
 }

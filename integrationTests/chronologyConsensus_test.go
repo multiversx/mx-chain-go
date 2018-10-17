@@ -57,7 +57,7 @@ func TestChronology(t *testing.T) {
 		blockChain := blockchain.New(nil, syncTime, i == 0)
 		validators := validators.New(consensusGroup, consensusGroup[FIRST_NODE_ID+i-1])
 		consensus := consensus.New(consensus.Threshold{1, PBFTThreshold, PBFTThreshold, PBFTThreshold, PBFTThreshold})
-		round := round.NewRoundFromDateTime(GENESIS_TIME, syncTime.GetCurrentTime(), ROUND_DURATION, createRoundTimeDivision(ROUND_DURATION), round.Subround{round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED})
+		round := round.NewRoundFromDateTime(GENESIS_TIME, syncTime.CurrentTime(), ROUND_DURATION, createRoundTimeDivision(ROUND_DURATION), round.Subround{round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED, round.SS_NOTFINISHED})
 		statistic := statistic.New()
 
 		// create ChronologyIn
@@ -77,7 +77,7 @@ func TestChronology(t *testing.T) {
 		go chrs[i].StartRounds()
 	}
 
-	// log BlockChain for first node
+	// log blockChain for first node
 	logBlockChain(chrs[0])
 
 	// close P2P

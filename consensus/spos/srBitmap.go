@@ -21,7 +21,7 @@ func NewSRBitmap(doLog bool, endTime int64, cns *Consensus, onReceivedMessage fu
 }
 
 func (sr *SRBitmap) DoWork(chr *chronology.Chronology) bool {
-	for chr.GetSelfSubround() != chronology.SrCanceled {
+	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
 		switch sr.doBitmap(chr) {
 		case rNone:
@@ -35,25 +35,25 @@ func (sr *SRBitmap) DoWork(chr *chronology.Chronology) bool {
 		}
 	}
 
-	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 3: Canceled round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 3: Canceled round %d in subround %s", chr.Round().Index(), sr.Name()))
 	return false
 }
 
 func (sr *SRBitmap) doBitmap(chr *chronology.Chronology) Response {
-	bActionDone := sr.OnSendMessage(chronology.Subround(srBitmap))
+	bActionDone := sr.OnSendMessage(chronology.Subround(SrBitmap))
 
 	if bActionDone {
 		bActionDone = false
-		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(srBlock), chronology.Subround(srBitmap)); ok {
+		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBitmap)); ok {
 			return rTrue
 		}
 	}
 
-	timeSubRound := chr.GetSubroundFromDateTime(chr.GetCurrentTime())
+	timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
-	if timeSubRound > chronology.Subround(srBitmap) {
-		sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime() + "Step 3: Extended the " + sr.Name() + " subround"))
-		sr.cns.RoundStatus.Bitmap = ssExtended
+	if timeSubRound > chronology.Subround(SrBitmap) {
+		sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) + "Step 3: Extended the " + sr.Name() + " subround"))
+		sr.cns.RoundStatus.Bitmap = SsExtended
 		return rTrue // Try to give a chance to this round if the bitmap from leader will arrive later
 	}
 
@@ -67,12 +67,12 @@ func (sr *SRBitmap) doBitmap(chr *chronology.Chronology) Response {
 
 	if bActionDone {
 		bActionDone = false
-		if ok, n := sr.cns.CheckConsensus(chronology.Subround(srBlock), chronology.Subround(srBitmap)); ok {
+		if ok, n := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBitmap)); ok {
 			addMessage := "BUT I WAS NOT selected in this bitmap"
 			if sr.cns.IsNodeInBitmapGroup(sr.cns.Self) {
 				addMessage = "AND I WAS selected in this bitmap"
 			}
-			sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d comitment hashes, which are enough, %s", n, len(sr.cns.ConsensusGroup), addMessage))
+			sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d comitment hashes, which are enough, %s", n, len(sr.cns.ConsensusGroup), addMessage))
 			return rTrue
 		}
 	}
@@ -81,11 +81,11 @@ func (sr *SRBitmap) doBitmap(chr *chronology.Chronology) Response {
 }
 
 func (sr *SRBitmap) Current() chronology.Subround {
-	return chronology.Subround(srBitmap)
+	return chronology.Subround(SrBitmap)
 }
 
 func (sr *SRBitmap) Next() chronology.Subround {
-	return chronology.Subround(srComitment)
+	return chronology.Subround(SrComitment)
 }
 
 func (sr *SRBitmap) EndTime() int64 {

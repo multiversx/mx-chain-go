@@ -21,7 +21,7 @@ func NewSRBlock(doLog bool, endTime int64, cns *Consensus, onReceivedMessage fun
 }
 
 func (sr *SRBlock) DoWork(chr *chronology.Chronology) bool {
-	for chr.GetSelfSubround() != chronology.SrCanceled {
+	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
 		switch sr.doBlock(chr) {
 		case rNone:
@@ -35,25 +35,25 @@ func (sr *SRBlock) DoWork(chr *chronology.Chronology) bool {
 		}
 	}
 
-	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 1: Canceled round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 1: Canceled round %d in subround %s", chr.Round().Index(), sr.Name()))
 	return false
 }
 
 func (sr *SRBlock) doBlock(chr *chronology.Chronology) Response {
-	bActionDone := sr.OnSendMessage(chronology.Subround(srBlock))
+	bActionDone := sr.OnSendMessage(chronology.Subround(SrBlock))
 
 	if bActionDone {
 		bActionDone = false
-		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(srBlock), chronology.Subround(srBlock)); ok {
+		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBlock)); ok {
 			return rTrue
 		}
 	}
 
-	timeSubRound := chr.GetSubroundFromDateTime(chr.GetCurrentTime())
+	timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
-	if timeSubRound > chronology.Subround(srBlock) {
-		sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime() + "Step 1: Extended the " + sr.Name() + " subround"))
-		sr.cns.RoundStatus.Block = ssExtended
+	if timeSubRound > chronology.Subround(SrBlock) {
+		sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) + "Step 1: Extended the " + sr.Name() + " subround"))
+		sr.cns.RoundStatus.Block = SsExtended
 		return rTrue // Try to give a chance to this round if the block from leader will arrive later
 	}
 
@@ -67,8 +67,8 @@ func (sr *SRBlock) doBlock(chr *chronology.Chronology) Response {
 
 	if bActionDone {
 		bActionDone = false
-		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(srBlock), chronology.Subround(srBlock)); ok {
-			sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime() + "Step 1: Synchronized block"))
+		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBlock)); ok {
+			sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) + "Step 1: Synchronized block"))
 			return rTrue
 		}
 	}
@@ -77,11 +77,11 @@ func (sr *SRBlock) doBlock(chr *chronology.Chronology) Response {
 }
 
 func (sr *SRBlock) Current() chronology.Subround {
-	return chronology.Subround(srBlock)
+	return chronology.Subround(SrBlock)
 }
 
 func (sr *SRBlock) Next() chronology.Subround {
-	return chronology.Subround(srComitmentHash)
+	return chronology.Subround(SrComitmentHash)
 }
 
 func (sr *SRBlock) EndTime() int64 {

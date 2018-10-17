@@ -6,9 +6,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	//"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	//"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 )
 
 const roundTimeDuration = time.Duration(4000 * time.Millisecond)
@@ -17,13 +16,13 @@ const sleepTime = 5
 type Subround int
 
 const (
-	srStartRound Subround = iota
-	srBlock
-	srComitmentHash
-	srBitmap
-	srComitment
-	srSignature
-	srEndRound
+	SrStartRound Subround = iota
+	SrBlock
+	SrComitmentHash
+	SrBitmap
+	SrComitment
+	SrSignature
+	SrEndRound
 )
 
 type Response int
@@ -47,13 +46,21 @@ func NewRoundStatus(block SubroundStatus, comitmentHash SubroundStatus, bitmap S
 	return &rs
 }
 
+func (rs *RoundStatus) ResetRoundStatus() {
+	rs.Block = SsNotFinished
+	rs.ComitmentHash = SsNotFinished
+	rs.Bitmap = SsNotFinished
+	rs.Comitment = SsNotFinished
+	rs.Signature = SsNotFinished
+}
+
 // A SubroundStatus specifies what kind of status could have a subround
 type SubroundStatus int
 
 const (
-	ssNotFinished SubroundStatus = iota
-	ssExtended
-	ssFinished
+	SsNotFinished SubroundStatus = iota
+	SsExtended
+	SsFinished
 )
 
 type Threshold struct {
@@ -76,19 +83,22 @@ type Consensus struct {
 	*Threshold
 	*RoundStatus
 
-	Block      *block.Block
-	BlockChain *blockchain.BlockChain
-	chr        *chronology.Chronology
-	P2PNode    *p2p.Messenger
-
+	Chr      *chronology.Chronology
 	ChRcvMsg chan []byte
+
+	//block      *block.block
+	//blockChain *blockchain.blockChain
 }
 
 func NewConsensus(doLog bool, validators *Validators, threshold *Threshold, roundStatus *RoundStatus, chr *chronology.Chronology) *Consensus {
-	cns := Consensus{doLog: doLog, Validators: validators, Threshold: threshold, RoundStatus: roundStatus, chr: chr}
+	cns := Consensus{doLog: doLog, Validators: validators, Threshold: threshold, RoundStatus: roundStatus, Chr: chr}
 
-	cns.ChRcvMsg = make(chan []byte, len(cns.Validators.ConsensusGroup))
-	//	(*cns.P2PNode).SetOnRecvMsg(cns.ReceiveMessage)
+	if cns.Validators == nil || len(cns.Validators.ConsensusGroup) == 0 {
+		cns.ChRcvMsg = make(chan []byte)
+	} else {
+		cns.ChRcvMsg = make(chan []byte, len(cns.Validators.ConsensusGroup))
+	}
+
 	return &cns
 }
 
@@ -98,54 +108,54 @@ func (cns *Consensus) CheckConsensus(startRoundState chronology.Subround, endRou
 
 	for i := startRoundState; i <= endRoundState; i++ {
 		switch i {
-		case chronology.Subround(srBlock):
-			if cns.RoundStatus.Block != ssFinished {
+		case chronology.Subround(SrBlock):
+			if cns.RoundStatus.Block != SsFinished {
 				if ok, n = cns.IsBlockReceived(cns.Threshold.Block); ok {
-					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 1: Subround <BLOCK> has been finished"))
-					cns.RoundStatus.Block = ssFinished
+					cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) + "Step 1: Subround <BLOCK> has been finished"))
+					cns.RoundStatus.Block = SsFinished
 				} else {
 					return false, n
 				}
 			}
-		case chronology.Subround(srComitmentHash):
-			if cns.RoundStatus.ComitmentHash != ssFinished {
+		case chronology.Subround(SrComitmentHash):
+			if cns.RoundStatus.ComitmentHash != SsFinished {
 				threshold := cns.Threshold.ComitmentHash
 				if !cns.IsNodeLeaderInCurrentRound(cns.Self) {
 					threshold = len(cns.ConsensusGroup)
 				}
 				if ok, n = cns.IsComitmentHashReceived(threshold); ok {
-					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 2: Subround <COMITMENT_HASH> has been finished"))
-					cns.RoundStatus.ComitmentHash = ssFinished
-				} else if ok, n = cns.IsComitmentHashInBitmap(cns.Threshold.Bitmap); ok {
-					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 2: Subround <COMITMENT_HASH> has been finished"))
-					cns.RoundStatus.ComitmentHash = ssFinished
+					cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) + "Step 2: Subround <COMITMENT_HASH> has been finished"))
+					cns.RoundStatus.ComitmentHash = SsFinished
+				} else if ok, n = cns.IsBitmapInComitmentHash(cns.Threshold.Bitmap); ok {
+					cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) + "Step 2: Subround <COMITMENT_HASH> has been finished"))
+					cns.RoundStatus.ComitmentHash = SsFinished
 				} else {
 					return false, n
 				}
 			}
-		case chronology.Subround(srBitmap):
-			if cns.RoundStatus.Bitmap != ssFinished {
-				if ok, n = cns.IsComitmentHashInBitmap(cns.Threshold.Bitmap); ok {
-					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 3: Subround <BITMAP> has been finished"))
-					cns.RoundStatus.Bitmap = ssFinished
+		case chronology.Subround(SrBitmap):
+			if cns.RoundStatus.Bitmap != SsFinished {
+				if ok, n = cns.IsBitmapInComitmentHash(cns.Threshold.Bitmap); ok {
+					cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) + "Step 3: Subround <BITMAP> has been finished"))
+					cns.RoundStatus.Bitmap = SsFinished
 				} else {
 					return false, n
 				}
 			}
-		case chronology.Subround(srComitment):
-			if cns.RoundStatus.Comitment != ssFinished {
+		case chronology.Subround(SrComitment):
+			if cns.RoundStatus.Comitment != SsFinished {
 				if ok, n = cns.IsBitmapInComitment(cns.Threshold.Comitment); ok {
-					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 4: Subround <COMITMENT> has been finished"))
-					cns.RoundStatus.Comitment = ssFinished
+					cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) + "Step 4: Subround <COMITMENT> has been finished"))
+					cns.RoundStatus.Comitment = SsFinished
 				} else {
 					return false, n
 				}
 			}
-		case chronology.Subround(srSignature):
-			if cns.RoundStatus.Signature != ssFinished {
-				if ok, n = cns.IsComitmentInSignature(cns.Threshold.Signature); ok {
-					cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 5: Subround <SIGNATURE> has been finished"))
-					cns.RoundStatus.Signature = ssFinished
+		case chronology.Subround(SrSignature):
+			if cns.RoundStatus.Signature != SsFinished {
+				if ok, n = cns.IsBitmapInSignature(cns.Threshold.Signature); ok {
+					cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) + "Step 5: Subround <SIGNATURE> has been finished"))
+					cns.RoundStatus.Signature = SsFinished
 				} else {
 					return false, n
 				}
@@ -170,28 +180,28 @@ func (cns *Consensus) IsNodeLeaderInCurrentRound(node string) bool {
 }
 
 func (cns *Consensus) GetLeader() (string, error) {
-	if cns.chr.GetRoundIndex() == -1 {
-		return "", errors.New("Round is not set")
+	if cns.Chr == nil {
+		return "", errors.New("Chronology is null")
+	}
+
+	if cns.Chr.Round() == nil {
+		return "", errors.New("Round is null")
+	}
+
+	if cns.Chr.Round().Index() < 0 {
+		return "", errors.New("Round index is negative")
 	}
 
 	if cns.ConsensusGroup == nil {
-		return "", errors.New("List of Validators.ConsensusGroup is null")
+		return "", errors.New("ConsensusGroup is null")
 	}
 
 	if len(cns.ConsensusGroup) == 0 {
-		return "", errors.New("List of nodes is empty")
+		return "", errors.New("ConsensusGroup is empty")
 	}
 
-	index := cns.chr.GetRoundIndex() % len(cns.ConsensusGroup)
+	index := cns.Chr.Round().Index() % len(cns.ConsensusGroup)
 	return cns.ConsensusGroup[index], nil
-}
-
-func (cns *Consensus) ResetRoundStatus() {
-	cns.RoundStatus.Block = ssNotFinished
-	cns.RoundStatus.ComitmentHash = ssNotFinished
-	cns.RoundStatus.Bitmap = ssNotFinished
-	cns.RoundStatus.Comitment = ssNotFinished
-	cns.RoundStatus.Signature = ssNotFinished
 }
 
 func (cns *Consensus) Log(message string) {
@@ -199,31 +209,3 @@ func (cns *Consensus) Log(message string) {
 		fmt.Printf(message + "\n")
 	}
 }
-
-//func (cns *Consensus) IsNodeLeader(node string, nodes []string, round *chronology.Round) (bool, error) {
-//	v, err := cns.ComputeLeader(nodes, round)
-//
-//	if err != nil {
-//		fmt.Println(err)
-//		return false, err
-//	}
-//
-//	return v == node, nil
-//}
-//
-//func (cns *Consensus) ComputeLeader(nodes []string, round *chronology.Round) (string, error) {
-//	if round == nil {
-//		return "", errors.New("Round is null")
-//	}
-//
-//	if nodes == nil {
-//		return "", errors.New("List of nodes is null")
-//	}
-//
-//	if len(nodes) == 0 {
-//		return "", errors.New("List of nodes is empty")
-//	}
-//
-//	index := cns.chr.GetRoundIndex() % len(nodes)
-//	return nodes[index], nil
-//}

@@ -21,7 +21,7 @@ func NewSRComitmentHash(doLog bool, endTime int64, cns *Consensus, onReceivedMes
 }
 
 func (sr *SRComitmentHash) DoWork(chr *chronology.Chronology) bool {
-	for chr.GetSelfSubround() != chronology.SrCanceled {
+	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
 		switch sr.doComitmentHash(chr) {
 		case rNone:
@@ -35,22 +35,22 @@ func (sr *SRComitmentHash) DoWork(chr *chronology.Chronology) bool {
 		}
 	}
 
-	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 2: Canceled round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 2: Canceled round %d in subround %s", chr.Round().Index(), sr.Name()))
 	return false
 }
 
 func (sr *SRComitmentHash) doComitmentHash(chr *chronology.Chronology) Response {
-	bActionDone := sr.OnSendMessage(chronology.Subround(srComitmentHash))
+	bActionDone := sr.OnSendMessage(chronology.Subround(SrComitmentHash))
 
-	timeSubRound := chr.GetSubroundFromDateTime(chr.GetCurrentTime())
+	timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
-	if timeSubRound > chronology.Subround(srComitmentHash) {
+	if timeSubRound > chronology.Subround(SrComitmentHash) {
 		if sr.cns.GetComitmentHashesCount() < sr.cns.Threshold.ComitmentHash {
-			sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 2: Extended the "+sr.Name()+" subround. Got only %d from %d commitment hashes which are not enough", sr.cns.GetComitmentHashesCount(), len(sr.cns.ConsensusGroup)))
+			sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 2: Extended the "+sr.Name()+" subround. Got only %d from %d commitment hashes which are not enough", sr.cns.GetComitmentHashesCount(), len(sr.cns.ConsensusGroup)))
 		} else {
-			sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime() + "Step 2: Extended the " + sr.Name() + " subround"))
+			sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) + "Step 2: Extended the " + sr.Name() + " subround"))
 		}
-		sr.cns.RoundStatus.ComitmentHash = ssExtended
+		sr.cns.RoundStatus.ComitmentHash = SsExtended
 		return rTrue // Try to give a chance to this round if the necesary comitment hashes will arrive later
 	}
 
@@ -64,11 +64,11 @@ func (sr *SRComitmentHash) doComitmentHash(chr *chronology.Chronology) Response 
 
 	if bActionDone {
 		bActionDone = false
-		if ok, n := sr.cns.CheckConsensus(chronology.Subround(srBlock), chronology.Subround(srComitmentHash)); ok {
+		if ok, n := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrComitmentHash)); ok {
 			if n == len(sr.cns.ConsensusGroup) {
-				sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 2: Received all (%d from %d) comitment hashes", n, len(sr.cns.ConsensusGroup)))
+				sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 2: Received all (%d from %d) comitment hashes", n, len(sr.cns.ConsensusGroup)))
 			} else {
-				sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 2: Received %d from %d comitment hashes, which are enough", n, len(sr.cns.ConsensusGroup)))
+				sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 2: Received %d from %d comitment hashes, which are enough", n, len(sr.cns.ConsensusGroup)))
 			}
 			return rTrue
 		}
@@ -78,11 +78,11 @@ func (sr *SRComitmentHash) doComitmentHash(chr *chronology.Chronology) Response 
 }
 
 func (sr *SRComitmentHash) Current() chronology.Subround {
-	return chronology.Subround(srComitmentHash)
+	return chronology.Subround(SrComitmentHash)
 }
 
 func (sr *SRComitmentHash) Next() chronology.Subround {
-	return chronology.Subround(srBitmap)
+	return chronology.Subround(SrBitmap)
 }
 
 func (sr *SRComitmentHash) EndTime() int64 {

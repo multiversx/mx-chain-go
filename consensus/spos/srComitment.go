@@ -21,7 +21,7 @@ func NewSRComitment(doLog bool, endTime int64, cns *Consensus, onReceivedMessage
 }
 
 func (sr *SRComitment) DoWork(chr *chronology.Chronology) bool {
-	for chr.GetSelfSubround() != chronology.SrCanceled {
+	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
 		switch sr.doComitment(chr) {
 		case rNone:
@@ -35,18 +35,18 @@ func (sr *SRComitment) DoWork(chr *chronology.Chronology) bool {
 		}
 	}
 
-	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 4: Canceled round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 4: Canceled round %d in subround %s", chr.Round().Index(), sr.Name()))
 	return false
 }
 
 func (sr *SRComitment) doComitment(chr *chronology.Chronology) Response {
-	bActionDone := sr.OnSendMessage(chronology.Subround(srComitment))
+	bActionDone := sr.OnSendMessage(chronology.Subround(SrComitment))
 
-	timeSubRound := chr.GetSubroundFromDateTime(chr.GetCurrentTime())
+	timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
-	if timeSubRound > chronology.Subround(srComitment) {
-		sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 4: Extended the "+sr.Name()+" subround. Got only %d from %d commitments which are not enough", sr.cns.GetComitmentsCount(), len(sr.cns.ConsensusGroup)))
-		sr.cns.RoundStatus.Comitment = ssExtended
+	if timeSubRound > chronology.Subround(SrComitment) {
+		sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 4: Extended the "+sr.Name()+" subround. Got only %d from %d commitments which are not enough", sr.cns.GetComitmentsCount(), len(sr.cns.ConsensusGroup)))
+		sr.cns.RoundStatus.Comitment = SsExtended
 		return rTrue // Try to give a chance to this round if the necesary comitments will arrive later
 	}
 
@@ -60,8 +60,8 @@ func (sr *SRComitment) doComitment(chr *chronology.Chronology) Response {
 
 	if bActionDone {
 		bActionDone = false
-		if ok, n := sr.cns.CheckConsensus(chronology.Subround(srBlock), chronology.Subround(srComitment)); ok {
-			sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 4: Received %d from %d comitments, which are matching with bitmap and are enough", n, len(sr.cns.ConsensusGroup)))
+		if ok, n := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrComitment)); ok {
+			sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 4: Received %d from %d comitments, which are matching with bitmap and are enough", n, len(sr.cns.ConsensusGroup)))
 			return rTrue
 		}
 	}
@@ -70,11 +70,11 @@ func (sr *SRComitment) doComitment(chr *chronology.Chronology) Response {
 }
 
 func (sr *SRComitment) Current() chronology.Subround {
-	return chronology.Subround(srComitment)
+	return chronology.Subround(SrComitment)
 }
 
 func (sr *SRComitment) Next() chronology.Subround {
-	return chronology.Subround(srSignature)
+	return chronology.Subround(SrSignature)
 }
 
 func (sr *SRComitment) EndTime() int64 {

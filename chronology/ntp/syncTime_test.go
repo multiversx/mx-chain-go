@@ -60,7 +60,7 @@ func queryMock5(host string) (*Response, error) {
 }
 
 func TestHandleErrorInDoSync(t *testing.T) {
-	//rm := Response{ClockOffset:23456}
+	//rm := Response{Offset:23456}
 
 	failNtpMock1 = true
 	st := SyncTime{clockOffset: 0, syncPeriod: time.Millisecond, query: queryMock1}
@@ -68,7 +68,7 @@ func TestHandleErrorInDoSync(t *testing.T) {
 	st.doSync()
 	assert.Equal(t, st.clockOffset, time.Millisecond*0)
 
-	//manually put a value in clockOffset and observe if it goes to 0 as a result to error
+	//manually put a value in Offset and observe if it goes to 0 as a result to error
 	st.mut.Lock()
 	st.clockOffset = 1234
 	st.mut.Unlock()
@@ -91,7 +91,7 @@ func TestValueInDoSync(t *testing.T) {
 	st.doSync()
 	assert.Equal(t, st.clockOffset, time.Nanosecond*23456)
 
-	//manually put a value in clockOffset and observe if it goes to 0 as a result to error
+	//manually put a value in Offset and observe if it goes to 0 as a result to error
 	st.mut.Lock()
 	st.clockOffset = 1234
 	st.mut.Unlock()
@@ -112,7 +112,7 @@ func TestGetOffset(t *testing.T) {
 	assert.Equal(t, st.clockOffset, time.Millisecond*0)
 	st.doSync()
 	assert.Equal(t, st.clockOffset, time.Nanosecond*23456)
-	assert.Equal(t, st.GetClockOffset(), time.Nanosecond*23456)
+	assert.Equal(t, st.ClockOffset(), time.Nanosecond*23456)
 }
 
 func TestCallQuery(t *testing.T) {
@@ -123,5 +123,5 @@ func TestCallQuery(t *testing.T) {
 
 	assert.NotEqual(t, queryMock4Call, 0)
 
-	fmt.Printf("Current time: %v\n", st.GetFormatedCurrentTime(st.clockOffset))
+	fmt.Printf("Current time: %v\n", st.FormatedCurrentTime(st.clockOffset))
 }

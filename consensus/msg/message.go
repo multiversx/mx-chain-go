@@ -5,7 +5,9 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
@@ -23,96 +25,113 @@ const (
 	mtUnknown
 )
 
-func (cns *Consensus) SendMessage(subround chronology.Subround) bool {
+type Message struct {
+	p2p  *p2p.Messenger
+	cns  *spos.Consensus
+	blk  *block.Block
+	blkc *blockchain.BlockChain
+}
+
+func NewMessage(p2p *p2p.Messenger, cns *spos.Consensus, blk *block.Block, blkc *blockchain.BlockChain) *Message {
+	msg := Message{p2p: p2p, cns: cns, blk: blk, blkc: blkc}
+
+	if msg.p2p != nil {
+		(*msg.p2p).SetOnRecvMsg(msg.ReceiveMessage)
+	}
+
+	return &msg
+}
+
+func (msg *Message) SendMessage(subround chronology.Subround) bool {
 	for {
 		switch subround {
 
-		case chronology.Subround(srBlock):
-			if cns.RoundStatus.Block == ssFinished {
+		case chronology.Subround(spos.SrBlock):
+			if msg.cns.RoundStatus.Block == spos.SsFinished {
 				return false
 			}
 
-			if cns.Validators.ValidationMap[cns.Validators.Self].Block {
+			if msg.cns.Validators.ValidationMap[msg.cns.Validators.Self].Block {
 				return false
 			}
 
-			if !cns.IsNodeLeaderInCurrentRound(cns.Validators.Self) {
+			if !msg.cns.IsNodeLeaderInCurrentRound(msg.cns.Validators.Self) {
 				return false
 			}
 
-			return cns.SendBlock()
-		case chronology.Subround(srComitmentHash):
-			if cns.RoundStatus.ComitmentHash == ssFinished {
+			return msg.SendBlock()
+		case chronology.Subround(spos.SrComitmentHash):
+			if msg.cns.RoundStatus.ComitmentHash == spos.SsFinished {
 				return false
 			}
 
-			if cns.Validators.ValidationMap[cns.Validators.Self].ComitmentHash {
+			if msg.cns.Validators.ValidationMap[msg.cns.Validators.Self].ComitmentHash {
 				return false
 			}
 
-			if cns.RoundStatus.Block != ssFinished {
-				subround = chronology.Subround(srBlock)
+			if msg.cns.RoundStatus.Block != spos.SsFinished {
+				subround = chronology.Subround(spos.SrBlock)
 				continue
 			}
 
-			return cns.SendComitmentHash()
-		case chronology.Subround(srBitmap):
-			if cns.RoundStatus.Bitmap == ssFinished {
+			return msg.SendComitmentHash()
+		case chronology.Subround(spos.SrBitmap):
+			if msg.cns.RoundStatus.Bitmap == spos.SsFinished {
 				return false
 			}
 
-			if cns.Validators.ValidationMap[cns.Validators.Self].Bitmap {
+			if msg.cns.Validators.ValidationMap[msg.cns.Validators.Self].Bitmap {
 				return false
 			}
 
-			if !cns.IsNodeLeaderInCurrentRound(cns.Validators.Self) {
+			if !msg.cns.IsNodeLeaderInCurrentRound(msg.cns.Validators.Self) {
 				return false
 			}
 
-			if cns.RoundStatus.ComitmentHash != ssFinished {
-				subround = chronology.Subround(srComitmentHash)
+			if msg.cns.RoundStatus.ComitmentHash != spos.SsFinished {
+				subround = chronology.Subround(spos.SrComitmentHash)
 				continue
 			}
 
-			return cns.SendBitmap()
-		case chronology.Subround(srComitment):
-			if cns.RoundStatus.Comitment == ssFinished {
+			return msg.SendBitmap()
+		case chronology.Subround(spos.SrComitment):
+			if msg.cns.RoundStatus.Comitment == spos.SsFinished {
 				return false
 			}
 
-			if cns.Validators.ValidationMap[cns.Validators.Self].Comitment {
+			if msg.cns.Validators.ValidationMap[msg.cns.Validators.Self].Comitment {
 				return false
 			}
 
-			if cns.RoundStatus.Bitmap != ssFinished {
-				subround = chronology.Subround(srBitmap)
+			if msg.cns.RoundStatus.Bitmap != spos.SsFinished {
+				subround = chronology.Subround(spos.SrBitmap)
 				continue
 			}
 
-			if !cns.IsNodeInBitmapGroup(cns.Validators.Self) {
+			if !msg.cns.IsNodeInBitmapGroup(msg.cns.Validators.Self) {
 				return false
 			}
 
-			return cns.SendComitment()
-		case chronology.Subround(srSignature):
-			if cns.RoundStatus.Signature == ssFinished {
+			return msg.SendComitment()
+		case chronology.Subround(spos.SrSignature):
+			if msg.cns.RoundStatus.Signature == spos.SsFinished {
 				return false
 			}
 
-			if cns.Validators.ValidationMap[cns.Validators.Self].Signature {
+			if msg.cns.Validators.ValidationMap[msg.cns.Validators.Self].Signature {
 				return false
 			}
 
-			if cns.RoundStatus.Comitment != ssFinished {
-				subround = chronology.Subround(srComitment)
+			if msg.cns.RoundStatus.Comitment != spos.SsFinished {
+				subround = chronology.Subround(spos.SrComitment)
 				continue
 			}
 
-			if !cns.IsNodeInBitmapGroup(cns.Validators.Self) {
+			if !msg.cns.IsNodeInBitmapGroup(msg.cns.Validators.Self) {
 				return false
 			}
 
-			return cns.SendSignature()
+			return msg.SendSignature()
 		default:
 		}
 
@@ -122,117 +141,107 @@ func (cns *Consensus) SendMessage(subround chronology.Subround) bool {
 	return false
 }
 
-func (cns *Consensus) SendBlock() bool {
-	currentBlock := cns.BlockChain.GetCurrentBlock()
+func (msg *Message) SendBlock() bool {
+	currentBlock := msg.blkc.GetCurrentBlock()
 
 	if currentBlock == nil {
-		cns.Block = block.NewBlock(0, cns.chr.GetFormatedCurrentTime(), cns.Self, "", "", cns.GetMessageTypeName(mtBlock))
+		msg.blk = block.NewBlock(0, msg.cns.Chr.SyncTime().FormatedCurrentTime(msg.cns.Chr.ClockOffset()), msg.cns.Self, "", "", msg.GetMessageTypeName(mtBlock))
 	} else {
-		cns.Block = block.NewBlock(currentBlock.Nonce+1, cns.chr.GetFormatedCurrentTime(), cns.Self, "", currentBlock.Hash, cns.GetMessageTypeName(mtBlock))
+		msg.blk = block.NewBlock(currentBlock.Nonce+1, msg.cns.Chr.SyncTime().FormatedCurrentTime(msg.cns.Chr.ClockOffset()), msg.cns.Self, "", currentBlock.Hash, msg.GetMessageTypeName(mtBlock))
 	}
 
-	cns.Block.Hash = cns.Block.CalculateHash()
+	msg.blk.Hash = msg.blk.CalculateHash()
 
-	if !cns.BroadcastBlock(cns.Block) {
+	if !msg.BroadcastBlock(msg.blk) {
 		return false
 	}
 
-	cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 1: Sending block"))
+	msg.cns.Log(fmt.Sprintf(msg.cns.Chr.SyncTime().FormatedCurrentTime(msg.cns.Chr.ClockOffset()) + "Step 1: Sending blk"))
 
-	rsv := cns.ValidationMap[cns.Self]
-	rsv.Block = true
-	cns.ValidationMap[cns.Self] = rsv
+	msg.cns.ValidationMap[msg.cns.Self].Block = true
 
 	return true
 }
 
-func (cns *Consensus) SendComitmentHash() bool {
-	block := *cns.Block
+func (msg *Message) SendComitmentHash() bool {
+	blk := *msg.blk
 
-	block.Signature = cns.Self
-	block.MetaData = cns.GetMessageTypeName(mtComitmentHash)
+	blk.Signature = msg.cns.Self
+	blk.MetaData = msg.GetMessageTypeName(mtComitmentHash)
 
-	if !cns.BroadcastBlock(&block) {
+	if !msg.BroadcastBlock(&blk) {
 		return false
 	}
 
-	cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 2: Sending comitment hash"))
+	msg.cns.Log(fmt.Sprintf(msg.cns.Chr.SyncTime().FormatedCurrentTime(msg.cns.Chr.ClockOffset()) + "Step 2: Sending comitment hash"))
 
-	rsv := cns.ValidationMap[cns.Self]
-	rsv.ComitmentHash = true
-	cns.ValidationMap[cns.Self] = rsv
+	msg.cns.ValidationMap[msg.cns.Self].ComitmentHash = true
 
 	return true
 }
 
-func (cns *Consensus) SendBitmap() bool {
-	block := *cns.Block
+func (msg *Message) SendBitmap() bool {
+	blk := *msg.blk
 
-	block.Signature = cns.Self
-	block.MetaData = cns.GetMessageTypeName(mtBitmap)
+	blk.Signature = msg.cns.Self
+	blk.MetaData = msg.GetMessageTypeName(mtBitmap)
 
-	for i := 0; i < len(cns.ConsensusGroup); i++ {
-		if cns.ValidationMap[cns.ConsensusGroup[i]].ComitmentHash {
-			block.MetaData += "," + cns.ConsensusGroup[i]
+	for i := 0; i < len(msg.cns.ConsensusGroup); i++ {
+		if msg.cns.ValidationMap[msg.cns.ConsensusGroup[i]].ComitmentHash {
+			blk.MetaData += "," + msg.cns.ConsensusGroup[i]
 		}
 	}
 
-	if !cns.BroadcastBlock(&block) {
+	if !msg.BroadcastBlock(&blk) {
 		return false
 	}
 
-	cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 3: Sending bitmap"))
+	msg.cns.Log(fmt.Sprintf(msg.cns.Chr.SyncTime().FormatedCurrentTime(msg.cns.Chr.ClockOffset()) + "Step 3: Sending bitmap"))
 
-	for i := 0; i < len(cns.ConsensusGroup); i++ {
-		if cns.ValidationMap[cns.ConsensusGroup[i]].ComitmentHash {
-			rsv := cns.ValidationMap[cns.ConsensusGroup[i]]
-			rsv.Bitmap = true
-			cns.ValidationMap[cns.ConsensusGroup[i]] = rsv
+	for i := 0; i < len(msg.cns.ConsensusGroup); i++ {
+		if msg.cns.ValidationMap[msg.cns.ConsensusGroup[i]].ComitmentHash {
+			msg.cns.ValidationMap[msg.cns.ConsensusGroup[i]].Bitmap = true
 		}
 	}
 
 	return true
 }
 
-func (cns *Consensus) SendComitment() bool {
-	block := *cns.Block
+func (msg *Message) SendComitment() bool {
+	blk := *msg.blk
 
-	block.Signature = cns.Self
-	block.MetaData = cns.GetMessageTypeName(mtComitment)
+	blk.Signature = msg.cns.Self
+	blk.MetaData = msg.GetMessageTypeName(mtComitment)
 
-	if !cns.BroadcastBlock(&block) {
+	if !msg.BroadcastBlock(&blk) {
 		return false
 	}
 
-	cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 4: Sending comitment"))
+	msg.cns.Log(fmt.Sprintf(msg.cns.Chr.SyncTime().FormatedCurrentTime(msg.cns.Chr.ClockOffset()) + "Step 4: Sending comitment"))
 
-	rsv := cns.ValidationMap[cns.Self]
-	rsv.Comitment = true
-	cns.ValidationMap[cns.Self] = rsv
+	msg.cns.ValidationMap[msg.cns.Self].Comitment = true
 
 	return true
 }
 
-func (cns *Consensus) SendSignature() bool {
-	block := *cns.Block
+func (msg *Message) SendSignature() bool {
+	blk := *msg.blk
 
-	block.Signature = cns.Self
-	block.MetaData = cns.GetMessageTypeName(mtSignature)
+	blk.Signature = msg.cns.Self
+	blk.MetaData = msg.GetMessageTypeName(mtSignature)
 
-	if !cns.BroadcastBlock(&block) {
+	if !msg.BroadcastBlock(&blk) {
 		return false
 	}
 
-	cns.Log(fmt.Sprintf(cns.chr.GetFormatedCurrentTime() + "Step 5: Sending signature"))
+	msg.cns.Log(fmt.Sprintf(msg.cns.Chr.SyncTime().FormatedCurrentTime(msg.cns.Chr.ClockOffset()) + "Step 5: Sending signature"))
 
-	rsv := cns.ValidationMap[cns.Self]
-	rsv.Signature = true
-	cns.ValidationMap[cns.Self] = rsv
+	msg.cns.ValidationMap[msg.cns.Self].Signature = true
 
 	return true
 }
 
-func (cns *Consensus) BroadcastBlock(block *block.Block) bool {
+func (msg *Message) BroadcastBlock(block *block.Block) bool {
 	marsh := &mock.MockMarshalizer{}
 
 	message, err := marsh.Marshal(block)
@@ -243,43 +252,37 @@ func (cns *Consensus) BroadcastBlock(block *block.Block) bool {
 	}
 
 	//(*c.P2PNode).BroadcastString(string(message), []string{})
-	m := p2p.NewMessage((*cns.P2PNode).ID().Pretty(), message, marsh)
-	(*cns.P2PNode).BroadcastMessage(m, []string{})
+	m := p2p.NewMessage((*msg.p2p).ID().Pretty(), message, marsh)
+	(*msg.p2p).BroadcastMessage(m, []string{})
 
 	return true
 }
 
-func (cns *Consensus) ReceiveMessage(sender p2p.Messenger, peerID string, m *p2p.Message) {
-	//c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Peer with ID = %s got a message from peer with ID = %s which traversed %d peers\n", sender.P2pNode.ID().Pretty(), peerID, len(m.Peers)))
+func (msg *Message) ReceiveMessage(sender p2p.Messenger, peerID string, m *p2p.Message) {
+	//c.Log(fmt.Sprintf(c.FormatedCurrentTime()+"Peer with ID = %s got a message from peer with ID = %s which traversed %d peers\n", sender.P2pNode.ID().Pretty(), peerID, len(m.Peers)))
 	m.AddHop(sender.ID().Pretty())
-	cns.ChRcvMsg <- m.Payload
+	msg.cns.ChRcvMsg <- m.Payload
 	//sender.BroadcastMessage(m, m.Peers)
 	sender.BroadcastMessage(m, []string{})
 }
 
-func (cns *Consensus) ConsumeReceivedMessage(rcvMsg *[]byte, chr *chronology.Chronology) bool {
-	msgType, msgData := cns.DecodeMessage(rcvMsg)
+func (msg *Message) ConsumeReceivedMessage(rcvMsg *[]byte, chr *chronology.Chronology) bool {
+	msgType, msgData := msg.DecodeMessage(rcvMsg)
 
 	switch msgType {
 	case mtBlock:
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.Signature
 
-		//if timeRoundState > round.RS_BLOCK || c.SelfRoundState > round.RS_BLOCK {
-		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(mtBlock) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
-		//}
-
-		if cns.RoundStatus.Block != ssFinished {
-			if cns.IsNodeLeaderInCurrentRound(node) {
-				if !cns.BlockChain.CheckIfBlockIsValid(rcvBlock) {
+		if msg.cns.RoundStatus.Block != spos.SsFinished {
+			if msg.cns.IsNodeLeaderInCurrentRound(node) {
+				if !msg.blkc.CheckIfBlockIsValid(rcvBlock) {
 					chr.SetSelfSubround(chronology.SrCanceled)
 					return false
 				}
 
-				rsv := cns.Validators.ValidationMap[node]
-				rsv.Block = true
-				cns.Validators.ValidationMap[node] = rsv
-				*cns.Block = *rcvBlock
+				msg.cns.Validators.ValidationMap[node].Block = true
+				*msg.blk = *rcvBlock
 				return true
 			}
 		}
@@ -287,17 +290,11 @@ func (cns *Consensus) ConsumeReceivedMessage(rcvMsg *[]byte, chr *chronology.Chr
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.Signature
 
-		//if timeRoundState > round.RS_COMITMENT_HASH || c.SelfRoundState > round.RS_COMITMENT_HASH {
-		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(mtComitmentHash) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
-		//}
-
-		if cns.RoundStatus.ComitmentHash != ssFinished {
-			if cns.IsNodeInValidationGroup(node) {
-				if !cns.Validators.ValidationMap[node].ComitmentHash {
-					if rcvBlock.Hash == cns.Block.Hash {
-						rsv := cns.Validators.ValidationMap[node]
-						rsv.ComitmentHash = true
-						cns.Validators.ValidationMap[node] = rsv
+		if msg.cns.RoundStatus.ComitmentHash != spos.SsFinished {
+			if msg.cns.IsNodeInValidationGroup(node) {
+				if !msg.cns.Validators.ValidationMap[node].ComitmentHash {
+					if rcvBlock.Hash == msg.blk.Hash {
+						msg.cns.Validators.ValidationMap[node].ComitmentHash = true
 						return true
 					}
 				}
@@ -307,30 +304,24 @@ func (cns *Consensus) ConsumeReceivedMessage(rcvMsg *[]byte, chr *chronology.Chr
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.Signature
 
-		//if timeRoundState > round.RS_BITMAP || c.SelfRoundState > round.RS_BITMAP {
-		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(mtBitmap) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
-		//}
-
-		if cns.RoundStatus.Bitmap != ssFinished {
-			if cns.IsNodeLeaderInCurrentRound(node) {
-				if rcvBlock.Hash == cns.Block.Hash {
-					nodes := strings.Split(rcvBlock.MetaData[len(cns.GetMessageTypeName(mtBitmap))+1:], ",")
-					if len(nodes) < cns.Threshold.Bitmap {
+		if msg.cns.RoundStatus.Bitmap != spos.SsFinished {
+			if msg.cns.IsNodeLeaderInCurrentRound(node) {
+				if rcvBlock.Hash == msg.blk.Hash {
+					nodes := strings.Split(rcvBlock.MetaData[len(msg.GetMessageTypeName(mtBitmap))+1:], ",")
+					if len(nodes) < msg.cns.Threshold.Bitmap {
 						chr.SetSelfSubround(chronology.SrCanceled)
 						return false
 					}
 
 					for i := 0; i < len(nodes); i++ {
-						if !cns.IsNodeInValidationGroup(nodes[i]) {
+						if !msg.cns.IsNodeInValidationGroup(nodes[i]) {
 							chr.SetSelfSubround(chronology.SrCanceled)
 							return false
 						}
 					}
 
 					for i := 0; i < len(nodes); i++ {
-						rsv := cns.Validators.ValidationMap[nodes[i]]
-						rsv.Bitmap = true
-						cns.Validators.ValidationMap[nodes[i]] = rsv
+						msg.cns.Validators.ValidationMap[nodes[i]].Bitmap = true
 					}
 
 					return true
@@ -341,17 +332,11 @@ func (cns *Consensus) ConsumeReceivedMessage(rcvMsg *[]byte, chr *chronology.Chr
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.Signature
 
-		//if timeRoundState > round.RS_COMITMENT || c.SelfRoundState > round.RS_COMITMENT {
-		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(mtComitment) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
-		//}
-
-		if cns.RoundStatus.Comitment != ssFinished {
-			if cns.IsNodeInBitmapGroup(node) {
-				if !cns.Validators.ValidationMap[node].Comitment {
-					if rcvBlock.Hash == cns.Block.Hash {
-						rsv := cns.Validators.ValidationMap[node]
-						rsv.Comitment = true
-						cns.Validators.ValidationMap[node] = rsv
+		if msg.cns.RoundStatus.Comitment != spos.SsFinished {
+			if msg.cns.IsNodeInBitmapGroup(node) {
+				if !msg.cns.Validators.ValidationMap[node].Comitment {
+					if rcvBlock.Hash == msg.blk.Hash {
+						msg.cns.Validators.ValidationMap[node].Comitment = true
 						return true
 					}
 				}
@@ -361,17 +346,11 @@ func (cns *Consensus) ConsumeReceivedMessage(rcvMsg *[]byte, chr *chronology.Chr
 		rcvBlock := msgData.(*block.Block)
 		node := rcvBlock.Signature
 
-		//if timeRoundState > round.RS_SIGNATURE || c.SelfRoundState > round.RS_SIGNATURE {
-		//	c.Log(fmt.Sprintf(c.GetFormatedCurrentTime() + "Received late " + c.GetMessageTypeName(mtSignature) + " in time round state " + rs.GetRoundStateName(timeRoundState) + " and self round state " + rs.GetRoundStateName(c.SelfRoundState)))
-		//}
-
-		if cns.RoundStatus.Signature != ssFinished {
-			if cns.IsNodeInBitmapGroup(node) {
-				if !cns.Validators.ValidationMap[node].Signature {
-					if rcvBlock.Hash == cns.Block.Hash {
-						rsv := cns.Validators.ValidationMap[node]
-						rsv.Signature = true
-						cns.Validators.ValidationMap[node] = rsv
+		if msg.cns.RoundStatus.Signature != spos.SsFinished {
+			if msg.cns.IsNodeInBitmapGroup(node) {
+				if !msg.cns.Validators.ValidationMap[node].Signature {
+					if rcvBlock.Hash == msg.blk.Hash {
+						msg.cns.Validators.ValidationMap[node].Signature = true
 						return true
 					}
 				}
@@ -383,26 +362,26 @@ func (cns *Consensus) ConsumeReceivedMessage(rcvMsg *[]byte, chr *chronology.Chr
 	return false
 }
 
-func (cns *Consensus) DecodeMessage(rcvMsg *[]byte) (MessageType, interface{}) {
-	if ok, msgBlock := cns.IsBlockInMessage(rcvMsg); ok {
-		//c.Log(fmt.Sprintf(c.GetFormatedCurrentTime()+"Got a message with %s for block with Signature = %s and Nonce = %d and Hash = %s\n", msgBlock.MetaData, msgBlock.Signature, msgBlock.Nonce, msgBlock.Hash))
-		if strings.Contains(msgBlock.MetaData, cns.GetMessageTypeName(mtBlock)) {
+func (msg *Message) DecodeMessage(rcvMsg *[]byte) (MessageType, interface{}) {
+	if ok, msgBlock := msg.IsBlockInMessage(rcvMsg); ok {
+		//c.Log(fmt.Sprintf(c.FormatedCurrentTime()+"Got a message with %s for blk with Signature = %s and Nonce = %d and Hash = %s\n", msgBlock.MetaData, msgBlock.Signature, msgBlock.Nonce, msgBlock.Hash))
+		if strings.Contains(msgBlock.MetaData, msg.GetMessageTypeName(mtBlock)) {
 			return mtBlock, msgBlock
 		}
 
-		if strings.Contains(msgBlock.MetaData, cns.GetMessageTypeName(mtComitmentHash)) {
+		if strings.Contains(msgBlock.MetaData, msg.GetMessageTypeName(mtComitmentHash)) {
 			return mtComitmentHash, msgBlock
 		}
 
-		if strings.Contains(msgBlock.MetaData, cns.GetMessageTypeName(mtBitmap)) {
+		if strings.Contains(msgBlock.MetaData, msg.GetMessageTypeName(mtBitmap)) {
 			return mtBitmap, msgBlock
 		}
 
-		if strings.Contains(msgBlock.MetaData, cns.GetMessageTypeName(mtComitment)) {
+		if strings.Contains(msgBlock.MetaData, msg.GetMessageTypeName(mtComitment)) {
 			return mtComitment, msgBlock
 		}
 
-		if strings.Contains(msgBlock.MetaData, cns.GetMessageTypeName(mtSignature)) {
+		if strings.Contains(msgBlock.MetaData, msg.GetMessageTypeName(mtSignature)) {
 			return mtSignature, msgBlock
 		}
 	}
@@ -410,7 +389,7 @@ func (cns *Consensus) DecodeMessage(rcvMsg *[]byte) (MessageType, interface{}) {
 	return mtUnknown, nil
 }
 
-func (c *Consensus) IsBlockInMessage(rcvMsg *[]byte) (bool, *block.Block) {
+func (msg *Message) IsBlockInMessage(rcvMsg *[]byte) (bool, *block.Block) {
 	var msgBlock block.Block
 
 	json := marshal.JsonMarshalizer{}
@@ -424,7 +403,7 @@ func (c *Consensus) IsBlockInMessage(rcvMsg *[]byte) (bool, *block.Block) {
 	return true, &msgBlock
 }
 
-func (c *Consensus) GetMessageTypeName(messageType MessageType) string {
+func (msg *Message) GetMessageTypeName(messageType MessageType) string {
 	switch messageType {
 	case mtBlock:
 		return ("<BLOCK>")

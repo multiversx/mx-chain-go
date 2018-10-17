@@ -16,12 +16,12 @@ func InitSRSignature() (*chronology.Chronology, *SRSignature) {
 
 	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
 
-	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{ClockOffset: 0})
+	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{})
 
-	vld := NewValidators([]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
+	vld := NewValidators(nil, nil, []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
 	pbft := 2*len(vld.ConsensusGroup)/3 + 1
 	th := NewThreshold(1, pbft, pbft, pbft, pbft)
-	rs := NewRoundStatus(ssNotFinished, ssNotFinished, ssNotFinished, ssNotFinished, ssNotFinished)
+	rs := NewRoundStatus(SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished)
 
 	cns := NewConsensus(true, vld, th, rs, chr)
 
@@ -46,11 +46,11 @@ func TestSRSignature_DoWork1(t *testing.T) {
 
 	r := sr.doSignature(chr)
 
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Bitmap)
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Comitment)
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Signature)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Block)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Bitmap)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Comitment)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Signature)
 	assert.Equal(t, rNone, r)
 }
 
@@ -62,35 +62,27 @@ func TestSRSignature_DoWork2(t *testing.T) {
 
 	sr.OnSendMessage = SndWithSuccess
 
-	rv := sr.cns.ValidationMap[sr.cns.Self]
-	rv.Block = true
-	sr.cns.ValidationMap[sr.cns.Self] = rv
+	sr.cns.ValidationMap[sr.cns.Self].Block = true
 
 	for i := 0; i < len(sr.cns.ConsensusGroup); i++ {
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.ComitmentHash = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
 	}
 
 	for i := 0; i < sr.cns.Threshold.Bitmap; i++ {
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.Bitmap = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
 	}
 
 	for i := 0; i < sr.cns.Threshold.Comitment; i++ {
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.Comitment = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Comitment = true
 	}
 
 	r := sr.doSignature(chr)
 
-	assert.Equal(t, ssFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, ssFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, ssFinished, sr.cns.RoundStatus.Bitmap)
-	assert.Equal(t, ssFinished, sr.cns.RoundStatus.Comitment)
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Signature)
+	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Block)
+	assert.Equal(t, SsFinished, sr.cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Bitmap)
+	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Comitment)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Signature)
 	assert.Equal(t, rNone, r)
 }
 
@@ -102,21 +94,19 @@ func TestSRSignature_DoWork3(t *testing.T) {
 
 	sr.OnSendMessage = SndWithSuccess
 
-	sr.cns.RoundStatus.Block = ssFinished
-	sr.cns.RoundStatus.ComitmentHash = ssFinished
-	sr.cns.RoundStatus.Bitmap = ssFinished
-	sr.cns.RoundStatus.Comitment = ssFinished
+	sr.cns.RoundStatus.Block = SsFinished
+	sr.cns.RoundStatus.ComitmentHash = SsFinished
+	sr.cns.RoundStatus.Bitmap = SsFinished
+	sr.cns.RoundStatus.Comitment = SsFinished
 
 	for i := 0; i < sr.cns.Threshold.Signature; i++ {
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.Comitment = true
-		rv.Signature = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Signature = true
 	}
 
 	r := sr.doSignature(chr)
 
-	assert.Equal(t, ssFinished, sr.cns.RoundStatus.Signature)
+	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Signature)
 	assert.Equal(t, rTrue, r)
 }
 
@@ -132,7 +122,7 @@ func TestSRSignature_DoWork4(t *testing.T) {
 
 	r := sr.doSignature(chr)
 
-	assert.Equal(t, ssExtended, sr.cns.RoundStatus.Signature)
+	assert.Equal(t, SsExtended, sr.cns.RoundStatus.Signature)
 	assert.Equal(t, r, rTrue)
 }
 
@@ -149,11 +139,11 @@ func TestSRSignature_DoWork5(t *testing.T) {
 
 	r := sr.doSignature(chr)
 
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Bitmap)
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Comitment)
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Signature)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Block)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Bitmap)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Comitment)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Signature)
 	assert.Equal(t, rNone, r)
 }
 
@@ -168,21 +158,19 @@ func TestSRSignature_DoWork6(t *testing.T) {
 
 	sr.cns.ChRcvMsg <- []byte("Message has come")
 
-	sr.cns.RoundStatus.Block = ssFinished
-	sr.cns.RoundStatus.ComitmentHash = ssFinished
-	sr.cns.RoundStatus.Bitmap = ssFinished
-	sr.cns.RoundStatus.Comitment = ssFinished
+	sr.cns.RoundStatus.Block = SsFinished
+	sr.cns.RoundStatus.ComitmentHash = SsFinished
+	sr.cns.RoundStatus.Bitmap = SsFinished
+	sr.cns.RoundStatus.Comitment = SsFinished
 
 	for i := 0; i < sr.cns.Threshold.Signature; i++ {
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.Comitment = true
-		rv.Signature = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Signature = true
 	}
 
 	r := sr.DoWork(chr)
 
-	assert.Equal(t, ssFinished, sr.cns.RoundStatus.Signature)
+	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Signature)
 	assert.Equal(t, true, r)
 }
 
@@ -197,33 +185,31 @@ func TestSRSignature_DoWork7(t *testing.T) {
 
 	sr.cns.ChRcvMsg <- []byte("Message has come")
 
-	sr.cns.RoundStatus.Block = ssFinished
-	sr.cns.RoundStatus.ComitmentHash = ssFinished
-	sr.cns.RoundStatus.Bitmap = ssFinished
-	sr.cns.RoundStatus.Comitment = ssFinished
+	sr.cns.RoundStatus.Block = SsFinished
+	sr.cns.RoundStatus.ComitmentHash = SsFinished
+	sr.cns.RoundStatus.Bitmap = SsFinished
+	sr.cns.RoundStatus.Comitment = SsFinished
 
 	for i := 0; i < sr.cns.Threshold.Signature; i++ {
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.Comitment = true
-		rv.Signature = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Signature = true
 	}
 
 	r := sr.DoWork(chr)
 
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Signature)
-	assert.Equal(t, chronology.SrCanceled, chr.GetSelfSubround())
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Signature)
+	assert.Equal(t, chronology.SrCanceled, chr.SelfSubround())
 	assert.Equal(t, false, r)
 }
 
 func TestSRSignature_Current(t *testing.T) {
 	sr := NewSRSignature(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(srSignature), sr.Current())
+	assert.Equal(t, chronology.Subround(SrSignature), sr.Current())
 }
 
 func TestSRSignature_Next(t *testing.T) {
 	sr := NewSRSignature(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(srEndRound), sr.Next())
+	assert.Equal(t, chronology.Subround(SrEndRound), sr.Next())
 }
 
 func TestSRSignature_EndTime(t *testing.T) {

@@ -16,12 +16,12 @@ func InitSRBitmap() (*chronology.Chronology, *SRBitmap) {
 
 	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
 
-	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{ClockOffset: 0})
+	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{})
 
-	vld := NewValidators([]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
+	vld := NewValidators(nil, nil, []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
 	pbft := 2*len(vld.ConsensusGroup)/3 + 1
 	th := NewThreshold(1, pbft, pbft, pbft, pbft)
-	rs := NewRoundStatus(ssNotFinished, ssNotFinished, ssNotFinished, ssNotFinished, ssNotFinished)
+	rs := NewRoundStatus(SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished)
 
 	cns := NewConsensus(true, vld, th, rs, chr)
 
@@ -46,7 +46,7 @@ func TestSRBitmap_DoWork1(t *testing.T) {
 
 	r := sr.doBitmap(chr)
 
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Bitmap)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Bitmap)
 	assert.Equal(t, rNone, r)
 }
 
@@ -58,23 +58,19 @@ func TestSRBitmap_DoWork2(t *testing.T) {
 
 	sr.OnSendMessage = SndWithSuccess
 
-	sr.cns.RoundStatus.Block = ssFinished
+	sr.cns.RoundStatus.Block = SsFinished
 
 	for i := 0; i < len(sr.cns.ConsensusGroup); i++ {
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.ComitmentHash = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
 	}
 
 	for i := 0; i < sr.cns.Threshold.Bitmap; i++ {
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.Bitmap = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
 	}
 
 	r := sr.doBitmap(chr)
 
-	assert.Equal(t, ssFinished, sr.cns.RoundStatus.Bitmap)
+	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Bitmap)
 	assert.Equal(t, rTrue, r)
 }
 
@@ -90,7 +86,7 @@ func TestSRBitmap_DoWork3(t *testing.T) {
 
 	r := sr.doBitmap(chr)
 
-	assert.Equal(t, ssExtended, sr.cns.RoundStatus.Bitmap)
+	assert.Equal(t, SsExtended, sr.cns.RoundStatus.Bitmap)
 	assert.Equal(t, rTrue, r)
 }
 
@@ -107,7 +103,7 @@ func TestSRBitmap_DoWork4(t *testing.T) {
 
 	r := sr.doBitmap(chr)
 
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Bitmap)
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Bitmap)
 	assert.Equal(t, rNone, r)
 }
 
@@ -122,23 +118,19 @@ func TestSRBitmap_DoWork5(t *testing.T) {
 
 	sr.cns.ChRcvMsg <- []byte("Message has come")
 
-	sr.cns.RoundStatus.Block = ssFinished
+	sr.cns.RoundStatus.Block = SsFinished
 
 	for i := 0; i < len(sr.cns.ConsensusGroup); i++ {
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.ComitmentHash = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
 	}
 
 	for i := 0; i < sr.cns.Threshold.Bitmap; i++ {
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.Bitmap = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
 	}
 
 	r := sr.DoWork(chr)
 
-	assert.Equal(t, ssFinished, sr.cns.RoundStatus.Bitmap)
+	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Bitmap)
 	assert.Equal(t, true, r)
 }
 
@@ -153,26 +145,22 @@ func TestSRBitmap_DoWork6(t *testing.T) {
 
 	sr.cns.ChRcvMsg <- []byte("Message has come")
 
-	sr.cns.RoundStatus.Block = ssFinished
+	sr.cns.RoundStatus.Block = SsFinished
 
 	for i := 0; i < len(sr.cns.ConsensusGroup); i++ {
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.ComitmentHash = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
 	}
 
 	for i := 0; i < sr.cns.Threshold.Bitmap+1; i++ {
 		if sr.cns.ConsensusGroup[i] == sr.cns.Self {
 			continue
 		}
-		rv := sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]]
-		rv.Bitmap = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]] = rv
+		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
 	}
 
 	r := sr.DoWork(chr)
 
-	assert.Equal(t, ssFinished, sr.cns.RoundStatus.Bitmap)
+	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Bitmap)
 	assert.Equal(t, true, r)
 }
 
@@ -189,19 +177,19 @@ func TestSRBitmap_DoWork7(t *testing.T) {
 
 	r := sr.DoWork(chr)
 
-	assert.Equal(t, ssNotFinished, sr.cns.RoundStatus.Bitmap)
-	assert.Equal(t, chronology.SrCanceled, chr.GetSelfSubround())
+	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Bitmap)
+	assert.Equal(t, chronology.SrCanceled, chr.SelfSubround())
 	assert.Equal(t, false, r)
 }
 
 func TestSRBitmap_Current(t *testing.T) {
 	sr := NewSRBitmap(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(srBitmap), sr.Current())
+	assert.Equal(t, chronology.Subround(SrBitmap), sr.Current())
 }
 
 func TestSRBitmap_Next(t *testing.T) {
 	sr := NewSRBitmap(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(srComitment), sr.Next())
+	assert.Equal(t, chronology.Subround(SrComitment), sr.Next())
 }
 
 func TestSRBitmap_EndTime(t *testing.T) {

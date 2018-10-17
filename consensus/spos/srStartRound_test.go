@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	//"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,15 +17,15 @@ func InitSRStartRound() (*chronology.Chronology, *SRStartRound) {
 
 	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
 
-	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{ClockOffset: 0})
+	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{})
 
-	vld := NewValidators([]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
+	vld := NewValidators(nil, nil, []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
 	pbft := 2*len(vld.ConsensusGroup)/3 + 1
 	th := NewThreshold(1, pbft, pbft, pbft, pbft)
-	rs := NewRoundStatus(ssNotFinished, ssNotFinished, ssNotFinished, ssNotFinished, ssNotFinished)
+	rs := NewRoundStatus(SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished)
 
 	cns := NewConsensus(true, vld, th, rs, chr)
-	cns.Block = block.NewBlock(-1, "", "", "", "", "")
+	//cns.block = block.NewBlock(-1, "", "", "", "", "")
 
 	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), cns, nil, nil)
 	chr.AddSubrounder(sr)
@@ -90,12 +90,12 @@ func TestStartRound_DoWork4(t *testing.T) {
 
 func TestSRStartRound_Current(t *testing.T) {
 	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(srStartRound), sr.Current())
+	assert.Equal(t, chronology.Subround(SrStartRound), sr.Current())
 }
 
 func TestSRStartRound_Next(t *testing.T) {
 	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(srBlock), sr.Next())
+	assert.Equal(t, chronology.Subround(SrBlock), sr.Next())
 }
 
 func TestSRStartRound_EndTime(t *testing.T) {

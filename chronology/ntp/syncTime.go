@@ -7,9 +7,9 @@ import (
 )
 
 type SyncTimer interface {
-	GetClockOffset() time.Duration
-	GetFormatedCurrentTime(time.Duration) string
-	GetCurrentTime(time.Duration) time.Time
+	ClockOffset() time.Duration
+	FormatedCurrentTime(time.Duration) string
+	CurrentTime(time.Duration) time.Time
 }
 
 type SyncTime struct {
@@ -45,14 +45,14 @@ func (s *SyncTime) doSync() {
 	}
 }
 
-func (s *SyncTime) GetClockOffset() time.Duration {
+func (s *SyncTime) ClockOffset() time.Duration {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 	return s.clockOffset
 }
 
-func (s *SyncTime) GetFormatedCurrentTime(clockOffset time.Duration) string {
-	return s.FormatTime(s.GetCurrentTime(clockOffset))
+func (s *SyncTime) FormatedCurrentTime(clockOffset time.Duration) string {
+	return s.FormatTime(s.CurrentTime(clockOffset))
 }
 
 func (s *SyncTime) FormatTime(time time.Time) string {
@@ -60,6 +60,6 @@ func (s *SyncTime) FormatTime(time time.Time) string {
 	return str
 }
 
-func (s *SyncTime) GetCurrentTime(clockOffset time.Duration) time.Time {
+func (s *SyncTime) CurrentTime(clockOffset time.Duration) time.Time {
 	return time.Now().Add(clockOffset)
 }

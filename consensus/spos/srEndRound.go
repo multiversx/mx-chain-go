@@ -23,7 +23,7 @@ func NewSREndRound(doLog bool, endTime int64, cns *Consensus, onReceivedMessage 
 
 func (sr *SREndRound) DoWork(chr *chronology.Chronology) bool {
 	bActionDone := true
-	for chr.GetSelfSubround() != chronology.SrCanceled {
+	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
 		switch sr.doEndRound(chr, &bActionDone) {
 		case rNone:
@@ -37,15 +37,15 @@ func (sr *SREndRound) DoWork(chr *chronology.Chronology) bool {
 		}
 	}
 
-	sr.Log(fmt.Sprintf(chr.GetFormatedCurrentTime()+"Step 6: Canceled round %d in subround %s", chr.GetRoundIndex(), sr.Name()))
+	sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 6: Canceled round %d in subround %s", chr.Round().Index(), sr.Name()))
 	return false
 }
 
 func (sr *SREndRound) doEndRound(chr *chronology.Chronology, bActionDone *bool) Response {
-	timeSubRound := chr.GetSubroundFromDateTime(chr.GetCurrentTime())
+	timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
-	if timeSubRound > chronology.Subround(srEndRound) {
-		sr.Log(fmt.Sprintf("\n" + chr.GetFormatedCurrentTime() + ">>>>>>>>>>>>>>>>>>>> THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n"))
+	if timeSubRound > chronology.Subround(SrEndRound) {
+		sr.Log(fmt.Sprintf("\n" + chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) + ">>>>>>>>>>>>>>>>>>>> THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n"))
 		return rTrue
 	}
 
@@ -59,15 +59,17 @@ func (sr *SREndRound) doEndRound(chr *chronology.Chronology, bActionDone *bool) 
 
 	if *bActionDone {
 		*bActionDone = false
-		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(srBlock), chronology.Subround(srSignature)); ok {
+		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrSignature)); ok {
 			sr.roundsWithBlocks++ // only for statistic
 
-			sr.cns.BlockChain.AddBlock(*sr.cns.Block)
+			//sr.cns.blockChain.AddBlock(*sr.cns.block)
 
 			if sr.cns.IsNodeLeaderInCurrentRound(sr.cns.Self) {
-				sr.Log(fmt.Sprintf("\n"+chr.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", sr.cns.Block.Nonce))
+				//sr.Log(fmt.Sprintf("\n"+Chr.SyncTime().FormatedCurrentTime(Chr.ClockOffset())+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", sr.cns.block.Nonce))
+				sr.Log(fmt.Sprintf("\n"+chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", sr.roundsWithBlocks-1))
 			} else {
-				sr.Log(fmt.Sprintf("\n"+chr.GetFormatedCurrentTime()+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", sr.cns.Block.Nonce))
+				//sr.Log(fmt.Sprintf("\n"+Chr.SyncTime().FormatedCurrentTime(Chr.ClockOffset())+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", sr.cns.block.Nonce))
+				sr.Log(fmt.Sprintf("\n"+chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", sr.roundsWithBlocks-1))
 			}
 
 			return rTrue
@@ -78,11 +80,11 @@ func (sr *SREndRound) doEndRound(chr *chronology.Chronology, bActionDone *bool) 
 }
 
 func (sr *SREndRound) Current() chronology.Subround {
-	return chronology.Subround(srEndRound)
+	return chronology.Subround(SrEndRound)
 }
 
 func (sr *SREndRound) Next() chronology.Subround {
-	return chronology.Subround(srStartRound)
+	return chronology.Subround(SrStartRound)
 }
 
 func (sr *SREndRound) EndTime() int64 {

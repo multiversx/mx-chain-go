@@ -14,34 +14,42 @@ func NewRoundValidation(block bool, comitmentHash bool, bitmap bool, comitment b
 	return &rv
 }
 
+func (rv *RoundValidation) ResetRoundValidation() {
+	rv.Block = false
+	rv.ComitmentHash = false
+	rv.Bitmap = false
+	rv.Comitment = false
+	rv.Signature = false
+}
+
 type Validators struct {
 	WaitingList    []string
 	EligibleList   []string
 	ConsensusGroup []string
 	Self           string
-	ValidationMap  map[string]RoundValidation
+	ValidationMap  map[string]*RoundValidation
 }
 
-func NewValidators(consensusGroup []string, self string) *Validators {
-	var v Validators
+func NewValidators(waitingList []string, eligibleList []string, consensusGroup []string, self string) *Validators {
+	v := Validators{WaitingList: waitingList, EligibleList: eligibleList, ConsensusGroup: consensusGroup, Self: self}
 
-	v.ConsensusGroup = make([]string, len(consensusGroup))
-
-	for i := 0; i < len(consensusGroup); i++ {
-		v.ConsensusGroup[i] = consensusGroup[i]
-	}
-
+	v.WaitingList = waitingList
+	v.EligibleList = eligibleList
+	v.ConsensusGroup = consensusGroup
 	v.Self = self
 
-	v.ValidationMap = make(map[string]RoundValidation)
-	v.ResetValidationMap()
+	v.ValidationMap = make(map[string]*RoundValidation)
+
+	for i := 0; i < len(consensusGroup); i++ {
+		v.ValidationMap[v.ConsensusGroup[i]] = NewRoundValidation(false, false, false, false, false)
+	}
 
 	return &v
 }
 
 func (vld *Validators) ResetValidationMap() {
 	for i := 0; i < len(vld.ConsensusGroup); i++ {
-		vld.ValidationMap[vld.ConsensusGroup[i]] = RoundValidation{false, false, false, false, false}
+		vld.ValidationMap[vld.ConsensusGroup[i]].ResetRoundValidation()
 	}
 }
 
@@ -83,7 +91,7 @@ func (vld *Validators) IsComitmentHashReceived(threshold int) (bool, int) {
 	return n >= threshold, n
 }
 
-func (vld *Validators) IsComitmentHashInBitmap(threshold int) (bool, int) {
+func (vld *Validators) IsBitmapInComitmentHash(threshold int) (bool, int) {
 	n := 0
 
 	for i := 0; i < len(vld.ConsensusGroup); i++ {
@@ -113,11 +121,11 @@ func (vld *Validators) IsBitmapInComitment(threshold int) (bool, int) {
 	return n >= threshold, n
 }
 
-func (vld *Validators) IsComitmentInSignature(threshold int) (bool, int) {
+func (vld *Validators) IsBitmapInSignature(threshold int) (bool, int) {
 	n := 0
 
 	for i := 0; i < len(vld.ConsensusGroup); i++ {
-		if vld.ValidationMap[vld.ConsensusGroup[i]].Comitment {
+		if vld.ValidationMap[vld.ConsensusGroup[i]].Bitmap {
 			if !vld.ValidationMap[vld.ConsensusGroup[i]].Signature {
 				return false, n
 			}

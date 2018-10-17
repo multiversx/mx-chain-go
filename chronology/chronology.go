@@ -68,7 +68,7 @@ func NewChronology(doLog bool, doSyncMode bool, round *Round, genesisTime time.T
 
 	chr.selfSubround = SrBeforeRound
 	chr.timeSubround = SrBeforeRound
-	chr.clockOffset = syncTime.GetClockOffset()
+	chr.clockOffset = syncTime.ClockOffset()
 
 	chr.subrounders = make([]Subrounder, 0)
 	chr.subrounds = make(map[Subround]int)
@@ -88,7 +88,7 @@ func (chr *Chronology) initRound() {
 		chr.selfSubround = chr.subrounders[0].Current()
 	}
 
-	chr.clockOffset = chr.syncTime.GetClockOffset()
+	chr.clockOffset = chr.syncTime.ClockOffset()
 }
 
 // AddSubrounder adds new Subrounder implementation to the chronology
@@ -128,20 +128,20 @@ func (chr *Chronology) updateRound() Subround {
 	oldRoundIndex := chr.round.index
 	oldTimeSubRound := chr.timeSubround
 
-	currentTime := chr.syncTime.GetCurrentTime(chr.clockOffset)
+	currentTime := chr.syncTime.CurrentTime(chr.clockOffset)
 	chr.round.UpdateRound(chr.genesisTime, currentTime)
 	chr.timeSubround = chr.GetSubroundFromDateTime(currentTime)
 
 	if oldRoundIndex != chr.round.index {
 		chr.rounds++ // only for statistic
-		chr.log(fmt.Sprintf("\n"+chr.GetFormatedCurrentTime()+"############################## ROUND %d BEGINS ##############################\n", chr.round.index))
+		chr.log(fmt.Sprintf("\n"+chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"############################## ROUND %d BEGINS ##############################\n", chr.round.index))
 		chr.initRound()
 	}
 
 	if oldTimeSubRound != chr.timeSubround {
 		sr := chr.loadSubrounder(chr.timeSubround)
 		if sr != nil {
-			chr.log(fmt.Sprintf("\n" + chr.GetFormatedCurrentTime() + ".................... SUBROUND " + sr.Name() + " BEGINS ....................\n"))
+			chr.log(fmt.Sprintf("\n" + chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) + ".................... SUBROUND " + sr.Name() + " BEGINS ....................\n"))
 		}
 	}
 
@@ -193,13 +193,13 @@ func (chr *Chronology) log(message string) {
 	}
 }
 
-// GetRoundIndex returns the current round index
-func (chr *Chronology) GetRoundIndex() int {
-	return chr.round.index
+// Round returns the current round object
+func (chr *Chronology) Round() *Round {
+	return chr.round
 }
 
-// GetSelfSubround returns the subround, related to the finished tasks in the current round
-func (chr *Chronology) GetSelfSubround() Subround {
+// SelfSubround returns the subround, related to the finished tasks in the current round
+func (chr *Chronology) SelfSubround() Subround {
 	return chr.selfSubround
 }
 
@@ -208,13 +208,13 @@ func (chr *Chronology) SetSelfSubround(subRound Subround) {
 	chr.selfSubround = subRound
 }
 
-// GetTimeSubround returns the subround, related to the current time
-func (chr *Chronology) GetTimeSubround() Subround {
+// TimeSubround returns the subround, related to the current time
+func (chr *Chronology) TimeSubround() Subround {
 	return chr.timeSubround
 }
 
-// GetClockOffset returns the current offset between local time and NTP
-func (chr *Chronology) GetClockOffset() time.Duration {
+// clockOffset returns the current offset between local time and NTP
+func (chr *Chronology) ClockOffset() time.Duration {
 	return chr.clockOffset
 }
 
@@ -223,17 +223,7 @@ func (chr *Chronology) SetClockOffset(clockOffset time.Duration) {
 	chr.clockOffset = clockOffset
 }
 
-// GetSyncTimer returns the current implementation of SynchTimer interface
-func (chr *Chronology) GetSyncTimer() ntp.SyncTimer {
+// SyncTime returns the current implementation of SynchTimer interface
+func (chr *Chronology) SyncTime() ntp.SyncTimer {
 	return chr.syncTime
-}
-
-// GetFormatedCurrentTime returns formated current time for printing synched with NTP
-func (chr *Chronology) GetFormatedCurrentTime() string {
-	return chr.syncTime.GetFormatedCurrentTime(chr.clockOffset)
-}
-
-// GetCurrentTime returns current time synched with NTP
-func (chr *Chronology) GetCurrentTime() time.Time {
-	return chr.syncTime.GetCurrentTime(chr.clockOffset)
 }

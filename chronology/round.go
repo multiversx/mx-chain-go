@@ -38,6 +38,11 @@ func (rnd *Round) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Ti
 	}
 }
 
+// Index returns the index of the round in current epoch
+func (rnd *Round) Index() int {
+	return rnd.index
+}
+
 // Print method just spew to the console the Round object in some pretty format
 func (rnd *Round) Print() {
 	spew.Dump(rnd)
