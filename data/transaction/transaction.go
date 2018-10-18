@@ -3,9 +3,9 @@ package transaction
 import (
 	"io"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction/capnproto1"
 	"github.com/glycerine/go-capnproto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
 
 // Transaction holds all the data needed for a value transfer

@@ -25,9 +25,9 @@ func benchMarshal(b *testing.B, m marshal.Marshalizer, obj data.DataGenerator) {
 	}
 }
 
-func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj data.DataGenerator, validate bool) {
+func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj interface{}, validate bool) {
 	b.StopTimer()
-	dArray := obj.GenerateDummyArray()
+	dArray := obj.(data.DataGenerator).GenerateDummyArray()
 	l := len(dArray)
 	serialized := make([][]byte, l)
 
@@ -44,8 +44,7 @@ func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj data.DataGenerator,
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		n := i % l
-		var tx transaction.Transaction
-		err := m.Unmarshal(&tx, serialized[n])
+		err := m.Unmarshal(obj.(data.CapnpHelper), serialized[n])
 
 		if err != nil {
 			b.Fatalf("error unmarshalling %s : %s", serialized[n], err)
@@ -54,9 +53,9 @@ func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj data.DataGenerator,
 		// Check unmarshalled data as expected
 		if validate {
 			orig := dArray[n]
-			valid := reflect.DeepEqual(orig, &tx)
+			valid := reflect.DeepEqual(orig, obj)
 			if !valid {
-				b.Fatalf("unmarshaled data different than expected: \n%v\n%v\n", orig, &tx)
+				b.Fatalf("unmarshaled data different than expected: \n%v\n%v\n", orig, obj)
 			}
 		}
 	}

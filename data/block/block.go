@@ -3,10 +3,11 @@ package block
 import (
 	"io"
 
+	"math/rand"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnproto1"
 	"github.com/glycerine/go-capnproto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"math/rand"
 )
 
 type MiniBlock struct {
