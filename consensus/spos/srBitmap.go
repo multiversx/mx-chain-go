@@ -8,15 +8,15 @@ import (
 )
 
 type SRBitmap struct {
-	doLog             bool
-	endTime           int64
-	cns               *Consensus
-	OnReceivedMessage func(*[]byte, *chronology.Chronology) bool
-	OnSendMessage     func(chronology.Subround) bool
+	doLog            bool
+	endTime          int64
+	cns              *Consensus
+	OnReceivedBitmap func(*[]byte, *chronology.Chronology) bool
+	OnSendBitmap     func(chronology.Subround) bool
 }
 
-func NewSRBitmap(doLog bool, endTime int64, cns *Consensus, onReceivedMessage func(*[]byte, *chronology.Chronology) bool, onSendMessage func(chronology.Subround) bool) *SRBitmap {
-	sr := SRBitmap{doLog: doLog, endTime: endTime, cns: cns, OnReceivedMessage: onReceivedMessage, OnSendMessage: onSendMessage}
+func NewSRBitmap(doLog bool, endTime int64, cns *Consensus, onReceivedBitmap func(*[]byte, *chronology.Chronology) bool, onSendBitmap func(chronology.Subround) bool) *SRBitmap {
+	sr := SRBitmap{doLog: doLog, endTime: endTime, cns: cns, OnReceivedBitmap: onReceivedBitmap, OnSendBitmap: onSendBitmap}
 	return &sr
 }
 
@@ -40,10 +40,10 @@ func (sr *SRBitmap) DoWork(chr *chronology.Chronology) bool {
 }
 
 func (sr *SRBitmap) doBitmap(chr *chronology.Chronology) Response {
-	bActionDone := sr.OnSendMessage(chronology.Subround(SrBitmap))
+	sr.cns.SetSentMessage(sr.OnSendBitmap(chronology.Subround(SrBitmap)))
 
-	if bActionDone {
-		bActionDone = false
+	if sr.cns.SentMessage() {
+		sr.cns.SetSentMessage(false)
 		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBitmap)); ok {
 			return rTrue
 		}
@@ -57,16 +57,8 @@ func (sr *SRBitmap) doBitmap(chr *chronology.Chronology) Response {
 		return rTrue // Try to give a chance to this round if the bitmap from leader will arrive later
 	}
 
-	select {
-	case rcvMsg := <-sr.cns.ChRcvMsg:
-		if sr.OnReceivedMessage(&rcvMsg, chr) {
-			bActionDone = true
-		}
-	default:
-	}
-
-	if bActionDone {
-		bActionDone = false
+	if sr.cns.ReceivedMessage() {
+		sr.cns.SetReceivedMessage(false)
 		if ok, n := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBitmap)); ok {
 			addMessage := "BUT I WAS NOT selected in this bitmap"
 			if sr.cns.IsNodeInBitmapGroup(sr.cns.Self) {

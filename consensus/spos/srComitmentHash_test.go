@@ -26,7 +26,7 @@ func InitSRComitmentHash() (*chronology.Chronology, *SRComitmentHash) {
 	cns := NewConsensus(true, vld, th, rs, chr)
 
 	sr := NewSRComitmentHash(true, int64(100*roundTimeDuration/100), cns, nil, nil)
-	chr.AddSubrounder(sr)
+	chr.AddSubround(sr)
 
 	return chr, sr
 }
@@ -42,7 +42,7 @@ func TestSRComitmentHash_DoWork1(t *testing.T) {
 
 	fmt.Printf("1: Test case when send message is done but consensus is not done -> rNone\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendComitmentHash = SndWithSuccess
 
 	r := sr.doComitmentHash(chr)
 
@@ -57,7 +57,7 @@ func TestSRComitmentHash_DoWork2(t *testing.T) {
 
 	fmt.Printf("2: Test case when send message is done but consensus is semi-done (only subround BLOCK is done) -> rNone\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendComitmentHash = SndWithSuccess
 
 	sr.cns.ValidationMap[sr.cns.Self].Block = true
 
@@ -74,7 +74,7 @@ func TestSRComitmentHash_DoWork3(t *testing.T) {
 
 	fmt.Printf("3: Test case when send message is done, but consensus (full) is not done (I AM NOT LEADER) -> rNone\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendComitmentHash = SndWithSuccess
 
 	sr.cns.ValidationMap[sr.cns.Self].Block = true
 
@@ -95,7 +95,7 @@ func TestSRComitmentHash_DoWork4(t *testing.T) {
 
 	fmt.Printf("4: Test case when send message is done and consensus (pbft) is enough (I AM LEADER) -> rTrue\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendComitmentHash = SndWithSuccess
 
 	sr.cns.Self = "1"
 
@@ -118,7 +118,7 @@ func TestSRComitmentHash_DoWork5(t *testing.T) {
 
 	fmt.Printf("5: Test case when send message is done and consensus (pbft) is enough because of the bitmap (I AM NOT LEADER) -> rTrue\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendComitmentHash = SndWithSuccess
 
 	sr.cns.RoundStatus.Block = SsFinished
 
@@ -140,7 +140,7 @@ func TestSRComitmentHash_DoWork6(t *testing.T) {
 
 	fmt.Printf("6: Test case when send message and consensus (full) is done (I AM NOT LEADER) -> rTrue\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendComitmentHash = SndWithSuccess
 
 	sr.cns.RoundStatus.Block = SsFinished
 
@@ -161,7 +161,7 @@ func TestSRComitmentHash_DoWork7(t *testing.T) {
 
 	fmt.Printf("7: Test case when time has expired with consensus (pbft) not done -> rTrue\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendComitmentHash = SndWithSuccess
 
 	chr.SetClockOffset(time.Duration(sr.endTime + 1))
 
@@ -177,7 +177,7 @@ func TestSRComitmentHash_DoWork8(t *testing.T) {
 
 	fmt.Printf("8: Test case when time has expired with consensus (pbft) done -> rTrue\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
+	sr.OnSendComitmentHash = SndWithoutSuccess
 
 	chr.SetClockOffset(time.Duration(sr.endTime + 1))
 
@@ -197,10 +197,10 @@ func TestSRComitmentHash_DoWork9(t *testing.T) {
 
 	fmt.Printf("9: Test case when receive message is done but consensus is not done -> rNone\n")
 
-	sr.OnSendMessage = SndWithSuccess
-	sr.OnReceivedMessage = RcvWithSuccess
+	sr.OnSendComitmentHash = SndWithoutSuccess
+	sr.OnReceivedComitmentHash = RcvWithSuccess
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(true)
 
 	r := sr.doComitmentHash(chr)
 
@@ -215,10 +215,10 @@ func TestSRComitmentHash_DoWork10(t *testing.T) {
 
 	fmt.Printf("10: Test case when receive message and consensus is done -> true\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
-	sr.OnReceivedMessage = RcvWithSuccess
+	sr.OnSendComitmentHash = SndWithoutSuccess
+	sr.OnReceivedComitmentHash = RcvWithSuccess
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(true)
 
 	sr.cns.ValidationMap[sr.cns.Self].Block = true
 
@@ -239,10 +239,11 @@ func TestSRComitmentHash_DoWork11(t *testing.T) {
 
 	fmt.Printf("11: Test case when receive message is not done and round should be canceled -> false\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
-	sr.OnReceivedMessage = RcvWithoutSuccessAndCancel
+	sr.OnSendComitmentHash = SndWithoutSuccess
+	sr.OnReceivedComitmentHash = RcvWithoutSuccessAndCancel
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(false)
+	sr.cns.Chr.SetSelfSubround(chronology.SrCanceled)
 
 	sr.cns.ValidationMap[sr.cns.Self].Block = true
 

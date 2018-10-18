@@ -3,6 +3,7 @@ package spos
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
@@ -79,27 +80,51 @@ func NewThreshold(block int, comitmentHash int, bitmap int, comitment int, signa
 type Consensus struct {
 	doLog bool
 
+	mutReceived sync.RWMutex
+	mutSent     sync.RWMutex
+
 	*Validators
 	*Threshold
 	*RoundStatus
 
-	Chr      *chronology.Chronology
-	ChRcvMsg chan []byte
+	receivedMessage bool
+	sentMessage     bool
 
-	//block      *block.block
-	//blockChain *blockchain.blockChain
+	Chr *chronology.Chronology
 }
 
 func NewConsensus(doLog bool, validators *Validators, threshold *Threshold, roundStatus *RoundStatus, chr *chronology.Chronology) *Consensus {
 	cns := Consensus{doLog: doLog, Validators: validators, Threshold: threshold, RoundStatus: roundStatus, Chr: chr}
 
-	if cns.Validators == nil || len(cns.Validators.ConsensusGroup) == 0 {
-		cns.ChRcvMsg = make(chan []byte)
-	} else {
-		cns.ChRcvMsg = make(chan []byte, len(cns.Validators.ConsensusGroup))
-	}
-
 	return &cns
+}
+
+func (cns *Consensus) SetReceivedMessage(receivedMessage bool) {
+	cns.mutReceived.Lock()
+	defer cns.mutReceived.Unlock()
+
+	cns.receivedMessage = receivedMessage
+}
+
+func (cns *Consensus) ReceivedMessage() bool {
+	cns.mutReceived.RLock()
+	defer cns.mutReceived.RUnlock()
+
+	return cns.receivedMessage
+}
+
+func (cns *Consensus) SetSentMessage(sentMessage bool) {
+	cns.mutSent.Lock()
+	defer cns.mutSent.Unlock()
+
+	cns.sentMessage = sentMessage
+}
+
+func (cns *Consensus) SentMessage() bool {
+	cns.mutSent.RLock()
+	defer cns.mutSent.RUnlock()
+
+	return cns.sentMessage
 }
 
 func (cns *Consensus) CheckConsensus(startRoundState chronology.Subround, endRoundState chronology.Subround) (bool, int) {

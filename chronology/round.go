@@ -43,6 +43,16 @@ func (rnd *Round) Index() int {
 	return rnd.index
 }
 
+// TimeStamp returns the time stamp of the round
+func (rnd *Round) TimeStamp() time.Time {
+	return rnd.timeStamp
+}
+
+// TimeDuration returns the duration of the round
+func (rnd *Round) TimeDuration() time.Duration {
+	return rnd.timeDuration
+}
+
 // Print method just spew to the console the Round object in some pretty format
 func (rnd *Round) Print() {
 	spew.Dump(rnd)

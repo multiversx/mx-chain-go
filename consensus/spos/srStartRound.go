@@ -8,15 +8,15 @@ import (
 )
 
 type SRStartRound struct {
-	doLog             bool
-	endTime           int64
-	cns               *Consensus
-	OnReceivedMessage func(*[]byte, *chronology.Chronology) bool
-	OnSendMessage     func(chronology.Subround) bool
+	doLog                bool
+	endTime              int64
+	cns                  *Consensus
+	OnReceivedStartRound func(*[]byte, *chronology.Chronology) bool
+	OnSendStartRound     func(chronology.Subround) bool
 }
 
-func NewSRStartRound(doLog bool, endTime int64, cns *Consensus, onReceivedMessage func(*[]byte, *chronology.Chronology) bool, onSendMessage func(chronology.Subround) bool) *SRStartRound {
-	sr := SRStartRound{doLog: doLog, endTime: endTime, cns: cns, OnReceivedMessage: onReceivedMessage, OnSendMessage: onSendMessage}
+func NewSRStartRound(doLog bool, endTime int64, cns *Consensus, onReceivedStartRound func(*[]byte, *chronology.Chronology) bool, onSendStartRound func(chronology.Subround) bool) *SRStartRound {
+	sr := SRStartRound{doLog: doLog, endTime: endTime, cns: cns, OnReceivedStartRound: onReceivedStartRound, OnSendStartRound: onSendStartRound}
 	return &sr
 }
 

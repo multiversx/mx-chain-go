@@ -28,7 +28,7 @@ func InitSRStartRound() (*chronology.Chronology, *SRStartRound) {
 	//cns.block = block.NewBlock(-1, "", "", "", "", "")
 
 	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), cns, nil, nil)
-	chr.AddSubrounder(sr)
+	chr.AddSubround(sr)
 
 	return chr, sr
 }

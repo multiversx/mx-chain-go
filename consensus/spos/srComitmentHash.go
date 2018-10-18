@@ -8,15 +8,15 @@ import (
 )
 
 type SRComitmentHash struct {
-	doLog             bool
-	endTime           int64
-	cns               *Consensus
-	OnReceivedMessage func(*[]byte, *chronology.Chronology) bool
-	OnSendMessage     func(chronology.Subround) bool
+	doLog                   bool
+	endTime                 int64
+	cns                     *Consensus
+	OnReceivedComitmentHash func(*[]byte, *chronology.Chronology) bool
+	OnSendComitmentHash     func(chronology.Subround) bool
 }
 
-func NewSRComitmentHash(doLog bool, endTime int64, cns *Consensus, onReceivedMessage func(*[]byte, *chronology.Chronology) bool, onSendMessage func(chronology.Subround) bool) *SRComitmentHash {
-	sr := SRComitmentHash{doLog: doLog, endTime: endTime, cns: cns, OnReceivedMessage: onReceivedMessage, OnSendMessage: onSendMessage}
+func NewSRComitmentHash(doLog bool, endTime int64, cns *Consensus, onReceivedComitmentHash func(*[]byte, *chronology.Chronology) bool, onSendComitmentHash func(chronology.Subround) bool) *SRComitmentHash {
+	sr := SRComitmentHash{doLog: doLog, endTime: endTime, cns: cns, OnReceivedComitmentHash: onReceivedComitmentHash, OnSendComitmentHash: onSendComitmentHash}
 	return &sr
 }
 
@@ -40,7 +40,7 @@ func (sr *SRComitmentHash) DoWork(chr *chronology.Chronology) bool {
 }
 
 func (sr *SRComitmentHash) doComitmentHash(chr *chronology.Chronology) Response {
-	bActionDone := sr.OnSendMessage(chronology.Subround(SrComitmentHash))
+	sr.cns.SetSentMessage(sr.OnSendComitmentHash(chronology.Subround(SrComitmentHash)))
 
 	timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
@@ -54,16 +54,9 @@ func (sr *SRComitmentHash) doComitmentHash(chr *chronology.Chronology) Response 
 		return rTrue // Try to give a chance to this round if the necesary comitment hashes will arrive later
 	}
 
-	select {
-	case rcvMsg := <-sr.cns.ChRcvMsg:
-		if sr.OnReceivedMessage(&rcvMsg, chr) {
-			bActionDone = true
-		}
-	default:
-	}
-
-	if bActionDone {
-		bActionDone = false
+	if sr.cns.SentMessage() || sr.cns.ReceivedMessage() {
+		sr.cns.SetSentMessage(false)
+		sr.cns.SetReceivedMessage(false)
 		if ok, n := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrComitmentHash)); ok {
 			if n == len(sr.cns.ConsensusGroup) {
 				sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 2: Received all (%d from %d) comitment hashes", n, len(sr.cns.ConsensusGroup)))

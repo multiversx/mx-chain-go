@@ -1,16 +1,17 @@
-package chronology
+package chronology_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	srStartRound Subround = iota
+	srStartRound chronology.Subround = iota
 	srBlock
 	srComitmentHash
 	srBitmap
@@ -27,17 +28,17 @@ type SRStartRound struct {
 	Hits int
 }
 
-func (sr *SRStartRound) DoWork(chr *Chronology) bool {
+func (sr *SRStartRound) DoWork(chr *chronology.Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoStartRound with %d hits\n", sr.Hits)
 	return true
 }
 
-func (sr *SRStartRound) Current() Subround {
+func (sr *SRStartRound) Current() chronology.Subround {
 	return srStartRound
 }
 
-func (sr *SRStartRound) Next() Subround {
+func (sr *SRStartRound) Next() chronology.Subround {
 	return srBlock
 }
 
@@ -55,17 +56,17 @@ type SRBlock struct {
 	Hits int
 }
 
-func (sr *SRBlock) DoWork(chr *Chronology) bool {
+func (sr *SRBlock) DoWork(chr *chronology.Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoBlock with %d hits\n", sr.Hits)
 	return true
 }
 
-func (sr *SRBlock) Current() Subround {
+func (sr *SRBlock) Current() chronology.Subround {
 	return srBlock
 }
 
-func (sr *SRBlock) Next() Subround {
+func (sr *SRBlock) Next() chronology.Subround {
 	return srComitmentHash
 }
 
@@ -83,17 +84,17 @@ type SRComitmentHash struct {
 	Hits int
 }
 
-func (sr *SRComitmentHash) DoWork(chr *Chronology) bool {
+func (sr *SRComitmentHash) DoWork(chr *chronology.Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoComitmentHash with %d hits\n", sr.Hits)
 	return true
 }
 
-func (sr *SRComitmentHash) Current() Subround {
+func (sr *SRComitmentHash) Current() chronology.Subround {
 	return srComitmentHash
 }
 
-func (sr *SRComitmentHash) Next() Subround {
+func (sr *SRComitmentHash) Next() chronology.Subround {
 	return srBitmap
 }
 
@@ -111,17 +112,17 @@ type SRBitmap struct {
 	Hits int
 }
 
-func (sr *SRBitmap) DoWork(chr *Chronology) bool {
+func (sr *SRBitmap) DoWork(chr *chronology.Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoBitmap with %d hits\n", sr.Hits)
 	return true
 }
 
-func (sr *SRBitmap) Current() Subround {
+func (sr *SRBitmap) Current() chronology.Subround {
 	return srBitmap
 }
 
-func (sr *SRBitmap) Next() Subround {
+func (sr *SRBitmap) Next() chronology.Subround {
 	return srComitment
 }
 
@@ -139,17 +140,17 @@ type SRComitment struct {
 	Hits int
 }
 
-func (sr *SRComitment) DoWork(chr *Chronology) bool {
+func (sr *SRComitment) DoWork(chr *chronology.Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoComitment with %d hits\n", sr.Hits)
 	return true
 }
 
-func (sr *SRComitment) Current() Subround {
+func (sr *SRComitment) Current() chronology.Subround {
 	return srComitment
 }
 
-func (sr *SRComitment) Next() Subround {
+func (sr *SRComitment) Next() chronology.Subround {
 	return srSignature
 }
 
@@ -167,17 +168,17 @@ type SRSignature struct {
 	Hits int
 }
 
-func (sr *SRSignature) DoWork(chr *Chronology) bool {
+func (sr *SRSignature) DoWork(chr *chronology.Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoSignature with %d hits\n", sr.Hits)
 	return true
 }
 
-func (sr *SRSignature) Current() Subround {
+func (sr *SRSignature) Current() chronology.Subround {
 	return srSignature
 }
 
-func (sr *SRSignature) Next() Subround {
+func (sr *SRSignature) Next() chronology.Subround {
 	return srEndRound
 }
 
@@ -195,17 +196,17 @@ type SREndRound struct {
 	Hits int
 }
 
-func (sr *SREndRound) DoWork(chr *Chronology) bool {
+func (sr *SREndRound) DoWork(chr *chronology.Chronology) bool {
 	sr.Hits++
 	fmt.Printf("DoEndRound with %d hits\n", sr.Hits)
 	return true
 }
 
-func (sr *SREndRound) Current() Subround {
+func (sr *SREndRound) Current() chronology.Subround {
 	return srEndRound
 }
 
-func (sr *SREndRound) Next() Subround {
+func (sr *SREndRound) Next() chronology.Subround {
 	return srStartRound
 }
 
@@ -222,24 +223,24 @@ func TestStartRound(t *testing.T) {
 	genesisTime := time.Now()
 	currentTime := genesisTime
 
-	rnd := NewRound(genesisTime, currentTime, roundTimeDuration)
+	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
 	syncTime := &ntp.LocalTime{}
 	syncTime.SetClockOffset(roundTimeDuration + 1)
 
-	chr := NewChronology(true, true, rnd, genesisTime, syncTime)
+	chr := chronology.NewChronology(true, true, rnd, genesisTime, syncTime)
 
-	chr.AddSubrounder(&SRStartRound{})
-	chr.AddSubrounder(&SRBlock{})
-	chr.AddSubrounder(&SRComitmentHash{})
-	chr.AddSubrounder(&SRBitmap{})
-	chr.AddSubrounder(&SRComitment{})
-	chr.AddSubrounder(&SRSignature{})
-	chr.AddSubrounder(&SREndRound{})
+	chr.AddSubround(&SRStartRound{})
+	chr.AddSubround(&SRBlock{})
+	chr.AddSubround(&SRComitmentHash{})
+	chr.AddSubround(&SRBitmap{})
+	chr.AddSubround(&SRComitment{})
+	chr.AddSubround(&SRSignature{})
+	chr.AddSubround(&SREndRound{})
 
 	for {
-		chr.startRound()
-		if len(chr.subrounders) > 0 {
-			if chr.selfSubround == chr.subrounders[len(chr.subrounders)-1].Next() {
+		chr.StartRound()
+		if len(chr.SubroundHandlers()) > 0 {
+			if chr.SelfSubround() == chr.SubroundHandlers()[len(chr.SubroundHandlers())-1].Next() {
 				break
 			}
 		}
@@ -249,57 +250,57 @@ func TestStartRound(t *testing.T) {
 func TestRoundState(t *testing.T) {
 	currentTime := time.Now()
 
-	rnd := NewRound(currentTime, currentTime, roundTimeDuration)
-	chr := Chronology{round: rnd}
+	rnd := chronology.NewRound(currentTime, currentTime, roundTimeDuration)
+	chr := chronology.NewChronology(true, true, rnd, currentTime, &ntp.LocalTime{})
 
 	state := chr.GetSubroundFromDateTime(currentTime.Add(-1 * time.Hour))
-	assert.Equal(t, SrBeforeRound, state)
+	assert.Equal(t, chronology.SrBeforeRound, state)
 
 	state = chr.GetSubroundFromDateTime(currentTime.Add(1 * time.Hour))
-	assert.Equal(t, SrAfterRound, state)
+	assert.Equal(t, chronology.SrAfterRound, state)
 
 	state = chr.GetSubroundFromDateTime(currentTime)
-	assert.Equal(t, SrUnknown, state)
+	assert.Equal(t, chronology.SrUnknown, state)
 
-	chr.AddSubrounder(&SRStartRound{})
+	chr.AddSubround(&SRStartRound{})
 
 	state = chr.GetSubroundFromDateTime(currentTime)
-	assert.NotEqual(t, SrUnknown, state)
+	assert.NotEqual(t, chronology.SrUnknown, state)
 }
 
 func TestLoadSubrounder(t *testing.T) {
-	chr := Chronology{}
+	chr := chronology.Chronology{}
 
-	sr := chr.loadSubrounder(SrBeforeRound)
+	sr := chr.LoadSubroundHandler(chronology.SrBeforeRound)
 	assert.Nil(t, sr)
 
-	sr = chr.loadSubrounder(SrAfterRound)
+	sr = chr.LoadSubroundHandler(chronology.SrAfterRound)
 	assert.Nil(t, sr)
 
-	chr.AddSubrounder(&SRStartRound{})
+	chr.AddSubround(&SRStartRound{})
 
-	sr = chr.loadSubrounder(srStartRound)
+	sr = chr.LoadSubroundHandler(srStartRound)
 	assert.NotNil(t, sr)
 
-	assert.Equal(t, sr.Name(), chr.subrounders[0].Name())
+	assert.Equal(t, sr.Name(), chr.SubroundHandlers()[0].Name())
 }
 
-func TestGetters(t *testing.T) {
+func TestGettersAndSetters(t *testing.T) {
 	genesisTime := time.Now()
 	currentTime := genesisTime
 
-	rnd := NewRound(genesisTime, currentTime, roundTimeDuration)
+	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
 	syncTime := &ntp.LocalTime{}
 
-	chr := NewChronology(true, true, rnd, genesisTime, syncTime)
+	chr := chronology.NewChronology(true, true, rnd, genesisTime, syncTime)
 
 	assert.Equal(t, 0, chr.Round().Index())
-	assert.Equal(t, SrBeforeRound, chr.SelfSubround())
+	assert.Equal(t, chronology.SrBeforeRound, chr.SelfSubround())
 
 	chr.SetSelfSubround(srStartRound)
 	assert.Equal(t, srStartRound, chr.SelfSubround())
 
-	assert.Equal(t, SrBeforeRound, chr.TimeSubround())
+	assert.Equal(t, chronology.SrBeforeRound, chr.TimeSubround())
 	assert.Equal(t, time.Duration(0), chr.ClockOffset())
 	assert.NotNil(t, chr.SyncTime())
 	assert.Equal(t, time.Duration(0), chr.SyncTime().ClockOffset())
@@ -307,5 +308,5 @@ func TestGetters(t *testing.T) {
 	chr.SetClockOffset(time.Duration(5))
 	assert.Equal(t, time.Duration(5), chr.ClockOffset())
 
-	fmt.Printf("%v\n%v", chr.SyncTime().CurrentTime(chr.ClockOffset()), chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()))
+	fmt.Printf("%v\n%v\n%v", chr.SyncTime().CurrentTime(chr.ClockOffset()), chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()), chr.SubroundHandlers())
 }

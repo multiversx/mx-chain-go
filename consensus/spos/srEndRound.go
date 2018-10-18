@@ -8,24 +8,24 @@ import (
 )
 
 type SREndRound struct {
-	doLog             bool
-	endTime           int64
-	cns               *Consensus
-	roundsWithBlocks  int // only for statistic
-	OnReceivedMessage func(*[]byte, *chronology.Chronology) bool
-	OnSendMessage     func(chronology.Subround) bool
+	doLog              bool
+	endTime            int64
+	cns                *Consensus
+	roundsWithBlocks   int // only for statistic
+	OnReceivedEndRound func(*[]byte, *chronology.Chronology) bool
+	OnSendEndRound     func(chronology.Subround) bool
 }
 
-func NewSREndRound(doLog bool, endTime int64, cns *Consensus, onReceivedMessage func(*[]byte, *chronology.Chronology) bool, onSendMessage func(chronology.Subround) bool) *SREndRound {
-	sr := SREndRound{doLog: doLog, endTime: endTime, cns: cns, OnReceivedMessage: onReceivedMessage, OnSendMessage: onSendMessage}
+func NewSREndRound(doLog bool, endTime int64, cns *Consensus, onReceivedEndRound func(*[]byte, *chronology.Chronology) bool, onSendEndRound func(chronology.Subround) bool) *SREndRound {
+	sr := SREndRound{doLog: doLog, endTime: endTime, cns: cns, OnReceivedEndRound: onReceivedEndRound, OnSendEndRound: onSendEndRound}
 	return &sr
 }
 
 func (sr *SREndRound) DoWork(chr *chronology.Chronology) bool {
-	bActionDone := true
+	sr.cns.SetReceivedMessage(true)
 	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
-		switch sr.doEndRound(chr, &bActionDone) {
+		switch sr.doEndRound(chr) {
 		case rNone:
 			continue
 		case rFalse:
@@ -41,7 +41,7 @@ func (sr *SREndRound) DoWork(chr *chronology.Chronology) bool {
 	return false
 }
 
-func (sr *SREndRound) doEndRound(chr *chronology.Chronology, bActionDone *bool) Response {
+func (sr *SREndRound) doEndRound(chr *chronology.Chronology) Response {
 	timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
 	if timeSubRound > chronology.Subround(SrEndRound) {
@@ -49,16 +49,8 @@ func (sr *SREndRound) doEndRound(chr *chronology.Chronology, bActionDone *bool) 
 		return rTrue
 	}
 
-	select {
-	case rcvMsg := <-sr.cns.ChRcvMsg:
-		if sr.OnReceivedMessage(&rcvMsg, chr) {
-			*bActionDone = true
-		}
-	default:
-	}
-
-	if *bActionDone {
-		*bActionDone = false
+	if sr.cns.ReceivedMessage() {
+		sr.cns.SetReceivedMessage(false)
 		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrSignature)); ok {
 			sr.roundsWithBlocks++ // only for statistic
 

@@ -26,7 +26,7 @@ func InitSRComitment() (*chronology.Chronology, *SRComitment) {
 	cns := NewConsensus(true, vld, th, rs, chr)
 
 	sr := NewSRComitment(true, int64(100*roundTimeDuration/100), cns, nil, nil)
-	chr.AddSubrounder(sr)
+	chr.AddSubround(sr)
 
 	return chr, sr
 }
@@ -42,7 +42,7 @@ func TestSRComitment_DoWork1(t *testing.T) {
 
 	fmt.Printf("1: Test case when send message is done but consensus is not done -> rNone\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendComitment = SndWithSuccess
 
 	r := sr.doComitment(chr)
 
@@ -59,7 +59,7 @@ func TestSRComitment_DoWork2(t *testing.T) {
 
 	fmt.Printf("2: Test case when send message is done but consensus is semi-done (only subround BLOCK, COMITMENT_HASH and BITMAP is done) -> rNone\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendComitment = SndWithSuccess
 
 	sr.cns.ValidationMap[sr.cns.Self].Block = true
 
@@ -86,7 +86,7 @@ func TestSRComitment_DoWork3(t *testing.T) {
 
 	fmt.Printf("3: Test case when send message and consensus is done -> rTrue\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendComitment = SndWithSuccess
 
 	sr.cns.RoundStatus.Block = SsFinished
 	sr.cns.RoundStatus.ComitmentHash = SsFinished
@@ -109,7 +109,7 @@ func TestSRComitment_DoWork4(t *testing.T) {
 
 	fmt.Printf("4: Test case when time has expired -> rTrue\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
+	sr.OnSendComitment = SndWithoutSuccess
 
 	chr.SetClockOffset(time.Duration(sr.endTime + 1))
 
@@ -125,10 +125,10 @@ func TestSRComitment_DoWork5(t *testing.T) {
 
 	fmt.Printf("5: Test case when receive message is done but consensus is not done -> rNone\n")
 
-	sr.OnSendMessage = SndWithSuccess
-	sr.OnReceivedMessage = RcvWithSuccess
+	sr.OnSendComitment = SndWithoutSuccess
+	sr.OnReceivedComitment = RcvWithSuccess
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(true)
 
 	r := sr.doComitment(chr)
 
@@ -145,10 +145,10 @@ func TestSRComitment_DoWork6(t *testing.T) {
 
 	fmt.Printf("6: Test case when receive message and consensus is done -> true\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
-	sr.OnReceivedMessage = RcvWithSuccess
+	sr.OnSendComitment = SndWithoutSuccess
+	sr.OnReceivedComitment = RcvWithSuccess
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(true)
 
 	sr.cns.RoundStatus.Block = SsFinished
 	sr.cns.RoundStatus.ComitmentHash = SsFinished
@@ -171,10 +171,11 @@ func TestSRComitment_DoWork7(t *testing.T) {
 
 	fmt.Printf("7: Test case when receive message is not done and round should be canceled -> false\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
-	sr.OnReceivedMessage = RcvWithoutSuccessAndCancel
+	sr.OnSendComitment = SndWithoutSuccess
+	sr.OnReceivedComitment = RcvWithoutSuccessAndCancel
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(false)
+	sr.cns.Chr.SetSelfSubround(chronology.SrCanceled)
 
 	sr.cns.RoundStatus.Block = SsFinished
 	sr.cns.RoundStatus.ComitmentHash = SsFinished

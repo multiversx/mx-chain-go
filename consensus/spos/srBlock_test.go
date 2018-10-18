@@ -26,7 +26,7 @@ func InitSRBlock() (*chronology.Chronology, *SRBlock) {
 	cns := NewConsensus(true, vld, th, rs, chr)
 
 	sr := NewSRBlock(true, int64(100*roundTimeDuration/100), cns, nil, nil)
-	chr.AddSubrounder(sr)
+	chr.AddSubround(sr)
 
 	return chr, sr
 }
@@ -42,7 +42,7 @@ func TestSRBlock_DoWork1(t *testing.T) {
 
 	fmt.Printf("1: Test case when send message is done but consensus is not done -> rNone\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendBlock = SndWithSuccess
 
 	r := sr.doBlock(chr)
 
@@ -56,7 +56,7 @@ func TestSRBlock_DoWork2(t *testing.T) {
 
 	fmt.Printf("2: Test case when send message and consensus is done -> rTrue\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendBlock = SndWithSuccess
 
 	sr.cns.ValidationMap[sr.cns.Self].Block = true
 
@@ -72,7 +72,7 @@ func TestSRBlock_DoWork3(t *testing.T) {
 
 	fmt.Printf("3: Test case when time has expired -> rTrue\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
+	sr.OnSendBlock = SndWithoutSuccess
 
 	chr.SetClockOffset(time.Duration(sr.endTime + 1))
 
@@ -88,10 +88,10 @@ func TestSRBlock_DoWork4(t *testing.T) {
 
 	fmt.Printf("4: Test case when receive message is done but consensus is not done -> rNone\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
-	sr.OnReceivedMessage = RcvWithSuccess
+	sr.OnSendBlock = SndWithoutSuccess
+	sr.OnReceivedBlock = RcvWithSuccess
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(true)
 
 	r := sr.doBlock(chr)
 
@@ -105,10 +105,10 @@ func TestSRBlock_DoWork5(t *testing.T) {
 
 	fmt.Printf("5: Test case when receive message and consensus is done -> true\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
-	sr.OnReceivedMessage = RcvWithSuccess
+	sr.OnSendBlock = SndWithoutSuccess
+	sr.OnReceivedBlock = RcvWithSuccess
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(true)
 
 	sr.cns.ValidationMap[sr.cns.Self].Block = true
 
@@ -122,12 +122,13 @@ func TestSRBlock_DoWork6(t *testing.T) {
 
 	chr, sr := InitSRBlock()
 
-	fmt.Printf("6: Test case when receive message is done but round should be canceled -> false\n")
+	fmt.Printf("6: Test case when receive message is not done and round should be canceled -> false\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
-	sr.OnReceivedMessage = RcvWithoutSuccessAndCancel
+	sr.OnSendBlock = SndWithoutSuccess
+	sr.OnReceivedBlock = RcvWithoutSuccessAndCancel
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(false)
+	sr.cns.Chr.SetSelfSubround(chronology.SrCanceled)
 
 	r := sr.DoWork(chr)
 

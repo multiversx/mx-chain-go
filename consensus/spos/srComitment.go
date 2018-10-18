@@ -8,15 +8,15 @@ import (
 )
 
 type SRComitment struct {
-	doLog             bool
-	endTime           int64
-	cns               *Consensus
-	OnReceivedMessage func(*[]byte, *chronology.Chronology) bool
-	OnSendMessage     func(chronology.Subround) bool
+	doLog               bool
+	endTime             int64
+	cns                 *Consensus
+	OnReceivedComitment func(*[]byte, *chronology.Chronology) bool
+	OnSendComitment     func(chronology.Subround) bool
 }
 
-func NewSRComitment(doLog bool, endTime int64, cns *Consensus, onReceivedMessage func(*[]byte, *chronology.Chronology) bool, onSendMessage func(chronology.Subround) bool) *SRComitment {
-	sr := SRComitment{doLog: doLog, endTime: endTime, cns: cns, OnReceivedMessage: onReceivedMessage, OnSendMessage: onSendMessage}
+func NewSRComitment(doLog bool, endTime int64, cns *Consensus, onReceivedComitment func(*[]byte, *chronology.Chronology) bool, onSendComitment func(chronology.Subround) bool) *SRComitment {
+	sr := SRComitment{doLog: doLog, endTime: endTime, cns: cns, OnReceivedComitment: onReceivedComitment, OnSendComitment: onSendComitment}
 	return &sr
 }
 
@@ -40,7 +40,7 @@ func (sr *SRComitment) DoWork(chr *chronology.Chronology) bool {
 }
 
 func (sr *SRComitment) doComitment(chr *chronology.Chronology) Response {
-	bActionDone := sr.OnSendMessage(chronology.Subround(SrComitment))
+	sr.cns.SetSentMessage(sr.OnSendComitment(chronology.Subround(SrComitment)))
 
 	timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
@@ -50,16 +50,9 @@ func (sr *SRComitment) doComitment(chr *chronology.Chronology) Response {
 		return rTrue // Try to give a chance to this round if the necesary comitments will arrive later
 	}
 
-	select {
-	case rcvMsg := <-sr.cns.ChRcvMsg:
-		if sr.OnReceivedMessage(&rcvMsg, chr) {
-			bActionDone = true
-		}
-	default:
-	}
-
-	if bActionDone {
-		bActionDone = false
+	if sr.cns.SentMessage() || sr.cns.ReceivedMessage() {
+		sr.cns.SetSentMessage(false)
+		sr.cns.SetReceivedMessage(false)
 		if ok, n := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrComitment)); ok {
 			sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 4: Received %d from %d comitments, which are matching with bitmap and are enough", n, len(sr.cns.ConsensusGroup)))
 			return rTrue

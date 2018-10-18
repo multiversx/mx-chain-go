@@ -30,7 +30,7 @@ func InitSREndRound() (*chronology.Chronology, *SREndRound) {
 	//cns.blockChain = blockchain.NewBlockChain(nil, Chr.SyncTime(), true)
 
 	sr := NewSREndRound(true, int64(100*roundTimeDuration/100), cns, nil, nil)
-	chr.AddSubrounder(sr)
+	chr.AddSubround(sr)
 
 	return chr, sr
 }
@@ -46,8 +46,8 @@ func TestSREndRound_DoWork1(t *testing.T) {
 
 	fmt.Printf("1: Test case when consensus is not done -> rNone\n")
 
-	bActionDone := true
-	r := sr.doEndRound(chr, &bActionDone)
+	sr.cns.SetReceivedMessage(true)
+	r := sr.doEndRound(chr)
 
 	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Block)
 	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.ComitmentHash)
@@ -77,8 +77,8 @@ func TestSREndRound_DoWork2(t *testing.T) {
 		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Comitment = true
 	}
 
-	bActionDone := true
-	r := sr.doEndRound(chr, &bActionDone)
+	sr.cns.SetReceivedMessage(true)
+	r := sr.doEndRound(chr)
 
 	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Block)
 	assert.Equal(t, SsFinished, sr.cns.RoundStatus.ComitmentHash)
@@ -106,8 +106,8 @@ func TestSREndRound_DoWork3(t *testing.T) {
 		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Signature = true
 	}
 
-	bActionDone := true
-	r := sr.doEndRound(chr, &bActionDone)
+	sr.cns.SetReceivedMessage(true)
+	r := sr.doEndRound(chr)
 
 	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Signature)
 	assert.Equal(t, rTrue, r)
@@ -129,8 +129,8 @@ func TestSREndRound_DoWork4(t *testing.T) {
 		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Signature = true
 	}
 
-	bActionDone := true
-	r := sr.doEndRound(chr, &bActionDone)
+	sr.cns.SetReceivedMessage(true)
+	r := sr.doEndRound(chr)
 
 	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Signature)
 	assert.Equal(t, rTrue, r)
@@ -144,8 +144,8 @@ func TestSREndRound_DoWork5(t *testing.T) {
 
 	chr.SetClockOffset(time.Duration(sr.endTime + 1))
 
-	bActionDone := true
-	r := sr.doEndRound(chr, &bActionDone)
+	sr.cns.SetReceivedMessage(true)
+	r := sr.doEndRound(chr)
 
 	assert.Equal(t, r, rTrue)
 }
@@ -156,12 +156,10 @@ func TestSREndRound_DoWork6(t *testing.T) {
 
 	fmt.Printf("5: Test case when receive message is done but consensus is not done -> rNone\n")
 
-	sr.OnReceivedMessage = RcvWithSuccess
+	sr.OnReceivedEndRound = RcvWithSuccess
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
-
-	bActionDone := false
-	r := sr.doEndRound(chr, &bActionDone)
+	sr.cns.SetReceivedMessage(true)
+	r := sr.doEndRound(chr)
 
 	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Block)
 	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.ComitmentHash)
@@ -179,9 +177,7 @@ func TestSREndRound_DoWork7(t *testing.T) {
 
 	sr.cns.Self = "1"
 
-	sr.OnReceivedMessage = RcvWithSuccess
-
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.OnReceivedEndRound = RcvWithSuccess
 
 	sr.cns.RoundStatus.Block = SsFinished
 	sr.cns.RoundStatus.ComitmentHash = SsFinished
@@ -205,9 +201,7 @@ func TestSREndRound_DoWork8(t *testing.T) {
 
 	fmt.Printf("6: Test case when receive message and consensus is done and I am NOT the leader -> true\n")
 
-	sr.OnReceivedMessage = RcvWithSuccess
-
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.OnReceivedEndRound = RcvWithSuccess
 
 	sr.cns.RoundStatus.Block = SsFinished
 	sr.cns.RoundStatus.ComitmentHash = SsFinished
@@ -231,9 +225,9 @@ func TestSREndRound_DoWork9(t *testing.T) {
 
 	fmt.Printf("7: Test case when receive message is not done and round should be canceled -> false\n")
 
-	sr.OnReceivedMessage = RcvWithoutSuccessAndCancel
+	sr.OnReceivedEndRound = RcvWithoutSuccessAndCancel
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.Chr.SetSelfSubround(chronology.SrCanceled)
 
 	sr.cns.RoundStatus.Block = SsFinished
 	sr.cns.RoundStatus.ComitmentHash = SsFinished

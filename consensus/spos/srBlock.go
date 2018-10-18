@@ -8,15 +8,15 @@ import (
 )
 
 type SRBlock struct {
-	doLog             bool
-	endTime           int64
-	cns               *Consensus
-	OnReceivedMessage func(*[]byte, *chronology.Chronology) bool
-	OnSendMessage     func(chronology.Subround) bool
+	doLog           bool
+	endTime         int64
+	cns             *Consensus
+	OnReceivedBlock func(*[]byte, *chronology.Chronology) bool
+	OnSendBlock     func(chronology.Subround) bool
 }
 
-func NewSRBlock(doLog bool, endTime int64, cns *Consensus, onReceivedMessage func(*[]byte, *chronology.Chronology) bool, onSendMessage func(chronology.Subround) bool) *SRBlock {
-	sr := SRBlock{doLog: doLog, endTime: endTime, cns: cns, OnReceivedMessage: onReceivedMessage, OnSendMessage: onSendMessage}
+func NewSRBlock(doLog bool, endTime int64, cns *Consensus, onReceivedBlock func(*[]byte, *chronology.Chronology) bool, onSendBlock func(chronology.Subround) bool) *SRBlock {
+	sr := SRBlock{doLog: doLog, endTime: endTime, cns: cns, OnReceivedBlock: onReceivedBlock, OnSendBlock: onSendBlock}
 	return &sr
 }
 
@@ -40,10 +40,10 @@ func (sr *SRBlock) DoWork(chr *chronology.Chronology) bool {
 }
 
 func (sr *SRBlock) doBlock(chr *chronology.Chronology) Response {
-	bActionDone := sr.OnSendMessage(chronology.Subround(SrBlock))
+	sr.cns.SetSentMessage(sr.OnSendBlock(chronology.Subround(SrBlock)))
 
-	if bActionDone {
-		bActionDone = false
+	if sr.cns.SentMessage() {
+		sr.cns.SetSentMessage(false)
 		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBlock)); ok {
 			return rTrue
 		}
@@ -57,16 +57,8 @@ func (sr *SRBlock) doBlock(chr *chronology.Chronology) Response {
 		return rTrue // Try to give a chance to this round if the block from leader will arrive later
 	}
 
-	select {
-	case rcvMsg := <-sr.cns.ChRcvMsg:
-		if sr.OnReceivedMessage(&rcvMsg, chr) {
-			bActionDone = true
-		}
-	default:
-	}
-
-	if bActionDone {
-		bActionDone = false
+	if sr.cns.ReceivedMessage() {
+		sr.cns.SetReceivedMessage(false)
 		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBlock)); ok {
 			sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) + "Step 1: Synchronized block"))
 			return rTrue

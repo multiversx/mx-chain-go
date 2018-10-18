@@ -73,15 +73,21 @@ func TestNewConsensus(t *testing.T) {
 
 	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{})
 
-	cns1 := NewConsensus(true, nil, th, rs, chr)
-	assert.Equal(t, 0, cap(cns1.ChRcvMsg))
-
-	cns2 := NewConsensus(true, vld, th, rs, chr)
-	assert.Equal(t, 3, cap(cns2.ChRcvMsg))
+	cns := NewConsensus(true, vld, th, rs, chr)
+	assert.NotNil(t, cns)
 }
 
 func TestConsensus_CheckConsensus(t *testing.T) {
+	rs := NewRoundStatus(SsFinished, SsFinished, SsFinished, SsFinished, SsFinished)
+	cns := NewConsensus(true, nil, nil, rs, nil)
 
+	ok, n := cns.CheckConsensus(chronology.Subround(SrStartRound), chronology.Subround(SrEndRound))
+	assert.Equal(t, false, ok)
+	assert.Equal(t, -1, n)
+
+	ok, n = cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrSignature))
+	assert.Equal(t, true, ok)
+	assert.Equal(t, 0, n)
 }
 
 func TestConsensus_IsNodeLeaderInCurrentRound(t *testing.T) {
@@ -161,4 +167,14 @@ func TestConsensus_GetLeader(t *testing.T) {
 func TestConsensus_Log(t *testing.T) {
 	cns := NewConsensus(true, nil, nil, nil, nil)
 	cns.Log("Test Consesnus")
+}
+
+func TestGettersAndSetters(t *testing.T) {
+	cns := NewConsensus(true, nil, nil, nil, nil)
+
+	cns.SetSentMessage(true)
+	assert.Equal(t, true, cns.SentMessage())
+
+	cns.SetReceivedMessage(true)
+	assert.Equal(t, true, cns.ReceivedMessage())
 }

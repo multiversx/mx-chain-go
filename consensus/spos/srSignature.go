@@ -8,15 +8,15 @@ import (
 )
 
 type SRSignature struct {
-	doLog             bool
-	endTime           int64
-	cns               *Consensus
-	OnReceivedMessage func(*[]byte, *chronology.Chronology) bool
-	OnSendMessage     func(chronology.Subround) bool
+	doLog               bool
+	endTime             int64
+	cns                 *Consensus
+	OnReceivedSignature func(*[]byte, *chronology.Chronology) bool
+	OnSendSignature     func(chronology.Subround) bool
 }
 
-func NewSRSignature(doLog bool, endTime int64, cns *Consensus, onReceivedMessage func(*[]byte, *chronology.Chronology) bool, onSendMessage func(chronology.Subround) bool) *SRSignature {
-	sr := SRSignature{doLog: doLog, endTime: endTime, cns: cns, OnReceivedMessage: onReceivedMessage, OnSendMessage: onSendMessage}
+func NewSRSignature(doLog bool, endTime int64, cns *Consensus, onReceivedSignature func(*[]byte, *chronology.Chronology) bool, onSendSignature func(chronology.Subround) bool) *SRSignature {
+	sr := SRSignature{doLog: doLog, endTime: endTime, cns: cns, OnReceivedSignature: onReceivedSignature, OnSendSignature: onSendSignature}
 	return &sr
 }
 
@@ -40,7 +40,7 @@ func (sr *SRSignature) DoWork(chr *chronology.Chronology) bool {
 }
 
 func (sr *SRSignature) doSignature(chr *chronology.Chronology) Response {
-	bActionDone := sr.OnSendMessage(chronology.Subround(SrSignature))
+	sr.cns.SetSentMessage(sr.OnSendSignature(chronology.Subround(SrSignature)))
 
 	timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
@@ -50,16 +50,9 @@ func (sr *SRSignature) doSignature(chr *chronology.Chronology) Response {
 		return rTrue // Try to give a chance to this round if the necesary signatures will arrive later
 	}
 
-	select {
-	case rcvMsg := <-sr.cns.ChRcvMsg:
-		if sr.OnReceivedMessage(&rcvMsg, chr) {
-			bActionDone = true
-		}
-	default:
-	}
-
-	if bActionDone {
-		bActionDone = false
+	if sr.cns.SentMessage() || sr.cns.ReceivedMessage() {
+		sr.cns.SetSentMessage(false)
+		sr.cns.SetReceivedMessage(false)
 		if ok, n := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrSignature)); ok {
 			sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough", n, len(sr.cns.ConsensusGroup)))
 			return rTrue

@@ -26,7 +26,7 @@ func InitSRBitmap() (*chronology.Chronology, *SRBitmap) {
 	cns := NewConsensus(true, vld, th, rs, chr)
 
 	sr := NewSRBitmap(true, int64(100*roundTimeDuration/100), cns, nil, nil)
-	chr.AddSubrounder(sr)
+	chr.AddSubround(sr)
 
 	return chr, sr
 }
@@ -42,7 +42,7 @@ func TestSRBitmap_DoWork1(t *testing.T) {
 
 	fmt.Printf("1: Test case when send message is done but consensus is not done -> rNone\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendBitmap = SndWithSuccess
 
 	r := sr.doBitmap(chr)
 
@@ -56,7 +56,7 @@ func TestSRBitmap_DoWork2(t *testing.T) {
 
 	fmt.Printf("2: Test case when send message and consensus is done -> rTrue\n")
 
-	sr.OnSendMessage = SndWithSuccess
+	sr.OnSendBitmap = SndWithSuccess
 
 	sr.cns.RoundStatus.Block = SsFinished
 
@@ -80,7 +80,7 @@ func TestSRBitmap_DoWork3(t *testing.T) {
 
 	fmt.Printf("3: Test case when time has expired -> rTrue\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
+	sr.OnSendBitmap = SndWithoutSuccess
 
 	chr.SetClockOffset(time.Duration(sr.endTime + 1))
 
@@ -96,10 +96,10 @@ func TestSRBitmap_DoWork4(t *testing.T) {
 
 	fmt.Printf("4: Test case when receive message is done but consensus is not done -> rNone\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
-	sr.OnReceivedMessage = RcvWithSuccess
+	sr.OnSendBitmap = SndWithoutSuccess
+	sr.OnReceivedBitmap = RcvWithSuccess
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(true)
 
 	r := sr.doBitmap(chr)
 
@@ -113,10 +113,10 @@ func TestSRBitmap_DoWork5(t *testing.T) {
 
 	fmt.Printf("5: Test case when receive message and consensus is done, and I WAS selected in leader's bitmap -> true\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
-	sr.OnReceivedMessage = RcvWithSuccess
+	sr.OnSendBitmap = SndWithoutSuccess
+	sr.OnReceivedBitmap = RcvWithSuccess
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(true)
 
 	sr.cns.RoundStatus.Block = SsFinished
 
@@ -140,10 +140,10 @@ func TestSRBitmap_DoWork6(t *testing.T) {
 
 	fmt.Printf("6: Test case when receive message and consensus is done, and I WAS NOT selected in leader's bitmap -> true\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
-	sr.OnReceivedMessage = RcvWithSuccess
+	sr.OnSendBitmap = SndWithoutSuccess
+	sr.OnReceivedBitmap = RcvWithSuccess
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(true)
 
 	sr.cns.RoundStatus.Block = SsFinished
 
@@ -168,12 +168,13 @@ func TestSRBitmap_DoWork7(t *testing.T) {
 
 	chr, sr := InitSRBitmap()
 
-	fmt.Printf("7: Test case when receive message is done but round should be canceled -> false\n")
+	fmt.Printf("7: Test case when receive message is not done and round should be canceled -> false\n")
 
-	sr.OnSendMessage = SndWithoutSuccess
-	sr.OnReceivedMessage = RcvWithoutSuccessAndCancel
+	sr.OnSendBitmap = SndWithoutSuccess
+	sr.OnReceivedBitmap = RcvWithoutSuccessAndCancel
 
-	sr.cns.ChRcvMsg <- []byte("Message has come")
+	sr.cns.SetReceivedMessage(false)
+	sr.cns.Chr.SetSelfSubround(chronology.SrCanceled)
 
 	r := sr.DoWork(chr)
 
