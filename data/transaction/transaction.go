@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction/capnproto1"
 	"github.com/glycerine/go-capnproto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
 
 // Transaction holds all the data needed for a value transfer
@@ -101,4 +102,26 @@ func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnproto1.Transac
 	dest.SetPubKey(src.PubKey)
 
 	return dest
+}
+
+// GenerateDummyArray is used for tests to generate an array of transactions with dummy data
+func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
+	transactions := make([]data.CapnpHelper, 0, 1000)
+
+	for i := 0; i < 1000; i++ {
+		transactions = append(transactions, &Transaction{
+			Nonce:     []byte(data.RandomStr(6)),
+			Value:     []byte(data.RandomStr(6)),
+			RcvAddr:   []byte(data.RandomStr(32)),
+			SndAddr:   []byte(data.RandomStr(32)),
+			GasPrice:  []byte(data.RandomStr(6)),
+			GasLimit:  []byte(data.RandomStr(6)),
+			Data:      []byte(data.RandomStr(32)),
+			Signature: []byte(data.RandomStr(32)),
+			Challenge: []byte(data.RandomStr(32)),
+			PubKey:    []byte(data.RandomStr(32)),
+		})
+	}
+
+	return transactions
 }

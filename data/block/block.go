@@ -5,6 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnproto1"
 	"github.com/glycerine/go-capnproto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"math/rand"
 )
 
 type MiniBlock struct {
@@ -212,4 +214,57 @@ func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnproto1.MiniBlockCa
 	dest.SetDestShardID(src.DestShardID)
 
 	return dest
+}
+
+// GenerateDummyArray is used for tests to generate an array of blocks with dummy data
+func (blk *Block) GenerateDummyArray() []data.CapnpHelper {
+	blocks := make([]data.CapnpHelper, 0, 100)
+	for i := 0; i < 100; i++ {
+		lenMini := rand.Intn(20) + 1
+		miniblocks := make([]MiniBlock, 0, lenMini)
+		for j := 0; j < lenMini; j++ {
+			lenTxHashes := rand.Intn(20) + 1
+			txHashes := make([][]byte, 0, lenTxHashes)
+			for k := 0; k < lenTxHashes; k++ {
+				txHashes = append(txHashes, []byte(data.RandomStr(32)))
+			}
+			miniblock := MiniBlock{
+				DestShardID: uint32(rand.Intn(20)),
+				TxHashes:    txHashes,
+			}
+
+			miniblocks = append(miniblocks, miniblock)
+		}
+		bl := Block{MiniBlocks: miniblocks}
+		blocks = append(blocks, &bl)
+	}
+
+	return blocks
+}
+
+// GenerateDummyArray is used for tests to generate an array of headers with dummy data
+func (h *Header) GenerateDummyArray() []data.CapnpHelper {
+	headers := make([]data.CapnpHelper, 0, 1000)
+
+	pkList := make([][]byte, 0, 21)
+
+	for i := 0; i < 21; i++ {
+		pkList = append(pkList, []byte(data.RandomStr(32)))
+	}
+
+	for i := 0; i < 1000; i++ {
+		headers = append(headers, &Header{
+			Nonce:      []byte(data.RandomStr(4)),
+			PrevHash:   []byte(data.RandomStr(32)),
+			ShardId:    uint32(rand.Intn(20)),
+			TimeStamp:  []byte(data.RandomStr(20)),
+			Round:      uint32(rand.Intn(20000)),
+			BlockHash:  []byte(data.RandomStr(32)),
+			Signature:  []byte(data.RandomStr(32)),
+			Commitment: []byte(data.RandomStr(32)),
+			PubKeys:    pkList,
+		})
+	}
+
+	return headers
 }
