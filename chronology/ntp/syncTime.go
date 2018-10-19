@@ -4,22 +4,24 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/beevik/ntp"
 )
 
 type SyncTimer interface {
-	GetClockOffset() time.Duration
-	GetFormatedCurrentTime(time.Duration) string
-	GetCurrentTime(time.Duration) time.Time
+	ClockOffset() time.Duration
+	FormatedCurrentTime(time.Duration) string
+	CurrentTime(time.Duration) time.Time
 }
 
 type SyncTime struct {
 	mut         sync.RWMutex
 	clockOffset time.Duration
 	syncPeriod  time.Duration
-	query       func(host string) (*Response, error)
+	query       func(host string) (*ntp.Response, error)
 }
 
-func NewSyncTime(syncPeriod time.Duration, query func(host string) (*Response, error)) *SyncTime {
+func NewSyncTime(syncPeriod time.Duration, query func(host string) (*ntp.Response, error)) *SyncTime {
 	s := SyncTime{clockOffset: 0, syncPeriod: syncPeriod, query: query}
 	go s.synchronize()
 	return &s
@@ -27,32 +29,52 @@ func NewSyncTime(syncPeriod time.Duration, query func(host string) (*Response, e
 
 func (s *SyncTime) synchronize() {
 	for {
-		s.doSync()
+		s.DoSync()
 		time.Sleep(s.syncPeriod)
 	}
 }
 
-func (s *SyncTime) doSync() {
+func (s *SyncTime) DoSync() {
 	r, err := s.query("time.google.com")
 
-	s.mut.Lock()
-	defer s.mut.Unlock()
-
 	if err != nil {
-		s.clockOffset = 0
+		s.SetClockOffset(0)
 	} else {
-		s.clockOffset = r.ClockOffset
+		s.SetClockOffset(r.ClockOffset)
 	}
 }
 
-func (s *SyncTime) GetClockOffset() time.Duration {
+func (s *SyncTime) Query() func(host string) (*ntp.Response, error) {
+	return s.query
+}
+
+func (s *SyncTime) SetQuery(query func(host string) (*ntp.Response, error)) {
+	s.query = query
+}
+
+func (s *SyncTime) SyncPeriod() time.Duration {
+	return s.syncPeriod
+}
+
+func (s *SyncTime) SetSyncPeriod(syncPeriod time.Duration) {
+	s.syncPeriod = syncPeriod
+}
+
+func (s *SyncTime) ClockOffset() time.Duration {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 	return s.clockOffset
 }
 
-func (s *SyncTime) GetFormatedCurrentTime(clockOffset time.Duration) string {
-	return s.FormatTime(s.GetCurrentTime(clockOffset))
+func (s *SyncTime) SetClockOffset(clockOffset time.Duration) {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	s.clockOffset = clockOffset
+}
+
+func (s *SyncTime) FormatedCurrentTime(clockOffset time.Duration) string {
+	return s.FormatTime(s.CurrentTime(clockOffset))
 }
 
 func (s *SyncTime) FormatTime(time time.Time) string {
@@ -60,6 +82,6 @@ func (s *SyncTime) FormatTime(time time.Time) string {
 	return str
 }
 
-func (s *SyncTime) GetCurrentTime(clockOffset time.Duration) time.Time {
+func (s *SyncTime) CurrentTime(clockOffset time.Duration) time.Time {
 	return time.Now().Add(clockOffset)
 }

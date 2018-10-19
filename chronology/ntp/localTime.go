@@ -6,19 +6,23 @@ import (
 )
 
 type LocalTime struct {
-	ClockOffset time.Duration
+	clockOffset time.Duration
 }
 
-func (lt *LocalTime) GetFormatedCurrentTime(clockOffset time.Duration) string {
-	return lt.FormatTime(lt.GetCurrentTime(clockOffset))
+func (lt *LocalTime) FormatedCurrentTime(clockOffset time.Duration) string {
+	return lt.FormatTime(lt.CurrentTime(clockOffset))
 }
 
-func (lt *LocalTime) GetCurrentTime(clockOffset time.Duration) time.Time {
+func (lt *LocalTime) CurrentTime(clockOffset time.Duration) time.Time {
 	return time.Now().Add(clockOffset)
 }
 
-func (lt *LocalTime) GetClockOffset() time.Duration {
-	return lt.ClockOffset
+func (lt *LocalTime) ClockOffset() time.Duration {
+	return lt.clockOffset
+}
+
+func (lt *LocalTime) SetClockOffset(clockOffset time.Duration) {
+	lt.clockOffset = clockOffset
 }
 
 func (lt *LocalTime) FormatTime(time time.Time) string {

@@ -1,9 +1,10 @@
-package chronology
+package chronology_test
 
 import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,19 +12,19 @@ func TestRound(t *testing.T) {
 	genesisTime := time.Now()
 	currentTime := genesisTime
 
-	rnd := NewRound(genesisTime, currentTime, ROUND_TIME_DURATION)
+	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
 
 	rnd.Print()
 
-	assert.Equal(t, rnd.index, 0)
-	assert.Equal(t, rnd.timeStamp, genesisTime)
-	assert.Equal(t, rnd.timeDuration, ROUND_TIME_DURATION)
+	assert.Equal(t, rnd.Index(), 0)
+	assert.Equal(t, rnd.TimeStamp(), genesisTime)
+	assert.Equal(t, rnd.TimeDuration(), roundTimeDuration)
 
-	currentTime = currentTime.Add(ROUND_TIME_DURATION)
+	currentTime = currentTime.Add(roundTimeDuration)
 
 	rnd.UpdateRound(genesisTime, currentTime)
 
-	assert.Equal(t, rnd.index, 1)
-	assert.Equal(t, rnd.timeStamp, genesisTime.Add(ROUND_TIME_DURATION))
-	assert.Equal(t, rnd.timeDuration, ROUND_TIME_DURATION)
+	assert.Equal(t, rnd.Index(), 1)
+	assert.Equal(t, rnd.TimeStamp(), genesisTime.Add(roundTimeDuration))
+	assert.Equal(t, rnd.TimeDuration(), roundTimeDuration)
 }
