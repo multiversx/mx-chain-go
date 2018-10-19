@@ -15,12 +15,12 @@ type HeaderCapnp struct{ capnp.Struct }
 const HeaderCapnp_TypeID = 0xe95bb16f30c95e7e
 
 func NewHeaderCapnp(s *capnp.Segment) (HeaderCapnp, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 7})
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 6})
 	return HeaderCapnp{st}, err
 }
 
 func NewRootHeaderCapnp(s *capnp.Segment) (HeaderCapnp, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 7})
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 6})
 	return HeaderCapnp{st}, err
 }
 
@@ -34,46 +34,40 @@ func (s HeaderCapnp) String() string {
 	return str
 }
 
-func (s HeaderCapnp) Nonce() ([]byte, error) {
-	p, err := s.Struct.Ptr(0)
-	return []byte(p.Data()), err
+func (s HeaderCapnp) Nonce() uint64 {
+	return s.Struct.Uint64(0)
 }
 
-func (s HeaderCapnp) HasNonce() bool {
-	p, err := s.Struct.Ptr(0)
-	return p.IsValid() || err != nil
-}
-
-func (s HeaderCapnp) SetNonce(v []byte) error {
-	return s.Struct.SetData(0, v)
+func (s HeaderCapnp) SetNonce(v uint64) {
+	s.Struct.SetUint64(0, v)
 }
 
 func (s HeaderCapnp) PrevHash() ([]byte, error) {
-	p, err := s.Struct.Ptr(1)
+	p, err := s.Struct.Ptr(0)
 	return []byte(p.Data()), err
 }
 
 func (s HeaderCapnp) HasPrevHash() bool {
-	p, err := s.Struct.Ptr(1)
+	p, err := s.Struct.Ptr(0)
 	return p.IsValid() || err != nil
 }
 
 func (s HeaderCapnp) SetPrevHash(v []byte) error {
-	return s.Struct.SetData(1, v)
+	return s.Struct.SetData(0, v)
 }
 
 func (s HeaderCapnp) PubKeys() (capnp.DataList, error) {
-	p, err := s.Struct.Ptr(2)
+	p, err := s.Struct.Ptr(1)
 	return capnp.DataList{List: p.List()}, err
 }
 
 func (s HeaderCapnp) HasPubKeys() bool {
-	p, err := s.Struct.Ptr(2)
+	p, err := s.Struct.Ptr(1)
 	return p.IsValid() || err != nil
 }
 
 func (s HeaderCapnp) SetPubKeys(v capnp.DataList) error {
-	return s.Struct.SetPtr(2, v.List.ToPtr())
+	return s.Struct.SetPtr(1, v.List.ToPtr())
 }
 
 // NewPubKeys sets the pubKeys field to a newly
@@ -83,80 +77,80 @@ func (s HeaderCapnp) NewPubKeys(n int32) (capnp.DataList, error) {
 	if err != nil {
 		return capnp.DataList{}, err
 	}
-	err = s.Struct.SetPtr(2, l.List.ToPtr())
+	err = s.Struct.SetPtr(1, l.List.ToPtr())
 	return l, err
 }
 
 func (s HeaderCapnp) ShardId() uint32 {
-	return s.Struct.Uint32(0)
+	return s.Struct.Uint32(8)
 }
 
 func (s HeaderCapnp) SetShardId(v uint32) {
-	s.Struct.SetUint32(0, v)
+	s.Struct.SetUint32(8, v)
 }
 
 func (s HeaderCapnp) TimeStamp() ([]byte, error) {
-	p, err := s.Struct.Ptr(3)
+	p, err := s.Struct.Ptr(2)
 	return []byte(p.Data()), err
 }
 
 func (s HeaderCapnp) HasTimeStamp() bool {
-	p, err := s.Struct.Ptr(3)
+	p, err := s.Struct.Ptr(2)
 	return p.IsValid() || err != nil
 }
 
 func (s HeaderCapnp) SetTimeStamp(v []byte) error {
-	return s.Struct.SetData(3, v)
+	return s.Struct.SetData(2, v)
 }
 
 func (s HeaderCapnp) Round() uint32 {
-	return s.Struct.Uint32(4)
+	return s.Struct.Uint32(12)
 }
 
 func (s HeaderCapnp) SetRound(v uint32) {
-	s.Struct.SetUint32(4, v)
+	s.Struct.SetUint32(12, v)
 }
 
 func (s HeaderCapnp) BlockHash() ([]byte, error) {
-	p, err := s.Struct.Ptr(4)
+	p, err := s.Struct.Ptr(3)
 	return []byte(p.Data()), err
 }
 
 func (s HeaderCapnp) HasBlockHash() bool {
-	p, err := s.Struct.Ptr(4)
+	p, err := s.Struct.Ptr(3)
 	return p.IsValid() || err != nil
 }
 
 func (s HeaderCapnp) SetBlockHash(v []byte) error {
-	return s.Struct.SetData(4, v)
+	return s.Struct.SetData(3, v)
 }
 
 func (s HeaderCapnp) Signature() ([]byte, error) {
-	p, err := s.Struct.Ptr(5)
+	p, err := s.Struct.Ptr(4)
 	return []byte(p.Data()), err
 }
 
 func (s HeaderCapnp) HasSignature() bool {
-	p, err := s.Struct.Ptr(5)
+	p, err := s.Struct.Ptr(4)
 	return p.IsValid() || err != nil
 }
 
 func (s HeaderCapnp) SetSignature(v []byte) error {
-	return s.Struct.SetData(5, v)
+	return s.Struct.SetData(4, v)
 }
 
 func (s HeaderCapnp) Commitment() ([]byte, error) {
-	p, err := s.Struct.Ptr(6)
+	p, err := s.Struct.Ptr(5)
 	return []byte(p.Data()), err
 }
 
 func (s HeaderCapnp) HasCommitment() bool {
-	p, err := s.Struct.Ptr(6)
+	p, err := s.Struct.Ptr(5)
 	return p.IsValid() || err != nil
 }
 
 func (s HeaderCapnp) SetCommitment(v []byte) error {
-	return s.Struct.SetData(6, v)
+	return s.Struct.SetData(5, v)
 }
 
 // HeaderCapnp_List is a list of HeaderCapnp.
@@ -164,7 +158,7 @@ type HeaderCapnp_List struct{ capnp.List }
 
 // NewHeaderCapnp creates a new list of HeaderCapnp.
 func NewHeaderCapnp_List(s *capnp.Segment, sz int32) (HeaderCapnp_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 7}, sz)
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 16, PointerCount: 6}, sz)
 	return HeaderCapnp_List{l}, err
 }
 
@@ -185,34 +179,37 @@ func (p HeaderCapnp_Promise) Struct() (HeaderCapnp, error) {
 	return HeaderCapnp{s}, err
 }
 
-const schema_9096faa5d587481d = "x\xdaD\xd0Ak\xd4@\x1c\x05\xf0\xf7&\xc9\xee\x1e" +
-	"l\xd9\x90\x80\x0a-\x1b\xa4B\x0f\xd5\xed\xd6K\x11D" +
-	"\xad\x97U/\x1dsS(\xccf\xa3\x1b\xba\xc9\x84d" +
-	"V\xf0b\x8f\x82'A\xf0\xea\xc9\x0f\xe0U\xf0\xe8\xc1" +
-	"\x0f\xa0\x9fA\x0f\x05\x0b\xbd(BdR\xd6\x1e\xdf\x8f" +
-	"\xf7\x98\xe1\xdf?\xbe#F\xdeE\x01\xc8K^\xa7y" +
-	"y\xf0u[\x7f|\xf2\x13\xf2\x0a\xd9\xac\x8f_}\xfb" +
-	"\xf0\xe7\xdd\x1bx\xdd.0:\xa9\x18x\xec\x06\x1e\x07" +
-	"7n\xb1!v\x9b\xa92j8\x99k79\x1c&" +
-	"\xaa,\xcaJ\x1b=\x9c\xa5j\x9aV\xd7[\xb89n" +
-	"\xc3\xe0\x9e\x0d\xfb\xa4t)\x9a\x83\xb7\xef\xe5\xe7\xef\xaf" +
-	"\xbf@\xba\x82w7\xc9\x0b\xc0\x88\x9f\xd8\x9c-\xa3\xcc" +
-	"+\x9e\xea*W&\xd3\xc5V\xa4\x8cQ\xc9LM\xe6" +
-	"idt4\x99\xeb\xe4\xb0\x8et\x15\xe5Y\x91\xdd>" +
-	"\x8b\x80\xdcp\\\xc0%\xe0\x1f\xef\x00\xf2\x87Cy*" +
-	"\xe8\x93!-\x9e<\x00\xe4/\x87\xf2\xaf\xa0/DH" +
-	"\x01\xf8\xbf\xf7\x00y\xea0\xeeS\x90NH\x07\x08V" +
-	"\xb8\x07\xc4=:\x8cC\x0a\xfa\xae\x13\xd2\x05\x02\x9f\x8f" +
-	"\x80\xb8o}\xcd\xba\xc7\x90\x1e\x10\\\xe6\x0e\x10\x87\xd6" +
-	"#\xeb\x1d7d\x07\x08\xd6\xdb\xfe\x9a\xf5M\xeb]/" +
-	"d\x17\x08\xae\xb6\xbea}\xdbz\xaf\x13\xb2\x07\x04\xd7" +
-	"\xf8\x18\x88\xb7\xac\xefRpP\xe8\"I\xb9\x02\xc1\x15" +
-	"\xb0)\xab\xf4\xf9X\xd53\x00K;*\x17\x93\x87\xe9" +
-	"\x8b\x9a\xab\xe0\xbe\xc3\x96W\xc1\xa3z\xa6\xaa\xe9\xfd)" +
-	"{\x10\xec\x81\x8d\xc9\xf246*\x07\xcb\xe5tP\xe9" +
-	"Eq\xdeh\x8f8V58\xfb\xff`\x9d=+\x94" +
-	"YT\xe0\xf9'\x12\x9d\xe7\x99\xc9S8\x85Y\xe2\xbf" +
-	"\x00\x00\x00\xff\xff\x8f\xc6z\x1c"
+const schema_9096faa5d587481d = "x\xdaD\xd0\xcfj\xd4\\\x1c\xc6\xf1\xe79If\xa6" +
+	"\xd0\x96\x0e\x09\xbc\xaf\xd02Y\xb4\xd0E\xdb\xb4uS" +
+	"\xdc\xa8\x15aT\x90\xc6\xec\x14\x0bg\x928\x09mr" +
+	"\x86\x933\xfe\xd9\xd8\xa5\xe0J\x10\xdc\xba\xf2\x02\xdc\x0a" +
+	".]x\x01z\x0d\xba\x10,\xd4\x85\"D\x922\xba" +
+	"\xfc~x~\x1c8K?\xae\x88\x1d\xe7?\x01\x84\xff" +
+	";\x9d\xfa\xe9\xe1\xc7m\xf5\xf6\xdeW\x84#\x8aze" +
+	"\xf8\xec\xd3\x9b_\xaf^\xc0\xe9t\x81\x9dSm\xb9k" +
+	"\xec\xbak\x1c\\\xbc\xcf\x9a\xd8\xab\x83L\x15i \x93" +
+	"y\x9d\xcb2\x18\xab\xa0\xd2q0\xceM6\x1dm\xc5" +
+	"\xaa\x08\xae\x1fkU&\xb7S\xf3H\xe9\xa3 mk" +
+	"s\xac6+Y&#\xf58H\xa4\x91\xc1\xe8X\xc5" +
+	"GA,'\xe5D+\xa3v\x83,\x95I\xaa\xb7Z" +
+	"\xb94lcp\xad\x89\x032\xb4)\xea\xc3\x97\xaf\xc3" +
+	"\xf7\x9f\x9f\x7f@h\x0b^]'\xe7\x81\x1d\xbec}" +
+	"~\xe9\xe7N\xf9@\xe9B\x9a\\\x95\x1b\xbe4F\xc6" +
+	"\x99\x1c\x1d\xa7\xbeQ~\xfbZ\xe5+\xed\x17y\x99_" +
+	">O \\\xb5l\xc0&\xd0\xff\xb6\x0b\x84_,\x86" +
+	"g\x82\xa4\xc7\xc6No\x02\xe1w\x8b\xe1o\xc1\xbe\xa0" +
+	"G\x01\xf4\x7f\xee\x03\xe1\x99\xc5h\x89\x82}Kx\xb4" +
+	"\x00w\x81\xfb@\xd4\xa3\xc5\xc8k\xdc\x16\x1em\xc0\xed" +
+	"\xf3\x0e\x10-5\xbe\xdc\xb8cyt\x00\xf7\x02w\x81" +
+	"\xc8k\xdco\xbccy\xec\x00\xeeJ\xbb_n|\xbd" +
+	"\xf1\xae\xed\xb1\x0b\xb8k\xad\xaf6\xbe\xddx\xcf\xf1\xd8" +
+	"\x03\xdcM\xde\x05\xa2\x8d\xc6\xf7(8(U\x19\xa7\x9c" +
+	"\x83\xe0\x1cXOt\xfap(\xab\x0c\x00\x17 \xb8\x00" +
+	"\x9eL\xa6\xa3[\xe9\x93\x8a\x8b\xe0\x81\xc5\x96\x17\xc1\x93" +
+	"*\x93:\xb9\x91\xb0\x07\xc1\x1eX\x9b\xbcH##\x0b" +
+	"p2;\x1dh5-\xff-\xdaO\x1c\xca\x0a\xccf" +
+	"\x8b\xba\xca\xc7\xa54S\x0d\xa6\x7f-VE\x91\x9b\"" +
+	"\x85U\x9a\x19\xfe\x09\x00\x00\xff\xffbu\x92\x85"
 
 func init() {
 	schemas.Register(schema_9096faa5d587481d,

@@ -10,17 +10,23 @@ import (
 	"github.com/glycerine/go-capnproto"
 )
 
+// MiniBlock holds the transactions with sender in node's shard and receiver in DestShardID
 type MiniBlock struct {
 	TxHashes    [][]byte
 	DestShardID uint32
 }
 
+// Block structure is the body of a block, holding an array of miniblocks
+// each of the miniblocks has a different destination shard
+// The body can be transmitted even before having built the heder and go through a prevalidation of each transaction
 type Block struct {
 	MiniBlocks []MiniBlock
 }
 
+// Header holds the metadata of a block. This is the part that is being hashed and run through consensus.
+// The header holds the hash of the body and also the link to the previous block header hash
 type Header struct {
-	Nonce    []byte
+	Nonce    uint64
 	PrevHash []byte
 	// temporary keep list of public keys of signers in header
 	// to be removed later
@@ -33,24 +39,27 @@ type Header struct {
 	Commitment []byte
 }
 
-func (s *Block) Save(w io.Writer) error {
+// Save saves the serialized data of a Block into a stream through Capnp protocol
+func (blk *Block) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
-	BlockGoToCapn(seg, s)
+	BlockGoToCapn(seg, blk)
 	_, err := seg.WriteTo(w)
 	return err
 }
 
-func (s *Block) Load(r io.Reader) error {
+// Load loads the data from the stream into a Block object through Capnp protocol
+func (blk *Block) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
 		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
 		return err
 	}
 	z := capnproto1.ReadRootBlockCapn(capMsg)
-	BlockCapnToGo(z, s)
+	BlockCapnToGo(z, blk)
 	return nil
 }
 
+// BlockCapnToGo is a helper function to copy fields from a BlockCapn object to a Block object
 func BlockCapnToGo(src capnproto1.BlockCapn, dest *Block) *Block {
 	if dest == nil {
 		dest = &Block{}
@@ -68,6 +77,7 @@ func BlockCapnToGo(src capnproto1.BlockCapn, dest *Block) *Block {
 	return dest
 }
 
+// BlockGoToCapn is a helper function to copy fields from a Block object to a BlockCapn object
 func BlockGoToCapn(seg *capn.Segment, src *Block) capnproto1.BlockCapn {
 	dest := capnproto1.AutoNewBlockCapn(seg)
 
@@ -86,24 +96,27 @@ func BlockGoToCapn(seg *capn.Segment, src *Block) capnproto1.BlockCapn {
 	return dest
 }
 
-func (s *Header) Save(w io.Writer) error {
+// Save saves the serialized data of a Header into a stream through Capnp protocol
+func (h *Header) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
-	HeaderGoToCapn(seg, s)
+	HeaderGoToCapn(seg, h)
 	_, err := seg.WriteTo(w)
 	return err
 }
 
-func (s *Header) Load(r io.Reader) error {
+// Load loads the data from the stream into a Header object through Capnp protocol
+func (h *Header) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
 		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
 		return err
 	}
 	z := capnproto1.ReadRootHeaderCapn(capMsg)
-	HeaderCapnToGo(z, s)
+	HeaderCapnToGo(z, h)
 	return nil
 }
 
+// HeaderCapnToGo is a helper function to copy fields from a HeaderCapn object to a Header object
 func HeaderCapnToGo(src capnproto1.HeaderCapn, dest *Header) *Header {
 	if dest == nil {
 		dest = &Header{}
@@ -113,38 +126,31 @@ func HeaderCapnToGo(src capnproto1.HeaderCapn, dest *Header) *Header {
 
 	// Nonce
 	dest.Nonce = src.Nonce()
-
 	// PrevHash
 	dest.PrevHash = src.PrevHash()
-
 	// PubKeys
 	n = src.PubKeys().Len()
 	dest.PubKeys = make([][]byte, n)
 	for i := 0; i < n; i++ {
 		dest.PubKeys[i] = src.PubKeys().At(i)
 	}
-
 	// ShardId
 	dest.ShardId = src.ShardId()
-
 	// TimeStamp
 	dest.TimeStamp = src.TimeStamp()
-
 	// Round
 	dest.Round = src.Round()
-
 	// BlockHash
 	dest.BlockHash = src.BlockHash()
-
 	// Signature
 	dest.Signature = src.Signature()
-
 	// Commitment
 	dest.Commitment = src.Commitment()
 
 	return dest
 }
 
+// HeaderGoToCapn is a helper function to copy fields from a Header object to a HeaderCapn object
 func HeaderGoToCapn(seg *capn.Segment, src *Header) capnproto1.HeaderCapn {
 	dest := capnproto1.AutoNewHeaderCapn(seg)
 	dest.SetNonce(src.Nonce)
@@ -165,24 +171,27 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnproto1.HeaderCapn {
 	return dest
 }
 
-func (s *MiniBlock) Save(w io.Writer) error {
+// Save saves the serialized data of a MiniBlock into a stream through Capnp protocol
+func (mb *MiniBlock) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
-	MiniBlockGoToCapn(seg, s)
+	MiniBlockGoToCapn(seg, mb)
 	_, err := seg.WriteTo(w)
 	return err
 }
 
-func (s *MiniBlock) Load(r io.Reader) error {
+// Load loads the data from the stream into a MiniBlock object through Capnp protocol
+func (mb *MiniBlock) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
 		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
 		return err
 	}
 	z := capnproto1.ReadRootMiniBlockCapn(capMsg)
-	MiniBlockCapnToGo(z, s)
+	MiniBlockCapnToGo(z, mb)
 	return nil
 }
 
+// MiniBlockCapnToGo is a helper function to copy fields from a MiniBlockCapn object to a MiniBlock object
 func MiniBlockCapnToGo(src capnproto1.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
 	if dest == nil {
 		dest = &MiniBlock{}
@@ -202,6 +211,7 @@ func MiniBlockCapnToGo(src capnproto1.MiniBlockCapn, dest *MiniBlock) *MiniBlock
 	return dest
 }
 
+// MiniBlockGoToCapn is a helper function to copy fields from a MiniBlock object to a MiniBlockCapn object
 func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnproto1.MiniBlockCapn {
 	dest := capnproto1.AutoNewMiniBlockCapn(seg)
 
@@ -255,7 +265,7 @@ func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 
 	for i := 0; i < 1000; i++ {
 		headers = append(headers, &Header{
-			Nonce:      []byte(data.RandomStr(4)),
+			Nonce:      uint64(rand.Int63n(10000)),
 			PrevHash:   []byte(data.RandomStr(32)),
 			ShardId:    uint32(rand.Intn(20)),
 			TimeStamp:  []byte(data.RandomStr(20)),

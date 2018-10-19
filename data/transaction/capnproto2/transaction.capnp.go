@@ -15,12 +15,12 @@ type TxCapnp struct{ capnp.Struct }
 const TxCapnp_TypeID = 0x8549a62f4371df5b
 
 func NewTxCapnp(s *capnp.Segment) (TxCapnp, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 10})
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 32, PointerCount: 5})
 	return TxCapnp{st}, err
 }
 
 func NewRootTxCapnp(s *capnp.Segment) (TxCapnp, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 10})
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 32, PointerCount: 5})
 	return TxCapnp{st}, err
 }
 
@@ -34,144 +34,106 @@ func (s TxCapnp) String() string {
 	return str
 }
 
-func (s TxCapnp) Nonce() ([]byte, error) {
-	p, err := s.Struct.Ptr(0)
-	return []byte(p.Data()), err
+func (s TxCapnp) Nonce() uint64 {
+	return s.Struct.Uint64(0)
 }
 
-func (s TxCapnp) HasNonce() bool {
-	p, err := s.Struct.Ptr(0)
-	return p.IsValid() || err != nil
+func (s TxCapnp) SetNonce(v uint64) {
+	s.Struct.SetUint64(0, v)
 }
 
-func (s TxCapnp) SetNonce(v []byte) error {
-	return s.Struct.SetData(0, v)
+func (s TxCapnp) Value() uint64 {
+	return s.Struct.Uint64(8)
 }
 
-func (s TxCapnp) Value() ([]byte, error) {
-	p, err := s.Struct.Ptr(1)
-	return []byte(p.Data()), err
-}
-
-func (s TxCapnp) HasValue() bool {
-	p, err := s.Struct.Ptr(1)
-	return p.IsValid() || err != nil
-}
-
-func (s TxCapnp) SetValue(v []byte) error {
-	return s.Struct.SetData(1, v)
+func (s TxCapnp) SetValue(v uint64) {
+	s.Struct.SetUint64(8, v)
 }
 
 func (s TxCapnp) RcvAddr() ([]byte, error) {
-	p, err := s.Struct.Ptr(2)
+	p, err := s.Struct.Ptr(0)
 	return []byte(p.Data()), err
 }
 
 func (s TxCapnp) HasRcvAddr() bool {
-	p, err := s.Struct.Ptr(2)
+	p, err := s.Struct.Ptr(0)
 	return p.IsValid() || err != nil
 }
 
 func (s TxCapnp) SetRcvAddr(v []byte) error {
-	return s.Struct.SetData(2, v)
+	return s.Struct.SetData(0, v)
 }
 
 func (s TxCapnp) SndAddr() ([]byte, error) {
-	p, err := s.Struct.Ptr(3)
+	p, err := s.Struct.Ptr(1)
 	return []byte(p.Data()), err
 }
 
 func (s TxCapnp) HasSndAddr() bool {
-	p, err := s.Struct.Ptr(3)
+	p, err := s.Struct.Ptr(1)
 	return p.IsValid() || err != nil
 }
 
 func (s TxCapnp) SetSndAddr(v []byte) error {
-	return s.Struct.SetData(3, v)
+	return s.Struct.SetData(1, v)
 }
 
-func (s TxCapnp) GasPrice() ([]byte, error) {
-	p, err := s.Struct.Ptr(4)
-	return []byte(p.Data()), err
+func (s TxCapnp) GasPrice() uint64 {
+	return s.Struct.Uint64(16)
 }
 
-func (s TxCapnp) HasGasPrice() bool {
-	p, err := s.Struct.Ptr(4)
-	return p.IsValid() || err != nil
+func (s TxCapnp) SetGasPrice(v uint64) {
+	s.Struct.SetUint64(16, v)
 }
 
-func (s TxCapnp) SetGasPrice(v []byte) error {
-	return s.Struct.SetData(4, v)
+func (s TxCapnp) GasLimit() uint64 {
+	return s.Struct.Uint64(24)
 }
 
-func (s TxCapnp) GasLimit() ([]byte, error) {
-	p, err := s.Struct.Ptr(5)
-	return []byte(p.Data()), err
-}
-
-func (s TxCapnp) HasGasLimit() bool {
-	p, err := s.Struct.Ptr(5)
-	return p.IsValid() || err != nil
-}
-
-func (s TxCapnp) SetGasLimit(v []byte) error {
-	return s.Struct.SetData(5, v)
+func (s TxCapnp) SetGasLimit(v uint64) {
+	s.Struct.SetUint64(24, v)
 }
 
 func (s TxCapnp) Data() ([]byte, error) {
-	p, err := s.Struct.Ptr(6)
+	p, err := s.Struct.Ptr(2)
 	return []byte(p.Data()), err
 }
 
 func (s TxCapnp) HasData() bool {
-	p, err := s.Struct.Ptr(6)
+	p, err := s.Struct.Ptr(2)
 	return p.IsValid() || err != nil
 }
 
 func (s TxCapnp) SetData(v []byte) error {
-	return s.Struct.SetData(6, v)
+	return s.Struct.SetData(2, v)
 }
 
 func (s TxCapnp) Signature() ([]byte, error) {
-	p, err := s.Struct.Ptr(7)
+	p, err := s.Struct.Ptr(3)
 	return []byte(p.Data()), err
 }
 
 func (s TxCapnp) HasSignature() bool {
-	p, err := s.Struct.Ptr(7)
+	p, err := s.Struct.Ptr(3)
 	return p.IsValid() || err != nil
 }
 
 func (s TxCapnp) SetSignature(v []byte) error {
-	return s.Struct.SetData(7, v)
+	return s.Struct.SetData(3, v)
 }
 
 func (s TxCapnp) Challenge() ([]byte, error) {
-	p, err := s.Struct.Ptr(8)
+	p, err := s.Struct.Ptr(4)
 	return []byte(p.Data()), err
 }
 
 func (s TxCapnp) HasChallenge() bool {
-	p, err := s.Struct.Ptr(8)
+	p, err := s.Struct.Ptr(4)
 	return p.IsValid() || err != nil
 }
 
 func (s TxCapnp) SetChallenge(v []byte) error {
-	return s.Struct.SetData(8, v)
-}
-
-func (s TxCapnp) PubKey() ([]byte, error) {
-	p, err := s.Struct.Ptr(9)
-	return []byte(p.Data()), err
-}
-
-func (s TxCapnp) HasPubKey() bool {
-	p, err := s.Struct.Ptr(9)
-	return p.IsValid() || err != nil
-}
-
-func (s TxCapnp) SetPubKey(v []byte) error {
-	return s.Struct.SetData(9, v)
+	return s.Struct.SetData(4, v)
 }
 
 // TxCapnp_List is a list of TxCapnp.
@@ -179,7 +141,7 @@ type TxCapnp_List struct{ capnp.List }
 
 // NewTxCapnp creates a new list of TxCapnp.
 func NewTxCapnp_List(s *capnp.Segment, sz int32) (TxCapnp_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 10}, sz)
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 32, PointerCount: 5}, sz)
 	return TxCapnp_List{l}, err
 }
 
@@ -200,34 +162,36 @@ func (p TxCapnp_Promise) Struct() (TxCapnp, error) {
 	return TxCapnp{s}, err
 }
 
-const schema_933ccff820d2c436 = "x\xdaL\xd1=\x8b\x13A\x1c\xc7\xf1\xdf\x7f\xb2\x9bd" +
-	"\xe5\xc2%\xcc\x8a\x11\x84\x8cp\x85\xca\x9d\xb9\xf8\x18\x0e" +
-	"\xc5{\xb09\xb5\xb8\xb8\xe9\x04a\xdc\x8c\xc9B2\x1b" +
-	"w6A++\x1b\xdb{\x01v\x16\xbe\x07;\xad\x05" +
-	"\x0b[_\x83\x9d\xd8\xac\xfc\xc3]\xd8n\xbe\x1ff\xf8" +
-	"\x15\xd3\xfc\xb7/z\xfe%\x01\x0c\xda~\xb5x\xf1\xfb" +
-	"\xcdQ\xf7\xf3\xf1\x07\xb4v\xa8\xb8\xf7\xed\xa7\xfa\xfb\xe3" +
-	"\xc1)\xfc\x0b5\xa0\xf7\xe7\x0b\xc9\x80j2\xa0\xce\xed" +
-	"c\xba/\xd0/F:\xd7\xdd<\xd3\xbeu:\xce\x93" +
-	"\xd4vc=\xb7\xf3,\xcdS\xe6s\xbd\xb9\xd2\xbd\xe1" +
-	"\xdb\xa3M>\x9c\x10\x0d<\x12\xc5\xcb\xd3O\x83\xaf\xbf" +
-	">~\xc7\xc0\x13t\xb0K\xb4\x01\xf4\xe8P\x14\xc3\x89" +
-	"Q\xc3L\xdb\xfa\xd9{\x15O\xb5s*\x99\xcd\xa7f" +
-	"fl\xeeT>1\xaa4\xa0\x16\xce\x8c\xd4\xeb4S" +
-	"\xb3t\x99\xd8\xb1\xd2\xce\x99\xdc\x01\x18\\\xabx\x80G" +
-	"\x80\x0c\xe8\x16\x10yT\xa1\xa8I\x82ZD!\xb17" +
-	"V^g\x0f\xd9\x85\x08I\x00\xb2E\x87@\xb4\xc1\xde" +
-	"f\xafTB\xaa\x00\xf2\xe2\xca\x9b\xecW\xd8=/$" +
-	"\x0f\x90\x97\xe9\x09\x10\xb5\xd9\xb7\xd8}?$\x1f\x90W" +
-	"W\xae\xd8\xb7\xd9\xab\xd5\x90\xaa\x80\xbcN7\x80h\x8b" +
-	"}\x97\xbdV\x0b\xa9\x06\xc8\x1dz\x0eD\xdb\xec}\xf6" +
-	"z=\xa4: \xef\xae\xfc\x0e\xfb>{\x10\x84\x14\x00" +
-	"\xf2!\xed\x01Q\x9f\xfd1\x09\xea\xd8\xd4\xc6\x86\x1a\x10" +
-	"\xd4\x00u\x96z\xbaX\xd7\xfb,^\x1e\x8cF\xd9\xba" +
-	"\x9d\x1d\x95\xbb\x18kw\x92%\xb1\x01P\xb6g\xc9," +
-	"\xc9K\xb6\xc9\x1f\xbf\xbe\xe0\x92\xb1\xd5\xf9\"\x03\xad\x87" +
-	"\x8ax\xa2\xa7Sc\xc7%{4_\xbczj\xde\x9d" +
-	"\xe7\xff\x00\x00\x00\xff\xffMZ{\xcf"
+const schema_933ccff820d2c436 = "x\xdaL\xd11k\x14O\x1c\xc6\xf1\xe7\x99\xdd\xcd]" +
+	"\xe0\x7f$\xcb-\xfc#\x08\xd9\"M\x84dM\x04\x11" +
+	"\xb10\x09\x16\x06\x91l.\x9d Lv\xc7\xbd\xc5\xdb" +
+	"\x99\xb8\xb3\x17\xd3\xa5\xb2\xb1\xcd\x0b\xb0\xb3\xf0=\xd8i" +
+	"-X\xd8\xdaZ(\x18\x8c\x10!\xb22A\x8f\xeb\xe6" +
+	"\xf9\xc0\x97)~\xf3?\xee\x8a\xb5\xe0\x7f\x01\xa4\x0b\xc1" +
+	"L\xfb\xe8\xf3\xb3\xad\xe4\xf5\xfd\x17H+\xfa\xed\xcdw" +
+	"\x1f\xe3\xf3\x0fwN\x10\x04\x1d`\xed\xf4\x8d\xd7_f" +
+	"\xa7\xbf\xcc\xc5\x1b%[\xe2V\x9b\x0cM\xa5\x12\x99\xf7" +
+	"\xeaR\xea\xa40\x89\xad\xb3\xa4(\x9b\xe1x\x7f53" +
+	"UroT\x1b\x9d?T\xcdsS?M\xd4\xe5Z" +
+	")\xcc\x8a\x95:\xdf7GI.\x1b\x994\xb5\xd4V" +
+	"fMit\x92\xc9\x03}P\x9b\xc6\xacO\xf3\xea%" +
+	"\xdf\xde;\xda\x9as\x8f\x1d2\xf5)\xda\xc7'\xaf\xd2" +
+	"\xb7\x9f^\xbeG\xea\x0bn\\'\xff\x03\xd6\xb8)\xda" +
+	"\xbd\xa1\x8a\xf7j\xa9\xbb\x7f\xfb8\x1bIk\xe3\xb2:" +
+	"\x18\xa9J\xe9\xc6\xc6\xcdP\xc5S\x1f\xc4c\xab\xf2\xf8" +
+	"\x89\xa9\xe3\xca\x1c\x96\xba\x88\xa5\xb5\xaa\xb1\x00\xd2%\xcf" +
+	"\x07|\x02\xe1\xb7u \xfd\xe21=\x13\x0c\xc9\x88\x0e" +
+	"O\x1d~\xf5\x98\x9e\x0bRD\x14@\xf8s\x13H\xbf" +
+	"{L/\x04C\x8f\x11= \xfc\xe5\xf0\xcc\xe3.\x05" +
+	"C_D\xf4\x81\xf0\xf76\x90^x\x1ct\x9d\x06^" +
+	"\xc4\x00\xe8\x07\xdc\x06\x06>=\x0e\xe6\x9d\xcf\x88\x883" +
+	"@\xbf\xc7k\xc0\xa0\xeb<r\xde\xf1\"v\x80~\xc8" +
+	"]`0\xef\xfc\xaa\xf3\xae\x1f\xb1\x0b\xf4\xaf\\\xfa\x82" +
+	"\xf3%\x0a.j\xa33\xc5Y\x08\xce\x82\x8b\x87r4" +
+	"\x9e\xac\xe3:;\xdc\xc8\xf3\x9a=\x08\xf6\xc0c\xab\xf3" +
+	"\xe9\xdd\x16\xd2\xee\xd4e\xa6\x00\xfck\x9c=(\xab\xb2" +
+	"\x99\xb29w\xd1Id\xcbB\xcbf\\\x83jb\xd9" +
+	"P\x8eFJ\x17S\xf6'\x00\x00\xff\xffQw\x9a\x10"
 
 func init() {
 	schemas.Register(schema_933ccff820d2c436,

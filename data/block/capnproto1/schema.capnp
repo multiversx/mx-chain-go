@@ -9,7 +9,7 @@ struct BlockCapn {
 } 
 
 struct HeaderCapn { 
-   nonce       @0:   Data;
+   nonce       @0:   UInt64;
    prevHash    @1:   Data;
    pubKeys     @2:   List(Data);
    shardId     @3:   UInt32; 

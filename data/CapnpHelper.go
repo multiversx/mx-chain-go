@@ -1,9 +1,9 @@
 package data
 
 import (
+	"fmt"
 	"io"
 	"math/rand"
-	"fmt"
 )
 
 // CapnpHelper is an interface that defines methods needed for

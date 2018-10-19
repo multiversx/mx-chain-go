@@ -140,28 +140,28 @@ func (s BlockCapn_List) Set(i int, item BlockCapn) { C.PointerList(s).Set(i, C.O
 
 type HeaderCapn C.Struct
 
-func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(8, 7)) }
-func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(8, 7)) }
-func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(8, 7)) }
+func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(16, 6)) }
+func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(16, 6)) }
+func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(16, 6)) }
 func ReadRootHeaderCapn(s *C.Segment) HeaderCapn { return HeaderCapn(s.Root(0).ToStruct()) }
-func (s HeaderCapn) Nonce() []byte               { return C.Struct(s).GetObject(0).ToData() }
-func (s HeaderCapn) SetNonce(v []byte)           { C.Struct(s).SetObject(0, s.Segment.NewData(v)) }
-func (s HeaderCapn) PrevHash() []byte            { return C.Struct(s).GetObject(1).ToData() }
-func (s HeaderCapn) SetPrevHash(v []byte)        { C.Struct(s).SetObject(1, s.Segment.NewData(v)) }
-func (s HeaderCapn) PubKeys() C.DataList         { return C.DataList(C.Struct(s).GetObject(2)) }
-func (s HeaderCapn) SetPubKeys(v C.DataList)     { C.Struct(s).SetObject(2, C.Object(v)) }
-func (s HeaderCapn) ShardId() uint32             { return C.Struct(s).Get32(0) }
-func (s HeaderCapn) SetShardId(v uint32)         { C.Struct(s).Set32(0, v) }
-func (s HeaderCapn) TimeStamp() []byte           { return C.Struct(s).GetObject(3).ToData() }
-func (s HeaderCapn) SetTimeStamp(v []byte)       { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
-func (s HeaderCapn) Round() uint32               { return C.Struct(s).Get32(4) }
-func (s HeaderCapn) SetRound(v uint32)           { C.Struct(s).Set32(4, v) }
-func (s HeaderCapn) BlockHash() []byte           { return C.Struct(s).GetObject(4).ToData() }
-func (s HeaderCapn) SetBlockHash(v []byte)       { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
-func (s HeaderCapn) Signature() []byte           { return C.Struct(s).GetObject(5).ToData() }
-func (s HeaderCapn) SetSignature(v []byte)       { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
-func (s HeaderCapn) Commitment() []byte          { return C.Struct(s).GetObject(6).ToData() }
-func (s HeaderCapn) SetCommitment(v []byte)      { C.Struct(s).SetObject(6, s.Segment.NewData(v)) }
+func (s HeaderCapn) Nonce() uint64               { return C.Struct(s).Get64(0) }
+func (s HeaderCapn) SetNonce(v uint64)           { C.Struct(s).Set64(0, v) }
+func (s HeaderCapn) PrevHash() []byte            { return C.Struct(s).GetObject(0).ToData() }
+func (s HeaderCapn) SetPrevHash(v []byte)        { C.Struct(s).SetObject(0, s.Segment.NewData(v)) }
+func (s HeaderCapn) PubKeys() C.DataList         { return C.DataList(C.Struct(s).GetObject(1)) }
+func (s HeaderCapn) SetPubKeys(v C.DataList)     { C.Struct(s).SetObject(1, C.Object(v)) }
+func (s HeaderCapn) ShardId() uint32             { return C.Struct(s).Get32(8) }
+func (s HeaderCapn) SetShardId(v uint32)         { C.Struct(s).Set32(8, v) }
+func (s HeaderCapn) TimeStamp() []byte           { return C.Struct(s).GetObject(2).ToData() }
+func (s HeaderCapn) SetTimeStamp(v []byte)       { C.Struct(s).SetObject(2, s.Segment.NewData(v)) }
+func (s HeaderCapn) Round() uint32               { return C.Struct(s).Get32(12) }
+func (s HeaderCapn) SetRound(v uint32)           { C.Struct(s).Set32(12, v) }
+func (s HeaderCapn) BlockHash() []byte           { return C.Struct(s).GetObject(3).ToData() }
+func (s HeaderCapn) SetBlockHash(v []byte)       { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
+func (s HeaderCapn) Signature() []byte           { return C.Struct(s).GetObject(4).ToData() }
+func (s HeaderCapn) SetSignature(v []byte)       { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
+func (s HeaderCapn) Commitment() []byte          { return C.Struct(s).GetObject(5).ToData() }
+func (s HeaderCapn) SetCommitment(v []byte)      { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
 func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -578,7 +578,7 @@ func (s HeaderCapn) MarshalCapLit() ([]byte, error) {
 type HeaderCapn_List C.PointerList
 
 func NewHeaderCapnList(s *C.Segment, sz int) HeaderCapn_List {
-	return HeaderCapn_List(s.NewCompositeList(8, 7, sz))
+	return HeaderCapn_List(s.NewCompositeList(16, 6, sz))
 }
 func (s HeaderCapn_List) Len() int            { return C.PointerList(s).Len() }
 func (s HeaderCapn_List) At(i int) HeaderCapn { return HeaderCapn(C.PointerList(s).At(i).ToStruct()) }

@@ -18,22 +18,20 @@ type Serializer interface {
 }
 
 type Tx struct {
-	Nonce     []byte
-	Value     []byte
+	Nonce     uint64
+	Value     uint64
 	RcvAddr   []byte
 	SndAddr   []byte
-	GasPrice  []byte
-	GasLimit  []byte
+	GasPrice  uint64
+	GasLimit  uint64
 	Data      []byte
 	Signature []byte
 	Challenge []byte
-	PubKey    []byte
 }
 
 func newTransaction(tx *capnproto2.TxCapnp, a *Tx) {
 	tx.SetRcvAddr(a.RcvAddr)
 	tx.SetSndAddr(a.SndAddr)
-	tx.SetPubKey(a.PubKey)
 	tx.SetGasPrice(a.GasPrice)
 	tx.SetGasLimit(a.GasLimit)
 	tx.SetNonce(a.Nonce)
@@ -77,16 +75,15 @@ func (x *CapnpSerializer) Unmarshal(d []byte, obj interface{}) error {
 	m, _ := capnp.Unmarshal(d)
 	tx, _ := capnproto2.ReadRootTxCapnp(m)
 
-	txObj.Nonce, _ = tx.Nonce()
-	txObj.Value, _ = tx.Value()
+	txObj.Nonce = tx.Nonce()
+	txObj.Value = tx.Value()
 	txObj.RcvAddr, _ = tx.RcvAddr()
 	txObj.SndAddr, _ = tx.SndAddr()
-	txObj.GasPrice, _ = tx.GasPrice()
-	txObj.GasLimit, _ = tx.GasLimit()
+	txObj.GasPrice = tx.GasPrice()
+	txObj.GasLimit = tx.GasLimit()
 	txObj.Data, _ = tx.Data()
 	txObj.Signature, _ = tx.Signature()
 	txObj.Challenge, _ = tx.Challenge()
-	txObj.PubKey, _ = tx.PubKey()
 
 	return nil
 }
@@ -113,16 +110,15 @@ func generateDummyTxs() []*Tx {
 	txs := make([]*Tx, 0, 1000)
 	for i := 0; i < 1000; i++ {
 		txs = append(txs, &Tx{
-			Nonce:     []byte(randomStr(4)),
-			Value:     []byte(randomStr(5)),
+			Nonce:     uint64(rand.Int63n(10000)),
+			Value:     uint64(rand.Int63n(100000)),
 			RcvAddr:   []byte(randomStr(32)),
 			SndAddr:   []byte(randomStr(32)),
-			GasPrice:  []byte(randomStr(4)),
-			GasLimit:  []byte(randomStr(5)),
+			GasPrice:  uint64(rand.Int63n(10000)),
+			GasLimit:  uint64(rand.Int63n(10000)),
 			Data:      []byte(randomStr(20)),
 			Signature: []byte(randomStr(32)),
 			Challenge: []byte(randomStr(32)),
-			PubKey:    []byte(randomStr(32)),
 		})
 	}
 	return txs
