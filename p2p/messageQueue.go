@@ -60,18 +60,6 @@ func (mq *MessageQueue) add(hash string) {
 	mq.queue[hash] = true
 }
 
-// Adds a string in the message queue after which it checks if it has to remove old items
-func (mq *MessageQueue) Add(hash string) {
-	mq.mut.Lock()
-	defer mq.mut.Unlock()
-
-	if mq.contains(hash) {
-		return
-	}
-
-	mq.add(hash)
-}
-
 // Len returns the size of this MessageQueue
 func (mq *MessageQueue) Len() int {
 	mq.mut.RLock()

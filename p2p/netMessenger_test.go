@@ -46,16 +46,18 @@ func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
 
 	var counter int32
 
-	node.AddTopic(p2p.NewTopic("test topic", "", testNetMarshalizer))
+	node.AddTopic(p2p.NewTopic("test topic", &objStringCloner, testNetMarshalizer))
 	node.GetTopic("test topic").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		fmt.Printf("Got message: %v\n", *data.(*string))
+		payload := (*data.(*testStringCloner)).Data
 
-		if *data.(*string) == "ABC" {
+		fmt.Printf("Got message: %v\n", payload)
+
+		if payload == "ABC" {
 			atomic.AddInt32(&counter, 1)
 		}
 	})
 
-	node.GetTopic("test topic").Broadcast("ABC", false)
+	node.GetTopic("test topic").Broadcast(testStringCloner{Data: "ABC"}, false)
 
 	time.Sleep(time.Second)
 
@@ -92,23 +94,23 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	var val int32 = 0
 
 	//create 2 topics on each node
-	node1.AddTopic(p2p.NewTopic("ping", "", testNetMarshalizer))
-	node1.AddTopic(p2p.NewTopic("pong", "", testNetMarshalizer))
+	node1.AddTopic(p2p.NewTopic("ping", &objStringCloner, testNetMarshalizer))
+	node1.AddTopic(p2p.NewTopic("pong", &objStringCloner, testNetMarshalizer))
 
-	node2.AddTopic(p2p.NewTopic("ping", "", testNetMarshalizer))
-	node2.AddTopic(p2p.NewTopic("pong", "", testNetMarshalizer))
+	node2.AddTopic(p2p.NewTopic("ping", &objStringCloner, testNetMarshalizer))
+	node2.AddTopic(p2p.NewTopic("pong", &objStringCloner, testNetMarshalizer))
 
 	//assign some event handlers on topics
 	node1.GetTopic("ping").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		payload := *data.(*string)
+		payload := (*data.(*testStringCloner)).Data
 
 		if payload == "ping string" {
-			node1.GetTopic("pong").Broadcast("pong string", false)
+			node1.GetTopic("pong").Broadcast(testStringCloner{"pong string"}, false)
 		}
 	})
 
 	node1.GetTopic("pong").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		payload := *data.(*string)
+		payload := (*data.(*testStringCloner)).Data
 
 		fmt.Printf("node1 received: %v\n", payload)
 
@@ -119,7 +121,7 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 
 	//for node2 topic ping we do not need an event handler in this test
 	node2.GetTopic("pong").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		payload := *data.(*string)
+		payload := (*data.(*testStringCloner)).Data
 
 		fmt.Printf("node2 received: %v\n", payload)
 
@@ -128,7 +130,7 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 		}
 	})
 
-	node2.GetTopic("ping").Broadcast("ping string", false)
+	node2.GetTopic("ping").Broadcast(testStringCloner{"ping string"}, false)
 
 	assert.Nil(t, err)
 
@@ -184,7 +186,7 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		node.AddTopic(p2p.NewTopic("test", "", testNetMarshalizer))
+		node.AddTopic(p2p.NewTopic("test", &objStringCloner, testNetMarshalizer))
 		node.GetTopic("test").AddEventHandler(recv)
 	}
 
@@ -192,7 +194,7 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 	fmt.Println()
 
 	fmt.Println("Broadcasting...")
-	nodes[0].GetTopic("test").Broadcast("Foo", false)
+	nodes[0].GetTopic("test").Broadcast(testStringCloner{Data: "Foo"}, false)
 
 	select {
 	case <-done:
@@ -257,7 +259,7 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 		node := nodes[i]
 		node.PrintConnected()
 
-		node.AddTopic(p2p.NewTopic("test", "", testNetMarshalizer))
+		node.AddTopic(p2p.NewTopic("test", &objStringCloner, testNetMarshalizer))
 		node.GetTopic("test").AddEventHandler(recv)
 	}
 
@@ -265,7 +267,7 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 	fmt.Println()
 
 	fmt.Println("Broadcasting...")
-	nodes[0].GetTopic("test").Broadcast("Foo", false)
+	nodes[0].GetTopic("test").Broadcast(testStringCloner{Data: "Foo"}, false)
 
 	select {
 	case <-done:
@@ -284,7 +286,7 @@ func TestNetMessenger_SendingNil_ShouldErr(t *testing.T) {
 	node1, err := createNetMessenger(t, 9000, 10)
 	assert.Nil(t, err)
 
-	node1.AddTopic(p2p.NewTopic("test", "", testNetMarshalizer))
+	node1.AddTopic(p2p.NewTopic("test", &objStringCloner, testNetMarshalizer))
 	err = node1.GetTopic("test").Broadcast(nil, false)
 	assert.NotNil(t, err)
 }
@@ -329,14 +331,14 @@ func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testin
 	for i := startPort; i <= endPort; i++ {
 		node, err := createNetMessenger(t, i, nConns)
 
-		err = node.AddTopic(p2p.NewTopic("test topic", "", testNetMarshalizer))
+		err = node.AddTopic(p2p.NewTopic("test topic", &objStringCloner, testNetMarshalizer))
 		assert.Nil(t, err)
 
 		node.GetTopic("test topic").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 			mut.Lock()
 			recv[node.ID().Pretty()] = msgInfo
 
-			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), *data.(*string))
+			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), (*data.(*testStringCloner)).Data)
 
 			wgGot.Done()
 
@@ -379,7 +381,7 @@ func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testin
 
 	//broadcasting something
 	fmt.Println("Broadcasting a message...")
-	nodes[0].GetTopic("test topic").Broadcast("a string to broadcast", false)
+	nodes[0].GetTopic("test topic").Broadcast(testStringCloner{"a string to broadcast"}, false)
 
 	fmt.Println("Waiting...")
 
@@ -445,16 +447,6 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 	//node1 registers topic 'test' with struct1
 	//node2 registers topic 'test' with struct2
 
-	type struct1 struct {
-		Nonce int
-		Data  float64
-	}
-
-	type struct2 struct {
-		Nonce string
-		Data  []byte
-	}
-
 	node1, err := createNetMessenger(t, 13000, 10)
 	assert.Nil(t, err)
 
@@ -468,8 +460,8 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 	time.Sleep(time.Second)
 
 	//create topics for each node
-	node1.AddTopic(p2p.NewTopic("test", struct1{}, testNetMarshalizer))
-	node2.AddTopic(p2p.NewTopic("test", struct2{}, testNetMarshalizer))
+	node1.AddTopic(p2p.NewTopic("test", &structTest1{}, testNetMarshalizer))
+	node2.AddTopic(p2p.NewTopic("test", &structTest2{}, testNetMarshalizer))
 
 	counter := int32(0)
 
@@ -479,7 +471,7 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 		atomic.AddInt32(&counter, 1)
 	})
 
-	node1.GetTopic("test").Broadcast(&struct1{Nonce: 4, Data: 4.5}, false)
+	node1.GetTopic("test").Broadcast(&structTest1{Nonce: 4, Data: 4.5}, false)
 
 	//wait a bit
 	time.Sleep(time.Second)
@@ -505,8 +497,8 @@ func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T)
 	time.Sleep(time.Second)
 
 	//create topics for each node
-	node1.AddTopic(p2p.NewTopic("test1", "", testNetMarshalizer))
-	node2.AddTopic(p2p.NewTopic("test2", "", testNetMarshalizer))
+	node1.AddTopic(p2p.NewTopic("test1", &objStringCloner, testNetMarshalizer))
+	node2.AddTopic(p2p.NewTopic("test2", &objStringCloner, testNetMarshalizer))
 
 	counter := int32(0)
 
@@ -516,7 +508,7 @@ func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T)
 		atomic.AddInt32(&counter, 1)
 	})
 
-	node1.GetTopic("test1").Broadcast("Foo", false)
+	node1.GetTopic("test1").Broadcast(testStringCloner{"Foo"}, false)
 
 	//wait a bit
 	time.Sleep(time.Second)
@@ -547,14 +539,14 @@ func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *test
 	for i := startPort; i <= endPort; i++ {
 		node, err := createNetMessenger(t, i, nConns)
 
-		err = node.AddTopic(p2p.NewTopic("test topic", "", testNetMarshalizer))
+		err = node.AddTopic(p2p.NewTopic("test topic", &objStringCloner, testNetMarshalizer))
 		assert.Nil(t, err)
 
 		node.GetTopic("test topic").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 			mut.Lock()
 			recv[node.ID().Pretty()] = msgInfo
 
-			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), *data.(*string))
+			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), (*data.(*testStringCloner)).Data)
 
 			wgGot.Done()
 
@@ -615,7 +607,7 @@ func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *test
 
 	//broadcasting something
 	fmt.Println("Broadcasting a message...")
-	nodes[0].GetTopic("test topic").Broadcast("a string to broadcast", false)
+	nodes[0].GetTopic("test topic").Broadcast(testStringCloner{"a string to broadcast"}, false)
 
 	fmt.Println("Waiting...")
 

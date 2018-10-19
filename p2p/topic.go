@@ -1,12 +1,17 @@
 package p2p
 
 import (
-	"reflect"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/pkg/errors"
 )
+
+// Cloner interface will be implemented on structs that can create new instances of their type
+// We prefer this method as reflection is more costly
+type Cloner interface {
+	Clone() Cloner
+}
 
 // OnTopicReceived is the signature for the event handler used by Topic struct
 type OnTopicReceived func(name string, data interface{}, msgInfo *MessageInfo)
@@ -21,7 +26,7 @@ type OnTopicReceived func(name string, data interface{}, msgInfo *MessageInfo)
 //  - there is a method to be called to broadcast new messages
 type Topic struct {
 	Name        string
-	ObjTemplate interface{}
+	ObjTemplate Cloner
 	marsh       marshal.Marshalizer
 
 	objPump chan MessageInfo
@@ -42,7 +47,7 @@ type MessageInfo struct {
 }
 
 // NewTopic creates a new Topic struct
-func NewTopic(name string, objTemplate interface{}, marsh marshal.Marshalizer) *Topic {
+func NewTopic(name string, objTemplate Cloner, marsh marshal.Marshalizer) *Topic {
 	topic := Topic{Name: name, ObjTemplate: objTemplate, marsh: marsh}
 	topic.objPump = make(chan MessageInfo, 10000)
 
@@ -68,7 +73,7 @@ func (t *Topic) AddEventHandler(event OnTopicReceived) {
 // it will ignore nils, improper formatted messages or tampered messages
 func (t *Topic) NewMessageReceived(message *Message) error {
 	// create new instance of the object
-	newObj := reflect.New(reflect.TypeOf(t.ObjTemplate)).Interface()
+	newObj := t.ObjTemplate.Clone()
 
 	if message == nil {
 		return errors.New("nil message not allowed")
