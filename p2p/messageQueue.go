@@ -79,10 +79,6 @@ func (mq *MessageQueue) clean() {
 
 	elem := mq.list.Back().Value.(string)
 
-	if !mq.contains(elem) {
-		panic("Inconsistent queue state. Element" + elem + "was not found!")
-	}
-
 	mq.list.Remove(mq.list.Back())
 	delete(mq.queue, elem)
 }
