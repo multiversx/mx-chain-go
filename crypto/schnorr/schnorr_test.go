@@ -1,9 +1,10 @@
 package schnorr_test
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/ed25519"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
-	"testing"
 )
 
 var group = ed25519.Group{}

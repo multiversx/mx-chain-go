@@ -6,10 +6,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-type MockMarshalizer struct {
+type MarshalizerMock struct {
 }
 
-func (m *MockMarshalizer) Marshal(obj interface{}) ([]byte, error) {
+func (m *MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
 	if obj == nil {
 		return nil, errors.New("NIL object to serilize from!")
 	}
@@ -17,7 +17,7 @@ func (m *MockMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	return json.Marshal(obj)
 }
 
-func (m *MockMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
+func (m *MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
 	if obj == nil {
 		return errors.New("NIL object to serilize to!")
 	}

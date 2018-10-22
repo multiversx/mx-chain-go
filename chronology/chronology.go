@@ -17,8 +17,6 @@ type Subround int
 const (
 	// SrUnknown defines an unknown state of the round
 	SrUnknown Subround = math.MinInt64
-	// SrCanceled defines an canceled state of the round
-	SrCanceled Subround = math.MinInt64 + 1
 	// SrBeforeRound defines the state of the round before it's start
 	SrBeforeRound Subround = math.MinInt64 + 2
 	// SrAfterRound defines the state of the round after it's finish
@@ -206,7 +204,7 @@ func (chr *Chronology) TimeSubround() Subround {
 	return chr.timeSubround
 }
 
-// clockOffset returns the current offset between local time and NTP
+// ClockOffset returns the current offset between local time and NTP
 func (chr *Chronology) ClockOffset() time.Duration {
 	return chr.clockOffset
 }
