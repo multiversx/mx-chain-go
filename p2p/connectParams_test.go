@@ -2,11 +2,14 @@ package p2p_test
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/libp2p/go-libp2p-crypto"
+	"github.com/libp2p/go-libp2p-peer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,4 +68,38 @@ func TestNewConnectParams(t *testing.T) {
 	assert.Equal(t, 0, bytes.Compare(buffPubKeyComputed, buffPubKey))
 
 	assert.Equal(t, pid, params.ID.Pretty())
+}
+
+func TestSignVerify(t *testing.T) {
+	params := p2p.NewConnectParamsFromPort(4000)
+
+	bPrivKey, _ := params.PrivKey.Bytes()
+	fmt.Printf("Priv key: %v\n", hex.EncodeToString(bPrivKey))
+
+	bPubKey, _ := params.PubKey.Bytes()
+	fmt.Printf("Pub key: %v\n", hex.EncodeToString(bPubKey))
+
+	fmt.Printf("ID: %v\n", params.ID.Pretty())
+
+	buffSig, err := params.PrivKey.Sign([]byte{65, 66, 67})
+	assert.Nil(t, err)
+	fmt.Printf("Sig: %v\n", base64.StdEncoding.EncodeToString(buffSig))
+
+	buffPubKey, err := crypto.MarshalPublicKey(params.PubKey)
+	fmt.Printf("Marshaled pub key: %v\n", base64.StdEncoding.EncodeToString(buffPubKey))
+
+	//recovery and verify
+	pubKeyVerif, err := crypto.UnmarshalPublicKey(buffPubKey)
+	assert.Nil(t, err)
+
+	signed, err := pubKeyVerif.Verify([]byte{65, 66, 67}, buffSig)
+	assert.Nil(t, err)
+
+	fmt.Printf("Signed \"ABC\"? %v\n", signed)
+	idVerif, err := peer.IDFromPublicKey(pubKeyVerif)
+	assert.Nil(t, err)
+	fmt.Printf("Signed by %v\n", idVerif.Pretty())
+
+	assert.Equal(t, idVerif, params.ID)
+
 }

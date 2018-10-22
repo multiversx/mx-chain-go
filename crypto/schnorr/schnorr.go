@@ -1,6 +1,6 @@
 package schnorr
 
-import "elrond-go-sandbox/crypto/math"
+import "github.com/ElrondNetwork/elrond-go-sandbox/crypto/math"
 
 // https://medium.com/coinmonks/schnorr-signatures-in-go-80a7fbfe0fe4
 
