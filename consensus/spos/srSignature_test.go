@@ -1,4 +1,4 @@
-package spos
+package spos_test
 
 import (
 	"fmt"
@@ -7,32 +7,33 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/stretchr/testify/assert"
 )
 
-func InitSRSignature() (*chronology.Chronology, *SRSignature) {
+func InitSRSignature() (*chronology.Chronology, *spos.SRSignature) {
 	genesisTime := time.Now()
 	currentTime := genesisTime
 
-	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
+	rnd := chronology.NewRound(genesisTime, currentTime, spos.RoundTimeDuration)
 
 	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{})
 
-	vld := NewValidators(nil, nil, []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
 	pbft := 2*len(vld.ConsensusGroup)/3 + 1
-	th := NewThreshold(1, pbft, pbft, pbft, pbft)
-	rs := NewRoundStatus(SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished)
+	th := spos.NewThreshold(1, pbft, pbft, pbft, pbft)
+	rs := spos.NewRoundStatus(spos.SsNotFinished, spos.SsNotFinished, spos.SsNotFinished, spos.SsNotFinished, spos.SsNotFinished)
 
-	cns := NewConsensus(true, vld, th, rs, chr)
+	cns := spos.NewConsensus(true, vld, th, rs, chr)
 
-	sr := NewSRSignature(true, int64(100*roundTimeDuration/100), cns, nil, nil)
+	sr := spos.NewSRSignature(true, int64(100*spos.RoundTimeDuration/100), cns, nil)
 	chr.AddSubround(sr)
 
 	return chr, sr
 }
 
 func TestNewSRSignature(t *testing.T) {
-	sr := NewSRSignature(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	sr := spos.NewSRSignature(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
 	assert.NotNil(t, sr)
 }
 
@@ -40,111 +41,109 @@ func TestSRSignature_DoWork1(t *testing.T) {
 
 	chr, sr := InitSRSignature()
 
-	fmt.Printf("1: Test case when send message is done but consensus is not done -> rNone\n")
+	fmt.Printf("1: Test case when send message is done but consensus is not done -> RNone\n")
 
 	sr.OnSendSignature = SndWithSuccess
 
-	r := sr.doSignature(chr)
+	r := sr.DoSignature(chr)
 
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Bitmap)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Comitment)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Signature)
-	assert.Equal(t, rNone, r)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Bitmap)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Comitment)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Signature)
+	assert.Equal(t, spos.RNone, r)
 }
 
 func TestSRSignature_DoWork2(t *testing.T) {
 
 	chr, sr := InitSRSignature()
 
-	fmt.Printf("2: Test case when send message is done but consensus is semi-done (only subround BLOCK, COMITMENT_HASH, BITMAP and COMITMENT is done) -> rNone\n")
+	fmt.Printf("2: Test case when send message is done but consensus is semi-done (only subround BLOCK, COMITMENT_HASH, BITMAP and COMITMENT is done) -> RNone\n")
 
 	sr.OnSendSignature = SndWithSuccess
 
-	sr.cns.ValidationMap[sr.cns.Self].Block = true
+	sr.Cns.ValidationMap[sr.Cns.Self].Block = true
 
-	for i := 0; i < len(sr.cns.ConsensusGroup); i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
+	for i := 0; i < len(sr.Cns.ConsensusGroup); i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].ComitmentHash = true
 	}
 
-	for i := 0; i < sr.cns.Threshold.Bitmap; i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
+	for i := 0; i < sr.Cns.Threshold.Bitmap; i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].Bitmap = true
 	}
 
-	for i := 0; i < sr.cns.Threshold.Comitment; i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Comitment = true
+	for i := 0; i < sr.Cns.Threshold.Comitment; i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].Comitment = true
 	}
 
-	r := sr.doSignature(chr)
+	r := sr.DoSignature(chr)
 
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Bitmap)
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Comitment)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Signature)
-	assert.Equal(t, rNone, r)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.Bitmap)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.Comitment)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Signature)
+	assert.Equal(t, spos.RNone, r)
 }
 
 func TestSRSignature_DoWork3(t *testing.T) {
 
 	chr, sr := InitSRSignature()
 
-	fmt.Printf("3: Test case when send message and consensus is done -> rTrue\n")
+	fmt.Printf("3: Test case when send message and consensus is done -> RTrue\n")
 
 	sr.OnSendSignature = SndWithSuccess
 
-	sr.cns.RoundStatus.Block = SsFinished
-	sr.cns.RoundStatus.ComitmentHash = SsFinished
-	sr.cns.RoundStatus.Bitmap = SsFinished
-	sr.cns.RoundStatus.Comitment = SsFinished
+	sr.Cns.RoundStatus.Block = spos.SsFinished
+	sr.Cns.RoundStatus.ComitmentHash = spos.SsFinished
+	sr.Cns.RoundStatus.Bitmap = spos.SsFinished
+	sr.Cns.RoundStatus.Comitment = spos.SsFinished
 
-	for i := 0; i < sr.cns.Threshold.Signature; i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Signature = true
+	for i := 0; i < sr.Cns.Threshold.Signature; i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].Bitmap = true
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].Signature = true
 	}
 
-	r := sr.doSignature(chr)
+	r := sr.DoSignature(chr)
 
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Signature)
-	assert.Equal(t, rTrue, r)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.Signature)
+	assert.Equal(t, spos.RTrue, r)
 }
 
 func TestSRSignature_DoWork4(t *testing.T) {
 
 	chr, sr := InitSRSignature()
 
-	fmt.Printf("4: Test case when time has expired -> rTrue\n")
+	fmt.Printf("4: Test case when time has expired -> RTrue\n")
 
 	sr.OnSendSignature = SndWithoutSuccess
 
-	chr.SetClockOffset(time.Duration(sr.endTime + 1))
+	chr.SetClockOffset(time.Duration(sr.EndTime() + 1))
 
-	r := sr.doSignature(chr)
+	r := sr.DoSignature(chr)
 
-	assert.Equal(t, SsExtended, sr.cns.RoundStatus.Signature)
-	assert.Equal(t, r, rTrue)
+	assert.Equal(t, spos.SsExtended, sr.Cns.RoundStatus.Signature)
+	assert.Equal(t, r, spos.RTrue)
 }
 
 func TestSRSignature_DoWork5(t *testing.T) {
 
 	chr, sr := InitSRSignature()
 
-	fmt.Printf("5: Test case when receive message is done but consensus is not done -> rNone\n")
+	fmt.Printf("5: Test case when receive message is done but consensus is not done -> RNone\n")
 
 	sr.OnSendSignature = SndWithoutSuccess
-	sr.OnReceivedSignature = RcvWithSuccess
+	sr.Cns.SetReceivedMessage(true)
 
-	sr.cns.SetReceivedMessage(true)
+	r := sr.DoSignature(chr)
 
-	r := sr.doSignature(chr)
-
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Bitmap)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Comitment)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Signature)
-	assert.Equal(t, rNone, r)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Bitmap)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Comitment)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Signature)
+	assert.Equal(t, spos.RNone, r)
 }
 
 func TestSRSignature_DoWork6(t *testing.T) {
@@ -154,23 +153,21 @@ func TestSRSignature_DoWork6(t *testing.T) {
 	fmt.Printf("6: Test case when receive message and consensus is done -> true\n")
 
 	sr.OnSendSignature = SndWithoutSuccess
-	sr.OnReceivedSignature = RcvWithSuccess
+	sr.Cns.SetReceivedMessage(true)
 
-	sr.cns.SetReceivedMessage(true)
+	sr.Cns.RoundStatus.Block = spos.SsFinished
+	sr.Cns.RoundStatus.ComitmentHash = spos.SsFinished
+	sr.Cns.RoundStatus.Bitmap = spos.SsFinished
+	sr.Cns.RoundStatus.Comitment = spos.SsFinished
 
-	sr.cns.RoundStatus.Block = SsFinished
-	sr.cns.RoundStatus.ComitmentHash = SsFinished
-	sr.cns.RoundStatus.Bitmap = SsFinished
-	sr.cns.RoundStatus.Comitment = SsFinished
-
-	for i := 0; i < sr.cns.Threshold.Signature; i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Signature = true
+	for i := 0; i < sr.Cns.Threshold.Signature; i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].Bitmap = true
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].Signature = true
 	}
 
 	r := sr.DoWork(chr)
 
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Signature)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.Signature)
 	assert.Equal(t, true, r)
 }
 
@@ -181,49 +178,47 @@ func TestSRSignature_DoWork7(t *testing.T) {
 	fmt.Printf("7: Test case when receive message is not done and round should be canceled -> false\n")
 
 	sr.OnSendSignature = SndWithoutSuccess
-	sr.OnReceivedSignature = RcvWithoutSuccessAndCancel
+	sr.Cns.SetReceivedMessage(false)
+	sr.Cns.Chr.SetSelfSubround(chronology.SrCanceled)
 
-	sr.cns.SetReceivedMessage(false)
-	sr.cns.Chr.SetSelfSubround(chronology.SrCanceled)
+	sr.Cns.RoundStatus.Block = spos.SsFinished
+	sr.Cns.RoundStatus.ComitmentHash = spos.SsFinished
+	sr.Cns.RoundStatus.Bitmap = spos.SsFinished
+	sr.Cns.RoundStatus.Comitment = spos.SsFinished
 
-	sr.cns.RoundStatus.Block = SsFinished
-	sr.cns.RoundStatus.ComitmentHash = SsFinished
-	sr.cns.RoundStatus.Bitmap = SsFinished
-	sr.cns.RoundStatus.Comitment = SsFinished
-
-	for i := 0; i < sr.cns.Threshold.Signature; i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Signature = true
+	for i := 0; i < sr.Cns.Threshold.Signature; i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].Bitmap = true
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].Signature = true
 	}
 
 	r := sr.DoWork(chr)
 
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Signature)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Signature)
 	assert.Equal(t, chronology.SrCanceled, chr.SelfSubround())
 	assert.Equal(t, false, r)
 }
 
 func TestSRSignature_Current(t *testing.T) {
-	sr := NewSRSignature(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(SrSignature), sr.Current())
+	sr := spos.NewSRSignature(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
+	assert.Equal(t, chronology.Subround(spos.SrSignature), sr.Current())
 }
 
 func TestSRSignature_Next(t *testing.T) {
-	sr := NewSRSignature(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(SrEndRound), sr.Next())
+	sr := spos.NewSRSignature(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
+	assert.Equal(t, chronology.Subround(spos.SrEndRound), sr.Next())
 }
 
 func TestSRSignature_EndTime(t *testing.T) {
-	sr := NewSRSignature(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, int64(100*roundTimeDuration/100), sr.EndTime())
+	sr := spos.NewSRSignature(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
+	assert.Equal(t, int64(100*spos.RoundTimeDuration/100), sr.EndTime())
 }
 
 func TestSRSignature_Name(t *testing.T) {
-	sr := NewSRSignature(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	sr := spos.NewSRSignature(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
 	assert.Equal(t, "<SIGNATURE>", sr.Name())
 }
 
 func TestSRSignature_Log(t *testing.T) {
-	sr := NewSRSignature(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	sr := spos.NewSRSignature(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
 	sr.Log("Test SRSignature")
 }

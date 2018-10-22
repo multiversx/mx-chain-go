@@ -1,14 +1,15 @@
-package spos
+package spos_test
 
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewValidators(t *testing.T) {
 
-	vld := NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
 	assert.Equal(t, 3, len(vld.ConsensusGroup))
 	assert.Equal(t, "3", vld.ConsensusGroup[2])
@@ -24,7 +25,7 @@ func TestNewValidators(t *testing.T) {
 }
 
 func TestValidators_IsNodeInBitmapGroup(t *testing.T) {
-	vld := NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
 	assert.Equal(t, false, vld.IsNodeInBitmapGroup(vld.Self))
 
@@ -34,14 +35,14 @@ func TestValidators_IsNodeInBitmapGroup(t *testing.T) {
 }
 
 func TestValidators_IsNodeInValidationGroup(t *testing.T) {
-	vld := NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
 	assert.Equal(t, false, vld.IsNodeInValidationGroup("4"))
 	assert.Equal(t, true, vld.IsNodeInValidationGroup(vld.Self))
 }
 
 func TestValidators_IsBlockReceived(t *testing.T) {
-	vld := NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
 	ok, n := vld.IsBlockReceived(1)
 	assert.Equal(t, false, ok)
@@ -59,7 +60,7 @@ func TestValidators_IsBlockReceived(t *testing.T) {
 }
 
 func TestValidators_IsComitmentHashReceived(t *testing.T) {
-	vld := NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
 	ok, n := vld.IsComitmentHashReceived(2)
 	assert.Equal(t, false, ok)
@@ -85,7 +86,7 @@ func TestValidators_IsComitmentHashReceived(t *testing.T) {
 }
 
 func TestValidators_IsBitmapInComitmentHash(t *testing.T) {
-	vld := NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
 	ok, n := vld.IsBitmapInComitmentHash(2)
 	assert.Equal(t, false, ok)
@@ -118,7 +119,7 @@ func TestValidators_IsBitmapInComitmentHash(t *testing.T) {
 }
 
 func TestValidators_IsBitmapInComitment(t *testing.T) {
-	vld := NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
 	ok, n := vld.IsBitmapInComitment(2)
 	assert.Equal(t, false, ok)
@@ -151,7 +152,7 @@ func TestValidators_IsBitmapInComitment(t *testing.T) {
 }
 
 func TestValidators_IsBitmapInSignature(t *testing.T) {
-	vld := NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
 	ok, n := vld.IsBitmapInSignature(2)
 	assert.Equal(t, false, ok)
@@ -184,14 +185,14 @@ func TestValidators_IsBitmapInSignature(t *testing.T) {
 }
 
 func TestValidators_GetComitmentHashesCount(t *testing.T) {
-	vld := NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
 	vld.ValidationMap["1"].ComitmentHash = true
 	assert.Equal(t, 1, vld.GetComitmentHashesCount())
 }
 
 func TestValidators_GetComitmentsCount(t *testing.T) {
-	vld := NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
 	vld.ValidationMap["1"].Comitment = true
 	vld.ValidationMap["2"].Comitment = true
@@ -201,7 +202,7 @@ func TestValidators_GetComitmentsCount(t *testing.T) {
 }
 
 func TestValidators_GetSignaturesCount(t *testing.T) {
-	vld := NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
 	assert.Equal(t, 0, vld.GetComitmentsCount())
 }

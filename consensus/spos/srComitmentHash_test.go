@@ -1,4 +1,4 @@
-package spos
+package spos_test
 
 import (
 	"fmt"
@@ -7,32 +7,33 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/stretchr/testify/assert"
 )
 
-func InitSRComitmentHash() (*chronology.Chronology, *SRComitmentHash) {
+func InitSRComitmentHash() (*chronology.Chronology, *spos.SRComitmentHash) {
 	genesisTime := time.Now()
 	currentTime := genesisTime
 
-	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
+	rnd := chronology.NewRound(genesisTime, currentTime, spos.RoundTimeDuration)
 
 	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{})
 
-	vld := NewValidators(nil, nil, []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
 	pbft := 2*len(vld.ConsensusGroup)/3 + 1
-	th := NewThreshold(1, pbft, pbft, pbft, pbft)
-	rs := NewRoundStatus(SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished)
+	th := spos.NewThreshold(1, pbft, pbft, pbft, pbft)
+	rs := spos.NewRoundStatus(spos.SsNotFinished, spos.SsNotFinished, spos.SsNotFinished, spos.SsNotFinished, spos.SsNotFinished)
 
-	cns := NewConsensus(true, vld, th, rs, chr)
+	cns := spos.NewConsensus(true, vld, th, rs, chr)
 
-	sr := NewSRComitmentHash(true, int64(100*roundTimeDuration/100), cns, nil, nil)
+	sr := spos.NewSRComitmentHash(true, int64(100*spos.RoundTimeDuration/100), cns, nil)
 	chr.AddSubround(sr)
 
 	return chr, sr
 }
 
 func TestNewSRComitmentHash(t *testing.T) {
-	sr := NewSRComitmentHash(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	sr := spos.NewSRComitmentHash(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
 	assert.NotNil(t, sr)
 }
 
@@ -40,173 +41,171 @@ func TestSRComitmentHash_DoWork1(t *testing.T) {
 
 	chr, sr := InitSRComitmentHash()
 
-	fmt.Printf("1: Test case when send message is done but consensus is not done -> rNone\n")
+	fmt.Printf("1: Test case when send message is done but consensus is not done -> RNone\n")
 
 	sr.OnSendComitmentHash = SndWithSuccess
 
-	r := sr.doComitmentHash(chr)
+	r := sr.DoComitmentHash(chr)
 
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, rNone, r)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.RNone, r)
 }
 
 func TestSRComitmentHash_DoWork2(t *testing.T) {
 
 	chr, sr := InitSRComitmentHash()
 
-	fmt.Printf("2: Test case when send message is done but consensus is semi-done (only subround BLOCK is done) -> rNone\n")
+	fmt.Printf("2: Test case when send message is done but consensus is semi-done (only subround BLOCK is done) -> RNone\n")
 
 	sr.OnSendComitmentHash = SndWithSuccess
 
-	sr.cns.ValidationMap[sr.cns.Self].Block = true
+	sr.Cns.ValidationMap[sr.Cns.Self].Block = true
 
-	r := sr.doComitmentHash(chr)
+	r := sr.DoComitmentHash(chr)
 
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, rNone, r)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.RNone, r)
 }
 
 func TestSRComitmentHash_DoWork3(t *testing.T) {
 
 	chr, sr := InitSRComitmentHash()
 
-	fmt.Printf("3: Test case when send message is done, but consensus (full) is not done (I AM NOT LEADER) -> rNone\n")
+	fmt.Printf("3: Test case when send message is done, but consensus (full) is not done (I AM NOT LEADER) -> RNone\n")
 
 	sr.OnSendComitmentHash = SndWithSuccess
 
-	sr.cns.ValidationMap[sr.cns.Self].Block = true
+	sr.Cns.ValidationMap[sr.Cns.Self].Block = true
 
-	for i := 0; i < sr.cns.Threshold.ComitmentHash; i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
+	for i := 0; i < sr.Cns.Threshold.ComitmentHash; i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].ComitmentHash = true
 	}
 
-	r := sr.doComitmentHash(chr)
+	r := sr.DoComitmentHash(chr)
 
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, rNone, r)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.RNone, r)
 }
 
 func TestSRComitmentHash_DoWork4(t *testing.T) {
 
 	chr, sr := InitSRComitmentHash()
 
-	fmt.Printf("4: Test case when send message is done and consensus (pbft) is enough (I AM LEADER) -> rTrue\n")
+	fmt.Printf("4: Test case when send message is done and consensus (pbft) is enough (I AM LEADER) -> RTrue\n")
 
 	sr.OnSendComitmentHash = SndWithSuccess
 
-	sr.cns.Self = "1"
+	sr.Cns.Self = "1"
 
-	sr.cns.ValidationMap[sr.cns.Self].Block = true
+	sr.Cns.ValidationMap[sr.Cns.Self].Block = true
 
-	for i := 0; i < sr.cns.Threshold.ComitmentHash; i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
+	for i := 0; i < sr.Cns.Threshold.ComitmentHash; i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].ComitmentHash = true
 	}
 
-	r := sr.doComitmentHash(chr)
+	r := sr.DoComitmentHash(chr)
 
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, rTrue, r)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.RTrue, r)
 }
 
 func TestSRComitmentHash_DoWork5(t *testing.T) {
 
 	chr, sr := InitSRComitmentHash()
 
-	fmt.Printf("5: Test case when send message is done and consensus (pbft) is enough because of the bitmap (I AM NOT LEADER) -> rTrue\n")
+	fmt.Printf("5: Test case when send message is done and consensus (pbft) is enough because of the bitmap (I AM NOT LEADER) -> RTrue\n")
 
 	sr.OnSendComitmentHash = SndWithSuccess
 
-	sr.cns.RoundStatus.Block = SsFinished
+	sr.Cns.RoundStatus.Block = spos.SsFinished
 
-	for i := 0; i < sr.cns.Threshold.Bitmap; i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].Bitmap = true
+	for i := 0; i < sr.Cns.Threshold.Bitmap; i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].ComitmentHash = true
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].Bitmap = true
 	}
 
-	r := sr.doComitmentHash(chr)
+	r := sr.DoComitmentHash(chr)
 
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, rTrue, r)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.RTrue, r)
 }
 
 func TestSRComitmentHash_DoWork6(t *testing.T) {
 
 	chr, sr := InitSRComitmentHash()
 
-	fmt.Printf("6: Test case when send message and consensus (full) is done (I AM NOT LEADER) -> rTrue\n")
+	fmt.Printf("6: Test case when send message and consensus (full) is done (I AM NOT LEADER) -> RTrue\n")
 
 	sr.OnSendComitmentHash = SndWithSuccess
 
-	sr.cns.RoundStatus.Block = SsFinished
+	sr.Cns.RoundStatus.Block = spos.SsFinished
 
-	for i := 0; i < len(sr.cns.ConsensusGroup); i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
+	for i := 0; i < len(sr.Cns.ConsensusGroup); i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].ComitmentHash = true
 	}
 
-	r := sr.doComitmentHash(chr)
+	r := sr.DoComitmentHash(chr)
 
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, rTrue, r)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.RTrue, r)
 }
 
 func TestSRComitmentHash_DoWork7(t *testing.T) {
 
 	chr, sr := InitSRComitmentHash()
 
-	fmt.Printf("7: Test case when time has expired with consensus (pbft) not done -> rTrue\n")
+	fmt.Printf("7: Test case when time has expired with consensus (pbft) not done -> RTrue\n")
 
 	sr.OnSendComitmentHash = SndWithSuccess
 
-	chr.SetClockOffset(time.Duration(sr.endTime + 1))
+	chr.SetClockOffset(time.Duration(sr.EndTime() + 1))
 
-	r := sr.doComitmentHash(chr)
+	r := sr.DoComitmentHash(chr)
 
-	assert.Equal(t, SsExtended, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, r, rTrue)
+	assert.Equal(t, spos.SsExtended, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, r, spos.RTrue)
 }
 
 func TestSRComitmentHash_DoWork8(t *testing.T) {
 
 	chr, sr := InitSRComitmentHash()
 
-	fmt.Printf("8: Test case when time has expired with consensus (pbft) done -> rTrue\n")
+	fmt.Printf("8: Test case when time has expired with consensus (pbft) done -> RTrue\n")
 
 	sr.OnSendComitmentHash = SndWithoutSuccess
 
-	chr.SetClockOffset(time.Duration(sr.endTime + 1))
+	chr.SetClockOffset(time.Duration(sr.EndTime() + 1))
 
-	for i := 0; i < sr.cns.Threshold.ComitmentHash; i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
+	for i := 0; i < sr.Cns.Threshold.ComitmentHash; i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].ComitmentHash = true
 	}
 
-	r := sr.doComitmentHash(chr)
+	r := sr.DoComitmentHash(chr)
 
-	assert.Equal(t, SsExtended, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, r, rTrue)
+	assert.Equal(t, spos.SsExtended, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, r, spos.RTrue)
 }
 
 func TestSRComitmentHash_DoWork9(t *testing.T) {
 
 	chr, sr := InitSRComitmentHash()
 
-	fmt.Printf("9: Test case when receive message is done but consensus is not done -> rNone\n")
+	fmt.Printf("9: Test case when receive message is done but consensus is not done -> RNone\n")
 
 	sr.OnSendComitmentHash = SndWithoutSuccess
-	sr.OnReceivedComitmentHash = RcvWithSuccess
+	sr.Cns.SetReceivedMessage(true)
 
-	sr.cns.SetReceivedMessage(true)
+	r := sr.DoComitmentHash(chr)
 
-	r := sr.doComitmentHash(chr)
-
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.ComitmentHash)
-	assert.Equal(t, rNone, r)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.RNone, r)
 }
 
 func TestSRComitmentHash_DoWork10(t *testing.T) {
@@ -216,20 +215,18 @@ func TestSRComitmentHash_DoWork10(t *testing.T) {
 	fmt.Printf("10: Test case when receive message and consensus is done -> true\n")
 
 	sr.OnSendComitmentHash = SndWithoutSuccess
-	sr.OnReceivedComitmentHash = RcvWithSuccess
+	sr.Cns.SetReceivedMessage(true)
 
-	sr.cns.SetReceivedMessage(true)
+	sr.Cns.ValidationMap[sr.Cns.Self].Block = true
 
-	sr.cns.ValidationMap[sr.cns.Self].Block = true
-
-	for i := 0; i < len(sr.cns.ConsensusGroup); i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
+	for i := 0; i < len(sr.Cns.ConsensusGroup); i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].ComitmentHash = true
 	}
 
 	r := sr.DoWork(chr)
 
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsFinished, sr.cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsFinished, sr.Cns.RoundStatus.ComitmentHash)
 	assert.Equal(t, true, r)
 }
 
@@ -240,46 +237,44 @@ func TestSRComitmentHash_DoWork11(t *testing.T) {
 	fmt.Printf("11: Test case when receive message is not done and round should be canceled -> false\n")
 
 	sr.OnSendComitmentHash = SndWithoutSuccess
-	sr.OnReceivedComitmentHash = RcvWithoutSuccessAndCancel
+	sr.Cns.SetReceivedMessage(false)
+	sr.Cns.Chr.SetSelfSubround(chronology.SrCanceled)
 
-	sr.cns.SetReceivedMessage(false)
-	sr.cns.Chr.SetSelfSubround(chronology.SrCanceled)
+	sr.Cns.ValidationMap[sr.Cns.Self].Block = true
 
-	sr.cns.ValidationMap[sr.cns.Self].Block = true
-
-	for i := 0; i < len(sr.cns.ConsensusGroup); i++ {
-		sr.cns.ValidationMap[sr.cns.ConsensusGroup[i]].ComitmentHash = true
+	for i := 0; i < len(sr.Cns.ConsensusGroup); i++ {
+		sr.Cns.ValidationMap[sr.Cns.ConsensusGroup[i]].ComitmentHash = true
 	}
 
 	r := sr.DoWork(chr)
 
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.Block)
-	assert.Equal(t, SsNotFinished, sr.cns.RoundStatus.ComitmentHash)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.Block)
+	assert.Equal(t, spos.SsNotFinished, sr.Cns.RoundStatus.ComitmentHash)
 	assert.Equal(t, chronology.SrCanceled, chr.SelfSubround())
 	assert.Equal(t, false, r)
 }
 
 func TestSRComitmentHash_Current(t *testing.T) {
-	sr := NewSRComitmentHash(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(SrComitmentHash), sr.Current())
+	sr := spos.NewSRComitmentHash(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
+	assert.Equal(t, chronology.Subround(spos.SrComitmentHash), sr.Current())
 }
 
 func TestSRComitmentHash_Next(t *testing.T) {
-	sr := NewSRComitmentHash(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(SrBitmap), sr.Next())
+	sr := spos.NewSRComitmentHash(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
+	assert.Equal(t, chronology.Subround(spos.SrBitmap), sr.Next())
 }
 
 func TestSRComitmentHash_EndTime(t *testing.T) {
-	sr := NewSRComitmentHash(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, int64(100*roundTimeDuration/100), sr.EndTime())
+	sr := spos.NewSRComitmentHash(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
+	assert.Equal(t, int64(100*spos.RoundTimeDuration/100), sr.EndTime())
 }
 
 func TestSRComitmentHash_Name(t *testing.T) {
-	sr := NewSRComitmentHash(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	sr := spos.NewSRComitmentHash(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
 	assert.Equal(t, "<COMITMENT_HASH>", sr.Name())
 }
 
 func TestSRComitmentHash_Log(t *testing.T) {
-	sr := NewSRComitmentHash(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	sr := spos.NewSRComitmentHash(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
 	sr.Log("Test SRComitmentHash")
 }

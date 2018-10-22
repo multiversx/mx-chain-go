@@ -9,30 +9,29 @@ import (
 
 // SRStartRound defines the data needed by the start round subround
 type SRStartRound struct {
-	doLog                bool
-	endTime              int64
-	cns                  *Consensus
-	OnReceivedStartRound func(*[]byte, *chronology.Chronology) bool
-	OnSendStartRound     func() bool
+	doLog        bool
+	endTime      int64
+	Cns          *Consensus
+	OnStartRound func()
 }
 
 // NewSRStartRound creates a new SRStartRound object
-func NewSRStartRound(doLog bool, endTime int64, cns *Consensus, onReceivedStartRound func(*[]byte, *chronology.Chronology) bool, onSendStartRound func() bool) *SRStartRound {
-	sr := SRStartRound{doLog: doLog, endTime: endTime, cns: cns, OnReceivedStartRound: onReceivedStartRound, OnSendStartRound: onSendStartRound}
+func NewSRStartRound(doLog bool, endTime int64, cns *Consensus, onStartRound func()) *SRStartRound {
+	sr := SRStartRound{doLog: doLog, endTime: endTime, Cns: cns, OnStartRound: onStartRound}
 	return &sr
 }
 
-// DoWork method calls repeatedly doStartRound method, which is in charge to do the job of this subround, until rTrue or rFalse is return
+// DoWork method calls repeatedly DoStartRound method, which is in charge to do the job of this subround, until RTrue or RFalse is return
 // or until this subround is put in the canceled mode
 func (sr *SRStartRound) DoWork(chr *chronology.Chronology) bool {
 	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
-		switch sr.doStartRound(chr) {
-		case rNone:
+		switch sr.DoStartRound(chr) {
+		case RNone:
 			continue
-		case rFalse:
+		case RFalse:
 			return false
-		case rTrue:
+		case RTrue:
 			return true
 		default:
 			return false
@@ -43,25 +42,23 @@ func (sr *SRStartRound) DoWork(chr *chronology.Chronology) bool {
 	return false
 }
 
-// doStartRound method actually do the initialization of the new round
-func (sr *SRStartRound) doStartRound(chr *chronology.Chronology) Response {
-	leader, err := sr.cns.GetLeader()
+// DoStartRound method actually do the initialization of the new round
+func (sr *SRStartRound) DoStartRound(chr *chronology.Chronology) Response {
+	leader, err := sr.Cns.GetLeader()
 
 	if err != nil {
-		return rNone
+		return RNone
 	}
 
-	if leader == sr.cns.Self {
+	if leader == sr.Cns.Self {
 		leader += " (MY TURN)"
 	}
 
 	sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"Step 0: Preparing for this round with leader %s ", leader))
 
-	//sr.cns.block.ResetBlock()
-	sr.cns.ResetRoundStatus()
-	sr.cns.ResetValidationMap()
+	sr.OnStartRound()
 
-	return rTrue
+	return RTrue
 }
 
 // Current method returns the ID of this subround

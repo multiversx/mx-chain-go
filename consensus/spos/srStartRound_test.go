@@ -1,4 +1,4 @@
-package spos
+package spos_test
 
 import (
 	"fmt"
@@ -7,34 +7,35 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
-	//"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func InitSRStartRound() (*chronology.Chronology, *SRStartRound) {
+func InitSRStartRound() (*chronology.Chronology, *spos.SRStartRound) {
 	genesisTime := time.Now()
 	currentTime := genesisTime
 
-	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
+	rnd := chronology.NewRound(genesisTime, currentTime, spos.RoundTimeDuration)
 
 	chr := chronology.NewChronology(true, true, rnd, genesisTime, &ntp.LocalTime{})
 
-	vld := NewValidators(nil, nil, []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
+	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}, "2")
 	pbft := 2*len(vld.ConsensusGroup)/3 + 1
-	th := NewThreshold(1, pbft, pbft, pbft, pbft)
-	rs := NewRoundStatus(SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished, SsNotFinished)
+	th := spos.NewThreshold(1, pbft, pbft, pbft, pbft)
+	rs := spos.NewRoundStatus(spos.SsNotFinished, spos.SsNotFinished, spos.SsNotFinished, spos.SsNotFinished, spos.SsNotFinished)
 
-	cns := NewConsensus(true, vld, th, rs, chr)
-	//cns.block = block.NewBlock(-1, "", "", "", "", "")
+	cns := spos.NewConsensus(true, vld, th, rs, chr)
+	//Cns.block = block.NewBlock(-1, "", "", "", "", "")
 
-	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), cns, nil, nil)
+	sr := spos.NewSRStartRound(true, int64(100*spos.RoundTimeDuration/100), cns, OnStartRound)
 	chr.AddSubround(sr)
 
 	return chr, sr
 }
 
 func TestNewSRStartRound(t *testing.T) {
-	sr := NewSRBlock(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	sr := spos.NewSRStartRound(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
 	assert.NotNil(t, sr)
 }
 
@@ -42,13 +43,13 @@ func TestStartRound_DoWork1(t *testing.T) {
 
 	chr, sr := InitSRStartRound()
 
-	fmt.Printf("1: Test case when consensus group is empty -> rNone\n")
+	fmt.Printf("1: Test case when consensus group is empty -> RNone\n")
 
-	sr.cns.Validators.ConsensusGroup = nil
+	sr.Cns.Validators.ConsensusGroup = nil
 
-	r := sr.doStartRound(chr)
+	r := sr.DoStartRound(chr)
 
-	assert.Equal(t, rNone, r)
+	assert.Equal(t, spos.RNone, r)
 }
 
 func TestStartRound_DoWork2(t *testing.T) {
@@ -57,7 +58,7 @@ func TestStartRound_DoWork2(t *testing.T) {
 
 	fmt.Printf("2: Test case when I am the leader -> true\n")
 
-	sr.cns.Self = "1"
+	sr.Cns.Self = "1"
 
 	r := sr.DoWork(chr)
 
@@ -89,26 +90,26 @@ func TestStartRound_DoWork4(t *testing.T) {
 }
 
 func TestSRStartRound_Current(t *testing.T) {
-	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(SrStartRound), sr.Current())
+	sr := spos.NewSRStartRound(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
+	assert.Equal(t, chronology.Subround(spos.SrStartRound), sr.Current())
 }
 
 func TestSRStartRound_Next(t *testing.T) {
-	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, chronology.Subround(SrBlock), sr.Next())
+	sr := spos.NewSRStartRound(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
+	assert.Equal(t, chronology.Subround(spos.SrBlock), sr.Next())
 }
 
 func TestSRStartRound_EndTime(t *testing.T) {
-	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
-	assert.Equal(t, int64(100*roundTimeDuration/100), sr.EndTime())
+	sr := spos.NewSRStartRound(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
+	assert.Equal(t, int64(100*spos.RoundTimeDuration/100), sr.EndTime())
 }
 
 func TestSRStartRound_Name(t *testing.T) {
-	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	sr := spos.NewSRStartRound(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
 	assert.Equal(t, "<START_ROUND>", sr.Name())
 }
 
 func TestSRStartRound_Log(t *testing.T) {
-	sr := NewSRStartRound(true, int64(100*roundTimeDuration/100), nil, nil, nil)
+	sr := spos.NewSRStartRound(true, int64(100*spos.RoundTimeDuration/100), nil, nil)
 	sr.Log("Test SRStartRound")
 }

@@ -9,30 +9,29 @@ import (
 
 // SRBlock defines the data needed by the block subround
 type SRBlock struct {
-	doLog           bool
-	endTime         int64
-	cns             *Consensus
-	OnReceivedBlock func(*[]byte, *chronology.Chronology) bool
-	OnSendBlock     func() bool
+	doLog       bool
+	endTime     int64
+	Cns         *Consensus
+	OnSendBlock func() bool
 }
 
 // NewSRBlock creates a new SRBlock object
-func NewSRBlock(doLog bool, endTime int64, cns *Consensus, onReceivedBlock func(*[]byte, *chronology.Chronology) bool, onSendBlock func() bool) *SRBlock {
-	sr := SRBlock{doLog: doLog, endTime: endTime, cns: cns, OnReceivedBlock: onReceivedBlock, OnSendBlock: onSendBlock}
+func NewSRBlock(doLog bool, endTime int64, cns *Consensus, onSendBlock func() bool) *SRBlock {
+	sr := SRBlock{doLog: doLog, endTime: endTime, Cns: cns, OnSendBlock: onSendBlock}
 	return &sr
 }
 
-// DoWork method calls repeatedly doBlock method, which is in charge to do the job of this subround, until rTrue or rFalse is return
+// DoWork method calls repeatedly DoBlock method, which is in charge to do the job of this subround, until RTrue or RFalse is return
 // or until this subround is put in the canceled mode
 func (sr *SRBlock) DoWork(chr *chronology.Chronology) bool {
 	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
-		switch sr.doBlock(chr) {
-		case rNone:
+		switch sr.DoBlock(chr) {
+		case RNone:
 			continue
-		case rFalse:
+		case RFalse:
 			return false
-		case rTrue:
+		case RTrue:
 			return true
 		default:
 			return false
@@ -43,16 +42,16 @@ func (sr *SRBlock) DoWork(chr *chronology.Chronology) bool {
 	return false
 }
 
-// doBlock method actually do the job of this subround. First, it tries to send the block (if this node is in charge with this action)
+// DoBlock method actually do the job of this subround. First, it tries to send the block (if this node is in charge with this action)
 // and than if the block was succesfully sent or if meantime a new message was received, it will check the consensus again.
 // If the upper time limit of this subround is reached, it's state is set to extended and the chronology will advance to the next subround
-func (sr *SRBlock) doBlock(chr *chronology.Chronology) Response {
-	sr.cns.SetSentMessage(sr.OnSendBlock())
+func (sr *SRBlock) DoBlock(chr *chronology.Chronology) Response {
+	sr.Cns.SetSentMessage(sr.OnSendBlock())
 
-	if sr.cns.SentMessage() {
-		sr.cns.SetSentMessage(false)
-		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBlock)); ok {
-			return rTrue
+	if sr.Cns.SentMessage() {
+		sr.Cns.SetSentMessage(false)
+		if ok, _ := sr.Cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBlock)); ok {
+			return RTrue
 		}
 	}
 
@@ -60,19 +59,19 @@ func (sr *SRBlock) doBlock(chr *chronology.Chronology) Response {
 
 	if timeSubRound > chronology.Subround(SrBlock) {
 		sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) + "Step 1: Extended the " + sr.Name() + " subround"))
-		sr.cns.RoundStatus.Block = SsExtended
-		return rTrue // Try to give a chance to this round if the block from leader will arrive later
+		sr.Cns.RoundStatus.Block = SsExtended
+		return RTrue // Try to give a chance to this round if the block from leader will arrive later
 	}
 
-	if sr.cns.ReceivedMessage() {
-		sr.cns.SetReceivedMessage(false)
-		if ok, _ := sr.cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBlock)); ok {
+	if sr.Cns.ReceivedMessage() {
+		sr.Cns.SetReceivedMessage(false)
+		if ok, _ := sr.Cns.CheckConsensus(chronology.Subround(SrBlock), chronology.Subround(SrBlock)); ok {
 			sr.Log(fmt.Sprintf(chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) + "Step 1: Synchronized block"))
-			return rTrue
+			return RTrue
 		}
 	}
 
-	return rNone
+	return RNone
 }
 
 // Current method returns the ID of this subround

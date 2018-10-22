@@ -65,6 +65,22 @@ func NewMessage(p2p *p2p.Messenger, cns *spos.Consensus, blk *block.Block, blkc 
 	return &msg
 }
 
+func (msg *Message) OnStartRound() {
+	msg.blk.ResetBlock()
+	msg.cns.ResetRoundStatus()
+	msg.cns.ResetValidationMap()
+}
+
+func (msg *Message) OnEndRound() {
+	msg.blkc.AddBlock(*msg.blk)
+
+	if msg.cns.IsNodeLeaderInCurrentRound(msg.cns.Self) {
+		msg.cns.Log(fmt.Sprintf("\n"+msg.cns.Chr.SyncTime().FormatedCurrentTime(msg.cns.Chr.ClockOffset())+">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", msg.blk.Nonce))
+	} else {
+		msg.cns.Log(fmt.Sprintf("\n"+msg.cns.Chr.SyncTime().FormatedCurrentTime(msg.cns.Chr.ClockOffset())+">>>>>>>>>>>>>>>>>>>> ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n", msg.blk.Nonce))
+	}
+}
+
 func (msg *Message) SendBlock() bool {
 
 	if msg.cns.RoundStatus.Block == spos.SsFinished {
@@ -315,6 +331,8 @@ func (msg *Message) CheckChannels() {
 	}
 }
 
+// ReceivedBlock method is called when a block is received through the block channel. If this block is valid, than the validation map coresponding
+// to the node which sent the block, will be set on true for the subround Block
 func (msg *Message) ReceivedBlock(rcvBlock *block.Block) bool {
 	node := rcvBlock.Signature
 

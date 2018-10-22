@@ -7,12 +7,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
-	//"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	//"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 )
 
-// roundTimeDuration defines the time duration in milliseconds of each round
-const roundTimeDuration = time.Duration(4000 * time.Millisecond)
+// RoundTimeDuration defines the time duration in milliseconds of each round
+const RoundTimeDuration = time.Duration(4000 * time.Millisecond)
 
 // sleepTime defines the time in milliseconds between each iteration made in DoWork methods of the subrounds
 const sleepTime = 5
@@ -41,12 +39,12 @@ const (
 type Response int
 
 const (
-	// rFalse defines a "finished subround job without success" state in the DoWork methods of the subrounds
-	rFalse Response = iota
-	// rTrue defines a "finished subround job with success" state in the DoWork methods of the subrounds
-	rTrue
-	// rNone defines a "continue subround job" state in the DoWork methods of the subrounds
-	rNone
+	// RFalse defines a "finished subround job without success" state in the DoWork methods of the subrounds
+	RFalse Response = iota
+	// RTrue defines a "finished subround job with success" state in the DoWork methods of the subrounds
+	RTrue
+	// RNone defines a "continue subround job" state in the DoWork methods of the subrounds
+	RNone
 )
 
 // RoundStatus defines the data needed by spos to know the state of each subround of the current round
