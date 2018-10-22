@@ -7,19 +7,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 )
 
+// SRSignature defines the data needed by the signature subround
 type SRSignature struct {
 	doLog               bool
 	endTime             int64
 	cns                 *Consensus
 	OnReceivedSignature func(*[]byte, *chronology.Chronology) bool
-	OnSendSignature     func(chronology.Subround) bool
+	OnSendSignature     func() bool
 }
 
-func NewSRSignature(doLog bool, endTime int64, cns *Consensus, onReceivedSignature func(*[]byte, *chronology.Chronology) bool, onSendSignature func(chronology.Subround) bool) *SRSignature {
+// NewSRSignature creates a new SRSignature object
+func NewSRSignature(doLog bool, endTime int64, cns *Consensus, onReceivedSignature func(*[]byte, *chronology.Chronology) bool, onSendSignature func() bool) *SRSignature {
 	sr := SRSignature{doLog: doLog, endTime: endTime, cns: cns, OnReceivedSignature: onReceivedSignature, OnSendSignature: onSendSignature}
 	return &sr
 }
 
+// DoWork method calls repeatedly doSignature method, which is in charge to do the job of this subround, until rTrue or rFalse is return
+// or until this subround is put in the canceled mode
 func (sr *SRSignature) DoWork(chr *chronology.Chronology) bool {
 	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
@@ -39,8 +43,11 @@ func (sr *SRSignature) DoWork(chr *chronology.Chronology) bool {
 	return false
 }
 
+// doSignature method actually do the job of this subround. First, it tries to send the signature and than if the signature was succesfully sent or
+// if meantime a new message was received, it will check the consensus again. If the upper time limit of this subround is reached, it's state
+// is set to extended and the chronology will advance to the next subround
 func (sr *SRSignature) doSignature(chr *chronology.Chronology) Response {
-	sr.cns.SetSentMessage(sr.OnSendSignature(chronology.Subround(SrSignature)))
+	sr.cns.SetSentMessage(sr.OnSendSignature())
 
 	timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
@@ -62,22 +69,27 @@ func (sr *SRSignature) doSignature(chr *chronology.Chronology) Response {
 	return rNone
 }
 
+// Current method returns the ID of this subround
 func (sr *SRSignature) Current() chronology.Subround {
 	return chronology.Subround(SrSignature)
 }
 
+// Next method returns the ID of the next subround
 func (sr *SRSignature) Next() chronology.Subround {
 	return chronology.Subround(SrEndRound)
 }
 
+// EndTime method returns the upper time limit of this subround
 func (sr *SRSignature) EndTime() int64 {
 	return int64(sr.endTime)
 }
 
+// Name method returns the name of this subround
 func (sr *SRSignature) Name() string {
 	return "<SIGNATURE>"
 }
 
+// Log method prints info about this subrond (if doLog is true)
 func (sr *SRSignature) Log(message string) {
 	if sr.doLog {
 		fmt.Printf(message + "\n")

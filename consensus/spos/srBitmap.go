@@ -7,19 +7,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 )
 
+// SRBitmap defines the data needed by the bitmap subround
 type SRBitmap struct {
 	doLog            bool
 	endTime          int64
 	cns              *Consensus
 	OnReceivedBitmap func(*[]byte, *chronology.Chronology) bool
-	OnSendBitmap     func(chronology.Subround) bool
+	OnSendBitmap     func() bool
 }
 
-func NewSRBitmap(doLog bool, endTime int64, cns *Consensus, onReceivedBitmap func(*[]byte, *chronology.Chronology) bool, onSendBitmap func(chronology.Subround) bool) *SRBitmap {
+// NewSRBitmap creates a new SRBitmap object
+func NewSRBitmap(doLog bool, endTime int64, cns *Consensus, onReceivedBitmap func(*[]byte, *chronology.Chronology) bool, onSendBitmap func() bool) *SRBitmap {
 	sr := SRBitmap{doLog: doLog, endTime: endTime, cns: cns, OnReceivedBitmap: onReceivedBitmap, OnSendBitmap: onSendBitmap}
 	return &sr
 }
 
+// DoWork method calls repeatedly doBitmap method, which is in charge to do the job of this subround, until rTrue or rFalse is return
+// or until this subround is put in the canceled mode
 func (sr *SRBitmap) DoWork(chr *chronology.Chronology) bool {
 	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
@@ -39,8 +43,11 @@ func (sr *SRBitmap) DoWork(chr *chronology.Chronology) bool {
 	return false
 }
 
+// doBitmap method actually do the job of this subround. First, it tries to send the bitmap (if this node is in charge with this action)
+// and than if the bitmap was succesfully sent or if meantime a new message was received, it will check the consensus again.
+// If the upper time limit of this subround is reached, it's state is set to extended and the chronology will advance to the next subround
 func (sr *SRBitmap) doBitmap(chr *chronology.Chronology) Response {
-	sr.cns.SetSentMessage(sr.OnSendBitmap(chronology.Subround(SrBitmap)))
+	sr.cns.SetSentMessage(sr.OnSendBitmap())
 
 	if sr.cns.SentMessage() {
 		sr.cns.SetSentMessage(false)
@@ -72,22 +79,27 @@ func (sr *SRBitmap) doBitmap(chr *chronology.Chronology) Response {
 	return rNone
 }
 
+// Current method returns the ID of this subround
 func (sr *SRBitmap) Current() chronology.Subround {
 	return chronology.Subround(SrBitmap)
 }
 
+// Next method returns the ID of the next subround
 func (sr *SRBitmap) Next() chronology.Subround {
 	return chronology.Subround(SrComitment)
 }
 
+// EndTime method returns the upper time limit of this subround
 func (sr *SRBitmap) EndTime() int64 {
 	return int64(sr.endTime)
 }
 
+// Name method returns the name of this subround
 func (sr *SRBitmap) Name() string {
 	return "<BITMAP>"
 }
 
+// Log method prints info about this subrond (if doLog is true)
 func (sr *SRBitmap) Log(message string) {
 	if sr.doLog {
 		fmt.Printf(message + "\n")

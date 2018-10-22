@@ -10,12 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func SndWithSuccess(chronology.Subround) bool {
+func SndWithSuccess() bool {
 	fmt.Printf("message was sent with success\n")
 	return true
 }
 
-func SndWithoutSuccess(chronology.Subround) bool {
+func SndWithoutSuccess() bool {
 	fmt.Printf("message was NOT sent with success\n")
 	return false
 }

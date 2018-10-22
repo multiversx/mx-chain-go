@@ -7,19 +7,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 )
 
+// SRBlock defines the data needed by the block subround
 type SRBlock struct {
 	doLog           bool
 	endTime         int64
 	cns             *Consensus
 	OnReceivedBlock func(*[]byte, *chronology.Chronology) bool
-	OnSendBlock     func(chronology.Subround) bool
+	OnSendBlock     func() bool
 }
 
-func NewSRBlock(doLog bool, endTime int64, cns *Consensus, onReceivedBlock func(*[]byte, *chronology.Chronology) bool, onSendBlock func(chronology.Subround) bool) *SRBlock {
+// NewSRBlock creates a new SRBlock object
+func NewSRBlock(doLog bool, endTime int64, cns *Consensus, onReceivedBlock func(*[]byte, *chronology.Chronology) bool, onSendBlock func() bool) *SRBlock {
 	sr := SRBlock{doLog: doLog, endTime: endTime, cns: cns, OnReceivedBlock: onReceivedBlock, OnSendBlock: onSendBlock}
 	return &sr
 }
 
+// DoWork method calls repeatedly doBlock method, which is in charge to do the job of this subround, until rTrue or rFalse is return
+// or until this subround is put in the canceled mode
 func (sr *SRBlock) DoWork(chr *chronology.Chronology) bool {
 	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
@@ -39,8 +43,11 @@ func (sr *SRBlock) DoWork(chr *chronology.Chronology) bool {
 	return false
 }
 
+// doBlock method actually do the job of this subround. First, it tries to send the block (if this node is in charge with this action)
+// and than if the block was succesfully sent or if meantime a new message was received, it will check the consensus again.
+// If the upper time limit of this subround is reached, it's state is set to extended and the chronology will advance to the next subround
 func (sr *SRBlock) doBlock(chr *chronology.Chronology) Response {
-	sr.cns.SetSentMessage(sr.OnSendBlock(chronology.Subround(SrBlock)))
+	sr.cns.SetSentMessage(sr.OnSendBlock())
 
 	if sr.cns.SentMessage() {
 		sr.cns.SetSentMessage(false)
@@ -68,22 +75,27 @@ func (sr *SRBlock) doBlock(chr *chronology.Chronology) Response {
 	return rNone
 }
 
+// Current method returns the ID of this subround
 func (sr *SRBlock) Current() chronology.Subround {
 	return chronology.Subround(SrBlock)
 }
 
+// Next method returns the ID of the next subround
 func (sr *SRBlock) Next() chronology.Subround {
 	return chronology.Subround(SrComitmentHash)
 }
 
+// EndTime method returns the upper time limit of this subround
 func (sr *SRBlock) EndTime() int64 {
 	return int64(sr.endTime)
 }
 
+// Name method returns the name of this subround
 func (sr *SRBlock) Name() string {
 	return "<BLOCK>"
 }
 
+// Log method prints info about this subrond (if doLog is true)
 func (sr *SRBlock) Log(message string) {
 	if sr.doLog {
 		fmt.Printf(message + "\n")

@@ -65,106 +65,20 @@ func NewMessage(p2p *p2p.Messenger, cns *spos.Consensus, blk *block.Block, blkc 
 	return &msg
 }
 
-func (msg *Message) SendMessage(subround chronology.Subround) bool {
-	for {
-		switch subround {
+func (msg *Message) SendBlock() bool {
 
-		case chronology.Subround(spos.SrBlock):
-			if msg.cns.RoundStatus.Block == spos.SsFinished {
-				return false
-			}
-
-			if msg.cns.Validators.ValidationMap[msg.cns.Validators.Self].Block {
-				return false
-			}
-
-			if !msg.cns.IsNodeLeaderInCurrentRound(msg.cns.Validators.Self) {
-				return false
-			}
-
-			return msg.SendBlock()
-		case chronology.Subround(spos.SrComitmentHash):
-			if msg.cns.RoundStatus.ComitmentHash == spos.SsFinished {
-				return false
-			}
-
-			if msg.cns.Validators.ValidationMap[msg.cns.Validators.Self].ComitmentHash {
-				return false
-			}
-
-			if msg.cns.RoundStatus.Block != spos.SsFinished {
-				subround = chronology.Subround(spos.SrBlock)
-				continue
-			}
-
-			return msg.SendComitmentHash()
-		case chronology.Subround(spos.SrBitmap):
-			if msg.cns.RoundStatus.Bitmap == spos.SsFinished {
-				return false
-			}
-
-			if msg.cns.Validators.ValidationMap[msg.cns.Validators.Self].Bitmap {
-				return false
-			}
-
-			if !msg.cns.IsNodeLeaderInCurrentRound(msg.cns.Validators.Self) {
-				return false
-			}
-
-			if msg.cns.RoundStatus.ComitmentHash != spos.SsFinished {
-				subround = chronology.Subround(spos.SrComitmentHash)
-				continue
-			}
-
-			return msg.SendBitmap()
-		case chronology.Subround(spos.SrComitment):
-			if msg.cns.RoundStatus.Comitment == spos.SsFinished {
-				return false
-			}
-
-			if msg.cns.Validators.ValidationMap[msg.cns.Validators.Self].Comitment {
-				return false
-			}
-
-			if msg.cns.RoundStatus.Bitmap != spos.SsFinished {
-				subround = chronology.Subround(spos.SrBitmap)
-				continue
-			}
-
-			if !msg.cns.IsNodeInBitmapGroup(msg.cns.Validators.Self) {
-				return false
-			}
-
-			return msg.SendComitment()
-		case chronology.Subround(spos.SrSignature):
-			if msg.cns.RoundStatus.Signature == spos.SsFinished {
-				return false
-			}
-
-			if msg.cns.Validators.ValidationMap[msg.cns.Validators.Self].Signature {
-				return false
-			}
-
-			if msg.cns.RoundStatus.Comitment != spos.SsFinished {
-				subround = chronology.Subround(spos.SrComitment)
-				continue
-			}
-
-			if !msg.cns.IsNodeInBitmapGroup(msg.cns.Validators.Self) {
-				return false
-			}
-
-			return msg.SendSignature()
-		default:
-		}
-
-		break
+	if msg.cns.RoundStatus.Block == spos.SsFinished {
+		return false
 	}
 
-	return false
-}
+	if msg.cns.ValidationMap[msg.cns.Self].Block {
+		return false
+	}
 
-func (msg *Message) SendBlock() bool {
+	if !msg.cns.IsNodeLeaderInCurrentRound(msg.cns.Self) {
+		return false
+	}
+
 	currentBlock := msg.blkc.GetCurrentBlock()
 
 	if currentBlock == nil {
@@ -187,6 +101,19 @@ func (msg *Message) SendBlock() bool {
 }
 
 func (msg *Message) SendComitmentHash() bool {
+
+	if msg.cns.RoundStatus.ComitmentHash == spos.SsFinished {
+		return false
+	}
+
+	if msg.cns.RoundStatus.Block != spos.SsFinished {
+		return msg.SendBlock()
+	}
+
+	if msg.cns.ValidationMap[msg.cns.Self].ComitmentHash {
+		return false
+	}
+
 	blk := *msg.blk
 
 	blk.Signature = msg.cns.Self
@@ -204,6 +131,23 @@ func (msg *Message) SendComitmentHash() bool {
 }
 
 func (msg *Message) SendBitmap() bool {
+
+	if msg.cns.RoundStatus.Bitmap == spos.SsFinished {
+		return false
+	}
+
+	if msg.cns.RoundStatus.ComitmentHash != spos.SsFinished {
+		return msg.SendComitmentHash()
+	}
+
+	if msg.cns.ValidationMap[msg.cns.Self].Bitmap {
+		return false
+	}
+
+	if !msg.cns.IsNodeLeaderInCurrentRound(msg.cns.Self) {
+		return false
+	}
+
 	blk := *msg.blk
 
 	blk.Signature = msg.cns.Self
@@ -231,6 +175,23 @@ func (msg *Message) SendBitmap() bool {
 }
 
 func (msg *Message) SendComitment() bool {
+
+	if msg.cns.RoundStatus.Comitment == spos.SsFinished {
+		return false
+	}
+
+	if msg.cns.RoundStatus.Bitmap != spos.SsFinished {
+		return msg.SendBitmap()
+	}
+
+	if msg.cns.ValidationMap[msg.cns.Self].Comitment {
+		return false
+	}
+
+	if !msg.cns.IsNodeInBitmapGroup(msg.cns.Self) {
+		return false
+	}
+
 	blk := *msg.blk
 
 	blk.Signature = msg.cns.Self
@@ -248,6 +209,23 @@ func (msg *Message) SendComitment() bool {
 }
 
 func (msg *Message) SendSignature() bool {
+
+	if msg.cns.RoundStatus.Signature == spos.SsFinished {
+		return false
+	}
+
+	if msg.cns.RoundStatus.Comitment != spos.SsFinished {
+		return msg.SendComitment()
+	}
+
+	if msg.cns.ValidationMap[msg.cns.Self].Signature {
+		return false
+	}
+
+	if !msg.cns.IsNodeInBitmapGroup(msg.cns.Self) {
+		return false
+	}
+
 	blk := *msg.blk
 
 	blk.Signature = msg.cns.Self

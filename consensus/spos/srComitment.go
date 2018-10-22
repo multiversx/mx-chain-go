@@ -7,19 +7,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 )
 
+// SRComitment defines the data needed by the comitment subround
 type SRComitment struct {
 	doLog               bool
 	endTime             int64
 	cns                 *Consensus
 	OnReceivedComitment func(*[]byte, *chronology.Chronology) bool
-	OnSendComitment     func(chronology.Subround) bool
+	OnSendComitment     func() bool
 }
 
-func NewSRComitment(doLog bool, endTime int64, cns *Consensus, onReceivedComitment func(*[]byte, *chronology.Chronology) bool, onSendComitment func(chronology.Subround) bool) *SRComitment {
+// NewSRComitment creates a new SRComitment object
+func NewSRComitment(doLog bool, endTime int64, cns *Consensus, onReceivedComitment func(*[]byte, *chronology.Chronology) bool, onSendComitment func() bool) *SRComitment {
 	sr := SRComitment{doLog: doLog, endTime: endTime, cns: cns, OnReceivedComitment: onReceivedComitment, OnSendComitment: onSendComitment}
 	return &sr
 }
 
+// DoWork method calls repeatedly doComitment method, which is in charge to do the job of this subround, until rTrue or rFalse is return
+// or until this subround is put in the canceled mode
 func (sr *SRComitment) DoWork(chr *chronology.Chronology) bool {
 	for chr.SelfSubround() != chronology.SrCanceled {
 		time.Sleep(sleepTime * time.Millisecond)
@@ -39,8 +43,11 @@ func (sr *SRComitment) DoWork(chr *chronology.Chronology) bool {
 	return false
 }
 
+// doComitment method actually do the job of this subround. First, it tries to send the comitment and than if the comitment was succesfully sent or
+// if meantime a new message was received, it will check the consensus again. If the upper time limit of this subround is reached, it's state
+// is set to extended and the chronology will advance to the next subround
 func (sr *SRComitment) doComitment(chr *chronology.Chronology) Response {
-	sr.cns.SetSentMessage(sr.OnSendComitment(chronology.Subround(SrComitment)))
+	sr.cns.SetSentMessage(sr.OnSendComitment())
 
 	timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
@@ -62,22 +69,27 @@ func (sr *SRComitment) doComitment(chr *chronology.Chronology) Response {
 	return rNone
 }
 
+// Current method returns the ID of this subround
 func (sr *SRComitment) Current() chronology.Subround {
 	return chronology.Subround(SrComitment)
 }
 
+// Next method returns the ID of the next subround
 func (sr *SRComitment) Next() chronology.Subround {
 	return chronology.Subround(SrSignature)
 }
 
+// EndTime method returns the upper time limit of this subround
 func (sr *SRComitment) EndTime() int64 {
 	return int64(sr.endTime)
 }
 
+// Name method returns the name of this subround
 func (sr *SRComitment) Name() string {
 	return "<COMITMENT>"
 }
 
+// Log method prints info about this subrond (if doLog is true)
 func (sr *SRComitment) Log(message string) {
 	if sr.doLog {
 		fmt.Printf(message + "\n")
