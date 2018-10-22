@@ -17,6 +17,8 @@ type Subround int
 const (
 	// SrUnknown defines an unknown state of the round
 	SrUnknown Subround = math.MinInt64
+	// SrCanceled defines an canceled state of the round
+	SrCanceled Subround = math.MinInt64 + 1
 	// SrBeforeRound defines the state of the round before it's start
 	SrBeforeRound Subround = math.MinInt64 + 2
 	// SrAfterRound defines the state of the round after it's finish
@@ -71,7 +73,7 @@ func NewChronology(doLog bool, doSyncMode bool, round *Round, genesisTime time.T
 	return &chr
 }
 
-// initRound is call when a new round begins and do the necesary initialization
+// initRound is called when a new round begins and do the necesary initialization
 func (chr *Chronology) initRound() {
 	chr.selfSubround = SrBeforeRound
 

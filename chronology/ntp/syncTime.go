@@ -63,6 +63,7 @@ func (s *SyncTime) SetSyncPeriod(syncPeriod time.Duration) {
 func (s *SyncTime) ClockOffset() time.Duration {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
+
 	return s.clockOffset
 }
 
