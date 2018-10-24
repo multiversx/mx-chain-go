@@ -1,0 +1,18 @@
+filebeat:
+  prospectors:
+    -
+      paths:
+        - "/elogs/*.log"
+      input_type: log
+      document_type: gokitlog
+
+output.logstash:
+  enabled: true
+  hosts: ["192.168.11.53:5044"]
+  bulk_max_size: 1024
+
+shipper:
+
+logging:
+  files:
+    rotateeverybytes: 10485760 # = 10MB

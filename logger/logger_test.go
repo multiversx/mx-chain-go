@@ -6,5 +6,5 @@ import (
 )
 
 func TestInvalidArgument(t *testing.T) {
-	logger.InvalidArgument("test", "test2")
+	logger.InvalidArgument("test", "4234242342342")
 }
