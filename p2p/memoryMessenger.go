@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/btcsuite/btcutil/base58"
+	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multiaddr"
@@ -18,13 +19,11 @@ import (
 
 var mutGloballyRegPeers *sync.Mutex
 
+// maxMessageQueueMemoryMessenger is used to control the maximum message queue in a memory messenger
+const maxMessageQueueMemoryMessenger = 50000
+
 // GloballyRegisteredPeers is the main map used for in memory communication
 var GloballyRegisteredPeers map[peer.ID]*MemoryMessenger
-
-func init() {
-	mutGloballyRegPeers = &sync.Mutex{}
-	GloballyRegisteredPeers = make(map[peer.ID]*MemoryMessenger)
-}
 
 // MemoryMessenger is a fake memory Messenger used for testing
 type MemoryMessenger struct {
@@ -45,6 +44,13 @@ type MemoryMessenger struct {
 
 	mutClosed sync.RWMutex
 	closed    bool
+
+	PrivKey crypto.PrivKey
+}
+
+func init() {
+	mutGloballyRegPeers = &sync.Mutex{}
+	GloballyRegisteredPeers = make(map[peer.ID]*MemoryMessenger)
 }
 
 // NewMemoryMessenger instantiate a new memory Messenger
@@ -66,7 +72,7 @@ func NewMemoryMessenger(m marshal.Marshalizer, h hashing.Hasher, pid peer.ID, ma
 	mm.mutConnectedPeers.Unlock()
 
 	mm.rt = NewRoutingTable(mm.peerID)
-	mm.queue = NewMessageQueue(50000)
+	mm.queue = NewMessageQueue(maxMessageQueueMemoryMessenger)
 
 	mm.mutClosed = sync.RWMutex{}
 
@@ -134,7 +140,7 @@ func (mm *MemoryMessenger) RouteTable() *RoutingTable {
 	return mm.rt
 }
 
-// Addrs will return all addresses bind to current messenger
+// Addrs will return all addresses bound to current messenger
 func (mm *MemoryMessenger) Addrs() []string {
 	return []string{string(mm.peerID.Pretty())}
 }
@@ -261,11 +267,14 @@ func (mm *MemoryMessenger) AddTopic(t *Topic) error {
 	}
 
 	mm.topics[t.Name] = t
-	t.OnNeedToSendMessage = func(mes *Message, flagSign bool) error {
+	t.SendMessage = func(mes *Message, flagSign bool) error {
 		mes.AddHop(mm.ID().Pretty())
 
-		// wont sign the message
 		if flagSign {
+			err := mes.Sign(mm.PrivKey)
+			if err != nil {
+				return err
+			}
 		}
 
 		return mm.broadcastMessage(mes, []string{})
@@ -321,8 +330,8 @@ func (mm *MemoryMessenger) gotNewMessage(remotePeer peer.ID, buff []byte, fromLo
 
 	//check for topic and pass the message
 	mm.mutTopics.RLock()
-	defer mm.mutTopics.RUnlock()
 	t, ok := mm.topics[m.Type]
+	mm.mutTopics.RUnlock()
 
 	if !ok {
 		//discard and do not broadcast
@@ -390,7 +399,7 @@ func (mm *MemoryMessenger) sendDirectRAW(peerID string, buff []byte) error {
 // sendDirectMessage allows to send a message directly to a peer. It assumes that the connection has been done already
 func (mm *MemoryMessenger) sendDirectMessage(peerID string, m *Message) error {
 	if m == nil {
-		return &NodeError{PeerRecv: peerID, PeerSend: mm.ID().Pretty(), Err: fmt.Sprintf("Can not send NIL message!\n")}
+		return &NodeError{PeerRecv: peerID, PeerSend: mm.ID().Pretty(), Err: fmt.Sprintf("Can not send nil message!\n")}
 	}
 
 	buff, err := m.ToByteArray()
@@ -401,7 +410,7 @@ func (mm *MemoryMessenger) sendDirectMessage(peerID string, m *Message) error {
 	return mm.sendDirectRAW(peerID, buff)
 }
 
-func (mm *MemoryMessenger) broadcastRAW(buff []byte, excs []string) error {
+func (mm *MemoryMessenger) broadcastRAW(buff []byte, exceptions []string) error {
 	mm.mutClosed.RLock()
 	if mm.closed {
 		mm.mutClosed.RUnlock()
@@ -423,8 +432,8 @@ func (mm *MemoryMessenger) broadcastRAW(buff []byte, excs []string) error {
 		}
 
 		found := false
-		for j := 0; j < len(excs); j++ {
-			if peerID == excs[j] {
+		for j := 0; j < len(exceptions); j++ {
+			if peerID == exceptions[j] {
 				found = true
 				break
 			}
@@ -459,7 +468,7 @@ func (mm *MemoryMessenger) broadcastRAW(buff []byte, excs []string) error {
 }
 
 // broadcastMessage allows to send a message directly to a all connected peers
-func (mm *MemoryMessenger) broadcastMessage(m *Message, excs []string) error {
+func (mm *MemoryMessenger) broadcastMessage(m *Message, exceptions []string) error {
 	if m == nil {
 		return &NodeError{PeerRecv: "", PeerSend: mm.ID().Pretty(), Err: fmt.Sprintf("Can not broadcast NIL message!\n")}
 	}
@@ -469,5 +478,5 @@ func (mm *MemoryMessenger) broadcastMessage(m *Message, excs []string) error {
 		return &NodeError{PeerRecv: "", PeerSend: mm.ID().Pretty(), Err: err.Error()}
 	}
 
-	return mm.broadcastRAW(buff, excs)
+	return mm.broadcastRAW(buff, exceptions)
 }

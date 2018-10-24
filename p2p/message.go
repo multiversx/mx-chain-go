@@ -68,7 +68,7 @@ func (m *Message) Signed() bool {
 // Signs the message with the private key
 func (m *Message) Sign(sk crypto.PrivKey) error {
 	if sk == nil {
-		return errors.New("Invalid private key tuple!")
+		return errors.New("Invalid private key!")
 	}
 
 	pk := sk.GetPublic()
@@ -92,7 +92,7 @@ func (m *Message) Sign(sk crypto.PrivKey) error {
 // Verify returns true in one of the following cases:
 // 1. The message was not signed
 // 2. There is a peer in the list of traversed peers
-// 3. The message was signed and the signature verifies with the public key provided and he first ID from
+// 3. The message was signed and the signature verifies with the public key provided and the first ID from
 //    traversed peers list is obtained from the public key
 func (m *Message) Verify() (bool, error) {
 	if m.Sig == nil || m.PubKey == nil {

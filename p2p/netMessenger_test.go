@@ -47,7 +47,7 @@ func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
 	var counter int32
 
 	node.AddTopic(p2p.NewTopic("test topic", &objStringCloner, testNetMarshalizer))
-	node.GetTopic("test topic").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	node.GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		payload := (*data.(*testStringCloner)).Data
 
 		fmt.Printf("Got message: %v\n", payload)
@@ -101,7 +101,7 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	node2.AddTopic(p2p.NewTopic("pong", &objStringCloner, testNetMarshalizer))
 
 	//assign some event handlers on topics
-	node1.GetTopic("ping").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	node1.GetTopic("ping").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		payload := (*data.(*testStringCloner)).Data
 
 		if payload == "ping string" {
@@ -109,7 +109,7 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 		}
 	})
 
-	node1.GetTopic("pong").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	node1.GetTopic("pong").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		payload := (*data.(*testStringCloner)).Data
 
 		fmt.Printf("node1 received: %v\n", payload)
@@ -120,7 +120,7 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	})
 
 	//for node2 topic ping we do not need an event handler in this test
-	node2.GetTopic("pong").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	node2.GetTopic("pong").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		payload := (*data.(*testStringCloner)).Data
 
 		fmt.Printf("node2 received: %v\n", payload)
@@ -187,7 +187,7 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 		node.PrintConnected()
 
 		node.AddTopic(p2p.NewTopic("test", &objStringCloner, testNetMarshalizer))
-		node.GetTopic("test").AddEventHandler(recv)
+		node.GetTopic("test").AddDataReceived(recv)
 	}
 
 	fmt.Println()
@@ -260,7 +260,7 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 		node.PrintConnected()
 
 		node.AddTopic(p2p.NewTopic("test", &objStringCloner, testNetMarshalizer))
-		node.GetTopic("test").AddEventHandler(recv)
+		node.GetTopic("test").AddDataReceived(recv)
 	}
 
 	fmt.Println()
@@ -334,7 +334,7 @@ func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testin
 		err = node.AddTopic(p2p.NewTopic("test topic", &objStringCloner, testNetMarshalizer))
 		assert.Nil(t, err)
 
-		node.GetTopic("test topic").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+		node.GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 			mut.Lock()
 			recv[node.ID().Pretty()] = msgInfo
 
@@ -466,7 +466,7 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 	counter := int32(0)
 
 	//node 1 sends, node 2 receives
-	node2.GetTopic("test").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	node2.GetTopic("test").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		fmt.Printf("received: %v", data)
 		atomic.AddInt32(&counter, 1)
 	})
@@ -503,7 +503,7 @@ func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T)
 	counter := int32(0)
 
 	//node 1 sends, node 2 receives
-	node2.GetTopic("test2").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	node2.GetTopic("test2").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		fmt.Printf("received: %v", data)
 		atomic.AddInt32(&counter, 1)
 	})
@@ -542,7 +542,7 @@ func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *test
 		err = node.AddTopic(p2p.NewTopic("test topic", &objStringCloner, testNetMarshalizer))
 		assert.Nil(t, err)
 
-		node.GetTopic("test topic").AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+		node.GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 			mut.Lock()
 			recv[node.ID().Pretty()] = msgInfo
 

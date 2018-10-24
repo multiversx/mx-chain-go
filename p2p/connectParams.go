@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"math/rand"
 
 	"github.com/btcsuite/btcd/btcec"
@@ -9,6 +10,8 @@ import (
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/pkg/errors"
 )
+
+const maxPorts = 65535
 
 // ConnectParams is used to instantiate a Messenger object
 // (contains required data by the Messenger struct)
@@ -46,8 +49,8 @@ func (params *ConnectParams) GenerateIDFromPubKey() {
 // as a seed for the random generation object
 // SHOULD BE USED ONLY IN TESTING!!!
 func NewConnectParamsFromPort(port int) (*ConnectParams, error) {
-	if port < 0 || port > 65535 {
-		return nil, errors.New("port outside [0, 65535]")
+	if port < 0 || port > maxPorts {
+		return nil, errors.New(fmt.Sprintf("port outside [0, %d]", maxPorts))
 	}
 
 	params := new(ConnectParams)
@@ -63,8 +66,8 @@ func NewConnectParamsFromPort(port int) (*ConnectParams, error) {
 // way to initialize the object. The private key provided is used for
 // data and channel encryption and can be used for authentication of messages
 func NewConnectParams(port int, privKey cr.PrivKey) (*ConnectParams, error) {
-	if port < 0 || port > 65535 {
-		return nil, errors.New("port outside [0, 65535]")
+	if port < 0 || port > maxPorts {
+		return nil, errors.New(fmt.Sprintf("port outside [0, %d]", maxPorts))
 	}
 
 	params := new(ConnectParams)

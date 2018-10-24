@@ -30,19 +30,19 @@ var objStringCloner = testStringCloner{}
 func TestTopic_AddEventHandler_Nil_ShouldNotAddHandler(t *testing.T) {
 	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
 
-	topic.AddEventHandler(nil)
+	topic.AddDataReceived(nil)
 
-	assert.Equal(t, len(topic.EventBus()), 0)
+	assert.Equal(t, len(topic.EventBusData()), 0)
 }
 
 func TestTopic_AddEventHandler_WithARealFunc_ShouldWork(t *testing.T) {
 	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
 
-	topic.AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	topic.AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 
 	})
 
-	assert.Equal(t, len(topic.EventBus()), 1)
+	assert.Equal(t, len(topic.EventBusData()), 1)
 }
 
 func TestTopic_NewMessageReceived_NilMsg_ShouldErr(t *testing.T) {
@@ -74,7 +74,7 @@ func TestTopic_NewMessageReceived_OKMsg_ShouldWork(t *testing.T) {
 
 	cnt := int32(0)
 	//attach event handler
-	topic.AddEventHandler(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	topic.AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		assert.Equal(t, name, "test")
 
 		switch data.(type) {
@@ -139,7 +139,7 @@ func TestTopic_Broadcast_NoOneToSend_ShouldErr(t *testing.T) {
 func TestTopic_Broadcast_SendOK_ShouldWork(t *testing.T) {
 	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
 
-	topic.OnNeedToSendMessage = func(mes *p2p.Message, flagSign bool) error {
+	topic.SendMessage = func(mes *p2p.Message, flagSign bool) error {
 		if topic.Name != "test" {
 			return errors.New("should have been test")
 		}

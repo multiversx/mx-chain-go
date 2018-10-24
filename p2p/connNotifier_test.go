@@ -71,7 +71,7 @@ func TestTaskNotDoingStuffOn0MaxPeers(t *testing.T) {
 
 	cn.MaxAllowedPeers = 0
 
-	result := p2p.TaskMonitorConnections(cn)
+	result := p2p.TaskResolveConnections(cn)
 
 	assert.Equal(t, p2p.WontConnect, result)
 }
@@ -94,11 +94,11 @@ func TestTryToConnectWithSuccess(t *testing.T) {
 	cn := p2p.NewConnNotifier(node)
 
 	cn.MaxAllowedPeers = 10
-	cn.OnGetKnownPeers = func(cn *p2p.ConnNotifier) []peer.ID {
+	cn.GetKnownPeers = func(cn *p2p.ConnNotifier) []peer.ID {
 		return []peer.ID{"aaa", "bbb"}
 	}
 
-	cn.OnNeedToConn = func(cn *p2p.ConnNotifier, id peer.ID) error {
+	cn.ConnectToPeer = func(cn *p2p.ConnNotifier, id peer.ID) error {
 		mut.Lock()
 		lastString = string(id)
 		mut.Unlock()
@@ -106,14 +106,14 @@ func TestTryToConnectWithSuccess(t *testing.T) {
 		return nil
 	}
 
-	result := p2p.TaskMonitorConnections(cn)
+	result := p2p.TaskResolveConnections(cn)
 
 	assert.Equal(t, p2p.SuccessfullyConnected, result)
 	mut.Lock()
 	assert.Equal(t, "aaa", lastString)
 	mut.Unlock()
 
-	result = p2p.TaskMonitorConnections(cn)
+	result = p2p.TaskResolveConnections(cn)
 
 	assert.Equal(t, p2p.SuccessfullyConnected, result)
 	mut.Lock()
@@ -171,7 +171,7 @@ func TestRemoveInboundPeers(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	result := p2p.TaskMonitorConnections(cn)
+	result := p2p.TaskResolveConnections(cn)
 	assert.Equal(t, p2p.OnlyInboundConnections, result)
 
 	time.Sleep(time.Second)
@@ -239,7 +239,7 @@ func TestTryToConnect3PeersWithSuccess(t *testing.T) {
 		mapAddr[addr.ID()] = ma
 	}
 
-	cn.OnNeedToConn = func(cn *p2p.ConnNotifier, pid peer.ID) error {
+	cn.ConnectToPeer = func(cn *p2p.ConnNotifier, pid peer.ID) error {
 		mutMapAddr.Lock()
 		defer mutMapAddr.Unlock()
 
@@ -258,21 +258,21 @@ func TestTryToConnect3PeersWithSuccess(t *testing.T) {
 		return nil
 	}
 
-	cn.OnGetKnownPeers = func(sender *p2p.ConnNotifier) []peer.ID {
+	cn.GetKnownPeers = func(sender *p2p.ConnNotifier) []peer.ID {
 		return []peer.ID{node2.ID(), node3.ID()}
 	}
 
 	time.Sleep(time.Second)
 
-	result := p2p.TaskMonitorConnections(cn)
+	result := p2p.TaskResolveConnections(cn)
 	assert.Equal(t, p2p.SuccessfullyConnected, result)
 	assert.Equal(t, 1, len(cn.Msgr.Conns()))
 
-	result = p2p.TaskMonitorConnections(cn)
+	result = p2p.TaskResolveConnections(cn)
 	assert.Equal(t, p2p.SuccessfullyConnected, result)
 	assert.Equal(t, 2, len(cn.Msgr.Conns()))
 
-	result = p2p.TaskMonitorConnections(cn)
+	result = p2p.TaskResolveConnections(cn)
 	assert.Equal(t, p2p.NothingDone, result)
 	assert.Equal(t, 2, len(cn.Msgr.Conns()))
 

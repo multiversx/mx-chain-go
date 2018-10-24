@@ -21,6 +21,18 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+// maxMessageQueueNetMessenger is used to control the maximum message queue in a network messenger
+const maxMessageQueueNetMessenger = 50000
+
+// protocolIDNetMessenger defines the protocol used for communication
+const protocolIDNetMessenger = "elrondnetwork/1.0.0.0"
+
+// channelBufferSize is used to control the send channel buffer size
+const channelBufferSize = 10000
+
+// durMdnsCalls is used to define the duration used by mdns service when polling peers
+const durMdnsCalls = time.Second
+
 // NetMessenger implements a libP2P node with added functionality
 type NetMessenger struct {
 	protocol protocol.ID
@@ -95,8 +107,8 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 
 	node.p2pNode = h
 	node.chansSend = make(map[string]chan []byte)
-	node.queue = NewMessageQueue(50000)
-	node.protocol = protocol.ID("elrondnetwork/1.0.0.0")
+	node.queue = NewMessageQueue(maxMessageQueueNetMessenger)
+	node.protocol = protocol.ID(protocolIDNetMessenger)
 
 	node.p2pNode.SetStreamHandler(node.protocol, node.streamHandler)
 
@@ -104,12 +116,12 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 	//register the notifier
 	node.p2pNode.Network().Notify(node.cn)
 	node.cn.OnDoSimpleTask = func(this interface{}) {
-		TaskMonitorConnections(node.cn)
+		TaskResolveConnections(node.cn)
 	}
-	node.cn.OnGetKnownPeers = func(cn *ConnNotifier) []peer.ID {
+	node.cn.GetKnownPeers = func(cn *ConnNotifier) []peer.ID {
 		return cn.Msgr.RouteTable().NearestPeersAll()
 	}
-	node.cn.OnNeedToConn = func(cn *ConnNotifier, pid peer.ID) error {
+	node.cn.ConnectToPeer = func(cn *ConnNotifier, pid peer.ID) error {
 		pinfo := node.p2pNode.Peerstore().PeerInfo(pid)
 
 		if err := node.p2pNode.Connect(ctx, pinfo); err != nil {
@@ -135,7 +147,7 @@ func (nm *NetMessenger) streamHandler(stream net.Stream) {
 	nm.mutChansSend.Lock()
 	chanSend, ok := nm.chansSend[peerID]
 	if !ok {
-		chanSend = make(chan []byte, 10000)
+		chanSend = make(chan []byte, channelBufferSize)
 		nm.chansSend[peerID] = chanSend
 	}
 	nm.mutChansSend.Unlock()
@@ -198,8 +210,8 @@ func (nm *NetMessenger) gotNewMessage(buff []byte, remotePeer peer.ID, fromLoopb
 
 	//check for topic and pass the message
 	nm.mutTopics.RLock()
-	defer nm.mutTopics.RUnlock()
 	t, ok := nm.topics[m.Type]
+	nm.mutTopics.RUnlock()
 
 	if !ok {
 		//discard and do not broadcast
@@ -279,7 +291,7 @@ func (nm *NetMessenger) RouteTable() *RoutingTable {
 	return nm.rt
 }
 
-// Addrs will return all addresses bind to current messenger
+// Addrs will return all addresses bound to current messenger
 func (nm *NetMessenger) Addrs() []string {
 	addrs := make([]string, 0)
 
@@ -340,7 +352,7 @@ func (nm *NetMessenger) Bootstrap(ctx context.Context) {
 
 	nm.dn = NewDiscoveryNotifier(nm)
 
-	mdns, err := discovery.NewMdnsService(context.Background(), nm.p2pNode, time.Second, "discovery")
+	mdns, err := discovery.NewMdnsService(context.Background(), nm.p2pNode, durMdnsCalls, "discovery")
 
 	if err != nil {
 		panic(err)
@@ -392,7 +404,6 @@ func (nm *NetMessenger) ParseAddressIpfs(address string) (*peerstore.PeerInfo, e
 // AddTopic registers a new topic to this messenger
 func (nm *NetMessenger) AddTopic(t *Topic) error {
 	nm.mutTopics.Lock()
-	defer nm.mutTopics.Unlock()
 
 	if t == nil {
 		return errors.New("topic can not be nil")
@@ -405,7 +416,9 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 	}
 
 	nm.topics[t.Name] = t
-	t.OnNeedToSendMessage = func(mes *Message, flagSign bool) error {
+	nm.mutTopics.Unlock()
+
+	t.SendMessage = func(mes *Message, flagSign bool) error {
 		mes.AddHop(nm.ID().Pretty())
 
 		// optionally sign the message
@@ -482,7 +495,7 @@ func (nm *NetMessenger) sendDirectMessage(peerID string, m *Message) error {
 	return nm.sendDirectRAW(peerID, buff)
 }
 
-func (nm *NetMessenger) broadcastRAW(buff []byte, excs []string) error {
+func (nm *NetMessenger) broadcastRAW(buff []byte, exceptions []string) error {
 	nm.mutClosed.RLock()
 	if nm.closed {
 		nm.mutClosed.RUnlock()
@@ -504,8 +517,8 @@ func (nm *NetMessenger) broadcastRAW(buff []byte, excs []string) error {
 		}
 
 		found := false
-		for j := 0; j < len(excs); j++ {
-			if peerID == excs[j] {
+		for j := 0; j < len(exceptions); j++ {
+			if peerID == exceptions[j] {
 				found = true
 				break
 			}
@@ -539,7 +552,7 @@ func (nm *NetMessenger) broadcastRAW(buff []byte, excs []string) error {
 	return errFound
 }
 
-func (nm *NetMessenger) broadcastMessage(m *Message, excs []string) error {
+func (nm *NetMessenger) broadcastMessage(m *Message, exceptions []string) error {
 	if m == nil {
 		return &NodeError{PeerRecv: "", PeerSend: nm.ID().Pretty(), Err: fmt.Sprintf("Can not broadcast NIL message!\n")}
 	}
@@ -549,5 +562,5 @@ func (nm *NetMessenger) broadcastMessage(m *Message, excs []string) error {
 		return &NodeError{PeerRecv: "", PeerSend: nm.ID().Pretty(), Err: err.Error()}
 	}
 
-	return nm.broadcastRAW(buff, excs)
+	return nm.broadcastRAW(buff, exceptions)
 }

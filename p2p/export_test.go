@@ -18,8 +18,8 @@ func (m *Message) SetSigned(signed bool) {
 	m.isSigned = signed
 }
 
-func (t *Topic) EventBus() []OnTopicReceived {
-	return t.eventBus
+func (t *Topic) EventBusData() []DataReceived {
+	return t.eventBusData
 }
 
 func (t *Topic) Marsh() marshal.Marshalizer {
