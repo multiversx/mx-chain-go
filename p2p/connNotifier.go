@@ -58,27 +58,9 @@ func NewConnNotifier(m Messenger) *ConnNotifier {
 // TaskResolveConnections resolves the connections to other peers. It should not be called too often as the
 // connections are not done instantly. Even if the connection is made in a short time, there is a delay
 // until the connected peer might close down the connections because it reached the maximum limit.
-// This function handles the array connections that mdns service provides. So mdns service discover peers using a
-// multicast protocol, fires an event each time a new peer is found. As the list of known peers gets build up,
-// a function that will be called periodically needed to be implemented so to handle those new peers discovered.
-// So what it does really?
-// a. It assures that it is allowed to connect to other peers by checking MaxAllowedPeers to be greater than 1.
-// b. Tries to get all known peers by calling a function pointer
-// c. Counts the inbound and outbound connections
-// d. If it has only inbound connections, it closes the first one - the oldest one (the logic implemented is simple,
-//    will need refactoring) and returns OnlyInboundConnections so that 2 things can happen: between the next call of
-//    the TaskResolveConnections function, a new peer will connect to this node (check Connected method, "if"
-//    will return false so connection will not be closed) in which case the node will close its oldest connection
-//    (again) at the next TaskResolveConnections call
-//    OR
-//    at the next call, it will hopefully connect to another peer (will make an outbound connection)
-// e. For max 2 cycles (I had to put a stopping condition, otherwise it would have tried tirelessly to cycle through
-//    all known peers and would never return) it uses an index variable to iterate through the known peers and try to
-//    create a new connection with each of them. Of course there are some checking on the index, maxallowedpeers and
-//    lengths. Why fullCycles < 2? because the index might pointed on the last item which might have been connected and
-//    then fullCycles would have increased by one. I still want to search for the next peer to connect.
-//     If I still can not find a new peer, when the cycle will increment again (when finished sweeping all known peers)
-//     then the "for" will end, hopefully ending the function with a return status of nothing done
+// This function handles the array connections that mdns service provides.
+// This function always tries to find a new connection by closing the oldest one.
+// It tries to create a new outbound connection by iterating over known peers for at least one cycle but not 2 or more.
 func TaskResolveConnections(cn *ConnNotifier) ResultType {
 	if cn.MaxAllowedPeers < 1 {
 		//won't try to connect to other peers
@@ -118,6 +100,7 @@ func TaskResolveConnections(cn *ConnNotifier) ResultType {
 
 	//try to connect to other peers
 	if len(conns) < cn.MaxAllowedPeers && len(knownPeers) > 0 {
+		//the value of 2 was chosen as a mean to iterate the known peers at least 1 time but not 2 times
 		for fullCycles < 2 {
 			if cn.indexKnownPeers >= len(knownPeers) {
 				//index out of bound, do 0 (restart the list)

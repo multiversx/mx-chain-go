@@ -26,6 +26,7 @@ const maxMessageQueueMemoryMessenger = 50000
 var GloballyRegisteredPeers map[peer.ID]*MemoryMessenger
 
 // MemoryMessenger is a fake memory Messenger used for testing
+// TODO keep up with NetMessenger modifications
 type MemoryMessenger struct {
 	peerID peer.ID
 

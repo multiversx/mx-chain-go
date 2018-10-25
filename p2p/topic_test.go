@@ -177,7 +177,6 @@ func BenchmarkTopicNewObjectCreation_PlainInit(b *testing.B) {
 	obj1 := benchmark{}
 
 	for i := 0; i < b.N; i++ {
-		//reflect.New(reflect.TypeOf(obj1)).Interface()
 		obj1 = benchmark{}
 	}
 

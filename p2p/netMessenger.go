@@ -344,9 +344,9 @@ func (nm *NetMessenger) Bootstrap(ctx context.Context) {
 	nm.mutClosed.RUnlock()
 
 	nm.mutBootstrap.Lock()
-	defer nm.mutBootstrap.Unlock()
-
 	if nm.mdns != nil {
+		//already started the bootstrap process, return
+		nm.mutBootstrap.Unlock()
 		return
 	}
 
@@ -360,6 +360,8 @@ func (nm *NetMessenger) Bootstrap(ctx context.Context) {
 
 	mdns.RegisterNotifee(nm.dn)
 	nm.mdns = mdns
+
+	nm.mutBootstrap.Unlock()
 
 	nm.cn.Start()
 }
@@ -450,6 +452,7 @@ func (nm *NetMessenger) GetTopic(topicName string) *Topic {
 	return t
 }
 
+//TODO remove when applying pub/sub
 func (nm *NetMessenger) sendDirectRAW(peerID string, buff []byte) error {
 	nm.mutClosed.RLock()
 	if nm.closed {
@@ -482,6 +485,7 @@ func (nm *NetMessenger) sendDirectRAW(peerID string, buff []byte) error {
 	return nil
 }
 
+//TODO remove when applying pub/sub
 func (nm *NetMessenger) sendDirectMessage(peerID string, m *Message) error {
 	if m == nil {
 		return &NodeError{PeerRecv: peerID, PeerSend: nm.ID().Pretty(), Err: fmt.Sprintf("Can not send NIL message!\n")}
@@ -495,6 +499,7 @@ func (nm *NetMessenger) sendDirectMessage(peerID string, m *Message) error {
 	return nm.sendDirectRAW(peerID, buff)
 }
 
+//TODO remove when applying pub/sub
 func (nm *NetMessenger) broadcastRAW(buff []byte, exceptions []string) error {
 	nm.mutClosed.RLock()
 	if nm.closed {
@@ -552,6 +557,7 @@ func (nm *NetMessenger) broadcastRAW(buff []byte, exceptions []string) error {
 	return errFound
 }
 
+//TODO remove when applying pub/sub
 func (nm *NetMessenger) broadcastMessage(m *Message, exceptions []string) error {
 	if m == nil {
 		return &NodeError{PeerRecv: "", PeerSend: nm.ID().Pretty(), Err: fmt.Sprintf("Can not broadcast NIL message!\n")}

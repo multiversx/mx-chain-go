@@ -31,13 +31,17 @@ func (mq *MessageQueue) ContainsAndAdd(hash string) bool {
 	mq.mut.Lock()
 	defer mq.mut.Unlock()
 
-	if mq.contains(hash) {
-		return true
+	_, found := mq.queue[hash]
+
+	if !found {
+		//will add
+		mq.clean()
+
+		mq.list.PushFront(hash)
+		mq.queue[hash] = true
 	}
 
-	mq.add(hash)
-
-	return false
+	return found
 }
 
 // Contains returns true if the hash is present in the map
@@ -45,19 +49,9 @@ func (mq *MessageQueue) Contains(hash string) bool {
 	mq.mut.RLock()
 	defer mq.mut.RUnlock()
 
-	return mq.contains(hash)
-}
+	_, found := mq.queue[hash]
 
-func (mq *MessageQueue) contains(hash string) bool {
-	_, ok := mq.queue[hash]
-	return ok
-}
-
-func (mq *MessageQueue) add(hash string) {
-	mq.clean()
-
-	mq.list.PushFront(hash)
-	mq.queue[hash] = true
+	return found
 }
 
 // Len returns the size of this MessageQueue
@@ -65,11 +59,11 @@ func (mq *MessageQueue) Len() int {
 	mq.mut.RLock()
 	defer mq.mut.RUnlock()
 
-	return mq.list.Len()
+	return len(mq.queue)
 }
 
 func (mq *MessageQueue) clean() {
-	if mq.list.Len() < mq.maxCapacity {
+	if len(mq.queue) < mq.maxCapacity {
 		return
 	}
 
