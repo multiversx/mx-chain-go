@@ -1,6 +1,6 @@
 package bn
 
-import "elrond-go-sandbox/crypto/math"
+import "github.com/ElrondNetwork/elrond-go-sandbox/crypto/math"
 
 type signature struct {
 	group math.Group

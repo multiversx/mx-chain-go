@@ -130,6 +130,22 @@
   version = "v1.3.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:e3cc0fb0191d4e485bf4c5e491af30a69aa30d2fe71b6ab9540f5ff788638fc1"
+  name = "github.com/glycerine/go-capnproto"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6f6ad2aa5034b3da7b23fcbdca4a499a22339b7d"
+
+[[projects]]
+  branch = "master"
+  digest = "1:fbcf1dc8aedf3276e4590a539debcf8d6b641331519a74c4bd83714ad3db6bb3"
+  name = "github.com/glycerine/rbtree"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "80eebfe947f79f7b746dc7a2ef39fd98db275853"
+
+[[projects]]
   digest = "1:d68801525369786c99880084140da0ec56cd786f12cede164b21ba8de22e2fdd"
   name = "github.com/gogo/protobuf"
   packages = [
@@ -321,6 +337,14 @@
   pruneopts = "UT"
   revision = "1624edc4454b8682399def8740d46db5e4362ba4"
   version = "v1.1.5"
+
+[[projects]]
+  digest = "1:0a69a1c0db3591fcefb47f115b224592c8dfa4368b7ba9fae509d5e16cdc95c8"
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242"
+  version = "v1.0.1"
 
 [[projects]]
   digest = "1:3cffcb8e5d731b0788a05c2909249d8d5c0c86d5bbbab87acebd77e0935e4799"
@@ -792,6 +816,14 @@
   version = "v1.2.0"
 
 [[projects]]
+  digest = "1:3f53e9e4dfbb664cd62940c9c4b65a2171c66acd0b7621a1a6b8e78513525a52"
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ad15b42461921f1fb3529b058c6786c6a45d5162"
+  version = "v1.1.1"
+
+[[projects]]
   digest = "1:919bb3aa6d9d0b67648c219fa4925312bc3c2872da19e818fa769e9c97a2b643"
   name = "github.com/spaolacci/murmur3"
   packages = ["."]
@@ -961,7 +993,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5955a513e5bd3286a1805aba9024b6556bad501945a0e5a7ab30fff28e106178"
+  digest = "1:ae1c4ec77a314cd97688e881bb53e9ed0a7a447aa65274f6af06c56757a3f236"
   name = "golang.org/x/crypto"
   packages = [
     "blake2b",
@@ -970,6 +1002,7 @@
     "ed25519",
     "ed25519/internal/edwards25519",
     "sha3",
+    "ssh/terminal",
   ]
   pruneopts = "UT"
   revision = "7c1a557ab941a71c619514f229f0b27ccb0c27cf"
@@ -1078,6 +1111,22 @@
   revision = "b6e20af1ed078cd01a6413b734051a292450b4cb"
   version = "v2.1.0"
 
+[[projects]]
+  digest = "1:64ec3622366786e96b38924ca986e728b798ec1d653232d76a4083335e2ebd2d"
+  name = "zombiezen.com/go/capnproto2"
+  packages = [
+    ".",
+    "encoding/text",
+    "internal/nodemap",
+    "internal/packed",
+    "internal/schema",
+    "internal/strquote",
+    "schemas",
+  ]
+  pruneopts = "UT"
+  revision = "659aba4018b61e5f07f6b90ff2abc5b300baccea"
+  version = "v2.17.2"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -1100,6 +1149,7 @@
     "github.com/dedis/kyber/xof/blake2xb",
     "github.com/gin-contrib/cors",
     "github.com/gin-gonic/gin",
+    "github.com/glycerine/go-capnproto",
     "github.com/gogo/protobuf/sortkeys",
     "github.com/hashicorp/golang-lru",
     "github.com/ipfs/go-ipfs-addr",
@@ -1124,6 +1174,7 @@
     "github.com/multiformats/go-multiaddr",
     "github.com/pkg/errors",
     "github.com/satori/go.uuid",
+    "github.com/sirupsen/logrus",
     "github.com/spf13/viper",
     "github.com/stretchr/testify/assert",
     "github.com/syndtr/goleveldb/leveldb",
@@ -1133,6 +1184,9 @@
     "gopkg.in/dedis/kyber.v2",
     "gopkg.in/dedis/kyber.v2/group/edwards25519",
     "gotest.tools/assert",
+    "zombiezen.com/go/capnproto2",
+    "zombiezen.com/go/capnproto2/encoding/text",
+    "zombiezen.com/go/capnproto2/schemas",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

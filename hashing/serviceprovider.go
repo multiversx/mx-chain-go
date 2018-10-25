@@ -14,7 +14,7 @@ func init() {
 		services = make(map[string]Hasher)
 	}
 
-	DefHasher = hashing.Sha256{}
+	DefHasher = sha256.Sha256{}
 
 	InjectDefaultServices()
 }

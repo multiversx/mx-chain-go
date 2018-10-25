@@ -1,10 +1,11 @@
 package bn_test
 
 import (
-	"elrond-go-sandbox/crypto/bn"
-	"elrond-go-sandbox/crypto/ed25519"
-	"elrond-go-sandbox/crypto/math"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/ed25519"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/math"
 )
 
 var group = ed25519.Group{}
