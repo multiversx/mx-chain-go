@@ -65,6 +65,15 @@ type Cacher interface {
 	Len() int
 }
 
+type BloomFilter interface {
+	//Add adds the value to the bloom filter
+	Add([]byte)
+
+	//Test checks if the value is in in the set. If it returns 'false',
+	//the item is definitely not in the DB
+	Test([]byte) bool
+}
+
 type StorageUnit struct {
 	lock      sync.RWMutex
 	persister Persister

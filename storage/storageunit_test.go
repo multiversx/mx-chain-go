@@ -1,12 +1,11 @@
 package storage_test
 
 import (
-	"ElrondNetwork/elrond-go-sandbox/storage"
-	"ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 	"testing"
 
-	"ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 )
 
