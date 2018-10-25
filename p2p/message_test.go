@@ -75,17 +75,18 @@ func TestMessage_Sign_NilParams_ShouldErr(t *testing.T) {
 
 	mes := p2p.Message{Payload: []byte{65, 66, 67}}
 
-	err := mes.Sign(param)
+	err := mes.Sign(param.PrivKey)
 	assert.NotNil(t, err)
 
 }
 
 func TestMessage_Sign_Values_ShouldWork(t *testing.T) {
-	param := p2p.NewConnectParamsFromPort(4000)
+	param, err := p2p.NewConnectParamsFromPort(4000)
+	assert.Nil(t, err)
 
 	mes := p2p.Message{Payload: []byte{65, 66, 67}}
 
-	err := mes.Sign(param)
+	err = mes.Sign(param.PrivKey)
 	assert.Nil(t, err)
 	assert.True(t, mes.Signed())
 
@@ -122,9 +123,10 @@ func TestMessage_Verify_EmptyParams_ShouldFalse(t *testing.T) {
 func TestMessage_Verify_EmptyPeers_ShouldFalse(t *testing.T) {
 	mes := p2p.Message{Payload: []byte{65, 66, 67}}
 
-	param := p2p.NewConnectParamsFromPort(4000)
+	param, err := p2p.NewConnectParamsFromPort(4000)
+	assert.Nil(t, err)
 
-	err := mes.Sign(param)
+	err = mes.Sign(param.PrivKey)
 	assert.Nil(t, err)
 	assert.True(t, mes.Signed())
 
@@ -137,9 +139,10 @@ func TestMessage_Verify_EmptyPeers_ShouldFalse(t *testing.T) {
 func TestMessage_Verify_WrongPubKey_ShouldErr(t *testing.T) {
 	mes := p2p.Message{Payload: []byte{65, 66, 67}}
 
-	param := p2p.NewConnectParamsFromPort(4000)
+	param, err := p2p.NewConnectParamsFromPort(4000)
+	assert.Nil(t, err)
 
-	err := mes.Sign(param)
+	err = mes.Sign(param.PrivKey)
 	assert.Nil(t, err)
 	assert.True(t, mes.Signed())
 	mes.PubKey = []byte{65, 66, 67}
@@ -154,10 +157,13 @@ func TestMessage_Verify_WrongPubKey_ShouldErr(t *testing.T) {
 func TestMessage_Verify_MismatchID_ShouldErr(t *testing.T) {
 	mes := p2p.Message{Payload: []byte{65, 66, 67}}
 
-	param := p2p.NewConnectParamsFromPort(4000)
-	param2 := p2p.NewConnectParamsFromPort(4001)
+	param, err := p2p.NewConnectParamsFromPort(4000)
+	assert.Nil(t, err)
 
-	err := mes.Sign(param)
+	param2, err := p2p.NewConnectParamsFromPort(4001)
+	assert.Nil(t, err)
+
+	err = mes.Sign(param.PrivKey)
 	assert.Nil(t, err)
 	assert.True(t, mes.Signed())
 	mes.PubKey, err = crypto.MarshalPublicKey(param2.PubKey)
@@ -174,9 +180,10 @@ func TestMessage_Verify_MismatchID_ShouldErr(t *testing.T) {
 func TestMessage_Verify_WrongSig_ShouldErr(t *testing.T) {
 	mes := p2p.Message{Payload: []byte{65, 66, 67}}
 
-	param := p2p.NewConnectParamsFromPort(4000)
+	param, err := p2p.NewConnectParamsFromPort(4000)
+	assert.Nil(t, err)
 
-	err := mes.Sign(param)
+	err = mes.Sign(param.PrivKey)
 	assert.Nil(t, err)
 	assert.True(t, mes.Signed())
 	mes.Sig = []byte{65, 66, 67}
@@ -193,9 +200,10 @@ func TestMessage_Verify_WrongSig_ShouldErr(t *testing.T) {
 func TestMessage_Verify_TamperedPayload_ShouldErr(t *testing.T) {
 	mes := p2p.Message{Payload: []byte{65, 66, 67}}
 
-	param := p2p.NewConnectParamsFromPort(4000)
+	param, err := p2p.NewConnectParamsFromPort(4000)
+	assert.Nil(t, err)
 
-	err := mes.Sign(param)
+	err = mes.Sign(param.PrivKey)
 	assert.Nil(t, err)
 	assert.True(t, mes.Signed())
 	mes.Payload = []byte{65, 66, 68}
@@ -212,9 +220,10 @@ func TestMessage_Verify_TamperedPayload_ShouldErr(t *testing.T) {
 func TestMessage_Verify_Values_ShouldWork(t *testing.T) {
 	mes := p2p.Message{Payload: []byte{65, 66, 67}, Type: "string"}
 
-	param := p2p.NewConnectParamsFromPort(4000)
+	param, err := p2p.NewConnectParamsFromPort(4000)
+	assert.Nil(t, err)
 
-	err := mes.Sign(param)
+	err = mes.Sign(param.PrivKey)
 	assert.Nil(t, err)
 	assert.True(t, mes.Signed())
 	assert.Nil(t, err)
@@ -228,21 +237,23 @@ func TestMessage_Verify_Values_ShouldWork(t *testing.T) {
 }
 
 func BenchmarkMessage_Sign(b *testing.B) {
-	param := p2p.NewConnectParamsFromPort(4000)
+	param, err := p2p.NewConnectParamsFromPort(4000)
+	assert.Nil(b, err)
 
 	for i := 0; i < b.N; i++ {
 		mes := p2p.Message{Payload: []byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" + strconv.Itoa(i))}
-		err := mes.Sign(param)
+		err := mes.Sign(param.PrivKey)
 		assert.Nil(b, err)
 	}
 }
 
 func BenchmarkMessage_SignVerif(b *testing.B) {
-	param := p2p.NewConnectParamsFromPort(4000)
+	param, err := p2p.NewConnectParamsFromPort(4000)
+	assert.Nil(b, err)
 
 	for i := 0; i < b.N; i++ {
 		mes := p2p.Message{Payload: []byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" + strconv.Itoa(i))}
-		err := mes.Sign(param)
+		err := mes.Sign(param.PrivKey)
 		assert.Nil(b, err)
 
 		err = mes.VerifyAndSetSigned()

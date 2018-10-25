@@ -17,3 +17,11 @@ func (mq *MessageQueue) Clean() {
 func (m *Message) SetSigned(signed bool) {
 	m.isSigned = signed
 }
+
+func (t *Topic) EventBusData() []DataReceived {
+	return t.eventBusData
+}
+
+func (t *Topic) Marsh() marshal.Marshalizer {
+	return t.marsh
+}

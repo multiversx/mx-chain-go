@@ -195,6 +195,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:7b5c6e2eeaa9ae5907c391a91c132abfd5c9e8a784a341b5625e750c67e6825d"
+  name = "github.com/gorilla/websocket"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d"
+  version = "v1.4.0"
+
+[[projects]]
   branch = "master"
   digest = "1:31e6ca5d3801cd74e569cb9597d5a0b06d862307ffb045e581b44fe4a316ea09"
   name = "github.com/gxed/GoEndian"
@@ -355,9 +363,12 @@
   version = "v0.1.1"
 
 [[projects]]
-  digest = "1:e69bfa882ef1cf2ec760250a1a9e622ce077c0a5bdac1b132389f997795264b5"
+  digest = "1:3c76670988281dee318fa3f586fdf941c186fec4760e6ff8e775344f61de209c"
   name = "github.com/libp2p/go-conn-security"
-  packages = ["."]
+  packages = [
+    ".",
+    "insecure",
+  ]
   pruneopts = "UT"
   revision = "d9a2f52687b63f94b2bb087bcdf22e5454eb09d8"
   version = "v0.1.13"
@@ -371,6 +382,17 @@
   version = "v0.1.13"
 
 [[projects]]
+  digest = "1:7e08f84dede7386831fc88b1a249e768ee94498b97c75f5907700f8235338188"
+  name = "github.com/libp2p/go-floodsub"
+  packages = [
+    ".",
+    "pb",
+  ]
+  pruneopts = "UT"
+  revision = "4986a90e6d122bf9207561efeea9d8afdf193629"
+  version = "v0.9.36"
+
+[[projects]]
   digest = "1:19f2d2506cc0f9a233c9c0753e8c3fd5afa88afb43ff7b795cbba3629d0e96b5"
   name = "github.com/libp2p/go-flow-metrics"
   packages = ["."]
@@ -379,9 +401,11 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:dd81e1b8dfdff273e6618965d689925cc42648c2c1e85eaf7831d403b1c86bc0"
+  digest = "1:324090ccd0a5de43765f9280ad8d1f44fa36982b4bd6b2d67d36f5eb5976050d"
   name = "github.com/libp2p/go-libp2p"
   packages = [
+    ".",
+    "config",
     "p2p/discovery",
     "p2p/host/basic",
     "p2p/protocol/identify",
@@ -390,6 +414,17 @@
   pruneopts = "UT"
   revision = "9750574e2eb77892de61e6cf494a35ebabf30060"
   version = "v6.0.18"
+
+[[projects]]
+  digest = "1:4832fd16bd5c7a769e6c5f4c9807ab463a66dbf42b2e2cc989be611aca8b5419"
+  name = "github.com/libp2p/go-libp2p-circuit"
+  packages = [
+    ".",
+    "pb",
+  ]
+  pruneopts = "UT"
+  revision = "e926b8829bdc3e4f5ce7c3484a52e8d0d921ea88"
+  version = "v2.2.8"
 
 [[projects]]
   digest = "1:4ff86c6d6dd8df23a58e6b6060fea5f150d1a502cdfe8a3e9efd5d25339196c6"
@@ -533,6 +568,14 @@
   version = "v1.1.9"
 
 [[projects]]
+  digest = "1:515ae6b1c75dc6cf55b98122944fbecfcc0be312aef9fbb1796ccf70874af1ff"
+  name = "github.com/libp2p/go-mplex"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "1386e7e2261644453d5aecc59c364fcb25ce7a1e"
+  version = "v0.2.30"
+
+[[projects]]
   digest = "1:c5cd39920e0b418c165c04c54717e162db866b5662c3508add7cab5a2c23dd66"
   name = "github.com/libp2p/go-msgio"
   packages = ["."]
@@ -591,6 +634,14 @@
   pruneopts = "UT"
   revision = "8f5bdfbba2a14e11e2fd56b9d0c9956fdcfd8880"
   version = "v1.2.8"
+
+[[projects]]
+  digest = "1:e917eadb3456eec970e46f1a5530b8632a3fb54967976f2564fdea9b042569a4"
+  name = "github.com/libp2p/go-ws-transport"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "b2cd8129d1037bcb64047839ecc490c4a3c8be28"
+  version = "v2.0.14"
 
 [[projects]]
   digest = "1:c568d7727aa262c32bdf8a3f7db83614f7af0ed661474b24588de635c20024c7"
@@ -877,6 +928,14 @@
   revision = "097c5d47330ff6a823f67e3515faa13566a62c6f"
 
 [[projects]]
+  digest = "1:1c5b129f012e176d9cbcb173c67fef17698a2d0a8169e94c8db9e7beeb3ef716"
+  name = "github.com/whyrusleeping/go-smux-multiplex"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "2b855d4f3a3051b0133f7783bffe06e4b7833d1e"
+  version = "v3.0.16"
+
+[[projects]]
   digest = "1:262e85ef9e2082fcb44335f6349699d61d5ac3672d24dcf3bf4cbc7377b51e96"
   name = "github.com/whyrusleeping/go-smux-multistream"
   packages = ["."]
@@ -915,6 +974,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "e903e4adabd70b78bc9293b6ee4f359afb3f9f59"
+
+[[projects]]
+  branch = "master"
+  digest = "1:1ccd9d66ae1abe6b3b28d8b68e09387533fee345d8bbaa753af2fa16e0505807"
+  name = "github.com/whyrusleeping/timecache"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "cfcb2f1abfee846c430233aef0b630a946e0a5a6"
 
 [[projects]]
   digest = "1:b7132f3506d2a5a9bd4e5bf80cb7efbea4f14ea1afe24a2461f4c73d90f7d62a"
@@ -1087,6 +1154,8 @@
     "github.com/hashicorp/golang-lru",
     "github.com/ipfs/go-ipfs-addr",
     "github.com/libp2p/go-conn-security-multistream",
+    "github.com/libp2p/go-floodsub",
+    "github.com/libp2p/go-libp2p",
     "github.com/libp2p/go-libp2p-crypto",
     "github.com/libp2p/go-libp2p-host",
     "github.com/libp2p/go-libp2p-metrics",
