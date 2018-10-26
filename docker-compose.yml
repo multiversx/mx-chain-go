@@ -5,9 +5,9 @@ services:
     build: docker/filebeat
     environment:
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
-      LOGSTASH_PORT: 5044
-      INDEX: logstash
+      LOGSTASH_PORT: ${LOGSTASH_PORT}
+      INDEX: ${ELASTIC_INDEX}
     volumes:
     - ./docker/filebeat/filebeat.yml:/filebeat.yml
     - ./docker/filebeat/logstash-beats.crt:/etc/pki/tls/certs/logstash-beats.crt
-    - ~/Library/Elrond/logs:/elogs
+    - ${ELROND_LOG_LOCATION}:/elogs
