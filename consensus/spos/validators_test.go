@@ -9,200 +9,247 @@ import (
 
 func TestNewValidators(t *testing.T) {
 
-	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
 
-	assert.Equal(t, 3, len(vld.ConsensusGroup))
-	assert.Equal(t, "3", vld.ConsensusGroup[2])
-	assert.Equal(t, "2", vld.Self)
+	assert.Equal(t, 3, len(vld.ConsensusGroup()))
+	assert.Equal(t, "3", vld.ConsensusGroup()[2])
+	assert.Equal(t, "2", vld.Self())
+}
 
-	vld.ValidationMap["1"].Block = true
+func TestValidators_ResetValidationMap(t *testing.T) {
 
-	assert.Equal(t, true, vld.ValidationMap["1"].Block)
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
+
+	vld.SetValidationMap("1", true, spos.SrBlock)
+	assert.Equal(t, true, vld.ValidationMap("1", spos.SrBlock))
 
 	vld.ResetValidationMap()
-
-	assert.Equal(t, false, vld.ValidationMap["1"].Block)
+	assert.Equal(t, false, vld.ValidationMap("1", spos.SrBlock))
 }
 
 func TestValidators_IsNodeInBitmapGroup(t *testing.T) {
-	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
-	assert.Equal(t, false, vld.IsNodeInBitmapGroup(vld.Self))
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
 
-	vld.ValidationMap[vld.Self].Bitmap = true
-
-	assert.Equal(t, true, vld.IsNodeInBitmapGroup(vld.Self))
+	assert.Equal(t, false, vld.IsNodeInBitmapGroup(vld.Self()))
+	vld.SetValidationMap(vld.Self(), true, spos.SrBitmap)
+	assert.Equal(t, true, vld.IsNodeInBitmapGroup(vld.Self()))
 }
 
 func TestValidators_IsNodeInValidationGroup(t *testing.T) {
-	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
 
 	assert.Equal(t, false, vld.IsNodeInValidationGroup("4"))
-	assert.Equal(t, true, vld.IsNodeInValidationGroup(vld.Self))
+	assert.Equal(t, true, vld.IsNodeInValidationGroup(vld.Self()))
 }
 
 func TestValidators_IsBlockReceived(t *testing.T) {
-	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
-	ok, n := vld.IsBlockReceived(1)
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
+
+	ok := vld.IsBlockReceived(1)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["1"].Block = true
+	vld.SetValidationMap("1", true, spos.SrBlock)
+	assert.Equal(t, true, vld.ValidationMap("1", spos.SrBlock))
 
-	ok, n = vld.IsBlockReceived(1)
+	ok = vld.IsBlockReceived(1)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, 1, n)
 
-	ok, n = vld.IsBlockReceived(2)
+	ok = vld.IsBlockReceived(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 1, n)
 }
 
-func TestValidators_IsComitmentHashReceived(t *testing.T) {
-	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+func TestValidators_IsCommitmentHashReceived(t *testing.T) {
 
-	ok, n := vld.IsComitmentHashReceived(2)
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
+
+	ok := vld.IsCommitmentHashReceived(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["1"].ComitmentHash = true
+	vld.SetValidationMap("1", true, spos.SrCommitmentHash)
+	assert.Equal(t, true, vld.ValidationMap("1", spos.SrCommitmentHash))
 
-	ok, n = vld.IsComitmentHashReceived(2)
+	ok = vld.IsCommitmentHashReceived(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 1, n)
 
-	vld.ValidationMap["2"].ComitmentHash = true
-
-	ok, n = vld.IsComitmentHashReceived(2)
+	vld.SetValidationMap("2", true, spos.SrCommitmentHash)
+	ok = vld.IsCommitmentHashReceived(2)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, 2, n)
 
-	vld.ValidationMap["3"].ComitmentHash = true
-
-	ok, n = vld.IsComitmentHashReceived(2)
+	vld.SetValidationMap("3", true, spos.SrCommitmentHash)
+	ok = vld.IsCommitmentHashReceived(2)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, 3, n)
 }
 
-func TestValidators_IsBitmapInComitmentHash(t *testing.T) {
-	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+func TestValidators_IsBitmapInCommitmentHash(t *testing.T) {
 
-	ok, n := vld.IsBitmapInComitmentHash(2)
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
+
+	ok := vld.IsBitmapInCommitmentHash(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["1"].Bitmap = true
-	vld.ValidationMap["3"].Bitmap = true
+	vld.SetValidationMap("1", true, spos.SrBitmap)
+	vld.SetValidationMap("3", true, spos.SrBitmap)
+	assert.Equal(t, true, vld.ValidationMap("3", spos.SrBitmap))
 
-	ok, n = vld.IsBitmapInComitmentHash(2)
+	ok = vld.IsBitmapInCommitmentHash(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["2"].ComitmentHash = true
+	vld.SetValidationMap("2", true, spos.SrCommitmentHash)
+	assert.Equal(t, true, vld.ValidationMap("2", spos.SrCommitmentHash))
 
-	ok, n = vld.IsBitmapInComitmentHash(2)
+	ok = vld.IsBitmapInCommitmentHash(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["3"].ComitmentHash = true
-
-	ok, n = vld.IsBitmapInComitmentHash(2)
+	vld.SetValidationMap("3", true, spos.SrCommitmentHash)
+	ok = vld.IsBitmapInCommitmentHash(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["1"].ComitmentHash = true
-
-	ok, n = vld.IsBitmapInComitmentHash(2)
+	vld.SetValidationMap("1", true, spos.SrCommitmentHash)
+	ok = vld.IsBitmapInCommitmentHash(2)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, 2, n)
 }
 
-func TestValidators_IsBitmapInComitment(t *testing.T) {
-	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+func TestValidators_IsBitmapInCommitment(t *testing.T) {
 
-	ok, n := vld.IsBitmapInComitment(2)
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
+
+	ok := vld.IsBitmapInCommitment(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["1"].Bitmap = true
-	vld.ValidationMap["3"].Bitmap = true
+	vld.SetValidationMap("1", true, spos.SrBitmap)
+	vld.SetValidationMap("3", true, spos.SrBitmap)
+	assert.Equal(t, true, vld.ValidationMap("3", spos.SrBitmap))
 
-	ok, n = vld.IsBitmapInComitment(2)
+	ok = vld.IsBitmapInCommitment(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["2"].Comitment = true
+	vld.SetValidationMap("2", true, spos.SrCommitment)
+	assert.Equal(t, true, vld.ValidationMap("2", spos.SrCommitment))
 
-	ok, n = vld.IsBitmapInComitment(2)
+	ok = vld.IsBitmapInCommitment(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["3"].Comitment = true
-
-	ok, n = vld.IsBitmapInComitment(2)
+	vld.SetValidationMap("3", true, spos.SrCommitment)
+	ok = vld.IsBitmapInCommitment(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["1"].Comitment = true
-
-	ok, n = vld.IsBitmapInComitment(2)
+	vld.SetValidationMap("1", true, spos.SrCommitment)
+	ok = vld.IsBitmapInCommitment(2)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, 2, n)
 }
 
 func TestValidators_IsBitmapInSignature(t *testing.T) {
-	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
-	ok, n := vld.IsBitmapInSignature(2)
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
+
+	ok := vld.IsBitmapInSignature(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["1"].Bitmap = true
-	vld.ValidationMap["3"].Bitmap = true
+	vld.SetValidationMap("1", true, spos.SrBitmap)
+	vld.SetValidationMap("3", true, spos.SrBitmap)
+	assert.Equal(t, true, vld.ValidationMap("3", spos.SrBitmap))
 
-	ok, n = vld.IsBitmapInSignature(2)
+	ok = vld.IsBitmapInSignature(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["2"].Signature = true
+	vld.SetValidationMap("2", true, spos.SrSignature)
+	assert.Equal(t, true, vld.ValidationMap("2", spos.SrSignature))
 
-	ok, n = vld.IsBitmapInSignature(2)
+	ok = vld.IsBitmapInSignature(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["3"].Signature = true
-
-	ok, n = vld.IsBitmapInSignature(2)
+	vld.SetValidationMap("3", true, spos.SrSignature)
+	ok = vld.IsBitmapInSignature(2)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, 0, n)
 
-	vld.ValidationMap["1"].Signature = true
-
-	ok, n = vld.IsBitmapInSignature(2)
+	vld.SetValidationMap("1", true, spos.SrSignature)
+	ok = vld.IsBitmapInSignature(2)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, 2, n)
 }
 
-func TestValidators_GetComitmentHashesCount(t *testing.T) {
-	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+func TestValidators_GetBlocksCount(t *testing.T) {
 
-	vld.ValidationMap["1"].ComitmentHash = true
-	assert.Equal(t, 1, vld.GetComitmentHashesCount())
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
+
+	vld.SetValidationMap("1", true, spos.SrBlock)
+	assert.Equal(t, 1, vld.GetBlocksCount())
 }
 
-func TestValidators_GetComitmentsCount(t *testing.T) {
-	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
+func TestValidators_GetCommitmentHashesCount(t *testing.T) {
 
-	vld.ValidationMap["1"].Comitment = true
-	vld.ValidationMap["2"].Comitment = true
-	vld.ValidationMap["3"].Comitment = true
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
 
-	assert.Equal(t, 3, vld.GetComitmentsCount())
+	vld.SetValidationMap("1", true, spos.SrCommitmentHash)
+	assert.Equal(t, 1, vld.GetCommitmentHashesCount())
+}
+
+func TestValidators_GetBitmapsCount(t *testing.T) {
+
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
+
+	vld.SetValidationMap("1", true, spos.SrBitmap)
+	vld.SetValidationMap("2", true, spos.SrBitmap)
+	assert.Equal(t, 2, vld.GetBitmapsCount())
+}
+
+func TestValidators_GetCommitmentsCount(t *testing.T) {
+
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
+
+	vld.SetValidationMap("1", true, spos.SrCommitment)
+	vld.SetValidationMap("2", true, spos.SrCommitment)
+	vld.SetValidationMap("3", true, spos.SrCommitment)
+	assert.Equal(t, 3, vld.GetCommitmentsCount())
 }
 
 func TestValidators_GetSignaturesCount(t *testing.T) {
-	vld := spos.NewValidators(nil, nil, []string{"1", "2", "3"}, "2")
 
-	assert.Equal(t, 0, vld.GetComitmentsCount())
+	vld := spos.NewValidators(nil,
+		nil,
+		[]string{"1", "2", "3"},
+		"2")
+
+	assert.Equal(t, 0, vld.GetCommitmentsCount())
 }

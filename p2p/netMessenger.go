@@ -491,7 +491,7 @@ func (nm *NetMessenger) Bootstrap(ctx context.Context) {
 	nm.mdns = mdns
 
 	wait := time.Second * 10
-	//fmt.Printf("\n**** Waiting %v to bootstrap...****\n\n", wait)
+	fmt.Printf("\n**** Waiting %v to bootstrap...****\n\n", wait)
 
 	nm.cn.Start()
 
