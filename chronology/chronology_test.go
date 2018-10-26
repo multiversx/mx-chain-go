@@ -13,9 +13,9 @@ import (
 const (
 	srStartRound chronology.Subround = iota
 	srBlock
-	srComitmentHash
+	srCommitmentHash
 	srBitmap
-	srComitment
+	srCommitment
 	srSignature
 	srEndRound
 )
@@ -67,7 +67,7 @@ func (sr *SRBlock) Current() chronology.Subround {
 }
 
 func (sr *SRBlock) Next() chronology.Subround {
-	return srComitmentHash
+	return srCommitmentHash
 }
 
 func (sr *SRBlock) EndTime() int64 {
@@ -78,32 +78,32 @@ func (sr *SRBlock) Name() string {
 	return "<BLOCK>"
 }
 
-// #################### <COMITMENT_HASH> ####################
+// #################### <COMMITMENT_HASH> ####################
 
-type SRComitmentHash struct {
+type SRCommitmentHash struct {
 	Hits int
 }
 
-func (sr *SRComitmentHash) DoWork(chr *chronology.Chronology) bool {
+func (sr *SRCommitmentHash) DoWork(chr *chronology.Chronology) bool {
 	sr.Hits++
-	fmt.Printf("DoComitmentHash with %d hits\n", sr.Hits)
+	fmt.Printf("DoCommitmentHash with %d hits\n", sr.Hits)
 	return true
 }
 
-func (sr *SRComitmentHash) Current() chronology.Subround {
-	return srComitmentHash
+func (sr *SRCommitmentHash) Current() chronology.Subround {
+	return srCommitmentHash
 }
 
-func (sr *SRComitmentHash) Next() chronology.Subround {
+func (sr *SRCommitmentHash) Next() chronology.Subround {
 	return srBitmap
 }
 
-func (sr *SRComitmentHash) EndTime() int64 {
+func (sr *SRCommitmentHash) EndTime() int64 {
 	return int64(40 * roundTimeDuration / 100)
 }
 
-func (sr *SRComitmentHash) Name() string {
-	return "<COMITMENT_HASH>"
+func (sr *SRCommitmentHash) Name() string {
+	return "<COMMITMENT_HASH>"
 }
 
 // #################### <BITMAP> ####################
@@ -123,7 +123,7 @@ func (sr *SRBitmap) Current() chronology.Subround {
 }
 
 func (sr *SRBitmap) Next() chronology.Subround {
-	return srComitment
+	return srCommitment
 }
 
 func (sr *SRBitmap) EndTime() int64 {
@@ -134,32 +134,32 @@ func (sr *SRBitmap) Name() string {
 	return "<BITMAP>"
 }
 
-// #################### <COMITMENT> ####################
+// #################### <COMMITMENT> ####################
 
-type SRComitment struct {
+type SRCommitment struct {
 	Hits int
 }
 
-func (sr *SRComitment) DoWork(chr *chronology.Chronology) bool {
+func (sr *SRCommitment) DoWork(chr *chronology.Chronology) bool {
 	sr.Hits++
-	fmt.Printf("DoComitment with %d hits\n", sr.Hits)
+	fmt.Printf("DoCommitment with %d hits\n", sr.Hits)
 	return true
 }
 
-func (sr *SRComitment) Current() chronology.Subround {
-	return srComitment
+func (sr *SRCommitment) Current() chronology.Subround {
+	return srCommitment
 }
 
-func (sr *SRComitment) Next() chronology.Subround {
+func (sr *SRCommitment) Next() chronology.Subround {
 	return srSignature
 }
 
-func (sr *SRComitment) EndTime() int64 {
+func (sr *SRCommitment) EndTime() int64 {
 	return int64(70 * roundTimeDuration / 100)
 }
 
-func (sr *SRComitment) Name() string {
-	return "<COMITMENT>"
+func (sr *SRCommitment) Name() string {
+	return "<COMMITMENT>"
 }
 
 // #################### <SIGNATURE> ####################
@@ -231,9 +231,9 @@ func TestStartRound(t *testing.T) {
 
 	chr.AddSubround(&SRStartRound{})
 	chr.AddSubround(&SRBlock{})
-	chr.AddSubround(&SRComitmentHash{})
+	chr.AddSubround(&SRCommitmentHash{})
 	chr.AddSubround(&SRBitmap{})
-	chr.AddSubround(&SRComitment{})
+	chr.AddSubround(&SRCommitment{})
 	chr.AddSubround(&SRSignature{})
 	chr.AddSubround(&SREndRound{})
 
@@ -308,5 +308,6 @@ func TestGettersAndSetters(t *testing.T) {
 	chr.SetClockOffset(time.Duration(5))
 	assert.Equal(t, time.Duration(5), chr.ClockOffset())
 
-	fmt.Printf("%v\n%v\n%v", chr.SyncTime().CurrentTime(chr.ClockOffset()), chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()), chr.SubroundHandlers())
+	fmt.Printf("%v\n%v\n%v", chr.SyncTime().CurrentTime(chr.ClockOffset()),
+		chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()), chr.SubroundHandlers())
 }

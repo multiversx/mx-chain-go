@@ -3,6 +3,7 @@ package chronology
 import (
 	"fmt"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
@@ -11,7 +12,7 @@ import (
 // sleepTime defines the time in milliseconds between each iteration made in StartRounds method
 const sleepTime = 5
 
-// Subround defines the type used to reffer the current subround
+// Subround defines the type used to refer the current subround
 type Subround int
 
 const (
@@ -36,7 +37,7 @@ type SubroundHandler interface {
 
 // Chronology defines the data needed by the chronology
 type Chronology struct {
-	doLog      bool
+	log        bool
 	DoRun      bool
 	doSyncMode bool
 
@@ -52,33 +53,40 @@ type Chronology struct {
 
 	syncTime ntp.SyncTimer
 
-	rounds int // only for statistic
+	mut sync.RWMutex
 }
 
-// NewChronology defines a new Chronology object
-func NewChronology(doLog bool, doSyncMode bool, round *Round, genesisTime time.Time, syncTime ntp.SyncTimer) *Chronology {
-	chr := Chronology{doLog: doLog, doSyncMode: doSyncMode, round: round, genesisTime: genesisTime, syncTime: syncTime}
+// NewChronology defines a new Chr object
+func NewChronology(log bool,
+	doSyncMode bool,
+	round *Round,
+	genesisTime time.Time,
+	syncTime ntp.SyncTimer) *Chronology {
+
+	chr := Chronology{log: log,
+		doSyncMode:  doSyncMode,
+		round:       round,
+		genesisTime: genesisTime,
+		syncTime:    syncTime}
 
 	chr.DoRun = true
 
-	chr.selfSubround = SrBeforeRound
+	chr.SetSelfSubround(SrBeforeRound)
 	chr.timeSubround = SrBeforeRound
 	chr.clockOffset = syncTime.ClockOffset()
 
 	chr.subroundHandlers = make([]SubroundHandler, 0)
 	chr.subrounds = make(map[Subround]int)
 
-	chr.rounds = 0
-
 	return &chr
 }
 
 // initRound is called when a new round begins and do the necesary initialization
 func (chr *Chronology) initRound() {
-	chr.selfSubround = SrBeforeRound
+	chr.SetSelfSubround(SrBeforeRound)
 
 	if len(chr.subroundHandlers) > 0 {
-		chr.selfSubround = chr.subroundHandlers[0].Current()
+		chr.SetSelfSubround(chr.subroundHandlers[0].Current())
 	}
 
 	chr.clockOffset = chr.syncTime.ClockOffset()
@@ -106,17 +114,17 @@ func (chr *Chronology) StartRounds() {
 func (chr *Chronology) StartRound() {
 	subRound := chr.updateRound()
 
-	if chr.selfSubround == subRound {
+	if chr.SelfSubround() == subRound {
 		sr := chr.LoadSubroundHandler(subRound)
 		if sr != nil {
 			if sr.DoWork(chr) {
-				chr.selfSubround = sr.Next()
+				chr.SetSelfSubround(sr.Next())
 			}
 		}
 	}
 }
 
-// updateRound updates rounds and subrounds inside round depending of the current time and sync mode
+// updateRound updates Rounds and subrounds inside round depending of the current time and sync mode
 func (chr *Chronology) updateRound() Subround {
 	oldRoundIndex := chr.round.index
 	oldTimeSubRound := chr.timeSubround
@@ -126,19 +134,20 @@ func (chr *Chronology) updateRound() Subround {
 	chr.timeSubround = chr.GetSubroundFromDateTime(currentTime)
 
 	if oldRoundIndex != chr.round.index {
-		chr.rounds++ // only for statistic
-		chr.log(fmt.Sprintf("\n"+chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+"############################## ROUND %d BEGINS ##############################\n", chr.round.index))
+		chr.Log(fmt.Sprintf("\n"+chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+
+			"############################## ROUND %d BEGINS ##############################\n", chr.round.index))
 		chr.initRound()
 	}
 
 	if oldTimeSubRound != chr.timeSubround {
 		sr := chr.LoadSubroundHandler(chr.timeSubround)
 		if sr != nil {
-			chr.log(fmt.Sprintf("\n" + chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) + ".................... SUBROUND " + sr.Name() + " BEGINS ....................\n"))
+			chr.Log(fmt.Sprintf("\n" + chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) +
+				".................... SUBROUND " + sr.Name() + " BEGINS ....................\n"))
 		}
 	}
 
-	subRound := chr.selfSubround
+	subRound := chr.SelfSubround()
 
 	if chr.doSyncMode {
 		subRound = chr.timeSubround
@@ -149,8 +158,8 @@ func (chr *Chronology) updateRound() Subround {
 
 // LoadSubroundHandler returns the implementation of SubroundHandler attached to the subround given
 func (chr *Chronology) LoadSubroundHandler(subround Subround) SubroundHandler {
-	index := chr.subrounds[subround]
-	if index < 0 || index >= len(chr.subroundHandlers) {
+	index, ok := chr.subrounds[subround]
+	if !ok || index < 0 || index >= len(chr.subroundHandlers) {
 		return nil
 	}
 
@@ -179,9 +188,9 @@ func (chr *Chronology) GetSubroundFromDateTime(timeStamp time.Time) Subround {
 	return SrUnknown
 }
 
-// log do logs of the chronology if doLog variable is set on true
-func (chr *Chronology) log(message string) {
-	if chr.doLog {
+// Log do logs of the chronology if log variable is set on true
+func (chr *Chronology) Log(message string) {
+	if chr.log {
 		fmt.Printf(message + "\n")
 	}
 }
@@ -193,11 +202,17 @@ func (chr *Chronology) Round() *Round {
 
 // SelfSubround returns the subround, related to the finished tasks in the current round
 func (chr *Chronology) SelfSubround() Subround {
+	chr.mut.RLock()
+	defer chr.mut.RUnlock()
+
 	return chr.selfSubround
 }
 
 // SetSelfSubround set self subround depending of the finished tasks in the current round
 func (chr *Chronology) SetSelfSubround(subRound Subround) {
+	chr.mut.Lock()
+	defer chr.mut.Unlock()
+
 	chr.selfSubround = subRound
 }
 
