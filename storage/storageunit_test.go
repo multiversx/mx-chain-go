@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
@@ -12,11 +13,13 @@ import (
 func initStorageUnit(t *testing.T, cSize int) *storage.StorageUnit {
 	mdb, err1 := memorydb.New()
 	cache, err2 := lrucache.NewCache(10)
+	bf, err3 := bloom.NewDefaultFilter()
 
 	assert.Nil(t, err1, "failed creating db: %s", err1)
 	assert.Nil(t, err2, "no error expected but got %s", err2)
+	assert.Nil(t, err3, "failed creating bloom filter: %s", err3)
 
-	sUnit, err := storage.NewStorageUnit(cache, mdb)
+	sUnit, err := storage.NewStorageUnit(cache, mdb, bf)
 
 	assert.Nil(t, err, "failed to create storage unit")
 
@@ -24,23 +27,39 @@ func initStorageUnit(t *testing.T, cSize int) *storage.StorageUnit {
 }
 
 func TestStorageUnitNilPersister(t *testing.T) {
-	cache, err := lrucache.NewCache(10)
+	cache, err1 := lrucache.NewCache(10)
+	bf, err2 := bloom.NewDefaultFilter()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	assert.Nil(t, err1, "no error expected but got %s", err1)
+	assert.Nil(t, err2, "failed creating bloom filter: %s", err2)
 
-	_, err = storage.NewStorageUnit(cache, nil)
+	_, err := storage.NewStorageUnit(cache, nil, bf)
 
 	assert.NotNil(t, err, "expected failure")
 }
 
 func TestStorageUnitNilCacher(t *testing.T) {
 	mdb, err1 := memorydb.New()
+	bf, err2 := bloom.NewDefaultFilter()
 
 	assert.Nil(t, err1, "failed creating db")
+	assert.Nil(t, err2, "failed creating bloom filter: %s", err2)
 
-	_, err1 = storage.NewStorageUnit(nil, mdb)
+	_, err1 = storage.NewStorageUnit(nil, mdb, bf)
 
 	assert.NotNil(t, err1, "expected failure")
+}
+
+func TestStorageUnitNilBloomFilter(t *testing.T) {
+	cache, err1 := lrucache.NewCache(10)
+	mdb, err2 := memorydb.New()
+
+	assert.Nil(t, err1, "no error expected but got %s", err1)
+	assert.Nil(t, err2, "failed creating db")
+
+	_, err := storage.NewStorageUnit(cache, mdb, nil)
+
+	assert.NotNil(t, err, "expected failure")
 }
 
 func TestPutNotPresent(t *testing.T) {

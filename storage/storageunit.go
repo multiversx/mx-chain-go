@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -72,15 +73,19 @@ type BloomFilter interface {
 	//Test checks if the value is in in the set. If it returns 'false',
 	//the item is definitely not in the DB
 	Test([]byte) bool
+
+	//Clear sets all the bits from the filter to 0
+	Clear()
 }
 
 type StorageUnit struct {
-	lock      sync.RWMutex
-	persister Persister
-	cacher    Cacher
+	lock        sync.RWMutex
+	persister   Persister
+	cacher      Cacher
+	bloomFilter BloomFilter
 }
 
-func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
+func NewStorageUnit(c Cacher, p Persister, b BloomFilter) (*StorageUnit, error) {
 	if p == nil {
 		return nil, errors.New("expected not nil persister")
 	}
@@ -89,9 +94,14 @@ func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
 		return nil, errors.New("expected not nil cacher")
 	}
 
+	if b == nil {
+		return nil, errors.New("expected not nil bloom filter")
+	}
+
 	sUnit := &StorageUnit{
-		persister: p,
-		cacher:    c,
+		persister:   p,
+		cacher:      c,
+		bloomFilter: b,
 	}
 
 	sUnit.persister.Init()
@@ -99,13 +109,14 @@ func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
 	return sUnit, nil
 }
 
-// add data to both cache and persistance medium
+// add data to both cache and persistance medium, and update the bloom filter
 func (s *StorageUnit) Put(key, data []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	s.cacher.Put(key, data)
 	err := s.persister.Put(key, data)
+	s.bloomFilter.Add(key)
 
 	return err
 }
@@ -115,38 +126,45 @@ func (s *StorageUnit) Get(key []byte) ([]byte, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	v, ok := s.cacher.Get(key)
-	var err error
+	if s.bloomFilter.Test(key) == true {
+		v, ok := s.cacher.Get(key)
+		var err error
 
-	if ok == false {
-		// not found in cache
-		// search it in second persistance medium
-		v, err = s.persister.Get(key)
+		if ok == false {
+			// not found in cache
+			// search it in second persistance medium
+			v, err = s.persister.Get(key)
 
-		if err != nil {
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
+
+			// if found in persistance unit, add it in cache
+			s.cacher.Put(key, v)
 		}
-
-		// if found in persistance unit, add it in cache
-		s.cacher.Put(key, v)
+		return v, nil
 	}
+	return nil, errors.New(fmt.Sprintf("key: %s not found", string(key)))
 
-	return v, nil
 }
 
 // check if the key is in the storageUnit.
-// it first checks the cache and if not present it checks the db
+// it first checks the bloom filter, if not present, the cache and then, if not present, it checks the db
 func (s *StorageUnit) Has(key []byte) (bool, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	has := s.cacher.Has(key)
+	if s.bloomFilter.Test(key) == true {
 
-	if has {
-		return has, nil
+		has := s.cacher.Has(key)
+
+		if has {
+			return has, nil
+		}
+
+		return s.persister.Has(key)
 	}
-
-	return s.persister.Has(key)
+	return false, nil
 }
 
 // checks if the key is present in the storage and if not adds it.
@@ -156,29 +174,43 @@ func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	has := s.cacher.Has(key)
+	if has := s.bloomFilter.Test(key); has == true {
+		has = s.cacher.Has(key)
 
-	if has {
-		return has, nil
-	}
+		if has {
+			return has, nil
+		}
 
-	has, err := s.persister.Has(key)
-	if err != nil {
+		has, err := s.persister.Has(key)
+		if err != nil {
+			return has, err
+		}
+
+		//add it to the cache
+		s.cacher.Put(key, value)
+
+		if !has {
+			// add it also to the persistance unit
+			err = s.persister.Put(key, value)
+			if err != nil {
+				//revert adding to the cache
+				s.cacher.Remove(key)
+			}
+		}
+		return has, err
+	} else {
+
+		s.bloomFilter.Add(key)
+		s.cacher.Put(key, value)
+		err := s.persister.Put(key, value)
+
+		if err != nil {
+			s.cacher.Remove(key)
+		}
+
 		return has, err
 	}
 
-	//add it to the cache
-	s.cacher.Put(key, value)
-
-	if !has {
-		// add it also to the persistance unit
-		err = s.persister.Put(key, value)
-		if err != nil {
-			//revert adding to the cache
-			s.cacher.Remove(key)
-		}
-	}
-	return has, err
 }
 
 // deletes the data associated to the given key from both cache and persistance medium
@@ -202,6 +234,7 @@ func (s *StorageUnit) DestroyUnit() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	s.bloomFilter.Clear()
 	s.cacher.Clear()
 	s.persister.Close()
 	return s.persister.Destroy()
