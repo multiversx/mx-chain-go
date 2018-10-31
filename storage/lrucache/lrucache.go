@@ -2,12 +2,13 @@ package lrucache
 
 import "github.com/hashicorp/golang-lru"
 
+// LRUCache implements a Least Recently Used eviction cache
 type LRUCache struct {
 	cache   *lru.Cache
 	maxsize int
 }
 
-// Create a new LRU cache instance
+// NewCache creates a new LRU cache instance
 func NewCache(size int) (*LRUCache, error) {
 	cache, err := lru.New(size)
 
@@ -28,7 +29,7 @@ func (c *LRUCache) Clear() {
 	c.cache.Purge()
 }
 
-// Add adds a value to the cache.  Returns true if an eviction occurred.
+// Put adds a value to the cache.  Returns true if an eviction occurred.
 func (c *LRUCache) Put(key, value []byte) (evicted bool) {
 	return c.cache.Add(string(key), value)
 }

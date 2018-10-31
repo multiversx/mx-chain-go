@@ -22,6 +22,12 @@ func TestNewFilterWithSmallSize(t *testing.T) {
 	assert.NotNil(t, err, "Expected nil")
 }
 
+func TestNewFilterWithZeroHashFunctions(t *testing.T) {
+	_, err := bloom.NewFilter(2048, []func() hash.Hash{})
+
+	assert.NotNil(t, err, "Expected nil")
+}
+
 func TestNewDefaultFilter(t *testing.T) {
 	_, err := bloom.NewDefaultFilter()
 

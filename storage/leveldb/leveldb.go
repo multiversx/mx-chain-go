@@ -8,11 +8,14 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
+// DB holds a pointer to the leveldb database and the path to where it is stored.
 type DB struct {
 	db   *leveldb.DB
 	path string
 }
 
+// NewDB is a constructor for the leveldb persister
+// It creates the files in the location given as parameter
 func NewDB(path string) (s *DB, err error) {
 	db, err := leveldb.OpenFile(path, nil)
 
@@ -28,12 +31,12 @@ func NewDB(path string) (s *DB, err error) {
 	return dbStore, nil
 }
 
-// Add the value to the (key, val) storage medium
+// Put adds the value to the (key, val) storage medium
 func (s *DB) Put(key, val []byte) error {
 	return s.db.Put(key, val, nil)
 }
 
-// gets the value associated to the key
+// Get returns the value associated to the key
 func (s *DB) Get(key []byte) ([]byte, error) {
 	has, err := s.db.Has(key, nil)
 
@@ -50,28 +53,28 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	return data, nil
 }
 
-// returns true if the given key is present in the persistance medium
+// Has returns true if the given key is present in the persistance medium
 func (s *DB) Has(key []byte) (bool, error) {
 	return s.db.Has(key, nil)
 }
 
-// initialized the storage medium and prepares it for usage
+// Init initializes the storage medium and prepares it for usage
 func (s *DB) Init() error {
 	// no special initialization needed
 	return nil
 }
 
-// Closes the files/resources associated to the storage medium
+// Close closes the files/resources associated to the storage medium
 func (s *DB) Close() error {
 	return s.db.Close()
 }
 
-// Removes the data associated to the given key
+// Remove removes the data associated to the given key
 func (s *DB) Remove(key []byte) error {
 	return s.db.Delete(key, nil)
 }
 
-// Removes the storage medium stored data
+// Destroy removes the storage medium stored data
 func (s *DB) Destroy() error {
 	s.db.Close()
 	err := os.RemoveAll(s.path)

@@ -17,7 +17,7 @@ func TestMessageQueue1(t *testing.T) {
 	//test adding 20 elements
 	i := 0
 	for i < 20 {
-		mq.Add(strconv.Itoa(i))
+		mq.ContainsAndAdd(strconv.Itoa(i))
 
 		i++
 	}
@@ -44,7 +44,7 @@ func TestMessageQueue1(t *testing.T) {
 	//test adding 51 elements. It should be 50 elements
 	i = 0
 	for i < 51 {
-		mq.Add(strconv.Itoa(i))
+		mq.ContainsAndAdd(strconv.Itoa(i))
 
 		i++
 	}
@@ -70,6 +70,10 @@ func TestMessageQueue1(t *testing.T) {
 }
 
 func TestMessageQueueMemLeak(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
+
 	timeStart := time.Now()
 	timeIntermed := time.Now()
 
@@ -80,7 +84,7 @@ func TestMessageQueueMemLeak(t *testing.T) {
 	mq := p2p.NewMessageQueue(5000)
 
 	for {
-		mq.Add(strconv.Itoa(i))
+		mq.ContainsAndAdd(strconv.Itoa(i))
 
 		if time.Now().Sub(timeStart) > time.Second*5 {
 			break
@@ -97,8 +101,8 @@ func TestMessageQueueMemLeak(t *testing.T) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	if bToMb(m.Alloc) > 10 {
-		t.Fatal("Allocated memory should have been less than 10 MiB!")
+	if bToMb(m.Alloc) > bToMb(m.TotalAlloc) {
+		t.Fatal("Allocated memory should have been less than total memory!")
 	}
 
 }

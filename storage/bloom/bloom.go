@@ -31,6 +31,10 @@ func NewFilter(size uint, h []func() hash.Hash) (*Bloom, error) {
 		return nil, errors.New("filter size is too low")
 	}
 
+	if len(h) == 0 {
+		return nil, errors.New("too few hashing functions")
+	}
+
 	return &Bloom{
 		filter:   make([]byte, size),
 		hashFunc: h,

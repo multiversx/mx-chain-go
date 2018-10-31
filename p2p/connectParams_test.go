@@ -13,19 +13,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFailNewBadConnectParams(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("The code did not panic")
-		}
-	}()
-
+func TestConnectParams_NewConnectParamsFromPort_FromInvalidPort_ShouldErr(t *testing.T) {
 	//invalid port
-	p2p.NewConnectParamsFromPort(65536)
+	_, err := p2p.NewConnectParamsFromPort(65536)
+	assert.NotNil(t, err)
 }
 
-func TestNotFailNewConnectParams(t *testing.T) {
-	cp := p2p.NewConnectParamsFromPort(65535)
+func TestConnectParams_NewConnectParamsFromPort_GoodPort_ShouldWork(t *testing.T) {
+	cp, err := p2p.NewConnectParamsFromPort(65535)
+	assert.Nil(t, err)
 
 	buff, err := cp.PrivKey.Bytes()
 	assert.Nil(t, err)
@@ -40,7 +36,7 @@ func TestNotFailNewConnectParams(t *testing.T) {
 
 }
 
-func TestNewConnectParams(t *testing.T) {
+func TestConnectParams_NewConnectParams_GoodValues_ShouldWork(t *testing.T) {
 	buffPrivKey := []byte{8, 2, 18, 32, 240, 44, 132, 237, 70,
 		30, 188, 118, 0, 25, 28, 224, 190, 134, 240, 66, 58, 63,
 		181, 131, 208, 151, 28, 19, 89, 49, 67, 184, 225, 63, 248, 166}
@@ -54,7 +50,8 @@ func TestNewConnectParams(t *testing.T) {
 	prv, err := crypto.UnmarshalPrivateKey(buffPrivKey)
 	assert.Nil(t, err)
 
-	params := p2p.NewConnectParams("0.0.0.0", 4000, prv)
+	params, err := p2p.NewConnectParams(4000, prv)
+	assert.Nil(t, err)
 
 	buffPrivKeyComputed, err := prv.Bytes()
 	assert.Nil(t, err)
@@ -70,8 +67,9 @@ func TestNewConnectParams(t *testing.T) {
 	assert.Equal(t, pid, params.ID.Pretty())
 }
 
-func TestSignVerify(t *testing.T) {
-	params := p2p.NewConnectParamsFromPort(4000)
+func TestConnectParams_SignVerify_GoodValues_ShouldWork(t *testing.T) {
+	params, err := p2p.NewConnectParamsFromPort(4000)
+	assert.Nil(t, err)
 
 	bPrivKey, _ := params.PrivKey.Bytes()
 	fmt.Printf("Priv key: %v\n", hex.EncodeToString(bPrivKey))

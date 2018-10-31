@@ -5,6 +5,8 @@ import (
 	"sync"
 )
 
+// MessageQueue implements a queue where first string in will be the first string out
+// It is concurent safe and has a maxCapacity set
 type MessageQueue struct {
 	queue map[string]bool
 	list  *list.List
@@ -13,6 +15,7 @@ type MessageQueue struct {
 	maxCapacity int
 }
 
+// NewMessageQueue creates a new instance of the MessageQueue struct
 func NewMessageQueue(maxCapacity int) *MessageQueue {
 	return &MessageQueue{
 		queue:       make(map[string]bool),
@@ -22,59 +25,45 @@ func NewMessageQueue(maxCapacity int) *MessageQueue {
 	}
 }
 
+// ContainsAndAdd atomically adds the hash if the string was not found. It returns the existence of this string
+// before it was added
 func (mq *MessageQueue) ContainsAndAdd(hash string) bool {
 	mq.mut.Lock()
 	defer mq.mut.Unlock()
 
-	if mq.contains(hash) {
-		return true
+	_, found := mq.queue[hash]
+
+	if !found {
+		//will add
+		mq.clean()
+
+		mq.list.PushFront(hash)
+		mq.queue[hash] = true
 	}
 
-	mq.add(hash)
-
-	return false
+	return found
 }
 
+// Contains returns true if the hash is present in the map
 func (mq *MessageQueue) Contains(hash string) bool {
 	mq.mut.RLock()
 	defer mq.mut.RUnlock()
 
-	return mq.contains(hash)
+	_, found := mq.queue[hash]
+
+	return found
 }
 
-func (mq *MessageQueue) contains(hash string) bool {
-
-	_, ok := mq.queue[hash]
-	return ok
-}
-
-func (mq *MessageQueue) add(hash string) {
-	mq.clean()
-
-	mq.list.PushFront(hash)
-	mq.queue[hash] = true
-}
-
-func (mq *MessageQueue) Add(hash string) {
-	mq.mut.Lock()
-	defer mq.mut.Unlock()
-
-	if mq.contains(hash) {
-		return
-	}
-
-	mq.add(hash)
-}
-
+// Len returns the size of this MessageQueue
 func (mq *MessageQueue) Len() int {
 	mq.mut.RLock()
 	defer mq.mut.RUnlock()
 
-	return mq.list.Len()
+	return len(mq.queue)
 }
 
 func (mq *MessageQueue) clean() {
-	if mq.list.Len() < mq.maxCapacity {
+	if len(mq.queue) < mq.maxCapacity {
 		return
 	}
 
@@ -83,10 +72,6 @@ func (mq *MessageQueue) clean() {
 	}
 
 	elem := mq.list.Back().Value.(string)
-
-	if !mq.contains(elem) {
-		panic("Inconsistent queue state. Element" + elem + "was not found!")
-	}
 
 	mq.list.Remove(mq.list.Back())
 	delete(mq.queue, elem)
