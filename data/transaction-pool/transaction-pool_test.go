@@ -91,4 +91,49 @@ func TestTransactionPool_Clear(t *testing.T) {
 	t.Parallel()
 	txp := transaction_pool.NewTransactionPool()
 	txp.Clear()
+	txp.ClearMiniPool(1)
+
+	txp.AddTransaction([]byte("tx_hash1"), 1)
+	txp.AddTransaction([]byte("tx_hash2"), 2)
+	txp.AddTransaction([]byte("tx_hash1"), 2)
+
+	txp.ClearMiniPool(2)
+	assert.Equal(t, 0, (*txp.GetMiniPoolTxStore(2)).Len(),
+		"Mini pool for shard 2 should be empty after clear")
+	assert.Equal(t, 1, (*txp.GetMiniPoolTxStore(1)).Len(),
+		"Mini pool for shard 1 should still have one element")
+
+	txp.Clear()
+	assert.Equal(t, 0, len(txp.MiniPoolsStore), "MiniPoolStore map should be empty after Clear")
+}
+
+func TestTransactionPool_MergeMiniPools(t *testing.T) {
+	t.Parallel()
+	txp := transaction_pool.NewTransactionPool()
+	txp.AddTransaction([]byte("tx_hash1"), 1)
+	txp.AddTransaction([]byte("tx_hash2"), 2)
+	txp.AddTransaction([]byte("tx_hash3"), 2)
+
+	txp.MergeMiniPools(1, 2)
+	assert.Equal(t, 3, (*txp.GetMiniPoolTxStore(1)).Len(),
+		"Mini pool for shard 1 should have 3 elements")
+	assert.Nil(t, txp.GetMiniPoolTxStore(2))
+}
+
+func TestTransactionPool_SplitMiniPool(t *testing.T) {
+	t.Parallel()
+	txp := transaction_pool.NewTransactionPool()
+	txp.AddTransaction([]byte("tx_hash1"), 1)
+	txp.AddTransaction([]byte("tx_hash2"), 2)
+	txp.AddTransaction([]byte("tx_hash3"), 2)
+	txp.AddTransaction([]byte("tx_hash4"), 2)
+	txp.AddTransaction([]byte("tx_hash5"), 2)
+	txp.AddTransaction([]byte("tx_hash6"), 2)
+
+	txp.SplitMiniPool(2, 3, [][]byte{[]byte("tx_hash5"), []byte("tx_hash6")})
+
+	assert.Equal(t, 3, (*txp.GetMiniPoolTxStore(2)).Len(),
+		"Mini pool for shard 2 should have 3 elements")
+	assert.Equal(t, 2, (*txp.GetMiniPoolTxStore(3)).Len(),
+		"Mini pool for shard 3 should have 2 elements")
 }
