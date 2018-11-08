@@ -25,6 +25,11 @@ func (sc *testStringCloner) Clone() p2p.Cloner {
 	return &testStringCloner{}
 }
 
+// ID will return the same string as ID
+func (sc *testStringCloner) ID() string {
+	return sc.Data
+}
+
 var objStringCloner = testStringCloner{}
 
 func TestTopic_AddEventHandler_Nil_ShouldNotAddHandler(t *testing.T) {
@@ -45,15 +50,15 @@ func TestTopic_AddEventHandler_WithARealFunc_ShouldWork(t *testing.T) {
 	assert.Equal(t, len(topic.EventBusData()), 1)
 }
 
-func TestTopic_NewMessageReceived_NilMsg_ShouldErr(t *testing.T) {
+func TestTopic_CreateObject_NilData_ShouldErr(t *testing.T) {
 	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
 
-	err := topic.NewDataReceived(nil, "")
+	_, err := topic.CreateObject(nil)
 
 	assert.NotNil(t, err)
 }
 
-func TestTopic_NewDataReceived_MarshalizerFails_ShouldErr(t *testing.T) {
+func TestTopic_CreateObject_MarshalizerFails_ShouldErr(t *testing.T) {
 	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
 
 	topic.Marsh().(*mock.MarshalizerMock).Fail = true
@@ -61,12 +66,20 @@ func TestTopic_NewDataReceived_MarshalizerFails_ShouldErr(t *testing.T) {
 		topic.Marsh().(*mock.MarshalizerMock).Fail = false
 	}()
 
-	err := topic.NewDataReceived(make([]byte, 1), "")
+	_, err := topic.CreateObject(make([]byte, 1))
 
 	assert.NotNil(t, err)
 }
 
-func TestTopic_NewDataReceived_OKMsg_ShouldWork(t *testing.T) {
+func TestTopic_NewObjReceived_NilObj_ShouldErr(t *testing.T) {
+	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
+
+	err := topic.NewObjReceived(nil, "")
+
+	assert.NotNil(t, err)
+}
+
+func TestTopic_NewObjReceived_OKMsg_ShouldWork(t *testing.T) {
 	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
 
 	wg := sync.WaitGroup{}
@@ -91,7 +104,9 @@ func TestTopic_NewDataReceived_OKMsg_ShouldWork(t *testing.T) {
 	payload, err := mockMarshalizer.Marshal(&testStringCloner{Data: "aaaa"})
 	assert.Nil(t, err)
 
-	topic.NewDataReceived(payload, "")
+	obj, err := topic.CreateObject(payload)
+	assert.Nil(t, err)
+	topic.NewObjReceived(obj, "")
 
 	//start a go routine as watchdog for the wg.Wait()
 	go func() {

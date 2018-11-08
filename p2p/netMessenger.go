@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/whyrusleeping/timecache"
 )
 
 // maxMessageQueueNetMessenger is used to control the maximum message queue in a network messenger
@@ -26,6 +28,12 @@ const maxMessageQueueNetMessenger = 50000
 
 // durMdnsCalls is used to define the duration used by mdns service when polling peers
 const durMdnsCalls = time.Second
+
+// durTimeCache represents the duration for gossip messages to be saved in cache
+const durTimeCache = time.Second * 5
+
+// requestTopicSuffix is added to a known topic to generate the topic's request counterpart
+const requestTopicSuffix = "_REQUEST"
 
 // PubSubStrategy defines the strategy for broadcasting messages in the network
 type PubSubStrategy int
@@ -66,6 +74,9 @@ type NetMessenger struct {
 
 	mutTopics sync.RWMutex
 	topics    map[string]*Topic
+
+	mutGossipCache sync.Mutex
+	gossipCache    *timecache.TimeCache
 }
 
 // NewNetMessenger creates a new instance of NetMessenger.
@@ -81,10 +92,12 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 	}
 
 	node := NetMessenger{
-		context: ctx,
-		marsh:   marsh,
-		hasher:  hasher,
-		topics:  make(map[string]*Topic, 0),
+		context:        ctx,
+		marsh:          marsh,
+		hasher:         hasher,
+		topics:         make(map[string]*Topic, 0),
+		mutGossipCache: sync.Mutex{},
+		gossipCache:    timecache.NewTimeCache(durTimeCache),
 	}
 
 	node.cn = NewConnNotifier(&node)
@@ -321,8 +334,13 @@ func (nm *NetMessenger) ParseAddressIpfs(address string) (*peerstore.PeerInfo, e
 
 // AddTopic registers a new topic to this messenger
 func (nm *NetMessenger) AddTopic(t *Topic) error {
+	//sanity checks
 	if t == nil {
 		return errors.New("topic can not be nil")
+	}
+
+	if strings.Contains(t.Name, requestTopicSuffix) {
+		return errors.New("topic name contains request suffix")
 	}
 
 	subscr, err := nm.ps.Subscribe(t.Name)
@@ -330,9 +348,14 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 		return err
 	}
 
-	nm.mutTopics.Lock()
-	_, ok := nm.topics[t.Name]
+	subscrRequest, err := nm.ps.Subscribe(t.Name + requestTopicSuffix)
+	if err != nil {
+		return err
+	}
 
+	nm.mutTopics.Lock()
+
+	_, ok := nm.topics[t.Name]
 	if ok {
 		nm.mutTopics.Unlock()
 		return errors.New("topic already exists")
@@ -341,31 +364,108 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 	nm.topics[t.Name] = t
 	nm.mutTopics.Unlock()
 
+	// async func for passing received data to Topic object
 	go func() {
 		for {
 			msg, err := subscr.Next(nm.context)
-
 			if err != nil {
+				//TODO log
 				continue
 			}
 
-			t.NewDataReceived(msg.GetData(), msg.GetFrom().Pretty())
+			obj, err := t.CreateObject(msg.GetData())
+			if err != nil {
+				//TODO log
+				continue
+			}
+
+			nm.mutGossipCache.Lock()
+			if nm.gossipCache.Has(obj.ID()) {
+				//duplicate object, skip
+				continue
+				nm.mutGossipCache.Unlock()
+			}
+			nm.mutGossipCache.Unlock()
+
+			err = t.NewObjReceived(obj, msg.GetFrom().Pretty())
+			if err != nil {
+				//TODO log
+				continue
+			}
+
+			//keep track of all received messages in gossip cache
+			nm.mutGossipCache.Lock()
+			if !nm.gossipCache.Has(obj.ID()) {
+				nm.gossipCache.Add(obj.ID())
+			}
+			nm.mutGossipCache.Unlock()
+
 		}
 	}()
 
+	// func that publishes on network from Topic object
 	t.SendData = func(data []byte) error {
 		return nm.ps.Publish(t.Name, data)
 	}
 
+	// validator registration func
 	t.registerTopicValidator = func(v pubsub.Validator) error {
 		return nm.ps.RegisterTopicValidator(t.Name, v)
 	}
 
+	// validator unregistration func
 	t.unregisterTopicValidator = func() error {
 		return nm.ps.UnregisterTopicValidator(t.Name)
 	}
 
+	nm.createRequestTopicAndBind(t, subscrRequest)
+
 	return nil
+}
+
+// createRequestTopicAndBind is used to wire-up the func pointers to the request channel created automatically
+// it also implements a validator function for not broadcast the request if it can resolve
+func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *pubsub.Subscription) {
+	// there is no need to have a function on received data
+	// the logic will be called inside validator func as this is the first func called
+	// and only if the result was nil, the validator actually let the message pass through its peers
+	v := func(ctx context.Context, mes *pubsub.Message) bool {
+		//resolver has not been set up, let the message go to the other peers, maybe they can resolve the request
+		if t.ResolveRequest == nil {
+			return true
+		}
+
+		//payload == hash
+		cloner := t.ResolveRequest(mes.GetData())
+
+		if cloner == nil {
+			//object not found
+			return true
+		}
+
+		//found object, no need to resend the request message to peers
+		//test whether we also should broadcast the message (others might have broadcast it just before us)
+		has := false
+
+		nm.mutGossipCache.Lock()
+		has = nm.gossipCache.Has(cloner.ID())
+		nm.mutGossipCache.Unlock()
+
+		if !has {
+			//only if the current peer did not receive an equal object to cloner,
+			//then it shall broadcast it
+			t.Broadcast(cloner)
+		}
+		return false
+	}
+
+	//wire-up a plain func for publishing on request channel
+	t.request = func(hash []byte) error {
+		return nm.ps.Publish(t.Name+requestTopicSuffix, hash)
+	}
+
+	//wire-up the validator
+	nm.ps.RegisterTopicValidator(t.Name+requestTopicSuffix, v)
 }
 
 // GetTopic returns the topic from its name or nil if no topic with that name

@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
 	"github.com/ipfs/go-ipfs-addr"
@@ -28,53 +26,53 @@ func TestShouldPanicOnNilNode(t *testing.T) {
 	p2p.NewConnNotifier(nil)
 }
 
-func TestStartingStoppingWorkingRoutine(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode")
-	}
-
-	counterCN01 := int32(0)
-
-	cn := p2p.NewConnNotifier(&p2p.MemoryMessenger{})
-	cn.DurCalls = 0
-	cn.OnDoSimpleTask = func(caller interface{}) {
-		atomic.AddInt32(&counterCN01, 1)
-
-		time.Sleep(time.Second)
-	}
-
-	cn.Start()
-
-	assert.Equal(t, execution.Started, cn.Stat())
-
-	//wait 0.5 sec
-	time.Sleep(time.Millisecond * 500)
-
-	//counter CN01 should have been 1 by now, closing
-	assert.Equal(t, int32(1), atomic.LoadInt32(&counterCN01))
-
-	cn.Stop()
-	//since go routine is still waiting, status should be CLOSING
-	assert.Equal(t, execution.Closing, cn.Stat())
-	//starting should not produce effects here
-	cn.Start()
-	assert.Equal(t, execution.Closing, cn.Stat())
-
-	time.Sleep(time.Second)
-
-	//it should have stopped
-	assert.Equal(t, execution.Closed, cn.Stat())
-}
-
-func TestTaskNotDoingStuffOn0MaxPeers(t *testing.T) {
-	cn := p2p.NewConnNotifier(&p2p.MemoryMessenger{})
-
-	cn.MaxAllowedPeers = 0
-
-	result := p2p.TaskResolveConnections(cn)
-
-	assert.Equal(t, p2p.WontConnect, result)
-}
+//func TestStartingStoppingWorkingRoutine(t *testing.T) {
+//	if testing.Short() {
+//		t.Skip("skipping test in short mode")
+//	}
+//
+//	counterCN01 := int32(0)
+//
+//	cn := p2p.NewConnNotifier(&p2p.MemoryMessenger{})
+//	cn.DurCalls = 0
+//	cn.OnDoSimpleTask = func(caller interface{}) {
+//		atomic.AddInt32(&counterCN01, 1)
+//
+//		time.Sleep(time.Second)
+//	}
+//
+//	cn.Start()
+//
+//	assert.Equal(t, execution.Started, cn.Stat())
+//
+//	//wait 0.5 sec
+//	time.Sleep(time.Millisecond * 500)
+//
+//	//counter CN01 should have been 1 by now, closing
+//	assert.Equal(t, int32(1), atomic.LoadInt32(&counterCN01))
+//
+//	cn.Stop()
+//	//since go routine is still waiting, status should be CLOSING
+//	assert.Equal(t, execution.Closing, cn.Stat())
+//	//starting should not produce effects here
+//	cn.Start()
+//	assert.Equal(t, execution.Closing, cn.Stat())
+//
+//	time.Sleep(time.Second)
+//
+//	//it should have stopped
+//	assert.Equal(t, execution.Closed, cn.Stat())
+//}
+//
+//func TestTaskNotDoingStuffOn0MaxPeers(t *testing.T) {
+//	cn := p2p.NewConnNotifier(&p2p.MemoryMessenger{})
+//
+//	cn.MaxAllowedPeers = 0
+//
+//	result := p2p.TaskResolveConnections(cn)
+//
+//	assert.Equal(t, p2p.WontConnect, result)
+//}
 
 func TestTryToConnectWithSuccess(t *testing.T) {
 	mut := sync.Mutex{}

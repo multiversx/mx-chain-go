@@ -1,6 +1,7 @@
 package p2p_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
@@ -799,4 +800,237 @@ func TestNetMessenger_BroadcastToUnknownSub_ShouldErr(t *testing.T) {
 
 	_, err := createNetMessengerPubSub(t, 14200, 10, 500)
 	assert.NotNil(t, err)
+}
+
+func TestNetMessenger_RequestResolveTestCfg1_ShouldWork(t *testing.T) {
+	nodes := make([]*p2p.NetMessenger, 0)
+
+	//create 5 nodes
+	for i := 0; i < 5; i++ {
+		node, err := createNetMessenger(t, 15000+i, 10)
+		assert.Nil(t, err)
+
+		nodes = append(nodes, node)
+
+		fmt.Printf("Node %v is %s\n", i+1, node.Addrs()[0])
+	}
+
+	//connect one with each other manually
+	// node0 --------- node1
+	//   |               |
+	//   +------------ node2
+	//   |               |
+	//   |             node3
+	//   |               |
+	//   +------------ node4
+
+	nodes[1].ConnectToAddresses(context.Background(), []string{nodes[0].Addrs()[0]})
+	nodes[2].ConnectToAddresses(context.Background(), []string{nodes[1].Addrs()[0], nodes[0].Addrs()[0]})
+	nodes[3].ConnectToAddresses(context.Background(), []string{nodes[2].Addrs()[0]})
+	nodes[4].ConnectToAddresses(context.Background(), []string{nodes[3].Addrs()[0], nodes[0].Addrs()[0]})
+
+	time.Sleep(time.Second)
+
+	counter1 := int32(0)
+
+	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+		if data.(*testStringCloner).Data == "Real object1" {
+			atomic.AddInt32(&counter1, 1)
+		}
+
+		fmt.Printf("Received: %v\n", data.(*testStringCloner).Data)
+	}
+
+	//print connected and create topics
+	for i := 0; i < 5; i++ {
+		node := nodes[i]
+		node.PrintConnected()
+
+		node.AddTopic(p2p.NewTopic("test", &objStringCloner, testNetMarshalizer))
+	}
+
+	//to simplify, only node 0 should have a recv event handler
+	nodes[0].GetTopic("test").AddDataReceived(recv)
+
+	//setup a resolver func for node 3
+	nodes[3].GetTopic("test").ResolveRequest = func(hash []byte) p2p.Cloner {
+		if bytes.Equal(hash, []byte("A000")) {
+			return &testStringCloner{Data: "Real object1"}
+		}
+
+		return nil
+	}
+
+	//node0 requests an unavailable data
+	nodes[0].GetTopic("test").SendRequest([]byte("B000"))
+	fmt.Println("Sent request B000")
+	time.Sleep(time.Second * 2)
+	assert.Equal(t, int32(0), atomic.LoadInt32(&counter1))
+
+	//node0 requests an available data on node 3
+	nodes[0].GetTopic("test").SendRequest([]byte("A000"))
+	fmt.Println("Sent request A000")
+	time.Sleep(time.Second * 2)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&counter1))
+}
+
+func TestNetMessenger_RequestResolveTestCfg2_ShouldWork(t *testing.T) {
+	nodes := make([]*p2p.NetMessenger, 0)
+
+	//create 5 nodes
+	for i := 0; i < 5; i++ {
+		node, err := createNetMessenger(t, 15000+i, 10)
+		assert.Nil(t, err)
+
+		nodes = append(nodes, node)
+
+		fmt.Printf("Node %v is %s\n", i+1, node.Addrs()[0])
+	}
+
+	//connect one with each other manually
+	// node0 --------- node1
+	//   |               |
+	//   +------------ node2
+	//   |               |
+	//   |             node3
+	//   |               |
+	//   +------------ node4
+
+	nodes[1].ConnectToAddresses(context.Background(), []string{nodes[0].Addrs()[0]})
+	nodes[2].ConnectToAddresses(context.Background(), []string{nodes[1].Addrs()[0], nodes[0].Addrs()[0]})
+	nodes[3].ConnectToAddresses(context.Background(), []string{nodes[2].Addrs()[0]})
+	nodes[4].ConnectToAddresses(context.Background(), []string{nodes[3].Addrs()[0], nodes[0].Addrs()[0]})
+
+	time.Sleep(time.Second)
+
+	counter1 := int32(0)
+
+	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+		if data.(*testStringCloner).Data == "Real object1" {
+			atomic.AddInt32(&counter1, 1)
+		}
+
+		fmt.Printf("Received: %v from %v\n", data.(*testStringCloner).Data, msgInfo.Peer)
+	}
+
+	//print connected and create topics
+	for i := 0; i < 5; i++ {
+		node := nodes[i]
+		node.PrintConnected()
+
+		node.AddTopic(p2p.NewTopic("test", &objStringCloner, testNetMarshalizer))
+	}
+
+	//to simplify, only node 1 should have a recv event handler
+	nodes[1].GetTopic("test").AddDataReceived(recv)
+
+	//resolver func for node 0 and 2
+	resolverOK := func(hash []byte) p2p.Cloner {
+		if bytes.Equal(hash, []byte("A000")) {
+			return &testStringCloner{Data: "Real object1"}
+		}
+
+		return nil
+	}
+
+	//resolver func for other nodes
+	resolverNOK := func(hash []byte) p2p.Cloner {
+		panic("Should have not reached this point")
+
+		return nil
+	}
+
+	nodes[0].GetTopic("test").ResolveRequest = resolverOK
+	nodes[2].GetTopic("test").ResolveRequest = resolverOK
+
+	nodes[3].GetTopic("test").ResolveRequest = resolverNOK
+	nodes[4].GetTopic("test").ResolveRequest = resolverNOK
+
+	//node1 requests an available data
+	nodes[1].GetTopic("test").SendRequest([]byte("A000"))
+	fmt.Println("Sent request A000")
+	time.Sleep(time.Second * 2)
+	assert.True(t, atomic.LoadInt32(&counter1) == int32(1) || atomic.LoadInt32(&counter1) == int32(2))
+
+}
+
+func TestNetMessenger_RequestResolveTestSelf_ShouldWork(t *testing.T) {
+	nodes := make([]*p2p.NetMessenger, 0)
+
+	//create 5 nodes
+	for i := 0; i < 5; i++ {
+		node, err := createNetMessenger(t, 15000+i, 10)
+		assert.Nil(t, err)
+
+		nodes = append(nodes, node)
+
+		fmt.Printf("Node %v is %s\n", i+1, node.Addrs()[0])
+	}
+
+	//connect one with each other manually
+	// node0 --------- node1
+	//   |               |
+	//   +------------ node2
+	//   |               |
+	//   |             node3
+	//   |               |
+	//   +------------ node4
+
+	nodes[1].ConnectToAddresses(context.Background(), []string{nodes[0].Addrs()[0]})
+	nodes[2].ConnectToAddresses(context.Background(), []string{nodes[1].Addrs()[0], nodes[0].Addrs()[0]})
+	nodes[3].ConnectToAddresses(context.Background(), []string{nodes[2].Addrs()[0]})
+	nodes[4].ConnectToAddresses(context.Background(), []string{nodes[3].Addrs()[0], nodes[0].Addrs()[0]})
+
+	time.Sleep(time.Second)
+
+	counter1 := int32(0)
+
+	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+		if data.(*testStringCloner).Data == "Real object1" {
+			atomic.AddInt32(&counter1, 1)
+		}
+
+		fmt.Printf("Received: %v from %v\n", data.(*testStringCloner).Data, msgInfo.Peer)
+	}
+
+	//print connected and create topics
+	for i := 0; i < 5; i++ {
+		node := nodes[i]
+		node.PrintConnected()
+
+		node.AddTopic(p2p.NewTopic("test", &objStringCloner, testNetMarshalizer))
+	}
+
+	//to simplify, only node 1 should have a recv event handler
+	nodes[1].GetTopic("test").AddDataReceived(recv)
+
+	//resolver func for node 1
+	resolverOK := func(hash []byte) p2p.Cloner {
+		if bytes.Equal(hash, []byte("A000")) {
+			return &testStringCloner{Data: "Real object1"}
+		}
+
+		return nil
+	}
+
+	//resolver func for other nodes
+	resolverNOK := func(hash []byte) p2p.Cloner {
+		panic("Should have not reached this point")
+
+		return nil
+	}
+
+	nodes[1].GetTopic("test").ResolveRequest = resolverOK
+
+	nodes[0].GetTopic("test").ResolveRequest = resolverNOK
+	nodes[2].GetTopic("test").ResolveRequest = resolverNOK
+	nodes[3].GetTopic("test").ResolveRequest = resolverNOK
+	nodes[4].GetTopic("test").ResolveRequest = resolverNOK
+
+	//node1 requests an available data
+	nodes[1].GetTopic("test").SendRequest([]byte("A000"))
+	fmt.Println("Sent request A000")
+	time.Sleep(time.Second * 2)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&counter1))
+
 }

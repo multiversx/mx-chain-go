@@ -15,6 +15,7 @@ const topicChannelBufferSize = 10000
 // We prefer this method as reflection is more costly
 type Cloner interface {
 	Clone() Cloner
+	ID() string
 }
 
 // DataReceived is the signature for the event handler used by Topic struct
@@ -42,6 +43,9 @@ type Topic struct {
 
 	registerTopicValidator   func(v pubsub.Validator) error
 	unregisterTopicValidator func() error
+
+	ResolveRequest func(hash []byte) Cloner
+	request        func(hash []byte) error
 }
 
 // MessageInfo will retain additional info about the message, should we care
@@ -74,28 +78,38 @@ func (t *Topic) AddDataReceived(event DataReceived) {
 	t.eventBusData = append(t.eventBusData, event)
 }
 
-// NewDataReceived is called from the lower data layer
-// it will ignore nils or improper formatted messages
-func (t *Topic) NewDataReceived(data []byte, peerID string) error {
+// CreateObject will instantiate a Cloner interface and instantiate its fields
+// with the help of a marshalizer implementation
+func (t *Topic) CreateObject(data []byte) (Cloner, error) {
 	// create new instance of the object
 	newObj := t.ObjTemplate.Clone()
 
 	if data == nil {
-		return errors.New("nil message not allowed")
+		return nil, errors.New("nil message not allowed")
 	}
 
 	if len(data) == 0 {
-		return errors.New("empty message not allowed")
+		return nil, errors.New("empty message not allowed")
 	}
 
 	//unmarshal data from the message
 	err := t.marsh.Unmarshal(newObj, data)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	return newObj, err
+}
+
+// NewDataReceived is called from the lower data layer
+// it will ignore nils or improper formatted messages
+func (t *Topic) NewObjReceived(obj Cloner, peerID string) error {
+	if obj == nil {
+		return errors.New("nil object not allowed")
 	}
 
 	//add to the channel so it can be consumed async
-	t.objPump <- MessageInfo{Object: newObj, Peer: peerID}
+	t.objPump <- MessageInfo{Object: obj, Peer: peerID}
 	return nil
 }
 
@@ -152,4 +166,23 @@ func (t *Topic) UnregisterValidator() error {
 	}
 
 	return t.unregisterTopicValidator()
+}
+
+// SendRequest sends the hash to all known peers that subscribed to the channel [t.Name]_REQUEST
+// It delegates the functionality to sendRequest function pointer
+// The object, if exists, should return on the main event bus (regular topic channel)
+func (t *Topic) SendRequest(hash []byte) error {
+	if hash == nil {
+		return errors.New("invalid hash to send")
+	}
+
+	if len(hash) == 0 {
+		return errors.New("invalid hash to send")
+	}
+
+	if t.request == nil {
+		return errors.New("can not delegate request to parent")
+	}
+
+	return t.request(hash)
 }
