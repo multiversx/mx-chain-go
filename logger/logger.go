@@ -1,40 +1,35 @@
 package logger
 
 import (
-	"elrond/elrond-go-sandbox/config"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	log "github.com/sirupsen/logrus"
 )
 
-const skip = 2
+// String representation of the package logging levels
 const (
-	LvlDebugString 		= "DEBUG"
-	LvlInfoString 		= "INFO"
-	LvlWarningString 	= "WARNING"
-	LvlErrorString 		= "ERROR"
-	LvlPanicString	 	= "PANIC"
+	LogDebug   = "DEBUG"
+	LogInfo    = "INFO"
+	LogWarning = "WARNING"
+	LogError   = "ERROR"
+	LogPanic   = "PANIC"
 )
 
-type ElrondLogger struct {
+// Logger represents the application logger
+type Logger struct {
 	logger *log.Logger
-}
-
-var EL ElrondLogger
-func init() {
-	file, _ := currentLogFile()
-	EL = *NewElrondLogger(file)
 }
 
 // NewElrondLogger will setup the defaults of the application logger.
 // If the requested log file is writeble it will setup a MultiWriter on both the file
 //  and the standard output. Also sets up the level and the format for the logger
-func NewElrondLogger(file *os.File) *ElrondLogger {
-	el := &ElrondLogger{
+func NewElrondLogger(file *os.File) *Logger {
+	el := &Logger{
 		log.New(),
 	}
 
@@ -51,17 +46,17 @@ func NewElrondLogger(file *os.File) *ElrondLogger {
 }
 
 // SetLevel sets the log level according to this package's defined levels
-func (el *ElrondLogger) SetLevel(level string) {
+func (el *Logger) SetLevel(level string) {
 	switch level {
-	case LvlDebugString:
+	case LogDebug:
 		el.logger.SetLevel(log.DebugLevel)
-	case LvlInfoString:
+	case LogInfo:
 		el.logger.SetLevel(log.InfoLevel)
-	case LvlWarningString:
+	case LogWarning:
 		el.logger.SetLevel(log.WarnLevel)
-	case LvlErrorString:
+	case LogError:
 		el.logger.SetLevel(log.ErrorLevel)
-	case LvlPanicString:
+	case LogPanic:
 		el.logger.SetLevel(log.PanicLevel)
 	default:
 		el.logger.SetLevel(log.ErrorLevel)
@@ -69,57 +64,52 @@ func (el *ElrondLogger) SetLevel(level string) {
 }
 
 // SetOutput enables the posibility to change the output of the logger on demand
-func (el *ElrondLogger) SetOutput(out io.Writer) {
+func (el *Logger) SetOutput(out io.Writer) {
 	el.logger.SetOutput(out)
 }
 
 // Debug is an alias for Logrus.Debug, adding some default useful fields
-func (el *ElrondLogger) Debug(message string, extra ...interface{}) {
+func (el *Logger) Debug(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	cl.WithFields(log.Fields{
-		"level": LvlDebugString,
 		"extra": extra,
 	}).Debug(message)
 }
 
 // Info is an alias for Logrus.Info, adding some default useful fields
-func (el *ElrondLogger) Info(message string, extra ...interface{}) {
+func (el *Logger) Info(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	cl.WithFields(log.Fields{
-		"level": LvlInfoString,
 		"extra": extra,
 	}).Info(message)
 }
 
 // Warn is an alias for Logrus.Warn, adding some default useful fields
-func (el *ElrondLogger) Warn(message string, extra ...interface{}) {
+func (el *Logger) Warn(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	cl.WithFields(log.Fields{
-		"level": LvlWarningString,
 		"extra": extra,
 	}).Warn(message)
 }
 
 // Error is an alias for Logrus.Error, adding some default useful fields
-func (el *ElrondLogger) Error(message string, extra ...interface{}) {
+func (el *Logger) Error(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	cl.WithFields(log.Fields{
-		"level": LvlErrorString,
 		"extra": extra,
 	}).Error(message)
 }
 
 // Panic is an alias for Logrus.Panic, adding some default useful fields
-func (el *ElrondLogger) Panic(message string, extra ...interface{}) {
+func (el *Logger) Panic(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	cl.WithFields(log.Fields{
-		"level": LvlPanicString,
 		"extra": extra,
 	}).Panic(message)
 }
 
-func (el *ElrondLogger) defaultFields() *log.Entry {
-	_, file, line, ok := runtime.Caller(skip)
+func (el *Logger) defaultFields() *log.Entry {
+	_, file, line, ok := runtime.Caller(config.ElrondLoggerConfig.StackTraceDepth)
 	return el.logger.WithFields(log.Fields{
 		"file": file,
 		"line_number": line,
@@ -127,7 +117,9 @@ func (el *ElrondLogger) defaultFields() *log.Entry {
 	})
 }
 
-func currentLogFile() (*os.File, error) {
+// DefaultLogFile returns the default output for the application logger
+// The client package can always use another output and provide it in the logger constructor
+func DefaultLogFile() (*os.File, error) {
 	os.MkdirAll(config.ElrondLoggerConfig.LogPath, os.ModePerm)
 	return os.OpenFile(
 		filepath.Join(config.ElrondLoggerConfig.LogPath, time.Now().Format("01-02-2006") + ".log"),

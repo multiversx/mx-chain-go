@@ -2,128 +2,151 @@ package logger_test
 
 import (
 	"bytes"
-	"elrond/elrond-go-sandbox/logger"
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"gotest.tools/assert"
 )
 
-func init() {
-	logger.EL.SetLevel(logger.LvlDebugString)
-}
-
 func TestDebug(t *testing.T) {
+	t.Parallel()
 	var str bytes.Buffer
-	logger.EL.SetOutput(&str)
-	logger.EL.Debug("abc")
+	log := logger.NewElrondLogger(nil)
+	log.SetLevel(logger.LogDebug)
+	log.SetOutput(&str)
+	log.Debug("abc")
 	logString := str.String()
-	assert.Assert(t, strings.Contains(logString, `"fields.level":"DEBUG"`))
+	assert.Assert(t, strings.Contains(logString, `"level":"debug"`))
 	assert.Assert(t, strings.Contains(logString, `"msg":"abc"`))
 }
 
 func TestInfo(t *testing.T) {
+	t.Parallel()
 	var str bytes.Buffer
-	logger.EL.SetOutput(&str)
-	logger.EL.Info("abc")
+	log := logger.NewElrondLogger(nil)
+	log.SetLevel(logger.LogDebug)
+	log.SetOutput(&str)
+	log.Info("abc")
 	logString := str.String()
-	assert.Assert(t, strings.Contains(logString, `"fields.level":"INFO"`))
+	assert.Assert(t, strings.Contains(logString, `"level":"info"`))
 	assert.Assert(t, strings.Contains(logString, `"msg":"abc"`))
 }
 
 func TestWarn(t *testing.T) {
+	t.Parallel()
 	var str bytes.Buffer
-	logger.EL.SetOutput(&str)
-	logger.EL.Warn("abc")
+	log := logger.NewElrondLogger(nil)
+	log.SetOutput(&str)
+	log.Warn("abc")
 	logString := str.String()
-	assert.Assert(t, strings.Contains(logString, `"fields.level":"WARNING"`))
+	assert.Assert(t, strings.Contains(logString, `"level":"warning"`))
 	assert.Assert(t, strings.Contains(logString, `"msg":"abc"`))
 }
 
 func TestError(t *testing.T) {
+	t.Parallel()
 	var str bytes.Buffer
-	logger.EL.SetOutput(&str)
-	logger.EL.Error("abc")
+	log := logger.NewElrondLogger(nil)
+	log.SetOutput(&str)
+	log.Error("abc")
 	logString := str.String()
-	assert.Assert(t, strings.Contains(logString, `"fields.level":"ERROR"`))
+	assert.Assert(t, strings.Contains(logString, `"level":"error"`))
 	assert.Assert(t, strings.Contains(logString, `"msg":"abc"`))
 }
 
 func TestPanic(t *testing.T) {
+	t.Parallel()
 	var str bytes.Buffer
-	logger.EL.SetOutput(&str)
-	swallowPanicLog(t, "abc", "TestPanic should have panic")
+	log := logger.NewElrondLogger(nil)
+	log.SetOutput(&str)
+	swallowPanicLog(t, "abc", "TestPanic should have panic", log)
 
 	logString := str.String()
-	assert.Assert(t, strings.Contains(logString, `"fields.level":"PANIC"`))
+	assert.Assert(t, strings.Contains(logString, `"level":"panic"`))
 	assert.Assert(t, strings.Contains(logString, `"msg":"abc"`))
 }
 
 func TestSetLevel(t *testing.T) {
+	t.Parallel()
 	var str bytes.Buffer
-	logger.EL.SetOutput(&str)
+	log := logger.NewElrondLogger(nil)
+	log.SetOutput(&str)
 
-	logger.EL.SetLevel(logger.LvlDebugString)
-	logger.EL.Debug("abc")
+	log.SetLevel(logger.LogDebug)
+	log.Debug("abc")
 	assert.Assert(t, strings.Contains(str.String(), `"msg":"abc"`))
 	str.Reset()
 
-	logger.EL.SetLevel(logger.LvlInfoString)
-	logger.EL.Debug("abc")
+	log.SetLevel(logger.LogInfo)
+	log.Debug("abc")
 	assert.Assert(t, len(str.String()) == 0)
 	str.Reset()
-	logger.EL.Info("abc")
+	log.Info("abc")
 	assert.Assert(t, strings.Contains(str.String(), `"msg":"abc"`))
 	str.Reset()
 
-	logger.EL.SetLevel(logger.LvlWarningString)
-	logger.EL.Info("abc")
+	log.SetLevel(logger.LogWarning)
+	log.Info("abc")
 	assert.Assert(t, len(str.String()) == 0)
 	str.Reset()
-	logger.EL.Warn("abc")
+	log.Warn("abc")
 	assert.Assert(t, strings.Contains(str.String(), `"msg":"abc"`))
 	str.Reset()
 
-	logger.EL.SetLevel(logger.LvlErrorString)
-	logger.EL.Warn("abc")
+	log.SetLevel(logger.LogError)
+	log.Warn("abc")
 	assert.Assert(t, len(str.String()) == 0)
 	str.Reset()
-	logger.EL.Error("abc")
+	log.Error("abc")
 	assert.Assert(t, strings.Contains(str.String(), `"msg":"abc"`))
 	str.Reset()
 
-	logger.EL.SetLevel(logger.LvlPanicString)
-	logger.EL.Error("abc")
+	log.SetLevel(logger.LogPanic)
+	log.Error("abc")
 	assert.Assert(t, len(str.String()) == 0)
 	str.Reset()
 
-	swallowPanicLog(t, "abc", "TestSetLevel should have panic")
+	swallowPanicLog(t, "abc", "TestSetLevel should have panic", log)
 	assert.Assert(t, strings.Contains(str.String(), `"msg":"abc"`))
 	str.Reset()
 
-	logger.EL.SetLevel("this should go on the default case")
-	logger.EL.Warn("abc")
+	log.SetLevel("this should go on the default case")
+	log.Warn("abc")
 	assert.Assert(t, len(str.String()) == 0)
 	str.Reset()
-	logger.EL.Error("abc")
+	log.Error("abc")
 	assert.Assert(t, strings.Contains(str.String(), `"msg":"abc"`))
 	str.Reset()
 }
 
-func TestNoOutputFile(t *testing.T) {
-	var str bytes.Buffer
-	el := logger.NewElrondLogger(nil)
-	el.SetLevel(logger.LvlWarningString)
-	el.SetOutput(&str)
-	el.Warn("abc")
-	assert.Assert(t, strings.Contains(str.String(), `"msg":"abc"`))
+func TestWithFile(t *testing.T) {
+	t.Parallel()
+	file, err := logger.DefaultLogFile()
+	if err != nil {
+		t.Error("File could not be opened")
+	}
+	log := logger.NewElrondLogger(file)
+	log.Warn("This test should pass if the file was opened in the correct mode")
 }
 
-func swallowPanicLog(t *testing.T, logMsg string, panicMsg string) {
+func TestConcurrencyWithFileWriter(t *testing.T) {
+	file, err := logger.DefaultLogFile()
+	if err != nil {
+		t.Error("File could not be opened")
+	}
+	log := logger.NewElrondLogger(file)
+
+	for i := 1; i < 1000; i++ {
+		log.Warn("I will fail miserably if I'll run into concurrency issues")
+	}
+}
+
+func swallowPanicLog(t *testing.T, logMsg string, panicMsg string, log *logger.Logger) {
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf(panicMsg)
 		}
 	}()
-	logger.EL.Panic(logMsg)
+	log.Panic(logMsg)
 }
