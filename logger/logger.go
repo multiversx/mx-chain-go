@@ -122,7 +122,7 @@ func (el *Logger) defaultFields() *log.Entry {
 func DefaultLogFile() (*os.File, error) {
 	os.MkdirAll(config.ElrondLoggerConfig.LogPath, os.ModePerm)
 	return os.OpenFile(
-		filepath.Join(config.ElrondLoggerConfig.LogPath, time.Now().Format("01-02-2006") + ".log"),
+		filepath.Join(config.ElrondLoggerConfig.LogPath, time.Now().Format("2006-02-01") + ".log"),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
 		0666)
 }
