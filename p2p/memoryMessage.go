@@ -7,8 +7,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Message is the main type of object used for exchanging data
-type Message struct {
+// memoryMessage is the main type of object used for exchanging data for MemoryMessenger
+type memoryMessage struct {
 	marsh    *marshal.Marshalizer
 	Payload  []byte
 	Type     string
@@ -20,17 +20,17 @@ type Message struct {
 	Peers []string
 }
 
-// NewMessage creates a new Message object
-func NewMessage(peerID string, payload []byte, mrsh marshal.Marshalizer) *Message {
+// newMemoryMessage creates a new Message object
+func newMemoryMessage(peerID string, payload []byte, mrsh marshal.Marshalizer) *memoryMessage {
 	if mrsh == nil {
 		panic("Nil marshalizer when creating a new Message!")
 	}
 
-	return &Message{Payload: payload, Hops: 0, Peers: []string{peerID}, marsh: &mrsh}
+	return &memoryMessage{Payload: payload, Hops: 0, Peers: []string{peerID}, marsh: &mrsh}
 }
 
 // ToByteArray will convert the message into its corresponding slice of bytes representation. Uses a marshalizer implmementation
-func (m *Message) ToByteArray() ([]byte, error) {
+func (m *memoryMessage) ToByteArray() ([]byte, error) {
 	if m.marsh == nil {
 		return nil, errors.New("Uninitialized marshalizer!")
 	}
@@ -38,9 +38,9 @@ func (m *Message) ToByteArray() ([]byte, error) {
 	return (*m.marsh).Marshal(m)
 }
 
-// CreateFromByteArray recreates the object based on the corresponding slice of bytes
-func CreateFromByteArray(mrsh marshal.Marshalizer, buff []byte) (*Message, error) {
-	m := &Message{}
+// createMessageFromByteArray recreates the object based on the corresponding slice of bytes
+func createMessageFromByteArray(mrsh marshal.Marshalizer, buff []byte) (*memoryMessage, error) {
+	m := &memoryMessage{}
 	m.marsh = &mrsh
 
 	if mrsh == nil {
@@ -53,7 +53,7 @@ func CreateFromByteArray(mrsh marshal.Marshalizer, buff []byte) (*Message, error
 }
 
 // AddHop adds the peerID to the traversed peers, incrementing the hop counter
-func (m *Message) AddHop(peerID string) {
+func (m *memoryMessage) AddHop(peerID string) {
 	m.Hops++
 	m.Peers = append(m.Peers, peerID)
 }
@@ -61,12 +61,12 @@ func (m *Message) AddHop(peerID string) {
 // Signed returns true if the message was signed
 // False means that the message was unsigned
 // A signed message that was tampered (signature is not verified) will be automatically discarded
-func (m *Message) Signed() bool {
+func (m *memoryMessage) Signed() bool {
 	return m.isSigned
 }
 
 // Signs the message with the private key
-func (m *Message) Sign(sk crypto.PrivKey) error {
+func (m *memoryMessage) Sign(sk crypto.PrivKey) error {
 	if sk == nil {
 		return errors.New("Invalid private key!")
 	}
@@ -94,7 +94,7 @@ func (m *Message) Sign(sk crypto.PrivKey) error {
 // 2. There is a peer in the list of traversed peers
 // 3. The message was signed and the signature verifies with the public key provided and the first ID from
 //    traversed peers list is obtained from the public key
-func (m *Message) Verify() (bool, error) {
+func (m *memoryMessage) Verify() (bool, error) {
 	if m.Sig == nil || m.PubKey == nil {
 		return false, nil
 	}
@@ -137,7 +137,7 @@ func (m *Message) Verify() (bool, error) {
 }
 
 // VerifyAndSetSigned verifies the message and saves the signed value into message.isSigned
-func (m *Message) VerifyAndSetSigned() error {
+func (m *memoryMessage) VerifyAndSetSigned() error {
 	signed, err := m.Verify()
 
 	if err != nil {

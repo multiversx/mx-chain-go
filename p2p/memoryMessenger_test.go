@@ -21,7 +21,12 @@ func createMemoryMessenger(t *testing.T, port int, nConns int) (*p2p.MemoryMesse
 	cp, err := p2p.NewConnectParamsFromPort(port)
 	assert.Nil(t, err)
 
-	return p2p.NewMemoryMessenger(testMemoryMarshalizer, testMemoryHasher, cp.ID, nConns)
+	mm, err := p2p.NewMemoryMessenger(testMemoryMarshalizer, testMemoryHasher, cp.ID, nConns)
+	if err != nil {
+		return nil, err
+	}
+	mm.PrivKey = cp.PrivKey
+	return mm, nil
 }
 
 func TestMemoryMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
@@ -57,7 +62,7 @@ func TestMemoryMessenger_SendToSelf_ShouldWork(t *testing.T) {
 		}
 	})
 
-	node.GetTopic("test topic").Broadcast(&testStringCloner{Data: "ABC"}, false)
+	node.GetTopic("test topic").Broadcast(&testStringCloner{Data: "ABC"})
 
 	time.Sleep(time.Second)
 
@@ -105,7 +110,7 @@ func TestMemoryMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 		payload := (*data.(*testStringCloner)).Data
 
 		if payload == "ping string" {
-			node1.GetTopic("pong").Broadcast(&testStringCloner{Data: "pong string"}, false)
+			node1.GetTopic("pong").Broadcast(&testStringCloner{Data: "pong string"})
 		}
 	})
 
@@ -130,7 +135,7 @@ func TestMemoryMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 		}
 	})
 
-	node2.GetTopic("ping").Broadcast(&testStringCloner{Data: "ping string"}, false)
+	node2.GetTopic("ping").Broadcast(&testStringCloner{Data: "ping string"})
 
 	assert.Nil(t, err)
 
@@ -194,7 +199,7 @@ func TestMemoryMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 	fmt.Println()
 
 	fmt.Println("Broadcasting...")
-	nodes[0].GetTopic("test").Broadcast(&testStringCloner{Data: "Foo"}, false)
+	nodes[0].GetTopic("test").Broadcast(&testStringCloner{Data: "Foo"})
 
 	select {
 	case <-done:
@@ -267,7 +272,7 @@ func TestMemoryMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *test
 	fmt.Println()
 
 	fmt.Println("Broadcasting...")
-	nodes[0].GetTopic("test").Broadcast(&testStringCloner{Data: "Foo"}, false)
+	nodes[0].GetTopic("test").Broadcast(&testStringCloner{Data: "Foo"})
 
 	select {
 	case <-done:
@@ -287,7 +292,7 @@ func TestMemoryMessenger_SendingNil_ShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 
 	node1.AddTopic(p2p.NewTopic("test", &objStringCloner, testMemoryMarshalizer))
-	err = node1.GetTopic("test").Broadcast(nil, false)
+	err = node1.GetTopic("test").Broadcast(nil)
 	assert.NotNil(t, err)
 }
 
@@ -322,8 +327,6 @@ func TestMemoryMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *tes
 
 	recv := make(map[string]*p2p.MessageInfo)
 	mut := sync.RWMutex{}
-
-	mapHops := make(map[int]int)
 
 	wgGot := sync.WaitGroup{}
 
@@ -381,7 +384,7 @@ func TestMemoryMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *tes
 
 	//broadcasting something
 	fmt.Println("Broadcasting a message...")
-	nodes[0].GetTopic("test topic").Broadcast(&testStringCloner{Data: "a string to broadcast"}, false)
+	nodes[0].GetTopic("test topic").Broadcast(&testStringCloner{Data: "a string to broadcast"})
 
 	fmt.Println("Waiting...")
 
@@ -394,45 +397,24 @@ func TestMemoryMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *tes
 		return
 	}
 
-	maxHops := 0
-
 	notRecv := 0
 	didRecv := 0
 
 	for i := 0; i < len(nodes); i++ {
 
 		mut.RLock()
-		v, found := recv[nodes[i].ID().Pretty()]
+		_, found := recv[nodes[i].ID().Pretty()]
 		mut.RUnlock()
 
 		if !found {
 			fmt.Printf("Peer %s didn't got the message!\n", nodes[i].ID().Pretty())
 			notRecv++
 		} else {
-			fmt.Printf("Peer %s got the message in %d hops!\n", nodes[i].ID().Pretty(), v.Hops)
 			didRecv++
-
-			val, found := mapHops[v.Hops]
-			if !found {
-				mapHops[v.Hops] = 1
-			} else {
-				mapHops[v.Hops] = val + 1
-			}
-
-			if maxHops < v.Hops {
-				maxHops = v.Hops
-			}
 		}
 	}
 
-	fmt.Println("Max hops:", maxHops)
-	fmt.Print("Hops: ")
-
-	for i := 0; i <= maxHops; i++ {
-		fmt.Printf("\tH%d: %d", i, mapHops[i])
-	}
 	fmt.Println()
-
 	fmt.Println("Did recv:", didRecv)
 	fmt.Println("Did not recv:", notRecv)
 
@@ -489,7 +471,7 @@ func TestMemoryMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 		atomic.AddInt32(&counter, 1)
 	})
 
-	node1.GetTopic("test").Broadcast(&structTest1{Nonce: 4, Data: 4.5}, false)
+	node1.GetTopic("test").Broadcast(&structTest1{Nonce: 4, Data: 4.5})
 
 	//wait a bit
 	time.Sleep(time.Second)
@@ -526,7 +508,7 @@ func TestMemoryMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing
 		atomic.AddInt32(&counter, 1)
 	})
 
-	node1.GetTopic("test1").Broadcast(&testStringCloner{Data: "Foo"}, false)
+	node1.GetTopic("test1").Broadcast(&testStringCloner{Data: "Foo"})
 
 	//wait a bit
 	time.Sleep(time.Second)
@@ -548,8 +530,6 @@ func TestMemoryMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *t
 
 	recv := make(map[string]*p2p.MessageInfo)
 	mut := sync.RWMutex{}
-
-	mapHops := make(map[int]int)
 
 	wgGot := sync.WaitGroup{}
 
@@ -625,7 +605,7 @@ func TestMemoryMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *t
 
 	//broadcasting something
 	fmt.Println("Broadcasting a message...")
-	nodes[0].GetTopic("test topic").Broadcast(&testStringCloner{Data: "a string to broadcast"}, false)
+	nodes[0].GetTopic("test topic").Broadcast(&testStringCloner{Data: "a string to broadcast"})
 
 	fmt.Println("Waiting...")
 
@@ -638,45 +618,24 @@ func TestMemoryMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *t
 		return
 	}
 
-	maxHops := 0
-
 	notRecv := 0
 	didRecv := 0
 
 	for i := 0; i < len(nodes); i++ {
 
 		mut.RLock()
-		v, found := recv[nodes[i].ID().Pretty()]
+		_, found := recv[nodes[i].ID().Pretty()]
 		mut.RUnlock()
 
 		if !found {
 			fmt.Printf("Peer %s didn't got the message!\n", nodes[i].ID().Pretty())
 			notRecv++
 		} else {
-			fmt.Printf("Peer %s got the message in %d hops!\n", nodes[i].ID().Pretty(), v.Hops)
 			didRecv++
-
-			val, found := mapHops[v.Hops]
-			if !found {
-				mapHops[v.Hops] = 1
-			} else {
-				mapHops[v.Hops] = val + 1
-			}
-
-			if maxHops < v.Hops {
-				maxHops = v.Hops
-			}
 		}
 	}
 
-	fmt.Println("Max hops:", maxHops)
-	fmt.Print("Hops: ")
-
-	for i := 0; i <= maxHops; i++ {
-		fmt.Printf("\tH%d: %d", i, mapHops[i])
-	}
 	fmt.Println()
-
 	fmt.Println("Did recv:", didRecv)
 	fmt.Println("Did not recv:", notRecv)
 

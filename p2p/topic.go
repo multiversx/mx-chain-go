@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
 )
 
@@ -37,16 +38,17 @@ type Topic struct {
 	mutEventBus  sync.RWMutex
 	eventBusData []DataReceived
 
-	SendMessage func(mes *Message, flagSign bool) error
+	SendData func(data []byte) error
+
+	registerTopicValidator   func(v pubsub.Validator) error
+	unregisterTopicValidator func() error
 }
 
 // MessageInfo will retain additional info about the message, should we care
 // when receiving an object on current topic
 type MessageInfo struct {
 	Object interface{}
-	Signed bool
-	Hops   int
-	Peers  []string
+	Peer   string
 }
 
 // NewTopic creates a new Topic struct
@@ -72,48 +74,49 @@ func (t *Topic) AddDataReceived(event DataReceived) {
 	t.eventBusData = append(t.eventBusData, event)
 }
 
-// NewMessageReceived is called from the lower data layer
-// it will ignore nils, improper formatted messages or tampered messages
-func (t *Topic) NewMessageReceived(message *Message) error {
+// NewDataReceived is called from the lower data layer
+// it will ignore nils or improper formatted messages
+func (t *Topic) NewDataReceived(data []byte, peerID string) error {
 	// create new instance of the object
 	newObj := t.ObjTemplate.Clone()
 
-	if message == nil {
+	if data == nil {
 		return errors.New("nil message not allowed")
 	}
 
+	if len(data) == 0 {
+		return errors.New("empty message not allowed")
+	}
+
 	//unmarshal data from the message
-	err := t.marsh.Unmarshal(newObj, message.Payload)
+	err := t.marsh.Unmarshal(newObj, data)
 	if err != nil {
 		return err
 	}
 
 	//add to the channel so it can be consumed async
-	t.objPump <- MessageInfo{Object: newObj, Peers: message.Peers, Signed: message.isSigned, Hops: message.Hops}
+	t.objPump <- MessageInfo{Object: newObj, Peer: peerID}
 	return nil
 }
 
 // Broadcast should be called whenever a higher order struct needs to send over the wire an object
 // Optionally, the message can be authenticated
-func (t *Topic) Broadcast(data interface{}, flagSign bool) error {
+func (t *Topic) Broadcast(data interface{}) error {
 	if data == nil {
 		return errors.New("can not process nil data")
 	}
 
 	//assemble the message
-	mes := NewMessage("", nil, t.marsh)
-	mes.Type = t.Name
 	payload, err := t.marsh.Marshal(data)
 	if err != nil {
 		return err
 	}
-	mes.Payload = payload
 
-	if t.SendMessage == nil {
+	if t.SendData == nil {
 		return errors.New("send to nil the assembled message?")
 	}
 
-	return t.SendMessage(mes, flagSign)
+	return t.SendData(payload)
 }
 
 func (t *Topic) processData() {
@@ -129,4 +132,24 @@ func (t *Topic) processData() {
 			t.mutEventBus.RUnlock()
 		}
 	}
+}
+
+// RegisterValidator adds a validator to this topic
+// It delegates the functionality to registerValidator function pointer
+func (t *Topic) RegisterValidator(v pubsub.Validator) error {
+	if t.registerTopicValidator == nil {
+		return errors.New("can not delegate registration to parent")
+	}
+
+	return t.registerTopicValidator(v)
+}
+
+// UnregisterValidator removes the validator associated to this topic
+// It delegates the functionality to unregisterValidator function pointer
+func (t *Topic) UnregisterValidator() error {
+	if t.unregisterTopicValidator == nil {
+		return errors.New("can not delegate unregistration to parent")
+	}
+
+	return t.unregisterTopicValidator()
 }
