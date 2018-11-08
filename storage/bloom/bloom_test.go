@@ -1,29 +1,31 @@
 package bloom_test
 
 import (
-	"hash"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
-	"github.com/dchest/blake2b"
+
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/sha3"
 )
 
 func TestNewFilter(t *testing.T) {
-	_, err := bloom.NewFilter(200, []func() hash.Hash{sha3.NewLegacyKeccak256, blake2b.New256})
+	_, err := bloom.NewFilter(200, []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}})
 
 	assert.Nil(t, err, "Error creating new bloom filter")
 }
 
 func TestNewFilterWithSmallSize(t *testing.T) {
-	_, err := bloom.NewFilter(1, []func() hash.Hash{sha3.NewLegacyKeccak256, blake2b.New256})
+	_, err := bloom.NewFilter(1, []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}})
 
 	assert.NotNil(t, err, "Expected nil")
 }
 
 func TestNewFilterWithZeroHashFunctions(t *testing.T) {
-	_, err := bloom.NewFilter(2048, []func() hash.Hash{})
+	_, err := bloom.NewFilter(2048, []hashing.Hasher{})
 
 	assert.NotNil(t, err, "Expected nil")
 }

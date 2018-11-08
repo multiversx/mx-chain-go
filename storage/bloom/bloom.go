@@ -3,12 +3,13 @@ package bloom
 import (
 	"encoding/binary"
 	"errors"
-	"hash"
-	"hash/fnv"
+
 	"sync"
 
-	"github.com/dchest/blake2b"
-	"golang.org/x/crypto/sha3"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 )
 
 const (
@@ -17,7 +18,7 @@ const (
 
 type Bloom struct {
 	filter   []byte
-	hashFunc []func() hash.Hash
+	hashFunc []hashing.Hasher
 }
 
 type Result struct {
@@ -25,7 +26,7 @@ type Result struct {
 	value byte
 }
 
-func NewFilter(size uint, h []func() hash.Hash) (*Bloom, error) {
+func NewFilter(size uint, h []hashing.Hasher) (*Bloom, error) {
 
 	if size <= uint(len(h)) {
 		return nil, errors.New("filter size is too low")
@@ -44,7 +45,7 @@ func NewFilter(size uint, h []func() hash.Hash) (*Bloom, error) {
 func NewDefaultFilter() (*Bloom, error) {
 	return &Bloom{
 		filter:   make([]byte, 2048),
-		hashFunc: []func() hash.Hash{sha3.NewLegacyKeccak256, blake2b.New256, fnv.New128a},
+		hashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
 	}, nil
 }
 
@@ -55,7 +56,7 @@ func (b *Bloom) Add(data []byte) {
 
 	for i := 0; i < len(b.hashFunc); i++ {
 		wg.Add(1)
-		go getIndexAndValue(b.hashFunc[i](), data, b, &wg, ch)
+		go getIndexAndValue(b.hashFunc[i], data, b, &wg, ch)
 	}
 	wg.Wait()
 
@@ -73,7 +74,7 @@ func (b *Bloom) Test(data []byte) bool {
 
 	for i := 0; i < len(b.hashFunc); i++ {
 		wg.Add(1)
-		go getIndexAndValue(b.hashFunc[i](), data, b, &wg, ch)
+		go getIndexAndValue(b.hashFunc[i], data, b, &wg, ch)
 	}
 	wg.Wait()
 
@@ -92,11 +93,11 @@ func (b *Bloom) Clear() {
 	}
 }
 
-func getIndexAndValue(h hash.Hash, data []byte, b *Bloom, wg *sync.WaitGroup, ch chan Result) {
+func getIndexAndValue(h hashing.Hasher, data []byte, b *Bloom, wg *sync.WaitGroup, ch chan Result) {
 	var res Result
 
-	h.Write(data)
-	hash64 := binary.BigEndian.Uint64(h.Sum(nil))
+	hhh := h.Compute(string(data))
+	hash64 := binary.BigEndian.Uint64(hhh)
 	val := hash64 % uint64(len(b.filter)*BitsInByte)
 
 	byteNo := val / 8
