@@ -7,15 +7,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
+// TransactionPool holds the list of transactions organised by destination shard
+//
+// Through the MiniPools store it maps a a cacher, containing transaction
+//  hashes, to a corresponding shard id. It is able to add or remove
+//  transactions given the shard id it is associated with. It can
+//  also merge and split pools when required
 type TransactionPool struct {
 	lock 			sync.Mutex
 	// MiniPools is a key value store
 	// Each key represents a destination shard id and the value will contain all
 	//  transaction hashes that have that shard as destination
-	MiniPoolsStore 	map[uint32]*MiniPool
+	MiniPoolsStore 	map[uint32]*miniPool
 }
 
-type MiniPool struct {
+type miniPool struct {
 	ShardID       uint32
 	TxHashStore *storage.Cacher
 }
@@ -23,18 +29,18 @@ type MiniPool struct {
 // NewTransactionPool is responsible for creating an empty pool of transactions
 func NewTransactionPool() (*TransactionPool) {
 	return &TransactionPool{
-		MiniPoolsStore: make(map[uint32]*MiniPool),
+		MiniPoolsStore: make(map[uint32]*miniPool),
 	}
 }
 
 // NewMiniPool is responsible for creating an empty mini pool
-func NewMiniPool(destShardID uint32) (*MiniPool) {
+func NewMiniPool(destShardID uint32) (*miniPool) {
 	cacher, err := storage.CreateCacheFromConf(config.TestnetBlockchainConfig.TxPoolStorage)
 	if err != nil {
 		// TODO: This should be replaced with the correct log panic
 		panic("Could not create cache storage for pools")
 	}
-	return &MiniPool{
+	return &miniPool{
 		destShardID,
 		&cacher,
 	}
@@ -49,7 +55,7 @@ func (tp *TransactionPool) NewMiniPool(destShardID uint32) {
 }
 
 // GetMiniPool returns a minipool of transactions associated with a given destination shardID
-func (tp *TransactionPool) GetMiniPool(shardID uint32) (*MiniPool) {
+func (tp *TransactionPool) GetMiniPool(shardID uint32) (*miniPool) {
 	return tp.MiniPoolsStore[shardID]
 }
 
