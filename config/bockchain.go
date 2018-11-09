@@ -1,13 +1,13 @@
 package config
 
 import (
-	"hash"
-	"hash/fnv"
 	"math/big"
 	"path/filepath"
 
-	"github.com/dchest/blake2b"
-	"golang.org/x/crypto/sha3"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 )
 
 // CacheType represents the type of the supported caches
@@ -43,7 +43,7 @@ var (
 			},
 			BloomFilterConf: &BloomFilterConfig{
 				Size:     2048,
-				HashFunc: []func() hash.Hash{sha3.NewLegacyKeccak256, blake2b.New256, fnv.New128a},
+				HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
 			},
 		},
 
@@ -58,7 +58,7 @@ var (
 			},
 			BloomFilterConf: &BloomFilterConfig{
 				Size:     2048,
-				HashFunc: []func() hash.Hash{sha3.NewLegacyKeccak256, blake2b.New256, fnv.New128a},
+				HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
 			},
 		},
 
@@ -73,7 +73,7 @@ var (
 			},
 			BloomFilterConf: &BloomFilterConfig{
 				Size:     2048,
-				HashFunc: []func() hash.Hash{sha3.NewLegacyKeccak256, blake2b.New256, fnv.New128a},
+				HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
 			},
 		},
 
@@ -118,5 +118,5 @@ type DBConfig struct {
 // BloomFilterConfig holds the configurable elements of a bloom filter
 type BloomFilterConfig struct {
 	Size     uint
-	HashFunc []func() hash.Hash
+	HashFunc []hashing.Hasher
 }

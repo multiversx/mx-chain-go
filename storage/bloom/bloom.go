@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	BitsInByte = 8
+	bitsInByte = 8
 )
 
 type Bloom struct {
@@ -54,8 +54,8 @@ func (b *Bloom) Add(data []byte) {
 	var wg sync.WaitGroup
 	var res Result
 
+	wg.Add(len(b.hashFunc))
 	for i := 0; i < len(b.hashFunc); i++ {
-		wg.Add(1)
 		go getIndexAndValue(b.hashFunc[i], data, b, &wg, ch)
 	}
 	wg.Wait()
@@ -72,8 +72,8 @@ func (b *Bloom) Test(data []byte) bool {
 	var wg sync.WaitGroup
 	var res Result
 
+	wg.Add(len(b.hashFunc))
 	for i := 0; i < len(b.hashFunc); i++ {
-		wg.Add(1)
 		go getIndexAndValue(b.hashFunc[i], data, b, &wg, ch)
 	}
 	wg.Wait()
@@ -98,7 +98,7 @@ func getIndexAndValue(h hashing.Hasher, data []byte, b *Bloom, wg *sync.WaitGrou
 
 	hhh := h.Compute(string(data))
 	hash64 := binary.BigEndian.Uint64(hhh)
-	val := hash64 % uint64(len(b.filter)*BitsInByte)
+	val := hash64 % uint64(len(b.filter)*bitsInByte)
 
 	byteNo := val / 8
 	bitNo := val % 8

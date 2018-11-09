@@ -113,7 +113,9 @@ func (s *StorageUnit) Put(key, data []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.bloomFilter.Add(key)
+	if s.bloomFilter != nil {
+		s.bloomFilter.Add(key)
+	}
 
 	// no need to add if already present in cache
 	has := s.cacher.Has(key)
@@ -141,7 +143,7 @@ func (s *StorageUnit) Get(key []byte) ([]byte, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if s.bloomFilter.Test(key) == true {
+	if s.bloomFilter == nil || s.bloomFilter.Test(key) == true {
 		v, ok := s.cacher.Get(key)
 		var err error
 
@@ -170,7 +172,7 @@ func (s *StorageUnit) Has(key []byte) (bool, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.bloomFilter.Test(key) == true {
+	if s.bloomFilter == nil || s.bloomFilter.Test(key) == true {
 		has := s.cacher.Has(key)
 
 		if has {
@@ -189,8 +191,8 @@ func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if has := s.bloomFilter.Test(key); has == true {
-		has = s.cacher.Has(key)
+	if s.bloomFilter == nil || s.bloomFilter.Test(key) == true {
+		has := s.cacher.Has(key)
 
 		if has {
 			return has, nil
@@ -223,7 +225,7 @@ func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
 			s.cacher.Remove(key)
 		}
 
-		return has, err
+		return false, err
 	}
 }
 
@@ -248,7 +250,10 @@ func (s *StorageUnit) DestroyUnit() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.bloomFilter.Clear()
+	if s.bloomFilter != nil {
+		s.bloomFilter.Clear()
+	}
+
 	s.cacher.Clear()
 	s.persister.Close()
 	return s.persister.Destroy()
@@ -263,10 +268,6 @@ func NewStorageUnit(c Cacher, p Persister, b BloomFilter) (*StorageUnit, error) 
 
 	if c == nil {
 		return nil, errors.New("expected not nil cacher")
-	}
-
-	if b == nil {
-		return nil, errors.New("expected not nil bloom filter")
 	}
 
 	sUnit := &StorageUnit{
