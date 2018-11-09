@@ -138,7 +138,7 @@ func TestConcurrencyWithFileWriter(t *testing.T) {
 	log := logger.NewElrondLogger(file)
 
 	for i := 1; i < 1000; i++ {
-		log.Warn("I will fail miserably if I'll run into concurrency issues")
+		go log.Warn("I will fail miserably if I'll run into concurrency issues")
 	}
 }
 
