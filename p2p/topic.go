@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
 )
@@ -46,13 +47,16 @@ type Topic struct {
 
 	ResolveRequest func(hash []byte) Cloner
 	request        func(hash []byte) error
+
+	CurrentPeer peer.ID
 }
 
 // MessageInfo will retain additional info about the message, should we care
 // when receiving an object on current topic
 type MessageInfo struct {
-	Object interface{}
-	Peer   string
+	Object      interface{}
+	Peer        string
+	CurrentPeer string
 }
 
 // NewTopic creates a new Topic struct
@@ -101,7 +105,7 @@ func (t *Topic) CreateObject(data []byte) (Cloner, error) {
 	return newObj, err
 }
 
-// NewDataReceived is called from the lower data layer
+// NewObjReceived is called from the lower data layer
 // it will ignore nils or improper formatted messages
 func (t *Topic) NewObjReceived(obj Cloner, peerID string) error {
 	if obj == nil {
@@ -109,7 +113,7 @@ func (t *Topic) NewObjReceived(obj Cloner, peerID string) error {
 	}
 
 	//add to the channel so it can be consumed async
-	t.objPump <- MessageInfo{Object: obj, Peer: peerID}
+	t.objPump <- MessageInfo{Object: obj, Peer: peerID, CurrentPeer: t.CurrentPeer.Pretty()}
 	return nil
 }
 

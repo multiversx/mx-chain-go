@@ -20,11 +20,7 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/whyrusleeping/timecache"
 )
-
-// maxMessageQueueNetMessenger is used to control the maximum message queue in a network messenger
-const maxMessageQueueNetMessenger = 50000
 
 // durMdnsCalls is used to define the duration used by mdns service when polling peers
 const durMdnsCalls = time.Second
@@ -60,7 +56,6 @@ type NetMessenger struct {
 
 	mutBootstrap sync.Mutex
 
-	queue  *MessageQueue
 	marsh  marshal.Marshalizer
 	hasher hashing.Hasher
 	rt     *RoutingTable
@@ -76,7 +71,7 @@ type NetMessenger struct {
 	topics    map[string]*Topic
 
 	mutGossipCache sync.Mutex
-	gossipCache    *timecache.TimeCache
+	gossipCache    *TimeCache
 }
 
 // NewNetMessenger creates a new instance of NetMessenger.
@@ -97,13 +92,13 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 		hasher:         hasher,
 		topics:         make(map[string]*Topic, 0),
 		mutGossipCache: sync.Mutex{},
-		gossipCache:    timecache.NewTimeCache(durTimeCache),
+		gossipCache:    NewTimeCache(durTimeCache),
 	}
 
 	node.cn = NewConnNotifier(&node)
 	node.cn.MaxAllowedPeers = maxAllowedPeers
 
-	timeStart := time.Now()
+	//TODO LOG timeStart := time.Now()
 
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cp.Port)),
@@ -119,17 +114,15 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 		return nil, err
 	}
 
-	fmt.Printf("Node: %v has the following addr table: \n", h.ID().Pretty())
-	for i, addr := range h.Addrs() {
-		fmt.Printf("%d: %s/ipfs/%s\n", i, addr, h.ID().Pretty())
-	}
-	fmt.Println()
+	//TODO LOG fmt.Printf("Node: %v has the following addr table: \n", h.ID().Pretty())
+	//for i, addr := range h.Addrs() {
+	//TODO LOG fmt.Printf("%d: %s/ipfs/%s\n", i, addr, h.ID().Pretty())
+	//}
 
-	fmt.Printf("Created node in %v\n", time.Now().Sub(timeStart))
+	//TODO LOG fmt.Printf("Created node in %v\n", time.Now().Sub(timeStart))
 
 	node.p2pNode = h
 	node.chansSend = make(map[string]chan []byte)
-	node.queue = NewMessageQueue(maxMessageQueueNetMessenger)
 
 	optsPS := []pubsub.Option{
 		pubsub.WithMessageSigning(true),
@@ -242,25 +235,25 @@ func (nm *NetMessenger) Addrs() []string {
 func (nm *NetMessenger) ConnectToAddresses(ctx context.Context, addresses []string) {
 	peers := 0
 
-	timeStart := time.Now()
+	//TODO LOG timeStart := time.Now()
 
 	for i := 0; i < len(addresses); i++ {
 		pinfo, err := nm.ParseAddressIpfs(addresses[i])
 
 		if err != nil {
-			fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err)
+			//TODO LOG fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err)
 			continue
 		}
 
 		if err := nm.p2pNode.Connect(ctx, *pinfo); err != nil {
-			fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err)
+			//TODO LOG fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err)
 			continue
 		}
 
 		peers++
 	}
 
-	fmt.Printf("Connected to %d peers in %v\n", peers, time.Now().Sub(timeStart))
+	//TODO LOG fmt.Printf("Connected to %d peers in %v\n", peers, time.Now().Sub(timeStart))
 }
 
 // Bootstrap will try to connect to as many peers as possible
@@ -299,11 +292,11 @@ func (nm *NetMessenger) Bootstrap(ctx context.Context) {
 func (nm *NetMessenger) PrintConnected() {
 	conns := nm.Conns()
 
-	fmt.Printf("Node %s is connected to: \n", nm.ID().Pretty())
+	//TODO LOG fmt.Printf("Node %s is connected to: \n", nm.ID().Pretty())
 
 	for i := 0; i < len(conns); i++ {
-		fmt.Printf("\t- %s with distance %d\n", conns[i].RemotePeer().Pretty(),
-			ComputeDistanceAD(nm.ID(), conns[i].RemotePeer()))
+		//TODO LOG fmt.Printf("\t- %s with distance %d\n", conns[i].RemotePeer().Pretty(),
+		//	ComputeDistanceAD(nm.ID(), conns[i].RemotePeer()))
 	}
 }
 
@@ -362,6 +355,7 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 	}
 
 	nm.topics[t.Name] = t
+	t.CurrentPeer = nm.ID()
 	nm.mutTopics.Unlock()
 
 	// async func for passing received data to Topic object
@@ -382,9 +376,11 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 			nm.mutGossipCache.Lock()
 			if nm.gossipCache.Has(obj.ID()) {
 				//duplicate object, skip
-				continue
 				nm.mutGossipCache.Unlock()
+				continue
 			}
+
+			nm.gossipCache.Add(obj.ID())
 			nm.mutGossipCache.Unlock()
 
 			err = t.NewObjReceived(obj, msg.GetFrom().Pretty())
@@ -392,14 +388,6 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 				//TODO log
 				continue
 			}
-
-			//keep track of all received messages in gossip cache
-			nm.mutGossipCache.Lock()
-			if !nm.gossipCache.Has(obj.ID()) {
-				nm.gossipCache.Add(obj.ID())
-			}
-			nm.mutGossipCache.Unlock()
-
 		}
 	}()
 
@@ -436,9 +424,9 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 		}
 
 		//payload == hash
-		cloner := t.ResolveRequest(mes.GetData())
+		obj := t.ResolveRequest(mes.GetData())
 
-		if cloner == nil {
+		if obj == nil {
 			//object not found
 			return true
 		}
@@ -448,13 +436,13 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 		has := false
 
 		nm.mutGossipCache.Lock()
-		has = nm.gossipCache.Has(cloner.ID())
+		has = nm.gossipCache.Has(obj.ID())
 		nm.mutGossipCache.Unlock()
 
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,
 			//then it shall broadcast it
-			t.Broadcast(cloner)
+			t.Broadcast(obj)
 		}
 		return false
 	}

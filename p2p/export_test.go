@@ -1,22 +1,9 @@
 package p2p
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-
-func (m *memoryMessage) GetMarshalizer() *marshal.Marshalizer {
-	return m.marsh
-}
-
-func (m *memoryMessage) SetMarshalizer(newMarsh *marshal.Marshalizer) {
-	m.marsh = newMarsh
-}
-
-func (mq *MessageQueue) Clean() {
-	mq.clean()
-}
-
-func (m *memoryMessage) SetSigned(signed bool) {
-	m.isSigned = signed
-}
+import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/libp2p/go-libp2p-pubsub"
+)
 
 func (t *Topic) EventBusData() []DataReceived {
 	return t.eventBusData
@@ -26,10 +13,18 @@ func (t *Topic) Marsh() marshal.Marshalizer {
 	return t.marsh
 }
 
-func NewMemoryMessage(peerID string, payload []byte, mrsh marshal.Marshalizer) *memoryMessage {
-	return newMemoryMessage(peerID, payload, mrsh)
+func (t *Topic) SetRequest(f func(hash []byte) error) {
+	t.request = f
 }
 
-func CreateMessageFromByteArray(mrsh marshal.Marshalizer, buff []byte) (*memoryMessage, error) {
-	return createMessageFromByteArray(mrsh, buff)
+func (t *Topic) SetRegisterTopicValidator(f func(v pubsub.Validator) error) {
+	t.registerTopicValidator = f
 }
+
+func (t *Topic) SetUnregisterTopicValidator(f func() error) {
+	t.unregisterTopicValidator = f
+}
+
+var DurTimeCache = durTimeCache
+var MutGloballyRegPeers = &mutGloballyRegPeers
+var GloballyRegisteredPeers = globallyRegisteredPeers
