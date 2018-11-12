@@ -122,21 +122,13 @@ func TestSetLevel(t *testing.T) {
 
 func TestWithFile(t *testing.T) {
 	t.Parallel()
-	file, err := logger.DefaultLogFile()
-	if err != nil {
-		t.Error("File could not be opened")
-	}
-	log := logger.NewElrondLogger(file)
+	log := logger.NewDefaultLogger()
 	log.Warn("This test should pass if the file was opened in the correct mode")
 }
 
 func TestConcurrencyWithFileWriter(t *testing.T) {
-	file, err := logger.DefaultLogFile()
-	if err != nil {
-		t.Error("File could not be opened")
-	}
-	log := logger.NewElrondLogger(file)
-
+	t.Parallel()
+	log := logger.NewDefaultLogger()
 	for i := 1; i < 1000; i++ {
 		go log.Warn("I will fail miserably if I'll run into concurrency issues")
 	}

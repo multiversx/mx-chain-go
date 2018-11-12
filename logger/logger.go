@@ -45,6 +45,16 @@ func NewElrondLogger(file *os.File) *Logger {
 	return el
 }
 
+// NewDefaultLogger is a shorthand for instantiating a new logger with default settings.
+// If it fails to open the default log file it will return a logger with os.Stdout output
+func NewDefaultLogger() *Logger {
+	file, err := DefaultLogFile()
+	if err != nil {
+		return NewElrondLogger(nil)
+	}
+	return NewElrondLogger(file)
+}
+
 // SetLevel sets the log level according to this package's defined levels
 func (el *Logger) SetLevel(level string) {
 	switch level {
