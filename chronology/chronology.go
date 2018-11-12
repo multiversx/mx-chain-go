@@ -2,7 +2,6 @@ package chronology
 
 import (
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -10,21 +9,10 @@ import (
 )
 
 // sleepTime defines the time in milliseconds between each iteration made in StartRounds method
-const sleepTime = 5
+const sleepTime = time.Duration(5 * time.Millisecond)
 
 // Subround defines the type used to refer the current subround
 type Subround int
-
-const (
-	// SrUnknown defines an unknown state of the round
-	SrUnknown Subround = math.MinInt64
-	// SrCanceled defines an canceled state of the round
-	SrCanceled Subround = math.MinInt64 + 1
-	// SrBeforeRound defines the state of the round before it's start
-	SrBeforeRound Subround = math.MinInt64 + 2
-	// SrAfterRound defines the state of the round after it's finish
-	SrAfterRound Subround = math.MaxInt64
-)
 
 // SubroundHandler defines the actions that can be handled in a sub-round
 type SubroundHandler interface {
@@ -71,8 +59,8 @@ func NewChronology(log bool,
 
 	chr.DoRun = true
 
-	chr.SetSelfSubround(SrBeforeRound)
-	chr.timeSubround = SrBeforeRound
+	chr.SetSelfSubround(-1)
+	chr.timeSubround = -1
 	chr.clockOffset = syncTime.ClockOffset()
 
 	chr.subroundHandlers = make([]SubroundHandler, 0)
@@ -83,7 +71,7 @@ func NewChronology(log bool,
 
 // initRound is called when a new round begins and do the necesary initialization
 func (chr *Chronology) initRound() {
-	chr.SetSelfSubround(SrBeforeRound)
+	chr.SetSelfSubround(-1)
 
 	if len(chr.subroundHandlers) > 0 {
 		chr.SetSelfSubround(chr.subroundHandlers[0].Current())
@@ -105,7 +93,7 @@ func (chr *Chronology) AddSubround(subroundHandler SubroundHandler) {
 // StartRounds actually starts the chronology and runs the subroundHandlers loaded
 func (chr *Chronology) StartRounds() {
 	for chr.DoRun {
-		time.Sleep(sleepTime * time.Millisecond)
+		time.Sleep(sleepTime)
 		chr.StartRound()
 	}
 }
@@ -168,15 +156,10 @@ func (chr *Chronology) LoadSubroundHandler(subround Subround) SubroundHandler {
 
 // GetSubroundFromDateTime returns subround in the current round related to the time given
 func (chr *Chronology) GetSubroundFromDateTime(timeStamp time.Time) Subround {
-
 	delta := timeStamp.Sub(chr.round.timeStamp).Nanoseconds()
 
-	if delta < 0 {
-		return SrBeforeRound
-	}
-
-	if delta > chr.round.timeDuration.Nanoseconds() {
-		return SrAfterRound
+	if delta < 0 || delta > chr.round.timeDuration.Nanoseconds() {
+		return -1
 	}
 
 	for i := 0; i < len(chr.subroundHandlers); i++ {
@@ -185,7 +168,7 @@ func (chr *Chronology) GetSubroundFromDateTime(timeStamp time.Time) Subround {
 		}
 	}
 
-	return SrUnknown
+	return -1
 }
 
 // Log do logs of the chronology if log variable is set on true

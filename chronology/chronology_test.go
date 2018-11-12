@@ -253,28 +253,25 @@ func TestRoundState(t *testing.T) {
 	rnd := chronology.NewRound(currentTime, currentTime, roundTimeDuration)
 	chr := chronology.NewChronology(true, true, rnd, currentTime, &ntp.LocalTime{})
 
-	state := chr.GetSubroundFromDateTime(currentTime.Add(-1 * time.Hour))
-	assert.Equal(t, chronology.SrBeforeRound, state)
-
-	state = chr.GetSubroundFromDateTime(currentTime.Add(1 * time.Hour))
-	assert.Equal(t, chronology.SrAfterRound, state)
-
-	state = chr.GetSubroundFromDateTime(currentTime)
-	assert.Equal(t, chronology.SrUnknown, state)
+	state := chr.GetSubroundFromDateTime(currentTime)
+	assert.Equal(t, chronology.Subround(-1), state)
 
 	chr.AddSubround(&SRStartRound{})
 
+	state = chr.GetSubroundFromDateTime(currentTime.Add(-1 * time.Hour))
+	assert.Equal(t, chronology.Subround(-1), state)
+
+	state = chr.GetSubroundFromDateTime(currentTime.Add(1 * time.Hour))
+	assert.Equal(t, chronology.Subround(-1), state)
+
 	state = chr.GetSubroundFromDateTime(currentTime)
-	assert.NotEqual(t, chronology.SrUnknown, state)
+	assert.Equal(t, chr.SubroundHandlers()[0].Current(), state)
 }
 
 func TestLoadSubrounder(t *testing.T) {
 	chr := chronology.Chronology{}
 
-	sr := chr.LoadSubroundHandler(chronology.SrBeforeRound)
-	assert.Nil(t, sr)
-
-	sr = chr.LoadSubroundHandler(chronology.SrAfterRound)
+	sr := chr.LoadSubroundHandler(-1)
 	assert.Nil(t, sr)
 
 	chr.AddSubround(&SRStartRound{})
@@ -295,12 +292,12 @@ func TestGettersAndSetters(t *testing.T) {
 	chr := chronology.NewChronology(true, true, rnd, genesisTime, syncTime)
 
 	assert.Equal(t, 0, chr.Round().Index())
-	assert.Equal(t, chronology.SrBeforeRound, chr.SelfSubround())
+	assert.Equal(t, chronology.Subround(-1), chr.SelfSubround())
 
 	chr.SetSelfSubround(srStartRound)
 	assert.Equal(t, srStartRound, chr.SelfSubround())
 
-	assert.Equal(t, chronology.SrBeforeRound, chr.TimeSubround())
+	assert.Equal(t, chronology.Subround(-1), chr.TimeSubround())
 	assert.Equal(t, time.Duration(0), chr.ClockOffset())
 	assert.NotNil(t, chr.SyncTime())
 	assert.Equal(t, time.Duration(0), chr.SyncTime().ClockOffset())

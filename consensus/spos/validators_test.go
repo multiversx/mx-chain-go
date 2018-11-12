@@ -14,6 +14,14 @@ func TestNewValidators(t *testing.T) {
 		[]string{"1", "2", "3"},
 		"2")
 
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
+
 	assert.Equal(t, 3, len(vld.ConsensusGroup()))
 	assert.Equal(t, "3", vld.ConsensusGroup()[2])
 	assert.Equal(t, "2", vld.Self())
@@ -26,11 +34,19 @@ func TestValidators_ResetValidationMap(t *testing.T) {
 		[]string{"1", "2", "3"},
 		"2")
 
-	vld.SetValidationMap("1", true, spos.SrBlock)
-	assert.Equal(t, true, vld.ValidationMap("1", spos.SrBlock))
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
 
-	vld.ResetValidationMap()
-	assert.Equal(t, false, vld.ValidationMap("1", spos.SrBlock))
+	vld.SetAgreement("1", spos.SrBlock, true)
+	assert.Equal(t, true, vld.Agreement("1", spos.SrBlock))
+
+	vld.ResetAgreement()
+	assert.Equal(t, false, vld.Agreement("1", spos.SrBlock))
 }
 
 func TestValidators_IsNodeInBitmapGroup(t *testing.T) {
@@ -40,8 +56,16 @@ func TestValidators_IsNodeInBitmapGroup(t *testing.T) {
 		[]string{"1", "2", "3"},
 		"2")
 
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
+
 	assert.Equal(t, false, vld.IsNodeInBitmapGroup(vld.Self()))
-	vld.SetValidationMap(vld.Self(), true, spos.SrBitmap)
+	vld.SetAgreement(vld.Self(), spos.SrBitmap, true)
 	assert.Equal(t, true, vld.IsNodeInBitmapGroup(vld.Self()))
 }
 
@@ -51,6 +75,14 @@ func TestValidators_IsNodeInValidationGroup(t *testing.T) {
 		nil,
 		[]string{"1", "2", "3"},
 		"2")
+
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
 
 	assert.Equal(t, false, vld.IsNodeInValidationGroup("4"))
 	assert.Equal(t, true, vld.IsNodeInValidationGroup(vld.Self()))
@@ -63,11 +95,19 @@ func TestValidators_IsBlockReceived(t *testing.T) {
 		[]string{"1", "2", "3"},
 		"2")
 
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
+
 	ok := vld.IsBlockReceived(1)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("1", true, spos.SrBlock)
-	assert.Equal(t, true, vld.ValidationMap("1", spos.SrBlock))
+	vld.SetAgreement("1", spos.SrBlock, true)
+	assert.Equal(t, true, vld.Agreement("1", spos.SrBlock))
 
 	ok = vld.IsBlockReceived(1)
 	assert.Equal(t, true, ok)
@@ -83,20 +123,28 @@ func TestValidators_IsCommitmentHashReceived(t *testing.T) {
 		[]string{"1", "2", "3"},
 		"2")
 
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
+
 	ok := vld.IsCommitmentHashReceived(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("1", true, spos.SrCommitmentHash)
-	assert.Equal(t, true, vld.ValidationMap("1", spos.SrCommitmentHash))
+	vld.SetAgreement("1", spos.SrCommitmentHash, true)
+	assert.Equal(t, true, vld.Agreement("1", spos.SrCommitmentHash))
 
 	ok = vld.IsCommitmentHashReceived(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("2", true, spos.SrCommitmentHash)
+	vld.SetAgreement("2", spos.SrCommitmentHash, true)
 	ok = vld.IsCommitmentHashReceived(2)
 	assert.Equal(t, true, ok)
 
-	vld.SetValidationMap("3", true, spos.SrCommitmentHash)
+	vld.SetAgreement("3", spos.SrCommitmentHash, true)
 	ok = vld.IsCommitmentHashReceived(2)
 	assert.Equal(t, true, ok)
 }
@@ -108,27 +156,35 @@ func TestValidators_IsBitmapInCommitmentHash(t *testing.T) {
 		[]string{"1", "2", "3"},
 		"2")
 
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
+
 	ok := vld.IsBitmapInCommitmentHash(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("1", true, spos.SrBitmap)
-	vld.SetValidationMap("3", true, spos.SrBitmap)
-	assert.Equal(t, true, vld.ValidationMap("3", spos.SrBitmap))
+	vld.SetAgreement("1", spos.SrBitmap, true)
+	vld.SetAgreement("3", spos.SrBitmap, true)
+	assert.Equal(t, true, vld.Agreement("3", spos.SrBitmap))
 
 	ok = vld.IsBitmapInCommitmentHash(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("2", true, spos.SrCommitmentHash)
-	assert.Equal(t, true, vld.ValidationMap("2", spos.SrCommitmentHash))
+	vld.SetAgreement("2", spos.SrCommitmentHash, true)
+	assert.Equal(t, true, vld.Agreement("2", spos.SrCommitmentHash))
 
 	ok = vld.IsBitmapInCommitmentHash(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("3", true, spos.SrCommitmentHash)
+	vld.SetAgreement("3", spos.SrCommitmentHash, true)
 	ok = vld.IsBitmapInCommitmentHash(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("1", true, spos.SrCommitmentHash)
+	vld.SetAgreement("1", spos.SrCommitmentHash, true)
 	ok = vld.IsBitmapInCommitmentHash(2)
 	assert.Equal(t, true, ok)
 }
@@ -140,27 +196,35 @@ func TestValidators_IsBitmapInCommitment(t *testing.T) {
 		[]string{"1", "2", "3"},
 		"2")
 
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
+
 	ok := vld.IsBitmapInCommitment(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("1", true, spos.SrBitmap)
-	vld.SetValidationMap("3", true, spos.SrBitmap)
-	assert.Equal(t, true, vld.ValidationMap("3", spos.SrBitmap))
+	vld.SetAgreement("1", spos.SrBitmap, true)
+	vld.SetAgreement("3", spos.SrBitmap, true)
+	assert.Equal(t, true, vld.Agreement("3", spos.SrBitmap))
 
 	ok = vld.IsBitmapInCommitment(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("2", true, spos.SrCommitment)
-	assert.Equal(t, true, vld.ValidationMap("2", spos.SrCommitment))
+	vld.SetAgreement("2", spos.SrCommitment, true)
+	assert.Equal(t, true, vld.Agreement("2", spos.SrCommitment))
 
 	ok = vld.IsBitmapInCommitment(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("3", true, spos.SrCommitment)
+	vld.SetAgreement("3", spos.SrCommitment, true)
 	ok = vld.IsBitmapInCommitment(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("1", true, spos.SrCommitment)
+	vld.SetAgreement("1", spos.SrCommitment, true)
 	ok = vld.IsBitmapInCommitment(2)
 	assert.Equal(t, true, ok)
 }
@@ -172,84 +236,54 @@ func TestValidators_IsBitmapInSignature(t *testing.T) {
 		[]string{"1", "2", "3"},
 		"2")
 
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
+
 	ok := vld.IsBitmapInSignature(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("1", true, spos.SrBitmap)
-	vld.SetValidationMap("3", true, spos.SrBitmap)
-	assert.Equal(t, true, vld.ValidationMap("3", spos.SrBitmap))
+	vld.SetAgreement("1", spos.SrBitmap, true)
+	vld.SetAgreement("3", spos.SrBitmap, true)
+	assert.Equal(t, true, vld.Agreement("3", spos.SrBitmap))
 
 	ok = vld.IsBitmapInSignature(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("2", true, spos.SrSignature)
-	assert.Equal(t, true, vld.ValidationMap("2", spos.SrSignature))
+	vld.SetAgreement("2", spos.SrSignature, true)
+	assert.Equal(t, true, vld.Agreement("2", spos.SrSignature))
 
 	ok = vld.IsBitmapInSignature(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("3", true, spos.SrSignature)
+	vld.SetAgreement("3", spos.SrSignature, true)
 	ok = vld.IsBitmapInSignature(2)
 	assert.Equal(t, false, ok)
 
-	vld.SetValidationMap("1", true, spos.SrSignature)
+	vld.SetAgreement("1", spos.SrSignature, true)
 	ok = vld.IsBitmapInSignature(2)
 	assert.Equal(t, true, ok)
 }
 
-func TestValidators_GetBlocksCount(t *testing.T) {
+func TestValidators_ComputeSize(t *testing.T) {
 
 	vld := spos.NewValidators(nil,
 		nil,
 		[]string{"1", "2", "3"},
 		"2")
 
-	vld.SetValidationMap("1", true, spos.SrBlock)
-	assert.Equal(t, 1, vld.GetBlocksCount())
-}
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
 
-func TestValidators_GetCommitmentHashesCount(t *testing.T) {
-
-	vld := spos.NewValidators(nil,
-		nil,
-		[]string{"1", "2", "3"},
-		"2")
-
-	vld.SetValidationMap("1", true, spos.SrCommitmentHash)
-	assert.Equal(t, 1, vld.GetCommitmentHashesCount())
-}
-
-func TestValidators_GetBitmapsCount(t *testing.T) {
-
-	vld := spos.NewValidators(nil,
-		nil,
-		[]string{"1", "2", "3"},
-		"2")
-
-	vld.SetValidationMap("1", true, spos.SrBitmap)
-	vld.SetValidationMap("2", true, spos.SrBitmap)
-	assert.Equal(t, 2, vld.GetBitmapsCount())
-}
-
-func TestValidators_GetCommitmentsCount(t *testing.T) {
-
-	vld := spos.NewValidators(nil,
-		nil,
-		[]string{"1", "2", "3"},
-		"2")
-
-	vld.SetValidationMap("1", true, spos.SrCommitment)
-	vld.SetValidationMap("2", true, spos.SrCommitment)
-	vld.SetValidationMap("3", true, spos.SrCommitment)
-	assert.Equal(t, 3, vld.GetCommitmentsCount())
-}
-
-func TestValidators_GetSignaturesCount(t *testing.T) {
-
-	vld := spos.NewValidators(nil,
-		nil,
-		[]string{"1", "2", "3"},
-		"2")
-
-	assert.Equal(t, 0, vld.GetCommitmentsCount())
+	vld.SetAgreement("1", spos.SrBlock, true)
+	assert.Equal(t, 1, vld.ComputeSize(spos.SrBlock))
 }

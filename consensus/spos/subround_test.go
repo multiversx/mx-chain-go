@@ -31,23 +31,36 @@ func InitSRImpl() (*chronology.Chronology, *spos.Consensus) {
 		[]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"},
 		"1")
 
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
+
 	pbft := 2*len(vld.ConsensusGroup())/3 + 1
 
-	th := spos.NewThreshold(1,
-		pbft,
-		pbft,
-		pbft,
-		pbft)
+	rt := spos.NewRoundThreshold()
 
-	rs := spos.NewRoundStatus(spos.SsNotFinished,
-		spos.SsNotFinished,
-		spos.SsNotFinished,
-		spos.SsNotFinished,
-		spos.SsNotFinished)
+	rt.SetThreshold(spos.SrBlock, 1)
+	rt.SetThreshold(spos.SrCommitmentHash, pbft)
+	rt.SetThreshold(spos.SrBitmap, pbft)
+	rt.SetThreshold(spos.SrCommitment, pbft)
+	rt.SetThreshold(spos.SrSignature, pbft)
+
+	rs := spos.NewRoundStatus()
+
+	rs.SetStatus(spos.SrBlock, spos.SsNotFinished)
+	rs.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
+	rs.SetStatus(spos.SrBitmap, spos.SsNotFinished)
+	rs.SetStatus(spos.SrCommitment, spos.SsNotFinished)
+	rs.SetStatus(spos.SrSignature, spos.SsNotFinished)
 
 	cns := spos.NewConsensus(true,
+		nil,
 		vld,
-		th,
+		rt,
 		rs,
 		chr)
 
@@ -88,7 +101,7 @@ func TestSRImpl_DoWork2(t *testing.T) {
 		DoCheckConsensusWithoutSuccess)
 
 	chr.AddSubround(sr)
-	chr.SetSelfSubround(chronology.SrCanceled)
+	chr.SetSelfSubround(-1)
 	r := sr.DoWork(chr)
 	assert.Equal(t, false, r)
 }

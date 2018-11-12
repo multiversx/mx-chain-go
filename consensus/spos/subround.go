@@ -6,16 +6,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 )
 
-// SRImpl defines the data needed by one subround
+// SRImpl defines the data needed by one subround. Actually it defines a subround with it's properties (it's ID,
+// next subround ID, it's duration, it's name and also it has some handler functions which should be set. work funvtion
+// will be the main function of this subround, extend function will handle the overtime situation of the subround and
+// check function will decide if in this subround the consensus is achieved
 type SRImpl struct {
 	current chronology.Subround
 	next    chronology.Subround
 	endTime int64
 	name    string
 
-	doSubroundJob    func() bool         // this is a pointer to a function which actually do the job of this subround
-	doExtendSubround func()              // this is a pointer to a function which put this subround in the extended mode
-	doCheckConsensus func(Subround) bool // this is a pointer to a function which will check the consensus
+	work   func() bool         // this is a pointer to a function which actually do the job of this subround
+	extend func()              // this is a pointer to a function which put this subround in the extended mode
+	check  func(Subround) bool // this is a pointer to a function which will check the consensus
 }
 
 // NewSRImpl creates a new SRImpl object
@@ -23,18 +26,18 @@ func NewSRImpl(current chronology.Subround,
 	next chronology.Subround,
 	endTime int64,
 	name string,
-	doSubroundJob func() bool,
-	doExtendSubround func(),
-	doCheckConsensus func(Subround) bool) *SRImpl {
+	work func() bool,
+	extend func(),
+	check func(Subround) bool) *SRImpl {
 
 	sr := SRImpl{
-		current:          current,
-		next:             next,
-		endTime:          endTime,
-		name:             name,
-		doSubroundJob:    doSubroundJob,
-		doExtendSubround: doExtendSubround,
-		doCheckConsensus: doCheckConsensus}
+		current: current,
+		next:    next,
+		endTime: endTime,
+		name:    name,
+		work:    work,
+		extend:  extend,
+		check:   check}
 
 	return &sr
 }
@@ -45,28 +48,32 @@ func NewSRImpl(current chronology.Subround,
 // put it into extended mode or in canceled mode
 func (sr *SRImpl) DoWork(chr *chronology.Chronology) bool {
 	for {
-		time.Sleep(sleepTime * time.Millisecond)
+		time.Sleep(sleepTime)
 
 		timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 
+		if timeSubRound == chronology.Subround(-1) {
+			break
+		}
+
 		if timeSubRound > sr.current {
-			if sr.doExtendSubround != nil {
-				sr.doExtendSubround()
+			if sr.extend != nil {
+				sr.extend()
 			}
 			return true // Try to give a chance to this round (extend the current subround)
 		}
 
-		if sr.doSubroundJob != nil {
-			sr.doSubroundJob()
+		if sr.work != nil {
+			sr.work()
 		}
 
-		if sr.doCheckConsensus != nil {
-			if sr.doCheckConsensus(Subround(sr.current)) {
+		if sr.check != nil {
+			if sr.check(Subround(sr.current)) {
 				return true
 			}
 		}
 
-		if chr.SelfSubround() == chronology.SrCanceled {
+		if chr.SelfSubround() == chronology.Subround(-1) {
 			break
 		}
 	}

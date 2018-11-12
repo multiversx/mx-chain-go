@@ -36,27 +36,30 @@ func DoCheckConsensusWithoutSuccess(subround spos.Subround) bool {
 
 func TestNewRoundStatus(t *testing.T) {
 
-	rs := spos.NewRoundStatus(spos.SsNotFinished,
-		spos.SsNotFinished,
-		spos.SsNotFinished,
-		spos.SsNotFinished,
-		spos.SsNotFinished)
+	rs := spos.NewRoundStatus()
 
-	assert.Equal(t, spos.SsNotFinished, rs.CommitmentHash())
+	assert.NotNil(t, rs)
 
-	rs.SetCommitmentHash(spos.SsFinished)
-	assert.Equal(t, spos.SsFinished, rs.CommitmentHash())
+	rs.SetStatus(spos.SrCommitmentHash, spos.SsFinished)
+	assert.Equal(t, spos.SsFinished, rs.Status(spos.SrCommitmentHash))
 
-	rs.SetBitmap(spos.SsExtended)
-	assert.Equal(t, spos.SsExtended, rs.Bitmap())
+	rs.SetStatus(spos.SrBitmap, spos.SsExtended)
+	assert.Equal(t, spos.SsExtended, rs.Status(spos.SrBitmap))
 
 	rs.ResetRoundStatus()
-	assert.Equal(t, spos.SsNotFinished, rs.Bitmap())
+	assert.Equal(t, spos.SsNotFinished, rs.Status(spos.SrBitmap))
 }
 
 func TestNewThreshold(t *testing.T) {
-	th := spos.NewThreshold(1, 2, 3, 4, 5)
-	assert.Equal(t, 3, th.Bitmap())
+	rt := spos.NewRoundThreshold()
+
+	rt.SetThreshold(spos.SrBlock, 1)
+	rt.SetThreshold(spos.SrCommitmentHash, 2)
+	rt.SetThreshold(spos.SrBitmap, 3)
+	rt.SetThreshold(spos.SrCommitment, 4)
+	rt.SetThreshold(spos.SrSignature, 5)
+
+	assert.Equal(t, 3, rt.Threshold(spos.SrBitmap))
 }
 
 func TestNewConsensus(t *testing.T) {
@@ -66,17 +69,29 @@ func TestNewConsensus(t *testing.T) {
 		[]string{"1", "2", "3"},
 		"2")
 
-	th := spos.NewThreshold(1,
-		2,
-		3,
-		4,
-		5)
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
 
-	rs := spos.NewRoundStatus(spos.SsNotFinished,
-		spos.SsNotFinished,
-		spos.SsNotFinished,
-		spos.SsNotFinished,
-		spos.SsNotFinished)
+	rt := spos.NewRoundThreshold()
+
+	rt.SetThreshold(spos.SrBlock, 1)
+	rt.SetThreshold(spos.SrCommitmentHash, 2)
+	rt.SetThreshold(spos.SrBitmap, 3)
+	rt.SetThreshold(spos.SrCommitment, 4)
+	rt.SetThreshold(spos.SrSignature, 5)
+
+	rs := spos.NewRoundStatus()
+
+	rs.SetStatus(spos.SrBlock, spos.SsNotFinished)
+	rs.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
+	rs.SetStatus(spos.SrBitmap, spos.SsNotFinished)
+	rs.SetStatus(spos.SrCommitment, spos.SsNotFinished)
+	rs.SetStatus(spos.SrSignature, spos.SsNotFinished)
 
 	genesisTime := time.Now()
 	currentTime := genesisTime
@@ -92,8 +107,9 @@ func TestNewConsensus(t *testing.T) {
 		&ntp.LocalTime{})
 
 	cns := spos.NewConsensus(true,
+		nil,
 		vld,
-		th,
+		rt,
 		rs,
 		chr)
 
@@ -106,17 +122,29 @@ func InitConsensus() *spos.Consensus {
 		[]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"},
 		"1")
 
-	th := spos.NewThreshold(1,
-		7,
-		7,
-		7,
-		7)
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
 
-	rs := spos.NewRoundStatus(spos.SsFinished,
-		spos.SsFinished,
-		spos.SsFinished,
-		spos.SsFinished,
-		spos.SsFinished)
+	rt := spos.NewRoundThreshold()
+
+	rt.SetThreshold(spos.SrBlock, 1)
+	rt.SetThreshold(spos.SrCommitmentHash, 7)
+	rt.SetThreshold(spos.SrBitmap, 7)
+	rt.SetThreshold(spos.SrCommitment, 7)
+	rt.SetThreshold(spos.SrSignature, 7)
+
+	rs := spos.NewRoundStatus()
+
+	rs.SetStatus(spos.SrBlock, spos.SsFinished)
+	rs.SetStatus(spos.SrCommitmentHash, spos.SsFinished)
+	rs.SetStatus(spos.SrBitmap, spos.SsFinished)
+	rs.SetStatus(spos.SrCommitment, spos.SsFinished)
+	rs.SetStatus(spos.SrSignature, spos.SsFinished)
 
 	genesisTime := time.Now()
 	currentTime := genesisTime
@@ -132,8 +160,9 @@ func InitConsensus() *spos.Consensus {
 		&ntp.LocalTime{})
 
 	cns := spos.NewConsensus(true,
+		nil,
 		vld,
-		th,
+		rt,
 		rs,
 		chr)
 
@@ -160,178 +189,178 @@ func TestConsensus_CheckConsensus(t *testing.T) {
 func TestConsensus_CheckBlockConsensus(t *testing.T) {
 	cns := InitConsensus()
 
-	cns.RoundStatus.SetBlock(spos.SsNotFinished)
+	cns.SetStatus(spos.SrBlock, spos.SsNotFinished)
 
 	cns.SetShouldCheckConsensus(true)
 	ok := cns.CheckConsensus(spos.SrBlock)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, spos.SsNotFinished, cns.RoundStatus.Block())
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrBlock))
 
-	cns.SetValidationMap("2", true, spos.SrBlock)
+	cns.SetAgreement("2", spos.SrBlock, true)
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrBlock)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, spos.SsFinished, cns.RoundStatus.Block())
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrBlock))
 }
 
 func TestConsensus_CheckCommitmentHashConsensus(t *testing.T) {
 	cns := InitConsensus()
 
-	cns.RoundStatus.SetCommitmentHash(spos.SsNotFinished)
+	cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
 
 	cns.SetShouldCheckConsensus(true)
 	ok := cns.CheckConsensus(spos.SrCommitmentHash)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, spos.SsNotFinished, cns.RoundStatus.CommitmentHash())
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrCommitmentHash))
 
-	for i := 0; i < cns.Threshold.CommitmentHash(); i++ {
-		cns.SetValidationMap(cns.Validators.ConsensusGroup()[i], true, spos.SrCommitmentHash)
+	for i := 0; i < cns.Threshold(spos.SrCommitmentHash); i++ {
+		cns.SetAgreement(cns.Validators.ConsensusGroup()[i], spos.SrCommitmentHash, true)
 	}
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrCommitmentHash)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, spos.SsFinished, cns.RoundStatus.CommitmentHash())
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrCommitmentHash))
 
 	cns.Validators.SetSelf("2")
 
-	cns.RoundStatus.SetCommitmentHash(spos.SsNotFinished)
+	cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrCommitmentHash)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, spos.SsNotFinished, cns.RoundStatus.CommitmentHash())
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrCommitmentHash))
 
-	for i := 0; i < cns.Threshold.Bitmap(); i++ {
-		cns.SetValidationMap(cns.Validators.ConsensusGroup()[i], true, spos.SrBitmap)
+	for i := 0; i < cns.Threshold(spos.SrBitmap); i++ {
+		cns.SetAgreement(cns.Validators.ConsensusGroup()[i], spos.SrBitmap, true)
 	}
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrCommitmentHash)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, spos.SsFinished, cns.RoundStatus.CommitmentHash())
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrCommitmentHash))
 
-	for i := 0; i < cns.Threshold.Bitmap(); i++ {
-		cns.SetValidationMap(cns.Validators.ConsensusGroup()[i], false, spos.SrBitmap)
+	for i := 0; i < cns.Threshold(spos.SrBitmap); i++ {
+		cns.SetAgreement(cns.Validators.ConsensusGroup()[i], spos.SrBitmap, false)
 	}
 
 	for i := 0; i < len(cns.Validators.ConsensusGroup()); i++ {
-		cns.SetValidationMap(cns.Validators.ConsensusGroup()[i], true, spos.SrCommitmentHash)
+		cns.SetAgreement(cns.Validators.ConsensusGroup()[i], spos.SrCommitmentHash, true)
 	}
 
-	cns.RoundStatus.SetCommitmentHash(spos.SsNotFinished)
+	cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrCommitmentHash)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, spos.SsFinished, cns.RoundStatus.CommitmentHash())
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrCommitmentHash))
 }
 
 func TestConsensus_CheckBitmapConsensus(t *testing.T) {
 	cns := InitConsensus()
 
-	cns.RoundStatus.SetBitmap(spos.SsNotFinished)
+	cns.SetStatus(spos.SrBitmap, spos.SsNotFinished)
 
 	cns.SetShouldCheckConsensus(true)
 	ok := cns.CheckConsensus(spos.SrBitmap)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, spos.SsNotFinished, cns.RoundStatus.Bitmap())
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrBitmap))
 
 	for i := 1; i < len(cns.Validators.ConsensusGroup()); i++ {
-		cns.SetValidationMap(cns.Validators.ConsensusGroup()[i], true, spos.SrCommitmentHash)
+		cns.SetAgreement(cns.Validators.ConsensusGroup()[i], spos.SrCommitmentHash, true)
 	}
 
-	for i := 0; i < cns.Threshold.Bitmap(); i++ {
-		cns.SetValidationMap(cns.Validators.ConsensusGroup()[i], true, spos.SrBitmap)
+	for i := 0; i < cns.Threshold(spos.SrBitmap); i++ {
+		cns.SetAgreement(cns.Validators.ConsensusGroup()[i], spos.SrBitmap, true)
 	}
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrBitmap)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, spos.SsNotFinished, cns.RoundStatus.Bitmap())
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrBitmap))
 
-	cns.SetValidationMap(cns.Validators.ConsensusGroup()[0], true, spos.SrCommitmentHash)
+	cns.SetAgreement(cns.Validators.ConsensusGroup()[0], spos.SrCommitmentHash, true)
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrBitmap)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, spos.SsFinished, cns.RoundStatus.Bitmap())
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrBitmap))
 
 	for i := 1; i < len(cns.Validators.ConsensusGroup()); i++ {
-		cns.SetValidationMap(cns.Validators.ConsensusGroup()[i], true, spos.SrBitmap)
+		cns.SetAgreement(cns.Validators.ConsensusGroup()[i], spos.SrBitmap, true)
 	}
 
-	cns.SetValidationMap(cns.Validators.Self(), false, spos.SrBitmap)
+	cns.SetAgreement(cns.Validators.Self(), spos.SrBitmap, false)
 
-	cns.RoundStatus.SetBitmap(spos.SsNotFinished)
+	cns.SetStatus(spos.SrBitmap, spos.SsNotFinished)
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrBitmap)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, spos.SsFinished, cns.RoundStatus.Bitmap())
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrBitmap))
 }
 
 func TestConsensus_CheckCommitmentConsensus(t *testing.T) {
 	cns := InitConsensus()
 
-	cns.RoundStatus.SetCommitment(spos.SsNotFinished)
+	cns.SetStatus(spos.SrCommitment, spos.SsNotFinished)
 
 	cns.SetShouldCheckConsensus(true)
 	ok := cns.CheckConsensus(spos.SrCommitment)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, spos.SsNotFinished, cns.RoundStatus.Commitment())
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrCommitment))
 
-	for i := 0; i < cns.Threshold.Bitmap(); i++ {
-		cns.SetValidationMap(cns.Validators.ConsensusGroup()[i], true, spos.SrBitmap)
+	for i := 0; i < cns.Threshold(spos.SrBitmap); i++ {
+		cns.SetAgreement(cns.Validators.ConsensusGroup()[i], spos.SrBitmap, true)
 	}
 
 	for i := 1; i < len(cns.Validators.ConsensusGroup()); i++ {
-		cns.SetValidationMap(cns.Validators.ConsensusGroup()[i], true, spos.SrCommitment)
+		cns.SetAgreement(cns.Validators.ConsensusGroup()[i], spos.SrCommitment, true)
 	}
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrCommitment)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, spos.SsNotFinished, cns.RoundStatus.Commitment())
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrCommitment))
 
-	cns.SetValidationMap(cns.Validators.ConsensusGroup()[0], true, spos.SrCommitment)
+	cns.SetAgreement(cns.Validators.ConsensusGroup()[0], spos.SrCommitment, true)
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrCommitment)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, spos.SsFinished, cns.RoundStatus.Commitment())
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrCommitment))
 }
 
 func TestConsensus_CheckSignatureConsensus(t *testing.T) {
 	cns := InitConsensus()
 
-	cns.RoundStatus.SetSignature(spos.SsNotFinished)
+	cns.SetStatus(spos.SrSignature, spos.SsNotFinished)
 
 	cns.SetShouldCheckConsensus(true)
 	ok := cns.CheckConsensus(spos.SrSignature)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, spos.SsNotFinished, cns.RoundStatus.Signature())
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrSignature))
 
-	for i := 0; i < cns.Threshold.Bitmap(); i++ {
-		cns.SetValidationMap(cns.Validators.ConsensusGroup()[i], true, spos.SrBitmap)
+	for i := 0; i < cns.Threshold(spos.SrBitmap); i++ {
+		cns.SetAgreement(cns.Validators.ConsensusGroup()[i], spos.SrBitmap, true)
 	}
 
-	for i := 1; i < cns.Threshold.Signature(); i++ {
-		cns.SetValidationMap(cns.Validators.ConsensusGroup()[i], true, spos.SrSignature)
+	for i := 1; i < cns.Threshold(spos.SrSignature); i++ {
+		cns.SetAgreement(cns.Validators.ConsensusGroup()[i], spos.SrSignature, true)
 	}
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrSignature)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, spos.SsNotFinished, cns.RoundStatus.Signature())
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrSignature))
 
-	cns.SetValidationMap(cns.Validators.ConsensusGroup()[0], true, spos.SrSignature)
+	cns.SetAgreement(cns.Validators.ConsensusGroup()[0], spos.SrSignature, true)
 
 	cns.SetShouldCheckConsensus(true)
 	ok = cns.CheckConsensus(spos.SrSignature)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, spos.SsFinished, cns.RoundStatus.Signature())
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrSignature))
 }
 
 func TestConsensus_IsNodeLeaderInCurrentRound(t *testing.T) {
@@ -340,6 +369,14 @@ func TestConsensus_IsNodeLeaderInCurrentRound(t *testing.T) {
 		nil,
 		[]string{"1", "2", "3"},
 		"2")
+
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
 
 	genesisTime := time.Now()
 	currentTime := genesisTime
@@ -355,6 +392,7 @@ func TestConsensus_IsNodeLeaderInCurrentRound(t *testing.T) {
 		&ntp.LocalTime{})
 
 	cns := spos.NewConsensus(true,
+		nil,
 		vld,
 		nil,
 		nil,
@@ -373,15 +411,39 @@ func TestConsensus_GetLeader(t *testing.T) {
 		nil,
 		"")
 
+	for i := 0; i < len(vld1.ConsensusGroup()); i++ {
+		vld1.SetAgreement(vld1.ConsensusGroup()[i], spos.SrBlock, false)
+		vld1.SetAgreement(vld1.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld1.SetAgreement(vld1.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld1.SetAgreement(vld1.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld1.SetAgreement(vld1.ConsensusGroup()[i], spos.SrSignature, false)
+	}
+
 	vld2 := spos.NewValidators(nil,
 		nil,
 		[]string{},
 		"")
 
+	for i := 0; i < len(vld2.ConsensusGroup()); i++ {
+		vld2.SetAgreement(vld2.ConsensusGroup()[i], spos.SrBlock, false)
+		vld2.SetAgreement(vld2.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld2.SetAgreement(vld2.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld2.SetAgreement(vld2.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld2.SetAgreement(vld2.ConsensusGroup()[i], spos.SrSignature, false)
+	}
+
 	vld3 := spos.NewValidators(nil,
 		nil,
 		[]string{"1", "2", "3"},
 		"1")
+
+	for i := 0; i < len(vld3.ConsensusGroup()); i++ {
+		vld3.SetAgreement(vld3.ConsensusGroup()[i], spos.SrBlock, false)
+		vld3.SetAgreement(vld3.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld3.SetAgreement(vld3.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld3.SetAgreement(vld3.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld3.SetAgreement(vld3.ConsensusGroup()[i], spos.SrSignature, false)
+	}
 
 	genesisTime := time.Now()
 	currentTime := genesisTime
@@ -416,21 +478,25 @@ func TestConsensus_GetLeader(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		nil,
 		nil)
 
 	cns2 := spos.NewConsensus(true,
+		nil,
 		vld1,
 		nil,
 		nil,
 		nil)
 
 	cns3 := spos.NewConsensus(true,
+		nil,
 		vld2,
 		nil,
 		nil,
 		nil)
 
 	cns4 := spos.NewConsensus(true,
+		nil,
 		vld3,
 		nil,
 		nil,
@@ -477,6 +543,7 @@ func TestConsensus_Log(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		nil,
 		nil)
 
 	cns.Log("Test Consesnus")
@@ -485,6 +552,7 @@ func TestConsensus_Log(t *testing.T) {
 func TestGettersAndSetters(t *testing.T) {
 
 	cns := spos.NewConsensus(true,
+		nil,
 		nil,
 		nil,
 		nil,
