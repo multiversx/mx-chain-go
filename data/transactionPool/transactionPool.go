@@ -1,4 +1,4 @@
-package transaction_pool
+package transactionPool
 
 import (
 	"sync"
@@ -9,7 +9,7 @@ import (
 
 // TransactionPool holds the list of transactions organised by destination shard
 //
-// Through the MiniPools store it maps a a cacher, containing transaction
+// Through the MiniPools store it maps a cacher, containing transaction
 //  hashes, to a corresponding shard id. It is able to add or remove
 //  transactions given the shard id it is associated with. It can
 //  also merge and split pools when required
@@ -54,35 +54,34 @@ func (tp *TransactionPool) NewMiniPool(destShardID uint32) {
 	tp.lock.Unlock()
 }
 
-// GetMiniPool returns a minipool of transactions associated with a given destination shardID
-func (tp *TransactionPool) GetMiniPool(shardID uint32) (*miniPool) {
+// MiniPool returns a minipool of transactions associated with a given destination shardID
+func (tp *TransactionPool) MiniPool(shardID uint32) (*miniPool) {
 	return tp.MiniPoolsStore[shardID]
 }
 
-// GetMiniPoolTxStore returns the minipool transaction store containing transaction hashes
+// MiniPoolTxStore returns the minipool transaction store containing transaction hashes
 //  associated with a given destination shardID
-func (tp *TransactionPool) GetMiniPoolTxStore(shardID uint32) (c *storage.Cacher) {
-	mp := tp.GetMiniPool(shardID)
+func (tp *TransactionPool) MiniPoolTxStore(shardID uint32) (c *storage.Cacher) {
+	mp := tp.MiniPool(shardID)
 	if mp == nil {
 		return nil
 	}
-	return (*mp).TxHashStore
+	return mp.TxHashStore
 }
 
 // AddTransaction will add a transaction hash to the coresponding pool
-// Returns true if the transaction was added, false if it already existed
 func (tp *TransactionPool) AddTransaction(txHash []byte, destShardID uint32) {
 	if tp.MiniPoolsStore[destShardID] == nil {
 		tp.NewMiniPool(destShardID)
 	}
-	mp := *tp.GetMiniPoolTxStore(destShardID)
+	mp := *tp.MiniPoolTxStore(destShardID)
 	mp.HasOrAdd(txHash, nil)
 }
 
 // RemoveTransaction will remove a transaction hash from the coresponding pool
 func (tp *TransactionPool) RemoveTransaction(txHash []byte, destShardID uint32) {
 	if tp.MiniPoolsStore[destShardID] != nil {
-		(*tp.GetMiniPoolTxStore(destShardID)).Remove(txHash)
+		(*tp.MiniPoolTxStore(destShardID)).Remove(txHash)
 	}
 }
 
@@ -90,7 +89,7 @@ func (tp *TransactionPool) RemoveTransaction(txHash []byte, destShardID uint32) 
 //  the transaction hash. It will itearate over all mini pools and remove it everywhere
 func (tp *TransactionPool) FindAndRemoveTransaction(txHash []byte) {
 	for k := range tp.MiniPoolsStore {
-		m := *tp.GetMiniPoolTxStore(k)
+		m := *tp.MiniPoolTxStore(k)
 		if m.Has(txHash) {
 			m.Remove(txHash)
 		}
@@ -100,7 +99,7 @@ func (tp *TransactionPool) FindAndRemoveTransaction(txHash []byte) {
 // MergeMiniPools will take all transactions associated with the mergedShardId and move them
 //  to the destShardID. It will then remove the mergedShardID key from the store map
 func (tp *TransactionPool) MergeMiniPools(destShardID, mergedShardID uint32) {
-	mergedStore := *tp.GetMiniPoolTxStore(mergedShardID)
+	mergedStore := *tp.MiniPoolTxStore(mergedShardID)
 	mergedStoreTxs := mergedStore.Keys()
 	for _, tx := range mergedStoreTxs {
 		tp.AddTransaction(tx, destShardID)
@@ -125,7 +124,7 @@ func (tp *TransactionPool) Clear() {
 
 // ClearMiniPool will delete all transactions associated with a given destination shardID
 func (tp *TransactionPool) ClearMiniPool(shardID uint32) {
-	mp := tp.GetMiniPoolTxStore(shardID)
+	mp := tp.MiniPoolTxStore(shardID)
 	if mp == nil {
 		return
 	}
