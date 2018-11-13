@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
+var errorMockAccountsDBMock = errors.New("AccountsDBMock general failure")
+
 // AccountsDBMock is the struct used for accessing accounts in "dummy" mode (only in mem)
 type AccountsDBMock struct {
 	//should use a concurrent trie
@@ -21,6 +23,12 @@ type AccountsDBMock struct {
 
 	mutUsedAccounts   sync.RWMutex
 	usedStateAccounts map[string]*state.AccountState
+
+	FailSaveAccountState        bool
+	NoToFailureSaveAccountState int
+
+	FailGetOrCreateAccount        bool
+	NoToFailureGetOrCreateAccount int
 }
 
 // NewAccountsDBMock creates a new mock account manager
@@ -140,6 +148,14 @@ func (adb *AccountsDBMock) HasAccount(address state.Address) (bool, error) {
 
 // SaveAccountState saves the account WITHOUT data trie inside main trie. Errors if something went wrong
 func (adb *AccountsDBMock) SaveAccountState(s *state.AccountState) error {
+	if adb.FailSaveAccountState {
+		if adb.NoToFailureSaveAccountState > 0 {
+			adb.NoToFailureSaveAccountState--
+		} else {
+			return errorMockAccountsDBMock
+		}
+	}
+
 	if s == nil {
 		return errors.New("can not save nil account state")
 	}
@@ -166,6 +182,14 @@ func (adb *AccountsDBMock) SaveAccountState(s *state.AccountState) error {
 
 // GetOrCreateAccount fetches the account based on the address. Creates an empty account if the account is missing.
 func (adb *AccountsDBMock) GetOrCreateAccount(address state.Address) (*state.AccountState, error) {
+	if adb.FailGetOrCreateAccount {
+		if adb.NoToFailureGetOrCreateAccount > 0 {
+			adb.NoToFailureGetOrCreateAccount--
+		} else {
+			return nil, errorMockAccountsDBMock
+		}
+	}
+
 	has, err := adb.HasAccount(address)
 	if err != nil {
 		return nil, err
