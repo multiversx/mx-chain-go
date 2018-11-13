@@ -28,7 +28,7 @@ func createAddress(t *testing.T, buff []byte) *Address {
 }
 
 func createAccountState(_ *testing.T, address Address) *AccountState {
-	return NewAccountState(address, Account{}, testHasher)
+	return NewAccountState(address, Account{})
 }
 
 func TestAccountsDB_RetrieveCode_NilCodeHash_ShouldRetNil(t *testing.T) {

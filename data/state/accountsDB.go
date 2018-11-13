@@ -92,7 +92,7 @@ func (adb *AccountsDB) RetrieveData(state *AccountState) error {
 // PutCode sets the SC plain code in AccountState object and trie, code hash in AccountState. Errors if something went wrong
 func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 	if (code == nil) || (len(code) == 0) {
-		state.reset()
+		state.Reset()
 		return nil
 	}
 
@@ -100,18 +100,18 @@ func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 		return errors.New("attempt to search on a nil trie")
 	}
 
-	state.CodeHash = state.hasher.Compute(string(code))
+	state.CodeHash = adb.hasher.Compute(string(code))
 	state.Code = code
 
 	err := adb.MainTrie.Update(state.CodeHash, state.Code)
 	if err != nil {
-		state.reset()
+		state.Reset()
 		return err
 	}
 
 	dataTrie, err := adb.MainTrie.Recreate(make([]byte, 0), adb.MainTrie.DBW())
 	if err != nil {
-		state.reset()
+		state.Reset()
 		return err
 	}
 
@@ -180,14 +180,14 @@ func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error
 			return nil, err
 		}
 
-		state := NewAccountState(address, acnt, adb.hasher)
+		state := NewAccountState(address, acnt)
 
 		adb.trackAccountState(state)
 
 		return state, nil
 	}
 
-	state := NewAccountState(address, Account{}, adb.hasher)
+	state := NewAccountState(address, Account{})
 
 	err = adb.SaveAccountState(state)
 	if err != nil {
@@ -211,7 +211,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 			}
 
 			v.Root = hash
-			v.prevRoot = hash
+			v.PrevRoot = hash
 		}
 
 		buff, err := adb.marsh.Marshal(v.Account)
