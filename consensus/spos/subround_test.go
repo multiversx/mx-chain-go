@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func InitSRImpl() (*chronology.Chronology, *spos.Consensus) {
+func InitSubroundImpl() (*chronology.Chronology, *spos.Consensus) {
 
 	genesisTime := time.Now()
 	currentTime := genesisTime
@@ -67,13 +67,13 @@ func InitSRImpl() (*chronology.Chronology, *spos.Consensus) {
 	return chr, cns
 }
 
-func TestSRImpl_DoWork1(t *testing.T) {
+func TestSubroundImpl_DoWork1(t *testing.T) {
 
 	fmt.Printf("1: Test the case when consensus is done -> true\n")
 
-	chr, _ := InitSRImpl()
+	chr, _ := InitSubroundImpl()
 
-	sr := spos.NewSRImpl(chronology.Subround(spos.SrBlock),
+	sr := spos.NewSubroundImpl(chronology.Subround(spos.SrBlock),
 		chronology.Subround(spos.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
@@ -86,13 +86,13 @@ func TestSRImpl_DoWork1(t *testing.T) {
 	assert.Equal(t, true, r)
 }
 
-func TestSRImpl_DoWork2(t *testing.T) {
+func TestSubroundImpl_DoWork2(t *testing.T) {
 
 	fmt.Printf("2: Test the case when consensus is not done -> false\n")
 
-	chr, _ := InitSRImpl()
+	chr, _ := InitSubroundImpl()
 
-	sr := spos.NewSRImpl(chronology.Subround(spos.SrBlock),
+	sr := spos.NewSubroundImpl(chronology.Subround(spos.SrBlock),
 		chronology.Subround(spos.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
@@ -106,13 +106,13 @@ func TestSRImpl_DoWork2(t *testing.T) {
 	assert.Equal(t, false, r)
 }
 
-func TestSRImpl_DoWork3(t *testing.T) {
+func TestSubroundImpl_DoWork3(t *testing.T) {
 
 	fmt.Printf("3: Test the case when time has expired -> true\n")
 
-	chr, _ := InitSRImpl()
+	chr, _ := InitSubroundImpl()
 
-	sr1 := spos.NewSRImpl(chronology.Subround(spos.SrBlock),
+	sr1 := spos.NewSubroundImpl(chronology.Subround(spos.SrBlock),
 		chronology.Subround(spos.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
@@ -122,7 +122,7 @@ func TestSRImpl_DoWork3(t *testing.T) {
 
 	chr.AddSubround(sr1)
 
-	sr2 := spos.NewSRImpl(chronology.Subround(spos.SrCommitmentHash),
+	sr2 := spos.NewSubroundImpl(chronology.Subround(spos.SrCommitmentHash),
 		chronology.Subround(spos.SrBitmap),
 		int64(40*RoundTimeDuration/100),
 		"<COMMITMENT_HASH>",
@@ -137,14 +137,14 @@ func TestSRImpl_DoWork3(t *testing.T) {
 	assert.Equal(t, true, r)
 }
 
-func TestSRImpl_DoWork4(t *testing.T) {
+func TestSubroundImpl_DoWork4(t *testing.T) {
 
 	fmt.Printf("4: Test the case when job is done but consensus is not done and than the time will be " +
 		"expired -> true\n")
 
-	chr, _ := InitSRImpl()
+	chr, _ := InitSubroundImpl()
 
-	sr1 := spos.NewSRImpl(chronology.Subround(spos.SrBlock),
+	sr1 := spos.NewSubroundImpl(chronology.Subround(spos.SrBlock),
 		chronology.Subround(spos.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
@@ -154,7 +154,7 @@ func TestSRImpl_DoWork4(t *testing.T) {
 
 	chr.AddSubround(sr1)
 
-	sr2 := spos.NewSRImpl(chronology.Subround(spos.SrCommitmentHash),
+	sr2 := spos.NewSubroundImpl(chronology.Subround(spos.SrCommitmentHash),
 		chronology.Subround(spos.SrBitmap),
 		int64(40*RoundTimeDuration/100),
 		"<COMMITMENT_HASH>",
@@ -168,9 +168,9 @@ func TestSRImpl_DoWork4(t *testing.T) {
 	assert.Equal(t, true, r)
 }
 
-func TestNewSRImpl(t *testing.T) {
+func TestNewSubroundImpl(t *testing.T) {
 
-	sr := spos.NewSRImpl(chronology.Subround(spos.SrBlock),
+	sr := spos.NewSubroundImpl(chronology.Subround(spos.SrBlock),
 		chronology.Subround(spos.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
@@ -181,9 +181,9 @@ func TestNewSRImpl(t *testing.T) {
 	assert.NotNil(t, sr)
 }
 
-func TestSRImpl_Current(t *testing.T) {
+func TestSubroundImpl_Current(t *testing.T) {
 
-	sr := spos.NewSRImpl(chronology.Subround(spos.SrBlock),
+	sr := spos.NewSubroundImpl(chronology.Subround(spos.SrBlock),
 		chronology.Subround(spos.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
@@ -194,9 +194,9 @@ func TestSRImpl_Current(t *testing.T) {
 	assert.Equal(t, chronology.Subround(spos.SrBlock), sr.Current())
 }
 
-func TestSRImpl_Next(t *testing.T) {
+func TestSubroundImpl_Next(t *testing.T) {
 
-	sr := spos.NewSRImpl(chronology.Subround(spos.SrBlock),
+	sr := spos.NewSubroundImpl(chronology.Subround(spos.SrBlock),
 		chronology.Subround(spos.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
@@ -207,9 +207,9 @@ func TestSRImpl_Next(t *testing.T) {
 	assert.Equal(t, chronology.Subround(spos.SrCommitmentHash), sr.Next())
 }
 
-func TestSRImpl_EndTime(t *testing.T) {
+func TestSubroundImpl_EndTime(t *testing.T) {
 
-	sr := spos.NewSRImpl(chronology.Subround(spos.SrBlock),
+	sr := spos.NewSubroundImpl(chronology.Subround(spos.SrBlock),
 		chronology.Subround(spos.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
@@ -220,9 +220,9 @@ func TestSRImpl_EndTime(t *testing.T) {
 	assert.Equal(t, int64(25*RoundTimeDuration/100), sr.EndTime())
 }
 
-func TestSRImpl_Name(t *testing.T) {
+func TestSubroundImpl_Name(t *testing.T) {
 
-	sr := spos.NewSRImpl(chronology.Subround(spos.SrBlock),
+	sr := spos.NewSubroundImpl(chronology.Subround(spos.SrBlock),
 		chronology.Subround(spos.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
