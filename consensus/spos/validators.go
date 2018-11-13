@@ -29,6 +29,8 @@ func (rv *RoundValidation) ResetRoundValidation() {
 
 // Validation returns the consemsus agreement of the given subround
 func (rv *RoundValidation) Validation(subround Subround) bool {
+	rv.mut.RLock()
+	defer rv.mut.RUnlock()
 	return rv.validation[subround]
 }
 
@@ -87,6 +89,8 @@ func NewValidators(waitingList []string,
 // Agreement returns the state of the action done, by the node represented by the key parameter,
 // in subround given by the subround parameter
 func (vld *Validators) Agreement(key string, subround Subround) bool {
+	vld.mut.RLock()
+	defer vld.mut.RUnlock()
 	return vld.agreement[key].Validation(subround)
 }
 

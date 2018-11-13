@@ -68,6 +68,8 @@ func (rs *RoundStatus) ResetRoundStatus() {
 
 // Status returns the status of the given subround
 func (rs *RoundStatus) Status(subround Subround) SubroundStatus {
+	rs.mut.RLock()
+	defer rs.mut.RUnlock()
 	return rs.status[subround]
 }
 
@@ -94,6 +96,8 @@ func NewRoundThreshold() *RoundThreshold {
 
 // Threshold returns the threshold of agrrements needed in the given subround
 func (rt *RoundThreshold) Threshold(subround Subround) int {
+	rt.mut.RLock()
+	defer rt.mut.RUnlock()
 	return rt.threshold[subround]
 }
 
