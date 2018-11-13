@@ -2,19 +2,21 @@ package spos
 
 import (
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 )
 
 // RoundValidation defines the data needed by spos to know the state of each node from the current validation group,
 // regarding to the consensus agreement in each subround of the current round
 type RoundValidation struct {
-	validation map[Subround]bool
+	validation map[chronology.SubroundId]bool
 	mut        sync.RWMutex
 }
 
 // NewRoundValidation creates a new RoundValidation object
 func NewRoundValidation() *RoundValidation {
 	rv := RoundValidation{}
-	rv.validation = make(map[Subround]bool)
+	rv.validation = make(map[chronology.SubroundId]bool)
 	return &rv
 }
 
@@ -27,17 +29,17 @@ func (rv *RoundValidation) ResetRoundValidation() {
 	}
 }
 
-// Validation returns the consemsus agreement of the given subround
-func (rv *RoundValidation) Validation(subround Subround) bool {
+// Validation returns the consensus agreement of the given subroundId
+func (rv *RoundValidation) Validation(subroundId chronology.SubroundId) bool {
 	rv.mut.RLock()
 	defer rv.mut.RUnlock()
-	return rv.validation[subround]
+	return rv.validation[subroundId]
 }
 
-// SetValidation sets the consensus agreement of the given subround
-func (rv *RoundValidation) SetValidation(subround Subround, value bool) {
+// SetValidation sets the consensus agreement of the given subroundId
+func (rv *RoundValidation) SetValidation(subroundId chronology.SubroundId, value bool) {
 	rv.mut.Lock()
-	rv.validation[subround] = value
+	rv.validation[subroundId] = value
 	rv.mut.Unlock()
 }
 
@@ -67,12 +69,14 @@ func (vld *Validators) SetSelf(self string) {
 }
 
 // NewValidators creates a new Validators object
-func NewValidators(waitingList []string,
+func NewValidators(
+	waitingList []string,
 	eligibleList []string,
 	consensusGroup []string,
 	self string) *Validators {
 
-	v := Validators{waitingList: waitingList,
+	v := Validators{
+		waitingList:    waitingList,
 		eligibleList:   eligibleList,
 		consensusGroup: consensusGroup,
 		self:           self}
@@ -87,18 +91,18 @@ func NewValidators(waitingList []string,
 }
 
 // Agreement returns the state of the action done, by the node represented by the key parameter,
-// in subround given by the subround parameter
-func (vld *Validators) Agreement(key string, subround Subround) bool {
+// in subround given by the subroundId parameter
+func (vld *Validators) Agreement(key string, subroundId chronology.SubroundId) bool {
 	vld.mut.RLock()
 	defer vld.mut.RUnlock()
-	return vld.agreement[key].Validation(subround)
+	return vld.agreement[key].Validation(subroundId)
 }
 
 // SetAgreement set the state of the action done, by the node represented by the key parameter,
-// in subround given by the subround parameter
-func (vld *Validators) SetAgreement(key string, subround Subround, value bool) {
+// in subround given by the subroundId parameter
+func (vld *Validators) SetAgreement(key string, subroundId chronology.SubroundId, value bool) {
 	vld.mut.Lock()
-	vld.agreement[key].SetValidation(subround, value)
+	vld.agreement[key].SetValidation(subroundId, value)
 	vld.mut.Unlock()
 }
 
@@ -155,9 +159,9 @@ func (vld *Validators) IsCommitmentHashReceived(threshold int) bool {
 	return n >= threshold
 }
 
-// IsBitmapInCommitmentHash method checks if the commitment hashes received from the nodes, belonging to the current
+// CommitmentHashesCollected method checks if the commitment hashes received from the nodes, belonging to the current
 // validation group, are covering the bitmap received from the leader in the current round
-func (vld *Validators) IsBitmapInCommitmentHash(threshold int) bool {
+func (vld *Validators) CommitmentHashesCollected(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(vld.consensusGroup); i++ {
@@ -172,9 +176,9 @@ func (vld *Validators) IsBitmapInCommitmentHash(threshold int) bool {
 	return n >= threshold
 }
 
-// IsBitmapInCommitment method checks if the commitments received from the nodes, belonging to the current
+// CommitmentsCollected method checks if the commitments received from the nodes, belonging to the current
 // validation group, are covering the bitmap received from the leader in the current round
-func (vld *Validators) IsBitmapInCommitment(threshold int) bool {
+func (vld *Validators) CommitmentsCollected(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(vld.consensusGroup); i++ {
@@ -189,9 +193,9 @@ func (vld *Validators) IsBitmapInCommitment(threshold int) bool {
 	return n >= threshold
 }
 
-// IsBitmapInSignature method checks if the signatures received from the nodes, belonging to the current
+// SignaturesCollected method checks if the signatures received from the nodes, belonging to the current
 // validation group, are covering the bitmap received from the leader in the current round
-func (vld *Validators) IsBitmapInSignature(threshold int) bool {
+func (vld *Validators) SignaturesCollected(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(vld.consensusGroup); i++ {
@@ -208,11 +212,11 @@ func (vld *Validators) IsBitmapInSignature(threshold int) bool {
 
 // ComputeSize method returns the number of messages received from the nodes belonging to the current validation group
 // related to this subround
-func (vld *Validators) ComputeSize(subround Subround) int {
+func (vld *Validators) ComputeSize(subroundId chronology.SubroundId) int {
 	n := 0
 
 	for i := 0; i < len(vld.consensusGroup); i++ {
-		if vld.Agreement(vld.consensusGroup[i], subround) {
+		if vld.Agreement(vld.consensusGroup[i], subroundId) {
 			n++
 		}
 	}

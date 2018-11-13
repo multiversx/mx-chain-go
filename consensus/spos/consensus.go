@@ -12,12 +12,9 @@ import (
 // sleepTime defines the time in milliseconds between each iteration made in DoWork methods of the subrounds
 const sleepTime = time.Duration(5 * time.Millisecond)
 
-// Subround defines the type used to refer the current subround
-type Subround int
-
 const (
 	// SrStartRound defines ID of subround "Start round"
-	SrStartRound Subround = iota
+	SrStartRound chronology.SubroundId = iota
 	// SrBlock defines ID of subround "block"
 	SrBlock
 	// SrCommitmentHash defines ID of subround "commitment hash"
@@ -46,14 +43,14 @@ const (
 
 // RoundStatus defines the data needed by spos to know the state of each subround in the current round
 type RoundStatus struct {
-	status map[Subround]SubroundStatus
+	status map[chronology.SubroundId]SubroundStatus
 	mut    sync.RWMutex
 }
 
 // NewRoundStatus creates a new RoundStatus object
 func NewRoundStatus() *RoundStatus {
 	rs := RoundStatus{}
-	rs.status = make(map[Subround]SubroundStatus)
+	rs.status = make(map[chronology.SubroundId]SubroundStatus)
 	return &rs
 }
 
@@ -66,45 +63,45 @@ func (rs *RoundStatus) ResetRoundStatus() {
 	}
 }
 
-// Status returns the status of the given subround
-func (rs *RoundStatus) Status(subround Subround) SubroundStatus {
+// Status returns the status of the given subround id
+func (rs *RoundStatus) Status(subroundId chronology.SubroundId) SubroundStatus {
 	rs.mut.RLock()
 	defer rs.mut.RUnlock()
-	return rs.status[subround]
+	return rs.status[subroundId]
 }
 
-// SetStatus sets the status of the given subround
-func (rs *RoundStatus) SetStatus(subround Subround, subroundStatus SubroundStatus) {
+// SetStatus sets the status of the given subround id
+func (rs *RoundStatus) SetStatus(subroundId chronology.SubroundId, subroundStatus SubroundStatus) {
 	rs.mut.Lock()
-	rs.status[subround] = subroundStatus
+	rs.status[subroundId] = subroundStatus
 	rs.mut.Unlock()
 }
 
 // RoundThreshold defines the minimum agreements needed for each subround to consider the subround finished.
 // (Ex: PBFT threshold has 2 / 3 + 1 agreements)
 type RoundThreshold struct {
-	threshold map[Subround]int
+	threshold map[chronology.SubroundId]int
 	mut       sync.RWMutex
 }
 
 // NewRoundThreshold creates a new RoundThreshold object
 func NewRoundThreshold() *RoundThreshold {
 	rt := RoundThreshold{}
-	rt.threshold = make(map[Subround]int)
+	rt.threshold = make(map[chronology.SubroundId]int)
 	return &rt
 }
 
-// Threshold returns the threshold of agrrements needed in the given subround
-func (rt *RoundThreshold) Threshold(subround Subround) int {
+// Threshold returns the threshold of agreements needed in the given subround id
+func (rt *RoundThreshold) Threshold(subroundId chronology.SubroundId) int {
 	rt.mut.RLock()
 	defer rt.mut.RUnlock()
-	return rt.threshold[subround]
+	return rt.threshold[subroundId]
 }
 
-// SetThreshold sets the threshold of agrrements needed in the given subround
-func (rt *RoundThreshold) SetThreshold(subround Subround, threshold int) {
+// SetThreshold sets the threshold of agreements needed in the given subround id
+func (rt *RoundThreshold) SetThreshold(subroundId chronology.SubroundId, threshold int) {
 	rt.mut.Lock()
-	rt.threshold[subround] = threshold
+	rt.threshold[subroundId] = threshold
 	rt.mut.Unlock()
 }
 
@@ -124,14 +121,16 @@ type Consensus struct {
 }
 
 // NewConsensus creates a new Consensus object
-func NewConsensus(log bool,
+func NewConsensus(
+	log bool,
 	data *[]byte,
 	vld *Validators,
 	thr *RoundThreshold,
 	rs *RoundStatus,
 	chr *chronology.Chronology) *Consensus {
 
-	cns := Consensus{log: log,
+	cns := Consensus{
+		log:            log,
 		Data:           data,
 		Validators:     vld,
 		RoundThreshold: thr,
@@ -141,8 +140,8 @@ func NewConsensus(log bool,
 	return &cns
 }
 
-// SetShouldCheckConsensus sets the flag which says thatthe consensus should be checked again, because some actions
-// happens meantime which could changed the state of it
+// SetShouldCheckConsensus sets the flag which says that the consensus should be checked again, because some actions
+// happens meantime which could changed its state
 func (cns *Consensus) SetShouldCheckConsensus(value bool) {
 	cns.shouldCheckConsensus = value
 }
@@ -154,12 +153,12 @@ func (cns *Consensus) ShouldCheckConsensus() bool {
 
 // CheckConsensus method checks if the consensus is achieved in each subround from first subround to the given
 // subround. If the consensus is achieved in one subround, the subround status is marked as finished
-func (cns *Consensus) CheckConsensus(currentSubround Subround) bool {
-	if currentSubround == SrStartRound {
+func (cns *Consensus) CheckConsensus(subroundId chronology.SubroundId) bool {
+	if subroundId == SrStartRound {
 		return true
 	}
 
-	if currentSubround == SrEndRound {
+	if subroundId == SrEndRound {
 		cns.SetShouldCheckConsensus(true)
 	}
 
@@ -169,7 +168,7 @@ func (cns *Consensus) CheckConsensus(currentSubround Subround) bool {
 
 	cns.SetShouldCheckConsensus(false)
 
-	for i := SrBlock; i <= currentSubround; i++ {
+	for i := SrBlock; i <= subroundId; i++ {
 		switch i {
 		case SrBlock:
 			if !cns.CheckBlockConsensus() {
@@ -230,7 +229,7 @@ func (cns *Consensus) CheckCommitmentHashConsensus() bool {
 		return true
 	}
 
-	if cns.IsBitmapInCommitmentHash(cns.Threshold(SrBitmap)) {
+	if cns.CommitmentHashesCollected(cns.Threshold(SrBitmap)) {
 		cns.PrintCommitmentHashCM() // only for printing commitment hash consensus messages
 		cns.SetStatus(SrCommitmentHash, SsFinished)
 		return true
@@ -245,7 +244,7 @@ func (cns *Consensus) CheckBitmapConsensus() bool {
 		return true
 	}
 
-	if cns.IsBitmapInCommitmentHash(cns.Threshold(SrBitmap)) {
+	if cns.CommitmentHashesCollected(cns.Threshold(SrBitmap)) {
 		cns.PrintBitmapCM() // only for printing bitmap consensus messages
 		cns.SetStatus(SrBitmap, SsFinished)
 		return true
@@ -260,7 +259,7 @@ func (cns *Consensus) CheckCommitmentConsensus() bool {
 		return true
 	}
 
-	if cns.IsBitmapInCommitment(cns.Threshold(SrCommitment)) {
+	if cns.CommitmentsCollected(cns.Threshold(SrCommitment)) {
 		cns.PrintCommitmentCM() // only for printing commitment consensus messages
 		cns.SetStatus(SrCommitment, SsFinished)
 		return true
@@ -275,7 +274,7 @@ func (cns *Consensus) CheckSignatureConsensus() bool {
 		return true
 	}
 
-	if cns.IsBitmapInSignature(cns.Threshold(SrSignature)) {
+	if cns.SignaturesCollected(cns.Threshold(SrSignature)) {
 		cns.PrintSignatureCM() // only for printing signature consensus messages
 		cns.SetStatus(SrSignature, SsFinished)
 		return true
@@ -323,8 +322,8 @@ func (cns *Consensus) GetLeader() (string, error) {
 }
 
 // GetSubroundName returns the name of each subround from a given subround ID
-func (cns *Consensus) GetSubroundName(subround Subround) string {
-	switch subround {
+func (cns *Consensus) GetSubroundName(subroundId chronology.SubroundId) string {
+	switch subroundId {
 	case SrStartRound:
 		return "<START_ROUND>"
 	case SrBlock:
@@ -351,7 +350,7 @@ func (cns *Consensus) PrintBlockCM() {
 			"Step 1: Synchronized block"))
 	}
 	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
-		"Step 1: Subround <BLOCK> has been finished"))
+		"Step 1: SubroundId <BLOCK> has been finished"))
 }
 
 // PrintCommitmentHashCM method prints the <COMMITMENT_HASH> consensus messages
@@ -365,7 +364,7 @@ func (cns *Consensus) PrintCommitmentHashCM() {
 			"Step 2: Received %d from %d commitment hashes, which are enough", n, len(cns.consensusGroup)))
 	}
 	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
-		"Step 2: Subround <COMMITMENT_HASH> has been finished"))
+		"Step 2: SubroundId <COMMITMENT_HASH> has been finished"))
 }
 
 // PrintBitmapCM method prints the <BITMAP> consensus messages
@@ -384,7 +383,7 @@ func (cns *Consensus) PrintBitmapCM() {
 		cns.Log(msg)
 	}
 	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
-		"Step 3: Subround <BITMAP> has been finished"))
+		"Step 3: SubroundId <BITMAP> has been finished"))
 }
 
 // PrintCommitmentCM method prints the <COMMITMENT> consensus messages
@@ -393,7 +392,7 @@ func (cns *Consensus) PrintCommitmentCM() {
 		"Step 4: Received %d from %d commitments, which are matching with bitmap and are enough",
 		cns.ComputeSize(SrCommitment), len(cns.consensusGroup)))
 	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
-		"Step 4: Subround <COMMITMENT> has been finished"))
+		"Step 4: SubroundId <COMMITMENT> has been finished"))
 }
 
 // PrintSignatureCM method prints the <SIGNATURE> consensus messages
@@ -402,7 +401,7 @@ func (cns *Consensus) PrintSignatureCM() {
 		"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough",
 		cns.ComputeSize(SrSignature), len(cns.consensusGroup)))
 	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
-		"Step 5: Subround <SIGNATURE> has been finished"))
+		"Step 5: SubroundId <SIGNATURE> has been finished"))
 }
 
 // Log method prints info about consensus (if log is true)

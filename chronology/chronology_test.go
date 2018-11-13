@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	srStartRound chronology.Subround = iota
+	srStartRound chronology.SubroundId = iota
 	srBlock
 	srCommitmentHash
 	srBitmap
@@ -34,11 +34,11 @@ func (sr *SRStartRound) DoWork(chr *chronology.Chronology) bool {
 	return true
 }
 
-func (sr *SRStartRound) Current() chronology.Subround {
+func (sr *SRStartRound) Current() chronology.SubroundId {
 	return srStartRound
 }
 
-func (sr *SRStartRound) Next() chronology.Subround {
+func (sr *SRStartRound) Next() chronology.SubroundId {
 	return srBlock
 }
 
@@ -62,11 +62,11 @@ func (sr *SRBlock) DoWork(chr *chronology.Chronology) bool {
 	return true
 }
 
-func (sr *SRBlock) Current() chronology.Subround {
+func (sr *SRBlock) Current() chronology.SubroundId {
 	return srBlock
 }
 
-func (sr *SRBlock) Next() chronology.Subround {
+func (sr *SRBlock) Next() chronology.SubroundId {
 	return srCommitmentHash
 }
 
@@ -90,11 +90,11 @@ func (sr *SRCommitmentHash) DoWork(chr *chronology.Chronology) bool {
 	return true
 }
 
-func (sr *SRCommitmentHash) Current() chronology.Subround {
+func (sr *SRCommitmentHash) Current() chronology.SubroundId {
 	return srCommitmentHash
 }
 
-func (sr *SRCommitmentHash) Next() chronology.Subround {
+func (sr *SRCommitmentHash) Next() chronology.SubroundId {
 	return srBitmap
 }
 
@@ -118,11 +118,11 @@ func (sr *SRBitmap) DoWork(chr *chronology.Chronology) bool {
 	return true
 }
 
-func (sr *SRBitmap) Current() chronology.Subround {
+func (sr *SRBitmap) Current() chronology.SubroundId {
 	return srBitmap
 }
 
-func (sr *SRBitmap) Next() chronology.Subround {
+func (sr *SRBitmap) Next() chronology.SubroundId {
 	return srCommitment
 }
 
@@ -146,11 +146,11 @@ func (sr *SRCommitment) DoWork(chr *chronology.Chronology) bool {
 	return true
 }
 
-func (sr *SRCommitment) Current() chronology.Subround {
+func (sr *SRCommitment) Current() chronology.SubroundId {
 	return srCommitment
 }
 
-func (sr *SRCommitment) Next() chronology.Subround {
+func (sr *SRCommitment) Next() chronology.SubroundId {
 	return srSignature
 }
 
@@ -174,11 +174,11 @@ func (sr *SRSignature) DoWork(chr *chronology.Chronology) bool {
 	return true
 }
 
-func (sr *SRSignature) Current() chronology.Subround {
+func (sr *SRSignature) Current() chronology.SubroundId {
 	return srSignature
 }
 
-func (sr *SRSignature) Next() chronology.Subround {
+func (sr *SRSignature) Next() chronology.SubroundId {
 	return srEndRound
 }
 
@@ -202,11 +202,11 @@ func (sr *SREndRound) DoWork(chr *chronology.Chronology) bool {
 	return true
 }
 
-func (sr *SREndRound) Current() chronology.Subround {
+func (sr *SREndRound) Current() chronology.SubroundId {
 	return srEndRound
 }
 
-func (sr *SREndRound) Next() chronology.Subround {
+func (sr *SREndRound) Next() chronology.SubroundId {
 	return srStartRound
 }
 
@@ -254,15 +254,15 @@ func TestRoundState(t *testing.T) {
 	chr := chronology.NewChronology(true, true, rnd, currentTime, &ntp.LocalTime{})
 
 	state := chr.GetSubroundFromDateTime(currentTime)
-	assert.Equal(t, chronology.Subround(-1), state)
+	assert.Equal(t, chronology.SubroundId(-1), state)
 
 	chr.AddSubround(&SRStartRound{})
 
 	state = chr.GetSubroundFromDateTime(currentTime.Add(-1 * time.Hour))
-	assert.Equal(t, chronology.Subround(-1), state)
+	assert.Equal(t, chronology.SubroundId(-1), state)
 
 	state = chr.GetSubroundFromDateTime(currentTime.Add(1 * time.Hour))
-	assert.Equal(t, chronology.Subround(-1), state)
+	assert.Equal(t, chronology.SubroundId(-1), state)
 
 	state = chr.GetSubroundFromDateTime(currentTime)
 	assert.Equal(t, chr.SubroundHandlers()[0].Current(), state)
@@ -292,12 +292,12 @@ func TestGettersAndSetters(t *testing.T) {
 	chr := chronology.NewChronology(true, true, rnd, genesisTime, syncTime)
 
 	assert.Equal(t, 0, chr.Round().Index())
-	assert.Equal(t, chronology.Subround(-1), chr.SelfSubround())
+	assert.Equal(t, chronology.SubroundId(-1), chr.SelfSubround())
 
 	chr.SetSelfSubround(srStartRound)
 	assert.Equal(t, srStartRound, chr.SelfSubround())
 
-	assert.Equal(t, chronology.Subround(-1), chr.TimeSubround())
+	assert.Equal(t, chronology.SubroundId(-1), chr.TimeSubround())
 	assert.Equal(t, time.Duration(0), chr.ClockOffset())
 	assert.NotNil(t, chr.SyncTime())
 	assert.Equal(t, time.Duration(0), chr.SyncTime().ClockOffset())

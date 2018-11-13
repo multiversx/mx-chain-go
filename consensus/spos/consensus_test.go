@@ -24,14 +24,35 @@ func DoExtendSubround() {
 	fmt.Printf("do extend subround\n")
 }
 
-func DoCheckConsensusWithSuccess(subround spos.Subround) bool {
-	fmt.Printf("do check consensus with success in subround %d\n", subround)
+func DoCheckConsensusWithSuccess(subroundId chronology.SubroundId) bool {
+	fmt.Printf("do check consensus with success in subround %s\n", GetSubroundName(subroundId))
 	return true
 }
 
-func DoCheckConsensusWithoutSuccess(subround spos.Subround) bool {
-	fmt.Printf("do check consensus without success in subround %d\n", subround)
+func DoCheckConsensusWithoutSuccess(subroundId chronology.SubroundId) bool {
+	fmt.Printf("do check consensus without success in subround %s\n", GetSubroundName(subroundId))
 	return false
+}
+
+func GetSubroundName(subroundId chronology.SubroundId) string {
+	switch subroundId {
+	case spos.SrStartRound:
+		return "<START_ROUND>"
+	case spos.SrBlock:
+		return "<BLOCK>"
+	case spos.SrCommitmentHash:
+		return "<COMMITMENT_HASH>"
+	case spos.SrBitmap:
+		return "<BITMAP>"
+	case spos.SrCommitment:
+		return "<COMMITMENT>"
+	case spos.SrSignature:
+		return "<SIGNATURE>"
+	case spos.SrEndRound:
+		return "<END_ROUND>"
+	default:
+		return "Undifined subround"
+	}
 }
 
 func TestNewRoundStatus(t *testing.T) {

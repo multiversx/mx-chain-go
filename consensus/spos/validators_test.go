@@ -164,28 +164,28 @@ func TestValidators_IsBitmapInCommitmentHash(t *testing.T) {
 		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
-	ok := vld.IsBitmapInCommitmentHash(2)
+	ok := vld.CommitmentHashesCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("1", spos.SrBitmap, true)
 	vld.SetAgreement("3", spos.SrBitmap, true)
 	assert.Equal(t, true, vld.Agreement("3", spos.SrBitmap))
 
-	ok = vld.IsBitmapInCommitmentHash(2)
+	ok = vld.CommitmentHashesCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("2", spos.SrCommitmentHash, true)
 	assert.Equal(t, true, vld.Agreement("2", spos.SrCommitmentHash))
 
-	ok = vld.IsBitmapInCommitmentHash(2)
+	ok = vld.CommitmentHashesCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("3", spos.SrCommitmentHash, true)
-	ok = vld.IsBitmapInCommitmentHash(2)
+	ok = vld.CommitmentHashesCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("1", spos.SrCommitmentHash, true)
-	ok = vld.IsBitmapInCommitmentHash(2)
+	ok = vld.CommitmentHashesCollected(2)
 	assert.Equal(t, true, ok)
 }
 
@@ -204,28 +204,28 @@ func TestValidators_IsBitmapInCommitment(t *testing.T) {
 		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
-	ok := vld.IsBitmapInCommitment(2)
+	ok := vld.CommitmentsCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("1", spos.SrBitmap, true)
 	vld.SetAgreement("3", spos.SrBitmap, true)
 	assert.Equal(t, true, vld.Agreement("3", spos.SrBitmap))
 
-	ok = vld.IsBitmapInCommitment(2)
+	ok = vld.CommitmentsCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("2", spos.SrCommitment, true)
 	assert.Equal(t, true, vld.Agreement("2", spos.SrCommitment))
 
-	ok = vld.IsBitmapInCommitment(2)
+	ok = vld.CommitmentsCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("3", spos.SrCommitment, true)
-	ok = vld.IsBitmapInCommitment(2)
+	ok = vld.CommitmentsCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("1", spos.SrCommitment, true)
-	ok = vld.IsBitmapInCommitment(2)
+	ok = vld.CommitmentsCollected(2)
 	assert.Equal(t, true, ok)
 }
 
@@ -244,28 +244,28 @@ func TestValidators_IsBitmapInSignature(t *testing.T) {
 		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
-	ok := vld.IsBitmapInSignature(2)
+	ok := vld.SignaturesCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("1", spos.SrBitmap, true)
 	vld.SetAgreement("3", spos.SrBitmap, true)
 	assert.Equal(t, true, vld.Agreement("3", spos.SrBitmap))
 
-	ok = vld.IsBitmapInSignature(2)
+	ok = vld.SignaturesCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("2", spos.SrSignature, true)
 	assert.Equal(t, true, vld.Agreement("2", spos.SrSignature))
 
-	ok = vld.IsBitmapInSignature(2)
+	ok = vld.SignaturesCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("3", spos.SrSignature, true)
-	ok = vld.IsBitmapInSignature(2)
+	ok = vld.SignaturesCollected(2)
 	assert.Equal(t, false, ok)
 
 	vld.SetAgreement("1", spos.SrSignature, true)
-	ok = vld.IsBitmapInSignature(2)
+	ok = vld.SignaturesCollected(2)
 	assert.Equal(t, true, ok)
 }
 
