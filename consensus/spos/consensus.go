@@ -199,85 +199,89 @@ func (cns *Consensus) CheckConsensus(currentSubround Subround) bool {
 
 // CheckBlockConsensus method checks if the consensus in the <BLOCK> subround is achieved
 func (cns *Consensus) CheckBlockConsensus() bool {
-	if cns.Status(SrBlock) != SsFinished {
-		if cns.IsBlockReceived(cns.Threshold(SrBlock)) {
-			cns.PrintBlockCM() // only for printing block consensus messages
-			cns.SetStatus(SrBlock, SsFinished)
-			return true
-		} else {
-			return false
-		}
+	if cns.Status(SrBlock) == SsFinished {
+		return true
 	}
 
-	return true
+	if cns.IsBlockReceived(cns.Threshold(SrBlock)) {
+		cns.PrintBlockCM() // only for printing block consensus messages
+		cns.SetStatus(SrBlock, SsFinished)
+		return true
+	}
+
+	return false
 }
 
 // CheckCommitmentHashConsensus method checks if the consensus in the <COMMITMENT_HASH> subround is achieved
 func (cns *Consensus) CheckCommitmentHashConsensus() bool {
-	if cns.Status(SrCommitmentHash) != SsFinished {
-		threshold := cns.Threshold(SrCommitmentHash)
-		if !cns.IsNodeLeaderInCurrentRound(cns.self) {
-			threshold = len(cns.consensusGroup)
-		}
-		if cns.IsCommitmentHashReceived(threshold) {
-			cns.PrintCommitmentHashCM() // only for printing commitment hash consensus messages
-			cns.SetStatus(SrCommitmentHash, SsFinished)
-			return true
-		} else if cns.IsBitmapInCommitmentHash(cns.Threshold(SrBitmap)) {
-			cns.PrintCommitmentHashCM() // only for printing commitment hash consensus messages
-			cns.SetStatus(SrCommitmentHash, SsFinished)
-			return true
-		} else {
-			return false
-		}
+	if cns.Status(SrCommitmentHash) == SsFinished {
+		return true
 	}
 
-	return true
+	threshold := cns.Threshold(SrCommitmentHash)
+
+	if !cns.IsNodeLeaderInCurrentRound(cns.self) {
+		threshold = len(cns.consensusGroup)
+	}
+
+	if cns.IsCommitmentHashReceived(threshold) {
+		cns.PrintCommitmentHashCM() // only for printing commitment hash consensus messages
+		cns.SetStatus(SrCommitmentHash, SsFinished)
+		return true
+	}
+
+	if cns.IsBitmapInCommitmentHash(cns.Threshold(SrBitmap)) {
+		cns.PrintCommitmentHashCM() // only for printing commitment hash consensus messages
+		cns.SetStatus(SrCommitmentHash, SsFinished)
+		return true
+	}
+
+	return false
 }
 
 // CheckBitmapConsensus method checks if the consensus in the <BITMAP> subround is achieved
 func (cns *Consensus) CheckBitmapConsensus() bool {
-	if cns.Status(SrBitmap) != SsFinished {
-		if cns.IsBitmapInCommitmentHash(cns.Threshold(SrBitmap)) {
-			cns.PrintBitmapCM() // only for printing bitmap consensus messages
-			cns.SetStatus(SrBitmap, SsFinished)
-			return true
-		} else {
-			return false
-		}
+	if cns.Status(SrBitmap) == SsFinished {
+		return true
 	}
 
-	return true
+	if cns.IsBitmapInCommitmentHash(cns.Threshold(SrBitmap)) {
+		cns.PrintBitmapCM() // only for printing bitmap consensus messages
+		cns.SetStatus(SrBitmap, SsFinished)
+		return true
+	}
+
+	return false
 }
 
 // CheckCommitmentConsensus method checks if the consensus in the <COMMITMENT> subround is achieved
 func (cns *Consensus) CheckCommitmentConsensus() bool {
-	if cns.Status(SrCommitment) != SsFinished {
-		if cns.IsBitmapInCommitment(cns.Threshold(SrCommitment)) {
-			cns.PrintCommitmentCM() // only for printing commitment consensus messages
-			cns.SetStatus(SrCommitment, SsFinished)
-			return true
-		} else {
-			return false
-		}
+	if cns.Status(SrCommitment) == SsFinished {
+		return true
 	}
 
-	return true
+	if cns.IsBitmapInCommitment(cns.Threshold(SrCommitment)) {
+		cns.PrintCommitmentCM() // only for printing commitment consensus messages
+		cns.SetStatus(SrCommitment, SsFinished)
+		return true
+	}
+
+	return false
 }
 
 // CheckSignatureConsensus method checks if the consensus in the <SIGNATURE> subround is achieved
 func (cns *Consensus) CheckSignatureConsensus() bool {
-	if cns.Status(SrSignature) != SsFinished {
-		if cns.IsBitmapInSignature(cns.Threshold(SrSignature)) {
-			cns.PrintSignatureCM() // only for printing signature consensus messages
-			cns.SetStatus(SrSignature, SsFinished)
-			return true
-		} else {
-			return false
-		}
+	if cns.Status(SrSignature) == SsFinished {
+		return true
 	}
 
-	return true
+	if cns.IsBitmapInSignature(cns.Threshold(SrSignature)) {
+		cns.PrintSignatureCM() // only for printing signature consensus messages
+		cns.SetStatus(SrSignature, SsFinished)
+		return true
+	}
+
+	return false
 }
 
 // IsNodeLeaderInCurrentRound method checks if the node is leader in the current round
