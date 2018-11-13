@@ -1,4 +1,4 @@
-package blake2b
+package hashing
 
 import (
 	"golang.org/x/crypto/blake2b"
