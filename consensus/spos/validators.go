@@ -8,6 +8,7 @@ import (
 // regarding to the consensus agreement in each subround of the current round
 type RoundValidation struct {
 	validation map[Subround]bool
+	mut        sync.RWMutex
 }
 
 // NewRoundValidation creates a new RoundValidation object
@@ -20,7 +21,9 @@ func NewRoundValidation() *RoundValidation {
 // ResetRoundValidation method resets the consensus agreement of each subround
 func (rv *RoundValidation) ResetRoundValidation() {
 	for k := range rv.validation {
+		rv.mut.Lock()
 		rv.validation[k] = false
+		rv.mut.Unlock()
 	}
 }
 
@@ -31,7 +34,9 @@ func (rv *RoundValidation) Validation(subround Subround) bool {
 
 // SetValidation sets the consensus agreement of the given subround
 func (rv *RoundValidation) SetValidation(subround Subround, value bool) {
+	rv.mut.Lock()
 	rv.validation[subround] = value
+	rv.mut.Unlock()
 }
 
 // Validators defines the data needed by spos to do the consensus in each round
@@ -97,7 +102,9 @@ func (vld *Validators) SetAgreement(key string, subround Subround, value bool) {
 // consensus agreement
 func (vld *Validators) ResetAgreement() {
 	for i := 0; i < len(vld.consensusGroup); i++ {
+		vld.mut.Lock()
 		vld.agreement[vld.consensusGroup[i]].ResetRoundValidation()
+		vld.mut.Unlock()
 	}
 }
 

@@ -3,6 +3,7 @@ package spos
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
@@ -46,6 +47,7 @@ const (
 // RoundStatus defines the data needed by spos to know the state of each subround in the current round
 type RoundStatus struct {
 	status map[Subround]SubroundStatus
+	mut    sync.RWMutex
 }
 
 // NewRoundStatus creates a new RoundStatus object
@@ -58,7 +60,9 @@ func NewRoundStatus() *RoundStatus {
 // ResetRoundStatus method resets the state of each subround
 func (rs *RoundStatus) ResetRoundStatus() {
 	for k := range rs.status {
+		rs.mut.Lock()
 		rs.status[k] = SsNotFinished
+		rs.mut.Unlock()
 	}
 }
 
@@ -69,13 +73,16 @@ func (rs *RoundStatus) Status(subround Subround) SubroundStatus {
 
 // SetStatus sets the status of the given subround
 func (rs *RoundStatus) SetStatus(subround Subround, subroundStatus SubroundStatus) {
+	rs.mut.Lock()
 	rs.status[subround] = subroundStatus
+	rs.mut.Unlock()
 }
 
 // RoundThreshold defines the minimum agreements needed for each subround to consider the subround finished.
 // (Ex: PBFT threshold has 2 / 3 + 1 agreements)
 type RoundThreshold struct {
 	threshold map[Subround]int
+	mut       sync.RWMutex
 }
 
 // NewRoundThreshold creates a new RoundThreshold object
@@ -92,7 +99,9 @@ func (rt *RoundThreshold) Threshold(subround Subround) int {
 
 // SetThreshold sets the threshold of agrrements needed in the given subround
 func (rt *RoundThreshold) SetThreshold(subround Subround, threshold int) {
+	rt.mut.Lock()
 	rt.threshold[subround] = threshold
+	rt.mut.Unlock()
 }
 
 // Consensus defines the data needed by spos to do the consensus in each round

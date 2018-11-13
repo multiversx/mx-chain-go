@@ -6,11 +6,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 )
 
-// SRImpl defines the data needed by one subround. Actually it defines a subround with it's properties (it's ID,
+// SubroundImpl defines the data needed by one subround. Actually it defines a subround with it's properties (it's ID,
 // next subround ID, it's duration, it's name and also it has some handler functions which should be set. work funvtion
 // will be the main function of this subround, extend function will handle the overtime situation of the subround and
 // check function will decide if in this subround the consensus is achieved
-type SRImpl struct {
+type SubroundImpl struct {
 	current chronology.Subround
 	next    chronology.Subround
 	endTime int64
@@ -21,16 +21,16 @@ type SRImpl struct {
 	check  func(Subround) bool // this is a pointer to a function which will check the consensus
 }
 
-// NewSRImpl creates a new SRImpl object
-func NewSRImpl(current chronology.Subround,
+// NewSubroundImpl creates a new SubroundImpl object
+func NewSubroundImpl(current chronology.Subround,
 	next chronology.Subround,
 	endTime int64,
 	name string,
 	work func() bool,
 	extend func(),
-	check func(Subround) bool) *SRImpl {
+	check func(Subround) bool) *SubroundImpl {
 
-	sr := SRImpl{
+	sr := SubroundImpl{
 		current: current,
 		next:    next,
 		endTime: endTime,
@@ -46,7 +46,7 @@ func NewSRImpl(current chronology.Subround,
 // check the consensus. If the upper time limit of this subround is reached, the subround state is set to extended and
 // the chronology will advance to the next subround. This method will iterate until this round will be done,
 // put it into extended mode or in canceled mode
-func (sr *SRImpl) DoWork(chr *chronology.Chronology) bool {
+func (sr *SubroundImpl) DoWork(chr *chronology.Chronology) bool {
 	for {
 		time.Sleep(sleepTime)
 
@@ -82,21 +82,21 @@ func (sr *SRImpl) DoWork(chr *chronology.Chronology) bool {
 }
 
 // Current method returns the ID of this subround
-func (sr *SRImpl) Current() chronology.Subround {
+func (sr *SubroundImpl) Current() chronology.Subround {
 	return sr.current
 }
 
 // Next method returns the ID of the next subround
-func (sr *SRImpl) Next() chronology.Subround {
+func (sr *SubroundImpl) Next() chronology.Subround {
 	return sr.next
 }
 
 // EndTime method returns the upper time limit of this subround
-func (sr *SRImpl) EndTime() int64 {
+func (sr *SubroundImpl) EndTime() int64 {
 	return int64(sr.endTime)
 }
 
 // Name method returns the name of this subround
-func (sr *SRImpl) Name() string {
+func (sr *SubroundImpl) Name() string {
 	return sr.name
 }
