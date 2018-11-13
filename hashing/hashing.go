@@ -5,3 +5,9 @@ type Hasher interface {
 	EmptyHash() []byte
 	Size() int
 }
+
+var DefHash Hasher
+
+func init() {
+	DefHash = &Sha256{}
+}
