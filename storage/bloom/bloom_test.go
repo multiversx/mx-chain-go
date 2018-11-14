@@ -1,6 +1,8 @@
 package bloom_test
 
 import (
+	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -47,6 +49,8 @@ func TestFilter(t *testing.T) {
 		{[]byte(" "), true},
 		{[]byte("BloomFilter"), true},
 		{[]byte("test"), true},
+		{[]byte("i3419"), true},
+		{[]byte("j6147"), true},
 	}
 
 	for _, val := range testTable {
@@ -60,4 +64,31 @@ func TestFilter(t *testing.T) {
 		assert.Equal(t, false, b.Test(val.in), "Expected bloom filter to be empty")
 	}
 
+}
+
+func TestConcurrency(t *testing.T) {
+	b, _ := bloom.NewDefaultFilter()
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	maxIterations := 10000
+
+	addValues := func(base string) {
+		for i := 0; i < maxIterations; i++ {
+			b.Add([]byte(base + strconv.Itoa(i)))
+		}
+
+		wg.Done()
+	}
+
+	go addValues("i")
+	go addValues("j")
+
+	wg.Wait()
+
+	for i := 0; i < maxIterations; i++ {
+		assert.True(t, b.Test([]byte("i"+strconv.Itoa(i))), "i"+strconv.Itoa(i))
+		assert.True(t, b.Test([]byte("j"+strconv.Itoa(i))), "j"+strconv.Itoa(i))
+	}
 }

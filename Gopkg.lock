@@ -62,14 +62,6 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:6d9f91ff6cc1a7fa2f1c7025b0dc50ea7cd2a9b6869205bc7f69f484a349c731"
-  name = "github.com/dchest/blake2b"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "06006a921c7d13e3fdf63c401cb0e4529a26e6e4"
-  version = "v1.0.0"
-
-[[projects]]
   digest = "1:c594f17a44dc0df66ef67ae61b126fc51c84b826af250493f2e37c2ac4389bbe"
   name = "github.com/dedis/fixbuf"
   packages = ["."]
@@ -1152,7 +1144,6 @@
     "github.com/btcsuite/btcd/btcec",
     "github.com/btcsuite/btcutil/base58",
     "github.com/davecgh/go-spew/spew",
-    "github.com/dchest/blake2b",
     "github.com/dedis/kyber",
     "github.com/dedis/kyber/group/edwards25519",
     "github.com/dedis/kyber/pairing",

@@ -16,16 +16,17 @@ const (
 	bitsInByte = 8
 )
 
+// Bloom represents a bloom filter. It holds the filter itself, the hashing functions that must be
+// applied to values that are added to the filter and a mutex to handle concurrent accesses to the filter
 type Bloom struct {
 	filter   []byte
 	hashFunc []hashing.Hasher
+	mutex    sync.Mutex
 }
 
-type Result struct {
-	index uint
-	value byte
-}
-
+// NewFilter returns a new Bloom object with the given size and
+// hashing functions implementation. It returns an error if there are no hashing
+// functions, or if the size of the filter is too small
 func NewFilter(size uint, h []hashing.Hasher) (*Bloom, error) {
 
 	if size <= uint(len(h)) {
@@ -42,6 +43,8 @@ func NewFilter(size uint, h []hashing.Hasher) (*Bloom, error) {
 	}, nil
 }
 
+// NewDefaultFilter returns a new Bloom object with a filter size of 2048 bytes
+// and implementations of blake2b, sha3-keccak and fnv128a hashing functions
 func NewDefaultFilter() (*Bloom, error) {
 	return &Bloom{
 		filter:   make([]byte, 2048),
@@ -49,66 +52,78 @@ func NewDefaultFilter() (*Bloom, error) {
 	}, nil
 }
 
+// Add sets the bits that correspond to the hashes of the data
 func (b *Bloom) Add(data []byte) {
-	var ch = make(chan Result, len(b.hashFunc))
-	var wg sync.WaitGroup
-	var res Result
+	res := getBitsIndexes(b, data)
 
-	wg.Add(len(b.hashFunc))
-	for i := 0; i < len(b.hashFunc); i++ {
-		go getIndexAndValue(b.hashFunc[i], data, b, &wg, ch)
-	}
-	wg.Wait()
+	for i := range res {
+		b.mutex.Lock()
+		pos, val := getBytePositionAndValue(b, res[i])
 
-	for i := 0; i < len(b.hashFunc); i++ {
-		res = <-ch
-		b.filter[res.index] = res.value
+		b.filter[uint(pos)] = val
+		b.mutex.Unlock()
 	}
 
 }
 
+// Test checks if the bits that correspond to the hashes of the data are set.
+// If all the bits are set, it returns true, otherwise it returns false
 func (b *Bloom) Test(data []byte) bool {
-	var ch = make(chan Result, len(b.hashFunc))
-	var wg sync.WaitGroup
-	var res Result
+	res := getBitsIndexes(b, data)
 
-	wg.Add(len(b.hashFunc))
-	for i := 0; i < len(b.hashFunc); i++ {
-		go getIndexAndValue(b.hashFunc[i], data, b, &wg, ch)
-	}
-	wg.Wait()
+	for i := range res {
+		pos, val := getBytePositionAndValue(b, res[i])
 
-	for i := 0; i < len(b.hashFunc); i++ {
-		res = <-ch
-		if b.filter[res.index] != res.value {
+		if b.filter[uint(pos)] != val {
 			return false
 		}
 	}
 	return true
 }
 
+// Clear resets the bits of the bloom filter
 func (b *Bloom) Clear() {
 	for i := 0; i < len(b.filter); i++ {
 		b.filter[i] = 0
 	}
 }
 
-func getIndexAndValue(h hashing.Hasher, data []byte, b *Bloom, wg *sync.WaitGroup, ch chan Result) {
-	var res Result
-
-	hhh := h.Compute(string(data))
-	hash64 := binary.BigEndian.Uint64(hhh)
-	val := hash64 % uint64(len(b.filter)*bitsInByte)
-
-	byteNo := val / 8
-	bitNo := val % 8
+func getBytePositionAndValue(b *Bloom, index uint64) (pos uint64, val byte) {
+	pos = index / 8
+	bitNo := index % 8
 	byteValue := byte(1 << (7 - bitNo))
-	value := byte(b.filter[byteNo] | byteValue)
 
-	res.index = uint(byteNo)
-	res.value = value
+	val = byte(b.filter[pos] | byteValue)
 
-	ch <- res
+	return pos, val
+}
 
+func getBitsIndexes(b *Bloom, data []byte) []uint64 {
+	var ch = make(chan uint64, len(b.hashFunc))
+	var wg sync.WaitGroup
+	var res []uint64
+
+	wg.Add(len(b.hashFunc))
+	for i := range b.hashFunc {
+		go getBitIndexFromHash(b.hashFunc[i], data, len(b.filter), &wg, ch)
+	}
+	wg.Wait()
+
+	for i := 0; i < len(b.hashFunc); i++ {
+		res = append(res, <-ch)
+	}
+
+	return res
+
+}
+
+func getBitIndexFromHash(h hashing.Hasher, data []byte, size int, wg *sync.WaitGroup, ch chan uint64) {
+
+	hashSum := h.Compute(string(data))
+	hash64 := binary.BigEndian.Uint64(hashSum)
+	val := hash64 % uint64(size*bitsInByte)
+
+	ch <- val
 	wg.Done()
+
 }

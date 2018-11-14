@@ -73,7 +73,7 @@ type Cacher interface {
 	Len() int
 }
 
-// Bloom filter provides services for filtering database requests
+// BloomFilter provides services for filtering database requests
 type BloomFilter interface {
 
 	//Add adds the value to the bloom filter
