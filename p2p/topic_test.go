@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var mockMarshalizer = mock.MarshalizerMock{}
-
 type testStringNewer struct {
 	Data string
 }
@@ -27,7 +25,7 @@ func (sc *testStringNewer) New() p2p.Newer {
 
 func TestTopic_AddEventHandler_Nil_ShouldNotAddHandler(t *testing.T) {
 	t.Parallel()
-	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mock.MarshalizerMock{})
 
 	topic.AddDataReceived(nil)
 
@@ -36,7 +34,7 @@ func TestTopic_AddEventHandler_Nil_ShouldNotAddHandler(t *testing.T) {
 
 func TestTopic_AddEventHandler_WithARealFunc_ShouldWork(t *testing.T) {
 	t.Parallel()
-	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mock.MarshalizerMock{})
 
 	topic.AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 
@@ -47,7 +45,7 @@ func TestTopic_AddEventHandler_WithARealFunc_ShouldWork(t *testing.T) {
 
 func TestTopic_NewMessageReceived_NilMsg_ShouldErr(t *testing.T) {
 	t.Parallel()
-	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mock.MarshalizerMock{})
 
 	err := topic.NewDataReceived(nil, "")
 
@@ -56,7 +54,7 @@ func TestTopic_NewMessageReceived_NilMsg_ShouldErr(t *testing.T) {
 
 func TestTopic_NewDataReceived_MarshalizerFails_ShouldErr(t *testing.T) {
 	t.Parallel()
-	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mock.MarshalizerMock{})
 
 	topic.Marsh().(*mock.MarshalizerMock).Fail = true
 	defer func() {
@@ -70,7 +68,7 @@ func TestTopic_NewDataReceived_MarshalizerFails_ShouldErr(t *testing.T) {
 
 func TestTopic_NewDataReceived_OKMsg_ShouldWork(t *testing.T) {
 	t.Parallel()
-	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mock.MarshalizerMock{})
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -91,7 +89,8 @@ func TestTopic_NewDataReceived_OKMsg_ShouldWork(t *testing.T) {
 
 	})
 
-	payload, err := mockMarshalizer.Marshal(&testStringNewer{Data: "aaaa"})
+	marsh := mock.MarshalizerMock{}
+	payload, err := marsh.Marshal(&testStringNewer{Data: "aaaa"})
 	assert.Nil(t, err)
 
 	topic.NewDataReceived(payload, "")
@@ -110,7 +109,7 @@ func TestTopic_NewDataReceived_OKMsg_ShouldWork(t *testing.T) {
 
 func TestTopic_Broadcast_NilData_ShouldErr(t *testing.T) {
 	t.Parallel()
-	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mock.MarshalizerMock{})
 
 	err := topic.Broadcast(nil)
 
@@ -119,7 +118,7 @@ func TestTopic_Broadcast_NilData_ShouldErr(t *testing.T) {
 
 func TestTopic_Broadcast_MarshalizerFails_ShouldErr(t *testing.T) {
 	t.Parallel()
-	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mock.MarshalizerMock{})
 
 	topic.Marsh().(*mock.MarshalizerMock).Fail = true
 	defer func() {
@@ -133,7 +132,7 @@ func TestTopic_Broadcast_MarshalizerFails_ShouldErr(t *testing.T) {
 
 func TestTopic_Broadcast_NoOneToSend_ShouldErr(t *testing.T) {
 	t.Parallel()
-	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mock.MarshalizerMock{})
 
 	err := topic.Broadcast("a string")
 
@@ -142,7 +141,7 @@ func TestTopic_Broadcast_NoOneToSend_ShouldErr(t *testing.T) {
 
 func TestTopic_Broadcast_SendOK_ShouldWork(t *testing.T) {
 	t.Parallel()
-	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mock.MarshalizerMock{})
 
 	topic.SendData = func(data []byte) error {
 		if topic.Name != "test" {

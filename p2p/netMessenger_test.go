@@ -632,7 +632,8 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 	v := func(ctx context.Context, mes *pubsub.Message) bool {
 		obj := &testStringNewer{}
 
-		mockMarshalizer.Unmarshal(obj, mes.GetData())
+		marsh := mock.MarshalizerMock{}
+		marsh.Unmarshal(obj, mes.GetData())
 
 		return obj.Data != "AAA"
 	}
