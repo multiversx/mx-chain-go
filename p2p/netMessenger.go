@@ -101,23 +101,36 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 		libp2p.NATPortMap(),
 	}
 
-	h, err := libp2p.New(ctx, opts...)
+	hostP2P, err := libp2p.New(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("Node: %v has the following addr table: \n", h.ID().Pretty())
-	for i, addr := range h.Addrs() {
-		fmt.Printf("%d: %s/ipfs/%s\n", i, addr, h.ID().Pretty())
+	fmt.Printf("Node: %v has the following addr table: \n", hostP2P.ID().Pretty())
+	for i, addr := range hostP2P.Addrs() {
+		fmt.Printf("%d: %s/ipfs/%s\n", i, addr, hostP2P.ID().Pretty())
 	}
 	fmt.Println()
 
 	fmt.Printf("Created node in %v\n", time.Now().Sub(timeStart))
 
-	node.p2pNode = h
+	node.p2pNode = hostP2P
 	node.chansSend = make(map[string]chan []byte)
 	node.queue = NewMessageQueue(maxMessageQueueNetMessenger)
 
+	err = node.createPubSub(hostP2P, pubsubStrategy, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	node.rt = NewRoutingTable(hostP2P.ID())
+
+	node.connNotifierRegistration(ctx)
+
+	return &node, nil
+}
+
+func (nm *NetMessenger) createPubSub(hostP2P host.Host, pubsubStrategy PubSubStrategy, ctx context.Context) error {
 	optsPS := []pubsub.Option{
 		pubsub.WithMessageSigning(true),
 	}
@@ -125,52 +138,57 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 	switch pubsubStrategy {
 	case FloodSub:
 		{
-			ps, err := pubsub.NewFloodSub(ctx, h, optsPS...)
+			ps, err := pubsub.NewFloodSub(ctx, hostP2P, optsPS...)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			node.ps = ps
+			nm.ps = ps
 		}
 	case GossipSub:
 		{
-			ps, err := pubsub.NewGossipSub(ctx, h, optsPS...)
+			ps, err := pubsub.NewGossipSub(ctx, hostP2P, optsPS...)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			node.ps = ps
+			nm.ps = ps
 		}
 	case RandomSub:
 		{
-			ps, err := pubsub.NewRandomSub(ctx, h, optsPS...)
+			ps, err := pubsub.NewRandomSub(ctx, hostP2P, optsPS...)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			node.ps = ps
+			nm.ps = ps
 		}
 	default:
-		return nil, errors.New("unknown pubsub strategy")
+		return errors.New("unknown pubsub strategy")
 	}
 
-	node.rt = NewRoutingTable(h.ID())
+	return nil
+}
+
+func (nm *NetMessenger) connNotifierRegistration(ctx context.Context) {
 	//register the notifier
-	node.p2pNode.Network().Notify(node.cn)
-	node.cn.OnDoSimpleTask = func(this interface{}) {
-		TaskResolveConnections(node.cn)
+	nm.p2pNode.Network().Notify(nm.cn)
+
+	nm.cn.OnDoSimpleTask = func(this interface{}) {
+		TaskResolveConnections(nm.cn)
 	}
-	node.cn.GetKnownPeers = func(cn *ConnNotifier) []peer.ID {
+
+	nm.cn.GetKnownPeers = func(cn *ConnNotifier) []peer.ID {
 		return cn.Msgr.RouteTable().NearestPeersAll()
 	}
-	node.cn.ConnectToPeer = func(cn *ConnNotifier, pid peer.ID) error {
-		pinfo := node.p2pNode.Peerstore().PeerInfo(pid)
 
-		if err := node.p2pNode.Connect(ctx, pinfo); err != nil {
+	nm.cn.ConnectToPeer = func(cn *ConnNotifier, pid peer.ID) error {
+		pinfo := nm.p2pNode.Peerstore().PeerInfo(pid)
+
+		if err := nm.p2pNode.Connect(ctx, pinfo); err != nil {
 			return err
 		}
 
 		return nil
 	}
 
-	return &node, nil
 }
 
 // Closes a NetMessenger
@@ -218,8 +236,8 @@ func (nm *NetMessenger) RouteTable() *RoutingTable {
 func (nm *NetMessenger) Addrs() []string {
 	addrs := make([]string, 0)
 
-	for _, adrs := range nm.p2pNode.Addrs() {
-		addrs = append(addrs, adrs.String()+"/ipfs/"+nm.ID().Pretty())
+	for _, address := range nm.p2pNode.Addrs() {
+		addrs = append(addrs, address.String()+"/ipfs/"+nm.ID().Pretty())
 	}
 
 	return addrs
@@ -294,8 +312,8 @@ func (nm *NetMessenger) PrintConnected() {
 	}
 }
 
-// AddAddr adds a new address to peer store
-func (nm *NetMessenger) AddAddr(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration) {
+// AddAddress adds a new address to peer store
+func (nm *NetMessenger) AddAddress(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration) {
 	nm.p2pNode.Network().Peerstore().AddAddr(p, addr, ttl)
 }
 

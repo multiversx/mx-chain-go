@@ -16,19 +16,18 @@ import (
 
 var mockMarshalizer = mock.MarshalizerMock{}
 
-type testStringCloner struct {
+type testStringNewer struct {
 	Data string
 }
 
-// Clone will return a new instance of string. Dummy, just to implement Cloner interface as strings are immutable
-func (sc *testStringCloner) Clone() p2p.Cloner {
-	return &testStringCloner{}
+// New will return a new instance of string. Dummy, just to implement Cloner interface as strings are immutable
+func (sc *testStringNewer) New() p2p.Newer {
+	return &testStringNewer{}
 }
 
-var objStringCloner = testStringCloner{}
-
 func TestTopic_AddEventHandler_Nil_ShouldNotAddHandler(t *testing.T) {
-	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
+	t.Parallel()
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
 
 	topic.AddDataReceived(nil)
 
@@ -36,7 +35,8 @@ func TestTopic_AddEventHandler_Nil_ShouldNotAddHandler(t *testing.T) {
 }
 
 func TestTopic_AddEventHandler_WithARealFunc_ShouldWork(t *testing.T) {
-	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
+	t.Parallel()
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
 
 	topic.AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 
@@ -46,7 +46,8 @@ func TestTopic_AddEventHandler_WithARealFunc_ShouldWork(t *testing.T) {
 }
 
 func TestTopic_NewMessageReceived_NilMsg_ShouldErr(t *testing.T) {
-	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
+	t.Parallel()
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
 
 	err := topic.NewDataReceived(nil, "")
 
@@ -54,7 +55,8 @@ func TestTopic_NewMessageReceived_NilMsg_ShouldErr(t *testing.T) {
 }
 
 func TestTopic_NewDataReceived_MarshalizerFails_ShouldErr(t *testing.T) {
-	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
+	t.Parallel()
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
 
 	topic.Marsh().(*mock.MarshalizerMock).Fail = true
 	defer func() {
@@ -67,7 +69,8 @@ func TestTopic_NewDataReceived_MarshalizerFails_ShouldErr(t *testing.T) {
 }
 
 func TestTopic_NewDataReceived_OKMsg_ShouldWork(t *testing.T) {
-	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
+	t.Parallel()
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -78,7 +81,7 @@ func TestTopic_NewDataReceived_OKMsg_ShouldWork(t *testing.T) {
 		assert.Equal(t, name, "test")
 
 		switch data.(type) {
-		case p2p.Cloner:
+		case p2p.Newer:
 			atomic.AddInt32(&cnt, 1)
 		default:
 			assert.Fail(t, "The data should have been string!")
@@ -88,7 +91,7 @@ func TestTopic_NewDataReceived_OKMsg_ShouldWork(t *testing.T) {
 
 	})
 
-	payload, err := mockMarshalizer.Marshal(&testStringCloner{Data: "aaaa"})
+	payload, err := mockMarshalizer.Marshal(&testStringNewer{Data: "aaaa"})
 	assert.Nil(t, err)
 
 	topic.NewDataReceived(payload, "")
@@ -106,7 +109,8 @@ func TestTopic_NewDataReceived_OKMsg_ShouldWork(t *testing.T) {
 }
 
 func TestTopic_Broadcast_NilData_ShouldErr(t *testing.T) {
-	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
+	t.Parallel()
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
 
 	err := topic.Broadcast(nil)
 
@@ -114,7 +118,8 @@ func TestTopic_Broadcast_NilData_ShouldErr(t *testing.T) {
 }
 
 func TestTopic_Broadcast_MarshalizerFails_ShouldErr(t *testing.T) {
-	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
+	t.Parallel()
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
 
 	topic.Marsh().(*mock.MarshalizerMock).Fail = true
 	defer func() {
@@ -127,7 +132,8 @@ func TestTopic_Broadcast_MarshalizerFails_ShouldErr(t *testing.T) {
 }
 
 func TestTopic_Broadcast_NoOneToSend_ShouldErr(t *testing.T) {
-	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
+	t.Parallel()
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
 
 	err := topic.Broadcast("a string")
 
@@ -135,7 +141,8 @@ func TestTopic_Broadcast_NoOneToSend_ShouldErr(t *testing.T) {
 }
 
 func TestTopic_Broadcast_SendOK_ShouldWork(t *testing.T) {
-	topic := p2p.NewTopic("test", &objStringCloner, &mockMarshalizer)
+	t.Parallel()
+	topic := p2p.NewTopic("test", &testStringNewer{}, &mockMarshalizer)
 
 	topic.SendData = func(data []byte) error {
 		if topic.Name != "test" {

@@ -18,8 +18,8 @@ func (m *memoryMessage) SetSigned(signed bool) {
 	m.isSigned = signed
 }
 
-func (t *Topic) EventBusData() []DataReceived {
-	return t.eventBusData
+func (t *Topic) EventBusData() []DataReceivedHandler {
+	return t.eventBusDataRcvHandlers
 }
 
 func (t *Topic) Marsh() marshal.Marshalizer {

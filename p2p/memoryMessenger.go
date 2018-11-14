@@ -223,8 +223,8 @@ func (mm *MemoryMessenger) PrintConnected() {
 	}
 }
 
-// AddAddr adds a new address to peer store
-func (mm *MemoryMessenger) AddAddr(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration) {
+// AddAddress adds a new address to peer store
+func (mm *MemoryMessenger) AddAddress(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration) {
 	mutGloballyRegPeers.Lock()
 	val, ok := GloballyRegisteredPeers[p]
 	mutGloballyRegPeers.Unlock()
