@@ -86,21 +86,19 @@ func NewMessage(p2p *p2p.Messenger, cns *Consensus) *Message {
 
 	msg.ChRcvMsg = make(map[MessageType]chan *ConsensusData)
 
-	if cns == nil || cns.Validators == nil || len(cns.Validators.ConsensusGroup()) == 0 {
-		msg.ChRcvMsg[MtBlockBody] = make(chan *ConsensusData)
-		msg.ChRcvMsg[MtBlockHeader] = make(chan *ConsensusData)
-		msg.ChRcvMsg[MtCommitmentHash] = make(chan *ConsensusData)
-		msg.ChRcvMsg[MtBitmap] = make(chan *ConsensusData)
-		msg.ChRcvMsg[MtCommitment] = make(chan *ConsensusData)
-		msg.ChRcvMsg[MtSignature] = make(chan *ConsensusData)
-	} else {
-		msg.ChRcvMsg[MtBlockBody] = make(chan *ConsensusData, len(cns.Validators.ConsensusGroup()))
-		msg.ChRcvMsg[MtBlockHeader] = make(chan *ConsensusData, len(cns.Validators.ConsensusGroup()))
-		msg.ChRcvMsg[MtCommitmentHash] = make(chan *ConsensusData, len(cns.Validators.ConsensusGroup()))
-		msg.ChRcvMsg[MtBitmap] = make(chan *ConsensusData, len(cns.Validators.ConsensusGroup()))
-		msg.ChRcvMsg[MtCommitment] = make(chan *ConsensusData, len(cns.Validators.ConsensusGroup()))
-		msg.ChRcvMsg[MtSignature] = make(chan *ConsensusData, len(cns.Validators.ConsensusGroup()))
+	nodes := 0
+
+	if cns != nil &&
+		cns.Validators != nil {
+		nodes = len(cns.Validators.ConsensusGroup())
 	}
+
+	msg.ChRcvMsg[MtBlockBody] = make(chan *ConsensusData, nodes)
+	msg.ChRcvMsg[MtBlockHeader] = make(chan *ConsensusData, nodes)
+	msg.ChRcvMsg[MtCommitmentHash] = make(chan *ConsensusData, nodes)
+	msg.ChRcvMsg[MtBitmap] = make(chan *ConsensusData, nodes)
+	msg.ChRcvMsg[MtCommitment] = make(chan *ConsensusData, nodes)
+	msg.ChRcvMsg[MtSignature] = make(chan *ConsensusData, nodes)
 
 	go msg.CheckChannels()
 
@@ -157,25 +155,29 @@ func (msg *Message) EndRound() bool {
 	return true
 }
 
-// SendBlock method is the function which is actually used to send the proposed block in the Block subround, when this
-// node is leader (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct
-// from spos package)
+// SendBlock method actually send the proposed block in the Block subround, when this node is leader (it is used as
+// a handler function of the doSubroundJob pointer function declared in Subround struct from spos package)
 func (msg *Message) SendBlock() bool {
-	// check if the Block subround is already finished
-	if msg.Cns.Status(SrBlock) == SsFinished {
+
+	if msg.Cns.Status(SrBlock) == SsFinished || // check if the Block subround is already finished
+		msg.Cns.Agreement(msg.Cns.Self(), SrBlock) || // check if the block has been already sent
+		!msg.Cns.IsNodeLeaderInCurrentRound(msg.Cns.Self()) { // check if the leader of this round is another node
 		return false
 	}
 
-	// check if the block has been already sent
-	if msg.Cns.Agreement(msg.Cns.Self(), SrBlock) {
+	if !msg.SendBlockBody() ||
+		!msg.SendBlockHeader() {
 		return false
 	}
 
-	// check if the leader of this round is another node
-	if !msg.Cns.IsNodeLeaderInCurrentRound(msg.Cns.Self()) {
-		return false
-	}
+	msg.Cns.SetAgreement(msg.Cns.Self(), SrBlock, true)
+	msg.Cns.SetShouldCheckConsensus(true)
 
+	return true
+}
+
+// SendBlockBody method send the proposed block body in the Block subround
+func (msg *Message) SendBlockBody() bool {
 	blk := &block.Block{}
 
 	message, err := marshal.DefMarsh.Marshal(blk)
@@ -191,7 +193,7 @@ func (msg *Message) SendBlock() bool {
 		nil,
 		[]byte(msg.Cns.Self()),
 		MtBlockBody,
-		[]byte(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset())))
+		[]byte(msg.Cns.Chr.SyncTime().CurrentTime(msg.Cns.Chr.ClockOffset()).String()))
 
 	if !msg.BroadcastMessage(dta) {
 		return false
@@ -202,19 +204,24 @@ func (msg *Message) SendBlock() bool {
 
 	msg.Blk = blk
 
+	return true
+}
+
+// SendBlockHeader method send the proposed block header in the Block subround
+func (msg *Message) SendBlockHeader() bool {
 	currentBlock := msg.Blkc.CurrentBlock
 	hdr := &block.Header{}
 
 	if currentBlock == nil {
 		hdr.Nonce = 1
-		hdr.TimeStamp = []byte(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset()))
+		hdr.TimeStamp = []byte(msg.Cns.Chr.SyncTime().CurrentTime(msg.Cns.Chr.ClockOffset()).String())
 	} else {
 		hdr.Nonce = currentBlock.Nonce + 1
-		hdr.TimeStamp = []byte(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset()))
+		hdr.TimeStamp = []byte(msg.Cns.Chr.SyncTime().CurrentTime(msg.Cns.Chr.ClockOffset()).String())
 		hdr.PrevHash = currentBlock.BlockHash
 	}
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err := marshal.DefMarsh.Marshal(hdr)
 
 	if err != nil {
 		msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset()) +
@@ -232,12 +239,12 @@ func (msg *Message) SendBlock() bool {
 		return false
 	}
 
-	dta = NewConsensusData(
+	dta := NewConsensusData(
 		message,
 		nil,
 		[]byte(msg.Cns.Self()),
 		MtBlockHeader,
-		[]byte(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset())))
+		[]byte(msg.Cns.Chr.SyncTime().CurrentTime(msg.Cns.Chr.ClockOffset()).String()))
 
 	if !msg.BroadcastMessage(dta) {
 		return false
@@ -248,8 +255,6 @@ func (msg *Message) SendBlock() bool {
 
 	msg.Hdr = hdr
 	msg.Cns.Data = &msg.Hdr.BlockHash
-	msg.Cns.SetAgreement(msg.Cns.Self(), SrBlock, true)
-	msg.Cns.SetShouldCheckConsensus(true)
 
 	return true
 }
@@ -258,22 +263,14 @@ func (msg *Message) SendBlock() bool {
 // from the leader in the CommitmentHash subround (it is used as the handler function of the doSubroundJob pointer
 // variable function in Subround struct from spos package)
 func (msg *Message) SendCommitmentHash() bool {
-	// check if the CommitmentHash subround is already finished
-	if msg.Cns.Status(SrCommitmentHash) == SsFinished {
-		return false
-	}
-
 	// check if the Block subround is not finished
 	if msg.Cns.Status(SrBlock) != SsFinished {
 		return msg.SendBlock()
 	}
 
-	// check if the commitment hash has been already sent
-	if msg.Cns.Agreement(msg.Cns.Self(), SrCommitmentHash) {
-		return false
-	}
-
-	if msg.Cns.Data == nil {
+	if msg.Cns.Status(SrCommitmentHash) == SsFinished || // check if the CommitmentHash subround is already finished
+		msg.Cns.Agreement(msg.Cns.Self(), SrCommitmentHash) || // check if the commitment hash has been already sent
+		msg.Cns.Data == nil { // check if this node has a consensus data on which it should send the commitment hash
 		return false
 	}
 
@@ -282,7 +279,7 @@ func (msg *Message) SendCommitmentHash() bool {
 		nil,
 		[]byte(msg.Cns.Self()),
 		MtCommitmentHash,
-		[]byte(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset())))
+		[]byte(msg.Cns.Chr.SyncTime().CurrentTime(msg.Cns.Chr.ClockOffset()).String()))
 
 	if !msg.BroadcastMessage(dta) {
 		return false
@@ -301,27 +298,15 @@ func (msg *Message) SendCommitmentHash() bool {
 // in the Bitmap subround, when this node is leader (it is used as the handler function of the doSubroundJob pointer
 // variable function in Subround struct from spos package)
 func (msg *Message) SendBitmap() bool {
-	// check if the Bitmap subround is already finished
-	if msg.Cns.Status(SrBitmap) == SsFinished {
-		return false
-	}
-
 	// check if the CommitmentHash subround is not finished
 	if msg.Cns.Status(SrCommitmentHash) != SsFinished {
 		return msg.SendCommitmentHash()
 	}
 
-	// check if the bitmap has been already sent
-	if msg.Cns.Agreement(msg.Cns.Self(), SrBitmap) {
-		return false
-	}
-
-	// check if this node is leader in the current round
-	if !msg.Cns.IsNodeLeaderInCurrentRound(msg.Cns.Self()) {
-		return false
-	}
-
-	if msg.Cns.Data == nil {
+	if msg.Cns.Status(SrBitmap) == SsFinished || // check if the Bitmap subround is already finished
+		msg.Cns.Agreement(msg.Cns.Self(), SrBitmap) || // check if the bitmap has been already sent
+		!msg.Cns.IsNodeLeaderInCurrentRound(msg.Cns.Self()) || // check if this node is leader in the current round
+		msg.Cns.Data == nil { // check if this node has a consensus data on which it should send the bitmap
 		return false
 	}
 
@@ -338,7 +323,7 @@ func (msg *Message) SendBitmap() bool {
 		pks,
 		[]byte(msg.Cns.Self()),
 		MtBitmap,
-		[]byte(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset())))
+		[]byte(msg.Cns.Chr.SyncTime().CurrentTime(msg.Cns.Chr.ClockOffset()).String()))
 
 	if !msg.BroadcastMessage(dta) {
 		return false
@@ -362,27 +347,15 @@ func (msg *Message) SendBitmap() bool {
 // Commitment subround (it is used as the handler function of the doSubroundJob pointer variable function in Subround
 // struct from spos package)
 func (msg *Message) SendCommitment() bool {
-	// check if the Commitment subround is already finished
-	if msg.Cns.Status(SrCommitment) == SsFinished {
-		return false
-	}
-
 	// check if the Bitmap subround is not finished
 	if msg.Cns.Status(SrBitmap) != SsFinished {
 		return msg.SendBitmap()
 	}
 
-	// check if the commitment has been already sent
-	if msg.Cns.Agreement(msg.Cns.Self(), SrCommitment) {
-		return false
-	}
-
-	// check if this node is not in the bitmap received from the leader
-	if !msg.Cns.IsNodeInBitmapGroup(msg.Cns.Self()) {
-		return false
-	}
-
-	if msg.Cns.Data == nil {
+	if msg.Cns.Status(SrCommitment) == SsFinished || // check if the Commitment subround is already finished
+		msg.Cns.Agreement(msg.Cns.Self(), SrCommitment) || // check if the commitment has been already sent
+		!msg.Cns.IsNodeInBitmapGroup(msg.Cns.Self()) || // check if this node is not in the bitmap received from the leader
+		msg.Cns.Data == nil { // check if this node has a consensus data on which it should send the commitment
 		return false
 	}
 
@@ -391,7 +364,7 @@ func (msg *Message) SendCommitment() bool {
 		nil,
 		[]byte(msg.Cns.Self()),
 		MtCommitment,
-		[]byte(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset())))
+		[]byte(msg.Cns.Chr.SyncTime().CurrentTime(msg.Cns.Chr.ClockOffset()).String()))
 
 	if !msg.BroadcastMessage(dta) {
 		return false
@@ -410,27 +383,15 @@ func (msg *Message) SendCommitment() bool {
 // Signature subround (it is used as the handler function of the doSubroundJob pointer variable function in Subround
 // struct from spos package)
 func (msg *Message) SendSignature() bool {
-	// check if the Signature subround is already finished
-	if msg.Cns.Status(SrSignature) == SsFinished {
-		return false
-	}
-
 	// check if the Commitment subround is not finished
 	if msg.Cns.Status(SrCommitment) != SsFinished {
 		return msg.SendCommitment()
 	}
 
-	// check if the Signature has been already sent
-	if msg.Cns.Agreement(msg.Cns.Self(), SrSignature) {
-		return false
-	}
-
-	// check if this node is not in the bitmap received from the leader
-	if !msg.Cns.IsNodeInBitmapGroup(msg.Cns.Self()) {
-		return false
-	}
-
-	if msg.Cns.Data == nil {
+	if msg.Cns.Status(SrSignature) == SsFinished || // check if the Signature subround is already finished
+		msg.Cns.Agreement(msg.Cns.Self(), SrSignature) || // check if the signature has been already sent
+		!msg.Cns.IsNodeInBitmapGroup(msg.Cns.Self()) || // check if this node is not in the bitmap received from the leader
+		msg.Cns.Data == nil { // check if this node has a consensus data on which it should send the signature
 		return false
 	}
 
@@ -439,7 +400,7 @@ func (msg *Message) SendSignature() bool {
 		nil,
 		[]byte(msg.Cns.Self()),
 		MtSignature,
-		[]byte(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset())))
+		[]byte(msg.Cns.Chr.SyncTime().CurrentTime(msg.Cns.Chr.ClockOffset()).String()))
 
 	if !msg.BroadcastMessage(dta) {
 		return false
@@ -459,8 +420,7 @@ func (msg *Message) BroadcastMessage(cnsDta *ConsensusData) bool {
 	message, err := marshal.DefMarsh.Marshal(cnsDta)
 
 	if err != nil {
-		msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset()) +
-			err.Error()))
+		msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset()) + err.Error()))
 		return false
 	}
 
@@ -542,13 +502,12 @@ func (msg *Message) DecodeMessage(rcvMsg *[]byte) (MessageType, *ConsensusData) 
 		return MtUnknown, nil
 	}
 
-	cnsDta := ConsensusData{}
+	var cnsDta ConsensusData
 
 	err := marshal.DefMarsh.Unmarshal(&cnsDta, *rcvMsg)
 
 	if err != nil {
-		msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset()) +
-			err.Error()))
+		msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset()) + err.Error()))
 		return MtUnknown, nil
 	}
 
@@ -566,8 +525,7 @@ func (msg *Message) DecodeBlockBody(dta *[]byte) *block.Block {
 	err := marshal.DefMarsh.Unmarshal(&blk, *dta)
 
 	if err != nil {
-		msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset()) +
-			err.Error()))
+		msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset()) + err.Error()))
 		return nil
 	}
 
@@ -585,8 +543,7 @@ func (msg *Message) DecodeBlockHeader(dta *[]byte) *block.Header {
 	err := marshal.DefMarsh.Unmarshal(&hdr, *dta)
 
 	if err != nil {
-		msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset()) +
-			err.Error()))
+		msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset()) + err.Error()))
 		return nil
 	}
 
@@ -631,8 +588,8 @@ func (msg *Message) ReceivedBlockBody(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
 	if node == msg.Cns.Self() ||
-		msg.Blk != nil ||
-		!msg.Cns.IsNodeLeaderInCurrentRound(node) {
+		!msg.Cns.IsNodeLeaderInCurrentRound(node) ||
+		msg.Blk != nil {
 		return false
 	}
 
@@ -650,7 +607,8 @@ func (msg *Message) ReceivedBlockHeader(cnsDta *ConsensusData) bool {
 
 	if node == msg.Cns.Self() ||
 		msg.Cns.Status(SrBlock) == SsFinished ||
-		!msg.Cns.IsNodeLeaderInCurrentRound(node) {
+		!msg.Cns.IsNodeLeaderInCurrentRound(node) ||
+		msg.Cns.Validators.Agreement(node, SrBlock) {
 		return false
 	}
 
@@ -658,8 +616,7 @@ func (msg *Message) ReceivedBlockHeader(cnsDta *ConsensusData) bool {
 
 	if !msg.CheckIfBlockIsValid(hdr) {
 		msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset())+
-			"Canceled round %d in subround %s",
-			msg.Cns.Chr.Round().Index(), msg.Cns.GetSubroundName(SrBlock)))
+			"Canceled round %d in subround %s", msg.Cns.Chr.Round().Index(), msg.Cns.GetSubroundName(SrBlock)))
 		msg.Cns.Chr.SetSelfSubround(-1)
 		return false
 	}
@@ -688,7 +645,7 @@ func (msg *Message) ReceivedCommitmentHash(cnsDta *ConsensusData) bool {
 		return false
 	}
 
-	// if this node is leader in this round and already he received 2/3 + 1 of commitment hashes he will refuse any
+	// if this node is leader in this round and already he received 2/3 + 1 of commitment hashes he will ignore any
 	// others received later
 	if msg.Cns.IsNodeLeaderInCurrentRound(msg.Cns.Self()) {
 		if msg.Cns.IsCommitmentHashReceived(msg.Cns.Threshold(SrCommitmentHash)) {
@@ -708,6 +665,7 @@ func (msg *Message) ReceivedBitmap(cnsDta *ConsensusData) bool {
 	if node == msg.Cns.Self() ||
 		msg.Cns.Status(SrBitmap) == SsFinished ||
 		!msg.Cns.IsNodeLeaderInCurrentRound(node) ||
+		msg.Cns.Validators.Agreement(node, SrBitmap) ||
 		msg.Cns.Data == nil ||
 		!bytes.Equal(cnsDta.Data, *msg.Cns.Data) {
 		return false
@@ -717,8 +675,7 @@ func (msg *Message) ReceivedBitmap(cnsDta *ConsensusData) bool {
 
 	if len(nodes) < msg.Cns.Threshold(SrBitmap) {
 		msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset())+
-			"Canceled round %d in subround %s",
-			msg.Cns.Chr.Round().Index(), msg.Cns.GetSubroundName(SrBitmap)))
+			"Canceled round %d in subround %s", msg.Cns.Chr.Round().Index(), msg.Cns.GetSubroundName(SrBitmap)))
 		msg.Cns.Chr.SetSelfSubround(-1)
 		return false
 	}
@@ -726,8 +683,7 @@ func (msg *Message) ReceivedBitmap(cnsDta *ConsensusData) bool {
 	for i := 0; i < len(nodes); i++ {
 		if !msg.Cns.IsNodeInValidationGroup(string(nodes[i])) {
 			msg.Cns.Log(fmt.Sprintf(msg.Cns.Chr.SyncTime().FormatedCurrentTime(msg.Cns.Chr.ClockOffset())+
-				"Canceled round %d in subround %s",
-				msg.Cns.Chr.Round().Index(), msg.Cns.GetSubroundName(SrBitmap)))
+				"Canceled round %d in subround %s", msg.Cns.Chr.Round().Index(), msg.Cns.GetSubroundName(SrBitmap)))
 			msg.Cns.Chr.SetSelfSubround(-1)
 			return false
 		}

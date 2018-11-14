@@ -347,23 +347,29 @@ func TestMessage_SendBlock(t *testing.T) {
 func TestMessage_SendCommitmentHash(t *testing.T) {
 	msgs := InitMessage()
 
-	msgs[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsFinished)
-
 	r := msgs[0].SendCommitmentHash()
-	assert.Equal(t, false, r)
-
-	msgs[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
-
-	r = msgs[0].SendCommitmentHash()
 	assert.Equal(t, true, r)
 
 	msgs[0].Cns.SetStatus(spos.SrBlock, spos.SsFinished)
+	msgs[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsFinished)
+
+	r = msgs[0].SendCommitmentHash()
+	assert.Equal(t, false, r)
+
+	msgs[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
 	msgs[0].Cns.SetAgreement(msgs[0].Cns.Self(), spos.SrCommitmentHash, true)
 
 	r = msgs[0].SendCommitmentHash()
 	assert.Equal(t, false, r)
 
 	msgs[0].Cns.SetAgreement(msgs[0].Cns.Self(), spos.SrCommitmentHash, false)
+	msgs[0].Cns.Data = nil
+
+	r = msgs[0].SendCommitmentHash()
+	assert.Equal(t, false, r)
+
+	dta := []byte("X")
+	msgs[0].Cns.Data = &dta
 
 	r = msgs[0].SendCommitmentHash()
 	assert.Equal(t, true, r)
@@ -372,17 +378,16 @@ func TestMessage_SendCommitmentHash(t *testing.T) {
 func TestMessage_SendBitmap(t *testing.T) {
 	msgs := InitMessage()
 
-	msgs[0].Cns.SetStatus(spos.SrBitmap, spos.SsFinished)
-
 	r := msgs[0].SendBitmap()
-	assert.Equal(t, false, r)
-
-	msgs[0].Cns.SetStatus(spos.SrBitmap, spos.SsNotFinished)
-
-	r = msgs[0].SendBitmap()
 	assert.Equal(t, true, r)
 
 	msgs[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsFinished)
+	msgs[0].Cns.SetStatus(spos.SrBitmap, spos.SsFinished)
+
+	r = msgs[0].SendBitmap()
+	assert.Equal(t, false, r)
+
+	msgs[0].Cns.SetStatus(spos.SrBitmap, spos.SsNotFinished)
 	msgs[0].Cns.SetAgreement(msgs[0].Cns.Self(), spos.SrBitmap, true)
 
 	r = msgs[0].SendBitmap()
@@ -395,6 +400,13 @@ func TestMessage_SendBitmap(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	msgs[0].Cns.Validators.SetSelf(msgs[0].Cns.Validators.ConsensusGroup()[0])
+	msgs[0].Cns.Data = nil
+
+	r = msgs[0].SendBitmap()
+	assert.Equal(t, false, r)
+
+	dta := []byte("X")
+	msgs[0].Cns.Data = &dta
 	msgs[0].Cns.SetAgreement(msgs[0].Cns.Self(), spos.SrCommitmentHash, true)
 
 	r = msgs[0].SendBitmap()
@@ -405,17 +417,16 @@ func TestMessage_SendBitmap(t *testing.T) {
 func TestMessage_SendCommitment(t *testing.T) {
 	msgs := InitMessage()
 
-	msgs[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
-
 	r := msgs[0].SendCommitment()
-	assert.Equal(t, false, r)
-
-	msgs[0].Cns.SetStatus(spos.SrCommitment, spos.SsNotFinished)
-
-	r = msgs[0].SendCommitment()
 	assert.Equal(t, true, r)
 
 	msgs[0].Cns.SetStatus(spos.SrBitmap, spos.SsFinished)
+	msgs[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
+
+	r = msgs[0].SendCommitment()
+	assert.Equal(t, false, r)
+
+	msgs[0].Cns.SetStatus(spos.SrCommitment, spos.SsNotFinished)
 	msgs[0].Cns.SetAgreement(msgs[0].Cns.Self(), spos.SrCommitment, true)
 
 	r = msgs[0].SendCommitment()
@@ -427,6 +438,13 @@ func TestMessage_SendCommitment(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	msgs[0].Cns.SetAgreement(msgs[0].Cns.Self(), spos.SrBitmap, true)
+	msgs[0].Cns.Data = nil
+
+	r = msgs[0].SendCommitment()
+	assert.Equal(t, false, r)
+
+	dta := []byte("X")
+	msgs[0].Cns.Data = &dta
 
 	r = msgs[0].SendCommitment()
 	assert.Equal(t, true, r)
@@ -435,17 +453,16 @@ func TestMessage_SendCommitment(t *testing.T) {
 func TestMessage_SendSignature(t *testing.T) {
 	msgs := InitMessage()
 
-	msgs[0].Cns.SetStatus(spos.SrSignature, spos.SsFinished)
-
 	r := msgs[0].SendSignature()
-	assert.Equal(t, false, r)
-
-	msgs[0].Cns.SetStatus(spos.SrSignature, spos.SsNotFinished)
-
-	r = msgs[0].SendSignature()
 	assert.Equal(t, true, r)
 
 	msgs[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
+	msgs[0].Cns.SetStatus(spos.SrSignature, spos.SsFinished)
+
+	r = msgs[0].SendSignature()
+	assert.Equal(t, false, r)
+
+	msgs[0].Cns.SetStatus(spos.SrSignature, spos.SsNotFinished)
 	msgs[0].Cns.SetAgreement(msgs[0].Cns.Self(), spos.SrSignature, true)
 
 	r = msgs[0].SendSignature()
@@ -457,6 +474,13 @@ func TestMessage_SendSignature(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	msgs[0].Cns.SetAgreement(msgs[0].Cns.Self(), spos.SrBitmap, true)
+	msgs[0].Cns.Data = nil
+
+	r = msgs[0].SendSignature()
+	assert.Equal(t, false, r)
+
+	dta := []byte("X")
+	msgs[0].Cns.Data = &dta
 
 	r = msgs[0].SendSignature()
 	assert.Equal(t, true, r)
@@ -833,12 +857,31 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	assert.Equal(t, false, msgs[0].Cns.ShouldCheckConsensus())
 
-	// BLOCK
+	// BLOCK BODY
+	blk := &block.Block{}
+
+	message, err := marshal.DefMarsh.Marshal(blk)
+
+	assert.Nil(t, err)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(msgs[0].Cns.Self()),
+		spos.MtBlockBody,
+		[]byte(msgs[0].Cns.Chr.SyncTime().CurrentTime(msgs[0].Cns.Chr.ClockOffset()).String()))
+
+	msgs[0].ChRcvMsg[spos.MtBlockBody] <- cnsDta
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, false, msgs[0].Cns.ShouldCheckConsensus())
+	assert.Equal(t, false, msgs[0].Cns.Validators.Agreement(msgs[0].Cns.ConsensusGroup()[1], spos.SrBlock))
+
+	// BLOCK HEADER
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(msgs[0].Cns.Chr.SyncTime().FormatedCurrentTime(msgs[0].Cns.Chr.ClockOffset()))
+	hdr.TimeStamp = []byte(msgs[0].Cns.Chr.SyncTime().CurrentTime(msgs[0].Cns.Chr.ClockOffset()).String())
 
-	message, err := marshal.DefMarsh.Marshal(hdr)
+	message, err = marshal.DefMarsh.Marshal(hdr)
 
 	assert.Nil(t, err)
 
@@ -848,12 +891,12 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	cnsDta := spos.NewConsensusData(
+	cnsDta = spos.NewConsensusData(
 		message,
 		nil,
 		[]byte(msgs[0].Cns.ConsensusGroup()[1]),
 		spos.MtBlockHeader,
-		[]byte(msgs[0].Cns.Chr.SyncTime().FormatedCurrentTime(msgs[0].Cns.Chr.ClockOffset())))
+		[]byte(msgs[0].Cns.Chr.SyncTime().CurrentTime(msgs[0].Cns.Chr.ClockOffset()).String()))
 
 	msgs[0].ChRcvMsg[spos.MtBlockHeader] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
