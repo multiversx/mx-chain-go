@@ -45,13 +45,15 @@ type Chronology struct {
 }
 
 // NewChronology defines a new Chr object
-func NewChronology(log bool,
+func NewChronology(
+	log bool,
 	doSyncMode bool,
 	round *Round,
 	genesisTime time.Time,
 	syncTime ntp.SyncTimer) *Chronology {
 
-	chr := Chronology{log: log,
+	chr := Chronology{
+		log:         log,
 		doSyncMode:  doSyncMode,
 		round:       round,
 		genesisTime: genesisTime,

@@ -219,15 +219,23 @@ func (sr *SREndRound) Name() string {
 }
 
 func TestStartRound(t *testing.T) {
-
 	genesisTime := time.Now()
 	currentTime := genesisTime
 
-	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
+	rnd := chronology.NewRound(
+		genesisTime,
+		currentTime,
+		roundTimeDuration)
+
 	syncTime := &ntp.LocalTime{}
 	syncTime.SetClockOffset(roundTimeDuration + 1)
 
-	chr := chronology.NewChronology(true, true, rnd, genesisTime, syncTime)
+	chr := chronology.NewChronology(
+		true,
+		true,
+		rnd,
+		genesisTime,
+		syncTime)
 
 	chr.AddSubround(&SRStartRound{})
 	chr.AddSubround(&SRBlock{})
