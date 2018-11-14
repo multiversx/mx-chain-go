@@ -20,6 +20,7 @@ type AccountsDB struct {
 
 	mutUsedAccounts   sync.RWMutex
 	usedStateAccounts map[string]*AccountState
+	jurnal            *Jurnal
 }
 
 // NewAccountsDB creates a new account manager
@@ -28,6 +29,7 @@ func NewAccountsDB(tr trie.PatriciaMerkelTree, hasher hashing.Hasher, marsh mars
 
 	adb.mutUsedAccounts = sync.RWMutex{}
 	adb.usedStateAccounts = make(map[string]*AccountState, 0)
+	adb.jurnal = NewJurnal(&adb)
 
 	return &adb
 }
@@ -160,6 +162,16 @@ func (adb *AccountsDB) SaveAccountState(state *AccountState) error {
 	return nil
 }
 
+// RemoveAccount removes the account data from underlying trie.
+// It basically calls Update with empty slice
+func (adb *AccountsDB) RemoveAccount(address Address) error {
+	if adb.MainTrie == nil {
+		return errors.New("attempt to search on a nil trie")
+	}
+
+	return adb.MainTrie.Update(address.Hash(adb.hasher), make([]byte, 0))
+}
+
 // GetOrCreateAccount fetches the account based on the address. Creates an empty account if the account is missing.
 func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error) {
 	has, err := adb.HasAccount(address)
@@ -188,6 +200,7 @@ func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error
 	}
 
 	state := NewAccountState(address, Account{}, adb.hasher)
+	adb.jurnal.AddEntry(NewJurnalEntryCreation(&address, state))
 
 	err = adb.SaveAccountState(state)
 	if err != nil {

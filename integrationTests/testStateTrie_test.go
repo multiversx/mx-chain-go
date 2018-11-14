@@ -383,3 +383,42 @@ func TestAccountsDB_Commits_2okAccounts3times_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, stTest.Balance, big.NewInt(52))
 }
+
+func TestAccountsDB_Commit_AccountData_ShouldWork(t *testing.T) {
+	testHash1 := testHasher.Compute("ABCDEFGHIJKLMNOP")
+	adr1 := createAddress(t, testHash1)
+
+	adb := createAccountsDB(t)
+	hrEmpty := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
+	fmt.Printf("State root - empty: %v\n", hrEmpty)
+
+	state1, err := adb.GetOrCreateAccount(*adr1)
+	assert.Nil(t, err)
+
+	state1.Balance = big.NewInt(40)
+	hrCreated := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
+	fmt.Printf("State root - created account: %v\n", hrCreated)
+
+	adb.SaveAccountState(state1)
+	hrWithBalance := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
+	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance)
+
+	adb.Commit()
+	hrCommit := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
+	fmt.Printf("State root - commited: %v\n", hrCommit)
+
+	//commit hash == account with balance
+	assert.Equal(t, hrCommit, hrWithBalance)
+
+	state1.Balance = big.NewInt(0)
+	adb.SaveAccountState(state1)
+
+	//root hash == hrCreated
+	assert.Equal(t, hrCreated, base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
+	fmt.Printf("State root - account with balance 0: %v\n", base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
+
+	adb.RemoveAccount(*adr1)
+	//root hash == hrEmpty
+	assert.Equal(t, hrEmpty, base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
+	fmt.Printf("State root - empty: %v\n", base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
+}
