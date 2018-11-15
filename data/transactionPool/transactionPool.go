@@ -83,8 +83,9 @@ func (tp *TransactionPool) AddTransaction(txHash []byte, destShardID uint32) {
 
 // RemoveTransaction will remove a transaction hash from the coresponding pool
 func (tp *TransactionPool) RemoveTransaction(txHash []byte, destShardID uint32) {
-	if tp.MiniPool(destShardID) != nil {
-		tp.MiniPoolTxStore(destShardID).Remove(txHash)
+	mptx := tp.MiniPoolTxStore(destShardID)
+	if mptx != nil {
+		mptx.Remove(txHash)
 	}
 }
 

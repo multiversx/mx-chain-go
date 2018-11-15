@@ -138,10 +138,3 @@ func TestTransactionPool_SplitMiniPool(t *testing.T) {
 	assert.Equal(t, 2, txp.MiniPoolTxStore(3).Len(),
 		"Mini pool for shard 3 should have 2 elements")
 }
-
-func TestScenarios(t *testing.T) {
-	txp := transactionPool.NewTransactionPool()
-	txp.AddTransaction([]byte("tx_hash1"), 1)
-
-	txp.SplitMiniPool(2, 2, [][]byte{[]byte("tx_hash5"), []byte("tx_hash6")})
-}
