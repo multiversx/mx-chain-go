@@ -9,7 +9,7 @@ import (
 
 // TransactionPool holds the list of transactions organised by destination shard
 //
-// Through the MiniPools store it maps a cacher, containing transaction
+// The miniPools field maps a cacher, containing transaction
 //  hashes, to a corresponding shard id. It is able to add or remove
 //  transactions given the shard id it is associated with. It can
 //  also merge and split pools when required
