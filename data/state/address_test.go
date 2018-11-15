@@ -14,12 +14,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package state
+package state_test
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +30,7 @@ var testAddrHasher = &mock.HasherMock{}
 func TestAddress_FromPubKeyBytes_LowNoOfBytes_ShouldErr(t *testing.T) {
 	buff := []byte("ABCDEF")
 
-	_, err := FromPubKeyBytes(buff)
+	_, err := state.FromPubKeyBytes(buff)
 	assert.NotNil(t, err)
 	fmt.Println(err.Error())
 }
@@ -37,7 +38,7 @@ func TestAddress_FromPubKeyBytes_LowNoOfBytes_ShouldErr(t *testing.T) {
 func TestAddress_FromPubKeyBytes_Values_ShouldWork(t *testing.T) {
 	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
 
-	adr, err := FromPubKeyBytes(buff)
+	adr, err := state.FromPubKeyBytes(buff)
 	assert.Nil(t, err)
 
 	fmt.Println(adr.Hex(testAddrHasher))
@@ -46,7 +47,7 @@ func TestAddress_FromPubKeyBytes_Values_ShouldWork(t *testing.T) {
 func TestAddress_Hash_Values_ShouldWork(t *testing.T) {
 	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
 
-	adr, err := FromPubKeyBytes(buff)
+	adr, err := state.FromPubKeyBytes(buff)
 	assert.Nil(t, err)
 
 	assert.Equal(t, adr.Hash(testAddrHasher), testAddrHasher.Compute(string(adr.Bytes())))
@@ -55,33 +56,33 @@ func TestAddress_Hash_Values_ShouldWork(t *testing.T) {
 func TestAddress_IsHexAddress_Values_ShouldWork(t *testing.T) {
 	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
 
-	adr, err := FromPubKeyBytes(buff)
+	adr, err := state.FromPubKeyBytes(buff)
 	assert.Nil(t, err)
 
-	assert.True(t, IsHexAddress(adr.Hex(testAddrHasher)))
+	assert.True(t, state.IsHexAddress(adr.Hex(testAddrHasher)))
 	fmt.Printf("Address: %v\n", adr.Hex(testAddrHasher))
 }
 
 func TestAddress_IsHexAddress_BadAddrs_ShouldRetFalse(t *testing.T) {
 	//invalid characters
-	assert.False(t, IsHexAddress("ABCDEFGH"))
+	assert.False(t, state.IsHexAddress("ABCDEFGH"))
 	//odd numbers of hexa chars
-	assert.False(t, IsHexAddress("0x434445464748494A4B4c4d4e4F5051525354555658595A31323435363738393"))
+	assert.False(t, state.IsHexAddress("0x434445464748494A4B4c4d4e4F5051525354555658595A31323435363738393"))
 }
 
 func TestAddress_HexToAddress_Values_ShouldWork(t *testing.T) {
 	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
 
-	adr, err := FromPubKeyBytes(buff)
+	adr, err := state.FromPubKeyBytes(buff)
 	assert.Nil(t, err)
 
-	adr2 := HexToAddress(adr.Hex(testAddrHasher))
+	adr2 := state.HexToAddress(adr.Hex(testAddrHasher))
 
 	assert.Equal(t, adr, adr2)
 }
 
 func TestIsHexAddress(t *testing.T) {
-	if AdrLen != 20 {
+	if state.AdrLen != 20 {
 		t.Skip("Test not valid on a different address length of 20!")
 	}
 
@@ -102,13 +103,13 @@ func TestIsHexAddress(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result := IsHexAddress(test.str)
+		result := state.IsHexAddress(test.str)
 		assert.Equal(t, test.exp, result)
 	}
 }
 
 func TestAddressHexChecksum(t *testing.T) {
-	if AdrLen != 20 {
+	if state.AdrLen != 20 {
 		t.Skip("Test not valid on a different address length of 20!")
 	}
 
@@ -127,7 +128,7 @@ func TestAddressHexChecksum(t *testing.T) {
 		{"0x000000000000000000000000000000000000000a", "0x000000000000000000000000000000000000000A"},
 	}
 	for i, test := range tests {
-		output := HexToAddress(test.Input).Hex(mock.HasherMock{})
+		output := state.HexToAddress(test.Input).Hex(mock.HasherMock{})
 		if output != test.Output {
 			t.Errorf("test #%d: failed to match when it should (%s != %s)", i, output, test.Output)
 		}
@@ -135,15 +136,15 @@ func TestAddressHexChecksum(t *testing.T) {
 }
 
 func TestAddressFromPubKey(t *testing.T) {
-	if AdrLen != 20 {
+	if state.AdrLen != 20 {
 		t.Skip("Test not valid on a different address length of 20!")
 	}
 
 	//test error
-	_, err := FromPubKeyBytes([]byte{45, 56})
+	_, err := state.FromPubKeyBytes([]byte{45, 56})
 
 	switch e := err.(type) {
-	case *ErrorWrongSize:
+	case *state.ErrorWrongSize:
 		fmt.Println(e.Error())
 		break
 	default:
@@ -153,7 +154,7 @@ func TestAddressFromPubKey(t *testing.T) {
 	//test trim
 	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ")
 
-	adr, err := FromPubKeyBytes(buff)
+	adr, err := state.FromPubKeyBytes(buff)
 	assert.Nil(t, err)
 
 	assert.Equal(t, []byte("FGHIJKLMNOPQRSTUVXYZ"), adr.Bytes())

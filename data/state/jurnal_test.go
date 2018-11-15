@@ -37,8 +37,8 @@ func TestJurnal_AddEntry_ValidValue_ShouldWork(t *testing.T) {
 
 	j.AddEntry(&jem)
 	assert.Equal(t, 1, len(j.Entries()))
-	assert.Equal(t, uint32(1), j.DirtyAddresses()[jem.DirtyAddress()])
-	assert.Equal(t, uint32(1), j.Len())
+	assert.Equal(t, 1, j.DirtyAddresses()[jem.DirtyAddress()])
+	assert.Equal(t, 1, j.Len())
 }
 
 func TestJurnal_RevertFromSnapshot_OutOfBound_ShouldWork(t *testing.T) {
@@ -50,18 +50,18 @@ func TestJurnal_RevertFromSnapshot_OutOfBound_ShouldWork(t *testing.T) {
 
 	j.AddEntry(&jem)
 
-	err := j.RevertFromSnapshot(uint32(3))
+	err := j.RevertFromSnapshot(3)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), j.Len())
+	assert.Equal(t, 1, j.Len())
 	assert.Equal(t, 0, jem.RevertCalled)
 
-	j.RevertFromSnapshot(uint32(2))
-	assert.Equal(t, uint32(1), j.Len())
+	j.RevertFromSnapshot(2)
+	assert.Equal(t, 1, j.Len())
 	assert.Equal(t, 0, jem.RevertCalled)
 
-	j.RevertFromSnapshot(uint32(0))
-	assert.Equal(t, uint32(1), j.Len())
-	assert.Equal(t, 0, jem.RevertCalled)
+	j.RevertFromSnapshot(0)
+	assert.Equal(t, 0, j.Len())
+	assert.Equal(t, 1, jem.RevertCalled)
 }
 
 func TestJurnal_RevertFromSnapshot_SingleEntry_ShouldWork(t *testing.T) {
@@ -73,9 +73,9 @@ func TestJurnal_RevertFromSnapshot_SingleEntry_ShouldWork(t *testing.T) {
 
 	j.AddEntry(&jem)
 
-	err := j.RevertFromSnapshot(uint32(1))
+	err := j.RevertFromSnapshot(0)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), j.Len())
+	assert.Equal(t, 0, j.Len())
 	assert.Equal(t, 1, jem.RevertCalled)
 }
 
@@ -92,9 +92,9 @@ func TestJurnal_RevertFromSnapshot_5EntriesIdx3_ShouldWork(t *testing.T) {
 	j.AddEntry(&jem)
 	j.AddEntry(&jem)
 
-	err := j.RevertFromSnapshot(uint32(4))
+	err := j.RevertFromSnapshot(3)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(3), j.Len())
+	assert.Equal(t, 3, j.Len())
 	assert.Equal(t, 2, jem.RevertCalled)
 }
 
@@ -111,9 +111,9 @@ func TestJurnal_RevertFromSnapshot_5EntriesIdx0_ShouldWork(t *testing.T) {
 	j.AddEntry(&jem)
 	j.AddEntry(&jem)
 
-	err := j.RevertFromSnapshot(uint32(1))
+	err := j.RevertFromSnapshot(0)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), j.Len())
+	assert.Equal(t, 0, j.Len())
 	assert.Equal(t, 5, jem.RevertCalled)
 }
 
@@ -130,9 +130,9 @@ func TestJurnal_RevertFromSnapshot_5EntriesIdx4_ShouldWork(t *testing.T) {
 	j.AddEntry(&jem)
 	j.AddEntry(&jem)
 
-	err := j.RevertFromSnapshot(uint32(5))
+	err := j.RevertFromSnapshot(4)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(4), j.Len())
+	assert.Equal(t, 4, j.Len())
 	assert.Equal(t, 1, jem.RevertCalled)
 }
 
@@ -146,8 +146,28 @@ func TestJurnal_RevertFromSnapshot_SingleEntryErrors_ShouldRetErr(t *testing.T) 
 
 	j.AddEntry(&jem)
 
-	err := j.RevertFromSnapshot(uint32(1))
+	err := j.RevertFromSnapshot(0)
 	assert.NotNil(t, err)
-	assert.Equal(t, uint32(1), j.Len())
+	assert.Equal(t, 1, j.Len())
 	assert.Equal(t, 0, jem.RevertCalled)
+}
+
+func TestJurnal_Clear(t *testing.T) {
+	t.Parallel()
+
+	j := state.NewJurnal(nil)
+
+	jem := jurnalEntryMock{Addr: state.HexToAddress("1234")}
+
+	j.AddEntry(&jem)
+	j.AddEntry(&jem)
+	j.AddEntry(&jem)
+	j.AddEntry(&jem)
+	j.AddEntry(&jem)
+
+	assert.Equal(t, 5, j.Len())
+
+	j.Clear()
+
+	assert.Equal(t, 0, j.Len())
 }

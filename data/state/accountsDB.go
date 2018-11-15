@@ -36,7 +36,7 @@ func NewAccountsDB(tr trie.PatriciaMerkelTree, hasher hashing.Hasher, marsh mars
 
 // RetrieveCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
 func (adb *AccountsDB) RetrieveCode(state *AccountState) error {
-	if state.CodeHash == nil {
+	if state.CodeHash() == nil {
 		state.Code = nil
 		return nil
 	}
@@ -45,12 +45,12 @@ func (adb *AccountsDB) RetrieveCode(state *AccountState) error {
 		return errors.New("attempt to search on a nil trie")
 	}
 
-	if len(state.CodeHash) != encoding.HashLength {
+	if len(state.CodeHash()) != encoding.HashLength {
 		return errors.New("attempt to search a hash not normalized to" +
 			strconv.Itoa(encoding.HashLength) + "bytes")
 	}
 
-	val, err := adb.MainTrie.Get(state.CodeHash)
+	val, err := adb.MainTrie.Get(state.CodeHash())
 
 	if err != nil {
 		return err
@@ -60,41 +60,35 @@ func (adb *AccountsDB) RetrieveCode(state *AccountState) error {
 	return nil
 }
 
-// RetrieveData retrieves and saves the SC data inside AccountState object. Errors if something went wrong
-func (adb *AccountsDB) RetrieveData(state *AccountState) error {
-	if state.Root == nil {
-		state.Data = nil
+// RetrieveDataTrie retrieves and saves the SC data inside AccountState object. Errors if something went wrong
+func (adb *AccountsDB) RetrieveDataTrie(state *AccountState) error {
+	if state.Root() == nil {
+		//do nothing, the account is either SC library or transfer account
 		return nil
 	}
 
 	if adb.MainTrie == nil {
-		return errors.New("attempt to search on a nil trie")
+		return ErrNilTrie
 	}
 
-	if len(state.Root) != encoding.HashLength {
-		return errors.New("attempt to search a hash not normalized to" +
-			strconv.Itoa(encoding.HashLength) + "bytes")
+	if len(state.Root()) != encoding.HashLength {
+		return NewErrorTrieNotNormalized(encoding.HashLength, len(state.Root()))
 	}
 
-	dataTrie, err := adb.MainTrie.Recreate(state.Root, adb.MainTrie.DBW())
+	dataTrie, err := adb.MainTrie.Recreate(state.Root(), adb.MainTrie.DBW())
 	if err != nil {
-		//node does not exists, create new one
-		dataTrie, err = adb.MainTrie.Recreate(make([]byte, 0), adb.MainTrie.DBW())
-		if err != nil {
-			return err
-		}
-
-		state.Root = dataTrie.Root()
+		//error as there is an inconsistent state:
+		//account has data root but does not contain the actual trie
+		return NewErrMissingTrie(state.Root())
 	}
 
-	state.Data = dataTrie
+	state.DataTrie = dataTrie
 	return nil
 }
 
 // PutCode sets the SC plain code in AccountState object and trie, code hash in AccountState. Errors if something went wrong
 func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 	if (code == nil) || (len(code) == 0) {
-		state.reset()
 		return nil
 	}
 
@@ -102,23 +96,30 @@ func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 		return errors.New("attempt to search on a nil trie")
 	}
 
-	state.CodeHash = state.hasher.Compute(string(code))
-	state.Code = code
+	codeHash := adb.hasher.Compute(string(code))
 
-	err := adb.MainTrie.Update(state.CodeHash, state.Code)
+	if state != nil {
+		state.SetCodeHash(adb, codeHash)
+		state.Code = code
+	}
+
+	//test that we add the code, or reuse an existing code as to be able to correctly revert the addition
+	val, err := adb.MainTrie.Get(codeHash)
 	if err != nil {
-		state.reset()
 		return err
 	}
 
-	dataTrie, err := adb.MainTrie.Recreate(make([]byte, 0), adb.MainTrie.DBW())
-	if err != nil {
-		state.reset()
-		return err
+	if val == nil {
+		//append a jurnal entry as the code needs to be inserted in the trie
+		adb.Jurnal().AddEntry(NewJurnalEntryCode(codeHash))
 	}
 
-	state.Data = dataTrie
-	return nil
+	return adb.MainTrie.Update(codeHash, code)
+}
+
+// RemoveCode deletes the code from the trie. It writes an empty byte slice at codeHash "address"
+func (adb *AccountsDB) RemoveCode(codeHash []byte) error {
+	return adb.MainTrie.Update(codeHash, make([]byte, 0))
 }
 
 // HasAccount searches for an account based on the address. Errors if something went wrong and outputs if the account exists or not
@@ -146,13 +147,11 @@ func (adb *AccountsDB) SaveAccountState(state *AccountState) error {
 		return errors.New("attempt to search on a nil trie")
 	}
 
-	buff, err := adb.marsh.Marshal(state.Account)
+	buff, err := adb.marsh.Marshal(state.Account())
 
 	if err != nil {
 		return err
 	}
-
-	adb.trackAccountState(state)
 
 	err = adb.MainTrie.Update(state.Addr.Hash(adb.hasher), buff)
 	if err != nil {
@@ -185,21 +184,19 @@ func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error
 			return nil, err
 		}
 
-		acnt := Account{}
+		acnt := NewAccount()
 
-		err = adb.marsh.Unmarshal(&acnt, val)
+		err = adb.marsh.Unmarshal(acnt, val)
 		if err != nil {
 			return nil, err
 		}
 
-		state := NewAccountState(address, acnt, adb.hasher)
-
-		adb.trackAccountState(state)
+		state := NewAccountState(address, *acnt, adb.hasher)
 
 		return state, nil
 	}
 
-	state := NewAccountState(address, Account{}, adb.hasher)
+	state := NewAccountState(address, *NewAccount(), adb.hasher)
 	adb.jurnal.AddEntry(NewJurnalEntryCreation(&address, state))
 
 	err = adb.SaveAccountState(state)
@@ -210,29 +207,30 @@ func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error
 	return state, nil
 }
 
-// Commit will persist all data inside
+// Commit will persist all data inside the trie
 func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.mutUsedAccounts.Lock()
 	defer adb.mutUsedAccounts.Unlock()
 
 	//Step 1. iterate through tracked account states map and commits the new tries
-	for _, v := range adb.usedStateAccounts {
-		if v.Dirty() {
-			hash, err := v.Data.Commit(nil)
-			if err != nil {
-				return nil, err
-			}
-
-			v.Root = hash
-			v.prevRoot = hash
-		}
-
-		buff, err := adb.marsh.Marshal(v.Account)
-		if err != nil {
-			return nil, err
-		}
-		adb.MainTrie.Update(v.Addr.Hash(adb.hasher), buff)
-	}
+	//TODO
+	//for _, v := range adb.usedStateAccounts {
+	//	if v.Dirty() {
+	//		hash, err := v.Data.Commit(nil)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//
+	//		v.Root = hash
+	//		v.prevRoot = hash
+	//	}
+	//
+	//	buff, err := adb.marsh.Marshal(v.Account)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	adb.MainTrie.Update(v.Addr.Hash(adb.hasher), buff)
+	//}
 
 	//step 2. clean used accounts map
 	adb.usedStateAccounts = make(map[string]*AccountState, 0)
@@ -246,12 +244,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	return hash, nil
 }
 
-func (adb *AccountsDB) trackAccountState(state *AccountState) {
-	//add account to used accounts to track the modifications in data trie for committing/undoing
-	adb.mutUsedAccounts.Lock()
-	_, ok := adb.usedStateAccounts[string(state.Addr.Hash(adb.hasher))]
-	if !ok {
-		adb.usedStateAccounts[string(state.Addr.Hash(adb.hasher))] = state
-	}
-	adb.mutUsedAccounts.Unlock()
+// Jurnal returns the Jurnal pointer which is used at taking snapshots and reverting tries past states
+func (adb *AccountsDB) Jurnal() *Jurnal {
+	return adb.jurnal
 }
