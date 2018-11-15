@@ -32,8 +32,9 @@ func (rv *RoundValidation) ResetRoundValidation() {
 // Validation returns the consensus agreement of the given subroundId
 func (rv *RoundValidation) Validation(subroundId chronology.SubroundId) bool {
 	rv.mut.RLock()
-	defer rv.mut.RUnlock()
-	return rv.validation[subroundId]
+	retcode := rv.validation[subroundId]
+	rv.mut.RUnlock()
+	return retcode
 }
 
 // SetValidation sets the consensus agreement of the given subroundId
@@ -94,8 +95,9 @@ func NewValidators(
 // in subround given by the subroundId parameter
 func (vld *Validators) Agreement(key string, subroundId chronology.SubroundId) bool {
 	vld.mut.RLock()
-	defer vld.mut.RUnlock()
-	return vld.agreement[key].Validation(subroundId)
+	retcode := vld.agreement[key].Validation(subroundId)
+	vld.mut.RUnlock()
+	return retcode
 }
 
 // SetAgreement set the state of the action done, by the node represented by the key parameter,

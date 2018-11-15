@@ -66,8 +66,9 @@ func (rs *RoundStatus) ResetRoundStatus() {
 // Status returns the status of the given subround id
 func (rs *RoundStatus) Status(subroundId chronology.SubroundId) SubroundStatus {
 	rs.mut.RLock()
-	defer rs.mut.RUnlock()
-	return rs.status[subroundId]
+	retcode := rs.status[subroundId]
+	rs.mut.RUnlock()
+	return retcode
 }
 
 // SetStatus sets the status of the given subround id
@@ -94,8 +95,9 @@ func NewRoundThreshold() *RoundThreshold {
 // Threshold returns the threshold of agreements needed in the given subround id
 func (rt *RoundThreshold) Threshold(subroundId chronology.SubroundId) int {
 	rt.mut.RLock()
-	defer rt.mut.RUnlock()
-	return rt.threshold[subroundId]
+	retcode := rt.threshold[subroundId]
+	rt.mut.RUnlock()
+	return retcode
 }
 
 // SetThreshold sets the threshold of agreements needed in the given subround id
