@@ -29,7 +29,7 @@ type Messenger interface {
 	Bootstrap(ctx context.Context)
 	PrintConnected()
 
-	AddAddr(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration)
+	AddAddress(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration)
 
 	Connectedness(pid peer.ID) net.Connectedness
 

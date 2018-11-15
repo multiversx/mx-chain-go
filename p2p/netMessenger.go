@@ -1,7 +1,6 @@
 package p2p
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -17,6 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-protocol"
+	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -24,19 +24,27 @@ import (
 // maxMessageQueueNetMessenger is used to control the maximum message queue in a network messenger
 const maxMessageQueueNetMessenger = 50000
 
-// protocolIDNetMessenger defines the protocol used for communication
-const protocolIDNetMessenger = "elrondnetwork/1.0.0.0"
-
-// channelBufferSize is used to control the send channel buffer size
-const channelBufferSize = 10000
-
 // durMdnsCalls is used to define the duration used by mdns service when polling peers
 const durMdnsCalls = time.Second
 
+// PubSubStrategy defines the strategy for broadcasting messages in the network
+type PubSubStrategy int
+
+const (
+	// FloodSub strategy to use when broadcasting messages
+	FloodSub = iota
+	// GossipSub strategy to use when broadcasting messages
+	GossipSub
+	// RandomSub strategy to use when broadcasting messages
+	RandomSub
+)
+
 // NetMessenger implements a libP2P node with added functionality
 type NetMessenger struct {
+	context  context.Context
 	protocol protocol.ID
 	p2pNode  host.Host
+	ps       *pubsub.PubSub
 	mdns     discovery.Service
 
 	mutChansSend sync.RWMutex
@@ -51,7 +59,7 @@ type NetMessenger struct {
 	cn     *ConnNotifier
 	dn     *DiscoveryNotifier
 
-	onMsgRecv func(caller Messenger, peerID string, m *Message)
+	onMsgRecv func(caller Messenger, peerID string, data []byte)
 
 	mutClosed sync.RWMutex
 	closed    bool
@@ -62,7 +70,7 @@ type NetMessenger struct {
 
 // NewNetMessenger creates a new instance of NetMessenger.
 func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hashing.Hasher,
-	cp *ConnectParams, maxAllowedPeers int) (*NetMessenger, error) {
+	cp *ConnectParams, maxAllowedPeers int, pubsubStrategy PubSubStrategy) (*NetMessenger, error) {
 
 	if marsh == nil {
 		return nil, errors.New("marshalizer is nil! Can't create node")
@@ -73,9 +81,10 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 	}
 
 	node := NetMessenger{
-		marsh:  marsh,
-		hasher: hasher,
-		topics: make(map[string]*Topic, 0),
+		context: ctx,
+		marsh:   marsh,
+		hasher:  hasher,
+		topics:  make(map[string]*Topic, 0),
 	}
 
 	node.cn = NewConnNotifier(&node)
@@ -92,161 +101,93 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 		libp2p.NATPortMap(),
 	}
 
-	h, err := libp2p.New(ctx, opts...)
+	hostP2P, err := libp2p.New(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("Node: %v has the following addr table: \n", h.ID().Pretty())
-	for i, addr := range h.Addrs() {
-		fmt.Printf("%d: %s/ipfs/%s\n", i, addr, h.ID().Pretty())
+	fmt.Printf("Node: %v has the following addr table: \n", hostP2P.ID().Pretty())
+	for i, addr := range hostP2P.Addrs() {
+		fmt.Printf("%d: %s/ipfs/%s\n", i, addr, hostP2P.ID().Pretty())
 	}
 	fmt.Println()
 
 	fmt.Printf("Created node in %v\n", time.Now().Sub(timeStart))
 
-	node.p2pNode = h
+	node.p2pNode = hostP2P
 	node.chansSend = make(map[string]chan []byte)
 	node.queue = NewMessageQueue(maxMessageQueueNetMessenger)
-	node.protocol = protocol.ID(protocolIDNetMessenger)
 
-	node.p2pNode.SetStreamHandler(node.protocol, node.streamHandler)
-
-	node.rt = NewRoutingTable(h.ID())
-	//register the notifier
-	node.p2pNode.Network().Notify(node.cn)
-	node.cn.OnDoSimpleTask = func(this interface{}) {
-		TaskResolveConnections(node.cn)
+	err = node.createPubSub(hostP2P, pubsubStrategy, ctx)
+	if err != nil {
+		return nil, err
 	}
-	node.cn.GetKnownPeers = func(cn *ConnNotifier) []peer.ID {
-		return cn.Msgr.RouteTable().NearestPeersAll()
-	}
-	node.cn.ConnectToPeer = func(cn *ConnNotifier, pid peer.ID) error {
-		pinfo := node.p2pNode.Peerstore().PeerInfo(pid)
 
-		if err := node.p2pNode.Connect(ctx, pinfo); err != nil {
-			return err
-		} else {
-			str, err := node.p2pNode.NewStream(ctx, pinfo.ID, node.protocol)
-			if err != nil {
-				return err
-			} else {
-				node.streamHandler(str)
-			}
-		}
+	node.rt = NewRoutingTable(hostP2P.ID())
 
-		return nil
-	}
+	node.connNotifierRegistration(ctx)
 
 	return &node, nil
 }
 
-func (nm *NetMessenger) streamHandler(stream net.Stream) {
-	peerID := stream.Conn().RemotePeer().Pretty()
-
-	nm.mutChansSend.Lock()
-	chanSend, ok := nm.chansSend[peerID]
-	if !ok {
-		chanSend = make(chan []byte, channelBufferSize)
-		nm.chansSend[peerID] = chanSend
+func (nm *NetMessenger) createPubSub(hostP2P host.Host, pubsubStrategy PubSubStrategy, ctx context.Context) error {
+	optsPS := []pubsub.Option{
+		pubsub.WithMessageSigning(true),
 	}
-	nm.mutChansSend.Unlock()
 
-	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-
-	go func(rw *bufio.ReadWriter, queue *MessageQueue) {
-		for {
-			buff, _ := rw.ReadBytes(byte('\n'))
-
-			nm.gotNewMessage(buff, stream.Conn().RemotePeer(), false)
+	switch pubsubStrategy {
+	case FloodSub:
+		{
+			ps, err := pubsub.NewFloodSub(ctx, hostP2P, optsPS...)
+			if err != nil {
+				return err
+			}
+			nm.ps = ps
 		}
-
-	}(rw, nm.queue)
-
-	go func(rw *bufio.ReadWriter, chanSend chan []byte) {
-		for {
-			data := <-chanSend
-
-			buff := make([]byte, len(data))
-			copy(buff, data)
-
-			buff = append(buff, byte('\n'))
-
-			rw.Write(buff)
-			rw.Flush()
+	case GossipSub:
+		{
+			ps, err := pubsub.NewGossipSub(ctx, hostP2P, optsPS...)
+			if err != nil {
+				return err
+			}
+			nm.ps = ps
 		}
-	}(rw, chanSend)
+	case RandomSub:
+		{
+			ps, err := pubsub.NewRandomSub(ctx, hostP2P, optsPS...)
+			if err != nil {
+				return err
+			}
+			nm.ps = ps
+		}
+	default:
+		return errors.New("unknown pubsub strategy")
+	}
+
+	return nil
 }
 
-func (nm *NetMessenger) gotNewMessage(buff []byte, remotePeer peer.ID, fromLoopback bool) {
-	if len(buff) == 0 {
-		return
+func (nm *NetMessenger) connNotifierRegistration(ctx context.Context) {
+	//register the notifier
+	nm.p2pNode.Network().Notify(nm.cn)
+
+	nm.cn.OnDoSimpleTask = func(this interface{}) {
+		TaskResolveConnections(nm.cn)
 	}
 
-	if (len(buff) == 1) && (buff[0] == byte('\n')) {
-		return
+	nm.cn.GetKnownPeers = func(cn *ConnNotifier) []peer.ID {
+		return cn.Msgr.RouteTable().NearestPeersAll()
 	}
 
-	if buff[len(buff)-1] == byte('\n') {
-		buff = buff[0 : len(buff)-1]
+	nm.cn.ConnectToPeer = func(cn *ConnNotifier, pid peer.ID) error {
+		pinfo := nm.p2pNode.Peerstore().PeerInfo(pid)
+
+		if err := nm.p2pNode.Connect(ctx, pinfo); err != nil {
+			return err
+		}
+
+		return nil
 	}
-
-	m, err := CreateFromByteArray(nm.marsh, buff)
-
-	if err != nil {
-		return
-	}
-
-	err = m.VerifyAndSetSigned()
-	if err != nil {
-		return
-	}
-
-	hash := string(nm.hasher.Compute(string(m.Payload)))
-
-	if nm.queue.ContainsAndAdd(hash) {
-		return
-	}
-
-	//check for topic and pass the message
-	nm.mutTopics.RLock()
-	t, ok := nm.topics[m.Type]
-	nm.mutTopics.RUnlock()
-
-	if !ok {
-		//discard and do not broadcast
-		return
-	}
-
-	//make a copy of received message so it can broadcast in parallel with the processing
-	mes := *m
-
-	if fromLoopback {
-		//wil not resend on send
-
-		mes.Hops = 0
-
-		//process message
-		t.NewMessageReceived(&mes)
-
-		return
-	}
-
-	//process message
-	err = t.NewMessageReceived(&mes)
-
-	//in case of error we do not broadcast the message
-	//in most cases is a corrupt/bad formatted message that could not have been
-	//unmarshaled
-	if err != nil {
-		return
-	}
-
-	//async broadcast to others
-	go func() {
-		m.AddHop(nm.ID().Pretty())
-		nm.broadcastMessage(m, []string{remotePeer.Pretty()})
-	}()
 
 }
 
@@ -295,8 +236,8 @@ func (nm *NetMessenger) RouteTable() *RoutingTable {
 func (nm *NetMessenger) Addrs() []string {
 	addrs := make([]string, 0)
 
-	for _, adrs := range nm.p2pNode.Addrs() {
-		addrs = append(addrs, adrs.String()+"/ipfs/"+nm.ID().Pretty())
+	for _, address := range nm.p2pNode.Addrs() {
+		addrs = append(addrs, address.String()+"/ipfs/"+nm.ID().Pretty())
 	}
 
 	return addrs
@@ -321,13 +262,6 @@ func (nm *NetMessenger) ConnectToAddresses(ctx context.Context, addresses []stri
 			continue
 		}
 
-		str, err := nm.p2pNode.NewStream(ctx, pinfo.ID, nm.protocol)
-		if err != nil {
-			fmt.Printf("Streaming the peer '%v' failed with error %v\n", addresses[i], err)
-			continue
-		}
-
-		nm.streamHandler(str)
 		peers++
 	}
 
@@ -378,8 +312,8 @@ func (nm *NetMessenger) PrintConnected() {
 	}
 }
 
-// AddAddr adds a new address to peer store
-func (nm *NetMessenger) AddAddr(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration) {
+// AddAddress adds a new address to peer store
+func (nm *NetMessenger) AddAddress(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration) {
 	nm.p2pNode.Network().Peerstore().AddAddr(p, addr, ttl)
 }
 
@@ -405,33 +339,48 @@ func (nm *NetMessenger) ParseAddressIpfs(address string) (*peerstore.PeerInfo, e
 
 // AddTopic registers a new topic to this messenger
 func (nm *NetMessenger) AddTopic(t *Topic) error {
-	nm.mutTopics.Lock()
-
 	if t == nil {
 		return errors.New("topic can not be nil")
 	}
 
+	subscr, err := nm.ps.Subscribe(t.Name)
+	if err != nil {
+		return err
+	}
+
+	nm.mutTopics.Lock()
 	_, ok := nm.topics[t.Name]
 
 	if ok {
+		nm.mutTopics.Unlock()
 		return errors.New("topic already exists")
 	}
 
 	nm.topics[t.Name] = t
 	nm.mutTopics.Unlock()
 
-	t.SendMessage = func(mes *Message, flagSign bool) error {
-		mes.AddHop(nm.ID().Pretty())
+	go func() {
+		for {
+			msg, err := subscr.Next(nm.context)
 
-		// optionally sign the message
-		if flagSign {
-			err := mes.Sign(nm.p2pNode.Peerstore().PrivKey(nm.ID()))
 			if err != nil {
-				return err
+				continue
 			}
-		}
 
-		return nm.broadcastMessage(mes, []string{})
+			t.NewDataReceived(msg.GetData(), msg.GetFrom().Pretty())
+		}
+	}()
+
+	t.SendData = func(data []byte) error {
+		return nm.ps.Publish(t.Name, data)
+	}
+
+	t.registerTopicValidator = func(v pubsub.Validator) error {
+		return nm.ps.RegisterTopicValidator(t.Name, v)
+	}
+
+	t.unregisterTopicValidator = func() error {
+		return nm.ps.UnregisterTopicValidator(t.Name)
 	}
 
 	return nil
@@ -450,123 +399,4 @@ func (nm *NetMessenger) GetTopic(topicName string) *Topic {
 	}
 
 	return t
-}
-
-//TODO remove when applying pub/sub
-func (nm *NetMessenger) sendDirectRAW(peerID string, buff []byte) error {
-	nm.mutClosed.RLock()
-	if nm.closed {
-		nm.mutClosed.RUnlock()
-		return &NodeError{PeerRecv: "", PeerSend: nm.ID().Pretty(), Err: "Attempt to write on a closed messenger!\n"}
-	}
-	nm.mutClosed.RUnlock()
-
-	if peerID == nm.ID().Pretty() {
-		//send to self allowed
-		nm.gotNewMessage(buff, nm.ID(), true)
-
-		return nil
-	}
-
-	nm.mutChansSend.RLock()
-	chanSend, ok := nm.chansSend[peerID]
-	nm.mutChansSend.RUnlock()
-
-	if !ok {
-		return &NodeError{PeerRecv: peerID, PeerSend: nm.ID().Pretty(), Err: fmt.Sprintf("Can not send to %v. Not connected?\n", peerID)}
-	}
-
-	select {
-	case chanSend <- buff:
-	default:
-		return &NodeError{PeerRecv: peerID, PeerSend: nm.ID().Pretty(), Err: fmt.Sprintf("Can not send to %v. Pipe full! Message discarded!\n", peerID)}
-	}
-
-	return nil
-}
-
-//TODO remove when applying pub/sub
-func (nm *NetMessenger) sendDirectMessage(peerID string, m *Message) error {
-	if m == nil {
-		return &NodeError{PeerRecv: peerID, PeerSend: nm.ID().Pretty(), Err: fmt.Sprintf("Can not send NIL message!\n")}
-	}
-
-	buff, err := m.ToByteArray()
-	if err != nil {
-		return &NodeError{PeerRecv: peerID, PeerSend: nm.ID().Pretty(), Err: err.Error()}
-	}
-
-	return nm.sendDirectRAW(peerID, buff)
-}
-
-//TODO remove when applying pub/sub
-func (nm *NetMessenger) broadcastRAW(buff []byte, exceptions []string) error {
-	nm.mutClosed.RLock()
-	if nm.closed {
-		nm.mutClosed.RUnlock()
-		return &NodeError{PeerRecv: "", PeerSend: nm.ID().Pretty(), Err: "Attempt to write on a closed messenger!\n"}
-	}
-	nm.mutClosed.RUnlock()
-
-	var errFound = &NodeError{}
-
-	peers := nm.Peers()
-
-	for i := 0; i < len(peers); i++ {
-		peerID := peer.ID(peers[i]).Pretty()
-
-		if peerID == nm.ID().Pretty() {
-			//loopback
-			nm.gotNewMessage(buff, nm.ID(), true)
-			continue
-		}
-
-		found := false
-		for j := 0; j < len(exceptions); j++ {
-			if peerID == exceptions[j] {
-				found = true
-				break
-			}
-		}
-
-		if found {
-			continue
-		}
-
-		err := nm.sendDirectRAW(peerID, buff)
-
-		if err != nil {
-			errNode, _ := err.(*NodeError)
-			errFound.NestedErrors = append(errFound.NestedErrors, *errNode)
-		}
-	}
-
-	if len(peers) <= 1 {
-		return &NodeError{PeerRecv: "", PeerSend: nm.ID().Pretty(), Err: "Attempt to send to no one!\n"}
-	}
-
-	if len(errFound.NestedErrors) == 0 {
-		return nil
-	}
-
-	if len(errFound.NestedErrors) == 1 {
-		return &errFound.NestedErrors[0]
-	}
-
-	errFound.Err = "Multiple errors found!"
-	return errFound
-}
-
-//TODO remove when applying pub/sub
-func (nm *NetMessenger) broadcastMessage(m *Message, exceptions []string) error {
-	if m == nil {
-		return &NodeError{PeerRecv: "", PeerSend: nm.ID().Pretty(), Err: fmt.Sprintf("Can not broadcast NIL message!\n")}
-	}
-
-	buff, err := m.ToByteArray()
-	if err != nil {
-		return &NodeError{PeerRecv: "", PeerSend: nm.ID().Pretty(), Err: err.Error()}
-	}
-
-	return nm.broadcastRAW(buff, exceptions)
 }

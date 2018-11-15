@@ -21,7 +21,12 @@ func createMemoryMessenger(t *testing.T, port int, nConns int) (*p2p.MemoryMesse
 	cp, err := p2p.NewConnectParamsFromPort(port)
 	assert.Nil(t, err)
 
-	return p2p.NewMemoryMessenger(testMemoryMarshalizer, testMemoryHasher, cp.ID, nConns)
+	mm, err := p2p.NewMemoryMessenger(testMemoryMarshalizer, testMemoryHasher, cp.ID, nConns)
+	if err != nil {
+		return nil, err
+	}
+	mm.PrivKey = cp.PrivKey
+	return mm, nil
 }
 
 func TestMemoryMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
@@ -46,9 +51,9 @@ func TestMemoryMessenger_SendToSelf_ShouldWork(t *testing.T) {
 
 	var counter int32
 
-	node.AddTopic(p2p.NewTopic("test topic", &objStringCloner, testMemoryMarshalizer))
+	node.AddTopic(p2p.NewTopic("test topic", &testStringNewer{}, testMemoryMarshalizer))
 	node.GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		payload := (*data.(*testStringCloner)).Data
+		payload := (*data.(*testStringNewer)).Data
 
 		fmt.Printf("Got message: %v\n", payload)
 
@@ -57,7 +62,7 @@ func TestMemoryMessenger_SendToSelf_ShouldWork(t *testing.T) {
 		}
 	})
 
-	node.GetTopic("test topic").Broadcast(&testStringCloner{Data: "ABC"}, false)
+	node.GetTopic("test topic").Broadcast(&testStringNewer{Data: "ABC"})
 
 	time.Sleep(time.Second)
 
@@ -94,23 +99,23 @@ func TestMemoryMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	var val int32 = 0
 
 	//create 2 topics on each node
-	node1.AddTopic(p2p.NewTopic("ping", &objStringCloner, testMemoryMarshalizer))
-	node1.AddTopic(p2p.NewTopic("pong", &objStringCloner, testMemoryMarshalizer))
+	node1.AddTopic(p2p.NewTopic("ping", &testStringNewer{}, testMemoryMarshalizer))
+	node1.AddTopic(p2p.NewTopic("pong", &testStringNewer{}, testMemoryMarshalizer))
 
-	node2.AddTopic(p2p.NewTopic("ping", &objStringCloner, testMemoryMarshalizer))
-	node2.AddTopic(p2p.NewTopic("pong", &objStringCloner, testMemoryMarshalizer))
+	node2.AddTopic(p2p.NewTopic("ping", &testStringNewer{}, testMemoryMarshalizer))
+	node2.AddTopic(p2p.NewTopic("pong", &testStringNewer{}, testMemoryMarshalizer))
 
 	//assign some event handlers on topics
 	node1.GetTopic("ping").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		payload := (*data.(*testStringCloner)).Data
+		payload := (*data.(*testStringNewer)).Data
 
 		if payload == "ping string" {
-			node1.GetTopic("pong").Broadcast(&testStringCloner{Data: "pong string"}, false)
+			node1.GetTopic("pong").Broadcast(&testStringNewer{Data: "pong string"})
 		}
 	})
 
 	node1.GetTopic("pong").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		payload := (*data.(*testStringCloner)).Data
+		payload := (*data.(*testStringNewer)).Data
 
 		fmt.Printf("node1 received: %v\n", payload)
 
@@ -121,7 +126,7 @@ func TestMemoryMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 
 	//for node2 topic ping we do not need an event handler in this test
 	node2.GetTopic("pong").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		payload := (*data.(*testStringCloner)).Data
+		payload := (*data.(*testStringNewer)).Data
 
 		fmt.Printf("node2 received: %v\n", payload)
 
@@ -130,7 +135,7 @@ func TestMemoryMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 		}
 	})
 
-	node2.GetTopic("ping").Broadcast(&testStringCloner{Data: "ping string"}, false)
+	node2.GetTopic("ping").Broadcast(&testStringNewer{Data: "ping string"})
 
 	assert.Nil(t, err)
 
@@ -186,7 +191,7 @@ func TestMemoryMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		node.AddTopic(p2p.NewTopic("test", &objStringCloner, testMemoryMarshalizer))
+		node.AddTopic(p2p.NewTopic("test", &testStringNewer{}, testMemoryMarshalizer))
 		node.GetTopic("test").AddDataReceived(recv)
 	}
 
@@ -194,7 +199,7 @@ func TestMemoryMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 	fmt.Println()
 
 	fmt.Println("Broadcasting...")
-	nodes[0].GetTopic("test").Broadcast(&testStringCloner{Data: "Foo"}, false)
+	nodes[0].GetTopic("test").Broadcast(&testStringNewer{Data: "Foo"})
 
 	select {
 	case <-done:
@@ -259,7 +264,7 @@ func TestMemoryMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *test
 		node := nodes[i]
 		node.PrintConnected()
 
-		node.AddTopic(p2p.NewTopic("test", &objStringCloner, testMemoryMarshalizer))
+		node.AddTopic(p2p.NewTopic("test", &testStringNewer{}, testMemoryMarshalizer))
 		node.GetTopic("test").AddDataReceived(recv)
 	}
 
@@ -267,7 +272,7 @@ func TestMemoryMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *test
 	fmt.Println()
 
 	fmt.Println("Broadcasting...")
-	nodes[0].GetTopic("test").Broadcast(&testStringCloner{Data: "Foo"}, false)
+	nodes[0].GetTopic("test").Broadcast(&testStringNewer{Data: "Foo"})
 
 	select {
 	case <-done:
@@ -286,8 +291,8 @@ func TestMemoryMessenger_SendingNil_ShouldErr(t *testing.T) {
 	node1, err := createMemoryMessenger(t, 9000, 10)
 	assert.Nil(t, err)
 
-	node1.AddTopic(p2p.NewTopic("test", &objStringCloner, testMemoryMarshalizer))
-	err = node1.GetTopic("test").Broadcast(nil, false)
+	node1.AddTopic(p2p.NewTopic("test", &testStringNewer{}, testMemoryMarshalizer))
+	err = node1.GetTopic("test").Broadcast(nil)
 	assert.NotNil(t, err)
 }
 
@@ -323,22 +328,20 @@ func TestMemoryMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *tes
 	recv := make(map[string]*p2p.MessageInfo)
 	mut := sync.RWMutex{}
 
-	mapHops := make(map[int]int)
-
 	wgGot := sync.WaitGroup{}
 
 	//prepare messengers
 	for i := startPort; i <= endPort; i++ {
 		node, err := createMemoryMessenger(t, i, nConns)
 
-		err = node.AddTopic(p2p.NewTopic("test topic", &objStringCloner, testMemoryMarshalizer))
+		err = node.AddTopic(p2p.NewTopic("test topic", &testStringNewer{}, testMemoryMarshalizer))
 		assert.Nil(t, err)
 
 		node.GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 			mut.Lock()
 			recv[node.ID().Pretty()] = msgInfo
 
-			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), (*data.(*testStringCloner)).Data)
+			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), (*data.(*testStringNewer)).Data)
 
 			wgGot.Done()
 
@@ -381,7 +384,7 @@ func TestMemoryMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *tes
 
 	//broadcasting something
 	fmt.Println("Broadcasting a message...")
-	nodes[0].GetTopic("test topic").Broadcast(&testStringCloner{Data: "a string to broadcast"}, false)
+	nodes[0].GetTopic("test topic").Broadcast(&testStringNewer{Data: "a string to broadcast"})
 
 	fmt.Println("Waiting...")
 
@@ -394,45 +397,24 @@ func TestMemoryMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *tes
 		return
 	}
 
-	maxHops := 0
-
 	notRecv := 0
 	didRecv := 0
 
 	for i := 0; i < len(nodes); i++ {
 
 		mut.RLock()
-		v, found := recv[nodes[i].ID().Pretty()]
+		_, found := recv[nodes[i].ID().Pretty()]
 		mut.RUnlock()
 
 		if !found {
 			fmt.Printf("Peer %s didn't got the message!\n", nodes[i].ID().Pretty())
 			notRecv++
 		} else {
-			fmt.Printf("Peer %s got the message in %d hops!\n", nodes[i].ID().Pretty(), v.Hops)
 			didRecv++
-
-			val, found := mapHops[v.Hops]
-			if !found {
-				mapHops[v.Hops] = 1
-			} else {
-				mapHops[v.Hops] = val + 1
-			}
-
-			if maxHops < v.Hops {
-				maxHops = v.Hops
-			}
 		}
 	}
 
-	fmt.Println("Max hops:", maxHops)
-	fmt.Print("Hops: ")
-
-	for i := 0; i <= maxHops; i++ {
-		fmt.Printf("\tH%d: %d", i, mapHops[i])
-	}
 	fmt.Println()
-
 	fmt.Println("Did recv:", didRecv)
 	fmt.Println("Did not recv:", notRecv)
 
@@ -444,7 +426,7 @@ type structTest1 struct {
 	Data  float64
 }
 
-func (s1 *structTest1) Clone() p2p.Cloner {
+func (s1 *structTest1) New() p2p.Newer {
 	return &structTest1{}
 }
 
@@ -453,7 +435,7 @@ type structTest2 struct {
 	Data  []byte
 }
 
-func (s2 *structTest2) Clone() p2p.Cloner {
+func (s2 *structTest2) New() p2p.Newer {
 	return &structTest2{}
 }
 
@@ -489,7 +471,7 @@ func TestMemoryMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 		atomic.AddInt32(&counter, 1)
 	})
 
-	node1.GetTopic("test").Broadcast(&structTest1{Nonce: 4, Data: 4.5}, false)
+	node1.GetTopic("test").Broadcast(&structTest1{Nonce: 4, Data: 4.5})
 
 	//wait a bit
 	time.Sleep(time.Second)
@@ -515,8 +497,8 @@ func TestMemoryMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing
 	time.Sleep(time.Second)
 
 	//create topics for each node
-	node1.AddTopic(p2p.NewTopic("test1", &objStringCloner, testMemoryMarshalizer))
-	node2.AddTopic(p2p.NewTopic("test2", &objStringCloner, testMemoryMarshalizer))
+	node1.AddTopic(p2p.NewTopic("test1", &testStringNewer{}, testMemoryMarshalizer))
+	node2.AddTopic(p2p.NewTopic("test2", &testStringNewer{}, testMemoryMarshalizer))
 
 	counter := int32(0)
 
@@ -526,7 +508,7 @@ func TestMemoryMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing
 		atomic.AddInt32(&counter, 1)
 	})
 
-	node1.GetTopic("test1").Broadcast(&testStringCloner{Data: "Foo"}, false)
+	node1.GetTopic("test1").Broadcast(&testStringNewer{Data: "Foo"})
 
 	//wait a bit
 	time.Sleep(time.Second)
@@ -549,22 +531,20 @@ func TestMemoryMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *t
 	recv := make(map[string]*p2p.MessageInfo)
 	mut := sync.RWMutex{}
 
-	mapHops := make(map[int]int)
-
 	wgGot := sync.WaitGroup{}
 
 	//prepare messengers
 	for i := startPort; i <= endPort; i++ {
 		node, err := createMemoryMessenger(t, i, nConns)
 
-		err = node.AddTopic(p2p.NewTopic("test topic", &objStringCloner, testMemoryMarshalizer))
+		err = node.AddTopic(p2p.NewTopic("test topic", &testStringNewer{}, testMemoryMarshalizer))
 		assert.Nil(t, err)
 
 		node.GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 			mut.Lock()
 			recv[node.ID().Pretty()] = msgInfo
 
-			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), (*data.(*testStringCloner)).Data)
+			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), (*data.(*testStringNewer)).Data)
 
 			wgGot.Done()
 
@@ -625,7 +605,7 @@ func TestMemoryMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *t
 
 	//broadcasting something
 	fmt.Println("Broadcasting a message...")
-	nodes[0].GetTopic("test topic").Broadcast(&testStringCloner{Data: "a string to broadcast"}, false)
+	nodes[0].GetTopic("test topic").Broadcast(&testStringNewer{Data: "a string to broadcast"})
 
 	fmt.Println("Waiting...")
 
@@ -638,45 +618,24 @@ func TestMemoryMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *t
 		return
 	}
 
-	maxHops := 0
-
 	notRecv := 0
 	didRecv := 0
 
 	for i := 0; i < len(nodes); i++ {
 
 		mut.RLock()
-		v, found := recv[nodes[i].ID().Pretty()]
+		_, found := recv[nodes[i].ID().Pretty()]
 		mut.RUnlock()
 
 		if !found {
 			fmt.Printf("Peer %s didn't got the message!\n", nodes[i].ID().Pretty())
 			notRecv++
 		} else {
-			fmt.Printf("Peer %s got the message in %d hops!\n", nodes[i].ID().Pretty(), v.Hops)
 			didRecv++
-
-			val, found := mapHops[v.Hops]
-			if !found {
-				mapHops[v.Hops] = 1
-			} else {
-				mapHops[v.Hops] = val + 1
-			}
-
-			if maxHops < v.Hops {
-				maxHops = v.Hops
-			}
 		}
 	}
 
-	fmt.Println("Max hops:", maxHops)
-	fmt.Print("Hops: ")
-
-	for i := 0; i <= maxHops; i++ {
-		fmt.Printf("\tH%d: %d", i, mapHops[i])
-	}
 	fmt.Println()
-
 	fmt.Println("Did recv:", didRecv)
 	fmt.Println("Did not recv:", notRecv)
 
