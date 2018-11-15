@@ -80,7 +80,7 @@ func TestTransactionPool_RemoveTransaction(t *testing.T) {
 	assert.Equal(t, 2, txp.MiniPoolTxStore(2).Len(),
 		"AddTransaction failed, length should be 2")
 
-	txp.FindAndRemoveTransaction([]byte("tx_hash1"))
+	txp.RemoveTransactionFromAllShards([]byte("tx_hash1"))
 	assert.Equal(t, 0, txp.MiniPoolTxStore(1).Len(),
 		"FindAndRemoveTransaction failed, length should be 0 in shard 1")
 	assert.Equal(t, 1, txp.MiniPoolTxStore(2).Len(),

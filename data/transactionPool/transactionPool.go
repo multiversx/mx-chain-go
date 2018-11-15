@@ -88,9 +88,9 @@ func (tp *TransactionPool) RemoveTransaction(txHash []byte, destShardID uint32) 
 	}
 }
 
-// FindAndRemoveTransaction will remove a transaction hash from the pool given only
+// RemoveTransactionFromAllShards will remove a transaction hash from the pool given only
 //  the transaction hash. It will itearate over all mini pools and remove it everywhere
-func (tp *TransactionPool) FindAndRemoveTransaction(txHash []byte) {
+func (tp *TransactionPool) RemoveTransactionFromAllShards(txHash []byte) {
 	for k := range tp.miniPoolsStore {
 		m := tp.MiniPoolTxStore(k)
 		if m.Has(txHash) {
