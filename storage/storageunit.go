@@ -113,10 +113,6 @@ func (s *StorageUnit) Put(key, data []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if s.bloomFilter != nil {
-		s.bloomFilter.Add(key)
-	}
-
 	// no need to add if already present in cache
 	has := s.cacher.Has(key)
 
@@ -125,31 +121,36 @@ func (s *StorageUnit) Put(key, data []byte) error {
 	}
 
 	s.cacher.Put(key, data)
+
 	err := s.persister.Put(key, data)
 
 	if err != nil {
 		s.cacher.Remove(key)
+	} else {
+		if s.bloomFilter != nil {
+			s.bloomFilter.Add(key)
+		}
 	}
 
 	return err
 
 }
 
-// Get searches the key in the bloom filter. In case it is not found, it searches
-// the data associated to the key in the cache first and if not
-// found it further searches it in the associated database.
+// Get searches the key in the cache. In case it is not found, it searches
+// for the key in bloom filter first and if found
+// it further searches it in the associated database.
 // In case it is found in the database, the cache is updated with the value as well.
 func (s *StorageUnit) Get(key []byte) ([]byte, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if s.bloomFilter == nil || s.bloomFilter.Test(key) == true {
-		v, ok := s.cacher.Get(key)
-		var err error
+	v, ok := s.cacher.Get(key)
+	var err error
 
-		if ok == false {
-			// not found in cache
-			// search it in second persistance medium
+	if ok == false {
+		// not found in cache
+		// search it in second persistance medium
+		if s.bloomFilter == nil || s.bloomFilter.Test(key) == true {
 			v, err = s.persister.Get(key)
 
 			if err != nil {
@@ -158,27 +159,28 @@ func (s *StorageUnit) Get(key []byte) ([]byte, error) {
 
 			// if found in persistance unit, add it in cache
 			s.cacher.Put(key, v)
+		} else {
+			return nil, errors.New(fmt.Sprintf("key: %s not found", string(key)))
 		}
-
-		return v, nil
 	}
-	return nil, errors.New(fmt.Sprintf("key: %s not found", string(key)))
+	return v, nil
+
 }
 
 // Has checks if the key is in the storageUnit.
-// It first checks the bloom filter. If it is found, it checks the cache
-// and if not present it checks the db
+// It first checks the cache. If it is not found, it checks the bloom filter
+// and if present it checks the db
 func (s *StorageUnit) Has(key []byte) (bool, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
+	has := s.cacher.Has(key)
+
+	if has {
+		return has, nil
+	}
+
 	if s.bloomFilter == nil || s.bloomFilter.Test(key) == true {
-		has := s.cacher.Has(key)
-
-		if has {
-			return has, nil
-		}
-
 		return s.persister.Has(key)
 	}
 	return false, nil
@@ -191,13 +193,13 @@ func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	has := s.cacher.Has(key)
+
+	if has {
+		return has, nil
+	}
+
 	if s.bloomFilter == nil || s.bloomFilter.Test(key) == true {
-		has := s.cacher.Has(key)
-
-		if has {
-			return has, nil
-		}
-
 		has, err := s.persister.Has(key)
 		if err != nil {
 			return has, err
@@ -216,15 +218,14 @@ func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
 		}
 		return has, err
 	} else {
-
-		s.bloomFilter.Add(key)
 		s.cacher.Put(key, value)
 		err := s.persister.Put(key, value)
 
 		if err != nil {
 			s.cacher.Remove(key)
+		} else {
+			s.bloomFilter.Add(key)
 		}
-
 		return false, err
 	}
 }

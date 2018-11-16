@@ -88,6 +88,8 @@ func (b *Bloom) Clear() {
 	}
 }
 
+// getBytePositionAndValue takes the index of a bit and returns the position of the byte in the filter
+// that contains that index and the value of that byte with the bit set to 1.
 func getBytePositionAndValue(b *Bloom, index uint64) (pos uint64, val byte) {
 	pos = index / 8
 	bitNo := index % 8
@@ -98,6 +100,7 @@ func getBytePositionAndValue(b *Bloom, index uint64) (pos uint64, val byte) {
 	return pos, val
 }
 
+// getBitsIndexes returns a slice which contains indexes that represent bits from the filter that have to be set.
 func getBitsIndexes(b *Bloom, data []byte) []uint64 {
 	var ch = make(chan uint64, len(b.hashFunc))
 	var wg sync.WaitGroup
@@ -117,6 +120,8 @@ func getBitsIndexes(b *Bloom, data []byte) []uint64 {
 
 }
 
+// getBitIndexFromHash hashes with the given hasher implementation the data received,
+// then writes on the channel the index of the bit from the filter that has to be set.
 func getBitIndexFromHash(h hashing.Hasher, data []byte, size int, wg *sync.WaitGroup, ch chan uint64) {
 
 	hashSum := h.Compute(string(data))
