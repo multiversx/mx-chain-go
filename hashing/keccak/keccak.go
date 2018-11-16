@@ -6,15 +6,18 @@ import (
 
 var keccakEmptyHash []byte
 
+// Keccak is a sha3-Keccak implementation of the hasher interface.
 type Keccak struct {
 }
 
+// Compute takes a string, and returns the sha3-Keccak hash of that string
 func (Keccak) Compute(s string) []byte {
 	h := sha3.NewLegacyKeccak256()
 	h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
+// EmptyHash returns the sha3-Keccak hash of the empty string
 func (k Keccak) EmptyHash() []byte {
 	if len(keccakEmptyHash) == 0 {
 		keccakEmptyHash = k.Compute("")
@@ -22,6 +25,7 @@ func (k Keccak) EmptyHash() []byte {
 	return keccakEmptyHash
 }
 
+// Size returns the size, in number of bytes, of a sha3-Keccak hash
 func (Keccak) Size() int {
 	return sha3.NewLegacyKeccak256().Size()
 }

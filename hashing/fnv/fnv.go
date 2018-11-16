@@ -6,15 +6,18 @@ import (
 
 var fnvEmptyHash []byte
 
+// Fnv is a fnv128a implementation of the hasher interface.
 type Fnv struct {
 }
 
+// Compute takes a string, and returns the fnv128a hash of that string
 func (Fnv) Compute(s string) []byte {
 	h := fnv.New128a()
 	h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
+// EmptyHash returns the fnv128a hash of the empty string
 func (f Fnv) EmptyHash() []byte {
 	if len(fnvEmptyHash) == 0 {
 		fnvEmptyHash = f.Compute("")
@@ -22,6 +25,7 @@ func (f Fnv) EmptyHash() []byte {
 	return fnvEmptyHash
 }
 
+// Size returns the size, in number of bytes, of a fnv128a hash
 func (Fnv) Size() int {
 	return fnv.New128a().Size()
 }
