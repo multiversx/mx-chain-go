@@ -87,3 +87,11 @@ func (j *Jurnal) Clear() {
 	j.entries = make([]JurnalEntry, 0)
 	j.dirtyAddresses = make(map[*Address]int)
 }
+
+// Entries returns the entries saved in the jurnal
+func (j *Jurnal) Entries() []JurnalEntry {
+	j.mutDirtyAddress.RLock()
+	defer j.mutDirtyAddress.RUnlock()
+
+	return j.entries
+}

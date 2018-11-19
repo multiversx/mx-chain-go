@@ -45,8 +45,8 @@ func NewErrorTrieNotNormalized(exp int, actual int) *ErrorTrieNotNormalized {
 
 // Error returns the error as string
 func (e *ErrorTrieNotNormalized) Error() string {
-	return "attempt to search a hash not normalized to" +
-		strconv.Itoa(e.expectedHashLength) + "bytes (has:" +
+	return "attempt to search a hash not normalized to " +
+		strconv.Itoa(e.expectedHashLength) + " bytes (has: " +
 		strconv.Itoa(e.actualHashLength) + ")"
 }
 
@@ -59,7 +59,7 @@ func NewErrMissingTrie(rootHash []byte) *ErrMissingTrie {
 
 // Error returns the error as string
 func (e *ErrMissingTrie) Error() string {
-	return "trie was not found for hash" + base64.StdEncoding.EncodeToString(e.rootHash)
+	return "trie was not found for hash " + base64.StdEncoding.EncodeToString(e.rootHash)
 }
 
 // ErrNilAccountsHandler defines the error when trying to revert on nil accounts

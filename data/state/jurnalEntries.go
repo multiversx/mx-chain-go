@@ -2,6 +2,8 @@ package state
 
 import (
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 )
 
 // JurnalEntryCreation is used to revert an account creation
@@ -41,6 +43,12 @@ type JurnalEntryRoot struct {
 	address *Address
 	acnt    *AccountState
 	oldRoot []byte
+}
+
+// JurnalEntryData is used to mark an account's data change
+type JurnalEntryData struct {
+	trie trie.PatriciaMerkelTree
+	as   *AccountState
 }
 
 //------- JurnalEntryCreation
@@ -189,7 +197,7 @@ func (jec *JurnalEntryCode) DirtyAddress() *Address {
 	return nil
 }
 
-//------- JurnalRoot
+//------- JurnalEntryRoot
 
 // NewJurnalEntryRoot outputs a new JurnalEntry implementation used to revert an account's root change
 func NewJurnalEntryRoot(address *Address, acnt *AccountState, oldRoot []byte) *JurnalEntryRoot {
@@ -213,10 +221,38 @@ func (jer *JurnalEntryRoot) Revert(accounts AccountsHandler) error {
 	//access code hash through account pointer
 	//as to not register a new entry of root change
 	jer.acnt.Account().Root = jer.oldRoot
+	err := accounts.RetrieveDataTrie(jer.acnt)
+	if err != nil {
+		return err
+	}
 	return accounts.SaveAccountState(jer.acnt)
 }
 
 // DirtyAddress returns the address on which this JurnalEntry will apply
 func (jer *JurnalEntryRoot) DirtyAddress() *Address {
 	return jer.address
+}
+
+//------- JurnalEntryData
+
+// NewJurnalEntryData outputs a new JurnalEntry implementation used to keep track of data change.
+// The revert will practically empty the dirty data map
+func NewJurnalEntryData(trie trie.PatriciaMerkelTree, as *AccountState) *JurnalEntryData {
+	return &JurnalEntryData{trie: trie, as: as}
+}
+
+// Revert will empty the dirtyData map from AccountState
+func (jed *JurnalEntryData) Revert(accounts AccountsHandler) error {
+	jed.as.ClearDirty()
+	return nil
+}
+
+// DirtyAddress will return nil as there is no address involved in saving data
+func (jed *JurnalEntryData) DirtyAddress() *Address {
+	return nil
+}
+
+// Trie returns the referenced PatriciaMerkelTree for committing the changes
+func (jed *JurnalEntryData) Trie() trie.PatriciaMerkelTree {
+	return jed.trie
 }

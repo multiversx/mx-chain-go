@@ -26,7 +26,7 @@ func NewAccount() *Account {
 
 // AccountState is a struct that wraps Account and add functionalities to it
 type AccountState struct {
-	account      Account
+	account      *Account
 	Addr         Address
 	Code         []byte
 	DataTrie     trie.PatriciaMerkelTree
@@ -37,7 +37,7 @@ type AccountState struct {
 }
 
 // NewAccountState creates new wrapper for an Account (that has just been retrieved)
-func NewAccountState(address Address, account Account, hasher hashing.Hasher) *AccountState {
+func NewAccountState(address Address, account *Account, hasher hashing.Hasher) *AccountState {
 	acState := AccountState{
 		account:      account,
 		Addr:         address,
@@ -64,6 +64,7 @@ func (as *AccountState) SetNonce(accounts AccountsHandler, nonce uint64) error {
 
 	accounts.Jurnal().AddEntry(NewJurnalEntryNonce(&as.Addr, as, as.account.Nonce))
 	as.account.Nonce = nonce
+	accounts.SaveAccountState(as)
 	return nil
 }
 
@@ -85,6 +86,7 @@ func (as *AccountState) SetBalance(accounts AccountsHandler, value *big.Int) err
 
 	accounts.Jurnal().AddEntry(NewJurnalEntryBalance(&as.Addr, as, as.account.Balance))
 	as.account.Balance = value
+	accounts.SaveAccountState(as)
 	return nil
 }
 
@@ -171,8 +173,18 @@ func (as *AccountState) CollapseDirty() {
 	}
 }
 
+// ClearDirty empties the dirtyData map
+func (as *AccountState) ClearDirty() {
+	as.dirtyData = make(map[string][]byte)
+}
+
+// DirtyData returns the map of (key, value) pairs that contain the data needed to be saved in the data trie
+func (as *AccountState) DirtyData() map[string][]byte {
+	return as.dirtyData
+}
+
 // Account retrieves the account pointer for accessing raw account data and bypassing JurnalEntries creation
 // This pointer will be used for serializing/deserializing account data
 func (as *AccountState) Account() *Account {
-	return &as.account
+	return as.account
 }

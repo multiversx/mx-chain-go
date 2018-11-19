@@ -3,7 +3,6 @@ package state
 import (
 	"errors"
 	"strconv"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
@@ -18,17 +17,12 @@ type AccountsDB struct {
 	hasher   hashing.Hasher
 	marsh    marshal.Marshalizer
 
-	mutUsedAccounts   sync.RWMutex
-	usedStateAccounts map[string]*AccountState
-	jurnal            *Jurnal
+	jurnal *Jurnal
 }
 
 // NewAccountsDB creates a new account manager
 func NewAccountsDB(tr trie.PatriciaMerkelTree, hasher hashing.Hasher, marsh marshal.Marshalizer) *AccountsDB {
 	adb := AccountsDB{MainTrie: tr, hasher: hasher, marsh: marsh}
-
-	adb.mutUsedAccounts = sync.RWMutex{}
-	adb.usedStateAccounts = make(map[string]*AccountState, 0)
 	adb.jurnal = NewJurnal(&adb)
 
 	return &adb
@@ -86,6 +80,48 @@ func (adb *AccountsDB) RetrieveDataTrie(state *AccountState) error {
 	return nil
 }
 
+// SaveData is used to save the data trie (not committing it) and to recompute the new Root value
+// If data is not dirtied, method will not create its JurnalEntries to keep track of data modification
+func (adb *AccountsDB) SaveData(state *AccountState) error {
+	if adb.MainTrie == nil {
+		return errors.New("attempt to search on a nil trie")
+	}
+
+	//collapse dirty as to check if we really need to save some data
+	state.CollapseDirty()
+
+	if len(state.DirtyData()) == 0 {
+		//do not need to save, return
+		return nil
+	}
+
+	if state.DataTrie == nil {
+		dataTrie, err := adb.MainTrie.Recreate(make([]byte, 0), adb.MainTrie.DBW())
+
+		if err != nil {
+			return err
+		}
+
+		state.DataTrie = dataTrie
+	}
+
+	for k, v := range state.DirtyData() {
+		err := state.DataTrie.Update([]byte(k), v)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	//append a jurnal entry as the data needs to be updated in its trie
+	adb.Jurnal().AddEntry(NewJurnalEntryData(state.DataTrie, state))
+	err := state.SetRoot(adb, state.DataTrie.Root())
+	if err != nil {
+		return err
+	}
+	return adb.SaveAccountState(state)
+}
+
 // PutCode sets the SC plain code in AccountState object and trie, code hash in AccountState. Errors if something went wrong
 func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 	if (code == nil) || (len(code) == 0) {
@@ -112,9 +148,10 @@ func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 	if val == nil {
 		//append a jurnal entry as the code needs to be inserted in the trie
 		adb.Jurnal().AddEntry(NewJurnalEntryCode(codeHash))
+		return adb.MainTrie.Update(codeHash, code)
 	}
 
-	return adb.MainTrie.Update(codeHash, code)
+	return nil
 }
 
 // RemoveCode deletes the code from the trie. It writes an empty byte slice at codeHash "address"
@@ -191,12 +228,12 @@ func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error
 			return nil, err
 		}
 
-		state := NewAccountState(address, *acnt, adb.hasher)
+		state := NewAccountState(address, acnt, adb.hasher)
 
 		return state, nil
 	}
 
-	state := NewAccountState(address, *NewAccount(), adb.hasher)
+	state := NewAccountState(address, NewAccount(), adb.hasher)
 	adb.jurnal.AddEntry(NewJurnalEntryCreation(&address, state))
 
 	err = adb.SaveAccountState(state)
@@ -209,31 +246,22 @@ func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error
 
 // Commit will persist all data inside the trie
 func (adb *AccountsDB) Commit() ([]byte, error) {
-	adb.mutUsedAccounts.Lock()
-	defer adb.mutUsedAccounts.Unlock()
+	jEntries := adb.Jurnal().Entries()
 
-	//Step 1. iterate through tracked account states map and commits the new tries
-	//TODO
-	//for _, v := range adb.usedStateAccounts {
-	//	if v.Dirty() {
-	//		hash, err := v.Data.Commit(nil)
-	//		if err != nil {
-	//			return nil, err
-	//		}
-	//
-	//		v.Root = hash
-	//		v.prevRoot = hash
-	//	}
-	//
-	//	buff, err := adb.marsh.Marshal(v.Account)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	adb.MainTrie.Update(v.Addr.Hash(adb.hasher), buff)
-	//}
+	//Step 1. iterate through jurnal entries and commit the data tries accordingly
+	for i := 0; i < len(jEntries); i++ {
+		jed, found := jEntries[i].(*JurnalEntryData)
 
-	//step 2. clean used accounts map
-	adb.usedStateAccounts = make(map[string]*AccountState, 0)
+		if found {
+			_, err := jed.Trie().Commit(nil)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	//step 2. clean the jurnal
+	adb.Jurnal().Clear()
 
 	//Step 3. commit main trie
 	hash, err := adb.MainTrie.Commit(nil)

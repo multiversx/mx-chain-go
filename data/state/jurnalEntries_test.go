@@ -355,3 +355,29 @@ func TestJurnalEntryRoot_Revert_InvalidVals_ShouldErr(t *testing.T) {
 	err = j.RevertFromSnapshot(1)
 	assert.NotNil(t, err)
 }
+
+func TestJurnalEntryData_Revert_OkVals_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	//create accounts and address
+	adb := jeCreateAccountsDB()
+	adr1 := jeCreateRandomAddress()
+
+	//create account for address
+	acnt, err := adb.GetOrCreateAccount(*adr1)
+	assert.Nil(t, err)
+	//attach a jurnal
+	j := state.NewJurnal(adb)
+
+	acnt.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+
+	trie := mock.NewMockTrie()
+	jed := state.NewJurnalEntryData(trie, acnt)
+
+	j.AddEntry(jed)
+
+	err = j.RevertFromSnapshot(0)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(acnt.DirtyData()))
+	assert.Equal(t, trie, jed.Trie())
+}
