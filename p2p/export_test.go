@@ -5,8 +5,8 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
-func (t *Topic) EventBusData() []DataReceived {
-	return t.eventBusData
+func (t *Topic) EventBusData() []DataReceivedHandler {
+	return t.eventBusDataRcvHandlers
 }
 
 func (t *Topic) Marsh() marshal.Marshalizer {
