@@ -4,20 +4,20 @@ import (
 	"sync"
 )
 
-// Jurnal will keep track of all JurnalEntry objects
-type Jurnal struct {
+// Journal will keep track of all JournalEntry objects
+type Journal struct {
 	accounts AccountsHandler
-	entries  []JurnalEntry
+	entries  []JournalEntry
 
 	mutDirtyAddress sync.RWMutex
 	dirtyAddresses  map[*Address]int
 }
 
-// NewJurnal creates a new Jurnal
-func NewJurnal(accounts AccountsHandler) *Jurnal {
-	j := Jurnal{
+// NewJournal creates a new Journal
+func NewJournal(accounts AccountsHandler) *Journal {
+	j := Journal{
 		accounts:        accounts,
-		entries:         make([]JurnalEntry, 0),
+		entries:         make([]JournalEntry, 0),
 		mutDirtyAddress: sync.RWMutex{},
 		dirtyAddresses:  make(map[*Address]int),
 	}
@@ -27,15 +27,12 @@ func NewJurnal(accounts AccountsHandler) *Jurnal {
 
 // AddEntry adds a new object to entries list.
 // Concurrent safe.
-func (j *Jurnal) AddEntry(je JurnalEntry) {
+func (j *Journal) AddEntry(je JournalEntry) {
 	j.mutDirtyAddress.Lock()
 	defer j.mutDirtyAddress.Unlock()
 
 	j.entries = append(j.entries, je)
-	val, ok := j.dirtyAddresses[je.DirtyAddress()]
-	if !ok {
-		val = 0
-	}
+	val := j.dirtyAddresses[je.DirtyAddress()]
 	j.dirtyAddresses[je.DirtyAddress()] = val + 1
 }
 
@@ -43,7 +40,7 @@ func (j *Jurnal) AddEntry(je JurnalEntry) {
 // If snapshot > len(entries) will do nothing, return will be nil
 // 0 index based. Calling this method with negative value will do nothing. Calling with 0 revert everything.
 // Concurrent safe.
-func (j *Jurnal) RevertFromSnapshot(snapshot int) error {
+func (j *Journal) RevertFromSnapshot(snapshot int) error {
 	if snapshot > len(j.entries) || snapshot < 0 {
 		//outside of bounds array, not quite error, just do NOP
 		return nil
@@ -72,24 +69,24 @@ func (j *Jurnal) RevertFromSnapshot(snapshot int) error {
 
 // Len will return the number of entries
 // Concurrent safe.
-func (j *Jurnal) Len() int {
+func (j *Journal) Len() int {
 	j.mutDirtyAddress.RLock()
 	defer j.mutDirtyAddress.RUnlock()
 
 	return len(j.entries)
 }
 
-// Clears the data from this jurnal.
-func (j *Jurnal) Clear() {
+// Clears the data from this journal.
+func (j *Journal) Clear() {
 	j.mutDirtyAddress.RLock()
 	defer j.mutDirtyAddress.RUnlock()
 
-	j.entries = make([]JurnalEntry, 0)
+	j.entries = make([]JournalEntry, 0)
 	j.dirtyAddresses = make(map[*Address]int)
 }
 
-// Entries returns the entries saved in the jurnal
-func (j *Jurnal) Entries() []JurnalEntry {
+// Entries returns the entries saved in the journal
+func (j *Journal) Entries() []JournalEntry {
 	j.mutDirtyAddress.RLock()
 	defer j.mutDirtyAddress.RUnlock()
 

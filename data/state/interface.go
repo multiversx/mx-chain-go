@@ -12,11 +12,11 @@ type AccountsHandler interface {
 	SaveAccountState(state *AccountState) error
 	RemoveAccount(address Address) error
 	GetOrCreateAccount(address Address) (*AccountState, error)
-	Jurnal() *Jurnal
+	Journal() *Journal
 }
 
-// JurnalEntry will be used to implement different state changes to be able to easily revert them
-type JurnalEntry interface {
+// JournalEntry will be used to implement different state changes to be able to easily revert them
+type JournalEntry interface {
 	Revert(accounts AccountsHandler) error
 	DirtyAddress() *Address
 }

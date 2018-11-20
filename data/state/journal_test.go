@@ -8,32 +8,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type jurnalEntryMock struct {
+type journalEntryMock struct {
 	RevertCalled int
 	FailRevert   bool
 
 	Addr *state.Address
 }
 
-func (tje *jurnalEntryMock) Revert(accounts state.AccountsHandler) error {
+func (tje *journalEntryMock) Revert(accounts state.AccountsHandler) error {
 	if tje.FailRevert {
-		return errors.New("testJurnalEntry general failure")
+		return errors.New("testJournalEntry general failure")
 	}
 
 	tje.RevertCalled++
 	return nil
 }
 
-func (tje *jurnalEntryMock) DirtyAddress() *state.Address {
+func (tje *journalEntryMock) DirtyAddress() *state.Address {
 	return tje.Addr
 }
 
-func TestJurnal_AddEntry_ValidValue_ShouldWork(t *testing.T) {
+func TestJournal_AddEntry_ValidValue_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	j := state.NewJurnal(nil)
+	j := state.NewJournal(nil)
 
-	jem := jurnalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
 
 	j.AddEntry(&jem)
 	assert.Equal(t, 1, len(j.Entries()))
@@ -41,12 +41,12 @@ func TestJurnal_AddEntry_ValidValue_ShouldWork(t *testing.T) {
 	assert.Equal(t, 1, j.Len())
 }
 
-func TestJurnal_RevertFromSnapshot_OutOfBound_ShouldWork(t *testing.T) {
+func TestJournal_RevertFromSnapshot_OutOfBound_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	j := state.NewJurnal(nil)
+	j := state.NewJournal(nil)
 
-	jem := jurnalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
 
 	j.AddEntry(&jem)
 
@@ -64,12 +64,12 @@ func TestJurnal_RevertFromSnapshot_OutOfBound_ShouldWork(t *testing.T) {
 	assert.Equal(t, 1, jem.RevertCalled)
 }
 
-func TestJurnal_RevertFromSnapshot_SingleEntry_ShouldWork(t *testing.T) {
+func TestJournal_RevertFromSnapshot_SingleEntry_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	j := state.NewJurnal(nil)
+	j := state.NewJournal(nil)
 
-	jem := jurnalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
 
 	j.AddEntry(&jem)
 
@@ -79,12 +79,12 @@ func TestJurnal_RevertFromSnapshot_SingleEntry_ShouldWork(t *testing.T) {
 	assert.Equal(t, 1, jem.RevertCalled)
 }
 
-func TestJurnal_RevertFromSnapshot_5EntriesIdx3_ShouldWork(t *testing.T) {
+func TestJournal_RevertFromSnapshot_5EntriesIdx3_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	j := state.NewJurnal(nil)
+	j := state.NewJournal(nil)
 
-	jem := jurnalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
 
 	j.AddEntry(&jem)
 	j.AddEntry(&jem)
@@ -98,12 +98,12 @@ func TestJurnal_RevertFromSnapshot_5EntriesIdx3_ShouldWork(t *testing.T) {
 	assert.Equal(t, 2, jem.RevertCalled)
 }
 
-func TestJurnal_RevertFromSnapshot_5EntriesIdx0_ShouldWork(t *testing.T) {
+func TestJournal_RevertFromSnapshot_5EntriesIdx0_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	j := state.NewJurnal(nil)
+	j := state.NewJournal(nil)
 
-	jem := jurnalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
 
 	j.AddEntry(&jem)
 	j.AddEntry(&jem)
@@ -117,12 +117,12 @@ func TestJurnal_RevertFromSnapshot_5EntriesIdx0_ShouldWork(t *testing.T) {
 	assert.Equal(t, 5, jem.RevertCalled)
 }
 
-func TestJurnal_RevertFromSnapshot_5EntriesIdx4_ShouldWork(t *testing.T) {
+func TestJournal_RevertFromSnapshot_5EntriesIdx4_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	j := state.NewJurnal(nil)
+	j := state.NewJournal(nil)
 
-	jem := jurnalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
 
 	j.AddEntry(&jem)
 	j.AddEntry(&jem)
@@ -136,12 +136,12 @@ func TestJurnal_RevertFromSnapshot_5EntriesIdx4_ShouldWork(t *testing.T) {
 	assert.Equal(t, 1, jem.RevertCalled)
 }
 
-func TestJurnal_RevertFromSnapshot_SingleEntryErrors_ShouldRetErr(t *testing.T) {
+func TestJournal_RevertFromSnapshot_SingleEntryErrors_ShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	j := state.NewJurnal(nil)
+	j := state.NewJournal(nil)
 
-	jem := jurnalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
 	jem.FailRevert = true
 
 	j.AddEntry(&jem)
@@ -152,12 +152,12 @@ func TestJurnal_RevertFromSnapshot_SingleEntryErrors_ShouldRetErr(t *testing.T) 
 	assert.Equal(t, 0, jem.RevertCalled)
 }
 
-func TestJurnal_Clear(t *testing.T) {
+func TestJournal_Clear(t *testing.T) {
 	t.Parallel()
 
-	j := state.NewJurnal(nil)
+	j := state.NewJournal(nil)
 
-	jem := jurnalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
 
 	j.AddEntry(&jem)
 	j.AddEntry(&jem)

@@ -17,13 +17,13 @@ type AccountsDB struct {
 	hasher   hashing.Hasher
 	marsh    marshal.Marshalizer
 
-	jurnal *Jurnal
+	journal *Journal
 }
 
 // NewAccountsDB creates a new account manager
 func NewAccountsDB(tr trie.PatriciaMerkelTree, hasher hashing.Hasher, marsh marshal.Marshalizer) *AccountsDB {
 	adb := AccountsDB{MainTrie: tr, hasher: hasher, marsh: marsh}
-	adb.jurnal = NewJurnal(&adb)
+	adb.journal = NewJournal(&adb)
 
 	return &adb
 }
@@ -81,7 +81,7 @@ func (adb *AccountsDB) RetrieveDataTrie(state *AccountState) error {
 }
 
 // SaveData is used to save the data trie (not committing it) and to recompute the new Root value
-// If data is not dirtied, method will not create its JurnalEntries to keep track of data modification
+// If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) SaveData(state *AccountState) error {
 	if adb.MainTrie == nil {
 		return errors.New("attempt to search on a nil trie")
@@ -113,8 +113,8 @@ func (adb *AccountsDB) SaveData(state *AccountState) error {
 		}
 	}
 
-	//append a jurnal entry as the data needs to be updated in its trie
-	adb.Jurnal().AddEntry(NewJurnalEntryData(state.DataTrie, state))
+	//append a journal entry as the data needs to be updated in its trie
+	adb.Journal().AddEntry(NewJournalEntryData(state.DataTrie, state))
 	err := state.SetRoot(adb, state.DataTrie.Root())
 	if err != nil {
 		return err
@@ -146,8 +146,8 @@ func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 	}
 
 	if val == nil {
-		//append a jurnal entry as the code needs to be inserted in the trie
-		adb.Jurnal().AddEntry(NewJurnalEntryCode(codeHash))
+		//append a journal entry as the code needs to be inserted in the trie
+		adb.Journal().AddEntry(NewJournalEntryCode(codeHash))
 		return adb.MainTrie.Update(codeHash, code)
 	}
 
@@ -234,7 +234,7 @@ func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error
 	}
 
 	state := NewAccountState(address, NewAccount(), adb.hasher)
-	adb.jurnal.AddEntry(NewJurnalEntryCreation(&address, state))
+	adb.journal.AddEntry(NewJournalEntryCreation(&address, state))
 
 	err = adb.SaveAccountState(state)
 	if err != nil {
@@ -246,11 +246,11 @@ func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error
 
 // Commit will persist all data inside the trie
 func (adb *AccountsDB) Commit() ([]byte, error) {
-	jEntries := adb.Jurnal().Entries()
+	jEntries := adb.Journal().Entries()
 
-	//Step 1. iterate through jurnal entries and commit the data tries accordingly
+	//Step 1. iterate through journal entries and commit the data tries accordingly
 	for i := 0; i < len(jEntries); i++ {
-		jed, found := jEntries[i].(*JurnalEntryData)
+		jed, found := jEntries[i].(*JournalEntryData)
 
 		if found {
 			_, err := jed.Trie().Commit(nil)
@@ -260,8 +260,8 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		}
 	}
 
-	//step 2. clean the jurnal
-	adb.Jurnal().Clear()
+	//step 2. clean the journal
+	adb.Journal().Clear()
 
 	//Step 3. commit main trie
 	hash, err := adb.MainTrie.Commit(nil)
@@ -272,7 +272,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	return hash, nil
 }
 
-// Jurnal returns the Jurnal pointer which is used at taking snapshots and reverting tries past states
-func (adb *AccountsDB) Jurnal() *Jurnal {
-	return adb.jurnal
+// Journal returns the Journal pointer which is used at taking snapshots and reverting tries past states
+func (adb *AccountsDB) Journal() *Journal {
+	return adb.journal
 }

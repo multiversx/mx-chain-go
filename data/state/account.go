@@ -56,13 +56,13 @@ func (as *AccountState) Nonce() uint64 {
 	return as.account.Nonce
 }
 
-// SetNonce sets the nonce and also records the JurnalEntry
+// SetNonce sets the nonce and also records the JournalEntry
 func (as *AccountState) SetNonce(accounts AccountsHandler, nonce uint64) error {
 	if accounts == nil {
 		return ErrNilAccountsHandler
 	}
 
-	accounts.Jurnal().AddEntry(NewJurnalEntryNonce(&as.Addr, as, as.account.Nonce))
+	accounts.Journal().AddEntry(NewJournalEntryNonce(&as.Addr, as, as.account.Nonce))
 	as.account.Nonce = nonce
 	accounts.SaveAccountState(as)
 	return nil
@@ -74,7 +74,7 @@ func (as *AccountState) Balance() big.Int {
 	return *as.account.Balance
 }
 
-// SetBalance sets the balance and also records the JurnalEntry
+// SetBalance sets the balance and also records the JournalEntry
 func (as *AccountState) SetBalance(accounts AccountsHandler, value *big.Int) error {
 	if accounts == nil {
 		return ErrNilAccountsHandler
@@ -84,7 +84,7 @@ func (as *AccountState) SetBalance(accounts AccountsHandler, value *big.Int) err
 		return ErrNilValue
 	}
 
-	accounts.Jurnal().AddEntry(NewJurnalEntryBalance(&as.Addr, as, as.account.Balance))
+	accounts.Journal().AddEntry(NewJournalEntryBalance(&as.Addr, as, as.account.Balance))
 	as.account.Balance = value
 	accounts.SaveAccountState(as)
 	return nil
@@ -101,7 +101,7 @@ func (as *AccountState) SetCodeHash(accounts AccountsHandler, codeHash []byte) e
 		return ErrNilAccountsHandler
 	}
 
-	accounts.Jurnal().AddEntry(NewJurnalEntryCodeHash(&as.Addr, as, as.account.CodeHash))
+	accounts.Journal().AddEntry(NewJournalEntryCodeHash(&as.Addr, as, as.account.CodeHash))
 	as.account.CodeHash = codeHash
 	return nil
 }
@@ -117,7 +117,7 @@ func (as *AccountState) SetRoot(accounts AccountsHandler, root []byte) error {
 		return ErrNilAccountsHandler
 	}
 
-	accounts.Jurnal().AddEntry(NewJurnalEntryRoot(&as.Addr, as, as.account.Root))
+	accounts.Journal().AddEntry(NewJournalEntryRoot(&as.Addr, as, as.account.Root))
 	as.account.Root = root
 	return nil
 }
@@ -183,7 +183,7 @@ func (as *AccountState) DirtyData() map[string][]byte {
 	return as.dirtyData
 }
 
-// Account retrieves the account pointer for accessing raw account data and bypassing JurnalEntries creation
+// Account retrieves the account pointer for accessing raw account data and bypassing JournalEntries creation
 // This pointer will be used for serializing/deserializing account data
 func (as *AccountState) Account() *Account {
 	return as.account

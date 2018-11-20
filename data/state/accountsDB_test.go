@@ -432,7 +432,7 @@ func TestAccountsDB_SaveData_NoDirty_ShouldWork(t *testing.T) {
 
 	err := adb.SaveData(as)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, adb.Jurnal().Len())
+	assert.Equal(t, 0, adb.Journal().Len())
 }
 
 func TestAccountsDB_SaveData_MalfunctionTrie_ShouldErr(t *testing.T) {

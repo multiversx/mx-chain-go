@@ -50,7 +50,7 @@ func TestAccountState_SetNonce_WithVals_ShouldWork(t *testing.T) {
 	err := as.SetNonce(adb, 5)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(5), as.Nonce())
-	assert.Equal(t, 1, adb.Jurnal().Len())
+	assert.Equal(t, 1, adb.Journal().Len())
 
 }
 
@@ -79,7 +79,7 @@ func TestAccountState_SetBalance_WithVals_ShouldWork(t *testing.T) {
 	err := as.SetBalance(adb, big.NewInt(65))
 	assert.Nil(t, err)
 	assert.Equal(t, *big.NewInt(65), as.Balance())
-	assert.Equal(t, 1, adb.Jurnal().Len())
+	assert.Equal(t, 1, adb.Journal().Len())
 
 }
 
@@ -105,7 +105,7 @@ func TestAccountState_SetCodeHash_WithVals_ShouldWork(t *testing.T) {
 	err := as.SetCodeHash(adb, []byte{65, 66, 67})
 	assert.Nil(t, err)
 	assert.Equal(t, []byte{65, 66, 67}, as.CodeHash())
-	assert.Equal(t, 1, adb.Jurnal().Len())
+	assert.Equal(t, 1, adb.Journal().Len())
 
 }
 
@@ -131,7 +131,7 @@ func TestAccountState_SetRoot_WithVals_ShouldWork(t *testing.T) {
 	err := as.SetRoot(adb, []byte{65, 66, 67})
 	assert.Nil(t, err)
 	assert.Equal(t, []byte{65, 66, 67}, as.Root())
-	assert.Equal(t, 1, adb.Jurnal().Len())
+	assert.Equal(t, 1, adb.Journal().Len())
 
 }
 
