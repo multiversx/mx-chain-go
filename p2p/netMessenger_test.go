@@ -705,12 +705,12 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 	//add the validator on node 4
 	nodes[4].GetTopic("test").RegisterValidator(v)
 
-	//send AAA, wait 1 sec, check that 2 peers got the message
+	//send AAA, wait 1 sec, check that no peers got the message as the filtering should work
 	atomic.StoreInt32(&counter, 0)
 	fmt.Println("Broadcasting AAA...")
 	nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "AAA"})
 	time.Sleep(time.Second)
-	assert.Equal(t, int32(2), atomic.LoadInt32(&counter))
+	assert.Equal(t, int32(0), atomic.LoadInt32(&counter))
 	fmt.Printf("%d peers got the message!\n", atomic.LoadInt32(&counter))
 
 	//closing
@@ -898,14 +898,14 @@ func TestNetMessenger_RequestResolveTestCfg1_ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		node.AddTopic(p2p.NewTopic("test", &objNetStringNewer, testNetMarshalizer))
+		node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, testNetMarshalizer))
 	}
 
 	//to simplify, only node 0 should have a recv event handler
 	nodes[0].GetTopic("test").AddDataReceived(recv)
 
 	//setup a resolver func for node 3
-	nodes[3].GetTopic("test").ResolveRequest = func(hash []byte) p2p.Cloner {
+	nodes[3].GetTopic("test").ResolveRequest = func(hash []byte) p2p.Newer {
 		if bytes.Equal(hash, []byte("A000")) {
 			return &testNetStringNewer{Data: "Real object1"}
 		}
@@ -970,14 +970,14 @@ func TestNetMessenger_RequestResolveTestCfg2_ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		node.AddTopic(p2p.NewTopic("test", &objNetStringNewer, testNetMarshalizer))
+		node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, testNetMarshalizer))
 	}
 
 	//to simplify, only node 1 should have a recv event handler
 	nodes[1].GetTopic("test").AddDataReceived(recv)
 
 	//resolver func for node 0 and 2
-	resolverOK := func(hash []byte) p2p.Cloner {
+	resolverOK := func(hash []byte) p2p.Newer {
 		if bytes.Equal(hash, []byte("A000")) {
 			return &testNetStringNewer{Data: "Real object1"}
 		}
@@ -986,7 +986,7 @@ func TestNetMessenger_RequestResolveTestCfg2_ShouldWork(t *testing.T) {
 	}
 
 	//resolver func for other nodes
-	resolverNOK := func(hash []byte) p2p.Cloner {
+	resolverNOK := func(hash []byte) p2p.Newer {
 		panic("Should have not reached this point")
 
 		return nil
@@ -1038,11 +1038,11 @@ func TestNetMessenger_RequestResolveTestSelf_ShouldWork(t *testing.T) {
 	counter1 := int32(0)
 
 	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		if data.(*testNetStringCloner).Data == "Real object1" {
+		if data.(*testNetStringNewer).Data == "Real object1" {
 			atomic.AddInt32(&counter1, 1)
 		}
 
-		fmt.Printf("Received: %v from %v\n", data.(*testNetStringCloner).Data, msgInfo.Peer)
+		fmt.Printf("Received: %v from %v\n", data.(*testNetStringNewer).Data, msgInfo.Peer)
 	}
 
 	//print connected and create topics
@@ -1050,23 +1050,23 @@ func TestNetMessenger_RequestResolveTestSelf_ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		node.AddTopic(p2p.NewTopic("test", &objNetStringCloner, testNetMarshalizer))
+		node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, testNetMarshalizer))
 	}
 
 	//to simplify, only node 1 should have a recv event handler
 	nodes[1].GetTopic("test").AddDataReceived(recv)
 
 	//resolver func for node 1
-	resolverOK := func(hash []byte) p2p.Cloner {
+	resolverOK := func(hash []byte) p2p.Newer {
 		if bytes.Equal(hash, []byte("A000")) {
-			return &testNetStringCloner{Data: "Real object1"}
+			return &testNetStringNewer{Data: "Real object1"}
 		}
 
 		return nil
 	}
 
 	//resolver func for other nodes
-	resolverNOK := func(hash []byte) p2p.Cloner {
+	resolverNOK := func(hash []byte) p2p.Newer {
 		panic("Should have not reached this point")
 
 		return nil
@@ -1121,7 +1121,7 @@ func TestNetMessenger_RequestResolve_Resending_ShouldWork(t *testing.T) {
 	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		atomic.AddInt32(&counter1, 1)
 
-		fmt.Printf("Received: %v from %v\n", data.(*testNetStringCloner).Data, msgInfo.Peer)
+		fmt.Printf("Received: %v from %v\n", data.(*testNetStringNewer).Data, msgInfo.Peer)
 	}
 
 	//print connected and create topics
@@ -1129,23 +1129,23 @@ func TestNetMessenger_RequestResolve_Resending_ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		node.AddTopic(p2p.NewTopic("test", &objNetStringCloner, testNetMarshalizer))
+		node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, testNetMarshalizer))
 	}
 
 	//to simplify, only node 1 should have a recv event handler
 	nodes[1].GetTopic("test").AddDataReceived(recv)
 
 	//resolver func for node 0 and 2
-	resolverOK := func(hash []byte) p2p.Cloner {
+	resolverOK := func(hash []byte) p2p.Newer {
 		if bytes.Equal(hash, []byte("A000")) {
-			return &testNetStringCloner{Data: "Real object0"}
+			return &testNetStringNewer{Data: "Real object0"}
 		}
 
 		return nil
 	}
 
 	//resolver func for other nodes
-	resolverNOK := func(hash []byte) p2p.Cloner {
+	resolverNOK := func(hash []byte) p2p.Newer {
 		panic("Should have not reached this point")
 
 		return nil

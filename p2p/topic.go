@@ -16,6 +16,7 @@ const topicChannelBufferSize = 10000
 // We prefer this method as reflection is more costly
 type Newer interface {
 	New() Newer
+	ID() string
 }
 
 // DataReceivedHandler is the signature for the event handler used by Topic struct

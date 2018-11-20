@@ -25,6 +25,11 @@ func (sc *testTopicStringNewer) New() p2p.Newer {
 	return &testTopicStringNewer{}
 }
 
+// ID will return the same string as ID
+func (sc *testTopicStringNewer) ID() string {
+	return sc.Data
+}
+
 func TestTopic_AddEventHandler_Nil_ShouldNotAddHandler(t *testing.T) {
 	t.Parallel()
 
