@@ -98,6 +98,19 @@ func (mt *TrieMock) Update(key, value []byte) error {
 	}
 
 	mt.data[string(key)] = value
+
+	if len(value) == 0 {
+		delete(mt.data, string(key))
+		idx := -1
+		for i := 0; i < len(mt.keys); i++ {
+			if mt.keys[i] == string(key) {
+				idx = i
+				break
+			}
+		}
+
+		mt.keys = append(mt.keys[:idx], mt.keys[idx+1:]...)
+	}
 	return nil
 }
 
