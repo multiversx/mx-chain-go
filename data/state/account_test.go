@@ -14,10 +14,12 @@ func aCreateRandomAddress() *state.Address {
 	buff := make([]byte, state.AdrLen)
 	rand.Read(buff)
 
-	addr := state.Address{}
-	addr.SetBytes(buff)
+	addr, err := state.NewAddress(buff)
+	if err != nil {
+		panic(err)
+	}
 
-	return &addr
+	return addr
 }
 
 func aCreateAccountsDB() *state.AccountsDB {

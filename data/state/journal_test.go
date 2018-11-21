@@ -2,6 +2,7 @@ package state_test
 
 import (
 	"errors"
+	"math/rand"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -28,12 +29,24 @@ func (tje *journalEntryMock) DirtyAddress() *state.Address {
 	return tje.Addr
 }
 
+func jCreateRandomAddress() *state.Address {
+	buff := make([]byte, state.AdrLen)
+	rand.Read(buff)
+
+	addr, err := state.NewAddress(buff)
+	if err != nil {
+		panic(err)
+	}
+
+	return addr
+}
+
 func TestJournal_AddEntry_ValidValue_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	j := state.NewJournal(nil)
 
-	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: jCreateRandomAddress()}
 
 	j.AddEntry(&jem)
 	assert.Equal(t, 1, len(j.Entries()))
@@ -46,7 +59,7 @@ func TestJournal_RevertFromSnapshot_OutOfBound_ShouldWork(t *testing.T) {
 
 	j := state.NewJournal(nil)
 
-	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: jCreateRandomAddress()}
 
 	j.AddEntry(&jem)
 
@@ -69,7 +82,7 @@ func TestJournal_RevertFromSnapshot_SingleEntry_ShouldWork(t *testing.T) {
 
 	j := state.NewJournal(nil)
 
-	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: jCreateRandomAddress()}
 
 	j.AddEntry(&jem)
 
@@ -84,7 +97,7 @@ func TestJournal_RevertFromSnapshot_5EntriesIdx3_ShouldWork(t *testing.T) {
 
 	j := state.NewJournal(nil)
 
-	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: jCreateRandomAddress()}
 
 	j.AddEntry(&jem)
 	j.AddEntry(&jem)
@@ -103,7 +116,7 @@ func TestJournal_RevertFromSnapshot_5EntriesIdx0_ShouldWork(t *testing.T) {
 
 	j := state.NewJournal(nil)
 
-	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: jCreateRandomAddress()}
 
 	j.AddEntry(&jem)
 	j.AddEntry(&jem)
@@ -122,7 +135,7 @@ func TestJournal_RevertFromSnapshot_5EntriesIdx4_ShouldWork(t *testing.T) {
 
 	j := state.NewJournal(nil)
 
-	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: jCreateRandomAddress()}
 
 	j.AddEntry(&jem)
 	j.AddEntry(&jem)
@@ -141,7 +154,7 @@ func TestJournal_RevertFromSnapshot_SingleEntryErrors_ShouldRetErr(t *testing.T)
 
 	j := state.NewJournal(nil)
 
-	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: jCreateRandomAddress()}
 	jem.FailRevert = true
 
 	j.AddEntry(&jem)
@@ -157,7 +170,7 @@ func TestJournal_Clear(t *testing.T) {
 
 	j := state.NewJournal(nil)
 
-	jem := journalEntryMock{Addr: state.HexToAddress("1234")}
+	jem := journalEntryMock{Addr: jCreateRandomAddress()}
 
 	j.AddEntry(&jem)
 	j.AddEntry(&jem)

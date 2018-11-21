@@ -2,12 +2,9 @@ package state
 
 // AccountsHandler is used for the structure that manages the accounts
 type AccountsHandler interface {
-	RetrieveCode(state *AccountState) error
 	PutCode(state *AccountState, code []byte) error
 	RemoveCode(codeHash []byte) error
-
 	RetrieveDataTrie(state *AccountState) error
-
 	HasAccount(address Address) (bool, error)
 	SaveAccountState(state *AccountState) error
 	RemoveAccount(address Address) error

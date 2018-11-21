@@ -68,6 +68,9 @@ var ErrNilAccountsHandler = errors.New("nil AccountsHandler")
 // ErrNilAddress defines the error when trying to work with a nil address
 var ErrNilAddress = errors.New("nil Address")
 
+// ErrEmptyAddress defines the error when trying to work with an empty address
+var ErrEmptyAddress = errors.New("empty Address")
+
 // ErrNilAccountState defines the error when trying to work with a nil account
 var ErrNilAccountState = errors.New("nil AccountState")
 
@@ -79,3 +82,9 @@ var ErrNilTrie = errors.New("attempt to search on a nil trie")
 
 // ErrNilValue signals that an operation has been attempted to or with a nil value
 var ErrNilValue = errors.New("nil value")
+
+// ErrNilPubKeysBytes signals that an operation has been attempted to or with a nil public key slice
+var ErrNilPubKeysBytes = errors.New("nil public key bytes")
+
+// ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
+var ErrNilHasher = errors.New("nil hasher")

@@ -9,7 +9,6 @@ import (
 // JournalEntryCreation is used to revert an account creation
 type JournalEntryCreation struct {
 	address *Address
-	acnt    *AccountState
 }
 
 // JournalEntryNonce is used to revert a nonce change
@@ -54,8 +53,8 @@ type JournalEntryData struct {
 //------- JournalEntryCreation
 
 // NewJournalEntryCreation outputs a new JournalEntry implementation used to revert an account creation
-func NewJournalEntryCreation(address *Address, acnt *AccountState) *JournalEntryCreation {
-	return &JournalEntryCreation{address: address, acnt: acnt}
+func NewJournalEntryCreation(address *Address) *JournalEntryCreation {
+	return &JournalEntryCreation{address: address}
 }
 
 // Revert apply undo operation
@@ -66,10 +65,6 @@ func (jec *JournalEntryCreation) Revert(accounts AccountsHandler) error {
 
 	if jec.address == nil {
 		return ErrNilAddress
-	}
-
-	if jec.acnt == nil {
-		return ErrNilAccountState
 	}
 
 	return accounts.RemoveAccount(*jec.address)

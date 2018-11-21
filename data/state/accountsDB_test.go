@@ -20,7 +20,7 @@ func adbCreateAccountsDB() *state.AccountsDB {
 }
 
 func adbCreateAddress(t *testing.T, buff []byte) *state.Address {
-	adr, err := state.FromPubKeyBytes(buff)
+	adr, err := state.FromPubKeyBytes(buff, mock.HasherMock{})
 	assert.Nil(t, err)
 
 	return adr

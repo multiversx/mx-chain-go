@@ -31,7 +31,6 @@ type AccountState struct {
 	Code         []byte
 	DataTrie     trie.PatriciaMerkelTree
 	hasher       hashing.Hasher
-	prevRoot     []byte
 	originalData map[string][]byte
 	dirtyData    map[string][]byte
 }
@@ -41,7 +40,6 @@ func NewAccountState(address Address, account *Account, hasher hashing.Hasher) *
 	acState := AccountState{
 		account:      account,
 		Addr:         address,
-		prevRoot:     account.Root,
 		originalData: make(map[string][]byte),
 		dirtyData:    make(map[string][]byte),
 	}

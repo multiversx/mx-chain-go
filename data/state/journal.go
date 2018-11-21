@@ -29,11 +29,12 @@ func NewJournal(accounts AccountsHandler) *Journal {
 // Concurrent safe.
 func (j *Journal) AddEntry(je JournalEntry) {
 	j.mutDirtyAddress.Lock()
-	defer j.mutDirtyAddress.Unlock()
 
 	j.entries = append(j.entries, je)
 	val := j.dirtyAddresses[je.DirtyAddress()]
 	j.dirtyAddresses[je.DirtyAddress()] = val + 1
+
+	j.mutDirtyAddress.Unlock()
 }
 
 // RevertFromSnapshot apply Revert method over accounts object and removes it from the list
@@ -71,24 +72,27 @@ func (j *Journal) RevertFromSnapshot(snapshot int) error {
 // Concurrent safe.
 func (j *Journal) Len() int {
 	j.mutDirtyAddress.RLock()
-	defer j.mutDirtyAddress.RUnlock()
+	length := len(j.entries)
+	j.mutDirtyAddress.RUnlock()
 
-	return len(j.entries)
+	return length
 }
 
 // Clears the data from this journal.
 func (j *Journal) Clear() {
 	j.mutDirtyAddress.RLock()
-	defer j.mutDirtyAddress.RUnlock()
 
 	j.entries = make([]JournalEntry, 0)
 	j.dirtyAddresses = make(map[*Address]int)
+
+	j.mutDirtyAddress.RUnlock()
 }
 
 // Entries returns the entries saved in the journal
 func (j *Journal) Entries() []JournalEntry {
 	j.mutDirtyAddress.RLock()
-	defer j.mutDirtyAddress.RUnlock()
+	entries := j.entries
+	j.mutDirtyAddress.RUnlock()
 
-	return j.entries
+	return entries
 }

@@ -30,7 +30,7 @@ func adbCreateAccountsDB() *state.AccountsDB {
 }
 
 func adbCreateAddress(t testing.TB, buff []byte) *state.Address {
-	adr, err := state.FromPubKeyBytes(buff)
+	adr, err := state.FromPubKeyBytes(buff, mock.HasherMock{})
 	assert.Nil(t, err)
 
 	return adr
@@ -84,101 +84,6 @@ func adbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.AccountState,
 			panic(err)
 		}
 	}
-}
-
-func TestAccountsDB_RetrieveCode_NilCodeHash_ShouldRetNil(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-
-	//since code hash is nil, result should be nil and code should be nil
-	err := adb.RetrieveCode(as)
-	assert.Nil(t, err)
-	assert.Nil(t, as.Code)
-}
-
-func TestAccountsDB_RetrieveCode_NilTrie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().CodeHash = []byte("12345")
-
-	adb := adbCreateAccountsDB()
-
-	adb.MainTrie = nil
-
-	err := adb.RetrieveCode(as)
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_RetrieveCode_BadLength_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().CodeHash = []byte("12345")
-
-	adb := adbCreateAccountsDB()
-
-	//should return error
-	err := adb.RetrieveCode(as)
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_RetrieveCode_NotFound_ShouldRetNil(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().CodeHash = hasher.Compute("12345")
-
-	adb := adbCreateAccountsDB()
-
-	//should return nil
-	err := adb.RetrieveCode(as)
-	assert.Nil(t, err)
-	assert.Nil(t, as.Code)
-}
-
-func TestAccountsDB_RetrieveCode_Found_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().CodeHash = hasher.Compute("12345")
-
-	adb := adbCreateAccountsDB()
-	//manually put it in the trie
-	adb.MainTrie.Update(as.CodeHash(), []byte{68, 69, 70})
-
-	//should return nil
-	err := adb.RetrieveCode(as)
-	assert.Nil(t, err)
-	assert.Equal(t, as.Code, []byte{68, 69, 70})
 }
 
 func TestAccountsDB_RetrieveData_NilRoot_ShouldRetNil(t *testing.T) {

@@ -12,7 +12,6 @@ import (
 
 // AccountsDB is the struct used for accessing accounts
 type AccountsDB struct {
-	//should use a concurrent trie
 	MainTrie trie.PatriciaMerkelTree
 	hasher   hashing.Hasher
 	marsh    marshal.Marshalizer
@@ -28,8 +27,8 @@ func NewAccountsDB(tr trie.PatriciaMerkelTree, hasher hashing.Hasher, marsh mars
 	return &adb
 }
 
-// RetrieveCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
-func (adb *AccountsDB) RetrieveCode(state *AccountState) error {
+// retrieveCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
+func (adb *AccountsDB) retrieveCode(state *AccountState) error {
 	if state.CodeHash() == nil {
 		state.Code = nil
 		return nil
@@ -49,6 +48,8 @@ func (adb *AccountsDB) RetrieveCode(state *AccountState) error {
 	if err != nil {
 		return err
 	}
+
+	//TODO implement some kind of checking of code against its codehash
 
 	state.Code = val
 	return nil
@@ -229,12 +230,20 @@ func (adb *AccountsDB) GetOrCreateAccount(address Address) (*AccountState, error
 		}
 
 		state := NewAccountState(address, acnt, adb.hasher)
+		err = adb.retrieveCode(state)
+		if err != nil {
+			return nil, err
+		}
+		err = adb.RetrieveDataTrie(state)
+		if err != nil {
+			return nil, err
+		}
 
 		return state, nil
 	}
 
 	state := NewAccountState(address, NewAccount(), adb.hasher)
-	adb.journal.AddEntry(NewJournalEntryCreation(&address, state))
+	adb.journal.AddEntry(NewJournalEntryCreation(&address))
 
 	err = adb.SaveAccountState(state)
 	if err != nil {
