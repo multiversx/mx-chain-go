@@ -120,11 +120,13 @@ func TestAccountsDB_RevertNonceStepByStep_AccountData_ShouldWork(t *testing.T) {
 	snapshotPreSet := adb.Journal().Len()
 
 	//Step 3. Set Nonces and save data
-	state1.SetNonce(adb, 40)
+	err = state1.SetNonce(adb, 40)
+	assert.Nil(t, err)
 	hrWithNonce1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - account with nonce 40: %v\n", hrWithNonce1)
 
-	state2.SetNonce(adb, 50)
+	err = state2.SetNonce(adb, 50)
+	assert.Nil(t, err)
 	hrWithNonce2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - account with nonce 50: %v\n", hrWithNonce2)
 
@@ -132,7 +134,8 @@ func TestAccountsDB_RevertNonceStepByStep_AccountData_ShouldWork(t *testing.T) {
 	assert.NotEqual(t, hrCreated2, adb.MainTrie.Root())
 
 	//Step 4. Revert account nonce and test
-	adb.Journal().RevertFromSnapshot(snapshotPreSet)
+	err = adb.Journal().RevertFromSnapshot(snapshotPreSet)
+	assert.Nil(t, err)
 
 	//Test 4.1. current root hash shall match created root hash hrCreated
 	hrFinal := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -178,11 +181,13 @@ func TestAccountsDB_RevertBalanceStepByStep_AccountData_ShouldWork(t *testing.T)
 	snapshotPreSet := adb.Journal().Len()
 
 	//Step 3. Set balances and save data
-	state1.SetBalance(adb, big.NewInt(40))
+	err = state1.SetBalance(adb, big.NewInt(40))
+	assert.Nil(t, err)
 	hrWithBalance1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance1)
 
-	state2.SetBalance(adb, big.NewInt(50))
+	err = state2.SetBalance(adb, big.NewInt(50))
+	assert.Nil(t, err)
 	hrWithBalance2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - account with balance 50: %v\n", hrWithBalance2)
 
@@ -190,7 +195,8 @@ func TestAccountsDB_RevertBalanceStepByStep_AccountData_ShouldWork(t *testing.T)
 	assert.NotEqual(t, hrCreated2, adb.MainTrie.Root())
 
 	//Step 4. Revert account balances and test
-	adb.Journal().RevertFromSnapshot(snapshotPreSet)
+	err = adb.Journal().RevertFromSnapshot(snapshotPreSet)
+	assert.Nil(t, err)
 
 	//Test 4.1. current root hash shall match created root hash hrCreated
 	hrFinal := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -218,7 +224,8 @@ func TestAccountsDB_RevertCodeStepByStep_AccountData_ShouldWork(t *testing.T) {
 
 	//Step 2. create 2 new accounts
 	state1, err := adb.GetOrCreateAccount(*adr1)
-	adb.PutCode(state1, []byte{65, 66, 67})
+	assert.Nil(t, err)
+	err = adb.PutCode(state1, []byte{65, 66, 67})
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.Journal().Len()
 	hrCreated1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -226,7 +233,8 @@ func TestAccountsDB_RevertCodeStepByStep_AccountData_ShouldWork(t *testing.T) {
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
 	state2, err := adb.GetOrCreateAccount(*adr2)
-	adb.PutCode(state2, []byte{65, 66, 67})
+	assert.Nil(t, err)
+	err = adb.PutCode(state2, []byte{65, 66, 67})
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.Journal().Len()
 	hrCreated2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -238,7 +246,8 @@ func TestAccountsDB_RevertCodeStepByStep_AccountData_ShouldWork(t *testing.T) {
 	assert.NotEqual(t, hrCreated1, hrCreated2)
 
 	//Step 3. Revert second account
-	adb.Journal().RevertFromSnapshot(snapshotCreated1)
+	err = adb.Journal().RevertFromSnapshot(snapshotCreated1)
+	assert.Nil(t, err)
 
 	//Test 3.1. current root hash shall match created root hash hrCreated1
 	hrCrt := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -246,7 +255,8 @@ func TestAccountsDB_RevertCodeStepByStep_AccountData_ShouldWork(t *testing.T) {
 	fmt.Printf("State root - reverted last account: %v\n", hrCrt)
 
 	//Step 4. Revert first account
-	adb.Journal().RevertFromSnapshot(0)
+	err = adb.Journal().RevertFromSnapshot(0)
+	assert.Nil(t, err)
 
 	//Test 4.1. current root hash shall match empty root hash
 	hrCrt = base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -274,8 +284,9 @@ func TestAccountsDB_RevertDataStepByStep_AccountData_ShouldWork(t *testing.T) {
 
 	//Step 2. create 2 new accounts
 	state1, err := adb.GetOrCreateAccount(*adr1)
+	assert.Nil(t, err)
 	state1.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	adb.SaveData(state1)
+	err = adb.SaveData(state1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.Journal().Len()
 	hrCreated1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -285,8 +296,9 @@ func TestAccountsDB_RevertDataStepByStep_AccountData_ShouldWork(t *testing.T) {
 	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
 
 	state2, err := adb.GetOrCreateAccount(*adr2)
+	assert.Nil(t, err)
 	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	adb.SaveData(state2)
+	err = adb.SaveData(state2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.Journal().Len()
 	hrCreated2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -303,13 +315,15 @@ func TestAccountsDB_RevertDataStepByStep_AccountData_ShouldWork(t *testing.T) {
 	assert.Equal(t, hrRoot1, hrRoot2)
 
 	//Step 3. Revert 2-nd account ant test roots
-	adb.Journal().RevertFromSnapshot(snapshotCreated1)
+	err = adb.Journal().RevertFromSnapshot(snapshotCreated1)
+	assert.Nil(t, err)
 	hrCreated2Rev := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 
 	assert.Equal(t, hrCreated1, hrCreated2Rev)
 
 	//Step 4. Revert 1-st account ant test roots
-	adb.Journal().RevertFromSnapshot(0)
+	err = adb.Journal().RevertFromSnapshot(0)
+	assert.Nil(t, err)
 	hrCreated1Rev := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 
 	assert.Equal(t, hrEmpty, hrCreated1Rev)
@@ -335,8 +349,9 @@ func TestAccountsDB_RevertDataStepByStepWithCommits_AccountData_ShouldWork(t *te
 
 	//Step 2. create 2 new accounts
 	state1, err := adb.GetOrCreateAccount(*adr1)
+	assert.Nil(t, err)
 	state1.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	adb.SaveData(state1)
+	err = adb.SaveData(state1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.Journal().Len()
 	hrCreated1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -346,8 +361,9 @@ func TestAccountsDB_RevertDataStepByStepWithCommits_AccountData_ShouldWork(t *te
 	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
 
 	state2, err := adb.GetOrCreateAccount(*adr2)
+	assert.Nil(t, err)
 	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	adb.SaveData(state2)
+	err = adb.SaveData(state2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.Journal().Len()
 	hrCreated2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -371,7 +387,8 @@ func TestAccountsDB_RevertDataStepByStepWithCommits_AccountData_ShouldWork(t *te
 	//Step 4. 2-nd account changes its data
 	snapshotMod := adb.Journal().Len()
 	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 35})
-	adb.SaveData(state2)
+	err = adb.SaveData(state2)
+	assert.Nil(t, err)
 	hrCreated2p1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	hrRoot2p1 := base64.StdEncoding.EncodeToString(state2.DataTrie.Root())
 
@@ -386,7 +403,8 @@ func TestAccountsDB_RevertDataStepByStepWithCommits_AccountData_ShouldWork(t *te
 	assert.NotEqual(t, hrRoot2, hrRoot2p1)
 
 	//Step 5. Revert 2-nd account modification
-	adb.Journal().RevertFromSnapshot(snapshotMod)
+	err = adb.Journal().RevertFromSnapshot(snapshotMod)
+	assert.Nil(t, err)
 	hrCreated2Rev := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	hrRoot2Rev := base64.StdEncoding.EncodeToString(state2.DataTrie.Root())
 	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)

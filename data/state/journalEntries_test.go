@@ -12,7 +12,7 @@ import (
 
 func jeCreateRandomAddress() *state.Address {
 	buff := make([]byte, state.AdrLen)
-	rand.Read(buff)
+	_, _ = rand.Read(buff)
 
 	addr, err := state.NewAddress(buff)
 	if err != nil {
@@ -96,8 +96,10 @@ func TestJournalEntryNonce_Revert_OkVals_ShouldWork(t *testing.T) {
 	j.AddEntry(state.NewJournalEntryNonce(adr1, acnt, 0))
 
 	//modify the nonce and save
-	acnt.SetNonce(adb, 50)
-	adb.SaveAccountState(acnt)
+	err = acnt.SetNonce(adb, 50)
+	assert.Nil(t, err)
+	err = adb.SaveAccountState(acnt)
+	assert.Nil(t, err)
 	//get the new hash and test it is different from empty account hash
 	hashAcnt := adb.MainTrie.Root()
 	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)
@@ -154,8 +156,10 @@ func TestJournalEntryBalance_Revert_OkVals_ShouldWork(t *testing.T) {
 	j.AddEntry(state.NewJournalEntryBalance(adr1, acnt, big.NewInt(0)))
 
 	//modify the balance and save
-	acnt.SetBalance(adb, big.NewInt(50))
-	adb.SaveAccountState(acnt)
+	err = acnt.SetBalance(adb, big.NewInt(50))
+	assert.Nil(t, err)
+	err = adb.SaveAccountState(acnt)
+	assert.Nil(t, err)
 	//get the new hash and test it is different from empty account hash
 	hashAcnt := adb.MainTrie.Root()
 	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)
@@ -211,8 +215,10 @@ func TestJournalEntryCodeHash_Revert_OkVals_ShouldWork(t *testing.T) {
 	j.AddEntry(state.NewJournalEntryCodeHash(adr1, acnt, nil))
 
 	//modify the code hash and save
-	acnt.SetCodeHash(adb, []byte{65, 66, 67})
-	adb.SaveAccountState(acnt)
+	err = acnt.SetCodeHash(adb, []byte{65, 66, 67})
+	assert.Nil(t, err)
+	err = adb.SaveAccountState(acnt)
+	assert.Nil(t, err)
 	//get the new hash and test it is different from empty account hash
 	hashAcnt := adb.MainTrie.Root()
 	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)
@@ -267,7 +273,8 @@ func TestJournalEntryCode_Revert_OkVals_ShouldWork(t *testing.T) {
 	//add journal entry for code addition
 	j.AddEntry(state.NewJournalEntryCode(codeHash))
 
-	adb.PutCode(nil, code)
+	err := adb.PutCode(nil, code)
+	assert.Nil(t, err)
 
 	//get the hash root for the trie with code inside
 	hashRootCode := adb.MainTrie.Root()
@@ -276,7 +283,8 @@ func TestJournalEntryCode_Revert_OkVals_ShouldWork(t *testing.T) {
 	assert.NotEqual(t, hashEmptyRoot, hashRootCode)
 
 	//revert
-	j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0)
+	assert.Nil(t, err)
 
 	//test root hash to be empty root hash
 	assert.Equal(t, hashEmptyRoot, adb.MainTrie.Root())
@@ -313,8 +321,10 @@ func TestJournalEntryRoot_Revert_OkVals_ShouldWork(t *testing.T) {
 	j.AddEntry(state.NewJournalEntryRoot(adr1, acnt, nil))
 
 	//modify the root and save
-	acnt.SetRoot(adb, []byte{65, 66, 67})
-	adb.SaveAccountState(acnt)
+	err = acnt.SetRoot(adb, []byte{65, 66, 67})
+	assert.Nil(t, err)
+	err = adb.SaveAccountState(acnt)
+	assert.Nil(t, err)
 	//get the new hash and test it is different from empty account hash
 	hashAcnt := adb.MainTrie.Root()
 	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)

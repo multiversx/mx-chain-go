@@ -136,7 +136,11 @@ func (adb *AccountsDB) PutCode(state *AccountState, code []byte) error {
 	codeHash := adb.hasher.Compute(string(code))
 
 	if state != nil {
-		state.SetCodeHash(adb, codeHash)
+		err := state.SetCodeHash(adb, codeHash)
+		if err != nil {
+			return err
+		}
+
 		state.Code = code
 	}
 

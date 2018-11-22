@@ -68,11 +68,13 @@ func TestJournal_RevertFromSnapshot_OutOfBound_ShouldWork(t *testing.T) {
 	assert.Equal(t, 1, j.Len())
 	assert.Equal(t, 0, jem.RevertCalled)
 
-	j.RevertFromSnapshot(2)
+	err = j.RevertFromSnapshot(2)
+	assert.Nil(t, err)
 	assert.Equal(t, 1, j.Len())
 	assert.Equal(t, 0, jem.RevertCalled)
 
-	j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0)
+	assert.Nil(t, err)
 	assert.Equal(t, 0, j.Len())
 	assert.Equal(t, 1, jem.RevertCalled)
 }

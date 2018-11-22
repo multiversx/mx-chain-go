@@ -62,7 +62,10 @@ func (as *AccountState) SetNonce(accounts AccountsHandler, nonce uint64) error {
 
 	accounts.Journal().AddEntry(NewJournalEntryNonce(&as.Addr, as, as.account.Nonce))
 	as.account.Nonce = nonce
-	accounts.SaveAccountState(as)
+	err := accounts.SaveAccountState(as)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -84,7 +87,10 @@ func (as *AccountState) SetBalance(accounts AccountsHandler, value *big.Int) err
 
 	accounts.Journal().AddEntry(NewJournalEntryBalance(&as.Addr, as, as.account.Balance))
 	as.account.Balance = value
-	accounts.SaveAccountState(as)
+	err := accounts.SaveAccountState(as)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

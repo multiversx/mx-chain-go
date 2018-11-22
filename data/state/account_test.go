@@ -187,7 +187,9 @@ func TestAccountState_RetrieveValue_FoundInTrie_ShouldWork(t *testing.T) {
 
 	as := state.NewAccountState(*adr1, state.NewAccount(), mock.HasherMock{})
 	as.DataTrie = adb.MainTrie
-	as.DataTrie.Update([]byte{65, 66, 69}, []byte{38, 39, 40})
+	err := as.DataTrie.Update([]byte{65, 66, 69}, []byte{38, 39, 40})
+	assert.Nil(t, err)
+
 	as.DirtyData()["ABC"] = []byte{32, 33, 34}
 	as.OriginalData()["ABD"] = []byte{35, 36, 37}
 
