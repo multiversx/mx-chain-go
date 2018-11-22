@@ -1,6 +1,11 @@
 package storage_test
 
 import (
+	"fmt"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
@@ -10,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 
@@ -705,4 +711,175 @@ func TestNewStorageUnitFromConfOk(t *testing.T) {
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, storer, "valid storer expected but got nil")
 	storer.DestroyUnit()
+}
+
+const (
+	valuesInDb = 100000
+	bfSize     = 100000
+)
+
+func initSUWithNilBloomFilter(cSize int) *storage.StorageUnit {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	ldb, err1 := leveldb.NewDB(dir + "/levelDB")
+	cache, err2 := lrucache.NewCache(cSize)
+
+	if err1 != nil {
+		fmt.Println(err1)
+	}
+	if err2 != nil {
+		fmt.Println(err2)
+	}
+
+	sUnit, err := storage.NewStorageUnit(cache, ldb, nil)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return sUnit
+
+}
+
+func initSUWithBloomFilter(cSize int, bfSize uint) *storage.StorageUnit {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	ldb, err1 := leveldb.NewDB(dir + "/levelDB")
+	cache, err2 := lrucache.NewCache(cSize)
+	bf, err3 := bloom.NewFilter(bfSize, []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}})
+
+	if err1 != nil {
+		fmt.Println(err1)
+	}
+	if err2 != nil {
+		fmt.Println(err2)
+	}
+	if err3 != nil {
+		fmt.Println(err3)
+	}
+
+	sUnit, err := storage.NewStorageUnit(cache, ldb, bf)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return sUnit
+}
+
+func BenchmarkStorageUnitPutWithNilBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithNilBloomFilter(1)
+	defer s.DestroyUnit()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb)
+		b.StartTimer()
+
+		s.Put([]byte(strconv.Itoa(nr)), []byte(strconv.Itoa(nr)))
+
+	}
+}
+
+func BenchmarkStorageUnitPutWithBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithBloomFilter(1, bfSize)
+	defer s.DestroyUnit()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb)
+		b.StartTimer()
+
+		s.Put([]byte(strconv.Itoa(nr)), []byte(strconv.Itoa(nr)))
+
+	}
+}
+
+func BenchmarkStorageUnitGetPresentWithNilBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithNilBloomFilter(1)
+	defer s.DestroyUnit()
+	for i := 0; i < valuesInDb; i++ {
+		s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+
+	}
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb)
+		b.StartTimer()
+
+		s.Get([]byte(strconv.Itoa(nr)))
+
+	}
+}
+
+func BenchmarkStorageUnitGetPresentWithBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithBloomFilter(1, bfSize)
+	defer s.DestroyUnit()
+	for i := 0; i < valuesInDb; i++ {
+		s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+	}
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb)
+		b.StartTimer()
+
+		s.Get([]byte(strconv.Itoa(nr)))
+
+	}
+}
+
+func BenchmarkStorageUnitGetNotPresentWithNilBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithNilBloomFilter(1)
+	defer s.DestroyUnit()
+	for i := 0; i < valuesInDb; i++ {
+		s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+
+	}
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb) + valuesInDb
+		b.StartTimer()
+
+		s.Get([]byte(strconv.Itoa(nr)))
+
+	}
+}
+
+func BenchmarkStorageUnitGetNotPresentWithBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithBloomFilter(1, bfSize)
+	defer s.DestroyUnit()
+	for i := 0; i < valuesInDb; i++ {
+		s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+
+	}
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb) + valuesInDb
+		b.StartTimer()
+
+		s.Get([]byte(strconv.Itoa(nr)))
+
+	}
 }
