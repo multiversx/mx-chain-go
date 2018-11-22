@@ -3,11 +3,8 @@ package transactionPool
 import (
 	"sync"
 
-	"errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
@@ -24,8 +21,7 @@ type TransactionPool struct {
 	//  transaction hashes that have that shard as destination
 	miniPoolsStore map[uint32]*miniPool
 
-	marsher marshal.Marshalizer
-	hasher  hashing.Hasher
+	OnAddTransaction func(txHash []byte)
 }
 
 type miniPool struct {
@@ -34,11 +30,9 @@ type miniPool struct {
 }
 
 // NewTransactionPool is responsible for creating an empty pool of transactions
-func NewTransactionPool(marsher marshal.Marshalizer, hasher hashing.Hasher) *TransactionPool {
+func NewTransactionPool() *TransactionPool {
 	return &TransactionPool{
 		miniPoolsStore: make(map[uint32]*miniPool),
-		marsher:        marsher,
-		hasher:         hasher,
 	}
 }
 
@@ -81,38 +75,17 @@ func (tp *TransactionPool) MiniPoolTxStore(shardID uint32) (c storage.Cacher) {
 	return mp.TxStore
 }
 
-// ReceivedTransaction handle the received transactions and add them to the specific pools
-func (tp *TransactionPool) ReceivedTransaction(txHash []byte, tx *transaction.Transaction, destShardId uint32) error {
-	if tp.marsher == nil {
-		return errors.New("marsher not defined")
-	}
-
-	buff, err := tp.marsher.Marshal(tx)
-
-	if err != nil {
-		return errors.New("unable to marshalize")
-	}
-
-	if txHash == nil {
-		if tp.hasher == nil {
-			return errors.New("hasher not defined")
-		}
-
-		txHash = tp.hasher.Compute(string(buff))
-	}
-
-	tp.AddTransaction(txHash, buff, destShardId)
-
-	return nil
-}
-
 // AddTransaction will add a transaction to the coresponding pool
-func (tp *TransactionPool) AddTransaction(txHash []byte, tx []byte, destShardID uint32) {
+func (tp *TransactionPool) AddTransaction(txHash []byte, tx *transaction.Transaction, destShardID uint32) {
 	if tp.MiniPool(destShardID) == nil {
 		tp.NewMiniPool(destShardID)
 	}
 	mp := tp.MiniPoolTxStore(destShardID)
 	mp.HasOrAdd(txHash, tx)
+
+	if tp.OnAddTransaction != nil {
+		tp.OnAddTransaction(txHash)
+	}
 }
 
 // RemoveTransaction will remove a transaction hash from the coresponding pool
@@ -142,7 +115,7 @@ func (tp *TransactionPool) MergeMiniPools(sourceShardID, destShardID uint32) {
 	if sourceStore != nil {
 		for _, txHash := range sourceStore.Keys() {
 			tx, _ := sourceStore.Get(txHash)
-			tp.AddTransaction(txHash, tx, destShardID)
+			tp.AddTransaction(txHash, tx.(*transaction.Transaction), destShardID)
 		}
 	}
 
@@ -158,7 +131,7 @@ func (tp *TransactionPool) MoveTransactions(sourceShardID, destShardID uint32, t
 	if sourceStore != nil {
 		for _, txHash := range txHashes {
 			tx, _ := sourceStore.Get(txHash)
-			tp.AddTransaction(txHash, tx, destShardID)
+			tp.AddTransaction(txHash, tx.(*transaction.Transaction), destShardID)
 			tp.RemoveTransaction(txHash, sourceShardID)
 		}
 	}
