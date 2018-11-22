@@ -1,161 +1,212 @@
-// Copyright 2015 The go-ethereum Authors
-// This file is part of the go-ethereum library.
-//
-// The go-ethereum library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The go-ethereum library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-
-package state
+package state_test
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-var testAddrHasher = &mock.HasherMock{}
+type hasherMock127 struct {
+}
 
-func TestAddress_FromPubKeyBytes_LowNoOfBytes_ShouldErr(t *testing.T) {
-	buff := []byte("ABCDEF")
+func (hasherMock127) Compute(s string) []byte {
+	buff := make([]byte, 0)
 
-	_, err := FromPubKeyBytes(buff)
+	var i byte
+	for i = 0; i < 127; i++ {
+		buff = append(buff, i)
+	}
+
+	return buff
+}
+
+func (hasherMock127) EmptyHash() []byte {
+	return nil
+}
+
+func (hasherMock127) Size() int {
+	return 64
+}
+
+func TestAddress_NewAddress_InvalidData_ShouldErr(t *testing.T) {
+	t.Parallel()
+
+	//nil address
+	_, err := state.NewAddress(nil)
 	assert.NotNil(t, err)
-	fmt.Println(err.Error())
-}
+	fmt.Printf("Error: %v\n", err.Error())
 
-func TestAddress_FromPubKeyBytes_Values_ShouldWork(t *testing.T) {
-	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
+	//empty address
+	_, err = state.NewAddress(make([]byte, 0))
+	assert.NotNil(t, err)
+	fmt.Printf("Error: %v\n", err.Error())
 
-	adr, err := FromPubKeyBytes(buff)
-	assert.Nil(t, err)
-
-	fmt.Println(adr.Hex(testAddrHasher))
-}
-
-func TestAddress_Hash_Values_ShouldWork(t *testing.T) {
-	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
-
-	adr, err := FromPubKeyBytes(buff)
-	assert.Nil(t, err)
-
-	assert.Equal(t, adr.Hash(testAddrHasher), testAddrHasher.Compute(string(adr.Bytes())))
-}
-
-func TestAddress_IsHexAddress_Values_ShouldWork(t *testing.T) {
-	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
-
-	adr, err := FromPubKeyBytes(buff)
-	assert.Nil(t, err)
-
-	assert.True(t, IsHexAddress(adr.Hex(testAddrHasher)))
-	fmt.Printf("Address: %v\n", adr.Hex(testAddrHasher))
-}
-
-func TestAddress_IsHexAddress_BadAddrs_ShouldRetFalse(t *testing.T) {
-	//invalid characters
-	assert.False(t, IsHexAddress("ABCDEFGH"))
-	//odd numbers of hexa chars
-	assert.False(t, IsHexAddress("0x434445464748494A4B4c4d4e4F5051525354555658595A31323435363738393"))
-}
-
-func TestAddress_HexToAddress_Values_ShouldWork(t *testing.T) {
-	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ124567890")
-
-	adr, err := FromPubKeyBytes(buff)
-	assert.Nil(t, err)
-
-	adr2 := HexToAddress(adr.Hex(testAddrHasher))
-
-	assert.Equal(t, adr, adr2)
-}
-
-func TestIsHexAddress(t *testing.T) {
-	if AdrLen != 20 {
-		t.Skip("Test not valid on a different address length of 20!")
-	}
-
-	tests := []struct {
-		str string
-		exp bool
-	}{
-		{"0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed", true},
-		{"5aaeb6053f3e94c9b9a09f33669435e7ef1beaed", true},
-		{"0X5aaeb6053f3e94c9b9a09f33669435e7ef1beaed", true},
-		{"0XAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", true},
-		{"0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", true},
-		{"0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed1", false},
-		{"0x5aaeb6053f3e94c9b9a09f33669435e7ef1beae", false},
-		{"5aaeb6053f3e94c9b9a09f33669435e7ef1beaed11", false},
-		{"0xxaaeb6053f3e94c9b9a09f33669435e7ef1beaed", false},
-		{"0xxaaeb6053f3e94c9b9a09f33669435e7ef1beaedd", false},
-	}
-
-	for _, test := range tests {
-		result := IsHexAddress(test.str)
-		assert.Equal(t, test.exp, result)
-	}
-}
-
-func TestAddressHexChecksum(t *testing.T) {
-	if AdrLen != 20 {
-		t.Skip("Test not valid on a different address length of 20!")
-	}
-
-	var tests = []struct {
-		Input  string
-		Output string
-	}{
-		{"0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed", "0x5AAEb6053f3e94c9B9A09F33669435e7ef1BEaEd"},
-		{"0xfb6916095ca1df60bb79ce92ce3ea74c37c5d359", "0xFB6916095cA1dF60bB79Ce92cE3EA74c37C5d359"},
-		{"0xdbf03b407c01e7cd3cbea99509d93f8dddc8c6fb", "0xdbf03b407c01e7cd3CBEA99509D93F8DddC8C6FB"},
-		{"0xd1220a0cf47c7b9be7a2e6ba89f429762e7b9adb", "0xd1220A0cf47c7B9BE7a2e6Ba89F429762E7B9Adb"},
-		// Ensure that non-standard length input values are handled correctly
-		{"0xa", "0x000000000000000000000000000000000000000A"},
-		{"0x0a", "0x000000000000000000000000000000000000000A"},
-		{"0x00a", "0x000000000000000000000000000000000000000A"},
-		{"0x000000000000000000000000000000000000000a", "0x000000000000000000000000000000000000000A"},
-	}
-	for i, test := range tests {
-		output := HexToAddress(test.Input).Hex(mock.HasherMock{})
-		if output != test.Output {
-			t.Errorf("test #%d: failed to match when it should (%s != %s)", i, output, test.Output)
+	//wrong size address
+	for i := 1; i < state.AdrLen*2; i++ {
+		if i == state.AdrLen {
+			//for this case, it should work so skipping for now
+			continue
 		}
+
+		_, err = state.NewAddress(make([]byte, i))
+		assert.NotNil(t, err)
+		fmt.Printf("Error: %v\n", err.Error())
 	}
 }
 
-func TestAddressFromPubKey(t *testing.T) {
-	if AdrLen != 20 {
-		t.Skip("Test not valid on a different address length of 20!")
-	}
+func TestAddress_NewAddress_ValidData_ShouldWork(t *testing.T) {
+	t.Parallel()
 
-	//test error
-	_, err := FromPubKeyBytes([]byte{45, 56})
+	address, err := state.NewAddress(make([]byte, state.AdrLen))
+	assert.Nil(t, err)
+	assert.NotNil(t, address)
+	assert.Equal(t, address.Bytes(), make([]byte, state.AdrLen))
+}
 
-	switch e := err.(type) {
-	case *ErrorWrongSize:
-		fmt.Println(e.Error())
-		break
-	default:
-		assert.Fail(t, "Should have errored")
-	}
+func TestAddress_Hex_ShouldWork(t *testing.T) {
+	t.Parallel()
 
-	//test trim
-	buff := []byte("ABCDEFGHIJKLMNOPQRSTUVXYZ")
-
-	adr, err := FromPubKeyBytes(buff)
+	//generating a random byte slice
+	buff := make([]byte, state.AdrLen)
+	_, err := rand.Read(buff)
 	assert.Nil(t, err)
 
-	assert.Equal(t, []byte("FGHIJKLMNOPQRSTUVXYZ"), adr.Bytes())
+	address, err := state.NewAddress(buff)
+
+	fmt.Printf("Address is: %s\n", address.Hex())
+	assert.Equal(t, state.HexPrefix+hex.EncodeToString(buff), address.Hex())
+}
+
+func TestAddress_FromHexAddress_InvalidData_ShouldErr(t *testing.T) {
+	t.Parallel()
+
+	//empty string
+	_, err := state.FromHexAddress("")
+	assert.NotNil(t, err)
+
+	//invalid characters
+	adr := ""
+	for i := 0; i < state.AdrLen*2; i++ {
+		adr = adr + "t"
+	}
+	_, err = state.FromHexAddress(adr)
+	assert.NotNil(t, err)
+
+	//odd characters length
+	_, err = state.FromHexAddress("a0f")
+	assert.NotNil(t, err)
+
+	//more characters than needed
+	adr = ""
+	for i := 0; i < state.AdrLen*2+4; i++ {
+		adr = adr + "a"
+	}
+
+	//less characters than needed
+	_, err = state.FromHexAddress("aa")
+	assert.NotNil(t, err)
+}
+
+func TestAddress_FromHexAddress_ValidData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	//generating a random byte slice
+	buff := make([]byte, state.AdrLen)
+	_, err := rand.Read(buff)
+	assert.Nil(t, err)
+
+	//extract from string with prefix
+	adrPrefix, err := state.FromHexAddress(state.HexPrefix + hex.EncodeToString(buff))
+	assert.Nil(t, err)
+
+	//extract from string without prefix
+	adrNoPrefix, err := state.FromHexAddress(hex.EncodeToString(buff))
+	assert.Nil(t, err)
+
+	//both should be the same
+	assert.Equal(t, adrPrefix.Bytes(), adrNoPrefix.Bytes())
+}
+
+func TestAddress_Hash_ValidData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	//generating a random byte slice
+	buff := make([]byte, state.AdrLen)
+	_, err := rand.Read(buff)
+	assert.Nil(t, err)
+
+	adr, err := state.NewAddress(buff)
+	assert.Nil(t, err)
+
+	h := mock.HasherMock{}
+	hashExpected := h.Compute(string(buff))
+
+	assert.Equal(t, hashExpected, adr.Hash(h))
+}
+
+func TestAddress_FromPubKeyBytes_InvalidData_ShouldErr(t *testing.T) {
+	t.Parallel()
+
+	//nil bytes
+	_, err := state.FromPubKeyBytes(nil, mock.HasherMock{})
+	assert.NotNil(t, err)
+
+	//nil hasher
+	_, err = state.FromPubKeyBytes(make([]byte, state.AdrLen), nil)
+	assert.NotNil(t, err)
+
+	//pub key length is lower than AdrLen
+	for i := 0; i < state.AdrLen; i++ {
+		_, err = state.FromPubKeyBytes(make([]byte, i), mock.HasherMock{})
+		assert.NotNil(t, err)
+	}
+}
+
+func TestAddress_FromPubKeyBytes_ValidDataAdrLen_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	//generating a random byte slice with len > AdrLen
+	buff := make([]byte, state.AdrLen*10)
+	_, err := rand.Read(buff)
+	assert.Nil(t, err)
+
+	//compute expected hash
+	h := mock.HasherMock{}
+	hashExpected := h.Compute(string(buff))
+
+	adr, err := state.FromPubKeyBytes(buff, h)
+
+	if state.AdrLen == len(hashExpected) {
+		assert.Equal(t, hashExpected, adr.Bytes())
+	} else {
+		assert.Equal(t, hashExpected[len(hashExpected)-state.AdrLen:], adr.Bytes())
+	}
+
+}
+
+func TestAddress_FromPubKeyBytes_ValidDataTrim_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	//generating a random byte slice with len > AdrLen
+	buff := make([]byte, state.AdrLen*10)
+	_, err := rand.Read(buff)
+	assert.Nil(t, err)
+
+	//compute expected hash
+	h := hasherMock127{}
+	hashExpected := h.Compute(string(buff))
+
+	adr, err := state.FromPubKeyBytes(buff, h)
+
+	if state.AdrLen == len(hashExpected) {
+		assert.Equal(t, hashExpected, adr.Bytes())
+	} else {
+		assert.Equal(t, hashExpected[len(hashExpected)-state.AdrLen:], adr.Bytes())
+	}
 
 }

@@ -2,6 +2,7 @@ package p2p_test
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -14,7 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,7 +88,8 @@ func TestTryToConnectWithSuccess(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		cp,
-		10)
+		10,
+		p2p.FloodSub)
 	assert.Nil(t, err)
 
 	cn := p2p.NewConnNotifier(node)
@@ -142,7 +143,8 @@ func TestRemoveInboundPeers(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		cp1,
-		10)
+		10,
+		p2p.FloodSub)
 	assert.Nil(t, err)
 
 	node2, err := p2p.NewNetMessenger(
@@ -150,7 +152,8 @@ func TestRemoveInboundPeers(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		cp2,
-		10)
+		10,
+		p2p.FloodSub)
 	assert.Nil(t, err)
 
 	node3, err := p2p.NewNetMessenger(
@@ -158,7 +161,8 @@ func TestRemoveInboundPeers(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		cp3,
-		10)
+		10,
+		p2p.FloodSub)
 	assert.Nil(t, err)
 
 	cn := p2p.NewConnNotifier(node1)
@@ -194,7 +198,8 @@ func TestTryToConnect3PeersWithSuccess(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		cp1,
-		10)
+		10,
+		p2p.FloodSub)
 	assert.Nil(t, err)
 
 	node2, err := p2p.NewNetMessenger(
@@ -202,7 +207,8 @@ func TestTryToConnect3PeersWithSuccess(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		cp2,
-		10)
+		10,
+		p2p.FloodSub)
 	assert.Nil(t, err)
 
 	node3, err := p2p.NewNetMessenger(
@@ -210,7 +216,8 @@ func TestTryToConnect3PeersWithSuccess(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		cp3,
-		10)
+		10,
+		p2p.FloodSub)
 	assert.Nil(t, err)
 
 	cn := p2p.NewConnNotifier(node1)

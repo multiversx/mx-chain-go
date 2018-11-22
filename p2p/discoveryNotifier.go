@@ -32,7 +32,7 @@ func (n *DiscoveryNotifier) HandlePeerFound(pi pstore.PeerInfo) {
 	}
 
 	for i := 0; i < len(pi.Addrs); i++ {
-		n.mes.AddAddr(pi.ID, pi.Addrs[i], pstore.PermanentAddrTTL)
+		n.mes.AddAddress(pi.ID, pi.Addrs[i], pstore.PermanentAddrTTL)
 	}
 
 	n.mes.RouteTable().Update(pi.ID)

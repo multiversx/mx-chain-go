@@ -223,8 +223,8 @@ func (mm *MemoryMessenger) PrintConnected() {
 	}
 }
 
-// AddAddr adds a new address to peer store
-func (mm *MemoryMessenger) AddAddr(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration) {
+// AddAddress adds a new address to peer store
+func (mm *MemoryMessenger) AddAddress(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration) {
 	mutGloballyRegPeers.Lock()
 	val, ok := GloballyRegisteredPeers[p]
 	mutGloballyRegPeers.Unlock()
@@ -268,14 +268,15 @@ func (mm *MemoryMessenger) AddTopic(t *Topic) error {
 	}
 
 	mm.topics[t.Name] = t
-	t.SendMessage = func(mes *Message, flagSign bool) error {
-		mes.AddHop(mm.ID().Pretty())
+	t.SendData = func(data []byte) error {
+		mes := newMemoryMessage("", data, mm.marsh)
+		mes.Peers = make([]string, 0)
+		mes.AddHop(mm.peerID.Pretty())
+		mes.Type = t.Name
 
-		if flagSign {
-			err := mes.Sign(mm.PrivKey)
-			if err != nil {
-				return err
-			}
+		err := mes.Sign(mm.PrivKey)
+		if err != nil {
+			return err
 		}
 
 		return mm.broadcastMessage(mes, []string{})
@@ -312,7 +313,7 @@ func (mm *MemoryMessenger) gotNewMessage(remotePeer peer.ID, buff []byte, fromLo
 		buff = buff[0 : len(buff)-1]
 	}
 
-	m, err := CreateFromByteArray(mm.marsh, buff)
+	m, err := createMessageFromByteArray(mm.marsh, buff)
 
 	if err != nil {
 		return
@@ -348,13 +349,13 @@ func (mm *MemoryMessenger) gotNewMessage(remotePeer peer.ID, buff []byte, fromLo
 		mes.Hops = 0
 
 		//process message
-		t.NewMessageReceived(&mes)
+		t.NewDataReceived(mes.Payload, mm.peerID.Pretty())
 
 		return
 	}
 
 	//process message
-	err = t.NewMessageReceived(&mes)
+	err = t.NewDataReceived(mes.Payload, mes.Peers[0])
 
 	//in case of error we do not broadcast the message
 	//in most cases is a corrupt/bad formatted message that could not have been
@@ -398,7 +399,7 @@ func (mm *MemoryMessenger) sendDirectRAW(peerID string, buff []byte) error {
 }
 
 // sendDirectMessage allows to send a message directly to a peer. It assumes that the connection has been done already
-func (mm *MemoryMessenger) sendDirectMessage(peerID string, m *Message) error {
+func (mm *MemoryMessenger) sendDirectMessage(peerID string, m *memoryMessage) error {
 	if m == nil {
 		return &NodeError{PeerRecv: peerID, PeerSend: mm.ID().Pretty(), Err: fmt.Sprintf("Can not send nil message!\n")}
 	}
@@ -469,7 +470,7 @@ func (mm *MemoryMessenger) broadcastRAW(buff []byte, exceptions []string) error 
 }
 
 // broadcastMessage allows to send a message directly to a all connected peers
-func (mm *MemoryMessenger) broadcastMessage(m *Message, exceptions []string) error {
+func (mm *MemoryMessenger) broadcastMessage(m *memoryMessage, exceptions []string) error {
 	if m == nil {
 		return &NodeError{PeerRecv: "", PeerSend: mm.ID().Pretty(), Err: fmt.Sprintf("Can not broadcast NIL message!\n")}
 	}
