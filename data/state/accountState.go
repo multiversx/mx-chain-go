@@ -27,19 +27,19 @@ func NewAccount() *Account {
 // AccountState is a struct that wraps Account and add functionalities to it
 type AccountState struct {
 	account      *Account
-	Addr         Address
-	Code         []byte
-	DataTrie     trie.PatriciaMerkelTree
+	address      AddressHandler
+	code         []byte
+	dataTrie     trie.PatriciaMerkelTree
 	hasher       hashing.Hasher
 	originalData map[string][]byte
 	dirtyData    map[string][]byte
 }
 
 // NewAccountState creates new wrapper for an Account (that has just been retrieved)
-func NewAccountState(address Address, account *Account, hasher hashing.Hasher) *AccountState {
+func NewAccountState(address AddressHandler, account *Account, hasher hashing.Hasher) *AccountState {
 	acState := AccountState{
 		account:      account,
-		Addr:         address,
+		address:      address,
 		originalData: make(map[string][]byte),
 		dirtyData:    make(map[string][]byte),
 	}
@@ -47,6 +47,11 @@ func NewAccountState(address Address, account *Account, hasher hashing.Hasher) *
 	acState.hasher = hasher
 
 	return &acState
+}
+
+// Address returns the current account state's handler
+func (as *AccountState) Address() AddressHandler {
+	return as.address
 }
 
 // Nonce will return a uint64 that holds the nonce of the account
@@ -60,10 +65,15 @@ func (as *AccountState) SetNonce(accounts AccountsHandler, nonce uint64) error {
 		return ErrNilAccountsHandler
 	}
 
-	accounts.Journal().AddEntry(NewJournalEntryNonce(&as.Addr, as, as.account.Nonce))
+	accounts.AddJurnalEntry(NewJournalEntryNonce(as.address, as, as.account.Nonce))
 	as.account.Nonce = nonce
-	accounts.SaveAccountState(as)
-	return nil
+	return accounts.SaveAccountState(as)
+}
+
+// SetNonceNoJournal sets the nonce without making a Journal entry
+// Should be used only in reverts
+func (as *AccountState) SetNonceNoJournal(nonce uint64) {
+	as.account.Nonce = nonce
 }
 
 // Balance will return a copy of big.Int that holds the balance
@@ -82,10 +92,15 @@ func (as *AccountState) SetBalance(accounts AccountsHandler, value *big.Int) err
 		return ErrNilValue
 	}
 
-	accounts.Journal().AddEntry(NewJournalEntryBalance(&as.Addr, as, as.account.Balance))
+	accounts.AddJurnalEntry(NewJournalEntryBalance(as.address, as, as.account.Balance))
 	as.account.Balance = value
-	accounts.SaveAccountState(as)
-	return nil
+	return accounts.SaveAccountState(as)
+}
+
+// SetBalanceNoJournal sets the balance without making a Journal entry
+// Should be used only in reverts
+func (as *AccountState) SetBalanceNoJournal(value *big.Int) {
+	as.account.Balance = value
 }
 
 // CodeHash returns the account's code hash if it is a SC account. Nil for transfer account
@@ -99,9 +114,25 @@ func (as *AccountState) SetCodeHash(accounts AccountsHandler, codeHash []byte) e
 		return ErrNilAccountsHandler
 	}
 
-	accounts.Journal().AddEntry(NewJournalEntryCodeHash(&as.Addr, as, as.account.CodeHash))
+	accounts.AddJurnalEntry(NewJournalEntryCodeHash(as.address, as, as.account.CodeHash))
 	as.account.CodeHash = codeHash
 	return nil
+}
+
+// SetCodeHashNoJournal sets the code hash without making a Journal entry
+// Should be used only in reverts
+func (as *AccountState) SetCodeHashNoJournal(codeHash []byte) {
+	as.account.CodeHash = codeHash
+}
+
+// Code gets the actual code that needs to be run in the VM
+func (as *AccountState) Code() []byte {
+	return as.code
+}
+
+// SetCode sets the actual code that needs to be run in the VM
+func (as *AccountState) SetCode(code []byte) {
+	as.code = code
 }
 
 // Root returns the account's (data) root. Nil for library SC
@@ -115,16 +146,32 @@ func (as *AccountState) SetRoot(accounts AccountsHandler, root []byte) error {
 		return ErrNilAccountsHandler
 	}
 
-	accounts.Journal().AddEntry(NewJournalEntryRoot(&as.Addr, as, as.account.Root))
+	accounts.AddJurnalEntry(NewJournalEntryRoot(as.address, as, as.account.Root))
 	as.account.Root = root
 	return nil
+}
+
+// SetRootNoJournal sets the root data hash without making a Journal entry
+// Should be used only in reverts
+func (as *AccountState) SetRootNoJournal(root []byte) {
+	as.account.Root = root
+}
+
+// DataTrie returns the trie that holds the current account's data
+func (as *AccountState) DataTrie() trie.PatriciaMerkelTree {
+	return as.dataTrie
+}
+
+// SetDataTrie sets the trie that holds the current account's data
+func (as *AccountState) SetDataTrie(t trie.PatriciaMerkelTree) {
+	as.dataTrie = t
 }
 
 // RetrieveValue fetches the value from a particular key searching the account data store
 // The search starts with dirty map, continues with original map and ends with the trie
 // Data must have been retrieved from its trie
 func (as *AccountState) RetrieveValue(key []byte) ([]byte, error) {
-	if as.DataTrie == nil {
+	if as.dataTrie == nil {
 		return nil, ErrNilDataTrie
 	}
 
@@ -143,7 +190,7 @@ func (as *AccountState) RetrieveValue(key []byte) ([]byte, error) {
 	}
 
 	//ok, not in cache, retrieve from trie
-	data, err := as.DataTrie.Get(key)
+	data, err := as.dataTrie.Get(key)
 	if err != nil {
 		return nil, err
 	}
@@ -179,10 +226,4 @@ func (as *AccountState) ClearDirty() {
 // DirtyData returns the map of (key, value) pairs that contain the data needed to be saved in the data trie
 func (as *AccountState) DirtyData() map[string][]byte {
 	return as.dirtyData
-}
-
-// Account retrieves the account pointer for accessing raw account data and bypassing JournalEntries creation
-// This pointer will be used for serializing/deserializing account data
-func (as *AccountState) Account() *Account {
-	return as.account
 }

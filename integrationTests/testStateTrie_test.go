@@ -36,11 +36,11 @@ func adbCreateAddress(t testing.TB, buff []byte) *state.Address {
 	return adr
 }
 
-func adbCreateAccountState(_ *testing.T, address state.Address) *state.AccountState {
+func adbCreateAccountState(_ *testing.T, address *state.Address) *state.AccountState {
 	return state.NewAccountState(address, state.NewAccount(), mock.HasherMock{})
 }
 
-func adbEmulateBalanceTxExecution(acntSrc, acntDest *state.AccountState,
+func adbEmulateBalanceTxExecution(acntSrc, acntDest state.AccountStateHandler,
 	handler state.AccountsHandler, value *big.Int) error {
 	srcVal := acntSrc.Balance()
 	destVal := acntDest.Balance()
@@ -70,15 +70,15 @@ func adbEmulateBalanceTxExecution(acntSrc, acntDest *state.AccountState,
 	return nil
 }
 
-func adbEmulateBalanceTxSafeExecution(acntSrc, acntDest *state.AccountState,
+func adbEmulateBalanceTxSafeExecution(acntSrc, acntDest state.AccountStateHandler,
 	handler state.AccountsHandler, value *big.Int) {
-	snapshot := handler.Journal().Len()
+	snapshot := handler.JournalLen()
 
 	err := adbEmulateBalanceTxExecution(acntSrc, acntDest, handler, value)
 
 	if err != nil {
 		fmt.Printf("!!!! Error executing tx (value: %v), reverting...\n", value)
-		err = handler.Journal().RevertFromSnapshot(snapshot)
+		err = handler.RevertFromSnapshot(snapshot)
 
 		if err != nil {
 			panic(err)
@@ -94,14 +94,14 @@ func TestAccountsDB_RetrieveData_NilRoot_ShouldRetNil(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	as := adbCreateAccountState(t, adr)
 
 	adb := adbCreateAccountsDB()
 
 	//since root is nil, result should be nil and data trie should be nil
 	err := adb.RetrieveDataTrie(as)
 	assert.Nil(t, err)
-	assert.Nil(t, as.DataTrie)
+	assert.Nil(t, as.DataTrie())
 }
 
 func TestAccountsDB_RetrieveData_NilTrie_ShouldErr(t *testing.T) {
@@ -112,8 +112,8 @@ func TestAccountsDB_RetrieveData_NilTrie_ShouldErr(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().Root = []byte("12345")
+	as := adbCreateAccountState(t, adr)
+	as.SetRootNoJournal([]byte("12345"))
 
 	adb := adbCreateAccountsDB()
 
@@ -131,8 +131,8 @@ func TestAccountsDB_RetrieveData_BadLength_ShouldErr(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().Root = []byte("12345")
+	as := adbCreateAccountState(t, adr)
+	as.SetRootNoJournal([]byte("12345"))
 
 	adb := adbCreateAccountsDB()
 
@@ -149,8 +149,8 @@ func TestAccountsDB_RetrieveData_NotFoundRoot_ShouldReturnErr(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().Root = hasher.Compute("12345")
+	as := adbCreateAccountState(t, adr)
+	as.SetRootNoJournal(hasher.Compute("12345"))
 
 	adb := adbCreateAccountsDB()
 
@@ -170,23 +170,26 @@ func TestAccountsDB_RetrieveData_WithSomeValues_ShouldWork(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	as := adbCreateAccountState(t, adr)
 
 	adb := adbCreateAccountsDB()
 	//create a data trie with some values
 	dataTrie, err := adb.MainTrie.Recreate(make([]byte, encoding.HashLength), adb.MainTrie.DBW())
 	assert.Nil(t, err)
-	dataTrie.Update([]byte{65, 66, 67}, []byte{32, 33, 34})
-	dataTrie.Update([]byte{68, 69, 70}, []byte{35, 36, 37})
-	dataTrie.Commit(nil)
+	err = dataTrie.Update([]byte{65, 66, 67}, []byte{32, 33, 34})
+	assert.Nil(t, err)
+	err = dataTrie.Update([]byte{68, 69, 70}, []byte{35, 36, 37})
+	assert.Nil(t, err)
+	_, err = dataTrie.Commit(nil)
+	assert.Nil(t, err)
 
 	//link the new created trie to account's data root
-	as.Account().Root = dataTrie.Root()
+	as.SetRootNoJournal(dataTrie.Root())
 
 	//should not return error
 	err = adb.RetrieveDataTrie(as)
 	assert.Nil(t, err)
-	assert.NotNil(t, as.DataTrie)
+	assert.NotNil(t, as.DataTrie())
 
 	//verify data
 	data, err := as.RetrieveValue([]byte{65, 66, 67})
@@ -206,14 +209,14 @@ func TestAccountsDB_PutCode_NilCodeHash_ShouldRetNil(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	as := adbCreateAccountState(t, adr)
 
 	adb := adbCreateAccountsDB()
 
 	err := adb.PutCode(as, nil)
 	assert.Nil(t, err)
 	assert.Nil(t, as.CodeHash())
-	assert.Nil(t, as.Code)
+	assert.Nil(t, as.Code())
 }
 
 func TestAccountsDB_PutCode_EmptyCodeHash_ShouldRetNil(t *testing.T) {
@@ -224,14 +227,14 @@ func TestAccountsDB_PutCode_EmptyCodeHash_ShouldRetNil(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	as := adbCreateAccountState(t, adr)
 
 	adb := adbCreateAccountsDB()
 
 	err := adb.PutCode(as, make([]byte, 0))
 	assert.Nil(t, err)
 	assert.Nil(t, as.CodeHash())
-	assert.Nil(t, as.Code)
+	assert.Nil(t, as.Code())
 }
 
 func TestAccountsDB_PutCode_NilTrie_ShouldErr(t *testing.T) {
@@ -242,7 +245,7 @@ func TestAccountsDB_PutCode_NilTrie_ShouldErr(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	as := adbCreateAccountState(t, adr)
 
 	adb := adbCreateAccountsDB()
 
@@ -260,7 +263,7 @@ func TestAccountsDB_PutCode_WithSomeValues_ShouldWork(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	as := adbCreateAccountState(t, adr)
 
 	adb := adbCreateAccountsDB()
 
@@ -268,15 +271,15 @@ func TestAccountsDB_PutCode_WithSomeValues_ShouldWork(t *testing.T) {
 
 	err := adb.PutCode(as, []byte("Smart contract code"))
 	assert.Nil(t, err)
-	assert.NotNil(t, as.CodeHash)
-	assert.Equal(t, []byte("Smart contract code"), as.Code)
+	assert.NotNil(t, as.CodeHash())
+	assert.Equal(t, []byte("Smart contract code"), as.Code())
 
 	fmt.Printf("SC code is at address: %v\n", as.CodeHash())
 
 	//retrieve directly from the trie
 	data, err := adb.MainTrie.Get(as.CodeHash())
 	assert.Nil(t, err)
-	assert.Equal(t, data, as.Code)
+	assert.Equal(t, data, as.Code())
 
 	fmt.Printf("SC code is: %v\n", string(data))
 
@@ -292,7 +295,7 @@ func TestAccountsDB_SaveData_NilTrie_ShouldErr(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	as := adbCreateAccountState(t, adr)
 
 	adb := adbCreateAccountsDB()
 	as.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
@@ -311,16 +314,16 @@ func TestAccountsDB_SaveData_NoDirty_ShouldWork(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	as := adbCreateAccountState(t, adr)
 
 	adb := adbCreateAccountsDB()
 
 	err := adb.SaveData(as)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, adb.Journal().Len())
+	assert.Equal(t, 0, adb.JournalLen())
 }
 
-func TestAccountsDB_HasAccount_NilTrie_ShouldErr(t *testing.T) {
+func TestAccountsDB_HasAccountState_NilTrie_ShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hasher := mock.HasherMock{}
@@ -332,12 +335,12 @@ func TestAccountsDB_HasAccount_NilTrie_ShouldErr(t *testing.T) {
 	adb := adbCreateAccountsDB()
 	adb.MainTrie = nil
 
-	val, err := adb.HasAccount(*adr)
+	val, err := adb.HasAccountState(adr)
 	assert.NotNil(t, err)
 	assert.False(t, val)
 }
 
-func TestAccountsDB_HasAccount_NotFound_ShouldRetFalse(t *testing.T) {
+func TestAccountsDB_HasAccountState_NotFound_ShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	hasher := mock.HasherMock{}
@@ -349,12 +352,12 @@ func TestAccountsDB_HasAccount_NotFound_ShouldRetFalse(t *testing.T) {
 	adb := adbCreateAccountsDB()
 
 	//should return false
-	val, err := adb.HasAccount(*adr)
+	val, err := adb.HasAccountState(adr)
 	assert.Nil(t, err)
 	assert.False(t, val)
 }
 
-func TestAccountsDB_HasAccount_Found_ShouldRetTrue(t *testing.T) {
+func TestAccountsDB_HasAccountState_Found_ShouldRetTrue(t *testing.T) {
 	t.Parallel()
 
 	hasher := mock.HasherMock{}
@@ -364,10 +367,11 @@ func TestAccountsDB_HasAccount_Found_ShouldRetTrue(t *testing.T) {
 	adr := adbCreateAddress(t, testHash)
 
 	adb := adbCreateAccountsDB()
-	adb.MainTrie.Update(hasher.Compute(string(adr.Bytes())), []byte{65})
+	err := adb.MainTrie.Update(hasher.Compute(string(adr.Bytes())), []byte{65})
+	assert.Nil(t, err)
 
 	//should return true
-	val, err := adb.HasAccount(*adr)
+	val, err := adb.HasAccountState(adr)
 	assert.Nil(t, err)
 	assert.True(t, val)
 }
@@ -380,7 +384,7 @@ func TestAccountsDB_SaveAccountState_NilTrie_ShouldErr(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	as := adbCreateAccountState(t, adr)
 
 	adb := adbCreateAccountsDB()
 	adb.MainTrie = nil
@@ -407,7 +411,7 @@ func TestAccountsDB_SaveAccountState_WithSomeValues_ShouldWork(t *testing.T) {
 	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	as := adbCreateAccountState(t, adr)
 
 	adb := adbCreateAccountsDB()
 
@@ -416,7 +420,7 @@ func TestAccountsDB_SaveAccountState_WithSomeValues_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestAccountsDB_GetOrCreateAccount_NilTrie_ShouldErr(t *testing.T) {
+func TestAccountsDB_GetOrCreateAccountState_NilTrie_ShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hasher := mock.HasherMock{}
@@ -428,13 +432,13 @@ func TestAccountsDB_GetOrCreateAccount_NilTrie_ShouldErr(t *testing.T) {
 	adb := adbCreateAccountsDB()
 	adb.MainTrie = nil
 
-	acnt, err := adb.GetOrCreateAccount(*adr)
+	acnt, err := adb.GetOrCreateAccountState(adr)
 	assert.NotNil(t, err)
 	assert.Nil(t, acnt)
 
 }
 
-func TestAccountsDB_GetOrCreateAccount_ReturnExistingAccnt_ShouldWork(t *testing.T) {
+func TestAccountsDB_GetOrCreateAccountState_ReturnExistingAccnt_ShouldWork(t *testing.T) {
 	//test when the account exists
 	t.Parallel()
 
@@ -445,18 +449,20 @@ func TestAccountsDB_GetOrCreateAccount_ReturnExistingAccnt_ShouldWork(t *testing
 	adb := adbCreateAccountsDB()
 
 	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.SetBalance(adb, big.NewInt(40))
+	as := adbCreateAccountState(t, adr)
+	err := as.SetBalance(adb, big.NewInt(40))
+	assert.Nil(t, err)
 
-	adb.SaveAccountState(as)
+	err = adb.SaveAccountState(as)
+	assert.Nil(t, err)
 
-	acnt, err := adb.GetOrCreateAccount(*adr)
+	acnt, err := adb.GetOrCreateAccountState(adr)
 	assert.Nil(t, err)
 	assert.NotNil(t, acnt)
 	assert.Equal(t, acnt.Balance(), *big.NewInt(40))
 }
 
-func TestAccountsDB_GetOrCreateAccount_ReturnNotFoundAccnt_ShouldWork(t *testing.T) {
+func TestAccountsDB_GetOrCreateAccountState_ReturnNotFoundAccnt_ShouldWork(t *testing.T) {
 	//test when the account does not exists
 	t.Parallel()
 
@@ -469,7 +475,7 @@ func TestAccountsDB_GetOrCreateAccount_ReturnNotFoundAccnt_ShouldWork(t *testing
 	adr := adbCreateAddress(t, testHash)
 
 	//same address of the unsaved account
-	acnt, err := adb.GetOrCreateAccount(*adr)
+	acnt, err := adb.GetOrCreateAccountState(adr)
 	assert.Nil(t, err)
 	assert.NotNil(t, acnt)
 	assert.Equal(t, acnt.Balance(), *big.NewInt(0))
@@ -491,15 +497,17 @@ func TestAccountsDB_Commit_2okAccounts_ShouldWork(t *testing.T) {
 	adb := adbCreateAccountsDB()
 
 	//first account has the balance of 40
-	state1, err := adb.GetOrCreateAccount(*adr1)
+	state1, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
-	state1.SetBalance(adb, big.NewInt(40))
+	err = state1.SetBalance(adb, big.NewInt(40))
+	assert.Nil(t, err)
 
 	//second account has the balance of 50 and some data
-	state2, err := adb.GetOrCreateAccount(*adr2)
+	state2, err := adb.GetOrCreateAccountState(adr2)
 	assert.Nil(t, err)
 
-	state2.SetBalance(adb, big.NewInt(50))
+	err = state2.SetBalance(adb, big.NewInt(50))
+	assert.Nil(t, err)
 	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
 	err = adb.SaveData(state2)
 
@@ -518,12 +526,12 @@ func TestAccountsDB_Commit_2okAccounts_ShouldWork(t *testing.T) {
 	newAdb := state.NewAccountsDB(newTrie, mock.HasherMock{}, &marsh)
 
 	//checking state1
-	newState1, err := newAdb.GetOrCreateAccount(*adr1)
+	newState1, err := newAdb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
 	assert.Equal(t, newState1.Balance(), *big.NewInt(40))
 
 	//checking state2
-	newState2, err := newAdb.GetOrCreateAccount(*adr2)
+	newState2, err := newAdb.GetOrCreateAccountState(adr2)
 	assert.Nil(t, err)
 	assert.Equal(t, newState2.Balance(), *big.NewInt(50))
 	assert.NotNil(t, newState2.Root)
@@ -547,37 +555,42 @@ func TestAccountsDB_Commit_AccountData_ShouldWork(t *testing.T) {
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
-	state1, err := adb.GetOrCreateAccount(*adr1)
+	state1, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
 	hrCreated := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - created account: %v\n", hrCreated)
 
-	state1.SetBalance(adb, big.NewInt(40))
+	err = state1.SetBalance(adb, big.NewInt(40))
+	assert.Nil(t, err)
 	hrWithBalance := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance)
 
-	adb.Commit()
+	_, err = adb.Commit()
+	assert.Nil(t, err)
 	hrCommit := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - commited: %v\n", hrCommit)
 
 	//commit hash == account with balance
 	assert.Equal(t, hrCommit, hrWithBalance)
 
-	state1.SetBalance(adb, big.NewInt(0))
+	err = state1.SetBalance(adb, big.NewInt(0))
+	assert.Nil(t, err)
 
 	//root hash == hrCreated
 	assert.Equal(t, hrCreated, base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
 	fmt.Printf("State root - account with balance 0: %v\n", base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
 
-	adb.RemoveAccount(*adr1)
+	err = adb.RemoveAccount(adr1)
+	assert.Nil(t, err)
+
 	//root hash == hrEmpty
 	assert.Equal(t, hrEmpty, base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
 	fmt.Printf("State root - empty: %v\n", base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
 }
 
-func adbrPrintAccount(as *state.AccountState, tag string) {
+func adbrPrintAccount(as state.AccountStateHandler, tag string) {
 	bal := as.Balance()
-	fmt.Printf("%s address: %s\n", tag, base64.StdEncoding.EncodeToString(as.Addr.Bytes()))
+	fmt.Printf("%s address: %s\n", tag, base64.StdEncoding.EncodeToString(as.Address().Bytes()))
 	fmt.Printf("     Nonce: %d\n", as.Nonce())
 	fmt.Printf("     Balance: %d\n", bal.Uint64())
 	fmt.Printf("     Code hash: %v\n", base64.StdEncoding.EncodeToString(as.CodeHash()))
@@ -600,16 +613,16 @@ func TestAccountsDB_RevertNonceStepByStep_AccountData_ShouldWork(t *testing.T) {
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	//Step 2. create 2 new accounts
-	state1, err := adb.GetOrCreateAccount(*adr1)
+	state1, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
-	snapshotCreated1 := adb.Journal().Len()
+	snapshotCreated1 := adb.JournalLen()
 	hrCreated1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
-	state2, err := adb.GetOrCreateAccount(*adr2)
+	state2, err := adb.GetOrCreateAccountState(adr2)
 	assert.Nil(t, err)
-	snapshotCreated2 := adb.Journal().Len()
+	snapshotCreated2 := adb.JournalLen()
 	hrCreated2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
@@ -619,14 +632,16 @@ func TestAccountsDB_RevertNonceStepByStep_AccountData_ShouldWork(t *testing.T) {
 	assert.NotEqual(t, hrCreated1, hrCreated2)
 
 	//Save the preset snapshot id
-	snapshotPreSet := adb.Journal().Len()
+	snapshotPreSet := adb.JournalLen()
 
 	//Step 3. Set Nonces and save data
-	state1.SetNonce(adb, 40)
+	err = state1.SetNonce(adb, 40)
+	assert.Nil(t, err)
 	hrWithNonce1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - account with nonce 40: %v\n", hrWithNonce1)
 
-	state2.SetNonce(adb, 50)
+	err = state2.SetNonce(adb, 50)
+	assert.Nil(t, err)
 	hrWithNonce2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - account with nonce 50: %v\n", hrWithNonce2)
 
@@ -634,7 +649,8 @@ func TestAccountsDB_RevertNonceStepByStep_AccountData_ShouldWork(t *testing.T) {
 	assert.NotEqual(t, hrCreated2, adb.MainTrie.Root())
 
 	//Step 4. Revert account nonce and test
-	adb.Journal().RevertFromSnapshot(snapshotPreSet)
+	err = adb.RevertFromSnapshot(snapshotPreSet)
+	assert.Nil(t, err)
 
 	//Test 4.1. current root hash shall match created root hash hrCreated
 	hrFinal := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -658,16 +674,16 @@ func TestAccountsDB_RevertBalanceStepByStep_AccountData_ShouldWork(t *testing.T)
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	//Step 2. create 2 new accounts
-	state1, err := adb.GetOrCreateAccount(*adr1)
+	state1, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
-	snapshotCreated1 := adb.Journal().Len()
+	snapshotCreated1 := adb.JournalLen()
 	hrCreated1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
-	state2, err := adb.GetOrCreateAccount(*adr2)
+	state2, err := adb.GetOrCreateAccountState(adr2)
 	assert.Nil(t, err)
-	snapshotCreated2 := adb.Journal().Len()
+	snapshotCreated2 := adb.JournalLen()
 	hrCreated2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
@@ -677,14 +693,16 @@ func TestAccountsDB_RevertBalanceStepByStep_AccountData_ShouldWork(t *testing.T)
 	assert.NotEqual(t, hrCreated1, hrCreated2)
 
 	//Save the preset snapshot id
-	snapshotPreSet := adb.Journal().Len()
+	snapshotPreSet := adb.JournalLen()
 
 	//Step 3. Set balances and save data
-	state1.SetBalance(adb, big.NewInt(40))
+	err = state1.SetBalance(adb, big.NewInt(40))
+	assert.Nil(t, err)
 	hrWithBalance1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance1)
 
-	state2.SetBalance(adb, big.NewInt(50))
+	err = state2.SetBalance(adb, big.NewInt(50))
+	assert.Nil(t, err)
 	hrWithBalance2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 	fmt.Printf("State root - account with balance 50: %v\n", hrWithBalance2)
 
@@ -692,7 +710,8 @@ func TestAccountsDB_RevertBalanceStepByStep_AccountData_ShouldWork(t *testing.T)
 	assert.NotEqual(t, hrCreated2, adb.MainTrie.Root())
 
 	//Step 4. Revert account balances and test
-	adb.Journal().RevertFromSnapshot(snapshotPreSet)
+	err = adb.RevertFromSnapshot(snapshotPreSet)
+	assert.Nil(t, err)
 
 	//Test 4.1. current root hash shall match created root hash hrCreated
 	hrFinal := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -719,18 +738,20 @@ func TestAccountsDB_RevertCodeStepByStep_AccountData_ShouldWork(t *testing.T) {
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	//Step 2. create 2 new accounts
-	state1, err := adb.GetOrCreateAccount(*adr1)
-	adb.PutCode(state1, []byte{65, 66, 67})
+	state1, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
-	snapshotCreated1 := adb.Journal().Len()
+	err = adb.PutCode(state1, []byte{65, 66, 67})
+	assert.Nil(t, err)
+	snapshotCreated1 := adb.JournalLen()
 	hrCreated1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
-	state2, err := adb.GetOrCreateAccount(*adr2)
-	adb.PutCode(state2, []byte{65, 66, 67})
+	state2, err := adb.GetOrCreateAccountState(adr2)
 	assert.Nil(t, err)
-	snapshotCreated2 := adb.Journal().Len()
+	err = adb.PutCode(state2, []byte{65, 66, 67})
+	assert.Nil(t, err)
+	snapshotCreated2 := adb.JournalLen()
 	hrCreated2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
@@ -740,7 +761,8 @@ func TestAccountsDB_RevertCodeStepByStep_AccountData_ShouldWork(t *testing.T) {
 	assert.NotEqual(t, hrCreated1, hrCreated2)
 
 	//Step 3. Revert second account
-	adb.Journal().RevertFromSnapshot(snapshotCreated1)
+	err = adb.RevertFromSnapshot(snapshotCreated1)
+	assert.Nil(t, err)
 
 	//Test 3.1. current root hash shall match created root hash hrCreated1
 	hrCrt := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -748,7 +770,8 @@ func TestAccountsDB_RevertCodeStepByStep_AccountData_ShouldWork(t *testing.T) {
 	fmt.Printf("State root - reverted last account: %v\n", hrCrt)
 
 	//Step 4. Revert first account
-	adb.Journal().RevertFromSnapshot(0)
+	err = adb.RevertFromSnapshot(0)
+	assert.Nil(t, err)
 
 	//Test 4.1. current root hash shall match empty root hash
 	hrCrt = base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
@@ -775,24 +798,26 @@ func TestAccountsDB_RevertDataStepByStep_AccountData_ShouldWork(t *testing.T) {
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	//Step 2. create 2 new accounts
-	state1, err := adb.GetOrCreateAccount(*adr1)
-	state1.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	adb.SaveData(state1)
+	state1, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
-	snapshotCreated1 := adb.Journal().Len()
+	state1.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	err = adb.SaveData(state1)
+	assert.Nil(t, err)
+	snapshotCreated1 := adb.JournalLen()
 	hrCreated1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
-	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie.Root())
+	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
 
-	state2, err := adb.GetOrCreateAccount(*adr2)
-	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	adb.SaveData(state2)
+	state2, err := adb.GetOrCreateAccountState(adr2)
 	assert.Nil(t, err)
-	snapshotCreated2 := adb.Journal().Len()
+	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	err = adb.SaveData(state2)
+	assert.Nil(t, err)
+	snapshotCreated2 := adb.JournalLen()
 	hrCreated2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
-	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie.Root())
+	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
 	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
@@ -805,13 +830,15 @@ func TestAccountsDB_RevertDataStepByStep_AccountData_ShouldWork(t *testing.T) {
 	assert.Equal(t, hrRoot1, hrRoot2)
 
 	//Step 3. Revert 2-nd account ant test roots
-	adb.Journal().RevertFromSnapshot(snapshotCreated1)
+	err = adb.RevertFromSnapshot(snapshotCreated1)
+	assert.Nil(t, err)
 	hrCreated2Rev := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 
 	assert.Equal(t, hrCreated1, hrCreated2Rev)
 
 	//Step 4. Revert 1-st account ant test roots
-	adb.Journal().RevertFromSnapshot(0)
+	err = adb.RevertFromSnapshot(0)
+	assert.Nil(t, err)
 	hrCreated1Rev := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
 
 	assert.Equal(t, hrEmpty, hrCreated1Rev)
@@ -836,24 +863,26 @@ func TestAccountsDB_RevertDataStepByStepWithCommits_AccountData_ShouldWork(t *te
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	//Step 2. create 2 new accounts
-	state1, err := adb.GetOrCreateAccount(*adr1)
-	state1.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	adb.SaveData(state1)
+	state1, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
-	snapshotCreated1 := adb.Journal().Len()
+	state1.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	err = adb.SaveData(state1)
+	assert.Nil(t, err)
+	snapshotCreated1 := adb.JournalLen()
 	hrCreated1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
-	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie.Root())
+	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
 
-	state2, err := adb.GetOrCreateAccount(*adr2)
-	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	adb.SaveData(state2)
+	state2, err := adb.GetOrCreateAccountState(adr2)
 	assert.Nil(t, err)
-	snapshotCreated2 := adb.Journal().Len()
+	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	err = adb.SaveData(state2)
+	assert.Nil(t, err)
+	snapshotCreated2 := adb.JournalLen()
 	hrCreated2 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
-	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie.Root())
+	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
 	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
@@ -871,11 +900,12 @@ func TestAccountsDB_RevertDataStepByStepWithCommits_AccountData_ShouldWork(t *te
 	fmt.Printf("State root - committed: %v\n", hrCommit)
 
 	//Step 4. 2-nd account changes its data
-	snapshotMod := adb.Journal().Len()
+	snapshotMod := adb.JournalLen()
 	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 35})
-	adb.SaveData(state2)
+	err = adb.SaveData(state2)
+	assert.Nil(t, err)
 	hrCreated2p1 := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
-	hrRoot2p1 := base64.StdEncoding.EncodeToString(state2.DataTrie.Root())
+	hrRoot2p1 := base64.StdEncoding.EncodeToString(state2.DataTrie().Root())
 
 	fmt.Printf("State root - modified 2-nd account: %v\n", hrCreated2p1)
 	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2p1)
@@ -888,9 +918,10 @@ func TestAccountsDB_RevertDataStepByStepWithCommits_AccountData_ShouldWork(t *te
 	assert.NotEqual(t, hrRoot2, hrRoot2p1)
 
 	//Step 5. Revert 2-nd account modification
-	adb.Journal().RevertFromSnapshot(snapshotMod)
+	err = adb.RevertFromSnapshot(snapshotMod)
+	assert.Nil(t, err)
 	hrCreated2Rev := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
-	hrRoot2Rev := base64.StdEncoding.EncodeToString(state2.DataTrie.Root())
+	hrRoot2Rev := base64.StdEncoding.EncodeToString(state2.DataTrie().Root())
 	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
 	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2Rev)
 	assert.Equal(t, hrCommit, hrCreated2Rev)
@@ -910,9 +941,9 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
 
-	acntSrc, err := adb.GetOrCreateAccount(*adrSrc)
+	acntSrc, err := adb.GetOrCreateAccountState(adrSrc)
 	assert.Nil(t, err)
-	acntDest, err := adb.GetOrCreateAccount(*adrDest)
+	acntDest, err := adb.GetOrCreateAccountState(adrDest)
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
@@ -961,9 +992,9 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
 
-	acntSrc, err := adb.GetOrCreateAccount(*adrSrc)
+	acntSrc, err := adb.GetOrCreateAccountState(adrSrc)
 	assert.Nil(t, err)
-	acntDest, err := adb.GetOrCreateAccount(*adrDest)
+	acntDest, err := adb.GetOrCreateAccountState(adrDest)
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
@@ -996,9 +1027,9 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
 
-	acntSrc, err := adb.GetOrCreateAccount(*adrSrc)
+	acntSrc, err := adb.GetOrCreateAccountState(adrSrc)
 	assert.Nil(t, err)
-	acntDest, err := adb.GetOrCreateAccount(*adrDest)
+	acntDest, err := adb.GetOrCreateAccountState(adrDest)
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
@@ -1036,9 +1067,9 @@ func BenchmarkTxExecution(b *testing.B) {
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
 
-	acntSrc, err := adb.GetOrCreateAccount(*adrSrc)
+	acntSrc, err := adb.GetOrCreateAccountState(adrSrc)
 	assert.Nil(b, err)
-	acntDest, err := adb.GetOrCreateAccount(*adrDest)
+	acntDest, err := adb.GetOrCreateAccountState(adrDest)
 	assert.Nil(b, err)
 
 	//Set a high balance to src's account

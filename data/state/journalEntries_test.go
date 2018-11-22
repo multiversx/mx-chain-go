@@ -12,7 +12,7 @@ import (
 
 func jeCreateRandomAddress() *state.Address {
 	buff := make([]byte, state.AdrLen)
-	rand.Read(buff)
+	_, _ = rand.Read(buff)
 
 	addr, err := state.NewAddress(buff)
 	if err != nil {
@@ -36,12 +36,12 @@ func TestJournalEntryCreation_Revert_OkVals_ShouldWork(t *testing.T) {
 	adb := jeCreateAccountsDB()
 	adr1 := jeCreateRandomAddress()
 	//attach a journal
-	j := state.NewJournal(adb)
+	j := state.NewJournal()
 
 	hashEmptyRoot := adb.MainTrie.Root()
 
 	//create account for address
-	_, err := adb.GetOrCreateAccount(*adr1)
+	_, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
 	j.AddEntry(state.NewJournalEntryCreation(adr1))
 
@@ -52,7 +52,7 @@ func TestJournalEntryCreation_Revert_OkVals_ShouldWork(t *testing.T) {
 	assert.NotEqual(t, hashEmptyAcnt, hashEmptyRoot)
 
 	//revert and test that current trie hash is equal to emptyRootHash
-	err = j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, adb)
 	assert.Nil(t, err)
 	assert.Equal(t, hashEmptyRoot, adb.MainTrie.Root())
 
@@ -62,18 +62,18 @@ func TestJournalEntryCreation_Revert_InvalidVals_ShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jec := state.NewJournalEntryCreation(nil)
-	j := state.NewJournal(nil)
+	j := state.NewJournal()
 	j.AddEntry(jec)
 
 	//error as nil accounts are not permited
-	err := j.RevertFromSnapshot(0)
+	err := j.RevertFromSnapshot(0, nil)
 	assert.NotNil(t, err)
 
-	j = state.NewJournal(jeCreateAccountsDB())
+	j = state.NewJournal()
 	j.AddEntry(jec)
 
 	//error as nil addresses are not permited
-	err = j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, jeCreateAccountsDB())
 	assert.NotNil(t, err)
 }
 
@@ -85,10 +85,10 @@ func TestJournalEntryNonce_Revert_OkVals_ShouldWork(t *testing.T) {
 	adr1 := jeCreateRandomAddress()
 
 	//create account for address
-	acnt, err := adb.GetOrCreateAccount(*adr1)
+	acnt, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
 	//attach a journal
-	j := state.NewJournal(adb)
+	j := state.NewJournal()
 
 	//get the hash root for account with balance 0
 	hashEmptyAcnt := adb.MainTrie.Root()
@@ -96,14 +96,16 @@ func TestJournalEntryNonce_Revert_OkVals_ShouldWork(t *testing.T) {
 	j.AddEntry(state.NewJournalEntryNonce(adr1, acnt, 0))
 
 	//modify the nonce and save
-	acnt.SetNonce(adb, 50)
-	adb.SaveAccountState(acnt)
+	err = acnt.SetNonce(adb, 50)
+	assert.Nil(t, err)
+	err = adb.SaveAccountState(acnt)
+	assert.Nil(t, err)
 	//get the new hash and test it is different from empty account hash
 	hashAcnt := adb.MainTrie.Root()
 	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)
 
 	//revert and test that hash is equal
-	err = j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, adb)
 	assert.Nil(t, err)
 	assert.Equal(t, hashEmptyAcnt, adb.MainTrie.Root())
 
@@ -113,25 +115,25 @@ func TestJournalEntryNonce_Revert_InvalidVals_ShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jeb := state.NewJournalEntryNonce(nil, nil, 0)
-	j := state.NewJournal(nil)
+	j := state.NewJournal()
 	j.AddEntry(jeb)
 
 	//error as nil accounts are not permited
-	err := j.RevertFromSnapshot(0)
+	err := j.RevertFromSnapshot(0, nil)
 	assert.NotNil(t, err)
 
-	j = state.NewJournal(jeCreateAccountsDB())
+	j = state.NewJournal()
 	j.AddEntry(jeb)
 
 	//error as nil addresses are not permited
-	err = j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, jeCreateAccountsDB())
 	assert.NotNil(t, err)
 
 	jeb = state.NewJournalEntryNonce(jeCreateRandomAddress(), nil, 0)
 	j.AddEntry(jeb)
 
 	//error as nil accounts are not permited
-	err = j.RevertFromSnapshot(1)
+	err = j.RevertFromSnapshot(1, jeCreateAccountsDB())
 	assert.NotNil(t, err)
 }
 
@@ -143,10 +145,10 @@ func TestJournalEntryBalance_Revert_OkVals_ShouldWork(t *testing.T) {
 	adr1 := jeCreateRandomAddress()
 
 	//create account for address
-	acnt, err := adb.GetOrCreateAccount(*adr1)
+	acnt, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
 	//attach a journal
-	j := state.NewJournal(adb)
+	j := state.NewJournal()
 
 	//get the hash root for account with balance 0
 	hashEmptyAcnt := adb.MainTrie.Root()
@@ -154,14 +156,16 @@ func TestJournalEntryBalance_Revert_OkVals_ShouldWork(t *testing.T) {
 	j.AddEntry(state.NewJournalEntryBalance(adr1, acnt, big.NewInt(0)))
 
 	//modify the balance and save
-	acnt.SetBalance(adb, big.NewInt(50))
-	adb.SaveAccountState(acnt)
+	err = acnt.SetBalance(adb, big.NewInt(50))
+	assert.Nil(t, err)
+	err = adb.SaveAccountState(acnt)
+	assert.Nil(t, err)
 	//get the new hash and test it is different from empty account hash
 	hashAcnt := adb.MainTrie.Root()
 	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)
 
 	//revert and test that hash is equal
-	err = j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, adb)
 	assert.Nil(t, err)
 	assert.Equal(t, hashEmptyAcnt, adb.MainTrie.Root())
 }
@@ -170,25 +174,25 @@ func TestJournalEntryBalance_Revert_InvalidVals_ShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jeb := state.NewJournalEntryBalance(nil, nil, big.NewInt(0))
-	j := state.NewJournal(nil)
+	j := state.NewJournal()
 	j.AddEntry(jeb)
 
 	//error as nil accounts are not permited
-	err := j.RevertFromSnapshot(0)
+	err := j.RevertFromSnapshot(0, nil)
 	assert.NotNil(t, err)
 
-	j = state.NewJournal(jeCreateAccountsDB())
+	j = state.NewJournal()
 	j.AddEntry(jeb)
 
 	//error as nil addresses are not permited
-	err = j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, jeCreateAccountsDB())
 	assert.NotNil(t, err)
 
 	jeb = state.NewJournalEntryBalance(jeCreateRandomAddress(), nil, big.NewInt(0))
 	j.AddEntry(jeb)
 
 	//error as nil accounts are not permited
-	err = j.RevertFromSnapshot(1)
+	err = j.RevertFromSnapshot(1, jeCreateAccountsDB())
 	assert.NotNil(t, err)
 }
 
@@ -200,10 +204,10 @@ func TestJournalEntryCodeHash_Revert_OkVals_ShouldWork(t *testing.T) {
 	adr1 := jeCreateRandomAddress()
 
 	//create account for address
-	acnt, err := adb.GetOrCreateAccount(*adr1)
+	acnt, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
 	//attach a journal
-	j := state.NewJournal(adb)
+	j := state.NewJournal()
 
 	//get the hash root for empty account
 	hashEmptyAcnt := adb.MainTrie.Root()
@@ -211,14 +215,16 @@ func TestJournalEntryCodeHash_Revert_OkVals_ShouldWork(t *testing.T) {
 	j.AddEntry(state.NewJournalEntryCodeHash(adr1, acnt, nil))
 
 	//modify the code hash and save
-	acnt.SetCodeHash(adb, []byte{65, 66, 67})
-	adb.SaveAccountState(acnt)
+	err = acnt.SetCodeHash(adb, []byte{65, 66, 67})
+	assert.Nil(t, err)
+	err = adb.SaveAccountState(acnt)
+	assert.Nil(t, err)
 	//get the new hash and test it is different from empty account hash
 	hashAcnt := adb.MainTrie.Root()
 	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)
 
 	//revert and test that hash is equal
-	err = j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, adb)
 	assert.Nil(t, err)
 	assert.Equal(t, hashEmptyAcnt, adb.MainTrie.Root())
 
@@ -228,25 +234,25 @@ func TestJournalEntryCodeHash_Revert_InvalidVals_ShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jech := state.NewJournalEntryCodeHash(nil, nil, make([]byte, 0))
-	j := state.NewJournal(nil)
+	j := state.NewJournal()
 	j.AddEntry(jech)
 
 	//error as nil accounts are not permited
-	err := j.RevertFromSnapshot(0)
+	err := j.RevertFromSnapshot(0, nil)
 	assert.NotNil(t, err)
 
-	j = state.NewJournal(jeCreateAccountsDB())
+	j = state.NewJournal()
 	j.AddEntry(jech)
 
 	//error as nil addresses are not permited
-	err = j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, jeCreateAccountsDB())
 	assert.NotNil(t, err)
 
 	jech = state.NewJournalEntryCodeHash(jeCreateRandomAddress(), nil, make([]byte, 0))
 	j.AddEntry(jech)
 
 	//error as nil accounts are not permited
-	err = j.RevertFromSnapshot(1)
+	err = j.RevertFromSnapshot(1, jeCreateAccountsDB())
 	assert.NotNil(t, err)
 }
 
@@ -256,7 +262,7 @@ func TestJournalEntryCode_Revert_OkVals_ShouldWork(t *testing.T) {
 	//create accounts
 	adb := jeCreateAccountsDB()
 	//attach a journal
-	j := state.NewJournal(adb)
+	j := state.NewJournal()
 
 	//get the hash root for empty root
 	hashEmptyRoot := adb.MainTrie.Root()
@@ -267,7 +273,8 @@ func TestJournalEntryCode_Revert_OkVals_ShouldWork(t *testing.T) {
 	//add journal entry for code addition
 	j.AddEntry(state.NewJournalEntryCode(codeHash))
 
-	adb.PutCode(nil, code)
+	err := adb.PutCode(nil, code)
+	assert.Nil(t, err)
 
 	//get the hash root for the trie with code inside
 	hashRootCode := adb.MainTrie.Root()
@@ -276,7 +283,8 @@ func TestJournalEntryCode_Revert_OkVals_ShouldWork(t *testing.T) {
 	assert.NotEqual(t, hashEmptyRoot, hashRootCode)
 
 	//revert
-	j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, adb)
+	assert.Nil(t, err)
 
 	//test root hash to be empty root hash
 	assert.Equal(t, hashEmptyRoot, adb.MainTrie.Root())
@@ -286,11 +294,11 @@ func TestJournalEntryCode_Revert_InvalidVals_ShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jech := state.NewJournalEntryCode(nil)
-	j := state.NewJournal(nil)
+	j := state.NewJournal()
 	j.AddEntry(jech)
 
 	//error as nil accounts are not permited
-	err := j.RevertFromSnapshot(0)
+	err := j.RevertFromSnapshot(0, nil)
 	assert.NotNil(t, err)
 }
 
@@ -302,10 +310,10 @@ func TestJournalEntryRoot_Revert_OkVals_ShouldWork(t *testing.T) {
 	adr1 := jeCreateRandomAddress()
 
 	//create account for address
-	acnt, err := adb.GetOrCreateAccount(*adr1)
+	acnt, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
 	//attach a journal
-	j := state.NewJournal(adb)
+	j := state.NewJournal()
 
 	//get the hash root for empty account
 	hashEmptyAcnt := adb.MainTrie.Root()
@@ -313,14 +321,16 @@ func TestJournalEntryRoot_Revert_OkVals_ShouldWork(t *testing.T) {
 	j.AddEntry(state.NewJournalEntryRoot(adr1, acnt, nil))
 
 	//modify the root and save
-	acnt.SetRoot(adb, []byte{65, 66, 67})
-	adb.SaveAccountState(acnt)
+	err = acnt.SetRoot(adb, []byte{65, 66, 67})
+	assert.Nil(t, err)
+	err = adb.SaveAccountState(acnt)
+	assert.Nil(t, err)
 	//get the new hash and test it is different from empty account hash
 	hashAcnt := adb.MainTrie.Root()
 	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)
 
 	//revert and test that hash is equal
-	err = j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, adb)
 	assert.Nil(t, err)
 	assert.Equal(t, hashEmptyAcnt, adb.MainTrie.Root())
 }
@@ -329,25 +339,25 @@ func TestJournalEntryRoot_Revert_InvalidVals_ShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jech := state.NewJournalEntryRoot(nil, nil, make([]byte, 0))
-	j := state.NewJournal(nil)
+	j := state.NewJournal()
 	j.AddEntry(jech)
 
 	//error as nil accounts are not permited
-	err := j.RevertFromSnapshot(0)
+	err := j.RevertFromSnapshot(0, nil)
 	assert.NotNil(t, err)
 
-	j = state.NewJournal(jeCreateAccountsDB())
+	j = state.NewJournal()
 	j.AddEntry(jech)
 
 	//error as nil addresses are not permited
-	err = j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, jeCreateAccountsDB())
 	assert.NotNil(t, err)
 
 	jech = state.NewJournalEntryRoot(jeCreateRandomAddress(), nil, make([]byte, 0))
 	j.AddEntry(jech)
 
 	//error as nil accounts are not permited
-	err = j.RevertFromSnapshot(1)
+	err = j.RevertFromSnapshot(1, jeCreateAccountsDB())
 	assert.NotNil(t, err)
 }
 
@@ -359,10 +369,10 @@ func TestJournalEntryData_Revert_OkVals_ShouldWork(t *testing.T) {
 	adr1 := jeCreateRandomAddress()
 
 	//create account for address
-	acnt, err := adb.GetOrCreateAccount(*adr1)
+	acnt, err := adb.GetOrCreateAccountState(adr1)
 	assert.Nil(t, err)
 	//attach a journal
-	j := state.NewJournal(adb)
+	j := state.NewJournal()
 
 	acnt.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
 
@@ -371,7 +381,7 @@ func TestJournalEntryData_Revert_OkVals_ShouldWork(t *testing.T) {
 
 	j.AddEntry(jed)
 
-	err = j.RevertFromSnapshot(0)
+	err = j.RevertFromSnapshot(0, adb)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(acnt.DirtyData()))
 	assert.Equal(t, trie, jed.Trie())

@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
-func (j *Journal) DirtyAddresses() map[*Address]int {
+func (j *Journal) DirtyAddresses() map[AddressHandler]int {
 	return j.dirtyAddresses
 }
 
