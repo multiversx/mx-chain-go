@@ -3,6 +3,7 @@ package logger_test
 import (
 	"bytes"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
@@ -129,9 +130,18 @@ func TestWithFile(t *testing.T) {
 func TestConcurrencyWithFileWriter(t *testing.T) {
 	t.Parallel()
 	log := logger.NewDefaultLogger()
+
+	wg := sync.WaitGroup{}
+	wg.Add(999)
+
 	for i := 1; i < 1000; i++ {
-		go log.Warn("I will fail miserably if I'll run into concurrency issues")
+		go func(index int) {
+			log.Warn("I will fail miserably if I'll run into concurrency issues", index)
+			wg.Done()
+		}(i)
 	}
+
+	wg.Wait()
 }
 
 func swallowPanicLog(t *testing.T, logMsg string, panicMsg string, log *logger.Logger) {
