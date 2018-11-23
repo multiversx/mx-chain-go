@@ -26,54 +26,6 @@ func TestShouldPanicOnNilNode(t *testing.T) {
 	p2p.NewConnNotifier(nil)
 }
 
-//func TestStartingStoppingWorkingRoutine(t *testing.T) {
-//	if testing.Short() {
-//		t.Skip("skipping test in short mode")
-//	}
-//
-//	counterCN01 := int32(0)
-//
-//	cn := p2p.NewConnNotifier(&p2p.MemoryMessenger{})
-//	cn.DurCalls = 0
-//	cn.OnDoSimpleTask = func(caller interface{}) {
-//		atomic.AddInt32(&counterCN01, 1)
-//
-//		time.Sleep(time.Second)
-//	}
-//
-//	cn.Start()
-//
-//	assert.Equal(t, execution.Started, cn.Stat())
-//
-//	//wait 0.5 sec
-//	time.Sleep(time.Millisecond * 500)
-//
-//	//counter CN01 should have been 1 by now, closing
-//	assert.Equal(t, int32(1), atomic.LoadInt32(&counterCN01))
-//
-//	cn.Stop()
-//	//since go routine is still waiting, status should be CLOSING
-//	assert.Equal(t, execution.Closing, cn.Stat())
-//	//starting should not produce effects here
-//	cn.Start()
-//	assert.Equal(t, execution.Closing, cn.Stat())
-//
-//	time.Sleep(time.Second)
-//
-//	//it should have stopped
-//	assert.Equal(t, execution.Closed, cn.Stat())
-//}
-//
-//func TestTaskNotDoingStuffOn0MaxPeers(t *testing.T) {
-//	cn := p2p.NewConnNotifier(&p2p.MemoryMessenger{})
-//
-//	cn.MaxAllowedPeers = 0
-//
-//	result := p2p.TaskResolveConnections(cn)
-//
-//	assert.Equal(t, p2p.WontConnect, result)
-//}
-
 func TestTryToConnectWithSuccess(t *testing.T) {
 	mut := sync.Mutex{}
 	lastString := ""
@@ -168,8 +120,8 @@ func TestRemoveInboundPeers(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	node2.ConnectToAddresses(context.Background(), []string{node1.Addrs()[0]})
-	node3.ConnectToAddresses(context.Background(), []string{node1.Addrs()[0]})
+	node2.ConnectToAddresses(context.Background(), []string{node1.Addresses()[0]})
+	node3.ConnectToAddresses(context.Background(), []string{node1.Addresses()[0]})
 
 	time.Sleep(time.Second)
 
@@ -221,7 +173,7 @@ func TestTryToConnect3PeersWithSuccess(t *testing.T) {
 	cn := p2p.NewConnNotifier(node1)
 	cn.MaxAllowedPeers = 4
 
-	addresses := []string{node2.Addrs()[0], node3.Addrs()[0]}
+	addresses := []string{node2.Addresses()[0], node3.Addresses()[0]}
 
 	mutMapAddr := sync.Mutex{}
 	mapAddr := make(map[peer.ID]multiaddr.Multiaddr, 0)

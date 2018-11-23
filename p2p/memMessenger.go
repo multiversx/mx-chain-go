@@ -37,32 +37,25 @@ func init() {
 // MemMessenger is a fake memory Messenger used for testing
 // TODO keep up with NetMessenger modifications
 type MemMessenger struct {
-	peerID  peer.ID
-	privKey crypto.PrivKey
-
+	peerID            peer.ID
+	privKey           crypto.PrivKey
 	mutConnectedPeers sync.Mutex
 	connectedPeers    map[peer.ID]*MemMessenger
-
-	marsh  marshal.Marshalizer
-	hasher hashing.Hasher
-	rt     *RoutingTable
-	seqNo  uint64
-
-	mutClosed sync.RWMutex
-	closed    bool
-
-	chSend          chan *pubsub.Message
-	mutSeenMessages sync.Mutex
-	seenMessages    *TimeCache
-
-	mutValidators sync.RWMutex
-	validators    map[string]pubsub.Validator
-
-	mutTopics sync.RWMutex
-	topics    map[string]*Topic
-
-	mutGossipCache sync.Mutex
-	gossipCache    *TimeCache
+	marsh             marshal.Marshalizer
+	hasher            hashing.Hasher
+	rt                *RoutingTable
+	seqNo             uint64
+	mutClosed         sync.RWMutex
+	closed            bool
+	chSend            chan *pubsub.Message
+	mutSeenMessages   sync.Mutex
+	seenMessages      *TimeCache
+	mutValidators     sync.RWMutex
+	validators        map[string]pubsub.Validator
+	mutTopics         sync.RWMutex
+	topics            map[string]*Topic
+	mutGossipCache    sync.Mutex
+	gossipCache       *TimeCache
 }
 
 // NewMemMessenger creates a memory Messenger with the same behaviour as the NetMessenger.
@@ -134,8 +127,8 @@ func (mm *MemMessenger) Peers() []peer.ID {
 	peers := make([]peer.ID, 0)
 
 	mm.mutConnectedPeers.Lock()
-	for k := range mm.connectedPeers {
-		peers = append(peers, k)
+	for p := range mm.connectedPeers {
+		peers = append(peers, p)
 	}
 	mm.mutConnectedPeers.Unlock()
 
@@ -147,8 +140,8 @@ func (mm *MemMessenger) Conns() []net.Conn {
 	conns := make([]net.Conn, 0)
 
 	mm.mutConnectedPeers.Lock()
-	for k := range mm.connectedPeers {
-		c := &mock.ConnMock{LocalP: mm.peerID, RemoteP: k}
+	for p := range mm.connectedPeers {
+		c := &mock.ConnMock{LocalP: mm.peerID, RemoteP: p}
 		conns = append(conns, c)
 	}
 	mm.mutConnectedPeers.Unlock()
@@ -171,8 +164,8 @@ func (mm *MemMessenger) RouteTable() *RoutingTable {
 	return mm.rt
 }
 
-// Addrs will return all addresses bound to current messenger
-func (mm *MemMessenger) Addrs() []string {
+// Addresses will return all addresses bound to current messenger
+func (mm *MemMessenger) Addresses() []string {
 	return []string{string(mm.peerID.Pretty())}
 }
 
@@ -289,13 +282,11 @@ func (mm *MemMessenger) GetTopic(topicName string) *Topic {
 	mm.mutTopics.RLock()
 	defer mm.mutTopics.RUnlock()
 
-	t, ok := mm.topics[topicName]
-
-	if !ok {
-		return nil
+	if t, ok := mm.topics[topicName]; ok {
+		return t
 	}
 
-	return t
+	return nil
 }
 
 // AddTopic registers a new topic to this messenger
@@ -310,8 +301,8 @@ func (mm *MemMessenger) AddTopic(t *Topic) error {
 	}
 
 	mm.mutTopics.Lock()
-	_, ok := mm.topics[t.Name]
-	if ok {
+
+	if _, ok := mm.topics[t.Name]; ok {
 		mm.mutTopics.Unlock()
 		return errors.New("topic already exists")
 	}
@@ -432,7 +423,8 @@ func (mm *MemMessenger) gotNewData(data []byte, peerID peer.ID, topic string) bo
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,
 			//then it shall broadcast it
-			t.Broadcast(obj)
+			_ = t.Broadcast(obj)
+			//TODO log error
 		}
 
 		return false
@@ -510,35 +502,34 @@ func (mm *MemMessenger) processLoop() {
 	for {
 		select {
 		case mes := <-mm.chSend:
-			{
-				//send to connected peers
-				peers := mm.Peers()
 
-				for i := 0; i < len(peers); i++ {
-					peerID := peer.ID(peers[i]).Pretty()
+			//send to connected peers
+			peers := mm.Peers()
 
-					//do not send to originator
-					if mes.GetFrom() == peers[i] {
-						continue
-					}
+			for i := 0; i < len(peers); i++ {
+				peerID := peer.ID(peers[i]).Pretty()
 
-					if peerID == mm.ID().Pretty() {
-						//broadcast to self allowed
-						mm.gotNewMessage(mes)
-						continue
-					}
-
-					mm.mutConnectedPeers.Lock()
-					val, ok := mm.connectedPeers[peer.ID(base58.Decode(peerID))]
-					mm.mutConnectedPeers.Unlock()
-
-					if (!ok) || (val == nil) {
-						//TODO log invalid peer
-						continue
-					}
-
-					go val.gotNewMessage(mes)
+				//do not send to originator
+				if mes.GetFrom() == peers[i] {
+					continue
 				}
+
+				if peerID == mm.ID().Pretty() {
+					//broadcast to self allowed
+					mm.gotNewMessage(mes)
+					continue
+				}
+
+				mm.mutConnectedPeers.Lock()
+				val, ok := mm.connectedPeers[peer.ID(base58.Decode(peerID))]
+				mm.mutConnectedPeers.Unlock()
+
+				if !ok || val == nil {
+					//TODO log invalid peer
+					continue
+				}
+
+				go val.gotNewMessage(mes)
 			}
 		}
 	}

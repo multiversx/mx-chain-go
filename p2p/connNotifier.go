@@ -29,14 +29,10 @@ const (
 // ConnNotifier is used to manage the connections to other peers
 type ConnNotifier struct {
 	execution.RoutineWrapper
-
-	Msgr Messenger
-
+	Msgr            Messenger
 	MaxAllowedPeers int
-
-	GetKnownPeers func(sender *ConnNotifier) []peer.ID
-	ConnectToPeer func(sender *ConnNotifier, pid peer.ID) error
-
+	GetKnownPeers   func(sender *ConnNotifier) []peer.ID
+	ConnectToPeer   func(sender *ConnNotifier, pid peer.ID) error
 	indexKnownPeers int
 }
 
@@ -91,7 +87,8 @@ func TaskResolveConnections(cn *ConnNotifier) ResultType {
 
 	//test whether we only have inbound connection (security issue)
 	if inConns > cn.MaxAllowedPeers-1 {
-		conns[0].Close()
+		_ = conns[0].Close()
+		//TODO log error
 
 		return OnlyInboundConnections
 	}
@@ -141,7 +138,8 @@ func (cn *ConnNotifier) ListenClose(netw net.Network, ma multiaddr.Multiaddr) {
 func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
 	//refuse other connections if max connection has been reached
 	if cn.MaxAllowedPeers < len(cn.Msgr.Conns()) {
-		conn.Close()
+		_ = conn.Close()
+		//TODO log error
 	}
 }
 

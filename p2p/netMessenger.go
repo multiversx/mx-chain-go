@@ -45,31 +45,23 @@ const (
 
 // NetMessenger implements a libP2P node with added functionality
 type NetMessenger struct {
-	context  context.Context
-	protocol protocol.ID
-	p2pNode  host.Host
-	ps       *pubsub.PubSub
-	mdns     discovery.Service
-
-	mutChansSend sync.RWMutex
-	chansSend    map[string]chan []byte
-
-	mutBootstrap sync.Mutex
-
-	marsh  marshal.Marshalizer
-	hasher hashing.Hasher
-	rt     *RoutingTable
-	cn     *ConnNotifier
-	dn     *DiscoveryNotifier
-
-	onMsgRecv func(caller Messenger, peerID string, data []byte)
-
-	mutClosed sync.RWMutex
-	closed    bool
-
-	mutTopics sync.RWMutex
-	topics    map[string]*Topic
-
+	context        context.Context
+	protocol       protocol.ID
+	p2pNode        host.Host
+	ps             *pubsub.PubSub
+	mdns           discovery.Service
+	mutChansSend   sync.RWMutex
+	chansSend      map[string]chan []byte
+	mutBootstrap   sync.Mutex
+	marsh          marshal.Marshalizer
+	hasher         hashing.Hasher
+	rt             *RoutingTable
+	cn             *ConnNotifier
+	dn             *DiscoveryNotifier
+	mutClosed      sync.RWMutex
+	closed         bool
+	mutTopics      sync.RWMutex
+	topics         map[string]*Topic
 	mutGossipCache sync.Mutex
 	gossipCache    *TimeCache
 }
@@ -115,7 +107,7 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 	}
 
 	//TODO LOG fmt.Printf("Node: %v has the following addr table: \n", h.ID().Pretty())
-	//for i, addr := range h.Addrs() {
+	//for i, addr := range h.Addresses() {
 	//TODO LOG fmt.Printf("%d: %s/ipfs/%s\n", i, addr, h.ID().Pretty())
 	//}
 
@@ -203,9 +195,7 @@ func (nm *NetMessenger) Close() error {
 	nm.closed = true
 	nm.mutClosed.Unlock()
 
-	nm.p2pNode.Close()
-
-	return nil
+	return nm.p2pNode.Close()
 }
 
 // ID returns the current id
@@ -238,8 +228,8 @@ func (nm *NetMessenger) RouteTable() *RoutingTable {
 	return nm.rt
 }
 
-// Addrs will return all addresses bound to current messenger
-func (nm *NetMessenger) Addrs() []string {
+// Addresses will return all addresses bound to current messenger
+func (nm *NetMessenger) Addresses() []string {
 	addrs := make([]string, 0)
 
 	for _, address := range nm.p2pNode.Addrs() {
@@ -460,7 +450,8 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,
 			//then it shall broadcast it
-			t.Broadcast(obj)
+			_ = t.Broadcast(obj)
+			//TODO log error
 		}
 		return false
 	}
@@ -471,7 +462,8 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 	}
 
 	//wire-up the validator
-	nm.ps.RegisterTopicValidator(t.Name+requestTopicSuffix, v)
+	_ = nm.ps.RegisterTopicValidator(t.Name+requestTopicSuffix, v)
+	//TODO log error
 }
 
 // GetTopic returns the topic from its name or nil if no topic with that name
@@ -480,11 +472,9 @@ func (nm *NetMessenger) GetTopic(topicName string) *Topic {
 	nm.mutTopics.RLock()
 	defer nm.mutTopics.RUnlock()
 
-	t, ok := nm.topics[topicName]
-
-	if !ok {
-		return nil
+	if t, ok := nm.topics[topicName]; ok {
+		return t
 	}
 
-	return t
+	return nil
 }

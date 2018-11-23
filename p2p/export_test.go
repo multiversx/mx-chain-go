@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
@@ -27,4 +28,7 @@ func (t *Topic) SetUnregisterTopicValidator(f func() error) {
 
 var DurTimeCache = durTimeCache
 var MutGloballyRegPeers = &mutGloballyRegPeers
-var GloballyRegisteredPeers = globallyRegisteredPeers
+
+func RecreateGlobbalyRegisteredMemPeersMap() {
+	globallyRegisteredPeers = make(map[peer.ID]*MemMessenger)
+}

@@ -127,7 +127,8 @@ func TestTopic_NewObjReceived_OKMsg_ShouldWork(t *testing.T) {
 
 	obj, err := topic.CreateObject(payload)
 	assert.Nil(t, err)
-	topic.NewObjReceived(obj, "")
+	err = topic.NewObjReceived(obj, "")
+	assert.Nil(t, err)
 
 	//start a go routine as watchdog for the wg.Wait()
 	go func() {

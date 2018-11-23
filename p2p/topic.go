@@ -34,25 +34,19 @@ type Topic struct {
 	// Name of the topic
 	Name string
 	// ObjTemplate is used as a template to generate new objects whenever a new message is received
-	ObjTemplate Newer
-	marsh       marshal.Marshalizer
-
-	objPump chan MessageInfo
-
+	ObjTemplate             Newer
+	marsh                   marshal.Marshalizer
+	objPump                 chan MessageInfo
 	mutEventBus             sync.RWMutex
 	eventBusDataRcvHandlers []DataReceivedHandler
-
 	// SendData will be called by Topic struct whenever a user of this struct tries to send data to other peers
 	// It is a function pointer that connects Topic struct with pubsub implementation
-	SendData func(data []byte) error
-
+	SendData                 func(data []byte) error
 	registerTopicValidator   func(v pubsub.Validator) error
 	unregisterTopicValidator func() error
-
-	ResolveRequest func(hash []byte) Newer
-	request        func(hash []byte) error
-
-	CurrentPeer peer.ID
+	ResolveRequest           func(hash []byte) Newer
+	request                  func(hash []byte) error
+	CurrentPeer              peer.ID
 }
 
 // MessageInfo will retain additional info about the message, should we care
