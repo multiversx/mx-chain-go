@@ -83,7 +83,7 @@ func (tp *TransactionPool) AddTransaction(txHash []byte, tx *transaction.Transac
 	mp := tp.MiniPoolTxStore(destShardID)
 	ok, _ := mp.HasOrAdd(txHash, tx)
 
-	if tp.OnAddTransaction != nil && ok {
+	if tp.OnAddTransaction != nil && !ok {
 		tp.OnAddTransaction(txHash)
 	}
 }
