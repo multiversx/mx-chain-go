@@ -1,7 +1,9 @@
 package transactionPool_test
 
 import (
+	"fmt"
 	"strconv"
+	"sync/atomic"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
@@ -138,4 +140,18 @@ func TestTransactionPool_MoveTransactions(t *testing.T) {
 		"Mini pool for shard 2 should have 3 elements")
 	assert.Equal(t, 2, txp.MiniPoolTxStore(3).Len(),
 		"Mini pool for shard 3 should have 2 elements")
+}
+
+func TestTransactionPool_OnAddTransactionIsCalled(t *testing.T) {
+	t.Parallel()
+	cnt := int32(0)
+	tx := []byte("tx_hash1")
+	txp := transactionPool.NewTransactionPool()
+	txp.OnAddTransaction = func(txHash []byte) {
+		atomic.AddInt32(&cnt, 1)
+		assert.Equal(t, tx, txHash)
+		fmt.Println("I was called")
+	}
+	txp.AddTransaction(tx, &transaction.Transaction{Nonce: 1}, 1)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&cnt))
 }
