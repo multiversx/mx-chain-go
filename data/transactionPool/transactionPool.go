@@ -75,7 +75,7 @@ func (tp *TransactionPool) MiniPoolTxStore(shardID uint32) (c storage.Cacher) {
 	return mp.TxStore
 }
 
-// AddTransaction will add a transaction to the coresponding pool
+// AddTransaction will add a transaction to the corresponding pool
 func (tp *TransactionPool) AddTransaction(txHash []byte, tx *transaction.Transaction, destShardID uint32) {
 	if tp.MiniPool(destShardID) == nil {
 		tp.NewMiniPool(destShardID)
@@ -88,7 +88,7 @@ func (tp *TransactionPool) AddTransaction(txHash []byte, tx *transaction.Transac
 	}
 }
 
-// RemoveTransaction will remove a transaction hash from the coresponding pool
+// RemoveTransaction will remove a transaction hash from the corresponding pool
 func (tp *TransactionPool) RemoveTransaction(txHash []byte, destShardID uint32) {
 	mptx := tp.MiniPoolTxStore(destShardID)
 	if mptx != nil {
@@ -139,11 +139,11 @@ func (tp *TransactionPool) MoveTransactions(sourceShardID, destShardID uint32, t
 
 // Clear will delete all minipools and associated transactions
 func (tp *TransactionPool) Clear() {
-	tp.lock.Lock()
 	for m := range tp.miniPoolsStore {
+		tp.lock.Lock()
 		delete(tp.miniPoolsStore, m)
+		tp.lock.Unlock()
 	}
-	tp.lock.Unlock()
 }
 
 // ClearMiniPool will delete all transactions associated with a given destination shardID
