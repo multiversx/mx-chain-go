@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// String representation of the package logging levels
+// These constants are the string representation of the package logging levels.
 const (
 	LogDebug   = "DEBUG"
 	LogInfo    = "INFO"
@@ -20,15 +20,15 @@ const (
 	LogPanic   = "PANIC"
 )
 
-// Logger represents the application logger
+// Logger represents the application logger.
 type Logger struct {
 	logger *log.Logger
 }
 
 // NewElrondLogger will setup the defaults of the application logger.
-// If the requested log file is writeble it will setup a MultiWriter on both the file
-//  and the standard output. Also sets up the level and the format for the logger
-func NewElrondLogger(file *os.File) *Logger {
+// If the requested log file is writable it will setup a MultiWriter on both the file
+//  and the standard output. Also sets up the level and the format for the logger.
+func NewElrondLogger(file io.Writer) *Logger {
 	el := &Logger{
 		log.New(),
 	}
@@ -46,7 +46,7 @@ func NewElrondLogger(file *os.File) *Logger {
 }
 
 // NewDefaultLogger is a shorthand for instantiating a new logger with default settings.
-// If it fails to open the default log file it will return a logger with os.Stdout output
+// If it fails to open the default log file it will return a logger with os.Stdout output.
 func NewDefaultLogger() *Logger {
 	file, err := DefaultLogFile()
 	if err != nil {
@@ -55,7 +55,7 @@ func NewDefaultLogger() *Logger {
 	return NewElrondLogger(file)
 }
 
-// SetLevel sets the log level according to this package's defined levels
+// SetLevel sets the log level according to this package's defined levels.
 func (el *Logger) SetLevel(level string) {
 	switch level {
 	case LogDebug:
@@ -73,12 +73,12 @@ func (el *Logger) SetLevel(level string) {
 	}
 }
 
-// SetOutput enables the posibility to change the output of the logger on demand
+// SetOutput enables the posibility to change the output of the logger on demand.
 func (el *Logger) SetOutput(out io.Writer) {
 	el.logger.SetOutput(out)
 }
 
-// Debug is an alias for Logrus.Debug, adding some default useful fields
+// Debug is an alias for Logrus.Debug, adding some default useful fields.
 func (el *Logger) Debug(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	cl.WithFields(log.Fields{
@@ -86,7 +86,7 @@ func (el *Logger) Debug(message string, extra ...interface{}) {
 	}).Debug(message)
 }
 
-// Info is an alias for Logrus.Info, adding some default useful fields
+// Info is an alias for Logrus.Info, adding some default useful fields.
 func (el *Logger) Info(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	cl.WithFields(log.Fields{
@@ -94,7 +94,7 @@ func (el *Logger) Info(message string, extra ...interface{}) {
 	}).Info(message)
 }
 
-// Warn is an alias for Logrus.Warn, adding some default useful fields
+// Warn is an alias for Logrus.Warn, adding some default useful fields.
 func (el *Logger) Warn(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	cl.WithFields(log.Fields{
@@ -102,7 +102,7 @@ func (el *Logger) Warn(message string, extra ...interface{}) {
 	}).Warn(message)
 }
 
-// Error is an alias for Logrus.Error, adding some default useful fields
+// Error is an alias for Logrus.Error, adding some default useful fields.
 func (el *Logger) Error(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	cl.WithFields(log.Fields{
@@ -110,7 +110,7 @@ func (el *Logger) Error(message string, extra ...interface{}) {
 	}).Error(message)
 }
 
-// Panic is an alias for Logrus.Panic, adding some default useful fields
+// Panic is an alias for Logrus.Panic, adding some default useful fields.
 func (el *Logger) Panic(message string, extra ...interface{}) {
 	cl := el.defaultFields()
 	cl.WithFields(log.Fields{
@@ -127,8 +127,8 @@ func (el *Logger) defaultFields() *log.Entry {
 	})
 }
 
-// DefaultLogFile returns the default output for the application logger
-// The client package can always use another output and provide it in the logger constructor
+// DefaultLogFile returns the default output for the application logger.
+// The client package can always use another output and provide it in the logger constructor.
 func DefaultLogFile() (*os.File, error) {
 	os.MkdirAll(config.ElrondLoggerConfig.LogPath, os.ModePerm)
 	return os.OpenFile(
