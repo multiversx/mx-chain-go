@@ -120,6 +120,8 @@ func TestTryToConnectWithSuccess(t *testing.T) {
 	mut.Lock()
 	assert.Equal(t, "bbb", lastString)
 	mut.Unlock()
+
+	_ = node.Close()
 }
 
 func TestRemoveInboundPeers(t *testing.T) {
@@ -181,6 +183,10 @@ func TestRemoveInboundPeers(t *testing.T) {
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 1, len(cn.Msgr.Conns()))
+
+	_ = node1.Close()
+	_ = node2.Close()
+	_ = node3.Close()
 }
 
 func TestTryToConnect3PeersWithSuccess(t *testing.T) {
@@ -283,4 +289,7 @@ func TestTryToConnect3PeersWithSuccess(t *testing.T) {
 	assert.Equal(t, p2p.NothingDone, result)
 	assert.Equal(t, 2, len(cn.Msgr.Conns()))
 
+	_ = node1.Close()
+	_ = node2.Close()
+	_ = node3.Close()
 }
