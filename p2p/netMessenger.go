@@ -197,7 +197,14 @@ func (nm *NetMessenger) Close() error {
 	nm.closed = true
 	nm.mutClosed.Unlock()
 
-	nm.p2pNode.Close()
+	if nm.mdns != nil {
+		_ = nm.mdns.Close()
+	}
+
+	nm.cn.Stop()
+
+	_ = nm.p2pNode.Network().Close()
+	_ = nm.p2pNode.Close()
 
 	return nil
 }
