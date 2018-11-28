@@ -17,6 +17,8 @@ import (
 
 var testNetMarshalizer = &mock.MarshalizerMock{}
 var testNetHasher = &mock.HasherMock{}
+var maxDelayWaitResponse = time.Duration(time.Second * 5)
+var delayWaitResponseUnreceivableMessages = time.Duration(time.Second)
 
 func createNetMessenger(t *testing.T, port int, nConns int) (*p2p.NetMessenger, error) {
 	return createNetMessengerPubSub(t, port, nConns, p2p.FloodSub)
@@ -29,133 +31,188 @@ func createNetMessengerPubSub(t *testing.T, port int, nConns int, strategy p2p.P
 	return p2p.NewNetMessenger(context.Background(), testNetMarshalizer, testNetHasher, cp, nConns, strategy)
 }
 
+func waitForConnectionsToBeMade(nodes []p2p.Messenger, connectGraph map[int][]int, chanDone chan bool) {
+	for {
+		fullyConnected := true
+
+		//for each element in the connect graph, check that is really connected to other peers
+		for k, v := range connectGraph {
+			for _, peerIndex := range v {
+				if nodes[k].Connectedness(nodes[peerIndex].ID()) != net.Connected {
+					fullyConnected = false
+					break
+				}
+			}
+		}
+
+		if fullyConnected {
+			break
+		}
+
+		time.Sleep(time.Millisecond)
+	}
+	chanDone <- true
+}
+
+func waitForWaitGroup(wg *sync.WaitGroup, chanDone chan bool) {
+	wg.Wait()
+	chanDone <- true
+}
+
+func closeAllNodes(nodes []p2p.Messenger) {
+	for i := 0; i < len(nodes); i++ {
+		_ = nodes[i].Close()
+	}
+}
+
 func TestNetMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
 	fmt.Println()
 
 	port := 4000
 
-	node1, err := createNetMessenger(t, port, 10)
-	assert.Nil(t, err)
+	nodes := make([]p2p.Messenger, 0)
 
-	node2, err := createNetMessenger(t, port, 10)
+	node, err := createNetMessenger(t, port, 10)
 	assert.Nil(t, err)
+	nodes = append(nodes, node)
 
-	if node1.ID().Pretty() != node2.ID().Pretty() {
+	node, err = createNetMessenger(t, port, 10)
+	assert.Nil(t, err)
+	nodes = append(nodes, node)
+
+	defer closeAllNodes(nodes)
+
+	if nodes[0].ID().Pretty() != nodes[1].ID().Pretty() {
 		t.Fatal("ID mismatch")
 	}
-
-	_ = node1.Close()
 }
 
 func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
+	nodes := make([]p2p.Messenger, 0)
+
 	node, err := createNetMessenger(t, 4500, 10)
 	assert.Nil(t, err)
+	nodes = append(nodes, node)
 
-	var counter int32
+	defer closeAllNodes(nodes)
 
-	_ = node.AddTopic(p2p.NewTopic("test topic", &testStringNewer{}, testNetMarshalizer))
-	node.GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	chanDone := make(chan bool)
+	go waitForWaitGroup(&wg, chanDone)
+
+	_ = nodes[0].AddTopic(p2p.NewTopic("test topic", &testStringNewer{}, testNetMarshalizer))
+	nodes[0].GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		payload := (*data.(*testStringNewer)).Data
 
 		fmt.Printf("Got message: %v\n", payload)
 
 		if payload == "ABC" {
-			atomic.AddInt32(&counter, 1)
+			wg.Done()
 		}
 	})
 
-	_ = node.GetTopic("test topic").Broadcast(testStringNewer{Data: "ABC"})
+	_ = nodes[0].GetTopic("test topic").Broadcast(testStringNewer{Data: "ABC"})
 
-	time.Sleep(time.Second)
-
-	if atomic.LoadInt32(&counter) != int32(1) {
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
 		assert.Fail(t, "Should have been 1 (message received to self)")
 	}
-
-	_ = node.Close()
 }
 
 func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	fmt.Println()
 
-	node1, err := createNetMessenger(t, 5110, 10)
+	nodes := make([]p2p.Messenger, 0)
+
+	node, err := createNetMessenger(t, 5110, 10)
 	assert.Nil(t, err)
+	nodes = append(nodes, node)
 
-	node2, err := createNetMessenger(t, 5111, 10)
+	node, err = createNetMessenger(t, 5111, 10)
 	assert.Nil(t, err)
+	nodes = append(nodes, node)
 
-	time.Sleep(time.Second)
+	connectGraph := make(map[int][]int)
+	connectGraph[0] = []int{1}
+	connectGraph[1] = []int{0}
 
-	node1.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0]})
+	defer closeAllNodes(nodes)
 
-	time.Sleep(time.Second)
+	nodes[0].ConnectToAddresses(context.Background(), []string{nodes[1].Addrs()[0]})
 
-	assert.Equal(t, net.Connected, node1.Connectedness(node2.ID()))
-	assert.Equal(t, net.Connected, node2.Connectedness(node1.ID()))
+	wg := sync.WaitGroup{}
+	chanDone := make(chan bool)
+	go waitForConnectionsToBeMade(nodes, connectGraph, chanDone)
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "Could not make a connection between the 2 peers")
+		return
+	}
 
-	fmt.Printf("Node 1 is %s\n", node1.Addrs()[0])
-	fmt.Printf("Node 2 is %s\n", node2.Addrs()[0])
+	fmt.Printf("Node 1 is %s\n", nodes[0].Addrs()[0])
+	fmt.Printf("Node 2 is %s\n", nodes[1].Addrs()[0])
 
-	fmt.Printf("Node 1 has the addresses: %v\n", node1.Addrs())
-	fmt.Printf("Node 2 has the addresses: %v\n", node2.Addrs())
-
-	var val int32 = 0
+	fmt.Printf("Node 1 has the addresses: %v\n", nodes[0].Addrs())
+	fmt.Printf("Node 2 has the addresses: %v\n", nodes[1].Addrs())
 
 	//create 2 topics on each node
-	_ = node1.AddTopic(p2p.NewTopic("ping", &testStringNewer{}, testNetMarshalizer))
-	_ = node1.AddTopic(p2p.NewTopic("pong", &testStringNewer{}, testNetMarshalizer))
+	_ = nodes[0].AddTopic(p2p.NewTopic("ping", &testStringNewer{}, testNetMarshalizer))
+	_ = nodes[0].AddTopic(p2p.NewTopic("pong", &testStringNewer{}, testNetMarshalizer))
 
-	_ = node2.AddTopic(p2p.NewTopic("ping", &testStringNewer{}, testNetMarshalizer))
-	_ = node2.AddTopic(p2p.NewTopic("pong", &testStringNewer{}, testNetMarshalizer))
+	_ = nodes[1].AddTopic(p2p.NewTopic("ping", &testStringNewer{}, testNetMarshalizer))
+	_ = nodes[1].AddTopic(p2p.NewTopic("pong", &testStringNewer{}, testNetMarshalizer))
+
+	wg.Add(2)
+	go waitForWaitGroup(&wg, chanDone)
 
 	//assign some event handlers on topics
-	node1.GetTopic("ping").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	nodes[0].GetTopic("ping").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		payload := (*data.(*testStringNewer)).Data
 
 		if payload == "ping string" {
-			_ = node1.GetTopic("pong").Broadcast(testStringNewer{"pong string"})
+			_ = nodes[0].GetTopic("pong").Broadcast(testStringNewer{"pong string"})
 		}
 	})
 
-	node1.GetTopic("pong").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	nodes[0].GetTopic("pong").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		payload := (*data.(*testStringNewer)).Data
 
 		fmt.Printf("node1 received: %v\n", payload)
 
 		if payload == "pong string" {
-			atomic.AddInt32(&val, 1)
+			wg.Done()
 		}
 	})
 
 	//for node2 topic ping we do not need an event handler in this test
-	node2.GetTopic("pong").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	nodes[1].GetTopic("pong").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		payload := (*data.(*testStringNewer)).Data
 
 		fmt.Printf("node2 received: %v\n", payload)
 
 		if payload == "pong string" {
-			atomic.AddInt32(&val, 1)
+			wg.Done()
 		}
 	})
 
-	_ = node2.GetTopic("ping").Broadcast(testStringNewer{"ping string"})
+	_ = nodes[1].GetTopic("ping").Broadcast(testStringNewer{"ping string"})
 
 	assert.Nil(t, err)
 
-	time.Sleep(2 * time.Second)
-
-	if atomic.LoadInt32(&val) != 2 {
-		fmt.Println("Should have been 2 (pong from node1: self and node2: received from node1)")
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "Should have been 2 (pong from node1: self and node2: received from node1)")
 	}
-
-	_ = node1.Close()
-	_ = node2.Close()
 }
 
 func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 	fmt.Println()
 
-	nodes := make([]*p2p.NetMessenger, 0)
+	nodes := make([]p2p.Messenger, 0)
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
@@ -167,23 +224,33 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 		fmt.Printf("Node %v is %s\n", i+1, node.Addrs()[0])
 	}
 
+	defer closeAllNodes(nodes)
+
 	//connect one with each other daisy-chain
 	for i := 1; i < 5; i++ {
 		node := nodes[i]
 		node.ConnectToAddresses(context.Background(), []string{nodes[i-1].Addrs()[0]})
 	}
 
-	time.Sleep(time.Second)
+	connectGraph := make(map[int][]int)
+	connectGraph[0] = []int{1}
+	connectGraph[1] = []int{0, 2}
+	connectGraph[2] = []int{1, 3}
+	connectGraph[3] = []int{2, 4}
+	connectGraph[4] = []int{3}
+
+	chanDone := make(chan bool)
+	go waitForConnectionsToBeMade(nodes, connectGraph, chanDone)
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "Could not make connections")
+		return
+	}
 
 	wg := sync.WaitGroup{}
 	wg.Add(5)
-	done := make(chan bool, 0)
-
-	go func() {
-		defer close(done)
-
-		wg.Wait()
-	}()
+	go waitForWaitGroup(&wg, chanDone)
 
 	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		wg.Done()
@@ -205,22 +272,17 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 	_ = nodes[0].GetTopic("test").Broadcast(testStringNewer{Data: "Foo"})
 
 	select {
-	case <-done:
+	case <-chanDone:
 		fmt.Println("Got all messages!")
-	case <-time.After(time.Second):
+	case <-time.After(maxDelayWaitResponse):
 		assert.Fail(t, "not all messages were received")
-	}
-
-	//closing
-	for i := 0; i < len(nodes); i++ {
-		_ = nodes[i].Close()
 	}
 }
 
 func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing.T) {
 	fmt.Println()
 
-	nodes := make([]*p2p.NetMessenger, 0)
+	nodes := make([]p2p.Messenger, 0)
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
@@ -231,6 +293,8 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 
 		fmt.Printf("Node %v is %s\n", i+1, node.Addrs()[0])
 	}
+
+	defer closeAllNodes(nodes)
 
 	//connect one with each other manually
 	// node0 --------- node1
@@ -246,17 +310,25 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 	nodes[3].ConnectToAddresses(context.Background(), []string{nodes[2].Addrs()[0]})
 	nodes[4].ConnectToAddresses(context.Background(), []string{nodes[3].Addrs()[0], nodes[0].Addrs()[0]})
 
-	time.Sleep(time.Second)
+	connectGraph := make(map[int][]int)
+	connectGraph[0] = []int{1, 2, 4}
+	connectGraph[1] = []int{0, 2}
+	connectGraph[2] = []int{0, 1, 3}
+	connectGraph[3] = []int{2, 4}
+	connectGraph[4] = []int{0, 3}
+
+	chanDone := make(chan bool)
+	go waitForConnectionsToBeMade(nodes, connectGraph, chanDone)
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "Could not make connections")
+		return
+	}
 
 	wg := sync.WaitGroup{}
 	wg.Add(5)
-	done := make(chan bool, 0)
-
-	go func() {
-		defer close(done)
-
-		wg.Wait()
-	}()
+	go waitForWaitGroup(&wg, chanDone)
 
 	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		wg.Done()
@@ -278,15 +350,10 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 	_ = nodes[0].GetTopic("test").Broadcast(testStringNewer{Data: "Foo"})
 
 	select {
-	case <-done:
+	case <-chanDone:
 		fmt.Println("Got all messages!")
-	case <-time.After(time.Second):
+	case <-time.After(maxDelayWaitResponse):
 		assert.Fail(t, "not all messages were received")
-	}
-
-	//closing
-	for i := 0; i < len(nodes); i++ {
-		_ = nodes[i].Close()
 	}
 }
 
@@ -401,7 +468,7 @@ func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testin
 	fmt.Println("Did recv:", didRecv)
 	fmt.Println("Did not recv:", notRecv)
 
-	//TODO remove the comment when pubsub will have its bug fixed
+	//TODO uncomment this when pubsub issue is done
 	//assert.Equal(t, 0, notRecv)
 
 	//closing
@@ -418,83 +485,115 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 	//node1 registers topic 'test' with struct1
 	//node2 registers topic 'test' with struct2
 
-	node1, err := createNetMessenger(t, 13000, 10)
-	assert.Nil(t, err)
+	nodes := make([]p2p.Messenger, 0)
 
-	node2, err := createNetMessenger(t, 13001, 10)
+	node, err := createNetMessenger(t, 13000, 10)
 	assert.Nil(t, err)
+	nodes = append(nodes, node)
+
+	node, err = createNetMessenger(t, 13001, 10)
+	assert.Nil(t, err)
+	nodes = append(nodes, node)
+
+	defer closeAllNodes(nodes)
 
 	//connect nodes
-	node1.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0]})
+	nodes[0].ConnectToAddresses(context.Background(), []string{nodes[1].Addrs()[0]})
 
-	//wait a bit
-	time.Sleep(time.Second)
+	connectGraph := make(map[int][]int)
+	connectGraph[0] = []int{1}
+	connectGraph[1] = []int{0}
+
+	chanDone := make(chan bool)
+	go waitForConnectionsToBeMade(nodes, connectGraph, chanDone)
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "Could not make a connection between the 2 peers")
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go waitForWaitGroup(&wg, chanDone)
 
 	//create topics for each node
-	_ = node1.AddTopic(p2p.NewTopic("test", &structTest1{}, testNetMarshalizer))
-	_ = node2.AddTopic(p2p.NewTopic("test", &structTest2{}, testNetMarshalizer))
-
-	counter := int32(0)
+	_ = nodes[0].AddTopic(p2p.NewTopic("test", &structTest1{}, testNetMarshalizer))
+	_ = nodes[1].AddTopic(p2p.NewTopic("test", &structTest2{}, testNetMarshalizer))
 
 	//node 1 sends, node 2 receives
-	node2.GetTopic("test").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	nodes[1].GetTopic("test").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		fmt.Printf("received: %v", data)
-		atomic.AddInt32(&counter, 1)
+		wg.Done()
 	})
 
-	_ = node1.GetTopic("test").Broadcast(&structTest1{Nonce: 4, Data: 4.5})
+	_ = nodes[0].GetTopic("test").Broadcast(&structTest1{Nonce: 4, Data: 4.5})
 
-	//wait a bit
-	time.Sleep(time.Second)
-
-	//check that the message was filtered out
-	assert.Equal(t, int32(0), atomic.LoadInt32(&counter))
-
-	_ = node1.Close()
-	_ = node2.Close()
+	select {
+	case <-chanDone:
+		assert.Fail(t, "Should have not received the message")
+	case <-time.After(delayWaitResponseUnreceivableMessages):
+	}
 }
 
 func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T) {
 	//stress test to check if the node is able to cope
 	//with receiving on an inexistent topic
 
-	node1, err := createNetMessenger(t, 14000, 10)
-	assert.Nil(t, err)
+	nodes := make([]p2p.Messenger, 0)
 
-	node2, err := createNetMessenger(t, 14001, 10)
+	node, err := createNetMessenger(t, 14000, 10)
 	assert.Nil(t, err)
+	nodes = append(nodes, node)
+
+	node, err = createNetMessenger(t, 14001, 10)
+	assert.Nil(t, err)
+	nodes = append(nodes, node)
+
+	defer closeAllNodes(nodes)
 
 	//connect nodes
-	node1.ConnectToAddresses(context.Background(), []string{node2.Addrs()[0]})
+	nodes[0].ConnectToAddresses(context.Background(), []string{nodes[1].Addrs()[0]})
 
-	//wait a bit
-	time.Sleep(time.Second)
+	connectGraph := make(map[int][]int)
+	connectGraph[0] = []int{1}
+	connectGraph[1] = []int{0}
+
+	chanDone := make(chan bool)
+	go waitForConnectionsToBeMade(nodes, connectGraph, chanDone)
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "Could not make a connection between the 2 peers")
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go waitForWaitGroup(&wg, chanDone)
 
 	//create topics for each node
-	_ = node1.AddTopic(p2p.NewTopic("test1", &testStringNewer{}, testNetMarshalizer))
-	_ = node2.AddTopic(p2p.NewTopic("test2", &testStringNewer{}, testNetMarshalizer))
-
-	counter := int32(0)
+	_ = nodes[0].AddTopic(p2p.NewTopic("test1", &testStringNewer{}, testNetMarshalizer))
+	_ = nodes[1].AddTopic(p2p.NewTopic("test2", &testStringNewer{}, testNetMarshalizer))
 
 	//node 1 sends, node 2 receives
-	node2.GetTopic("test2").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	nodes[1].GetTopic("test2").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		fmt.Printf("received: %v", data)
-		atomic.AddInt32(&counter, 1)
+		wg.Done()
 	})
 
-	_ = node1.GetTopic("test1").Broadcast(testStringNewer{"Foo"})
+	_ = nodes[0].GetTopic("test1").Broadcast(testStringNewer{"Foo"})
 
-	//wait a bit
-	time.Sleep(time.Second)
-
-	//check that the message was filtered out
-	assert.Equal(t, int32(0), atomic.LoadInt32(&counter))
-
-	_ = node1.Close()
-	_ = node2.Close()
+	select {
+	case <-chanDone:
+		assert.Fail(t, "Should have not received the message")
+	case <-time.After(delayWaitResponseUnreceivableMessages):
+	}
 }
 
 func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testing.T) {
+	t.Skip("pubsub's implementation has bugs, skipping for now")
+
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
@@ -594,8 +693,7 @@ func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *test
 	fmt.Println("Did recv:", didRecv)
 	fmt.Println("Did not recv:", notRecv)
 
-	//TODO remove the comment when pubsub will have its bug fixed
-	//assert.Equal(t, 0, notRecv)
+	assert.Equal(t, 0, notRecv)
 
 	//closing
 	for i := 0; i < len(nodes); i++ {
@@ -606,7 +704,7 @@ func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *test
 func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 	fmt.Println()
 
-	nodes := make([]*p2p.NetMessenger, 0)
+	nodes := make([]p2p.Messenger, 0)
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
@@ -617,6 +715,8 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 
 		fmt.Printf("Node %v is %s\n", i+1, node.Addrs()[0])
 	}
+
+	defer closeAllNodes(nodes)
 
 	//connect one with each other manually
 	// node0 --------- node1
@@ -632,12 +732,26 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 	nodes[3].ConnectToAddresses(context.Background(), []string{nodes[2].Addrs()[0]})
 	nodes[4].ConnectToAddresses(context.Background(), []string{nodes[3].Addrs()[0], nodes[0].Addrs()[0]})
 
-	time.Sleep(time.Second)
+	connectGraph := make(map[int][]int)
+	connectGraph[0] = []int{1, 2, 4}
+	connectGraph[1] = []int{0, 2}
+	connectGraph[2] = []int{0, 1, 3}
+	connectGraph[3] = []int{2, 4}
+	connectGraph[4] = []int{0, 3}
 
-	counter := int32(0)
+	chanDone := make(chan bool, 0)
+	go waitForConnectionsToBeMade(nodes, connectGraph, chanDone)
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "Could not make connections")
+		return
+	}
+
+	wg := sync.WaitGroup{}
 
 	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		atomic.AddInt32(&counter, 1)
+		wg.Done()
 	}
 
 	//print connected and create topics
@@ -665,43 +779,51 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 	fmt.Println()
 	fmt.Println()
 
-	//send AAA, wait 1 sec, check that 4 peers got the message
-	atomic.StoreInt32(&counter, 0)
+	//send AAA, wait, check that 4 peers got the message
 	fmt.Println("Broadcasting AAA...")
+	wg.Add(4)
+	go waitForWaitGroup(&wg, chanDone)
 	_ = nodes[0].GetTopic("test").Broadcast(testStringNewer{Data: "AAA"})
-	time.Sleep(time.Second)
-	assert.Equal(t, int32(4), atomic.LoadInt32(&counter))
-	fmt.Printf("%d peers got the message!\n", atomic.LoadInt32(&counter))
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "not all 4 peers got AAA message")
+		return
+	}
 
-	//send BBB, wait 1 sec, check that all peers got the message
-	atomic.StoreInt32(&counter, 0)
+	//send BBB, wait, check that all peers got the message
 	fmt.Println("Broadcasting BBB...")
+	wg.Add(5)
+	go waitForWaitGroup(&wg, chanDone)
+
 	_ = nodes[0].GetTopic("test").Broadcast(testStringNewer{Data: "BBB"})
-	time.Sleep(time.Second)
-	assert.Equal(t, int32(5), atomic.LoadInt32(&counter))
-	fmt.Printf("%d peers got the message!\n", atomic.LoadInt32(&counter))
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "not all 5 peers got BBB message")
+		return
+	}
 
 	//add the validator on node 4
 	_ = nodes[4].GetTopic("test").RegisterValidator(v)
 
-	//send AAA, wait 1 sec, check that 2 peers got the message
-	atomic.StoreInt32(&counter, 0)
-	fmt.Println("Broadcasting AAA...")
-	_ = nodes[0].GetTopic("test").Broadcast(testStringNewer{Data: "AAA"})
-	time.Sleep(time.Second)
-	assert.Equal(t, int32(2), atomic.LoadInt32(&counter))
-	fmt.Printf("%d peers got the message!\n", atomic.LoadInt32(&counter))
+	//send AAA, wait, check that 2 peers got the message
+	fmt.Println("Resending AAA...")
+	wg.Add(2)
+	go waitForWaitGroup(&wg, chanDone)
 
-	//closing
-	for i := 0; i < len(nodes); i++ {
-		_ = nodes[i].Close()
+	_ = nodes[0].GetTopic("test").Broadcast(testStringNewer{Data: "AAA"})
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "not all 2 peers got AAA message")
 	}
 }
 
 func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
 	fmt.Println()
 
-	nodes := make([]*p2p.NetMessenger, 0)
+	nodes := make([]p2p.Messenger, 0)
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
@@ -713,6 +835,8 @@ func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
 		fmt.Printf("Node %v is %s\n", i+1, node.Addrs()[0])
 	}
 
+	defer closeAllNodes(nodes)
+
 	//connect one with each other manually
 	// node0 --------- node1
 	//   |               |
@@ -727,11 +851,31 @@ func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
 	nodes[3].ConnectToAddresses(context.Background(), []string{nodes[2].Addrs()[0]})
 	nodes[4].ConnectToAddresses(context.Background(), []string{nodes[3].Addrs()[0], nodes[0].Addrs()[0]})
 
-	time.Sleep(time.Second)
+	connectGraph := make(map[int][]int)
+	connectGraph[0] = []int{1, 2, 4}
+	connectGraph[1] = []int{0, 2}
+	connectGraph[2] = []int{0, 1, 3}
+	connectGraph[3] = []int{2, 4}
+	connectGraph[4] = []int{0, 3}
 
+	chanDone := make(chan bool, 0)
+	go waitForConnectionsToBeMade(nodes, connectGraph, chanDone)
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "Could not make connections")
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	doWaitGroup := false
 	counter := int32(0)
 
-	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	recv1 := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+		if doWaitGroup {
+			wg.Done()
+		}
+
 		atomic.AddInt32(&counter, 1)
 	}
 
@@ -741,26 +885,33 @@ func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
 		node.PrintConnected()
 
 		_ = node.AddTopic(p2p.NewTopic("test", &testStringNewer{}, testNetMarshalizer))
-		node.GetTopic("test").AddDataReceived(recv)
+		node.GetTopic("test").AddDataReceived(recv1)
 	}
 
 	//send a piggyback message, wait 1 sec
-	atomic.StoreInt32(&counter, 0)
 	fmt.Println("Broadcasting piggyback message...")
 	_ = nodes[0].GetTopic("test").Broadcast(testStringNewer{Data: "piggyback"})
 	time.Sleep(time.Second)
 	fmt.Printf("%d peers got the message!\n", atomic.LoadInt32(&counter))
 
-	//closing
-	for i := 0; i < len(nodes); i++ {
-		_ = nodes[i].Close()
+	atomic.StoreInt32(&counter, 0)
+
+	fmt.Println("Broadcasting AAA...")
+	doWaitGroup = true
+	wg.Add(5)
+	go waitForWaitGroup(&wg, chanDone)
+	_ = nodes[0].GetTopic("test").Broadcast(testStringNewer{Data: "AAA"})
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "not all 5 peers got AAA message")
 	}
 }
 
 func TestNetMessenger_BroadcastToRandomSub_ShouldWork(t *testing.T) {
 	fmt.Println()
 
-	nodes := make([]*p2p.NetMessenger, 0)
+	nodes := make([]p2p.Messenger, 0)
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
@@ -772,6 +923,8 @@ func TestNetMessenger_BroadcastToRandomSub_ShouldWork(t *testing.T) {
 		fmt.Printf("Node %v is %s\n", i+1, node.Addrs()[0])
 	}
 
+	defer closeAllNodes(nodes)
+
 	//connect one with each other manually
 	// node0 --------- node1
 	//   |               |
@@ -786,12 +939,28 @@ func TestNetMessenger_BroadcastToRandomSub_ShouldWork(t *testing.T) {
 	nodes[3].ConnectToAddresses(context.Background(), []string{nodes[2].Addrs()[0]})
 	nodes[4].ConnectToAddresses(context.Background(), []string{nodes[3].Addrs()[0], nodes[0].Addrs()[0]})
 
-	time.Sleep(time.Second)
+	connectGraph := make(map[int][]int)
+	connectGraph[0] = []int{1, 2, 4}
+	connectGraph[1] = []int{0, 2}
+	connectGraph[2] = []int{0, 1, 3}
+	connectGraph[3] = []int{2, 4}
+	connectGraph[4] = []int{0, 3}
 
-	counter := int32(0)
+	chanDone := make(chan bool, 0)
+	go waitForConnectionsToBeMade(nodes, connectGraph, chanDone)
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "Could not make connections")
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(5)
+	go waitForWaitGroup(&wg, chanDone)
 
 	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		atomic.AddInt32(&counter, 1)
+		wg.Done()
 	}
 
 	//print connected and create topics
@@ -803,17 +972,13 @@ func TestNetMessenger_BroadcastToRandomSub_ShouldWork(t *testing.T) {
 		node.GetTopic("test").AddDataReceived(recv)
 	}
 
-	//send AAA, wait 1 sec, check that 4 peers got the message
-	atomic.StoreInt32(&counter, 0)
+	//send AAA, wait, check that 5 peers got the message
 	fmt.Println("Broadcasting AAA...")
 	_ = nodes[0].GetTopic("test").Broadcast(testStringNewer{Data: "AAA"})
-	time.Sleep(time.Second)
-	assert.Equal(t, atomic.LoadInt32(&counter), int32(5))
-	fmt.Printf("%d peers got the message!\n", atomic.LoadInt32(&counter))
-
-	//closing
-	for i := 0; i < len(nodes); i++ {
-		_ = nodes[i].Close()
+	select {
+	case <-chanDone:
+	case <-time.After(maxDelayWaitResponse):
+		assert.Fail(t, "not all 5 peers got AAA message")
 	}
 }
 
