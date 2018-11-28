@@ -75,10 +75,10 @@ func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
 func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	fmt.Println()
 
-	node1, err := createNetMessenger(t, 5100, 10)
+	node1, err := createNetMessenger(t, 5110, 10)
 	assert.Nil(t, err)
 
-	node2, err := createNetMessenger(t, 5101, 10)
+	node2, err := createNetMessenger(t, 5111, 10)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -139,7 +139,7 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 
 	if atomic.LoadInt32(&val) != 2 {
 		t.Fatal("Should have been 2 (pong from node1: self and node2: received from node1)")
