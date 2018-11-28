@@ -730,14 +730,6 @@ func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
 	time.Sleep(time.Second)
 	fmt.Printf("%d peers got the message!\n", atomic.LoadInt32(&counter))
 
-	atomic.StoreInt32(&counter, 0)
-
-	fmt.Println("Broadcasting AAA...")
-	nodes[0].GetTopic("test").Broadcast(testStringNewer{Data: "AAA"})
-	time.Sleep(time.Second)
-	assert.Equal(t, atomic.LoadInt32(&counter), int32(5))
-	fmt.Printf("%d peers got the message!\n", atomic.LoadInt32(&counter))
-
 	//closing
 	for i := 0; i < len(nodes); i++ {
 		nodes[i].Close()
