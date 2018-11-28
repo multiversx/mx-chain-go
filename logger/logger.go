@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,21 +19,42 @@ const (
 	LogPanic   = "PANIC"
 )
 
+const (
+	defaultLogPath 			= "./../logs"
+	defaultStackTraceDepth 	= 2
+)
+
 // Logger represents the application logger.
 type Logger struct {
 	logger *log.Logger
+	file io.Writer
+	logPath string
+	stackTraceDepth int
 }
+
+// Option represents a functional confifuration parameter that can opperate
+//  over the Logger struct
+type Option func (*Logger) error
 
 // NewElrondLogger will setup the defaults of the application logger.
 // If the requested log file is writable it will setup a MultiWriter on both the file
 //  and the standard output. Also sets up the level and the format for the logger.
-func NewElrondLogger(file io.Writer) *Logger {
+func NewElrondLogger(opts ...Option) (*Logger, error) {
 	el := &Logger{
-		log.New(),
+		logger: log.New(),
+		logPath: defaultLogPath,
+		stackTraceDepth: defaultStackTraceDepth,
 	}
 
-	if file != nil {
-		mw := io.MultiWriter(os.Stdout, file)
+	for _, opt := range opts {
+		err := opt(el)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if el.file != nil {
+		mw := io.MultiWriter(os.Stdout, el.file)
 		el.logger.SetOutput(mw)
 	} else {
 		el.logger.SetOutput(os.Stdout)
@@ -42,17 +62,32 @@ func NewElrondLogger(file io.Writer) *Logger {
 
 	el.logger.SetFormatter(&log.JSONFormatter{})
 	el.logger.SetLevel(log.WarnLevel)
-	return el
+	return el, nil
 }
 
 // NewDefaultLogger is a shorthand for instantiating a new logger with default settings.
 // If it fails to open the default log file it will return a logger with os.Stdout output.
-func NewDefaultLogger() *Logger {
+func NewDefaultLogger() (*Logger, error) {
 	file, err := DefaultLogFile()
 	if err != nil {
-		return NewElrondLogger(nil)
+		return NewElrondLogger()
 	}
-	return NewElrondLogger(file)
+	return NewElrondLogger(WithFile(file))
+}
+
+// File returns the current Logger file
+func (el *Logger) File() io.Writer {
+	return el.file
+}
+
+// LogPath returns the current Logger logPath
+func (el *Logger) LogPath() string {
+	return el.logPath
+}
+
+// StackTraceDepth returns the current Logger stackTraceDepth
+func (el *Logger) StackTraceDepth() int {
+	return el.stackTraceDepth
 }
 
 // SetLevel sets the log level according to this package's defined levels.
@@ -119,7 +154,7 @@ func (el *Logger) Panic(message string, extra ...interface{}) {
 }
 
 func (el *Logger) defaultFields() *log.Entry {
-	_, file, line, ok := runtime.Caller(config.ElrondLoggerConfig.StackTraceDepth)
+	_, file, line, ok := runtime.Caller(el.stackTraceDepth)
 	return el.logger.WithFields(log.Fields{
 		"file": file,
 		"line_number": line,
@@ -127,12 +162,36 @@ func (el *Logger) defaultFields() *log.Entry {
 	})
 }
 
+// WithLogPath sets up the logPath option for the Logger
+func WithLogPath(logPath string) Option {
+	return func(el *Logger) error {
+		el.logPath = logPath
+		return nil
+	}
+}
+
+// WithFile sets up the file option for the Logger
+func WithFile(file io.Writer) Option {
+	return func(el *Logger) error {
+		el.file = file
+		return nil
+	}
+}
+
+// WithStackTraceDepth sets up the stackTraceDepth option for the Logger
+func WithStackTraceDepth(depth int) Option {
+	return func(el *Logger) error {
+		el.stackTraceDepth = depth
+		return nil
+	}
+}
+
 // DefaultLogFile returns the default output for the application logger.
 // The client package can always use another output and provide it in the logger constructor.
 func DefaultLogFile() (*os.File, error) {
-	os.MkdirAll(config.ElrondLoggerConfig.LogPath, os.ModePerm)
+	os.MkdirAll(defaultLogPath, os.ModePerm)
 	return os.OpenFile(
-		filepath.Join(config.ElrondLoggerConfig.LogPath, time.Now().Format("2006-02-01") + ".log"),
+		filepath.Join(defaultLogPath, time.Now().Format("2006-02-01") + ".log"),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
 		0666)
 }
