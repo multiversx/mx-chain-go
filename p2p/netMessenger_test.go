@@ -20,6 +20,8 @@ var testNetHasher = &mock.HasherMock{}
 var maxDelayWaitResponse = time.Duration(time.Second * 5)
 var delayWaitResponseUnreceivableMessages = time.Duration(time.Second)
 
+var startPort = 4000
+
 func createNetMessenger(t *testing.T, port int, nConns int) (*p2p.NetMessenger, error) {
 	return createNetMessengerPubSub(t, port, nConns, p2p.FloodSub)
 }
@@ -68,7 +70,7 @@ func closeAllNodes(nodes []p2p.Messenger) {
 func TestNetMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
 	fmt.Println()
 
-	port := 4000
+	port := startPort
 
 	nodes := make([]p2p.Messenger, 0)
 
@@ -90,7 +92,7 @@ func TestNetMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
 func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
 	nodes := make([]p2p.Messenger, 0)
 
-	node, err := createNetMessenger(t, 4500, 10)
+	node, err := createNetMessenger(t, startPort, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
 
@@ -126,11 +128,11 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 
 	nodes := make([]p2p.Messenger, 0)
 
-	node, err := createNetMessenger(t, 5110, 10)
+	node, err := createNetMessenger(t, startPort, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
 
-	node, err = createNetMessenger(t, 5111, 10)
+	node, err = createNetMessenger(t, startPort+1, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
 
@@ -219,7 +221,7 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
-		node, err := createNetMessenger(t, 6100+i, 10)
+		node, err := createNetMessenger(t, startPort+i, 10)
 		assert.Nil(t, err)
 
 		nodes = append(nodes, node)
@@ -289,7 +291,7 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
-		node, err := createNetMessenger(t, 7000+i, 10)
+		node, err := createNetMessenger(t, startPort+i, 10)
 		assert.Nil(t, err)
 
 		nodes = append(nodes, node)
@@ -361,7 +363,7 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 }
 
 func TestNetMessenger_SendingNil_ShouldErr(t *testing.T) {
-	node1, err := createNetMessenger(t, 9000, 10)
+	node1, err := createNetMessenger(t, startPort, 10)
 	assert.Nil(t, err)
 
 	_ = node1.AddTopic(p2p.NewTopic("test", &testStringNewer{}, testNetMarshalizer))
@@ -372,7 +374,7 @@ func TestNetMessenger_SendingNil_ShouldErr(t *testing.T) {
 }
 
 func TestNetMessenger_CreateNodeWithNilMarshalizer_ShouldErr(t *testing.T) {
-	cp, err := p2p.NewConnectParamsFromPort(11000)
+	cp, err := p2p.NewConnectParamsFromPort(startPort)
 	assert.Nil(t, err)
 
 	_, err = p2p.NewNetMessenger(context.Background(), nil, testNetHasher, cp, 10, p2p.FloodSub)
@@ -381,7 +383,7 @@ func TestNetMessenger_CreateNodeWithNilMarshalizer_ShouldErr(t *testing.T) {
 }
 
 func TestNetMessenger_CreateNodeWithNilHasher_ShouldErr(t *testing.T) {
-	cp, err := p2p.NewConnectParamsFromPort(12000)
+	cp, err := p2p.NewConnectParamsFromPort(startPort)
 	assert.Nil(t, err)
 
 	_, err = p2p.NewNetMessenger(context.Background(), testNetMarshalizer, nil, cp, 10, p2p.FloodSub)
@@ -394,8 +396,8 @@ func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testin
 		t.Skip("skipping test in short mode")
 	}
 
-	startPort := 12000
-	endPort := 12009
+	startPort := startPort
+	endPort := startPort + 9
 	nConns := 4
 
 	nodes := make([]p2p.Messenger, 0)
@@ -490,11 +492,11 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 
 	nodes := make([]p2p.Messenger, 0)
 
-	node, err := createNetMessenger(t, 13000, 10)
+	node, err := createNetMessenger(t, startPort, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
 
-	node, err = createNetMessenger(t, 13001, 10)
+	node, err = createNetMessenger(t, startPort+1, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
 
@@ -545,11 +547,11 @@ func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T)
 
 	nodes := make([]p2p.Messenger, 0)
 
-	node, err := createNetMessenger(t, 14000, 10)
+	node, err := createNetMessenger(t, startPort, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
 
-	node, err = createNetMessenger(t, 14001, 10)
+	node, err = createNetMessenger(t, startPort+1, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
 
@@ -601,8 +603,8 @@ func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *test
 		t.Skip("skipping test in short mode")
 	}
 
-	startPort := 12000
-	endPort := 12009
+	startPort := startPort
+	endPort := startPort + 9
 	nConns := 4
 
 	nodes := make([]p2p.Messenger, 0)
@@ -711,7 +713,7 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
-		node, err := createNetMessenger(t, 13120+i, 10)
+		node, err := createNetMessenger(t, startPort+i, 10)
 		assert.Nil(t, err)
 
 		nodes = append(nodes, node)
@@ -830,7 +832,7 @@ func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
-		node, err := createNetMessengerPubSub(t, 14000+i, 10, p2p.GossipSub)
+		node, err := createNetMessengerPubSub(t, startPort+i, 10, p2p.GossipSub)
 		assert.Nil(t, err)
 
 		nodes = append(nodes, node)
@@ -918,7 +920,7 @@ func TestNetMessenger_BroadcastToRandomSub_ShouldWork(t *testing.T) {
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
-		node, err := createNetMessengerPubSub(t, 14100+i, 10, p2p.RandomSub)
+		node, err := createNetMessengerPubSub(t, startPort+i, 10, p2p.RandomSub)
 		assert.Nil(t, err)
 
 		nodes = append(nodes, node)
@@ -988,6 +990,6 @@ func TestNetMessenger_BroadcastToRandomSub_ShouldWork(t *testing.T) {
 func TestNetMessenger_BroadcastToUnknownSub_ShouldErr(t *testing.T) {
 	fmt.Println()
 
-	_, err := createNetMessengerPubSub(t, 14200, 10, 500)
+	_, err := createNetMessengerPubSub(t, startPort, 10, 500)
 	assert.NotNil(t, err)
 }
