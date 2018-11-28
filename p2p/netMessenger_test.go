@@ -173,6 +173,7 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 		payload := (*data.(*testStringNewer)).Data
 
 		if payload == "ping string" {
+			fmt.Println("Ping received, sending pong...")
 			_ = nodes[0].GetTopic("pong").Broadcast(testStringNewer{"pong string"})
 		}
 	})
@@ -183,6 +184,7 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 		fmt.Printf("node1 received: %v\n", payload)
 
 		if payload == "pong string" {
+			fmt.Println("Pong received!")
 			wg.Done()
 		}
 	})
@@ -194,6 +196,7 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 		fmt.Printf("node2 received: %v\n", payload)
 
 		if payload == "pong string" {
+			fmt.Println("Pong received!")
 			wg.Done()
 		}
 	})
@@ -252,17 +255,17 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 	wg.Add(5)
 	go waitForWaitGroup(&wg, chanDone)
 
-	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		wg.Done()
-	}
-
 	//print connected and create topics
 	for i := 0; i < 5; i++ {
 		node := nodes[i]
 		node.PrintConnected()
 
 		_ = node.AddTopic(p2p.NewTopic("test", &testStringNewer{}, testNetMarshalizer))
-		node.GetTopic("test").AddDataReceived(recv)
+		node.GetTopic("test").AddDataReceived(
+			func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+				fmt.Printf("%v received from %v: %v\n", node.ID(), msgInfo.Peer, data.(*testStringNewer).Data)
+				wg.Done()
+			})
 	}
 
 	fmt.Println()
@@ -330,17 +333,17 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 	wg.Add(5)
 	go waitForWaitGroup(&wg, chanDone)
 
-	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		wg.Done()
-	}
-
 	//print connected and create topics
 	for i := 0; i < 5; i++ {
 		node := nodes[i]
 		node.PrintConnected()
 
 		_ = node.AddTopic(p2p.NewTopic("test", &testStringNewer{}, testNetMarshalizer))
-		node.GetTopic("test").AddDataReceived(recv)
+		node.GetTopic("test").AddDataReceived(
+			func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+				fmt.Printf("%v received from %v: %v\n", node.ID(), msgInfo.Peer, data.(*testStringNewer).Data)
+				wg.Done()
+			})
 	}
 
 	fmt.Println()
