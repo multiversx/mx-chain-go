@@ -202,9 +202,14 @@ func (nm *NetMessenger) Close() error {
 	}
 
 	nm.cn.Stop()
-
 	_ = nm.p2pNode.Network().Close()
 	_ = nm.p2pNode.Close()
+
+	nm.mdns = nil
+	nm.cn = nil
+	nm.dn = nil
+	nm.ps = nil
+	nm.p2pNode = nil
 
 	return nil
 }

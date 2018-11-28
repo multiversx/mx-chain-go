@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
@@ -91,6 +92,7 @@ func TaskResolveConnections(cn *ConnNotifier) ResultType {
 
 	//test whether we only have inbound connection (security issue)
 	if inConns > cn.MaxAllowedPeers-1 {
+		fmt.Printf("Closed connection to %v\n", conns[0].RemotePeer())
 		conns[0].Close()
 
 		return OnlyInboundConnections
@@ -141,6 +143,7 @@ func (cn *ConnNotifier) ListenClose(netw net.Network, ma multiaddr.Multiaddr) {
 func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
 	//refuse other connections if max connection has been reached
 	if cn.MaxAllowedPeers < len(cn.Msgr.Conns()) {
+		fmt.Printf("Autoclosed connection to %v\n", conn.RemotePeer())
 		conn.Close()
 	}
 }
