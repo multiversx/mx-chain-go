@@ -1,7 +1,8 @@
 package p2p
 
 import (
-	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/sirupsen/logrus"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
@@ -39,6 +40,8 @@ type ConnNotifier struct {
 	ConnectToPeer func(sender *ConnNotifier, pid peer.ID) error
 
 	indexKnownPeers int
+
+	log *logger.Logger
 }
 
 // NewConnNotifier will create a new object and link it to the messenger provided as parameter
@@ -52,6 +55,8 @@ func NewConnNotifier(m Messenger) *ConnNotifier {
 	//there is a delay between calls so the connecting and disconnecting is not done
 	//very often (take into account that doing a connection is a lengthy process)
 	cn.RoutineWrapper.DurCalls = durRefreshConnections
+
+	cn.log = logger.NewDefaultLogger()
 
 	return &cn
 }
@@ -92,8 +97,8 @@ func TaskResolveConnections(cn *ConnNotifier) ResultType {
 
 	//test whether we only have inbound connection (security issue)
 	if inConns > cn.MaxAllowedPeers-1 {
-		fmt.Printf("Closed connection to %v\n", conns[0].RemotePeer())
-		conns[0].Close()
+		logrus.Infof("Closed connection to %v", conns[0].RemotePeer())
+		_ = conns[0].Close()
 
 		return OnlyInboundConnections
 	}
@@ -143,8 +148,8 @@ func (cn *ConnNotifier) ListenClose(netw net.Network, ma multiaddr.Multiaddr) {
 func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
 	//refuse other connections if max connection has been reached
 	if cn.MaxAllowedPeers < len(cn.Msgr.Conns()) {
-		fmt.Printf("Autoclosed connection to %v\n", conn.RemotePeer())
-		conn.Close()
+		logrus.Infof("Autoclosed connection to %v", conn.RemotePeer())
+		_ = conn.Close()
 	}
 }
 

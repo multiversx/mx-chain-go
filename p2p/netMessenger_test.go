@@ -67,6 +67,10 @@ func closeAllNodes(nodes []p2p.Messenger) {
 }
 
 func TestNetMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	fmt.Println()
 
 	port := startingPort
@@ -89,6 +93,10 @@ func TestNetMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
 }
 
 func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	node, err := createNetMessenger(t, startingPort, 10)
@@ -123,6 +131,10 @@ func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
 }
 
 func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -214,6 +226,10 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 }
 
 func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -284,6 +300,10 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 }
 
 func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -362,6 +382,10 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 }
 
 func TestNetMessenger_SendingNil_ShouldErr(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	node, err := createNetMessenger(t, startingPort, 10)
@@ -376,6 +400,10 @@ func TestNetMessenger_SendingNil_ShouldErr(t *testing.T) {
 }
 
 func TestNetMessenger_CreateNodeWithNilMarshalizer_ShouldErr(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	cp, err := p2p.NewConnectParamsFromPort(startingPort)
 	assert.Nil(t, err)
 
@@ -385,6 +413,10 @@ func TestNetMessenger_CreateNodeWithNilMarshalizer_ShouldErr(t *testing.T) {
 }
 
 func TestNetMessenger_CreateNodeWithNilHasher_ShouldErr(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	cp, err := p2p.NewConnectParamsFromPort(startingPort)
 	assert.Nil(t, err)
 
@@ -394,6 +426,10 @@ func TestNetMessenger_CreateNodeWithNilHasher_ShouldErr(t *testing.T) {
 }
 
 func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
@@ -483,6 +519,10 @@ func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testin
 }
 
 func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	//stress test to check if the node is able to cope
 	//with unmarshaling a bad object
 	//both structs have the same fields but incompatible types
@@ -542,6 +582,10 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 }
 
 func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	//stress test to check if the node is able to cope
 	//with receiving on an inexistent topic
 
@@ -598,6 +642,10 @@ func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T)
 
 func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testing.T) {
 	t.Skip("pubsub's implementation has bugs, skipping for now")
+
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
 
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
@@ -707,6 +755,10 @@ func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *test
 }
 
 func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -826,6 +878,10 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 }
 
 func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -914,6 +970,10 @@ func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
 }
 
 func TestNetMessenger_BroadcastToRandomSub_ShouldWork(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -988,6 +1048,10 @@ func TestNetMessenger_BroadcastToRandomSub_ShouldWork(t *testing.T) {
 }
 
 func TestNetMessenger_BroadcastToUnknownSub_ShouldErr(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	fmt.Println()
 
 	_, err := createNetMessengerPubSub(t, startingPort, 10, 500)

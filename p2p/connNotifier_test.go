@@ -77,6 +77,10 @@ func TestTaskNotDoingStuffOn0MaxPeers(t *testing.T) {
 }
 
 func TestTryToConnectWithSuccess(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	mut := sync.Mutex{}
 	lastString := ""
 
@@ -125,6 +129,10 @@ func TestTryToConnectWithSuccess(t *testing.T) {
 }
 
 func TestRemoveInboundPeers(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	//steps:
 	// - create 3 nodes
 	// - node 1 has a limit of 2 peers to connect to
@@ -190,6 +198,10 @@ func TestRemoveInboundPeers(t *testing.T) {
 }
 
 func TestTryToConnect3PeersWithSuccess(t *testing.T) {
+	if isP2PMessengerException {
+		t.Skip("test skipped (P2PMessenger exception)")
+	}
+
 	cp1, err := p2p.NewConnectParamsFromPort(6000)
 	assert.Nil(t, err)
 
