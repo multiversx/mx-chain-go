@@ -199,6 +199,8 @@ func (nm *NetMessenger) Close() error {
 	nm.mutClosed.Unlock()
 
 	if nm.mdns != nil {
+		//unregistration and closing
+		nm.mdns.UnregisterNotifee(nm)
 		_ = nm.mdns.Close()
 	}
 
