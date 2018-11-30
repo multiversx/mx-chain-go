@@ -57,7 +57,6 @@ type NetMessenger struct {
 	hasher         hashing.Hasher
 	rt             *RoutingTable
 	cn             *ConnNotifier
-	dn             *DiscoveryNotifier
 	mutClosed      sync.RWMutex
 	closed         bool
 	mutTopics      sync.RWMutex
@@ -87,8 +86,7 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 		gossipCache:    NewTimeCache(durTimeCache),
 	}
 
-	node.cn = NewConnNotifier(&node)
-	node.cn.MaxAllowedPeers = maxAllowedPeers
+	node.cn = NewConnNotifier(maxAllowedPeers)
 
 	//TODO LOG timeStart := time.Now()
 
@@ -169,12 +167,8 @@ func (nm *NetMessenger) connNotifierRegistration(ctx context.Context) {
 	//register the notifier
 	nm.p2pNode.Network().Notify(nm.cn)
 
-	nm.cn.OnDoSimpleTask = func(this interface{}) {
-		TaskResolveConnections(nm.cn)
-	}
-
 	nm.cn.GetKnownPeers = func(cn *ConnNotifier) []peer.ID {
-		return cn.Msgr.RouteTable().NearestPeersAll()
+		return nm.RouteTable().NearestPeersAll()
 	}
 
 	nm.cn.ConnectToPeer = func(cn *ConnNotifier, pid peer.ID) error {
@@ -187,6 +181,15 @@ func (nm *NetMessenger) connNotifierRegistration(ctx context.Context) {
 		return nil
 	}
 
+	nm.cn.GetConnections = func(sender *ConnNotifier) []net.Conn {
+		return nm.Conns()
+	}
+
+	nm.cn.IsConnected = func(sender *ConnNotifier, pid peer.ID) bool {
+		return nm.Connectedness(pid) == net.Connected
+	}
+
+	nm.cn.Start()
 }
 
 // Closes a NetMessenger
@@ -195,7 +198,20 @@ func (nm *NetMessenger) Close() error {
 	nm.closed = true
 	nm.mutClosed.Unlock()
 
-	return nm.p2pNode.Close()
+	if nm.mdns != nil {
+		_ = nm.mdns.Close()
+	}
+
+	nm.cn.Stop()
+	_ = nm.p2pNode.Network().Close()
+	_ = nm.p2pNode.Close()
+
+	nm.mdns = nil
+	nm.cn = nil
+	nm.ps = nil
+	nm.p2pNode = nil
+
+	return nil
 }
 
 // ID returns the current id
@@ -280,20 +296,45 @@ func (nm *NetMessenger) Bootstrap(ctx context.Context) {
 		return
 	}
 
-	nm.dn = NewDiscoveryNotifier(nm)
-
 	mdns, err := discovery.NewMdnsService(context.Background(), nm.p2pNode, durMdnsCalls, "discovery")
 
 	if err != nil {
 		panic(err)
 	}
 
-	mdns.RegisterNotifee(nm.dn)
+	mdns.RegisterNotifee(nm)
 	nm.mdns = mdns
 
 	nm.mutBootstrap.Unlock()
 
 	nm.cn.Start()
+}
+
+// HandlePeerFound updates the routing table with this new peer
+func (nm *NetMessenger) HandlePeerFound(pi peerstore.PeerInfo) {
+	if nm.Peers() == nil {
+		return
+	}
+
+	peers := nm.Peers()
+	found := false
+
+	for i := 0; i < len(peers); i++ {
+		if peers[i] == pi.ID {
+			found = true
+			break
+		}
+	}
+
+	if found {
+		return
+	}
+
+	for i := 0; i < len(pi.Addrs); i++ {
+		nm.AddAddress(pi.ID, pi.Addrs[i], peerstore.PermanentAddrTTL)
+	}
+
+	nm.RouteTable().Update(pi.ID)
 }
 
 // PrintConnected displays the connected peers
@@ -344,16 +385,6 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 		return errors.New("topic name contains request suffix")
 	}
 
-	subscr, err := nm.ps.Subscribe(t.Name)
-	if err != nil {
-		return err
-	}
-
-	subscrRequest, err := nm.ps.Subscribe(t.Name + requestTopicSuffix)
-	if err != nil {
-		return err
-	}
-
 	nm.mutTopics.Lock()
 
 	_, ok := nm.topics[t.Name]
@@ -365,6 +396,16 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 	nm.topics[t.Name] = t
 	t.CurrentPeer = nm.ID()
 	nm.mutTopics.Unlock()
+
+	subscr, err := nm.ps.Subscribe(t.Name)
+	if err != nil {
+		return err
+	}
+
+	subscrRequest, err := nm.ps.Subscribe(t.Name + requestTopicSuffix)
+	if err != nil {
+		return err
+	}
 
 	// async func for passing received data to Topic object
 	go func() {

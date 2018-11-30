@@ -27,7 +27,7 @@ func NewTimeCache(span time.Duration) *TimeCache {
 func (tc *TimeCache) Add(key string) {
 	_, ok := tc.data[key]
 	if ok {
-		panic("putting the same key twice not supported")
+		return
 	}
 
 	tc.sweep()
