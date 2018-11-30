@@ -39,8 +39,6 @@ const (
 	FloodSub = iota
 	// GossipSub strategy to use when broadcasting messages
 	GossipSub
-	// RandomSub strategy to use when broadcasting messages
-	RandomSub
 )
 
 // NetMessenger implements a libP2P node with added functionality
@@ -143,14 +141,6 @@ func (nm *NetMessenger) createPubSub(hostP2P host.Host, pubsubStrategy PubSubStr
 	case GossipSub:
 		{
 			ps, err := pubsub.NewGossipSub(ctx, hostP2P, optsPS...)
-			if err != nil {
-				return err
-			}
-			nm.ps = ps
-		}
-	case RandomSub:
-		{
-			ps, err := pubsub.NewRandomSub(ctx, hostP2P, optsPS...)
 			if err != nil {
 				return err
 			}
