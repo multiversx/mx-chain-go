@@ -125,7 +125,7 @@ func closeAllNodes(nodes []p2p.Messenger) {
 		_ = nodes[i].Close()
 	}
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 60)
 }
 
 func TestNetMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
