@@ -1,7 +1,6 @@
 package p2p
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/sirupsen/logrus"
 	"time"
 
@@ -40,8 +39,6 @@ type ConnNotifier struct {
 	ConnectToPeer func(sender *ConnNotifier, pid peer.ID) error
 
 	indexKnownPeers int
-
-	log *logger.Logger
 }
 
 // NewConnNotifier will create a new object and link it to the messenger provided as parameter
@@ -55,8 +52,6 @@ func NewConnNotifier(m Messenger) *ConnNotifier {
 	//there is a delay between calls so the connecting and disconnecting is not done
 	//very often (take into account that doing a connection is a lengthy process)
 	cn.RoutineWrapper.DurCalls = durRefreshConnections
-
-	cn.log = logger.NewDefaultLogger()
 
 	return &cn
 }
