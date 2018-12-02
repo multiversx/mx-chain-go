@@ -33,7 +33,7 @@ func (hasherMock127) Size() int {
 	return 64
 }
 
-func TestAddress_NewAddress_InvalidData_ShouldErr(t *testing.T) {
+func TestAddressNewAddressInvalidDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	//nil address
@@ -59,7 +59,7 @@ func TestAddress_NewAddress_InvalidData_ShouldErr(t *testing.T) {
 	}
 }
 
-func TestAddress_NewAddress_ValidData_ShouldWork(t *testing.T) {
+func TestAddressNewAddressValidDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	address, err := state.NewAddress(make([]byte, state.AdrLen))
@@ -68,7 +68,7 @@ func TestAddress_NewAddress_ValidData_ShouldWork(t *testing.T) {
 	assert.Equal(t, address.Bytes(), make([]byte, state.AdrLen))
 }
 
-func TestAddress_Hex_ShouldWork(t *testing.T) {
+func TestAddressHexShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//generating a random byte slice
@@ -82,7 +82,7 @@ func TestAddress_Hex_ShouldWork(t *testing.T) {
 	assert.Equal(t, state.HexPrefix+hex.EncodeToString(buff), address.Hex())
 }
 
-func TestAddress_FromHexAddress_InvalidData_ShouldErr(t *testing.T) {
+func TestAddressFromHexAddressInvalidDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	//empty string
@@ -112,7 +112,7 @@ func TestAddress_FromHexAddress_InvalidData_ShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestAddress_FromHexAddress_ValidData_ShouldWork(t *testing.T) {
+func TestAddressFromHexAddressValidDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//generating a random byte slice
@@ -132,7 +132,7 @@ func TestAddress_FromHexAddress_ValidData_ShouldWork(t *testing.T) {
 	assert.Equal(t, adrPrefix.Bytes(), adrNoPrefix.Bytes())
 }
 
-func TestAddress_Hash_ValidData_ShouldWork(t *testing.T) {
+func TestAddressHashValidDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//generating a random byte slice
@@ -149,7 +149,7 @@ func TestAddress_Hash_ValidData_ShouldWork(t *testing.T) {
 	assert.Equal(t, hashExpected, adr.Hash(h))
 }
 
-func TestAddress_FromPubKeyBytes_InvalidData_ShouldErr(t *testing.T) {
+func TestAddressFromPubKeyBytesInvalidDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	//nil bytes
@@ -167,7 +167,7 @@ func TestAddress_FromPubKeyBytes_InvalidData_ShouldErr(t *testing.T) {
 	}
 }
 
-func TestAddress_FromPubKeyBytes_ValidDataAdrLen_ShouldWork(t *testing.T) {
+func TestAddressFromPubKeyBytesValidDataAdrLenShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//generating a random byte slice with len > AdrLen
@@ -189,7 +189,7 @@ func TestAddress_FromPubKeyBytes_ValidDataAdrLen_ShouldWork(t *testing.T) {
 
 }
 
-func TestAddress_FromPubKeyBytes_ValidDataTrim_ShouldWork(t *testing.T) {
+func TestAddressFromPubKeyBytesValidDataTrimShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//generating a random byte slice with len > AdrLen

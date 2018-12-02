@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func aCreateRandomAddress() *state.Address {
+func accountStateCreateRandomAddress() *state.Address {
 	buff := make([]byte, state.AdrLen)
 	rand.Read(buff)
 
@@ -22,17 +22,17 @@ func aCreateRandomAddress() *state.Address {
 	return addr
 }
 
-func aCreateAccountsDB() *state.AccountsDB {
+func accountStateCreateAccountsDB() *state.AccountsDB {
 	marsh := mock.MarshalizerMock{}
 	adb := state.NewAccountsDB(mock.NewMockTrie(), mock.HasherMock{}, &marsh)
 
 	return adb
 }
 
-func TestAccountState_SetNonce_NilAccounts_ShouldRetErr(t *testing.T) {
+func TestAccountStateSetNonceNilAccountsShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
+	adr1 := accountStateCreateRandomAddress()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 
@@ -41,11 +41,11 @@ func TestAccountState_SetNonce_NilAccounts_ShouldRetErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestAccountState_SetNonce_WithVals_ShouldWork(t *testing.T) {
+func TestAccountStateSetNonceWithValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
-	adb := aCreateAccountsDB()
+	adr1 := accountStateCreateRandomAddress()
+	adb := accountStateCreateAccountsDB()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 
@@ -56,25 +56,25 @@ func TestAccountState_SetNonce_WithVals_ShouldWork(t *testing.T) {
 
 }
 
-func TestAccountState_SetBalance_NilValues_ShouldRetErr(t *testing.T) {
+func TestAccountStateSetBalanceNilValuesShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
+	adr1 := accountStateCreateRandomAddress()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 
 	err := as.SetBalance(nil, big.NewInt(0))
 	assert.NotNil(t, err)
 
-	err = as.SetBalance(aCreateAccountsDB(), nil)
+	err = as.SetBalance(accountStateCreateAccountsDB(), nil)
 	assert.NotNil(t, err)
 }
 
-func TestAccountState_SetBalance_WithVals_ShouldWork(t *testing.T) {
+func TestAccountStateSetBalanceWithValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
-	adb := aCreateAccountsDB()
+	adr1 := accountStateCreateRandomAddress()
+	adb := accountStateCreateAccountsDB()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 
@@ -85,10 +85,10 @@ func TestAccountState_SetBalance_WithVals_ShouldWork(t *testing.T) {
 
 }
 
-func TestAccountState_SetCodeHash_NilAccounts_ShouldRetErr(t *testing.T) {
+func TestAccountStateSetCodeHashNilAccountsShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
+	adr1 := accountStateCreateRandomAddress()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 
@@ -96,11 +96,11 @@ func TestAccountState_SetCodeHash_NilAccounts_ShouldRetErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestAccountState_SetCodeHash_WithVals_ShouldWork(t *testing.T) {
+func TestAccountStateSetCodeHashWithValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
-	adb := aCreateAccountsDB()
+	adr1 := accountStateCreateRandomAddress()
+	adb := accountStateCreateAccountsDB()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 
@@ -111,36 +111,36 @@ func TestAccountState_SetCodeHash_WithVals_ShouldWork(t *testing.T) {
 
 }
 
-func TestAccountState_SetRoot_NilAccounts_ShouldRetErr(t *testing.T) {
+func TestAccountStateSetRootHashNilAccountsShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
+	adr1 := accountStateCreateRandomAddress()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 
-	err := as.SetRoot(nil, make([]byte, 0))
+	err := as.SetRootHash(nil, make([]byte, 0))
 	assert.NotNil(t, err)
 }
 
-func TestAccountState_SetRoot_WithVals_ShouldWork(t *testing.T) {
+func TestAccountStateSetRootHashWithValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
-	adb := aCreateAccountsDB()
+	adr1 := accountStateCreateRandomAddress()
+	adb := accountStateCreateAccountsDB()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 
-	err := as.SetRoot(adb, []byte{65, 66, 67})
+	err := as.SetRootHash(adb, []byte{65, 66, 67})
 	assert.Nil(t, err)
-	assert.Equal(t, []byte{65, 66, 67}, as.Root())
+	assert.Equal(t, []byte{65, 66, 67}, as.RootHash())
 	assert.Equal(t, 1, adb.JournalLen())
 
 }
 
-func TestAccountState_RetrieveValue_NilDataTrie_ShouldErr(t *testing.T) {
+func TestAccountStateRetrieveValueNilDataTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
+	adr1 := accountStateCreateRandomAddress()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 
@@ -148,11 +148,11 @@ func TestAccountState_RetrieveValue_NilDataTrie_ShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestAccountState_RetrieveValue_FoundInDirty_ShouldWork(t *testing.T) {
+func TestAccountStateRetrieveValueFoundInDirtyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
-	adb := aCreateAccountsDB()
+	adr1 := accountStateCreateRandomAddress()
+	adb := accountStateCreateAccountsDB()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 	as.SetDataTrie(adb.MainTrie)
@@ -163,11 +163,11 @@ func TestAccountState_RetrieveValue_FoundInDirty_ShouldWork(t *testing.T) {
 	assert.Equal(t, []byte{32, 33, 34}, val)
 }
 
-func TestAccountState_RetrieveValue_FoundInOriginal_ShouldWork(t *testing.T) {
+func TestAccountStateRetrieveValueFoundInOriginalShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
-	adb := aCreateAccountsDB()
+	adr1 := accountStateCreateRandomAddress()
+	adb := accountStateCreateAccountsDB()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 	as.SetDataTrie(adb.MainTrie)
@@ -179,11 +179,11 @@ func TestAccountState_RetrieveValue_FoundInOriginal_ShouldWork(t *testing.T) {
 	assert.Equal(t, []byte{35, 36, 37}, val)
 }
 
-func TestAccountState_RetrieveValue_FoundInTrie_ShouldWork(t *testing.T) {
+func TestAccountStateRetrieveValueFoundInTrieShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
-	adb := aCreateAccountsDB()
+	adr1 := accountStateCreateRandomAddress()
+	adb := accountStateCreateAccountsDB()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 	as.SetDataTrie(adb.MainTrie)
@@ -197,11 +197,11 @@ func TestAccountState_RetrieveValue_FoundInTrie_ShouldWork(t *testing.T) {
 	assert.Equal(t, []byte{38, 39, 40}, val)
 }
 
-func TestAccountState_RetrieveValue_MalfunctionTrie_ShouldErr(t *testing.T) {
+func TestAccountStateRetrieveValueMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
-	adb := aCreateAccountsDB()
+	adr1 := accountStateCreateRandomAddress()
+	adb := accountStateCreateAccountsDB()
 	adb.MainTrie.(*mock.TrieMock).FailGet = true
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
@@ -216,11 +216,11 @@ func TestAccountState_RetrieveValue_MalfunctionTrie_ShouldErr(t *testing.T) {
 	assert.Nil(t, val)
 }
 
-func TestAccountState_SaveKeyValue_ShouldSaveOnlyInDirty(t *testing.T) {
+func TestAccountStateSaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
-	adb := aCreateAccountsDB()
+	adr1 := accountStateCreateRandomAddress()
+	adb := accountStateCreateAccountsDB()
 
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 	as.SetDataTrie(adb.MainTrie)
@@ -236,36 +236,10 @@ func TestAccountState_SaveKeyValue_ShouldSaveOnlyInDirty(t *testing.T) {
 	assert.Nil(t, val)
 }
 
-func TestAccountState_CollapseDirty_ValidVals_ShouldWork(t *testing.T) {
+func TestAccountStateCodeSetGetShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
-	adb := aCreateAccountsDB()
-
-	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
-	as.SetDataTrie(adb.MainTrie)
-	//this one wil have its value dirtied
-	as.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	//this one will have the same value as in original
-	as.SaveKeyValue([]byte{65, 66, 68}, []byte{35, 36, 37})
-
-	as.OriginalData()["ABC"] = make([]byte, 0)
-	as.OriginalData()["ABD"] = []byte{35, 36, 37}
-
-	as.CollapseDirty()
-
-	for k, v := range as.DirtyData() {
-		//test not to be ABD
-		assert.NotEqual(t, k, []byte{65, 66, 68})
-		//test that value is not []byte{35, 36, 37}
-		assert.NotEqual(t, v, []byte{35, 36, 37})
-	}
-}
-
-func TestAccountState_Code_SetGet_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	adr1 := aCreateRandomAddress()
+	adr1 := accountStateCreateRandomAddress()
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 
 	assert.Nil(t, as.Code())
@@ -273,10 +247,10 @@ func TestAccountState_Code_SetGet_ShouldWork(t *testing.T) {
 	assert.Equal(t, []byte{65, 66, 67}, as.Code())
 }
 
-func TestAccountState_ClearDirty_ValidData_ShouldWork(t *testing.T) {
+func TestAccountStateClearDataCachesValidDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := aCreateRandomAddress()
+	adr1 := accountStateCreateRandomAddress()
 	as := state.NewAccountState(adr1, state.NewAccount(), mock.HasherMock{})
 
 	assert.Equal(t, 0, len(as.DirtyData()))
@@ -286,6 +260,6 @@ func TestAccountState_ClearDirty_ValidData_ShouldWork(t *testing.T) {
 	assert.Equal(t, 1, len(as.DirtyData()))
 
 	//clear
-	as.ClearDirty()
+	as.ClearDataCaches()
 	assert.Equal(t, 0, len(as.DirtyData()))
 }

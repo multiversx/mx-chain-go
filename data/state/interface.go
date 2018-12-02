@@ -12,55 +12,55 @@ const HashLength = 32
 
 // AccountsHandler is used for the structure that manages the accounts
 type AccountsHandler interface {
-	PutCode(acState AccountStateHandler, code []byte) error
-	RemoveCode(codeHash []byte) error
-	RetrieveDataTrie(acState AccountStateHandler) error
-	SaveData(acState AccountStateHandler) error
-	HasAccountState(address AddressHandler) (bool, error)
-	SaveAccountState(acState AccountStateHandler) error
-	RemoveAccount(address AddressHandler) error
-	GetOrCreateAccountState(address AddressHandler) (AccountStateHandler, error)
-	AddJurnalEntry(je JournalEntry)
-	RevertFromSnapshot(snapshot int) error
-	JournalLen() int
+	AddJournalEntry(je JournalEntry)
 	Commit() ([]byte, error)
+	GetOrCreateAccountState(addressHandler AddressHandler) (AccountStateHandler, error)
+	HasAccountState(addressHandler AddressHandler) (bool, error)
+	JournalLen() int
+	PutCode(acState AccountStateHandler, code []byte) error
+	RemoveAccount(addressHandler AddressHandler) error
+	RemoveCode(codeHash []byte) error
+	RetrieveDataTrie(acountStateHandler AccountStateHandler) error
+	RevertToSnapshot(snapshot int) error
+	SaveAccountState(acountStateHandler AccountStateHandler) error
+	SaveData(acountStateHandler AccountStateHandler) error
 }
 
 // AccountStateHandler models what an AccountState struct should do
 type AccountStateHandler interface {
-	Address() AddressHandler
-	Nonce() uint64
-	SetNonce(accounts AccountsHandler, nonce uint64) error
-	SetNonceNoJournal(nonce uint64)
+	AddressHandler() AddressHandler
 	Balance() big.Int
-	SetBalance(accounts AccountsHandler, value *big.Int) error
-	SetBalanceNoJournal(value *big.Int)
-	CodeHash() []byte
-	SetCodeHash(accounts AccountsHandler, codeHash []byte) error
-	SetCodeHashNoJournal(codeHash []byte)
 	Code() []byte
-	SetCode(code []byte)
-	Root() []byte
-	SetRoot(accounts AccountsHandler, root []byte) error
-	SetRootNoJournal(root []byte)
+	CodeHash() []byte
+	ClearDataCaches()
 	DataTrie() trie.PatriciaMerkelTree
-	SetDataTrie(t trie.PatriciaMerkelTree)
-	RetrieveValue(key []byte) ([]byte, error)
-	SaveKeyValue(key []byte, value []byte)
-	CollapseDirty()
-	ClearDirty()
 	DirtyData() map[string][]byte
+	Nonce() uint64
+	OriginalValue(key []byte) []byte
+	RetrieveValue(key []byte) ([]byte, error)
+	RootHash() []byte
+	SaveKeyValue(key []byte, value []byte)
+	SetBalance(accountsHandler AccountsHandler, value *big.Int) error
+	SetBalanceNoJournal(value *big.Int)
+	SetCode(code []byte)
+	SetCodeHash(accountsHandler AccountsHandler, codeHash []byte) error
+	SetCodeHashNoJournal(codeHash []byte)
+	SetDataTrie(trie trie.PatriciaMerkelTree)
+	SetNonce(accountsHandler AccountsHandler, nonce uint64) error
+	SetNonceNoJournal(nonce uint64)
+	SetRootHash(accountsHandler AccountsHandler, rootHash []byte) error
+	SetRootHashNoJournal(rootHash []byte)
 }
 
 // AddressHandler models what an Address struct should do
 type AddressHandler interface {
 	Bytes() []byte
 	Hash(hasher hashing.Hasher) []byte
-	Hex() string
+	//Hex() string
 }
 
 // JournalEntry will be used to implement different state changes to be able to easily revert them
 type JournalEntry interface {
-	Revert(accounts AccountsHandler) error
-	DirtyAddress() AddressHandler
+	Revert(accountsHandler AccountsHandler) error
+	DirtiedAddress() AddressHandler
 }
