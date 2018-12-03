@@ -39,7 +39,8 @@ func NewSubround(
 		name:    name,
 		work:    work,
 		extend:  extend,
-		check:   check}
+		check:   check,
+	}
 
 	return &sr
 }

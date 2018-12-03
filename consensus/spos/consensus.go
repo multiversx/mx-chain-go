@@ -138,7 +138,8 @@ func NewConsensus(
 		Validators:     vld,
 		RoundThreshold: thr,
 		RoundStatus:    rs,
-		Chr:            chr}
+		Chr:            chr,
+	}
 
 	return &cns
 }

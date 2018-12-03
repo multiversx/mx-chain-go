@@ -65,8 +65,8 @@ func (vld *Validators) SelfId() string {
 }
 
 // SetSelfId sets selfId ID
-func (vld *Validators) SetSelfId(self string) {
-	vld.selfId = self
+func (vld *Validators) SetSelfId(selfId string) {
+	vld.selfId = selfId
 }
 
 // NewValidators creates a new Validators object
@@ -74,14 +74,15 @@ func NewValidators(
 	waitingList []string,
 	eligibleList []string,
 	consensusGroup []string,
-	self string,
+	selfId string,
 ) *Validators {
 
 	v := Validators{
 		waitingList:    waitingList,
 		eligibleList:   eligibleList,
 		consensusGroup: consensusGroup,
-		selfId:         self}
+		selfId:         selfId,
+	}
 
 	v.agreement = make(map[string]*RoundValidation)
 
