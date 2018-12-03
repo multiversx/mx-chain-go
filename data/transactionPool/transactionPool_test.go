@@ -31,7 +31,7 @@ func TestTransactionPool_AddTransaction(t *testing.T) {
 
 func TestTransactionPool_MiniPoolStorageEvictsTx(t *testing.T) {
 	t.Parallel()
-	size := int(config.TestnetBlockchainConfig.TxPoolStorage.Size)
+	size := int(config.Blockchain.TxPoolStorage.Size)
 	txp := transactionPool.NewTransactionPool()
 	for i := 1; i < size+2; i++ {
 		key := []byte(strconv.Itoa(i))

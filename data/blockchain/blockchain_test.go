@@ -1,6 +1,7 @@
 package blockchain_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
@@ -22,64 +23,64 @@ func failOnPanic(t *testing.T) {
 
 func TestNewDataErrOnTxStorageCreationShouldPanic(t *testing.T) {
 	defer failOnNoPanic(t)
-	cfg := &config.TestnetBlockchainConfig.TxStorage.CacheConf.Type
-	val := config.TestnetBlockchainConfig.TxStorage.CacheConf.Type
+	cfg := &config.Blockchain.TxStorage.CacheConf.Type
+	val := config.Blockchain.TxStorage.CacheConf.Type
 
 	// restore default config
-	defer func(cacheType *config.CacheType, val config.CacheType) {
+	defer func(cacheType *storage.CacheType, val storage.CacheType) {
 		*cacheType = val
 	}(cfg, val)
 
 	// e.g change the config to a not supported cache type
-	config.TestnetBlockchainConfig.TxStorage.CacheConf.Type = 100
+	config.Blockchain.TxStorage.CacheConf.Type = 100
 	blockchain.NewData()
 }
 
 func TestNewDataErrOnBlockStorageCreationShouldPanic(t *testing.T) {
 	defer failOnNoPanic(t)
 
-	cfg := &config.TestnetBlockchainConfig.BlockStorage.CacheConf.Type
-	val := config.TestnetBlockchainConfig.BlockStorage.CacheConf.Type
+	cfg := &config.Blockchain.BlockStorage.CacheConf.Type
+	val := config.Blockchain.BlockStorage.CacheConf.Type
 
 	// restore default config
-	defer func(cacheType *config.CacheType, val config.CacheType) {
+	defer func(cacheType *storage.CacheType, val storage.CacheType) {
 		*cacheType = val
 	}(cfg, val)
 
 	// e.g change the config to a not supported cache type
-	config.TestnetBlockchainConfig.BlockStorage.CacheConf.Type = 100
+	config.Blockchain.BlockStorage.CacheConf.Type = 100
 	blockchain.NewData()
 }
 
 func TestNewDataErrOnBlockHeaderStorageCreationShouldPanic(t *testing.T) {
 	defer failOnNoPanic(t)
 
-	cfg := &config.TestnetBlockchainConfig.BlockHeaderStorage.CacheConf.Type
-	val := config.TestnetBlockchainConfig.BlockHeaderStorage.CacheConf.Type
+	cfg := &config.Blockchain.BlockHeaderStorage.CacheConf.Type
+	val := config.Blockchain.BlockHeaderStorage.CacheConf.Type
 
 	// restore default config
-	defer func(cacheType *config.CacheType, val config.CacheType) {
+	defer func(cacheType *storage.CacheType, val storage.CacheType) {
 		*cacheType = val
 	}(cfg, val)
 
 	// e.g change the config to a not supported cache type
-	config.TestnetBlockchainConfig.BlockHeaderStorage.CacheConf.Type = 100
+	config.Blockchain.BlockHeaderStorage.CacheConf.Type = 100
 	blockchain.NewData()
 }
 
 func TestNewDataErrOnBBlockCacheCreationShouldPanic(t *testing.T) {
 	defer failOnNoPanic(t)
 
-	cfg := &config.TestnetBlockchainConfig.BBlockCache.Type
-	val := config.TestnetBlockchainConfig.BBlockCache.Type
+	cfg := &config.Blockchain.BBlockCache.Type
+	val := config.Blockchain.BBlockCache.Type
 
 	// restore default config
-	defer func(cacheType *config.CacheType, val config.CacheType) {
+	defer func(cacheType *storage.CacheType, val storage.CacheType) {
 		*cacheType = val
 	}(cfg, val)
 
 	// e.g change the config to a not supported cache type
-	config.TestnetBlockchainConfig.BBlockCache.Type = 100
+	config.Blockchain.BBlockCache.Type = 100
 	blockchain.NewData()
 }
 

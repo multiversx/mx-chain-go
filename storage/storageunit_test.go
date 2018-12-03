@@ -3,7 +3,6 @@ package storage_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
@@ -264,7 +263,7 @@ func TestDestroyUnitNoError(t *testing.T) {
 }
 
 func TestCreateCacheFromConfWrongType(t *testing.T) {
-	cacheConfig := &config.CacheConfig{
+	cacheConfig := &storage.CacheConfig{
 		Size: 10,
 		Type: 100,
 	}
@@ -276,9 +275,9 @@ func TestCreateCacheFromConfWrongType(t *testing.T) {
 }
 
 func TestCreateCacheFromConfOK(t *testing.T) {
-	cacheConfig := &config.CacheConfig{
+	cacheConfig := &storage.CacheConfig{
 		Size: 10,
-		Type: config.LRUCache,
+		Type: storage.LRUCache,
 	}
 
 	cacher, err := storage.CreateCacheFromConf(cacheConfig)
@@ -288,7 +287,7 @@ func TestCreateCacheFromConfOK(t *testing.T) {
 }
 
 func TestCreateDBFromConfWrongType(t *testing.T) {
-	dbConfig := &config.DBConfig{
+	dbConfig := &storage.DBConfig{
 		Type:     100,
 		FileName: "testdb",
 	}
@@ -300,8 +299,8 @@ func TestCreateDBFromConfWrongType(t *testing.T) {
 }
 
 func TestCreateDBFromConfWrongFileName(t *testing.T) {
-	dbConfig := &config.DBConfig{
-		Type:     config.LvlDB,
+	dbConfig := &storage.DBConfig{
+		Type:     storage.LvlDB,
 		FileName: "",
 	}
 
@@ -312,8 +311,8 @@ func TestCreateDBFromConfWrongFileName(t *testing.T) {
 }
 
 func TestCreateDBFromConfOk(t *testing.T) {
-	dbConfig := &config.DBConfig{
-		Type:     config.LvlDB,
+	dbConfig := &storage.DBConfig{
+		Type:     storage.LvlDB,
 		FileName: "tmp",
 	}
 
@@ -326,14 +325,14 @@ func TestCreateDBFromConfOk(t *testing.T) {
 }
 
 func TestNewStorageUnitFromConfWrongCacheConfig(t *testing.T) {
-	stUnit := &config.StorageUnitConfig{
-		CacheConf: &config.CacheConfig{
+	stUnit := &storage.StorageUnitConfig{
+		CacheConf: &storage.CacheConfig{
 			Size: 10,
 			Type: 100,
 		},
-		DBConf: &config.DBConfig{
+		DBConf: &storage.DBConfig{
 			FileName: "Blocks",
-			Type:     config.LvlDB,
+			Type:     storage.LvlDB,
 		},
 	}
 
@@ -344,12 +343,12 @@ func TestNewStorageUnitFromConfWrongCacheConfig(t *testing.T) {
 }
 
 func TestNewStorageUnitFromConfWrongDBConfig(t *testing.T) {
-	stUnit := &config.StorageUnitConfig{
-		CacheConf: &config.CacheConfig{
+	stUnit := &storage.StorageUnitConfig{
+		CacheConf: &storage.CacheConfig{
 			Size: 10,
-			Type: config.LRUCache,
+			Type: storage.LRUCache,
 		},
-		DBConf: &config.DBConfig{
+		DBConf: &storage.DBConfig{
 			FileName: "Blocks",
 			Type:     100,
 		},
@@ -362,14 +361,14 @@ func TestNewStorageUnitFromConfWrongDBConfig(t *testing.T) {
 }
 
 func TestNewStorageUnitFromConfOk(t *testing.T) {
-	stUnit := &config.StorageUnitConfig{
-		CacheConf: &config.CacheConfig{
+	stUnit := &storage.StorageUnitConfig{
+		CacheConf: &storage.CacheConfig{
 			Size: 10,
-			Type: config.LRUCache,
+			Type: storage.LRUCache,
 		},
-		DBConf: &config.DBConfig{
+		DBConf: &storage.DBConfig{
 			FileName: "Blocks",
-			Type:     config.LvlDB,
+			Type:     storage.LvlDB,
 		},
 	}
 

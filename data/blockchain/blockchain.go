@@ -61,26 +61,26 @@ type BlockChain struct {
 // NewData returns an initialized blockchain
 // It uses a config file to setup it's supported storage units map
 func NewData() (*BlockChain, error) {
-	txStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.TxStorage)
+	txStorage, err := storage.NewStorageUnitFromConf(config.Blockchain.TxStorage)
 
 	if err != nil {
 		panic(err)
 	}
 
-	blStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.BlockStorage)
+	blStorage, err := storage.NewStorageUnitFromConf(config.Blockchain.BlockStorage)
 	if err != nil {
 		txStorage.DestroyUnit()
 		panic(err)
 	}
 
-	blHeadStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.BlockHeaderStorage)
+	blHeadStorage, err := storage.NewStorageUnitFromConf(config.Blockchain.BlockHeaderStorage)
 	if err != nil {
 		txStorage.DestroyUnit()
 		blStorage.DestroyUnit()
 		panic(err)
 	}
 
-	badBlocksCache, err := storage.CreateCacheFromConf(config.TestnetBlockchainConfig.BBlockCache)
+	badBlocksCache, err := storage.CreateCacheFromConf(config.Blockchain.BBlockCache)
 
 	if err != nil {
 		txStorage.DestroyUnit()

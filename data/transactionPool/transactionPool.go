@@ -38,7 +38,7 @@ func NewTransactionPool() *TransactionPool {
 
 // NewMiniPool is responsible for creating an empty mini pool
 func NewMiniPool(destShardID uint32) *miniPool {
-	cacher, err := storage.CreateCacheFromConf(config.TestnetBlockchainConfig.TxPoolStorage)
+	cacher, err := storage.CreateCacheFromConf(config.Blockchain.TxPoolStorage)
 	if err != nil {
 		// TODO: This should be replaced with the correct log panic
 		panic("Could not create cache storage for pools")

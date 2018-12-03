@@ -3,12 +3,46 @@ package storage
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 
 	"github.com/pkg/errors"
 )
+
+// CacheType represents the type of the supported caches
+type CacheType uint8
+
+// DBType represents the type of the supported databases
+type DBType uint8
+
+// LRUCache is currently the only supported Cache type
+const (
+	LRUCache CacheType = 0
+)
+
+// LvlDB currently the only supported DBs
+// More to be added
+const (
+	LvlDB DBType = 0
+)
+
+// StorageUnitConfig holds the configurable elements of the storage unit
+type StorageUnitConfig struct {
+	CacheConf *CacheConfig
+	DBConf    *DBConfig
+}
+
+// CacheConfig holds the configurable elements of a cache
+type CacheConfig struct {
+	Size uint32
+	Type CacheType
+}
+
+// DBConfig holds the configurable elements of a database
+type DBConfig struct {
+	FileName string
+	Type     DBType
+}
 
 // Persister provides storage of data services in a database like construct
 type Persister interface {
@@ -234,7 +268,7 @@ func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
 }
 
 // NewStorageUnitFromConf creates a new storage unit from a storage unit config
-func NewStorageUnitFromConf(conf *config.StorageUnitConfig) (*StorageUnit, error) {
+func NewStorageUnitFromConf(conf *StorageUnitConfig) (*StorageUnit, error) {
 	var cache Cacher
 	var db Persister
 	var err error
@@ -261,12 +295,12 @@ func NewStorageUnitFromConf(conf *config.StorageUnitConfig) (*StorageUnit, error
 }
 
 //CreateCacheFromConf creates a new cache from a cache config
-func CreateCacheFromConf(conf *config.CacheConfig) (Cacher, error) {
+func CreateCacheFromConf(conf *CacheConfig) (Cacher, error) {
 	var cacher Cacher
 	var err error
 
 	switch conf.Type {
-	case config.LRUCache:
+	case LRUCache:
 		cacher, err = lrucache.NewCache(int(conf.Size))
 		// add other implementations if required
 	default:
@@ -280,12 +314,12 @@ func CreateCacheFromConf(conf *config.CacheConfig) (Cacher, error) {
 }
 
 // CreateDBFromConf creates a new database from database config
-func CreateDBFromConf(conf *config.DBConfig) (Persister, error) {
+func CreateDBFromConf(conf *DBConfig) (Persister, error) {
 	var db Persister
 	var err error
 
 	switch conf.Type {
-	case config.LvlDB:
+	case LvlDB:
 		db, err = leveldb.NewDB(conf.FileName)
 	default:
 		return nil, errors.New("nit supported db type")
