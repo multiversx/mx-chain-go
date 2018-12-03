@@ -179,7 +179,7 @@ func (mm *MemMessenger) ConnectToAddresses(ctx context.Context, addresses []stri
 		mutGloballyRegPeers.Unlock()
 
 		if !ok {
-			//TODO LOG fmt.Printf("Bootstrapping the peer '%v' failed! [not found]\n", addresses[i])
+			log.Error(fmt.Sprintf("Bootstrapping the peer '%v' failed! [not found]\n", addresses[i]))
 			continue
 		}
 
@@ -238,14 +238,13 @@ func (mm *MemMessenger) doBootstrap() {
 func (mm *MemMessenger) PrintConnected() {
 	conns := mm.Conns()
 
-	//TODO LOG
-	fmt.Printf("Node %s is connected to: \n", mm.ID().Pretty())
-
+	connectedTo := fmt.Sprintf("Node %s is connected to: \n", mm.ID().Pretty())
 	for i := 0; i < len(conns); i++ {
-		//TODO LOG
-		fmt.Printf("\t- %s with distance %d\n", conns[i].RemotePeer().Pretty(),
+		connectedTo = connectedTo + fmt.Sprintf("\t- %s with distance %d\n", conns[i].RemotePeer().Pretty(),
 			ComputeDistanceAD(mm.ID(), conns[i].RemotePeer()))
 	}
+
+	log.Debug(connectedTo)
 }
 
 // AddAddress adds a new address to peer store
@@ -345,8 +344,7 @@ func (mm *MemMessenger) gotNewMessage(mes *pubsub.Message) {
 	err := verifyMessageSignature(mes.Message)
 
 	if err != nil {
-		//TODO log err
-		fmt.Println(err.Error())
+		log.Error(err.Error())
 		return
 	}
 
@@ -359,8 +357,7 @@ func (mm *MemMessenger) gotNewMessage(mes *pubsub.Message) {
 	mm.mutSeenMessages.Unlock()
 
 	if len(mes.TopicIDs) == 0 {
-		//TODO log no topic
-		fmt.Println("no topic")
+		log.Error("no topic")
 		return
 	}
 
@@ -423,8 +420,10 @@ func (mm *MemMessenger) gotNewData(data []byte, peerID peer.ID, topic string) bo
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,
 			//then it shall broadcast it
-			_ = t.Broadcast(obj)
-			//TODO log error
+			err := t.Broadcast(obj)
+			if err != nil {
+				log.Error(err.Error())
+			}
 		}
 
 		return false
@@ -433,7 +432,7 @@ func (mm *MemMessenger) gotNewData(data []byte, peerID peer.ID, topic string) bo
 	//regular message
 	obj, err := t.CreateObject(data)
 	if err != nil {
-		//TODO log
+		log.Error(err.Error())
 		return false
 	}
 
@@ -449,7 +448,7 @@ func (mm *MemMessenger) gotNewData(data []byte, peerID peer.ID, topic string) bo
 
 	err = t.NewObjReceived(obj, peerID.Pretty())
 	if err != nil {
-		//TODO log
+		log.Error(err.Error())
 		return false
 	}
 
@@ -525,7 +524,7 @@ func (mm *MemMessenger) processLoop() {
 				mm.mutConnectedPeers.Unlock()
 
 				if !ok || val == nil {
-					//TODO log invalid peer
+					log.Error("invalid peer")
 					continue
 				}
 

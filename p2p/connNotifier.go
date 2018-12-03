@@ -1,11 +1,9 @@
 package p2p
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
-	//"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multiaddr"
@@ -82,8 +80,10 @@ func (cn *ConnNotifier) TaskResolveConnections() ResultType {
 
 	//test whether we only have inbound connection (security issue)
 	if inConns >= cn.maxAllowedPeers {
-		_ = conns[0].Close()
-		//TODO log error
+		err := conns[0].Close()
+		if err != nil {
+			log.Error(err.Error())
+		}
 
 		return OnlyInboundConnections
 	}
@@ -171,8 +171,10 @@ func (cn *ConnNotifier) ListenClose(netw net.Network, ma multiaddr.Multiaddr) {
 // Connected is called when a connection opened
 func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
 	if cn.GetConnections == nil {
-		_ = conn.Close()
-		//TODO log error
+		err := conn.Close()
+		if err != nil {
+			log.Error(err.Error())
+		}
 		return
 	}
 
@@ -180,8 +182,10 @@ func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
 
 	//refuse other connections if max connection has been reached
 	if cn.maxAllowedPeers < len(conns) {
-		_ = conn.Close()
-		//TODO log error
+		err := conn.Close()
+		if err != nil {
+			log.Error(err.Error())
+		}
 		return
 	}
 }
@@ -236,8 +240,7 @@ func (cn *ConnNotifier) maintainPeers() {
 	for {
 		select {
 		case <-cn.stopChan:
-			//TODO logger
-			fmt.Println("ConnNotifier object has stopped!")
+			log.Debug("ConnNotifier object has stopped!")
 			cn.stoppedChan <- true
 			return
 		case <-time.After(durRefreshConnections):

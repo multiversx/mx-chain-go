@@ -4,17 +4,22 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
-var isP2PMessengerException = false
+var skipP2PMessengerTests = false
 
 func init() {
-	absPath, _ := filepath.Abs("../p2pMessengerTestException")
+	p2p.Log.SetLevel(logger.LogDebug)
+
+	absPath, _ := filepath.Abs("../skipP2PMessengerTests")
 
 	_, err := ioutil.ReadFile(absPath)
 	if err == nil {
-		isP2PMessengerException = true
+		skipP2PMessengerTests = true
 
-		fmt.Println("### Running with P2PMessenger exception ###")
+		fmt.Println("### Skiping tests from P2PMessenger struct ###")
 	}
 }
