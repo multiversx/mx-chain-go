@@ -4,8 +4,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,8 +23,8 @@ func failOnPanic(t *testing.T) {
 
 func TestNewDataErrOnTxStorageCreationShouldPanic(t *testing.T) {
 	defer failOnNoPanic(t)
-	cfg := &config.Blockchain.TxStorage.CacheConf.Type
-	val := config.Blockchain.TxStorage.CacheConf.Type
+	cfg := &mock.Config.TxStorage.CacheConf.Type
+	val := mock.Config.TxStorage.CacheConf.Type
 
 	// restore default config
 	defer func(cacheType *storage.CacheType, val storage.CacheType) {
@@ -32,15 +32,15 @@ func TestNewDataErrOnTxStorageCreationShouldPanic(t *testing.T) {
 	}(cfg, val)
 
 	// e.g change the config to a not supported cache type
-	config.Blockchain.TxStorage.CacheConf.Type = 100
-	blockchain.NewData(config.Blockchain)
+	mock.Config.TxStorage.CacheConf.Type = 100
+	blockchain.NewBlockChain(mock.Config)
 }
 
 func TestNewDataErrOnBlockStorageCreationShouldPanic(t *testing.T) {
 	defer failOnNoPanic(t)
 
-	cfg := &config.Blockchain.BlockStorage.CacheConf.Type
-	val := config.Blockchain.BlockStorage.CacheConf.Type
+	cfg := &mock.Config.BlockStorage.CacheConf.Type
+	val := mock.Config.BlockStorage.CacheConf.Type
 
 	// restore default config
 	defer func(cacheType *storage.CacheType, val storage.CacheType) {
@@ -48,15 +48,15 @@ func TestNewDataErrOnBlockStorageCreationShouldPanic(t *testing.T) {
 	}(cfg, val)
 
 	// e.g change the config to a not supported cache type
-	config.Blockchain.BlockStorage.CacheConf.Type = 100
-	blockchain.NewData(config.Blockchain)
+	mock.Config.BlockStorage.CacheConf.Type = 100
+	blockchain.NewBlockChain(mock.Config)
 }
 
 func TestNewDataErrOnBlockHeaderStorageCreationShouldPanic(t *testing.T) {
 	defer failOnNoPanic(t)
 
-	cfg := &config.Blockchain.BlockHeaderStorage.CacheConf.Type
-	val := config.Blockchain.BlockHeaderStorage.CacheConf.Type
+	cfg := &mock.Config.BlockHeaderStorage.CacheConf.Type
+	val := mock.Config.BlockHeaderStorage.CacheConf.Type
 
 	// restore default config
 	defer func(cacheType *storage.CacheType, val storage.CacheType) {
@@ -64,15 +64,15 @@ func TestNewDataErrOnBlockHeaderStorageCreationShouldPanic(t *testing.T) {
 	}(cfg, val)
 
 	// e.g change the config to a not supported cache type
-	config.Blockchain.BlockHeaderStorage.CacheConf.Type = 100
-	blockchain.NewData(config.Blockchain)
+	mock.Config.BlockHeaderStorage.CacheConf.Type = 100
+	blockchain.NewBlockChain(mock.Config)
 }
 
-func TestNewDataErrOnBBlockCacheCreationShouldPanic(t *testing.T) {
+func TestNewDataErrOnBlockCacheCreationShouldPanic(t *testing.T) {
 	defer failOnNoPanic(t)
 
-	cfg := &config.Blockchain.BBlockCache.Type
-	val := config.Blockchain.BBlockCache.Type
+	cfg := &mock.Config.BlockCache.Type
+	val := mock.Config.BlockCache.Type
 
 	// restore default config
 	defer func(cacheType *storage.CacheType, val storage.CacheType) {
@@ -80,14 +80,14 @@ func TestNewDataErrOnBBlockCacheCreationShouldPanic(t *testing.T) {
 	}(cfg, val)
 
 	// e.g change the config to a not supported cache type
-	config.Blockchain.BBlockCache.Type = 100
-	blockchain.NewData(config.Blockchain)
+	mock.Config.BlockCache.Type = 100
+	blockchain.NewBlockChain(mock.Config)
 }
 
 func TestNewDataDefaultConfigOK(t *testing.T) {
 	defer failOnPanic(t)
 
-	b, err := blockchain.NewData(config.Blockchain)
+	b, err := blockchain.NewBlockChain(mock.Config)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -95,7 +95,7 @@ func TestNewDataDefaultConfigOK(t *testing.T) {
 }
 
 func TestHasFalseOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData(config.Blockchain)
+	b, err := blockchain.NewBlockChain(mock.Config)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -109,7 +109,7 @@ func TestHasFalseOnWrongUnitType(t *testing.T) {
 }
 
 func TestHasOk(t *testing.T) {
-	b, err := blockchain.NewData(config.Blockchain)
+	b, err := blockchain.NewBlockChain(mock.Config)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -145,7 +145,7 @@ func TestHasOk(t *testing.T) {
 }
 
 func TestGetErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData(config.Blockchain)
+	b, err := blockchain.NewBlockChain(mock.Config)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -159,7 +159,7 @@ func TestGetErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestGetOk(t *testing.T) {
-	b, err := blockchain.NewData(config.Blockchain)
+	b, err := blockchain.NewBlockChain(mock.Config)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -179,7 +179,7 @@ func TestGetOk(t *testing.T) {
 }
 
 func TestPutErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData(config.Blockchain)
+	b, err := blockchain.NewBlockChain(mock.Config)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -191,7 +191,7 @@ func TestPutErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestPutOk(t *testing.T) {
-	b, err := blockchain.NewData(config.Blockchain)
+	b, err := blockchain.NewBlockChain(mock.Config)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -208,7 +208,7 @@ func TestPutOk(t *testing.T) {
 }
 
 func TestGetAllErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData(config.Blockchain)
+	b, err := blockchain.NewBlockChain(mock.Config)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -223,7 +223,7 @@ func TestGetAllErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestGetAllOk(t *testing.T) {
-	b, err := blockchain.NewData(config.Blockchain)
+	b, err := blockchain.NewBlockChain(mock.Config)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)

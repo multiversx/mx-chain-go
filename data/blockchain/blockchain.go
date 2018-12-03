@@ -31,7 +31,7 @@ type Config struct {
 	BlockHeaderStorage *storage.StorageUnitConfig
 	TxStorage          *storage.StorageUnitConfig
 	TxPoolStorage	   *storage.CacheConfig
-	BBlockCache        *storage.CacheConfig
+	BlockCache        *storage.CacheConfig
 }
 
 // StorageService is the interface for blockChain storage unit provided services
@@ -55,21 +55,21 @@ type StorageService interface {
 // retrieval search of blocks (body), transactions, block headers,
 // bad blocks.
 //
-// The BlockChain also holds pointers to the Genesys block, the current block
-// the height of the local chain and the percieved height of the chain in the network.
+// The BlockChain also holds pointers to the Genesis block, the current block
+// the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
 	lock          sync.RWMutex
-	GenesisBlock  *block.Header                     // Genesys Block pointer
+	GenesisBlock  *block.Header                     // Genesis Block pointer
 	CurrentBlock  *block.Header                     // Current Block pointer
 	LocalHeight   *big.Int                          // Height of the local chain
-	NetworkHeight *big.Int                          // Percieved height of the network chain
+	NetworkHeight *big.Int                          // Perceived height of the network chain
 	badBlocks     storage.Cacher                    // Bad blocks cache
 	chain         map[UnitType]*storage.StorageUnit // chains for each unit type. Together they form the blockchain
 }
 
-// NewData returns an initialized blockchain
+// NewBlockChain returns an initialized blockchain
 // It uses a config file to setup it's supported storage units map
-func NewData(config *Config) (*BlockChain, error) {
+func NewBlockChain(config *Config) (*BlockChain, error) {
 	if config == nil {
 		panic("Cannot create blockchain without initial configuration")
 	}
@@ -93,7 +93,7 @@ func NewData(config *Config) (*BlockChain, error) {
 		panic(err)
 	}
 
-	badBlocksCache, err := storage.CreateCacheFromConf(config.BBlockCache)
+	badBlocksCache, err := storage.CreateCacheFromConf(config.BlockCache)
 
 	if err != nil {
 		txStorage.DestroyUnit()
@@ -136,7 +136,7 @@ func (bc *BlockChain) Has(unitType UnitType, key []byte) (bool, error) {
 
 // Get returns the value for the given key if found in the selected storage unit,
 // nil otherwise. It can return an error if the provided unit type is not supported
-// or if the storage unit underlying implementaiton reports an error
+// or if the storage unit underlying implementation reports an error
 func (bc *BlockChain) Get(unitType UnitType, key []byte) ([]byte, error) {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]

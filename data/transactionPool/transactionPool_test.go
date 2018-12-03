@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +30,7 @@ func TestTransactionPool_AddTransaction(t *testing.T) {
 
 func TestTransactionPool_MiniPoolStorageEvictsTx(t *testing.T) {
 	t.Parallel()
-	size := int(config.Blockchain.TxPoolStorage.Size)
+	size := 1000
 	txp := transactionPool.NewTransactionPool(nil)
 	for i := 1; i < size+2; i++ {
 		key := []byte(strconv.Itoa(i))

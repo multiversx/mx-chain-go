@@ -45,7 +45,7 @@ var (
 			},
 		},
 
-		BBlockCache: &storage.CacheConfig{
+		BlockCache: &storage.CacheConfig{
 			Size: 100,
 			Type: storage.LRUCache,
 		},
@@ -56,7 +56,7 @@ var (
 		},
 	}
 
-	// mainnet is currently not specified
+	// TODO: Add specifications for mainnet
 	mainnet = (*blockchain.Config)(nil)
 
 	// Blockchain holds the configuration of the blockchain

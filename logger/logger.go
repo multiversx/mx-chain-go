@@ -32,7 +32,7 @@ type Logger struct {
 	stackTraceDepth int
 }
 
-// Option represents a functional confifuration parameter that can opperate
+// Option represents a functional configuration parameter that can opperate
 //  over the Logger struct
 type Option func (*Logger) error
 
@@ -108,7 +108,7 @@ func (el *Logger) SetLevel(level string) {
 	}
 }
 
-// SetOutput enables the posibility to change the output of the logger on demand.
+// SetOutput enables the possibility to change the output of the logger on demand.
 func (el *Logger) SetOutput(out io.Writer) {
 	el.logger.SetOutput(out)
 }
