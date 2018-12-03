@@ -129,7 +129,8 @@ func NewConsensus(
 	vld *Validators,
 	thr *RoundThreshold,
 	rs *RoundStatus,
-	chr *chronology.Chronology) *Consensus {
+	chr *chronology.Chronology,
+) *Consensus {
 
 	cns := Consensus{
 		log:            log,
@@ -221,7 +222,7 @@ func (cns *Consensus) CheckCommitmentHashConsensus() bool {
 
 	threshold := cns.Threshold(SrCommitmentHash)
 
-	if !cns.IsNodeLeaderInCurrentRound(cns.self) {
+	if !cns.IsNodeLeaderInCurrentRound(cns.selfId) {
 		threshold = len(cns.consensusGroup)
 	}
 
@@ -347,7 +348,7 @@ func (cns *Consensus) GetSubroundName(subroundId chronology.SubroundId) string {
 
 // PrintBlockCM method prints the <BLOCK> consensus messages
 func (cns *Consensus) PrintBlockCM() {
-	if !cns.IsNodeLeaderInCurrentRound(cns.self) {
+	if !cns.IsNodeLeaderInCurrentRound(cns.selfId) {
 		cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
 			"Step 1: Synchronized block"))
 	}
@@ -371,15 +372,15 @@ func (cns *Consensus) PrintCommitmentHashCM() {
 
 // PrintBitmapCM method prints the <BITMAP> consensus messages
 func (cns *Consensus) PrintBitmapCM() {
-	if !cns.IsNodeLeaderInCurrentRound(cns.self) {
+	if !cns.IsNodeLeaderInCurrentRound(cns.selfId) {
 		msg := fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset())+
 			"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d commitment hashes, which are enough",
 			cns.ComputeSize(SrBitmap), len(cns.consensusGroup))
 
-		if cns.IsNodeInBitmapGroup(cns.self) {
-			msg += ", AND I WAS selected in this bitmap"
+		if cns.IsNodeInBitmapGroup(cns.selfId) {
+			msg = fmt.Sprintf(msg+"%s", ", AND I WAS selected in this bitmap")
 		} else {
-			msg += ", BUT I WAS NOT selected in this bitmap"
+			msg = fmt.Sprintf(msg+"%s", ", BUT I WAS NOT selected in this bitmap")
 		}
 
 		cns.Log(msg)
