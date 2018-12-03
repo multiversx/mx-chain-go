@@ -44,7 +44,7 @@ func createPeers(nodes int) {
 		var peerMap []uuid.UUID
 		peer := types.Peer{
 			Nr:          i,
-			Id:          uuid.Must(uuid.NewV4()),
+			Id:          uuid.Must(uuid.NewV4(), nil),
 			PeerMap:     peerMap,
 			Path:        path,
 			PathLatency: 0.0,

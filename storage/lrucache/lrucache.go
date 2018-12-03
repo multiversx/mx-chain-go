@@ -30,18 +30,17 @@ func (c *LRUCache) Clear() {
 }
 
 // Put adds a value to the cache.  Returns true if an eviction occurred.
-func (c *LRUCache) Put(key, value []byte) (evicted bool) {
+func (c *LRUCache) Put(key []byte, value interface{}) (evicted bool) {
 	return c.cache.Add(string(key), value)
 }
 
 // Get looks up a key's value from the cache.
-func (c *LRUCache) Get(key []byte) (value []byte, ok bool) {
+func (c *LRUCache) Get(key []byte) (value interface{}, ok bool) {
 	v, ok := c.cache.Get(string(key))
 	if ok == false {
 		return nil, ok
 	}
-	value = v.([]byte)
-	return value, ok
+	return v, ok
 }
 
 // Has checks if a key is in the cache, without updating the
@@ -52,21 +51,20 @@ func (c *LRUCache) Has(key []byte) bool {
 
 // Peek returns the key value (or undefined if not found) without updating
 // the "recently used"-ness of the key.
-func (c *LRUCache) Peek(key []byte) (value []byte, ok bool) {
+func (c *LRUCache) Peek(key []byte) (value interface{}, ok bool) {
 	v, ok := c.cache.Peek(string(key))
 
 	if ok == false {
 		return nil, ok
 	}
 
-	value = v.([]byte)
-	return value, ok
+	return v, ok
 }
 
 // HasOrAdd checks if a key is in the cache  without updating the
 // recent-ness or deleting it for being stale,  and if not, adds the value.
 // Returns whether found and whether an eviction occurred.
-func (c *LRUCache) HasOrAdd(key, value []byte) (ok, evicted bool) {
+func (c *LRUCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool) {
 	return c.cache.ContainsOrAdd(string(key), value)
 }
 
