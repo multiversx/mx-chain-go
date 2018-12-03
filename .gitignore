@@ -16,3 +16,4 @@
 /vendor
 .env
 *.log
+genessis.json

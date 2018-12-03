@@ -1,0 +1,26 @@
+{
+  "startTime": "",
+  "initialNodes": [
+
+  ],
+  "accounts": [
+    {
+      "nounce": 1,
+      "balance": 10000,
+      "codeHash": "",
+      "root": ""
+    },
+    {
+      "nounce": 2,
+      "balance": 10000,
+      "codeHash": "",
+      "root": ""
+    },
+    {
+      "nounce": 3,
+      "balance": 10000,
+      "codeHash": "",
+      "root": ""
+    }
+  ]
+}
