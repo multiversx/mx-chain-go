@@ -1,14 +1,15 @@
 package config
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"math/big"
 	"path/filepath"
 )
 
 var (
-	// TestnetBlockchainConfig holds the configuration of testnet blockchain
-	testnet = &BlockChainConfig{
+	// testnet holds the configuration of testnet blockchain
+	testnet = &blockchain.Config{
 		BlockChainID: big.NewInt(0),
 
 		BlockStorage: &storage.StorageUnitConfig{
@@ -56,18 +57,8 @@ var (
 	}
 
 	// mainnet is currently not specified
-	mainnet = (*BlockChainConfig)(nil)
+	mainnet = (*blockchain.Config)(nil)
 
-	// Blockchain holds the configuration of testnet blockchain
+	// Blockchain holds the configuration of the blockchain
 	Blockchain = testnet
 )
-
-// BlockChainConfig holds the configurable elements of the blockchain
-type BlockChainConfig struct {
-	BlockChainID       *big.Int
-	BlockStorage       *storage.StorageUnitConfig
-	BlockHeaderStorage *storage.StorageUnitConfig
-	TxStorage          *storage.StorageUnitConfig
-	TxPoolStorage	   *storage.CacheConfig
-	BBlockCache        *storage.CacheConfig
-}

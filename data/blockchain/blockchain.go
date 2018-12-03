@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/pkg/errors"
@@ -24,6 +23,16 @@ const (
 
 // UnitType is the type for Storage unit identifiers
 type UnitType uint8
+
+// Config holds the configurable elements of the blockchain
+type Config struct {
+	BlockChainID       *big.Int
+	BlockStorage       *storage.StorageUnitConfig
+	BlockHeaderStorage *storage.StorageUnitConfig
+	TxStorage          *storage.StorageUnitConfig
+	TxPoolStorage	   *storage.CacheConfig
+	BBlockCache        *storage.CacheConfig
+}
 
 // StorageService is the interface for blockChain storage unit provided services
 type StorageService interface {
@@ -60,27 +69,31 @@ type BlockChain struct {
 
 // NewData returns an initialized blockchain
 // It uses a config file to setup it's supported storage units map
-func NewData() (*BlockChain, error) {
-	txStorage, err := storage.NewStorageUnitFromConf(config.Blockchain.TxStorage)
+func NewData(config *Config) (*BlockChain, error) {
+	if config == nil {
+		panic("Cannot create blockchain without initial configuration")
+	}
+
+	txStorage, err := storage.NewStorageUnitFromConf(config.TxStorage)
 
 	if err != nil {
 		panic(err)
 	}
 
-	blStorage, err := storage.NewStorageUnitFromConf(config.Blockchain.BlockStorage)
+	blStorage, err := storage.NewStorageUnitFromConf(config.BlockStorage)
 	if err != nil {
 		txStorage.DestroyUnit()
 		panic(err)
 	}
 
-	blHeadStorage, err := storage.NewStorageUnitFromConf(config.Blockchain.BlockHeaderStorage)
+	blHeadStorage, err := storage.NewStorageUnitFromConf(config.BlockHeaderStorage)
 	if err != nil {
 		txStorage.DestroyUnit()
 		blStorage.DestroyUnit()
 		panic(err)
 	}
 
-	badBlocksCache, err := storage.CreateCacheFromConf(config.Blockchain.BBlockCache)
+	badBlocksCache, err := storage.CreateCacheFromConf(config.BBlockCache)
 
 	if err != nil {
 		txStorage.DestroyUnit()

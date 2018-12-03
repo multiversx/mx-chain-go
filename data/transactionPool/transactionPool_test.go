@@ -14,7 +14,7 @@ import (
 
 func TestTransactionPool_AddTransaction(t *testing.T) {
 	t.Parallel()
-	txp := transactionPool.NewTransactionPool()
+	txp := transactionPool.NewTransactionPool(nil)
 
 	txp.AddTransaction([]byte("hash_tx1"), &transaction.Transaction{Nonce: 1}, 1)
 
@@ -32,7 +32,7 @@ func TestTransactionPool_AddTransaction(t *testing.T) {
 func TestTransactionPool_MiniPoolStorageEvictsTx(t *testing.T) {
 	t.Parallel()
 	size := int(config.Blockchain.TxPoolStorage.Size)
-	txp := transactionPool.NewTransactionPool()
+	txp := transactionPool.NewTransactionPool(nil)
 	for i := 1; i < size+2; i++ {
 		key := []byte(strconv.Itoa(i))
 		txp.AddTransaction(key, &transaction.Transaction{Nonce: uint64(i)}, 1)
@@ -44,7 +44,7 @@ func TestTransactionPool_MiniPoolStorageEvictsTx(t *testing.T) {
 
 func TestTransactionPool_NoDuplicates(t *testing.T) {
 	t.Parallel()
-	txp := transactionPool.NewTransactionPool()
+	txp := transactionPool.NewTransactionPool(nil)
 
 	txp.AddTransaction([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
 	txp.AddTransaction([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
@@ -54,7 +54,7 @@ func TestTransactionPool_NoDuplicates(t *testing.T) {
 
 func TestTransactionPool_AddTransactionsInParallel(t *testing.T) {
 	t.Parallel()
-	txp := transactionPool.NewTransactionPool()
+	txp := transactionPool.NewTransactionPool(nil)
 
 	for i := 1; i < 10000+2; i++ {
 		key := []byte(strconv.Itoa(i))
@@ -66,7 +66,7 @@ func TestTransactionPool_AddTransactionsInParallel(t *testing.T) {
 
 func TestTransactionPool_RemoveTransaction(t *testing.T) {
 	t.Parallel()
-	txp := transactionPool.NewTransactionPool()
+	txp := transactionPool.NewTransactionPool(nil)
 
 	txp.AddTransaction([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
 	assert.Equal(t, 1, txp.MiniPoolTxStore(1).Len(),
@@ -92,7 +92,7 @@ func TestTransactionPool_RemoveTransaction(t *testing.T) {
 
 func TestTransactionPool_Clear(t *testing.T) {
 	t.Parallel()
-	txp := transactionPool.NewTransactionPool()
+	txp := transactionPool.NewTransactionPool(nil)
 	txp.Clear()
 	txp.ClearMiniPool(1)
 
@@ -113,7 +113,7 @@ func TestTransactionPool_Clear(t *testing.T) {
 
 func TestTransactionPool_MergeMiniPools(t *testing.T) {
 	t.Parallel()
-	txp := transactionPool.NewTransactionPool()
+	txp := transactionPool.NewTransactionPool(nil)
 	txp.AddTransaction([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
 	txp.AddTransaction([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 2)
 	txp.AddTransaction([]byte("tx_hash3"), &transaction.Transaction{Nonce: 3}, 2)
@@ -126,7 +126,7 @@ func TestTransactionPool_MergeMiniPools(t *testing.T) {
 
 func TestTransactionPool_MoveTransactions(t *testing.T) {
 	t.Parallel()
-	txp := transactionPool.NewTransactionPool()
+	txp := transactionPool.NewTransactionPool(nil)
 	txp.AddTransaction([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
 	txp.AddTransaction([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 2)
 	txp.AddTransaction([]byte("tx_hash3"), &transaction.Transaction{Nonce: 3}, 2)
@@ -146,7 +146,7 @@ func TestTransactionPool_OnAddTransactionIsCalled(t *testing.T) {
 	t.Parallel()
 	cnt := int32(0)
 	tx := []byte("tx_hash1")
-	txp := transactionPool.NewTransactionPool()
+	txp := transactionPool.NewTransactionPool(nil)
 	txp.OnAddTransaction = func(txHash []byte) {
 		atomic.AddInt32(&cnt, 1)
 		assert.Equal(t, tx, txHash)

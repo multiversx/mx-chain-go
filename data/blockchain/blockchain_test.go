@@ -33,7 +33,7 @@ func TestNewDataErrOnTxStorageCreationShouldPanic(t *testing.T) {
 
 	// e.g change the config to a not supported cache type
 	config.Blockchain.TxStorage.CacheConf.Type = 100
-	blockchain.NewData()
+	blockchain.NewData(config.Blockchain)
 }
 
 func TestNewDataErrOnBlockStorageCreationShouldPanic(t *testing.T) {
@@ -49,7 +49,7 @@ func TestNewDataErrOnBlockStorageCreationShouldPanic(t *testing.T) {
 
 	// e.g change the config to a not supported cache type
 	config.Blockchain.BlockStorage.CacheConf.Type = 100
-	blockchain.NewData()
+	blockchain.NewData(config.Blockchain)
 }
 
 func TestNewDataErrOnBlockHeaderStorageCreationShouldPanic(t *testing.T) {
@@ -65,7 +65,7 @@ func TestNewDataErrOnBlockHeaderStorageCreationShouldPanic(t *testing.T) {
 
 	// e.g change the config to a not supported cache type
 	config.Blockchain.BlockHeaderStorage.CacheConf.Type = 100
-	blockchain.NewData()
+	blockchain.NewData(config.Blockchain)
 }
 
 func TestNewDataErrOnBBlockCacheCreationShouldPanic(t *testing.T) {
@@ -81,13 +81,13 @@ func TestNewDataErrOnBBlockCacheCreationShouldPanic(t *testing.T) {
 
 	// e.g change the config to a not supported cache type
 	config.Blockchain.BBlockCache.Type = 100
-	blockchain.NewData()
+	blockchain.NewData(config.Blockchain)
 }
 
 func TestNewDataDefaultConfigOK(t *testing.T) {
 	defer failOnPanic(t)
 
-	b, err := blockchain.NewData()
+	b, err := blockchain.NewData(config.Blockchain)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -95,7 +95,7 @@ func TestNewDataDefaultConfigOK(t *testing.T) {
 }
 
 func TestHasFalseOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData()
+	b, err := blockchain.NewData(config.Blockchain)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -109,7 +109,7 @@ func TestHasFalseOnWrongUnitType(t *testing.T) {
 }
 
 func TestHasOk(t *testing.T) {
-	b, err := blockchain.NewData()
+	b, err := blockchain.NewData(config.Blockchain)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -145,7 +145,7 @@ func TestHasOk(t *testing.T) {
 }
 
 func TestGetErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData()
+	b, err := blockchain.NewData(config.Blockchain)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -159,7 +159,7 @@ func TestGetErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestGetOk(t *testing.T) {
-	b, err := blockchain.NewData()
+	b, err := blockchain.NewData(config.Blockchain)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -179,7 +179,7 @@ func TestGetOk(t *testing.T) {
 }
 
 func TestPutErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData()
+	b, err := blockchain.NewData(config.Blockchain)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -191,7 +191,7 @@ func TestPutErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestPutOk(t *testing.T) {
-	b, err := blockchain.NewData()
+	b, err := blockchain.NewData(config.Blockchain)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -208,7 +208,7 @@ func TestPutOk(t *testing.T) {
 }
 
 func TestGetAllErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData()
+	b, err := blockchain.NewData(config.Blockchain)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -223,7 +223,7 @@ func TestGetAllErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestGetAllOk(t *testing.T) {
-	b, err := blockchain.NewData()
+	b, err := blockchain.NewData(config.Blockchain)
 	defer b.Destroy()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
