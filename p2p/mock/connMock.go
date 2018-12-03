@@ -11,10 +11,17 @@ import (
 type ConnMock struct {
 	LocalP  peer.ID
 	RemoteP peer.ID
+	Status  net.Stat
+
+	CloseCalled func(*ConnMock) error
 }
 
 // Closes the connection, dummy
 func (cm *ConnMock) Close() error {
+	if cm.CloseCalled != nil {
+		return cm.CloseCalled(cm)
+	}
+
 	return nil
 }
 
@@ -60,5 +67,5 @@ func (cm ConnMock) GetStreams() []net.Stream {
 
 // Stat is dummy, will panic
 func (cm ConnMock) Stat() net.Stat {
-	panic("implement me")
+	return cm.Status
 }
