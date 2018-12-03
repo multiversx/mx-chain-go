@@ -13,13 +13,12 @@ import (
 // RoutingTable maintains the distances between current peer and other peers
 // It implements a Kademlia algorithm
 type RoutingTable struct {
-	list    *list.List
-	current peer.ID
-	mut     sync.RWMutex
-	dists1  map[uint32][]peer.ID
-	dists2  map[peer.ID]uint32
-	dists3  []uint32
-
+	list            *list.List
+	current         peer.ID
+	mut             sync.RWMutex
+	dists1          map[uint32][]peer.ID
+	dists2          map[peer.ID]uint32
+	dists3          []uint32
 	ComputeDistance func(pid1 peer.ID, pid2 peer.ID) uint32
 }
 

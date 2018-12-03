@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
 )
@@ -15,6 +16,7 @@ const topicChannelBufferSize = 10000
 // We prefer this method as reflection is more costly
 type Newer interface {
 	New() Newer
+	ID() string
 }
 
 // DataReceivedHandler is the signature for the event handler used by Topic struct
@@ -32,27 +34,27 @@ type Topic struct {
 	// Name of the topic
 	Name string
 	// ObjTemplate is used as a template to generate new objects whenever a new message is received
-	ObjTemplate Newer
-	marsh       marshal.Marshalizer
-
-	objPump chan MessageInfo
-
+	ObjTemplate             Newer
+	marsh                   marshal.Marshalizer
+	objPump                 chan MessageInfo
 	mutEventBus             sync.RWMutex
 	eventBusDataRcvHandlers []DataReceivedHandler
-
 	// SendData will be called by Topic struct whenever a user of this struct tries to send data to other peers
 	// It is a function pointer that connects Topic struct with pubsub implementation
-	SendData func(data []byte) error
-
+	SendData                 func(data []byte) error
 	registerTopicValidator   func(v pubsub.Validator) error
 	unregisterTopicValidator func() error
+	ResolveRequest           func(hash []byte) Newer
+	request                  func(hash []byte) error
+	CurrentPeer              peer.ID
 }
 
 // MessageInfo will retain additional info about the message, should we care
 // when receiving an object on current topic
 type MessageInfo struct {
-	Data Newer
-	Peer string
+	Data        Newer
+	Peer        string
+	CurrentPeer string
 }
 
 // NewTopic creates a new Topic struct
@@ -78,28 +80,38 @@ func (t *Topic) AddDataReceived(eventHandler DataReceivedHandler) {
 	t.eventBusDataRcvHandlers = append(t.eventBusDataRcvHandlers, eventHandler)
 }
 
-// NewDataReceived is called from the lower data layer
-// it will ignore nils or improper formatted messages
-func (t *Topic) NewDataReceived(data []byte, peerID string) error {
+// CreateObject will instantiate a Cloner interface and instantiate its fields
+// with the help of a marshalizer implementation
+func (t *Topic) CreateObject(data []byte) (Newer, error) {
 	// create new instance of the object
 	newObj := t.ObjTemplate.New()
 
 	if data == nil {
-		return errors.New("nil message not allowed")
+		return nil, errors.New("nil message not allowed")
 	}
 
 	if len(data) == 0 {
-		return errors.New("empty message not allowed")
+		return nil, errors.New("empty message not allowed")
 	}
 
 	//unmarshal data from the message
 	err := t.marsh.Unmarshal(newObj, data)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	return newObj, err
+}
+
+// NewObjReceived is called from the lower data layer
+// it will ignore nils or improper formatted messages
+func (t *Topic) NewObjReceived(obj Newer, peerID string) error {
+	if obj == nil {
+		return errors.New("nil object not allowed")
 	}
 
 	//add to the channel so it can be consumed async
-	t.objPump <- MessageInfo{Data: newObj, Peer: peerID}
+	t.objPump <- MessageInfo{Data: obj, Peer: peerID, CurrentPeer: t.CurrentPeer.Pretty()}
 	return nil
 }
 
@@ -156,4 +168,23 @@ func (t *Topic) UnregisterValidator() error {
 	}
 
 	return t.unregisterTopicValidator()
+}
+
+// SendRequest sends the hash to all known peers that subscribed to the channel [t.Name]_REQUEST
+// It delegates the functionality to sendRequest function pointer
+// The object, if exists, should return on the main event bus (regular topic channel)
+func (t *Topic) SendRequest(hash []byte) error {
+	if hash == nil {
+		return errors.New("invalid hash to send")
+	}
+
+	if len(hash) == 0 {
+		return errors.New("invalid hash to send")
+	}
+
+	if t.request == nil {
+		return errors.New("can not delegate request to parent")
+	}
+
+	return t.request(hash)
 }
