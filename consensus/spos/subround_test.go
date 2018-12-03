@@ -32,11 +32,11 @@ func InitSubround() (*chronology.Chronology, *spos.Consensus) {
 		"1")
 
 	for i := 0; i < len(vld.ConsensusGroup()); i++ {
-		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBlock, false)
-		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrBitmap, false)
-		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrCommitment, false)
-		vld.SetAgreement(vld.ConsensusGroup()[i], spos.SrSignature, false)
+		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
 	pbft := 2*len(vld.ConsensusGroup())/3 + 1

@@ -49,7 +49,7 @@ type Validators struct {
 	waitingList    []string
 	eligibleList   []string
 	consensusGroup []string
-	self           string
+	selfId         string
 	agreement      map[string]*RoundValidation
 	mut            sync.RWMutex
 }
@@ -59,14 +59,14 @@ func (vld *Validators) ConsensusGroup() []string {
 	return vld.consensusGroup
 }
 
-// Self returns self ID
-func (vld *Validators) Self() string {
-	return vld.self
+// SelfId returns selfId ID
+func (vld *Validators) SelfId() string {
+	return vld.selfId
 }
 
-// SetSelf sets self ID
-func (vld *Validators) SetSelf(self string) {
-	vld.self = self
+// SetSelfId sets selfId ID
+func (vld *Validators) SetSelfId(self string) {
+	vld.selfId = self
 }
 
 // NewValidators creates a new Validators object
@@ -74,13 +74,14 @@ func NewValidators(
 	waitingList []string,
 	eligibleList []string,
 	consensusGroup []string,
-	self string) *Validators {
+	self string,
+) *Validators {
 
 	v := Validators{
 		waitingList:    waitingList,
 		eligibleList:   eligibleList,
 		consensusGroup: consensusGroup,
-		self:           self}
+		selfId:         self}
 
 	v.agreement = make(map[string]*RoundValidation)
 
@@ -91,26 +92,26 @@ func NewValidators(
 	return &v
 }
 
-// Agreement returns the state of the action done, by the node represented by the key parameter,
+// GetValidation returns the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
-func (vld *Validators) Agreement(key string, subroundId chronology.SubroundId) bool {
+func (vld *Validators) GetValidation(key string, subroundId chronology.SubroundId) bool {
 	vld.mut.RLock()
 	retcode := vld.agreement[key].Validation(subroundId)
 	vld.mut.RUnlock()
 	return retcode
 }
 
-// SetAgreement set the state of the action done, by the node represented by the key parameter,
+// SetValidation set the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
-func (vld *Validators) SetAgreement(key string, subroundId chronology.SubroundId, value bool) {
+func (vld *Validators) SetValidation(key string, subroundId chronology.SubroundId, value bool) {
 	vld.mut.Lock()
 	vld.agreement[key].SetValidation(subroundId, value)
 	vld.mut.Unlock()
 }
 
-// ResetAgreement method resets the state of each node from the current validation group, regarding to the
+// ResetValidation method resets the state of each node from the current validation group, regarding to the
 // consensus agreement
-func (vld *Validators) ResetAgreement() {
+func (vld *Validators) ResetValidation() {
 	for i := 0; i < len(vld.consensusGroup); i++ {
 		vld.mut.Lock()
 		vld.agreement[vld.consensusGroup[i]].ResetRoundValidation()
@@ -120,7 +121,7 @@ func (vld *Validators) ResetAgreement() {
 
 // IsNodeInBitmapGroup method checks if the node is part of the bitmap received from leader
 func (vld *Validators) IsNodeInBitmapGroup(node string) bool {
-	return vld.Agreement(node, SrBitmap)
+	return vld.GetValidation(node, SrBitmap)
 }
 
 // IsNodeInValidationGroup method checks if the node is part of the validation group of the current round
@@ -139,7 +140,7 @@ func (vld *Validators) IsBlockReceived(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(vld.consensusGroup); i++ {
-		if vld.Agreement(vld.consensusGroup[i], SrBlock) {
+		if vld.GetValidation(vld.consensusGroup[i], SrBlock) {
 			n++
 		}
 	}
@@ -153,7 +154,7 @@ func (vld *Validators) IsCommitmentHashReceived(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(vld.consensusGroup); i++ {
-		if vld.Agreement(vld.consensusGroup[i], SrCommitmentHash) {
+		if vld.GetValidation(vld.consensusGroup[i], SrCommitmentHash) {
 			n++
 		}
 	}
@@ -167,8 +168,8 @@ func (vld *Validators) CommitmentHashesCollected(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(vld.consensusGroup); i++ {
-		if vld.Agreement(vld.consensusGroup[i], SrBitmap) {
-			if !vld.Agreement(vld.consensusGroup[i], SrCommitmentHash) {
+		if vld.GetValidation(vld.consensusGroup[i], SrBitmap) {
+			if !vld.GetValidation(vld.consensusGroup[i], SrCommitmentHash) {
 				return false
 			}
 			n++
@@ -184,8 +185,8 @@ func (vld *Validators) CommitmentsCollected(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(vld.consensusGroup); i++ {
-		if vld.Agreement(vld.consensusGroup[i], SrBitmap) {
-			if !vld.Agreement(vld.consensusGroup[i], SrCommitment) {
+		if vld.GetValidation(vld.consensusGroup[i], SrBitmap) {
+			if !vld.GetValidation(vld.consensusGroup[i], SrCommitment) {
 				return false
 			}
 			n++
@@ -201,8 +202,8 @@ func (vld *Validators) SignaturesCollected(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(vld.consensusGroup); i++ {
-		if vld.Agreement(vld.consensusGroup[i], SrBitmap) {
-			if !vld.Agreement(vld.consensusGroup[i], SrSignature) {
+		if vld.GetValidation(vld.consensusGroup[i], SrBitmap) {
+			if !vld.GetValidation(vld.consensusGroup[i], SrSignature) {
 				return false
 			}
 			n++
@@ -218,7 +219,7 @@ func (vld *Validators) ComputeSize(subroundId chronology.SubroundId) int {
 	n := 0
 
 	for i := 0; i < len(vld.consensusGroup); i++ {
-		if vld.Agreement(vld.consensusGroup[i], subroundId) {
+		if vld.GetValidation(vld.consensusGroup[i], subroundId) {
 			n++
 		}
 	}

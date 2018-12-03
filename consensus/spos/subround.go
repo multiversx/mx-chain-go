@@ -29,7 +29,8 @@ func NewSubround(
 	name string,
 	work func() bool,
 	extend func(),
-	check func(chronology.SubroundId) bool) *Subround {
+	check func(chronology.SubroundId) bool,
+) *Subround {
 
 	sr := Subround{
 		current: current,
