@@ -143,29 +143,19 @@ func (cn *ConnNotifier) iterateThroughPeersAndTryToConnect(knownPeers []peer.ID)
 
 		//func pointers are associated
 		if cn.ConnectToPeer != nil && cn.IsConnected != nil {
-			gotConnected := cn.checkPeerAndConnect(peerID)
+			isConnected := cn.IsConnected(cn, peerID)
 
-			if gotConnected {
-				return SuccessfullyConnected
+			if !isConnected {
+				err := cn.ConnectToPeer(cn, peerID)
+
+				if err == nil {
+					return SuccessfullyConnected
+				}
 			}
 		}
 	}
 
 	return NothingDone
-}
-
-func (cn *ConnNotifier) checkPeerAndConnect(pid peer.ID) bool {
-	if !cn.IsConnected(cn, pid) {
-		err := cn.ConnectToPeer(cn, pid)
-
-		if err == nil {
-			return true
-		}
-
-		//TODO log connection error
-	}
-
-	return false
 }
 
 // Listen is called when network starts listening on an addr
@@ -180,17 +170,9 @@ func (cn *ConnNotifier) ListenClose(netw net.Network, ma multiaddr.Multiaddr) {
 
 // Connected is called when a connection opened
 func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
-	shouldCloseConnection := true
-
-	defer func() {
-		if shouldCloseConnection {
-			_ = conn.Close()
-			//TODO log error
-		}
-	}()
-
 	if cn.GetConnections == nil {
-		//function pointer not set, close connection
+		_ = conn.Close()
+		//TODO log error
 		return
 	}
 
@@ -198,10 +180,10 @@ func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
 
 	//refuse other connections if max connection has been reached
 	if cn.maxAllowedPeers < len(conns) {
+		_ = conn.Close()
+		//TODO log error
 		return
 	}
-
-	shouldCloseConnection = false
 }
 
 // Disconnected is called when a connection closed
