@@ -6,11 +6,14 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multiaddr"
 )
+
+var log = logger.NewDefaultLogger()
 
 // Messenger is the main struct used for communicating with other peers
 type Messenger interface {

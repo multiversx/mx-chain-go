@@ -86,7 +86,7 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 
 	node.cn = NewConnNotifier(maxAllowedPeers)
 
-	//TODO LOG timeStart := time.Now()
+	timeStart := time.Now()
 
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cp.Port)),
@@ -102,12 +102,11 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 		return nil, err
 	}
 
-	//TODO LOG fmt.Printf("Node: %v has the following addr table: \n", h.ID().Pretty())
-	//for i, addr := range h.Addresses() {
-	//TODO LOG fmt.Printf("%d: %s/ipfs/%s\n", i, addr, h.ID().Pretty())
-	//}
-
-	//TODO LOG fmt.Printf("Created node in %v\n", time.Now().Sub(timeStart))
+	adrTable := fmt.Sprintf("Node: %v has the following addr table: \n", hostP2P.ID().Pretty())
+	for i, addr := range hostP2P.Addrs() {
+		adrTable = adrTable + fmt.Sprintf("%d: %s/ipfs/%s\n", i, addr, hostP2P.ID().Pretty())
+	}
+	log.Debug(adrTable)
 
 	node.p2pNode = hostP2P
 	node.chansSend = make(map[string]chan []byte)
@@ -120,6 +119,8 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 	node.rt = NewRoutingTable(hostP2P.ID())
 
 	node.connNotifierRegistration(ctx)
+
+	log.Debug(fmt.Sprintf("Created node in %v\n", time.Now().Sub(timeStart)))
 
 	return &node, nil
 }
@@ -188,22 +189,32 @@ func (nm *NetMessenger) Close() error {
 	nm.closed = true
 	nm.mutClosed.Unlock()
 
+	errorEncountered := error(nil)
+
 	if nm.mdns != nil {
 		//unregistration and closing
 		nm.mdns.UnregisterNotifee(nm)
-		_ = nm.mdns.Close()
+		err := nm.mdns.Close()
+		if err != nil {
+			errorEncountered = err
+		}
 	}
 
 	nm.cn.Stop()
-	_ = nm.p2pNode.Network().Close()
-	_ = nm.p2pNode.Close()
+	err := nm.p2pNode.Network().Close()
+	if err != nil {
+		errorEncountered = err
+	}
+	err = nm.p2pNode.Close()
+	if err != nil {
+		errorEncountered = err
+	}
 
 	nm.mdns = nil
 	nm.cn = nil
 	nm.ps = nil
-	nm.p2pNode = nil
 
-	return nil
+	return errorEncountered
 }
 
 // ID returns the current id
@@ -251,25 +262,25 @@ func (nm *NetMessenger) Addresses() []string {
 func (nm *NetMessenger) ConnectToAddresses(ctx context.Context, addresses []string) {
 	peers := 0
 
-	//TODO LOG timeStart := time.Now()
+	timeStart := time.Now()
 
 	for i := 0; i < len(addresses); i++ {
 		pinfo, err := nm.ParseAddressIpfs(addresses[i])
 
 		if err != nil {
-			//TODO LOG fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err)
+			log.Error(fmt.Sprintf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err))
 			continue
 		}
 
 		if err := nm.p2pNode.Connect(ctx, *pinfo); err != nil {
-			//TODO LOG fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err)
+			log.Error(fmt.Sprintf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err))
 			continue
 		}
 
 		peers++
 	}
 
-	//TODO LOG fmt.Printf("Connected to %d peers in %v\n", peers, time.Now().Sub(timeStart))
+	log.Debug(fmt.Sprintf("Connected to %d peers in %v\n", peers, time.Now().Sub(timeStart)))
 }
 
 // Bootstrap will try to connect to as many peers as possible
@@ -333,12 +344,13 @@ func (nm *NetMessenger) HandlePeerFound(pi peerstore.PeerInfo) {
 func (nm *NetMessenger) PrintConnected() {
 	conns := nm.Conns()
 
-	//TODO LOG fmt.Printf("Node %s is connected to: \n", nm.ID().Pretty())
-
+	connectedTo := fmt.Sprintf("Node %s is connected to: \n", nm.ID().Pretty())
 	for i := 0; i < len(conns); i++ {
-		//TODO LOG fmt.Printf("\t- %s with distance %d\n", conns[i].RemotePeer().Pretty(),
-		//	ComputeDistanceAD(nm.ID(), conns[i].RemotePeer()))
+		connectedTo = connectedTo + fmt.Sprintf("\t- %s with distance %d\n", conns[i].RemotePeer().Pretty(),
+			ComputeDistanceAD(nm.ID(), conns[i].RemotePeer()))
 	}
+
+	log.Debug(connectedTo)
 }
 
 // AddAddress adds a new address to peer store
@@ -404,13 +416,13 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 		for {
 			msg, err := subscr.Next(nm.context)
 			if err != nil {
-				//TODO log
+				log.Error(err.Error())
 				continue
 			}
 
 			obj, err := t.CreateObject(msg.GetData())
 			if err != nil {
-				//TODO log
+				log.Error(err.Error())
 				continue
 			}
 
@@ -426,7 +438,7 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 
 			err = t.NewObjReceived(obj, msg.GetFrom().Pretty())
 			if err != nil {
-				//TODO log
+				log.Error(err.Error())
 				continue
 			}
 		}
@@ -483,8 +495,10 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,
 			//then it shall broadcast it
-			_ = t.Broadcast(obj)
-			//TODO log error
+			err := t.Broadcast(obj)
+			if err != nil {
+				log.Error(err.Error())
+			}
 		}
 		return false
 	}
@@ -495,8 +509,10 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 	}
 
 	//wire-up the validator
-	_ = nm.ps.RegisterTopicValidator(t.Name+requestTopicSuffix, v)
-	//TODO log error
+	err := nm.ps.RegisterTopicValidator(t.Name+requestTopicSuffix, v)
+	if err != nil {
+		log.Error(err.Error())
+	}
 }
 
 // GetTopic returns the topic from its name or nil if no topic with that name

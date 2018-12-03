@@ -33,6 +33,7 @@ func (t *Topic) SetUnregisterTopicValidator(f func() error) {
 
 var DurTimeCache = durTimeCache
 var MutGloballyRegPeers = &mutGloballyRegPeers
+var Log = log
 
 func RecreateGlobbalyRegisteredMemPeersMap() {
 	globallyRegisteredPeers = make(map[peer.ID]*MemMessenger)

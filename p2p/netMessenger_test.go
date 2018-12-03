@@ -122,13 +122,18 @@ func waitForValue(value *int32, expected int32, chanDone chan bool) {
 func closeAllNodes(nodes []p2p.Messenger) {
 	fmt.Println("### Closing nodes... ###")
 	for i := 0; i < len(nodes); i++ {
-		_ = nodes[i].Close()
+		err := nodes[i].Close()
+		if err != nil {
+			p2p.Log.Error(err.Error())
+		}
 	}
-
-	time.Sleep(time.Second * 60)
 }
 
-func TestNetMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
+func TestNetMessengerRecreationSameNodeShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	port := startingPort
@@ -150,7 +155,11 @@ func TestNetMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
+func TestNetMessengerSendToSelfShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	node, err := createNetMessenger(t, startingPort, 10)
@@ -164,7 +173,7 @@ func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
 	chanDone := make(chan bool)
 	go waitForWaitGroup(&wg, chanDone)
 
-	_ = nodes[0].AddTopic(p2p.NewTopic("test topic", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	err = nodes[0].AddTopic(p2p.NewTopic("test topic", &testNetStringNewer{}, &mock.MarshalizerMock{}))
 	nodes[0].GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		payload := (*data.(*testNetStringNewer)).Data
 
@@ -174,8 +183,10 @@ func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
 			wg.Done()
 		}
 	})
+	assert.Nil(t, err)
 
-	_ = nodes[0].GetTopic("test topic").Broadcast(testNetStringNewer{Data: "ABC"})
+	err = nodes[0].GetTopic("test topic").Broadcast(testNetStringNewer{Data: "ABC"})
+	assert.Nil(t, err)
 
 	select {
 	case <-chanDone:
@@ -184,7 +195,11 @@ func TestNetMessenger_SendToSelf_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
+func TestNetMessengerNodesPingPongOn2TopicsShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -222,11 +237,15 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	fmt.Printf("Node 2 has the addresses: %v\n", nodes[1].Addresses())
 
 	//create 2 topics on each node
-	_ = nodes[0].AddTopic(p2p.NewTopic("ping", &testNetStringNewer{}, &mock.MarshalizerMock{}))
-	_ = nodes[0].AddTopic(p2p.NewTopic("pong", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	err = nodes[0].AddTopic(p2p.NewTopic("ping", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	assert.Nil(t, err)
+	err = nodes[0].AddTopic(p2p.NewTopic("pong", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	assert.Nil(t, err)
 
-	_ = nodes[1].AddTopic(p2p.NewTopic("ping", &testNetStringNewer{}, &mock.MarshalizerMock{}))
-	_ = nodes[1].AddTopic(p2p.NewTopic("pong", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	err = nodes[1].AddTopic(p2p.NewTopic("ping", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	assert.Nil(t, err)
+	err = nodes[1].AddTopic(p2p.NewTopic("pong", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	assert.Nil(t, err)
 
 	wg.Add(2)
 	go waitForWaitGroup(&wg, chanDone)
@@ -237,7 +256,8 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 
 		if payload == "ping string" {
 			fmt.Println("Ping received, sending pong...")
-			_ = nodes[0].GetTopic("pong").Broadcast(testNetStringNewer{"pong string"})
+			err = nodes[0].GetTopic("pong").Broadcast(testNetStringNewer{"pong string"})
+			assert.Nil(t, err)
 		}
 	})
 
@@ -264,8 +284,7 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 		}
 	})
 
-	_ = nodes[1].GetTopic("ping").Broadcast(testNetStringNewer{"ping string"})
-
+	err = nodes[1].GetTopic("ping").Broadcast(testNetStringNewer{"ping string"})
 	assert.Nil(t, err)
 
 	select {
@@ -275,7 +294,11 @@ func TestNetMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
+func TestNetMessengerSimpleBroadcast5nodesInlineShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -323,19 +346,21 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		_ = node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+		err := node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, &mock.MarshalizerMock{}))
 		node.GetTopic("test").AddDataReceived(
 			func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 				fmt.Printf("%v received from %v: %v\n", node.ID(), msgInfo.Peer, data.(*testNetStringNewer).Data)
 				wg.Done()
 			})
+		assert.Nil(t, err)
 	}
 
 	fmt.Println()
 	fmt.Println()
 
 	fmt.Println("Broadcasting...")
-	_ = nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "Foo"})
+	err := nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "Foo"})
+	assert.Nil(t, err)
 
 	select {
 	case <-chanDone:
@@ -345,7 +370,11 @@ func TestNetMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing.T) {
+func TestNetMessengerSimpleBroadcast5nodesBetterConnectedShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -401,19 +430,21 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 		node := nodes[i]
 		node.PrintConnected()
 
-		_ = node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+		err := node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, &mock.MarshalizerMock{}))
 		node.GetTopic("test").AddDataReceived(
 			func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 				fmt.Printf("%v received from %v: %v\n", node.ID(), msgInfo.Peer, data.(*testNetStringNewer).Data)
 				wg.Done()
 			})
+		assert.Nil(t, err)
 	}
 
 	fmt.Println()
 	fmt.Println()
 
 	fmt.Println("Broadcasting...")
-	_ = nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "Foo"})
+	err := nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "Foo"})
+	assert.Nil(t, err)
 
 	select {
 	case <-chanDone:
@@ -423,7 +454,11 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 	}
 }
 
-func TestNetMessenger_SendingNil_ShouldErr(t *testing.T) {
+func TestNetMessengerSendingNilShouldErr(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	node, err := createNetMessenger(t, startingPort, 10)
@@ -432,35 +467,45 @@ func TestNetMessenger_SendingNil_ShouldErr(t *testing.T) {
 
 	defer closeAllNodes(nodes)
 
-	_ = node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	err = node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	assert.Nil(t, err)
 	err = node.GetTopic("test").Broadcast(nil)
 	assert.NotNil(t, err)
 }
 
-func TestNetMessenger_CreateNodeWithNilMarshalizer_ShouldErr(t *testing.T) {
+func TestNetMessengerCreateNodeWithNilMarshalizerShouldErr(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	cp, err := p2p.NewConnectParamsFromPort(startingPort)
 	assert.Nil(t, err)
 
 	_, err = p2p.NewNetMessenger(context.Background(), nil, &mock.HasherMock{}, cp, 10, p2p.FloodSub)
-
 	assert.NotNil(t, err)
 }
 
-func TestNetMessenger_CreateNodeWithNilHasher_ShouldErr(t *testing.T) {
+func TestNetMessengerCreateNodeWithNilHasherShouldErr(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	cp, err := p2p.NewConnectParamsFromPort(startingPort)
 	assert.Nil(t, err)
 
 	_, err = p2p.NewNetMessenger(context.Background(), &mock.MarshalizerMock{}, nil, cp, 10, p2p.FloodSub)
-
 	assert.NotNil(t, err)
 }
 
-func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testing.T) {
+func TestNetMessengerSingleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
 
-	//chose another port range
 	startPort := startingPort
 	endPort := startingPort + 9
 	nConns := 4
@@ -512,7 +557,8 @@ func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testin
 
 	//broadcasting something
 	fmt.Println("Broadcasting a message...")
-	_ = nodes[0].GetTopic("test topic").Broadcast(testNetStringNewer{"a string to broadcast"})
+	err := nodes[0].GetTopic("test topic").Broadcast(testNetStringNewer{"a string to broadcast"})
+	assert.Nil(t, err)
 
 	fmt.Println("Waiting...")
 
@@ -544,7 +590,11 @@ func TestNetMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testin
 	//assert.Equal(t, 0, notRecv)
 }
 
-func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
+func TestNetMessengerBadObjectToUnmarshalShouldFilteredOut(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	//stress test to check if the node is able to cope
 	//with unmarshaling a bad object
 	//both structs have the same fields but incompatible types
@@ -585,8 +635,10 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 	go waitForWaitGroup(&wg, chanDone)
 
 	//create topics for each node
-	_ = nodes[0].AddTopic(p2p.NewTopic("test", &structNetTest1{}, &mock.MarshalizerMock{}))
-	_ = nodes[1].AddTopic(p2p.NewTopic("test", &structNetTest2{}, &mock.MarshalizerMock{}))
+	err = nodes[0].AddTopic(p2p.NewTopic("test", &structNetTest1{}, &mock.MarshalizerMock{}))
+	assert.Nil(t, err)
+	err = nodes[1].AddTopic(p2p.NewTopic("test", &structNetTest2{}, &mock.MarshalizerMock{}))
+	assert.Nil(t, err)
 
 	//node 1 sends, node 2 receives
 	nodes[1].GetTopic("test").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
@@ -594,7 +646,8 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 		wg.Done()
 	})
 
-	_ = nodes[0].GetTopic("test").Broadcast(&structNetTest1{Nonce: 4, Data: 4.5})
+	err = nodes[0].GetTopic("test").Broadcast(&structNetTest1{Nonce: 4, Data: 4.5})
+	assert.Nil(t, err)
 
 	select {
 	case <-chanDone:
@@ -603,7 +656,11 @@ func TestNetMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 	}
 }
 
-func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T) {
+func TestNetMessengerBroadcastOnInexistentTopicShouldFilteredOut(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	//stress test to check if the node is able to cope
 	//with receiving on an inexistent topic
 
@@ -640,8 +697,10 @@ func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T)
 	go waitForWaitGroup(&wg, chanDone)
 
 	//create topics for each node
-	_ = nodes[0].AddTopic(p2p.NewTopic("test1", &testNetStringNewer{}, &mock.MarshalizerMock{}))
-	_ = nodes[1].AddTopic(p2p.NewTopic("test2", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	err = nodes[0].AddTopic(p2p.NewTopic("test1", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	assert.Nil(t, err)
+	err = nodes[1].AddTopic(p2p.NewTopic("test2", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+	assert.Nil(t, err)
 
 	//node 1 sends, node 2 receives
 	nodes[1].GetTopic("test2").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
@@ -649,7 +708,8 @@ func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T)
 		wg.Done()
 	})
 
-	_ = nodes[0].GetTopic("test1").Broadcast(testNetStringNewer{"Foo"})
+	err = nodes[0].GetTopic("test1").Broadcast(testNetStringNewer{"Foo"})
+	assert.Nil(t, err)
 
 	select {
 	case <-chanDone:
@@ -658,7 +718,7 @@ func TestNetMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T)
 	}
 }
 
-func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testing.T) {
+func TestNetMessengerMultipleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.T) {
 	//TODO refactor
 	t.Skip("pubsub's implementation has bugs, skipping for now")
 
@@ -666,8 +726,8 @@ func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *test
 		t.Skip("skipping test in short mode")
 	}
 
-	startPort := 12000
-	endPort := 12009
+	startPort := startingPort
+	endPort := startingPort + 9
 	nConns := 4
 
 	nodes := make([]p2p.Messenger, 0)
@@ -766,7 +826,11 @@ func TestNetMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *test
 	//assert.Equal(t, 0, notRecv)
 }
 
-func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
+func TestNetMessengerBroadcastWithValidatorsShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -825,7 +889,8 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		_ = node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+		err := node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+		assert.Nil(t, err)
 		node.GetTopic("test").AddDataReceived(recv)
 	}
 
@@ -834,13 +899,15 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 		obj := &testNetStringNewer{}
 
 		marsh := mock.MarshalizerMock{}
-		_ = marsh.Unmarshal(obj, mes.GetData())
+		err := marsh.Unmarshal(obj, mes.GetData())
+		assert.Nil(t, err)
 
 		return obj.Data != "AAA"
 	}
 
 	//node 2 has validator in place
-	_ = nodes[2].GetTopic("test").RegisterValidator(v)
+	err := nodes[2].GetTopic("test").RegisterValidator(v)
+	assert.Nil(t, err)
 
 	fmt.Println()
 	fmt.Println()
@@ -849,7 +916,9 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 	fmt.Println("Broadcasting AAA...")
 	wg.Add(4)
 	go waitForWaitGroup(&wg, chanDone)
-	_ = nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "AAA"})
+	err = nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "AAA"})
+	assert.Nil(t, err)
+
 	select {
 	case <-chanDone:
 	case <-time.After(testNetMessengerMaxWaitResponse):
@@ -862,7 +931,9 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 	wg.Add(5)
 	go waitForWaitGroup(&wg, chanDone)
 
-	_ = nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "BBB"})
+	err = nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "BBB"})
+	assert.Nil(t, err)
+
 	select {
 	case <-chanDone:
 	case <-time.After(testNetMessengerMaxWaitResponse):
@@ -871,7 +942,8 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 	}
 
 	//add the validator on node 4
-	_ = nodes[4].GetTopic("test").RegisterValidator(v)
+	err = nodes[4].GetTopic("test").RegisterValidator(v)
+	assert.Nil(t, err)
 
 	fmt.Println("Waiting for cooldown period (timecache should empty map)")
 	time.Sleep(p2p.DurTimeCache + time.Millisecond*100)
@@ -881,7 +953,9 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 	wg.Add(2)
 	go waitForWaitGroup(&wg, chanDone)
 
-	_ = nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "AAA"})
+	err = nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "AAA"})
+	assert.Nil(t, err)
+
 	select {
 	case <-chanDone:
 	case <-time.After(testNetMessengerMaxWaitResponse):
@@ -889,7 +963,11 @@ func TestNetMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
+func TestNetMessengerBroadcastToGossipSubShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -953,13 +1031,15 @@ func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		_ = node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+		err := node.AddTopic(p2p.NewTopic("test", &testNetStringNewer{}, &mock.MarshalizerMock{}))
+		assert.Nil(t, err)
 		node.GetTopic("test").AddDataReceived(recv1)
 	}
 
 	//send a piggyback message, wait 1 sec
 	fmt.Println("Broadcasting piggyback message...")
-	_ = nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "piggyback"})
+	err := nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "piggyback"})
+	assert.Nil(t, err)
 	time.Sleep(time.Second)
 	fmt.Printf("%d peers got the message!\n", atomic.LoadInt32(&counter))
 
@@ -969,7 +1049,9 @@ func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
 	doWaitGroup = true
 	wg.Add(5)
 	go waitForWaitGroup(&wg, chanDone)
-	_ = nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "AAA"})
+	err = nodes[0].GetTopic("test").Broadcast(testNetStringNewer{Data: "AAA"})
+	assert.Nil(t, err)
+
 	select {
 	case <-chanDone:
 	case <-time.After(testNetMessengerMaxWaitResponse):
@@ -977,14 +1059,22 @@ func TestNetMessenger_BroadcastToGossipSub_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestNetMessenger_BroadcastToUnknownSub_ShouldErr(t *testing.T) {
+func TestNetMessengerBroadcastToUnknownSubShouldErr(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	_, err := createNetMessengerPubSub(t, startingPort, 10, 500)
 	assert.NotNil(t, err)
 }
 
-func TestNetMessenger_RequestResolveTestCfg1_ShouldWork(t *testing.T) {
+func TestNetMessengerRequestResolveTestCfg1ShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	//create 5 nodes
@@ -1081,7 +1171,11 @@ func TestNetMessenger_RequestResolveTestCfg1_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestNetMessenger_RequestResolveTestCfg2_ShouldWork(t *testing.T) {
+func TestNetMessengerRequestResolveTestCfg2ShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	//create 5 nodes
@@ -1181,7 +1275,11 @@ func TestNetMessenger_RequestResolveTestCfg2_ShouldWork(t *testing.T) {
 
 }
 
-func TestNetMessenger_RequestResolveTestSelf_ShouldWork(t *testing.T) {
+func TestNetMessengerRequestResolveTestSelfShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	//create 5 nodes
@@ -1282,7 +1380,11 @@ func TestNetMessenger_RequestResolveTestSelf_ShouldWork(t *testing.T) {
 
 }
 
-func TestNetMessenger_RequestResolve_Resending_ShouldWork(t *testing.T) {
+func TestNetMessengerRequestResolveResendingShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	//create 5 nodes

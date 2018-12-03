@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTimeCache_AddHas_AddingAfterDur_ShouldRetFalse(t *testing.T) {
+func TestTimeCacheAddHasAddingAfterDurShouldRetFalse(t *testing.T) {
 	tc := NewTimeCache(time.Second)
 
 	tc.Add("AAA")
@@ -17,7 +17,7 @@ func TestTimeCache_AddHas_AddingAfterDur_ShouldRetFalse(t *testing.T) {
 	assert.False(t, tc.Has("AAA"))
 }
 
-func TestTimeCache_AddHas_AddingBeforeDur_ShouldRetTrue(t *testing.T) {
+func TestTimeCacheAddHasAddingBeforeDurShouldRetTrue(t *testing.T) {
 	tc := NewTimeCache(time.Second)
 
 	tc.Add("AAA")
@@ -27,7 +27,7 @@ func TestTimeCache_AddHas_AddingBeforeDur_ShouldRetTrue(t *testing.T) {
 	assert.True(t, tc.Has("AAA"))
 }
 
-func TestTimeCache_AddHas_ReaddingAfterDur_ShouldWork(t *testing.T) {
+func TestTimeCacheAddHasReaddingAfterDurShouldWork(t *testing.T) {
 	tc := NewTimeCache(time.Second)
 
 	tc.Add("AAA")

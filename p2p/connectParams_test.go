@@ -13,13 +13,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConnectParams_NewConnectParamsFromPort_FromInvalidPort_ShouldErr(t *testing.T) {
+func TestConnectParamsNewConnectParamsFromPortFromInvalidPortShouldErr(t *testing.T) {
 	//invalid port
 	_, err := p2p.NewConnectParamsFromPort(65536)
 	assert.NotNil(t, err)
 }
 
-func TestConnectParams_NewConnectParamsFromPort_GoodPort_ShouldWork(t *testing.T) {
+func TestConnectParamsNewConnectParamsFromPortGoodPortShouldWork(t *testing.T) {
 	cp, err := p2p.NewConnectParamsFromPort(65535)
 	assert.Nil(t, err)
 
@@ -36,7 +36,7 @@ func TestConnectParams_NewConnectParamsFromPort_GoodPort_ShouldWork(t *testing.T
 
 }
 
-func TestConnectParams_NewConnectParams_GoodValues_ShouldWork(t *testing.T) {
+func TestConnectParamsNewConnectParamsGoodValuesShouldWork(t *testing.T) {
 	buffPrivKey := []byte{8, 2, 18, 32, 240, 44, 132, 237, 70,
 		30, 188, 118, 0, 25, 28, 224, 190, 134, 240, 66, 58, 63,
 		181, 131, 208, 151, 28, 19, 89, 49, 67, 184, 225, 63, 248, 166}
@@ -67,7 +67,7 @@ func TestConnectParams_NewConnectParams_GoodValues_ShouldWork(t *testing.T) {
 	assert.Equal(t, pid, params.ID.Pretty())
 }
 
-func TestConnectParams_SignVerify_GoodValues_ShouldWork(t *testing.T) {
+func TestConnectParamsSignVerifyGoodValuesShouldWork(t *testing.T) {
 	params, err := p2p.NewConnectParamsFromPort(4000)
 	assert.Nil(t, err)
 

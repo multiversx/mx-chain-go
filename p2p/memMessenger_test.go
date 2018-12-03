@@ -79,7 +79,7 @@ func resetMemMessengers() {
 	p2p.RecreateGlobbalyRegisteredMemPeersMap()
 }
 
-func TestMemMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
+func TestMemMessengerRecreationSameNodeShouldWork(t *testing.T) {
 	fmt.Println()
 
 	resetMemMessengers()
@@ -97,7 +97,7 @@ func TestMemMessenger_RecreationSameNode_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestMemMessenger_SendToSelf_ShouldWork(t *testing.T) {
+func TestMemMessengerSendToSelfShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	node, err := createMemMessenger(t, 4500)
@@ -128,7 +128,7 @@ func TestMemMessenger_SendToSelf_ShouldWork(t *testing.T) {
 
 }
 
-func TestMemMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
+func TestMemMessengerNodesPingPongOn2TopicsShouldWork(t *testing.T) {
 	fmt.Println()
 
 	resetMemMessengers()
@@ -213,7 +213,7 @@ func TestMemMessenger_NodesPingPongOn2Topics_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMemMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
+func TestMemMessengerSimpleBroadcast5nodesInlineShouldWork(t *testing.T) {
 	fmt.Println()
 
 	resetMemMessengers()
@@ -283,7 +283,7 @@ func TestMemMessenger_SimpleBroadcast5nodesInline_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestMemMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing.T) {
+func TestMemMessengerSimpleBroadcast5nodesBetterConnectedShouldWork(t *testing.T) {
 	fmt.Println()
 
 	resetMemMessengers()
@@ -361,7 +361,7 @@ func TestMemMessenger_SimpleBroadcast5nodesBetterConnected_ShouldWork(t *testing
 	}
 }
 
-func TestMemMessenger_SendingNil_ShouldErr(t *testing.T) {
+func TestMemMessengerSendingNilShouldErr(t *testing.T) {
 	resetMemMessengers()
 
 	node1, err := createMemMessenger(t, 9000)
@@ -373,7 +373,7 @@ func TestMemMessenger_SendingNil_ShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestMemMessenger_CreateNodeWithNilMarshalizer_ShouldErr(t *testing.T) {
+func TestMemMessengerCreateNodeWithNilMarshalizerShouldErr(t *testing.T) {
 	resetMemMessengers()
 
 	cp, err := p2p.NewConnectParamsFromPort(11000)
@@ -384,7 +384,7 @@ func TestMemMessenger_CreateNodeWithNilMarshalizer_ShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestMemMessenger_CreateNodeWithNilHasher_ShouldErr(t *testing.T) {
+func TestMemMessengerCreateNodeWithNilHasherShouldErr(t *testing.T) {
 	resetMemMessengers()
 
 	cp, err := p2p.NewConnectParamsFromPort(12000)
@@ -395,7 +395,7 @@ func TestMemMessenger_CreateNodeWithNilHasher_ShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestMemMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testing.T) {
+func TestMemMessengerSingleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.T) {
 	resetMemMessengers()
 
 	if testing.Short() {
@@ -482,7 +482,7 @@ func TestMemMessenger_SingleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testin
 	assert.Equal(t, 0, notRecv)
 }
 
-func TestMemMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
+func TestMemMessengerBadObjectToUnmarshalShouldFilteredOut(t *testing.T) {
 	//stress test to check if the node is able to cope
 	//with unmarshaling a bad object
 	//both structs have the same fields but incompatible types
@@ -528,7 +528,7 @@ func TestMemMessenger_BadObjectToUnmarshal_ShouldFilteredOut(t *testing.T) {
 	assert.Equal(t, int32(0), atomic.LoadInt32(&counter))
 }
 
-func TestMemMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T) {
+func TestMemMessengerBroadcastOnInexistentTopicShouldFilteredOut(t *testing.T) {
 	//stress test to check if the node is able to cope
 	//with receiving on an inexistent topic
 	resetMemMessengers()
@@ -569,7 +569,7 @@ func TestMemMessenger_BroadcastOnInexistentTopic_ShouldFilteredOut(t *testing.T)
 	assert.Equal(t, int32(0), atomic.LoadInt32(&counter))
 }
 
-func TestMemMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *testing.T) {
+func TestMemMessengerMultipleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
@@ -674,7 +674,7 @@ func TestMemMessenger_MultipleRoundBootstrap_ShouldNotProduceLonelyNodes(t *test
 	assert.Equal(t, 0, notRecv)
 }
 
-func TestMemMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
+func TestMemMessengerBroadcastWithValidatorsShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	fmt.Println()
@@ -778,7 +778,7 @@ func TestMemMessenger_BroadcastWithValidators_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestMemMessenger_RequestResolveTestCfg1_ShouldWork(t *testing.T) {
+func TestMemMessengerRequestResolveTestCfg1ShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	nodes := make([]*p2p.MemMessenger, 0)
@@ -855,7 +855,7 @@ func TestMemMessenger_RequestResolveTestCfg1_ShouldWork(t *testing.T) {
 	assert.Equal(t, int32(1), atomic.LoadInt32(&counter1))
 }
 
-func TestMemMessenger_RequestResolveTestCfg2_ShouldWork(t *testing.T) {
+func TestMemMessengerRequestResolveTestCfg2ShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	nodes := make([]*p2p.MemMessenger, 0)
@@ -939,7 +939,7 @@ func TestMemMessenger_RequestResolveTestCfg2_ShouldWork(t *testing.T) {
 
 }
 
-func TestMemMessenger_RequestResolveTestSelf_ShouldWork(t *testing.T) {
+func TestMemMessengerRequestResolveTestSelfShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	nodes := make([]*p2p.MemMessenger, 0)
@@ -1024,7 +1024,7 @@ func TestMemMessenger_RequestResolveTestSelf_ShouldWork(t *testing.T) {
 
 }
 
-func TestMemMessenger_RequestResolve_Resending_ShouldWork(t *testing.T) {
+func TestMemMessengerRequestResolveResendingShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	nodes := make([]*p2p.MemMessenger, 0)
