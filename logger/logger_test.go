@@ -161,7 +161,7 @@ func TestConcurrencyWithFileWriter(t *testing.T) {
 
 	for i := 1; i < 1000; i++ {
 		go func(index int) {
-			log.Warn("I will fail miserably if I'll run into concurrency issues", index)
+			log.Warn("I will error if I'll run into concurrency issues", index)
 			wg.Done()
 		}(i)
 	}
