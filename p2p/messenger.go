@@ -22,17 +22,12 @@ type Messenger interface {
 	Marshalizer() marshal.Marshalizer
 	Hasher() hashing.Hasher
 	RouteTable() *RoutingTable
-	Addrs() []string
-
+	Addresses() []string
 	ConnectToAddresses(ctx context.Context, addresses []string)
-
 	Bootstrap(ctx context.Context)
 	PrintConnected()
-
 	AddAddress(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration)
-
 	Connectedness(pid peer.ID) net.Connectedness
-
 	GetTopic(topicName string) *Topic
 	AddTopic(t *Topic) error
 }

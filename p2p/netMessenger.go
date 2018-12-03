@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,11 +22,14 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-// maxMessageQueueNetMessenger is used to control the maximum message queue in a network messenger
-const maxMessageQueueNetMessenger = 50000
-
 // durMdnsCalls is used to define the duration used by mdns service when polling peers
 const durMdnsCalls = time.Second
+
+// durTimeCache represents the duration for gossip messages to be saved in cache
+const durTimeCache = time.Second * 5
+
+// requestTopicSuffix is added to a known topic to generate the topic's request counterpart
+const requestTopicSuffix = "_REQUEST"
 
 // PubSubStrategy defines the strategy for broadcasting messages in the network
 type PubSubStrategy int
@@ -35,37 +39,28 @@ const (
 	FloodSub = iota
 	// GossipSub strategy to use when broadcasting messages
 	GossipSub
-	// RandomSub strategy to use when broadcasting messages
-	RandomSub
 )
 
 // NetMessenger implements a libP2P node with added functionality
 type NetMessenger struct {
-	context  context.Context
-	protocol protocol.ID
-	p2pNode  host.Host
-	ps       *pubsub.PubSub
-	mdns     discovery.Service
-
-	mutChansSend sync.RWMutex
-	chansSend    map[string]chan []byte
-
-	mutBootstrap sync.Mutex
-
-	queue  *MessageQueue
-	marsh  marshal.Marshalizer
-	hasher hashing.Hasher
-	rt     *RoutingTable
-	cn     *ConnNotifier
-	dn     *DiscoveryNotifier
-
-	onMsgRecv func(caller Messenger, peerID string, data []byte)
-
-	mutClosed sync.RWMutex
-	closed    bool
-
-	mutTopics sync.RWMutex
-	topics    map[string]*Topic
+	context        context.Context
+	protocol       protocol.ID
+	p2pNode        host.Host
+	ps             *pubsub.PubSub
+	mdns           discovery.Service
+	mutChansSend   sync.RWMutex
+	chansSend      map[string]chan []byte
+	mutBootstrap   sync.Mutex
+	marsh          marshal.Marshalizer
+	hasher         hashing.Hasher
+	rt             *RoutingTable
+	cn             *ConnNotifier
+	mutClosed      sync.RWMutex
+	closed         bool
+	mutTopics      sync.RWMutex
+	topics         map[string]*Topic
+	mutGossipCache sync.Mutex
+	gossipCache    *TimeCache
 }
 
 // NewNetMessenger creates a new instance of NetMessenger.
@@ -81,16 +76,17 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 	}
 
 	node := NetMessenger{
-		context: ctx,
-		marsh:   marsh,
-		hasher:  hasher,
-		topics:  make(map[string]*Topic, 0),
+		context:        ctx,
+		marsh:          marsh,
+		hasher:         hasher,
+		topics:         make(map[string]*Topic, 0),
+		mutGossipCache: sync.Mutex{},
+		gossipCache:    NewTimeCache(durTimeCache),
 	}
 
-	node.cn = NewConnNotifier(&node)
-	node.cn.MaxAllowedPeers = maxAllowedPeers
+	node.cn = NewConnNotifier(maxAllowedPeers)
 
-	timeStart := time.Now()
+	//TODO LOG timeStart := time.Now()
 
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cp.Port)),
@@ -106,17 +102,15 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 		return nil, err
 	}
 
-	fmt.Printf("Node: %v has the following addr table: \n", hostP2P.ID().Pretty())
-	for i, addr := range hostP2P.Addrs() {
-		fmt.Printf("%d: %s/ipfs/%s\n", i, addr, hostP2P.ID().Pretty())
-	}
-	fmt.Println()
+	//TODO LOG fmt.Printf("Node: %v has the following addr table: \n", h.ID().Pretty())
+	//for i, addr := range h.Addresses() {
+	//TODO LOG fmt.Printf("%d: %s/ipfs/%s\n", i, addr, h.ID().Pretty())
+	//}
 
-	fmt.Printf("Created node in %v\n", time.Now().Sub(timeStart))
+	//TODO LOG fmt.Printf("Created node in %v\n", time.Now().Sub(timeStart))
 
 	node.p2pNode = hostP2P
 	node.chansSend = make(map[string]chan []byte)
-	node.queue = NewMessageQueue(maxMessageQueueNetMessenger)
 
 	err = node.createPubSub(hostP2P, pubsubStrategy, ctx)
 	if err != nil {
@@ -152,14 +146,6 @@ func (nm *NetMessenger) createPubSub(hostP2P host.Host, pubsubStrategy PubSubStr
 			}
 			nm.ps = ps
 		}
-	case RandomSub:
-		{
-			ps, err := pubsub.NewRandomSub(ctx, hostP2P, optsPS...)
-			if err != nil {
-				return err
-			}
-			nm.ps = ps
-		}
 	default:
 		return errors.New("unknown pubsub strategy")
 	}
@@ -171,12 +157,8 @@ func (nm *NetMessenger) connNotifierRegistration(ctx context.Context) {
 	//register the notifier
 	nm.p2pNode.Network().Notify(nm.cn)
 
-	nm.cn.OnDoSimpleTask = func(this interface{}) {
-		TaskResolveConnections(nm.cn)
-	}
-
 	nm.cn.GetKnownPeers = func(cn *ConnNotifier) []peer.ID {
-		return cn.Msgr.RouteTable().NearestPeersAll()
+		return nm.RouteTable().NearestPeersAll()
 	}
 
 	nm.cn.ConnectToPeer = func(cn *ConnNotifier, pid peer.ID) error {
@@ -189,6 +171,15 @@ func (nm *NetMessenger) connNotifierRegistration(ctx context.Context) {
 		return nil
 	}
 
+	nm.cn.GetConnections = func(sender *ConnNotifier) []net.Conn {
+		return nm.Conns()
+	}
+
+	nm.cn.IsConnected = func(sender *ConnNotifier, pid peer.ID) bool {
+		return nm.Connectedness(pid) == net.Connected
+	}
+
+	nm.cn.Start()
 }
 
 // Closes a NetMessenger
@@ -197,7 +188,20 @@ func (nm *NetMessenger) Close() error {
 	nm.closed = true
 	nm.mutClosed.Unlock()
 
-	nm.p2pNode.Close()
+	if nm.mdns != nil {
+		//unregistration and closing
+		nm.mdns.UnregisterNotifee(nm)
+		_ = nm.mdns.Close()
+	}
+
+	nm.cn.Stop()
+	_ = nm.p2pNode.Network().Close()
+	_ = nm.p2pNode.Close()
+
+	nm.mdns = nil
+	nm.cn = nil
+	nm.ps = nil
+	nm.p2pNode = nil
 
 	return nil
 }
@@ -232,8 +236,8 @@ func (nm *NetMessenger) RouteTable() *RoutingTable {
 	return nm.rt
 }
 
-// Addrs will return all addresses bound to current messenger
-func (nm *NetMessenger) Addrs() []string {
+// Addresses will return all addresses bound to current messenger
+func (nm *NetMessenger) Addresses() []string {
 	addrs := make([]string, 0)
 
 	for _, address := range nm.p2pNode.Addrs() {
@@ -247,25 +251,25 @@ func (nm *NetMessenger) Addrs() []string {
 func (nm *NetMessenger) ConnectToAddresses(ctx context.Context, addresses []string) {
 	peers := 0
 
-	timeStart := time.Now()
+	//TODO LOG timeStart := time.Now()
 
 	for i := 0; i < len(addresses); i++ {
 		pinfo, err := nm.ParseAddressIpfs(addresses[i])
 
 		if err != nil {
-			fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err)
+			//TODO LOG fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err)
 			continue
 		}
 
 		if err := nm.p2pNode.Connect(ctx, *pinfo); err != nil {
-			fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err)
+			//TODO LOG fmt.Printf("Bootstrapping the peer '%v' failed with error %v\n", addresses[i], err)
 			continue
 		}
 
 		peers++
 	}
 
-	fmt.Printf("Connected to %d peers in %v\n", peers, time.Now().Sub(timeStart))
+	//TODO LOG fmt.Printf("Connected to %d peers in %v\n", peers, time.Now().Sub(timeStart))
 }
 
 // Bootstrap will try to connect to as many peers as possible
@@ -284,15 +288,13 @@ func (nm *NetMessenger) Bootstrap(ctx context.Context) {
 		return
 	}
 
-	nm.dn = NewDiscoveryNotifier(nm)
-
 	mdns, err := discovery.NewMdnsService(context.Background(), nm.p2pNode, durMdnsCalls, "discovery")
 
 	if err != nil {
 		panic(err)
 	}
 
-	mdns.RegisterNotifee(nm.dn)
+	mdns.RegisterNotifee(nm)
 	nm.mdns = mdns
 
 	nm.mutBootstrap.Unlock()
@@ -300,15 +302,42 @@ func (nm *NetMessenger) Bootstrap(ctx context.Context) {
 	nm.cn.Start()
 }
 
+// HandlePeerFound updates the routing table with this new peer
+func (nm *NetMessenger) HandlePeerFound(pi peerstore.PeerInfo) {
+	if nm.Peers() == nil {
+		return
+	}
+
+	peers := nm.Peers()
+	found := false
+
+	for i := 0; i < len(peers); i++ {
+		if peers[i] == pi.ID {
+			found = true
+			break
+		}
+	}
+
+	if found {
+		return
+	}
+
+	for i := 0; i < len(pi.Addrs); i++ {
+		nm.AddAddress(pi.ID, pi.Addrs[i], peerstore.PermanentAddrTTL)
+	}
+
+	nm.RouteTable().Update(pi.ID)
+}
+
 // PrintConnected displays the connected peers
 func (nm *NetMessenger) PrintConnected() {
 	conns := nm.Conns()
 
-	fmt.Printf("Node %s is connected to: \n", nm.ID().Pretty())
+	//TODO LOG fmt.Printf("Node %s is connected to: \n", nm.ID().Pretty())
 
 	for i := 0; i < len(conns); i++ {
-		fmt.Printf("\t- %s with distance %d\n", conns[i].RemotePeer().Pretty(),
-			ComputeDistanceAD(nm.ID(), conns[i].RemotePeer()))
+		//TODO LOG fmt.Printf("\t- %s with distance %d\n", conns[i].RemotePeer().Pretty(),
+		//	ComputeDistanceAD(nm.ID(), conns[i].RemotePeer()))
 	}
 }
 
@@ -339,51 +368,135 @@ func (nm *NetMessenger) ParseAddressIpfs(address string) (*peerstore.PeerInfo, e
 
 // AddTopic registers a new topic to this messenger
 func (nm *NetMessenger) AddTopic(t *Topic) error {
+	//sanity checks
 	if t == nil {
 		return errors.New("topic can not be nil")
 	}
 
-	subscr, err := nm.ps.Subscribe(t.Name)
-	if err != nil {
-		return err
+	if strings.Contains(t.Name, requestTopicSuffix) {
+		return errors.New("topic name contains request suffix")
 	}
 
 	nm.mutTopics.Lock()
-	_, ok := nm.topics[t.Name]
 
+	_, ok := nm.topics[t.Name]
 	if ok {
 		nm.mutTopics.Unlock()
 		return errors.New("topic already exists")
 	}
 
 	nm.topics[t.Name] = t
+	t.CurrentPeer = nm.ID()
 	nm.mutTopics.Unlock()
 
+	subscr, err := nm.ps.Subscribe(t.Name)
+	if err != nil {
+		return err
+	}
+
+	subscrRequest, err := nm.ps.Subscribe(t.Name + requestTopicSuffix)
+	if err != nil {
+		return err
+	}
+
+	// async func for passing received data to Topic object
 	go func() {
 		for {
 			msg, err := subscr.Next(nm.context)
-
 			if err != nil {
+				//TODO log
 				continue
 			}
 
-			t.NewDataReceived(msg.GetData(), msg.GetFrom().Pretty())
+			obj, err := t.CreateObject(msg.GetData())
+			if err != nil {
+				//TODO log
+				continue
+			}
+
+			nm.mutGossipCache.Lock()
+			if nm.gossipCache.Has(obj.ID()) {
+				//duplicate object, skip
+				nm.mutGossipCache.Unlock()
+				continue
+			}
+
+			nm.gossipCache.Add(obj.ID())
+			nm.mutGossipCache.Unlock()
+
+			err = t.NewObjReceived(obj, msg.GetFrom().Pretty())
+			if err != nil {
+				//TODO log
+				continue
+			}
 		}
 	}()
 
+	// func that publishes on network from Topic object
 	t.SendData = func(data []byte) error {
 		return nm.ps.Publish(t.Name, data)
 	}
 
+	// validator registration func
 	t.registerTopicValidator = func(v pubsub.Validator) error {
 		return nm.ps.RegisterTopicValidator(t.Name, v)
 	}
 
+	// validator unregistration func
 	t.unregisterTopicValidator = func() error {
 		return nm.ps.UnregisterTopicValidator(t.Name)
 	}
 
+	nm.createRequestTopicAndBind(t, subscrRequest)
+
 	return nil
+}
+
+// createRequestTopicAndBind is used to wire-up the func pointers to the request channel created automatically
+// it also implements a validator function for not broadcast the request if it can resolve
+func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *pubsub.Subscription) {
+	// there is no need to have a function on received data
+	// the logic will be called inside validator func as this is the first func called
+	// and only if the result was nil, the validator actually let the message pass through its peers
+	v := func(ctx context.Context, mes *pubsub.Message) bool {
+		//resolver has not been set up, let the message go to the other peers, maybe they can resolve the request
+		if t.ResolveRequest == nil {
+			return true
+		}
+
+		//payload == hash
+		obj := t.ResolveRequest(mes.GetData())
+
+		if obj == nil {
+			//object not found
+			return true
+		}
+
+		//found object, no need to resend the request message to peers
+		//test whether we also should broadcast the message (others might have broadcast it just before us)
+		has := false
+
+		nm.mutGossipCache.Lock()
+		has = nm.gossipCache.Has(obj.ID())
+		nm.mutGossipCache.Unlock()
+
+		if !has {
+			//only if the current peer did not receive an equal object to cloner,
+			//then it shall broadcast it
+			_ = t.Broadcast(obj)
+			//TODO log error
+		}
+		return false
+	}
+
+	//wire-up a plain func for publishing on request channel
+	t.request = func(hash []byte) error {
+		return nm.ps.Publish(t.Name+requestTopicSuffix, hash)
+	}
+
+	//wire-up the validator
+	_ = nm.ps.RegisterTopicValidator(t.Name+requestTopicSuffix, v)
+	//TODO log error
 }
 
 // GetTopic returns the topic from its name or nil if no topic with that name
@@ -392,11 +505,9 @@ func (nm *NetMessenger) GetTopic(topicName string) *Topic {
 	nm.mutTopics.RLock()
 	defer nm.mutTopics.RUnlock()
 
-	t, ok := nm.topics[topicName]
-
-	if !ok {
-		return nil
+	if t, ok := nm.topics[topicName]; ok {
+		return t
 	}
 
-	return t
+	return nil
 }
