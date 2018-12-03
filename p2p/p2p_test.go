@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
+//TODO remove this skip when things get clearer why the tests sometimes fail
+//Task: EN-575
 var skipP2PMessengerTests = false
 
 func init() {
