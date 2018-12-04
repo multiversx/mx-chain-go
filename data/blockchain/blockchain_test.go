@@ -9,20 +9,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func failOnNoPanic(t *testing.T) {
-	if r := recover(); r == nil {
-		t.Errorf("the code did not panic")
-	}
-}
-
 func failOnPanic(t *testing.T) {
 	if r := recover(); r != nil {
 		t.Errorf("the code entered panic")
 	}
 }
 
-func TestNewDataErrOnTxStorageCreationShouldPanic(t *testing.T) {
-	defer failOnNoPanic(t)
+func TestNewBlockchainErrOnTxStorageCreationShouldError(t *testing.T) {
 	cfg := &mock.Config.TxStorage.CacheConf.Type
 	val := mock.Config.TxStorage.CacheConf.Type
 
@@ -33,12 +26,11 @@ func TestNewDataErrOnTxStorageCreationShouldPanic(t *testing.T) {
 
 	// e.g change the config to a not supported cache type
 	mock.Config.TxStorage.CacheConf.Type = 100
-	blockchain.NewBlockChain(mock.Config)
+	_, err := blockchain.NewBlockChain(mock.Config)
+	assert.NotNil(t, err, "NewBlockchain should error on not supported type")
 }
 
-func TestNewDataErrOnBlockStorageCreationShouldPanic(t *testing.T) {
-	defer failOnNoPanic(t)
-
+func TestNewBlockchainErrOnBlockStorageCreationShouldError(t *testing.T) {
 	cfg := &mock.Config.BlockStorage.CacheConf.Type
 	val := mock.Config.BlockStorage.CacheConf.Type
 
@@ -49,12 +41,11 @@ func TestNewDataErrOnBlockStorageCreationShouldPanic(t *testing.T) {
 
 	// e.g change the config to a not supported cache type
 	mock.Config.BlockStorage.CacheConf.Type = 100
-	blockchain.NewBlockChain(mock.Config)
+	_, err := blockchain.NewBlockChain(mock.Config)
+	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block storage")
 }
 
-func TestNewDataErrOnBlockHeaderStorageCreationShouldPanic(t *testing.T) {
-	defer failOnNoPanic(t)
-
+func TestNewBlockchainErrOnBlockHeaderStorageCreationShouldError(t *testing.T) {
 	cfg := &mock.Config.BlockHeaderStorage.CacheConf.Type
 	val := mock.Config.BlockHeaderStorage.CacheConf.Type
 
@@ -65,12 +56,11 @@ func TestNewDataErrOnBlockHeaderStorageCreationShouldPanic(t *testing.T) {
 
 	// e.g change the config to a not supported cache type
 	mock.Config.BlockHeaderStorage.CacheConf.Type = 100
-	blockchain.NewBlockChain(mock.Config)
+	_, err := blockchain.NewBlockChain(mock.Config)
+	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block header")
 }
 
-func TestNewDataErrOnBlockCacheCreationShouldPanic(t *testing.T) {
-	defer failOnNoPanic(t)
-
+func TestNewDataErrOnBlockCacheCreationShouldError(t *testing.T) {
 	cfg := &mock.Config.BlockCache.Type
 	val := mock.Config.BlockCache.Type
 
@@ -81,14 +71,18 @@ func TestNewDataErrOnBlockCacheCreationShouldPanic(t *testing.T) {
 
 	// e.g change the config to a not supported cache type
 	mock.Config.BlockCache.Type = 100
-	blockchain.NewBlockChain(mock.Config)
+	_, err := blockchain.NewBlockChain(mock.Config)
+	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block cache")
 }
 
 func TestNewDataDefaultConfigOK(t *testing.T) {
 	defer failOnPanic(t)
 
 	b, err := blockchain.NewBlockChain(mock.Config)
-	defer b.Destroy()
+	defer func() {
+		derr := b.Destroy()
+		assert.Nil(t, derr, "Unable to destroy blockchain")
+	} ()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -96,12 +90,15 @@ func TestNewDataDefaultConfigOK(t *testing.T) {
 
 func TestHasFalseOnWrongUnitType(t *testing.T) {
 	b, err := blockchain.NewBlockChain(mock.Config)
-	defer b.Destroy()
+	defer func() {
+		derr := b.Destroy()
+		assert.Nil(t, derr, "Unable to destroy blockchain")
+	} ()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 
-	b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	_ = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
 	has, err := b.Has(100, []byte("key1"))
 
 	assert.NotNil(t, err, "expected error but got nil")
@@ -110,24 +107,27 @@ func TestHasFalseOnWrongUnitType(t *testing.T) {
 
 func TestHasOk(t *testing.T) {
 	b, err := blockchain.NewBlockChain(mock.Config)
-	defer b.Destroy()
+	defer func() {
+		derr := b.Destroy()
+		assert.Nil(t, derr, "Unable to destroy blockchain")
+	} ()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 
-	b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	_ = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
 	has, err := b.Has(blockchain.BlockUnit, []byte("key1"))
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.False(t, has, "not expected to find key")
 
-	b.Put(blockchain.BlockUnit, []byte("key1"), []byte("bbb"))
+	_ = b.Put(blockchain.BlockUnit, []byte("key1"), []byte("bbb"))
 	has, err = b.Has(blockchain.BlockHeaderUnit, []byte("key1"))
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.False(t, has, "not expected to find key")
 
-	b.Put(blockchain.BlockHeaderUnit, []byte("key1"), []byte("ccc"))
+	_ = b.Put(blockchain.BlockHeaderUnit, []byte("key1"), []byte("ccc"))
 	has, err = b.Has(blockchain.TransactionUnit, []byte("key1"))
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -146,12 +146,15 @@ func TestHasOk(t *testing.T) {
 
 func TestGetErrOnWrongUnitType(t *testing.T) {
 	b, err := blockchain.NewBlockChain(mock.Config)
-	defer b.Destroy()
+	defer func() {
+		derr := b.Destroy()
+		assert.Nil(t, derr, "Unable to destroy blockchain")
+	} ()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 
-	b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	_ = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
 	val, err := b.Get(100, []byte("key1"))
 
 	assert.NotNil(t, err, "expected error but got nil")
@@ -160,12 +163,15 @@ func TestGetErrOnWrongUnitType(t *testing.T) {
 
 func TestGetOk(t *testing.T) {
 	b, err := blockchain.NewBlockChain(mock.Config)
-	defer b.Destroy()
+	defer func() {
+		derr := b.Destroy()
+		assert.Nil(t, derr, "Unable to destroy blockchain")
+	} ()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 
-	b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	_ = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
 	val, err := b.Get(blockchain.BlockUnit, []byte("key1"))
 
 	assert.NotNil(t, err, "expected error but got nil")
@@ -180,7 +186,10 @@ func TestGetOk(t *testing.T) {
 
 func TestPutErrOnWrongUnitType(t *testing.T) {
 	b, err := blockchain.NewBlockChain(mock.Config)
-	defer b.Destroy()
+	defer func() {
+		derr := b.Destroy()
+		assert.Nil(t, derr, "Unable to destroy blockchain")
+	} ()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -192,7 +201,10 @@ func TestPutErrOnWrongUnitType(t *testing.T) {
 
 func TestPutOk(t *testing.T) {
 	b, err := blockchain.NewBlockChain(mock.Config)
-	defer b.Destroy()
+	defer func() {
+		derr := b.Destroy()
+		assert.Nil(t, derr, "Unable to destroy blockchain")
+	} ()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -209,7 +221,10 @@ func TestPutOk(t *testing.T) {
 
 func TestGetAllErrOnWrongUnitType(t *testing.T) {
 	b, err := blockchain.NewBlockChain(mock.Config)
-	defer b.Destroy()
+	defer func() {
+		derr := b.Destroy()
+		assert.Nil(t, derr, "Unable to destroy blockchain")
+	} ()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -224,13 +239,16 @@ func TestGetAllErrOnWrongUnitType(t *testing.T) {
 
 func TestGetAllOk(t *testing.T) {
 	b, err := blockchain.NewBlockChain(mock.Config)
-	defer b.Destroy()
+	defer func() {
+		derr := b.Destroy()
+		assert.Nil(t, derr, "Unable to destroy blockchain")
+	} ()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 
-	b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("value1"))
-	b.Put(blockchain.TransactionUnit, []byte("key2"), []byte("value2"))
+	_ = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("value1"))
+	_ = b.Put(blockchain.TransactionUnit, []byte("key2"), []byte("value2"))
 
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
 

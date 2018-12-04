@@ -26,8 +26,8 @@ const (
 	LvlDB DBType = 0
 )
 
-// StorageUnitConfig holds the configurable elements of the storage unit
-type StorageUnitConfig struct {
+// UnitConfig holds the configurable elements of the storage unit
+type UnitConfig struct {
 	CacheConf *CacheConfig
 	DBConf    *DBConfig
 }
@@ -117,16 +117,16 @@ type Storer interface {
 	DestroyUnit() error
 }
 
-// StorageUnit represents a storer's data bank
+// Unit represents a storer's data bank
 // holding the cache and persistance unit
-type StorageUnit struct {
+type Unit struct {
 	lock      sync.RWMutex
 	persister Persister
 	cacher    Cacher
 }
 
 // Put adds data to both cache and persistance medium
-func (s *StorageUnit) Put(key, data []byte) error {
+func (s *Unit) Put(key, data []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -150,7 +150,7 @@ func (s *StorageUnit) Put(key, data []byte) error {
 // Get searches the data associated to the key in the cache first and if not
 // found it further searches it in the associated database.
 // In case it is found in the database, the cache is updated with the value as well.
-func (s *StorageUnit) Get(key []byte) ([]byte, error) {
+func (s *Unit) Get(key []byte) ([]byte, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -175,7 +175,7 @@ func (s *StorageUnit) Get(key []byte) ([]byte, error) {
 
 // Has checks if the key is in the storageUnit.
 // it first checks the cache and if not present it checks the db
-func (s *StorageUnit) Has(key []byte) (bool, error) {
+func (s *Unit) Has(key []byte) (bool, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -191,7 +191,7 @@ func (s *StorageUnit) Has(key []byte) (bool, error) {
 // HasOrAdd checks if the key is present in the storage and if not adds it.
 // it updates the cache either way
 // it returns if the value was originally found
-func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
+func (s *Unit) HasOrAdd(key []byte, value []byte) (bool, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -221,7 +221,7 @@ func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
 }
 
 // Remove removes the data associated to the given key from both cache and persistance medium
-func (s *StorageUnit) Remove(key []byte) error {
+func (s *Unit) Remove(key []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -232,23 +232,23 @@ func (s *StorageUnit) Remove(key []byte) error {
 }
 
 // ClearCache cleans up the entire cache
-func (s *StorageUnit) ClearCache() {
+func (s *Unit) ClearCache() {
 	s.cacher.Clear()
 }
 
 // DestroyUnit cleans up both the cache and db
-func (s *StorageUnit) DestroyUnit() error {
+func (s *Unit) DestroyUnit() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	s.cacher.Clear()
-	s.persister.Close()
+	_ = s.persister.Close()
 	return s.persister.Destroy()
 }
 
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.
-func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
+func NewStorageUnit(c Cacher, p Persister) (*Unit, error) {
 	if p == nil {
 		return nil, errors.New("expected not nil persister")
 	}
@@ -257,18 +257,21 @@ func NewStorageUnit(c Cacher, p Persister) (*StorageUnit, error) {
 		return nil, errors.New("expected not nil cacher")
 	}
 
-	sUnit := &StorageUnit{
+	sUnit := &Unit{
 		persister: p,
 		cacher:    c,
 	}
 
-	sUnit.persister.Init()
+	err := sUnit.persister.Init()
+	if err != nil {
+		return nil, err
+	}
 
 	return sUnit, nil
 }
 
 // NewStorageUnitFromConf creates a new storage unit from a storage unit config
-func NewStorageUnitFromConf(conf *StorageUnitConfig) (*StorageUnit, error) {
+func NewStorageUnitFromConf(conf *UnitConfig) (*Unit, error) {
 	var cache Cacher
 	var db Persister
 	var err error

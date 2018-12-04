@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initStorageUnit(t *testing.T, cSize int) *storage.StorageUnit {
+func initStorageUnit(t *testing.T, cSize int) *storage.Unit {
 	mdb, err1 := memorydb.New()
 	cache, err2 := lrucache.NewCache(cSize)
 
@@ -325,7 +325,7 @@ func TestCreateDBFromConfOk(t *testing.T) {
 }
 
 func TestNewStorageUnitFromConfWrongCacheConfig(t *testing.T) {
-	stUnit := &storage.StorageUnitConfig{
+	stUnit := &storage.UnitConfig{
 		CacheConf: &storage.CacheConfig{
 			Size: 10,
 			Type: 100,
@@ -343,7 +343,7 @@ func TestNewStorageUnitFromConfWrongCacheConfig(t *testing.T) {
 }
 
 func TestNewStorageUnitFromConfWrongDBConfig(t *testing.T) {
-	stUnit := &storage.StorageUnitConfig{
+	stUnit := &storage.UnitConfig{
 		CacheConf: &storage.CacheConfig{
 			Size: 10,
 			Type: storage.LRUCache,
@@ -361,7 +361,7 @@ func TestNewStorageUnitFromConfWrongDBConfig(t *testing.T) {
 }
 
 func TestNewStorageUnitFromConfOk(t *testing.T) {
-	stUnit := &storage.StorageUnitConfig{
+	stUnit := &storage.UnitConfig{
 		CacheConf: &storage.CacheConfig{
 			Size: 10,
 			Type: storage.LRUCache,

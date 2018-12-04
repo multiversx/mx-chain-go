@@ -12,7 +12,7 @@ var (
 	testnet = &blockchain.Config{
 		BlockChainID: big.NewInt(0),
 
-		BlockStorage: &storage.StorageUnitConfig{
+		BlockStorage: &storage.UnitConfig{
 			CacheConf: &storage.CacheConfig{
 				Size: 100,
 				Type: storage.LRUCache,
@@ -23,7 +23,7 @@ var (
 			},
 		},
 
-		BlockHeaderStorage: &storage.StorageUnitConfig{
+		BlockHeaderStorage: &storage.UnitConfig{
 			CacheConf: &storage.CacheConfig{
 				Size: 100,
 				Type: storage.LRUCache,
@@ -34,7 +34,7 @@ var (
 			},
 		},
 
-		TxStorage: &storage.StorageUnitConfig{
+		TxStorage: &storage.UnitConfig{
 			CacheConf: &storage.CacheConfig{
 				Size: 100000,
 				Type: storage.LRUCache,

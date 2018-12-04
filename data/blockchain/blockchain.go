@@ -27,9 +27,9 @@ type UnitType uint8
 // Config holds the configurable elements of the blockchain
 type Config struct {
 	BlockChainID       *big.Int
-	BlockStorage       *storage.StorageUnitConfig
-	BlockHeaderStorage *storage.StorageUnitConfig
-	TxStorage          *storage.StorageUnitConfig
+	BlockStorage       *storage.UnitConfig
+	BlockHeaderStorage *storage.UnitConfig
+	TxStorage          *storage.UnitConfig
 	TxPoolStorage	   *storage.CacheConfig
 	BlockCache        *storage.CacheConfig
 }
@@ -59,12 +59,12 @@ type StorageService interface {
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
 	lock          sync.RWMutex
-	GenesisBlock  *block.Header                     // Genesis Block pointer
-	CurrentBlock  *block.Header                     // Current Block pointer
-	LocalHeight   *big.Int                          // Height of the local chain
-	NetworkHeight *big.Int                          // Perceived height of the network chain
-	badBlocks     storage.Cacher                    // Bad blocks cache
-	chain         map[UnitType]*storage.StorageUnit // chains for each unit type. Together they form the blockchain
+	GenesisBlock  *block.Header              // Genesis Block pointer
+	CurrentBlock  *block.Header              // Current Block pointer
+	LocalHeight   *big.Int                   // Height of the local chain
+	NetworkHeight *big.Int                   // Perceived height of the network chain
+	badBlocks     storage.Cacher             // Bad blocks cache
+	chain         map[UnitType]*storage.Unit // chains for each unit type. Together they form the blockchain
 }
 
 // NewBlockChain returns an initialized blockchain
@@ -77,29 +77,29 @@ func NewBlockChain(config *Config) (*BlockChain, error) {
 	txStorage, err := storage.NewStorageUnitFromConf(config.TxStorage)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	blStorage, err := storage.NewStorageUnitFromConf(config.BlockStorage)
 	if err != nil {
-		txStorage.DestroyUnit()
-		panic(err)
+		_ = txStorage.DestroyUnit()
+		return nil, err
 	}
 
 	blHeadStorage, err := storage.NewStorageUnitFromConf(config.BlockHeaderStorage)
 	if err != nil {
-		txStorage.DestroyUnit()
-		blStorage.DestroyUnit()
-		panic(err)
+		_ = txStorage.DestroyUnit()
+		_ = blStorage.DestroyUnit()
+		return nil, err
 	}
 
 	badBlocksCache, err := storage.CreateCacheFromConf(config.BlockCache)
 
 	if err != nil {
-		txStorage.DestroyUnit()
-		blStorage.DestroyUnit()
-		blHeadStorage.DestroyUnit()
-		panic(err)
+		_ = txStorage.DestroyUnit()
+		_ = blStorage.DestroyUnit()
+		_ = blHeadStorage.DestroyUnit()
+		return nil, err
 	}
 
 	data := &BlockChain{
@@ -108,7 +108,7 @@ func NewBlockChain(config *Config) (*BlockChain, error) {
 		LocalHeight:   big.NewInt(-1),
 		NetworkHeight: big.NewInt(-1),
 		badBlocks:     badBlocksCache,
-		chain: map[UnitType]*storage.StorageUnit{
+		chain: map[UnitType]*storage.Unit{
 			TransactionUnit: txStorage,
 			BlockUnit:       blStorage,
 			BlockHeaderUnit: blHeadStorage,

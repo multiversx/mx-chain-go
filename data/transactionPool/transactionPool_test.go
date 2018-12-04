@@ -146,7 +146,7 @@ func TestTransactionPool_OnAddTransactionIsCalled(t *testing.T) {
 	cnt := int32(0)
 	tx := []byte("tx_hash1")
 	txp := transactionPool.NewTransactionPool(nil)
-	txp.OnAddTransaction = func(txHash []byte) {
+	txp.AddedTransaction = func(txHash []byte) {
 		atomic.AddInt32(&cnt, 1)
 		assert.Equal(t, tx, txHash)
 		fmt.Println("I was called")

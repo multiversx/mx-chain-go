@@ -26,7 +26,7 @@ type TransactionPool struct {
 	miniPoolsStore map[uint32]*miniPool
 	cacherConfig *storage.CacheConfig
 
-	OnAddTransaction func(txHash []byte)
+	AddedTransaction func(txHash []byte)
 }
 
 type miniPool struct {
@@ -95,8 +95,8 @@ func (tp *TransactionPool) AddTransaction(txHash []byte, tx *transaction.Transac
 	mp := tp.MiniPoolTxStore(destShardID)
 	found, _ := mp.HasOrAdd(txHash, tx)
 
-	if tp.OnAddTransaction != nil && !found {
-		tp.OnAddTransaction(txHash)
+	if tp.AddedTransaction != nil && !found {
+		tp.AddedTransaction(txHash)
 	}
 }
 

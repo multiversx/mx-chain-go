@@ -189,7 +189,10 @@ func WithStackTraceDepth(depth int) Option {
 // DefaultLogFile returns the default output for the application logger.
 // The client package can always use another output and provide it in the logger constructor.
 func DefaultLogFile() (*os.File, error) {
-	os.MkdirAll(defaultLogPath, os.ModePerm)
+	err := os.MkdirAll(defaultLogPath, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
 	return os.OpenFile(
 		filepath.Join(defaultLogPath, time.Now().Format("2006-02-01") + ".log"),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
