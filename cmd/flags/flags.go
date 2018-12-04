@@ -7,5 +7,10 @@ var (
 	GenesisFile = cli.StringFlag{
 		Name:  "genesis-file",
 		Usage: "The node will extract bootstrapping info from the genesis.json",
+		Value: "genisis.json",
+	}
+	WithUI = cli.BoolTFlag{
+		Name:	"with-ui",
+		Usage:	"If true, the application will be accompanied by a UI. The node will have to be manually started from the UI",
 	}
 )

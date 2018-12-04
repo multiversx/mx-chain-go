@@ -1,13 +1,9 @@
-package chronology_test
+package exampleimpl
 
 import (
 	"fmt"
-	"testing"
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
-	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 const (
@@ -216,103 +212,4 @@ func (sr *SREndRound) EndTime() int64 {
 
 func (sr *SREndRound) Name() string {
 	return "<END_ROUND>"
-}
-
-func TestStartRound(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
-
-	rnd := chronology.NewRound(
-		genesisTime,
-		currentTime,
-		roundTimeDuration)
-
-	syncTime := &ntp.LocalTime{}
-	syncTime.SetClockOffset(roundTimeDuration + 1)
-
-	chr := chronology.NewChronology(
-		true,
-		true,
-		rnd,
-		genesisTime,
-		syncTime)
-
-	chr.AddSubround(&SRStartRound{})
-	chr.AddSubround(&SRBlock{})
-	chr.AddSubround(&SRCommitmentHash{})
-	chr.AddSubround(&SRBitmap{})
-	chr.AddSubround(&SRCommitment{})
-	chr.AddSubround(&SRSignature{})
-	chr.AddSubround(&SREndRound{})
-
-	for {
-		chr.StartRound()
-		if len(chr.SubroundHandlers()) > 0 {
-			if chr.SelfSubround() == chr.SubroundHandlers()[len(chr.SubroundHandlers())-1].Next() {
-				break
-			}
-		}
-	}
-}
-
-func TestRoundState(t *testing.T) {
-	currentTime := time.Now()
-
-	rnd := chronology.NewRound(currentTime, currentTime, roundTimeDuration)
-	chr := chronology.NewChronology(true, true, rnd, currentTime, &ntp.LocalTime{})
-
-	state := chr.GetSubroundFromDateTime(currentTime)
-	assert.Equal(t, chronology.SubroundId(-1), state)
-
-	chr.AddSubround(&SRStartRound{})
-
-	state = chr.GetSubroundFromDateTime(currentTime.Add(-1 * time.Hour))
-	assert.Equal(t, chronology.SubroundId(-1), state)
-
-	state = chr.GetSubroundFromDateTime(currentTime.Add(1 * time.Hour))
-	assert.Equal(t, chronology.SubroundId(-1), state)
-
-	state = chr.GetSubroundFromDateTime(currentTime)
-	assert.Equal(t, chr.SubroundHandlers()[0].Current(), state)
-}
-
-func TestLoadSubrounder(t *testing.T) {
-	chr := chronology.Chronology{}
-
-	sr := chr.LoadSubroundHandler(-1)
-	assert.Nil(t, sr)
-
-	chr.AddSubround(&SRStartRound{})
-
-	sr = chr.LoadSubroundHandler(srStartRound)
-	assert.NotNil(t, sr)
-
-	assert.Equal(t, sr.Name(), chr.SubroundHandlers()[0].Name())
-}
-
-func TestGettersAndSetters(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
-
-	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
-	syncTime := &ntp.LocalTime{}
-
-	chr := chronology.NewChronology(true, true, rnd, genesisTime, syncTime)
-
-	assert.Equal(t, 0, chr.Round().Index())
-	assert.Equal(t, chronology.SubroundId(-1), chr.SelfSubround())
-
-	chr.SetSelfSubround(srStartRound)
-	assert.Equal(t, srStartRound, chr.SelfSubround())
-
-	assert.Equal(t, chronology.SubroundId(-1), chr.TimeSubround())
-	assert.Equal(t, time.Duration(0), chr.ClockOffset())
-	assert.NotNil(t, chr.SyncTime())
-	assert.Equal(t, time.Duration(0), chr.SyncTime().ClockOffset())
-
-	chr.SetClockOffset(time.Duration(5))
-	assert.Equal(t, time.Duration(5), chr.ClockOffset())
-
-	fmt.Printf("%v\n%v\n%v", chr.SyncTime().CurrentTime(chr.ClockOffset()),
-		chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()), chr.SubroundHandlers())
 }

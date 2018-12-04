@@ -22,7 +22,7 @@ func intraShard() {
 	xlsx.SetCellValue("Sheet1", "B1", "Latency (s)")
 	xlsx.SetCellValue("Sheet1", "C1", "Peers / node")
 	xlsx.SetCellValue("Sheet1", "D1", "Bandwidth (kB/s)")
-	xlsx.SetCellValue("Sheet1", "E1", "Block size (kB)")
+	xlsx.SetCellValue("Sheet1", "E1", "block size (kB)")
 
 	xlsx.SetCellValue("Sheet1", "F1", "Number of hops ")
 	xlsx.SetCellValue("Sheet1", "G1", "Total latency (s)")
@@ -83,7 +83,7 @@ func interShard() {
 	xlsx.SetCellValue("Sheet1", "B1", "Latency (s)")
 	xlsx.SetCellValue("Sheet1", "C1", "Peers / node")
 	xlsx.SetCellValue("Sheet1", "D1", "Bandwidth (kB/s)")
-	xlsx.SetCellValue("Sheet1", "E1", "Block size (kB)")
+	xlsx.SetCellValue("Sheet1", "E1", "block size (kB)")
 
 	xlsx.SetCellValue("Sheet1", "F1", "Number of hops ")
 	xlsx.SetCellValue("Sheet1", "G1", "Total latency (s)")

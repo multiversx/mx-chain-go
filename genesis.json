@@ -1,5 +1,6 @@
 {
-  "startTime": "1544094000",
+  "startTime": 1544097480,
+  "clockSyncPeriod": 10,
   "initialNodes": [
     {
       "address": ""
