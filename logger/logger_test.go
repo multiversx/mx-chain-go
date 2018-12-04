@@ -2,7 +2,6 @@ package logger_test
 
 import (
 	"bytes"
-	"github.com/pkg/errors"
 	"strings"
 	"sync"
 	"testing"
@@ -14,10 +13,7 @@ import (
 func TestDebug(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log, err := logger.NewElrondLogger()
-	if err != nil {
-		t.Error("Could not create logger")
-	}
+	log := logger.NewElrondLogger()
 	log.SetLevel(logger.LogDebug)
 	log.SetOutput(&str)
 	log.Debug("abc")
@@ -29,10 +25,7 @@ func TestDebug(t *testing.T) {
 func TestInfo(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log, err := logger.NewElrondLogger()
-	if err != nil {
-		t.Error("Could not create logger")
-	}
+	log := logger.NewElrondLogger()
 	log.SetLevel(logger.LogDebug)
 	log.SetOutput(&str)
 	log.Info("abc")
@@ -44,10 +37,7 @@ func TestInfo(t *testing.T) {
 func TestWarn(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log, err := logger.NewElrondLogger()
-	if err != nil {
-		t.Error("Could not create logger")
-	}
+	log := logger.NewElrondLogger()
 	log.SetOutput(&str)
 	log.Warn("abc")
 	logString := str.String()
@@ -58,10 +48,7 @@ func TestWarn(t *testing.T) {
 func TestError(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log, err := logger.NewElrondLogger()
-	if err != nil {
-		t.Error("Could not create logger")
-	}
+	log := logger.NewElrondLogger()
 	log.SetOutput(&str)
 	log.Error("abc")
 	logString := str.String()
@@ -72,10 +59,7 @@ func TestError(t *testing.T) {
 func TestPanic(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log, err := logger.NewElrondLogger()
-	if err != nil {
-		t.Error("Could not create logger")
-	}
+	log := logger.NewElrondLogger()
 	log.SetOutput(&str)
 	swallowPanicLog(t, "abc", "TestPanic should have panic", log)
 
@@ -87,12 +71,8 @@ func TestPanic(t *testing.T) {
 func TestSetLevel(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log, err := logger.NewElrondLogger()
-	if err != nil {
-		t.Error("Could not create logger")
-	}
+	log := logger.NewElrondLogger()
 	log.SetOutput(&str)
-
 	log.SetLevel(logger.LogDebug)
 	log.Debug("abc")
 	assert.Assert(t, strings.Contains(str.String(), `"msg":"abc"`))
@@ -142,19 +122,13 @@ func TestSetLevel(t *testing.T) {
 
 func TestWithFile(t *testing.T) {
 	t.Parallel()
-	log, err := logger.NewDefaultLogger()
-	if err != nil {
-		t.Error("Could not create default logger")
-	}
+	log := logger.NewDefaultLogger()
 	log.Warn("This test should pass if the file was opened in the correct mode")
 }
 
 func TestConcurrencyWithFileWriter(t *testing.T) {
 	t.Parallel()
-	log, err := logger.NewDefaultLogger()
-	if err != nil {
-		t.Error("Could not create default logger")
-	}
+	log := logger.NewDefaultLogger()
 
 	wg := sync.WaitGroup{}
 	wg.Add(999)
@@ -171,18 +145,8 @@ func TestConcurrencyWithFileWriter(t *testing.T) {
 
 func TestWithOptions(t *testing.T) {
 	var str bytes.Buffer
-	errOption := func(el *logger.Logger) error {
-		return errors.New("Test error")
-	}
-	log, err := logger.NewElrondLogger(logger.WithLogPath("./abc"),
+	log := logger.NewElrondLogger(logger.WithLogPath("./abc"),
 		logger.WithStackTraceDepth(1), logger.WithFile(&str))
-	_, errOptsLog := logger.NewElrondLogger(errOption)
-	if errOptsLog == nil {
-		t.Error("errOption passed to NewElronfLogger should return an error")
-	}
-	if err != nil {
-		t.Error("Could not create logger")
-	}
 	assert.Equal(t, log.LogPath(), "./abc", "WithLogPath does not set the correct option")
 	assert.Equal(t, log.StackTraceDepth(), 1, "WithStackTraceDepth does not set the correct option")
 	assert.Equal(t, log.File(), &str)

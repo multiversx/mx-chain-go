@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var log, _ = logger.NewDefaultLogger()
+var log = logger.NewDefaultLogger()
 
 const (
 	// TransactionUnit is the transactions Storage unit identifier

@@ -39,18 +39,11 @@ type Option func (*Logger) error
 // NewElrondLogger will setup the defaults of the application logger.
 // If the requested log file is writable it will setup a MultiWriter on both the file
 //  and the standard output. Also sets up the level and the format for the logger.
-func NewElrondLogger(opts ...Option) (*Logger, error) {
+func NewElrondLogger(opts ...Option) *Logger {
 	el := &Logger{
 		logger: log.New(),
 		logPath: defaultLogPath,
 		stackTraceDepth: defaultStackTraceDepth,
-	}
-
-	for _, opt := range opts {
-		err := opt(el)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	if el.file != nil {
@@ -62,12 +55,20 @@ func NewElrondLogger(opts ...Option) (*Logger, error) {
 
 	el.logger.SetFormatter(&log.JSONFormatter{})
 	el.logger.SetLevel(log.WarnLevel)
-	return el, nil
+
+	for _, opt := range opts {
+		err := opt(el)
+		if err != nil {
+			el.logger.Error("Could not set opt for logger", err)
+		}
+	}
+
+	return el
 }
 
 // NewDefaultLogger is a shorthand for instantiating a new logger with default settings.
 // If it fails to open the default log file it will return a logger with os.Stdout output.
-func NewDefaultLogger() (*Logger, error) {
+func NewDefaultLogger() *Logger {
 	file, err := DefaultLogFile()
 	if err != nil {
 		return NewElrondLogger()
