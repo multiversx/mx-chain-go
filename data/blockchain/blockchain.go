@@ -4,13 +4,14 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var log = logrus.WithField("prefix", "blockchain")
+var log, _ = logger.NewDefaultLogger()
 
 const (
 	// TransactionUnit is the transactions Storage unit identifier
@@ -30,8 +31,8 @@ type Config struct {
 	BlockStorage       *storage.UnitConfig
 	BlockHeaderStorage *storage.UnitConfig
 	TxStorage          *storage.UnitConfig
-	TxPoolStorage	   *storage.CacheConfig
-	BlockCache        *storage.CacheConfig
+	TxPoolStorage      *storage.CacheConfig
+	BlockCache         *storage.CacheConfig
 }
 
 // StorageService is the interface for blockChain storage unit provided services
@@ -71,7 +72,8 @@ type BlockChain struct {
 // It uses a config file to setup it's supported storage units map
 func NewBlockChain(config *Config) (*BlockChain, error) {
 	if config == nil {
-		panic("Cannot create blockchain without initial configuration")
+		log.Error("Cannot create blockchain without initial configuration")
+		return nil, errors.New("Cannot create blockchain without initial configuration")
 	}
 
 	txStorage, err := storage.NewStorageUnitFromConf(config.TxStorage)
