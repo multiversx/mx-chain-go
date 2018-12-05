@@ -81,8 +81,8 @@ type Communication struct {
 
 	ChRcvMsg map[MessageType]chan *ConsensusData
 
-	OnSendMessage func([]byte) // this is a pointer to a function which actually send the message from a node
-	// to the network
+	// this is a pointer to a function which actually send the message from a node to the network
+	OnSendMessage func([]byte)
 }
 
 // NewCommunication creates a new Communication object
@@ -123,9 +123,10 @@ func NewCommunication(
 	return &com
 }
 
-// StartRound method is the function which actually do the job of the StartRound subround (it is used as the
-// handler function of the doSubroundJob pointer variable function in Subround struct from spos package)
-func (com *Communication) StartRound() bool {
+// DoWorkOfStartRound method is the function which actually do the job of the DoWorkOfStartRound subround
+// (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
+// from spos package)
+func (com *Communication) DoWorkOfStartRound() bool {
 	com.Blk = nil
 	com.Hdr = nil
 	com.Cns.Data = nil
@@ -148,9 +149,10 @@ func (com *Communication) StartRound() bool {
 	return true
 }
 
-// EndRound method is the function which actually do the job of the EndRound subround (it is used as the
-// handler function of the doSubroundJob pointer variable function in Subround struct from spos package)
-func (com *Communication) EndRound() bool {
+// DoWorkOfEndRound method is the function which actually do the job of the DoWorkOfEndRound subround
+// (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
+// from spos package)
+func (com *Communication) DoWorkOfEndRound() bool {
 	if !com.Cns.CheckConsensus(SrEndRound) {
 		return false
 	}
@@ -201,19 +203,20 @@ func (com *Communication) EndRound() bool {
 	return true
 }
 
-// SendBlock method actually send the proposed block in the Block subround, when this node is leader (it is used
-// as a handler function of the doSubroundJob pointer function declared in Subround struct from spos package)
-func (com *Communication) SendBlock() bool {
+// DoBlockJob method actually send the proposed block in the Block subround, when this node is leader
+// (it is used as a handler function of the doSubroundJob pointer function declared in Subround struct,
+// from spos package)
+func (com *Communication) DoBlockJob() bool {
 	if com.ShouldSynch() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-		com.Log(fmt.Sprintf(com.GetFormatedTime()+
-			"Canceled round %d in subround %s", com.Cns.Chr.Round().Index(), com.Cns.GetSubroundName(SrBlock)))
+		com.Log(fmt.Sprintf(com.GetFormatedTime()+"Canceled round %d in subround %s",
+			com.Cns.Chr.Round().Index(), com.Cns.GetSubroundName(SrBlock)))
 		com.Cns.Chr.SetSelfSubround(-1)
 		return false
 	}
 
-	if com.Cns.Status(SrBlock) == SsFinished || // Block subround is already finished?
-		com.Cns.GetValidation(com.Cns.SelfId(), SrBlock) || // block has been already sent?
-		!com.Cns.IsNodeLeaderInCurrentRound(com.Cns.SelfId()) { // is another node leader of this round?
+	if com.Cns.Status(SrBlock) == SsFinished || // is subround Block already finished?
+		com.Cns.GetValidation(com.Cns.SelfId(), SrBlock) || // has been block already sent?
+		!com.Cns.IsNodeLeaderInCurrentRound(com.Cns.SelfId()) { // is another node leader in this round?
 		return false
 	}
 
@@ -357,18 +360,17 @@ func (com *Communication) SendBlockHeader() bool {
 	return true
 }
 
-// SendCommitmentHash method is the function which is actually used to send the commitment hash for the received block
-// from the leader in the CommitmentHash subround (it is used as the handler function of the doSubroundJob pointer
-// variable function in Subround struct from spos package)
-func (com *Communication) SendCommitmentHash() bool {
-	// Block subround is not finished?
-	if com.Cns.Status(SrBlock) != SsFinished {
-		return com.SendBlock()
+// DoCommitmentHashJob method is the function which is actually used to send the commitment hash for the received
+// block from the leader in the CommitmentHash subround (it is used as the handler function of the doSubroundJob
+// pointer variable function in Subround struct, from spos package)
+func (com *Communication) DoCommitmentHashJob() bool {
+	if com.Cns.Status(SrBlock) != SsFinished { // is subround Block not finished?
+		return com.DoBlockJob()
 	}
 
-	if com.Cns.Status(SrCommitmentHash) == SsFinished || // CommitmentHash subround is already finished?
-		com.Cns.GetValidation(com.Cns.SelfId(), SrCommitmentHash) || // commitment hash has been already sent?
-		com.Cns.Data == nil { // has a consensus data on which it should send the commitment hash?
+	if com.Cns.Status(SrCommitmentHash) == SsFinished || // is subround CommitmentHash already finished?
+		com.Cns.GetValidation(com.Cns.SelfId(), SrCommitmentHash) || // has been commitment hash already sent?
+		com.Cns.Data == nil { // is consensus data not set?
 		return false
 	}
 
@@ -391,19 +393,18 @@ func (com *Communication) SendCommitmentHash() bool {
 	return true
 }
 
-// SendBitmap method is the function which is actually used to send the bitmap with the commitment hashes received,
-// in the Bitmap subround, when this node is leader (it is used as the handler function of the doSubroundJob pointer
-// variable function in Subround struct from spos package)
-func (com *Communication) SendBitmap() bool {
-	// CommitmentHash subround is not finished?
-	if com.Cns.Status(SrCommitmentHash) != SsFinished {
-		return com.SendCommitmentHash()
+// DoBitmapJob method is the function which is actually used to send the bitmap with the commitment hashes received,
+// in the Bitmap subround, when this node is leader (it is used as the handler function of the doSubroundJob
+// pointer variable function in Subround struct, from spos package)
+func (com *Communication) DoBitmapJob() bool {
+	if com.Cns.Status(SrCommitmentHash) != SsFinished { // is subround CommitmentHash not finished?
+		return com.DoCommitmentHashJob()
 	}
 
-	if com.Cns.Status(SrBitmap) == SsFinished || // Bitmap subround is already finished?
-		com.Cns.GetValidation(com.Cns.SelfId(), SrBitmap) || // bitmap has been already sent?
-		!com.Cns.IsNodeLeaderInCurrentRound(com.Cns.SelfId()) || // is another node leader of this round?
-		com.Cns.Data == nil { // has a consensus data on which it should send the bitmap?
+	if com.Cns.Status(SrBitmap) == SsFinished || // is subround Bitmap already finished?
+		com.Cns.GetValidation(com.Cns.SelfId(), SrBitmap) || // has been bitmap already sent?
+		!com.Cns.IsNodeLeaderInCurrentRound(com.Cns.SelfId()) || // is another node leader in this round?
+		com.Cns.Data == nil { // is consensus data not set?
 		return false
 	}
 
@@ -439,19 +440,18 @@ func (com *Communication) SendBitmap() bool {
 	return true
 }
 
-// SendCommitment method is the function which is actually used to send the commitment for the received block, in the
-// Commitment subround (it is used as the handler function of the doSubroundJob pointer variable function in Subround
-// struct from spos package)
-func (com *Communication) SendCommitment() bool {
-	// check if the Bitmap subround is not finished
-	if com.Cns.Status(SrBitmap) != SsFinished {
-		return com.SendBitmap()
+// DoCommitmentJob method is the function which is actually used to send the commitment for the received block,
+// in the Commitment subround (it is used as the handler function of the doSubroundJob pointer variable function
+// in Subround struct, from spos package)
+func (com *Communication) DoCommitmentJob() bool {
+	if com.Cns.Status(SrBitmap) != SsFinished { // is subround Bitmap not finished?
+		return com.DoBitmapJob()
 	}
 
-	if com.Cns.Status(SrCommitment) == SsFinished || // Commitment subround is already finished?
-		com.Cns.GetValidation(com.Cns.SelfId(), SrCommitment) || // commitment has been already sent?
+	if com.Cns.Status(SrCommitment) == SsFinished || // is subround Commitment already finished?
+		com.Cns.GetValidation(com.Cns.SelfId(), SrCommitment) || // has been commitment already sent?
 		!com.Cns.IsNodeInBitmapGroup(com.Cns.SelfId()) || // isn't node in the bitmap received from the leader?
-		com.Cns.Data == nil { // has a consensus data on which it should send the commitment?
+		com.Cns.Data == nil { // is consensus data not set?
 		return false
 	}
 
@@ -474,19 +474,18 @@ func (com *Communication) SendCommitment() bool {
 	return true
 }
 
-// SendSignature method is the function which is actually used to send the Signature for the received block, in the
-// Signature subround (it is used as the handler function of the doSubroundJob pointer variable function in Subround
-// struct from spos package)
-func (com *Communication) SendSignature() bool {
-	// check if the Commitment subround is not finished
-	if com.Cns.Status(SrCommitment) != SsFinished {
-		return com.SendCommitment()
+// DoSignatureJob method is the function which is actually used to send the Signature for the received block,
+// in the Signature subround (it is used as the handler function of the doSubroundJob pointer variable function
+// in Subround struct, from spos package)
+func (com *Communication) DoSignatureJob() bool {
+	if com.Cns.Status(SrCommitment) != SsFinished { // is subround Commitment not finished?
+		return com.DoCommitmentJob()
 	}
 
-	if com.Cns.Status(SrSignature) == SsFinished || // Signature subround is already finished?
-		com.Cns.GetValidation(com.Cns.SelfId(), SrSignature) || // signature has been already sent?
+	if com.Cns.Status(SrSignature) == SsFinished || // is subround Signature already finished?
+		com.Cns.GetValidation(com.Cns.SelfId(), SrSignature) || // has been signature already sent?
 		!com.Cns.IsNodeInBitmapGroup(com.Cns.SelfId()) || // isn't node in the bitmap received from the leader?
-		com.Cns.Data == nil { // has a consensus data on which it should send the signature?
+		com.Cns.Data == nil { // is consensus data not set?
 		return false
 	}
 
@@ -539,8 +538,8 @@ func (com *Communication) ExtendCommitmentHash() {
 	com.Cns.SetStatus(SrCommitmentHash, SsExtended)
 	if com.Cns.ComputeSize(SrCommitmentHash) < com.Cns.Threshold(SrCommitmentHash) {
 		com.Log(fmt.Sprintf(com.GetFormatedTime()+
-			"Step 2: Extended the <COMMITMENT_HASH> subround. Got only %d from %d commitment hashes which"+
-			" are not enough", com.Cns.ComputeSize(SrCommitmentHash), len(com.Cns.ConsensusGroup())))
+			"Step 2: Extended the <COMMITMENT_HASH> subround. Got only %d from %d commitment hashes"+
+			" which are not enough", com.Cns.ComputeSize(SrCommitmentHash), len(com.Cns.ConsensusGroup())))
 	} else {
 		com.Log(fmt.Sprintf(com.GetFormatedTime() +
 			"Step 2: Extended the <COMMITMENT_HASH> subround"))
@@ -557,16 +556,16 @@ func (com *Communication) ExtendBitmap() {
 func (com *Communication) ExtendCommitment() {
 	com.Cns.SetStatus(SrCommitment, SsExtended)
 	com.Log(fmt.Sprintf(com.GetFormatedTime()+
-		"Step 4: Extended the <COMMITMENT> subround. Got only %d from %d commitments which are not enough",
-		com.Cns.ComputeSize(SrCommitment), len(com.Cns.ConsensusGroup())))
+		"Step 4: Extended the <COMMITMENT> subround. Got only %d from %d commitments"+
+		" which are not enough", com.Cns.ComputeSize(SrCommitment), len(com.Cns.ConsensusGroup())))
 }
 
 // ExtendSignature method put this subround in the extended mode and print some messages
 func (com *Communication) ExtendSignature() {
 	com.Cns.SetStatus(SrSignature, SsExtended)
 	com.Log(fmt.Sprintf(com.GetFormatedTime()+
-		"Step 5: Extended the <SIGNATURE> subround. Got only %d from %d sigantures which are not enough",
-		com.Cns.ComputeSize(SrSignature), len(com.Cns.ConsensusGroup())))
+		"Step 5: Extended the <SIGNATURE> subround. Got only %d from %d sigantures"+
+		" which are not enough", com.Cns.ComputeSize(SrSignature), len(com.Cns.ConsensusGroup())))
 }
 
 // ExtendEndRound method just print some messages as no extend will be permited, because a new round will be start
@@ -621,8 +620,8 @@ func (com *Communication) ReceivedBlockBody(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
 	if node == com.Cns.SelfId() || // is block body received from myself?
-		!com.Cns.IsNodeLeaderInCurrentRound(node) || // block body received is not from leader?
-		com.Blk != nil { // block body was already received?
+		!com.Cns.IsNodeLeaderInCurrentRound(node) || // is another node leader in this round?
+		com.Blk != nil { // is block body already received?
 		return false
 	}
 
@@ -658,17 +657,17 @@ func (com *Communication) ReceivedBlockHeader(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
 	if node == com.Cns.SelfId() || // is block header received from myself?
-		com.Cns.Status(SrBlock) == SsFinished || // Block subround is already finished?
-		!com.Cns.IsNodeLeaderInCurrentRound(node) || // block header received is not from leader?
-		com.Cns.Validators.GetValidation(node, SrBlock) { // node already sent the block headcer?
+		com.Cns.Status(SrBlock) == SsFinished || // is subround Block already finished?
+		!com.Cns.IsNodeLeaderInCurrentRound(node) || // is another node leader in this round?
+		com.Cns.Validators.GetValidation(node, SrBlock) { // is block header already received?
 		return false
 	}
 
 	hdr := com.DecodeBlockHeader(&cnsDta.Data)
 
 	if !com.CheckIfBlockIsValid(hdr) {
-		com.Log(fmt.Sprintf(com.GetFormatedTime()+
-			"Canceled round %d in subround %s", com.Cns.Chr.Round().Index(), com.Cns.GetSubroundName(SrBlock)))
+		com.Log(fmt.Sprintf(com.GetFormatedTime()+"Canceled round %d in subround %s",
+			com.Cns.Chr.Round().Index(), com.Cns.GetSubroundName(SrBlock)))
 		com.Cns.Chr.SetSelfSubround(-1)
 		return false
 	}
@@ -707,12 +706,11 @@ func (com *Communication) ReceivedCommitmentHash(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
 	if node == com.Cns.SelfId() || // is commitment hash received from myself?
-		com.Cns.Status(SrCommitmentHash) == SsFinished || // CommitmentHash subround is already finished?
+		com.Cns.Status(SrCommitmentHash) == SsFinished || // is subround CommitmentHash already finished?
 		!com.Cns.IsNodeInValidationGroup(node) || // isn't node in the validation group?
-		com.Cns.Validators.GetValidation(node, SrCommitmentHash) || // node already sent the commitment hash?
+		com.Cns.Validators.GetValidation(node, SrCommitmentHash) || // is commitment hash already received?
 		com.Cns.Data == nil || // is consensus data not set?
-		!bytes.Equal(cnsDta.Data, *com.Cns.Data) { // is data on which the consensus should be done
-		// not the same with the received one?
+		!bytes.Equal(cnsDta.Data, *com.Cns.Data) { // is this the consesnus data of this round?
 		return false
 	}
 
@@ -734,28 +732,27 @@ func (com *Communication) ReceivedBitmap(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
 	if node == com.Cns.SelfId() || // is bitmap received from myself?
-		com.Cns.Status(SrBitmap) == SsFinished || // Bitmap subround is already finished?
-		!com.Cns.IsNodeLeaderInCurrentRound(node) || // bitmap received is not from leader?
-		com.Cns.Validators.GetValidation(node, SrBitmap) || // node already sent the bitmap?
+		com.Cns.Status(SrBitmap) == SsFinished || // is subround Bitmap already finished?
+		!com.Cns.IsNodeLeaderInCurrentRound(node) || // is another node leader in this round?
+		com.Cns.Validators.GetValidation(node, SrBitmap) || // is bitmap already received?
 		com.Cns.Data == nil || // is consensus data not set?
-		!bytes.Equal(cnsDta.Data, *com.Cns.Data) { // is data on which the consensus should be done
-		// not the same with the received one?
+		!bytes.Equal(cnsDta.Data, *com.Cns.Data) { // is this the consesnus data of this round?
 		return false
 	}
 
 	nodes := cnsDta.PubKeys
 
 	if len(nodes) < com.Cns.Threshold(SrBitmap) {
-		com.Log(fmt.Sprintf(com.GetFormatedTime()+
-			"Canceled round %d in subround %s", com.Cns.Chr.Round().Index(), com.Cns.GetSubroundName(SrBitmap)))
+		com.Log(fmt.Sprintf(com.GetFormatedTime()+"Canceled round %d in subround %s",
+			com.Cns.Chr.Round().Index(), com.Cns.GetSubroundName(SrBitmap)))
 		com.Cns.Chr.SetSelfSubround(-1)
 		return false
 	}
 
 	for i := 0; i < len(nodes); i++ {
 		if !com.Cns.IsNodeInValidationGroup(string(nodes[i])) {
-			com.Log(fmt.Sprintf(com.GetFormatedTime()+
-				"Canceled round %d in subround %s", com.Cns.Chr.Round().Index(), com.Cns.GetSubroundName(SrBitmap)))
+			com.Log(fmt.Sprintf(com.GetFormatedTime()+"Canceled round %d in subround %s",
+				com.Cns.Chr.Round().Index(), com.Cns.GetSubroundName(SrBitmap)))
 			com.Cns.Chr.SetSelfSubround(-1)
 			return false
 		}
@@ -774,12 +771,11 @@ func (com *Communication) ReceivedCommitment(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
 	if node == com.Cns.SelfId() || // is commitment received from myself?
-		com.Cns.Status(SrCommitment) == SsFinished || // Commitment subround is already finished?
+		com.Cns.Status(SrCommitment) == SsFinished || // is subround Commitment already finished?
 		!com.Cns.IsNodeInBitmapGroup(node) || // isn't node in the bitmap group?
-		com.Cns.Validators.GetValidation(node, SrCommitment) || // node already sent the commitment?
+		com.Cns.Validators.GetValidation(node, SrCommitment) || // is commitment already received?
 		com.Cns.Data == nil || // is consensus data not set?
-		!bytes.Equal(cnsDta.Data, *com.Cns.Data) { // is data on which the consensus should be done
-		// not the same with the received one?
+		!bytes.Equal(cnsDta.Data, *com.Cns.Data) { // is this the consesnus data of this round?
 		return false
 	}
 
@@ -793,12 +789,11 @@ func (com *Communication) ReceivedSignature(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
 	if node == com.Cns.SelfId() || // is signature received from myself?
-		com.Cns.Status(SrSignature) == SsFinished || // Signature subround is already finished?
+		com.Cns.Status(SrSignature) == SsFinished || // is subround Signature already finished?
 		!com.Cns.IsNodeInBitmapGroup(node) || // isn't node in the bitmap group?
-		com.Cns.Validators.GetValidation(node, SrSignature) || // node already sent the signature?
+		com.Cns.Validators.GetValidation(node, SrSignature) || // is signature already received?
 		com.Cns.Data == nil || // is consensus data not set?
-		!bytes.Equal(cnsDta.Data, *com.Cns.Data) { // is data on which the consensus should be done
-		// not the same with the received one?
+		!bytes.Equal(cnsDta.Data, *com.Cns.Data) { // is this the consesnus data of this round?
 		return false
 	}
 
