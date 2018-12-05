@@ -1,0 +1,1171 @@
+package spos_test
+
+import (
+	"testing"
+	"time"
+
+	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/stretchr/testify/assert"
+)
+
+func SendMessage(msg []byte) {
+	fmt.Println(msg)
+}
+
+func InitMessage() []*spos.Communication {
+	consensusGroupSize := 9
+	roundDuration := 100 * time.Millisecond
+
+	PBFTThreshold := consensusGroupSize*2/3 + 1
+
+	genesisTime := time.Now()
+	currentTime := genesisTime
+
+	// create consensus group list
+	consensusGroup := CreateConsensusGroup(consensusGroupSize)
+
+	// create instances
+	var coms []*spos.Communication
+
+	for i := 0; i < consensusGroupSize; i++ {
+		log := i == 0
+
+		rnd := chronology.NewRound(
+			genesisTime,
+			currentTime,
+			roundDuration)
+
+		syncTime := &ntp.LocalTime{}
+		syncTime.SetClockOffset(0)
+
+		chr := chronology.NewChronology(
+			log,
+			true,
+			rnd,
+			genesisTime,
+			syncTime)
+
+		vld := spos.NewValidators(
+			nil,
+			nil,
+			consensusGroup,
+			consensusGroup[i])
+
+		for j := 0; j < len(vld.ConsensusGroup()); j++ {
+			vld.SetValidation(vld.ConsensusGroup()[j], spos.SrBlock, false)
+			vld.SetValidation(vld.ConsensusGroup()[j], spos.SrCommitmentHash, false)
+			vld.SetValidation(vld.ConsensusGroup()[j], spos.SrBitmap, false)
+			vld.SetValidation(vld.ConsensusGroup()[j], spos.SrCommitment, false)
+			vld.SetValidation(vld.ConsensusGroup()[j], spos.SrSignature, false)
+		}
+
+		rth := spos.NewRoundThreshold()
+
+		rth.SetThreshold(spos.SrBlock, 1)
+		rth.SetThreshold(spos.SrCommitmentHash, PBFTThreshold)
+		rth.SetThreshold(spos.SrBitmap, PBFTThreshold)
+		rth.SetThreshold(spos.SrCommitment, PBFTThreshold)
+		rth.SetThreshold(spos.SrSignature, PBFTThreshold)
+
+		rnds := spos.NewRoundStatus()
+
+		rnds.SetStatus(spos.SrBlock, spos.SsNotFinished)
+		rnds.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
+		rnds.SetStatus(spos.SrBitmap, spos.SsNotFinished)
+		rnds.SetStatus(spos.SrCommitment, spos.SsNotFinished)
+		rnds.SetStatus(spos.SrSignature, spos.SsNotFinished)
+
+		dta := []byte("X")
+
+		cns := spos.NewConsensus(
+			log,
+			&dta,
+			vld,
+			rth,
+			rnds,
+			chr)
+
+		blkc := blockchain.BlockChain{}
+		txp := transactionPool.NewTransactionPool()
+
+		com := spos.NewCommunication(
+			true,
+			cns,
+			&blkc,
+			txp)
+
+		com.OnSendMessage = SendMessage
+
+		chr.AddSubround(spos.NewSubround(
+			chronology.SubroundId(spos.SrStartRound),
+			chronology.SubroundId(spos.SrBlock),
+			int64(roundDuration*5/100),
+			cns.GetSubroundName(spos.SrStartRound),
+			com.StartRound,
+			nil,
+			cns.CheckConsensus))
+
+		chr.AddSubround(spos.NewSubround(
+			chronology.SubroundId(spos.SrBlock),
+			chronology.SubroundId(spos.SrCommitmentHash),
+			int64(roundDuration*25/100),
+			cns.GetSubroundName(spos.SrBlock),
+			com.SendBlock, com.ExtendBlock,
+			cns.CheckConsensus))
+
+		chr.AddSubround(spos.NewSubround(
+			chronology.SubroundId(spos.SrCommitmentHash),
+			chronology.SubroundId(spos.SrBitmap),
+			int64(roundDuration*40/100),
+			cns.GetSubroundName(spos.SrCommitmentHash),
+			com.SendCommitmentHash,
+			com.ExtendCommitmentHash,
+			cns.CheckConsensus))
+
+		chr.AddSubround(spos.NewSubround(
+			chronology.SubroundId(spos.SrBitmap),
+			chronology.SubroundId(spos.SrCommitment),
+			int64(roundDuration*55/100),
+			cns.GetSubroundName(spos.SrBitmap),
+			com.SendBitmap,
+			com.ExtendBitmap,
+			cns.CheckConsensus))
+
+		chr.AddSubround(spos.NewSubround(
+			chronology.SubroundId(spos.SrCommitment),
+			chronology.SubroundId(spos.SrSignature),
+			int64(roundDuration*70/100),
+			cns.GetSubroundName(spos.SrCommitment),
+			com.SendCommitment,
+			com.ExtendCommitment,
+			cns.CheckConsensus))
+
+		chr.AddSubround(spos.NewSubround(
+			chronology.SubroundId(spos.SrSignature),
+			chronology.SubroundId(spos.SrEndRound),
+			int64(roundDuration*85/100),
+			cns.GetSubroundName(spos.SrSignature),
+			com.SendSignature,
+			com.ExtendSignature,
+			cns.CheckConsensus))
+
+		chr.AddSubround(spos.NewSubround(
+			chronology.SubroundId(spos.SrEndRound),
+			-1,
+			int64(roundDuration*100/100),
+			cns.GetSubroundName(spos.SrEndRound),
+			com.EndRound,
+			com.ExtendEndRound,
+			cns.CheckConsensus))
+
+		coms = append(coms, com)
+	}
+
+	return coms
+}
+
+func CreateConsensusGroup(consensusGroupSize int) []string {
+	consensusGroup := make([]string, 0)
+
+	for i := 0; i < consensusGroupSize; i++ {
+		consensusGroup = append(consensusGroup, string(i+65))
+	}
+
+	return consensusGroup
+}
+
+func TestNewConsensusData(t *testing.T) {
+	cnsData := spos.NewConsensusData(
+		nil,
+		nil,
+		nil,
+		spos.MtUnknown,
+		nil)
+
+	assert.NotNil(t, cnsData)
+}
+
+func TestNewMessage(t *testing.T) {
+	consensusGroup := []string{"1", "2", "3"}
+
+	vld := spos.NewValidators(
+		nil,
+		nil,
+		consensusGroup,
+		consensusGroup[0])
+
+	for i := 0; i < len(vld.ConsensusGroup()); i++ {
+		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	}
+
+	cns := spos.NewConsensus(
+		true,
+		nil,
+		vld,
+		nil,
+		nil,
+		nil)
+
+	com := spos.NewCommunication(
+		true,
+		nil,
+		nil,
+		nil)
+
+	assert.Equal(t, 0, cap(com.ChRcvMsg[spos.MtBlockHeader]))
+
+	msg2 := spos.NewCommunication(
+		true,
+		cns,
+		nil,
+		nil)
+
+	assert.Equal(t, len(cns.Validators.ConsensusGroup()), cap(msg2.ChRcvMsg[spos.MtBlockHeader]))
+}
+
+func TestMessage_StartRound(t *testing.T) {
+	coms := InitMessage()
+
+	r := coms[0].StartRound()
+	assert.Equal(t, true, r)
+}
+
+func TestMessage_EndRound(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].Hdr = &block.Header{}
+
+	r := coms[0].EndRound()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsFinished)
+	coms[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsFinished)
+	coms[0].Cns.SetStatus(spos.SrBitmap, spos.SsFinished)
+	coms[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
+	coms[0].Cns.SetStatus(spos.SrSignature, spos.SsFinished)
+
+	r = coms[0].EndRound()
+	assert.Equal(t, true, r)
+
+	coms[0].Cns.Validators.SetSelfId(coms[0].Cns.Validators.ConsensusGroup()[1])
+
+	r = coms[0].EndRound()
+	assert.Equal(t, 2, coms[0].RoundsWithBlock)
+	assert.Equal(t, true, r)
+}
+
+func TestMessage_SendBlock(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+
+	r := coms[0].SendBlock()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now())
+	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsFinished)
+
+	r = coms[0].SendBlock()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsNotFinished)
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBlock, true)
+
+	r = coms[0].SendBlock()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBlock, false)
+	coms[0].Cns.Validators.SetSelfId(coms[0].Cns.Validators.ConsensusGroup()[1])
+
+	r = coms[0].SendBlock()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.Validators.SetSelfId(coms[0].Cns.Validators.ConsensusGroup()[0])
+
+	r = coms[0].SendBlock()
+	assert.Equal(t, true, r)
+	assert.Equal(t, uint64(1), coms[0].Hdr.Nonce)
+
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBlock, false)
+	coms[0].Blkc.CurrentBlock = coms[0].Hdr
+
+	r = coms[0].SendBlock()
+	assert.Equal(t, true, r)
+	assert.Equal(t, uint64(2), coms[0].Hdr.Nonce)
+}
+
+func TestCommunication_CreateMiniBlocks(t *testing.T) {
+	coms := InitMessage()
+	coms[0].TxP.AddTransaction([]byte("tx_hash"), &transaction.Transaction{Nonce: 0}, 0)
+	mblks := coms[0].CreateMiniBlocks()
+
+	assert.Equal(t, 1, len(mblks))
+	assert.Equal(t, []byte("tx_hash"), mblks[0].TxHashes[0])
+}
+
+func TestMessage_SendCommitmentHash(t *testing.T) {
+	coms := InitMessage()
+
+	r := coms[0].SendCommitmentHash()
+	assert.Equal(t, true, r)
+
+	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsFinished)
+	coms[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsFinished)
+
+	r = coms[0].SendCommitmentHash()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrCommitmentHash, true)
+
+	r = coms[0].SendCommitmentHash()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrCommitmentHash, false)
+	coms[0].Cns.Data = nil
+
+	r = coms[0].SendCommitmentHash()
+	assert.Equal(t, false, r)
+
+	dta := []byte("X")
+	coms[0].Cns.Data = &dta
+
+	r = coms[0].SendCommitmentHash()
+	assert.Equal(t, true, r)
+}
+
+func TestMessage_SendBitmap(t *testing.T) {
+	coms := InitMessage()
+
+	r := coms[0].SendBitmap()
+	assert.Equal(t, true, r)
+
+	coms[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsFinished)
+	coms[0].Cns.SetStatus(spos.SrBitmap, spos.SsFinished)
+
+	r = coms[0].SendBitmap()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetStatus(spos.SrBitmap, spos.SsNotFinished)
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBitmap, true)
+
+	r = coms[0].SendBitmap()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBitmap, false)
+	coms[0].Cns.Validators.SetSelfId(coms[0].Cns.Validators.ConsensusGroup()[1])
+
+	r = coms[0].SendBitmap()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.Validators.SetSelfId(coms[0].Cns.Validators.ConsensusGroup()[0])
+	coms[0].Cns.Data = nil
+
+	r = coms[0].SendBitmap()
+	assert.Equal(t, false, r)
+
+	dta := []byte("X")
+	coms[0].Cns.Data = &dta
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrCommitmentHash, true)
+
+	r = coms[0].SendBitmap()
+	assert.Equal(t, true, r)
+	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.SelfId(), spos.SrBitmap))
+}
+
+func TestMessage_SendCommitment(t *testing.T) {
+	coms := InitMessage()
+
+	r := coms[0].SendCommitment()
+	assert.Equal(t, true, r)
+
+	coms[0].Cns.SetStatus(spos.SrBitmap, spos.SsFinished)
+	coms[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
+
+	r = coms[0].SendCommitment()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetStatus(spos.SrCommitment, spos.SsNotFinished)
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrCommitment, true)
+
+	r = coms[0].SendCommitment()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrCommitment, false)
+
+	r = coms[0].SendCommitment()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBitmap, true)
+	coms[0].Cns.Data = nil
+
+	r = coms[0].SendCommitment()
+	assert.Equal(t, false, r)
+
+	dta := []byte("X")
+	coms[0].Cns.Data = &dta
+
+	r = coms[0].SendCommitment()
+	assert.Equal(t, true, r)
+}
+
+func TestMessage_SendSignature(t *testing.T) {
+	coms := InitMessage()
+
+	r := coms[0].SendSignature()
+	assert.Equal(t, true, r)
+
+	coms[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
+	coms[0].Cns.SetStatus(spos.SrSignature, spos.SsFinished)
+
+	r = coms[0].SendSignature()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetStatus(spos.SrSignature, spos.SsNotFinished)
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrSignature, true)
+
+	r = coms[0].SendSignature()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrSignature, false)
+
+	r = coms[0].SendSignature()
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBitmap, true)
+	coms[0].Cns.Data = nil
+
+	r = coms[0].SendSignature()
+	assert.Equal(t, false, r)
+
+	dta := []byte("X")
+	coms[0].Cns.Data = &dta
+
+	r = coms[0].SendSignature()
+	assert.Equal(t, true, r)
+}
+
+func TestMessage_BroadcastMessage(t *testing.T) {
+	coms := InitMessage()
+
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].GetTime())
+
+	message, err := marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.SelfId()),
+		spos.MtBlockHeader,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].OnSendMessage = nil
+	r := coms[0].BroadcastMessage(cnsDta)
+	assert.Equal(t, false, r)
+
+	coms[0].OnSendMessage = SendMessage
+	r = coms[0].BroadcastMessage(cnsDta)
+	assert.Equal(t, true, r)
+}
+
+func TestMessage_ExtendBlock(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].ExtendBlock()
+	assert.Equal(t, spos.SsExtended, coms[0].Cns.Status(spos.SrBlock))
+}
+
+func TestMessage_ExtendCommitmentHash(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].ExtendCommitmentHash()
+	assert.Equal(t, spos.SsExtended, coms[0].Cns.Status(spos.SrCommitmentHash))
+
+	for i := 0; i < len(coms[0].Cns.Validators.ConsensusGroup()); i++ {
+		coms[0].Cns.SetValidation(coms[0].Cns.Validators.ConsensusGroup()[i], spos.SrCommitmentHash, true)
+	}
+
+	coms[0].ExtendCommitmentHash()
+	assert.Equal(t, spos.SsExtended, coms[0].Cns.Status(spos.SrCommitmentHash))
+}
+
+func TestMessage_ExtendBitmap(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].ExtendBitmap()
+	assert.Equal(t, spos.SsExtended, coms[0].Cns.Status(spos.SrBitmap))
+}
+
+func TestMessage_ExtendCommitment(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].ExtendCommitment()
+	assert.Equal(t, spos.SsExtended, coms[0].Cns.Status(spos.SrCommitment))
+}
+
+func TestMessage_ExtendSignature(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].ExtendSignature()
+	assert.Equal(t, spos.SsExtended, coms[0].Cns.Status(spos.SrSignature))
+}
+
+func TestMessage_ExtendEndRound(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].ExtendEndRound()
+}
+
+func TestMessage_ReceivedMessage(t *testing.T) {
+	coms := InitMessage()
+
+	// Received BLOCK_BODY
+	blk := &block.Block{}
+
+	message, err := marshal.DefMarsh.Marshal(blk)
+
+	assert.Nil(t, err)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.SelfId()),
+		spos.MtBlockBody,
+		[]byte(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).String()))
+
+	coms[0].ReceivedMessage(cnsDta)
+
+	// Received BLOCK_HEADER
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].GetTime())
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	cnsDta = spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.SelfId()),
+		spos.MtBlockHeader,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].ReceivedMessage(cnsDta)
+
+	// Received COMMITMENT_HASH
+	hdr = &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].GetTime())
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	cnsDta = spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.SelfId()),
+		spos.MtCommitmentHash,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].ReceivedMessage(cnsDta)
+
+	// Received BITMAP
+	hdr = &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].GetTime())
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	cnsDta = spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.SelfId()),
+		spos.MtBitmap,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].ReceivedMessage(cnsDta)
+
+	// Received COMMITMENT
+	hdr = &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].GetTime())
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	cnsDta = spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.SelfId()),
+		spos.MtCommitment,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].ReceivedMessage(cnsDta)
+
+	// Received SIGNATURE
+	hdr = &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].GetTime())
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	cnsDta = spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.SelfId()),
+		spos.MtSignature,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].ReceivedMessage(cnsDta)
+
+	// Received UNKNOWN
+	hdr = &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].GetTime())
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	cnsDta = spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.SelfId()),
+		spos.MtUnknown,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].ReceivedMessage(cnsDta)
+}
+
+func TestMessage_DecodeBlockBody(t *testing.T) {
+	coms := InitMessage()
+
+	blk := &block.Block{}
+
+	mblks := make([]block.MiniBlock, 0)
+	mblks = append(mblks, block.MiniBlock{DestShardID: 69})
+	blk.MiniBlocks = mblks
+
+	message, err := marshal.DefMarsh.Marshal(blk)
+
+	assert.Nil(t, err)
+
+	dcdBlk := coms[0].DecodeBlockBody(nil)
+
+	assert.Nil(t, dcdBlk)
+
+	dcdBlk = coms[0].DecodeBlockBody(&message)
+
+	assert.Equal(t, blk, dcdBlk)
+	assert.Equal(t, uint32(69), dcdBlk.MiniBlocks[0].DestShardID)
+}
+
+func TestMessage_DecodeBlockHeader(t *testing.T) {
+	coms := InitMessage()
+
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.Signature = []byte(coms[0].Cns.SelfId())
+
+	message, err := marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	dcdHdr := coms[0].DecodeBlockHeader(nil)
+
+	assert.Nil(t, dcdHdr)
+
+	dcdHdr = coms[0].DecodeBlockHeader(&message)
+
+	assert.Equal(t, hdr, dcdHdr)
+	assert.Equal(t, []byte(coms[0].Cns.SelfId()), dcdHdr.Signature)
+}
+
+func TestMessage_CheckChannels(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+
+	assert.Equal(t, false, coms[0].Cns.ShouldCheckConsensus())
+
+	// BLOCK BODY
+	blk := &block.Block{}
+
+	message, err := marshal.DefMarsh.Marshal(blk)
+
+	assert.Nil(t, err)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtBlockBody,
+		[]byte(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).String()))
+
+	coms[0].ChRcvMsg[spos.MtBlockBody] <- cnsDta
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
+	assert.Equal(t, false, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBlock))
+
+	coms[0].Cns.SetShouldCheckConsensus(false)
+
+	// BLOCK HEADER
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).String())
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	cnsDta = spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtBlockHeader,
+		[]byte(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).String()))
+
+	coms[0].ChRcvMsg[spos.MtBlockHeader] <- cnsDta
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
+	assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBlock))
+
+	coms[0].Cns.SetShouldCheckConsensus(false)
+
+	// COMMITMENT_HASH
+	cnsDta = spos.NewConsensusData(
+		*coms[0].Cns.Data,
+		nil,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtCommitmentHash,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].ChRcvMsg[spos.MtCommitmentHash] <- cnsDta
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
+	assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitmentHash))
+
+	coms[0].Cns.SetShouldCheckConsensus(false)
+
+	// BITMAP
+	pks := make([][]byte, 0)
+
+	for i := 0; i < len(coms[0].Cns.ConsensusGroup()); i++ {
+		pks = append(pks, []byte(coms[0].Cns.ConsensusGroup()[i]))
+	}
+
+	cnsDta = spos.NewConsensusData(
+		*coms[0].Cns.Data,
+		pks,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtBitmap,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].ChRcvMsg[spos.MtBitmap] <- cnsDta
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
+
+	for i := 0; i < len(coms[0].Cns.ConsensusGroup()); i++ {
+		assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[i], spos.SrBitmap))
+	}
+
+	coms[0].Cns.SetShouldCheckConsensus(false)
+
+	// COMMITMENT
+	cnsDta = spos.NewConsensusData(
+		*coms[0].Cns.Data,
+		nil,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtCommitment,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].ChRcvMsg[spos.MtCommitment] <- cnsDta
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
+	assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitment))
+
+	coms[0].Cns.SetShouldCheckConsensus(false)
+
+	// SIGNATURE
+	cnsDta = spos.NewConsensusData(
+		*coms[0].Cns.Data,
+		nil,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtSignature,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].ChRcvMsg[spos.MtSignature] <- cnsDta
+	time.Sleep(10 * time.Millisecond)
+	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
+	assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrSignature))
+}
+
+func TestMessage_ReceivedBlock(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].GetTime())
+
+	message, err := marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+
+	message, err = marshal.DefMarsh.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtBlockBody,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].Blk = &block.Block{}
+
+	r := coms[0].ReceivedBlockBody(cnsDta)
+	assert.Equal(t, false, r)
+
+	coms[0].Blk = nil
+
+	r = coms[0].ReceivedBlockBody(cnsDta)
+	assert.Equal(t, true, r)
+
+	cnsDta = spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtBlockHeader,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsFinished)
+
+	r = coms[0].ReceivedBlockHeader(cnsDta)
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsNotFinished)
+
+	hdr.PrevHash = []byte("X")
+	message, err = marshal.DefMarsh.Marshal(hdr)
+	assert.Nil(t, err)
+
+	cnsDta.Data = message
+
+	r = coms[0].ReceivedBlockHeader(cnsDta)
+	assert.Equal(t, false, r)
+
+	hdr.PrevHash = []byte("")
+	message, err = marshal.DefMarsh.Marshal(hdr)
+	assert.Nil(t, err)
+
+	cnsDta.Data = message
+
+	r = coms[0].ReceivedBlockHeader(cnsDta)
+	assert.Equal(t, true, r)
+	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBlock))
+}
+
+func TestMessage_ReceivedCommitmentHash(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+
+	dta := []byte("X")
+
+	cnsDta := spos.NewConsensusData(
+		dta,
+		nil,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtCommitmentHash,
+		[]byte(coms[0].GetTime()))
+
+	for i := 0; i < coms[0].Cns.Threshold(spos.SrCommitmentHash); i++ {
+		coms[0].Cns.Validators.SetValidation(coms[0].Cns.ConsensusGroup()[i], spos.SrCommitmentHash, true)
+	}
+
+	r := coms[0].ReceivedCommitmentHash(cnsDta)
+	assert.Equal(t, false, r)
+
+	for i := 0; i < coms[0].Cns.Threshold(spos.SrCommitmentHash); i++ {
+		coms[0].Cns.Validators.SetValidation(coms[0].Cns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+	}
+
+	coms[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsFinished)
+
+	r = coms[0].ReceivedCommitmentHash(cnsDta)
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
+
+	r = coms[0].ReceivedCommitmentHash(cnsDta)
+	assert.Equal(t, true, r)
+	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitmentHash))
+}
+
+func TestMessage_ReceivedBitmap(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+
+	cnsDta := spos.NewConsensusData(
+		*coms[0].Cns.Data,
+		nil,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtCommitmentHash,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].Cns.SetStatus(spos.SrBitmap, spos.SsFinished)
+
+	r := coms[0].ReceivedBitmap(cnsDta)
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetStatus(spos.SrBitmap, spos.SsNotFinished)
+
+	pks := make([][]byte, 0)
+
+	for i := 0; i < coms[0].Cns.Threshold(spos.SrBitmap)-1; i++ {
+		pks = append(pks, []byte(coms[0].Cns.ConsensusGroup()[i]))
+	}
+
+	cnsDta.PubKeys = pks
+
+	r = coms[0].ReceivedBitmap(cnsDta)
+	assert.Equal(t, false, r)
+	assert.Equal(t, chronology.SubroundId(-1), coms[0].Cns.Chr.SelfSubround())
+
+	cnsDta.PubKeys = append(cnsDta.PubKeys, []byte(coms[0].Cns.ConsensusGroup()[coms[0].Cns.Threshold(spos.SrBitmap)-1]))
+
+	r = coms[0].ReceivedBitmap(cnsDta)
+	assert.Equal(t, true, r)
+	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBitmap))
+
+	for i := 0; i < coms[0].Cns.Threshold(spos.SrBitmap); i++ {
+		assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[i], spos.SrBitmap))
+	}
+
+	cnsDta.PubKeys = append(cnsDta.PubKeys, []byte("X"))
+
+	r = coms[0].ReceivedBitmap(cnsDta)
+	assert.Equal(t, false, r)
+	assert.Equal(t, chronology.SubroundId(-1), coms[0].Cns.Chr.SelfSubround())
+}
+
+func TestMessage_ReceivedCommitment(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+
+	cnsDta := spos.NewConsensusData(
+		*coms[0].Cns.Data,
+		nil,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtCommitment,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
+
+	r := coms[0].ReceivedCommitment(cnsDta)
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetStatus(spos.SrCommitment, spos.SsNotFinished)
+
+	r = coms[0].ReceivedCommitment(cnsDta)
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.Validators.SetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBitmap, true)
+
+	r = coms[0].ReceivedCommitment(cnsDta)
+	assert.Equal(t, true, r)
+	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitment))
+}
+
+func TestMessage_ReceivedSignature(t *testing.T) {
+	coms := InitMessage()
+
+	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+
+	cnsDta := spos.NewConsensusData(
+		*coms[0].Cns.Data,
+		nil,
+		[]byte(coms[0].Cns.ConsensusGroup()[1]),
+		spos.MtSignature,
+		[]byte(coms[0].GetTime()))
+
+	coms[0].Cns.SetStatus(spos.SrSignature, spos.SsFinished)
+
+	r := coms[0].ReceivedSignature(cnsDta)
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.SetStatus(spos.SrSignature, spos.SsNotFinished)
+
+	r = coms[0].ReceivedSignature(cnsDta)
+	assert.Equal(t, false, r)
+
+	coms[0].Cns.Validators.SetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBitmap, true)
+
+	r = coms[0].ReceivedSignature(cnsDta)
+	assert.Equal(t, true, r)
+	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrSignature))
+}
+
+func TestMessage_CheckIfBlockIsValid(t *testing.T) {
+	coms := InitMessage()
+
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].GetTime())
+
+	hdr.PrevHash = []byte("X")
+
+	r := coms[0].CheckIfBlockIsValid(hdr)
+	assert.Equal(t, false, r)
+
+	hdr.PrevHash = []byte("")
+
+	r = coms[0].CheckIfBlockIsValid(hdr)
+	assert.Equal(t, true, r)
+
+	hdr.Nonce = 2
+
+	r = coms[0].CheckIfBlockIsValid(hdr)
+	assert.Equal(t, true, r)
+
+	hdr.Nonce = 1
+	coms[0].Blkc.CurrentBlock = hdr
+
+	hdr = &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = []byte(coms[0].GetTime())
+
+	r = coms[0].CheckIfBlockIsValid(hdr)
+	assert.Equal(t, false, r)
+
+	hdr.Nonce = 2
+	hdr.PrevHash = []byte("X")
+
+	r = coms[0].CheckIfBlockIsValid(hdr)
+	assert.Equal(t, false, r)
+
+	hdr.Nonce = 3
+	hdr.PrevHash = []byte("")
+
+	r = coms[0].CheckIfBlockIsValid(hdr)
+	assert.Equal(t, true, r)
+
+	hdr.Nonce = 2
+
+	r = coms[0].CheckIfBlockIsValid(hdr)
+	assert.Equal(t, true, r)
+}
+
+func TestMessage_GetMessageTypeName(t *testing.T) {
+	coms := InitMessage()
+
+	r := coms[0].GetMessageTypeName(spos.MtBlockBody)
+	assert.Equal(t, "<BLOCK_BODY>", r)
+
+	r = coms[0].GetMessageTypeName(spos.MtBlockHeader)
+	assert.Equal(t, "<BLOCK_HEADER>", r)
+
+	r = coms[0].GetMessageTypeName(spos.MtCommitmentHash)
+	assert.Equal(t, "<COMMITMENT_HASH>", r)
+
+	r = coms[0].GetMessageTypeName(spos.MtBitmap)
+	assert.Equal(t, "<BITMAP>", r)
+
+	r = coms[0].GetMessageTypeName(spos.MtCommitment)
+	assert.Equal(t, "<COMMITMENT>", r)
+
+	r = coms[0].GetMessageTypeName(spos.MtSignature)
+	assert.Equal(t, "<SIGNATURE>", r)
+
+	r = coms[0].GetMessageTypeName(spos.MtUnknown)
+	assert.Equal(t, "<UNKNOWN>", r)
+
+	r = coms[0].GetMessageTypeName(spos.MessageType(-1))
+	assert.Equal(t, "Undifined message type", r)
+}
