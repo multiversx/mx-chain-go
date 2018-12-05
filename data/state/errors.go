@@ -62,17 +62,26 @@ func (e *ErrMissingTrie) Error() string {
 	return "trie was not found for hash " + base64.StdEncoding.EncodeToString(e.rootHash)
 }
 
-// ErrNilAccountsHandler defines the error when trying to revert on nil accounts
-var ErrNilAccountsHandler = errors.New("nil AccountsHandler")
+// ErrNilAccountsAdapter defines the error when trying to revert on nil accounts
+var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
-// ErrNilAddress defines the error when trying to work with a nil address
-var ErrNilAddress = errors.New("nil Address")
+// ErrNilAddressContainer defines the error when trying to work with a nil address
+var ErrNilAddressContainer = errors.New("nil AddressContainer")
 
 // ErrEmptyAddress defines the error when trying to work with an empty address
 var ErrEmptyAddress = errors.New("empty Address")
 
-// ErrNilAccountState defines the error when trying to work with a nil account
-var ErrNilAccountState = errors.New("nil AccountState")
+// ErrNilAccountContainer defines the error when trying to work with a nil account
+var ErrNilAccountContainer = errors.New("nil AccountContainer")
+
+// ErrNilSimpleAccountWrapper defines the error when trying to work with a nil account wrapper
+var ErrNilSimpleAccountWrapper = errors.New("nil SimpleAccountWrapper")
+
+// ErrNilModifyingAccountWrapper defines the error when trying to work with a nil account wrapper
+var ErrNilModifyingAccountWrapper = errors.New("nil ModifyingAccountWrapper")
+
+// ErrNilJurnalizingAccountWrapper defines the error when trying to work with a nil account wrapper
+var ErrNilJurnalizingAccountWrapper = errors.New("nil JurnalizingAccountWrapper")
 
 // ErrNilDataTrie defines the error when trying to search a data key on an uninitialized trie
 var ErrNilDataTrie = errors.New("nil data trie for account or data trie not loaded")
@@ -88,3 +97,9 @@ var ErrNilPubKeysBytes = errors.New("nil public key bytes")
 
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil hasher")
+
+// ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
+var ErrNilMarshalizer = errors.New("nil marshalizer")
+
+// ErrCodeHashMismatchCode signals that there is a mismatch between codeHash and Hash(code) of an account
+var ErrCodeHashMismatchCode = errors.New("codeHash mismatches the actual hash of the code")

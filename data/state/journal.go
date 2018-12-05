@@ -13,17 +13,19 @@ type Journal struct {
 
 // NewJournal creates a new Journal
 func NewJournal() *Journal {
-	j := Journal{
+	return &Journal{
 		entries:         make([]JournalEntry, 0),
 		mutDirtyAddress: sync.RWMutex{},
 	}
-
-	return &j
 }
 
 // AddEntry adds a new object to entries list.
 // Concurrent safe.
 func (j *Journal) AddEntry(je JournalEntry) {
+	if je == nil {
+		return
+	}
+
 	j.mutDirtyAddress.Lock()
 	j.entries = append(j.entries, je)
 	j.mutDirtyAddress.Unlock()
@@ -33,7 +35,7 @@ func (j *Journal) AddEntry(je JournalEntry) {
 // If snapshot > len(entries) will do nothing, return will be nil
 // 0 index based. Calling this method with negative value will do nothing. Calling with 0 revert everything.
 // Concurrent safe.
-func (j *Journal) RevertToSnapshot(snapshot int, accounts AccountsHandler) error {
+func (j *Journal) RevertToSnapshot(snapshot int, accountsAdapter AccountsAdapter) error {
 	if snapshot > len(j.entries) || snapshot < 0 {
 		//outside of bounds array, not quite error, just return
 		return nil
@@ -43,7 +45,7 @@ func (j *Journal) RevertToSnapshot(snapshot int, accounts AccountsHandler) error
 	defer j.mutDirtyAddress.Unlock()
 
 	for i := len(j.entries) - 1; i >= snapshot; i-- {
-		err := j.entries[i].Revert(accounts)
+		err := j.entries[i].Revert(accountsAdapter)
 
 		if err != nil {
 			return err

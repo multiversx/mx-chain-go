@@ -37,12 +37,17 @@ func TestAddressNewAddressInvalidDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	//nil address
-	_, err := state.NewAddress(nil)
+	_, err := state.NewAddress(nil, mock.HasherMock{})
 	assert.NotNil(t, err)
 	fmt.Printf("Error: %v\n", err.Error())
 
 	//empty address
-	_, err = state.NewAddress(make([]byte, 0))
+	_, err = state.NewAddress(make([]byte, 0), mock.HasherMock{})
+	assert.NotNil(t, err)
+	fmt.Printf("Error: %v\n", err.Error())
+
+	//nil hasher
+	_, err = state.NewAddress(make([]byte, state.AdrLen), nil)
 	assert.NotNil(t, err)
 	fmt.Printf("Error: %v\n", err.Error())
 
@@ -53,7 +58,7 @@ func TestAddressNewAddressInvalidDataShouldErr(t *testing.T) {
 			continue
 		}
 
-		_, err = state.NewAddress(make([]byte, i))
+		_, err = state.NewAddress(make([]byte, i), mock.HasherMock{})
 		assert.NotNil(t, err)
 		fmt.Printf("Error: %v\n", err.Error())
 	}
@@ -62,7 +67,7 @@ func TestAddressNewAddressInvalidDataShouldErr(t *testing.T) {
 func TestAddressNewAddressValidDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	address, err := state.NewAddress(make([]byte, state.AdrLen))
+	address, err := state.NewAddress(make([]byte, state.AdrLen), mock.HasherMock{})
 	assert.Nil(t, err)
 	assert.NotNil(t, address)
 	assert.Equal(t, address.Bytes(), make([]byte, state.AdrLen))
@@ -76,7 +81,7 @@ func TestAddressHexShouldWork(t *testing.T) {
 	_, err := rand.Read(buff)
 	assert.Nil(t, err)
 
-	address, err := state.NewAddress(buff)
+	address, err := state.NewAddress(buff, mock.HasherMock{})
 
 	fmt.Printf("Address is: %s\n", address.Hex())
 	assert.Equal(t, state.HexPrefix+hex.EncodeToString(buff), address.Hex())
@@ -86,7 +91,16 @@ func TestAddressFromHexAddressInvalidDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	//empty string
-	_, err := state.FromHexAddress("")
+	_, err := state.FromHexAddress("", mock.HasherMock{})
+	assert.NotNil(t, err)
+
+	//nil hasher
+	//generating a random byte slice
+	buff := make([]byte, state.AdrLen)
+	_, err = rand.Read(buff)
+	assert.Nil(t, err)
+	adrHex := hex.EncodeToString(buff)
+	_, err = state.FromHexAddress(adrHex, nil)
 	assert.NotNil(t, err)
 
 	//invalid characters
@@ -94,11 +108,11 @@ func TestAddressFromHexAddressInvalidDataShouldErr(t *testing.T) {
 	for i := 0; i < state.AdrLen*2; i++ {
 		adr = adr + "t"
 	}
-	_, err = state.FromHexAddress(adr)
+	_, err = state.FromHexAddress(adr, mock.HasherMock{})
 	assert.NotNil(t, err)
 
 	//odd characters length
-	_, err = state.FromHexAddress("a0f")
+	_, err = state.FromHexAddress("a0f", mock.HasherMock{})
 	assert.NotNil(t, err)
 
 	//more characters than needed
@@ -108,7 +122,7 @@ func TestAddressFromHexAddressInvalidDataShouldErr(t *testing.T) {
 	}
 
 	//less characters than needed
-	_, err = state.FromHexAddress("aa")
+	_, err = state.FromHexAddress("aa", mock.HasherMock{})
 	assert.NotNil(t, err)
 }
 
@@ -121,11 +135,11 @@ func TestAddressFromHexAddressValidDataShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 
 	//extract from string with prefix
-	adrPrefix, err := state.FromHexAddress(state.HexPrefix + hex.EncodeToString(buff))
+	adrPrefix, err := state.FromHexAddress(state.HexPrefix+hex.EncodeToString(buff), mock.HasherMock{})
 	assert.Nil(t, err)
 
 	//extract from string without prefix
-	adrNoPrefix, err := state.FromHexAddress(hex.EncodeToString(buff))
+	adrNoPrefix, err := state.FromHexAddress(hex.EncodeToString(buff), mock.HasherMock{})
 	assert.Nil(t, err)
 
 	//both should be the same
@@ -140,13 +154,13 @@ func TestAddressHashValidDataShouldWork(t *testing.T) {
 	_, err := rand.Read(buff)
 	assert.Nil(t, err)
 
-	adr, err := state.NewAddress(buff)
+	adr, err := state.NewAddress(buff, mock.HasherMock{})
 	assert.Nil(t, err)
 
 	h := mock.HasherMock{}
 	hashExpected := h.Compute(string(buff))
 
-	assert.Equal(t, hashExpected, adr.Hash(h))
+	assert.Equal(t, hashExpected, adr.Hash())
 }
 
 func TestAddressFromPubKeyBytesInvalidDataShouldErr(t *testing.T) {

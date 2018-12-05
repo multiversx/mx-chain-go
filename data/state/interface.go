@@ -4,63 +4,112 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
 // HashLength defines how many bytes are used in a hash
 const HashLength = 32
 
-// AccountsHandler is used for the structure that manages the accounts
-type AccountsHandler interface {
-	AddJournalEntry(je JournalEntry)
-	Commit() ([]byte, error)
-	GetOrCreateAccountState(addressHandler AddressHandler) (AccountStateHandler, error)
-	HasAccountState(addressHandler AddressHandler) (bool, error)
-	JournalLen() int
-	PutCode(acState AccountStateHandler, code []byte) error
-	RemoveAccount(addressHandler AddressHandler) error
-	RemoveCode(codeHash []byte) error
-	RetrieveDataTrie(acountStateHandler AccountStateHandler) error
-	RevertToSnapshot(snapshot int) error
-	SaveAccountState(acountStateHandler AccountStateHandler) error
-	SaveData(acountStateHandler AccountStateHandler) error
+// AddressContainer models what an Address struct should do
+type AddressContainer interface {
+	Bytes() []byte
+	Hash() []byte
 }
 
-// AccountStateHandler models what an AccountState struct should do
-type AccountStateHandler interface {
-	AddressHandler() AddressHandler
+// IntBalancer is an interface for int based balance
+type IntBalancer interface {
 	Balance() big.Int
-	Code() []byte
-	CodeHash() []byte
-	ClearDataCaches()
-	DataTrie() trie.PatriciaMerkelTree
-	DirtyData() map[string][]byte
+	SetBalance(big.Int)
+}
+
+// SliceBalancer is an interface for slice based balance (useful when serializing/deserializing) data
+type SliceBalancer interface {
+	Balance() []byte
+	SetBalance([]byte)
+}
+
+// BaseAccountContainer is an interface that knows abaot Nonce, Code Hash and Root Hash
+type BaseAccountContainer interface {
 	Nonce() uint64
+	SetNonce(uint64)
+	CodeHash() []byte
+	SetCodeHash([]byte)
+	RootHash() []byte
+	SetRootHash([]byte)
+}
+
+// DbAccountContainer defines the interface for the account that will actually be saved on a DB
+// This structure is Cap'n'Proto compliant
+type DbAccountContainer interface {
+	BaseAccountContainer
+
+	SliceBalancer
+}
+
+// AccountContainer is used for the structure that manipulates Account data
+type AccountContainer interface {
+	BaseAccountContainer
+
+	IntBalancer
+	LoadFromDbAccount(source DbAccountContainer) error
+	SaveToDbAccount(target DbAccountContainer) error
+}
+
+// SimpleAccountWrapper models what an AccountWrap struct should do
+// It knows about code and data, as data structures not hashes
+type SimpleAccountWrapper interface {
+	AccountContainer
+
+	AddressContainer() AddressContainer
+	Code() []byte
+	SetCode(code []byte)
+	DataTrie() trie.PatriciaMerkelTree
+	SetDataTrie(trie trie.PatriciaMerkelTree)
+}
+
+// ModifyingDataAccountWrapper models what an AccountWrap struct should do
+// It knows how to manipulate data hold by a SC account
+type ModifyingDataAccountWrapper interface {
+	SimpleAccountWrapper
+
+	ClearDataCaches()
+	DirtyData() map[string][]byte
 	OriginalValue(key []byte) []byte
 	RetrieveValue(key []byte) ([]byte, error)
-	RootHash() []byte
 	SaveKeyValue(key []byte, value []byte)
-	SetBalance(accountsHandler AccountsHandler, value *big.Int) error
-	SetBalanceNoJournal(value *big.Int)
-	SetCode(code []byte)
-	SetCodeHash(accountsHandler AccountsHandler, codeHash []byte) error
-	SetCodeHashNoJournal(codeHash []byte)
-	SetDataTrie(trie trie.PatriciaMerkelTree)
-	SetNonce(accountsHandler AccountsHandler, nonce uint64) error
-	SetNonceNoJournal(nonce uint64)
-	SetRootHash(accountsHandler AccountsHandler, rootHash []byte) error
-	SetRootHashNoJournal(rootHash []byte)
 }
 
-// AddressHandler models what an Address struct should do
-type AddressHandler interface {
-	Bytes() []byte
-	Hash(hasher hashing.Hasher) []byte
-	//Hex() string
+// JournalizedAccountWrapper models what an AccountWrap struct should do
+// It knows how to journalize changes
+type JournalizedAccountWrapper interface {
+	ModifyingDataAccountWrapper
+
+	SetNonceWithJournal(uint64) error
+	SetBalanceWithJournal(big.Int) error
+	SetCodeHashWithJournal([]byte) error
+	SetRootHashWithJournal([]byte) error
+}
+
+// AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
+// implementation
+type AccountsAdapter interface {
+	AddJournalEntry(je JournalEntry)
+	Commit() ([]byte, error)
+	GetJournalizedAccount(addressContainer AddressContainer) (JournalizedAccountWrapper, error)
+	HasAccount(addressContainer AddressContainer) (bool, error)
+	JournalLen() int
+	PutCode(journalizedAccountWrapper JournalizedAccountWrapper, code []byte) error
+	RemoveAccount(addressContainer AddressContainer) error
+	RemoveCode(codeHash []byte) error
+	LoadDataTrie(journalizedAccountWrapper JournalizedAccountWrapper) error
+	RevertToSnapshot(snapshot int) error
+	SaveJournalizedAccount(journalizedAccountWrapper JournalizedAccountWrapper) error
+	SaveData(journalizedAccountWrapper JournalizedAccountWrapper) error
+	RootHash() []byte
+	RecreateTrie(rootHash []byte) error
 }
 
 // JournalEntry will be used to implement different state changes to be able to easily revert them
 type JournalEntry interface {
-	Revert(accountsHandler AccountsHandler) error
-	DirtiedAddress() AddressHandler
+	Revert(accountsAdapter AccountsAdapter) error
+	DirtiedAddress() AddressContainer
 }

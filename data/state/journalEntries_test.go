@@ -1,399 +1,613 @@
 package state_test
 
 import (
-	"crypto/rand"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
-func jurnalEntriesCreateRandomAddress() *state.Address {
-	buff := make([]byte, state.AdrLen)
-	_, _ = rand.Read(buff)
-
-	addr, err := state.NewAddress(buff)
-	if err != nil {
-		panic(err)
-	}
-
-	return addr
-}
-
-func jurnalEntriesCreateAccountsDB() *state.AccountsDB {
-	marsh := mock.MarshalizerMock{}
-	adb := state.NewAccountsDB(mock.NewMockTrie(), mock.HasherMock{}, &marsh)
-
-	return adb
-}
+//------- JournalEntryCreation
 
 func TestJournalEntryCreationRevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	//create accounts and address
-	adb := jurnalEntriesCreateAccountsDB()
-	adr1 := jurnalEntriesCreateRandomAddress()
-	//attach a journal
-	j := state.NewJournal()
+	wasCalled := false
 
-	hashEmptyRoot := adb.MainTrie.Root()
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
+		wasCalled = true
 
-	//create account for address
-	_, err := adb.GetOrCreateAccountState(adr1)
+		return nil
+	}
+
+	adr := mock.NewAddressMock()
+	jec := state.NewJournalEntryCreation(adr)
+	err := jec.Revert(acntAdapter)
+
 	assert.Nil(t, err)
-	j.AddEntry(state.NewJournalEntryCreation(adr1))
-
-	//get the hash root for the new account
-	hashEmptyAcnt := adb.MainTrie.Root()
-
-	//test if empty account root hash is different from empty root hash
-	assert.NotEqual(t, hashEmptyAcnt, hashEmptyRoot)
-
-	//revert and test that current trie hash is equal to emptyRootHash
-	err = j.RevertToSnapshot(0, adb)
-	assert.Nil(t, err)
-	assert.Equal(t, hashEmptyRoot, adb.MainTrie.Root())
-	//check address retention
-	assert.Equal(t, state.NewJournalEntryCreation(adr1).DirtiedAddress(), adr1)
+	assert.True(t, wasCalled)
+	assert.Equal(t, adr, jec.DirtiedAddress())
 }
 
-func TestJournalEntryCreationRevertInvalidValsShouldErr(t *testing.T) {
+func TestJournalEntryCreationRevertNilAddressContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jec := state.NewJournalEntryCreation(nil)
-	j := state.NewJournal()
-	j.AddEntry(jec)
-
-	//error as nil accounts are not permited
-	err := j.RevertToSnapshot(0, nil)
-	assert.NotNil(t, err)
-
-	j = state.NewJournal()
-	j.AddEntry(jec)
-
-	//error as nil addresses are not permited
-	err = j.RevertToSnapshot(0, jurnalEntriesCreateAccountsDB())
+	err := jec.Revert(mock.NewAccountsAdapterMock())
 	assert.NotNil(t, err)
 }
+
+func TestJournalEntryCreationRevertNilAccountAdapterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	jec := state.NewJournalEntryCreation(adr)
+
+	err := jec.Revert(nil)
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryCreationRevertAccountAdapterErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	jec := state.NewJournalEntryCreation(adr)
+
+	wasCalled := false
+
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
+		wasCalled = true
+
+		return errors.New("failure")
+	}
+
+	err := jec.Revert(acntAdapter)
+
+	assert.NotNil(t, err)
+	assert.True(t, wasCalled)
+}
+
+//------- JournalEntryNonce
 
 func TestJournalEntryNonceRevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	//create accounts and address
-	adb := jurnalEntriesCreateAccountsDB()
-	adr1 := jurnalEntriesCreateRandomAddress()
+	wasCalled := false
 
-	//create account for address
-	acnt, err := adb.GetOrCreateAccountState(adr1)
-	assert.Nil(t, err)
-	//attach a journal
-	j := state.NewJournal()
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.SaveAccountStateCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalled = true
 
-	//get the hash root for account with balance 0
-	hashEmptyAcnt := adb.MainTrie.Root()
-	//add balance journal entry
-	j.AddEntry(state.NewJournalEntryNonce(adr1, acnt, 0))
+		return nil
+	}
 
-	//modify the nonce and save
-	err = acnt.SetNonce(adb, 50)
-	assert.Nil(t, err)
-	err = adb.SaveAccountState(acnt)
-	assert.Nil(t, err)
-	//get the new hash and test it is different from empty account hash
-	hashAcnt := adb.MainTrie.Root()
-	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	acnt.SetNonce(445)
 
-	//revert and test that hash is equal
-	err = j.RevertToSnapshot(0, adb)
+	jec := state.NewJournalEntryNonce(acnt, 1)
+	err := jec.Revert(acntAdapter)
+
 	assert.Nil(t, err)
-	assert.Equal(t, hashEmptyAcnt, adb.MainTrie.Root())
-	//check address retention
-	assert.Equal(t, state.NewJournalEntryNonce(adr1, acnt, 0).DirtiedAddress(), adr1)
+	assert.True(t, wasCalled)
+	assert.Equal(t, adr, jec.DirtiedAddress())
+	assert.Equal(t, uint64(1), acnt.Nonce())
 }
 
-func TestJournalEntryNonceRevertInvalidValsShouldErr(t *testing.T) {
+func TestJournalEntryNonceRevertNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	jeb := state.NewJournalEntryNonce(nil, nil, 0)
-	j := state.NewJournal()
-	j.AddEntry(jeb)
-
-	//error as nil accounts are not permited
-	err := j.RevertToSnapshot(0, nil)
-	assert.NotNil(t, err)
-
-	j = state.NewJournal()
-	j.AddEntry(jeb)
-
-	//error as nil addresses are not permited
-	err = j.RevertToSnapshot(0, jurnalEntriesCreateAccountsDB())
-	assert.NotNil(t, err)
-
-	jeb = state.NewJournalEntryNonce(jurnalEntriesCreateRandomAddress(), nil, 0)
-	j.AddEntry(jeb)
-
-	//error as nil accounts are not permited
-	err = j.RevertToSnapshot(1, jurnalEntriesCreateAccountsDB())
+	jen := state.NewJournalEntryNonce(nil, 1)
+	err := jen.Revert(mock.NewAccountsAdapterMock())
 	assert.NotNil(t, err)
 }
+
+func TestJournalEntryNonceRevertNilAccountsAdapterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	jen := state.NewJournalEntryNonce(acnt, 1)
+
+	err := jen.Revert(nil)
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryNonceRevertNilAddressShouldErr(t *testing.T) {
+	t.Parallel()
+
+	acnt := mock.NewJournalizedAccountWrapMock(nil)
+	jen := state.NewJournalEntryNonce(acnt, 1)
+	err := jen.Revert(mock.NewAccountsAdapterMock())
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryNonceRevertAccountAdapterErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+
+	acnt = mock.NewJournalizedAccountWrapMock(adr)
+	wasCalled := false
+
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.SaveAccountStateCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalled = true
+
+		return nil
+	}
+
+	acnt.SetNonce(445)
+
+	jen := state.NewJournalEntryNonce(acnt, 1)
+	err := jen.Revert(acntAdapter)
+
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+	assert.Equal(t, adr, jen.DirtiedAddress())
+	assert.Equal(t, uint64(1), acnt.Nonce())
+}
+
+//------- JournalEntryBalance
 
 func TestJournalEntryBalanceRevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	//create accounts and address
-	adb := jurnalEntriesCreateAccountsDB()
-	adr1 := jurnalEntriesCreateRandomAddress()
+	wasCalled := false
 
-	//create account for address
-	acnt, err := adb.GetOrCreateAccountState(adr1)
-	assert.Nil(t, err)
-	//attach a journal
-	j := state.NewJournal()
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.SaveAccountStateCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalled = true
 
-	//get the hash root for account with balance 0
-	hashEmptyAcnt := adb.MainTrie.Root()
-	//add balance journal entry
-	j.AddEntry(state.NewJournalEntryBalance(adr1, acnt, big.NewInt(0)))
+		return nil
+	}
 
-	//modify the balance and save
-	err = acnt.SetBalance(adb, big.NewInt(50))
-	assert.Nil(t, err)
-	err = adb.SaveAccountState(acnt)
-	assert.Nil(t, err)
-	//get the new hash and test it is different from empty account hash
-	hashAcnt := adb.MainTrie.Root()
-	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	acnt.SetBalance(*big.NewInt(445))
 
-	//revert and test that hash is equal
-	err = j.RevertToSnapshot(0, adb)
+	jec := state.NewJournalEntryBalance(acnt, *big.NewInt(2))
+	err := jec.Revert(acntAdapter)
+
 	assert.Nil(t, err)
-	assert.Equal(t, hashEmptyAcnt, adb.MainTrie.Root())
-	//check address retention
-	assert.Equal(t, state.NewJournalEntryBalance(adr1, acnt, big.NewInt(0)).DirtiedAddress(), adr1)
+	assert.True(t, wasCalled)
+	assert.Equal(t, adr, jec.DirtiedAddress())
+	assert.Equal(t, *big.NewInt(2), acnt.Balance())
 }
 
-func TestJournalEntryBalanceRevertInvalidValsShouldErr(t *testing.T) {
+func TestJournalEntryBalanceRevertNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	jeb := state.NewJournalEntryBalance(nil, nil, big.NewInt(0))
-	j := state.NewJournal()
-	j.AddEntry(jeb)
-
-	//error as nil accounts are not permited
-	err := j.RevertToSnapshot(0, nil)
-	assert.NotNil(t, err)
-
-	j = state.NewJournal()
-	j.AddEntry(jeb)
-
-	//error as nil addresses are not permited
-	err = j.RevertToSnapshot(0, jurnalEntriesCreateAccountsDB())
-	assert.NotNil(t, err)
-
-	jeb = state.NewJournalEntryBalance(jurnalEntriesCreateRandomAddress(), nil, big.NewInt(0))
-	j.AddEntry(jeb)
-
-	//error as nil accounts are not permited
-	err = j.RevertToSnapshot(1, jurnalEntriesCreateAccountsDB())
+	jeb := state.NewJournalEntryBalance(nil, *big.NewInt(2))
+	err := jeb.Revert(mock.NewAccountsAdapterMock())
 	assert.NotNil(t, err)
 }
+
+func TestJournalEntryBalanceRevertNilAccountAdapterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	jeb := state.NewJournalEntryBalance(acnt, *big.NewInt(2))
+
+	err := jeb.Revert(nil)
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryBalanceRevertNilAddressShouldErr(t *testing.T) {
+	t.Parallel()
+
+	acnt := mock.NewJournalizedAccountWrapMock(nil)
+	jen := state.NewJournalEntryBalance(acnt, *big.NewInt(2))
+	err := jen.Revert(mock.NewAccountsAdapterMock())
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryBalanceRevertAccountAdapterErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+
+	acnt = mock.NewJournalizedAccountWrapMock(adr)
+	wasCalled := false
+
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.SaveAccountStateCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalled = true
+
+		return nil
+	}
+
+	acnt.SetBalance(*big.NewInt(445))
+
+	jeb := state.NewJournalEntryBalance(acnt, *big.NewInt(2))
+	err := jeb.Revert(acntAdapter)
+
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+	assert.Equal(t, adr, jeb.DirtiedAddress())
+	assert.Equal(t, *big.NewInt(2), acnt.Balance())
+}
+
+//------- JournalEntryCodeHash
 
 func TestJournalEntryCodeHashRevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	//create accounts and address
-	adb := jurnalEntriesCreateAccountsDB()
-	adr1 := jurnalEntriesCreateRandomAddress()
+	wasCalled := false
 
-	//create account for address
-	acnt, err := adb.GetOrCreateAccountState(adr1)
-	assert.Nil(t, err)
-	//attach a journal
-	j := state.NewJournal()
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.SaveAccountStateCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalled = true
 
-	//get the hash root for empty account
-	hashEmptyAcnt := adb.MainTrie.Root()
-	//add code hash journal entry
-	j.AddEntry(state.NewJournalEntryCodeHash(adr1, acnt, nil))
+		return nil
+	}
 
-	//modify the code hash and save
-	err = acnt.SetCodeHash(adb, []byte{65, 66, 67})
-	assert.Nil(t, err)
-	err = adb.SaveAccountState(acnt)
-	assert.Nil(t, err)
-	//get the new hash and test it is different from empty account hash
-	hashAcnt := adb.MainTrie.Root()
-	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	acnt.SetCodeHash([]byte("aaaa"))
 
-	//revert and test that hash is equal
-	err = j.RevertToSnapshot(0, adb)
+	jec := state.NewJournalEntryCodeHash(acnt, make([]byte, state.AdrLen))
+	err := jec.Revert(acntAdapter)
+
 	assert.Nil(t, err)
-	assert.Equal(t, hashEmptyAcnt, adb.MainTrie.Root())
-	//check address retention
-	assert.Equal(t, state.NewJournalEntryCodeHash(adr1, acnt, nil).DirtiedAddress(), adr1)
+	assert.True(t, wasCalled)
+	assert.Equal(t, adr, jec.DirtiedAddress())
+	assert.Equal(t, make([]byte, state.AdrLen), acnt.CodeHash())
 }
 
-func TestJournalEntryCodeHashRevertInvalidValsShouldErr(t *testing.T) {
+func TestJournalEntryCodeHashRevertNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	jech := state.NewJournalEntryCodeHash(nil, nil, make([]byte, 0))
-	j := state.NewJournal()
-	j.AddEntry(jech)
-
-	//error as nil accounts are not permited
-	err := j.RevertToSnapshot(0, nil)
-	assert.NotNil(t, err)
-
-	j = state.NewJournal()
-	j.AddEntry(jech)
-
-	//error as nil addresses are not permited
-	err = j.RevertToSnapshot(0, jurnalEntriesCreateAccountsDB())
-	assert.NotNil(t, err)
-
-	jech = state.NewJournalEntryCodeHash(jurnalEntriesCreateRandomAddress(), nil, make([]byte, 0))
-	j.AddEntry(jech)
-
-	//error as nil accounts are not permited
-	err = j.RevertToSnapshot(1, jurnalEntriesCreateAccountsDB())
+	jech := state.NewJournalEntryCodeHash(nil, []byte("aaa"))
+	err := jech.Revert(mock.NewAccountsAdapterMock())
 	assert.NotNil(t, err)
 }
+
+func TestJournalEntryCodeHashRevertNilAccountsAdapterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	jech := state.NewJournalEntryCodeHash(acnt, []byte("bbb"))
+	err := jech.Revert(nil)
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryCodeHashRevertNilAddressShouldErr(t *testing.T) {
+	t.Parallel()
+
+	acnt := mock.NewJournalizedAccountWrapMock(nil)
+	jech := state.NewJournalEntryCodeHash(acnt, []byte("aaa"))
+	err := jech.Revert(mock.NewAccountsAdapterMock())
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryCodeHashRevertWrongSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	jech := state.NewJournalEntryCodeHash(acnt, []byte("aaa"))
+	err := jech.Revert(mock.NewAccountsAdapterMock())
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryCodeHashRevertNilCodeHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.SaveAccountStateCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalled = true
+
+		return nil
+	}
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	jech := state.NewJournalEntryCodeHash(acnt, nil)
+	err := jech.Revert(acntAdapter)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+}
+
+func TestJournalEntryCodeHashRevertAccountsAdapterErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	wasCalled := false
+
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.SaveAccountStateCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalled = true
+
+		return nil
+	}
+
+	acnt.SetCodeHash([]byte("aaaa"))
+
+	jech := state.NewJournalEntryCodeHash(acnt, make([]byte, state.AdrLen))
+	err := jech.Revert(acntAdapter)
+
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+	assert.Equal(t, adr, jech.DirtiedAddress())
+	assert.Equal(t, make([]byte, state.AdrLen), acnt.CodeHash())
+}
+
+//------- JournalEntryCode
 
 func TestJournalEntryCodeRevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	//create accounts
-	adb := jurnalEntriesCreateAccountsDB()
-	//attach a journal
-	j := state.NewJournal()
+	wasCalled := false
 
-	//get the hash root for empty root
-	hashEmptyRoot := adb.MainTrie.Root()
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.RemoveCodeCalled = func(codeHash []byte) error {
+		wasCalled = true
 
-	code := []byte{65, 66, 67}
-	codeHash := mock.HasherMock{}.Compute(string(code))
+		return nil
+	}
 
-	//add journal entry for code addition
-	j.AddEntry(state.NewJournalEntryCode(codeHash))
+	jec := state.NewJournalEntryCode(make([]byte, state.AdrLen))
+	err := jec.Revert(acntAdapter)
 
-	err := adb.PutCode(nil, code)
 	assert.Nil(t, err)
-
-	//get the hash root for the trie with code inside
-	hashRootCode := adb.MainTrie.Root()
-
-	//test hashes to be different
-	assert.NotEqual(t, hashEmptyRoot, hashRootCode)
-
-	//revert
-	err = j.RevertToSnapshot(0, adb)
-	assert.Nil(t, err)
-
-	//test root hash to be empty root hash
-	assert.Equal(t, hashEmptyRoot, adb.MainTrie.Root())
-	//check address retention
-	assert.Equal(t, state.NewJournalEntryCode(codeHash).DirtiedAddress(), nil)
+	assert.True(t, wasCalled)
+	assert.Equal(t, nil, jec.DirtiedAddress())
 }
 
-func TestJournalEntryCodeRevertInvalidValsShouldErr(t *testing.T) {
+func TestJournalEntryCodeRevertNilCodeHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	jech := state.NewJournalEntryCode(nil)
-	j := state.NewJournal()
-	j.AddEntry(jech)
-
-	//error as nil accounts are not permited
-	err := j.RevertToSnapshot(0, nil)
+	jec := state.NewJournalEntryCode(nil)
+	err := jec.Revert(mock.NewAccountsAdapterMock())
 	assert.NotNil(t, err)
 }
+
+func TestJournalEntryCodeRevertNilAccountAdapterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jec := state.NewJournalEntryCode([]byte("a"))
+	err := jec.Revert(nil)
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryCodeRevertWrongSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jec := state.NewJournalEntryCode([]byte("a"))
+	err := jec.Revert(mock.NewAccountsAdapterMock())
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryCodeRevertAccountAdapterErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jec := state.NewJournalEntryCode(make([]byte, state.AdrLen))
+
+	wasCalled := false
+
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.RemoveCodeCalled = func(codeHash []byte) error {
+		wasCalled = true
+
+		return errors.New("failure")
+	}
+
+	err := jec.Revert(acntAdapter)
+
+	assert.NotNil(t, err)
+	assert.True(t, wasCalled)
+}
+
+//------- JournalEntryRootHash
 
 func TestJournalEntryRootHashRevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	//create accounts and address
-	adb := jurnalEntriesCreateAccountsDB()
-	adr1 := jurnalEntriesCreateRandomAddress()
+	wasCalledSave := false
+	wasCalledRetrieved := false
 
-	//create account for address
-	acnt, err := adb.GetOrCreateAccountState(adr1)
-	assert.Nil(t, err)
-	//attach a journal
-	j := state.NewJournal()
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.SaveAccountStateCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalledSave = true
 
-	//get the hash root for empty account
-	hashEmptyAcnt := adb.MainTrie.Root()
-	//add code hash journal entry
-	j.AddEntry(state.NewJournalEntryRootHash(adr1, acnt, nil))
+		return nil
+	}
 
-	//modify the root and save
-	err = acnt.SetRootHash(adb, []byte{65, 66, 67})
-	assert.Nil(t, err)
-	err = adb.SaveAccountState(acnt)
-	assert.Nil(t, err)
-	//get the new hash and test it is different from empty account hash
-	hashAcnt := adb.MainTrie.Root()
-	assert.NotEqual(t, hashEmptyAcnt, hashAcnt)
+	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalledRetrieved = true
 
-	//revert and test that hash is equal
-	err = j.RevertToSnapshot(0, adb)
+		return nil
+	}
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	acnt.SetRootHash([]byte("aaaa"))
+
+	jerh := state.NewJournalEntryRootHash(acnt, make([]byte, state.AdrLen))
+	err := jerh.Revert(acntAdapter)
+
 	assert.Nil(t, err)
-	assert.Equal(t, hashEmptyAcnt, adb.MainTrie.Root())
-	//check address retention
-	assert.Equal(t, state.NewJournalEntryRootHash(adr1, acnt, nil).DirtiedAddress(), adr1)
+	assert.True(t, wasCalledSave)
+	assert.True(t, wasCalledRetrieved)
+	assert.Equal(t, adr, jerh.DirtiedAddress())
+	assert.Equal(t, make([]byte, state.AdrLen), acnt.RootHash())
 }
 
-func TestJournalEntryRootHashRevertInvalidValsShouldErr(t *testing.T) {
+func TestJournalEntryRootHashRevertNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	jech := state.NewJournalEntryRootHash(nil, nil, make([]byte, 0))
-	j := state.NewJournal()
-	j.AddEntry(jech)
-
-	//error as nil accounts are not permited
-	err := j.RevertToSnapshot(0, nil)
-	assert.NotNil(t, err)
-
-	j = state.NewJournal()
-	j.AddEntry(jech)
-
-	//error as nil addresses are not permited
-	err = j.RevertToSnapshot(0, jurnalEntriesCreateAccountsDB())
-	assert.NotNil(t, err)
-
-	jech = state.NewJournalEntryRootHash(jurnalEntriesCreateRandomAddress(), nil, make([]byte, 0))
-	j.AddEntry(jech)
-
-	//error as nil accounts are not permited
-	err = j.RevertToSnapshot(1, jurnalEntriesCreateAccountsDB())
+	jerh := state.NewJournalEntryRootHash(nil, []byte("aaa"))
+	err := jerh.Revert(mock.NewAccountsAdapterMock())
 	assert.NotNil(t, err)
 }
+
+func TestJournalEntryRootHashRevertNilAccountsAdapterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	jerh := state.NewJournalEntryRootHash(acnt, []byte("bbb"))
+	err := jerh.Revert(nil)
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryRootHashRevertNilAddressShouldErr(t *testing.T) {
+	t.Parallel()
+
+	acnt := mock.NewJournalizedAccountWrapMock(nil)
+	jerh := state.NewJournalEntryRootHash(acnt, []byte("aaa"))
+	err := jerh.Revert(mock.NewAccountsAdapterMock())
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryRooteHashRevertWrongSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	jerh := state.NewJournalEntryRootHash(acnt, []byte("aaa"))
+	err := jerh.Revert(mock.NewAccountsAdapterMock())
+	assert.NotNil(t, err)
+}
+
+func TestJournalEntryRootHashRevertNilCodeHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	jerh := state.NewJournalEntryRootHash(acnt, nil)
+
+	wasCalledSave := false
+	wasCalledRetrieved := false
+
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.SaveAccountStateCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalledSave = true
+
+		return nil
+	}
+
+	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalledRetrieved = true
+
+		return nil
+	}
+
+	err := jerh.Revert(acntAdapter)
+	assert.Nil(t, err)
+	assert.True(t, wasCalledRetrieved)
+	assert.True(t, wasCalledSave)
+}
+
+func TestJournalEntryRootHashRevertAccountsAdapterSaveErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	wasCalledSave := false
+	wasCalledRetrieved := false
+
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.SaveAccountStateCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalledSave = true
+
+		return errors.New("failure")
+	}
+
+	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalledRetrieved = true
+
+		return nil
+	}
+
+	acnt.SetCodeHash([]byte("aaaa"))
+
+	jerh := state.NewJournalEntryRootHash(acnt, make([]byte, state.AdrLen))
+	err := jerh.Revert(acntAdapter)
+
+	assert.NotNil(t, err)
+	assert.True(t, wasCalledSave)
+	assert.True(t, wasCalledRetrieved)
+	assert.Equal(t, adr, jerh.DirtiedAddress())
+	assert.Equal(t, make([]byte, state.AdrLen), acnt.RootHash())
+}
+
+func TestJournalEntryRootHashRevertAccountsAdapterRetrieveErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	wasCalledSave := false
+	wasCalledRetrieved := false
+
+	acntAdapter := mock.NewAccountsAdapterMock()
+	acntAdapter.SaveAccountStateCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalledSave = true
+
+		return nil
+	}
+
+	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+		wasCalledRetrieved = true
+
+		return errors.New("failure")
+	}
+
+	acnt.SetCodeHash([]byte("aaaa"))
+
+	jerh := state.NewJournalEntryRootHash(acnt, make([]byte, state.AdrLen))
+	err := jerh.Revert(acntAdapter)
+
+	assert.NotNil(t, err)
+	assert.False(t, wasCalledSave)
+	assert.True(t, wasCalledRetrieved)
+	assert.Equal(t, adr, jerh.DirtiedAddress())
+	assert.Equal(t, make([]byte, state.AdrLen), acnt.RootHash())
+}
+
+//------- JournalEntryRootHash
 
 func TestJournalEntryDataRevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	//create accounts and address
-	adb := jurnalEntriesCreateAccountsDB()
-	adr1 := jurnalEntriesCreateRandomAddress()
+	wasCalledClear := false
 
-	//create account for address
-	acnt, err := adb.GetOrCreateAccountState(adr1)
-	assert.Nil(t, err)
-	//attach a journal
-	j := state.NewJournal()
-
-	acnt.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	acnt.ClearDataCachesCalled = func() {
+		wasCalledClear = true
+	}
 
 	trie := mock.NewMockTrie()
-	jed := state.NewJournalEntryData(trie, acnt)
 
-	j.AddEntry(jed)
-
-	err = j.RevertToSnapshot(0, adb)
+	jed := state.NewJournalEntryData(acnt, trie)
+	err := jed.Revert(nil)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(acnt.DirtyData()))
+	assert.True(t, wasCalledClear)
 	assert.Equal(t, trie, jed.Trie())
-	//check address retention
-	assert.Equal(t, state.NewJournalEntryData(trie, acnt).DirtiedAddress(), nil)
+	assert.Equal(t, nil, jed.DirtiedAddress())
+
+}
+
+func TestJournalEntryDataRevertNilAccountShouldWork(t *testing.T) {
+	t.Parallel()
+
+	trie := mock.NewMockTrie()
+
+	jed := state.NewJournalEntryData(nil, trie)
+	err := jed.Revert(nil)
+	assert.NotNil(t, err)
 }

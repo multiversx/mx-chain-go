@@ -8,28 +8,25 @@ import (
 
 // JournalEntryCreation is used to revert an account creation
 type JournalEntryCreation struct {
-	address AddressHandler
+	addressContainer AddressContainer
 }
 
 // JournalEntryNonce is used to revert a nonce change
 type JournalEntryNonce struct {
-	address  AddressHandler
-	acnt     AccountStateHandler
-	oldNonce uint64
+	jurnalizedAccount JournalizedAccountWrapper
+	oldNonce          uint64
 }
 
 // JournalEntryBalance is used to revert a balance change
 type JournalEntryBalance struct {
-	address    AddressHandler
-	acnt       AccountStateHandler
-	oldBalance *big.Int
+	jurnalizedAccount JournalizedAccountWrapper
+	oldBalance        big.Int
 }
 
 // JournalEntryCodeHash is used to revert a code hash change
 type JournalEntryCodeHash struct {
-	address     AddressHandler
-	acnt        AccountStateHandler
-	oldCodeHash []byte
+	jurnalizedAccount JournalizedAccountWrapper
+	oldCodeHash       []byte
 }
 
 // JournalEntryCode is used to revert a code addition to the trie
@@ -39,150 +36,149 @@ type JournalEntryCode struct {
 
 // JournalEntryRootHash is used to revert an account's root hash change
 type JournalEntryRootHash struct {
-	address     AddressHandler
-	acnt        AccountStateHandler
-	oldRootHash []byte
+	jurnalizedAccount JournalizedAccountWrapper
+	oldRootHash       []byte
 }
 
 // JournalEntryData is used to mark an account's data change
 type JournalEntryData struct {
-	trie trie.PatriciaMerkelTree
-	as   AccountStateHandler
+	trie              trie.PatriciaMerkelTree
+	jurnalizedAccount JournalizedAccountWrapper
 }
 
 //------- JournalEntryCreation
 
 // NewJournalEntryCreation outputs a new JournalEntry implementation used to revert an account creation
-func NewJournalEntryCreation(address AddressHandler) *JournalEntryCreation {
+func NewJournalEntryCreation(addressContainer AddressContainer) *JournalEntryCreation {
 	return &JournalEntryCreation{
-		address: address,
+		addressContainer: addressContainer,
 	}
 }
 
 // Revert apply undo operation
-func (jec *JournalEntryCreation) Revert(accounts AccountsHandler) error {
-	if accounts == nil {
-		return ErrNilAccountsHandler
+func (jec *JournalEntryCreation) Revert(accountsAdapter AccountsAdapter) error {
+	if accountsAdapter == nil {
+		return ErrNilAccountsAdapter
 	}
 
-	if jec.address == nil {
-		return ErrNilAddress
+	if jec.addressContainer == nil {
+		return ErrNilAddressContainer
 	}
 
-	return accounts.RemoveAccount(jec.address)
+	return accountsAdapter.RemoveAccount(jec.addressContainer)
 }
 
 // DirtiedAddress returns the address on which this JournalEntry will apply
-func (jec *JournalEntryCreation) DirtiedAddress() AddressHandler {
-	return jec.address
+func (jec *JournalEntryCreation) DirtiedAddress() AddressContainer {
+	return jec.addressContainer
 }
 
 //------- JournalEntryNonce
 
 // NewJournalEntryNonce outputs a new JournalEntry implementation used to revert a nonce change
-func NewJournalEntryNonce(address AddressHandler, acnt AccountStateHandler, oldNonce uint64) *JournalEntryNonce {
+func NewJournalEntryNonce(jurnalizedAccount JournalizedAccountWrapper, oldNonce uint64) *JournalEntryNonce {
 	return &JournalEntryNonce{
-		address:  address,
-		oldNonce: oldNonce,
-		acnt:     acnt,
+		jurnalizedAccount: jurnalizedAccount,
+		oldNonce:          oldNonce,
 	}
 }
 
 // Revert apply undo operation
-func (jen *JournalEntryNonce) Revert(accounts AccountsHandler) error {
-	if accounts == nil {
-		return ErrNilAccountsHandler
+func (jen *JournalEntryNonce) Revert(accountsAdapter AccountsAdapter) error {
+	if accountsAdapter == nil {
+		return ErrNilAccountsAdapter
 	}
 
-	if jen.address == nil {
-		return ErrNilAddress
+	if jen.jurnalizedAccount == nil {
+		return ErrNilJurnalizingAccountWrapper
 	}
 
-	if jen.acnt == nil {
-		return ErrNilAccountState
+	if jen.jurnalizedAccount.AddressContainer() == nil {
+		return ErrNilAddressContainer
 	}
 
-	//access nonce through dedicated func
-	//as to not register a new entry of nonce change
-	jen.acnt.SetNonceNoJournal(jen.oldNonce)
-	return accounts.SaveAccountState(jen.acnt)
+	//access nonce through implicit func as to not re-register the modification
+	jen.jurnalizedAccount.SetNonce(jen.oldNonce)
+	return accountsAdapter.SaveJournalizedAccount(jen.jurnalizedAccount)
 }
 
 // DirtiedAddress returns the address on which this JournalEntry will apply
-func (jen *JournalEntryNonce) DirtiedAddress() AddressHandler {
-	return jen.address
+func (jen *JournalEntryNonce) DirtiedAddress() AddressContainer {
+	return jen.jurnalizedAccount.AddressContainer()
 }
 
 //------- JournalEntryBalance
 
 // NewJournalEntryBalance outputs a new JournalEntry implementation used to revert a balance change
-func NewJournalEntryBalance(address AddressHandler, acnt AccountStateHandler, oldBalance *big.Int) *JournalEntryBalance {
+func NewJournalEntryBalance(jurnalizedAccount JournalizedAccountWrapper, oldBalance big.Int) *JournalEntryBalance {
 	return &JournalEntryBalance{
-		address:    address,
-		oldBalance: oldBalance,
-		acnt:       acnt,
+		jurnalizedAccount: jurnalizedAccount,
+		oldBalance:        oldBalance,
 	}
 }
 
 // Revert apply undo operation
-func (jeb *JournalEntryBalance) Revert(accounts AccountsHandler) error {
-	if accounts == nil {
-		return ErrNilAccountsHandler
+func (jeb *JournalEntryBalance) Revert(accountsAdapter AccountsAdapter) error {
+	if accountsAdapter == nil {
+		return ErrNilAccountsAdapter
 	}
 
-	if jeb.address == nil {
-		return ErrNilAddress
+	if jeb.jurnalizedAccount == nil {
+		return ErrNilJurnalizingAccountWrapper
 	}
 
-	if jeb.acnt == nil {
-		return ErrNilAccountState
+	if jeb.jurnalizedAccount.AddressContainer() == nil {
+		return ErrNilAddressContainer
 	}
 
-	//save balance through dedicated func
-	//as to not register a new entry of balance change
-	jeb.acnt.SetBalanceNoJournal(jeb.oldBalance)
-	return accounts.SaveAccountState(jeb.acnt)
+	//save balance through implicit func as to not re-register the modification
+	jeb.jurnalizedAccount.SetBalance(jeb.oldBalance)
+	return accountsAdapter.SaveJournalizedAccount(jeb.jurnalizedAccount)
 }
 
 // DirtiedAddress returns the address on which this JournalEntry will apply
-func (jeb *JournalEntryBalance) DirtiedAddress() AddressHandler {
-	return jeb.address
+func (jeb *JournalEntryBalance) DirtiedAddress() AddressContainer {
+	return jeb.jurnalizedAccount.AddressContainer()
 }
 
 //------- JournalEntryCodeHash
 
 // NewJournalEntryCodeHash outputs a new JournalEntry implementation used to revert a code hash change
-func NewJournalEntryCodeHash(address AddressHandler, acnt AccountStateHandler, oldCodeHash []byte) *JournalEntryCodeHash {
+func NewJournalEntryCodeHash(jurnalizedAccount JournalizedAccountWrapper, oldCodeHash []byte) *JournalEntryCodeHash {
 	return &JournalEntryCodeHash{
-		address:     address,
-		acnt:        acnt,
-		oldCodeHash: oldCodeHash,
+		jurnalizedAccount: jurnalizedAccount,
+		oldCodeHash:       oldCodeHash,
 	}
 }
 
 // Revert apply undo operation
-func (jech *JournalEntryCodeHash) Revert(accounts AccountsHandler) error {
-	if accounts == nil {
-		return ErrNilAccountsHandler
+func (jech *JournalEntryCodeHash) Revert(accountsAdapter AccountsAdapter) error {
+	if accountsAdapter == nil {
+		return ErrNilAccountsAdapter
 	}
 
-	if jech.address == nil {
-		return ErrNilAddress
+	if jech.jurnalizedAccount == nil {
+		return ErrNilJurnalizingAccountWrapper
 	}
 
-	if jech.acnt == nil {
-		return ErrNilAccountState
+	if jech.jurnalizedAccount.AddressContainer() == nil {
+		return ErrNilAddressContainer
 	}
 
-	//access code hash through dedicated func
-	//as to not register a new entry of code hash change
-	jech.acnt.SetCodeHashNoJournal(jech.oldCodeHash)
-	return accounts.SaveAccountState(jech.acnt)
+	//bare in mind that nil oldRootHash are permitted because this is the way a new SC with data account
+	//is constructed
+	if jech.oldCodeHash != nil && len(jech.oldCodeHash) != AdrLen {
+		return NewErrorWrongSize(AdrLen, len(jech.oldCodeHash))
+	}
+
+	//access code hash through implicit func as to not re-register the modification
+	jech.jurnalizedAccount.SetCodeHash(jech.oldCodeHash)
+	return accountsAdapter.SaveJournalizedAccount(jech.jurnalizedAccount)
 }
 
 // DirtiedAddress returns the address on which this JournalEntry will apply
-func (jech *JournalEntryCodeHash) DirtiedAddress() AddressHandler {
-	return jech.address
+func (jech *JournalEntryCodeHash) DirtiedAddress() AddressContainer {
+	return jech.jurnalizedAccount.AddressContainer()
 }
 
 //------- JournalEntryCode
@@ -195,78 +191,94 @@ func NewJournalEntryCode(codeHash []byte) *JournalEntryCode {
 }
 
 // Revert apply undo operation
-func (jec *JournalEntryCode) Revert(accounts AccountsHandler) error {
-	if accounts == nil {
-		return ErrNilAccountsHandler
+func (jec *JournalEntryCode) Revert(accountsAdapter AccountsAdapter) error {
+	if accountsAdapter == nil {
+		return ErrNilAccountsAdapter
 	}
 
-	return accounts.RemoveCode(jec.codeHash)
+	if jec.codeHash == nil {
+		return ErrNilValue
+	}
+
+	if len(jec.codeHash) != AdrLen {
+		return NewErrorWrongSize(AdrLen, len(jec.codeHash))
+	}
+
+	return accountsAdapter.RemoveCode(jec.codeHash)
 }
 
 // DirtiedAddress will return nil as there is no address involved in code saving in a trie
-func (jec *JournalEntryCode) DirtiedAddress() AddressHandler {
+func (jec *JournalEntryCode) DirtiedAddress() AddressContainer {
 	return nil
 }
 
 //------- JournalEntryRoot
 
 // NewJournalEntryRootHash outputs a new JournalEntry implementation used to revert an account's root hash change
-func NewJournalEntryRootHash(address AddressHandler, acnt AccountStateHandler, oldRootHash []byte) *JournalEntryRootHash {
+func NewJournalEntryRootHash(jurnalizedAccount JournalizedAccountWrapper, oldRootHash []byte) *JournalEntryRootHash {
 	return &JournalEntryRootHash{
-		address:     address,
-		acnt:        acnt,
-		oldRootHash: oldRootHash,
+		jurnalizedAccount: jurnalizedAccount,
+		oldRootHash:       oldRootHash,
 	}
 }
 
 // Revert apply undo operation
-func (jer *JournalEntryRootHash) Revert(accounts AccountsHandler) error {
-	if accounts == nil {
-		return ErrNilAccountsHandler
+func (jer *JournalEntryRootHash) Revert(accountsAdapter AccountsAdapter) error {
+	if accountsAdapter == nil {
+		return ErrNilAccountsAdapter
 	}
 
-	if jer.address == nil {
-		return ErrNilAddress
+	if jer.jurnalizedAccount == nil {
+		return ErrNilJurnalizingAccountWrapper
 	}
 
-	if jer.acnt == nil {
-		return ErrNilAccountState
+	if jer.jurnalizedAccount.AddressContainer() == nil {
+		return ErrNilAddressContainer
 	}
 
-	//access code hash through dedicated func
-	//as to not register a new entry of root hash change
-	jer.acnt.SetRootHashNoJournal(jer.oldRootHash)
-	err := accounts.RetrieveDataTrie(jer.acnt)
+	//bare in mind that nil oldRootHash are permitted because this is the way a new SC with data account
+	//is constructed
+	if jer.oldRootHash != nil && len(jer.oldRootHash) != AdrLen {
+		return NewErrorWrongSize(AdrLen, len(jer.oldRootHash))
+	}
+
+	//access code hash through implicit func as to not re-register the modification
+	jer.jurnalizedAccount.SetRootHash(jer.oldRootHash)
+	err := accountsAdapter.LoadDataTrie(jer.jurnalizedAccount)
 	if err != nil {
 		return err
 	}
-	return accounts.SaveAccountState(jer.acnt)
+	return accountsAdapter.SaveJournalizedAccount(jer.jurnalizedAccount)
 }
 
 // DirtiedAddress returns the address on which this JournalEntry will apply
-func (jer *JournalEntryRootHash) DirtiedAddress() AddressHandler {
-	return jer.address
+func (jer *JournalEntryRootHash) DirtiedAddress() AddressContainer {
+	return jer.jurnalizedAccount.AddressContainer()
 }
 
 //------- JournalEntryData
 
 // NewJournalEntryData outputs a new JournalEntry implementation used to keep track of data change.
 // The revert will practically empty the dirty data map
-func NewJournalEntryData(trie trie.PatriciaMerkelTree, as AccountStateHandler) *JournalEntryData {
+func NewJournalEntryData(jurnalizedAccount JournalizedAccountWrapper, trie trie.PatriciaMerkelTree) *JournalEntryData {
 	return &JournalEntryData{
-		trie: trie,
-		as:   as,
+		jurnalizedAccount: jurnalizedAccount,
+		trie:              trie,
 	}
 }
 
 // Revert will empty the dirtyData map from AccountState
-func (jed *JournalEntryData) Revert(accounts AccountsHandler) error {
-	jed.as.ClearDataCaches()
+func (jed *JournalEntryData) Revert(accountsAdapter AccountsAdapter) error {
+	if jed.jurnalizedAccount == nil {
+		return ErrNilJurnalizingAccountWrapper
+	}
+
+	jed.jurnalizedAccount.ClearDataCaches()
 	return nil
 }
 
 // DirtiedAddress will return nil as there is no address involved in saving data
-func (jed *JournalEntryData) DirtiedAddress() AddressHandler {
+func (jed *JournalEntryData) DirtiedAddress() AddressContainer {
 	return nil
 }
 

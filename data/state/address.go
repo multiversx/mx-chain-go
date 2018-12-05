@@ -15,14 +15,21 @@ const (
 
 // Address is the struct holding an Elrond address identifier
 type Address struct {
-	bytes []byte
-	hash  []byte
+	bytes  []byte
+	hash   []byte
+	hasher hashing.Hasher
 }
 
 // NewAddress creates a new Address with the same byte slice as the parameter received
 // Before creating the new pointer it does some checks against the slice received
-func NewAddress(adr []byte) (*Address, error) {
-	address := Address{}
+func NewAddress(adr []byte, hasher hashing.Hasher) (*Address, error) {
+	if hasher == nil {
+		return nil, ErrNilHasher
+	}
+
+	address := Address{
+		hasher: hasher,
+	}
 
 	cleanedBytes, err := checkAdrBytes(adr)
 
@@ -41,9 +48,9 @@ func (adr *Address) Bytes() []byte {
 
 // Hash return the address corresponding hash
 // Value is instantiated once (at the first Hash() call
-func (adr *Address) Hash(hasher hashing.Hasher) []byte {
+func (adr *Address) Hash() []byte {
 	if adr.hash == nil {
-		adr.hash = hasher.Compute(string(adr.bytes))
+		adr.hash = adr.hasher.Compute(string(adr.bytes))
 	}
 
 	return adr.hash
@@ -77,12 +84,12 @@ func FromPubKeyBytes(pubKey []byte, hasher hashing.Hasher) (*Address, error) {
 		hash = hash[len(hash)-AdrLen:]
 	}
 
-	return NewAddress(hash)
+	return NewAddress(hash, hasher)
 }
 
 func checkAdrBytes(adr []byte) ([]byte, error) {
 	if adr == nil {
-		return nil, ErrNilAddress
+		return nil, ErrNilAddressContainer
 	}
 
 	if len(adr) == 0 {
@@ -98,9 +105,13 @@ func checkAdrBytes(adr []byte) ([]byte, error) {
 
 // FromHexAddress generates a new Address starting from its string representation
 // The prefix is optional
-func FromHexAddress(adr string) (*Address, error) {
+func FromHexAddress(adr string, hasher hashing.Hasher) (*Address, error) {
 	if len(adr) == 0 {
 		return nil, ErrEmptyAddress
+	}
+
+	if hasher == nil {
+		return nil, ErrNilHasher
 	}
 
 	//to lower
@@ -124,5 +135,5 @@ func FromHexAddress(adr string) (*Address, error) {
 		return nil, err
 	}
 
-	return NewAddress(buff)
+	return NewAddress(buff, hasher)
 }

@@ -12,44 +12,54 @@ import (
 
 // AccountsDB is the struct used for accessing accounts
 type AccountsDB struct {
-	MainTrie trie.PatriciaMerkelTree
-	hasher   hashing.Hasher
-	marsh    marshal.Marshalizer
-
-	journal *Journal
+	mainTrie    trie.PatriciaMerkelTree
+	hasher      hashing.Hasher
+	marshalizer marshal.Marshalizer
+	journal     *Journal
 }
 
 // NewAccountsDB creates a new account manager
-func NewAccountsDB(trie trie.PatriciaMerkelTree, hasher hashing.Hasher, marsh marshal.Marshalizer) *AccountsDB {
-	adb := AccountsDB{MainTrie: trie, hasher: hasher, marsh: marsh}
-	adb.journal = NewJournal()
+func NewAccountsDB(trie trie.PatriciaMerkelTree, hasher hashing.Hasher, marshalizer marshal.Marshalizer) (*AccountsDB, error) {
+	if trie == nil {
+		return nil, ErrNilTrie
+	}
 
-	return &adb
+	if hasher == nil {
+		return nil, ErrNilHasher
+	}
+
+	if marshalizer == nil {
+		return nil, ErrNilMarshalizer
+	}
+
+	return &AccountsDB{mainTrie: trie, hasher: hasher, marshalizer: marshalizer, journal: NewJournal()}, nil
 }
 
-// PutCode sets the SC plain code in AccountState object and trie, code hash in AccountState.
+// PutCode sets the SC plain code in journalizedAccountWrapper object and trie, code hash in AccountState.
 // Errors if something went wrong
-func (adb *AccountsDB) PutCode(accountStateHandler AccountStateHandler, code []byte) error {
-	if (code == nil) || (len(code) == 0) {
+func (adb *AccountsDB) PutCode(journalizedAccountWrapper JournalizedAccountWrapper, code []byte) error {
+	if code == nil || len(code) == 0 {
 		return nil
 	}
 
-	if adb.MainTrie == nil {
+	if adb.mainTrie == nil {
 		return errors.New("attempt to search on a nil trie")
+	}
+
+	if journalizedAccountWrapper == nil {
+		return ErrNilJurnalizingAccountWrapper
 	}
 
 	codeHash := adb.hasher.Compute(string(code))
 
-	if accountStateHandler != nil {
-		err := accountStateHandler.SetCodeHash(adb, codeHash)
-		if err != nil {
-			return err
-		}
-		accountStateHandler.SetCode(code)
+	err := journalizedAccountWrapper.SetCodeHashWithJournal(codeHash)
+	if err != nil {
+		return err
 	}
+	journalizedAccountWrapper.SetCode(code)
 
 	//test that we add the code, or reuse an existing code as to be able to correctly revert the addition
-	val, err := adb.MainTrie.Get(codeHash)
+	val, err := adb.mainTrie.Get(codeHash)
 	if err != nil {
 		return err
 	}
@@ -57,7 +67,7 @@ func (adb *AccountsDB) PutCode(accountStateHandler AccountStateHandler, code []b
 	if val == nil {
 		//append a journal entry as the code needs to be inserted in the trie
 		adb.AddJournalEntry(NewJournalEntryCode(codeHash))
-		return adb.MainTrie.Update(codeHash, code)
+		return adb.mainTrie.Update(codeHash, code)
 	}
 
 	return nil
@@ -65,61 +75,66 @@ func (adb *AccountsDB) PutCode(accountStateHandler AccountStateHandler, code []b
 
 // RemoveCode deletes the code from the trie. It writes an empty byte slice at codeHash "address"
 func (adb *AccountsDB) RemoveCode(codeHash []byte) error {
-	return adb.MainTrie.Update(codeHash, make([]byte, 0))
+	if adb.mainTrie == nil {
+		return ErrNilTrie
+	}
+
+	return adb.mainTrie.Update(codeHash, make([]byte, 0))
 }
 
-// RetrieveDataTrie retrieves and saves the SC data inside AccountState object. Errors if something went wrong
-func (adb *AccountsDB) RetrieveDataTrie(accountStateHandler AccountStateHandler) error {
-	if accountStateHandler.RootHash() == nil {
+// LoadDataTrie retrieves and saves the SC data inside journalizedAccountWrapper object.
+// Errors if something went wrong
+func (adb *AccountsDB) LoadDataTrie(journalizedAccountWrapper JournalizedAccountWrapper) error {
+	if journalizedAccountWrapper.RootHash() == nil {
 		//do nothing, the account is either SC library or transfer account
 		return nil
 	}
 
-	if adb.MainTrie == nil {
+	if adb.mainTrie == nil {
 		return ErrNilTrie
 	}
 
-	if len(accountStateHandler.RootHash()) != HashLength {
-		return NewErrorTrieNotNormalized(HashLength, len(accountStateHandler.RootHash()))
+	if len(journalizedAccountWrapper.RootHash()) != HashLength {
+		return NewErrorTrieNotNormalized(HashLength, len(journalizedAccountWrapper.RootHash()))
 	}
 
-	dataTrie, err := adb.MainTrie.Recreate(accountStateHandler.RootHash(), adb.MainTrie.DBW())
+	dataTrie, err := adb.mainTrie.Recreate(journalizedAccountWrapper.RootHash(), adb.mainTrie.DBW())
 	if err != nil {
 		//error as there is an inconsistent state:
 		//account has data root hash but does not contain the actual trie
-		return NewErrMissingTrie(accountStateHandler.RootHash())
+		return NewErrMissingTrie(journalizedAccountWrapper.RootHash())
 	}
 
-	accountStateHandler.SetDataTrie(dataTrie)
+	journalizedAccountWrapper.SetDataTrie(dataTrie)
 	return nil
 }
 
 // SaveData is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
-func (adb *AccountsDB) SaveData(accountStateHandler AccountStateHandler) error {
-	if adb.MainTrie == nil {
+func (adb *AccountsDB) SaveData(journalizedAccountWrapper JournalizedAccountWrapper) error {
+	if adb.mainTrie == nil {
 		return errors.New("attempt to search on a nil trie")
 	}
 
 	flagHasDirtyData := false
 
-	if accountStateHandler.DataTrie() == nil {
-		dataTrie, err := adb.MainTrie.Recreate(make([]byte, 0), adb.MainTrie.DBW())
+	if journalizedAccountWrapper.DataTrie() == nil {
+		dataTrie, err := adb.mainTrie.Recreate(make([]byte, 0), adb.mainTrie.DBW())
 
 		if err != nil {
 			return err
 		}
 
-		accountStateHandler.SetDataTrie(dataTrie)
+		journalizedAccountWrapper.SetDataTrie(dataTrie)
 	}
 
-	for k, v := range accountStateHandler.DirtyData() {
-		originalValue := accountStateHandler.OriginalValue([]byte(k))
+	for k, v := range journalizedAccountWrapper.DirtyData() {
+		originalValue := journalizedAccountWrapper.OriginalValue([]byte(k))
 
 		if !bytes.Equal(v, originalValue) {
 			flagHasDirtyData = true
 
-			err := accountStateHandler.DataTrie().Update([]byte(k), v)
+			err := journalizedAccountWrapper.DataTrie().Update([]byte(k), v)
 
 			if err != nil {
 				return err
@@ -133,23 +148,21 @@ func (adb *AccountsDB) SaveData(accountStateHandler AccountStateHandler) error {
 	}
 
 	//append a journal entry as the data needs to be updated in its trie
-	adb.AddJournalEntry(NewJournalEntryData(accountStateHandler.DataTrie(), accountStateHandler))
-	err := accountStateHandler.SetRootHash(adb, accountStateHandler.DataTrie().Root())
+	adb.AddJournalEntry(NewJournalEntryData(journalizedAccountWrapper, journalizedAccountWrapper.DataTrie()))
+	err := journalizedAccountWrapper.SetRootHashWithJournal(journalizedAccountWrapper.DataTrie().Root())
 	if err != nil {
 		return err
 	}
-	accountStateHandler.ClearDataCaches()
-	return adb.SaveAccountState(accountStateHandler)
+	journalizedAccountWrapper.ClearDataCaches()
+	return adb.SaveJournalizedAccount(journalizedAccountWrapper)
 }
 
-// HasAccountState searches for an account based on the address. Errors if something went wrong and
-// outputs if the account exists or not
-func (adb *AccountsDB) getAccount(addressHandler AddressHandler) (*Account, error) {
-	if adb.MainTrie == nil {
+func (adb *AccountsDB) getDbAccount(addressContainer AddressContainer) (DbAccountContainer, error) {
+	if adb.mainTrie == nil {
 		return nil, errors.New("attempt to search on a nil trie")
 	}
 
-	val, err := adb.MainTrie.Get(addressHandler.Hash(adb.hasher))
+	val, err := adb.mainTrie.Get(addressContainer.Hash())
 	if err != nil {
 		return nil, err
 	}
@@ -158,9 +171,9 @@ func (adb *AccountsDB) getAccount(addressHandler AddressHandler) (*Account, erro
 		return nil, nil
 	}
 
-	acnt := NewAccount()
+	acnt := NewDbAccount()
 
-	err = adb.marsh.Unmarshal(acnt, val)
+	err = adb.marshalizer.Unmarshal(acnt, val)
 	if err != nil {
 		return nil, err
 	}
@@ -170,12 +183,12 @@ func (adb *AccountsDB) getAccount(addressHandler AddressHandler) (*Account, erro
 
 // HasAccountState searches for an account based on the address. Errors if something went wrong and
 // outputs if the account exists or not
-func (adb *AccountsDB) HasAccountState(addressHandler AddressHandler) (bool, error) {
-	if adb.MainTrie == nil {
+func (adb *AccountsDB) HasAccount(addressContainer AddressContainer) (bool, error) {
+	if adb.mainTrie == nil {
 		return false, errors.New("attempt to search on a nil trie")
 	}
 
-	val, err := adb.MainTrie.Get(addressHandler.Hash(adb.hasher))
+	val, err := adb.mainTrie.Get(addressContainer.Hash())
 
 	if err != nil {
 		return false, err
@@ -184,85 +197,99 @@ func (adb *AccountsDB) HasAccountState(addressHandler AddressHandler) (bool, err
 	return val != nil, nil
 }
 
-// SaveAccountState saves the account WITHOUT data trie inside main trie. Errors if something went wrong
-func (adb *AccountsDB) SaveAccountState(accountStateHandler AccountStateHandler) error {
-	if accountStateHandler == nil {
+// SaveJournalizedAccount saves the account WITHOUT data trie inside main trie. Errors if something went wrong
+func (adb *AccountsDB) SaveJournalizedAccount(journalizedAccountWrapper JournalizedAccountWrapper) error {
+	if journalizedAccountWrapper == nil {
 		return errors.New("can not save nil account state")
 	}
 
-	if adb.MainTrie == nil {
+	if adb.mainTrie == nil {
 		return errors.New("attempt to search on a nil trie")
 	}
 
-	//create Account that will be serialized
-	balance := accountStateHandler.Balance()
-	acnt := Account{
-		Nonce:    accountStateHandler.Nonce(),
-		Balance:  &balance,
-		CodeHash: accountStateHandler.CodeHash(),
-		RootHash: accountStateHandler.RootHash(),
+	//create a DbAccount object that will be serialized
+	dbAccount := DbAccount{}
+	err := journalizedAccountWrapper.SaveToDbAccount(&dbAccount)
+	if err != nil {
+		return err
 	}
 
-	buff, err := adb.marsh.Marshal(acnt)
+	//pass the reference to marshalizer, otherwise it will fail marshalizing balance
+	buff, err := adb.marshalizer.Marshal(&dbAccount)
 
 	if err != nil {
 		return err
 	}
 
-	return adb.MainTrie.Update(accountStateHandler.AddressHandler().Hash(adb.hasher), buff)
+	return adb.mainTrie.Update(journalizedAccountWrapper.AddressContainer().Hash(), buff)
 }
 
 // RemoveAccount removes the account data from underlying trie.
 // It basically calls Update with empty slice
-func (adb *AccountsDB) RemoveAccount(addressHandler AddressHandler) error {
-	if adb.MainTrie == nil {
-		return errors.New("attempt to search on a nil trie")
+func (adb *AccountsDB) RemoveAccount(addressContainer AddressContainer) error {
+	if adb.mainTrie == nil {
+		return ErrNilTrie
 	}
 
-	return adb.MainTrie.Update(addressHandler.Hash(adb.hasher), make([]byte, 0))
+	return adb.mainTrie.Update(addressContainer.Hash(), make([]byte, 0))
 }
 
-// GetOrCreateAccountState fetches the account based on the address. Creates an empty account if the account is missing.
-func (adb *AccountsDB) GetOrCreateAccountState(addressHandler AddressHandler) (AccountStateHandler, error) {
-	acnt, err := adb.getAccount(addressHandler)
+// GetJournalizedAccount fetches the account based on the address. Creates an empty account if the account is missing.
+func (adb *AccountsDB) GetJournalizedAccount(addressContainer AddressContainer) (JournalizedAccountWrapper, error) {
+	acnt, err := adb.getDbAccount(addressContainer)
 
 	if err != nil {
 		return nil, err
 	}
 
 	if acnt != nil {
-		return adb.loadAccountState(acnt, addressHandler)
+		return adb.loadJournalizedAccountWrapper(acnt, addressContainer)
 	}
 
-	return adb.newAccountState(addressHandler)
+	return adb.newJournalizedAccountWrapper(addressContainer)
 }
 
-func (adb *AccountsDB) loadAccountState(account *Account, addressHandler AddressHandler) (AccountStateHandler, error) {
-	state := NewAccountState(addressHandler, account, adb.hasher)
-	err := adb.retrieveCode(state)
-
+func (adb *AccountsDB) loadJournalizedAccountWrapper(dBaccount DbAccountContainer, addressContainer AddressContainer) (JournalizedAccountWrapper, error) {
+	account := NewAccount()
+	err := account.LoadFromDbAccount(dBaccount)
 	if err != nil {
 		return nil, err
 	}
 
-	err = adb.RetrieveDataTrie(state)
+	journalizedAccountWrap, err := NewJournalizedAccountWrapFromAccountContainer(addressContainer, account, adb)
 	if err != nil {
 		return nil, err
 	}
 
-	return state, nil
+	err = adb.loadCode(journalizedAccountWrap)
+	if err != nil {
+		return nil, err
+	}
+
+	err = adb.LoadDataTrie(journalizedAccountWrap)
+	if err != nil {
+		return nil, err
+	}
+
+	return journalizedAccountWrap, nil
 }
 
-func (adb *AccountsDB) newAccountState(addressHandler AddressHandler) (AccountStateHandler, error) {
-	acState := NewAccountState(addressHandler, NewAccount(), adb.hasher)
+func (adb *AccountsDB) newJournalizedAccountWrapper(addressHandler AddressContainer) (JournalizedAccountWrapper, error) {
+	account := NewAccount()
+
+	journalizedAccountWrap, err := NewJournalizedAccountWrapFromAccountContainer(addressHandler, account, adb)
+	if err != nil {
+		return nil, err
+	}
+
 	adb.journal.AddEntry(NewJournalEntryCreation(addressHandler))
 
-	err := adb.SaveAccountState(acState)
+	err = adb.SaveJournalizedAccount(journalizedAccountWrap)
 	if err != nil {
 		return nil, err
 	}
 
-	return acState, nil
+	return journalizedAccountWrap, nil
 }
 
 // AddJournalEntry adds a new object to entries list.
@@ -305,7 +332,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.journal.Clear()
 
 	//Step 3. commit main trie
-	hash, err := adb.MainTrie.Commit(nil)
+	hash, err := adb.mainTrie.Commit(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -313,30 +340,48 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	return hash, nil
 }
 
-// retrieveCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
-func (adb *AccountsDB) retrieveCode(accountStateHandler AccountStateHandler) error {
-	if accountStateHandler.CodeHash() == nil {
-		accountStateHandler.SetCode(nil)
-		return nil
-	}
-
-	if adb.MainTrie == nil {
+// loadCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
+func (adb *AccountsDB) loadCode(journalizedAccountWrapper JournalizedAccountWrapper) error {
+	if adb.mainTrie == nil {
 		return errors.New("attempt to search on a nil trie")
 	}
 
-	if len(accountStateHandler.CodeHash()) != HashLength {
+	if journalizedAccountWrapper.CodeHash() == nil || len(journalizedAccountWrapper.CodeHash()) == 0 {
+		return nil
+	}
+
+	if len(journalizedAccountWrapper.CodeHash()) != HashLength {
 		return errors.New("attempt to search a hash not normalized to" +
 			strconv.Itoa(HashLength) + "bytes")
 	}
 
-	val, err := adb.MainTrie.Get(accountStateHandler.CodeHash())
+	val, err := adb.mainTrie.Get(journalizedAccountWrapper.CodeHash())
 
 	if err != nil {
 		return err
 	}
 
-	//TODO implement some kind of checking of code against its codehash
+	if !bytes.Equal(adb.hasher.Compute(string(val)), journalizedAccountWrapper.CodeHash()) {
+		return ErrCodeHashMismatchCode
+	}
 
-	accountStateHandler.SetCode(val)
+	journalizedAccountWrapper.SetCode(val)
+	return nil
+}
+
+// RootHash returns the main trie's root hash
+func (adb *AccountsDB) RootHash() []byte {
+	return adb.mainTrie.Root()
+}
+
+// RecreateTrie is used to reload the trie based on an existing rootHash
+func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
+	newTrie, err := adb.mainTrie.Recreate(rootHash, adb.mainTrie.DBW())
+
+	if err != nil {
+		return err
+	}
+
+	adb.mainTrie = newTrie
 	return nil
 }
