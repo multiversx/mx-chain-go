@@ -64,6 +64,11 @@ var (
 			Size: 100,
 			Type: LRUCache,
 		},
+
+		TxPoolStorage: &CacheConfig{
+				Size: 1000,
+				Type: LRUCache,
+		},
 	}
 
 	// MainnetBlockchainConfig is currently not specified
@@ -76,6 +81,7 @@ type BlockChainConfig struct {
 	BlockStorage       *StorageUnitConfig
 	BlockHeaderStorage *StorageUnitConfig
 	TxStorage          *StorageUnitConfig
+	TxPoolStorage	   *CacheConfig
 	BBlockCache        *CacheConfig
 }
 
