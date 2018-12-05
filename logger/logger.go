@@ -32,7 +32,7 @@ type Logger struct {
 	stackTraceDepth int
 }
 
-// Option represents a functional configuration parameter that can opperate
+// Option represents a functional configuration parameter that can operate
 //  over the Logger struct
 type Option func (*Logger) error
 

@@ -57,9 +57,9 @@ func TestTransactionPool_AddTransactionsInParallel(t *testing.T) {
 
 	for i := 1; i < 10000+2; i++ {
 		key := []byte(strconv.Itoa(i))
-		go func() {
+		go func(i int) {
 			txp.AddTransaction(key, &transaction.Transaction{Nonce: uint64(i)}, 1)
-		}()
+		}(i)
 	}
 }
 

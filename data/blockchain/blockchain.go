@@ -27,12 +27,11 @@ type UnitType uint8
 
 // Config holds the configurable elements of the blockchain
 type Config struct {
-	BlockChainID       *big.Int
-	BlockStorage       *storage.UnitConfig
-	BlockHeaderStorage *storage.UnitConfig
-	TxStorage          *storage.UnitConfig
-	TxPoolStorage      *storage.CacheConfig
-	BlockCache         *storage.CacheConfig
+	BlockStorage       storage.UnitConfig
+	BlockHeaderStorage storage.UnitConfig
+	TxStorage          storage.UnitConfig
+	TxPoolStorage      storage.CacheConfig
+	BlockCache         storage.CacheConfig
 }
 
 // StorageService is the interface for blockChain storage unit provided services
@@ -76,27 +75,25 @@ func NewBlockChain(config *Config) (*BlockChain, error) {
 		return nil, errors.New("Cannot create blockchain without initial configuration")
 	}
 
-	txStorage, err := storage.NewStorageUnitFromConf(config.TxStorage)
-
+	txStorage, err := storage.NewStorageUnitFromConf(config.TxStorage.CacheConf, config.TxStorage.DBConf)
 	if err != nil {
 		return nil, err
 	}
 
-	blStorage, err := storage.NewStorageUnitFromConf(config.BlockStorage)
+	blStorage, err := storage.NewStorageUnitFromConf(config.BlockStorage.CacheConf, config.BlockStorage.DBConf)
 	if err != nil {
 		_ = txStorage.DestroyUnit()
 		return nil, err
 	}
 
-	blHeadStorage, err := storage.NewStorageUnitFromConf(config.BlockHeaderStorage)
+	blHeadStorage, err := storage.NewStorageUnitFromConf(config.BlockHeaderStorage.CacheConf, config.BlockHeaderStorage.DBConf)
 	if err != nil {
 		_ = txStorage.DestroyUnit()
 		_ = blStorage.DestroyUnit()
 		return nil, err
 	}
 
-	badBlocksCache, err := storage.CreateCacheFromConf(config.BlockCache)
-
+	badBlocksCache, err := storage.NewCache(config.BlockCache.Type, config.BlockCache.Size)
 	if err != nil {
 		_ = txStorage.DestroyUnit()
 		_ = blStorage.DestroyUnit()

@@ -50,7 +50,7 @@ func NewMiniPool(destShardID uint32, cacherConfig *storage.CacheConfig) *miniPoo
 	if cacherConfig == nil {
 		cacherConfig = defaultCacherConfig
 	}
-	cacher, err := storage.CreateCacheFromConf(cacherConfig)
+	cacher, err := storage.NewCache(cacherConfig.Type, cacherConfig.Size)
 	if err != nil {
 		// TODO: This should be replaced with the correct log panic
 		panic("Could not create cache storage for pools")

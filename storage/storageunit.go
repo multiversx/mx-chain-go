@@ -10,26 +10,26 @@ import (
 )
 
 // CacheType represents the type of the supported caches
-type CacheType uint8
+type CacheType string
 
 // DBType represents the type of the supported databases
-type DBType uint8
+type DBType string
 
 // LRUCache is currently the only supported Cache type
 const (
-	LRUCache CacheType = 0
+	LRUCache CacheType = "LRU"
 )
 
 // LvlDB currently the only supported DBs
 // More to be added
 const (
-	LvlDB DBType = 0
+	LvlDB DBType = "LvlDB"
 )
 
 // UnitConfig holds the configurable elements of the storage unit
 type UnitConfig struct {
-	CacheConf *CacheConfig
-	DBConf    *DBConfig
+	CacheConf CacheConfig
+	DBConf    DBConfig
 }
 
 // CacheConfig holds the configurable elements of a cache
@@ -40,7 +40,7 @@ type CacheConfig struct {
 
 // DBConfig holds the configurable elements of a database
 type DBConfig struct {
-	FileName string
+	FilePath string
 	Type     DBType
 }
 
@@ -246,6 +246,7 @@ func (s *Unit) DestroyUnit() error {
 	return s.persister.Destroy()
 }
 
+
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.
 func NewStorageUnit(c Cacher, p Persister) (*Unit, error) {
@@ -271,25 +272,22 @@ func NewStorageUnit(c Cacher, p Persister) (*Unit, error) {
 }
 
 // NewStorageUnitFromConf creates a new storage unit from a storage unit config
-func NewStorageUnitFromConf(conf *UnitConfig) (*Unit, error) {
+func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig) (*Unit, error) {
 	var cache Cacher
 	var db Persister
 	var err error
 
-	cache, err = CreateCacheFromConf(conf.CacheConf)
-
+	cache, err = NewCache(cacheConf.Type, cacheConf.Size)
 	if err != nil {
 		return nil, err
 	}
 
-	db, err = CreateDBFromConf(conf.DBConf)
-
+	db, err = NewDB(dbConf.Type, dbConf.FilePath)
 	if err != nil {
 		return nil, err
 	}
 
 	st, err := NewStorageUnit(cache, db)
-
 	if err != nil {
 		return nil, err
 	}
@@ -297,14 +295,14 @@ func NewStorageUnitFromConf(conf *UnitConfig) (*Unit, error) {
 	return st, err
 }
 
-//CreateCacheFromConf creates a new cache from a cache config
-func CreateCacheFromConf(conf *CacheConfig) (Cacher, error) {
+//NewCache creates a new cache from a cache config
+func NewCache(cacheType CacheType, size uint32) (Cacher, error) {
 	var cacher Cacher
 	var err error
 
-	switch conf.Type {
+	switch cacheType {
 	case LRUCache:
-		cacher, err = lrucache.NewCache(int(conf.Size))
+		cacher, err = lrucache.NewCache(int(size))
 		// add other implementations if required
 	default:
 		return nil, errors.New("not supported cache type")
@@ -316,14 +314,14 @@ func CreateCacheFromConf(conf *CacheConfig) (Cacher, error) {
 	return cacher, nil
 }
 
-// CreateDBFromConf creates a new database from database config
-func CreateDBFromConf(conf *DBConfig) (Persister, error) {
+// NewDB creates a new database from database config
+func NewDB(dbType DBType, path string) (Persister, error) {
 	var db Persister
 	var err error
 
-	switch conf.Type {
+	switch dbType {
 	case LvlDB:
-		db, err = leveldb.NewDB(conf.FileName)
+		db, err = leveldb.NewDB(path)
 	default:
 		return nil, errors.New("nit supported db type")
 	}

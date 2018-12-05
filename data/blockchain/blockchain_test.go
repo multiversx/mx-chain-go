@@ -1,13 +1,27 @@
 package blockchain_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain/mock"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
+
+func blockchainConfig() *blockchain.Config {
+	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
+	persisterBlockStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockStorage"}
+	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
+	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
+	return &blockchain.Config{
+		BlockStorage:       storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockStorage},
+		BlockHeaderStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage},
+		TxStorage:          storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage},
+		TxPoolStorage:      cacher,
+		BlockCache:         cacher,
+	}
+}
 
 func failOnPanic(t *testing.T) {
 	if r := recover(); r != nil {
@@ -16,84 +30,57 @@ func failOnPanic(t *testing.T) {
 }
 
 func TestNewBlockchainErrOnTxStorageCreationShouldError(t *testing.T) {
-	cfg := &mock.Config.TxStorage.CacheConf.Type
-	val := mock.Config.TxStorage.CacheConf.Type
-
-	// restore default config
-	defer func(cacheType *storage.CacheType, val storage.CacheType) {
-		*cacheType = val
-	}(cfg, val)
-
+	cfg := blockchainConfig()
 	// e.g change the config to a not supported cache type
-	mock.Config.TxStorage.CacheConf.Type = 100
-	_, err := blockchain.NewBlockChain(mock.Config)
+	cfg.TxStorage.CacheConf.Type = "NotLRU"
+	_, err := blockchain.NewBlockChain(cfg)
 	assert.NotNil(t, err, "NewBlockchain should error on not supported type")
 }
 
 func TestNewBlockchainErrOnBlockStorageCreationShouldError(t *testing.T) {
-	cfg := &mock.Config.BlockStorage.CacheConf.Type
-	val := mock.Config.BlockStorage.CacheConf.Type
-
-	// restore default config
-	defer func(cacheType *storage.CacheType, val storage.CacheType) {
-		*cacheType = val
-	}(cfg, val)
-
+	cfg := blockchainConfig()
 	// e.g change the config to a not supported cache type
-	mock.Config.BlockStorage.CacheConf.Type = 100
-	_, err := blockchain.NewBlockChain(mock.Config)
+	cfg.BlockStorage.CacheConf.Type = "NotLRU"
+	_, err := blockchain.NewBlockChain(cfg)
 	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block storage")
 }
 
 func TestNewBlockchainErrOnBlockHeaderStorageCreationShouldError(t *testing.T) {
-	cfg := &mock.Config.BlockHeaderStorage.CacheConf.Type
-	val := mock.Config.BlockHeaderStorage.CacheConf.Type
-
-	// restore default config
-	defer func(cacheType *storage.CacheType, val storage.CacheType) {
-		*cacheType = val
-	}(cfg, val)
-
+	cfg := blockchainConfig()
 	// e.g change the config to a not supported cache type
-	mock.Config.BlockHeaderStorage.CacheConf.Type = 100
-	_, err := blockchain.NewBlockChain(mock.Config)
+	cfg.BlockHeaderStorage.CacheConf.Type = "NotLRU"
+	_, err := blockchain.NewBlockChain(cfg)
 	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block header")
 }
 
 func TestNewDataErrOnBlockCacheCreationShouldError(t *testing.T) {
-	cfg := &mock.Config.BlockCache.Type
-	val := mock.Config.BlockCache.Type
-
-	// restore default config
-	defer func(cacheType *storage.CacheType, val storage.CacheType) {
-		*cacheType = val
-	}(cfg, val)
-
+	cfg := blockchainConfig()
 	// e.g change the config to a not supported cache type
-	mock.Config.BlockCache.Type = 100
-	_, err := blockchain.NewBlockChain(mock.Config)
+	cfg.BlockCache.Type = "NotLRU"
+	_, err := blockchain.NewBlockChain(cfg)
 	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block cache")
 }
 
 func TestNewDataDefaultConfigOK(t *testing.T) {
 	defer failOnPanic(t)
-
-	b, err := blockchain.NewBlockChain(mock.Config)
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
 	defer func() {
-		derr := b.Destroy()
-		assert.Nil(t, derr, "Unable to destroy blockchain")
-	} ()
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 }
 
 func TestHasFalseOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewBlockChain(mock.Config)
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
 	defer func() {
-		derr := b.Destroy()
-		assert.Nil(t, derr, "Unable to destroy blockchain")
-	} ()
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -106,11 +93,12 @@ func TestHasFalseOnWrongUnitType(t *testing.T) {
 }
 
 func TestHasOk(t *testing.T) {
-	b, err := blockchain.NewBlockChain(mock.Config)
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
 	defer func() {
-		derr := b.Destroy()
-		assert.Nil(t, derr, "Unable to destroy blockchain")
-	} ()
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -145,11 +133,12 @@ func TestHasOk(t *testing.T) {
 }
 
 func TestGetErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewBlockChain(mock.Config)
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
 	defer func() {
-		derr := b.Destroy()
-		assert.Nil(t, derr, "Unable to destroy blockchain")
-	} ()
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -162,11 +151,12 @@ func TestGetErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestGetOk(t *testing.T) {
-	b, err := blockchain.NewBlockChain(mock.Config)
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
 	defer func() {
-		derr := b.Destroy()
-		assert.Nil(t, derr, "Unable to destroy blockchain")
-	} ()
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -185,11 +175,12 @@ func TestGetOk(t *testing.T) {
 }
 
 func TestPutErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewBlockChain(mock.Config)
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
 	defer func() {
-		derr := b.Destroy()
-		assert.Nil(t, derr, "Unable to destroy blockchain")
-	} ()
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -200,11 +191,12 @@ func TestPutErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestPutOk(t *testing.T) {
-	b, err := blockchain.NewBlockChain(mock.Config)
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
 	defer func() {
-		derr := b.Destroy()
-		assert.Nil(t, derr, "Unable to destroy blockchain")
-	} ()
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -220,11 +212,12 @@ func TestPutOk(t *testing.T) {
 }
 
 func TestGetAllErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewBlockChain(mock.Config)
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
 	defer func() {
-		derr := b.Destroy()
-		assert.Nil(t, derr, "Unable to destroy blockchain")
-	} ()
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -238,11 +231,12 @@ func TestGetAllErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestGetAllOk(t *testing.T) {
-	b, err := blockchain.NewBlockChain(mock.Config)
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
 	defer func() {
-		derr := b.Destroy()
-		assert.Nil(t, derr, "Unable to destroy blockchain")
-	} ()
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
