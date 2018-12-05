@@ -20,7 +20,7 @@ const (
 )
 
 const (
-	defaultLogPath 			= "./../logs"
+	defaultLogPath 			= "../logs"
 	defaultStackTraceDepth 	= 2
 )
 
@@ -28,7 +28,6 @@ const (
 type Logger struct {
 	logger *log.Logger
 	file io.Writer
-	logPath string
 	stackTraceDepth int
 }
 
@@ -42,8 +41,14 @@ type Option func (*Logger) error
 func NewElrondLogger(opts ...Option) *Logger {
 	el := &Logger{
 		logger: log.New(),
-		logPath: defaultLogPath,
 		stackTraceDepth: defaultStackTraceDepth,
+	}
+
+	for _, opt := range opts {
+		err := opt(el)
+		if err != nil {
+			el.logger.Error("Could not set opt for logger", err)
+		}
 	}
 
 	if el.file != nil {
@@ -55,13 +60,6 @@ func NewElrondLogger(opts ...Option) *Logger {
 
 	el.logger.SetFormatter(&log.JSONFormatter{})
 	el.logger.SetLevel(log.WarnLevel)
-
-	for _, opt := range opts {
-		err := opt(el)
-		if err != nil {
-			el.logger.Error("Could not set opt for logger", err)
-		}
-	}
 
 	return el
 }
@@ -79,11 +77,6 @@ func NewDefaultLogger() *Logger {
 // File returns the current Logger file
 func (el *Logger) File() io.Writer {
 	return el.file
-}
-
-// LogPath returns the current Logger logPath
-func (el *Logger) LogPath() string {
-	return el.logPath
 }
 
 // StackTraceDepth returns the current Logger stackTraceDepth
@@ -163,14 +156,6 @@ func (el *Logger) defaultFields() *log.Entry {
 	})
 }
 
-// WithLogPath sets up the logPath option for the Logger
-func WithLogPath(logPath string) Option {
-	return func(el *Logger) error {
-		el.logPath = logPath
-		return nil
-	}
-}
-
 // WithFile sets up the file option for the Logger
 func WithFile(file io.Writer) Option {
 	return func(el *Logger) error {
@@ -190,12 +175,16 @@ func WithStackTraceDepth(depth int) Option {
 // DefaultLogFile returns the default output for the application logger.
 // The client package can always use another output and provide it in the logger constructor.
 func DefaultLogFile() (*os.File, error) {
-	err := os.MkdirAll(defaultLogPath, os.ModePerm)
+	absPath, err := filepath.Abs(defaultLogPath)
+	if err != nil {
+		return nil, err
+	}
+	err = os.MkdirAll(absPath, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
 	return os.OpenFile(
-		filepath.Join(defaultLogPath, time.Now().Format("2006-02-01") + ".log"),
+		filepath.Join(absPath, time.Now().Format("2006-02-01") + ".log"),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
 		0666)
 }

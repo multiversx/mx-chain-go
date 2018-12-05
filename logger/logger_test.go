@@ -145,9 +145,7 @@ func TestConcurrencyWithFileWriter(t *testing.T) {
 
 func TestWithOptions(t *testing.T) {
 	var str bytes.Buffer
-	log := logger.NewElrondLogger(logger.WithLogPath("./abc"),
-		logger.WithStackTraceDepth(1), logger.WithFile(&str))
-	assert.Equal(t, log.LogPath(), "./abc", "WithLogPath does not set the correct option")
+	log := logger.NewElrondLogger(logger.WithStackTraceDepth(1), logger.WithFile(&str))
 	assert.Equal(t, log.StackTraceDepth(), 1, "WithStackTraceDepth does not set the correct option")
 	assert.Equal(t, log.File(), &str)
 }
