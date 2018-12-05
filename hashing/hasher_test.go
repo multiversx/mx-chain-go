@@ -1,23 +1,19 @@
 package hashing_test
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	blake2b "github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
-	sha256 "github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestSha256(t *testing.T) {
-	hashing.PutService(hashing.Hash, sha256.Sha256{})
-	Suite(t, hashing.GetHasherService())
+	Suite(t, sha256.Sha256{})
 }
 
 func TestBlake2b(t *testing.T) {
-	hashing.PutService(hashing.Hash, blake2b.Blake2b{})
-	Suite(t, hashing.GetHasherService())
+	Suite(t, blake2b.Blake2b{})
 }
 
 func Suite(t *testing.T, h hashing.Hasher) {
