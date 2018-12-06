@@ -123,10 +123,10 @@ func NewCommunication(
 	return &com
 }
 
-// DoWorkOfStartRound method is the function which actually do the job of the DoWorkOfStartRound subround
+// DoStartRoundJob method is the function which actually do the job of the StartRound subround
 // (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
 // from spos package)
-func (com *Communication) DoWorkOfStartRound() bool {
+func (com *Communication) DoStartRoundJob() bool {
 	com.Blk = nil
 	com.Hdr = nil
 	com.Cns.Data = nil
@@ -149,10 +149,10 @@ func (com *Communication) DoWorkOfStartRound() bool {
 	return true
 }
 
-// DoWorkOfEndRound method is the function which actually do the job of the DoWorkOfEndRound subround
+// DoEndRoundJob method is the function which actually do the job of the EndRound subround
 // (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
 // from spos package)
-func (com *Communication) DoWorkOfEndRound() bool {
+func (com *Communication) DoEndRoundJob() bool {
 	if !com.Cns.CheckConsensus(SrEndRound) {
 		return false
 	}
