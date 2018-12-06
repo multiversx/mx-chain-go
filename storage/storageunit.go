@@ -81,7 +81,7 @@ type BloomFilter interface {
 
 	//Test checks if the value is in in the set. If it returns 'false',
 	//the item is definitely not in the DB
-	Test([]byte) bool
+	MayContain([]byte) bool
 
 	//Clear sets all the bits from the filter to 0
 	Clear()
@@ -126,10 +126,11 @@ func (s *StorageUnit) Put(key, data []byte) error {
 
 	if err != nil {
 		s.cacher.Remove(key)
-	} else {
-		if s.bloomFilter != nil {
-			s.bloomFilter.Add(key)
-		}
+		return err
+	}
+
+	if s.bloomFilter != nil {
+		s.bloomFilter.Add(key)
 	}
 
 	return err
@@ -147,10 +148,10 @@ func (s *StorageUnit) Get(key []byte) ([]byte, error) {
 	v, ok := s.cacher.Get(key)
 	var err error
 
-	if ok == false {
+	if !ok {
 		// not found in cache
-		// search it in second persistance medium
-		if s.bloomFilter == nil || s.bloomFilter.Test(key) == true {
+		// search it in second persistence medium
+		if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
 			v, err = s.persister.Get(key)
 
 			if err != nil {
@@ -180,7 +181,7 @@ func (s *StorageUnit) Has(key []byte) (bool, error) {
 		return has, nil
 	}
 
-	if s.bloomFilter == nil || s.bloomFilter.Test(key) == true {
+	if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
 		return s.persister.Has(key)
 	}
 	return false, nil
@@ -199,7 +200,7 @@ func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
 		return has, nil
 	}
 
-	if s.bloomFilter == nil || s.bloomFilter.Test(key) == true {
+	if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
 		has, err := s.persister.Has(key)
 		if err != nil {
 			return has, err
@@ -217,17 +218,19 @@ func (s *StorageUnit) HasOrAdd(key []byte, value []byte) (bool, error) {
 			}
 		}
 		return has, err
-	} else {
-		s.cacher.Put(key, value)
-		err := s.persister.Put(key, value)
+	}
 
-		if err != nil {
-			s.cacher.Remove(key)
-		} else {
-			s.bloomFilter.Add(key)
-		}
+	s.cacher.Put(key, value)
+	err := s.persister.Put(key, value)
+
+	if err != nil {
+		s.cacher.Remove(key)
 		return false, err
 	}
+	s.bloomFilter.Add(key)
+
+	return false, err
+
 }
 
 // Remove removes the data associated to the given key from both cache and persistance medium

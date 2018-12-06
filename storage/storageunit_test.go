@@ -25,11 +25,10 @@ import (
 func initStorageUnitWithBloomFilter(t *testing.T, cSize int) *storage.StorageUnit {
 	mdb, err1 := memorydb.New()
 	cache, err2 := lrucache.NewCache(cSize)
-	bf, err3 := bloom.NewDefaultFilter()
+	bf := bloom.NewDefaultFilter()
 
 	assert.Nil(t, err1, "failed creating db: %s", err1)
 	assert.Nil(t, err2, "no error expected but got %s", err2)
-	assert.Nil(t, err3, "failed creating bloom filter: %s", err3)
 
 	sUnit, err := storage.NewStorageUnit(cache, mdb, bf)
 
@@ -54,10 +53,9 @@ func initStorageUnitWithNilBloomFilter(t *testing.T, cSize int) *storage.Storage
 
 func TestStorageUnitNilPersister(t *testing.T) {
 	cache, err1 := lrucache.NewCache(10)
-	bf, err2 := bloom.NewDefaultFilter()
+	bf := bloom.NewDefaultFilter()
 
 	assert.Nil(t, err1, "no error expected but got %s", err1)
-	assert.Nil(t, err2, "failed creating bloom filter: %s", err2)
 
 	_, err := storage.NewStorageUnit(cache, nil, bf)
 
@@ -66,10 +64,9 @@ func TestStorageUnitNilPersister(t *testing.T) {
 
 func TestStorageUnitNilCacher(t *testing.T) {
 	mdb, err1 := memorydb.New()
-	bf, err2 := bloom.NewDefaultFilter()
+	bf := bloom.NewDefaultFilter()
 
 	assert.Nil(t, err1, "failed creating db")
-	assert.Nil(t, err2, "failed creating bloom filter: %s", err2)
 
 	_, err1 = storage.NewStorageUnit(nil, mdb, bf)
 

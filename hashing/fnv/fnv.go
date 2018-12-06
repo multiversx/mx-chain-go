@@ -11,7 +11,10 @@ type Fnv struct {
 }
 
 // Compute takes a string, and returns the fnv128a hash of that string
-func (Fnv) Compute(s string) []byte {
+func (f Fnv) Compute(s string) []byte {
+	if len(s) == 0 && len(fnvEmptyHash) != 0 {
+		return f.EmptyHash()
+	}
 	h := fnv.New128a()
 	h.Write([]byte(s))
 	return h.Sum(nil)

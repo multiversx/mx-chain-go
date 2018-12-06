@@ -12,6 +12,9 @@ type Blake2b struct {
 
 // Compute takes a string, and returns the blake2b hash of that string
 func (b2b Blake2b) Compute(s string) []byte {
+	if len(s) == 0 && len(b2bEmptyHash) != 0 {
+		return b2b.EmptyHash()
+	}
 	h, _ := blake2b.New256(nil)
 	h.Write([]byte(s))
 	return h.Sum(nil)

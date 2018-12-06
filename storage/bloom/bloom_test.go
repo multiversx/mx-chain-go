@@ -32,14 +32,8 @@ func TestNewFilterWithZeroHashFunctions(t *testing.T) {
 	assert.NotNil(t, err, "Expected nil")
 }
 
-func TestNewDefaultFilter(t *testing.T) {
-	_, err := bloom.NewDefaultFilter()
-
-	assert.Nil(t, err, "Error creating new default bloom filter")
-}
-
 func TestFilter(t *testing.T) {
-	b, _ := bloom.NewDefaultFilter()
+	b := bloom.NewDefaultFilter()
 
 	var testTable = []struct {
 		in       []byte
@@ -55,19 +49,19 @@ func TestFilter(t *testing.T) {
 
 	for _, val := range testTable {
 		b.Add(val.in)
-		assert.Equal(t, val.expected, b.Test(val.in), "Expected value to be there")
+		assert.Equal(t, val.expected, b.MayContain(val.in), "Expected value to be there")
 	}
 
 	b.Clear()
 
 	for _, val := range testTable {
-		assert.Equal(t, false, b.Test(val.in), "Expected bloom filter to be empty")
+		assert.Equal(t, false, b.MayContain(val.in), "Expected bloom filter to be empty")
 	}
 
 }
 
 func TestConcurrency(t *testing.T) {
-	b, _ := bloom.NewDefaultFilter()
+	b := bloom.NewDefaultFilter()
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
@@ -88,7 +82,7 @@ func TestConcurrency(t *testing.T) {
 	wg.Wait()
 
 	for i := 0; i < maxIterations; i++ {
-		assert.True(t, b.Test([]byte("i"+strconv.Itoa(i))), "i"+strconv.Itoa(i))
-		assert.True(t, b.Test([]byte("j"+strconv.Itoa(i))), "j"+strconv.Itoa(i))
+		assert.True(t, b.MayContain([]byte("i"+strconv.Itoa(i))), "i"+strconv.Itoa(i))
+		assert.True(t, b.MayContain([]byte("j"+strconv.Itoa(i))), "j"+strconv.Itoa(i))
 	}
 }

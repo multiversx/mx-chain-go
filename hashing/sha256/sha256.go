@@ -12,6 +12,9 @@ type Sha256 struct {
 
 // Compute takes a string, and returns the sha256 hash of that string
 func (sha Sha256) Compute(s string) []byte {
+	if len(s) == 0 && len(sha256EmptyHash) != 0 {
+		return sha.EmptyHash()
+	}
 	h := sha256.New()
 	h.Write([]byte(s))
 	return h.Sum(nil)

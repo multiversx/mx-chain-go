@@ -11,7 +11,10 @@ type Keccak struct {
 }
 
 // Compute takes a string, and returns the sha3-Keccak hash of that string
-func (Keccak) Compute(s string) []byte {
+func (k Keccak) Compute(s string) []byte {
+	if len(s) == 0 && len(keccakEmptyHash) != 0 {
+		return k.EmptyHash()
+	}
 	h := sha3.NewLegacyKeccak256()
 	h.Write([]byte(s))
 	return h.Sum(nil)

@@ -1,3 +1,13 @@
+// A Bloom filter is a probabilistic data structures that is used to test whether an element is a member of a set.
+// Using a bloom filter, you know that an element "possibly is in set" or  "definitely not in set".
+// Initially, all of the n bits from the bloom filter are set to 0. When an element is added, we hash that element with
+// several hashing functions (you can choose how many and which ones). Every hash represents an index pointing to a
+// position in the bloom filter. The bits that are indicated by the indexes are set to 1. When you want to check if an
+// element is in the bloom filter, you hash the element with the same hashing functions, and it will return the same indexes.
+// If all the bits pointed by the indexes are set to 1, it means that the element might have been added, otherwise
+// (if one bit is set to 0), than the element was definitely not added to the filter.
+//
+// https://en.wikipedia.org/wiki/Bloom_filter
 package bloom
 
 import (
@@ -45,11 +55,11 @@ func NewFilter(size uint, h []hashing.Hasher) (*Bloom, error) {
 
 // NewDefaultFilter returns a new Bloom object with a filter size of 2048 bytes
 // and implementations of blake2b, sha3-keccak and fnv128a hashing functions
-func NewDefaultFilter() (*Bloom, error) {
+func NewDefaultFilter() *Bloom {
 	return &Bloom{
 		filter:   make([]byte, 2048),
 		hashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
-	}, nil
+	}
 }
 
 // Add sets the bits that correspond to the hashes of the data
@@ -58,9 +68,9 @@ func (b *Bloom) Add(data []byte) {
 
 	for i := range res {
 		b.mutex.Lock()
-		pos, val := getBytePositionAndValue(b, res[i])
+		pos, bitMask := getBytePositionAndBitMask(res[i])
 
-		b.filter[uint(pos)] = val
+		b.filter[pos] = b.filter[pos] | bitMask
 		b.mutex.Unlock()
 	}
 
@@ -68,13 +78,13 @@ func (b *Bloom) Add(data []byte) {
 
 // Test checks if the bits that correspond to the hashes of the data are set.
 // If all the bits are set, it returns true, otherwise it returns false
-func (b *Bloom) Test(data []byte) bool {
+func (b *Bloom) MayContain(data []byte) bool {
 	res := getBitsIndexes(b, data)
 
 	for i := range res {
-		pos, val := getBytePositionAndValue(b, res[i])
+		pos, bitMask := getBytePositionAndBitMask(res[i])
 
-		if b.filter[uint(pos)] != val {
+		if b.filter[pos]&bitMask == 0 {
 			return false
 		}
 	}
@@ -90,14 +100,12 @@ func (b *Bloom) Clear() {
 
 // getBytePositionAndValue takes the index of a bit and returns the position of the byte in the filter
 // that contains that index and the value of that byte with the bit set to 1.
-func getBytePositionAndValue(b *Bloom, index uint64) (pos uint64, val byte) {
+func getBytePositionAndBitMask(index uint64) (pos uint64, val byte) {
 	pos = index / 8
 	bitNo := index % 8
-	byteValue := byte(1 << (7 - bitNo))
+	bitMask := byte(1 << bitNo)
 
-	val = byte(b.filter[pos] | byteValue)
-
-	return pos, val
+	return pos, bitMask
 }
 
 // getBitsIndexes returns a slice which contains indexes that represent bits from the filter that have to be set.
@@ -124,8 +132,8 @@ func getBitsIndexes(b *Bloom, data []byte) []uint64 {
 // then writes on the channel the index of the bit from the filter that has to be set.
 func getBitIndexFromHash(h hashing.Hasher, data []byte, size int, wg *sync.WaitGroup, ch chan uint64) {
 
-	hashSum := h.Compute(string(data))
-	hash64 := binary.BigEndian.Uint64(hashSum)
+	hash := h.Compute(string(data))
+	hash64 := binary.BigEndian.Uint64(hash)
 	val := hash64 % uint64(size*bitsInByte)
 
 	ch <- val
