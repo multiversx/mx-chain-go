@@ -1,9 +1,9 @@
 package p2p
 
 import (
+	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multiaddr"
@@ -11,6 +11,9 @@ import (
 
 // durRefreshConnections represents the duration used to pause between refreshing connections to known peers
 const durRefreshConnections = 1000 * time.Millisecond
+
+//the value of 2 was chosen as a mean to iterate the known peers at least 1 time but not 2 times
+const maxFullCycles = 2
 
 // ResultType will signal the result
 type ResultType int
@@ -28,29 +31,33 @@ const (
 
 // ConnNotifier is used to manage the connections to other peers
 type ConnNotifier struct {
-	execution.RoutineWrapper
+	stopChan     chan bool
+	stoppedChan  chan bool
+	mutIsRunning sync.RWMutex
+	isRunning    bool
 
-	Msgr Messenger
+	maxAllowedPeers int
 
-	MaxAllowedPeers int
-
+	// GetKnownPeers is a pointer to a function that will return all known peers found by a Messenger
 	GetKnownPeers func(sender *ConnNotifier) []peer.ID
+	// ConnectToPeer is a pointer to a function that has to make the Messenger object to connect ta peerID
 	ConnectToPeer func(sender *ConnNotifier, pid peer.ID) error
+	// GetConnections is a pointer to a function that returns a snapshot of all known connections held by a Messenger
+	GetConnections func(sender *ConnNotifier) []net.Conn
+	// IsConnected is a pointer to a function that returns tre if current messenger is connected to peer with ID = pid
+	IsConnected func(sender *ConnNotifier, pid peer.ID) bool
 
 	indexKnownPeers int
 }
 
-// NewConnNotifier will create a new object and link it to the messenger provided as parameter
-func NewConnNotifier(m Messenger) *ConnNotifier {
-	if m == nil {
-		panic("Nil messenger!")
+// NewConnNotifier will create a new object
+func NewConnNotifier(maxAllowedPeers int) *ConnNotifier {
+	cn := ConnNotifier{
+		maxAllowedPeers: maxAllowedPeers,
+		mutIsRunning:    sync.RWMutex{},
+		stopChan:        make(chan bool, 0),
+		stoppedChan:     make(chan bool, 0),
 	}
-
-	cn := ConnNotifier{Msgr: m}
-	cn.RoutineWrapper = *execution.NewRoutineWrapper()
-	//there is a delay between calls so the connecting and disconnecting is not done
-	//very often (take into account that doing a connection is a lengthy process)
-	cn.RoutineWrapper.DurCalls = durRefreshConnections
 
 	return &cn
 }
@@ -61,23 +68,51 @@ func NewConnNotifier(m Messenger) *ConnNotifier {
 // This function handles the array connections that mdns service provides.
 // This function always tries to find a new connection by closing the oldest one.
 // It tries to create a new outbound connection by iterating over known peers for at least one cycle but not 2 or more.
-func TaskResolveConnections(cn *ConnNotifier) ResultType {
-	if cn.MaxAllowedPeers < 1 {
+func (cn *ConnNotifier) TaskResolveConnections() ResultType {
+	if cn.maxAllowedPeers < 1 {
 		//won't try to connect to other peers
 		return WontConnect
 	}
 
-	conns := cn.Msgr.Conns()
+	conns := cn.getConnections()
+	knownPeers := cn.getKnownPeers()
+	inConns, _ := cn.computeInboundOutboundConns(conns)
 
-	knownPeers := make([]peer.ID, 0)
+	//test whether we only have inbound connection (security issue)
+	if inConns >= cn.maxAllowedPeers {
+		err := conns[0].Close()
+		if err != nil {
+			log.Error(err.Error())
+		}
 
-	if cn.GetKnownPeers != nil {
-		knownPeers = cn.GetKnownPeers(cn)
+		return OnlyInboundConnections
 	}
 
-	inConns := 0
-	outConns := 0
+	//try to connect to other peers
+	if len(conns) < cn.maxAllowedPeers && len(knownPeers) > 0 {
+		return cn.iterateThroughPeersAndTryToConnect(knownPeers)
+	}
 
+	return NothingDone
+}
+
+func (cn *ConnNotifier) getConnections() []net.Conn {
+	if cn.GetConnections != nil {
+		return cn.GetConnections(cn)
+	} else {
+		return make([]net.Conn, 0)
+	}
+}
+
+func (cn *ConnNotifier) getKnownPeers() []peer.ID {
+	if cn.GetKnownPeers != nil {
+		return cn.GetKnownPeers(cn)
+	} else {
+		return make([]peer.ID, 0)
+	}
+}
+
+func (cn *ConnNotifier) computeInboundOutboundConns(conns []net.Conn) (inConns, outConns int) {
 	//get how many inbound and outbound connection we have
 	for i := 0; i < len(conns); i++ {
 		if conns[i].Stat().Direction == net.DirInbound {
@@ -89,36 +124,32 @@ func TaskResolveConnections(cn *ConnNotifier) ResultType {
 		}
 	}
 
-	//test whether we only have inbound connection (security issue)
-	if inConns > cn.MaxAllowedPeers-1 {
-		conns[0].Close()
+	return
+}
 
-		return OnlyInboundConnections
-	}
-
+func (cn *ConnNotifier) iterateThroughPeersAndTryToConnect(knownPeers []peer.ID) ResultType {
 	fullCycles := 0
 
-	//try to connect to other peers
-	if len(conns) < cn.MaxAllowedPeers && len(knownPeers) > 0 {
-		//the value of 2 was chosen as a mean to iterate the known peers at least 1 time but not 2 times
-		for fullCycles < 2 {
-			if cn.indexKnownPeers >= len(knownPeers) {
-				//index out of bound, do 0 (restart the list)
-				cn.indexKnownPeers = 0
-				fullCycles++
-			}
+	for fullCycles < maxFullCycles {
+		if cn.indexKnownPeers >= len(knownPeers) {
+			//index out of bound, do 0 (restart the list)
+			cn.indexKnownPeers = 0
+			fullCycles++
+		}
 
-			//get the known peerID
-			peerID := knownPeers[cn.indexKnownPeers]
-			cn.indexKnownPeers++
+		//get the known peerID
+		peerID := knownPeers[cn.indexKnownPeers]
+		cn.indexKnownPeers++
 
-			if cn.Msgr.Connectedness(peerID) == net.NotConnected {
-				if cn.ConnectToPeer != nil {
-					err := cn.ConnectToPeer(cn, peerID)
-					if err == nil {
-						//connection succeed
-						return SuccessfullyConnected
-					}
+		//func pointers are associated
+		if cn.ConnectToPeer != nil && cn.IsConnected != nil {
+			isConnected := cn.IsConnected(cn, peerID)
+
+			if !isConnected {
+				err := cn.ConnectToPeer(cn, peerID)
+
+				if err == nil {
+					return SuccessfullyConnected
 				}
 			}
 		}
@@ -139,9 +170,23 @@ func (cn *ConnNotifier) ListenClose(netw net.Network, ma multiaddr.Multiaddr) {
 
 // Connected is called when a connection opened
 func (cn *ConnNotifier) Connected(netw net.Network, conn net.Conn) {
+	if cn.GetConnections == nil {
+		err := conn.Close()
+		if err != nil {
+			log.Error(err.Error())
+		}
+		return
+	}
+
+	conns := cn.GetConnections(cn)
+
 	//refuse other connections if max connection has been reached
-	if cn.MaxAllowedPeers < len(cn.Msgr.Conns()) {
-		conn.Close()
+	if cn.maxAllowedPeers < len(conns) {
+		err := conn.Close()
+		if err != nil {
+			log.Error(err.Error())
+		}
+		return
 	}
 }
 
@@ -158,4 +203,49 @@ func (cn *ConnNotifier) OpenedStream(netw net.Network, stream net.Stream) {
 // ClosedStream is called when a stream was closed
 func (cn *ConnNotifier) ClosedStream(netw net.Network, stream net.Stream) {
 	//Nothing to be done
+}
+
+// Starts the ConnNotifier main process
+func (cn *ConnNotifier) Start() {
+	cn.mutIsRunning.Lock()
+	defer cn.mutIsRunning.Unlock()
+
+	if cn.isRunning {
+		return
+	}
+
+	cn.isRunning = true
+	go cn.maintainPeers()
+}
+
+// Stops the ConnNotifier main process
+func (cn *ConnNotifier) Stop() {
+	cn.mutIsRunning.Lock()
+	defer cn.mutIsRunning.Unlock()
+
+	if !cn.isRunning {
+		return
+	}
+
+	cn.isRunning = false
+
+	//send stop notification
+	cn.stopChan <- true
+	//await to finalise	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
+	<-cn.stoppedChan
+}
+
+// maintainPeers is a routine that periodically calls TaskResolveConnections to resolve peer connections
+func (cn *ConnNotifier) maintainPeers() {
+	for {
+		select {
+		case <-cn.stopChan:
+			log.Debug("ConnNotifier object has stopped!")
+			cn.stoppedChan <- true
+			return
+		case <-time.After(durRefreshConnections):
+		}
+
+		cn.TaskResolveConnections()
+	}
 }

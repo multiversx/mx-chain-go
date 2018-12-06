@@ -390,17 +390,6 @@
   version = "v0.1.13"
 
 [[projects]]
-  digest = "1:7e08f84dede7386831fc88b1a249e768ee94498b97c75f5907700f8235338188"
-  name = "github.com/libp2p/go-floodsub"
-  packages = [
-    ".",
-    "pb",
-  ]
-  pruneopts = "UT"
-  revision = "4986a90e6d122bf9207561efeea9d8afdf193629"
-  version = "v0.9.36"
-
-[[projects]]
   digest = "1:19f2d2506cc0f9a233c9c0753e8c3fd5afa88afb43ff7b795cbba3629d0e96b5"
   name = "github.com/libp2p/go-flow-metrics"
   packages = ["."]
@@ -531,6 +520,17 @@
   pruneopts = "UT"
   revision = "e34f0d7468b3519bf9bf4e43c1d028ce651eab51"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:adf1f0ab3d4bedd10f384b94bf71b6d37dfe48832b61120e146dcc20b81ee8b3"
+  name = "github.com/libp2p/go-libp2p-pubsub"
+  packages = [
+    ".",
+    "pb",
+  ]
+  pruneopts = "UT"
+  revision = "3d408775deaf28da57cc356d37f2b8bf9c57db64"
+  version = "v0.10.2"
 
 [[projects]]
   digest = "1:1f4be308ef940c89130bee25cd1fcb5a9e39262dc17aa82902370cb18b0cdfa6"
@@ -1163,7 +1163,6 @@
     "github.com/hashicorp/golang-lru",
     "github.com/ipfs/go-ipfs-addr",
     "github.com/libp2p/go-conn-security-multistream",
-    "github.com/libp2p/go-floodsub",
     "github.com/libp2p/go-libp2p",
     "github.com/libp2p/go-libp2p-crypto",
     "github.com/libp2p/go-libp2p-host",
@@ -1173,6 +1172,8 @@
     "github.com/libp2p/go-libp2p-peerstore",
     "github.com/libp2p/go-libp2p-peerstore/pstoremem",
     "github.com/libp2p/go-libp2p-protocol",
+    "github.com/libp2p/go-libp2p-pubsub",
+    "github.com/libp2p/go-libp2p-pubsub/pb",
     "github.com/libp2p/go-libp2p-secio",
     "github.com/libp2p/go-libp2p-swarm",
     "github.com/libp2p/go-libp2p-transport-upgrader",

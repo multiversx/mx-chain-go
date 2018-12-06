@@ -42,10 +42,10 @@ type Cacher interface {
 	Clear()
 
 	// Put adds a value to the cache.  Returns true if an eviction occurred.
-	Put(key, value []byte) (evicted bool)
+	Put(key []byte, value interface{}) (evicted bool)
 
 	// Get looks up a key's value from the cache.
-	Get(key []byte) (value []byte, ok bool)
+	Get(key []byte) (value interface{}, ok bool)
 
 	// Has checks if a key is in the cache, without updating the
 	// recent-ness or deleting it for being stale.
@@ -53,12 +53,12 @@ type Cacher interface {
 
 	// Peek returns the key value (or undefined if not found) without updating
 	// the "recently used"-ness of the key.
-	Peek(key []byte) (value []byte, ok bool)
+	Peek(key []byte) (value interface{}, ok bool)
 
 	// HasOrAdd checks if a key is in the cache  without updating the
 	// recent-ness or deleting it for being stale,  and if not, adds the value.
 	// Returns whether found and whether an eviction occurred.
-	HasOrAdd(key, value []byte) (ok, evicted bool)
+	HasOrAdd(key []byte, value interface{}) (ok, evicted bool)
 
 	// Remove removes the provided key from the cache.
 	Remove(key []byte)
@@ -164,8 +164,8 @@ func (s *StorageUnit) Get(key []byte) ([]byte, error) {
 			return nil, errors.New(fmt.Sprintf("key: %s not found", string(key)))
 		}
 	}
-	return v, nil
 
+	return v.([]byte), nil
 }
 
 // Has checks if the key is in the storageUnit.
