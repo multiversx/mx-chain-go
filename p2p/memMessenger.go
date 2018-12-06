@@ -316,17 +316,17 @@ func (mm *MemMessenger) AddTopic(t *Topic) error {
 	}
 
 	// validator registration func
-	t.registerTopicValidator = func(v pubsub.Validator) error {
+	t.RegisterTopicValidator = func(v pubsub.Validator) error {
 		return mm.registerValidator(t.Name, v)
 	}
 
 	// validator unregistration func
-	t.unregisterTopicValidator = func() error {
+	t.UnregisterTopicValidator = func() error {
 		return mm.unregisterValidator(t.Name)
 	}
 
 	//wire-up a plain func for publishing on request channel
-	t.request = func(hash []byte) error {
+	t.Request = func(hash []byte) error {
 		return mm.publish(t.Name+requestTopicSuffix, hash)
 	}
 

@@ -42,10 +42,10 @@ type Topic struct {
 	// SendData will be called by Topic struct whenever a user of this struct tries to send data to other peers
 	// It is a function pointer that connects Topic struct with pubsub implementation
 	SendData                 func(data []byte) error
-	registerTopicValidator   func(v pubsub.Validator) error
-	unregisterTopicValidator func() error
+	RegisterTopicValidator   func(v pubsub.Validator) error
+	UnregisterTopicValidator func() error
 	ResolveRequest           func(hash []byte) Newer
-	request                  func(hash []byte) error
+	Request                  func(hash []byte) error
 	CurrentPeer              peer.ID
 }
 
@@ -153,21 +153,21 @@ func (t *Topic) processData() {
 // RegisterValidator adds a validator to this topic
 // It delegates the functionality to registerValidator function pointer
 func (t *Topic) RegisterValidator(v pubsub.Validator) error {
-	if t.registerTopicValidator == nil {
+	if t.RegisterTopicValidator == nil {
 		return errors.New("can not delegate registration to parent")
 	}
 
-	return t.registerTopicValidator(v)
+	return t.RegisterTopicValidator(v)
 }
 
 // UnregisterValidator removes the validator associated to this topic
 // It delegates the functionality to unregisterValidator function pointer
 func (t *Topic) UnregisterValidator() error {
-	if t.unregisterTopicValidator == nil {
+	if t.UnregisterTopicValidator == nil {
 		return errors.New("can not delegate unregistration to parent")
 	}
 
-	return t.unregisterTopicValidator()
+	return t.UnregisterTopicValidator()
 }
 
 // SendRequest sends the hash to all known peers that subscribed to the channel [t.Name]_REQUEST
@@ -182,9 +182,9 @@ func (t *Topic) SendRequest(hash []byte) error {
 		return errors.New("invalid hash to send")
 	}
 
-	if t.request == nil {
+	if t.Request == nil {
 		return errors.New("can not delegate request to parent")
 	}
 
-	return t.request(hash)
+	return t.Request(hash)
 }

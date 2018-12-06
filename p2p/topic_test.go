@@ -231,13 +231,13 @@ func TestTopicSendRequestShouldWork(t *testing.T) {
 
 	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
 
-	topic.SetRequest(func(hash []byte) error {
+	topic.Request = func(hash []byte) error {
 		if bytes.Equal(hash, []byte("AAAA")) {
 			return nil
 		}
 
 		return errors.New("should have not got here")
-	})
+	}
 	err := topic.SendRequest([]byte("AAAA"))
 
 	assert.Nil(t, err)
@@ -257,9 +257,9 @@ func TestTopicRegisterValidatorShouldWork(t *testing.T) {
 
 	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
 
-	topic.SetRegisterTopicValidator(func(v pubsub.Validator) error {
+	topic.RegisterTopicValidator = func(v pubsub.Validator) error {
 		return nil
-	})
+	}
 
 	err := topic.RegisterValidator(nil)
 	assert.Nil(t, err)
@@ -279,9 +279,9 @@ func TestTopicUnregisterValidatorShouldWork(t *testing.T) {
 
 	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
 
-	topic.SetUnregisterTopicValidator(func() error {
+	topic.UnregisterTopicValidator = func() error {
 		return nil
-	})
+	}
 
 	err := topic.UnregisterValidator()
 	assert.Nil(t, err)
