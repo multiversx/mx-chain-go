@@ -110,7 +110,7 @@ func InitMessage() []*spos.Communication {
 			chronology.SubroundId(spos.SrBlock),
 			int64(roundDuration*5/100),
 			cns.GetSubroundName(spos.SrStartRound),
-			com.DoWorkOfStartRound,
+			com.DoStartRoundJob,
 			nil,
 			cns.CheckConsensus))
 
@@ -163,7 +163,7 @@ func InitMessage() []*spos.Communication {
 			-1,
 			int64(roundDuration*100/100),
 			cns.GetSubroundName(spos.SrEndRound),
-			com.DoWorkOfEndRound,
+			com.DoEndRoundJob,
 			com.ExtendEndRound,
 			cns.CheckConsensus))
 
@@ -239,7 +239,7 @@ func TestNewMessage(t *testing.T) {
 func TestMessage_StartRound(t *testing.T) {
 	coms := InitMessage()
 
-	r := coms[0].DoWorkOfStartRound()
+	r := coms[0].DoStartRoundJob()
 	assert.Equal(t, true, r)
 }
 
@@ -248,7 +248,7 @@ func TestMessage_EndRound(t *testing.T) {
 
 	coms[0].Hdr = &block.Header{}
 
-	r := coms[0].DoWorkOfEndRound()
+	r := coms[0].DoEndRoundJob()
 	assert.Equal(t, false, r)
 
 	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsFinished)
@@ -257,12 +257,12 @@ func TestMessage_EndRound(t *testing.T) {
 	coms[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
 	coms[0].Cns.SetStatus(spos.SrSignature, spos.SsFinished)
 
-	r = coms[0].DoWorkOfEndRound()
+	r = coms[0].DoEndRoundJob()
 	assert.Equal(t, true, r)
 
 	coms[0].Cns.Validators.SetSelfId(coms[0].Cns.Validators.ConsensusGroup()[1])
 
-	r = coms[0].DoWorkOfEndRound()
+	r = coms[0].DoEndRoundJob()
 	assert.Equal(t, 2, coms[0].RoundsWithBlock)
 	assert.Equal(t, true, r)
 }

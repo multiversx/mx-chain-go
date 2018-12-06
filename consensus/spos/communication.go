@@ -123,10 +123,10 @@ func NewCommunication(
 	return &com
 }
 
-// DoWorkOfStartRound method is the function which actually do the job of the DoWorkOfStartRound subround
+// DoStartRoundJob method is the function which actually do the job of the StartRound subround
 // (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
 // from spos package)
-func (com *Communication) DoWorkOfStartRound() bool {
+func (com *Communication) DoStartRoundJob() bool {
 	com.Blk = nil
 	com.Hdr = nil
 	com.Cns.Data = nil
@@ -149,10 +149,10 @@ func (com *Communication) DoWorkOfStartRound() bool {
 	return true
 }
 
-// DoWorkOfEndRound method is the function which actually do the job of the DoWorkOfEndRound subround
+// DoEndRoundJob method is the function which actually do the job of the EndRound subround
 // (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
 // from spos package)
-func (com *Communication) DoWorkOfEndRound() bool {
+func (com *Communication) DoEndRoundJob() bool {
 	if !com.Cns.CheckConsensus(SrEndRound) {
 		return false
 	}
@@ -369,7 +369,7 @@ func (com *Communication) DoCommitmentHashJob() bool {
 	}
 
 	if com.Cns.Status(SrCommitmentHash) == SsFinished || // is subround CommitmentHash already finished?
-		com.Cns.GetValidation(com.Cns.SelfId(), SrCommitmentHash) || // has been commitment hash already sent?
+		com.Cns.GetValidation(com.Cns.SelfId(), SrCommitmentHash) || // is commitment hash already sent?
 		com.Cns.Data == nil { // is consensus data not set?
 		return false
 	}
@@ -393,9 +393,9 @@ func (com *Communication) DoCommitmentHashJob() bool {
 	return true
 }
 
-// DoBitmapJob method is the function which is actually used to send the bitmap with the commitment hashes received,
-// in the Bitmap subround, when this node is leader (it is used as the handler function of the doSubroundJob
-// pointer variable function in Subround struct, from spos package)
+// DoBitmapJob method is the function which is actually used to send the bitmap with the commitment hashes
+// received, in the Bitmap subround, when this node is leader (it is used as the handler function of the
+// doSubroundJob pointer variable function in Subround struct, from spos package)
 func (com *Communication) DoBitmapJob() bool {
 	if com.Cns.Status(SrCommitmentHash) != SsFinished { // is subround CommitmentHash not finished?
 		return com.DoCommitmentHashJob()
@@ -450,7 +450,7 @@ func (com *Communication) DoCommitmentJob() bool {
 
 	if com.Cns.Status(SrCommitment) == SsFinished || // is subround Commitment already finished?
 		com.Cns.GetValidation(com.Cns.SelfId(), SrCommitment) || // has been commitment already sent?
-		!com.Cns.IsNodeInBitmapGroup(com.Cns.SelfId()) || // isn't node in the bitmap received from the leader?
+		!com.Cns.IsNodeInBitmapGroup(com.Cns.SelfId()) || // isn't node in the leader's bitmap?
 		com.Cns.Data == nil { // is consensus data not set?
 		return false
 	}
@@ -484,7 +484,7 @@ func (com *Communication) DoSignatureJob() bool {
 
 	if com.Cns.Status(SrSignature) == SsFinished || // is subround Signature already finished?
 		com.Cns.GetValidation(com.Cns.SelfId(), SrSignature) || // has been signature already sent?
-		!com.Cns.IsNodeInBitmapGroup(com.Cns.SelfId()) || // isn't node in the bitmap received from the leader?
+		!com.Cns.IsNodeInBitmapGroup(com.Cns.SelfId()) || // isn't node in the leader's bitmap?
 		com.Cns.Data == nil { // is consensus data not set?
 		return false
 	}
@@ -568,7 +568,8 @@ func (com *Communication) ExtendSignature() {
 		" which are not enough", com.Cns.ComputeSize(SrSignature), len(com.Cns.ConsensusGroup())))
 }
 
-// ExtendEndRound method just print some messages as no extend will be permited, because a new round will be start
+// ExtendEndRound method just print some messages as no extend will be permited, because a new round
+// will be start
 func (com *Communication) ExtendEndRound() {
 	com.Log(fmt.Sprintf("\n" + com.GetFormatedTime() +
 		">>>>>>>>>>>>>>>>>>>> THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN <<<<<<<<<<<<<<<<<<<<\n"))
@@ -582,8 +583,8 @@ func (com *Communication) ReceivedMessage(cnsData *ConsensusData) {
 	}
 }
 
-// CheckChannels method is used to listen to the channels through which node receives and consumes, during the round,
-// different messages from the nodes which are in the validators group
+// CheckChannels method is used to listen to the channels through which node receives and consumes,
+// during the round, different messages from the nodes which are in the validators group
 func (com *Communication) CheckChannels() {
 	for {
 		select {
@@ -651,8 +652,8 @@ func (com *Communication) DecodeBlockBody(dta *[]byte) *block.Block {
 }
 
 // ReceivedBlockHeader method is called when a block header is received through the block header channel.
-// If the block header is valid, than the agreement map coresponding to the node which sent it, is set on true for the
-// subround Block
+// If the block header is valid, than the agreement map coresponding to the node which sent it,
+// is set on true for the subround Block
 func (com *Communication) ReceivedBlockHeader(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
@@ -699,9 +700,9 @@ func (com *Communication) DecodeBlockHeader(dta *[]byte) *block.Header {
 	return &hdr
 }
 
-// ReceivedCommitmentHash method is called when a commitment hash is received through the commitment hash channel.
-// If the commitment hash is valid, than the validation map coresponding to the node which sent it, is set on
-// true for the subround ComitmentHash
+// ReceivedCommitmentHash method is called when a commitment hash is received through the commitment hash
+// channel. If the commitment hash is valid, than the validation map coresponding to the node which sent it,
+// is set on true for the subround ComitmentHash
 func (com *Communication) ReceivedCommitmentHash(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
@@ -714,8 +715,8 @@ func (com *Communication) ReceivedCommitmentHash(cnsDta *ConsensusData) bool {
 		return false
 	}
 
-	// if this node is leader in this round and already he received 2/3 + 1 of commitment hashes he will ignore any
-	// others received later
+	// if this node is leader in this round and already he received 2/3 + 1 of commitment hashes
+	// he will ignore any others received later
 	if com.Cns.IsNodeLeaderInCurrentRound(com.Cns.SelfId()) {
 		if com.Cns.IsCommitmentHashReceived(com.Cns.Threshold(SrCommitmentHash)) {
 			return false
@@ -726,8 +727,9 @@ func (com *Communication) ReceivedCommitmentHash(cnsDta *ConsensusData) bool {
 	return true
 }
 
-// ReceivedBitmap method is called when a bitmap is received through the bitmap channel. If the bitmap is valid, than
-// the validation map coresponding to the node which sent it, is set on true for the subround Bitmap
+// ReceivedBitmap method is called when a bitmap is received through the bitmap channel.
+// If the bitmap is valid, than the validation map coresponding to the node which sent it,
+// is set on true for the subround Bitmap
 func (com *Communication) ReceivedBitmap(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
@@ -765,8 +767,9 @@ func (com *Communication) ReceivedBitmap(cnsDta *ConsensusData) bool {
 	return true
 }
 
-// ReceivedCommitment method is called when a commitment is received through the commitment channel. If the commitment
-// is valid, than the validation map coresponding to the node which sent it, is set on true for the subround Comitment
+// ReceivedCommitment method is called when a commitment is received through the commitment channel.
+// If the commitment is valid, than the validation map coresponding to the node which sent it,
+// is set on true for the subround Comitment
 func (com *Communication) ReceivedCommitment(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
@@ -783,8 +786,9 @@ func (com *Communication) ReceivedCommitment(cnsDta *ConsensusData) bool {
 	return true
 }
 
-// ReceivedSignature method is called when a Signature is received through the Signature channel. If the Signature
-// is valid, than the validation map coresponding to the node which sent it, is set on true for the subround Signature
+// ReceivedSignature method is called when a Signature is received through the Signature channel.
+// If the Signature is valid, than the validation map coresponding to the node which sent it,
+// is set on true for the subround Signature
 func (com *Communication) ReceivedSignature(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
@@ -803,7 +807,8 @@ func (com *Communication) ReceivedSignature(cnsDta *ConsensusData) bool {
 
 // CheckIfBlockIsValid method checks if the received block is valid
 func (com *Communication) CheckIfBlockIsValid(receivedHeader *block.Header) bool {
-	// TODO: This logic is temporary and it should be refactored after the bootstrap mechanism will be implemented
+	// TODO: This logic is temporary and it should be refactored after the bootstrap mechanism
+	// TODO: will be implemented
 
 	if com.Blkc.CurrentBlock == nil {
 		if receivedHeader.Nonce == 1 { // first block after genesis
@@ -816,13 +821,13 @@ func (com *Communication) CheckIfBlockIsValid(receivedHeader *block.Header) bool
 			return false
 		}
 
-		// to resolve the situation when a node comes later in the network and it has the bootstrap mechanism
-		// not implemented yet (he will accept the block received)
+		// to resolve the situation when a node comes later in the network and it has the
+		// bootstrap mechanism not implemented yet (he will accept the block received)
 		com.Log(fmt.Sprintf("Nonce not match: local block nonce is 0 and node received block "+
 			"with nonce %d", receivedHeader.Nonce))
 		com.Log(fmt.Sprintf("\n"+com.GetFormatedTime()+
-			">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET "+
-			"<<<<<<<<<<<<<<<<<<<<\n", receivedHeader.Nonce))
+			">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT "+
+			"IMPLEMENTED YET <<<<<<<<<<<<<<<<<<<<\n", receivedHeader.Nonce))
 		return true
 	}
 
@@ -847,14 +852,14 @@ func (com *Communication) CheckIfBlockIsValid(receivedHeader *block.Header) bool
 	com.Log(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block "+
 		"with nonce %d", com.Blkc.CurrentBlock.Nonce, receivedHeader.Nonce))
 	com.Log(fmt.Sprintf("\n"+com.GetFormatedTime()+
-		">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET "+
-		"<<<<<<<<<<<<<<<<<<<<\n", receivedHeader.Nonce))
+		">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT "+
+		"IMPLEMENTED YET <<<<<<<<<<<<<<<<<<<<\n", receivedHeader.Nonce))
 	return true
 }
 
-// ShouldSynch method returns the synch state of the node. If it returns 'true', this means that the node is not
-// synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already synched and
-// it can participate to the consensus, if it is in the validation group of this round
+// ShouldSynch method returns the synch state of the node. If it returns 'true', this means that the node
+// is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
+// synched and it can participate to the consensus, if it is in the validation group of this round
 func (com *Communication) ShouldSynch() bool {
 	if com.Cns == nil ||
 		com.Cns.Chr == nil ||
