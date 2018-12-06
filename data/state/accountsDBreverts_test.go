@@ -22,8 +22,8 @@ func accountsDBRevertCreateAccountsDB() *state.AccountsDB {
 
 func accountsDBRevertEmulateBalanceTxExecution(acntSrc, acntDest state.JournalizedAccountWrapper, value *big.Int) error {
 
-	srcVal := acntSrc.Balance()
-	destVal := acntDest.Balance()
+	srcVal := acntSrc.BaseAccount().Balance
+	destVal := acntDest.BaseAccount().Balance
 
 	if srcVal.Cmp(value) < 0 {
 		return errors.New("not enough funds")
@@ -42,7 +42,7 @@ func accountsDBRevertEmulateBalanceTxExecution(acntSrc, acntDest state.Journaliz
 	}
 
 	//increment src's nonce
-	err = acntSrc.SetNonceWithJournal(acntSrc.Nonce() + 1)
+	err = acntSrc.SetNonceWithJournal(acntSrc.BaseAccount().Nonce + 1)
 	if err != nil {
 		return err
 	}
@@ -68,12 +68,12 @@ func adbrEmulateBalanceTxSafeExecution(acntSrc, acntDest state.JournalizedAccoun
 }
 
 func adbrPrintAccount(journalizedAccountWrap state.JournalizedAccountWrapper, tag string) {
-	bal := journalizedAccountWrap.Balance()
+	bal := journalizedAccountWrap.BaseAccount().Balance
 	fmt.Printf("%s address: %s\n", tag, base64.StdEncoding.EncodeToString(journalizedAccountWrap.AddressContainer().Bytes()))
-	fmt.Printf("     Nonce: %d\n", journalizedAccountWrap.Nonce())
+	fmt.Printf("     Nonce: %d\n", journalizedAccountWrap.BaseAccount().Nonce)
 	fmt.Printf("     Balance: %d\n", bal.Uint64())
-	fmt.Printf("     Code hash: %v\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.CodeHash()))
-	fmt.Printf("     Root hash: %v\n\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.RootHash()))
+	fmt.Printf("     Code hash: %v\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.BaseAccount().CodeHash))
+	fmt.Printf("     Root hash: %v\n\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.BaseAccount().RootHash))
 }
 
 func TestAccountsDBRevertNonceStepByStepAccountDataShouldWork(t *testing.T) {

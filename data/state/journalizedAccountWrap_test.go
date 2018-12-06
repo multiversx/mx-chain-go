@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewJournalizedAccountWrapWithNilAccountAdapterShouldErr(t *testing.T) {
-	_, err := state.NewJournalizedAccountWrap(mock.NewModifyingAccountWrapMock(), nil)
+	_, err := state.NewJournalizedAccountWrap(mock.NewTrackableAccountWrapMock(), nil)
 
 	assert.NotNil(t, err)
 }
@@ -37,7 +37,7 @@ func TestNewJournalizedAccountWrapSetNonceWithJournal(t *testing.T) {
 		jeAdded = je
 	}
 
-	jaw, err := state.NewJournalizedAccountWrap(mock.NewModifyingAccountWrapMock(), acntAdapter)
+	jaw, err := state.NewJournalizedAccountWrap(mock.NewTrackableAccountWrapMock(), acntAdapter)
 	assert.Nil(t, err)
 	err = jaw.SetNonceWithJournal(1)
 	assert.Nil(t, err)
@@ -61,7 +61,7 @@ func TestNewJournalizedAccountWrapSetBalanceWithJournal(t *testing.T) {
 		jeAdded = je
 	}
 
-	jaw, err := state.NewJournalizedAccountWrap(mock.NewModifyingAccountWrapMock(), acntAdapter)
+	jaw, err := state.NewJournalizedAccountWrap(mock.NewTrackableAccountWrapMock(), acntAdapter)
 	assert.Nil(t, err)
 	err = jaw.SetBalanceWithJournal(*big.NewInt(1))
 	assert.Nil(t, err)
@@ -85,7 +85,7 @@ func TestNewJournalizedAccountWrapSetCodeHashWithJournal(t *testing.T) {
 		jeAdded = je
 	}
 
-	jaw, err := state.NewJournalizedAccountWrap(mock.NewModifyingAccountWrapMock(), acntAdapter)
+	jaw, err := state.NewJournalizedAccountWrap(mock.NewTrackableAccountWrapMock(), acntAdapter)
 	assert.Nil(t, err)
 	err = jaw.SetCodeHashWithJournal([]byte("aa"))
 	assert.Nil(t, err)
@@ -109,7 +109,7 @@ func TestNewJournalizedAccountWrapSetRootHashWithJournal(t *testing.T) {
 		jeAdded = je
 	}
 
-	jaw, err := state.NewJournalizedAccountWrap(mock.NewModifyingAccountWrapMock(), acntAdapter)
+	jaw, err := state.NewJournalizedAccountWrap(mock.NewTrackableAccountWrapMock(), acntAdapter)
 	assert.Nil(t, err)
 	err = jaw.SetRootHashWithJournal([]byte("aa"))
 	assert.Nil(t, err)

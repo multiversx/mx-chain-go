@@ -34,20 +34,8 @@ func adbCreateAccountsDB() *state.AccountsDB {
 	return adb
 }
 
-func adbCreateAddress(buff []byte) *state.Address {
-	adr, err := state.FromPubKeyBytes(buff, mock.HasherMock{})
-	if err != nil {
-		panic(err)
-	}
-
-	return adr
-}
-
 func generateAddressJurnalAccountAccountsDB() (state.AddressContainer, state.JournalizedAccountWrapper, *state.AccountsDB) {
-	buff := make([]byte, state.AdrLen)
-	rand.Read(buff)
-
-	adr := adbCreateAddress(buff)
+	adr := mock.NewAddressMock()
 	adb := adbCreateAccountsDB()
 
 	jaw, err := state.NewJournalizedAccountWrapFromAccountContainer(adr, state.NewAccount(), adb)
@@ -60,8 +48,8 @@ func generateAddressJurnalAccountAccountsDB() (state.AddressContainer, state.Jou
 
 func adbEmulateBalanceTxExecution(acntSrc, acntDest state.JournalizedAccountWrapper, value *big.Int) error {
 
-	srcVal := acntSrc.Balance()
-	destVal := acntDest.Balance()
+	srcVal := acntSrc.BaseAccount().Balance
+	destVal := acntDest.BaseAccount().Balance
 
 	if srcVal.Cmp(value) < 0 {
 		return errors.New("not enough funds")
@@ -80,7 +68,7 @@ func adbEmulateBalanceTxExecution(acntSrc, acntDest state.JournalizedAccountWrap
 	}
 
 	//increment src's nonce
-	err = acntSrc.SetNonceWithJournal(acntSrc.Nonce() + 1)
+	err = acntSrc.SetNonceWithJournal(acntSrc.BaseAccount().Nonce + 1)
 	if err != nil {
 		return err
 	}
@@ -106,12 +94,12 @@ func adbEmulateBalanceTxSafeExecution(acntSrc, acntDest state.JournalizedAccount
 }
 
 func adbPrintAccount(journalizedAccountWrap state.JournalizedAccountWrapper, tag string) {
-	bal := journalizedAccountWrap.Balance()
+	bal := journalizedAccountWrap.BaseAccount().Balance
 	fmt.Printf("%s address: %s\n", tag, base64.StdEncoding.EncodeToString(journalizedAccountWrap.AddressContainer().Bytes()))
-	fmt.Printf("     Nonce: %d\n", journalizedAccountWrap.Nonce())
+	fmt.Printf("     Nonce: %d\n", journalizedAccountWrap.BaseAccount().Nonce)
 	fmt.Printf("     Balance: %d\n", bal.Uint64())
-	fmt.Printf("     Code hash: %v\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.CodeHash()))
-	fmt.Printf("     Root hash: %v\n\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.RootHash()))
+	fmt.Printf("     Code hash: %v\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.BaseAccount().CodeHash))
+	fmt.Printf("     Root hash: %v\n\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.BaseAccount().RootHash))
 }
 
 //------- Functionality tests
@@ -153,16 +141,16 @@ func TestAccountsDBPutCodeWithSomeValuesShouldWork(t *testing.T) {
 
 	err := adb.PutCode(jaw, []byte("Smart contract code"))
 	assert.Nil(t, err)
-	assert.NotNil(t, jaw.CodeHash())
+	assert.NotNil(t, jaw.BaseAccount().CodeHash)
 	assert.Equal(t, []byte("Smart contract code"), jaw.Code())
 
-	fmt.Printf("SC code is at address: %v\n", jaw.CodeHash())
+	fmt.Printf("SC code is at address: %v\n", jaw.BaseAccount().CodeHash)
 
 	recoveredAccount, err := adb.GetJournalizedAccount(jaw.AddressContainer())
 	assert.Nil(t, err)
 
 	assert.Equal(t, jaw.Code(), recoveredAccount.Code())
-	assert.Equal(t, jaw.CodeHash(), recoveredAccount.CodeHash())
+	assert.Equal(t, jaw.BaseAccount().CodeHash, recoveredAccount.BaseAccount().CodeHash)
 }
 
 func TestAccountsDBSaveDataNoDirtyShouldWork(t *testing.T) {
@@ -221,7 +209,7 @@ func TestAccountsDBGetJournalizedAccountReturnExistingAccntShouldWork(t *testing
 	acnt, err := adb.GetJournalizedAccount(adr)
 	assert.Nil(t, err)
 	assert.NotNil(t, acnt)
-	assert.Equal(t, acnt.Balance(), *big.NewInt(40))
+	assert.Equal(t, acnt.BaseAccount().Balance, *big.NewInt(40))
 }
 
 func TestAccountsDB_GetJournalizedAccount_ReturnNotFoundAccnt_ShouldWork(t *testing.T) {
@@ -234,7 +222,7 @@ func TestAccountsDB_GetJournalizedAccount_ReturnNotFoundAccnt_ShouldWork(t *test
 	acnt, err := adb.GetJournalizedAccount(adr)
 	assert.Nil(t, err)
 	assert.NotNil(t, acnt)
-	assert.Equal(t, acnt.Balance(), *big.NewInt(0))
+	assert.Equal(t, acnt.BaseAccount().Balance, *big.NewInt(0))
 }
 
 func TestAccountsDB_Commit_2okAccounts_ShouldWork(t *testing.T) {
@@ -243,9 +231,9 @@ func TestAccountsDB_Commit_2okAccounts_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr1, _, adb := generateAddressJurnalAccountAccountsDB()
-	buff := make([]byte, state.AdrLen)
+	buff := make([]byte, mock.HasherMock{}.Size())
 	rand.Read(buff)
-	adr2 := adbCreateAddress(buff)
+	adr2 := mock.NewAddressMock()
 
 	//first account has the balance of 40
 	state1, err := adb.GetJournalizedAccount(adr1)
@@ -277,13 +265,13 @@ func TestAccountsDB_Commit_2okAccounts_ShouldWork(t *testing.T) {
 	//checking state1
 	newState1, err := adb.GetJournalizedAccount(adr1)
 	assert.Nil(t, err)
-	assert.Equal(t, newState1.Balance(), *big.NewInt(40))
+	assert.Equal(t, newState1.BaseAccount().Balance, *big.NewInt(40))
 
 	//checking state2
 	newState2, err := adb.GetJournalizedAccount(adr2)
 	assert.Nil(t, err)
-	assert.Equal(t, newState2.Balance(), *big.NewInt(50))
-	assert.NotNil(t, newState2.RootHash())
+	assert.Equal(t, newState2.BaseAccount().Balance, *big.NewInt(50))
+	assert.NotNil(t, newState2.BaseAccount().RootHash)
 	//get data
 	err = adb.LoadDataTrie(newState2)
 	assert.Nil(t, err)

@@ -8,65 +8,26 @@ import (
 )
 
 type JournalizedAccountWrapMock struct {
+	*state.Account
 	address               state.AddressContainer
-	nonce                 uint64
-	balance               big.Int
-	codeHash              []byte
-	rootHash              []byte
 	code                  []byte
 	dataTrie              trie.PatriciaMerkelTree
 	ClearDataCachesCalled func()
-	SaveToDbAccountCalled func(target state.DbAccountContainer) error
 	originalData          map[string][]byte
 	dirtyData             map[string][]byte
 }
 
 func NewJournalizedAccountWrapMock(address state.AddressContainer) *JournalizedAccountWrapMock {
 	return &JournalizedAccountWrapMock{
+		Account:      state.NewAccount(),
 		address:      address,
 		originalData: make(map[string][]byte),
 		dirtyData:    make(map[string][]byte),
 	}
 }
 
-func (jawm *JournalizedAccountWrapMock) Nonce() uint64 {
-	return jawm.nonce
-}
-
-func (jawm *JournalizedAccountWrapMock) SetNonce(nonce uint64) {
-	jawm.nonce = nonce
-}
-
-func (jawm *JournalizedAccountWrapMock) CodeHash() []byte {
-	return jawm.codeHash
-}
-
-func (jawm *JournalizedAccountWrapMock) SetCodeHash(codeHash []byte) {
-	jawm.codeHash = codeHash
-}
-
-func (jawm *JournalizedAccountWrapMock) RootHash() []byte {
-	return jawm.rootHash
-}
-
-func (jawm *JournalizedAccountWrapMock) SetRootHash(rootHash []byte) {
-	jawm.rootHash = rootHash
-}
-
-func (jawm *JournalizedAccountWrapMock) Balance() big.Int {
-	return jawm.balance
-}
-
-func (jawm *JournalizedAccountWrapMock) SetBalance(balance big.Int) {
-	jawm.balance = balance
-}
-
-func (jawm *JournalizedAccountWrapMock) LoadFromDbAccount(source state.DbAccountContainer) error {
-	panic("implement me")
-}
-
-func (jawm *JournalizedAccountWrapMock) SaveToDbAccount(target state.DbAccountContainer) error {
-	return jawm.SaveToDbAccountCalled(target)
+func (jawm *JournalizedAccountWrapMock) BaseAccount() *state.Account {
+	return jawm.Account
 }
 
 func (jawm *JournalizedAccountWrapMock) AddressContainer() state.AddressContainer {
@@ -144,7 +105,7 @@ func (jawm *JournalizedAccountWrapMock) SetBalanceWithJournal(big.Int) error {
 }
 
 func (jawm *JournalizedAccountWrapMock) SetCodeHashWithJournal(codeHash []byte) error {
-	jawm.codeHash = codeHash
+	jawm.Account.CodeHash = codeHash
 	return nil
 }
 

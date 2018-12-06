@@ -9,56 +9,23 @@ import (
 // HashLength defines how many bytes are used in a hash
 const HashLength = 32
 
+type AddressConverter interface {
+	CreateAddressFromPublicKeyBytes(pubKey []byte) (AddressContainer, error)
+	ConvertToHex(addressContainer AddressContainer) (string, error)
+	CreateAddressFromHex(hexAddress string) (AddressContainer, error)
+	PrepareAddressBytes(addressBytes []byte) ([]byte, error)
+}
+
 // AddressContainer models what an Address struct should do
 type AddressContainer interface {
 	Bytes() []byte
 	Hash() []byte
 }
 
-// IntBalancer is an interface for int based balance
-type IntBalancer interface {
-	Balance() big.Int
-	SetBalance(big.Int)
-}
-
-// SliceBalancer is an interface for slice based balance (useful when serializing/deserializing) data
-type SliceBalancer interface {
-	Balance() []byte
-	SetBalance([]byte)
-}
-
-// BaseAccountContainer is an interface that knows abaot Nonce, Code Hash and Root Hash
-type BaseAccountContainer interface {
-	Nonce() uint64
-	SetNonce(uint64)
-	CodeHash() []byte
-	SetCodeHash([]byte)
-	RootHash() []byte
-	SetRootHash([]byte)
-}
-
-// DbAccountContainer defines the interface for the account that will actually be saved on a DB
-// This structure is Cap'n'Proto compliant
-type DbAccountContainer interface {
-	BaseAccountContainer
-
-	SliceBalancer
-}
-
-// AccountContainer is used for the structure that manipulates Account data
-type AccountContainer interface {
-	BaseAccountContainer
-
-	IntBalancer
-	LoadFromDbAccount(source DbAccountContainer) error
-	SaveToDbAccount(target DbAccountContainer) error
-}
-
-// SimpleAccountWrapper models what an AccountWrap struct should do
+// AccountWrapper models what an AccountWrap struct should do
 // It knows about code and data, as data structures not hashes
-type SimpleAccountWrapper interface {
-	AccountContainer
-
+type AccountWrapper interface {
+	BaseAccount() *Account
 	AddressContainer() AddressContainer
 	Code() []byte
 	SetCode(code []byte)
@@ -66,10 +33,10 @@ type SimpleAccountWrapper interface {
 	SetDataTrie(trie trie.PatriciaMerkelTree)
 }
 
-// ModifyingDataAccountWrapper models what an AccountWrap struct should do
-// It knows how to manipulate data hold by a SC account
-type ModifyingDataAccountWrapper interface {
-	SimpleAccountWrapper
+// TrackableDataAccountWrapper models what an AccountWrap struct should do
+// It knows how to manipulate data held by a SC account
+type TrackableDataAccountWrapper interface {
+	AccountWrapper
 
 	ClearDataCaches()
 	DirtyData() map[string][]byte
@@ -81,7 +48,7 @@ type ModifyingDataAccountWrapper interface {
 // JournalizedAccountWrapper models what an AccountWrap struct should do
 // It knows how to journalize changes
 type JournalizedAccountWrapper interface {
-	ModifyingDataAccountWrapper
+	TrackableDataAccountWrapper
 
 	SetNonceWithJournal(uint64) error
 	SetBalanceWithJournal(big.Int) error

@@ -55,7 +55,7 @@ func NewJournalEntryCreation(addressContainer AddressContainer) *JournalEntryCre
 	}
 }
 
-// Revert apply undo operation
+// Revert applies undo operation
 func (jec *JournalEntryCreation) Revert(accountsAdapter AccountsAdapter) error {
 	if accountsAdapter == nil {
 		return ErrNilAccountsAdapter
@@ -83,7 +83,7 @@ func NewJournalEntryNonce(jurnalizedAccount JournalizedAccountWrapper, oldNonce 
 	}
 }
 
-// Revert apply undo operation
+// Revert applies undo operation
 func (jen *JournalEntryNonce) Revert(accountsAdapter AccountsAdapter) error {
 	if accountsAdapter == nil {
 		return ErrNilAccountsAdapter
@@ -98,7 +98,7 @@ func (jen *JournalEntryNonce) Revert(accountsAdapter AccountsAdapter) error {
 	}
 
 	//access nonce through implicit func as to not re-register the modification
-	jen.jurnalizedAccount.SetNonce(jen.oldNonce)
+	jen.jurnalizedAccount.BaseAccount().Nonce = jen.oldNonce
 	return accountsAdapter.SaveJournalizedAccount(jen.jurnalizedAccount)
 }
 
@@ -117,7 +117,7 @@ func NewJournalEntryBalance(jurnalizedAccount JournalizedAccountWrapper, oldBala
 	}
 }
 
-// Revert apply undo operation
+// Revert applies undo operation
 func (jeb *JournalEntryBalance) Revert(accountsAdapter AccountsAdapter) error {
 	if accountsAdapter == nil {
 		return ErrNilAccountsAdapter
@@ -132,7 +132,7 @@ func (jeb *JournalEntryBalance) Revert(accountsAdapter AccountsAdapter) error {
 	}
 
 	//save balance through implicit func as to not re-register the modification
-	jeb.jurnalizedAccount.SetBalance(jeb.oldBalance)
+	jeb.jurnalizedAccount.BaseAccount().Balance = jeb.oldBalance
 	return accountsAdapter.SaveJournalizedAccount(jeb.jurnalizedAccount)
 }
 
@@ -151,7 +151,7 @@ func NewJournalEntryCodeHash(jurnalizedAccount JournalizedAccountWrapper, oldCod
 	}
 }
 
-// Revert apply undo operation
+// Revert applies undo operation
 func (jech *JournalEntryCodeHash) Revert(accountsAdapter AccountsAdapter) error {
 	if accountsAdapter == nil {
 		return ErrNilAccountsAdapter
@@ -165,14 +165,8 @@ func (jech *JournalEntryCodeHash) Revert(accountsAdapter AccountsAdapter) error 
 		return ErrNilAddressContainer
 	}
 
-	//bare in mind that nil oldRootHash are permitted because this is the way a new SC with data account
-	//is constructed
-	if jech.oldCodeHash != nil && len(jech.oldCodeHash) != AdrLen {
-		return NewErrorWrongSize(AdrLen, len(jech.oldCodeHash))
-	}
-
 	//access code hash through implicit func as to not re-register the modification
-	jech.jurnalizedAccount.SetCodeHash(jech.oldCodeHash)
+	jech.jurnalizedAccount.BaseAccount().CodeHash = jech.oldCodeHash
 	return accountsAdapter.SaveJournalizedAccount(jech.jurnalizedAccount)
 }
 
@@ -190,7 +184,7 @@ func NewJournalEntryCode(codeHash []byte) *JournalEntryCode {
 	}
 }
 
-// Revert apply undo operation
+// Revert applies undo operation
 func (jec *JournalEntryCode) Revert(accountsAdapter AccountsAdapter) error {
 	if accountsAdapter == nil {
 		return ErrNilAccountsAdapter
@@ -198,10 +192,6 @@ func (jec *JournalEntryCode) Revert(accountsAdapter AccountsAdapter) error {
 
 	if jec.codeHash == nil {
 		return ErrNilValue
-	}
-
-	if len(jec.codeHash) != AdrLen {
-		return NewErrorWrongSize(AdrLen, len(jec.codeHash))
 	}
 
 	return accountsAdapter.RemoveCode(jec.codeHash)
@@ -222,7 +212,7 @@ func NewJournalEntryRootHash(jurnalizedAccount JournalizedAccountWrapper, oldRoo
 	}
 }
 
-// Revert apply undo operation
+// Revert applies undo operation
 func (jer *JournalEntryRootHash) Revert(accountsAdapter AccountsAdapter) error {
 	if accountsAdapter == nil {
 		return ErrNilAccountsAdapter
@@ -236,14 +226,8 @@ func (jer *JournalEntryRootHash) Revert(accountsAdapter AccountsAdapter) error {
 		return ErrNilAddressContainer
 	}
 
-	//bare in mind that nil oldRootHash are permitted because this is the way a new SC with data account
-	//is constructed
-	if jer.oldRootHash != nil && len(jer.oldRootHash) != AdrLen {
-		return NewErrorWrongSize(AdrLen, len(jer.oldRootHash))
-	}
-
 	//access code hash through implicit func as to not re-register the modification
-	jer.jurnalizedAccount.SetRootHash(jer.oldRootHash)
+	jer.jurnalizedAccount.BaseAccount().RootHash = jer.oldRootHash
 	err := accountsAdapter.LoadDataTrie(jer.jurnalizedAccount)
 	if err != nil {
 		return err

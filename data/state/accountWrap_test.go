@@ -11,10 +11,10 @@ import (
 func TestNewSimpleAccountWrapInvalidValsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := state.NewSimpleAccountWrap(nil, state.NewAccount())
+	_, err := state.NewAccountWrap(nil, state.NewAccount())
 	assert.NotNil(t, err)
 
-	_, err = state.NewSimpleAccountWrap(mock.NewAddressMock(), nil)
+	_, err = state.NewAccountWrap(mock.NewAddressMock(), nil)
 	assert.NotNil(t, err)
 }
 
@@ -23,7 +23,7 @@ func TestSimpleAccountWrapGettersSettersValidValsShouldWork(t *testing.T) {
 
 	adr := mock.NewAddressMock()
 
-	acntWrap, err := state.NewSimpleAccountWrap(adr, state.NewAccount())
+	acntWrap, err := state.NewAccountWrap(adr, state.NewAccount())
 	assert.Nil(t, err)
 
 	trie := mock.NewMockTrie()

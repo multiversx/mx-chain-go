@@ -88,7 +88,7 @@ func TestJournalEntryNonceRevertOkValsShouldWork(t *testing.T) {
 
 	adr := mock.NewAddressMock()
 	acnt := mock.NewJournalizedAccountWrapMock(adr)
-	acnt.SetNonce(445)
+	acnt.Nonce = 445
 
 	jec := state.NewJournalEntryNonce(acnt, 1)
 	err := jec.Revert(acntAdapter)
@@ -96,7 +96,7 @@ func TestJournalEntryNonceRevertOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, adr, jec.DirtiedAddress())
-	assert.Equal(t, uint64(1), acnt.Nonce())
+	assert.Equal(t, uint64(1), acnt.Nonce)
 }
 
 func TestJournalEntryNonceRevertNilAccountShouldErr(t *testing.T) {
@@ -143,7 +143,7 @@ func TestJournalEntryNonceRevertAccountAdapterErrorShouldErr(t *testing.T) {
 		return nil
 	}
 
-	acnt.SetNonce(445)
+	acnt.Nonce = 445
 
 	jen := state.NewJournalEntryNonce(acnt, 1)
 	err := jen.Revert(acntAdapter)
@@ -151,7 +151,7 @@ func TestJournalEntryNonceRevertAccountAdapterErrorShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, adr, jen.DirtiedAddress())
-	assert.Equal(t, uint64(1), acnt.Nonce())
+	assert.Equal(t, uint64(1), acnt.Nonce)
 }
 
 //------- JournalEntryBalance
@@ -170,7 +170,7 @@ func TestJournalEntryBalanceRevertOkValsShouldWork(t *testing.T) {
 
 	adr := mock.NewAddressMock()
 	acnt := mock.NewJournalizedAccountWrapMock(adr)
-	acnt.SetBalance(*big.NewInt(445))
+	acnt.Balance = *big.NewInt(445)
 
 	jec := state.NewJournalEntryBalance(acnt, *big.NewInt(2))
 	err := jec.Revert(acntAdapter)
@@ -178,7 +178,7 @@ func TestJournalEntryBalanceRevertOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, adr, jec.DirtiedAddress())
-	assert.Equal(t, *big.NewInt(2), acnt.Balance())
+	assert.Equal(t, *big.NewInt(2), acnt.Balance)
 }
 
 func TestJournalEntryBalanceRevertNilAccountShouldErr(t *testing.T) {
@@ -225,7 +225,7 @@ func TestJournalEntryBalanceRevertAccountAdapterErrorShouldErr(t *testing.T) {
 		return nil
 	}
 
-	acnt.SetBalance(*big.NewInt(445))
+	acnt.Balance = *big.NewInt(445)
 
 	jeb := state.NewJournalEntryBalance(acnt, *big.NewInt(2))
 	err := jeb.Revert(acntAdapter)
@@ -233,7 +233,7 @@ func TestJournalEntryBalanceRevertAccountAdapterErrorShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, adr, jeb.DirtiedAddress())
-	assert.Equal(t, *big.NewInt(2), acnt.Balance())
+	assert.Equal(t, *big.NewInt(2), acnt.Balance)
 }
 
 //------- JournalEntryCodeHash
@@ -252,15 +252,15 @@ func TestJournalEntryCodeHashRevertOkValsShouldWork(t *testing.T) {
 
 	adr := mock.NewAddressMock()
 	acnt := mock.NewJournalizedAccountWrapMock(adr)
-	acnt.SetCodeHash([]byte("aaaa"))
+	acnt.CodeHash = []byte("aaaa")
 
-	jec := state.NewJournalEntryCodeHash(acnt, make([]byte, state.AdrLen))
+	jec := state.NewJournalEntryCodeHash(acnt, make([]byte, mock.HasherMock{}.Size()))
 	err := jec.Revert(acntAdapter)
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, adr, jec.DirtiedAddress())
-	assert.Equal(t, make([]byte, state.AdrLen), acnt.CodeHash())
+	assert.Equal(t, make([]byte, mock.HasherMock{}.Size()), acnt.CodeHash)
 }
 
 func TestJournalEntryCodeHashRevertNilAccountShouldErr(t *testing.T) {
@@ -285,16 +285,6 @@ func TestJournalEntryCodeHashRevertNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	acnt := mock.NewJournalizedAccountWrapMock(nil)
-	jech := state.NewJournalEntryCodeHash(acnt, []byte("aaa"))
-	err := jech.Revert(mock.NewAccountsAdapterMock())
-	assert.NotNil(t, err)
-}
-
-func TestJournalEntryCodeHashRevertWrongSizeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	adr := mock.NewAddressMock()
-	acnt := mock.NewJournalizedAccountWrapMock(adr)
 	jech := state.NewJournalEntryCodeHash(acnt, []byte("aaa"))
 	err := jech.Revert(mock.NewAccountsAdapterMock())
 	assert.NotNil(t, err)
@@ -334,15 +324,15 @@ func TestJournalEntryCodeHashRevertAccountsAdapterErrorShouldErr(t *testing.T) {
 		return nil
 	}
 
-	acnt.SetCodeHash([]byte("aaaa"))
+	acnt.CodeHash = []byte("aaaa")
 
-	jech := state.NewJournalEntryCodeHash(acnt, make([]byte, state.AdrLen))
+	jech := state.NewJournalEntryCodeHash(acnt, make([]byte, mock.HasherMock{}.Size()))
 	err := jech.Revert(acntAdapter)
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, adr, jech.DirtiedAddress())
-	assert.Equal(t, make([]byte, state.AdrLen), acnt.CodeHash())
+	assert.Equal(t, make([]byte, mock.HasherMock{}.Size()), acnt.CodeHash)
 }
 
 //------- JournalEntryCode
@@ -359,7 +349,7 @@ func TestJournalEntryCodeRevertOkValsShouldWork(t *testing.T) {
 		return nil
 	}
 
-	jec := state.NewJournalEntryCode(make([]byte, state.AdrLen))
+	jec := state.NewJournalEntryCode(make([]byte, mock.HasherMock{}.Size()))
 	err := jec.Revert(acntAdapter)
 
 	assert.Nil(t, err)
@@ -383,18 +373,10 @@ func TestJournalEntryCodeRevertNilAccountAdapterShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryCodeRevertWrongSizeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	jec := state.NewJournalEntryCode([]byte("a"))
-	err := jec.Revert(mock.NewAccountsAdapterMock())
-	assert.NotNil(t, err)
-}
-
 func TestJournalEntryCodeRevertAccountAdapterErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	jec := state.NewJournalEntryCode(make([]byte, state.AdrLen))
+	jec := state.NewJournalEntryCode(make([]byte, mock.HasherMock{}.Size()))
 
 	wasCalled := false
 
@@ -434,16 +416,16 @@ func TestJournalEntryRootHashRevertOkValsShouldWork(t *testing.T) {
 
 	adr := mock.NewAddressMock()
 	acnt := mock.NewJournalizedAccountWrapMock(adr)
-	acnt.SetRootHash([]byte("aaaa"))
+	acnt.RootHash = []byte("aaaa")
 
-	jerh := state.NewJournalEntryRootHash(acnt, make([]byte, state.AdrLen))
+	jerh := state.NewJournalEntryRootHash(acnt, make([]byte, mock.HasherMock{}.Size()))
 	err := jerh.Revert(acntAdapter)
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalledSave)
 	assert.True(t, wasCalledRetrieved)
 	assert.Equal(t, adr, jerh.DirtiedAddress())
-	assert.Equal(t, make([]byte, state.AdrLen), acnt.RootHash())
+	assert.Equal(t, make([]byte, mock.HasherMock{}.Size()), acnt.RootHash)
 }
 
 func TestJournalEntryRootHashRevertNilAccountShouldErr(t *testing.T) {
@@ -468,16 +450,6 @@ func TestJournalEntryRootHashRevertNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	acnt := mock.NewJournalizedAccountWrapMock(nil)
-	jerh := state.NewJournalEntryRootHash(acnt, []byte("aaa"))
-	err := jerh.Revert(mock.NewAccountsAdapterMock())
-	assert.NotNil(t, err)
-}
-
-func TestJournalEntryRooteHashRevertWrongSizeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	adr := mock.NewAddressMock()
-	acnt := mock.NewJournalizedAccountWrapMock(adr)
 	jerh := state.NewJournalEntryRootHash(acnt, []byte("aaa"))
 	err := jerh.Revert(mock.NewAccountsAdapterMock())
 	assert.NotNil(t, err)
@@ -533,16 +505,16 @@ func TestJournalEntryRootHashRevertAccountsAdapterSaveErrorShouldErr(t *testing.
 		return nil
 	}
 
-	acnt.SetCodeHash([]byte("aaaa"))
+	acnt.CodeHash = []byte("aaaa")
 
-	jerh := state.NewJournalEntryRootHash(acnt, make([]byte, state.AdrLen))
+	jerh := state.NewJournalEntryRootHash(acnt, make([]byte, mock.HasherMock{}.Size()))
 	err := jerh.Revert(acntAdapter)
 
 	assert.NotNil(t, err)
 	assert.True(t, wasCalledSave)
 	assert.True(t, wasCalledRetrieved)
 	assert.Equal(t, adr, jerh.DirtiedAddress())
-	assert.Equal(t, make([]byte, state.AdrLen), acnt.RootHash())
+	assert.Equal(t, make([]byte, mock.HasherMock{}.Size()), acnt.RootHash)
 }
 
 func TestJournalEntryRootHashRevertAccountsAdapterRetrieveErrorShouldErr(t *testing.T) {
@@ -566,16 +538,16 @@ func TestJournalEntryRootHashRevertAccountsAdapterRetrieveErrorShouldErr(t *test
 		return errors.New("failure")
 	}
 
-	acnt.SetCodeHash([]byte("aaaa"))
+	acnt.CodeHash = []byte("aaaa")
 
-	jerh := state.NewJournalEntryRootHash(acnt, make([]byte, state.AdrLen))
+	jerh := state.NewJournalEntryRootHash(acnt, make([]byte, mock.HasherMock{}.Size()))
 	err := jerh.Revert(acntAdapter)
 
 	assert.NotNil(t, err)
 	assert.False(t, wasCalledSave)
 	assert.True(t, wasCalledRetrieved)
 	assert.Equal(t, adr, jerh.DirtiedAddress())
-	assert.Equal(t, make([]byte, state.AdrLen), acnt.RootHash())
+	assert.Equal(t, make([]byte, mock.HasherMock{}.Size()), acnt.RootHash)
 }
 
 //------- JournalEntryRootHash

@@ -71,14 +71,14 @@ var ErrNilAddressContainer = errors.New("nil AddressContainer")
 // ErrEmptyAddress defines the error when trying to work with an empty address
 var ErrEmptyAddress = errors.New("empty Address")
 
-// ErrNilAccountContainer defines the error when trying to work with a nil account
-var ErrNilAccountContainer = errors.New("nil AccountContainer")
+// ErrNilAccount defines the error when trying to work with a nil account
+var ErrNilAccount = errors.New("nil Account")
 
 // ErrNilSimpleAccountWrapper defines the error when trying to work with a nil account wrapper
 var ErrNilSimpleAccountWrapper = errors.New("nil SimpleAccountWrapper")
 
-// ErrNilModifyingAccountWrapper defines the error when trying to work with a nil account wrapper
-var ErrNilModifyingAccountWrapper = errors.New("nil ModifyingAccountWrapper")
+// ErrNilTrackableAccountWrapper defines the error when trying to work with a nil account wrapper
+var ErrNilTrackableAccountWrapper = errors.New("nil TrackableAccountWrapper")
 
 // ErrNilJurnalizingAccountWrapper defines the error when trying to work with a nil account wrapper
 var ErrNilJurnalizingAccountWrapper = errors.New("nil JurnalizingAccountWrapper")
@@ -101,5 +101,8 @@ var ErrNilHasher = errors.New("nil hasher")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil marshalizer")
 
-// ErrCodeHashMismatchCode signals that there is a mismatch between codeHash and Hash(code) of an account
-var ErrCodeHashMismatchCode = errors.New("codeHash mismatches the actual hash of the code")
+// ErrNilAddressConverter signals that an operation has been attempted with a nil AddressAdapter
+var ErrNilAddressConverter = errors.New("nil AddressConverter")
+
+// ErrNegativeValue signals that an operation has been attempted with a negative value
+var ErrNegativeValue = errors.New("negative values are not permited")

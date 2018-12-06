@@ -6,8 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
-func (mdaw *ModifyingDataAccountWrap) OriginalData() map[string][]byte {
-	return mdaw.originalData
+func (tdaw *TrackableDataAccountWrap) OriginalData() map[string][]byte {
+	return tdaw.originalData
 }
 
 func Generate(trie trie.PatriciaMerkelTree, hasher hashing.Hasher, marshalizer marshal.Marshalizer,
@@ -15,16 +15,16 @@ func Generate(trie trie.PatriciaMerkelTree, hasher hashing.Hasher, marshalizer m
 	return AccountsDB{trie, hasher, marshalizer, journal}
 }
 
-func (adb *AccountsDB) GetDbAccount(addressContainer AddressContainer) (DbAccountContainer, error) {
-	return adb.getDbAccount(addressContainer)
-}
-
 func (adb *AccountsDB) LoadCode(journalizedAccountWrapper JournalizedAccountWrapper) error {
 	return adb.loadCode(journalizedAccountWrapper)
 }
 
-func (adb *AccountsDB) LoadJournalizedAccountWrapper(dBaccount DbAccountContainer,
+func (adb *AccountsDB) LoadJournalizedAccountWrapper(account *Account,
 	addressContainer AddressContainer) (JournalizedAccountWrapper, error) {
 
-	return adb.loadJournalizedAccountWrapper(dBaccount, addressContainer)
+	return adb.loadJournalizedAccountWrapper(account, addressContainer)
+}
+
+func (adb *AccountsDB) GetAccount(addressContainer AddressContainer) (*Account, error) {
+	return adb.getAccount(addressContainer)
 }

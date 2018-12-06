@@ -8,41 +8,41 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestModifyingDataAccountWrapInvalidValsShouldErr(t *testing.T) {
+func TestTrackableDataAccountWrapInvalidValsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := state.NewModifyingDataAccountWrap(nil)
+	_, err := state.NewTrackableDataAccountWrap(nil)
 	assert.NotNil(t, err)
 }
 
-func TestModifyingDataAccountRetrieveValueNilDataTrieShouldErr(t *testing.T) {
+func TestTrackableDataAccountRetrieveValueNilDataTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	as, err := state.NewModifyingDataAccountWrap(mock.NewSimpleAccountWrapMock())
+	as, err := state.NewTrackableDataAccountWrap(mock.NewAccountWrapMock())
 	assert.Nil(t, err)
 
 	_, err = as.RetrieveValue([]byte{65, 66, 67})
 	assert.NotNil(t, err)
 }
 
-func TestModifyingDataAccountRetrieveValueFoundInDirtyShouldWork(t *testing.T) {
+func TestTrackableDataAccountRetrieveValueFoundInDirtyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mdaw, err := state.NewModifyingDataAccountWrap(mock.NewSimpleAccountWrapMock())
+	tdaw, err := state.NewTrackableDataAccountWrap(mock.NewAccountWrapMock())
 	assert.Nil(t, err)
 
-	mdaw.SetDataTrie(mock.NewMockTrie())
-	mdaw.DirtyData()["ABC"] = []byte{32, 33, 34}
+	tdaw.SetDataTrie(mock.NewMockTrie())
+	tdaw.DirtyData()["ABC"] = []byte{32, 33, 34}
 
-	val, err := mdaw.RetrieveValue([]byte{65, 66, 67})
+	val, err := tdaw.RetrieveValue([]byte{65, 66, 67})
 	assert.Nil(t, err)
 	assert.Equal(t, []byte{32, 33, 34}, val)
 }
 
-func TestModifyingDataAccountRetrieveValueFoundInOriginalShouldWork(t *testing.T) {
+func TestTrackableDataAccountRetrieveValueFoundInOriginalShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mdaw, err := state.NewModifyingDataAccountWrap(mock.NewSimpleAccountWrapMock())
+	mdaw, err := state.NewTrackableDataAccountWrap(mock.NewAccountWrapMock())
 	assert.Nil(t, err)
 
 	mdaw.SetDataTrie(mock.NewMockTrie())
@@ -54,10 +54,10 @@ func TestModifyingDataAccountRetrieveValueFoundInOriginalShouldWork(t *testing.T
 	assert.Equal(t, []byte{35, 36, 37}, val)
 }
 
-func TestModifyingDataAccountRetrieveValueFoundInTrieShouldWork(t *testing.T) {
+func TestTrackableDataAccountRetrieveValueFoundInTrieShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mdaw, err := state.NewModifyingDataAccountWrap(mock.NewSimpleAccountWrapMock())
+	mdaw, err := state.NewTrackableDataAccountWrap(mock.NewAccountWrapMock())
 	assert.Nil(t, err)
 
 	mdaw.SetDataTrie(mock.NewMockTrie())
@@ -71,10 +71,10 @@ func TestModifyingDataAccountRetrieveValueFoundInTrieShouldWork(t *testing.T) {
 	assert.Equal(t, []byte{38, 39, 40}, val)
 }
 
-func TestModifyingDataAccountRetrieveValueMalfunctionTrieShouldErr(t *testing.T) {
+func TestTrackableDataAccountRetrieveValueMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mdaw, err := state.NewModifyingDataAccountWrap(mock.NewSimpleAccountWrapMock())
+	mdaw, err := state.NewTrackableDataAccountWrap(mock.NewAccountWrapMock())
 	assert.Nil(t, err)
 
 	trie := mock.NewMockTrie()
@@ -91,10 +91,10 @@ func TestModifyingDataAccountRetrieveValueMalfunctionTrieShouldErr(t *testing.T)
 	assert.Nil(t, val)
 }
 
-func TestModifyingDataAccountSaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
+func TestTrackableDataAccountSaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 	t.Parallel()
 
-	mdaw, err := state.NewModifyingDataAccountWrap(mock.NewSimpleAccountWrapMock())
+	mdaw, err := state.NewTrackableDataAccountWrap(mock.NewAccountWrapMock())
 	assert.Nil(t, err)
 
 	mdaw.SetDataTrie(mock.NewMockTrie())
@@ -110,10 +110,10 @@ func TestModifyingDataAccountSaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 	assert.Nil(t, val)
 }
 
-func TestModifyingDataAccountClearDataCachesValidDataShouldWork(t *testing.T) {
+func TestTrackableDataAccountClearDataCachesValidDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mdaw, err := state.NewModifyingDataAccountWrap(mock.NewSimpleAccountWrapMock())
+	mdaw, err := state.NewTrackableDataAccountWrap(mock.NewAccountWrapMock())
 	assert.Nil(t, err)
 
 	mdaw.SetDataTrie(mock.NewMockTrie())

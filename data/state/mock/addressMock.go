@@ -2,8 +2,6 @@ package mock
 
 import (
 	"math/rand"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 )
 
 // AddressMock implements a mock address generator used in testing
@@ -14,7 +12,7 @@ type AddressMock struct {
 
 // NewAddressMock generates a new address
 func NewAddressMock() *AddressMock {
-	buff := make([]byte, state.AdrLen)
+	buff := make([]byte, HasherMock{}.Size())
 	rand.Read(buff)
 
 	return &AddressMock{bytes: buff}
