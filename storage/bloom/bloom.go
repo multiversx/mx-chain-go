@@ -1,13 +1,14 @@
 // A Bloom filter is a probabilistic data structures that is used to test whether an element is a member of a set.
-// Using a bloom filter, you know that an element "possibly is in set" or  "definitely not in set".
+// Using a bloom filter, you know that an element "possibly is in set" or "definitely not in set".
 // Initially, all of the n bits from the bloom filter are set to 0. When an element is added, we hash that element with
 // several hashing functions (you can choose how many and which ones). Every hash represents an index pointing to a
 // position in the bloom filter. The bits that are indicated by the indexes are set to 1. When you want to check if an
 // element is in the bloom filter, you hash the element with the same hashing functions, and it will return the same indexes.
 // If all the bits pointed by the indexes are set to 1, it means that the element might have been added, otherwise
-// (if one bit is set to 0), than the element was definitely not added to the filter.
+// (if one bit is set to 0), then the element was definitely not added to the filter.
 //
 // https://en.wikipedia.org/wiki/Bloom_filter
+
 package bloom
 
 import (
@@ -76,7 +77,7 @@ func (b *Bloom) Add(data []byte) {
 
 }
 
-// Test checks if the bits that correspond to the hashes of the data are set.
+// MayContain checks if the bits that correspond to the hashes of the data are set.
 // If all the bits are set, it returns true, otherwise it returns false
 func (b *Bloom) MayContain(data []byte) bool {
 	res := getBitsIndexes(b, data)
@@ -98,7 +99,7 @@ func (b *Bloom) Clear() {
 	}
 }
 
-// getBytePositionAndValue takes the index of a bit and returns the position of the byte in the filter
+// getBytePositionAndBitMask takes the index of a bit and returns the position of the byte in the filter
 // that contains that index and the value of that byte with the bit set to 1.
 func getBytePositionAndBitMask(index uint64) (pos uint64, val byte) {
 	pos = index / 8
