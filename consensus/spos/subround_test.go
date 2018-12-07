@@ -26,17 +26,12 @@ func InitSubround() (*chronology.Chronology, *spos.Consensus) {
 		genesisTime,
 		&ntp.LocalTime{})
 
-	vld := spos.NewValidators(nil,
-		nil,
+	vld := spos.NewRoundConsensus(
 		[]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"},
 		"1")
 
 	for i := 0; i < len(vld.ConsensusGroup()); i++ {
-		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrBlock, false)
-		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrBitmap, false)
-		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrCommitment, false)
-		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrSignature, false)
+		vld.ResetRoundState()
 	}
 
 	pbft := 2*len(vld.ConsensusGroup())/3 + 1
@@ -82,7 +77,16 @@ func TestSubround_DoWork1(t *testing.T) {
 		DoCheckConsensusWithSuccess)
 
 	chr.AddSubround(sr)
-	r := sr.DoWork(chr)
+
+	computeSubRoundId := func() chronology.SubroundId {
+		return chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
+	}
+
+	isCancelled := func() bool {
+		return chr.SelfSubround() == chronology.SubroundId(-1)
+	}
+
+	r := sr.DoWork(computeSubRoundId, isCancelled)
 	assert.Equal(t, true, r)
 }
 
@@ -102,7 +106,15 @@ func TestSubround_DoWork2(t *testing.T) {
 
 	chr.AddSubround(sr)
 	chr.SetSelfSubround(-1)
-	r := sr.DoWork(chr)
+	computeSubRoundId := func() chronology.SubroundId {
+		return chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
+	}
+
+	isCancelled := func() bool {
+		return chr.SelfSubround() == chronology.SubroundId(-1)
+	}
+
+	r := sr.DoWork(computeSubRoundId, isCancelled)
 	assert.Equal(t, false, r)
 }
 
@@ -133,7 +145,15 @@ func TestSubround_DoWork3(t *testing.T) {
 	chr.AddSubround(sr2)
 
 	chr.SetClockOffset(time.Duration(sr1.EndTime() + 1))
-	r := sr1.DoWork(chr)
+	computeSubRoundId := func() chronology.SubroundId {
+		return chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
+	}
+
+	isCancelled := func() bool {
+		return chr.SelfSubround() == chronology.SubroundId(-1)
+	}
+
+	r := sr1.DoWork(computeSubRoundId, isCancelled)
 	assert.Equal(t, true, r)
 }
 
@@ -164,7 +184,15 @@ func TestSubround_DoWork4(t *testing.T) {
 
 	chr.AddSubround(sr2)
 	chr.SetClockOffset(time.Duration(sr1.EndTime() - int64(5*time.Millisecond)))
-	r := sr1.DoWork(chr)
+	computeSubRoundId := func() chronology.SubroundId {
+		return chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
+	}
+
+	isCancelled := func() bool {
+		return chr.SelfSubround() == chronology.SubroundId(-1)
+	}
+
+	r := sr1.DoWork(computeSubRoundId, isCancelled)
 	assert.Equal(t, true, r)
 }
 

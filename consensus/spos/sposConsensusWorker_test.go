@@ -21,7 +21,7 @@ func SendMessage(msg []byte) {
 	fmt.Println(msg)
 }
 
-func InitMessage() []*spos.Communication {
+func InitMessage() []*spos.SPOSConsensusWorker {
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
 
@@ -34,7 +34,7 @@ func InitMessage() []*spos.Communication {
 	consensusGroup := CreateConsensusGroup(consensusGroupSize)
 
 	// create instances
-	var coms []*spos.Communication
+	var coms []*spos.SPOSConsensusWorker
 
 	for i := 0; i < consensusGroupSize; i++ {
 		log := i == 0
@@ -54,18 +54,16 @@ func InitMessage() []*spos.Communication {
 			genesisTime,
 			syncTime)
 
-		vld := spos.NewValidators(
-			nil,
-			nil,
+		vld := spos.NewRoundConsensus(
 			consensusGroup,
 			consensusGroup[i])
 
 		for j := 0; j < len(vld.ConsensusGroup()); j++ {
-			vld.SetValidation(vld.ConsensusGroup()[j], spos.SrBlock, false)
-			vld.SetValidation(vld.ConsensusGroup()[j], spos.SrCommitmentHash, false)
-			vld.SetValidation(vld.ConsensusGroup()[j], spos.SrBitmap, false)
-			vld.SetValidation(vld.ConsensusGroup()[j], spos.SrCommitment, false)
-			vld.SetValidation(vld.ConsensusGroup()[j], spos.SrSignature, false)
+			vld.SetJobDone(vld.ConsensusGroup()[j], spos.SrBlock, false)
+			vld.SetJobDone(vld.ConsensusGroup()[j], spos.SrCommitmentHash, false)
+			vld.SetJobDone(vld.ConsensusGroup()[j], spos.SrBitmap, false)
+			vld.SetJobDone(vld.ConsensusGroup()[j], spos.SrCommitment, false)
+			vld.SetJobDone(vld.ConsensusGroup()[j], spos.SrSignature, false)
 		}
 
 		rth := spos.NewRoundThreshold()
@@ -105,72 +103,93 @@ func InitMessage() []*spos.Communication {
 
 		com.OnSendMessage = SendMessage
 
-		chr.AddSubround(spos.NewSubround(
-			chronology.SubroundId(spos.SrStartRound),
-			chronology.SubroundId(spos.SrBlock),
-			int64(roundDuration*5/100),
-			cns.GetSubroundName(spos.SrStartRound),
-			com.DoStartRoundJob,
-			nil,
-			cns.CheckConsensus))
-
-		chr.AddSubround(spos.NewSubround(
-			chronology.SubroundId(spos.SrBlock),
-			chronology.SubroundId(spos.SrCommitmentHash),
-			int64(roundDuration*25/100),
-			cns.GetSubroundName(spos.SrBlock),
-			com.DoBlockJob, com.ExtendBlock,
-			cns.CheckConsensus))
-
-		chr.AddSubround(spos.NewSubround(
-			chronology.SubroundId(spos.SrCommitmentHash),
-			chronology.SubroundId(spos.SrBitmap),
-			int64(roundDuration*40/100),
-			cns.GetSubroundName(spos.SrCommitmentHash),
-			com.DoCommitmentHashJob,
-			com.ExtendCommitmentHash,
-			cns.CheckConsensus))
-
-		chr.AddSubround(spos.NewSubround(
-			chronology.SubroundId(spos.SrBitmap),
-			chronology.SubroundId(spos.SrCommitment),
-			int64(roundDuration*55/100),
-			cns.GetSubroundName(spos.SrBitmap),
-			com.DoBitmapJob,
-			com.ExtendBitmap,
-			cns.CheckConsensus))
-
-		chr.AddSubround(spos.NewSubround(
-			chronology.SubroundId(spos.SrCommitment),
-			chronology.SubroundId(spos.SrSignature),
-			int64(roundDuration*70/100),
-			cns.GetSubroundName(spos.SrCommitment),
-			com.DoCommitmentJob,
-			com.ExtendCommitment,
-			cns.CheckConsensus))
-
-		chr.AddSubround(spos.NewSubround(
-			chronology.SubroundId(spos.SrSignature),
-			chronology.SubroundId(spos.SrEndRound),
-			int64(roundDuration*85/100),
-			cns.GetSubroundName(spos.SrSignature),
-			com.DoSignatureJob,
-			com.ExtendSignature,
-			cns.CheckConsensus))
-
-		chr.AddSubround(spos.NewSubround(
-			chronology.SubroundId(spos.SrEndRound),
-			-1,
-			int64(roundDuration*100/100),
-			cns.GetSubroundName(spos.SrEndRound),
-			com.DoEndRoundJob,
-			com.ExtendEndRound,
-			cns.CheckConsensus))
+		GenerateSubRoundHandlers(roundDuration, cns, com)
 
 		coms = append(coms, com)
 	}
 
 	return coms
+}
+
+// RoundTimeDuration defines the time duration in milliseconds of each round
+const RoundTimeDuration = time.Duration(4000 * time.Millisecond)
+
+func DoSubroundJob() bool {
+	fmt.Printf("do job\n")
+	time.Sleep(5 * time.Millisecond)
+	return true
+}
+
+func DoExtendSubround() {
+	fmt.Printf("do extend subround\n")
+}
+
+func DoCheckConsensusWithSuccess() bool {
+	fmt.Printf("do check consensus with success in subround \n")
+	return true
+}
+
+func DoCheckConsensusWithoutSuccess() bool {
+	fmt.Printf("do check consensus without success in subround \n")
+	return false
+}
+
+func GenerateSubRoundHandlers(roundDuration time.Duration, cns *spos.Consensus, com *spos.SPOSConsensusWorker) {
+	cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrStartRound),
+		chronology.SubroundId(spos.SrBlock),
+		int64(roundDuration*5/100),
+		cns.GetSubroundName(spos.SrStartRound),
+		com.DoStartRoundJob,
+		nil,
+		func() bool { return true }))
+	cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrBlock),
+		chronology.SubroundId(spos.SrCommitmentHash),
+		int64(roundDuration*25/100),
+		cns.GetSubroundName(spos.SrBlock),
+		com.DoBlockJob, com.ExtendBlock,
+		cns.CheckBlockConsensus))
+	cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrCommitmentHash),
+		chronology.SubroundId(spos.SrBitmap),
+		int64(roundDuration*40/100),
+		cns.GetSubroundName(spos.SrCommitmentHash),
+		com.DoCommitmentHashJob,
+		com.ExtendCommitmentHash,
+		cns.CheckCommitmentHashConsensus))
+	cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrBitmap),
+		chronology.SubroundId(spos.SrCommitment),
+		int64(roundDuration*55/100),
+		cns.GetSubroundName(spos.SrBitmap),
+		com.DoBitmapJob,
+		com.ExtendBitmap,
+		cns.CheckBitmapConsensus))
+	cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrCommitment),
+		chronology.SubroundId(spos.SrSignature),
+		int64(roundDuration*70/100),
+		cns.GetSubroundName(spos.SrCommitment),
+		com.DoCommitmentJob,
+		com.ExtendCommitment,
+		cns.CheckCommitmentConsensus))
+	cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrSignature),
+		chronology.SubroundId(spos.SrEndRound),
+		int64(roundDuration*85/100),
+		cns.GetSubroundName(spos.SrSignature),
+		com.DoSignatureJob,
+		com.ExtendSignature,
+		cns.CheckSignatureConsensus))
+	cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrEndRound),
+		-1,
+		int64(roundDuration*100/100),
+		cns.GetSubroundName(spos.SrEndRound),
+		com.DoEndRoundJob,
+		com.ExtendEndRound,
+		cns.CheckEndRoundConsensus))
 }
 
 func CreateConsensusGroup(consensusGroupSize int) []string {
@@ -197,18 +216,16 @@ func TestNewConsensusData(t *testing.T) {
 func TestNewMessage(t *testing.T) {
 	consensusGroup := []string{"1", "2", "3"}
 
-	vld := spos.NewValidators(
-		nil,
-		nil,
+	vld := spos.NewRoundConsensus(
 		consensusGroup,
 		consensusGroup[0])
 
 	for i := 0; i < len(vld.ConsensusGroup()); i++ {
-		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrBlock, false)
-		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrBitmap, false)
-		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrCommitment, false)
-		vld.SetValidation(vld.ConsensusGroup()[i], spos.SrSignature, false)
+		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrBlock, false)
+		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrBitmap, false)
+		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrCommitment, false)
+		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
 	cns := spos.NewConsensus(
@@ -233,7 +250,7 @@ func TestNewMessage(t *testing.T) {
 		nil,
 		nil)
 
-	assert.Equal(t, len(cns.Validators.ConsensusGroup()), cap(msg2.ChRcvMsg[spos.MtBlockHeader]))
+	assert.Equal(t, len(cns.RoundConsensus.ConsensusGroup()), cap(msg2.ChRcvMsg[spos.MtBlockHeader]))
 }
 
 func TestMessage_StartRound(t *testing.T) {
@@ -260,7 +277,7 @@ func TestMessage_EndRound(t *testing.T) {
 	r = coms[0].DoEndRoundJob()
 	assert.Equal(t, true, r)
 
-	coms[0].Cns.Validators.SetSelfId(coms[0].Cns.Validators.ConsensusGroup()[1])
+	coms[0].Cns.RoundConsensus.SetSelfId(coms[0].Cns.RoundConsensus.ConsensusGroup()[1])
 
 	r = coms[0].DoEndRoundJob()
 	assert.Equal(t, 2, coms[0].RoundsWithBlock)
@@ -282,24 +299,24 @@ func TestMessage_SendBlock(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsNotFinished)
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBlock, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBlock, true)
 
 	r = coms[0].DoBlockJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBlock, false)
-	coms[0].Cns.Validators.SetSelfId(coms[0].Cns.Validators.ConsensusGroup()[1])
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBlock, false)
+	coms[0].Cns.RoundConsensus.SetSelfId(coms[0].Cns.RoundConsensus.ConsensusGroup()[1])
 
 	r = coms[0].DoBlockJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.Validators.SetSelfId(coms[0].Cns.Validators.ConsensusGroup()[0])
+	coms[0].Cns.RoundConsensus.SetSelfId(coms[0].Cns.RoundConsensus.ConsensusGroup()[0])
 
 	r = coms[0].DoBlockJob()
 	assert.Equal(t, true, r)
 	assert.Equal(t, uint64(1), coms[0].Hdr.Nonce)
 
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBlock, false)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBlock, false)
 	coms[0].Blkc.CurrentBlock = coms[0].Hdr
 
 	r = coms[0].DoBlockJob()
@@ -329,12 +346,12 @@ func TestMessage_SendCommitmentHash(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	coms[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrCommitmentHash, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrCommitmentHash, true)
 
 	r = coms[0].DoCommitmentHashJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrCommitmentHash, false)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrCommitmentHash, false)
 	coms[0].Cns.Data = nil
 
 	r = coms[0].DoCommitmentHashJob()
@@ -360,18 +377,18 @@ func TestMessage_SendBitmap(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	coms[0].Cns.SetStatus(spos.SrBitmap, spos.SsNotFinished)
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBitmap, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBitmap, true)
 
 	r = coms[0].DoBitmapJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBitmap, false)
-	coms[0].Cns.Validators.SetSelfId(coms[0].Cns.Validators.ConsensusGroup()[1])
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBitmap, false)
+	coms[0].Cns.RoundConsensus.SetSelfId(coms[0].Cns.RoundConsensus.ConsensusGroup()[1])
 
 	r = coms[0].DoBitmapJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.Validators.SetSelfId(coms[0].Cns.Validators.ConsensusGroup()[0])
+	coms[0].Cns.RoundConsensus.SetSelfId(coms[0].Cns.RoundConsensus.ConsensusGroup()[0])
 	coms[0].Cns.Data = nil
 
 	r = coms[0].DoBitmapJob()
@@ -379,11 +396,11 @@ func TestMessage_SendBitmap(t *testing.T) {
 
 	dta := []byte("X")
 	coms[0].Cns.Data = &dta
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrCommitmentHash, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrCommitmentHash, true)
 
 	r = coms[0].DoBitmapJob()
 	assert.Equal(t, true, r)
-	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.SelfId(), spos.SrBitmap))
+	assert.Equal(t, true, coms[0].Cns.GetJobDone(coms[0].Cns.SelfId(), spos.SrBitmap))
 }
 
 func TestMessage_SendCommitment(t *testing.T) {
@@ -399,17 +416,17 @@ func TestMessage_SendCommitment(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	coms[0].Cns.SetStatus(spos.SrCommitment, spos.SsNotFinished)
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrCommitment, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrCommitment, true)
 
 	r = coms[0].DoCommitmentJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrCommitment, false)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrCommitment, false)
 
 	r = coms[0].DoCommitmentJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBitmap, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBitmap, true)
 	coms[0].Cns.Data = nil
 
 	r = coms[0].DoCommitmentJob()
@@ -435,17 +452,17 @@ func TestMessage_SendSignature(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	coms[0].Cns.SetStatus(spos.SrSignature, spos.SsNotFinished)
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrSignature, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrSignature, true)
 
 	r = coms[0].DoSignatureJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrSignature, false)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrSignature, false)
 
 	r = coms[0].DoSignatureJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetValidation(coms[0].Cns.SelfId(), spos.SrBitmap, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBitmap, true)
 	coms[0].Cns.Data = nil
 
 	r = coms[0].DoSignatureJob()
@@ -504,8 +521,8 @@ func TestMessage_ExtendCommitmentHash(t *testing.T) {
 	coms[0].ExtendCommitmentHash()
 	assert.Equal(t, spos.SsExtended, coms[0].Cns.Status(spos.SrCommitmentHash))
 
-	for i := 0; i < len(coms[0].Cns.Validators.ConsensusGroup()); i++ {
-		coms[0].Cns.SetValidation(coms[0].Cns.Validators.ConsensusGroup()[i], spos.SrCommitmentHash, true)
+	for i := 0; i < len(coms[0].Cns.RoundConsensus.ConsensusGroup()); i++ {
+		coms[0].Cns.SetJobDone(coms[0].Cns.RoundConsensus.ConsensusGroup()[i], spos.SrCommitmentHash, true)
 	}
 
 	coms[0].ExtendCommitmentHash()
@@ -759,8 +776,6 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
-	assert.Equal(t, false, coms[0].Cns.ShouldCheckConsensus())
-
 	// BLOCK BODY
 	blk := &block.Block{}
 
@@ -777,10 +792,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	coms[0].ChRcvMsg[spos.MtBlockBody] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
-	assert.Equal(t, false, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBlock))
-
-	coms[0].Cns.SetShouldCheckConsensus(false)
+	assert.Equal(t, false, coms[0].Cns.RoundConsensus.GetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrBlock))
 
 	// BLOCK HEADER
 	hdr := &block.Header{}
@@ -806,10 +818,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	coms[0].ChRcvMsg[spos.MtBlockHeader] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
-	assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBlock))
-
-	coms[0].Cns.SetShouldCheckConsensus(false)
+	assert.Equal(t, true, coms[0].Cns.RoundConsensus.GetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrBlock))
 
 	// COMMITMENT_HASH
 	cnsDta = spos.NewConsensusData(
@@ -821,10 +830,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	coms[0].ChRcvMsg[spos.MtCommitmentHash] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
-	assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitmentHash))
-
-	coms[0].Cns.SetShouldCheckConsensus(false)
+	assert.Equal(t, true, coms[0].Cns.RoundConsensus.GetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitmentHash))
 
 	// BITMAP
 	pks := make([][]byte, 0)
@@ -842,13 +848,10 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	coms[0].ChRcvMsg[spos.MtBitmap] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
 
 	for i := 0; i < len(coms[0].Cns.ConsensusGroup()); i++ {
-		assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[i], spos.SrBitmap))
+		assert.Equal(t, true, coms[0].Cns.RoundConsensus.GetJobDone(coms[0].Cns.ConsensusGroup()[i], spos.SrBitmap))
 	}
-
-	coms[0].Cns.SetShouldCheckConsensus(false)
 
 	// COMMITMENT
 	cnsDta = spos.NewConsensusData(
@@ -860,10 +863,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	coms[0].ChRcvMsg[spos.MtCommitment] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
-	assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitment))
-
-	coms[0].Cns.SetShouldCheckConsensus(false)
+	assert.Equal(t, true, coms[0].Cns.RoundConsensus.GetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitment))
 
 	// SIGNATURE
 	cnsDta = spos.NewConsensusData(
@@ -875,8 +875,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	coms[0].ChRcvMsg[spos.MtSignature] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, true, coms[0].Cns.ShouldCheckConsensus())
-	assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrSignature))
+	assert.Equal(t, true, coms[0].Cns.RoundConsensus.GetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrSignature))
 }
 
 func TestMessage_ReceivedBlock(t *testing.T) {
@@ -946,7 +945,7 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 
 	r = coms[0].ReceivedBlockHeader(cnsDta)
 	assert.Equal(t, true, r)
-	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBlock))
+	assert.Equal(t, true, coms[0].Cns.GetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrBlock))
 }
 
 func TestMessage_ReceivedCommitmentHash(t *testing.T) {
@@ -964,14 +963,14 @@ func TestMessage_ReceivedCommitmentHash(t *testing.T) {
 		[]byte(coms[0].GetTime()))
 
 	for i := 0; i < coms[0].Cns.Threshold(spos.SrCommitmentHash); i++ {
-		coms[0].Cns.Validators.SetValidation(coms[0].Cns.ConsensusGroup()[i], spos.SrCommitmentHash, true)
+		coms[0].Cns.RoundConsensus.SetJobDone(coms[0].Cns.ConsensusGroup()[i], spos.SrCommitmentHash, true)
 	}
 
 	r := coms[0].ReceivedCommitmentHash(cnsDta)
 	assert.Equal(t, false, r)
 
 	for i := 0; i < coms[0].Cns.Threshold(spos.SrCommitmentHash); i++ {
-		coms[0].Cns.Validators.SetValidation(coms[0].Cns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		coms[0].Cns.RoundConsensus.SetJobDone(coms[0].Cns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
 	}
 
 	coms[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsFinished)
@@ -983,7 +982,7 @@ func TestMessage_ReceivedCommitmentHash(t *testing.T) {
 
 	r = coms[0].ReceivedCommitmentHash(cnsDta)
 	assert.Equal(t, true, r)
-	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitmentHash))
+	assert.Equal(t, true, coms[0].Cns.GetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitmentHash))
 }
 
 func TestMessage_ReceivedBitmap(t *testing.T) {
@@ -1021,10 +1020,10 @@ func TestMessage_ReceivedBitmap(t *testing.T) {
 
 	r = coms[0].ReceivedBitmap(cnsDta)
 	assert.Equal(t, true, r)
-	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBitmap))
+	assert.Equal(t, true, coms[0].Cns.GetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrBitmap))
 
 	for i := 0; i < coms[0].Cns.Threshold(spos.SrBitmap); i++ {
-		assert.Equal(t, true, coms[0].Cns.Validators.GetValidation(coms[0].Cns.ConsensusGroup()[i], spos.SrBitmap))
+		assert.Equal(t, true, coms[0].Cns.RoundConsensus.GetJobDone(coms[0].Cns.ConsensusGroup()[i], spos.SrBitmap))
 	}
 
 	cnsDta.PubKeys = append(cnsDta.PubKeys, []byte("X"))
@@ -1056,11 +1055,11 @@ func TestMessage_ReceivedCommitment(t *testing.T) {
 	r = coms[0].ReceivedCommitment(cnsDta)
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.Validators.SetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBitmap, true)
+	coms[0].Cns.RoundConsensus.SetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrBitmap, true)
 
 	r = coms[0].ReceivedCommitment(cnsDta)
 	assert.Equal(t, true, r)
-	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitment))
+	assert.Equal(t, true, coms[0].Cns.GetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrCommitment))
 }
 
 func TestMessage_ReceivedSignature(t *testing.T) {
@@ -1085,11 +1084,11 @@ func TestMessage_ReceivedSignature(t *testing.T) {
 	r = coms[0].ReceivedSignature(cnsDta)
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.Validators.SetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrBitmap, true)
+	coms[0].Cns.RoundConsensus.SetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrBitmap, true)
 
 	r = coms[0].ReceivedSignature(cnsDta)
 	assert.Equal(t, true, r)
-	assert.Equal(t, true, coms[0].Cns.GetValidation(coms[0].Cns.ConsensusGroup()[1], spos.SrSignature))
+	assert.Equal(t, true, coms[0].Cns.GetJobDone(coms[0].Cns.ConsensusGroup()[1], spos.SrSignature))
 }
 
 func TestMessage_CheckIfBlockIsValid(t *testing.T) {
@@ -1168,4 +1167,187 @@ func TestMessage_GetMessageTypeName(t *testing.T) {
 
 	r = coms[0].GetMessageTypeName(spos.MessageType(-1))
 	assert.Equal(t, "Undifined message type", r)
+}
+
+func TestConsensus_CheckConsensus(t *testing.T) {
+	cns := InitConsensus()
+
+	com := spos.NewCommunication(
+		true,
+		cns,
+		nil,
+		nil)
+
+	GenerateSubRoundHandlers(100*time.Millisecond, cns, com)
+	ok := cns.CheckStartRoundConsensus()
+	assert.Equal(t, true, ok)
+
+	ok = cns.CheckEndRoundConsensus()
+	assert.Equal(t, true, ok)
+
+	ok = cns.CheckSignatureConsensus()
+	assert.Equal(t, true, ok)
+
+	ok = cns.CheckSignatureConsensus()
+	assert.Equal(t, true, ok)
+}
+
+func TestConsensus_CheckBlockConsensus(t *testing.T) {
+	cns := InitConsensus()
+
+	cns.SetStatus(spos.SrBlock, spos.SsNotFinished)
+
+	ok := cns.CheckBlockConsensus()
+	assert.Equal(t, false, ok)
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrBlock))
+
+	cns.SetJobDone("2", spos.SrBlock, true)
+
+	ok = cns.CheckBlockConsensus()
+	assert.Equal(t, true, ok)
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrBlock))
+}
+
+func TestConsensus_CheckCommitmentHashConsensus(t *testing.T) {
+	cns := InitConsensus()
+
+	cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
+
+	ok := cns.CheckCommitmentHashConsensus()
+	assert.Equal(t, false, ok)
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrCommitmentHash))
+
+	for i := 0; i < cns.Threshold(spos.SrCommitmentHash); i++ {
+		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrCommitmentHash, true)
+	}
+
+	ok = cns.CheckCommitmentHashConsensus()
+	assert.Equal(t, true, ok)
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrCommitmentHash))
+
+	cns.RoundConsensus.SetSelfId("2")
+
+	cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
+
+	ok = cns.CheckCommitmentHashConsensus()
+	assert.Equal(t, false, ok)
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrCommitmentHash))
+
+	for i := 0; i < cns.Threshold(spos.SrBitmap); i++ {
+		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrBitmap, true)
+	}
+
+	ok = cns.CheckCommitmentHashConsensus()
+	assert.Equal(t, true, ok)
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrCommitmentHash))
+
+	for i := 0; i < cns.Threshold(spos.SrBitmap); i++ {
+		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrBitmap, false)
+	}
+
+	for i := 0; i < len(cns.RoundConsensus.ConsensusGroup()); i++ {
+		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrCommitmentHash, true)
+	}
+
+	cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
+
+	ok = cns.CheckCommitmentHashConsensus()
+	assert.Equal(t, true, ok)
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrCommitmentHash))
+}
+
+func TestConsensus_CheckBitmapConsensus(t *testing.T) {
+	cns := InitConsensus()
+
+	cns.SetStatus(spos.SrBitmap, spos.SsNotFinished)
+
+	ok := cns.CheckBitmapConsensus()
+	assert.Equal(t, false, ok)
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrBitmap))
+
+	for i := 1; i < len(cns.RoundConsensus.ConsensusGroup()); i++ {
+		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrCommitmentHash, true)
+	}
+
+	for i := 0; i < cns.Threshold(spos.SrBitmap); i++ {
+		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrBitmap, true)
+	}
+
+	ok = cns.CheckBitmapConsensus()
+	assert.Equal(t, false, ok)
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrBitmap))
+
+	cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[0], spos.SrCommitmentHash, true)
+
+	ok = cns.CheckBitmapConsensus()
+	assert.Equal(t, true, ok)
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrBitmap))
+
+	for i := 1; i < len(cns.RoundConsensus.ConsensusGroup()); i++ {
+		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrBitmap, true)
+	}
+
+	cns.SetJobDone(cns.RoundConsensus.SelfId(), spos.SrBitmap, false)
+
+	cns.SetStatus(spos.SrBitmap, spos.SsNotFinished)
+
+	ok = cns.CheckBitmapConsensus()
+	assert.Equal(t, true, ok)
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrBitmap))
+}
+
+func TestConsensus_CheckCommitmentConsensus(t *testing.T) {
+	cns := InitConsensus()
+
+	cns.SetStatus(spos.SrCommitment, spos.SsNotFinished)
+
+	ok := cns.CheckCommitmentConsensus()
+	assert.Equal(t, false, ok)
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrCommitment))
+
+	for i := 0; i < cns.Threshold(spos.SrBitmap); i++ {
+		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrBitmap, true)
+	}
+
+	for i := 1; i < len(cns.RoundConsensus.ConsensusGroup()); i++ {
+		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrCommitment, true)
+	}
+
+	ok = cns.CheckCommitmentConsensus()
+	assert.Equal(t, false, ok)
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrCommitment))
+
+	cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[0], spos.SrCommitment, true)
+
+	ok = cns.CheckCommitmentConsensus()
+	assert.Equal(t, true, ok)
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrCommitment))
+}
+
+func TestConsensus_CheckSignatureConsensus(t *testing.T) {
+	cns := InitConsensus()
+
+	cns.SetStatus(spos.SrSignature, spos.SsNotFinished)
+
+	ok := cns.CheckSignatureConsensus()
+	assert.Equal(t, false, ok)
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrSignature))
+
+	for i := 0; i < cns.Threshold(spos.SrBitmap); i++ {
+		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrBitmap, true)
+	}
+
+	for i := 1; i < cns.Threshold(spos.SrSignature); i++ {
+		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrSignature, true)
+	}
+
+	ok = cns.CheckSignatureConsensus()
+	assert.Equal(t, false, ok)
+	assert.Equal(t, spos.SsNotFinished, cns.Status(spos.SrSignature))
+
+	cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[0], spos.SrSignature, true)
+
+	ok = cns.CheckSignatureConsensus()
+	assert.Equal(t, true, ok)
+	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrSignature))
 }
