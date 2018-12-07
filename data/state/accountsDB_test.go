@@ -1,938 +1,745 @@
 package state_test
 
 import (
-	"encoding/base64"
 	"fmt"
+	"github.com/pkg/errors"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
-func adbCreateAccountsDB() *state.AccountsDB {
-	marsh := mock.MarshalizerMock{}
-	adb := state.NewAccountsDB(mock.NewMockTrie(), mock.HasherMock{}, &marsh)
+func generateAccountDBFromTrie(trie trie.PatriciaMerkelTree) state.AccountsDB {
+	return state.Generate(trie, mock.HasherMock{}, &mock.MarshalizerMock{}, state.NewJournal())
+}
+
+func generateAccountDBFromTrieAndMarshalizer(trie trie.PatriciaMerkelTree,
+	marshalizer marshal.Marshalizer) state.AccountsDB {
+	return state.Generate(trie, mock.HasherMock{}, marshalizer, state.NewJournal())
+}
+
+func generateJem() *mock.JournalizedAccountWrapMock {
+	adr := mock.NewAddressMock()
+	return mock.NewJournalizedAccountWrapMock(adr)
+}
+
+func generateAddressJurnalAccountAccountsDB() (state.AddressContainer, *mock.JournalizedAccountWrapMock, *state.AccountsDB) {
+	adr := mock.NewAddressMock()
+	jem := mock.NewJournalizedAccountWrapMock(adr)
+
+	adb := accountsDBCreateAccountsDB()
+
+	return adr, jem, adb
+}
+
+func accountsDBCreateAccountsDB() *state.AccountsDB {
+	marshalizer := mock.MarshalizerMock{}
+	adb, _ := state.NewAccountsDB(mock.NewMockTrie(), mock.HasherMock{}, &marshalizer)
 
 	return adb
 }
 
-func adbCreateAddress(t *testing.T, buff []byte) *state.Address {
-	adr, err := state.FromPubKeyBytes(buff, mock.HasherMock{})
-	assert.Nil(t, err)
-
-	return adr
-}
-
-func adbCreateAccountState(_ *testing.T, address state.Address) *state.AccountState {
-	return state.NewAccountState(address, state.NewAccount(), mock.HasherMock{})
-}
-
-func TestAccountsDB_RetrieveCode_NilCodeHash_ShouldRetNil(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-
-	//since code hash is nil, result should be nil and code should be nil
-	err := adb.RetrieveCode(as)
-	assert.Nil(t, err)
-	assert.Nil(t, as.Code)
-}
-
-func TestAccountsDB_RetrieveCode_NilTrie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().CodeHash = []byte("12345")
-
-	adb := adbCreateAccountsDB()
-
-	adb.MainTrie = nil
-
-	err := adb.RetrieveCode(as)
+func TestNewAccountsDBWithNilTrieShouldErr(t *testing.T) {
+	_, err := state.NewAccountsDB(nil, mock.HasherMock{}, &mock.MarshalizerMock{})
 	assert.NotNil(t, err)
 }
 
-func TestAccountsDB_RetrieveCode_BadLength_ShouldErr(t *testing.T) {
+func TestNewAccountsDBWithNilHasherShouldErr(t *testing.T) {
+	_, err := state.NewAccountsDB(mock.NewMockTrie(), nil, &mock.MarshalizerMock{})
+	assert.NotNil(t, err)
+}
+
+func TestNewAccountsDBWithNilMarshalizerShouldErr(t *testing.T) {
+	_, err := state.NewAccountsDB(mock.NewMockTrie(), mock.HasherMock{}, nil)
+	assert.NotNil(t, err)
+}
+
+//------- PutCode
+
+func TestAccountsDBPutCodeNilCodeHashShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	_, jem, adb := generateAddressJurnalAccountAccountsDB()
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
+	err := adb.PutCode(jem, nil)
+	assert.Nil(t, err)
+	assert.Nil(t, jem.CodeHash)
+	assert.Nil(t, jem.Code())
+}
 
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().CodeHash = []byte("12345")
+func TestAccountsDBPutCodeEmptyCodeHashShouldRetNil(t *testing.T) {
+	t.Parallel()
 
-	adb := adbCreateAccountsDB()
+	_, jem, adb := generateAddressJurnalAccountAccountsDB()
+
+	err := adb.PutCode(jem, make([]byte, 0))
+	assert.Nil(t, err)
+	assert.Nil(t, jem.CodeHash)
+	assert.Nil(t, jem.Code())
+}
+
+func TestAccountsDBPutCodeNilTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jem := generateJem()
+	adb := generateAccountDBFromTrie(nil)
+
+	err := adb.PutCode(jem, []byte{65})
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBPutCodeMalfunctionTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jem := generateJem()
+	mockTrie := mock.NewMockTrie()
+	adb := generateAccountDBFromTrie(mockTrie)
+
+	mockTrie.Fail = true
 
 	//should return error
-	err := adb.RetrieveCode(as)
+	err := adb.PutCode(jem, []byte{65})
 	assert.NotNil(t, err)
 }
 
-func TestAccountsDB_RetrieveCode_MalfunctionTrie_ShouldErr(t *testing.T) {
+func TestAccountsDBPutCodeMalfunction2TrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	jem := generateJem()
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
+	mockTrie := mock.NewMockTrie()
+	adb := generateAccountDBFromTrie(mockTrie)
 
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().CodeHash = hasher.Compute("12345")
-
-	adb := adbCreateAccountsDB()
-	adb.MainTrie.(*mock.TrieMock).Fail = true
+	mockTrie.FailUpdate = true
 
 	//should return error
-	err := adb.RetrieveCode(as)
+	err := adb.PutCode(jem, []byte{65})
 	assert.NotNil(t, err)
 }
 
-func TestAccountsDB_RetrieveCode_NotFound_ShouldRetNil(t *testing.T) {
+func TestAccountsDBPutCodeWithSomeValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	jem := generateJem()
+	mockTrie := mock.NewMockTrie()
+	adb := generateAccountDBFromTrie(mockTrie)
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
+	snapshotRoot := adb.RootHash()
 
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().CodeHash = hasher.Compute("12345")
-
-	adb := adbCreateAccountsDB()
-
-	//should return nil
-	err := adb.RetrieveCode(as)
+	err := adb.PutCode(jem, []byte("Smart contract code"))
 	assert.Nil(t, err)
-	assert.Nil(t, as.Code)
+	assert.NotNil(t, jem.CodeHash)
+	assert.Equal(t, []byte("Smart contract code"), jem.Code())
+
+	fmt.Printf("SC code is at address: %v\n", jem.CodeHash)
+
+	//retrieve directly from the trie
+	data, err := mockTrie.Get(jem.CodeHash)
+	assert.Nil(t, err)
+	assert.Equal(t, data, jem.Code())
+
+	fmt.Printf("SC code is: %v\n", string(data))
+
+	//main root trie should have been modified
+	assert.NotEqual(t, snapshotRoot, adb.RootHash())
 }
 
-func TestAccountsDB_RetrieveCode_Found_ShouldWork(t *testing.T) {
+//------- RemoveAccount
+
+func TestAccountsDBRemoveCodeNilStateShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	adb := generateAccountDBFromTrie(nil)
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().CodeHash = hasher.Compute("12345")
-
-	adb := adbCreateAccountsDB()
-	//manually put it in the trie
-	err := adb.MainTrie.Update(as.CodeHash(), []byte{68, 69, 70})
-	assert.Nil(t, err)
-
-	//should return nil
-	err = adb.RetrieveCode(as)
-	assert.Nil(t, err)
-	assert.Equal(t, as.Code, []byte{68, 69, 70})
+	err := adb.RemoveCode([]byte("AAA"))
+	assert.NotNil(t, err)
 }
 
-func TestAccountsDB_RetrieveData_NilRoot_ShouldRetNil(t *testing.T) {
+func TestAccountsDBRemoveCodeShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	wasCalled := false
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
+	trieStub := mock.TrieStub{}
+	trieStub.UpdateCalled = func(key, value []byte) error {
+		wasCalled = true
+		return nil
+	}
 
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	adb := generateAccountDBFromTrie(&trieStub)
 
-	adb := adbCreateAccountsDB()
+	err := adb.RemoveCode([]byte("AAA"))
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+}
+
+//------- SaveData
+
+func TestAccountsDBSaveDataNilTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jem := generateJem()
+
+	jem.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+
+	adb := generateAccountDBFromTrie(nil)
+
+	err := adb.SaveData(jem)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBSaveDataNoDirtyShouldWork(t *testing.T) {
+	t.Parallel()
+
+	_, jem, adb := generateAddressJurnalAccountAccountsDB()
+
+	err := adb.SaveData(jem)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, adb.JournalLen())
+}
+
+func TestAccountsDBSaveDataMalfunctionTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jem := generateJem()
+	mockTrie := mock.NewMockTrie()
+	adb := generateAccountDBFromTrie(mockTrie)
+
+	jem.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+	mockTrie.FailRecreate = true
+
+	err := adb.SaveData(jem)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBSaveDataShouldWork(t *testing.T) {
+	t.Parallel()
+
+	adr, _, adb := generateAddressJurnalAccountAccountsDB()
+
+	account := state.NewAccount()
+	jaw, err := state.NewJournalizedAccountWrapFromAccountContainer(adr, account, adb)
+	assert.Nil(t, err)
+	jaw.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
+
+	err = adb.SaveData(jaw)
+	assert.Nil(t, err)
+}
+
+//------- HasAccount
+
+func TestAccountsDBHasAccountNilTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+
+	adb := generateAccountDBFromTrie(nil)
+
+	val, err := adb.HasAccount(adr)
+	assert.NotNil(t, err)
+	assert.False(t, val)
+}
+
+func TestAccountsDBHasAccountMalfunctionTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+
+	mockTrie := mock.NewMockTrie()
+	adb := generateAccountDBFromTrie(mockTrie)
+
+	mockTrie.Fail = true
+
+	val, err := adb.HasAccount(adr)
+	assert.NotNil(t, err)
+	assert.False(t, val)
+}
+
+func TestAccountsDBHasAccountNotFoundShouldRetFalse(t *testing.T) {
+	t.Parallel()
+
+	adr, _, adb := generateAddressJurnalAccountAccountsDB()
+
+	//should return false
+	val, err := adb.HasAccount(adr)
+	assert.Nil(t, err)
+	assert.False(t, val)
+}
+
+func TestAccountsDBHasAccountFoundShouldRetTrue(t *testing.T) {
+	t.Parallel()
+	adr := mock.NewAddressMock()
+	mockTrie := mock.NewMockTrie()
+
+	adb := generateAccountDBFromTrie(mockTrie)
+
+	err := mockTrie.Update(mock.HasherMock{}.Compute(string(adr.Bytes())), []byte{65})
+	assert.Nil(t, err)
+
+	//should return true
+	val, err := adb.HasAccount(adr)
+	assert.Nil(t, err)
+	assert.True(t, val)
+}
+
+//------- SaveJournalizedAccount
+
+func TestAccountsDBSaveJournalizedAccountNilTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jem := generateJem()
+	adb := generateAccountDBFromTrie(nil)
+
+	err := adb.SaveJournalizedAccount(jem)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBSaveJournalizedAccountNilStateShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adb := generateAccountDBFromTrie(nil)
+
+	err := adb.SaveJournalizedAccount(nil)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBSaveJournalizedAccountMalfunctionTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jem := generateJem()
+	mockTrie := mock.NewMockTrie()
+	adb := generateAccountDBFromTrie(mockTrie)
+
+	mockTrie.Fail = true
+
+	//should return error
+	err := adb.SaveJournalizedAccount(jem)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBSaveJournalizedAccountMalfunctionMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jem := generateJem()
+	mockTrie := mock.NewMockTrie()
+	marshalizer := &mock.MarshalizerMock{}
+	adb := generateAccountDBFromTrieAndMarshalizer(mockTrie, marshalizer)
+
+	marshalizer.Fail = true
+
+	//should return error
+	err := adb.SaveJournalizedAccount(jem)
+
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBSaveJournalizedAccountWithSomeValuesShouldWork(t *testing.T) {
+	t.Parallel()
+
+	_, jem, adb := generateAddressJurnalAccountAccountsDB()
+
+	//should return error
+	err := adb.SaveJournalizedAccount(jem)
+	assert.Nil(t, err)
+}
+
+//------- RemoveAccount
+
+func TestAccountsDBRemoveAccountNilTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := &mock.AddressMock{}
+	adb := generateAccountDBFromTrie(nil)
+
+	err := adb.RemoveAccount(adr)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBRemoveAccountShouldWork(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+
+	trieStub := &mock.TrieStub{}
+	trieStub.UpdateCalled = func(key, value []byte) error {
+		wasCalled = true
+		return nil
+	}
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(trieStub)
+
+	err := adb.RemoveAccount(adr)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+}
+
+//------- GetJournalizedAccount
+
+func TestAccountsDBGetJournalizedAccountNilTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(nil)
+
+	_, err := adb.GetJournalizedAccount(adr)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBGetJournalizedAccountMalfunctionTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	trieMock := mock.NewMockTrie()
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(trieMock)
+	trieMock.FailGet = true
+
+	_, err := adb.GetJournalizedAccount(adr)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBGetJournalizedAccountNotFoundShouldCreateEmpty(t *testing.T) {
+	t.Parallel()
+
+	trieMock := mock.NewMockTrie()
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(trieMock)
+
+	account, err := adb.GetJournalizedAccount(adr)
+	assert.Nil(t, err)
+
+	assert.Equal(t, uint64(0), account.BaseAccount().Nonce)
+	assert.Equal(t, *big.NewInt(0), account.BaseAccount().Balance)
+	assert.Equal(t, []byte(nil), account.BaseAccount().CodeHash)
+	assert.Equal(t, []byte(nil), account.BaseAccount().RootHash)
+	assert.Equal(t, adr, account.AddressContainer())
+}
+
+//------- getAccount
+
+func TestAccountsDBGetAccountAccountNotFound(t *testing.T) {
+	t.Parallel()
+
+	trieMock := mock.TrieStub{}
+
+	//Step 1. Create an account + its DbAccount representation
+	testAccount := state.NewAccount()
+	testAccount.Nonce = 1
+	testAccount.Balance = *big.NewInt(45)
+
+	//Step 2. marshalize the DbAccount
+	marshalizer := mock.MarshalizerMock{}
+	buff, err := marshalizer.Marshal(testAccount)
+	assert.Nil(t, err)
+
+	trieMock.GetCalled = func(key []byte) (bytes []byte, e error) {
+		//whatever the key is, return the same marshalized DbAccount
+		return buff, nil
+	}
+
+	adr, _, adb := generateAddressJurnalAccountAccountsDB()
+
+	adb, _ = state.NewAccountsDB(&trieMock, mock.HasherMock{}, &marshalizer)
+
+	//Step 3. call get, should return a copy of DbAccount, recover an Account object
+	recoveredAccount, err := adb.GetAccount(adr)
+	assert.Nil(t, err)
+
+	//Step 4. Let's test
+	assert.Equal(t, testAccount.Nonce, recoveredAccount.Nonce)
+	assert.Equal(t, testAccount.Balance, recoveredAccount.Balance)
+
+}
+
+//------- loadCode
+func TestAccountsDBLoadCodeNilTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr, jem, _ := generateAddressJurnalAccountAccountsDB()
+
+	adb := generateAccountDBFromTrie(nil)
+
+	//just search a hash. Any hash will do
+	jem.CodeHash = adr.Hash()
+
+	err := adb.LoadCode(jem)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBLoadCodeWrongHashLengthShouldErr(t *testing.T) {
+	t.Parallel()
+
+	_, jem, adb := generateAddressJurnalAccountAccountsDB()
+
+	jem.CodeHash = []byte("AAAA")
+
+	err := adb.LoadCode(jem)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBLoadCodeMalfunctionTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	jem := generateJem()
+	mockTrie := mock.NewMockTrie()
+	adb := generateAccountDBFromTrie(mockTrie)
+
+	mockTrie.FailGet = true
+
+	//just search a hash. Any hash will do
+	jem.CodeHash = adr.Hash()
+
+	err := adb.LoadCode(jem)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBLoadCodeOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	adr, jem, adb := generateAddressJurnalAccountAccountsDB()
+
+	trieStub := mock.TrieStub{}
+	trieStub.GetCalled = func(key []byte) (bytes []byte, e error) {
+		//will return adr.Bytes() so its hash will correspond to adr.Hash()
+		return adr.Bytes(), nil
+	}
+	marshalizer := mock.MarshalizerMock{}
+	adb, _ = state.NewAccountsDB(&trieStub, mock.HasherMock{}, &marshalizer)
+
+	//just search a hash. Any hash will do
+	jem.CodeHash = adr.Hash()
+
+	err := adb.LoadCode(jem)
+	assert.Nil(t, err)
+	assert.Equal(t, adr.Bytes(), jem.Code())
+}
+
+//------- RetrieveData
+
+func TestAccountsDBLoadDataNilRootShouldRetNil(t *testing.T) {
+	t.Parallel()
+
+	_, jem, adb := generateAddressJurnalAccountAccountsDB()
 
 	//since root is nil, result should be nil and data trie should be nil
-	err := adb.RetrieveDataTrie(as)
+	err := adb.LoadDataTrie(jem)
 	assert.Nil(t, err)
-	assert.Nil(t, as.DataTrie)
+	assert.Nil(t, jem.DataTrie())
 }
 
-func TestAccountsDB_RetrieveData_NilTrie_ShouldErr(t *testing.T) {
+func TestAccountsDBLoadDataNilTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	jem := generateJem()
+	jem.RootHash = []byte("12345")
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
+	adb := generateAccountDBFromTrie(nil)
 
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().Root = []byte("12345")
-
-	adb := adbCreateAccountsDB()
-
-	adb.MainTrie = nil
-
-	err := adb.RetrieveDataTrie(as)
+	err := adb.LoadDataTrie(jem)
 	assert.NotNil(t, err)
 }
 
-func TestAccountsDB_RetrieveData_BadLength_ShouldErr(t *testing.T) {
+func TestAccountsDBLoadDataBadLengthShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	_, jem, adb := generateAddressJurnalAccountAccountsDB()
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().Root = []byte("12345")
-
-	adb := adbCreateAccountsDB()
+	jem.RootHash = []byte("12345")
 
 	//should return error
-	err := adb.RetrieveDataTrie(as)
+	err := adb.LoadDataTrie(jem)
 	assert.NotNil(t, err)
 	fmt.Println(err.Error())
 }
 
-func TestAccountsDB_RetrieveData_MalfunctionTrie_ShouldErr(t *testing.T) {
+func TestAccountsDBLoadDataMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	jem := generateJem()
+	jem.RootHash = []byte("12345")
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
+	mockTrie := mock.NewMockTrie()
+	adb := generateAccountDBFromTrie(mockTrie)
 
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().Root = hasher.Compute("12345")
-
-	adb := adbCreateAccountsDB()
-	adb.MainTrie.(*mock.TrieMock).Fail = true
+	mockTrie.Fail = true
 
 	//should return error
-	err := adb.RetrieveDataTrie(as)
+	err := adb.LoadDataTrie(jem)
 	assert.NotNil(t, err)
 }
 
-func TestAccountsDB_RetrieveData_NotFoundRoot_ShouldReturnErr(t *testing.T) {
+func TestAccountsDBLoadDataNotFoundRootShouldReturnErr(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	_, jem, adb := generateAddressJurnalAccountAccountsDB()
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	as.Account().Root = hasher.Compute("12345")
-
-	adb := adbCreateAccountsDB()
+	rootHash := make([]byte, mock.HasherMock{}.Size())
+	rootHash[0] = 1
+	jem.RootHash = rootHash
 
 	//should return error
-	err := adb.RetrieveDataTrie(as)
+	err := adb.LoadDataTrie(jem)
 	assert.NotNil(t, err)
 	fmt.Println(err.Error())
 }
 
-func TestAccountsDB_RetrieveData_WithSomeValues_ShouldWork(t *testing.T) {
+func TestAccountsDBLoadDataWithSomeValuesShouldWork(t *testing.T) {
 	//test simulates creation of a new account, data trie retrieval,
 	//adding a (key, value) pair in that data trie, commiting changes
 	//and then reloading the data trie based on the root hash generated before
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	jem := generateJem()
+	mockTrie := mock.NewMockTrie()
+	adb := generateAccountDBFromTrie(mockTrie)
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
+	rootHash := make([]byte, mock.HasherMock{}.Size())
+	rootHash[0] = 1
+	jem.RootHash = rootHash
 
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
 	//create a data trie with some values
-	dataTrie, err := adb.MainTrie.Recreate(make([]byte, encoding.HashLength), adb.MainTrie.DBW())
+	dataTrie, err := mockTrie.Recreate(make([]byte, encoding.HashLength), mockTrie.DBW())
 	assert.Nil(t, err)
-
 	err = dataTrie.Update([]byte{65, 66, 67}, []byte{32, 33, 34})
 	assert.Nil(t, err)
-
 	err = dataTrie.Update([]byte{68, 69, 70}, []byte{35, 36, 37})
 	assert.Nil(t, err)
-
 	_, err = dataTrie.Commit(nil)
 	assert.Nil(t, err)
 
 	//link the new created trie to account's data root
-	as.Account().Root = dataTrie.Root()
+	jem.RootHash = dataTrie.Root()
 
 	//should not return error
-	err = adb.RetrieveDataTrie(as)
+	err = adb.LoadDataTrie(jem)
 	assert.Nil(t, err)
-	assert.NotNil(t, as.DataTrie)
+	assert.NotNil(t, jem.DataTrie())
 
 	//verify data
-	data, err := as.RetrieveValue([]byte{65, 66, 67})
+	data, err := jem.RetrieveValue([]byte{65, 66, 67})
 	assert.Nil(t, err)
 	assert.Equal(t, []byte{32, 33, 34}, data)
 
-	data, err = as.RetrieveValue([]byte{68, 69, 70})
+	data, err = jem.RetrieveValue([]byte{68, 69, 70})
 	assert.Nil(t, err)
 	assert.Equal(t, []byte{35, 36, 37}, data)
 }
 
-func TestAccountsDB_PutCode_NilCodeHash_ShouldRetNil(t *testing.T) {
+//------- Commit
+
+func TestAccountsDBCommitWithSomeValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	jem := generateJem()
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
+	commitCalled := 0
 
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	trieStub := mock.TrieStub{}
+	trieStub.CommitCalled = func(onleaf trie.LeafCallback) (root []byte, err error) {
+		commitCalled++
 
-	adb := adbCreateAccountsDB()
+		return nil, nil
+	}
+	adb := generateAccountDBFromTrie(&trieStub)
 
-	err := adb.PutCode(as, nil)
+	adb.AddJournalEntry(state.NewJournalEntryData(jem, &trieStub))
+
+	_, err := adb.Commit()
 	assert.Nil(t, err)
-	assert.Nil(t, as.CodeHash())
-	assert.Nil(t, as.Code)
+	//one commit for the JournalEntryData and one commit for the main trie
+	assert.Equal(t, 2, commitCalled)
 }
 
-func TestAccountsDB_PutCode_EmptyCodeHash_ShouldRetNil(t *testing.T) {
+//------- RecreateTrie
+
+func TestAccountsDBRecreateTrieMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	wasCalled := false
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
+	trieStub := mock.TrieStub{}
+	trieStub.RecreateCalled = func(root []byte, dbw trie.DBWriteCacher) (tree trie.PatriciaMerkelTree, e error) {
+		wasCalled = true
+		return nil, errors.New("failure")
+	}
+	trieStub.DBWCalled = func() trie.DBWriteCacher {
+		return nil
+	}
 
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	adb := generateAccountDBFromTrie(&trieStub)
 
-	adb := adbCreateAccountsDB()
-
-	err := adb.PutCode(as, make([]byte, 0))
-	assert.Nil(t, err)
-	assert.Nil(t, as.CodeHash())
-	assert.Nil(t, as.Code)
-}
-
-func TestAccountsDB_PutCode_NilTrie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-
-	adb.MainTrie = nil
-
-	err := adb.PutCode(as, []byte{65})
+	err := adb.RecreateTrie(nil)
 	assert.NotNil(t, err)
+	assert.True(t, wasCalled)
 }
 
-func TestAccountsDB_PutCode_MalfunctionTrie_ShouldErr(t *testing.T) {
+func TestAccountsDBRecreateTriOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	wasCalled := false
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
+	trieStub := mock.TrieStub{}
+	trieStub.RecreateCalled = func(root []byte, dbw trie.DBWriteCacher) (tree trie.PatriciaMerkelTree, e error) {
+		wasCalled = true
+		return nil, nil
+	}
+	trieStub.DBWCalled = func() trie.DBWriteCacher {
+		return nil
+	}
 
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
+	adb := generateAccountDBFromTrie(&trieStub)
 
-	adb := adbCreateAccountsDB()
-	adb.MainTrie.(*mock.TrieMock).Fail = true
-
-	//should return error
-	err := adb.PutCode(as, []byte{65})
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_PutCode_Malfunction2Trie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-	adb.MainTrie.(*mock.TrieMock).FailUpdate = true
-
-	//should return error
-	err := adb.PutCode(as, []byte{65})
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_PutCode_WithSomeValues_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-
-	snapshotRoot := adb.MainTrie.Root()
-
-	err := adb.PutCode(as, []byte("Smart contract code"))
+	err := adb.RecreateTrie(nil)
 	assert.Nil(t, err)
-	assert.NotNil(t, as.CodeHash)
-	assert.Equal(t, []byte("Smart contract code"), as.Code)
-
-	fmt.Printf("SC code is at address: %v\n", as.CodeHash())
-
-	//retrieve directly from the trie
-	data, err := adb.MainTrie.Get(as.CodeHash())
-	assert.Nil(t, err)
-	assert.Equal(t, data, as.Code)
-
-	fmt.Printf("SC code is: %v\n", string(data))
-
-	//main root trie should have been modified
-	assert.NotEqual(t, snapshotRoot, adb.MainTrie.Root())
-}
-
-func TestAccountsDB_SaveData_NilTrie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-	as.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-
-	adb.MainTrie = nil
-
-	err := adb.SaveData(as)
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_SaveData_NoDirty_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-
-	err := adb.SaveData(as)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, adb.Journal().Len())
-}
-
-func TestAccountsDB_SaveData_MalfunctionTrie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-	as.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	adb.MainTrie.(*mock.TrieMock).FailRecreate = true
-
-	err := adb.SaveData(as)
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_HasAccount_NilTrie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-
-	adb := adbCreateAccountsDB()
-	adb.MainTrie = nil
-
-	val, err := adb.HasAccount(*adr)
-	assert.NotNil(t, err)
-	assert.False(t, val)
-}
-
-func TestAccountsDB_HasAccount_MalfunctionTrie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-
-	adb := adbCreateAccountsDB()
-	adb.MainTrie.(*mock.TrieMock).Fail = true
-
-	//should return error
-	val, err := adb.HasAccount(*adr)
-	assert.NotNil(t, err)
-	assert.False(t, val)
-}
-
-func TestAccountsDB_HasAccount_NotFound_ShouldRetFalse(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-
-	adb := adbCreateAccountsDB()
-
-	//should return false
-	val, err := adb.HasAccount(*adr)
-	assert.Nil(t, err)
-	assert.False(t, val)
-}
-
-func TestAccountsDB_HasAccount_Found_ShouldRetTrue(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-
-	adb := adbCreateAccountsDB()
-	err := adb.MainTrie.Update(hasher.Compute(string(adr.Bytes())), []byte{65})
-	assert.Nil(t, err)
-
-	//should return true
-	val, err := adb.HasAccount(*adr)
-	assert.Nil(t, err)
-	assert.True(t, val)
-}
-
-func TestAccountsDB_SaveAccountState_NilTrie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-	adb.MainTrie = nil
-
-	err := adb.SaveAccountState(as)
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_SaveAccountState_NilState_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	adb := adbCreateAccountsDB()
-	adb.MainTrie = nil
-
-	err := adb.SaveAccountState(nil)
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_SaveAccountState_MalfunctionTrie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-	adb.MainTrie.(*mock.TrieMock).Fail = true
-
-	//should return error
-	err := adb.SaveAccountState(as)
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_SaveAccountState_MalfunctionMarshalizer_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-	adb.Marsh().(*mock.MarshalizerMock).Fail = true
-	defer func() {
-		//call defer to reset the fail pointer so other tests will work as expected
-		adb.Marsh().(*mock.MarshalizerMock).Fail = false
-	}()
-
-	//should return error
-	err := adb.SaveAccountState(as)
-
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_SaveAccountState_WithSomeValues_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-
-	//should return error
-	err := adb.SaveAccountState(as)
-	assert.Nil(t, err)
-}
-
-func TestAccountsDB_GetOrCreateAccount_NilTrie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-
-	adb := adbCreateAccountsDB()
-	adb.MainTrie = nil
-
-	acnt, err := adb.GetOrCreateAccount(*adr)
-	assert.NotNil(t, err)
-	assert.Nil(t, acnt)
+	assert.True(t, wasCalled)
 
 }
 
-func TestAccountsDB_GetOrCreateAccount_MalfunctionTrie_ShouldErr(t *testing.T) {
-	//test when there is no such account
+//------- Functionality test
 
+func TestAccountsDBTestCreateModifyComitSaveGet(t *testing.T) {
 	t.Parallel()
 
-	hasher := mock.HasherMock{}
+	trieMock := mock.NewMockTrie()
 
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
+	adr := mock.NewAddressMock()
 
-	adr := adbCreateAddress(t, testHash)
+	adb := generateAccountDBFromTrie(trieMock)
 
-	adb := adbCreateAccountsDB()
-	adb.MainTrie.(*mock.TrieMock).FailGet = true
-	adb.MainTrie.(*mock.TrieMock).TTFGet = 1
-	adb.MainTrie.(*mock.TrieMock).FailUpdate = true
-	adb.MainTrie.(*mock.TrieMock).TTFUpdate = 0
-
-	acnt, err := adb.GetOrCreateAccount(*adr)
-	assert.NotNil(t, err)
-	assert.Nil(t, acnt)
-
-}
-
-func TestAccountsDB_GetOrCreateAccount_Malfunction2Trie_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-	err := adb.SaveAccountState(as)
+	//Step 1. get a fresh new account
+	journalizedAccount, err := adb.GetJournalizedAccount(adr)
+	assert.Nil(t, err)
+	err = journalizedAccount.SetNonceWithJournal(34)
+	assert.Nil(t, err)
+	err = journalizedAccount.SetBalanceWithJournal(*big.NewInt(45))
+	assert.Nil(t, err)
+	err = adb.PutCode(journalizedAccount, []byte("Test SC code to be executed"))
+	assert.Nil(t, err)
+	journalizedAccount.SaveKeyValue([]byte("a key"), []byte("a value"))
+	err = adb.SaveData(journalizedAccount)
 	assert.Nil(t, err)
 
-	adb.MainTrie.(*mock.TrieMock).FailGet = true
-	adb.MainTrie.(*mock.TrieMock).TTFGet = 1
+	//Step 2. Commit, as to save the data inside the trie
+	rootHash, err := adb.Commit()
+	assert.Nil(t, err)
+	fmt.Printf("Root hash: %v\n", rootHash)
 
-	acnt, err := adb.GetOrCreateAccount(*adr)
-	assert.NotNil(t, err)
-	assert.Nil(t, acnt)
-
-}
-
-func TestAccountsDB_GetOrCreateAccount_MalfunctionMarshalizer_ShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-
-	adb := adbCreateAccountsDB()
-	err := adb.SaveAccountState(as)
+	//Step 3. Load data and test
+	recoveredAccount, err := adb.GetJournalizedAccount(adr)
 	assert.Nil(t, err)
 
-	adb.Marsh().(*mock.MarshalizerMock).Fail = true
-	defer func() {
-		adb.Marsh().(*mock.MarshalizerMock).Fail = false
-	}()
-
-	acnt, err := adb.GetOrCreateAccount(*adr)
-	assert.NotNil(t, err)
-	assert.Nil(t, acnt)
-
-}
-
-func TestAccountsDB_GetOrCreateAccount_ReturnExistingAccnt_ShouldWork(t *testing.T) {
-	//test when the account exists
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adb := adbCreateAccountsDB()
-
-	adr := adbCreateAddress(t, testHash)
-	as := adbCreateAccountState(t, *adr)
-	err := as.SetBalance(adb, big.NewInt(40))
+	assert.Equal(t, uint64(34), recoveredAccount.BaseAccount().Nonce)
+	assert.Equal(t, *big.NewInt(45), recoveredAccount.BaseAccount().Balance)
+	assert.Equal(t, []byte("Test SC code to be executed"), recoveredAccount.Code())
+	value, err := recoveredAccount.RetrieveValue([]byte("a key"))
 	assert.Nil(t, err)
-
-	err = adb.SaveAccountState(as)
-	assert.Nil(t, err)
-
-	acnt, err := adb.GetOrCreateAccount(*adr)
-	assert.Nil(t, err)
-	assert.NotNil(t, acnt)
-	assert.Equal(t, acnt.Balance(), *big.NewInt(40))
-}
-
-func TestAccountsDB_GetOrCreateAccount_ReturnNotFoundAccnt_ShouldWork(t *testing.T) {
-	//test when the account does not exists
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash := hasher.Compute("ABCDEFGHIJKLMNOP")
-
-	adb := adbCreateAccountsDB()
-
-	adr := adbCreateAddress(t, testHash)
-
-	//same address of the unsaved account
-	acnt, err := adb.GetOrCreateAccount(*adr)
-	assert.Nil(t, err)
-	assert.NotNil(t, acnt)
-	assert.Equal(t, acnt.Balance(), *big.NewInt(0))
-}
-
-func TestAccountsDB_Commit_MalfunctionTrie_ShouldErr(t *testing.T) {
-	//test creates 2 accounts (one with a data root)
-	//verifies that commit saves the new tries and that can be loaded back
-	//second data trie malfunctions
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash1 := hasher.Compute("ABCDEFGHIJKLMNOP")
-	adr1 := adbCreateAddress(t, testHash1)
-
-	testHash2 := hasher.Compute("ABCDEFGHIJKLMNOPQ")
-	adr2 := adbCreateAddress(t, testHash2)
-
-	adb := adbCreateAccountsDB()
-
-	//first account has the balance of 40
-	state1, err := adb.GetOrCreateAccount(*adr1)
-	assert.Nil(t, err)
-	err = state1.SetBalance(adb, big.NewInt(40))
-	assert.Nil(t, err)
-
-	//second account has the balance of 50 and some data
-	state2, err := adb.GetOrCreateAccount(*adr2)
-	assert.Nil(t, err)
-
-	err = state2.SetBalance(adb, big.NewInt(50))
-	assert.Nil(t, err)
-
-	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	err = adb.SaveData(state2)
-	assert.Nil(t, err)
-
-	//states are now prepared, committing
-
-	state2.DataTrie.(*mock.TrieMock).Fail = true
-
-	_, err = adb.Commit()
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_Commit_MalfunctionMainTrie_ShouldErr(t *testing.T) {
-	//test creates 2 accounts (one with a data root)
-	//verifies that commit saves the new tries and that can be loaded back
-	//main trie malfunctions
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash1 := hasher.Compute("ABCDEFGHIJKLMNOP")
-	adr1 := adbCreateAddress(t, testHash1)
-
-	testHash2 := hasher.Compute("ABCDEFGHIJKLMNOPQ")
-	adr2 := adbCreateAddress(t, testHash2)
-
-	adb := adbCreateAccountsDB()
-
-	//first account has the balance of 40
-	state1, err := adb.GetOrCreateAccount(*adr1)
-	assert.Nil(t, err)
-	err = state1.SetBalance(adb, big.NewInt(40))
-	assert.Nil(t, err)
-
-	//second account has the balance of 50 and some data
-	state2, err := adb.GetOrCreateAccount(*adr2)
-	assert.Nil(t, err)
-
-	err = state2.SetBalance(adb, big.NewInt(50))
-	assert.Nil(t, err)
-
-	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	err = adb.SaveData(state2)
-
-	//states are now prepared, committing
-
-	adb.MainTrie.(*mock.TrieMock).Fail = true
-
-	_, err = adb.Commit()
-	assert.NotNil(t, err)
-}
-
-func TestAccountsDB_Commit_2okAccounts_ShouldWork(t *testing.T) {
-	//test creates 2 accounts (one with a data root)
-	//verifies that commit saves the new tries and that can be loaded back
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash1 := hasher.Compute("ABCDEFGHIJKLMNOP")
-	adr1 := adbCreateAddress(t, testHash1)
-
-	testHash2 := hasher.Compute("ABCDEFGHIJKLMNOPQ")
-	adr2 := adbCreateAddress(t, testHash2)
-
-	adb := adbCreateAccountsDB()
-
-	//first account has the balance of 40
-	state1, err := adb.GetOrCreateAccount(*adr1)
-	assert.Nil(t, err)
-	err = state1.SetBalance(adb, big.NewInt(40))
-	assert.Nil(t, err)
-
-	//second account has the balance of 50 and some data
-	state2, err := adb.GetOrCreateAccount(*adr2)
-	assert.Nil(t, err)
-
-	err = state2.SetBalance(adb, big.NewInt(50))
-	assert.Nil(t, err)
-
-	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
-	err = adb.SaveData(state2)
-	assert.Nil(t, err)
-
-	//states are now prepared, committing
-
-	h, err := adb.Commit()
-	assert.Nil(t, err)
-	fmt.Printf("Result hash: %v\n", base64.StdEncoding.EncodeToString(h))
-
-	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
-
-	//reloading a new trie to test if data is inside
-	newTrie, err := adb.MainTrie.Recreate(adb.MainTrie.Root(), adb.MainTrie.DBW())
-	assert.Nil(t, err)
-	marsh := mock.MarshalizerMock{}
-	newAdb := state.NewAccountsDB(newTrie, mock.HasherMock{}, &marsh)
-
-	//checking state1
-	newState1, err := newAdb.GetOrCreateAccount(*adr1)
-	assert.Nil(t, err)
-	assert.Equal(t, newState1.Balance(), *big.NewInt(40))
-
-	//checking state2
-	newState2, err := newAdb.GetOrCreateAccount(*adr2)
-	assert.Nil(t, err)
-	assert.Equal(t, newState2.Balance(), *big.NewInt(50))
-	assert.NotNil(t, newState2.Root)
-	//get data
-	err = adb.RetrieveDataTrie(newState2)
-	assert.Nil(t, err)
-	val, err := newState2.RetrieveValue([]byte{65, 66, 67})
-	assert.Nil(t, err)
-	assert.Equal(t, []byte{32, 33, 34}, val)
-}
-
-func TestAccountsDB_Commit_AccountData_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	hasher := mock.HasherMock{}
-
-	testHash1 := hasher.Compute("ABCDEFGHIJKLMNOP")
-	adr1 := adbCreateAddress(t, testHash1)
-
-	adb := adbCreateAccountsDB()
-	hrEmpty := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
-	fmt.Printf("State root - empty: %v\n", hrEmpty)
-
-	state1, err := adb.GetOrCreateAccount(*adr1)
-	assert.Nil(t, err)
-	hrCreated := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
-	fmt.Printf("State root - created account: %v\n", hrCreated)
-
-	err = state1.SetBalance(adb, big.NewInt(40))
-	assert.Nil(t, err)
-	hrWithBalance := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
-	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance)
-
-	_, err = adb.Commit()
-	assert.Nil(t, err)
-	hrCommit := base64.StdEncoding.EncodeToString(adb.MainTrie.Root())
-	fmt.Printf("State root - commited: %v\n", hrCommit)
-
-	//commit hash == account with balance
-	assert.Equal(t, hrCommit, hrWithBalance)
-
-	err = state1.SetBalance(adb, big.NewInt(0))
-	assert.Nil(t, err)
-
-	//root hash == hrCreated
-	assert.Equal(t, hrCreated, base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
-	fmt.Printf("State root - account with balance 0: %v\n", base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
-
-	err = adb.RemoveAccount(*adr1)
-	assert.Nil(t, err)
-	//root hash == hrEmpty
-	assert.Equal(t, hrEmpty, base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
-	fmt.Printf("State root - empty: %v\n", base64.StdEncoding.EncodeToString(adb.MainTrie.Root()))
+	assert.Equal(t, []byte("a value"), value)
 }
