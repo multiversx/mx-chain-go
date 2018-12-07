@@ -142,6 +142,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		if err != nil {
 			log.Error("Could not connect to addresses", err.Error())
 		}
+		err = localNode.StartConsensus()
 	}
 
 	return nil

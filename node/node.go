@@ -71,6 +71,11 @@ func (n *Node) ConnectToAddresses(peers []string) error {
 	return nil
 }
 
+// StartConsensus will start the consesus service for the current node
+func (n *Node) StartConsensus() error {
+	return nil
+}
+
 // IsRunning will return the current state of the node
 func (n *Node) IsRunning() bool {
 	return n.isRunning
