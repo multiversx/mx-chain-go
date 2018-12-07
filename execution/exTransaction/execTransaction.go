@@ -8,17 +8,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 )
 
-// ExecTransaction implements TransactionExecutor interface and can modify account states according to a transaction
-type ExecTransaction struct {
+// execTransaction implements TransactionExecutor interface and can modify account states according to a transaction
+type execTransaction struct {
 	accounts  state.AccountsAdapter
 	adrConv   state.AddressConverter
 	hasher    hashing.Hasher
 	scHandler func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
 }
 
-// NewExecTransaction creates a new ExecTransaction engine
+// NewExecTransaction creates a new execTransaction engine
 func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
-	addressConv state.AddressConverter) (*ExecTransaction, error) {
+	addressConv state.AddressConverter) (*execTransaction, error) {
 
 	if accounts == nil {
 		return nil, ErrNilAccountsAdapter
@@ -32,7 +32,7 @@ func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
 		return nil, ErrNilAddressConverter
 	}
 
-	return &ExecTransaction{
+	return &execTransaction{
 		accounts: accounts,
 		hasher:   hasher,
 		adrConv:  addressConv,
@@ -40,17 +40,17 @@ func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
 }
 
 // SChandler returns the smart contract execution function
-func (et *ExecTransaction) SChandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error {
+func (et *execTransaction) SChandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error {
 	return et.scHandler
 }
 
 // SetSChandler sets the smart contract execution function
-func (et *ExecTransaction) SetSChandler(f func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error) {
+func (et *execTransaction) SetSChandler(f func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error) {
 	et.scHandler = f
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (et *ExecTransaction) ProcessTransaction(tx *transaction.Transaction) error {
+func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error {
 	if tx == nil {
 		return ErrNilTransaction
 	}
@@ -63,6 +63,10 @@ func (et *ExecTransaction) ProcessTransaction(tx *transaction.Transaction) error
 	acntSrc, acntDest, err := et.getAccounts(adrSrc, adrDest)
 	if err != nil {
 		return err
+	}
+
+	if acntSrc == nil || acntDest == nil {
+		return ErrNilValue
 	}
 
 	if acntDest.Code() != nil {
@@ -91,7 +95,7 @@ func (et *ExecTransaction) ProcessTransaction(tx *transaction.Transaction) error
 	return nil
 }
 
-func (et *ExecTransaction) getAddresses(tx *transaction.Transaction) (adrSrc, adrDest state.AddressContainer, err error) {
+func (et *execTransaction) getAddresses(tx *transaction.Transaction) (adrSrc, adrDest state.AddressContainer, err error) {
 	//for now we assume that the address = public key
 	adrSrc, err = et.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
 	if err != nil {
@@ -101,16 +105,22 @@ func (et *ExecTransaction) getAddresses(tx *transaction.Transaction) (adrSrc, ad
 	return
 }
 
-func (et *ExecTransaction) getAccounts(adrSrc, adrDest state.AddressContainer) (acntSrc, acntDest state.JournalizedAccountWrapper, err error) {
+func (et *execTransaction) getAccounts(adrSrc, adrDest state.AddressContainer) (acntSrc, acntDest state.JournalizedAccountWrapper, err error) {
+	if adrSrc == nil || adrDest == nil {
+		err = ErrNilValue
+		return
+	}
+
 	acntSrc, err = et.accounts.GetJournalizedAccount(adrSrc)
 	if err != nil {
 		return
 	}
 	acntDest, err = et.accounts.GetJournalizedAccount(adrDest)
+
 	return
 }
 
-func (et *ExecTransaction) callSChandler(tx *transaction.Transaction) error {
+func (et *execTransaction) callSChandler(tx *transaction.Transaction) error {
 	if et.scHandler == nil {
 		return ErrNoVM
 	}
@@ -118,7 +128,7 @@ func (et *ExecTransaction) callSChandler(tx *transaction.Transaction) error {
 	return et.scHandler(et.accounts, tx)
 }
 
-func (et *ExecTransaction) checkTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {
+func (et *execTransaction) checkTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {
 	if acntSrc.BaseAccount().Nonce < nonce {
 		return ErrHigherNonceInTransaction
 	}
@@ -136,7 +146,7 @@ func (et *ExecTransaction) checkTxValues(acntSrc state.JournalizedAccountWrapper
 	return nil
 }
 
-func (et *ExecTransaction) moveBalances(acntSrc, acntDest state.JournalizedAccountWrapper, value *big.Int) error {
+func (et *execTransaction) moveBalances(acntSrc, acntDest state.JournalizedAccountWrapper, value *big.Int) error {
 	operation1 := big.NewInt(0)
 	operation2 := big.NewInt(0)
 
@@ -152,6 +162,6 @@ func (et *ExecTransaction) moveBalances(acntSrc, acntDest state.JournalizedAccou
 	return nil
 }
 
-func (et *ExecTransaction) increaseNonceAcntSrc(acntSrc state.JournalizedAccountWrapper) error {
+func (et *execTransaction) increaseNonceAcntSrc(acntSrc state.JournalizedAccountWrapper) error {
 	return acntSrc.SetNonceWithJournal(acntSrc.BaseAccount().Nonce + 1)
 }

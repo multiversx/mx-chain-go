@@ -27,3 +27,6 @@ var ErrLowerNonceInTransaction = errors.New("lower nonce in transaction, droppin
 
 // ErrInsufficientFunds signals the funds are insufficient
 var ErrInsufficientFunds = errors.New("insufficient funds")
+
+// ErrNilValue signals the value is nil
+var ErrNilValue = errors.New("nil value")
