@@ -3,6 +3,11 @@ package config
 import (
 	"math/big"
 	"path/filepath"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 )
 
 // CacheType represents the type of the supported caches
@@ -36,6 +41,10 @@ var (
 				FileName: filepath.Join(DefaultPath(), "Blocks"),
 				Type:     LvlDB,
 			},
+			BloomFilterConf: &BloomFilterConfig{
+				Size:     2048,
+				HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
+			},
 		},
 
 		BlockHeaderStorage: &StorageUnitConfig{
@@ -46,6 +55,10 @@ var (
 			DBConf: &DBConfig{
 				FileName: filepath.Join(DefaultPath(), "BlockHeaders"),
 				Type:     LvlDB,
+			},
+			BloomFilterConf: &BloomFilterConfig{
+				Size:     2048,
+				HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
 			},
 		},
 
@@ -58,6 +71,10 @@ var (
 				FileName: filepath.Join(DefaultPath(), "Transactions"),
 				Type:     LvlDB,
 			},
+			BloomFilterConf: &BloomFilterConfig{
+				Size:     2048,
+				HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
+			},
 		},
 
 		BBlockCache: &CacheConfig{
@@ -66,8 +83,8 @@ var (
 		},
 
 		TxPoolStorage: &CacheConfig{
-				Size: 1000,
-				Type: LRUCache,
+			Size: 1000,
+			Type: LRUCache,
 		},
 	}
 
@@ -81,14 +98,15 @@ type BlockChainConfig struct {
 	BlockStorage       *StorageUnitConfig
 	BlockHeaderStorage *StorageUnitConfig
 	TxStorage          *StorageUnitConfig
-	TxPoolStorage	   *CacheConfig
+	TxPoolStorage      *CacheConfig
 	BBlockCache        *CacheConfig
 }
 
 // StorageUnitConfig holds the configurable elements of the storage unit
 type StorageUnitConfig struct {
-	CacheConf *CacheConfig
-	DBConf    *DBConfig
+	CacheConf       *CacheConfig
+	DBConf          *DBConfig
+	BloomFilterConf *BloomFilterConfig
 }
 
 // CacheConfig holds the configurable elements of a cache
@@ -101,4 +119,10 @@ type CacheConfig struct {
 type DBConfig struct {
 	FileName string
 	Type     DBType
+}
+
+// BloomFilterConfig holds the configurable elements of a bloom filter
+type BloomFilterConfig struct {
+	Size     uint
+	HashFunc []hashing.Hasher
 }

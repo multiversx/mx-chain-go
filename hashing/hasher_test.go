@@ -1,19 +1,35 @@
 package hashing_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	blake2b "github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
+	sha256 "github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 )
 
 func TestSha256(t *testing.T) {
-	Suite(t, sha256.Sha256{})
+	hashing.PutService(hashing.Hash, sha256.Sha256{})
+	Suite(t, hashing.GetHasherService())
 }
 
 func TestBlake2b(t *testing.T) {
-	Suite(t, blake2b.Blake2b{})
+	hashing.PutService(hashing.Hash, blake2b.Blake2b{})
+	Suite(t, hashing.GetHasherService())
+}
+
+func TestKeccak(t *testing.T) {
+	hashing.PutService(hashing.Hash, keccak.Keccak{})
+	Suite(t, hashing.GetHasherService())
+}
+
+func TestFnv(t *testing.T) {
+	hashing.PutService(hashing.Hash, fnv.Fnv{})
+	Suite(t, hashing.GetHasherService())
 }
 
 func Suite(t *testing.T, h hashing.Hasher) {
