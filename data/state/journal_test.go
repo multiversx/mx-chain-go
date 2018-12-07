@@ -1,186 +1,105 @@
 package state_test
 
 import (
-	"errors"
-	"math/rand"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-type journalEntryMock struct {
-	RevertCalled int
-	FailRevert   bool
+func TestJournalAddEntry(t *testing.T) {
+	j := state.NewJournal()
 
-	Addr *state.Address
-}
-
-func (tje *journalEntryMock) Revert(accounts state.AccountsHandler) error {
-	if tje.FailRevert {
-		return errors.New("testJournalEntry general failure")
-	}
-
-	tje.RevertCalled++
-	return nil
-}
-
-func (tje *journalEntryMock) DirtyAddress() *state.Address {
-	return tje.Addr
-}
-
-func jCreateRandomAddress() *state.Address {
-	buff := make([]byte, state.AdrLen)
-	rand.Read(buff)
-
-	addr, err := state.NewAddress(buff)
-	if err != nil {
-		panic(err)
-	}
-
-	return addr
-}
-
-func TestJournal_AddEntry_ValidValue_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	j := state.NewJournal(nil)
-
-	jem := journalEntryMock{Addr: jCreateRandomAddress()}
-
-	j.AddEntry(&jem)
+	jem := mock.NewJournalEntryMock()
+	j.AddEntry(jem)
 	assert.Equal(t, 1, len(j.Entries()))
-	assert.Equal(t, 1, j.DirtyAddresses()[jem.DirtyAddress()])
+}
+
+func TestJournalAddNilEntryShouldDiscard(t *testing.T) {
+	j := state.NewJournal()
+
+	j.AddEntry(nil)
+	assert.Equal(t, 0, len(j.Entries()))
+}
+
+func TestJournalLen(t *testing.T) {
+	j := state.NewJournal()
+
+	jem := mock.NewJournalEntryMock()
+	j.AddEntry(jem)
 	assert.Equal(t, 1, j.Len())
 }
 
-func TestJournal_RevertFromSnapshot_OutOfBound_ShouldWork(t *testing.T) {
-	t.Parallel()
+func TestJournalClear(t *testing.T) {
+	j := state.NewJournal()
 
-	j := state.NewJournal(nil)
-
-	jem := journalEntryMock{Addr: jCreateRandomAddress()}
-
-	j.AddEntry(&jem)
-
-	err := j.RevertFromSnapshot(3)
-	assert.Nil(t, err)
+	jem := mock.NewJournalEntryMock()
+	j.AddEntry(jem)
 	assert.Equal(t, 1, j.Len())
-	assert.Equal(t, 0, jem.RevertCalled)
-
-	j.RevertFromSnapshot(2)
-	assert.Equal(t, 1, j.Len())
-	assert.Equal(t, 0, jem.RevertCalled)
-
-	j.RevertFromSnapshot(0)
-	assert.Equal(t, 0, j.Len())
-	assert.Equal(t, 1, jem.RevertCalled)
-}
-
-func TestJournal_RevertFromSnapshot_SingleEntry_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	j := state.NewJournal(nil)
-
-	jem := journalEntryMock{Addr: jCreateRandomAddress()}
-
-	j.AddEntry(&jem)
-
-	err := j.RevertFromSnapshot(0)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, j.Len())
-	assert.Equal(t, 1, jem.RevertCalled)
-}
-
-func TestJournal_RevertFromSnapshot_5EntriesIdx3_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	j := state.NewJournal(nil)
-
-	jem := journalEntryMock{Addr: jCreateRandomAddress()}
-
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-
-	err := j.RevertFromSnapshot(3)
-	assert.Nil(t, err)
-	assert.Equal(t, 3, j.Len())
-	assert.Equal(t, 2, jem.RevertCalled)
-}
-
-func TestJournal_RevertFromSnapshot_5EntriesIdx0_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	j := state.NewJournal(nil)
-
-	jem := journalEntryMock{Addr: jCreateRandomAddress()}
-
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-
-	err := j.RevertFromSnapshot(0)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, j.Len())
-	assert.Equal(t, 5, jem.RevertCalled)
-}
-
-func TestJournal_RevertFromSnapshot_5EntriesIdx4_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	j := state.NewJournal(nil)
-
-	jem := journalEntryMock{Addr: jCreateRandomAddress()}
-
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-
-	err := j.RevertFromSnapshot(4)
-	assert.Nil(t, err)
-	assert.Equal(t, 4, j.Len())
-	assert.Equal(t, 1, jem.RevertCalled)
-}
-
-func TestJournal_RevertFromSnapshot_SingleEntryErrors_ShouldRetErr(t *testing.T) {
-	t.Parallel()
-
-	j := state.NewJournal(nil)
-
-	jem := journalEntryMock{Addr: jCreateRandomAddress()}
-	jem.FailRevert = true
-
-	j.AddEntry(&jem)
-
-	err := j.RevertFromSnapshot(0)
-	assert.NotNil(t, err)
-	assert.Equal(t, 1, j.Len())
-	assert.Equal(t, 0, jem.RevertCalled)
-}
-
-func TestJournal_Clear(t *testing.T) {
-	t.Parallel()
-
-	j := state.NewJournal(nil)
-
-	jem := journalEntryMock{Addr: jCreateRandomAddress()}
-
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-	j.AddEntry(&jem)
-
-	assert.Equal(t, 5, j.Len())
 
 	j.Clear()
-
 	assert.Equal(t, 0, j.Len())
+}
+
+func TestJournalRevertWith2EntriesShouldWork(t *testing.T) {
+	j := state.NewJournal()
+
+	wasCalled1 := false
+	wasCalled2 := false
+
+	jem1 := mock.NewJournalEntryMock()
+	jem1.RevertCalled = func(accountsAdapter state.AccountsAdapter) error {
+		wasCalled1 = true
+		return nil
+	}
+
+	jem2 := mock.NewJournalEntryMock()
+	jem2.RevertCalled = func(accountsAdapter state.AccountsAdapter) error {
+		wasCalled2 = true
+		return nil
+	}
+
+	j.AddEntry(jem1)
+	j.AddEntry(jem2)
+
+	err := j.RevertToSnapshot(0, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, j.Len())
+	assert.True(t, wasCalled1)
+	assert.True(t, wasCalled2)
+}
+
+func TestJournalRevertWithOutsideBoundsShouldIgnore(t *testing.T) {
+	j := state.NewJournal()
+
+	wasCalled1 := false
+	wasCalled2 := false
+
+	jem1 := mock.NewJournalEntryMock()
+	jem1.RevertCalled = func(accountsAdapter state.AccountsAdapter) error {
+		wasCalled1 = true
+		return nil
+	}
+
+	jem2 := mock.NewJournalEntryMock()
+	jem2.RevertCalled = func(accountsAdapter state.AccountsAdapter) error {
+		wasCalled2 = true
+		return nil
+	}
+
+	j.AddEntry(jem1)
+	j.AddEntry(jem2)
+
+	err := j.RevertToSnapshot(-1, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, j.Len())
+	assert.False(t, wasCalled1)
+	assert.False(t, wasCalled2)
+
+	err = j.RevertToSnapshot(3, nil)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, j.Len())
+	assert.False(t, wasCalled1)
+	assert.False(t, wasCalled2)
 }
