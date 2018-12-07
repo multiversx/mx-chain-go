@@ -18,3 +18,6 @@ var ErrNilInterceptor = errors.New("nil interceptor")
 
 // ErrNilBlockchain signals that a nil blockchain has been provided
 var ErrNilBlockchain = errors.New("nil blockchain")
+
+// ErrNilTxPool signals that a nil transaction pool has been provided
+var ErrNilTxPool = errors.New("nil transaction pool")

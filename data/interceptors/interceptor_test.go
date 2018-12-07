@@ -142,7 +142,7 @@ func TestInterceptorValidationCheckReceivedObjectFalseReturnFalse(t *testing.T) 
 
 	wasCalled := false
 
-	intercept.CheckReceivedObject = func(newer p2p.Newer) bool {
+	intercept.CheckReceivedObject = func(newer p2p.Newer, rawData []byte) bool {
 		wasCalled = true
 		return false
 	}
@@ -180,7 +180,7 @@ func TestInterceptorValidationCheckReceivedObjectTrueReturnTrue(t *testing.T) {
 
 	wasCalled := false
 
-	intercept.CheckReceivedObject = func(newer p2p.Newer) bool {
+	intercept.CheckReceivedObject = func(newer p2p.Newer, rawData []byte) bool {
 		wasCalled = true
 		return true
 	}

@@ -6,15 +6,15 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
-type interceptor struct {
+type Interceptor struct {
 	messenger      p2p.Messenger
 	templateObject p2p.Newer
 	name           string
 
-	CheckReceivedObject func(newer p2p.Newer) bool
+	CheckReceivedObject func(newer p2p.Newer, rawData []byte) bool
 }
 
-func NewInterceptor(name string, messenger p2p.Messenger, templateObject p2p.Newer) (*interceptor, error) {
+func NewInterceptor(name string, messenger p2p.Messenger, templateObject p2p.Newer) (*Interceptor, error) {
 	if messenger == nil {
 		return nil, ErrNilMessenger
 	}
@@ -30,7 +30,7 @@ func NewInterceptor(name string, messenger p2p.Messenger, templateObject p2p.New
 		return nil, err
 	}
 
-	intercept := interceptor{
+	intercept := Interceptor{
 		messenger:      messenger,
 		templateObject: templateObject,
 		name:           name,
@@ -44,7 +44,7 @@ func NewInterceptor(name string, messenger p2p.Messenger, templateObject p2p.New
 	return &intercept, nil
 }
 
-func (intercept *interceptor) validator(ctx context.Context, message *pubsub.Message) bool {
+func (intercept *Interceptor) validator(ctx context.Context, message *pubsub.Message) bool {
 	obj := intercept.templateObject.New()
 
 	marshalizer := intercept.messenger.Marshalizer()
@@ -58,5 +58,5 @@ func (intercept *interceptor) validator(ctx context.Context, message *pubsub.Mes
 		return false
 	}
 
-	return intercept.CheckReceivedObject(obj)
+	return intercept.CheckReceivedObject(obj, message.GetData())
 }
