@@ -13,23 +13,19 @@ import (
 )
 
 func TestSha256(t *testing.T) {
-	hashing.PutService(hashing.Hash, sha256.Sha256{})
-	Suite(t, hashing.GetHasherService())
+	Suite(t, sha256.Sha256{})
 }
 
 func TestBlake2b(t *testing.T) {
-	hashing.PutService(hashing.Hash, blake2b.Blake2b{})
-	Suite(t, hashing.GetHasherService())
+	Suite(t, blake2b.Blake2b{})
 }
 
 func TestKeccak(t *testing.T) {
-	hashing.PutService(hashing.Hash, keccak.Keccak{})
-	Suite(t, hashing.GetHasherService())
+	Suite(t, keccak.Keccak{})
 }
 
 func TestFnv(t *testing.T) {
-	hashing.PutService(hashing.Hash, fnv.Fnv{})
-	Suite(t, hashing.GetHasherService())
+	Suite(t, fnv.Fnv{})
 }
 
 func Suite(t *testing.T, h hashing.Hasher) {
