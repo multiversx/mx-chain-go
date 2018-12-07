@@ -100,6 +100,8 @@ type SPOSConsensusWorker struct {
 
 	ChRcvMsg map[MessageType]chan *ConsensusData
 
+	hasher      hashing.Hasher
+	marshalizer marshal.Marshalizer
 	// this is a pointer to a function which actually send the message from a node to the network
 	OnSendMessage func([]byte)
 }
@@ -110,13 +112,18 @@ func NewCommunication(
 	cns *Consensus,
 	blkc *blockchain.BlockChain,
 	txp *transactionPool.TransactionPool,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
 ) *SPOSConsensusWorker {
 
 	com := SPOSConsensusWorker{
-		log:  log,
-		Cns:  cns,
-		Blkc: blkc,
-		TxP:  txp}
+		log:         log,
+		Cns:         cns,
+		Blkc:        blkc,
+		TxP:         txp,
+		hasher:      hasher,
+		marshalizer: marshalizer,
+	}
 
 	com.Rounds = 0          // only for statistic
 	com.RoundsWithBlock = 0 // only for statistic
@@ -176,14 +183,14 @@ func (com *SPOSConsensusWorker) DoEndRoundJob() bool {
 		return false
 	}
 
-	header, err := marshal.DefMarsh.Marshal(com.Hdr)
+	header, err := com.marshalizer.Marshal(com.Hdr)
 
 	if err != nil {
 		com.Log(fmt.Sprintf(com.GetFormatedTime() + err.Error()))
 		return false
 	}
 
-	body, err := marshal.DefMarsh.Marshal(com.Blk)
+	body, err := com.marshalizer.Marshal(com.Blk)
 
 	if err != nil {
 		com.Log(fmt.Sprintf(com.GetFormatedTime() + err.Error()))
@@ -255,7 +262,7 @@ func (com *SPOSConsensusWorker) SendBlockBody() bool {
 
 	blk.MiniBlocks = com.CreateMiniBlocks()
 
-	message, err := marshal.DefMarsh.Marshal(blk)
+	message, err := com.marshalizer.Marshal(blk)
 
 	if err != nil {
 		com.Log(fmt.Sprintf(com.GetFormatedTime() + err.Error()))
@@ -343,16 +350,16 @@ func (com *SPOSConsensusWorker) SendBlockHeader() bool {
 		hdr.PrevHash = com.Blkc.CurrentBlock.BlockHash
 	}
 
-	message, err := marshal.DefMarsh.Marshal(com.Blk)
+	message, err := com.marshalizer.Marshal(com.Blk)
 
 	if err != nil {
 		com.Log(fmt.Sprintf(com.GetFormatedTime() + err.Error()))
 		return false
 	}
 
-	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+	hdr.BlockHash = com.hasher.Compute(string(message))
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = com.marshalizer.Marshal(hdr)
 
 	if err != nil {
 		com.Log(fmt.Sprintf(com.GetFormatedTime() + err.Error()))
@@ -523,7 +530,7 @@ func (com *SPOSConsensusWorker) DoSignatureJob() bool {
 
 // BroadcastMessage method send the message to the nodes which are in the validators group
 func (com *SPOSConsensusWorker) BroadcastMessage(cnsDta *ConsensusData) bool {
-	message, err := marshal.DefMarsh.Marshal(cnsDta)
+	message, err := com.marshalizer.Marshal(cnsDta)
 
 	if err != nil {
 		com.Log(fmt.Sprintf(com.GetFormatedTime() + err.Error()))
@@ -642,7 +649,7 @@ func (com *SPOSConsensusWorker) DecodeBlockBody(dta *[]byte) *block.Block {
 
 	var blk block.Block
 
-	err := marshal.DefMarsh.Unmarshal(&blk, *dta)
+	err := com.marshalizer.Unmarshal(&blk, *dta)
 
 	if err != nil {
 		com.Log(fmt.Sprintf(com.GetFormatedTime() + err.Error()))
@@ -691,7 +698,7 @@ func (com *SPOSConsensusWorker) DecodeBlockHeader(dta *[]byte) *block.Header {
 
 	var hdr block.Header
 
-	err := marshal.DefMarsh.Unmarshal(&hdr, *dta)
+	err := com.marshalizer.Unmarshal(&hdr, *dta)
 
 	if err != nil {
 		com.Log(fmt.Sprintf(com.GetFormatedTime() + err.Error()))

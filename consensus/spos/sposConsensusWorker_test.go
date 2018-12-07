@@ -1,6 +1,7 @@
 package spos_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"testing"
 	"time"
 
@@ -12,8 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -99,7 +98,9 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 			true,
 			cns,
 			&blkc,
-			txp)
+			txp,
+			mock.HasherMock{},
+			mock.MarshalizerMock{})
 
 		com.OnSendMessage = SendMessage
 
@@ -240,7 +241,9 @@ func TestNewMessage(t *testing.T) {
 		true,
 		nil,
 		nil,
-		nil)
+		nil,
+		mock.HasherMock{},
+		mock.MarshalizerMock{})
 
 	assert.Equal(t, 0, cap(com.ChRcvMsg[spos.MtBlockHeader]))
 
@@ -248,7 +251,9 @@ func TestNewMessage(t *testing.T) {
 		true,
 		cns,
 		nil,
-		nil)
+		nil,
+		mock.HasherMock{},
+		mock.MarshalizerMock{})
 
 	assert.Equal(t, len(cns.RoundConsensus.ConsensusGroup()), cap(msg2.ChRcvMsg[spos.MtBlockHeader]))
 }
@@ -482,13 +487,13 @@ func TestMessage_BroadcastMessage(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = []byte(coms[0].GetTime())
 
-	message, err := marshal.DefMarsh.Marshal(hdr)
+	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
@@ -562,7 +567,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	// Received BLOCK_BODY
 	blk := &block.Block{}
 
-	message, err := marshal.DefMarsh.Marshal(blk)
+	message, err := mock.MarshalizerMock{}.Marshal(blk)
 
 	assert.Nil(t, err)
 
@@ -580,13 +585,13 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = []byte(coms[0].GetTime())
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
@@ -604,13 +609,13 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = []byte(coms[0].GetTime())
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
@@ -628,13 +633,13 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = []byte(coms[0].GetTime())
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
@@ -652,13 +657,13 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = []byte(coms[0].GetTime())
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
@@ -676,13 +681,13 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = []byte(coms[0].GetTime())
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
@@ -700,13 +705,13 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = []byte(coms[0].GetTime())
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
@@ -729,7 +734,7 @@ func TestMessage_DecodeBlockBody(t *testing.T) {
 	mblks = append(mblks, block.MiniBlock{DestShardID: 69})
 	blk.MiniBlocks = mblks
 
-	message, err := marshal.DefMarsh.Marshal(blk)
+	message, err := mock.MarshalizerMock{}.Marshal(blk)
 
 	assert.Nil(t, err)
 
@@ -751,13 +756,13 @@ func TestMessage_DecodeBlockHeader(t *testing.T) {
 	hdr.TimeStamp = []byte(coms[0].GetTime())
 	hdr.Signature = []byte(coms[0].Cns.SelfId())
 
-	message, err := marshal.DefMarsh.Marshal(hdr)
+	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
@@ -779,7 +784,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 	// BLOCK BODY
 	blk := &block.Block{}
 
-	message, err := marshal.DefMarsh.Marshal(blk)
+	message, err := mock.MarshalizerMock{}.Marshal(blk)
 
 	assert.Nil(t, err)
 
@@ -799,13 +804,13 @@ func TestMessage_CheckChannels(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = []byte(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).String())
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
@@ -887,13 +892,13 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = []byte(coms[0].GetTime())
 
-	message, err := marshal.DefMarsh.Marshal(hdr)
+	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = hashing.DefHash.Compute(string(message))
+	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
 
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
@@ -929,7 +934,7 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsNotFinished)
 
 	hdr.PrevHash = []byte("X")
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 	assert.Nil(t, err)
 
 	cnsDta.Data = message
@@ -938,7 +943,7 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	hdr.PrevHash = []byte("")
-	message, err = marshal.DefMarsh.Marshal(hdr)
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 	assert.Nil(t, err)
 
 	cnsDta.Data = message
@@ -1176,7 +1181,9 @@ func TestConsensus_CheckConsensus(t *testing.T) {
 		true,
 		cns,
 		nil,
-		nil)
+		nil,
+		mock.HasherMock{},
+		mock.MarshalizerMock{})
 
 	GenerateSubRoundHandlers(100*time.Millisecond, cns, com)
 	ok := cns.CheckStartRoundConsensus()
