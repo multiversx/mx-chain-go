@@ -31,22 +31,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:7d191fd0c54ff370eaf6116a14dafe2a328df487baea280699f597aae858d00d"
-  name = "github.com/aristanetworks/goarista"
-  packages = ["monotime"]
-  pruneopts = "UT"
-  revision = "5bb443fba8e05f4a819301a63af91fe3cbadcc17"
-
-[[projects]]
-  digest = "1:a8d622a8049a4aa420e1c509873bb85d4c45c5107f420d922f919bfcb8d08694"
-  name = "github.com/beevik/ntp"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "62c80a04de2086884d8296004b6d74ee1846c582"
-  version = "v0.2.0"
-
-[[projects]]
-  branch = "master"
   digest = "1:c0decf632843204d2b8781de7b26e7038584e2dcccc7e2f401e88ae85b1df2b7"
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
@@ -404,17 +388,6 @@
   pruneopts = "UT"
   revision = "42e375808ebbc786e791f019d6a91097d90274a4"
   version = "v0.1.13"
-
-[[projects]]
-  digest = "1:7e08f84dede7386831fc88b1a249e768ee94498b97c75f5907700f8235338188"
-  name = "github.com/libp2p/go-floodsub"
-  packages = [
-    ".",
-    "pb",
-  ]
-  pruneopts = "UT"
-  revision = "4986a90e6d122bf9207561efeea9d8afdf193629"
-  version = "v0.9.36"
 
 [[projects]]
   digest = "1:19f2d2506cc0f9a233c9c0753e8c3fd5afa88afb43ff7b795cbba3629d0e96b5"
@@ -843,19 +816,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:8b078d363b40526911491689cbe081e0dffa09c1f8a8c07e28bb00c049cbbf07"
-  name = "github.com/prysmaticlabs/prysm"
-  packages = [
-    "shared/event",
-    "shared/iputils",
-    "shared/mclock",
-    "shared/p2p",
-  ]
-  pruneopts = "UT"
-  revision = "075e3332153fec76b8d971e1af317f32d0f2df7e"
-  version = "0.0.0"
-
-[[projects]]
   digest = "1:274f67cb6fed9588ea2521ecdac05a6d62a8c51c074c1fccc6a49a40ba80e925"
   name = "github.com/satori/go.uuid"
   packages = ["."]
@@ -1213,6 +1173,7 @@
     "github.com/libp2p/go-libp2p-peerstore/pstoremem",
     "github.com/libp2p/go-libp2p-protocol",
     "github.com/libp2p/go-libp2p-pubsub",
+    "github.com/libp2p/go-libp2p-pubsub/pb",
     "github.com/libp2p/go-libp2p-secio",
     "github.com/libp2p/go-libp2p-swarm",
     "github.com/libp2p/go-libp2p-transport-upgrader",
@@ -1222,7 +1183,6 @@
     "github.com/libp2p/go-testutil",
     "github.com/multiformats/go-multiaddr",
     "github.com/pkg/errors",
-    "github.com/prysmaticlabs/prysm/shared/p2p",
     "github.com/satori/go.uuid",
     "github.com/sirupsen/logrus",
     "github.com/spf13/viper",
@@ -1231,6 +1191,7 @@
     "github.com/whyrusleeping/go-smux-multistream",
     "github.com/whyrusleeping/go-smux-yamux",
     "golang.org/x/crypto/blake2b",
+    "golang.org/x/crypto/sha3",
     "gopkg.in/dedis/kyber.v2",
     "gopkg.in/dedis/kyber.v2/group/edwards25519",
     "gotest.tools/assert",

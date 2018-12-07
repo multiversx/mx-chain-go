@@ -3,6 +3,8 @@ package hashing_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -17,6 +19,16 @@ func TestSha256(t *testing.T) {
 
 func TestBlake2b(t *testing.T) {
 	hashing.PutService(hashing.Hash, blake2b.Blake2b{})
+	Suite(t, hashing.GetHasherService())
+}
+
+func TestKeccak(t *testing.T) {
+	hashing.PutService(hashing.Hash, keccak.Keccak{})
+	Suite(t, hashing.GetHasherService())
+}
+
+func TestFnv(t *testing.T) {
+	hashing.PutService(hashing.Hash, fnv.Fnv{})
 	Suite(t, hashing.GetHasherService())
 }
 
