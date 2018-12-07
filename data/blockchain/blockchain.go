@@ -82,22 +82,28 @@ func NewBlockChain(config *Config) (*BlockChain, error) {
 
 	blStorage, err := storage.NewStorageUnitFromConf(config.BlockStorage.CacheConf, config.BlockStorage.DBConf)
 	if err != nil {
-		_ = txStorage.DestroyUnit()
+		destroyErr := txStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
 		return nil, err
 	}
 
 	blHeadStorage, err := storage.NewStorageUnitFromConf(config.BlockHeaderStorage.CacheConf, config.BlockHeaderStorage.DBConf)
 	if err != nil {
-		_ = txStorage.DestroyUnit()
-		_ = blStorage.DestroyUnit()
+		destroyErr := txStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = blStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
 		return nil, err
 	}
 
 	badBlocksCache, err := storage.NewCache(config.BlockCache.Type, config.BlockCache.Size)
 	if err != nil {
-		_ = txStorage.DestroyUnit()
-		_ = blStorage.DestroyUnit()
-		_ = blHeadStorage.DestroyUnit()
+		destroyErr := txStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = blStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = blHeadStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
 		return nil, err
 	}
 

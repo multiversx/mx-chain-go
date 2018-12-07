@@ -147,6 +147,15 @@ func (el *Logger) Panic(message string, extra ...interface{}) {
 	}).Panic(message)
 }
 
+// LogIfError will log if the provided error different than nil
+func (el *Logger) LogIfError(err error) {
+	if err == nil {
+		return
+	}
+	cl := el.defaultFields()
+	cl.Error(err.Error())
+}
+
 func (el *Logger) defaultFields() *log.Entry {
 	_, file, line, ok := runtime.Caller(el.stackTraceDepth)
 	return el.logger.WithFields(log.Fields{

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/pkg/errors"
 )
+
+var log = logger.NewDefaultLogger()
 
 // CacheType represents the type of the supported caches
 type CacheType string
@@ -242,7 +245,8 @@ func (s *Unit) DestroyUnit() error {
 	defer s.lock.Unlock()
 
 	s.cacher.Clear()
-	_ = s.persister.Close()
+	err := s.persister.Close()
+	log.LogIfError(err)
 	return s.persister.Destroy()
 }
 
