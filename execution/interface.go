@@ -7,8 +7,8 @@ import (
 
 // TransactionExecutor is the main interface for transaction execution engine
 type TransactionExecutor interface {
-	SChandler() func(accounts state.AccountsHandler, transaction *transaction.Transaction) *ExecSummary
-	SetSChandler(func(accounts state.AccountsHandler, transaction *transaction.Transaction) *ExecSummary)
+	SChandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
+	SetSChandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error)
 
-	ProcessTransaction(accounts state.AccountsHandler, transaction *transaction.Transaction) *ExecSummary
+	ProcessTransaction(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
 }
