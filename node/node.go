@@ -45,6 +45,19 @@ func (n *Node) ApplyOptions(opts ...Option)  {
 	}
 }
 
+// IsRunning will return the current state of the node
+func (n *Node) IsRunning() bool {
+	return n.isRunning
+}
+
+// Address returns the first address of the running node
+func (n *Node) Address() (string, error) {
+	if !n.isRunning {
+		return "", errors.New("node is not started yet")
+	}
+	return n.messenger.Addresses()[0], nil
+}
+
 // Start will create a new messenger and and set up the Node state as running
 func (n *Node) Start() error {
 	messenger, err := n.createNetMessenger()
@@ -76,19 +89,6 @@ func (n *Node) ConnectToAddresses(peers []string) error {
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
 	return nil
-}
-
-// IsRunning will return the current state of the node
-func (n *Node) IsRunning() bool {
-	return n.isRunning
-}
-
-// Address returns the first address of the running node
-func (n *Node) Address() (string, error) {
-	if !n.isRunning {
-		return "", errors.New("node is not started yet")
-	}
-	return n.messenger.Addresses()[0], nil
 }
 
 func (n *Node) createNetMessenger() (p2p.Messenger, error) {

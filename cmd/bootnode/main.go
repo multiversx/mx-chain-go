@@ -15,16 +15,14 @@ import (
 	beevikntp "github.com/beevik/ntp"
 	"github.com/urfave/cli"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
 var (
-	defaultGenesisJSON 	= "genesis.json"
-	consensusGroupSize 	= 21
-	maxAllowedPeers 	= 4
-	roundDuration 		= time.Duration(1000 * time.Millisecond)
-	pbftThreshold 		= consensusGroupSize*2/3 + 1
+	maxAllowedPeers = 4
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -86,20 +84,18 @@ func main() {
 func startNode(ctx *cli.Context, log *logger.Logger) error {
 	log.Info("Starting node...")
 
+	stop := make(chan bool, 1)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	wg := sync.WaitGroup{}
 	appContext := context.Background()
 	hasher := sha256.Sha256{}
 	marshalizer := marshal.JsonMarshalizer{}
-
-	if ctx.GlobalIsSet(flags.GenesisFile.Name) {
-		defaultGenesisJSON = ctx.GlobalString(flags.GenesisFile.Name)
-	}
-
-	initialConfig, err := loadInitialConfiguration(defaultGenesisJSON, log)
+	initialConfig, err := loadInitialConfiguration(ctx.GlobalString(flags.GenesisFile.Name), log)
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with config from: %s", defaultGenesisJSON))
+	log.Info(fmt.Sprintf("Initialized with config from: %s", ctx.GlobalString(flags.GenesisFile.Name)))
 
 	// NTP Start
 	syncedTime := ntp.NewSyncTime(time.Second * time.Duration(initialConfig.ClockSyncPeriod), func(host string) (response *beevikntp.Response, e error) {
@@ -144,6 +140,16 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		}
 		err = localNode.StartConsensus()
 	}
+
+	// Hold the program until stopped by user
+	go func() {
+		<-sigs
+		log.Info("terminating at user's signal...")
+		stop <- true
+	}()
+
+	log.Info("Application is now running...")
+	<-stop
 
 	return nil
 }
