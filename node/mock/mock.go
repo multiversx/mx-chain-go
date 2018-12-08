@@ -2,6 +2,7 @@ package mock
 
 type Marshalizer struct {
 }
+
 func (j Marshalizer) Marshal(obj interface{}) ([]byte, error) {
 	return nil, nil
 }
@@ -10,8 +11,8 @@ func (j Marshalizer) Unmarshal(obj interface{}, buff []byte) error {
 }
 
 type Hasher struct {
-
 }
+
 func (hash Hasher) Compute(s string) []byte {
 	return nil
 }
@@ -21,4 +22,3 @@ func (hash Hasher) EmptyHash() []byte {
 func (Hasher) Size() int {
 	return 0
 }
-

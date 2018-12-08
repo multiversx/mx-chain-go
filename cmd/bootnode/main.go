@@ -3,15 +3,17 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
-	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
-	"github.com/urfave/cli"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/urfave/cli"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
+	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -32,17 +34,17 @@ type InitialNode struct {
 }
 
 type Account struct {
-	Nounce int `json:"nounce"`
-	Balance int	`json:"balance"`
+	Nounce   int    `json:"nounce"`
+	Balance  int    `json:"balance"`
 	CodeHash string `json:"codeHash"`
-	Root string `json:"root"`
+	Root     string `json:"root"`
 }
 
 type Genesis struct {
-	StartTime int64 `json:"startTime"`
-	ClockSyncPeriod int `json:"clockSyncPeriod"`
-	InitialNodes []InitialNode `json:"initialNodes"`
-	Accounts []Account `json:"accounts"`
+	StartTime       int64         `json:"startTime"`
+	ClockSyncPeriod int           `json:"clockSyncPeriod"`
+	InitialNodes    []InitialNode `json:"initialNodes"`
+	Accounts        []Account     `json:"accounts"`
 }
 
 func main() {
@@ -53,7 +55,7 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entrypoint for starting a new bootstrap node - the app will start after the genessis timestamp"
-	app.Flags = []cli.Flag{ flags.GenesisFile, flags.Port, flags.WithUI, flags.MaxAllowedPeers }
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.WithUI, flags.MaxAllowedPeers}
 	app.Action = func(c *cli.Context) error {
 		err := startNode(c, log)
 		if err != nil {
@@ -141,7 +143,7 @@ func loadInitialConfiguration(genesisFilePath string, log *logger.Logger) (*Gene
 
 func (g *Genesis) InitialNodesAddresses() []string {
 	var addresses []string
-	for  _, in := range g.InitialNodes {
+	for _, in := range g.InitialNodes {
 		addresses = append(addresses, in.Address)
 	}
 	return addresses

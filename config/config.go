@@ -11,24 +11,24 @@ type dbConfig struct {
 }
 
 type bloomFilterConfig struct {
-	Size uint `json:"size"`
+	Size     uint     `json:"size"`
 	HashFunc []string `json:"hashFunc"`
 }
 
 type storageConfig struct {
-	Cache cacheConfig `json:"cache"`
-	DB    dbConfig `json:"db"`
+	Cache cacheConfig       `json:"cache"`
+	DB    dbConfig          `json:"db"`
 	Bloom bloomFilterConfig `json:"bloom"`
 }
 
 type Config struct {
-	BlockStorage storageConfig `json:"blockStorage"`
+	BlockStorage       storageConfig `json:"blockStorage"`
 	BlockHeaderStorage storageConfig `json:"blockHeaderStorage"`
-	TxStorage storageConfig `json:"txStorage"`
-	BadBlocksCache cacheConfig `json:"badBlocksCache"`
-	TxPoolStorage cacheConfig `json:"txPoolStorage"`
-	Logger struct{
-		Path string	`json:"path"`
-		StackTraceDepth int	`json:"stackTraceDepth"`
+	TxStorage          storageConfig `json:"txStorage"`
+	BadBlocksCache     cacheConfig   `json:"badBlocksCache"`
+	TxPoolStorage      cacheConfig   `json:"txPoolStorage"`
+	Logger             struct {
+		Path            string `json:"path"`
+		StackTraceDepth int    `json:"stackTraceDepth"`
 	} `json:"logger"`
 }

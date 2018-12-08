@@ -20,27 +20,27 @@ const (
 )
 
 const (
-	defaultLogPath 			= "../logs"
-	defaultStackTraceDepth 	= 2
+	defaultLogPath         = "../logs"
+	defaultStackTraceDepth = 2
 )
 
 // Logger represents the application logger.
 type Logger struct {
-	logger *log.Logger
-	file io.Writer
+	logger          *log.Logger
+	file            io.Writer
 	stackTraceDepth int
 }
 
 // Option represents a functional configuration parameter that can operate
 //  over the Logger struct
-type Option func (*Logger) error
+type Option func(*Logger) error
 
 // NewElrondLogger will setup the defaults of the application logger.
 // If the requested log file is writable it will setup a MultiWriter on both the file
 //  and the standard output. Also sets up the level and the format for the logger.
 func NewElrondLogger(opts ...Option) *Logger {
 	el := &Logger{
-		logger: log.New(),
+		logger:          log.New(),
 		stackTraceDepth: defaultStackTraceDepth,
 	}
 
@@ -193,7 +193,7 @@ func DefaultLogFile() (*os.File, error) {
 		return nil, err
 	}
 	return os.OpenFile(
-		filepath.Join(absPath, time.Now().Format("2006-02-01") + ".log"),
+		filepath.Join(absPath, time.Now().Format("2006-02-01")+".log"),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
 		0666)
 }

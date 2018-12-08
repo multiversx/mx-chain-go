@@ -3,10 +3,11 @@ package facade
 import (
 	"context"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -18,7 +19,7 @@ import (
 )
 
 type ElrondFacade struct {
-	node *node.Node
+	node     *node.Node
 	syncTime *ntp.SyncTime
 }
 
@@ -50,7 +51,7 @@ func (ef *ElrondFacade) StartNode(initialAddresses []string) error {
 }
 
 func (ef *ElrondFacade) StartNTP(clockSyncPeriod int) {
-	ef.syncTime = ntp.NewSyncTime(time.Second * time.Duration(clockSyncPeriod), func(host string) (response *beevikntp.Response, e error) {
+	ef.syncTime = ntp.NewSyncTime(time.Second*time.Duration(clockSyncPeriod), func(host string) (response *beevikntp.Response, e error) {
 		return nil, errors.New("this should be implemented")
 	})
 }

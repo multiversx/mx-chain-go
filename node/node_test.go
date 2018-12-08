@@ -143,6 +143,3 @@ func TestNode_AddressNodeNotStarted(t *testing.T) {
 	_, err := n.Address()
 	assert.NotNil(t, err)
 }
-
-
-

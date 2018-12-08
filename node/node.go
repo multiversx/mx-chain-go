@@ -2,27 +2,29 @@ package node
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/pkg/errors"
 )
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
-type Option func (*Node)
+type Option func(*Node)
 
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	port int
-	marshalizer marshal.Marshalizer
-	ctx context.Context
-	hasher hashing.Hasher
-	maxAllowedPeers int
-	pubSubStrategy p2p.PubSubStrategy
+	port                  int
+	marshalizer           marshal.Marshalizer
+	ctx                   context.Context
+	hasher                hashing.Hasher
+	maxAllowedPeers       int
+	pubSubStrategy        p2p.PubSubStrategy
 	initialNodesAddresses []string
-	messenger p2p.Messenger
+	messenger             p2p.Messenger
 }
 
 // NewNode creates a new Node instance
@@ -37,7 +39,7 @@ func NewNode(opts ...Option) *Node {
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
-func (n *Node) ApplyOptions(opts ...Option)  error {
+func (n *Node) ApplyOptions(opts ...Option) error {
 	if n.IsRunning() {
 		return errors.New("cannot apply options while node is running")
 	}
@@ -106,7 +108,7 @@ func (n *Node) createNetMessenger() (p2p.Messenger, error) {
 		return nil, err
 	}
 
-	nm, err := p2p.NewNetMessenger(n.ctx, n.marshalizer, n.hasher, cp,  n.maxAllowedPeers, n.pubSubStrategy)
+	nm, err := p2p.NewNetMessenger(n.ctx, n.marshalizer, n.hasher, cp, n.maxAllowedPeers, n.pubSubStrategy)
 	if err != nil {
 		return nil, err
 	}
@@ -165,4 +167,3 @@ func WithPubSubStrategy(strategy p2p.PubSubStrategy) Option {
 		n.pubSubStrategy = strategy
 	}
 }
-

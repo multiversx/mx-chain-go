@@ -39,9 +39,9 @@ const (
 )
 
 const (
-	Keccak HasherType = "Keccak"
+	Keccak  HasherType = "Keccak"
 	Blake2b HasherType = "Blake2b"
-	Fnv HasherType = "Fnv"
+	Fnv     HasherType = "Fnv"
 )
 
 // UnitConfig holds the configurable elements of the storage unit
@@ -65,7 +65,7 @@ type DBConfig struct {
 
 // BloobConfig holds the configurable elements of a bloom filter
 type BloomConfig struct {
-	Size uint
+	Size     uint
 	HashFunc []HasherType
 }
 
@@ -159,9 +159,9 @@ type Storer interface {
 // Unit represents a storer's data bank
 // holding the cache, persistance unit and bloom filter
 type Unit struct {
-	lock      sync.RWMutex
-	persister Persister
-	cacher    Cacher
+	lock        sync.RWMutex
+	persister   Persister
+	cacher      Cacher
 	bloomFilter BloomFilter
 }
 
@@ -321,7 +321,6 @@ func (s *Unit) DestroyUnit() error {
 	return s.persister.Destroy()
 }
 
-
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given bloom filter, cacher and persister.
 func NewStorageUnit(c Cacher, p Persister, b BloomFilter) (*Unit, error) {
@@ -334,8 +333,8 @@ func NewStorageUnit(c Cacher, p Persister, b BloomFilter) (*Unit, error) {
 	}
 
 	sUnit := &Unit{
-		persister: p,
-		cacher:    c,
+		persister:   p,
+		cacher:      c,
 		bloomFilter: b,
 	}
 
