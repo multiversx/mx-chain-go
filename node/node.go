@@ -2,7 +2,6 @@ package node
 
 import (
 	"context"
-	"fmt"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -29,7 +28,10 @@ type Node struct {
 
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) *Node {
-	node := &Node{ isRunning: false }
+	node := &Node{
+		isRunning: false,
+		ctx: context.Background(),
+	}
 	for _, opt := range opts {
 		opt(node)
 	}
@@ -81,12 +83,17 @@ func (n *Node) IsRunning() bool {
 	return n.isRunning
 }
 
+// Address returns the first address of the running node
+func (n *Node) Address() (string, error) {
+	if !n.isRunning {
+		return "", errors.New("node is not started yet")
+	}
+	return n.messenger.Addresses()[0], nil
+}
+
 func (n *Node) createNetMessenger() (p2p.Messenger, error) {
 	if n.port == 0 {
 		return nil, errors.New("Cannot start node on port 0")
-	}
-	if n.ctx == nil {
-		n.ctx = context.Background()
 	}
 	if n.marshalizer == nil {
 		return nil, errors.New("Canot start node without providing a marshalizer")
@@ -104,12 +111,6 @@ func (n *Node) createNetMessenger() (p2p.Messenger, error) {
 	}
 
 	nm, err := p2p.NewNetMessenger(n.ctx, n.marshalizer, n.hasher, cp,  n.maxAllowedPeers, n.pubSubStrategy)
-	for i:=4000; i<4001; i++ {
-		c, _ := p2p.NewConnectParamsFromPort(i)
-		n, _ := p2p.NewNetMessenger(n.ctx, n.marshalizer, n.hasher, c,  n.maxAllowedPeers, n.pubSubStrategy)
-		fmt.Println(n.Addresses()[0])
-
-	}
 	return nm, nil
 }
 
