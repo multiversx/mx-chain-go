@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,21 +19,40 @@ const (
 	LogPanic   = "PANIC"
 )
 
+const (
+	defaultLogPath 			= "../logs"
+	defaultStackTraceDepth 	= 2
+)
+
 // Logger represents the application logger.
 type Logger struct {
 	logger *log.Logger
+	file io.Writer
+	stackTraceDepth int
 }
+
+// Option represents a functional configuration parameter that can operate
+//  over the Logger struct
+type Option func (*Logger) error
 
 // NewElrondLogger will setup the defaults of the application logger.
 // If the requested log file is writable it will setup a MultiWriter on both the file
 //  and the standard output. Also sets up the level and the format for the logger.
-func NewElrondLogger(file io.Writer) *Logger {
+func NewElrondLogger(opts ...Option) *Logger {
 	el := &Logger{
-		log.New(),
+		logger: log.New(),
+		stackTraceDepth: defaultStackTraceDepth,
 	}
 
-	if file != nil {
-		mw := io.MultiWriter(os.Stdout, file)
+	for _, opt := range opts {
+		err := opt(el)
+		if err != nil {
+			el.logger.Error("Could not set opt for logger", err)
+		}
+	}
+
+	if el.file != nil {
+		mw := io.MultiWriter(os.Stdout, el.file)
 		el.logger.SetOutput(mw)
 	} else {
 		el.logger.SetOutput(os.Stdout)
@@ -42,6 +60,7 @@ func NewElrondLogger(file io.Writer) *Logger {
 
 	el.logger.SetFormatter(&log.JSONFormatter{})
 	el.logger.SetLevel(log.WarnLevel)
+
 	return el
 }
 
@@ -50,9 +69,19 @@ func NewElrondLogger(file io.Writer) *Logger {
 func NewDefaultLogger() *Logger {
 	file, err := DefaultLogFile()
 	if err != nil {
-		return NewElrondLogger(nil)
+		return NewElrondLogger()
 	}
-	return NewElrondLogger(file)
+	return NewElrondLogger(WithFile(file))
+}
+
+// File returns the current Logger file
+func (el *Logger) File() io.Writer {
+	return el.file
+}
+
+// StackTraceDepth returns the current Logger stackTraceDepth
+func (el *Logger) StackTraceDepth() int {
+	return el.stackTraceDepth
 }
 
 // SetLevel sets the log level according to this package's defined levels.
@@ -73,7 +102,7 @@ func (el *Logger) SetLevel(level string) {
 	}
 }
 
-// SetOutput enables the posibility to change the output of the logger on demand.
+// SetOutput enables the possibility to change the output of the logger on demand.
 func (el *Logger) SetOutput(out io.Writer) {
 	el.logger.SetOutput(out)
 }
@@ -118,8 +147,17 @@ func (el *Logger) Panic(message string, extra ...interface{}) {
 	}).Panic(message)
 }
 
+// LogIfError will log if the provided error different than nil
+func (el *Logger) LogIfError(err error) {
+	if err == nil {
+		return
+	}
+	cl := el.defaultFields()
+	cl.Error(err.Error())
+}
+
 func (el *Logger) defaultFields() *log.Entry {
-	_, file, line, ok := runtime.Caller(config.ElrondLoggerConfig.StackTraceDepth)
+	_, file, line, ok := runtime.Caller(el.stackTraceDepth)
 	return el.logger.WithFields(log.Fields{
 		"file":        file,
 		"line_number": line,
@@ -127,12 +165,35 @@ func (el *Logger) defaultFields() *log.Entry {
 	})
 }
 
+// WithFile sets up the file option for the Logger
+func WithFile(file io.Writer) Option {
+	return func(el *Logger) error {
+		el.file = file
+		return nil
+	}
+}
+
+// WithStackTraceDepth sets up the stackTraceDepth option for the Logger
+func WithStackTraceDepth(depth int) Option {
+	return func(el *Logger) error {
+		el.stackTraceDepth = depth
+		return nil
+	}
+}
+
 // DefaultLogFile returns the default output for the application logger.
 // The client package can always use another output and provide it in the logger constructor.
 func DefaultLogFile() (*os.File, error) {
-	os.MkdirAll(config.ElrondLoggerConfig.LogPath, os.ModePerm)
+	absPath, err := filepath.Abs(defaultLogPath)
+	if err != nil {
+		return nil, err
+	}
+	err = os.MkdirAll(absPath, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
 	return os.OpenFile(
-		filepath.Join(config.ElrondLoggerConfig.LogPath, time.Now().Format("2006-02-01")+".log"),
+		filepath.Join(absPath, time.Now().Format("2006-02-01") + ".log"),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
 		0666)
 }
