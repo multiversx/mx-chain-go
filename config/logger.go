@@ -4,7 +4,7 @@ import "path/filepath"
 
 // LoggerConfig holds the configurable elements for the application logger
 type LoggerConfig struct {
-	LogPath string
+	LogPath         string
 	StackTraceDepth int
 }
 

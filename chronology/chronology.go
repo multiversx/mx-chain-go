@@ -16,11 +16,12 @@ type SubroundId int
 
 // SubroundHandler defines the actions that can be handled in a sub-round
 type SubroundHandler interface {
-	DoWork(*Chronology) bool // DoWork implements of the subround's job
-	Next() SubroundId        // Next returns the ID of the next subround
-	Current() SubroundId     // Current returns the ID of the current subround
-	EndTime() int64          // EndTime returns the top limit time, in the round time, of the current subround
-	Name() string            // Name returns the name of the current round
+	DoWork(func() SubroundId, func() bool) bool // DoWork implements of the subround's job
+	Next() SubroundId                           // Next returns the ID of the next subround
+	Current() SubroundId                        // Current returns the ID of the current subround
+	EndTime() int64                             // EndTime returns the top limit time, in the round time, of the current subround
+	Name() string                               // Name returns the name of the current round
+	Check() bool
 }
 
 // Chronology defines the data needed by the chronology
@@ -107,7 +108,7 @@ func (chr *Chronology) StartRound() {
 	if chr.SelfSubround() == subRound {
 		sr := chr.LoadSubroundHandler(subRound)
 		if sr != nil {
-			if sr.DoWork(chr) {
+			if sr.DoWork(chr.computeSubRoundId, chr.isCancelled) {
 				chr.SetSelfSubround(sr.Next())
 			}
 		}
@@ -224,4 +225,12 @@ func (chr *Chronology) SyncTime() ntp.SyncTimer {
 // SubroundHandlers returns the array of subrounds loaded
 func (chr *Chronology) SubroundHandlers() []SubroundHandler {
 	return chr.subroundHandlers
+}
+
+func (chr *Chronology) computeSubRoundId() SubroundId {
+	return chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
+}
+
+func (chr *Chronology) isCancelled() bool {
+	return chr.SelfSubround() == SubroundId(-1)
 }

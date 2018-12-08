@@ -121,9 +121,9 @@ func (el *Logger) Panic(message string, extra ...interface{}) {
 func (el *Logger) defaultFields() *log.Entry {
 	_, file, line, ok := runtime.Caller(config.ElrondLoggerConfig.StackTraceDepth)
 	return el.logger.WithFields(log.Fields{
-		"file": file,
+		"file":        file,
 		"line_number": line,
-		"caller_ok": ok,
+		"caller_ok":   ok,
 	})
 }
 
@@ -132,7 +132,7 @@ func (el *Logger) defaultFields() *log.Entry {
 func DefaultLogFile() (*os.File, error) {
 	os.MkdirAll(config.ElrondLoggerConfig.LogPath, os.ModePerm)
 	return os.OpenFile(
-		filepath.Join(config.ElrondLoggerConfig.LogPath, time.Now().Format("2006-02-01") + ".log"),
+		filepath.Join(config.ElrondLoggerConfig.LogPath, time.Now().Format("2006-02-01")+".log"),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
 		0666)
 }
