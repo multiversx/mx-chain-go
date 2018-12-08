@@ -19,11 +19,12 @@ const WaitTime = time.Duration(2000 * time.Millisecond)
 
 // execBlock implements BlockExecutor interface and actually it tries to execute block
 type execBlock struct {
-	tp         *transactionPool.TransactionPool
-	hasher     hashing.Hasher
-	marsher    marshal.Marshalizer
-	txExecutor execution.TransactionExecutor
-	ChRcvTx    chan []byte
+	tp                   *transactionPool.TransactionPool
+	hasher               hashing.Hasher
+	marsher              marshal.Marshalizer
+	txExecutor           execution.TransactionExecutor
+	ChRcvTx              chan []byte
+	OnRequestTransaction func(destShardID uint32, txHash []byte)
 }
 
 // NewExecBlock creates a new execBlock object
@@ -90,7 +91,10 @@ func (eb *execBlock) ProcessBlock(blockChain *blockchain.BlockChain, header *blo
 			tx := eb.getTransactionFromPool(body.MiniBlocks[i].DestShardID, body.MiniBlocks[i].TxHashes[j])
 
 			if tx == nil {
-				tx = eb.requestTransactionFromNetwork(body.MiniBlocks[i].DestShardID, body.MiniBlocks[i].TxHashes[j], WaitTime)
+				tx = eb.requestTransactionFromNetwork(
+					body.MiniBlocks[i].DestShardID,
+					body.MiniBlocks[i].TxHashes[j],
+					WaitTime)
 
 				if tx == nil {
 					return execution.ErrMissingTransaction
@@ -118,8 +122,8 @@ func (eb *execBlock) commitBlock(blockChain *blockchain.BlockChain, header *bloc
 	}
 
 	blockChain.CurrentBlock = header
-	blockChain.LocalHeight = big.NewInt(int64(header.Nonce)) // should be refactored to hold the same data type (big.Int or uint64?)
-
+	blockChain.LocalHeight = big.NewInt(int64(header.Nonce)) // should be refactored to hold the same data type
+	// (big.Int or uint64?)
 	buff, err := eb.marsher.Marshal(header)
 
 	if err != nil {
@@ -186,8 +190,12 @@ func (eb *execBlock) getTransactionFromPool(destShardID uint32, txHash []byte) *
 }
 
 // requestTransactionFromNetwork method requests a transaction from network when it is not found in the pool
-func (eb *execBlock) requestTransactionFromNetwork(destShardID uint32, txHash []byte, waitTime time.Duration) *transaction.Transaction {
-	// TODO: Request transaction from network than wait for it, after topic request will be implemented
+func (eb *execBlock) requestTransactionFromNetwork(destShardID uint32, txHash []byte, waitTime time.Duration,
+) *transaction.Transaction {
+	// Request transaction from network than wait for it, after topic request will be implemented
+	if eb.OnRequestTransaction != nil {
+		eb.OnRequestTransaction(destShardID, txHash)
+	}
 
 	for {
 		select {
@@ -206,7 +214,8 @@ func (eb *execBlock) requestTransactionFromNetwork(destShardID uint32, txHash []
 	return nil
 }
 
-// receivedTransaction is a call back function which is called when a new transaction is added in the transaction pool
+// receivedTransaction is a call back function which is called when a new transaction
+// is added in the transaction pool
 func (eb *execBlock) receivedTransaction(txHash []byte) {
 	eb.ChRcvTx <- txHash
 }
