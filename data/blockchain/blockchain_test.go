@@ -12,13 +12,14 @@ import (
 
 func blockchainConfig() *blockchain.Config {
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
+	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
 	persisterBlockStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockStorage"}
 	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
 	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
 	return &blockchain.Config{
-		BlockStorage:       storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockStorage},
-		BlockHeaderStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage},
-		TxStorage:          storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage},
+		BlockStorage:       storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockStorage, BloomConf: bloom},
+		BlockHeaderStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
+		TxStorage:          storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
 		TxPoolStorage:      cacher,
 		BlockCache:         cacher,
 	}
@@ -31,7 +32,9 @@ func failOnPanic(t *testing.T) {
 }
 
 func logError(err error) {
-	fmt.Println(err.Error())
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 	return
 }
 

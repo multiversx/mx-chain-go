@@ -7,7 +7,8 @@
     "db": {
       "file": "Blocks",
       "type": "LvlDB"
-    }
+    },
+    "bloom": []
   },
   "blockHeaderStorage": {
     "cache": {

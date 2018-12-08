@@ -159,9 +159,9 @@ func (el *Logger) LogIfError(err error) {
 func (el *Logger) defaultFields() *log.Entry {
 	_, file, line, ok := runtime.Caller(el.stackTraceDepth)
 	return el.logger.WithFields(log.Fields{
-		"file": file,
+		"file":        file,
 		"line_number": line,
-		"caller_ok": ok,
+		"caller_ok":   ok,
 	})
 }
 

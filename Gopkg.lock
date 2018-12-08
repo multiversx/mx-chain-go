@@ -1191,6 +1191,7 @@
     "github.com/whyrusleeping/go-smux-multistream",
     "github.com/whyrusleeping/go-smux-yamux",
     "golang.org/x/crypto/blake2b",
+    "golang.org/x/crypto/sha3",
     "gopkg.in/dedis/kyber.v2",
     "gopkg.in/dedis/kyber.v2/group/edwards25519",
     "gotest.tools/assert",

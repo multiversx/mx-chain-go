@@ -13,8 +13,8 @@ type HashAddressConverter struct {
 	prefix     string
 }
 
-// NewAddressConverter creates a new instance of HashAddressConverter
-func NewAddressConverter(hasher hashing.Hasher, addressLen int, prefix string) (*HashAddressConverter, error) {
+// NewHashAddressConverter creates a new instance of HashAddressConverter
+func NewHashAddressConverter(hasher hashing.Hasher, addressLen int, prefix string) (*HashAddressConverter, error) {
 	if hasher == nil {
 		return nil, ErrNilHasher
 	}

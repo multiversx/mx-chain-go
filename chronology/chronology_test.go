@@ -2,6 +2,7 @@ package chronology_test
 
 import (
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"testing"
 	"time"
 
@@ -28,7 +29,7 @@ type SRStartRound struct {
 	Hits int
 }
 
-func (sr *SRStartRound) DoWork(chr *chronology.Chronology) bool {
+func (sr *SRStartRound) DoWork(func() chronology.SubroundId, func() bool) bool {
 	sr.Hits++
 	fmt.Printf("DoStartRound with %d hits\n", sr.Hits)
 	return true
@@ -50,13 +51,17 @@ func (sr *SRStartRound) Name() string {
 	return "<START_ROUND>"
 }
 
+func (sr *SRStartRound) Check() bool {
+	return true
+}
+
 // #################### <BLOCK> ####################
 
 type SRBlock struct {
 	Hits int
 }
 
-func (sr *SRBlock) DoWork(chr *chronology.Chronology) bool {
+func (sr *SRBlock) DoWork(func() chronology.SubroundId, func() bool) bool {
 	sr.Hits++
 	fmt.Printf("DoBlock with %d hits\n", sr.Hits)
 	return true
@@ -78,13 +83,17 @@ func (sr *SRBlock) Name() string {
 	return "<BLOCK>"
 }
 
+func (sr *SRBlock) Check() bool {
+	return true
+}
+
 // #################### <COMMITMENT_HASH> ####################
 
 type SRCommitmentHash struct {
 	Hits int
 }
 
-func (sr *SRCommitmentHash) DoWork(chr *chronology.Chronology) bool {
+func (sr *SRCommitmentHash) DoWork(func() chronology.SubroundId, func() bool) bool {
 	sr.Hits++
 	fmt.Printf("DoCommitmentHash with %d hits\n", sr.Hits)
 	return true
@@ -106,13 +115,17 @@ func (sr *SRCommitmentHash) Name() string {
 	return "<COMMITMENT_HASH>"
 }
 
+func (sr *SRCommitmentHash) Check() bool {
+	return true
+}
+
 // #################### <BITMAP> ####################
 
 type SRBitmap struct {
 	Hits int
 }
 
-func (sr *SRBitmap) DoWork(chr *chronology.Chronology) bool {
+func (sr *SRBitmap) DoWork(func() chronology.SubroundId, func() bool) bool {
 	sr.Hits++
 	fmt.Printf("DoBitmap with %d hits\n", sr.Hits)
 	return true
@@ -134,13 +147,17 @@ func (sr *SRBitmap) Name() string {
 	return "<BITMAP>"
 }
 
+func (sr *SRBitmap) Check() bool {
+	return true
+}
+
 // #################### <COMMITMENT> ####################
 
 type SRCommitment struct {
 	Hits int
 }
 
-func (sr *SRCommitment) DoWork(chr *chronology.Chronology) bool {
+func (sr *SRCommitment) DoWork(func() chronology.SubroundId, func() bool) bool {
 	sr.Hits++
 	fmt.Printf("DoCommitment with %d hits\n", sr.Hits)
 	return true
@@ -162,13 +179,17 @@ func (sr *SRCommitment) Name() string {
 	return "<COMMITMENT>"
 }
 
+func (sr *SRCommitment) Check() bool {
+	return true
+}
+
 // #################### <SIGNATURE> ####################
 
 type SRSignature struct {
 	Hits int
 }
 
-func (sr *SRSignature) DoWork(chr *chronology.Chronology) bool {
+func (sr *SRSignature) DoWork(func() chronology.SubroundId, func() bool) bool {
 	sr.Hits++
 	fmt.Printf("DoSignature with %d hits\n", sr.Hits)
 	return true
@@ -190,13 +211,17 @@ func (sr *SRSignature) Name() string {
 	return "<SIGNATURE>"
 }
 
+func (sr *SRSignature) Check() bool {
+	return true
+}
+
 // #################### <END_ROUND> ####################
 
 type SREndRound struct {
 	Hits int
 }
 
-func (sr *SREndRound) DoWork(chr *chronology.Chronology) bool {
+func (sr *SREndRound) DoWork(func() chronology.SubroundId, func() bool) bool {
 	sr.Hits++
 	fmt.Printf("DoEndRound with %d hits\n", sr.Hits)
 	return true
@@ -216,6 +241,10 @@ func (sr *SREndRound) EndTime() int64 {
 
 func (sr *SREndRound) Name() string {
 	return "<END_ROUND>"
+}
+
+func (sr *SREndRound) Check() bool {
+	return true
 }
 
 func TestStartRound(t *testing.T) {
@@ -312,7 +341,9 @@ func TestGettersAndSetters(t *testing.T) {
 
 	chr.SetClockOffset(time.Duration(5))
 	assert.Equal(t, time.Duration(5), chr.ClockOffset())
+	chr.AddSubround(&SRStartRound{})
+	//fmt.Printf("%v\n%v\n%v", chr.SyncTime().CurrentTime(chr.ClockOffset()),
+	//	chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()), ))
 
-	fmt.Printf("%v\n%v\n%v", chr.SyncTime().CurrentTime(chr.ClockOffset()),
-		chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()), chr.SubroundHandlers())
+	spew.Dump(chr.SubroundHandlers())
 }

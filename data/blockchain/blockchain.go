@@ -75,19 +75,19 @@ func NewBlockChain(config *Config) (*BlockChain, error) {
 		return nil, errors.New("Cannot create blockchain without initial configuration")
 	}
 
-	txStorage, err := storage.NewStorageUnitFromConf(config.TxStorage.CacheConf, config.TxStorage.DBConf)
+	txStorage, err := storage.NewStorageUnitFromConf(config.TxStorage.CacheConf, config.TxStorage.DBConf, config.TxStorage.BloomConf)
 	if err != nil {
 		return nil, err
 	}
 
-	blStorage, err := storage.NewStorageUnitFromConf(config.BlockStorage.CacheConf, config.BlockStorage.DBConf)
+	blStorage, err := storage.NewStorageUnitFromConf(config.BlockStorage.CacheConf, config.BlockStorage.DBConf, config.BlockStorage.BloomConf)
 	if err != nil {
 		destroyErr := txStorage.DestroyUnit()
 		log.LogIfError(destroyErr)
 		return nil, err
 	}
 
-	blHeadStorage, err := storage.NewStorageUnitFromConf(config.BlockHeaderStorage.CacheConf, config.BlockHeaderStorage.DBConf)
+	blHeadStorage, err := storage.NewStorageUnitFromConf(config.BlockHeaderStorage.CacheConf, config.BlockHeaderStorage.DBConf, config.BlockHeaderStorage.BloomConf)
 	if err != nil {
 		destroyErr := txStorage.DestroyUnit()
 		log.LogIfError(destroyErr)

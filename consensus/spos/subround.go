@@ -16,9 +16,9 @@ type Subround struct {
 	endTime int64
 	name    string
 
-	work   func() bool                      // this is a pointer to a function which actually do the job of this subround
-	extend func()                           // this is a pointer to a function which put this subround in the extended mode
-	check  func(chronology.SubroundId) bool // this is a pointer to a function which will check the consensus
+	work   func() bool // this is a pointer to a function which actually do the job of this subround
+	extend func()      // this is a pointer to a function which put this subround in the extended mode
+	check  func() bool // this is a pointer to a function which will check the consensus
 }
 
 // NewSubround creates a new SubroundId object
@@ -29,7 +29,7 @@ func NewSubround(
 	name string,
 	work func() bool,
 	extend func(),
-	check func(chronology.SubroundId) bool,
+	check func() bool,
 ) *Subround {
 
 	sr := Subround{
@@ -49,17 +49,17 @@ func NewSubround(
 // check the consensus. If the upper time limit of this subround is reached, the subround state is set to extended and
 // the chronology will advance to the next subround. This method will iterate until this round will be done,
 // put it into extended mode or in canceled mode
-func (sr *Subround) DoWork(chr *chronology.Chronology) bool {
+func (sr *Subround) DoWork(computeSubRoundId func() chronology.SubroundId, isCancelled func() bool) bool {
 	for {
 		time.Sleep(sleepTime)
 
-		timeSubRound := chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
+		subRoundId := computeSubRoundId()
 
-		if timeSubRound == chronology.SubroundId(-1) {
+		if subRoundId == chronology.SubroundId(-1) {
 			break
 		}
 
-		if timeSubRound > sr.current {
+		if subRoundId > sr.current {
 			if sr.extend != nil {
 				sr.extend()
 			}
@@ -71,12 +71,12 @@ func (sr *Subround) DoWork(chr *chronology.Chronology) bool {
 		}
 
 		if sr.check != nil {
-			if sr.check(chronology.SubroundId(sr.current)) {
+			if sr.check() {
 				return true
 			}
 		}
 
-		if chr.SelfSubround() == chronology.SubroundId(-1) {
+		if isCancelled() {
 			break
 		}
 	}
@@ -102,4 +102,8 @@ func (sr *Subround) EndTime() int64 {
 // Name method returns the name of this subround
 func (sr *Subround) Name() string {
 	return sr.name
+}
+
+func (sr *Subround) Check() bool {
+	return sr.check()
 }

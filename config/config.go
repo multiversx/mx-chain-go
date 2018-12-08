@@ -10,9 +10,15 @@ type dbConfig struct {
 	Type string `json:"type"`
 }
 
+type bloomFilterConfig struct {
+	Size uint `json:"size"`
+	HashFunc []string `json:"hashFunc"`
+}
+
 type storageConfig struct {
 	Cache cacheConfig `json:"cache"`
 	DB    dbConfig `json:"db"`
+	Bloom bloomFilterConfig `json:"bloom"`
 }
 
 type Config struct {

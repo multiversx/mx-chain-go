@@ -1,9 +1,15 @@
 package storage
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 
@@ -18,6 +24,9 @@ type CacheType string
 // DBType represents the type of the supported databases
 type DBType string
 
+// HasherType represents the type of the supported hash functions
+type HasherType string
+
 // LRUCache is currently the only supported Cache type
 const (
 	LRUCache CacheType = "LRU"
@@ -29,10 +38,17 @@ const (
 	LvlDB DBType = "LvlDB"
 )
 
+const (
+	Keccak HasherType = "Keccak"
+	Blake2b HasherType = "Blake2b"
+	Fnv HasherType = "Fnv"
+)
+
 // UnitConfig holds the configurable elements of the storage unit
 type UnitConfig struct {
 	CacheConf CacheConfig
 	DBConf    DBConfig
+	BloomConf BloomConfig
 }
 
 // CacheConfig holds the configurable elements of a cache
@@ -45,6 +61,12 @@ type CacheConfig struct {
 type DBConfig struct {
 	FilePath string
 	Type     DBType
+}
+
+// BloobConfig holds the configurable elements of a bloom filter
+type BloomConfig struct {
+	Size uint
+	HashFunc []HasherType
 }
 
 // Persister provides storage of data services in a database like construct
@@ -108,6 +130,20 @@ type Cacher interface {
 	Len() int
 }
 
+// BloomFilter provides services for filtering database requests
+type BloomFilter interface {
+
+	//Add adds the value to the bloom filter
+	Add([]byte)
+
+	//Test checks if the value is in in the set. If it returns 'false',
+	//the item is definitely not in the DB
+	MayContain([]byte) bool
+
+	//Clear sets all the bits from the filter to 0
+	Clear()
+}
+
 // Storer provides storage services in a two layered storage construct, where the first layer is
 // represented by a cache and second layer by a persitent storage (DB-like)
 type Storer interface {
@@ -121,14 +157,15 @@ type Storer interface {
 }
 
 // Unit represents a storer's data bank
-// holding the cache and persistance unit
+// holding the cache, persistance unit and bloom filter
 type Unit struct {
 	lock      sync.RWMutex
 	persister Persister
 	cacher    Cacher
+	bloomFilter BloomFilter
 }
 
-// Put adds data to both cache and persistance medium
+// Put adds data to both cache and persistance medium and updates the bloom filter
 func (s *Unit) Put(key, data []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -141,17 +178,25 @@ func (s *Unit) Put(key, data []byte) error {
 	}
 
 	s.cacher.Put(key, data)
+
 	err := s.persister.Put(key, data)
 
 	if err != nil {
 		s.cacher.Remove(key)
+		return err
+	}
+
+	if s.bloomFilter != nil {
+		s.bloomFilter.Add(key)
 	}
 
 	return err
+
 }
 
-// Get searches the data associated to the key in the cache first and if not
-// found it further searches it in the associated database.
+// Get searches the key in the cache. In case it is not found, it searches
+// for the key in bloom filter first and if found
+// it further searches it in the associated database.
 // In case it is found in the database, the cache is updated with the value as well.
 func (s *Unit) Get(key []byte) ([]byte, error) {
 	s.lock.Lock()
@@ -160,24 +205,29 @@ func (s *Unit) Get(key []byte) ([]byte, error) {
 	v, ok := s.cacher.Get(key)
 	var err error
 
-	if ok == false {
+	if !ok {
 		// not found in cache
-		// search it in second persistance medium
-		v, err = s.persister.Get(key)
+		// search it in second persistence medium
+		if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
+			v, err = s.persister.Get(key)
 
-		if err != nil {
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
+
+			// if found in persistance unit, add it in cache
+			s.cacher.Put(key, v)
+		} else {
+			return nil, errors.New(fmt.Sprintf("key: %s not found", string(key)))
 		}
-
-		// if found in persistance unit, add it in cache
-		s.cacher.Put(key, v)
 	}
 
 	return v.([]byte), nil
 }
 
-// Has checks if the key is in the storageUnit.
-// it first checks the cache and if not present it checks the db
+// Has checks if the key is in the Unit.
+// It first checks the cache. If it is not found, it checks the bloom filter
+// and if present it checks the db
 func (s *Unit) Has(key []byte) (bool, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
@@ -188,7 +238,10 @@ func (s *Unit) Has(key []byte) (bool, error) {
 		return has, nil
 	}
 
-	return s.persister.Has(key)
+	if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
+		return s.persister.Has(key)
+	}
+	return false, nil
 }
 
 // HasOrAdd checks if the key is present in the storage and if not adds it.
@@ -204,23 +257,37 @@ func (s *Unit) HasOrAdd(key []byte, value []byte) (bool, error) {
 		return has, nil
 	}
 
-	has, err := s.persister.Has(key)
-	if err != nil {
+	if s.bloomFilter == nil || s.bloomFilter.MayContain(key) == true {
+		has, err := s.persister.Has(key)
+		if err != nil {
+			return has, err
+		}
+
+		//add it to the cache
+		s.cacher.Put(key, value)
+
+		if !has {
+			// add it also to the persistance unit
+			err = s.persister.Put(key, value)
+			if err != nil {
+				//revert adding to the cache
+				s.cacher.Remove(key)
+			}
+		}
 		return has, err
 	}
 
-	//add it to the cache
 	s.cacher.Put(key, value)
+	err := s.persister.Put(key, value)
 
-	if !has {
-		// add it also to the persistance unit
-		err = s.persister.Put(key, value)
-		if err != nil {
-			//revert adding to the cache
-			s.cacher.Remove(key)
-		}
+	if err != nil {
+		s.cacher.Remove(key)
+		return false, err
 	}
-	return has, err
+	s.bloomFilter.Add(key)
+
+	return false, err
+
 }
 
 // Remove removes the data associated to the given key from both cache and persistance medium
@@ -239,10 +306,14 @@ func (s *Unit) ClearCache() {
 	s.cacher.Clear()
 }
 
-// DestroyUnit cleans up both the cache and db
+// DestroyUnit cleans up the bloom filter, the cache, and the db
 func (s *Unit) DestroyUnit() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+
+	if s.bloomFilter != nil {
+		s.bloomFilter.Clear()
+	}
 
 	s.cacher.Clear()
 	err := s.persister.Close()
@@ -252,8 +323,8 @@ func (s *Unit) DestroyUnit() error {
 
 
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
-// from the given cacher and persister.
-func NewStorageUnit(c Cacher, p Persister) (*Unit, error) {
+// from the given bloom filter, cacher and persister.
+func NewStorageUnit(c Cacher, p Persister, b BloomFilter) (*Unit, error) {
 	if p == nil {
 		return nil, errors.New("expected not nil persister")
 	}
@@ -265,6 +336,7 @@ func NewStorageUnit(c Cacher, p Persister) (*Unit, error) {
 	sUnit := &Unit{
 		persister: p,
 		cacher:    c,
+		bloomFilter: b,
 	}
 
 	err := sUnit.persister.Init()
@@ -276,9 +348,10 @@ func NewStorageUnit(c Cacher, p Persister) (*Unit, error) {
 }
 
 // NewStorageUnitFromConf creates a new storage unit from a storage unit config
-func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig) (*Unit, error) {
+func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterConf BloomConfig) (*Unit, error) {
 	var cache Cacher
 	var db Persister
+	var bf BloomFilter
 	var err error
 
 	cache, err = NewCache(cacheConf.Type, cacheConf.Size)
@@ -291,7 +364,11 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig) (*Unit, erro
 		return nil, err
 	}
 
-	st, err := NewStorageUnit(cache, db)
+	bf, err = NewBloomFilter(bloomFilterConf)
+	if err != nil {
+		return nil, err
+	}
+	st, err := NewStorageUnit(cache, db, bf)
 	if err != nil {
 		return nil, err
 	}
@@ -335,4 +412,40 @@ func NewDB(dbType DBType, path string) (Persister, error) {
 	}
 
 	return db, nil
+}
+
+// NewBloomFilter creates a new bloom filter from bloom filter config
+func NewBloomFilter(conf BloomConfig) (BloomFilter, error) {
+	var bf BloomFilter
+	var err error
+	var hashers []hashing.Hasher
+	for _, hashString := range conf.HashFunc {
+		hasher, err := hashString.NewHasher()
+		if err == nil {
+			hashers = append(hashers, hasher)
+		} else {
+			log.Warn(err.Error())
+		}
+	}
+	bf, err = bloom.NewFilter(conf.Size, hashers)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return bf, nil
+}
+
+// NewHasher will return a hasher implementation form the string HasherType
+func (h HasherType) NewHasher() (hashing.Hasher, error) {
+	switch h {
+	case Keccak:
+		return keccak.Keccak{}, nil
+	case Blake2b:
+		return blake2b.Blake2b{}, nil
+	case Fnv:
+		return fnv.Fnv{}, nil
+	default:
+		return nil, errors.New("hash type not supported")
+	}
 }
