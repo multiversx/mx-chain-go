@@ -1,0 +1,20 @@
+filebeat:
+  prospectors:
+    -
+      paths:
+        - "/elogs/*.log"
+      input_type: log
+      document_type: log
+      json.keys_under_root: true
+      json.overwrite_keys: true
+
+output.logstash:
+  enabled: true
+  hosts: ["192.168.11.53:5044"]
+  bulk_max_size: 1024
+
+shipper:
+
+logging:
+  files:
+    rotateeverybytes: 10485760 # = 10MB

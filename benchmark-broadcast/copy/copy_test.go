@@ -8,7 +8,11 @@ import (
 )
 
 func TestPeersToPeerMap(t *testing.T) {
-	var src, dest = []uuid.UUID{uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4())}, []uuid.UUID{}
+	var src, dest = []uuid.UUID{
+		uuid.Must(uuid.NewV4(), nil),
+		uuid.Must(uuid.NewV4(), nil),
+		uuid.Must(uuid.NewV4(), nil)},
+		[]uuid.UUID{}
 
 	copy.PeersToPeerMap(&dest, src)
 

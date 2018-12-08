@@ -11,7 +11,6 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/ipfs/go-ipfs-addr"
 	"github.com/libp2p/go-conn-security-multistream"
-	"github.com/libp2p/go-floodsub"
 	"github.com/libp2p/go-libp2p-crypto"
 	cr "github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-host"
@@ -20,6 +19,7 @@ import (
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
+	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-secio"
 	"github.com/libp2p/go-libp2p-swarm"
 	"github.com/libp2p/go-libp2p-transport-upgrader"
@@ -60,7 +60,7 @@ func (n *notifier) ClosedStream(netw net.Network, stream net.Stream) {}
 type Messenger struct {
 	ctx     context.Context
 	p2pNode host.Host
-	pubsub  *floodsub.PubSub
+	pubsub  *pubsub.PubSub
 }
 
 //helper func
@@ -140,11 +140,11 @@ func NewMessenger(port int, refuseConns bool) (*Messenger, error) {
 	mesgr.p2pNode = basichost.New(netw)
 
 	//create pubsub
-	pubsub, err := floodsub.NewFloodSub(mesgr.ctx, mesgr.p2pNode) //floodsub.NewGossipSub(ctx, node.p2pNode)
+	ps, err := pubsub.NewFloodSub(mesgr.ctx, mesgr.p2pNode) //floodsub.NewGossipSub(ctx, node.p2pNode)
 	if err != nil {
 		return nil, err
 	}
-	mesgr.pubsub = pubsub
+	mesgr.pubsub = ps
 
 	if refuseConns {
 		mesgr.p2pNode.Network().Notify(&notifier{})
