@@ -12,10 +12,10 @@ type TransactionExecutor interface {
 	SChandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
 	SetSChandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error)
 
-	ProcessTransaction(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
+	ProcessTransaction(transaction *transaction.Transaction) error
 }
 
 // BlockExecutor is the main interface for block execution engine
 type BlockExecutor interface {
-	ProcessBlock(accounts state.AccountsHandler, header *block.Header, block *block.Block, blockChain *blockchain.BlockChain) *ExecSummary
+	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.Block) error
 }
