@@ -605,7 +605,7 @@ func TestNewStorageUnitFromConfWrongCacheConfig(t *testing.T) {
 		FilePath: "Blocks",
 		Type:     storage.LvlDB,
 	}, storage.BloomConfig{
-		Size: 2048,
+		Size:     2048,
 		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
 	})
 
@@ -621,7 +621,7 @@ func TestNewStorageUnitFromConfWrongDBConfig(t *testing.T) {
 		FilePath: "Blocks",
 		Type:     "NotLvlDB",
 	}, storage.BloomConfig{
-		Size: 2048,
+		Size:     2048,
 		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
 	})
 
@@ -637,7 +637,7 @@ func TestNewStorageUnitFromConfOk(t *testing.T) {
 		FilePath: "Blocks",
 		Type:     storage.LvlDB,
 	}, storage.BloomConfig{
-		Size: 2048,
+		Size:     2048,
 		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
 	})
 

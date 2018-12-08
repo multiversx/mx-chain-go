@@ -24,7 +24,7 @@ type TransactionPool struct {
 	// Each key represents a destination shard id and the value will contain all
 	//  transaction hashes that have that shard as destination
 	miniPoolsStore map[uint32]*miniPool
-	cacherConfig *storage.CacheConfig
+	cacherConfig   *storage.CacheConfig
 
 	AddedTransaction func(txHash []byte)
 }
@@ -40,7 +40,7 @@ func NewTransactionPool(cacherConfig *storage.CacheConfig) *TransactionPool {
 		cacherConfig = defaultCacherConfig
 	}
 	return &TransactionPool{
-		cacherConfig: cacherConfig,
+		cacherConfig:   cacherConfig,
 		miniPoolsStore: make(map[uint32]*miniPool),
 	}
 }
