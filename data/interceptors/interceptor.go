@@ -44,6 +44,10 @@ func NewInterceptor(name string, messenger p2p.Messenger, templateObject p2p.New
 	return &intercept, nil
 }
 
+func (intercept *Interceptor) Messenger() p2p.Messenger {
+	return intercept.messenger
+}
+
 func (intercept *Interceptor) validator(ctx context.Context, message *pubsub.Message) bool {
 	obj := intercept.templateObject.New()
 

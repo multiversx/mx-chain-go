@@ -13,12 +13,14 @@ import (
 
 type MessengerStub struct {
 	marshalizer    marshal.Marshalizer
+	HasherObj      hashing.Hasher
 	AddTopicCalled func(t *p2p.Topic) error
 }
 
 func NewMessengerStub() *MessengerStub {
 	return &MessengerStub{
 		marshalizer: &MarshalizerMock{},
+		HasherObj:   HasherMock{},
 	}
 }
 
@@ -43,7 +45,7 @@ func (ms *MessengerStub) Marshalizer() marshal.Marshalizer {
 }
 
 func (ms *MessengerStub) Hasher() hashing.Hasher {
-	panic("implement me")
+	return ms.HasherObj
 }
 
 func (ms *MessengerStub) RouteTable() *p2p.RoutingTable {

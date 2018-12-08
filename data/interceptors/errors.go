@@ -13,6 +13,9 @@ var ErrNilNewer = errors.New("nil Newer")
 // ErrRegisteringValidator signals that a registration validator occur
 var ErrRegisteringValidator = errors.New("error while registering validator")
 
+// ErrNilAddressConverter signals that a nil AddressConverter has been provided
+var ErrNilAddressConverter = errors.New("nil AddressConverter")
+
 // ErrNilInterceptor signals that a nil interceptor has been provided
 var ErrNilInterceptor = errors.New("nil interceptor")
 
