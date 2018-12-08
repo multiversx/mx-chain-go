@@ -2,12 +2,19 @@ package node_test
 
 import (
 	"context"
+	"fmt"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
+
+func logError(err error) {
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+}
 
 func TestNewNode(t *testing.T) {
 	t.Parallel()
@@ -67,13 +74,16 @@ func TestStartCorrectParams(t *testing.T) {
 func TestStartCorrectParamsApplyingOptions(t *testing.T) {
 	t.Parallel()
 	n := node.NewNode()
-	n.ApplyOptions(
+	err := n.ApplyOptions(
 		node.WithPort(4000),
 		node.WithMarshalizer(mock.Marshalizer{}),
 		node.WithHasher(mock.Hasher{}),
 		node.WithMaxAllowedPeers(4),
 	)
-	err := n.Start()
+
+	logError(err)
+
+	err = n.Start()
 	assert.Nil(t, err)
 	assert.True(t, n.IsRunning())
 }

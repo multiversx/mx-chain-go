@@ -23,13 +23,11 @@ type Node struct {
 	pubSubStrategy p2p.PubSubStrategy
 	initialNodesAddresses []string
 	messenger p2p.Messenger
-	isRunning bool
 }
 
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) *Node {
 	node := &Node{
-		isRunning: false,
 		ctx: context.Background(),
 	}
 	for _, opt := range opts {
@@ -39,20 +37,24 @@ func NewNode(opts ...Option) *Node {
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
-func (n *Node) ApplyOptions(opts ...Option)  {
+func (n *Node) ApplyOptions(opts ...Option)  error {
+	if n.IsRunning() {
+		return errors.New("cannot apply options while node is running")
+	}
 	for _, opt := range opts {
 		opt(n)
 	}
+	return nil
 }
 
 // IsRunning will return the current state of the node
 func (n *Node) IsRunning() bool {
-	return n.isRunning
+	return n.messenger != nil
 }
 
 // Address returns the first address of the running node
 func (n *Node) Address() (string, error) {
-	if !n.isRunning {
+	if !n.IsRunning() {
 		return "", errors.New("node is not started yet")
 	}
 	return n.messenger.Addresses()[0], nil
@@ -65,23 +67,17 @@ func (n *Node) Start() error {
 		return err
 	}
 	n.messenger = messenger
-	n.isRunning = true
 
 	return nil
 }
 
 // ConnectToAddresses will take a slice of addresses and try to connect to all of them.
 func (n *Node) ConnectToAddresses(peers []string) error {
-	if n.messenger == nil {
+	if !n.IsRunning() {
 		return errors.New("node is not started yet")
 	}
 	// Don't try to connect to self
-	tmp := peers[:0]
-	for _, p := range peers {
-		if n.messenger.Addresses()[0] != p {
-			tmp = append(tmp, p)
-		}
-	}
+	tmp := n.removeSelfFromList(peers)
 	n.messenger.ConnectToAddresses(n.ctx, tmp)
 	return nil
 }
@@ -111,7 +107,21 @@ func (n *Node) createNetMessenger() (p2p.Messenger, error) {
 	}
 
 	nm, err := p2p.NewNetMessenger(n.ctx, n.marshalizer, n.hasher, cp,  n.maxAllowedPeers, n.pubSubStrategy)
+	if err != nil {
+		return nil, err
+	}
 	return nm, nil
+}
+
+func (n *Node) removeSelfFromList(peers []string) []string {
+	tmp := peers[:0]
+	addr, _ := n.Address()
+	for _, p := range peers {
+		if addr != p {
+			tmp = append(tmp, p)
+		}
+	}
+	return tmp
 }
 
 // WithPort sets up the port option for the Node
