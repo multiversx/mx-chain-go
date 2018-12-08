@@ -1,16 +1,27 @@
 package blockchain_test
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-func failOnNoPanic(t *testing.T) {
-	if r := recover(); r == nil {
-		t.Errorf("the code did not panic")
+func blockchainConfig() *blockchain.Config {
+	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
+	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
+	persisterBlockStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockStorage"}
+	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
+	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
+	return &blockchain.Config{
+		BlockStorage:       storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockStorage, BloomConf: bloom},
+		BlockHeaderStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
+		TxStorage:          storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
+		TxPoolStorage:      cacher,
+		BlockCache:         cacher,
 	}
 }
 
@@ -20,87 +31,71 @@ func failOnPanic(t *testing.T) {
 	}
 }
 
-func TestNewDataErrOnTxStorageCreationShouldPanic(t *testing.T) {
-	defer failOnNoPanic(t)
-	cfg := &config.TestnetBlockchainConfig.TxStorage.CacheConf.Type
-	val := config.TestnetBlockchainConfig.TxStorage.CacheConf.Type
-
-	// restore default config
-	defer func(cacheType *config.CacheType, val config.CacheType) {
-		*cacheType = val
-	}(cfg, val)
-
-	// e.g change the config to a not supported cache type
-	config.TestnetBlockchainConfig.TxStorage.CacheConf.Type = 100
-	blockchain.NewData()
+func logError(err error) {
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return
 }
 
-func TestNewDataErrOnBlockStorageCreationShouldPanic(t *testing.T) {
-	defer failOnNoPanic(t)
-
-	cfg := &config.TestnetBlockchainConfig.BlockStorage.CacheConf.Type
-	val := config.TestnetBlockchainConfig.BlockStorage.CacheConf.Type
-
-	// restore default config
-	defer func(cacheType *config.CacheType, val config.CacheType) {
-		*cacheType = val
-	}(cfg, val)
-
+func TestNewBlockchainErrOnTxStorageCreationShouldError(t *testing.T) {
+	cfg := blockchainConfig()
 	// e.g change the config to a not supported cache type
-	config.TestnetBlockchainConfig.BlockStorage.CacheConf.Type = 100
-	blockchain.NewData()
+	cfg.TxStorage.CacheConf.Type = "NotLRU"
+	_, err := blockchain.NewBlockChain(cfg)
+	assert.NotNil(t, err, "NewBlockchain should error on not supported type")
 }
 
-func TestNewDataErrOnBlockHeaderStorageCreationShouldPanic(t *testing.T) {
-	defer failOnNoPanic(t)
-
-	cfg := &config.TestnetBlockchainConfig.BlockHeaderStorage.CacheConf.Type
-	val := config.TestnetBlockchainConfig.BlockHeaderStorage.CacheConf.Type
-
-	// restore default config
-	defer func(cacheType *config.CacheType, val config.CacheType) {
-		*cacheType = val
-	}(cfg, val)
-
+func TestNewBlockchainErrOnBlockStorageCreationShouldError(t *testing.T) {
+	cfg := blockchainConfig()
 	// e.g change the config to a not supported cache type
-	config.TestnetBlockchainConfig.BlockHeaderStorage.CacheConf.Type = 100
-	blockchain.NewData()
+	cfg.BlockStorage.CacheConf.Type = "NotLRU"
+	_, err := blockchain.NewBlockChain(cfg)
+	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block storage")
 }
 
-func TestNewDataErrOnBBlockCacheCreationShouldPanic(t *testing.T) {
-	defer failOnNoPanic(t)
-
-	cfg := &config.TestnetBlockchainConfig.BBlockCache.Type
-	val := config.TestnetBlockchainConfig.BBlockCache.Type
-
-	// restore default config
-	defer func(cacheType *config.CacheType, val config.CacheType) {
-		*cacheType = val
-	}(cfg, val)
-
+func TestNewBlockchainErrOnBlockHeaderStorageCreationShouldError(t *testing.T) {
+	cfg := blockchainConfig()
 	// e.g change the config to a not supported cache type
-	config.TestnetBlockchainConfig.BBlockCache.Type = 100
-	blockchain.NewData()
+	cfg.BlockHeaderStorage.CacheConf.Type = "NotLRU"
+	_, err := blockchain.NewBlockChain(cfg)
+	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block header")
+}
+
+func TestNewDataErrOnBlockCacheCreationShouldError(t *testing.T) {
+	cfg := blockchainConfig()
+	// e.g change the config to a not supported cache type
+	cfg.BlockCache.Type = "NotLRU"
+	_, err := blockchain.NewBlockChain(cfg)
+	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block cache")
 }
 
 func TestNewDataDefaultConfigOK(t *testing.T) {
 	defer failOnPanic(t)
-
-	b, err := blockchain.NewData()
-	defer b.Destroy()
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
+	defer func() {
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 }
 
 func TestHasFalseOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData()
-	defer b.Destroy()
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
+	defer func() {
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 
-	b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	logError(err)
 	has, err := b.Has(100, []byte("key1"))
 
 	assert.NotNil(t, err, "expected error but got nil")
@@ -108,25 +103,32 @@ func TestHasFalseOnWrongUnitType(t *testing.T) {
 }
 
 func TestHasOk(t *testing.T) {
-	b, err := blockchain.NewData()
-	defer b.Destroy()
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
+	defer func() {
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 
-	b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	logError(err)
 	has, err := b.Has(blockchain.BlockUnit, []byte("key1"))
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.False(t, has, "not expected to find key")
 
-	b.Put(blockchain.BlockUnit, []byte("key1"), []byte("bbb"))
+	err = b.Put(blockchain.BlockUnit, []byte("key1"), []byte("bbb"))
+	logError(err)
 	has, err = b.Has(blockchain.BlockHeaderUnit, []byte("key1"))
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.False(t, has, "not expected to find key")
 
-	b.Put(blockchain.BlockHeaderUnit, []byte("key1"), []byte("ccc"))
+	err = b.Put(blockchain.BlockHeaderUnit, []byte("key1"), []byte("ccc"))
+	logError(err)
 	has, err = b.Has(blockchain.TransactionUnit, []byte("key1"))
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -144,13 +146,18 @@ func TestHasOk(t *testing.T) {
 }
 
 func TestGetErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData()
-	defer b.Destroy()
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
+	defer func() {
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 
-	b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	logError(err)
 	val, err := b.Get(100, []byte("key1"))
 
 	assert.NotNil(t, err, "expected error but got nil")
@@ -158,13 +165,18 @@ func TestGetErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestGetOk(t *testing.T) {
-	b, err := blockchain.NewData()
-	defer b.Destroy()
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
+	defer func() {
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 
-	b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
+	logError(err)
 	val, err := b.Get(blockchain.BlockUnit, []byte("key1"))
 
 	assert.NotNil(t, err, "expected error but got nil")
@@ -178,8 +190,12 @@ func TestGetOk(t *testing.T) {
 }
 
 func TestPutErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData()
-	defer b.Destroy()
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
+	defer func() {
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -190,8 +206,12 @@ func TestPutErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestPutOk(t *testing.T) {
-	b, err := blockchain.NewData()
-	defer b.Destroy()
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
+	defer func() {
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -207,8 +227,12 @@ func TestPutOk(t *testing.T) {
 }
 
 func TestGetAllErrOnWrongUnitType(t *testing.T) {
-	b, err := blockchain.NewData()
-	defer b.Destroy()
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
+	defer func() {
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
@@ -222,14 +246,20 @@ func TestGetAllErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestGetAllOk(t *testing.T) {
-	b, err := blockchain.NewData()
-	defer b.Destroy()
+	cfg := blockchainConfig()
+	b, err := blockchain.NewBlockChain(cfg)
+	defer func() {
+		err := b.Destroy()
+		assert.Nil(t, err, "Unable to destroy blockchain")
+	}()
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, b, "expected valid blockchain but got nil")
 
-	b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("value1"))
-	b.Put(blockchain.TransactionUnit, []byte("key2"), []byte("value2"))
+	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("value1"))
+	logError(err)
+	err = b.Put(blockchain.TransactionUnit, []byte("key2"), []byte("value2"))
+	logError(err)
 
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
 
