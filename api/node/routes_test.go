@@ -19,7 +19,7 @@ import (
 
 type GeneralResponse struct {
 	Message string `json:"message"`
-	Error string `json:"error"`
+	Error   string `json:"error"`
 }
 
 type StatusResponse struct {
@@ -27,9 +27,9 @@ type StatusResponse struct {
 	Running bool `json:"running"`
 }
 
-func loadResponse(rsp io.Reader, where interface{}) {
+func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
-	err := jsonParser.Decode(where)
+	err := jsonParser.Decode(destination)
 	if err != nil {
 		logError(err)
 	}
@@ -41,7 +41,7 @@ func logError(err error) {
 	}
 }
 
-func startNodeServer(handler node.Handler) *gin.Engine{
+func startNodeServer(handler node.Handler) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	ws := gin.New()
 	ws.Use(cors.Default())
@@ -53,7 +53,7 @@ func startNodeServer(handler node.Handler) *gin.Engine{
 	return ws
 }
 
-func startNodeServerWrongFacade() *gin.Engine{
+func startNodeServerWrongFacade() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	ws := gin.New()
 	ws.Use(cors.Default())
@@ -69,9 +69,8 @@ func TestStatusFailsWithoutFacade(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("Not providing elrondFacade context should panic")
-		}
+		r := recover()
+		assert.NotNil(t, r, "Not providing elrondFacade context should panic")
 	}()
 	req, _ := http.NewRequest("GET", "/node/status", nil)
 	resp := httptest.NewRecorder()
@@ -93,7 +92,7 @@ func TestStatusFailsWithWrongFacadeTypeConversion(t *testing.T) {
 	assert.Equal(t, statusRsp.Message, "Invalid app context")
 }
 
-func TestStatusReturnsCorrectResponse(t *testing.T) {
+func TestStatusReturnsCorrectResponseOnStart(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 	facade.Running = true
@@ -105,7 +104,12 @@ func TestStatusReturnsCorrectResponse(t *testing.T) {
 	statusRsp := StatusResponse{}
 	loadResponse(resp.Body, &statusRsp)
 	assert.True(t, statusRsp.Running)
+}
 
+func TestStatusReturnsCorrectResponseOnStop(t *testing.T) {
+	t.Parallel()
+	facade := mock.Facade{}
+	ws := startNodeServer(&facade)
 
 	facade.Running = false
 	req2, _ := http.NewRequest("GET", "/node/status", nil)
@@ -121,9 +125,8 @@ func TestStartNodeFailsWithoutFacade(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("Not providing elrondFacade context should panic")
-		}
+		r := recover()
+		assert.NotNil(t, r, "Not providing elrondFacade context should panic")
 	}()
 	req, _ := http.NewRequest("GET", "/node/start", nil)
 	resp := httptest.NewRecorder()
@@ -193,9 +196,8 @@ func TestStopNodeFailsWithoutFacade(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("Not providing elrondFacade context should panic")
-		}
+		r := recover()
+		assert.NotNil(t, r, "Not providing elrondFacade context should panic")
 	}()
 	req, _ := http.NewRequest("GET", "/node/stop", nil)
 	resp := httptest.NewRecorder()
