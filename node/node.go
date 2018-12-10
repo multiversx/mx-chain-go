@@ -73,8 +73,22 @@ func (n *Node) Start() error {
 	return nil
 }
 
-// ConnectToAddresses will take a slice of addresses and try to connect to all of them.
-func (n *Node) ConnectToAddresses() error {
+// Stop closes the messenger and undos everything done in Start
+func (n *Node) Stop() error {
+	if !n.IsRunning() {
+		return nil
+	}
+	err := n.messenger.Close()
+	if err != nil {
+		return err
+	}
+
+	n.messenger = nil
+	return nil
+}
+
+// ConnectToInitialAddresses connect to the list of peers provided initialAddresses
+func (n *Node) ConnectToInitialAddresses() error {
 	if !n.IsRunning() {
 		return errors.New("node is not started yet")
 	}
@@ -84,6 +98,15 @@ func (n *Node) ConnectToAddresses() error {
 	// Don't try to connect to self
 	tmp := n.removeSelfFromList(n.initialNodesAddresses)
 	n.messenger.ConnectToAddresses(n.ctx, tmp)
+	return nil
+}
+
+// ConnectToAddresses will take a slice of addresses and try to connect to all of them.
+func (n *Node) ConnectToAddresses(addresses []string) error {
+	if !n.IsRunning() {
+		return errors.New("node is not started yet")
+	}
+	n.messenger.ConnectToAddresses(n.ctx, addresses)
 	return nil
 }
 

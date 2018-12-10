@@ -156,7 +156,7 @@ func TestStartNodeAlreadyRunning(t *testing.T) {
 
 	statusRsp := StatusResponse{}
 	loadResponse(resp.Body, &statusRsp)
-	assert.Equal(t, resp.Code, http.StatusBadRequest)
+	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.Equal(t, statusRsp.Message, "Node already running")
 }
 
@@ -180,6 +180,81 @@ func TestStartNode(t *testing.T) {
 	facade := mock.Facade{}
 	ws := startNodeServer(&facade)
 	req, _ := http.NewRequest("GET", "/node/start", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := StatusResponse{}
+	loadResponse(resp.Body, &statusRsp)
+	assert.Equal(t, resp.Code, http.StatusOK)
+	assert.Equal(t, statusRsp.Message, "ok")
+}
+
+func TestStopNodeFailsWithoutFacade(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Not providing elrondFacade context should panic")
+		}
+	}()
+	req, _ := http.NewRequest("GET", "/node/stop", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+}
+
+func TestStopNodeFailsWithWrongFacadeTypeConversion(t *testing.T) {
+	t.Parallel()
+	facade := mock.Facade{}
+	facade.Running = true
+	ws := startNodeServerWrongFacade()
+	req, _ := http.NewRequest("GET", "/node/stop", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := StatusResponse{}
+	loadResponse(resp.Body, &statusRsp)
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, statusRsp.Message, "Invalid app context")
+}
+
+func TestStopNodeAlreadyStopped(t *testing.T) {
+	t.Parallel()
+	facade := mock.Facade{}
+	facade.Running = false
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/stop", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := StatusResponse{}
+	loadResponse(resp.Body, &statusRsp)
+	assert.Equal(t, resp.Code, http.StatusOK)
+	assert.Equal(t, statusRsp.Message, "Node already stopped")
+}
+
+func TestStopNodeFromFacadeErrors(t *testing.T) {
+	t.Parallel()
+	facade := mock.Facade{}
+	facade.Running = true
+	facade.ShouldErrorStop = true
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/stop", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := StatusResponse{}
+	loadResponse(resp.Body, &statusRsp)
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, statusRsp.Message, "Could not stop node: error")
+}
+
+func TestStopNode(t *testing.T) {
+	t.Parallel()
+	facade := mock.Facade{}
+	facade.Running = true
+	facade.ShouldErrorStop = false
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/stop", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 

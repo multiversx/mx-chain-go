@@ -2,12 +2,17 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/node"
 )
 
+// ElrondHandler interface defines methods that can be used from `elrondFacade` context variable
+type ElrondHandler interface {
+	IsNodeRunning() bool
+	StartNode() error
+	StopNode() error
+}
+
 // WithElrondFacade middleware will set up an ElrondFacade object in the gin context
-func WithElrondFacade(elrondFacade node.Handler) gin.HandlerFunc {
+func WithElrondFacade(elrondFacade ElrondHandler) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set("elrondFacade", elrondFacade)
 		c.Next()

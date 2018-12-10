@@ -10,6 +10,7 @@ import (
 type Facade interface {
 	CreateNode(maxAllowedPeers, port int, initialNodeAddresses []string)
 	StartNode(initialAddresses []string) error
+	StopNode() error
 	StartNTP(clockSyncPeriod int)
 	WaitForStartTime(t time.Time)
 	StartBackgroundServices(wg *sync.WaitGroup)

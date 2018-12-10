@@ -49,12 +49,16 @@ func (ef *ElrondFacade) StartNode() error {
 	if err != nil {
 		return err
 	}
-	err = ef.node.ConnectToAddresses()
+	err = ef.node.ConnectToInitialAddresses()
 	if err != nil {
 		return err
 	}
 	err = ef.node.StartConsensus()
 	return err
+}
+
+func (ef *ElrondFacade) StopNode() error {
+	return ef.StopNode()
 }
 
 func (ef *ElrondFacade) StartNTP(clockSyncPeriod int) {
