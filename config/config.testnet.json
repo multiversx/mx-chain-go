@@ -38,6 +38,10 @@
     "size": 1000,
     "type": "LRU"
   },
+  "blockPoolStorage": {
+    "size": 100,
+    "type": "LRU"
+  },
   "logger": {
     "path": "logs",
     "stackTraceDepth": 2
