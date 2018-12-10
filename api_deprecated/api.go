@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/node"
+	"github.com/ElrondNetwork/elrond-go-sandbox/api_deprecated/node"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
