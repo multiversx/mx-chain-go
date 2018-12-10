@@ -92,7 +92,7 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 			chr)
 
 		blkc := blockchain.BlockChain{}
-		txp := transactionPool.NewTransactionPool()
+		txp := transactionPool.NewTransactionPool(nil)
 
 		com := spos.NewCommunication(
 			true,

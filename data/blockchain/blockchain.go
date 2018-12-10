@@ -3,14 +3,14 @@ package blockchain
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var log = logrus.WithField("prefix", "blockchain")
+var log = logger.NewDefaultLogger()
 
 const (
 	// TransactionUnit is the transactions Storage unit identifier
@@ -23,6 +23,15 @@ const (
 
 // UnitType is the type for Storage unit identifiers
 type UnitType uint8
+
+// Config holds the configurable elements of the blockchain
+type Config struct {
+	BlockStorage       storage.UnitConfig
+	BlockHeaderStorage storage.UnitConfig
+	TxStorage          storage.UnitConfig
+	TxPoolStorage      storage.CacheConfig
+	BlockCache         storage.CacheConfig
+}
 
 // StorageService is the interface for blockChain storage unit provided services
 type StorageService interface {
@@ -45,8 +54,8 @@ type StorageService interface {
 // retrieval search of blocks (body), transactions, block headers,
 // bad blocks.
 //
-// The BlockChain also holds pointers to the Genesys block, the current block
-// the height of the local chain and the percieved height of the chain in the network.
+// The BlockChain also holds pointers to the Genesis block, the current block
+// the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
 	lock               sync.RWMutex
 	GenesisBlock       *block.Header                     // Genesys Block pointer
@@ -57,35 +66,44 @@ type BlockChain struct {
 	chain              map[UnitType]*storage.StorageUnit // chains for each unit type. Together they form the blockchain
 }
 
-// NewData returns an initialized blockchain
+// NewBlockChain returns an initialized blockchain
 // It uses a config file to setup it's supported storage units map
-func NewData() (*BlockChain, error) {
-	txStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.TxStorage)
-
-	if err != nil {
-		panic(err)
+func NewBlockChain(config *Config) (*BlockChain, error) {
+	if config == nil {
+		log.Error("Cannot create blockchain without initial configuration")
+		return nil, errors.New("Cannot create blockchain without initial configuration")
 	}
 
-	blStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.BlockStorage)
+	txStorage, err := storage.NewStorageUnitFromConf(config.TxStorage.CacheConf, config.TxStorage.DBConf, config.TxStorage.BloomConf)
 	if err != nil {
-		txStorage.DestroyUnit()
-		panic(err)
+		return nil, err
 	}
 
-	blHeadStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.BlockHeaderStorage)
+	blStorage, err := storage.NewStorageUnitFromConf(config.BlockStorage.CacheConf, config.BlockStorage.DBConf, config.BlockStorage.BloomConf)
 	if err != nil {
-		txStorage.DestroyUnit()
-		blStorage.DestroyUnit()
-		panic(err)
+		destroyErr := txStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		return nil, err
 	}
 
-	badBlocksCache, err := storage.CreateCacheFromConf(config.TestnetBlockchainConfig.BBlockCache)
-
+	blHeadStorage, err := storage.NewStorageUnitFromConf(config.BlockHeaderStorage.CacheConf, config.BlockHeaderStorage.DBConf, config.BlockHeaderStorage.BloomConf)
 	if err != nil {
-		txStorage.DestroyUnit()
-		blStorage.DestroyUnit()
-		blHeadStorage.DestroyUnit()
-		panic(err)
+		destroyErr := txStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = blStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		return nil, err
+	}
+
+	badBlocksCache, err := storage.NewCache(config.BlockCache.Type, config.BlockCache.Size)
+	if err != nil {
+		destroyErr := txStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = blStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = blHeadStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		return nil, err
 	}
 
 	data := &BlockChain{
@@ -122,7 +140,7 @@ func (bc *BlockChain) Has(unitType UnitType, key []byte) (bool, error) {
 
 // Get returns the value for the given key if found in the selected storage unit,
 // nil otherwise. It can return an error if the provided unit type is not supported
-// or if the storage unit underlying implementaiton reports an error
+// or if the storage unit underlying implementation reports an error
 func (bc *BlockChain) Get(unitType UnitType, key []byte) ([]byte, error) {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]
