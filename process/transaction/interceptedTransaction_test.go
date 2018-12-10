@@ -1,26 +1,28 @@
-package interceptTransaction
+package transaction_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/interceptors/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/stretchr/testify/assert"
+	"math/big"
 	"testing"
 )
 
 //------- Check()
 
-func TestInterceptedTransactionCheckTxNilTransactionShouldRetFalse(t *testing.T) {
+func TestInterceptedTransactionCheckNilTransactionShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	tx := NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction()
 
 	tx.Transaction = nil
 	assert.False(t, tx.Check())
 }
 
-func TestInterceptedTransactionCheckTxNilSignatureShouldRetFalse(t *testing.T) {
+func TestInterceptedTransactionCheckNilSignatureShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	tx := NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction()
 	tx.Signature = nil
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
@@ -29,10 +31,10 @@ func TestInterceptedTransactionCheckTxNilSignatureShouldRetFalse(t *testing.T) {
 	assert.False(t, tx.Check())
 }
 
-func TestInterceptedTransactionCheckTxNilChallengeShouldRetFalse(t *testing.T) {
+func TestInterceptedTransactionCheckNilChallengeShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	tx := NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction()
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = nil
 	tx.RcvAddr = make([]byte, 0)
@@ -41,10 +43,10 @@ func TestInterceptedTransactionCheckTxNilChallengeShouldRetFalse(t *testing.T) {
 	assert.False(t, tx.Check())
 }
 
-func TestInterceptedTransactionCheckTxNilRcvAddrShouldRetFalse(t *testing.T) {
+func TestInterceptedTransactionCheckNilRcvAddrShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	tx := NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction()
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = nil
@@ -53,10 +55,10 @@ func TestInterceptedTransactionCheckTxNilRcvAddrShouldRetFalse(t *testing.T) {
 	assert.False(t, tx.Check())
 }
 
-func TestInterceptedTransactionCheckTxNilSndAddrShouldRetFalse(t *testing.T) {
+func TestInterceptedTransactionCheckNilSndAddrShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	tx := NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction()
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
@@ -65,18 +67,32 @@ func TestInterceptedTransactionCheckTxNilSndAddrShouldRetFalse(t *testing.T) {
 	assert.False(t, tx.Check())
 }
 
-//TODO add test with negative value as of current impl uint64 does not allow negative values
+func TestTransactionInterceptorCheckNegativeBalanceShouldRetFalse(t *testing.T) {
+	t.Parallel()
+
+	tx := transaction.NewInterceptedTransaction()
+	tx.Signature = make([]byte, 0)
+	tx.Challenge = make([]byte, 0)
+	tx.RcvAddr = make([]byte, 0)
+	tx.SndAddr = make([]byte, 0)
+	tx.Value = *big.NewInt(-1)
+
+	tx.SetAddressConverter(&mock.AddressConverterMock{})
+
+	assert.False(t, tx.Check())
+
+}
 
 func TestTransactionInterceptorCheckNilAddrConvertorShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	tx := NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction()
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
 
-	tx.addrConv = nil
+	tx.SetAddressConverter(nil)
 
 	assert.False(t, tx.Check())
 }
@@ -84,7 +100,7 @@ func TestTransactionInterceptorCheckNilAddrConvertorShouldRetFalse(t *testing.T)
 func TestTransactionInterceptorCheckInvalidSenderAddrShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	tx := NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction()
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
@@ -92,7 +108,7 @@ func TestTransactionInterceptorCheckInvalidSenderAddrShouldRetFalse(t *testing.T
 
 	addrConv := &mock.AddressConverterMock{}
 	addrConv.CreateAddressFromPublicKeyBytesRetErrForValue = []byte("please fail, addrConverter!")
-	tx.addrConv = addrConv
+	tx.SetAddressConverter(addrConv)
 
 	assert.False(t, tx.Check())
 }
@@ -100,7 +116,7 @@ func TestTransactionInterceptorCheckInvalidSenderAddrShouldRetFalse(t *testing.T
 func TestTransactionInterceptorCheckInvalidReceiverAddrShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	tx := NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction()
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = []byte("please fail, addrConverter!")
@@ -108,7 +124,7 @@ func TestTransactionInterceptorCheckInvalidReceiverAddrShouldRetFalse(t *testing
 
 	addrConv := &mock.AddressConverterMock{}
 	addrConv.CreateAddressFromPublicKeyBytesRetErrForValue = []byte("please fail, addrConverter!")
-	tx.addrConv = addrConv
+	tx.SetAddressConverter(addrConv)
 
 	assert.False(t, tx.Check())
 }
@@ -116,13 +132,13 @@ func TestTransactionInterceptorCheckInvalidReceiverAddrShouldRetFalse(t *testing
 func TestTransactionInterceptorCheckOkValsShouldRetTrue(t *testing.T) {
 	t.Parallel()
 
-	tx := NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction()
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
 
-	tx.addrConv = &mock.AddressConverterMock{}
+	tx.SetAddressConverter(&mock.AddressConverterMock{})
 
 	assert.True(t, tx.Check())
 }
@@ -132,23 +148,23 @@ func TestTransactionInterceptorAllGettersAndSettersShouldWork(t *testing.T) {
 
 	addrConv := &mock.AddressConverterMock{}
 
-	tx := NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction()
 	tx.SetAddressConverter(addrConv)
 	assert.Equal(t, addrConv, tx.AddressConverter())
 
-	tx.rcvShard = 3
+	tx.SetRcvShard(3)
 	assert.Equal(t, uint32(3), tx.RcvShard())
 
-	tx.sndShard = 4
+	tx.SetSndShard(4)
 	assert.Equal(t, uint32(4), tx.SndShard())
 
 	tx.Nonce = 5
 	assert.Equal(t, uint64(5), tx.GetTransaction().Nonce)
 
-	tx.isAddressedToOtherShards = true
+	tx.SetIsAddressedToOtherShards(true)
 	assert.True(t, tx.IsAddressedToOtherShards())
 
-	tx.Signature = []byte("aaaa")
+	tx.SetHash([]byte("aaaa"))
 	assert.Equal(t, "aaaa", tx.ID())
-
+	assert.Equal(t, "aaaa", string(tx.Hash()))
 }

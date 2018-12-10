@@ -14,6 +14,7 @@ type TransactionInterceptorMock struct {
 	IsAddressedToOtherShardsVal bool
 	AddrConverter               state.AddressConverter
 	Tx                          *transaction.Transaction
+	hash                        []byte
 }
 
 func (tim *TransactionInterceptorMock) Check() bool {
@@ -54,4 +55,12 @@ func (tim *TransactionInterceptorMock) AddressConverter() state.AddressConverter
 
 func (tim *TransactionInterceptorMock) GetTransaction() *transaction.Transaction {
 	return tim.Tx
+}
+
+func (tim *TransactionInterceptorMock) SetHash(hash []byte) {
+	tim.hash = hash
+}
+
+func (tim *TransactionInterceptorMock) Hash() []byte {
+	return tim.hash
 }

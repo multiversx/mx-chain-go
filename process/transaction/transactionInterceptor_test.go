@@ -1,11 +1,12 @@
-package interceptTransaction
+package transaction
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/interceptors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/interceptors/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -14,12 +15,15 @@ import (
 func createNewTransactionInterceptorForTests() (
 	ti *transactionInterceptor,
 	mes *mock.MessengerStub,
-	pool *transactionPool.TransactionPool,
+	pool *dataPool.DataPool,
 	addrConv *mock.AddressConverterMock,
 	err error) {
 
 	mes = mock.NewMessengerStub()
-	pool = transactionPool.NewTransactionPool()
+	pool = dataPool.NewDataPool(&config.CacheConfig{
+		Size: 10000,
+		Type: config.LRUCache,
+	})
 	addrConv = &mock.AddressConverterMock{}
 
 	mes.AddTopicCalled = func(t *p2p.Topic) error {
@@ -43,11 +47,14 @@ func createNewTransactionInterceptorForTests() (
 func TestNewTransactionInterceptorNilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tPool := transactionPool.NewTransactionPool()
+	tPool := dataPool.NewDataPool(&config.CacheConfig{
+		Size: 10000,
+		Type: config.LRUCache,
+	})
 	addrConv := &mock.AddressConverterMock{}
 
 	_, err := NewTransactionInterceptor(nil, tPool, addrConv)
-	assert.Equal(t, interceptors.ErrNilMessenger, err)
+	assert.Equal(t, process.ErrNilMessenger, err)
 }
 
 func TestNewTransactionInterceptorNilTransactionPoolShouldErr(t *testing.T) {
@@ -57,17 +64,20 @@ func TestNewTransactionInterceptorNilTransactionPoolShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 
 	_, err := NewTransactionInterceptor(mes, nil, addrConv)
-	assert.Equal(t, interceptors.ErrNilTxPool, err)
+	assert.Equal(t, process.ErrNilTxDataPool, err)
 }
 
 func TestNewTransactionInterceptorNilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mes := mock.NewMessengerStub()
-	tPool := transactionPool.NewTransactionPool()
+	tPool := dataPool.NewDataPool(&config.CacheConfig{
+		Size: 10000,
+		Type: config.LRUCache,
+	})
 
 	_, err := NewTransactionInterceptor(mes, tPool, nil)
-	assert.Equal(t, interceptors.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilAddressConverter, err)
 }
 
 func TestNewTransactionInterceptorOkValsShouldWork(t *testing.T) {
@@ -84,7 +94,7 @@ func TestTransactionInterceptorProcessTxNilTxShouldRetFalse(t *testing.T) {
 
 	ti, _, _, _, _ := createNewTransactionInterceptorForTests()
 
-	assert.False(t, ti.ProcessTx(nil, make([]byte, 0)))
+	assert.False(t, ti.ProcessTx(nil, make([]byte, 0), mock.HasherMock{}))
 }
 
 func TestTransactionInterceptorProcessTxWrongTypeOfNewerShouldRetFalse(t *testing.T) {
@@ -94,7 +104,7 @@ func TestTransactionInterceptorProcessTxWrongTypeOfNewerShouldRetFalse(t *testin
 
 	sn := mock.StringNewer{}
 
-	assert.False(t, ti.ProcessTx(&sn, make([]byte, 0)))
+	assert.False(t, ti.ProcessTx(&sn, make([]byte, 0), mock.HasherMock{}))
 }
 
 func TestTransactionInterceptorProcessTxSanityCheckFailedShouldRetFalse(t *testing.T) {
@@ -108,15 +118,13 @@ func TestTransactionInterceptorProcessTxSanityCheckFailedShouldRetFalse(t *testi
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
 
-	assert.False(t, ti.ProcessTx(txNewer, make([]byte, 0)))
+	assert.False(t, ti.ProcessTx(txNewer, make([]byte, 0), mock.HasherMock{}))
 }
 
 func TestTransactionInterceptorProcessTxNilHasherShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	ti, mes, _, _, _ := createNewTransactionInterceptorForTests()
-
-	mes.HasherObj = nil
+	ti, _, _, _, _ := createNewTransactionInterceptorForTests()
 
 	txNewer := NewInterceptedTransaction()
 	txNewer.Signature = make([]byte, 0)
@@ -124,7 +132,7 @@ func TestTransactionInterceptorProcessTxNilHasherShouldRetFalse(t *testing.T) {
 	txNewer.RcvAddr = []byte("please fail, addrConverter!")
 	txNewer.SndAddr = make([]byte, 0)
 
-	assert.False(t, ti.ProcessTx(txNewer, make([]byte, 0)))
+	assert.False(t, ti.ProcessTx(txNewer, make([]byte, 0), nil))
 }
 
 func TestTransactionInterceptorProcessTxNotValidShouldRetFalse(t *testing.T) {
@@ -140,7 +148,7 @@ func TestTransactionInterceptorProcessTxNotValidShouldRetFalse(t *testing.T) {
 
 	addrConv.CreateAddressFromPublicKeyBytesRetErrForValue = []byte("please fail, addrConverter!")
 
-	assert.False(t, ti.ProcessTx(txNewer, nil))
+	assert.False(t, ti.ProcessTx(txNewer, nil, mock.HasherMock{}))
 }
 
 func TestTransactionInterceptorProcessValidValsShouldRetTrue(t *testing.T) {
@@ -154,14 +162,14 @@ func TestTransactionInterceptorProcessValidValsShouldRetTrue(t *testing.T) {
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
 
-	assert.True(t, ti.ProcessTx(txNewer, []byte("txHash")))
+	assert.True(t, ti.ProcessTx(txNewer, []byte("txHash"), mock.HasherMock{}))
 
 	if pool.MiniPool(0) == nil {
 		assert.Fail(t, "failed to add tx")
 		return
 	}
 
-	txStored, ok := pool.MiniPool(0).TxStore.Get(mock.HasherMock{}.Compute("txHash"))
+	txStored, ok := pool.MiniPool(0).DataStore.Get(mock.HasherMock{}.Compute("txHash"))
 	assert.True(t, ok)
 	assert.Equal(t, txNewer.Transaction, txStored)
 }
@@ -179,7 +187,7 @@ func TestTransactionInterceptorProcessValidValsOtherShardsShouldRetTrue(t *testi
 	tim.IsChecked = true
 	tim.IsVerified = true
 
-	assert.True(t, ti.ProcessTx(tim, []byte("txHash")))
+	assert.True(t, ti.ProcessTx(tim, []byte("txHash"), mock.HasherMock{}))
 
 	if pool.MiniPool(0) != nil {
 		assert.Fail(t, "failed and added tx")
@@ -202,18 +210,18 @@ func TestTransactionInterceptorProcessValidVals2ShardsShouldRetTrue(t *testing.T
 	tim.IsChecked = true
 	tim.IsVerified = true
 
-	assert.True(t, ti.ProcessTx(tim, []byte("txHash")))
+	assert.True(t, ti.ProcessTx(tim, []byte("txHash"), mock.HasherMock{}))
 
 	if pool.MiniPool(2) == nil || pool.MiniPool(3) == nil {
 		assert.Fail(t, "failed to add tx")
 		return
 	}
 
-	txStored, ok := pool.MiniPool(2).TxStore.Get(mock.HasherMock{}.Compute("txHash"))
+	txStored, ok := pool.MiniPool(2).DataStore.Get(mock.HasherMock{}.Compute("txHash"))
 	assert.True(t, ok)
 	assert.Equal(t, tx, txStored)
 
-	txStored, ok = pool.MiniPool(3).TxStore.Get(mock.HasherMock{}.Compute("txHash"))
+	txStored, ok = pool.MiniPool(3).DataStore.Get(mock.HasherMock{}.Compute("txHash"))
 	assert.True(t, ok)
 	assert.Equal(t, tx, txStored)
 }

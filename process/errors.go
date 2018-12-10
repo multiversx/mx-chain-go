@@ -1,4 +1,4 @@
-package interceptors
+package process
 
 import (
 	"github.com/pkg/errors"
@@ -16,11 +16,11 @@ var ErrRegisteringValidator = errors.New("error while registering validator")
 // ErrNilAddressConverter signals that a nil AddressConverter has been provided
 var ErrNilAddressConverter = errors.New("nil AddressConverter")
 
-// ErrNilInterceptor signals that a nil interceptor has been provided
-var ErrNilInterceptor = errors.New("nil interceptor")
+// ErrNilTxDataPool signals that a nil transaction pool has been provided
+var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
-// ErrNilBlockchain signals that a nil blockchain has been provided
-var ErrNilBlockchain = errors.New("nil blockchain")
+// ErrNilHeaderDataPool signals that a nil header pool has been provided
+var ErrNilHeaderDataPool = errors.New("nil header data pool")
 
-// ErrNilTxPool signals that a nil transaction pool has been provided
-var ErrNilTxPool = errors.New("nil transaction pool")
+// ErrNilTxBodyBlockDataPool signals that a nil tx body block pool has been provided
+var ErrNilTxBodyBlockDataPool = errors.New("nil tx body block data pool")
