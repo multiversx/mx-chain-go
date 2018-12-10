@@ -2,17 +2,16 @@ package storage_test
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
@@ -22,7 +21,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initStorageUnitWithBloomFilter(t *testing.T, cSize int) *storage.StorageUnit {
+func logError(err error) {
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return
+}
+
+func initStorageUnitWithBloomFilter(t *testing.T, cSize int) *storage.Unit {
 	mdb, err1 := memorydb.New()
 	cache, err2 := lrucache.NewCache(cSize)
 	bf := bloom.NewDefaultFilter()
@@ -37,7 +43,7 @@ func initStorageUnitWithBloomFilter(t *testing.T, cSize int) *storage.StorageUni
 	return sUnit
 }
 
-func initStorageUnitWithNilBloomFilter(t *testing.T, cSize int) *storage.StorageUnit {
+func initStorageUnitWithNilBloomFilter(t *testing.T, cSize int) *storage.Unit {
 	mdb, err1 := memorydb.New()
 	cache, err2 := lrucache.NewCache(cSize)
 
@@ -408,7 +414,8 @@ func TestDeleteNotPresentWithNilBloomFilter(t *testing.T) {
 func TestDeleteNotPresentCache(t *testing.T) {
 	key, val := []byte("key13"), []byte("value13")
 	s := initStorageUnitWithBloomFilter(t, 10)
-	s.Put(key, val)
+	err := s.Put(key, val)
+	assert.Nil(t, err, "Could not put value in storage unit")
 
 	has, err := s.Has(key)
 
@@ -429,7 +436,8 @@ func TestDeleteNotPresentCache(t *testing.T) {
 func TestDeleteNotPresentCacheWithNilBloomFilter(t *testing.T) {
 	key, val := []byte("key13"), []byte("value13")
 	s := initStorageUnitWithNilBloomFilter(t, 10)
-	s.Put(key, val)
+	err := s.Put(key, val)
+	assert.Nil(t, err, "Could not put value in storage unit")
 
 	has, err := s.Has(key)
 
@@ -450,7 +458,8 @@ func TestDeleteNotPresentCacheWithNilBloomFilter(t *testing.T) {
 func TestDeletePresent(t *testing.T) {
 	key, val := []byte("key14"), []byte("value14")
 	s := initStorageUnitWithBloomFilter(t, 10)
-	s.Put(key, val)
+	err := s.Put(key, val)
+	assert.Nil(t, err, "Could not put value in storage unit")
 
 	has, err := s.Has(key)
 
@@ -470,7 +479,8 @@ func TestDeletePresent(t *testing.T) {
 func TestDeletePresentWithNilBloomFilter(t *testing.T) {
 	key, val := []byte("key14"), []byte("value14")
 	s := initStorageUnitWithNilBloomFilter(t, 10)
-	s.Put(key, val)
+	err := s.Put(key, val)
+	assert.Nil(t, err, "Could not put value in storage unit")
 
 	has, err := s.Has(key)
 
@@ -490,19 +500,8 @@ func TestDeletePresentWithNilBloomFilter(t *testing.T) {
 func TestClearCacheNotAffectPersist(t *testing.T) {
 	key, val := []byte("key15"), []byte("value15")
 	s := initStorageUnitWithBloomFilter(t, 10)
-	s.Put(key, val)
-	s.ClearCache()
-
-	has, err := s.Has(key)
-
-	assert.Nil(t, err, "no error expected, but got %s", err)
-	assert.True(t, has, "expected to find key")
-}
-
-func TestClearCacheNotAffectPersistWithNilBloomFilter(t *testing.T) {
-	key, val := []byte("key15"), []byte("value15")
-	s := initStorageUnitWithNilBloomFilter(t, 10)
-	s.Put(key, val)
+	err := s.Put(key, val)
+	assert.Nil(t, err, "Could not put value in storage unit")
 	s.ClearCache()
 
 	has, err := s.Has(key)
@@ -524,190 +523,128 @@ func TestDestroyUnitWithNilBloomFilterNoError(t *testing.T) {
 }
 
 func TestCreateCacheFromConfWrongType(t *testing.T) {
-	cacheConfig := &config.CacheConfig{
-		Size: 10,
-		Type: 100,
-	}
 
-	cacher, err := storage.CreateCacheFromConf(cacheConfig)
+	cacher, err := storage.NewCache("NotLRU", 100)
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, cacher, "cacher expected to be nil, but got %s", cacher)
 }
 
 func TestCreateCacheFromConfOK(t *testing.T) {
-	cacheConfig := &config.CacheConfig{
-		Size: 10,
-		Type: config.LRUCache,
-	}
 
-	cacher, err := storage.CreateCacheFromConf(cacheConfig)
+	cacher, err := storage.NewCache(storage.LRUCache, 10)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, cacher, "valid cacher expected but got nil")
 }
 
 func TestCreateDBFromConfWrongType(t *testing.T) {
-	dbConfig := &config.DBConfig{
-		Type:     100,
-		FileName: "testdb",
-	}
-
-	persister, err := storage.CreateDBFromConf(dbConfig)
+	persister, err := storage.NewDB("NotLvlDB", "test")
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
 }
 
 func TestCreateDBFromConfWrongFileName(t *testing.T) {
-	dbConfig := &config.DBConfig{
-		Type:     config.LvlDB,
-		FileName: "",
-	}
-
-	persister, err := storage.CreateDBFromConf(dbConfig)
-
+	persister, err := storage.NewDB(storage.LvlDB, "")
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, persister, "persister expected to be nil, but got %s", persister)
 }
 
 func TestCreateDBFromConfOk(t *testing.T) {
-	dbConfig := &config.DBConfig{
-		Type:     config.LvlDB,
-		FileName: "tmp",
-	}
-
-	persister, err := storage.CreateDBFromConf(dbConfig)
-
+	persister, err := storage.NewDB(storage.LvlDB, "tmp")
 	assert.Nil(t, err, "no error expected")
 	assert.NotNil(t, persister, "valid persister expected but got nil")
 
-	persister.Destroy()
+	err = persister.Destroy()
+	assert.Nil(t, err, "no error expected destroying the persister")
 }
 
 func TestCreateBloomFilterFromConfWrongSize(t *testing.T) {
-	bfConfig := &config.BloomFilterConfig{
+	bfConfig := storage.BloomConfig{
 		Size:     2,
-		HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
+		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
 	}
 
-	bf, err := storage.CreateBloomFilterFromConf(bfConfig)
+	bf, err := storage.NewBloomFilter(bfConfig)
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, bf, "persister expected to be nil, but got %s", bf)
 }
 
 func TestCreateBloomFilterFromConfWrongHashFunc(t *testing.T) {
-	bfConfig := &config.BloomFilterConfig{
+	bfConfig := storage.BloomConfig{
 		Size:     2048,
-		HashFunc: []hashing.Hasher{},
+		HashFunc: []storage.HasherType{},
 	}
 
-	bf, err := storage.CreateBloomFilterFromConf(bfConfig)
+	bf, err := storage.NewBloomFilter(bfConfig)
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, bf, "persister expected to be nil, but got %s", bf)
 }
 
 func TestCreateBloomFilterFromConfOk(t *testing.T) {
-	bfConfig := &config.BloomFilterConfig{
+	bfConfig := storage.BloomConfig{
 		Size:     2048,
-		HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
+		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
 	}
 
-	bf, err := storage.CreateBloomFilterFromConf(bfConfig)
+	bf, err := storage.NewBloomFilter(bfConfig)
 
 	assert.Nil(t, err, "no error expected")
 	assert.NotNil(t, bf, "valid persister expected but got nil")
 }
 
 func TestNewStorageUnitFromConfWrongCacheConfig(t *testing.T) {
-	stUnit := &config.StorageUnitConfig{
-		CacheConf: &config.CacheConfig{
-			Size: 10,
-			Type: 100,
-		},
-		DBConf: &config.DBConfig{
-			FileName: "Blocks",
-			Type:     config.LvlDB,
-		},
-		BloomFilterConf: &config.BloomFilterConfig{
-			Size:     2048,
-			HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
-		},
-	}
 
-	storer, err := storage.NewStorageUnitFromConf(stUnit)
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: "NotLRU",
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     storage.LvlDB,
+	}, storage.BloomConfig{
+		Size:     2048,
+		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
+	})
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
 }
 
 func TestNewStorageUnitFromConfWrongDBConfig(t *testing.T) {
-	stUnit := &config.StorageUnitConfig{
-		CacheConf: &config.CacheConfig{
-			Size: 10,
-			Type: config.LRUCache,
-		},
-		DBConf: &config.DBConfig{
-			FileName: "Blocks",
-			Type:     100,
-		},
-		BloomFilterConf: &config.BloomFilterConfig{
-			Size:     2048,
-			HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
-		},
-	}
-
-	storer, err := storage.NewStorageUnitFromConf(stUnit)
-
-	assert.NotNil(t, err, "error expected")
-	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
-}
-
-func TestNewStorageUnitFromConfWrongBloomFilterConfig(t *testing.T) {
-	stUnit := &config.StorageUnitConfig{
-		CacheConf: &config.CacheConfig{
-			Size: 10,
-			Type: config.LRUCache,
-		},
-		DBConf: &config.DBConfig{
-			FileName: "Blocks",
-			Type:     100,
-		},
-		BloomFilterConf: &config.BloomFilterConfig{
-			Size:     2,
-			HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
-		},
-	}
-
-	storer, err := storage.NewStorageUnitFromConf(stUnit)
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: storage.LRUCache,
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     "NotLvlDB",
+	}, storage.BloomConfig{
+		Size:     2048,
+		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
+	})
 
 	assert.NotNil(t, err, "error expected")
 	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
 }
 
 func TestNewStorageUnitFromConfOk(t *testing.T) {
-	stUnit := &config.StorageUnitConfig{
-		CacheConf: &config.CacheConfig{
-			Size: 10,
-			Type: config.LRUCache,
-		},
-		DBConf: &config.DBConfig{
-			FileName: "Blocks",
-			Type:     config.LvlDB,
-		},
-		BloomFilterConf: &config.BloomFilterConfig{
-			Size:     2048,
-			HashFunc: []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}},
-		},
-	}
-
-	storer, err := storage.NewStorageUnitFromConf(stUnit)
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: storage.LRUCache,
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     storage.LvlDB,
+	}, storage.BloomConfig{
+		Size:     2048,
+		HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv},
+	})
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.NotNil(t, storer, "valid storer expected but got nil")
-	storer.DestroyUnit()
+	err = storer.DestroyUnit()
+	assert.Nil(t, err, "no error expected destroying the persister")
 }
 
 const (
@@ -715,7 +652,7 @@ const (
 	bfSize     = 100000
 )
 
-func initSUWithNilBloomFilter(cSize int) *storage.StorageUnit {
+func initSUWithNilBloomFilter(cSize int) *storage.Unit {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		fmt.Println(err)
@@ -741,7 +678,7 @@ func initSUWithNilBloomFilter(cSize int) *storage.StorageUnit {
 
 }
 
-func initSUWithBloomFilter(cSize int, bfSize uint) *storage.StorageUnit {
+func initSUWithBloomFilter(cSize int, bfSize uint) *storage.Unit {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		fmt.Println(err)
@@ -773,7 +710,10 @@ func initSUWithBloomFilter(cSize int, bfSize uint) *storage.StorageUnit {
 func BenchmarkStorageUnitPutWithNilBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithNilBloomFilter(1)
-	defer s.DestroyUnit()
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -781,15 +721,18 @@ func BenchmarkStorageUnitPutWithNilBloomFilter(b *testing.B) {
 		nr := rand.Intn(valuesInDb)
 		b.StartTimer()
 
-		s.Put([]byte(strconv.Itoa(nr)), []byte(strconv.Itoa(nr)))
-
+		err := s.Put([]byte(strconv.Itoa(nr)), []byte(strconv.Itoa(nr)))
+		logError(err)
 	}
 }
 
 func BenchmarkStorageUnitPutWithBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithBloomFilter(1, bfSize)
-	defer s.DestroyUnit()
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -797,18 +740,21 @@ func BenchmarkStorageUnitPutWithBloomFilter(b *testing.B) {
 		nr := rand.Intn(valuesInDb)
 		b.StartTimer()
 
-		s.Put([]byte(strconv.Itoa(nr)), []byte(strconv.Itoa(nr)))
-
+		err := s.Put([]byte(strconv.Itoa(nr)), []byte(strconv.Itoa(nr)))
+		logError(err)
 	}
 }
 
 func BenchmarkStorageUnitGetPresentWithNilBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithNilBloomFilter(1)
-	defer s.DestroyUnit()
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
 	for i := 0; i < valuesInDb; i++ {
-		s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
-
+		err := s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		logError(err)
 	}
 	b.StartTimer()
 
@@ -817,17 +763,21 @@ func BenchmarkStorageUnitGetPresentWithNilBloomFilter(b *testing.B) {
 		nr := rand.Intn(valuesInDb)
 		b.StartTimer()
 
-		s.Get([]byte(strconv.Itoa(nr)))
-
+		_, err := s.Get([]byte(strconv.Itoa(nr)))
+		logError(err)
 	}
 }
 
 func BenchmarkStorageUnitGetPresentWithBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithBloomFilter(1, bfSize)
-	defer s.DestroyUnit()
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
 	for i := 0; i < valuesInDb; i++ {
-		s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		err := s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		logError(err)
 	}
 	b.StartTimer()
 
@@ -836,18 +786,21 @@ func BenchmarkStorageUnitGetPresentWithBloomFilter(b *testing.B) {
 		nr := rand.Intn(valuesInDb)
 		b.StartTimer()
 
-		s.Get([]byte(strconv.Itoa(nr)))
-
+		_, err := s.Get([]byte(strconv.Itoa(nr)))
+		logError(err)
 	}
 }
 
 func BenchmarkStorageUnitGetNotPresentWithNilBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithNilBloomFilter(1)
-	defer s.DestroyUnit()
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
 	for i := 0; i < valuesInDb; i++ {
-		s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
-
+		err := s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		logError(err)
 	}
 	b.StartTimer()
 
@@ -856,18 +809,21 @@ func BenchmarkStorageUnitGetNotPresentWithNilBloomFilter(b *testing.B) {
 		nr := rand.Intn(valuesInDb) + valuesInDb
 		b.StartTimer()
 
-		s.Get([]byte(strconv.Itoa(nr)))
-
+		_, err := s.Get([]byte(strconv.Itoa(nr)))
+		logError(err)
 	}
 }
 
 func BenchmarkStorageUnitGetNotPresentWithBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithBloomFilter(1, bfSize)
-	defer s.DestroyUnit()
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
 	for i := 0; i < valuesInDb; i++ {
-		s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
-
+		err := s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		logError(err)
 	}
 	b.StartTimer()
 
@@ -876,7 +832,7 @@ func BenchmarkStorageUnitGetNotPresentWithBloomFilter(b *testing.B) {
 		nr := rand.Intn(valuesInDb) + valuesInDb
 		b.StartTimer()
 
-		s.Get([]byte(strconv.Itoa(nr)))
-
+		_, err := s.Get([]byte(strconv.Itoa(nr)))
+		logError(err)
 	}
 }

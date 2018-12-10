@@ -1,0 +1,45 @@
+{
+  "blockStorage": {
+    "cache": {
+      "size": 100,
+      "type": "LRU"
+    },
+    "db": {
+      "file": "Blocks",
+      "type": "LvlDB"
+    },
+    "bloom": []
+  },
+  "blockHeaderStorage": {
+    "cache": {
+      "size": 100,
+      "type": "LRU"
+    },
+    "db": {
+      "file": "BlockHeaders",
+      "type": "LvlDB"
+    }
+  },
+  "txStorage": {
+    "cache": {
+      "size": 100000,
+      "type": "LRU"
+    },
+    "db": {
+      "file": "Transactions",
+      "type": "LvlDB"
+    }
+  },
+  "badBlocksCache": {
+    "size": 100,
+    "type": "LRU"
+  },
+  "txPoolStorage": {
+    "size": 1000,
+    "type": "LRU"
+  },
+  "logger": {
+    "path": "logs",
+    "stackTraceDepth": 2
+  }
+}

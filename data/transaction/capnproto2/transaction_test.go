@@ -8,8 +8,8 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"zombiezen.com/go/capnproto2"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction/capnproto2"
+	"zombiezen.com/go/capnproto2"
 )
 
 type Serializer interface {
