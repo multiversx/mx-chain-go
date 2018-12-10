@@ -12,7 +12,8 @@ import (
 
 // MiniBlock holds the transactions with sender in node's shard and receiver in DestShardID
 type MiniBlock struct {
-	TxHashes    [][]byte
+	TxHashes [][]byte
+	//TODO: change to ShardId
 	DestShardID uint32
 }
 

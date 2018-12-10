@@ -26,7 +26,8 @@ type TransactionPool struct {
 	miniPoolsStore map[uint32]*miniPool
 	cacherConfig   *storage.CacheConfig
 
-	AddedTransaction func(txHash []byte)
+	handlerLock            sync.RWMutex
+	addTransactionHandlers []func(txHash []byte)
 }
 
 type miniPool struct {
@@ -95,8 +96,10 @@ func (tp *TransactionPool) AddTransaction(txHash []byte, tx *transaction.Transac
 	mp := tp.MiniPoolTxStore(destShardID)
 	found, _ := mp.HasOrAdd(txHash, tx)
 
-	if tp.AddedTransaction != nil && !found {
-		tp.AddedTransaction(txHash)
+	if tp.addTransactionHandlers != nil && !found {
+		for _, handler := range tp.addTransactionHandlers {
+			go handler(txHash)
+		}
 	}
 }
 
@@ -165,4 +168,17 @@ func (tp *TransactionPool) ClearMiniPool(shardID uint32) {
 		return
 	}
 	mp.Clear()
+}
+
+// ClearMiniPool will delete all transactions associated with a given destination shardID
+func (tp *TransactionPool) RegisterTransactionHandler(transactionHandler func(txHash []byte)) {
+	tp.handlerLock.Lock()
+
+	if tp.addTransactionHandlers == nil {
+		tp.addTransactionHandlers = make([]func(txHash []byte), 0)
+	}
+
+	tp.addTransactionHandlers = append(tp.addTransactionHandlers, transactionHandler)
+
+	tp.handlerLock.Unlock()
 }
