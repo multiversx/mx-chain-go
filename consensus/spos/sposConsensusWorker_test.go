@@ -322,7 +322,7 @@ func TestMessage_SendBlock(t *testing.T) {
 	assert.Equal(t, uint64(1), coms[0].Hdr.Nonce)
 
 	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBlock, false)
-	coms[0].Blkc.CurrentBlock = coms[0].Hdr
+	coms[0].Blkc.CurrentBlockHeader = coms[0].Hdr
 
 	r = coms[0].DoBlockJob()
 	assert.Equal(t, true, r)
@@ -1119,7 +1119,7 @@ func TestMessage_CheckIfBlockIsValid(t *testing.T) {
 	assert.Equal(t, true, r)
 
 	hdr.Nonce = 1
-	coms[0].Blkc.CurrentBlock = hdr
+	coms[0].Blkc.CurrentBlockHeader = hdr
 
 	hdr = &block.Header{}
 	hdr.Nonce = 1

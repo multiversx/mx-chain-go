@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"math/big"
 )
 
 //TODO: Split in multiple structs, with Single Responsibility
@@ -197,8 +196,8 @@ func (com *SPOSConsensusWorker) DoEndRoundJob() bool {
 		return false
 	}
 
-	com.Blkc.CurrentBlock = com.Hdr
-	com.Blkc.LocalHeight = new(big.Int).SetUint64(com.Hdr.Nonce)
+	com.Blkc.CurrentBlockHeader = com.Hdr
+	com.Blkc.LocalHeight = int64(com.Hdr.Nonce)
 	com.Blkc.Put(blockchain.BlockHeaderUnit, com.Hdr.BlockHash, header)
 	com.Blkc.Put(blockchain.BlockUnit, com.Hdr.BlockHash, body)
 
@@ -339,15 +338,15 @@ func (com *SPOSConsensusWorker) GetSubround() chronology.SubroundId {
 func (com *SPOSConsensusWorker) SendBlockHeader() bool {
 	hdr := &block.Header{}
 
-	if com.Blkc.CurrentBlock == nil {
+	if com.Blkc.CurrentBlockHeader == nil {
 		hdr.Nonce = 1
 		hdr.Round = uint32(com.Cns.Chr.Round().Index())
 		hdr.TimeStamp = []byte(com.GetTime())
 	} else {
-		hdr.Nonce = com.Blkc.CurrentBlock.Nonce + 1
+		hdr.Nonce = com.Blkc.CurrentBlockHeader.Nonce + 1
 		hdr.Round = uint32(com.Cns.Chr.Round().Index())
 		hdr.TimeStamp = []byte(com.GetTime())
-		hdr.PrevHash = com.Blkc.CurrentBlock.BlockHash
+		hdr.PrevHash = com.Blkc.CurrentBlockHeader.BlockHash
 	}
 
 	message, err := com.marshalizer.Marshal(com.Blk)
@@ -818,7 +817,7 @@ func (com *SPOSConsensusWorker) CheckIfBlockIsValid(receivedHeader *block.Header
 	// TODO: This logic is temporary and it should be refactored after the bootstrap mechanism
 	// TODO: will be implemented
 
-	if com.Blkc.CurrentBlock == nil {
+	if com.Blkc.CurrentBlockHeader == nil {
 		if receivedHeader.Nonce == 1 { // first block after genesis
 			if bytes.Equal(receivedHeader.PrevHash, []byte("")) {
 				return true
@@ -839,26 +838,26 @@ func (com *SPOSConsensusWorker) CheckIfBlockIsValid(receivedHeader *block.Header
 		return true
 	}
 
-	if receivedHeader.Nonce < com.Blkc.CurrentBlock.Nonce+1 {
+	if receivedHeader.Nonce < com.Blkc.CurrentBlockHeader.Nonce+1 {
 		com.Log(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block "+
-			"with nonce %d", com.Blkc.CurrentBlock.Nonce, receivedHeader.Nonce))
+			"with nonce %d", com.Blkc.CurrentBlockHeader.Nonce, receivedHeader.Nonce))
 		return false
 	}
 
-	if receivedHeader.Nonce == com.Blkc.CurrentBlock.Nonce+1 {
-		if bytes.Equal(receivedHeader.PrevHash, com.Blkc.CurrentBlock.BlockHash) {
+	if receivedHeader.Nonce == com.Blkc.CurrentBlockHeader.Nonce+1 {
+		if bytes.Equal(receivedHeader.PrevHash, com.Blkc.CurrentBlockHeader.BlockHash) {
 			return true
 		}
 
 		com.Log(fmt.Sprintf("Hash not match: local block hash is %s and node received block "+
-			"with previous hash %s", com.Blkc.CurrentBlock.BlockHash, receivedHeader.PrevHash))
+			"with previous hash %s", com.Blkc.CurrentBlockHeader.BlockHash, receivedHeader.PrevHash))
 		return false
 	}
 
 	// to resolve the situation when a node misses some Blocks and it has the bootstrap mechanism
 	// not implemented yet (he will accept the block received)
 	com.Log(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block "+
-		"with nonce %d", com.Blkc.CurrentBlock.Nonce, receivedHeader.Nonce))
+		"with nonce %d", com.Blkc.CurrentBlockHeader.Nonce, receivedHeader.Nonce))
 	com.Log(fmt.Sprintf("\n"+com.GetFormatedTime()+
 		">>>>>>>>>>>>>>>>>>>> ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT "+
 		"IMPLEMENTED YET <<<<<<<<<<<<<<<<<<<<\n", receivedHeader.Nonce))
@@ -878,11 +877,11 @@ func (com *SPOSConsensusWorker) ShouldSynch() bool {
 	rnd := com.Cns.Chr.Round()
 
 	if com.Blkc == nil ||
-		com.Blkc.CurrentBlock == nil {
+		com.Blkc.CurrentBlockHeader == nil {
 		return rnd.Index() > 0
 	}
 
-	return com.Blkc.CurrentBlock.Round+1 < uint32(rnd.Index())
+	return com.Blkc.CurrentBlockHeader.Round+1 < uint32(rnd.Index())
 }
 
 // GetMessageTypeName method returns the name of the message from a given message ID

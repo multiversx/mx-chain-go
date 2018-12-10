@@ -1,7 +1,6 @@
 package blockchain
 
 import (
-	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
@@ -49,13 +48,13 @@ type StorageService interface {
 // The BlockChain also holds pointers to the Genesys block, the current block
 // the height of the local chain and the percieved height of the chain in the network.
 type BlockChain struct {
-	lock          sync.RWMutex
-	GenesisBlock  *block.Header                     // Genesys Block pointer
-	CurrentBlock  *block.Header                     // Current Block pointer
-	LocalHeight   *big.Int                          // Height of the local chain
-	NetworkHeight *big.Int                          // Percieved height of the network chain
-	badBlocks     storage.Cacher                    // Bad blocks cache
-	chain         map[UnitType]*storage.StorageUnit // chains for each unit type. Together they form the blockchain
+	lock               sync.RWMutex
+	GenesisBlock       *block.Header                     // Genesys Block pointer
+	CurrentBlockHeader *block.Header                     // Current Block pointer
+	LocalHeight        int64                             // Height of the local chain
+	NetworkHeight      int64                             // Percieved height of the network chain
+	badBlocks          storage.Cacher                    // Bad blocks cache
+	chain              map[UnitType]*storage.StorageUnit // chains for each unit type. Together they form the blockchain
 }
 
 // NewData returns an initialized blockchain
@@ -90,11 +89,11 @@ func NewData() (*BlockChain, error) {
 	}
 
 	data := &BlockChain{
-		GenesisBlock:  nil,
-		CurrentBlock:  nil,
-		LocalHeight:   big.NewInt(-1),
-		NetworkHeight: big.NewInt(-1),
-		badBlocks:     badBlocksCache,
+		GenesisBlock:       nil,
+		CurrentBlockHeader: nil,
+		LocalHeight:        -1,
+		NetworkHeight:      -1,
+		badBlocks:          badBlocksCache,
 		chain: map[UnitType]*storage.StorageUnit{
 			TransactionUnit: txStorage,
 			BlockUnit:       blStorage,
