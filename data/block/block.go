@@ -14,6 +14,7 @@ import (
 // MiniBlock holds the transactions with sender in node's shard and receiver in DestShardID
 type MiniBlock struct {
 	TxHashes    [][]byte `capid:"0"`
+	//TODO: change to ShardId
 	DestShardID uint32   `capid:"1"`
 }
 

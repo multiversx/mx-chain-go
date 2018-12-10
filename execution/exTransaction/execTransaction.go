@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
@@ -21,15 +22,15 @@ func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
 	addressConv state.AddressConverter) (*execTransaction, error) {
 
 	if accounts == nil {
-		return nil, ErrNilAccountsAdapter
+		return nil, execution.ErrNilAccountsAdapter
 	}
 
 	if hasher == nil {
-		return nil, ErrNilHasher
+		return nil, execution.ErrNilHasher
 	}
 
 	if addressConv == nil {
-		return nil, ErrNilAddressConverter
+		return nil, execution.ErrNilAddressConverter
 	}
 
 	return &execTransaction{
@@ -52,7 +53,7 @@ func (et *execTransaction) SetSChandler(f func(accountsAdapter state.AccountsAda
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error {
 	if tx == nil {
-		return ErrNilTransaction
+		return execution.ErrNilTransaction
 	}
 
 	adrSrc, adrDest, err := et.getAddresses(tx)
@@ -66,7 +67,7 @@ func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error
 	}
 
 	if acntSrc == nil || acntDest == nil {
-		return ErrNilValue
+		return execution.ErrNilValue
 	}
 
 	if acntDest.Code() != nil {
@@ -107,7 +108,7 @@ func (et *execTransaction) getAddresses(tx *transaction.Transaction) (adrSrc, ad
 
 func (et *execTransaction) getAccounts(adrSrc, adrDest state.AddressContainer) (acntSrc, acntDest state.JournalizedAccountWrapper, err error) {
 	if adrSrc == nil || adrDest == nil {
-		err = ErrNilValue
+		err = execution.ErrNilValue
 		return
 	}
 
@@ -122,7 +123,7 @@ func (et *execTransaction) getAccounts(adrSrc, adrDest state.AddressContainer) (
 
 func (et *execTransaction) callSChandler(tx *transaction.Transaction) error {
 	if et.scHandler == nil {
-		return ErrNoVM
+		return execution.ErrNoVM
 	}
 
 	return et.scHandler(et.accounts, tx)
@@ -130,17 +131,17 @@ func (et *execTransaction) callSChandler(tx *transaction.Transaction) error {
 
 func (et *execTransaction) checkTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {
 	if acntSrc.BaseAccount().Nonce < nonce {
-		return ErrHigherNonceInTransaction
+		return execution.ErrHigherNonceInTransaction
 	}
 
 	if acntSrc.BaseAccount().Nonce > nonce {
-		return ErrLowerNonceInTransaction
+		return execution.ErrLowerNonceInTransaction
 	}
 
 	//negative balance test is done in transaction interceptor as the transaction is invalid and thus shall not disseminate
 
 	if acntSrc.BaseAccount().Balance.Cmp(value) < 0 {
-		return ErrInsufficientFunds
+		return execution.ErrInsufficientFunds
 	}
 
 	return nil
