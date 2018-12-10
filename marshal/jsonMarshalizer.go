@@ -9,7 +9,7 @@ import (
 type JsonMarshalizer struct {
 }
 
-func (j *JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
+func (j JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	if obj == nil {
 		return nil, errors.New("NIL object to serilize from!")
 	}
@@ -17,7 +17,7 @@ func (j *JsonMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 	return json.Marshal(obj)
 }
 
-func (j *JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
+func (j JsonMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 	if obj == nil {
 		return errors.New("NIL object to serilize to!")
 	}

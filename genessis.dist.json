@@ -1,0 +1,89 @@
+{
+  "startTime": 1544192700,
+  "clockSyncPeriod": 10,
+  "initialNodes": [
+    {
+      "address": "/ip4/127.0.0.1/tcp/4000/ipfs/16Uiu2HAmERYu2qxDQkUnWsxS6pVwjQBbv74HLq8e3SbFsTtMkdqz"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4001/ipfs/16Uiu2HAmAgFhnundFuEjy3ngaSTPwP8LLgWomwvf3SUXFRU6LiWk"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4002/ipfs/16Uiu2HAm2ia4oFi9bzGrRuqkpFjBWMGn2vmWWATd1nLbrFwxP13v"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4003/ipfs/16Uiu2HAmEm5nRBVRRFu5jLRy4kvbo5ZsDBGLNXwwQzPYXuxYVvZf"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4004/ipfs/16Uiu2HAm9CQJr8D6xwLpidyvM734fP4TTDDbR8qsmbpF6tpouk56"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4005/ipfs/16Uiu2HAm9H4nFvFHUkUd3VMLQjqu9ZhzoynVmpAi17RHAzRjzSN2"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4006/ipfs/16Uiu2HAmHxSqZ91wyzCaDsRMgvuWFW59KVDvLSrJ6s59mFTRAf7w"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4007/ipfs/16Uiu2HAmMD9DCAQChheh1fKHrXYQ48FU2S2LibHebgshviPZzKvu"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4008/ipfs/16Uiu2HAmRSSh7rCH5WzDxiy2muGRpVU2TtphmSMXsVaeCiVwhufY"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4009/ipfs/16Uiu2HAm1YV7mqoqTHVCuongJAs662fDxaMARz1zS4kbQT7sooCr"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4010/ipfs/16Uiu2HAm2JCYuhBbaiJKJMjfRyYQM53DMRTUoQdKsvZNebMRVfpB"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4011/ipfs/16Uiu2HAm1QTTpkQXEytMxR1NPN1XZK7fqshkWZUgPLAzuAQRqweo"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4012/ipfs/16Uiu2HAmV3qfdgyZhXK17TWanhGBv7JjtQzqkYcdCMem4Rr1Etfv"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4013/ipfs/16Uiu2HAmRx53Bh6Ym6pTP9ReRN9eFAuV4GowumubBapRh7NhEf6V"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4014/ipfs/16Uiu2HAmNxDQL5NJQaYpX6FryxwBfRLB3G7Dv5PduqeRMhJuPbtz"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4015/ipfs/16Uiu2HAmCoaq8PUEcmoT9aDHpxQk3yLEvzJKLnaBX6yZncc5Edzw"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4016/ipfs/16Uiu2HAkxKKVAV9do97zp7SHN5dLx1aGkiZCri61JPD7xQbWc5WZ"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4017/ipfs/16Uiu2HAm9jn48Z5H1E8wdmZQVgLpQ74bYCesHPLDDZfhTzggVrus"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4018/ipfs/16Uiu2HAmJRmrxDStmxuwrBGEq9vNUQ4uAq7oMoYxCz9MBbgVgLM5"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4019/ipfs/16Uiu2HAm77KDPYuhRW4Jsj5DpyGvYMwNExWDUGyqe4zNykAAr9WL"
+    },
+    {
+      "address": "/ip4/127.0.0.1/tcp/4020/ipfs/16Uiu2HAkzo9FGNyY57n5jCZX6SasdpaJGDbQVWaU7NT89g42VcQX"
+    }
+  ],
+  "accounts": [
+    {
+      "nounce": 1,
+      "balance": 10000,
+      "codeHash": "",
+      "root": ""
+    },
+    {
+      "nounce": 2,
+      "balance": 10000,
+      "codeHash": "",
+      "root": ""
+    },
+    {
+      "nounce": 3,
+      "balance": 10000,
+      "codeHash": "",
+      "root": ""
+    }
+  ]
+}

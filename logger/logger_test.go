@@ -13,7 +13,7 @@ import (
 func TestDebug(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log := logger.NewElrondLogger(nil)
+	log := logger.NewElrondLogger()
 	log.SetLevel(logger.LogDebug)
 	log.SetOutput(&str)
 	log.Debug("abc")
@@ -25,7 +25,7 @@ func TestDebug(t *testing.T) {
 func TestInfo(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log := logger.NewElrondLogger(nil)
+	log := logger.NewElrondLogger()
 	log.SetLevel(logger.LogDebug)
 	log.SetOutput(&str)
 	log.Info("abc")
@@ -37,7 +37,7 @@ func TestInfo(t *testing.T) {
 func TestWarn(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log := logger.NewElrondLogger(nil)
+	log := logger.NewElrondLogger()
 	log.SetOutput(&str)
 	log.Warn("abc")
 	logString := str.String()
@@ -48,7 +48,7 @@ func TestWarn(t *testing.T) {
 func TestError(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log := logger.NewElrondLogger(nil)
+	log := logger.NewElrondLogger()
 	log.SetOutput(&str)
 	log.Error("abc")
 	logString := str.String()
@@ -59,7 +59,7 @@ func TestError(t *testing.T) {
 func TestPanic(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log := logger.NewElrondLogger(nil)
+	log := logger.NewElrondLogger()
 	log.SetOutput(&str)
 	swallowPanicLog(t, "abc", "TestPanic should have panic", log)
 
@@ -71,9 +71,8 @@ func TestPanic(t *testing.T) {
 func TestSetLevel(t *testing.T) {
 	t.Parallel()
 	var str bytes.Buffer
-	log := logger.NewElrondLogger(nil)
+	log := logger.NewElrondLogger()
 	log.SetOutput(&str)
-
 	log.SetLevel(logger.LogDebug)
 	log.Debug("abc")
 	assert.Assert(t, strings.Contains(str.String(), `"msg":"abc"`))
@@ -136,12 +135,19 @@ func TestConcurrencyWithFileWriter(t *testing.T) {
 
 	for i := 1; i < 1000; i++ {
 		go func(index int) {
-			log.Warn("I will fail miserably if I'll run into concurrency issues", index)
+			log.Warn("I will error if I'll run into concurrency issues", index)
 			wg.Done()
 		}(i)
 	}
 
 	wg.Wait()
+}
+
+func TestWithOptions(t *testing.T) {
+	var str bytes.Buffer
+	log := logger.NewElrondLogger(logger.WithStackTraceDepth(1), logger.WithFile(&str))
+	assert.Equal(t, log.StackTraceDepth(), 1, "WithStackTraceDepth does not set the correct option")
+	assert.Equal(t, log.File(), &str)
 }
 
 func swallowPanicLog(t *testing.T, logMsg string, panicMsg string, log *logger.Logger) {
