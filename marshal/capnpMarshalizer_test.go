@@ -1,15 +1,15 @@
 package marshal_test
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
 
-	"ElrondNetwork/elrond-go-sandbox/data"
-	"ElrondNetwork/elrond-go-sandbox/data/block"
-	"ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/stretchr/testify/assert"
-	"math/rand"
-	"fmt"
 )
 
 type dataGenerator interface {

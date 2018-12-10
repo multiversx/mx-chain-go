@@ -2,8 +2,8 @@ package block
 
 import (
 	"io"
-	"ElrondNetwork/elrond-go-sandbox/data/block/capnproto1"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnproto1"
 	"github.com/glycerine/go-capnproto"
 )
 

@@ -12,3 +12,19 @@ type TransactionExecutor interface {
 
 	ProcessTransaction(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
 }
+
+// Checker checks the integrity of a data structure
+type Checker interface {
+	Check() bool
+}
+
+// SigVerifier provides functionality to verify a signature
+type SigVerifier interface {
+	VerifySig() bool
+}
+
+// SignedDataValidator provides functionality and check the validity of a block header
+type SignedDataValidator interface {
+	SigVerifier
+	Checker
+}

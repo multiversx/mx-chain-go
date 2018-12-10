@@ -3,7 +3,7 @@ package transaction
 import (
 	"io"
 
-	"ElrondNetwork/elrond-go-sandbox/data/transaction/capnproto1"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction/capnproto1"
 	"github.com/glycerine/go-capnproto"
 )
 

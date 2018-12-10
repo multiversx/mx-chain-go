@@ -1,11 +1,11 @@
 package exTransaction
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
 // execTransaction implements TransactionExecutor interface and can modify account states according to a transaction
