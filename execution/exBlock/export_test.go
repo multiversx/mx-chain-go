@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"time"
 )
 
 func (eb *execBlock) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.Block) error {
@@ -15,8 +14,12 @@ func (eb *execBlock) GetTransactionFromPool(destShardID uint32, txHash []byte) *
 	return eb.getTransactionFromPool(destShardID, txHash)
 }
 
-func (eb *execBlock) RequestTransactionFromNetwork(destShardID uint32, txHash []byte, waitTime time.Duration) *transaction.Transaction {
-	return eb.requestTransactionFromNetwork(destShardID, txHash, waitTime)
+func (eb *execBlock) RequestTransactionFromNetwork(body *block.Block) {
+	eb.requestBlockTransactions(body)
+}
+
+func (eb *execBlock) WaitForTxHashes() {
+	eb.waitForTxHashes()
 }
 
 func (eb *execBlock) ReceivedTransaction(txHash []byte) {

@@ -24,7 +24,8 @@ func TestNewBlockExec(t *testing.T) {
 		tp,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.ExecTransactionMock{})
+		&mock.ExecTransactionMock{},
+		nil)
 
 	assert.NotNil(t, be)
 }
@@ -35,7 +36,8 @@ func TestBlockExec_GetTransactionFromPool(t *testing.T) {
 	be := exBlock.NewExecBlock(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.ExecTransactionMock{})
+		&mock.ExecTransactionMock{},
+		nil)
 
 	txHash := []byte("tx1_hash")
 
@@ -49,7 +51,6 @@ func TestBlockExec_GetTransactionFromPool(t *testing.T) {
 	assert.NotNil(t, tp.MiniPoolTxStore(1))
 	assert.Nil(t, tx)
 
-	tp.OnAddTransaction = nil
 	tp.AddTransaction(txHash, &transaction.Transaction{Nonce: uint64(1)}, 1)
 
 	tx = be.GetTransactionFromPool(1, txHash)
@@ -64,29 +65,28 @@ func TestBlockExec_RequestTransactionFromNetwork(t *testing.T) {
 	be := exBlock.NewExecBlock(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.ExecTransactionMock{})
+		&mock.ExecTransactionMock{},
+		nil)
+	//1, []byte("tx1_hash1"), WaitTime
 
-	tx := be.RequestTransactionFromNetwork(1, []byte("tx1_hash1"), WaitTime)
-	assert.Nil(t, tx)
+	shardId := uint32(1)
+	txHash1 := []byte("tx1_hash1")
 
-	go be.ReceivedTransaction([]byte("tx1_hash2"))
+	blk := block.Block{}
+	mBlocks := make([]block.MiniBlock, 0)
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash1)
+	mBlk := block.MiniBlock{DestShardID: shardId, TxHashes: txHashes}
+	mBlocks = append(mBlocks, mBlk)
+	blk.MiniBlocks = mBlocks
+	tx1 := &transaction.Transaction{Nonce: 7}
+	tp.AddTransaction(txHash1, tx1, 1)
 
-	tx = be.RequestTransactionFromNetwork(1, []byte("tx1_hash1"), WaitTime)
-	assert.Nil(t, tx)
+	be.RequestTransactionFromNetwork(&blk)
+	be.WaitForTxHashes()
+	tx, _ := tp.MiniPool(shardId).TxStore.Get(txHash1)
 
-	go be.ReceivedTransaction([]byte("tx1_hash1"))
-
-	tx = be.RequestTransactionFromNetwork(1, []byte("tx1_hash1"), WaitTime)
-	assert.Nil(t, tx)
-
-	tp.OnAddTransaction = nil
-	tp.AddTransaction([]byte("tx1_hash1"), &transaction.Transaction{Nonce: uint64(1)}, 1)
-
-	go be.ReceivedTransaction([]byte("tx1_hash1"))
-
-	tx = be.RequestTransactionFromNetwork(1, []byte("tx1_hash1"), WaitTime)
-	assert.NotNil(t, tx)
-	assert.Equal(t, uint64(1), tx.Nonce)
+	assert.Equal(t, tx1, tx)
 }
 
 func TestBlockExec_VerifyBlockSignature(t *testing.T) {
@@ -95,7 +95,8 @@ func TestBlockExec_VerifyBlockSignature(t *testing.T) {
 	be := exBlock.NewExecBlock(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.ExecTransactionMock{})
+		&mock.ExecTransactionMock{},
+		nil)
 
 	b := be.VerifyBlockSignature(nil)
 	assert.Equal(t, false, b)
@@ -113,11 +114,13 @@ func TestBlockExec_ProcessBlock(t *testing.T) {
 	etm.ProcessTransactionCalled = func(transaction *transaction.Transaction) error {
 		return nil
 	}
-
+	accountsAdapter := &mock.AccountsStub{}
 	be := exBlock.NewExecBlock(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&etm)
+		&etm,
+		accountsAdapter,
+	)
 
 	err := be.ProcessBlock(nil, nil, nil)
 	assert.Equal(t, execution.ErrNilBlockChain, err)
@@ -134,21 +137,22 @@ func TestBlockExec_ProcessBlock(t *testing.T) {
 	assert.Equal(t, execution.ErrNilBlockBody, err)
 
 	hdr.Nonce = 2
+	hdr.Round = 2
 	blk := block.Block{}
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
-	assert.Equal(t, execution.ErrHigherNonceInBlock, err)
+	assert.Equal(t, execution.ErrWrongNonceInBlock, err)
 
-	blkc.CurrentBlock = &block.Header{Nonce: 1, BlockHash: []byte("blk_hash1")}
+	blkc.CurrentBlockHeader = &block.Header{Nonce: 1, BlockHash: []byte("blk_hash1")}
 	hdr.Nonce = 1
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
-	assert.Equal(t, execution.ErrLowerNonceInBlock, err)
+	assert.Equal(t, execution.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 3
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
-	assert.Equal(t, execution.ErrHigherNonceInBlock, err)
+	assert.Equal(t, execution.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 2
 	hdr.PrevHash = []byte("blk_hash2")
@@ -164,8 +168,20 @@ func TestBlockExec_ProcessBlock(t *testing.T) {
 	hdr.Signature = []byte("blk_sig1")
 	blk.MiniBlocks = append(blk.MiniBlocks, block.MiniBlock{DestShardID: 0})
 	blk.MiniBlocks[0].TxHashes = append(blk.MiniBlocks[0].TxHashes, []byte("tx_hash1"))
-	tp.OnAddTransaction = nil
+
 	tp.AddTransaction([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 0)
+
+	accountsAdapter.RootHashCalled = func() []byte {
+		return []byte("")
+	}
+
+	accountsAdapter.CommitCalled = func() ([]byte, error) {
+		return []byte(""), nil
+	}
+
+	accountsAdapter.JournalLenCalled = func() int {
+		return 0
+	}
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
 	assert.Nil(t, err)

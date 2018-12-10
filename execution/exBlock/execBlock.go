@@ -2,7 +2,10 @@ package exBlock
 
 import (
 	"bytes"
-	"math/big"
+	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -10,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
@@ -21,10 +23,13 @@ const WaitTime = time.Duration(2000 * time.Millisecond)
 type execBlock struct {
 	tp                   *transactionPool.TransactionPool
 	hasher               hashing.Hasher
-	marsher              marshal.Marshalizer
+	marshalizer          marshal.Marshalizer
 	txExecutor           execution.TransactionExecutor
-	ChRcvTx              chan []byte
+	ChRcvAllTxs          chan bool
 	OnRequestTransaction func(destShardID uint32, txHash []byte)
+	requestedTxHashes    map[string]bool
+	mut                  sync.RWMutex
+	accounts             state.AccountsAdapter
 }
 
 // NewExecBlock creates a new execBlock object
@@ -33,25 +38,67 @@ func NewExecBlock(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	txExecutor execution.TransactionExecutor,
+	accounts state.AccountsAdapter,
 ) *execBlock {
+	//TODO: check nil values
 
 	eb := execBlock{
-		tp:         tp,
-		hasher:     hasher,
-		marsher:    marshalizer,
-		txExecutor: txExecutor,
+		tp:          tp,
+		hasher:      hasher,
+		marshalizer: marshalizer,
+		txExecutor:  txExecutor,
+		accounts:    accounts,
 	}
 
-	eb.ChRcvTx = make(chan []byte)
+	eb.ChRcvAllTxs = make(chan bool)
 
-	eb.tp.OnAddTransaction = eb.receivedTransaction
+	eb.tp.RegisterTransactionHandler(eb.receivedTransaction)
 
 	return &eb
 }
 
 // ProcessBlock process the block and the transactions inside
 func (eb *execBlock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.Block) error {
+	err := eb.validateBlock(blockChain, header, body)
+	if err != nil {
+		return err
+	}
 
+	eb.requestBlockTransactions(body)
+	eb.waitForTxHashes()
+
+	if eb.accounts.JournalLen() != 0 {
+		return execution.ErrAccountStateDirty
+	}
+
+	defer func() {
+		if err != nil {
+			err2 := eb.accounts.RevertToSnapshot(0)
+			if err2 != nil {
+				fmt.Println(err2.Error())
+			}
+		}
+	}()
+
+	err = eb.ProcessBlockTransactions(body)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Check app state root hash
+	if !eb.VerifyStateRoot(eb.accounts.RootHash()) {
+		return execution.ErrRootStateMissmatch
+	}
+
+	err = eb.commitBlock(blockChain, header, body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (eb *execBlock) validateBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.Block) error {
 	if blockChain == nil {
 		return execution.ErrNilBlockChain
 	}
@@ -64,20 +111,16 @@ func (eb *execBlock) ProcessBlock(blockChain *blockchain.BlockChain, header *blo
 		return execution.ErrNilBlockBody
 	}
 
-	if blockChain.CurrentBlock == nil {
-		if header.Nonce > 1 {
-			return execution.ErrHigherNonceInBlock
+	if blockChain.CurrentBlockHeader == nil {
+		if !eb.IsFirstBlockInEpoch(header) {
+			return execution.ErrWrongNonceInBlock
 		}
 	} else {
-		if header.Nonce < blockChain.CurrentBlock.Nonce+1 {
-			return execution.ErrLowerNonceInBlock
+		if eb.IsCorrectNonce(blockChain.CurrentBlockHeader.Nonce, header.Nonce) {
+			return execution.ErrWrongNonceInBlock
 		}
 
-		if header.Nonce > blockChain.CurrentBlock.Nonce+1 {
-			return execution.ErrHigherNonceInBlock
-		}
-
-		if !bytes.Equal(header.PrevHash, blockChain.CurrentBlock.BlockHash) {
+		if !bytes.Equal(header.PrevHash, blockChain.CurrentBlockHeader.BlockHash) {
 			return execution.ErrInvalidBlockHash
 		}
 	}
@@ -86,57 +129,36 @@ func (eb *execBlock) ProcessBlock(blockChain *blockchain.BlockChain, header *blo
 		return execution.ErrInvalidBlockSignature
 	}
 
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		for j := 0; j < len(body.MiniBlocks[i].TxHashes); j++ {
-			tx := eb.getTransactionFromPool(body.MiniBlocks[i].DestShardID, body.MiniBlocks[i].TxHashes[j])
-
-			if tx == nil {
-				tx = eb.requestTransactionFromNetwork(
-					body.MiniBlocks[i].DestShardID,
-					body.MiniBlocks[i].TxHashes[j],
-					WaitTime)
-
-				if tx == nil {
-					return execution.ErrMissingTransaction
-				}
-			}
-
-			err := eb.txExecutor.ProcessTransaction(tx)
-
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	// TODO: Check app state root hash
-
-	// commit body in the blockchain
-	return eb.commitBlock(blockChain, header, body)
+	return nil
 }
 
+func (eb *execBlock) IsCorrectNonce(currentBlockNonce, receivedBlockNonce uint64) bool {
+	return currentBlockNonce+1 != receivedBlockNonce
+}
+
+func (eb *execBlock) IsFirstBlockInEpoch(header *block.Header) bool {
+	return header.Round == 0
+}
+
+//TODO: do not marshal and unmarshal: wrapper struct with marshaled data
 // commitBlock commits the block in the blockchain if everything was checked successfully
 func (eb *execBlock) commitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.Block) error {
-	if header.Nonce == 0 {
-		blockChain.GenesisBlock = header
-	}
 
-	blockChain.CurrentBlock = header
-	blockChain.LocalHeight = big.NewInt(int64(header.Nonce)) // should be refactored to hold the same data type
-	// (big.Int or uint64?)
-	buff, err := eb.marsher.Marshal(header)
-
+	blockChain.CurrentBlockHeader = header
+	blockChain.LocalHeight = int64(header.Nonce)
+	buff, err := eb.marshalizer.Marshal(header)
 	if err != nil {
 		return execution.ErrMarshalWithoutSuccess
 	}
 
-	err = blockChain.Put(blockchain.BlockHeaderUnit, header.BlockHash, buff)
+	headerHash := eb.hasher.Compute(string(buff))
+	err = blockChain.Put(blockchain.BlockHeaderUnit, headerHash, buff)
 
 	if err != nil {
 		return execution.ErrPersistWithoutSuccess
 	}
 
-	buff, err = eb.marsher.Marshal(block)
+	buff, err = eb.marshalizer.Marshal(block)
 
 	if err != nil {
 		return execution.ErrMarshalWithoutSuccess
@@ -149,19 +171,21 @@ func (eb *execBlock) commitBlock(blockChain *blockchain.BlockChain, header *bloc
 	}
 
 	for i := 0; i < len(block.MiniBlocks); i++ {
-		for j := 0; j < len(block.MiniBlocks[i].TxHashes); j++ {
-			tx := eb.getTransactionFromPool(block.MiniBlocks[i].DestShardID, block.MiniBlocks[i].TxHashes[j])
+		miniBlock := block.MiniBlocks[i]
+		for j := 0; j < len(miniBlock.TxHashes); j++ {
+			txHash := miniBlock.TxHashes[j]
+			tx := eb.getTransactionFromPool(miniBlock.DestShardID, txHash)
 			if tx == nil {
 				return execution.ErrMissingTransaction
 			}
 
-			buff, err = eb.marsher.Marshal(tx)
+			buff, err = eb.marshalizer.Marshal(tx)
 
 			if err != nil {
 				return execution.ErrMarshalWithoutSuccess
 			}
 
-			err = blockChain.Put(blockchain.TransactionUnit, block.MiniBlocks[i].TxHashes[j], buff)
+			err = blockChain.Put(blockchain.TransactionUnit, txHash, buff)
 
 			if err != nil {
 				return execution.ErrPersistWithoutSuccess
@@ -169,7 +193,9 @@ func (eb *execBlock) commitBlock(blockChain *blockchain.BlockChain, header *bloc
 		}
 	}
 
-	return nil
+	_, err = eb.accounts.Commit()
+
+	return err
 }
 
 // getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
@@ -189,35 +215,18 @@ func (eb *execBlock) getTransactionFromPool(destShardID uint32, txHash []byte) *
 	return val.(*transaction.Transaction)
 }
 
-// requestTransactionFromNetwork method requests a transaction from network when it is not found in the pool
-func (eb *execBlock) requestTransactionFromNetwork(destShardID uint32, txHash []byte, waitTime time.Duration,
-) *transaction.Transaction {
-	// Request transaction from network than wait for it, after topic request will be implemented
-	if eb.OnRequestTransaction != nil {
-		eb.OnRequestTransaction(destShardID, txHash)
-	}
-
-	for {
-		select {
-		case rcvTxhash := <-eb.ChRcvTx:
-			if bytes.Equal(txHash, rcvTxhash) {
-				tx := eb.getTransactionFromPool(destShardID, txHash)
-				if tx != nil {
-					return tx
-				}
-			}
-		case <-time.After(waitTime):
-			return nil
-		}
-	}
-
-	return nil
-}
-
 // receivedTransaction is a call back function which is called when a new transaction
 // is added in the transaction pool
 func (eb *execBlock) receivedTransaction(txHash []byte) {
-	eb.ChRcvTx <- txHash
+	eb.mut.Lock()
+	if eb.requestedTxHashes[string(txHash)] {
+		delete(eb.requestedTxHashes, string(txHash))
+	}
+	eb.mut.Unlock()
+
+	if len(eb.requestedTxHashes) == 0 {
+		eb.ChRcvAllTxs <- true
+	}
 }
 
 // verifyBlockSignature verifies if the block has all the valid signatures needed
@@ -228,4 +237,68 @@ func (eb *execBlock) verifyBlockSignature(header *block.Header) bool {
 
 	// TODO: Check block signature after multisig will be implemented
 	return true
+}
+
+func (eb *execBlock) requestBlockTransactions(body *block.Block) {
+	missingTxsForShards := eb.computeMissingTxsForShards(body)
+	eb.requestedTxHashes = make(map[string]bool)
+	if eb.OnRequestTransaction != nil {
+		for shardId, txHashes := range missingTxsForShards {
+			for _, txHash := range txHashes {
+				eb.requestedTxHashes[string(txHash)] = true
+				eb.OnRequestTransaction(shardId, txHash)
+			}
+		}
+	}
+}
+
+func (eb *execBlock) computeMissingTxsForShards(body *block.Block) map[uint32][][]byte {
+	missingTxsForShard := make(map[uint32][][]byte)
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		shardId := miniBlock.DestShardID
+		currentShardMissingTransactions := make([][]byte, 0)
+
+		for j := 0; j < len(miniBlock.TxHashes); j++ {
+			txHash := miniBlock.TxHashes[j]
+			tx := eb.getTransactionFromPool(shardId, txHash)
+
+			if tx == nil {
+				currentShardMissingTransactions = append(currentShardMissingTransactions, txHash)
+			}
+		}
+		missingTxsForShard[shardId] = currentShardMissingTransactions
+	}
+
+	return missingTxsForShard
+}
+
+func (eb *execBlock) ProcessBlockTransactions(body *block.Block) error {
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		shardId := miniBlock.DestShardID
+
+		for j := 0; j < len(miniBlock.TxHashes); j++ {
+			txHash := miniBlock.TxHashes[j]
+			tx := eb.getTransactionFromPool(shardId, txHash)
+			err := eb.txExecutor.ProcessTransaction(tx)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (eb *execBlock) VerifyStateRoot(rootHash []byte) bool {
+	return bytes.Equal(eb.accounts.RootHash(), rootHash)
+}
+
+func (eb *execBlock) waitForTxHashes() {
+	select {
+	case <-eb.ChRcvAllTxs:
+		return
+	case <-time.After(WaitTime):
+		return
+	}
 }
