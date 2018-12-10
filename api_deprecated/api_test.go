@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/node"
+	"github.com/ElrondNetwork/elrond-go-sandbox/api_deprecated/node"
 	"github.com/gin-gonic/gin"
 	"gotest.tools/assert"
 )

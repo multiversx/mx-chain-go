@@ -88,7 +88,7 @@ func TestStartCorrectParamsApplyingOptions(t *testing.T) {
 	assert.True(t, n.IsRunning())
 }
 
-func TestNode_ConnectToAddressesNodeNotStarted(t *testing.T) {
+func TestNode_ApplyOptions_NodeStarted(t *testing.T) {
 	t.Parallel()
 	n := node.NewNode(
 		node.WithPort(4000),
@@ -96,6 +96,52 @@ func TestNode_ConnectToAddressesNodeNotStarted(t *testing.T) {
 		node.WithHasher(mock.Hasher{}),
 		node.WithMaxAllowedPeers(4),
 	)
+	err := n.Start()
+	logError(err)
+
+	err = n.ApplyOptions(
+		node.WithMaxAllowedPeers(4)	,
+	)
+
+	assert.NotNil(t, err)
+	assert.True(t, n.IsRunning())
+}
+
+func TestNode_Stop_NotStartedYet(t *testing.T) {
+	t.Parallel()
+	n := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+	)
+	err := n.Start()
+	logError(err)
+	err = n.Stop()
+	assert.Nil(t, err)
+	assert.False(t, n.IsRunning())
+}
+
+func TestNode_Stop(t *testing.T) {
+	t.Parallel()
+	n := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+	)
+
+	err := n.Stop()
+	assert.Nil(t, err)
+	assert.False(t, n.IsRunning())
+}
+
+func TestNode_ConnectToInitialAddressesNodeNotStarted(t *testing.T) {
+	t.Parallel()
 	n2 := node.NewNode(
 		node.WithPort(4001),
 		node.WithMarshalizer(mock.Marshalizer{}),
@@ -105,12 +151,22 @@ func TestNode_ConnectToAddressesNodeNotStarted(t *testing.T) {
 	err := n2.Start()
 	assert.Nil(t, err)
 	addr, _ := n2.Address()
-	err = n.ConnectToAddresses([]string{addr})
+
+	n := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithInitialNodeAddresses([]string{addr}),
+	)
+
+	err = n.ConnectToInitialAddresses()
 	assert.NotNil(t, err)
 }
 
-func TestNode_ConnectToAddresses(t *testing.T) {
+func TestNode_ConnectToNilInitialAddresses(t *testing.T) {
 	t.Parallel()
+
 	n := node.NewNode(
 		node.WithPort(4000),
 		node.WithMarshalizer(mock.Marshalizer{}),
@@ -119,15 +175,80 @@ func TestNode_ConnectToAddresses(t *testing.T) {
 	)
 	err := n.Start()
 	assert.Nil(t, err)
+	err = n.ConnectToInitialAddresses()
+	assert.NotNil(t, err)
+}
+
+func TestNode_ConnectToInitialAddresses(t *testing.T) {
+	t.Parallel()
 	n2 := node.NewNode(
 		node.WithPort(4001),
 		node.WithMarshalizer(mock.Marshalizer{}),
 		node.WithHasher(mock.Hasher{}),
 		node.WithMaxAllowedPeers(4),
 	)
-	err = n2.Start()
+	err := n2.Start()
 	assert.Nil(t, err)
 	addr, _ := n2.Address()
+
+	n := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithInitialNodeAddresses([]string{addr}),
+	)
+	err = n.Start()
+	assert.Nil(t, err)
+
+	err = n.ConnectToInitialAddresses()
+	assert.Nil(t, err)
+}
+
+func TestNode_ConnectToAddressesNodeNotStarted(t *testing.T) {
+	t.Parallel()
+	n2 := node.NewNode(
+		node.WithPort(4001),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+	)
+	err := n2.Start()
+	assert.Nil(t, err)
+	addr, _ := n2.Address()
+
+	n := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+	)
+
+	err = n.ConnectToAddresses([]string{addr})
+	assert.NotNil(t, err)
+}
+
+func TestNode_ConnectToAddresses(t *testing.T) {
+	t.Parallel()
+	n2 := node.NewNode(
+		node.WithPort(4001),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+	)
+	err := n2.Start()
+	assert.Nil(t, err)
+	addr, _ := n2.Address()
+
+	n := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+	)
+	err = n.Start()
+	assert.Nil(t, err)
+
 	err = n.ConnectToAddresses([]string{addr})
 	assert.Nil(t, err)
 }
