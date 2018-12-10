@@ -11,14 +11,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution/exBlock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
 const WaitTime = time.Duration(100 * time.Millisecond)
 
+func blockchainConfig() *blockchain.Config {
+	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
+	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
+	persisterBlockStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockStorage"}
+	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
+	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
+	return &blockchain.Config{
+		BlockStorage:       storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockStorage, BloomConf: bloom},
+		BlockHeaderStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
+		TxStorage:          storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
+		TxPoolStorage:      cacher,
+		BlockCache:         cacher,
+	}
+}
+
 func TestNewBlockExec(t *testing.T) {
-	tp := transactionPool.NewTransactionPool()
+	tp := transactionPool.NewTransactionPool(nil)
 
 	be := exBlock.NewExecBlock(
 		tp,
@@ -31,7 +47,7 @@ func TestNewBlockExec(t *testing.T) {
 }
 
 func TestBlockExec_GetTransactionFromPool(t *testing.T) {
-	tp := transactionPool.NewTransactionPool()
+	tp := transactionPool.NewTransactionPool(nil)
 
 	be := exBlock.NewExecBlock(
 		tp, &mock.HasherMock{},
@@ -60,7 +76,7 @@ func TestBlockExec_GetTransactionFromPool(t *testing.T) {
 }
 
 func TestBlockExec_RequestTransactionFromNetwork(t *testing.T) {
-	tp := transactionPool.NewTransactionPool()
+	tp := transactionPool.NewTransactionPool(nil)
 
 	be := exBlock.NewExecBlock(
 		tp, &mock.HasherMock{},
@@ -90,7 +106,7 @@ func TestBlockExec_RequestTransactionFromNetwork(t *testing.T) {
 }
 
 func TestBlockExec_VerifyBlockSignature(t *testing.T) {
-	tp := transactionPool.NewTransactionPool()
+	tp := transactionPool.NewTransactionPool(nil)
 
 	be := exBlock.NewExecBlock(
 		tp, &mock.HasherMock{},
@@ -108,7 +124,7 @@ func TestBlockExec_VerifyBlockSignature(t *testing.T) {
 }
 
 func TestBlockExec_ProcessBlock(t *testing.T) {
-	tp := transactionPool.NewTransactionPool()
+	tp := transactionPool.NewTransactionPool(nil)
 
 	etm := mock.ExecTransactionMock{}
 	etm.ProcessTransactionCalled = func(transaction *transaction.Transaction) error {
@@ -125,7 +141,7 @@ func TestBlockExec_ProcessBlock(t *testing.T) {
 	err := be.ProcessBlock(nil, nil, nil)
 	assert.Equal(t, execution.ErrNilBlockChain, err)
 
-	blkc, err := blockchain.NewData()
+	blkc, err := blockchain.NewBlockChain(blockchainConfig())
 	assert.Nil(t, err)
 
 	err = be.ProcessBlock(blkc, nil, nil)

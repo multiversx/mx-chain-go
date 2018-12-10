@@ -58,12 +58,12 @@ type StorageService interface {
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
 	lock               sync.RWMutex
-	GenesisBlock       *block.Header                     // Genesys Block pointer
-	CurrentBlockHeader *block.Header                     // Current Block pointer
-	LocalHeight        int64                             // Height of the local chain
-	NetworkHeight      int64                             // Percieved height of the network chain
-	badBlocks          storage.Cacher                    // Bad blocks cache
-	chain              map[UnitType]*storage.StorageUnit // chains for each unit type. Together they form the blockchain
+	GenesisBlock       *block.Header              // Genesys Block pointer
+	CurrentBlockHeader *block.Header              // Current Block pointer
+	LocalHeight        int64                      // Height of the local chain
+	NetworkHeight      int64                      // Percieved height of the network chain
+	badBlocks          storage.Cacher             // Bad blocks cache
+	chain              map[UnitType]*storage.Unit // chains for each unit type. Together they form the blockchain
 }
 
 // NewBlockChain returns an initialized blockchain
@@ -112,7 +112,7 @@ func NewBlockChain(config *Config) (*BlockChain, error) {
 		LocalHeight:        -1,
 		NetworkHeight:      -1,
 		badBlocks:          badBlocksCache,
-		chain: map[UnitType]*storage.StorageUnit{
+		chain: map[UnitType]*storage.Unit{
 			TransactionUnit: txStorage,
 			BlockUnit:       blStorage,
 			BlockHeaderUnit: blHeadStorage,
