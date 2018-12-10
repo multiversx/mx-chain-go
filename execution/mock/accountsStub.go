@@ -26,7 +26,7 @@ func (as *AccountsStub) AddJournalEntry(je state.JournalEntry) {
 }
 
 func (as *AccountsStub) Commit() ([]byte, error) {
-	return as.Commit()
+	return as.CommitCalled()
 }
 
 func (as *AccountsStub) GetJournalizedAccount(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {

@@ -146,11 +146,14 @@ func TestTransactionPool_OnAddTransactionIsCalled(t *testing.T) {
 	cnt := int32(0)
 	tx := []byte("tx_hash1")
 	txp := transactionPool.NewTransactionPool(nil)
-	txp.AddedTransaction = func(txHash []byte) {
+	testChan := make(chan bool)
+	txp.RegisterTransactionHandler(func(txHash []byte) {
 		atomic.AddInt32(&cnt, 1)
 		assert.Equal(t, tx, txHash)
 		fmt.Println("I was called")
-	}
+		testChan <- true
+	})
 	txp.AddTransaction(tx, &transaction.Transaction{Nonce: 1}, 1)
+	<-testChan
 	assert.Equal(t, int32(1), atomic.LoadInt32(&cnt))
 }

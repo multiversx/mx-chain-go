@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution/exTransaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution/mock"
 	"github.com/pkg/errors"
@@ -18,21 +19,21 @@ func TestNewExecTransactionNilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	_, err := exTransaction.NewExecTransaction(nil, mock.HasherMock{}, &mock.AddressConverterMock{})
-	assert.Equal(t, exTransaction.ErrNilAccountsAdapter, err)
+	assert.Equal(t, execution.ErrNilAccountsAdapter, err)
 }
 
 func TestNewExecTransactionNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	_, err := exTransaction.NewExecTransaction(&mock.AccountsStub{}, nil, &mock.AddressConverterMock{})
-	assert.Equal(t, exTransaction.ErrNilHasher, err)
+	assert.Equal(t, execution.ErrNilHasher, err)
 }
 
 func TestNewExecTransactionNilAddressConverterMockShouldErr(t *testing.T) {
 	t.Parallel()
 
 	_, err := exTransaction.NewExecTransaction(&mock.AccountsStub{}, mock.HasherMock{}, nil)
-	assert.Equal(t, exTransaction.ErrNilAddressConverter, err)
+	assert.Equal(t, execution.ErrNilAddressConverter, err)
 }
 
 func TestNewExecTransactionOkValsShouldWork(t *testing.T) {
@@ -149,7 +150,7 @@ func TestExecTransactionNoCallSChandlerShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = execTx.CallSChandler(nil)
-	assert.Equal(t, exTransaction.ErrNoVM, err)
+	assert.Equal(t, execution.ErrNoVM, err)
 }
 
 func TestExecTransactionWithCallSChandlerShouldWork(t *testing.T) {
@@ -180,7 +181,7 @@ func TestExecTransactionCheckTxValuesHigherNonceShouldErr(t *testing.T) {
 	acnt1.BaseAccount().Nonce = 6
 
 	err = execTx.CheckTxValues(acnt1, big.NewInt(0), 7)
-	assert.Equal(t, exTransaction.ErrHigherNonceInTransaction, err)
+	assert.Equal(t, execution.ErrHigherNonceInTransaction, err)
 }
 
 func TestExecTransactionCheckTxValuesLowerNonceShouldErr(t *testing.T) {
@@ -193,7 +194,7 @@ func TestExecTransactionCheckTxValuesLowerNonceShouldErr(t *testing.T) {
 	acnt1.BaseAccount().Nonce = 6
 
 	err = execTx.CheckTxValues(acnt1, big.NewInt(0), 5)
-	assert.Equal(t, exTransaction.ErrLowerNonceInTransaction, err)
+	assert.Equal(t, execution.ErrLowerNonceInTransaction, err)
 }
 
 func TestExecTransactionCheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
@@ -206,7 +207,7 @@ func TestExecTransactionCheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 	acnt1.BaseAccount().Balance = *big.NewInt(67)
 
 	err = execTx.CheckTxValues(acnt1, big.NewInt(68), 0)
-	assert.Equal(t, exTransaction.ErrInsufficientFunds, err)
+	assert.Equal(t, execution.ErrInsufficientFunds, err)
 }
 
 func TestExecTransactionCheckTxValuesOkValsShouldErr(t *testing.T) {
@@ -299,7 +300,7 @@ func TestExecTransactionProcessTransactionNilTxShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = execTx.ProcessTransaction(nil)
-	assert.Equal(t, exTransaction.ErrNilTransaction, err)
+	assert.Equal(t, execution.ErrNilTransaction, err)
 }
 
 func TestExecTransactionProcessTransactionErrAddressConvShouldErr(t *testing.T) {
@@ -402,7 +403,7 @@ func TestExecTransactionProcessCheckNotPassShouldErr(t *testing.T) {
 	}
 
 	err = execTx.ProcessTransaction(&tx)
-	assert.Equal(t, exTransaction.ErrHigherNonceInTransaction, err)
+	assert.Equal(t, execution.ErrHigherNonceInTransaction, err)
 }
 
 func TestExecTransactionProcessMoveBalancesFailShouldErr(t *testing.T) {
