@@ -1,23 +1,22 @@
-package main
+package api
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/node"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/middleware"
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/node"
 )
 
-func main() {
-	r := gin.Default()
+// Start will boot up the api and appropriate routes, handlers and validators
+func Start(elrondFacade node.Handler) error {
+	ws := gin.Default()
+	ws.Use(cors.Default())
 
-	node.CORSMiddleware(r)
-	node.Routes(r.Group("/node"))
+	nodeRoutes := ws.Group("/node")
+	nodeRoutes.Use(middleware.WithElrondFacade(elrondFacade))
+	node.Routes(nodeRoutes)
 
-	viper.SetDefault("address", "127.0.0.1")
-	viper.SetDefault("port", "8080")
-	viper.SetConfigName("web-server")
-	viper.SetConfigType("json")
-	viper.AddConfigPath(".")
-	viper.ReadInConfig()
-
-	r.Run(viper.GetString("address") + ":" + viper.GetString("port"))
+	err := ws.Run()
+	return err
 }

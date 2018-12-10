@@ -74,12 +74,15 @@ func (n *Node) Start() error {
 }
 
 // ConnectToAddresses will take a slice of addresses and try to connect to all of them.
-func (n *Node) ConnectToAddresses(peers []string) error {
+func (n *Node) ConnectToAddresses() error {
 	if !n.IsRunning() {
 		return errors.New("node is not started yet")
 	}
+	if n.initialNodesAddresses == nil {
+		return errors.New("no addresses to connect to")
+	}
 	// Don't try to connect to self
-	tmp := n.removeSelfFromList(peers)
+	tmp := n.removeSelfFromList(n.initialNodesAddresses)
 	n.messenger.ConnectToAddresses(n.ctx, tmp)
 	return nil
 }
@@ -165,5 +168,11 @@ func WithMaxAllowedPeers(maxAllowedPeers int) Option {
 func WithPubSubStrategy(strategy p2p.PubSubStrategy) Option {
 	return func(n *Node) {
 		n.pubSubStrategy = strategy
+	}
+}
+
+func WithInitialNodeAddresses(addresses []string) Option {
+	return func(n *Node) {
+		n.initialNodesAddresses = addresses
 	}
 }
