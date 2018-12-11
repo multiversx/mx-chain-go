@@ -22,5 +22,11 @@ var ErrNilTxDataPool = errors.New("nil transaction data pool")
 // ErrNilHeaderDataPool signals that a nil header pool has been provided
 var ErrNilHeaderDataPool = errors.New("nil header data pool")
 
-// ErrNilTxBodyBlockDataPool signals that a nil tx body block pool has been provided
-var ErrNilTxBodyBlockDataPool = errors.New("nil tx body block data pool")
+// ErrNilBodyBlockDataPool signals that a nil body block pool has been provided
+var ErrNilBodyBlockDataPool = errors.New("nil body block data pool")
+
+// ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
+var ErrNilHasher = errors.New("nil Hasher")
+
+// ErrNilTemplateObj signals that an operation has been attempted to or with a nil template object
+var ErrNilTemplateObj = errors.New("nil TemplateObj")

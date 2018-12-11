@@ -1,9 +1,9 @@
-package process
+package interceptor
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
@@ -14,17 +14,22 @@ type Interceptor struct {
 	templateObject p2p.Newer
 	name           string
 
-	CheckReceivedObject func(newer p2p.Newer, rawData []byte, hasher hashing.Hasher) bool
+	CheckReceivedObject func(newer p2p.Newer, rawData []byte) bool
 }
 
-// NewInterceptor returns a new interceptor for transactions
-func NewInterceptor(name string, messenger p2p.Messenger, templateObject p2p.Newer) (*Interceptor, error) {
+// NewInterceptor returns a new data interceptor
+func NewInterceptor(
+	name string,
+	messenger p2p.Messenger,
+	templateObject p2p.Newer,
+) (*Interceptor, error) {
+
 	if messenger == nil {
-		return nil, ErrNilMessenger
+		return nil, process.ErrNilMessenger
 	}
 
 	if templateObject == nil {
-		return nil, ErrNilNewer
+		return nil, process.ErrNilNewer
 	}
 
 	topic := p2p.NewTopic(name, templateObject, messenger.Marshalizer())
@@ -42,7 +47,7 @@ func NewInterceptor(name string, messenger p2p.Messenger, templateObject p2p.New
 
 	err = topic.RegisterValidator(intercept.validator)
 	if err != nil {
-		return nil, ErrRegisteringValidator
+		return nil, process.ErrRegisteringValidator
 	}
 
 	return &intercept, nil
@@ -62,5 +67,5 @@ func (intercept *Interceptor) validator(ctx context.Context, message *pubsub.Mes
 		return false
 	}
 
-	return intercept.CheckReceivedObject(obj, message.GetData(), intercept.messenger.Hasher())
+	return intercept.CheckReceivedObject(obj, message.GetData())
 }

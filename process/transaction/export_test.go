@@ -5,8 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
-func (txi *transactionInterceptor) ProcessTx(tx p2p.Newer, rawData []byte, hasher hashing.Hasher) bool {
-	return txi.processTx(tx, rawData, hasher)
+func (txi *TransactionInterceptor) ProcessTx(tx p2p.Newer, rawData []byte, hasher hashing.Hasher) bool {
+	return txi.processTx(tx, rawData)
 }
 
 func (inTx *InterceptedTransaction) SetRcvShard(rcvShard uint32) {

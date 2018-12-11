@@ -1,7 +1,6 @@
 package process
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -42,14 +41,12 @@ type HeaderInterceptorAdapter interface {
 	SigVerifier
 	Hashed
 	p2p.Newer
-	GetHeader() *block.Header
 	Shard() uint32
 }
 
-type TxBlockBodyInterceptorAdapter interface {
+type BlockBodyInterceptorAdapter interface {
 	Checker
 	Hashed
 	p2p.Newer
-	GetTxBlockBody() *block.TxBlockBody
 	Shard() uint32
 }

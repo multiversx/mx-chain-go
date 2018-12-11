@@ -1,9 +1,11 @@
-package block
+package block_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/stretchr/testify/assert"
 )
 
 //------- Check()
@@ -11,7 +13,7 @@ import (
 func TestInterceptedHeaderCheckNilHeaderShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	hdr := NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader()
 	hdr.Header = nil
 
 	assert.False(t, hdr.Check())
@@ -20,12 +22,12 @@ func TestInterceptedHeaderCheckNilHeaderShouldRetFalse(t *testing.T) {
 func TestInterceptedHeaderCheckNilPrevHashShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	hdr := NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader()
 
 	hdr.PrevHash = nil
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.BlockBodyHash = make([]byte, 0)
-	hdr.BlockBodyType = block.BlockBodyPeer
+	hdr.BlockBodyType = block2.BlockBodyPeer
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
@@ -36,12 +38,12 @@ func TestInterceptedHeaderCheckNilPrevHashShouldRetFalse(t *testing.T) {
 func TestInterceptedHeaderCheckNilPubKeysBitmapShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	hdr := NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader()
 
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = nil
 	hdr.BlockBodyHash = make([]byte, 0)
-	hdr.BlockBodyType = block.BlockBodyPeer
+	hdr.BlockBodyType = block2.BlockBodyPeer
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
@@ -52,12 +54,12 @@ func TestInterceptedHeaderCheckNilPubKeysBitmapShouldRetFalse(t *testing.T) {
 func TestInterceptedHeaderCheckNilBlockBodyHashShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	hdr := NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader()
 
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.BlockBodyHash = nil
-	hdr.BlockBodyType = block.BlockBodyPeer
+	hdr.BlockBodyType = block2.BlockBodyPeer
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
@@ -68,12 +70,12 @@ func TestInterceptedHeaderCheckNilBlockBodyHashShouldRetFalse(t *testing.T) {
 func TestInterceptedHeaderCheckInvalidBlockBodyPeerShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	hdr := NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader()
 
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.BlockBodyHash = make([]byte, 0)
-	hdr.BlockBodyType = block.BlockBodyTx + 1
+	hdr.BlockBodyType = block2.BlockBodyPeer + 1
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
@@ -84,12 +86,12 @@ func TestInterceptedHeaderCheckInvalidBlockBodyPeerShouldRetFalse(t *testing.T) 
 func TestInterceptedHeaderCheckNilSignatureShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	hdr := NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader()
 
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.BlockBodyHash = make([]byte, 0)
-	hdr.BlockBodyType = block.BlockBodyPeer
+	hdr.BlockBodyType = block2.BlockBodyPeer
 	hdr.Signature = nil
 	hdr.Commitment = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
@@ -100,12 +102,12 @@ func TestInterceptedHeaderCheckNilSignatureShouldRetFalse(t *testing.T) {
 func TestInterceptedHeaderCheckNilCommitmentShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	hdr := NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader()
 
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.BlockBodyHash = make([]byte, 0)
-	hdr.BlockBodyType = block.BlockBodyPeer
+	hdr.BlockBodyType = block2.BlockBodyPeer
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = nil
 	hdr.RootHash = make([]byte, 0)
@@ -116,12 +118,12 @@ func TestInterceptedHeaderCheckNilCommitmentShouldRetFalse(t *testing.T) {
 func TestInterceptedHeaderCheckNilRootHashShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	hdr := NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader()
 
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.BlockBodyHash = make([]byte, 0)
-	hdr.BlockBodyType = block.BlockBodyPeer
+	hdr.BlockBodyType = block2.BlockBodyPeer
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = make([]byte, 0)
 	hdr.RootHash = nil
@@ -132,12 +134,12 @@ func TestInterceptedHeaderCheckNilRootHashShouldRetFalse(t *testing.T) {
 func TestInterceptedHeaderCheckOkValsShouldRetTrue(t *testing.T) {
 	t.Parallel()
 
-	hdr := NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader()
 
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.BlockBodyHash = make([]byte, 0)
-	hdr.BlockBodyType = block.BlockBodyPeer
+	hdr.BlockBodyType = block2.BlockBodyPeer
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
@@ -145,14 +147,16 @@ func TestInterceptedHeaderCheckOkValsShouldRetTrue(t *testing.T) {
 	assert.True(t, hdr.Check())
 }
 
+//------- Getters and Setters
+
 func TestInterceptedHeaderAllGettersAndSettersShouldWork(t *testing.T) {
 	t.Parallel()
-	hdr := NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader()
 
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.BlockBodyHash = make([]byte, 0)
-	hdr.BlockBodyType = block.BlockBodyPeer
+	hdr.BlockBodyType = block2.BlockBodyPeer
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
@@ -165,7 +169,7 @@ func TestInterceptedHeaderAllGettersAndSettersShouldWork(t *testing.T) {
 
 	newHdr := hdr.New()
 	assert.NotNil(t, newHdr)
-	assert.NotNil(t, newHdr.(*InterceptedHeader).GetHeader())
+	assert.NotNil(t, newHdr.(*block.InterceptedHeader).Header)
 
 	assert.Equal(t, uint32(56), hdr.Shard())
 }

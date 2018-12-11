@@ -76,14 +76,9 @@ func (inHdr *InterceptedHeader) New() p2p.Newer {
 	return NewInterceptedHeader()
 }
 
-// ID returns the ID of this object. Set to return the hash of the transaction
+// ID returns the ID of this object. Set to return the hash of the header
 func (inHdr *InterceptedHeader) ID() string {
 	return string(inHdr.hash)
-}
-
-// GetHeader returns the header pointer that actually holds the data
-func (inHdr *InterceptedHeader) GetHeader() *block.Header {
-	return inHdr.Header
 }
 
 // Shard returns the shard ID for which this header is addressed

@@ -2,22 +2,23 @@ package transaction
 
 import (
 	"io"
+	"math/big"
 
-	"ElrondNetwork/elrond-go-sandbox/data/transaction/capnproto1"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction/capnproto1"
 	"github.com/glycerine/go-capnproto"
 )
 
 // Transaction holds all the data needed for a value transfer
 type Transaction struct {
-	Nonce     uint64 `capid:"0"`
-	Value     []byte `capid:"1"`
-	RcvAddr   []byte `capid:"2"`
-	SndAddr   []byte `capid:"3"`
-	GasPrice  uint64 `capid:"4"`
-	GasLimit  uint64 `capid:"5"`
-	Data      []byte `capid:"6"`
-	Signature []byte `capid:"7"`
-	Challenge []byte `capid:"8"`
+	Nonce     uint64  `capid:"0"`
+	Value     big.Int `capid:"1"`
+	RcvAddr   []byte  `capid:"2"`
+	SndAddr   []byte  `capid:"3"`
+	GasPrice  uint64  `capid:"4"`
+	GasLimit  uint64  `capid:"5"`
+	Data      []byte  `capid:"6"`
+	Signature []byte  `capid:"7"`
+	Challenge []byte  `capid:"8"`
 }
 
 // Save saves the serialized data of a Transaction into a stream through Capnp protocol
@@ -48,7 +49,8 @@ func TransactionCapnToGo(src capnproto1.TransactionCapn, dest *Transaction) *Tra
 	// Nonce
 	dest.Nonce = src.Nonce()
 	// Value
-	dest.Value = src.Value()
+	//TODO fix
+	//dest.Value = src.Value()
 	// RcvAddr
 	dest.RcvAddr = src.RcvAddr()
 	// SndAddr
@@ -72,7 +74,8 @@ func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnproto1.Transac
 	dest := capnproto1.AutoNewTransactionCapn(seg)
 
 	dest.SetNonce(src.Nonce)
-	dest.SetValue(src.Value)
+	//TODO fix
+	//dest.SetValue(src.Value)
 	dest.SetRcvAddr(src.RcvAddr)
 	dest.SetSndAddr(src.SndAddr)
 	dest.SetGasPrice(src.GasPrice)

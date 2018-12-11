@@ -1,19 +1,19 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func createNewHeaderInterceptorForTests() (
-	hi *headerInterceptor,
+	hi *HeaderInterceptor,
 	mes *mock.MessengerStub,
 	headerPool *dataPool.DataPool,
 	err error) {
@@ -31,12 +31,12 @@ func createNewHeaderInterceptorForTests() (
 		return nil
 	}
 
-	headerPool = dataPool.NewDataPool(&config.CacheConfig{
+	headerPool = dataPool.NewDataPool(&storage.CacheConfig{
 		Size: 10000,
-		Type: config.LRUCache,
+		Type: storage.LRUCache,
 	})
 
-	hi, err = NewHeaderInterceptor(mes, headerPool)
+	hi, err = NewHeaderInterceptor(mes, headerPool, mock.HasherMock{})
 
 	return
 }
@@ -46,12 +46,12 @@ func createNewHeaderInterceptorForTests() (
 func TestNewHeaderInterceptorNilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerPool := dataPool.NewDataPool(&config.CacheConfig{
+	headerPool := dataPool.NewDataPool(&storage.CacheConfig{
 		Size: 10000,
-		Type: config.LRUCache,
+		Type: storage.LRUCache,
 	})
 
-	_, err := NewHeaderInterceptor(nil, headerPool)
+	_, err := NewHeaderInterceptor(nil, headerPool, mock.HasherMock{})
 	assert.Equal(t, process.ErrNilMessenger, err)
 }
 
@@ -60,8 +60,21 @@ func TestNewHeaderInterceptorNilHeaderPoolShouldErr(t *testing.T) {
 
 	mes := &mock.MessengerStub{}
 
-	_, err := NewHeaderInterceptor(mes, nil)
+	_, err := NewHeaderInterceptor(mes, nil, mock.HasherMock{})
 	assert.Equal(t, process.ErrNilHeaderDataPool, err)
+}
+
+func TestNewHeaderInterceptorNilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mes := &mock.MessengerStub{}
+	headerPool := dataPool.NewDataPool(&storage.CacheConfig{
+		Size: 10000,
+		Type: storage.LRUCache,
+	})
+
+	_, err := NewHeaderInterceptor(mes, headerPool, nil)
+	assert.Equal(t, process.ErrNilHasher, err)
 }
 
 func TestNewHeaderInterceptorOkValsShouldWork(t *testing.T) {
@@ -74,28 +87,22 @@ func TestNewHeaderInterceptorOkValsShouldWork(t *testing.T) {
 func TestTransactionInterceptorProcessHdrNilHdrShouldRetFalse(t *testing.T) {
 	hi, _, _, _ := createNewHeaderInterceptorForTests()
 
-	assert.False(t, hi.ProcessHdr(nil, make([]byte, 0), mock.HasherMock{}))
-}
-
-func TestTransactionInterceptorProcessHdrNilHasherShouldRetFalse(t *testing.T) {
-	hi, _, _, _ := createNewHeaderInterceptorForTests()
-
-	assert.False(t, hi.ProcessHdr(NewInterceptedHeader(), make([]byte, 0), nil))
+	assert.False(t, hi.ProcessHdr(nil, make([]byte, 0)))
 }
 
 func TestTransactionInterceptorProcessHdrWrongTypeOfNewerShouldRetFalse(t *testing.T) {
 	hi, _, _, _ := createNewHeaderInterceptorForTests()
 
-	assert.False(t, hi.ProcessHdr(&mock.StringNewer{}, make([]byte, 0), mock.HasherMock{}))
+	assert.False(t, hi.ProcessHdr(&mock.StringNewer{}, make([]byte, 0)))
 }
 
 func TestTransactionInterceptorProcessHdrSanityCheckFailedShouldRetFalse(t *testing.T) {
 	hi, _, _, _ := createNewHeaderInterceptorForTests()
 
-	assert.False(t, hi.ProcessHdr(NewInterceptedHeader(), make([]byte, 0), mock.HasherMock{}))
+	assert.False(t, hi.ProcessHdr(NewInterceptedHeader(), make([]byte, 0)))
 }
 
-func TestTransactionInterceptorProcessAddressedToOtherShardsShouldRetTrue(t *testing.T) {
+func TestTransactionInterceptorProcessOkValsShouldRetTrue(t *testing.T) {
 	hi, _, headerPool, _ := createNewHeaderInterceptorForTests()
 
 	hdr := NewInterceptedHeader()
@@ -109,7 +116,7 @@ func TestTransactionInterceptorProcessAddressedToOtherShardsShouldRetTrue(t *tes
 	hdr.RootHash = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
 
-	assert.True(t, hi.ProcessHdr(hdr, []byte("aaa"), mock.HasherMock{}))
+	assert.True(t, hi.ProcessHdr(hdr, []byte("aaa")))
 
 	minipool := headerPool.MiniPoolDataStore(4)
 	if minipool == nil {

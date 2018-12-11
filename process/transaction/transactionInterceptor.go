@@ -7,21 +7,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
 )
 
 var log = logger.NewDefaultLogger()
 
-type transactionInterceptor struct {
-	intercept     *process.Interceptor
+type TransactionInterceptor struct {
+	*interceptor.Interceptor
 	txPool        *dataPool.DataPool
 	addrConverter state.AddressConverter
+	hasher        hashing.Hasher
 }
 
 // NewTransactionInterceptor hooks a new interceptor for transactions
 func NewTransactionInterceptor(
 	messenger p2p.Messenger,
 	txPool *dataPool.DataPool,
-	addrConverter state.AddressConverter) (*transactionInterceptor, error) {
+	addrConverter state.AddressConverter,
+	hasher hashing.Hasher,
+) (*TransactionInterceptor, error) {
 
 	if messenger == nil {
 		return nil, process.ErrNilMessenger
@@ -35,15 +39,20 @@ func NewTransactionInterceptor(
 		return nil, process.ErrNilAddressConverter
 	}
 
-	intercept, err := process.NewInterceptor("tx", messenger, NewInterceptedTransaction())
+	if hasher == nil {
+		return nil, process.ErrNilHasher
+	}
+
+	intercept, err := interceptor.NewInterceptor("tx", messenger, NewInterceptedTransaction())
 	if err != nil {
 		return nil, err
 	}
 
-	txIntercept := &transactionInterceptor{
-		intercept:     intercept,
+	txIntercept := &TransactionInterceptor{
+		Interceptor:   intercept,
 		txPool:        txPool,
 		addrConverter: addrConverter,
+		hasher:        hasher,
 	}
 
 	intercept.CheckReceivedObject = txIntercept.processTx
@@ -51,13 +60,9 @@ func NewTransactionInterceptor(
 	return txIntercept, nil
 }
 
-func (txi *transactionInterceptor) processTx(tx p2p.Newer, rawData []byte, hasher hashing.Hasher) bool {
+func (txi *TransactionInterceptor) processTx(tx p2p.Newer, rawData []byte) bool {
 	if tx == nil {
 		log.Debug("nil tx to process")
-		return false
-	}
-
-	if hasher == nil {
 		return false
 	}
 
@@ -70,7 +75,7 @@ func (txi *transactionInterceptor) processTx(tx p2p.Newer, rawData []byte, hashe
 	}
 
 	txIntercepted.SetAddressConverter(txi.addrConverter)
-	hash := hasher.Compute(string(rawData))
+	hash := txi.hasher.Compute(string(rawData))
 	txIntercepted.SetHash(hash)
 
 	if !txIntercepted.Check() || !txIntercepted.VerifySig() {

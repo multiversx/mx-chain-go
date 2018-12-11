@@ -6,13 +6,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
 )
 
 var log = logger.NewDefaultLogger()
 
-type headerInterceptor struct {
-	intercept  *process.Interceptor
+// HeaderInterceptor represents an interceptor used for block headers
+type HeaderInterceptor struct {
+	intercept  *interceptor.Interceptor
 	headerPool *dataPool.DataPool
+	hasher     hashing.Hasher
 }
 
 // NewHeaderInterceptor hooks a new interceptor for block headers
@@ -20,7 +23,8 @@ type headerInterceptor struct {
 func NewHeaderInterceptor(
 	messenger p2p.Messenger,
 	headerPool *dataPool.DataPool,
-) (*headerInterceptor, error) {
+	hasher hashing.Hasher,
+) (*HeaderInterceptor, error) {
 
 	if messenger == nil {
 		return nil, process.ErrNilMessenger
@@ -30,14 +34,19 @@ func NewHeaderInterceptor(
 		return nil, process.ErrNilHeaderDataPool
 	}
 
-	intercept, err := process.NewInterceptor("hdr", messenger, NewInterceptedHeader())
+	if hasher == nil {
+		return nil, process.ErrNilHasher
+	}
+
+	intercept, err := interceptor.NewInterceptor("hdr", messenger, NewInterceptedHeader())
 	if err != nil {
 		return nil, err
 	}
 
-	hdrIntercept := &headerInterceptor{
+	hdrIntercept := &HeaderInterceptor{
 		intercept:  intercept,
 		headerPool: headerPool,
+		hasher:     hasher,
 	}
 
 	intercept.CheckReceivedObject = hdrIntercept.processHdr
@@ -45,13 +54,9 @@ func NewHeaderInterceptor(
 	return hdrIntercept, nil
 }
 
-func (hi *headerInterceptor) processHdr(hdr p2p.Newer, rawData []byte, hasher hashing.Hasher) bool {
+func (hi *HeaderInterceptor) processHdr(hdr p2p.Newer, rawData []byte) bool {
 	if hdr == nil {
 		log.Debug("nil hdr to process")
-		return false
-	}
-
-	if hasher == nil {
 		return false
 	}
 
@@ -63,7 +68,7 @@ func (hi *headerInterceptor) processHdr(hdr p2p.Newer, rawData []byte, hasher ha
 		return false
 	}
 
-	hash := hasher.Compute(string(rawData))
+	hash := hi.hasher.Compute(string(rawData))
 	hdrIntercepted.SetHash(hash)
 
 	if !hdrIntercepted.Check() || !hdrIntercepted.VerifySig() {

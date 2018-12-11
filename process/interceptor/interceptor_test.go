@@ -1,9 +1,9 @@
-package process_test
+package interceptor_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
@@ -15,12 +15,12 @@ import (
 //------- NewInterceptor
 
 func TestNewInterceptorNilMessengerShouldErr(t *testing.T) {
-	_, err := process.NewInterceptor("", nil, &mock.StringNewer{})
+	_, err := interceptor.NewInterceptor("", nil, &mock.StringNewer{})
 	assert.Equal(t, process.ErrNilMessenger, err)
 }
 
 func TestNewInterceptorNilTemplateObjectShouldErr(t *testing.T) {
-	_, err := process.NewInterceptor("", &mock.MessengerStub{}, nil)
+	_, err := interceptor.NewInterceptor("", &mock.MessengerStub{}, nil)
 	assert.Equal(t, process.ErrNilNewer, err)
 }
 
@@ -30,7 +30,7 @@ func TestNewInterceptorErrMessengerAddTopicShouldErr(t *testing.T) {
 		return errors.New("failure")
 	}
 
-	_, err := process.NewInterceptor("", mes, &mock.StringNewer{})
+	_, err := interceptor.NewInterceptor("", mes, &mock.StringNewer{})
 	assert.NotNil(t, err)
 }
 
@@ -40,7 +40,7 @@ func TestNewInterceptorErrMessengerRegistrationValidatorShouldErr(t *testing.T) 
 		return nil
 	}
 
-	_, err := process.NewInterceptor("", mes, &mock.StringNewer{})
+	_, err := interceptor.NewInterceptor("", mes, &mock.StringNewer{})
 	assert.Equal(t, process.ErrRegisteringValidator, err)
 }
 
@@ -58,7 +58,7 @@ func TestNewInterceptorOkValsShouldWork(t *testing.T) {
 		return nil
 	}
 
-	_, err := process.NewInterceptor("", mes, &mock.StringNewer{})
+	_, err := interceptor.NewInterceptor("", mes, &mock.StringNewer{})
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 }
@@ -81,7 +81,7 @@ func TestInterceptorValidationMalfunctionMarshalizerReturnFalse(t *testing.T) {
 		return nil
 	}
 
-	_, err := process.NewInterceptor("", mes, &mock.StringNewer{})
+	_, err := interceptor.NewInterceptor("", mes, &mock.StringNewer{})
 	assert.Nil(t, err)
 
 	//we have the validator func, let's test with a broken marshalizer
@@ -108,7 +108,7 @@ func TestInterceptorValidationNilCheckReceivedObjectReturnFalse(t *testing.T) {
 		return nil
 	}
 
-	_, err := process.NewInterceptor("", mes, &mock.StringNewer{})
+	_, err := interceptor.NewInterceptor("", mes, &mock.StringNewer{})
 	assert.Nil(t, err)
 
 	//we have the validator func, let's test with a message
@@ -138,12 +138,12 @@ func TestInterceptorValidationCheckReceivedObjectFalseReturnFalse(t *testing.T) 
 		return nil
 	}
 
-	intercept, err := process.NewInterceptor("", mes, &mock.StringNewer{})
+	intercept, err := interceptor.NewInterceptor("", mes, &mock.StringNewer{})
 	assert.Nil(t, err)
 
 	wasCalled := false
 
-	intercept.CheckReceivedObject = func(newer p2p.Newer, rawData []byte, hasher hashing.Hasher) bool {
+	intercept.CheckReceivedObject = func(newer p2p.Newer, rawData []byte) bool {
 		wasCalled = true
 		return false
 	}
@@ -176,12 +176,12 @@ func TestInterceptorValidationCheckReceivedObjectTrueReturnTrue(t *testing.T) {
 		return nil
 	}
 
-	intercept, err := process.NewInterceptor("", mes, &mock.StringNewer{})
+	intercept, err := interceptor.NewInterceptor("", mes, &mock.StringNewer{})
 	assert.Nil(t, err)
 
 	wasCalled := false
 
-	intercept.CheckReceivedObject = func(newer p2p.Newer, rawData []byte, hasher hashing.Hasher) bool {
+	intercept.CheckReceivedObject = func(newer p2p.Newer, rawData []byte) bool {
 		wasCalled = true
 		return true
 	}

@@ -1,28 +1,30 @@
-package transaction
+package transaction_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"testing"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
+	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func createNewTransactionInterceptorForTests() (
-	ti *transactionInterceptor,
+	ti *transaction.TransactionInterceptor,
 	mes *mock.MessengerStub,
 	pool *dataPool.DataPool,
 	addrConv *mock.AddressConverterMock,
 	err error) {
 
 	mes = mock.NewMessengerStub()
-	pool = dataPool.NewDataPool(&config.CacheConfig{
+	pool = dataPool.NewDataPool(&storage.CacheConfig{
 		Size: 10000,
-		Type: config.LRUCache,
+		Type: storage.LRUCache,
 	})
 	addrConv = &mock.AddressConverterMock{}
 
@@ -37,7 +39,7 @@ func createNewTransactionInterceptorForTests() (
 		return nil
 	}
 
-	ti, err = NewTransactionInterceptor(mes, pool, addrConv)
+	ti, err = transaction.NewTransactionInterceptor(mes, pool, addrConv, mock.HasherMock{})
 
 	return
 }
@@ -47,13 +49,13 @@ func createNewTransactionInterceptorForTests() (
 func TestNewTransactionInterceptorNilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tPool := dataPool.NewDataPool(&config.CacheConfig{
+	tPool := dataPool.NewDataPool(&storage.CacheConfig{
 		Size: 10000,
-		Type: config.LRUCache,
+		Type: storage.LRUCache,
 	})
 	addrConv := &mock.AddressConverterMock{}
 
-	_, err := NewTransactionInterceptor(nil, tPool, addrConv)
+	_, err := transaction.NewTransactionInterceptor(nil, tPool, addrConv, mock.HasherMock{})
 	assert.Equal(t, process.ErrNilMessenger, err)
 }
 
@@ -63,7 +65,7 @@ func TestNewTransactionInterceptorNilTransactionPoolShouldErr(t *testing.T) {
 	mes := mock.NewMessengerStub()
 	addrConv := &mock.AddressConverterMock{}
 
-	_, err := NewTransactionInterceptor(mes, nil, addrConv)
+	_, err := transaction.NewTransactionInterceptor(mes, nil, addrConv, mock.HasherMock{})
 	assert.Equal(t, process.ErrNilTxDataPool, err)
 }
 
@@ -71,13 +73,27 @@ func TestNewTransactionInterceptorNilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mes := mock.NewMessengerStub()
-	tPool := dataPool.NewDataPool(&config.CacheConfig{
+	tPool := dataPool.NewDataPool(&storage.CacheConfig{
 		Size: 10000,
-		Type: config.LRUCache,
+		Type: storage.LRUCache,
 	})
 
-	_, err := NewTransactionInterceptor(mes, tPool, nil)
+	_, err := transaction.NewTransactionInterceptor(mes, tPool, nil, mock.HasherMock{})
 	assert.Equal(t, process.ErrNilAddressConverter, err)
+}
+
+func TestNewTransactionInterceptorNilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mes := mock.NewMessengerStub()
+	tPool := dataPool.NewDataPool(&storage.CacheConfig{
+		Size: 10000,
+		Type: storage.LRUCache,
+	})
+	addrConv := &mock.AddressConverterMock{}
+
+	_, err := transaction.NewTransactionInterceptor(mes, tPool, addrConv, nil)
+	assert.Equal(t, process.ErrNilHasher, err)
 }
 
 func TestNewTransactionInterceptorOkValsShouldWork(t *testing.T) {
@@ -112,7 +128,7 @@ func TestTransactionInterceptorProcessTxSanityCheckFailedShouldRetFalse(t *testi
 
 	ti, _, _, _, _ := createNewTransactionInterceptorForTests()
 
-	txNewer := NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction()
 	txNewer.Signature = nil
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
@@ -121,26 +137,12 @@ func TestTransactionInterceptorProcessTxSanityCheckFailedShouldRetFalse(t *testi
 	assert.False(t, ti.ProcessTx(txNewer, make([]byte, 0), mock.HasherMock{}))
 }
 
-func TestTransactionInterceptorProcessTxNilHasherShouldRetFalse(t *testing.T) {
-	t.Parallel()
-
-	ti, _, _, _, _ := createNewTransactionInterceptorForTests()
-
-	txNewer := NewInterceptedTransaction()
-	txNewer.Signature = make([]byte, 0)
-	txNewer.Challenge = make([]byte, 0)
-	txNewer.RcvAddr = []byte("please fail, addrConverter!")
-	txNewer.SndAddr = make([]byte, 0)
-
-	assert.False(t, ti.ProcessTx(txNewer, make([]byte, 0), nil))
-}
-
 func TestTransactionInterceptorProcessTxNotValidShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	ti, _, _, addrConv, _ := createNewTransactionInterceptorForTests()
 
-	txNewer := NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction()
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = []byte("please fail, addrConverter!")
@@ -156,7 +158,7 @@ func TestTransactionInterceptorProcessValidValsShouldRetTrue(t *testing.T) {
 
 	ti, _, pool, _, _ := createNewTransactionInterceptorForTests()
 
-	txNewer := NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction()
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
@@ -179,7 +181,7 @@ func TestTransactionInterceptorProcessValidValsOtherShardsShouldRetTrue(t *testi
 
 	ti, _, pool, _, _ := createNewTransactionInterceptorForTests()
 
-	tx := &transaction.Transaction{}
+	tx := &transaction2.Transaction{}
 
 	tim := &mock.TransactionInterceptorMock{}
 	tim.IsAddressedToOtherShardsVal = true
@@ -200,7 +202,7 @@ func TestTransactionInterceptorProcessValidVals2ShardsShouldRetTrue(t *testing.T
 
 	ti, _, pool, _, _ := createNewTransactionInterceptorForTests()
 
-	tx := &transaction.Transaction{}
+	tx := &transaction2.Transaction{}
 
 	tim := &mock.TransactionInterceptorMock{}
 	tim.IsAddressedToOtherShardsVal = false

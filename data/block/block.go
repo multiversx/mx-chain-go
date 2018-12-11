@@ -1,10 +1,16 @@
 package block
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnproto1"
 	"io"
-	"ElrondNetwork/elrond-go-sandbox/data/block/capnproto1"
 
 	"github.com/glycerine/go-capnproto"
+)
+
+const (
+	BlockBodyTx    = 0
+	BlockBodyState = 1
+	BlockBodyPeer  = 2
 )
 
 // Block structure is the body of a block, holding an array of miniblocks
@@ -19,6 +25,7 @@ type MiniBlock struct {
 
 type StateBlockBody struct {
 	RootHash []byte `capid:"0"`
+	ShardId  uint32 `capid:"1"`
 }
 
 type PeerChange struct {
@@ -42,15 +49,17 @@ type TxBlockBody struct {
 // Header holds the metadata of a block. This is the part that is being hashed and run through consensus.
 // The header holds the hash of the body and also the link to the previous block header hash
 type Header struct {
-	Nonce         uint64 `capid:"0"`
-	PrevHash      []byte `capid:"1"`
-	PubKeysBitmap []bool `capid:"2"`
-	ShardId       uint32 `capid:"3"`
-	TimeStamp     []byte `capid:"4"`
-	Round         uint32 `capid:"5"`
+	StateBlockBody `capid:"0"`
+
+	Nonce         uint64 `capid:"1"`
+	PrevHash      []byte `capid:"2"`
+	PubKeysBitmap []byte `capid:"3"`
+	TimeStamp     uint64 `capid:"4"`
+	Round         uint64 `capid:"5"`
 	BlockBodyHash []byte `capid:"6"`
-	Signature     []byte `capid:"7"`
-	Commitment    []byte `capid:"8"`
+	BlockBodyType byte   `capid:"7"`
+	Signature     []byte `capid:"8"`
+	Commitment    []byte `capid:"9"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -83,13 +92,16 @@ func HeaderCapnToGo(src capnproto1.HeaderCapn, dest *Header) *Header {
 	// PrevHash
 	dest.PrevHash = src.PrevHash()
 	// PubKeysBitmap
-	dest.PubKeysBitmap = src.PubKeysBitmap().ToArray()
+	//TODO fix
+	//dest.PubKeysBitmap = src.PubKeysBitmap().ToArray()
 	// ShardId
 	dest.ShardId = src.ShardId()
 	// TimeStamp
-	dest.TimeStamp = src.TimeStamp()
+	//TODO fix
+	//dest.TimeStamp = src.TimeStamp()
 	// Round
-	dest.Round = src.Round()
+	//TODO fix
+	//dest.Round = src.Round()
 	// BlockBodyHash
 	dest.BlockBodyHash = src.BlockBodyHash()
 	// Signature
@@ -106,15 +118,17 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnproto1.HeaderCapn {
 	dest.SetNonce(src.Nonce)
 	dest.SetPrevHash(src.PrevHash)
 
-	bitList := seg.NewBitList(len(src.PubKeysBitmap))
-	for i := range src.PubKeysBitmap {
-		bitList.Set(i, src.PubKeysBitmap[i])
-	}
-	dest.SetPubKeysBitmap(bitList)
+	//TODO fix
+	//bitList := seg.NewBitList(len(src.PubKeysBitmap))
+	//for i := range src.PubKeysBitmap {
+	//	bitList.Set(i, src.PubKeysBitmap[i])
+	//}
+	//dest.SetPubKeysBitmap(bitList)
 
 	dest.SetShardId(src.ShardId)
-	dest.SetTimeStamp(src.TimeStamp)
-	dest.SetRound(src.Round)
+	//TODO fix
+	//dest.SetTimeStamp(src.TimeStamp)
+	//dest.SetRound(src.Round)
 	dest.SetBlockBodyHash(src.BlockBodyHash)
 	dest.SetSignature(src.Signature)
 	dest.SetCommitment(src.Commitment)

@@ -3,15 +3,19 @@ package dataPool
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-// DataPool holds the list of structures organised by destination shard
+var defaultCacherConfig = &storage.CacheConfig{
+	Size: 1000,
+	Type: storage.LRUCache,
+}
+
+// DataPool holds the list of data organised by destination shard
 //
 // The miniPools field maps a cacher, containing data
 //  hashes, to a corresponding shard id. It is able to add or remove
-//  interface{} given the shard id it is associated with. It can
+//  data given the shard id it is associated with. It can
 //  also merge and split pools when required
 type DataPool struct {
 	lock sync.RWMutex
@@ -19,7 +23,7 @@ type DataPool struct {
 	// Each key represents a destination shard id and the value will contain all
 	//  data hashes that have that shard as destination
 	miniPoolsStore map[uint32]*miniPool
-	cacheConfig    *config.CacheConfig
+	cacherConfig   *storage.CacheConfig
 
 	AddedData func(dataHash []byte)
 }
@@ -30,16 +34,22 @@ type miniPool struct {
 }
 
 // NewDataPool is responsible for creating an empty pool of data
-func NewDataPool(cacheConfig *config.CacheConfig) *DataPool {
+func NewDataPool(cacherConfig *storage.CacheConfig) *DataPool {
+	if cacherConfig == nil {
+		cacherConfig = defaultCacherConfig
+	}
 	return &DataPool{
+		cacherConfig:   cacherConfig,
 		miniPoolsStore: make(map[uint32]*miniPool),
-		cacheConfig:    cacheConfig,
 	}
 }
 
 // NewMiniPool is responsible for creating an empty mini pool
-func NewMiniPool(destShardID uint32, config *config.CacheConfig) *miniPool {
-	cacher, err := storage.CreateCacheFromConf(config)
+func newMiniPool(destShardID uint32, cacherConfig *storage.CacheConfig) *miniPool {
+	if cacherConfig == nil {
+		cacherConfig = defaultCacherConfig
+	}
+	cacher, err := storage.NewCache(cacherConfig.Type, cacherConfig.Size)
 	if err != nil {
 		// TODO: This should be replaced with the correct log panic
 		panic("Could not create cache storage for pools")
@@ -52,9 +62,9 @@ func NewMiniPool(destShardID uint32, config *config.CacheConfig) *miniPool {
 
 // NewMiniPool is a DataPool method that is responsible for creating
 //  a new mini pool at the destShardID index in the MiniPoolsStore map
-func (dp *DataPool) newMiniPool(destShardID uint32) {
+func (dp *DataPool) NewMiniPool(destShardID uint32) {
 	dp.lock.Lock()
-	dp.miniPoolsStore[destShardID] = NewMiniPool(destShardID, dp.cacheConfig)
+	dp.miniPoolsStore[destShardID] = newMiniPool(destShardID, dp.cacherConfig)
 	dp.lock.Unlock()
 }
 
@@ -76,10 +86,10 @@ func (dp *DataPool) MiniPoolDataStore(shardID uint32) (c storage.Cacher) {
 	return mp.DataStore
 }
 
-// AddData will add a data to the corresponding pool
+// AddData will add data to the corresponding pool
 func (dp *DataPool) AddData(dataHash []byte, data interface{}, destShardID uint32) {
 	if dp.MiniPool(destShardID) == nil {
-		dp.newMiniPool(destShardID)
+		dp.NewMiniPool(destShardID)
 	}
 	mp := dp.MiniPoolDataStore(destShardID)
 	found, _ := mp.HasOrAdd(dataHash, data)
@@ -89,15 +99,15 @@ func (dp *DataPool) AddData(dataHash []byte, data interface{}, destShardID uint3
 	}
 }
 
-// RemoveData will remove a data from the corresponding pool
+// RemoveData will remove data hash from the corresponding pool
 func (dp *DataPool) RemoveData(dataHash []byte, destShardID uint32) {
-	mpData := dp.MiniPoolDataStore(destShardID)
-	if mpData != nil {
-		mpData.Remove(dataHash)
+	mpdata := dp.MiniPoolDataStore(destShardID)
+	if mpdata != nil {
+		mpdata.Remove(dataHash)
 	}
 }
 
-// RemoveDataFromAllShards will remove a data from the pool given only
+// RemoveDataFromAllShards will remove data from the pool given only
 //  the data hash. It will iterate over all mini pools and will remove it everywhere
 func (dp *DataPool) RemoveDataFromAllShards(dataHash []byte) {
 	for k := range dp.miniPoolsStore {
@@ -108,7 +118,7 @@ func (dp *DataPool) RemoveDataFromAllShards(dataHash []byte) {
 	}
 }
 
-// MergeMiniPools will take all data associated with the sourceShardId and move it
+// MergeMiniPools will take all data associated with the sourceShardId and move them
 // to the destShardID. It will then remove the sourceShardID key from the store map
 func (dp *DataPool) MergeMiniPools(sourceShardID, destShardID uint32) {
 	sourceStore := dp.MiniPoolDataStore(sourceShardID)

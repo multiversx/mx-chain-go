@@ -143,6 +143,8 @@ func TestTransactionInterceptorCheckOkValsShouldRetTrue(t *testing.T) {
 	assert.True(t, tx.Check())
 }
 
+//------- Getters and Setters
+
 func TestTransactionInterceptorAllGettersAndSettersShouldWork(t *testing.T) {
 	t.Parallel()
 
