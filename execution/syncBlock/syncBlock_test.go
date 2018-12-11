@@ -61,7 +61,7 @@ func TestNewBootstrapShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestSynchBlockShouldReturnMissingHeader(t *testing.T) {
+func TestSyncBlockShouldReturnMissingHeader(t *testing.T) {
 	hdr := block.Header{Nonce: 1}
 	blkc := blockchain.BlockChain{}
 	blkc.CurrentBlockHeader = &hdr
@@ -78,12 +78,12 @@ func TestSynchBlockShouldReturnMissingHeader(t *testing.T) {
 	bs.OnRequestHeader = func(nonce uint64) {}
 	bs.OnRequestBody = func(nonce uint64) {}
 
-	r := bs.SynchBlock()
+	r := bs.SyncBlock()
 
 	assert.Equal(t, execution.ErrMissingHeader, r)
 }
 
-func TestSynchBlockShouldReturnMissingBody(t *testing.T) {
+func TestSyncBlockShouldReturnMissingBody(t *testing.T) {
 	hdr := block.Header{Nonce: 1}
 	blkc := blockchain.BlockChain{}
 	blkc.CurrentBlockHeader = &hdr
@@ -101,12 +101,72 @@ func TestSynchBlockShouldReturnMissingBody(t *testing.T) {
 	hdr2 := block.Header{Nonce: 2}
 	bp.AddHeader(2, &hdr2)
 
-	r := bs.SynchBlock()
+	r := bs.SyncBlock()
 
 	assert.Equal(t, execution.ErrMissingBody, r)
 }
 
-func TestSynchBlockShouldReturnNilErr(t *testing.T) {
+func TestStartSyncShouldNotNeedToSync(t *testing.T) {
+	ebm := mock.ExecBlockMock{}
+	ebm.ProcessBlockCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.Block) error {
+		blk.CurrentBlockHeader = hdr
+		return nil
+	}
+
+	hdr := block.Header{Nonce: 1, Round: 0}
+	blkc := blockchain.BlockChain{}
+	blkc.CurrentBlockHeader = &hdr
+
+	bp := blockPool.NewBlockPool(nil)
+
+	bs, _ := syncBlock.NewBootstrap(
+		bp,
+		&blkc,
+		chronology.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
+		&ebm,
+		WaitTime)
+
+	bs.StartSync()
+	time.Sleep(200 * time.Millisecond)
+	bs.StopSync()
+}
+
+func TestStartSyncShouldSyncOneBlock(t *testing.T) {
+	ebm := mock.ExecBlockMock{}
+	ebm.ProcessBlockCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.Block) error {
+		blk.CurrentBlockHeader = hdr
+		return nil
+	}
+
+	hdr := block.Header{Nonce: 1, Round: 0}
+	blkc := blockchain.BlockChain{}
+	blkc.CurrentBlockHeader = &hdr
+
+	bp := blockPool.NewBlockPool(nil)
+
+	bs, _ := syncBlock.NewBootstrap(
+		bp,
+		&blkc,
+		chronology.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond)),
+		&ebm,
+		WaitTime)
+
+	bs.StartSync()
+
+	time.Sleep(200 * time.Millisecond)
+
+	hdr2 := block.Header{Nonce: 2, Round: 1}
+	bp.AddHeader(2, &hdr2)
+
+	blk2 := block.Block{}
+	bp.AddBody(2, &blk2)
+
+	time.Sleep(200 * time.Millisecond)
+
+	bs.StopSync()
+}
+
+func TestSyncBlockShouldReturnNilErr(t *testing.T) {
 	ebm := mock.ExecBlockMock{}
 	ebm.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.Block) error {
 		return nil
@@ -133,12 +193,12 @@ func TestSynchBlockShouldReturnNilErr(t *testing.T) {
 	blk2 := block.Block{}
 	bp.AddBody(2, &blk2)
 
-	r := bs.SynchBlock()
+	r := bs.SyncBlock()
 
 	assert.Nil(t, r)
 }
 
-func TestShouldSynchShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {
+func TestShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {
 	bs, _ := syncBlock.NewBootstrap(
 		blockPool.NewBlockPool(nil),
 		&blockchain.BlockChain{},
@@ -146,11 +206,11 @@ func TestShouldSynchShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t 
 		&mock.ExecBlockMock{},
 		WaitTime)
 
-	r := bs.ShouldSynch()
+	r := bs.ShouldSync()
 	assert.Equal(t, false, r)
 }
 
-func TestShouldSynchShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterThanZero(t *testing.T) {
+func TestShouldSyncShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterThanZero(t *testing.T) {
 	bs, _ := syncBlock.NewBootstrap(
 		blockPool.NewBlockPool(nil),
 		&blockchain.BlockChain{},
@@ -158,11 +218,11 @@ func TestShouldSynchShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterT
 		&mock.ExecBlockMock{},
 		WaitTime)
 
-	r := bs.ShouldSynch()
+	r := bs.ShouldSync()
 	assert.Equal(t, true, r)
 }
 
-func TestShouldSynchShouldReturnFalseWhenNodeIsSynched(t *testing.T) {
+func TestShouldSyncShouldReturnFalseWhenNodeIsSynched(t *testing.T) {
 	hdr := block.Header{Nonce: 0}
 	blkc := blockchain.BlockChain{}
 	blkc.CurrentBlockHeader = &hdr
@@ -174,11 +234,11 @@ func TestShouldSynchShouldReturnFalseWhenNodeIsSynched(t *testing.T) {
 		&mock.ExecBlockMock{},
 		WaitTime)
 
-	r := bs.ShouldSynch()
+	r := bs.ShouldSync()
 	assert.Equal(t, false, r)
 }
 
-func TestShouldSynchShouldReturnTrueWhenNodeIsNotSynched(t *testing.T) {
+func TestShouldSyncShouldReturnTrueWhenNodeIsNotSynched(t *testing.T) {
 	hdr := block.Header{Nonce: 0}
 	blkc := blockchain.BlockChain{}
 	blkc.CurrentBlockHeader = &hdr
@@ -190,7 +250,7 @@ func TestShouldSynchShouldReturnTrueWhenNodeIsNotSynched(t *testing.T) {
 		&mock.ExecBlockMock{},
 		WaitTime)
 
-	r := bs.ShouldSynch()
+	r := bs.ShouldSync()
 	assert.Equal(t, false, r)
 }
 

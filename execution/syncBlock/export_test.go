@@ -12,8 +12,8 @@ func (boot *bootstrap) ReceivedBody(nonce uint64) {
 	boot.receivedBody(nonce)
 }
 
-func (boot *bootstrap) ShouldSynch() bool {
-	return boot.shouldSynch()
+func (boot *bootstrap) ShouldSync() bool {
+	return boot.shouldSync()
 }
 
 func (boot *bootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
@@ -30,4 +30,12 @@ func (boot *bootstrap) RequestHeader(nonce uint64) {
 
 func (boot *bootstrap) RequestBody(nonce uint64) {
 	boot.requestBody(nonce)
+}
+
+func (boot *bootstrap) RequestedHeaderNonce() int64 {
+	return boot.requestedHeaderNonce()
+}
+
+func (boot *bootstrap) RequestedBodyNonce() int64 {
+	return boot.requestedBodyNonce()
 }

@@ -2,7 +2,6 @@ package syncBlock
 
 import (
 	"encoding/binary"
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
@@ -10,9 +9,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"sync"
-	"unsafe"
 )
+
+var log = logger.NewDefaultLogger()
+
+const bytesInUint64 = 8
 
 // bootstrap implements the boostrsap mechanism
 type bootstrap struct {
@@ -32,39 +35,9 @@ type bootstrap struct {
 	OnRequestHeader func(nonce uint64)
 	OnRequestBody   func(nonce uint64)
 
+	chStopSync chan bool
+
 	waitTime time.Duration
-}
-
-// requestedHeaderNonce method gets the header nonce requested by the sync mechanism
-func (boot *bootstrap) requestedHeaderNonce() int64 {
-	boot.mutHeader.RLock()
-	nonce := boot.headerNonce
-	boot.mutHeader.RUnlock()
-
-	return nonce
-}
-
-// requestedBodyNonce method gets the body nonce requested by the sync mechanism
-func (boot *bootstrap) requestedBodyNonce() int64 {
-	boot.mutBody.RLock()
-	nonce := boot.bodyNonce
-	boot.mutBody.RUnlock()
-
-	return nonce
-}
-
-// setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
-func (boot *bootstrap) setRequestedHeaderNonce(nonce int64) {
-	boot.mutHeader.Lock()
-	boot.headerNonce = nonce
-	boot.mutHeader.Unlock()
-}
-
-// setRequestedBodyNonce method sets the body nonce requested by the sync mechanism
-func (boot *bootstrap) setRequestedBodyNonce(nonce int64) {
-	boot.mutBody.Lock()
-	boot.bodyNonce = nonce
-	boot.mutBody.Unlock()
 }
 
 // NewBootstrap creates a new bootstrap object
@@ -101,6 +74,8 @@ func NewBootstrap(
 	boot.setRequestedHeaderNonce(-1)
 	boot.setRequestedBodyNonce(-1)
 
+	boot.chStopSync = make(chan bool)
+
 	return &boot, nil
 }
 
@@ -130,25 +105,70 @@ func checkBootstrapNilParameters(
 	return nil
 }
 
-// SynchBlocks method calls repeatedly synchronization method SynchBlock
-func (boot *bootstrap) SynchBlocks() {
+// requestedHeaderNonce method gets the header nonce requested by the sync mechanism
+func (boot *bootstrap) requestedHeaderNonce() int64 {
+	boot.mutHeader.RLock()
+	nonce := boot.headerNonce
+	boot.mutHeader.RUnlock()
+
+	return nonce
+}
+
+// requestedBodyNonce method gets the body nonce requested by the sync mechanism
+func (boot *bootstrap) requestedBodyNonce() int64 {
+	boot.mutBody.RLock()
+	nonce := boot.bodyNonce
+	boot.mutBody.RUnlock()
+
+	return nonce
+}
+
+// setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
+func (boot *bootstrap) setRequestedHeaderNonce(nonce int64) {
+	boot.mutHeader.Lock()
+	boot.headerNonce = nonce
+	boot.mutHeader.Unlock()
+}
+
+// setRequestedBodyNonce method sets the body nonce requested by the sync mechanism
+func (boot *bootstrap) setRequestedBodyNonce(nonce int64) {
+	boot.mutBody.Lock()
+	boot.bodyNonce = nonce
+	boot.mutBody.Unlock()
+}
+
+// StartSync method will start SynchBlocks as a go routine
+func (boot *bootstrap) StartSync() {
+	go boot.syncBlocks()
+}
+
+// StopSync method will stop SynchBlocks
+func (boot *bootstrap) StopSync() {
+	boot.chStopSync <- true
+}
+
+// syncBlocks method calls repeatedly synchronization method SyncBlock
+func (boot *bootstrap) syncBlocks() {
 	for {
-		if boot.shouldSynch() {
-			err := boot.SynchBlock()
-			if err == nil {
-				fmt.Println("block synched successfully")
+		select {
+		case <-boot.chStopSync:
+			return
+		default:
+			if boot.shouldSync() {
+				err := boot.SyncBlock()
+				log.LogIfError(err)
 			}
 		}
 	}
 }
 
-// SynchBlock method actually does the synchronization. It requests the next block header from the pool
+// SyncBlock method actually does the synchronization. It requests the next block header from the pool
 // and if it is not found there it will be requested from the network. After the header is received,
 // it requests the block body in the same way(pool and than, if it is not found in the pool, from network).
 // If either header and body are received the ProcessBlock method will be called. This method will do execute
 // the block and its transactions. Finally if everything works, the block will be committed in the blockchain,
 // and all this mechanism will be reiterated for the next block.
-func (boot *bootstrap) SynchBlock() error {
+func (boot *bootstrap) SyncBlock() error {
 	boot.setRequestedHeaderNonce(-1)
 	boot.setRequestedBodyNonce(-1)
 
@@ -167,6 +187,10 @@ func (boot *bootstrap) SynchBlock() error {
 	}
 
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blk)
+
+	if err == nil {
+		log.Debug("block synched successfully")
+	}
 
 	return err
 }
@@ -215,9 +239,9 @@ func (boot *bootstrap) getNonceForNextBlock() uint64 {
 	return nonce
 }
 
-// shouldSynch method returns the synch state of the node. If it returns true that means that the node should
+// shouldSync method returns the sync state of the node. If it returns true that means that the node should
 // continue the synching mechanism, otherwise the node should stop synching because it is already synched
-func (boot *bootstrap) shouldSynch() bool {
+func (boot *bootstrap) shouldSync() bool {
 	if boot.blkc.CurrentBlockHeader == nil {
 		return boot.round.Index() > 0
 	}
@@ -233,7 +257,7 @@ func (boot *bootstrap) getHeaderFromPool(nonce uint64) *block.Header {
 		return nil
 	}
 
-	key := make([]byte, unsafe.Sizeof(nonce))
+	key := make([]byte, bytesInUint64)
 	binary.PutUvarint(key, nonce)
 
 	val, ok := headerStore.Get(key)
@@ -281,7 +305,7 @@ func (boot *bootstrap) getBodyFromPool(nonce uint64) *block.Block {
 		return nil
 	}
 
-	key := make([]byte, unsafe.Sizeof(nonce))
+	key := make([]byte, bytesInUint64)
 	binary.PutUvarint(key, nonce)
 
 	val, ok := bodyStore.Get(key)
