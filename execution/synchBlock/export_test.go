@@ -4,10 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
-func (bs *bootstrap) SynchBlock() error {
-	return bs.synchBlock()
-}
-
 func (bs *bootstrap) ReceivedHeader(nounce uint64) {
 	bs.receivedHeader(nounce)
 }

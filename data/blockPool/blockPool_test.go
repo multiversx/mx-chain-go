@@ -16,13 +16,13 @@ func TestNewBlockPool(t *testing.T) {
 
 func TestBlockPool_MiniPoolBodyStore(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
-	bs := bp.MiniPoolBodyStore()
+	bs := bp.BodyStore()
 	assert.NotNil(t, bs)
 }
 
 func TestBlockPool_MiniPoolHeaderStore(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
-	hs := bp.MiniPoolHeaderStore()
+	hs := bp.HeaderStore()
 	assert.NotNil(t, hs)
 }
 
@@ -36,36 +36,36 @@ func TestBlockPool_AddHeader(t *testing.T) {
 	binary.PutUvarint(key, 0)
 
 	bp.AddHeader(0, &hdr)
-	assert.Equal(t, 1, bp.MiniPoolHeaderStore().Len())
+	assert.Equal(t, 1, bp.HeaderStore().Len())
 
-	val, ok := bp.MiniPoolHeaderStore().Get(key)
+	val, ok := bp.HeaderStore().Get(key)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, &hdr, val.(*block.Header))
 
 	hdr2 := block.Header{Nonce: 1}
 
 	bp.AddHeader(0, &hdr2)
-	assert.Equal(t, 1, bp.MiniPoolHeaderStore().Len())
+	assert.Equal(t, 1, bp.HeaderStore().Len())
 
-	val, ok = bp.MiniPoolHeaderStore().Get(key)
+	val, ok = bp.HeaderStore().Get(key)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, &hdr, val.(*block.Header))
 	assert.NotEqual(t, &hdr2, val.(*block.Header))
 
 	bp.AddHeader(1, &hdr2)
-	assert.Equal(t, 2, bp.MiniPoolHeaderStore().Len())
+	assert.Equal(t, 2, bp.HeaderStore().Len())
 
 	key = make([]byte, 8)
 	binary.PutUvarint(key, 1)
 
-	val, ok = bp.MiniPoolHeaderStore().Get(key)
+	val, ok = bp.HeaderStore().Get(key)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, &hdr2, val.(*block.Header))
 
 	key = make([]byte, 8)
 	binary.PutUvarint(key, 2)
 
-	val, ok = bp.MiniPoolHeaderStore().Get(key)
+	val, ok = bp.HeaderStore().Get(key)
 	assert.Equal(t, false, ok)
 	assert.Nil(t, val)
 }
@@ -84,9 +84,9 @@ func TestBlockPool_AddBody(t *testing.T) {
 	binary.PutUvarint(key, 0)
 
 	bp.AddBody(0, &blk)
-	assert.Equal(t, 1, bp.MiniPoolBodyStore().Len())
+	assert.Equal(t, 1, bp.BodyStore().Len())
 
-	val, ok := bp.MiniPoolBodyStore().Get(key)
+	val, ok := bp.BodyStore().Get(key)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, &blk, val.(*block.Block))
 
@@ -97,27 +97,27 @@ func TestBlockPool_AddBody(t *testing.T) {
 	blk2 := block.Block{MiniBlocks: mblks2}
 
 	bp.AddBody(0, &blk2)
-	assert.Equal(t, 1, bp.MiniPoolBodyStore().Len())
+	assert.Equal(t, 1, bp.BodyStore().Len())
 
-	val, ok = bp.MiniPoolBodyStore().Get(key)
+	val, ok = bp.BodyStore().Get(key)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, &blk, val.(*block.Block))
 	assert.NotEqual(t, &blk2, val.(*block.Block))
 
 	bp.AddBody(1, &blk2)
-	assert.Equal(t, 2, bp.MiniPoolBodyStore().Len())
+	assert.Equal(t, 2, bp.BodyStore().Len())
 
 	key = make([]byte, 8)
 	binary.PutUvarint(key, 1)
 
-	val, ok = bp.MiniPoolBodyStore().Get(key)
+	val, ok = bp.BodyStore().Get(key)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, &blk2, val.(*block.Block))
 
 	key = make([]byte, 8)
 	binary.PutUvarint(key, 2)
 
-	val, ok = bp.MiniPoolBodyStore().Get(key)
+	val, ok = bp.BodyStore().Get(key)
 	assert.Equal(t, false, ok)
 	assert.Nil(t, val)
 }
@@ -129,7 +129,7 @@ func TestBlockPool_Header(t *testing.T) {
 	hdr := block.Header{Nonce: 0}
 
 	bp.AddHeader(0, &hdr)
-	assert.Equal(t, 1, bp.MiniPoolHeaderStore().Len())
+	assert.Equal(t, 1, bp.HeaderStore().Len())
 
 	val, ok := bp.Header(0)
 	assert.Equal(t, true, ok)
@@ -147,7 +147,7 @@ func TestBlockPool_Body(t *testing.T) {
 	blk := block.Block{}
 
 	bp.AddBody(0, &blk)
-	assert.Equal(t, 1, bp.MiniPoolBodyStore().Len())
+	assert.Equal(t, 1, bp.BodyStore().Len())
 
 	val, ok := bp.Body(0)
 	assert.Equal(t, true, ok)
@@ -165,23 +165,23 @@ func TestBlockPool_RemoveHeader(t *testing.T) {
 	hdr := block.Header{Nonce: 0}
 
 	bp.AddHeader(0, &hdr)
-	assert.Equal(t, 1, bp.MiniPoolHeaderStore().Len())
+	assert.Equal(t, 1, bp.HeaderStore().Len())
 
 	hdr2 := block.Header{Nonce: 1}
 
 	bp.AddHeader(1, &hdr2)
-	assert.Equal(t, 2, bp.MiniPoolHeaderStore().Len())
+	assert.Equal(t, 2, bp.HeaderStore().Len())
 
 	bp.RemoveHeader(2)
-	assert.Equal(t, 2, bp.MiniPoolHeaderStore().Len())
+	assert.Equal(t, 2, bp.HeaderStore().Len())
 
 	bp.RemoveHeader(0)
-	assert.Equal(t, 1, bp.MiniPoolHeaderStore().Len())
+	assert.Equal(t, 1, bp.HeaderStore().Len())
 
 	key := make([]byte, 8)
 	binary.PutUvarint(key, 1)
 
-	val, ok := bp.MiniPoolHeaderStore().Get(key)
+	val, ok := bp.HeaderStore().Get(key)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, &hdr2, val.(*block.Header))
 	assert.NotEqual(t, &hdr, val.(*block.Header))
@@ -198,7 +198,7 @@ func TestBlockPool_RemoveBlock(t *testing.T) {
 	blk := block.Block{MiniBlocks: mblks}
 
 	bp.AddBody(0, &blk)
-	assert.Equal(t, 1, bp.MiniPoolBodyStore().Len())
+	assert.Equal(t, 1, bp.BodyStore().Len())
 
 	mblks2 := make([]block.MiniBlock, 0)
 	mblk2 := block.MiniBlock{DestShardID: 1}
@@ -207,18 +207,18 @@ func TestBlockPool_RemoveBlock(t *testing.T) {
 	blk2 := block.Block{MiniBlocks: mblks2}
 
 	bp.AddBody(1, &blk2)
-	assert.Equal(t, 2, bp.MiniPoolBodyStore().Len())
+	assert.Equal(t, 2, bp.BodyStore().Len())
 
 	bp.RemoveBody(2)
-	assert.Equal(t, 2, bp.MiniPoolBodyStore().Len())
+	assert.Equal(t, 2, bp.BodyStore().Len())
 
 	bp.RemoveBody(0)
-	assert.Equal(t, 1, bp.MiniPoolBodyStore().Len())
+	assert.Equal(t, 1, bp.BodyStore().Len())
 
 	key := make([]byte, 8)
 	binary.PutUvarint(key, 1)
 
-	val, ok := bp.MiniPoolBodyStore().Get(key)
+	val, ok := bp.BodyStore().Get(key)
 	assert.Equal(t, true, ok)
 	assert.Equal(t, &blk2, val.(*block.Block))
 	assert.NotEqual(t, &blk, val.(*block.Block))
@@ -233,10 +233,10 @@ func TestBlockPool_ClearHeaderMiniPool(t *testing.T) {
 	bp.AddHeader(0, &hdr)
 	bp.AddHeader(1, &hdr)
 	bp.AddHeader(2, &hdr)
-	assert.Equal(t, 3, bp.MiniPoolHeaderStore().Len())
+	assert.Equal(t, 3, bp.HeaderStore().Len())
 
 	bp.ClearHeaderMiniPool()
-	assert.Equal(t, 0, bp.MiniPoolHeaderStore().Len())
+	assert.Equal(t, 0, bp.HeaderStore().Len())
 }
 
 func TestBlockPool_ClearBodyMiniPool(t *testing.T) {
@@ -248,16 +248,16 @@ func TestBlockPool_ClearBodyMiniPool(t *testing.T) {
 	bp.AddBody(0, &blk)
 	bp.AddBody(1, &blk)
 	bp.AddBody(2, &blk)
-	assert.Equal(t, 3, bp.MiniPoolBodyStore().Len())
+	assert.Equal(t, 3, bp.BodyStore().Len())
 
 	bp.ClearBodyMiniPool()
-	assert.Equal(t, 0, bp.MiniPoolBodyStore().Len())
+	assert.Equal(t, 0, bp.BodyStore().Len())
 }
 
-func receivedHeader(nounce uint64) {
-	fmt.Println(nounce)
+func receivedHeader(nonce uint64) {
+	fmt.Println(nonce)
 }
 
-func receivedBody(nounce uint64) {
-	fmt.Println(nounce)
+func receivedBody(nonce uint64) {
+	fmt.Println(nonce)
 }

@@ -59,11 +59,11 @@ func NewBootstrap(
 	return &bs
 }
 
-// SynchBlocks method calls repeatedly synchronization method synchBlock
+// SynchBlocks method calls repeatedly synchronization method SynchBlock
 func (bs *bootstrap) SynchBlocks() {
 	for {
 		if bs.shouldSynch() {
-			err := bs.synchBlock()
+			err := bs.SynchBlock()
 			if err == nil {
 				fmt.Println("Body processed successfully")
 			}
@@ -71,17 +71,12 @@ func (bs *bootstrap) SynchBlocks() {
 	}
 }
 
-// synchBlock method actually does the synchronization. It requests the next block header from the pool and if it is not found
+// SynchBlock method actually does the synchronization. It requests the next block header from the pool and if it is not found
 // there it will be requested from the network. After the header is received, it requests the block body in the same
 // way(pool and than, if it is not found in the pool, from network). If either header and body are received the
 // ProcessBlock method will be called. This method will do execute the block and its transactions. Finally if everything
 // works, the block will be committed in the blockchain, and all this mechanism will be reiterated for the next block.
-func (bs *bootstrap) synchBlock() error {
-	var hdr *block.Header
-	var blk *block.Block
-
-	hdr = nil
-	blk = nil
+func (bs *bootstrap) SynchBlock() error {
 	bs.requestedHeaderNounce = -1
 	bs.requestedBodyNounce = -1
 
@@ -90,7 +85,7 @@ func (bs *bootstrap) synchBlock() error {
 		nounce = bs.blkc.CurrentBlockHeader.Nonce + 1
 	}
 
-	hdr = bs.getHeaderFromPool(nounce)
+	hdr := bs.getHeaderFromPool(nounce)
 
 	if hdr == nil {
 		bs.requestHeader(nounce)
@@ -101,7 +96,7 @@ func (bs *bootstrap) synchBlock() error {
 		}
 	}
 
-	blk = bs.getBodyFromPool(nounce)
+	blk := bs.getBodyFromPool(nounce)
 
 	if blk == nil {
 		bs.requestBody(nounce)
@@ -139,7 +134,7 @@ func (bs *bootstrap) getHeaderFromPool(nounce uint64) *block.Header {
 		return nil
 	}
 
-	headerStore := bs.bp.HeaderStore
+	headerStore := bs.bp.HeaderStore()
 
 	if headerStore == nil {
 		return nil
@@ -189,7 +184,7 @@ func (bs *bootstrap) getBodyFromPool(nounce uint64) *block.Block {
 		return nil
 	}
 
-	blockStore := bs.bp.BodyStore
+	blockStore := bs.bp.BodyStore()
 
 	if blockStore == nil {
 		return nil
