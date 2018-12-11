@@ -1,7 +1,7 @@
 package syncBlock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 func (boot *bootstrap) ReceivedHeader(nonce uint64) {
@@ -16,12 +16,8 @@ func (boot *bootstrap) ShouldSync() bool {
 	return boot.shouldSync()
 }
 
-func (boot *bootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
-	return boot.getHeaderFromPool(nonce)
-}
-
-func (boot *bootstrap) GetBodyFromPool(nonce uint64) *block.Block {
-	return boot.getBodyFromPool(nonce)
+func (boot *bootstrap) GetDataFromPool(store storage.Cacher, nonce uint64) interface{} {
+	return boot.getDataFromPool(store, nonce)
 }
 
 func (boot *bootstrap) RequestHeader(nonce uint64) {

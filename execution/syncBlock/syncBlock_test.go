@@ -1,6 +1,9 @@
 package syncBlock_test
 
 import (
+	"testing"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockPool"
@@ -9,8 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution/syncBlock"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
@@ -222,7 +223,7 @@ func TestShouldSyncShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 	assert.Equal(t, true, r)
 }
 
-func TestShouldSyncShouldReturnFalseWhenNodeIsSynched(t *testing.T) {
+func TestShouldSyncShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	hdr := block.Header{Nonce: 0}
 	blkc := blockchain.BlockChain{}
 	blkc.CurrentBlockHeader = &hdr
@@ -238,7 +239,7 @@ func TestShouldSyncShouldReturnFalseWhenNodeIsSynched(t *testing.T) {
 	assert.Equal(t, false, r)
 }
 
-func TestShouldSyncShouldReturnTrueWhenNodeIsNotSynched(t *testing.T) {
+func TestShouldSyncShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	hdr := block.Header{Nonce: 0}
 	blkc := blockchain.BlockChain{}
 	blkc.CurrentBlockHeader = &hdr
@@ -255,14 +256,16 @@ func TestShouldSyncShouldReturnTrueWhenNodeIsNotSynched(t *testing.T) {
 }
 
 func TestGetHeaderFromPoolShouldReturnNil(t *testing.T) {
+	bp := blockPool.NewBlockPool(nil)
+
 	bs, _ := syncBlock.NewBootstrap(
-		blockPool.NewBlockPool(nil),
+		bp,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.ExecBlockMock{},
 		WaitTime)
 
-	r := bs.GetHeaderFromPool(0)
+	r := bs.GetDataFromPool(bp.HeaderStore(), 0)
 	assert.Nil(t, r)
 }
 
@@ -279,19 +282,21 @@ func TestGetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	hdr := block.Header{Nonce: 0}
 
 	bp.AddHeader(0, &hdr)
-	r := bs.GetHeaderFromPool(0)
+	r := bs.GetDataFromPool(bp.HeaderStore(), 0)
 	assert.Equal(t, &hdr, r)
 }
 
 func TestGetBlockFromPoolShouldReturnNil(t *testing.T) {
+	bp := blockPool.NewBlockPool(nil)
+
 	bs, _ := syncBlock.NewBootstrap(
-		blockPool.NewBlockPool(nil),
+		bp,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.ExecBlockMock{},
 		WaitTime)
 
-	r := bs.GetBodyFromPool(0)
+	r := bs.GetDataFromPool(bp.BodyStore(), 0)
 	assert.Nil(t, r)
 }
 
@@ -308,6 +313,6 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 	blk := block.Block{}
 
 	bp.AddBody(0, &blk)
-	r := bs.GetBodyFromPool(0)
+	r := bs.GetDataFromPool(bp.BodyStore(), 0)
 	assert.Equal(t, &blk, r)
 }

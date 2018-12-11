@@ -3,10 +3,11 @@ package blockPool_test
 import (
 	"encoding/binary"
 	"fmt"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockPool"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewBlockPool(t *testing.T) {

@@ -2,9 +2,10 @@ package blockPool
 
 import (
 	"encoding/binary"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"sync"
 )
 
 var defaultCacherConfig = &storage.CacheConfig{

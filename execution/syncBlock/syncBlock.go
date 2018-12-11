@@ -2,6 +2,7 @@ package syncBlock
 
 import (
 	"encoding/binary"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
@@ -10,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
-	"sync"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 var log = logger.NewDefaultLogger()
@@ -137,12 +138,12 @@ func (boot *bootstrap) setRequestedBodyNonce(nonce int64) {
 	boot.mutBody.Unlock()
 }
 
-// StartSync method will start SynchBlocks as a go routine
+// StartSync method will start SyncBlocks as a go routine
 func (boot *bootstrap) StartSync() {
 	go boot.syncBlocks()
 }
 
-// StopSync method will stop SynchBlocks
+// StopSync method will stop SyncBlocks
 func (boot *bootstrap) StopSync() {
 	boot.chStopSync <- true
 }
@@ -189,7 +190,7 @@ func (boot *bootstrap) SyncBlock() error {
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blk)
 
 	if err == nil {
-		log.Debug("block synched successfully")
+		log.Debug("block synced successfully")
 	}
 
 	return err
@@ -198,35 +199,35 @@ func (boot *bootstrap) SyncBlock() error {
 // getHeaderWithNonce method gets the header with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 func (boot *bootstrap) getHeaderWithNonce(nonce uint64) (*block.Header, error) {
-	hdr := boot.getHeaderFromPool(nonce)
+	hdr := boot.getDataFromPool(boot.blkPool.HeaderStore(), nonce)
 
 	if hdr == nil {
 		boot.requestHeader(nonce)
 		boot.waitForHeaderNonce()
-		hdr = boot.getHeaderFromPool(nonce)
+		hdr = boot.getDataFromPool(boot.blkPool.HeaderStore(), nonce)
 		if hdr == nil {
 			return nil, execution.ErrMissingHeader
 		}
 	}
 
-	return hdr, nil
+	return hdr.(*block.Header), nil
 }
 
 // getBodyWithNonce method gets the body with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 func (boot *bootstrap) getBodyWithNonce(nonce uint64) (*block.Block, error) {
-	blk := boot.getBodyFromPool(nonce)
+	blk := boot.getDataFromPool(boot.blkPool.BodyStore(), nonce)
 
 	if blk == nil {
 		boot.requestBody(nonce)
 		boot.waitForBodyNonce()
-		blk = boot.getBodyFromPool(nonce)
+		blk = boot.getDataFromPool(boot.blkPool.BodyStore(), nonce)
 		if blk == nil {
 			return nil, execution.ErrMissingBody
 		}
 	}
 
-	return blk, nil
+	return blk.(*block.Block), nil
 }
 
 // getNonceForNextBlock will get the nonce for the next block we should request
@@ -240,7 +241,7 @@ func (boot *bootstrap) getNonceForNextBlock() uint64 {
 }
 
 // shouldSync method returns the sync state of the node. If it returns true that means that the node should
-// continue the synching mechanism, otherwise the node should stop synching because it is already synched
+// continue the syncing mechanism, otherwise the node should stop syncing because it is already synced
 func (boot *bootstrap) shouldSync() bool {
 	if boot.blkc.CurrentBlockHeader == nil {
 		return boot.round.Index() > 0
@@ -249,24 +250,23 @@ func (boot *bootstrap) shouldSync() bool {
 	return boot.blkc.CurrentBlockHeader.Round+1 < uint32(boot.round.Index())
 }
 
-// getHeaderFromPool method returns the block header from a given nonce
-func (boot *bootstrap) getHeaderFromPool(nonce uint64) *block.Header {
-	headerStore := boot.blkPool.HeaderStore()
+// getDataFromPool method returns the block header or block body from a given nonce
+func (boot *bootstrap) getDataFromPool(store storage.Cacher, nonce uint64) interface{} {
 
-	if headerStore == nil {
+	if store == nil {
 		return nil
 	}
 
 	key := make([]byte, bytesInUint64)
 	binary.PutUvarint(key, nonce)
 
-	val, ok := headerStore.Get(key)
+	val, ok := store.Get(key)
 
 	if !ok {
 		return nil
 	}
 
-	return val.(*block.Header)
+	return val
 }
 
 // requestHeader method requests a block header from network when it is not found in the pool
@@ -295,26 +295,6 @@ func (boot *bootstrap) receivedHeader(nonce uint64) {
 
 		boot.chRcvHdr <- true
 	}
-}
-
-// getBodyFromPool method returns the block body from a given nonce
-func (boot *bootstrap) getBodyFromPool(nonce uint64) *block.Block {
-	bodyStore := boot.blkPool.BodyStore()
-
-	if bodyStore == nil {
-		return nil
-	}
-
-	key := make([]byte, bytesInUint64)
-	binary.PutUvarint(key, nonce)
-
-	val, ok := bodyStore.Get(key)
-
-	if !ok {
-		return nil
-	}
-
-	return val.(*block.Block)
 }
 
 // requestBody method requests a block body from network when it is not found in the pool
