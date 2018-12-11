@@ -1,22 +1,17 @@
-package exBlock_test
+package block_test
 
 import (
 	"testing"
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution/exBlock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	blproc "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
-
-// WaitTime defines the time in milliseconds until node waits the requested info from the network
-const WaitTime = time.Duration(100 * time.Millisecond)
 
 func blockchainConfig() *blockchain.Config {
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
@@ -40,7 +35,7 @@ func blockchainConfig() *blockchain.Config {
 func TestNewBlockExec(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
-	be := exBlock.NewExecBlock(
+	be := blproc.NewBlockProcessor(
 		tp,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -53,7 +48,7 @@ func TestNewBlockExec(t *testing.T) {
 func TestBlockExec_GetTransactionFromPool(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
-	be := exBlock.NewExecBlock(
+	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.ExecTransactionMock{},
@@ -82,7 +77,7 @@ func TestBlockExec_GetTransactionFromPool(t *testing.T) {
 func TestBlockExec_RequestTransactionFromNetwork(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
-	be := exBlock.NewExecBlock(
+	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.ExecTransactionMock{},
@@ -96,7 +91,7 @@ func TestBlockExec_RequestTransactionFromNetwork(t *testing.T) {
 	mBlocks := make([]block.MiniBlock, 0)
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
-	mBlk := block.MiniBlock{DestShardID: shardId, TxHashes: txHashes}
+	mBlk := block.MiniBlock{ShardID: shardId, TxHashes: txHashes}
 	mBlocks = append(mBlocks, mBlk)
 	blk.MiniBlocks = mBlocks
 	tx1 := &transaction.Transaction{Nonce: 7}
@@ -112,7 +107,7 @@ func TestBlockExec_RequestTransactionFromNetwork(t *testing.T) {
 func TestBlockExec_VerifyBlockSignature(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
-	be := exBlock.NewExecBlock(
+	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.ExecTransactionMock{},
@@ -135,7 +130,7 @@ func TestBlockExec_ProcessBlock(t *testing.T) {
 		return nil
 	}
 	accountsAdapter := &mock.AccountsStub{}
-	be := exBlock.NewExecBlock(
+	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&etm,
@@ -143,7 +138,7 @@ func TestBlockExec_ProcessBlock(t *testing.T) {
 	)
 
 	err := be.ProcessBlock(nil, nil, nil)
-	assert.Equal(t, execution.ErrNilBlockChain, err)
+	assert.Equal(t, process.ErrNilBlockChain, err)
 
 	blkc, err := blockchain.NewBlockChain(blockchainConfig())
 	assert.Nil(t, err)
@@ -154,44 +149,44 @@ func TestBlockExec_ProcessBlock(t *testing.T) {
 	}()
 
 	err = be.ProcessBlock(blkc, nil, nil)
-	assert.Equal(t, execution.ErrNilBlockHeader, err)
+	assert.Equal(t, process.ErrNilBlockHeader, err)
 
 	hdr := block.Header{Nonce: 0, PrevHash: []byte("")}
 
 	err = be.ProcessBlock(blkc, &hdr, nil)
-	assert.Equal(t, execution.ErrNilBlockBody, err)
+	assert.Equal(t, process.ErrNilBlockBody, err)
 
 	hdr.Nonce = 2
 	hdr.Round = 2
 	blk := block.TxBlockBody{}
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
-	assert.Equal(t, execution.ErrWrongNonceInBlock, err)
+	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	blkc.CurrentBlockHeader = &block.Header{Nonce: 1, BlockBodyHash: []byte("blk_hash1")}
 	hdr.Nonce = 1
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
-	assert.Equal(t, execution.ErrWrongNonceInBlock, err)
+	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 3
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
-	assert.Equal(t, execution.ErrWrongNonceInBlock, err)
+	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 
 	hdr.Nonce = 2
 	hdr.PrevHash = []byte("blk_hash2")
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
-	assert.Equal(t, execution.ErrInvalidBlockHash, err)
+	assert.Equal(t, process.ErrInvalidBlockHash, err)
 
 	hdr.PrevHash = []byte("blk_hash1")
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
-	assert.Equal(t, execution.ErrInvalidBlockSignature, err)
+	assert.Equal(t, process.ErrInvalidBlockSignature, err)
 
 	hdr.Signature = []byte("blk_sig1")
-	blk.MiniBlocks = append(blk.MiniBlocks, block.MiniBlock{DestShardID: 0})
+	blk.MiniBlocks = append(blk.MiniBlocks, block.MiniBlock{ShardID: 0})
 	blk.MiniBlocks[0].TxHashes = append(blk.MiniBlocks[0].TxHashes, []byte("tx_hash1"))
 
 	tp.AddTransaction([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 0)

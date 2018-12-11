@@ -1,4 +1,4 @@
-package execution
+package process
 
 import (
 	"errors"
@@ -16,7 +16,7 @@ var ErrNilAddressConverter = errors.New("nil AddressConverter")
 // ErrNilTransaction signals that an operation has been attempted to or with a nil transaction
 var ErrNilTransaction = errors.New("nil transaction")
 
-// ErrNoVM signals that no SChandler has been set
+// ErrNoVM signals that no SCHandler has been set
 var ErrNoVM = errors.New("no VM (hook not set)")
 
 // ErrHigherNonceInTransaction signals the nonce in transaction is higher than the account's nonce
@@ -39,12 +39,6 @@ var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
-
-// ErrHigherNonceInBlock signals the nonce in block is higher than next expected nounce
-var ErrHigherNonceInBlock = errors.New("higher nonce in block, waiting for the right one")
-
-// ErrLowerNonceInBlock signals the nonce in block is lower than next expected nounce
-var ErrLowerNonceInBlock = errors.New("lower nonce in block")
 
 // ErrWrongNonceInBlock signals the nonce in block is different than expected nounce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")

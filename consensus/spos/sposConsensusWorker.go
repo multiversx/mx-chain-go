@@ -63,7 +63,7 @@ type ConsensusData struct {
 	PubKeys   [][]byte
 	Signature []byte
 	MsgType   MessageType
-	TimeStamp []byte
+	TimeStamp uint64
 }
 
 // NewConsensusData creates a new ConsensusData object
@@ -72,7 +72,7 @@ func NewConsensusData(
 	pks [][]byte,
 	sig []byte,
 	msg MessageType,
-	tms []byte,
+	tms uint64,
 ) *ConsensusData {
 
 	return &ConsensusData{
@@ -207,7 +207,7 @@ func (com *SPOSConsensusWorker) DoEndRoundJob() bool {
 		for i := 0; i < len(com.Blk.MiniBlocks); i++ {
 			for j := 0; j < len(com.Blk.MiniBlocks[i].TxHashes); j++ {
 				com.TxP.RemoveTransaction(com.Blk.MiniBlocks[i].TxHashes[j],
-					com.Blk.MiniBlocks[i].DestShardID)
+					com.Blk.MiniBlocks[i].ShardID)
 			}
 		}
 	}
@@ -273,7 +273,7 @@ func (com *SPOSConsensusWorker) SendBlockBody() bool {
 		nil,
 		[]byte(com.Cns.SelfId()),
 		MtBlockBody,
-		[]byte(com.GetTime()))
+		com.GetTime())
 
 	if !com.BroadcastMessage(dta) {
 		return false
@@ -302,7 +302,7 @@ func (com *SPOSConsensusWorker) CreateMiniBlocks() []block.MiniBlock {
 		}
 
 		mblk := block.MiniBlock{}
-		mblk.DestShardID = uint32(i)
+		mblk.ShardID = uint32(i)
 		mblk.TxHashes = make([][]byte, 0)
 
 		for _, txHash := range txStore.Keys() {
@@ -341,11 +341,11 @@ func (com *SPOSConsensusWorker) SendBlockHeader() bool {
 	if com.Blkc.CurrentBlockHeader == nil {
 		hdr.Nonce = 1
 		hdr.Round = uint32(com.Cns.Chr.Round().Index())
-		hdr.TimeStamp = []byte(com.GetTime())
+		hdr.TimeStamp = com.GetTime()
 	} else {
 		hdr.Nonce = com.Blkc.CurrentBlockHeader.Nonce + 1
 		hdr.Round = uint32(com.Cns.Chr.Round().Index())
-		hdr.TimeStamp = []byte(com.GetTime())
+		hdr.TimeStamp = com.GetTime()
 		hdr.PrevHash = com.Blkc.CurrentBlockHeader.BlockBodyHash
 	}
 
@@ -370,7 +370,7 @@ func (com *SPOSConsensusWorker) SendBlockHeader() bool {
 		nil,
 		[]byte(com.Cns.SelfId()),
 		MtBlockHeader,
-		[]byte(com.GetTime()))
+		com.GetTime())
 
 	if !com.BroadcastMessage(dta) {
 		return false
@@ -403,7 +403,7 @@ func (com *SPOSConsensusWorker) DoCommitmentHashJob() bool {
 		nil,
 		[]byte(com.Cns.SelfId()),
 		MtCommitmentHash,
-		[]byte(com.GetTime()))
+		com.GetTime())
 
 	if !com.BroadcastMessage(dta) {
 		return false
@@ -444,7 +444,7 @@ func (com *SPOSConsensusWorker) DoBitmapJob() bool {
 		pks,
 		[]byte(com.Cns.SelfId()),
 		MtBitmap,
-		[]byte(com.GetTime()))
+		com.GetTime())
 
 	if !com.BroadcastMessage(dta) {
 		return false
@@ -481,7 +481,7 @@ func (com *SPOSConsensusWorker) DoCommitmentJob() bool {
 		nil,
 		[]byte(com.Cns.SelfId()),
 		MtCommitment,
-		[]byte(com.GetTime()))
+		com.GetTime())
 
 	if !com.BroadcastMessage(dta) {
 		return false
@@ -514,7 +514,7 @@ func (com *SPOSConsensusWorker) DoSignatureJob() bool {
 		nil,
 		[]byte(com.Cns.SelfId()),
 		MtSignature,
-		[]byte(com.GetTime()))
+		com.GetTime())
 
 	if !com.BroadcastMessage(dta) {
 		return false
@@ -912,8 +912,8 @@ func (com *SPOSConsensusWorker) GetFormatedTime() string {
 }
 
 // GetTime method returns a string containing the current time
-func (com *SPOSConsensusWorker) GetTime() string {
-	return com.Cns.Chr.SyncTime().CurrentTime(com.Cns.Chr.ClockOffset()).String()
+func (com *SPOSConsensusWorker) GetTime() uint64 {
+	return uint64(com.Cns.Chr.SyncTime().CurrentTime(com.Cns.Chr.ClockOffset()).Unix())
 }
 
 // Log method prints info about consensus (if log is true)

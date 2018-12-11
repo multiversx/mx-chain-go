@@ -11,15 +11,23 @@ import (
 // each of the miniblocks has a different destination shard
 // The body can be transmitted even before having built the heder and go through a prevalidation of each transaction
 
-// MiniBlock holds the transactions with sender in node's shard and receiver in DestShardID
+type BlockType uint8
+
+const (
+	TxBlock    BlockType = 0
+	StateBlock BlockType = 1
+	PeerBlock  BlockType = 2
+)
+
+// MiniBlock holds the transactions with one of the sender or recipient in node's shard and the other in ShardID
 type MiniBlock struct {
-	TxHashes    [][]byte `capid:"0"`
-	//TODO: change to ShardId
-	DestShardID uint32   `capid:"1"`
+	TxHashes [][]byte `capid:"0"`
+	ShardID  uint32   `capid:"1"`
 }
 
 type StateBlockBody struct {
 	RootHash []byte `capid:"0"`
+	ShardID  uint32 `capid:"1"`
 }
 
 type PeerChange struct {
@@ -43,15 +51,17 @@ type TxBlockBody struct {
 // Header holds the metadata of a block. This is the part that is being hashed and run through consensus.
 // The header holds the hash of the body and also the link to the previous block header hash
 type Header struct {
-	Nonce         uint64 `capid:"0"`
-	PrevHash      []byte `capid:"1"`
-	PubKeysBitmap []bool `capid:"2"`
-	ShardId       uint32 `capid:"3"`
-	TimeStamp     []byte `capid:"4"`
-	Round         uint32 `capid:"5"`
-	BlockBodyHash []byte `capid:"6"`
-	Signature     []byte `capid:"7"`
-	Commitment    []byte `capid:"8"`
+	Nonce         uint64    `capid:"0"`
+	PrevHash      []byte    `capid:"1"`
+	PubKeysBitmap []byte    `capid:"2"`
+	ShardId       uint32    `capid:"3"`
+	TimeStamp     uint64    `capid:"4"`
+	Round         uint32    `capid:"5"`
+	Epoch         uint32    `capid:"6"`
+	BlockBodyHash []byte    `capid:"7"`
+	BlockBodyType BlockType `capid:"8"`
+	Signature     []byte    `capid:"9"`
+	Commitment    []byte    `capid:"10"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -84,15 +94,19 @@ func HeaderCapnToGo(src capnproto1.HeaderCapn, dest *Header) *Header {
 	// PrevHash
 	dest.PrevHash = src.PrevHash()
 	// PubKeysBitmap
-	dest.PubKeysBitmap = src.PubKeysBitmap().ToArray()
+	dest.PubKeysBitmap = src.PubKeysBitmap()
 	// ShardId
 	dest.ShardId = src.ShardId()
 	// TimeStamp
 	dest.TimeStamp = src.TimeStamp()
 	// Round
 	dest.Round = src.Round()
+	// Epoch
+	dest.Epoch = src.Epoch()
 	// BlockBodyHash
 	dest.BlockBodyHash = src.BlockBodyHash()
+	// BlockBodyType
+	dest.BlockBodyType = BlockType(src.BlockBodyType())
 	// Signature
 	dest.Signature = src.Signature()
 	// Commitment
@@ -104,19 +118,16 @@ func HeaderCapnToGo(src capnproto1.HeaderCapn, dest *Header) *Header {
 // HeaderGoToCapn is a helper function to copy fields from a Block Header object to a HeaderCapn object
 func HeaderGoToCapn(seg *capn.Segment, src *Header) capnproto1.HeaderCapn {
 	dest := capnproto1.AutoNewHeaderCapn(seg)
+
 	dest.SetNonce(src.Nonce)
 	dest.SetPrevHash(src.PrevHash)
-
-	bitList := seg.NewBitList(len(src.PubKeysBitmap))
-	for i := range src.PubKeysBitmap {
-		bitList.Set(i, src.PubKeysBitmap[i])
-	}
-	dest.SetPubKeysBitmap(bitList)
-
+	dest.SetPubKeysBitmap(src.PubKeysBitmap)
 	dest.SetShardId(src.ShardId)
 	dest.SetTimeStamp(src.TimeStamp)
 	dest.SetRound(src.Round)
+	dest.SetEpoch(src.Epoch)
 	dest.SetBlockBodyHash(src.BlockBodyHash)
+	dest.SetBlockBodyType(uint8(src.BlockBodyType))
 	dest.SetSignature(src.Signature)
 	dest.SetCommitment(src.Commitment)
 
@@ -157,7 +168,7 @@ func MiniBlockCapnToGo(src capnproto1.MiniBlockCapn, dest *MiniBlock) *MiniBlock
 		dest.TxHashes[i] = src.TxHashes().At(i)
 	}
 
-	dest.DestShardID = src.DestShardID()
+	dest.ShardID = src.ShardID()
 
 	return dest
 }
@@ -171,7 +182,7 @@ func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnproto1.MiniBlockCa
 		mylist1.Set(i, src.TxHashes[i])
 	}
 	dest.SetTxHashes(mylist1)
-	dest.SetDestShardID(src.DestShardID)
+	dest.SetShardID(src.ShardID)
 
 	return dest
 }
@@ -303,6 +314,8 @@ func StateBlockBodyCapnToGo(src capnproto1.StateBlockBodyCapn, dest *StateBlockB
 
 	// RootHash
 	dest.RootHash = src.RootHash()
+	// ShardId
+	dest.ShardID = src.ShardID()
 
 	return dest
 }
@@ -312,6 +325,7 @@ func StateBlockBodyGoToCapn(seg *capn.Segment, src *StateBlockBody) capnproto1.S
 	dest := capnproto1.AutoNewStateBlockBodyCapn(seg)
 
 	dest.SetRootHash(src.RootHash)
+	dest.SetShardID(src.ShardID)
 
 	return dest
 }

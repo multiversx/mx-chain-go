@@ -1,12 +1,12 @@
-package exTransaction
+package transaction
 
 import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 // execTransaction implements TransactionExecutor interface and can modify account states according to a transaction
@@ -22,15 +22,15 @@ func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
 	addressConv state.AddressConverter) (*execTransaction, error) {
 
 	if accounts == nil {
-		return nil, execution.ErrNilAccountsAdapter
+		return nil, process.ErrNilAccountsAdapter
 	}
 
 	if hasher == nil {
-		return nil, execution.ErrNilHasher
+		return nil, process.ErrNilHasher
 	}
 
 	if addressConv == nil {
-		return nil, execution.ErrNilAddressConverter
+		return nil, process.ErrNilAddressConverter
 	}
 
 	return &execTransaction{
@@ -40,20 +40,20 @@ func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
 	}, nil
 }
 
-// SChandler returns the smart contract execution function
-func (et *execTransaction) SChandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error {
+// SCHandler returns the smart contract execution function
+func (et *execTransaction) SCHandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error {
 	return et.scHandler
 }
 
-// SetSChandler sets the smart contract execution function
-func (et *execTransaction) SetSChandler(f func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error) {
+// SetSCHandler sets the smart contract execution function
+func (et *execTransaction) SetSCHandler(f func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error) {
 	et.scHandler = f
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error {
 	if tx == nil {
-		return execution.ErrNilTransaction
+		return process.ErrNilTransaction
 	}
 
 	adrSrc, adrDest, err := et.getAddresses(tx)
@@ -67,25 +67,21 @@ func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error
 	}
 
 	if acntSrc == nil || acntDest == nil {
-		return execution.ErrNilValue
+		return process.ErrNilValue
 	}
 
 	if acntDest.Code() != nil {
 		return et.callSChandler(tx)
 	}
 
-	value := big.NewInt(0)
-	err = value.GobDecode(tx.Value)
+	value := tx.Value
+
+	err = et.checkTxValues(acntSrc, &value, tx.Nonce)
 	if err != nil {
 		return err
 	}
 
-	err = et.checkTxValues(acntSrc, value, tx.Nonce)
-	if err != nil {
-		return err
-	}
-
-	err = et.moveBalances(acntSrc, acntDest, value)
+	err = et.moveBalances(acntSrc, acntDest, &value)
 	if err != nil {
 		return err
 	}
@@ -110,7 +106,7 @@ func (et *execTransaction) getAddresses(tx *transaction.Transaction) (adrSrc, ad
 
 func (et *execTransaction) getAccounts(adrSrc, adrDest state.AddressContainer) (acntSrc, acntDest state.JournalizedAccountWrapper, err error) {
 	if adrSrc == nil || adrDest == nil {
-		err = execution.ErrNilValue
+		err = process.ErrNilValue
 		return
 	}
 
@@ -125,7 +121,7 @@ func (et *execTransaction) getAccounts(adrSrc, adrDest state.AddressContainer) (
 
 func (et *execTransaction) callSChandler(tx *transaction.Transaction) error {
 	if et.scHandler == nil {
-		return execution.ErrNoVM
+		return process.ErrNoVM
 	}
 
 	return et.scHandler(et.accounts, tx)
@@ -133,17 +129,17 @@ func (et *execTransaction) callSChandler(tx *transaction.Transaction) error {
 
 func (et *execTransaction) checkTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {
 	if acntSrc.BaseAccount().Nonce < nonce {
-		return execution.ErrHigherNonceInTransaction
+		return process.ErrHigherNonceInTransaction
 	}
 
 	if acntSrc.BaseAccount().Nonce > nonce {
-		return execution.ErrLowerNonceInTransaction
+		return process.ErrLowerNonceInTransaction
 	}
 
 	//negative balance test is done in transaction interceptor as the transaction is invalid and thus shall not disseminate
 
 	if acntSrc.BaseAccount().Balance.Cmp(value) < 0 {
-		return execution.ErrInsufficientFunds
+		return process.ErrInsufficientFunds
 	}
 
 	return nil

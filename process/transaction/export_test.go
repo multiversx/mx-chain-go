@@ -1,9 +1,10 @@
-package exTransaction
+package transaction
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"math/big"
 )
 
 func (et *execTransaction) GetAddresses(tx *transaction.Transaction) (adrSrc, adrDest state.AddressContainer, err error) {
@@ -14,7 +15,7 @@ func (et *execTransaction) GetAccounts(adrSrc, adrDest state.AddressContainer) (
 	return et.getAccounts(adrSrc, adrDest)
 }
 
-func (et *execTransaction) CallSChandler(tx *transaction.Transaction) error {
+func (et *execTransaction) CallSCHandler(tx *transaction.Transaction) error {
 	return et.callSChandler(tx)
 }
 
