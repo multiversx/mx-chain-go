@@ -75,3 +75,12 @@ var ErrMissingHeader = errors.New("missing header")
 
 // ErrMissingBody signals that body of the block is missing
 var ErrMissingBody = errors.New("missing body")
+
+// ErrNilBlockExecutor signals that an operation has been attempted to or with a nil BlockExecutor implementation
+var ErrNilBlockExecutor = errors.New("nil BlockExecutor")
+
+// ErrNilBlockPool signals that an operation has been attempted to or with a nil BlockPool
+var ErrNilBlockPool = errors.New("nil BlockPool")
+
+// ErrNilRound signals that an operation has been attempted to or with a nil Round
+var ErrNilRound = errors.New("nil Round")
