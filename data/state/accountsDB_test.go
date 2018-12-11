@@ -44,6 +44,8 @@ func accountsDBCreateAccountsDB() *state.AccountsDB {
 	return adb
 }
 
+//------- NewAccountsDB
+
 func TestNewAccountsDBWithNilTrieShouldErr(t *testing.T) {
 	_, err := state.NewAccountsDB(nil, mock.HasherMock{}, &mock.MarshalizerMock{})
 	assert.NotNil(t, err)
@@ -420,6 +422,72 @@ func TestAccountsDBGetJournalizedAccountNotFoundShouldCreateEmpty(t *testing.T) 
 	assert.Equal(t, []byte(nil), account.BaseAccount().CodeHash)
 	assert.Equal(t, []byte(nil), account.BaseAccount().RootHash)
 	assert.Equal(t, adr, account.AddressContainer())
+}
+
+//------- GetExistingAccount
+
+func TestAccountsDBGetExistingAccountNilTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(nil)
+
+	_, err := adb.GetExistingAccount(adr)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBGetExistingAccountMalfunctionTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	trieMock := mock.NewMockTrie()
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(trieMock)
+	trieMock.FailGet = true
+
+	_, err := adb.GetExistingAccount(adr)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDBGetExistingAccountNotFoundShouldRetNil(t *testing.T) {
+	t.Parallel()
+
+	trieMock := mock.NewMockTrie()
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(trieMock)
+
+	account, err := adb.GetExistingAccount(adr)
+	assert.Nil(t, err)
+	assert.Nil(t, account)
+	//no journal entry shall be created
+	assert.Equal(t, 0, adb.JournalLen())
+}
+
+func TestAccountsDBGetExistingAccountFoundShouldRetAccount(t *testing.T) {
+	t.Parallel()
+
+	trieMock := mock.NewMockTrie()
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(trieMock)
+
+	//create a new account
+	acnt, err := adb.GetJournalizedAccount(adr)
+	assert.Nil(t, err)
+
+	err = acnt.SetNonceWithJournal(45)
+	assert.Nil(t, err)
+
+	_, err = adb.Commit()
+	assert.Nil(t, err)
+
+	account, err := adb.GetExistingAccount(adr)
+	assert.Nil(t, err)
+	assert.NotNil(t, account)
+	assert.Equal(t, uint64(45), account.BaseAccount().Nonce)
+	//no journal entry shall be created
+	assert.Equal(t, 0, adb.JournalLen())
 }
 
 //------- getAccount

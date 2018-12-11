@@ -408,7 +408,7 @@ func TestJournalEntryRootHashRevertOkValsShouldWork(t *testing.T) {
 		return nil
 	}
 
-	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.AccountWrapper) error {
 		wasCalledRetrieved = true
 
 		return nil
@@ -472,7 +472,7 @@ func TestJournalEntryRootHashRevertNilCodeHashShouldWork(t *testing.T) {
 		return nil
 	}
 
-	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.AccountWrapper) error {
 		wasCalledRetrieved = true
 
 		return nil
@@ -499,7 +499,7 @@ func TestJournalEntryRootHashRevertAccountsAdapterSaveErrorShouldErr(t *testing.
 		return errors.New("failure")
 	}
 
-	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.AccountWrapper) error {
 		wasCalledRetrieved = true
 
 		return nil
@@ -532,7 +532,7 @@ func TestJournalEntryRootHashRevertAccountsAdapterRetrieveErrorShouldErr(t *test
 		return nil
 	}
 
-	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.JournalizedAccountWrapper) error {
+	acntAdapter.RetrieveDataTrieCalled = func(acountWrapper state.AccountWrapper) error {
 		wasCalledRetrieved = true
 
 		return errors.New("failure")

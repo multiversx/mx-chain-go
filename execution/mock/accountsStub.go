@@ -8,12 +8,13 @@ type AccountsStub struct {
 	AddJournalEntryCalled        func(je state.JournalEntry)
 	CommitCalled                 func() ([]byte, error)
 	GetJournalizedAccountCalled  func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error)
+	GetExistingAccountCalled     func(addressContainer state.AddressContainer) (state.AccountWrapper, error)
 	HasAccountCalled             func(addressContainer state.AddressContainer) (bool, error)
 	JournalLenCalled             func() int
 	PutCodeCalled                func(journalizedAccountWrapper state.JournalizedAccountWrapper, code []byte) error
 	RemoveAccountCalled          func(addressContainer state.AddressContainer) error
 	RemoveCodeCalled             func(codeHash []byte) error
-	LoadDataTrieCalled           func(journalizedAccountWrapper state.JournalizedAccountWrapper) error
+	LoadDataTrieCalled           func(accountWrapper state.AccountWrapper) error
 	RevertToSnapshotCalled       func(snapshot int) error
 	SaveJournalizedAccountCalled func(journalizedAccountWrapper state.JournalizedAccountWrapper) error
 	SaveDataCalled               func(journalizedAccountWrapper state.JournalizedAccountWrapper) error
@@ -53,8 +54,8 @@ func (as *AccountsStub) RemoveCode(codeHash []byte) error {
 	return as.RemoveCodeCalled(codeHash)
 }
 
-func (as *AccountsStub) LoadDataTrie(journalizedAccountWrapper state.JournalizedAccountWrapper) error {
-	return as.LoadDataTrieCalled(journalizedAccountWrapper)
+func (as *AccountsStub) LoadDataTrie(accountWrapper state.AccountWrapper) error {
+	return as.LoadDataTrieCalled(accountWrapper)
 }
 
 func (as *AccountsStub) RevertToSnapshot(snapshot int) error {
@@ -75,4 +76,8 @@ func (as *AccountsStub) RootHash() []byte {
 
 func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
 	return as.RecreateTrieCalled(rootHash)
+}
+
+func (as *AccountsStub) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
+	return as.GetExistingAccountCalled(addressContainer)
 }
