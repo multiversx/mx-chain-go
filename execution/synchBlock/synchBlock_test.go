@@ -35,8 +35,8 @@ func TestBootstrap_SynchBlock(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 
 	bs := synchBlock.NewBootstrap(bp, &blkc, nil, &ebm, WaitTime)
-	bs.OnRequestHeader = func(nounce uint64) {}
-	bs.OnRequestBody = func(nounce uint64) {}
+	bs.OnRequestHeader = func(nonce uint64) {}
+	bs.OnRequestBody = func(nonce uint64) {}
 
 	r := bs.SynchBlock()
 

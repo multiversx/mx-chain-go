@@ -19,14 +19,14 @@ type bootstrap struct {
 	round       *chronology.Round
 	blkExecutor execution.BlockExecutor
 
-	requestedHeaderNounce int64
-	chRcvHdr              chan bool
+	requestedHeaderNonce int64
+	chRcvHdr             chan bool
 
-	requestedBodyNounce int64
-	chRcvBdy            chan bool
+	requestedBodyNonce int64
+	chRcvBdy           chan bool
 
-	OnRequestHeader func(nounce uint64)
-	OnRequestBody   func(nounce uint64)
+	OnRequestHeader func(nonce uint64)
+	OnRequestBody   func(nonce uint64)
 
 	waitTime time.Duration
 }
@@ -77,31 +77,31 @@ func (bs *bootstrap) SynchBlocks() {
 // ProcessBlock method will be called. This method will do execute the block and its transactions. Finally if everything
 // works, the block will be committed in the blockchain, and all this mechanism will be reiterated for the next block.
 func (bs *bootstrap) SynchBlock() error {
-	bs.requestedHeaderNounce = -1
-	bs.requestedBodyNounce = -1
+	bs.requestedHeaderNonce = -1
+	bs.requestedBodyNonce = -1
 
-	nounce := uint64(1) // first block nounce after genesis block
+	nonce := uint64(1) // first block nonce after genesis block
 	if bs.blkc != nil && bs.blkc.CurrentBlockHeader != nil {
-		nounce = bs.blkc.CurrentBlockHeader.Nonce + 1
+		nonce = bs.blkc.CurrentBlockHeader.Nonce + 1
 	}
 
-	hdr := bs.getHeaderFromPool(nounce)
+	hdr := bs.getHeaderFromPool(nonce)
 
 	if hdr == nil {
-		bs.requestHeader(nounce)
-		bs.waitForHeaderNounce()
-		hdr = bs.getHeaderFromPool(nounce)
+		bs.requestHeader(nonce)
+		bs.waitForHeaderNonce()
+		hdr = bs.getHeaderFromPool(nonce)
 		if hdr == nil {
 			return execution.ErrMissingHeader
 		}
 	}
 
-	blk := bs.getBodyFromPool(nounce)
+	blk := bs.getBodyFromPool(nonce)
 
 	if blk == nil {
-		bs.requestBody(nounce)
-		bs.waitForBodyNounce()
-		blk = bs.getBodyFromPool(nounce)
+		bs.requestBody(nonce)
+		bs.waitForBodyNonce()
+		blk = bs.getBodyFromPool(nonce)
 		if blk == nil {
 			return execution.ErrMissingBody
 		}
@@ -128,8 +128,8 @@ func (bs *bootstrap) shouldSynch() bool {
 	return bs.blkc.CurrentBlockHeader.Round+1 < uint32(bs.round.Index())
 }
 
-// getHeaderFromPool method returns the block header from a given nounce
-func (bs *bootstrap) getHeaderFromPool(nounce uint64) *block.Header {
+// getHeaderFromPool method returns the block header from a given nonce
+func (bs *bootstrap) getHeaderFromPool(nonce uint64) *block.Header {
 	if bs.bp == nil {
 		return nil
 	}
@@ -141,7 +141,7 @@ func (bs *bootstrap) getHeaderFromPool(nounce uint64) *block.Header {
 	}
 
 	key := make([]byte, 8)
-	binary.PutUvarint(key, nounce)
+	binary.PutUvarint(key, nonce)
 
 	val, ok := headerStore.Get(key)
 
@@ -153,15 +153,15 @@ func (bs *bootstrap) getHeaderFromPool(nounce uint64) *block.Header {
 }
 
 // requestHeader method requests a block header from network when it is not found in the pool
-func (bs *bootstrap) requestHeader(nounce uint64) {
+func (bs *bootstrap) requestHeader(nonce uint64) {
 	if bs.OnRequestHeader != nil {
-		bs.requestedHeaderNounce = int64(nounce)
-		bs.OnRequestHeader(nounce)
+		bs.requestedHeaderNonce = int64(nonce)
+		bs.OnRequestHeader(nonce)
 	}
 }
 
-// waitForHeaderNounce method wait for header with the requested nounce to be received
-func (bs *bootstrap) waitForHeaderNounce() {
+// waitForHeaderNonce method wait for header with the requested nonce to be received
+func (bs *bootstrap) waitForHeaderNonce() {
 	select {
 	case <-bs.chRcvHdr:
 		return
@@ -171,15 +171,15 @@ func (bs *bootstrap) waitForHeaderNounce() {
 }
 
 // receivedHeader method is a call back function which is called when a new header is added in the block headers pool
-func (bs *bootstrap) receivedHeader(nounce uint64) {
-	if bs.requestedHeaderNounce == int64(nounce) {
-		bs.requestedHeaderNounce = -1
+func (bs *bootstrap) receivedHeader(nonce uint64) {
+	if bs.requestedHeaderNonce == int64(nonce) {
+		bs.requestedHeaderNonce = -1
 		bs.chRcvHdr <- true
 	}
 }
 
-// getBodyFromPool method returns the block body from a given nounce
-func (bs *bootstrap) getBodyFromPool(nounce uint64) *block.Block {
+// getBodyFromPool method returns the block body from a given nonce
+func (bs *bootstrap) getBodyFromPool(nonce uint64) *block.Block {
 	if bs.bp == nil {
 		return nil
 	}
@@ -191,7 +191,7 @@ func (bs *bootstrap) getBodyFromPool(nounce uint64) *block.Block {
 	}
 
 	key := make([]byte, 8)
-	binary.PutUvarint(key, nounce)
+	binary.PutUvarint(key, nonce)
 
 	val, ok := blockStore.Get(key)
 
@@ -203,15 +203,15 @@ func (bs *bootstrap) getBodyFromPool(nounce uint64) *block.Block {
 }
 
 // requestBody method requests a block body from network when it is not found in the pool
-func (bs *bootstrap) requestBody(nounce uint64) {
+func (bs *bootstrap) requestBody(nonce uint64) {
 	if bs.OnRequestBody != nil {
-		bs.requestedBodyNounce = int64(nounce)
-		bs.OnRequestBody(nounce)
+		bs.requestedBodyNonce = int64(nonce)
+		bs.OnRequestBody(nonce)
 	}
 }
 
-// waitForBodyNounce method wait for body with the requested nounce to be received
-func (bs *bootstrap) waitForBodyNounce() {
+// waitForBodyNonce method wait for body with the requested nonce to be received
+func (bs *bootstrap) waitForBodyNonce() {
 	select {
 	case <-bs.chRcvBdy:
 		return
@@ -221,9 +221,9 @@ func (bs *bootstrap) waitForBodyNounce() {
 }
 
 // receivedBody method is a call back function which is called when a new body is added in the block bodies pool
-func (bs *bootstrap) receivedBody(nounce uint64) {
-	if bs.requestedBodyNounce == int64(nounce) {
-		bs.requestedBodyNounce = -1
+func (bs *bootstrap) receivedBody(nonce uint64) {
+	if bs.requestedBodyNonce == int64(nonce) {
+		bs.requestedBodyNonce = -1
 		bs.chRcvBdy <- true
 	}
 }
