@@ -90,7 +90,7 @@ type SPOSConsensusWorker struct {
 	Cns *Consensus
 
 	Hdr  *block.Header
-	Blk  *block.Block
+	Blk  *block.TxBlockBody
 	Blkc *blockchain.BlockChain
 	TxP  *transactionPool.TransactionPool
 
@@ -198,8 +198,8 @@ func (com *SPOSConsensusWorker) DoEndRoundJob() bool {
 
 	com.Blkc.CurrentBlockHeader = com.Hdr
 	com.Blkc.LocalHeight = int64(com.Hdr.Nonce)
-	com.Blkc.Put(blockchain.BlockHeaderUnit, com.Hdr.BlockHash, header)
-	com.Blkc.Put(blockchain.BlockUnit, com.Hdr.BlockHash, body)
+	com.Blkc.Put(blockchain.BlockHeaderUnit, com.Hdr.BlockBodyHash, header)
+	com.Blkc.Put(blockchain.TxBlockBodyUnit, com.Hdr.BlockBodyHash, body)
 
 	// TODO: Here the block should be add in the block pool, when its implementation will be finished
 
@@ -257,7 +257,7 @@ func (com *SPOSConsensusWorker) DoBlockJob() bool {
 
 // SendBlockBody method send the proposed block body in the Block subround
 func (com *SPOSConsensusWorker) SendBlockBody() bool {
-	blk := &block.Block{}
+	blk := &block.TxBlockBody{}
 
 	blk.MiniBlocks = com.CreateMiniBlocks()
 
@@ -346,7 +346,7 @@ func (com *SPOSConsensusWorker) SendBlockHeader() bool {
 		hdr.Nonce = com.Blkc.CurrentBlockHeader.Nonce + 1
 		hdr.Round = uint32(com.Cns.Chr.Round().Index())
 		hdr.TimeStamp = []byte(com.GetTime())
-		hdr.PrevHash = com.Blkc.CurrentBlockHeader.BlockHash
+		hdr.PrevHash = com.Blkc.CurrentBlockHeader.BlockBodyHash
 	}
 
 	message, err := com.marshalizer.Marshal(com.Blk)
@@ -356,7 +356,7 @@ func (com *SPOSConsensusWorker) SendBlockHeader() bool {
 		return false
 	}
 
-	hdr.BlockHash = com.hasher.Compute(string(message))
+	hdr.BlockBodyHash = com.hasher.Compute(string(message))
 
 	message, err = com.marshalizer.Marshal(hdr)
 
@@ -379,7 +379,7 @@ func (com *SPOSConsensusWorker) SendBlockHeader() bool {
 	com.Log(fmt.Sprintf(com.GetFormatedTime() + "Step 1: Sending block header"))
 
 	com.Hdr = hdr
-	com.Cns.Data = &com.Hdr.BlockHash
+	com.Cns.Data = &com.Hdr.BlockBodyHash
 
 	return true
 }
@@ -641,12 +641,12 @@ func (com *SPOSConsensusWorker) ReceivedBlockBody(cnsDta *ConsensusData) bool {
 }
 
 // DecodeBlockBody method decodes block body which is marshalized in the received message
-func (com *SPOSConsensusWorker) DecodeBlockBody(dta *[]byte) *block.Block {
+func (com *SPOSConsensusWorker) DecodeBlockBody(dta *[]byte) *block.TxBlockBody {
 	if dta == nil {
 		return nil
 	}
 
-	var blk block.Block
+	var blk block.TxBlockBody
 
 	err := com.marshalizer.Unmarshal(&blk, *dta)
 
@@ -683,7 +683,7 @@ func (com *SPOSConsensusWorker) ReceivedBlockHeader(cnsDta *ConsensusData) bool 
 	com.Log(fmt.Sprintf(com.GetFormatedTime() + "Step 1: Received block header"))
 
 	com.Hdr = hdr
-	com.Cns.Data = &com.Hdr.BlockHash
+	com.Cns.Data = &com.Hdr.BlockBodyHash
 
 	com.Cns.RoundConsensus.SetJobDone(node, SrBlock, true)
 	return true
@@ -845,12 +845,12 @@ func (com *SPOSConsensusWorker) CheckIfBlockIsValid(receivedHeader *block.Header
 	}
 
 	if receivedHeader.Nonce == com.Blkc.CurrentBlockHeader.Nonce+1 {
-		if bytes.Equal(receivedHeader.PrevHash, com.Blkc.CurrentBlockHeader.BlockHash) {
+		if bytes.Equal(receivedHeader.PrevHash, com.Blkc.CurrentBlockHeader.BlockBodyHash) {
 			return true
 		}
 
 		com.Log(fmt.Sprintf("Hash not match: local block hash is %s and node received block "+
-			"with previous hash %s", com.Blkc.CurrentBlockHeader.BlockHash, receivedHeader.PrevHash))
+			"with previous hash %s", com.Blkc.CurrentBlockHeader.BlockBodyHash, receivedHeader.PrevHash))
 		return false
 	}
 

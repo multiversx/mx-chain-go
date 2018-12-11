@@ -17,7 +17,7 @@ type TransactionExecutor interface {
 
 // BlockExecutor is the main interface for block execution engine
 type BlockExecutor interface {
-	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.Block) error
+	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
 }
 
 // Checker checks the integrity of a data structure

@@ -3,22 +3,25 @@ package blockchain
 import (
 	"sync"
 
-	"github.com/pkg/errors"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/pkg/errors"
 )
 
 var log = logger.NewDefaultLogger()
 
 const (
-	// TransactionUnit is the transactions Storage unit identifier
+	// TransactionUnit is the transactions storage unit identifier
 	TransactionUnit UnitType = 0
-	// BlockUnit is the Blocks Storage unit identifier
-	BlockUnit UnitType = 1
+	// TxBlockBodyUnit is the transaction block body storage unit identifier
+	TxBlockBodyUnit UnitType = 1
+	// StateBlockBodyUnit is the state block body storage unit identifier
+	StateBlockBodyUnit UnitType = 2
+	// PeerBlockBodyUnit is the peer change block body storage unit identifier
+	PeerBlockBodyUnit UnitType = 3
 	// BlockHeaderUnit is the Block Headers Storage unit identifier
-	BlockHeaderUnit UnitType = 2
+	BlockHeaderUnit UnitType = 4
 )
 
 // UnitType is the type for Storage unit identifiers
@@ -26,11 +29,13 @@ type UnitType uint8
 
 // Config holds the configurable elements of the blockchain
 type Config struct {
-	BlockStorage       storage.UnitConfig
-	BlockHeaderStorage storage.UnitConfig
-	TxStorage          storage.UnitConfig
-	TxPoolStorage      storage.CacheConfig
-	BlockCache         storage.CacheConfig
+	TxBlockBodyStorage    storage.UnitConfig
+	StateBlockBodyStorage storage.UnitConfig
+	PeerBlockBodyStorage  storage.UnitConfig
+	BlockHeaderStorage    storage.UnitConfig
+	TxStorage             storage.UnitConfig
+	TxPoolStorage         storage.CacheConfig
+	TxBadBlockBodyCache   storage.CacheConfig
 }
 
 // StorageService is the interface for blockChain storage unit provided services
@@ -74,14 +79,46 @@ func NewBlockChain(config *Config) (*BlockChain, error) {
 		return nil, errors.New("Cannot create blockchain without initial configuration")
 	}
 
-	txStorage, err := storage.NewStorageUnitFromConf(config.TxStorage.CacheConf, config.TxStorage.DBConf, config.TxStorage.BloomConf)
+	txStorage, err := storage.NewStorageUnitFromConf(config.TxStorage.CacheConf,
+		config.TxStorage.DBConf,
+		config.TxStorage.BloomConf)
+
 	if err != nil {
 		return nil, err
 	}
 
-	blStorage, err := storage.NewStorageUnitFromConf(config.BlockStorage.CacheConf, config.BlockStorage.DBConf, config.BlockStorage.BloomConf)
+	txBlockBodyStorage, err := storage.NewStorageUnitFromConf(config.TxBlockBodyStorage.CacheConf,
+		config.TxBlockBodyStorage.DBConf,
+		config.TxBlockBodyStorage.BloomConf)
+
 	if err != nil {
 		destroyErr := txStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		return nil, err
+	}
+
+	stateBlockBodyStorage, err := storage.NewStorageUnitFromConf(config.StateBlockBodyStorage.CacheConf,
+		config.StateBlockBodyStorage.DBConf,
+		config.StateBlockBodyStorage.BloomConf)
+
+	if err != nil {
+		destroyErr := txStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = txBlockBodyStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		return nil, err
+	}
+
+	peerBlockBodyStorage, err := storage.NewStorageUnitFromConf(config.PeerBlockBodyStorage.CacheConf,
+		config.PeerBlockBodyStorage.DBConf,
+		config.PeerBlockBodyStorage.BloomConf)
+
+	if err != nil {
+		destroyErr := txStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = txBlockBodyStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = stateBlockBodyStorage.DestroyUnit()
 		log.LogIfError(destroyErr)
 		return nil, err
 	}
@@ -90,16 +127,24 @@ func NewBlockChain(config *Config) (*BlockChain, error) {
 	if err != nil {
 		destroyErr := txStorage.DestroyUnit()
 		log.LogIfError(destroyErr)
-		destroyErr = blStorage.DestroyUnit()
+		destroyErr = txBlockBodyStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = stateBlockBodyStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = peerBlockBodyStorage.DestroyUnit()
 		log.LogIfError(destroyErr)
 		return nil, err
 	}
 
-	badBlocksCache, err := storage.NewCache(config.BlockCache.Type, config.BlockCache.Size)
+	badBlocksCache, err := storage.NewCache(config.TxBadBlockBodyCache.Type, config.TxBadBlockBodyCache.Size)
 	if err != nil {
 		destroyErr := txStorage.DestroyUnit()
 		log.LogIfError(destroyErr)
-		destroyErr = blStorage.DestroyUnit()
+		destroyErr = txBlockBodyStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = stateBlockBodyStorage.DestroyUnit()
+		log.LogIfError(destroyErr)
+		destroyErr = peerBlockBodyStorage.DestroyUnit()
 		log.LogIfError(destroyErr)
 		destroyErr = blHeadStorage.DestroyUnit()
 		log.LogIfError(destroyErr)
@@ -113,9 +158,11 @@ func NewBlockChain(config *Config) (*BlockChain, error) {
 		NetworkHeight:      -1,
 		badBlocks:          badBlocksCache,
 		chain: map[UnitType]*storage.Unit{
-			TransactionUnit: txStorage,
-			BlockUnit:       blStorage,
-			BlockHeaderUnit: blHeadStorage,
+			TransactionUnit:    txStorage,
+			TxBlockBodyUnit:    txBlockBodyStorage,
+			StateBlockBodyUnit: stateBlockBodyStorage,
+			PeerBlockBodyUnit:  peerBlockBodyStorage,
+			BlockHeaderUnit:    blHeadStorage,
 		},
 	}
 

@@ -491,7 +491,7 @@ func TestMessage_BroadcastMessage(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -565,7 +565,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	coms := InitMessage()
 
 	// Received BLOCK_BODY
-	blk := &block.Block{}
+	blk := &block.TxBlockBody{}
 
 	message, err := mock.MarshalizerMock{}.Marshal(blk)
 
@@ -589,7 +589,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -613,7 +613,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -637,7 +637,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -661,7 +661,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -685,7 +685,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -709,7 +709,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -728,7 +728,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 func TestMessage_DecodeBlockBody(t *testing.T) {
 	coms := InitMessage()
 
-	blk := &block.Block{}
+	blk := &block.TxBlockBody{}
 
 	mblks := make([]block.MiniBlock, 0)
 	mblks = append(mblks, block.MiniBlock{DestShardID: 69})
@@ -760,7 +760,7 @@ func TestMessage_DecodeBlockHeader(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -782,7 +782,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	// BLOCK BODY
-	blk := &block.Block{}
+	blk := &block.TxBlockBody{}
 
 	message, err := mock.MarshalizerMock{}.Marshal(blk)
 
@@ -808,7 +808,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -896,7 +896,7 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -909,7 +909,7 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 		spos.MtBlockBody,
 		[]byte(coms[0].GetTime()))
 
-	coms[0].Blk = &block.Block{}
+	coms[0].Blk = &block.TxBlockBody{}
 
 	r := coms[0].ReceivedBlockBody(cnsDta)
 	assert.Equal(t, false, r)

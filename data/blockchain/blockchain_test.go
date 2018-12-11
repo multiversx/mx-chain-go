@@ -12,15 +12,19 @@ import (
 func blockchainConfig() *blockchain.Config {
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
 	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
-	persisterBlockStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockStorage"}
+	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxBlockBodyStorage"}
+	persisterStateBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "StateBlockBodyStorage"}
+	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "PeerBlockBodyStorage"}
 	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
 	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
 	return &blockchain.Config{
-		BlockStorage:       storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockStorage, BloomConf: bloom},
-		BlockHeaderStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
-		TxStorage:          storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
-		TxPoolStorage:      cacher,
-		BlockCache:         cacher,
+		TxBlockBodyStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxBlockBodyStorage, BloomConf: bloom},
+		StateBlockBodyStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterStateBlockBodyStorage, BloomConf: bloom},
+		PeerBlockBodyStorage:  storage.UnitConfig{CacheConf: cacher, DBConf: persisterPeerBlockBodyStorage, BloomConf: bloom},
+		BlockHeaderStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
+		TxStorage:             storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
+		TxPoolStorage:         cacher,
+		TxBadBlockBodyCache:   cacher,
 	}
 }
 
@@ -48,7 +52,7 @@ func TestNewBlockchainErrOnTxStorageCreationShouldError(t *testing.T) {
 func TestNewBlockchainErrOnBlockStorageCreationShouldError(t *testing.T) {
 	cfg := blockchainConfig()
 	// e.g change the config to a not supported cache type
-	cfg.BlockStorage.CacheConf.Type = "NotLRU"
+	cfg.TxBlockBodyStorage.CacheConf.Type = "NotLRU"
 	_, err := blockchain.NewBlockChain(cfg)
 	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block storage")
 }
@@ -64,7 +68,7 @@ func TestNewBlockchainErrOnBlockHeaderStorageCreationShouldError(t *testing.T) {
 func TestNewDataErrOnBlockCacheCreationShouldError(t *testing.T) {
 	cfg := blockchainConfig()
 	// e.g change the config to a not supported cache type
-	cfg.BlockCache.Type = "NotLRU"
+	cfg.TxBadBlockBodyCache.Type = "NotLRU"
 	_, err := blockchain.NewBlockChain(cfg)
 	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block cache")
 }
@@ -114,12 +118,12 @@ func TestHasOk(t *testing.T) {
 
 	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
 	logError(err)
-	has, err := b.Has(blockchain.BlockUnit, []byte("key1"))
+	has, err := b.Has(blockchain.TxBlockBodyUnit, []byte("key1"))
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.False(t, has, "not expected to find key")
 
-	err = b.Put(blockchain.BlockUnit, []byte("key1"), []byte("bbb"))
+	err = b.Put(blockchain.TxBlockBodyUnit, []byte("key1"), []byte("bbb"))
 	logError(err)
 	has, err = b.Has(blockchain.BlockHeaderUnit, []byte("key1"))
 
@@ -133,7 +137,7 @@ func TestHasOk(t *testing.T) {
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.True(t, has, "expected to find key")
 
-	has, err = b.Has(blockchain.BlockUnit, []byte("key1"))
+	has, err = b.Has(blockchain.TxBlockBodyUnit, []byte("key1"))
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 	assert.True(t, has, "expected to find key")
@@ -176,7 +180,7 @@ func TestGetOk(t *testing.T) {
 
 	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
 	logError(err)
-	val, err := b.Get(blockchain.BlockUnit, []byte("key1"))
+	val, err := b.Get(blockchain.TxBlockBodyUnit, []byte("key1"))
 
 	assert.NotNil(t, err, "expected error but got nil")
 	assert.Nil(t, val, "not expected to find key")

@@ -58,7 +58,7 @@ func NewExecBlock(
 }
 
 // ProcessBlock process the block and the transactions inside
-func (eb *execBlock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.Block) error {
+func (eb *execBlock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
 	err := eb.validateBlock(blockChain, header, body)
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (eb *execBlock) ProcessBlock(blockChain *blockchain.BlockChain, header *blo
 	return nil
 }
 
-func (eb *execBlock) validateBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.Block) error {
+func (eb *execBlock) validateBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
 	if blockChain == nil {
 		return execution.ErrNilBlockChain
 	}
@@ -120,7 +120,7 @@ func (eb *execBlock) validateBlock(blockChain *blockchain.BlockChain, header *bl
 			return execution.ErrWrongNonceInBlock
 		}
 
-		if !bytes.Equal(header.PrevHash, blockChain.CurrentBlockHeader.BlockHash) {
+		if !bytes.Equal(header.PrevHash, blockChain.CurrentBlockHeader.BlockBodyHash) {
 			return execution.ErrInvalidBlockHash
 		}
 	}
@@ -142,7 +142,7 @@ func (eb *execBlock) IsFirstBlockInEpoch(header *block.Header) bool {
 
 //TODO: do not marshal and unmarshal: wrapper struct with marshaled data
 // commitBlock commits the block in the blockchain if everything was checked successfully
-func (eb *execBlock) commitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.Block) error {
+func (eb *execBlock) commitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
 
 	blockChain.CurrentBlockHeader = header
 	blockChain.LocalHeight = int64(header.Nonce)
@@ -164,7 +164,7 @@ func (eb *execBlock) commitBlock(blockChain *blockchain.BlockChain, header *bloc
 		return execution.ErrMarshalWithoutSuccess
 	}
 
-	err = blockChain.Put(blockchain.BlockUnit, header.BlockHash, buff)
+	err = blockChain.Put(blockchain.TxBlockBodyUnit, header.BlockBodyHash, buff)
 
 	if err != nil {
 		return execution.ErrPersistWithoutSuccess
@@ -239,7 +239,7 @@ func (eb *execBlock) verifyBlockSignature(header *block.Header) bool {
 	return true
 }
 
-func (eb *execBlock) requestBlockTransactions(body *block.Block) {
+func (eb *execBlock) requestBlockTransactions(body *block.TxBlockBody) {
 	missingTxsForShards := eb.computeMissingTxsForShards(body)
 	eb.requestedTxHashes = make(map[string]bool)
 	if eb.OnRequestTransaction != nil {
@@ -252,7 +252,7 @@ func (eb *execBlock) requestBlockTransactions(body *block.Block) {
 	}
 }
 
-func (eb *execBlock) computeMissingTxsForShards(body *block.Block) map[uint32][][]byte {
+func (eb *execBlock) computeMissingTxsForShards(body *block.TxBlockBody) map[uint32][][]byte {
 	missingTxsForShard := make(map[uint32][][]byte)
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
@@ -273,7 +273,7 @@ func (eb *execBlock) computeMissingTxsForShards(body *block.Block) map[uint32][]
 	return missingTxsForShard
 }
 
-func (eb *execBlock) ProcessBlockTransactions(body *block.Block) error {
+func (eb *execBlock) ProcessBlockTransactions(body *block.TxBlockBody) error {
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		shardId := miniBlock.DestShardID

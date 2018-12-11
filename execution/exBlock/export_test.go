@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 )
 
-func (eb *execBlock) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.Block) error {
+func (eb *execBlock) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
 	return eb.commitBlock(blockChain, header, block)
 }
 
@@ -14,7 +14,7 @@ func (eb *execBlock) GetTransactionFromPool(destShardID uint32, txHash []byte) *
 	return eb.getTransactionFromPool(destShardID, txHash)
 }
 
-func (eb *execBlock) RequestTransactionFromNetwork(body *block.Block) {
+func (eb *execBlock) RequestTransactionFromNetwork(body *block.TxBlockBody) {
 	eb.requestBlockTransactions(body)
 }
 

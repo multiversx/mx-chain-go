@@ -325,7 +325,7 @@ func TestExecTransactionProcessTransactionMalfunctionAccountsShouldErr(t *testin
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DEST")
-	tx.Value = 45
+	tx.Value, _ = big.NewInt(45).GobEncode()
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		return nil, errors.New("failure")
@@ -351,7 +351,7 @@ func TestExecTransactionProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DEST")
-	tx.Value = 45
+	tx.Value, _ = big.NewInt(45).GobEncode()
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr, nil))
 	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr, nil))
@@ -385,7 +385,7 @@ func TestExecTransactionProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DEST")
-	tx.Value = 45
+	tx.Value, _ = big.NewInt(45).GobEncode()
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr, nil))
 	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr, nil))
@@ -417,7 +417,7 @@ func TestExecTransactionProcessMoveBalancesFailShouldErr(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DEST")
-	tx.Value = 0
+	tx.Value, _ = big.NewInt(0).GobEncode()
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr, nil))
 	acntSrc.Fail = true
@@ -450,7 +450,7 @@ func TestExecTransactionProcessOkValsShouldWork(t *testing.T) {
 	tx.Nonce = 4
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DEST")
-	tx.Value = 61
+	tx.Value, _ = big.NewInt(61).GobEncode()
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr, nil))
 	acntSrc.Nonce = 4

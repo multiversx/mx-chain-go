@@ -74,9 +74,11 @@ func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error
 		return et.callSChandler(tx)
 	}
 
-	//TODO change to big int implementation
 	value := big.NewInt(0)
-	value.SetUint64(tx.Value)
+	err = value.GobDecode(tx.Value)
+	if err != nil {
+		return err
+	}
 
 	err = et.checkTxValues(acntSrc, value, tx.Nonce)
 	if err != nil {

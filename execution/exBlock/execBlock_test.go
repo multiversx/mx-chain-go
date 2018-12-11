@@ -21,15 +21,19 @@ const WaitTime = time.Duration(100 * time.Millisecond)
 func blockchainConfig() *blockchain.Config {
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
 	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
-	persisterBlockStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockStorage"}
+	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxBlockBodyStorage"}
+	persisterStateBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "StateBlockBodyStorage"}
+	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "PeerBlockBodyStorage"}
 	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
 	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
 	return &blockchain.Config{
-		BlockStorage:       storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockStorage, BloomConf: bloom},
-		BlockHeaderStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
-		TxStorage:          storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
-		TxPoolStorage:      cacher,
-		BlockCache:         cacher,
+		TxBlockBodyStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxBlockBodyStorage, BloomConf: bloom},
+		StateBlockBodyStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterStateBlockBodyStorage, BloomConf: bloom},
+		PeerBlockBodyStorage:  storage.UnitConfig{CacheConf: cacher, DBConf: persisterPeerBlockBodyStorage, BloomConf: bloom},
+		BlockHeaderStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
+		TxStorage:             storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
+		TxPoolStorage:         cacher,
+		TxBadBlockBodyCache:   cacher,
 	}
 }
 
@@ -88,7 +92,7 @@ func TestBlockExec_RequestTransactionFromNetwork(t *testing.T) {
 	shardId := uint32(1)
 	txHash1 := []byte("tx1_hash1")
 
-	blk := block.Block{}
+	blk := block.TxBlockBody{}
 	mBlocks := make([]block.MiniBlock, 0)
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
@@ -144,6 +148,11 @@ func TestBlockExec_ProcessBlock(t *testing.T) {
 	blkc, err := blockchain.NewBlockChain(blockchainConfig())
 	assert.Nil(t, err)
 
+	// cleanup after tests
+	defer func() {
+		_ = blkc.Destroy()
+	}()
+
 	err = be.ProcessBlock(blkc, nil, nil)
 	assert.Equal(t, execution.ErrNilBlockHeader, err)
 
@@ -154,12 +163,12 @@ func TestBlockExec_ProcessBlock(t *testing.T) {
 
 	hdr.Nonce = 2
 	hdr.Round = 2
-	blk := block.Block{}
+	blk := block.TxBlockBody{}
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
 	assert.Equal(t, execution.ErrWrongNonceInBlock, err)
 
-	blkc.CurrentBlockHeader = &block.Header{Nonce: 1, BlockHash: []byte("blk_hash1")}
+	blkc.CurrentBlockHeader = &block.Header{Nonce: 1, BlockBodyHash: []byte("blk_hash1")}
 	hdr.Nonce = 1
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
