@@ -3,13 +3,14 @@ package marshal_test
 import (
 	"testing"
 
-	"ElrondNetwork/elrond-go-sandbox/data"
-	"ElrondNetwork/elrond-go-sandbox/data/block"
-	"ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/stretchr/testify/assert"
-	"math/rand"
 	"fmt"
+	"math/rand"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/stretchr/testify/assert"
 )
 
 type dataGenerator interface {
@@ -359,21 +360,22 @@ func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 		pkList = append(pkList, rand.Intn(2) == 0)
 	}
 
-	for i := 0; i < 1000; i++ {
-		headers = append(headers, &Header{
-			Header: block.Header{
-				Nonce:         uint64(rand.Int63n(10000)),
-				PrevHash:      []byte(RandomStr(32)),
-				ShardId:       uint32(rand.Intn(20)),
-				TimeStamp:     []byte(RandomStr(20)),
-				Round:         uint32(rand.Intn(20000)),
-				BlockBodyHash: []byte(RandomStr(32)),
-				Signature:     []byte(RandomStr(32)),
-				Commitment:    []byte(RandomStr(32)),
-				PubKeysBitmap: pkList,
-			},
-		})
-	}
+	//TODO fix
+	//for i := 0; i < 1000; i++ {
+	//	headers = append(headers, &Header{
+	//		Header: block.Header{
+	//			Nonce:         uint64(rand.Int63n(10000)),
+	//			PrevHash:      []byte(RandomStr(32)),
+	//			ShardId:       uint32(rand.Intn(20)),
+	//			TimeStamp:     []byte(RandomStr(20)),
+	//			Round:         uint32(rand.Intn(20000)),
+	//			BlockBodyHash: []byte(RandomStr(32)),
+	//			Signature:     []byte(RandomStr(32)),
+	//			Commitment:    []byte(RandomStr(32)),
+	//			PubKeysBitmap: pkList,
+	//		},
+	//	})
+	//}
 
 	return headers
 }
@@ -382,21 +384,22 @@ func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
 	transactions := make([]data.CapnpHelper, 0, 1000)
 
-	for i := 0; i < 1000; i++ {
-		transactions = append(transactions, &Transaction{
-			Transaction: transaction.Transaction{
-				Nonce:     uint64(rand.Int63n(10000)),
-				Value:     []byte(RandomStr(32)),
-				RcvAddr:   []byte(RandomStr(32)),
-				SndAddr:   []byte(RandomStr(32)),
-				GasPrice:  uint64(rand.Int63n(10000)),
-				GasLimit:  uint64(rand.Int63n(10000)),
-				Data:      []byte(RandomStr(32)),
-				Signature: []byte(RandomStr(32)),
-				Challenge: []byte(RandomStr(32)),
-			},
-		})
-	}
+	//TODO fix
+	//for i := 0; i < 1000; i++ {
+	//	transactions = append(transactions, &Transaction{
+	//		Transaction: transaction.Transaction{
+	//			Nonce:     uint64(rand.Int63n(10000)),
+	//			Value:     []byte(RandomStr(32)),
+	//			RcvAddr:   []byte(RandomStr(32)),
+	//			SndAddr:   []byte(RandomStr(32)),
+	//			GasPrice:  uint64(rand.Int63n(10000)),
+	//			GasLimit:  uint64(rand.Int63n(10000)),
+	//			Data:      []byte(RandomStr(32)),
+	//			Signature: []byte(RandomStr(32)),
+	//			Challenge: []byte(RandomStr(32)),
+	//		},
+	//	})
+	//}
 
 	return transactions
 }
