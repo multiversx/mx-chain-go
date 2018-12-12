@@ -52,12 +52,12 @@ func NewBlockPool(cacherConfig *storage.CacheConfig) *BlockPool {
 	return bp
 }
 
-// HeaderStore method returns the minipool header store which contains block nonces and headers
+// HeaderStore method returns the header store which contains block nonces and headers
 func (bp *BlockPool) HeaderStore() (c storage.Cacher) {
 	return bp.headerStore
 }
 
-// BodyStore method returns the minipool body store which contains block nonces and bodies
+// BodyStore method returns the body store which contains block nonces and bodies
 func (bp *BlockPool) BodyStore() (c storage.Cacher) {
 	return bp.bodyStore
 }
@@ -130,13 +130,13 @@ func (bp *BlockPool) RemoveBody(nonce uint64) {
 	bp.bodyStore.Remove(key)
 }
 
-// ClearHeaderMiniPool deletes all the block headers from the coresponding pool
-func (bp *BlockPool) ClearHeaderMiniPool() {
+// ClearHeaderStore deletes all the block headers from the coresponding pool
+func (bp *BlockPool) ClearHeaderStore() {
 	bp.headerStore.Clear()
 }
 
-// ClearBodyMiniPool deletes all the block bodies from the coresponding pool
-func (bp *BlockPool) ClearBodyMiniPool() {
+// ClearBodyStore deletes all the block bodies from the coresponding pool
+func (bp *BlockPool) ClearBodyStore() {
 	bp.bodyStore.Clear()
 }
 

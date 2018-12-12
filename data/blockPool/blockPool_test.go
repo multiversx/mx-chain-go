@@ -15,13 +15,13 @@ func TestNewBlockPool(t *testing.T) {
 	assert.NotNil(t, bp)
 }
 
-func TestBlockPool_MiniPoolBodyStore(t *testing.T) {
+func TestBlockPool_BodyStore(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 	bs := bp.BodyStore()
 	assert.NotNil(t, bs)
 }
 
-func TestBlockPool_MiniPoolHeaderStore(t *testing.T) {
+func TestBlockPool_HeaderStore(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 	hs := bp.HeaderStore()
 	assert.NotNil(t, hs)
@@ -225,7 +225,7 @@ func TestBlockPool_RemoveBlock(t *testing.T) {
 	assert.NotEqual(t, &blk, val.(*block.Block))
 }
 
-func TestBlockPool_ClearHeaderMiniPool(t *testing.T) {
+func TestBlockPool_ClearHeaderStore(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 	bp.RegisterHeaderHandler(receivedHeader)
 
@@ -236,11 +236,11 @@ func TestBlockPool_ClearHeaderMiniPool(t *testing.T) {
 	bp.AddHeader(2, &hdr)
 	assert.Equal(t, 3, bp.HeaderStore().Len())
 
-	bp.ClearHeaderMiniPool()
+	bp.ClearHeaderStore()
 	assert.Equal(t, 0, bp.HeaderStore().Len())
 }
 
-func TestBlockPool_ClearBodyMiniPool(t *testing.T) {
+func TestBlockPool_ClearBodyStore(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 	bp.RegisterBodyHandler(receivedBody)
 
@@ -251,7 +251,7 @@ func TestBlockPool_ClearBodyMiniPool(t *testing.T) {
 	bp.AddBody(2, &blk)
 	assert.Equal(t, 3, bp.BodyStore().Len())
 
-	bp.ClearBodyMiniPool()
+	bp.ClearBodyStore()
 	assert.Equal(t, 0, bp.BodyStore().Len())
 }
 
