@@ -1,7 +1,7 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -11,7 +11,7 @@ import (
 // GenericBlockBodyInterceptor represents an interceptor used for all types of block bodies
 type GenericBlockBodyInterceptor struct {
 	intercept     *interceptor.Interceptor
-	bodyBlockPool *dataPool.DataPool
+	bodyBlockPool *shardedData.ShardedData
 	hasher        hashing.Hasher
 }
 
@@ -20,7 +20,7 @@ type GenericBlockBodyInterceptor struct {
 func NewGenericBlockBodyInterceptor(
 	name string,
 	messenger p2p.Messenger,
-	bodyBlockPool *dataPool.DataPool,
+	bodyBlockPool *shardedData.ShardedData,
 	hasher hashing.Hasher,
 	templateObj process.BlockBodyInterceptorAdapter,
 ) (*GenericBlockBodyInterceptor, error) {

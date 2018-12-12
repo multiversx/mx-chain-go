@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 )
 

@@ -6,6 +6,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
+const (
+	// TxInterceptor is the name for the transaction interceptor topic
+	TxInterceptor = "tx"
+	// HeaderInterceptor is the name for the header interceptor topic
+	HeaderInterceptor = "hdr"
+	// TxBlockBodyInterceptor is the name for the tx block body interceptor topic
+	TxBlockBodyInterceptor = "txBlk"
+	// StateBlockBodyInterceptor is the name for the state block body interceptor topic
+	StateBlockBodyInterceptor = "stateBlk"
+	// PeerBlockBodyInterceptor is the name for the peer block body interceptor topic
+	PeerBlockBodyInterceptor = "peerBlk"
+)
+
 // Checker checks the integrity of a data structure
 type Checker interface {
 	Check() bool
@@ -16,6 +29,7 @@ type SigVerifier interface {
 	VerifySig() bool
 }
 
+// Hashed interface provides functionality over hashable objects
 type Hashed interface {
 	SetHash([]byte)
 	Hash() []byte
@@ -44,6 +58,7 @@ type HeaderInterceptorAdapter interface {
 	Shard() uint32
 }
 
+// BlockBodyInterceptorAdapter defines what a block body object should do
 type BlockBodyInterceptorAdapter interface {
 	Checker
 	Hashed

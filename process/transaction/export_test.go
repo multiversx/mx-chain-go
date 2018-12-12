@@ -5,7 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
-func (txi *TransactionInterceptor) ProcessTx(tx p2p.Newer, rawData []byte, hasher hashing.Hasher) bool {
+func (txi *TxInterceptor) ProcessTx(tx p2p.Newer, rawData []byte, hasher hashing.Hasher) bool {
 	return txi.processTx(tx, rawData)
 }
 

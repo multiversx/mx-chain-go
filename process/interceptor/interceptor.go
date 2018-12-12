@@ -2,6 +2,7 @@ package interceptor
 
 import (
 	"context"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/libp2p/go-libp2p-pubsub"
@@ -32,9 +33,7 @@ func NewInterceptor(
 		return nil, process.ErrNilNewer
 	}
 
-	topic := p2p.NewTopic(name, templateObject, messenger.Marshalizer())
-	err := messenger.AddTopic(topic)
-
+	topic, err := getOrCreateTopic(name, templateObject, messenger)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +50,17 @@ func NewInterceptor(
 	}
 
 	return &intercept, nil
+}
+
+func getOrCreateTopic(name string, templateObject p2p.Newer, messenger p2p.Messenger) (*p2p.Topic, error) {
+	existingTopic := messenger.GetTopic(name)
+
+	if existingTopic != nil {
+		return existingTopic, nil
+	}
+
+	topic := p2p.NewTopic(name, templateObject, messenger.Marshalizer())
+	return topic, messenger.AddTopic(topic)
 }
 
 func (intercept *Interceptor) validator(ctx context.Context, message *pubsub.Message) bool {

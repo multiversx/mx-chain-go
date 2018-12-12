@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
@@ -12,20 +12,21 @@ import (
 
 var log = logger.NewDefaultLogger()
 
-type TransactionInterceptor struct {
+// TxInterceptor is used for intercepting transaction and storing them into a datapool
+type TxInterceptor struct {
 	*interceptor.Interceptor
-	txPool        *dataPool.DataPool
+	txPool        *shardedData.ShardedData
 	addrConverter state.AddressConverter
 	hasher        hashing.Hasher
 }
 
-// NewTransactionInterceptor hooks a new interceptor for transactions
-func NewTransactionInterceptor(
+// NewTxInterceptor hooks a new interceptor for transactions
+func NewTxInterceptor(
 	messenger p2p.Messenger,
-	txPool *dataPool.DataPool,
+	txPool *shardedData.ShardedData,
 	addrConverter state.AddressConverter,
 	hasher hashing.Hasher,
-) (*TransactionInterceptor, error) {
+) (*TxInterceptor, error) {
 
 	if messenger == nil {
 		return nil, process.ErrNilMessenger
@@ -43,12 +44,15 @@ func NewTransactionInterceptor(
 		return nil, process.ErrNilHasher
 	}
 
-	intercept, err := interceptor.NewInterceptor("tx", messenger, NewInterceptedTransaction())
+	intercept, err := interceptor.NewInterceptor(
+		process.TxInterceptor,
+		messenger,
+		NewInterceptedTransaction())
 	if err != nil {
 		return nil, err
 	}
 
-	txIntercept := &TransactionInterceptor{
+	txIntercept := &TxInterceptor{
 		Interceptor:   intercept,
 		txPool:        txPool,
 		addrConverter: addrConverter,
@@ -60,7 +64,7 @@ func NewTransactionInterceptor(
 	return txIntercept, nil
 }
 
-func (txi *TransactionInterceptor) processTx(tx p2p.Newer, rawData []byte) bool {
+func (txi *TxInterceptor) processTx(tx p2p.Newer, rawData []byte) bool {
 	if tx == nil {
 		log.Debug("nil tx to process")
 		return false

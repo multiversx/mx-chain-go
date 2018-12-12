@@ -1,21 +1,22 @@
 package block
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func createNewBlockBodyInterceptorForTests() (
 	hi *GenericBlockBodyInterceptor,
 	mes *mock.MessengerStub,
-	pool *dataPool.DataPool,
+	pool *shardedData.ShardedData,
 	err error) {
 
 	mes = mock.NewMessengerStub()
@@ -31,7 +32,11 @@ func createNewBlockBodyInterceptorForTests() (
 		return nil
 	}
 
-	pool = dataPool.NewDataPool(&storage.CacheConfig{
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return nil
+	}
+
+	pool = shardedData.NewShardedData(&storage.CacheConfig{
 		Size: 10000,
 		Type: storage.LRUCache,
 	})
@@ -46,7 +51,7 @@ func createNewBlockBodyInterceptorForTests() (
 func TestNewBlockBodyInterceptorNilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	blockBodyPool := dataPool.NewDataPool(&storage.CacheConfig{
+	blockBodyPool := shardedData.NewShardedData(&storage.CacheConfig{
 		Size: 10000,
 		Type: storage.LRUCache,
 	})
@@ -68,7 +73,7 @@ func TestNewBlockBodyInterceptorNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mes := &mock.MessengerStub{}
-	blockBodyPool := dataPool.NewDataPool(&storage.CacheConfig{
+	blockBodyPool := shardedData.NewShardedData(&storage.CacheConfig{
 		Size: 10000,
 		Type: storage.LRUCache,
 	})
@@ -81,7 +86,7 @@ func TestNewBlockBodyInterceptorNilTemplateObjectShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mes := &mock.MessengerStub{}
-	blockBodyPool := dataPool.NewDataPool(&storage.CacheConfig{
+	blockBodyPool := shardedData.NewShardedData(&storage.CacheConfig{
 		Size: 10000,
 		Type: storage.LRUCache,
 	})
@@ -128,7 +133,7 @@ func TestBlockBodyInterceptorProcessOkValsShouldRetTrue(t *testing.T) {
 
 	assert.True(t, hi.ProcessBodyBlock(txBody, []byte("aaa")))
 
-	minipool := headerPool.MiniPoolDataStore(4)
+	minipool := headerPool.ShardDataStore(4)
 	if minipool == nil {
 		assert.Fail(t, "should have added tx body in minipool 4")
 		return

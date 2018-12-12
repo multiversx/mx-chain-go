@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )

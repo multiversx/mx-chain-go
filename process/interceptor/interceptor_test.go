@@ -1,6 +1,8 @@
 package interceptor_test
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
@@ -9,7 +11,6 @@ import (
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 //------- NewInterceptor
@@ -26,6 +27,10 @@ func TestNewInterceptorNilTemplateObjectShouldErr(t *testing.T) {
 
 func TestNewInterceptorErrMessengerAddTopicShouldErr(t *testing.T) {
 	mes := mock.NewMessengerStub()
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return nil
+	}
+
 	mes.AddTopicCalled = func(t *p2p.Topic) error {
 		return errors.New("failure")
 	}
@@ -36,6 +41,10 @@ func TestNewInterceptorErrMessengerAddTopicShouldErr(t *testing.T) {
 
 func TestNewInterceptorErrMessengerRegistrationValidatorShouldErr(t *testing.T) {
 	mes := mock.NewMessengerStub()
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return nil
+	}
+
 	mes.AddTopicCalled = func(t *p2p.Topic) error {
 		return nil
 	}
@@ -58,6 +67,37 @@ func TestNewInterceptorOkValsShouldWork(t *testing.T) {
 		return nil
 	}
 
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return nil
+	}
+
+	_, err := interceptor.NewInterceptor("", mes, &mock.StringNewer{})
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+}
+
+func TestNewInterceptorWithExistingTopicShouldWork(t *testing.T) {
+	mes := mock.NewMessengerStub()
+
+	wasCalled := false
+
+	topic := p2p.NewTopic("test", &mock.StringNewer{}, mes.Marshalizer())
+	topic.RegisterTopicValidator = func(v pubsub.Validator) error {
+		wasCalled = true
+
+		return nil
+	}
+
+	mes.AddTopicCalled = func(topic *p2p.Topic) error {
+		assert.Fail(t, "should have not reached this point")
+
+		return nil
+	}
+
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return topic
+	}
+
 	_, err := interceptor.NewInterceptor("", mes, &mock.StringNewer{})
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
@@ -78,6 +118,10 @@ func TestInterceptorValidationMalfunctionMarshalizerReturnFalse(t *testing.T) {
 			return nil
 		}
 
+		return nil
+	}
+
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return nil
 	}
 
@@ -108,6 +152,10 @@ func TestInterceptorValidationNilCheckReceivedObjectReturnFalse(t *testing.T) {
 		return nil
 	}
 
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return nil
+	}
+
 	_, err := interceptor.NewInterceptor("", mes, &mock.StringNewer{})
 	assert.Nil(t, err)
 
@@ -135,6 +183,10 @@ func TestInterceptorValidationCheckReceivedObjectFalseReturnFalse(t *testing.T) 
 			return nil
 		}
 
+		return nil
+	}
+
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return nil
 	}
 
@@ -173,6 +225,10 @@ func TestInterceptorValidationCheckReceivedObjectTrueReturnTrue(t *testing.T) {
 			return nil
 		}
 
+		return nil
+	}
+
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return nil
 	}
 

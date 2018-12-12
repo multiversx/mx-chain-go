@@ -1,7 +1,7 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -14,7 +14,7 @@ var log = logger.NewDefaultLogger()
 // HeaderInterceptor represents an interceptor used for block headers
 type HeaderInterceptor struct {
 	intercept  *interceptor.Interceptor
-	headerPool *dataPool.DataPool
+	headerPool *shardedData.ShardedData
 	hasher     hashing.Hasher
 }
 
@@ -22,7 +22,7 @@ type HeaderInterceptor struct {
 // Fetched block headers will be placed in a data pool
 func NewHeaderInterceptor(
 	messenger p2p.Messenger,
-	headerPool *dataPool.DataPool,
+	headerPool *shardedData.ShardedData,
 	hasher hashing.Hasher,
 ) (*HeaderInterceptor, error) {
 
@@ -38,7 +38,10 @@ func NewHeaderInterceptor(
 		return nil, process.ErrNilHasher
 	}
 
-	intercept, err := interceptor.NewInterceptor("hdr", messenger, NewInterceptedHeader())
+	intercept, err := interceptor.NewInterceptor(
+		process.HeaderInterceptor,
+		messenger,
+		NewInterceptedHeader())
 	if err != nil {
 		return nil, err
 	}

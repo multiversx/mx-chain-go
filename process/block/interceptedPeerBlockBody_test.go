@@ -1,10 +1,11 @@
 package block_test
 
 import (
+	"testing"
+
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 //------- Check

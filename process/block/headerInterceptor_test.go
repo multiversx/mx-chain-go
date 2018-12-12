@@ -1,21 +1,22 @@
 package block
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func createNewHeaderInterceptorForTests() (
 	hi *HeaderInterceptor,
 	mes *mock.MessengerStub,
-	headerPool *dataPool.DataPool,
+	headerPool *shardedData.ShardedData,
 	err error) {
 
 	mes = mock.NewMessengerStub()
@@ -31,7 +32,11 @@ func createNewHeaderInterceptorForTests() (
 		return nil
 	}
 
-	headerPool = dataPool.NewDataPool(&storage.CacheConfig{
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return nil
+	}
+
+	headerPool = shardedData.NewShardedData(&storage.CacheConfig{
 		Size: 10000,
 		Type: storage.LRUCache,
 	})
@@ -46,7 +51,7 @@ func createNewHeaderInterceptorForTests() (
 func TestNewHeaderInterceptorNilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerPool := dataPool.NewDataPool(&storage.CacheConfig{
+	headerPool := shardedData.NewShardedData(&storage.CacheConfig{
 		Size: 10000,
 		Type: storage.LRUCache,
 	})
@@ -68,7 +73,7 @@ func TestNewHeaderInterceptorNilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mes := &mock.MessengerStub{}
-	headerPool := dataPool.NewDataPool(&storage.CacheConfig{
+	headerPool := shardedData.NewShardedData(&storage.CacheConfig{
 		Size: 10000,
 		Type: storage.LRUCache,
 	})
@@ -118,7 +123,7 @@ func TestTransactionInterceptorProcessOkValsShouldRetTrue(t *testing.T) {
 
 	assert.True(t, hi.ProcessHdr(hdr, []byte("aaa")))
 
-	minipool := headerPool.MiniPoolDataStore(4)
+	minipool := headerPool.ShardDataStore(4)
 	if minipool == nil {
 		assert.Fail(t, "should have added header in minipool 4")
 		return

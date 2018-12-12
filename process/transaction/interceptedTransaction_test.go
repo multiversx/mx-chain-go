@@ -1,11 +1,12 @@
 package transaction_test
 
 import (
+	"math/big"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
 )
 
 //------- Check()

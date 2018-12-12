@@ -1,7 +1,7 @@
 package interceptorSuite
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -12,7 +12,7 @@ import (
 
 // InterceptorSuite is used to hold all the interceptors defined
 type InterceptorSuite struct {
-	txInterceptor         *transaction.TransactionInterceptor
+	txInterceptor         *transaction.TxInterceptor
 	headerInterceptor     *block.HeaderInterceptor
 	blockbodyInterceptors []*block.GenericBlockBodyInterceptor
 
@@ -37,9 +37,9 @@ func NewInterceptorSuite(messenger p2p.Messenger, hasher hashing.Hasher) (*Inter
 	}, nil
 }
 
-// SetTransactionInterceptor sets the transaction interceptor
-func (is *InterceptorSuite) SetTransactionInterceptor(txPool *dataPool.DataPool, addrConv state.AddressConverter) error {
-	ti, err := transaction.NewTransactionInterceptor(is.messenger, txPool, addrConv, is.hasher)
+// SetTxInterceptor sets the transaction interceptor
+func (is *InterceptorSuite) SetTxInterceptor(txPool *shardedData.ShardedData, addrConv state.AddressConverter) error {
+	ti, err := transaction.NewTxInterceptor(is.messenger, txPool, addrConv, is.hasher)
 
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (is *InterceptorSuite) SetTransactionInterceptor(txPool *dataPool.DataPool,
 }
 
 // SetHeaderInterceptor sets the header interceptor
-func (is *InterceptorSuite) SetHeaderInterceptor(headerPool *dataPool.DataPool) error {
+func (is *InterceptorSuite) SetHeaderInterceptor(headerPool *shardedData.ShardedData) error {
 	hi, err := block.NewHeaderInterceptor(is.messenger, headerPool, is.hasher)
 
 	if err != nil {
@@ -62,7 +62,7 @@ func (is *InterceptorSuite) SetHeaderInterceptor(headerPool *dataPool.DataPool) 
 }
 
 // AppendBlockBodyInterceptor appends a block body interceptor to the internal block bodies list
-func (is *InterceptorSuite) AppendBlockBodyInterceptor(name string, bbp *dataPool.DataPool, templateObj process.BlockBodyInterceptorAdapter) error {
+func (is *InterceptorSuite) AppendBlockBodyInterceptor(name string, bbp *shardedData.ShardedData, templateObj process.BlockBodyInterceptorAdapter) error {
 	bbi, err := block.NewGenericBlockBodyInterceptor(name, is.messenger, bbp, is.hasher, templateObj)
 
 	if err != nil {
@@ -75,15 +75,15 @@ func (is *InterceptorSuite) AppendBlockBodyInterceptor(name string, bbp *dataPoo
 
 // MakeDefaultInterceptors makes the default list
 func (is *InterceptorSuite) MakeDefaultInterceptors(
-	txPool *dataPool.DataPool,
-	headerPool *dataPool.DataPool,
-	txBlockPool *dataPool.DataPool,
-	stateBlockPool *dataPool.DataPool,
-	peerBlockPool *dataPool.DataPool,
+	txPool *shardedData.ShardedData,
+	headerPool *shardedData.ShardedData,
+	txBlockPool *shardedData.ShardedData,
+	stateBlockPool *shardedData.ShardedData,
+	peerBlockPool *shardedData.ShardedData,
 	addrConv state.AddressConverter,
 ) error {
 
-	err := is.SetTransactionInterceptor(txPool, addrConv)
+	err := is.SetTxInterceptor(txPool, addrConv)
 	if err != nil {
 		return err
 	}
@@ -93,17 +93,26 @@ func (is *InterceptorSuite) MakeDefaultInterceptors(
 		return err
 	}
 
-	err = is.AppendBlockBodyInterceptor("txBlock", txBlockPool, block.NewInterceptedTxBlockBody())
+	err = is.AppendBlockBodyInterceptor(
+		process.TxBlockBodyInterceptor,
+		txBlockPool,
+		block.NewInterceptedTxBlockBody())
 	if err != nil {
 		return err
 	}
 
-	err = is.AppendBlockBodyInterceptor("stateBlock", stateBlockPool, block.NewInterceptedStateBlockBody())
+	err = is.AppendBlockBodyInterceptor(
+		process.StateBlockBodyInterceptor,
+		stateBlockPool,
+		block.NewInterceptedStateBlockBody())
 	if err != nil {
 		return err
 	}
 
-	err = is.AppendBlockBodyInterceptor("peerBlock", peerBlockPool, block.NewInterceptedPeerBlockBody())
+	err = is.AppendBlockBodyInterceptor(
+		process.PeerBlockBodyInterceptor,
+		peerBlockPool,
+		block.NewInterceptedPeerBlockBody())
 	if err != nil {
 		return err
 	}

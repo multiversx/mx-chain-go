@@ -1,13 +1,14 @@
 package interceptorSuite
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
+	"testing"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestInterceptorSuiteMakeDefaultInterceptorsCreatesTheNoOfInterceptors(t *testing.T) {
@@ -24,6 +25,10 @@ func TestInterceptorSuiteMakeDefaultInterceptorsCreatesTheNoOfInterceptors(t *te
 		return nil
 	}
 
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return nil
+	}
+
 	suite, err := NewInterceptorSuite(mes, mock.HasherMock{})
 	assert.Nil(t, err)
 
@@ -33,11 +38,11 @@ func TestInterceptorSuiteMakeDefaultInterceptorsCreatesTheNoOfInterceptors(t *te
 	}
 
 	err = suite.MakeDefaultInterceptors(
-		dataPool.NewDataPool(cfg),
-		dataPool.NewDataPool(cfg),
-		dataPool.NewDataPool(cfg),
-		dataPool.NewDataPool(cfg),
-		dataPool.NewDataPool(cfg),
+		shardedData.NewShardedData(cfg),
+		shardedData.NewShardedData(cfg),
+		shardedData.NewShardedData(cfg),
+		shardedData.NewShardedData(cfg),
+		shardedData.NewShardedData(cfg),
 		&mock.AddressConverterMock{},
 	)
 	assert.Nil(t, err)

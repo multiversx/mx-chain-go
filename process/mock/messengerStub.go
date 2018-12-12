@@ -2,19 +2,21 @@ package mock
 
 import (
 	"context"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multiaddr"
-	"time"
 )
 
 type MessengerStub struct {
 	marshalizer    marshal.Marshalizer
 	HasherObj      hashing.Hasher
 	AddTopicCalled func(t *p2p.Topic) error
+	GetTopicCalled func(name string) *p2p.Topic
 }
 
 func NewMessengerStub() *MessengerStub {
@@ -77,7 +79,7 @@ func (ms *MessengerStub) Connectedness(pid peer.ID) net.Connectedness {
 }
 
 func (ms *MessengerStub) GetTopic(topicName string) *p2p.Topic {
-	panic("implement me")
+	return ms.GetTopicCalled(topicName)
 }
 
 func (ms *MessengerStub) AddTopic(t *p2p.Topic) error {
