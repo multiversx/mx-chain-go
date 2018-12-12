@@ -208,6 +208,7 @@ func TestShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t *
 		WaitTime)
 
 	r := bs.ShouldSync()
+
 	assert.Equal(t, false, r)
 }
 
@@ -220,6 +221,7 @@ func TestShouldSyncShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		WaitTime)
 
 	r := bs.ShouldSync()
+
 	assert.Equal(t, true, r)
 }
 
@@ -236,6 +238,7 @@ func TestShouldSyncShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		WaitTime)
 
 	r := bs.ShouldSync()
+
 	assert.Equal(t, false, r)
 }
 
@@ -252,6 +255,7 @@ func TestShouldSyncShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		WaitTime)
 
 	r := bs.ShouldSync()
+
 	assert.Equal(t, false, r)
 }
 
@@ -266,6 +270,7 @@ func TestGetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		WaitTime)
 
 	r := bs.GetDataFromPool(bp.HeaderStore(), 0)
+
 	assert.Nil(t, r)
 }
 
@@ -283,6 +288,7 @@ func TestGetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 
 	bp.AddHeader(0, &hdr)
 	r := bs.GetDataFromPool(bp.HeaderStore(), 0)
+
 	assert.Equal(t, &hdr, r)
 }
 
@@ -297,6 +303,7 @@ func TestGetBlockFromPoolShouldReturnNil(t *testing.T) {
 		WaitTime)
 
 	r := bs.GetDataFromPool(bp.BodyStore(), 0)
+
 	assert.Nil(t, r)
 }
 
@@ -314,5 +321,6 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 
 	bp.AddBody(0, &blk)
 	r := bs.GetDataFromPool(bp.BodyStore(), 0)
+
 	assert.Equal(t, &blk, r)
 }

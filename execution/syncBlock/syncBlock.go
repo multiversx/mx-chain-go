@@ -49,7 +49,6 @@ func NewBootstrap(
 	blkExecutor execution.BlockExecutor,
 	waitTime time.Duration,
 ) (*bootstrap, error) {
-
 	err := checkBootstrapNilParameters(blkPool, blkc, round, blkExecutor)
 
 	if err != nil {
@@ -111,7 +110,6 @@ func (boot *bootstrap) requestedHeaderNonce() int64 {
 	boot.mutHeader.RLock()
 	nonce := boot.headerNonce
 	boot.mutHeader.RUnlock()
-
 	return nonce
 }
 
@@ -120,7 +118,6 @@ func (boot *bootstrap) requestedBodyNonce() int64 {
 	boot.mutBody.RLock()
 	nonce := boot.bodyNonce
 	boot.mutBody.RUnlock()
-
 	return nonce
 }
 
@@ -252,7 +249,6 @@ func (boot *bootstrap) shouldSync() bool {
 
 // getDataFromPool method returns the block header or block body from a given nonce
 func (boot *bootstrap) getDataFromPool(store storage.Cacher, nonce uint64) interface{} {
-
 	if store == nil {
 		return nil
 	}
@@ -292,7 +288,6 @@ func (boot *bootstrap) waitForHeaderNonce() {
 func (boot *bootstrap) receivedHeader(nonce uint64) {
 	if boot.requestedHeaderNonce() == int64(nonce) {
 		boot.setRequestedHeaderNonce(-1)
-
 		boot.chRcvHdr <- true
 	}
 }
