@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -56,6 +57,7 @@ type HeaderInterceptorAdapter interface {
 	Hashed
 	p2p.Newer
 	Shard() uint32
+	GetHeader() *block.Header
 }
 
 // BlockBodyInterceptorAdapter defines what a block body object should do

@@ -11,7 +11,7 @@ import (
 
 //------- Check()
 
-func TestInterceptedTransactionCheckNilTransactionShouldRetFalse(t *testing.T) {
+func TestInterceptedTransaction_CheckNilTransactionShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	tx := transaction.NewInterceptedTransaction()
@@ -20,7 +20,7 @@ func TestInterceptedTransactionCheckNilTransactionShouldRetFalse(t *testing.T) {
 	assert.False(t, tx.Check())
 }
 
-func TestInterceptedTransactionCheckNilSignatureShouldRetFalse(t *testing.T) {
+func TestInterceptedTransaction_CheckNilSignatureShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	tx := transaction.NewInterceptedTransaction()
@@ -32,7 +32,7 @@ func TestInterceptedTransactionCheckNilSignatureShouldRetFalse(t *testing.T) {
 	assert.False(t, tx.Check())
 }
 
-func TestInterceptedTransactionCheckNilChallengeShouldRetFalse(t *testing.T) {
+func TestInterceptedTransaction_CheckNilChallengeShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	tx := transaction.NewInterceptedTransaction()
@@ -44,7 +44,7 @@ func TestInterceptedTransactionCheckNilChallengeShouldRetFalse(t *testing.T) {
 	assert.False(t, tx.Check())
 }
 
-func TestInterceptedTransactionCheckNilRcvAddrShouldRetFalse(t *testing.T) {
+func TestInterceptedTransaction_CheckNilRcvAddrShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	tx := transaction.NewInterceptedTransaction()
@@ -56,7 +56,7 @@ func TestInterceptedTransactionCheckNilRcvAddrShouldRetFalse(t *testing.T) {
 	assert.False(t, tx.Check())
 }
 
-func TestInterceptedTransactionCheckNilSndAddrShouldRetFalse(t *testing.T) {
+func TestInterceptedTransaction_CheckNilSndAddrShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	tx := transaction.NewInterceptedTransaction()
@@ -68,7 +68,7 @@ func TestInterceptedTransactionCheckNilSndAddrShouldRetFalse(t *testing.T) {
 	assert.False(t, tx.Check())
 }
 
-func TestTransactionInterceptorCheckNegativeBalanceShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_CheckNegativeBalanceShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	tx := transaction.NewInterceptedTransaction()
@@ -84,7 +84,7 @@ func TestTransactionInterceptorCheckNegativeBalanceShouldRetFalse(t *testing.T) 
 
 }
 
-func TestTransactionInterceptorCheckNilAddrConvertorShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_CheckNilAddrConvertorShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	tx := transaction.NewInterceptedTransaction()
@@ -98,7 +98,7 @@ func TestTransactionInterceptorCheckNilAddrConvertorShouldRetFalse(t *testing.T)
 	assert.False(t, tx.Check())
 }
 
-func TestTransactionInterceptorCheckInvalidSenderAddrShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_CheckInvalidSenderAddrShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	tx := transaction.NewInterceptedTransaction()
@@ -114,7 +114,7 @@ func TestTransactionInterceptorCheckInvalidSenderAddrShouldRetFalse(t *testing.T
 	assert.False(t, tx.Check())
 }
 
-func TestTransactionInterceptorCheckInvalidReceiverAddrShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_CheckInvalidReceiverAddrShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	tx := transaction.NewInterceptedTransaction()
@@ -130,7 +130,7 @@ func TestTransactionInterceptorCheckInvalidReceiverAddrShouldRetFalse(t *testing
 	assert.False(t, tx.Check())
 }
 
-func TestTransactionInterceptorCheckOkValsShouldRetTrue(t *testing.T) {
+func TestTransactionInterceptor_CheckOkValsShouldRetTrue(t *testing.T) {
 	t.Parallel()
 
 	tx := transaction.NewInterceptedTransaction()
@@ -146,7 +146,7 @@ func TestTransactionInterceptorCheckOkValsShouldRetTrue(t *testing.T) {
 
 //------- Getters and Setters
 
-func TestTransactionInterceptorAllGettersAndSettersShouldWork(t *testing.T) {
+func TestTransactionInterceptor_AllGettersAndSettersShouldWork(t *testing.T) {
 	t.Parallel()
 
 	addrConv := &mock.AddressConverterMock{}

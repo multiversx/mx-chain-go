@@ -3,6 +3,7 @@ package transaction_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
@@ -18,15 +19,19 @@ import (
 func createNewTransactionInterceptorForTests() (
 	ti *transaction.TxInterceptor,
 	mes *mock.MessengerStub,
-	pool *shardedData.ShardedData,
+	pool data.ShardedDataCacherNotifier,
 	addrConv *mock.AddressConverterMock,
 	err error) {
 
 	mes = mock.NewMessengerStub()
-	pool = shardedData.NewShardedData(&storage.CacheConfig{
+	pool, err = shardedData.NewShardedData(storage.CacheConfig{
 		Size: 10000,
 		Type: storage.LRUCache,
 	})
+	if err != nil {
+		return
+	}
+
 	addrConv = &mock.AddressConverterMock{}
 
 	mes.AddTopicCalled = func(t *p2p.Topic) error {
@@ -51,20 +56,22 @@ func createNewTransactionInterceptorForTests() (
 
 //------- NewTransactionInterceptor
 
-func TestNewTransactionInterceptorNilMessengerShouldErr(t *testing.T) {
+func TestNewTransactionInterceptor_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tPool := shardedData.NewShardedData(&storage.CacheConfig{
+	tPool, err := shardedData.NewShardedData(storage.CacheConfig{
 		Size: 10000,
 		Type: storage.LRUCache,
 	})
+	assert.Nil(t, err)
+
 	addrConv := &mock.AddressConverterMock{}
 
-	_, err := transaction.NewTxInterceptor(nil, tPool, addrConv, mock.HasherMock{})
+	_, err = transaction.NewTxInterceptor(nil, tPool, addrConv, mock.HasherMock{})
 	assert.Equal(t, process.ErrNilMessenger, err)
 }
 
-func TestNewTransactionInterceptorNilTransactionPoolShouldErr(t *testing.T) {
+func TestNewTransactionInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mes := mock.NewMessengerStub()
@@ -74,34 +81,36 @@ func TestNewTransactionInterceptorNilTransactionPoolShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilTxDataPool, err)
 }
 
-func TestNewTransactionInterceptorNilAddressConverterShouldErr(t *testing.T) {
+func TestNewTransactionInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mes := mock.NewMessengerStub()
-	tPool := shardedData.NewShardedData(&storage.CacheConfig{
+	tPool, err := shardedData.NewShardedData(storage.CacheConfig{
 		Size: 10000,
 		Type: storage.LRUCache,
 	})
+	assert.Nil(t, err)
 
-	_, err := transaction.NewTxInterceptor(mes, tPool, nil, mock.HasherMock{})
+	_, err = transaction.NewTxInterceptor(mes, tPool, nil, mock.HasherMock{})
 	assert.Equal(t, process.ErrNilAddressConverter, err)
 }
 
-func TestNewTransactionInterceptorNilHasherShouldErr(t *testing.T) {
+func TestNewTransactionInterceptor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	mes := mock.NewMessengerStub()
-	tPool := shardedData.NewShardedData(&storage.CacheConfig{
+	tPool, err := shardedData.NewShardedData(storage.CacheConfig{
 		Size: 10000,
 		Type: storage.LRUCache,
 	})
+	assert.Nil(t, err)
 	addrConv := &mock.AddressConverterMock{}
 
-	_, err := transaction.NewTxInterceptor(mes, tPool, addrConv, nil)
+	_, err = transaction.NewTxInterceptor(mes, tPool, addrConv, nil)
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestNewTransactionInterceptorOkValsShouldWork(t *testing.T) {
+func TestNewTransactionInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	_, _, _, _, err := createNewTransactionInterceptorForTests()
@@ -110,7 +119,7 @@ func TestNewTransactionInterceptorOkValsShouldWork(t *testing.T) {
 
 //------- processTx
 
-func TestTransactionInterceptorProcessTxNilTxShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_ProcessTxNilTxShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	ti, _, _, _, _ := createNewTransactionInterceptorForTests()
@@ -118,7 +127,7 @@ func TestTransactionInterceptorProcessTxNilTxShouldRetFalse(t *testing.T) {
 	assert.False(t, ti.ProcessTx(nil, make([]byte, 0), mock.HasherMock{}))
 }
 
-func TestTransactionInterceptorProcessTxWrongTypeOfNewerShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_ProcessTxWrongTypeOfNewerShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	ti, _, _, _, _ := createNewTransactionInterceptorForTests()
@@ -128,7 +137,7 @@ func TestTransactionInterceptorProcessTxWrongTypeOfNewerShouldRetFalse(t *testin
 	assert.False(t, ti.ProcessTx(&sn, make([]byte, 0), mock.HasherMock{}))
 }
 
-func TestTransactionInterceptorProcessTxSanityCheckFailedShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_ProcessTxSanityCheckFailedShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	ti, _, _, _, _ := createNewTransactionInterceptorForTests()
@@ -142,7 +151,7 @@ func TestTransactionInterceptorProcessTxSanityCheckFailedShouldRetFalse(t *testi
 	assert.False(t, ti.ProcessTx(txNewer, make([]byte, 0), mock.HasherMock{}))
 }
 
-func TestTransactionInterceptorProcessTxNotValidShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_ProcessTxNotValidShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	ti, _, _, addrConv, _ := createNewTransactionInterceptorForTests()
@@ -158,7 +167,7 @@ func TestTransactionInterceptorProcessTxNotValidShouldRetFalse(t *testing.T) {
 	assert.False(t, ti.ProcessTx(txNewer, nil, mock.HasherMock{}))
 }
 
-func TestTransactionInterceptorProcessValidValsShouldRetTrue(t *testing.T) {
+func TestTransactionInterceptor_ProcessValidValsShouldRetTrue(t *testing.T) {
 	t.Parallel()
 
 	ti, _, pool, _, _ := createNewTransactionInterceptorForTests()
@@ -171,17 +180,17 @@ func TestTransactionInterceptorProcessValidValsShouldRetTrue(t *testing.T) {
 
 	assert.True(t, ti.ProcessTx(txNewer, []byte("txHash"), mock.HasherMock{}))
 
-	if pool.ShardStore(0) == nil {
+	if pool.ShardDataStore(0) == nil {
 		assert.Fail(t, "failed to add tx")
 		return
 	}
 
-	txStored, ok := pool.ShardStore(0).DataStore.Get(mock.HasherMock{}.Compute("txHash"))
+	txStored, ok := pool.ShardDataStore(0).Get(mock.HasherMock{}.Compute("txHash"))
 	assert.True(t, ok)
 	assert.Equal(t, txNewer.Transaction, txStored)
 }
 
-func TestTransactionInterceptorProcessValidValsOtherShardsShouldRetTrue(t *testing.T) {
+func TestTransactionInterceptor_ProcessValidValsOtherShardsShouldRetTrue(t *testing.T) {
 	t.Parallel()
 
 	ti, _, pool, _, _ := createNewTransactionInterceptorForTests()
@@ -196,13 +205,13 @@ func TestTransactionInterceptorProcessValidValsOtherShardsShouldRetTrue(t *testi
 
 	assert.True(t, ti.ProcessTx(tim, []byte("txHash"), mock.HasherMock{}))
 
-	if pool.ShardStore(0) != nil {
+	if pool.ShardDataStore(0) != nil {
 		assert.Fail(t, "failed and added tx")
 		return
 	}
 }
 
-func TestTransactionInterceptorProcessValidVals2ShardsShouldRetTrue(t *testing.T) {
+func TestTransactionInterceptor_ProcessValidVals2ShardsShouldRetTrue(t *testing.T) {
 	t.Parallel()
 
 	ti, _, pool, _, _ := createNewTransactionInterceptorForTests()
@@ -219,16 +228,16 @@ func TestTransactionInterceptorProcessValidVals2ShardsShouldRetTrue(t *testing.T
 
 	assert.True(t, ti.ProcessTx(tim, []byte("txHash"), mock.HasherMock{}))
 
-	if pool.ShardStore(2) == nil || pool.ShardStore(3) == nil {
+	if pool.ShardDataStore(2) == nil || pool.ShardDataStore(3) == nil {
 		assert.Fail(t, "failed to add tx")
 		return
 	}
 
-	txStored, ok := pool.ShardStore(2).DataStore.Get(mock.HasherMock{}.Compute("txHash"))
+	txStored, ok := pool.ShardDataStore(2).Get(mock.HasherMock{}.Compute("txHash"))
 	assert.True(t, ok)
 	assert.Equal(t, tx, txStored)
 
-	txStored, ok = pool.ShardStore(3).DataStore.Get(mock.HasherMock{}.Compute("txHash"))
+	txStored, ok = pool.ShardDataStore(3).Get(mock.HasherMock{}.Compute("txHash"))
 	assert.True(t, ok)
 	assert.Equal(t, tx, txStored)
 }

@@ -1,5 +1,5 @@
 package shardedData
 
-func (sd *ShardedData) AddedDataHandlers() []func(key []byte) {
+func (sd *shardedData) AddedDataHandlers() []func(key []byte) {
 	return sd.addedDataHandlers
 }

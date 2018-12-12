@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
@@ -15,7 +15,7 @@ var log = logger.NewDefaultLogger()
 // TxInterceptor is used for intercepting transaction and storing them into a datapool
 type TxInterceptor struct {
 	*interceptor.Interceptor
-	txPool        *shardedData.ShardedData
+	txPool        data.ShardedDataCacherNotifier
 	addrConverter state.AddressConverter
 	hasher        hashing.Hasher
 }
@@ -23,7 +23,7 @@ type TxInterceptor struct {
 // NewTxInterceptor hooks a new interceptor for transactions
 func NewTxInterceptor(
 	messenger p2p.Messenger,
-	txPool *shardedData.ShardedData,
+	txPool data.ShardedDataCacherNotifier,
 	addrConverter state.AddressConverter,
 	hasher hashing.Hasher,
 ) (*TxInterceptor, error) {
