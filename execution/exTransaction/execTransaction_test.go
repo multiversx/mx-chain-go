@@ -59,6 +59,36 @@ func TestExecTransactionGetSetSChandlerShouldWork(t *testing.T) {
 	assert.NotNil(t, execTx.SChandler())
 }
 
+//------- RegisterHandler
+func TestExecTransactionGetSetRegisterHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	execTx, err := exTransaction.NewExecTransaction(&mock.AccountsStub{}, mock.HasherMock{}, &mock.AddressConverterMock{})
+	assert.Nil(t, err)
+
+	f := func(data []byte) error {
+		return nil
+	}
+
+	execTx.SetRegisterHandler(f)
+	assert.NotNil(t, execTx.RegisterHandler())
+}
+
+//------- UnregisterHandler
+func TestExecTransactionGetSetUnregisterHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	execTx, err := exTransaction.NewExecTransaction(&mock.AccountsStub{}, mock.HasherMock{}, &mock.AddressConverterMock{})
+	assert.Nil(t, err)
+
+	f := func(data []byte) error {
+		return nil
+	}
+
+	execTx.SetUnregisterHandler(f)
+	assert.NotNil(t, execTx.UnregisterHandler())
+}
+
 //------- getAddresses
 
 func TestExecTransactionGetAddressErrAddressConvShouldErr(t *testing.T) {
@@ -165,6 +195,58 @@ func TestExecTransactionWithCallSChandlerShouldWork(t *testing.T) {
 	})
 
 	err = execTx.CallSChandler(nil)
+	assert.Equal(t, errOutput, err)
+	assert.True(t, wasCalled)
+}
+
+//------- callRegisterHandler
+
+func TestExecTransactionNoCallRegisterHandlerShouldErr(t *testing.T) {
+	execTx, err := exTransaction.NewExecTransaction(&mock.AccountsStub{}, mock.HasherMock{}, &mock.AddressConverterMock{})
+	assert.Nil(t, err)
+
+	err = execTx.CallRegisterHandler(nil)
+	assert.Equal(t, execution.ErrRegisterFunctionUndefined, err)
+}
+
+func TestExecTransactionWithCallRegisterHandlerShouldWork(t *testing.T) {
+	execTx, err := exTransaction.NewExecTransaction(&mock.AccountsStub{}, mock.HasherMock{}, &mock.AddressConverterMock{})
+	assert.Nil(t, err)
+
+	wasCalled := false
+	errOutput := errors.New("not really error, just checking output")
+	execTx.SetRegisterHandler(func(data []byte) error {
+		wasCalled = true
+		return errOutput
+	})
+
+	err = execTx.CallRegisterHandler(nil)
+	assert.Equal(t, errOutput, err)
+	assert.True(t, wasCalled)
+}
+
+//------- callUnregisterHandler
+
+func TestExecTransactionNoCallUnregisterHandlerShouldErr(t *testing.T) {
+	execTx, err := exTransaction.NewExecTransaction(&mock.AccountsStub{}, mock.HasherMock{}, &mock.AddressConverterMock{})
+	assert.Nil(t, err)
+
+	err = execTx.CallUnregisterHandler(nil)
+	assert.Equal(t, execution.ErrUnregisterFunctionUndefined, err)
+}
+
+func TestExecTransactionWithCallUnregisterHandlerShouldWork(t *testing.T) {
+	execTx, err := exTransaction.NewExecTransaction(&mock.AccountsStub{}, mock.HasherMock{}, &mock.AddressConverterMock{})
+	assert.Nil(t, err)
+
+	wasCalled := false
+	errOutput := errors.New("not really error, just checking output")
+	execTx.SetUnregisterHandler(func(data []byte) error {
+		wasCalled = true
+		return errOutput
+	})
+
+	err = execTx.CallUnregisterHandler(nil)
 	assert.Equal(t, errOutput, err)
 	assert.True(t, wasCalled)
 }
@@ -371,6 +453,162 @@ func TestExecTransactionProcessTransactionScTxShouldWork(t *testing.T) {
 
 	err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+}
+
+func TestExecTransactionProcessTransactionRegisterTxShouldWork(t *testing.T) {
+	accounts := &mock.AccountsStub{}
+
+	execTx, err := exTransaction.NewExecTransaction(accounts, mock.HasherMock{}, &mock.AddressConverterMock{})
+	assert.Nil(t, err)
+
+	wasCalled := false
+	execTx.SetRegisterHandler(func(data []byte) error {
+		wasCalled = true
+		return nil
+	})
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte(exTransaction.RegisterAddress)
+	tx.Value = 0
+	tx.Data = []byte("REGISTER ME")
+
+	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr, nil))
+	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr, nil))
+
+	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
+		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
+			return acntSrc, nil
+		}
+
+		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
+			return acntDest, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+
+	err = execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+}
+
+func TestExecTransactionProcessTransactionRegisterTxShouldNotWork(t *testing.T) {
+	accounts := &mock.AccountsStub{}
+
+	execTx, err := exTransaction.NewExecTransaction(accounts, mock.HasherMock{}, &mock.AddressConverterMock{})
+	assert.Nil(t, err)
+
+	wasCalled := false
+	execTx.SetRegisterHandler(func(data []byte) error {
+		wasCalled = true
+		return errors.New("register failed")
+	})
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte(exTransaction.RegisterAddress)
+	tx.Value = 0
+	tx.Data = []byte("REGISTER ME")
+
+	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr, nil))
+	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr, nil))
+
+	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
+		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
+			return acntSrc, nil
+		}
+
+		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
+			return acntDest, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+
+	err = execTx.ProcessTransaction(&tx)
+	assert.NotNil(t, err)
+	assert.True(t, wasCalled)
+}
+
+func TestExecTransactionProcessTransactionUnregisterTxShouldWork(t *testing.T) {
+	accounts := &mock.AccountsStub{}
+
+	execTx, err := exTransaction.NewExecTransaction(accounts, mock.HasherMock{}, &mock.AddressConverterMock{})
+	assert.Nil(t, err)
+
+	wasCalled := false
+	execTx.SetUnregisterHandler(func(data []byte) error {
+		wasCalled = true
+		return nil
+	})
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte(exTransaction.UnregisterAddress)
+	tx.Value = 0
+	tx.Data = []byte("UNREGISTER ME")
+
+	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr, nil))
+	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr, nil))
+
+	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
+		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
+			return acntSrc, nil
+		}
+
+		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
+			return acntDest, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+
+	err = execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+}
+
+func TestExecTransactionProcessTransactionUnregisterTxShouldNotWork(t *testing.T) {
+	accounts := &mock.AccountsStub{}
+
+	execTx, err := exTransaction.NewExecTransaction(accounts, mock.HasherMock{}, &mock.AddressConverterMock{})
+	assert.Nil(t, err)
+
+	wasCalled := false
+	execTx.SetUnregisterHandler(func(data []byte) error {
+		wasCalled = true
+		return errors.New("unregister failed")
+	})
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte(exTransaction.UnregisterAddress)
+	tx.Value = 0
+	tx.Data = []byte("UNREGISTER ME")
+
+	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr, nil))
+	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr, nil))
+
+	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
+		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
+			return acntSrc, nil
+		}
+
+		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
+			return acntDest, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+
+	err = execTx.ProcessTransaction(&tx)
+	assert.NotNil(t, err)
 	assert.True(t, wasCalled)
 }
 

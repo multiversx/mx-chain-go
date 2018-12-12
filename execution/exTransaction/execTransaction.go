@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"math/big"
 
+	"bytes"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
@@ -11,10 +12,12 @@ import (
 
 // execTransaction implements TransactionExecutor interface and can modify account states according to a transaction
 type execTransaction struct {
-	accounts  state.AccountsAdapter
-	adrConv   state.AddressConverter
-	hasher    hashing.Hasher
-	scHandler func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
+	accounts          state.AccountsAdapter
+	adrConv           state.AddressConverter
+	hasher            hashing.Hasher
+	scHandler         func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
+	registerHandler   func(data []byte) error
+	unregisterHandler func(data []byte) error
 }
 
 // NewExecTransaction creates a new execTransaction engine
@@ -50,6 +53,26 @@ func (et *execTransaction) SetSChandler(f func(accountsAdapter state.AccountsAda
 	et.scHandler = f
 }
 
+// RegisterHandler returns the registration execution function
+func (et *execTransaction) RegisterHandler() func(data []byte) error {
+	return et.registerHandler
+}
+
+// SetRegisterHandler sets the registration execution function
+func (et *execTransaction) SetRegisterHandler(f func(data []byte) error) {
+	et.registerHandler = f
+}
+
+// UnregisterHandler returns the unregistration execution function
+func (et *execTransaction) UnregisterHandler() func(data []byte) error {
+	return et.unregisterHandler
+}
+
+// SetUnregisterHandler sets the unregistration execution function
+func (et *execTransaction) SetUnregisterHandler(f func(data []byte) error) {
+	et.unregisterHandler = f
+}
+
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error {
 	if tx == nil {
@@ -72,6 +95,20 @@ func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error
 
 	if acntDest.Code() != nil {
 		return et.callSChandler(tx)
+	}
+
+	if bytes.Equal(adrDest.Bytes(), []byte(RegisterAddress)) {
+		err = et.callRegisterHandler(tx.Data)
+		if err != nil {
+			return err
+		}
+	}
+
+	if bytes.Equal(adrDest.Bytes(), []byte(UnregisterAddress)) {
+		err = et.callUnregisterHandler(tx.Data)
+		if err != nil {
+			return err
+		}
 	}
 
 	//TODO change to big int implementation
@@ -127,6 +164,22 @@ func (et *execTransaction) callSChandler(tx *transaction.Transaction) error {
 	}
 
 	return et.scHandler(et.accounts, tx)
+}
+
+func (et *execTransaction) callRegisterHandler(data []byte) error {
+	if et.registerHandler == nil {
+		return execution.ErrRegisterFunctionUndefined
+	}
+
+	return et.registerHandler(data)
+}
+
+func (et *execTransaction) callUnregisterHandler(data []byte) error {
+	if et.unregisterHandler == nil {
+		return execution.ErrUnregisterFunctionUndefined
+	}
+
+	return et.unregisterHandler(data)
 }
 
 func (et *execTransaction) checkTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {

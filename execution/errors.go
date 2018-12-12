@@ -31,7 +31,7 @@ var ErrInsufficientFunds = errors.New("insufficient funds")
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
 
-// ErrNilBlockchain signals that an operation has been attempted to or with a nil blockchain
+// ErrNilBlockChain signals that an operation has been attempted to or with a nil blockchain
 var ErrNilBlockChain = errors.New("nil block chain")
 
 // ErrNilBlockBody signals that an operation has been attempted to or with a nil block body
@@ -39,12 +39,6 @@ var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
-
-// ErrHigherNonceInBlock signals the nonce in block is higher than next expected nounce
-var ErrHigherNonceInBlock = errors.New("higher nonce in block, waiting for the right one")
-
-// ErrLowerNonceInBlock signals the nonce in block is lower than next expected nounce
-var ErrLowerNonceInBlock = errors.New("lower nonce in block")
 
 // ErrWrongNonceInBlock signals the nonce in block is different than expected nounce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
@@ -65,7 +59,7 @@ var ErrMarshalWithoutSuccess = errors.New("marshal without success")
 var ErrPersistWithoutSuccess = errors.New("persist without success")
 
 // ErrRootStateMissmatch signals that persist some data was not done with success
-var ErrRootStateMissmatch = errors.New("Root state does not match")
+var ErrRootStateMissmatch = errors.New("root state does not match")
 
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modifications
 var ErrAccountStateDirty = errors.New("AccountState was dirty before starting to change")
@@ -76,11 +70,26 @@ var ErrMissingHeader = errors.New("missing header")
 // ErrMissingBody signals that body of the block is missing
 var ErrMissingBody = errors.New("missing body")
 
+// ErrNilTransactionExecutor signals that an operation has been attempted to or with a nil TransactionExecutor implementation
+var ErrNilTransactionExecutor = errors.New("nil TransactionExecutor")
+
 // ErrNilBlockExecutor signals that an operation has been attempted to or with a nil BlockExecutor implementation
 var ErrNilBlockExecutor = errors.New("nil BlockExecutor")
+
+// ErrNilValidatorSyncer signals that an operation has been attempted to or with a nil ValidatorSyncer implementation
+var ErrNilValidatorSyncer = errors.New("nil ValidatorSyncer")
+
+// ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
+var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
 // ErrNilBlockPool signals that an operation has been attempted to or with a nil BlockPool
 var ErrNilBlockPool = errors.New("nil BlockPool")
 
 // ErrNilRound signals that an operation has been attempted to or with a nil Round
 var ErrNilRound = errors.New("nil Round")
+
+// ErrRegisterFunctionUndefined signals that an operation has been attempted to or with a nil function
+var ErrRegisterFunctionUndefined = errors.New("registration function is not defined")
+
+// ErrUnregisterFunctionUndefined signals that an operation has been attempted to or with a nil function
+var ErrUnregisterFunctionUndefined = errors.New("unregistration function is not defined")
