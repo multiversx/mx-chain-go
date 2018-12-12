@@ -69,3 +69,18 @@ var ErrRootStateMissmatch = errors.New("Root state does not match")
 
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modifications
 var ErrAccountStateDirty = errors.New("AccountState was dirty before starting to change")
+
+// ErrMissingHeader signals that header of the block is missing
+var ErrMissingHeader = errors.New("missing header")
+
+// ErrMissingBody signals that body of the block is missing
+var ErrMissingBody = errors.New("missing body")
+
+// ErrNilBlockExecutor signals that an operation has been attempted to or with a nil BlockExecutor implementation
+var ErrNilBlockExecutor = errors.New("nil BlockExecutor")
+
+// ErrNilBlockPool signals that an operation has been attempted to or with a nil BlockPool
+var ErrNilBlockPool = errors.New("nil BlockPool")
+
+// ErrNilRound signals that an operation has been attempted to or with a nil Round
+var ErrNilRound = errors.New("nil Round")
