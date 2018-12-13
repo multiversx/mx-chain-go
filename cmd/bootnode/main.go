@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"os"
 	"os/signal"
 	"sync"
@@ -86,10 +91,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	log.Info(fmt.Sprintf("Initialized with config from: %s", ctx.GlobalString(flags.GenesisFile.Name)))
 
 	// 1. Start with an empty node
-	ef := facade.ElrondFacade{}
+	node := CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name),
+		initialConfig.InitialNodesAddresses())
+	ef := facade.NewElrondNodeFacade(node)
+
 	ef.SetLogger(log)
 	ef.StartNTP(initialConfig.ClockSyncPeriod)
-	ef.CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name), initialConfig.InitialNodesAddresses())
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
@@ -100,7 +107,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	// If not in UI mode we should automatically boot a node
 	if !ctx.Bool(flags.WithUI.Name) {
-		fmt.Println("Bootstraping node....")
+		log.Info("Bootstraping node....")
 		err = ef.StartNode()
 		if err != nil {
 			log.Error("Starting node failed", err.Error())
@@ -148,4 +155,21 @@ func (g *Genesis) InitialNodesAddresses() []string {
 		addresses = append(addresses, in.Address)
 	}
 	return addresses
+}
+
+func CreateNode(maxAllowedPeers, port int, initialNodeAddresses []string) *node.Node {
+	appContext := context.Background()
+	hasher := sha256.Sha256{}
+	marshalizer := marshal.JsonMarshalizer{}
+	nd := node.NewNode(
+		node.WithHasher(hasher),
+		node.WithContext(appContext),
+		node.WithMarshalizer(marshalizer),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithMaxAllowedPeers(maxAllowedPeers),
+		node.WithPort(port),
+		node.WithInitialNodeAddresses(initialNodeAddresses),
+	)
+
+	return nd
 }
