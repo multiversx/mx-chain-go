@@ -87,16 +87,12 @@ func TestTamperedMessage(t *testing.T) {
 func TestWrongPublicKey(t *testing.T) {
 	kg := schnorr.NewKeyGenerator()
 	message := string("abcdefg")
-	priv, pub := kg.GeneratePair()
-	byteArrayPub, err := pub.ToByteArray()
-	logError(err)
+	priv, _ := kg.GeneratePair()
+	_, pub2 := kg.GeneratePair()
 	// Change pubkey
-	byteArrayPub[0] = byteArrayPub[0] - 1
-	recreatedPubKey, err := kg.PublicKeyFromByteArray(byteArrayPub)
-	logError(err)
 	sig, err := priv.Sign([]byte(message))
 	logError(err)
-	ok, err := recreatedPubKey.Verify([]byte(message), sig)
+	ok, err := pub2.Verify([]byte(message), sig)
 	logError(err)
 	assert.False(t, ok, "could verify signature with wrong public key")
 }
