@@ -16,7 +16,7 @@ func (et *execTransaction) GetAccounts(adrSrc, adrDest state.AddressContainer) (
 }
 
 func (et *execTransaction) CallSCHandler(tx *transaction.Transaction) error {
-	return et.callSChandler(tx)
+	return et.callSCHandler(tx)
 }
 
 func (et *execTransaction) CheckTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {

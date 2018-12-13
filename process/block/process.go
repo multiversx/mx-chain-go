@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"sync"
 	"time"
 
@@ -11,20 +12,39 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
 const WaitTime = time.Duration(2000 * time.Millisecond)
 
-// blockProcessor implements BlockExecutor interface and actually it tries to execute block
+type StateBlockBodyWrapper struct {
+	block.StateBlockBody
+}
+
+type PeerBlockBodyWrapper struct {
+	block.PeerBlockBody
+}
+
+type TxBlockBodyWrapper struct {
+	block.TxBlockBody
+}
+
+type HeaderWrapper struct {
+	block.Header
+}
+
+var log = logger.NewDefaultLogger()
+
+// blockProcessor implements BlockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
 	tp                   *transactionPool.TransactionPool
 	hasher               hashing.Hasher
 	marshalizer          marshal.Marshalizer
-	txProcessor          process.TransactionExecutor
+	txProcessor          process.TransactionProcessor
 	ChRcvAllTxs          chan bool
 	OnRequestTransaction func(destShardID uint32, txHash []byte)
 	requestedTxHashes    map[string]bool
@@ -37,7 +57,7 @@ func NewBlockProcessor(
 	tp *transactionPool.TransactionPool,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
-	txProcessor process.TransactionExecutor,
+	txProcessor process.TransactionProcessor,
 	accounts state.AccountsAdapter,
 ) *blockProcessor {
 	//TODO: check nil values
@@ -57,7 +77,9 @@ func NewBlockProcessor(
 	return &eb
 }
 
-// ProcessBlock process the block and the transactions inside
+// ProcessBlock takes each transaction from the transactions block body received as parameter
+// and processes it, updating at the same time the state trie and the associated root hash
+// if transaction is not valid or not found it will return error
 func (eb *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
 	err := eb.validateBlock(blockChain, header, body)
 	if err != nil {
@@ -80,7 +102,7 @@ func (eb *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		}
 	}()
 
-	err = eb.ProcessBlockTransactions(body)
+	err = eb.processBlockTransactions(body)
 	if err != nil {
 		return err
 	}
@@ -98,6 +120,62 @@ func (eb *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 	return nil
 }
 
+// RemoveBlockTxsFromPool removes the TxBlock transactions from associated tx pools
+func (eb *blockProcessor) RemoveBlockTxsFromPool(body *block.TxBlockBody) {
+	if body != nil {
+		for i := 0; i < len(body.MiniBlocks); i++ {
+			eb.tp.RemoveTransactionsFromPool(body.MiniBlocks[i].TxHashes,
+				body.MiniBlocks[i].ShardID)
+		}
+	}
+}
+
+// VerifyStateRoot verifies the state root hash given as parameter agains the
+// Merkle trie root hash stored for accounts and returns if equal or not
+func (eb *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
+	return bytes.Equal(eb.accounts.RootHash(), rootHash)
+}
+
+// CreateTxBlockBody creates a transactions block body by filling it with transactions out of the transactions pools
+// as long as the transactions limit for the block has not been reached and there is still time to add transactions
+func (eb *blockProcessor) CreateTxBlockBody(nbShards int, shardId uint32, maxTxInBlock int, haveTime func() bool) (*block.TxBlockBody, error) {
+	mblks, err := eb.createMiniBlocks(nbShards, maxTxInBlock, haveTime)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rootHash := eb.accounts.RootHash()
+
+	blk := &block.TxBlockBody{
+		StateBlockBody: block.StateBlockBody{
+			RootHash: rootHash,
+			ShardID:  shardId,
+		},
+		MiniBlocks: mblks,
+	}
+
+	return blk, nil
+}
+
+// CreateGenesisBlockBody creates the genesis block body from map of account balances
+func (eb *blockProcessor) CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody {
+
+	rootHash, err := eb.txProcessor.SetBalancesToTrie(balances)
+
+	if err != nil {
+		// cannot create Genesis block
+		panic(err)
+	}
+
+	stateBlockBody := &block.StateBlockBody{
+		RootHash: rootHash,
+		ShardID:  shardId,
+	}
+
+	return stateBlockBody
+}
+
 func (eb *blockProcessor) validateBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
 	if blockChain == nil {
 		return process.ErrNilBlockChain
@@ -112,11 +190,11 @@ func (eb *blockProcessor) validateBlock(blockChain *blockchain.BlockChain, heade
 	}
 
 	if blockChain.CurrentBlockHeader == nil {
-		if !eb.IsFirstBlockInEpoch(header) {
+		if !eb.isFirstBlockInEpoch(header) {
 			return process.ErrWrongNonceInBlock
 		}
 	} else {
-		if eb.IsCorrectNonce(blockChain.CurrentBlockHeader.Nonce, header.Nonce) {
+		if eb.isCorrectNonce(blockChain.CurrentBlockHeader.Nonce, header.Nonce) {
 			return process.ErrWrongNonceInBlock
 		}
 
@@ -132,12 +210,33 @@ func (eb *blockProcessor) validateBlock(blockChain *blockchain.BlockChain, heade
 	return nil
 }
 
-func (eb *blockProcessor) IsCorrectNonce(currentBlockNonce, receivedBlockNonce uint64) bool {
+func (eb *blockProcessor) isCorrectNonce(currentBlockNonce, receivedBlockNonce uint64) bool {
 	return currentBlockNonce+1 != receivedBlockNonce
 }
 
-func (eb *blockProcessor) IsFirstBlockInEpoch(header *block.Header) bool {
+func (eb *blockProcessor) isFirstBlockInEpoch(header *block.Header) bool {
 	return header.Round == 0
+}
+
+func (eb *blockProcessor) processBlockTransactions(body *block.TxBlockBody) error {
+	if body == nil {
+		return process.ErrNilBlockBody
+	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
+		shardId := miniBlock.ShardID
+
+		for j := 0; j < len(miniBlock.TxHashes); j++ {
+			txHash := miniBlock.TxHashes[j]
+			tx := eb.getTransactionFromPool(shardId, txHash)
+			err := eb.txProcessor.ProcessTransaction(tx)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 //TODO: do not marshal and unmarshal: wrapper struct with marshaled data
@@ -273,25 +372,61 @@ func (eb *blockProcessor) computeMissingTxsForShards(body *block.TxBlockBody) ma
 	return missingTxsForShard
 }
 
-func (eb *blockProcessor) ProcessBlockTransactions(body *block.TxBlockBody) error {
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		miniBlock := body.MiniBlocks[i]
-		shardId := miniBlock.ShardID
+func (eb *blockProcessor) createMiniBlocks(nbShards int, maxTxInBlock int, haveTime func() bool) ([]block.MiniBlock, error) {
+	miniBlocks := make([]block.MiniBlock, 0)
 
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			txHash := miniBlock.TxHashes[j]
-			tx := eb.getTransactionFromPool(shardId, txHash)
+	if eb.accounts.JournalLen() != 0 {
+		return nil, process.ErrAccountStateDirty
+	}
+
+	if !haveTime() {
+		return miniBlocks, nil
+	}
+
+	for i, txs := 0, 0; i < nbShards; i++ {
+		txStore := eb.tp.MiniPoolTxStore(uint32(i))
+
+		if txStore == nil {
+			continue
+		}
+
+		miniBlock := block.MiniBlock{}
+		miniBlock.ShardID = uint32(i)
+		miniBlock.TxHashes = make([][]byte, 0)
+
+		for _, txHash := range txStore.Keys() {
+			tx := eb.getTransactionFromPool(miniBlock.ShardID, txHash)
+
+			if tx == nil {
+				log.Error("did not find transaction in pool")
+				continue
+			}
+
+			// execute transaction to change the trie root hash
 			err := eb.txProcessor.ProcessTransaction(tx)
+
 			if err != nil {
-				return err
+				continue
+			}
+
+			miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
+			txs++
+
+			if txs >= maxTxInBlock { // max transactions count in one block was reached
+				miniBlocks = append(miniBlocks, miniBlock)
+				return miniBlocks, nil
 			}
 		}
-	}
-	return nil
-}
 
-func (eb *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
-	return bytes.Equal(eb.accounts.RootHash(), rootHash)
+		if !haveTime() {
+			miniBlocks = append(miniBlocks, miniBlock)
+			return miniBlocks, nil
+		}
+
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return miniBlocks, nil
 }
 
 func (eb *blockProcessor) waitForTxHashes() {

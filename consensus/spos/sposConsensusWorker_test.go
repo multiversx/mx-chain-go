@@ -1,18 +1,16 @@
 package spos_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
+	"fmt"
 	"testing"
 	"time"
 
-	"fmt"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -92,21 +90,27 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 			chr)
 
 		blkc := blockchain.BlockChain{}
-		txp := transactionPool.NewTransactionPool(nil)
 
 		com := spos.NewCommunication(
 			true,
 			cns,
 			&blkc,
-			txp,
 			mock.HasherMock{},
-			mock.MarshalizerMock{})
+			mock.MarshalizerMock{},
+			mock.BlockProcessorMock{})
 
 		com.OnSendMessage = SendMessage
 
 		GenerateSubRoundHandlers(roundDuration, cns, com)
 
 		coms = append(coms, com)
+	}
+
+	coms[0].BlockProcessor = mock.BlockProcessorMock{
+		RemoveBlockTxsFromPoolCalled: func(*block.TxBlockBody) {},
+		CreateTxBlockCalled: func(nbShards int, shardId uint32, maxTxInBlock int, haveTime func() bool) (*block.TxBlockBody, error) {
+			return &block.TxBlockBody{}, nil
+		},
 	}
 
 	return coms
@@ -241,9 +245,9 @@ func TestNewMessage(t *testing.T) {
 		true,
 		nil,
 		nil,
-		nil,
 		mock.HasherMock{},
-		mock.MarshalizerMock{})
+		mock.MarshalizerMock{},
+		mock.BlockProcessorMock{})
 
 	assert.Equal(t, 0, cap(com.ChRcvMsg[spos.MtBlockHeader]))
 
@@ -251,9 +255,9 @@ func TestNewMessage(t *testing.T) {
 		true,
 		cns,
 		nil,
-		nil,
 		mock.HasherMock{},
-		mock.MarshalizerMock{})
+		mock.MarshalizerMock{},
+		mock.BlockProcessorMock{})
 
 	assert.Equal(t, len(cns.RoundConsensus.ConsensusGroup()), cap(msg2.ChRcvMsg[spos.MtBlockHeader]))
 }
@@ -327,15 +331,6 @@ func TestMessage_SendBlock(t *testing.T) {
 	r = coms[0].DoBlockJob()
 	assert.Equal(t, true, r)
 	assert.Equal(t, uint64(2), coms[0].Hdr.Nonce)
-}
-
-func TestCommunication_CreateMiniBlocks(t *testing.T) {
-	coms := InitMessage()
-	coms[0].TxP.AddTransaction([]byte("tx_hash"), &transaction.Transaction{Nonce: 0}, 0)
-	mblks := coms[0].CreateMiniBlocks()
-
-	assert.Equal(t, 1, len(mblks))
-	assert.Equal(t, []byte("tx_hash"), mblks[0].TxHashes[0])
 }
 
 func TestMessage_SendCommitmentHash(t *testing.T) {
@@ -1181,9 +1176,9 @@ func TestConsensus_CheckConsensus(t *testing.T) {
 		true,
 		cns,
 		nil,
-		nil,
 		mock.HasherMock{},
-		mock.MarshalizerMock{})
+		mock.MarshalizerMock{},
+		mock.BlockProcessorMock{})
 
 	GenerateSubRoundHandlers(100*time.Millisecond, cns, com)
 	ok := cns.CheckStartRoundConsensus()

@@ -7,9 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 //TODO: Split in multiple structs, with Single Responsibility
@@ -33,6 +33,7 @@ const (
 
 //TODO: current numbers of shards (this should be injected, and this const should be removed later)
 const shardsCount = 1024
+const shardId = 0
 
 //TODO: maximum transactions in one block (this should be injected, and this const should be removed later)
 const maxTransactionsInBlock = 1000
@@ -80,7 +81,8 @@ func NewConsensusData(
 		PubKeys:   pks,
 		Signature: sig,
 		MsgType:   msg,
-		TimeStamp: tms}
+		TimeStamp: tms,
+	}
 }
 
 // SPOSConsensusWorker defines the data needed by spos to comunicate between nodes which are in the validators group
@@ -92,10 +94,10 @@ type SPOSConsensusWorker struct {
 	Hdr  *block.Header
 	Blk  *block.TxBlockBody
 	Blkc *blockchain.BlockChain
-	TxP  *transactionPool.TransactionPool
 
 	Rounds          int // only for statistic
 	RoundsWithBlock int // only for statistic
+	BlockProcessor  process.BlockProcessor
 
 	ChRcvMsg map[MessageType]chan *ConsensusData
 
@@ -110,18 +112,18 @@ func NewCommunication(
 	log bool,
 	cns *Consensus,
 	blkc *blockchain.BlockChain,
-	txp *transactionPool.TransactionPool,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
+	blockProcessor process.BlockProcessor,
 ) *SPOSConsensusWorker {
 
 	com := SPOSConsensusWorker{
-		log:         log,
-		Cns:         cns,
-		Blkc:        blkc,
-		TxP:         txp,
-		hasher:      hasher,
-		marshalizer: marshalizer,
+		log:            log,
+		Cns:            cns,
+		Blkc:           blkc,
+		hasher:         hasher,
+		marshalizer:    marshalizer,
+		BlockProcessor: blockProcessor,
 	}
 
 	com.Rounds = 0          // only for statistic
@@ -201,16 +203,8 @@ func (com *SPOSConsensusWorker) DoEndRoundJob() bool {
 	com.Blkc.Put(blockchain.BlockHeaderUnit, com.Hdr.BlockBodyHash, header)
 	com.Blkc.Put(blockchain.TxBlockBodyUnit, com.Hdr.BlockBodyHash, body)
 
-	// TODO: Here the block should be add in the block pool, when its implementation will be finished
-
-	if com.Blk != nil { // remove transactions included in the committed block, from the transaction pool
-		for i := 0; i < len(com.Blk.MiniBlocks); i++ {
-			for j := 0; j < len(com.Blk.MiniBlocks[i].TxHashes); j++ {
-				com.TxP.RemoveTransaction(com.Blk.MiniBlocks[i].TxHashes[j],
-					com.Blk.MiniBlocks[i].ShardID)
-			}
-		}
-	}
+	// TODO: Here the block should be added in the block pool, when its implementation will be finished
+	com.BlockProcessor.RemoveBlockTxsFromPool(com.Blk)
 
 	if com.Cns.IsNodeLeaderInCurrentRound(com.Cns.SelfId()) {
 		com.Log(fmt.Sprintf("\n"+com.GetFormatedTime()+
@@ -257,9 +251,17 @@ func (com *SPOSConsensusWorker) DoBlockJob() bool {
 
 // SendBlockBody method send the proposed block body in the Block subround
 func (com *SPOSConsensusWorker) SendBlockBody() bool {
-	blk := &block.TxBlockBody{}
 
-	blk.MiniBlocks = com.CreateMiniBlocks()
+	currentSubRound := com.GetSubround()
+
+	haveTime := func() bool {
+		if com.GetSubround() > currentSubRound {
+			return false
+		}
+		return true
+	}
+
+	blk, err := com.BlockProcessor.CreateTxBlock(shardsCount, shardId, maxTransactionsInBlock, haveTime)
 
 	message, err := com.marshalizer.Marshal(blk)
 
@@ -284,49 +286,6 @@ func (com *SPOSConsensusWorker) SendBlockBody() bool {
 	com.Blk = blk
 
 	return true
-}
-
-// CreateMiniBlocks method will create mini blocks with transactions from mini pool. It will check if the
-// transaction is valid and than it will add it in the specific miniblock, depending of the destination shard id.
-// If the transactions count or the time needed for this action will exceed the limits given, it will stop the
-// procedure and will return the state of its work until than.
-func (com *SPOSConsensusWorker) CreateMiniBlocks() []block.MiniBlock {
-	currentSubRound := com.GetSubround()
-	mblkc := make([]block.MiniBlock, 0)
-
-	for i, txs := 0, 0; i < shardsCount; i++ {
-		txStore := com.TxP.MiniPoolTxStore(uint32(i))
-
-		if txStore == nil {
-			continue
-		}
-
-		mblk := block.MiniBlock{}
-		mblk.ShardID = uint32(i)
-		mblk.TxHashes = make([][]byte, 0)
-
-		for _, txHash := range txStore.Keys() {
-			// TODO: Here the transaction execution should be called, when its implementation will be
-			// TODO: finished, to check if the selected transaction is ok to be added
-
-			mblk.TxHashes = append(mblk.TxHashes, txHash)
-			txs++
-
-			if txs >= maxTransactionsInBlock { // max transactions count in one block was reached
-				mblkc = append(mblkc, mblk)
-				return mblkc
-			}
-		}
-
-		if com.GetSubround() > currentSubRound { // time is out
-			mblkc = append(mblkc, mblk)
-			return mblkc
-		}
-
-		mblkc = append(mblkc, mblk)
-	}
-
-	return mblkc
 }
 
 // GetSubround method returns current subround taking in consideration the current time

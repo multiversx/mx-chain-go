@@ -144,7 +144,7 @@ func TestExecTransactionGetAccountsOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, acnt2, a2)
 }
 
-//------- callSChandler
+//------- callSCHandler
 
 func TestExecTransactionNoCallSChandlerShouldErr(t *testing.T) {
 	execTx, err := txproc.NewExecTransaction(&mock.AccountsStub{}, mock.HasherMock{}, &mock.AddressConverterMock{})

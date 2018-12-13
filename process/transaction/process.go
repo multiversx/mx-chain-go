@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
-// execTransaction implements TransactionExecutor interface and can modify account states according to a transaction
+// execTransaction implements TransactionProcessor interface and can modify account states according to a transaction
 type execTransaction struct {
 	accounts  state.AccountsAdapter
 	adrConv   state.AddressConverter
@@ -71,7 +71,7 @@ func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error
 	}
 
 	if acntDest.Code() != nil {
-		return et.callSChandler(tx)
+		return et.callSCHandler(tx)
 	}
 
 	value := tx.Value
@@ -92,6 +92,54 @@ func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error
 	}
 
 	return nil
+}
+
+// SetBalancesToTrie adds balances to trie
+func (et *execTransaction) SetBalancesToTrie(accBalance map[string]big.Int) (rootHash []byte, err error) {
+
+	if et.accounts.JournalLen() != 0 {
+		return nil, err
+	}
+
+	for i, v := range accBalance {
+		err := et.setBalanceToTrie([]byte(i), v)
+
+		if err != nil {
+			return nil, process.ErrAccountStateDirty
+		}
+	}
+
+	rootHash, err = et.accounts.Commit()
+
+	if err != nil {
+		et.accounts.RevertToSnapshot(0)
+	}
+
+	return rootHash, err
+}
+
+func (et *execTransaction) setBalanceToTrie(addr []byte, balance big.Int) error {
+	if addr == nil {
+		return process.ErrNilValue
+	}
+
+	addrContainer, err := et.adrConv.CreateAddressFromPublicKeyBytes(addr)
+
+	if err != nil {
+		return err
+	}
+
+	if addrContainer == nil {
+		return process.ErrNilAddressContainer
+	}
+
+	account, err := et.accounts.GetJournalizedAccount(addrContainer)
+
+	if err != nil {
+		return err
+	}
+
+	return account.SetBalanceWithJournal(balance)
 }
 
 func (et *execTransaction) getAddresses(tx *transaction.Transaction) (adrSrc, adrDest state.AddressContainer, err error) {
@@ -119,7 +167,7 @@ func (et *execTransaction) getAccounts(adrSrc, adrDest state.AddressContainer) (
 	return
 }
 
-func (et *execTransaction) callSChandler(tx *transaction.Transaction) error {
+func (et *execTransaction) callSCHandler(tx *transaction.Transaction) error {
 	if et.scHandler == nil {
 		return process.ErrNoVM
 	}

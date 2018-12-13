@@ -32,26 +32,26 @@ func blockchainConfig() *blockchain.Config {
 	}
 }
 
-func TestNewBlockExec(t *testing.T) {
+func TestNewBlockProcessor(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
 	be := blproc.NewBlockProcessor(
 		tp,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.ExecTransactionMock{},
+		&mock.TxProcessorMock{},
 		nil)
 
 	assert.NotNil(t, be)
 }
 
-func TestBlockExec_GetTransactionFromPool(t *testing.T) {
+func TestBlockProc_GetTransactionFromPool(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
 	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.ExecTransactionMock{},
+		&mock.TxProcessorMock{},
 		nil)
 
 	txHash := []byte("tx1_hash")
@@ -74,13 +74,13 @@ func TestBlockExec_GetTransactionFromPool(t *testing.T) {
 	assert.Equal(t, uint64(1), tx.Nonce)
 }
 
-func TestBlockExec_RequestTransactionFromNetwork(t *testing.T) {
+func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
 	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.ExecTransactionMock{},
+		&mock.TxProcessorMock{},
 		nil)
 	//1, []byte("tx1_hash1"), WaitTime
 
@@ -104,13 +104,13 @@ func TestBlockExec_RequestTransactionFromNetwork(t *testing.T) {
 	assert.Equal(t, tx1, tx)
 }
 
-func TestBlockExec_VerifyBlockSignature(t *testing.T) {
+func TestBlockProc_VerifyBlockSignature(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
 	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&mock.ExecTransactionMock{},
+		&mock.TxProcessorMock{},
 		nil)
 
 	b := be.VerifyBlockSignature(nil)
@@ -122,18 +122,18 @@ func TestBlockExec_VerifyBlockSignature(t *testing.T) {
 	assert.Equal(t, true, b)
 }
 
-func TestBlockExec_ProcessBlock(t *testing.T) {
+func TestBlockProc_ProcessBlock(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
-	etm := mock.ExecTransactionMock{}
-	etm.ProcessTransactionCalled = func(transaction *transaction.Transaction) error {
+	tpm := mock.TxProcessorMock{}
+	tpm.ProcessTransactionCalled = func(transaction *transaction.Transaction) error {
 		return nil
 	}
 	accountsAdapter := &mock.AccountsStub{}
 	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
-		&etm,
+		&tpm,
 		accountsAdapter,
 	)
 
@@ -205,4 +205,110 @@ func TestBlockExec_ProcessBlock(t *testing.T) {
 
 	err = be.ProcessBlock(blkc, &hdr, &blk)
 	assert.Nil(t, err)
+}
+
+func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
+	tp := transactionPool.NewTransactionPool(nil)
+	tpm := mock.TxProcessorMock{}
+	JournalLen := func() int { return 3 }
+
+	be := blproc.NewBlockProcessor(
+		tp, &mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&tpm,
+		&mock.AccountsStub{JournalLenCalled: JournalLen},
+	)
+
+	bl, err := be.CreateTxBlockBody(1, 0, 100, func() bool { return true })
+
+	// nil block
+	assert.Nil(t, bl)
+	// error
+	assert.NotNil(t, err)
+}
+
+func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T) {
+	tp := transactionPool.NewTransactionPool(nil)
+
+	tpm := mock.TxProcessorMock{}
+	journalLen := func() int { return 0 }
+	rootHashfunc := func() []byte { return []byte("roothash") }
+
+	be := blproc.NewBlockProcessor(
+		tp, &mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&tpm,
+		&mock.AccountsStub{
+			JournalLenCalled: journalLen,
+			RootHashCalled:   rootHashfunc,
+		},
+	)
+
+	haveTime := func() bool {
+		return false
+	}
+
+	bl, err := be.CreateTxBlockBody(1, 0, 100, haveTime)
+
+	// no error
+	assert.Nil(t, err)
+	// no miniblocks
+	assert.Equal(t, len(bl.MiniBlocks), 0)
+}
+
+func TestBlockProcessor_CreateTxBlockBodydOK(t *testing.T) {
+	tp := transactionPool.NewTransactionPool(nil)
+	tp.AddTransaction([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 0)
+	tp.AddTransaction([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 1)
+	tp.AddTransaction([]byte("tx_hash3"), &transaction.Transaction{Nonce: 3}, 2)
+	tp.AddTransaction([]byte("tx_hash4"), &transaction.Transaction{Nonce: 4}, 3)
+	tp.AddTransaction([]byte("tx_hash5"), &transaction.Transaction{Nonce: 5}, 2)
+	tp.AddTransaction([]byte("tx_hash6"), &transaction.Transaction{Nonce: 6}, 1)
+
+	//process transaction. return nil for no error
+	procTx := func(transaction *transaction.Transaction) error {
+		return nil
+	}
+
+	tpm := mock.TxProcessorMock{
+		ProcessTransactionCalled: procTx,
+	}
+
+	journalLen := func() int { return 0 }
+	rootHashfunc := func() []byte { return []byte("roothash") }
+
+	haveTime := func() bool {
+		return true
+	}
+
+	be := blproc.NewBlockProcessor(
+		tp, &mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&tpm,
+		&mock.AccountsStub{
+			JournalLenCalled: journalLen,
+			RootHashCalled:   rootHashfunc,
+		},
+	)
+
+	blk, err := be.CreateTxBlockBody(1, 0, 100, haveTime)
+
+	assert.NotNil(t, blk)
+	assert.Nil(t, err)
+}
+
+func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldPanic(t *testing.T) {
+
+}
+
+func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
+
+}
+
+func TestBlockProcessor_RemoveBlockTxsFromPoolNilBlockOK(t *testing.T) {
+
+}
+
+func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
+
 }
