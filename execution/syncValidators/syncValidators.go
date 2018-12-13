@@ -65,10 +65,15 @@ func checkSyncValidatorsNilParameters(
 func (sv *syncValidators) AddValidator(nodeId string, stake big.Int) {
 	sv.refresh()
 	sv.mut.Lock()
+	// if the validator is already in wait list its stake will be directly increased with the stake from the new
+	// registration request, without needing to wait for more certain rounds than those from the first registration
+	// request
 	if v, isInWaitList := sv.waitList[nodeId]; isInWaitList {
 		stake.Add(&stake, &v.Stake)
+		sv.waitList[nodeId] = &validatorData{RoundIndex: v.RoundIndex, Stake: stake}
+	} else {
+		sv.waitList[nodeId] = &validatorData{RoundIndex: sv.round.Index(), Stake: stake}
 	}
-	sv.waitList[nodeId] = &validatorData{RoundIndex: sv.round.Index(), Stake: stake}
 	sv.mut.Unlock()
 }
 
