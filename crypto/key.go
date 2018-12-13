@@ -1,5 +1,12 @@
 package crypto
 
+// KeyGenerator is an interface for genarating different type of cryptographic keys
+type KeyGenerator interface {
+	GeneratePair() (PrivateKey, PublicKey)
+	PrivateKeyFromByteArray(b []byte) (PrivateKey, error)
+	PublicKeyFromByteArray(b []byte) (PublicKey, error)
+}
+
 // Key represents a crypto key - can be of the private or public type
 type Key interface {
 	// ToByteArray returns the byte array representation of the key

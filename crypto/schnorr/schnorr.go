@@ -7,6 +7,14 @@ import (
 	"gopkg.in/dedis/kyber.v2/util/key"
 )
 
+type keyGenerator struct {
+	suite key.Suite
+}
+
+// NewKeyGenerator returns a new key generator with the Ed25519 curve suite
+func NewKeyGenerator() *keyGenerator {
+	return &keyGenerator{suite: edwards25519.NewBlakeSHA256Ed25519()}
+}
 
 // privateKey holds the private key and the chosen curve
 type privateKey struct {
@@ -21,43 +29,40 @@ type publicKey struct {
 }
 
 // GeneratePair will generate a bundle of private and public key
-func GeneratePair() (*privateKey, *publicKey) {
-	schnorrSig := edwards25519.NewBlakeSHA256Ed25519()
-	schnorrKeyPair := key.NewKeyPair(schnorrSig)
+func (kg *keyGenerator) GeneratePair() (*privateKey, *publicKey) {
+	schnorrKeyPair := key.NewKeyPair(kg.suite)
 	return &privateKey{
-			suite: schnorrSig,
+			suite: kg.suite,
 			sk:    schnorrKeyPair.Private,
 		},
 		&publicKey{
-			suite: schnorrSig,
+			suite: kg.suite,
 			pk:    schnorrKeyPair.Public,
 		}
 }
 
 // PrivateKeyFromByteArray generates a private key given a byte array
-func PrivateKeyFromByteArray(b []byte) (*privateKey, error) {
-	suite :=  edwards25519.NewBlakeSHA256Ed25519()
-	scalar := suite.Scalar()
+func (kg *keyGenerator) PrivateKeyFromByteArray(b []byte) (*privateKey, error) {
+	scalar := kg.suite.Scalar()
 	err := scalar.UnmarshalBinary(b)
 	if err != nil {
 		return nil, err
 	}
 	return &privateKey{
-		suite: suite,
+		suite: kg.suite,
 		sk: scalar,
 	}, nil
 }
 
 // PublicKeyFromByteArray unmarshalls a byte array into a public key Point
-func PublicKeyFromByteArray(b []byte) (*publicKey, error) {
-	suite :=  edwards25519.NewBlakeSHA256Ed25519()
-	point := suite.Point()
+func (kg *keyGenerator) PublicKeyFromByteArray(b []byte) (*publicKey, error) {
+	point := kg.suite.Point()
 	err := point.UnmarshalBinary(b)
 	if err != nil {
 		return nil, err
 	}
 	return &publicKey{
-		suite: suite,
+		suite: kg.suite,
 		pk: point,
 	}, nil
 }
