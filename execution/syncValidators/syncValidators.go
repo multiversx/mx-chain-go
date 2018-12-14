@@ -125,7 +125,8 @@ func (sv *syncValidators) processUnregisterRequests() {
 	sv.mut.Unlock()
 }
 
-// processRegisterRequests move validators from wait to eligible list after a register request and some certain rounds
+// processRegisterRequests move validators from wait to eligible list after a register request and a certain number
+// of rounds
 func (sv *syncValidators) processRegisterRequests() {
 	sv.mut.Lock()
 
