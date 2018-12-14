@@ -1,13 +1,13 @@
 package schnorr
 
 import (
-	"github.com/pkg/errors"
 	"gopkg.in/dedis/kyber.v2"
 	"gopkg.in/dedis/kyber.v2/group/edwards25519"
 	"gopkg.in/dedis/kyber.v2/sign/schnorr"
 	"gopkg.in/dedis/kyber.v2/util/key"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/pkg/errors"
 )
 
 type keyGenerator struct {
