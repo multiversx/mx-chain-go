@@ -69,7 +69,7 @@ func TestGetBalance_WithCorrectAddress_ShouldNotReturnError(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", "/addr/"+addr+"/balance", nil)
+	req, _ := http.NewRequest("GET", "/address/"+addr+"/balance", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -95,7 +95,7 @@ func TestGetBalance_WithWrongAddress_ShouldReturnZero(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", "/addr/"+"otherAddress"+"/balance", nil)
+	req, _ := http.NewRequest("GET", "/address/"+"otherAddress"+"/balance", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 

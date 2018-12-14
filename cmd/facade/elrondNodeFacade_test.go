@@ -225,22 +225,34 @@ func TestElrondFacade_GetBalance_WithErrorOnNode_ShouldReturnZeroBalanceAndError
 func TestElrondFacade_GenerateTransaction_WithCorrectInputs_ShouldReturnNoError(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	amount := *big.NewInt(10)
-	code := "code"
+	value := *big.NewInt(10)
+	data := "code"
 
-	hash := sender + receiver + amount.String() + code
+	tr := &transaction.Transaction{
+		SndAddr: []byte(sender),
+		RcvAddr: []byte(receiver),
+		Data:    []byte(data),
+		//TODO: change this to big.Int
+		Value: uint64(value.Int64())}
 
 	node := &mock.NodeMock{
-		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int, code string) (string, error) {
-			return sender + receiver + amount.String() + code, nil
+		GenerateTransactionCalled: func(sender string, receiver string, value big.Int,
+			data string) (*transaction.Transaction, error) {
+			return &transaction.Transaction{
+				SndAddr: []byte(sender),
+				RcvAddr: []byte(receiver),
+				Data:    []byte(data),
+				//TODO: change this to big.Int
+				Value: uint64(value.Int64()),
+			}, nil
 		},
 	}
 
 	ef := facade.NewElrondNodeFacade(node)
 
-	generatedHash, err := ef.GenerateTransaction(sender, receiver, amount, code)
+	generatedTx, err := ef.GenerateTransaction(sender, receiver, value, data)
 	assert.Nil(t, err)
-	assert.Equal(t, hash, generatedHash)
+	assert.Equal(t, tr, generatedTx)
 }
 
 func TestElrondFacade_GenerateTransaction_WithNilSender_ShouldReturnError(t *testing.T) {
@@ -249,19 +261,20 @@ func TestElrondFacade_GenerateTransaction_WithNilSender_ShouldReturnError(t *tes
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int, code string) (string, error) {
+		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int,
+			code string) (*transaction.Transaction, error) {
 			if sender == "" {
-				return "", errors.New("nil sender")
+				return nil, errors.New("nil sender")
 			}
-			return sender + receiver + amount.String() + code, nil
+			return nil, nil
 		},
 	}
 
 	ef := facade.NewElrondNodeFacade(node)
 
-	generatedHash, err := ef.GenerateTransaction("", receiver, amount, code)
+	generatedTx, err := ef.GenerateTransaction("", receiver, amount, code)
 	assert.NotNil(t, err)
-	assert.Equal(t, "", generatedHash)
+	assert.Nil(t, generatedTx)
 }
 
 func TestElrondFacade_GenerateTransaction_WithNilReceiver_ShouldReturnError(t *testing.T) {
@@ -270,19 +283,20 @@ func TestElrondFacade_GenerateTransaction_WithNilReceiver_ShouldReturnError(t *t
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int, code string) (string, error) {
+		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int,
+			code string) (*transaction.Transaction, error) {
 			if receiver == "" {
-				return "", errors.New("nil receiver")
+				return nil, errors.New("nil receiver")
 			}
-			return sender + receiver + amount.String() + code, nil
+			return nil, nil
 		},
 	}
 
 	ef := facade.NewElrondNodeFacade(node)
 
-	generatedHash, err := ef.GenerateTransaction(sender, "", amount, code)
+	generatedTx, err := ef.GenerateTransaction(sender, "", amount, code)
 	assert.NotNil(t, err)
-	assert.Equal(t, "", generatedHash)
+	assert.Nil(t, generatedTx)
 }
 
 func TestElrondFacade_GenerateTransaction_WithZeroAmount_ShouldReturnError(t *testing.T) {
@@ -292,19 +306,20 @@ func TestElrondFacade_GenerateTransaction_WithZeroAmount_ShouldReturnError(t *te
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int, code string) (string, error) {
+		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int,
+			code string) (*transaction.Transaction, error) {
 			if amount.Cmp(big.NewInt(0)) == 0 {
-				return "", errors.New("zero amount")
+				return nil, errors.New("zero amount")
 			}
-			return sender + receiver + amount.String() + code, nil
+			return nil, nil
 		},
 	}
 
 	ef := facade.NewElrondNodeFacade(node)
 
-	generatedHash, err := ef.GenerateTransaction(sender, receiver, amount, code)
+	generatedTx, err := ef.GenerateTransaction(sender, receiver, amount, code)
 	assert.NotNil(t, err)
-	assert.Equal(t, "", generatedHash)
+	assert.Nil(t, generatedTx)
 }
 
 func TestElrondFacade_GenerateTransaction_WithNegativeAmount_ShouldReturnError(t *testing.T) {
@@ -314,19 +329,20 @@ func TestElrondFacade_GenerateTransaction_WithNegativeAmount_ShouldReturnError(t
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int, code string) (string, error) {
+		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int,
+			code string) (*transaction.Transaction, error) {
 			if amount.Cmp(big.NewInt(0)) < 0 {
-				return "", errors.New("negative amount")
+				return nil, errors.New("negative amount")
 			}
-			return sender + receiver + amount.String() + code, nil
+			return nil, nil
 		},
 	}
 
 	ef := facade.NewElrondNodeFacade(node)
 
-	generatedHash, err := ef.GenerateTransaction(sender, receiver, amount, code)
+	generatedTx, err := ef.GenerateTransaction(sender, receiver, amount, code)
 	assert.NotNil(t, err)
-	assert.Equal(t, "", generatedHash)
+	assert.Nil(t, generatedTx)
 }
 
 func TestElrondFacade_GetTransaction_WithValidInputs_ShouldNotReturnError(t *testing.T) {

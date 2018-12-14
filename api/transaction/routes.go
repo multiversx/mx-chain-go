@@ -60,7 +60,7 @@ func GenerateTransaction(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "ok", "tx": TxResponseFromTransaction(tx)})
+	c.JSON(http.StatusOK, gin.H{"message": "ok", "transaction": TxResponseFromTransaction(tx)})
 }
 
 // GetTransaction returns transaction details for a given txhash
