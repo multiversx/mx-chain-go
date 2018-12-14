@@ -1,10 +1,13 @@
 package schnorr
 
 import (
+	"github.com/pkg/errors"
 	"gopkg.in/dedis/kyber.v2"
 	"gopkg.in/dedis/kyber.v2/group/edwards25519"
 	"gopkg.in/dedis/kyber.v2/sign/schnorr"
 	"gopkg.in/dedis/kyber.v2/util/key"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 )
 
 type keyGenerator struct {
@@ -29,7 +32,7 @@ type publicKey struct {
 }
 
 // GeneratePair will generate a bundle of private and public key
-func (kg *keyGenerator) GeneratePair() (*privateKey, *publicKey) {
+func (kg *keyGenerator) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	schnorrKeyPair := key.NewKeyPair(kg.suite)
 	return &privateKey{
 			suite: kg.suite,
@@ -42,7 +45,10 @@ func (kg *keyGenerator) GeneratePair() (*privateKey, *publicKey) {
 }
 
 // PrivateKeyFromByteArray generates a private key given a byte array
-func (kg *keyGenerator) PrivateKeyFromByteArray(b []byte) (*privateKey, error) {
+func (kg *keyGenerator) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
+	if b == nil {
+		return nil, errors.New("cannot create private key from nil byte array")
+	}
 	scalar := kg.suite.Scalar()
 	err := scalar.UnmarshalBinary(b)
 	if err != nil {
@@ -55,7 +61,10 @@ func (kg *keyGenerator) PrivateKeyFromByteArray(b []byte) (*privateKey, error) {
 }
 
 // PublicKeyFromByteArray unmarshalls a byte array into a public key Point
-func (kg *keyGenerator) PublicKeyFromByteArray(b []byte) (*publicKey, error) {
+func (kg *keyGenerator) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
+	if b == nil {
+		return nil, errors.New("cannot create public key from nil byte array")
+	}
 	point := kg.suite.Point()
 	err := point.UnmarshalBinary(b)
 	if err != nil {
@@ -78,7 +87,7 @@ func (spk *privateKey) ToByteArray() ([]byte, error) {
 }
 
 // GeneratePublic builds a public key for the current private key
-func (spk *privateKey) GeneratePublic() *publicKey {
+func (spk *privateKey) GeneratePublic() crypto.PublicKey {
 	point := spk.suite.Point()
 	return &publicKey{
 		suite: spk.suite,
