@@ -81,20 +81,21 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	// 1. Start with an empty node
 	ef := facade.ElrondFacade{}
+	ef.SetLogger(log)
 	ef.StartNTP(initialConfig.ClockSyncPeriod)
-	ef.CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name))
+	ef.CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name), initialConfig.InitialNodesAddresses())
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
 
 	// 2. Wait until we reach the config genesis time
-	ef.WaitForStartTime(time.Unix(initialConfig.StartTime, 0), log)
+	ef.WaitForStartTime(time.Unix(initialConfig.StartTime, 0))
 	wg.Wait()
 
 	// If not in UI mode we should automatically boot a node
 	if !ctx.Bool(flags.WithUI.Name) {
 		fmt.Println("Bootstraping node....")
-		err = ef.StartNode(initialConfig.InitialNodesAddresses())
+		err = ef.StartNode()
 		if err != nil {
 			log.Error("Starting node failed", err.Error())
 		}

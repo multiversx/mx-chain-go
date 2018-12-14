@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/api"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
@@ -21,9 +22,14 @@ import (
 type ElrondFacade struct {
 	node     *node.Node
 	syncTime *ntp.SyncTime
+	log *logger.Logger
 }
 
-func (ef *ElrondFacade) CreateNode(maxAllowedPeers, port int) {
+func (ef *ElrondFacade) SetLogger(log *logger.Logger) {
+	ef.log = log
+}
+
+func (ef *ElrondFacade) CreateNode(maxAllowedPeers, port int, initialNodeAddresses []string) {
 	appContext := context.Background()
 	hasher := sha256.Sha256{}
 	marshalizer := marshal.JsonMarshalizer{}
@@ -34,20 +40,25 @@ func (ef *ElrondFacade) CreateNode(maxAllowedPeers, port int) {
 		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithMaxAllowedPeers(maxAllowedPeers),
 		node.WithPort(port),
+		node.WithInitialNodeAddresses(initialNodeAddresses),
 	)
 }
 
-func (ef *ElrondFacade) StartNode(initialAddresses []string) error {
+func (ef *ElrondFacade) StartNode() error {
 	err := ef.node.Start()
 	if err != nil {
 		return err
 	}
-	err = ef.node.ConnectToAddresses(initialAddresses)
+	err = ef.node.ConnectToInitialAddresses()
 	if err != nil {
 		return err
 	}
 	err = ef.node.StartConsensus()
 	return err
+}
+
+func (ef *ElrondFacade) StopNode() error {
+	return ef.StopNode()
 }
 
 func (ef *ElrondFacade) StartNTP(clockSyncPeriod int) {
@@ -56,10 +67,10 @@ func (ef *ElrondFacade) StartNTP(clockSyncPeriod int) {
 	})
 }
 
-func (ef *ElrondFacade) WaitForStartTime(t time.Time, log *logger.Logger) {
+func (ef *ElrondFacade) WaitForStartTime(t time.Time) {
 	if !ef.syncTime.CurrentTime(ef.syncTime.ClockOffset()).After(t) {
 		diff := t.Sub(ef.syncTime.CurrentTime(ef.syncTime.ClockOffset())).Seconds()
-		log.Info("Elrond protocol not started yet, waiting " + strconv.Itoa(int(diff)) + " seconds")
+		ef.log.Info("Elrond protocol not started yet, waiting " + strconv.Itoa(int(diff)) + " seconds")
 	}
 	for {
 		if ef.syncTime.CurrentTime(ef.syncTime.ClockOffset()).After(t) {
@@ -74,8 +85,15 @@ func (ef *ElrondFacade) StartBackgroundServices(wg *sync.WaitGroup) {
 	go ef.startRest(wg)
 }
 
+func (ef *ElrondFacade) IsNodeRunning() bool {
+	return ef.node.IsRunning()
+}
+
 func (ef *ElrondFacade) startRest(wg *sync.WaitGroup) {
-	// TODO: Next task will refactor the api. We are not able to boot it here right now,
-	//  but it will be possible after the changes are implemented. We should do that then
+	ef.log.Info("Starting web server...")
+	err := api.Start(ef)
+	if err != nil {
+		ef.log.Error("Could not start webserver", err.Error())
+	}
 	wg.Done()
 }

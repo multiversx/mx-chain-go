@@ -29,6 +29,7 @@ type Config struct {
 	TxStorage             storageConfig `json:"txStorage"`
 	BadBlocksCache        cacheConfig   `json:"badBlocksCache"`
 	TxPoolStorage         cacheConfig   `json:"txPoolStorage"`
+	BlockPoolStorage      cacheConfig   `json:"blockPoolStorage"`
 	Logger                struct {
 		Path            string `json:"path"`
 		StackTraceDepth int    `json:"stackTraceDepth"`
