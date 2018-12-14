@@ -118,6 +118,10 @@ func (rt *registerTransaction) RevertAll() {
 // RevertLast method deletes the last registration request added in register list
 func (rt *registerTransaction) RevertLast() {
 	rt.mut.Lock()
-	rt.registerList = rt.registerList[0 : len(rt.registerList)-1]
+
+	if len(rt.registerList) > 0 {
+		rt.registerList = rt.registerList[0 : len(rt.registerList)-1]
+	}
+
 	rt.mut.Unlock()
 }

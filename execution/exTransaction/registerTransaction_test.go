@@ -150,3 +150,41 @@ func TestRevertLastShouldWork(t *testing.T) {
 	assert.Equal(t, "node2", rt.RegisterList()[1].NodeId)
 	assert.Equal(t, "node4", rt.RegisterList()[2].NodeId)
 }
+
+func TestRevertLastShouldNotWork(t *testing.T) {
+	rt, _ := exTransaction.NewRegisterTransaction(&mock.ExecTransactionMock{}, &mock.SyncValidatorsMock{}, &mock.MarshalizerMock{})
+
+	rd1 := exTransaction.RegistrationData{NodeId: "node1", Stake: *big.NewInt(1), Action: exTransaction.ArRegister}
+	rd2 := exTransaction.RegistrationData{NodeId: "node2", Stake: *big.NewInt(0), Action: exTransaction.ArUnregister}
+	rd3 := exTransaction.RegistrationData{NodeId: "node3", Stake: *big.NewInt(2), Action: exTransaction.ArRegister}
+	rd4 := exTransaction.RegistrationData{NodeId: "node4", Stake: *big.NewInt(3), Action: exTransaction.ArRegister}
+
+	marsh := mock.MarshalizerMock{}
+
+	dta1, _ := marsh.Marshal(&rd1)
+	dta2, _ := marsh.Marshal(&rd2)
+	dta3, _ := marsh.Marshal(&rd3)
+	dta4, _ := marsh.Marshal(&rd4)
+
+	rt.Register(dta1)
+	rt.Register(dta2)
+	rt.Register(dta3)
+	assert.Equal(t, 3, len(rt.RegisterList()))
+
+	rt.RevertLast()
+	assert.Equal(t, 2, len(rt.RegisterList()))
+
+	rt.RevertLast()
+	assert.Equal(t, 1, len(rt.RegisterList()))
+
+	rt.RevertLast()
+	assert.Equal(t, 0, len(rt.RegisterList()))
+
+	rt.RevertLast()
+	rt.RevertLast()
+	rt.RevertLast()
+	assert.Equal(t, 0, len(rt.RegisterList()))
+
+	rt.Register(dta4)
+	assert.Equal(t, 1, len(rt.RegisterList()))
+}
