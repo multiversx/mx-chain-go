@@ -1,22 +1,18 @@
 package syncValidators
 
-import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
-)
-
 // GetUnregisterList returns a list containing nodes from unregister list after a refresh action
 func (sv *syncValidators) GetUnregisterList() map[string]*validatorData {
 	sv.refresh()
 
 	unregisterList := make(map[string]*validatorData, 0)
 
-	sv.mut.Lock()
+	sv.mut.RLock()
 
 	for k, v := range sv.unregisterList {
 		unregisterList[k] = &validatorData{RoundIndex: v.RoundIndex, Stake: v.Stake}
 	}
 
-	sv.mut.Unlock()
+	sv.mut.RUnlock()
 
 	return unregisterList
 }
@@ -27,17 +23,13 @@ func (sv *syncValidators) GetWaitList() map[string]*validatorData {
 
 	waitList := make(map[string]*validatorData, 0)
 
-	sv.mut.Lock()
+	sv.mut.RLock()
 
 	for k, v := range sv.waitList {
 		waitList[k] = &validatorData{RoundIndex: v.RoundIndex, Stake: v.Stake}
 	}
 
-	sv.mut.Unlock()
+	sv.mut.RUnlock()
 
 	return waitList
-}
-
-func (sv *syncValidators) Round() *chronology.Round {
-	return sv.round
 }

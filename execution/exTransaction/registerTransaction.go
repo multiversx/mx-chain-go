@@ -1,28 +1,21 @@
 package exTransaction
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"math/big"
 )
-
-// RegisterAddress is the address used for a node to register in the Elrond network
-const RegisterAddress = "0x0000000000000000000000000000000000000000000000000000000000000000"
-
-// UnregisterAddress is the address used for a node to unregister from the Elrond network
-const UnregisterAddress = "0x0000000000000000000000000000000000000000000000000000000000000001"
-
-// RegistrationData holds the data which are sent in a register transaction
-type RegistrationData struct {
-	NodeId string
-	Stake  uint64
-}
 
 // registerTransaction manages the register/unregister transactions received
 type registerTransaction struct {
 	txExecutor  execution.TransactionExecutor
 	vldSyncer   execution.ValidatorSyncer
 	marshalizer marshal.Marshalizer
+
+	registerList []*RegistrationData
+
+	mut sync.RWMutex
 }
 
 // NewRegisterTransaction creates a new registerTransaction object
@@ -47,7 +40,8 @@ func NewRegisterTransaction(
 		marshalizer: marshalizer}
 
 	rt.txExecutor.SetRegisterHandler(rt.register)
-	rt.txExecutor.SetUnregisterHandler(rt.unregister)
+
+	rt.registerList = make([]*RegistrationData, 0)
 
 	return &rt, nil
 }
@@ -73,10 +67,13 @@ func checkRegisterTransactionNilParameters(
 	return nil
 }
 
-// register is a call back method which is called when a register transaction is received and it
-// unmarshal the data received into RegistrationData object and than it calls the AddValidator method
-// which job is to add new validators into wait list
+// register is a call back method which is called when a register transaction is received. This method
+// unmarshals the data received into RegistrationData object and put it into register list
 func (rt *registerTransaction) register(data []byte) error {
+	if data == nil {
+		return execution.ErrNilValue
+	}
+
 	rd := &RegistrationData{}
 
 	err := rt.marshalizer.Unmarshal(rd, data)
@@ -85,22 +82,42 @@ func (rt *registerTransaction) register(data []byte) error {
 		return err
 	}
 
-	rt.vldSyncer.AddValidator(rd.NodeId, *new(big.Int).SetUint64(rd.Stake))
+	rt.mut.Lock()
+	rt.registerList = append(rt.registerList, rd)
+	rt.mut.Unlock()
+
 	return nil
 }
 
-// unregister is a call back method which is called when a unregister transaction is received and it
-// unmarshal the data received into RegistrationData object and than it calls the RemoveValidator method
-// which job is to add new validators into unregister list
-func (rt *registerTransaction) unregister(data []byte) error {
-	rd := &RegistrationData{}
+// Commit method calls the AddValidator / RemoveValidator methods which job are to add new validators into
+// wait / unregister list
+func (rt *registerTransaction) Commit() {
+	rt.mut.RLock()
 
-	err := rt.marshalizer.Unmarshal(rd, data)
-
-	if err != nil {
-		return err
+	for _, rd := range rt.registerList {
+		switch rd.Action {
+		case ArRegister:
+			rt.vldSyncer.AddValidator(rd.NodeId, rd.Stake)
+		case ArUnregister:
+			rt.vldSyncer.RemoveValidator(rd.NodeId)
+		}
 	}
 
-	rt.vldSyncer.RemoveValidator(rd.NodeId)
-	return nil
+	rt.registerList = nil
+
+	rt.mut.RUnlock()
+}
+
+// RevertAll method deletes all the registration requests from register list
+func (rt *registerTransaction) RevertAll() {
+	rt.mut.Lock()
+	rt.registerList = nil
+	rt.mut.Unlock()
+}
+
+// RevertLast method deletes the last registration request added in register list
+func (rt *registerTransaction) RevertLast() {
+	rt.mut.Lock()
+	rt.registerList = rt.registerList[0 : len(rt.registerList)-1]
+	rt.mut.Unlock()
 }

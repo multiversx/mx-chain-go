@@ -1,13 +1,13 @@
 package syncValidators_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution/syncValidators"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
-	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
+	"github.com/ElrondNetwork/elrond-go-sandbox/execution/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/execution/syncValidators"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewSyncValidatorsShouldThrowNilRound(t *testing.T) {
@@ -21,7 +21,7 @@ func TestNewSyncValidatorsShouldThrowNilRound(t *testing.T) {
 
 func TestNewSyncValidatorsShouldWork(t *testing.T) {
 	sv, err := syncValidators.NewSyncValidators(
-		chronology.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
+		&mock.RoundMock{},
 	)
 
 	assert.NotNil(t, sv)
@@ -29,8 +29,13 @@ func TestNewSyncValidatorsShouldWork(t *testing.T) {
 }
 
 func TestAddValidatorInWaitListShouldHaveOneValidator(t *testing.T) {
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
+
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
@@ -38,8 +43,13 @@ func TestAddValidatorInWaitListShouldHaveOneValidator(t *testing.T) {
 }
 
 func TestAddValidatorTwiceInWaitListShouldHaveOneValidator(t *testing.T) {
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
+
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
@@ -48,8 +58,13 @@ func TestAddValidatorTwiceInWaitListShouldHaveOneValidator(t *testing.T) {
 }
 
 func TestAddValidatorTwiceInWaitListShouldHaveTwoValidators(t *testing.T) {
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
+
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
@@ -58,8 +73,13 @@ func TestAddValidatorTwiceInWaitListShouldHaveTwoValidators(t *testing.T) {
 }
 
 func TestAddValidatorInUnregisterListShouldHaveNoValidators(t *testing.T) {
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
+
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.RemoveValidator("node1")
@@ -67,8 +87,13 @@ func TestAddValidatorInUnregisterListShouldHaveNoValidators(t *testing.T) {
 }
 
 func TestAddValidatorInUnregisterListShouldHaveNoValidators2(t *testing.T) {
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
+
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
@@ -77,17 +102,21 @@ func TestAddValidatorInUnregisterListShouldHaveNoValidators2(t *testing.T) {
 }
 
 func TestAddValidatorInUnregisterListShouldHaveOneValidator(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	sv.RemoveValidator("node1")
 
@@ -95,39 +124,49 @@ func TestAddValidatorInUnregisterListShouldHaveOneValidator(t *testing.T) {
 }
 
 func TestAddValidatorInUnregisterListShouldHaveNoValidators3(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	sv.RemoveValidator("node1")
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index = rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	assert.Equal(t, 0, len(sv.GetUnregisterList()))
 }
 
 func TestAddValidatorWithDifferentIdsInUnregisterListShouldHaveTwoValidators(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
 	sv.AddValidator("node2", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	sv.RemoveValidator("node1")
 	sv.RemoveValidator("node2")
@@ -136,8 +175,13 @@ func TestAddValidatorWithDifferentIdsInUnregisterListShouldHaveTwoValidators(t *
 }
 
 func TestGetEligibleListShouldHaveNoValidators(t *testing.T) {
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
+
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
@@ -145,49 +189,61 @@ func TestGetEligibleListShouldHaveNoValidators(t *testing.T) {
 }
 
 func TestGetEligibleListShouldHaveOneValidatorAfterSomeTime(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	assert.Equal(t, 1, len(sv.GetEligibleList()))
 }
 
 func TestGetWaitListShouldHaveNoValidatorsAfterSomeTime(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	assert.Equal(t, 0, len(sv.GetWaitList()))
 }
 
 func TestGetEligibleListShouldHaveOneValidatorFromTwoAfterSomeTime(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	sv.AddValidator("node2", *big.NewInt(0))
 
@@ -195,38 +251,48 @@ func TestGetEligibleListShouldHaveOneValidatorFromTwoAfterSomeTime(t *testing.T)
 }
 
 func TestGetEligibleListShouldHaveTwoValidatorsAfterSomeTime(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	sv.AddValidator("node2", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index = rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	assert.Equal(t, 2, len(sv.GetEligibleList()))
 }
 
 func TestGetWaitListShouldHaveOneValidatorAfterSomeTime(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	sv.AddValidator("node2", *big.NewInt(0))
 
@@ -234,32 +300,40 @@ func TestGetWaitListShouldHaveOneValidatorAfterSomeTime(t *testing.T) {
 }
 
 func TestGetWaitListShouldHaveNoValidatorsFromTwoAfterSomeTime(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	sv.AddValidator("node2", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index = rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	assert.Equal(t, 0, len(sv.GetWaitList()))
 }
 
 func TestGetUnregisterListShouldHaveNoValidators(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
@@ -269,17 +343,21 @@ func TestGetUnregisterListShouldHaveNoValidators(t *testing.T) {
 }
 
 func TestGetUnregisterListShouldHaveOneValidator(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeRemoved + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	sv.RemoveValidator("node1")
 
@@ -287,32 +365,40 @@ func TestGetUnregisterListShouldHaveOneValidator(t *testing.T) {
 }
 
 func TestGetUnregisterListShouldHaveNoValidatorsAfterSomeTime(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(0))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeRemoved + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	sv.RemoveValidator("node1")
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeRemoved + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index = rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	assert.Equal(t, 0, len(sv.GetUnregisterList()))
 }
 
 func TestGetWaitListShouldHaveOneValidatorWithIncreasedStake(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(1))
@@ -326,18 +412,22 @@ func TestGetWaitListShouldHaveOneValidatorWithIncreasedStake(t *testing.T) {
 	assert.Equal(t, *big.NewInt(3), vd.Stake)
 }
 
-func TestGetWaitListShouldHaveNoValidatorsAndEligibleListShouldHaveOneValidatorWithIncreasedStake(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+func TestGetWaitListShouldHaveNoValidatorsAndEligibleListOneValidatorWithIncreasedStake(t *testing.T) {
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(1))
 
-	currentTime = currentTime.Add((syncValidators.RoundsToWaitToBeEligible + 1) * 100 * time.Millisecond)
-	sv.Round().UpdateRound(genesisTime, currentTime)
+	index := rndm.Index()
+	rndm.IndexCalled = func() int {
+		return index + syncValidators.RoundsToWaitToBeEligible + 1
+	}
 
 	sv.AddValidator("node1", *big.NewInt(2))
 
@@ -352,11 +442,13 @@ func TestGetWaitListShouldHaveNoValidatorsAndEligibleListShouldHaveOneValidatorW
 }
 
 func TestStakeShouldNotBeChanged(t *testing.T) {
-	genesisTime := time.Now()
-	currentTime := genesisTime
+	rndm := &mock.RoundMock{}
+	rndm.IndexCalled = func() int {
+		return 0
+	}
 
 	sv, _ := syncValidators.NewSyncValidators(
-		chronology.NewRound(genesisTime, currentTime, time.Duration(100*time.Millisecond)),
+		rndm,
 	)
 
 	sv.AddValidator("node1", *big.NewInt(1))

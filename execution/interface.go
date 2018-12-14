@@ -1,11 +1,12 @@
 package execution
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"math/big"
 )
 
 // TransactionExecutor is the main interface for transaction execution engine
