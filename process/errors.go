@@ -62,7 +62,13 @@ var ErrMarshalWithoutSuccess = errors.New("marshal without success")
 var ErrPersistWithoutSuccess = errors.New("persist without success")
 
 // ErrRootStateMissmatch signals that persist some data was not done with success
-var ErrRootStateMissmatch = errors.New("Root state does not match")
+var ErrRootStateMissmatch = errors.New("root state does not match")
 
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modifications
-var ErrAccountStateDirty = errors.New("AccountState was dirty before starting to change")
+var ErrAccountStateDirty = errors.New("accountState was dirty before starting to change")
+
+// ErrInvalidTxBlockBody signals that the transactions block body is invalid
+var ErrInvalidTxBlockBody = errors.New("transactions block body is invalid")
+
+// ErrInvalidTxBlockBody signals that the block header is invalid
+var ErrInvalidBlockHeader = errors.New("block header is invalid")

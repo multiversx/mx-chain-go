@@ -31,20 +31,14 @@ VERSION:
 
 type InitialNode struct {
 	Address string `json:"address"`
-}
-
-type Account struct {
-	Nounce   int    `json:"nounce"`
-	Balance  int    `json:"balance"`
-	CodeHash string `json:"codeHash"`
-	Root     string `json:"root"`
+	PubKey  string `json:"pubkey"`
+	Balance uint64 `json:"balance"`
 }
 
 type Genesis struct {
 	StartTime       int64         `json:"startTime"`
 	ClockSyncPeriod int           `json:"clockSyncPeriod"`
 	InitialNodes    []InitialNode `json:"initialNodes"`
-	Accounts        []Account     `json:"accounts"`
 }
 
 func main() {

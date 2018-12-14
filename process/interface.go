@@ -21,22 +21,28 @@ type TransactionProcessor interface {
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
 	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
-	CreateGenesisBlock(balances map[string]big.Int, shardId uint32, genTime uint64) *block.StateBlockBody
-	CreateTxBlock(nbShards int, shardId uint32, maxTxInBlock int, haveTime func() bool) (*block.TxBlockBody, error)
-	RemoveBlockTxsFromPool(body *block.TxBlockBody)
+	CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody
+	CreateTxBlockBody(shardId uint32, maxTxInBlock int, haveTime func() bool) (*block.TxBlockBody, error)
+	RemoveBlockTxsFromPool(body *block.TxBlockBody) error
+	GetRootHash() []byte
+	GetNbShards() uint32
+	SetNbShards(uint32)
 }
 
-// Checker checks the integrity of a data structure
+// Checker provides functionality to checks the integrity and validity of a data structure
 type Checker interface {
+	//Check does both validity and integrity checks on the data structure
 	Check() bool
+	// Integrity checks only the integrity of the data
+	Integrity() bool
 }
 
-// SigVerifier provides functionality to verify a signature
+// SigVerifier provides functionality to verify a signature of a signed data structure that holds also the verifying parameters
 type SigVerifier interface {
 	VerifySig() bool
 }
 
-// SignedDataValidator provides functionality and check the validity of a block header
+// SignedDataValidator provides functionality to check the validity and signature of a data structure
 type SignedDataValidator interface {
 	SigVerifier
 	Checker

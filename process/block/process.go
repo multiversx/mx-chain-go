@@ -21,22 +21,6 @@ import (
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
 const WaitTime = time.Duration(2000 * time.Millisecond)
 
-type StateBlockBodyWrapper struct {
-	block.StateBlockBody
-}
-
-type PeerBlockBodyWrapper struct {
-	block.PeerBlockBody
-}
-
-type TxBlockBodyWrapper struct {
-	block.TxBlockBody
-}
-
-type HeaderWrapper struct {
-	block.Header
-}
-
 var log = logger.NewDefaultLogger()
 
 // blockProcessor implements BlockProcessor interface and actually it tries to execute block
@@ -50,6 +34,7 @@ type blockProcessor struct {
 	requestedTxHashes    map[string]bool
 	mut                  sync.RWMutex
 	accounts             state.AccountsAdapter
+	nbShards             uint32
 }
 
 // NewBlockProcessor creates a new blockProcessor object
@@ -59,6 +44,7 @@ func NewBlockProcessor(
 	marshalizer marshal.Marshalizer,
 	txProcessor process.TransactionProcessor,
 	accounts state.AccountsAdapter,
+	nbShards uint32,
 ) *blockProcessor {
 	//TODO: check nil values
 
@@ -68,6 +54,7 @@ func NewBlockProcessor(
 		marshalizer: marshalizer,
 		txProcessor: txProcessor,
 		accounts:    accounts,
+		nbShards:    nbShards,
 	}
 
 	eb.ChRcvAllTxs = make(chan bool)
@@ -103,6 +90,7 @@ func (eb *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 	}()
 
 	err = eb.processBlockTransactions(body)
+
 	if err != nil {
 		return err
 	}
@@ -121,13 +109,17 @@ func (eb *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 }
 
 // RemoveBlockTxsFromPool removes the TxBlock transactions from associated tx pools
-func (eb *blockProcessor) RemoveBlockTxsFromPool(body *block.TxBlockBody) {
-	if body != nil {
-		for i := 0; i < len(body.MiniBlocks); i++ {
-			eb.tp.RemoveTransactionsFromPool(body.MiniBlocks[i].TxHashes,
-				body.MiniBlocks[i].ShardID)
-		}
+func (eb *blockProcessor) RemoveBlockTxsFromPool(body *block.TxBlockBody) error {
+	if body == nil {
+		return process.ErrNilBlockBody
 	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		eb.tp.RemoveTransactionsFromPool(body.MiniBlocks[i].TxHashes,
+			body.MiniBlocks[i].ShardID)
+	}
+
+	return nil
 }
 
 // VerifyStateRoot verifies the state root hash given as parameter agains the
@@ -138,8 +130,8 @@ func (eb *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
 
 // CreateTxBlockBody creates a transactions block body by filling it with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
-func (eb *blockProcessor) CreateTxBlockBody(nbShards int, shardId uint32, maxTxInBlock int, haveTime func() bool) (*block.TxBlockBody, error) {
-	mblks, err := eb.createMiniBlocks(nbShards, maxTxInBlock, haveTime)
+func (eb *blockProcessor) CreateTxBlockBody(shardId uint32, maxTxInBlock int, haveTime func() bool) (*block.TxBlockBody, error) {
+	mblks, err := eb.createMiniBlocks(eb.nbShards, maxTxInBlock, haveTime)
 
 	if err != nil {
 		return nil, err
@@ -160,6 +152,9 @@ func (eb *blockProcessor) CreateTxBlockBody(nbShards int, shardId uint32, maxTxI
 
 // CreateGenesisBlockBody creates the genesis block body from map of account balances
 func (eb *blockProcessor) CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody {
+	if eb.txProcessor == nil {
+		panic("transaction Processor is nil")
+	}
 
 	rootHash, err := eb.txProcessor.SetBalancesToTrie(balances)
 
@@ -176,17 +171,38 @@ func (eb *blockProcessor) CreateGenesisBlockBody(balances map[string]big.Int, sh
 	return stateBlockBody
 }
 
+// GetNbShards returns the number of shards this processor is configured for
+func (eb *blockProcessor) GetNbShards() uint32 {
+	return eb.nbShards
+}
+
+// SetNbShards sets the number of shards this processor is configured for
+func (eb *blockProcessor) SetNbShards(nbShards uint32) {
+	eb.nbShards = nbShards
+}
+
+// GetRootHash returns the accounts merkle tree root hash
+func (eb *blockProcessor) GetRootHash() []byte {
+	return eb.accounts.RootHash()
+}
+
 func (eb *blockProcessor) validateBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
-	if blockChain == nil {
-		return process.ErrNilBlockChain
+	headerWrapper := HeaderWrapper{
+		Header:    header,
+		Processor: eb,
 	}
 
-	if header == nil {
-		return process.ErrNilBlockHeader
+	txbWrapper := TxBlockBodyWrapper{
+		TxBlockBody: body,
+		Processor:   eb,
 	}
 
-	if body == nil {
-		return process.ErrNilBlockBody
+	if !headerWrapper.Check() {
+		return process.ErrInvalidBlockHeader
+	}
+
+	if !txbWrapper.Check() {
+		return process.ErrInvalidTxBlockBody
 	}
 
 	if blockChain.CurrentBlockHeader == nil {
@@ -203,7 +219,7 @@ func (eb *blockProcessor) validateBlock(blockChain *blockchain.BlockChain, heade
 		}
 	}
 
-	if !eb.verifyBlockSignature(header) {
+	if !headerWrapper.VerifySig() {
 		return process.ErrInvalidBlockSignature
 	}
 
@@ -219,8 +235,13 @@ func (eb *blockProcessor) isFirstBlockInEpoch(header *block.Header) bool {
 }
 
 func (eb *blockProcessor) processBlockTransactions(body *block.TxBlockBody) error {
-	if body == nil {
-		return process.ErrNilBlockBody
+	txbWrapper := TxBlockBodyWrapper{
+		TxBlockBody: body,
+		Processor:   eb,
+	}
+
+	if !txbWrapper.Check() {
+		return process.ErrInvalidTxBlockBody
 	}
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -328,16 +349,6 @@ func (eb *blockProcessor) receivedTransaction(txHash []byte) {
 	}
 }
 
-// verifyBlockSignature verifies if the block has all the valid signatures needed
-func (eb *blockProcessor) verifyBlockSignature(header *block.Header) bool {
-	if header == nil || header.Signature == nil {
-		return false
-	}
-
-	// TODO: Check block signature after multisig will be implemented
-	return true
-}
-
 func (eb *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) {
 	missingTxsForShards := eb.computeMissingTxsForShards(body)
 	eb.requestedTxHashes = make(map[string]bool)
@@ -372,7 +383,7 @@ func (eb *blockProcessor) computeMissingTxsForShards(body *block.TxBlockBody) ma
 	return missingTxsForShard
 }
 
-func (eb *blockProcessor) createMiniBlocks(nbShards int, maxTxInBlock int, haveTime func() bool) ([]block.MiniBlock, error) {
+func (eb *blockProcessor) createMiniBlocks(nbShards uint32, maxTxInBlock int, haveTime func() bool) ([]block.MiniBlock, error) {
 	miniBlocks := make([]block.MiniBlock, 0)
 
 	if eb.accounts.JournalLen() != 0 {
@@ -383,7 +394,7 @@ func (eb *blockProcessor) createMiniBlocks(nbShards int, maxTxInBlock int, haveT
 		return miniBlocks, nil
 	}
 
-	for i, txs := 0, 0; i < nbShards; i++ {
+	for i, txs := 0, 0; i < int(nbShards); i++ {
 		txStore := eb.tp.MiniPoolTxStore(uint32(i))
 
 		if txStore == nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 //TODO: Split in multiple structs, with Single Responsibility
@@ -31,8 +32,7 @@ const (
 	SrEndRound
 )
 
-//TODO: current numbers of shards (this should be injected, and this const should be removed later)
-const shardsCount = 1024
+//TODO: current shards (this should be injected, and this const should be removed later)
 const shardId = 0
 
 //TODO: maximum transactions in one block (this should be injected, and this const should be removed later)
@@ -204,7 +204,11 @@ func (com *SPOSConsensusWorker) DoEndRoundJob() bool {
 	com.Blkc.Put(blockchain.TxBlockBodyUnit, com.Hdr.BlockBodyHash, body)
 
 	// TODO: Here the block should be added in the block pool, when its implementation will be finished
-	com.BlockProcessor.RemoveBlockTxsFromPool(com.Blk)
+	err = com.BlockProcessor.RemoveBlockTxsFromPool(com.Blk)
+
+	if err != nil {
+		log.Error(err.Error())
+	}
 
 	if com.Cns.IsNodeLeaderInCurrentRound(com.Cns.SelfId()) {
 		com.Log(fmt.Sprintf("\n"+com.GetFormatedTime()+
@@ -261,7 +265,7 @@ func (com *SPOSConsensusWorker) SendBlockBody() bool {
 		return true
 	}
 
-	blk, err := com.BlockProcessor.CreateTxBlock(shardsCount, shardId, maxTransactionsInBlock, haveTime)
+	blk, err := com.BlockProcessor.CreateTxBlockBody(shardId, maxTransactionsInBlock, haveTime)
 
 	message, err := com.marshalizer.Marshal(blk)
 

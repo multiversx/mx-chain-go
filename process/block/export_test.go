@@ -25,7 +25,3 @@ func (eb *blockProcessor) WaitForTxHashes() {
 func (eb *blockProcessor) ReceivedTransaction(txHash []byte) {
 	eb.receivedTransaction(txHash)
 }
-
-func (eb *blockProcessor) VerifyBlockSignature(header *block.Header) bool {
-	return eb.verifyBlockSignature(header)
-}
