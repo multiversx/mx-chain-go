@@ -61,6 +61,7 @@ func (aw *AccountWrap) BaseAccount() *Account {
 	return aw.Account
 }
 
+// AppendRegistrationData will add a new RegistrationData to the slice
 func (aw *AccountWrap) AppendRegistrationData(data *RegistrationData) error {
 	if !bytes.Equal(aw.addressContainer.Bytes(), RegistrationAddress.Bytes()) {
 		return ErrNotSupportedAccountsRegistration
@@ -70,6 +71,7 @@ func (aw *AccountWrap) AppendRegistrationData(data *RegistrationData) error {
 	return nil
 }
 
+// TrimLastRegistrationData will remove the last item added in the slice
 func (aw *AccountWrap) TrimLastRegistrationData() error {
 	if !bytes.Equal(aw.addressContainer.Bytes(), RegistrationAddress.Bytes()) {
 		return ErrNotSupportedAccountsRegistration
@@ -83,6 +85,7 @@ func (aw *AccountWrap) TrimLastRegistrationData() error {
 	return nil
 }
 
+// CleanRegistrationData will clean-up the RegistrationData slice
 func (aw *AccountWrap) CleanRegistrationData() error {
 	//TODO when it has been establied how and when to call this method
 	return nil

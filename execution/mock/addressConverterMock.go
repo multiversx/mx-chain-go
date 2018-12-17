@@ -15,7 +15,7 @@ func (acm *AddressConverterMock) CreateAddressFromPublicKeyBytes(pubKey []byte) 
 		return nil, errors.New("failure")
 	}
 
-	return NewAddressMock(pubKey, HasherMock{}.Compute(string(pubKey))), nil
+	return NewAddressMock(pubKey), nil
 }
 
 func (acm *AddressConverterMock) ConvertToHex(addressContainer state.AddressContainer) (string, error) {

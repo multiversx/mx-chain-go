@@ -2,8 +2,9 @@ package state
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"strings"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
 // HashAddressConverter is used to convert the address from/to different structures
