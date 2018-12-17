@@ -16,15 +16,13 @@ const RoundsToWaitToBeEligible = 5
 const RoundsToWaitToBeRemoved = 5
 
 type validatorData struct {
-	RoundIndex int
+	RoundIndex int32
 	Stake      big.Int
 }
 
 // syncValidators implements a validators sync mechanism
 type syncValidators struct {
-	eligibleList   map[string]*validatorData
-	waitList       map[string]*validatorData
-	unregisterList map[string]*validatorData
+	eligibleList map[string]*validatorData
 
 	mut sync.RWMutex
 
@@ -48,13 +46,11 @@ func NewSyncValidators(
 	}
 
 	sv.eligibleList = make(map[string]*validatorData, 0)
-	sv.waitList = make(map[string]*validatorData, 0)
-	sv.unregisterList = make(map[string]*validatorData, 0)
 
 	return &sv, nil
 }
 
-// checkSyncValidatorsNilParameters will check the input parameters for nil values
+// checkSyncValidatorsNilParameters method will check the input parameters for nil values
 func checkSyncValidatorsNilParameters(
 	rounder chronology.Rounder,
 	accounts state.AccountsAdapter,
@@ -70,103 +66,54 @@ func checkSyncValidatorsNilParameters(
 	return nil
 }
 
-// AddValidator adds a validator in the wait list
-func (sv *syncValidators) addValidator(nodeId string, stake big.Int) {
-	sv.refresh()
-
-	sv.mut.Lock()
-
-	// if the validator is already in wait list its stake will be directly increased with the stake from the new
-	// registration request, without needing to wait for more certain rounds than those from the first registration
-	// request
-	if v, isInWaitList := sv.waitList[nodeId]; isInWaitList {
-		stake.Add(&stake, &v.Stake)
-		sv.waitList[nodeId] = &validatorData{RoundIndex: v.RoundIndex, Stake: stake}
-	} else {
-		sv.waitList[nodeId] = &validatorData{RoundIndex: sv.rounder.Index(), Stake: stake}
-	}
-
-	sv.mut.Unlock()
-}
-
-// RemoveValidator adds a validator in the unregister list
-func (sv *syncValidators) removeValidator(nodeId string) {
-	sv.refresh()
-
-	sv.mut.Lock()
-	sv.unregisterList[nodeId] = &validatorData{RoundIndex: sv.rounder.Index()}
-	sv.mut.Unlock()
-}
-
-// refresh executes a refreshing / syncing operation of the validators in the lists
-func (sv *syncValidators) refresh() {
-	sv.populateLists()
-
-	sv.processUnregisterRequests()
-	sv.processRegisterRequests()
-}
-
-func (sv *syncValidators) populateLists() error {
+// refresh method executes a refreshing / syncing operation of the validators in the eligible list
+func (sv *syncValidators) refresh() error {
 	account, err := sv.accounts.GetJournalizedAccount(state.RegistrationAddress)
 	if err != nil {
 		return err
 	}
 
-	regData := account.BaseAccount().RegistrationData
-	if regData == nil {
+	regsData := account.BaseAccount().RegistrationData
+	if regsData == nil {
 		return nil
+	}
+
+	sv.mut.Lock()
+	sv.eligibleList = make(map[string]*validatorData, 0)
+	sv.mut.Unlock()
+
+	for _, regData := range regsData {
+		switch regData.Action {
+		case state.ArRegister:
+			sv.processRegisterRequests(&regData)
+		case state.ArUnregister:
+			sv.processUnregisterRequests(&regData)
+		}
 	}
 
 	return nil
 }
 
-// processUnregisterRequests remove validators from wait / eligible list after an unregister request
-func (sv *syncValidators) processUnregisterRequests() {
-	sv.mut.Lock()
-
-	for k, v := range sv.unregisterList {
-		// if the validator is in wait list it could be removed directly
-		if _, isInWaitList := sv.waitList[k]; isInWaitList {
-			delete(sv.waitList, k)
-		}
-
-		// if the validator is in eligible list it could be removed only after some certain rounds
-		if _, isInEligibleList := sv.eligibleList[k]; isInEligibleList {
-			if v.RoundIndex+RoundsToWaitToBeRemoved < sv.rounder.Index() {
-				delete(sv.eligibleList, k)
-			}
-		}
-
-		// if the validator does not exist anymore in both wait and eligible list, its unregister request
-		// could be deleted
-		if _, isInWaitList := sv.waitList[k]; !isInWaitList {
-			if _, isInEligibleList := sv.eligibleList[k]; !isInEligibleList {
-				delete(sv.unregisterList, k)
-			}
-		}
-	}
-
-	sv.mut.Unlock()
-}
-
-// processRegisterRequests move validators from wait to eligible list after a register request and a certain number
+// processRegisterRequests method adds validators in eligible list after a register request and a certain number
 // of rounds
-func (sv *syncValidators) processRegisterRequests() {
+func (sv *syncValidators) processRegisterRequests(regData *state.RegistrationData) {
 	sv.mut.Lock()
 
-	for k, v := range sv.waitList {
-		// if the validator already exists in the eligible list, its stake will be directly increased with the stake
-		// from the new registration request, without needing to wait for some certain rounds, as it should be
-		// already synchronized
-		if v2, isInEligibleList := sv.eligibleList[k]; isInEligibleList {
-			v.Stake.Add(&v.Stake, &v2.Stake)
-			sv.eligibleList[k] = &validatorData{RoundIndex: v.RoundIndex, Stake: v.Stake}
-			delete(sv.waitList, k)
-		} else { // if the validator is not in the eligible list it should wait for some certain rounds until it
-			// would be moved there
-			if v.RoundIndex+RoundsToWaitToBeEligible < sv.rounder.Index() {
-				sv.eligibleList[k] = &validatorData{RoundIndex: v.RoundIndex, Stake: v.Stake}
-				delete(sv.waitList, k)
+	// if the validator already exists in the eligible list, its stake will be directly increased with the stake
+	// from the new registration request, without needing to wait for some certain rounds, as it should be
+	// already synchronized
+	k := string(regData.NodePubKey)
+	if v, isInEligibleList := sv.eligibleList[k]; isInEligibleList {
+		sv.eligibleList[k] = &validatorData{
+			RoundIndex: v.RoundIndex,
+			Stake:      *big.NewInt(0).Add(&v.Stake, &regData.Stake),
+		}
+	} else { // if the validator is not in the eligible list it should wait for some certain rounds until it
+		// would be moved there
+		if regData.RoundIndex+RoundsToWaitToBeEligible < sv.rounder.Index() {
+			sv.eligibleList[k] = &validatorData{
+				RoundIndex: regData.RoundIndex,
+				Stake:      *big.NewInt(0).Set(&regData.Stake),
 			}
 		}
 	}
@@ -174,7 +121,23 @@ func (sv *syncValidators) processRegisterRequests() {
 	sv.mut.Unlock()
 }
 
-// GetEligibleList returns a list containing nodes from eligible list after a refresh action
+// processUnregisterRequests method removes validators from eligible list after an unregister request and a certain
+// number of rounds
+func (sv *syncValidators) processUnregisterRequests(regData *state.RegistrationData) {
+	sv.mut.Lock()
+
+	// if the validator is in eligible list it could be removed only after some certain rounds
+	k := string(regData.NodePubKey)
+	if _, isInEligibleList := sv.eligibleList[k]; isInEligibleList {
+		if regData.RoundIndex+RoundsToWaitToBeRemoved < sv.rounder.Index() {
+			delete(sv.eligibleList, k)
+		}
+	}
+
+	sv.mut.Unlock()
+}
+
+// GetEligibleList method returns a list containing nodes from eligible list after a refresh action
 func (sv *syncValidators) GetEligibleList() map[string]*validatorData {
 	sv.refresh()
 
@@ -183,7 +146,7 @@ func (sv *syncValidators) GetEligibleList() map[string]*validatorData {
 	sv.mut.RLock()
 
 	for k, v := range sv.eligibleList {
-		eligibleList[k] = &validatorData{RoundIndex: v.RoundIndex, Stake: v.Stake}
+		eligibleList[k] = &validatorData{RoundIndex: v.RoundIndex, Stake: *big.NewInt(0).Set(&v.Stake)}
 	}
 
 	sv.mut.RUnlock()

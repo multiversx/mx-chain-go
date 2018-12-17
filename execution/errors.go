@@ -70,14 +70,8 @@ var ErrMissingHeader = errors.New("missing header")
 // ErrMissingBody signals that body of the block is missing
 var ErrMissingBody = errors.New("missing body")
 
-// ErrNilTransactionExecutor signals that an operation has been attempted to or with a nil TransactionExecutor implementation
-var ErrNilTransactionExecutor = errors.New("nil TransactionExecutor")
-
 // ErrNilBlockExecutor signals that an operation has been attempted to or with a nil BlockExecutor implementation
 var ErrNilBlockExecutor = errors.New("nil BlockExecutor")
-
-// ErrNilValidatorSyncer signals that an operation has been attempted to or with a nil ValidatorSyncer implementation
-var ErrNilValidatorSyncer = errors.New("nil ValidatorSyncer")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
@@ -87,9 +81,3 @@ var ErrNilBlockPool = errors.New("nil BlockPool")
 
 // ErrNilRound signals that an operation has been attempted to or with a nil Round
 var ErrNilRound = errors.New("nil Round")
-
-// ErrRegisterFunctionUndefined signals that an operation has been attempted to or with a nil function
-var ErrRegisterFunctionUndefined = errors.New("registration function is not defined")
-
-// ErrUnregisterFunctionUndefined signals that an operation has been attempted to or with a nil function
-var ErrUnregisterFunctionUndefined = errors.New("unregistration function is not defined")

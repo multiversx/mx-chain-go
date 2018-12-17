@@ -1,8 +1,6 @@
 package execution
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -20,10 +18,4 @@ type TransactionExecutor interface {
 // BlockExecutor is the main interface for block execution engine
 type BlockExecutor interface {
 	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.Block) error
-}
-
-// ValidatorSyncer is the main interface for validator syncing engine
-type ValidatorSyncer interface {
-	AddValidator(nodeId string, stake big.Int)
-	RemoveValidator(nodeId string)
 }

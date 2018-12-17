@@ -8,7 +8,7 @@ import (
 
 // Round defines the data needed by the round
 type Round struct {
-	index        int
+	index        int32
 	timeStamp    time.Time
 	timeDuration time.Duration
 }
@@ -19,7 +19,7 @@ func NewRound(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDur
 
 	rnd := Round{}
 
-	rnd.index = int(delta / roundTimeDuration.Nanoseconds())
+	rnd.index = int32(delta / roundTimeDuration.Nanoseconds())
 	rnd.timeStamp = genesisRoundTimeStamp.Add(time.Duration(int64(rnd.index) * roundTimeDuration.Nanoseconds()))
 	rnd.timeDuration = roundTimeDuration
 
@@ -31,7 +31,7 @@ func NewRound(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDur
 func (rnd *Round) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
-	index := int(delta / rnd.timeDuration.Nanoseconds())
+	index := int32(delta / rnd.timeDuration.Nanoseconds())
 
 	if rnd.index != index {
 		rnd.index = index
@@ -40,7 +40,7 @@ func (rnd *Round) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Ti
 }
 
 // Index returns the index of the round in current epoch
-func (rnd *Round) Index() int {
+func (rnd *Round) Index() int32 {
 	return rnd.index
 }
 
