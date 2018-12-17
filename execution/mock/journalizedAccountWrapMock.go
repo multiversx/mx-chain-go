@@ -29,6 +29,22 @@ func NewJournalizedAccountWrapMock(address state.AddressContainer) *JournalizedA
 	}
 }
 
+func (jawm *JournalizedAccountWrapMock) AppendRegistrationData(data *state.RegistrationData) error {
+	panic("implement me")
+}
+
+func (jawm *JournalizedAccountWrapMock) CleanRegistrationData() error {
+	panic("implement me")
+}
+
+func (jawm *JournalizedAccountWrapMock) TrimLastRegistrationData() error {
+	panic("implement me")
+}
+
+func (jawm *JournalizedAccountWrapMock) AppendDataRegistrationWithJournal(*state.RegistrationData) error {
+	panic("implement me")
+}
+
 func (jawm *JournalizedAccountWrapMock) BaseAccount() *state.Account {
 	return jawm.Account
 }

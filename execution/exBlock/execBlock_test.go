@@ -127,7 +127,7 @@ func TestBlockExec_ProcessBlock(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
 	etm := mock.ExecTransactionMock{}
-	etm.ProcessTransactionCalled = func(transaction *transaction.Transaction) error {
+	etm.ProcessTransactionCalled = func(transaction *transaction.Transaction, round int32) error {
 		return nil
 	}
 	accountsAdapter := &mock.AccountsStub{}

@@ -14,13 +14,7 @@ type TransactionExecutor interface {
 	SChandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
 	SetSChandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error)
 
-	RegisterHandler() func(data []byte) error
-	SetRegisterHandler(func(data []byte) error)
-
-	UnregisterHandler() func(data []byte) error
-	SetUnregisterHandler(func(data []byte) error)
-
-	ProcessTransaction(transaction *transaction.Transaction) error
+	ProcessTransaction(transaction *transaction.Transaction, round int32) error
 }
 
 // BlockExecutor is the main interface for block execution engine

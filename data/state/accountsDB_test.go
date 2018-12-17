@@ -2,9 +2,10 @@ package state_test
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"math/big"
 	"testing"
+
+	"github.com/pkg/errors"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
@@ -467,7 +468,7 @@ func TestAccountsDBLoadCodeNilTrieShouldErr(t *testing.T) {
 	adb := generateAccountDBFromTrie(nil)
 
 	//just search a hash. Any hash will do
-	jem.CodeHash = adr.Hash()
+	jem.CodeHash = mock.HasherMock{}.Compute(string(adr.Bytes()))
 
 	err := adb.LoadCode(jem)
 	assert.NotNil(t, err)
@@ -515,7 +516,7 @@ func TestAccountsDBLoadCodeOkValsShouldWork(t *testing.T) {
 	adb, _ = state.NewAccountsDB(&trieStub, mock.HasherMock{}, &marshalizer)
 
 	//just search a hash. Any hash will do
-	jem.CodeHash = adr.Hash()
+	jem.CodeHash = mock.HasherMock{}.Compute(string(adr.Bytes()))
 
 	err := adb.LoadCode(jem)
 	assert.Nil(t, err)

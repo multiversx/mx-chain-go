@@ -49,7 +49,7 @@ func (hac *HashAddressConverter) CreateAddressFromPublicKeyBytes(pubKey []byte) 
 		hash = hash[len(hash)-hac.addressLen:]
 	}
 
-	return newAddress(hash, hac.hasher.Compute(string(hash))), nil
+	return newAddress(hash), nil
 }
 
 // ConvertToHex returns the hex string representation of the address.
@@ -88,7 +88,7 @@ func (hac *HashAddressConverter) CreateAddressFromHex(hexAddress string) (Addres
 		return nil, err
 	}
 
-	return newAddress(buff, hac.hasher.Compute(string(buff))), nil
+	return newAddress(buff), nil
 }
 
 // PrepareAddressBytes checks and returns the slice compatible to the address format

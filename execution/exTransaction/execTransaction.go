@@ -8,23 +8,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
 // execTransaction implements TransactionExecutor interface and can modify account states according to a transaction
 type execTransaction struct {
-	accounts  state.AccountsAdapter
-	adrConv   state.AddressConverter
-	hasher    hashing.Hasher
-	scHandler func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
-
-	registerHandler func(data []byte) error // data []byte, actually is the field 'data' from Transaction struct,
-	// which is set only in some special transactions (smart contract,
-	// register/unregister, etc.)
+	accounts    state.AccountsAdapter
+	adrConv     state.AddressConverter
+	hasher      hashing.Hasher
+	scHandler   func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
+	marshalizer marshal.Marshalizer
 }
 
 // NewExecTransaction creates a new execTransaction engine
-func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
-	addressConv state.AddressConverter) (*execTransaction, error) {
+func NewExecTransaction(
+	accounts state.AccountsAdapter,
+	hasher hashing.Hasher,
+	addressConv state.AddressConverter,
+	marshalizer marshal.Marshalizer,
+) (*execTransaction, error) {
 
 	if accounts == nil {
 		return nil, execution.ErrNilAccountsAdapter
@@ -38,10 +40,15 @@ func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
 		return nil, execution.ErrNilAddressConverter
 	}
 
+	if marshalizer == nil {
+		return nil, execution.ErrNilMarshalizer
+	}
+
 	return &execTransaction{
-		accounts: accounts,
-		hasher:   hasher,
-		adrConv:  addressConv,
+		accounts:    accounts,
+		hasher:      hasher,
+		adrConv:     addressConv,
+		marshalizer: marshalizer,
 	}, nil
 }
 
@@ -55,18 +62,8 @@ func (et *execTransaction) SetSChandler(f func(accountsAdapter state.AccountsAda
 	et.scHandler = f
 }
 
-// RegisterHandler returns the registration execution function
-func (et *execTransaction) RegisterHandler() func(data []byte) error {
-	return et.registerHandler
-}
-
-// SetRegisterHandler sets the registration execution function
-func (et *execTransaction) SetRegisterHandler(f func(data []byte) error) {
-	et.registerHandler = f
-}
-
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error {
+func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction, roundIndex int32) error {
 	if tx == nil {
 		return execution.ErrNilTransaction
 	}
@@ -89,8 +86,21 @@ func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error
 		return et.callSChandler(tx)
 	}
 
-	if bytes.Equal(adrDest.Bytes(), []byte(RegisterAddress)) {
-		err = et.callRegisterHandler(tx.Data)
+	if bytes.Equal(adrDest.Bytes(), state.RegistrationAddress.Bytes()) {
+		regAccount, err := et.accounts.GetJournalizedAccount(state.RegistrationAddress)
+		if err != nil {
+			return err
+		}
+
+		regData := &state.RegistrationData{}
+		err = et.marshalizer.Unmarshal(regData, tx.Data)
+		if err != nil {
+			return err
+		}
+		regData.OriginatorPubKey = adrSrc.Bytes()
+		regData.RoundIndex = roundIndex
+
+		err = regAccount.AppendDataRegistrationWithJournal(regData)
 		if err != nil {
 			return err
 		}
@@ -149,14 +159,6 @@ func (et *execTransaction) callSChandler(tx *transaction.Transaction) error {
 	}
 
 	return et.scHandler(et.accounts, tx)
-}
-
-func (et *execTransaction) callRegisterHandler(data []byte) error {
-	if et.registerHandler == nil {
-		return execution.ErrRegisterFunctionUndefined
-	}
-
-	return et.registerHandler(data)
 }
 
 func (et *execTransaction) checkTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {

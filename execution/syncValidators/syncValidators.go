@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 )
 
@@ -27,26 +28,28 @@ type syncValidators struct {
 
 	mut sync.RWMutex
 
-	rounder chronology.Rounder
+	rounder  chronology.Rounder
+	accounts state.AccountsAdapter
 }
 
 // NewSyncValidators creates a new syncValidators object
 func NewSyncValidators(
 	rounder chronology.Rounder,
+	accounts state.AccountsAdapter,
 ) (*syncValidators, error) {
-	err := checkSyncValidatorsNilParameters(rounder)
-
+	err := checkSyncValidatorsNilParameters(rounder, accounts)
 	if err != nil {
 		return nil, err
 	}
 
-	sv := syncValidators{}
+	sv := syncValidators{
+		rounder:  rounder,
+		accounts: accounts,
+	}
 
 	sv.eligibleList = make(map[string]*validatorData, 0)
 	sv.waitList = make(map[string]*validatorData, 0)
 	sv.unregisterList = make(map[string]*validatorData, 0)
-
-	sv.rounder = rounder
 
 	return &sv, nil
 }
@@ -54,16 +57,21 @@ func NewSyncValidators(
 // checkSyncValidatorsNilParameters will check the input parameters for nil values
 func checkSyncValidatorsNilParameters(
 	rounder chronology.Rounder,
+	accounts state.AccountsAdapter,
 ) error {
 	if rounder == nil {
 		return execution.ErrNilRound
+	}
+
+	if accounts == nil {
+		return execution.ErrNilAccountsAdapter
 	}
 
 	return nil
 }
 
 // AddValidator adds a validator in the wait list
-func (sv *syncValidators) AddValidator(nodeId string, stake big.Int) {
+func (sv *syncValidators) addValidator(nodeId string, stake big.Int) {
 	sv.refresh()
 
 	sv.mut.Lock()
@@ -82,7 +90,7 @@ func (sv *syncValidators) AddValidator(nodeId string, stake big.Int) {
 }
 
 // RemoveValidator adds a validator in the unregister list
-func (sv *syncValidators) RemoveValidator(nodeId string) {
+func (sv *syncValidators) removeValidator(nodeId string) {
 	sv.refresh()
 
 	sv.mut.Lock()
@@ -92,8 +100,24 @@ func (sv *syncValidators) RemoveValidator(nodeId string) {
 
 // refresh executes a refreshing / syncing operation of the validators in the lists
 func (sv *syncValidators) refresh() {
+	sv.populateLists()
+
 	sv.processUnregisterRequests()
 	sv.processRegisterRequests()
+}
+
+func (sv *syncValidators) populateLists() error {
+	account, err := sv.accounts.GetJournalizedAccount(state.RegistrationAddress)
+	if err != nil {
+		return err
+	}
+
+	regData := account.BaseAccount().RegistrationData
+	if regData == nil {
+		return nil
+	}
+
+	return nil
 }
 
 // processUnregisterRequests remove validators from wait / eligible list after an unregister request

@@ -1,9 +1,9 @@
 package mock
 
 type RoundMock struct {
-	IndexCalled func() int
+	RoundIndex int
 }
 
-func (rndm *RoundMock) Index() int {
-	return rndm.IndexCalled()
+func (rm *RoundMock) Index() int {
+	return rm.RoundIndex
 }

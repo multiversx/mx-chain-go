@@ -13,6 +13,18 @@ func NewTrackableAccountWrapMock() *TrackableAccountWrapMock {
 	return &TrackableAccountWrapMock{Account: state.NewAccount()}
 }
 
+func (tawm *TrackableAccountWrapMock) AppendRegistrationData(data *state.RegistrationData) error {
+	panic("implement me")
+}
+
+func (tawm *TrackableAccountWrapMock) CleanRegistrationData() error {
+	panic("implement me")
+}
+
+func (tawm *TrackableAccountWrapMock) TrimLastRegistrationData() error {
+	panic("implement me")
+}
+
 func (tawm *TrackableAccountWrapMock) BaseAccount() *state.Account {
 	return tawm.Account
 }

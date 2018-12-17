@@ -1,6 +1,8 @@
 package state
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 )
 
@@ -57,4 +59,31 @@ func (aw *AccountWrap) SetDataTrie(trie trie.PatriciaMerkelTree) {
 // BaseAccount returns the account held by this wrapper
 func (aw *AccountWrap) BaseAccount() *Account {
 	return aw.Account
+}
+
+func (aw *AccountWrap) AppendRegistrationData(data *RegistrationData) error {
+	if !bytes.Equal(aw.addressContainer.Bytes(), RegistrationAddress.Bytes()) {
+		return ErrNotSupportedAccountsRegistration
+	}
+
+	aw.RegistrationData = append(aw.RegistrationData, *data)
+	return nil
+}
+
+func (aw *AccountWrap) TrimLastRegistrationData() error {
+	if !bytes.Equal(aw.addressContainer.Bytes(), RegistrationAddress.Bytes()) {
+		return ErrNotSupportedAccountsRegistration
+	}
+
+	if len(aw.RegistrationData) == 0 {
+		return ErrTrimOperationNotSupported
+	}
+
+	aw.RegistrationData = aw.RegistrationData[:len(aw.RegistrationData)-1]
+	return nil
+}
+
+func (aw *AccountWrap) CleanRegistrationData() error {
+	//TODO when it has been establied how and when to call this method
+	return nil
 }

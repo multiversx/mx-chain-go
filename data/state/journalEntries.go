@@ -46,6 +46,10 @@ type JournalEntryData struct {
 	jurnalizedAccount JournalizedAccountWrapper
 }
 
+type JournalEntryAppendRegistration struct {
+	jurnalizedAccount JournalizedAccountWrapper
+}
+
 //------- JournalEntryCreation
 
 // NewJournalEntryCreation outputs a new JournalEntry implementation used to revert an account creation
@@ -269,4 +273,24 @@ func (jed *JournalEntryData) DirtiedAddress() AddressContainer {
 // Trie returns the referenced PatriciaMerkelTree for committing the changes
 func (jed *JournalEntryData) Trie() trie.PatriciaMerkelTree {
 	return jed.trie
+}
+
+//------- JournalEntryAppendRegistration
+
+func NewJournalEntryAppendRegistration(jurnalizedAccount JournalizedAccountWrapper) *JournalEntryAppendRegistration {
+	return &JournalEntryAppendRegistration{
+		jurnalizedAccount: jurnalizedAccount,
+	}
+}
+
+func (jear *JournalEntryAppendRegistration) Revert(accountsAdapter AccountsAdapter) error {
+	if jear.jurnalizedAccount == nil {
+		return ErrNilJurnalizingAccountWrapper
+	}
+
+	return jear.jurnalizedAccount.TrimLastRegistrationData()
+}
+
+func (jear *JournalEntryAppendRegistration) DirtiedAddress() AddressContainer {
+	return jear.jurnalizedAccount.AddressContainer()
 }

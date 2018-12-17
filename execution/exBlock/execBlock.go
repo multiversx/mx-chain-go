@@ -80,7 +80,7 @@ func (eb *execBlock) ProcessBlock(blockChain *blockchain.BlockChain, header *blo
 		}
 	}()
 
-	err = eb.ProcessBlockTransactions(body)
+	err = eb.ProcessBlockTransactions(body, int32(header.Round))
 	if err != nil {
 		return err
 	}
@@ -273,7 +273,7 @@ func (eb *execBlock) computeMissingTxsForShards(body *block.Block) map[uint32][]
 	return missingTxsForShard
 }
 
-func (eb *execBlock) ProcessBlockTransactions(body *block.Block) error {
+func (eb *execBlock) ProcessBlockTransactions(body *block.Block, round int32) error {
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		shardId := miniBlock.DestShardID
@@ -281,7 +281,7 @@ func (eb *execBlock) ProcessBlockTransactions(body *block.Block) error {
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			tx := eb.getTransactionFromPool(shardId, txHash)
-			err := eb.txExecutor.ProcessTransaction(tx)
+			err := eb.txExecutor.ProcessTransaction(tx, round)
 			if err != nil {
 				return err
 			}
