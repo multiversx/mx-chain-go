@@ -101,9 +101,6 @@ var ErrNilHasher = errors.New("nil hasher")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil marshalizer")
 
-// ErrNilAddressConverter signals that an operation has been attempted with a nil AddressAdapter
-var ErrNilAddressConverter = errors.New("nil AddressConverter")
-
 // ErrNegativeValue signals that an operation has been attempted with a negative value
 var ErrNegativeValue = errors.New("negative values are not permited")
 

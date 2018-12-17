@@ -18,16 +18,12 @@ func NewAddressMock() *AddressMock {
 	return &AddressMock{bytes: buff}
 }
 
+// NewAddressMockFromBytes generates a new address
+func NewAddressMockFromBytes(buff []byte) *AddressMock {
+	return &AddressMock{bytes: buff}
+}
+
 // Bytes returns the address' bytes
 func (address *AddressMock) Bytes() []byte {
 	return address.bytes
-}
-
-// Hash returns the address hash
-func (address *AddressMock) Hash() []byte {
-	if address.hash == nil {
-		address.hash = HasherMock{}.Compute(string(address.bytes))
-	}
-
-	return address.hash
 }

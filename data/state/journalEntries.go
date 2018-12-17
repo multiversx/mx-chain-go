@@ -46,6 +46,7 @@ type JournalEntryData struct {
 	jurnalizedAccount JournalizedAccountWrapper
 }
 
+// JournalEntryAppendRegistration is used to mark collection change for registration peers inside an account
 type JournalEntryAppendRegistration struct {
 	jurnalizedAccount JournalizedAccountWrapper
 }
@@ -277,12 +278,15 @@ func (jed *JournalEntryData) Trie() trie.PatriciaMerkelTree {
 
 //------- JournalEntryAppendRegistration
 
+// NewJournalEntryAppendRegistration outputs a new JournalEntry implementation used to keep track
+// nodes registrations
 func NewJournalEntryAppendRegistration(jurnalizedAccount JournalizedAccountWrapper) *JournalEntryAppendRegistration {
 	return &JournalEntryAppendRegistration{
 		jurnalizedAccount: jurnalizedAccount,
 	}
 }
 
+// Revert will empty the dirtyData map from AccountState
 func (jear *JournalEntryAppendRegistration) Revert(accountsAdapter AccountsAdapter) error {
 	if jear.jurnalizedAccount == nil {
 		return ErrNilJurnalizingAccountWrapper
@@ -291,6 +295,7 @@ func (jear *JournalEntryAppendRegistration) Revert(accountsAdapter AccountsAdapt
 	return jear.jurnalizedAccount.TrimLastRegistrationData()
 }
 
+// DirtiedAddress returns the address involved in keeping the slice of nodes registrations
 func (jear *JournalEntryAppendRegistration) DirtiedAddress() AddressContainer {
 	return jear.jurnalizedAccount.AddressContainer()
 }

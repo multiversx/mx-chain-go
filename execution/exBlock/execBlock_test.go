@@ -2,7 +2,6 @@ package exBlock_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -14,9 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
-
-// WaitTime defines the time in milliseconds until node waits the requested info from the network
-const WaitTime = time.Duration(100 * time.Millisecond)
 
 func blockchainConfig() *blockchain.Config {
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}

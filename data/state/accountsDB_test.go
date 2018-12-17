@@ -496,7 +496,7 @@ func TestAccountsDBLoadCodeMalfunctionTrieShouldErr(t *testing.T) {
 	mockTrie.FailGet = true
 
 	//just search a hash. Any hash will do
-	jem.CodeHash = adr.Hash()
+	jem.CodeHash = mock.HasherMock{}.Compute(string(adr.Bytes()))
 
 	err := adb.LoadCode(jem)
 	assert.NotNil(t, err)

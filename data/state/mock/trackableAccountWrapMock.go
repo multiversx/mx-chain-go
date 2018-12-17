@@ -7,6 +7,8 @@ import (
 
 type TrackableAccountWrapMock struct {
 	*state.Account
+
+	AppendRegistrationDataCalled func(data *state.RegistrationData) error
 }
 
 func NewTrackableAccountWrapMock() *TrackableAccountWrapMock {
@@ -14,7 +16,7 @@ func NewTrackableAccountWrapMock() *TrackableAccountWrapMock {
 }
 
 func (tawm *TrackableAccountWrapMock) AppendRegistrationData(data *state.RegistrationData) error {
-	panic("implement me")
+	return tawm.AppendRegistrationDataCalled(data)
 }
 
 func (tawm *TrackableAccountWrapMock) CleanRegistrationData() error {

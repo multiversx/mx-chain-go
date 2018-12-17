@@ -9,12 +9,13 @@ import (
 
 type JournalizedAccountWrapMock struct {
 	*state.Account
-	address               state.AddressContainer
-	code                  []byte
-	dataTrie              trie.PatriciaMerkelTree
-	ClearDataCachesCalled func()
-	originalData          map[string][]byte
-	dirtyData             map[string][]byte
+	address                        state.AddressContainer
+	code                           []byte
+	dataTrie                       trie.PatriciaMerkelTree
+	ClearDataCachesCalled          func()
+	TrimLastRegistrationDataCalled func() error
+	originalData                   map[string][]byte
+	dirtyData                      map[string][]byte
 }
 
 func NewJournalizedAccountWrapMock(address state.AddressContainer) *JournalizedAccountWrapMock {
@@ -35,7 +36,7 @@ func (jawm *JournalizedAccountWrapMock) CleanRegistrationData() error {
 }
 
 func (jawm *JournalizedAccountWrapMock) TrimLastRegistrationData() error {
-	panic("implement me")
+	return jawm.TrimLastRegistrationDataCalled()
 }
 
 func (jawm *JournalizedAccountWrapMock) AppendDataRegistrationWithJournal(*state.RegistrationData) error {
