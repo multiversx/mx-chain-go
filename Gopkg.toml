@@ -30,10 +30,6 @@
   version = "1.4.0"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/ElrondNetwork/elrond-go-sandbox"
-
-[[constraint]]
   name = "github.com/beevik/ntp"
   version = "0.2.0"
 
@@ -115,7 +111,7 @@
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-pubsub"
-  version = "0.10.2"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-secio"

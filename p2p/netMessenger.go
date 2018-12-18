@@ -476,10 +476,9 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 			return true
 		}
 
-		//payload == hash
-		obj := t.ResolveRequest(mes.GetData())
+		buff := t.ResolveRequest(mes.GetData())
 
-		if obj == nil {
+		if buff == nil {
 			//object not found
 			return true
 		}
@@ -489,13 +488,13 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 		has := false
 
 		nm.mutGossipCache.Lock()
-		has = nm.gossipCache.Has(obj.ID())
+		has = nm.gossipCache.Has(string(buff))
 		nm.mutGossipCache.Unlock()
 
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,
 			//then it shall broadcast it
-			err := t.Broadcast(obj)
+			err := t.BroadcastBuff(buff)
 			if err != nil {
 				log.Error(err.Error())
 			}

@@ -414,13 +414,13 @@ func (mm *MemMessenger) gotNewData(data []byte, peerID peer.ID, topic string) bo
 		has := false
 
 		mm.mutGossipCache.Lock()
-		has = mm.gossipCache.Has(obj.ID())
+		has = mm.gossipCache.Has(string(obj))
 		mm.mutGossipCache.Unlock()
 
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,
 			//then it shall broadcast it
-			err := t.Broadcast(obj)
+			err := t.BroadcastBuff(obj)
 			if err != nil {
 				log.Error(err.Error())
 			}

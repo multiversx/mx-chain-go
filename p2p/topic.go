@@ -44,7 +44,7 @@ type Topic struct {
 	SendData                 func(data []byte) error
 	RegisterTopicValidator   func(v pubsub.Validator) error
 	UnregisterTopicValidator func() error
-	ResolveRequest           func(hash []byte) Newer
+	ResolveRequest           func(hash []byte) []byte
 	Request                  func(hash []byte) error
 	CurrentPeer              peer.ID
 }
@@ -130,6 +130,21 @@ func (t *Topic) Broadcast(data interface{}) error {
 	payload, err := t.marsh.Marshal(data)
 	if err != nil {
 		return err
+	}
+
+	return t.SendData(payload)
+}
+
+// BroadcastBuff should be called whenever a higher order struct needs to send over the wire already
+// serialized data
+// Optionally, the message can be authenticated
+func (t *Topic) BroadcastBuff(payload []byte) error {
+	if payload == nil {
+		return errors.New("can not process nil data")
+	}
+
+	if t.SendData == nil {
+		return errors.New("send to nil the assembled message?")
 	}
 
 	return t.SendData(payload)

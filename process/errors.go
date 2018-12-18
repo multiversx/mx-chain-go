@@ -45,3 +45,6 @@ var ErrNilStateBlockDataPool = errors.New("nil state data pool")
 
 // ErrNilTxBlockDataPool signals that a nil tx block body pool has been provided
 var ErrNilTxBlockDataPool = errors.New("nil tx block data pool")
+
+// ErrNilTopic signals that a nil topic has been provided/fetched
+var ErrNilTopic = errors.New("nil topic")
