@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"math"
 )
 
 // Round defines the data needed by the round
@@ -19,7 +20,7 @@ func NewRound(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDur
 
 	rnd := Round{}
 
-	rnd.index = int32(delta / roundTimeDuration.Nanoseconds())
+	rnd.index = int32(math.Floor(float64(delta) / float64(roundTimeDuration.Nanoseconds())))
 	rnd.timeStamp = genesisRoundTimeStamp.Add(time.Duration(int64(rnd.index) * roundTimeDuration.Nanoseconds()))
 	rnd.timeDuration = roundTimeDuration
 
@@ -31,7 +32,7 @@ func NewRound(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDur
 func (rnd *Round) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
-	index := int32(delta / rnd.timeDuration.Nanoseconds())
+	index := int32(math.Floor(float64(delta) / float64(rnd.timeDuration.Nanoseconds())))
 
 	if rnd.index != index {
 		rnd.index = index

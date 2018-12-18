@@ -16,7 +16,7 @@ func TestRound(t *testing.T) {
 
 	rnd.Print()
 
-	assert.Equal(t, rnd.Index(), 0)
+	assert.Equal(t, rnd.Index(), int32(0))
 	assert.Equal(t, rnd.TimeStamp(), genesisTime)
 	assert.Equal(t, rnd.TimeDuration(), roundTimeDuration)
 
@@ -24,7 +24,7 @@ func TestRound(t *testing.T) {
 
 	rnd.UpdateRound(genesisTime, currentTime)
 
-	assert.Equal(t, rnd.Index(), 1)
+	assert.Equal(t, rnd.Index(), int32(1))
 	assert.Equal(t, rnd.TimeStamp(), genesisTime.Add(roundTimeDuration))
 	assert.Equal(t, rnd.TimeDuration(), roundTimeDuration)
 }
