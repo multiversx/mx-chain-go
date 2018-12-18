@@ -7,7 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
+
+var log = logger.NewDefaultLogger()
 
 // RoundsToWaitToBeEligible holds the number of rounds after one node could be moved from wait list to eligible list
 const RoundsToWaitToBeEligible = 5
@@ -139,7 +142,7 @@ func (sv *syncValidators) processUnregisterRequests(regData *state.RegistrationD
 
 // GetEligibleList method returns a list containing nodes from eligible list after a refresh action
 func (sv *syncValidators) GetEligibleList() map[string]*validatorData {
-	sv.refresh()
+	log.LogIfError(sv.refresh())
 
 	eligibleList := make(map[string]*validatorData, 0)
 

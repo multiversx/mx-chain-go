@@ -36,7 +36,7 @@ func Init() (*mock.RoundStub, *mock.AccountsStub, *mock.JournalizedAccountWrapMo
 	return rnds, acss, jawm
 }
 
-func TestNewSyncValidatorsShouldThrowNilRound(t *testing.T) {
+func TestNewSyncValidators_ShouldThrowNilRound(t *testing.T) {
 	sv, err := syncValidators.NewSyncValidators(
 		nil,
 		nil,
@@ -46,7 +46,7 @@ func TestNewSyncValidatorsShouldThrowNilRound(t *testing.T) {
 	assert.Equal(t, execution.ErrNilRound, err)
 }
 
-func TestNewSyncValidatorsShouldThrowNilAccountsAdapter(t *testing.T) {
+func TestNewSyncValidators_ShouldThrowNilAccountsAdapter(t *testing.T) {
 	sv, err := syncValidators.NewSyncValidators(
 		&mock.RoundStub{},
 		nil,
@@ -56,7 +56,7 @@ func TestNewSyncValidatorsShouldThrowNilAccountsAdapter(t *testing.T) {
 	assert.Equal(t, execution.ErrNilAccountsAdapter, err)
 }
 
-func TestNewSyncValidatorsShouldWork(t *testing.T) {
+func TestNewSyncValidators_ShouldWork(t *testing.T) {
 	sv, err := syncValidators.NewSyncValidators(
 		&mock.RoundStub{},
 		&mock.AccountsStub{},
@@ -66,7 +66,7 @@ func TestNewSyncValidatorsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestGetEligibleListShouldHaveNoValidatorsAfterOneRegisterRequest(t *testing.T) {
+func TestGetEligibleList_ShouldHaveNoValidatorsAfterOneRegisterRequest(t *testing.T) {
 	rnds, acss, jawm := Init()
 	sv, _ := syncValidators.NewSyncValidators(
 		rnds,
@@ -85,7 +85,7 @@ func TestGetEligibleListShouldHaveNoValidatorsAfterOneRegisterRequest(t *testing
 	assert.Equal(t, 0, len(sv.GetEligibleList()))
 }
 
-func TestGetEligibleListShouldHaveOneValidatorAfterOneRegisterRequestAndSomeRounds(t *testing.T) {
+func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterRequestAndSomeRounds(t *testing.T) {
 	rnds, acss, jawm := Init()
 	sv, _ := syncValidators.NewSyncValidators(
 		rnds,
@@ -109,7 +109,7 @@ func TestGetEligibleListShouldHaveOneValidatorAfterOneRegisterRequestAndSomeRoun
 	assert.Equal(t, 1, len(sv.GetEligibleList()))
 }
 
-func TestGetEligibleListShouldHaveOneValidatorWithIncreasedStakeAfterTwoRegisterRequestsAndSomeRounds(t *testing.T) {
+func TestGetEligibleList_ShouldHaveOneValidatorWithIncreasedStakeAfterTwoRegisterRequestsAndSomeRounds(t *testing.T) {
 	rnds, acss, jawm := Init()
 	sv, _ := syncValidators.NewSyncValidators(
 		rnds,
@@ -143,7 +143,7 @@ func TestGetEligibleListShouldHaveOneValidatorWithIncreasedStakeAfterTwoRegister
 	assert.Equal(t, *big.NewInt(3), sv.GetEligibleList()["node1"].Stake)
 }
 
-func TestGetEligibleListShouldHaveOneValidatorAfterOneRegisterAndUnregisterRequest(t *testing.T) {
+func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterAndUnregisterRequest(t *testing.T) {
 	rnds, acss, jawm := Init()
 	sv, _ := syncValidators.NewSyncValidators(
 		rnds,
@@ -176,7 +176,7 @@ func TestGetEligibleListShouldHaveOneValidatorAfterOneRegisterAndUnregisterReque
 	assert.Equal(t, 1, len(sv.GetEligibleList()))
 }
 
-func TestGetEligibleListShouldHaveNoValidatorsAfterOneRegisterAndUnregisterRequestAndSomeRounds(t *testing.T) {
+func TestGetEligibleList_ShouldHaveNoValidatorsAfterOneRegisterAndUnregisterRequestAndSomeRounds(t *testing.T) {
 	rnds, acss, jawm := Init()
 	sv, _ := syncValidators.NewSyncValidators(
 		rnds,
