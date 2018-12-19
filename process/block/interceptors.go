@@ -83,6 +83,7 @@ func (hi *HeaderInterceptor) processHdr(hdr p2p.Newer, rawData []byte) bool {
 	hdrIntercepted.SetHash(hash)
 
 	if !hdrIntercepted.Check() || !hdrIntercepted.VerifySig() {
+		log.Debug("intercepted hdr block failed the check or verifySig methods")
 		return false
 	}
 
@@ -154,6 +155,7 @@ func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Newer, r
 	txBlockBodyIntercepted.SetHash(hash)
 
 	if !txBlockBodyIntercepted.Check() {
+		log.Debug("intercepted tx block body failed the check method")
 		return false
 	}
 

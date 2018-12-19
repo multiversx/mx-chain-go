@@ -74,10 +74,12 @@ func (txi *TxInterceptor) processTx(tx p2p.Newer, rawData []byte) bool {
 	txIntercepted.SetHash(hash)
 
 	if !txIntercepted.Check() || !txIntercepted.VerifySig() {
+		log.Debug("intercepted tx failed the check or verifySig methods")
 		return false
 	}
 
 	if txIntercepted.IsAddressedToOtherShards() {
+		log.Debug("intercepted tx is for other shards")
 		return true
 	}
 
