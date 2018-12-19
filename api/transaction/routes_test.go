@@ -4,6 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"math/big"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/address"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/middleware"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/transaction/mock"
@@ -11,11 +18,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"math/big"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 type GeneralResponse struct {
@@ -34,6 +36,18 @@ func loadResponse(rsp io.Reader, destination interface{}) {
 	if err != nil {
 		logError(err)
 	}
+}
+
+func startNodeServerWrongFacade() *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	ws := gin.New()
+	ws.Use(cors.Default())
+	ws.Use(func(c *gin.Context) {
+		c.Set("elrondFacade", mock.WrongFacade{})
+	})
+	addressRoute := ws.Group("/transaction")
+	address.Routes(addressRoute)
+	return ws
 }
 
 func logError(err error) {
@@ -75,10 +89,11 @@ func TestGenerateTransaction_WithParameters_ShouldReturnTransaction(t *testing.T
 
 	ws := startNodeServer(&facade)
 
-	jsonStr := fmt.Sprintf("{\"sender\":\"%s\","+
-		"\"receiver\":\"%s\","+
-		"\"value\":%s,"+
-		"\"data\":\"%s\"}", sender, receiver, value, data)
+	jsonStr := fmt.Sprintf(
+		`{"sender":"%s",`+
+			`"receiver":"%s",`+
+			`"value":%s,`+
+			`"data":"%s"}`, sender, receiver, value, data)
 
 	req, _ := http.NewRequest("POST", "/transaction", bytes.NewBuffer([]byte(jsonStr)))
 
@@ -91,6 +106,7 @@ func TestGenerateTransaction_WithParameters_ShouldReturnTransaction(t *testing.T
 	txResp := transactionResponse.TxResp
 
 	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", transactionResponse.Error)
 	assert.Equal(t, sender, txResp.Sender)
 	assert.Equal(t, receiver, txResp.Receiver)
 	assert.Equal(t, value, txResp.Value)
@@ -168,4 +184,39 @@ func TestGetTransaction_WithUnknownHash_ShouldReturnNil(t *testing.T) {
 	assert.Equal(t, receiver, txResp.Receiver)
 	assert.Equal(t, value, txResp.Value)
 	assert.Equal(t, data, txResp.Data)
+}
+
+func TestGetTransaction_WithBadJson_ShouldReturnBadRequest(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{}
+
+	ws := startNodeServer(&facade)
+
+	badJsonString := "bad"
+
+	req, _ := http.NewRequest("POST", "/transaction", bytes.NewBuffer([]byte(badJsonString)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, transactionResponse.Error, "Validation error: ")
+}
+
+func TestGetTransactionFailsWithWrongFacadeTypeConversion(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerWrongFacade()
+	req, _ := http.NewRequest("GET", "/transaction/empty", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, transactionResponse.Error, "Invalid app context")
 }

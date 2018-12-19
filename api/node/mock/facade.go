@@ -5,9 +5,9 @@ import (
 )
 
 type Facade struct {
-	Running bool
+	Running          bool
 	ShouldErrorStart bool
-	ShouldErrorStop bool
+	ShouldErrorStop  bool
 }
 
 func (f *Facade) IsNodeRunning() bool {
@@ -30,5 +30,4 @@ func (f *Facade) StopNode() error {
 }
 
 type WrongFacade struct {
-
 }

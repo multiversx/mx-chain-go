@@ -1,10 +1,10 @@
 package transaction
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"math/big"
 	"net/http"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,6 +23,7 @@ type TxRequest struct {
 	//SecretKey string `form:"sk" json:"sk" binding:"skValidator"`
 }
 
+//TxResponse represents the structure on which the response will be validated against
 type TxResponse struct {
 	Sender    string   `form:"sender" json:"sender"`
 	Receiver  string   `form:"receiver" json:"receiver"`
@@ -41,46 +42,53 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/:txhash", GetTransaction)
 }
 
-// GenerateTransaction generates a new transaction given an sk and additional data
+// GenerateTransaction generates a new transaction given a sender, receiver, value and data
 func GenerateTransaction(c *gin.Context) {
-	var gtx = TxRequest{}
-	err := c.ShouldBindJSON(&gtx)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "Validation error: " + err.Error()})
-		return
-	}
 	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid app context"})
-		return
-	}
-	tx, err := ef.GenerateTransaction(gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Transaction generation failed"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "ok", "transaction": TxResponseFromTransaction(tx)})
+	var gtx = TxRequest{}
+	err := c.ShouldBindJSON(&gtx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation error: " + err.Error()})
+		return
+	}
+
+	tx, err := ef.GenerateTransaction(gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction generation failed"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
 }
 
 // GetTransaction returns transaction details for a given txhash
 func GetTransaction(c *gin.Context) {
-	txhash := c.Param("txhash")
+
 	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid app context"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
 		return
+	}
+
+	txhash := c.Param("txhash")
+	if txhash == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "TxHash is empty"})
 	}
 
 	tx, err := ef.GetTransaction(txhash)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Transaction getting failed"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction getting failed"})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "ok", "transaction": TxResponseFromTransaction(tx)})
+	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
 }
 
-func TxResponseFromTransaction(tx *transaction.Transaction) TxResponse {
+func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	response := TxResponse{}
 	response.Nonce = tx.Nonce
 	response.Sender = string(tx.SndAddr)

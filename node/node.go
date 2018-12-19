@@ -118,6 +118,7 @@ func (n *Node) StartConsensus() error {
 	return nil
 }
 
+//Gets the balance for a specific address
 func (n *Node) GetBalance(address string) (*big.Int, error) {
 	return big.NewInt(0), nil
 }

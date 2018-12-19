@@ -4,10 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"os"
 	"os/signal"
 	"sync"
@@ -18,7 +14,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -91,9 +91,9 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	log.Info(fmt.Sprintf("Initialized with config from: %s", ctx.GlobalString(flags.GenesisFile.Name)))
 
 	// 1. Start with an empty node
-	node := CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name),
+	currentNode := CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name),
 		initialConfig.InitialNodesAddresses())
-	ef := facade.NewElrondNodeFacade(node)
+	ef := facade.NewElrondNodeFacade(currentNode)
 
 	ef.SetLogger(log)
 	ef.StartNTP(initialConfig.ClockSyncPeriod)
