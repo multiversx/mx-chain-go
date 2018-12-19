@@ -57,6 +57,7 @@ func TestNewHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
 	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
@@ -73,11 +74,10 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 //processHdr
 
 func TestHeaderInterceptor_ProcessHdrNilHdrShouldRetFalse(t *testing.T) {
-	var processHdr func(newer p2p.Newer, rawData []byte) bool
+	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
 	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
-		processHdr = i
 	}
 
 	headers := &mock.ShardedDataStub{}
@@ -87,15 +87,14 @@ func TestHeaderInterceptor_ProcessHdrNilHdrShouldRetFalse(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, hi)
 
-	assert.False(t, processHdr(nil, make([]byte, 0)))
+	assert.False(t, hi.ProcessHdr(nil, make([]byte, 0)))
 }
 
 func TestHeaderInterceptor_ProcessHdrWrongTypeOfNewerShouldRetFalse(t *testing.T) {
-	var processHdr func(newer p2p.Newer, rawData []byte) bool
+	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
 	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
-		processHdr = i
 	}
 
 	headers := &mock.ShardedDataStub{}
@@ -105,15 +104,14 @@ func TestHeaderInterceptor_ProcessHdrWrongTypeOfNewerShouldRetFalse(t *testing.T
 	assert.Nil(t, err)
 	assert.NotNil(t, hi)
 
-	assert.False(t, processHdr(&mock.StringNewer{}, make([]byte, 0)))
+	assert.False(t, hi.ProcessHdr(&mock.StringNewer{}, make([]byte, 0)))
 }
 
 func TestHeaderInterceptor_ProcessHdrSanityCheckFailedShouldRetFalse(t *testing.T) {
-	var processHdr func(newer p2p.Newer, rawData []byte) bool
+	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
 	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
-		processHdr = i
 	}
 
 	headers := &mock.ShardedDataStub{}
@@ -123,15 +121,14 @@ func TestHeaderInterceptor_ProcessHdrSanityCheckFailedShouldRetFalse(t *testing.
 	assert.Nil(t, err)
 	assert.NotNil(t, hi)
 
-	assert.False(t, processHdr(NewInterceptedHeader(), make([]byte, 0)))
+	assert.False(t, hi.ProcessHdr(NewInterceptedHeader(), make([]byte, 0)))
 }
 
 func TestHeaderInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
-	var processHdr func(newer p2p.Newer, rawData []byte) bool
+	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
 	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
-		processHdr = i
 	}
 
 	wasCalled := 0
@@ -168,7 +165,7 @@ func TestHeaderInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
 	hdr.RootHash = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
 
-	assert.True(t, processHdr(hdr, []byte("aaa")))
+	assert.True(t, hi.ProcessHdr(hdr, []byte("aaa")))
 	assert.Equal(t, 2, wasCalled)
 }
 
@@ -232,61 +229,50 @@ func TestNewBlockBodyInterceptor_OkValsShouldWork(t *testing.T) {
 func TestBlockBodyInterceptor_ProcessNilHdrShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	var processBodyBlock func(newer p2p.Newer, rawData []byte) bool
-
 	cache := &mock.CacherStub{}
 	interceptor := &mock.InterceptorStub{}
 	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
-		processBodyBlock = i
 	}
 
 	gbbi, err := NewGenericBlockBodyInterceptor(interceptor, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
 	assert.Nil(t, err)
 	assert.NotNil(t, gbbi)
 
-	assert.False(t, processBodyBlock(nil, make([]byte, 0)))
+	assert.False(t, gbbi.ProcessBodyBlock(nil, make([]byte, 0)))
 }
 
 func TestBlockBodyInterceptor_ProcessHdrWrongTypeOfNewerShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	var processBodyBlock func(newer p2p.Newer, rawData []byte) bool
-
 	cache := &mock.CacherStub{}
 	interceptor := &mock.InterceptorStub{}
 	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
-		processBodyBlock = i
 	}
 
 	gbbi, err := NewGenericBlockBodyInterceptor(interceptor, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
 	assert.Nil(t, err)
 	assert.NotNil(t, gbbi)
 
-	assert.False(t, processBodyBlock(&mock.StringNewer{}, make([]byte, 0)))
+	assert.False(t, gbbi.ProcessBodyBlock(&mock.StringNewer{}, make([]byte, 0)))
 }
 
 func TestBlockBodyInterceptor_ProcessHdrSanityCheckFailedShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	var processBodyBlock func(newer p2p.Newer, rawData []byte) bool
-
 	cache := &mock.CacherStub{}
 	interceptor := &mock.InterceptorStub{}
 	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
-		processBodyBlock = i
 	}
 
 	gbbi, err := NewGenericBlockBodyInterceptor(interceptor, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
 	assert.Nil(t, err)
 	assert.NotNil(t, gbbi)
 
-	assert.False(t, processBodyBlock(NewInterceptedHeader(), make([]byte, 0)))
+	assert.False(t, gbbi.ProcessBodyBlock(NewInterceptedHeader(), make([]byte, 0)))
 }
 
 func TestBlockBodyInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
 	t.Parallel()
-
-	var processBodyBlock func(newer p2p.Newer, rawData []byte) bool
 
 	wasCalled := 0
 
@@ -301,7 +287,6 @@ func TestBlockBodyInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
 
 	interceptor := &mock.InterceptorStub{}
 	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
-		processBodyBlock = i
 	}
 
 	gbbi, err := NewGenericBlockBodyInterceptor(interceptor, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
@@ -316,6 +301,6 @@ func TestBlockBodyInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
 	txBody.MiniBlocks = make([]block2.MiniBlock, 0)
 	txBody.MiniBlocks = append(txBody.MiniBlocks, miniBlock)
 
-	assert.True(t, processBodyBlock(txBody, []byte("aaa")))
+	assert.True(t, gbbi.ProcessBodyBlock(txBody, []byte("aaa")))
 	assert.Equal(t, 1, wasCalled)
 }

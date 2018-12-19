@@ -8,3 +8,7 @@ type B struct {
 	*A
 	Field2 int
 }
+
+func F1() (bool, error) {
+
+}

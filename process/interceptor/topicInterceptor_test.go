@@ -13,19 +13,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//------- NewInterceptor
+//------- NewTopicInterceptor
 
-func TestNewInterceptor_NilMessengerShouldErr(t *testing.T) {
+func TestNewTopicInterceptor_NilMessengerShouldErr(t *testing.T) {
 	_, err := interceptor.NewTopicInterceptor("", nil, &mock.StringNewer{})
 	assert.Equal(t, process.ErrNilMessenger, err)
 }
 
-func TestNewInterceptor_NilTemplateObjectShouldErr(t *testing.T) {
+func TestNewTopicInterceptor_NilTemplateObjectShouldErr(t *testing.T) {
 	_, err := interceptor.NewTopicInterceptor("", &mock.MessengerStub{}, nil)
 	assert.Equal(t, process.ErrNilNewer, err)
 }
 
-func TestNewInterceptor_ErrMessengerAddTopicShouldErr(t *testing.T) {
+func TestNewTopicInterceptor_ErrMessengerAddTopicShouldErr(t *testing.T) {
 	mes := mock.NewMessengerStub()
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return nil
@@ -39,7 +39,7 @@ func TestNewInterceptor_ErrMessengerAddTopicShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNewInterceptor_ErrMessengerRegistrationValidatorShouldErr(t *testing.T) {
+func TestNewTopicInterceptor_ErrMessengerRegistrationValidatorShouldErr(t *testing.T) {
 	mes := mock.NewMessengerStub()
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return nil
@@ -53,7 +53,7 @@ func TestNewInterceptor_ErrMessengerRegistrationValidatorShouldErr(t *testing.T)
 	assert.Equal(t, process.ErrRegisteringValidator, err)
 }
 
-func TestNewInterceptor_OkValsShouldWork(t *testing.T) {
+func TestNewTopicInterceptor_OkValsShouldWork(t *testing.T) {
 	mes := mock.NewMessengerStub()
 
 	wasCalled := false
@@ -76,7 +76,7 @@ func TestNewInterceptor_OkValsShouldWork(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestNewInterceptor_WithExistingTopicShouldWork(t *testing.T) {
+func TestNewTopicInterceptor_WithExistingTopicShouldWork(t *testing.T) {
 	mes := mock.NewMessengerStub()
 
 	wasCalled := false
@@ -105,16 +105,14 @@ func TestNewInterceptor_WithExistingTopicShouldWork(t *testing.T) {
 
 //------- Validation
 
-func TestInterceptorValidation_MalfunctionMarshalizerReturnFalse(t *testing.T) {
+func TestTopicInterceptor_ValidationMalfunctionMarshalizerReturnFalse(t *testing.T) {
 	mes := mock.NewMessengerStub()
 
 	var topic *p2p.Topic
-	var validator pubsub.Validator
 
 	mes.AddTopicCalled = func(t *p2p.Topic) error {
 		topic = t
 		topic.RegisterTopicValidator = func(v pubsub.Validator) error {
-			validator = v
 			return nil
 		}
 
@@ -125,7 +123,7 @@ func TestInterceptorValidation_MalfunctionMarshalizerReturnFalse(t *testing.T) {
 		return nil
 	}
 
-	_, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
+	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
 	assert.Nil(t, err)
 
 	//we have the validator func, let's test with a broken marshalizer
@@ -133,19 +131,17 @@ func TestInterceptorValidation_MalfunctionMarshalizerReturnFalse(t *testing.T) {
 
 	blankMessage := pubsub.Message{}
 
-	assert.False(t, validator(nil, &blankMessage))
+	assert.False(t, ti.Validator(nil, &blankMessage))
 }
 
-func TestInterceptorValidation_NilCheckReceivedObjectReturnFalse(t *testing.T) {
+func TestTopicInterceptor_ValidationNilCheckReceivedObjectReturnFalse(t *testing.T) {
 	mes := mock.NewMessengerStub()
 
 	var topic *p2p.Topic
-	var validator pubsub.Validator
 
 	mes.AddTopicCalled = func(t *p2p.Topic) error {
 		topic = t
 		topic.RegisterTopicValidator = func(v pubsub.Validator) error {
-			validator = v
 			return nil
 		}
 
@@ -156,7 +152,7 @@ func TestInterceptorValidation_NilCheckReceivedObjectReturnFalse(t *testing.T) {
 		return nil
 	}
 
-	_, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
+	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
 	assert.Nil(t, err)
 
 	//we have the validator func, let's test with a message
@@ -167,19 +163,17 @@ func TestInterceptorValidation_NilCheckReceivedObjectReturnFalse(t *testing.T) {
 	assert.Nil(t, err)
 	message.Data = data
 
-	assert.False(t, validator(nil, message))
+	assert.False(t, ti.Validator(nil, message))
 }
 
-func TestInterceptorValidation_CheckReceivedObjectFalseReturnFalse(t *testing.T) {
+func TestTopicInterceptor_ValidationCheckReceivedObjectFalseReturnFalse(t *testing.T) {
 	mes := mock.NewMessengerStub()
 
 	var topic *p2p.Topic
-	var validator pubsub.Validator
 
 	mes.AddTopicCalled = func(t *p2p.Topic) error {
 		topic = t
 		topic.RegisterTopicValidator = func(v pubsub.Validator) error {
-			validator = v
 			return nil
 		}
 
@@ -208,20 +202,18 @@ func TestInterceptorValidation_CheckReceivedObjectFalseReturnFalse(t *testing.T)
 	assert.Nil(t, err)
 	message.Data = data
 
-	assert.False(t, validator(nil, message))
+	assert.False(t, intercept.Validator(nil, message))
 	assert.True(t, wasCalled)
 }
 
-func TestInterceptorValidation_CheckReceivedObjectTrueReturnTrue(t *testing.T) {
+func TestTopicInterceptor_ValidationCheckReceivedObjectTrueReturnTrue(t *testing.T) {
 	mes := mock.NewMessengerStub()
 
 	var topic *p2p.Topic
-	var validator pubsub.Validator
 
 	mes.AddTopicCalled = func(t *p2p.Topic) error {
 		topic = t
 		topic.RegisterTopicValidator = func(v pubsub.Validator) error {
-			validator = v
 			return nil
 		}
 
@@ -250,6 +242,6 @@ func TestInterceptorValidation_CheckReceivedObjectTrueReturnTrue(t *testing.T) {
 	assert.Nil(t, err)
 	message.Data = data
 
-	assert.True(t, validator(nil, message))
+	assert.True(t, intercept.Validator(nil, message))
 	assert.True(t, wasCalled)
 }
