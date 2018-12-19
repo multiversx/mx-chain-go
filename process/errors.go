@@ -20,7 +20,10 @@ var ErrNilAddressConverter = errors.New("nil AddressConverter")
 var ErrNilCacher = errors.New("nil cacher")
 
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
-var ErrNilHasher = errors.New("nil Hasher")
+var ErrNilHasher = errors.New("nil hasher")
+
+// ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
+var ErrNilMarshalizer = errors.New("nil marshalizer")
 
 // ErrNilTemplateObj signals that an operation has been attempted to or with a nil template object
 var ErrNilTemplateObj = errors.New("nil TemplateObj")
@@ -48,3 +51,9 @@ var ErrNilTxBlockDataPool = errors.New("nil tx block data pool")
 
 // ErrNilTopic signals that a nil topic has been provided/fetched
 var ErrNilTopic = errors.New("nil topic")
+
+// ErrNilRequestData signals that a nil request data object has been provided
+var ErrNilRequestData = errors.New("nil request data")
+
+// ErrResolveRequestAlreadyAssigned signals that ResolveRequest is not nil for a particular topic
+var ErrResolveRequestAlreadyAssigned = errors.New("resolve request func has already been assigned for this topic")
