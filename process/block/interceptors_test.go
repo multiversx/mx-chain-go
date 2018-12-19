@@ -1,96 +1,15 @@
 package block
 
 import (
+	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
-	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/stretchr/testify/assert"
 )
-
-var defaultTestConfig = storage.CacheConfig{
-	Size: 1000,
-	Type: storage.LRUCache,
-}
-
-func createNewHeaderInterceptorForTests() (
-	hi *HeaderInterceptor,
-	mes *mock.MessengerStub,
-	headers data.ShardedDataCacherNotifier,
-	headersNonces *dataPool.NonceToHashCacher,
-	err error) {
-
-	mes = mock.NewMessengerStub()
-
-	mes.AddTopicCalled = func(t *p2p.Topic) error {
-		t.RegisterTopicValidator = func(v pubsub.Validator) error {
-			return nil
-		}
-		t.UnregisterTopicValidator = func() error {
-			return nil
-		}
-
-		return nil
-	}
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
-	}
-
-	headers, err = shardedData.NewShardedData(defaultTestConfig)
-	if err != nil {
-		return
-	}
-
-	headersNonces, err = dataPool.NewNonceToHashCacher(defaultTestConfig)
-	if err != nil {
-		return
-	}
-
-	hi, err = NewHeaderInterceptor(mes, headers, headersNonces, mock.HasherMock{})
-
-	return
-}
-
-func createNewBlockBodyInterceptorForTests() (
-	hi *GenericBlockBodyInterceptor,
-	mes *mock.MessengerStub,
-	cache storage.Cacher,
-	err error) {
-
-	mes = mock.NewMessengerStub()
-
-	mes.AddTopicCalled = func(t *p2p.Topic) error {
-		t.RegisterTopicValidator = func(v pubsub.Validator) error {
-			return nil
-		}
-		t.UnregisterTopicValidator = func() error {
-			return nil
-		}
-
-		return nil
-	}
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
-	}
-
-	cache, err = lrucache.NewCache(1000)
-	if err != nil {
-		return
-	}
-
-	hi, err = NewGenericBlockBodyInterceptor("test", mes, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
-	return
-}
 
 //------- HeaderInterceptor
 
@@ -99,82 +18,143 @@ func createNewBlockBodyInterceptorForTests() (
 func TestNewHeaderInterceptor_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headers, err := shardedData.NewShardedData(defaultTestConfig)
-	assert.Nil(t, err)
+	headers := &mock.ShardedDataStub{}
+	headersNonces := &mock.Uint64CacherStub{}
 
-	headersNonces, err := dataPool.NewNonceToHashCacher(defaultTestConfig)
-	assert.Nil(t, err)
-
-	_, err = NewHeaderInterceptor(nil, headers, headersNonces, mock.HasherMock{})
-	assert.Equal(t, process.ErrNilMessenger, err)
+	_, err := NewHeaderInterceptor(nil, headers, headersNonces, mock.HasherMock{})
+	assert.Equal(t, process.ErrNilInterceptor, err)
 }
 
 func TestNewHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headersNonces, err := dataPool.NewNonceToHashCacher(defaultTestConfig)
-	assert.Nil(t, err)
+	interceptor := &mock.InterceptorStub{}
+	headersNonces := &mock.Uint64CacherStub{}
 
-	mes := &mock.MessengerStub{}
-
-	_, err = NewHeaderInterceptor(mes, nil, headersNonces, mock.HasherMock{})
+	_, err := NewHeaderInterceptor(interceptor, nil, headersNonces, mock.HasherMock{})
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
 }
 
 func TestNewHeaderInterceptor_NilHeadersNoncesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headers, err := shardedData.NewShardedData(defaultTestConfig)
-	assert.Nil(t, err)
+	interceptor := &mock.InterceptorStub{}
+	headers := &mock.ShardedDataStub{}
 
-	mes := &mock.MessengerStub{}
-
-	_, err = NewHeaderInterceptor(mes, headers, nil, mock.HasherMock{})
+	_, err := NewHeaderInterceptor(interceptor, headers, nil, mock.HasherMock{})
 	assert.Equal(t, process.ErrNilHeadersNoncesDataPool, err)
 }
 
 func TestNewHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mes := &mock.MessengerStub{}
+	interceptor := &mock.InterceptorStub{}
+	headers := &mock.ShardedDataStub{}
+	headersNonces := &mock.Uint64CacherStub{}
 
-	headers, err := shardedData.NewShardedData(defaultTestConfig)
-	assert.Nil(t, err)
-
-	headersNonces, err := dataPool.NewNonceToHashCacher(defaultTestConfig)
-	assert.Nil(t, err)
-
-	_, err = NewHeaderInterceptor(mes, headers, headersNonces, nil)
+	_, err := NewHeaderInterceptor(interceptor, headers, headersNonces, nil)
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
 func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
-	_, _, _, _, err := createNewHeaderInterceptorForTests()
+
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+	}
+
+	headers := &mock.ShardedDataStub{}
+	headersNonces := &mock.Uint64CacherStub{}
+
+	hi, err := NewHeaderInterceptor(interceptor, headers, headersNonces, mock.HasherMock{})
 	assert.Nil(t, err)
+	assert.NotNil(t, hi)
 }
 
 //processHdr
 
-func TestTransactionInterceptor_ProcessHdrNilHdrShouldRetFalse(t *testing.T) {
-	hi, _, _, _, _ := createNewHeaderInterceptorForTests()
+func TestHeaderInterceptor_ProcessHdrNilHdrShouldRetFalse(t *testing.T) {
+	var processHdr func(newer p2p.Newer, rawData []byte) bool
 
-	assert.False(t, hi.ProcessHdr(nil, make([]byte, 0)))
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+		processHdr = i
+	}
+
+	headers := &mock.ShardedDataStub{}
+	headersNonces := &mock.Uint64CacherStub{}
+
+	hi, err := NewHeaderInterceptor(interceptor, headers, headersNonces, mock.HasherMock{})
+	assert.Nil(t, err)
+	assert.NotNil(t, hi)
+
+	assert.False(t, processHdr(nil, make([]byte, 0)))
 }
 
-func TestTransactionInterceptor_ProcessHdrWrongTypeOfNewerShouldRetFalse(t *testing.T) {
-	hi, _, _, _, _ := createNewHeaderInterceptorForTests()
+func TestHeaderInterceptor_ProcessHdrWrongTypeOfNewerShouldRetFalse(t *testing.T) {
+	var processHdr func(newer p2p.Newer, rawData []byte) bool
 
-	assert.False(t, hi.ProcessHdr(&mock.StringNewer{}, make([]byte, 0)))
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+		processHdr = i
+	}
+
+	headers := &mock.ShardedDataStub{}
+	headersNonces := &mock.Uint64CacherStub{}
+
+	hi, err := NewHeaderInterceptor(interceptor, headers, headersNonces, mock.HasherMock{})
+	assert.Nil(t, err)
+	assert.NotNil(t, hi)
+
+	assert.False(t, processHdr(&mock.StringNewer{}, make([]byte, 0)))
 }
 
-func TestTransactionInterceptor_ProcessHdrSanityCheckFailedShouldRetFalse(t *testing.T) {
-	hi, _, _, _, _ := createNewHeaderInterceptorForTests()
+func TestHeaderInterceptor_ProcessHdrSanityCheckFailedShouldRetFalse(t *testing.T) {
+	var processHdr func(newer p2p.Newer, rawData []byte) bool
 
-	assert.False(t, hi.ProcessHdr(NewInterceptedHeader(), make([]byte, 0)))
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+		processHdr = i
+	}
+
+	headers := &mock.ShardedDataStub{}
+	headersNonces := &mock.Uint64CacherStub{}
+
+	hi, err := NewHeaderInterceptor(interceptor, headers, headersNonces, mock.HasherMock{})
+	assert.Nil(t, err)
+	assert.NotNil(t, hi)
+
+	assert.False(t, processHdr(NewInterceptedHeader(), make([]byte, 0)))
 }
 
-func TestTransactionInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
-	hi, _, headers, headersNonces, _ := createNewHeaderInterceptorForTests()
+func TestHeaderInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
+	var processHdr func(newer p2p.Newer, rawData []byte) bool
+
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+		processHdr = i
+	}
+
+	wasCalled := 0
+
+	headers := &mock.ShardedDataStub{}
+	headers.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+		if bytes.Equal(mock.HasherMock{}.Compute("aaa"), key) {
+			wasCalled++
+		}
+	}
+
+	headersNonces := &mock.Uint64CacherStub{}
+	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
+		if u == 67 {
+			wasCalled++
+		}
+
+		return
+	}
+
+	hi, err := NewHeaderInterceptor(interceptor, headers, headersNonces, mock.HasherMock{})
+	assert.Nil(t, err)
+	assert.NotNil(t, hi)
 
 	hdr := NewInterceptedHeader()
 	hdr.Nonce = 67
@@ -188,16 +168,8 @@ func TestTransactionInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
 	hdr.RootHash = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
 
-	assert.True(t, hi.ProcessHdr(hdr, []byte("aaa")))
-
-	shardStore := headers.ShardDataStore(4)
-	if shardStore == nil {
-		assert.Fail(t, "should have added header in minipool 4")
-		return
-	}
-
-	assert.True(t, shardStore.Has(mock.HasherMock{}.Compute("aaa")))
-	assert.True(t, headersNonces.Has(67))
+	assert.True(t, processHdr(hdr, []byte("aaa")))
+	assert.Equal(t, 2, wasCalled)
 }
 
 //------- BlockBodyInterceptor
@@ -207,71 +179,134 @@ func TestTransactionInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
 func TestNewBlockBodyInterceptor_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cache, err := lrucache.NewCache(1000)
-	assert.Nil(t, err)
+	cache := &mock.CacherStub{}
 
-	_, err = NewGenericBlockBodyInterceptor("test", nil, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
-	assert.Equal(t, process.ErrNilMessenger, err)
+	_, err := NewGenericBlockBodyInterceptor(nil, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
+	assert.Equal(t, process.ErrNilInterceptor, err)
 }
 
 func TestNewBlockBodyInterceptor_NilPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mes := &mock.MessengerStub{}
+	interceptor := &mock.InterceptorStub{}
 
-	_, err := NewGenericBlockBodyInterceptor("test", mes, nil, mock.HasherMock{}, NewInterceptedTxBlockBody())
+	_, err := NewGenericBlockBodyInterceptor(interceptor, nil, mock.HasherMock{}, NewInterceptedTxBlockBody())
 	assert.Equal(t, process.ErrNilCacher, err)
 }
 
 func TestNewBlockBodyInterceptor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mes := &mock.MessengerStub{}
-	cache, err := lrucache.NewCache(1000)
-	assert.Nil(t, err)
+	cache := &mock.CacherStub{}
+	interceptor := &mock.InterceptorStub{}
 
-	_, err = NewGenericBlockBodyInterceptor("test", mes, cache, nil, NewInterceptedTxBlockBody())
+	_, err := NewGenericBlockBodyInterceptor(interceptor, cache, nil, NewInterceptedTxBlockBody())
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
 func TestNewBlockBodyInterceptor_NilTemplateObjectShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mes := &mock.MessengerStub{}
-	cache, err := lrucache.NewCache(1000)
-	assert.Nil(t, err)
+	cache := &mock.CacherStub{}
+	interceptor := &mock.InterceptorStub{}
 
-	_, err = NewGenericBlockBodyInterceptor("test", mes, cache, mock.HasherMock{}, nil)
+	_, err := NewGenericBlockBodyInterceptor(interceptor, cache, mock.HasherMock{}, nil)
 	assert.Equal(t, process.ErrNilTemplateObj, err)
 }
 
 func TestNewBlockBodyInterceptor_OkValsShouldWork(t *testing.T) {
-	_, _, _, err := createNewBlockBodyInterceptorForTests()
+	t.Parallel()
+
+	cache := &mock.CacherStub{}
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+	}
+
+	gbbi, err := NewGenericBlockBodyInterceptor(interceptor, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
 	assert.Nil(t, err)
+	assert.NotNil(t, gbbi)
 }
 
 //processBodyBlock
 
 func TestBlockBodyInterceptor_ProcessNilHdrShouldRetFalse(t *testing.T) {
-	hi, _, _, _ := createNewBlockBodyInterceptorForTests()
+	t.Parallel()
 
-	assert.False(t, hi.ProcessBodyBlock(nil, make([]byte, 0)))
+	var processBodyBlock func(newer p2p.Newer, rawData []byte) bool
+
+	cache := &mock.CacherStub{}
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+		processBodyBlock = i
+	}
+
+	gbbi, err := NewGenericBlockBodyInterceptor(interceptor, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
+	assert.Nil(t, err)
+	assert.NotNil(t, gbbi)
+
+	assert.False(t, processBodyBlock(nil, make([]byte, 0)))
 }
 
 func TestBlockBodyInterceptor_ProcessHdrWrongTypeOfNewerShouldRetFalse(t *testing.T) {
-	hi, _, _, _ := createNewBlockBodyInterceptorForTests()
+	t.Parallel()
 
-	assert.False(t, hi.ProcessBodyBlock(&mock.StringNewer{}, make([]byte, 0)))
+	var processBodyBlock func(newer p2p.Newer, rawData []byte) bool
+
+	cache := &mock.CacherStub{}
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+		processBodyBlock = i
+	}
+
+	gbbi, err := NewGenericBlockBodyInterceptor(interceptor, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
+	assert.Nil(t, err)
+	assert.NotNil(t, gbbi)
+
+	assert.False(t, processBodyBlock(&mock.StringNewer{}, make([]byte, 0)))
 }
 
 func TestBlockBodyInterceptor_ProcessHdrSanityCheckFailedShouldRetFalse(t *testing.T) {
-	hi, _, _, _ := createNewBlockBodyInterceptorForTests()
+	t.Parallel()
 
-	assert.False(t, hi.ProcessBodyBlock(NewInterceptedHeader(), make([]byte, 0)))
+	var processBodyBlock func(newer p2p.Newer, rawData []byte) bool
+
+	cache := &mock.CacherStub{}
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+		processBodyBlock = i
+	}
+
+	gbbi, err := NewGenericBlockBodyInterceptor(interceptor, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
+	assert.Nil(t, err)
+	assert.NotNil(t, gbbi)
+
+	assert.False(t, processBodyBlock(NewInterceptedHeader(), make([]byte, 0)))
 }
 
 func TestBlockBodyInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
-	hi, _, cache, _ := createNewBlockBodyInterceptorForTests()
+	t.Parallel()
+
+	var processBodyBlock func(newer p2p.Newer, rawData []byte) bool
+
+	wasCalled := 0
+
+	cache := &mock.CacherStub{}
+	cache.PutCalled = func(key []byte, value interface{}) (evicted bool) {
+		if bytes.Equal(mock.HasherMock{}.Compute("aaa"), key) {
+			wasCalled++
+		}
+
+		return
+	}
+
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+		processBodyBlock = i
+	}
+
+	gbbi, err := NewGenericBlockBodyInterceptor(interceptor, cache, mock.HasherMock{}, NewInterceptedTxBlockBody())
+	assert.Nil(t, err)
+	assert.NotNil(t, gbbi)
 
 	miniBlock := block2.MiniBlock{}
 	miniBlock.TxHashes = append(miniBlock.TxHashes, []byte{65})
@@ -281,7 +316,6 @@ func TestBlockBodyInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
 	txBody.MiniBlocks = make([]block2.MiniBlock, 0)
 	txBody.MiniBlocks = append(txBody.MiniBlocks, miniBlock)
 
-	assert.True(t, hi.ProcessBodyBlock(txBody, []byte("aaa")))
-
-	assert.True(t, cache.Has(mock.HasherMock{}.Compute("aaa")))
+	assert.True(t, processBodyBlock(txBody, []byte("aaa")))
+	assert.Equal(t, 1, wasCalled)
 }

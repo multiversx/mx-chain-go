@@ -67,3 +67,9 @@ type BlockBodyInterceptorAdapter interface {
 	p2p.Newer
 	Shard() uint32
 }
+
+type Interceptor interface {
+	Name() string
+	SetCheckReceivedObjectHandler(func(newer p2p.Newer, rawData []byte) bool)
+	CheckReceivedObjectHandler() func(newer p2p.Newer, rawData []byte) bool
+}

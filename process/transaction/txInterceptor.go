@@ -7,14 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
 )
 
 var log = logger.NewDefaultLogger()
 
 // TxInterceptor is used for intercepting transaction and storing them into a datapool
 type TxInterceptor struct {
-	*interceptor.Interceptor
+	process.Interceptor
 	txPool        data.ShardedDataCacherNotifier
 	addrConverter state.AddressConverter
 	hasher        hashing.Hasher
@@ -22,14 +21,14 @@ type TxInterceptor struct {
 
 // NewTxInterceptor hooks a new interceptor for transactions
 func NewTxInterceptor(
-	messenger p2p.Messenger,
+	interceptor process.Interceptor,
 	txPool data.ShardedDataCacherNotifier,
 	addrConverter state.AddressConverter,
 	hasher hashing.Hasher,
 ) (*TxInterceptor, error) {
 
-	if messenger == nil {
-		return nil, process.ErrNilMessenger
+	if interceptor == nil {
+		return nil, process.ErrNilInterceptor
 	}
 
 	if txPool == nil {
@@ -44,22 +43,14 @@ func NewTxInterceptor(
 		return nil, process.ErrNilHasher
 	}
 
-	intercept, err := interceptor.NewInterceptor(
-		process.TxInterceptor,
-		messenger,
-		NewInterceptedTransaction())
-	if err != nil {
-		return nil, err
-	}
-
 	txIntercept := &TxInterceptor{
-		Interceptor:   intercept,
+		Interceptor:   interceptor,
 		txPool:        txPool,
-		addrConverter: addrConverter,
 		hasher:        hasher,
+		addrConverter: addrConverter,
 	}
 
-	intercept.CheckReceivedObject = txIntercept.processTx
+	interceptor.SetCheckReceivedObjectHandler(txIntercept.processTx)
 
 	return txIntercept, nil
 }
