@@ -34,6 +34,9 @@ var ErrNilTransientPool = errors.New("nil transient pool")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
+// ErrNilTxStorage signals that a nil transaction storage has been provided
+var ErrNilTxStorage = errors.New("nil transaction storage")
+
 // ErrNilHeadersDataPool signals that a nil header pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
@@ -57,3 +60,9 @@ var ErrNilRequestData = errors.New("nil request data")
 
 // ErrResolveRequestAlreadyAssigned signals that ResolveRequest is not nil for a particular topic
 var ErrResolveRequestAlreadyAssigned = errors.New("resolve request func has already been assigned for this topic")
+
+// ErrTopicNotWiredToMessenger signals that a call to a not-correctly-instantiated topic has been made
+var ErrTopicNotWiredToMessenger = errors.New("topic has not been wired to a p2p.Messenger implementation")
+
+// ErrNilResolver signals that a nil resolver object has been provided
+var ErrNilResolver = errors.New("nil resolver")

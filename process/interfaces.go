@@ -67,3 +67,11 @@ type BlockBodyInterceptorAdapter interface {
 	p2p.Newer
 	Shard() uint32
 }
+
+// Resolver is an interface that defines the behaviour of a struct that is able
+// to send data requests to other entities and to resolve requests that came from those other entities
+type Resolver interface {
+	RequestData(rd RequestData) error
+	SetResolverHandler(func(rd RequestData) []byte)
+	ResolverHandler() func(rd RequestData) []byte
+}
