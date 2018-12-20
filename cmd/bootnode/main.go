@@ -35,21 +35,14 @@ VERSION:
 `
 
 type InitialNode struct {
-	Address string `json:"address"`
-}
-
-type Account struct {
-	Nounce   int    `json:"nounce"`
-	Balance  int    `json:"balance"`
-	CodeHash string `json:"codeHash"`
-	Root     string `json:"root"`
+	PubKey  string `json:"pubkey"`
+	Balance uint64 `json:"balance"`
 }
 
 type Genesis struct {
 	StartTime       int64         `json:"startTime"`
 	ClockSyncPeriod int           `json:"clockSyncPeriod"`
 	InitialNodes    []InitialNode `json:"initialNodes"`
-	Accounts        []Account     `json:"accounts"`
 }
 
 func main() {
@@ -149,12 +142,12 @@ func loadInitialConfiguration(genesisFilePath string, log *logger.Logger) (*Gene
 	return genesis, nil
 }
 
-func (g *Genesis) InitialNodesAddresses() []string {
-	var addresses []string
+func (g *Genesis) InitialNodesPubkeys() []string {
+	var pubKeys []string
 	for _, in := range g.InitialNodes {
-		addresses = append(addresses, in.Address)
+		pubKeys = append(pubKeys, in.PubKey)
 	}
-	return addresses
+	return pubKeys
 }
 
 func CreateNode(maxAllowedPeers, port int, initialNodeAddresses []string) *node.Node {

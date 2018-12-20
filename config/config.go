@@ -22,13 +22,15 @@ type storageConfig struct {
 }
 
 type Config struct {
-	BlockStorage       storageConfig `json:"blockStorage"`
-	BlockHeaderStorage storageConfig `json:"blockHeaderStorage"`
-	TxStorage          storageConfig `json:"txStorage"`
-	BadBlocksCache     cacheConfig   `json:"badBlocksCache"`
-	TxPoolStorage      cacheConfig   `json:"txPoolStorage"`
-	BlockPoolStorage   cacheConfig   `json:"blockPoolStorage"`
-	Logger             struct {
+	TxBlockBodyStorage    storageConfig `json:"txBlockBodyStorage"`
+	StateBlockBodyStorage storageConfig `json:"stateBlockBodyStorage"`
+	PeerBlockBodyStorage  storageConfig `json:"peerBlockBodyStorage"`
+	BlockHeaderStorage    storageConfig `json:"blockHeaderStorage"`
+	TxStorage             storageConfig `json:"txStorage"`
+	BadBlocksCache        cacheConfig   `json:"badBlocksCache"`
+	TxPoolStorage         cacheConfig   `json:"txPoolStorage"`
+	BlockPoolStorage      cacheConfig   `json:"blockPoolStorage"`
+	Logger                struct {
 		Path            string `json:"path"`
 		StackTraceDepth int    `json:"stackTraceDepth"`
 	} `json:"logger"`

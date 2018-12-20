@@ -3,24 +3,22 @@ package transaction
 import (
 	"io"
 
-	"math/rand"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction/capnproto1"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction/capnp"
 	"github.com/glycerine/go-capnproto"
+	"math/big"
 )
 
 // Transaction holds all the data needed for a value transfer
 type Transaction struct {
-	Nonce     uint64
-	Value     uint64
-	RcvAddr   []byte
-	SndAddr   []byte
-	GasPrice  uint64
-	GasLimit  uint64
-	Data      []byte
-	Signature []byte
-	Challenge []byte
+	Nonce     uint64  `capid:"0"`
+	Value     big.Int `capid:"1"`
+	RcvAddr   []byte  `capid:"2"`
+	SndAddr   []byte  `capid:"3"`
+	GasPrice  uint64  `capid:"4"`
+	GasLimit  uint64  `capid:"5"`
+	Data      []byte  `capid:"6"`
+	Signature []byte  `capid:"7"`
+	Challenge []byte  `capid:"8"`
 }
 
 // Save saves the serialized data of a Transaction into a stream through Capnp protocol
@@ -35,16 +33,15 @@ func (tx *Transaction) Save(w io.Writer) error {
 func (tx *Transaction) Load(r io.Reader) error {
 	capMsg, err := capn.ReadFromStream(r, nil)
 	if err != nil {
-		//panic(fmt.Errorf("capn.ReadFromStream error: %s", err))
 		return err
 	}
-	z := capnproto1.ReadRootTransactionCapn(capMsg)
+	z := capnp.ReadRootTransactionCapn(capMsg)
 	TransactionCapnToGo(z, tx)
 	return nil
 }
 
 // TransactionCapnToGo is a helper function to copy fields from a TransactionCapn object to a Transaction object
-func TransactionCapnToGo(src capnproto1.TransactionCapn, dest *Transaction) *Transaction {
+func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transaction {
 	if dest == nil {
 		dest = &Transaction{}
 	}
@@ -52,7 +49,12 @@ func TransactionCapnToGo(src capnproto1.TransactionCapn, dest *Transaction) *Tra
 	// Nonce
 	dest.Nonce = src.Nonce()
 	// Value
-	dest.Value = src.Value()
+	err := dest.Value.GobDecode(src.Value())
+
+	if err != nil {
+		return nil
+	}
+
 	// RcvAddr
 	dest.RcvAddr = src.RcvAddr()
 	// SndAddr
@@ -72,11 +74,12 @@ func TransactionCapnToGo(src capnproto1.TransactionCapn, dest *Transaction) *Tra
 }
 
 // TransactionGoToCapn is a helper function to copy fields from a Transaction object to a TransactionCapn object
-func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnproto1.TransactionCapn {
-	dest := capnproto1.AutoNewTransactionCapn(seg)
+func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnp.TransactionCapn {
+	dest := capnp.AutoNewTransactionCapn(seg)
 
+	value, _ := src.Value.GobEncode()
 	dest.SetNonce(src.Nonce)
-	dest.SetValue(src.Value)
+	dest.SetValue(value)
 	dest.SetRcvAddr(src.RcvAddr)
 	dest.SetSndAddr(src.SndAddr)
 	dest.SetGasPrice(src.GasPrice)
@@ -86,25 +89,4 @@ func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnproto1.Transac
 	dest.SetChallenge(src.Challenge)
 
 	return dest
-}
-
-// GenerateDummyArray is used for tests to generate an array of transactions with dummy data
-func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
-	transactions := make([]data.CapnpHelper, 0, 1000)
-
-	for i := 0; i < 1000; i++ {
-		transactions = append(transactions, &Transaction{
-			Nonce:     uint64(rand.Int63n(10000)),
-			Value:     uint64(rand.Int63n(10000)),
-			RcvAddr:   []byte(data.RandomStr(32)),
-			SndAddr:   []byte(data.RandomStr(32)),
-			GasPrice:  uint64(rand.Int63n(10000)),
-			GasLimit:  uint64(rand.Int63n(10000)),
-			Data:      []byte(data.RandomStr(32)),
-			Signature: []byte(data.RandomStr(32)),
-			Challenge: []byte(data.RandomStr(32)),
-		})
-	}
-
-	return transactions
 }

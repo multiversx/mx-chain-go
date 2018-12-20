@@ -1,4 +1,4 @@
-package execution
+package process
 
 import (
 	"errors"
@@ -13,10 +13,13 @@ var ErrNilHasher = errors.New("nil Hasher")
 // ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
 var ErrNilAddressConverter = errors.New("nil AddressConverter")
 
+// ErrNilAddressContainer signals that an operation has been attempted to or with a nil AddressContainer implementation
+var ErrNilAddressContainer = errors.New("nil AddressContainer")
+
 // ErrNilTransaction signals that an operation has been attempted to or with a nil transaction
 var ErrNilTransaction = errors.New("nil transaction")
 
-// ErrNoVM signals that no SChandler has been set
+// ErrNoVM signals that no SCHandler has been set
 var ErrNoVM = errors.New("no VM (hook not set)")
 
 // ErrHigherNonceInTransaction signals the nonce in transaction is higher than the account's nonce
@@ -34,17 +37,50 @@ var ErrNilValue = errors.New("nil value")
 // ErrNilBlockchain signals that an operation has been attempted to or with a nil blockchain
 var ErrNilBlockChain = errors.New("nil block chain")
 
-// ErrNilBlockBody signals that an operation has been attempted to or with a nil block body
-var ErrNilBlockBody = errors.New("nil block body")
+// ErrNilTxBlockBody signals that an operation has been attempted to or with a nil block body
+var ErrNilTxBlockBody = errors.New("nil block body")
+
+// ErrNilStateBlockBody signals that an operation has been attempted to or with a nil block body
+var ErrNilStateBlockBody = errors.New("nil block body")
+
+// ErrNilPeerBlockBody signals that an operation has been attempted to or with a nil block body
+var ErrNilPeerBlockBody = errors.New("nil block body")
 
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
 
-// ErrHigherNonceInBlock signals the nonce in block is higher than next expected nounce
-var ErrHigherNonceInBlock = errors.New("higher nonce in block, waiting for the right one")
+// ErrNilBlockBodyHash signals that an operation has been attempted to or with a nil block body hash
+var ErrNilBlockBodyHash = errors.New("nil block body hash")
 
-// ErrLowerNonceInBlock signals the nonce in block is lower than next expected nounce
-var ErrLowerNonceInBlock = errors.New("lower nonce in block")
+// ErrNilTxHash signals that an operation has been attempted with a nil hash
+var ErrNilTxHash = errors.New("nil transaction hash")
+
+// ErrNilPeerChanges signals that an operation has been attempted with nil peer changes
+var ErrNilPeerChanges = errors.New("nil peer block changes")
+
+// ErrNilPublicKey signals that a operation has been attempted with a nil public key
+var ErrNilPublicKey = errors.New("nil public key")
+
+// ErrNilPubKeysBitmap signals that a operation has been attempted with a nil public keys bitmap
+var ErrNilPubKeysBitmap = errors.New("nil public keys bitmap")
+
+// ErrNilPreviousBlockHash signals that a operation has been attempted with a nil previous block header hash
+var ErrNilPreviousBlockHash = errors.New("nil previous block header hash")
+
+// ErrNilSignature signals that a operation has been attempted with a nil signature
+var ErrNilSignature = errors.New("nil signature")
+
+// ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
+var ErrNilMiniBlocks = errors.New("nil mini blocks")
+
+// ErrNilTxHashes signals that an operation has been atempted with snil transaction hashes
+var ErrNilTxHashes = errors.New("nil transaction hashes")
+
+// ErrNilProcessor signals that an operation has been attempted with a nil block processor
+var ErrNilProcessor = errors.New("state block Processor is nil")
+
+// ErrNilRootHash signals that an operation has been attempted with a nil root hash
+var ErrNilRootHash = errors.New("root hash is nil")
 
 // ErrWrongNonceInBlock signals the nonce in block is different than expected nounce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
@@ -65,10 +101,22 @@ var ErrMarshalWithoutSuccess = errors.New("marshal without success")
 var ErrPersistWithoutSuccess = errors.New("persist without success")
 
 // ErrRootStateMissmatch signals that persist some data was not done with success
-var ErrRootStateMissmatch = errors.New("Root state does not match")
+var ErrRootStateMissmatch = errors.New("root state does not match")
 
-// ErrAccountStateDirty signals that the accounts were modified before starting the current modifications
-var ErrAccountStateDirty = errors.New("AccountState was dirty before starting to change")
+// ErrAccountStateDirty signals that the accounts were modified before starting the current modification
+var ErrAccountStateDirty = errors.New("accountState was dirty before starting to change")
+
+// ErrInvalidTxBlockBody signals that the transactions block body is invalid
+var ErrInvalidTxBlockBody = errors.New("transactions block body is invalid")
+
+// ErrInvalidTxBlockBody signals that the block header is invalid
+var ErrInvalidBlockHeader = errors.New("block header is invalid")
+
+// ErrInvalidShardId signals that the shard id is invalid
+var ErrInvalidShardId = errors.New("invalid shard id")
+
+// ErrNilRootHash signals that an operation has been attempted with a nil root hash
+var ErrInvalidRootHash = errors.New("root hash is invalid")
 
 // ErrMissingHeader signals that header of the block is missing
 var ErrMissingHeader = errors.New("missing header")
