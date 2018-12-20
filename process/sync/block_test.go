@@ -1,4 +1,4 @@
-package syncBlock_test
+package sync_test
 
 import (
 	"testing"
@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution/syncBlock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,45 +18,45 @@ import (
 const WaitTime = time.Duration(100 * time.Millisecond)
 
 func TestNewBootstrapShouldThrowNilBlockPool(t *testing.T) {
-	bs, err := syncBlock.NewBootstrap(nil, nil, nil, nil, WaitTime)
+	bs, err := sync.NewBootstrap(nil, nil, nil, nil, WaitTime)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, execution.ErrNilBlockPool, err)
+	assert.Equal(t, process.ErrNilBlockPool, err)
 }
 
 func TestNewBootstrapShouldThrowNilBlockchain(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
-	bs, err := syncBlock.NewBootstrap(bp, nil, nil, nil, WaitTime)
+	bs, err := sync.NewBootstrap(bp, nil, nil, nil, WaitTime)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, execution.ErrNilBlockChain, err)
+	assert.Equal(t, process.ErrNilBlockChain, err)
 }
 
 func TestNewBootstrapShouldThrowNilRound(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 	blkc := blockchain.BlockChain{}
-	bs, err := syncBlock.NewBootstrap(bp, &blkc, nil, nil, WaitTime)
+	bs, err := sync.NewBootstrap(bp, &blkc, nil, nil, WaitTime)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, execution.ErrNilRound, err)
+	assert.Equal(t, process.ErrNilRound, err)
 }
 
 func TestNewBootstrapShouldThrowNilBlockExecutor(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 	blkc := blockchain.BlockChain{}
 	rnd := chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond))
-	bs, err := syncBlock.NewBootstrap(bp, &blkc, rnd, nil, WaitTime)
+	bs, err := sync.NewBootstrap(bp, &blkc, rnd, nil, WaitTime)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, execution.ErrNilBlockExecutor, err)
+	assert.Equal(t, process.ErrNilBlockExecutor, err)
 }
 
 func TestNewBootstrapShouldWork(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 	blkc := blockchain.BlockChain{}
 	rnd := chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond))
-	ebm := mock.ExecBlockMock{}
-	bs, err := syncBlock.NewBootstrap(bp, &blkc, rnd, &ebm, WaitTime)
+	ebm := mock.BlockProcessorMock{}
+	bs, err := sync.NewBootstrap(bp, &blkc, rnd, &ebm, WaitTime)
 
 	assert.NotNil(t, bs)
 	assert.Nil(t, err)
@@ -69,11 +69,11 @@ func TestSyncBlockShouldReturnMissingHeader(t *testing.T) {
 
 	bp := blockPool.NewBlockPool(nil)
 
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		bp,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
-		&mock.ExecBlockMock{},
+		&mock.BlockProcessorMock{},
 		WaitTime)
 
 	bs.OnRequestHeader = func(nonce uint64) {}
@@ -81,7 +81,7 @@ func TestSyncBlockShouldReturnMissingHeader(t *testing.T) {
 
 	r := bs.SyncBlock()
 
-	assert.Equal(t, execution.ErrMissingHeader, r)
+	assert.Equal(t, process.ErrMissingHeader, r)
 }
 
 func TestSyncBlockShouldReturnMissingBody(t *testing.T) {
@@ -91,11 +91,11 @@ func TestSyncBlockShouldReturnMissingBody(t *testing.T) {
 
 	bp := blockPool.NewBlockPool(nil)
 
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		bp,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
-		&mock.ExecBlockMock{},
+		&mock.BlockProcessorMock{},
 		WaitTime)
 
 	bs.RequestHeader(2)
@@ -104,12 +104,12 @@ func TestSyncBlockShouldReturnMissingBody(t *testing.T) {
 
 	r := bs.SyncBlock()
 
-	assert.Equal(t, execution.ErrMissingBody, r)
+	assert.Equal(t, process.ErrMissingBody, r)
 }
 
 func TestStartSyncShouldNotNeedToSync(t *testing.T) {
-	ebm := mock.ExecBlockMock{}
-	ebm.ProcessBlockCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.Block) error {
+	ebm := mock.BlockProcessorMock{}
+	ebm.ProcessBlockCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.TxBlockBody) error {
 		blk.CurrentBlockHeader = hdr
 		return nil
 	}
@@ -120,7 +120,7 @@ func TestStartSyncShouldNotNeedToSync(t *testing.T) {
 
 	bp := blockPool.NewBlockPool(nil)
 
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		bp,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
@@ -133,8 +133,8 @@ func TestStartSyncShouldNotNeedToSync(t *testing.T) {
 }
 
 func TestStartSyncShouldSyncOneBlock(t *testing.T) {
-	ebm := mock.ExecBlockMock{}
-	ebm.ProcessBlockCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.Block) error {
+	ebm := mock.BlockProcessorMock{}
+	ebm.ProcessBlockCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.TxBlockBody) error {
 		blk.CurrentBlockHeader = hdr
 		return nil
 	}
@@ -145,7 +145,7 @@ func TestStartSyncShouldSyncOneBlock(t *testing.T) {
 
 	bp := blockPool.NewBlockPool(nil)
 
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		bp,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond)),
@@ -159,7 +159,7 @@ func TestStartSyncShouldSyncOneBlock(t *testing.T) {
 	hdr2 := block.Header{Nonce: 2, Round: 1}
 	bp.AddHeader(2, &hdr2)
 
-	blk2 := block.Block{}
+	blk2 := block.TxBlockBody{}
 	bp.AddBody(2, &blk2)
 
 	time.Sleep(200 * time.Millisecond)
@@ -168,8 +168,8 @@ func TestStartSyncShouldSyncOneBlock(t *testing.T) {
 }
 
 func TestSyncBlockShouldReturnNilErr(t *testing.T) {
-	ebm := mock.ExecBlockMock{}
-	ebm.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.Block) error {
+	ebm := mock.BlockProcessorMock{}
+	ebm.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
 		return nil
 	}
 
@@ -179,7 +179,7 @@ func TestSyncBlockShouldReturnNilErr(t *testing.T) {
 
 	bp := blockPool.NewBlockPool(nil)
 
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		bp,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
@@ -191,7 +191,7 @@ func TestSyncBlockShouldReturnNilErr(t *testing.T) {
 	bp.AddHeader(2, &hdr2)
 
 	bs.RequestBody(2)
-	blk2 := block.Block{}
+	blk2 := block.TxBlockBody{}
 	bp.AddBody(2, &blk2)
 
 	r := bs.SyncBlock()
@@ -200,11 +200,11 @@ func TestSyncBlockShouldReturnNilErr(t *testing.T) {
 }
 
 func TestShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		blockPool.NewBlockPool(nil),
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
-		&mock.ExecBlockMock{},
+		&mock.BlockProcessorMock{},
 		WaitTime)
 
 	r := bs.ShouldSync()
@@ -213,11 +213,11 @@ func TestShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t *
 }
 
 func TestShouldSyncShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterThanZero(t *testing.T) {
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		blockPool.NewBlockPool(nil),
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond)),
-		&mock.ExecBlockMock{},
+		&mock.BlockProcessorMock{},
 		WaitTime)
 
 	r := bs.ShouldSync()
@@ -230,11 +230,11 @@ func TestShouldSyncShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	blkc := blockchain.BlockChain{}
 	blkc.CurrentBlockHeader = &hdr
 
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		blockPool.NewBlockPool(nil),
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
-		&mock.ExecBlockMock{},
+		&mock.BlockProcessorMock{},
 		WaitTime)
 
 	r := bs.ShouldSync()
@@ -247,11 +247,11 @@ func TestShouldSyncShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	blkc := blockchain.BlockChain{}
 	blkc.CurrentBlockHeader = &hdr
 
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		blockPool.NewBlockPool(nil),
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond)),
-		&mock.ExecBlockMock{},
+		&mock.BlockProcessorMock{},
 		WaitTime)
 
 	r := bs.ShouldSync()
@@ -262,11 +262,11 @@ func TestShouldSyncShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 func TestGetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		bp,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
-		&mock.ExecBlockMock{},
+		&mock.BlockProcessorMock{},
 		WaitTime)
 
 	r := bs.GetDataFromPool(bp.HeaderStore(), 0)
@@ -277,11 +277,11 @@ func TestGetHeaderFromPoolShouldReturnNil(t *testing.T) {
 func TestGetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		bp,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
-		&mock.ExecBlockMock{},
+		&mock.BlockProcessorMock{},
 		WaitTime)
 
 	hdr := block.Header{Nonce: 0}
@@ -295,11 +295,11 @@ func TestGetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 func TestGetBlockFromPoolShouldReturnNil(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		bp,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
-		&mock.ExecBlockMock{},
+		&mock.BlockProcessorMock{},
 		WaitTime)
 
 	r := bs.GetDataFromPool(bp.BodyStore(), 0)
@@ -310,14 +310,14 @@ func TestGetBlockFromPoolShouldReturnNil(t *testing.T) {
 func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 
-	bs, _ := syncBlock.NewBootstrap(
+	bs, _ := sync.NewBootstrap(
 		bp,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
-		&mock.ExecBlockMock{},
+		&mock.BlockProcessorMock{},
 		WaitTime)
 
-	blk := block.Block{}
+	blk := block.TxBlockBody{}
 
 	bp.AddBody(0, &blk)
 	r := bs.GetDataFromPool(bp.BodyStore(), 0)

@@ -1,4 +1,4 @@
-package exTransaction_test
+package transaction_test
 
 import (
 	"bytes"
@@ -7,9 +7,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution/exTransaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	txproc "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -76,7 +76,7 @@ func TestNewExecTransaction_OkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- SChandler
+//------- SCHandler
 
 func TestExecTransaction_GetSetSChandlerShouldWork(t *testing.T) {
 	t.Parallel()
@@ -92,8 +92,8 @@ func TestExecTransaction_GetSetSChandlerShouldWork(t *testing.T) {
 		return nil
 	}
 
-	execTx.SetSChandler(f)
-	assert.NotNil(t, execTx.SChandler())
+	execTx.SetSCHandler(f)
+	assert.NotNil(t, execTx.SCHandler())
 }
 
 //------- getAddresses
@@ -196,7 +196,7 @@ func TestExecTransaction_GetAccountsOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, acnt2, a2)
 }
 
-//------- callSChandler
+//------- callSCHandler
 
 func TestExecTransaction_NoCallSChandlerShouldErr(t *testing.T) {
 	execTx, _ := exTransaction.NewExecTransaction(

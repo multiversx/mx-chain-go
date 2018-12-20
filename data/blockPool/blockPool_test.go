@@ -76,10 +76,10 @@ func TestBlockPoolAddBody(t *testing.T) {
 	bp.RegisterBodyHandler(receivedBody)
 
 	mblks := make([]block.MiniBlock, 0)
-	mblk := block.MiniBlock{DestShardID: 0}
+	mblk := block.MiniBlock{ShardID: 0}
 	mblks = append(mblks, mblk)
 
-	blk := block.Block{MiniBlocks: mblks}
+	blk := block.TxBlockBody{MiniBlocks: mblks}
 
 	key := make([]byte, 8)
 	binary.PutUvarint(key, 0)
@@ -89,21 +89,21 @@ func TestBlockPoolAddBody(t *testing.T) {
 
 	val, ok := bp.BodyStore().Get(key)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, &blk, val.(*block.Block))
+	assert.Equal(t, &blk, val.(*block.TxBlockBody))
 
 	mblks2 := make([]block.MiniBlock, 0)
-	mblk2 := block.MiniBlock{DestShardID: 1}
+	mblk2 := block.MiniBlock{ShardID: 1}
 	mblks2 = append(mblks2, mblk2)
 
-	blk2 := block.Block{MiniBlocks: mblks2}
+	blk2 := block.TxBlockBody{MiniBlocks: mblks2}
 
 	bp.AddBody(0, &blk2)
 	assert.Equal(t, 1, bp.BodyStore().Len())
 
 	val, ok = bp.BodyStore().Get(key)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, &blk, val.(*block.Block))
-	assert.NotEqual(t, &blk2, val.(*block.Block))
+	assert.Equal(t, &blk, val.(*block.TxBlockBody))
+	assert.NotEqual(t, &blk2, val.(*block.TxBlockBody))
 
 	bp.AddBody(1, &blk2)
 	assert.Equal(t, 2, bp.BodyStore().Len())
@@ -113,7 +113,7 @@ func TestBlockPoolAddBody(t *testing.T) {
 
 	val, ok = bp.BodyStore().Get(key)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, &blk2, val.(*block.Block))
+	assert.Equal(t, &blk2, val.(*block.TxBlockBody))
 
 	key = make([]byte, 8)
 	binary.PutUvarint(key, 2)
@@ -145,14 +145,14 @@ func TestBlockPoolBody(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 	bp.RegisterBodyHandler(receivedBody)
 
-	blk := block.Block{}
+	blk := block.TxBlockBody{}
 
 	bp.AddBody(0, &blk)
 	assert.Equal(t, 1, bp.BodyStore().Len())
 
 	val, ok := bp.Body(0)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, &blk, val.(*block.Block))
+	assert.Equal(t, &blk, val.(*block.TxBlockBody))
 
 	val, ok = bp.Body(1)
 	assert.Equal(t, false, ok)
@@ -193,19 +193,19 @@ func TestBlockPoolRemoveBlock(t *testing.T) {
 	bp.RegisterBodyHandler(receivedBody)
 
 	mblks := make([]block.MiniBlock, 0)
-	mblk := block.MiniBlock{DestShardID: 0}
+	mblk := block.MiniBlock{ShardID: 0}
 	mblks = append(mblks, mblk)
 
-	blk := block.Block{MiniBlocks: mblks}
+	blk := block.TxBlockBody{MiniBlocks: mblks}
 
 	bp.AddBody(0, &blk)
 	assert.Equal(t, 1, bp.BodyStore().Len())
 
 	mblks2 := make([]block.MiniBlock, 0)
-	mblk2 := block.MiniBlock{DestShardID: 1}
+	mblk2 := block.MiniBlock{ShardID: 1}
 	mblks2 = append(mblks2, mblk2)
 
-	blk2 := block.Block{MiniBlocks: mblks2}
+	blk2 := block.TxBlockBody{MiniBlocks: mblks2}
 
 	bp.AddBody(1, &blk2)
 	assert.Equal(t, 2, bp.BodyStore().Len())
@@ -221,8 +221,8 @@ func TestBlockPoolRemoveBlock(t *testing.T) {
 
 	val, ok := bp.BodyStore().Get(key)
 	assert.Equal(t, true, ok)
-	assert.Equal(t, &blk2, val.(*block.Block))
-	assert.NotEqual(t, &blk, val.(*block.Block))
+	assert.Equal(t, &blk2, val.(*block.TxBlockBody))
+	assert.NotEqual(t, &blk, val.(*block.TxBlockBody))
 }
 
 func TestBlockPoolClearHeaderStore(t *testing.T) {
@@ -244,7 +244,7 @@ func TestBlockPoolClearBodyStore(t *testing.T) {
 	bp := blockPool.NewBlockPool(nil)
 	bp.RegisterBodyHandler(receivedBody)
 
-	blk := block.Block{}
+	blk := block.TxBlockBody{}
 
 	bp.AddBody(0, &blk)
 	bp.AddBody(1, &blk)

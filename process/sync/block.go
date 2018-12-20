@@ -1,4 +1,4 @@
-package syncBlock
+package sync
 
 import (
 	"encoding/binary"
@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
@@ -23,7 +23,7 @@ type bootstrap struct {
 	blkPool     *blockPool.BlockPool
 	blkc        *blockchain.BlockChain
 	round       *chronology.Round
-	blkExecutor execution.BlockExecutor
+	blkExecutor process.BlockProcessor
 
 	mutHeader   sync.RWMutex
 	headerNonce int64
@@ -46,7 +46,7 @@ func NewBootstrap(
 	blkPool *blockPool.BlockPool,
 	blkc *blockchain.BlockChain,
 	round *chronology.Round,
-	blkExecutor execution.BlockExecutor,
+	blkExecutor process.BlockProcessor,
 	waitTime time.Duration,
 ) (*bootstrap, error) {
 	err := checkBootstrapNilParameters(blkPool, blkc, round, blkExecutor)
@@ -84,22 +84,22 @@ func checkBootstrapNilParameters(
 	blkPool *blockPool.BlockPool,
 	blkc *blockchain.BlockChain,
 	round *chronology.Round,
-	blkExecutor execution.BlockExecutor,
+	blkExecutor process.BlockProcessor,
 ) error {
 	if blkPool == nil {
-		return execution.ErrNilBlockPool
+		return process.ErrNilBlockPool
 	}
 
 	if blkc == nil {
-		return execution.ErrNilBlockChain
+		return process.ErrNilBlockChain
 	}
 
 	if round == nil {
-		return execution.ErrNilRound
+		return process.ErrNilRound
 	}
 
 	if blkExecutor == nil {
-		return execution.ErrNilBlockExecutor
+		return process.ErrNilBlockExecutor
 	}
 
 	return nil
@@ -203,7 +203,7 @@ func (boot *bootstrap) getHeaderWithNonce(nonce uint64) (*block.Header, error) {
 		boot.waitForHeaderNonce()
 		hdr = boot.getDataFromPool(boot.blkPool.HeaderStore(), nonce)
 		if hdr == nil {
-			return nil, execution.ErrMissingHeader
+			return nil, process.ErrMissingHeader
 		}
 	}
 
@@ -212,7 +212,7 @@ func (boot *bootstrap) getHeaderWithNonce(nonce uint64) (*block.Header, error) {
 
 // getBodyWithNonce method gets the body with given nonce from pool, if it exist there,
 // and if not it will be requested from network
-func (boot *bootstrap) getBodyWithNonce(nonce uint64) (*block.Block, error) {
+func (boot *bootstrap) getBodyWithNonce(nonce uint64) (*block.TxBlockBody, error) {
 	blk := boot.getDataFromPool(boot.blkPool.BodyStore(), nonce)
 
 	if blk == nil {
@@ -220,11 +220,11 @@ func (boot *bootstrap) getBodyWithNonce(nonce uint64) (*block.Block, error) {
 		boot.waitForBodyNonce()
 		blk = boot.getDataFromPool(boot.blkPool.BodyStore(), nonce)
 		if blk == nil {
-			return nil, execution.ErrMissingBody
+			return nil, process.ErrMissingBody
 		}
 	}
 
-	return blk.(*block.Block), nil
+	return blk.(*block.TxBlockBody), nil
 }
 
 // getNonceForNextBlock will get the nonce for the next block we should request

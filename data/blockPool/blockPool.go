@@ -79,7 +79,7 @@ func (bp *BlockPool) AddHeader(nonce uint64, hdr *block.Header) {
 }
 
 // AddBody method adds a block body to the corresponding pool
-func (bp *BlockPool) AddBody(nonce uint64, blk *block.Block) {
+func (bp *BlockPool) AddBody(nonce uint64, blk *block.TxBlockBody) {
 	mp := bp.BodyStore()
 
 	key := make([]byte, 8)
