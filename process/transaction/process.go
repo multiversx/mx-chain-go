@@ -3,10 +3,12 @@ package transaction
 import (
 	"math/big"
 
+	"bytes"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
@@ -14,15 +16,20 @@ var log = logger.NewDefaultLogger()
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
-	accounts  state.AccountsAdapter
-	adrConv   state.AddressConverter
-	hasher    hashing.Hasher
-	scHandler func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
+	accounts    state.AccountsAdapter
+	adrConv     state.AddressConverter
+	hasher      hashing.Hasher
+	scHandler   func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
+	marshalizer marshal.Marshalizer
 }
 
 // NewExecTransaction creates a new txProcessor engine
-func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
-	addressConv state.AddressConverter) (*txProcessor, error) {
+func NewExecTransaction(
+	accounts state.AccountsAdapter,
+	hasher hashing.Hasher,
+	addressConv state.AddressConverter,
+	marshalizer marshal.Marshalizer,
+) (*txProcessor, error) {
 
 	if accounts == nil {
 		return nil, process.ErrNilAccountsAdapter
@@ -36,10 +43,15 @@ func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
 		return nil, process.ErrNilAddressConverter
 	}
 
+	if marshalizer == nil {
+		return nil, process.ErrNilMarshalizer
+	}
+
 	return &txProcessor{
-		accounts: accounts,
-		hasher:   hasher,
-		adrConv:  addressConv,
+		accounts:    accounts,
+		hasher:      hasher,
+		adrConv:     addressConv,
+		marshalizer: marshalizer,
 	}, nil
 }
 
@@ -54,7 +66,7 @@ func (txProc *txProcessor) SetSCHandler(f func(accountsAdapter state.AccountsAda
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error {
+func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, roundIndex int32) error {
 	if tx == nil {
 		return process.ErrNilTransaction
 	}
@@ -75,6 +87,26 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 
 	if acntDest.Code() != nil {
 		return txProc.callSCHandler(tx)
+	}
+
+	if bytes.Equal(adrDest.Bytes(), state.RegistrationAddress.Bytes()) {
+		regAccount, err := txProc.accounts.GetJournalizedAccount(state.RegistrationAddress)
+		if err != nil {
+			return err
+		}
+
+		regData := &state.RegistrationData{}
+		err = txProc.marshalizer.Unmarshal(regData, tx.Data)
+		if err != nil {
+			return err
+		}
+		regData.OriginatorPubKey = adrSrc.Bytes()
+		regData.RoundIndex = roundIndex
+
+		err = regAccount.AppendDataRegistrationWithJournal(regData)
+		if err != nil {
+			return err
+		}
 	}
 
 	value := tx.Value

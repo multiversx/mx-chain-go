@@ -108,7 +108,7 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 
 	coms[0].BlockProcessor = mock.BlockProcessorMock{
 		RemoveBlockTxsFromPoolCalled: func(*block.TxBlockBody) error { return nil },
-		CreateTxBlockCalled: func(shardId uint32, maxTxInBlock int, haveTime func() bool) (*block.TxBlockBody, error) {
+		CreateTxBlockCalled: func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error) {
 			return &block.TxBlockBody{}, nil
 		},
 	}

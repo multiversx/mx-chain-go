@@ -270,7 +270,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	tp.AddTransaction(txHash, &transaction.Transaction{Nonce: 1}, 0)
 
 	// invalid transaction
-	txProcess := func(transaction *transaction.Transaction) error {
+	txProcess := func(transaction *transaction.Transaction, round int32) error {
 		return process.ErrHigherNonceInTransaction
 	}
 
@@ -343,7 +343,7 @@ func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 		1,
 	)
 
-	bl, err := be.CreateTxBlockBody(0, 100, func() bool { return true })
+	bl, err := be.CreateTxBlockBody(0, 100, 0, func() bool { return true })
 
 	// nil block
 	assert.Nil(t, bl)
@@ -373,7 +373,7 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 		return false
 	}
 
-	bl, err := be.CreateTxBlockBody(0, 100, haveTime)
+	bl, err := be.CreateTxBlockBody(0, 100, 0, haveTime)
 
 	// no error
 	assert.Nil(t, err)
@@ -385,7 +385,7 @@ func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
 	//process transaction. return nil for no error
-	procTx := func(transaction *transaction.Transaction) error {
+	procTx := func(transaction *transaction.Transaction, round int32) error {
 		return nil
 	}
 
@@ -411,7 +411,7 @@ func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
 		1,
 	)
 
-	blk, err := be.CreateTxBlockBody(0, 100, haveTime)
+	blk, err := be.CreateTxBlockBody(0, 100, 0, haveTime)
 
 	assert.NotNil(t, blk)
 	assert.Nil(t, err)
@@ -438,7 +438,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithNilTxProcessorShouldPanic(t *t
 func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldPanic(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
-	txProcess := func(transaction *transaction.Transaction) error {
+	txProcess := func(transaction *transaction.Transaction, round int32) error {
 		return nil
 	}
 
@@ -469,7 +469,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldPanic(t *t
 func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
-	txProcess := func(transaction *transaction.Transaction) error {
+	txProcess := func(transaction *transaction.Transaction, round int32) error {
 		return nil
 	}
 

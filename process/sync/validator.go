@@ -1,4 +1,4 @@
-package syncValidators
+package sync
 
 import (
 	"math/big"
@@ -6,8 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 var log = logger.NewDefaultLogger()
@@ -59,11 +59,11 @@ func checkSyncValidatorsNilParameters(
 	accounts state.AccountsAdapter,
 ) error {
 	if rounder == nil {
-		return execution.ErrNilRound
+		return process.ErrNilRound
 	}
 
 	if accounts == nil {
-		return execution.ErrNilAccountsAdapter
+		return process.ErrNilAccountsAdapter
 	}
 
 	return nil

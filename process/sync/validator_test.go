@@ -1,4 +1,4 @@
-package syncValidators_test
+package sync_test
 
 import (
 	"bytes"
@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/execution/syncValidators"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,27 +37,27 @@ func Init() (*mock.RoundStub, *mock.AccountsStub, *mock.JournalizedAccountWrapMo
 }
 
 func TestNewSyncValidators_ShouldThrowNilRound(t *testing.T) {
-	sv, err := syncValidators.NewSyncValidators(
+	sv, err := sync.NewSyncValidators(
 		nil,
 		nil,
 	)
 
 	assert.Nil(t, sv)
-	assert.Equal(t, execution.ErrNilRound, err)
+	assert.Equal(t, process.ErrNilRound, err)
 }
 
 func TestNewSyncValidators_ShouldThrowNilAccountsAdapter(t *testing.T) {
-	sv, err := syncValidators.NewSyncValidators(
+	sv, err := sync.NewSyncValidators(
 		&mock.RoundStub{},
 		nil,
 	)
 
 	assert.Nil(t, sv)
-	assert.Equal(t, execution.ErrNilAccountsAdapter, err)
+	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
 func TestNewSyncValidators_ShouldWork(t *testing.T) {
-	sv, err := syncValidators.NewSyncValidators(
+	sv, err := sync.NewSyncValidators(
 		&mock.RoundStub{},
 		&mock.AccountsStub{},
 	)
@@ -68,7 +68,7 @@ func TestNewSyncValidators_ShouldWork(t *testing.T) {
 
 func TestGetEligibleList_ShouldHaveNoValidatorsAfterOneRegisterRequest(t *testing.T) {
 	rnds, acss, jawm := Init()
-	sv, _ := syncValidators.NewSyncValidators(
+	sv, _ := sync.NewSyncValidators(
 		rnds,
 		acss,
 	)
@@ -87,7 +87,7 @@ func TestGetEligibleList_ShouldHaveNoValidatorsAfterOneRegisterRequest(t *testin
 
 func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterRequestAndSomeRounds(t *testing.T) {
 	rnds, acss, jawm := Init()
-	sv, _ := syncValidators.NewSyncValidators(
+	sv, _ := sync.NewSyncValidators(
 		rnds,
 		acss,
 	)
@@ -103,7 +103,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterRequestAndSomeRou
 
 	index := regData.RoundIndex
 	rnds.IndexCalled = func() int32 {
-		return index + syncValidators.RoundsToWaitToBeEligible + 1
+		return index + sync.RoundsToWaitToBeEligible + 1
 	}
 
 	assert.Equal(t, 1, len(sv.GetEligibleList()))
@@ -111,7 +111,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterRequestAndSomeRou
 
 func TestGetEligibleList_ShouldHaveOneValidatorWithIncreasedStakeAfterTwoRegisterRequestsAndSomeRounds(t *testing.T) {
 	rnds, acss, jawm := Init()
-	sv, _ := syncValidators.NewSyncValidators(
+	sv, _ := sync.NewSyncValidators(
 		rnds,
 		acss,
 	)
@@ -136,7 +136,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorWithIncreasedStakeAfterTwoRegiste
 
 	index := regData.RoundIndex
 	rnds.IndexCalled = func() int32 {
-		return index + syncValidators.RoundsToWaitToBeEligible + 1
+		return index + sync.RoundsToWaitToBeEligible + 1
 	}
 
 	assert.Equal(t, 1, len(sv.GetEligibleList()))
@@ -145,7 +145,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorWithIncreasedStakeAfterTwoRegiste
 
 func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterAndUnregisterRequest(t *testing.T) {
 	rnds, acss, jawm := Init()
-	sv, _ := syncValidators.NewSyncValidators(
+	sv, _ := sync.NewSyncValidators(
 		rnds,
 		acss,
 	)
@@ -170,7 +170,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterAndUnregisterRequ
 
 	index := regData.RoundIndex
 	rnds.IndexCalled = func() int32 {
-		return index + syncValidators.RoundsToWaitToBeEligible + 1
+		return index + sync.RoundsToWaitToBeEligible + 1
 	}
 
 	assert.Equal(t, 1, len(sv.GetEligibleList()))
@@ -178,7 +178,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterAndUnregisterRequ
 
 func TestGetEligibleList_ShouldHaveNoValidatorsAfterOneRegisterAndUnregisterRequestAndSomeRounds(t *testing.T) {
 	rnds, acss, jawm := Init()
-	sv, _ := syncValidators.NewSyncValidators(
+	sv, _ := sync.NewSyncValidators(
 		rnds,
 		acss,
 	)
@@ -203,7 +203,7 @@ func TestGetEligibleList_ShouldHaveNoValidatorsAfterOneRegisterAndUnregisterRequ
 
 	index := regData2.RoundIndex
 	rnds.IndexCalled = func() int32 {
-		return index + syncValidators.RoundsToWaitToBeEligible + 1
+		return index + sync.RoundsToWaitToBeEligible + 1
 	}
 
 	assert.Equal(t, 0, len(sv.GetEligibleList()))

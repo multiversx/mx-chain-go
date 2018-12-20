@@ -95,7 +95,7 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		}
 	}()
 
-	err = bp.processBlockTransactions(body)
+	err = bp.processBlockTransactions(body, int32(header.Round))
 
 	if err != nil {
 		return err
@@ -136,8 +136,8 @@ func (bp *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
 
 // CreateTxBlockBody creates a transactions block body by filling it with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
-func (bp *blockProcessor) CreateTxBlockBody(shardId uint32, maxTxInBlock int, haveTime func() bool) (*block.TxBlockBody, error) {
-	mblks, err := bp.createMiniBlocks(bp.noShards, maxTxInBlock, haveTime)
+func (bp *blockProcessor) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error) {
+	mblks, err := bp.createMiniBlocks(bp.noShards, maxTxInBlock, round, haveTime)
 
 	if err != nil {
 		return nil, err
@@ -194,7 +194,7 @@ func (bp *blockProcessor) GetRootHash() []byte {
 
 func (bp *blockProcessor) validateBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
 	headerWrapper := HeaderWrapper{
-		Header:    header,
+		Header: header,
 	}
 
 	txbWrapper := TxBlockBodyWrapper{
@@ -238,7 +238,7 @@ func (bp *blockProcessor) isFirstBlockInEpoch(header *block.Header) bool {
 	return header.Round == 0
 }
 
-func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody) error {
+func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody, round int32) error {
 	txbWrapper := TxBlockBodyWrapper{
 		TxBlockBody: body,
 	}
@@ -254,7 +254,7 @@ func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody) erro
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			tx := bp.getTransactionFromPool(shardId, txHash)
-			err := bp.txProcessor.ProcessTransaction(tx)
+			err := bp.txProcessor.ProcessTransaction(tx, round)
 			if err != nil {
 				return err
 			}
@@ -388,7 +388,7 @@ func (bp *blockProcessor) computeMissingTxsForShards(body *block.TxBlockBody) ma
 	return missingTxsForShard
 }
 
-func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, haveTime func() bool) ([]block.MiniBlock, error) {
+func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) ([]block.MiniBlock, error) {
 	miniBlocks := make([]block.MiniBlock, 0)
 
 	if bp.accounts.JournalLen() != 0 {
@@ -421,7 +421,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ha
 			}
 
 			// execute transaction to change the trie root hash
-			err := bp.txProcessor.ProcessTransaction(tx)
+			err := bp.txProcessor.ProcessTransaction(tx, round)
 
 			if err != nil {
 				bp.accounts.RevertToSnapshot(snapshot)

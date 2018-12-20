@@ -10,11 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
-
-var log = logger.NewDefaultLogger()
 
 const bytesInUint64 = 8
 
