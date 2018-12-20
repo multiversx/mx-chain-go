@@ -96,9 +96,7 @@ func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	response.Data = string(tx.Data)
 	response.Signature = string(tx.Signature)
 	response.Challenge = string(tx.Challenge)
-
-	//TODO: remove cast when tx.Value is bigInt
-	response.Value = big.NewInt(int64(tx.Value))
+	response.Value = &tx.Value
 	response.GasLimit = big.NewInt(int64(tx.GasLimit))
 	response.GasPrice = big.NewInt(int64(tx.GasPrice))
 

@@ -233,8 +233,7 @@ func TestElrondFacade_GenerateTransaction_WithCorrectInputs_ShouldReturnNoError(
 		SndAddr: []byte(sender),
 		RcvAddr: []byte(receiver),
 		Data:    []byte(data),
-		//TODO: change this to big.Int
-		Value: uint64(value.Int64())}
+		Value:   value}
 
 	node := &mock.NodeMock{
 		GenerateTransactionHandler: func(sender string, receiver string, value big.Int,
@@ -243,8 +242,7 @@ func TestElrondFacade_GenerateTransaction_WithCorrectInputs_ShouldReturnNoError(
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
 				Data:    []byte(data),
-				//TODO: change this to big.Int
-				Value: uint64(value.Int64()),
+				Value:   value,
 			}, nil
 		},
 	}

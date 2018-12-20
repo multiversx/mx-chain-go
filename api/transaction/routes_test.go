@@ -42,8 +42,7 @@ func TestGenerateTransaction_WithParameters_ShouldReturnTransaction(t *testing.T
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
 				Data:    []byte(code),
-				//TODO: change this to big.Int
-				Value: uint64(amount.Int64()),
+				Value:   amount,
 			}, nil
 		},
 	}
@@ -86,8 +85,7 @@ func TestGetTransaction_WithCorrectHash_ShouldReturnTransaction(t *testing.T) {
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
 				Data:    []byte(data),
-				//TODO: change this to big.Int
-				Value: uint64(value.Int64()),
+				Value:   *value,
 			}, nil
 		},
 	}
@@ -124,8 +122,7 @@ func TestGetTransaction_WithUnknownHash_ShouldReturnNil(t *testing.T) {
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
 				Data:    []byte(data),
-				//TODO: change this to big.Int
-				Value: uint64(value.Int64()),
+				Value:   *value,
 			}, nil
 		},
 	}

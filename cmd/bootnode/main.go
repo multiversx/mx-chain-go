@@ -85,7 +85,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	// 1. Start with an empty node
 	currentNode := CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name),
-		initialConfig.InitialNodesAddresses())
+		initialConfig.InitialNodesPubkeys())
 	ef := facade.NewElrondNodeFacade(currentNode)
 
 	ef.SetLogger(log)
