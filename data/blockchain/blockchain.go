@@ -1,29 +1,38 @@
 package blockchain
 
 import (
-	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
-var log = logrus.WithField("prefix", "blockchain")
-
 const (
-	// TransactionUnit is the transactions Storage unit identifier
+	// TransactionUnit is the transactions storage unit identifier
 	TransactionUnit UnitType = 0
-	// BlockUnit is the Blocks Storage unit identifier
-	BlockUnit UnitType = 1
+	// TxBlockBodyUnit is the transaction block body storage unit identifier
+	TxBlockBodyUnit UnitType = 1
+	// StateBlockBodyUnit is the state block body storage unit identifier
+	StateBlockBodyUnit UnitType = 2
+	// PeerBlockBodyUnit is the peer change block body storage unit identifier
+	PeerBlockBodyUnit UnitType = 3
 	// BlockHeaderUnit is the Block Headers Storage unit identifier
-	BlockHeaderUnit UnitType = 2
+	BlockHeaderUnit UnitType = 4
 )
 
 // UnitType is the type for Storage unit identifiers
 type UnitType uint8
+
+// Config holds the configurable elements of the blockchain
+type Config struct {
+	TxBlockBodyStorage    storage.UnitConfig
+	StateBlockBodyStorage storage.UnitConfig
+	PeerBlockBodyStorage  storage.UnitConfig
+	BlockHeaderStorage    storage.UnitConfig
+	TxStorage             storage.UnitConfig
+	TxPoolStorage         storage.CacheConfig
+	TxBadBlockBodyCache   storage.CacheConfig
+}
 
 // StorageService is the interface for blockChain storage unit provided services
 type StorageService interface {
@@ -46,63 +55,69 @@ type StorageService interface {
 // retrieval search of blocks (body), transactions, block headers,
 // bad blocks.
 //
-// The BlockChain also holds pointers to the Genesys block, the current block
-// the height of the local chain and the percieved height of the chain in the network.
+// The BlockChain also holds pointers to the Genesis block, the current block
+// the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
-	lock          sync.RWMutex
-	GenesisBlock  *block.Header                     // Genesys Block pointer
-	CurrentBlock  *block.Header                     // Current Block pointer
-	LocalHeight   *big.Int                          // Height of the local chain
-	NetworkHeight *big.Int                          // Percieved height of the network chain
-	badBlocks     storage.Cacher                    // Bad blocks cache
-	chain         map[UnitType]*storage.StorageUnit // chains for each unit type. Together they form the blockchain
+	lock               sync.RWMutex
+	GenesisBlock       *block.Header               // Genesys Block pointer
+	CurrentBlockHeader *block.Header               // Current Block pointer
+	LocalHeight        int64                       // Height of the local chain
+	NetworkHeight      int64                       // Percieved height of the network chain
+	badBlocks          storage.Cacher              // Bad blocks cache
+	chain              map[UnitType]storage.Storer // chains for each unit type. Together they form the blockchain
 }
 
-// NewData returns an initialized blockchain
+// NewBlockChain returns an initialized blockchain
 // It uses a config file to setup it's supported storage units map
-func NewData() (*BlockChain, error) {
-	txStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.TxStorage)
+func NewBlockChain(
+	badBlocksCache storage.Cacher,
+	txUnit *storage.Unit,
+	txBlockUnit *storage.Unit,
+	stateBlockUnit *storage.Unit,
+	peerBlockUnit *storage.Unit,
+	headerUnit *storage.Unit) (*BlockChain, error) {
 
-	if err != nil {
-		panic(err)
+	if badBlocksCache == nil {
+		return nil, ErrBadBlocksCacheNil
 	}
 
-	blStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.BlockStorage)
-	if err != nil {
-		txStorage.DestroyUnit()
-		panic(err)
+	if txUnit == nil {
+		return nil, ErrTxUnitNil
 	}
 
-	blHeadStorage, err := storage.NewStorageUnitFromConf(config.TestnetBlockchainConfig.BlockHeaderStorage)
-	if err != nil {
-		txStorage.DestroyUnit()
-		blStorage.DestroyUnit()
-		panic(err)
+	if txBlockUnit == nil {
+		return nil, ErrTxBlockUnitNil
 	}
 
-	badBlocksCache, err := storage.CreateCacheFromConf(config.TestnetBlockchainConfig.BBlockCache)
+	if stateBlockUnit == nil {
+		return nil, ErrStateBlockUnitNil
+	}
 
-	if err != nil {
-		txStorage.DestroyUnit()
-		blStorage.DestroyUnit()
-		blHeadStorage.DestroyUnit()
-		panic(err)
+	if peerBlockUnit == nil {
+		return nil, ErrPeerBlockUnitNil
+	}
+
+	if headerUnit == nil {
+		return nil, ErrHeaderUnitNil
 	}
 
 	data := &BlockChain{
-		GenesisBlock:  nil,
-		CurrentBlock:  nil,
-		LocalHeight:   big.NewInt(-1),
-		NetworkHeight: big.NewInt(-1),
-		badBlocks:     badBlocksCache,
-		chain: map[UnitType]*storage.StorageUnit{
-			TransactionUnit: txStorage,
-			BlockUnit:       blStorage,
-			BlockHeaderUnit: blHeadStorage,
+		GenesisBlock:       nil,
+		CurrentBlockHeader: nil,
+		LocalHeight:        -1,
+		NetworkHeight:      -1,
+		badBlocks:          badBlocksCache,
+		chain: map[UnitType]storage.Storer{
+			TransactionUnit:    txUnit,
+			TxBlockBodyUnit:    txBlockUnit,
+			StateBlockBodyUnit: stateBlockUnit,
+			PeerBlockBodyUnit:  peerBlockUnit,
+			BlockHeaderUnit:    headerUnit,
 		},
 	}
 
 	return data, nil
+
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise
@@ -114,8 +129,7 @@ func (bc *BlockChain) Has(unitType UnitType, key []byte) (bool, error) {
 	bc.lock.RUnlock()
 
 	if storer == nil {
-		log.Error("no such unit type ", unitType)
-		return false, errors.New("no such unit type")
+		return false, ErrNoSuchStorageUnit
 	}
 
 	return storer.Has(key)
@@ -123,15 +137,14 @@ func (bc *BlockChain) Has(unitType UnitType, key []byte) (bool, error) {
 
 // Get returns the value for the given key if found in the selected storage unit,
 // nil otherwise. It can return an error if the provided unit type is not supported
-// or if the storage unit underlying implementaiton reports an error
+// or if the storage unit underlying implementation reports an error
 func (bc *BlockChain) Get(unitType UnitType, key []byte) ([]byte, error) {
 	bc.lock.RLock()
 	storer := bc.chain[unitType]
 	bc.lock.RUnlock()
 
 	if storer == nil {
-		log.Error("no such unit type ", unitType)
-		return nil, errors.New("no such unit type")
+		return nil, ErrNoSuchStorageUnit
 	}
 
 	return storer.Get(key)
@@ -146,8 +159,7 @@ func (bc *BlockChain) Put(unitType UnitType, key []byte, value []byte) error {
 	bc.lock.RUnlock()
 
 	if storer == nil {
-		log.Error("no such unit type ", unitType)
-		return errors.New("no such unit type")
+		return ErrNoSuchStorageUnit
 	}
 
 	return storer.Put(key, value)
@@ -162,8 +174,7 @@ func (bc *BlockChain) GetAll(unitType UnitType, keys [][]byte) (map[string][]byt
 	bc.lock.RUnlock()
 
 	if storer == nil {
-		log.Error("no such unit type ", unitType)
-		return nil, errors.New("no such unit type")
+		return nil, ErrNoSuchStorageUnit
 	}
 
 	m := map[string][]byte{}
@@ -172,7 +183,6 @@ func (bc *BlockChain) GetAll(unitType UnitType, keys [][]byte) (map[string][]byt
 		val, err := storer.Get(key)
 
 		if err != nil {
-			log.Debug("could not find value for key ", key)
 			return nil, err
 		}
 
@@ -205,6 +215,6 @@ func (bc *BlockChain) IsBadBlock(blockHash []byte) bool {
 }
 
 // PutBadBlock adds the given serialized block to the bad block cache, blacklisting it
-func (bc *BlockChain) PutBadBlock(blockHash []byte, block []byte) {
-	bc.badBlocks.Put(blockHash, block)
+func (bc *BlockChain) PutBadBlock(blockHash []byte) {
+	bc.badBlocks.Put(blockHash, struct{}{})
 }

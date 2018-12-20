@@ -1,0 +1,90 @@
+{
+  "startTime": 1544192700,
+  "clockSyncPeriod": 10,
+  "initialNodes": [
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    },
+    {
+      "pubkey": "",
+      "balance": 10000000
+    }
+  ]
+}

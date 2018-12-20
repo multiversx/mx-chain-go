@@ -1,27 +1,74 @@
 package node
 
-import "github.com/gin-gonic/gin"
+import (
+	"net/http"
 
-var api Api
+	"github.com/gin-gonic/gin"
+)
 
+// Handler interface defines methods that can be used from `elrondFacade` context variable
+type Handler interface {
+	IsNodeRunning() bool
+	StartNode() error
+	StopNode() error
+}
+
+// Routes defines node related routes
 func Routes(router *gin.RouterGroup) {
-	router.GET("/appstatus", api.AppStatus)
-	router.GET("/balance", api.Balance)
-	router.GET("/checkfreeport", api.CheckFreePort)
-	router.GET("/exit", api.Exit)
-	router.GET("/generatepublickeyandprivateKey", api.GenerateKeys)
-	router.GET("/getblockfromhash", api.GetBlockFromHash)
-	router.GET("/getNextPrivateKey", api.GetNextPrivateKey)
-	router.GET("/getprivatepublickeyshard", api.GetShard)
-	router.GET("/getStats", api.GetStats)
-	router.GET("/gettransactionfromhash", api.GetTransactionFromHash)
-	router.GET("/ping", api.Ping)
-	router.GET("/receipt", api.Receipt)
-	router.GET("/send", api.Send)
-	router.GET("/sendMultipleTransactions", api.SendMultipleTransactions)
-	router.GET("/sendMultipleTransactionsToAllShards", api.SendMultipleTransactionsToAllShards)
-	router.GET("/shardofaddress", api.ShardOfAddress)
-	router.GET("/start", api.Start)
-	router.GET("/status", api.Status)
-	router.GET("/stop", api.Stop)
+	router.GET("/start", StartNode)
+	router.GET("/status", Status)
+	router.GET("/stop", StopNode)
+}
+
+// Status returns the state of the node e.g. running/stopped
+func Status(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(Handler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid app context"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "ok", "running": ef.IsNodeRunning()})
+}
+
+// StartNode will start the node instance
+func StartNode(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(Handler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid app context"})
+		return
+	}
+
+	if ef.IsNodeRunning() {
+		c.JSON(http.StatusOK, gin.H{"message": "Node already running"})
+		return
+	}
+
+	err := ef.StartNode()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Bad init of node: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+}
+
+// StopNode will stop the node instance
+func StopNode(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(Handler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Invalid app context"})
+		return
+	}
+
+	if !ef.IsNodeRunning() {
+		c.JSON(http.StatusOK, gin.H{"message": "Node already stopped"})
+		return
+	}
+
+	err := ef.StopNode()
+	if err != nil && ef.IsNodeRunning() {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Could not stop node: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }

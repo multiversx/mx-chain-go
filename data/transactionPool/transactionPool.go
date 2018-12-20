@@ -3,10 +3,14 @@ package transactionPool
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
+
+var defaultCacherConfig = &storage.CacheConfig{
+	Size: 1000,
+	Type: storage.LRUCache,
+}
 
 // TransactionPool holds the list of transactions organised by destination shard
 //
@@ -20,8 +24,10 @@ type TransactionPool struct {
 	// Each key represents a destination shard id and the value will contain all
 	//  transaction hashes that have that shard as destination
 	miniPoolsStore map[uint32]*miniPool
+	cacherConfig   *storage.CacheConfig
 
-	OnAddTransaction func(txHash []byte)
+	handlerLock            sync.RWMutex
+	addTransactionHandlers []func(txHash []byte)
 }
 
 type miniPool struct {
@@ -30,15 +36,22 @@ type miniPool struct {
 }
 
 // NewTransactionPool is responsible for creating an empty pool of transactions
-func NewTransactionPool() *TransactionPool {
+func NewTransactionPool(cacherConfig *storage.CacheConfig) *TransactionPool {
+	if cacherConfig == nil {
+		cacherConfig = defaultCacherConfig
+	}
 	return &TransactionPool{
+		cacherConfig:   cacherConfig,
 		miniPoolsStore: make(map[uint32]*miniPool),
 	}
 }
 
 // NewMiniPool is responsible for creating an empty mini pool
-func NewMiniPool(destShardID uint32) *miniPool {
-	cacher, err := storage.CreateCacheFromConf(config.TestnetBlockchainConfig.TxPoolStorage)
+func NewMiniPool(destShardID uint32, cacherConfig *storage.CacheConfig) *miniPool {
+	if cacherConfig == nil {
+		cacherConfig = defaultCacherConfig
+	}
+	cacher, err := storage.NewCache(cacherConfig.Type, cacherConfig.Size)
 	if err != nil {
 		// TODO: This should be replaced with the correct log panic
 		panic("Could not create cache storage for pools")
@@ -53,7 +66,7 @@ func NewMiniPool(destShardID uint32) *miniPool {
 //  a new mini pool at the destShardID index in the MiniPoolsStore map
 func (tp *TransactionPool) NewMiniPool(destShardID uint32) {
 	tp.lock.Lock()
-	tp.miniPoolsStore[destShardID] = NewMiniPool(destShardID)
+	tp.miniPoolsStore[destShardID] = NewMiniPool(destShardID, tp.cacherConfig)
 	tp.lock.Unlock()
 }
 
@@ -83,8 +96,17 @@ func (tp *TransactionPool) AddTransaction(txHash []byte, tx *transaction.Transac
 	mp := tp.MiniPoolTxStore(destShardID)
 	found, _ := mp.HasOrAdd(txHash, tx)
 
-	if tp.OnAddTransaction != nil && !found {
-		tp.OnAddTransaction(txHash)
+	if tp.addTransactionHandlers != nil && !found {
+		for _, handler := range tp.addTransactionHandlers {
+			go handler(txHash)
+		}
+	}
+}
+
+// RemoveTransactionsFromPool removes a list of transactions from the corresponding pool
+func(tp *TransactionPool) RemoveTransactionsFromPool(txHashes [][]byte, destShardID uint32){
+	for _, txHash:=range txHashes{
+		tp.RemoveTransaction(txHash, destShardID)
 	}
 }
 
@@ -153,4 +175,17 @@ func (tp *TransactionPool) ClearMiniPool(shardID uint32) {
 		return
 	}
 	mp.Clear()
+}
+
+// ClearMiniPool will delete all transactions associated with a given destination shardID
+func (tp *TransactionPool) RegisterTransactionHandler(transactionHandler func(txHash []byte)) {
+	tp.handlerLock.Lock()
+
+	if tp.addTransactionHandlers == nil {
+		tp.addTransactionHandlers = make([]func(txHash []byte), 0)
+	}
+
+	tp.addTransactionHandlers = append(tp.addTransactionHandlers, transactionHandler)
+
+	tp.handlerLock.Unlock()
 }

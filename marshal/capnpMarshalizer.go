@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
 
-// Interface implementing marshaling with capnproto
+// CapnpMarshalizer implements marshaling with capnproto
 type CapnpMarshalizer struct {
 }
 
@@ -17,7 +17,11 @@ func (x *CapnpMarshalizer) Marshal(obj interface{}) ([]byte, error) {
 
 	o := obj.(data.CapnpHelper)
 	// set the members to capnp struct
-	o.Save(out)
+	err := o.Save(out)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return out.Bytes(), nil
 }
@@ -29,7 +33,7 @@ func (x *CapnpMarshalizer) Unmarshal(obj interface{}, buff []byte) error {
 
 	o := obj.(data.CapnpHelper)
 	// set the members to capnp struct
-	o.Load(out)
+	err := o.Load(out)
 
-	return nil
+	return err
 }

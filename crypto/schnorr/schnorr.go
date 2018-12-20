@@ -1,51 +1,110 @@
 package schnorr
 
-import "github.com/ElrondNetwork/elrond-go-sandbox/crypto/math"
+import (
+	"gopkg.in/dedis/kyber.v2"
+	"gopkg.in/dedis/kyber.v2/group/edwards25519"
+	"gopkg.in/dedis/kyber.v2/sign/schnorr"
+	"gopkg.in/dedis/kyber.v2/util/key"
 
-// https://medium.com/coinmonks/schnorr-signatures-in-go-80a7fbfe0fe4
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/pkg/errors"
+)
 
-type signature struct {
-	group math.Group
-	h     math.Hash
+type keyGenerator struct {
+	suite key.Suite
 }
 
-func NewSig(group math.Group, h math.Hash) *signature {
-	sig := new(signature)
-	sig.group = group
-	sig.h = h
-	return sig
+// NewKeyGenerator returns a new key generator with the Ed25519 curve suite
+func NewKeyGenerator() *keyGenerator {
+	return &keyGenerator{suite: edwards25519.NewBlakeSHA256Ed25519()}
 }
 
-// x: Private key
-func (sig signature) Sign(g math.Point, k math.Scalar, m string, x math.Scalar) (math.Point, math.Scalar) {
-
-	r := sig.group.Mul(k, g)
-
-	e := sig.hash(m, r)
-
-	// s = k - e * x
-	s := sig.group.ScalarSub(k, sig.group.ScalarMul(e, x))
-
-	return r, s
+// privateKey holds the private key and the chosen curve
+type privateKey struct {
+	suite key.Suite
+	sk    kyber.Scalar
 }
 
-func (sig signature) PublicKey(g math.Point, m string, r math.Point, s math.Scalar) math.Point {
-
-	e := sig.hash(m, r)
-
-	// (1 / e) * (r - s * G)
-	return sig.group.Mul(sig.group.Inv(e), sig.group.PointSub(r, sig.group.Mul(s, g)))
+// publicKey holds the public key and the chosen curve
+type publicKey struct {
+	suite key.Suite
+	pk    kyber.Point
 }
 
-// y: Public key
-func (sig signature) Verify(g math.Point, m string, r math.Point, s math.Scalar, y math.Point) bool {
-
-	e := sig.hash(m, r)
-
-	// s * G = r - e * y
-	return sig.group.Equal(sig.group.Mul(s, g), sig.group.PointSub(r, sig.group.Mul(e, y)))
+// GeneratePair will generate a bundle of private and public key
+func (kg *keyGenerator) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
+	schnorrKeyPair := key.NewKeyPair(kg.suite)
+	return &privateKey{
+			suite: kg.suite,
+			sk:    schnorrKeyPair.Private,
+		},
+		&publicKey{
+			suite: kg.suite,
+			pk:    schnorrKeyPair.Public,
+		}
 }
 
-func (sig signature) hash(m string, r math.Point) math.Scalar {
-	return sig.h(m, sig.group.PointToString(r))
+// PrivateKeyFromByteArray generates a private key given a byte array
+func (kg *keyGenerator) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
+	if b == nil {
+		return nil, errors.New("cannot create private key from nil byte array")
+	}
+	scalar := kg.suite.Scalar()
+	err := scalar.UnmarshalBinary(b)
+	if err != nil {
+		return nil, err
+	}
+	return &privateKey{
+		suite: kg.suite,
+		sk: scalar,
+	}, nil
+}
+
+// PublicKeyFromByteArray unmarshalls a byte array into a public key Point
+func (kg *keyGenerator) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
+	if b == nil {
+		return nil, errors.New("cannot create public key from nil byte array")
+	}
+	point := kg.suite.Point()
+	err := point.UnmarshalBinary(b)
+	if err != nil {
+		return nil, err
+	}
+	return &publicKey{
+		suite: kg.suite,
+		pk: point,
+	}, nil
+}
+
+// Sign creates a signature of the message using the current private key
+func (spk *privateKey) Sign(message []byte) ([]byte, error) {
+	return schnorr.Sign(spk.suite, spk.sk, message)
+}
+
+// ToByteArray returns the byte array representation of the private key
+func (spk *privateKey) ToByteArray() ([]byte, error) {
+	return spk.sk.MarshalBinary()
+}
+
+// GeneratePublic builds a public key for the current private key
+func (spk *privateKey) GeneratePublic() crypto.PublicKey {
+	point := spk.suite.Point()
+	return &publicKey{
+		suite: spk.suite,
+		pk: point.Mul(spk.sk, nil),
+	}
+}
+
+// Verify checks a signature over a message
+func (spk *publicKey) Verify(data []byte, signature []byte) (bool, error) {
+	err := schnorr.Verify(spk.suite, spk.pk, data, signature)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// ToByteArray returns the byte array representation of the public key
+func (spk *publicKey) ToByteArray() ([]byte, error) {
+	return spk.pk.MarshalBinary()
 }
