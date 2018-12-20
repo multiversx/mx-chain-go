@@ -1109,13 +1109,15 @@
 
 [[projects]]
   branch = "v2"
-  digest = "1:19a8c5e03c7ccb13829b32f4d4793a32cbb4191142a4701e5b1f45eb2a66e30e"
+  digest = "1:712660a913371014b418aa83a0cd2dee3a5eb428f09247e392121cc2ea8b11e4"
   name = "gopkg.in/dedis/kyber.v2"
   packages = [
     ".",
     "group/edwards25519",
     "group/internal/marshalling",
     "group/mod",
+    "sign/schnorr",
+    "util/key",
     "util/random",
     "xof/blake2xb",
   ]
@@ -1230,6 +1232,8 @@
     "golang.org/x/crypto/sha3",
     "gopkg.in/dedis/kyber.v2",
     "gopkg.in/dedis/kyber.v2/group/edwards25519",
+    "gopkg.in/dedis/kyber.v2/sign/schnorr",
+    "gopkg.in/dedis/kyber.v2/util/key",
     "gopkg.in/go-playground/validator.v8",
     "gotest.tools/assert",
     "zombiezen.com/go/capnproto2",

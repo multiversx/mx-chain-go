@@ -1,6 +1,13 @@
 version: '3'
 
 services:
+  elrond:
+    build:
+      context: docker/elrond
+
+    command: bash -c "go run cmd/bootnode/main.go"
+    ports:
+      - 8080:8080
   filebeat:
     build: docker/filebeat
     environment:
