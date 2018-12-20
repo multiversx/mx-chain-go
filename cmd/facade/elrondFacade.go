@@ -29,7 +29,7 @@ func (ef *ElrondFacade) SetLogger(log *logger.Logger) {
 	ef.log = log
 }
 
-func (ef *ElrondFacade) CreateNode(maxAllowedPeers, port int, initialNodeAddresses []string) {
+func (ef *ElrondFacade) CreateNode(maxAllowedPeers, port int, initialNodePubkeys []string) {
 	appContext := context.Background()
 	hasher := sha256.Sha256{}
 	marshalizer := marshal.JsonMarshalizer{}
@@ -40,7 +40,7 @@ func (ef *ElrondFacade) CreateNode(maxAllowedPeers, port int, initialNodeAddress
 		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithMaxAllowedPeers(maxAllowedPeers),
 		node.WithPort(port),
-		node.WithInitialNodeAddresses(initialNodeAddresses),
+		node.WithInitialNodeAddresses(initialNodePubkeys),
 	)
 }
 

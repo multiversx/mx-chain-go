@@ -1,5 +1,5 @@
 {
-  "blockStorage": {
+  "txBlockBodyStorage": {
     "cache": {
       "size": 100,
       "type": "LRU"
@@ -7,8 +7,27 @@
     "db": {
       "file": "Blocks",
       "type": "LvlDB"
+    }
+  },
+  "stateBlockBodyStorage": {
+    "cache": {
+      "size": 100,
+      "type": "LRU"
     },
-    "bloom": []
+    "db": {
+      "file": "Blocks",
+      "type": "LvlDB"
+    }
+  },
+  "peerBlockBodyStorage": {
+    "cache": {
+      "size": 100,
+      "type": "LRU"
+    },
+    "db": {
+      "file": "Blocks",
+      "type": "LvlDB"
+    }
   },
   "blockHeaderStorage": {
     "cache": {

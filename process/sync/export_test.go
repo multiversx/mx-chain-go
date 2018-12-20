@@ -1,4 +1,4 @@
-package syncBlock
+package sync
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
