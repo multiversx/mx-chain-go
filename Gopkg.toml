@@ -30,10 +30,6 @@
   version = "1.4.0"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/ElrondNetwork/elrond-go-sandbox"
-
-[[constraint]]
   name = "github.com/beevik/ntp"
   version = "0.2.0"
 

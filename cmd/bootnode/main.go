@@ -30,21 +30,14 @@ VERSION:
 `
 
 type InitialNode struct {
-	Address string `json:"address"`
-}
-
-type Account struct {
-	Nounce   int    `json:"nounce"`
-	Balance  int    `json:"balance"`
-	CodeHash string `json:"codeHash"`
-	Root     string `json:"root"`
+	PubKey  string `json:"pubkey"`
+	Balance uint64 `json:"balance"`
 }
 
 type Genesis struct {
 	StartTime       int64         `json:"startTime"`
 	ClockSyncPeriod int           `json:"clockSyncPeriod"`
 	InitialNodes    []InitialNode `json:"initialNodes"`
-	Accounts        []Account     `json:"accounts"`
 }
 
 func main() {
@@ -87,20 +80,21 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	// 1. Start with an empty node
 	ef := facade.ElrondFacade{}
+	ef.SetLogger(log)
 	ef.StartNTP(initialConfig.ClockSyncPeriod)
-	ef.CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name))
+	ef.CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name), initialConfig.InitialNodesPubkeys())
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
 
 	// 2. Wait until we reach the config genesis time
-	ef.WaitForStartTime(time.Unix(initialConfig.StartTime, 0), log)
+	ef.WaitForStartTime(time.Unix(initialConfig.StartTime, 0))
 	wg.Wait()
 
 	// If not in UI mode we should automatically boot a node
 	if !ctx.Bool(flags.WithUI.Name) {
 		fmt.Println("Bootstraping node....")
-		err = ef.StartNode(initialConfig.InitialNodesAddresses())
+		err = ef.StartNode()
 		if err != nil {
 			log.Error("Starting node failed", err.Error())
 		}
@@ -141,10 +135,10 @@ func loadInitialConfiguration(genesisFilePath string, log *logger.Logger) (*Gene
 	return genesis, nil
 }
 
-func (g *Genesis) InitialNodesAddresses() []string {
-	var addresses []string
+func (g *Genesis) InitialNodesPubkeys() []string {
+	var pubKeys []string
 	for _, in := range g.InitialNodes {
-		addresses = append(addresses, in.Address)
+		pubKeys = append(pubKeys, in.PubKey)
 	}
-	return addresses
+	return pubKeys
 }

@@ -2,46 +2,45 @@ package mock
 
 import (
 	"encoding/json"
-
-	"github.com/pkg/errors"
+	"errors"
 )
 
-var errMarshalizerFails = errors.New("marshalizerMock generic error")
+var errMockMarshalizer = errors.New("MarshalizerMock generic error")
 
-// MarshalizerMock is used for testing
+// MarshalizerMock that will be used for testing
 type MarshalizerMock struct {
 	Fail bool
 }
 
-// Marshal encodes an object to its byte array representation
-func (m *MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
-	if m.Fail {
-		return nil, errMarshalizerFails
+// Marshal converts the input object in a slice of bytes
+func (mm *MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
+	if mm.Fail {
+		return nil, errMockMarshalizer
 	}
 
 	if obj == nil {
-		return nil, errors.New("NIL object to serilize from!")
+		return nil, errors.New("nil object to serilize from")
 	}
 
 	return json.Marshal(obj)
 }
 
-// Unmarshal decodes a byte array and applies the data on an instantiated struct
-func (m *MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
-	if m.Fail {
-		return errMarshalizerFails
+// Unmarshal applies the serialized values over an instantiated object
+func (mm *MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
+	if mm.Fail {
+		return errMockMarshalizer
 	}
 
 	if obj == nil {
-		return errors.New("NIL object to serilize to!")
+		return errors.New("nil object to serilize to")
 	}
 
 	if buff == nil {
-		return errors.New("NIL byte buffer to deserialize from!")
+		return errors.New("nil byte buffer to deserialize from")
 	}
 
 	if len(buff) == 0 {
-		return errors.New("Empty byte buffer to deserialize from!")
+		return errors.New("empty byte buffer to deserialize from")
 	}
 
 	return json.Unmarshal(buff, obj)

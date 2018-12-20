@@ -1,10 +1,10 @@
 package marshal_test
 
 import (
-	"testing"
-
 	"fmt"
+	"math/big"
 	"math/rand"
+	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -73,7 +73,7 @@ func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj interface{}, valida
 		mar, _ := m.Marshal(obj)
 		t := make([]byte, len(mar))
 
-		copy(t, mar)
+		_ = copy(t, mar)
 		serialized[i] = t
 	}
 
@@ -161,6 +161,12 @@ func BenchmarkCapnprotoStateBlocksUnmarshalValidate(b *testing.B) {
 	benchUnmarshal(b, cmr, bl, true)
 }
 
+func BenchmarkJsonStateBlocksUnmarshalValidate(b *testing.B) {
+	bl := &StateBlockBody{}
+	cmr := &marshal.JsonMarshalizer{}
+	benchUnmarshal(b, cmr, bl, true)
+}
+
 func BenchmarkCapnprotoPeerBlocksMarshal(b *testing.B) {
 	bl := &PeerBlockBody{}
 	cmr := &marshal.CapnpMarshalizer{}
@@ -195,6 +201,12 @@ func BenchmarkJsonPeerBlocksUnmarshalValidate(b *testing.B) {
 	bl := &PeerBlockBody{}
 	cmr := &marshal.JsonMarshalizer{}
 	benchUnmarshal(b, cmr, bl, true)
+}
+
+func BenchmarkCapnprotoStateTxBlocksUnmarshalValidate(b *testing.B) {
+	bl := &StateBlockBody{}
+	jmr := &marshal.CapnpMarshalizer{}
+	benchUnmarshal(b, jmr, bl, true)
 }
 
 func BenchmarkJsonStateTxBlocksUnmarshalValidate(b *testing.B) {
@@ -293,6 +305,7 @@ func (peerBlock *PeerBlockBody) GenerateDummyArray() []data.CapnpHelper {
 			PeerBlockBody: block.PeerBlockBody{
 				StateBlockBody: block.StateBlockBody{
 					RootHash: []byte(RandomStr(32)),
+					ShardID:  uint32(rand.Intn(1000)),
 				},
 				Changes: changes,
 			},
@@ -310,6 +323,7 @@ func (sBlock *StateBlockBody) GenerateDummyArray() []data.CapnpHelper {
 		sBlocks = append(sBlocks, &StateBlockBody{
 			StateBlockBody: block.StateBlockBody{
 				RootHash: []byte(RandomStr(32)),
+				ShardID:  uint32(rand.Intn(1000)),
 			},
 		})
 	}
@@ -330,8 +344,8 @@ func (txBlk *TxBlockBody) GenerateDummyArray() []data.CapnpHelper {
 				txHashes = append(txHashes, []byte(RandomStr(32)))
 			}
 			miniblock := block.MiniBlock{
-				DestShardID: uint32(rand.Intn(20)),
-				TxHashes:    txHashes,
+				ShardID:  uint32(rand.Intn(20)),
+				TxHashes: txHashes,
 			}
 
 			miniblocks = append(miniblocks, miniblock)
@@ -354,28 +368,23 @@ func (txBlk *TxBlockBody) GenerateDummyArray() []data.CapnpHelper {
 func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 	headers := make([]data.CapnpHelper, 0, 1000)
 
-	pkList := make([]bool, 0, 21)
-
-	for i := 0; i < 21; i++ {
-		pkList = append(pkList, rand.Intn(2) == 0)
+	for i := 0; i < 1000; i++ {
+		headers = append(headers, &Header{
+			Header: block.Header{
+				Nonce:         uint64(rand.Int63n(10000)),
+				PrevHash:      []byte(RandomStr(32)),
+				ShardId:       uint32(rand.Intn(20)),
+				TimeStamp:     uint64(rand.Intn(20)),
+				Round:         uint32(rand.Intn(20000)),
+				Epoch:         uint32(rand.Intn(20000)),
+				BlockBodyHash: []byte(RandomStr(32)),
+				BlockBodyType: block.TxBlock,
+				Signature:     []byte(RandomStr(32)),
+				Commitment:    []byte(RandomStr(32)),
+				PubKeysBitmap: []byte(RandomStr(10)),
+			},
+		})
 	}
-
-	//TODO fix
-	//for i := 0; i < 1000; i++ {
-	//	headers = append(headers, &Header{
-	//		Header: block.Header{
-	//			Nonce:         uint64(rand.Int63n(10000)),
-	//			PrevHash:      []byte(RandomStr(32)),
-	//			ShardId:       uint32(rand.Intn(20)),
-	//			TimeStamp:     []byte(RandomStr(20)),
-	//			Round:         uint32(rand.Intn(20000)),
-	//			BlockBodyHash: []byte(RandomStr(32)),
-	//			Signature:     []byte(RandomStr(32)),
-	//			Commitment:    []byte(RandomStr(32)),
-	//			PubKeysBitmap: pkList,
-	//		},
-	//	})
-	//}
 
 	return headers
 }
@@ -384,22 +393,24 @@ func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
 	transactions := make([]data.CapnpHelper, 0, 1000)
 
-	//TODO fix
-	//for i := 0; i < 1000; i++ {
-	//	transactions = append(transactions, &Transaction{
-	//		Transaction: transaction.Transaction{
-	//			Nonce:     uint64(rand.Int63n(10000)),
-	//			Value:     []byte(RandomStr(32)),
-	//			RcvAddr:   []byte(RandomStr(32)),
-	//			SndAddr:   []byte(RandomStr(32)),
-	//			GasPrice:  uint64(rand.Int63n(10000)),
-	//			GasLimit:  uint64(rand.Int63n(10000)),
-	//			Data:      []byte(RandomStr(32)),
-	//			Signature: []byte(RandomStr(32)),
-	//			Challenge: []byte(RandomStr(32)),
-	//		},
-	//	})
-	//}
+	val := big.NewInt(0)
+	_ = val.GobDecode([]byte(RandomStr(32)))
+
+	for i := 0; i < 1000; i++ {
+		transactions = append(transactions, &Transaction{
+			Transaction: transaction.Transaction{
+				Nonce:     uint64(rand.Int63n(10000)),
+				Value:     *val,
+				RcvAddr:   []byte(RandomStr(32)),
+				SndAddr:   []byte(RandomStr(32)),
+				GasPrice:  uint64(rand.Int63n(10000)),
+				GasLimit:  uint64(rand.Int63n(10000)),
+				Data:      []byte(RandomStr(32)),
+				Signature: []byte(RandomStr(32)),
+				Challenge: []byte(RandomStr(32)),
+			},
+		})
+	}
 
 	return transactions
 }
