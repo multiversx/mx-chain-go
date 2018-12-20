@@ -43,6 +43,9 @@ var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 // ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
 var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
 
+// ErrNilHeadersStorage signals that a nil header storage has been provided
+var ErrNilHeadersStorage = errors.New("nil headers storage")
+
 // ErrNilPeerChangeBlockDataPool signals that a nil peer change pool has been provided
 var ErrNilPeerChangeBlockDataPool = errors.New("nil peer change block data pool")
 
