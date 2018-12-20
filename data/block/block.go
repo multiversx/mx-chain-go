@@ -3,7 +3,7 @@ package block
 import (
 	"io"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnproto1"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnp"
 	"github.com/glycerine/go-capnproto"
 )
 
@@ -11,12 +11,16 @@ import (
 // each of the miniblocks has a different destination shard
 // The body can be transmitted even before having built the heder and go through a prevalidation of each transaction
 
+// BlockType identifies the type of the block
 type BlockType uint8
 
 const (
-	TxBlock    BlockType = 0
+	// TxBlock identifies a block holding transactions
+	TxBlock BlockType = 0
+	// StateBlock identifies a block holding account state
 	StateBlock BlockType = 1
-	PeerBlock  BlockType = 2
+	// PeerBlock identifies a block holding peer assignation
+	PeerBlock BlockType = 2
 )
 
 // MiniBlock holds the transactions with one of the sender or recipient in node's shard and the other in ShardID
@@ -25,16 +29,19 @@ type MiniBlock struct {
 	ShardID  uint32   `capid:"1"`
 }
 
+// StateBlockBody holds the merkle root hash committing to the state of the accounts
 type StateBlockBody struct {
 	RootHash []byte `capid:"0"`
 	ShardID  uint32 `capid:"1"`
 }
 
+// PeerChange holds a change in one peer to shard assignation
 type PeerChange struct {
 	PubKey      []byte `capid:"0"`
 	ShardIdDest uint32 `capid:"1"`
 }
 
+// PeerBlockBody holds multiple changes of peer to shard assignation
 type PeerBlockBody struct {
 	StateBlockBody `capid:"0"`
 	Changes        []PeerChange `capid:"1"`
@@ -78,13 +85,13 @@ func (h *Header) Load(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	z := capnproto1.ReadRootHeaderCapn(capMsg)
+	z := capnp.ReadRootHeaderCapn(capMsg)
 	HeaderCapnToGo(z, h)
 	return nil
 }
 
 // HeaderCapnToGo is a helper function to copy fields from a HeaderCapn object to a Header object
-func HeaderCapnToGo(src capnproto1.HeaderCapn, dest *Header) *Header {
+func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	if dest == nil {
 		dest = &Header{}
 	}
@@ -116,8 +123,8 @@ func HeaderCapnToGo(src capnproto1.HeaderCapn, dest *Header) *Header {
 }
 
 // HeaderGoToCapn is a helper function to copy fields from a Block Header object to a HeaderCapn object
-func HeaderGoToCapn(seg *capn.Segment, src *Header) capnproto1.HeaderCapn {
-	dest := capnproto1.AutoNewHeaderCapn(seg)
+func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
+	dest := capnp.AutoNewHeaderCapn(seg)
 
 	dest.SetNonce(src.Nonce)
 	dest.SetPrevHash(src.PrevHash)
@@ -148,13 +155,13 @@ func (s *MiniBlock) Load(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	z := capnproto1.ReadRootMiniBlockCapn(capMsg)
+	z := capnp.ReadRootMiniBlockCapn(capMsg)
 	MiniBlockCapnToGo(z, s)
 	return nil
 }
 
 // MiniBlockCapnToGo is a helper function to copy fields from a MiniBlockCapn object to a MiniBlock object
-func MiniBlockCapnToGo(src capnproto1.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
+func MiniBlockCapnToGo(src capnp.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
 	if dest == nil {
 		dest = &MiniBlock{}
 	}
@@ -174,8 +181,8 @@ func MiniBlockCapnToGo(src capnproto1.MiniBlockCapn, dest *MiniBlock) *MiniBlock
 }
 
 // MiniBlockGoToCapn is a helper function to copy fields from a MiniBlock object to a MiniBlockCapn object
-func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnproto1.MiniBlockCapn {
-	dest := capnproto1.AutoNewMiniBlockCapn(seg)
+func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnp.MiniBlockCapn {
+	dest := capnp.AutoNewMiniBlockCapn(seg)
 
 	mylist1 := seg.NewDataList(len(src.TxHashes))
 	for i := range src.TxHashes {
@@ -201,13 +208,13 @@ func (s *PeerBlockBody) Load(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	z := capnproto1.ReadRootPeerBlockBodyCapn(capMsg)
+	z := capnp.ReadRootPeerBlockBodyCapn(capMsg)
 	PeerBlockBodyCapnToGo(z, s)
 	return nil
 }
 
 // PeerBlockBodyCapnToGo is a helper function to copy fields from a PeerBlockBodyCapn object to a PeerBlockBody object
-func PeerBlockBodyCapnToGo(src capnproto1.PeerBlockBodyCapn, dest *PeerBlockBody) *PeerBlockBody {
+func PeerBlockBodyCapnToGo(src capnp.PeerBlockBodyCapn, dest *PeerBlockBody) *PeerBlockBody {
 	if dest == nil {
 		dest = &PeerBlockBody{}
 	}
@@ -226,18 +233,17 @@ func PeerBlockBodyCapnToGo(src capnproto1.PeerBlockBodyCapn, dest *PeerBlockBody
 }
 
 // PeerBlockBodyGoToCapn is a helper function to copy fields from a PeerBlockBody object to a PeerBlockBodyCapn object
-func PeerBlockBodyGoToCapn(seg *capn.Segment, src *PeerBlockBody) capnproto1.PeerBlockBodyCapn {
-	dest := capnproto1.AutoNewPeerBlockBodyCapn(seg)
+func PeerBlockBodyGoToCapn(seg *capn.Segment, src *PeerBlockBody) capnp.PeerBlockBodyCapn {
+	dest := capnp.AutoNewPeerBlockBodyCapn(seg)
 	dest.SetStateBlockBody(StateBlockBodyGoToCapn(seg, &src.StateBlockBody))
 
 	// Changes -> PeerChangeCapn (go slice to capn list)
 	if len(src.Changes) > 0 {
-		typedList := capnproto1.NewPeerChangeCapnList(seg, len(src.Changes))
+		typedList := capnp.NewPeerChangeCapnList(seg, len(src.Changes))
 		plist := capn.PointerList(typedList)
-		i := 0
-		for _, ele := range src.Changes {
-			plist.Set(i, capn.Object(PeerChangeGoToCapn(seg, &ele)))
-			i++
+
+		for i, elem := range src.Changes {
+			plist.Set(i, capn.Object(PeerChangeGoToCapn(seg, &elem)))
 		}
 		dest.SetChanges(typedList)
 	}
@@ -259,13 +265,13 @@ func (s *PeerChange) Load(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	z := capnproto1.ReadRootPeerChangeCapn(capMsg)
+	z := capnp.ReadRootPeerChangeCapn(capMsg)
 	PeerChangeCapnToGo(z, s)
 	return nil
 }
 
 // PeerChangeCapnToGo is a helper function to copy fields from a PeerChangeCapn object to a PeerChange object
-func PeerChangeCapnToGo(src capnproto1.PeerChangeCapn, dest *PeerChange) *PeerChange {
+func PeerChangeCapnToGo(src capnp.PeerChangeCapn, dest *PeerChange) *PeerChange {
 	if dest == nil {
 		dest = &PeerChange{}
 	}
@@ -278,9 +284,9 @@ func PeerChangeCapnToGo(src capnproto1.PeerChangeCapn, dest *PeerChange) *PeerCh
 	return dest
 }
 
-// PeerBlockBodyGoToCapn is a helper function to copy fields from a PeerBlockBody object to a PeerBlockBodyCapn object
-func PeerChangeGoToCapn(seg *capn.Segment, src *PeerChange) capnproto1.PeerChangeCapn {
-	dest := capnproto1.AutoNewPeerChangeCapn(seg)
+// PeerChangeGoToCapn is a helper function to copy fields from a PeerChange object to a PeerChangeGoToCapn object
+func PeerChangeGoToCapn(seg *capn.Segment, src *PeerChange) capnp.PeerChangeCapn {
+	dest := capnp.AutoNewPeerChangeCapn(seg)
 	dest.SetPubKey(src.PubKey)
 	dest.SetShardIdDest(src.ShardIdDest)
 
@@ -301,13 +307,13 @@ func (s *StateBlockBody) Load(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	z := capnproto1.ReadRootStateBlockBodyCapn(capMsg)
+	z := capnp.ReadRootStateBlockBodyCapn(capMsg)
 	StateBlockBodyCapnToGo(z, s)
 	return nil
 }
 
 // StateBlockBodyCapnToGo is a helper function to copy fields from StateBlockBodyCapn object to StateBlockBody object
-func StateBlockBodyCapnToGo(src capnproto1.StateBlockBodyCapn, dest *StateBlockBody) *StateBlockBody {
+func StateBlockBodyCapnToGo(src capnp.StateBlockBodyCapn, dest *StateBlockBody) *StateBlockBody {
 	if dest == nil {
 		dest = &StateBlockBody{}
 	}
@@ -321,8 +327,8 @@ func StateBlockBodyCapnToGo(src capnproto1.StateBlockBodyCapn, dest *StateBlockB
 }
 
 // StateBlockBodyGoToCapn is a helper function to copy fields from a StateBlockBody object to a StateBlockBodyCapn object
-func StateBlockBodyGoToCapn(seg *capn.Segment, src *StateBlockBody) capnproto1.StateBlockBodyCapn {
-	dest := capnproto1.AutoNewStateBlockBodyCapn(seg)
+func StateBlockBodyGoToCapn(seg *capn.Segment, src *StateBlockBody) capnp.StateBlockBodyCapn {
+	dest := capnp.AutoNewStateBlockBodyCapn(seg)
 
 	dest.SetRootHash(src.RootHash)
 	dest.SetShardID(src.ShardID)
@@ -344,13 +350,13 @@ func (txBlk *TxBlockBody) Load(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	z := capnproto1.ReadRootTxBlockBodyCapn(capMsg)
+	z := capnp.ReadRootTxBlockBodyCapn(capMsg)
 	TxBlockBodyCapnToGo(z, txBlk)
 	return nil
 }
 
 // TxBlockBodyCapnToGo is a helper function to copy fields from a TxBlockBodyCapn object to a TxBlockBody object
-func TxBlockBodyCapnToGo(src capnproto1.TxBlockBodyCapn, dest *TxBlockBody) *TxBlockBody {
+func TxBlockBodyCapnToGo(src capnp.TxBlockBodyCapn, dest *TxBlockBody) *TxBlockBody {
 	if dest == nil {
 		dest = &TxBlockBody{}
 	}
@@ -368,18 +374,18 @@ func TxBlockBodyCapnToGo(src capnproto1.TxBlockBodyCapn, dest *TxBlockBody) *TxB
 	return dest
 }
 
-func TxBlockBodyGoToCapn(seg *capn.Segment, src *TxBlockBody) capnproto1.TxBlockBodyCapn {
-	dest := capnproto1.AutoNewTxBlockBodyCapn(seg)
+// TxBlockBodyGoToCapn is a helper function to copy fields from a TxBlockBody object to a TxBlockBodyCapn object
+func TxBlockBodyGoToCapn(seg *capn.Segment, src *TxBlockBody) capnp.TxBlockBodyCapn {
+	dest := capnp.AutoNewTxBlockBodyCapn(seg)
 	dest.SetStateBlockBody(StateBlockBodyGoToCapn(seg, &src.StateBlockBody))
 
 	// MiniBlocks -> MiniBlockCapn (go slice to capn list)
 	if len(src.MiniBlocks) > 0 {
-		typedList := capnproto1.NewMiniBlockCapnList(seg, len(src.MiniBlocks))
+		typedList := capnp.NewMiniBlockCapnList(seg, len(src.MiniBlocks))
 		plist := capn.PointerList(typedList)
-		i := 0
-		for _, ele := range src.MiniBlocks {
-			plist.Set(i, capn.Object(MiniBlockGoToCapn(seg, &ele)))
-			i++
+
+		for i, elem := range src.MiniBlocks {
+			plist.Set(i, capn.Object(MiniBlockGoToCapn(seg, &elem)))
 		}
 		dest.SetMiniBlocks(typedList)
 	}

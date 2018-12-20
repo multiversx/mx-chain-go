@@ -93,6 +93,14 @@
   revision = "ae279d96cd841a6a10e26b591fd8b48b9ec5662a"
 
 [[projects]]
+  digest = "1:654e9b37e6d657dc6b2182e126c3e15d05ed7afd94f960e367c6e98dd853b8fe"
+  name = "github.com/ethereum/go-ethereum"
+  packages = ["log"]
+  pruneopts = "UT"
+  revision = "24d727b6d6e2c0cde222fa12155c4a6db5caaf2e"
+  version = "v1.8.20"
+
+[[projects]]
   digest = "1:d1341a04a4443bba8c8af76ec6c3960206074490a1284b4853ff5a88a66c63b7"
   name = "github.com/fd/go-nat"
   packages = ["."]
@@ -152,6 +160,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "80eebfe947f79f7b746dc7a2ef39fd98db275853"
+
+[[projects]]
+  digest = "1:586ea76dbd0374d6fb649a91d70d652b7fe0ccffb8910a77468e7702e7901f3d"
+  name = "github.com/go-stack/stack"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "2fee6af1a9795aafbe0253a0cfbdf668e1fb8a9a"
+  version = "v1.8.0"
 
 [[projects]]
   digest = "1:d68801525369786c99880084140da0ec56cd786f12cede164b21ba8de22e2fdd"
@@ -1173,8 +1189,10 @@
     "github.com/dedis/kyber/util/key",
     "github.com/dedis/kyber/util/random",
     "github.com/dedis/kyber/xof/blake2xb",
+    "github.com/ethereum/go-ethereum/log",
     "github.com/gin-contrib/cors",
     "github.com/gin-gonic/gin",
+    "github.com/gin-gonic/gin/binding",
     "github.com/glycerine/go-capnproto",
     "github.com/gogo/protobuf/sortkeys",
     "github.com/hashicorp/golang-lru",
@@ -1212,6 +1230,7 @@
     "golang.org/x/crypto/sha3",
     "gopkg.in/dedis/kyber.v2",
     "gopkg.in/dedis/kyber.v2/group/edwards25519",
+    "gopkg.in/go-playground/validator.v8",
     "gotest.tools/assert",
     "zombiezen.com/go/capnproto2",
     "zombiezen.com/go/capnproto2/encoding/text",

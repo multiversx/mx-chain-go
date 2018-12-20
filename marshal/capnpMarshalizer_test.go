@@ -2,6 +2,7 @@ package marshal_test
 
 import (
 	"fmt"
+	"math/big"
 	"math/rand"
 	"testing"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/stretchr/testify/assert"
-	"math/big"
 )
 
 type dataGenerator interface {
@@ -73,7 +73,7 @@ func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj interface{}, valida
 		mar, _ := m.Marshal(obj)
 		t := make([]byte, len(mar))
 
-		copy(t, mar)
+		_ = copy(t, mar)
 		serialized[i] = t
 	}
 
@@ -305,7 +305,7 @@ func (peerBlock *PeerBlockBody) GenerateDummyArray() []data.CapnpHelper {
 			PeerBlockBody: block.PeerBlockBody{
 				StateBlockBody: block.StateBlockBody{
 					RootHash: []byte(RandomStr(32)),
-					ShardID: uint32(rand.Intn(1000)),
+					ShardID:  uint32(rand.Intn(1000)),
 				},
 				Changes: changes,
 			},
@@ -323,7 +323,7 @@ func (sBlock *StateBlockBody) GenerateDummyArray() []data.CapnpHelper {
 		sBlocks = append(sBlocks, &StateBlockBody{
 			StateBlockBody: block.StateBlockBody{
 				RootHash: []byte(RandomStr(32)),
-				ShardID: uint32(rand.Intn(1000)),
+				ShardID:  uint32(rand.Intn(1000)),
 			},
 		})
 	}
@@ -376,7 +376,7 @@ func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 				ShardId:       uint32(rand.Intn(20)),
 				TimeStamp:     uint64(rand.Intn(20)),
 				Round:         uint32(rand.Intn(20000)),
-				Epoch:		   uint32(rand.Intn(20000)),
+				Epoch:         uint32(rand.Intn(20000)),
 				BlockBodyHash: []byte(RandomStr(32)),
 				BlockBodyType: block.TxBlock,
 				Signature:     []byte(RandomStr(32)),
@@ -394,7 +394,7 @@ func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
 	transactions := make([]data.CapnpHelper, 0, 1000)
 
 	val := big.NewInt(0)
-	val.GobDecode([]byte(RandomStr(32)))
+	_ = val.GobDecode([]byte(RandomStr(32)))
 
 	for i := 0; i < 1000; i++ {
 		transactions = append(transactions, &Transaction{

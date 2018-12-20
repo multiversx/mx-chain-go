@@ -3,7 +3,7 @@ package transaction
 import (
 	"io"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction/capnproto1"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction/capnp"
 	"github.com/glycerine/go-capnproto"
 	"math/big"
 )
@@ -35,13 +35,13 @@ func (tx *Transaction) Load(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	z := capnproto1.ReadRootTransactionCapn(capMsg)
+	z := capnp.ReadRootTransactionCapn(capMsg)
 	TransactionCapnToGo(z, tx)
 	return nil
 }
 
 // TransactionCapnToGo is a helper function to copy fields from a TransactionCapn object to a Transaction object
-func TransactionCapnToGo(src capnproto1.TransactionCapn, dest *Transaction) *Transaction {
+func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transaction {
 	if dest == nil {
 		dest = &Transaction{}
 	}
@@ -49,7 +49,12 @@ func TransactionCapnToGo(src capnproto1.TransactionCapn, dest *Transaction) *Tra
 	// Nonce
 	dest.Nonce = src.Nonce()
 	// Value
-	dest.Value.GobDecode(src.Value())
+	err := dest.Value.GobDecode(src.Value())
+
+	if err != nil {
+		return nil
+	}
+
 	// RcvAddr
 	dest.RcvAddr = src.RcvAddr()
 	// SndAddr
@@ -69,8 +74,8 @@ func TransactionCapnToGo(src capnproto1.TransactionCapn, dest *Transaction) *Tra
 }
 
 // TransactionGoToCapn is a helper function to copy fields from a Transaction object to a TransactionCapn object
-func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnproto1.TransactionCapn {
-	dest := capnproto1.AutoNewTransactionCapn(seg)
+func TransactionGoToCapn(seg *capn.Segment, src *Transaction) capnp.TransactionCapn {
+	dest := capnp.AutoNewTransactionCapn(seg)
 
 	value, _ := src.Value.GobEncode()
 	dest.SetNonce(src.Nonce)

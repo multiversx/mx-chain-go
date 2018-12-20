@@ -37,11 +37,50 @@ var ErrNilValue = errors.New("nil value")
 // ErrNilBlockchain signals that an operation has been attempted to or with a nil blockchain
 var ErrNilBlockChain = errors.New("nil block chain")
 
-// ErrNilBlockBody signals that an operation has been attempted to or with a nil block body
-var ErrNilBlockBody = errors.New("nil block body")
+// ErrNilTxBlockBody signals that an operation has been attempted to or with a nil block body
+var ErrNilTxBlockBody = errors.New("nil block body")
+
+// ErrNilStateBlockBody signals that an operation has been attempted to or with a nil block body
+var ErrNilStateBlockBody = errors.New("nil block body")
+
+// ErrNilPeerBlockBody signals that an operation has been attempted to or with a nil block body
+var ErrNilPeerBlockBody = errors.New("nil block body")
 
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
+
+// ErrNilBlockBodyHash signals that an operation has been attempted to or with a nil block body hash
+var ErrNilBlockBodyHash = errors.New("nil block body hash")
+
+// ErrNilTxHash signals that an operation has been attempted with a nil hash
+var ErrNilTxHash = errors.New("nil transaction hash")
+
+// ErrNilPeerChanges signals that an operation has been attempted with nil peer changes
+var ErrNilPeerChanges = errors.New("nil peer block changes")
+
+// ErrNilPublicKey signals that a operation has been attempted with a nil public key
+var ErrNilPublicKey = errors.New("nil public key")
+
+// ErrNilPubKeysBitmap signals that a operation has been attempted with a nil public keys bitmap
+var ErrNilPubKeysBitmap = errors.New("nil public keys bitmap")
+
+// ErrNilPreviousBlockHash signals that a operation has been attempted with a nil previous block header hash
+var ErrNilPreviousBlockHash = errors.New("nil previous block header hash")
+
+// ErrNilSignature signals that a operation has been attempted with a nil signature
+var ErrNilSignature = errors.New("nil signature")
+
+// ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
+var ErrNilMiniBlocks = errors.New("nil mini blocks")
+
+// ErrNilTxHashes signals that an operation has been atempted with snil transaction hashes
+var ErrNilTxHashes = errors.New("nil transaction hashes")
+
+// ErrNilProcessor signals that an operation has been attempted with a nil block processor
+var ErrNilProcessor = errors.New("state block Processor is nil")
+
+// ErrNilRootHash signals that an operation has been attempted with a nil root hash
+var ErrNilRootHash = errors.New("root hash is nil")
 
 // ErrWrongNonceInBlock signals the nonce in block is different than expected nounce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
@@ -72,6 +111,12 @@ var ErrInvalidTxBlockBody = errors.New("transactions block body is invalid")
 
 // ErrInvalidTxBlockBody signals that the block header is invalid
 var ErrInvalidBlockHeader = errors.New("block header is invalid")
+
+// ErrInvalidShardId signals that the shard id is invalid
+var ErrInvalidShardId = errors.New("invalid shard id")
+
+// ErrNilRootHash signals that an operation has been attempted with a nil root hash
+var ErrInvalidRootHash = errors.New("root hash is invalid")
 
 // ErrMissingHeader signals that header of the block is missing
 var ErrMissingHeader = errors.New("missing header")

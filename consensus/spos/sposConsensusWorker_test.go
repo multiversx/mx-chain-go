@@ -91,7 +91,7 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 
 		blkc := blockchain.BlockChain{}
 
-		com := spos.NewCommunication(
+		com := spos.NewConsensusWorker(
 			true,
 			cns,
 			&blkc,
@@ -241,7 +241,7 @@ func TestNewMessage(t *testing.T) {
 		nil,
 		nil)
 
-	com := spos.NewCommunication(
+	com := spos.NewConsensusWorker(
 		true,
 		nil,
 		nil,
@@ -251,7 +251,7 @@ func TestNewMessage(t *testing.T) {
 
 	assert.Equal(t, 0, cap(com.ChRcvMsg[spos.MtBlockHeader]))
 
-	msg2 := spos.NewCommunication(
+	msg2 := spos.NewConsensusWorker(
 		true,
 		cns,
 		nil,
@@ -1172,7 +1172,7 @@ func TestMessage_GetMessageTypeName(t *testing.T) {
 func TestConsensus_CheckConsensus(t *testing.T) {
 	cns := InitConsensus()
 
-	com := spos.NewCommunication(
+	com := spos.NewConsensusWorker(
 		true,
 		cns,
 		nil,

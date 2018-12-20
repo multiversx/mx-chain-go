@@ -33,70 +33,65 @@ type HeaderWrapper struct {
 }
 
 // Check checks the integrity and validity of a state block
-func (sbWrapper StateBlockBodyWrapper) Check() bool {
-	if !sbWrapper.Integrity() {
-		return false
+func (sbWrapper StateBlockBodyWrapper) Check() error {
+	err := sbWrapper.Integrity()
+
+	if err != nil {
+		return err
 	}
 
-	if !sbWrapper.validityCheck() {
-		return false
-	}
-
-	return true
+	return sbWrapper.validityCheck()
 }
 
 // Integrity checks the integrity of the state block
-func (sbWrapper StateBlockBodyWrapper) Integrity() bool {
+func (sbWrapper StateBlockBodyWrapper) Integrity() error {
 	if sbWrapper.Processor == nil {
-		log.Error("state block Processor is nil")
-		return false
+		return process.ErrNilProcessor
 	}
 
 	if sbWrapper.StateBlockBody == nil {
-		log.Debug("state block nil")
-		return false
+		return process.ErrNilStateBlockBody
 	}
 
-	if sbWrapper.ShardID >= sbWrapper.Processor.GetNbShards() {
-		log.Debug("state block invalid shard number")
-		return false
+	if sbWrapper.ShardID >= sbWrapper.Processor.NoShards() {
+		return process.ErrInvalidShardId
 	}
 
 	if sbWrapper.RootHash == nil {
-		log.Debug("state block root hash nil")
-		return false
+		return process.ErrNilRootHash
 	}
 
-	return true
+	return nil
 }
 
-func (sbWrapper StateBlockBodyWrapper) validityCheck() bool {
+func (sbWrapper StateBlockBodyWrapper) validityCheck() error {
 	if sbWrapper.Processor.GetRootHash() == nil {
-		log.Error("state root hash nil")
-		return false
+		return process.ErrNilRootHash
 	}
 
-	return bytes.Equal(sbWrapper.Processor.GetRootHash(), sbWrapper.RootHash)
+	if !bytes.Equal(sbWrapper.Processor.GetRootHash(), sbWrapper.RootHash) {
+		return process.ErrInvalidRootHash
+	}
+
+	return nil
 }
 
 // Check checks the integrity of a transactions block
-func (txbWrapper TxBlockBodyWrapper) Check() bool {
-	if !txbWrapper.Integrity() {
-		return false
+func (txbWrapper TxBlockBodyWrapper) Check() error {
+	err := txbWrapper.Integrity()
+
+	if err != nil {
+		return err
 	}
 
-	if !txbWrapper.validityCheck() {
-		return false
-	}
-
-	return true
+	return txbWrapper.validityCheck()
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (txbWrapper TxBlockBodyWrapper) Integrity() bool {
+func (txbWrapper TxBlockBodyWrapper) Integrity() error {
+
 	if txbWrapper.TxBlockBody == nil {
-		log.Debug("transactions block body nil")
-		return false
+		return process.ErrNilTxBlockBody
 	}
 
 	stateBlockWrapper := StateBlockBodyWrapper{
@@ -104,56 +99,51 @@ func (txbWrapper TxBlockBodyWrapper) Integrity() bool {
 		Processor:      txbWrapper.Processor,
 	}
 
-	if !stateBlockWrapper.Integrity() {
-		return false
+	err := stateBlockWrapper.Integrity()
+
+	if err != nil {
+		return err
 	}
 
 	if txbWrapper.MiniBlocks == nil {
-		log.Debug("tx block miniblocks nil")
-		return false
+		return process.ErrNilMiniBlocks
 	}
 
 	for _, miniBlock := range txbWrapper.MiniBlocks {
 		if miniBlock.TxHashes == nil {
-			log.Debug("tx block txHashes nil")
-			return false
+			return process.ErrNilTxHashes
 		}
 
 		for _, txHash := range miniBlock.TxHashes {
 			if txHash == nil {
-				log.Debug("tx block tx hash is nil")
-				return false
+				return process.ErrNilTxHash
 			}
 		}
 	}
 
-	return true
+	return nil
 }
 
-func (txbWrapper TxBlockBodyWrapper) validityCheck() bool {
+func (txbWrapper TxBlockBodyWrapper) validityCheck() error {
 	// TODO: update with validity checks
 
-	return true
+	return nil
 }
 
 // Check checks the integrity and validity of a peer block wrapper
-func (pbWrapper PeerBlockBodyWrapper) Check() bool {
-	if !pbWrapper.Integrity() {
-		return false
+func (pbWrapper PeerBlockBodyWrapper) Check() error {
+	err := pbWrapper.Integrity()
+	if err != nil {
+		return err
 	}
 
-	if !pbWrapper.validityCheck() {
-		return false
-	}
-
-	return true
+	return pbWrapper.validityCheck()
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (pbWrapper PeerBlockBodyWrapper) Integrity() bool {
+func (pbWrapper PeerBlockBodyWrapper) Integrity() error {
 	if pbWrapper.PeerBlockBody == nil {
-		log.Debug("peer block body nil")
-		return false
+		return process.ErrNilPeerBlockBody
 	}
 
 	stateBlockWrapper := StateBlockBodyWrapper{
@@ -161,99 +151,93 @@ func (pbWrapper PeerBlockBodyWrapper) Integrity() bool {
 		Processor:      pbWrapper.Processor,
 	}
 
-	if !stateBlockWrapper.Integrity() {
-		return false
+	err := stateBlockWrapper.Integrity()
+
+	if err != nil {
+		return err
 	}
 
 	if pbWrapper.Changes == nil {
-		log.Debug("peer block changes nil")
-		return false
+		return process.ErrNilPeerChanges
 	}
 
 	for _, change := range pbWrapper.Changes {
-		if change.ShardIdDest >= pbWrapper.Processor.GetNbShards() {
-			log.Debug("peer block change.shardId invalid")
-			return false
+		if change.ShardIdDest >= pbWrapper.Processor.NoShards() {
+			return process.ErrInvalidShardId
 		}
 
 		if change.PubKey == nil {
-			log.Debug("peer block change.pubkey nil")
-			return false
+			return process.ErrNilPublicKey
 		}
 	}
 
-	return true
+	return nil
 }
 
-func (pbWrapper PeerBlockBodyWrapper) validityCheck() bool {
+func (pbWrapper PeerBlockBodyWrapper) validityCheck() error {
 	// TODO: check that the peer changes received are equal with what has been calculated
 
-	return true
+	return nil
 }
 
 // Check checks the integrity and validity of a block header wrapper
-func (hWrapper HeaderWrapper) Check() bool {
-	if !hWrapper.Integrity() {
-		return false
+func (hWrapper HeaderWrapper) Check() error {
+	err := hWrapper.Integrity()
+	if err != nil {
+		return err
 	}
 
-	if !hWrapper.validityCheck() {
-		return false
-	}
-
-	return true
+	return hWrapper.validityCheck()
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (hWrapper HeaderWrapper) Integrity() bool {
+func (hWrapper HeaderWrapper) Integrity() error {
 	if hWrapper.Processor == nil {
-		log.Error("Processor is nil")
-		return false
+		return process.ErrNilProcessor
 	}
 
 	if hWrapper.Header == nil {
-		log.Debug("header is nil")
-		return false
+		return process.ErrNilProcessor
 	}
 
 	if hWrapper.BlockBodyHash == nil {
-		log.Debug("header block body hash is nil")
-		return false
+		return process.ErrNilBlockBodyHash
 	}
 
 	if hWrapper.PubKeysBitmap == nil {
-		log.Debug("header publick keys bitmap is nil")
-		return false
+		return process.ErrNilPubKeysBitmap
 	}
 
-	if hWrapper.ShardId >= hWrapper.Processor.GetNbShards() {
-		log.Debug("header invalid shard number")
-		return false
+	if hWrapper.ShardId >= hWrapper.Processor.NoShards() {
+		return process.ErrInvalidShardId
 	}
 
 	if hWrapper.PrevHash == nil {
-		return false
+		return process.ErrNilPreviousBlockHash
 	}
 
 	if hWrapper.Signature == nil {
-		return false
+		return process.ErrNilSignature
 	}
 
-	return true
+	return nil
 }
 
-func (hWrapper HeaderWrapper) validityCheck() bool {
+func (hWrapper HeaderWrapper) validityCheck() error {
 	// TODO: need to check epoch is round - timestamp - epoch - nonce - requires chronology
 
-	return true
+	return nil
 }
 
 // VerifySig verifies a signature
-func (hWrapper HeaderWrapper) VerifySig() bool {
-	if hWrapper.Header == nil || hWrapper.Header.Signature == nil {
-		return false
+func (hWrapper HeaderWrapper) VerifySig() error {
+	if hWrapper.Header == nil {
+		return process.ErrNilBlockHeader
 	}
 
+	if hWrapper.Header.Signature == nil {
+		return process.ErrNilSignature
+	}
 	// TODO: Check block signature after multisig will be implemented
-	return true
+	return nil
 }

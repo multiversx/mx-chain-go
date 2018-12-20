@@ -34,6 +34,81 @@ func blockchainConfig() *blockchain.Config {
 	}
 }
 
+func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockChain, error) {
+	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
+
+	txBadBlockCache, err := storage.NewCache(
+		blConfig.TxBadBlockBodyCache.Type,
+		blConfig.TxBadBlockBodyCache.Size)
+
+	if err == nil {
+		txUnit, err = storage.NewStorageUnitFromConf(
+			blConfig.TxStorage.CacheConf,
+			blConfig.TxStorage.DBConf,
+			blConfig.TxStorage.BloomConf)
+	}
+
+	if err == nil {
+		txBlockUnit, err = storage.NewStorageUnitFromConf(
+			blConfig.TxBlockBodyStorage.CacheConf,
+			blConfig.TxBlockBodyStorage.DBConf,
+			blConfig.TxBlockBodyStorage.BloomConf)
+	}
+
+	if err == nil {
+		stateBlockUnit, err = storage.NewStorageUnitFromConf(
+			blConfig.StateBlockBodyStorage.CacheConf,
+			blConfig.StateBlockBodyStorage.DBConf,
+			blConfig.StateBlockBodyStorage.BloomConf)
+	}
+
+	if err == nil {
+		peerBlockUnit, err = storage.NewStorageUnitFromConf(
+			blConfig.PeerBlockBodyStorage.CacheConf,
+			blConfig.PeerBlockBodyStorage.DBConf,
+			blConfig.PeerBlockBodyStorage.BloomConf)
+	}
+
+	if err == nil {
+		headerUnit, err = storage.NewStorageUnitFromConf(
+			blConfig.BlockHeaderStorage.CacheConf,
+			blConfig.BlockHeaderStorage.DBConf,
+			blConfig.BlockHeaderStorage.BloomConf)
+	}
+
+	if err == nil {
+		blockChain, err := blockchain.NewBlockChain(
+			txBadBlockCache,
+			txUnit,
+			txBlockUnit,
+			stateBlockUnit,
+			peerBlockUnit,
+			headerUnit)
+
+		return blockChain, err
+	}
+
+	// cleanup
+	if err != nil {
+		if headerUnit != nil {
+			headerUnit.DestroyUnit()
+		}
+		if peerBlockUnit != nil {
+			peerBlockUnit.DestroyUnit()
+		}
+		if stateBlockUnit != nil {
+			stateBlockUnit.DestroyUnit()
+		}
+		if txBlockUnit != nil {
+			txBlockUnit.DestroyUnit()
+		}
+		if txUnit != nil {
+			txUnit.DestroyUnit()
+		}
+	}
+	return nil, err
+}
+
 func TestNewBlockProcessor(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
 
@@ -115,7 +190,7 @@ func TestBlockProcessor_ProcessBlockWithNilTxBlockBodyShouldErr(t *testing.T) {
 	// set accounts dirty
 	JournalLen := func() int { return 3 }
 
-	blkc, _ := blockchain.NewBlockChain(blockchainConfig())
+	blkc, _ := createBlockChainFromConfig(blockchainConfig())
 
 	hdr := block.Header{
 		Nonce:         0,
@@ -150,7 +225,7 @@ func TestBlockProc_ProcessBlockWithDirtyAccountShouldErr(t *testing.T) {
 	// set accounts dirty
 	JournalLen := func() int { return 3 }
 
-	blkc, _ := blockchain.NewBlockChain(blockchainConfig())
+	blkc, _ := createBlockChainFromConfig(blockchainConfig())
 
 	hdr := block.Header{
 		Nonce:         0,
@@ -200,8 +275,16 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	}
 
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
-	blkc, _ := blockchain.NewBlockChain(blockchainConfig())
-	hdr := block.Header{Nonce: 0, PrevHash: []byte(""), Signature: []byte("signature")}
+	blkc, _ := createBlockChainFromConfig(blockchainConfig())
+	hdr := block.Header{
+		Nonce:         0,
+		PrevHash:      []byte(""),
+		Signature:     []byte("signature"),
+		PubKeysBitmap: []byte("00110"),
+		BlockBodyHash: []byte("bodyHash"),
+		ShardId:       0,
+		Commitment:    []byte("commitment"),
+	}
 	miniblocks := make([]block.MiniBlock, 0)
 
 	txHashes := make([][]byte, 0)
@@ -244,7 +327,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 
 	// should return err
 	err := be.ProcessBlock(blkc, &hdr, &txBody)
-	assert.NotNil(t, err)
+	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
 func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
@@ -265,7 +348,7 @@ func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 	// nil block
 	assert.Nil(t, bl)
 	// error
-	assert.NotNil(t, err)
+	assert.Equal(t, process.ErrAccountStateDirty, err)
 }
 
 func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T) {
@@ -298,14 +381,8 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 	assert.Equal(t, len(bl.MiniBlocks), 0)
 }
 
-func TestBlockProcessor_CreateTxBlockBodydOK(t *testing.T) {
+func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	tp := transactionPool.NewTransactionPool(nil)
-	tp.AddTransaction([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 0)
-	tp.AddTransaction([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 1)
-	tp.AddTransaction([]byte("tx_hash3"), &transaction.Transaction{Nonce: 3}, 2)
-	tp.AddTransaction([]byte("tx_hash4"), &transaction.Transaction{Nonce: 4}, 3)
-	tp.AddTransaction([]byte("tx_hash5"), &transaction.Transaction{Nonce: 5}, 2)
-	tp.AddTransaction([]byte("tx_hash6"), &transaction.Transaction{Nonce: 6}, 1)
 
 	//process transaction. return nil for no error
 	procTx := func(transaction *transaction.Transaction) error {
@@ -432,7 +509,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 	err := be.RemoveBlockTxsFromPool(nil)
 
 	assert.NotNil(t, err)
-	assert.Equal(t, err, process.ErrNilBlockBody)
+	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
 
 func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
@@ -478,8 +555,8 @@ func TestBlockProcessor_GetNbShards(t *testing.T) {
 		1,
 	)
 
-	be.SetNbShards(20)
-	nb := be.GetNbShards()
+	be.SetNoShards(20)
+	nb := be.NoShards()
 
 	assert.Equal(t, uint32(20), nb)
 }

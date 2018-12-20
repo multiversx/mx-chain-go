@@ -30,7 +30,6 @@ VERSION:
 `
 
 type InitialNode struct {
-	Address string `json:"address"`
 	PubKey  string `json:"pubkey"`
 	Balance uint64 `json:"balance"`
 }
@@ -83,7 +82,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	ef := facade.ElrondFacade{}
 	ef.SetLogger(log)
 	ef.StartNTP(initialConfig.ClockSyncPeriod)
-	ef.CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name), initialConfig.InitialNodesAddresses())
+	ef.CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name), initialConfig.InitialNodesPubkeys())
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
@@ -136,10 +135,10 @@ func loadInitialConfiguration(genesisFilePath string, log *logger.Logger) (*Gene
 	return genesis, nil
 }
 
-func (g *Genesis) InitialNodesAddresses() []string {
-	var addresses []string
+func (g *Genesis) InitialNodesPubkeys() []string {
+	var pubKeys []string
 	for _, in := range g.InitialNodes {
-		addresses = append(addresses, in.Address)
+		pubKeys = append(pubKeys, in.PubKey)
 	}
-	return addresses
+	return pubKeys
 }

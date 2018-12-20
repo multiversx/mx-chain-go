@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	bl "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
@@ -12,9 +11,13 @@ import (
 )
 
 func createBlockProcessor() process.BlockProcessor {
-	tp := transactionPool.NewTransactionPool(nil)
+	txHandler := func(transactionHandler func(txHash []byte)) {}
 
-	be := block.NewBlockProcessor(
+	tp := &mock.TransactionPoolMock{
+		RegisterTransactionHandlerCalled: txHandler,
+	}
+
+	bp := block.NewBlockProcessor(
 		tp,
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -23,22 +26,27 @@ func createBlockProcessor() process.BlockProcessor {
 		2,
 	)
 
-	return be
+	return bp
 }
 
 // StateBlockBody
 func TestStateBlockBodyWrapper_IntegrityNilProcessorShouldFail(t *testing.T) {
+	t.Parallel()
+
 	sbWrapper := block.StateBlockBodyWrapper{
 		StateBlockBody: &bl.StateBlockBody{},
 		Processor:      nil,
 	}
 
 	res := sbWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilProcessor, res)
 }
 
 func TestStateBlockBodyWrapper_IntegrityInvalidShardIdShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
+	bp.SetNoShards(10)
 
 	sbWrapper := block.StateBlockBodyWrapper{
 		StateBlockBody: &bl.StateBlockBody{
@@ -49,11 +57,12 @@ func TestStateBlockBodyWrapper_IntegrityInvalidShardIdShouldFail(t *testing.T) {
 	}
 
 	res := sbWrapper.Integrity()
-	// shard number 55>10
-	assert.False(t, res)
+	assert.Equal(t, process.ErrInvalidShardId, res)
 }
 
 func TestStateBlockBodyWrapper_IntegrityNilRootHashShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	sbWrapper := block.StateBlockBodyWrapper{
@@ -65,10 +74,12 @@ func TestStateBlockBodyWrapper_IntegrityNilRootHashShouldFail(t *testing.T) {
 	}
 
 	res := sbWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilRootHash, res)
 }
 
 func TestStateBlockBodyWrapper_IntegrityOK(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	sbWrapper := block.StateBlockBodyWrapper{
@@ -80,11 +91,14 @@ func TestStateBlockBodyWrapper_IntegrityOK(t *testing.T) {
 	}
 
 	res := sbWrapper.Integrity()
-	assert.True(t, res)
+	assert.Nil(t, res)
 }
 
 func TestStateBlockBodyWrapper_CheckCorruptedBlock(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
+	bp.SetNoShards(2)
 
 	sbWrapper := block.StateBlockBodyWrapper{
 		StateBlockBody: &bl.StateBlockBody{
@@ -95,11 +109,17 @@ func TestStateBlockBodyWrapper_CheckCorruptedBlock(t *testing.T) {
 	}
 
 	res := sbWrapper.Check()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrInvalidShardId, res)
 }
 
 func TestStateBlockBodyWrapper_CheckWithEmptyAccountsTrieShouldFail(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	t.Parallel()
+
+	txHandler := func(transactionHandler func(txHash []byte)) {}
+
+	tp := &mock.TransactionPoolMock{
+		RegisterTransactionHandlerCalled: txHandler,
+	}
 
 	rootHashStoredTrie := func() []byte {
 		return nil
@@ -123,11 +143,17 @@ func TestStateBlockBodyWrapper_CheckWithEmptyAccountsTrieShouldFail(t *testing.T
 	}
 
 	res := sbWrapper.Check()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilRootHash, res)
 }
 
 func TestStateBlockBodyWrapper_CheckWithInvalidRootHashShouldFail(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	t.Parallel()
+
+	txHandler := func(transactionHandler func(txHash []byte)) {}
+
+	tp := &mock.TransactionPoolMock{
+		RegisterTransactionHandlerCalled: txHandler,
+	}
 
 	rootHashStoredTrie := func() []byte {
 		return []byte("correctRootHash")
@@ -151,11 +177,17 @@ func TestStateBlockBodyWrapper_CheckWithInvalidRootHashShouldFail(t *testing.T) 
 	}
 
 	res := sbWrapper.Check()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrInvalidRootHash, res)
 }
 
 func TestStateBlockBodyWrapper_CheckOK(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	t.Parallel()
+
+	txHandler := func(transactionHandler func(txHash []byte)) {}
+
+	tp := &mock.TransactionPoolMock{
+		RegisterTransactionHandlerCalled: txHandler,
+	}
 
 	rootHashStoredTrie := func() []byte {
 		return []byte("correctRootHash")
@@ -179,23 +211,29 @@ func TestStateBlockBodyWrapper_CheckOK(t *testing.T) {
 	}
 
 	res := sbWrapper.Check()
-	assert.True(t, res)
+	assert.Nil(t, res)
 }
 
 // TxBlockBody
 func TestTxBlockBodyWrapper_IntegrityInvalidStateBlockShouldFail(t *testing.T) {
+	t.Parallel()
+
+	bp := createBlockProcessor()
+
 	txbWrapper := block.TxBlockBodyWrapper{
 		TxBlockBody: &bl.TxBlockBody{
 			StateBlockBody: bl.StateBlockBody{},
 		},
-		Processor: nil,
+		Processor: bp,
 	}
 
 	res := txbWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilRootHash, res)
 }
 
 func TestTxBlockBodyWrapper_IntegrityNilMiniblocksShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	txbWrapper := block.TxBlockBodyWrapper{
@@ -210,10 +248,13 @@ func TestTxBlockBodyWrapper_IntegrityNilMiniblocksShouldFail(t *testing.T) {
 	}
 
 	res := txbWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilMiniBlocks, res)
+
 }
 
 func TestTxBlockBodyWrapper_IntegrityNilTxHashesShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 	miniBlocks := make([]bl.MiniBlock, 0)
 	miniBlock := bl.MiniBlock{
@@ -235,10 +276,12 @@ func TestTxBlockBodyWrapper_IntegrityNilTxHashesShouldFail(t *testing.T) {
 	}
 
 	res := txbWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilTxHashes, res)
 }
 
-func TestTxBlockBodyWrapper_IntegrityNilTxHasheShouldFail(t *testing.T) {
+func TestTxBlockBodyWrapper_IntegrityNilTxHashShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 	miniBlocks := make([]bl.MiniBlock, 0)
 	txHashes := make([][]byte, 0)
@@ -264,10 +307,12 @@ func TestTxBlockBodyWrapper_IntegrityNilTxHasheShouldFail(t *testing.T) {
 	}
 
 	res := txbWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilTxHash, res)
 }
 
 func TestTxBlockBodyWrapper_IntegrityOK(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 	miniBlocks := make([]bl.MiniBlock, 0)
 	txHashes := make([][]byte, 0)
@@ -296,22 +341,31 @@ func TestTxBlockBodyWrapper_IntegrityOK(t *testing.T) {
 	}
 
 	res := txbWrapper.Integrity()
-	assert.True(t, res)
+	assert.Nil(t, res)
 }
 
 func TestTxBlockBodyWrapper_CheckCorruptedBlock(t *testing.T) {
+	t.Parallel()
+
+	bp := createBlockProcessor()
+
 	txbWrapper := block.TxBlockBodyWrapper{
 		TxBlockBody: &bl.TxBlockBody{
-			StateBlockBody: bl.StateBlockBody{},
+			StateBlockBody: bl.StateBlockBody{
+				ShardID:  0,
+				RootHash: nil,
+			},
 		},
-		Processor: nil,
+		Processor: bp,
 	}
 
 	res := txbWrapper.Check()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilRootHash, res)
 }
 
 func TestTxBlockBodyWrapper_CheckOK(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 	miniBlocks := make([]bl.MiniBlock, 0)
 	txHashes := make([][]byte, 0)
@@ -340,11 +394,13 @@ func TestTxBlockBodyWrapper_CheckOK(t *testing.T) {
 	}
 
 	res := txbWrapper.Check()
-	assert.True(t, res)
+	assert.Nil(t, res)
 }
 
 // PeerBlockBodyWrapper
 func TestPeerBlockBodyWrapper_IntegrityInvalidStateBlockShouldFail(t *testing.T) {
+	t.Parallel()
+
 	peerBlkWrapper := block.PeerBlockBodyWrapper{
 		PeerBlockBody: &bl.PeerBlockBody{
 			StateBlockBody: bl.StateBlockBody{},
@@ -353,10 +409,12 @@ func TestPeerBlockBodyWrapper_IntegrityInvalidStateBlockShouldFail(t *testing.T)
 	}
 
 	res := peerBlkWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilProcessor, res)
 }
 
 func TestPeerBlockBodyWrapper_IntegrityNilChangesShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 	peerBlkWrapper := block.PeerBlockBodyWrapper{
 		PeerBlockBody: &bl.PeerBlockBody{
@@ -370,10 +428,12 @@ func TestPeerBlockBodyWrapper_IntegrityNilChangesShouldFail(t *testing.T) {
 	}
 
 	res := peerBlkWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilPeerChanges, res)
 }
 
 func TestPeerBlockBodyWrapper_IntegrityChangeInvalidShardShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	changes := make([]bl.PeerChange, 0)
@@ -395,10 +455,12 @@ func TestPeerBlockBodyWrapper_IntegrityChangeInvalidShardShouldFail(t *testing.T
 	}
 
 	res := peerBlkWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrInvalidShardId, res)
 }
 
 func TestPeerBlockBodyWrapper_IntegrityChangeNilPubkeyShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	changes := make([]bl.PeerChange, 0)
@@ -420,10 +482,12 @@ func TestPeerBlockBodyWrapper_IntegrityChangeNilPubkeyShouldFail(t *testing.T) {
 	}
 
 	res := peerBlkWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilPublicKey, res)
 }
 
 func TestPeerBlockBodyWrapper_IntegrityOK(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	changes := make([]bl.PeerChange, 0)
@@ -445,22 +509,27 @@ func TestPeerBlockBodyWrapper_IntegrityOK(t *testing.T) {
 	}
 
 	res := peerBlkWrapper.Integrity()
-	assert.True(t, res)
+	assert.Nil(t, res)
 }
 
 func TestPeerBlockBodyWrapper_CheckCorruptedBlock(t *testing.T) {
+	t.Parallel()
+
+	bp := createBlockProcessor()
 	peerBlkWrapper := block.PeerBlockBodyWrapper{
 		PeerBlockBody: &bl.PeerBlockBody{
 			StateBlockBody: bl.StateBlockBody{},
 		},
-		Processor: nil,
+		Processor: bp,
 	}
 
 	res := peerBlkWrapper.Check()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilRootHash, res)
 }
 
 func TestPeerBlockBodyWrapper_CheckOK(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	changes := make([]bl.PeerChange, 0)
@@ -482,20 +551,24 @@ func TestPeerBlockBodyWrapper_CheckOK(t *testing.T) {
 	}
 
 	res := peerBlkWrapper.Check()
-	assert.True(t, res)
+	assert.Nil(t, res)
 }
 
 // Header
 func TestHeaderWrapper_IntegrityNilProcessorShouldFail(t *testing.T) {
+	t.Parallel()
+
 	headerWrapper := block.HeaderWrapper{
 		Processor: nil,
 	}
 
 	res := headerWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilProcessor, res)
 }
 
 func TestHeaderWrapper_IntegrityNilBlockBodyHashShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	headerWrapper := block.HeaderWrapper{
@@ -506,10 +579,12 @@ func TestHeaderWrapper_IntegrityNilBlockBodyHashShouldFail(t *testing.T) {
 	}
 
 	res := headerWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilBlockBodyHash, res)
 }
 
 func TestHeaderWrapper_IntegrityNilPubKeyBmpShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	headerWrapper := block.HeaderWrapper{
@@ -521,10 +596,12 @@ func TestHeaderWrapper_IntegrityNilPubKeyBmpShouldFail(t *testing.T) {
 	}
 
 	res := headerWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilPubKeysBitmap, res)
 }
 
 func TestHeaderWrapper_IntegrityInvalidShardIdShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	headerWrapper := block.HeaderWrapper{
@@ -537,10 +614,12 @@ func TestHeaderWrapper_IntegrityInvalidShardIdShouldFail(t *testing.T) {
 	}
 
 	res := headerWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrInvalidShardId, res)
 }
 
 func TestHeaderWrapper_IntegrityNilPrevHashShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	headerWrapper := block.HeaderWrapper{
@@ -554,10 +633,12 @@ func TestHeaderWrapper_IntegrityNilPrevHashShouldFail(t *testing.T) {
 	}
 
 	res := headerWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilPreviousBlockHash, res)
 }
 
 func TestHeaderWrapper_IntegrityNilSignatureShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	headerWrapper := block.HeaderWrapper{
@@ -572,10 +653,12 @@ func TestHeaderWrapper_IntegrityNilSignatureShouldFail(t *testing.T) {
 	}
 
 	res := headerWrapper.Integrity()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilSignature, res)
 }
 
 func TestHeaderWrapper_IntegrityOK(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	headerWrapper := block.HeaderWrapper{
@@ -590,20 +673,31 @@ func TestHeaderWrapper_IntegrityOK(t *testing.T) {
 	}
 
 	res := headerWrapper.Integrity()
-	assert.True(t, res)
+	assert.Nil(t, res)
 }
 
 func TestHeaderWrapper_CheckCorruptedHeader(t *testing.T) {
+	t.Parallel()
+
+	bp := createBlockProcessor()
+
 	headerWrapper := block.HeaderWrapper{
-		Header:    &bl.Header{},
-		Processor: nil,
+		Header: &bl.Header{
+			BlockBodyHash: nil,
+			PubKeysBitmap: []byte("010010"),
+			ShardId:       0,
+			PrevHash:      []byte("prevHash"),
+			Signature:     []byte("signature"),},
+		Processor: bp,
 	}
 
 	res := headerWrapper.Check()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilBlockBodyHash, res)
 }
 
 func TestHeaderWrapper_CheckOK(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	headerWrapper := block.HeaderWrapper{
@@ -618,10 +712,12 @@ func TestHeaderWrapper_CheckOK(t *testing.T) {
 	}
 
 	res := headerWrapper.Check()
-	assert.True(t, res)
+	assert.Nil(t, res)
 }
 
 func TestHeaderWrapper_VerifySigNilHeaderShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	headerWrapper := block.HeaderWrapper{
@@ -630,10 +726,12 @@ func TestHeaderWrapper_VerifySigNilHeaderShouldFail(t *testing.T) {
 	}
 
 	res := headerWrapper.VerifySig()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilBlockHeader, res)
 }
 
 func TestHeaderWrapper_VerifySigNilSigShouldFail(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	headerWrapper := block.HeaderWrapper{
@@ -644,10 +742,12 @@ func TestHeaderWrapper_VerifySigNilSigShouldFail(t *testing.T) {
 	}
 
 	res := headerWrapper.VerifySig()
-	assert.False(t, res)
+	assert.Equal(t, process.ErrNilSignature, res)
 }
 
 func TestHeaderWrapper_VerifySigOk(t *testing.T) {
+	t.Parallel()
+
 	bp := createBlockProcessor()
 
 	headerWrapper := block.HeaderWrapper{
@@ -658,7 +758,7 @@ func TestHeaderWrapper_VerifySigOk(t *testing.T) {
 	}
 
 	res := headerWrapper.VerifySig()
-	assert.True(t, res)
+	assert.Nil(t, res)
 
 	// TODO: verify the signature
 }

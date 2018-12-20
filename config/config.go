@@ -22,7 +22,7 @@ type storageConfig struct {
 }
 
 type Config struct {
-	TxBlockBodyStorage    storageConfig `json:"blockStorage"`
+	TxBlockBodyStorage    storageConfig `json:"txBlockBodyStorage"`
 	StateBlockBodyStorage storageConfig `json:"stateBlockBodyStorage"`
 	PeerBlockBodyStorage  storageConfig `json:"peerBlockBodyStorage"`
 	BlockHeaderStorage    storageConfig `json:"blockHeaderStorage"`

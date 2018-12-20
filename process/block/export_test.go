@@ -6,22 +6,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 )
 
-func (eb *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
-	return eb.commitBlock(blockChain, header, block)
+func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+	return bp.commitBlock(blockChain, header, block)
 }
 
-func (eb *blockProcessor) GetTransactionFromPool(destShardID uint32, txHash []byte) *transaction.Transaction {
-	return eb.getTransactionFromPool(destShardID, txHash)
+func (bp *blockProcessor) GetTransactionFromPool(destShardID uint32, txHash []byte) *transaction.Transaction {
+	return bp.getTransactionFromPool(destShardID, txHash)
 }
 
-func (eb *blockProcessor) RequestTransactionFromNetwork(body *block.TxBlockBody) {
-	eb.requestBlockTransactions(body)
+func (bp *blockProcessor) RequestTransactionFromNetwork(body *block.TxBlockBody) {
+	bp.requestBlockTransactions(body)
 }
 
-func (eb *blockProcessor) WaitForTxHashes() {
-	eb.waitForTxHashes()
+func (bp *blockProcessor) WaitForTxHashes() {
+	bp.waitForTxHashes()
 }
 
-func (eb *blockProcessor) ReceivedTransaction(txHash []byte) {
-	eb.receivedTransaction(txHash)
+func (bp *blockProcessor) ReceivedTransaction(txHash []byte) {
+	bp.receivedTransaction(txHash)
 }

@@ -9,6 +9,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type blockChainUnits struct {
+	txBadBlockCache storage.Cacher
+	headerUnit      *storage.Unit
+	peerBlockUnit   *storage.Unit
+	stateBlockUnit  *storage.Unit
+	txBlockUnit     *storage.Unit
+	txUnit          *storage.Unit
+}
+
 func blockchainConfig() *blockchain.Config {
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
 	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
@@ -28,6 +37,60 @@ func blockchainConfig() *blockchain.Config {
 	}
 }
 
+func createUnitsFromConfig(blConfig *blockchain.Config) *blockChainUnits {
+	blUnits := &blockChainUnits{}
+
+	txBadBlockCache, _ := storage.NewCache(blConfig.TxBadBlockBodyCache.Type, blConfig.TxBadBlockBodyCache.Size)
+
+	blUnits.txBadBlockCache = txBadBlockCache
+
+	blUnits.txUnit, _ = storage.NewStorageUnitFromConf(
+		blConfig.TxStorage.CacheConf,
+		blConfig.TxStorage.DBConf,
+		blConfig.TxStorage.BloomConf)
+
+	blUnits.txBlockUnit, _ = storage.NewStorageUnitFromConf(
+		blConfig.TxBlockBodyStorage.CacheConf,
+		blConfig.TxBlockBodyStorage.DBConf,
+		blConfig.TxBlockBodyStorage.BloomConf)
+
+	blUnits.stateBlockUnit, _ = storage.NewStorageUnitFromConf(
+		blConfig.StateBlockBodyStorage.CacheConf,
+		blConfig.StateBlockBodyStorage.DBConf,
+		blConfig.StateBlockBodyStorage.BloomConf)
+
+	blUnits.peerBlockUnit, _ = storage.NewStorageUnitFromConf(
+		blConfig.PeerBlockBodyStorage.CacheConf,
+		blConfig.PeerBlockBodyStorage.DBConf,
+		blConfig.PeerBlockBodyStorage.BloomConf)
+
+	blUnits.headerUnit, _ = storage.NewStorageUnitFromConf(
+		blConfig.BlockHeaderStorage.CacheConf,
+		blConfig.BlockHeaderStorage.DBConf,
+		blConfig.BlockHeaderStorage.BloomConf)
+
+	return blUnits
+}
+
+func (blUnits *blockChainUnits) cleanupBlockchainUnits() {
+	// cleanup
+	if blUnits.headerUnit != nil {
+		blUnits.headerUnit.DestroyUnit()
+	}
+	if blUnits.peerBlockUnit != nil {
+		blUnits.peerBlockUnit.DestroyUnit()
+	}
+	if blUnits.stateBlockUnit != nil {
+		blUnits.stateBlockUnit.DestroyUnit()
+	}
+	if blUnits.txBlockUnit != nil {
+		blUnits.txBlockUnit.DestroyUnit()
+	}
+	if blUnits.txUnit != nil {
+		blUnits.txUnit.DestroyUnit()
+	}
+}
+
 func failOnPanic(t *testing.T) {
 	if r := recover(); r != nil {
 		t.Errorf("the code entered panic")
@@ -41,54 +104,142 @@ func logError(err error) {
 	return
 }
 
-func TestNewBlockchainErrOnTxStorageCreationShouldError(t *testing.T) {
+func TestNewBlockchainNilBadBlockCacheShouldError(t *testing.T) {
 	cfg := blockchainConfig()
-	// e.g change the config to a not supported cache type
-	cfg.TxStorage.CacheConf.Type = "NotLRU"
-	_, err := blockchain.NewBlockChain(cfg)
-	assert.NotNil(t, err, "NewBlockchain should error on not supported type")
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	_, err := blockchain.NewBlockChain(
+		nil,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
+	blockChainUnits.cleanupBlockchainUnits()
+
+	assert.Equal(t, err, blockchain.ErrBadBlocksCacheNil)
 }
 
-func TestNewBlockchainErrOnBlockStorageCreationShouldError(t *testing.T) {
+func TestNewBlockchainNilTxUnitShouldError(t *testing.T) {
 	cfg := blockchainConfig()
-	// e.g change the config to a not supported cache type
-	cfg.TxBlockBodyStorage.CacheConf.Type = "NotLRU"
-	_, err := blockchain.NewBlockChain(cfg)
-	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block storage")
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	_, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		nil,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
+	blockChainUnits.cleanupBlockchainUnits()
+
+	assert.Equal(t, err, blockchain.ErrTxUnitNil)
 }
 
-func TestNewBlockchainErrOnBlockHeaderStorageCreationShouldError(t *testing.T) {
+func TestNewBlockchainNilTxBlockUnitShouldError(t *testing.T) {
 	cfg := blockchainConfig()
-	// e.g change the config to a not supported cache type
-	cfg.BlockHeaderStorage.CacheConf.Type = "NotLRU"
-	_, err := blockchain.NewBlockChain(cfg)
-	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block header")
+
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	_, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		nil,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
+	blockChainUnits.cleanupBlockchainUnits()
+
+	assert.Equal(t, err, blockchain.ErrTxBlockUnitNil)
 }
 
-func TestNewDataErrOnBlockCacheCreationShouldError(t *testing.T) {
+func TestNewBlockchainNilStateBlockUnitShouldError(t *testing.T) {
 	cfg := blockchainConfig()
-	// e.g change the config to a not supported cache type
-	cfg.TxBadBlockBodyCache.Type = "NotLRU"
-	_, err := blockchain.NewBlockChain(cfg)
-	assert.NotNil(t, err, "NewBlockchain should error on not supported cache type for block cache")
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	_, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		nil,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
+	blockChainUnits.cleanupBlockchainUnits()
+	assert.Equal(t, err, blockchain.ErrStateBlockUnitNil)
 }
 
-func TestNewDataDefaultConfigOK(t *testing.T) {
+func TestNewBlockchainNilPeerBlockUnitShouldError(t *testing.T) {
+	cfg := blockchainConfig()
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	_, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		nil,
+		blockChainUnits.headerUnit)
+
+	blockChainUnits.cleanupBlockchainUnits()
+	assert.Equal(t, err, blockchain.ErrPeerBlockUnitNil)
+}
+
+func TestNewBlockchainNilHeaderUnitShouldError(t *testing.T) {
+	cfg := blockchainConfig()
+
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	_, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		nil)
+
+	blockChainUnits.cleanupBlockchainUnits()
+
+	assert.Equal(t, err, blockchain.ErrHeaderUnitNil)
+}
+
+func TestNewBlockchainConfigOK(t *testing.T) {
 	defer failOnPanic(t)
 	cfg := blockchainConfig()
-	b, err := blockchain.NewBlockChain(cfg)
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	b, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
 	defer func() {
 		err := b.Destroy()
 		assert.Nil(t, err, "Unable to destroy blockchain")
 	}()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.NotNil(t, b, "expected valid blockchain but got nil")
+	assert.Nil(t, err)
+	assert.NotNil(t, b)
 }
 
 func TestHasFalseOnWrongUnitType(t *testing.T) {
 	cfg := blockchainConfig()
-	b, err := blockchain.NewBlockChain(cfg)
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	b, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
 	defer func() {
 		err := b.Destroy()
 		assert.Nil(t, err, "Unable to destroy blockchain")
@@ -107,7 +258,16 @@ func TestHasFalseOnWrongUnitType(t *testing.T) {
 
 func TestHasOk(t *testing.T) {
 	cfg := blockchainConfig()
-	b, err := blockchain.NewBlockChain(cfg)
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	b, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
 	defer func() {
 		err := b.Destroy()
 		assert.Nil(t, err, "Unable to destroy blockchain")
@@ -150,7 +310,16 @@ func TestHasOk(t *testing.T) {
 
 func TestGetErrOnWrongUnitType(t *testing.T) {
 	cfg := blockchainConfig()
-	b, err := blockchain.NewBlockChain(cfg)
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	b, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
 	defer func() {
 		err := b.Destroy()
 		assert.Nil(t, err, "Unable to destroy blockchain")
@@ -163,13 +332,22 @@ func TestGetErrOnWrongUnitType(t *testing.T) {
 	logError(err)
 	val, err := b.Get(100, []byte("key1"))
 
-	assert.NotNil(t, err, "expected error but got nil")
+	assert.Equal(t, err, blockchain.ErrNoSuchStorageUnit)
 	assert.Nil(t, val, "not expected to find key")
 }
 
 func TestGetOk(t *testing.T) {
 	cfg := blockchainConfig()
-	b, err := blockchain.NewBlockChain(cfg)
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	b, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
 	defer func() {
 		err := b.Destroy()
 		assert.Nil(t, err, "Unable to destroy blockchain")
@@ -194,7 +372,16 @@ func TestGetOk(t *testing.T) {
 
 func TestPutErrOnWrongUnitType(t *testing.T) {
 	cfg := blockchainConfig()
-	b, err := blockchain.NewBlockChain(cfg)
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	b, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
 	defer func() {
 		err := b.Destroy()
 		assert.Nil(t, err, "Unable to destroy blockchain")
@@ -210,7 +397,16 @@ func TestPutErrOnWrongUnitType(t *testing.T) {
 
 func TestPutOk(t *testing.T) {
 	cfg := blockchainConfig()
-	b, err := blockchain.NewBlockChain(cfg)
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	b, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
 	defer func() {
 		err := b.Destroy()
 		assert.Nil(t, err, "Unable to destroy blockchain")
@@ -231,7 +427,16 @@ func TestPutOk(t *testing.T) {
 
 func TestGetAllErrOnWrongUnitType(t *testing.T) {
 	cfg := blockchainConfig()
-	b, err := blockchain.NewBlockChain(cfg)
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	b, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
 	defer func() {
 		err := b.Destroy()
 		assert.Nil(t, err, "Unable to destroy blockchain")
@@ -250,7 +455,16 @@ func TestGetAllErrOnWrongUnitType(t *testing.T) {
 
 func TestGetAllOk(t *testing.T) {
 	cfg := blockchainConfig()
-	b, err := blockchain.NewBlockChain(cfg)
+	blockChainUnits := createUnitsFromConfig(cfg)
+
+	b, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.stateBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit)
+
 	defer func() {
 		err := b.Destroy()
 		assert.Nil(t, err, "Unable to destroy blockchain")

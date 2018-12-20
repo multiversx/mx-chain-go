@@ -1,4 +1,4 @@
-package capnproto1
+package capnp
 
 // AUTO GENERATED - DO NOT EDIT
 

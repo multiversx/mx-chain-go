@@ -6,20 +6,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
-// execTransaction implements TransactionProcessor interface and can modify account states according to a transaction
-type execTransaction struct {
+var log = logger.NewDefaultLogger()
+
+// txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
+type txProcessor struct {
 	accounts  state.AccountsAdapter
 	adrConv   state.AddressConverter
 	hasher    hashing.Hasher
 	scHandler func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
 }
 
-// NewExecTransaction creates a new execTransaction engine
+// NewExecTransaction creates a new txProcessor engine
 func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
-	addressConv state.AddressConverter) (*execTransaction, error) {
+	addressConv state.AddressConverter) (*txProcessor, error) {
 
 	if accounts == nil {
 		return nil, process.ErrNilAccountsAdapter
@@ -33,7 +36,7 @@ func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
 		return nil, process.ErrNilAddressConverter
 	}
 
-	return &execTransaction{
+	return &txProcessor{
 		accounts: accounts,
 		hasher:   hasher,
 		adrConv:  addressConv,
@@ -41,27 +44,27 @@ func NewExecTransaction(accounts state.AccountsAdapter, hasher hashing.Hasher,
 }
 
 // SCHandler returns the smart contract execution function
-func (et *execTransaction) SCHandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error {
-	return et.scHandler
+func (txProc *txProcessor) SCHandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error {
+	return txProc.scHandler
 }
 
 // SetSCHandler sets the smart contract execution function
-func (et *execTransaction) SetSCHandler(f func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error) {
-	et.scHandler = f
+func (txProc *txProcessor) SetSCHandler(f func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error) {
+	txProc.scHandler = f
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
-func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error {
+func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error {
 	if tx == nil {
 		return process.ErrNilTransaction
 	}
 
-	adrSrc, adrDest, err := et.getAddresses(tx)
+	adrSrc, adrDest, err := txProc.getAddresses(tx)
 	if err != nil {
 		return err
 	}
 
-	acntSrc, acntDest, err := et.getAccounts(adrSrc, adrDest)
+	acntSrc, acntDest, err := txProc.getAccounts(adrSrc, adrDest)
 	if err != nil {
 		return err
 	}
@@ -71,22 +74,22 @@ func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error
 	}
 
 	if acntDest.Code() != nil {
-		return et.callSCHandler(tx)
+		return txProc.callSCHandler(tx)
 	}
 
 	value := tx.Value
 
-	err = et.checkTxValues(acntSrc, &value, tx.Nonce)
+	err = txProc.checkTxValues(acntSrc, &value, tx.Nonce)
 	if err != nil {
 		return err
 	}
 
-	err = et.moveBalances(acntSrc, acntDest, &value)
+	err = txProc.moveBalances(acntSrc, acntDest, &value)
 	if err != nil {
 		return err
 	}
 
-	err = et.increaseNonceAcntSrc(acntSrc)
+	err = txProc.increaseNonceAcntSrc(acntSrc)
 	if err != nil {
 		return err
 	}
@@ -95,35 +98,40 @@ func (et *execTransaction) ProcessTransaction(tx *transaction.Transaction) error
 }
 
 // SetBalancesToTrie adds balances to trie
-func (et *execTransaction) SetBalancesToTrie(accBalance map[string]big.Int) (rootHash []byte, err error) {
+func (txProc *txProcessor) SetBalancesToTrie(accBalance map[string]big.Int) (rootHash []byte, err error) {
 
-	if et.accounts.JournalLen() != 0 {
-		return nil, err
+	if txProc.accounts.JournalLen() != 0 {
+		return nil, process.ErrAccountStateDirty
 	}
 
 	for i, v := range accBalance {
-		err := et.setBalanceToTrie([]byte(i), v)
+		err := txProc.setBalanceToTrie([]byte(i), v)
 
 		if err != nil {
-			return nil, process.ErrAccountStateDirty
+			return nil, err
 		}
 	}
 
-	rootHash, err = et.accounts.Commit()
+	rootHash, err = txProc.accounts.Commit()
 
 	if err != nil {
-		et.accounts.RevertToSnapshot(0)
+		err2 := txProc.accounts.RevertToSnapshot(0)
+
+		if err2 != nil {
+			log.Error(err2.Error())
+		}
+		return nil, err
 	}
 
 	return rootHash, err
 }
 
-func (et *execTransaction) setBalanceToTrie(addr []byte, balance big.Int) error {
+func (txProc *txProcessor) setBalanceToTrie(addr []byte, balance big.Int) error {
 	if addr == nil {
 		return process.ErrNilValue
 	}
 
-	addrContainer, err := et.adrConv.CreateAddressFromPublicKeyBytes(addr)
+	addrContainer, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(addr)
 
 	if err != nil {
 		return err
@@ -133,7 +141,7 @@ func (et *execTransaction) setBalanceToTrie(addr []byte, balance big.Int) error 
 		return process.ErrNilAddressContainer
 	}
 
-	account, err := et.accounts.GetJournalizedAccount(addrContainer)
+	account, err := txProc.accounts.GetJournalizedAccount(addrContainer)
 
 	if err != nil {
 		return err
@@ -142,40 +150,40 @@ func (et *execTransaction) setBalanceToTrie(addr []byte, balance big.Int) error 
 	return account.SetBalanceWithJournal(balance)
 }
 
-func (et *execTransaction) getAddresses(tx *transaction.Transaction) (adrSrc, adrDest state.AddressContainer, err error) {
+func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDest state.AddressContainer, err error) {
 	//for now we assume that the address = public key
-	adrSrc, err = et.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+	adrSrc, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
 	if err != nil {
 		return
 	}
-	adrDest, err = et.adrConv.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
+	adrDest, err = txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
 	return
 }
 
-func (et *execTransaction) getAccounts(adrSrc, adrDest state.AddressContainer) (acntSrc, acntDest state.JournalizedAccountWrapper, err error) {
+func (txProc *txProcessor) getAccounts(adrSrc, adrDest state.AddressContainer) (acntSrc, acntDest state.JournalizedAccountWrapper, err error) {
 	if adrSrc == nil || adrDest == nil {
 		err = process.ErrNilValue
 		return
 	}
 
-	acntSrc, err = et.accounts.GetJournalizedAccount(adrSrc)
+	acntSrc, err = txProc.accounts.GetJournalizedAccount(adrSrc)
 	if err != nil {
 		return
 	}
-	acntDest, err = et.accounts.GetJournalizedAccount(adrDest)
+	acntDest, err = txProc.accounts.GetJournalizedAccount(adrDest)
 
 	return
 }
 
-func (et *execTransaction) callSCHandler(tx *transaction.Transaction) error {
-	if et.scHandler == nil {
+func (txProc *txProcessor) callSCHandler(tx *transaction.Transaction) error {
+	if txProc.scHandler == nil {
 		return process.ErrNoVM
 	}
 
-	return et.scHandler(et.accounts, tx)
+	return txProc.scHandler(txProc.accounts, tx)
 }
 
-func (et *execTransaction) checkTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {
+func (txProc *txProcessor) checkTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {
 	if acntSrc.BaseAccount().Nonce < nonce {
 		return process.ErrHigherNonceInTransaction
 	}
@@ -193,7 +201,7 @@ func (et *execTransaction) checkTxValues(acntSrc state.JournalizedAccountWrapper
 	return nil
 }
 
-func (et *execTransaction) moveBalances(acntSrc, acntDest state.JournalizedAccountWrapper, value *big.Int) error {
+func (txProc *txProcessor) moveBalances(acntSrc, acntDest state.JournalizedAccountWrapper, value *big.Int) error {
 	operation1 := big.NewInt(0)
 	operation2 := big.NewInt(0)
 
@@ -209,6 +217,6 @@ func (et *execTransaction) moveBalances(acntSrc, acntDest state.JournalizedAccou
 	return nil
 }
 
-func (et *execTransaction) increaseNonceAcntSrc(acntSrc state.JournalizedAccountWrapper) error {
+func (txProc *txProcessor) increaseNonceAcntSrc(acntSrc state.JournalizedAccountWrapper) error {
 	return acntSrc.SetNonceWithJournal(acntSrc.BaseAccount().Nonce + 1)
 }
