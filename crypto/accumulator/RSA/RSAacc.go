@@ -106,6 +106,8 @@ func (acc *Accumulator) Verify(data []byte, proof *big.Int) bool {
 	return v.Cmp(acc.value) == 0
 }
 
+// VerifySetOfData verifies, given the proof for the whole set and the set, that the set
+// of data has been added to the accumulator
 func (acc *Accumulator) VerifySetOfData(proof *big.Int, data ...[]byte) bool {
 	var primes []*big.Int
 	mul := new(big.Int).Set(bigOne)
