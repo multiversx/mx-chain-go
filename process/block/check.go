@@ -10,42 +10,38 @@ import (
 // StateBlockBodyWrapper is a wrapper for StateBlockBody, adding functionality for validity and integrity checks
 type StateBlockBodyWrapper struct {
 	*block.StateBlockBody
-	Processor process.BlockProcessor
 }
 
 // PeerBlockBodyWrapper is a wrapper for StateBlockBody, adding functionality for validity and integrity checks
 type PeerBlockBodyWrapper struct {
 	*block.PeerBlockBody
-	Processor process.BlockProcessor
 }
 
 // TxBlockBodyWrapper is a wrapper for StateBlockBody, adding functionality for validity and integrity checks
 type TxBlockBodyWrapper struct {
 	*block.TxBlockBody
-	Processor process.BlockProcessor
 }
 
 // HeaderWrapper is a wrapper for StateBlockBody, adding functionality for validity and integrity checks
 // and as well for signature verification
 type HeaderWrapper struct {
 	*block.Header
-	Processor process.BlockProcessor
 }
 
 // Check checks the integrity and validity of a state block
-func (sbWrapper StateBlockBodyWrapper) Check() error {
-	err := sbWrapper.Integrity()
+func (sbWrapper StateBlockBodyWrapper) Check(processor process.BlockProcessor) error {
+	err := sbWrapper.Integrity(processor)
 
 	if err != nil {
 		return err
 	}
 
-	return sbWrapper.validityCheck()
+	return sbWrapper.validityCheck(processor)
 }
 
 // Integrity checks the integrity of the state block
-func (sbWrapper StateBlockBodyWrapper) Integrity() error {
-	if sbWrapper.Processor == nil {
+func (sbWrapper StateBlockBodyWrapper) Integrity(processor process.BlockProcessor) error {
+	if processor == nil {
 		return process.ErrNilProcessor
 	}
 
@@ -53,7 +49,7 @@ func (sbWrapper StateBlockBodyWrapper) Integrity() error {
 		return process.ErrNilStateBlockBody
 	}
 
-	if sbWrapper.ShardID >= sbWrapper.Processor.NoShards() {
+	if sbWrapper.ShardID >= processor.NoShards() {
 		return process.ErrInvalidShardId
 	}
 
@@ -64,12 +60,12 @@ func (sbWrapper StateBlockBodyWrapper) Integrity() error {
 	return nil
 }
 
-func (sbWrapper StateBlockBodyWrapper) validityCheck() error {
-	if sbWrapper.Processor.GetRootHash() == nil {
+func (sbWrapper StateBlockBodyWrapper) validityCheck(processor process.BlockProcessor) error {
+	if processor.GetRootHash() == nil {
 		return process.ErrNilRootHash
 	}
 
-	if !bytes.Equal(sbWrapper.Processor.GetRootHash(), sbWrapper.RootHash) {
+	if !bytes.Equal(processor.GetRootHash(), sbWrapper.RootHash) {
 		return process.ErrInvalidRootHash
 	}
 
@@ -77,8 +73,8 @@ func (sbWrapper StateBlockBodyWrapper) validityCheck() error {
 }
 
 // Check checks the integrity of a transactions block
-func (txbWrapper TxBlockBodyWrapper) Check() error {
-	err := txbWrapper.Integrity()
+func (txbWrapper TxBlockBodyWrapper) Check(processor process.BlockProcessor) error {
+	err := txbWrapper.Integrity(processor)
 
 	if err != nil {
 		return err
@@ -88,7 +84,7 @@ func (txbWrapper TxBlockBodyWrapper) Check() error {
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (txbWrapper TxBlockBodyWrapper) Integrity() error {
+func (txbWrapper TxBlockBodyWrapper) Integrity(processor process.BlockProcessor) error {
 
 	if txbWrapper.TxBlockBody == nil {
 		return process.ErrNilTxBlockBody
@@ -96,10 +92,9 @@ func (txbWrapper TxBlockBodyWrapper) Integrity() error {
 
 	stateBlockWrapper := StateBlockBodyWrapper{
 		StateBlockBody: &txbWrapper.StateBlockBody,
-		Processor:      txbWrapper.Processor,
 	}
 
-	err := stateBlockWrapper.Integrity()
+	err := stateBlockWrapper.Integrity(processor)
 
 	if err != nil {
 		return err
@@ -131,8 +126,8 @@ func (txbWrapper TxBlockBodyWrapper) validityCheck() error {
 }
 
 // Check checks the integrity and validity of a peer block wrapper
-func (pbWrapper PeerBlockBodyWrapper) Check() error {
-	err := pbWrapper.Integrity()
+func (pbWrapper PeerBlockBodyWrapper) Check(processor process.BlockProcessor) error {
+	err := pbWrapper.Integrity(processor)
 	if err != nil {
 		return err
 	}
@@ -141,17 +136,16 @@ func (pbWrapper PeerBlockBodyWrapper) Check() error {
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (pbWrapper PeerBlockBodyWrapper) Integrity() error {
+func (pbWrapper PeerBlockBodyWrapper) Integrity(processor process.BlockProcessor) error {
 	if pbWrapper.PeerBlockBody == nil {
 		return process.ErrNilPeerBlockBody
 	}
 
 	stateBlockWrapper := StateBlockBodyWrapper{
 		StateBlockBody: &pbWrapper.StateBlockBody,
-		Processor:      pbWrapper.Processor,
 	}
 
-	err := stateBlockWrapper.Integrity()
+	err := stateBlockWrapper.Integrity(processor)
 
 	if err != nil {
 		return err
@@ -162,7 +156,7 @@ func (pbWrapper PeerBlockBodyWrapper) Integrity() error {
 	}
 
 	for _, change := range pbWrapper.Changes {
-		if change.ShardIdDest >= pbWrapper.Processor.NoShards() {
+		if change.ShardIdDest >= processor.NoShards() {
 			return process.ErrInvalidShardId
 		}
 
@@ -181,8 +175,8 @@ func (pbWrapper PeerBlockBodyWrapper) validityCheck() error {
 }
 
 // Check checks the integrity and validity of a block header wrapper
-func (hWrapper HeaderWrapper) Check() error {
-	err := hWrapper.Integrity()
+func (hWrapper HeaderWrapper) Check(processor process.BlockProcessor) error {
+	err := hWrapper.Integrity(processor)
 	if err != nil {
 		return err
 	}
@@ -191,8 +185,8 @@ func (hWrapper HeaderWrapper) Check() error {
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (hWrapper HeaderWrapper) Integrity() error {
-	if hWrapper.Processor == nil {
+func (hWrapper HeaderWrapper) Integrity(processor process.BlockProcessor) error {
+	if processor == nil {
 		return process.ErrNilProcessor
 	}
 
@@ -208,7 +202,7 @@ func (hWrapper HeaderWrapper) Integrity() error {
 		return process.ErrNilPubKeysBitmap
 	}
 
-	if hWrapper.ShardId >= hWrapper.Processor.NoShards() {
+	if hWrapper.ShardId >= processor.NoShards() {
 		return process.ErrInvalidShardId
 	}
 

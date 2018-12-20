@@ -32,9 +32,9 @@ type BlockProcessor interface {
 // Checker provides functionality to checks the integrity and validity of a data structure
 type Checker interface {
 	//Check does both validity and integrity checks on the data structure
-	Check() bool
+	Check(processor BlockProcessor) bool
 	// Integrity checks only the integrity of the data
-	Integrity() bool
+	Integrity(processor BlockProcessor) bool
 }
 
 // SigVerifier provides functionality to verify a signature of a signed data structure that holds also the verifying parameters

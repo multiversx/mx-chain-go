@@ -35,10 +35,9 @@ func TestStateBlockBodyWrapper_IntegrityNilProcessorShouldFail(t *testing.T) {
 
 	sbWrapper := block.StateBlockBodyWrapper{
 		StateBlockBody: &bl.StateBlockBody{},
-		Processor:      nil,
 	}
 
-	res := sbWrapper.Integrity()
+	res := sbWrapper.Integrity(nil)
 	assert.Equal(t, process.ErrNilProcessor, res)
 }
 
@@ -53,10 +52,9 @@ func TestStateBlockBodyWrapper_IntegrityInvalidShardIdShouldFail(t *testing.T) {
 			RootHash: []byte("rootHash1"),
 			ShardID:  55,
 		},
-		Processor: bp,
 	}
 
-	res := sbWrapper.Integrity()
+	res := sbWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrInvalidShardId, res)
 }
 
@@ -70,10 +68,9 @@ func TestStateBlockBodyWrapper_IntegrityNilRootHashShouldFail(t *testing.T) {
 			RootHash: nil,
 			ShardID:  1,
 		},
-		Processor: bp,
 	}
 
-	res := sbWrapper.Integrity()
+	res := sbWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrNilRootHash, res)
 }
 
@@ -87,10 +84,9 @@ func TestStateBlockBodyWrapper_IntegrityOK(t *testing.T) {
 			RootHash: []byte("rootHash1"),
 			ShardID:  1,
 		},
-		Processor: bp,
 	}
 
-	res := sbWrapper.Integrity()
+	res := sbWrapper.Integrity(bp)
 	assert.Nil(t, res)
 }
 
@@ -105,10 +101,9 @@ func TestStateBlockBodyWrapper_CheckCorruptedBlock(t *testing.T) {
 			RootHash: []byte("rootHash1"),
 			ShardID:  55,
 		},
-		Processor: bp,
 	}
 
-	res := sbWrapper.Check()
+	res := sbWrapper.Check(bp)
 	assert.Equal(t, process.ErrInvalidShardId, res)
 }
 
@@ -139,10 +134,9 @@ func TestStateBlockBodyWrapper_CheckWithEmptyAccountsTrieShouldFail(t *testing.T
 			RootHash: []byte("rootHash1"),
 			ShardID:  0,
 		},
-		Processor: bp,
 	}
 
-	res := sbWrapper.Check()
+	res := sbWrapper.Check(bp)
 	assert.Equal(t, process.ErrNilRootHash, res)
 }
 
@@ -173,10 +167,9 @@ func TestStateBlockBodyWrapper_CheckWithInvalidRootHashShouldFail(t *testing.T) 
 			RootHash: []byte("invalidRootHash"),
 			ShardID:  0,
 		},
-		Processor: bp,
 	}
 
-	res := sbWrapper.Check()
+	res := sbWrapper.Check(bp)
 	assert.Equal(t, process.ErrInvalidRootHash, res)
 }
 
@@ -207,10 +200,9 @@ func TestStateBlockBodyWrapper_CheckOK(t *testing.T) {
 			RootHash: []byte("correctRootHash"),
 			ShardID:  0,
 		},
-		Processor: bp,
 	}
 
-	res := sbWrapper.Check()
+	res := sbWrapper.Check(bp)
 	assert.Nil(t, res)
 }
 
@@ -224,10 +216,9 @@ func TestTxBlockBodyWrapper_IntegrityInvalidStateBlockShouldFail(t *testing.T) {
 		TxBlockBody: &bl.TxBlockBody{
 			StateBlockBody: bl.StateBlockBody{},
 		},
-		Processor: bp,
 	}
 
-	res := txbWrapper.Integrity()
+	res := txbWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrNilRootHash, res)
 }
 
@@ -244,10 +235,9 @@ func TestTxBlockBodyWrapper_IntegrityNilMiniblocksShouldFail(t *testing.T) {
 			},
 			MiniBlocks: nil,
 		},
-		Processor: bp,
 	}
 
-	res := txbWrapper.Integrity()
+	res := txbWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrNilMiniBlocks, res)
 
 }
@@ -272,10 +262,9 @@ func TestTxBlockBodyWrapper_IntegrityNilTxHashesShouldFail(t *testing.T) {
 			},
 			MiniBlocks: miniBlocks,
 		},
-		Processor: bp,
 	}
 
-	res := txbWrapper.Integrity()
+	res := txbWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrNilTxHashes, res)
 }
 
@@ -303,10 +292,9 @@ func TestTxBlockBodyWrapper_IntegrityNilTxHashShouldFail(t *testing.T) {
 			},
 			MiniBlocks: miniBlocks,
 		},
-		Processor: bp,
 	}
 
-	res := txbWrapper.Integrity()
+	res := txbWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrNilTxHash, res)
 }
 
@@ -337,10 +325,9 @@ func TestTxBlockBodyWrapper_IntegrityOK(t *testing.T) {
 			},
 			MiniBlocks: miniBlocks,
 		},
-		Processor: bp,
 	}
 
-	res := txbWrapper.Integrity()
+	res := txbWrapper.Integrity(bp)
 	assert.Nil(t, res)
 }
 
@@ -356,10 +343,9 @@ func TestTxBlockBodyWrapper_CheckCorruptedBlock(t *testing.T) {
 				RootHash: nil,
 			},
 		},
-		Processor: bp,
 	}
 
-	res := txbWrapper.Check()
+	res := txbWrapper.Check(bp)
 	assert.Equal(t, process.ErrNilRootHash, res)
 }
 
@@ -390,10 +376,9 @@ func TestTxBlockBodyWrapper_CheckOK(t *testing.T) {
 			},
 			MiniBlocks: miniBlocks,
 		},
-		Processor: bp,
 	}
 
-	res := txbWrapper.Check()
+	res := txbWrapper.Check(bp)
 	assert.Nil(t, res)
 }
 
@@ -401,15 +386,16 @@ func TestTxBlockBodyWrapper_CheckOK(t *testing.T) {
 func TestPeerBlockBodyWrapper_IntegrityInvalidStateBlockShouldFail(t *testing.T) {
 	t.Parallel()
 
+	bp := createBlockProcessor()
+
 	peerBlkWrapper := block.PeerBlockBodyWrapper{
 		PeerBlockBody: &bl.PeerBlockBody{
 			StateBlockBody: bl.StateBlockBody{},
 		},
-		Processor: nil,
 	}
 
-	res := peerBlkWrapper.Integrity()
-	assert.Equal(t, process.ErrNilProcessor, res)
+	res := peerBlkWrapper.Integrity(bp)
+	assert.Equal(t, process.ErrNilRootHash, res)
 }
 
 func TestPeerBlockBodyWrapper_IntegrityNilChangesShouldFail(t *testing.T) {
@@ -424,10 +410,9 @@ func TestPeerBlockBodyWrapper_IntegrityNilChangesShouldFail(t *testing.T) {
 			},
 			Changes: nil,
 		},
-		Processor: bp,
 	}
 
-	res := peerBlkWrapper.Integrity()
+	res := peerBlkWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrNilPeerChanges, res)
 }
 
@@ -451,10 +436,9 @@ func TestPeerBlockBodyWrapper_IntegrityChangeInvalidShardShouldFail(t *testing.T
 			},
 			Changes: changes,
 		},
-		Processor: bp,
 	}
 
-	res := peerBlkWrapper.Integrity()
+	res := peerBlkWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrInvalidShardId, res)
 }
 
@@ -478,10 +462,9 @@ func TestPeerBlockBodyWrapper_IntegrityChangeNilPubkeyShouldFail(t *testing.T) {
 			},
 			Changes: changes,
 		},
-		Processor: bp,
 	}
 
-	res := peerBlkWrapper.Integrity()
+	res := peerBlkWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrNilPublicKey, res)
 }
 
@@ -505,10 +488,9 @@ func TestPeerBlockBodyWrapper_IntegrityOK(t *testing.T) {
 			},
 			Changes: changes,
 		},
-		Processor: bp,
 	}
 
-	res := peerBlkWrapper.Integrity()
+	res := peerBlkWrapper.Integrity(bp)
 	assert.Nil(t, res)
 }
 
@@ -520,10 +502,9 @@ func TestPeerBlockBodyWrapper_CheckCorruptedBlock(t *testing.T) {
 		PeerBlockBody: &bl.PeerBlockBody{
 			StateBlockBody: bl.StateBlockBody{},
 		},
-		Processor: bp,
 	}
 
-	res := peerBlkWrapper.Check()
+	res := peerBlkWrapper.Check(bp)
 	assert.Equal(t, process.ErrNilRootHash, res)
 }
 
@@ -547,10 +528,9 @@ func TestPeerBlockBodyWrapper_CheckOK(t *testing.T) {
 			},
 			Changes: changes,
 		},
-		Processor: bp,
 	}
 
-	res := peerBlkWrapper.Check()
+	res := peerBlkWrapper.Check(bp)
 	assert.Nil(t, res)
 }
 
@@ -559,10 +539,9 @@ func TestHeaderWrapper_IntegrityNilProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	headerWrapper := block.HeaderWrapper{
-		Processor: nil,
 	}
 
-	res := headerWrapper.Integrity()
+	res := headerWrapper.Integrity(nil)
 	assert.Equal(t, process.ErrNilProcessor, res)
 }
 
@@ -575,10 +554,9 @@ func TestHeaderWrapper_IntegrityNilBlockBodyHashShouldFail(t *testing.T) {
 		Header: &bl.Header{
 			BlockBodyHash: nil,
 		},
-		Processor: bp,
 	}
 
-	res := headerWrapper.Integrity()
+	res := headerWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrNilBlockBodyHash, res)
 }
 
@@ -592,10 +570,9 @@ func TestHeaderWrapper_IntegrityNilPubKeyBmpShouldFail(t *testing.T) {
 			BlockBodyHash: []byte("blockBodyHash"),
 			PubKeysBitmap: nil,
 		},
-		Processor: bp,
 	}
 
-	res := headerWrapper.Integrity()
+	res := headerWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrNilPubKeysBitmap, res)
 }
 
@@ -610,10 +587,9 @@ func TestHeaderWrapper_IntegrityInvalidShardIdShouldFail(t *testing.T) {
 			PubKeysBitmap: []byte("010010"),
 			ShardId:       3,
 		},
-		Processor: bp,
 	}
 
-	res := headerWrapper.Integrity()
+	res := headerWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrInvalidShardId, res)
 }
 
@@ -629,10 +605,9 @@ func TestHeaderWrapper_IntegrityNilPrevHashShouldFail(t *testing.T) {
 			ShardId:       0,
 			PrevHash:      nil,
 		},
-		Processor: bp,
 	}
 
-	res := headerWrapper.Integrity()
+	res := headerWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrNilPreviousBlockHash, res)
 }
 
@@ -649,10 +624,9 @@ func TestHeaderWrapper_IntegrityNilSignatureShouldFail(t *testing.T) {
 			PrevHash:      []byte("prevHash"),
 			Signature:     nil,
 		},
-		Processor: bp,
 	}
 
-	res := headerWrapper.Integrity()
+	res := headerWrapper.Integrity(bp)
 	assert.Equal(t, process.ErrNilSignature, res)
 }
 
@@ -669,10 +643,9 @@ func TestHeaderWrapper_IntegrityOK(t *testing.T) {
 			PrevHash:      []byte("prevHash"),
 			Signature:     []byte("signature"),
 		},
-		Processor: bp,
 	}
 
-	res := headerWrapper.Integrity()
+	res := headerWrapper.Integrity(bp)
 	assert.Nil(t, res)
 }
 
@@ -688,10 +661,9 @@ func TestHeaderWrapper_CheckCorruptedHeader(t *testing.T) {
 			ShardId:       0,
 			PrevHash:      []byte("prevHash"),
 			Signature:     []byte("signature"),},
-		Processor: bp,
 	}
 
-	res := headerWrapper.Check()
+	res := headerWrapper.Check(bp)
 	assert.Equal(t, process.ErrNilBlockBodyHash, res)
 }
 
@@ -708,21 +680,17 @@ func TestHeaderWrapper_CheckOK(t *testing.T) {
 			PrevHash:      []byte("prevHash"),
 			Signature:     []byte("signature"),
 		},
-		Processor: bp,
 	}
 
-	res := headerWrapper.Check()
+	res := headerWrapper.Check(bp)
 	assert.Nil(t, res)
 }
 
 func TestHeaderWrapper_VerifySigNilHeaderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-
 	headerWrapper := block.HeaderWrapper{
-		Header:    nil,
-		Processor: bp,
+		Header: nil,
 	}
 
 	res := headerWrapper.VerifySig()
@@ -732,13 +700,10 @@ func TestHeaderWrapper_VerifySigNilHeaderShouldFail(t *testing.T) {
 func TestHeaderWrapper_VerifySigNilSigShouldFail(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-
 	headerWrapper := block.HeaderWrapper{
 		Header: &bl.Header{
 			Signature: nil,
 		},
-		Processor: bp,
 	}
 
 	res := headerWrapper.VerifySig()
@@ -748,13 +713,10 @@ func TestHeaderWrapper_VerifySigNilSigShouldFail(t *testing.T) {
 func TestHeaderWrapper_VerifySigOk(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-
 	headerWrapper := block.HeaderWrapper{
 		Header: &bl.Header{
 			Signature: []byte("signature"),
 		},
-		Processor: bp,
 	}
 
 	res := headerWrapper.VerifySig()

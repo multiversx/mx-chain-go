@@ -195,19 +195,17 @@ func (bp *blockProcessor) GetRootHash() []byte {
 func (bp *blockProcessor) validateBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
 	headerWrapper := HeaderWrapper{
 		Header:    header,
-		Processor: bp,
 	}
 
 	txbWrapper := TxBlockBodyWrapper{
 		TxBlockBody: body,
-		Processor:   bp,
 	}
 
-	if headerWrapper.Check() != nil {
+	if headerWrapper.Check(bp) != nil {
 		return process.ErrInvalidBlockHeader
 	}
 
-	if txbWrapper.Check() != nil {
+	if txbWrapper.Check(bp) != nil {
 		return process.ErrInvalidTxBlockBody
 	}
 
@@ -243,10 +241,9 @@ func (bp *blockProcessor) isFirstBlockInEpoch(header *block.Header) bool {
 func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody) error {
 	txbWrapper := TxBlockBodyWrapper{
 		TxBlockBody: body,
-		Processor:   bp,
 	}
 
-	if txbWrapper.Check() != nil {
+	if txbWrapper.Check(bp) != nil {
 		return process.ErrInvalidTxBlockBody
 	}
 
@@ -356,6 +353,7 @@ func (bp *blockProcessor) receivedTransaction(txHash []byte) {
 }
 
 func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) {
+	bp.mut.Lock()
 	missingTxsForShards := bp.computeMissingTxsForShards(body)
 	bp.requestedTxHashes = make(map[string]bool)
 	if bp.OnRequestTransaction != nil {
@@ -366,6 +364,7 @@ func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) {
 			}
 		}
 	}
+	bp.mut.Unlock()
 }
 
 func (bp *blockProcessor) computeMissingTxsForShards(body *block.TxBlockBody) map[uint32][][]byte {
