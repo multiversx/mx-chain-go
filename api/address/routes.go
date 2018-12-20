@@ -12,13 +12,13 @@ type Handler interface {
 	GetBalance(address string) (*big.Int, error)
 }
 
-// Routes function defines address related routes
+// Routes defines address related routes
 func Routes(router *gin.RouterGroup) {
 	router.GET("/:address", GetAddress)
 	router.GET("/:address/balance", GetBalance)
 }
 
-//Returns the information about the address passed as parameter
+//GetAddress returns the information about the address passed as parameter
 func GetAddress(c *gin.Context) {
 	_, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {
@@ -32,7 +32,7 @@ func GetAddress(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": addr})
 }
 
-//Returns the balance for the address parameter
+//GetBalance returns the balance for the address parameter
 func GetBalance(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {

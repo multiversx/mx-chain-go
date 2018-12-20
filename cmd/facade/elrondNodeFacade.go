@@ -90,12 +90,13 @@ func (ef *ElrondNodeFacade) IsNodeRunning() bool {
 }
 
 func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	ef.log.Info("Starting web server...")
 	err := api.Start(ef)
 	if err != nil {
 		ef.log.Error("Could not start webserver", err.Error())
 	}
-	wg.Done()
 }
 
 //Gets the current balance for a specified address

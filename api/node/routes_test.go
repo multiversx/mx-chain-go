@@ -27,44 +27,6 @@ type StatusResponse struct {
 	Running bool `json:"running"`
 }
 
-func loadResponse(rsp io.Reader, destination interface{}) {
-	jsonParser := json.NewDecoder(rsp)
-	err := jsonParser.Decode(destination)
-	if err != nil {
-		logError(err)
-	}
-}
-
-func logError(err error) {
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func startNodeServer(handler node.Handler) *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	ws := gin.New()
-	ws.Use(cors.Default())
-	nodeRoutes := ws.Group("/node")
-	if handler != nil {
-		nodeRoutes.Use(middleware.WithElrondFacade(handler))
-	}
-	node.Routes(nodeRoutes)
-	return ws
-}
-
-func startNodeServerWrongFacade() *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	ws := gin.New()
-	ws.Use(cors.Default())
-	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
-	})
-	nodeRoutes := ws.Group("/node")
-	node.Routes(nodeRoutes)
-	return ws
-}
-
 func TestStatusFailsWithoutFacade(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
@@ -264,4 +226,42 @@ func TestStopNode(t *testing.T) {
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.Equal(t, statusRsp.Message, "ok")
+}
+
+func loadResponse(rsp io.Reader, destination interface{}) {
+	jsonParser := json.NewDecoder(rsp)
+	err := jsonParser.Decode(destination)
+	if err != nil {
+		logError(err)
+	}
+}
+
+func logError(err error) {
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func startNodeServer(handler node.Handler) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	ws := gin.New()
+	ws.Use(cors.Default())
+	nodeRoutes := ws.Group("/node")
+	if handler != nil {
+		nodeRoutes.Use(middleware.WithElrondFacade(handler))
+	}
+	node.Routes(nodeRoutes)
+	return ws
+}
+
+func startNodeServerWrongFacade() *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	ws := gin.New()
+	ws.Use(cors.Default())
+	ws.Use(func(c *gin.Context) {
+		c.Set("elrondFacade", mock.WrongFacade{})
+	})
+	nodeRoutes := ws.Group("/node")
+	node.Routes(nodeRoutes)
+	return ws
 }

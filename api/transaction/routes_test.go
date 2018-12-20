@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/address"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/middleware"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/transaction/mock"
@@ -30,44 +29,6 @@ type TransactionResponse struct {
 	TxResp transaction.TxResponse `json:"transaction"`
 }
 
-func loadResponse(rsp io.Reader, destination interface{}) {
-	jsonParser := json.NewDecoder(rsp)
-	err := jsonParser.Decode(destination)
-	if err != nil {
-		logError(err)
-	}
-}
-
-func startNodeServerWrongFacade() *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	ws := gin.New()
-	ws.Use(cors.Default())
-	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
-	})
-	addressRoute := ws.Group("/transaction")
-	address.Routes(addressRoute)
-	return ws
-}
-
-func logError(err error) {
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func startNodeServer(handler transaction.Handler) *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	ws := gin.New()
-	ws.Use(cors.Default())
-	transactionRoute := ws.Group("/transaction")
-	if handler != nil {
-		transactionRoute.Use(middleware.WithElrondFacade(handler))
-	}
-	transaction.Routes(transactionRoute)
-	return ws
-}
-
 func TestGenerateTransaction_WithParameters_ShouldReturnTransaction(t *testing.T) {
 	t.Parallel()
 	sender := "sender"
@@ -76,7 +37,7 @@ func TestGenerateTransaction_WithParameters_ShouldReturnTransaction(t *testing.T
 	data := "data"
 
 	facade := mock.Facade{
-		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int, code string) (transaction *tr.Transaction, e error) {
+		GenerateTransactionHandler: func(sender string, receiver string, amount big.Int, code string) (transaction *tr.Transaction, e error) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
@@ -120,7 +81,7 @@ func TestGetTransaction_WithCorrectHash_ShouldReturnTransaction(t *testing.T) {
 	data := "data"
 	hash := "hash"
 	facade := mock.Facade{
-		GetTransactionCalled: func(hash string) (i *tr.Transaction, e error) {
+		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
@@ -155,7 +116,7 @@ func TestGetTransaction_WithUnknownHash_ShouldReturnNil(t *testing.T) {
 	data := "data"
 	hs := "hash"
 	facade := mock.Facade{
-		GetTransactionCalled: func(hash string) (i *tr.Transaction, e error) {
+		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
 			if hash != hs {
 				return nil, nil
 			}
@@ -186,7 +147,7 @@ func TestGetTransaction_WithUnknownHash_ShouldReturnNil(t *testing.T) {
 	assert.Equal(t, data, txResp.Data)
 }
 
-func TestGetTransaction_WithBadJson_ShouldReturnBadRequest(t *testing.T) {
+func TestGenerateTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.Facade{}
@@ -219,4 +180,61 @@ func TestGetTransactionFailsWithWrongFacadeTypeConversion(t *testing.T) {
 	loadResponse(resp.Body, &transactionResponse)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 	assert.Equal(t, transactionResponse.Error, "Invalid app context")
+}
+
+func TestGenerateTransaction_WithBadJsonShouldReturnInternalServerError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerWrongFacade()
+
+	badJsonString := "bad"
+
+	req, _ := http.NewRequest("POST", "/transaction", bytes.NewBuffer([]byte(badJsonString)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Contains(t, transactionResponse.Error, "Invalid app context")
+}
+
+func loadResponse(rsp io.Reader, destination interface{}) {
+	jsonParser := json.NewDecoder(rsp)
+	err := jsonParser.Decode(destination)
+	if err != nil {
+		logError(err)
+	}
+}
+
+func logError(err error) {
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func startNodeServer(handler transaction.Handler) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	ws := gin.New()
+	ws.Use(cors.Default())
+	transactionRoute := ws.Group("/transaction")
+	if handler != nil {
+		transactionRoute.Use(middleware.WithElrondFacade(handler))
+	}
+	transaction.Routes(transactionRoute)
+	return ws
+}
+
+func startNodeServerWrongFacade() *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	ws := gin.New()
+	ws.Use(cors.Default())
+	ws.Use(func(c *gin.Context) {
+		c.Set("elrondFacade", mock.WrongFacade{})
+	})
+	transactionRoute := ws.Group("/transaction")
+	transaction.Routes(transactionRoute)
+	return ws
 }

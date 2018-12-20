@@ -18,7 +18,7 @@ type NodeWrapper interface {
 	// Stop closes the messenger and undos everything done in Start
 	Stop() error
 
-	//Returns if the underlying node is running
+	//IsRunning returns if the underlying node is running
 	IsRunning() bool
 
 	// ConnectToInitialAddresses connect to the list of peers provided initialAddresses

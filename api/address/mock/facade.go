@@ -5,11 +5,11 @@ import (
 )
 
 type Facade struct {
-	GetBalanceCalled func(string) (*big.Int, error)
+	BalanceHandler func(string) (*big.Int, error)
 }
 
 func (f *Facade) GetBalance(address string) (*big.Int, error) {
-	return f.GetBalanceCalled(address)
+	return f.BalanceHandler(address)
 }
 
 type WrongFacade struct {

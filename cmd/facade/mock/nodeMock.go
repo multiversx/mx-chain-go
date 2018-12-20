@@ -6,54 +6,54 @@ import (
 )
 
 type NodeMock struct {
-	AddressCalled                   func() (string, error)
-	StartCalled                     func() error
-	StopCalled                      func() error
-	IsRunningCalled                 func() bool
-	ConnectToInitialAddressesCalled func() error
-	ConnectToAddressesCalled        func([]string) error
-	StartConsensusCalled            func() error
-	GetBalanceCalled                func(address string) (*big.Int, error)
-	GenerateTransactionCalled       func(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionCalled            func(hash string) (*transaction.Transaction, error)
+	AddressHandler                   func() (string, error)
+	StartHandler                     func() error
+	StopHandler                      func() error
+	IsRunningHandler                 func() bool
+	ConnectToInitialAddressesHandler func() error
+	ConnectToAddressesHandler        func([]string) error
+	StartConsensusHandler            func() error
+	GetBalanceHandler                func(address string) (*big.Int, error)
+	GenerateTransactionHandler       func(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error)
+	GetTransactionHandler            func(hash string) (*transaction.Transaction, error)
 }
 
 func (nm *NodeMock) Address() (string, error) {
-	return nm.AddressCalled()
+	return nm.AddressHandler()
 }
 
 func (nm *NodeMock) Start() error {
-	return nm.StartCalled()
+	return nm.StartHandler()
 }
 
 func (nm *NodeMock) Stop() error {
-	return nm.StopCalled()
+	return nm.StopHandler()
 }
 
 func (nm *NodeMock) IsRunning() bool {
-	return nm.IsRunningCalled()
+	return nm.IsRunningHandler()
 }
 
 func (nm *NodeMock) ConnectToInitialAddresses() error {
-	return nm.ConnectToInitialAddressesCalled()
+	return nm.ConnectToInitialAddressesHandler()
 }
 
 func (nm *NodeMock) ConnectToAddresses(addresses []string) error {
-	return nm.ConnectToAddressesCalled(addresses)
+	return nm.ConnectToAddressesHandler(addresses)
 }
 
 func (nm *NodeMock) StartConsensus() error {
-	return nm.StartConsensusCalled()
+	return nm.StartConsensusHandler()
 }
 
 func (nm *NodeMock) GetBalance(address string) (*big.Int, error) {
-	return nm.GetBalanceCalled(address)
+	return nm.GetBalanceHandler(address)
 }
 
 func (nm *NodeMock) GenerateTransaction(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error) {
-	return nm.GenerateTransactionCalled(sender, receiver, amount, code)
+	return nm.GenerateTransactionHandler(sender, receiver, amount, code)
 }
 
 func (nm *NodeMock) GetTransaction(hash string) (*transaction.Transaction, error) {
-	return nm.GetTransactionCalled(hash)
+	return nm.GetTransactionHandler(hash)
 }

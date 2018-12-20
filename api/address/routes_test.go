@@ -31,48 +31,12 @@ type AddressResponse struct {
 	Balance big.Int `json:"balance"`
 }
 
-func loadResponse(rsp io.Reader, destination interface{}) {
-	jsonParser := json.NewDecoder(rsp)
-	err := jsonParser.Decode(destination)
-	logError(err)
-}
-
-func logError(err error) {
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
-func startNodeServer(handler address.Handler) *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	ws := gin.New()
-	ws.Use(cors.Default())
-	addressRoutes := ws.Group("/address")
-	if handler != nil {
-		addressRoutes.Use(middleware.WithElrondFacade(handler))
-	}
-	address.Routes(addressRoutes)
-	return ws
-}
-
-func startNodeServerWrongFacade() *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	ws := gin.New()
-	ws.Use(cors.Default())
-	ws.Use(func(c *gin.Context) {
-		c.Set("elrondFacade", mock.WrongFacade{})
-	})
-	addressRoute := ws.Group("/address")
-	address.Routes(addressRoute)
-	return ws
-}
-
 func TestGetBalance_WithCorrectAddressShouldNotReturnError(t *testing.T) {
 	t.Parallel()
 	amount := big.NewInt(10)
 	addr := "testAddress"
 	facade := mock.Facade{
-		GetBalanceCalled: func(s string) (i *big.Int, e error) {
+		BalanceHandler: func(s string) (i *big.Int, e error) {
 			return amount, nil
 		},
 	}
@@ -94,7 +58,7 @@ func TestGetBalance_WithWrongAddressShouldReturnZero(t *testing.T) {
 	t.Parallel()
 	otherAddress := "otherAddress"
 	facade := mock.Facade{
-		GetBalanceCalled: func(s string) (i *big.Int, e error) {
+		BalanceHandler: func(s string) (i *big.Int, e error) {
 			return big.NewInt(0), nil
 		},
 	}
@@ -115,7 +79,7 @@ func TestGetBalance_WithWrongAddressShouldReturnZero(t *testing.T) {
 func TestGetBalance_WithEmptyAddressShouldReturnZeroAndError(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{
-		GetBalanceCalled: func(s string) (i *big.Int, e error) {
+		BalanceHandler: func(s string) (i *big.Int, e error) {
 			return big.NewInt(0), errors.New("address was empty")
 		},
 	}
@@ -161,4 +125,40 @@ func TestGetBalance_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 	assert.Equal(t, statusRsp.Error, "Invalid app context")
+}
+
+func loadResponse(rsp io.Reader, destination interface{}) {
+	jsonParser := json.NewDecoder(rsp)
+	err := jsonParser.Decode(destination)
+	logError(err)
+}
+
+func logError(err error) {
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func startNodeServer(handler address.Handler) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	ws := gin.New()
+	ws.Use(cors.Default())
+	addressRoutes := ws.Group("/address")
+	if handler != nil {
+		addressRoutes.Use(middleware.WithElrondFacade(handler))
+	}
+	address.Routes(addressRoutes)
+	return ws
+}
+
+func startNodeServerWrongFacade() *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	ws := gin.New()
+	ws.Use(cors.Default())
+	ws.Use(func(c *gin.Context) {
+		c.Set("elrondFacade", mock.WrongFacade{})
+	})
+	addressRoute := ws.Group("/address")
+	address.Routes(addressRoute)
+	return ws
 }

@@ -36,7 +36,7 @@ type TxResponse struct {
 	Challenge string   `form:"challenge" json:"challenge"`
 }
 
-// Routes function defines transaction related routes
+// Routes defines transaction related routes
 func Routes(router *gin.RouterGroup) {
 	router.POST("", GenerateTransaction)
 	router.GET("/:txhash", GetTransaction)

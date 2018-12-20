@@ -3,12 +3,13 @@ package facade_test
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
 )
 
 func TestNewElrondFacade_FromValidNodeShouldReturnNotNil(t *testing.T) {
@@ -25,17 +26,17 @@ func TestNewElrondFacade_FromNullNodeShouldReturnNil(t *testing.T) {
 func TestElrondFacade_StartNode_WithNodeNotNull_ShouldNotReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
-		StartCalled: func() error {
+		StartHandler: func() error {
 			started = true
 			return nil
 		},
-		IsRunningCalled: func() bool {
+		IsRunningHandler: func() bool {
 			return started
 		},
-		ConnectToInitialAddressesCalled: func() error {
+		ConnectToInitialAddressesHandler: func() error {
 			return nil
 		},
-		StartConsensusCalled: func() error {
+		StartConsensusHandler: func() error {
 			return nil
 		},
 	}
@@ -52,10 +53,10 @@ func TestElrondFacade_StartNode_WithNodeNotNull_ShouldNotReturnError(t *testing.
 func TestElrondFacade_StartNode_WithErrorOnStartNode_ShouldReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
-		StartCalled: func() error {
+		StartHandler: func() error {
 			return fmt.Errorf("error on start node")
 		},
-		IsRunningCalled: func() bool {
+		IsRunningHandler: func() bool {
 			return started
 		},
 	}
@@ -72,14 +73,14 @@ func TestElrondFacade_StartNode_WithErrorOnStartNode_ShouldReturnError(t *testin
 func TestElrondFacade_StartNode_WithErrorOnConnectToInitialAddresses_ShouldReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
-		StartCalled: func() error {
+		StartHandler: func() error {
 			started = true
 			return nil
 		},
-		IsRunningCalled: func() bool {
+		IsRunningHandler: func() bool {
 			return started
 		},
-		ConnectToInitialAddressesCalled: func() error {
+		ConnectToInitialAddressesHandler: func() error {
 			started = false
 			return fmt.Errorf("error on connecting to initial addresses")
 		},
@@ -97,17 +98,17 @@ func TestElrondFacade_StartNode_WithErrorOnConnectToInitialAddresses_ShouldRetur
 func TestElrondFacade_StartNode_WithErrorOnStartConsensus_ShouldReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
-		StartCalled: func() error {
+		StartHandler: func() error {
 			started = true
 			return nil
 		},
-		IsRunningCalled: func() bool {
+		IsRunningHandler: func() bool {
 			return started
 		},
-		ConnectToInitialAddressesCalled: func() error {
+		ConnectToInitialAddressesHandler: func() error {
 			return nil
 		},
-		StartConsensusCalled: func() error {
+		StartConsensusHandler: func() error {
 			started = false
 			return fmt.Errorf("error on StartConsensus")
 		},
@@ -125,11 +126,11 @@ func TestElrondFacade_StartNode_WithErrorOnStartConsensus_ShouldReturnError(t *t
 func TestElrondFacade_StopNode_WithNodeNotNull_ShouldNotReturnError(t *testing.T) {
 	started := true
 	node := &mock.NodeMock{
-		StopCalled: func() error {
+		StopHandler: func() error {
 			started = false
 			return nil
 		},
-		IsRunningCalled: func() bool {
+		IsRunningHandler: func() bool {
 			return started
 		},
 	}
@@ -146,11 +147,11 @@ func TestElrondFacade_StopNode_WithNodeNotNull_ShouldNotReturnError(t *testing.T
 func TestElrondFacade_StopNode_WithNodeNull_ShouldReturnError(t *testing.T) {
 	started := true
 	node := &mock.NodeMock{
-		StopCalled: func() error {
+		StopHandler: func() error {
 			started = false
 			return errors.New("failed to stop node")
 		},
-		IsRunningCalled: func() bool {
+		IsRunningHandler: func() bool {
 			return started
 		},
 	}
@@ -168,7 +169,7 @@ func TestElrondFacade_GetBalance_WithValidAddress_ShouldReturnBalance(t *testing
 	balance := big.NewInt(10)
 	addr := "testAddress"
 	node := &mock.NodeMock{
-		GetBalanceCalled: func(address string) (*big.Int, error) {
+		GetBalanceHandler: func(address string) (*big.Int, error) {
 			if addr == address {
 				return balance, nil
 			}
@@ -190,7 +191,7 @@ func TestElrondFacade_GetBalance_WithUnknownAddress_ShouldReturnZeroBalance(t *t
 	zeroBalance := big.NewInt(0)
 
 	node := &mock.NodeMock{
-		GetBalanceCalled: func(address string) (*big.Int, error) {
+		GetBalanceHandler: func(address string) (*big.Int, error) {
 			if addr == address {
 				return balance, nil
 			}
@@ -210,7 +211,7 @@ func TestElrondFacade_GetBalance_WithErrorOnNode_ShouldReturnZeroBalanceAndError
 	zeroBalance := big.NewInt(0)
 
 	node := &mock.NodeMock{
-		GetBalanceCalled: func(address string) (*big.Int, error) {
+		GetBalanceHandler: func(address string) (*big.Int, error) {
 			return big.NewInt(0), errors.New("error on getBalance on node")
 		},
 	}
@@ -236,7 +237,7 @@ func TestElrondFacade_GenerateTransaction_WithCorrectInputs_ShouldReturnNoError(
 		Value: uint64(value.Int64())}
 
 	node := &mock.NodeMock{
-		GenerateTransactionCalled: func(sender string, receiver string, value big.Int,
+		GenerateTransactionHandler: func(sender string, receiver string, value big.Int,
 			data string) (*transaction.Transaction, error) {
 			return &transaction.Transaction{
 				SndAddr: []byte(sender),
@@ -261,7 +262,7 @@ func TestElrondFacade_GenerateTransaction_WithNilSender_ShouldReturnError(t *tes
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int,
+		GenerateTransactionHandler: func(sender string, receiver string, amount big.Int,
 			code string) (*transaction.Transaction, error) {
 			if sender == "" {
 				return nil, errors.New("nil sender")
@@ -283,7 +284,7 @@ func TestElrondFacade_GenerateTransaction_WithNilReceiver_ShouldReturnError(t *t
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int,
+		GenerateTransactionHandler: func(sender string, receiver string, amount big.Int,
 			code string) (*transaction.Transaction, error) {
 			if receiver == "" {
 				return nil, errors.New("nil receiver")
@@ -306,7 +307,7 @@ func TestElrondFacade_GenerateTransaction_WithZeroAmount_ShouldReturnError(t *te
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int,
+		GenerateTransactionHandler: func(sender string, receiver string, amount big.Int,
 			code string) (*transaction.Transaction, error) {
 			if amount.Cmp(big.NewInt(0)) == 0 {
 				return nil, errors.New("zero amount")
@@ -329,7 +330,7 @@ func TestElrondFacade_GenerateTransaction_WithNegativeAmount_ShouldReturnError(t
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionCalled: func(sender string, receiver string, amount big.Int,
+		GenerateTransactionHandler: func(sender string, receiver string, amount big.Int,
 			code string) (*transaction.Transaction, error) {
 			if amount.Cmp(big.NewInt(0)) < 0 {
 				return nil, errors.New("negative amount")
@@ -350,7 +351,7 @@ func TestElrondFacade_GetTransaction_WithValidInputs_ShouldNotReturnError(t *tes
 	testTx := &transaction.Transaction{}
 	//testTx.
 	node := &mock.NodeMock{
-		GetTransactionCalled: func(hash string) (*transaction.Transaction, error) {
+		GetTransactionHandler: func(hash string) (*transaction.Transaction, error) {
 			if hash == testHash {
 				return testTx, nil
 			}
@@ -369,7 +370,7 @@ func TestElrondFacade_GetTransaction_WithUnknowHash_ShouldReturnNilAndNoError(t 
 	testHash := "testHash"
 	testTx := &transaction.Transaction{}
 	node := &mock.NodeMock{
-		GetTransactionCalled: func(hash string) (*transaction.Transaction, error) {
+		GetTransactionHandler: func(hash string) (*transaction.Transaction, error) {
 			if hash == testHash {
 				return testTx, nil
 			}
