@@ -30,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
@@ -53,7 +54,7 @@ func TestEmptyRoot(t *testing.T) {
 
 // Used for testing
 func newEmpty() *trie.Trie {
-	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), trie.NewDBWriteCache(mock.NewDatabaseMock()),
+	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), trie.NewDBWriteCache(mock.NewMemoryStorerMock()),
 		testHasher)
 	return tr
 }
@@ -83,7 +84,7 @@ func TestNull(t *testing.T) {
 
 func TestMissingRoot(t *testing.T) {
 	tr, err := trie.NewTrie(encoding.HexToHash("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33").Bytes(),
-		trie.NewDBWriteCache(mock.NewDatabaseMock()), testHasher)
+		trie.NewDBWriteCache(mock.NewMemoryStorerMock()), testHasher)
 	if tr != nil {
 		t.Error("New returned non-nil trie for invalid root")
 	}
@@ -96,7 +97,7 @@ func TestMissingNodeDisk(t *testing.T)    { testMissingNode(t, false) }
 func TestMissingNodeMemonly(t *testing.T) { testMissingNode(t, true) }
 
 func testMissingNode(t *testing.T, memonly bool) {
-	diskdb := mock.NewDatabaseMock()
+	diskdb := mock.NewMemoryStorerMock()
 	triedb := trie.NewDBWriteCache(diskdb)
 
 	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), triedb, testHasher)
@@ -333,13 +334,13 @@ func TestLargeValue(t *testing.T) {
 }
 
 type countingDB struct {
-	trie.PersisterBatcher
+	storage.Storer
 	gets map[string]int
 }
 
 func (db *countingDB) Get(key []byte) ([]byte, error) {
 	db.gets[string(key)]++
-	return db.PersisterBatcher.Get(key)
+	return db.Storer.Get(key)
 }
 
 // TestCacheUnload checks that decoded nodes are unloaded after a
@@ -358,7 +359,7 @@ func TestCacheUnload(t *testing.T) {
 	// Commit the trie repeatedly and access key1.
 	// The branch containing it is loaded from DB exactly two times:
 	// in the 0th and 6th iteration.
-	db := &countingDB{PersisterBatcher: tr.DBW().PersistDB(), gets: make(map[string]int)}
+	db := &countingDB{Storer: tr.DBW().Storer(), gets: make(map[string]int)}
 	tr, _ = trie.NewTrie(root, trie.NewDBWriteCache(db), testHasher)
 	tr.SetCacheLimit(5)
 	for i := 0; i < 12; i++ {
@@ -427,7 +428,7 @@ func (randTest) Generate(r *rand.Rand, size int) reflect.Value {
 }
 
 func runRandTest(rt randTest) bool {
-	triedb := trie.NewDBWriteCache(mock.NewDatabaseMock())
+	triedb := trie.NewDBWriteCache(mock.NewMemoryStorerMock())
 
 	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), triedb, testHasher)
 	values := make(map[string]string) // tracks content of the trie
@@ -607,7 +608,7 @@ func BenchmarkHash(b *testing.B) {
 }
 
 func tempDB() (string, trie.DBWriteCacher) {
-	diskdb := mock.NewDatabaseMock()
+	diskdb := mock.NewMemoryStorerMock()
 
 	return "MEM", trie.NewDBWriteCache(diskdb)
 }

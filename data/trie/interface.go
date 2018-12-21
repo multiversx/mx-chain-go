@@ -32,23 +32,6 @@ const IdealBatchSize = 100 * 1024
 // between account and storage tries.
 type LeafCallback func(leaf []byte, parent []byte) error
 
-// PersisterBatcher wraps all database operations. All methods are safe for concurrent use.
-type PersisterBatcher interface {
-	storage.Persister
-	NewBatch() Batch
-}
-
-// Batch is a write-only database that commits changes to its host database
-// when Write is called. Batch cannot be used concurrently.
-type Batch interface {
-	Put(key []byte, value []byte) error
-	Delete(key []byte) error
-	ValueSize() int // amount of data in the batch
-	Write() error
-	// Reset resets the batch for reuse
-	Reset()
-}
-
 // PatriciaMerkelTree used in all tries implementations
 type PatriciaMerkelTree interface {
 	SetCacheLimit(l uint16)
@@ -64,7 +47,7 @@ type PatriciaMerkelTree interface {
 
 // DBWriteCacher used in Patricia Merkel Tree sub layer
 type DBWriteCacher interface {
-	PersistDB() PersisterBatcher
+	Storer() storage.Storer
 	InsertBlob(hash []byte, blob []byte)
 	Node(hash []byte) ([]byte, error)
 	Reference(child []byte, parent []byte)
