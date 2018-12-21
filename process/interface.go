@@ -17,7 +17,7 @@ type TransactionProcessor interface {
 	SCHandler() func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
 	SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error)
 
-	ProcessTransaction(transaction *transaction.Transaction) error
+	ProcessTransaction(transaction *transaction.Transaction, round int32) error
 	SetBalancesToTrie(accBalance map[string]big.Int) (rootHash []byte, err error)
 }
 
@@ -25,7 +25,7 @@ type TransactionProcessor interface {
 type BlockProcessor interface {
 	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
 	CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody
-	CreateTxBlockBody(shardId uint32, maxTxInBlock int, haveTime func() bool) (*block.TxBlockBody, error)
+	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
 	RemoveBlockTxsFromPool(body *block.TxBlockBody) error
 	GetRootHash() []byte
 	NoShards() uint32

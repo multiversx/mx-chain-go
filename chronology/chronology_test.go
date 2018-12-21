@@ -328,7 +328,7 @@ func TestGettersAndSetters(t *testing.T) {
 
 	chr := chronology.NewChronology(true, true, rnd, genesisTime, syncTime)
 
-	assert.Equal(t, 0, chr.Round().Index())
+	assert.Equal(t, int32(0), chr.Round().Index())
 	assert.Equal(t, chronology.SubroundId(-1), chr.SelfSubround())
 
 	chr.SetSelfSubround(srStartRound)

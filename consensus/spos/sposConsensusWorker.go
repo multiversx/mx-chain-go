@@ -8,10 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ethereum/go-ethereum/log"
 )
+
+var log = logger.NewDefaultLogger()
 
 //TODO: Split in multiple structs, with Single Responsibility
 
@@ -265,7 +267,12 @@ func (sposWorker *SPOSConsensusWorker) SendBlockBody() bool {
 		return true
 	}
 
-	blk, err := sposWorker.BlockProcessor.CreateTxBlockBody(shardId, maxTransactionsInBlock, haveTime)
+	blk, err := sposWorker.BlockProcessor.CreateTxBlockBody(
+		shardId,
+		maxTransactionsInBlock,
+		sposWorker.Cns.Chr.Round().Index(),
+		haveTime,
+	)
 
 	message, err := sposWorker.marshalizer.Marshal(blk)
 

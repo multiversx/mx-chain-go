@@ -10,7 +10,7 @@ import (
 type BlockProcessorMock struct {
 	ProcessBlockCalled           func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
 	CreateGenesisBlockCalled     func(balances map[string]big.Int, shardId uint32) *block.StateBlockBody
-	CreateTxBlockCalled          func(shardId uint32, maxTxInBlock int, haveTime func() bool) (*block.TxBlockBody, error)
+	CreateTxBlockCalled          func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
 	RemoveBlockTxsFromPoolCalled func(body *block.TxBlockBody) error
 	GetRootHashCalled            func() []byte
 	noShards                     uint32
@@ -24,8 +24,8 @@ func (blProcMock BlockProcessorMock) CreateGenesisBlockBody(balances map[string]
 	panic("implement me")
 }
 
-func (blProcMock BlockProcessorMock) CreateTxBlockBody(shardId uint32, maxTxInBlock int, haveTime func() bool) (*block.TxBlockBody, error) {
-	return blProcMock.CreateTxBlockCalled(shardId, maxTxInBlock, haveTime)
+func (blProcMock BlockProcessorMock) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error) {
+	return blProcMock.CreateTxBlockCalled(shardId, maxTxInBlock, round, haveTime)
 }
 
 func (blProcMock BlockProcessorMock) RemoveBlockTxsFromPool(body *block.TxBlockBody) error {

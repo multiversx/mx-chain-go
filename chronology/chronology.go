@@ -108,8 +108,10 @@ func (chr *Chronology) StartRound() {
 	if chr.SelfSubround() == subRound {
 		sr := chr.LoadSubroundHandler(subRound)
 		if sr != nil {
-			if sr.DoWork(chr.computeSubRoundId, chr.isCancelled) {
-				chr.SetSelfSubround(sr.Next())
+			if chr.Round().Index() >= 0 {
+				if sr.DoWork(chr.computeSubRoundId, chr.isCancelled) {
+					chr.SetSelfSubround(sr.Next())
+				}
 			}
 		}
 	}

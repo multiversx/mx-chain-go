@@ -3,12 +3,13 @@ package state_test
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"strings"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
+	"github.com/stretchr/testify/assert"
 )
 
 //------- NewAddressConverter
@@ -97,7 +98,7 @@ func TestAddressConverterCreateAddressFromPublicKeyBytesOkValsTrimShouldWork(t *
 
 	assert.Equal(t, hashExpected[len(hashExpected)-32:], adr.Bytes())
 
-	fmt.Printf("Address %v has the hash %v\n", hex.EncodeToString(adr.Bytes()), hex.EncodeToString(adr.Hash()))
+	fmt.Printf("Address %v has the hash %v\n", hex.EncodeToString(adr.Bytes()), hex.EncodeToString(mock.HasherMock{}.Compute(string(adr.Bytes()))))
 }
 
 //------- ConvertToHex
