@@ -23,7 +23,6 @@ type AddressConverter interface {
 // AddressContainer models what an Address struct should do
 type AddressContainer interface {
 	Bytes() []byte
-	//Hash() []byte
 }
 
 // AccountWrapper models what an AccountWrap struct should do

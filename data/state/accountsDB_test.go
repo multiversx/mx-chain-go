@@ -5,13 +5,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/pkg/errors"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

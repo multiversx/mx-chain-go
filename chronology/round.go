@@ -1,10 +1,10 @@
 package chronology
 
 import (
+	"math"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"math"
 )
 
 // Round defines the data needed by the round

@@ -23,8 +23,8 @@ type txProcessor struct {
 	marshalizer marshal.Marshalizer
 }
 
-// NewExecTransaction creates a new txProcessor engine
-func NewExecTransaction(
+// NewTxProcessor creates a new txProcessor engine
+func NewTxProcessor(
 	accounts state.AccountsAdapter,
 	hasher hashing.Hasher,
 	addressConv state.AddressConverter,
