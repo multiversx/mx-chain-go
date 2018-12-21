@@ -3,27 +3,27 @@ package block
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
-
-var log = logger.NewDefaultLogger()
 
 // HeaderInterceptor represents an interceptor used for block headers
 type HeaderInterceptor struct {
 	process.Interceptor
-	headers       data.ShardedDataCacherNotifier
-	headersNonces data.Uint64Cacher
-	hasher        hashing.Hasher
+	headers          data.ShardedDataCacherNotifier
+	headersNonces    data.Uint64Cacher
+	hasher           hashing.Hasher
+	shardCoordinator sharding.ShardCoordinator
 }
 
 // GenericBlockBodyInterceptor represents an interceptor used for all types of block bodies
 type GenericBlockBodyInterceptor struct {
 	process.Interceptor
-	cache  storage.Cacher
-	hasher hashing.Hasher
+	cache            storage.Cacher
+	hasher           hashing.Hasher
+	shardCoordinator sharding.ShardCoordinator
 }
 
 //------- HeaderInterceptor
@@ -35,6 +35,7 @@ func NewHeaderInterceptor(
 	headers data.ShardedDataCacherNotifier,
 	headersNonces data.Uint64Cacher,
 	hasher hashing.Hasher,
+	shardCoordinator sharding.ShardCoordinator,
 ) (*HeaderInterceptor, error) {
 
 	if interceptor == nil {
@@ -53,11 +54,16 @@ func NewHeaderInterceptor(
 		return nil, process.ErrNilHasher
 	}
 
+	if shardCoordinator == nil {
+		return nil, process.ErrNilShardCoordinator
+	}
+
 	hdrIntercept := &HeaderInterceptor{
-		Interceptor:   interceptor,
-		headers:       headers,
-		headersNonces: headersNonces,
-		hasher:        hasher,
+		Interceptor:      interceptor,
+		headers:          headers,
+		headersNonces:    headersNonces,
+		hasher:           hasher,
+		shardCoordinator: shardCoordinator,
 	}
 
 	interceptor.SetCheckReceivedObjectHandler(hdrIntercept.processHdr)
@@ -82,8 +88,15 @@ func (hi *HeaderInterceptor) processHdr(hdr p2p.Newer, rawData []byte) bool {
 	hash := hi.hasher.Compute(string(rawData))
 	hdrIntercepted.SetHash(hash)
 
-	if !hdrIntercepted.Check() || !hdrIntercepted.VerifySig() {
-		log.Debug("intercepted hdr block failed the check or verifySig methods")
+	err := hdrIntercepted.IntegrityAndValidity(hi.shardCoordinator)
+	if err != nil {
+		log.Debug(err.Error())
+		return false
+	}
+
+	err = hdrIntercepted.VerifySig()
+	if err != nil {
+		log.Debug(err.Error())
 		return false
 	}
 
@@ -108,6 +121,7 @@ func NewGenericBlockBodyInterceptor(
 	cache storage.Cacher,
 	hasher hashing.Hasher,
 	templateObj process.BlockBodyInterceptorAdapter,
+	shardCoordinator sharding.ShardCoordinator,
 ) (*GenericBlockBodyInterceptor, error) {
 
 	if interceptor == nil {
@@ -126,10 +140,15 @@ func NewGenericBlockBodyInterceptor(
 		return nil, process.ErrNilTemplateObj
 	}
 
+	if shardCoordinator == nil {
+		return nil, process.ErrNilShardCoordinator
+	}
+
 	bbIntercept := &GenericBlockBodyInterceptor{
-		Interceptor: interceptor,
-		cache:       cache,
-		hasher:      hasher,
+		Interceptor:      interceptor,
+		cache:            cache,
+		hasher:           hasher,
+		shardCoordinator: shardCoordinator,
 	}
 
 	interceptor.SetCheckReceivedObjectHandler(bbIntercept.processBodyBlock)
@@ -143,7 +162,7 @@ func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Newer, r
 		return false
 	}
 
-	txBlockBodyIntercepted, ok := bodyBlock.(process.BlockBodyInterceptorAdapter)
+	blockBodyIntercepted, ok := bodyBlock.(process.BlockBodyInterceptorAdapter)
 
 	if !ok {
 		log.Error("bad implementation: BlockBodyInterceptor is not using BlockBodyInterceptorAdapter " +
@@ -152,13 +171,14 @@ func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Newer, r
 	}
 
 	hash := gbbi.hasher.Compute(string(rawData))
-	txBlockBodyIntercepted.SetHash(hash)
+	blockBodyIntercepted.SetHash(hash)
 
-	if !txBlockBodyIntercepted.Check() {
-		log.Debug("intercepted tx block body failed the check method")
+	err := blockBodyIntercepted.IntegrityAndValidity(gbbi.shardCoordinator)
+	if err != nil {
+		log.Debug(err.Error())
 		return false
 	}
 
-	_ = gbbi.cache.Put(hash, txBlockBodyIntercepted)
+	_ = gbbi.cache.Put(hash, blockBodyIntercepted)
 	return true
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
 func (txProc *txProcessor) GetAddresses(tx *transaction.Transaction) (adrSrc, adrDest state.AddressContainer, err error) {
@@ -29,18 +30,6 @@ func (txProc *txProcessor) MoveBalances(acntSrc, acntDest state.JournalizedAccou
 
 func (txProc *txProcessor) IncreaseNonceAcntSrc(acntSrc state.JournalizedAccountWrapper) error {
 	return txProc.increaseNonceAcntSrc(acntSrc)
-}
-
-func (inTx *InterceptedTransaction) SetRcvShard(rcvShard uint32) {
-	inTx.rcvShard = rcvShard
-}
-
-func (inTx *InterceptedTransaction) SetSndShard(sndShard uint32) {
-	inTx.sndShard = sndShard
-}
-
-func (inTx *InterceptedTransaction) SetIsAddressedToOtherShards(isAddressedToOtherShards bool) {
-	inTx.isAddressedToOtherShards = isAddressedToOtherShards
 }
 
 func (txi *TxInterceptor) ProcessTx(tx p2p.Newer, rawData []byte) bool {

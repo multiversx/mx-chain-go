@@ -1,9 +1,14 @@
 package transaction
 
 import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 // InterceptedTransaction holds and manages a transaction based struct with extended functionality
@@ -15,13 +20,13 @@ type InterceptedTransaction struct {
 	sndShard                 uint32
 	isAddressedToOtherShards bool
 	addrConv                 state.AddressConverter
+	singleSignKeyGen         crypto.KeyGenerator
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
 func NewInterceptedTransaction() *InterceptedTransaction {
 	return &InterceptedTransaction{
 		Transaction: &transaction.Transaction{},
-		addrConv:    nil,
 	}
 }
 
@@ -35,75 +40,92 @@ func (inTx *InterceptedTransaction) ID() string {
 	return string(inTx.hash)
 }
 
-// Check returns true if the transaction data pass some sanity check and some validation checks
-func (inTx *InterceptedTransaction) Check() bool {
-	if !inTx.sanityCheck() {
-		return false
+// IntegrityAndValidity returns a non nil error if transaction failed some checking tests
+func (inTx *InterceptedTransaction) IntegrityAndValidity(coordinator sharding.ShardCoordinator) error {
+	if coordinator == nil {
+		return process.ErrNilShardCoordinator
 	}
 
-	if !inTx.dataValidity() {
-		return false
-	}
-
-	inTx.rcvShard = inTx.computeShard(inTx.RcvAddr)
-	inTx.sndShard = inTx.computeShard(inTx.SndAddr)
-
-	return true
-}
-
-// sanityCheck, practically checks for not nil fields
-func (inTx *InterceptedTransaction) sanityCheck() bool {
-	notNilFields := inTx.Transaction != nil &&
-		inTx.Signature != nil &&
-		inTx.Challenge != nil &&
-		inTx.RcvAddr != nil &&
-		inTx.SndAddr != nil
-
-	if !notNilFields {
-		log.Debug("tx with nil fields")
-	}
-
-	return notNilFields
-}
-
-// dataValidity compute snd and rcv shards, checks for sign value and others
-func (inTx *InterceptedTransaction) dataValidity() bool {
-	//TODO set isAddressedToOtherShards to true and return when we will have sharding in place and the statement applies
-	inTx.isAddressedToOtherShards = false
-
-	if inTx.Value.Sign() < 0 {
-		log.Debug("tx with negative value")
-		return false
+	err := inTx.Integrity(coordinator)
+	if err != nil {
+		return err
 	}
 
 	if inTx.addrConv == nil {
-		log.Debug("nil AddressConverter so can not verify addresses")
-		return false
+		return process.ErrNilAddressConverter
 	}
 
-	_, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.SndAddr)
+	sndAddr, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.SndAddr)
 	if err != nil {
-		log.Debug("tx with invalid sender address")
-		return false
-	}
-	_, err = inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.RcvAddr)
-	if err != nil {
-		log.Debug("tx with invalid receiver address")
-		return false
+		return process.ErrInvalidSndAddr
 	}
 
-	return true
+	rcvAddr, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.RcvAddr)
+	if err != nil {
+		return process.ErrInvalidRcvAddr
+	}
+
+	inTx.rcvShard = coordinator.ComputeShardForAddress(rcvAddr, inTx.addrConv)
+	inTx.sndShard = coordinator.ComputeShardForAddress(sndAddr, inTx.addrConv)
+
+	inTx.isAddressedToOtherShards =
+		inTx.rcvShard != coordinator.ShardForCurrentNode() &&
+			inTx.sndShard != coordinator.ShardForCurrentNode()
+
+	return nil
+}
+
+// Integrity checks for not nil fields and negative value
+func (inTx *InterceptedTransaction) Integrity(coordinator sharding.ShardCoordinator) error {
+	if inTx.Transaction == nil {
+		return process.ErrNilTransaction
+	}
+
+	if inTx.Signature == nil {
+		return process.ErrNilSignature
+	}
+
+	if inTx.Challenge == nil {
+		return process.ErrNilChallenge
+	}
+
+	if inTx.RcvAddr == nil {
+		return process.ErrNilRcvAddr
+	}
+
+	if inTx.SndAddr == nil {
+		return process.ErrNilSndAddr
+	}
+
+	if inTx.Transaction.Value.Cmp(big.NewInt(0)) < 0 {
+		return process.ErrNegativeValue
+	}
+
+	return nil
 }
 
 // VerifySig checks if the tx is correctly signed
-func (inTx *InterceptedTransaction) VerifySig() bool {
-	//TODO add real sig verify here
-	return true
-}
+func (inTx *InterceptedTransaction) VerifySig() error {
+	if inTx.Transaction == nil {
+		return process.ErrNilTransaction
+	}
 
-func (inTx *InterceptedTransaction) computeShard(address []byte) uint32 {
-	//TODO add real logic here
-	return 0
+	if inTx.singleSignKeyGen == nil {
+		return process.ErrNilSingleSignKeyGen
+	}
+
+	singleSignVerifier, err := inTx.singleSignKeyGen.PublicKeyFromByteArray(inTx.RcvAddr)
+	if err != nil {
+		return err
+	}
+
+	_, err = singleSignVerifier.Verify(inTx.hash, inTx.Signature)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // RcvShard returns the receiver shard
@@ -144,4 +166,16 @@ func (inTx *InterceptedTransaction) SetHash(hash []byte) {
 // Hash gets the hash of this transaction
 func (inTx *InterceptedTransaction) Hash() []byte {
 	return inTx.hash
+}
+
+// SingleSignKeyGen returns the key generator that is used to create a new public key verifier that will be used
+// for validating transaction's signature
+func (inTx *InterceptedTransaction) SingleSignKeyGen() crypto.KeyGenerator {
+	return inTx.singleSignKeyGen
+}
+
+// SetSingleSignKeyGen sets the key generator that is used to create a new public key verifier that will be used
+// for validating transaction's signature
+func (inTx *InterceptedTransaction) SetSingleSignKeyGen(generator crypto.KeyGenerator) {
+	inTx.singleSignKeyGen = generator
 }

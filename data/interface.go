@@ -17,6 +17,7 @@ type ShardedDataCacherNotifier interface {
 	AddData(key []byte, data interface{}, destShardID uint32)
 	SearchData(key []byte) (shardValuesPairs map[uint32]interface{})
 	RemoveData(key []byte, destShardID uint32)
+	RemoveSetOfDataFromPool(keys [][]byte, destShardID uint32)
 	RemoveDataFromAllShards(key []byte)
 	MergeShardStores(sourceShardID, destShardID uint32)
 	MoveData(sourceShardID, destShardID uint32, key [][]byte)

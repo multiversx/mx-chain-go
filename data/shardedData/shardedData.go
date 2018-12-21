@@ -127,6 +127,13 @@ func (sd *shardedData) SearchData(key []byte) (shardValuesPairs map[uint32]inter
 	return shardValuesPairs
 }
 
+// RemoveSetOfDataFromPool removes a list of keys from the corresponding pool
+func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, destShardID uint32) {
+	for _, key := range keys {
+		sd.RemoveData(key, destShardID)
+	}
+}
+
 // RemoveData will remove data hash from the corresponding shard store
 func (sd *shardedData) RemoveData(key []byte, destShardID uint32) {
 	sd.mutShardedDataStore.RLock()
