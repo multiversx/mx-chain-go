@@ -22,13 +22,16 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/pkg/errors"
 )
 
 // DBWriteCache is an intermediate write layer between the trie data structures and
 // the disk database. The aim is to accumulate trie writes in-memory and only
 // periodically flush a couple tries to disk, garbage collecting the remainder.
+//TODO check if it is really needed batching writes
 type DBWriteCache struct {
-	persistdb PersisterBatcher // Persistent storage for matured trie nodes
+	storer storage.Storer // Persistent storage for matured trie nodes
 
 	nodes  map[encoding.Hash]*cachedNode // Data and references relationships of a node
 	oldest encoding.Hash                 // Oldest tracked node, flush-list head
@@ -53,17 +56,21 @@ type DBWriteCache struct {
 
 // NewDBWriteCache creates a new trie database to store ephemeral trie content before
 // its written out to disk or garbage collected.
-func NewDBWriteCache(persistdb PersisterBatcher) *DBWriteCache {
+func NewDBWriteCache(storer storage.Storer) (*DBWriteCache, error) {
+	if storer == nil {
+		return nil, errors.New("nil storer")
+	}
+
 	return &DBWriteCache{
-		persistdb: persistdb,
+		storer:    storer,
 		nodes:     map[encoding.Hash]*cachedNode{{}: {}},
 		preimages: make(map[encoding.Hash][]byte),
-	}
+	}, nil
 }
 
-// PersistDB retrieves the persistent storage backing the trie database.
-func (db *DBWriteCache) PersistDB() PersisterBatcher {
-	return db.persistdb
+// Storer retrieves the persistent storage backing the trie database.
+func (db *DBWriteCache) Storer() storage.Storer {
+	return db.storer
 }
 
 // InsertBlob writes a new reference tracked blob to the memory database if it's
@@ -134,7 +141,7 @@ func (db *DBWriteCache) CachedNode(hash []byte, cachegen uint16) Node {
 		return node.obj(h, cachegen)
 	}
 	// Content unavailable in memory, attempt to retrieve from disk
-	enc, err := db.persistdb.Get(h[:])
+	enc, err := db.storer.Get(h[:])
 	if err != nil || enc == nil {
 		return nil
 	}
@@ -153,7 +160,7 @@ func (db *DBWriteCache) Node(hash []byte) ([]byte, error) {
 		return node.rlp(), nil
 	}
 	// Content unavailable in memory, attempt to retrieve from disk
-	return db.persistdb.Get(hash[:])
+	return db.storer.Get(hash[:])
 }
 
 // preimage retrieves a cached trie node pre-image from memory. If it cannot be
@@ -168,7 +175,7 @@ func (db *DBWriteCache) preimage(hash encoding.Hash) ([]byte, error) {
 		return preimage, nil
 	}
 	// Content unavailable in memory, attempt to retrieve from disk
-	return db.persistdb.Get(db.secureKey(hash[:]))
+	return db.storer.Get(db.secureKey(hash[:]))
 }
 
 // secureKey returns the database key for the preimage of key, as an ephemeral
@@ -297,29 +304,16 @@ func (db *DBWriteCache) Cap(limit float64) error {
 	db.lock.RLock()
 
 	nodes, storage, start := len(db.nodes), db.nodesSize, time.Now()
-	batch := db.persistdb.NewBatch()
 
 	// db.nodesSize only contains the useful data in the cache, but when reporting
 	// the total memory consumption, the maintenance metadata is also needed to be
 	// counted. For every useful node, we track 2 extra hashes as the flushlist.
 	size := db.nodesSize + encoding.StorageSize((len(db.nodes)-1)*2*encoding.HashLength)
 
-	// If the preimage cache got large enough, push to disk. If it's still small
-	// leave for later to deduplicate writes.
-	flushPreimages := db.preimagesSize > 4*1024*1024
-	if flushPreimages {
-		for hash, preimage := range db.preimages {
-			if err := batch.Put(db.secureKey(hash[:]), preimage); err != nil {
-				db.lock.RUnlock()
-				return err
-			}
-			if batch.ValueSize() > IdealBatchSize {
-				if err := batch.Write(); err != nil {
-					db.lock.RUnlock()
-					return err
-				}
-				batch.Reset()
-			}
+	for hash, preimage := range db.preimages {
+		if err := db.storer.Put(db.secureKey(hash[:]), preimage); err != nil {
+			db.lock.RUnlock()
+			return err
 		}
 	}
 	// Keep committing nodes from the flush-list until we're below allowance
@@ -328,17 +322,9 @@ func (db *DBWriteCache) Cap(limit float64) error {
 	for size > encoding.StorageSize(limit) && oldest != (encoding.Hash{}) {
 		// Fetch the oldest referenced node and push into the batch
 		node := db.nodes[oldest]
-		if err := batch.Put(oldest[:], node.rlp()); err != nil {
+		if err := db.storer.Put(oldest[:], node.rlp()); err != nil {
 			db.lock.RUnlock()
 			return err
-		}
-		// If we exceeded the ideal batch size, commit and reset
-		if batch.ValueSize() >= IdealBatchSize {
-			if err := batch.Write(); err != nil {
-				db.lock.RUnlock()
-				return err
-			}
-			batch.Reset()
 		}
 		// Iterate to the next flush item, or abort if the size cap was achieved. Size
 		// is the total size, including both the useful cached data (hash -> blob), as
@@ -347,22 +333,16 @@ func (db *DBWriteCache) Cap(limit float64) error {
 		size -= encoding.StorageSize(3*encoding.HashLength + int(node.size))
 		oldest = node.flushNext
 	}
-	// Flush out any remainder data from the last batch
-	if err := batch.Write(); err != nil {
-		//log.Error("Failed to write flush list to disk", "err", err)
-		db.lock.RUnlock()
-		return err
-	}
+
 	db.lock.RUnlock()
 
 	// Write successful, clear out the flushed data
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	if flushPreimages {
-		db.preimages = make(map[encoding.Hash][]byte)
-		db.preimagesSize = 0
-	}
+	db.preimages = make(map[encoding.Hash][]byte)
+	db.preimagesSize = 0
+
 	for db.oldest != oldest {
 		node := db.nodes[db.oldest]
 		delete(db.nodes, db.oldest)
@@ -391,32 +371,16 @@ func (db *DBWriteCache) Commit(node []byte, report bool) error {
 	// by only uncaching existing data when the database write finalizes.
 	db.lock.RLock()
 
-	//start := time.Now()
-	batch := db.persistdb.NewBatch()
-
 	// Move all of the accumulated preimages into a write batch
 	for hash, preimage := range db.preimages {
-		if err := batch.Put(db.secureKey(hash[:]), preimage); err != nil {
+		if err := db.storer.Put(db.secureKey(hash[:]), preimage); err != nil {
 			db.lock.RUnlock()
 			return err
 		}
-		if batch.ValueSize() > IdealBatchSize {
-			if err := batch.Write(); err != nil {
-				return err
-			}
-			batch.Reset()
-		}
 	}
-	// Move the trie itself into the batch, flushing if enough data is accumulated
-	//nodes, storage := len(db.nodes), db.nodesSize
-	if err := db.commit(encoding.BytesToHash(node), batch); err != nil {
+	// Write the trie itself
+	if err := db.commit(encoding.BytesToHash(node)); err != nil {
 		//log.Error("Failed to commit trie from trie database", "err", err)
-		db.lock.RUnlock()
-		return err
-	}
-	// Write batch ready, unlock for readers during persistence
-	if err := batch.Write(); err != nil {
-		//log.Error("Failed to write trie to disk", "err", err)
 		db.lock.RUnlock()
 		return err
 	}
@@ -439,27 +403,22 @@ func (db *DBWriteCache) Commit(node []byte, report bool) error {
 }
 
 // commit is the private locked version of Commit.
-func (db *DBWriteCache) commit(hash encoding.Hash, batch Batch) error {
+func (db *DBWriteCache) commit(hash encoding.Hash) error {
 	// If the node does not exist, it's a previously committed node
 	node, ok := db.nodes[hash]
 	if !ok {
 		return nil
 	}
 	for _, child := range node.childs() {
-		if err := db.commit(child, batch); err != nil {
+		if err := db.commit(child); err != nil {
 			return err
 		}
 	}
-	if err := batch.Put(hash[:], node.rlp()); err != nil {
+
+	if err := db.storer.Put(hash[:], node.rlp()); err != nil {
 		return err
 	}
-	// If we've reached an optimal batch size, commit and start over
-	if batch.ValueSize() >= IdealBatchSize {
-		if err := batch.Write(); err != nil {
-			return err
-		}
-		batch.Reset()
-	}
+
 	return nil
 }
 

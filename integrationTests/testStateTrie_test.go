@@ -20,7 +20,11 @@ import (
 
 func adbCreateAccountsDB() *state.AccountsDB {
 	marsh := mock.MarshalizerMock{}
-	dbw := trie.NewDBWriteCache(mock2.NewDatabaseMock())
+	dbw, err := trie.NewDBWriteCache(mock2.NewMemoryStorerMock())
+	if err != nil {
+		panic(err)
+	}
+
 	tr, err := trie.NewTrie(make([]byte, 32), dbw, mock.HasherMock{})
 	if err != nil {
 		panic(err)
@@ -104,7 +108,7 @@ func adbPrintAccount(journalizedAccountWrap state.JournalizedAccountWrapper, tag
 
 //------- Functionality tests
 
-func TestAccountsDBRetrieveDataWithSomeValuesShouldWork(t *testing.T) {
+func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	//test simulates creation of a new account, data trie retrieval,
 	//adding a (key, value) pair in that data trie, commiting changes
 	//and then reloading the data trie based on the root hash generated before
@@ -134,7 +138,7 @@ func TestAccountsDBRetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	assert.Equal(t, []byte{35, 36, 37}, data)
 }
 
-func TestAccountsDBPutCodeWithSomeValuesShouldWork(t *testing.T) {
+func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	_, jaw, adb := generateAddressJurnalAccountAccountsDB()
@@ -153,7 +157,7 @@ func TestAccountsDBPutCodeWithSomeValuesShouldWork(t *testing.T) {
 	assert.Equal(t, jaw.BaseAccount().CodeHash, recoveredAccount.BaseAccount().CodeHash)
 }
 
-func TestAccountsDBSaveDataNoDirtyShouldWork(t *testing.T) {
+func TestAccountsDB_SaveDataNoDirtyShouldWork(t *testing.T) {
 	t.Parallel()
 
 	_, jaw, adb := generateAddressJurnalAccountAccountsDB()
@@ -163,7 +167,7 @@ func TestAccountsDBSaveDataNoDirtyShouldWork(t *testing.T) {
 	assert.Equal(t, 0, adb.JournalLen())
 }
 
-func TestAccountsDBHasAccountNotFoundShouldRetFalse(t *testing.T) {
+func TestAccountsDB_HasAccountNotFoundShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
 	adr, _, adb := generateAddressJurnalAccountAccountsDB()
@@ -174,7 +178,7 @@ func TestAccountsDBHasAccountNotFoundShouldRetFalse(t *testing.T) {
 	assert.False(t, val)
 }
 
-func TestAccountsDBHasAccountFoundShouldRetTrue(t *testing.T) {
+func TestAccountsDB_HasAccountFoundShouldRetTrue(t *testing.T) {
 	t.Parallel()
 
 	adr, _, adb := generateAddressJurnalAccountAccountsDB()
@@ -187,7 +191,7 @@ func TestAccountsDBHasAccountFoundShouldRetTrue(t *testing.T) {
 	assert.True(t, val)
 }
 
-func TestAccountsDBSaveAccountStateWithSomeValues_ShouldWork(t *testing.T) {
+func TestAccountsDB_SaveAccountStateWithSomeValues_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	_, jaw, adb := generateAddressJurnalAccountAccountsDB()
@@ -196,7 +200,7 @@ func TestAccountsDBSaveAccountStateWithSomeValues_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestAccountsDBGetJournalizedAccountReturnExistingAccntShouldWork(t *testing.T) {
+func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr, jaw, adb := generateAddressJurnalAccountAccountsDB()
@@ -212,7 +216,7 @@ func TestAccountsDBGetJournalizedAccountReturnExistingAccntShouldWork(t *testing
 	assert.Equal(t, acnt.BaseAccount().Balance, *big.NewInt(40))
 }
 
-func TestAccountsDB_GetJournalizedAccount_ReturnNotFoundAccnt_ShouldWork(t *testing.T) {
+func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testing.T) {
 	//test when the account does not exists
 	t.Parallel()
 
@@ -225,7 +229,7 @@ func TestAccountsDB_GetJournalizedAccount_ReturnNotFoundAccnt_ShouldWork(t *test
 	assert.Equal(t, acnt.BaseAccount().Balance, *big.NewInt(0))
 }
 
-func TestAccountsDB_Commit_2okAccounts_ShouldWork(t *testing.T) {
+func TestAccountsDB_Commit2OkAccountsShouldWork(t *testing.T) {
 	//test creates 2 accounts (one with a data root)
 	//verifies that commit saves the new tries and that can be loaded back
 	t.Parallel()
@@ -280,7 +284,7 @@ func TestAccountsDB_Commit_2okAccounts_ShouldWork(t *testing.T) {
 	assert.Equal(t, []byte{32, 33, 34}, val)
 }
 
-func TestAccountsDB_Commit_AccountData_ShouldWork(t *testing.T) {
+func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr1, _, adb := generateAddressJurnalAccountAccountsDB()
@@ -323,7 +327,7 @@ func TestAccountsDB_Commit_AccountData_ShouldWork(t *testing.T) {
 
 //------- Revert
 
-func TestAccountsDBRevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
+func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr1 := mock.NewAddressMock()
@@ -380,7 +384,7 @@ func TestAccountsDBRevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	fmt.Printf("State root - reverted last 2 nonces set: %v\n", hrFinal)
 }
 
-func TestAccountsDBRevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
+func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr1 := mock.NewAddressMock()
@@ -437,7 +441,7 @@ func TestAccountsDBRevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	fmt.Printf("State root - reverted last 2 balance set: %v\n", hrFinal)
 }
 
-func TestAccountsDBRevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
+func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//adr1 puts code hash + code inside trie. adr2 has the same code hash
@@ -493,7 +497,7 @@ func TestAccountsDBRevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	fmt.Printf("State root - reverted first account: %v\n", hrCrt)
 }
 
-func TestAccountsDBRevertDataStepByStepAccountDataShouldWork(t *testing.T) {
+func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//adr1 puts data inside trie. adr2 puts the same data
@@ -554,7 +558,7 @@ func TestAccountsDBRevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	assert.Equal(t, hrEmpty, hrCreated1Rev)
 }
 
-func TestAccountsDBRevertDataStepByStepWithCommitsAccountDataShouldWork(t *testing.T) {
+func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	//adr1 puts data inside trie. adr2 puts the same data
@@ -634,7 +638,7 @@ func TestAccountsDBRevertDataStepByStepWithCommitsAccountDataShouldWork(t *testi
 	assert.Equal(t, hrRoot2, hrRoot2Rev)
 }
 
-func TestAccountsDBExecBalanceTxExecution(t *testing.T) {
+func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	t.Parallel()
 
 	adrSrc := mock.NewAddressMock()
@@ -681,7 +685,7 @@ func TestAccountsDBExecBalanceTxExecution(t *testing.T) {
 
 }
 
-func TestAccountsDBExecALotOfBalanceTxOK(t *testing.T) {
+func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	t.Parallel()
 
 	adrSrc := mock.NewAddressMock()
@@ -712,7 +716,7 @@ func TestAccountsDBExecALotOfBalanceTxOK(t *testing.T) {
 	adbPrintAccount(acntDest, "Destination")
 }
 
-func TestAccountsDBExecALotOfBalanceTxOKorNOK(t *testing.T) {
+func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	t.Parallel()
 
 	adrSrc := mock.NewAddressMock()
