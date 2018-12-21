@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	goSync "sync"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -388,6 +390,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	blkc := blockchain.BlockChain{}
 	blkc.CurrentBlockHeader = &hdr
 
+	mutDataAvailable := goSync.RWMutex{}
 	dataAvailable := false
 
 	transient := &mock.TransientDataPoolMock{}
@@ -395,6 +398,9 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		sds := &mock.ShardedDataStub{}
 
 		sds.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+			mutDataAvailable.RLock()
+			defer mutDataAvailable.RUnlock()
+
 			m := make(map[uint32]interface{})
 
 			if bytes.Equal([]byte("aaa"), key) && dataAvailable {
@@ -416,6 +422,9 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		}
 
 		hnc.GetCalled = func(u uint64) (bytes []byte, b bool) {
+			mutDataAvailable.RLock()
+			defer mutDataAvailable.RUnlock()
+
 			if u == 2 && dataAvailable {
 				return []byte("aaa"), false
 			}
@@ -450,7 +459,9 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 	time.Sleep(200 * time.Millisecond)
 
+	mutDataAvailable.Lock()
 	dataAvailable = true
+	mutDataAvailable.Unlock()
 
 	time.Sleep(200 * time.Millisecond)
 
