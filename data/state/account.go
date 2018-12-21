@@ -21,6 +21,7 @@ type RegistrationData struct {
 	Stake            big.Int
 	Action           ActionRequested
 	RoundIndex       int32
+	EpochIndex       int32
 }
 
 // Account is the struct used in serialization/deserialization

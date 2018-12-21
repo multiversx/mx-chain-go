@@ -8,23 +8,72 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRound(t *testing.T) {
+func TestNewRound_ShouldReturnNotNilRoundObject(t *testing.T) {
 	genesisTime := time.Now()
-	currentTime := genesisTime
 
-	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
+	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+
+	assert.NotNil(t, rnd)
+}
+
+func TestUpdateRound_ShouldNotChangeAnything(t *testing.T) {
+	genesisTime := time.Now()
+
+	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+	oldIndex := rnd.Index()
+	rnd.UpdateRound(genesisTime, time.Now())
+	newIndex := rnd.Index()
+
+	assert.Equal(t, oldIndex, newIndex)
+}
+
+func TestUpdateRound_ShouldAdvanceOneRound(t *testing.T) {
+	genesisTime := time.Now()
+
+	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+	oldIndex := rnd.Index()
+	time.Sleep(roundTimeDuration)
+	rnd.UpdateRound(genesisTime, time.Now())
+	newIndex := rnd.Index()
+
+	assert.Equal(t, oldIndex, newIndex-1)
+}
+
+func TestIndex_ShouldReturnFirstIndex(t *testing.T) {
+	genesisTime := time.Now()
+
+	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+	time.Sleep(roundTimeDuration / 2)
+	rnd.UpdateRound(genesisTime, time.Now())
+	index := rnd.Index()
+
+	assert.Equal(t, int32(0), index)
+}
+
+func TestTimeStamp_ShouldReturnTimeStampOfTheNextRound(t *testing.T) {
+	genesisTime := time.Now()
+
+	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+	time.Sleep(roundTimeDuration + roundTimeDuration/2)
+	rnd.UpdateRound(genesisTime, time.Now())
+	timeStamp := rnd.TimeStamp()
+
+	assert.Equal(t, genesisTime.Add(roundTimeDuration), timeStamp)
+}
+
+func TestTimeDuration_ShouldReturnTheDurationOfOneRound(t *testing.T) {
+	genesisTime := time.Now()
+
+	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+	timeDuration := rnd.TimeDuration()
+
+	assert.Equal(t, roundTimeDuration, timeDuration)
+}
+
+func TestPrint_ShouldPrintRoundObject(t *testing.T) {
+	genesisTime := time.Now()
+
+	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
 
 	rnd.Print()
-
-	assert.Equal(t, rnd.Index(), int32(0))
-	assert.Equal(t, rnd.TimeStamp(), genesisTime)
-	assert.Equal(t, rnd.TimeDuration(), roundTimeDuration)
-
-	currentTime = currentTime.Add(roundTimeDuration)
-
-	rnd.UpdateRound(genesisTime, currentTime)
-
-	assert.Equal(t, rnd.Index(), int32(1))
-	assert.Equal(t, rnd.TimeStamp(), genesisTime.Add(roundTimeDuration))
-	assert.Equal(t, rnd.TimeDuration(), roundTimeDuration)
 }
