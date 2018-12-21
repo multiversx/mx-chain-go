@@ -46,6 +46,11 @@ type JournalEntryData struct {
 	jurnalizedAccount JournalizedAccountWrapper
 }
 
+// JournalEntryAppendRegistration is used to mark collection change for registration peers inside an account
+type JournalEntryAppendRegistration struct {
+	jurnalizedAccount JournalizedAccountWrapper
+}
+
 //------- JournalEntryCreation
 
 // NewJournalEntryCreation outputs a new JournalEntry implementation used to revert an account creation
@@ -269,4 +274,28 @@ func (jed *JournalEntryData) DirtiedAddress() AddressContainer {
 // Trie returns the referenced PatriciaMerkelTree for committing the changes
 func (jed *JournalEntryData) Trie() trie.PatriciaMerkelTree {
 	return jed.trie
+}
+
+//------- JournalEntryAppendRegistration
+
+// NewJournalEntryAppendRegistration outputs a new JournalEntry implementation used to keep track
+// nodes registrations
+func NewJournalEntryAppendRegistration(jurnalizedAccount JournalizedAccountWrapper) *JournalEntryAppendRegistration {
+	return &JournalEntryAppendRegistration{
+		jurnalizedAccount: jurnalizedAccount,
+	}
+}
+
+// Revert will empty the dirtyData map from AccountState
+func (jear *JournalEntryAppendRegistration) Revert(accountsAdapter AccountsAdapter) error {
+	if jear.jurnalizedAccount == nil {
+		return ErrNilJurnalizingAccountWrapper
+	}
+
+	return jear.jurnalizedAccount.TrimLastRegistrationData()
+}
+
+// DirtiedAddress returns the address involved in keeping the slice of nodes registrations
+func (jear *JournalEntryAppendRegistration) DirtiedAddress() AddressContainer {
+	return jear.jurnalizedAccount.AddressContainer()
 }

@@ -12,7 +12,7 @@ import (
 
 //------- JournalEntryCreation
 
-func TestJournalEntryCreationRevertOkValsShouldWork(t *testing.T) {
+func TestJournalEntryCreation_RevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -33,7 +33,7 @@ func TestJournalEntryCreationRevertOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, adr, jec.DirtiedAddress())
 }
 
-func TestJournalEntryCreationRevertNilAddressContainerShouldErr(t *testing.T) {
+func TestJournalEntryCreation_RevertNilAddressContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jec := state.NewJournalEntryCreation(nil)
@@ -41,7 +41,7 @@ func TestJournalEntryCreationRevertNilAddressContainerShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryCreationRevertNilAccountAdapterShouldErr(t *testing.T) {
+func TestJournalEntryCreation_RevertNilAccountAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -51,7 +51,7 @@ func TestJournalEntryCreationRevertNilAccountAdapterShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryCreationRevertAccountAdapterErrorShouldErr(t *testing.T) {
+func TestJournalEntryCreation_RevertAccountAdapterErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -74,7 +74,7 @@ func TestJournalEntryCreationRevertAccountAdapterErrorShouldErr(t *testing.T) {
 
 //------- JournalEntryNonce
 
-func TestJournalEntryNonceRevertOkValsShouldWork(t *testing.T) {
+func TestJournalEntryNonce_RevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -99,7 +99,7 @@ func TestJournalEntryNonceRevertOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(1), acnt.Nonce)
 }
 
-func TestJournalEntryNonceRevertNilAccountShouldErr(t *testing.T) {
+func TestJournalEntryNonce_RevertNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jen := state.NewJournalEntryNonce(nil, 1)
@@ -107,7 +107,7 @@ func TestJournalEntryNonceRevertNilAccountShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryNonceRevertNilAccountsAdapterShouldErr(t *testing.T) {
+func TestJournalEntryNonce_RevertNilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -118,7 +118,7 @@ func TestJournalEntryNonceRevertNilAccountsAdapterShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryNonceRevertNilAddressShouldErr(t *testing.T) {
+func TestJournalEntryNonce_RevertNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	acnt := mock.NewJournalizedAccountWrapMock(nil)
@@ -127,7 +127,7 @@ func TestJournalEntryNonceRevertNilAddressShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryNonceRevertAccountAdapterErrorShouldErr(t *testing.T) {
+func TestJournalEntryNonce_RevertAccountAdapterErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -156,7 +156,7 @@ func TestJournalEntryNonceRevertAccountAdapterErrorShouldErr(t *testing.T) {
 
 //------- JournalEntryBalance
 
-func TestJournalEntryBalanceRevertOkValsShouldWork(t *testing.T) {
+func TestJournalEntryBalance_RevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -181,7 +181,7 @@ func TestJournalEntryBalanceRevertOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, *big.NewInt(2), acnt.Balance)
 }
 
-func TestJournalEntryBalanceRevertNilAccountShouldErr(t *testing.T) {
+func TestJournalEntryBalance_RevertNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jeb := state.NewJournalEntryBalance(nil, *big.NewInt(2))
@@ -189,7 +189,7 @@ func TestJournalEntryBalanceRevertNilAccountShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryBalanceRevertNilAccountAdapterShouldErr(t *testing.T) {
+func TestJournalEntryBalance_RevertNilAccountAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -200,7 +200,7 @@ func TestJournalEntryBalanceRevertNilAccountAdapterShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryBalanceRevertNilAddressShouldErr(t *testing.T) {
+func TestJournalEntryBalance_RevertNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	acnt := mock.NewJournalizedAccountWrapMock(nil)
@@ -209,7 +209,7 @@ func TestJournalEntryBalanceRevertNilAddressShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryBalanceRevertAccountAdapterErrorShouldErr(t *testing.T) {
+func TestJournalEntryBalance_RevertAccountAdapterErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -238,7 +238,7 @@ func TestJournalEntryBalanceRevertAccountAdapterErrorShouldErr(t *testing.T) {
 
 //------- JournalEntryCodeHash
 
-func TestJournalEntryCodeHashRevertOkValsShouldWork(t *testing.T) {
+func TestJournalEntryCodeHash_RevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -263,7 +263,7 @@ func TestJournalEntryCodeHashRevertOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, make([]byte, mock.HasherMock{}.Size()), acnt.CodeHash)
 }
 
-func TestJournalEntryCodeHashRevertNilAccountShouldErr(t *testing.T) {
+func TestJournalEntryCodeHash_RevertNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jech := state.NewJournalEntryCodeHash(nil, []byte("aaa"))
@@ -271,7 +271,7 @@ func TestJournalEntryCodeHashRevertNilAccountShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryCodeHashRevertNilAccountsAdapterShouldErr(t *testing.T) {
+func TestJournalEntryCodeHash_RevertNilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -281,7 +281,7 @@ func TestJournalEntryCodeHashRevertNilAccountsAdapterShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryCodeHashRevertNilAddressShouldErr(t *testing.T) {
+func TestJournalEntryCodeHash_RevertNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	acnt := mock.NewJournalizedAccountWrapMock(nil)
@@ -290,7 +290,7 @@ func TestJournalEntryCodeHashRevertNilAddressShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryCodeHashRevertNilCodeHashShouldWork(t *testing.T) {
+func TestJournalEntryCodeHash_RevertNilCodeHashShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -310,7 +310,7 @@ func TestJournalEntryCodeHashRevertNilCodeHashShouldWork(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestJournalEntryCodeHashRevertAccountsAdapterErrorShouldErr(t *testing.T) {
+func TestJournalEntryCodeHash_RevertAccountsAdapterErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -337,7 +337,7 @@ func TestJournalEntryCodeHashRevertAccountsAdapterErrorShouldErr(t *testing.T) {
 
 //------- JournalEntryCode
 
-func TestJournalEntryCodeRevertOkValsShouldWork(t *testing.T) {
+func TestJournalEntryCode_RevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -357,7 +357,7 @@ func TestJournalEntryCodeRevertOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, nil, jec.DirtiedAddress())
 }
 
-func TestJournalEntryCodeRevertNilCodeHashShouldErr(t *testing.T) {
+func TestJournalEntryCode_RevertNilCodeHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jec := state.NewJournalEntryCode(nil)
@@ -373,7 +373,7 @@ func TestJournalEntryCodeRevertNilAccountAdapterShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryCodeRevertAccountAdapterErrorShouldErr(t *testing.T) {
+func TestJournalEntryCode_RevertAccountAdapterErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jec := state.NewJournalEntryCode(make([]byte, mock.HasherMock{}.Size()))
@@ -395,7 +395,7 @@ func TestJournalEntryCodeRevertAccountAdapterErrorShouldErr(t *testing.T) {
 
 //------- JournalEntryRootHash
 
-func TestJournalEntryRootHashRevertOkValsShouldWork(t *testing.T) {
+func TestJournalEntryRootHash_RevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalledSave := false
@@ -428,7 +428,7 @@ func TestJournalEntryRootHashRevertOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, make([]byte, mock.HasherMock{}.Size()), acnt.RootHash)
 }
 
-func TestJournalEntryRootHashRevertNilAccountShouldErr(t *testing.T) {
+func TestJournalEntryRootHash_RevertNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
 	jerh := state.NewJournalEntryRootHash(nil, []byte("aaa"))
@@ -436,7 +436,7 @@ func TestJournalEntryRootHashRevertNilAccountShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryRootHashRevertNilAccountsAdapterShouldErr(t *testing.T) {
+func TestJournalEntryRootHash_RevertNilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -446,7 +446,7 @@ func TestJournalEntryRootHashRevertNilAccountsAdapterShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryRootHashRevertNilAddressShouldErr(t *testing.T) {
+func TestJournalEntryRootHash_RevertNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	acnt := mock.NewJournalizedAccountWrapMock(nil)
@@ -455,7 +455,7 @@ func TestJournalEntryRootHashRevertNilAddressShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestJournalEntryRootHashRevertNilCodeHashShouldWork(t *testing.T) {
+func TestJournalEntryRootHash_RevertNilCodeHashShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -484,7 +484,7 @@ func TestJournalEntryRootHashRevertNilCodeHashShouldWork(t *testing.T) {
 	assert.True(t, wasCalledSave)
 }
 
-func TestJournalEntryRootHashRevertAccountsAdapterSaveErrorShouldErr(t *testing.T) {
+func TestJournalEntryRootHash_RevertAccountsAdapterSaveErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -517,7 +517,7 @@ func TestJournalEntryRootHashRevertAccountsAdapterSaveErrorShouldErr(t *testing.
 	assert.Equal(t, make([]byte, mock.HasherMock{}.Size()), acnt.RootHash)
 }
 
-func TestJournalEntryRootHashRevertAccountsAdapterRetrieveErrorShouldErr(t *testing.T) {
+func TestJournalEntryRootHash_RevertAccountsAdapterRetrieveErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -552,7 +552,7 @@ func TestJournalEntryRootHashRevertAccountsAdapterRetrieveErrorShouldErr(t *test
 
 //------- JournalEntryRootHash
 
-func TestJournalEntryDataRevertOkValsShouldWork(t *testing.T) {
+func TestJournalEntryData_RevertOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalledClear := false
@@ -574,7 +574,7 @@ func TestJournalEntryDataRevertOkValsShouldWork(t *testing.T) {
 
 }
 
-func TestJournalEntryDataRevertNilAccountShouldWork(t *testing.T) {
+func TestJournalEntryData_RevertNilAccountShouldWork(t *testing.T) {
 	t.Parallel()
 
 	trie := mock.NewMockTrie()
@@ -582,4 +582,53 @@ func TestJournalEntryDataRevertNilAccountShouldWork(t *testing.T) {
 	jed := state.NewJournalEntryData(nil, trie)
 	err := jed.Revert(nil)
 	assert.NotNil(t, err)
+}
+
+//------- JournalEntryAppendRegistration
+
+func TestJournalEntryAppendRegistration_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	wasCalledTrim := false
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	acnt.TrimLastRegistrationDataCalled = func() error {
+		wasCalledTrim = true
+		return nil
+	}
+
+	jed := state.NewJournalEntryAppendRegistration(acnt)
+	err := jed.Revert(nil)
+	assert.Nil(t, err)
+	assert.True(t, wasCalledTrim)
+	assert.Equal(t, acnt.AddressContainer(), jed.DirtiedAddress())
+
+}
+
+func TestJournalEntryAppendRegistration_NilAccountTrimShouldErr(t *testing.T) {
+	t.Parallel()
+
+	jed := state.NewJournalEntryAppendRegistration(nil)
+	err := jed.Revert(nil)
+	assert.Equal(t, state.ErrNilJurnalizingAccountWrapper, err)
+}
+
+func TestJournalEntryAppendRegistration_AppendErrTrimShouldErr(t *testing.T) {
+	t.Parallel()
+
+	wasCalledTrim := false
+
+	adr := mock.NewAddressMock()
+	acnt := mock.NewJournalizedAccountWrapMock(adr)
+	acnt.TrimLastRegistrationDataCalled = func() error {
+		wasCalledTrim = true
+		return errors.New("failure")
+	}
+
+	jed := state.NewJournalEntryAppendRegistration(acnt)
+	err := jed.Revert(nil)
+	assert.NotNil(t, err)
+	assert.True(t, wasCalledTrim)
+	assert.Equal(t, acnt.AddressContainer(), jed.DirtiedAddress())
 }
