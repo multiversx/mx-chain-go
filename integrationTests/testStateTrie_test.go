@@ -20,7 +20,11 @@ import (
 
 func adbCreateAccountsDB() *state.AccountsDB {
 	marsh := mock.MarshalizerMock{}
-	dbw := trie.NewDBWriteCache(mock2.NewMemoryStorerMock())
+	dbw, err := trie.NewDBWriteCache(mock2.NewMemoryStorerMock())
+	if err != nil {
+		panic(err)
+	}
+
 	tr, err := trie.NewTrie(make([]byte, 32), dbw, mock.HasherMock{})
 	if err != nil {
 		panic(err)

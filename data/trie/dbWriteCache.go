@@ -23,6 +23,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/pkg/errors"
 )
 
 // DBWriteCache is an intermediate write layer between the trie data structures and
@@ -55,15 +56,19 @@ type DBWriteCache struct {
 
 // NewDBWriteCache creates a new trie database to store ephemeral trie content before
 // its written out to disk or garbage collected.
-func NewDBWriteCache(storer storage.Storer) *DBWriteCache {
+func NewDBWriteCache(storer storage.Storer) (*DBWriteCache, error) {
+	if storer == nil {
+		return nil, errors.New("nil storer")
+	}
+
 	return &DBWriteCache{
 		storer:    storer,
 		nodes:     map[encoding.Hash]*cachedNode{{}: {}},
 		preimages: make(map[encoding.Hash][]byte),
-	}
+	}, nil
 }
 
-// PersisterUnit retrieves the persistent storage backing the trie database.
+// Storer retrieves the persistent storage backing the trie database.
 func (db *DBWriteCache) Storer() storage.Storer {
 	return db.storer
 }

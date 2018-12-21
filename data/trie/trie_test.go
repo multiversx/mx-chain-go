@@ -54,8 +54,12 @@ func TestEmptyRoot(t *testing.T) {
 
 // Used for testing
 func newEmpty() *trie.Trie {
-	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), trie.NewDBWriteCache(mock.NewMemoryStorerMock()),
-		testHasher)
+	db, err := trie.NewDBWriteCache(mock.NewMemoryStorerMock())
+	if err != nil {
+		panic(err)
+	}
+
+	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), db, testHasher)
 	return tr
 }
 
@@ -83,8 +87,12 @@ func TestNull(t *testing.T) {
 }
 
 func TestMissingRoot(t *testing.T) {
+	db, err := trie.NewDBWriteCache(mock.NewMemoryStorerMock())
+	assert.Nil(t, err)
+
 	tr, err := trie.NewTrie(encoding.HexToHash("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33").Bytes(),
-		trie.NewDBWriteCache(mock.NewMemoryStorerMock()), testHasher)
+		db,
+		testHasher)
 	if tr != nil {
 		t.Error("New returned non-nil trie for invalid root")
 	}
@@ -98,7 +106,8 @@ func TestMissingNodeMemonly(t *testing.T) { testMissingNode(t, true) }
 
 func testMissingNode(t *testing.T, memonly bool) {
 	diskdb := mock.NewMemoryStorerMock()
-	triedb := trie.NewDBWriteCache(diskdb)
+	triedb, err := trie.NewDBWriteCache(diskdb)
+	assert.Nil(t, err)
 
 	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), triedb, testHasher)
 	updateString(tr, "120000", "qwerqwerqwerqwerqwerqwerqwerqwer")
@@ -109,7 +118,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 	}
 
 	tr, _ = trie.NewTrie(root, triedb, testHasher)
-	_, err := tr.Get([]byte("120000"))
+	_, err = tr.Get([]byte("120000"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -360,7 +369,10 @@ func TestCacheUnload(t *testing.T) {
 	// The branch containing it is loaded from DB exactly two times:
 	// in the 0th and 6th iteration.
 	db := &countingDB{Storer: tr.DBW().Storer(), gets: make(map[string]int)}
-	tr, _ = trie.NewTrie(root, trie.NewDBWriteCache(db), testHasher)
+	dbw, err := trie.NewDBWriteCache(db)
+	assert.Nil(t, err)
+
+	tr, _ = trie.NewTrie(root, dbw, testHasher)
 	tr.SetCacheLimit(5)
 	for i := 0; i < 12; i++ {
 		getString(tr, key1)
@@ -428,7 +440,10 @@ func (randTest) Generate(r *rand.Rand, size int) reflect.Value {
 }
 
 func runRandTest(rt randTest) bool {
-	triedb := trie.NewDBWriteCache(mock.NewMemoryStorerMock())
+	triedb, err := trie.NewDBWriteCache(mock.NewMemoryStorerMock())
+	if err != nil {
+		panic(err)
+	}
 
 	tr, _ := trie.NewTrie(encoding.Hash{}.Bytes(), triedb, testHasher)
 	values := make(map[string]string) // tracks content of the trie
@@ -608,9 +623,12 @@ func BenchmarkHash(b *testing.B) {
 }
 
 func tempDB() (string, trie.DBWriteCacher) {
-	diskdb := mock.NewMemoryStorerMock()
+	dbw, err := trie.NewDBWriteCache(mock.NewMemoryStorerMock())
+	if err != nil {
+		panic(err)
+	}
 
-	return "MEM", trie.NewDBWriteCache(diskdb)
+	return "MEM", dbw
 }
 
 func getString(trie *trie.Trie, k string) []byte {
