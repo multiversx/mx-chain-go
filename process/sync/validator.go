@@ -6,11 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
-
-var log = logger.NewDefaultLogger()
 
 // RoundsToWaitToBeEligible holds the number of rounds after one node could be moved from wait list to eligible list
 const RoundsToWaitToBeEligible = 5

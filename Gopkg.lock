@@ -1154,22 +1154,6 @@
   revision = "7c797b5133e5460410dbb22ba779bf35e6975dea"
   version = "v2.2.0"
 
-[[projects]]
-  digest = "1:64ec3622366786e96b38924ca986e728b798ec1d653232d76a4083335e2ebd2d"
-  name = "zombiezen.com/go/capnproto2"
-  packages = [
-    ".",
-    "encoding/text",
-    "internal/nodemap",
-    "internal/packed",
-    "internal/schema",
-    "internal/strquote",
-    "schemas",
-  ]
-  pruneopts = "UT"
-  revision = "659aba4018b61e5f07f6b90ff2abc5b300baccea"
-  version = "v2.17.2"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -1236,9 +1220,6 @@
     "gopkg.in/dedis/kyber.v2/util/key",
     "gopkg.in/go-playground/validator.v8",
     "gotest.tools/assert",
-    "zombiezen.com/go/capnproto2",
-    "zombiezen.com/go/capnproto2/encoding/text",
-    "zombiezen.com/go/capnproto2/schemas",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
