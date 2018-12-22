@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func SendMessage(msg []byte) {
-	fmt.Println(msg)
+func SendMessage(cnsDta *spos.ConsensusData) {
+	fmt.Println(cnsDta.Signature)
 }
 
 func InitMessage() []*spos.SPOSConsensusWorker {
@@ -573,7 +573,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		spos.MtBlockBody,
 		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()))
 
-	coms[0].ReceivedMessage(cnsDta)
+	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
 
 	// Received BLOCK_HEADER
 	hdr := &block.Header{}
@@ -597,7 +597,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		spos.MtBlockHeader,
 		coms[0].GetTime())
 
-	coms[0].ReceivedMessage(cnsDta)
+	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
 
 	// Received COMMITMENT_HASH
 	hdr = &block.Header{}
@@ -621,7 +621,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		spos.MtCommitmentHash,
 		coms[0].GetTime())
 
-	coms[0].ReceivedMessage(cnsDta)
+	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
 
 	// Received BITMAP
 	hdr = &block.Header{}
@@ -645,7 +645,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		spos.MtBitmap,
 		coms[0].GetTime())
 
-	coms[0].ReceivedMessage(cnsDta)
+	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
 
 	// Received COMMITMENT
 	hdr = &block.Header{}
@@ -669,7 +669,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		spos.MtCommitment,
 		coms[0].GetTime())
 
-	coms[0].ReceivedMessage(cnsDta)
+	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
 
 	// Received SIGNATURE
 	hdr = &block.Header{}
@@ -693,7 +693,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		spos.MtSignature,
 		coms[0].GetTime())
 
-	coms[0].ReceivedMessage(cnsDta)
+	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
 
 	// Received UNKNOWN
 	hdr = &block.Header{}
@@ -717,7 +717,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		spos.MtUnknown,
 		coms[0].GetTime())
 
-	coms[0].ReceivedMessage(cnsDta)
+	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
 }
 
 func TestMessage_DecodeBlockBody(t *testing.T) {

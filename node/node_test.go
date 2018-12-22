@@ -157,7 +157,7 @@ func TestNode_ConnectToInitialAddressesNodeNotStarted(t *testing.T) {
 		node.WithMarshalizer(mock.Marshalizer{}),
 		node.WithHasher(mock.Hasher{}),
 		node.WithMaxAllowedPeers(4),
-		node.WithInitialNodeAddresses([]string{addr}),
+		node.WithInitialNodesPubKeys([]string{addr}),
 	)
 
 	err = n.ConnectToInitialAddresses()
@@ -196,7 +196,7 @@ func TestNode_ConnectToInitialAddresses(t *testing.T) {
 		node.WithMarshalizer(mock.Marshalizer{}),
 		node.WithHasher(mock.Hasher{}),
 		node.WithMaxAllowedPeers(4),
-		node.WithInitialNodeAddresses([]string{addr}),
+		node.WithInitialNodesPubKeys([]string{addr}),
 	)
 	err = n.Start()
 	assert.Nil(t, err)

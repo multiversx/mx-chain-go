@@ -1,89 +1,90 @@
 {
-  "startTime": 1544275920,
-  "clockSyncPeriod": 10,
+  "startTime": 1545499285,
+  "roundDuration": 4000,
+  "consensusGroupSize": 2,
   "initialNodes": [
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAmERYu2qxDQkUnWsxS6pVwjQBbv74HLq8e3SbFsTtMkdqz",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAmAgFhnundFuEjy3ngaSTPwP8LLgWomwvf3SUXFRU6LiWk",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAm2ia4oFi9bzGrRuqkpFjBWMGn2vmWWATd1nLbrFwxP13v",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAmEm5nRBVRRFu5jLRy4kvbo5ZsDBGLNXwwQzPYXuxYVvZf",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAm9CQJr8D6xwLpidyvM734fP4TTDDbR8qsmbpF6tpouk56",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAm9H4nFvFHUkUd3VMLQjqu9ZhzoynVmpAi17RHAzRjzSN2",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAmHxSqZ91wyzCaDsRMgvuWFW59KVDvLSrJ6s59mFTRAf7w",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAmMD9DCAQChheh1fKHrXYQ48FU2S2LibHebgshviPZzKvu",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAmRSSh7rCH5WzDxiy2muGRpVU2TtphmSMXsVaeCiVwhufY",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAm1YV7mqoqTHVCuongJAs662fDxaMARz1zS4kbQT7sooCr",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAm2JCYuhBbaiJKJMjfRyYQM53DMRTUoQdKsvZNebMRVfpB",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAm1QTTpkQXEytMxR1NPN1XZK7fqshkWZUgPLAzuAQRqweo",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAmV3qfdgyZhXK17TWanhGBv7JjtQzqkYcdCMem4Rr1Etfv",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAmRx53Bh6Ym6pTP9ReRN9eFAuV4GowumubBapRh7NhEf6V",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAmNxDQL5NJQaYpX6FryxwBfRLB3G7Dv5PduqeRMhJuPbtz",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAmCoaq8PUEcmoT9aDHpxQk3yLEvzJKLnaBX6yZncc5Edzw",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAkxKKVAV9do97zp7SHN5dLx1aGkiZCri61JPD7xQbWc5WZ",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAm9jn48Z5H1E8wdmZQVgLpQ74bYCesHPLDDZfhTzggVrus",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAmJRmrxDStmxuwrBGEq9vNUQ4uAq7oMoYxCz9MBbgVgLM5",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAm77KDPYuhRW4Jsj5DpyGvYMwNExWDUGyqe4zNykAAr9WL",
       "balance": 10000000
     },
     {
-      "pubkey": "",
+      "pubkey": "16Uiu2HAkzo9FGNyY57n5jCZX6SasdpaJGDbQVWaU7NT89g42VcQX",
       "balance": 10000000
     }
   ]

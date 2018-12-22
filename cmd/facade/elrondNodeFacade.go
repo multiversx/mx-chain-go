@@ -1,7 +1,6 @@
 package facade
 
 import (
-	"errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"math/big"
 	"strconv"
@@ -12,14 +11,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
-	beevikntp "github.com/beevik/ntp"
 )
 
 //Facade for grouping the functionality for node, transaction and address
 type ElrondNodeFacade struct {
-	node     NodeWrapper
-	syncTime *ntp.SyncTime
-	log      *logger.Logger
+	node   NodeWrapper
+	syncer ntp.SyncTimer
+	log    *logger.Logger
 }
 
 //Creates a new Facade with a NodeWrapper
@@ -38,16 +36,21 @@ func (ef *ElrondNodeFacade) SetLogger(log *logger.Logger) {
 	ef.log = log
 }
 
+//Sets the current syncer
+func (ef *ElrondNodeFacade) SetSyncer(syncer ntp.SyncTimer) {
+	ef.syncer = syncer
+}
+
 //Starts the underlying node
 func (ef *ElrondNodeFacade) StartNode() error {
 	err := ef.node.Start()
 	if err != nil {
 		return err
 	}
-	err = ef.node.ConnectToInitialAddresses()
-	if err != nil {
-		return err
-	}
+	//err = ef.node.ConnectToInitialAddresses()
+	//if err != nil {
+	//	return err
+	//}
 	err = ef.node.StartConsensus()
 	return err
 }
@@ -57,21 +60,14 @@ func (ef *ElrondNodeFacade) StopNode() error {
 	return ef.node.Stop()
 }
 
-//Starts the NTP clock with a set sync period
-func (ef *ElrondNodeFacade) StartNTP(clockSyncPeriod int) {
-	ef.syncTime = ntp.NewSyncTime(time.Second*time.Duration(clockSyncPeriod), func(host string) (response *beevikntp.Response, e error) {
-		return nil, errors.New("this should be implemented")
-	})
-}
-
 //Waits for the startTime to arrive and only after proceeds
 func (ef *ElrondNodeFacade) WaitForStartTime(t time.Time) {
-	if !ef.syncTime.CurrentTime(ef.syncTime.ClockOffset()).After(t) {
-		diff := t.Sub(ef.syncTime.CurrentTime(ef.syncTime.ClockOffset())).Seconds()
+	if !ef.syncer.CurrentTime(ef.syncer.ClockOffset()).After(t) {
+		diff := t.Sub(ef.syncer.CurrentTime(ef.syncer.ClockOffset())).Seconds()
 		ef.log.Info("Elrond protocol not started yet, waiting " + strconv.Itoa(int(diff)) + " seconds")
 	}
 	for {
-		if ef.syncTime.CurrentTime(ef.syncTime.ClockOffset()).After(t) {
+		if ef.syncer.CurrentTime(ef.syncer.ClockOffset()).After(t) {
 			break
 		}
 		time.Sleep(time.Duration(5 * time.Millisecond))

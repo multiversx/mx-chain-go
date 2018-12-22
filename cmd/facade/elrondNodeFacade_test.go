@@ -70,30 +70,30 @@ func TestElrondFacade_StartNode_WithErrorOnStartNode_ShouldReturnError(t *testin
 	assert.False(t, isRunning)
 }
 
-func TestElrondFacade_StartNode_WithErrorOnConnectToInitialAddresses_ShouldReturnError(t *testing.T) {
-	started := false
-	node := &mock.NodeMock{
-		StartHandler: func() error {
-			started = true
-			return nil
-		},
-		IsRunningHandler: func() bool {
-			return started
-		},
-		ConnectToInitialAddressesHandler: func() error {
-			started = false
-			return fmt.Errorf("error on connecting to initial addresses")
-		},
-	}
-
-	ef := facade.NewElrondNodeFacade(node)
-
-	err := ef.StartNode()
-	assert.NotNil(t, err)
-
-	isRunning := ef.IsNodeRunning()
-	assert.False(t, isRunning)
-}
+//func TestElrondFacade_StartNode_WithErrorOnConnectToInitialAddresses_ShouldReturnError(t *testing.T) {
+//	started := false
+//	node := &mock.NodeMock{
+//		StartHandler: func() error {
+//			started = true
+//			return nil
+//		},
+//		IsRunningHandler: func() bool {
+//			return started
+//		},
+//		ConnectToInitialAddressesHandler: func() error {
+//			started = false
+//			return fmt.Errorf("error on connecting to initial addresses")
+//		},
+//	}
+//
+//	ef := facade.NewElrondNodeFacade(node)
+//
+//	err := ef.StartNode()
+//	assert.NotNil(t, err)
+//
+//	isRunning := ef.IsNodeRunning()
+//	assert.False(t, isRunning)
+//}
 
 func TestElrondFacade_StartNode_WithErrorOnStartConsensus_ShouldReturnError(t *testing.T) {
 	started := false

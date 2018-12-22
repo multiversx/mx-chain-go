@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
@@ -83,8 +84,16 @@ func NewConsensusData(
 		PubKeys:   pks,
 		Signature: sig,
 		MsgType:   msg,
-		TimeStamp: tms,
-	}
+		TimeStamp: tms}
+}
+
+func (cd *ConsensusData) New() p2p.Newer {
+	return &ConsensusData{}
+}
+
+func (cd *ConsensusData) ID() string {
+	id := fmt.Sprintf("%d-%s-%d", cd.TimeStamp, cd.Signature, cd.MsgType)
+	return id
 }
 
 // SPOSConsensusWorker defines the data needed by spos to comunicate between nodes which are in the validators group
@@ -106,7 +115,7 @@ type SPOSConsensusWorker struct {
 	hasher      hashing.Hasher
 	marshalizer marshal.Marshalizer
 	// this is a pointer to a function which actually send the message from a node to the network
-	OnSendMessage func([]byte)
+	OnSendMessage func(*ConsensusData)
 }
 
 // NewConsensusWorker creates a new SPOSConsensusWorker object
@@ -232,12 +241,13 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 // (it is used as a handler function of the doSubroundJob pointer function declared in Subround struct,
 // from spos package)
 func (sposWorker *SPOSConsensusWorker) DoBlockJob() bool {
-	if sposWorker.ShouldSynch() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-		sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime()+"Canceled round %d in subround %s",
-			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
-		sposWorker.Cns.Chr.SetSelfSubround(-1)
-		return false
-	}
+	// TODO: Unccomment ShouldSynch check
+	//if sposWorker.ShouldSynch() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+	//	sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime()+"Canceled round %d in subround %s",
+	//		sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
+	//	sposWorker.Cns.Chr.SetSelfSubround(-1)
+	//	return false
+	//}
 
 	if sposWorker.Cns.Status(SrBlock) == SsFinished || // is subround Block already finished?
 		sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfId(), SrBlock) || // has been block already sent?
@@ -499,19 +509,12 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 
 // BroadcastMessage method send the message to the nodes which are in the validators group
 func (sposWorker *SPOSConsensusWorker) BroadcastMessage(cnsDta *ConsensusData) bool {
-	message, err := sposWorker.marshalizer.Marshal(cnsDta)
-
-	if err != nil {
-		sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime() + err.Error()))
-		return false
-	}
-
 	if sposWorker.OnSendMessage == nil {
 		sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime() + "OnSendMessage call back function is not set"))
 		return false
 	}
 
-	go sposWorker.OnSendMessage(message)
+	go sposWorker.OnSendMessage(cnsDta)
 
 	return true
 }
@@ -566,7 +569,8 @@ func (sposWorker *SPOSConsensusWorker) ExtendEndRound() {
 }
 
 // ReceivedMessage method redirects the received message to the channel which should handle it
-func (sposWorker *SPOSConsensusWorker) ReceivedMessage(cnsData *ConsensusData) {
+func (sposWorker *SPOSConsensusWorker) ReceivedMessage(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	cnsData := data.(*ConsensusData)
 	if ch, ok := sposWorker.ChRcvMsg[cnsData.MsgType]; ok {
 		ch <- cnsData
 	}

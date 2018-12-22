@@ -16,11 +16,16 @@ var (
 	Port = cli.IntFlag{
 		Name:  "port",
 		Usage: "Port number on which the application will start",
-		Value: 4000,
+		Value: 4001,
 	}
 	MaxAllowedPeers = cli.IntFlag{
 		Name:  "max-allowed-peers",
 		Usage: "Maximum connections the user is willing to accept",
 		Value: 4,
+	}
+	SelfPubKey = cli.StringFlag{
+		Name:  "self-pub-key",
+		Usage: "Public key of the current node",
+		Value: "16Uiu2HAmAgFhnundFuEjy3ngaSTPwP8LLgWomwvf3SUXFRU6LiWk",
 	}
 )
