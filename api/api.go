@@ -15,7 +15,7 @@ import (
 )
 
 type validatorInput struct {
-	Name string
+	Name      string
 	Validator validator.Func
 }
 

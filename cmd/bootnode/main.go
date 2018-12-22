@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -13,7 +14,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -30,21 +35,14 @@ VERSION:
 `
 
 type InitialNode struct {
-	Address string `json:"address"`
-}
-
-type Account struct {
-	Nounce   int    `json:"nounce"`
-	Balance  int    `json:"balance"`
-	CodeHash string `json:"codeHash"`
-	Root     string `json:"root"`
+	PubKey  string `json:"pubkey"`
+	Balance uint64 `json:"balance"`
 }
 
 type Genesis struct {
 	StartTime       int64         `json:"startTime"`
 	ClockSyncPeriod int           `json:"clockSyncPeriod"`
 	InitialNodes    []InitialNode `json:"initialNodes"`
-	Accounts        []Account     `json:"accounts"`
 }
 
 func main() {
@@ -86,10 +84,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	log.Info(fmt.Sprintf("Initialized with config from: %s", ctx.GlobalString(flags.GenesisFile.Name)))
 
 	// 1. Start with an empty node
-	ef := facade.ElrondFacade{}
+	currentNode := CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name),
+		initialConfig.InitialNodesPubkeys())
+	ef := facade.NewElrondNodeFacade(currentNode)
+
 	ef.SetLogger(log)
 	ef.StartNTP(initialConfig.ClockSyncPeriod)
-	ef.CreateNode(ctx.GlobalInt(flags.MaxAllowedPeers.Name), ctx.GlobalInt(flags.Port.Name), initialConfig.InitialNodesAddresses())
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
@@ -100,7 +100,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	// If not in UI mode we should automatically boot a node
 	if !ctx.Bool(flags.WithUI.Name) {
-		fmt.Println("Bootstraping node....")
+		log.Info("Bootstraping node....")
 		err = ef.StartNode()
 		if err != nil {
 			log.Error("Starting node failed", err.Error())
@@ -142,10 +142,27 @@ func loadInitialConfiguration(genesisFilePath string, log *logger.Logger) (*Gene
 	return genesis, nil
 }
 
-func (g *Genesis) InitialNodesAddresses() []string {
-	var addresses []string
+func (g *Genesis) InitialNodesPubkeys() []string {
+	var pubKeys []string
 	for _, in := range g.InitialNodes {
-		addresses = append(addresses, in.Address)
+		pubKeys = append(pubKeys, in.PubKey)
 	}
-	return addresses
+	return pubKeys
+}
+
+func CreateNode(maxAllowedPeers, port int, initialNodeAddresses []string) *node.Node {
+	appContext := context.Background()
+	hasher := sha256.Sha256{}
+	marshalizer := marshal.JsonMarshalizer{}
+	nd := node.NewNode(
+		node.WithHasher(hasher),
+		node.WithContext(appContext),
+		node.WithMarshalizer(marshalizer),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithMaxAllowedPeers(maxAllowedPeers),
+		node.WithPort(port),
+		node.WithInitialNodeAddresses(initialNodeAddresses),
+	)
+
+	return nd
 }

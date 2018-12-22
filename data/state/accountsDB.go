@@ -170,7 +170,8 @@ func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (*Account, 
 		return nil, errors.New("attempt to search on a nil trie")
 	}
 
-	val, err := adb.mainTrie.Get(addressContainer.Hash())
+	addressHash := adb.hasher.Compute(string(addressContainer.Bytes()))
+	val, err := adb.mainTrie.Get(addressHash)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +197,8 @@ func (adb *AccountsDB) HasAccount(addressContainer AddressContainer) (bool, erro
 		return false, errors.New("attempt to search on a nil trie")
 	}
 
-	val, err := adb.mainTrie.Get(addressContainer.Hash())
+	addressHash := adb.hasher.Compute(string(addressContainer.Bytes()))
+	val, err := adb.mainTrie.Get(addressHash)
 
 	if err != nil {
 		return false, err
@@ -225,7 +227,8 @@ func (adb *AccountsDB) SaveJournalizedAccount(journalizedAccountWrapper Journali
 		return err
 	}
 
-	return adb.mainTrie.Update(journalizedAccountWrapper.AddressContainer().Hash(), buff)
+	addressHash := adb.hasher.Compute(string(journalizedAccountWrapper.AddressContainer().Bytes()))
+	return adb.mainTrie.Update(addressHash, buff)
 }
 
 // RemoveAccount removes the account data from underlying trie.
@@ -235,7 +238,8 @@ func (adb *AccountsDB) RemoveAccount(addressContainer AddressContainer) error {
 		return ErrNilTrie
 	}
 
-	return adb.mainTrie.Update(addressContainer.Hash(), make([]byte, 0))
+	addressHash := adb.hasher.Compute(string(addressContainer.Bytes()))
+	return adb.mainTrie.Update(addressHash, make([]byte, 0))
 }
 
 // GetJournalizedAccount fetches the account based on the address. Creates an empty account if the account is missing.

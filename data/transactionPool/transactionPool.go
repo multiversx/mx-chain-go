@@ -103,6 +103,13 @@ func (tp *TransactionPool) AddTransaction(txHash []byte, tx *transaction.Transac
 	}
 }
 
+// RemoveTransactionsFromPool removes a list of transactions from the corresponding pool
+func(tp *TransactionPool) RemoveTransactionsFromPool(txHashes [][]byte, destShardID uint32){
+	for _, txHash:=range txHashes{
+		tp.RemoveTransaction(txHash, destShardID)
+	}
+}
+
 // RemoveTransaction will remove a transaction hash from the corresponding pool
 func (tp *TransactionPool) RemoveTransaction(txHash []byte, destShardID uint32) {
 	mptx := tp.MiniPoolTxStore(destShardID)

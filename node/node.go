@@ -2,6 +2,9 @@ package node
 
 import (
 	"context"
+	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"math/big"
 
 	"github.com/pkg/errors"
 
@@ -113,6 +116,21 @@ func (n *Node) ConnectToAddresses(addresses []string) error {
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
 	return nil
+}
+
+//Gets the balance for a specific address
+func (n *Node) GetBalance(address string) (*big.Int, error) {
+	return big.NewInt(0), nil
+}
+
+//GenerateTransaction generates a new transaction with sender, receiver, amount and code
+func (n *Node) GenerateTransaction(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error) {
+	return nil, fmt.Errorf("Not yet implemented")
+}
+
+//GetTransaction gets the transaction
+func (n *Node) GetTransaction(hash string) (*transaction.Transaction, error) {
+	return nil, fmt.Errorf("Not yet implemented")
 }
 
 func (n *Node) createNetMessenger() (p2p.Messenger, error) {

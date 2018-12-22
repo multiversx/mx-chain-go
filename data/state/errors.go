@@ -101,8 +101,11 @@ var ErrNilHasher = errors.New("nil hasher")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil marshalizer")
 
-// ErrNilAddressConverter signals that an operation has been attempted with a nil AddressAdapter
-var ErrNilAddressConverter = errors.New("nil AddressConverter")
-
 // ErrNegativeValue signals that an operation has been attempted with a negative value
 var ErrNegativeValue = errors.New("negative values are not permited")
+
+// ErrNotSupportedAccountsRegistration signals an operation not supported on simple, non registration account
+var ErrNotSupportedAccountsRegistration = errors.New("operation not supported on a non registration account")
+
+// ErrTrimOperationNotSupported signals an invalid trim operation on an empty slice
+var ErrTrimOperationNotSupported = errors.New("trim operation not supported on an empty slice")
