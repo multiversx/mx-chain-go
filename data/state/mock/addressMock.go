@@ -2,6 +2,7 @@ package mock
 
 import (
 	"math/rand"
+	"time"
 )
 
 // AddressMock implements a mock address generator used in testing
@@ -13,7 +14,9 @@ type AddressMock struct {
 // NewAddressMock generates a new address
 func NewAddressMock() *AddressMock {
 	buff := make([]byte, HasherMock{}.Size())
-	rand.Read(buff)
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r.Read(buff)
 
 	return &AddressMock{bytes: buff}
 }

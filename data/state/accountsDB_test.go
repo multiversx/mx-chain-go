@@ -1,8 +1,10 @@
 package state_test
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -426,7 +428,7 @@ func TestAccountsDBGetJournalizedAccountNotFoundShouldCreateEmpty(t *testing.T) 
 
 //------- GetExistingAccount
 
-func TestAccountsDBGetExistingAccountNilTrieShouldErr(t *testing.T) {
+func TestAccountsDB_GetExistingAccountNilTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adr := mock.NewAddressMock()
@@ -436,7 +438,7 @@ func TestAccountsDBGetExistingAccountNilTrieShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestAccountsDBGetExistingAccountMalfunctionTrieShouldErr(t *testing.T) {
+func TestAccountsDB_GetExistingAccountMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
 	trieMock := mock.NewMockTrie()
@@ -449,7 +451,7 @@ func TestAccountsDBGetExistingAccountMalfunctionTrieShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestAccountsDBGetExistingAccountNotFoundShouldRetNil(t *testing.T) {
+func TestAccountsDB_GetExistingAccountNotFoundShouldRetNil(t *testing.T) {
 	t.Parallel()
 
 	trieMock := mock.NewMockTrie()
@@ -464,7 +466,7 @@ func TestAccountsDBGetExistingAccountNotFoundShouldRetNil(t *testing.T) {
 	assert.Equal(t, 0, adb.JournalLen())
 }
 
-func TestAccountsDBGetExistingAccountFoundShouldRetAccount(t *testing.T) {
+func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	t.Parallel()
 
 	trieMock := mock.NewMockTrie()
@@ -488,6 +490,59 @@ func TestAccountsDBGetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	assert.Equal(t, uint64(45), account.BaseAccount().Nonce)
 	//no journal entry shall be created
 	assert.Equal(t, 0, adb.JournalLen())
+}
+
+func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
+	t.Parallel()
+
+	trieMock := mock.NewMockTrie()
+
+	adb := generateAccountDBFromTrie(trieMock)
+
+	wg := sync.WaitGroup{}
+	wg.Add(2000)
+
+	addresses := make([]state.AddressContainer, 0)
+
+	//generating 2000 different addresses
+	for len(addresses) < 2000 {
+		addr := mock.NewAddressMock()
+
+		found := false
+
+		for i := 0; i < len(addresses); i++ {
+			if bytes.Equal(addresses[i].Bytes(), addr.Bytes()) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			addresses = append(addresses, addr)
+		}
+	}
+
+	for i := 0; i < 1000; i++ {
+		go func(idx int) {
+			accnt, err := adb.GetExistingAccount(addresses[idx*2])
+
+			assert.Nil(t, err)
+			assert.Nil(t, accnt)
+
+			wg.Done()
+		}(i)
+
+		go func(idx int) {
+			accnt, err := adb.GetJournalizedAccount(addresses[idx*2+1])
+
+			assert.Nil(t, err)
+			assert.NotNil(t, accnt)
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }
 
 //------- getAccount
