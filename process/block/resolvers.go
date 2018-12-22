@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -12,30 +13,39 @@ import (
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
 	process.Resolver
-	hdrPool     data.ShardedDataCacherNotifier
-	hdrNonces   data.Uint64Cacher
-	hdrStorage  storage.Storer
-	marshalizer marshal.Marshalizer
+	hdrPool        data.ShardedDataCacherNotifier
+	hdrNonces      data.Uint64Cacher
+	hdrStorage     storage.Storer
+	marshalizer    marshal.Marshalizer
+	nonceConverter typeConverters.Uint64ByteSliceConverter
 }
+
+//------- HeaderResolver
 
 // NewHeaderResolver creates a new header resolver
 func NewHeaderResolver(
 	resolver process.Resolver,
-	hdrPool data.ShardedDataCacherNotifier,
-	hdrNonces data.Uint64Cacher,
+	transient data.TransientDataHolder,
 	hdrStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
+	nonceConverter typeConverters.Uint64ByteSliceConverter,
 ) (*HeaderResolver, error) {
 
 	if resolver == nil {
 		return nil, process.ErrNilResolver
 	}
 
-	if hdrPool == nil {
+	if transient == nil {
+		return nil, process.ErrNilTransientPool
+	}
+
+	headers := transient.Headers()
+	if headers == nil {
 		return nil, process.ErrNilHeadersDataPool
 	}
 
-	if hdrNonces == nil {
+	headersNonces := transient.HeadersNonces()
+	if headersNonces == nil {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
 
@@ -47,12 +57,17 @@ func NewHeaderResolver(
 		return nil, process.ErrNilMarshalizer
 	}
 
+	if nonceConverter == nil {
+		return nil, process.ErrNilNonceConverter
+	}
+
 	hdrResolver := &HeaderResolver{
-		Resolver:    resolver,
-		hdrPool:     hdrPool,
-		hdrNonces:   hdrNonces,
-		hdrStorage:  hdrStorage,
-		marshalizer: marshalizer,
+		Resolver:       resolver,
+		hdrPool:        transient.Headers(),
+		hdrNonces:      transient.HeadersNonces(),
+		hdrStorage:     hdrStorage,
+		marshalizer:    marshalizer,
+		nonceConverter: nonceConverter,
 	}
 	hdrResolver.SetResolverHandler(hdrResolver.resolveHdrRequest)
 
@@ -103,7 +118,21 @@ func (hdrRes *HeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) 
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error) {
 	//key is now an encoded nonce (uint64)
 
-	dataMap := hdrRes.hdrPool.SearchData(key)
+	//Step 1. decode the nonce from the key
+	nonce := hdrRes.nonceConverter.ToUint64(key)
+	if nonce == nil {
+		return nil, process.ErrInvalidNonceByteSlice
+	}
+
+	//Step 2. search the nonce-key pair
+	hash, _ := hdrRes.hdrNonces.Get(*nonce)
+	if hash == nil {
+		//not found
+		return nil, nil
+	}
+
+	//Step 3. search header by key (hash)
+	dataMap := hdrRes.hdrPool.SearchData(hash)
 	if len(dataMap) > 0 {
 		for _, v := range dataMap {
 			//since there might be multiple entries, it shall return the first one that it finds
@@ -116,13 +145,21 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 		}
 	}
 
-	return hdrRes.hdrStorage.Get(key)
+	return hdrRes.hdrStorage.Get(hash)
 }
 
-// RequestTransactionFromHash requests a transaction from other peers having input the tx hash
-func (txRes *TxResolver) RequestTransactionFromHash(hash []byte) error {
-	return txRes.RequestData(process.RequestData{
+// RequestHeaderFromHash requests a header from other peers having input the hdr hash
+func (hdrRes *HeaderResolver) RequestHeaderFromHash(hash []byte) error {
+	return hdrRes.RequestData(process.RequestData{
 		Type:  process.HashType,
 		Value: hash,
+	})
+}
+
+// RequestHeaderFromNonce requests a header from other peers having input the hdr nonce
+func (hdrRes *HeaderResolver) RequestHeaderFromNonce(nonce uint64) error {
+	return hdrRes.RequestData(process.RequestData{
+		Type:  process.NonceType,
+		Value: hdrRes.nonceConverter.ToByteSlice(nonce),
 	})
 }

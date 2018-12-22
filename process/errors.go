@@ -69,3 +69,10 @@ var ErrTopicNotWiredToMessenger = errors.New("topic has not been wired to a p2p.
 
 // ErrNilResolver signals that a nil resolver object has been provided
 var ErrNilResolver = errors.New("nil resolver")
+
+// ErrNilNonceConverter signals that a nil nonce converter has been provided
+var ErrNilNonceConverter = errors.New("nil nonce converter")
+
+// ErrInvalidNonceByteSlice signals that an invalid byte slice has been provided
+// and an uint64 can not be decoded from that byte slice
+var ErrInvalidNonceByteSlice = errors.New("invalid nonce byte slice")
