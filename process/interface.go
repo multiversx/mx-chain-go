@@ -62,7 +62,7 @@ type TransactionInterceptorAdapter interface {
 	Checker
 	SigVerifier
 	Hashed
-	p2p.Newer
+	p2p.Creator
 	RcvShard() uint32
 	SndShard() uint32
 	IsAddressedToOtherShards() bool
@@ -77,7 +77,7 @@ type TransactionInterceptorAdapter interface {
 type BlockBodyInterceptorAdapter interface {
 	Checker
 	Hashed
-	p2p.Newer
+	p2p.Creator
 	Shard() uint32
 }
 
@@ -91,6 +91,6 @@ type HeaderInterceptorAdapter interface {
 // Interceptor defines what a data interceptor should do
 type Interceptor interface {
 	Name() string
-	SetCheckReceivedObjectHandler(func(newer p2p.Newer, rawData []byte) bool)
-	CheckReceivedObjectHandler() func(newer p2p.Newer, rawData []byte) bool
+	SetCheckReceivedObjectHandler(func(newer p2p.Creator, rawData []byte) error)
+	CheckReceivedObjectHandler() func(newer p2p.Creator, rawData []byte) error
 }

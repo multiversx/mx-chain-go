@@ -25,7 +25,7 @@ func (tim *TransactionInterceptorMock) VerifySig() bool {
 	return tim.IsVerified
 }
 
-func (tim *TransactionInterceptorMock) New() p2p.Newer {
+func (tim *TransactionInterceptorMock) Create() p2p.Creator {
 	return &TransactionInterceptorMock{}
 }
 

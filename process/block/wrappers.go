@@ -313,8 +313,8 @@ func (inHdr *InterceptedHeader) Hash() []byte {
 	return inHdr.hash
 }
 
-// New returns a new instance of this struct (used in topics)
-func (inHdr *InterceptedHeader) New() p2p.Newer {
+// Create returns a new instance of this struct (used in topics)
+func (inHdr *InterceptedHeader) Create() p2p.Creator {
 	return NewInterceptedHeader()
 }
 
@@ -352,8 +352,8 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) Hash() []byte {
 	return inPeerBlkBdy.hash
 }
 
-// New returns a new instance of this struct (used in topics)
-func (inPeerBlkBdy *InterceptedPeerBlockBody) New() p2p.Newer {
+// Create returns a new instance of this struct (used in topics)
+func (inPeerBlkBdy *InterceptedPeerBlockBody) Create() p2p.Creator {
 	return NewInterceptedPeerBlockBody()
 }
 
@@ -385,8 +385,8 @@ func (inStateBlkBdy *InterceptedStateBlockBody) Hash() []byte {
 	return inStateBlkBdy.hash
 }
 
-// New returns a new instance of this struct (used in topics)
-func (inStateBlkBdy *InterceptedStateBlockBody) New() p2p.Newer {
+// Create returns a new instance of this struct (used in topics)
+func (inStateBlkBdy *InterceptedStateBlockBody) Create() p2p.Creator {
 	return NewInterceptedStateBlockBody()
 }
 
@@ -418,8 +418,8 @@ func (inTxBlkBdy *InterceptedTxBlockBody) Hash() []byte {
 	return inTxBlkBdy.hash
 }
 
-// New returns a new instance of this struct (used in topics)
-func (inTxBlkBdy *InterceptedTxBlockBody) New() p2p.Newer {
+// Create returns a new instance of this struct (used in topics)
+func (inTxBlkBdy *InterceptedTxBlockBody) Create() p2p.Creator {
 	return NewInterceptedTxBlockBody()
 }
 

@@ -49,14 +49,15 @@ func TestShardedData_AddData(t *testing.T) {
 
 	sd.AddData([]byte("hash_tx1"), &transaction.Transaction{Nonce: 1}, 1)
 
-	has := sd.ShardDataStore(1).Has([]byte("hash_tx1"))
+	shardStore := sd.ShardDataStore(1)
+	has := shardStore.Has([]byte("hash_tx1"))
 	assert.True(t, has, "Key was not added to minipool")
-	assert.True(t, sd.ShardDataStore(1).Len() == 1,
+	assert.True(t, shardStore.Len() == 1,
 		"Transaction pool length is not 1 after one element was added")
 
 	sd.AddData([]byte("hash_tx2"), &transaction.Transaction{Nonce: 2}, 2)
 
-	assert.False(t, sd.ShardDataStore(1).Has([]byte("hash_tx2")))
+	assert.False(t, shardStore.Has([]byte("hash_tx2")))
 	assert.True(t, sd.ShardDataStore(2).Has([]byte("hash_tx2")))
 }
 
@@ -143,9 +144,6 @@ func TestShardedData_Clear(t *testing.T) {
 	t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
-
-	sd.Clear()
-	sd.ClearMiniPool(1)
 
 	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
 	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 2)
@@ -238,6 +236,17 @@ func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
 		assert.Fail(t, "should have been called")
 		return
 	}
+}
+
+func TestShardedData_RegisterAddedDataHandlerReallyAddsAhandler(t *testing.T) {
+	t.Parallel()
+
+	f := func(key []byte) {
+	}
+
+	sd, _ := shardedData.NewShardedData(defaultTestConfig)
+
+	sd.RegisterHandler(f)
 
 	assert.Equal(t, 1, len(sd.AddedDataHandlers()))
 }

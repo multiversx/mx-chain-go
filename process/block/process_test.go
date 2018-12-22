@@ -152,12 +152,13 @@ func TestBlockProc_GetTransactionFromPool(t *testing.T) {
 	assert.NotNil(t, tp.ShardDataStore(1))
 	assert.Nil(t, tx)
 
-	tp.AddData(txHash, &transaction.Transaction{Nonce: uint64(1)}, 1)
+	testedNonce := uint64(1)
+	tp.AddData(txHash, &transaction.Transaction{Nonce: testedNonce}, 1)
 
 	tx = be.GetTransactionFromPool(1, txHash)
 	assert.NotNil(t, tp.ShardDataStore(1))
 	assert.NotNil(t, tx)
-	assert.Equal(t, uint64(1), tx.Nonce)
+	assert.Equal(t, testedNonce, tx.Nonce)
 }
 
 func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {

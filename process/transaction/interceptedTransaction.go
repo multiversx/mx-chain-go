@@ -30,8 +30,8 @@ func NewInterceptedTransaction() *InterceptedTransaction {
 	}
 }
 
-// New returns a new instance of this struct (used in topics)
-func (inTx *InterceptedTransaction) New() p2p.Newer {
+// Create returns a new instance of this struct (used in topics)
+func (inTx *InterceptedTransaction) Create() p2p.Creator {
 	return NewInterceptedTransaction()
 }
 

@@ -27,10 +27,10 @@ func (bp *blockProcessor) ReceivedTransaction(txHash []byte) {
 	bp.receivedTransaction(txHash)
 }
 
-func (hi *HeaderInterceptor) ProcessHdr(hdr p2p.Newer, rawData []byte) bool {
+func (hi *HeaderInterceptor) ProcessHdr(hdr p2p.Creator, rawData []byte) error {
 	return hi.processHdr(hdr, rawData)
 }
 
-func (gbbi *GenericBlockBodyInterceptor) ProcessBodyBlock(bodyBlock p2p.Newer, rawData []byte) bool {
+func (gbbi *GenericBlockBodyInterceptor) ProcessBodyBlock(bodyBlock p2p.Creator, rawData []byte) error {
 	return gbbi.processBodyBlock(bodyBlock, rawData)
 }

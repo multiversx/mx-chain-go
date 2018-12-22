@@ -16,13 +16,15 @@ import (
 //------- NewTopicInterceptor
 
 func TestNewTopicInterceptor_NilMessengerShouldErr(t *testing.T) {
-	_, err := interceptor.NewTopicInterceptor("", nil, &mock.StringNewer{})
+	ti, err := interceptor.NewTopicInterceptor("", nil, &mock.StringCreator{})
 	assert.Equal(t, process.ErrNilMessenger, err)
+	assert.Nil(t, ti)
 }
 
 func TestNewTopicInterceptor_NilTemplateObjectShouldErr(t *testing.T) {
-	_, err := interceptor.NewTopicInterceptor("", &mock.MessengerStub{}, nil)
+	ti, err := interceptor.NewTopicInterceptor("", &mock.MessengerStub{}, nil)
 	assert.Equal(t, process.ErrNilNewer, err)
+	assert.Nil(t, ti)
 }
 
 func TestNewTopicInterceptor_ErrMessengerAddTopicShouldErr(t *testing.T) {
@@ -35,8 +37,9 @@ func TestNewTopicInterceptor_ErrMessengerAddTopicShouldErr(t *testing.T) {
 		return errors.New("failure")
 	}
 
-	_, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
+	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
 	assert.NotNil(t, err)
+	assert.Nil(t, ti)
 }
 
 func TestNewTopicInterceptor_ErrMessengerRegistrationValidatorShouldErr(t *testing.T) {
@@ -49,8 +52,9 @@ func TestNewTopicInterceptor_ErrMessengerRegistrationValidatorShouldErr(t *testi
 		return nil
 	}
 
-	_, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
+	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
 	assert.Equal(t, process.ErrRegisteringValidator, err)
+	assert.Nil(t, ti)
 }
 
 func TestNewTopicInterceptor_OkValsShouldWork(t *testing.T) {
@@ -71,9 +75,10 @@ func TestNewTopicInterceptor_OkValsShouldWork(t *testing.T) {
 		return nil
 	}
 
-	_, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
+	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
+	assert.NotNil(t, ti)
 }
 
 func TestNewTopicInterceptor_WithExistingTopicShouldWork(t *testing.T) {
@@ -81,7 +86,7 @@ func TestNewTopicInterceptor_WithExistingTopicShouldWork(t *testing.T) {
 
 	wasCalled := false
 
-	topic := p2p.NewTopic("test", &mock.StringNewer{}, mes.Marshalizer())
+	topic := p2p.NewTopic("test", &mock.StringCreator{}, mes.Marshalizer())
 	topic.RegisterTopicValidator = func(v pubsub.Validator) error {
 		wasCalled = true
 
@@ -98,9 +103,10 @@ func TestNewTopicInterceptor_WithExistingTopicShouldWork(t *testing.T) {
 		return topic
 	}
 
-	_, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
+	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
+	assert.NotNil(t, ti)
 }
 
 //------- Validation
@@ -123,8 +129,7 @@ func TestTopicInterceptor_ValidationMalfunctionMarshalizerReturnFalse(t *testing
 		return nil
 	}
 
-	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
-	assert.Nil(t, err)
+	ti, _ := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
 
 	//we have the validator func, let's test with a broken marshalizer
 	mes.Marshalizer().(*mock.MarshalizerMock).Fail = true
@@ -152,11 +157,10 @@ func TestTopicInterceptor_ValidationNilCheckReceivedObjectReturnFalse(t *testing
 		return nil
 	}
 
-	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
-	assert.Nil(t, err)
+	ti, _ := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
 
 	//we have the validator func, let's test with a message
-	objToMarshalizeUnmarshalize := &mock.StringNewer{Data: "test data"}
+	objToMarshalizeUnmarshalize := &mock.StringCreator{Data: "test data"}
 
 	message := &pubsub.Message{Message: &pubsub_pb.Message{}}
 	data, err := mes.Marshalizer().Marshal(objToMarshalizeUnmarshalize)
@@ -184,18 +188,17 @@ func TestTopicInterceptor_ValidationCheckReceivedObjectFalseReturnFalse(t *testi
 		return nil
 	}
 
-	intercept, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
-	assert.Nil(t, err)
+	intercept, _ := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
 
 	wasCalled := false
 
-	intercept.SetCheckReceivedObjectHandler(func(newer p2p.Newer, rawData []byte) bool {
+	intercept.SetCheckReceivedObjectHandler(func(newer p2p.Creator, rawData []byte) error {
 		wasCalled = true
-		return false
+		return errors.New("err1")
 	})
 
 	//we have the validator func, let's test with a message
-	objToMarshalizeUnmarshalize := &mock.StringNewer{Data: "test data"}
+	objToMarshalizeUnmarshalize := &mock.StringCreator{Data: "test data"}
 
 	message := &pubsub.Message{Message: &pubsub_pb.Message{}}
 	data, err := mes.Marshalizer().Marshal(objToMarshalizeUnmarshalize)
@@ -224,18 +227,17 @@ func TestTopicInterceptor_ValidationCheckReceivedObjectTrueReturnTrue(t *testing
 		return nil
 	}
 
-	intercept, err := interceptor.NewTopicInterceptor("", mes, &mock.StringNewer{})
-	assert.Nil(t, err)
+	intercept, _ := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
 
 	wasCalled := false
 
-	intercept.SetCheckReceivedObjectHandler(func(newer p2p.Newer, rawData []byte) bool {
+	intercept.SetCheckReceivedObjectHandler(func(newer p2p.Creator, rawData []byte) error {
 		wasCalled = true
-		return true
+		return nil
 	})
 
 	//we have the validator func, let's test with a message
-	objToMarshalizeUnmarshalize := &mock.StringNewer{Data: "test data"}
+	objToMarshalizeUnmarshalize := &mock.StringCreator{Data: "test data"}
 
 	message := &pubsub.Message{Message: &pubsub_pb.Message{}}
 	data, err := mes.Marshalizer().Marshal(objToMarshalizeUnmarshalize)

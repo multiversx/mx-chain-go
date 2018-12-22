@@ -69,18 +69,19 @@ func NewTxInterceptor(
 	return txIntercept, nil
 }
 
-func (txi *TxInterceptor) processTx(tx p2p.Newer, rawData []byte) bool {
+func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 	if tx == nil {
-		log.Debug("nil tx to process")
-		return false
+		return process.ErrNilTransaction
+	}
+
+	if rawData == nil {
+		return process.ErrNilDataToProcess
 	}
 
 	txIntercepted, ok := tx.(process.TransactionInterceptorAdapter)
 
 	if !ok {
-		log.Error("bad implementation: transactionInterceptor is not using InterceptedTransaction " +
-			"as template object and will always return false")
-		return false
+		return process.ErrBadInterceptorTopicImplementation
 	}
 
 	txIntercepted.SetAddressConverter(txi.addrConverter)
@@ -90,19 +91,17 @@ func (txi *TxInterceptor) processTx(tx p2p.Newer, rawData []byte) bool {
 
 	err := txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
 	if err != nil {
-		log.Debug(err.Error())
-		return false
+		return err
 	}
 
 	err = txIntercepted.VerifySig()
 	if err != nil {
-		log.Debug(err.Error())
-		return false
+		return err
 	}
 
 	if txIntercepted.IsAddressedToOtherShards() {
 		log.Debug("intercepted tx is for other shards")
-		return true
+		return nil
 	}
 
 	txi.txPool.AddData(hash, txIntercepted.GetTransaction(), txIntercepted.SndShard())
@@ -111,5 +110,5 @@ func (txi *TxInterceptor) processTx(tx p2p.Newer, rawData []byte) bool {
 		txi.txPool.AddData(hash, txIntercepted.GetTransaction(), txIntercepted.RcvShard())
 	}
 
-	return true
+	return nil
 }

@@ -71,18 +71,19 @@ func NewHeaderInterceptor(
 	return hdrIntercept, nil
 }
 
-func (hi *HeaderInterceptor) processHdr(hdr p2p.Newer, rawData []byte) bool {
+func (hi *HeaderInterceptor) processHdr(hdr p2p.Creator, rawData []byte) error {
 	if hdr == nil {
-		log.Debug("nil hdr to process")
-		return false
+		return process.ErrNilBlockHeader
+	}
+
+	if rawData == nil {
+		return process.ErrNilDataToProcess
 	}
 
 	hdrIntercepted, ok := hdr.(process.HeaderInterceptorAdapter)
 
 	if !ok {
-		log.Error("bad implementation: headerInterceptor is not using InterceptedHeader " +
-			"as template object and will always return false")
-		return false
+		return process.ErrBadInterceptorTopicImplementation
 	}
 
 	hash := hi.hasher.Compute(string(rawData))
@@ -90,21 +91,19 @@ func (hi *HeaderInterceptor) processHdr(hdr p2p.Newer, rawData []byte) bool {
 
 	err := hdrIntercepted.IntegrityAndValidity(hi.shardCoordinator)
 	if err != nil {
-		log.Debug(err.Error())
-		return false
+		return err
 	}
 
 	err = hdrIntercepted.VerifySig()
 	if err != nil {
-		log.Debug(err.Error())
-		return false
+		return err
 	}
 
 	hi.headers.AddData(hash, hdrIntercepted, hdrIntercepted.Shard())
 	if hi.checkHeaderForCurrentShard(hdrIntercepted) {
 		_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hash)
 	}
-	return true
+	return nil
 }
 
 func (hi *HeaderInterceptor) checkHeaderForCurrentShard(header process.HeaderInterceptorAdapter) bool {
@@ -156,18 +155,19 @@ func NewGenericBlockBodyInterceptor(
 	return bbIntercept, nil
 }
 
-func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Newer, rawData []byte) bool {
+func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Creator, rawData []byte) error {
 	if bodyBlock == nil {
-		log.Debug("nil body block to process")
-		return false
+		return process.ErrNilBlockBody
+	}
+
+	if rawData == nil {
+		return process.ErrNilDataToProcess
 	}
 
 	blockBodyIntercepted, ok := bodyBlock.(process.BlockBodyInterceptorAdapter)
 
 	if !ok {
-		log.Error("bad implementation: BlockBodyInterceptor is not using BlockBodyInterceptorAdapter " +
-			"as template object and will always return false")
-		return false
+		return process.ErrBadInterceptorTopicImplementation
 	}
 
 	hash := gbbi.hasher.Compute(string(rawData))
@@ -175,10 +175,9 @@ func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Newer, r
 
 	err := blockBodyIntercepted.IntegrityAndValidity(gbbi.shardCoordinator)
 	if err != nil {
-		log.Debug(err.Error())
-		return false
+		return err
 	}
 
 	_ = gbbi.cache.Put(hash, blockBodyIntercepted)
-	return true
+	return nil
 }

@@ -569,7 +569,7 @@ func TestInterceptedHeader_AllGettersAndSettersShouldWork(t *testing.T) {
 	assert.Equal(t, hash, hdr.Hash())
 	assert.Equal(t, string(hash), hdr.ID())
 
-	newHdr := hdr.New()
+	newHdr := hdr.Create()
 	assert.NotNil(t, newHdr)
 	assert.NotNil(t, newHdr.(*block.InterceptedHeader).Header)
 
@@ -594,7 +594,7 @@ func TestInterceptedPeerBlockBody_AllGettersAndSettersShouldWork(t *testing.T) {
 	assert.Equal(t, hash, peerBlockBody.Hash())
 	assert.Equal(t, string(hash), peerBlockBody.ID())
 
-	newPeerBB := peerBlockBody.New()
+	newPeerBB := peerBlockBody.Create()
 	assert.NotNil(t, newPeerBB)
 	assert.NotNil(t, newPeerBB.(*block.InterceptedPeerBlockBody).PeerBlockBody)
 
@@ -618,7 +618,7 @@ func TestInterceptedStateBlockBody_AllGettersAndSettersShouldWork(t *testing.T) 
 	assert.Equal(t, hash, stateBlockBody.Hash())
 	assert.Equal(t, string(hash), stateBlockBody.ID())
 
-	newBB := stateBlockBody.New()
+	newBB := stateBlockBody.Create()
 	assert.NotNil(t, newBB)
 	assert.NotNil(t, newBB.(*block.InterceptedStateBlockBody).StateBlockBody)
 
@@ -643,7 +643,7 @@ func TestInterceptedTxBlockBody_AllGettersAndSettersShouldWork(t *testing.T) {
 	assert.Equal(t, hash, txBlockBody.Hash())
 	assert.Equal(t, string(hash), txBlockBody.ID())
 
-	newTxBB := txBlockBody.New()
+	newTxBB := txBlockBody.Create()
 	assert.NotNil(t, newTxBB)
 	assert.NotNil(t, newTxBB.(*block.InterceptedTxBlockBody).TxBlockBody)
 

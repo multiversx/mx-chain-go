@@ -27,7 +27,7 @@ func TestNewTxInterceptor_NilInterceptorShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	_, err := transaction.NewTxInterceptor(
+	txi, err := transaction.NewTxInterceptor(
 		nil,
 		txPool,
 		addrConv,
@@ -36,6 +36,7 @@ func TestNewTxInterceptor_NilInterceptorShouldErr(t *testing.T) {
 		oneSharder)
 
 	assert.Equal(t, process.ErrNilInterceptor, err)
+	assert.Nil(t, txi)
 }
 
 func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
@@ -46,7 +47,7 @@ func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	_, err := transaction.NewTxInterceptor(
+	txi, err := transaction.NewTxInterceptor(
 		interceptor,
 		nil,
 		addrConv,
@@ -55,6 +56,7 @@ func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 		oneSharder)
 
 	assert.Equal(t, process.ErrNilTxDataPool, err)
+	assert.Nil(t, txi)
 }
 
 func TestNewTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
@@ -65,7 +67,7 @@ func TestNewTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	_, err := transaction.NewTxInterceptor(
+	txi, err := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		nil,
@@ -74,6 +76,7 @@ func TestNewTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 		oneSharder)
 
 	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Nil(t, txi)
 }
 
 func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
@@ -85,7 +88,7 @@ func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	_, err := transaction.NewTxInterceptor(
+	txi, err := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		addrConv,
@@ -94,6 +97,7 @@ func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
 		oneSharder)
 
 	assert.Equal(t, process.ErrNilHasher, err)
+	assert.Nil(t, txi)
 }
 
 func TestNewTxInterceptor_NilKeyGenShouldErr(t *testing.T) {
@@ -104,7 +108,7 @@ func TestNewTxInterceptor_NilKeyGenShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	_, err := transaction.NewTxInterceptor(
+	txi, err := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		addrConv,
@@ -113,6 +117,7 @@ func TestNewTxInterceptor_NilKeyGenShouldErr(t *testing.T) {
 		oneSharder)
 
 	assert.Equal(t, process.ErrNilSingleSignKeyGen, err)
+	assert.Nil(t, txi)
 }
 
 func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
@@ -123,7 +128,7 @@ func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 
-	_, err := transaction.NewTxInterceptor(
+	txi, err := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		addrConv,
@@ -132,13 +137,14 @@ func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 		nil)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+	assert.Nil(t, txi)
 }
 
 func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -160,11 +166,11 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 
 //------- processTx
 
-func TestTransactionInterceptor_ProcessTxNilTxShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_ProcessTxNilTxShouldErr(t *testing.T) {
 	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -172,7 +178,7 @@ func TestTransactionInterceptor_ProcessTxNilTxShouldRetFalse(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	txi, err := transaction.NewTxInterceptor(
+	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		addrConv,
@@ -180,17 +186,14 @@ func TestTransactionInterceptor_ProcessTxNilTxShouldRetFalse(t *testing.T) {
 		keyGen,
 		oneSharder)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, txi)
-
-	assert.False(t, txi.ProcessTx(nil, make([]byte, 0)))
+	assert.Equal(t, process.ErrNilTransaction, txi.ProcessTx(nil, make([]byte, 0)))
 }
 
-func TestTransactionInterceptor_ProcessTxWrongTypeOfNewerShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_ProcessTxWrongTypeOfNewerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -198,7 +201,7 @@ func TestTransactionInterceptor_ProcessTxWrongTypeOfNewerShouldRetFalse(t *testi
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	txi, err := transaction.NewTxInterceptor(
+	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		addrConv,
@@ -206,19 +209,16 @@ func TestTransactionInterceptor_ProcessTxWrongTypeOfNewerShouldRetFalse(t *testi
 		keyGen,
 		oneSharder)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, txi)
+	sn := mock.StringCreator{}
 
-	sn := mock.StringNewer{}
-
-	assert.False(t, txi.ProcessTx(&sn, make([]byte, 0)))
+	assert.Equal(t, process.ErrBadInterceptorTopicImplementation, txi.ProcessTx(&sn, make([]byte, 0)))
 }
 
-func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldErr(t *testing.T) {
 	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -226,16 +226,13 @@ func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldRetFalse(t *testin
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	txi, err := transaction.NewTxInterceptor(
+	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		addrConv,
 		mock.HasherMock{},
 		keyGen,
 		oneSharder)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, txi)
 
 	txNewer := transaction.NewInterceptedTransaction()
 	txNewer.Signature = nil
@@ -243,14 +240,14 @@ func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldRetFalse(t *testin
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
 
-	assert.False(t, txi.ProcessTx(txNewer, make([]byte, 0)))
+	assert.Equal(t, process.ErrNilSignature, txi.ProcessTx(txNewer, make([]byte, 0)))
 }
 
-func TestTransactionInterceptor_ProcessTxIntegrityAndValidityShouldRetFalse(t *testing.T) {
+func TestTransactionInterceptor_ProcessNilDataToProcessShouldErr(t *testing.T) {
 	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -258,7 +255,7 @@ func TestTransactionInterceptor_ProcessTxIntegrityAndValidityShouldRetFalse(t *t
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	txi, err := transaction.NewTxInterceptor(
+	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		addrConv,
@@ -266,8 +263,34 @@ func TestTransactionInterceptor_ProcessTxIntegrityAndValidityShouldRetFalse(t *t
 		keyGen,
 		oneSharder)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, txi)
+	txNewer := transaction.NewInterceptedTransaction()
+	txNewer.Signature = make([]byte, 0)
+	txNewer.Challenge = make([]byte, 0)
+	txNewer.RcvAddr = make([]byte, 0)
+	txNewer.SndAddr = make([]byte, 0)
+
+	assert.Equal(t, process.ErrNilDataToProcess, txi.ProcessTx(txNewer, nil))
+}
+
+func TestTransactionInterceptor_ProcessTxIntegrityAndValidityShouldErr(t *testing.T) {
+	t.Parallel()
+
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
+	}
+
+	txPool := &mock.ShardedDataStub{}
+	addrConv := &mock.AddressConverterMock{}
+	keyGen := &mock.SingleSignKeyGenMock{}
+	oneSharder := mock.NewOneShardCoordinatorMock()
+
+	txi, _ := transaction.NewTxInterceptor(
+		interceptor,
+		txPool,
+		addrConv,
+		mock.HasherMock{},
+		keyGen,
+		oneSharder)
 
 	txNewer := transaction.NewInterceptedTransaction()
 	txNewer.Signature = make([]byte, 0)
@@ -277,14 +300,14 @@ func TestTransactionInterceptor_ProcessTxIntegrityAndValidityShouldRetFalse(t *t
 
 	addrConv.CreateAddressFromPublicKeyBytesRetErrForValue = []byte("please fail, addrConverter!")
 
-	assert.False(t, txi.ProcessTx(txNewer, nil))
+	assert.Equal(t, process.ErrInvalidRcvAddr, txi.ProcessTx(txNewer, make([]byte, 0)))
 }
 
 func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -302,16 +325,13 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	txi, err := transaction.NewTxInterceptor(
+	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		addrConv,
 		mock.HasherMock{},
 		keyGen,
 		oneSharder)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, txi)
 
 	txNewer := transaction.NewInterceptedTransaction()
 	txNewer.Signature = make([]byte, 0)
@@ -320,14 +340,14 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 	txNewer.SndAddr = make([]byte, 0)
 	txNewer.Value = *big.NewInt(0)
 
-	assert.False(t, txi.ProcessTx(txNewer, []byte("txHash")))
+	assert.Equal(t, "sig not valid", txi.ProcessTx(txNewer, []byte("txHash")).Error())
 }
 
 func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T) {
 	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
 	}
 
 	wasAdded := 0
@@ -352,7 +372,7 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	txi, err := transaction.NewTxInterceptor(
+	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		addrConv,
@@ -360,16 +380,13 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 		keyGen,
 		oneSharder)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, txi)
-
 	txNewer := transaction.NewInterceptedTransaction()
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
 
-	assert.True(t, txi.ProcessTx(txNewer, []byte("txHash")))
+	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
 	assert.Equal(t, 1, wasAdded)
 }
 
@@ -377,7 +394,7 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
 	}
 
 	wasAdded := 0
@@ -406,7 +423,7 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 		return 0
 	}
 
-	txi, err := transaction.NewTxInterceptor(
+	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		addrConv,
@@ -414,16 +431,13 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 		keyGen,
 		multiSharder)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, txi)
-
 	txNewer := transaction.NewInterceptedTransaction()
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
 
-	assert.True(t, txi.ProcessTx(txNewer, []byte("txHash")))
+	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
 	assert.Equal(t, 0, wasAdded)
 }
 
@@ -431,7 +445,7 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
 	}
 
 	wasAdded := 0
@@ -465,7 +479,7 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 		return called
 	}
 
-	txi, err := transaction.NewTxInterceptor(
+	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
 		txPool,
 		addrConv,
@@ -473,80 +487,12 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 		keyGen,
 		multiSharder)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, txi)
-
 	txNewer := transaction.NewInterceptedTransaction()
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
 
-	assert.True(t, txi.ProcessTx(txNewer, []byte("txHash")))
+	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
 	assert.Equal(t, 2, wasAdded)
 }
-
-//
-//func TestTransactionInterceptor_ProcessValidValsOtherShardsShouldRetTrue(t *testing.T) {
-//	t.Parallel()
-//
-//	interceptor := &mock.InterceptorStub{}
-//	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
-//	}
-//
-//	wasAdded := 0
-//
-//	txPool := &mock.ShardedDataStub{}
-//	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
-//		if bytes.Equal(mock.HasherMock{}.Compute("txHash"), key) {
-//			wasAdded++
-//		}
-//	}
-//	addrConv := &mock.AddressConverterMock{}
-//
-//	txi, err := transaction.NewTxInterceptor(interceptor, txPool, addrConv, mock.HasherMock{})
-//	assert.Nil(t, err)
-//	assert.NotNil(t, txi)
-//
-//	tim := &mock.TransactionInterceptorMock{}
-//	tim.IsAddressedToOtherShardsVal = true
-//	tim.Tx = &transaction2.Transaction{}
-//	tim.IsChecked = true
-//	tim.IsVerified = true
-//
-//	assert.True(t, txi.ProcessTx(tim, []byte("txHash")))
-//	assert.Equal(t, 0, wasAdded)
-//}
-//
-//func TestTransactionInterceptor_ProcessValidVals2ShardsShouldRetTrue(t *testing.T) {
-//	t.Parallel()
-//
-//	interceptor := &mock.InterceptorStub{}
-//	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Newer, rawData []byte) bool) {
-//	}
-//
-//	wasAdded := 0
-//
-//	txPool := &mock.ShardedDataStub{}
-//	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
-//		if bytes.Equal(mock.HasherMock{}.Compute("txHash"), key) {
-//			wasAdded++
-//		}
-//	}
-//	addrConv := &mock.AddressConverterMock{}
-//
-//	txi, err := transaction.NewTxInterceptor(interceptor, txPool, addrConv, mock.HasherMock{})
-//	assert.Nil(t, err)
-//	assert.NotNil(t, txi)
-//
-//	tim := &mock.TransactionInterceptorMock{}
-//	tim.IsAddressedToOtherShardsVal = false
-//	tim.RcvShardVal = 2
-//	tim.SndShardVal = 3
-//	tim.Tx = &transaction2.Transaction{}
-//	tim.IsChecked = true
-//	tim.IsVerified = true
-//
-//	assert.True(t, txi.ProcessTx(tim, []byte("txHash")))
-//	assert.Equal(t, 2, wasAdded)
-//}

@@ -71,7 +71,7 @@ var ErrNilPreviousBlockHash = errors.New("nil previous block header hash")
 var ErrNilSignature = errors.New("nil signature")
 
 // ErrNilChallenge signals that a operation has been attempted with a nil challenge
-var ErrNilChallenge = errors.New("nil signature")
+var ErrNilChallenge = errors.New("nil challenge")
 
 // ErrNilCommitment signals that a operation has been attempted with a nil commitment
 var ErrNilCommitment = errors.New("nil commitment")
@@ -186,3 +186,12 @@ var ErrNilTransientDataHolder = errors.New("nil transient data holder")
 
 // ErrNotImplementedBlockProcessingType signals that a not supported block body type was found in header
 var ErrNotImplementedBlockProcessingType = errors.New("not implemented block processing type")
+
+// ErrNilDataToProcess signals that nil data was provided
+var ErrNilDataToProcess = errors.New("nil data to process")
+
+// ErrBadInterceptorTopicImplementation signals that a bad interceptor-topic implementation occurred
+var ErrBadInterceptorTopicImplementation = errors.New("bad interceptor-topic implementation")
+
+// ErrNilBlockBody signals that a nil block body has been provided
+var ErrNilBlockBody = errors.New("nil block body")

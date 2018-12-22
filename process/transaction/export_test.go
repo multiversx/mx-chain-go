@@ -32,6 +32,6 @@ func (txProc *txProcessor) IncreaseNonceAcntSrc(acntSrc state.JournalizedAccount
 	return txProc.increaseNonceAcntSrc(acntSrc)
 }
 
-func (txi *TxInterceptor) ProcessTx(tx p2p.Newer, rawData []byte) bool {
+func (txi *TxInterceptor) ProcessTx(tx p2p.Creator, rawData []byte) error {
 	return txi.processTx(tx, rawData)
 }
