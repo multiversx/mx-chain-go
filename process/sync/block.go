@@ -26,10 +26,9 @@ type bootstrap struct {
 	round         *chronology.Round
 	blkExecutor   process.BlockProcessor
 
-	mutHeader      sync.RWMutex
-	headerNonce    uint64
-	headerNonceSet bool
-	chRcvHdr       chan bool
+	mutHeader   sync.RWMutex
+	headerNonce *uint64
+	chRcvHdr    chan bool
 
 	mutTxBody  sync.RWMutex
 	txBodyHash []byte
@@ -69,7 +68,7 @@ func NewBootstrap(
 	boot.chRcvHdr = make(chan bool)
 	boot.chRcvTxBdy = make(chan bool)
 
-	boot.setRequestedHeaderNonce(0, false)
+	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedTxBodyHash(nil)
 
 	boot.headersNonces.RegisterHandler(boot.receivedHeaderNonce)
@@ -119,18 +118,16 @@ func checkBootstrapNilParameters(
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
-func (boot *bootstrap) setRequestedHeaderNonce(nonce uint64, headerNonceSet bool) {
+func (boot *bootstrap) setRequestedHeaderNonce(nonce *uint64) {
 	boot.mutHeader.Lock()
 	boot.headerNonce = nonce
-	boot.headerNonceSet = headerNonceSet
 	boot.mutHeader.Unlock()
 }
 
 // requestedHeaderNonce method gets the header nonce requested by the sync mechanism
-func (boot *bootstrap) requestedHeaderNonce() (nonce uint64, wasSet bool) {
+func (boot *bootstrap) requestedHeaderNonce() (nonce *uint64) {
 	boot.mutHeader.RLock()
 	nonce = boot.headerNonce
-	wasSet = boot.headerNonceSet
 	boot.mutHeader.RUnlock()
 
 	return
@@ -139,14 +136,14 @@ func (boot *bootstrap) requestedHeaderNonce() (nonce uint64, wasSet bool) {
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *bootstrap) receivedHeaderNonce(nonce uint64) {
-	n, wasSet := boot.requestedHeaderNonce()
+	n := boot.requestedHeaderNonce()
 
-	if !wasSet {
+	if n == nil {
 		return
 	}
 
-	if n == nonce {
-		boot.setRequestedHeaderNonce(0, false)
+	if *n == nonce {
+		boot.setRequestedHeaderNonce(nil)
 		boot.chRcvHdr <- true
 	}
 }
@@ -210,7 +207,7 @@ func (boot *bootstrap) syncBlocks() {
 // the block and its transactions. Finally if everything works, the block will be committed in the blockchain,
 // and all this mechanism will be reiterated for the next block.
 func (boot *bootstrap) SyncBlock() error {
-	boot.setRequestedHeaderNonce(0, false)
+	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedTxBodyHash(nil)
 
 	nonce := boot.getNonceForNextBlock()
@@ -266,7 +263,7 @@ func (boot *bootstrap) getHeaderFromPool(nonce uint64) *block.Header {
 // requestHeader method requests a block header from network when it is not found in the pool
 func (boot *bootstrap) requestHeader(nonce uint64) {
 	if boot.RequestHeaderHandler != nil {
-		boot.setRequestedHeaderNonce(nonce, true)
+		boot.setRequestedHeaderNonce(&nonce)
 		boot.RequestHeaderHandler(nonce)
 	}
 }

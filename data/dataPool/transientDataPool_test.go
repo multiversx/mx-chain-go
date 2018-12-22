@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,9 @@ func TestNewTransientDataPool_NilTransactionsShouldErr(t *testing.T) {
 	headers, err := shardedData.NewShardedData(testOkCfg)
 	assert.Nil(t, err)
 
-	headerNonces, err := dataPool.NewNonceToHashCacher(testOkCfg)
+	cache, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
+	assert.Nil(t, err)
+	headerNonces, err := dataPool.NewNonceToHashCacher(cache, mock.NewNonceHashConverterMock())
 	assert.Nil(t, err)
 
 	txBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
@@ -53,7 +56,9 @@ func TestNewTransientDataPool_NilHeadersShouldErr(t *testing.T) {
 
 	headers := data.ShardedDataCacherNotifier(nil)
 
-	headerNonces, err := dataPool.NewNonceToHashCacher(testOkCfg)
+	cache, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
+	assert.Nil(t, err)
+	headerNonces, err := dataPool.NewNonceToHashCacher(cache, mock.NewNonceHashConverterMock())
 	assert.Nil(t, err)
 
 	txBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
@@ -114,7 +119,9 @@ func TestNewTransientDataPool_NilTxBlocksShouldErr(t *testing.T) {
 	headers, err := shardedData.NewShardedData(testOkCfg)
 	assert.Nil(t, err)
 
-	headerNonces, err := dataPool.NewNonceToHashCacher(testOkCfg)
+	cache, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
+	assert.Nil(t, err)
+	headerNonces, err := dataPool.NewNonceToHashCacher(cache, mock.NewNonceHashConverterMock())
 	assert.Nil(t, err)
 
 	txBlocks := storage.Cacher(nil)
@@ -144,7 +151,9 @@ func TestNewTransientDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 	headers, err := shardedData.NewShardedData(testOkCfg)
 	assert.Nil(t, err)
 
-	headerNonces, err := dataPool.NewNonceToHashCacher(testOkCfg)
+	cache, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
+	assert.Nil(t, err)
+	headerNonces, err := dataPool.NewNonceToHashCacher(cache, mock.NewNonceHashConverterMock())
 	assert.Nil(t, err)
 
 	txBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
@@ -174,7 +183,9 @@ func TestNewTransientDataPool_NilStateBlocksShouldErr(t *testing.T) {
 	headers, err := shardedData.NewShardedData(testOkCfg)
 	assert.Nil(t, err)
 
-	headerNonces, err := dataPool.NewNonceToHashCacher(testOkCfg)
+	cache, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
+	assert.Nil(t, err)
+	headerNonces, err := dataPool.NewNonceToHashCacher(cache, mock.NewNonceHashConverterMock())
 	assert.Nil(t, err)
 
 	txBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
@@ -204,7 +215,9 @@ func TestNewTransientDataPool_OkValsShouldWork(t *testing.T) {
 	headers, err := shardedData.NewShardedData(testOkCfg)
 	assert.Nil(t, err)
 
-	headerNonces, err := dataPool.NewNonceToHashCacher(testOkCfg)
+	cache, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
+	assert.Nil(t, err)
+	headerNonces, err := dataPool.NewNonceToHashCacher(cache, mock.NewNonceHashConverterMock())
 	assert.Nil(t, err)
 
 	txBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
