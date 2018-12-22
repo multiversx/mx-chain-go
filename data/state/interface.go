@@ -9,6 +9,10 @@ import (
 // HashLength defines how many bytes are used in a hash
 const HashLength = 32
 
+// RegistrationAddress holds the defined registration address
+var RegistrationAddress = newAddress(make([]byte, 32))
+
+// AddressConverter is used to convert to/from AddressContainer
 type AddressConverter interface {
 	CreateAddressFromPublicKeyBytes(pubKey []byte) (AddressContainer, error)
 	ConvertToHex(addressContainer AddressContainer) (string, error)
@@ -19,7 +23,6 @@ type AddressConverter interface {
 // AddressContainer models what an Address struct should do
 type AddressContainer interface {
 	Bytes() []byte
-	Hash() []byte
 }
 
 // AccountWrapper models what an AccountWrap struct should do
@@ -31,6 +34,9 @@ type AccountWrapper interface {
 	SetCode(code []byte)
 	DataTrie() trie.PatriciaMerkelTree
 	SetDataTrie(trie trie.PatriciaMerkelTree)
+	AppendRegistrationData(data *RegistrationData) error
+	CleanRegistrationData() error
+	TrimLastRegistrationData() error
 }
 
 // TrackableDataAccountWrapper models what an AccountWrap struct should do
@@ -54,6 +60,7 @@ type JournalizedAccountWrapper interface {
 	SetBalanceWithJournal(big.Int) error
 	SetCodeHashWithJournal([]byte) error
 	SetRootHashWithJournal([]byte) error
+	AppendDataRegistrationWithJournal(*RegistrationData) error
 }
 
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie

@@ -34,7 +34,7 @@ var ErrInsufficientFunds = errors.New("insufficient funds")
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
 
-// ErrNilBlockchain signals that an operation has been attempted to or with a nil blockchain
+// ErrNilBlockChain signals that an operation has been attempted to or with a nil blockchain
 var ErrNilBlockChain = errors.New("nil block chain")
 
 // ErrNilTxBlockBody signals that an operation has been attempted to or with a nil block body
@@ -126,6 +126,9 @@ var ErrMissingBody = errors.New("missing body")
 
 // ErrNilBlockExecutor signals that an operation has been attempted to or with a nil BlockExecutor implementation
 var ErrNilBlockExecutor = errors.New("nil BlockExecutor")
+
+// ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
+var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
 // ErrNilBlockPool signals that an operation has been attempted to or with a nil BlockPool
 var ErrNilBlockPool = errors.New("nil BlockPool")

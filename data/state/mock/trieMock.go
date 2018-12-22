@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -215,7 +216,7 @@ func NewMockDBWriteCacher() *DBWriteCacherMock {
 }
 
 // PersistDB is an empty func
-func (mdbw *DBWriteCacherMock) PersistDB() trie.PersisterBatcher {
+func (mdbw *DBWriteCacherMock) Storer() storage.Storer {
 	panic("implement me")
 }
 
