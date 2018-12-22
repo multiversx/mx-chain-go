@@ -34,7 +34,7 @@ type shardStore struct {
 
 // NewShardedData is responsible for creating an empty pool of data
 func NewShardedData(cacherConfig storage.CacheConfig) (*shardedData, error) {
-	err := testCacherConfig(cacherConfig)
+	err := verifyCacherConfig(cacherConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func NewShardedData(cacherConfig storage.CacheConfig) (*shardedData, error) {
 	}, nil
 }
 
-func testCacherConfig(cacherConfig storage.CacheConfig) error {
+func verifyCacherConfig(cacherConfig storage.CacheConfig) error {
 	_, err := newShardStore(0, cacherConfig)
 	return err
 }

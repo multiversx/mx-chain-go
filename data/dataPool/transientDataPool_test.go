@@ -19,8 +19,6 @@ var testOkCfg = storage.CacheConfig{
 //------- NewTransientDataPool
 
 func TestNewTransientDataPool_NilTransactionsShouldErr(t *testing.T) {
-	transactions := data.ShardedDataCacherNotifier(nil)
-
 	headers, err := shardedData.NewShardedData(testOkCfg)
 	assert.Nil(t, err)
 
@@ -38,8 +36,8 @@ func TestNewTransientDataPool_NilTransactionsShouldErr(t *testing.T) {
 	stateBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
 	assert.Nil(t, err)
 
-	_, err = dataPool.NewTransientDataPool(
-		transactions,
+	tdp, err := dataPool.NewTransientDataPool(
+		nil,
 		headers,
 		headerNonces,
 		txBlocks,
@@ -48,13 +46,12 @@ func TestNewTransientDataPool_NilTransactionsShouldErr(t *testing.T) {
 	)
 
 	assert.Equal(t, data.ErrNilTxDataPool, err)
+	assert.Nil(t, tdp)
 }
 
 func TestNewTransientDataPool_NilHeadersShouldErr(t *testing.T) {
 	transactions, err := shardedData.NewShardedData(testOkCfg)
 	assert.Nil(t, err)
-
-	headers := data.ShardedDataCacherNotifier(nil)
 
 	cache, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
 	assert.Nil(t, err)
@@ -70,9 +67,9 @@ func TestNewTransientDataPool_NilHeadersShouldErr(t *testing.T) {
 	stateBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
 	assert.Nil(t, err)
 
-	_, err = dataPool.NewTransientDataPool(
+	tdp, err := dataPool.NewTransientDataPool(
 		transactions,
-		headers,
+		nil,
 		headerNonces,
 		txBlocks,
 		peersBlock,
@@ -80,6 +77,7 @@ func TestNewTransientDataPool_NilHeadersShouldErr(t *testing.T) {
 	)
 
 	assert.Equal(t, data.ErrNilHeadersDataPool, err)
+	assert.Nil(t, tdp)
 }
 
 func TestNewTransientDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
@@ -89,8 +87,6 @@ func TestNewTransientDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 	headers, err := shardedData.NewShardedData(testOkCfg)
 	assert.Nil(t, err)
 
-	headerNonces := data.Uint64Cacher(nil)
-
 	txBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
 	assert.Nil(t, err)
 
@@ -100,16 +96,17 @@ func TestNewTransientDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 	stateBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
 	assert.Nil(t, err)
 
-	_, err = dataPool.NewTransientDataPool(
+	tdp, err := dataPool.NewTransientDataPool(
 		transactions,
 		headers,
-		headerNonces,
+		nil,
 		txBlocks,
 		peersBlock,
 		stateBlocks,
 	)
 
 	assert.Equal(t, data.ErrNilHeadersNoncesDataPool, err)
+	assert.Nil(t, tdp)
 }
 
 func TestNewTransientDataPool_NilTxBlocksShouldErr(t *testing.T) {
@@ -124,24 +121,23 @@ func TestNewTransientDataPool_NilTxBlocksShouldErr(t *testing.T) {
 	headerNonces, err := dataPool.NewNonceToHashCacher(cache, mock.NewNonceHashConverterMock())
 	assert.Nil(t, err)
 
-	txBlocks := storage.Cacher(nil)
-
 	peersBlock, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
 	assert.Nil(t, err)
 
 	stateBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
 	assert.Nil(t, err)
 
-	_, err = dataPool.NewTransientDataPool(
+	tdp, err := dataPool.NewTransientDataPool(
 		transactions,
 		headers,
 		headerNonces,
-		txBlocks,
+		nil,
 		peersBlock,
 		stateBlocks,
 	)
 
 	assert.Equal(t, data.ErrNilTxBlockDataPool, err)
+	assert.Nil(t, tdp)
 }
 
 func TestNewTransientDataPool_NilPeerBlocksShouldErr(t *testing.T) {
@@ -159,21 +155,20 @@ func TestNewTransientDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 	txBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
 	assert.Nil(t, err)
 
-	peersBlock := storage.Cacher(nil)
-
 	stateBlocks, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
 	assert.Nil(t, err)
 
-	_, err = dataPool.NewTransientDataPool(
+	tdp, err := dataPool.NewTransientDataPool(
 		transactions,
 		headers,
 		headerNonces,
 		txBlocks,
-		peersBlock,
+		nil,
 		stateBlocks,
 	)
 
 	assert.Equal(t, data.ErrNilPeerChangeBlockDataPool, err)
+	assert.Nil(t, tdp)
 }
 
 func TestNewTransientDataPool_NilStateBlocksShouldErr(t *testing.T) {
@@ -194,18 +189,17 @@ func TestNewTransientDataPool_NilStateBlocksShouldErr(t *testing.T) {
 	peersBlock, err := storage.NewCache(testOkCfg.Type, testOkCfg.Size)
 	assert.Nil(t, err)
 
-	stateBlocks := storage.Cacher(nil)
-
-	_, err = dataPool.NewTransientDataPool(
+	tdp, err := dataPool.NewTransientDataPool(
 		transactions,
 		headers,
 		headerNonces,
 		txBlocks,
 		peersBlock,
-		stateBlocks,
+		nil,
 	)
 
 	assert.Equal(t, data.ErrNilStateBlockDataPool, err)
+	assert.Nil(t, tdp)
 }
 
 func TestNewTransientDataPool_OkValsShouldWork(t *testing.T) {

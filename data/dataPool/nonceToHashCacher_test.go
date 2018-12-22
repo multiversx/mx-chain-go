@@ -15,8 +15,9 @@ import (
 func TestNewNonceToHashCacher_NilCacherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := dataPool.NewNonceToHashCacher(nil, mock.NewNonceHashConverterMock())
+	nthc, err := dataPool.NewNonceToHashCacher(nil, mock.NewNonceHashConverterMock())
 	assert.Equal(t, data.ErrNilCacher, err)
+	assert.Nil(t, nthc)
 }
 
 func TestNewNonceToHashCacher_NilConverterShouldErr(t *testing.T) {
@@ -24,8 +25,9 @@ func TestNewNonceToHashCacher_NilConverterShouldErr(t *testing.T) {
 
 	cacher, _ := storage.NewCache(storage.LRUCache, 10000)
 
-	_, err := dataPool.NewNonceToHashCacher(cacher, nil)
+	nthc, err := dataPool.NewNonceToHashCacher(cacher, nil)
 	assert.Equal(t, data.ErrNilNonceConverter, err)
+	assert.Nil(t, nthc)
 }
 
 func TestNewNonceToHashCacher_OkValsShouldWork(t *testing.T) {
@@ -33,8 +35,9 @@ func TestNewNonceToHashCacher_OkValsShouldWork(t *testing.T) {
 
 	cacher, _ := storage.NewCache(storage.LRUCache, 10000)
 
-	_, err := dataPool.NewNonceToHashCacher(cacher, mock.NewNonceHashConverterMock())
+	nthc, err := dataPool.NewNonceToHashCacher(cacher, mock.NewNonceHashConverterMock())
 	assert.Nil(t, err)
+	assert.NotNil(t, nthc)
 }
 
 //------- test called methods
@@ -50,8 +53,7 @@ func TestNonceToHashCacher_ClearShouldBeCalled(t *testing.T) {
 		wasCalled = true
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
 	nthc.Clear()
 	assert.True(t, wasCalled)
@@ -70,10 +72,9 @@ func TestNonceToHashCacher_PutShouldBeCalled(t *testing.T) {
 		return true
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
-	nthc.Put(6, []byte("aaaa"))
+	assert.True(t, nthc.Put(6, []byte("aaaa")))
 	assert.True(t, wasCalled)
 }
 
@@ -90,10 +91,9 @@ func TestNonceToHashCacher_HasShouldBeCalled(t *testing.T) {
 		return true
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
-	nthc.Has(6)
+	assert.True(t, nthc.Has(6))
 	assert.True(t, wasCalled)
 }
 
@@ -110,10 +110,12 @@ func TestNonceToHashCacher_HasOrAddShouldBeCalled(t *testing.T) {
 		return true, true
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
-	nthc.HasOrAdd(6, nil)
+	ok, evicted := nthc.HasOrAdd(6, nil)
+
+	assert.True(t, ok)
+	assert.True(t, evicted)
 	assert.True(t, wasCalled)
 }
 
@@ -128,8 +130,7 @@ func TestNonceToHashCacher_RemoveShouldBeCalled(t *testing.T) {
 		wasCalled = true
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
 	nthc.Remove(6)
 	assert.True(t, wasCalled)
@@ -146,8 +147,7 @@ func TestNonceToHashCacher_RemoveOldestShouldBeCalled(t *testing.T) {
 		wasCalled = true
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
 	nthc.RemoveOldest()
 	assert.True(t, wasCalled)
@@ -166,8 +166,7 @@ func TestNonceToHashCacher_LenShouldBeCalled(t *testing.T) {
 		return 0
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
 	assert.Equal(t, 0, nthc.Len())
 	assert.True(t, wasCalled)
@@ -187,11 +186,11 @@ func TestNonceToHashCacher_GetNotFoundShouldRetNil(t *testing.T) {
 		return nil, false
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
-	hash, _ := nthc.Get(6)
+	hash, ok := nthc.Get(6)
 	assert.Nil(t, hash)
+	assert.False(t, ok)
 	assert.True(t, wasCalled)
 }
 
@@ -207,10 +206,10 @@ func TestNonceToHashCacher_GetFoundShouldRetValue(t *testing.T) {
 		return []byte("bbbb"), false
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
-	hash, _ := nthc.Get(6)
+	hash, ok := nthc.Get(6)
+	assert.False(t, ok)
 	assert.Equal(t, []byte("bbbb"), hash)
 	assert.True(t, wasCalled)
 }
@@ -229,10 +228,10 @@ func TestNonceToHashCacher_PeekNotFoundShouldRetNil(t *testing.T) {
 		return nil, false
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
-	hash, _ := nthc.Peek(6)
+	hash, ok := nthc.Peek(6)
+	assert.False(t, ok)
 	assert.Nil(t, hash)
 	assert.True(t, wasCalled)
 }
@@ -249,8 +248,7 @@ func TestNonceToHashCacher_PeekFoundShouldRetValue(t *testing.T) {
 		return []byte("bbbb"), false
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
 	hash, _ := nthc.Peek(6)
 	assert.Equal(t, []byte("bbbb"), hash)
@@ -264,19 +262,14 @@ func TestNonceToHashCacher_KeysEmptyShouldRetEmpty(t *testing.T) {
 
 	mockLRU := &mock.LRUCacheStub{}
 
-	wasCalled := false
-
 	mockLRU.KeysCalled = func() [][]byte {
-		wasCalled = true
 		return make([][]byte, 0)
 	}
 
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
 	keys := nthc.Keys()
 	assert.NotNil(t, keys)
-	assert.True(t, wasCalled)
 	assert.Equal(t, 0, len(keys))
 }
 
@@ -285,15 +278,10 @@ func TestNonceToHashCacher_KeysFoundShouldRetValues(t *testing.T) {
 
 	mockLRU := &mock.LRUCacheStub{}
 
-	wasCalled := false
-
 	converter := mock.NewNonceHashConverterMock()
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, converter)
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, converter)
 
 	mockLRU.KeysCalled = func() [][]byte {
-		wasCalled = true
-
 		keys := make([][]byte, 0)
 		keys = append(keys, converter.ToByteSlice(6))
 		keys = append(keys, converter.ToByteSlice(10))
@@ -303,14 +291,11 @@ func TestNonceToHashCacher_KeysFoundShouldRetValues(t *testing.T) {
 
 	nonces := nthc.Keys()
 	assert.Equal(t, 2, len(nonces))
-	assert.True(t, wasCalled)
 	assert.Equal(t, uint64(6), nonces[0])
 	assert.Equal(t, uint64(10), nonces[1])
 }
 
-//------- RegisterAddedDataHandler
-
-func TestNonceToHashCacher_RegisterAddedDataHandlerShouldWork(t *testing.T) {
+func TestNonceToHashCacher_KeysWasCalled(t *testing.T) {
 	t.Parallel()
 
 	mockLRU := &mock.LRUCacheStub{}
@@ -318,19 +303,84 @@ func TestNonceToHashCacher_RegisterAddedDataHandlerShouldWork(t *testing.T) {
 	wasCalled := false
 
 	converter := mock.NewNonceHashConverterMock()
-	nthc, err := dataPool.NewNonceToHashCacher(mockLRU, converter)
-	assert.Nil(t, err)
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, converter)
 
-	var handlerCacher func(key []byte)
+	mockLRU.KeysCalled = func() [][]byte {
+		wasCalled = true
+
+		return nil
+	}
+
+	assert.Equal(t, make([]uint64, 0), nthc.Keys())
+	assert.True(t, wasCalled)
+}
+
+//------- RegisterAddedDataHandler
+
+func TestNonceToHashCacher_RegisterAddedDataHandlerWithNilShouldNotRegister(t *testing.T) {
+	t.Parallel()
+
+	mockLRU := &mock.LRUCacheStub{}
+
+	wasRegistered := false
+
+	converter := mock.NewNonceHashConverterMock()
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, converter)
+
 	mockLRU.RegisterHandlerCalled = func(handler func(key []byte)) {
-		handlerCacher = handler
+		wasRegistered = true
+	}
+
+	nthc.RegisterHandler(nil)
+
+	assert.False(t, wasRegistered)
+}
+
+func TestNonceToHashCacher_RegisterAddedDataHandlerWithHandlerShouldRegister(t *testing.T) {
+	t.Parallel()
+
+	mockLRU := &mock.LRUCacheStub{}
+
+	wasRegistered := false
+
+	converter := mock.NewNonceHashConverterMock()
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, converter)
+
+	mockLRU.RegisterHandlerCalled = func(handler func(key []byte)) {
+		wasRegistered = true
 	}
 
 	nthc.RegisterHandler(func(nonce uint64) {
-		wasCalled = true
-		assert.Equal(t, uint64(6), nonce)
+
 	})
 
-	handlerCacher(converter.ToByteSlice(6))
+	assert.True(t, wasRegistered)
+}
+
+func TestNonceToHashCacher_RegisterAddedDataHandlerWithHandlerShouldBeCalled(t *testing.T) {
+	t.Parallel()
+
+	mockLRU := &mock.LRUCacheStub{}
+
+	wasCalled := false
+
+	converter := mock.NewNonceHashConverterMock()
+	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, converter)
+
+	//save the handler so it can be called
+	var h func(key []byte)
+
+	mockLRU.RegisterHandlerCalled = func(handler func(key []byte)) {
+		h = handler
+	}
+
+	nthc.RegisterHandler(func(nonce uint64) {
+		if nonce == 67 {
+			wasCalled = true
+		}
+	})
+
+	h(converter.ToByteSlice(67))
+
 	assert.True(t, wasCalled)
 }

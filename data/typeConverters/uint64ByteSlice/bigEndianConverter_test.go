@@ -74,8 +74,6 @@ func TestBigEndianConverter_ToByteSliceOkValsShouldWork(t *testing.T) {
 		buff := bec.ToByteSlice(k)
 
 		assert.Equal(t, v, buff)
-
-		fmt.Printf("%v converts to: %v, got %v\n", k, v, buff)
 	}
 }
 
