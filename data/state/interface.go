@@ -69,12 +69,13 @@ type AccountsAdapter interface {
 	AddJournalEntry(je JournalEntry)
 	Commit() ([]byte, error)
 	GetJournalizedAccount(addressContainer AddressContainer) (JournalizedAccountWrapper, error)
+	GetExistingAccount(addressContainer AddressContainer) (AccountWrapper, error)
 	HasAccount(addressContainer AddressContainer) (bool, error)
 	JournalLen() int
 	PutCode(journalizedAccountWrapper JournalizedAccountWrapper, code []byte) error
 	RemoveAccount(addressContainer AddressContainer) error
 	RemoveCode(codeHash []byte) error
-	LoadDataTrie(journalizedAccountWrapper JournalizedAccountWrapper) error
+	LoadDataTrie(accountWrapper AccountWrapper) error
 	RevertToSnapshot(snapshot int) error
 	SaveJournalizedAccount(journalizedAccountWrapper JournalizedAccountWrapper) error
 	SaveData(journalizedAccountWrapper JournalizedAccountWrapper) error
