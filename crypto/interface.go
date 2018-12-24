@@ -29,5 +29,40 @@ type PublicKey interface {
 	Verify(data []byte, signature []byte) (bool, error)
 }
 
+// MultiSigner provides functionality for multi-signing a message
+type MultiSigner interface {
+	// MultiSigVerifier Provides functionality for verifying a multi-signature
+	MultiSigVerifier
+	// CreateCommitment creates a secret commitment and the corresponding public commitment point
+	CreateCommitment() (commSecret []byte, commitment []byte, err error)
+	// CommitmentBitmap returns the bitmap with the set
+	CommitmentBitmap() []byte
+	// AddCommitment adds a commitment to the list on the specified position
+	AddCommitment(index uint16, value []byte) error
+	// AggregateCommitments aggregates the list of commitments
+	AggregateCommitments() ([]byte, error)
+	// SetAggCommitment sets the aggregated commitment for the marked signers in bitmap
+	SetAggCommitment(aggCommitment []byte, bitmap []byte) error
+	// SignPartial creates a partial signature
+	SignPartial() ([]byte, error)
+	// SigBitmap returns the bitmap for the set partial signatures
+	SigBitmap() []byte
+	// AddSignPartial adds the partial signature of the signer with specified position
+	AddSignPartial(index uint16, sig []byte) error
+	// VerifyPartial verifies the partial signature of the signer with specified position
+	VerifyPartial(index uint16, sig []byte) error
+	// AggregateSigs aggregates all collected partial signatures
+	AggregateSigs() ([]byte, error)
+}
 
-
+// MultiSigVerifier Provides functionality for verifying a multi-signature
+type MultiSigVerifier interface {
+	// SetMessage sets the message to be multi-signed upon
+	SetMessage(msg []byte)
+	// SetSigBitmap sets the bitmap for the participating signers
+	SetSigBitmap([]byte) error
+	// SetAggregatedSig sets the aggregated signature
+	SetAggregatedSig([]byte) error
+	// Verify verifies the aggregated signature
+	Verify() error
+}
