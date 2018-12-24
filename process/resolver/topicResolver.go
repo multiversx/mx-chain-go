@@ -1,10 +1,13 @@
 package resolver
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
+
+var log = logger.NewDefaultLogger()
 
 // topicResolver is a struct coupled with a p2p.Topic that can process requests
 type topicResolver struct {
@@ -13,7 +16,7 @@ type topicResolver struct {
 	topic       *p2p.Topic
 	marshalizer marshal.Marshalizer
 
-	resolveRequest func(rd process.RequestData) []byte
+	resolveRequest func(rd process.RequestData) ([]byte, error)
 }
 
 // NewTopicResolver returns a new topic resolver instance
@@ -56,7 +59,12 @@ func NewTopicResolver(
 		}
 
 		if resolver.resolveRequest != nil {
-			return resolver.resolveRequest(rd)
+			buff, err := resolver.resolveRequest(rd)
+			if err != nil {
+				log.Debug(err.Error())
+			}
+
+			return buff
 		}
 
 		return nil
@@ -82,12 +90,12 @@ func (tr *topicResolver) RequestData(rd process.RequestData) error {
 
 // SetResolverHandler sets the handler that will be called when a new request comes from other peers to
 // current node
-func (tr *topicResolver) SetResolverHandler(handler func(rd process.RequestData) []byte) {
+func (tr *topicResolver) SetResolverHandler(handler func(rd process.RequestData) ([]byte, error)) {
 	tr.resolveRequest = handler
 }
 
 // ResolverHandler gets the handler that will be called when a new request comes from other peers to
 // current node
-func (tr *topicResolver) ResolverHandler() func(rd process.RequestData) []byte {
+func (tr *topicResolver) ResolverHandler() func(rd process.RequestData) ([]byte, error) {
 	return tr.resolveRequest
 }

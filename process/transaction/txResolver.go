@@ -50,13 +50,13 @@ func NewTxResolver(
 	return txResolver, nil
 }
 
-func (txRes *TxResolver) resolveTxRequest(rd process.RequestData) []byte {
+func (txRes *TxResolver) resolveTxRequest(rd process.RequestData) ([]byte, error) {
 	if rd.Type != process.HashType {
-		return nil
+		return nil, process.ErrResolveNotHashType
 	}
 
 	if rd.Value == nil {
-		return nil
+		return nil, process.ErrNilValue
 	}
 
 	dataMap := txRes.txPool.SearchData(rd.Value)
@@ -65,17 +65,14 @@ func (txRes *TxResolver) resolveTxRequest(rd process.RequestData) []byte {
 			//since there might be multiple entries, it shall return the first one that it finds
 			buff, err := txRes.marshalizer.Marshal(v)
 			if err != nil {
-				log.Error(err.Error())
-				return nil
+				return nil, err
 			}
 
-			return buff
+			return buff, nil
 		}
 	}
 
-	buff, err := txRes.txStorage.Get(rd.Value)
-	log.LogIfError(err)
-	return buff
+	return txRes.txStorage.Get(rd.Value)
 }
 
 // RequestTransactionFromHash requests a transaction from other peers having input the tx hash

@@ -72,6 +72,6 @@ type BlockBodyInterceptorAdapter interface {
 // to send data requests to other entities and to resolve requests that came from those other entities
 type Resolver interface {
 	RequestData(rd RequestData) error
-	SetResolverHandler(func(rd RequestData) []byte)
-	ResolverHandler() func(rd RequestData) []byte
+	SetResolverHandler(func(rd RequestData) ([]byte, error))
+	ResolverHandler() func(rd RequestData) ([]byte, error)
 }

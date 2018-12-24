@@ -15,17 +15,19 @@ import (
 func TestNewTopicResolver_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := resolver.NewTopicResolver("test", nil, &mock.MarshalizerMock{})
+	tr, err := resolver.NewTopicResolver("test", nil, &mock.MarshalizerMock{})
 
 	assert.Equal(t, process.ErrNilMessenger, err)
+	assert.Nil(t, tr)
 }
 
 func TestNewTopicResolver_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := resolver.NewTopicResolver("test", &mock.MessengerStub{}, nil)
+	tr, err := resolver.NewTopicResolver("test", &mock.MessengerStub{}, nil)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
+	assert.Nil(t, tr)
 }
 
 func TestNewTopicResolver_NilTopicShouldErr(t *testing.T) {
@@ -37,9 +39,10 @@ func TestNewTopicResolver_NilTopicShouldErr(t *testing.T) {
 		return nil
 	}
 
-	_, err := resolver.NewTopicResolver("test", mes, &mock.MarshalizerMock{})
+	tr, err := resolver.NewTopicResolver("test", mes, &mock.MarshalizerMock{})
 
 	assert.Equal(t, process.ErrNilTopic, err)
+	assert.Nil(t, tr)
 }
 
 func TestNewTopicResolver_TopicWithResolveRequestAssignedShouldErr(t *testing.T) {
@@ -56,9 +59,10 @@ func TestNewTopicResolver_TopicWithResolveRequestAssignedShouldErr(t *testing.T)
 		return topic
 	}
 
-	_, err := resolver.NewTopicResolver("test", mes, &mock.MarshalizerMock{})
+	tr, err := resolver.NewTopicResolver("test", mes, &mock.MarshalizerMock{})
 
 	assert.Equal(t, process.ErrResolveRequestAlreadyAssigned, err)
+	assert.Nil(t, tr)
 }
 
 func TestNewTopicResolver_OkValsShouldWork(t *testing.T) {
@@ -94,10 +98,7 @@ func TestTopicResolver_ResolveRequestMarshalizerFailsShouldReturnNil(t *testing.
 		return topic
 	}
 
-	res, err := resolver.NewTopicResolver("test", mes, resMarshalizer)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, res)
+	_, _ = resolver.NewTopicResolver("test", mes, resMarshalizer)
 
 	assert.Nil(t, topic.ResolveRequest([]byte("a")))
 }
@@ -115,10 +116,7 @@ func TestTopicResolver_ResolveRequestNilShouldReturnNil(t *testing.T) {
 		return topic
 	}
 
-	res, err := resolver.NewTopicResolver("test", mes, resMarshalizer)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, res)
+	_, _ = resolver.NewTopicResolver("test", mes, resMarshalizer)
 
 	assert.Nil(t, topic.ResolveRequest(nil))
 }
@@ -136,10 +134,7 @@ func TestTopicResolver_ResolveRequestNilFuncShouldReturnNil(t *testing.T) {
 		return topic
 	}
 
-	res, err := resolver.NewTopicResolver("test", mes, resMarshalizer)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, res)
+	_, _ = resolver.NewTopicResolver("test", mes, resMarshalizer)
 
 	rd := process.RequestData{
 		Type:  process.HashType,
@@ -164,14 +159,11 @@ func TestTopicResolver_ResolveRequestShouldWork(t *testing.T) {
 		return topic
 	}
 
-	res, err := resolver.NewTopicResolver("test", mes, resMarshalizer)
+	res, _ := resolver.NewTopicResolver("test", mes, resMarshalizer)
 
-	res.SetResolverHandler(func(rd process.RequestData) []byte {
-		return []byte("aaa")
+	res.SetResolverHandler(func(rd process.RequestData) ([]byte, error) {
+		return []byte("aaa"), nil
 	})
-
-	assert.Nil(t, err)
-	assert.NotNil(t, res)
 
 	rd := process.RequestData{
 		Type:  process.HashType,
@@ -199,8 +191,7 @@ func TestTopicResolver_RequestDataMarshalizerFailsShouldErr(t *testing.T) {
 		return topic
 	}
 
-	res, err := resolver.NewTopicResolver("test", mes, resMarshalizer)
-	assert.Nil(t, err)
+	res, _ := resolver.NewTopicResolver("test", mes, resMarshalizer)
 
 	assert.Equal(t, "marshalizerMock generic error", res.RequestData(
 		process.RequestData{
@@ -222,8 +213,7 @@ func TestTopicResolver_RequestDataTopicNotWiredShouldErr(t *testing.T) {
 		return topic
 	}
 
-	res, err := resolver.NewTopicResolver("test", mes, resMarshalizer)
-	assert.Nil(t, err)
+	res, _ := resolver.NewTopicResolver("test", mes, resMarshalizer)
 
 	assert.Equal(t, process.ErrTopicNotWiredToMessenger, res.RequestData(
 		process.RequestData{
@@ -245,8 +235,7 @@ func TestTopicResolver_RequestDataShouldWork(t *testing.T) {
 		return topic
 	}
 
-	res, err := resolver.NewTopicResolver("test", mes, resMarshalizer)
-	assert.Nil(t, err)
+	res, _ := resolver.NewTopicResolver("test", mes, resMarshalizer)
 
 	wasCalled := false
 

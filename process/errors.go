@@ -76,3 +76,18 @@ var ErrNilNonceConverter = errors.New("nil nonce converter")
 // ErrInvalidNonceByteSlice signals that an invalid byte slice has been provided
 // and an uint64 can not be decoded from that byte slice
 var ErrInvalidNonceByteSlice = errors.New("invalid nonce byte slice")
+
+// ErrResolveNotHashType signals that an expected resolve type was other than hash type
+var ErrResolveNotHashType = errors.New("expected resolve type was hash type")
+
+// ErrNilValue signals that a nil value has been provided
+var ErrNilValue = errors.New("value was nils")
+
+// ErrResolveTypeUnknown signals that an unknown resolve type was provided
+var ErrResolveTypeUnknown = errors.New("unknown resolve type")
+
+// ErrNilBlockBodyPool signals that a nil block body pool has been provided
+var ErrNilBlockBodyPool = errors.New("nil block body pool")
+
+// ErrNilBlockBodyStorage signals that a nil block body storage has been provided
+var ErrNilBlockBodyStorage = errors.New("nil block body storage")

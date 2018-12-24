@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +15,7 @@ import (
 func TestNewTxResolver_NilResolverShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewTxResolver(
+	txRes, err := NewTxResolver(
 		nil,
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
@@ -22,12 +23,13 @@ func TestNewTxResolver_NilResolverShouldErr(t *testing.T) {
 	)
 
 	assert.Equal(t, process.ErrNilResolver, err)
+	assert.Nil(t, txRes)
 }
 
 func TestNewTxResolver_NilTxPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewTxResolver(
+	txRes, err := NewTxResolver(
 		&mock.ResolverStub{},
 		nil,
 		&mock.StorerStub{},
@@ -35,12 +37,13 @@ func TestNewTxResolver_NilTxPoolShouldErr(t *testing.T) {
 	)
 
 	assert.Equal(t, process.ErrNilTxDataPool, err)
+	assert.Nil(t, txRes)
 }
 
 func TestNewTxResolver_NilTxStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewTxResolver(
+	txRes, err := NewTxResolver(
 		&mock.ResolverStub{},
 		&mock.ShardedDataStub{},
 		nil,
@@ -48,12 +51,13 @@ func TestNewTxResolver_NilTxStorageShouldErr(t *testing.T) {
 	)
 
 	assert.Equal(t, process.ErrNilTxStorage, err)
+	assert.Nil(t, txRes)
 }
 
 func TestNewTxResolver_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewTxResolver(
+	txRes, err := NewTxResolver(
 		&mock.ResolverStub{},
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
@@ -61,6 +65,7 @@ func TestNewTxResolver_NilMarshalizerShouldErr(t *testing.T) {
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
+	assert.Nil(t, txRes)
 }
 
 func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
@@ -69,7 +74,7 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 	wasCalled := false
 
 	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(i func(rd process.RequestData) []byte) {
+	res.SetResolverHandlerCalled = func(i func(rd process.RequestData) ([]byte, error)) {
 		wasCalled = true
 	}
 
@@ -87,55 +92,51 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 
 //------- resolveTxRequest
 
-func TestTxResolver_ResolveTxRequestWrongTypeShouldRetNil(t *testing.T) {
+func TestTxResolver_ResolveTxRequestWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	var handler func(rd process.RequestData) []byte
-
 	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) []byte) {
-		handler = h
+	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
 	}
 
-	_, err := NewTxResolver(
+	txRes, _ := NewTxResolver(
 		res,
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)
-	assert.Nil(t, err)
-	assert.Nil(t, handler(process.RequestData{Type: process.NonceType, Value: []byte("aaa")}))
+
+	buff, err := txRes.resolveTxRequest(process.RequestData{Type: process.NonceType, Value: []byte("aaa")})
+
+	assert.Nil(t, buff)
+	assert.Equal(t, process.ErrResolveNotHashType, err)
 }
 
 func TestTxResolver_ResolveTxRequestNilValueShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	var handler func(rd process.RequestData) []byte
-
 	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) []byte) {
-		handler = h
+	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
 	}
 
-	txRes, err := NewTxResolver(
+	txRes, _ := NewTxResolver(
 		res,
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, txRes)
-	assert.Nil(t, handler(process.RequestData{Type: process.HashType, Value: nil}))
+
+	buff, err := txRes.resolveTxRequest(process.RequestData{Type: process.HashType, Value: nil})
+
+	assert.Nil(t, buff)
+	assert.Equal(t, process.ErrNilValue, err)
 }
 
 func TestTxResolver_ResolveTxRequestFoundInTxPoolShouldRetVal(t *testing.T) {
 	t.Parallel()
 
-	var handler func(rd process.RequestData) []byte
-
 	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) []byte) {
-		handler = h
+	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -153,25 +154,26 @@ func TestTxResolver_ResolveTxRequestFoundInTxPoolShouldRetVal(t *testing.T) {
 		return nil
 	}
 
-	txRes, err := NewTxResolver(
+	txRes, _ := NewTxResolver(
 		res,
 		txPool,
 		&mock.StorerStub{},
 		marshalizer,
 	)
+
+	buff, err := txRes.ResolveTxRequest(process.RequestData{Type: process.HashType, Value: []byte("aaa")})
+
+	//we are 100% sure that the txPool resolved the request because storage is a stub
+	//and any call to its method whould have panic-ed (&mock.StorerStub{} has uninitialized ...Called fields)
 	assert.Nil(t, err)
-	assert.NotNil(t, txRes)
-	assert.Equal(t, buffToExpect, handler(process.RequestData{Type: process.HashType, Value: []byte("aaa")}))
+	assert.Equal(t, buffToExpect, buff)
 }
 
 func TestTxResolver_ResolveTxRequestFoundInTxPoolMarshalizerFailShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	var handler func(rd process.RequestData) []byte
-
 	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) []byte) {
-		handler = h
+	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -188,25 +190,25 @@ func TestTxResolver_ResolveTxRequestFoundInTxPoolMarshalizerFailShouldRetNil(t *
 		return nil
 	}
 
-	txRes, err := NewTxResolver(
+	txRes, _ := NewTxResolver(
 		res,
 		txPool,
 		&mock.StorerStub{},
 		marshalizer,
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, txRes)
-	assert.Nil(t, handler(process.RequestData{Type: process.HashType, Value: []byte("aaa")}))
+
+	buff, err := txRes.ResolveTxRequest(process.RequestData{Type: process.HashType, Value: []byte("aaa")})
+	//Same as above test, we are sure that the marshalizer from txPool request failed as the code would have panic-ed
+	//otherwise
+	assert.Nil(t, buff)
+	assert.Equal(t, "marshalizerMock generic error", err.Error())
 }
 
-func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetVal(t *testing.T) {
+func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetValAndError(t *testing.T) {
 	t.Parallel()
 
-	var handler func(rd process.RequestData) []byte
-
 	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) []byte) {
-		handler = h
+	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -217,59 +219,29 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetVal(t *testing.T) {
 		return nil
 	}
 
+	expectedBuff := []byte("bbb")
+
 	txStorage := &mock.StorerStub{}
 	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
-			return []byte("bbb"), nil
+			return expectedBuff, errors.New("just checking output error")
 		}
 
 		return nil, nil
 	}
 
-	txRes, err := NewTxResolver(
+	txRes, _ := NewTxResolver(
 		res,
 		txPool,
 		txStorage,
 		marshalizer,
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, txRes)
-	assert.Equal(t, []byte("bbb"), handler(process.RequestData{Type: process.HashType, Value: []byte("aaa")}))
-}
 
-func TestTxResolver_ResolveTxRequestNotFoundShouldRetNil(t *testing.T) {
-	t.Parallel()
+	buff, err := txRes.ResolveTxRequest(process.RequestData{Type: process.HashType, Value: []byte("aaa")})
 
-	var handler func(rd process.RequestData) []byte
+	assert.Equal(t, expectedBuff, buff)
+	assert.Equal(t, "just checking output error", err.Error())
 
-	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) []byte) {
-		handler = h
-	}
-
-	marshalizer := &mock.MarshalizerMock{}
-
-	txPool := &mock.ShardedDataStub{}
-	txPool.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
-		//not found in txPool
-		return nil
-	}
-
-	txStorage := &mock.StorerStub{}
-	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
-		//not found in storage
-		return nil, nil
-	}
-
-	txRes, err := NewTxResolver(
-		res,
-		txPool,
-		txStorage,
-		marshalizer,
-	)
-	assert.Nil(t, err)
-	assert.NotNil(t, txRes)
-	assert.Nil(t, handler(process.RequestData{Type: process.HashType, Value: []byte("aaa")}))
 }
 
 //------- RequestTransactionFromHash
@@ -278,7 +250,7 @@ func TestTxResolver_RequestTransactionFromHashShouldWork(t *testing.T) {
 	t.Parallel()
 
 	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) []byte) {
+	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
 	}
 
 	requested := process.RequestData{}
@@ -288,30 +260,19 @@ func TestTxResolver_RequestTransactionFromHashShouldWork(t *testing.T) {
 		return nil
 	}
 
-	marshalizer := &mock.MarshalizerMock{}
+	buffRequested := []byte("aaaa")
 
-	txPool := &mock.ShardedDataStub{}
-	txPool.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
-		//not found in txPool
-		return nil
-	}
-
-	txStorage := &mock.StorerStub{}
-	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
-		//not found in storage
-		return nil, nil
-	}
-
-	txRes, err := NewTxResolver(
+	txRes, _ := NewTxResolver(
 		res,
-		txPool,
-		txStorage,
-		marshalizer,
+		&mock.ShardedDataStub{},
+		&mock.StorerStub{},
+		&mock.MarshalizerMock{},
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, txRes)
 
-	assert.Nil(t, txRes.RequestTransactionFromHash([]byte("aaaa")))
-	assert.Equal(t, process.HashType, requested.Type)
-	assert.Equal(t, []byte("aaaa"), requested.Value)
+	assert.Nil(t, txRes.RequestTransactionFromHash(buffRequested))
+	assert.Equal(t, process.RequestData{
+		Type:  process.HashType,
+		Value: buffRequested,
+	}, requested)
+
 }

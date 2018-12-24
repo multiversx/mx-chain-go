@@ -1,8 +1,6 @@
 package block
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -18,6 +16,14 @@ type HeaderResolver struct {
 	hdrStorage     storage.Storer
 	marshalizer    marshal.Marshalizer
 	nonceConverter typeConverters.Uint64ByteSliceConverter
+}
+
+// BlockBodyResolver is a wrapper over Resolver that is specialized in resolving block body requests
+type BlockBodyResolver struct {
+	process.Resolver
+	blockBodyPool storage.Cacher
+	blockStorage  storage.Storer
+	marshalizer   marshal.Marshalizer
 }
 
 //------- HeaderResolver
@@ -74,9 +80,9 @@ func NewHeaderResolver(
 	return hdrResolver, nil
 }
 
-func (hdrRes *HeaderResolver) resolveHdrRequest(rd process.RequestData) []byte {
+func (hdrRes *HeaderResolver) resolveHdrRequest(rd process.RequestData) ([]byte, error) {
 	if rd.Value == nil {
-		return nil
+		return nil, process.ErrNilValue
 	}
 
 	var buff []byte
@@ -88,14 +94,10 @@ func (hdrRes *HeaderResolver) resolveHdrRequest(rd process.RequestData) []byte {
 	case process.NonceType:
 		buff, err = hdrRes.resolveHeaderFromNonce(rd.Value)
 	default:
-		log.Debug(fmt.Sprintf("unknown request type %d", rd.Type))
-		return nil
+		return nil, process.ErrResolveTypeUnknown
 	}
 
-	if err != nil {
-		log.Debug(err.Error())
-	}
-	return buff
+	return buff, err
 }
 
 func (hdrRes *HeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) {
@@ -161,5 +163,71 @@ func (hdrRes *HeaderResolver) RequestHeaderFromNonce(nonce uint64) error {
 	return hdrRes.RequestData(process.RequestData{
 		Type:  process.NonceType,
 		Value: hdrRes.nonceConverter.ToByteSlice(nonce),
+	})
+}
+
+//------- BlockBodyResolver
+
+// NewBlockBodyResolver creates a new block body resolver
+func NewBlockBodyResolver(
+	resolver process.Resolver,
+	blockBodyPool storage.Cacher,
+	blockBodyStorage storage.Storer,
+	marshalizer marshal.Marshalizer) (*BlockBodyResolver, error) {
+
+	if resolver == nil {
+		return nil, process.ErrNilResolver
+	}
+
+	if blockBodyPool == nil {
+		return nil, process.ErrNilBlockBodyPool
+	}
+
+	if blockBodyStorage == nil {
+		return nil, process.ErrNilBlockBodyStorage
+	}
+
+	if marshalizer == nil {
+		return nil, process.ErrNilMarshalizer
+	}
+
+	bbResolver := &BlockBodyResolver{
+		Resolver:      resolver,
+		blockBodyPool: blockBodyPool,
+		blockStorage:  blockBodyStorage,
+		marshalizer:   marshalizer,
+	}
+	bbResolver.SetResolverHandler(bbResolver.resolveBlockBodyRequest)
+
+	return bbResolver, nil
+}
+
+func (bbRes *BlockBodyResolver) resolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
+	if rd.Type != process.HashType {
+		return nil, process.ErrResolveNotHashType
+	}
+
+	if rd.Value == nil {
+		return nil, process.ErrNilValue
+	}
+
+	blockBody, _ := bbRes.blockBodyPool.Get(rd.Value)
+	if blockBody != nil {
+		buff, err := bbRes.marshalizer.Marshal(blockBody)
+		if err != nil {
+			return nil, err
+		}
+
+		return buff, nil
+	}
+
+	return bbRes.blockStorage.Get(rd.Value)
+}
+
+// RequestBlockBodyFromHash requests a block body from other peers having input the block body hash
+func (bbRes *BlockBodyResolver) RequestBlockBodyFromHash(hash []byte) error {
+	return bbRes.RequestData(process.RequestData{
+		Type:  process.HashType,
+		Value: hash,
 	})
 }
