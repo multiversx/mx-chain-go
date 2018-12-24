@@ -43,6 +43,7 @@ type Node struct {
 	syncer              ntp.SyncTimer
 	blockProcessor      process.BlockProcessor
 	genesisTime         time.Time
+	elasticSubrounds    bool
 }
 
 // NewNode creates a new Node instance
@@ -168,7 +169,7 @@ func (n *Node) CreateRound() *chronology.Round {
 func (n *Node) CreateChronology(round *chronology.Round) *chronology.Chronology {
 	chr := chronology.NewChronology(
 		true,
-		true,
+		!n.elasticSubrounds,
 		round,
 		n.genesisTime,
 		n.syncer)
@@ -502,5 +503,11 @@ func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 func WithGenesisTime(genesisTime time.Time) Option {
 	return func(n *Node) {
 		n.genesisTime = genesisTime
+	}
+}
+
+func WithElasticSubrounds(elasticSubrounds bool) Option {
+	return func(n *Node) {
+		n.elasticSubrounds = elasticSubrounds
 	}
 }

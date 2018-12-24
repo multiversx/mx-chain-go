@@ -1,7 +1,8 @@
 {
-  "startTime": 1545499285,
+  "startTime": 1545652800,
   "roundDuration": 4000,
   "consensusGroupSize": 2,
+  "elasticSubrounds": false,
   "initialNodes": [
     {
       "pubkey": "16Uiu2HAmERYu2qxDQkUnWsxS6pVwjQBbv74HLq8e3SbFsTtMkdqz",

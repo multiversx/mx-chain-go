@@ -26,6 +26,6 @@ var (
 	SelfPubKey = cli.StringFlag{
 		Name:  "self-pub-key",
 		Usage: "Public key of the current node",
-		Value: "16Uiu2HAmAgFhnundFuEjy3ngaSTPwP8LLgWomwvf3SUXFRU6LiWk",
+		Value: "16Uiu2HAmERYu2qxDQkUnWsxS6pVwjQBbv74HLq8e3SbFsTtMkdqz",
 	}
 )

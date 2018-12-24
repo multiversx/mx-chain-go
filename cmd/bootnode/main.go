@@ -58,6 +58,7 @@ type Genesis struct {
 	StartTime          int64         `json:"startTime"`
 	RoundDuration      int64         `json:"roundDuration"`
 	ConsensusGroupSize int           `json:"consensusGroupSize"`
+	ElasticSubrounds   bool          `json:"elasticSubrounds"`
 	InitialNodes       []InitialNode `json:"initialNodes"`
 }
 
@@ -115,6 +116,17 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	txPoolAccesser := transactionPool.NewTransactionPool(nil)
 	blockProcessor := block.NewBlockProcessor(txPoolAccesser, hasher, marshalizer, transactionProcessor, accountAdapter, 1)
 
+	//genesisTime := time.Date(time.Now().Year(),
+	//	time.Now().Month(),
+	//	time.Now().Day(),
+	//	14,
+	//	0,
+	//	0,
+	//	0,
+	//	time.Local)
+	//
+	//log.Info(fmt.Sprintf("Genesis time in seconds: %d", genesisTime.Unix()))
+
 	log.Info(fmt.Sprintf("Current time in seconds: %d", syncer.CurrentTime(syncer.ClockOffset()).Unix()))
 
 	// 1. Start with an empty node
@@ -129,7 +141,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		marshalizer,
 		syncer,
 		blockProcessor,
-		time.Unix(initialConfig.StartTime, 0))
+		time.Unix(initialConfig.StartTime, 0),
+		initialConfig.ElasticSubrounds)
 
 	ef := facade.NewElrondNodeFacade(currentNode)
 
@@ -209,6 +222,7 @@ func CreateNode(
 	syncer ntp.SyncTimer,
 	blockProcessor process.BlockProcessor,
 	genesisTime time.Time,
+	elasticSubrounds bool,
 ) *node.Node {
 	appContext := context.Background()
 	nd := node.NewNode(
@@ -225,6 +239,7 @@ func CreateNode(
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithGenesisTime(genesisTime),
+		node.WithElasticSubrounds(elasticSubrounds),
 	)
 
 	return nd

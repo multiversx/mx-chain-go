@@ -63,11 +63,12 @@ const (
 
 // ConsensusData defines the data needed by spos to comunicate between nodes over network in all subrounds
 type ConsensusData struct {
-	Data      []byte
-	PubKeys   [][]byte
-	Signature []byte
-	MsgType   MessageType
-	TimeStamp uint64
+	Data       []byte
+	PubKeys    [][]byte
+	Signature  []byte
+	MsgType    MessageType
+	TimeStamp  uint64
+	RoundIndex int32
 }
 
 // NewConsensusData creates a new ConsensusData object
@@ -77,14 +78,16 @@ func NewConsensusData(
 	sig []byte,
 	msg MessageType,
 	tms uint64,
+	roundIndex int32,
 ) *ConsensusData {
 
 	return &ConsensusData{
-		Data:      dta,
-		PubKeys:   pks,
-		Signature: sig,
-		MsgType:   msg,
-		TimeStamp: tms}
+		Data:       dta,
+		PubKeys:    pks,
+		Signature:  sig,
+		MsgType:    msg,
+		TimeStamp:  tms,
+		RoundIndex: roundIndex}
 }
 
 func (cd *ConsensusData) New() p2p.Newer {
@@ -92,7 +95,7 @@ func (cd *ConsensusData) New() p2p.Newer {
 }
 
 func (cd *ConsensusData) ID() string {
-	id := fmt.Sprintf("%d-%s-%d", cd.TimeStamp, cd.Signature, cd.MsgType)
+	id := fmt.Sprintf("%d-%s-%d", cd.RoundIndex, cd.Signature, cd.MsgType)
 	return id
 }
 
@@ -296,7 +299,8 @@ func (sposWorker *SPOSConsensusWorker) SendBlockBody() bool {
 		nil,
 		[]byte(sposWorker.Cns.SelfId()),
 		MtBlockBody,
-		sposWorker.GetTime())
+		sposWorker.GetTime(),
+		sposWorker.Cns.Chr.Round().Index())
 
 	if !sposWorker.BroadcastMessage(dta) {
 		return false
@@ -350,7 +354,8 @@ func (sposWorker *SPOSConsensusWorker) SendBlockHeader() bool {
 		nil,
 		[]byte(sposWorker.Cns.SelfId()),
 		MtBlockHeader,
-		sposWorker.GetTime())
+		sposWorker.GetTime(),
+		sposWorker.Cns.Chr.Round().Index())
 
 	if !sposWorker.BroadcastMessage(dta) {
 		return false
@@ -383,7 +388,8 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
 		nil,
 		[]byte(sposWorker.Cns.SelfId()),
 		MtCommitmentHash,
-		sposWorker.GetTime())
+		sposWorker.GetTime(),
+		sposWorker.Cns.Chr.Round().Index())
 
 	if !sposWorker.BroadcastMessage(dta) {
 		return false
@@ -424,7 +430,8 @@ func (sposWorker *SPOSConsensusWorker) DoBitmapJob() bool {
 		pks,
 		[]byte(sposWorker.Cns.SelfId()),
 		MtBitmap,
-		sposWorker.GetTime())
+		sposWorker.GetTime(),
+		sposWorker.Cns.Chr.Round().Index())
 
 	if !sposWorker.BroadcastMessage(dta) {
 		return false
@@ -461,7 +468,8 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentJob() bool {
 		nil,
 		[]byte(sposWorker.Cns.SelfId()),
 		MtCommitment,
-		sposWorker.GetTime())
+		sposWorker.GetTime(),
+		sposWorker.Cns.Chr.Round().Index())
 
 	if !sposWorker.BroadcastMessage(dta) {
 		return false
@@ -494,7 +502,8 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 		nil,
 		[]byte(sposWorker.Cns.SelfId()),
 		MtSignature,
-		sposWorker.GetTime())
+		sposWorker.GetTime(),
+		sposWorker.Cns.Chr.Round().Index())
 
 	if !sposWorker.BroadcastMessage(dta) {
 		return false
