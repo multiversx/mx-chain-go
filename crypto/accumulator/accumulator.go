@@ -5,7 +5,6 @@ import (
 )
 
 type Accumulator interface {
-	HashToPrime([]byte) *big.Int
 	Accumulate(...[]byte) []*big.Int
-	Verify([]byte, *big.Int) bool
+	Verify(*big.Int, []byte) bool
 }
