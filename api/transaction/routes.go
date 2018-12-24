@@ -59,7 +59,7 @@ func GenerateTransaction(c *gin.Context) {
 
 	tx, err := ef.GenerateTransaction(gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction generation failed"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction generation failed: " + err.Error()})
 		return
 	}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 
@@ -31,6 +32,8 @@ type Node struct {
 	initialNodesAddresses []string
 	messenger             p2p.Messenger
 	accounts			  state.AccountsAdapter
+	addrConverter		  state.AddressConverter
+	privateKey			  crypto.PrivateKey
 }
 
 // NewNode creates a new Node instance
@@ -134,7 +137,42 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
 func (n *Node) GenerateTransaction(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error) {
-	return nil, nil
+	if n.addrConverter == nil || n.accounts == nil {
+		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
+	}
+
+	if n.privateKey == nil {
+		return nil, errors.New("initialize PrivateKey first")
+	}
+
+	senderAddress, err := n.addrConverter.CreateAddressFromHex(sender)
+	if err != nil {
+		return nil, errors.New("could not create sender address from provided param")
+	}
+	senderAccount, err := n.accounts.GetJournalizedAccount(senderAddress)
+	if err != nil {
+		return nil, errors.New("could not create sender address from provided param")
+	}
+	newNonce := senderAccount.BaseAccount().Nonce + 1
+	tx := transaction.Transaction{
+		Nonce: newNonce,
+		Value: amount,
+		RcvAddr: []byte(receiver),
+		SndAddr: []byte(receiver),
+	}
+
+	txToByteArray, err := n.marshalizer.Marshal(tx)
+	if err != nil {
+		return nil, errors.New("could not create byte array representation of the transaction")
+	}
+
+	sig, err := n.privateKey.Sign(txToByteArray)
+	if err != nil {
+		return nil, errors.New("could not sign the transaction")
+	}
+	tx.Signature = sig
+
+	return &tx, nil
 }
 
 //GetTransaction gets the transaction
@@ -251,6 +289,28 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 			return errors.New("trying to set nil accounts adapter")
 		}
 		n.accounts = accounts
+		return nil
+	}
+}
+
+// WithAddressConverter sets up the address converter adapter for the Node
+func WithAddressConverter(addrConverter state.AddressConverter) Option {
+	return func(n *Node) error {
+		if addrConverter == nil {
+			return errors.New("trying to set nil accounts adapter")
+		}
+		n.addrConverter = addrConverter
+		return nil
+	}
+}
+
+// WithPrivateKey sets up the private key for the Node
+func WithPrivateKey(sk crypto.PrivateKey) Option {
+	return func(n *Node) error {
+		if sk == nil {
+			return errors.New("trying to set nil private key")
+		}
+		n.privateKey = sk
 		return nil
 	}
 }

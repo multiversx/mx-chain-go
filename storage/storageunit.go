@@ -39,8 +39,11 @@ const (
 )
 
 const (
+	// Keccak is the string representation of the keccak hashing function
 	Keccak  HasherType = "Keccak"
+	// Blake2b is the string representation of the blake2b hashing function
 	Blake2b HasherType = "Blake2b"
+	// Fnv is the string representation of the fnv hashing function
 	Fnv     HasherType = "Fnv"
 )
 
@@ -63,7 +66,7 @@ type DBConfig struct {
 	Type     DBType
 }
 
-// BloobConfig holds the configurable elements of a bloom filter
+// BloomConfig holds the configurable elements of a bloom filter
 type BloomConfig struct {
 	Size     uint
 	HashFunc []HasherType
@@ -136,7 +139,7 @@ type BloomFilter interface {
 	//Add adds the value to the bloom filter
 	Add([]byte)
 
-	//Test checks if the value is in in the set. If it returns 'false',
+	// MayContain checks if the value is in in the set. If it returns 'false',
 	//the item is definitely not in the DB
 	MayContain([]byte) bool
 
