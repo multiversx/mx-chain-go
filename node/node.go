@@ -149,11 +149,15 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}
-	senderAccount, err := n.accounts.GetJournalizedAccount(senderAddress)
+	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
-		return nil, errors.New("could not create sender address from provided param")
+		return nil, errors.New("could not fetch sender address from provided param")
 	}
-	newNonce := senderAccount.BaseAccount().Nonce + 1
+	newNonce := uint64(0)
+	if senderAccount != nil {
+		newNonce = senderAccount.BaseAccount().Nonce + 1
+	}
+
 	tx := transaction.Transaction{
 		Nonce: newNonce,
 		Value: amount,
@@ -173,6 +177,31 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	tx.Signature = sig
 
 	return &tx, nil
+}
+
+// SendTransaction will send a new transaction on the topic channel
+func (n *Node) SendTransaction(
+	nonce uint64,
+	sender string,
+	receiver string,
+	amount big.Int,
+	code string,
+	signature string) (*transaction.Transaction, error) {
+
+		tx := transaction.Transaction{
+			Nonce: nonce,
+			Value: amount,
+			RcvAddr: []byte(receiver),
+			SndAddr: []byte(sender),
+			Data: []byte(code),
+			Signature: []byte(signature),
+		}
+		topic := n.messenger.GetTopic("tx")
+		err := topic.Broadcast(tx)
+		if err != nil {
+			return nil, errors.New("could not broadcast transaction: " + err.Error())
+		}
+		return &tx, nil
 }
 
 //GetTransaction gets the transaction

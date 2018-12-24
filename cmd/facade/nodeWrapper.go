@@ -36,6 +36,9 @@ type NodeWrapper interface {
 	//GenerateTransaction generates a new transaction with sender, receiver, amount and code
 	GenerateTransaction(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error)
 
+	//SendTransaction will send a new transaction on the topic channel
+	SendTransaction(nonce uint64, sender string, receiver string, amount big.Int, code string, signature string) (*transaction.Transaction, error)
+
 	//GetTransaction gets the transaction
 	GetTransaction(hash string) (*transaction.Transaction, error)
 }

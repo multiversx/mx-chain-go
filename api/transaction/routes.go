@@ -11,6 +11,7 @@ import (
 // Handler interface defines methods that can be used from `elrondFacade` context variable
 type Handler interface {
 	GenerateTransaction(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error)
+	SendTransaction(snonce uint64, ender string, receiver string, amount big.Int, code string, signature string) (*transaction.Transaction, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 }
 
@@ -21,6 +22,12 @@ type TxRequest struct {
 	Value    *big.Int `form:"value" json:"value"`
 	Data     string   `form:"data" json:"data"`
 	//SecretKey string `form:"sk" json:"sk" binding:"skValidator"`
+}
+
+// SendTxRequest represents the structure on which user input for publishing a new transaction will validate against
+type SendTxRequest struct {
+	TxRequest
+	Signature []byte `form:"signature" json:"signature"`
 }
 
 //TxResponse represents the structure on which the response will be validated against
@@ -38,12 +45,37 @@ type TxResponse struct {
 
 // Routes defines transaction related routes
 func Routes(router *gin.RouterGroup) {
-	router.POST("", GenerateTransaction)
+	router.POST("/generate", GenerateTransaction)
+	router.POST("/send", SendTransaction)
 	router.GET("/:txhash", GetTransaction)
 }
 
 // GenerateTransaction generates a new transaction given a sender, receiver, value and data
 func GenerateTransaction(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(Handler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
+		return
+	}
+
+	var gtx = SendTxRequest{}
+	err := c.ShouldBindJSON(&gtx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation error: " + err.Error()})
+		return
+	}
+
+	tx, err := ef.GenerateTransaction(gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction generation failed: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
+}
+
+// SendTransaction will add a transaction will
+func SendTransaction(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})

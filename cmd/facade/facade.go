@@ -37,6 +37,9 @@ type Facade interface {
 	//GenerateTransaction generates a transaction from a sender, receiver, value and data
 	GenerateTransaction(sender string, receiver string, value big.Int, data string) (*transaction.Transaction, error)
 
+	//SendTransaction will send a new transaction on the topic channel
+	SendTransaction(nonce uint64, sender string, receiver string, amount big.Int, code string, signature string) (*transaction.Transaction, error)
+
 	//GetTransaction gets the transaction with a specified hash
 	GetTransaction(hash string) (*transaction.Transaction, error)
 }
