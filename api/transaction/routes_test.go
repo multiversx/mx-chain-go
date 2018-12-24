@@ -55,7 +55,7 @@ func TestGenerateTransaction_WithParameters_ShouldReturnTransaction(t *testing.T
 			`"value":%s,`+
 			`"data":"%s"}`, sender, receiver, value, data)
 
-	req, _ := http.NewRequest("POST", "/transaction", bytes.NewBuffer([]byte(jsonStr)))
+	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(jsonStr)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -153,7 +153,7 @@ func TestGenerateTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
 
 	badJsonString := "bad"
 
-	req, _ := http.NewRequest("POST", "/transaction", bytes.NewBuffer([]byte(badJsonString)))
+	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(badJsonString)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -186,7 +186,7 @@ func TestGenerateTransaction_WithBadJsonShouldReturnInternalServerError(t *testi
 
 	badJsonString := "bad"
 
-	req, _ := http.NewRequest("POST", "/transaction", bytes.NewBuffer([]byte(badJsonString)))
+	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(badJsonString)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)

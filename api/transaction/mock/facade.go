@@ -9,6 +9,7 @@ type Facade struct {
 	GenerateTransactionHandler func(sender string, receiver string, amount big.Int,
 		code string) (*transaction.Transaction, error)
 	GetTransactionHandler func(hash string) (*transaction.Transaction, error)
+	SendTransactionHandler func(nonce uint64, sender string, receiver string, amount big.Int, code string, signature string) (*transaction.Transaction, error)
 }
 
 func (f *Facade) GenerateTransaction(sender string, receiver string, amount big.Int,
@@ -18,6 +19,11 @@ func (f *Facade) GenerateTransaction(sender string, receiver string, amount big.
 
 func (f *Facade) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return f.GetTransactionHandler(hash)
+}
+
+// SendTransaction will send a new transaction on the topic channel
+func (f *Facade)  SendTransaction(nonce uint64, sender string, receiver string, amount big.Int, code string, signature string) (*transaction.Transaction, error) {
+	return f.SendTransactionHandler(nonce, sender, receiver, amount, code, signature)
 }
 
 type WrongFacade struct {
