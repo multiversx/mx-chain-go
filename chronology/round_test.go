@@ -21,10 +21,15 @@ func TestUpdateRound_ShouldNotChangeAnything(t *testing.T) {
 
 	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
 	oldIndex := rnd.Index()
-	rnd.UpdateRound(genesisTime, time.Now())
+	oldTimeStamp := rnd.TimeStamp()
+
+	rnd.UpdateRound(genesisTime, genesisTime)
+
 	newIndex := rnd.Index()
+	newTimeStamp := rnd.TimeStamp()
 
 	assert.Equal(t, oldIndex, newIndex)
+	assert.Equal(t, oldTimeStamp, newTimeStamp)
 }
 
 func TestUpdateRound_ShouldAdvanceOneRound(t *testing.T) {
@@ -32,8 +37,7 @@ func TestUpdateRound_ShouldAdvanceOneRound(t *testing.T) {
 
 	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
 	oldIndex := rnd.Index()
-	time.Sleep(roundTimeDuration)
-	rnd.UpdateRound(genesisTime, time.Now())
+	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration))
 	newIndex := rnd.Index()
 
 	assert.Equal(t, oldIndex, newIndex-1)
@@ -43,8 +47,7 @@ func TestIndex_ShouldReturnFirstIndex(t *testing.T) {
 	genesisTime := time.Now()
 
 	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
-	time.Sleep(roundTimeDuration / 2)
-	rnd.UpdateRound(genesisTime, time.Now())
+	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration/2))
 	index := rnd.Index()
 
 	assert.Equal(t, int32(0), index)
@@ -54,8 +57,7 @@ func TestTimeStamp_ShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 	genesisTime := time.Now()
 
 	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
-	time.Sleep(roundTimeDuration + roundTimeDuration/2)
-	rnd.UpdateRound(genesisTime, time.Now())
+	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration+roundTimeDuration/2))
 	timeStamp := rnd.TimeStamp()
 
 	assert.Equal(t, genesisTime.Add(roundTimeDuration), timeStamp)
@@ -68,12 +70,4 @@ func TestTimeDuration_ShouldReturnTheDurationOfOneRound(t *testing.T) {
 	timeDuration := rnd.TimeDuration()
 
 	assert.Equal(t, roundTimeDuration, timeDuration)
-}
-
-func TestPrint_ShouldPrintRoundObject(t *testing.T) {
-	genesisTime := time.Now()
-
-	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
-
-	rnd.Print()
 }
