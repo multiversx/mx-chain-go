@@ -30,6 +30,7 @@ func TestUpdateRound_ShouldNotChangeAnything(t *testing.T) {
 
 	assert.Equal(t, oldIndex, newIndex)
 	assert.Equal(t, oldTimeStamp, newTimeStamp)
+
 }
 
 func TestUpdateRound_ShouldAdvanceOneRound(t *testing.T) {
