@@ -286,7 +286,7 @@ func TestMessage_EndRound(t *testing.T) {
 	r = coms[0].DoEndRoundJob()
 	assert.Equal(t, true, r)
 
-	coms[0].Cns.RoundConsensus.SetSelfId(coms[0].Cns.RoundConsensus.ConsensusGroup()[1])
+	coms[0].Cns.RoundConsensus.SetSelfPubKey(coms[0].Cns.RoundConsensus.ConsensusGroup()[1])
 
 	r = coms[0].DoEndRoundJob()
 	assert.Equal(t, 2, coms[0].RoundsWithBlock)
@@ -308,24 +308,24 @@ func TestMessage_SendBlock(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsNotFinished)
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBlock, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrBlock, true)
 
 	r = coms[0].DoBlockJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBlock, false)
-	coms[0].Cns.RoundConsensus.SetSelfId(coms[0].Cns.RoundConsensus.ConsensusGroup()[1])
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrBlock, false)
+	coms[0].Cns.RoundConsensus.SetSelfPubKey(coms[0].Cns.RoundConsensus.ConsensusGroup()[1])
 
 	r = coms[0].DoBlockJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.RoundConsensus.SetSelfId(coms[0].Cns.RoundConsensus.ConsensusGroup()[0])
+	coms[0].Cns.RoundConsensus.SetSelfPubKey(coms[0].Cns.RoundConsensus.ConsensusGroup()[0])
 
 	r = coms[0].DoBlockJob()
 	assert.Equal(t, true, r)
 	assert.Equal(t, uint64(1), coms[0].Hdr.Nonce)
 
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBlock, false)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrBlock, false)
 	coms[0].Blkc.CurrentBlockHeader = coms[0].Hdr
 
 	r = coms[0].DoBlockJob()
@@ -346,12 +346,12 @@ func TestMessage_SendCommitmentHash(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	coms[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrCommitmentHash, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrCommitmentHash, true)
 
 	r = coms[0].DoCommitmentHashJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrCommitmentHash, false)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrCommitmentHash, false)
 	coms[0].Cns.Data = nil
 
 	r = coms[0].DoCommitmentHashJob()
@@ -377,18 +377,18 @@ func TestMessage_SendBitmap(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	coms[0].Cns.SetStatus(spos.SrBitmap, spos.SsNotFinished)
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBitmap, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrBitmap, true)
 
 	r = coms[0].DoBitmapJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBitmap, false)
-	coms[0].Cns.RoundConsensus.SetSelfId(coms[0].Cns.RoundConsensus.ConsensusGroup()[1])
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrBitmap, false)
+	coms[0].Cns.RoundConsensus.SetSelfPubKey(coms[0].Cns.RoundConsensus.ConsensusGroup()[1])
 
 	r = coms[0].DoBitmapJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.RoundConsensus.SetSelfId(coms[0].Cns.RoundConsensus.ConsensusGroup()[0])
+	coms[0].Cns.RoundConsensus.SetSelfPubKey(coms[0].Cns.RoundConsensus.ConsensusGroup()[0])
 	coms[0].Cns.Data = nil
 
 	r = coms[0].DoBitmapJob()
@@ -396,11 +396,11 @@ func TestMessage_SendBitmap(t *testing.T) {
 
 	dta := []byte("X")
 	coms[0].Cns.Data = &dta
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrCommitmentHash, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrCommitmentHash, true)
 
 	r = coms[0].DoBitmapJob()
 	assert.Equal(t, true, r)
-	assert.Equal(t, true, coms[0].Cns.GetJobDone(coms[0].Cns.SelfId(), spos.SrBitmap))
+	assert.Equal(t, true, coms[0].Cns.GetJobDone(coms[0].Cns.SelfPubKey(), spos.SrBitmap))
 }
 
 func TestMessage_SendCommitment(t *testing.T) {
@@ -416,17 +416,17 @@ func TestMessage_SendCommitment(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	coms[0].Cns.SetStatus(spos.SrCommitment, spos.SsNotFinished)
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrCommitment, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrCommitment, true)
 
 	r = coms[0].DoCommitmentJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrCommitment, false)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrCommitment, false)
 
 	r = coms[0].DoCommitmentJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBitmap, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrBitmap, true)
 	coms[0].Cns.Data = nil
 
 	r = coms[0].DoCommitmentJob()
@@ -452,17 +452,17 @@ func TestMessage_SendSignature(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	coms[0].Cns.SetStatus(spos.SrSignature, spos.SsNotFinished)
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrSignature, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrSignature, true)
 
 	r = coms[0].DoSignatureJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrSignature, false)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrSignature, false)
 
 	r = coms[0].DoSignatureJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBitmap, true)
+	coms[0].Cns.SetJobDone(coms[0].Cns.SelfPubKey(), spos.SrBitmap, true)
 	coms[0].Cns.Data = nil
 
 	r = coms[0].DoSignatureJob()
@@ -495,7 +495,7 @@ func TestMessage_BroadcastMessage(t *testing.T) {
 	cnsDta := spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(coms[0].Cns.SelfId()),
+		[]byte(coms[0].Cns.SelfPubKey()),
 		spos.MtBlockHeader,
 		coms[0].GetTime())
 
@@ -569,7 +569,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	cnsDta := spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(coms[0].Cns.SelfId()),
+		[]byte(coms[0].Cns.SelfPubKey()),
 		spos.MtBlockBody,
 		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()))
 
@@ -593,7 +593,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	cnsDta = spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(coms[0].Cns.SelfId()),
+		[]byte(coms[0].Cns.SelfPubKey()),
 		spos.MtBlockHeader,
 		coms[0].GetTime())
 
@@ -617,7 +617,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	cnsDta = spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(coms[0].Cns.SelfId()),
+		[]byte(coms[0].Cns.SelfPubKey()),
 		spos.MtCommitmentHash,
 		coms[0].GetTime())
 
@@ -641,7 +641,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	cnsDta = spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(coms[0].Cns.SelfId()),
+		[]byte(coms[0].Cns.SelfPubKey()),
 		spos.MtBitmap,
 		coms[0].GetTime())
 
@@ -665,7 +665,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	cnsDta = spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(coms[0].Cns.SelfId()),
+		[]byte(coms[0].Cns.SelfPubKey()),
 		spos.MtCommitment,
 		coms[0].GetTime())
 
@@ -689,7 +689,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	cnsDta = spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(coms[0].Cns.SelfId()),
+		[]byte(coms[0].Cns.SelfPubKey()),
 		spos.MtSignature,
 		coms[0].GetTime())
 
@@ -713,7 +713,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	cnsDta = spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(coms[0].Cns.SelfId()),
+		[]byte(coms[0].Cns.SelfPubKey()),
 		spos.MtUnknown,
 		coms[0].GetTime())
 
@@ -749,7 +749,7 @@ func TestMessage_DecodeBlockHeader(t *testing.T) {
 	hdr := &block.Header{}
 	hdr.Nonce = 1
 	hdr.TimeStamp = coms[0].GetTime()
-	hdr.Signature = []byte(coms[0].Cns.SelfId())
+	hdr.Signature = []byte(coms[0].Cns.SelfPubKey())
 
 	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -768,7 +768,7 @@ func TestMessage_DecodeBlockHeader(t *testing.T) {
 	dcdHdr = coms[0].DecodeBlockHeader(&message)
 
 	assert.Equal(t, hdr, dcdHdr)
-	assert.Equal(t, []byte(coms[0].Cns.SelfId()), dcdHdr.Signature)
+	assert.Equal(t, []byte(coms[0].Cns.SelfPubKey()), dcdHdr.Signature)
 }
 
 func TestMessage_CheckChannels(t *testing.T) {
@@ -1227,7 +1227,7 @@ func TestConsensus_CheckCommitmentHashConsensus(t *testing.T) {
 	assert.Equal(t, true, ok)
 	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrCommitmentHash))
 
-	cns.RoundConsensus.SetSelfId("2")
+	cns.RoundConsensus.SetSelfPubKey("2")
 
 	cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
 
@@ -1289,7 +1289,7 @@ func TestConsensus_CheckBitmapConsensus(t *testing.T) {
 		cns.SetJobDone(cns.RoundConsensus.ConsensusGroup()[i], spos.SrBitmap, true)
 	}
 
-	cns.SetJobDone(cns.RoundConsensus.SelfId(), spos.SrBitmap, false)
+	cns.SetJobDone(cns.RoundConsensus.SelfPubKey(), spos.SrBitmap, false)
 
 	cns.SetStatus(spos.SrBitmap, spos.SsNotFinished)
 

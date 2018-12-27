@@ -14,15 +14,15 @@ type belNev struct {
 	commitmentsBitmap []byte
 	aggCommitment     []byte
 	challenges        [][]byte
-	sigShares         []byte
+	sigShares         [][]byte
 	sigSharesBitmap   []byte
 	aggSig            []byte
 	ownIndex          uint16
 }
 
 // NewBelNevMultisig creates a new Belare Neven multi-signer
-func NewBelNevMultisig(pubKeys []crypto.PublicKey, privKey crypto.PrivateKey, ownIndex uint16) (*belNev, error) {
-	if privKey == nil {
+func NewBelNevMultisig(pubKeys []string, privKey string, ownIndex uint16) (*belNev, error) {
+	if privKey == "" {
 		return nil, crypto.ErrNilPrivateKey
 	}
 
@@ -30,10 +30,35 @@ func NewBelNevMultisig(pubKeys []crypto.PublicKey, privKey crypto.PrivateKey, ow
 		return nil, crypto.ErrNilPublicKeys
 	}
 
+	var pk []crypto.PublicKey
+	kg := schnorr.NewKeyGenerator()
+
+	//convert pubKeys
+	for _, pubKeyStr := range pubKeys {
+		if pubKeyStr != "" {
+			pubKey, err := kg.PublicKeyFromByteArray([]byte(pubKeyStr))
+
+			if err != nil {
+				return nil, crypto.ErrInvalidPublicKeyString
+			}
+
+			pk = append(pk, pubKey)
+		} else {
+			return nil, crypto.ErrNilPublicKey
+		}
+	}
+
+	// convert private key
+	sk, err := kg.PrivateKeyFromByteArray([]byte(privKey))
+
+	if err != nil {
+		return nil, crypto.ErrNilPrivateKey
+	}
+
 	// own index is used only for signing
 	return &belNev{
-		pubKeys:  pubKeys,
-		privKey:  privKey,
+		pubKeys:  pk,
+		privKey:  sk,
 		ownIndex: ownIndex,
 	}, nil
 }

@@ -24,7 +24,7 @@ func TestNewValidators(t *testing.T) {
 
 	assert.Equal(t, 3, len(roundConsensus.ConsensusGroup()))
 	assert.Equal(t, "3", roundConsensus.ConsensusGroup()[2])
-	assert.Equal(t, "2", roundConsensus.SelfId())
+	assert.Equal(t, "2", roundConsensus.SelfPubKey())
 }
 
 func TestValidators_ResetValidationMap(t *testing.T) {
@@ -62,9 +62,9 @@ func TestValidators_IsNodeInBitmapGroup(t *testing.T) {
 		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
-	assert.Equal(t, false, vld.IsValidatorInBitmap(vld.SelfId()))
-	vld.SetJobDone(vld.SelfId(), spos.SrBitmap, true)
-	assert.Equal(t, true, vld.IsValidatorInBitmap(vld.SelfId()))
+	assert.Equal(t, false, vld.IsValidatorInBitmap(vld.SelfPubKey()))
+	vld.SetJobDone(vld.SelfPubKey(), spos.SrBitmap, true)
+	assert.Equal(t, true, vld.IsValidatorInBitmap(vld.SelfPubKey()))
 }
 
 func TestValidators_IsNodeInValidationGroup(t *testing.T) {
@@ -82,7 +82,7 @@ func TestValidators_IsNodeInValidationGroup(t *testing.T) {
 	}
 
 	assert.Equal(t, false, vld.IsNodeInConsensusGroup("4"))
-	assert.Equal(t, true, vld.IsNodeInConsensusGroup(vld.SelfId()))
+	assert.Equal(t, true, vld.IsNodeInConsensusGroup(vld.SelfPubKey()))
 }
 
 func TestValidators_IsBlockReceived(t *testing.T) {

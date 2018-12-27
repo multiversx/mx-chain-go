@@ -11,6 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 )
 
 var log = logger.NewDefaultLogger()
@@ -64,6 +67,7 @@ const (
 type ConsensusData struct {
 	Data      []byte
 	PubKeys   [][]byte
+	PubKey    []byte
 	Signature []byte
 	MsgType   MessageType
 	TimeStamp uint64
@@ -73,6 +77,7 @@ type ConsensusData struct {
 func NewConsensusData(
 	dta []byte,
 	pks [][]byte,
+	pubKey []byte,
 	sig []byte,
 	msg MessageType,
 	tms uint64,
@@ -81,6 +86,7 @@ func NewConsensusData(
 	return &ConsensusData{
 		Data:      dta,
 		PubKeys:   pks,
+		PubKey:    pubKey,
 		Signature: sig,
 		MsgType:   msg,
 		TimeStamp: tms,
@@ -89,22 +95,20 @@ func NewConsensusData(
 
 // SPOSConsensusWorker defines the data needed by spos to comunicate between nodes which are in the validators group
 type SPOSConsensusWorker struct {
-	log bool
-
-	Cns *Consensus
-
-	Hdr  *block.Header
-	Blk  *block.TxBlockBody
-	Blkc *blockchain.BlockChain
-
+	log             bool
+	Cns             *Consensus
+	Hdr             *block.Header
+	Blk             *block.TxBlockBody
+	Blkc            *blockchain.BlockChain
+	multiSigner     crypto.MultiSigner
 	Rounds          int // only for statistic
 	RoundsWithBlock int // only for statistic
 	BlockProcessor  process.BlockProcessor
-
-	ChRcvMsg map[MessageType]chan *ConsensusData
-
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
+	ChRcvMsg        map[MessageType]chan *ConsensusData
+	hasher          hashing.Hasher
+	marshalizer     marshal.Marshalizer
+	privKey         crypto.PrivateKey
+	pubKey          crypto.PublicKey
 	// this is a pointer to a function which actually send the message from a node to the network
 	OnSendMessage func([]byte)
 }
@@ -117,7 +121,24 @@ func NewConsensusWorker(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	blockProcessor process.BlockProcessor,
+	privateKey string,
+	publicKey string,
+
 ) *SPOSConsensusWorker {
+
+	kg := schnorr.NewKeyGenerator()
+
+	pubKey, err := kg.PublicKeyFromByteArray([]byte(publicKey))
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	privKey, err := kg.PrivateKeyFromByteArray([]byte(privateKey))
+
+	if err != nil {
+		panic(err.Error())
+	}
 
 	sposWorker := SPOSConsensusWorker{
 		log:            log,
@@ -126,10 +147,9 @@ func NewConsensusWorker(
 		hasher:         hasher,
 		marshalizer:    marshalizer,
 		BlockProcessor: blockProcessor,
+		privKey:        privKey,
+		pubKey:         pubKey,
 	}
-
-	sposWorker.Rounds = 0          // only for statistic
-	sposWorker.RoundsWithBlock = 0 // only for statistic
 
 	sposWorker.ChRcvMsg = make(map[MessageType]chan *ConsensusData)
 
@@ -168,12 +188,23 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 		leader = "Unknown"
 	}
 
-	if leader == sposWorker.Cns.SelfId() {
+	if leader == sposWorker.Cns.SelfPubKey() {
 		leader = fmt.Sprintf(leader + " (MY TURN)")
 	}
 
 	sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime()+"Step 0: Preparing for this round with leader %s ",
 		leader))
+
+	pubKeys := sposWorker.Cns.ConsensusGroup()
+
+	selfIndex, err := sposWorker.Cns.IndexSelfConsensusGroup()
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
+	sposWorker.multiSigner, err = multisig.NewBelNevMultisig(pubKeys, sposWorker.privKey, uint16(selfIndex))
 
 	return true
 }
@@ -212,7 +243,7 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 		log.Error(err.Error())
 	}
 
-	if sposWorker.Cns.IsNodeLeaderInCurrentRound(sposWorker.Cns.SelfId()) {
+	if sposWorker.Cns.IsNodeLeaderInCurrentRound(sposWorker.Cns.SelfPubKey()) {
 		sposWorker.Log(fmt.Sprintf("\n"+sposWorker.GetFormatedTime()+
 			">>>>>>>>>>>>>>>>>>>> ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN "+
 			"<<<<<<<<<<<<<<<<<<<<\n", sposWorker.Hdr.Nonce))
@@ -240,8 +271,8 @@ func (sposWorker *SPOSConsensusWorker) DoBlockJob() bool {
 	}
 
 	if sposWorker.Cns.Status(SrBlock) == SsFinished || // is subround Block already finished?
-		sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfId(), SrBlock) || // has been block already sent?
-		!sposWorker.Cns.IsNodeLeaderInCurrentRound(sposWorker.Cns.SelfId()) { // is another node leader in this round?
+		sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfPubKey(), SrBlock) || // has been block already sent?
+		!sposWorker.Cns.IsNodeLeaderInCurrentRound(sposWorker.Cns.SelfPubKey()) { // is another node leader in this round?
 		return false
 	}
 
@@ -250,7 +281,7 @@ func (sposWorker *SPOSConsensusWorker) DoBlockJob() bool {
 		return false
 	}
 
-	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfId(), SrBlock, true)
+	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrBlock, true)
 
 	return true
 }
@@ -284,7 +315,8 @@ func (sposWorker *SPOSConsensusWorker) SendBlockBody() bool {
 	dta := NewConsensusData(
 		message,
 		nil,
-		[]byte(sposWorker.Cns.SelfId()),
+		[]byte(sposWorker.Cns.selfPubKey),
+		nil,
 		MtBlockBody,
 		sposWorker.GetTime())
 
@@ -338,7 +370,8 @@ func (sposWorker *SPOSConsensusWorker) SendBlockHeader() bool {
 	dta := NewConsensusData(
 		message,
 		nil,
-		[]byte(sposWorker.Cns.SelfId()),
+		[]byte(sposWorker.Cns.SelfPubKey()),
+		nil,
 		MtBlockHeader,
 		sposWorker.GetTime())
 
@@ -363,7 +396,7 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
 	}
 
 	if sposWorker.Cns.Status(SrCommitmentHash) == SsFinished || // is subround CommitmentHash already finished?
-		sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfId(), SrCommitmentHash) || // is commitment hash already sent?
+		sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfPubKey(), SrCommitmentHash) || // is commitment hash already sent?
 		sposWorker.Cns.Data == nil { // is consensus data not set?
 		return false
 	}
@@ -371,7 +404,8 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
 	dta := NewConsensusData(
 		*sposWorker.Cns.Data,
 		nil,
-		[]byte(sposWorker.Cns.SelfId()),
+		[]byte(sposWorker.Cns.SelfPubKey()),
+		nil,
 		MtCommitmentHash,
 		sposWorker.GetTime())
 
@@ -381,7 +415,7 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
 
 	sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime() + "Step 2: Sending commitment hash"))
 
-	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfId(), SrCommitmentHash, true)
+	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrCommitmentHash, true)
 
 	return true
 }
@@ -395,8 +429,8 @@ func (sposWorker *SPOSConsensusWorker) DoBitmapJob() bool {
 	}
 
 	if sposWorker.Cns.Status(SrBitmap) == SsFinished || // is subround Bitmap already finished?
-		sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfId(), SrBitmap) || // has been bitmap already sent?
-		!sposWorker.Cns.IsNodeLeaderInCurrentRound(sposWorker.Cns.SelfId()) || // is another node leader in this round?
+		sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfPubKey(), SrBitmap) || // has been bitmap already sent?
+		!sposWorker.Cns.IsNodeLeaderInCurrentRound(sposWorker.Cns.SelfPubKey()) || // is another node leader in this round?
 		sposWorker.Cns.Data == nil { // is consensus data not set?
 		return false
 	}
@@ -412,7 +446,8 @@ func (sposWorker *SPOSConsensusWorker) DoBitmapJob() bool {
 	dta := NewConsensusData(
 		*sposWorker.Cns.Data,
 		pks,
-		[]byte(sposWorker.Cns.SelfId()),
+		[]byte(sposWorker.Cns.SelfPubKey()),
+		nil,
 		MtBitmap,
 		sposWorker.GetTime())
 
@@ -440,8 +475,8 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentJob() bool {
 	}
 
 	if sposWorker.Cns.Status(SrCommitment) == SsFinished || // is subround Commitment already finished?
-		sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfId(), SrCommitment) || // has been commitment already sent?
-		!sposWorker.Cns.IsValidatorInBitmap(sposWorker.Cns.SelfId()) || // isn't node in the leader's bitmap?
+		sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfPubKey(), SrCommitment) || // has been commitment already sent?
+		!sposWorker.Cns.IsValidatorInBitmap(sposWorker.Cns.SelfPubKey()) || // isn't node in the leader's bitmap?
 		sposWorker.Cns.Data == nil { // is consensus data not set?
 		return false
 	}
@@ -449,7 +484,8 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentJob() bool {
 	dta := NewConsensusData(
 		*sposWorker.Cns.Data,
 		nil,
-		[]byte(sposWorker.Cns.SelfId()),
+		[]byte(sposWorker.Cns.SelfPubKey()),
+		nil,
 		MtCommitment,
 		sposWorker.GetTime())
 
@@ -459,7 +495,7 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentJob() bool {
 
 	sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime() + "Step 4: Sending commitment"))
 
-	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfId(), SrCommitment, true)
+	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrCommitment, true)
 
 	return true
 }
@@ -473,8 +509,8 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 	}
 
 	if sposWorker.Cns.Status(SrSignature) == SsFinished || // is subround Signature already finished?
-		sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfId(), SrSignature) || // has been signature already sent?
-		!sposWorker.Cns.IsValidatorInBitmap(sposWorker.Cns.SelfId()) || // isn't node in the leader's bitmap?
+		sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfPubKey(), SrSignature) || // has been signature already sent?
+		!sposWorker.Cns.IsValidatorInBitmap(sposWorker.Cns.SelfPubKey()) || // isn't node in the leader's bitmap?
 		sposWorker.Cns.Data == nil { // is consensus data not set?
 		return false
 	}
@@ -482,7 +518,8 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 	dta := NewConsensusData(
 		*sposWorker.Cns.Data,
 		nil,
-		[]byte(sposWorker.Cns.SelfId()),
+		[]byte(sposWorker.Cns.SelfPubKey()),
+		nil,
 		MtSignature,
 		sposWorker.GetTime())
 
@@ -492,7 +529,7 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 
 	sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime() + "Step 5: Sending signature"))
 
-	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfId(), SrSignature, true)
+	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrSignature, true)
 
 	return true
 }
@@ -597,7 +634,7 @@ func (sposWorker *SPOSConsensusWorker) CheckChannels() {
 func (sposWorker *SPOSConsensusWorker) ReceivedBlockBody(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
-	if node == sposWorker.Cns.SelfId() || // is block body received from myself?
+	if node == sposWorker.Cns.SelfPubKey() || // is block body received from myself?
 		!sposWorker.Cns.IsNodeLeaderInCurrentRound(node) || // is another node leader in this round?
 		sposWorker.Blk != nil { // is block body already received?
 		return false
@@ -634,7 +671,7 @@ func (sposWorker *SPOSConsensusWorker) DecodeBlockBody(dta *[]byte) *block.TxBlo
 func (sposWorker *SPOSConsensusWorker) ReceivedBlockHeader(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
-	if node == sposWorker.Cns.SelfId() || // is block header received from myself?
+	if node == sposWorker.Cns.SelfPubKey() || // is block header received from myself?
 		sposWorker.Cns.Status(SrBlock) == SsFinished || // is subround Block already finished?
 		!sposWorker.Cns.IsNodeLeaderInCurrentRound(node) || // is another node leader in this round?
 		sposWorker.Cns.RoundConsensus.GetJobDone(node, SrBlock) { // is block header already received?
@@ -683,7 +720,7 @@ func (sposWorker *SPOSConsensusWorker) DecodeBlockHeader(dta *[]byte) *block.Hea
 func (sposWorker *SPOSConsensusWorker) ReceivedCommitmentHash(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
-	if node == sposWorker.Cns.SelfId() || // is commitment hash received from myself?
+	if node == sposWorker.Cns.SelfPubKey() || // is commitment hash received from myself?
 		sposWorker.Cns.Status(SrCommitmentHash) == SsFinished || // is subround CommitmentHash already finished?
 		!sposWorker.Cns.IsNodeInConsensusGroup(node) || // isn't node in the jobDone group?
 		sposWorker.Cns.RoundConsensus.GetJobDone(node, SrCommitmentHash) || // is commitment hash already received?
@@ -694,7 +731,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedCommitmentHash(cnsDta *ConsensusD
 
 	// if this node is leader in this round and already he received 2/3 + 1 of commitment hashes
 	// he will ignore any others received later
-	if sposWorker.Cns.IsNodeLeaderInCurrentRound(sposWorker.Cns.SelfId()) {
+	if sposWorker.Cns.IsNodeLeaderInCurrentRound(sposWorker.Cns.SelfPubKey()) {
 		if sposWorker.Cns.IsCommitmentHashReceived(sposWorker.Cns.Threshold(SrCommitmentHash)) {
 			return false
 		}
@@ -710,7 +747,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedCommitmentHash(cnsDta *ConsensusD
 func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
-	if node == sposWorker.Cns.SelfId() || // is bitmap received from myself?
+	if node == sposWorker.Cns.SelfPubKey() || // is bitmap received from myself?
 		sposWorker.Cns.Status(SrBitmap) == SsFinished || // is subround Bitmap already finished?
 		!sposWorker.Cns.IsNodeLeaderInCurrentRound(node) || // is another node leader in this round?
 		sposWorker.Cns.RoundConsensus.GetJobDone(node, SrBitmap) || // is bitmap already received?
@@ -750,7 +787,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) boo
 func (sposWorker *SPOSConsensusWorker) ReceivedCommitment(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
-	if node == sposWorker.Cns.SelfId() || // is commitment received from myself?
+	if node == sposWorker.Cns.SelfPubKey() || // is commitment received from myself?
 		sposWorker.Cns.Status(SrCommitment) == SsFinished || // is subround Commitment already finished?
 		!sposWorker.Cns.IsValidatorInBitmap(node) || // isn't node in the bitmap group?
 		sposWorker.Cns.RoundConsensus.GetJobDone(node, SrCommitment) || // is commitment already received?
@@ -769,7 +806,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedCommitment(cnsDta *ConsensusData)
 func (sposWorker *SPOSConsensusWorker) ReceivedSignature(cnsDta *ConsensusData) bool {
 	node := string(cnsDta.Signature)
 
-	if node == sposWorker.Cns.SelfId() || // is signature received from myself?
+	if node == sposWorker.Cns.SelfPubKey() || // is signature received from myself?
 		sposWorker.Cns.Status(SrSignature) == SsFinished || // is subround Signature already finished?
 		!sposWorker.Cns.IsValidatorInBitmap(node) || // isn't node in the bitmap group?
 		sposWorker.Cns.RoundConsensus.GetJobDone(node, SrSignature) || // is signature already received?
@@ -934,7 +971,7 @@ func (cns *Consensus) CheckCommitmentHashConsensus() bool {
 
 	threshold := cns.Threshold(SrCommitmentHash)
 
-	if !cns.IsNodeLeaderInCurrentRound(cns.selfId) {
+	if !cns.IsNodeLeaderInCurrentRound(cns.selfPubKey) {
 		threshold = len(cns.consensusGroup)
 	}
 
@@ -1022,7 +1059,7 @@ func (cns *Consensus) GetSubroundName(subroundId chronology.SubroundId) string {
 
 // PrintBlockCM method prints the <BLOCK> consensus messages
 func (cns *Consensus) PrintBlockCM() {
-	if !cns.IsNodeLeaderInCurrentRound(cns.selfId) {
+	if !cns.IsNodeLeaderInCurrentRound(cns.selfPubKey) {
 		cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
 			"Step 1: Synchronized block"))
 	}
@@ -1046,12 +1083,12 @@ func (cns *Consensus) PrintCommitmentHashCM() {
 
 // PrintBitmapCM method prints the <BITMAP> consensus messages
 func (cns *Consensus) PrintBitmapCM() {
-	if !cns.IsNodeLeaderInCurrentRound(cns.selfId) {
+	if !cns.IsNodeLeaderInCurrentRound(cns.selfPubKey) {
 		msg := fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset())+
 			"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d commitment hashes, which are enough",
 			cns.ComputeSize(SrBitmap), len(cns.consensusGroup))
 
-		if cns.IsValidatorInBitmap(cns.selfId) {
+		if cns.IsValidatorInBitmap(cns.selfPubKey) {
 			msg = fmt.Sprintf(msg+"%s", ", AND I WAS selected in this bitmap")
 		} else {
 			msg = fmt.Sprintf(msg+"%s", ", BUT I WAS NOT selected in this bitmap")
