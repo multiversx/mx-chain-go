@@ -15,10 +15,62 @@ var bigOne = big.NewInt(1)
 var log = logger.NewDefaultLogger()
 
 // Modulus taken from https://en.wikipedia.org/wiki/RSA_numbers#RSA-2048
-const modulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784406918290641249515082189298559149176184502808489120072844992687392807287776735971418347270261896375014971824691165077613379859095700097330459748808428401797429100642458691817195118746121515172654632282216869987549182422433637259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133844143603833904414952634432190114657544454178424020924616515723350778707749817125772467962926386356373289912154831438167899885040445364023527381951378636564391212010397122822120720357"
+var Modulus = func() *big.Int {
+
+	modString := "2519590847565789349402718324004839857142928212620403202777713783604366202070759555626401852588078" +
+		"4406918290641249515082189298559149176184502808489120072844992687392807287776735971418347270261896375014971" +
+		"8246911650776133798590957000973304597488084284017974291006424586918171951187461215151726546322822168699875" +
+		"4918242243363725908514186546204357679842338718477444792073993423658482382428119816381501067481045166037730" +
+		"6056201619676256133844143603833904414952634432190114657544454178424020924616515723350778707749817125772467" +
+		"962926386356373289912154831438167899885040445364023527381951378636564391212010397122822120720357"
+
+	m, ok := new(big.Int).SetString(modString, 10)
+	if !ok {
+		log.Error("error converting modulus to big int")
+	}
+	return m
+}()
 
 type accumulator struct {
 	value *big.Int
+}
+
+// Accumulate takes in some data, adds each item to the accumulator, and returns proofs with which
+// you can check that that data was added to the accumulator. This function does not update old proofs.
+func (acc *accumulator) Accumulate(data ...[]byte) (proofs []*big.Int) {
+	var primes []*big.Int
+
+	proofs = make([]*big.Int, len(data))
+
+	for i := range data {
+		primes = append(primes, HashToPrime(data[i]))
+	}
+
+	for i := range primes {
+		_ = acc.value.Exp(acc.value, primes[i], Modulus)
+
+	}
+
+	for i := range primes {
+		proof := new(big.Int).Set(g)
+		for j := range primes {
+			if i != j {
+				_ = proof.Exp(proof, primes[j], Modulus)
+			}
+		}
+
+		proofs[i] = proof
+	}
+
+	return
+}
+
+// Verify checks, using the proof, that the data was added to the accumulator
+func (acc *accumulator) Verify(proof *big.Int, data []byte) bool {
+	prime := HashToPrime(data)
+	v := new(big.Int).Exp(proof, prime, Modulus)
+
+	return v.Cmp(acc.value) == 0
 }
 
 // NewAccumulator returns an initialised rsa accumulator
@@ -45,44 +97,6 @@ func HashToPrime(data []byte) *big.Int {
 	return p
 }
 
-// Accumulate takes in some data, adds each item to the accumulator, and returns proofs with which
-// you can check that that data was added to the accumulator. This function does not update old proofs.
-func (acc *accumulator) Accumulate(data ...[]byte) (proofs []*big.Int) {
-	var primes []*big.Int
-
-	proofs = make([]*big.Int, len(data))
-
-	for i := range data {
-		primes = append(primes, HashToPrime(data[i]))
-	}
-
-	for i := range primes {
-		_ = acc.value.Exp(acc.value, primes[i], GetModulus())
-
-	}
-
-	for i := range primes {
-		proof := new(big.Int).Set(g)
-		for j := range primes {
-			if i != j {
-				_ = proof.Exp(proof, primes[j], GetModulus())
-			}
-		}
-
-		proofs[i] = proof
-	}
-
-	return
-}
-
-// Verify checks, using the proof, that the data was added to the accumulator
-func (acc *accumulator) Verify(proof *big.Int, data []byte) bool {
-	prime := HashToPrime(data)
-	v := new(big.Int).Exp(proof, prime, GetModulus())
-
-	return v.Cmp(acc.value) == 0
-}
-
 // VerifySetOfData verifies if a set of data has been added to the accumulator
 func (acc *accumulator) VerifySetOfData(proof *big.Int, data ...[]byte) bool {
 	var primes []*big.Int
@@ -93,7 +107,7 @@ func (acc *accumulator) VerifySetOfData(proof *big.Int, data ...[]byte) bool {
 		_ = mul.Mul(mul, primes[i])
 	}
 
-	v := new(big.Int).Exp(proof, mul, GetModulus())
+	v := new(big.Int).Exp(proof, mul, Modulus)
 
 	return v.Cmp(acc.value) == 0
 }
@@ -122,8 +136,12 @@ func bezoutCoefficients(a, b *big.Int) (oldS, oldT *big.Int) {
 func shamirTrick(p1, p2, x, y *big.Int) *big.Int {
 
 	a, b := bezoutCoefficients(x, y)
-	mul := new(big.Int).Mul(new(big.Int).Exp(p1, b, GetModulus()), new(big.Int).Exp(p2, a, GetModulus()))
-	return new(big.Int).Mod(mul, GetModulus())
+
+	p1b := new(big.Int).Exp(p1, b, Modulus)
+	p2a := new(big.Int).Exp(p2, a, Modulus)
+	mul := new(big.Int).Mul(p1b, p2a)
+
+	return new(big.Int).Mod(mul, Modulus)
 }
 
 // AggregateProofs takes the proofs for a set of items and the set of items, and returns a single
@@ -147,13 +165,4 @@ func (acc *accumulator) AggregateProofs(proofs []*big.Int, data ...[]byte) (proo
 	}
 
 	return proof, nil
-}
-
-func GetModulus() *big.Int {
-	m, ok := new(big.Int).SetString(modulus, 10)
-
-	if !ok {
-		log.Error("error converting modulus to big int")
-	}
-	return m
 }
