@@ -16,12 +16,12 @@ var log = logger.NewDefaultLogger()
 //  data given the shard id it is associated with. It can
 //  also merge and split pools when required
 type shardedData struct {
-	// shardStores is a key value store
+	mutShardedDataStore sync.RWMutex
+	// shardedDataStore is a key value store
 	// Each key represents a destination shard id and the value will contain all
 	//  data hashes that have that shard as destination
-	mutShardedDataStore sync.RWMutex
-	shardedDataStore    map[uint32]*shardStore
-	cacherConfig        storage.CacheConfig
+	shardedDataStore map[uint32]*shardStore
+	cacherConfig     storage.CacheConfig
 
 	mutAddedDataHandlers sync.RWMutex
 	addedDataHandlers    []func(key []byte)
@@ -34,7 +34,7 @@ type shardStore struct {
 
 // NewShardedData is responsible for creating an empty pool of data
 func NewShardedData(cacherConfig storage.CacheConfig) (*shardedData, error) {
-	err := testCacherConfig(cacherConfig)
+	err := verifyCacherConfig(cacherConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func NewShardedData(cacherConfig storage.CacheConfig) (*shardedData, error) {
 	}, nil
 }
 
-func testCacherConfig(cacherConfig storage.CacheConfig) error {
+func verifyCacherConfig(cacherConfig storage.CacheConfig) error {
 	_, err := newShardStore(0, cacherConfig)
 	return err
 }
@@ -68,12 +68,17 @@ func newShardStore(destShardID uint32, cacherConfig storage.CacheConfig) (*shard
 // NewShardStore is a ShardedData method that is responsible for creating
 //  a new shardStore at the destShardID index in the shardedDataStore map
 func (sd *shardedData) NewShardStore(destShardID uint32) {
+	sd.mutShardedDataStore.Lock()
+	sd.newShardStoreNoLock(destShardID)
+	sd.mutShardedDataStore.Unlock()
+}
+
+func (sd *shardedData) newShardStoreNoLock(destShardID uint32) *shardStore {
 	shardStore, err := newShardStore(destShardID, sd.cacherConfig)
 	log.LogIfError(err)
 
-	sd.mutShardedDataStore.Lock()
 	sd.shardedDataStore[destShardID] = shardStore
-	sd.mutShardedDataStore.Unlock()
+	return shardStore
 }
 
 // ShardStore returns a shard store of data associated with a given destination shardID
@@ -96,11 +101,16 @@ func (sd *shardedData) ShardDataStore(shardID uint32) (c storage.Cacher) {
 
 // AddData will add data to the corresponding shard store
 func (sd *shardedData) AddData(key []byte, data interface{}, destShardID uint32) {
-	if sd.ShardStore(destShardID) == nil {
-		sd.NewShardStore(destShardID)
+	var mp *shardStore
+
+	sd.mutShardedDataStore.Lock()
+	mp = sd.shardedDataStore[destShardID]
+	if mp == nil {
+		mp = sd.newShardStoreNoLock(destShardID)
 	}
-	mp := sd.ShardDataStore(destShardID)
-	found, _ := mp.HasOrAdd(key, data)
+	sd.mutShardedDataStore.Unlock()
+
+	found, _ := mp.DataStore.HasOrAdd(key, data)
 
 	if !found {
 		sd.mutAddedDataHandlers.RLock()
@@ -125,6 +135,13 @@ func (sd *shardedData) SearchData(key []byte) (shardValuesPairs map[uint32]inter
 	sd.mutShardedDataStore.RUnlock()
 
 	return shardValuesPairs
+}
+
+// RemoveSetOfDataFromPool removes a list of keys from the corresponding pool
+func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, destShardID uint32) {
+	for _, key := range keys {
+		sd.RemoveData(key, destShardID)
+	}
 }
 
 // RemoveData will remove data hash from the corresponding shard store
@@ -174,9 +191,11 @@ func (sd *shardedData) MoveData(sourceShardID, destShardID uint32, key [][]byte)
 
 	if sourceStore != nil {
 		for _, key := range key {
-			val, _ := sourceStore.Get(key)
-			sd.AddData(key, val, destShardID)
-			sd.RemoveData(key, sourceShardID)
+			val, ok := sourceStore.Get(key)
+			if ok {
+				sd.AddData(key, val, destShardID)
+				sd.RemoveData(key, sourceShardID)
+			}
 		}
 	}
 }
@@ -190,8 +209,8 @@ func (sd *shardedData) Clear() {
 	sd.mutShardedDataStore.Unlock()
 }
 
-// ClearMiniPool will delete all data associated with a given destination shardID
-func (sd *shardedData) ClearMiniPool(shardID uint32) {
+// ClearShardStore will delete all data associated with a given destination shardID
+func (sd *shardedData) ClearShardStore(shardID uint32) {
 	mp := sd.ShardDataStore(shardID)
 	if mp == nil {
 		return

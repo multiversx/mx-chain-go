@@ -90,3 +90,17 @@ func (jaw *JournalizedAccountWrap) SetRootHashWithJournal(rootHash []byte) error
 
 	return jaw.accounts.SaveJournalizedAccount(jaw)
 }
+
+// AppendDataRegistrationWithJournal appends a new registration data, keeping track that a new
+// item was added
+func (jaw *JournalizedAccountWrap) AppendDataRegistrationWithJournal(data *RegistrationData) error {
+	journalEntry := NewJournalEntryAppendRegistration(jaw)
+	err := jaw.AppendRegistrationData(data)
+
+	if err != nil {
+		return err
+	}
+
+	jaw.accounts.AddJournalEntry(journalEntry)
+	return jaw.accounts.SaveJournalizedAccount(jaw)
+}

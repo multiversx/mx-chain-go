@@ -1,18 +1,16 @@
 package spos_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
+	"fmt"
 	"testing"
 	"time"
 
-	"fmt"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -92,21 +90,27 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 			chr)
 
 		blkc := blockchain.BlockChain{}
-		txp := transactionPool.NewTransactionPool(nil)
 
-		com := spos.NewCommunication(
+		com := spos.NewConsensusWorker(
 			true,
 			cns,
 			&blkc,
-			txp,
 			mock.HasherMock{},
-			mock.MarshalizerMock{})
+			mock.MarshalizerMock{},
+			mock.BlockProcessorMock{})
 
 		com.OnSendMessage = SendMessage
 
 		GenerateSubRoundHandlers(roundDuration, cns, com)
 
 		coms = append(coms, com)
+	}
+
+	coms[0].BlockProcessor = mock.BlockProcessorMock{
+		RemoveBlockTxsFromPoolCalled: func(*block.TxBlockBody) error { return nil },
+		CreateTxBlockCalled: func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error) {
+			return &block.TxBlockBody{}, nil
+		},
 	}
 
 	return coms
@@ -209,7 +213,7 @@ func TestNewConsensusData(t *testing.T) {
 		nil,
 		nil,
 		spos.MtUnknown,
-		nil)
+		0)
 
 	assert.NotNil(t, cnsData)
 }
@@ -237,23 +241,23 @@ func TestNewMessage(t *testing.T) {
 		nil,
 		nil)
 
-	com := spos.NewCommunication(
+	com := spos.NewConsensusWorker(
 		true,
 		nil,
 		nil,
-		nil,
 		mock.HasherMock{},
-		mock.MarshalizerMock{})
+		mock.MarshalizerMock{},
+		mock.BlockProcessorMock{})
 
 	assert.Equal(t, 0, cap(com.ChRcvMsg[spos.MtBlockHeader]))
 
-	msg2 := spos.NewCommunication(
+	msg2 := spos.NewConsensusWorker(
 		true,
 		cns,
 		nil,
-		nil,
 		mock.HasherMock{},
-		mock.MarshalizerMock{})
+		mock.MarshalizerMock{},
+		mock.BlockProcessorMock{})
 
 	assert.Equal(t, len(cns.RoundConsensus.ConsensusGroup()), cap(msg2.ChRcvMsg[spos.MtBlockHeader]))
 }
@@ -292,12 +296,14 @@ func TestMessage_EndRound(t *testing.T) {
 func TestMessage_SendBlock(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	r := coms[0].DoBlockJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now())
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime)
 	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsFinished)
 
 	r = coms[0].DoBlockJob()
@@ -322,20 +328,11 @@ func TestMessage_SendBlock(t *testing.T) {
 	assert.Equal(t, uint64(1), coms[0].Hdr.Nonce)
 
 	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrBlock, false)
-	coms[0].Blkc.CurrentBlock = coms[0].Hdr
+	coms[0].Blkc.CurrentBlockHeader = coms[0].Hdr
 
 	r = coms[0].DoBlockJob()
 	assert.Equal(t, true, r)
 	assert.Equal(t, uint64(2), coms[0].Hdr.Nonce)
-}
-
-func TestCommunication_CreateMiniBlocks(t *testing.T) {
-	coms := InitMessage()
-	coms[0].TxP.AddTransaction([]byte("tx_hash"), &transaction.Transaction{Nonce: 0}, 0)
-	mblks := coms[0].CreateMiniBlocks()
-
-	assert.Equal(t, 1, len(mblks))
-	assert.Equal(t, []byte("tx_hash"), mblks[0].TxHashes[0])
 }
 
 func TestMessage_SendCommitmentHash(t *testing.T) {
@@ -485,13 +482,13 @@ func TestMessage_BroadcastMessage(t *testing.T) {
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.TimeStamp = coms[0].GetTime()
 
 	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -502,7 +499,7 @@ func TestMessage_BroadcastMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtBlockHeader,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].OnSendMessage = nil
 	r := coms[0].BroadcastMessage(cnsDta)
@@ -565,7 +562,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 	coms := InitMessage()
 
 	// Received BLOCK_BODY
-	blk := &block.Block{}
+	blk := &block.TxBlockBody{}
 
 	message, err := mock.MarshalizerMock{}.Marshal(blk)
 
@@ -576,20 +573,20 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtBlockBody,
-		[]byte(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).String()))
+		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()))
 
 	coms[0].ReceivedMessage(cnsDta)
 
 	// Received BLOCK_HEADER
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.TimeStamp = coms[0].GetTime()
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -600,20 +597,20 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtBlockHeader,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].ReceivedMessage(cnsDta)
 
 	// Received COMMITMENT_HASH
 	hdr = &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.TimeStamp = coms[0].GetTime()
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -624,20 +621,20 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtCommitmentHash,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].ReceivedMessage(cnsDta)
 
 	// Received BITMAP
 	hdr = &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.TimeStamp = coms[0].GetTime()
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -648,20 +645,20 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtBitmap,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].ReceivedMessage(cnsDta)
 
 	// Received COMMITMENT
 	hdr = &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.TimeStamp = coms[0].GetTime()
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -672,20 +669,20 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtCommitment,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].ReceivedMessage(cnsDta)
 
 	// Received SIGNATURE
 	hdr = &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.TimeStamp = coms[0].GetTime()
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -696,20 +693,20 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtSignature,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].ReceivedMessage(cnsDta)
 
 	// Received UNKNOWN
 	hdr = &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.TimeStamp = coms[0].GetTime()
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -720,7 +717,7 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtUnknown,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].ReceivedMessage(cnsDta)
 }
@@ -728,10 +725,10 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 func TestMessage_DecodeBlockBody(t *testing.T) {
 	coms := InitMessage()
 
-	blk := &block.Block{}
+	blk := &block.TxBlockBody{}
 
 	mblks := make([]block.MiniBlock, 0)
-	mblks = append(mblks, block.MiniBlock{DestShardID: 69})
+	mblks = append(mblks, block.MiniBlock{ShardID: 69})
 	blk.MiniBlocks = mblks
 
 	message, err := mock.MarshalizerMock{}.Marshal(blk)
@@ -745,7 +742,7 @@ func TestMessage_DecodeBlockBody(t *testing.T) {
 	dcdBlk = coms[0].DecodeBlockBody(&message)
 
 	assert.Equal(t, blk, dcdBlk)
-	assert.Equal(t, uint32(69), dcdBlk.MiniBlocks[0].DestShardID)
+	assert.Equal(t, uint32(69), dcdBlk.MiniBlocks[0].ShardID)
 }
 
 func TestMessage_DecodeBlockHeader(t *testing.T) {
@@ -753,14 +750,14 @@ func TestMessage_DecodeBlockHeader(t *testing.T) {
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.TimeStamp = coms[0].GetTime()
 	hdr.Signature = []byte(coms[0].Cns.SelfId())
 
 	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -779,10 +776,12 @@ func TestMessage_DecodeBlockHeader(t *testing.T) {
 func TestMessage_CheckChannels(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	// BLOCK BODY
-	blk := &block.Block{}
+	blk := &block.TxBlockBody{}
 
 	message, err := mock.MarshalizerMock{}.Marshal(blk)
 
@@ -793,7 +792,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtBlockBody,
-		[]byte(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).String()))
+		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()))
 
 	coms[0].ChRcvMsg[spos.MtBlockBody] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
@@ -802,13 +801,13 @@ func TestMessage_CheckChannels(t *testing.T) {
 	// BLOCK HEADER
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).String())
+	hdr.TimeStamp = uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix())
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -819,7 +818,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtBlockHeader,
-		[]byte(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).String()))
+		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()))
 
 	coms[0].ChRcvMsg[spos.MtBlockHeader] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
@@ -831,7 +830,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitmentHash,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].ChRcvMsg[spos.MtCommitmentHash] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
@@ -849,7 +848,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		pks,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtBitmap,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].ChRcvMsg[spos.MtBitmap] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
@@ -864,7 +863,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitment,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].ChRcvMsg[spos.MtCommitment] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
@@ -876,7 +875,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtSignature,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].ChRcvMsg[spos.MtSignature] <- cnsDta
 	time.Sleep(10 * time.Millisecond)
@@ -886,17 +885,19 @@ func TestMessage_CheckChannels(t *testing.T) {
 func TestMessage_ReceivedBlock(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.TimeStamp = coms[0].GetTime()
 
 	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
 
-	hdr.BlockHash = mock.HasherMock{}.Compute(string(message))
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -907,9 +908,9 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtBlockBody,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
-	coms[0].Blk = &block.Block{}
+	coms[0].Blk = &block.TxBlockBody{}
 
 	r := coms[0].ReceivedBlockBody(cnsDta)
 	assert.Equal(t, false, r)
@@ -924,7 +925,7 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtBlockHeader,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsFinished)
 
@@ -956,7 +957,9 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 func TestMessage_ReceivedCommitmentHash(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	dta := []byte("X")
 
@@ -965,7 +968,7 @@ func TestMessage_ReceivedCommitmentHash(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitmentHash,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	for i := 0; i < coms[0].Cns.Threshold(spos.SrCommitmentHash); i++ {
 		coms[0].Cns.RoundConsensus.SetJobDone(coms[0].Cns.ConsensusGroup()[i], spos.SrCommitmentHash, true)
@@ -993,14 +996,16 @@ func TestMessage_ReceivedCommitmentHash(t *testing.T) {
 func TestMessage_ReceivedBitmap(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	cnsDta := spos.NewConsensusData(
 		*coms[0].Cns.Data,
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitmentHash,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].Cns.SetStatus(spos.SrBitmap, spos.SsFinished)
 
@@ -1041,14 +1046,16 @@ func TestMessage_ReceivedBitmap(t *testing.T) {
 func TestMessage_ReceivedCommitment(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	cnsDta := spos.NewConsensusData(
 		*coms[0].Cns.Data,
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitment,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
 
@@ -1070,14 +1077,16 @@ func TestMessage_ReceivedCommitment(t *testing.T) {
 func TestMessage_ReceivedSignature(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	cnsDta := spos.NewConsensusData(
 		*coms[0].Cns.Data,
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtSignature,
-		[]byte(coms[0].GetTime()))
+		coms[0].GetTime())
 
 	coms[0].Cns.SetStatus(spos.SrSignature, spos.SsFinished)
 
@@ -1101,7 +1110,7 @@ func TestMessage_CheckIfBlockIsValid(t *testing.T) {
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.TimeStamp = coms[0].GetTime()
 
 	hdr.PrevHash = []byte("X")
 
@@ -1119,11 +1128,11 @@ func TestMessage_CheckIfBlockIsValid(t *testing.T) {
 	assert.Equal(t, true, r)
 
 	hdr.Nonce = 1
-	coms[0].Blkc.CurrentBlock = hdr
+	coms[0].Blkc.CurrentBlockHeader = hdr
 
 	hdr = &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = []byte(coms[0].GetTime())
+	hdr.TimeStamp = coms[0].GetTime()
 
 	r = coms[0].CheckIfBlockIsValid(hdr)
 	assert.Equal(t, false, r)
@@ -1177,13 +1186,13 @@ func TestMessage_GetMessageTypeName(t *testing.T) {
 func TestConsensus_CheckConsensus(t *testing.T) {
 	cns := InitConsensus()
 
-	com := spos.NewCommunication(
+	com := spos.NewConsensusWorker(
 		true,
 		cns,
 		nil,
-		nil,
 		mock.HasherMock{},
-		mock.MarshalizerMock{})
+		mock.MarshalizerMock{},
+		mock.BlockProcessorMock{})
 
 	GenerateSubRoundHandlers(100*time.Millisecond, cns, com)
 	ok := cns.CheckStartRoundConsensus()

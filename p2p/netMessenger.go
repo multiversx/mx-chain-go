@@ -258,7 +258,7 @@ func (nm *NetMessenger) Addresses() []string {
 	return addrs
 }
 
-// ConnectToAddresses is used to explicitly connect to a well known set of addresses
+// ConnectToInitialAddresses is used to explicitly connect to a well known set of addresses
 func (nm *NetMessenger) ConnectToAddresses(ctx context.Context, addresses []string) {
 	peers := 0
 

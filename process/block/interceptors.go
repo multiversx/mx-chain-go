@@ -3,28 +3,27 @@ package block
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var log = logger.NewDefaultLogger()
-
 // HeaderInterceptor represents an interceptor used for block headers
 type HeaderInterceptor struct {
-	intercept     *interceptor.Interceptor
-	headers       data.ShardedDataCacherNotifier
-	headersNonces data.Uint64Cacher
-	hasher        hashing.Hasher
+	process.Interceptor
+	headers          data.ShardedDataCacherNotifier
+	headersNonces    data.Uint64Cacher
+	hasher           hashing.Hasher
+	shardCoordinator sharding.ShardCoordinator
 }
 
 // GenericBlockBodyInterceptor represents an interceptor used for all types of block bodies
 type GenericBlockBodyInterceptor struct {
-	intercept *interceptor.Interceptor
-	cache     storage.Cacher
-	hasher    hashing.Hasher
+	process.Interceptor
+	cache            storage.Cacher
+	hasher           hashing.Hasher
+	shardCoordinator sharding.ShardCoordinator
 }
 
 //------- HeaderInterceptor
@@ -32,14 +31,15 @@ type GenericBlockBodyInterceptor struct {
 // NewHeaderInterceptor hooks a new interceptor for block headers
 // Fetched block headers will be placed in a data pool
 func NewHeaderInterceptor(
-	messenger p2p.Messenger,
+	interceptor process.Interceptor,
 	headers data.ShardedDataCacherNotifier,
 	headersNonces data.Uint64Cacher,
 	hasher hashing.Hasher,
+	shardCoordinator sharding.ShardCoordinator,
 ) (*HeaderInterceptor, error) {
 
-	if messenger == nil {
-		return nil, process.ErrNilMessenger
+	if interceptor == nil {
+		return nil, process.ErrNilInterceptor
 	}
 
 	if headers == nil {
@@ -54,52 +54,56 @@ func NewHeaderInterceptor(
 		return nil, process.ErrNilHasher
 	}
 
-	intercept, err := interceptor.NewInterceptor(
-		process.HeaderInterceptor,
-		messenger,
-		NewInterceptedHeader())
-	if err != nil {
-		return nil, err
+	if shardCoordinator == nil {
+		return nil, process.ErrNilShardCoordinator
 	}
 
 	hdrIntercept := &HeaderInterceptor{
-		intercept:     intercept,
-		headers:       headers,
-		headersNonces: headersNonces,
-		hasher:        hasher,
+		Interceptor:      interceptor,
+		headers:          headers,
+		headersNonces:    headersNonces,
+		hasher:           hasher,
+		shardCoordinator: shardCoordinator,
 	}
 
-	intercept.CheckReceivedObject = hdrIntercept.processHdr
+	interceptor.SetCheckReceivedObjectHandler(hdrIntercept.processHdr)
 
 	return hdrIntercept, nil
 }
 
-func (hi *HeaderInterceptor) processHdr(hdr p2p.Newer, rawData []byte) bool {
+func (hi *HeaderInterceptor) processHdr(hdr p2p.Creator, rawData []byte) error {
 	if hdr == nil {
-		log.Debug("nil hdr to process")
-		return false
+		return process.ErrNilBlockHeader
+	}
+
+	if rawData == nil {
+		return process.ErrNilDataToProcess
 	}
 
 	hdrIntercepted, ok := hdr.(process.HeaderInterceptorAdapter)
 
 	if !ok {
-		log.Error("bad implementation: headerInterceptor is not using InterceptedHeader " +
-			"as template object and will always return false")
-		return false
+		return process.ErrBadInterceptorTopicImplementation
 	}
 
 	hash := hi.hasher.Compute(string(rawData))
 	hdrIntercepted.SetHash(hash)
 
-	if !hdrIntercepted.Check() || !hdrIntercepted.VerifySig() {
-		return false
+	err := hdrIntercepted.IntegrityAndValidity(hi.shardCoordinator)
+	if err != nil {
+		return err
+	}
+
+	err = hdrIntercepted.VerifySig()
+	if err != nil {
+		return err
 	}
 
 	hi.headers.AddData(hash, hdrIntercepted, hdrIntercepted.Shard())
 	if hi.checkHeaderForCurrentShard(hdrIntercepted) {
 		_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hash)
 	}
-	return true
+	return nil
 }
 
 func (hi *HeaderInterceptor) checkHeaderForCurrentShard(header process.HeaderInterceptorAdapter) bool {
@@ -112,15 +116,15 @@ func (hi *HeaderInterceptor) checkHeaderForCurrentShard(header process.HeaderInt
 // NewGenericBlockBodyInterceptor hooks a new interceptor for block bodies
 // Fetched data blocks will be placed inside the cache
 func NewGenericBlockBodyInterceptor(
-	name string,
-	messenger p2p.Messenger,
+	interceptor process.Interceptor,
 	cache storage.Cacher,
 	hasher hashing.Hasher,
 	templateObj process.BlockBodyInterceptorAdapter,
+	shardCoordinator sharding.ShardCoordinator,
 ) (*GenericBlockBodyInterceptor, error) {
 
-	if messenger == nil {
-		return nil, process.ErrNilMessenger
+	if interceptor == nil {
+		return nil, process.ErrNilInterceptor
 	}
 
 	if cache == nil {
@@ -135,43 +139,45 @@ func NewGenericBlockBodyInterceptor(
 		return nil, process.ErrNilTemplateObj
 	}
 
-	intercept, err := interceptor.NewInterceptor(name, messenger, templateObj)
-	if err != nil {
-		return nil, err
+	if shardCoordinator == nil {
+		return nil, process.ErrNilShardCoordinator
 	}
 
 	bbIntercept := &GenericBlockBodyInterceptor{
-		intercept: intercept,
-		cache:     cache,
-		hasher:    hasher,
+		Interceptor:      interceptor,
+		cache:            cache,
+		hasher:           hasher,
+		shardCoordinator: shardCoordinator,
 	}
 
-	intercept.CheckReceivedObject = bbIntercept.processBodyBlock
+	interceptor.SetCheckReceivedObjectHandler(bbIntercept.processBodyBlock)
 
 	return bbIntercept, nil
 }
 
-func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Newer, rawData []byte) bool {
+func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Creator, rawData []byte) error {
 	if bodyBlock == nil {
-		log.Debug("nil body block to process")
-		return false
+		return process.ErrNilBlockBody
 	}
 
-	txBlockBodyIntercepted, ok := bodyBlock.(process.BlockBodyInterceptorAdapter)
+	if rawData == nil {
+		return process.ErrNilDataToProcess
+	}
+
+	blockBodyIntercepted, ok := bodyBlock.(process.BlockBodyInterceptorAdapter)
 
 	if !ok {
-		log.Error("bad implementation: BlockBodyInterceptor is not using BlockBodyInterceptorAdapter " +
-			"as template object and will always return false")
-		return false
+		return process.ErrBadInterceptorTopicImplementation
 	}
 
 	hash := gbbi.hasher.Compute(string(rawData))
-	txBlockBodyIntercepted.SetHash(hash)
+	blockBodyIntercepted.SetHash(hash)
 
-	if !txBlockBodyIntercepted.Check() {
-		return false
+	err := blockBodyIntercepted.IntegrityAndValidity(gbbi.shardCoordinator)
+	if err != nil {
+		return err
 	}
 
-	_ = gbbi.cache.Put(hash, txBlockBodyIntercepted)
-	return true
+	_ = gbbi.cache.Put(hash, blockBodyIntercepted)
+	return nil
 }

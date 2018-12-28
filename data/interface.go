@@ -17,11 +17,12 @@ type ShardedDataCacherNotifier interface {
 	AddData(key []byte, data interface{}, destShardID uint32)
 	SearchData(key []byte) (shardValuesPairs map[uint32]interface{})
 	RemoveData(key []byte, destShardID uint32)
+	RemoveSetOfDataFromPool(keys [][]byte, destShardID uint32)
 	RemoveDataFromAllShards(key []byte)
 	MergeShardStores(sourceShardID, destShardID uint32)
 	MoveData(sourceShardID, destShardID uint32, key [][]byte)
 	Clear()
-	ClearMiniPool(shardID uint32)
+	ClearShardStore(shardID uint32)
 }
 
 // Uint64Cacher defines a cacher-type struct that uses uint64 keys and []byte values (usually hashes)

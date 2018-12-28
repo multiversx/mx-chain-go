@@ -1,5 +1,5 @@
 {
-  "blockStorage": {
+  "txBlockBodyStorage": {
     "cache": {
       "size": 100,
       "type": "LRU"
@@ -7,8 +7,27 @@
     "db": {
       "file": "Blocks",
       "type": "LvlDB"
+    }
+  },
+  "stateBlockBodyStorage": {
+    "cache": {
+      "size": 100,
+      "type": "LRU"
     },
-    "bloom": []
+    "db": {
+      "file": "Blocks",
+      "type": "LvlDB"
+    }
+  },
+  "peerBlockBodyStorage": {
+    "cache": {
+      "size": 100,
+      "type": "LRU"
+    },
+    "db": {
+      "file": "Blocks",
+      "type": "LvlDB"
+    }
   },
   "blockHeaderStorage": {
     "cache": {
@@ -30,6 +49,20 @@
       "type": "LvlDB"
     }
   },
+  "accountsTrieStorage": {
+    "cache": {
+      "size": 100000,
+      "type": "LRU"
+    },
+    "db": {
+      "file": "AccountsTrie",
+      "type": "LvlDB"
+    },
+    "bloom": {
+      "size": 2048,
+      "hashFunc": ["Keccak", "Blake2b", "Fnv"]
+    }
+  },
   "badBlocksCache": {
     "size": 100,
     "type": "LRU"
@@ -38,8 +71,16 @@
     "size": 1000,
     "type": "LRU"
   },
+  "blockPoolStorage": {
+    "size": 100,
+    "type": "LRU"
+  },
   "logger": {
     "path": "logs",
     "stackTraceDepth": 2
+  },
+  "address": {
+    "length": 32,
+    "prefix": "0x"
   }
 }

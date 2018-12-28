@@ -9,6 +9,18 @@ type AccountWrapMock struct {
 	dataTrie trie.PatriciaMerkelTree
 }
 
+func (awm *AccountWrapMock) AppendRegistrationData(data *state.RegistrationData) error {
+	panic("implement me")
+}
+
+func (awm *AccountWrapMock) CleanRegistrationData() error {
+	panic("implement me")
+}
+
+func (awm *AccountWrapMock) TrimLastRegistrationData() error {
+	panic("implement me")
+}
+
 func NewAccountWrapMock() *AccountWrapMock {
 	return &AccountWrapMock{}
 }

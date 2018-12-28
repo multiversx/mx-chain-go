@@ -16,24 +16,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testTopicStringNewer struct {
+type testTopicStringCreator struct {
 	Data string
 }
 
 // New will return a new instance of string. Dummy, just to implement Cloner interface as strings are immutable
-func (sc *testTopicStringNewer) New() p2p.Newer {
-	return &testTopicStringNewer{}
+func (sc *testTopicStringCreator) Create() p2p.Creator {
+	return &testTopicStringCreator{}
 }
 
 // ID will return the same string as ID
-func (sc *testTopicStringNewer) ID() string {
+func (sc *testTopicStringCreator) ID() string {
 	return sc.Data
 }
 
 func TestTopic_AddEventHandlerNilShouldNotAddHandler(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	topic.AddDataReceived(nil)
 
@@ -43,7 +43,7 @@ func TestTopic_AddEventHandlerNilShouldNotAddHandler(t *testing.T) {
 func TestTopic_AddEventHandlerWithArealFuncShouldWork(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	topic.AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 
@@ -55,7 +55,7 @@ func TestTopic_AddEventHandlerWithArealFuncShouldWork(t *testing.T) {
 func TestTopic_CreateObjectNilDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	_, err := topic.CreateObject(nil)
 
@@ -65,7 +65,7 @@ func TestTopic_CreateObjectNilDataShouldErr(t *testing.T) {
 func TestTopic_CreateObjectEmptyDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	_, err := topic.CreateObject(make([]byte, 0))
 
@@ -75,7 +75,7 @@ func TestTopic_CreateObjectEmptyDataShouldErr(t *testing.T) {
 func TestTopic_CreateObjectMarshalizerFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	topic.Marsh().(*mock.MarshalizerMock).Fail = true
 	defer func() {
@@ -90,7 +90,7 @@ func TestTopic_CreateObjectMarshalizerFailsShouldErr(t *testing.T) {
 func TestTopic_NewObjReceivedNilObjShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	err := topic.NewObjReceived(nil, "")
 
@@ -100,7 +100,7 @@ func TestTopic_NewObjReceivedNilObjShouldErr(t *testing.T) {
 func TestTopic_NewObjReceivedOKMsgShouldWork(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -111,7 +111,7 @@ func TestTopic_NewObjReceivedOKMsgShouldWork(t *testing.T) {
 		assert.Equal(t, name, "test")
 
 		switch data.(type) {
-		case p2p.Newer:
+		case p2p.Creator:
 			atomic.AddInt32(&cnt, 1)
 		default:
 			assert.Fail(t, "The data should have been string!")
@@ -122,7 +122,7 @@ func TestTopic_NewObjReceivedOKMsgShouldWork(t *testing.T) {
 	})
 
 	marsh := mock.MarshalizerMock{}
-	payload, err := marsh.Marshal(&testTopicStringNewer{Data: "aaaa"})
+	payload, err := marsh.Marshal(&testTopicStringCreator{Data: "aaaa"})
 	assert.Nil(t, err)
 
 	obj, err := topic.CreateObject(payload)
@@ -147,7 +147,7 @@ func TestTopic_NewObjReceivedOKMsgShouldWork(t *testing.T) {
 func TestTopic_BroadcastNilDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	err := topic.Broadcast(nil)
 
@@ -157,7 +157,7 @@ func TestTopic_BroadcastNilDataShouldErr(t *testing.T) {
 func TestTopic_BroadcastMarshalizerFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	topic.SendData = func(data []byte) error {
 		return nil
@@ -176,7 +176,7 @@ func TestTopic_BroadcastMarshalizerFailsShouldErr(t *testing.T) {
 func TestTopic_BroadcastNoOneToSendShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	err := topic.Broadcast("a string")
 
@@ -186,7 +186,7 @@ func TestTopic_BroadcastNoOneToSendShouldErr(t *testing.T) {
 func TestTopic_BroadcastSendOkShouldWork(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	topic.SendData = func(data []byte) error {
 		if topic.Name != "test" {
@@ -258,7 +258,7 @@ func TestTopic_BroadcastBuffSendOkShouldWork(t *testing.T) {
 func TestTopic_SendRequestNilHashShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 	err := topic.SendRequest(nil)
 
 	assert.NotNil(t, err)
@@ -267,7 +267,7 @@ func TestTopic_SendRequestNilHashShouldRetErr(t *testing.T) {
 func TestTopic_SendRequestEmptyHashShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 	err := topic.SendRequest(make([]byte, 0))
 
 	assert.NotNil(t, err)
@@ -276,7 +276,7 @@ func TestTopic_SendRequestEmptyHashShouldRetErr(t *testing.T) {
 func TestTopic_SendRequestNoHandlerShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 	err := topic.SendRequest(make([]byte, 1))
 
 	assert.NotNil(t, err)
@@ -285,7 +285,7 @@ func TestTopic_SendRequestNoHandlerShouldRetErr(t *testing.T) {
 func TestTopic_SendRequestShouldWork(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	topic.Request = func(hash []byte) error {
 		if bytes.Equal(hash, []byte("AAAA")) {
@@ -304,7 +304,7 @@ func TestTopic_SendRequestShouldWork(t *testing.T) {
 func TestTopic_RegisterValidatorNoHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	err := topic.RegisterValidator(nil)
 	assert.NotNil(t, err)
@@ -313,7 +313,7 @@ func TestTopic_RegisterValidatorNoHandlerShouldErr(t *testing.T) {
 func TestTopic_RegisterValidatorShouldWork(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	topic.RegisterTopicValidator = func(v pubsub.Validator) error {
 		return nil
@@ -328,7 +328,7 @@ func TestTopic_RegisterValidatorShouldWork(t *testing.T) {
 func TestTopic_UnregisterValidatorNoHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	err := topic.UnregisterValidator()
 	assert.NotNil(t, err)
@@ -337,7 +337,7 @@ func TestTopic_UnregisterValidatorNoHandlerShouldErr(t *testing.T) {
 func TestTopic_UnregisterValidatorShouldWork(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	topic.UnregisterTopicValidator = func() error {
 		return nil

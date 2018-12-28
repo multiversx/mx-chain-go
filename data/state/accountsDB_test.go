@@ -1,9 +1,10 @@
 package state_test
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/pkg/errors"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -11,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,6 +45,8 @@ func accountsDBCreateAccountsDB() *state.AccountsDB {
 
 	return adb
 }
+
+//------- NewAccountsDB
 
 func TestNewAccountsDBWithNilTrieShouldErr(t *testing.T) {
 	_, err := state.NewAccountsDB(nil, mock.HasherMock{}, &mock.MarshalizerMock{})
@@ -422,6 +426,128 @@ func TestAccountsDBGetJournalizedAccountNotFoundShouldCreateEmpty(t *testing.T) 
 	assert.Equal(t, adr, account.AddressContainer())
 }
 
+//------- GetExistingAccount
+
+func TestAccountsDB_GetExistingAccountNilTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(nil)
+
+	_, err := adb.GetExistingAccount(adr)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDB_GetExistingAccountMalfunctionTrieShouldErr(t *testing.T) {
+	t.Parallel()
+
+	trieMock := mock.NewMockTrie()
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(trieMock)
+	trieMock.FailGet = true
+
+	_, err := adb.GetExistingAccount(adr)
+	assert.NotNil(t, err)
+}
+
+func TestAccountsDB_GetExistingAccountNotFoundShouldRetNil(t *testing.T) {
+	t.Parallel()
+
+	trieMock := mock.NewMockTrie()
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(trieMock)
+
+	account, err := adb.GetExistingAccount(adr)
+	assert.Nil(t, err)
+	assert.Nil(t, account)
+	//no journal entry shall be created
+	assert.Equal(t, 0, adb.JournalLen())
+}
+
+func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
+	t.Parallel()
+
+	trieMock := mock.NewMockTrie()
+
+	adr := mock.NewAddressMock()
+	adb := generateAccountDBFromTrie(trieMock)
+
+	//create a new account
+	acnt, _ := adb.GetJournalizedAccount(adr)
+
+	err := acnt.SetNonceWithJournal(45)
+	if err != nil {
+		t.Error("could not set node")
+	}
+
+	_, err = adb.Commit()
+	if err != nil {
+		t.Error("could not commit")
+	}
+
+	account, err := adb.GetExistingAccount(adr)
+	assert.Nil(t, err)
+	assert.NotNil(t, account)
+	assert.Equal(t, uint64(45), account.BaseAccount().Nonce)
+	//no journal entry shall be created
+	assert.Equal(t, 0, adb.JournalLen())
+}
+
+func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
+	t.Parallel()
+
+	trieMock := mock.NewMockTrie()
+
+	adb := generateAccountDBFromTrie(trieMock)
+
+	wg := sync.WaitGroup{}
+	wg.Add(2000)
+
+	addresses := make([]state.AddressContainer, 0)
+
+	//generating 2000 different addresses
+	for len(addresses) < 2000 {
+		addr := mock.NewAddressMock()
+
+		found := false
+
+		for i := 0; i < len(addresses); i++ {
+			if bytes.Equal(addresses[i].Bytes(), addr.Bytes()) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			addresses = append(addresses, addr)
+		}
+	}
+
+	for i := 0; i < 1000; i++ {
+		go func(idx int) {
+			accnt, err := adb.GetExistingAccount(addresses[idx*2])
+
+			assert.Nil(t, err)
+			assert.Nil(t, accnt)
+
+			wg.Done()
+		}(i)
+
+		go func(idx int) {
+			accnt, err := adb.GetJournalizedAccount(addresses[idx*2+1])
+
+			assert.Nil(t, err)
+			assert.NotNil(t, accnt)
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+}
+
 //------- getAccount
 
 func TestAccountsDBGetAccountAccountNotFound(t *testing.T) {
@@ -467,7 +593,7 @@ func TestAccountsDBLoadCodeNilTrieShouldErr(t *testing.T) {
 	adb := generateAccountDBFromTrie(nil)
 
 	//just search a hash. Any hash will do
-	jem.CodeHash = adr.Hash()
+	jem.CodeHash = mock.HasherMock{}.Compute(string(adr.Bytes()))
 
 	err := adb.LoadCode(jem)
 	assert.NotNil(t, err)
@@ -495,7 +621,7 @@ func TestAccountsDBLoadCodeMalfunctionTrieShouldErr(t *testing.T) {
 	mockTrie.FailGet = true
 
 	//just search a hash. Any hash will do
-	jem.CodeHash = adr.Hash()
+	jem.CodeHash = mock.HasherMock{}.Compute(string(adr.Bytes()))
 
 	err := adb.LoadCode(jem)
 	assert.NotNil(t, err)
@@ -515,7 +641,7 @@ func TestAccountsDBLoadCodeOkValsShouldWork(t *testing.T) {
 	adb, _ = state.NewAccountsDB(&trieStub, mock.HasherMock{}, &marshalizer)
 
 	//just search a hash. Any hash will do
-	jem.CodeHash = adr.Hash()
+	jem.CodeHash = mock.HasherMock{}.Compute(string(adr.Bytes()))
 
 	err := adb.LoadCode(jem)
 	assert.Nil(t, err)

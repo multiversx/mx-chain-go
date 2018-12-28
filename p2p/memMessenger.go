@@ -169,7 +169,7 @@ func (mm *MemMessenger) Addresses() []string {
 	return []string{string(mm.peerID.Pretty())}
 }
 
-// ConnectToAddresses is used to explicitly connect to a well known set of addresses
+// ConnectToInitialAddresses is used to explicitly connect to a well known set of addresses
 func (mm *MemMessenger) ConnectToAddresses(ctx context.Context, addresses []string) {
 	for i := 0; i < len(addresses); i++ {
 		addr := peer.ID(base58.Decode(addresses[i]))

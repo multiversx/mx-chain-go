@@ -21,3 +21,9 @@ var ErrNilStateBlockDataPool = errors.New("nil state data pool")
 
 // ErrNilTxBlockDataPool signals that a nil tx block body pool has been provided
 var ErrNilTxBlockDataPool = errors.New("nil tx block data pool")
+
+// ErrNilCacher signals that a nil cache has been provided
+var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilNonceConverter signals that a nil nonce-byte slice converter has been provided
+var ErrNilNonceConverter = errors.New("nil nonce converter")

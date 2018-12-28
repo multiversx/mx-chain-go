@@ -161,7 +161,7 @@ func (cns *Consensus) GetLeader() (string, error) {
 		return "", errors.New("consensusGroup is empty")
 	}
 
-	index := cns.Chr.Round().Index() % len(cns.consensusGroup)
+	index := cns.Chr.Round().Index() % int32(len(cns.consensusGroup))
 	return cns.consensusGroup[index], nil
 }
 
