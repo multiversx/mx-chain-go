@@ -90,7 +90,7 @@ func (adb *AccountsDB) RemoveCode(codeHash []byte) error {
 	return adb.mainTrie.Update(codeHash, make([]byte, 0))
 }
 
-// LoadDataTrie retrieves and saves the SC data inside journalizedAccountWrapper object.
+// LoadDataTrie retrieves and saves the SC data inside accountWrapper object.
 // Errors if something went wrong
 func (adb *AccountsDB) LoadDataTrie(accountWrapper AccountWrapper) error {
 	if accountWrapper.BaseAccount().RootHash == nil {

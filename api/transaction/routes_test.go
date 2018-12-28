@@ -26,10 +26,10 @@ type GeneralResponse struct {
 
 type TransactionResponse struct {
 	GeneralResponse
-	TxResp transaction.TxResponse `json:"transaction"`
+	TxResp *transaction.TxResponse `json:"transaction,omitempty"`
 }
 
-func TestGenerateTransaction_WithParameters_ShouldReturnTransaction(t *testing.T) {
+func TestGenerateTransaction_WithParametersShouldReturnTransaction(t *testing.T) {
 	t.Parallel()
 	sender := "sender"
 	receiver := "receiver"
@@ -37,12 +37,12 @@ func TestGenerateTransaction_WithParameters_ShouldReturnTransaction(t *testing.T
 	data := "data"
 
 	facade := mock.Facade{
-		GenerateTransactionHandler: func(sender string, receiver string, amount big.Int, code string) (transaction *tr.Transaction, e error) {
+		GenerateTransactionHandler: func(sender string, receiver string, value big.Int, code string) (transaction *tr.Transaction, e error) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
 				Data:    []byte(code),
-				Value:   amount,
+				Value:   value,
 			}, nil
 		},
 	}
@@ -55,7 +55,7 @@ func TestGenerateTransaction_WithParameters_ShouldReturnTransaction(t *testing.T
 			`"value":%s,`+
 			`"data":"%s"}`, sender, receiver, value, data)
 
-	req, _ := http.NewRequest("POST", "/transaction", bytes.NewBuffer([]byte(jsonStr)))
+	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(jsonStr)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -73,7 +73,7 @@ func TestGenerateTransaction_WithParameters_ShouldReturnTransaction(t *testing.T
 	assert.Equal(t, data, txResp.Data)
 }
 
-func TestGetTransaction_WithCorrectHash_ShouldReturnTransaction(t *testing.T) {
+func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	value := big.NewInt(10)
@@ -107,12 +107,13 @@ func TestGetTransaction_WithCorrectHash_ShouldReturnTransaction(t *testing.T) {
 	assert.Equal(t, data, txResp.Data)
 }
 
-func TestGetTransaction_WithUnknownHash_ShouldReturnNil(t *testing.T) {
+func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	value := big.NewInt(10)
 	data := "data"
 	hs := "hash"
+	wrongHash := "wronghash"
 	facade := mock.Facade{
 		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
 			if hash != hs {
@@ -127,7 +128,7 @@ func TestGetTransaction_WithUnknownHash_ShouldReturnNil(t *testing.T) {
 		},
 	}
 
-	req, _ := http.NewRequest("GET", "/transaction/"+hs, nil)
+	req, _ := http.NewRequest("GET", "/transaction/"+wrongHash, nil)
 	ws := startNodeServer(&facade)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -135,13 +136,8 @@ func TestGetTransaction_WithUnknownHash_ShouldReturnNil(t *testing.T) {
 	transactionResponse := TransactionResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 
-	txResp := transactionResponse.TxResp
-
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, sender, txResp.Sender)
-	assert.Equal(t, receiver, txResp.Receiver)
-	assert.Equal(t, value, txResp.Value)
-	assert.Equal(t, data, txResp.Data)
+	assert.Equal(t, http.StatusNotFound, resp.Code)
+	assert.Nil(t, transactionResponse.TxResp)
 }
 
 func TestGenerateTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
@@ -153,7 +149,7 @@ func TestGenerateTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
 
 	badJsonString := "bad"
 
-	req, _ := http.NewRequest("POST", "/transaction", bytes.NewBuffer([]byte(badJsonString)))
+	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(badJsonString)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -165,7 +161,7 @@ func TestGenerateTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
 	assert.Contains(t, transactionResponse.Error, "Validation error: ")
 }
 
-func TestGetTransactionFailsWithWrongFacadeTypeConversion(t *testing.T) {
+func TestGetTransaction_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
 
 	ws := startNodeServerWrongFacade()
@@ -186,7 +182,7 @@ func TestGenerateTransaction_WithBadJsonShouldReturnInternalServerError(t *testi
 
 	badJsonString := "bad"
 
-	req, _ := http.NewRequest("POST", "/transaction", bytes.NewBuffer([]byte(badJsonString)))
+	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(badJsonString)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -212,7 +208,7 @@ func logError(err error) {
 	}
 }
 
-func startNodeServer(handler transaction.Handler) *gin.Engine {
+func startNodeServer(handler transaction.TxService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	ws := gin.New()
 	ws.Use(cors.Default())
