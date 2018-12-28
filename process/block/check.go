@@ -1,10 +1,9 @@
 package block
 
 import (
-	"bytes"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 // StateBlockBodyWrapper is a wrapper for StateBlockBody, adding functionality for validity and integrity checks
@@ -28,28 +27,28 @@ type HeaderWrapper struct {
 	*block.Header
 }
 
-// Check checks the integrity and validity of a state block
-func (sbWrapper StateBlockBodyWrapper) Check(processor process.BlockProcessor) error {
-	err := sbWrapper.Integrity(processor)
+// IntegrityAndValidity checks the integrity and validity of a state block wrapper
+func (sbWrapper StateBlockBodyWrapper) IntegrityAndValidity(coordinator sharding.ShardCoordinator) error {
+	err := sbWrapper.Integrity(coordinator)
 
 	if err != nil {
 		return err
 	}
 
-	return sbWrapper.validityCheck(processor)
+	return sbWrapper.validityCheck(coordinator)
 }
 
 // Integrity checks the integrity of the state block
-func (sbWrapper StateBlockBodyWrapper) Integrity(processor process.BlockProcessor) error {
-	if processor == nil {
-		return process.ErrNilProcessor
+func (sbWrapper StateBlockBodyWrapper) Integrity(coordinator sharding.ShardCoordinator) error {
+	if coordinator == nil {
+		return process.ErrNilShardCoordinator
 	}
 
 	if sbWrapper.StateBlockBody == nil {
 		return process.ErrNilStateBlockBody
 	}
 
-	if sbWrapper.ShardID >= processor.NoShards() {
+	if sbWrapper.ShardID >= coordinator.NoShards() {
 		return process.ErrInvalidShardId
 	}
 
@@ -60,21 +59,13 @@ func (sbWrapper StateBlockBodyWrapper) Integrity(processor process.BlockProcesso
 	return nil
 }
 
-func (sbWrapper StateBlockBodyWrapper) validityCheck(processor process.BlockProcessor) error {
-	if processor.GetRootHash() == nil {
-		return process.ErrNilRootHash
-	}
-
-	if !bytes.Equal(processor.GetRootHash(), sbWrapper.RootHash) {
-		return process.ErrInvalidRootHash
-	}
-
+func (sbWrapper StateBlockBodyWrapper) validityCheck(coordinator sharding.ShardCoordinator) error {
 	return nil
 }
 
-// Check checks the integrity of a transactions block
-func (txbWrapper TxBlockBodyWrapper) Check(processor process.BlockProcessor) error {
-	err := txbWrapper.Integrity(processor)
+// IntegrityAndValidity checks the integrity of a transactions block
+func (txbWrapper TxBlockBodyWrapper) IntegrityAndValidity(coordinator sharding.ShardCoordinator) error {
+	err := txbWrapper.Integrity(coordinator)
 
 	if err != nil {
 		return err
@@ -84,7 +75,10 @@ func (txbWrapper TxBlockBodyWrapper) Check(processor process.BlockProcessor) err
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (txbWrapper TxBlockBodyWrapper) Integrity(processor process.BlockProcessor) error {
+func (txbWrapper TxBlockBodyWrapper) Integrity(coordinator sharding.ShardCoordinator) error {
+	if coordinator == nil {
+		return process.ErrNilShardCoordinator
+	}
 
 	if txbWrapper.TxBlockBody == nil {
 		return process.ErrNilTxBlockBody
@@ -94,8 +88,7 @@ func (txbWrapper TxBlockBodyWrapper) Integrity(processor process.BlockProcessor)
 		StateBlockBody: &txbWrapper.StateBlockBody,
 	}
 
-	err := stateBlockWrapper.Integrity(processor)
-
+	err := stateBlockWrapper.Integrity(coordinator)
 	if err != nil {
 		return err
 	}
@@ -107,6 +100,10 @@ func (txbWrapper TxBlockBodyWrapper) Integrity(processor process.BlockProcessor)
 	for _, miniBlock := range txbWrapper.MiniBlocks {
 		if miniBlock.TxHashes == nil {
 			return process.ErrNilTxHashes
+		}
+
+		if miniBlock.ShardID >= coordinator.NoShards() {
+			return process.ErrInvalidShardId
 		}
 
 		for _, txHash := range miniBlock.TxHashes {
@@ -125,9 +122,9 @@ func (txbWrapper TxBlockBodyWrapper) validityCheck() error {
 	return nil
 }
 
-// Check checks the integrity and validity of a peer block wrapper
-func (pbWrapper PeerBlockBodyWrapper) Check(processor process.BlockProcessor) error {
-	err := pbWrapper.Integrity(processor)
+// IntegrityAndValidity checks the integrity and validity of a peer block wrapper
+func (pbWrapper PeerBlockBodyWrapper) IntegrityAndValidity(coordinator sharding.ShardCoordinator) error {
+	err := pbWrapper.Integrity(coordinator)
 	if err != nil {
 		return err
 	}
@@ -136,7 +133,11 @@ func (pbWrapper PeerBlockBodyWrapper) Check(processor process.BlockProcessor) er
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (pbWrapper PeerBlockBodyWrapper) Integrity(processor process.BlockProcessor) error {
+func (pbWrapper PeerBlockBodyWrapper) Integrity(coordinator sharding.ShardCoordinator) error {
+	if coordinator == nil {
+		return process.ErrNilShardCoordinator
+	}
+
 	if pbWrapper.PeerBlockBody == nil {
 		return process.ErrNilPeerBlockBody
 	}
@@ -145,8 +146,7 @@ func (pbWrapper PeerBlockBodyWrapper) Integrity(processor process.BlockProcessor
 		StateBlockBody: &pbWrapper.StateBlockBody,
 	}
 
-	err := stateBlockWrapper.Integrity(processor)
-
+	err := stateBlockWrapper.Integrity(coordinator)
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func (pbWrapper PeerBlockBodyWrapper) Integrity(processor process.BlockProcessor
 	}
 
 	for _, change := range pbWrapper.Changes {
-		if change.ShardIdDest >= processor.NoShards() {
+		if change.ShardIdDest >= coordinator.NoShards() {
 			return process.ErrInvalidShardId
 		}
 
@@ -174,9 +174,9 @@ func (pbWrapper PeerBlockBodyWrapper) validityCheck() error {
 	return nil
 }
 
-// Check checks the integrity and validity of a block header wrapper
-func (hWrapper HeaderWrapper) Check(processor process.BlockProcessor) error {
-	err := hWrapper.Integrity(processor)
+// IntegrityAndValidity checks the integrity and validity of a block header wrapper
+func (hWrapper *HeaderWrapper) IntegrityAndValidity(coordinator sharding.ShardCoordinator) error {
+	err := hWrapper.Integrity(coordinator)
 	if err != nil {
 		return err
 	}
@@ -185,13 +185,13 @@ func (hWrapper HeaderWrapper) Check(processor process.BlockProcessor) error {
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (hWrapper HeaderWrapper) Integrity(processor process.BlockProcessor) error {
-	if processor == nil {
-		return process.ErrNilProcessor
+func (hWrapper *HeaderWrapper) Integrity(coordinator sharding.ShardCoordinator) error {
+	if coordinator == nil {
+		return process.ErrNilShardCoordinator
 	}
 
 	if hWrapper.Header == nil {
-		return process.ErrNilProcessor
+		return process.ErrNilBlockHeader
 	}
 
 	if hWrapper.BlockBodyHash == nil {
@@ -202,7 +202,7 @@ func (hWrapper HeaderWrapper) Integrity(processor process.BlockProcessor) error 
 		return process.ErrNilPubKeysBitmap
 	}
 
-	if hWrapper.ShardId >= processor.NoShards() {
+	if hWrapper.ShardId >= coordinator.NoShards() {
 		return process.ErrInvalidShardId
 	}
 
@@ -214,24 +214,28 @@ func (hWrapper HeaderWrapper) Integrity(processor process.BlockProcessor) error 
 		return process.ErrNilSignature
 	}
 
+	if hWrapper.Commitment == nil {
+		return process.ErrNilCommitment
+	}
+
+	switch hWrapper.BlockBodyType {
+	case block.PeerBlock:
+	case block.StateBlock:
+	case block.TxBlock:
+	default:
+		return process.ErrInvalidBlockBodyType
+	}
+
 	return nil
 }
 
-func (hWrapper HeaderWrapper) validityCheck() error {
+func (hWrapper *HeaderWrapper) validityCheck() error {
 	// TODO: need to check epoch is round - timestamp - epoch - nonce - requires chronology
-
 	return nil
 }
 
 // VerifySig verifies a signature
-func (hWrapper HeaderWrapper) VerifySig() error {
-	if hWrapper.Header == nil {
-		return process.ErrNilBlockHeader
-	}
-
-	if hWrapper.Header.Signature == nil {
-		return process.ErrNilSignature
-	}
+func (hWrapper *HeaderWrapper) VerifySig() error {
 	// TODO: Check block signature after multisig will be implemented
 	return nil
 }

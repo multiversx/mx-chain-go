@@ -1,9 +1,9 @@
 package transaction
 
 import (
+	"bytes"
 	"math/big"
 
-	"bytes"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"

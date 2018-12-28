@@ -20,17 +20,17 @@ import (
 var testMemMarshalizer = &mock.MarshalizerMock{}
 var testMemHasher = &mock.HasherMock{}
 
-type testMemStringCloner struct {
+type testMemStringCreator struct {
 	Data string
 }
 
-// Clone will return a new instance of string. Dummy, just to implement Newer interface as strings are immutable
-func (sc *testMemStringCloner) New() p2p.Newer {
-	return &testMemStringCloner{}
+// Create will return a new instance of string. Dummy, just to implement Create interface as strings are immutable
+func (sc *testMemStringCreator) Create() p2p.Creator {
+	return &testMemStringCreator{}
 }
 
 // ID will return the same string as ID
-func (sc *testMemStringCloner) ID() string {
+func (sc *testMemStringCreator) ID() string {
 	return sc.Data
 }
 
@@ -39,7 +39,7 @@ type structMemTest1 struct {
 	Data  float64
 }
 
-func (s1 *structMemTest1) New() p2p.Newer {
+func (s1 *structMemTest1) Create() p2p.Creator {
 	return &structMemTest1{}
 }
 
@@ -52,7 +52,7 @@ type structMemTest2 struct {
 	Data  []byte
 }
 
-func (s2 *structMemTest2) New() p2p.Newer {
+func (s2 *structMemTest2) Create() p2p.Creator {
 	return &structMemTest2{}
 }
 
@@ -79,7 +79,7 @@ func resetMemMessengers() {
 	p2p.RecreateGlobbalyRegisteredMemPeersMap()
 }
 
-func TestMemMessengerRecreationSameNodeShouldWork(t *testing.T) {
+func TestMemMessenger_RecreationSameNodeShouldWork(t *testing.T) {
 	fmt.Println()
 
 	resetMemMessengers()
@@ -97,7 +97,7 @@ func TestMemMessengerRecreationSameNodeShouldWork(t *testing.T) {
 	}
 }
 
-func TestMemMessengerSendToSelfShouldWork(t *testing.T) {
+func TestMemMessenger_SendToSelfShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	node, err := createMemMessenger(t, 4500)
@@ -105,10 +105,10 @@ func TestMemMessengerSendToSelfShouldWork(t *testing.T) {
 
 	var counter int32
 
-	err = node.AddTopic(p2p.NewTopic("test topic", &testMemStringCloner{}, testMemMarshalizer))
+	err = node.AddTopic(p2p.NewTopic("test topic", &testMemStringCreator{}, testMemMarshalizer))
 	assert.Nil(t, err)
 	node.GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		payload := (*data.(*testMemStringCloner)).Data
+		payload := (*data.(*testMemStringCreator)).Data
 
 		fmt.Printf("Got message: %v\n", payload)
 
@@ -117,7 +117,7 @@ func TestMemMessengerSendToSelfShouldWork(t *testing.T) {
 		}
 	})
 
-	err = node.GetTopic("test topic").Broadcast(testMemStringCloner{Data: "ABC"})
+	err = node.GetTopic("test topic").Broadcast(testMemStringCreator{Data: "ABC"})
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -128,7 +128,7 @@ func TestMemMessengerSendToSelfShouldWork(t *testing.T) {
 
 }
 
-func TestMemMessengerNodesPingPongOn2TopicsShouldWork(t *testing.T) {
+func TestMemMessenger_NodesPingPongOn2TopicsShouldWork(t *testing.T) {
 	fmt.Println()
 
 	resetMemMessengers()
@@ -157,28 +157,28 @@ func TestMemMessengerNodesPingPongOn2TopicsShouldWork(t *testing.T) {
 	var val int32 = 0
 
 	//create 2 topics on each node
-	err = node1.AddTopic(p2p.NewTopic("ping", &testMemStringCloner{}, testMemMarshalizer))
+	err = node1.AddTopic(p2p.NewTopic("ping", &testMemStringCreator{}, testMemMarshalizer))
 	assert.Nil(t, err)
-	err = node1.AddTopic(p2p.NewTopic("pong", &testMemStringCloner{}, testMemMarshalizer))
+	err = node1.AddTopic(p2p.NewTopic("pong", &testMemStringCreator{}, testMemMarshalizer))
 	assert.Nil(t, err)
 
-	err = node2.AddTopic(p2p.NewTopic("ping", &testMemStringCloner{}, testMemMarshalizer))
+	err = node2.AddTopic(p2p.NewTopic("ping", &testMemStringCreator{}, testMemMarshalizer))
 	assert.Nil(t, err)
-	err = node2.AddTopic(p2p.NewTopic("pong", &testMemStringCloner{}, testMemMarshalizer))
+	err = node2.AddTopic(p2p.NewTopic("pong", &testMemStringCreator{}, testMemMarshalizer))
 	assert.Nil(t, err)
 
 	//assign some event handlers on topics
 	node1.GetTopic("ping").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		payload := (*data.(*testMemStringCloner)).Data
+		payload := (*data.(*testMemStringCreator)).Data
 
 		if payload == "ping string" {
-			err = node1.GetTopic("pong").Broadcast(testMemStringCloner{"pong string"})
+			err = node1.GetTopic("pong").Broadcast(testMemStringCreator{"pong string"})
 			assert.Nil(t, err)
 		}
 	})
 
 	node1.GetTopic("pong").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		payload := (*data.(*testMemStringCloner)).Data
+		payload := (*data.(*testMemStringCreator)).Data
 
 		fmt.Printf("node1 received: %v\n", payload)
 
@@ -189,7 +189,7 @@ func TestMemMessengerNodesPingPongOn2TopicsShouldWork(t *testing.T) {
 
 	//for node2 topic ping we do not need an event handler in this test
 	node2.GetTopic("pong").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		payload := (*data.(*testMemStringCloner)).Data
+		payload := (*data.(*testMemStringCreator)).Data
 
 		fmt.Printf("node2 received: %v\n", payload)
 
@@ -198,7 +198,7 @@ func TestMemMessengerNodesPingPongOn2TopicsShouldWork(t *testing.T) {
 		}
 	})
 
-	err = node2.GetTopic("ping").Broadcast(testMemStringCloner{"ping string"})
+	err = node2.GetTopic("ping").Broadcast(testMemStringCreator{"ping string"})
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -213,7 +213,7 @@ func TestMemMessengerNodesPingPongOn2TopicsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMemMessengerSimpleBroadcast5nodesInlineShouldWork(t *testing.T) {
+func TestMemMessenger_SimpleBroadcast5nodesInlineShouldWork(t *testing.T) {
 	fmt.Println()
 
 	resetMemMessengers()
@@ -257,7 +257,7 @@ func TestMemMessengerSimpleBroadcast5nodesInlineShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCloner{}, testMemMarshalizer))
+		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCreator{}, testMemMarshalizer))
 		assert.Nil(t, err)
 		node.GetTopic("test").AddDataReceived(recv)
 	}
@@ -266,7 +266,7 @@ func TestMemMessengerSimpleBroadcast5nodesInlineShouldWork(t *testing.T) {
 	fmt.Println()
 
 	fmt.Println("Broadcasting...")
-	err := nodes[0].GetTopic("test").Broadcast(testMemStringCloner{Data: "Foo"})
+	err := nodes[0].GetTopic("test").Broadcast(testMemStringCreator{Data: "Foo"})
 	assert.Nil(t, err)
 
 	select {
@@ -283,7 +283,7 @@ func TestMemMessengerSimpleBroadcast5nodesInlineShouldWork(t *testing.T) {
 	}
 }
 
-func TestMemMessengerSimpleBroadcast5nodesBetterConnectedShouldWork(t *testing.T) {
+func TestMemMessenger_SimpleBroadcast5nodesBetterConnectedShouldWork(t *testing.T) {
 	fmt.Println()
 
 	resetMemMessengers()
@@ -335,7 +335,7 @@ func TestMemMessengerSimpleBroadcast5nodesBetterConnectedShouldWork(t *testing.T
 		node := nodes[i]
 		node.PrintConnected()
 
-		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCloner{}, testMemMarshalizer))
+		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCreator{}, testMemMarshalizer))
 		assert.Nil(t, err)
 		node.GetTopic("test").AddDataReceived(recv)
 	}
@@ -344,7 +344,7 @@ func TestMemMessengerSimpleBroadcast5nodesBetterConnectedShouldWork(t *testing.T
 	fmt.Println()
 
 	fmt.Println("Broadcasting...")
-	err := nodes[0].GetTopic("test").Broadcast(testMemStringCloner{Data: "Foo"})
+	err := nodes[0].GetTopic("test").Broadcast(testMemStringCreator{Data: "Foo"})
 	assert.Nil(t, err)
 
 	select {
@@ -361,19 +361,19 @@ func TestMemMessengerSimpleBroadcast5nodesBetterConnectedShouldWork(t *testing.T
 	}
 }
 
-func TestMemMessengerSendingNilShouldErr(t *testing.T) {
+func TestMemMessenger_SendingNilShouldErr(t *testing.T) {
 	resetMemMessengers()
 
 	node1, err := createMemMessenger(t, 9000)
 	assert.Nil(t, err)
 
-	err = node1.AddTopic(p2p.NewTopic("test", &testMemStringCloner{}, testMemMarshalizer))
+	err = node1.AddTopic(p2p.NewTopic("test", &testMemStringCreator{}, testMemMarshalizer))
 	assert.Nil(t, err)
 	err = node1.GetTopic("test").Broadcast(nil)
 	assert.NotNil(t, err)
 }
 
-func TestMemMessengerCreateNodeWithNilMarshalizerShouldErr(t *testing.T) {
+func TestMemMessenger_CreateNodeWithNilMarshalizerShouldErr(t *testing.T) {
 	resetMemMessengers()
 
 	cp, err := p2p.NewConnectParamsFromPort(11000)
@@ -384,7 +384,7 @@ func TestMemMessengerCreateNodeWithNilMarshalizerShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestMemMessengerCreateNodeWithNilHasherShouldErr(t *testing.T) {
+func TestMemMessenger_CreateNodeWithNilHasherShouldErr(t *testing.T) {
 	resetMemMessengers()
 
 	cp, err := p2p.NewConnectParamsFromPort(12000)
@@ -395,7 +395,7 @@ func TestMemMessengerCreateNodeWithNilHasherShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestMemMessengerSingleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.T) {
+func TestMemMessenger_SingleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.T) {
 	resetMemMessengers()
 
 	if testing.Short() {
@@ -414,14 +414,14 @@ func TestMemMessengerSingleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.
 	for i := startPort; i <= endPort; i++ {
 		node, err := createMemMessenger(t, i)
 
-		err = node.AddTopic(p2p.NewTopic("test topic", &testMemStringCloner{}, testMemMarshalizer))
+		err = node.AddTopic(p2p.NewTopic("test topic", &testMemStringCreator{}, testMemMarshalizer))
 		assert.Nil(t, err)
 
 		node.GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 			mut.Lock()
 			recv[node.ID().Pretty()] = msgInfo
 
-			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), (*data.(*testMemStringCloner)).Data)
+			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), (*data.(*testMemStringCreator)).Data)
 
 			mut.Unlock()
 
@@ -450,7 +450,7 @@ func TestMemMessengerSingleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.
 
 	//broadcasting something
 	fmt.Println("Broadcasting a message...")
-	err := nodes[0].GetTopic("test topic").Broadcast(testMemStringCloner{"a string to broadcast"})
+	err := nodes[0].GetTopic("test topic").Broadcast(testMemStringCreator{"a string to broadcast"})
 	assert.Nil(t, err)
 
 	fmt.Println("Waiting...")
@@ -482,7 +482,7 @@ func TestMemMessengerSingleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.
 	assert.Equal(t, 0, notRecv)
 }
 
-func TestMemMessengerBadObjectToUnmarshalShouldFilteredOut(t *testing.T) {
+func TestMemMessenger_BadObjectToUnmarshalShouldFilteredOut(t *testing.T) {
 	//stress test to check if the node is able to cope
 	//with unmarshaling a bad object
 	//both structs have the same fields but incompatible types
@@ -528,7 +528,7 @@ func TestMemMessengerBadObjectToUnmarshalShouldFilteredOut(t *testing.T) {
 	assert.Equal(t, int32(0), atomic.LoadInt32(&counter))
 }
 
-func TestMemMessengerBroadcastOnInexistentTopicShouldFilteredOut(t *testing.T) {
+func TestMemMessenger_BroadcastOnInexistentTopicShouldFilteredOut(t *testing.T) {
 	//stress test to check if the node is able to cope
 	//with receiving on an inexistent topic
 	resetMemMessengers()
@@ -546,9 +546,9 @@ func TestMemMessengerBroadcastOnInexistentTopicShouldFilteredOut(t *testing.T) {
 	time.Sleep(time.Second)
 
 	//create topics for each node
-	err = node1.AddTopic(p2p.NewTopic("test1", &testMemStringCloner{}, testMemMarshalizer))
+	err = node1.AddTopic(p2p.NewTopic("test1", &testMemStringCreator{}, testMemMarshalizer))
 	assert.Nil(t, err)
-	err = node2.AddTopic(p2p.NewTopic("test2", &testMemStringCloner{}, testMemMarshalizer))
+	err = node2.AddTopic(p2p.NewTopic("test2", &testMemStringCreator{}, testMemMarshalizer))
 	assert.Nil(t, err)
 
 	counter := int32(0)
@@ -559,7 +559,7 @@ func TestMemMessengerBroadcastOnInexistentTopicShouldFilteredOut(t *testing.T) {
 		atomic.AddInt32(&counter, 1)
 	})
 
-	err = node1.GetTopic("test1").Broadcast(testMemStringCloner{"Foo"})
+	err = node1.GetTopic("test1").Broadcast(testMemStringCreator{"Foo"})
 	assert.Nil(t, err)
 
 	//wait a bit
@@ -569,7 +569,7 @@ func TestMemMessengerBroadcastOnInexistentTopicShouldFilteredOut(t *testing.T) {
 	assert.Equal(t, int32(0), atomic.LoadInt32(&counter))
 }
 
-func TestMemMessengerMultipleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.T) {
+func TestMemMessenger_MultipleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
@@ -588,14 +588,14 @@ func TestMemMessengerMultipleRoundBootstrapShouldNotProduceLonelyNodes(t *testin
 	for i := startPort; i <= endPort; i++ {
 		node, err := createMemMessenger(t, i)
 
-		err = node.AddTopic(p2p.NewTopic("test topic", &testMemStringCloner{}, testMemMarshalizer))
+		err = node.AddTopic(p2p.NewTopic("test topic", &testMemStringCreator{}, testMemMarshalizer))
 		assert.Nil(t, err)
 
 		node.GetTopic("test topic").AddDataReceived(func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 			mut.Lock()
 			recv[node.ID().Pretty()] = msgInfo
 
-			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), (*data.(*testMemStringCloner)).Data)
+			fmt.Printf("%v got message: %v\n", node.ID().Pretty(), (*data.(*testMemStringCreator)).Data)
 
 			mut.Unlock()
 
@@ -642,7 +642,7 @@ func TestMemMessengerMultipleRoundBootstrapShouldNotProduceLonelyNodes(t *testin
 
 	//broadcasting something
 	fmt.Println("Broadcasting a message...")
-	err := nodes[0].GetTopic("test topic").Broadcast(testMemStringCloner{"a string to broadcast"})
+	err := nodes[0].GetTopic("test topic").Broadcast(testMemStringCreator{"a string to broadcast"})
 	assert.Nil(t, err)
 
 	fmt.Println("Waiting...")
@@ -674,7 +674,7 @@ func TestMemMessengerMultipleRoundBootstrapShouldNotProduceLonelyNodes(t *testin
 	assert.Equal(t, 0, notRecv)
 }
 
-func TestMemMessengerBroadcastWithValidatorsShouldWork(t *testing.T) {
+func TestMemMessenger_BroadcastWithValidatorsShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	fmt.Println()
@@ -718,7 +718,7 @@ func TestMemMessengerBroadcastWithValidatorsShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCloner{}, testMemMarshalizer))
+		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCreator{}, testMemMarshalizer))
 		assert.Nil(t, err)
 		node.GetTopic("test").AddDataReceived(recv)
 	}
@@ -726,7 +726,7 @@ func TestMemMessengerBroadcastWithValidatorsShouldWork(t *testing.T) {
 	// dummy validator that prevents propagation of "AAA" message
 	v := func(ctx context.Context, mes *pubsub.Message) bool {
 		marsh := mock.MarshalizerMock{}
-		obj := &testMemStringCloner{}
+		obj := &testMemStringCreator{}
 		err := marsh.Unmarshal(obj, mes.GetData())
 		assert.Nil(t, err)
 
@@ -743,7 +743,7 @@ func TestMemMessengerBroadcastWithValidatorsShouldWork(t *testing.T) {
 	//send AAA, wait 1 sec, check that 4 peers got the message
 	atomic.StoreInt32(&counter, 0)
 	fmt.Println("Broadcasting AAA...")
-	err = nodes[0].GetTopic("test").Broadcast(testMemStringCloner{Data: "AAA"})
+	err = nodes[0].GetTopic("test").Broadcast(testMemStringCreator{Data: "AAA"})
 	assert.Nil(t, err)
 	time.Sleep(time.Second)
 	assert.Equal(t, int32(4), atomic.LoadInt32(&counter))
@@ -752,7 +752,7 @@ func TestMemMessengerBroadcastWithValidatorsShouldWork(t *testing.T) {
 	//send BBB, wait 1 sec, check that all peers got the message
 	atomic.StoreInt32(&counter, 0)
 	fmt.Println("Broadcasting BBB...")
-	err = nodes[0].GetTopic("test").Broadcast(testMemStringCloner{Data: "BBB"})
+	err = nodes[0].GetTopic("test").Broadcast(testMemStringCreator{Data: "BBB"})
 	assert.Nil(t, err)
 	time.Sleep(time.Second)
 	assert.Equal(t, int32(5), atomic.LoadInt32(&counter))
@@ -765,7 +765,7 @@ func TestMemMessengerBroadcastWithValidatorsShouldWork(t *testing.T) {
 	//send AAA, wait 1 sec, check that no peers got the message as the filtering should work
 	atomic.StoreInt32(&counter, 0)
 	fmt.Println("Broadcasting AAA...")
-	err = nodes[0].GetTopic("test").Broadcast(testMemStringCloner{Data: "AAA"})
+	err = nodes[0].GetTopic("test").Broadcast(testMemStringCreator{Data: "AAA"})
 	assert.Nil(t, err)
 	time.Sleep(time.Second)
 	assert.Equal(t, int32(0), atomic.LoadInt32(&counter))
@@ -778,7 +778,7 @@ func TestMemMessengerBroadcastWithValidatorsShouldWork(t *testing.T) {
 	}
 }
 
-func TestMemMessengerRequestResolveTestCfg1ShouldWork(t *testing.T) {
+func TestMemMessenger_RequestResolveTestCfg1ShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	nodes := make([]*p2p.MemMessenger, 0)
@@ -812,11 +812,11 @@ func TestMemMessengerRequestResolveTestCfg1ShouldWork(t *testing.T) {
 	counter1 := int32(0)
 
 	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		if data.(*testMemStringCloner).Data == "Real object1" {
+		if data.(*testMemStringCreator).Data == "Real object1" {
 			atomic.AddInt32(&counter1, 1)
 		}
 
-		fmt.Printf("Received: %v\n", data.(*testMemStringCloner).Data)
+		fmt.Printf("Received: %v\n", data.(*testMemStringCreator).Data)
 	}
 
 	//print connected and create topics
@@ -824,7 +824,7 @@ func TestMemMessengerRequestResolveTestCfg1ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCloner{}, testMemMarshalizer))
+		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCreator{}, testMemMarshalizer))
 		assert.Nil(t, err)
 	}
 
@@ -832,9 +832,9 @@ func TestMemMessengerRequestResolveTestCfg1ShouldWork(t *testing.T) {
 	nodes[0].GetTopic("test").AddDataReceived(recv)
 
 	//setup a resolver func for node 3
-	nodes[3].GetTopic("test").ResolveRequest = func(hash []byte) p2p.Newer {
+	nodes[3].GetTopic("test").ResolveRequest = func(hash []byte) p2p.Creator {
 		if bytes.Equal(hash, []byte("A000")) {
-			return &testMemStringCloner{Data: "Real object1"}
+			return &testMemStringCreator{Data: "Real object1"}
 		}
 
 		return nil
@@ -855,7 +855,7 @@ func TestMemMessengerRequestResolveTestCfg1ShouldWork(t *testing.T) {
 	assert.Equal(t, int32(1), atomic.LoadInt32(&counter1))
 }
 
-func TestMemMessengerRequestResolveTestCfg2ShouldWork(t *testing.T) {
+func TestMemMessenger_RequestResolveTestCfg2ShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	nodes := make([]*p2p.MemMessenger, 0)
@@ -889,11 +889,11 @@ func TestMemMessengerRequestResolveTestCfg2ShouldWork(t *testing.T) {
 	counter1 := int32(0)
 
 	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		if data.(*testMemStringCloner).Data == "Real object1" {
+		if data.(*testMemStringCreator).Data == "Real object1" {
 			atomic.AddInt32(&counter1, 1)
 		}
 
-		fmt.Printf("Received: %v from %v\n", data.(*testMemStringCloner).Data, msgInfo.Peer)
+		fmt.Printf("Received: %v from %v\n", data.(*testMemStringCreator).Data, msgInfo.Peer)
 	}
 
 	//print connected and create topics
@@ -901,7 +901,7 @@ func TestMemMessengerRequestResolveTestCfg2ShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCloner{}, testMemMarshalizer))
+		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCreator{}, testMemMarshalizer))
 		assert.Nil(t, err)
 	}
 
@@ -909,16 +909,16 @@ func TestMemMessengerRequestResolveTestCfg2ShouldWork(t *testing.T) {
 	nodes[1].GetTopic("test").AddDataReceived(recv)
 
 	//resolver func for node 0 and 2
-	resolverOK := func(hash []byte) p2p.Newer {
+	resolverOK := func(hash []byte) p2p.Creator {
 		if bytes.Equal(hash, []byte("A000")) {
-			return &testMemStringCloner{Data: "Real object1"}
+			return &testMemStringCreator{Data: "Real object1"}
 		}
 
 		return nil
 	}
 
 	//resolver func for other nodes
-	resolverNOK := func(hash []byte) p2p.Newer {
+	resolverNOK := func(hash []byte) p2p.Creator {
 		panic("Should have not reached this point")
 
 		return nil
@@ -939,7 +939,7 @@ func TestMemMessengerRequestResolveTestCfg2ShouldWork(t *testing.T) {
 
 }
 
-func TestMemMessengerRequestResolveTestSelfShouldWork(t *testing.T) {
+func TestMemMessenger_RequestResolveTestSelfShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	nodes := make([]*p2p.MemMessenger, 0)
@@ -973,11 +973,11 @@ func TestMemMessengerRequestResolveTestSelfShouldWork(t *testing.T) {
 	counter1 := int32(0)
 
 	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		if data.(*testMemStringCloner).Data == "Real object1" {
+		if data.(*testMemStringCreator).Data == "Real object1" {
 			atomic.AddInt32(&counter1, 1)
 		}
 
-		fmt.Printf("Received: %v from %v\n", data.(*testMemStringCloner).Data, msgInfo.Peer)
+		fmt.Printf("Received: %v from %v\n", data.(*testMemStringCreator).Data, msgInfo.Peer)
 	}
 
 	//print connected and create topics
@@ -985,7 +985,7 @@ func TestMemMessengerRequestResolveTestSelfShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCloner{}, testMemMarshalizer))
+		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCreator{}, testMemMarshalizer))
 		assert.Nil(t, err)
 	}
 
@@ -993,16 +993,16 @@ func TestMemMessengerRequestResolveTestSelfShouldWork(t *testing.T) {
 	nodes[1].GetTopic("test").AddDataReceived(recv)
 
 	//resolver func for node 1
-	resolverOK := func(hash []byte) p2p.Newer {
+	resolverOK := func(hash []byte) p2p.Creator {
 		if bytes.Equal(hash, []byte("A000")) {
-			return &testMemStringCloner{Data: "Real object1"}
+			return &testMemStringCreator{Data: "Real object1"}
 		}
 
 		return nil
 	}
 
 	//resolver func for other nodes
-	resolverNOK := func(hash []byte) p2p.Newer {
+	resolverNOK := func(hash []byte) p2p.Creator {
 		panic("Should have not reached this point")
 
 		return nil
@@ -1024,7 +1024,7 @@ func TestMemMessengerRequestResolveTestSelfShouldWork(t *testing.T) {
 
 }
 
-func TestMemMessengerRequestResolveResendingShouldWork(t *testing.T) {
+func TestMemMessenger_RequestResolveResendingShouldWork(t *testing.T) {
 	resetMemMessengers()
 
 	nodes := make([]*p2p.MemMessenger, 0)
@@ -1060,7 +1060,7 @@ func TestMemMessengerRequestResolveResendingShouldWork(t *testing.T) {
 	recv := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
 		atomic.AddInt32(&counter1, 1)
 
-		fmt.Printf("Received: %v from %v\n", data.(*testMemStringCloner).Data, msgInfo.Peer)
+		fmt.Printf("Received: %v from %v\n", data.(*testMemStringCreator).Data, msgInfo.Peer)
 	}
 
 	//print connected and create topics
@@ -1068,7 +1068,7 @@ func TestMemMessengerRequestResolveResendingShouldWork(t *testing.T) {
 		node := nodes[i]
 		node.PrintConnected()
 
-		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCloner{}, testMemMarshalizer))
+		err := node.AddTopic(p2p.NewTopic("test", &testMemStringCreator{}, testMemMarshalizer))
 		assert.Nil(t, err)
 	}
 
@@ -1076,16 +1076,16 @@ func TestMemMessengerRequestResolveResendingShouldWork(t *testing.T) {
 	nodes[1].GetTopic("test").AddDataReceived(recv)
 
 	//resolver func for node 0 and 2
-	resolverOK := func(hash []byte) p2p.Newer {
+	resolverOK := func(hash []byte) p2p.Creator {
 		if bytes.Equal(hash, []byte("A000")) {
-			return &testMemStringCloner{Data: "Real object0"}
+			return &testMemStringCreator{Data: "Real object0"}
 		}
 
 		return nil
 	}
 
 	//resolver func for other nodes
-	resolverNOK := func(hash []byte) p2p.Newer {
+	resolverNOK := func(hash []byte) p2p.Creator {
 		panic("Should have not reached this point")
 
 		return nil

@@ -1,11 +1,21 @@
 package lrucache
 
-import "github.com/hashicorp/golang-lru"
+import (
+	"sync"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/hashicorp/golang-lru"
+)
+
+var log = logger.NewDefaultLogger()
 
 // LRUCache implements a Least Recently Used eviction cache
 type LRUCache struct {
 	cache   *lru.Cache
 	maxsize int
+
+	mutAddedDataHandlers sync.RWMutex
+	addedDataHandlers    []func(key []byte)
 }
 
 // NewCache creates a new LRU cache instance
@@ -17,8 +27,10 @@ func NewCache(size int) (*LRUCache, error) {
 	}
 
 	lruCache := &LRUCache{
-		cache:   cache,
-		maxsize: size,
+		cache:                cache,
+		maxsize:              size,
+		mutAddedDataHandlers: sync.RWMutex{},
+		addedDataHandlers:    make([]func(key []byte), 0),
 	}
 
 	return lruCache, nil
@@ -31,7 +43,25 @@ func (c *LRUCache) Clear() {
 
 // Put adds a value to the cache.  Returns true if an eviction occurred.
 func (c *LRUCache) Put(key []byte, value interface{}) (evicted bool) {
-	return c.cache.Add(string(key), value)
+	found, evicted := c.cache.ContainsOrAdd(string(key), value)
+
+	if !found {
+		c.callAddedDataHandlers(key)
+	}
+
+	return
+}
+
+// RegisterHandler registers a new handler to be called when a new data is added
+func (c *LRUCache) RegisterHandler(handler func(key []byte)) {
+	if handler == nil {
+		log.Error("attempt to register a nil handler to a cacher object")
+		return
+	}
+
+	c.mutAddedDataHandlers.Lock()
+	c.addedDataHandlers = append(c.addedDataHandlers, handler)
+	c.mutAddedDataHandlers.Unlock()
 }
 
 // Get looks up a key's value from the cache.
@@ -64,8 +94,22 @@ func (c *LRUCache) Peek(key []byte) (value interface{}, ok bool) {
 // HasOrAdd checks if a key is in the cache  without updating the
 // recent-ness or deleting it for being stale,  and if not, adds the value.
 // Returns whether found and whether an eviction occurred.
-func (c *LRUCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool) {
-	return c.cache.ContainsOrAdd(string(key), value)
+func (c *LRUCache) HasOrAdd(key []byte, value interface{}) (found, evicted bool) {
+	found, evicted = c.cache.ContainsOrAdd(string(key), value)
+
+	if !found {
+		c.callAddedDataHandlers(key)
+	}
+
+	return
+}
+
+func (c *LRUCache) callAddedDataHandlers(key []byte) {
+	c.mutAddedDataHandlers.RLock()
+	for _, handler := range c.addedDataHandlers {
+		go handler(key)
+	}
+	c.mutAddedDataHandlers.RUnlock()
 }
 
 // Remove removes the provided key from the cache.

@@ -13,6 +13,13 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+// Creator interface will be implemented on structs that can create new instances of their type
+// We prefer this method as reflection is more costly
+type Creator interface {
+	Create() Creator
+	ID() string
+}
+
 var log = logger.NewDefaultLogger()
 
 // Messenger is the main struct used for communicating with other peers
