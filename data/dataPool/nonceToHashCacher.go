@@ -35,7 +35,6 @@ func NewNonceToHashCacher(
 	}, nil
 }
 
-//cacher, err := storage.NewCache(cacherConfig.Type, cacherConfig.Size)
 //func NewNonceToHashCacher
 
 // Clear is used to completely clear the cache.
@@ -49,14 +48,14 @@ func (nthc *NonceToHashCacher) Put(nonce uint64, hash []byte) (evicted bool) {
 }
 
 // Get looks up for a nonce in cache.
-func (nthc *NonceToHashCacher) Get(nonce uint64) (hash []byte, ok bool) {
+func (nthc *NonceToHashCacher) Get(nonce uint64) ([]byte, bool) {
 	val, ok := nthc.cacher.Get(nthc.nonceConverter.ToByteSlice(nonce))
 
-	if val != nil {
-		hash = val.([]byte)
+	if !ok {
+		return []byte(nil), ok
 	}
 
-	return
+	return val.([]byte), ok
 }
 
 // Has checks if a nonce is in the cache, without updating the
@@ -67,14 +66,14 @@ func (nthc *NonceToHashCacher) Has(nonce uint64) bool {
 
 // Peek returns the nonce value (or nil if not found) without updating
 // the "recently used"-ness of the nonce.
-func (nthc *NonceToHashCacher) Peek(nonce uint64) (hash []byte, ok bool) {
+func (nthc *NonceToHashCacher) Peek(nonce uint64) ([]byte, bool) {
 	val, ok := nthc.cacher.Peek(nthc.nonceConverter.ToByteSlice(nonce))
 
-	if val != nil {
-		hash = val.([]byte)
+	if !ok {
+		return []byte(nil), ok
 	}
 
-	return
+	return val.([]byte), ok
 }
 
 // HasOrAdd checks if a nonce is in the cache without updating the
@@ -101,10 +100,10 @@ func (nthc *NonceToHashCacher) Keys() []uint64 {
 	nonces := make([]uint64, 0)
 
 	for _, key := range keys {
-		nonce := nthc.nonceConverter.ToUint64(key)
+		nonce, err := nthc.nonceConverter.ToUint64(key)
 
-		if nonce != nil {
-			nonces = append(nonces, *nonce)
+		if err == nil {
+			nonces = append(nonces, nonce)
 		}
 	}
 
@@ -124,9 +123,9 @@ func (nthc *NonceToHashCacher) RegisterHandler(handler func(nonce uint64)) {
 	}
 
 	handlerWrapper := func(key []byte) {
-		nonce := nthc.nonceConverter.ToUint64(key)
-		if nonce != nil {
-			handler(*nonce)
+		nonce, err := nthc.nonceConverter.ToUint64(key)
+		if err == nil {
+			handler(nonce)
 		}
 	}
 

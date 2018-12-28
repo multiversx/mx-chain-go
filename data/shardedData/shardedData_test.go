@@ -2,6 +2,7 @@ package shardedData_test
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 	"sync"
 	"testing"
@@ -47,18 +48,24 @@ func TestShardedData_AddData(t *testing.T) {
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
-	sd.AddData([]byte("hash_tx1"), &transaction.Transaction{Nonce: 1}, 1)
+	keyTx1 := []byte("hash_tx1")
+	shardID1 := uint32(1)
+
+	keyTx2 := []byte("hash_tx2")
+	shardID2 := uint32(2)
+
+	sd.AddData(keyTx1, &transaction.Transaction{Nonce: 1}, shardID1)
 
 	shardStore := sd.ShardDataStore(1)
-	has := shardStore.Has([]byte("hash_tx1"))
+	has := shardStore.Has(keyTx1)
 	assert.True(t, has, "Key was not added to minipool")
 	assert.True(t, shardStore.Len() == 1,
 		"Transaction pool length is not 1 after one element was added")
 
-	sd.AddData([]byte("hash_tx2"), &transaction.Transaction{Nonce: 2}, 2)
+	sd.AddData(keyTx2, &transaction.Transaction{Nonce: 2}, shardID2)
 
-	assert.False(t, shardStore.Has([]byte("hash_tx2")))
-	assert.True(t, sd.ShardDataStore(2).Has([]byte("hash_tx2")))
+	assert.False(t, shardStore.Has(keyTx2))
+	assert.True(t, sd.ShardDataStore(shardID2).Has(keyTx2))
 }
 
 func TestShardedData_StorageEvictsData(t *testing.T) {
@@ -98,18 +105,18 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 
 	for i := 0; i < vals; i++ {
 		key := []byte(strconv.Itoa(i))
-		go func(i int) {
+		go func(i int, wg *sync.WaitGroup) {
 			sd.AddData(key, &transaction.Transaction{Nonce: uint64(i)}, 1)
 			wg.Done()
-		}(i)
+		}(i, &wg)
 	}
 
 	wg.Wait()
 
 	//checking
-	for i := 1; i < vals; i++ {
+	for i := 0; i < vals; i++ {
 		key := []byte(strconv.Itoa(i))
-		assert.True(t, sd.ShardStore(1).DataStore.Has(key))
+		assert.True(t, sd.ShardStore(1).DataStore.Has(key), fmt.Sprintf("for val %d", i))
 	}
 }
 
@@ -149,7 +156,7 @@ func TestShardedData_Clear(t *testing.T) {
 	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 2)
 	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 2)
 
-	sd.ClearMiniPool(2)
+	sd.ClearShardStore(2)
 	assert.Equal(t, 0, sd.ShardDataStore(2).Len(),
 		"Mini pool for shard 2 should be empty after clear")
 	assert.Equal(t, 1, sd.ShardDataStore(1).Len(),

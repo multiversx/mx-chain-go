@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,9 +22,7 @@ func TestNewNonceToHashCacher_NilCacherShouldErr(t *testing.T) {
 func TestNewNonceToHashCacher_NilConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := storage.NewCache(storage.LRUCache, 10000)
-
-	nthc, err := dataPool.NewNonceToHashCacher(cacher, nil)
+	nthc, err := dataPool.NewNonceToHashCacher(&mock.CacherStub{}, nil)
 	assert.Equal(t, data.ErrNilNonceConverter, err)
 	assert.Nil(t, nthc)
 }
@@ -33,9 +30,7 @@ func TestNewNonceToHashCacher_NilConverterShouldErr(t *testing.T) {
 func TestNewNonceToHashCacher_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cacher, _ := storage.NewCache(storage.LRUCache, 10000)
-
-	nthc, err := dataPool.NewNonceToHashCacher(cacher, mock.NewNonceHashConverterMock())
+	nthc, err := dataPool.NewNonceToHashCacher(&mock.CacherStub{}, mock.NewNonceHashConverterMock())
 	assert.Nil(t, err)
 	assert.NotNil(t, nthc)
 }
@@ -45,7 +40,7 @@ func TestNewNonceToHashCacher_OkValsShouldWork(t *testing.T) {
 func TestNonceToHashCacher_ClearShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
@@ -62,7 +57,7 @@ func TestNonceToHashCacher_ClearShouldBeCalled(t *testing.T) {
 func TestNonceToHashCacher_PutShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
@@ -81,7 +76,7 @@ func TestNonceToHashCacher_PutShouldBeCalled(t *testing.T) {
 func TestNonceToHashCacher_HasShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
@@ -100,7 +95,7 @@ func TestNonceToHashCacher_HasShouldBeCalled(t *testing.T) {
 func TestNonceToHashCacher_HasOrAddShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
@@ -122,7 +117,7 @@ func TestNonceToHashCacher_HasOrAddShouldBeCalled(t *testing.T) {
 func TestNonceToHashCacher_RemoveShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
@@ -139,7 +134,7 @@ func TestNonceToHashCacher_RemoveShouldBeCalled(t *testing.T) {
 func TestNonceToHashCacher_RemoveOldestShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
@@ -156,7 +151,7 @@ func TestNonceToHashCacher_RemoveOldestShouldBeCalled(t *testing.T) {
 func TestNonceToHashCacher_LenShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
@@ -177,7 +172,7 @@ func TestNonceToHashCacher_LenShouldBeCalled(t *testing.T) {
 func TestNonceToHashCacher_GetNotFoundShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
@@ -197,19 +192,19 @@ func TestNonceToHashCacher_GetNotFoundShouldRetNil(t *testing.T) {
 func TestNonceToHashCacher_GetFoundShouldRetValue(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
 	mockLRU.GetCalled = func(key []byte) (value interface{}, ok bool) {
 		wasCalled = true
-		return []byte("bbbb"), false
+		return []byte("bbbb"), true
 	}
 
 	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
 
 	hash, ok := nthc.Get(6)
-	assert.False(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, []byte("bbbb"), hash)
 	assert.True(t, wasCalled)
 }
@@ -219,7 +214,7 @@ func TestNonceToHashCacher_GetFoundShouldRetValue(t *testing.T) {
 func TestNonceToHashCacher_PeekNotFoundShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
@@ -239,13 +234,13 @@ func TestNonceToHashCacher_PeekNotFoundShouldRetNil(t *testing.T) {
 func TestNonceToHashCacher_PeekFoundShouldRetValue(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
 	mockLRU.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		wasCalled = true
-		return []byte("bbbb"), false
+		return []byte("bbbb"), true
 	}
 
 	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, mock.NewNonceHashConverterMock())
@@ -260,7 +255,7 @@ func TestNonceToHashCacher_PeekFoundShouldRetValue(t *testing.T) {
 func TestNonceToHashCacher_KeysEmptyShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	mockLRU.KeysCalled = func() [][]byte {
 		return make([][]byte, 0)
@@ -276,7 +271,7 @@ func TestNonceToHashCacher_KeysEmptyShouldRetEmpty(t *testing.T) {
 func TestNonceToHashCacher_KeysFoundShouldRetValues(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	converter := mock.NewNonceHashConverterMock()
 	nthc, _ := dataPool.NewNonceToHashCacher(mockLRU, converter)
@@ -298,7 +293,7 @@ func TestNonceToHashCacher_KeysFoundShouldRetValues(t *testing.T) {
 func TestNonceToHashCacher_KeysWasCalled(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 
@@ -320,7 +315,7 @@ func TestNonceToHashCacher_KeysWasCalled(t *testing.T) {
 func TestNonceToHashCacher_RegisterAddedDataHandlerWithNilShouldNotRegister(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasRegistered := false
 
@@ -339,7 +334,7 @@ func TestNonceToHashCacher_RegisterAddedDataHandlerWithNilShouldNotRegister(t *t
 func TestNonceToHashCacher_RegisterAddedDataHandlerWithHandlerShouldRegister(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasRegistered := false
 
@@ -360,7 +355,7 @@ func TestNonceToHashCacher_RegisterAddedDataHandlerWithHandlerShouldRegister(t *
 func TestNonceToHashCacher_RegisterAddedDataHandlerWithHandlerShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
-	mockLRU := &mock.LRUCacheStub{}
+	mockLRU := &mock.CacherStub{}
 
 	wasCalled := false
 

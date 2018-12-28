@@ -86,7 +86,9 @@ func TestNewTopicInterceptor_WithExistingTopicShouldWork(t *testing.T) {
 
 	wasCalled := false
 
-	topic := p2p.NewTopic("test", &mock.StringCreator{}, mes.Marshalizer())
+	topicName := "test"
+
+	topic := p2p.NewTopic(topicName, &mock.StringCreator{}, mes.Marshalizer())
 	topic.RegisterTopicValidator = func(v pubsub.Validator) error {
 		wasCalled = true
 
@@ -100,10 +102,14 @@ func TestNewTopicInterceptor_WithExistingTopicShouldWork(t *testing.T) {
 	}
 
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return topic
+		if name == topicName {
+			return topic
+		}
+
+		return nil
 	}
 
-	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
+	ti, err := interceptor.NewTopicInterceptor(topicName, mes, &mock.StringCreator{})
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.NotNil(t, ti)

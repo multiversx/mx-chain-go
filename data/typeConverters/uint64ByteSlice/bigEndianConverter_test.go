@@ -6,20 +6,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBigEndianConverter_ToUint64NilBuffShouldRetNil(t *testing.T) {
+func TestBigEndianConverter_ToUint64NilBuffShouldErr(t *testing.T) {
 	t.Parallel()
 
 	bec := uint64ByteSlice.NewBigEndianConverter()
-	val := bec.ToUint64(nil)
+	val, err := bec.ToUint64(nil)
 
-	assert.Nil(t, val)
+	assert.Equal(t, uint64(0), val)
+	assert.Equal(t, typeConverters.ErrNilByteSlice, err)
 }
 
-func TestBigEndianConverter_ToUint64WrongBuffSizeShouldRetNil(t *testing.T) {
+func TestBigEndianConverter_ToUint64WrongBuffSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	bec := uint64ByteSlice.NewBigEndianConverter()
@@ -31,8 +33,9 @@ func TestBigEndianConverter_ToUint64WrongBuffSizeShouldRetNil(t *testing.T) {
 		}
 
 		buff := make([]byte, i)
-		val := bec.ToUint64(buff)
-		assert.Nil(t, val)
+		val, err := bec.ToUint64(buff)
+		assert.Equal(t, uint64(0), val)
+		assert.Equal(t, typeConverters.ErrByteSliceLenShouldHaveBeen8, err)
 	}
 }
 
@@ -42,9 +45,10 @@ func TestBigEndianConverter_ToUint64ValsOkShouldWork(t *testing.T) {
 	buff := make([]byte, 8)
 
 	bec := uint64ByteSlice.NewBigEndianConverter()
-	val := bec.ToUint64(buff)
-	assert.NotNil(t, val)
-	assert.Equal(t, uint64(0), *val)
+	val, err := bec.ToUint64(buff)
+
+	assert.Equal(t, uint64(0), val)
+	assert.Nil(t, err)
 }
 
 func TestBigEndianConverter_ToUint64ToByteSlice(t *testing.T) {
@@ -86,10 +90,10 @@ func TestBigEndianConverter_Converting100kRandomValuesShouldWork(t *testing.T) {
 		bec := uint64ByteSlice.NewBigEndianConverter()
 
 		buff := bec.ToByteSlice(val)
-		valConverted := bec.ToUint64(buff)
+		valConverted, err := bec.ToUint64(buff)
 
-		assert.Equal(t, val, *valConverted)
-		assert.False(t, &val == valConverted)
+		assert.Equal(t, val, valConverted)
+		assert.Nil(t, err)
 	}
 }
 
@@ -106,9 +110,9 @@ func BenchmarkNonceToHashCacher_Uint64ToByteArrayConversionAndBackToUint64(b *te
 
 	for i := 0; i < b.N; i++ {
 		buff := bec.ToByteSlice(uint64(i))
-		val := bec.ToUint64(buff)
+		val, _ := bec.ToUint64(buff)
 
-		if uint64(i) != *val {
+		if uint64(i) != val {
 			assert.Fail(b, fmt.Sprintf("Not equal %v, got %v\n", i, val))
 		}
 	}

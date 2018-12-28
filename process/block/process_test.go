@@ -171,7 +171,6 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 		&mock.TxProcessorMock{},
 		nil,
 		mock.NewOneShardCoordinatorMock())
-	//1, []byte("tx1_hash1"), WaitTime
 
 	shardId := uint32(1)
 	txHash1 := []byte("tx1_hash1")

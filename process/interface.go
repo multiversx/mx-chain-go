@@ -51,8 +51,8 @@ type SignedDataValidator interface {
 	Checker
 }
 
-// Hashed interface provides functionality over hashable objects
-type Hashed interface {
+// HashAccesser interface provides functionality over hashable objects
+type HashAccesser interface {
 	SetHash([]byte)
 	Hash() []byte
 }
@@ -61,7 +61,7 @@ type Hashed interface {
 type TransactionInterceptorAdapter interface {
 	Checker
 	SigVerifier
-	Hashed
+	HashAccesser
 	p2p.Creator
 	RcvShard() uint32
 	SndShard() uint32
@@ -76,7 +76,7 @@ type TransactionInterceptorAdapter interface {
 // BlockBodyInterceptorAdapter defines what a block body object should do
 type BlockBodyInterceptorAdapter interface {
 	Checker
-	Hashed
+	HashAccesser
 	p2p.Creator
 	Shard() uint32
 }

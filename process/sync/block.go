@@ -253,8 +253,12 @@ func (boot *bootstrap) getHeaderFromPool(nonce uint64) *block.Header {
 	}
 
 	for _, v := range hdr {
-		//just get the first header
-		return v.(*block.Header)
+		//just get the first header that is ok
+		header, ok := v.(*block.Header)
+
+		if ok {
+			return header
+		}
 	}
 
 	return nil
