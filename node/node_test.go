@@ -27,54 +27,54 @@ func TestNewNode(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestNewNodeNotRunning(t *testing.T) {
+func TestNewNode_NotRunning(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode()
 	assert.False(t, n.IsRunning())
 }
 
-func TestNewNodeNilOptionShouldError(t *testing.T) {
+func TestNewNode_NilOptionShouldError(t *testing.T) {
 	t.Parallel()
 	_, err := node.NewNode(node.WithAccountsAdapter(nil))
 	assert.NotNil(t, err)
 }
 
-func TestNewNodeApplyNilOptionShouldError(t *testing.T) {
+func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode()
 	err := n.ApplyOptions(node.WithAccountsAdapter(nil))
 	assert.NotNil(t, err)
 }
 
-func TestStartNoPort(t *testing.T) {
+func TestStart_NoPort(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode()
 	err := n.Start()
 	assert.NotNil(t, err)
 }
 
-func TestStartNoMarshalizer(t *testing.T) {
+func TestStart_NoMarshalizer(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(node.WithPort(4000))
 	err := n.Start()
 	assert.NotNil(t, err)
 }
 
-func TestStartNoHasher(t *testing.T) {
+func TestStart_NoHasher(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(node.WithPort(4000), node.WithMarshalizer(mock.Marshalizer{}))
 	err := n.Start()
 	assert.NotNil(t, err)
 }
 
-func TestStartNoMaxAllowedPeers(t *testing.T) {
+func TestStart_NoMaxAllowedPeers(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(node.WithPort(4000), node.WithMarshalizer(mock.Marshalizer{}), node.WithHasher(mock.Hasher{}))
 	err := n.Start()
 	assert.NotNil(t, err)
 }
 
-func TestStartCorrectParams(t *testing.T) {
+func TestStart_CorrectParams(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -91,7 +91,7 @@ func TestStartCorrectParams(t *testing.T) {
 	assert.True(t, n.IsRunning())
 }
 
-func TestStartCorrectParamsApplyingOptions(t *testing.T) {
+func TestStart_CorrectParamsApplyingOptions(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode()
 	err := n.ApplyOptions(
@@ -110,7 +110,7 @@ func TestStartCorrectParamsApplyingOptions(t *testing.T) {
 	assert.True(t, n.IsRunning())
 }
 
-func TestNode_ApplyOptions_NodeStarted(t *testing.T) {
+func TestApplyOptions_NodeStarted(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -129,7 +129,7 @@ func TestNode_ApplyOptions_NodeStarted(t *testing.T) {
 	assert.True(t, n.IsRunning())
 }
 
-func TestNode_Stop_NotStartedYet(t *testing.T) {
+func TestStop_NotStartedYet(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -146,7 +146,7 @@ func TestNode_Stop_NotStartedYet(t *testing.T) {
 	assert.False(t, n.IsRunning())
 }
 
-func TestNode_Stop(t *testing.T) {
+func TestStop(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -162,7 +162,7 @@ func TestNode_Stop(t *testing.T) {
 	assert.False(t, n.IsRunning())
 }
 
-func TestNode_ConnectToInitialAddressesNodeNotStarted(t *testing.T) {
+func TestConnectToInitialAddresses_NodeNotStarted(t *testing.T) {
 	t.Parallel()
 	n2, _ := node.NewNode(
 		node.WithPort(4001),
@@ -186,7 +186,7 @@ func TestNode_ConnectToInitialAddressesNodeNotStarted(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNode_ConnectToNilInitialAddresses(t *testing.T) {
+func TestConnectToNilInitialAddresses(t *testing.T) {
 	t.Parallel()
 
 	n, _ := node.NewNode(
@@ -201,7 +201,7 @@ func TestNode_ConnectToNilInitialAddresses(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNode_ConnectToInitialAddresses(t *testing.T) {
+func TestConnectToInitialAddresses(t *testing.T) {
 	t.Parallel()
 	n2, _ := node.NewNode(
 		node.WithPort(4001),
@@ -227,7 +227,7 @@ func TestNode_ConnectToInitialAddresses(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestNode_ConnectToAddressesNodeNotStarted(t *testing.T) {
+func TestConnectToAddresses_NodeNotStarted(t *testing.T) {
 	t.Parallel()
 	n2, _ := node.NewNode(
 		node.WithPort(4001),
@@ -250,7 +250,7 @@ func TestNode_ConnectToAddressesNodeNotStarted(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNode_ConnectToAddresses(t *testing.T) {
+func TestConnectToAddresses(t *testing.T) {
 	t.Parallel()
 	n2, _ := node.NewNode(
 		node.WithPort(4001),
@@ -275,7 +275,7 @@ func TestNode_ConnectToAddresses(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestNode_AddressNodeNotStarted(t *testing.T) {
+func TestAddress_NodeNotStarted(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -287,7 +287,7 @@ func TestNode_AddressNodeNotStarted(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNode_GenerateTransactionNoAddrConverterShouldError(t *testing.T) {
+func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -303,7 +303,7 @@ func TestNode_GenerateTransactionNoAddrConverterShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNode_GenerateTransactionNoAccAdapterShouldError(t *testing.T) {
+func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -319,7 +319,7 @@ func TestNode_GenerateTransactionNoAccAdapterShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNode_GenerateTransactionNoPrivateKeyShouldError(t *testing.T) {
+func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -335,7 +335,7 @@ func TestNode_GenerateTransactionNoPrivateKeyShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNode_GenerateTransactionCreateAddressFailsShouldError(t *testing.T) {
+func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 	t.Parallel()
 	accAdapter := getAccAdapter()
 	addrConverter := mock.AddressConverter{
@@ -363,7 +363,7 @@ func TestNode_GenerateTransactionCreateAddressFailsShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNode_GenerateTransactionGetAccountFailsShouldError(t *testing.T) {
+func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 	t.Parallel()
 	accAdapter := mock.AccountsAdapter{
 		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
@@ -387,7 +387,7 @@ func TestNode_GenerateTransactionGetAccountFailsShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNode_GenerateTransactionGetAccountReturnsNilShouldWork(t *testing.T) {
+func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 	t.Parallel()
 	accAdapter := mock.AccountsAdapter{
 		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
@@ -411,7 +411,7 @@ func TestNode_GenerateTransactionGetAccountReturnsNilShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestNode_GenerateTransactionGetExistingAccountShouldWork(t *testing.T) {
+func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 	t.Parallel()
 	accAdapter := getAccAdapter()
 	addrConverter := getAddressConverter()
@@ -431,7 +431,7 @@ func TestNode_GenerateTransactionGetExistingAccountShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestNode_GenerateTransactionMarshalErrorsShouldError(t *testing.T) {
+func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 	t.Parallel()
 	accAdapter := getAccAdapter()
 	addrConverter := getAddressConverter()
@@ -456,7 +456,7 @@ func TestNode_GenerateTransactionMarshalErrorsShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNode_GenerateTransactionSignTxErrorsShouldError(t *testing.T) {
+func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 	t.Parallel()
 	accAdapter := getAccAdapter()
 	addrConverter := getAddressConverter()
@@ -480,7 +480,7 @@ func TestNode_GenerateTransactionSignTxErrorsShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestNode_GenerateTransactionCorrectParamsShouldNotError(t *testing.T) {
+func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	t.Parallel()
 	accAdapter := getAccAdapter()
 	addrConverter := getAddressConverter()

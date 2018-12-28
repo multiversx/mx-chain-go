@@ -27,7 +27,7 @@ type StatusResponse struct {
 	Running bool `json:"running"`
 }
 
-func TestStatusFailsWithoutFacade(t *testing.T) {
+func TestStatus_FailsWithoutFacade(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
 	defer func() {
@@ -39,7 +39,7 @@ func TestStatusFailsWithoutFacade(t *testing.T) {
 	ws.ServeHTTP(resp, req)
 }
 
-func TestStatusFailsWithWrongFacadeTypeConversion(t *testing.T) {
+func TestStatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 	facade.Running = true
@@ -54,7 +54,7 @@ func TestStatusFailsWithWrongFacadeTypeConversion(t *testing.T) {
 	assert.Equal(t, statusRsp.Message, "Invalid app context")
 }
 
-func TestStatusReturnsCorrectResponseOnStart(t *testing.T) {
+func TestStatus_ReturnsCorrectResponseOnStart(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 	facade.Running = true
@@ -68,7 +68,7 @@ func TestStatusReturnsCorrectResponseOnStart(t *testing.T) {
 	assert.True(t, statusRsp.Running)
 }
 
-func TestStatusReturnsCorrectResponseOnStop(t *testing.T) {
+func TestStatus_ReturnsCorrectResponseOnStop(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 	ws := startNodeServer(&facade)
@@ -83,7 +83,7 @@ func TestStatusReturnsCorrectResponseOnStop(t *testing.T) {
 	assert.False(t, statusRsp2.Running)
 }
 
-func TestStartNodeFailsWithoutFacade(t *testing.T) {
+func TestStartNode_FailsWithoutFacade(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
 	defer func() {
@@ -95,7 +95,7 @@ func TestStartNodeFailsWithoutFacade(t *testing.T) {
 	ws.ServeHTTP(resp, req)
 }
 
-func TestStartNodeFailsWithWrongFacadeTypeConversion(t *testing.T) {
+func TestStartNode_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 	facade.Running = true
@@ -110,7 +110,7 @@ func TestStartNodeFailsWithWrongFacadeTypeConversion(t *testing.T) {
 	assert.Equal(t, statusRsp.Message, "Invalid app context")
 }
 
-func TestStartNodeAlreadyRunning(t *testing.T) {
+func TestStartNode_AlreadyRunning(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 	facade.Running = true
@@ -125,7 +125,7 @@ func TestStartNodeAlreadyRunning(t *testing.T) {
 	assert.Equal(t, statusRsp.Message, "Node already running")
 }
 
-func TestStartNodeFromFacadeErrors(t *testing.T) {
+func TestStartNode_FromFacadeErrors(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 	facade.ShouldErrorStart = true
@@ -154,7 +154,7 @@ func TestStartNode(t *testing.T) {
 	assert.Equal(t, statusRsp.Message, "ok")
 }
 
-func TestStopNodeFailsWithoutFacade(t *testing.T) {
+func TestStopNode_FailsWithoutFacade(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
 	defer func() {
@@ -166,7 +166,7 @@ func TestStopNodeFailsWithoutFacade(t *testing.T) {
 	ws.ServeHTTP(resp, req)
 }
 
-func TestStopNodeFailsWithWrongFacadeTypeConversion(t *testing.T) {
+func TestStopNode_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 	facade.Running = true
@@ -181,7 +181,7 @@ func TestStopNodeFailsWithWrongFacadeTypeConversion(t *testing.T) {
 	assert.Equal(t, statusRsp.Message, "Invalid app context")
 }
 
-func TestStopNodeAlreadyStopped(t *testing.T) {
+func TestStopNode_AlreadyStopped(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 	facade.Running = false
@@ -196,7 +196,7 @@ func TestStopNodeAlreadyStopped(t *testing.T) {
 	assert.Equal(t, statusRsp.Message, "Node already stopped")
 }
 
-func TestStopNodeFromFacadeErrors(t *testing.T) {
+func TestStopNode_FromFacadeErrors(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{}
 	facade.Running = true
