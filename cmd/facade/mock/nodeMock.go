@@ -59,6 +59,6 @@ func (nm *NodeMock) GetTransaction(hash string) (*transaction.Transaction, error
 	return nm.GetTransactionHandler(hash)
 }
 
-func (nm *NodeMock)  SendTransaction(nonce uint64, sender string, receiver string, amount big.Int, code string, signature string) (*transaction.Transaction, error) {
-	return nm.SendTransactionHandler(nonce, sender, receiver, amount, code, signature)
+func (nm *NodeMock)  SendTransaction(nonce uint64, sender string, receiver string, value big.Int, transactionData string, signature string) (*transaction.Transaction, error) {
+	return nm.SendTransactionHandler(nonce, sender, receiver, value, transactionData, signature)
 }

@@ -475,14 +475,17 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	adb := generateAccountDBFromTrie(trieMock)
 
 	//create a new account
-	acnt, err := adb.GetJournalizedAccount(adr)
-	assert.Nil(t, err)
+	acnt, _ := adb.GetJournalizedAccount(adr)
 
-	err = acnt.SetNonceWithJournal(45)
-	assert.Nil(t, err)
+	err := acnt.SetNonceWithJournal(45)
+	if err != nil {
+		t.Error("could not set node")
+	}
 
 	_, err = adb.Commit()
-	assert.Nil(t, err)
+	if err != nil {
+		t.Error("could not commit")
+	}
 
 	account, err := adb.GetExistingAccount(adr)
 	assert.Nil(t, err)

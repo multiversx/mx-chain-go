@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -49,7 +50,7 @@ type initialNode struct {
 	Balance uint64 `json:"balance"`
 }
 
-type genessis struct {
+type genesis struct {
 	StartTime       int64         `json:"startTime"`
 	ClockSyncPeriod int           `json:"clockSyncPeriod"`
 	InitialNodes    []initialNode `json:"initialNodes"`
@@ -62,15 +63,10 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
-	app.Usage = "This is the entrypoint for starting a new bootstrap node - the app will start after the genessis timestamp"
+	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.WithUI, flags.MaxAllowedPeers, flags.PrivateKey}
 	app.Action = func(c *cli.Context) error {
-		err := startNode(c, log)
-		if err != nil {
-			log.Error("Could not start node", err.Error())
-			return err
-		}
-		return nil
+		return startNode(c, log)
 	}
 
 	err := app.Run(os.Args)
@@ -99,33 +95,28 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(flags.GenesisFile.Name)))
 
-	// 1. Start with an empty node
 	currentNode, err := createNode(ctx, generalConfig, genesisConfig, log)
 	if err != nil {
 		return err
 	}
 	ef := facade.NewElrondNodeFacade(currentNode)
-
 	ef.SetLogger(log)
 	ef.StartNTP(genesisConfig.ClockSyncPeriod)
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
 
-	// 2. Wait until we reach the config genesis time
 	ef.WaitForStartTime(time.Unix(genesisConfig.StartTime, 0))
 	wg.Wait()
 
-	// If not in UI mode we should automatically boot a node
 	if !ctx.Bool(flags.WithUI.Name) {
-		log.Info("Bootstraping node....")
+		log.Info("Bootstrapping node....")
 		err = ef.StartNode()
 		if err != nil {
 			log.Error("Starting node failed", err.Error())
 		}
 	}
 
-	// Hold the program until stopped by user
 	go func() {
 		<-sigs
 		log.Info("terminating at user's signal...")
@@ -147,20 +138,18 @@ func loadFile(dest interface{}, relativePath string, log *logger.Logger) error {
 	}
 	f, err := os.Open(path)
 	defer func() {
-		err := f.Close()
+		err = f.Close()
 		if err != nil {
 			log.Error("Cannot close file: ", err.Error())
 		}
 	}()
 	if err != nil {
-		log.Error("Cannot open file", err.Error())
 		return err
 	}
 
 	jsonParser := json.NewDecoder(f)
 	err = jsonParser.Decode(dest)
 	if err != nil {
-		log.Error("Cannot decode file in provided destination", err.Error())
 		return err
 	}
 	return nil
@@ -175,8 +164,8 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 	return cfg, nil
 }
 
-func loadGenesisConfiguration(genesisFilePath string, log *logger.Logger) (*genessis, error) {
-	cfg := &genessis{}
+func loadGenesisConfiguration(genesisFilePath string, log *logger.Logger) (*genesis, error) {
+	cfg := &genesis{}
 	err := loadFile(cfg, genesisFilePath, log)
 	if err != nil {
 		return nil, err
@@ -184,7 +173,7 @@ func loadGenesisConfiguration(genesisFilePath string, log *logger.Logger) (*gene
 	return cfg, nil
 }
 
-func (g *genessis) initialNodesPubkeys() []string {
+func (g *genesis) initialNodesPubkeys() []string {
 	var pubKeys []string
 	for _, in := range g.InitialNodes {
 		pubKeys = append(pubKeys, in.PubKey)
@@ -192,7 +181,7 @@ func (g *genessis) initialNodesPubkeys() []string {
 	return pubKeys
 }
 
-func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genessis, log *logger.Logger) (*node.Node, error) {
+func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, log *logger.Logger) (*node.Node, error) {
 	appContext := context.Background()
 	hasher := sha256.Sha256{}
 	marshalizer := marshal.JsonMarshalizer{}
@@ -231,16 +220,8 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genessis, l
 	sk, err := getSk(ctx)
 	if err != nil {
 		log.Error("node is starting without a private key...")
-	}
-	generator := schnorr.NewKeyGenerator()
-	secretKey, err := generator.PrivateKeyFromByteArray(sk)
-	if err == nil {
-		err = nd.ApplyOptions(node.WithPrivateKey(secretKey))
-		if err != nil {
-			log.Error(err.Error())
-		}
 	} else {
-		log.Error("error unpacking private key")
+		loadSk(nd, sk, log)
 	}
 
 	return nd, nil
@@ -254,7 +235,23 @@ func getSk(ctx *cli.Context) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("could not read private key file")
 	}
-	return b64sk, nil
+	decodedSk := make([]byte, base64.StdEncoding.DecodedLen(len(b64sk)))
+	l, _ := base64.StdEncoding.Decode(decodedSk, b64sk)
+
+	return decodedSk[:l], nil
+}
+
+func loadSk(nd *node.Node, sk []byte, log *logger.Logger) {
+	generator := schnorr.NewKeyGenerator()
+	secretKey, err := generator.PrivateKeyFromByteArray(sk)
+	if err == nil {
+		err = nd.ApplyOptions(node.WithPrivateKey(secretKey))
+		if err != nil {
+			log.Error(err.Error())
+		}
+	} else {
+		log.Error("error unpacking private key")
+	}
 }
 
 func getTrie(cfg config.StorageConfig, hasher hashing.Hasher) (*trie.Trie, error) {
@@ -284,7 +281,7 @@ func getCacherFromConfig(cfg config.CacheConfig) storage.CacheConfig {
 
 func getDBFromConfig(cfg config.DBConfig) storage.DBConfig {
 	return storage.DBConfig{
-		FilePath: cfg.FilePath,
+		FilePath: filepath.Join(config.DefaultPath(), cfg.FilePath),
 		Type: storage.DBType(cfg.Type),
 	}
 }

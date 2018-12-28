@@ -16,6 +16,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
+type topic string
+
+const (
+	transactionTopic topic = "tx"
+)
+
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
 type Option func(*Node) error
@@ -162,7 +168,7 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 		Nonce: newNonce,
 		Value: amount,
 		RcvAddr: []byte(receiver),
-		SndAddr: []byte(receiver),
+		SndAddr: []byte(sender),
 	}
 
 	txToByteArray, err := n.marshalizer.Marshal(tx)
@@ -184,19 +190,19 @@ func (n *Node) SendTransaction(
 	nonce uint64,
 	sender string,
 	receiver string,
-	amount big.Int,
-	code string,
+	value big.Int,
+	transactionData string,
 	signature string) (*transaction.Transaction, error) {
 
 		tx := transaction.Transaction{
-			Nonce: nonce,
-			Value: amount,
-			RcvAddr: []byte(receiver),
-			SndAddr: []byte(sender),
-			Data: []byte(code),
+			Nonce:     nonce,
+			Value:     value,
+			RcvAddr:   []byte(receiver),
+			SndAddr:   []byte(sender),
+			Data:      []byte(transactionData),
 			Signature: []byte(signature),
 		}
-		topic := n.messenger.GetTopic("tx")
+		topic := n.messenger.GetTopic(string(transactionTopic))
 		err := topic.Broadcast(tx)
 		if err != nil {
 			return nil, errors.New("could not broadcast transaction: " + err.Error())
@@ -206,21 +212,16 @@ func (n *Node) SendTransaction(
 
 //GetTransaction gets the transaction
 func (n *Node) GetTransaction(hash string) (*transaction.Transaction, error) {
-	return nil, fmt.Errorf("Not yet implemented")
+	return nil, fmt.Errorf("not yet implemented")
 }
 
 func (n *Node) createNetMessenger() (p2p.Messenger, error) {
 	if n.port == 0 {
 		return nil, errors.New("Cannot start node on port 0")
 	}
-	if n.marshalizer == nil {
-		return nil, errors.New("Canot start node without providing a marshalizer")
-	}
-	if n.hasher == nil {
-		return nil, errors.New("Canot start node without providing a hasher")
-	}
+
 	if n.maxAllowedPeers == 0 {
-		return nil, errors.New("Canot start node without providing maxAllowedPeers")
+		return nil, errors.New("Cannot start node without providing maxAllowedPeers")
 	}
 
 	cp, err := p2p.NewConnectParamsFromPort(n.port)

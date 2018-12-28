@@ -8,10 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Handler interface defines methods that can be used from `elrondFacade` context variable
-type Handler interface {
-	GenerateTransaction(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error)
-	SendTransaction(snonce uint64, ender string, receiver string, amount big.Int, code string, signature string) (*transaction.Transaction, error)
+// TxService interface defines methods that can be used from `elrondFacade` context variable
+type TxService interface {
+	GenerateTransaction(sender string, receiver string, value big.Int, code string) (*transaction.Transaction, error)
+	SendTransaction(nonce uint64, sender string, receiver string, value big.Int, code string, signature string) (*transaction.Transaction, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 }
 
@@ -24,7 +24,7 @@ type TxRequest struct {
 	//SecretKey string `form:"sk" json:"sk" binding:"skValidator"`
 }
 
-// SendTxRequest represents the structure on which user input for publishing a new transaction will validate against
+// SendTxRequest represents the structure that maps and validates user input for publishing a new transaction
 type SendTxRequest struct {
 	TxRequest
 	Signature []byte `form:"signature" json:"signature"`
@@ -52,7 +52,7 @@ func Routes(router *gin.RouterGroup) {
 
 // GenerateTransaction generates a new transaction given a sender, receiver, value and data
 func GenerateTransaction(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
 		return
@@ -74,9 +74,9 @@ func GenerateTransaction(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
 }
 
-// SendTransaction will add a transaction will
+// SendTransaction will receive a transaction from the client and propagate it for processing
 func SendTransaction(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
 		return
@@ -101,7 +101,7 @@ func SendTransaction(c *gin.Context) {
 // GetTransaction returns transaction details for a given txhash
 func GetTransaction(c *gin.Context) {
 
-	ef, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
 		return
@@ -109,12 +109,19 @@ func GetTransaction(c *gin.Context) {
 
 	txhash := c.Param("txhash")
 	if txhash == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "TxHash is empty"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "TxHash is empty"})
+		return
 	}
 
 	tx, err := ef.GetTransaction(txhash)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction getting failed"})
+		return
+	}
+
+	if tx == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Transaction was not found"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})

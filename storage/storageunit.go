@@ -2,11 +2,12 @@ package storage
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
@@ -40,11 +41,11 @@ const (
 
 const (
 	// Keccak is the string representation of the keccak hashing function
-	Keccak  HasherType = "Keccak"
+	Keccak HasherType = "Keccak"
 	// Blake2b is the string representation of the blake2b hashing function
 	Blake2b HasherType = "Blake2b"
 	// Fnv is the string representation of the fnv hashing function
-	Fnv     HasherType = "Fnv"
+	Fnv HasherType = "Fnv"
 )
 
 // UnitConfig holds the configurable elements of the storage unit

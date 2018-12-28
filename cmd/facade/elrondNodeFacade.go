@@ -2,11 +2,12 @@ package facade
 
 import (
 	"errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
@@ -113,8 +114,8 @@ func (ef *ElrondNodeFacade) GenerateTransaction(sender string, receiver string, 
 
 // SendTransaction will send a new transaction on the topic channel
 func (ef *ElrondNodeFacade) SendTransaction(nonce uint64, sender string, receiver string,
-	amount big.Int, code string, signature string) (*transaction.Transaction, error) {
-		return ef.node.SendTransaction(nonce, sender, receiver, amount, code, signature)
+	value big.Int, transactionData string, signature string) (*transaction.Transaction, error) {
+	return ef.node.SendTransaction(nonce, sender, receiver, value, transactionData, signature)
 }
 
 // GetTransaction gets the transaction with a specified hash
