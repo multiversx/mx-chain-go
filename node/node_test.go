@@ -287,6 +287,140 @@ func TestAddress_NodeNotStarted(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
+	t.Parallel()
+	n, _ := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithAccountsAdapter(&mock.AccountsAdapter{}),
+		node.WithPrivateKey(&mock.PrivateKey{}),
+	)
+	_, err := n.GetBalance("address")
+	assert.NotNil(t, err)
+	assert.Equal(t, "initialize AccountsAdapter and AddressConverter first", err.Error())
+}
+
+func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
+	t.Parallel()
+	n, _ := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithAddressConverter(&mock.AddressConverter{}),
+		node.WithPrivateKey(&mock.PrivateKey{}),
+	)
+	_, err := n.GetBalance("address")
+	assert.NotNil(t, err)
+	assert.Equal(t, "initialize AccountsAdapter and AddressConverter first", err.Error())
+}
+
+func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
+	t.Parallel()
+	accAdapter := getAccAdapter(*big.NewInt(0))
+	addrConverter := mock.AddressConverter{
+		CreateAddressFromHexHandler: func(hexAddress string) (state.AddressContainer, error) {
+			// Return that will result in a correct run of GenerateTransaction -> will fail test
+			/*return mock.AddressContainer{
+			}, nil*/
+
+			return nil, errors.New("error")
+		},
+	}
+	privateKey := getPrivateKey()
+	n, _ := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithAddressConverter(addrConverter),
+		node.WithAccountsAdapter(accAdapter),
+		node.WithPrivateKey(privateKey),
+	)
+	_, err := n.GetBalance("address")
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "invalid address")
+}
+
+func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
+	t.Parallel()
+	accAdapter := mock.AccountsAdapter{
+		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+			return nil, errors.New("error")
+		},
+	}
+	addrConverter := getAddressConverter()
+	privateKey := getPrivateKey()
+	n, _ := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithAddressConverter(addrConverter),
+		node.WithAccountsAdapter(accAdapter),
+		node.WithPrivateKey(privateKey),
+	)
+	_, err := n.GetBalance("address")
+	assert.NotNil(t, err)
+	assert.Equal(t, "could not fetch sender address from provided param", err.Error())
+}
+
+func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
+	t.Parallel()
+	accAdapter := mock.AccountsAdapter{
+		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+			return nil, nil
+		},
+	}
+	addrConverter := getAddressConverter()
+	privateKey := getPrivateKey()
+	n, _ := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithAddressConverter(addrConverter),
+		node.WithAccountsAdapter(accAdapter),
+		node.WithPrivateKey(privateKey),
+	)
+	balance, err := n.GetBalance("address")
+	assert.Nil(t, err)
+	assert.Equal(t, big.NewInt(0), balance)
+}
+
+func TestGetBalance(t *testing.T) {
+	t.Parallel()
+	accAdapter := getAccAdapter(*big.NewInt(100))
+	addrConverter := getAddressConverter()
+	privateKey := getPrivateKey()
+	n, _ := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithAddressConverter(addrConverter),
+		node.WithAccountsAdapter(accAdapter),
+		node.WithPrivateKey(privateKey),
+	)
+	balance, err := n.GetBalance("address")
+	assert.Nil(t, err)
+	assert.Equal(t, big.NewInt(100), balance)
+}
+
 func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 	t.Parallel()
 	n, _ := node.NewNode(
@@ -337,7 +471,7 @@ func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 
 func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := mock.AddressConverter{
 		CreateAddressFromHexHandler: func(hexAddress string) (state.AddressContainer, error) {
 			// Return that will result in a correct run of GenerateTransaction -> will fail test
@@ -413,7 +547,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := getAddressConverter()
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
@@ -433,7 +567,7 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 
 func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := getAddressConverter()
 	privateKey := getPrivateKey()
 	marshalizer := mock.Marshalizer{
@@ -458,7 +592,7 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 
 func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := getAddressConverter()
 	privateKey := mock.PrivateKey{
 		SignHandler: func(message []byte) ([]byte, error) {
@@ -482,7 +616,7 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 
 func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := getAddressConverter()
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
@@ -500,13 +634,14 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func getAccAdapter() mock.AccountsAdapter {
+func getAccAdapter(balance big.Int) mock.AccountsAdapter {
 	return mock.AccountsAdapter{
 		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
 			return mock.AccountWrapper{
 				BaseAccountHandler: func() *state.Account {
 					return &state.Account{
 						Nonce: 1,
+						Balance: balance,
 					}
 				},
 			}, nil
