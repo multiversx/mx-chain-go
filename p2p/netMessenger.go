@@ -450,12 +450,12 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 	}
 
 	// validator registration func
-	t.registerTopicValidator = func(v pubsub.Validator) error {
+	t.RegisterTopicValidator = func(v pubsub.Validator) error {
 		return nm.ps.RegisterTopicValidator(t.Name, v)
 	}
 
 	// validator unregistration func
-	t.unregisterTopicValidator = func() error {
+	t.UnregisterTopicValidator = func() error {
 		return nm.ps.UnregisterTopicValidator(t.Name)
 	}
 
@@ -504,7 +504,7 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 	}
 
 	//wire-up a plain func for publishing on request channel
-	t.request = func(hash []byte) error {
+	t.Request = func(hash []byte) error {
 		return nm.ps.Publish(t.Name+requestTopicSuffix, hash)
 	}
 

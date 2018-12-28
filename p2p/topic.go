@@ -12,18 +12,11 @@ import (
 // topicChannelBufferSize is used to control the object channel buffer size
 const topicChannelBufferSize = 10000
 
-// Newer interface will be implemented on structs that can create new instances of their type
-// We prefer this method as reflection is more costly
-type Newer interface {
-	New() Newer
-	ID() string
-}
-
 // DataReceivedHandler is the signature for the event handler used by Topic struct
 type DataReceivedHandler func(name string, data interface{}, msgInfo *MessageInfo)
 
 // Topic struct defines a type of message that can be received and broadcast
-// The use of Newer interface gives this struct's a generic use
+// The use of Creator interface gives this struct's a generic use
 // It works in the following manner:
 //  - the message is received (if it passes the authentication filter)
 //  - a new object with the same type of ObjTemplate is created
@@ -34,7 +27,7 @@ type Topic struct {
 	// Name of the topic
 	Name string
 	// ObjTemplate is used as a template to generate new objects whenever a new message is received
-	ObjTemplate             Newer
+	ObjTemplate             Creator
 	marsh                   marshal.Marshalizer
 	objPump                 chan MessageInfo
 	mutEventBus             sync.RWMutex
@@ -42,23 +35,23 @@ type Topic struct {
 	// SendData will be called by Topic struct whenever a user of this struct tries to send data to other peers
 	// It is a function pointer that connects Topic struct with pubsub implementation
 	SendData                 func(data []byte) error
-	registerTopicValidator   func(v pubsub.Validator) error
-	unregisterTopicValidator func() error
-	ResolveRequest           func(hash []byte) Newer
-	request                  func(hash []byte) error
+	RegisterTopicValidator   func(v pubsub.Validator) error
+	UnregisterTopicValidator func() error
+	ResolveRequest           func(hash []byte) Creator
+	Request                  func(hash []byte) error
 	CurrentPeer              peer.ID
 }
 
 // MessageInfo will retain additional info about the message, should we care
 // when receiving an object on current topic
 type MessageInfo struct {
-	Data        Newer
+	Data        Creator
 	Peer        string
 	CurrentPeer string
 }
 
 // NewTopic creates a new Topic struct
-func NewTopic(name string, objTemplate Newer, marsh marshal.Marshalizer) *Topic {
+func NewTopic(name string, objTemplate Creator, marsh marshal.Marshalizer) *Topic {
 	topic := Topic{Name: name, ObjTemplate: objTemplate, marsh: marsh}
 	topic.objPump = make(chan MessageInfo, topicChannelBufferSize)
 
@@ -82,9 +75,9 @@ func (t *Topic) AddDataReceived(eventHandler DataReceivedHandler) {
 
 // CreateObject will instantiate a Cloner interface and instantiate its fields
 // with the help of a marshalizer implementation
-func (t *Topic) CreateObject(data []byte) (Newer, error) {
+func (t *Topic) CreateObject(data []byte) (Creator, error) {
 	// create new instance of the object
-	newObj := t.ObjTemplate.New()
+	newObj := t.ObjTemplate.Create()
 
 	if data == nil {
 		return nil, errors.New("nil message not allowed")
@@ -105,7 +98,7 @@ func (t *Topic) CreateObject(data []byte) (Newer, error) {
 
 // NewObjReceived is called from the lower data layer
 // it will ignore nils or improper formatted messages
-func (t *Topic) NewObjReceived(obj Newer, peerID string) error {
+func (t *Topic) NewObjReceived(obj Creator, peerID string) error {
 	if obj == nil {
 		return errors.New("nil object not allowed")
 	}
@@ -153,21 +146,21 @@ func (t *Topic) processData() {
 // RegisterValidator adds a validator to this topic
 // It delegates the functionality to registerValidator function pointer
 func (t *Topic) RegisterValidator(v pubsub.Validator) error {
-	if t.registerTopicValidator == nil {
+	if t.RegisterTopicValidator == nil {
 		return errors.New("can not delegate registration to parent")
 	}
 
-	return t.registerTopicValidator(v)
+	return t.RegisterTopicValidator(v)
 }
 
 // UnregisterValidator removes the validator associated to this topic
 // It delegates the functionality to unregisterValidator function pointer
 func (t *Topic) UnregisterValidator() error {
-	if t.unregisterTopicValidator == nil {
+	if t.UnregisterTopicValidator == nil {
 		return errors.New("can not delegate unregistration to parent")
 	}
 
-	return t.unregisterTopicValidator()
+	return t.UnregisterTopicValidator()
 }
 
 // SendRequest sends the hash to all known peers that subscribed to the channel [t.Name]_REQUEST
@@ -182,9 +175,9 @@ func (t *Topic) SendRequest(hash []byte) error {
 		return errors.New("invalid hash to send")
 	}
 
-	if t.request == nil {
+	if t.Request == nil {
 		return errors.New("can not delegate request to parent")
 	}
 
-	return t.request(hash)
+	return t.Request(hash)
 }

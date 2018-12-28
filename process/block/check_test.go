@@ -3,724 +3,526 @@ package block_test
 import (
 	"testing"
 
-	bl "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func createBlockProcessor() process.BlockProcessor {
-	txHandler := func(transactionHandler func(txHash []byte)) {}
-
-	tp := &mock.TransactionPoolMock{
-		RegisterTransactionHandlerCalled: txHandler,
-	}
-
-	bp := block.NewBlockProcessor(
-		tp,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		nil,
-		2,
-	)
-
-	return bp
-}
-
 // StateBlockBody
-func TestStateBlockBodyWrapper_IntegrityNilProcessorShouldFail(t *testing.T) {
+func TestStateBlockBodyWrapper_IntegrityNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	sbWrapper := block.StateBlockBodyWrapper{
-		StateBlockBody: &bl.StateBlockBody{},
-	}
+	stateBlk := &block.StateBlockBodyWrapper{StateBlockBody: &block2.StateBlockBody{}}
 
-	res := sbWrapper.Integrity(nil)
-	assert.Equal(t, process.ErrNilProcessor, res)
+	stateBlk.RootHash = make([]byte, 0)
+	stateBlk.ShardID = 0
+
+	assert.Equal(t, process.ErrNilShardCoordinator, stateBlk.Integrity(nil))
 }
 
-func TestStateBlockBodyWrapper_IntegrityInvalidShardIdShouldFail(t *testing.T) {
+func TestStateBlockBodyWrapper_IntegrityInvalidShardShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-	bp.SetNoShards(10)
+	stateBlk := &block.StateBlockBodyWrapper{StateBlockBody: &block2.StateBlockBody{}}
 
-	sbWrapper := block.StateBlockBodyWrapper{
-		StateBlockBody: &bl.StateBlockBody{
-			RootHash: []byte("rootHash1"),
-			ShardID:  55,
-		},
-	}
+	stateBlk.RootHash = make([]byte, 0)
+	stateBlk.ShardID = 6
 
-	res := sbWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrInvalidShardId, res)
+	assert.Equal(t, process.ErrInvalidShardId, stateBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestStateBlockBodyWrapper_IntegrityNilRootHashShouldFail(t *testing.T) {
+func TestStateBlockBodyWrapper_IntegrityNilRootHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	stateBlk := &block.StateBlockBodyWrapper{StateBlockBody: &block2.StateBlockBody{}}
 
-	sbWrapper := block.StateBlockBodyWrapper{
-		StateBlockBody: &bl.StateBlockBody{
-			RootHash: nil,
-			ShardID:  1,
-		},
-	}
+	stateBlk.RootHash = nil
+	stateBlk.ShardID = 0
 
-	res := sbWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilRootHash, res)
+	assert.Equal(t, process.ErrNilRootHash, stateBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestStateBlockBodyWrapper_IntegrityOK(t *testing.T) {
+func TestStateBlockBodyWrapper_IntegrityNilStateBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	stateBlk := &block.StateBlockBodyWrapper{StateBlockBody: &block2.StateBlockBody{}}
+	stateBlk.StateBlockBody = nil
 
-	sbWrapper := block.StateBlockBodyWrapper{
-		StateBlockBody: &bl.StateBlockBody{
-			RootHash: []byte("rootHash1"),
-			ShardID:  1,
-		},
-	}
-
-	res := sbWrapper.Integrity(bp)
-	assert.Nil(t, res)
+	assert.Equal(t, process.ErrNilStateBlockBody, stateBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestStateBlockBodyWrapper_CheckCorruptedBlock(t *testing.T) {
+func TestStateBlockBodyWrapper_IntegrityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-	bp.SetNoShards(2)
+	stateBlk := &block.StateBlockBodyWrapper{StateBlockBody: &block2.StateBlockBody{}}
 
-	sbWrapper := block.StateBlockBodyWrapper{
-		StateBlockBody: &bl.StateBlockBody{
-			RootHash: []byte("rootHash1"),
-			ShardID:  55,
-		},
-	}
+	stateBlk.RootHash = make([]byte, 0)
+	stateBlk.ShardID = 0
 
-	res := sbWrapper.Check(bp)
-	assert.Equal(t, process.ErrInvalidShardId, res)
+	assert.Nil(t, stateBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestStateBlockBodyWrapper_CheckWithEmptyAccountsTrieShouldFail(t *testing.T) {
+func TestStateBlockBodyWrapper_IntegrityAndValidityIntegrityDoesNotPassShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txHandler := func(transactionHandler func(txHash []byte)) {}
+	stateBlk := &block.StateBlockBodyWrapper{StateBlockBody: &block2.StateBlockBody{}}
 
-	tp := &mock.TransactionPoolMock{
-		RegisterTransactionHandlerCalled: txHandler,
-	}
+	stateBlk.RootHash = make([]byte, 0)
+	stateBlk.ShardID = 6
 
-	rootHashStoredTrie := func() []byte {
-		return nil
-	}
-
-	bp := block.NewBlockProcessor(
-		tp,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		&mock.AccountsStub{RootHashCalled: rootHashStoredTrie},
-		2,
-	)
-
-	sbWrapper := block.StateBlockBodyWrapper{
-		StateBlockBody: &bl.StateBlockBody{
-			RootHash: []byte("rootHash1"),
-			ShardID:  0,
-		},
-	}
-
-	res := sbWrapper.Check(bp)
-	assert.Equal(t, process.ErrNilRootHash, res)
+	assert.Equal(t, process.ErrInvalidShardId, stateBlk.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestStateBlockBodyWrapper_CheckWithInvalidRootHashShouldFail(t *testing.T) {
+func TestStateBlockBodyWrapper_IntegrityAndValidityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txHandler := func(transactionHandler func(txHash []byte)) {}
+	stateBlk := &block.StateBlockBodyWrapper{StateBlockBody: &block2.StateBlockBody{}}
 
-	tp := &mock.TransactionPoolMock{
-		RegisterTransactionHandlerCalled: txHandler,
-	}
+	stateBlk.RootHash = make([]byte, 0)
+	stateBlk.ShardID = 0
 
-	rootHashStoredTrie := func() []byte {
-		return []byte("correctRootHash")
-	}
-
-	bp := block.NewBlockProcessor(
-		tp,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		&mock.AccountsStub{RootHashCalled: rootHashStoredTrie},
-		2,
-	)
-
-	sbWrapper := block.StateBlockBodyWrapper{
-		StateBlockBody: &bl.StateBlockBody{
-			RootHash: []byte("invalidRootHash"),
-			ShardID:  0,
-		},
-	}
-
-	res := sbWrapper.Check(bp)
-	assert.Equal(t, process.ErrInvalidRootHash, res)
-}
-
-func TestStateBlockBodyWrapper_CheckOK(t *testing.T) {
-	t.Parallel()
-
-	txHandler := func(transactionHandler func(txHash []byte)) {}
-
-	tp := &mock.TransactionPoolMock{
-		RegisterTransactionHandlerCalled: txHandler,
-	}
-
-	rootHashStoredTrie := func() []byte {
-		return []byte("correctRootHash")
-	}
-
-	bp := block.NewBlockProcessor(
-		tp,
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		&mock.AccountsStub{RootHashCalled: rootHashStoredTrie},
-		2,
-	)
-
-	sbWrapper := block.StateBlockBodyWrapper{
-		StateBlockBody: &bl.StateBlockBody{
-			RootHash: []byte("correctRootHash"),
-			ShardID:  0,
-		},
-	}
-
-	res := sbWrapper.Check(bp)
-	assert.Nil(t, res)
+	assert.Nil(t, stateBlk.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
 }
 
 // TxBlockBody
-func TestTxBlockBodyWrapper_IntegrityInvalidStateBlockShouldFail(t *testing.T) {
+func TestTxBlockBodyWrapper_IntegrityInvalidStateBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	txBlk := &block.TxBlockBodyWrapper{TxBlockBody: &block2.TxBlockBody{}}
 
-	txbWrapper := block.TxBlockBodyWrapper{
-		TxBlockBody: &bl.TxBlockBody{
-			StateBlockBody: bl.StateBlockBody{},
-		},
+	txBlk.RootHash = nil
+	txBlk.ShardID = 0
+	txBlk.MiniBlocks = []block2.MiniBlock{
+		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0)}},
 	}
 
-	res := txbWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilRootHash, res)
+	assert.Equal(t, process.ErrNilRootHash, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestTxBlockBodyWrapper_IntegrityNilMiniblocksShouldFail(t *testing.T) {
+func TestTxBlockBodyWrapper_IntegrityNilMiniBlocksShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	txBlk := &block.TxBlockBodyWrapper{TxBlockBody: &block2.TxBlockBody{}}
+	txBlk.RootHash = make([]byte, 0)
+	txBlk.ShardID = 0
 
-	txbWrapper := block.TxBlockBodyWrapper{
-		TxBlockBody: &bl.TxBlockBody{
-			StateBlockBody: bl.StateBlockBody{
-				RootHash: []byte("rootHash1"),
-				ShardID:  1,
-			},
-			MiniBlocks: nil,
-		},
-	}
-
-	res := txbWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilMiniBlocks, res)
-
+	assert.Equal(t, process.ErrNilMiniBlocks, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestTxBlockBodyWrapper_IntegrityNilTxHashesShouldFail(t *testing.T) {
+func TestTxBlockBodyWrapper_IntegrityMiniblockWithNilTxHashesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-	miniBlocks := make([]bl.MiniBlock, 0)
-	miniBlock := bl.MiniBlock{
-		ShardID:  0,
-		TxHashes: nil,
+	txBlk := &block.TxBlockBodyWrapper{TxBlockBody: &block2.TxBlockBody{}}
+
+	txBlk.RootHash = make([]byte, 0)
+	txBlk.ShardID = 0
+	txBlk.MiniBlocks = []block2.MiniBlock{
+		{ShardID: 0, TxHashes: nil},
 	}
 
-	miniBlocks = append(miniBlocks, miniBlock)
-
-	txbWrapper := block.TxBlockBodyWrapper{
-		TxBlockBody: &bl.TxBlockBody{
-			StateBlockBody: bl.StateBlockBody{
-				RootHash: []byte("rootHash1"),
-				ShardID:  1,
-			},
-			MiniBlocks: miniBlocks,
-		},
-	}
-
-	res := txbWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilTxHashes, res)
+	assert.Equal(t, process.ErrNilTxHashes, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestTxBlockBodyWrapper_IntegrityNilTxHashShouldFail(t *testing.T) {
+func TestTxBlockBodyWrapper_IntegrityMiniblockWithInvalidTxHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-	miniBlocks := make([]bl.MiniBlock, 0)
-	txHashes := make([][]byte, 0)
-	txHash := []byte(nil)
-	txHashes = append(txHashes, txHash)
+	txBlk := &block.TxBlockBodyWrapper{TxBlockBody: &block2.TxBlockBody{}}
 
-	miniBlock := bl.MiniBlock{
-		ShardID:  0,
-		TxHashes: txHashes,
+	txBlk.RootHash = make([]byte, 0)
+	txBlk.ShardID = 0
+	txBlk.MiniBlocks = []block2.MiniBlock{
+		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0), nil}},
 	}
 
-	miniBlocks = append(miniBlocks, miniBlock)
-
-	txbWrapper := block.TxBlockBodyWrapper{
-		TxBlockBody: &bl.TxBlockBody{
-			StateBlockBody: bl.StateBlockBody{
-				RootHash: []byte("rootHash1"),
-				ShardID:  1,
-			},
-			MiniBlocks: miniBlocks,
-		},
-	}
-
-	res := txbWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilTxHash, res)
+	assert.Equal(t, process.ErrNilTxHash, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestTxBlockBodyWrapper_IntegrityOK(t *testing.T) {
+func TestTxBlockBodyWrapper_IntegrityNilTxBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-	miniBlocks := make([]bl.MiniBlock, 0)
-	txHashes := make([][]byte, 0)
-	txHash1 := []byte("goodHash1")
-	txHash2 := []byte("goodHash2")
+	txBlk := &block.TxBlockBodyWrapper{TxBlockBody: &block2.TxBlockBody{}}
+	txBlk.TxBlockBody = nil
 
-	txHashes = append(txHashes, txHash1)
-	txHashes = append(txHashes, txHash2)
-
-	miniBlock := bl.MiniBlock{
-		ShardID:  0,
-		TxHashes: txHashes,
-	}
-
-	miniBlocks = append(miniBlocks, miniBlock)
-
-	txbWrapper := block.TxBlockBodyWrapper{
-		TxBlockBody: &bl.TxBlockBody{
-			StateBlockBody: bl.StateBlockBody{
-				RootHash: []byte("rootHash1"),
-				ShardID:  1,
-			},
-			MiniBlocks: miniBlocks,
-		},
-	}
-
-	res := txbWrapper.Integrity(bp)
-	assert.Nil(t, res)
+	assert.Equal(t, process.ErrNilTxBlockBody, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestTxBlockBodyWrapper_CheckCorruptedBlock(t *testing.T) {
+func TestTxBlockBodyWrapper_IntegrityNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	txBlk := &block.TxBlockBodyWrapper{TxBlockBody: &block2.TxBlockBody{}}
 
-	txbWrapper := block.TxBlockBodyWrapper{
-		TxBlockBody: &bl.TxBlockBody{
-			StateBlockBody: bl.StateBlockBody{
-				ShardID:  0,
-				RootHash: nil,
-			},
-		},
+	txBlk.RootHash = make([]byte, 0)
+	txBlk.ShardID = 0
+	txBlk.MiniBlocks = []block2.MiniBlock{
+		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0)}},
 	}
 
-	res := txbWrapper.Check(bp)
-	assert.Equal(t, process.ErrNilRootHash, res)
+	assert.Equal(t, process.ErrNilShardCoordinator, txBlk.Integrity(nil))
 }
 
-func TestTxBlockBodyWrapper_CheckOK(t *testing.T) {
+func TestTxBlockBodyWrapper_IntegrityMiniblockWithInvalidShardIdsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-	miniBlocks := make([]bl.MiniBlock, 0)
-	txHashes := make([][]byte, 0)
-	txHash1 := []byte("goodHash1")
-	txHash2 := []byte("goodHash2")
+	txBlk := &block.TxBlockBodyWrapper{TxBlockBody: &block2.TxBlockBody{}}
 
-	txHashes = append(txHashes, txHash1)
-	txHashes = append(txHashes, txHash2)
-
-	miniBlock := bl.MiniBlock{
-		ShardID:  0,
-		TxHashes: txHashes,
+	txBlk.RootHash = make([]byte, 0)
+	txBlk.ShardID = 0
+	txBlk.MiniBlocks = []block2.MiniBlock{
+		{ShardID: 4, TxHashes: [][]byte{make([]byte, 0)}},
 	}
 
-	miniBlocks = append(miniBlocks, miniBlock)
+	assert.Equal(t, process.ErrInvalidShardId, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
+}
 
-	txbWrapper := block.TxBlockBodyWrapper{
-		TxBlockBody: &bl.TxBlockBody{
-			StateBlockBody: bl.StateBlockBody{
-				RootHash: []byte("rootHash1"),
-				ShardID:  1,
-			},
-			MiniBlocks: miniBlocks,
-		},
+func TestTxBlockBodyWrapper_IntegrityOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	txBlk := &block.TxBlockBodyWrapper{TxBlockBody: &block2.TxBlockBody{}}
+
+	txBlk.RootHash = make([]byte, 0)
+	txBlk.ShardID = 0
+	txBlk.MiniBlocks = []block2.MiniBlock{
+		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0)}},
 	}
 
-	res := txbWrapper.Check(bp)
-	assert.Nil(t, res)
+	assert.Nil(t, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
+}
+
+func TestTxBlockBodyWrapper_IntegrityAndValidityIntegrityDoesNotPassShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txBlk := &block.TxBlockBodyWrapper{TxBlockBody: &block2.TxBlockBody{}}
+
+	txBlk.RootHash = make([]byte, 0)
+	txBlk.ShardID = 10
+	txBlk.MiniBlocks = []block2.MiniBlock{
+		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0)}},
+	}
+
+	assert.Equal(t, process.ErrInvalidShardId, txBlk.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
+}
+
+func TestTxBlockBodyWrapper_IntegrityAndValidityOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	txBlk := &block.TxBlockBodyWrapper{TxBlockBody: &block2.TxBlockBody{}}
+
+	txBlk.RootHash = make([]byte, 0)
+	txBlk.ShardID = 0
+	txBlk.MiniBlocks = []block2.MiniBlock{
+		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0)}},
+	}
+
+	assert.Nil(t, txBlk.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
 }
 
 // PeerBlockBodyWrapper
-func TestPeerBlockBodyWrapper_IntegrityInvalidStateBlockShouldFail(t *testing.T) {
+func TestPeerBlockBodyWrapper_IntegrityInvalidStateBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-
-	peerBlkWrapper := block.PeerBlockBodyWrapper{
-		PeerBlockBody: &bl.PeerBlockBody{
-			StateBlockBody: bl.StateBlockBody{},
-		},
+	peerBlk := &block.PeerBlockBodyWrapper{PeerBlockBody: &block2.PeerBlockBody{}}
+	peerBlk.ShardID = 0
+	peerBlk.RootHash = nil
+	peerBlk.Changes = []block2.PeerChange{
+		{PubKey: make([]byte, 0), ShardIdDest: 0},
 	}
 
-	res := peerBlkWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilRootHash, res)
+	assert.Equal(t, process.ErrNilRootHash, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestPeerBlockBodyWrapper_IntegrityNilChangesShouldFail(t *testing.T) {
+func TestPeerBlockBodyWrapper_IntegrityNilPeerChangesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-	peerBlkWrapper := block.PeerBlockBodyWrapper{
-		PeerBlockBody: &bl.PeerBlockBody{
-			StateBlockBody: bl.StateBlockBody{
-				RootHash: []byte("rootHash1"),
-				ShardID:  1,
-			},
-			Changes: nil,
-		},
-	}
+	peerBlk := &block.PeerBlockBodyWrapper{PeerBlockBody: &block2.PeerBlockBody{}}
+	peerBlk.ShardID = 0
+	peerBlk.RootHash = make([]byte, 0)
+	peerBlk.Changes = nil
 
-	res := peerBlkWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilPeerChanges, res)
+	assert.Equal(t, process.ErrNilPeerChanges, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestPeerBlockBodyWrapper_IntegrityChangeInvalidShardShouldFail(t *testing.T) {
+func TestPeerBlockBodyWrapper_IntegrityPeerChangeWithInvalidShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-
-	changes := make([]bl.PeerChange, 0)
-	change := bl.PeerChange{
-		PubKey:      []byte("pubkey1"),
-		ShardIdDest: 3,
-	}
-	changes = append(changes, change)
-
-	peerBlkWrapper := block.PeerBlockBodyWrapper{
-		PeerBlockBody: &bl.PeerBlockBody{
-			StateBlockBody: bl.StateBlockBody{
-				RootHash: []byte("rootHash1"),
-				ShardID:  1,
-			},
-			Changes: changes,
-		},
+	peerBlk := &block.PeerBlockBodyWrapper{PeerBlockBody: &block2.PeerBlockBody{}}
+	peerBlk.ShardID = 0
+	peerBlk.RootHash = make([]byte, 0)
+	peerBlk.Changes = []block2.PeerChange{
+		{PubKey: make([]byte, 0), ShardIdDest: 1},
 	}
 
-	res := peerBlkWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrInvalidShardId, res)
+	assert.Equal(t, process.ErrInvalidShardId, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestPeerBlockBodyWrapper_IntegrityChangeNilPubkeyShouldFail(t *testing.T) {
+func TestPeerBlockBodyWrapper_IntegrityPeerChangeWithNilPubKeyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-
-	changes := make([]bl.PeerChange, 0)
-	change := bl.PeerChange{
-		PubKey:      nil,
-		ShardIdDest: 0,
-	}
-	changes = append(changes, change)
-
-	peerBlkWrapper := block.PeerBlockBodyWrapper{
-		PeerBlockBody: &bl.PeerBlockBody{
-			StateBlockBody: bl.StateBlockBody{
-				RootHash: []byte("rootHash1"),
-				ShardID:  1,
-			},
-			Changes: changes,
-		},
+	peerBlk := &block.PeerBlockBodyWrapper{PeerBlockBody: &block2.PeerBlockBody{}}
+	peerBlk.ShardID = 0
+	peerBlk.RootHash = make([]byte, 0)
+	peerBlk.Changes = []block2.PeerChange{
+		{PubKey: nil, ShardIdDest: 0},
 	}
 
-	res := peerBlkWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilPublicKey, res)
+	assert.Equal(t, process.ErrNilPublicKey, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestPeerBlockBodyWrapper_IntegrityOK(t *testing.T) {
+func TestPeerBlockBodyWrapper_IntegrityNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	peerBlk := &block.PeerBlockBodyWrapper{PeerBlockBody: &block2.PeerBlockBody{}}
 
-	changes := make([]bl.PeerChange, 0)
-	change := bl.PeerChange{
-		PubKey:      []byte("pubkey1"),
-		ShardIdDest: 0,
-	}
-	changes = append(changes, change)
-
-	peerBlkWrapper := block.PeerBlockBodyWrapper{
-		PeerBlockBody: &bl.PeerBlockBody{
-			StateBlockBody: bl.StateBlockBody{
-				RootHash: []byte("rootHash1"),
-				ShardID:  1,
-			},
-			Changes: changes,
-		},
+	peerBlk.ShardID = 0
+	peerBlk.RootHash = make([]byte, 0)
+	peerBlk.Changes = []block2.PeerChange{
+		{PubKey: make([]byte, 0), ShardIdDest: 0},
 	}
 
-	res := peerBlkWrapper.Integrity(bp)
-	assert.Nil(t, res)
+	assert.Equal(t, process.ErrNilShardCoordinator, peerBlk.Integrity(nil))
 }
 
-func TestPeerBlockBodyWrapper_CheckCorruptedBlock(t *testing.T) {
+func TestPeerBlockBodyWrapper_IntegrityNilPeerBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
-	peerBlkWrapper := block.PeerBlockBodyWrapper{
-		PeerBlockBody: &bl.PeerBlockBody{
-			StateBlockBody: bl.StateBlockBody{},
-		},
-	}
+	peerBlk := &block.PeerBlockBodyWrapper{PeerBlockBody: &block2.PeerBlockBody{}}
+	peerBlk.PeerBlockBody = nil
 
-	res := peerBlkWrapper.Check(bp)
-	assert.Equal(t, process.ErrNilRootHash, res)
+	assert.Equal(t, process.ErrNilPeerBlockBody, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestPeerBlockBodyWrapper_CheckOK(t *testing.T) {
+func TestPeerBlockBodyWrapper_IntegrityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	peerBlk := &block.PeerBlockBodyWrapper{PeerBlockBody: &block2.PeerBlockBody{}}
 
-	changes := make([]bl.PeerChange, 0)
-	change := bl.PeerChange{
-		PubKey:      []byte("pubkey1"),
-		ShardIdDest: 0,
-	}
-	changes = append(changes, change)
-
-	peerBlkWrapper := block.PeerBlockBodyWrapper{
-		PeerBlockBody: &bl.PeerBlockBody{
-			StateBlockBody: bl.StateBlockBody{
-				RootHash: []byte("rootHash1"),
-				ShardID:  1,
-			},
-			Changes: changes,
-		},
+	peerBlk.ShardID = 0
+	peerBlk.RootHash = make([]byte, 0)
+	peerBlk.Changes = []block2.PeerChange{
+		{PubKey: make([]byte, 0), ShardIdDest: 0},
 	}
 
-	res := peerBlkWrapper.Check(bp)
-	assert.Nil(t, res)
+	assert.Nil(t, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
+}
+
+func TestPeerBlockBodyWrapper_IntegrityAndValidityIntegrityDoesNotPassShouldErr(t *testing.T) {
+	t.Parallel()
+
+	peerBlk := &block.PeerBlockBodyWrapper{PeerBlockBody: &block2.PeerBlockBody{}}
+
+	peerBlk.ShardID = 0
+	peerBlk.RootHash = nil
+	peerBlk.Changes = []block2.PeerChange{
+		{PubKey: make([]byte, 0), ShardIdDest: 0},
+	}
+
+	assert.Equal(t, process.ErrNilRootHash, peerBlk.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
+}
+
+func TestPeerBlockBodyWrapper_IntegrityAndValidityOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	peerBlk := &block.PeerBlockBodyWrapper{PeerBlockBody: &block2.PeerBlockBody{}}
+
+	peerBlk.ShardID = 0
+	peerBlk.RootHash = make([]byte, 0)
+	peerBlk.Changes = []block2.PeerChange{
+		{PubKey: make([]byte, 0), ShardIdDest: 0},
+	}
+
+	assert.Nil(t, peerBlk.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
 }
 
 // Header
-func TestHeaderWrapper_IntegrityNilProcessorShouldFail(t *testing.T) {
+func TestInterceptedHeader_IntegrityNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerWrapper := block.HeaderWrapper{
-	}
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
 
-	res := headerWrapper.Integrity(nil)
-	assert.Equal(t, process.ErrNilProcessor, res)
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = block2.PeerBlock
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = make([]byte, 0)
+
+	assert.Equal(t, process.ErrNilShardCoordinator, hdr.Integrity(nil))
 }
 
-func TestHeaderWrapper_IntegrityNilBlockBodyHashShouldFail(t *testing.T) {
+func TestInterceptedHeader_IntegrityNilBlockBodyHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
 
-	headerWrapper := block.HeaderWrapper{
-		Header: &bl.Header{
-			BlockBodyHash: nil,
-		},
-	}
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyHash = nil
+	hdr.BlockBodyType = block2.PeerBlock
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = make([]byte, 0)
 
-	res := headerWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilBlockBodyHash, res)
+	assert.Equal(t, process.ErrNilBlockBodyHash, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestHeaderWrapper_IntegrityNilPubKeyBmpShouldFail(t *testing.T) {
+func TestInterceptedHeader_IntegrityNilPubKeysBitmapShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
 
-	headerWrapper := block.HeaderWrapper{
-		Header: &bl.Header{
-			BlockBodyHash: []byte("blockBodyHash"),
-			PubKeysBitmap: nil,
-		},
-	}
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = nil
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = block2.PeerBlock
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = make([]byte, 0)
 
-	res := headerWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilPubKeysBitmap, res)
+	assert.Equal(t, process.ErrNilPubKeysBitmap, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestHeaderWrapper_IntegrityInvalidShardIdShouldFail(t *testing.T) {
+func TestInterceptedHeader_IntegrityInvalidShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
 
-	headerWrapper := block.HeaderWrapper{
-		Header: &bl.Header{
-			BlockBodyHash: []byte("blockBodyHash"),
-			PubKeysBitmap: []byte("010010"),
-			ShardId:       3,
-		},
-	}
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = 254
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = make([]byte, 0)
+	hdr.ShardId = 2
 
-	res := headerWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrInvalidShardId, res)
+	assert.Equal(t, process.ErrInvalidShardId, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestHeaderWrapper_IntegrityNilPrevHashShouldFail(t *testing.T) {
+func TestInterceptedHeader_IntegrityNilPrevHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
 
-	headerWrapper := block.HeaderWrapper{
-		Header: &bl.Header{
-			BlockBodyHash: []byte("blockBodyHash"),
-			PubKeysBitmap: []byte("010010"),
-			ShardId:       0,
-			PrevHash:      nil,
-		},
-	}
+	hdr.PrevHash = nil
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = block2.PeerBlock
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = make([]byte, 0)
 
-	res := headerWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilPreviousBlockHash, res)
+	assert.Equal(t, process.ErrNilPreviousBlockHash, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestHeaderWrapper_IntegrityNilSignatureShouldFail(t *testing.T) {
+func TestInterceptedHeader_IntegrityNilSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
 
-	headerWrapper := block.HeaderWrapper{
-		Header: &bl.Header{
-			BlockBodyHash: []byte("blockBodyHash"),
-			PubKeysBitmap: []byte("010010"),
-			ShardId:       0,
-			PrevHash:      []byte("prevHash"),
-			Signature:     nil,
-		},
-	}
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = 254
+	hdr.Signature = nil
+	hdr.Commitment = make([]byte, 0)
+	hdr.ShardId = 0
 
-	res := headerWrapper.Integrity(bp)
-	assert.Equal(t, process.ErrNilSignature, res)
+	assert.Equal(t, process.ErrNilSignature, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestHeaderWrapper_IntegrityOK(t *testing.T) {
+func TestInterceptedHeader_IntegrityNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
+	hdr.Header = nil
 
-	headerWrapper := block.HeaderWrapper{
-		Header: &bl.Header{
-			BlockBodyHash: []byte("blockBodyHash"),
-			PubKeysBitmap: []byte("010010"),
-			ShardId:       0,
-			PrevHash:      []byte("prevHash"),
-			Signature:     []byte("signature"),
-		},
-	}
-
-	res := headerWrapper.Integrity(bp)
-	assert.Nil(t, res)
+	assert.Equal(t, process.ErrNilBlockHeader, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestHeaderWrapper_CheckCorruptedHeader(t *testing.T) {
+func TestInterceptedHeader_IntegrityInvalidBlockBodyTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
 
-	headerWrapper := block.HeaderWrapper{
-		Header: &bl.Header{
-			BlockBodyHash: nil,
-			PubKeysBitmap: []byte("010010"),
-			ShardId:       0,
-			PrevHash:      []byte("prevHash"),
-			Signature:     []byte("signature"),},
-	}
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = 254
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = make([]byte, 0)
 
-	res := headerWrapper.Check(bp)
-	assert.Equal(t, process.ErrNilBlockBodyHash, res)
+	assert.Equal(t, process.ErrInvalidBlockBodyType, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestHeaderWrapper_CheckOK(t *testing.T) {
+func TestInterceptedHeader_IntegrityNilCommitmentShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bp := createBlockProcessor()
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
 
-	headerWrapper := block.HeaderWrapper{
-		Header: &bl.Header{
-			BlockBodyHash: []byte("blockBodyHash"),
-			PubKeysBitmap: []byte("010010"),
-			ShardId:       0,
-			PrevHash:      []byte("prevHash"),
-			Signature:     []byte("signature"),
-		},
-	}
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = 254
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = nil
+	hdr.ShardId = 0
 
-	res := headerWrapper.Check(bp)
-	assert.Nil(t, res)
+	assert.Equal(t, process.ErrNilCommitment, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestHeaderWrapper_VerifySigNilHeaderShouldFail(t *testing.T) {
+func TestInterceptedHeader_IntegrityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	headerWrapper := block.HeaderWrapper{
-		Header: nil,
-	}
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
 
-	res := headerWrapper.VerifySig()
-	assert.Equal(t, process.ErrNilBlockHeader, res)
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = block2.PeerBlock
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = make([]byte, 0)
+
+	assert.Nil(t, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestHeaderWrapper_VerifySigNilSigShouldFail(t *testing.T) {
+func TestInterceptedHeader_IntegrityAndValidityIntegrityDoesNotPassShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headerWrapper := block.HeaderWrapper{
-		Header: &bl.Header{
-			Signature: nil,
-		},
-	}
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
 
-	res := headerWrapper.VerifySig()
-	assert.Equal(t, process.ErrNilSignature, res)
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = nil
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = block2.PeerBlock
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = make([]byte, 0)
+
+	assert.Equal(t, process.ErrNilPubKeysBitmap, hdr.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
 }
 
-func TestHeaderWrapper_VerifySigOk(t *testing.T) {
+func TestInterceptedHeader_IntegrityAndValidityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	headerWrapper := block.HeaderWrapper{
-		Header: &bl.Header{
-			Signature: []byte("signature"),
-		},
-	}
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
 
-	res := headerWrapper.VerifySig()
-	assert.Nil(t, res)
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = block2.PeerBlock
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = make([]byte, 0)
 
-	// TODO: verify the signature
+	assert.Nil(t, hdr.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
+}
+
+func TestInterceptedHeader_VerifySigOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hdr := &block.HeaderWrapper{Header: &block2.Header{}}
+
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = block2.PeerBlock
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = make([]byte, 0)
+
+	assert.Nil(t, hdr.VerifySig())
 }

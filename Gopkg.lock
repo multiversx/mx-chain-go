@@ -531,15 +531,15 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:adf1f0ab3d4bedd10f384b94bf71b6d37dfe48832b61120e146dcc20b81ee8b3"
+  branch = "master"
+  digest = "1:6e8a9d64217cf1a5d8aee323690f2384108ab14fd24c197da0a99f125479dcdc"
   name = "github.com/libp2p/go-libp2p-pubsub"
   packages = [
     ".",
     "pb",
   ]
   pruneopts = "UT"
-  revision = "3d408775deaf28da57cc356d37f2b8bf9c57db64"
-  version = "v0.10.2"
+  revision = "6fc7deb2868603292d4f7afe139e86d27b03f3b8"
 
 [[projects]]
   digest = "1:c6965e617af296544a1323cccd2d93b8a1072bf837939bbc2a977741e4ed799b"
