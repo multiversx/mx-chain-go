@@ -8,12 +8,13 @@ type AccountsAdapterMock struct {
 	AddJournalEntryCalled       func(je state.JournalEntry)
 	CommitCalled                func() ([]byte, error)
 	GetJournalizedAccountCalled func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error)
+	GetExistingAccountCalled    func(addressContainer state.AddressContainer) (state.AccountWrapper, error)
 	HasAccountStateCalled       func(addressContainer state.AddressContainer) (bool, error)
 	JournalLenCalled            func() int
 	PutCodeCalled               func(accountWrapper state.JournalizedAccountWrapper, code []byte) error
 	RemoveAccountCalled         func(addressContainer state.AddressContainer) error
 	RemoveCodeCalled            func(codeHash []byte) error
-	RetrieveDataTrieCalled      func(acountWrapper state.JournalizedAccountWrapper) error
+	RetrieveDataTrieCalled      func(acountWrapper state.AccountWrapper) error
 	RevertToSnapshotCalled      func(snapshot int) error
 	SaveAccountStateCalled      func(acountWrapper state.JournalizedAccountWrapper) error
 	SaveDataCalled              func(acountWrapper state.JournalizedAccountWrapper) error
@@ -37,6 +38,10 @@ func (aam *AccountsAdapterMock) GetJournalizedAccount(addressContainer state.Add
 	return aam.GetJournalizedAccountCalled(addressContainer)
 }
 
+func (aam *AccountsAdapterMock) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountWrapper, error) {
+	return aam.GetExistingAccountCalled(addressContainer)
+}
+
 func (aam *AccountsAdapterMock) HasAccount(addressContainer state.AddressContainer) (bool, error) {
 	return aam.HasAccountStateCalled(addressContainer)
 }
@@ -57,7 +62,7 @@ func (aam *AccountsAdapterMock) RemoveCode(codeHash []byte) error {
 	return aam.RemoveCodeCalled(codeHash)
 }
 
-func (aam *AccountsAdapterMock) LoadDataTrie(accountWrapper state.JournalizedAccountWrapper) error {
+func (aam *AccountsAdapterMock) LoadDataTrie(accountWrapper state.AccountWrapper) error {
 	return aam.RetrieveDataTrieCalled(accountWrapper)
 }
 
