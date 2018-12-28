@@ -138,7 +138,23 @@ func (n *Node) StartConsensus() error {
 
 // GetBalance gets the balance for a specific address
 func (n *Node) GetBalance(address string) (*big.Int, error) {
-	return big.NewInt(0), nil
+	if n.addrConverter == nil || n.accounts == nil {
+		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
+	}
+	accAddress, err := n.addrConverter.CreateAddressFromHex(address)
+	if err != nil {
+		return nil, errors.New("invalid address: " + err.Error())
+	}
+	account, err := n.accounts.GetExistingAccount(accAddress)
+	if err != nil {
+		return nil, errors.New("could not fetch sender address from provided param")
+	}
+
+	if account == nil {
+		return big.NewInt(0), nil
+	}
+
+	return &account.BaseAccount().Balance, nil
 }
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
