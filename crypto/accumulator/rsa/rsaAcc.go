@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
+const basesMillerRabin = 1
+
 // g is the initial accumulator value
 var g = big.NewInt(3)
 var bigZero = big.NewInt(0)
@@ -90,7 +92,7 @@ func HashToPrime(data []byte) *big.Int {
 	hash := b2b.Compute(string(data))
 	p := new(big.Int).SetBytes(hash)
 
-	for !p.ProbablyPrime(20) {
+	for !p.ProbablyPrime(basesMillerRabin) {
 		hash = b2b.Compute(p.String())
 		p.SetBytes(hash)
 	}
