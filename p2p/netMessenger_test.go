@@ -18,6 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var skipP2PMessengerTests = true
+
 type testNetStringCreator struct {
 	Data string
 }
@@ -157,6 +159,10 @@ func getLocalIpAddress(addresses []string) string {
 }
 
 func TestNetMessengerRecreationSameNodeShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -179,6 +185,10 @@ func TestNetMessengerRecreationSameNodeShouldWork(t *testing.T) {
 }
 
 func TestNetMessengerSendToSelfShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	node, err := createNetMessenger(t, 10)
@@ -215,6 +225,10 @@ func TestNetMessengerSendToSelfShouldWork(t *testing.T) {
 }
 
 func TestNetMessengerNodesPingPongOn2TopicsShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -310,6 +324,10 @@ func TestNetMessengerNodesPingPongOn2TopicsShouldWork(t *testing.T) {
 }
 
 func TestNetMessengerSimpleBroadcast5nodesInlineShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -383,6 +401,10 @@ func TestNetMessengerSimpleBroadcast5nodesInlineShouldWork(t *testing.T) {
 }
 
 func TestNetMessengerSimpleBroadcast5nodesBetterConnectedShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -465,6 +487,10 @@ func TestNetMessengerSimpleBroadcast5nodesBetterConnectedShouldWork(t *testing.T
 }
 
 func TestNetMessengerSendingNilShouldErr(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	node, err := createNetMessenger(t, 10)
@@ -480,6 +506,10 @@ func TestNetMessengerSendingNilShouldErr(t *testing.T) {
 }
 
 func TestNetMessengerCreateNodeWithNilMarshalizerShouldErr(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	cp, err := p2p.NewConnectParamsFromPort(getNextPort())
 	assert.Nil(t, err)
 
@@ -488,6 +518,10 @@ func TestNetMessengerCreateNodeWithNilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNetMessengerCreateNodeWithNilHasherShouldErr(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	cp, err := p2p.NewConnectParamsFromPort(getNextPort())
 	assert.Nil(t, err)
 
@@ -496,6 +530,10 @@ func TestNetMessengerCreateNodeWithNilHasherShouldErr(t *testing.T) {
 }
 
 func TestNetMessengerSingleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
@@ -582,6 +620,10 @@ func TestNetMessengerSingleRoundBootstrapShouldNotProduceLonelyNodes(t *testing.
 }
 
 func TestNetMessengerBadObjectToUnmarshalShouldFilteredOut(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	//stress test to check if the node is able to cope
 	//with unmarshaling a bad object
 	//both structs have the same fields but incompatible types
@@ -644,6 +686,10 @@ func TestNetMessengerBadObjectToUnmarshalShouldFilteredOut(t *testing.T) {
 }
 
 func TestNetMessengerBroadcastOnInexistentTopicShouldFilteredOut(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	//stress test to check if the node is able to cope
 	//with receiving on an inexistent topic
 
@@ -807,6 +853,10 @@ func TestNetMessengerMultipleRoundBootstrapShouldNotProduceLonelyNodes(t *testin
 }
 
 func TestNetMessengerBroadcastWithValidatorsShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -942,6 +992,10 @@ func TestNetMessengerBroadcastWithValidatorsShouldWork(t *testing.T) {
 }
 
 func TestNetMessengerBroadcastToGossipSubShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	nodes := make([]p2p.Messenger, 0)
@@ -1036,6 +1090,10 @@ func TestNetMessengerBroadcastToGossipSubShouldWork(t *testing.T) {
 }
 
 func TestNetMessengerBroadcastToUnknownSubShouldErr(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	fmt.Println()
 
 	_, err := createNetMessengerPubSub(t, 10, 500)
@@ -1043,6 +1101,10 @@ func TestNetMessengerBroadcastToUnknownSubShouldErr(t *testing.T) {
 }
 
 func TestNetMessengerRequestResolveTestCfg1ShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -1149,6 +1211,10 @@ func TestNetMessengerRequestResolveTestCfg1ShouldWork(t *testing.T) {
 }
 
 func TestNetMessengerRequestResolveTestCfg2ShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -1258,6 +1324,10 @@ func TestNetMessengerRequestResolveTestCfg2ShouldWork(t *testing.T) {
 }
 
 func TestNetMessengerRequestResolveTestSelfShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -1368,6 +1438,10 @@ func TestNetMessengerRequestResolveTestSelfShouldWork(t *testing.T) {
 }
 
 func TestNetMessengerRequestResolveResendingShouldWork(t *testing.T) {
+	if skipP2PMessengerTests {
+		t.Skip("test skipped for P2PMessenger struct")
+	}
+
 	nodes := make([]p2p.Messenger, 0)
 
 	marshalizer := &mock.MarshalizerMock{}
