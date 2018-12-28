@@ -258,7 +258,7 @@ func (nm *NetMessenger) Addresses() []string {
 	return addrs
 }
 
-// ConnectToInitialAddresses is used to explicitly connect to a well known set of addresses
+// ConnectToAddresses is used to explicitly connect to a well known set of addresses
 func (nm *NetMessenger) ConnectToAddresses(ctx context.Context, addresses []string) {
 	peers := 0
 
@@ -476,9 +476,10 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 			return true
 		}
 
-		buff := t.ResolveRequest(mes.GetData())
+		//payload == hash
+		obj := t.ResolveRequest(mes.GetData())
 
-		if buff == nil {
+		if obj == nil {
 			//object not found
 			return true
 		}
@@ -488,13 +489,13 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 		has := false
 
 		nm.mutGossipCache.Lock()
-		has = nm.gossipCache.Has(string(buff))
+		has = nm.gossipCache.Has(string(obj))
 		nm.mutGossipCache.Unlock()
 
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,
 			//then it shall broadcast it
-			err := t.BroadcastBuff(buff)
+			err := t.Broadcast(obj)
 			if err != nil {
 				log.Error(err.Error())
 			}
