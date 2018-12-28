@@ -23,7 +23,7 @@ func TestNewElrondFacade_FromNullNodeShouldReturnNil(t *testing.T) {
 	assert.Nil(t, ef)
 }
 
-func TestElrondFacade_StartNode_WithNodeNotNull_ShouldNotReturnError(t *testing.T) {
+func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
 		StartHandler: func() error {
@@ -50,7 +50,7 @@ func TestElrondFacade_StartNode_WithNodeNotNull_ShouldNotReturnError(t *testing.
 	assert.True(t, isRunning)
 }
 
-func TestElrondFacade_StartNode_WithErrorOnStartNode_ShouldReturnError(t *testing.T) {
+func TestElrondFacade_StartNodeWithErrorOnStartNodeShouldReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
 		StartHandler: func() error {
@@ -70,7 +70,7 @@ func TestElrondFacade_StartNode_WithErrorOnStartNode_ShouldReturnError(t *testin
 	assert.False(t, isRunning)
 }
 
-func TestElrondFacade_StartNode_WithErrorOnConnectToInitialAddresses_ShouldReturnError(t *testing.T) {
+func TestElrondFacade_StartNodeWithErrorOnConnectToInitialAddressesShouldReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
 		StartHandler: func() error {
@@ -95,7 +95,7 @@ func TestElrondFacade_StartNode_WithErrorOnConnectToInitialAddresses_ShouldRetur
 	assert.False(t, isRunning)
 }
 
-func TestElrondFacade_StartNode_WithErrorOnStartConsensus_ShouldReturnError(t *testing.T) {
+func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
 		StartHandler: func() error {
@@ -123,7 +123,7 @@ func TestElrondFacade_StartNode_WithErrorOnStartConsensus_ShouldReturnError(t *t
 	assert.False(t, isRunning)
 }
 
-func TestElrondFacade_StopNode_WithNodeNotNull_ShouldNotReturnError(t *testing.T) {
+func TestElrondFacade_StopNodeWithNodeNotNullShouldNotReturnError(t *testing.T) {
 	started := true
 	node := &mock.NodeMock{
 		StopHandler: func() error {
@@ -144,7 +144,7 @@ func TestElrondFacade_StopNode_WithNodeNotNull_ShouldNotReturnError(t *testing.T
 	assert.False(t, isRunning)
 }
 
-func TestElrondFacade_StopNode_WithNodeNull_ShouldReturnError(t *testing.T) {
+func TestElrondFacade_StopNodeWithNodeNullShouldReturnError(t *testing.T) {
 	started := true
 	node := &mock.NodeMock{
 		StopHandler: func() error {
@@ -165,7 +165,7 @@ func TestElrondFacade_StopNode_WithNodeNull_ShouldReturnError(t *testing.T) {
 	assert.False(t, isRunning)
 }
 
-func TestElrondFacade_GetBalance_WithValidAddress_ShouldReturnBalance(t *testing.T) {
+func TestElrondFacade_GetBalanceWithValidAddressShouldReturnBalance(t *testing.T) {
 	balance := big.NewInt(10)
 	addr := "testAddress"
 	node := &mock.NodeMock{
@@ -184,7 +184,7 @@ func TestElrondFacade_GetBalance_WithValidAddress_ShouldReturnBalance(t *testing
 	assert.Equal(t, balance, amount)
 }
 
-func TestElrondFacade_GetBalance_WithUnknownAddress_ShouldReturnZeroBalance(t *testing.T) {
+func TestElrondFacade_GetBalanceWithUnknownAddressShouldReturnZeroBalance(t *testing.T) {
 	balance := big.NewInt(10)
 	addr := "testAddress"
 	unknownAddr := "unknownAddr"
@@ -206,7 +206,7 @@ func TestElrondFacade_GetBalance_WithUnknownAddress_ShouldReturnZeroBalance(t *t
 	assert.Equal(t, zeroBalance, amount)
 }
 
-func TestElrondFacade_GetBalance_WithErrorOnNode_ShouldReturnZeroBalanceAndError(t *testing.T) {
+func TestElrondFacade_GetBalanceWithErrorOnNodeShouldReturnZeroBalanceAndError(t *testing.T) {
 	addr := "testAddress"
 	zeroBalance := big.NewInt(0)
 
@@ -223,7 +223,7 @@ func TestElrondFacade_GetBalance_WithErrorOnNode_ShouldReturnZeroBalanceAndError
 	assert.Equal(t, zeroBalance, amount)
 }
 
-func TestElrondFacade_GenerateTransaction_WithCorrectInputs_ShouldReturnNoError(t *testing.T) {
+func TestElrondFacade_GenerateTransactionWithCorrectInputsShouldReturnNoError(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	value := *big.NewInt(10)
@@ -254,7 +254,7 @@ func TestElrondFacade_GenerateTransaction_WithCorrectInputs_ShouldReturnNoError(
 	assert.Equal(t, tr, generatedTx)
 }
 
-func TestElrondFacade_GenerateTransaction_WithNilSender_ShouldReturnError(t *testing.T) {
+func TestElrondFacade_GenerateTransactionWithNilSenderShouldReturnError(t *testing.T) {
 	receiver := "receiver"
 	amount := *big.NewInt(10)
 	code := "code"
@@ -276,7 +276,7 @@ func TestElrondFacade_GenerateTransaction_WithNilSender_ShouldReturnError(t *tes
 	assert.Nil(t, generatedTx)
 }
 
-func TestElrondFacade_GenerateTransaction_WithNilReceiver_ShouldReturnError(t *testing.T) {
+func TestElrondFacade_GenerateTransactionWithNilReceiverShouldReturnError(t *testing.T) {
 	sender := "sender"
 	amount := *big.NewInt(10)
 	code := "code"
@@ -298,7 +298,7 @@ func TestElrondFacade_GenerateTransaction_WithNilReceiver_ShouldReturnError(t *t
 	assert.Nil(t, generatedTx)
 }
 
-func TestElrondFacade_GenerateTransaction_WithZeroAmount_ShouldReturnError(t *testing.T) {
+func TestElrondFacade_GenerateTransactionWithZeroAmountShouldReturnError(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	amount := *big.NewInt(0)
@@ -321,7 +321,7 @@ func TestElrondFacade_GenerateTransaction_WithZeroAmount_ShouldReturnError(t *te
 	assert.Nil(t, generatedTx)
 }
 
-func TestElrondFacade_GenerateTransaction_WithNegativeAmount_ShouldReturnError(t *testing.T) {
+func TestElrondFacade_GenerateTransactionWithNegativeAmountShouldReturnError(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
 	amount := *big.NewInt(-2)
@@ -344,7 +344,7 @@ func TestElrondFacade_GenerateTransaction_WithNegativeAmount_ShouldReturnError(t
 	assert.Nil(t, generatedTx)
 }
 
-func TestElrondFacade_GetTransaction_WithValidInputs_ShouldNotReturnError(t *testing.T) {
+func TestElrondFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing.T) {
 	testHash := "testHash"
 	testTx := &transaction.Transaction{}
 	//testTx.
@@ -364,7 +364,7 @@ func TestElrondFacade_GetTransaction_WithValidInputs_ShouldNotReturnError(t *tes
 	assert.Equal(t, testTx, tx)
 }
 
-func TestElrondFacade_GetTransaction_WithUnknowHash_ShouldReturnNilAndNoError(t *testing.T) {
+func TestElrondFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *testing.T) {
 	testHash := "testHash"
 	testTx := &transaction.Transaction{}
 	node := &mock.NodeMock{
