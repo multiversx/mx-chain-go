@@ -33,14 +33,6 @@ func (blProcMock BlockProcessorMock) RemoveBlockTxsFromPool(body *block.TxBlockB
 	return blProcMock.RemoveBlockTxsFromPoolCalled(body)
 }
 
-func (blProcMock BlockProcessorMock) NoShards() uint32 {
-	return blProcMock.noShards
-}
-
-func (blProcMock BlockProcessorMock) SetNoShards(noShards uint32) {
-	blProcMock.noShards = noShards
-}
-
 func (blProcMock BlockProcessorMock) GetRootHash() []byte {
 	return blProcMock.GetRootHashCalled()
 }

@@ -90,7 +90,7 @@ func NewConsensusData(
 		RoundIndex: roundIndex}
 }
 
-func (cd *ConsensusData) New() p2p.Newer {
+func (cd *ConsensusData) Create() p2p.Creator {
 	return &ConsensusData{}
 }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
@@ -153,18 +154,21 @@ func (n *Node) ConnectToAddresses(addresses []string) error {
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
 
-	round := n.CreateRound()
-	chr := n.CreateChronology(round)
-	rndc := n.CreateRoundConsensus()
-	rth := n.CreateRoundThreshold()
-	rnds := n.CreateRoundStatus()
-	cns := n.CreateConsensus(rndc, rth, rnds, chr)
-	blkc := n.CreateBlockchain()
-	sposWrk := n.CreateConsensusWorker(cns, blkc)
-	topic := n.CreateConsensusTopic(sposWrk)
+	round := n.createRound()
+	chr := n.createChronology(round)
+	rndc := n.createRoundConsensus()
+	rth := n.createRoundThreshold()
+	rnds := n.createRoundStatus()
+	cns := n.createConsensus(rndc, rth, rnds, chr)
+	blkc, err := n.createBlockchain()
+	if err != nil {
+		return nil
+	}
+	sposWrk := n.createConsensusWorker(cns, blkc)
+	topic := n.createConsensusTopic(sposWrk)
 
 	n.messenger.AddTopic(topic)
-	n.AddSubroundsToChronology(sposWrk)
+	n.addSubroundsToChronology(sposWrk)
 
 	go sposWrk.Cns.Chr.StartRounds()
 	go n.blockchainLog(sposWrk)
@@ -172,7 +176,8 @@ func (n *Node) StartConsensus() error {
 	return nil
 }
 
-func (n *Node) CreateRound() *chronology.Round {
+// createRound method creates a round object
+func (n *Node) createRound() *chronology.Round {
 	rnd := chronology.NewRound(
 		n.genesisTime,
 		n.syncer.CurrentTime(n.syncer.ClockOffset()),
@@ -181,7 +186,8 @@ func (n *Node) CreateRound() *chronology.Round {
 	return rnd
 }
 
-func (n *Node) CreateChronology(round *chronology.Round) *chronology.Chronology {
+// createChronology method creates a chronology object
+func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology {
 	chr := chronology.NewChronology(
 		true,
 		!n.elasticSubrounds,
@@ -192,7 +198,8 @@ func (n *Node) CreateChronology(round *chronology.Round) *chronology.Chronology 
 	return chr
 }
 
-func (n *Node) CreateRoundConsensus() *spos.RoundConsensus {
+// createRoundConsensus method creates a RoundConsensus object
+func (n *Node) createRoundConsensus() *spos.RoundConsensus {
 	nodes := n.initialNodesPubkeys[0:n.consensusGroupSize]
 	rndc := spos.NewRoundConsensus(
 		nodes,
@@ -203,7 +210,8 @@ func (n *Node) CreateRoundConsensus() *spos.RoundConsensus {
 	return rndc
 }
 
-func (n *Node) CreateRoundThreshold() *spos.RoundThreshold {
+// createRoundThreshold method creates a RoundThreshold object
+func (n *Node) createRoundThreshold() *spos.RoundThreshold {
 	rth := spos.NewRoundThreshold()
 
 	pbftThreshold := n.consensusGroupSize*2/3 + 1
@@ -217,7 +225,8 @@ func (n *Node) CreateRoundThreshold() *spos.RoundThreshold {
 	return rth
 }
 
-func (n *Node) CreateRoundStatus() *spos.RoundStatus {
+// createRoundStatus method creates a RoundStatus object
+func (n *Node) createRoundStatus() *spos.RoundStatus {
 	rnds := spos.NewRoundStatus()
 
 	rnds.ResetRoundStatus()
@@ -225,7 +234,8 @@ func (n *Node) CreateRoundStatus() *spos.RoundStatus {
 	return rnds
 }
 
-func (n *Node) CreateConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThreshold, rnds *spos.RoundStatus, chr *chronology.Chronology,
+// createConsensus method creates a Consensus object
+func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThreshold, rnds *spos.RoundStatus, chr *chronology.Chronology,
 ) *spos.Consensus {
 	cns := spos.NewConsensus(
 		true,
@@ -238,35 +248,13 @@ func (n *Node) CreateConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThresho
 	return cns
 }
 
-func (n *Node) CreateBlockchain() *blockchain.BlockChain {
-	//config := blockchainConfig()
-	//
-	//blkc, err := blockchain.NewBlockChain(config)
-	//
-	//if err != nil {
-	//	return nil
-	//}
-
-	blkc := &blockchain.BlockChain{}
-	return blkc
+// createBlockchain method creates a BlockChain object
+func (n *Node) createBlockchain() (*blockchain.BlockChain, error) {
+	return createBlockChainFromConfig(blockchainConfig())
 }
 
-//func blockchainConfig() *blockchain.Config {
-//	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
-//	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
-//	persisterBlockStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockStorage"}
-//	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
-//	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
-//	return &blockchain.Config{
-//		BlockStorage:       storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockStorage, BloomConf: bloom},
-//		BlockHeaderStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
-//		TxStorage:          storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
-//		TxPoolStorage:      cacher,
-//		BlockCache:         cacher,
-//	}
-//}
-
-func (n *Node) CreateConsensusWorker(cns *spos.Consensus, blkc *blockchain.BlockChain) *spos.SPOSConsensusWorker {
+// createConsensusWorker method creates a ConsensusWorker object
+func (n *Node) createConsensusWorker(cns *spos.Consensus, blkc *blockchain.BlockChain) *spos.SPOSConsensusWorker {
 	sposWrk := spos.NewConsensusWorker(
 		true,
 		cns,
@@ -280,13 +268,15 @@ func (n *Node) CreateConsensusWorker(cns *spos.Consensus, blkc *blockchain.Block
 	return sposWrk
 }
 
-func (n *Node) CreateConsensusTopic(sposWrk *spos.SPOSConsensusWorker) *p2p.Topic {
+// createConsensusTopic creates a consensus topic for node
+func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) *p2p.Topic {
 	t := p2p.NewTopic(string(consensusTopic), &spos.ConsensusData{}, n.marshalizer)
 	t.AddDataReceived(sposWrk.ReceivedMessage)
 	return t
 }
 
-func (n *Node) AddSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
+// addSubroundsToChronology adds subrounds to chronology
+func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
 	roundDuration := sposWrk.Cns.Chr.Round().TimeDuration()
 
 	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
@@ -359,30 +349,6 @@ func (n *Node) AddSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
 		nil,
 		nil,
 		nil))
-}
-
-func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
-	oldNounce := uint64(0)
-
-	for {
-		time.Sleep(100 * time.Millisecond)
-
-		currentBlock := sposWrk.Blkc.CurrentBlockHeader
-		if currentBlock == nil {
-			continue
-		}
-
-		if currentBlock.Nonce > oldNounce {
-			oldNounce = currentBlock.Nonce
-			spew.Dump(currentBlock)
-			fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n",
-				sposWrk.Rounds, sposWrk.RoundsWithBlock, float64(sposWrk.RoundsWithBlock)*100/float64(sposWrk.Rounds))
-		}
-	}
-}
-
-func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
-	n.messenger.GetTopic(string(consensusTopic)).Broadcast(*cnsDta)
 }
 
 // GetBalance gets the balance for a specific address
@@ -569,7 +535,7 @@ func WithPubSubStrategy(strategy p2p.PubSubStrategy) Option {
 	}
 }
 
-// WithInitialNodesAddresses sets up the initial node addresses for the Node
+// WithInitialNodesAddresses sets up the initial node addresses option for the Node
 func WithInitialNodesAddresses(addresses []string) Option {
 	return func(n *Node) error {
 		n.initialNodesAddresses = addresses
@@ -577,7 +543,7 @@ func WithInitialNodesAddresses(addresses []string) Option {
 	}
 }
 
-// WithAccountsAdapter sets up the accounts adapter for the Node
+// WithAccountsAdapter sets up the accounts adapter option for the Node
 func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	return func(n *Node) error {
 		if accounts == nil {
@@ -588,7 +554,7 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	}
 }
 
-// WithAddressConverter sets up the address converter adapter for the Node
+// WithAddressConverter sets up the address converter adapter option for the Node
 func WithAddressConverter(addrConverter state.AddressConverter) Option {
 	return func(n *Node) error {
 		if addrConverter == nil {
@@ -599,7 +565,7 @@ func WithAddressConverter(addrConverter state.AddressConverter) Option {
 	}
 }
 
-// WithPrivateKey sets up the private key for the Node
+// WithPrivateKey sets up the private key option for the Node
 func WithPrivateKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
 		if sk == nil {
@@ -610,6 +576,7 @@ func WithPrivateKey(sk crypto.PrivateKey) Option {
 	}
 }
 
+// WithInitialNodesPubKeys sets up the initial nodes public key option for the Node
 func WithInitialNodesPubKeys(pubKeys []string) Option {
 	return func(n *Node) error {
 		n.initialNodesPubkeys = pubKeys
@@ -617,6 +584,7 @@ func WithInitialNodesPubKeys(pubKeys []string) Option {
 	}
 }
 
+// WithPublicKey sets up the public key option for the Node
 func WithPublicKey(publicKey string) Option {
 	return func(n *Node) error {
 		n.publicKey = publicKey
@@ -624,6 +592,7 @@ func WithPublicKey(publicKey string) Option {
 	}
 }
 
+// WithRoundDuration sets up the round duration option for the Node
 func WithRoundDuration(roundDuration int64) Option {
 	return func(n *Node) error {
 		n.roundDuration = roundDuration
@@ -631,6 +600,7 @@ func WithRoundDuration(roundDuration int64) Option {
 	}
 }
 
+// WithConsensusGroupSize sets up the consensus group size option for the Node
 func WithConsensusGroupSize(consensusGroupSize int) Option {
 	return func(n *Node) error {
 		n.consensusGroupSize = consensusGroupSize
@@ -638,6 +608,7 @@ func WithConsensusGroupSize(consensusGroupSize int) Option {
 	}
 }
 
+// WithSyncer sets up the syncer option for the Node
 func WithSyncer(syncer ntp.SyncTimer) Option {
 	return func(n *Node) error {
 		if syncer == nil {
@@ -649,6 +620,7 @@ func WithSyncer(syncer ntp.SyncTimer) Option {
 	}
 }
 
+// WithBlockProcessor sets up the block processor option for the Node
 func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	return func(n *Node) error {
 		if blockProcessor == nil {
@@ -659,6 +631,7 @@ func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	}
 }
 
+// WithGenesisTime sets up the genesis time option for the Node
 func WithGenesisTime(genesisTime time.Time) Option {
 	return func(n *Node) error {
 		n.genesisTime = genesisTime
@@ -666,9 +639,128 @@ func WithGenesisTime(genesisTime time.Time) Option {
 	}
 }
 
+// WithElasticSubrounds sets up the elastic subround option for the Node
 func WithElasticSubrounds(elasticSubrounds bool) Option {
 	return func(n *Node) error {
 		n.elasticSubrounds = elasticSubrounds
 		return nil
 	}
+}
+
+func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockChain, error) {
+	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
+
+	txBadBlockCache, err := storage.NewCache(
+		blConfig.TxBadBlockBodyCache.Type,
+		blConfig.TxBadBlockBodyCache.Size)
+
+	if err == nil {
+		txUnit, err = storage.NewStorageUnitFromConf(
+			blConfig.TxStorage.CacheConf,
+			blConfig.TxStorage.DBConf,
+			blConfig.TxStorage.BloomConf)
+	}
+
+	if err == nil {
+		txBlockUnit, err = storage.NewStorageUnitFromConf(
+			blConfig.TxBlockBodyStorage.CacheConf,
+			blConfig.TxBlockBodyStorage.DBConf,
+			blConfig.TxBlockBodyStorage.BloomConf)
+	}
+
+	if err == nil {
+		stateBlockUnit, err = storage.NewStorageUnitFromConf(
+			blConfig.StateBlockBodyStorage.CacheConf,
+			blConfig.StateBlockBodyStorage.DBConf,
+			blConfig.StateBlockBodyStorage.BloomConf)
+	}
+
+	if err == nil {
+		peerBlockUnit, err = storage.NewStorageUnitFromConf(
+			blConfig.PeerBlockBodyStorage.CacheConf,
+			blConfig.PeerBlockBodyStorage.DBConf,
+			blConfig.PeerBlockBodyStorage.BloomConf)
+	}
+
+	if err == nil {
+		headerUnit, err = storage.NewStorageUnitFromConf(
+			blConfig.BlockHeaderStorage.CacheConf,
+			blConfig.BlockHeaderStorage.DBConf,
+			blConfig.BlockHeaderStorage.BloomConf)
+	}
+
+	if err == nil {
+		blockChain, err2 := blockchain.NewBlockChain(
+			txBadBlockCache,
+			txUnit,
+			txBlockUnit,
+			stateBlockUnit,
+			peerBlockUnit,
+			headerUnit)
+
+		return blockChain, err2
+	}
+
+	// cleanup
+	if err != nil {
+		if headerUnit != nil {
+			_ = headerUnit.DestroyUnit()
+		}
+		if peerBlockUnit != nil {
+			_ = peerBlockUnit.DestroyUnit()
+		}
+		if stateBlockUnit != nil {
+			_ = stateBlockUnit.DestroyUnit()
+		}
+		if txBlockUnit != nil {
+			_ = txBlockUnit.DestroyUnit()
+		}
+		if txUnit != nil {
+			_ = txUnit.DestroyUnit()
+		}
+	}
+	return nil, err
+}
+
+func blockchainConfig() *blockchain.Config {
+	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
+	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
+	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxBlockBodyStorage"}
+	persisterStateBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "StateBlockBodyStorage"}
+	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "PeerBlockBodyStorage"}
+	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
+	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
+	return &blockchain.Config{
+		TxBlockBodyStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxBlockBodyStorage, BloomConf: bloom},
+		StateBlockBodyStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterStateBlockBodyStorage, BloomConf: bloom},
+		PeerBlockBodyStorage:  storage.UnitConfig{CacheConf: cacher, DBConf: persisterPeerBlockBodyStorage, BloomConf: bloom},
+		BlockHeaderStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
+		TxStorage:             storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
+		TxPoolStorage:         cacher,
+		TxBadBlockBodyCache:   cacher,
+	}
+}
+
+func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
+	oldNounce := uint64(0)
+
+	for {
+		time.Sleep(100 * time.Millisecond)
+
+		currentBlock := sposWrk.Blkc.CurrentBlockHeader
+		if currentBlock == nil {
+			continue
+		}
+
+		if currentBlock.Nonce > oldNounce {
+			oldNounce = currentBlock.Nonce
+			spew.Dump(currentBlock)
+			fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n",
+				sposWrk.Rounds, sposWrk.RoundsWithBlock, float64(sposWrk.RoundsWithBlock)*100/float64(sposWrk.Rounds))
+		}
+	}
+}
+
+func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
+	n.messenger.GetTopic(string(consensusTopic)).Broadcast(*cnsDta)
 }

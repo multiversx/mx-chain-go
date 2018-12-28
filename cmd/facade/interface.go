@@ -18,9 +18,6 @@ type Facade interface {
 	//StopNode stops the underlying node
 	StopNode() error
 
-	//StartNTP starts the NTP clock with a set sync period
-	StartNTP(clockSyncPeriod int)
-
 	//WaitForStartTime waits for the startTime to arrive and only after proceeds
 	WaitForStartTime(t time.Time)
 

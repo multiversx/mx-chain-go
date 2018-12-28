@@ -18,8 +18,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	beevikntp "github.com/beevik/ntp"
 	"github.com/pkg/errors"
@@ -232,8 +233,12 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 	}
 
 	txPoolCacher := getCacherFromConfig(cfg.TxPoolStorage)
-	txPoolAccesser := transactionPool.NewTransactionPool(&txPoolCacher)
-	blockProcessor := block.NewBlockProcessor(txPoolAccesser, hasher, marshalizer, transactionProcessor, accountsAdapter, 1)
+	shrdData, err := shardedData.NewShardedData(txPoolCacher)
+	if err != nil {
+		return nil, errors.New("could not create sharded data: " + err.Error())
+	}
+
+	blockProcessor := block.NewBlockProcessor(shrdData, hasher, marshalizer, transactionProcessor, accountsAdapter, &sharding.OneShardCoordinator{})
 
 	nd, err := node.NewNode(
 		node.WithHasher(hasher),
