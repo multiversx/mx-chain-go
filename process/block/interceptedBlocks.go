@@ -35,7 +35,7 @@ type InterceptedTxBlockBody struct {
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
 func NewInterceptedHeader() *InterceptedHeader {
 	return &InterceptedHeader{
-		HeaderWrapper: NewHeaderWrapper(),
+		HeaderWrapper: &HeaderWrapper{Header: &block.Header{}},
 	}
 }
 
@@ -74,7 +74,7 @@ func (inHdr *InterceptedHeader) GetHeader() *block.Header {
 // NewInterceptedPeerBlockBody creates a new instance of InterceptedPeerBlockBody struct
 func NewInterceptedPeerBlockBody() *InterceptedPeerBlockBody {
 	return &InterceptedPeerBlockBody{
-		PeerBlockBodyWrapper: NewPeerBlockBodyWrapper(),
+		PeerBlockBodyWrapper: &PeerBlockBodyWrapper{PeerBlockBody: &block.PeerBlockBody{}},
 	}
 }
 
@@ -108,7 +108,8 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) Shard() uint32 {
 // NewInterceptedStateBlockBody creates a new instance of InterceptedStateBlockBody struct
 func NewInterceptedStateBlockBody() *InterceptedStateBlockBody {
 	return &InterceptedStateBlockBody{
-		StateBlockBodyWrapper: NewStateBlockBodyWrapper()}
+		StateBlockBodyWrapper: &StateBlockBodyWrapper{StateBlockBody: &block.StateBlockBody{}},
+	}
 }
 
 // SetHash sets the hash of this state block body. The hash will also be the ID of this object
@@ -141,7 +142,8 @@ func (inStateBlkBdy *InterceptedStateBlockBody) Shard() uint32 {
 // NewInterceptedTxBlockBody creates a new instance of InterceptedTxBlockBody struct
 func NewInterceptedTxBlockBody() *InterceptedTxBlockBody {
 	return &InterceptedTxBlockBody{
-		TxBlockBodyWrapper: NewTxBlockBodyWrapper()}
+		TxBlockBodyWrapper: &TxBlockBodyWrapper{TxBlockBody: &block.TxBlockBody{}},
+	}
 }
 
 // SetHash sets the hash of this transaction block body. The hash will also be the ID of this object

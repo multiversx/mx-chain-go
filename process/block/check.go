@@ -27,26 +27,6 @@ type HeaderWrapper struct {
 	*block.Header
 }
 
-// NewStateBlockBodyWrapper creates a new StateBlockBodyWrapper instance
-func NewStateBlockBodyWrapper() *StateBlockBodyWrapper {
-	return &StateBlockBodyWrapper{StateBlockBody: &block.StateBlockBody{}}
-}
-
-// NewTxBlockBodyWrapper creates a new PeerBlockBodyWrapper instance
-func NewTxBlockBodyWrapper() *TxBlockBodyWrapper {
-	return &TxBlockBodyWrapper{TxBlockBody: &block.TxBlockBody{}}
-}
-
-// NewPeerBlockBodyWrapper creates a new PeerBlockBodyWrapper instance
-func NewPeerBlockBodyWrapper() *PeerBlockBodyWrapper {
-	return &PeerBlockBodyWrapper{PeerBlockBody: &block.PeerBlockBody{}}
-}
-
-// NewHeaderWrapper creates a new HeaderWrapper instance
-func NewHeaderWrapper() *HeaderWrapper {
-	return &HeaderWrapper{Header: &block.Header{}}
-}
-
 // IntegrityAndValidity checks the integrity and validity of a state block wrapper
 func (sbWrapper StateBlockBodyWrapper) IntegrityAndValidity(coordinator sharding.ShardCoordinator) error {
 	err := sbWrapper.Integrity(coordinator)
