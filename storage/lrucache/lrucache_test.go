@@ -1,12 +1,17 @@
 package lrucache_test
 
 import (
+	"bytes"
 	"fmt"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
 	"github.com/stretchr/testify/assert"
 )
+
+var timeoutWaitForWaitGroups = time.Second * 2
 
 func TestAddNotPresent(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
@@ -261,4 +266,152 @@ func TestClear(t *testing.T) {
 	l = c.Len()
 
 	assert.Zero(t, l, "expected size 0, got %d", l)
+}
+
+func TestCacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
+	t.Parallel()
+
+	c, err := lrucache.NewCache(100)
+	assert.Nil(t, err)
+	c.RegisterHandler(nil)
+
+	assert.Equal(t, 0, len(c.AddedDataHandlers()))
+}
+
+func TestCacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	chDone := make(chan bool, 0)
+
+	f := func(key []byte) {
+		if !bytes.Equal([]byte("aaaa"), key) {
+			return
+		}
+
+		wg.Done()
+	}
+
+	go func() {
+		wg.Wait()
+		chDone <- true
+	}()
+
+	c, err := lrucache.NewCache(100)
+	assert.Nil(t, err)
+	c.RegisterHandler(f)
+	c.Put([]byte("aaaa"), "bbbb")
+
+	select {
+	case <-chDone:
+	case <-time.After(timeoutWaitForWaitGroups):
+		assert.Fail(t, "should have been called")
+		return
+	}
+
+	assert.Equal(t, 1, len(c.AddedDataHandlers()))
+}
+
+func TestCacherRegisterHasOrAddAddedDataHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	chDone := make(chan bool, 0)
+
+	f := func(key []byte) {
+		if !bytes.Equal([]byte("aaaa"), key) {
+			return
+		}
+
+		wg.Done()
+	}
+
+	go func() {
+		wg.Wait()
+		chDone <- true
+	}()
+
+	c, err := lrucache.NewCache(100)
+	assert.Nil(t, err)
+	c.RegisterHandler(f)
+	c.HasOrAdd([]byte("aaaa"), "bbbb")
+
+	select {
+	case <-chDone:
+	case <-time.After(timeoutWaitForWaitGroups):
+		assert.Fail(t, "should have been called")
+		return
+	}
+
+	assert.Equal(t, 1, len(c.AddedDataHandlers()))
+}
+
+func TestCacherRegisterPutAddedDataHandlerNotAddedShouldNotCall(t *testing.T) {
+	t.Parallel()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	chDone := make(chan bool, 0)
+
+	f := func(key []byte) {
+		wg.Done()
+	}
+
+	go func() {
+		wg.Wait()
+		chDone <- true
+	}()
+
+	c, err := lrucache.NewCache(100)
+	assert.Nil(t, err)
+	//first add, no call
+	c.Put([]byte("aaaa"), "bbbb")
+	c.RegisterHandler(f)
+	//second add, should not call as the data was found
+	c.Put([]byte("aaaa"), "bbbb")
+
+	select {
+	case <-chDone:
+		assert.Fail(t, "should have not been called")
+		return
+	case <-time.After(timeoutWaitForWaitGroups):
+	}
+
+	assert.Equal(t, 1, len(c.AddedDataHandlers()))
+}
+
+func TestCacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNotCall(t *testing.T) {
+	t.Parallel()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	chDone := make(chan bool, 0)
+
+	f := func(key []byte) {
+		wg.Done()
+	}
+
+	go func() {
+		wg.Wait()
+		chDone <- true
+	}()
+
+	c, err := lrucache.NewCache(100)
+	assert.Nil(t, err)
+	//first add, no call
+	c.HasOrAdd([]byte("aaaa"), "bbbb")
+	c.RegisterHandler(f)
+	//second add, should not call as the data was found
+	c.HasOrAdd([]byte("aaaa"), "bbbb")
+
+	select {
+	case <-chDone:
+		assert.Fail(t, "should have not been called")
+		return
+	case <-time.After(timeoutWaitForWaitGroups):
+	}
+
+	assert.Equal(t, 1, len(c.AddedDataHandlers()))
 }

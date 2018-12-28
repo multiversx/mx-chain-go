@@ -132,6 +132,9 @@ type Cacher interface {
 
 	// Len returns the number of items in the cache.
 	Len() int
+
+	// RegisterHandler registers a new handler to be called when a new data is added
+	RegisterHandler(func(key []byte))
 }
 
 // BloomFilter provides services for filtering database requests
