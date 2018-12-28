@@ -8,7 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
-const basesMillerRabin = 1
+// according to http://cacr.uwaterloo.ca/hac/about/chap4.pdf, table 4.4, 12 will suffice for 256 bit primes
+const basesMillerRabin = 12
 
 // g is the initial accumulator value
 var g = big.NewInt(3)
