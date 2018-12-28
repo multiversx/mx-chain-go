@@ -9,7 +9,7 @@ var (
 		Usage: "The node will extract bootstrapping info from the genesis.json",
 		Value: "genesis.json",
 	}
-	// PrivateKey defines a fleg for the path of the private key used when starting the node
+	// PrivateKey defines a flag for the path of the private key used when starting the node
 	PrivateKey = cli.StringFlag{
 		Name: "private-key",
 		Usage: "Private key that the node will load on startup and will sign transactions - temporary until we have a wallet that can do that",
