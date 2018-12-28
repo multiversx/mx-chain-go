@@ -296,12 +296,14 @@ func TestMessage_EndRound(t *testing.T) {
 func TestMessage_SendBlock(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	r := coms[0].DoBlockJob()
 	assert.Equal(t, false, r)
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now())
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime)
 	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsFinished)
 
 	r = coms[0].DoBlockJob()
@@ -774,7 +776,9 @@ func TestMessage_DecodeBlockHeader(t *testing.T) {
 func TestMessage_CheckChannels(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	// BLOCK BODY
 	blk := &block.TxBlockBody{}
@@ -881,7 +885,9 @@ func TestMessage_CheckChannels(t *testing.T) {
 func TestMessage_ReceivedBlock(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
@@ -951,7 +957,9 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 func TestMessage_ReceivedCommitmentHash(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	dta := []byte("X")
 
@@ -988,7 +996,9 @@ func TestMessage_ReceivedCommitmentHash(t *testing.T) {
 func TestMessage_ReceivedBitmap(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	cnsDta := spos.NewConsensusData(
 		*coms[0].Cns.Data,
@@ -1036,7 +1046,9 @@ func TestMessage_ReceivedBitmap(t *testing.T) {
 func TestMessage_ReceivedCommitment(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	cnsDta := spos.NewConsensusData(
 		*coms[0].Cns.Data,
@@ -1065,7 +1077,9 @@ func TestMessage_ReceivedCommitment(t *testing.T) {
 func TestMessage_ReceivedSignature(t *testing.T) {
 	coms := InitMessage()
 
-	coms[0].Cns.Chr.Round().UpdateRound(time.Now(), time.Now().Add(coms[0].Cns.Chr.Round().TimeDuration()))
+	genesisTime := time.Now()
+
+	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	cnsDta := spos.NewConsensusData(
 		*coms[0].Cns.Data,

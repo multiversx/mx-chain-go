@@ -40,11 +40,11 @@ const (
 )
 
 const (
-	// Keccak hasher type
+	// Keccak is the string representation of the keccak hashing function
 	Keccak HasherType = "Keccak"
-	// Blake2b hasher type
+	// Blake2b is the string representation of the blake2b hashing function
 	Blake2b HasherType = "Blake2b"
-	// Fnv hasher type
+	// Fnv is the string representation of the fnv hashing function
 	Fnv HasherType = "Fnv"
 )
 

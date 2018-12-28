@@ -3,8 +3,6 @@ package chronology
 import (
 	"math"
 	"time"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 // Round defines the data needed by the round
@@ -53,9 +51,4 @@ func (rnd *Round) TimeStamp() time.Time {
 // TimeDuration returns the duration of the round
 func (rnd *Round) TimeDuration() time.Duration {
 	return rnd.timeDuration
-}
-
-// Print method just spew to the console the Round object in some pretty format
-func (rnd *Round) Print() {
-	spew.Dump(rnd)
 }
