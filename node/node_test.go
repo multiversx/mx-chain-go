@@ -100,7 +100,7 @@ func TestNode_ApplyOptions_NodeStarted(t *testing.T) {
 	logError(err)
 
 	err = n.ApplyOptions(
-		node.WithMaxAllowedPeers(4)	,
+		node.WithMaxAllowedPeers(4),
 	)
 
 	assert.NotNil(t, err)

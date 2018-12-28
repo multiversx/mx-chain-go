@@ -7,10 +7,24 @@ import (
 
 type TrackableAccountWrapMock struct {
 	*state.Account
+
+	AppendRegistrationDataCalled func(data *state.RegistrationData) error
 }
 
 func NewTrackableAccountWrapMock() *TrackableAccountWrapMock {
 	return &TrackableAccountWrapMock{Account: state.NewAccount()}
+}
+
+func (tawm *TrackableAccountWrapMock) AppendRegistrationData(data *state.RegistrationData) error {
+	return tawm.AppendRegistrationDataCalled(data)
+}
+
+func (tawm *TrackableAccountWrapMock) CleanRegistrationData() error {
+	panic("implement me")
+}
+
+func (tawm *TrackableAccountWrapMock) TrimLastRegistrationData() error {
+	panic("implement me")
 }
 
 func (tawm *TrackableAccountWrapMock) BaseAccount() *state.Account {

@@ -2,7 +2,6 @@ package state_test
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"math/big"
 	"testing"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -467,7 +467,7 @@ func TestAccountsDBLoadCodeNilTrieShouldErr(t *testing.T) {
 	adb := generateAccountDBFromTrie(nil)
 
 	//just search a hash. Any hash will do
-	jem.CodeHash = adr.Hash()
+	jem.CodeHash = mock.HasherMock{}.Compute(string(adr.Bytes()))
 
 	err := adb.LoadCode(jem)
 	assert.NotNil(t, err)
@@ -495,7 +495,7 @@ func TestAccountsDBLoadCodeMalfunctionTrieShouldErr(t *testing.T) {
 	mockTrie.FailGet = true
 
 	//just search a hash. Any hash will do
-	jem.CodeHash = adr.Hash()
+	jem.CodeHash = mock.HasherMock{}.Compute(string(adr.Bytes()))
 
 	err := adb.LoadCode(jem)
 	assert.NotNil(t, err)
@@ -515,7 +515,7 @@ func TestAccountsDBLoadCodeOkValsShouldWork(t *testing.T) {
 	adb, _ = state.NewAccountsDB(&trieStub, mock.HasherMock{}, &marshalizer)
 
 	//just search a hash. Any hash will do
-	jem.CodeHash = adr.Hash()
+	jem.CodeHash = mock.HasherMock{}.Compute(string(adr.Bytes()))
 
 	err := adb.LoadCode(jem)
 	assert.Nil(t, err)

@@ -1,14 +1,13 @@
 package chronology
 
 import (
+	"math"
 	"time"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 // Round defines the data needed by the round
 type Round struct {
-	index        int
+	index        int32
 	timeStamp    time.Time
 	timeDuration time.Duration
 }
@@ -19,7 +18,7 @@ func NewRound(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDur
 
 	rnd := Round{}
 
-	rnd.index = int(delta / roundTimeDuration.Nanoseconds())
+	rnd.index = int32(math.Floor(float64(delta) / float64(roundTimeDuration.Nanoseconds())))
 	rnd.timeStamp = genesisRoundTimeStamp.Add(time.Duration(int64(rnd.index) * roundTimeDuration.Nanoseconds()))
 	rnd.timeDuration = roundTimeDuration
 
@@ -31,7 +30,7 @@ func NewRound(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDur
 func (rnd *Round) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
-	index := int(delta / rnd.timeDuration.Nanoseconds())
+	index := int32(math.Floor(float64(delta) / float64(rnd.timeDuration.Nanoseconds())))
 
 	if rnd.index != index {
 		rnd.index = index
@@ -40,7 +39,7 @@ func (rnd *Round) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Ti
 }
 
 // Index returns the index of the round in current epoch
-func (rnd *Round) Index() int {
+func (rnd *Round) Index() int32 {
 	return rnd.index
 }
 
@@ -52,9 +51,4 @@ func (rnd *Round) TimeStamp() time.Time {
 // TimeDuration returns the duration of the round
 func (rnd *Round) TimeDuration() time.Duration {
 	return rnd.timeDuration
-}
-
-// Print method just spew to the console the Round object in some pretty format
-func (rnd *Round) Print() {
-	spew.Dump(rnd)
 }
