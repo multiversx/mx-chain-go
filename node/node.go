@@ -4,31 +4,28 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-
-	"github.com/pkg/errors"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/davecgh/go-spew/spew"
-	"time"
+	"github.com/pkg/errors"
 )
 
-const CONSENSUS_TOPIC_NAME = "Consensus"
-
-type topic string
+type topicName string
 
 const (
-	transactionTopic topic = "tx"
+	transactionTopic topicName = "tx"
+	consensusTopic   topicName = "cns"
 )
 
 // Option represents a functional configuration parameter that can operate
@@ -38,24 +35,25 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	port                int
-	marshalizer         marshal.Marshalizer
-	ctx                 context.Context
-	hasher              hashing.Hasher
-	maxAllowedPeers     int
-	pubSubStrategy      p2p.PubSubStrategy
-	initialNodesPubkeys []string
-	selfPubKey          string
-	roundDuration       int64
-	consensusGroupSize  int
-	messenger           p2p.Messenger
-	syncer              ntp.SyncTimer
-	blockProcessor      process.BlockProcessor
-	genesisTime         time.Time
-	elasticSubrounds    bool
-	accounts            state.AccountsAdapter
-	addrConverter       state.AddressConverter
-	privateKey          crypto.PrivateKey
+	port                  int
+	marshalizer           marshal.Marshalizer
+	ctx                   context.Context
+	hasher                hashing.Hasher
+	maxAllowedPeers       int
+	pubSubStrategy        p2p.PubSubStrategy
+	initialNodesPubkeys   []string
+	initialNodesAddresses []string
+	publicKey             string
+	roundDuration         int64
+	consensusGroupSize    int
+	messenger             p2p.Messenger
+	syncer                ntp.SyncTimer
+	blockProcessor        process.BlockProcessor
+	genesisTime           time.Time
+	elasticSubrounds      bool
+	accounts              state.AccountsAdapter
+	addrConverter         state.AddressConverter
+	privateKey            crypto.PrivateKey
 }
 
 // NewNode creates a new Node instance
@@ -138,7 +136,7 @@ func (n *Node) ConnectToInitialAddresses() error {
 	return nil
 }
 
-// Bootstrap will try to connect to as many peers as possible
+// Bootstrap will try to connect to many peers as possible
 func (n *Node) Bootstrap() {
 	n.messenger.Bootstrap(n.ctx)
 }
@@ -198,7 +196,7 @@ func (n *Node) CreateRoundConsensus() *spos.RoundConsensus {
 	nodes := n.initialNodesPubkeys[0:n.consensusGroupSize]
 	rndc := spos.NewRoundConsensus(
 		nodes,
-		n.selfPubKey)
+		n.publicKey)
 
 	rndc.ResetRoundState()
 
@@ -283,7 +281,7 @@ func (n *Node) CreateConsensusWorker(cns *spos.Consensus, blkc *blockchain.Block
 }
 
 func (n *Node) CreateConsensusTopic(sposWrk *spos.SPOSConsensusWorker) *p2p.Topic {
-	t := p2p.NewTopic(CONSENSUS_TOPIC_NAME, &spos.ConsensusData{}, n.marshalizer)
+	t := p2p.NewTopic(string(consensusTopic), &spos.ConsensusData{}, n.marshalizer)
 	t.AddDataReceived(sposWrk.ReceivedMessage)
 	return t
 }
@@ -384,7 +382,7 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 }
 
 func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
-	n.messenger.GetTopic(CONSENSUS_TOPIC_NAME).Broadcast(*cnsDta)
+	n.messenger.GetTopic(string(consensusTopic)).Broadcast(*cnsDta)
 }
 
 // GetBalance gets the balance for a specific address
@@ -416,8 +414,8 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	}
 
 	tx := transaction.Transaction{
-		Nonce: newNonce,
-		Value: amount,
+		Nonce:   newNonce,
+		Value:   amount,
 		RcvAddr: []byte(receiver),
 		SndAddr: []byte(sender),
 	}
@@ -445,20 +443,20 @@ func (n *Node) SendTransaction(
 	transactionData string,
 	signature string) (*transaction.Transaction, error) {
 
-		tx := transaction.Transaction{
-			Nonce:     nonce,
-			Value:     value,
-			RcvAddr:   []byte(receiver),
-			SndAddr:   []byte(sender),
-			Data:      []byte(transactionData),
-			Signature: []byte(signature),
-		}
-		topic := n.messenger.GetTopic(string(transactionTopic))
-		err := topic.Broadcast(tx)
-		if err != nil {
-			return nil, errors.New("could not broadcast transaction: " + err.Error())
-		}
-		return &tx, nil
+	tx := transaction.Transaction{
+		Nonce:     nonce,
+		Value:     value,
+		RcvAddr:   []byte(receiver),
+		SndAddr:   []byte(sender),
+		Data:      []byte(transactionData),
+		Signature: []byte(signature),
+	}
+	topic := n.messenger.GetTopic(string(transactionTopic))
+	err := topic.Broadcast(tx)
+	if err != nil {
+		return nil, errors.New("could not broadcast transaction: " + err.Error())
+	}
+	return &tx, nil
 }
 
 //GetTransaction gets the transaction
@@ -555,8 +553,8 @@ func WithPubSubStrategy(strategy p2p.PubSubStrategy) Option {
 	}
 }
 
-// WithInitialNodeAddresses sets up the initial node addresses for the Node
-func WithInitialNodeAddresses(addresses []string) Option {
+// WithInitialNodesAddresses sets up the initial node addresses for the Node
+func WithInitialNodesAddresses(addresses []string) Option {
 	return func(n *Node) error {
 		n.initialNodesAddresses = addresses
 		return nil
@@ -578,7 +576,7 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 func WithAddressConverter(addrConverter state.AddressConverter) Option {
 	return func(n *Node) error {
 		if addrConverter == nil {
-			return errors.New("trying to set nil accounts adapter")
+			return errors.New("trying to set nil address converter")
 		}
 		n.addrConverter = addrConverter
 		return nil
@@ -597,49 +595,64 @@ func WithPrivateKey(sk crypto.PrivateKey) Option {
 }
 
 func WithInitialNodesPubKeys(pubKeys []string) Option {
-	return func(n *Node) {
+	return func(n *Node) error {
 		n.initialNodesPubkeys = pubKeys
-		}
+		return nil
+	}
 }
 
-func WithSelfPubKey(pubKey string) Option {
-	return func(n *Node) {
-		n.selfPubKey = pubKey
+func WithPublicKey(publicKey string) Option {
+	return func(n *Node) error {
+		n.publicKey = publicKey
+		return nil
 	}
 }
 
 func WithRoundDuration(roundDuration int64) Option {
-	return func(n *Node) {
+	return func(n *Node) error {
 		n.roundDuration = roundDuration
+		return nil
 	}
 }
 
 func WithConsensusGroupSize(consensusGroupSize int) Option {
-	return func(n *Node) {
+	return func(n *Node) error {
 		n.consensusGroupSize = consensusGroupSize
+		return nil
 	}
 }
 
 func WithSyncer(syncer ntp.SyncTimer) Option {
-	return func(n *Node) {
+	return func(n *Node) error {
+		if syncer == nil {
+			return errors.New("trying to set nil sync timer")
+		}
+
 		n.syncer = syncer
+		return nil
 	}
 }
 
 func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
-	return func(n *Node) {
+	return func(n *Node) error {
+		if blockProcessor == nil {
+			return errors.New("trying to set nil block processor")
+		}
 		n.blockProcessor = blockProcessor
+		return nil
 	}
 }
 
 func WithGenesisTime(genesisTime time.Time) Option {
-	return func(n *Node) {
+	return func(n *Node) error {
 		n.genesisTime = genesisTime
+		return nil
 	}
 }
 
 func WithElasticSubrounds(elasticSubrounds bool) Option {
-	return func(n *Node) {
+	return func(n *Node) error {
 		n.elasticSubrounds = elasticSubrounds
+		return nil
 	}
 }

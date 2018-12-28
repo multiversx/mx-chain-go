@@ -13,38 +13,26 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	beevikntp "github.com/beevik/ntp"
-	"sync"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -62,6 +50,7 @@ VERSION:
 var configurationFile = "./config/config.testnet.json"
 
 type initialNode struct {
+	Address string `json:"address"`
 	PubKey  string `json:"pubkey"`
 	Balance uint64 `json:"balance"`
 }
@@ -71,7 +60,7 @@ type genesis struct {
 	RoundDuration      int64         `json:"roundDuration"`
 	ConsensusGroupSize int           `json:"consensusGroupSize"`
 	ElasticSubrounds   bool          `json:"elasticSubrounds"`
-	InitialNodes       []InitialNode `json:"initialNodes"`
+	InitialNodes       []initialNode `json:"initialNodes"`
 }
 
 func main() {
@@ -83,7 +72,7 @@ func main() {
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
 	//app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.WithUI, flags.MaxAllowedPeers, flags.PrivateKey}
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.SelfPubKey}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.PublicKey}
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
 	}
@@ -114,50 +103,13 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(flags.GenesisFile.Name)))
 
-	//hasher := sha256.Sha256{}
-	//marshalizer := marshal.JsonMarshalizer{}
-	//syncer := ntp.NewSyncTime(time.Millisecond*time.Duration(initialConfig.RoundDuration), beevikntp.Query)
-	//cacher, err := storage.NewCache(storage.LRUCache, 100)
-	//persister, err := leveldb.NewDB("leveldb_temp")
-	//bloomFilter, err := bloom.NewFilter(2048, []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}})
-	//storer, err := storage.NewStorageUnit(cacher, persister, bloomFilter)
-	//dBWriteCacher, err := trie.NewDBWriteCache(storer)
-	//patriciaMerkelTree, err := trie.NewTrie(nil, dBWriteCacher, hasher)
-	//accountAdapter, err := state.NewAccountsDB(patriciaMerkelTree, hasher, marshalizer)
-	//addressConverter, err := state.NewHashAddressConverter(hasher, 32, "")
-	//transactionProcessor, err := transaction.NewTxProcessor(accountAdapter, hasher, addressConverter, marshalizer)
-	//txPoolAccesser := transactionPool.NewTransactionPool(nil)
-	//blockProcessor := block.NewBlockProcessor(txPoolAccesser, hasher, marshalizer, transactionProcessor, accountAdapter, 1)
-	//
-	////genesisTime := time.Date(time.Now().Year(),
-	////	time.Now().Month(),
-	////	time.Now().Day(),
-	////	14,
-	////	0,
-	////	0,
-	////	0,
-	////	time.Local)
-	////
-	////log.Info(fmt.Sprintf("Genesis time in seconds: %d", genesisTime.Unix()))
-	//
-	//log.Info(fmt.Sprintf("Current time in seconds: %d", syncer.CurrentTime(syncer.ClockOffset()).Unix()))
-	//
-	//// 1. Start with an empty node
-	//currentNode := CreateNode(
-	//	ctx.GlobalInt(flags.MaxAllowedPeers.Name),
-	//	ctx.GlobalInt(flags.Port.Name),
-	//	initialConfig.InitialNodesPubKeys(),
-	//	ctx.GlobalString(flags.SelfPubKey.Name),
-	//	initialConfig.RoundDuration,
-	//	initialConfig.ConsensusGroupSize,
-	//	hasher,
-	//	marshalizer,
-	//	syncer,
-	//	blockProcessor,
-	//	time.Unix(initialConfig.StartTime, 0),
-	//	initialConfig.ElasticSubrounds)
+	syncer := ntp.NewSyncTime(time.Millisecond*time.Duration(genesisConfig.RoundDuration), beevikntp.Query)
 
-	currentNode, err := createNode(ctx, generalConfig, genesisConfig, log)
+	//startTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 14, 0, 0, 0, time.Local)
+	startTime := time.Unix(genesisConfig.StartTime, 0)
+	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
+
+	currentNode, err := createNode(ctx, generalConfig, genesisConfig, syncer, log)
 	if err != nil {
 		return err
 	}
@@ -166,13 +118,11 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	ef.SetLogger(log)
 	ef.SetSyncer(syncer)
-	//ef.StartNTP(genesisConfig.ClockSyncPeriod)
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
 
-	//ef.WaitForStartTime(time.Unix(initialConfig.StartTime, 0))
-	//ef.WaitForStartTime(genesisTime)
+	//ef.WaitForStartTime(startTime)
 
 	wg.Wait()
 
@@ -248,42 +198,15 @@ func (g *genesis) initialNodesPubkeys() []string {
 	return pubKeys
 }
 
-//func CreateNode(
-//	maxAllowedPeers int,
-//	port int,
-//	initialNodesPubKeys []string,
-//	selfPubKey string,
-//	roundDuration int64,
-//	consensusGroupSize int,
-//	hasher hashing.Hasher,
-//	marshalizer marshal.Marshalizer,
-//	syncer ntp.SyncTimer,
-//	blockProcessor process.BlockProcessor,
-//	genesisTime time.Time,
-//	elasticSubrounds bool,
-//) *node.Node {
-//	appContext := context.Background()
-//	nd := node.NewNode(
-//		node.WithHasher(hasher),
-//		node.WithContext(appContext),
-//		node.WithMarshalizer(marshalizer),
-//		node.WithPubSubStrategy(p2p.GossipSub),
-//		node.WithMaxAllowedPeers(maxAllowedPeers),
-//		node.WithPort(port),
-//		node.WithInitialNodesPubKeys(initialNodesPubKeys),
-//		node.WithSelfPubKey(selfPubKey),
-//		node.WithRoundDuration(roundDuration),
-//		node.WithConsensusGroupSize(consensusGroupSize),
-//		node.WithSyncer(syncer),
-//		node.WithBlockProcessor(blockProcessor),
-//		node.WithGenesisTime(genesisTime),
-//		node.WithElasticSubrounds(elasticSubrounds),
-//	)
-//
-//	return nd
-//}
+func (g *genesis) initialNodesAddresses() []string {
+	var addresses []string
+	for _, in := range g.InitialNodes {
+		addresses = append(addresses, in.Address)
+	}
+	return addresses
+}
 
-func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, log *logger.Logger) (*node.Node, error) {
+func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, syncer ntp.SyncTimer, log *logger.Logger) (*node.Node, error) {
 	appContext := context.Background()
 	hasher := sha256.Sha256{}
 	marshalizer := marshal.JsonMarshalizer{}
@@ -303,6 +226,15 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, lo
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
+	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer)
+	if err != nil {
+		return nil, errors.New("could not create transaction processor: " + err.Error())
+	}
+
+	txPoolCacher := getCacherFromConfig(cfg.TxPoolStorage)
+	txPoolAccesser := transactionPool.NewTransactionPool(&txPoolCacher)
+	blockProcessor := block.NewBlockProcessor(txPoolAccesser, hasher, marshalizer, transactionProcessor, accountsAdapter, 1)
+
 	nd, err := node.NewNode(
 		node.WithHasher(hasher),
 		node.WithContext(appContext),
@@ -310,9 +242,17 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, lo
 		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithMaxAllowedPeers(ctx.GlobalInt(flags.MaxAllowedPeers.Name)),
 		node.WithPort(ctx.GlobalInt(flags.Port.Name)),
-		node.WithInitialNodeAddresses(genesisConfig.initialNodesPubkeys()),
+		node.WithInitialNodesAddresses(genesisConfig.initialNodesAddresses()),
+		node.WithInitialNodesPubKeys(genesisConfig.initialNodesPubkeys()),
 		node.WithAddressConverter(addressConverter),
 		node.WithAccountsAdapter(accountsAdapter),
+		node.WithPublicKey(ctx.GlobalString(flags.PublicKey.Name)),
+		node.WithRoundDuration(genesisConfig.RoundDuration),
+		node.WithConsensusGroupSize(genesisConfig.ConsensusGroupSize),
+		node.WithSyncer(syncer),
+		node.WithBlockProcessor(blockProcessor),
+		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
+		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
 	)
 
 	if err != nil {
@@ -384,7 +324,7 @@ func getCacherFromConfig(cfg config.CacheConfig) storage.CacheConfig {
 func getDBFromConfig(cfg config.DBConfig) storage.DBConfig {
 	return storage.DBConfig{
 		FilePath: filepath.Join(config.DefaultPath(), cfg.FilePath),
-		Type: storage.DBType(cfg.Type),
+		Type:     storage.DBType(cfg.Type),
 	}
 }
 
@@ -395,7 +335,7 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 	}
 
 	return storage.BloomConfig{
-		Size: cfg.Size,
+		Size:     cfg.Size,
 		HashFunc: hashFuncs,
 	}
 }

@@ -58,6 +58,9 @@ type NodeWrapper interface {
 	// Stop closes the messenger and undos everything done in Start
 	Stop() error
 
+	// Bootstrap tries to connect to many peers as possible
+	Bootstrap()
+
 	//IsRunning returns if the underlying node is running
 	IsRunning() bool
 

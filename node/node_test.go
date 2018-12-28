@@ -201,32 +201,6 @@ func TestConnectToNilInitialAddresses(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestConnectToInitialAddresses(t *testing.T) {
-	t.Parallel()
-	n2, _ := node.NewNode(
-		node.WithPort(4001),
-		node.WithMarshalizer(mock.Marshalizer{}),
-		node.WithHasher(mock.Hasher{}),
-		node.WithMaxAllowedPeers(4),
-	)
-	err := n2.Start()
-	assert.Nil(t, err)
-	addr, _ := n2.Address()
-
-	n, _ := node.NewNode(
-		node.WithPort(4000),
-		node.WithMarshalizer(mock.Marshalizer{}),
-		node.WithHasher(mock.Hasher{}),
-		node.WithMaxAllowedPeers(4),
-		node.WithInitialNodesPubKeys([]string{addr}),
-	)
-	err = n.Start()
-	assert.Nil(t, err)
-
-	err = n.ConnectToInitialAddresses()
-	assert.Nil(t, err)
-}
-
 func TestConnectToAddresses_NodeNotStarted(t *testing.T) {
 	t.Parallel()
 	n2, _ := node.NewNode(
@@ -526,8 +500,7 @@ func getAddressConverter() mock.AddressConverter {
 	return mock.AddressConverter{
 		CreateAddressFromHexHandler: func(hexAddress string) (state.AddressContainer, error) {
 			// Return that will result in a correct run of GenerateTransaction -> will fail test
-			return mock.AddressContainer{
-			}, nil
+			return mock.AddressContainer{}, nil
 		},
 	}
 }

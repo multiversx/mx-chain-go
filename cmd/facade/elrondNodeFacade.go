@@ -1,18 +1,15 @@
 package facade
 
 import (
-	"errors"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/api"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
 // ElrondNodeFacade represents a facade for grouping the functionality for node, transaction and address
@@ -38,7 +35,7 @@ func (ef *ElrondNodeFacade) SetLogger(log *logger.Logger) {
 	ef.log = log
 }
 
-//Sets the current syncer
+//SetSyncer sets the current syncer
 func (ef *ElrondNodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 	ef.syncer = syncer
 }
@@ -49,10 +46,9 @@ func (ef *ElrondNodeFacade) StartNode() error {
 	if err != nil {
 		return err
 	}
-	//err = ef.node.ConnectToInitialAddresses()
-	//if err != nil {
-	//	return err
-	//}
+
+	ef.node.Bootstrap()
+
 	err = ef.node.StartConsensus()
 	return err
 }
@@ -62,7 +58,7 @@ func (ef *ElrondNodeFacade) StopNode() error {
 	return ef.node.Stop()
 }
 
-//Waits for the startTime to arrive and only after proceeds
+//WaitForStartTime for the startTime to arrive and only after proceeds
 func (ef *ElrondNodeFacade) WaitForStartTime(t time.Time) {
 	if !ef.syncer.CurrentTime(ef.syncer.ClockOffset()).After(t) {
 		diff := t.Sub(ef.syncer.CurrentTime(ef.syncer.ClockOffset())).Seconds()

@@ -30,6 +30,9 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 			started = true
 			return nil
 		},
+		BootstrapHandler: func() {
+			return
+		},
 		IsRunningHandler: func() bool {
 			return started
 		},
@@ -101,6 +104,9 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 		StartHandler: func() error {
 			started = true
 			return nil
+		},
+		BootstrapHandler: func() {
+			return
 		},
 		IsRunningHandler: func() bool {
 			return started

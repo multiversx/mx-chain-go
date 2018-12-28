@@ -11,7 +11,7 @@ var (
 	}
 	// PrivateKey defines a flag for the path of the private key used when starting the node
 	PrivateKey = cli.StringFlag{
-		Name: "private-key",
+		Name:  "private-key",
 		Usage: "Private key that the node will load on startup and will sign transactions - temporary until we have a wallet that can do that",
 	}
 	// WithUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
@@ -31,9 +31,9 @@ var (
 		Usage: "Maximum connections the user is willing to accept",
 		Value: 4,
 	}
-	SelfPubKey = cli.StringFlag{
-		Name:  "self-pub-key",
-		Usage: "Public key of the current node",
+	PublicKey = cli.StringFlag{
+		Name:  "public-key",
+		Usage: "Public key that the node will load on startup and will be its Id",
 		Value: "16Uiu2HAmERYu2qxDQkUnWsxS6pVwjQBbv74HLq8e3SbFsTtMkdqz",
 	}
 )
