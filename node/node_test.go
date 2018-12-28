@@ -301,6 +301,7 @@ func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
+	assert.Equal(t, "initialize AccountsAdapter and AddressConverter first", err.Error())
 }
 
 func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
@@ -317,11 +318,12 @@ func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
+	assert.Equal(t, "initialize AccountsAdapter and AddressConverter first", err.Error())
 }
 
 func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := mock.AddressConverter{
 		CreateAddressFromHexHandler: func(hexAddress string) (state.AddressContainer, error) {
 			// Return that will result in a correct run of GenerateTransaction -> will fail test
@@ -345,6 +347,7 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "invalid address")
 }
 
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
@@ -369,6 +372,7 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
+	assert.Equal(t, "could not fetch sender address from provided param", err.Error())
 }
 
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
@@ -398,7 +402,7 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 
 func TestGetBalance(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(100))
 	addrConverter := getAddressConverter()
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
@@ -467,7 +471,7 @@ func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 
 func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := mock.AddressConverter{
 		CreateAddressFromHexHandler: func(hexAddress string) (state.AddressContainer, error) {
 			// Return that will result in a correct run of GenerateTransaction -> will fail test
@@ -543,7 +547,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := getAddressConverter()
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
@@ -563,7 +567,7 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 
 func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := getAddressConverter()
 	privateKey := getPrivateKey()
 	marshalizer := mock.Marshalizer{
@@ -588,7 +592,7 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 
 func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := getAddressConverter()
 	privateKey := mock.PrivateKey{
 		SignHandler: func(message []byte) ([]byte, error) {
@@ -612,7 +616,7 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 
 func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter()
+	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := getAddressConverter()
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
@@ -630,14 +634,14 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func getAccAdapter() mock.AccountsAdapter {
+func getAccAdapter(balance big.Int) mock.AccountsAdapter {
 	return mock.AccountsAdapter{
 		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
 			return mock.AccountWrapper{
 				BaseAccountHandler: func() *state.Account {
 					return &state.Account{
 						Nonce: 1,
-						Balance: *big.NewInt(100),
+						Balance: balance,
 					}
 				},
 			}, nil
