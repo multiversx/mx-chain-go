@@ -2,6 +2,8 @@ package mock
 
 import (
 	"encoding/binary"
+
+	"github.com/pkg/errors"
 )
 
 type nonceHashConverterMock struct {
@@ -19,15 +21,14 @@ func (*nonceHashConverterMock) ToByteSlice(value uint64) []byte {
 	return buff
 }
 
-func (*nonceHashConverterMock) ToUint64(buff []byte) *uint64 {
+func (*nonceHashConverterMock) ToUint64(buff []byte) (uint64, error) {
 	if buff == nil {
-		return nil
+		return 0, errors.New("failure, nil slice")
 	}
 
 	if len(buff) != 8 {
-		return nil
+		return 0, errors.New("failure, len not 8")
 	}
 
-	value := binary.BigEndian.Uint64(buff)
-	return &value
+	return binary.BigEndian.Uint64(buff), nil
 }

@@ -340,7 +340,7 @@ func TestHeaderResolver_ResolveHdrRequestHashTypeFoundInHdrPoolMarshalizerFailsS
 	)
 
 	buff, err := hdrRes.ResolveHdrRequest(process.RequestData{Type: process.HashType, Value: requestedData})
-	assert.Equal(t, "marshalizerMock generic error", err.Error())
+	assert.Equal(t, "MarshalizerMock generic error", err.Error())
 	assert.Nil(t, buff)
 }
 
@@ -665,14 +665,14 @@ func TestHeaderResolver_RequestHdrFromNonceShouldWork(t *testing.T) {
 	}, requested)
 }
 
-//------- BlockBodyResolver
+//------- GenericBlockBodyResolver
 
 // NewBlockBodyResolver
 
-func TestNewBlockBodyResolver_NilResolverShouldErr(t *testing.T) {
+func TestNewGenericBlockBodyResolver_NilResolverShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bbRes, err := block.NewBlockBodyResolver(
+	gbbRes, err := block.NewGenericBlockBodyResolver(
 		nil,
 		&mock.CacherStub{},
 		&mock.StorerStub{},
@@ -680,13 +680,13 @@ func TestNewBlockBodyResolver_NilResolverShouldErr(t *testing.T) {
 	)
 
 	assert.Equal(t, process.ErrNilResolver, err)
-	assert.Nil(t, bbRes)
+	assert.Nil(t, gbbRes)
 }
 
-func TestNewBlockBodyResolver_NilBlockBodyPoolShouldErr(t *testing.T) {
+func TestNewGenericBlockBodyResolver_NilBlockBodyPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bbRes, err := block.NewBlockBodyResolver(
+	gbbRes, err := block.NewGenericBlockBodyResolver(
 		&mock.ResolverStub{},
 		nil,
 		&mock.StorerStub{},
@@ -694,13 +694,13 @@ func TestNewBlockBodyResolver_NilBlockBodyPoolShouldErr(t *testing.T) {
 	)
 
 	assert.Equal(t, process.ErrNilBlockBodyPool, err)
-	assert.Nil(t, bbRes)
+	assert.Nil(t, gbbRes)
 }
 
-func TestNewBlockBodyResolver_NilBlockBodyStorageShouldErr(t *testing.T) {
+func TestNewGenericBlockBodyResolver_NilBlockBodyStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bbRes, err := block.NewBlockBodyResolver(
+	gbbRes, err := block.NewGenericBlockBodyResolver(
 		&mock.ResolverStub{},
 		&mock.CacherStub{},
 		nil,
@@ -708,13 +708,13 @@ func TestNewBlockBodyResolver_NilBlockBodyStorageShouldErr(t *testing.T) {
 	)
 
 	assert.Equal(t, process.ErrNilBlockBodyStorage, err)
-	assert.Nil(t, bbRes)
+	assert.Nil(t, gbbRes)
 }
 
-func TestNewBlockBodyResolver_NilBlockMArshalizerShouldErr(t *testing.T) {
+func TestNewGenericBlockBodyResolver_NilBlockMArshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	bbRes, err := block.NewBlockBodyResolver(
+	gbbRes, err := block.NewGenericBlockBodyResolver(
 		&mock.ResolverStub{},
 		&mock.CacherStub{},
 		&mock.StorerStub{},
@@ -722,10 +722,10 @@ func TestNewBlockBodyResolver_NilBlockMArshalizerShouldErr(t *testing.T) {
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
-	assert.Nil(t, bbRes)
+	assert.Nil(t, gbbRes)
 }
 
-func TestNewBlockBodyResolver_OkValsShouldWork(t *testing.T) {
+func TestNewGenericBlockBodyResolver_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -735,7 +735,7 @@ func TestNewBlockBodyResolver_OkValsShouldWork(t *testing.T) {
 		wasCalled = true
 	}
 
-	bbRes, err := block.NewBlockBodyResolver(
+	gbbRes, err := block.NewGenericBlockBodyResolver(
 		res,
 		&mock.CacherStub{},
 		&mock.StorerStub{},
@@ -743,53 +743,53 @@ func TestNewBlockBodyResolver_OkValsShouldWork(t *testing.T) {
 	)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, bbRes)
+	assert.NotNil(t, gbbRes)
 	assert.True(t, wasCalled)
 }
 
 // resolveBlockBodyRequest
 
-func TestBlockBodyResolver_ResolveBlockBodyRequestRequestWrongTypeShouldErr(t *testing.T) {
+func TestGenericBlockBodyResolver_ResolveBlockBodyRequestRequestWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	topicResolver := &mock.ResolverStub{}
 	topicResolver.SetResolverHandlerCalled = func(i func(rd process.RequestData) ([]byte, error)) {
 	}
 
-	bbRes, _ := block.NewBlockBodyResolver(
+	gbbRes, _ := block.NewGenericBlockBodyResolver(
 		topicResolver,
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)
 
-	buff, err := bbRes.ResolveBlockBodyRequest(process.RequestData{Type: process.NonceType, Value: make([]byte, 0)})
+	buff, err := gbbRes.ResolveBlockBodyRequest(process.RequestData{Type: process.NonceType, Value: make([]byte, 0)})
 	assert.Nil(t, buff)
 	assert.Equal(t, process.ErrResolveNotHashType, err)
 
 }
 
-func TestBlockBodyResolver_ResolveBlockBodyRequestNilValueShouldErr(t *testing.T) {
+func TestGenericBlockBodyResolver_ResolveBlockBodyRequestNilValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	topicResolver := &mock.ResolverStub{}
 	topicResolver.SetResolverHandlerCalled = func(i func(rd process.RequestData) ([]byte, error)) {
 	}
 
-	bbRes, _ := block.NewBlockBodyResolver(
+	gbbRes, _ := block.NewGenericBlockBodyResolver(
 		topicResolver,
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)
 
-	buff, err := bbRes.ResolveBlockBodyRequest(process.RequestData{Type: process.HashType, Value: nil})
+	buff, err := gbbRes.ResolveBlockBodyRequest(process.RequestData{Type: process.HashType, Value: nil})
 	assert.Nil(t, buff)
 	assert.Equal(t, process.ErrNilValue, err)
 
 }
 
-func TestBlockBodyResolver_ResolveBlockBodyRequestFoundInPoolShouldRetVal(t *testing.T) {
+func TestGenericBlockBodyResolver_ResolveBlockBodyRequestFoundInPoolShouldRetVal(t *testing.T) {
 	t.Parallel()
 
 	requestedBuff := []byte("aaa")
@@ -810,14 +810,14 @@ func TestBlockBodyResolver_ResolveBlockBodyRequestFoundInPoolShouldRetVal(t *tes
 
 	marshalizer := &mock.MarshalizerMock{}
 
-	bbRes, _ := block.NewBlockBodyResolver(
+	gbbRes, _ := block.NewGenericBlockBodyResolver(
 		topicResolver,
 		cache,
 		&mock.StorerStub{},
 		marshalizer,
 	)
 
-	buff, err := bbRes.ResolveBlockBodyRequest(process.RequestData{
+	buff, err := gbbRes.ResolveBlockBodyRequest(process.RequestData{
 		Type:  process.HashType,
 		Value: requestedBuff})
 
@@ -828,7 +828,7 @@ func TestBlockBodyResolver_ResolveBlockBodyRequestFoundInPoolShouldRetVal(t *tes
 
 }
 
-func TestBlockBodyResolver_ResolveBlockBodyRequestFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
+func TestGenericBlockBodyResolver_ResolveBlockBodyRequestFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
 	t.Parallel()
 
 	requestedBuff := []byte("aaa")
@@ -850,23 +850,23 @@ func TestBlockBodyResolver_ResolveBlockBodyRequestFoundInPoolMarshalizerFailShou
 	marshalizer := &mock.MarshalizerMock{}
 	marshalizer.Fail = true
 
-	bbRes, _ := block.NewBlockBodyResolver(
+	gbbRes, _ := block.NewGenericBlockBodyResolver(
 		topicResolver,
 		cache,
 		&mock.StorerStub{},
 		marshalizer,
 	)
 
-	buff, err := bbRes.ResolveBlockBodyRequest(process.RequestData{
+	buff, err := gbbRes.ResolveBlockBodyRequest(process.RequestData{
 		Type:  process.HashType,
 		Value: requestedBuff})
 
 	assert.Nil(t, buff)
-	assert.Equal(t, "marshalizerMock generic error", err.Error())
+	assert.Equal(t, "MarshalizerMock generic error", err.Error())
 
 }
 
-func TestBlockBodyResolver_ResolveBlockBodyRequestNotFoundInPoolShouldRetFromStorage(t *testing.T) {
+func TestGenericBlockBodyResolver_ResolveBlockBodyRequestNotFoundInPoolShouldRetFromStorage(t *testing.T) {
 	t.Parallel()
 
 	requestedBuff := []byte("aaa")
@@ -888,14 +888,14 @@ func TestBlockBodyResolver_ResolveBlockBodyRequestNotFoundInPoolShouldRetFromSto
 
 	marshalizer := &mock.MarshalizerMock{}
 
-	bbRes, _ := block.NewBlockBodyResolver(
+	gbbRes, _ := block.NewGenericBlockBodyResolver(
 		topicResolver,
 		cache,
 		store,
 		marshalizer,
 	)
 
-	buff, err := bbRes.ResolveBlockBodyRequest(process.RequestData{
+	buff, err := gbbRes.ResolveBlockBodyRequest(process.RequestData{
 		Type:  process.HashType,
 		Value: requestedBuff})
 
@@ -925,7 +925,7 @@ func TestBlockBodyResolver_RequestBlockBodyFromHashShouldWork(t *testing.T) {
 		return nil
 	}
 
-	bbRes, err := block.NewBlockBodyResolver(
+	gbbRes, err := block.NewGenericBlockBodyResolver(
 		res,
 		&mock.CacherStub{},
 		&mock.StorerStub{},
@@ -933,10 +933,10 @@ func TestBlockBodyResolver_RequestBlockBodyFromHashShouldWork(t *testing.T) {
 	)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, bbRes)
+	assert.NotNil(t, gbbRes)
 	assert.True(t, wasCalled)
 
-	assert.Nil(t, bbRes.RequestBlockBodyFromHash(buffRequested))
+	assert.Nil(t, gbbRes.RequestBlockBodyFromHash(buffRequested))
 	assert.Equal(t, process.RequestData{
 		Type:  process.HashType,
 		Value: buffRequested,

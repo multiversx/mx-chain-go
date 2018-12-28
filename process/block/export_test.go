@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
@@ -39,6 +40,6 @@ func (hdrRes *HeaderResolver) ResolveHdrRequest(rd process.RequestData) ([]byte,
 	return hdrRes.resolveHdrRequest(rd)
 }
 
-func (bbRes *BlockBodyResolver) ResolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
-	return bbRes.resolveBlockBodyRequest(rd)
+func (gbbRes *GenericBlockBodyResolver) ResolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
+	return gbbRes.resolveBlockBodyRequest(rd)
 }

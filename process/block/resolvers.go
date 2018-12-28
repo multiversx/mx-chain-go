@@ -18,8 +18,8 @@ type HeaderResolver struct {
 	nonceConverter typeConverters.Uint64ByteSliceConverter
 }
 
-// BlockBodyResolver is a wrapper over Resolver that is specialized in resolving block body requests
-type BlockBodyResolver struct {
+// GenericBlockBodyResolver is a wrapper over Resolver that is specialized in resolving block body requests
+type GenericBlockBodyResolver struct {
 	process.Resolver
 	blockBodyPool storage.Cacher
 	blockStorage  storage.Storer
@@ -121,13 +121,13 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 	//key is now an encoded nonce (uint64)
 
 	//Step 1. decode the nonce from the key
-	nonce := hdrRes.nonceConverter.ToUint64(key)
-	if nonce == nil {
+	nonce, err := hdrRes.nonceConverter.ToUint64(key)
+	if err != nil {
 		return nil, process.ErrInvalidNonceByteSlice
 	}
 
 	//Step 2. search the nonce-key pair
-	hash, _ := hdrRes.hdrNonces.Get(*nonce)
+	hash, _ := hdrRes.hdrNonces.Get(nonce)
 	if hash == nil {
 		//not found
 		return nil, nil
@@ -166,14 +166,14 @@ func (hdrRes *HeaderResolver) RequestHeaderFromNonce(nonce uint64) error {
 	})
 }
 
-//------- BlockBodyResolver
+//------- GenericBlockBodyResolver
 
-// NewBlockBodyResolver creates a new block body resolver
-func NewBlockBodyResolver(
+// NewGenericBlockBodyResolver creates a new block body resolver
+func NewGenericBlockBodyResolver(
 	resolver process.Resolver,
 	blockBodyPool storage.Cacher,
 	blockBodyStorage storage.Storer,
-	marshalizer marshal.Marshalizer) (*BlockBodyResolver, error) {
+	marshalizer marshal.Marshalizer) (*GenericBlockBodyResolver, error) {
 
 	if resolver == nil {
 		return nil, process.ErrNilResolver
@@ -191,7 +191,7 @@ func NewBlockBodyResolver(
 		return nil, process.ErrNilMarshalizer
 	}
 
-	bbResolver := &BlockBodyResolver{
+	bbResolver := &GenericBlockBodyResolver{
 		Resolver:      resolver,
 		blockBodyPool: blockBodyPool,
 		blockStorage:  blockBodyStorage,
@@ -202,7 +202,7 @@ func NewBlockBodyResolver(
 	return bbResolver, nil
 }
 
-func (bbRes *BlockBodyResolver) resolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
+func (gbbRes *GenericBlockBodyResolver) resolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
 	if rd.Type != process.HashType {
 		return nil, process.ErrResolveNotHashType
 	}
@@ -211,9 +211,9 @@ func (bbRes *BlockBodyResolver) resolveBlockBodyRequest(rd process.RequestData) 
 		return nil, process.ErrNilValue
 	}
 
-	blockBody, _ := bbRes.blockBodyPool.Get(rd.Value)
+	blockBody, _ := gbbRes.blockBodyPool.Get(rd.Value)
 	if blockBody != nil {
-		buff, err := bbRes.marshalizer.Marshal(blockBody)
+		buff, err := gbbRes.marshalizer.Marshal(blockBody)
 		if err != nil {
 			return nil, err
 		}
@@ -221,12 +221,12 @@ func (bbRes *BlockBodyResolver) resolveBlockBodyRequest(rd process.RequestData) 
 		return buff, nil
 	}
 
-	return bbRes.blockStorage.Get(rd.Value)
+	return gbbRes.blockStorage.Get(rd.Value)
 }
 
 // RequestBlockBodyFromHash requests a block body from other peers having input the block body hash
-func (bbRes *BlockBodyResolver) RequestBlockBodyFromHash(hash []byte) error {
-	return bbRes.RequestData(process.RequestData{
+func (gbbRes *GenericBlockBodyResolver) RequestBlockBodyFromHash(hash []byte) error {
+	return gbbRes.RequestData(process.RequestData{
 		Type:  process.HashType,
 		Value: hash,
 	})

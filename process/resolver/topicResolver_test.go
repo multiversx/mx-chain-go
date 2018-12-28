@@ -50,7 +50,7 @@ func TestNewTopicResolver_TopicWithResolveRequestAssignedShouldErr(t *testing.T)
 
 	mes := &mock.MessengerStub{}
 
-	topic := p2p.NewTopic("test", &mock.StringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &mock.StringCreator{}, &mock.MarshalizerMock{})
 	topic.ResolveRequest = func(hash []byte) []byte {
 		return nil
 	}
@@ -70,7 +70,7 @@ func TestNewTopicResolver_OkValsShouldWork(t *testing.T) {
 
 	mes := &mock.MessengerStub{}
 
-	topic := p2p.NewTopic("test", &mock.StringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &mock.StringCreator{}, &mock.MarshalizerMock{})
 
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return topic
@@ -92,7 +92,7 @@ func TestTopicResolver_ResolveRequestMarshalizerFailsShouldReturnNil(t *testing.
 	resMarshalizer := &mock.MarshalizerMock{}
 	resMarshalizer.Fail = true
 
-	topic := p2p.NewTopic("test", &mock.StringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &mock.StringCreator{}, &mock.MarshalizerMock{})
 
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return topic
@@ -110,7 +110,7 @@ func TestTopicResolver_ResolveRequestNilShouldReturnNil(t *testing.T) {
 
 	resMarshalizer := &mock.MarshalizerMock{}
 
-	topic := p2p.NewTopic("test", &mock.StringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &mock.StringCreator{}, &mock.MarshalizerMock{})
 
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return topic
@@ -128,7 +128,7 @@ func TestTopicResolver_ResolveRequestNilFuncShouldReturnNil(t *testing.T) {
 
 	resMarshalizer := &mock.MarshalizerMock{}
 
-	topic := p2p.NewTopic("test", &mock.StringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &mock.StringCreator{}, &mock.MarshalizerMock{})
 
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return topic
@@ -153,7 +153,7 @@ func TestTopicResolver_ResolveRequestShouldWork(t *testing.T) {
 
 	resMarshalizer := &mock.MarshalizerMock{}
 
-	topic := p2p.NewTopic("test", &mock.StringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &mock.StringCreator{}, &mock.MarshalizerMock{})
 
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return topic
@@ -185,7 +185,7 @@ func TestTopicResolver_RequestDataMarshalizerFailsShouldErr(t *testing.T) {
 	resMarshalizer := &mock.MarshalizerMock{}
 	resMarshalizer.Fail = true
 
-	topic := p2p.NewTopic("test", &mock.StringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &mock.StringCreator{}, &mock.MarshalizerMock{})
 
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return topic
@@ -193,7 +193,7 @@ func TestTopicResolver_RequestDataMarshalizerFailsShouldErr(t *testing.T) {
 
 	res, _ := resolver.NewTopicResolver("test", mes, resMarshalizer)
 
-	assert.Equal(t, "marshalizerMock generic error", res.RequestData(
+	assert.Equal(t, "MarshalizerMock generic error", res.RequestData(
 		process.RequestData{
 			Type:  process.HashType,
 			Value: []byte("aaa"),
@@ -207,7 +207,7 @@ func TestTopicResolver_RequestDataTopicNotWiredShouldErr(t *testing.T) {
 
 	resMarshalizer := &mock.MarshalizerMock{}
 
-	topic := p2p.NewTopic("test", &mock.StringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &mock.StringCreator{}, &mock.MarshalizerMock{})
 
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return topic
@@ -229,7 +229,7 @@ func TestTopicResolver_RequestDataShouldWork(t *testing.T) {
 
 	resMarshalizer := &mock.MarshalizerMock{}
 
-	topic := p2p.NewTopic("test", &mock.StringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &mock.StringCreator{}, &mock.MarshalizerMock{})
 
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
 		return topic

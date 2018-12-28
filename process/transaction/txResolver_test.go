@@ -201,7 +201,7 @@ func TestTxResolver_ResolveTxRequestFoundInTxPoolMarshalizerFailShouldRetNil(t *
 	//Same as above test, we are sure that the marshalizer from txPool request failed as the code would have panic-ed
 	//otherwise
 	assert.Nil(t, buff)
-	assert.Equal(t, "marshalizerMock generic error", err.Error())
+	assert.Equal(t, "MarshalizerMock generic error", err.Error())
 }
 
 func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetValAndError(t *testing.T) {

@@ -210,7 +210,7 @@ func TestTopic_BroadcastSendOkShouldWork(t *testing.T) {
 func TestTopic_BroadcastBuffNilDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	err := topic.BroadcastBuff(nil)
 
@@ -220,7 +220,7 @@ func TestTopic_BroadcastBuffNilDataShouldErr(t *testing.T) {
 func TestTopic_BroadcastBuffNoOneToSendShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, &mock.MarshalizerMock{})
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	err := topic.BroadcastBuff([]byte("a string"))
 
@@ -231,7 +231,7 @@ func TestTopic_BroadcastBuffSendOkShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	topic := p2p.NewTopic("test", &testTopicStringNewer{}, marshalizer)
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, marshalizer)
 
 	topic.SendData = func(data []byte) error {
 		if topic.Name != "test" {
@@ -246,7 +246,7 @@ func TestTopic_BroadcastBuffSendOkShouldWork(t *testing.T) {
 		return nil
 	}
 
-	buff, err := marshalizer.Marshal(testTopicStringNewer{"AAA"})
+	buff, err := marshalizer.Marshal(testTopicStringCreator{"AAA"})
 	assert.Nil(t, err)
 
 	err = topic.BroadcastBuff(buff)
