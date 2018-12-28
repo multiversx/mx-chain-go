@@ -50,10 +50,10 @@ func (ihgs *indexHashedGroupSelector) LoadEligibleList(eligibleList []consensus.
 // ComputeValidatorsGroup will generate a list of validators based on the the eligible list,
 // consensus size and a randomness source
 // Steps:
-// 1. generate expanded eligible list by multiplying entries from eligible list according to stake and rating
-// 2. for each value in [0, consensusSize), compute proposedindex = Hash( [index as string] CONCAT randomness) % consensusSize
-// 3. if proposed index is already in the temp validator list, then proposedIndex++ (and then % consensusSize as to not
-//    exceed the maximum index value permitted by the validator list), and rechecked against temp validator list until
+// 1. generate expanded eligible list by multiplying entries from eligible list according to stake and rating -> TODO
+// 2. for each value in [0, consensusSize), compute proposedindex = Hash( [index as string] CONCAT randomness) % len(eligible list)
+// 3. if proposed index is already in the temp validator list, then proposedIndex++ (and then % len(eligible list) as to not
+//    exceed the maximum index value permitted by the validator list), and recheck against temp validator list until
 //    the item at the new proposed index is not in the list. This new proposed index will be called checked index
 // 4. the item at the checked index is appended in the temp validator list
 func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []consensus.Validator, err error) {

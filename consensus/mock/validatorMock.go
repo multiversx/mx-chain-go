@@ -15,13 +15,13 @@ func NewValidatorMock(stake big.Int, rating int32, pubKey []byte) *ValidatorMock
 }
 
 func (vm *ValidatorMock) Stake() big.Int {
-	panic("implement me")
+	return vm.stake
 }
 
 func (vm *ValidatorMock) Rating() int32 {
-	panic("implement me")
+	return vm.rating
 }
 
 func (vm *ValidatorMock) PubKey() []byte {
-	panic("implement me")
+	return vm.pubKey
 }
