@@ -31,6 +31,7 @@ var (
 		Usage: "Maximum connections the user is willing to accept",
 		Value: 4,
 	}
+	// PublicKey defines a flag for the path of the public key used when starting the node
 	PublicKey = cli.StringFlag{
 		Name:  "public-key",
 		Usage: "Public key that the node will load on startup and will be its Id",
