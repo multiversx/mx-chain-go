@@ -1,8 +1,9 @@
 package spos
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 )
 
 //TODO: create unit tests

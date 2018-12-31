@@ -2,12 +2,12 @@ package chronology_test
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 )
 

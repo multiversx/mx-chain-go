@@ -92,10 +92,12 @@ func NewConsensusData(
 		RoundIndex: roundIndex}
 }
 
+// Create method creates a new ConsensusData object
 func (cd *ConsensusData) Create() p2p.Creator {
 	return &ConsensusData{}
 }
 
+// ID gets an unique id of the ConsensusData object
 func (cd *ConsensusData) ID() string {
 	id := fmt.Sprintf("%d-%s-%d", cd.RoundIndex, cd.Signature, cd.MsgType)
 	return id
