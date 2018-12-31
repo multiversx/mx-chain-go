@@ -16,8 +16,8 @@ var ErrNilInputSlice = errors.New("nil input slice")
 // ErrSmallEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallEligibleListSize = errors.New("small eligible list size")
 
-// ErrInvalidConsensusSize signals that the consensus size is invalid (e.g. value is negative)
-var ErrInvalidConsensusSize = errors.New("invalid consensus size")
+// ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
+var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
 
 // ErrNilRandomness signals that a nil randomness source has been provided
 var ErrNilRandomness = errors.New("nil randomness source")

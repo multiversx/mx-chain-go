@@ -13,11 +13,11 @@ type indexHashedGroupSelector struct {
 	hasher               hashing.Hasher
 	eligibleList         []consensus.Validator
 	expandedEligibleList []consensus.Validator
-	consensusSize        int
+	consensusGroupSize   int
 }
 
 // NewIndexHashedGroupSelector creates a new index hashed group selector
-func NewIndexHashedGroupSelector(consensusSize int, hasher hashing.Hasher) (*indexHashedGroupSelector, error) {
+func NewIndexHashedGroupSelector(consensusGroupSize int, hasher hashing.Hasher) (*indexHashedGroupSelector, error) {
 	if hasher == nil {
 		return nil, consensus.ErrNilHasher
 	}
@@ -28,7 +28,7 @@ func NewIndexHashedGroupSelector(consensusSize int, hasher hashing.Hasher) (*ind
 		expandedEligibleList: make([]consensus.Validator, 0),
 	}
 
-	err := ihgs.SetConsensusSize(consensusSize)
+	err := ihgs.SetConsensusGroupSize(consensusGroupSize)
 	if err != nil {
 		return nil, err
 	}
@@ -48,16 +48,16 @@ func (ihgs *indexHashedGroupSelector) LoadEligibleList(eligibleList []consensus.
 }
 
 // ComputeValidatorsGroup will generate a list of validators based on the the eligible list,
-// consensus size and a randomness source
+// consensus group size and a randomness source
 // Steps:
 // 1. generate expanded eligible list by multiplying entries from eligible list according to stake and rating -> TODO
-// 2. for each value in [0, consensusSize), compute proposedindex = Hash( [index as string] CONCAT randomness) % len(eligible list)
+// 2. for each value in [0, consensusGroupSize), compute proposedindex = Hash( [index as string] CONCAT randomness) % len(eligible list)
 // 3. if proposed index is already in the temp validator list, then proposedIndex++ (and then % len(eligible list) as to not
-//    exceed the maximum index value permitted by the validator list), and recheck against temp validator list until
-//    the item at the new proposed index is not in the list. This new proposed index will be called checked index
+//    exceed the maximum index value permitted by the validator list), and then recheck against temp validator list until
+//    the item at the new proposed index is not found in the list. This new proposed index will be called checked index
 // 4. the item at the checked index is appended in the temp validator list
 func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []consensus.Validator, err error) {
-	if len(ihgs.eligibleList) < ihgs.consensusSize {
+	if len(ihgs.eligibleList) < ihgs.consensusGroupSize {
 		return nil, consensus.ErrSmallEligibleListSize
 	}
 
@@ -69,7 +69,7 @@ func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) 
 
 	tempList := make([]consensus.Validator, 0)
 
-	for startIdx := 0; startIdx < ihgs.consensusSize; startIdx++ {
+	for startIdx := 0; startIdx < ihgs.consensusGroupSize; startIdx++ {
 		proposedIndex := ihgs.computeListIndex(startIdx, string(randomness))
 
 		checkedIndex := ihgs.checkIndex(proposedIndex, tempList)
@@ -84,7 +84,7 @@ func (ihgs *indexHashedGroupSelector) expandEligibleList() []consensus.Validator
 	return ihgs.eligibleList
 }
 
-// computeListIndex compute a proposed index from expanded eligible list
+// computeListIndex computes a proposed index from expanded eligible list
 func (ihgs *indexHashedGroupSelector) computeListIndex(currentIndex int, randomSource string) int {
 	buffCurrentIndex := make([]byte, 8)
 	binary.BigEndian.PutUint64(buffCurrentIndex, uint64(currentIndex))
@@ -126,17 +126,17 @@ func (ihgs *indexHashedGroupSelector) validatorIsInList(v consensus.Validator, l
 	return false
 }
 
-// ConsensusSize returns the consensus group size
-func (ihgs *indexHashedGroupSelector) ConsensusSize() int {
-	return ihgs.consensusSize
+// ConsensusGroupSize returns the consensus group size
+func (ihgs *indexHashedGroupSelector) ConsensusGroupSize() int {
+	return ihgs.consensusGroupSize
 }
 
-// SetConsensusSize sets the consensus group size
-func (ihgs *indexHashedGroupSelector) SetConsensusSize(consensusSize int) error {
-	if consensusSize < 1 {
-		return consensus.ErrInvalidConsensusSize
+// SetConsensusGroupSize sets the consensus group size
+func (ihgs *indexHashedGroupSelector) SetConsensusGroupSize(consensusGroupSize int) error {
+	if consensusGroupSize < 1 {
+		return consensus.ErrInvalidConsensusGroupSize
 	}
 
-	ihgs.consensusSize = consensusSize
+	ihgs.consensusGroupSize = consensusGroupSize
 	return nil
 }

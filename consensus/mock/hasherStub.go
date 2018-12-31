@@ -16,7 +16,7 @@ func (hs *HasherStub) EmptyHash() []byte {
 	return hs.EmptyHashCalled()
 }
 
-// Size return the required size in bytes
+// Size returns the required size in bytes
 func (hs *HasherStub) Size() int {
 	return hs.SizeCalled()
 }

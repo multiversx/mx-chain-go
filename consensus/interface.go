@@ -15,6 +15,6 @@ type Validator interface {
 type ValidatorGroupSelector interface {
 	LoadEligibleList(eligibleList []Validator) error
 	ComputeValidatorsGroup(randomness []byte) (validatorsGroup []Validator, err error)
-	ConsensusSize() int
-	SetConsensusSize(int) error
+	ConsensusGroupSize() int
+	SetConsensusGroupSize(int) error
 }

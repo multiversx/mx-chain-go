@@ -23,7 +23,7 @@ func (sha HasherMock) EmptyHash() []byte {
 	return sha256EmptyHash
 }
 
-// Size return the required size in bytes
+// Size returns the required size in bytes
 func (HasherMock) Size() int {
 	return sha256.Size
 }
