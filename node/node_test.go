@@ -162,45 +162,6 @@ func TestStop(t *testing.T) {
 	assert.False(t, n.IsRunning())
 }
 
-func TestConnectToInitialAddresses_NodeNotStarted(t *testing.T) {
-	t.Parallel()
-	n2, _ := node.NewNode(
-		node.WithPort(4001),
-		node.WithMarshalizer(mock.Marshalizer{}),
-		node.WithHasher(mock.Hasher{}),
-		node.WithMaxAllowedPeers(4),
-	)
-	err := n2.Start()
-	assert.Nil(t, err)
-	addr, _ := n2.Address()
-
-	n, _ := node.NewNode(
-		node.WithPort(4000),
-		node.WithMarshalizer(mock.Marshalizer{}),
-		node.WithHasher(mock.Hasher{}),
-		node.WithMaxAllowedPeers(4),
-		node.WithInitialNodesPubKeys([]string{addr}),
-	)
-
-	err = n.ConnectToInitialAddresses()
-	assert.NotNil(t, err)
-}
-
-func TestConnectToNilInitialAddresses(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode(
-		node.WithPort(4000),
-		node.WithMarshalizer(mock.Marshalizer{}),
-		node.WithHasher(mock.Hasher{}),
-		node.WithMaxAllowedPeers(4),
-	)
-	err := n.Start()
-	assert.Nil(t, err)
-	err = n.ConnectToInitialAddresses()
-	assert.NotNil(t, err)
-}
-
 func TestConnectToAddresses_NodeNotStarted(t *testing.T) {
 	t.Parallel()
 	n2, _ := node.NewNode(
@@ -614,7 +575,7 @@ func getAccAdapter(balance big.Int) mock.AccountsAdapter {
 			return mock.AccountWrapper{
 				BaseAccountHandler: func() *state.Account {
 					return &state.Account{
-						Nonce: 1,
+						Nonce:   1,
 						Balance: balance,
 					}
 				},

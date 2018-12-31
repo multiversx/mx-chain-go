@@ -36,25 +36,24 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	port                  int
-	marshalizer           marshal.Marshalizer
-	ctx                   context.Context
-	hasher                hashing.Hasher
-	maxAllowedPeers       int
-	pubSubStrategy        p2p.PubSubStrategy
-	initialNodesPubkeys   []string
-	initialNodesAddresses []string
-	publicKey             string
-	roundDuration         int64
-	consensusGroupSize    int
-	messenger             p2p.Messenger
-	syncer                ntp.SyncTimer
-	blockProcessor        process.BlockProcessor
-	genesisTime           time.Time
-	elasticSubrounds      bool
-	accounts              state.AccountsAdapter
-	addrConverter         state.AddressConverter
-	privateKey            crypto.PrivateKey
+	port                int
+	marshalizer         marshal.Marshalizer
+	ctx                 context.Context
+	hasher              hashing.Hasher
+	maxAllowedPeers     int
+	pubSubStrategy      p2p.PubSubStrategy
+	initialNodesPubkeys []string
+	publicKey           string
+	roundDuration       int64
+	consensusGroupSize  int
+	messenger           p2p.Messenger
+	syncer              ntp.SyncTimer
+	blockProcessor      process.BlockProcessor
+	genesisTime         time.Time
+	elasticSubrounds    bool
+	accounts            state.AccountsAdapter
+	addrConverter       state.AddressConverter
+	privateKey          crypto.PrivateKey
 }
 
 // NewNode creates a new Node instance
@@ -120,20 +119,6 @@ func (n *Node) Stop() error {
 	}
 
 	n.messenger = nil
-	return nil
-}
-
-// ConnectToInitialAddresses connect to the list of peers provided initialAddresses
-func (n *Node) ConnectToInitialAddresses() error {
-	if !n.IsRunning() {
-		return errors.New("node is not started yet")
-	}
-	if n.initialNodesAddresses == nil {
-		return errors.New("no addresses to connect to")
-	}
-	// Don't try to connect to self
-	tmp := n.removeSelfFromList(n.initialNodesAddresses)
-	n.messenger.ConnectToAddresses(n.ctx, tmp)
 	return nil
 }
 
@@ -334,7 +319,7 @@ func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
 
 	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
 		chronology.SubroundId(spos.SrEndRound),
-		chronology.SubroundId(spos.SrEndRound+1),
+		chronology.SubroundId(spos.SrAdvance),
 		int64(roundDuration*95/100),
 		sposWrk.Cns.GetSubroundName(spos.SrEndRound),
 		sposWrk.DoEndRoundJob,
@@ -342,10 +327,10 @@ func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
 		sposWrk.Cns.CheckEndRoundConsensus))
 
 	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrEndRound+1),
+		chronology.SubroundId(spos.SrAdvance),
 		-1,
 		int64(roundDuration*100/100),
-		"<ADVANCE>",
+		sposWrk.Cns.GetSubroundName(spos.SrAdvance),
 		nil,
 		nil,
 		nil))
@@ -392,7 +377,7 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	}
 	newNonce := uint64(0)
 	if senderAccount != nil {
-		newNonce = senderAccount.BaseAccount().Nonce + 1
+		newNonce = senderAccount.BaseAccount().Nonce
 	}
 
 	tx := transaction.Transaction{
@@ -531,14 +516,6 @@ func WithMaxAllowedPeers(maxAllowedPeers int) Option {
 func WithPubSubStrategy(strategy p2p.PubSubStrategy) Option {
 	return func(n *Node) error {
 		n.pubSubStrategy = strategy
-		return nil
-	}
-}
-
-// WithInitialNodesAddresses sets up the initial node addresses option for the Node
-func WithInitialNodesAddresses(addresses []string) Option {
-	return func(n *Node) error {
-		n.initialNodesAddresses = addresses
 		return nil
 	}
 }

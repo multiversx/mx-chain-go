@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
@@ -60,9 +59,6 @@ type NodeWrapper interface {
 
 	//IsRunning returns if the underlying node is running
 	IsRunning() bool
-
-	// ConnectToInitialAddresses connect to the list of peers provided initialAddresses
-	ConnectToInitialAddresses() error
 
 	// ConnectToAddresses will take a slice of addresses and try to connect to all of them.
 	ConnectToAddresses(addresses []string) error

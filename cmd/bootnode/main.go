@@ -72,7 +72,6 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	//app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.WithUI, flags.MaxAllowedPeers, flags.PrivateKey}
 	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.PublicKey}
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
@@ -106,7 +105,6 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	syncer := ntp.NewSyncTime(time.Millisecond*time.Duration(genesisConfig.RoundDuration), beevikntp.Query)
 
-	//startTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 14, 0, 0, 0, time.Local)
 	startTime := time.Unix(genesisConfig.StartTime, 0)
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
 
@@ -122,9 +120,6 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
-
-	//ef.WaitForStartTime(startTime)
-
 	wg.Wait()
 
 	if !ctx.Bool(flags.WithUI.Name) {
@@ -199,14 +194,6 @@ func (g *genesis) initialNodesPubkeys() []string {
 	return pubKeys
 }
 
-func (g *genesis) initialNodesAddresses() []string {
-	var addresses []string
-	for _, in := range g.InitialNodes {
-		addresses = append(addresses, in.Address)
-	}
-	return addresses
-}
-
 func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, syncer ntp.SyncTimer, log *logger.Logger) (*node.Node, error) {
 	appContext := context.Background()
 	hasher := sha256.Sha256{}
@@ -247,7 +234,6 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithMaxAllowedPeers(ctx.GlobalInt(flags.MaxAllowedPeers.Name)),
 		node.WithPort(ctx.GlobalInt(flags.Port.Name)),
-		node.WithInitialNodesAddresses(genesisConfig.initialNodesAddresses()),
 		node.WithInitialNodesPubKeys(genesisConfig.initialNodesPubkeys()),
 		node.WithAddressConverter(addressConverter),
 		node.WithAccountsAdapter(accountsAdapter),

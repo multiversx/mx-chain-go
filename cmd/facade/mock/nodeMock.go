@@ -7,18 +7,17 @@ import (
 )
 
 type NodeMock struct {
-	AddressHandler                   func() (string, error)
-	StartHandler                     func() error
-	StopHandler                      func() error
-	BootstrapHandler                 func()
-	IsRunningHandler                 func() bool
-	ConnectToInitialAddressesHandler func() error
-	ConnectToAddressesHandler        func([]string) error
-	StartConsensusHandler            func() error
-	GetBalanceHandler                func(address string) (*big.Int, error)
-	GenerateTransactionHandler       func(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler            func(hash string) (*transaction.Transaction, error)
-	SendTransactionHandler           func(nonce uint64, sender string, receiver string, amount big.Int, code string, signature string) (*transaction.Transaction, error)
+	AddressHandler             func() (string, error)
+	StartHandler               func() error
+	StopHandler                func() error
+	BootstrapHandler           func()
+	IsRunningHandler           func() bool
+	ConnectToAddressesHandler  func([]string) error
+	StartConsensusHandler      func() error
+	GetBalanceHandler          func(address string) (*big.Int, error)
+	GenerateTransactionHandler func(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error)
+	GetTransactionHandler      func(hash string) (*transaction.Transaction, error)
+	SendTransactionHandler     func(nonce uint64, sender string, receiver string, amount big.Int, code string, signature string) (*transaction.Transaction, error)
 }
 
 func (nm *NodeMock) Address() (string, error) {
@@ -39,10 +38,6 @@ func (nm *NodeMock) Bootstrap() {
 
 func (nm *NodeMock) IsRunning() bool {
 	return nm.IsRunningHandler()
-}
-
-func (nm *NodeMock) ConnectToInitialAddresses() error {
-	return nm.ConnectToInitialAddressesHandler()
 }
 
 func (nm *NodeMock) ConnectToAddresses(addresses []string) error {

@@ -33,6 +33,8 @@ const (
 	SrSignature
 	// SrEndRound defines ID of subround "End round"
 	SrEndRound
+	// SrAdvance defines ID of subround "Advance"
+	SrAdvance
 )
 
 //TODO: current shards (this should be injected, and this const should be removed later)
@@ -1028,6 +1030,8 @@ func (cns *Consensus) GetSubroundName(subroundId chronology.SubroundId) string {
 		return "<SIGNATURE>"
 	case SrEndRound:
 		return "<END_ROUND>"
+	case SrAdvance:
+		return "<ADVANCE>"
 	default:
 		return "Undifined subround"
 	}
