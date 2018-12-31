@@ -21,8 +21,8 @@ type belNev struct {
 }
 
 // NewBelNevMultisig creates a new Belare Neven multi-signer
-func NewBelNevMultisig(pubKeys []string, privKey string, ownIndex uint16) (*belNev, error) {
-	if privKey == "" {
+func NewBelNevMultisig(pubKeys []string, privKey crypto.PrivateKey, ownIndex uint16) (*belNev, error) {
+	if privKey == nil {
 		return nil, crypto.ErrNilPrivateKey
 	}
 
@@ -48,17 +48,10 @@ func NewBelNevMultisig(pubKeys []string, privKey string, ownIndex uint16) (*belN
 		}
 	}
 
-	// convert private key
-	sk, err := kg.PrivateKeyFromByteArray([]byte(privKey))
-
-	if err != nil {
-		return nil, crypto.ErrNilPrivateKey
-	}
-
 	// own index is used only for signing
 	return &belNev{
 		pubKeys:  pk,
-		privKey:  sk,
+		privKey:  privKey,
 		ownIndex: ownIndex,
 	}, nil
 }
@@ -126,7 +119,8 @@ func (bn *belNev) SigBitmap() []byte {
 	return []byte("implement me")
 }
 
-// SetSigBitmap sets the bitmap for the participating signers
+// SetSigBitmap sets the signers bitmap. Starting with index 0, each signer has 1 bit according to it's position in the
+// signers list, set to 1 if signer's signature is used, 0 if not used
 func (bn *belNev) SetSigBitmap([]byte) error {
 	// TODO
 

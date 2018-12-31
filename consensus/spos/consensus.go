@@ -162,10 +162,3 @@ func (cns *Consensus) GetLeader() (string, error) {
 	index := cns.Chr.Round().Index() % int32(len(cns.consensusGroup))
 	return cns.consensusGroup[index], nil
 }
-
-// Log method prints info about consensus (if log is true)
-func (cns *Consensus) Log(message string) {
-	if cns.log {
-		log.Info(message)
-	}
-}

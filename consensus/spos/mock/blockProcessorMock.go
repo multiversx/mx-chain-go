@@ -16,31 +16,31 @@ type BlockProcessorMock struct {
 	noShards                     uint32
 }
 
-func (blProcMock BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
 	panic("implement me")
 }
 
-func (blProcMock BlockProcessorMock) CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody {
+func (blProcMock *BlockProcessorMock) CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody {
 	panic("implement me")
 }
 
-func (blProcMock BlockProcessorMock) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error) {
+func (blProcMock *BlockProcessorMock) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error) {
 	return blProcMock.CreateTxBlockCalled(shardId, maxTxInBlock, round, haveTime)
 }
 
-func (blProcMock BlockProcessorMock) RemoveBlockTxsFromPool(body *block.TxBlockBody) error {
+func (blProcMock *BlockProcessorMock) RemoveBlockTxsFromPool(body *block.TxBlockBody) error {
 	// pretend we removed the data
 	return blProcMock.RemoveBlockTxsFromPoolCalled(body)
 }
 
-func (blProcMock BlockProcessorMock) NoShards() uint32 {
+func (blProcMock *BlockProcessorMock) NoShards() uint32 {
 	return blProcMock.noShards
 }
 
-func (blProcMock BlockProcessorMock) SetNoShards(noShards uint32) {
+func (blProcMock *BlockProcessorMock) SetNoShards(noShards uint32) {
 	blProcMock.noShards = noShards
 }
 
-func (blProcMock BlockProcessorMock) GetRootHash() []byte {
+func (blProcMock *BlockProcessorMock) GetRootHash() []byte {
 	return blProcMock.GetRootHashCalled()
 }

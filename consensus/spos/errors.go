@@ -21,3 +21,9 @@ var ErrEmptyConsensusGroup = errors.New("consensusGroup is empty")
 
 // ErrSelfNotFoundInConsensus is raised when self expected in consensus group but not found
 var ErrSelfNotFoundInConsensus = errors.New("self not found in consensus group")
+
+// ErrNilPublicKey is raised when a valid public key was expected but nil was used
+var ErrNilPublicKey = errors.New("public key is nil")
+
+// ErrNilPublicKey is raised when a valid public key was expected but nil was used
+var ErrNilPrivateKey = errors.New("public key is nil")

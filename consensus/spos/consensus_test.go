@@ -318,5 +318,5 @@ func TestConsensus_Log(t *testing.T) {
 		nil,
 		nil)
 
-	cns.Log("Test Consesnus")
+	assert.NotNil(t, cns)
 }
