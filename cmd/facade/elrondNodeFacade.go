@@ -47,7 +47,7 @@ func (ef *ElrondNodeFacade) StartNode() error {
 		return err
 	}
 
-	ef.node.Bootstrap()
+	ef.node.P2PBootstrap()
 
 	err = ef.node.StartConsensus()
 	return err

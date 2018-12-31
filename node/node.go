@@ -104,7 +104,7 @@ func (n *Node) Start() error {
 		return err
 	}
 	n.messenger = messenger
-	n.Bootstrap()
+	n.P2PBootstrap()
 	return nil
 }
 
@@ -122,8 +122,8 @@ func (n *Node) Stop() error {
 	return nil
 }
 
-// Bootstrap will try to connect to many peers as possible
-func (n *Node) Bootstrap() {
+// P2PBootstrap will try to connect to many peers as possible
+func (n *Node) P2PBootstrap() {
 	n.messenger.Bootstrap(n.ctx)
 }
 

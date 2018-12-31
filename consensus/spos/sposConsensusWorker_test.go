@@ -14,6 +14,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type topicName string
+
+const (
+	consensusTopic topicName = "cns"
+)
+
 func SendMessage(cnsDta *spos.ConsensusData) {
 	fmt.Println(cnsDta.Signature)
 }
@@ -114,6 +120,10 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 	}
 
 	return coms
+}
+
+func GetTime(cw *spos.SPOSConsensusWorker) uint64 {
+	return uint64(cw.Cns.Chr.SyncTime().CurrentTime(cw.Cns.Chr.ClockOffset()).Unix())
 }
 
 // RoundTimeDuration defines the time duration in milliseconds of each round
@@ -500,7 +510,7 @@ func TestMessage_BroadcastMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtBlockHeader,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].OnSendMessage = nil
@@ -575,10 +585,10 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtBlockBody,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
-	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
+	coms[0].ReceivedMessage(string(consensusTopic), cnsDta, nil)
 
 	// Received BLOCK_HEADER
 	hdr := &block.Header{}
@@ -600,10 +610,10 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtBlockHeader,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
-	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
+	coms[0].ReceivedMessage(string(consensusTopic), cnsDta, nil)
 
 	// Received COMMITMENT_HASH
 	hdr = &block.Header{}
@@ -625,10 +635,10 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtCommitmentHash,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
-	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
+	coms[0].ReceivedMessage(string(consensusTopic), cnsDta, nil)
 
 	// Received BITMAP
 	hdr = &block.Header{}
@@ -650,10 +660,10 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtBitmap,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
-	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
+	coms[0].ReceivedMessage(string(consensusTopic), cnsDta, nil)
 
 	// Received COMMITMENT
 	hdr = &block.Header{}
@@ -675,10 +685,10 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtCommitment,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
-	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
+	coms[0].ReceivedMessage(string(consensusTopic), cnsDta, nil)
 
 	// Received SIGNATURE
 	hdr = &block.Header{}
@@ -700,10 +710,10 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtSignature,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
-	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
+	coms[0].ReceivedMessage(string(consensusTopic), cnsDta, nil)
 
 	// Received UNKNOWN
 	hdr = &block.Header{}
@@ -725,10 +735,10 @@ func TestMessage_ReceivedMessage(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.SelfId()),
 		spos.MtUnknown,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
-	coms[0].ReceivedMessage("Consensus", cnsDta, nil)
+	coms[0].ReceivedMessage(string(consensusTopic), cnsDta, nil)
 }
 
 func TestMessage_DecodeBlockBody(t *testing.T) {
@@ -801,7 +811,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtBlockBody,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].ChRcvMsg[spos.MtBlockBody] <- cnsDta
@@ -811,7 +821,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 	// BLOCK HEADER
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix())
+	hdr.TimeStamp = GetTime(coms[0])
 
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -828,7 +838,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtBlockHeader,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].ChRcvMsg[spos.MtBlockHeader] <- cnsDta
@@ -841,7 +851,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitmentHash,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].ChRcvMsg[spos.MtCommitmentHash] <- cnsDta
@@ -860,7 +870,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		pks,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtBitmap,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].ChRcvMsg[spos.MtBitmap] <- cnsDta
@@ -876,7 +886,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitment,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].ChRcvMsg[spos.MtCommitment] <- cnsDta
@@ -889,7 +899,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtSignature,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].ChRcvMsg[spos.MtSignature] <- cnsDta
@@ -923,7 +933,7 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtBlockBody,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].Blk = &block.TxBlockBody{}
@@ -941,7 +951,7 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtBlockHeader,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].Cns.SetStatus(spos.SrBlock, spos.SsFinished)
@@ -985,7 +995,7 @@ func TestMessage_ReceivedCommitmentHash(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitmentHash,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	for i := 0; i < coms[0].Cns.Threshold(spos.SrCommitmentHash); i++ {
@@ -1023,7 +1033,7 @@ func TestMessage_ReceivedBitmap(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitmentHash,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].Cns.SetStatus(spos.SrBitmap, spos.SsFinished)
@@ -1074,7 +1084,7 @@ func TestMessage_ReceivedCommitment(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitment,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
@@ -1106,7 +1116,7 @@ func TestMessage_ReceivedSignature(t *testing.T) {
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtSignature,
-		uint64(coms[0].Cns.Chr.SyncTime().CurrentTime(coms[0].Cns.Chr.ClockOffset()).Unix()),
+		GetTime(coms[0]),
 		0)
 
 	coms[0].Cns.SetStatus(spos.SrSignature, spos.SsFinished)
