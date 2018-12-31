@@ -30,7 +30,7 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 			started = true
 			return nil
 		},
-		BootstrapHandler: func() {
+		P2PBootstrapHandler: func() {
 			return
 		},
 		IsRunningHandler: func() bool {
@@ -77,7 +77,7 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 			started = true
 			return nil
 		},
-		BootstrapHandler: func() {
+		P2PBootstrapHandler: func() {
 			return
 		},
 		IsRunningHandler: func() bool {
