@@ -58,8 +58,8 @@ func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(10, mock.HasherMock{})
 
 	list := []consensus.Validator{
-		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("aaa")),
-		mock.NewValidatorMock(*big.NewInt(2), 3, []byte("bbb")),
+		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("pk0")),
+		mock.NewValidatorMock(*big.NewInt(2), 3, []byte("pk1")),
 	}
 
 	err := ihgs.LoadEligibleList(list)
@@ -73,13 +73,13 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupWrongSizeShouldErr(t *te
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(10, mock.HasherMock{})
 
 	list := []consensus.Validator{
-		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("aaa")),
-		mock.NewValidatorMock(*big.NewInt(2), 3, []byte("bbb")),
+		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("pk0")),
+		mock.NewValidatorMock(*big.NewInt(2), 3, []byte("pk1")),
 	}
 
 	_ = ihgs.LoadEligibleList(list)
 
-	list, err := ihgs.ComputeValidatorsGroup([]byte("aaa"))
+	list, err := ihgs.ComputeValidatorsGroup([]byte("randomness"))
 
 	assert.Nil(t, list)
 	assert.Equal(t, consensus.ErrSmallEligibleListSize, err)
@@ -89,8 +89,8 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(2, mock.HasherMock{})
 
 	list := []consensus.Validator{
-		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("aaa")),
-		mock.NewValidatorMock(*big.NewInt(2), 3, []byte("bbb")),
+		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("pk0")),
+		mock.NewValidatorMock(*big.NewInt(2), 3, []byte("pk1")),
 	}
 
 	_ = ihgs.LoadEligibleList(list)
@@ -107,12 +107,12 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroup1ValidatorShouldReturnSa
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(1, mock.HasherMock{})
 
 	list := []consensus.Validator{
-		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("aaa")),
+		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("pk0")),
 	}
 
 	_ = ihgs.LoadEligibleList(list)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte("aaa"))
+	list2, err := ihgs.ComputeValidatorsGroup([]byte("randomness"))
 
 	assert.Nil(t, err)
 	assert.Equal(t, list, list2)
@@ -141,13 +141,13 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2Validators(t *testi
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(2, hasher)
 
 	list := []consensus.Validator{
-		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("aaa")),
-		mock.NewValidatorMock(*big.NewInt(2), 3, []byte("bbb")),
+		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("pk0")),
+		mock.NewValidatorMock(*big.NewInt(2), 3, []byte("pk1")),
 	}
 
 	_ = ihgs.LoadEligibleList(list)
 
-	list2, err := ihgs.ComputeValidatorsGroup([]byte("random"))
+	list2, err := ihgs.ComputeValidatorsGroup([]byte(randomness))
 
 	assert.Nil(t, err)
 	assert.Equal(t, list, list2)
@@ -175,8 +175,8 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(2, hasher)
 
-	validator0 := mock.NewValidatorMock(*big.NewInt(1), 2, []byte("aaa"))
-	validator1 := mock.NewValidatorMock(*big.NewInt(2), 3, []byte("bbb"))
+	validator0 := mock.NewValidatorMock(*big.NewInt(1), 2, []byte("pk0"))
+	validator1 := mock.NewValidatorMock(*big.NewInt(2), 3, []byte("pk1"))
 
 	list := []consensus.Validator{
 		validator0,
@@ -215,8 +215,8 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsSameIndex
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(2, hasher)
 
 	list := []consensus.Validator{
-		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("aaa")),
-		mock.NewValidatorMock(*big.NewInt(2), 3, []byte("bbb")),
+		mock.NewValidatorMock(*big.NewInt(1), 2, []byte("pk0")),
+		mock.NewValidatorMock(*big.NewInt(2), 3, []byte("pk1")),
 	}
 
 	_ = ihgs.LoadEligibleList(list)
