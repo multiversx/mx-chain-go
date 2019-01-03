@@ -2,9 +2,7 @@ package facade
 
 import (
 	"math/big"
-	"strconv"
 	"sync"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
@@ -56,20 +54,6 @@ func (ef *ElrondNodeFacade) StartNode() error {
 // StopNode stops the underlying node
 func (ef *ElrondNodeFacade) StopNode() error {
 	return ef.node.Stop()
-}
-
-//WaitForStartTime for the startTime to arrive and only after proceeds
-func (ef *ElrondNodeFacade) WaitForStartTime(t time.Time) {
-	if !ef.syncer.CurrentTime(ef.syncer.ClockOffset()).After(t) {
-		diff := t.Sub(ef.syncer.CurrentTime(ef.syncer.ClockOffset())).Seconds()
-		ef.log.Info("Elrond protocol not started yet, waiting " + strconv.Itoa(int(diff)) + " seconds")
-	}
-	for {
-		if ef.syncer.CurrentTime(ef.syncer.ClockOffset()).After(t) {
-			break
-		}
-		time.Sleep(time.Duration(5 * time.Millisecond))
-	}
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node

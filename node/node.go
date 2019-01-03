@@ -2,12 +2,15 @@ package node
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"math/big"
+	"path/filepath"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -29,6 +32,8 @@ const (
 	consensusTopic   topicName = "cns"
 )
 
+var port = ""
+
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
 type Option func(*Node) error
@@ -43,7 +48,7 @@ type Node struct {
 	maxAllowedPeers     int
 	pubSubStrategy      p2p.PubSubStrategy
 	initialNodesPubkeys []string
-	publicKey           string
+	publicKey           crypto.PublicKey
 	roundDuration       int64
 	consensusGroupSize  int
 	messenger           p2p.Messenger
@@ -183,12 +188,20 @@ func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology 
 	return chr
 }
 
+func (n *Node) getPrettyPublicKey() string {
+	pk, _ := n.publicKey.ToByteArray()
+	base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
+	base64.StdEncoding.Encode(base64pk, pk)
+	return string(base64pk)
+}
+
 // createRoundConsensus method creates a RoundConsensus object
 func (n *Node) createRoundConsensus() *spos.RoundConsensus {
+
 	nodes := n.initialNodesPubkeys[0:n.consensusGroupSize]
 	rndc := spos.NewRoundConsensus(
 		nodes,
-		n.publicKey)
+		n.getPrettyPublicKey())
 
 	rndc.ResetRoundState()
 
@@ -235,7 +248,7 @@ func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThresho
 
 // createBlockchain method creates a BlockChain object
 func (n *Node) createBlockchain() (*blockchain.BlockChain, error) {
-	return createBlockChainFromConfig(blockchainConfig())
+	return n.createBlockChainFromConfig(n.blockchainConfig())
 }
 
 // createConsensusWorker method creates a ConsensusWorker object
@@ -562,9 +575,9 @@ func WithInitialNodesPubKeys(pubKeys []string) Option {
 }
 
 // WithPublicKey sets up the public key option for the Node
-func WithPublicKey(publicKey string) Option {
+func WithPublicKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
-		n.publicKey = publicKey
+		n.publicKey = pk
 		return nil
 	}
 }
@@ -624,7 +637,7 @@ func WithElasticSubrounds(elasticSubrounds bool) Option {
 	}
 }
 
-func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockChain, error) {
+func (n *Node) createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockChain, error) {
 	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
 
 	txBadBlockCache, err := storage.NewCache(
@@ -699,14 +712,15 @@ func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockC
 	return nil, err
 }
 
-func blockchainConfig() *blockchain.Config {
+func (n *Node) blockchainConfig() *blockchain.Config {
+	port = fmt.Sprintf("%d", n.port)
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
 	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
-	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxBlockBodyStorage"}
-	persisterStateBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "StateBlockBodyStorage"}
-	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "PeerBlockBodyStorage"}
-	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
-	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
+	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+port, "TxBlockBodyStorage")}
+	persisterStateBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+port, "StateBlockBodyStorage")}
+	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+port, "PeerBlockBodyStorage")}
+	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+port, "BlockHeaderStorage")}
+	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+port, "TxStorage")}
 	return &blockchain.Config{
 		TxBlockBodyStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxBlockBodyStorage, BloomConf: bloom},
 		StateBlockBodyStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterStateBlockBodyStorage, BloomConf: bloom},

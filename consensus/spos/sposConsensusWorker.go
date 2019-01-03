@@ -895,7 +895,7 @@ func (sposWorker *SPOSConsensusWorker) GetMessageTypeName(messageType MessageTyp
 
 // GetFormatedTime method returns a string containing the formated current time
 func (sposWorker *SPOSConsensusWorker) GetFormatedTime() string {
-	return sposWorker.Cns.Chr.SyncTime().FormatedCurrentTime(sposWorker.Cns.Chr.ClockOffset())
+	return sposWorker.Cns.Chr.SyncTime().FormattedCurrentTime(sposWorker.Cns.Chr.ClockOffset())
 }
 
 // GetTime method returns a string containing the current time
@@ -1042,10 +1042,10 @@ func (cns *Consensus) GetSubroundName(subroundId chronology.SubroundId) string {
 // PrintBlockCM method prints the <BLOCK> consensus messages
 func (cns *Consensus) PrintBlockCM() {
 	if !cns.IsNodeLeaderInCurrentRound(cns.selfId) {
-		cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
+		cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset()) +
 			"Step 1: Synchronized block"))
 	}
-	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
+	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset()) +
 		"Step 1: SubroundId <BLOCK> has been finished"))
 }
 
@@ -1053,20 +1053,20 @@ func (cns *Consensus) PrintBlockCM() {
 func (cns *Consensus) PrintCommitmentHashCM() {
 	n := cns.ComputeSize(SrCommitmentHash)
 	if n == len(cns.consensusGroup) {
-		cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset())+
+		cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset())+
 			"Step 2: Received all (%d from %d) commitment hashes", n, len(cns.consensusGroup)))
 	} else {
-		cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset())+
+		cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset())+
 			"Step 2: Received %d from %d commitment hashes, which are enough", n, len(cns.consensusGroup)))
 	}
-	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
+	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset()) +
 		"Step 2: SubroundId <COMMITMENT_HASH> has been finished"))
 }
 
 // PrintBitmapCM method prints the <BITMAP> consensus messages
 func (cns *Consensus) PrintBitmapCM() {
 	if !cns.IsNodeLeaderInCurrentRound(cns.selfId) {
-		msg := fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset())+
+		msg := fmt.Sprintf(cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset())+
 			"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d commitment hashes, which are enough",
 			cns.ComputeSize(SrBitmap), len(cns.consensusGroup))
 
@@ -1078,24 +1078,24 @@ func (cns *Consensus) PrintBitmapCM() {
 
 		cns.Log(msg)
 	}
-	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
+	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset()) +
 		"Step 3: SubroundId <BITMAP> has been finished"))
 }
 
 // PrintCommitmentCM method prints the <COMMITMENT> consensus messages
 func (cns *Consensus) PrintCommitmentCM() {
-	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset())+
+	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset())+
 		"Step 4: Received %d from %d commitments, which are matching with bitmap and are enough",
 		cns.ComputeSize(SrCommitment), len(cns.consensusGroup)))
-	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
+	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset()) +
 		"Step 4: SubroundId <COMMITMENT> has been finished"))
 }
 
 // PrintSignatureCM method prints the <SIGNATURE> consensus messages
 func (cns *Consensus) PrintSignatureCM() {
-	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset())+
+	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset())+
 		"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough",
 		cns.ComputeSize(SrSignature), len(cns.consensusGroup)))
-	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormatedCurrentTime(cns.Chr.ClockOffset()) +
+	cns.Log(fmt.Sprintf(cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset()) +
 		"Step 5: SubroundId <SIGNATURE> has been finished"))
 }

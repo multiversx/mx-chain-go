@@ -79,7 +79,7 @@ func TestNewConsensus(t *testing.T) {
 		true,
 		rnd,
 		genesisTime,
-		&ntp.LocalTime{})
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	cns := spos.NewConsensus(true,
 		nil,
@@ -131,7 +131,7 @@ func InitConsensus() *spos.Consensus {
 		true,
 		rnd,
 		genesisTime,
-		&ntp.LocalTime{})
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	cns := spos.NewConsensus(true,
 		nil,
@@ -168,7 +168,7 @@ func TestConsensus_IsNodeLeaderInCurrentRound(t *testing.T) {
 		true,
 		rnd,
 		genesisTime,
-		&ntp.LocalTime{})
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	cns := spos.NewConsensus(true,
 		nil,
@@ -232,19 +232,19 @@ func TestConsensus_GetLeader(t *testing.T) {
 		true,
 		nil,
 		genesisTime,
-		&ntp.LocalTime{})
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	chr2 := chronology.NewChronology(true,
 		true,
 		rnd1,
 		genesisTime,
-		&ntp.LocalTime{})
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	chr3 := chronology.NewChronology(true,
 		true,
 		rnd2,
 		genesisTime,
-		&ntp.LocalTime{})
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	cns1 := spos.NewConsensus(true,
 		nil,

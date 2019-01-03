@@ -64,6 +64,8 @@ type genesis struct {
 	InitialNodes       []initialNode `json:"initialNodes"`
 }
 
+var port = ""
+
 func main() {
 	log := logger.NewDefaultLogger()
 	log.SetLevel(logger.LogInfo)
@@ -72,7 +74,7 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.PublicKey}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.PrivateKey}
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
 	}
@@ -104,9 +106,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(flags.GenesisFile.Name)))
 
 	syncer := ntp.NewSyncTime(time.Millisecond*time.Duration(genesisConfig.RoundDuration), beevikntp.Query)
+	go syncer.StartSync()
 
 	startTime := time.Unix(genesisConfig.StartTime, 0)
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
+
+	port = fmt.Sprintf("%d", ctx.GlobalInt(flags.Port.Name))
 
 	currentNode, err := createNode(ctx, generalConfig, genesisConfig, syncer, log)
 	if err != nil {
@@ -237,7 +242,6 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithInitialNodesPubKeys(genesisConfig.initialNodesPubkeys()),
 		node.WithAddressConverter(addressConverter),
 		node.WithAccountsAdapter(accountsAdapter),
-		node.WithPublicKey(ctx.GlobalString(flags.PublicKey.Name)),
 		node.WithRoundDuration(genesisConfig.RoundDuration),
 		node.WithConsensusGroupSize(genesisConfig.ConsensusGroupSize),
 		node.WithSyncer(syncer),
@@ -251,11 +255,13 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 	}
 
 	sk, err := getSk(ctx)
+
 	if err != nil {
-		log.Error("node is starting without a private key...")
-	} else {
-		loadSk(nd, sk, log)
+		return nil, err
 	}
+
+	loadSk(nd, sk, log)
+	loadPk(nd, sk, log)
 
 	return nd, nil
 }
@@ -266,12 +272,32 @@ func getSk(ctx *cli.Context) ([]byte, error) {
 	}
 	b64sk, err := ioutil.ReadFile(ctx.GlobalString(flags.PrivateKey.Name))
 	if err != nil {
-		return nil, errors.New("could not read private key file")
+		b64sk = []byte(ctx.GlobalString(flags.PrivateKey.Name))
 	}
 	decodedSk := make([]byte, base64.StdEncoding.DecodedLen(len(b64sk)))
 	l, _ := base64.StdEncoding.Decode(decodedSk, b64sk)
 
 	return decodedSk[:l], nil
+}
+
+func loadPk(nd *node.Node, sk []byte, log *logger.Logger) {
+	generator := schnorr.NewKeyGenerator()
+	secretKey, err := generator.PrivateKeyFromByteArray(sk)
+	if err == nil {
+		publicKey := secretKey.GeneratePublic()
+
+		err = nd.ApplyOptions(node.WithPublicKey(publicKey))
+		if err != nil {
+			log.Error("error applying option with public key: " + err.Error())
+		}
+
+		pk, _ := publicKey.ToByteArray()
+		base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
+		base64.StdEncoding.Encode(base64pk, pk)
+		log.Info("starting with public key: " + string(base64pk))
+	} else {
+		log.Error("error unpacking private key: " + err.Error())
+	}
 }
 
 func loadSk(nd *node.Node, sk []byte, log *logger.Logger) {
@@ -280,10 +306,14 @@ func loadSk(nd *node.Node, sk []byte, log *logger.Logger) {
 	if err == nil {
 		err = nd.ApplyOptions(node.WithPrivateKey(secretKey))
 		if err != nil {
-			log.Error(err.Error())
+			log.Error("error applying option with private key: " + err.Error())
 		}
+
+		base64sk := make([]byte, base64.StdEncoding.EncodedLen(len(sk)))
+		base64.StdEncoding.Encode(base64sk, sk)
+		log.Info("starting with private key: " + string(base64sk))
 	} else {
-		log.Error("error unpacking private key")
+		log.Error("error unpacking private key: " + err.Error())
 	}
 }
 
@@ -314,7 +344,7 @@ func getCacherFromConfig(cfg config.CacheConfig) storage.CacheConfig {
 
 func getDBFromConfig(cfg config.DBConfig) storage.DBConfig {
 	return storage.DBConfig{
-		FilePath: filepath.Join(config.DefaultPath(), cfg.FilePath),
+		FilePath: filepath.Join(config.DefaultPath()+port, cfg.FilePath),
 		Type:     storage.DBType(cfg.Type),
 	}
 }

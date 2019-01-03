@@ -47,8 +47,7 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 			currentTime,
 			roundDuration)
 
-		syncTime := &ntp.LocalTime{}
-		syncTime.SetClockOffset(0)
+		syncTime := ntp.NewSyncTime(roundDuration, nil)
 
 		chr := chronology.NewChronology(
 			log,

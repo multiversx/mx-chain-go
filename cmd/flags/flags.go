@@ -23,18 +23,12 @@ var (
 	Port = cli.IntFlag{
 		Name:  "port",
 		Usage: "Port number on which the application will start",
-		Value: 4002,
+		Value: 4000,
 	}
 	// MaxAllowedPeers defines a flag for setting the maximum number of connections allowed at once
 	MaxAllowedPeers = cli.IntFlag{
 		Name:  "max-allowed-peers",
 		Usage: "Maximum connections the user is willing to accept",
 		Value: 4,
-	}
-	// PublicKey defines a flag for the path of the public key used when starting the node
-	PublicKey = cli.StringFlag{
-		Name:  "public-key",
-		Usage: "Public key that the node will load on startup and will be its Id",
-		Value: "16Uiu2HAmAgFhnundFuEjy3ngaSTPwP8LLgWomwvf3SUXFRU6LiWk",
 	}
 )

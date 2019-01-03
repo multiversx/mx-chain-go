@@ -3,7 +3,6 @@ package facade
 import (
 	"math/big"
 	"sync"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
@@ -16,9 +15,6 @@ type Facade interface {
 
 	//StopNode stops the underlying node
 	StopNode() error
-
-	//WaitForStartTime waits for the startTime to arrive and only after proceeds
-	WaitForStartTime(t time.Time)
 
 	//StartBackgroundServices starts all background services needed for the correct functionality of the node
 	StartBackgroundServices(wg *sync.WaitGroup)
