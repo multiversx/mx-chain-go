@@ -88,7 +88,7 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 
 		cns := spos.NewConsensus(
 			log,
-			&dta,
+			dta,
 			vld,
 			rth,
 			rnds,
@@ -370,7 +370,7 @@ func TestMessage_SendCommitmentHash(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	dta := []byte("X")
-	coms[0].Cns.Data = &dta
+	coms[0].Cns.Data = dta
 
 	r = coms[0].DoCommitmentHashJob()
 	assert.Equal(t, true, r)
@@ -407,7 +407,7 @@ func TestMessage_SendBitmap(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	dta := []byte("X")
-	coms[0].Cns.Data = &dta
+	coms[0].Cns.Data = dta
 	coms[0].Cns.SetJobDone(coms[0].Cns.SelfId(), spos.SrCommitmentHash, true)
 
 	r = coms[0].DoBitmapJob()
@@ -445,7 +445,7 @@ func TestMessage_SendCommitment(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	dta := []byte("X")
-	coms[0].Cns.Data = &dta
+	coms[0].Cns.Data = dta
 
 	r = coms[0].DoCommitmentJob()
 	assert.Equal(t, true, r)
@@ -481,7 +481,7 @@ func TestMessage_SendSignature(t *testing.T) {
 	assert.Equal(t, false, r)
 
 	dta := []byte("X")
-	coms[0].Cns.Data = &dta
+	coms[0].Cns.Data = dta
 
 	r = coms[0].DoSignatureJob()
 	assert.Equal(t, true, r)
@@ -846,7 +846,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	// COMMITMENT_HASH
 	cnsDta = spos.NewConsensusData(
-		*coms[0].Cns.Data,
+		coms[0].Cns.Data,
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitmentHash,
@@ -865,7 +865,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 	}
 
 	cnsDta = spos.NewConsensusData(
-		*coms[0].Cns.Data,
+		coms[0].Cns.Data,
 		pks,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtBitmap,
@@ -881,7 +881,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	// COMMITMENT
 	cnsDta = spos.NewConsensusData(
-		*coms[0].Cns.Data,
+		coms[0].Cns.Data,
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitment,
@@ -894,7 +894,7 @@ func TestMessage_CheckChannels(t *testing.T) {
 
 	// SIGNATURE
 	cnsDta = spos.NewConsensusData(
-		*coms[0].Cns.Data,
+		coms[0].Cns.Data,
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtSignature,
@@ -1028,7 +1028,7 @@ func TestMessage_ReceivedBitmap(t *testing.T) {
 	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	cnsDta := spos.NewConsensusData(
-		*coms[0].Cns.Data,
+		coms[0].Cns.Data,
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitmentHash,
@@ -1079,7 +1079,7 @@ func TestMessage_ReceivedCommitment(t *testing.T) {
 	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	cnsDta := spos.NewConsensusData(
-		*coms[0].Cns.Data,
+		coms[0].Cns.Data,
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtCommitment,
@@ -1111,7 +1111,7 @@ func TestMessage_ReceivedSignature(t *testing.T) {
 	coms[0].Cns.Chr.Round().UpdateRound(genesisTime, genesisTime.Add(coms[0].Cns.Chr.Round().TimeDuration()))
 
 	cnsDta := spos.NewConsensusData(
-		*coms[0].Cns.Data,
+		coms[0].Cns.Data,
 		nil,
 		[]byte(coms[0].Cns.ConsensusGroup()[1]),
 		spos.MtSignature,

@@ -398,77 +398,95 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 
 func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockChain, error) {
 	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
+	var err error
+
+	defer func() {
+		// cleanup
+		if err != nil {
+			if headerUnit != nil {
+				_ = headerUnit.DestroyUnit()
+			}
+			if peerBlockUnit != nil {
+				_ = peerBlockUnit.DestroyUnit()
+			}
+			if stateBlockUnit != nil {
+				_ = stateBlockUnit.DestroyUnit()
+			}
+			if txBlockUnit != nil {
+				_ = txBlockUnit.DestroyUnit()
+			}
+			if txUnit != nil {
+				_ = txUnit.DestroyUnit()
+			}
+		}
+	}()
 
 	txBadBlockCache, err := storage.NewCache(
 		blConfig.TxBadBlockBodyCache.Type,
 		blConfig.TxBadBlockBodyCache.Size)
 
-	if err == nil {
-		txUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.TxStorage.CacheConf,
-			blConfig.TxStorage.DBConf,
-			blConfig.TxStorage.BloomConf)
-	}
-
-	if err == nil {
-		txBlockUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.TxBlockBodyStorage.CacheConf,
-			blConfig.TxBlockBodyStorage.DBConf,
-			blConfig.TxBlockBodyStorage.BloomConf)
-	}
-
-	if err == nil {
-		stateBlockUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.StateBlockBodyStorage.CacheConf,
-			blConfig.StateBlockBodyStorage.DBConf,
-			blConfig.StateBlockBodyStorage.BloomConf)
-	}
-
-	if err == nil {
-		peerBlockUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.PeerBlockBodyStorage.CacheConf,
-			blConfig.PeerBlockBodyStorage.DBConf,
-			blConfig.PeerBlockBodyStorage.BloomConf)
-	}
-
-	if err == nil {
-		headerUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.BlockHeaderStorage.CacheConf,
-			blConfig.BlockHeaderStorage.DBConf,
-			blConfig.BlockHeaderStorage.BloomConf)
-	}
-
-	if err == nil {
-		blockChain, err2 := blockchain.NewBlockChain(
-			txBadBlockCache,
-			txUnit,
-			txBlockUnit,
-			stateBlockUnit,
-			peerBlockUnit,
-			headerUnit)
-
-		return blockChain, err2
-	}
-
-	// cleanup
 	if err != nil {
-		if headerUnit != nil {
-			_ = headerUnit.DestroyUnit()
-		}
-		if peerBlockUnit != nil {
-			_ = peerBlockUnit.DestroyUnit()
-		}
-		if stateBlockUnit != nil {
-			_ = stateBlockUnit.DestroyUnit()
-		}
-		if txBlockUnit != nil {
-			_ = txBlockUnit.DestroyUnit()
-		}
-		if txUnit != nil {
-			_ = txUnit.DestroyUnit()
-		}
+		return nil, err
 	}
-	return nil, err
+
+	txUnit, err = storage.NewStorageUnitFromConf(
+		blConfig.TxStorage.CacheConf,
+		blConfig.TxStorage.DBConf,
+		blConfig.TxStorage.BloomConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	txBlockUnit, err = storage.NewStorageUnitFromConf(
+		blConfig.TxBlockBodyStorage.CacheConf,
+		blConfig.TxBlockBodyStorage.DBConf,
+		blConfig.TxBlockBodyStorage.BloomConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	stateBlockUnit, err = storage.NewStorageUnitFromConf(
+		blConfig.StateBlockBodyStorage.CacheConf,
+		blConfig.StateBlockBodyStorage.DBConf,
+		blConfig.StateBlockBodyStorage.BloomConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	peerBlockUnit, err = storage.NewStorageUnitFromConf(
+		blConfig.PeerBlockBodyStorage.CacheConf,
+		blConfig.PeerBlockBodyStorage.DBConf,
+		blConfig.PeerBlockBodyStorage.BloomConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	headerUnit, err = storage.NewStorageUnitFromConf(
+		blConfig.BlockHeaderStorage.CacheConf,
+		blConfig.BlockHeaderStorage.DBConf,
+		blConfig.BlockHeaderStorage.BloomConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	blockChain, err := blockchain.NewBlockChain(
+		txBadBlockCache,
+		txUnit,
+		txBlockUnit,
+		stateBlockUnit,
+		peerBlockUnit,
+		headerUnit)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return blockChain, err
 }
 
 func blockChainConfig() *blockchain.Config {

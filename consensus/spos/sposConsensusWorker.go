@@ -249,10 +249,10 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 // (it is used as a handler function of the doSubroundJob pointer function declared in Subround struct,
 // from spos package)
 func (sposWorker *SPOSConsensusWorker) DoBlockJob() bool {
-	// TODO: Unccomment ShouldSynch check
-	//if sposWorker.ShouldSynch() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+	// TODO: Unccomment ShouldSync check
+	//if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 	//	sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime()+"Canceled round %d in subround %s",
-	//		sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
+	//	sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
 	//	sposWorker.Cns.Chr.SetSelfSubround(-1)
 	//	return false
 	//}
@@ -369,7 +369,7 @@ func (sposWorker *SPOSConsensusWorker) SendBlockHeader() bool {
 	sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime() + "Step 1: Sending block header"))
 
 	sposWorker.Hdr = hdr
-	sposWorker.Cns.Data = &sposWorker.Hdr.BlockBodyHash
+	sposWorker.Cns.Data = sposWorker.Hdr.BlockBodyHash
 
 	return true
 }
@@ -389,7 +389,7 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
 	}
 
 	dta := NewConsensusData(
-		*sposWorker.Cns.Data,
+		sposWorker.Cns.Data,
 		nil,
 		[]byte(sposWorker.Cns.SelfId()),
 		MtCommitmentHash,
@@ -431,7 +431,7 @@ func (sposWorker *SPOSConsensusWorker) DoBitmapJob() bool {
 	}
 
 	dta := NewConsensusData(
-		*sposWorker.Cns.Data,
+		sposWorker.Cns.Data,
 		pks,
 		[]byte(sposWorker.Cns.SelfId()),
 		MtBitmap,
@@ -469,7 +469,7 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentJob() bool {
 	}
 
 	dta := NewConsensusData(
-		*sposWorker.Cns.Data,
+		sposWorker.Cns.Data,
 		nil,
 		[]byte(sposWorker.Cns.SelfId()),
 		MtCommitment,
@@ -503,7 +503,7 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 	}
 
 	dta := NewConsensusData(
-		*sposWorker.Cns.Data,
+		sposWorker.Cns.Data,
 		nil,
 		[]byte(sposWorker.Cns.SelfId()),
 		MtSignature,
@@ -671,7 +671,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBlockHeader(cnsDta *ConsensusData
 	sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime() + "Step 1: Received block header"))
 
 	sposWorker.Hdr = hdr
-	sposWorker.Cns.Data = &sposWorker.Hdr.BlockBodyHash
+	sposWorker.Cns.Data = sposWorker.Hdr.BlockBodyHash
 
 	sposWorker.Cns.RoundConsensus.SetJobDone(node, SrBlock, true)
 	return true
@@ -706,7 +706,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedCommitmentHash(cnsDta *ConsensusD
 		!sposWorker.Cns.IsNodeInConsensusGroup(node) || // isn't node in the jobDone group?
 		sposWorker.Cns.RoundConsensus.GetJobDone(node, SrCommitmentHash) || // is commitment hash already received?
 		sposWorker.Cns.Data == nil || // is consensus data not set?
-		!bytes.Equal(cnsDta.Data, *sposWorker.Cns.Data) { // is this the consesnus data of this round?
+		!bytes.Equal(cnsDta.Data, sposWorker.Cns.Data) { // is this the consesnus data of this round?
 		return false
 	}
 
@@ -733,7 +733,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) boo
 		!sposWorker.Cns.IsNodeLeaderInCurrentRound(node) || // is another node leader in this round?
 		sposWorker.Cns.RoundConsensus.GetJobDone(node, SrBitmap) || // is bitmap already received?
 		sposWorker.Cns.Data == nil || // is consensus data not set?
-		!bytes.Equal(cnsDta.Data, *sposWorker.Cns.Data) { // is this the consesnus data of this round?
+		!bytes.Equal(cnsDta.Data, sposWorker.Cns.Data) { // is this the consesnus data of this round?
 		return false
 	}
 
@@ -773,7 +773,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedCommitment(cnsDta *ConsensusData)
 		!sposWorker.Cns.IsValidatorInBitmap(node) || // isn't node in the bitmap group?
 		sposWorker.Cns.RoundConsensus.GetJobDone(node, SrCommitment) || // is commitment already received?
 		sposWorker.Cns.Data == nil || // is consensus data not set?
-		!bytes.Equal(cnsDta.Data, *sposWorker.Cns.Data) { // is this the consesnus data of this round?
+		!bytes.Equal(cnsDta.Data, sposWorker.Cns.Data) { // is this the consesnus data of this round?
 		return false
 	}
 
@@ -789,10 +789,9 @@ func (sposWorker *SPOSConsensusWorker) ReceivedSignature(cnsDta *ConsensusData) 
 
 	if node == sposWorker.Cns.SelfId() || // is signature received from myself?
 		sposWorker.Cns.Status(SrSignature) == SsFinished || // is subround Signature already finished?
-		!sposWorker.Cns.IsValidatorInBitmap(node) || // isn't node in the bitmap group?
 		sposWorker.Cns.RoundConsensus.GetJobDone(node, SrSignature) || // is signature already received?
 		sposWorker.Cns.Data == nil || // is consensus data not set?
-		!bytes.Equal(cnsDta.Data, *sposWorker.Cns.Data) { // is this the consesnus data of this round?
+		!bytes.Equal(cnsDta.Data, sposWorker.Cns.Data) { // is this the consesnus data of this round?
 		return false
 	}
 
@@ -852,10 +851,10 @@ func (sposWorker *SPOSConsensusWorker) CheckIfBlockIsValid(receivedHeader *block
 	return true
 }
 
-// ShouldSynch method returns the synch state of the node. If it returns 'true', this means that the node
+// ShouldSync method returns the synch state of the node. If it returns 'true', this means that the node
 // is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
 // synched and it can participate to the consensus, if it is in the jobDone group of this round
-func (sposWorker *SPOSConsensusWorker) ShouldSynch() bool {
+func (sposWorker *SPOSConsensusWorker) ShouldSync() bool {
 	if sposWorker.Cns == nil ||
 		sposWorker.Cns.Chr == nil ||
 		sposWorker.Cns.Chr.Round() == nil {

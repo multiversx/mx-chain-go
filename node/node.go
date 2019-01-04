@@ -149,7 +149,7 @@ func (n *Node) StartConsensus() error {
 	sposWrk := n.createConsensusWorker(cns)
 	topic := n.createConsensusTopic(sposWrk)
 
-	n.messenger.AddTopic(topic)
+	_ = n.messenger.AddTopic(topic)
 	n.addSubroundsToChronology(sposWrk)
 
 	go sposWrk.Cns.Chr.StartRounds()
@@ -418,7 +418,13 @@ func (n *Node) SendTransaction(
 		Data:      []byte(transactionData),
 		Signature: []byte(signature),
 	}
+
 	topic := n.messenger.GetTopic(string(transactionTopic))
+
+	if topic == nil {
+		return nil, errors.New("could not get transaction topic")
+	}
+
 	err := topic.Broadcast(tx)
 	if err != nil {
 		return nil, errors.New("could not broadcast transaction: " + err.Error())
@@ -636,7 +642,8 @@ func WithElasticSubrounds(elasticSubrounds bool) Option {
 }
 
 func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
-	oldNounce := uint64(0)
+	// TODO: this method and its call should be removed after initial testing of aur first version of testnet
+	oldNonce := uint64(0)
 
 	for {
 		time.Sleep(100 * time.Millisecond)
@@ -646,8 +653,8 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 			continue
 		}
 
-		if currentBlock.Nonce > oldNounce {
-			oldNounce = currentBlock.Nonce
+		if currentBlock.Nonce > oldNonce {
+			oldNonce = currentBlock.Nonce
 			spew.Dump(currentBlock)
 			fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n",
 				sposWrk.Rounds, sposWrk.RoundsWithBlock, float64(sposWrk.RoundsWithBlock)*100/float64(sposWrk.Rounds))
@@ -656,5 +663,12 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 }
 
 func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
-	n.messenger.GetTopic(string(consensusTopic)).Broadcast(*cnsDta)
+	topic := n.messenger.GetTopic(string(consensusTopic))
+
+	if topic == nil {
+		fmt.Printf("could not get consensus topic\n")
+		return
+	}
+
+	topic.Broadcast(*cnsDta)
 }
