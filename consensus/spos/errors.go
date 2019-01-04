@@ -25,5 +25,29 @@ var ErrSelfNotFoundInConsensus = errors.New("self not found in consensus group")
 // ErrNilPublicKey is raised when a valid public key was expected but nil was used
 var ErrNilPublicKey = errors.New("public key is nil")
 
-// ErrNilPublicKey is raised when a valid public key was expected but nil was used
-var ErrNilPrivateKey = errors.New("public key is nil")
+// ErrNilPrivateKey is raised when a valid private key was expected but nil was used
+var ErrNilPrivateKey = errors.New("private key is nil")
+
+// ErrNilConsensusData is raised when valid consensus data was expected but nil was received
+var ErrNilConsensusData = errors.New("consensus data is nil")
+
+// ErrNilSignature is raised when a valid signature was expected but nil was used
+var ErrNilSignature = errors.New("signature is nil")
+
+// ErrNilKeyGenerator is raised when a valid key generator is expected but nil was used
+var ErrNilKeyGenerator = errors.New("key generator is nil")
+
+// ErrNilBlockHeader is raised when a valid block header is expected but nil was used
+var ErrNilBlockHeader = errors.New("block header is nil")
+
+// ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
+var ErrNilTxBlockBody = errors.New("tx block body is nil")
+
+// ErrNilOnBroadcastHeader is raised when a valid header broadcast function pointer is expected but nil used
+var ErrNilOnBroadcastHeader = errors.New("header broadcast function pointer is nil")
+
+// ErrNilOnBroadcastTxBlockBody is raised when a valid block broadcast function pointer is expected but nil used
+var ErrNilOnBroadcastTxBlockBody = errors.New("tx block body broadcast function pointer is nil")
+
+// ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
+var ErrNilMultiSigner = errors.New("multiSigner is nil")

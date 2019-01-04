@@ -63,7 +63,7 @@ func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transact
 	dest.GasPrice = src.GasPrice()
 	// GasLimit
 	dest.GasLimit = src.GasLimit()
-	// Data
+	// BlHeaderHash
 	dest.Data = src.Data()
 	// Signature
 	dest.Signature = src.Signature()

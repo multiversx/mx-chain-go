@@ -271,7 +271,7 @@ func TestAccountsDBRevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
-	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
+	fmt.Printf("BlHeaderHash root - 1-st account: %v\n", hrRoot1)
 
 	state2, err := adb.GetJournalizedAccount(adr2)
 	assert.Nil(t, err)
@@ -283,7 +283,7 @@ func TestAccountsDBRevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
+	fmt.Printf("BlHeaderHash root - 2-nd account: %v\n", hrRoot2)
 
 	//Test 2.1. test that hashes and snapshots ID are different
 	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
@@ -332,7 +332,7 @@ func TestAccountsDBRevertDataStepByStepWithCommitsAccountDataShouldWork(t *testi
 	hrRoot1 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
-	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
+	fmt.Printf("BlHeaderHash root - 1-st account: %v\n", hrRoot1)
 
 	state2, err := adb.GetJournalizedAccount(adr2)
 	assert.Nil(t, err)
@@ -344,7 +344,7 @@ func TestAccountsDBRevertDataStepByStepWithCommitsAccountDataShouldWork(t *testi
 	hrRoot2 := base64.StdEncoding.EncodeToString(state1.DataTrie().Root())
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
+	fmt.Printf("BlHeaderHash root - 2-nd account: %v\n", hrRoot2)
 
 	//Test 2.1. test that hashes and snapshots ID are different
 	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
@@ -367,7 +367,7 @@ func TestAccountsDBRevertDataStepByStepWithCommitsAccountDataShouldWork(t *testi
 	hrRoot2p1 := base64.StdEncoding.EncodeToString(state2.DataTrie().Root())
 
 	fmt.Printf("State root - modified 2-nd account: %v\n", hrCreated2p1)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2p1)
+	fmt.Printf("BlHeaderHash root - 2-nd account: %v\n", hrRoot2p1)
 
 	//Test 4.1 test that hashes are different
 	assert.NotEqual(t, hrCreated2p1, hrCreated2)
@@ -382,7 +382,7 @@ func TestAccountsDBRevertDataStepByStepWithCommitsAccountDataShouldWork(t *testi
 	hrCreated2Rev := base64.StdEncoding.EncodeToString(adb.RootHash())
 	hrRoot2Rev := base64.StdEncoding.EncodeToString(state2.DataTrie().Root())
 	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2Rev)
+	fmt.Printf("BlHeaderHash root - 2-nd account: %v\n", hrRoot2Rev)
 	assert.Equal(t, hrCommit, hrCreated2Rev)
 	assert.Equal(t, hrRoot2, hrRoot2Rev)
 }

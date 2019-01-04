@@ -19,6 +19,16 @@ func (rCns *RoundConsensus) ConsensusGroup() []string {
 	return rCns.consensusGroup
 }
 
+// ConsensusGroupIndex returns the index of given public key in the current consensus group
+func (rCns *RoundConsensus) ConsensusGroupIndex(pubKey string) (int, error) {
+	for i, pk := range rCns.consensusGroup {
+		if pk == pubKey {
+			return i, nil
+		}
+	}
+	return 0, ErrSelfNotFoundInConsensus
+}
+
 // IndexSelfConsensusGroup returns the index of self public key in current consensus group
 func (rCns *RoundConsensus) IndexSelfConsensusGroup() (int, error) {
 	for i, pubKey := range rCns.consensusGroup {

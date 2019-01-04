@@ -33,7 +33,7 @@ import (
 type DBWriteCache struct {
 	storer storage.Storer // Persistent storage for matured trie nodes
 
-	nodes  map[encoding.Hash]*cachedNode // Data and references relationships of a node
+	nodes  map[encoding.Hash]*cachedNode // BlHeaderHash and references relationships of a node
 	oldest encoding.Hash                 // Oldest tracked node, flush-list head
 	newest encoding.Hash                 // Newest tracked node, flush-list tail
 
@@ -42,11 +42,11 @@ type DBWriteCache struct {
 
 	gctime  time.Duration        // Time spent on garbage collection since last commit
 	gcnodes uint64               // Nodes garbage collected since last commit
-	gcsize  encoding.StorageSize // Data storage garbage collected since last commit
+	gcsize  encoding.StorageSize // BlHeaderHash storage garbage collected since last commit
 
 	flushtime  time.Duration        // Time spent on data flushing since last commit
 	flushnodes uint64               // Nodes flushed since last commit
-	flushsize  encoding.StorageSize // Data storage flushed since last commit
+	flushsize  encoding.StorageSize // BlHeaderHash storage flushed since last commit
 
 	nodesSize     encoding.StorageSize // Storage size of the nodes cache (exc. flushlist)
 	preimagesSize encoding.StorageSize // Storage size of the preimages cache

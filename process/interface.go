@@ -21,6 +21,9 @@ type TransactionProcessor interface {
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
 	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
+	ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
+	CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error
+	RevertAccountState()
 	CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody
 	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
 	RemoveBlockTxsFromPool(body *block.TxBlockBody) error

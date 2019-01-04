@@ -17,6 +17,13 @@ type PublicKeyMock struct {
 	VerifyMock      func(data []byte, signature []byte) (bool, error)
 }
 
+// KeyGenMock mocks a key generation implementation
+type KeyGenMock struct {
+	GeneratePairMock            func() (crypto.PrivateKey, crypto.PublicKey)
+	PrivateKeyFromByteArrayMock func(b []byte) (crypto.PrivateKey, error)
+	PublicKeyFromByteArrayMock  func(b []byte) (crypto.PublicKey, error)
+}
+
 // Sign mocks signing with a private key
 func (privKey *PrivateKeyMock) Sign(message []byte) ([]byte, error) {
 	return privKey.SignMock(message)
@@ -40,4 +47,19 @@ func (pubKey *PublicKeyMock) ToByteArray() ([]byte, error) {
 // Verify mocks verifying a signature with a public key
 func (pubKey *PublicKeyMock) Verify(data []byte, signature []byte) (bool, error) {
 	return pubKey.VerifyMock(data, signature)
+}
+
+// GeneratePair generates a pair of private and public keys
+func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
+	return keyGen.GeneratePairMock()
+}
+
+// PrivateKeyFromByteArray generates the private key from it's byte array representation
+func (keyGen *KeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
+	return keyGen.PrivateKeyFromByteArrayMock(b)
+}
+
+// PublicKeyFromByteArrayMock generate a public key from it's byte array representation
+func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
+	return keyGen.PublicKeyFromByteArrayMock(b)
 }

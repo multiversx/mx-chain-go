@@ -1,5 +1,9 @@
 package crypto
 
+import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+)
+
 // KeyGenerator is an interface for generating different types of cryptographic keys
 type KeyGenerator interface {
 	GeneratePair() (PrivateKey, PublicKey)
@@ -31,14 +35,24 @@ type PublicKey interface {
 
 // MultiSigner provides functionality for multi-signing a message
 type MultiSigner interface {
+	// NewMultiSiger instantiates another multiSigner of the same type
+	NewMultiSiger(hasher hashing.Hasher, pubKeys []string, key PrivateKey, index uint16) (MultiSigner, error)
 	// MultiSigVerifier Provides functionality for verifying a multi-signature
 	MultiSigVerifier
 	// CreateCommitment creates a secret commitment and the corresponding public commitment point
 	CreateCommitment() (commSecret []byte, commitment []byte, err error)
+	// AddCommitmentHash adds a commitment hash to the list with the specified position
+	AddCommitmentHash(index uint16, commHash []byte) error
+	// CommitmentHash returns the commitment hash from the list with the specified position
+	CommitmentHash(index uint16) ([]byte, error)
+	// SetCommitmentSecret sets the committment secret
+	SetCommitmentSecret(commSecret []byte) error
 	// CommitmentBitmap returns the bitmap with the set
 	CommitmentBitmap() []byte
-	// AddCommitment adds a commitment to the list on the specified position
+	// AddCommitment adds a commitment to the list with the specified position
 	AddCommitment(index uint16, value []byte) error
+	// Commitment returns the commitment from the list with the specified position
+	Commitment(index uint16) ([]byte, error)
 	// AggregateCommitments aggregates the list of commitments
 	AggregateCommitments() ([]byte, error)
 	// SetAggCommitment sets the aggregated commitment for the marked signers in bitmap
@@ -59,7 +73,7 @@ type MultiSigner interface {
 type MultiSigVerifier interface {
 	// SetMessage sets the message to be multi-signed upon
 	SetMessage(msg []byte)
-	// SetSigBitmap sets the bitmap for the participating signers
+	// SetBitmap sets the bitmap for the participating signers
 	SetSigBitmap([]byte) error
 	// SetAggregatedSig sets the aggregated signature
 	SetAggregatedSig([]byte) error
