@@ -549,7 +549,7 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestGenerateTransaction_SignTxShouldSetCorrectSignature(t *testing.T) {
+func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 	t.Parallel()
 	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := getAddressConverter()
@@ -571,7 +571,7 @@ func TestGenerateTransaction_SignTxShouldSetCorrectSignature(t *testing.T) {
 	assert.Equal(t, []byte{1}, tx.Signature)
 }
 
-func TestGenerateTransaction_SignTxShouldSetCorrectNonce(t *testing.T) {
+func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	t.Parallel()
 	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := getAddressConverter()
