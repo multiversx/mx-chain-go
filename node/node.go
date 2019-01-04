@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -28,6 +29,8 @@ const (
 	transactionTopic topicName = "tx"
 	consensusTopic   topicName = "cns"
 )
+
+var log = logger.NewDefaultLogger()
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -149,7 +152,12 @@ func (n *Node) StartConsensus() error {
 	sposWrk := n.createConsensusWorker(cns)
 	topic := n.createConsensusTopic(sposWrk)
 
-	_ = n.messenger.AddTopic(topic)
+	err := n.messenger.AddTopic(topic)
+
+	if err != nil {
+		log.Debug(fmt.Sprintf(err.Error()))
+	}
+
 	n.addSubroundsToChronology(sposWrk)
 
 	go sposWrk.Cns.Chr.StartRounds()
@@ -666,9 +674,13 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 	topic := n.messenger.GetTopic(string(consensusTopic))
 
 	if topic == nil {
-		fmt.Printf("could not get consensus topic\n")
+		log.Debug(fmt.Sprintf("could not get consensus topic"))
 		return
 	}
 
-	topic.Broadcast(*cnsDta)
+	err := topic.Broadcast(*cnsDta)
+
+	if err != nil {
+		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
+	}
 }
