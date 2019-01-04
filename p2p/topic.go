@@ -29,7 +29,7 @@ type Topic struct {
 	// ObjTemplate is used as a template to generate new objects whenever a new message is received
 	ObjTemplate             Creator
 	marsh                   marshal.Marshalizer
-	objPump                 chan MessageInfo
+	objChan                 chan MessageInfo
 	mutEventBus             sync.RWMutex
 	eventBusDataRcvHandlers []DataReceivedHandler
 	// SendData will be called by Topic struct whenever a user of this struct tries to send data to other peers
@@ -53,7 +53,7 @@ type MessageInfo struct {
 // NewTopic creates a new Topic struct
 func NewTopic(name string, objTemplate Creator, marsh marshal.Marshalizer) *Topic {
 	topic := Topic{name: name, ObjTemplate: objTemplate, marsh: marsh}
-	topic.objPump = make(chan MessageInfo, topicChannelBufferSize)
+	topic.objChan = make(chan MessageInfo, topicChannelBufferSize)
 
 	go topic.processData()
 
@@ -104,7 +104,7 @@ func (t *Topic) NewObjReceived(obj Creator, peerID string) error {
 	}
 
 	//add to the channel so it can be consumed async
-	t.objPump <- MessageInfo{Data: obj, Peer: peerID, CurrentPeer: t.CurrentPeer.Pretty()}
+	t.objChan <- MessageInfo{Data: obj, Peer: peerID, CurrentPeer: t.CurrentPeer.Pretty()}
 	return nil
 }
 
@@ -146,7 +146,7 @@ func (t *Topic) BroadcastBuff(payload []byte) error {
 func (t *Topic) processData() {
 	for {
 		select {
-		case obj := <-t.objPump:
+		case obj := <-t.objChan:
 			//a new object is in pump, it has been consumed,
 			//call each event handler from the list
 			t.mutEventBus.RLock()
