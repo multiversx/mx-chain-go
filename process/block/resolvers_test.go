@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//------- HeaderResolver
+//------- headerResolver
 
 // NewHeaderResolver
 
@@ -294,8 +294,10 @@ func TestHeaderResolver_ResolveHdrRequestHashTypeFoundInHdrPoolShouldRetValue(t 
 
 	buff, err := hdrRes.ResolveHdrRequest(process.RequestData{Type: process.HashType, Value: requestedData})
 	assert.Nil(t, err)
-	buffWhatToExpect, _ := marshalizer.Marshal(resolvedData)
-	assert.Equal(t, buffWhatToExpect, buff)
+
+	recoveredResolved := make([]byte, 0)
+	err = marshalizer.Unmarshal(&recoveredResolved, buff)
+	assert.Equal(t, resolvedData, recoveredResolved)
 }
 
 func TestHeaderResolver_ResolveHdrRequestHashTypeFoundInHdrPoolMarshalizerFailsShouldErr(t *testing.T) {
@@ -328,8 +330,10 @@ func TestHeaderResolver_ResolveHdrRequestHashTypeFoundInHdrPoolMarshalizerFailsS
 		return &mock.Uint64CacherStub{}
 	}
 
-	marshalizer := &mock.MarshalizerMock{}
-	marshalizer.Fail = true
+	marshalizer := &mock.MarshalizerStub{}
+	marshalizer.MarshalCalled = func(obj interface{}) (i []byte, e error) {
+		return nil, errors.New("MarshalizerMock generic error")
+	}
 
 	hdrRes, _ := block.NewHeaderResolver(
 		topicResolver,
@@ -344,7 +348,55 @@ func TestHeaderResolver_ResolveHdrRequestHashTypeFoundInHdrPoolMarshalizerFailsS
 	assert.Nil(t, buff)
 }
 
-func TestHeaderResolver_ResolveHdrRequestHashTypeNotFoundInHdrPoolRetFromStorageShouldRetVal(t *testing.T) {
+func TestHeaderResolver_ResolveHdrRequestRetFromStorageShouldRetVal(t *testing.T) {
+	t.Parallel()
+
+	topicResolver := &mock.ResolverStub{}
+	topicResolver.SetResolverHandlerCalled = func(i func(rd process.RequestData) ([]byte, error)) {
+	}
+
+	requestedData := []byte("aaaa")
+	resolvedData := []byte("bbbb")
+
+	transientPool := &mock.TransientDataPoolStub{}
+	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		headers := &mock.ShardedDataStub{}
+
+		headers.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+			return make(map[uint32]interface{})
+		}
+
+		return headers
+	}
+	transientPool.HeadersNoncesCalled = func() data.Uint64Cacher {
+		return &mock.Uint64CacherStub{}
+	}
+
+	store := &mock.StorerStub{}
+	store.GetCalled = func(key []byte) (i []byte, e error) {
+		if bytes.Equal(key, requestedData) {
+			return resolvedData, nil
+		}
+
+		return nil, nil
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	marshalizer.Fail = true
+
+	hdrRes, _ := block.NewHeaderResolver(
+		topicResolver,
+		transientPool,
+		store,
+		marshalizer,
+		mock.NewNonceHashConverterMock(),
+	)
+
+	buff, _ := hdrRes.ResolveHdrRequest(process.RequestData{Type: process.HashType, Value: requestedData})
+	assert.Equal(t, resolvedData, buff)
+}
+
+func TestHeaderResolver_ResolveHdrRequestRetFromStorageCheckRetError(t *testing.T) {
 	t.Parallel()
 
 	topicResolver := &mock.ResolverStub{}
@@ -388,9 +440,8 @@ func TestHeaderResolver_ResolveHdrRequestHashTypeNotFoundInHdrPoolRetFromStorage
 		mock.NewNonceHashConverterMock(),
 	)
 
-	buff, err := hdrRes.ResolveHdrRequest(process.RequestData{Type: process.HashType, Value: requestedData})
+	_, err := hdrRes.ResolveHdrRequest(process.RequestData{Type: process.HashType, Value: requestedData})
 	assert.Equal(t, "just checking output error", err.Error())
-	assert.Equal(t, resolvedData, buff)
 }
 
 func TestHeaderResolver_ResolveHdrRequestNonceTypeInvalidSliceShouldErr(t *testing.T) {
@@ -515,12 +566,72 @@ func TestHeaderResolver_ResolveHdrRequestNonceTypeFoundInHdrNoncePoolShouldRetFr
 		Type:  process.NonceType,
 		Value: nonceConverter.ToByteSlice(requestedNonce)})
 	assert.Nil(t, err)
-	buffWhatToExpect, _ := marshalizer.Marshal(resolvedData)
-	assert.Equal(t, buffWhatToExpect, buff)
 
+	recoveredResolved := make([]byte, 0)
+	err = marshalizer.Unmarshal(&recoveredResolved, buff)
+	assert.Equal(t, resolvedData, recoveredResolved)
 }
 
 func TestHeaderResolver_ResolveHdrRequestNonceTypeFoundInHdrNoncePoolShouldRetFromStorage(t *testing.T) {
+	t.Parallel()
+
+	requestedNonce := uint64(67)
+	resolvedData := []byte("bbbb")
+
+	topicResolver := &mock.ResolverStub{}
+	topicResolver.SetResolverHandlerCalled = func(i func(rd process.RequestData) ([]byte, error)) {
+	}
+
+	transientPool := &mock.TransientDataPoolStub{}
+	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		headers := &mock.ShardedDataStub{}
+
+		headers.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+			return make(map[uint32]interface{})
+		}
+
+		return headers
+	}
+	transientPool.HeadersNoncesCalled = func() data.Uint64Cacher {
+		headersNonces := &mock.Uint64CacherStub{}
+		headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
+			if u == requestedNonce {
+				return []byte("aaaa"), true
+			}
+
+			return nil, false
+		}
+
+		return headersNonces
+	}
+
+	nonceConverter := mock.NewNonceHashConverterMock()
+	marshalizer := &mock.MarshalizerMock{}
+
+	store := &mock.StorerStub{}
+	store.GetCalled = func(key []byte) (i []byte, e error) {
+		if bytes.Equal(key, []byte("aaaa")) {
+			return resolvedData, nil
+		}
+
+		return nil, nil
+	}
+
+	hdrRes, _ := block.NewHeaderResolver(
+		topicResolver,
+		transientPool,
+		store,
+		marshalizer,
+		nonceConverter,
+	)
+
+	buff, _ := hdrRes.ResolveHdrRequest(process.RequestData{
+		Type:  process.NonceType,
+		Value: nonceConverter.ToByteSlice(requestedNonce)})
+	assert.Equal(t, resolvedData, buff)
+}
+
+func TestHeaderResolver_ResolveHdrRequestNonceTypeFoundInHdrNoncePoolCheckRetErr(t *testing.T) {
 	t.Parallel()
 
 	requestedNonce := uint64(67)
@@ -573,12 +684,10 @@ func TestHeaderResolver_ResolveHdrRequestNonceTypeFoundInHdrNoncePoolShouldRetFr
 		nonceConverter,
 	)
 
-	buff, err := hdrRes.ResolveHdrRequest(process.RequestData{
+	_, err := hdrRes.ResolveHdrRequest(process.RequestData{
 		Type:  process.NonceType,
 		Value: nonceConverter.ToByteSlice(requestedNonce)})
 	assert.Equal(t, "just checking output error", err.Error())
-	assert.Equal(t, resolvedData, buff)
-
 }
 
 // Requests
@@ -665,7 +774,7 @@ func TestHeaderResolver_RequestHdrFromNonceShouldWork(t *testing.T) {
 	}, requested)
 }
 
-//------- GenericBlockBodyResolver
+//------- genericBlockBodyResolver
 
 // NewBlockBodyResolver
 
@@ -749,7 +858,7 @@ func TestNewGenericBlockBodyResolver_OkValsShouldWork(t *testing.T) {
 
 // resolveBlockBodyRequest
 
-func TestGenericBlockBodyResolver_ResolveBlockBodyRequestRequestWrongTypeShouldErr(t *testing.T) {
+func TestGenericBlockBodyResolver_ResolveBlockBodyRequestWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	topicResolver := &mock.ResolverStub{}
@@ -847,8 +956,10 @@ func TestGenericBlockBodyResolver_ResolveBlockBodyRequestFoundInPoolMarshalizerF
 		return nil, false
 	}
 
-	marshalizer := &mock.MarshalizerMock{}
-	marshalizer.Fail = true
+	marshalizer := &mock.MarshalizerStub{}
+	marshalizer.MarshalCalled = func(obj interface{}) (i []byte, e error) {
+		return nil, errors.New("MarshalizerMock generic error")
+	}
 
 	gbbRes, _ := block.NewGenericBlockBodyResolver(
 		topicResolver,

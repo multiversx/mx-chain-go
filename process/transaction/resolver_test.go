@@ -169,15 +169,17 @@ func TestTxResolver_ResolveTxRequestFoundInTxPoolShouldRetVal(t *testing.T) {
 	assert.Equal(t, buffToExpect, buff)
 }
 
-func TestTxResolver_ResolveTxRequestFoundInTxPoolMarshalizerFailShouldRetNil(t *testing.T) {
+func TestTxResolver_ResolveTxRequestFoundInTxPoolMarshalizerFailShouldRetNilAndErr(t *testing.T) {
 	t.Parallel()
 
 	res := &mock.ResolverStub{}
 	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
 	}
 
-	marshalizer := &mock.MarshalizerMock{}
-	marshalizer.Fail = true
+	marshalizer := &mock.MarshalizerStub{}
+	marshalizer.MarshalCalled = func(obj interface{}) (i []byte, e error) {
+		return nil, errors.New("MarshalizerMock generic error")
+	}
 
 	txPool := &mock.ShardedDataStub{}
 	txPool.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
@@ -224,6 +226,45 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetValAndError(t *test
 	txStorage := &mock.StorerStub{}
 	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
+			return expectedBuff, nil
+		}
+
+		return nil, nil
+	}
+
+	txRes, _ := NewTxResolver(
+		res,
+		txPool,
+		txStorage,
+		marshalizer,
+	)
+
+	buff, _ := txRes.ResolveTxRequest(process.RequestData{Type: process.HashType, Value: []byte("aaa")})
+
+	assert.Equal(t, expectedBuff, buff)
+
+}
+
+func TestTxResolver_ResolveTxRequestFoundInTxStorageCheckRetError(t *testing.T) {
+	t.Parallel()
+
+	res := &mock.ResolverStub{}
+	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	txPool := &mock.ShardedDataStub{}
+	txPool.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+		//not found in txPool
+		return nil
+	}
+
+	expectedBuff := []byte("bbb")
+
+	txStorage := &mock.StorerStub{}
+	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
+		if bytes.Equal([]byte("aaa"), key) {
 			return expectedBuff, errors.New("just checking output error")
 		}
 
@@ -237,9 +278,7 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetValAndError(t *test
 		marshalizer,
 	)
 
-	buff, err := txRes.ResolveTxRequest(process.RequestData{Type: process.HashType, Value: []byte("aaa")})
-
-	assert.Equal(t, expectedBuff, buff)
+	_, err := txRes.ResolveTxRequest(process.RequestData{Type: process.HashType, Value: []byte("aaa")})
 	assert.Equal(t, "just checking output error", err.Error())
 
 }

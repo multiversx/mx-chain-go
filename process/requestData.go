@@ -13,16 +13,16 @@ func (rdt RequestDataType) String() string {
 		return "hash type"
 	case NonceType:
 		return "nonce type"
+	default:
+		return fmt.Sprintf("unknown type %d", rdt)
 	}
-
-	return fmt.Sprintf("unknown type %d", rdt)
 }
 
 const (
 	// HashType indicates that the request data object is of type hash
-	HashType RequestDataType = 0
+	HashType RequestDataType = iota + 1
 	// NonceType indicates that the request data object is of type nonce (uint64)
-	NonceType RequestDataType = 1
+	NonceType
 )
 
 // RequestData holds the requested data

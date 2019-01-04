@@ -251,3 +251,29 @@ func TestTopicResolver_RequestDataShouldWork(t *testing.T) {
 		}))
 	assert.True(t, wasCalled)
 }
+
+func TestTopicResolver_ResolverHandler(t *testing.T) {
+	t.Parallel()
+
+	mes := &mock.MessengerStub{}
+
+	resMarshalizer := &mock.MarshalizerMock{}
+
+	topic := p2p.NewTopic("test", &mock.StringCreator{}, &mock.MarshalizerMock{})
+
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return topic
+	}
+
+	res, _ := resolver.NewTopicResolver("test", mes, resMarshalizer)
+
+	//first test for nil
+	assert.Nil(t, res.ResolverHandler())
+
+	res.SetResolverHandler(func(rd process.RequestData) (bytes []byte, e error) {
+		return nil, nil
+	})
+
+	//second, test is not nil
+	assert.NotNil(t, res.ResolverHandler())
+}

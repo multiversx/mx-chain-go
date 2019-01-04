@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-// TxResolver is a wrapper over Resolver that is specialized in resolving transaction requests
-type TxResolver struct {
+// txResolver is a wrapper over Resolver that is specialized in resolving transaction requests
+type txResolver struct {
 	process.Resolver
 	txPool      data.ShardedDataCacherNotifier
 	txStorage   storage.Storer
@@ -21,7 +21,7 @@ func NewTxResolver(
 	txPool data.ShardedDataCacherNotifier,
 	txStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
-) (*TxResolver, error) {
+) (*txResolver, error) {
 
 	if resolver == nil {
 		return nil, process.ErrNilResolver
@@ -39,7 +39,7 @@ func NewTxResolver(
 		return nil, process.ErrNilMarshalizer
 	}
 
-	txResolver := &TxResolver{
+	txResolver := &txResolver{
 		Resolver:    resolver,
 		txPool:      txPool,
 		txStorage:   txStorage,
@@ -50,7 +50,7 @@ func NewTxResolver(
 	return txResolver, nil
 }
 
-func (txRes *TxResolver) resolveTxRequest(rd process.RequestData) ([]byte, error) {
+func (txRes *txResolver) resolveTxRequest(rd process.RequestData) ([]byte, error) {
 	if rd.Type != process.HashType {
 		return nil, process.ErrResolveNotHashType
 	}
@@ -76,7 +76,7 @@ func (txRes *TxResolver) resolveTxRequest(rd process.RequestData) ([]byte, error
 }
 
 // RequestTransactionFromHash requests a transaction from other peers having input the tx hash
-func (txRes *TxResolver) RequestTransactionFromHash(hash []byte) error {
+func (txRes *txResolver) RequestTransactionFromHash(hash []byte) error {
 	return txRes.RequestData(process.RequestData{
 		Type:  process.HashType,
 		Value: hash,

@@ -25,7 +25,7 @@ type DataReceivedHandler func(name string, data interface{}, msgInfo *MessageInf
 //  - the method Broadcast is used to send messages containing object's serialized data to other peers
 type Topic struct {
 	// Name of the topic
-	Name string
+	name string
 	// ObjTemplate is used as a template to generate new objects whenever a new message is received
 	ObjTemplate             Creator
 	marsh                   marshal.Marshalizer
@@ -52,7 +52,7 @@ type MessageInfo struct {
 
 // NewTopic creates a new Topic struct
 func NewTopic(name string, objTemplate Creator, marsh marshal.Marshalizer) *Topic {
-	topic := Topic{Name: name, ObjTemplate: objTemplate, marsh: marsh}
+	topic := Topic{name: name, ObjTemplate: objTemplate, marsh: marsh}
 	topic.objPump = make(chan MessageInfo, topicChannelBufferSize)
 
 	go topic.processData()
@@ -116,7 +116,7 @@ func (t *Topic) Broadcast(data interface{}) error {
 	}
 
 	if t.SendData == nil {
-		return errors.New("send to nil the assembled message?")
+		return errors.New("nil SendData handler")
 	}
 
 	//assemble the message
@@ -151,7 +151,7 @@ func (t *Topic) processData() {
 			//call each event handler from the list
 			t.mutEventBus.RLock()
 			for i := 0; i < len(t.eventBusDataRcvHandlers); i++ {
-				t.eventBusDataRcvHandlers[i](t.Name, obj.Data, &obj)
+				t.eventBusDataRcvHandlers[i](t.name, obj.Data, &obj)
 			}
 			t.mutEventBus.RUnlock()
 		}
@@ -195,4 +195,9 @@ func (t *Topic) SendRequest(hash []byte) error {
 	}
 
 	return t.Request(hash)
+}
+
+// Name returns the topic name
+func (t *Topic) Name() string {
+	return t.name
 }

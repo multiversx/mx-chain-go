@@ -75,12 +75,11 @@ func TestTopic_CreateObjectEmptyDataShouldErr(t *testing.T) {
 func TestTopic_CreateObjectMarshalizerFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
+	marshalizer := &mock.MarshalizerMock{}
 
-	topic.Marsh().(*mock.MarshalizerMock).Fail = true
-	defer func() {
-		topic.Marsh().(*mock.MarshalizerMock).Fail = false
-	}()
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, marshalizer)
+
+	marshalizer.Fail = true
 
 	_, err := topic.CreateObject(make([]byte, 1))
 
@@ -157,16 +156,15 @@ func TestTopic_BroadcastNilDataShouldErr(t *testing.T) {
 func TestTopic_BroadcastMarshalizerFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
+	marshalizer := &mock.MarshalizerMock{}
+
+	topic := p2p.NewTopic("test", &testTopicStringCreator{}, marshalizer)
 
 	topic.SendData = func(data []byte) error {
 		return nil
 	}
 
-	topic.Marsh().(*mock.MarshalizerMock).Fail = true
-	defer func() {
-		topic.Marsh().(*mock.MarshalizerMock).Fail = false
-	}()
+	marshalizer.Fail = true
 
 	err := topic.Broadcast("a string")
 
@@ -189,7 +187,7 @@ func TestTopic_BroadcastSendOkShouldWork(t *testing.T) {
 	topic := p2p.NewTopic("test", &testTopicStringCreator{}, &mock.MarshalizerMock{})
 
 	topic.SendData = func(data []byte) error {
-		if topic.Name != "test" {
+		if topic.Name() != "test" {
 			return errors.New("should have been test")
 		}
 
@@ -234,7 +232,7 @@ func TestTopic_BroadcastBuffSendOkShouldWork(t *testing.T) {
 	topic := p2p.NewTopic("test", &testTopicStringCreator{}, marshalizer)
 
 	topic.SendData = func(data []byte) error {
-		if topic.Name != "test" {
+		if topic.Name() != "test" {
 			return errors.New("should have been test")
 		}
 
