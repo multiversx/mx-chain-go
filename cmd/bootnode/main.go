@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -55,7 +56,7 @@ var uniqueID = ""
 type initialNode struct {
 	Address string `json:"address"`
 	PubKey  string `json:"pubkey"`
-	Balance uint64 `json:"balance"`
+	Balance int64 `json:"balance"`
 }
 
 type genesis struct {
@@ -199,6 +200,14 @@ func (g *genesis) initialNodesPubkeys() []string {
 	return pubKeys
 }
 
+func (g *genesis) initialNodesBalances() map[string]big.Int {
+	var pubKeys = make(map[string]big.Int)
+	for _, in := range g.InitialNodes {
+		pubKeys[in.PubKey] = *big.NewInt(in.Balance)
+	}
+	return pubKeys
+}
+
 func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, syncer ntp.SyncTimer, log *logger.Logger) (*node.Node, error) {
 	appContext := context.Background()
 
@@ -253,6 +262,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithMaxAllowedPeers(ctx.GlobalInt(flags.MaxAllowedPeers.Name)),
 		node.WithPort(ctx.GlobalInt(flags.Port.Name)),
 		node.WithInitialNodesPubKeys(genesisConfig.initialNodesPubkeys()),
+		node.WithInitialNodesBalances(genesisConfig.initialNodesBalances()),
 		node.WithAddressConverter(addressConverter),
 		node.WithAccountsAdapter(accountsAdapter),
 		node.WithBlockChain(blkc),
