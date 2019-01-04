@@ -36,6 +36,8 @@ type Config struct {
 
 // StorageService is the interface for blockChain storage unit provided services
 type StorageService interface {
+	// GetStorer returns the storer from the chain map
+	GetStorer(unitType UnitType) storage.Storer
 	// Has returns true if the key is found in the selected Unit or false otherwise
 	Has(unitType UnitType, key []byte) (bool, error)
 	// Get returns the value for the given key if found in the selected storage unit, nil otherwise
@@ -118,6 +120,15 @@ func NewBlockChain(
 
 	return data, nil
 
+}
+
+// GetStorer returns the storer from the chain map or nil if the storer was not found
+func (bc *BlockChain) GetStorer(unitType UnitType) storage.Storer {
+	bc.lock.RLock()
+	storer := bc.chain[unitType]
+	bc.lock.RUnlock()
+
+	return storer
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise

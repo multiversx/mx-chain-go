@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -240,9 +241,16 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	transient, err := createDataPoolFromConfig()
+	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	blockProcessor := block.NewBlockProcessor(transient.Transactions(), hasher, marshalizer, transactionProcessor, accountsAdapter, &sharding.OneShardCoordinator{})
+	transient, err := createDataPoolFromConfig(uint64ByteSliceConverter)
+	if err != nil {
+		return nil, errors.New("could not create transient data pool: " + err.Error())
+	}
+
+	shardCoordinator := &sharding.OneShardCoordinator{}
+
+	blockProcessor := block.NewBlockProcessor(transient.Transactions(), hasher, marshalizer, transactionProcessor, accountsAdapter, shardCoordinator)
 
 	nd, err := node.NewNode(
 		node.WithHasher(hasher),
@@ -262,6 +270,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
 		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
 		node.WithDataPool(transient),
+		node.WithShardCoordinator(shardCoordinator),
 	)
 
 	if err != nil {
@@ -302,6 +311,11 @@ func getSk(ctx *cli.Context) ([]byte, error) {
 
 func loadSkPk(nd *node.Node, sk []byte, log *logger.Logger) {
 	generator := schnorr.NewKeyGenerator()
+	err := nd.ApplyOptions(node.WithSingleSignKeyGenerator(generator))
+	if err != nil {
+		log.Error("error applying option with single sign key generator: " + err.Error())
+	}
+
 	secretKey, err := generator.PrivateKeyFromByteArray(sk)
 	if err == nil {
 		err = nd.ApplyOptions(node.WithPrivateKey(secretKey))
@@ -391,7 +405,7 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 	}
 }
 
-func createDataPoolFromConfig() (data.TransientDataHolder, error) {
+func createDataPoolFromConfig(uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter) (data.TransientDataHolder, error) {
 	txPool, err := shardedData.NewShardedData(storage.CacheConfig{Type: storage.LRUCache, Size: 10000})
 	if err != nil {
 		return nil, err
@@ -406,7 +420,7 @@ func createDataPoolFromConfig() (data.TransientDataHolder, error) {
 	if err != nil {
 		return nil, err
 	}
-	hdrNonces, err := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	hdrNonces, err := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSliceConverter)
 	if err != nil {
 		return nil, err
 	}

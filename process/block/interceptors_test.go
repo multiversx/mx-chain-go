@@ -269,7 +269,6 @@ func TestNewBlockBodyInterceptor_NilMessengerShouldErr(t *testing.T) {
 		nil,
 		cache,
 		mock.HasherMock{},
-		NewInterceptedTxBlockBody(),
 		mock.NewOneShardCoordinatorMock())
 
 	assert.Equal(t, process.ErrNilInterceptor, err)
@@ -285,7 +284,6 @@ func TestNewBlockBodyInterceptor_NilPoolShouldErr(t *testing.T) {
 		interceptor,
 		nil,
 		mock.HasherMock{},
-		NewInterceptedTxBlockBody(),
 		mock.NewOneShardCoordinatorMock())
 
 	assert.Equal(t, process.ErrNilCacher, err)
@@ -302,27 +300,9 @@ func TestNewBlockBodyInterceptor_NilHasherShouldErr(t *testing.T) {
 		interceptor,
 		cache,
 		nil,
-		NewInterceptedTxBlockBody(),
 		mock.NewOneShardCoordinatorMock())
 
 	assert.Equal(t, process.ErrNilHasher, err)
-	assert.Nil(t, gbbi)
-}
-
-func TestNewBlockBodyInterceptor_NilTemplateObjectShouldErr(t *testing.T) {
-	t.Parallel()
-
-	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{}
-
-	gbbi, err := NewGenericBlockBodyInterceptor(
-		interceptor,
-		cache,
-		mock.HasherMock{},
-		nil,
-		mock.NewOneShardCoordinatorMock())
-
-	assert.Equal(t, process.ErrNilTemplateObj, err)
 	assert.Nil(t, gbbi)
 }
 
@@ -336,7 +316,6 @@ func TestNewBlockBodyInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 		interceptor,
 		cache,
 		mock.HasherMock{},
-		NewInterceptedTxBlockBody(),
 		nil)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -355,7 +334,6 @@ func TestNewBlockBodyInterceptor_OkValsShouldWork(t *testing.T) {
 		interceptor,
 		cache,
 		mock.HasherMock{},
-		NewInterceptedTxBlockBody(),
 		mock.NewOneShardCoordinatorMock())
 
 	assert.Nil(t, err)
@@ -376,7 +354,6 @@ func TestBlockBodyInterceptor_ProcessNilHdrShouldErr(t *testing.T) {
 		interceptor,
 		cache,
 		mock.HasherMock{},
-		NewInterceptedTxBlockBody(),
 		mock.NewOneShardCoordinatorMock())
 
 	assert.Equal(t, process.ErrNilBlockBody, gbbi.ProcessBodyBlock(nil, make([]byte, 0)))
@@ -394,7 +371,6 @@ func TestBlockBodyInterceptor_ProcessNilDataToProcessShouldErr(t *testing.T) {
 		interceptor,
 		cache,
 		mock.HasherMock{},
-		NewInterceptedTxBlockBody(),
 		mock.NewOneShardCoordinatorMock())
 
 	assert.Equal(t, process.ErrNilDataToProcess,
@@ -413,7 +389,6 @@ func TestBlockBodyInterceptor_ProcessHdrWrongTypeOfNewerShouldErr(t *testing.T) 
 		interceptor,
 		cache,
 		mock.HasherMock{},
-		NewInterceptedTxBlockBody(),
 		mock.NewOneShardCoordinatorMock())
 
 	assert.Equal(t, process.ErrBadInterceptorTopicImplementation,
@@ -432,7 +407,6 @@ func TestBlockBodyInterceptor_ProcessHdrSanityCheckFailedShouldErr(t *testing.T)
 		interceptor,
 		cache,
 		mock.HasherMock{},
-		NewInterceptedTxBlockBody(),
 		mock.NewOneShardCoordinatorMock())
 
 	assert.Equal(t, process.ErrNilRootHash,
@@ -461,7 +435,6 @@ func TestBlockBodyInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
 		interceptor,
 		cache,
 		mock.HasherMock{},
-		NewInterceptedTxBlockBody(),
 		mock.NewOneShardCoordinatorMock())
 
 	miniBlock := block2.MiniBlock{}

@@ -47,6 +47,11 @@ func (ef *ElrondNodeFacade) StartNode() error {
 
 	ef.node.P2PBootstrap()
 
+	err = ef.node.BindInterceptorsResolvers()
+	if err != nil {
+		return err
+	}
+
 	err = ef.node.StartConsensus()
 	return err
 }
