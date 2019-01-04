@@ -25,11 +25,11 @@ type DataReceivedHandler func(name string, data interface{}, msgInfo *MessageInf
 //  - the method Broadcast is used to send messages containing object's serialized data to other peers
 type Topic struct {
 	// Name of the topic
-	Name string
+	name string
 	// ObjTemplate is used as a template to generate new objects whenever a new message is received
 	ObjTemplate             Creator
 	marsh                   marshal.Marshalizer
-	objPump                 chan MessageInfo
+	objChan                 chan MessageInfo
 	mutEventBus             sync.RWMutex
 	eventBusDataRcvHandlers []DataReceivedHandler
 	// SendData will be called by Topic struct whenever a user of this struct tries to send data to other peers
@@ -37,7 +37,7 @@ type Topic struct {
 	SendData                 func(data []byte) error
 	RegisterTopicValidator   func(v pubsub.Validator) error
 	UnregisterTopicValidator func() error
-	ResolveRequest           func(hash []byte) Creator
+	ResolveRequest           func(hash []byte) []byte
 	Request                  func(hash []byte) error
 	CurrentPeer              peer.ID
 }
@@ -52,8 +52,8 @@ type MessageInfo struct {
 
 // NewTopic creates a new Topic struct
 func NewTopic(name string, objTemplate Creator, marsh marshal.Marshalizer) *Topic {
-	topic := Topic{Name: name, ObjTemplate: objTemplate, marsh: marsh}
-	topic.objPump = make(chan MessageInfo, topicChannelBufferSize)
+	topic := Topic{name: name, ObjTemplate: objTemplate, marsh: marsh}
+	topic.objChan = make(chan MessageInfo, topicChannelBufferSize)
 
 	go topic.processData()
 
@@ -104,7 +104,7 @@ func (t *Topic) NewObjReceived(obj Creator, peerID string) error {
 	}
 
 	//add to the channel so it can be consumed async
-	t.objPump <- MessageInfo{Data: obj, Peer: peerID, CurrentPeer: t.CurrentPeer.Pretty()}
+	t.objChan <- MessageInfo{Data: obj, Peer: peerID, CurrentPeer: t.CurrentPeer.Pretty()}
 	return nil
 }
 
@@ -116,7 +116,7 @@ func (t *Topic) Broadcast(data interface{}) error {
 	}
 
 	if t.SendData == nil {
-		return errors.New("send to nil the assembled message?")
+		return errors.New("nil SendData handler")
 	}
 
 	//assemble the message
@@ -128,15 +128,30 @@ func (t *Topic) Broadcast(data interface{}) error {
 	return t.SendData(payload)
 }
 
+// BroadcastBuff should be called whenever a higher order struct needs to send over the wire already
+// serialized data
+// Optionally, the message can be authenticated
+func (t *Topic) BroadcastBuff(payload []byte) error {
+	if payload == nil {
+		return errors.New("can not process nil data")
+	}
+
+	if t.SendData == nil {
+		return errors.New("send to nil the assembled message?")
+	}
+
+	return t.SendData(payload)
+}
+
 func (t *Topic) processData() {
 	for {
 		select {
-		case obj := <-t.objPump:
+		case obj := <-t.objChan:
 			//a new object is in pump, it has been consumed,
 			//call each event handler from the list
 			t.mutEventBus.RLock()
 			for i := 0; i < len(t.eventBusDataRcvHandlers); i++ {
-				t.eventBusDataRcvHandlers[i](t.Name, obj.Data, &obj)
+				t.eventBusDataRcvHandlers[i](t.name, obj.Data, &obj)
 			}
 			t.mutEventBus.RUnlock()
 		}
@@ -180,4 +195,9 @@ func (t *Topic) SendRequest(hash []byte) error {
 	}
 
 	return t.Request(hash)
+}
+
+// Name returns the topic name
+func (t *Topic) Name() string {
+	return t.name
 }

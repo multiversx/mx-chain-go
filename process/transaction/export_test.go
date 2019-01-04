@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 func (txProc *txProcessor) GetAddresses(tx *transaction.Transaction) (adrSrc, adrDest state.AddressContainer, err error) {
@@ -34,4 +35,8 @@ func (txProc *txProcessor) IncreaseNonceAcntSrc(acntSrc state.JournalizedAccount
 
 func (txi *TxInterceptor) ProcessTx(tx p2p.Creator, rawData []byte) error {
 	return txi.processTx(tx, rawData)
+}
+
+func (txRes *txResolver) ResolveTxRequest(rd process.RequestData) ([]byte, error) {
+	return txRes.resolveTxRequest(rd)
 }

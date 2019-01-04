@@ -169,7 +169,7 @@ func (mm *MemMessenger) Addresses() []string {
 	return []string{string(mm.peerID.Pretty())}
 }
 
-// ConnectToInitialAddresses is used to explicitly connect to a well known set of addresses
+// ConnectToAddresses is used to explicitly connect to a well known set of addresses
 func (mm *MemMessenger) ConnectToAddresses(ctx context.Context, addresses []string) {
 	for i := 0; i < len(addresses); i++ {
 		addr := peer.ID(base58.Decode(addresses[i]))
@@ -295,39 +295,39 @@ func (mm *MemMessenger) AddTopic(t *Topic) error {
 		return errors.New("topic can not be nil")
 	}
 
-	if strings.Contains(t.Name, requestTopicSuffix) {
+	if strings.Contains(t.Name(), requestTopicSuffix) {
 		return errors.New("topic name contains request suffix")
 	}
 
 	mm.mutTopics.Lock()
 
-	if _, ok := mm.topics[t.Name]; ok {
+	if _, ok := mm.topics[t.Name()]; ok {
 		mm.mutTopics.Unlock()
 		return errors.New("topic already exists")
 	}
 
-	mm.topics[t.Name] = t
+	mm.topics[t.Name()] = t
 	t.CurrentPeer = mm.ID()
 	mm.mutTopics.Unlock()
 
 	// func that publishes on network from Topic object
 	t.SendData = func(data []byte) error {
-		return mm.publish(t.Name, data)
+		return mm.publish(t.Name(), data)
 	}
 
 	// validator registration func
 	t.RegisterTopicValidator = func(v pubsub.Validator) error {
-		return mm.registerValidator(t.Name, v)
+		return mm.registerValidator(t.Name(), v)
 	}
 
 	// validator unregistration func
 	t.UnregisterTopicValidator = func() error {
-		return mm.unregisterValidator(t.Name)
+		return mm.unregisterValidator(t.Name())
 	}
 
 	//wire-up a plain func for publishing on request channel
 	t.Request = func(hash []byte) error {
-		return mm.publish(t.Name+requestTopicSuffix, hash)
+		return mm.publish(t.Name()+requestTopicSuffix, hash)
 	}
 
 	return nil
@@ -414,13 +414,13 @@ func (mm *MemMessenger) gotNewData(data []byte, peerID peer.ID, topic string) bo
 		has := false
 
 		mm.mutGossipCache.Lock()
-		has = mm.gossipCache.Has(obj.ID())
+		has = mm.gossipCache.Has(string(obj))
 		mm.mutGossipCache.Unlock()
 
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,
 			//then it shall broadcast it
-			err := t.Broadcast(obj)
+			err := t.BroadcastBuff(obj)
 			if err != nil {
 				log.Error(err.Error())
 			}
