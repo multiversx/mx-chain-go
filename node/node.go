@@ -5,12 +5,10 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/big"
-	"path/filepath"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -20,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
@@ -31,8 +28,6 @@ const (
 	transactionTopic topicName = "tx"
 	consensusTopic   topicName = "cns"
 )
-
-var port = ""
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -59,6 +54,7 @@ type Node struct {
 	accounts            state.AccountsAdapter
 	addrConverter       state.AddressConverter
 	privateKey          crypto.PrivateKey
+	blkc                *blockchain.BlockChain
 }
 
 // NewNode creates a new Node instance
@@ -150,11 +146,7 @@ func (n *Node) StartConsensus() error {
 	rth := n.createRoundThreshold()
 	rnds := n.createRoundStatus()
 	cns := n.createConsensus(rndc, rth, rnds, chr)
-	blkc, err := n.createBlockchain()
-	if err != nil {
-		return nil
-	}
-	sposWrk := n.createConsensusWorker(cns, blkc)
+	sposWrk := n.createConsensusWorker(cns)
 	topic := n.createConsensusTopic(sposWrk)
 
 	n.messenger.AddTopic(topic)
@@ -246,22 +238,17 @@ func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThresho
 	return cns
 }
 
-// createBlockchain method creates a BlockChain object
-func (n *Node) createBlockchain() (*blockchain.BlockChain, error) {
-	return n.createBlockChainFromConfig(n.blockchainConfig())
-}
-
 // createConsensusWorker method creates a ConsensusWorker object
-func (n *Node) createConsensusWorker(cns *spos.Consensus, blkc *blockchain.BlockChain) *spos.SPOSConsensusWorker {
+func (n *Node) createConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
 	sposWrk := spos.NewConsensusWorker(
 		true,
 		cns,
-		blkc,
+		n.blkc,
 		n.hasher,
 		n.marshalizer,
 		n.blockProcessor)
 
-	sposWrk.OnSendMessage = n.sendMessage
+	sposWrk.SendMessage = n.sendMessage
 
 	return sposWrk
 }
@@ -555,6 +542,17 @@ func WithAddressConverter(addrConverter state.AddressConverter) Option {
 	}
 }
 
+// WithBlockChain sets up the blockchain option for the Node
+func WithBlockChain(blkc *blockchain.BlockChain) Option {
+	return func(n *Node) error {
+		if blkc == nil {
+			return errors.New("trying to set nil blockchain")
+		}
+		n.blkc = blkc
+		return nil
+	}
+}
+
 // WithPrivateKey sets up the private key option for the Node
 func WithPrivateKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
@@ -634,101 +632,6 @@ func WithElasticSubrounds(elasticSubrounds bool) Option {
 	return func(n *Node) error {
 		n.elasticSubrounds = elasticSubrounds
 		return nil
-	}
-}
-
-func (n *Node) createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockChain, error) {
-	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
-
-	txBadBlockCache, err := storage.NewCache(
-		blConfig.TxBadBlockBodyCache.Type,
-		blConfig.TxBadBlockBodyCache.Size)
-
-	if err == nil {
-		txUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.TxStorage.CacheConf,
-			blConfig.TxStorage.DBConf,
-			blConfig.TxStorage.BloomConf)
-	}
-
-	if err == nil {
-		txBlockUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.TxBlockBodyStorage.CacheConf,
-			blConfig.TxBlockBodyStorage.DBConf,
-			blConfig.TxBlockBodyStorage.BloomConf)
-	}
-
-	if err == nil {
-		stateBlockUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.StateBlockBodyStorage.CacheConf,
-			blConfig.StateBlockBodyStorage.DBConf,
-			blConfig.StateBlockBodyStorage.BloomConf)
-	}
-
-	if err == nil {
-		peerBlockUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.PeerBlockBodyStorage.CacheConf,
-			blConfig.PeerBlockBodyStorage.DBConf,
-			blConfig.PeerBlockBodyStorage.BloomConf)
-	}
-
-	if err == nil {
-		headerUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.BlockHeaderStorage.CacheConf,
-			blConfig.BlockHeaderStorage.DBConf,
-			blConfig.BlockHeaderStorage.BloomConf)
-	}
-
-	if err == nil {
-		blockChain, err2 := blockchain.NewBlockChain(
-			txBadBlockCache,
-			txUnit,
-			txBlockUnit,
-			stateBlockUnit,
-			peerBlockUnit,
-			headerUnit)
-
-		return blockChain, err2
-	}
-
-	// cleanup
-	if err != nil {
-		if headerUnit != nil {
-			_ = headerUnit.DestroyUnit()
-		}
-		if peerBlockUnit != nil {
-			_ = peerBlockUnit.DestroyUnit()
-		}
-		if stateBlockUnit != nil {
-			_ = stateBlockUnit.DestroyUnit()
-		}
-		if txBlockUnit != nil {
-			_ = txBlockUnit.DestroyUnit()
-		}
-		if txUnit != nil {
-			_ = txUnit.DestroyUnit()
-		}
-	}
-	return nil, err
-}
-
-func (n *Node) blockchainConfig() *blockchain.Config {
-	port = fmt.Sprintf("%d", n.port)
-	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
-	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
-	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+port, "TxBlockBodyStorage")}
-	persisterStateBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+port, "StateBlockBodyStorage")}
-	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+port, "PeerBlockBodyStorage")}
-	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+port, "BlockHeaderStorage")}
-	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+port, "TxStorage")}
-	return &blockchain.Config{
-		TxBlockBodyStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxBlockBodyStorage, BloomConf: bloom},
-		StateBlockBodyStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterStateBlockBodyStorage, BloomConf: bloom},
-		PeerBlockBodyStorage:  storage.UnitConfig{CacheConf: cacher, DBConf: persisterPeerBlockBodyStorage, BloomConf: bloom},
-		BlockHeaderStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
-		TxStorage:             storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
-		TxPoolStorage:         cacher,
-		TxBadBlockBodyCache:   cacher,
 	}
 }
 

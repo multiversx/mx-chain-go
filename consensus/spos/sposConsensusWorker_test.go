@@ -104,7 +104,7 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 			mock.MarshalizerMock{},
 			mock.BlockProcessorMock{})
 
-		com.OnSendMessage = SendMessage
+		com.SendMessage = SendMessage
 
 		GenerateSubRoundHandlers(roundDuration, cns, com)
 
@@ -512,11 +512,11 @@ func TestMessage_BroadcastMessage(t *testing.T) {
 		GetTime(coms[0]),
 		0)
 
-	coms[0].OnSendMessage = nil
+	coms[0].SendMessage = nil
 	r := coms[0].BroadcastMessage(cnsDta)
 	assert.Equal(t, false, r)
 
-	coms[0].OnSendMessage = SendMessage
+	coms[0].SendMessage = SendMessage
 	r = coms[0].BroadcastMessage(cnsDta)
 	assert.Equal(t, true, r)
 }

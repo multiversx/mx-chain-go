@@ -13,6 +13,7 @@ var (
 	PrivateKey = cli.StringFlag{
 		Name:  "private-key",
 		Usage: "Private key that the node will load on startup and will sign transactions - temporary until we have a wallet that can do that",
+		Value: "unkVM1J1JvlNFqY3uo/CvAay6BsIL3IzDH9GDgmfUAA=",
 	}
 	// WithUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	WithUI = cli.BoolTFlag{
@@ -23,7 +24,7 @@ var (
 	Port = cli.IntFlag{
 		Name:  "port",
 		Usage: "Port number on which the application will start",
-		Value: 4000,
+		Value: 4001,
 	}
 	// MaxAllowedPeers defines a flag for setting the maximum number of connections allowed at once
 	MaxAllowedPeers = cli.IntFlag{

@@ -89,7 +89,8 @@ func NewConsensusData(
 		Signature:  sig,
 		MsgType:    msg,
 		TimeStamp:  tms,
-		RoundIndex: roundIndex}
+		RoundIndex: roundIndex,
+	}
 }
 
 // Create method creates a new ConsensusData object
@@ -122,7 +123,7 @@ type SPOSConsensusWorker struct {
 	hasher      hashing.Hasher
 	marshalizer marshal.Marshalizer
 	// this is a pointer to a function which actually send the message from a node to the network
-	OnSendMessage func(*ConsensusData)
+	SendMessage func(*ConsensusData)
 }
 
 // NewConsensusWorker creates a new SPOSConsensusWorker object
@@ -522,12 +523,12 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 
 // BroadcastMessage method send the message to the nodes which are in the validators group
 func (sposWorker *SPOSConsensusWorker) BroadcastMessage(cnsDta *ConsensusData) bool {
-	if sposWorker.OnSendMessage == nil {
-		sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime() + "OnSendMessage call back function is not set"))
+	if sposWorker.SendMessage == nil {
+		sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime() + "SendMessage call back function is not set"))
 		return false
 	}
 
-	go sposWorker.OnSendMessage(cnsDta)
+	go sposWorker.SendMessage(cnsDta)
 
 	return true
 }

@@ -82,5 +82,11 @@
   "address": {
     "length": 32,
     "prefix": "0x"
+  },
+  "hasher": {
+    "type": "sha256"
+  },
+  "marshalizer": {
+    "type": "json"
   }
 }

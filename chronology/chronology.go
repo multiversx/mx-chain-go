@@ -130,7 +130,7 @@ func (chr *Chronology) updateRound() SubroundId {
 		chr.Log(fmt.Sprintf("\n%s############################## ROUND %d BEGINS (%d) ##############################\n",
 			chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()),
 			chr.round.index,
-			chr.SyncTime().CurrentTime(chr.SyncTime().ClockOffset()).Unix()))
+			chr.SyncTime().CurrentTime(chr.ClockOffset()).Unix()))
 		chr.initRound()
 	}
 
