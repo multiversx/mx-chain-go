@@ -382,7 +382,6 @@ func TestHeaderResolver_ResolveHdrRequestRetFromStorageShouldRetVal(t *testing.T
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	marshalizer.Fail = true
 
 	hdrRes, _ := block.NewHeaderResolver(
 		topicResolver,
