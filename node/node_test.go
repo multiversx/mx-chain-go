@@ -549,6 +549,50 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestGenerateTransaction_SignTxShouldSetCorrectSignature(t *testing.T) {
+	t.Parallel()
+	accAdapter := getAccAdapter(*big.NewInt(0))
+	addrConverter := getAddressConverter()
+	privateKey := getPrivateKey()
+	n, _ := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithAddressConverter(addrConverter),
+		node.WithAccountsAdapter(accAdapter),
+		node.WithPrivateKey(privateKey),
+	)
+
+	tx, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	assert.Nil(t, err)
+	assert.Equal(t, []byte{1}, tx.Signature)
+}
+
+func TestGenerateTransaction_SignTxShouldSetCorrectNonce(t *testing.T) {
+	t.Parallel()
+	accAdapter := getAccAdapter(*big.NewInt(0))
+	addrConverter := getAddressConverter()
+	privateKey := getPrivateKey()
+	n, _ := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(mock.Marshalizer{}),
+		node.WithHasher(mock.Hasher{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithAddressConverter(addrConverter),
+		node.WithAccountsAdapter(accAdapter),
+		node.WithPrivateKey(privateKey),
+	)
+
+	tx, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(13), tx.Nonce)
+}
+
 func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	t.Parallel()
 	accAdapter := getAccAdapter(*big.NewInt(0))
@@ -575,7 +619,7 @@ func getAccAdapter(balance big.Int) mock.AccountsAdapter {
 			return mock.AccountWrapper{
 				BaseAccountHandler: func() *state.Account {
 					return &state.Account{
-						Nonce:   1,
+						Nonce:   13,
 						Balance: balance,
 					}
 				},
