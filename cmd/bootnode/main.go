@@ -291,7 +291,11 @@ func getSk(ctx *cli.Context) ([]byte, error) {
 		b64sk = []byte(ctx.GlobalString(flags.PrivateKey.Name))
 	}
 	decodedSk := make([]byte, base64.StdEncoding.DecodedLen(len(b64sk)))
-	l, _ := base64.StdEncoding.Decode(decodedSk, b64sk)
+	l, err := base64.StdEncoding.Decode(decodedSk, b64sk)
+
+	if err != nil {
+		return nil, errors.New("could not decode private key: " + err.Error())
+	}
 
 	return decodedSk[:l], nil
 }
