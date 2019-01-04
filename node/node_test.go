@@ -553,7 +553,13 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 	t.Parallel()
 	accAdapter := getAccAdapter(*big.NewInt(0))
 	addrConverter := getAddressConverter()
-	privateKey := getPrivateKey()
+	signature := []byte{69}
+	privateKey := mock.PrivateKey{
+		SignHandler: func(message []byte) ([]byte, error) {
+			return signature, nil
+		},
+	}
+
 	n, _ := node.NewNode(
 		node.WithPort(4000),
 		node.WithMarshalizer(mock.Marshalizer{}),
@@ -568,12 +574,24 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 
 	tx, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
 	assert.Nil(t, err)
-	assert.Equal(t, []byte{1}, tx.Signature)
+	assert.Equal(t, signature, tx.Signature)
 }
 
 func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	t.Parallel()
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	nonce := uint64(7)
+	accAdapter := mock.AccountsAdapter{
+		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
+			return mock.AccountWrapper{
+				BaseAccountHandler: func() *state.Account {
+					return &state.Account{
+						Nonce:   nonce,
+						Balance: *big.NewInt(0),
+					}
+				},
+			}, nil
+		},
+	}
 	addrConverter := getAddressConverter()
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
@@ -590,7 +608,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 
 	tx, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
 	assert.Nil(t, err)
-	assert.Equal(t, uint64(13), tx.Nonce)
+	assert.Equal(t, nonce, tx.Nonce)
 }
 
 func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
@@ -619,7 +637,7 @@ func getAccAdapter(balance big.Int) mock.AccountsAdapter {
 			return mock.AccountWrapper{
 				BaseAccountHandler: func() *state.Account {
 					return &state.Account{
-						Nonce:   13,
+						Nonce:   1,
 						Balance: balance,
 					}
 				},
@@ -631,7 +649,7 @@ func getAccAdapter(balance big.Int) mock.AccountsAdapter {
 func getPrivateKey() mock.PrivateKey {
 	return mock.PrivateKey{
 		SignHandler: func(message []byte) ([]byte, error) {
-			return []byte{1}, nil
+			return []byte{2}, nil
 		},
 	}
 }

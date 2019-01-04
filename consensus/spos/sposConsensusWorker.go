@@ -789,6 +789,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedSignature(cnsDta *ConsensusData) 
 
 	if node == sposWorker.Cns.SelfId() || // is signature received from myself?
 		sposWorker.Cns.Status(SrSignature) == SsFinished || // is subround Signature already finished?
+		!sposWorker.Cns.IsValidatorInBitmap(node) || // isn't node in the bitmap group?
 		sposWorker.Cns.RoundConsensus.GetJobDone(node, SrSignature) || // is signature already received?
 		sposWorker.Cns.Data == nil || // is consensus data not set?
 		!bytes.Equal(cnsDta.Data, sposWorker.Cns.Data) { // is this the consesnus data of this round?
