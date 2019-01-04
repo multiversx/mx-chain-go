@@ -274,8 +274,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
-	loadSk(nd, sk, log)
-	loadPk(nd, sk, log)
+	loadSkPk(nd, sk, log)
 
 	return nd, nil
 }
@@ -297,27 +296,7 @@ func getSk(ctx *cli.Context) ([]byte, error) {
 	return decodedSk[:l], nil
 }
 
-func loadPk(nd *node.Node, sk []byte, log *logger.Logger) {
-	generator := schnorr.NewKeyGenerator()
-	secretKey, err := generator.PrivateKeyFromByteArray(sk)
-	if err == nil {
-		publicKey := secretKey.GeneratePublic()
-
-		err = nd.ApplyOptions(node.WithPublicKey(publicKey))
-		if err != nil {
-			log.Error("error applying option with public key: " + err.Error())
-		}
-
-		pk, _ := publicKey.ToByteArray()
-		base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
-		base64.StdEncoding.Encode(base64pk, pk)
-		log.Info("starting with public key: " + string(base64pk))
-	} else {
-		log.Error("error unpacking private key: " + err.Error())
-	}
-}
-
-func loadSk(nd *node.Node, sk []byte, log *logger.Logger) {
+func loadSkPk(nd *node.Node, sk []byte, log *logger.Logger) {
 	generator := schnorr.NewKeyGenerator()
 	secretKey, err := generator.PrivateKeyFromByteArray(sk)
 	if err == nil {
@@ -326,9 +305,21 @@ func loadSk(nd *node.Node, sk []byte, log *logger.Logger) {
 			log.Error("error applying option with private key: " + err.Error())
 		}
 
+		publicKey := secretKey.GeneratePublic()
+
+		err = nd.ApplyOptions(node.WithPublicKey(publicKey))
+		if err != nil {
+			log.Error("error applying option with public key: " + err.Error())
+		}
+
 		base64sk := make([]byte, base64.StdEncoding.EncodedLen(len(sk)))
 		base64.StdEncoding.Encode(base64sk, sk)
 		log.Info("starting with private key: " + string(base64sk))
+
+		pk, _ := publicKey.ToByteArray()
+		base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
+		base64.StdEncoding.Encode(base64pk, pk)
+		log.Info("starting with public key: " + string(base64pk))
 	} else {
 		log.Error("error unpacking private key: " + err.Error())
 	}
