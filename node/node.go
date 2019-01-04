@@ -2,25 +2,35 @@ package node
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"math/big"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-
-	"github.com/pkg/errors"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/pkg/errors"
 )
 
-type topic string
+type topicName string
 
 const (
-	transactionTopic topic = "tx"
+	transactionTopic topicName = "tx"
+	consensusTopic   topicName = "cns"
 )
+
+var log = logger.NewDefaultLogger()
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -29,17 +39,25 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	port                  int
-	marshalizer           marshal.Marshalizer
-	ctx                   context.Context
-	hasher                hashing.Hasher
-	maxAllowedPeers       int
-	pubSubStrategy        p2p.PubSubStrategy
-	initialNodesAddresses []string
-	messenger             p2p.Messenger
-	accounts			  state.AccountsAdapter
-	addrConverter		  state.AddressConverter
-	privateKey			  crypto.PrivateKey
+	port                int
+	marshalizer         marshal.Marshalizer
+	ctx                 context.Context
+	hasher              hashing.Hasher
+	maxAllowedPeers     int
+	pubSubStrategy      p2p.PubSubStrategy
+	initialNodesPubkeys []string
+	publicKey           crypto.PublicKey
+	roundDuration       int64
+	consensusGroupSize  int
+	messenger           p2p.Messenger
+	syncer              ntp.SyncTimer
+	blockProcessor      process.BlockProcessor
+	genesisTime         time.Time
+	elasticSubrounds    bool
+	accounts            state.AccountsAdapter
+	addrConverter       state.AddressConverter
+	privateKey          crypto.PrivateKey
+	blkc                *blockchain.BlockChain
 }
 
 // NewNode creates a new Node instance
@@ -90,7 +108,7 @@ func (n *Node) Start() error {
 		return err
 	}
 	n.messenger = messenger
-
+	n.P2PBootstrap()
 	return nil
 }
 
@@ -108,18 +126,9 @@ func (n *Node) Stop() error {
 	return nil
 }
 
-// ConnectToInitialAddresses connect to the list of peers provided initialAddresses
-func (n *Node) ConnectToInitialAddresses() error {
-	if !n.IsRunning() {
-		return errors.New("node is not started yet")
-	}
-	if n.initialNodesAddresses == nil {
-		return errors.New("no addresses to connect to")
-	}
-	// Don't try to connect to self
-	tmp := n.removeSelfFromList(n.initialNodesAddresses)
-	n.messenger.ConnectToAddresses(n.ctx, tmp)
-	return nil
+// P2PBootstrap will try to connect to many peers as possible
+func (n *Node) P2PBootstrap() {
+	n.messenger.Bootstrap(n.ctx)
 }
 
 // ConnectToAddresses will take a slice of addresses and try to connect to all of them.
@@ -133,7 +142,206 @@ func (n *Node) ConnectToAddresses(addresses []string) error {
 
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
+
+	round := n.createRound()
+	chr := n.createChronology(round)
+	rndc := n.createRoundConsensus()
+	rth := n.createRoundThreshold()
+	rnds := n.createRoundStatus()
+	cns := n.createConsensus(rndc, rth, rnds, chr)
+	sposWrk := n.createConsensusWorker(cns)
+	topic := n.createConsensusTopic(sposWrk)
+
+	err := n.messenger.AddTopic(topic)
+
+	if err != nil {
+		log.Debug(fmt.Sprintf(err.Error()))
+	}
+
+	n.addSubroundsToChronology(sposWrk)
+
+	go sposWrk.Cns.Chr.StartRounds()
+	go n.blockchainLog(sposWrk)
+
 	return nil
+}
+
+// createRound method creates a round object
+func (n *Node) createRound() *chronology.Round {
+	rnd := chronology.NewRound(
+		n.genesisTime,
+		n.syncer.CurrentTime(n.syncer.ClockOffset()),
+		time.Millisecond*time.Duration(n.roundDuration))
+
+	return rnd
+}
+
+// createChronology method creates a chronology object
+func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology {
+	chr := chronology.NewChronology(
+		true,
+		!n.elasticSubrounds,
+		round,
+		n.genesisTime,
+		n.syncer)
+
+	return chr
+}
+
+func (n *Node) getPrettyPublicKey() string {
+	pk, _ := n.publicKey.ToByteArray()
+	base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
+	base64.StdEncoding.Encode(base64pk, pk)
+	return string(base64pk)
+}
+
+// createRoundConsensus method creates a RoundConsensus object
+func (n *Node) createRoundConsensus() *spos.RoundConsensus {
+
+	nodes := n.initialNodesPubkeys[0:n.consensusGroupSize]
+	rndc := spos.NewRoundConsensus(
+		nodes,
+		n.getPrettyPublicKey())
+
+	rndc.ResetRoundState()
+
+	return rndc
+}
+
+// createRoundThreshold method creates a RoundThreshold object
+func (n *Node) createRoundThreshold() *spos.RoundThreshold {
+	rth := spos.NewRoundThreshold()
+
+	pbftThreshold := n.consensusGroupSize*2/3 + 1
+
+	rth.SetThreshold(spos.SrBlock, 1)
+	rth.SetThreshold(spos.SrCommitmentHash, pbftThreshold)
+	rth.SetThreshold(spos.SrBitmap, pbftThreshold)
+	rth.SetThreshold(spos.SrCommitment, pbftThreshold)
+	rth.SetThreshold(spos.SrSignature, pbftThreshold)
+
+	return rth
+}
+
+// createRoundStatus method creates a RoundStatus object
+func (n *Node) createRoundStatus() *spos.RoundStatus {
+	rnds := spos.NewRoundStatus()
+
+	rnds.ResetRoundStatus()
+
+	return rnds
+}
+
+// createConsensus method creates a Consensus object
+func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThreshold, rnds *spos.RoundStatus, chr *chronology.Chronology,
+) *spos.Consensus {
+	cns := spos.NewConsensus(
+		true,
+		nil,
+		rndc,
+		rth,
+		rnds,
+		chr)
+
+	return cns
+}
+
+// createConsensusWorker method creates a ConsensusWorker object
+func (n *Node) createConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
+	sposWrk := spos.NewConsensusWorker(
+		true,
+		cns,
+		n.blkc,
+		n.hasher,
+		n.marshalizer,
+		n.blockProcessor)
+
+	sposWrk.SendMessage = n.sendMessage
+
+	return sposWrk
+}
+
+// createConsensusTopic creates a consensus topic for node
+func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) *p2p.Topic {
+	t := p2p.NewTopic(string(consensusTopic), &spos.ConsensusData{}, n.marshalizer)
+	t.AddDataReceived(sposWrk.ReceivedMessage)
+	return t
+}
+
+// addSubroundsToChronology adds subrounds to chronology
+func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
+	roundDuration := sposWrk.Cns.Chr.Round().TimeDuration()
+
+	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrStartRound),
+		chronology.SubroundId(spos.SrBlock), int64(roundDuration*5/100),
+		sposWrk.Cns.GetSubroundName(spos.SrStartRound),
+		sposWrk.DoStartRoundJob,
+		nil,
+		sposWrk.Cns.CheckStartRoundConsensus))
+
+	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrBlock),
+		chronology.SubroundId(spos.SrCommitmentHash),
+		int64(roundDuration*25/100),
+		sposWrk.Cns.GetSubroundName(spos.SrBlock),
+		sposWrk.DoBlockJob,
+		sposWrk.ExtendBlock,
+		sposWrk.Cns.CheckBlockConsensus))
+
+	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrCommitmentHash),
+		chronology.SubroundId(spos.SrBitmap),
+		int64(roundDuration*40/100),
+		sposWrk.Cns.GetSubroundName(spos.SrCommitmentHash),
+		sposWrk.DoCommitmentHashJob,
+		sposWrk.ExtendCommitmentHash,
+		sposWrk.Cns.CheckCommitmentHashConsensus))
+
+	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrBitmap),
+		chronology.SubroundId(spos.SrCommitment),
+		int64(roundDuration*55/100),
+		sposWrk.Cns.GetSubroundName(spos.SrBitmap),
+		sposWrk.DoBitmapJob,
+		sposWrk.ExtendBitmap,
+		sposWrk.Cns.CheckBitmapConsensus))
+
+	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrCommitment),
+		chronology.SubroundId(spos.SrSignature),
+		int64(roundDuration*70/100),
+		sposWrk.Cns.GetSubroundName(spos.SrCommitment),
+		sposWrk.DoCommitmentJob,
+		sposWrk.ExtendCommitment,
+		sposWrk.Cns.CheckCommitmentConsensus))
+
+	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrSignature),
+		chronology.SubroundId(spos.SrEndRound),
+		int64(roundDuration*85/100),
+		sposWrk.Cns.GetSubroundName(spos.SrSignature),
+		sposWrk.DoSignatureJob,
+		sposWrk.ExtendSignature,
+		sposWrk.Cns.CheckSignatureConsensus))
+
+	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrEndRound),
+		chronology.SubroundId(spos.SrAdvance),
+		int64(roundDuration*95/100),
+		sposWrk.Cns.GetSubroundName(spos.SrEndRound),
+		sposWrk.DoEndRoundJob,
+		sposWrk.ExtendEndRound,
+		sposWrk.Cns.CheckEndRoundConsensus))
+
+	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
+		chronology.SubroundId(spos.SrAdvance),
+		-1,
+		int64(roundDuration*100/100),
+		sposWrk.Cns.GetSubroundName(spos.SrAdvance),
+		nil,
+		nil,
+		nil))
 }
 
 // GetBalance gets the balance for a specific address
@@ -177,12 +385,12 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	}
 	newNonce := uint64(0)
 	if senderAccount != nil {
-		newNonce = senderAccount.BaseAccount().Nonce + 1
+		newNonce = senderAccount.BaseAccount().Nonce
 	}
 
 	tx := transaction.Transaction{
-		Nonce: newNonce,
-		Value: amount,
+		Nonce:   newNonce,
+		Value:   amount,
 		RcvAddr: []byte(receiver),
 		SndAddr: []byte(sender),
 	}
@@ -210,20 +418,26 @@ func (n *Node) SendTransaction(
 	transactionData string,
 	signature string) (*transaction.Transaction, error) {
 
-		tx := transaction.Transaction{
-			Nonce:     nonce,
-			Value:     value,
-			RcvAddr:   []byte(receiver),
-			SndAddr:   []byte(sender),
-			Data:      []byte(transactionData),
-			Signature: []byte(signature),
-		}
-		topic := n.messenger.GetTopic(string(transactionTopic))
-		err := topic.Broadcast(tx)
-		if err != nil {
-			return nil, errors.New("could not broadcast transaction: " + err.Error())
-		}
-		return &tx, nil
+	tx := transaction.Transaction{
+		Nonce:     nonce,
+		Value:     value,
+		RcvAddr:   []byte(receiver),
+		SndAddr:   []byte(sender),
+		Data:      []byte(transactionData),
+		Signature: []byte(signature),
+	}
+
+	topic := n.messenger.GetTopic(string(transactionTopic))
+
+	if topic == nil {
+		return nil, errors.New("could not get transaction topic")
+	}
+
+	err := topic.Broadcast(tx)
+	if err != nil {
+		return nil, errors.New("could not broadcast transaction: " + err.Error())
+	}
+	return &tx, nil
 }
 
 //GetTransaction gets the transaction
@@ -320,15 +534,7 @@ func WithPubSubStrategy(strategy p2p.PubSubStrategy) Option {
 	}
 }
 
-// WithInitialNodeAddresses sets up the initial node addresses for the Node
-func WithInitialNodeAddresses(addresses []string) Option {
-	return func(n *Node) error {
-		n.initialNodesAddresses = addresses
-		return nil
-	}
-}
-
-// WithAccountsAdapter sets up the accounts adapter for the Node
+// WithAccountsAdapter sets up the accounts adapter option for the Node
 func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	return func(n *Node) error {
 		if accounts == nil {
@@ -339,18 +545,29 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	}
 }
 
-// WithAddressConverter sets up the address converter adapter for the Node
+// WithAddressConverter sets up the address converter adapter option for the Node
 func WithAddressConverter(addrConverter state.AddressConverter) Option {
 	return func(n *Node) error {
 		if addrConverter == nil {
-			return errors.New("trying to set nil accounts adapter")
+			return errors.New("trying to set nil address converter")
 		}
 		n.addrConverter = addrConverter
 		return nil
 	}
 }
 
-// WithPrivateKey sets up the private key for the Node
+// WithBlockChain sets up the blockchain option for the Node
+func WithBlockChain(blkc *blockchain.BlockChain) Option {
+	return func(n *Node) error {
+		if blkc == nil {
+			return errors.New("trying to set nil blockchain")
+		}
+		n.blkc = blkc
+		return nil
+	}
+}
+
+// WithPrivateKey sets up the private key option for the Node
 func WithPrivateKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
 		if sk == nil {
@@ -358,5 +575,112 @@ func WithPrivateKey(sk crypto.PrivateKey) Option {
 		}
 		n.privateKey = sk
 		return nil
+	}
+}
+
+// WithInitialNodesPubKeys sets up the initial nodes public key option for the Node
+func WithInitialNodesPubKeys(pubKeys []string) Option {
+	return func(n *Node) error {
+		n.initialNodesPubkeys = pubKeys
+		return nil
+	}
+}
+
+// WithPublicKey sets up the public key option for the Node
+func WithPublicKey(pk crypto.PublicKey) Option {
+	return func(n *Node) error {
+		n.publicKey = pk
+		return nil
+	}
+}
+
+// WithRoundDuration sets up the round duration option for the Node
+func WithRoundDuration(roundDuration int64) Option {
+	return func(n *Node) error {
+		n.roundDuration = roundDuration
+		return nil
+	}
+}
+
+// WithConsensusGroupSize sets up the consensus group size option for the Node
+func WithConsensusGroupSize(consensusGroupSize int) Option {
+	return func(n *Node) error {
+		n.consensusGroupSize = consensusGroupSize
+		return nil
+	}
+}
+
+// WithSyncer sets up the syncer option for the Node
+func WithSyncer(syncer ntp.SyncTimer) Option {
+	return func(n *Node) error {
+		if syncer == nil {
+			return errors.New("trying to set nil sync timer")
+		}
+
+		n.syncer = syncer
+		return nil
+	}
+}
+
+// WithBlockProcessor sets up the block processor option for the Node
+func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
+	return func(n *Node) error {
+		if blockProcessor == nil {
+			return errors.New("trying to set nil block processor")
+		}
+		n.blockProcessor = blockProcessor
+		return nil
+	}
+}
+
+// WithGenesisTime sets up the genesis time option for the Node
+func WithGenesisTime(genesisTime time.Time) Option {
+	return func(n *Node) error {
+		n.genesisTime = genesisTime
+		return nil
+	}
+}
+
+// WithElasticSubrounds sets up the elastic subround option for the Node
+func WithElasticSubrounds(elasticSubrounds bool) Option {
+	return func(n *Node) error {
+		n.elasticSubrounds = elasticSubrounds
+		return nil
+	}
+}
+
+func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
+	// TODO: this method and its call should be removed after initial testing of aur first version of testnet
+	oldNonce := uint64(0)
+
+	for {
+		time.Sleep(100 * time.Millisecond)
+
+		currentBlock := sposWrk.Blkc.CurrentBlockHeader
+		if currentBlock == nil {
+			continue
+		}
+
+		if currentBlock.Nonce > oldNonce {
+			oldNonce = currentBlock.Nonce
+			spew.Dump(currentBlock)
+			fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n",
+				sposWrk.Rounds, sposWrk.RoundsWithBlock, float64(sposWrk.RoundsWithBlock)*100/float64(sposWrk.Rounds))
+		}
+	}
+}
+
+func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
+	topic := n.messenger.GetTopic(string(consensusTopic))
+
+	if topic == nil {
+		log.Debug(fmt.Sprintf("could not get consensus topic"))
+		return
+	}
+
+	err := topic.Broadcast(*cnsDta)
+
+	if err != nil {
+		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
 	}
 }

@@ -13,22 +13,28 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
+	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/pkg/errors"
-	"github.com/urfave/cli"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
-	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	beevikntp "github.com/beevik/ntp"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -44,16 +50,20 @@ VERSION:
    {{end}}
 `
 var configurationFile = "./config/config.testnet.json"
+var uniqueID = ""
 
 type initialNode struct {
+	Address string `json:"address"`
 	PubKey  string `json:"pubkey"`
 	Balance uint64 `json:"balance"`
 }
 
 type genesis struct {
-	StartTime       int64         `json:"startTime"`
-	ClockSyncPeriod int           `json:"clockSyncPeriod"`
-	InitialNodes    []initialNode `json:"initialNodes"`
+	StartTime          int64         `json:"startTime"`
+	RoundDuration      int64         `json:"roundDuration"`
+	ConsensusGroupSize int           `json:"consensusGroupSize"`
+	ElasticSubrounds   bool          `json:"elasticSubrounds"`
+	InitialNodes       []initialNode `json:"initialNodes"`
 }
 
 func main() {
@@ -64,7 +74,7 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.WithUI, flags.MaxAllowedPeers, flags.PrivateKey}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.PrivateKey}
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
 	}
@@ -95,18 +105,26 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(flags.GenesisFile.Name)))
 
-	currentNode, err := createNode(ctx, generalConfig, genesisConfig, log)
+	syncer := ntp.NewSyncTime(time.Millisecond*time.Duration(genesisConfig.RoundDuration), beevikntp.Query)
+	go syncer.StartSync()
+
+	startTime := time.Unix(genesisConfig.StartTime, 0)
+	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
+
+	uniqueID = fmt.Sprintf("%d", ctx.GlobalInt(flags.Port.Name))
+
+	currentNode, err := createNode(ctx, generalConfig, genesisConfig, syncer, log)
 	if err != nil {
 		return err
 	}
+
 	ef := facade.NewElrondNodeFacade(currentNode)
+
 	ef.SetLogger(log)
-	ef.StartNTP(genesisConfig.ClockSyncPeriod)
+	ef.SetSyncer(syncer)
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
-
-	ef.WaitForStartTime(time.Unix(genesisConfig.StartTime, 0))
 	wg.Wait()
 
 	if !ctx.Bool(flags.WithUI.Name) {
@@ -181,10 +199,18 @@ func (g *genesis) initialNodesPubkeys() []string {
 	return pubKeys
 }
 
-func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, log *logger.Logger) (*node.Node, error) {
+func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, syncer ntp.SyncTimer, log *logger.Logger) (*node.Node, error) {
 	appContext := context.Background()
-	hasher := sha256.Sha256{}
-	marshalizer := marshal.JsonMarshalizer{}
+
+	hasher, err := getHasherFromConfig(cfg)
+	if err != nil {
+		return nil, errors.New("could not create hasher: " + err.Error())
+	}
+
+	marshalizer, err := getMarshalizerFromConfig(cfg)
+	if err != nil {
+		return nil, errors.New("could not create marshalizer: " + err.Error())
+	}
 
 	tr, err := getTrie(cfg.AccountsTrieStorage, hasher)
 	if err != nil {
@@ -201,6 +227,24 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, lo
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
+	blkc, err := createBlockChainFromConfig(blockChainConfig())
+	if err != nil {
+		return nil, errors.New("could not create block chain: " + err.Error())
+	}
+
+	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer)
+	if err != nil {
+		return nil, errors.New("could not create transaction processor: " + err.Error())
+	}
+
+	txPoolCacher := getCacherFromConfig(cfg.TxPoolStorage)
+	shrdData, err := shardedData.NewShardedData(txPoolCacher)
+	if err != nil {
+		return nil, errors.New("could not create sharded data: " + err.Error())
+	}
+
+	blockProcessor := block.NewBlockProcessor(shrdData, hasher, marshalizer, transactionProcessor, accountsAdapter, &sharding.OneShardCoordinator{})
+
 	nd, err := node.NewNode(
 		node.WithHasher(hasher),
 		node.WithContext(appContext),
@@ -208,9 +252,16 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, lo
 		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithMaxAllowedPeers(ctx.GlobalInt(flags.MaxAllowedPeers.Name)),
 		node.WithPort(ctx.GlobalInt(flags.Port.Name)),
-		node.WithInitialNodeAddresses(genesisConfig.initialNodesPubkeys()),
+		node.WithInitialNodesPubKeys(genesisConfig.initialNodesPubkeys()),
 		node.WithAddressConverter(addressConverter),
 		node.WithAccountsAdapter(accountsAdapter),
+		node.WithBlockChain(blkc),
+		node.WithRoundDuration(genesisConfig.RoundDuration),
+		node.WithConsensusGroupSize(genesisConfig.ConsensusGroupSize),
+		node.WithSyncer(syncer),
+		node.WithBlockProcessor(blockProcessor),
+		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
+		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
 	)
 
 	if err != nil {
@@ -218,39 +269,63 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, lo
 	}
 
 	sk, err := getSk(ctx)
+
 	if err != nil {
-		log.Error("node is starting without a private key...")
-	} else {
-		loadSk(nd, sk, log)
+		return nil, err
 	}
+
+	loadSkPk(nd, sk, log)
 
 	return nd, nil
 }
 
 func getSk(ctx *cli.Context) ([]byte, error) {
 	if !ctx.GlobalIsSet(flags.PrivateKey.Name) {
-		return nil, errors.New("no private key file provided")
+		if ctx.GlobalString(flags.PrivateKey.Name) == "" {
+			return nil, errors.New("no private key file provided")
+		}
 	}
+
 	b64sk, err := ioutil.ReadFile(ctx.GlobalString(flags.PrivateKey.Name))
 	if err != nil {
-		return nil, errors.New("could not read private key file")
+		b64sk = []byte(ctx.GlobalString(flags.PrivateKey.Name))
 	}
 	decodedSk := make([]byte, base64.StdEncoding.DecodedLen(len(b64sk)))
-	l, _ := base64.StdEncoding.Decode(decodedSk, b64sk)
+	l, err := base64.StdEncoding.Decode(decodedSk, b64sk)
+
+	if err != nil {
+		return nil, errors.New("could not decode private key: " + err.Error())
+	}
 
 	return decodedSk[:l], nil
 }
 
-func loadSk(nd *node.Node, sk []byte, log *logger.Logger) {
+func loadSkPk(nd *node.Node, sk []byte, log *logger.Logger) {
 	generator := schnorr.NewKeyGenerator()
 	secretKey, err := generator.PrivateKeyFromByteArray(sk)
 	if err == nil {
 		err = nd.ApplyOptions(node.WithPrivateKey(secretKey))
 		if err != nil {
-			log.Error(err.Error())
+			log.Error("error applying option with private key: " + err.Error())
 		}
+
+		publicKey := secretKey.GeneratePublic()
+
+		err = nd.ApplyOptions(node.WithPublicKey(publicKey))
+		if err != nil {
+			log.Error("error applying option with public key: " + err.Error())
+		}
+
+		base64sk := make([]byte, base64.StdEncoding.EncodedLen(len(sk)))
+		base64.StdEncoding.Encode(base64sk, sk)
+		log.Info("starting with private key: " + string(base64sk))
+
+		pk, _ := publicKey.ToByteArray()
+		base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
+		base64.StdEncoding.Encode(base64pk, pk)
+		log.Info("starting with public key: " + string(base64pk))
 	} else {
-		log.Error("error unpacking private key")
+		log.Error("error unpacking private key: " + err.Error())
 	}
 }
 
@@ -272,6 +347,24 @@ func getTrie(cfg config.StorageConfig, hasher hashing.Hasher) (*trie.Trie, error
 	return trie.NewTrie(make([]byte, 32), dbWriteCache, hasher)
 }
 
+func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
+	switch cfg.Hasher.Type {
+	case "sha256":
+		return sha256.Sha256{}, nil
+	}
+
+	return nil, errors.New("no hasher provided in config file")
+}
+
+func getMarshalizerFromConfig(cfg *config.Config) (marshal.Marshalizer, error) {
+	switch cfg.Marshalizer.Type {
+	case "json":
+		return marshal.JsonMarshalizer{}, nil
+	}
+
+	return nil, errors.New("no marshalizer provided in config file")
+}
+
 func getCacherFromConfig(cfg config.CacheConfig) storage.CacheConfig {
 	return storage.CacheConfig{
 		Size: cfg.Size,
@@ -281,8 +374,8 @@ func getCacherFromConfig(cfg config.CacheConfig) storage.CacheConfig {
 
 func getDBFromConfig(cfg config.DBConfig) storage.DBConfig {
 	return storage.DBConfig{
-		FilePath: filepath.Join(config.DefaultPath(), cfg.FilePath),
-		Type: storage.DBType(cfg.Type),
+		FilePath: filepath.Join(config.DefaultPath()+uniqueID, cfg.FilePath),
+		Type:     storage.DBType(cfg.Type),
 	}
 }
 
@@ -293,7 +386,119 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 	}
 
 	return storage.BloomConfig{
-		Size: cfg.Size,
+		Size:     cfg.Size,
 		HashFunc: hashFuncs,
+	}
+}
+
+func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockChain, error) {
+	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
+	var err error
+
+	defer func() {
+		// cleanup
+		if err != nil {
+			if headerUnit != nil {
+				_ = headerUnit.DestroyUnit()
+			}
+			if peerBlockUnit != nil {
+				_ = peerBlockUnit.DestroyUnit()
+			}
+			if stateBlockUnit != nil {
+				_ = stateBlockUnit.DestroyUnit()
+			}
+			if txBlockUnit != nil {
+				_ = txBlockUnit.DestroyUnit()
+			}
+			if txUnit != nil {
+				_ = txUnit.DestroyUnit()
+			}
+		}
+	}()
+
+	txBadBlockCache, err := storage.NewCache(
+		blConfig.TxBadBlockBodyCache.Type,
+		blConfig.TxBadBlockBodyCache.Size)
+
+	if err != nil {
+		return nil, err
+	}
+
+	txUnit, err = storage.NewStorageUnitFromConf(
+		blConfig.TxStorage.CacheConf,
+		blConfig.TxStorage.DBConf,
+		blConfig.TxStorage.BloomConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	txBlockUnit, err = storage.NewStorageUnitFromConf(
+		blConfig.TxBlockBodyStorage.CacheConf,
+		blConfig.TxBlockBodyStorage.DBConf,
+		blConfig.TxBlockBodyStorage.BloomConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	stateBlockUnit, err = storage.NewStorageUnitFromConf(
+		blConfig.StateBlockBodyStorage.CacheConf,
+		blConfig.StateBlockBodyStorage.DBConf,
+		blConfig.StateBlockBodyStorage.BloomConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	peerBlockUnit, err = storage.NewStorageUnitFromConf(
+		blConfig.PeerBlockBodyStorage.CacheConf,
+		blConfig.PeerBlockBodyStorage.DBConf,
+		blConfig.PeerBlockBodyStorage.BloomConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	headerUnit, err = storage.NewStorageUnitFromConf(
+		blConfig.BlockHeaderStorage.CacheConf,
+		blConfig.BlockHeaderStorage.DBConf,
+		blConfig.BlockHeaderStorage.BloomConf)
+
+	if err != nil {
+		return nil, err
+	}
+
+	blockChain, err := blockchain.NewBlockChain(
+		txBadBlockCache,
+		txUnit,
+		txBlockUnit,
+		stateBlockUnit,
+		peerBlockUnit,
+		headerUnit)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return blockChain, err
+}
+
+func blockChainConfig() *blockchain.Config {
+	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
+	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
+	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "TxBlockBodyStorage")}
+	persisterStateBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "StateBlockBodyStorage")}
+	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "PeerBlockBodyStorage")}
+	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "BlockHeaderStorage")}
+	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "TxStorage")}
+	return &blockchain.Config{
+		TxBlockBodyStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxBlockBodyStorage, BloomConf: bloom},
+		StateBlockBodyStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterStateBlockBodyStorage, BloomConf: bloom},
+		PeerBlockBodyStorage:  storage.UnitConfig{CacheConf: cacher, DBConf: persisterPeerBlockBodyStorage, BloomConf: bloom},
+		BlockHeaderStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
+		TxStorage:             storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
+		TxPoolStorage:         cacher,
+		TxBadBlockBodyCache:   cacher,
 	}
 }

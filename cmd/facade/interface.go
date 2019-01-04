@@ -3,10 +3,8 @@ package facade
 import (
 	"math/big"
 	"sync"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
@@ -17,12 +15,6 @@ type Facade interface {
 
 	//StopNode stops the underlying node
 	StopNode() error
-
-	//StartNTP starts the NTP clock with a set sync period
-	StartNTP(clockSyncPeriod int)
-
-	//WaitForStartTime waits for the startTime to arrive and only after proceeds
-	WaitForStartTime(t time.Time)
 
 	//StartBackgroundServices starts all background services needed for the correct functionality of the node
 	StartBackgroundServices(wg *sync.WaitGroup)
@@ -58,11 +50,11 @@ type NodeWrapper interface {
 	// Stop closes the messenger and undos everything done in Start
 	Stop() error
 
+	// P2PBootstrap starts the peer discovery process and peer connection filtering
+	P2PBootstrap()
+
 	//IsRunning returns if the underlying node is running
 	IsRunning() bool
-
-	// ConnectToInitialAddresses connect to the list of peers provided initialAddresses
-	ConnectToInitialAddresses() error
 
 	// ConnectToAddresses will take a slice of addresses and try to connect to all of them.
 	ConnectToAddresses(addresses []string) error

@@ -40,8 +40,14 @@ type Config struct {
 		Path            string `json:"path"`
 		StackTraceDepth int    `json:"stackTraceDepth"`
 	} `json:"logger"`
-	Address 			  struct {
+	Address struct {
 		Length int    `json:"length"`
 		Prefix string `json:"prefix"`
 	} `json:"address"`
+	Hasher struct {
+		Type string `json:"type"`
+	} `json:"hasher"`
+	Marshalizer struct {
+		Type string `json:"type"`
+	} `json:"marshalizer"`
 }

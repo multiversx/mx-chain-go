@@ -2,12 +2,12 @@ package chronology_test
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -256,15 +256,12 @@ func TestStartRound(t *testing.T) {
 		currentTime,
 		roundTimeDuration)
 
-	syncTime := &ntp.LocalTime{}
-	syncTime.SetClockOffset(roundTimeDuration + 1)
-
 	chr := chronology.NewChronology(
 		true,
 		true,
 		rnd,
 		genesisTime,
-		syncTime)
+		ntp.NewSyncTime(roundTimeDuration, nil))
 
 	chr.AddSubround(&SRStartRound{})
 	chr.AddSubround(&SRBlock{})
@@ -288,7 +285,7 @@ func TestRoundState(t *testing.T) {
 	currentTime := time.Now()
 
 	rnd := chronology.NewRound(currentTime, currentTime, roundTimeDuration)
-	chr := chronology.NewChronology(true, true, rnd, currentTime, &ntp.LocalTime{})
+	chr := chronology.NewChronology(true, true, rnd, currentTime, ntp.NewSyncTime(roundTimeDuration, nil))
 
 	state := chr.GetSubroundFromDateTime(currentTime)
 	assert.Equal(t, chronology.SubroundId(-1), state)
@@ -324,9 +321,8 @@ func TestGettersAndSetters(t *testing.T) {
 	currentTime := genesisTime
 
 	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
-	syncTime := &ntp.LocalTime{}
 
-	chr := chronology.NewChronology(true, true, rnd, genesisTime, syncTime)
+	chr := chronology.NewChronology(true, true, rnd, genesisTime, ntp.NewSyncTime(roundTimeDuration, nil))
 
 	assert.Equal(t, int32(0), chr.Round().Index())
 	assert.Equal(t, chronology.SubroundId(-1), chr.SelfSubround())
@@ -342,8 +338,6 @@ func TestGettersAndSetters(t *testing.T) {
 	chr.SetClockOffset(time.Duration(5))
 	assert.Equal(t, time.Duration(5), chr.ClockOffset())
 	chr.AddSubround(&SRStartRound{})
-	//fmt.Printf("%v\n%v\n%v", chr.SyncTime().CurrentTime(chr.ClockOffset()),
-	//	chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()), ))
 
 	spew.Dump(chr.SubroundHandlers())
 }

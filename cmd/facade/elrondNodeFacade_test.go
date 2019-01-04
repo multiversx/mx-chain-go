@@ -30,11 +30,11 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 			started = true
 			return nil
 		},
+		P2PBootstrapHandler: func() {
+			return
+		},
 		IsRunningHandler: func() bool {
 			return started
-		},
-		ConnectToInitialAddressesHandler: func() error {
-			return nil
 		},
 		StartConsensusHandler: func() error {
 			return nil
@@ -70,31 +70,6 @@ func TestElrondFacade_StartNodeWithErrorOnStartNodeShouldReturnError(t *testing.
 	assert.False(t, isRunning)
 }
 
-func TestElrondFacade_StartNodeWithErrorOnConnectToInitialAddressesShouldReturnError(t *testing.T) {
-	started := false
-	node := &mock.NodeMock{
-		StartHandler: func() error {
-			started = true
-			return nil
-		},
-		IsRunningHandler: func() bool {
-			return started
-		},
-		ConnectToInitialAddressesHandler: func() error {
-			started = false
-			return fmt.Errorf("error on connecting to initial addresses")
-		},
-	}
-
-	ef := facade.NewElrondNodeFacade(node)
-
-	err := ef.StartNode()
-	assert.NotNil(t, err)
-
-	isRunning := ef.IsNodeRunning()
-	assert.False(t, isRunning)
-}
-
 func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *testing.T) {
 	started := false
 	node := &mock.NodeMock{
@@ -102,11 +77,11 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 			started = true
 			return nil
 		},
+		P2PBootstrapHandler: func() {
+			return
+		},
 		IsRunningHandler: func() bool {
 			return started
-		},
-		ConnectToInitialAddressesHandler: func() error {
-			return nil
 		},
 		StartConsensusHandler: func() error {
 			started = false

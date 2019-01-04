@@ -24,7 +24,7 @@ func InitSubround() (*chronology.Chronology, *spos.Consensus) {
 		true,
 		rnd,
 		genesisTime,
-		&ntp.LocalTime{})
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	vld := spos.NewRoundConsensus(
 		[]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"},
