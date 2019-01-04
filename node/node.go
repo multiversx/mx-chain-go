@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
@@ -28,6 +29,8 @@ type topicName string
 const (
 	transactionTopic topicName = "tx"
 	consensusTopic   topicName = "cns"
+	headersTopic     topicName = "hdr"
+	txBlockBodyTopic
 )
 
 var log = logger.NewDefaultLogger()
@@ -58,6 +61,10 @@ type Node struct {
 	addrConverter       state.AddressConverter
 	privateKey          crypto.PrivateKey
 	blkc                *blockchain.BlockChain
+	dataPool            data.TransientDataHolder
+
+	interceptors []process.Interceptor
+	resolvers    []process.Resolver
 }
 
 // NewNode creates a new Node instance
@@ -134,10 +141,18 @@ func (n *Node) P2PBootstrap() {
 // ConnectToAddresses will take a slice of addresses and try to connect to all of them.
 func (n *Node) ConnectToAddresses(addresses []string) error {
 	if !n.IsRunning() {
-		return errors.New("node is not started yet")
+		return errNodeNotStarted
 	}
 	n.messenger.ConnectToAddresses(n.ctx, addresses)
 	return nil
+}
+
+// BindInterceptorsResolvers will start the interceptors and resolvers
+func (n *Node) BindInterceptorsResolvers() error {
+	if !n.IsRunning() {
+		return errNodeNotStarted
+	}
+
 }
 
 // StartConsensus will start the consesus service for the current node
@@ -643,6 +658,13 @@ func WithGenesisTime(genesisTime time.Time) Option {
 
 // WithElasticSubrounds sets up the elastic subround option for the Node
 func WithElasticSubrounds(elasticSubrounds bool) Option {
+	return func(n *Node) error {
+		n.elasticSubrounds = elasticSubrounds
+		return nil
+	}
+}
+
+func WithDataPool(dataPool data.TransientDataHolder) Option {
 	return func(n *Node) error {
 		n.elasticSubrounds = elasticSubrounds
 		return nil

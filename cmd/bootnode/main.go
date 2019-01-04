@@ -18,10 +18,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
@@ -237,13 +240,9 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	txPoolCacher := getCacherFromConfig(cfg.TxPoolStorage)
-	shrdData, err := shardedData.NewShardedData(txPoolCacher)
-	if err != nil {
-		return nil, errors.New("could not create sharded data: " + err.Error())
-	}
+	transient, err := createDataPoolFromConfig()
 
-	blockProcessor := block.NewBlockProcessor(shrdData, hasher, marshalizer, transactionProcessor, accountsAdapter, &sharding.OneShardCoordinator{})
+	blockProcessor := block.NewBlockProcessor(transient.Transactions(), hasher, marshalizer, transactionProcessor, accountsAdapter, &sharding.OneShardCoordinator{})
 
 	nd, err := node.NewNode(
 		node.WithHasher(hasher),
@@ -262,6 +261,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithBlockProcessor(blockProcessor),
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
 		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
+		node.WithDataPool(transient),
 	)
 
 	if err != nil {
@@ -389,6 +389,51 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 		Size:     cfg.Size,
 		HashFunc: hashFuncs,
 	}
+}
+
+func createDataPoolFromConfig() (data.TransientDataHolder, error) {
+	txPool, err := shardedData.NewShardedData(storage.CacheConfig{Type: storage.LRUCache, Size: 10000})
+	if err != nil {
+		return nil, err
+	}
+
+	hdrPool, err := shardedData.NewShardedData(storage.CacheConfig{Type: storage.LRUCache, Size: 10000})
+	if err != nil {
+		return nil, err
+	}
+
+	hdrNoncesCacher, err := storage.NewCache(storage.LRUCache, 50000)
+	if err != nil {
+		return nil, err
+	}
+	hdrNonces, err := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+	if err != nil {
+		return nil, err
+	}
+
+	txBlockBody, err := storage.NewCache(storage.LRUCache, 10000)
+	if err != nil {
+		return nil, err
+	}
+
+	peerChangeBlockBody, err := storage.NewCache(storage.LRUCache, 10000)
+	if err != nil {
+		return nil, err
+	}
+
+	stateBlockBody, err := storage.NewCache(storage.LRUCache, 10000)
+	if err != nil {
+		return nil, err
+	}
+
+	return dataPool.NewDataPool(
+		txPool,
+		hdrPool,
+		hdrNonces,
+		txBlockBody,
+		peerChangeBlockBody,
+		stateBlockBody,
+	)
 }
 
 func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockChain, error) {
