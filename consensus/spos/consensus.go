@@ -90,9 +90,7 @@ func (rt *RoundThreshold) SetThreshold(subroundId chronology.SubroundId, thresho
 
 // Consensus defines the data needed by spos to do the consensus in each round
 type Consensus struct {
-	log bool
-
-	Data *[]byte // hold the data on which validators do the consensus
+	Data []byte // hold the data on which validators do the consensus
 	// (could be for example a hash of the block header proposed by the leader)
 	*RoundConsensus
 	*RoundThreshold
@@ -105,8 +103,7 @@ type Consensus struct {
 
 // NewConsensus creates a new Consensus object
 func NewConsensus(
-	log bool,
-	data *[]byte,
+	data []byte,
 	vld *RoundConsensus,
 	thr *RoundThreshold,
 	rs *RoundStatus,
@@ -114,7 +111,6 @@ func NewConsensus(
 ) *Consensus {
 
 	cns := Consensus{
-		log:            log,
 		Data:           data,
 		RoundConsensus: vld,
 		RoundThreshold: thr,

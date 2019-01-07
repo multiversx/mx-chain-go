@@ -117,7 +117,6 @@ func NewBlockChain(
 	}
 
 	return data, nil
-
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise

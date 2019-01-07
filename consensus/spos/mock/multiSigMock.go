@@ -24,6 +24,7 @@ type BelNevMock struct {
 	VerifyMock               func() error
 	CommitmentHashMock       func(index uint16) ([]byte, error)
 	CommitmentBitmapMock     func() []byte
+	CreateCommitmentMock     func() ([]byte, []byte, error)
 	AggregateCommitmentsMock func() ([]byte, error)
 	SignPartialMock          func() ([]byte, error)
 	SigBitmapMock            func() []byte
@@ -87,7 +88,8 @@ func (bnm *BelNevMock) Verify() error {
 
 // CreateCommitment creates a secret commitment and the corresponding public commitment point
 func (bnm *BelNevMock) CreateCommitment() (commSecret []byte, commitment []byte, err error) {
-	return []byte("commSecret"), []byte("commitment"), nil
+
+	return bnm.CreateCommitmentMock()
 }
 
 // SetCommitmentSecret sets the committment secret

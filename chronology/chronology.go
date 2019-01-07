@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ethereum/go-ethereum/swarm/log"
 )
 
 // sleepTime defines the time in milliseconds between each iteration made in StartRounds method
@@ -26,7 +27,6 @@ type SubroundHandler interface {
 
 // Chronology defines the data needed by the chronology
 type Chronology struct {
-	log        bool
 	DoRun      bool
 	doSyncMode bool
 
@@ -47,14 +47,12 @@ type Chronology struct {
 
 // NewChronology defines a new Chr object
 func NewChronology(
-	log bool,
 	doSyncMode bool,
 	round *Round,
 	genesisTime time.Time,
 	syncTime ntp.SyncTimer) *Chronology {
 
 	chr := Chronology{
-		log:         log,
 		doSyncMode:  doSyncMode,
 		round:       round,
 		genesisTime: genesisTime,
@@ -127,7 +125,7 @@ func (chr *Chronology) updateRound() SubroundId {
 	chr.timeSubround = chr.GetSubroundFromDateTime(currentTime)
 
 	if oldRoundIndex != chr.round.index {
-		chr.Log(fmt.Sprintf("\n"+chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+
+		log.Info(fmt.Sprintf("\n"+chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+
 			"############################## ROUND %d BEGINS ##############################\n", chr.round.index))
 		chr.initRound()
 	}
@@ -135,7 +133,7 @@ func (chr *Chronology) updateRound() SubroundId {
 	if oldTimeSubRound != chr.timeSubround {
 		sr := chr.LoadSubroundHandler(chr.timeSubround)
 		if sr != nil {
-			chr.Log(fmt.Sprintf("\n" + chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) +
+			log.Info(fmt.Sprintf("\n" + chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) +
 				".................... SUBROUND " + sr.Name() + " BEGINS ....................\n"))
 		}
 	}
@@ -174,13 +172,6 @@ func (chr *Chronology) GetSubroundFromDateTime(timeStamp time.Time) SubroundId {
 	}
 
 	return -1
-}
-
-// Log do logs of the chronology if log variable is set on true
-func (chr *Chronology) Log(message string) {
-	if chr.log {
-		fmt.Printf(message + "\n")
-	}
 }
 
 // Round returns the current round object

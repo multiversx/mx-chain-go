@@ -51,3 +51,19 @@ var ErrNilOnBroadcastTxBlockBody = errors.New("tx block body broadcast function 
 
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
 var ErrNilMultiSigner = errors.New("multiSigner is nil")
+
+// ErrNilConsensus is raised when a valid consensus is expected but nil used
+var ErrNilConsensus = errors.New("consensus is nil")
+
+// ErrNilBlockChain is raised when a valid blockchain is expected but nil used
+var ErrNilBlockChain = errors.New("blockchain is nil")
+
+// ErrNilHasher is raised when a valid hasher is expected but nil used
+var ErrNilHasher = errors.New("hasher is nil")
+
+// ErrNilMarshalizer is raised when a valid marshalizer is expected but nil used
+var ErrNilMarshalizer = errors.New("marshalizer is nil")
+
+// ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
+var ErrNilBlockProcessor = errors.New("block processor is nil")
+

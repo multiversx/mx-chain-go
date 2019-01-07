@@ -20,11 +20,12 @@ func InitSubround() (*chronology.Chronology, *spos.Consensus) {
 		currentTime,
 		RoundTimeDuration)
 
-	chr := chronology.NewChronology(true,
+	chr := chronology.NewChronology(
 		true,
 		rnd,
 		genesisTime,
-		&ntp.LocalTime{})
+		&ntp.LocalTime{},
+	)
 
 	vld := spos.NewRoundConsensus(
 		[]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"},
@@ -52,12 +53,13 @@ func InitSubround() (*chronology.Chronology, *spos.Consensus) {
 	rs.SetStatus(spos.SrCommitment, spos.SsNotFinished)
 	rs.SetStatus(spos.SrSignature, spos.SsNotFinished)
 
-	cns := spos.NewConsensus(true,
+	cns := spos.NewConsensus(
 		nil,
 		vld,
 		rt,
 		rs,
-		chr)
+		chr,
+	)
 
 	return chr, cns
 }

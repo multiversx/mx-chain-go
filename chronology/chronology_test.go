@@ -261,7 +261,6 @@ func TestStartRound(t *testing.T) {
 
 	chr := chronology.NewChronology(
 		true,
-		true,
 		rnd,
 		genesisTime,
 		syncTime)
@@ -288,7 +287,7 @@ func TestRoundState(t *testing.T) {
 	currentTime := time.Now()
 
 	rnd := chronology.NewRound(currentTime, currentTime, roundTimeDuration)
-	chr := chronology.NewChronology(true, true, rnd, currentTime, &ntp.LocalTime{})
+	chr := chronology.NewChronology(true, rnd, currentTime, &ntp.LocalTime{})
 
 	state := chr.GetSubroundFromDateTime(currentTime)
 	assert.Equal(t, chronology.SubroundId(-1), state)
@@ -326,7 +325,7 @@ func TestGettersAndSetters(t *testing.T) {
 	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
 	syncTime := &ntp.LocalTime{}
 
-	chr := chronology.NewChronology(true, true, rnd, genesisTime, syncTime)
+	chr := chronology.NewChronology(true, rnd, genesisTime, syncTime)
 
 	assert.Equal(t, int32(0), chr.Round().Index())
 	assert.Equal(t, chronology.SubroundId(-1), chr.SelfSubround())
