@@ -251,7 +251,7 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 func (sposWorker *SPOSConsensusWorker) DoBlockJob() bool {
 	if !sposWorker.Cns.IsNodeInConsensusGroup(sposWorker.Cns.SelfId()) {
 		sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime()+
-			"Canceled round %d in subround %s. I am not in the consensus group this round",
+			"Canceled round %d in subround %s: Not in the consensus group this round",
 			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
@@ -260,7 +260,7 @@ func (sposWorker *SPOSConsensusWorker) DoBlockJob() bool {
 	// TODO: Unccomment ShouldSync check
 	//if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 	//	sposWorker.Log(fmt.Sprintf(sposWorker.GetFormatedTime()+
-	// 		"Canceled round %d in subround %s. I am not sunchronized",
+	// 		"Canceled round %d in subround %s: Not synchronized",
 	//		sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
 	//	sposWorker.Cns.Chr.SetSelfSubround(-1)
 	//	return false
