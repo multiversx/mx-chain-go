@@ -79,8 +79,7 @@ func TestNewConsensus(t *testing.T) {
 		true,
 		rnd,
 		genesisTime,
-		&ntp.LocalTime{},
-		)
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	cns := spos.NewConsensus(
 		nil,
@@ -88,7 +87,7 @@ func TestNewConsensus(t *testing.T) {
 		rt,
 		rs,
 		chr,
-		)
+	)
 
 	assert.NotNil(t, cns)
 }
@@ -133,8 +132,7 @@ func InitConsensus() *spos.Consensus {
 		true,
 		rnd,
 		genesisTime,
-		&ntp.LocalTime{},
-		)
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	cns := spos.NewConsensus(
 		nil,
@@ -142,7 +140,7 @@ func InitConsensus() *spos.Consensus {
 		rt,
 		rs,
 		chr,
-		)
+	)
 
 	return cns
 }
@@ -172,8 +170,7 @@ func TestConsensus_IsNodeLeaderInCurrentRound(t *testing.T) {
 		true,
 		rnd,
 		genesisTime,
-		&ntp.LocalTime{},
-		)
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	cns := spos.NewConsensus(
 		nil,
@@ -181,7 +178,7 @@ func TestConsensus_IsNodeLeaderInCurrentRound(t *testing.T) {
 		nil,
 		nil,
 		nil,
-		)
+	)
 
 	assert.Equal(t, false, cns.IsNodeLeaderInCurrentRound("1"))
 
@@ -238,22 +235,19 @@ func TestConsensus_GetLeader(t *testing.T) {
 		true,
 		nil,
 		genesisTime,
-		&ntp.LocalTime{},
-		)
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	chr2 := chronology.NewChronology(
 		true,
 		rnd1,
 		genesisTime,
-		&ntp.LocalTime{},
-		)
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	chr3 := chronology.NewChronology(
 		true,
 		rnd2,
 		genesisTime,
-		&ntp.LocalTime{},
-		)
+		ntp.NewSyncTime(RoundTimeDuration, nil))
 
 	cns1 := spos.NewConsensus(
 		nil,
@@ -261,7 +255,7 @@ func TestConsensus_GetLeader(t *testing.T) {
 		nil,
 		nil,
 		nil,
-		)
+	)
 
 	cns2 := spos.NewConsensus(
 		nil,
@@ -269,7 +263,7 @@ func TestConsensus_GetLeader(t *testing.T) {
 		nil,
 		nil,
 		nil,
-		)
+	)
 
 	cns3 := spos.NewConsensus(
 		nil,
@@ -277,7 +271,7 @@ func TestConsensus_GetLeader(t *testing.T) {
 		nil,
 		nil,
 		nil,
-		)
+	)
 
 	cns4 := spos.NewConsensus(
 		nil,
@@ -285,7 +279,7 @@ func TestConsensus_GetLeader(t *testing.T) {
 		nil,
 		nil,
 		nil,
-		)
+	)
 
 	leader, err := cns1.GetLeader()
 	assert.NotNil(t, err)
@@ -330,7 +324,7 @@ func TestConsensus_Log(t *testing.T) {
 		nil,
 		nil,
 		nil,
-		)
+	)
 
 	assert.NotNil(t, cns)
 }

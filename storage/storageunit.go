@@ -2,11 +2,12 @@ package storage
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
@@ -39,9 +40,12 @@ const (
 )
 
 const (
-	Keccak  HasherType = "Keccak"
+	// Keccak is the string representation of the keccak hashing function
+	Keccak HasherType = "Keccak"
+	// Blake2b is the string representation of the blake2b hashing function
 	Blake2b HasherType = "Blake2b"
-	Fnv     HasherType = "Fnv"
+	// Fnv is the string representation of the fnv hashing function
+	Fnv HasherType = "Fnv"
 )
 
 // UnitConfig holds the configurable elements of the storage unit
@@ -63,7 +67,7 @@ type DBConfig struct {
 	Type     DBType
 }
 
-// BloobConfig holds the configurable elements of a bloom filter
+// BloomConfig holds the configurable elements of a bloom filter
 type BloomConfig struct {
 	Size     uint
 	HashFunc []HasherType
@@ -128,6 +132,9 @@ type Cacher interface {
 
 	// Len returns the number of items in the cache.
 	Len() int
+
+	// RegisterHandler registers a new handler to be called when a new data is added
+	RegisterHandler(func(key []byte))
 }
 
 // BloomFilter provides services for filtering database requests
@@ -136,7 +143,7 @@ type BloomFilter interface {
 	//Add adds the value to the bloom filter
 	Add([]byte)
 
-	//Test checks if the value is in in the set. If it returns 'false',
+	// MayContain checks if the value is in in the set. If it returns 'false',
 	//the item is definitely not in the DB
 	MayContain([]byte) bool
 

@@ -110,8 +110,8 @@
   version = "1.0.0"
 
 [[constraint]]
+  branch = "master"
   name = "github.com/libp2p/go-libp2p-pubsub"
-  version = "0.10.2"
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-secio"
@@ -180,10 +180,6 @@
 [[constraint]]
   name = "gotest.tools"
   version = "2.2.0"
-
-[[constraint]]
-  name = "zombiezen.com/go/capnproto2"
-  version = "2.17.2"
 
 [prune]
   go-tests = true

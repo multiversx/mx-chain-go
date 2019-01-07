@@ -125,7 +125,7 @@ func (chr *Chronology) updateRound() SubroundId {
 	chr.timeSubround = chr.GetSubroundFromDateTime(currentTime)
 
 	if oldRoundIndex != chr.round.index {
-		log.Info(fmt.Sprintf("\n"+chr.SyncTime().FormatedCurrentTime(chr.ClockOffset())+
+		log.Info(fmt.Sprintf("\n"+chr.SyncTime().FormattedCurrentTime(chr.ClockOffset())+
 			"############################## ROUND %d BEGINS ##############################\n", chr.round.index))
 		chr.initRound()
 	}
@@ -133,7 +133,7 @@ func (chr *Chronology) updateRound() SubroundId {
 	if oldTimeSubRound != chr.timeSubround {
 		sr := chr.LoadSubroundHandler(chr.timeSubround)
 		if sr != nil {
-			log.Info(fmt.Sprintf("\n" + chr.SyncTime().FormatedCurrentTime(chr.ClockOffset()) +
+			log.Info(fmt.Sprintf("\n" + chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()) +
 				".................... SUBROUND " + sr.Name() + " BEGINS ....................\n"))
 		}
 	}

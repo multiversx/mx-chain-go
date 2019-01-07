@@ -17,7 +17,6 @@ type BlockProcessorMock struct {
 	CreateTxBlockCalled          func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
 	RemoveBlockTxsFromPoolCalled func(body *block.TxBlockBody) error
 	GetRootHashCalled            func() []byte
-	noShards                     uint32
 }
 
 // ProcessBlock mocks pocessing a block
@@ -56,17 +55,6 @@ func (blProcMock *BlockProcessorMock) RemoveBlockTxsFromPool(body *block.TxBlock
 	return blProcMock.RemoveBlockTxsFromPoolCalled(body)
 }
 
-// NoShards mocks the number of shards
-func (blProcMock *BlockProcessorMock) NoShards() uint32 {
-	return blProcMock.noShards
-}
-
-// SetNoShards mocks setting the number of shards
-func (blProcMock *BlockProcessorMock) SetNoShards(noShards uint32) {
-	blProcMock.noShards = noShards
-}
-
-// GetRootHash mocks the current root hash of the account state trie
-func (blProcMock *BlockProcessorMock) GetRootHash() []byte {
+func (blProcMock BlockProcessorMock) GetRootHash() []byte {
 	return blProcMock.GetRootHashCalled()
 }

@@ -6,14 +6,19 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transactionPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	blproc "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
+
+var testCacherConfig = storage.CacheConfig{
+	Size: 1000,
+	Type: storage.LRUCache,
+}
 
 func blockchainConfig() *blockchain.Config {
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
@@ -91,26 +96,27 @@ func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockC
 	// cleanup
 	if err != nil {
 		if headerUnit != nil {
-			headerUnit.DestroyUnit()
+			_ = headerUnit.DestroyUnit()
 		}
 		if peerBlockUnit != nil {
-			peerBlockUnit.DestroyUnit()
+			_ = peerBlockUnit.DestroyUnit()
 		}
 		if stateBlockUnit != nil {
-			stateBlockUnit.DestroyUnit()
+			_ = stateBlockUnit.DestroyUnit()
 		}
 		if txBlockUnit != nil {
-			txBlockUnit.DestroyUnit()
+			_ = txBlockUnit.DestroyUnit()
 		}
 		if txUnit != nil {
-			txUnit.DestroyUnit()
+			_ = txUnit.DestroyUnit()
 		}
 	}
 	return nil, err
 }
 
 func TestNewBlockProcessor(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 
 	be := blproc.NewBlockProcessor(
 		tp,
@@ -118,51 +124,53 @@ func TestNewBlockProcessor(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		nil,
-		1)
+		mock.NewOneShardCoordinatorMock())
 
 	assert.NotNil(t, be)
 }
 
 func TestBlockProc_GetTransactionFromPool(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 
 	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		nil,
-		1)
+		mock.NewOneShardCoordinatorMock())
 
 	txHash := []byte("tx1_hash")
 
 	tx := be.GetTransactionFromPool(1, txHash)
-	assert.Nil(t, tp.MiniPoolTxStore(1))
+	assert.Nil(t, tp.ShardDataStore(1))
 	assert.Nil(t, tx)
 
-	tp.NewMiniPool(1)
+	tp.NewShardStore(1)
 
 	tx = be.GetTransactionFromPool(1, txHash)
-	assert.NotNil(t, tp.MiniPoolTxStore(1))
+	assert.NotNil(t, tp.ShardDataStore(1))
 	assert.Nil(t, tx)
 
-	tp.AddTransaction(txHash, &transaction.Transaction{Nonce: uint64(1)}, 1)
+	testedNonce := uint64(1)
+	tp.AddData(txHash, &transaction.Transaction{Nonce: testedNonce}, 1)
 
 	tx = be.GetTransactionFromPool(1, txHash)
-	assert.NotNil(t, tp.MiniPoolTxStore(1))
+	assert.NotNil(t, tp.ShardDataStore(1))
 	assert.NotNil(t, tx)
-	assert.Equal(t, uint64(1), tx.Nonce)
+	assert.Equal(t, testedNonce, tx.Nonce)
 }
 
 func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 
 	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		nil,
-		1)
-	//1, []byte("tx1_hash1"), WaitTime
+		mock.NewOneShardCoordinatorMock())
 
 	shardId := uint32(1)
 	txHash1 := []byte("tx1_hash1")
@@ -175,17 +183,18 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	mBlocks = append(mBlocks, mBlk)
 	blk.MiniBlocks = mBlocks
 	tx1 := &transaction.Transaction{Nonce: 7}
-	tp.AddTransaction(txHash1, tx1, 1)
+	tp.AddData(txHash1, tx1, 1)
 
 	be.RequestTransactionFromNetwork(&blk)
 	be.WaitForTxHashes()
-	tx, _ := tp.MiniPool(shardId).TxStore.Get(txHash1)
+	tx, _ := tp.ShardStore(shardId).DataStore.Get(txHash1)
 
 	assert.Equal(t, tx1, tx)
 }
 
 func TestBlockProcessor_ProcessBlockWithNilTxBlockBodyShouldErr(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 	tpm := mock.TxProcessorMock{}
 	// set accounts dirty
 	journalLen := func() int { return 3 }
@@ -199,6 +208,7 @@ func TestBlockProcessor_ProcessBlockWithNilTxBlockBodyShouldErr(t *testing.T) {
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
+		Commitment:    []byte("commitment"),
 	}
 
 	// cleanup after tests
@@ -213,17 +223,19 @@ func TestBlockProcessor_ProcessBlockWithNilTxBlockBodyShouldErr(t *testing.T) {
 		&mock.AccountsStub{
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revToSnapshot},
-		1,
+			mock.NewOneShardCoordinatorMock(),
 	)
 
 	// should return err
-	err := be.ProcessAndCommit(blkc, &hdr, nil)
+	err = be.ProcessAndCommit(blkc, &hdr, nil)
+
 	assert.NotNil(t, err)
-	assert.Equal(t, err, process.ErrInvalidTxBlockBody)
+	assert.Equal(t, process.ErrNilTxBlockBody, err)
 }
 
 func TestBlockProc_ProcessBlockWithDirtyAccountShouldErr(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 	tpm := mock.TxProcessorMock{}
 	// set accounts dirty
 	journalLen := func() int { return 3 }
@@ -237,6 +249,7 @@ func TestBlockProc_ProcessBlockWithDirtyAccountShouldErr(t *testing.T) {
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
+		Commitment:    []byte("commitment"),
 	}
 
 	miniblocks := make([]block.MiniBlock, 0)
@@ -262,19 +275,21 @@ func TestBlockProc_ProcessBlockWithDirtyAccountShouldErr(t *testing.T) {
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revToSnapshot,
 		},
-		1,
+			mock.NewOneShardCoordinatorMock(),
 	)
 
 	// should return err
-	err := be.ProcessAndCommit(blkc, &hdr, &txBody)
+	err = be.ProcessAndCommit(blkc, &hdr, &txBody)
+
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrAccountStateDirty)
 }
 
 func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 	txHash := []byte("tx_hash1")
-	tp.AddTransaction(txHash, &transaction.Transaction{Nonce: 1}, 0)
+	tp.AddData(txHash, &transaction.Transaction{Nonce: 1}, 0)
 
 	// invalid transaction
 	txProcess := func(transaction *transaction.Transaction, round int32) error {
@@ -329,16 +344,17 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revertToSnapshot,
 		},
-		1,
+		mock.NewOneShardCoordinatorMock(),
 	)
 
 	// should return err
-	err := be.ProcessAndCommit(blkc, &hdr, &txBody)
+	err = be.ProcessAndCommit(blkc, &hdr, &txBody)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
 func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 	tpm := mock.TxProcessorMock{}
 	journalLen := func() int { return 3 }
 	revToSnapshot := func(snapshot int) error { return nil }
@@ -347,11 +363,13 @@ func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&tpm,
+
 		&mock.AccountsStub{
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revToSnapshot,
 		},
-		1,
+			mock.NewOneShardCoordinatorMock(),
+
 	)
 
 	bl, err := be.CreateTxBlockBody(0, 100, 0, func() bool { return true })
@@ -363,8 +381,8 @@ func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 }
 
 func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
-
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 	tpm := mock.TxProcessorMock{}
 	journalLen := func() int { return 0 }
 	rootHashfunc := func() []byte { return []byte("roothash") }
@@ -379,7 +397,7 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 			RootHashCalled:   rootHashfunc,
 			RevertToSnapshotCalled: revToSnapshot,
 		},
-		1,
+		mock.NewOneShardCoordinatorMock(),
 	)
 
 	haveTime := func() bool {
@@ -395,8 +413,8 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 }
 
 func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
-
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 	//process transaction. return nil for no error
 	procTx := func(transaction *transaction.Transaction, round int32) error {
 		return nil
@@ -421,7 +439,7 @@ func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
 			JournalLenCalled: journalLen,
 			RootHashCalled:   rootHashfunc,
 		},
-		1,
+		mock.NewOneShardCoordinatorMock(),
 	)
 
 	blk, err := be.CreateTxBlockBody(0, 100, 0, haveTime)
@@ -431,14 +449,15 @@ func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
 }
 
 func TestBlockProcessor_CreateGenesisBlockBodyWithNilTxProcessorShouldPanic(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 
 	be := blproc.NewBlockProcessor(
 		tp, nil,
 		nil,
 		nil,
 		nil,
-		1,
+		mock.NewOneShardCoordinatorMock(),
 	)
 
 	createGenesis := func() {
@@ -449,7 +468,8 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithNilTxProcessorShouldPanic(t *t
 }
 
 func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldPanic(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 
 	txProcess := func(transaction *transaction.Transaction, round int32) error {
 		return nil
@@ -469,7 +489,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldPanic(t *t
 		nil,
 		&txProc,
 		nil,
-		1,
+		mock.NewOneShardCoordinatorMock(),
 	)
 
 	createGenesis := func() {
@@ -480,7 +500,8 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldPanic(t *t
 }
 
 func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 
 	txProcess := func(transaction *transaction.Transaction, round int32) error {
 		return nil
@@ -500,7 +521,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 		nil,
 		&txProc,
 		nil,
-		1,
+		mock.NewOneShardCoordinatorMock(),
 	)
 
 	stBlock := be.CreateGenesisBlockBody(nil, 0)
@@ -509,31 +530,33 @@ func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 }
 
 func TestBlockProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 
 	be := blproc.NewBlockProcessor(
 		tp, nil,
 		nil,
 		nil,
 		nil,
-		1,
+		mock.NewOneShardCoordinatorMock(),
 	)
 
-	err := be.RemoveBlockTxsFromPool(nil)
+	err = be.RemoveBlockTxsFromPool(nil)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
 
 func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
+	tp, err := shardedData.NewShardedData(testCacherConfig)
+	assert.Nil(t, err)
 
 	be := blproc.NewBlockProcessor(
 		tp, nil,
 		nil,
 		nil,
 		nil,
-		1,
+		mock.NewOneShardCoordinatorMock(),
 	)
 	miniblocks := make([]block.MiniBlock, 0)
 
@@ -553,23 +576,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		MiniBlocks:     miniblocks,
 	}
 
-	err := be.RemoveBlockTxsFromPool(&txBody)
+	err = be.RemoveBlockTxsFromPool(&txBody)
 
 	assert.Nil(t, err)
-}
-
-func TestBlockProcessor_GetNbShards(t *testing.T) {
-	tp := transactionPool.NewTransactionPool(nil)
-	be := blproc.NewBlockProcessor(
-		tp, nil,
-		nil,
-		nil,
-		nil,
-		1,
-	)
-
-	be.SetNoShards(20)
-	nb := be.NoShards()
-
-	assert.Equal(t, uint32(20), nb)
 }

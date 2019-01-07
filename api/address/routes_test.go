@@ -76,6 +76,27 @@ func TestGetBalance_WithWrongAddressShouldReturnZero(t *testing.T) {
 	assert.Equal(t, "", addressResponse.Error)
 }
 
+func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
+	t.Parallel()
+	addr := "addr"
+	facade := mock.Facade{
+		BalanceHandler: func(s string) (i *big.Int, e error) {
+			return nil, errors.New("error")
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/balance", addr), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	addressResponse := AddressResponse{}
+	loadResponse(resp.Body, &addressResponse)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Equal(t, "Get balance error: error", addressResponse.Error)
+}
+
 func TestGetBalance_WithEmptyAddressShouldReturnZeroAndError(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{

@@ -104,6 +104,7 @@ func (sr *Subround) Name() string {
 	return sr.name
 }
 
+// Check method checks if the work of this subround was successfully done
 func (sr *Subround) Check() bool {
 	return sr.check()
 }
