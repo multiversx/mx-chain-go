@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -482,12 +481,12 @@ func (n *Node) createGenesisBlock() (*block.Header, error) {
 	}
 	blockBodyHash := n.hasher.Compute(string(marshalizedBody))
 	return &block.Header{
-		Nonce: 0,
-		ShardId: blockBody.ShardID,
-		TimeStamp: uint64(n.genesisTime.Unix()),
+		Nonce:         0,
+		ShardId:       blockBody.ShardID,
+		TimeStamp:     uint64(n.genesisTime.Unix()),
 		BlockBodyHash: blockBodyHash,
 		BlockBodyType: block.StateBlock,
-		Signature: blockBodyHash,
+		Signature:     blockBodyHash,
 	}, nil
 }
 
