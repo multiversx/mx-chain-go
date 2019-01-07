@@ -37,3 +37,5 @@ var errNilDataPool = errors.New("trying to set nil data pool")
 var errNilShardCoordinator = errors.New("trying to set nil shard coordinator")
 
 var errNilUint64ByteSliceConverter = errors.New("trying to set nil uint64 - byte slice converter")
+
+var errNilBalances = errors.New("trying to set nil balances")

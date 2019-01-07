@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"math/big"
 	"testing"
 	"time"
 
@@ -538,5 +539,34 @@ func TestWithUint64ByteSliceConverter_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.uint64ByteSliceConverter == converter)
+	assert.Nil(t, err)
+}
+
+func TestWithInitialNodesBalances_NilBalancesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithInitialNodesBalances(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.initialNodesBalances)
+	assert.Equal(t, errNilBalances, err)
+}
+
+func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	balances := map[string]big.Int{
+		"pk1": *big.NewInt(45),
+		"pk2": *big.NewInt(56),
+	}
+
+	opt := WithInitialNodesBalances(balances)
+	err := opt(node)
+
+	assert.Equal(t, node.initialNodesBalances, balances)
 	assert.Nil(t, err)
 }

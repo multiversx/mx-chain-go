@@ -11,8 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
@@ -60,7 +60,7 @@ type Node struct {
 	maxAllowedPeers          int
 	pubSubStrategy           p2p.PubSubStrategy
 	initialNodesPubkeys      []string
-	initialNodesBalances 	 map[string]big.Int
+	initialNodesBalances     map[string]big.Int
 	roundDuration            uint64
 	consensusGroupSize       int
 	messenger                p2p.Messenger
@@ -521,204 +521,13 @@ func (n *Node) createGenesisBlock() (*block.Header, error) {
 	}
 	blockBodyHash := n.hasher.Compute(string(marshalizedBody))
 	return &block.Header{
-		Nonce: 0,
-		ShardId: blockBody.ShardID,
-		TimeStamp: uint64(n.genesisTime.Unix()),
+		Nonce:         0,
+		ShardId:       blockBody.ShardID,
+		TimeStamp:     uint64(n.genesisTime.Unix()),
 		BlockBodyHash: blockBodyHash,
 		BlockBodyType: block.StateBlock,
-		Signature: blockBodyHash,
+		Signature:     blockBodyHash,
 	}, nil
-}
-
-func (n *Node) removeSelfFromList(peers []string) []string {
-	tmp := peers[:0]
-	addr, _ := n.Address()
-	for _, p := range peers {
-		if addr != p {
-			tmp = append(tmp, p)
-		}
-	}
-	return tmp
-}
-
-// WithPort sets up the port option for the Node
-func WithPort(port int) Option {
-	return func(n *Node) error {
-		n.port = port
-		return nil
-	}
-}
-
-// WithMarshalizer sets up the marshalizer option for the Node
-func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
-	return func(n *Node) error {
-		if marshalizer == nil {
-			return errors.New("trying to set nil marshalizer")
-		}
-		n.marshalizer = marshalizer
-		return nil
-	}
-}
-
-// WithContext sets up the context option for the Node
-func WithContext(ctx context.Context) Option {
-	return func(n *Node) error {
-		if ctx == nil {
-			return errors.New("trying to set nil context")
-		}
-		n.ctx = ctx
-		return nil
-	}
-}
-
-// WithHasher sets up the hasher option for the Node
-func WithHasher(hasher hashing.Hasher) Option {
-	return func(n *Node) error {
-		if hasher == nil {
-			return errors.New("trying to set nil hasher")
-		}
-		n.hasher = hasher
-		return nil
-	}
-}
-
-// WithMaxAllowedPeers sets up the maxAllowedPeers option for the Node
-func WithMaxAllowedPeers(maxAllowedPeers int) Option {
-	return func(n *Node) error {
-		n.maxAllowedPeers = maxAllowedPeers
-		return nil
-	}
-}
-
-// WithPubSubStrategy sets up the strategy option for the Node
-func WithPubSubStrategy(strategy p2p.PubSubStrategy) Option {
-	return func(n *Node) error {
-		n.pubSubStrategy = strategy
-		return nil
-	}
-}
-
-// WithAccountsAdapter sets up the accounts adapter option for the Node
-func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
-	return func(n *Node) error {
-		if accounts == nil {
-			return errors.New("trying to set nil accounts adapter")
-		}
-		n.accounts = accounts
-		return nil
-	}
-}
-
-// WithAddressConverter sets up the address converter adapter option for the Node
-func WithAddressConverter(addrConverter state.AddressConverter) Option {
-	return func(n *Node) error {
-		if addrConverter == nil {
-			return errors.New("trying to set nil address converter")
-		}
-		n.addrConverter = addrConverter
-		return nil
-	}
-}
-
-// WithBlockChain sets up the blockchain option for the Node
-func WithBlockChain(blkc *blockchain.BlockChain) Option {
-	return func(n *Node) error {
-		if blkc == nil {
-			return errors.New("trying to set nil blockchain")
-		}
-		n.blkc = blkc
-		return nil
-	}
-}
-
-// WithPrivateKey sets up the private key option for the Node
-func WithPrivateKey(sk crypto.PrivateKey) Option {
-	return func(n *Node) error {
-		if sk == nil {
-			return errors.New("trying to set nil private key")
-		}
-		n.privateKey = sk
-		return nil
-	}
-}
-
-// WithInitialNodesPubKeys sets up the initial nodes public key option for the Node
-func WithInitialNodesPubKeys(pubKeys []string) Option {
-	return func(n *Node) error {
-		n.initialNodesPubkeys = pubKeys
-		return nil
-	}
-}
-
-// WithInitialNodesBalances sets up the initial map of nodes public keys and their respective balances
-func WithInitialNodesBalances(balances map[string]big.Int) Option {
-	return func(n *Node) error {
-		n.initialNodesBalances = balances
-		return nil
-	}
-}
-
-// WithPublicKey sets up the public key option for the Node
-func WithPublicKey(pk crypto.PublicKey) Option {
-	return func(n *Node) error {
-		n.publicKey = pk
-		return nil
-	}
-}
-
-// WithRoundDuration sets up the round duration option for the Node
-func WithRoundDuration(roundDuration int64) Option {
-	return func(n *Node) error {
-		n.roundDuration = roundDuration
-		return nil
-	}
-}
-
-// WithConsensusGroupSize sets up the consensus group size option for the Node
-func WithConsensusGroupSize(consensusGroupSize int) Option {
-	return func(n *Node) error {
-		n.consensusGroupSize = consensusGroupSize
-		return nil
-	}
-}
-
-// WithSyncer sets up the syncer option for the Node
-func WithSyncer(syncer ntp.SyncTimer) Option {
-	return func(n *Node) error {
-		if syncer == nil {
-			return errors.New("trying to set nil sync timer")
-		}
-
-		n.syncer = syncer
-		return nil
-	}
-}
-
-// WithBlockProcessor sets up the block processor option for the Node
-func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
-	return func(n *Node) error {
-		if blockProcessor == nil {
-			return errors.New("trying to set nil block processor")
-		}
-		n.blockProcessor = blockProcessor
-		return nil
-	}
-}
-
-// WithGenesisTime sets up the genesis time option for the Node
-func WithGenesisTime(genesisTime time.Time) Option {
-	return func(n *Node) error {
-		n.genesisTime = genesisTime
-		return nil
-	}
-}
-
-// WithElasticSubrounds sets up the elastic subround option for the Node
-func WithElasticSubrounds(elasticSubrounds bool) Option {
-	return func(n *Node) error {
-		n.elasticSubrounds = elasticSubrounds
-		return nil
-	}
 }
 
 func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
