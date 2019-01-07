@@ -832,9 +832,11 @@ func TestMemMessenger_RequestResolveTestCfg1ShouldWork(t *testing.T) {
 	nodes[0].GetTopic("test").AddDataReceived(recv)
 
 	//setup a resolver func for node 3
-	nodes[3].GetTopic("test").ResolveRequest = func(hash []byte) p2p.Creator {
+	nodes[3].GetTopic("test").ResolveRequest = func(hash []byte) []byte {
 		if bytes.Equal(hash, []byte("A000")) {
-			return &testMemStringCreator{Data: "Real object1"}
+			marshalizer := &mock.MarshalizerMock{}
+			buff, _ := marshalizer.Marshal(&testMemStringCreator{Data: "Real object1"})
+			return buff
 		}
 
 		return nil
@@ -909,16 +911,18 @@ func TestMemMessenger_RequestResolveTestCfg2ShouldWork(t *testing.T) {
 	nodes[1].GetTopic("test").AddDataReceived(recv)
 
 	//resolver func for node 0 and 2
-	resolverOK := func(hash []byte) p2p.Creator {
+	resolverOK := func(hash []byte) []byte {
 		if bytes.Equal(hash, []byte("A000")) {
-			return &testMemStringCreator{Data: "Real object1"}
+			marshalizer := &mock.MarshalizerMock{}
+			buff, _ := marshalizer.Marshal(&testMemStringCreator{Data: "Real object1"})
+			return buff
 		}
 
 		return nil
 	}
 
 	//resolver func for other nodes
-	resolverNOK := func(hash []byte) p2p.Creator {
+	resolverNOK := func(hash []byte) []byte {
 		panic("Should have not reached this point")
 
 		return nil
@@ -993,16 +997,18 @@ func TestMemMessenger_RequestResolveTestSelfShouldWork(t *testing.T) {
 	nodes[1].GetTopic("test").AddDataReceived(recv)
 
 	//resolver func for node 1
-	resolverOK := func(hash []byte) p2p.Creator {
+	resolverOK := func(hash []byte) []byte {
 		if bytes.Equal(hash, []byte("A000")) {
-			return &testMemStringCreator{Data: "Real object1"}
+			marshalizer := &mock.MarshalizerMock{}
+			buff, _ := marshalizer.Marshal(&testMemStringCreator{Data: "Real object1"})
+			return buff
 		}
 
 		return nil
 	}
 
 	//resolver func for other nodes
-	resolverNOK := func(hash []byte) p2p.Creator {
+	resolverNOK := func(hash []byte) []byte {
 		panic("Should have not reached this point")
 
 		return nil
@@ -1076,16 +1082,18 @@ func TestMemMessenger_RequestResolveResendingShouldWork(t *testing.T) {
 	nodes[1].GetTopic("test").AddDataReceived(recv)
 
 	//resolver func for node 0 and 2
-	resolverOK := func(hash []byte) p2p.Creator {
+	resolverOK := func(hash []byte) []byte {
 		if bytes.Equal(hash, []byte("A000")) {
-			return &testMemStringCreator{Data: "Real object0"}
+			marshalizer := &mock.MarshalizerMock{}
+			buff, _ := marshalizer.Marshal(&testMemStringCreator{Data: "Real object0"})
+			return buff
 		}
 
 		return nil
 	}
 
 	//resolver func for other nodes
-	resolverNOK := func(hash []byte) p2p.Creator {
+	resolverNOK := func(hash []byte) []byte {
 		panic("Should have not reached this point")
 
 		return nil

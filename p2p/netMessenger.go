@@ -258,7 +258,7 @@ func (nm *NetMessenger) Addresses() []string {
 	return addrs
 }
 
-// ConnectToInitialAddresses is used to explicitly connect to a well known set of addresses
+// ConnectToAddresses is used to explicitly connect to a well known set of addresses
 func (nm *NetMessenger) ConnectToAddresses(ctx context.Context, addresses []string) {
 	peers := 0
 
@@ -385,28 +385,28 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 		return errors.New("topic can not be nil")
 	}
 
-	if strings.Contains(t.Name, requestTopicSuffix) {
+	if strings.Contains(t.Name(), requestTopicSuffix) {
 		return errors.New("topic name contains request suffix")
 	}
 
 	nm.mutTopics.Lock()
 
-	_, ok := nm.topics[t.Name]
+	_, ok := nm.topics[t.Name()]
 	if ok {
 		nm.mutTopics.Unlock()
 		return errors.New("topic already exists")
 	}
 
-	nm.topics[t.Name] = t
+	nm.topics[t.Name()] = t
 	t.CurrentPeer = nm.ID()
 	nm.mutTopics.Unlock()
 
-	subscr, err := nm.ps.Subscribe(t.Name)
+	subscr, err := nm.ps.Subscribe(t.Name())
 	if err != nil {
 		return err
 	}
 
-	subscrRequest, err := nm.ps.Subscribe(t.Name + requestTopicSuffix)
+	subscrRequest, err := nm.ps.Subscribe(t.Name() + requestTopicSuffix)
 	if err != nil {
 		return err
 	}
@@ -446,17 +446,17 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 
 	// func that publishes on network from Topic object
 	t.SendData = func(data []byte) error {
-		return nm.ps.Publish(t.Name, data)
+		return nm.ps.Publish(t.Name(), data)
 	}
 
 	// validator registration func
 	t.RegisterTopicValidator = func(v pubsub.Validator) error {
-		return nm.ps.RegisterTopicValidator(t.Name, v)
+		return nm.ps.RegisterTopicValidator(t.Name(), v)
 	}
 
 	// validator unregistration func
 	t.UnregisterTopicValidator = func() error {
-		return nm.ps.UnregisterTopicValidator(t.Name)
+		return nm.ps.UnregisterTopicValidator(t.Name())
 	}
 
 	nm.createRequestTopicAndBind(t, subscrRequest)
@@ -489,7 +489,7 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 		has := false
 
 		nm.mutGossipCache.Lock()
-		has = nm.gossipCache.Has(obj.ID())
+		has = nm.gossipCache.Has(string(obj))
 		nm.mutGossipCache.Unlock()
 
 		if !has {
@@ -505,11 +505,11 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 
 	//wire-up a plain func for publishing on request channel
 	t.Request = func(hash []byte) error {
-		return nm.ps.Publish(t.Name+requestTopicSuffix, hash)
+		return nm.ps.Publish(t.Name()+requestTopicSuffix, hash)
 	}
 
 	//wire-up the validator
-	err := nm.ps.RegisterTopicValidator(t.Name+requestTopicSuffix, v)
+	err := nm.ps.RegisterTopicValidator(t.Name()+requestTopicSuffix, v)
 	if err != nil {
 		log.Error(err.Error())
 	}

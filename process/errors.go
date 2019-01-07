@@ -124,9 +124,6 @@ var ErrNilBlockExecutor = errors.New("nil BlockExecutor")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
-// ErrNilBlockPool signals that an operation has been attempted to or with a nil BlockPool
-var ErrNilBlockPool = errors.New("nil BlockPool")
-
 // ErrNilRound signals that an operation has been attempted to or with a nil Round
 var ErrNilRound = errors.New("nil Round")
 
@@ -195,3 +192,43 @@ var ErrBadInterceptorTopicImplementation = errors.New("bad interceptor-topic imp
 
 // ErrNilBlockBody signals that a nil block body has been provided
 var ErrNilBlockBody = errors.New("nil block body")
+
+// ErrNilTransientPool signals that an operation has been attempted to or with a nil transient pool of data
+var ErrNilTransientPool = errors.New("nil transient pool")
+
+// ErrNilTxStorage signals that a nil transaction storage has been provided
+var ErrNilTxStorage = errors.New("nil transaction storage")
+
+// ErrNilHeadersStorage signals that a nil header storage has been provided
+var ErrNilHeadersStorage = errors.New("nil headers storage")
+
+// ErrNilTopic signals that a nil topic has been provided/fetched
+var ErrNilTopic = errors.New("nil topic")
+
+// ErrResolveRequestAlreadyAssigned signals that ResolveRequest is not nil for a particular topic
+var ErrResolveRequestAlreadyAssigned = errors.New("resolve request func has already been assigned for this topic")
+
+// ErrTopicNotWiredToMessenger signals that a call to a not-correctly-instantiated topic has been made
+var ErrTopicNotWiredToMessenger = errors.New("topic has not been wired to a p2p.Messenger implementation")
+
+// ErrNilResolver signals that a nil resolver object has been provided
+var ErrNilResolver = errors.New("nil resolver")
+
+// ErrNilNonceConverter signals that a nil nonce converter has been provided
+var ErrNilNonceConverter = errors.New("nil nonce converter")
+
+// ErrInvalidNonceByteSlice signals that an invalid byte slice has been provided
+// and an uint64 can not be decoded from that byte slice
+var ErrInvalidNonceByteSlice = errors.New("invalid nonce byte slice")
+
+// ErrResolveNotHashType signals that an expected resolve type was other than hash type
+var ErrResolveNotHashType = errors.New("expected resolve type was hash type")
+
+// ErrResolveTypeUnknown signals that an unknown resolve type was provided
+var ErrResolveTypeUnknown = errors.New("unknown resolve type")
+
+// ErrNilBlockBodyPool signals that a nil block body pool has been provided
+var ErrNilBlockBodyPool = errors.New("nil block body pool")
+
+// ErrNilBlockBodyStorage signals that a nil block body storage has been provided
+var ErrNilBlockBodyStorage = errors.New("nil block body storage")

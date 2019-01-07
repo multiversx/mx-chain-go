@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
@@ -33,4 +34,12 @@ func (hi *HeaderInterceptor) ProcessHdr(hdr p2p.Creator, rawData []byte) error {
 
 func (gbbi *GenericBlockBodyInterceptor) ProcessBodyBlock(bodyBlock p2p.Creator, rawData []byte) error {
 	return gbbi.processBodyBlock(bodyBlock, rawData)
+}
+
+func (hdrRes *headerResolver) ResolveHdrRequest(rd process.RequestData) ([]byte, error) {
+	return hdrRes.resolveHdrRequest(rd)
+}
+
+func (gbbRes *genericBlockBodyResolver) ResolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
+	return gbbRes.resolveBlockBodyRequest(rd)
 }

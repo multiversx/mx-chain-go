@@ -390,12 +390,12 @@
   version = "v0.1.13"
 
 [[projects]]
-  digest = "1:6d7a9ca11534f9679045a416d868006a9b6f51ab8556fc42f91e5ce0424a455a"
+  digest = "1:de924df18a72aa4239ffe56632b3f06fda47c433f8fd1799dad245899349201e"
   name = "github.com/libp2p/go-conn-security-multistream"
   packages = ["."]
   pruneopts = "UT"
-  revision = "578125a681eee24cac960d84827db34541e3f707"
-  version = "v0.1.15"
+  revision = "42e375808ebbc786e791f019d6a91097d90274a4"
+  version = "v0.1.13"
 
 [[projects]]
   digest = "1:19f2d2506cc0f9a233c9c0753e8c3fd5afa88afb43ff7b795cbba3629d0e96b5"
@@ -476,12 +476,12 @@
   version = "v1.1.22"
 
 [[projects]]
-  digest = "1:e01814b1390e3abc93ca170141d457fab1dcc0c532cdfdd269be58fb2cd6a9f4"
+  digest = "1:10c75ce77bb41f581b35f0577037a0ec6a97001d70916555869ecc9173ae6b31"
   name = "github.com/libp2p/go-libp2p-metrics"
   packages = ["."]
   pruneopts = "UT"
-  revision = "20c0e3fed14ddf84ac8192038accfd393610ed82"
-  version = "v2.1.7"
+  revision = "a10ff6e75dae3c868023867e8caa534a04bdc624"
+  version = "v2.1.6"
 
 [[projects]]
   digest = "1:7288dd0673deca8a85129141d7c4c599b15d14c9e797cc34d8e061a43d3fc68e"
@@ -542,23 +542,23 @@
   revision = "6fc7deb2868603292d4f7afe139e86d27b03f3b8"
 
 [[projects]]
-  digest = "1:c6965e617af296544a1323cccd2d93b8a1072bf837939bbc2a977741e4ed799b"
+  digest = "1:1f4be308ef940c89130bee25cd1fcb5a9e39262dc17aa82902370cb18b0cdfa6"
   name = "github.com/libp2p/go-libp2p-secio"
   packages = [
     ".",
     "pb",
   ]
   pruneopts = "UT"
-  revision = "8f95e95b9fedc69b1367362a14f1ad3b5bd5bd46"
-  version = "v2.0.17"
+  revision = "be39cabff59e06419cadbdb205abb918d555b5fb"
+  version = "v2.0.15"
 
 [[projects]]
-  digest = "1:64aabc707c4b71c972be3f0dbb90ee128f0ea73d7cb1588d24db5518ebde18a5"
+  digest = "1:e7a61287737f3e8169440eafda7772d6dac2dc28c7b3416c8ea3cb4ff065dc84"
   name = "github.com/libp2p/go-libp2p-swarm"
   packages = ["."]
   pruneopts = "UT"
-  revision = "839f88f8de4d0f8300facdcdf7aa2124d020b2b6"
-  version = "v3.0.22"
+  revision = "aebf02bb94e183b2dad9226d21c3b1879dc81ed0"
+  version = "v3.0.18"
 
 [[projects]]
   digest = "1:a95b1831bab1401fcf15bbb901e241adf6963a86d9fbc9ca19ae02bfe0c47867"
@@ -569,12 +569,12 @@
   version = "v3.0.13"
 
 [[projects]]
-  digest = "1:13b2c4a015a6af88609ae55919f93b8e1f34679d22226861c7bd7bde6a896e2e"
+  digest = "1:901061bb5375b86ebe0cc90548e63c74dd662db475644592a2ed636e86232dcb"
   name = "github.com/libp2p/go-libp2p-transport-upgrader"
   packages = ["."]
   pruneopts = "UT"
-  revision = "8dde02b5e75342c09725bc601cf28e9e98f920c7"
-  version = "v0.1.16"
+  revision = "939dfe8cfd16ce4d3568165c1a029703b630550c"
+  version = "v0.1.14"
 
 [[projects]]
   digest = "1:5cd9cd7427d07a96e475603bcae6206ff85ecefde1f71c023694342a4bede3e5"
@@ -637,12 +637,12 @@
   version = "v3.0.1"
 
 [[projects]]
-  digest = "1:85307ba5f7e0ab0633436b13416ee716741ef277d02723fabc191cc74aeda976"
+  digest = "1:ff9f0ead458d518bf46efb9fdfbe8b85e2c1e213d25af6c91e88884a345b0aa2"
   name = "github.com/libp2p/go-tcp-transport"
   packages = ["."]
   pruneopts = "UT"
-  revision = "7e41190ec0687ca01f984fc0aa2f0f2352f5295f"
-  version = "v2.0.16"
+  revision = "31233dd1174fca68461cb3032eeeed81ba7337b3"
+  version = "v2.0.14"
 
 [[projects]]
   digest = "1:f86576ed9553bdc1c51e18facd79e42fad5ff3d19a338e2b896e88ca3b3be02b"
@@ -969,12 +969,12 @@
   version = "v2.0.2"
 
 [[projects]]
-  digest = "1:b3205c79e29e2878a1a90216ef97575b9624ce7cffc1230392967253917ae2aa"
+  digest = "1:7dfe01535df43d1e5428d85fed09fbbf73bb11fc041d6ce0f3b9de3b4b80a11a"
   name = "github.com/whyrusleeping/go-smux-yamux"
   packages = ["."]
   pruneopts = "UT"
-  revision = "49458276a01f7fbc32ff62c8955fa3e852b8e772"
-  version = "v2.0.8"
+  revision = "47e72272c5734e889733a2c97c16ac6e43e258fb"
+  version = "v2.0.5"
 
 [[projects]]
   branch = "master"
@@ -1166,24 +1166,16 @@
     "github.com/gogo/protobuf/sortkeys",
     "github.com/hashicorp/golang-lru",
     "github.com/ipfs/go-ipfs-addr",
-    "github.com/libp2p/go-conn-security-multistream",
     "github.com/libp2p/go-libp2p",
     "github.com/libp2p/go-libp2p-crypto",
     "github.com/libp2p/go-libp2p-host",
-    "github.com/libp2p/go-libp2p-metrics",
     "github.com/libp2p/go-libp2p-net",
     "github.com/libp2p/go-libp2p-peer",
     "github.com/libp2p/go-libp2p-peerstore",
-    "github.com/libp2p/go-libp2p-peerstore/pstoremem",
     "github.com/libp2p/go-libp2p-protocol",
     "github.com/libp2p/go-libp2p-pubsub",
     "github.com/libp2p/go-libp2p-pubsub/pb",
-    "github.com/libp2p/go-libp2p-secio",
-    "github.com/libp2p/go-libp2p-swarm",
-    "github.com/libp2p/go-libp2p-transport-upgrader",
     "github.com/libp2p/go-libp2p/p2p/discovery",
-    "github.com/libp2p/go-libp2p/p2p/host/basic",
-    "github.com/libp2p/go-tcp-transport",
     "github.com/libp2p/go-testutil",
     "github.com/multiformats/go-multiaddr",
     "github.com/pkg/errors",
@@ -1193,8 +1185,6 @@
     "github.com/stretchr/testify/assert",
     "github.com/syndtr/goleveldb/leveldb",
     "github.com/urfave/cli",
-    "github.com/whyrusleeping/go-smux-multistream",
-    "github.com/whyrusleeping/go-smux-yamux",
     "golang.org/x/crypto/blake2b",
     "golang.org/x/crypto/sha3",
     "gopkg.in/dedis/kyber.v2",
