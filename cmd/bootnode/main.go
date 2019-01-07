@@ -56,7 +56,7 @@ var uniqueID = ""
 type initialNode struct {
 	Address string `json:"address"`
 	PubKey  string `json:"pubkey"`
-	Balance int64 `json:"balance"`
+	Balance string `json:"balance"`
 }
 
 type genesis struct {
@@ -200,10 +200,17 @@ func (g *genesis) initialNodesPubkeys() []string {
 	return pubKeys
 }
 
-func (g *genesis) initialNodesBalances() map[string]big.Int {
+func (g *genesis) initialNodesBalances(log *logger.Logger) map[string]big.Int {
 	var pubKeys = make(map[string]big.Int)
 	for _, in := range g.InitialNodes {
-		pubKeys[in.PubKey] = *big.NewInt(in.Balance)
+		balance, ok := new(big.Int).SetString(in.Balance, 10)
+		if ok {
+			pubKeys[in.PubKey] = *balance
+		} else {
+			log.Warn(fmt.Sprintf("Error decoding balance %s for public key %s - setting to 0", in.Balance, in.PubKey))
+			pubKeys[in.PubKey] = *big.NewInt(0)
+		}
+
 	}
 	return pubKeys
 }
@@ -262,7 +269,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithMaxAllowedPeers(ctx.GlobalInt(flags.MaxAllowedPeers.Name)),
 		node.WithPort(ctx.GlobalInt(flags.Port.Name)),
 		node.WithInitialNodesPubKeys(genesisConfig.initialNodesPubkeys()),
-		node.WithInitialNodesBalances(genesisConfig.initialNodesBalances()),
+		node.WithInitialNodesBalances(genesisConfig.initialNodesBalances(log)),
 		node.WithAddressConverter(addressConverter),
 		node.WithAccountsAdapter(accountsAdapter),
 		node.WithBlockChain(blkc),

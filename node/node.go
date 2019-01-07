@@ -145,7 +145,11 @@ func (n *Node) ConnectToAddresses(addresses []string) error {
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
 
-	n.blkc.GenesisBlock = n.createGenesisBlock()
+	genessisBlock, err := n.createGenesisBlock()
+	if err != nil {
+		return err
+	}
+	n.blkc.GenesisBlock = genessisBlock
 	round := n.createRound()
 	chr := n.createChronology(round)
 	rndc := n.createRoundConsensus()
@@ -155,10 +159,7 @@ func (n *Node) StartConsensus() error {
 	sposWrk := n.createConsensusWorker(cns)
 	topic := n.createConsensusTopic(sposWrk)
 
-
-
-
-	err := n.messenger.AddTopic(topic)
+	err = n.messenger.AddTopic(topic)
 
 	if err != nil {
 		log.Debug(fmt.Sprintf(err.Error()))
@@ -472,16 +473,21 @@ func (n *Node) createNetMessenger() (p2p.Messenger, error) {
 	return nm, nil
 }
 
-func (n *Node) createGenesisBlock() *block.Header {
+func (n *Node) createGenesisBlock() (*block.Header, error) {
 	blockBody := n.blockProcessor.CreateGenesisBlockBody(n.initialNodesBalances, 0)
+	marshalizedBody, err := n.marshalizer.Marshal(blockBody)
+	if err != nil {
+		return nil, err
+	}
+	blockBodyHash := n.hasher.Compute(string(marshalizedBody))
 	return &block.Header{
 		Nonce: 0,
 		ShardId: blockBody.ShardID,
 		TimeStamp: uint64(n.genesisTime.Unix()),
-		BlockBodyHash: blockBody.RootHash,
+		BlockBodyHash: blockBodyHash,
 		BlockBodyType: block.StateBlock,
-		Signature: blockBody.RootHash,
-	}
+		Signature: blockBodyHash,
+	}, nil
 }
 
 func (n *Node) removeSelfFromList(peers []string) []string {
