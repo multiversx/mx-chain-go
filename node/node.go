@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
@@ -39,25 +40,26 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	port                int
-	marshalizer         marshal.Marshalizer
-	ctx                 context.Context
-	hasher              hashing.Hasher
-	maxAllowedPeers     int
-	pubSubStrategy      p2p.PubSubStrategy
-	initialNodesPubkeys []string
-	publicKey           crypto.PublicKey
-	roundDuration       int64
-	consensusGroupSize  int
-	messenger           p2p.Messenger
-	syncer              ntp.SyncTimer
-	blockProcessor      process.BlockProcessor
-	genesisTime         time.Time
-	elasticSubrounds    bool
-	accounts            state.AccountsAdapter
-	addrConverter       state.AddressConverter
-	privateKey          crypto.PrivateKey
-	blkc                *blockchain.BlockChain
+	port                 int
+	marshalizer          marshal.Marshalizer
+	ctx                  context.Context
+	hasher               hashing.Hasher
+	maxAllowedPeers      int
+	pubSubStrategy       p2p.PubSubStrategy
+	initialNodesPubkeys  []string
+	initialNodesBalances map[string]big.Int
+	publicKey            crypto.PublicKey
+	roundDuration        int64
+	consensusGroupSize   int
+	messenger            p2p.Messenger
+	syncer               ntp.SyncTimer
+	blockProcessor       process.BlockProcessor
+	genesisTime          time.Time
+	elasticSubrounds     bool
+	accounts             state.AccountsAdapter
+	addrConverter        state.AddressConverter
+	privateKey           crypto.PrivateKey
+	blkc                 *blockchain.BlockChain
 }
 
 // NewNode creates a new Node instance
@@ -143,6 +145,11 @@ func (n *Node) ConnectToAddresses(addresses []string) error {
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
 
+	genessisBlock, err := n.createGenesisBlock()
+	if err != nil {
+		return err
+	}
+	n.blkc.GenesisBlock = genessisBlock
 	round := n.createRound()
 	chr := n.createChronology(round)
 	rndc := n.createRoundConsensus()
@@ -152,7 +159,7 @@ func (n *Node) StartConsensus() error {
 	sposWrk := n.createConsensusWorker(cns)
 	topic := n.createConsensusTopic(sposWrk)
 
-	err := n.messenger.AddTopic(topic)
+	err = n.messenger.AddTopic(topic)
 
 	if err != nil {
 		log.Debug(fmt.Sprintf(err.Error()))
@@ -466,6 +473,23 @@ func (n *Node) createNetMessenger() (p2p.Messenger, error) {
 	return nm, nil
 }
 
+func (n *Node) createGenesisBlock() (*block.Header, error) {
+	blockBody := n.blockProcessor.CreateGenesisBlockBody(n.initialNodesBalances, 0)
+	marshalizedBody, err := n.marshalizer.Marshal(blockBody)
+	if err != nil {
+		return nil, err
+	}
+	blockBodyHash := n.hasher.Compute(string(marshalizedBody))
+	return &block.Header{
+		Nonce: 0,
+		ShardId: blockBody.ShardID,
+		TimeStamp: uint64(n.genesisTime.Unix()),
+		BlockBodyHash: blockBodyHash,
+		BlockBodyType: block.StateBlock,
+		Signature: blockBodyHash,
+	}, nil
+}
+
 func (n *Node) removeSelfFromList(peers []string) []string {
 	tmp := peers[:0]
 	addr, _ := n.Address()
@@ -582,6 +606,14 @@ func WithPrivateKey(sk crypto.PrivateKey) Option {
 func WithInitialNodesPubKeys(pubKeys []string) Option {
 	return func(n *Node) error {
 		n.initialNodesPubkeys = pubKeys
+		return nil
+	}
+}
+
+// WithInitialNodesBalances sets up the initial map of nodes public keys and their respective balances
+func WithInitialNodesBalances(balances map[string]big.Int) Option {
+	return func(n *Node) error {
+		n.initialNodesBalances = balances
 		return nil
 	}
 }
