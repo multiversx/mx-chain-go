@@ -37,7 +37,7 @@ func (n *Node) createResolvers() error {
 }
 
 func (n *Node) createTxResolver() error {
-	resolve, err := resolver.NewTopicResolver(string(transactionTopic), n.messenger, n.marshalizer)
+	resolve, err := resolver.NewTopicResolver(string(TransactionTopic), n.messenger, n.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (n *Node) createTxResolver() error {
 }
 
 func (n *Node) createHdrResolver() error {
-	resolve, err := resolver.NewTopicResolver(string(headersTopic), n.messenger, n.marshalizer)
+	resolve, err := resolver.NewTopicResolver(string(HeadersTopic), n.messenger, n.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (n *Node) createHdrResolver() error {
 }
 
 func (n *Node) createTxBlockBodyResolver() error {
-	resolve, err := resolver.NewTopicResolver(string(txBlockBodyTopic), n.messenger, n.marshalizer)
+	resolve, err := resolver.NewTopicResolver(string(TxBlockBodyTopic), n.messenger, n.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (n *Node) createTxBlockBodyResolver() error {
 }
 
 func (n *Node) createPeerChBlockBodyResolver() error {
-	resolve, err := resolver.NewTopicResolver(string(peerChBodyTopic), n.messenger, n.marshalizer)
+	resolve, err := resolver.NewTopicResolver(string(PeerChBodyTopic), n.messenger, n.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (n *Node) createPeerChBlockBodyResolver() error {
 }
 
 func (n *Node) createStateBlockBodyResolver() error {
-	resolve, err := resolver.NewTopicResolver(string(stateBodyTopic), n.messenger, n.marshalizer)
+	resolve, err := resolver.NewTopicResolver(string(StateBodyTopic), n.messenger, n.marshalizer)
 	if err != nil {
 		return err
 	}

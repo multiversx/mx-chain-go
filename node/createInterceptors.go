@@ -36,7 +36,7 @@ func (n *Node) createInterceptors() error {
 }
 
 func (n *Node) createTxInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(transactionTopic), n.messenger, transaction.NewInterceptedTransaction())
+	intercept, err := interceptor.NewTopicInterceptor(string(TransactionTopic), n.messenger, transaction.NewInterceptedTransaction())
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (n *Node) createTxInterceptor() error {
 }
 
 func (n *Node) createHdrInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(headersTopic), n.messenger, block.NewInterceptedHeader())
+	intercept, err := interceptor.NewTopicInterceptor(string(HeadersTopic), n.messenger, block.NewInterceptedHeader())
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (n *Node) createHdrInterceptor() error {
 }
 
 func (n *Node) createTxBlockBodyInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(txBlockBodyTopic), n.messenger, block.NewInterceptedTxBlockBody())
+	intercept, err := interceptor.NewTopicInterceptor(string(TxBlockBodyTopic), n.messenger, block.NewInterceptedTxBlockBody())
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (n *Node) createTxBlockBodyInterceptor() error {
 }
 
 func (n *Node) createPeerChBlockBodyInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(peerChBodyTopic), n.messenger, block.NewInterceptedPeerBlockBody())
+	intercept, err := interceptor.NewTopicInterceptor(string(PeerChBodyTopic), n.messenger, block.NewInterceptedPeerBlockBody())
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func (n *Node) createPeerChBlockBodyInterceptor() error {
 }
 
 func (n *Node) createStateBlockBodyInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(stateBodyTopic), n.messenger, block.NewInterceptedStateBlockBody())
+	intercept, err := interceptor.NewTopicInterceptor(string(StateBodyTopic), n.messenger, block.NewInterceptedStateBlockBody())
 	if err != nil {
 		return err
 	}

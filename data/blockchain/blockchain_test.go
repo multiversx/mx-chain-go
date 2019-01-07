@@ -11,63 +11,53 @@ import (
 
 type blockChainUnits struct {
 	txBadBlockCache storage.Cacher
-	headerUnit      *storage.Unit
-	peerBlockUnit   *storage.Unit
-	stateBlockUnit  *storage.Unit
-	txBlockUnit     *storage.Unit
-	txUnit          *storage.Unit
+	headerUnit      storage.Storer
+	peerBlockUnit   storage.Storer
+	stateBlockUnit  storage.Storer
+	txBlockUnit     storage.Storer
+	txUnit          storage.Storer
 }
 
-func blockchainConfig() *blockchain.Config {
+func createUnits() *blockChainUnits {
+	blUnits := &blockChainUnits{}
+
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
 	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
+
 	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxBlockBodyStorage"}
 	persisterStateBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "StateBlockBodyStorage"}
 	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "PeerBlockBodyStorage"}
 	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
 	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
-	return &blockchain.Config{
-		TxBlockBodyStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxBlockBodyStorage, BloomConf: bloom},
-		StateBlockBodyStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterStateBlockBodyStorage, BloomConf: bloom},
-		PeerBlockBodyStorage:  storage.UnitConfig{CacheConf: cacher, DBConf: persisterPeerBlockBodyStorage, BloomConf: bloom},
-		BlockHeaderStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
-		TxStorage:             storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
-		TxPoolStorage:         cacher,
-		TxBadBlockBodyCache:   cacher,
-	}
-}
 
-func createUnitsFromConfig(blConfig *blockchain.Config) *blockChainUnits {
-	blUnits := &blockChainUnits{}
-
-	txBadBlockCache, _ := storage.NewCache(blConfig.TxBadBlockBodyCache.Type, blConfig.TxBadBlockBodyCache.Size)
+	txBadBlockCache, _ := storage.NewCache(cacher.Type, cacher.Size)
 
 	blUnits.txBadBlockCache = txBadBlockCache
 
 	blUnits.txUnit, _ = storage.NewStorageUnitFromConf(
-		blConfig.TxStorage.CacheConf,
-		blConfig.TxStorage.DBConf,
-		blConfig.TxStorage.BloomConf)
+		cacher,
+		persisterTxStorage,
+		bloom)
 
 	blUnits.txBlockUnit, _ = storage.NewStorageUnitFromConf(
-		blConfig.TxBlockBodyStorage.CacheConf,
-		blConfig.TxBlockBodyStorage.DBConf,
-		blConfig.TxBlockBodyStorage.BloomConf)
+		cacher,
+		persisterTxBlockBodyStorage,
+		bloom)
 
 	blUnits.stateBlockUnit, _ = storage.NewStorageUnitFromConf(
-		blConfig.StateBlockBodyStorage.CacheConf,
-		blConfig.StateBlockBodyStorage.DBConf,
-		blConfig.StateBlockBodyStorage.BloomConf)
+		cacher,
+		persisterStateBlockBodyStorage,
+		bloom)
 
 	blUnits.peerBlockUnit, _ = storage.NewStorageUnitFromConf(
-		blConfig.PeerBlockBodyStorage.CacheConf,
-		blConfig.PeerBlockBodyStorage.DBConf,
-		blConfig.PeerBlockBodyStorage.BloomConf)
+		cacher,
+		persisterPeerBlockBodyStorage,
+		bloom)
 
 	blUnits.headerUnit, _ = storage.NewStorageUnitFromConf(
-		blConfig.BlockHeaderStorage.CacheConf,
-		blConfig.BlockHeaderStorage.DBConf,
-		blConfig.BlockHeaderStorage.BloomConf)
+		cacher,
+		persisterBlockHeaderStorage,
+		bloom)
 
 	return blUnits
 }
@@ -75,19 +65,19 @@ func createUnitsFromConfig(blConfig *blockchain.Config) *blockChainUnits {
 func (blUnits *blockChainUnits) cleanupBlockchainUnits() {
 	// cleanup
 	if blUnits.headerUnit != nil {
-		blUnits.headerUnit.DestroyUnit()
+		_ = blUnits.headerUnit.DestroyUnit()
 	}
 	if blUnits.peerBlockUnit != nil {
-		blUnits.peerBlockUnit.DestroyUnit()
+		_ = blUnits.peerBlockUnit.DestroyUnit()
 	}
 	if blUnits.stateBlockUnit != nil {
-		blUnits.stateBlockUnit.DestroyUnit()
+		_ = blUnits.stateBlockUnit.DestroyUnit()
 	}
 	if blUnits.txBlockUnit != nil {
-		blUnits.txBlockUnit.DestroyUnit()
+		_ = blUnits.txBlockUnit.DestroyUnit()
 	}
 	if blUnits.txUnit != nil {
-		blUnits.txUnit.DestroyUnit()
+		_ = blUnits.txUnit.DestroyUnit()
 	}
 }
 
@@ -105,8 +95,7 @@ func logError(err error) {
 }
 
 func TestNewBlockchainNilBadBlockCacheShouldError(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	_, err := blockchain.NewBlockChain(
 		nil,
@@ -122,8 +111,7 @@ func TestNewBlockchainNilBadBlockCacheShouldError(t *testing.T) {
 }
 
 func TestNewBlockchainNilTxUnitShouldError(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	_, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -139,9 +127,7 @@ func TestNewBlockchainNilTxUnitShouldError(t *testing.T) {
 }
 
 func TestNewBlockchainNilTxBlockUnitShouldError(t *testing.T) {
-	cfg := blockchainConfig()
-
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	_, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -157,8 +143,7 @@ func TestNewBlockchainNilTxBlockUnitShouldError(t *testing.T) {
 }
 
 func TestNewBlockchainNilStateBlockUnitShouldError(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	_, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -173,8 +158,7 @@ func TestNewBlockchainNilStateBlockUnitShouldError(t *testing.T) {
 }
 
 func TestNewBlockchainNilPeerBlockUnitShouldError(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	_, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -189,9 +173,7 @@ func TestNewBlockchainNilPeerBlockUnitShouldError(t *testing.T) {
 }
 
 func TestNewBlockchainNilHeaderUnitShouldError(t *testing.T) {
-	cfg := blockchainConfig()
-
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	_, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -208,8 +190,8 @@ func TestNewBlockchainNilHeaderUnitShouldError(t *testing.T) {
 
 func TestNewBlockchainConfigOK(t *testing.T) {
 	defer failOnPanic(t)
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+
+	blockChainUnits := createUnits()
 
 	b, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -229,8 +211,7 @@ func TestNewBlockchainConfigOK(t *testing.T) {
 }
 
 func TestHasFalseOnWrongUnitType(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	b, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -257,8 +238,7 @@ func TestHasFalseOnWrongUnitType(t *testing.T) {
 }
 
 func TestHasOk(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	b, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -309,8 +289,7 @@ func TestHasOk(t *testing.T) {
 }
 
 func TestGetErrOnWrongUnitType(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	b, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -337,8 +316,7 @@ func TestGetErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestGetOk(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	b, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -371,8 +349,7 @@ func TestGetOk(t *testing.T) {
 }
 
 func TestPutErrOnWrongUnitType(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	b, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -396,8 +373,7 @@ func TestPutErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestPutOk(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	b, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -426,8 +402,7 @@ func TestPutOk(t *testing.T) {
 }
 
 func TestGetAllErrOnWrongUnitType(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	b, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,
@@ -454,8 +429,7 @@ func TestGetAllErrOnWrongUnitType(t *testing.T) {
 }
 
 func TestGetAllOk(t *testing.T) {
-	cfg := blockchainConfig()
-	blockChainUnits := createUnitsFromConfig(cfg)
+	blockChainUnits := createUnits()
 
 	b, err := blockchain.NewBlockChain(
 		blockChainUnits.txBadBlockCache,

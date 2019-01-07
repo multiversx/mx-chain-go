@@ -64,7 +64,7 @@ type initialNode struct {
 
 type genesis struct {
 	StartTime          int64         `json:"startTime"`
-	RoundDuration      int64         `json:"roundDuration"`
+	RoundDuration      uint64        `json:"roundDuration"`
 	ConsensusGroupSize int           `json:"consensusGroupSize"`
 	ElasticSubrounds   bool          `json:"elasticSubrounds"`
 	InitialNodes       []initialNode `json:"initialNodes"`
@@ -231,7 +231,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	blkc, err := createBlockChainFromConfig(blockChainConfig())
+	blkc, err := createBlockChainFromConfig(cfg)
 	if err != nil {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
@@ -243,7 +243,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	transient, err := createDataPoolFromConfig(uint64ByteSliceConverter)
+	transient, err := createDataPoolFromConfig(cfg, uint64ByteSliceConverter)
 	if err != nil {
 		return nil, errors.New("could not create transient data pool: " + err.Error())
 	}
@@ -271,6 +271,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
 		node.WithDataPool(transient),
 		node.WithShardCoordinator(shardCoordinator),
+		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
 	)
 
 	if err != nil {
@@ -394,9 +395,12 @@ func getDBFromConfig(cfg config.DBConfig) storage.DBConfig {
 }
 
 func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
-	hashFuncs := make([]storage.HasherType, 0)
-	for _, hf := range cfg.HashFunc {
-		hashFuncs = append(hashFuncs, storage.HasherType(hf))
+	var hashFuncs []storage.HasherType
+	if cfg.HashFunc != nil {
+		hashFuncs = make([]storage.HasherType, 0)
+		for _, hf := range cfg.HashFunc {
+			hashFuncs = append(hashFuncs, storage.HasherType(hf))
+		}
 	}
 
 	return storage.BloomConfig{
@@ -405,18 +409,19 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 	}
 }
 
-func createDataPoolFromConfig(uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter) (data.TransientDataHolder, error) {
-	txPool, err := shardedData.NewShardedData(storage.CacheConfig{Type: storage.LRUCache, Size: 10000})
+func createDataPoolFromConfig(config *config.Config, uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter) (data.TransientDataHolder, error) {
+	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
 		return nil, err
 	}
 
-	hdrPool, err := shardedData.NewShardedData(storage.CacheConfig{Type: storage.LRUCache, Size: 10000})
+	hdrPool, err := shardedData.NewShardedData(getCacherFromConfig(config.BlockHeaderDataPool))
 	if err != nil {
 		return nil, err
 	}
 
-	hdrNoncesCacher, err := storage.NewCache(storage.LRUCache, 50000)
+	cacherCfg := getCacherFromConfig(config.BlockHeaderNoncesDataPool)
+	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
 	}
@@ -425,17 +430,20 @@ func createDataPoolFromConfig(uint64ByteSliceConverter typeConverters.Uint64Byte
 		return nil, err
 	}
 
-	txBlockBody, err := storage.NewCache(storage.LRUCache, 10000)
+	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
+	txBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
 	}
 
-	peerChangeBlockBody, err := storage.NewCache(storage.LRUCache, 10000)
+	cacherCfg = getCacherFromConfig(config.PeerBlockBodyDataPool)
+	peerChangeBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
 	}
 
-	stateBlockBody, err := storage.NewCache(storage.LRUCache, 10000)
+	cacherCfg = getCacherFromConfig(config.StateBlockBodyDataPool)
+	stateBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
 	}
@@ -450,7 +458,7 @@ func createDataPoolFromConfig(uint64ByteSliceConverter typeConverters.Uint64Byte
 	)
 }
 
-func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockChain, error) {
+func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, error) {
 	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
 	var err error
 
@@ -475,61 +483,61 @@ func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockC
 		}
 	}()
 
-	txBadBlockCache, err := storage.NewCache(
-		blConfig.TxBadBlockBodyCache.Type,
-		blConfig.TxBadBlockBodyCache.Size)
+	badBlockCache, err := storage.NewCache(
+		storage.CacheType(config.BadBlocksCache.Type),
+		config.BadBlocksCache.Size)
 
 	if err != nil {
 		return nil, err
 	}
 
 	txUnit, err = storage.NewStorageUnitFromConf(
-		blConfig.TxStorage.CacheConf,
-		blConfig.TxStorage.DBConf,
-		blConfig.TxStorage.BloomConf)
+		getCacherFromConfig(config.TxStorage.Cache),
+		getDBFromConfig(config.TxStorage.DB),
+		getBloomFromConfig(config.TxStorage.Bloom))
 
 	if err != nil {
 		return nil, err
 	}
 
 	txBlockUnit, err = storage.NewStorageUnitFromConf(
-		blConfig.TxBlockBodyStorage.CacheConf,
-		blConfig.TxBlockBodyStorage.DBConf,
-		blConfig.TxBlockBodyStorage.BloomConf)
+		getCacherFromConfig(config.TxBlockBodyStorage.Cache),
+		getDBFromConfig(config.TxBlockBodyStorage.DB),
+		getBloomFromConfig(config.TxBlockBodyStorage.Bloom))
 
 	if err != nil {
 		return nil, err
 	}
 
 	stateBlockUnit, err = storage.NewStorageUnitFromConf(
-		blConfig.StateBlockBodyStorage.CacheConf,
-		blConfig.StateBlockBodyStorage.DBConf,
-		blConfig.StateBlockBodyStorage.BloomConf)
+		getCacherFromConfig(config.StateBlockBodyStorage.Cache),
+		getDBFromConfig(config.StateBlockBodyStorage.DB),
+		getBloomFromConfig(config.StateBlockBodyStorage.Bloom))
 
 	if err != nil {
 		return nil, err
 	}
 
 	peerBlockUnit, err = storage.NewStorageUnitFromConf(
-		blConfig.PeerBlockBodyStorage.CacheConf,
-		blConfig.PeerBlockBodyStorage.DBConf,
-		blConfig.PeerBlockBodyStorage.BloomConf)
+		getCacherFromConfig(config.PeerBlockBodyStorage.Cache),
+		getDBFromConfig(config.PeerBlockBodyStorage.DB),
+		getBloomFromConfig(config.PeerBlockBodyStorage.Bloom))
 
 	if err != nil {
 		return nil, err
 	}
 
 	headerUnit, err = storage.NewStorageUnitFromConf(
-		blConfig.BlockHeaderStorage.CacheConf,
-		blConfig.BlockHeaderStorage.DBConf,
-		blConfig.BlockHeaderStorage.BloomConf)
+		getCacherFromConfig(config.BlockHeaderStorage.Cache),
+		getDBFromConfig(config.BlockHeaderStorage.DB),
+		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
 
 	if err != nil {
 		return nil, err
 	}
 
 	blockChain, err := blockchain.NewBlockChain(
-		txBadBlockCache,
+		badBlockCache,
 		txUnit,
 		txBlockUnit,
 		stateBlockUnit,
@@ -541,23 +549,4 @@ func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockC
 	}
 
 	return blockChain, err
-}
-
-func blockChainConfig() *blockchain.Config {
-	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
-	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
-	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "TxBlockBodyStorage")}
-	persisterStateBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "StateBlockBodyStorage")}
-	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "PeerBlockBodyStorage")}
-	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "BlockHeaderStorage")}
-	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "TxStorage")}
-	return &blockchain.Config{
-		TxBlockBodyStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxBlockBodyStorage, BloomConf: bloom},
-		StateBlockBodyStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterStateBlockBodyStorage, BloomConf: bloom},
-		PeerBlockBodyStorage:  storage.UnitConfig{CacheConf: cacher, DBConf: persisterPeerBlockBodyStorage, BloomConf: bloom},
-		BlockHeaderStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
-		TxStorage:             storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
-		TxPoolStorage:         cacher,
-		TxBadBlockBodyCache:   cacher,
-	}
 }

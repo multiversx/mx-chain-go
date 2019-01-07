@@ -2,7 +2,6 @@ package node
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
@@ -30,7 +29,7 @@ func WithPort(port int) Option {
 func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
 	return func(n *Node) error {
 		if marshalizer == nil {
-			return errors.New("trying to set nil marshalizer")
+			return errNilMarshalizer
 		}
 		n.marshalizer = marshalizer
 		return nil
@@ -41,7 +40,7 @@ func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
 func WithContext(ctx context.Context) Option {
 	return func(n *Node) error {
 		if ctx == nil {
-			return errors.New("trying to set nil context")
+			return errNilContext
 		}
 		n.ctx = ctx
 		return nil
@@ -52,7 +51,7 @@ func WithContext(ctx context.Context) Option {
 func WithHasher(hasher hashing.Hasher) Option {
 	return func(n *Node) error {
 		if hasher == nil {
-			return errors.New("trying to set nil hasher")
+			return errNilHasher
 		}
 		n.hasher = hasher
 		return nil
@@ -79,7 +78,7 @@ func WithPubSubStrategy(strategy p2p.PubSubStrategy) Option {
 func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	return func(n *Node) error {
 		if accounts == nil {
-			return errors.New("trying to set nil accounts adapter")
+			return errNilAccountsAdapter
 		}
 		n.accounts = accounts
 		return nil
@@ -90,7 +89,7 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 func WithAddressConverter(addrConverter state.AddressConverter) Option {
 	return func(n *Node) error {
 		if addrConverter == nil {
-			return errors.New("trying to set nil address converter")
+			return errNilAddressConverter
 		}
 		n.addrConverter = addrConverter
 		return nil
@@ -101,7 +100,7 @@ func WithAddressConverter(addrConverter state.AddressConverter) Option {
 func WithBlockChain(blkc *blockchain.BlockChain) Option {
 	return func(n *Node) error {
 		if blkc == nil {
-			return errors.New("trying to set nil blockchain")
+			return errNilBlockchain
 		}
 		n.blkc = blkc
 		return nil
@@ -112,7 +111,7 @@ func WithBlockChain(blkc *blockchain.BlockChain) Option {
 func WithPrivateKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
 		if sk == nil {
-			return errors.New("trying to set nil private key")
+			return errNilPrivateKey
 		}
 		n.privateKey = sk
 		return nil
@@ -123,7 +122,7 @@ func WithPrivateKey(sk crypto.PrivateKey) Option {
 func WithSingleSignKeyGenerator(keyGen crypto.KeyGenerator) Option {
 	return func(n *Node) error {
 		if keyGen == nil {
-			return errors.New("trying to set nil single sign key generator")
+			return errNilSingleSignKeyGen
 		}
 		n.singleSignKeyGen = keyGen
 		return nil
@@ -141,14 +140,21 @@ func WithInitialNodesPubKeys(pubKeys []string) Option {
 // WithPublicKey sets up the public key option for the Node
 func WithPublicKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
+		if pk == nil {
+			return errNilPublicKey
+		}
+
 		n.publicKey = pk
 		return nil
 	}
 }
 
 // WithRoundDuration sets up the round duration option for the Node
-func WithRoundDuration(roundDuration int64) Option {
+func WithRoundDuration(roundDuration uint64) Option {
 	return func(n *Node) error {
+		if roundDuration == 0 {
+			return errZeroRoundDurationNotSupported
+		}
 		n.roundDuration = roundDuration
 		return nil
 	}
@@ -157,6 +163,9 @@ func WithRoundDuration(roundDuration int64) Option {
 // WithConsensusGroupSize sets up the consensus group size option for the Node
 func WithConsensusGroupSize(consensusGroupSize int) Option {
 	return func(n *Node) error {
+		if consensusGroupSize < 1 {
+			return errNegativeOrZeroConsensusGroupSize
+		}
 		n.consensusGroupSize = consensusGroupSize
 		return nil
 	}
@@ -166,9 +175,8 @@ func WithConsensusGroupSize(consensusGroupSize int) Option {
 func WithSyncer(syncer ntp.SyncTimer) Option {
 	return func(n *Node) error {
 		if syncer == nil {
-			return errors.New("trying to set nil sync timer")
+			return errNilSyncTimer
 		}
-
 		n.syncer = syncer
 		return nil
 	}
@@ -178,7 +186,7 @@ func WithSyncer(syncer ntp.SyncTimer) Option {
 func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	return func(n *Node) error {
 		if blockProcessor == nil {
-			return errors.New("trying to set nil block processor")
+			return errNilBlockProcessor
 		}
 		n.blockProcessor = blockProcessor
 		return nil
@@ -204,6 +212,9 @@ func WithElasticSubrounds(elasticSubrounds bool) Option {
 // WithDataPool sets up the transient data pool option for the Node
 func WithDataPool(dataPool data.TransientDataHolder) Option {
 	return func(n *Node) error {
+		if dataPool == nil {
+			return errNilDataPool
+		}
 		n.dataPool = dataPool
 		return nil
 	}
@@ -212,6 +223,9 @@ func WithDataPool(dataPool data.TransientDataHolder) Option {
 // WithShardCoordinator sets up the transient shard coordinator for the Node
 func WithShardCoordinator(shardCoordinator sharding.ShardCoordinator) Option {
 	return func(n *Node) error {
+		if shardCoordinator == nil {
+			return errNilShardCoordinator
+		}
 		n.shardCoordinator = shardCoordinator
 		return nil
 	}
@@ -220,6 +234,9 @@ func WithShardCoordinator(shardCoordinator sharding.ShardCoordinator) Option {
 // WithUint64ByteSliceConverter sets up the uint64 <-> []byte converter
 func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConverter) Option {
 	return func(n *Node) error {
+		if converter == nil {
+			return errNilUint64ByteSliceConverter
+		}
 		n.uint64ByteSliceConverter = converter
 		return nil
 	}

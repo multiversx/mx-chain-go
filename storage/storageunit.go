@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -329,14 +330,43 @@ func (s *Unit) DestroyUnit() error {
 }
 
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
-// from the given bloom filter, cacher and persister.
-func NewStorageUnit(c Cacher, p Persister, b BloomFilter) (*Unit, error) {
+// from the given cacher and persister.
+func NewStorageUnit(c Cacher, p Persister) (*Unit, error) {
 	if p == nil {
 		return nil, errors.New("expected not nil persister")
 	}
 
 	if c == nil {
 		return nil, errors.New("expected not nil cacher")
+	}
+
+	sUnit := &Unit{
+		persister:   p,
+		cacher:      c,
+		bloomFilter: nil,
+	}
+
+	err := sUnit.persister.Init()
+	if err != nil {
+		return nil, err
+	}
+
+	return sUnit, nil
+}
+
+// NewStorageUnitWithBloomFilter is the constructor for the storage unit, creating a new storage unit
+// from the given cacher, persister and bloom filter.
+func NewStorageUnitWithBloomFilter(c Cacher, p Persister, b BloomFilter) (*Unit, error) {
+	if p == nil {
+		return nil, errors.New("expected not nil persister")
+	}
+
+	if c == nil {
+		return nil, errors.New("expected not nil cacher")
+	}
+
+	if b == nil {
+		return nil, errors.New("expected not nil bloom filter")
 	}
 
 	sUnit := &Unit{
@@ -374,12 +404,12 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 	if err != nil {
 		return nil, err
 	}
-	st, err := NewStorageUnit(cache, db, bf)
-	if err != nil {
-		return nil, err
+
+	if bf == nil {
+		return NewStorageUnit(cache, db)
 	}
 
-	return st, err
+	return NewStorageUnitWithBloomFilter(cache, db, bf)
 }
 
 //NewCache creates a new cache from a cache config
@@ -422,6 +452,10 @@ func NewDB(dbType DBType, path string) (Persister, error) {
 
 // NewBloomFilter creates a new bloom filter from bloom filter config
 func NewBloomFilter(conf BloomConfig) (BloomFilter, error) {
+	if reflect.DeepEqual(conf, BloomConfig{}) {
+		return nil, nil
+	}
+
 	var bf BloomFilter
 	var err error
 	var hashers []hashing.Hasher

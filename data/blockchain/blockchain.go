@@ -23,17 +23,6 @@ const (
 // UnitType is the type for Storage unit identifiers
 type UnitType uint8
 
-// Config holds the configurable elements of the blockchain
-type Config struct {
-	TxBlockBodyStorage    storage.UnitConfig
-	StateBlockBodyStorage storage.UnitConfig
-	PeerBlockBodyStorage  storage.UnitConfig
-	BlockHeaderStorage    storage.UnitConfig
-	TxStorage             storage.UnitConfig
-	TxPoolStorage         storage.CacheConfig
-	TxBadBlockBodyCache   storage.CacheConfig
-}
-
 // StorageService is the interface for blockChain storage unit provided services
 type StorageService interface {
 	// GetStorer returns the storer from the chain map
@@ -73,11 +62,11 @@ type BlockChain struct {
 // It uses a config file to setup it's supported storage units map
 func NewBlockChain(
 	badBlocksCache storage.Cacher,
-	txUnit *storage.Unit,
-	txBlockUnit *storage.Unit,
-	stateBlockUnit *storage.Unit,
-	peerBlockUnit *storage.Unit,
-	headerUnit *storage.Unit) (*BlockChain, error) {
+	txUnit storage.Storer,
+	txBlockUnit storage.Storer,
+	stateBlockUnit storage.Storer,
+	peerBlockUnit storage.Storer,
+	headerUnit storage.Storer) (*BlockChain, error) {
 
 	if badBlocksCache == nil {
 		return nil, ErrBadBlocksCacheNil

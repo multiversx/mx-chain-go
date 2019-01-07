@@ -29,12 +29,18 @@ import (
 type topicName string
 
 const (
-	transactionTopic topicName = "tx"
-	consensusTopic   topicName = "cns"
-	headersTopic     topicName = "hdr"
-	txBlockBodyTopic topicName = "txBlk"
-	peerChBodyTopic  topicName = "peerCh"
-	stateBodyTopic   topicName = "state"
+	// TransactionTopic is the topic used for sharing transactions
+	TransactionTopic topicName = "tx"
+	// ConsensusTopic is the topic used in consensus algorithm
+	ConsensusTopic topicName = "cns"
+	// HeadersTopic is the topic used for sharing block headers
+	HeadersTopic topicName = "hdr"
+	// TxBlockBodyTopic is the topic used for sharing transactions block bodies
+	TxBlockBodyTopic topicName = "txBlk"
+	// PeerChBodyTopic is used for sharing peer change block bodies
+	PeerChBodyTopic topicName = "peerCh"
+	// StateBodyTopic is used for sharing state block bodies
+	StateBodyTopic topicName = "state"
 )
 
 var log = logger.NewDefaultLogger()
@@ -53,7 +59,7 @@ type Node struct {
 	maxAllowedPeers          int
 	pubSubStrategy           p2p.PubSubStrategy
 	initialNodesPubkeys      []string
-	roundDuration            int64
+	roundDuration            uint64
 	consensusGroupSize       int
 	messenger                p2p.Messenger
 	syncer                   ntp.SyncTimer
@@ -297,7 +303,7 @@ func (n *Node) createConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWor
 
 // createConsensusTopic creates a consensus topic for node
 func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) *p2p.Topic {
-	t := p2p.NewTopic(string(consensusTopic), &spos.ConsensusData{}, n.marshalizer)
+	t := p2p.NewTopic(string(ConsensusTopic), &spos.ConsensusData{}, n.marshalizer)
 	t.AddDataReceived(sposWrk.ReceivedMessage)
 	return t
 }
@@ -461,7 +467,7 @@ func (n *Node) SendTransaction(
 		Signature: []byte(signature),
 	}
 
-	topic := n.messenger.GetTopic(string(transactionTopic))
+	topic := n.messenger.GetTopic(string(TransactionTopic))
 
 	if topic == nil {
 		return nil, errors.New("could not get transaction topic")
@@ -500,17 +506,6 @@ func (n *Node) createNetMessenger() (p2p.Messenger, error) {
 	return nm, nil
 }
 
-func (n *Node) removeSelfFromList(peers []string) []string {
-	tmp := peers[:0]
-	addr, _ := n.Address()
-	for _, p := range peers {
-		if addr != p {
-			tmp = append(tmp, p)
-		}
-	}
-	return tmp
-}
-
 func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 	// TODO: this method and its call should be removed after initial testing of aur first version of testnet
 	oldNonce := uint64(0)
@@ -533,7 +528,7 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 }
 
 func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
-	topic := n.messenger.GetTopic(string(consensusTopic))
+	topic := n.messenger.GetTopic(string(ConsensusTopic))
 
 	if topic == nil {
 		log.Debug(fmt.Sprintf("could not get consensus topic"))
