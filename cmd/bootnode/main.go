@@ -18,6 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -35,9 +38,6 @@ import (
 	beevikntp "github.com/beevik/ntp"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/multisig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 )
 
 var bootNodeHelpTemplate = `NAME:
