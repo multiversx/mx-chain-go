@@ -19,6 +19,21 @@ func (vld *RoundConsensus) ConsensusGroup() []string {
 	return vld.consensusGroup
 }
 
+// SetConsensusGroup sets the consensus group ID's
+func (vld *RoundConsensus) SetConsensusGroup(consensusGroup []string) {
+	vld.consensusGroup = consensusGroup
+
+	vld.mut.Lock()
+
+	vld.validatorRoundStates = make(map[string]*RoundState)
+
+	for i := 0; i < len(consensusGroup); i++ {
+		vld.validatorRoundStates[vld.consensusGroup[i]] = NewRoundState()
+	}
+
+	vld.mut.Unlock()
+}
+
 // SelfId returns selfId ID
 func (vld *RoundConsensus) SelfId() string {
 	return vld.selfId
