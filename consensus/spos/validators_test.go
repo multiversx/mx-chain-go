@@ -298,7 +298,7 @@ func TestRoundConsensus_GetJobDoneShouldReturnsFalseWhenValidatorIsNotInTheConse
 
 	rndc.SetJobDone("3", spos.SrBlock, true)
 	rndc.SetConsensusGroup([]string{"1", "2"})
-	assert.Equal(t, false, rndc.GetJobDone("3", spos.SrBlock))
+	assert.False(t, rndc.GetJobDone("3", spos.SrBlock))
 }
 
 func TestRoundConsensus_SetJobDoneShouldNotBeSetWhenValidatorIsNotInTheConsensusGroup(t *testing.T) {
@@ -307,5 +307,5 @@ func TestRoundConsensus_SetJobDoneShouldNotBeSetWhenValidatorIsNotInTheConsensus
 		"1")
 
 	rndc.SetJobDone("4", spos.SrBlock, true)
-	assert.Equal(t, false, rndc.GetJobDone("4", spos.SrBlock))
+	assert.False(t, rndc.GetJobDone("4", spos.SrBlock))
 }
