@@ -288,7 +288,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
 		node.WithDataPool(transient),
 		node.WithShardCoordinator(shardCoordinator),
-		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
+		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 	)
 
 	if err != nil {
