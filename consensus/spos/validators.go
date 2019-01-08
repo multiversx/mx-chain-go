@@ -19,6 +19,21 @@ func (vld *RoundConsensus) ConsensusGroup() []string {
 	return vld.consensusGroup
 }
 
+// SetConsensusGroup sets the consensus group ID's
+func (vld *RoundConsensus) SetConsensusGroup(consensusGroup []string) {
+	vld.consensusGroup = consensusGroup
+
+	vld.mut.Lock()
+
+	vld.validatorRoundStates = make(map[string]*RoundState)
+
+	for i := 0; i < len(consensusGroup); i++ {
+		vld.validatorRoundStates[vld.consensusGroup[i]] = NewRoundState()
+	}
+
+	vld.mut.Unlock()
+}
+
 // SelfId returns selfId ID
 func (vld *RoundConsensus) SelfId() string {
 	return vld.selfId
@@ -52,8 +67,11 @@ func NewRoundConsensus(
 // GetJobDone returns the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
 func (vld *RoundConsensus) GetJobDone(key string, subroundId chronology.SubroundId) bool {
+	retcode := false
 	vld.mut.RLock()
-	retcode := vld.validatorRoundStates[key].JobDone(subroundId)
+	if vld.validatorRoundStates[key] != nil {
+		retcode = vld.validatorRoundStates[key].JobDone(subroundId)
+	}
 	vld.mut.RUnlock()
 	return retcode
 }
@@ -62,7 +80,9 @@ func (vld *RoundConsensus) GetJobDone(key string, subroundId chronology.Subround
 // in subround given by the subroundId parameter
 func (vld *RoundConsensus) SetJobDone(key string, subroundId chronology.SubroundId, value bool) {
 	vld.mut.Lock()
-	vld.validatorRoundStates[key].SetJobDone(subroundId, value)
+	if vld.validatorRoundStates[key] != nil {
+		vld.validatorRoundStates[key].SetJobDone(subroundId, value)
+	}
 	vld.mut.Unlock()
 }
 
@@ -71,7 +91,9 @@ func (vld *RoundConsensus) SetJobDone(key string, subroundId chronology.Subround
 func (vld *RoundConsensus) ResetRoundState() {
 	for i := 0; i < len(vld.consensusGroup); i++ {
 		vld.mut.Lock()
-		vld.validatorRoundStates[vld.consensusGroup[i]].ResetJobsDone()
+		if vld.validatorRoundStates[vld.consensusGroup[i]] != nil {
+			vld.validatorRoundStates[vld.consensusGroup[i]].ResetJobsDone()
+		}
 		vld.mut.Unlock()
 	}
 }
