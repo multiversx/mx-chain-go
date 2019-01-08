@@ -40,7 +40,7 @@ func (tdaw *TrackableDataAccountWrap) OriginalValue(key []byte) []byte {
 
 // RetrieveValue fetches the value from a particular key searching the account data store
 // The search starts with dirty map, continues with original map and ends with the trie
-// BlHeaderHash must have been retrieved from its trie
+// Data must have been retrieved from its trie
 func (tdaw *TrackableDataAccountWrap) RetrieveValue(key []byte) ([]byte, error) {
 	if tdaw.DataTrie() == nil {
 		return nil, ErrNilDataTrie

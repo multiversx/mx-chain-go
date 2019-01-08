@@ -24,3 +24,6 @@ var ErrInvalidIndex = errors.New("index is out of bounds")
 
 // ErrElementNotFound is raised when searching for a speciffic element but found nil
 var ErrNilElement = errors.New("element is nil")
+
+// ErrNilKeyGenerator is raised when a valid key generator is expected but nil used
+var ErrNilKeyGenerator = errors.New("key generator is nil")

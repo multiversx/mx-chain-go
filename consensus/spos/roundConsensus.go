@@ -71,19 +71,35 @@ func NewRoundConsensus(
 
 // GetJobDone returns the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
-func (rCns *RoundConsensus) GetJobDone(key string, subroundId chronology.SubroundId) bool {
+func (rCns *RoundConsensus) GetJobDone(key string, subroundId chronology.SubroundId) (bool, error) {
 	rCns.mut.RLock()
-	retcode := rCns.validatorRoundStates[key].JobDone(subroundId)
+	roundState, ok := rCns.validatorRoundStates[key]
+
+	if !ok {
+		return false, ErrInvalidKey
+	}
+
+	retcode := roundState.JobDone(subroundId)
 	rCns.mut.RUnlock()
-	return retcode
+
+	return retcode, nil
 }
 
 // SetJobDone set the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
-func (rCns *RoundConsensus) SetJobDone(key string, subroundId chronology.SubroundId, value bool) {
+func (rCns *RoundConsensus) SetJobDone(key string, subroundId chronology.SubroundId, value bool) error {
 	rCns.mut.Lock()
-	rCns.validatorRoundStates[key].SetJobDone(subroundId, value)
+
+	roundState, ok := rCns.validatorRoundStates[key]
+
+	if !ok {
+		return ErrInvalidKey
+	}
+
+	roundState.SetJobDone(subroundId, value)
 	rCns.mut.Unlock()
+
+	return nil
 }
 
 // ResetRoundState method resets the state of each node from the current jobDone group, regarding to the
@@ -91,14 +107,28 @@ func (rCns *RoundConsensus) SetJobDone(key string, subroundId chronology.Subroun
 func (rCns *RoundConsensus) ResetRoundState() {
 	for i := 0; i < len(rCns.consensusGroup); i++ {
 		rCns.mut.Lock()
-		rCns.validatorRoundStates[rCns.consensusGroup[i]].ResetJobsDone()
+		roundState, ok := rCns.validatorRoundStates[rCns.consensusGroup[i]]
+
+		if !ok {
+			log.Error(ErrInvalidKey.Error())
+			continue
+		}
+
+		roundState.ResetJobsDone()
+
 		rCns.mut.Unlock()
 	}
 }
 
 // IsValidatorInBitmap method checks if the node is part of the bitmap received from leader
 func (rCns *RoundConsensus) IsValidatorInBitmap(validator string) bool {
-	return rCns.GetJobDone(validator, SrBitmap)
+	isJobDone, err := rCns.GetJobDone(validator, SrBitmap)
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
+	return isJobDone
 }
 
 // IsNodeInConsensusGroup method checks if the node is part of the jobDone group of the current round
@@ -117,7 +147,14 @@ func (rCns *RoundConsensus) IsBlockReceived(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(rCns.consensusGroup); i++ {
-		if rCns.GetJobDone(rCns.consensusGroup[i], SrBlock) {
+		isJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrBlock)
+
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		if isJobDone {
 			n++
 		}
 	}
@@ -131,7 +168,14 @@ func (rCns *RoundConsensus) IsCommitmentHashReceived(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(rCns.consensusGroup); i++ {
-		if rCns.GetJobDone(rCns.consensusGroup[i], SrCommitmentHash) {
+		isJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrCommitmentHash)
+
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		if isJobDone {
 			n++
 		}
 	}
@@ -145,8 +189,22 @@ func (rCns *RoundConsensus) CommitmentHashesCollected(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(rCns.consensusGroup); i++ {
-		if rCns.GetJobDone(rCns.consensusGroup[i], SrBitmap) {
-			if !rCns.GetJobDone(rCns.consensusGroup[i], SrCommitmentHash) {
+		isBitmapJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrBitmap)
+
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		if isBitmapJobDone {
+			isCommHashJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrCommitmentHash)
+
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			if !isCommHashJobDone {
 				return false
 			}
 			n++
@@ -162,8 +220,22 @@ func (rCns *RoundConsensus) CommitmentsCollected(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(rCns.consensusGroup); i++ {
-		if rCns.GetJobDone(rCns.consensusGroup[i], SrBitmap) {
-			if !rCns.GetJobDone(rCns.consensusGroup[i], SrCommitment) {
+		isBitmapJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrBitmap)
+
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		if isBitmapJobDone {
+			isCommJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrCommitment)
+
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			if !isCommJobDone {
 				return false
 			}
 			n++
@@ -179,8 +251,23 @@ func (rCns *RoundConsensus) SignaturesCollected(threshold int) bool {
 	n := 0
 
 	for i := 0; i < len(rCns.consensusGroup); i++ {
-		if rCns.GetJobDone(rCns.consensusGroup[i], SrBitmap) {
-			if !rCns.GetJobDone(rCns.consensusGroup[i], SrSignature) {
+		isBitmapJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrBitmap)
+
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		if isBitmapJobDone {
+
+			isSignJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrSignature)
+
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			if !isSignJobDone {
 				return false
 			}
 			n++
@@ -196,7 +283,14 @@ func (rCns *RoundConsensus) ComputeSize(subroundId chronology.SubroundId) int {
 	n := 0
 
 	for i := 0; i < len(rCns.consensusGroup); i++ {
-		if rCns.GetJobDone(rCns.consensusGroup[i], subroundId) {
+		isJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], subroundId)
+
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		if isJobDone {
 			n++
 		}
 	}

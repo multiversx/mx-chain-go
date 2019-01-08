@@ -41,24 +41,19 @@ func NewMultiSigner() *BelNevMock {
 	return multisigner
 }
 
-// NewMultiSiger instantiates another multiSigner of the same type
-func (bnm *BelNevMock) NewMultiSiger(hasher hashing.Hasher, pubKeys []string, key crypto.PrivateKey, index uint16) (crypto.MultiSigner, error) {
-	// take all stubs
-	bnm2 := bnm
+// Reset resets the multiSigner and initializes corresponding fields with the given params
+func (bnm *BelNevMock) Reset(pubKeys []string, index uint16) error {
+	bnm.msg = nil
+	bnm.sigBitmap = nil
+	bnm.aggSig = nil
+	bnm.commSecret = nil
+	bnm.commHash = nil
+	bnm.commitments = make([][]byte, len(pubKeys))
+	bnm.sigs = make([][]byte, len(pubKeys))
+	bnm.pubkeys = pubKeys
+	bnm.selfId = index
 
-	bnm2.msg = nil
-	bnm2.sigBitmap = nil
-	bnm2.aggSig = nil
-	bnm2.commSecret = nil
-	bnm2.commHash = nil
-	bnm2.commitments = make([][]byte, len(pubKeys))
-	bnm2.sigs = make([][]byte, len(pubKeys))
-	bnm2.hasher = hasher
-	bnm2.pubkeys = pubKeys
-	bnm2.privKey = key
-	bnm2.selfId = index
-
-	return bnm2, nil
+	return nil
 }
 
 // SetMessage sets the message to be signed

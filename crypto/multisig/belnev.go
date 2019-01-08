@@ -21,13 +21,15 @@ type belNev struct {
 	aggSig            []byte
 	ownIndex          uint16
 	hasher            hashing.Hasher
+	keyGen            crypto.KeyGenerator
 }
 
-// NewBelNevMultisig creates a new Belare Neven multi-signer
+// NewBelNevMultisig creates a new Bellare Neven multi-signer
 func NewBelNevMultisig(
 	hasher hashing.Hasher,
 	pubKeys []string,
 	privKey crypto.PrivateKey,
+	keyGen crypto.KeyGenerator,
 	ownIndex uint16) (*belNev, error) {
 
 	if hasher == nil {
@@ -42,8 +44,28 @@ func NewBelNevMultisig(
 		return nil, crypto.ErrNilPublicKeys
 	}
 
+	if keyGen == nil {
+		return nil, crypto.ErrNilKeyGenerator
+	}
+
+	pk, err := convertStringsToPubKeys(pubKeys, keyGen)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// own index is used only for signing
+	return &belNev{
+		pubKeys:  pk,
+		privKey:  privKey,
+		ownIndex: ownIndex,
+		hasher:   hasher,
+		keyGen:   keyGen,
+	}, nil
+}
+
+func convertStringsToPubKeys(pubKeys []string, kg crypto.KeyGenerator) ([]crypto.PublicKey, error) {
 	var pk []crypto.PublicKey
-	kg := schnorr.NewKeyGenerator()
 
 	//convert pubKeys
 	for _, pubKeyStr := range pubKeys {
@@ -59,19 +81,31 @@ func NewBelNevMultisig(
 			return nil, crypto.ErrNilPublicKey
 		}
 	}
-
-	// own index is used only for signing
-	return &belNev{
-		pubKeys:  pk,
-		privKey:  privKey,
-		ownIndex: ownIndex,
-		hasher:   hasher,
-	}, nil
+	return pk, nil
 }
 
-// NewMultiSiger instantiates another multiSigner of the same type
-func (bn *belNev) NewMultiSiger(hasher hashing.Hasher, pubKeys []string, key crypto.PrivateKey, index uint16) (crypto.MultiSigner, error) {
-	return NewBelNevMultisig(hasher, pubKeys, key, index)
+// Reset resets the multiSigner and initializes corresponding fields with the given params
+func (bn *belNev) Reset(pubKeys []string, index uint16) error {
+	pk, err := convertStringsToPubKeys(pubKeys, bn.keyGen)
+
+	if err != nil {
+		return err
+	}
+
+	bn.message = nil
+	bn.ownIndex = index
+	bn.pubKeys = pk
+	bn.commSecret = nil
+	bn.commitments = nil
+	bn.aggCommitment = nil
+	bn.aggSig = nil
+	bn.commHashes = nil
+	bn.commHashesBitmap = nil
+	bn.commitmentsBitmap = nil
+	bn.sigShares = nil
+	bn.sigSharesBitmap = nil
+
+	return nil
 }
 
 // SetMessage sets the message to be multi-signed upon
@@ -107,12 +141,16 @@ func (bn *belNev) CreateCommitment() (commSecret []byte, commitment []byte, err 
 	commSecret, err = sk.ToByteArray()
 
 	if err != nil {
-		return
+		return nil, nil, err
 	}
 
 	commitment, err = pk.ToByteArray()
 
-	return
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return commSecret, commitment, nil
 }
 
 // SetCommitmentSecret sets the committment secret

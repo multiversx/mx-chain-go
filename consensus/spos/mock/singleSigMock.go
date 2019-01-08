@@ -14,7 +14,7 @@ type PrivateKeyMock struct {
 // PublicKeyMock mocks a public key implementation
 type PublicKeyMock struct {
 	ToByteArrayMock func() ([]byte, error)
-	VerifyMock      func(data []byte, signature []byte) (bool, error)
+	VerifyMock      func(data []byte, signature []byte) error
 }
 
 // KeyGenMock mocks a key generation implementation
@@ -45,7 +45,7 @@ func (pubKey *PublicKeyMock) ToByteArray() ([]byte, error) {
 }
 
 // Verify mocks verifying a signature with a public key
-func (pubKey *PublicKeyMock) Verify(data []byte, signature []byte) (bool, error) {
+func (pubKey *PublicKeyMock) Verify(data []byte, signature []byte) error {
 	return pubKey.VerifyMock(data, signature)
 }
 

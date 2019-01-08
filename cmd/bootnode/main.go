@@ -263,21 +263,15 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 	blockProcessor := block.NewBlockProcessor(shrdData, hasher, marshalizer, transactionProcessor, accountsAdapter, &sharding.OneShardCoordinator{})
 
-	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
-	}
+	initialPubKeys := genesisConfig.initialNodesPubkeys()
 
-	sk, err := getSk(ctx)
+	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
 
 	if err != nil {
 		return nil, err
 	}
 
-	initialPubKeys := genesisConfig.initialNodesPubkeys()
-
-	keyGen, privKey, pubKey, err := loadSkPk(sk, log)
-
-	multisigner, err := multisig.NewBelNevMultisig(hasher, initialPubKeys, privKey, uint16(0))
+	multisigner, err := multisig.NewBelNevMultisig(hasher, initialPubKeys, privKey, keyGen, uint16(0))
 
 	if err != nil {
 		return nil, err
@@ -307,6 +301,10 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithPrivateKey(privKey),
 	)
 
+	if err != nil {
+		return nil, errors.New("error creating node: " + err.Error())
+	}
+
 	return nd, nil
 }
 
@@ -331,29 +329,37 @@ func getSk(ctx *cli.Context) ([]byte, error) {
 	return decodedSk[:l], nil
 }
 
-func loadSkPk(sk []byte, log *logger.Logger) (
+func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
 	pubKey crypto.PublicKey,
 	err error,
 ) {
+	sk, err := getSk(ctx)
+
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	keyGen = schnorr.NewKeyGenerator()
 	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
 
-	if err == nil {
-		pubKey = privKey.GeneratePublic()
-
-		base64sk := make([]byte, base64.StdEncoding.EncodedLen(len(sk)))
-		base64.StdEncoding.Encode(base64sk, sk)
-		log.Info("starting with private key: " + string(base64sk))
-
-		pk, _ := pubKey.ToByteArray()
-		base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
-		base64.StdEncoding.Encode(base64pk, pk)
-		log.Info("starting with public key: " + string(base64pk))
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
-	return
+	pubKey = privKey.GeneratePublic()
+
+	base64sk := make([]byte, base64.StdEncoding.EncodedLen(len(sk)))
+	base64.StdEncoding.Encode(base64sk, sk)
+	log.Info("starting with private key: " + string(base64sk))
+
+	pk, _ := pubKey.ToByteArray()
+	base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
+	base64.StdEncoding.Encode(base64pk, pk)
+	log.Info("starting with public key: " + string(base64pk))
+
+	return keyGen, privKey, pubKey, err
 }
 
 func getTrie(cfg config.StorageConfig, hasher hashing.Hasher) (*trie.Trie, error) {

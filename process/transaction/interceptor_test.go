@@ -313,8 +313,8 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) (b bool, e error) {
-		return false, errors.New("sig not valid")
+	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+		return errors.New("sig not valid")
 	}
 
 	keyGen := &mock.SingleSignKeyGenMock{}
@@ -360,8 +360,8 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) (b bool, e error) {
-		return true, nil
+	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+		return nil
 	}
 
 	keyGen := &mock.SingleSignKeyGenMock{}
@@ -407,8 +407,8 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) (b bool, e error) {
-		return true, nil
+	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+		return nil
 	}
 
 	keyGen := &mock.SingleSignKeyGenMock{}
@@ -458,8 +458,8 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) (b bool, e error) {
-		return true, nil
+	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+		return nil
 	}
 
 	keyGen := &mock.SingleSignKeyGenMock{}

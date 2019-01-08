@@ -1,9 +1,5 @@
 package crypto
 
-import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-)
-
 // KeyGenerator is an interface for generating different types of cryptographic keys
 type KeyGenerator interface {
 	GeneratePair() (PrivateKey, PublicKey)
@@ -30,13 +26,11 @@ type PrivateKey interface {
 type PublicKey interface {
 	Key
 	// Verify signature represents the signed hash of the data
-	Verify(data []byte, signature []byte) (bool, error)
+	Verify(data []byte, signature []byte) error
 }
 
 // MultiSigner provides functionality for multi-signing a message
 type MultiSigner interface {
-	// NewMultiSiger instantiates another multiSigner of the same type
-	NewMultiSiger(hasher hashing.Hasher, pubKeys []string, key PrivateKey, index uint16) (MultiSigner, error)
 	// MultiSigVerifier Provides functionality for verifying a multi-signature
 	MultiSigVerifier
 	// CreateCommitment creates a secret commitment and the corresponding public commitment point
@@ -71,9 +65,11 @@ type MultiSigner interface {
 
 // MultiSigVerifier Provides functionality for verifying a multi-signature
 type MultiSigVerifier interface {
+	// Reset resets the multisigner and initializes to the new params
+	Reset(pubKeys []string, index uint16) error
 	// SetMessage sets the message to be multi-signed upon
 	SetMessage(msg []byte)
-	// SetBitmap sets the bitmap for the participating signers
+	// SetSigBitmap sets the bitmap for the participating signers
 	SetSigBitmap([]byte) error
 	// SetAggregatedSig sets the aggregated signature
 	SetAggregatedSig([]byte) error

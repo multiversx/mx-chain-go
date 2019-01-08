@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
-	"github.com/ethereum/go-ethereum/swarm/log"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
 // sleepTime defines the time in milliseconds between each iteration made in StartRounds method
 const sleepTime = time.Duration(5 * time.Millisecond)
+
+var log = logger.NewDefaultLogger()
 
 // SubroundId defines the type used to refer the current subround
 type SubroundId int
@@ -125,16 +127,21 @@ func (chr *Chronology) updateRound() SubroundId {
 	chr.timeSubround = chr.GetSubroundFromDateTime(currentTime)
 
 	if oldRoundIndex != chr.round.index {
-		log.Info(fmt.Sprintf("\n"+chr.SyncTime().FormattedCurrentTime(chr.ClockOffset())+
-			"############################## ROUND %d BEGINS ##############################\n", chr.round.index))
+		log.Info(fmt.Sprintf(
+			"\n%s############################## ROUND %d BEGINS ##############################\n",
+			chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()),
+			chr.round.index))
 		chr.initRound()
 	}
 
 	if oldTimeSubRound != chr.timeSubround {
 		sr := chr.LoadSubroundHandler(chr.timeSubround)
 		if sr != nil {
-			log.Info(fmt.Sprintf("\n" + chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()) +
-				".................... SUBROUND " + sr.Name() + " BEGINS ....................\n"))
+			log.Info(fmt.Sprintf(
+				"\n%s.................... SUBROUND %s BEGINS ....................\n",
+				chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()),
+				sr.Name(),
+			))
 		}
 	}
 

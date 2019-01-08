@@ -96,12 +96,12 @@ func (spk *privateKey) GeneratePublic() crypto.PublicKey {
 }
 
 // Verify checks a signature over a message
-func (spk *publicKey) Verify(data []byte, signature []byte) (bool, error) {
+func (spk *publicKey) Verify(data []byte, signature []byte) error {
 	err := schnorr.Verify(spk.suite, spk.pk, data, signature)
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 // ToByteArray returns the byte array representation of the public key

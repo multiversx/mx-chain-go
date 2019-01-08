@@ -723,7 +723,7 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 	for {
 		time.Sleep(100 * time.Millisecond)
 
-		currentBlock := sposWrk.Blkc.CurrentBlockHeader
+		currentBlock := sposWrk.BlockChain.CurrentBlockHeader
 		if currentBlock == nil {
 			continue
 		}

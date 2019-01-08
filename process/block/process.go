@@ -276,7 +276,6 @@ func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody, roun
 }
 
 // CommitBlock commits the block in the blockchain if everything was checked successfully
-// TODO: do not marshal and unmarshal: wrapper struct with marshaled data
 func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
 
 	buff, err := bp.marshalizer.Marshal(header)
