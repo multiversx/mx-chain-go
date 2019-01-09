@@ -333,11 +333,11 @@ func (s *Unit) DestroyUnit() error {
 // from the given cacher and persister.
 func NewStorageUnit(c Cacher, p Persister) (*Unit, error) {
 	if p == nil {
-		return nil, errors.New("expected not nil persister")
+		return nil, errNilPersister
 	}
 
 	if c == nil {
-		return nil, errors.New("expected not nil cacher")
+		return nil, errNilCacher
 	}
 
 	sUnit := &Unit{
@@ -358,15 +358,15 @@ func NewStorageUnit(c Cacher, p Persister) (*Unit, error) {
 // from the given cacher, persister and bloom filter.
 func NewStorageUnitWithBloomFilter(c Cacher, p Persister, b BloomFilter) (*Unit, error) {
 	if p == nil {
-		return nil, errors.New("expected not nil persister")
+		return nil, errNilPersister
 	}
 
 	if c == nil {
-		return nil, errors.New("expected not nil cacher")
+		return nil, errNilCacher
 	}
 
 	if b == nil {
-		return nil, errors.New("expected not nil bloom filter")
+		return nil, errNilBloomFilter
 	}
 
 	sUnit := &Unit{
@@ -390,6 +390,12 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 	var bf BloomFilter
 	var err error
 
+	defer func() {
+		if err != nil && db != nil {
+			_ = db.Destroy()
+		}
+	}()
+
 	cache, err = NewCache(cacheConf.Type, cacheConf.Size)
 	if err != nil {
 		return nil, err
@@ -401,15 +407,23 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 	}
 
 	bf, err = NewBloomFilter(bloomFilterConf)
-	if err != nil {
+	if bloomFilterCreationError(err) {
 		return nil, err
 	}
 
-	if bf == nil {
+	if err == errEmptyBloomFilterConfig {
 		return NewStorageUnit(cache, db)
 	}
 
 	return NewStorageUnitWithBloomFilter(cache, db, bf)
+}
+
+func bloomFilterCreationError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return err != errEmptyBloomFilterConfig
 }
 
 //NewCache creates a new cache from a cache config
@@ -422,7 +436,7 @@ func NewCache(cacheType CacheType, size uint32) (Cacher, error) {
 		cacher, err = lrucache.NewCache(int(size))
 		// add other implementations if required
 	default:
-		return nil, errors.New("not supported cache type")
+		return nil, errNotSupportedCacheType
 	}
 
 	if err != nil {
@@ -440,7 +454,7 @@ func NewDB(dbType DBType, path string) (Persister, error) {
 	case LvlDB:
 		db, err = leveldb.NewDB(path)
 	default:
-		return nil, errors.New("nit supported db type")
+		return nil, errNotSupportedDBType
 	}
 
 	if err != nil {
@@ -453,7 +467,7 @@ func NewDB(dbType DBType, path string) (Persister, error) {
 // NewBloomFilter creates a new bloom filter from bloom filter config
 func NewBloomFilter(conf BloomConfig) (BloomFilter, error) {
 	if reflect.DeepEqual(conf, BloomConfig{}) {
-		return nil, nil
+		return nil, errEmptyBloomFilterConfig
 	}
 
 	var bf BloomFilter
@@ -464,7 +478,7 @@ func NewBloomFilter(conf BloomConfig) (BloomFilter, error) {
 		if err == nil {
 			hashers = append(hashers, hasher)
 		} else {
-			log.Warn(err.Error())
+			return nil, err
 		}
 	}
 	bf, err = bloom.NewFilter(conf.Size, hashers)
@@ -486,6 +500,6 @@ func (h HasherType) NewHasher() (hashing.Hasher, error) {
 	case Fnv:
 		return fnv.Fnv{}, nil
 	default:
-		return nil, errors.New("hash type not supported")
+		return nil, errNotSupportedHashType
 	}
 }

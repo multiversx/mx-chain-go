@@ -610,7 +610,7 @@ func TestCreateBloomFilterFromConfOk(t *testing.T) {
 	assert.NotNil(t, bf, "valid persister expected but got nil")
 }
 
-func TestNewStorageUnitFromConfWrongCacheConfig(t *testing.T) {
+func TestNewStorageUnit_FromConfWrongCacheConfig(t *testing.T) {
 
 	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
 		Size: 10,
@@ -627,7 +627,7 @@ func TestNewStorageUnitFromConfWrongCacheConfig(t *testing.T) {
 	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
 }
 
-func TestNewStorageUnitFromConfWrongDBConfig(t *testing.T) {
+func TestNewStorageUnit_FromConfWrongDBConfig(t *testing.T) {
 	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
 		Size: 10,
 		Type: storage.LRUCache,
@@ -643,7 +643,7 @@ func TestNewStorageUnitFromConfWrongDBConfig(t *testing.T) {
 	assert.Nil(t, storer, "storer expected to be nil but got %s", storer)
 }
 
-func TestNewStorageUnitFromConfOk(t *testing.T) {
+func TestNewStorageUnit_FromConfOk(t *testing.T) {
 	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
 		Size: 10,
 		Type: storage.LRUCache,
@@ -694,6 +694,22 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilter(t *testing.
 	assert.NotNil(t, storer.GetBlomFilter())
 	err = storer.DestroyUnit()
 	assert.Nil(t, err, "no error expected destroying the persister")
+}
+
+func TestNewStorageUnit_WithInvalidConfigBloomFilterShouldErr(t *testing.T) {
+	storer, err := storage.NewStorageUnitFromConf(storage.CacheConfig{
+		Size: 10,
+		Type: storage.LRUCache,
+	}, storage.DBConfig{
+		FilePath: "Blocks",
+		Type:     storage.LvlDB,
+	}, storage.BloomConfig{
+		Size:     2048,
+		HashFunc: []storage.HasherType{storage.Keccak, storage.HasherType("invalid"), storage.Fnv},
+	})
+
+	assert.Equal(t, "hash type not supported", err.Error())
+	assert.Nil(t, storer)
 }
 
 const (
@@ -756,7 +772,7 @@ func initSUWithBloomFilter(cSize int, bfSize uint) *storage.Unit {
 	return sUnit
 }
 
-func BenchmarkStorageUnitPutWithNilBloomFilter(b *testing.B) {
+func BenchmarkStorageUnit_PutWithNilBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithNilBloomFilter(1)
 	defer func() {
@@ -775,7 +791,7 @@ func BenchmarkStorageUnitPutWithNilBloomFilter(b *testing.B) {
 	}
 }
 
-func BenchmarkStorageUnitPutWithBloomFilter(b *testing.B) {
+func BenchmarkStorageUnit_PutWithBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithBloomFilter(1, bfSize)
 	defer func() {
@@ -794,7 +810,7 @@ func BenchmarkStorageUnitPutWithBloomFilter(b *testing.B) {
 	}
 }
 
-func BenchmarkStorageUnitGetPresentWithNilBloomFilter(b *testing.B) {
+func BenchmarkStorageUnit_GetPresentWithNilBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithNilBloomFilter(1)
 	defer func() {
@@ -817,7 +833,7 @@ func BenchmarkStorageUnitGetPresentWithNilBloomFilter(b *testing.B) {
 	}
 }
 
-func BenchmarkStorageUnitGetPresentWithBloomFilter(b *testing.B) {
+func BenchmarkStorageUnit_GetPresentWithBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithBloomFilter(1, bfSize)
 	defer func() {
@@ -840,7 +856,7 @@ func BenchmarkStorageUnitGetPresentWithBloomFilter(b *testing.B) {
 	}
 }
 
-func BenchmarkStorageUnitGetNotPresentWithNilBloomFilter(b *testing.B) {
+func BenchmarkStorageUnit_GetNotPresentWithNilBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithNilBloomFilter(1)
 	defer func() {
@@ -863,7 +879,7 @@ func BenchmarkStorageUnitGetNotPresentWithNilBloomFilter(b *testing.B) {
 	}
 }
 
-func BenchmarkStorageUnitGetNotPresentWithBloomFilter(b *testing.B) {
+func BenchmarkStorageUnit_GetNotPresentWithBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithBloomFilter(1, bfSize)
 	defer func() {

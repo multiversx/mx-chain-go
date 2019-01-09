@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -459,4 +460,30 @@ func TestGetAllOk(t *testing.T) {
 	assert.Nil(t, err, "no expected error but got %s", err)
 	assert.NotNil(t, m, "expected valid map but got nil")
 	assert.Equal(t, len(m), 2)
+}
+
+func TestBlockChain_GetStorer(t *testing.T) {
+	t.Parallel()
+
+	txUnit := &mock.StorerStub{}
+	txBlockUnit := &mock.StorerStub{}
+	stateBlockUnit := &mock.StorerStub{}
+	peerBlockUnit := &mock.StorerStub{}
+	headerUnit := &mock.StorerStub{}
+
+	blkc, _ := blockchain.NewBlockChain(
+		&mock.CacherStub{},
+		txUnit,
+		txBlockUnit,
+		stateBlockUnit,
+		peerBlockUnit,
+		headerUnit,
+	)
+
+	assert.True(t, txUnit == blkc.GetStorer(blockchain.TransactionUnit))
+	assert.True(t, txBlockUnit == blkc.GetStorer(blockchain.TxBlockBodyUnit))
+	assert.True(t, stateBlockUnit == blkc.GetStorer(blockchain.StateBlockBodyUnit))
+	assert.True(t, peerBlockUnit == blkc.GetStorer(blockchain.PeerBlockBodyUnit))
+	assert.True(t, headerUnit == blkc.GetStorer(blockchain.BlockHeaderUnit))
+
 }
