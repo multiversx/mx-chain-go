@@ -406,24 +406,16 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		return nil, err
 	}
 
-	bf, err = NewBloomFilter(bloomFilterConf)
-	if bloomFilterCreationError(err) {
-		return nil, err
-	}
-
-	if err == errEmptyBloomFilterConfig {
+	if reflect.DeepEqual(bloomFilterConf, BloomConfig{}) {
 		return NewStorageUnit(cache, db)
 	}
 
-	return NewStorageUnitWithBloomFilter(cache, db, bf)
-}
-
-func bloomFilterCreationError(err error) bool {
-	if err == nil {
-		return false
+	bf, err = NewBloomFilter(bloomFilterConf)
+	if err != nil {
+		return nil, err
 	}
 
-	return err != errEmptyBloomFilterConfig
+	return NewStorageUnitWithBloomFilter(cache, db, bf)
 }
 
 //NewCache creates a new cache from a cache config
@@ -466,10 +458,6 @@ func NewDB(dbType DBType, path string) (Persister, error) {
 
 // NewBloomFilter creates a new bloom filter from bloom filter config
 func NewBloomFilter(conf BloomConfig) (BloomFilter, error) {
-	if reflect.DeepEqual(conf, BloomConfig{}) {
-		return nil, errEmptyBloomFilterConfig
-	}
-
 	var bf BloomFilter
 	var err error
 	var hashers []hashing.Hasher

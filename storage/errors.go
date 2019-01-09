@@ -15,5 +15,3 @@ var errNotSupportedCacheType = errors.New("not supported cache type")
 var errNotSupportedDBType = errors.New("nit supported db type")
 
 var errNotSupportedHashType = errors.New("hash type not supported")
-
-var errEmptyBloomFilterConfig = errors.New("empty bloom filter config")
