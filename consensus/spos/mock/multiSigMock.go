@@ -8,8 +8,6 @@ import (
 // BelNevMock is used to mock belare neven multisignature scheme
 type BelNevMock struct {
 	msg         []byte
-	sigBitmap   []byte
-	commBitmap  []byte
 	aggSig      []byte
 	aggCom      []byte
 	commSecret  []byte
@@ -21,15 +19,13 @@ type BelNevMock struct {
 	selfId      uint16
 	hasher      hashing.Hasher
 
-	VerifyMock               func() error
+	VerifyMock               func(bitmap []byte) error
 	CommitmentHashMock       func(index uint16) ([]byte, error)
-	CommitmentBitmapMock     func() []byte
 	CreateCommitmentMock     func() ([]byte, []byte, error)
-	AggregateCommitmentsMock func() ([]byte, error)
-	SignPartialMock          func() ([]byte, error)
-	SigBitmapMock            func() []byte
-	VerifyPartialMock        func(index uint16, sig []byte) error
-	AggregateSigsMock        func() ([]byte, error)
+	AggregateCommitmentsMock func(bitmap []byte) ([]byte, error)
+	SignPartialMock          func(bitmap []byte) ([]byte, error)
+	VerifyPartialMock        func(index uint16, sig []byte, bitmap []byte) error
+	AggregateSigsMock        func(bitmap []byte) ([]byte, error)
 }
 
 func NewMultiSigner() *BelNevMock {
@@ -44,7 +40,6 @@ func NewMultiSigner() *BelNevMock {
 // Reset resets the multiSigner and initializes corresponding fields with the given params
 func (bnm *BelNevMock) Reset(pubKeys []string, index uint16) error {
 	bnm.msg = nil
-	bnm.sigBitmap = nil
 	bnm.aggSig = nil
 	bnm.commSecret = nil
 	bnm.commHash = nil
@@ -61,14 +56,6 @@ func (bnm *BelNevMock) SetMessage(msg []byte) {
 	bnm.msg = msg
 }
 
-// SetSigBitmap sets the signers bitmap. Starting with index 0, each signer has 1 bit according to it's position in the
-// signers list, set to 1 if signer's signature is used, 0 if not used
-func (bnm *BelNevMock) SetSigBitmap(bmp []byte) error {
-	bnm.sigBitmap = bmp
-
-	return nil
-}
-
 // SetAggregatedSig sets the aggregated signature according to the given byte array
 func (bnm *BelNevMock) SetAggregatedSig(aggSig []byte) error {
 	bnm.aggSig = aggSig
@@ -77,8 +64,8 @@ func (bnm *BelNevMock) SetAggregatedSig(aggSig []byte) error {
 }
 
 // Verify returns nil if the aggregateed signature is verified for the given public keys
-func (bnm *BelNevMock) Verify() error {
-	return bnm.VerifyMock()
+func (bnm *BelNevMock) Verify(bitmap []byte) error {
+	return bnm.VerifyMock(bitmap)
 }
 
 // CreateCommitment creates a secret commitment and the corresponding public commitment point
@@ -106,11 +93,6 @@ func (bnm *BelNevMock) CommitmentHash(index uint16) ([]byte, error) {
 	return bnm.commHash, nil
 }
 
-// CommitmentBitmap returns the bitmap with the set
-func (bnm *BelNevMock) CommitmentBitmap() []byte {
-	return bnm.CommitmentBitmapMock()
-}
-
 // AddCommitment adds a commitment to the list on the specified position
 func (bnm *BelNevMock) AddCommitment(index uint16, value []byte) error {
 	if index >= uint16(len(bnm.commitments)) {
@@ -132,26 +114,20 @@ func (bnm *BelNevMock) Commitment(index uint16) ([]byte, error) {
 }
 
 // AggregateCommitments aggregates the list of commitments
-func (bnm *BelNevMock) AggregateCommitments() ([]byte, error) {
-	return bnm.AggregateCommitmentsMock()
+func (bnm *BelNevMock) AggregateCommitments(bitmap []byte) ([]byte, error) {
+	return bnm.AggregateCommitmentsMock(bitmap)
 }
 
-// SetAggCommitment sets the aggregated commitment for the marked signers in bitmap
-func (bnm *BelNevMock) SetAggCommitment(aggCommitment []byte, bitmap []byte) error {
+// SetAggCommitment sets the aggregated commitment
+func (bnm *BelNevMock) SetAggCommitment(aggCommitment []byte) error {
 	bnm.aggCom = aggCommitment
-	bnm.commBitmap = bitmap
 
 	return nil
 }
 
 // SignPartial creates a partial signature
-func (bnm *BelNevMock) SignPartial() ([]byte, error) {
-	return bnm.SignPartialMock()
-}
-
-// SigBitmap returns the bitmap for the set partial signatures
-func (bnm *BelNevMock) SigBitmap() []byte {
-	return bnm.SigBitmapMock()
+func (bnm *BelNevMock) SignPartial(bitmap []byte) ([]byte, error) {
+	return bnm.SignPartialMock(bitmap)
 }
 
 // AddSignPartial adds the partial signature of the signer with specified position
@@ -165,11 +141,11 @@ func (bnm *BelNevMock) AddSignPartial(index uint16, sig []byte) error {
 }
 
 // VerifyPartial verifies the partial signature of the signer with specified position
-func (bnm *BelNevMock) VerifyPartial(index uint16, sig []byte) error {
-	return bnm.VerifyPartialMock(index, sig)
+func (bnm *BelNevMock) VerifyPartial(index uint16, sig []byte, bitmap []byte) error {
+	return bnm.VerifyPartialMock(index, sig, bitmap)
 }
 
 // AggregateSigs aggregates all collected partial signatures
-func (bnm *BelNevMock) AggregateSigs() ([]byte, error) {
-	return bnm.AggregateSigsMock()
+func (bnm *BelNevMock) AggregateSigs(bitmap []byte) ([]byte, error) {
+	return bnm.AggregateSigsMock(bitmap)
 }

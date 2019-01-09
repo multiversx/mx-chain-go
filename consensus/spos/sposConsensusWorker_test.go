@@ -189,23 +189,23 @@ func initMultisigner() *mock.BelNevMock {
 		return []byte("commSecret"), []byte("commitment"), nil
 	}
 
-	multisigner.VerifyPartialMock = func(index uint16, sig []byte) error {
+	multisigner.VerifyPartialMock = func(index uint16, sig []byte, bitmap []byte) error {
 		return nil
 	}
 
-	multisigner.VerifyMock = func() error {
+	multisigner.VerifyMock = func(bitmap []byte) error {
 		return nil
 	}
 
-	multisigner.AggregateSigsMock = func() ([]byte, error) {
+	multisigner.AggregateSigsMock = func(bitmap []byte) ([]byte, error) {
 		return []byte("aggregatedSig"), nil
 	}
 
-	multisigner.AggregateCommitmentsMock = func() ([]byte, error) {
+	multisigner.AggregateCommitmentsMock = func(bitmap []byte) ([]byte, error) {
 		return []byte("aggregatedCommitments"), nil
 	}
 
-	multisigner.SignPartialMock = func() ([]byte, error) {
+	multisigner.SignPartialMock = func(bitmap []byte) ([]byte, error) {
 		return []byte("partialSign"), nil
 	}
 
@@ -703,7 +703,7 @@ func TestSPOSConsensusWorker_DoEndRoundJobErrAggregatingSigShouldFail(t *testing
 		0,
 	)
 
-	multisigner.AggregateSigsMock = func() ([]byte, error) {
+	multisigner.AggregateSigsMock = func(bitmap []byte) ([]byte, error) {
 		return nil, crypto.ErrNilHasher
 	}
 

@@ -69,3 +69,6 @@ var ErrNilBlockProcessor = errors.New("block processor is nil")
 
 // ErrInvalidKey is raised when an invalid key is used with a map
 var ErrInvalidKey = errors.New("map key is invalid")
+
+// ErrNilRoundState is raised when a valid round state is expected but nil used
+var ErrNilRoundState = errors.New("round state is nil")

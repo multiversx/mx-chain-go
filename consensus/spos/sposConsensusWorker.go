@@ -290,8 +290,10 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 		return false
 	}
 
+	bitmap := sposWorker.genBitmap(SrBitmap)
+
 	// Aggregate sig and add it to the block
-	sig, err := sposWorker.multiSigner.AggregateSigs()
+	sig, err := sposWorker.multiSigner.AggregateSigs(bitmap)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -373,7 +375,14 @@ func (sposWorker *SPOSConsensusWorker) DoBlockJob() bool {
 		return false
 	}
 
-	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrBlock, true)
+	err = sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrBlock, true)
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
+	sposWorker.multiSigner.SetMessage(sposWorker.Cns.Data)
 
 	return true
 }
@@ -569,7 +578,12 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
 
 	log.Info("Step 2: Sending commitment hash")
 
-	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrCommitmentHash, true)
+	err = sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrCommitmentHash, true)
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
 
 	return true
 }
@@ -644,7 +658,12 @@ func (sposWorker *SPOSConsensusWorker) DoBitmapJob() bool {
 		}
 
 		if isJobCommHashJobDone {
-			sposWorker.Cns.SetJobDone(sposWorker.Cns.ConsensusGroup()[i], SrBitmap, true)
+			err = sposWorker.Cns.SetJobDone(sposWorker.Cns.ConsensusGroup()[i], SrBitmap, true)
+
+			if err != nil {
+				log.Error(err.Error())
+				return false
+			}
 		}
 	}
 
@@ -703,7 +722,12 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentJob() bool {
 
 	log.Info("Step 4: Sending commitment")
 
-	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrCommitment, true)
+	err = sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrCommitment, true)
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
 
 	return true
 }
@@ -730,15 +754,17 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 		return false
 	}
 
+	bitmap := sposWorker.genBitmap(SrBitmap)
+
 	// first compute commitment aggregation
-	_, err = sposWorker.multiSigner.AggregateCommitments()
+	_, err = sposWorker.multiSigner.AggregateCommitments(bitmap)
 
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	sigPart, err := sposWorker.multiSigner.SignPartial()
+	sigPart, err := sposWorker.multiSigner.SignPartial(bitmap)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -760,7 +786,12 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 
 	log.Info("Step 5: Sending signature")
 
-	sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrSignature, true)
+	err = sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrSignature, true)
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
 
 	return true
 }
@@ -993,7 +1024,12 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBlockBody(cnsDta *ConsensusData) 
 		}
 
 		sposWorker.multiSigner.SetMessage(sposWorker.Cns.Data)
-		sposWorker.Cns.RoundConsensus.SetJobDone(node, SrBlock, true)
+		err = sposWorker.Cns.RoundConsensus.SetJobDone(node, SrBlock, true)
+
+		if err != nil {
+			log.Error(err.Error())
+			return false
+		}
 	}
 
 	return true
@@ -1061,7 +1097,12 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBlockHeader(cnsDta *ConsensusData
 		}
 
 		sposWorker.multiSigner.SetMessage(sposWorker.Cns.Data)
-		sposWorker.Cns.RoundConsensus.SetJobDone(node, SrBlock, true)
+		err = sposWorker.Cns.RoundConsensus.SetJobDone(node, SrBlock, true)
+
+		if err != nil {
+			log.Error(err.Error())
+			return false
+		}
 	}
 
 	return true
@@ -1129,7 +1170,13 @@ func (sposWorker *SPOSConsensusWorker) ReceivedCommitmentHash(cnsDta *ConsensusD
 		return false
 	}
 
-	sposWorker.Cns.RoundConsensus.SetJobDone(node, SrCommitmentHash, true)
+	err = sposWorker.Cns.RoundConsensus.SetJobDone(node, SrCommitmentHash, true)
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
 	return true
 }
 
@@ -1189,7 +1236,12 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) boo
 		isNodeSigner := (signersBitmap[byteNb] & (1 << uint8(bitNb))) != 0
 
 		if isNodeSigner {
-			sposWorker.Cns.RoundConsensus.SetJobDone(publicKeys[i], SrBitmap, true)
+			err = sposWorker.Cns.RoundConsensus.SetJobDone(publicKeys[i], SrBitmap, true)
+
+			if err != nil {
+				log.Error(err.Error())
+				return false
+			}
 		}
 	}
 
@@ -1239,7 +1291,13 @@ func (sposWorker *SPOSConsensusWorker) ReceivedCommitment(cnsDta *ConsensusData)
 		return false
 	}
 
-	sposWorker.Cns.RoundConsensus.SetJobDone(node, SrCommitment, true)
+	err = sposWorker.Cns.RoundConsensus.SetJobDone(node, SrCommitment, true)
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
 	return true
 }
 
@@ -1272,8 +1330,10 @@ func (sposWorker *SPOSConsensusWorker) ReceivedSignature(cnsDta *ConsensusData) 
 		return false
 	}
 
+	bitmap := sposWorker.genBitmap(SrBitmap)
+
 	// verify partial signature
-	err = sposWorker.multiSigner.VerifyPartial(uint16(index), cnsDta.SubRoundData)
+	err = sposWorker.multiSigner.VerifyPartial(uint16(index), cnsDta.SubRoundData, bitmap)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -1283,11 +1343,17 @@ func (sposWorker *SPOSConsensusWorker) ReceivedSignature(cnsDta *ConsensusData) 
 	err = sposWorker.multiSigner.AddSignPartial(uint16(index), cnsDta.SubRoundData)
 
 	if err != nil {
-
+		log.Error(err.Error())
 		return false
 	}
 
-	sposWorker.Cns.RoundConsensus.SetJobDone(node, SrSignature, true)
+	err = sposWorker.Cns.RoundConsensus.SetJobDone(node, SrSignature, true)
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
 	return true
 }
 

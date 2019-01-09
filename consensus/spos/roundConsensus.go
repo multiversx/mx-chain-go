@@ -73,9 +73,9 @@ func NewRoundConsensus(
 // in subround given by the subroundId parameter
 func (rCns *RoundConsensus) GetJobDone(key string, subroundId chronology.SubroundId) (bool, error) {
 	rCns.mut.RLock()
-	roundState, ok := rCns.validatorRoundStates[key]
+	roundState := rCns.validatorRoundStates[key]
 
-	if !ok {
+	if roundState == nil {
 		return false, ErrInvalidKey
 	}
 
@@ -90,9 +90,9 @@ func (rCns *RoundConsensus) GetJobDone(key string, subroundId chronology.Subroun
 func (rCns *RoundConsensus) SetJobDone(key string, subroundId chronology.SubroundId, value bool) error {
 	rCns.mut.Lock()
 
-	roundState, ok := rCns.validatorRoundStates[key]
+	roundState := rCns.validatorRoundStates[key]
 
-	if !ok {
+	if roundState == nil {
 		return ErrInvalidKey
 	}
 
@@ -107,10 +107,11 @@ func (rCns *RoundConsensus) SetJobDone(key string, subroundId chronology.Subroun
 func (rCns *RoundConsensus) ResetRoundState() {
 	for i := 0; i < len(rCns.consensusGroup); i++ {
 		rCns.mut.Lock()
-		roundState, ok := rCns.validatorRoundStates[rCns.consensusGroup[i]]
+		roundState := rCns.validatorRoundStates[rCns.consensusGroup[i]]
 
-		if !ok {
-			log.Error(ErrInvalidKey.Error())
+		if roundState == nil {
+			log.Error(ErrNilRoundState.Error())
+			rCns.mut.Unlock()
 			continue
 		}
 
