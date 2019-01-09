@@ -39,6 +39,21 @@ func (rCns *RoundConsensus) IndexSelfConsensusGroup() (int, error) {
 	return 0, ErrSelfNotFoundInConsensus
 }
 
+// SetConsensusGroup sets the consensus group ID's
+func (rCns *RoundConsensus) SetConsensusGroup(consensusGroup []string) {
+	rCns.consensusGroup = consensusGroup
+
+	rCns.mut.Lock()
+
+	rCns.validatorRoundStates = make(map[string]*RoundState)
+
+	for i := 0; i < len(consensusGroup); i++ {
+		rCns.validatorRoundStates[rCns.consensusGroup[i]] = NewRoundState()
+	}
+
+	rCns.mut.Unlock()
+}
+
 // SelfPubKey returns selfPubKey ID
 func (rCns *RoundConsensus) SelfPubKey() string {
 	return rCns.selfPubKey
@@ -76,6 +91,7 @@ func (rCns *RoundConsensus) GetJobDone(key string, subroundId chronology.Subroun
 	roundState := rCns.validatorRoundStates[key]
 
 	if roundState == nil {
+		rCns.mut.RUnlock()
 		return false, ErrInvalidKey
 	}
 
@@ -93,6 +109,7 @@ func (rCns *RoundConsensus) SetJobDone(key string, subroundId chronology.Subroun
 	roundState := rCns.validatorRoundStates[key]
 
 	if roundState == nil {
+		rCns.mut.Unlock()
 		return ErrInvalidKey
 	}
 
@@ -110,8 +127,8 @@ func (rCns *RoundConsensus) ResetRoundState() {
 		roundState := rCns.validatorRoundStates[rCns.consensusGroup[i]]
 
 		if roundState == nil {
-			log.Error(ErrNilRoundState.Error())
 			rCns.mut.Unlock()
+			log.Error(ErrNilRoundState.Error())
 			continue
 		}
 

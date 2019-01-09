@@ -330,3 +330,36 @@ func TestRoundConsensus_IndexSelfConsensusGroupNotFound(t *testing.T) {
 	assert.Zero(t, index)
 	assert.Equal(t, spos.ErrSelfNotFoundInConsensus, err)
 }
+
+func TestRoundConsensus_SetConsensusGroupShouldChangeTheConsensusGroup(t *testing.T) {
+	rndc := spos.NewRoundConsensus(
+		[]string{"1", "2", "3"},
+		"1")
+
+	rndc.SetConsensusGroup([]string{"4", "5", "6"})
+
+	assert.Equal(t, "4", rndc.ConsensusGroup()[0])
+	assert.Equal(t, "5", rndc.ConsensusGroup()[1])
+	assert.Equal(t, "6", rndc.ConsensusGroup()[2])
+}
+
+func TestRoundConsensus_GetJobDoneShouldReturnsFalseWhenValidatorIsNotInTheConsensusGroup(t *testing.T) {
+	rndc := spos.NewRoundConsensus(
+		[]string{"1", "2", "3"},
+		"1")
+
+	rndc.SetJobDone("3", spos.SrBlock, true)
+	rndc.SetConsensusGroup([]string{"1", "2"})
+	isJobDone, _ := rndc.GetJobDone("3", spos.SrBlock)
+	assert.False(t, isJobDone)
+}
+
+func TestRoundConsensus_SetJobDoneShouldNotBeSetWhenValidatorIsNotInTheConsensusGroup(t *testing.T) {
+	rndc := spos.NewRoundConsensus(
+		[]string{"1", "2", "3"},
+		"1")
+
+	rndc.SetJobDone("4", spos.SrBlock, true)
+	isJobDone, _ := rndc.GetJobDone("4", spos.SrBlock)
+	assert.False(t, isJobDone)
+}

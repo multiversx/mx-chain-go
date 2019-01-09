@@ -349,10 +349,24 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 // (it is used as a handler function of the doSubroundJob pointer function declared in Subround struct,
 // from spos package)
 func (sposWorker *SPOSConsensusWorker) DoBlockJob() bool {
+	if !sposWorker.Cns.IsNodeInConsensusGroup(sposWorker.Cns.SelfPubKey()) {
+		log.Info(fmt.Sprintf(
+			"%s Canceled round %d in subround %s: Not in the consensus group this round",
+			sposWorker.GetFormatedTime(),
+			sposWorker.Cns.Chr.Round().Index(),
+			sposWorker.Cns.GetSubroundName(SrBlock)))
+
+		sposWorker.Cns.Chr.SetSelfSubround(-1)
+		return false
+	}
+
 	// TODO: Unccomment ShouldSync check
 	//if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-	//	log.Info(fmt.Sprintf(sposWorker.GetFormatedTime()+"Canceled round %d in subround %s",
-	//	sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
+	//	log.Info(fmt.Sprintf(
+	// 		"%s Canceled round %d in subround %s: Not synchronized",
+	//      sposWorker.GetFormatedTime(),
+	//		sposWorker.Cns.Chr.Round().Index(),
+	//      sposWorker.Cns.GetSubroundName(SrBlock)))
 	//	sposWorker.Cns.Chr.SetSelfSubround(-1)
 	//	return false
 	//}
