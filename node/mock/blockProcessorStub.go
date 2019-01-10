@@ -10,6 +10,18 @@ import (
 type BlockProcessorStub struct {
 }
 
+func (bps *BlockProcessorStub) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+	panic("implement me")
+}
+
+func (bps *BlockProcessorStub) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+	panic("implement me")
+}
+
+func (bps *BlockProcessorStub) RevertAccountState() {
+	panic("implement me")
+}
+
 func (bps *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
 	panic("implement me")
 }

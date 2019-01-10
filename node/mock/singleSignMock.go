@@ -9,7 +9,7 @@ type SingleSignKeyGenMock struct {
 }
 
 type SingleSignPublicKeyMock struct {
-	VerifyCalled func(data []byte, signature []byte) (bool, error)
+	VerifyCalled func(data []byte, signature []byte) error
 }
 
 //------- SingleSignKeyGenMock
@@ -32,6 +32,6 @@ func (sspk *SingleSignPublicKeyMock) ToByteArray() ([]byte, error) {
 	panic("implement me")
 }
 
-func (sspk *SingleSignPublicKeyMock) Verify(data []byte, signature []byte) (bool, error) {
+func (sspk *SingleSignPublicKeyMock) Verify(data []byte, signature []byte) error {
 	return sspk.VerifyCalled(data, signature)
 }

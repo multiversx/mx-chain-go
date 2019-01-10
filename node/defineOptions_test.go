@@ -570,3 +570,29 @@ func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
 	assert.Equal(t, node.initialNodesBalances, balances)
 	assert.Nil(t, err)
 }
+
+func TestWithMultisig_NilMultisigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithMultisig(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.multisig)
+	assert.Equal(t, errNilMultiSig, err)
+}
+
+func TestWithMultisig_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	multisigner := &mock.MultisignMock{}
+
+	opt := WithMultisig(multisigner)
+	err := opt(node)
+
+	assert.True(t, node.multisig == multisigner)
+	assert.Nil(t, err)
+}

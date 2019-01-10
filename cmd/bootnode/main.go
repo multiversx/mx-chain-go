@@ -21,10 +21,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
@@ -194,10 +198,17 @@ func loadGenesisConfiguration(genesisFilePath string, log *logger.Logger) (*gene
 	return cfg, nil
 }
 
-func (g *genesis) initialNodesPubkeys() []string {
+func (g *genesis) initialNodesPubkeys(log *logger.Logger) []string {
 	var pubKeys []string
 	for _, in := range g.InitialNodes {
-		pubKeys = append(pubKeys, in.PubKey)
+		pubKey, err := base64.StdEncoding.DecodeString(in.PubKey)
+
+		if err != nil {
+			log.Error(fmt.Sprintf("%s is not a valid public key. Ignored.", in))
+			continue
+		}
+
+		pubKeys = append(pubKeys, string(pubKey))
 	}
 	return pubKeys
 }
@@ -266,7 +277,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 	blockProcessor := block.NewBlockProcessor(transient.Transactions(), hasher, marshalizer, transactionProcessor, accountsAdapter, shardCoordinator)
 
-	initialPubKeys := genesisConfig.initialNodesPubkeys()
+	initialPubKeys := genesisConfig.initialNodesPubkeys(log)
 
 	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
 
@@ -302,7 +313,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 		node.WithMultisig(multisigner),
-		node.WithKeyGenerator(keyGen),
+		node.WithSingleSignKeyGenerator(keyGen),
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
 	)

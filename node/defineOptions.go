@@ -253,3 +253,14 @@ func WithInitialNodesBalances(balances map[string]big.Int) Option {
 		return nil
 	}
 }
+
+// WithMultisig sets up the multisig option for the Node
+func WithMultisig(multisig crypto.MultiSigner) Option {
+	return func(n *Node) error {
+		if multisig == nil {
+			return errNilMultiSig
+		}
+		n.multisig = multisig
+		return nil
+	}
+}

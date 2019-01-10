@@ -75,7 +75,7 @@ type Node struct {
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
 	singleSignKeyGen crypto.KeyGenerator
-	multisig             crypto.MultiSigner
+	multisig         crypto.MultiSigner
 
 	blkc             *blockchain.BlockChain
 	dataPool         data.TransientDataHolder
@@ -307,7 +307,7 @@ func (n *Node) createConsensusWorker(cns *spos.Consensus) (*spos.SPOSConsensusWo
 		n.marshalizer,
 		n.blockProcessor,
 		n.multisig,
-		n.keyGenerator,
+		n.singleSignKeyGen,
 		n.privateKey,
 		n.publicKey,
 	)
@@ -576,17 +576,5 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
-	}
-}
-
-
-// WithMultisig sets up the multisig option for the Node
-func WithMultisig(multisig crypto.MultiSigner) Option {
-	return func(n *Node) error {
-		if multisig == nil {
-			return errors.New("trying to set nil multisig")
-		}
-		n.multisig = multisig
-		return nil
 	}
 }
