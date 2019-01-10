@@ -1,7 +1,7 @@
 {
-  "startTime": 1546591172,
-  "roundDuration": 4000,
-  "consensusGroupSize": 2,
+  "startTime": 1547134652,
+  "roundDuration": 8000,
+  "consensusGroupSize": 21,
   "elasticSubrounds": false,
   "initialNodes": [
     {

@@ -229,7 +229,7 @@ func (boot *bootstrap) SyncBlock() error {
 
 	//TODO remove type assertions and implement a way for block executor to process
 	//TODO all kinds of blocks
-	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blk.(*block.TxBlockBody))
+	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, blk.(*block.TxBlockBody))
 
 	if err == nil {
 		log.Debug("block synced successfully")

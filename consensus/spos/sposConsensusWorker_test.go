@@ -1863,6 +1863,9 @@ func TestMessage_CheckIfBlockIsValid(t *testing.T) {
 
 	hdr.Nonce = 2
 
+	prevHeader, _ := mock.MarshalizerMock{}.Marshal(cnWorkers[0].BlockChain.CurrentBlockHeader)
+	hdr.PrevHash = mock.HasherMock{}.Compute(string(prevHeader))
+
 	r = cnWorkers[0].CheckIfBlockIsValid(hdr)
 	assert.Equal(t, true, r)
 }
@@ -1871,25 +1874,25 @@ func TestMessage_GetMessageTypeName(t *testing.T) {
 	cnWorkers := InitMessage()
 
 	r := cnWorkers[0].GetMessageTypeName(spos.MtBlockBody)
-	assert.Equal(t, "<BLOCK_BODY>", r)
+	assert.Equal(t, "(BLOCK_BODY)", r)
 
 	r = cnWorkers[0].GetMessageTypeName(spos.MtBlockHeader)
-	assert.Equal(t, "<BLOCK_HEADER>", r)
+	assert.Equal(t, "(BLOCK_HEADER)", r)
 
 	r = cnWorkers[0].GetMessageTypeName(spos.MtCommitmentHash)
-	assert.Equal(t, "<COMMITMENT_HASH>", r)
+	assert.Equal(t, "(COMMITMENT_HASH)", r)
 
 	r = cnWorkers[0].GetMessageTypeName(spos.MtBitmap)
-	assert.Equal(t, "<BITMAP>", r)
+	assert.Equal(t, "(BITMAP)", r)
 
 	r = cnWorkers[0].GetMessageTypeName(spos.MtCommitment)
-	assert.Equal(t, "<COMMITMENT>", r)
+	assert.Equal(t, "(COMMITMENT)", r)
 
 	r = cnWorkers[0].GetMessageTypeName(spos.MtSignature)
-	assert.Equal(t, "<SIGNATURE>", r)
+	assert.Equal(t, "(SIGNATURE)", r)
 
 	r = cnWorkers[0].GetMessageTypeName(spos.MtUnknown)
-	assert.Equal(t, "<UNKNOWN>", r)
+	assert.Equal(t, "(UNKNOWN)", r)
 
 	r = cnWorkers[0].GetMessageTypeName(spos.MessageType(-1))
 	assert.Equal(t, "Undifined message type", r)

@@ -32,11 +32,18 @@ type Config struct {
 	PeerBlockBodyStorage  StorageConfig `json:"peerBlockBodyStorage"`
 	BlockHeaderStorage    StorageConfig `json:"blockHeaderStorage"`
 	TxStorage             StorageConfig `json:"txStorage"`
-	AccountsTrieStorage   StorageConfig `json:"accountsTrieStorage"`
-	BadBlocksCache        CacheConfig   `json:"badBlocksCache"`
-	TxPoolStorage         CacheConfig   `json:"txPoolStorage"`
-	BlockPoolStorage      CacheConfig   `json:"blockPoolStorage"`
-	Logger                struct {
+
+	AccountsTrieStorage StorageConfig `json:"accountsTrieStorage"`
+	BadBlocksCache      CacheConfig   `json:"badBlocksCache"`
+
+	TxBlockBodyDataPool       CacheConfig `json:"txBlockBodyDataPool"`
+	StateBlockBodyDataPool    CacheConfig `json:"stateBlockBodyDataPool"`
+	PeerBlockBodyDataPool     CacheConfig `json:"peerBlockBodyDataPool"`
+	BlockHeaderDataPool       CacheConfig `json:"blockHeaderDataPool"`
+	BlockHeaderNoncesDataPool CacheConfig `json:"blockHeaderNoncesDataPool"`
+	TxDataPool                CacheConfig `json:"txDataPool"`
+
+	Logger struct {
 		Path            string `json:"path"`
 		StackTraceDepth int    `json:"stackTraceDepth"`
 	} `json:"logger"`

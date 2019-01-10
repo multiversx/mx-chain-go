@@ -45,6 +45,11 @@ func (ef *ElrondNodeFacade) StartNode() error {
 		return err
 	}
 
+	err = ef.node.BindInterceptorsResolvers()
+	if err != nil {
+		return err
+	}
+
 	err = ef.node.StartConsensus()
 	return err
 }
