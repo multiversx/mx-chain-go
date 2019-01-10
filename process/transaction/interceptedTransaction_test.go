@@ -275,8 +275,8 @@ func TestInterceptedTransaction_VerifySigVerifyDoesNotPassShouldErr(t *testing.T
 	tx := transaction.NewInterceptedTransaction()
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) (b bool, e error) {
-		return false, errors.New("sig not valid")
+	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+		return errors.New("sig not valid")
 	}
 
 	keyGen := &mock.SingleSignKeyGenMock{}
@@ -294,8 +294,8 @@ func TestInterceptedTransaction_VerifySigVerifyDoesPassShouldRetNil(t *testing.T
 	tx := transaction.NewInterceptedTransaction()
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) (b bool, e error) {
-		return true, nil
+	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+		return nil
 	}
 
 	keyGen := &mock.SingleSignKeyGenMock{}

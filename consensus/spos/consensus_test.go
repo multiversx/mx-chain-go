@@ -40,16 +40,16 @@ func TestNewThreshold(t *testing.T) {
 
 func TestNewConsensus(t *testing.T) {
 
-	vld := spos.NewRoundConsensus(
+	rCns := spos.NewRoundConsensus(
 		[]string{"1", "2", "3"},
 		"2")
 
-	for i := 0; i < len(vld.ConsensusGroup()); i++ {
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrBlock, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrBitmap, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrCommitment, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
 	rt := spos.NewRoundThreshold()
@@ -75,33 +75,34 @@ func TestNewConsensus(t *testing.T) {
 		currentTime,
 		RoundTimeDuration)
 
-	chr := chronology.NewChronology(true,
+	chr := chronology.NewChronology(
 		true,
 		rnd,
 		genesisTime,
 		ntp.NewSyncTime(RoundTimeDuration, nil))
 
-	cns := spos.NewConsensus(true,
+	cns := spos.NewConsensus(
 		nil,
-		vld,
+		rCns,
 		rt,
 		rs,
-		chr)
+		chr,
+	)
 
 	assert.NotNil(t, cns)
 }
 
 func InitConsensus() *spos.Consensus {
-	vld := spos.NewRoundConsensus(
+	rCns := spos.NewRoundConsensus(
 		[]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"},
 		"1")
 
-	for i := 0; i < len(vld.ConsensusGroup()); i++ {
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrBlock, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrBitmap, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrCommitment, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
 	rt := spos.NewRoundThreshold()
@@ -127,34 +128,35 @@ func InitConsensus() *spos.Consensus {
 		currentTime,
 		RoundTimeDuration)
 
-	chr := chronology.NewChronology(true,
+	chr := chronology.NewChronology(
 		true,
 		rnd,
 		genesisTime,
 		ntp.NewSyncTime(RoundTimeDuration, nil))
 
-	cns := spos.NewConsensus(true,
+	cns := spos.NewConsensus(
 		nil,
-		vld,
+		rCns,
 		rt,
 		rs,
-		chr)
+		chr,
+	)
 
 	return cns
 }
 
 func TestConsensus_IsNodeLeaderInCurrentRound(t *testing.T) {
 
-	vld := spos.NewRoundConsensus(
+	rCns := spos.NewRoundConsensus(
 		[]string{"1", "2", "3"},
 		"2")
 
-	for i := 0; i < len(vld.ConsensusGroup()); i++ {
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrBlock, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrBitmap, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrCommitment, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
 	genesisTime := time.Now()
@@ -164,18 +166,19 @@ func TestConsensus_IsNodeLeaderInCurrentRound(t *testing.T) {
 		currentTime,
 		RoundTimeDuration)
 
-	chr := chronology.NewChronology(true,
+	chr := chronology.NewChronology(
 		true,
 		rnd,
 		genesisTime,
 		ntp.NewSyncTime(RoundTimeDuration, nil))
 
-	cns := spos.NewConsensus(true,
+	cns := spos.NewConsensus(
 		nil,
-		vld,
+		rCns,
 		nil,
 		nil,
-		nil)
+		nil,
+	)
 
 	assert.Equal(t, false, cns.IsNodeLeaderInCurrentRound("1"))
 
@@ -185,36 +188,36 @@ func TestConsensus_IsNodeLeaderInCurrentRound(t *testing.T) {
 
 func TestConsensus_GetLeader(t *testing.T) {
 
-	vld1 := spos.NewRoundConsensus(
+	rCns1 := spos.NewRoundConsensus(
 		nil,
 		"")
 
-	for i := 0; i < len(vld1.ConsensusGroup()); i++ {
-		vld1.SetJobDone(vld1.ConsensusGroup()[i], spos.SrBlock, false)
-		vld1.SetJobDone(vld1.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		vld1.SetJobDone(vld1.ConsensusGroup()[i], spos.SrBitmap, false)
-		vld1.SetJobDone(vld1.ConsensusGroup()[i], spos.SrCommitment, false)
-		vld1.SetJobDone(vld1.ConsensusGroup()[i], spos.SrSignature, false)
+	for i := 0; i < len(rCns1.ConsensusGroup()); i++ {
+		rCns1.SetJobDone(rCns1.ConsensusGroup()[i], spos.SrBlock, false)
+		rCns1.SetJobDone(rCns1.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		rCns1.SetJobDone(rCns1.ConsensusGroup()[i], spos.SrBitmap, false)
+		rCns1.SetJobDone(rCns1.ConsensusGroup()[i], spos.SrCommitment, false)
+		rCns1.SetJobDone(rCns1.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
-	vld2 := spos.NewRoundConsensus(
+	rCns2 := spos.NewRoundConsensus(
 		[]string{},
 		"")
 
-	for i := 0; i < len(vld2.ConsensusGroup()); i++ {
-		vld2.ResetRoundState()
+	for i := 0; i < len(rCns2.ConsensusGroup()); i++ {
+		rCns2.ResetRoundState()
 	}
 
-	vld3 := spos.NewRoundConsensus(
+	rCns3 := spos.NewRoundConsensus(
 		[]string{"1", "2", "3"},
 		"1")
 
-	for i := 0; i < len(vld3.ConsensusGroup()); i++ {
-		vld3.SetJobDone(vld3.ConsensusGroup()[i], spos.SrBlock, false)
-		vld3.SetJobDone(vld3.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		vld3.SetJobDone(vld3.ConsensusGroup()[i], spos.SrBitmap, false)
-		vld3.SetJobDone(vld3.ConsensusGroup()[i], spos.SrCommitment, false)
-		vld3.SetJobDone(vld3.ConsensusGroup()[i], spos.SrSignature, false)
+	for i := 0; i < len(rCns3.ConsensusGroup()); i++ {
+		rCns3.SetJobDone(rCns3.ConsensusGroup()[i], spos.SrBlock, false)
+		rCns3.SetJobDone(rCns3.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		rCns3.SetJobDone(rCns3.ConsensusGroup()[i], spos.SrBitmap, false)
+		rCns3.SetJobDone(rCns3.ConsensusGroup()[i], spos.SrCommitment, false)
+		rCns3.SetJobDone(rCns3.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
 	genesisTime := time.Now()
@@ -228,51 +231,55 @@ func TestConsensus_GetLeader(t *testing.T) {
 		currentTime,
 		RoundTimeDuration)
 
-	chr1 := chronology.NewChronology(true,
+	chr1 := chronology.NewChronology(
 		true,
 		nil,
 		genesisTime,
 		ntp.NewSyncTime(RoundTimeDuration, nil))
 
-	chr2 := chronology.NewChronology(true,
+	chr2 := chronology.NewChronology(
 		true,
 		rnd1,
 		genesisTime,
 		ntp.NewSyncTime(RoundTimeDuration, nil))
 
-	chr3 := chronology.NewChronology(true,
+	chr3 := chronology.NewChronology(
 		true,
 		rnd2,
 		genesisTime,
 		ntp.NewSyncTime(RoundTimeDuration, nil))
 
-	cns1 := spos.NewConsensus(true,
+	cns1 := spos.NewConsensus(
 		nil,
 		nil,
 		nil,
 		nil,
-		nil)
+		nil,
+	)
 
-	cns2 := spos.NewConsensus(true,
+	cns2 := spos.NewConsensus(
 		nil,
-		vld1,
+		rCns1,
 		nil,
 		nil,
-		nil)
+		nil,
+	)
 
-	cns3 := spos.NewConsensus(true,
+	cns3 := spos.NewConsensus(
 		nil,
-		vld2,
+		rCns2,
 		nil,
 		nil,
-		nil)
+		nil,
+	)
 
-	cns4 := spos.NewConsensus(true,
+	cns4 := spos.NewConsensus(
 		nil,
-		vld3,
+		rCns3,
 		nil,
 		nil,
-		nil)
+		nil,
+	)
 
 	leader, err := cns1.GetLeader()
 	assert.NotNil(t, err)
@@ -311,12 +318,13 @@ func TestConsensus_GetLeader(t *testing.T) {
 
 func TestConsensus_Log(t *testing.T) {
 
-	cns := spos.NewConsensus(true,
+	cns := spos.NewConsensus(
 		nil,
 		nil,
 		nil,
 		nil,
-		nil)
+		nil,
+	)
 
-	cns.Log("Test Consesnus")
+	assert.NotNil(t, cns)
 }

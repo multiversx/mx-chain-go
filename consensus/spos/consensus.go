@@ -1,8 +1,6 @@
 package spos
 
 import (
-	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -92,8 +90,6 @@ func (rt *RoundThreshold) SetThreshold(subroundId chronology.SubroundId, thresho
 
 // Consensus defines the data needed by spos to do the consensus in each round
 type Consensus struct {
-	log bool
-
 	Data []byte // hold the data on which validators do the consensus
 	// (could be for example a hash of the block header proposed by the leader)
 	*RoundConsensus
@@ -107,7 +103,6 @@ type Consensus struct {
 
 // NewConsensus creates a new Consensus object
 func NewConsensus(
-	log bool,
 	data []byte,
 	vld *RoundConsensus,
 	thr *RoundThreshold,
@@ -116,7 +111,6 @@ func NewConsensus(
 ) *Consensus {
 
 	cns := Consensus{
-		log:            log,
 		Data:           data,
 		RoundConsensus: vld,
 		RoundThreshold: thr,
@@ -132,7 +126,7 @@ func (cns *Consensus) IsNodeLeaderInCurrentRound(node string) bool {
 	leader, err := cns.GetLeader()
 
 	if err != nil {
-		fmt.Printf(err.Error() + "\n")
+		log.Error(err.Error())
 		return false
 	}
 
@@ -142,32 +136,25 @@ func (cns *Consensus) IsNodeLeaderInCurrentRound(node string) bool {
 // GetLeader method gets the leader of the current round
 func (cns *Consensus) GetLeader() (string, error) {
 	if cns.Chr == nil {
-		return "", errors.New("chronology is null")
+		return "", ErrNilChronology
 	}
 
 	if cns.Chr.Round() == nil {
-		return "", errors.New("round is null")
+		return "", ErrNilRound
 	}
 
 	if cns.Chr.Round().Index() < 0 {
-		return "", errors.New("round index is negative")
+		return "", ErrNegativeRoundIndex
 	}
 
 	if cns.consensusGroup == nil {
-		return "", errors.New("consensusGroup is null")
+		return "", ErrNilConsensusGroup
 	}
 
 	if len(cns.consensusGroup) == 0 {
-		return "", errors.New("consensusGroup is empty")
+		return "", ErrEmptyConsensusGroup
 	}
 
 	index := cns.Chr.Round().Index() % int32(len(cns.consensusGroup))
 	return cns.consensusGroup[index], nil
-}
-
-// Log method prints info about consensus (if log is true)
-func (cns *Consensus) Log(message string) {
-	if cns.log {
-		fmt.Printf(message + "\n")
-	}
 }

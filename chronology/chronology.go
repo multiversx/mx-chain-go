@@ -6,10 +6,13 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
 // sleepTime defines the time in milliseconds between each iteration made in StartRounds method
 const sleepTime = time.Duration(5 * time.Millisecond)
+
+var log = logger.NewDefaultLogger()
 
 // SubroundId defines the type used to refer the current subround
 type SubroundId int
@@ -26,7 +29,6 @@ type SubroundHandler interface {
 
 // Chronology defines the data needed by the chronology
 type Chronology struct {
-	log        bool
 	DoRun      bool
 	doSyncMode bool
 
@@ -47,14 +49,12 @@ type Chronology struct {
 
 // NewChronology defines a new Chr object
 func NewChronology(
-	log bool,
 	doSyncMode bool,
 	round *Round,
 	genesisTime time.Time,
 	syncTime ntp.SyncTimer) *Chronology {
 
 	chr := Chronology{
-		log:         log,
 		doSyncMode:  doSyncMode,
 		round:       round,
 		genesisTime: genesisTime,
@@ -127,19 +127,21 @@ func (chr *Chronology) updateRound() SubroundId {
 	chr.timeSubround = chr.GetSubroundFromDateTime(currentTime)
 
 	if oldRoundIndex != chr.round.index {
-		chr.Log(fmt.Sprintf("\n%s############################## ROUND %d BEGINS (%d) ##############################\n",
+		log.Info(fmt.Sprintf(
+			"\n%s############################## ROUND %d BEGINS ##############################\n",
 			chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()),
-			chr.round.index,
-			chr.SyncTime().CurrentTime(chr.ClockOffset()).Unix()))
+			chr.round.index))
 		chr.initRound()
 	}
 
 	if oldTimeSubRound != chr.timeSubround {
 		sr := chr.LoadSubroundHandler(chr.timeSubround)
 		if sr != nil {
-			chr.Log(fmt.Sprintf("\n%s.................... SUBROUND %s BEGINS ....................\n",
+			log.Info(fmt.Sprintf(
+				"\n%s.................... SUBROUND %s BEGINS ....................\n",
 				chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()),
-				sr.Name()))
+				sr.Name(),
+			))
 		}
 	}
 
@@ -177,13 +179,6 @@ func (chr *Chronology) GetSubroundFromDateTime(timeStamp time.Time) SubroundId {
 	}
 
 	return -1
-}
-
-// Log do logs of the chronology if log variable is set on true
-func (chr *Chronology) Log(message string) {
-	if chr.log {
-		fmt.Printf(message + "\n")
-	}
 }
 
 // Round returns the current round object

@@ -60,6 +60,8 @@ type Node struct {
 	addrConverter        state.AddressConverter
 	privateKey           crypto.PrivateKey
 	blkc                 *blockchain.BlockChain
+	multisig             crypto.MultiSigner
+	keyGenerator         crypto.KeyGenerator
 }
 
 // NewNode creates a new Node instance
@@ -156,7 +158,12 @@ func (n *Node) StartConsensus() error {
 	rth := n.createRoundThreshold()
 	rnds := n.createRoundStatus()
 	cns := n.createConsensus(rndc, rth, rnds, chr)
-	sposWrk := n.createConsensusWorker(cns)
+	sposWrk, err := n.createConsensusWorker(cns)
+
+	if err != nil {
+		return err
+	}
+
 	topic := n.createConsensusTopic(sposWrk)
 
 	err = n.messenger.AddTopic(topic)
@@ -186,7 +193,6 @@ func (n *Node) createRound() *chronology.Round {
 // createChronology method creates a chronology object
 func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology {
 	chr := chronology.NewChronology(
-		true,
 		!n.elasticSubrounds,
 		round,
 		n.genesisTime,
@@ -243,7 +249,6 @@ func (n *Node) createRoundStatus() *spos.RoundStatus {
 func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThreshold, rnds *spos.RoundStatus, chr *chronology.Chronology,
 ) *spos.Consensus {
 	cns := spos.NewConsensus(
-		true,
 		nil,
 		rndc,
 		rth,
@@ -254,18 +259,26 @@ func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThresho
 }
 
 // createConsensusWorker method creates a ConsensusWorker object
-func (n *Node) createConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
-	sposWrk := spos.NewConsensusWorker(
-		true,
+func (n *Node) createConsensusWorker(cns *spos.Consensus) (*spos.SPOSConsensusWorker, error) {
+	sposWrk, err := spos.NewConsensusWorker(
 		cns,
 		n.blkc,
 		n.hasher,
 		n.marshalizer,
-		n.blockProcessor)
+		n.blockProcessor,
+		n.multisig,
+		n.keyGenerator,
+		n.privateKey,
+		n.publicKey,
+	)
+
+	if err != nil {
+		return nil, err
+	}
 
 	sposWrk.SendMessage = n.sendMessage
 
-	return sposWrk
+	return sposWrk, nil
 }
 
 // createConsensusTopic creates a consensus topic for node
@@ -481,12 +494,12 @@ func (n *Node) createGenesisBlock() (*block.Header, error) {
 	}
 	blockBodyHash := n.hasher.Compute(string(marshalizedBody))
 	return &block.Header{
-		Nonce: 0,
-		ShardId: blockBody.ShardID,
-		TimeStamp: uint64(n.genesisTime.Unix()),
+		Nonce:         0,
+		ShardId:       blockBody.ShardID,
+		TimeStamp:     uint64(n.genesisTime.Unix()),
 		BlockBodyHash: blockBodyHash,
 		BlockBodyType: block.StateBlock,
-		Signature: blockBodyHash,
+		Signature:     blockBodyHash,
 	}, nil
 }
 
@@ -681,6 +694,28 @@ func WithElasticSubrounds(elasticSubrounds bool) Option {
 	}
 }
 
+// WithMultisig sets up the multisig option for the Node
+func WithMultisig(multisig crypto.MultiSigner) Option {
+	return func(n *Node) error {
+		if multisig == nil {
+			return errors.New("trying to set nil multisig")
+		}
+		n.multisig = multisig
+		return nil
+	}
+}
+
+// WithKeyGenerator sets up the key generator option for the Node
+func WithKeyGenerator(keyGen crypto.KeyGenerator) Option {
+	return func(n *Node) error {
+		if keyGen == nil {
+			return errors.New("trying to set nil key generator")
+		}
+		n.keyGenerator = keyGen
+		return nil
+	}
+}
+
 func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 	// TODO: this method and its call should be removed after initial testing of aur first version of testnet
 	oldNonce := uint64(0)
@@ -688,7 +723,7 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 	for {
 		time.Sleep(100 * time.Millisecond)
 
-		currentBlock := sposWrk.Blkc.CurrentBlockHeader
+		currentBlock := sposWrk.BlockChain.CurrentBlockHeader
 		if currentBlock == nil {
 			continue
 		}

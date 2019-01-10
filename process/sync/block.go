@@ -203,7 +203,7 @@ func (boot *bootstrap) syncBlocks() {
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool
 // and if it is not found there it will be requested from the network. After the header is received,
 // it requests the block body in the same way(pool and than, if it is not found in the pool, from network).
-// If either header and body are received the ProcessBlock method will be called. This method will do execute
+// If either header and body are received the ProcessAndCommit method will be called. This method will execute
 // the block and its transactions. Finally if everything works, the block will be committed in the blockchain,
 // and all this mechanism will be reiterated for the next block.
 func (boot *bootstrap) SyncBlock() error {
