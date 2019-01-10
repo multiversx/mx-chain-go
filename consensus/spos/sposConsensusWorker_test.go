@@ -1033,7 +1033,7 @@ func TestMessage_SendBitmap(t *testing.T) {
 	cnWorkers := InitMessage()
 
 	r := cnWorkers[0].DoBitmapJob()
-	assert.Equal(t, true, r)
+	assert.Equal(t, false, r)
 
 	cnWorkers[0].Cns.SetStatus(spos.SrCommitmentHash, spos.SsFinished)
 	cnWorkers[0].Cns.SetStatus(spos.SrBitmap, spos.SsFinished)
@@ -1073,7 +1073,7 @@ func TestMessage_SendCommitment(t *testing.T) {
 	cnWorkers := InitMessage()
 
 	r := cnWorkers[0].DoCommitmentJob()
-	assert.Equal(t, true, r)
+	assert.Equal(t, false, r)
 
 	cnWorkers[0].Cns.SetStatus(spos.SrBitmap, spos.SsFinished)
 	cnWorkers[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
@@ -1109,7 +1109,7 @@ func TestMessage_SendSignature(t *testing.T) {
 	cnWorkers := InitMessage()
 
 	r := cnWorkers[0].DoSignatureJob()
-	assert.Equal(t, true, r)
+	assert.Equal(t, false, r)
 
 	cnWorkers[0].Cns.SetStatus(spos.SrCommitment, spos.SsFinished)
 	cnWorkers[0].Cns.SetStatus(spos.SrSignature, spos.SsFinished)

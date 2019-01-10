@@ -719,9 +719,10 @@ func WithKeyGenerator(keyGen crypto.KeyGenerator) Option {
 func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 	// TODO: this method and its call should be removed after initial testing of aur first version of testnet
 	oldNonce := uint64(0)
+	recheckPeriod := sposWrk.Cns.Chr.Round().TimeDuration() * 5 / 100
 
 	for {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(recheckPeriod)
 
 		currentBlock := sposWrk.BlockChain.CurrentBlockHeader
 		if currentBlock == nil {
