@@ -59,6 +59,9 @@ type NodeWrapper interface {
 	// ConnectToAddresses will take a slice of addresses and try to connect to all of them.
 	ConnectToAddresses(addresses []string) error
 
+	// BindInterceptorsResolvers will start the interceptors and resolvers
+	BindInterceptorsResolvers() error
+
 	// StartConsensus will start the consesus service for the current node
 	StartConsensus() error
 

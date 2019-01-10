@@ -5,7 +5,7 @@
       "type": "LRU"
     },
     "db": {
-      "file": "Blocks",
+      "file": "TxBlocks",
       "type": "LvlDB"
     }
   },
@@ -15,7 +15,7 @@
       "type": "LRU"
     },
     "db": {
-      "file": "Blocks",
+      "file": "StateBlocks",
       "type": "LvlDB"
     }
   },
@@ -25,7 +25,7 @@
       "type": "LRU"
     },
     "db": {
-      "file": "Blocks",
+      "file": "PeerBlocks",
       "type": "LvlDB"
     }
   },
@@ -67,14 +67,31 @@
     "size": 100,
     "type": "LRU"
   },
-  "txPoolStorage": {
-    "size": 1000,
-    "type": "LRU"
-  },
-  "blockPoolStorage": {
+  "txBlockBodyDataPool": {
     "size": 100,
     "type": "LRU"
   },
+  "stateBlockBodyDataPool": {
+    "size": 100,
+    "type": "LRU"
+  },
+  "peerBlockBodyDataPool": {
+    "size": 10000,
+    "type": "LRU"
+  },
+  "blockHeaderDataPool": {
+    "size": 10000,
+    "type": "LRU"
+  },
+  "blockHeaderNoncesDataPool": {
+    "size": 100000,
+    "type": "LRU"
+  },
+  "txDataPool": {
+    "size": 100000,
+    "type": "LRU"
+  },
+
   "logger": {
     "path": "logs",
     "stackTraceDepth": 2
@@ -82,5 +99,11 @@
   "address": {
     "length": 32,
     "prefix": "0x"
+  },
+  "hasher": {
+    "type": "sha256"
+  },
+  "marshalizer": {
+    "type": "json"
   }
 }

@@ -21,10 +21,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
@@ -63,7 +67,7 @@ type initialNode struct {
 
 type genesis struct {
 	StartTime          int64         `json:"startTime"`
-	RoundDuration      int64         `json:"roundDuration"`
+	RoundDuration      uint64        `json:"roundDuration"`
 	ConsensusGroupSize int           `json:"consensusGroupSize"`
 	ElasticSubrounds   bool          `json:"elasticSubrounds"`
 	InitialNodes       []initialNode `json:"initialNodes"`
@@ -194,10 +198,17 @@ func loadGenesisConfiguration(genesisFilePath string, log *logger.Logger) (*gene
 	return cfg, nil
 }
 
-func (g *genesis) initialNodesPubkeys() []string {
+func (g *genesis) initialNodesPubkeys(log *logger.Logger) []string {
 	var pubKeys []string
 	for _, in := range g.InitialNodes {
-		pubKeys = append(pubKeys, in.PubKey)
+		pubKey, err := base64.StdEncoding.DecodeString(in.PubKey)
+
+		if err != nil {
+			log.Error(fmt.Sprintf("%s is not a valid public key. Ignored.", in))
+			continue
+		}
+
+		pubKeys = append(pubKeys, string(pubKey))
 	}
 	return pubKeys
 }
@@ -245,7 +256,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	blkc, err := createBlockChainFromConfig(blockChainConfig())
+	blkc, err := createBlockChainFromConfig(cfg)
 	if err != nil {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
@@ -255,15 +266,18 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	txPoolCacher := getCacherFromConfig(cfg.TxPoolStorage)
-	shrdData, err := shardedData.NewShardedData(txPoolCacher)
+	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
+
+	transient, err := createDataPoolFromConfig(cfg, uint64ByteSliceConverter)
 	if err != nil {
-		return nil, errors.New("could not create sharded data: " + err.Error())
+		return nil, errors.New("could not create transient data pool: " + err.Error())
 	}
 
-	blockProcessor := block.NewBlockProcessor(shrdData, hasher, marshalizer, transactionProcessor, accountsAdapter, &sharding.OneShardCoordinator{})
+	shardCoordinator := &sharding.OneShardCoordinator{}
 
-	initialPubKeys := genesisConfig.initialNodesPubkeys()
+	blockProcessor := block.NewBlockProcessor(transient.Transactions(), hasher, marshalizer, transactionProcessor, accountsAdapter, shardCoordinator)
+
+	initialPubKeys := genesisConfig.initialNodesPubkeys(log)
 
 	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
 
@@ -295,8 +309,11 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithBlockProcessor(blockProcessor),
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
 		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
+		node.WithDataPool(transient),
+		node.WithShardCoordinator(shardCoordinator),
+		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 		node.WithMultisig(multisigner),
-		node.WithKeyGenerator(keyGen),
+		node.WithSingleSignKeyGenerator(keyGen),
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
 	)
@@ -413,9 +430,12 @@ func getDBFromConfig(cfg config.DBConfig) storage.DBConfig {
 }
 
 func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
-	hashFuncs := make([]storage.HasherType, 0)
-	for _, hf := range cfg.HashFunc {
-		hashFuncs = append(hashFuncs, storage.HasherType(hf))
+	var hashFuncs []storage.HasherType
+	if cfg.HashFunc != nil {
+		hashFuncs = make([]storage.HasherType, 0)
+		for _, hf := range cfg.HashFunc {
+			hashFuncs = append(hashFuncs, storage.HasherType(hf))
+		}
 	}
 
 	return storage.BloomConfig{
@@ -424,7 +444,56 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 	}
 }
 
-func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockChain, error) {
+func createDataPoolFromConfig(config *config.Config, uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter) (data.TransientDataHolder, error) {
+	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
+	if err != nil {
+		return nil, err
+	}
+
+	hdrPool, err := shardedData.NewShardedData(getCacherFromConfig(config.BlockHeaderDataPool))
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg := getCacherFromConfig(config.BlockHeaderNoncesDataPool)
+	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+	hdrNonces, err := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg = getCacherFromConfig(config.TxBlockBodyDataPool)
+	txBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg = getCacherFromConfig(config.PeerBlockBodyDataPool)
+	peerChangeBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg = getCacherFromConfig(config.StateBlockBodyDataPool)
+	stateBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	return dataPool.NewDataPool(
+		txPool,
+		hdrPool,
+		hdrNonces,
+		txBlockBody,
+		peerChangeBlockBody,
+		stateBlockBody,
+	)
+}
+
+func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, error) {
 	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
 	var err error
 
@@ -449,61 +518,61 @@ func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockC
 		}
 	}()
 
-	txBadBlockCache, err := storage.NewCache(
-		blConfig.TxBadBlockBodyCache.Type,
-		blConfig.TxBadBlockBodyCache.Size)
+	badBlockCache, err := storage.NewCache(
+		storage.CacheType(config.BadBlocksCache.Type),
+		config.BadBlocksCache.Size)
 
 	if err != nil {
 		return nil, err
 	}
 
 	txUnit, err = storage.NewStorageUnitFromConf(
-		blConfig.TxStorage.CacheConf,
-		blConfig.TxStorage.DBConf,
-		blConfig.TxStorage.BloomConf)
+		getCacherFromConfig(config.TxStorage.Cache),
+		getDBFromConfig(config.TxStorage.DB),
+		getBloomFromConfig(config.TxStorage.Bloom))
 
 	if err != nil {
 		return nil, err
 	}
 
 	txBlockUnit, err = storage.NewStorageUnitFromConf(
-		blConfig.TxBlockBodyStorage.CacheConf,
-		blConfig.TxBlockBodyStorage.DBConf,
-		blConfig.TxBlockBodyStorage.BloomConf)
+		getCacherFromConfig(config.TxBlockBodyStorage.Cache),
+		getDBFromConfig(config.TxBlockBodyStorage.DB),
+		getBloomFromConfig(config.TxBlockBodyStorage.Bloom))
 
 	if err != nil {
 		return nil, err
 	}
 
 	stateBlockUnit, err = storage.NewStorageUnitFromConf(
-		blConfig.StateBlockBodyStorage.CacheConf,
-		blConfig.StateBlockBodyStorage.DBConf,
-		blConfig.StateBlockBodyStorage.BloomConf)
+		getCacherFromConfig(config.StateBlockBodyStorage.Cache),
+		getDBFromConfig(config.StateBlockBodyStorage.DB),
+		getBloomFromConfig(config.StateBlockBodyStorage.Bloom))
 
 	if err != nil {
 		return nil, err
 	}
 
 	peerBlockUnit, err = storage.NewStorageUnitFromConf(
-		blConfig.PeerBlockBodyStorage.CacheConf,
-		blConfig.PeerBlockBodyStorage.DBConf,
-		blConfig.PeerBlockBodyStorage.BloomConf)
+		getCacherFromConfig(config.PeerBlockBodyStorage.Cache),
+		getDBFromConfig(config.PeerBlockBodyStorage.DB),
+		getBloomFromConfig(config.PeerBlockBodyStorage.Bloom))
 
 	if err != nil {
 		return nil, err
 	}
 
 	headerUnit, err = storage.NewStorageUnitFromConf(
-		blConfig.BlockHeaderStorage.CacheConf,
-		blConfig.BlockHeaderStorage.DBConf,
-		blConfig.BlockHeaderStorage.BloomConf)
+		getCacherFromConfig(config.BlockHeaderStorage.Cache),
+		getDBFromConfig(config.BlockHeaderStorage.DB),
+		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
 
 	if err != nil {
 		return nil, err
 	}
 
 	blockChain, err := blockchain.NewBlockChain(
-		txBadBlockCache,
+		badBlockCache,
 		txUnit,
 		txBlockUnit,
 		stateBlockUnit,
@@ -515,23 +584,4 @@ func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockC
 	}
 
 	return blockChain, err
-}
-
-func blockChainConfig() *blockchain.Config {
-	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
-	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
-	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "TxBlockBodyStorage")}
-	persisterStateBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "StateBlockBodyStorage")}
-	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "PeerBlockBodyStorage")}
-	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "BlockHeaderStorage")}
-	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: filepath.Join(config.DefaultPath()+uniqueID, "TxStorage")}
-	return &blockchain.Config{
-		TxBlockBodyStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxBlockBodyStorage, BloomConf: bloom},
-		StateBlockBodyStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterStateBlockBodyStorage, BloomConf: bloom},
-		PeerBlockBodyStorage:  storage.UnitConfig{CacheConf: cacher, DBConf: persisterPeerBlockBodyStorage, BloomConf: bloom},
-		BlockHeaderStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
-		TxStorage:             storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
-		TxPoolStorage:         cacher,
-		TxBadBlockBodyCache:   cacher,
-	}
 }

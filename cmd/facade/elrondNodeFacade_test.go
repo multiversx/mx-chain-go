@@ -39,6 +39,9 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 		StartConsensusHandler: func() error {
 			return nil
 		},
+		BindInterceptorsResolversHandler: func() error {
+			return nil
+		},
 	}
 
 	ef := facade.NewElrondNodeFacade(node)
@@ -86,6 +89,9 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 		StartConsensusHandler: func() error {
 			started = false
 			return fmt.Errorf("error on StartConsensus")
+		},
+		BindInterceptorsResolversHandler: func() error {
+			return nil
 		},
 	}
 

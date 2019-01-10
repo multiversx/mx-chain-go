@@ -20,7 +20,7 @@ var testCacherConfig = storage.CacheConfig{
 	Type: storage.LRUCache,
 }
 
-func blockchainConfig() *blockchain.Config {
+func createBlockchain() (*blockchain.BlockChain, error) {
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
 	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
 	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxBlockBodyStorage"}
@@ -28,62 +28,51 @@ func blockchainConfig() *blockchain.Config {
 	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "PeerBlockBodyStorage"}
 	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
 	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
-	return &blockchain.Config{
-		TxBlockBodyStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxBlockBodyStorage, BloomConf: bloom},
-		StateBlockBodyStorage: storage.UnitConfig{CacheConf: cacher, DBConf: persisterStateBlockBodyStorage, BloomConf: bloom},
-		PeerBlockBodyStorage:  storage.UnitConfig{CacheConf: cacher, DBConf: persisterPeerBlockBodyStorage, BloomConf: bloom},
-		BlockHeaderStorage:    storage.UnitConfig{CacheConf: cacher, DBConf: persisterBlockHeaderStorage, BloomConf: bloom},
-		TxStorage:             storage.UnitConfig{CacheConf: cacher, DBConf: persisterTxStorage, BloomConf: bloom},
-		TxPoolStorage:         cacher,
-		TxBadBlockBodyCache:   cacher,
-	}
-}
 
-func createBlockChainFromConfig(blConfig *blockchain.Config) (*blockchain.BlockChain, error) {
 	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
 
-	txBadBlockCache, err := storage.NewCache(
-		blConfig.TxBadBlockBodyCache.Type,
-		blConfig.TxBadBlockBodyCache.Size)
+	badBlockCache, err := storage.NewCache(
+		cacher.Type,
+		cacher.Size)
 
 	if err == nil {
 		txUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.TxStorage.CacheConf,
-			blConfig.TxStorage.DBConf,
-			blConfig.TxStorage.BloomConf)
+			cacher,
+			persisterTxStorage,
+			bloom)
 	}
 
 	if err == nil {
 		txBlockUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.TxBlockBodyStorage.CacheConf,
-			blConfig.TxBlockBodyStorage.DBConf,
-			blConfig.TxBlockBodyStorage.BloomConf)
+			cacher,
+			persisterTxBlockBodyStorage,
+			bloom)
 	}
 
 	if err == nil {
 		stateBlockUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.StateBlockBodyStorage.CacheConf,
-			blConfig.StateBlockBodyStorage.DBConf,
-			blConfig.StateBlockBodyStorage.BloomConf)
+			cacher,
+			persisterStateBlockBodyStorage,
+			bloom)
 	}
 
 	if err == nil {
 		peerBlockUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.PeerBlockBodyStorage.CacheConf,
-			blConfig.PeerBlockBodyStorage.DBConf,
-			blConfig.PeerBlockBodyStorage.BloomConf)
+			cacher,
+			persisterPeerBlockBodyStorage,
+			bloom)
 	}
 
 	if err == nil {
 		headerUnit, err = storage.NewStorageUnitFromConf(
-			blConfig.BlockHeaderStorage.CacheConf,
-			blConfig.BlockHeaderStorage.DBConf,
-			blConfig.BlockHeaderStorage.BloomConf)
+			cacher,
+			persisterBlockHeaderStorage,
+			bloom)
 	}
 
 	if err == nil {
 		blockChain, err := blockchain.NewBlockChain(
-			txBadBlockCache,
+			badBlockCache,
 			txUnit,
 			txBlockUnit,
 			stateBlockUnit,
@@ -200,7 +189,7 @@ func TestBlockProcessor_ProcessBlockWithNilTxBlockBodyShouldErr(t *testing.T) {
 	journalLen := func() int { return 3 }
 	revToSnapshot := func(snapshot int) error { return nil }
 
-	blkc, _ := createBlockChainFromConfig(blockchainConfig())
+	blkc, _ := createBlockchain()
 
 	hdr := block.Header{
 		Nonce:         0,
@@ -241,7 +230,7 @@ func TestBlockProc_ProcessBlockWithDirtyAccountShouldErr(t *testing.T) {
 	journalLen := func() int { return 3 }
 	revToSnapshot := func(snapshot int) error { return nil }
 
-	blkc, _ := createBlockChainFromConfig(blockchainConfig())
+	blkc, _ := createBlockchain()
 
 	hdr := block.Header{
 		Nonce:         0,
@@ -297,7 +286,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	}
 
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
-	blkc, _ := createBlockChainFromConfig(blockchainConfig())
+	blkc, _ := createBlockchain()
 	hdr := block.Header{
 		Nonce:         0,
 		PrevHash:      []byte(""),

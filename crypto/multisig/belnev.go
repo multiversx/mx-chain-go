@@ -45,6 +45,12 @@ func NewBelNevMultisig(
 		return nil, crypto.ErrNilKeyGenerator
 	}
 
+	sizeConsensus := len(pubKeys)
+
+	commHashes := make([][]byte, sizeConsensus)
+	commitments := make([][]byte, sizeConsensus)
+	sigShares := make([][]byte, sizeConsensus)
+
 	pk, err := convertStringsToPubKeys(pubKeys, keyGen)
 
 	if err != nil {
@@ -53,11 +59,14 @@ func NewBelNevMultisig(
 
 	// own index is used only for signing
 	return &belNev{
-		pubKeys:  pk,
-		privKey:  privKey,
-		ownIndex: ownIndex,
-		hasher:   hasher,
-		keyGen:   keyGen,
+		pubKeys:     pk,
+		privKey:     privKey,
+		ownIndex:    ownIndex,
+		hasher:      hasher,
+		keyGen:      keyGen,
+		commHashes:  commHashes,
+		commitments: commitments,
+		sigShares:   sigShares,
 	}, nil
 }
 
@@ -89,15 +98,17 @@ func (bn *belNev) Reset(pubKeys []string, index uint16) error {
 		return err
 	}
 
+	sizeConsensus := len(pubKeys)
+
 	bn.message = nil
 	bn.ownIndex = index
 	bn.pubKeys = pk
 	bn.commSecret = nil
-	bn.commitments = nil
+	bn.commitments = make([][]byte, sizeConsensus)
 	bn.aggCommitment = nil
 	bn.aggSig = nil
-	bn.commHashes = nil
-	bn.sigShares = nil
+	bn.commHashes = make([][]byte, sizeConsensus)
+	bn.sigShares = make([][]byte, sizeConsensus)
 
 	return nil
 }
@@ -111,6 +122,11 @@ func (bn *belNev) SetMessage(msg []byte) {
 func (bn *belNev) AddCommitmentHash(index uint16, commHash []byte) error {
 	// TODO
 
+	if int(index) >= len(bn.commHashes) {
+		return crypto.ErrInvalidIndex
+	}
+
+	bn.commHashes[index] = commHash
 	return nil
 }
 
@@ -151,12 +167,19 @@ func (bn *belNev) CreateCommitment() (commSecret []byte, commitment []byte, err 
 func (bn *belNev) SetCommitmentSecret(commSecret []byte) error {
 	// TODO
 
+	bn.commSecret = commSecret
 	return nil
 }
 
 // AddCommitment adds a commitment to the list on the specified position
-func (bn *belNev) AddCommitment(index uint16, value []byte) error {
+func (bn *belNev) AddCommitment(index uint16, commitment []byte) error {
 	// TODO
+
+	if int(index) >= len(bn.commitments) {
+		return crypto.ErrInvalidIndex
+	}
+
+	bn.commitments[index] = commitment
 
 	return nil
 }
@@ -185,6 +208,7 @@ func (bn *belNev) AggregateCommitments(bitmap []byte) ([]byte, error) {
 func (bn *belNev) SetAggCommitment(aggCommitment []byte) error {
 	// TODO
 
+	bn.aggCommitment = aggCommitment
 	return nil
 }
 
@@ -206,6 +230,12 @@ func (bn *belNev) VerifyPartial(index uint16, sig []byte, bitmap []byte) error {
 func (bn *belNev) AddSignPartial(index uint16, sig []byte) error {
 	// TODO
 
+	if int(index) >= len(bn.sigShares) {
+		return crypto.ErrInvalidIndex
+	}
+
+	bn.sigShares[index] = sig
+
 	return nil
 }
 
@@ -217,9 +247,10 @@ func (bn *belNev) AggregateSigs(bitmap []byte) ([]byte, error) {
 }
 
 // SetAggregatedSig sets the aggregated signature
-func (bn *belNev) SetAggregatedSig([]byte) error {
+func (bn *belNev) SetAggregatedSig(aggSig []byte) error {
 	// TODO
 
+	bn.aggSig = aggSig
 	return nil
 }
 

@@ -23,19 +23,10 @@ const (
 // UnitType is the type for Storage unit identifiers
 type UnitType uint8
 
-// Config holds the configurable elements of the blockchain
-type Config struct {
-	TxBlockBodyStorage    storage.UnitConfig
-	StateBlockBodyStorage storage.UnitConfig
-	PeerBlockBodyStorage  storage.UnitConfig
-	BlockHeaderStorage    storage.UnitConfig
-	TxStorage             storage.UnitConfig
-	TxPoolStorage         storage.CacheConfig
-	TxBadBlockBodyCache   storage.CacheConfig
-}
-
 // StorageService is the interface for blockChain storage unit provided services
 type StorageService interface {
+	// GetStorer returns the storer from the chain map
+	GetStorer(unitType UnitType) storage.Storer
 	// Has returns true if the key is found in the selected Unit or false otherwise
 	Has(unitType UnitType, key []byte) (bool, error)
 	// Get returns the value for the given key if found in the selected storage unit, nil otherwise
@@ -71,11 +62,11 @@ type BlockChain struct {
 // It uses a config file to setup it's supported storage units map
 func NewBlockChain(
 	badBlocksCache storage.Cacher,
-	txUnit *storage.Unit,
-	txBlockUnit *storage.Unit,
-	stateBlockUnit *storage.Unit,
-	peerBlockUnit *storage.Unit,
-	headerUnit *storage.Unit) (*BlockChain, error) {
+	txUnit storage.Storer,
+	txBlockUnit storage.Storer,
+	stateBlockUnit storage.Storer,
+	peerBlockUnit storage.Storer,
+	headerUnit storage.Storer) (*BlockChain, error) {
 
 	if badBlocksCache == nil {
 		return nil, ErrBadBlocksCacheNil
@@ -117,6 +108,15 @@ func NewBlockChain(
 	}
 
 	return data, nil
+}
+
+// GetStorer returns the storer from the chain map or nil if the storer was not found
+func (bc *BlockChain) GetStorer(unitType UnitType) storage.Storer {
+	bc.lock.RLock()
+	storer := bc.chain[unitType]
+	bc.lock.RUnlock()
+
+	return storer
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise

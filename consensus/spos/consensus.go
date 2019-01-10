@@ -158,3 +158,7 @@ func (cns *Consensus) GetLeader() (string, error) {
 	index := cns.Chr.Round().Index() % int32(len(cns.consensusGroup))
 	return cns.consensusGroup[index], nil
 }
+
+func (cns *Consensus) getFormattedTime() string {
+	return cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset())
+}

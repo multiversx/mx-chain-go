@@ -119,7 +119,6 @@ func NewGenericBlockBodyInterceptor(
 	interceptor process.Interceptor,
 	cache storage.Cacher,
 	hasher hashing.Hasher,
-	templateObj process.BlockBodyInterceptorAdapter,
 	shardCoordinator sharding.ShardCoordinator,
 ) (*GenericBlockBodyInterceptor, error) {
 
@@ -133,10 +132,6 @@ func NewGenericBlockBodyInterceptor(
 
 	if hasher == nil {
 		return nil, process.ErrNilHasher
-	}
-
-	if templateObj == nil {
-		return nil, process.ErrNilTemplateObj
 	}
 
 	if shardCoordinator == nil {

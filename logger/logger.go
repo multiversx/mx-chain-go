@@ -59,7 +59,7 @@ func NewElrondLogger(opts ...Option) *Logger {
 	}
 
 	el.logger.SetFormatter(&log.JSONFormatter{})
-	el.logger.SetLevel(log.WarnLevel)
+	el.logger.SetLevel(log.InfoLevel)
 
 	return el
 }
