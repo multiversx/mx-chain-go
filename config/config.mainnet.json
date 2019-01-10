@@ -68,11 +68,11 @@
     "type": "LRU"
   },
   "txBlockBodyDataPool": {
-    "size": 10000,
+    "size": 100,
     "type": "LRU"
   },
   "stateBlockBodyDataPool": {
-    "size": 10000,
+    "size": 100,
     "type": "LRU"
   },
   "peerBlockBodyDataPool": {
