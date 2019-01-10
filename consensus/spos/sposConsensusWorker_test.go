@@ -633,21 +633,21 @@ func TestNewConsensusData(t *testing.T) {
 func TestNewMessage(t *testing.T) {
 	consensusGroup := []string{"1", "2", "3"}
 
-	vld := spos.NewRoundConsensus(
+	rCns := spos.NewRoundConsensus(
 		consensusGroup,
 		consensusGroup[0])
 
-	for i := 0; i < len(vld.ConsensusGroup()); i++ {
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrBlock, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrBitmap, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrCommitment, false)
-		vld.SetJobDone(vld.ConsensusGroup()[i], spos.SrSignature, false)
+	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
 	}
 
 	cns := spos.NewConsensus(
 		nil,
-		vld,
+		rCns,
 		nil,
 		nil,
 		nil,

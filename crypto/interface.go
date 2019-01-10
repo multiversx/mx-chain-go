@@ -47,7 +47,7 @@ type MultiSigner interface {
 	Commitment(index uint16) ([]byte, error)
 	// AggregateCommitments aggregates the list of commitments
 	AggregateCommitments(bitmap []byte) ([]byte, error)
-	// SetAggCommitment sets the aggregated commitment for the marked signers in bitmap
+	// SetAggCommitment sets the aggregated commitment
 	SetAggCommitment(aggCommitment []byte) error
 	// SignPartial creates a partial signature
 	SignPartial(bitmap []byte) ([]byte, error)

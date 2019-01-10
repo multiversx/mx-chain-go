@@ -604,11 +604,11 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
 
 func (sposWorker *SPOSConsensusWorker) genBitmap(subround chronology.SubroundId) []byte {
 	// generate bitmap according to set commitment hashes
-	l := len(sposWorker.Cns.ConsensusGroup())
+	sizeConsensus := len(sposWorker.Cns.ConsensusGroup())
 
-	bitmap := make([]byte, l/8+1)
+	bitmap := make([]byte, sizeConsensus/8+1)
 
-	for i := 0; i < l; i++ {
+	for i := 0; i < sizeConsensus; i++ {
 		isJobDone, err := sposWorker.Cns.GetJobDone(sposWorker.Cns.ConsensusGroup()[i], subround)
 
 		if err != nil {
@@ -827,7 +827,7 @@ func (sposWorker *SPOSConsensusWorker) genConsensusDataSignature(cnsDta *Consens
 	return signature, nil
 }
 
-// SendConsensusMessage method send the message to the nodes which are in the validators group
+// SendConsensusMessage sends the consensus message
 func (sposWorker *SPOSConsensusWorker) SendConsensusMessage(cnsDta *ConsensusData) bool {
 	signature, err := sposWorker.genConsensusDataSignature(cnsDta)
 
