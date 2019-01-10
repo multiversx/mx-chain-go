@@ -151,9 +151,6 @@ var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
-// ErrNilTemplateObj signals that an operation has been attempted to or with a nil template object
-var ErrNilTemplateObj = errors.New("nil TemplateObj")
-
 // ErrNilRcvAddr signals that an operation has been attempted to or with a nil receiver address
 var ErrNilRcvAddr = errors.New("nil receiver address")
 
