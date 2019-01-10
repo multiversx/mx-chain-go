@@ -1,13 +1,12 @@
 package schnorr
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/pkg/errors"
 	"gopkg.in/dedis/kyber.v2"
 	"gopkg.in/dedis/kyber.v2/group/edwards25519"
 	"gopkg.in/dedis/kyber.v2/sign/schnorr"
 	"gopkg.in/dedis/kyber.v2/util/key"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/pkg/errors"
 )
 
 type keyGenerator struct {
@@ -35,9 +34,9 @@ type publicKey struct {
 func (kg *keyGenerator) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	schnorrKeyPair := key.NewKeyPair(kg.suite)
 	return &privateKey{
-			suite: kg.suite,
-			sk:    schnorrKeyPair.Private,
-		},
+		suite: kg.suite,
+		sk:    schnorrKeyPair.Private,
+	},
 		&publicKey{
 			suite: kg.suite,
 			pk:    schnorrKeyPair.Public,
@@ -56,7 +55,7 @@ func (kg *keyGenerator) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, er
 	}
 	return &privateKey{
 		suite: kg.suite,
-		sk: scalar,
+		sk:    scalar,
 	}, nil
 }
 
@@ -72,7 +71,7 @@ func (kg *keyGenerator) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, erro
 	}
 	return &publicKey{
 		suite: kg.suite,
-		pk: point,
+		pk:    point,
 	}, nil
 }
 
@@ -91,20 +90,20 @@ func (spk *privateKey) GeneratePublic() crypto.PublicKey {
 	point := spk.suite.Point()
 	return &publicKey{
 		suite: spk.suite,
-		pk: point.Mul(spk.sk, nil),
+		pk:    point.Mul(spk.sk, nil),
 	}
 }
 
 // Verify checks a signature over a message
-func (spk *publicKey) Verify(data []byte, signature []byte) (bool, error) {
-	err := schnorr.Verify(spk.suite, spk.pk, data, signature)
+func (pk *publicKey) Verify(data []byte, signature []byte) error {
+	err := schnorr.Verify(pk.suite, pk.pk, data, signature)
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 // ToByteArray returns the byte array representation of the public key
-func (spk *publicKey) ToByteArray() ([]byte, error) {
-	return spk.pk.MarshalBinary()
+func (pk *publicKey) ToByteArray() ([]byte, error) {
+	return pk.pk.MarshalBinary()
 }

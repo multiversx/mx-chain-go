@@ -186,7 +186,8 @@ func TestBlockProcessor_ProcessBlockWithNilTxBlockBodyShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 	tpm := mock.TxProcessorMock{}
 	// set accounts dirty
-	JournalLen := func() int { return 3 }
+	journalLen := func() int { return 3 }
+	revToSnapshot := func(snapshot int) error { return nil }
 
 	blkc, _ := createBlockchain()
 
@@ -208,12 +209,15 @@ func TestBlockProcessor_ProcessBlockWithNilTxBlockBodyShouldErr(t *testing.T) {
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&tpm,
-		&mock.AccountsStub{JournalLenCalled: JournalLen},
-		mock.NewOneShardCoordinatorMock(),
+		&mock.AccountsStub{
+			JournalLenCalled:       journalLen,
+			RevertToSnapshotCalled: revToSnapshot},
+			mock.NewOneShardCoordinatorMock(),
 	)
 
 	// should return err
-	err = be.ProcessBlock(blkc, &hdr, nil)
+	err = be.ProcessAndCommit(blkc, &hdr, nil)
+
 	assert.NotNil(t, err)
 	assert.Equal(t, process.ErrNilTxBlockBody, err)
 }
@@ -223,7 +227,8 @@ func TestBlockProc_ProcessBlockWithDirtyAccountShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 	tpm := mock.TxProcessorMock{}
 	// set accounts dirty
-	JournalLen := func() int { return 3 }
+	journalLen := func() int { return 3 }
+	revToSnapshot := func(snapshot int) error { return nil }
 
 	blkc, _ := createBlockchain()
 
@@ -255,12 +260,16 @@ func TestBlockProc_ProcessBlockWithDirtyAccountShouldErr(t *testing.T) {
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&tpm,
-		&mock.AccountsStub{JournalLenCalled: JournalLen},
-		mock.NewOneShardCoordinatorMock(),
+		&mock.AccountsStub{
+			JournalLenCalled:       journalLen,
+			RevertToSnapshotCalled: revToSnapshot,
+		},
+			mock.NewOneShardCoordinatorMock(),
 	)
 
 	// should return err
-	err = be.ProcessBlock(blkc, &hdr, &txBody)
+	err = be.ProcessAndCommit(blkc, &hdr, &txBody)
+
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrAccountStateDirty)
 }
@@ -328,7 +337,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	)
 
 	// should return err
-	err = be.ProcessBlock(blkc, &hdr, &txBody)
+	err = be.ProcessAndCommit(blkc, &hdr, &txBody)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -336,14 +345,20 @@ func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 	tp, err := shardedData.NewShardedData(testCacherConfig)
 	assert.Nil(t, err)
 	tpm := mock.TxProcessorMock{}
-	JournalLen := func() int { return 3 }
+	journalLen := func() int { return 3 }
+	revToSnapshot := func(snapshot int) error { return nil }
 
 	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&tpm,
-		&mock.AccountsStub{JournalLenCalled: JournalLen},
-		mock.NewOneShardCoordinatorMock(),
+
+		&mock.AccountsStub{
+			JournalLenCalled:       journalLen,
+			RevertToSnapshotCalled: revToSnapshot,
+		},
+			mock.NewOneShardCoordinatorMock(),
+
 	)
 
 	bl, err := be.CreateTxBlockBody(0, 100, 0, func() bool { return true })
@@ -360,6 +375,7 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 	tpm := mock.TxProcessorMock{}
 	journalLen := func() int { return 0 }
 	rootHashfunc := func() []byte { return []byte("roothash") }
+	revToSnapshot := func(snapshot int) error { return nil }
 
 	be := blproc.NewBlockProcessor(
 		tp, &mock.HasherMock{},
@@ -368,6 +384,7 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 		&mock.AccountsStub{
 			JournalLenCalled: journalLen,
 			RootHashCalled:   rootHashfunc,
+			RevertToSnapshotCalled: revToSnapshot,
 		},
 		mock.NewOneShardCoordinatorMock(),
 	)

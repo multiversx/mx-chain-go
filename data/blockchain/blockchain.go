@@ -108,7 +108,6 @@ func NewBlockChain(
 	}
 
 	return data, nil
-
 }
 
 // GetStorer returns the storer from the chain map or nil if the storer was not found

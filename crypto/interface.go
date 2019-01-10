@@ -26,8 +26,47 @@ type PrivateKey interface {
 type PublicKey interface {
 	Key
 	// Verify signature represents the signed hash of the data
-	Verify(data []byte, signature []byte) (bool, error)
+	Verify(data []byte, signature []byte) error
 }
 
+// MultiSigner provides functionality for multi-signing a message
+type MultiSigner interface {
+	// MultiSigVerifier Provides functionality for verifying a multi-signature
+	MultiSigVerifier
+	// CreateCommitment creates a secret commitment and the corresponding public commitment point
+	CreateCommitment() (commSecret []byte, commitment []byte, err error)
+	// AddCommitmentHash adds a commitment hash to the list with the specified position
+	AddCommitmentHash(index uint16, commHash []byte) error
+	// CommitmentHash returns the commitment hash from the list with the specified position
+	CommitmentHash(index uint16) ([]byte, error)
+	// SetCommitmentSecret sets the committment secret
+	SetCommitmentSecret(commSecret []byte) error
+	// AddCommitment adds a commitment to the list with the specified position
+	AddCommitment(index uint16, value []byte) error
+	// Commitment returns the commitment from the list with the specified position
+	Commitment(index uint16) ([]byte, error)
+	// AggregateCommitments aggregates the list of commitments
+	AggregateCommitments(bitmap []byte) ([]byte, error)
+	// SetAggCommitment sets the aggregated commitment
+	SetAggCommitment(aggCommitment []byte) error
+	// SignPartial creates a partial signature
+	SignPartial(bitmap []byte) ([]byte, error)
+	// AddSignPartial adds the partial signature of the signer with specified position
+	AddSignPartial(index uint16, sig []byte) error
+	// VerifyPartial verifies the partial signature of the signer with specified position
+	VerifyPartial(index uint16, sig []byte, bitmap []byte) error
+	// AggregateSigs aggregates all collected partial signatures
+	AggregateSigs(bitmap []byte) ([]byte, error)
+}
 
-
+// MultiSigVerifier Provides functionality for verifying a multi-signature
+type MultiSigVerifier interface {
+	// Reset resets the multisigner and initializes to the new params
+	Reset(pubKeys []string, index uint16) error
+	// SetMessage sets the message to be multi-signed upon
+	SetMessage(msg []byte)
+	// SetAggregatedSig sets the aggregated signature
+	SetAggregatedSig([]byte) error
+	// Verify verifies the aggregated signature
+	Verify(bitmap []byte) error
+}

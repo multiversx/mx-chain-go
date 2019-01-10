@@ -75,6 +75,8 @@ type Node struct {
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
 	singleSignKeyGen crypto.KeyGenerator
+	multisig             crypto.MultiSigner
+
 	blkc             *blockchain.BlockChain
 	dataPool         data.TransientDataHolder
 	shardCoordinator sharding.ShardCoordinator
@@ -196,7 +198,12 @@ func (n *Node) StartConsensus() error {
 	rth := n.createRoundThreshold()
 	rnds := n.createRoundStatus()
 	cns := n.createConsensus(rndc, rth, rnds, chr)
-	sposWrk := n.createConsensusWorker(cns)
+	sposWrk, err := n.createConsensusWorker(cns)
+
+	if err != nil {
+		return err
+	}
+
 	topic := n.createConsensusTopic(sposWrk)
 
 	err = n.messenger.AddTopic(topic)
@@ -226,7 +233,6 @@ func (n *Node) createRound() *chronology.Round {
 // createChronology method creates a chronology object
 func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology {
 	chr := chronology.NewChronology(
-		true,
 		!n.elasticSubrounds,
 		round,
 		n.genesisTime,
@@ -283,7 +289,6 @@ func (n *Node) createRoundStatus() *spos.RoundStatus {
 func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThreshold, rnds *spos.RoundStatus, chr *chronology.Chronology,
 ) *spos.Consensus {
 	cns := spos.NewConsensus(
-		true,
 		nil,
 		rndc,
 		rth,
@@ -294,18 +299,26 @@ func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThresho
 }
 
 // createConsensusWorker method creates a ConsensusWorker object
-func (n *Node) createConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
-	sposWrk := spos.NewConsensusWorker(
-		true,
+func (n *Node) createConsensusWorker(cns *spos.Consensus) (*spos.SPOSConsensusWorker, error) {
+	sposWrk, err := spos.NewConsensusWorker(
 		cns,
 		n.blkc,
 		n.hasher,
 		n.marshalizer,
-		n.blockProcessor)
+		n.blockProcessor,
+		n.multisig,
+		n.keyGenerator,
+		n.privateKey,
+		n.publicKey,
+	)
+
+	if err != nil {
+		return nil, err
+	}
 
 	sposWrk.SendMessage = n.sendMessage
 
-	return sposWrk
+	return sposWrk, nil
 }
 
 // createConsensusTopic creates a consensus topic for node
@@ -537,7 +550,7 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 	for {
 		time.Sleep(100 * time.Millisecond)
 
-		currentBlock := sposWrk.Blkc.CurrentBlockHeader
+		currentBlock := sposWrk.BlockChain.CurrentBlockHeader
 		if currentBlock == nil {
 			continue
 		}
@@ -563,5 +576,17 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
+	}
+}
+
+
+// WithMultisig sets up the multisig option for the Node
+func WithMultisig(multisig crypto.MultiSigner) Option {
+	return func(n *Node) error {
+		if multisig == nil {
+			return errors.New("trying to set nil multisig")
+		}
+		n.multisig = multisig
+		return nil
 	}
 }

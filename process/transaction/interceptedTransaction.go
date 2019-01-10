@@ -119,7 +119,7 @@ func (inTx *InterceptedTransaction) VerifySig() error {
 		return err
 	}
 
-	_, err = singleSignVerifier.Verify(inTx.hash, inTx.Signature)
+	err = singleSignVerifier.Verify(inTx.hash, inTx.Signature)
 
 	if err != nil {
 		return err

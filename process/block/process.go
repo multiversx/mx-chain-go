@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -65,9 +64,47 @@ func NewBlockProcessor(
 	return &bp
 }
 
-// ProcessBlock takes each transaction from the transactions block body received as parameter
+// ProcessAndCommit takes each transaction from the transactions block body received as parameter
 // and processes it, updating at the same time the state trie and the associated root hash
-// if transaction is not valid or not found it will return error
+// if transaction is not valid or not found it will return error.
+// If all ok it will commit the block and state.
+func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+	err := bp.ProcessBlock(blockChain, header, body)
+
+	defer func() {
+		if err != nil {
+			bp.RevertAccountState()
+		}
+	}()
+
+	if err != nil {
+		return err
+	}
+
+	// TODO: Check app state root hash
+	if !bp.VerifyStateRoot(bp.accounts.RootHash()) {
+		err = process.ErrRootStateMissmatch
+		return err
+	}
+
+	err = bp.CommitBlock(blockChain, header, body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RevertAccountState reverets the account state for cleanup failed process
+func (bp *blockProcessor) RevertAccountState() {
+	err := bp.accounts.RevertToSnapshot(0)
+
+	if err != nil {
+		log.Error(err.Error())
+	}
+}
+
+// ProcessBlock processes a block. It returns nil if all ok or the speciffic error
 func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
 	err := bp.validateBlock(blockChain, header, body)
 	if err != nil {
@@ -83,26 +120,12 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 
 	defer func() {
 		if err != nil {
-			err2 := bp.accounts.RevertToSnapshot(0)
-			if err2 != nil {
-				fmt.Println(err2.Error())
-			}
+			bp.RevertAccountState()
 		}
 	}()
 
 	err = bp.processBlockTransactions(body, int32(header.Round))
 
-	if err != nil {
-		return err
-	}
-
-	// TODO: Check app state root hash
-	// TODO: check & test
-	if !bp.VerifyStateRoot(body.RootHash) {
-		return process.ErrRootStateMissmatch
-	}
-
-	err = bp.commitBlock(blockChain, header, body)
 	if err != nil {
 		return err
 	}
@@ -252,12 +275,9 @@ func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody, roun
 	return nil
 }
 
-//TODO: do not marshal and unmarshal: wrapper struct with marshaled data
-// commitBlock commits the block in the blockchain if everything was checked successfully
-func (bp *blockProcessor) commitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+// CommitBlock commits the block in the blockchain if everything was checked successfully
+func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
 
-	blockChain.CurrentBlockHeader = header
-	blockChain.LocalHeight = int64(header.Nonce)
 	buff, err := bp.marshalizer.Marshal(header)
 	if err != nil {
 		return process.ErrMarshalWithoutSuccess
@@ -306,6 +326,11 @@ func (bp *blockProcessor) commitBlock(blockChain *blockchain.BlockChain, header 
 	}
 
 	_, err = bp.accounts.Commit()
+
+	if err == nil {
+		blockChain.CurrentBlockHeader = header
+		blockChain.LocalHeight = int64(header.Nonce)
+	}
 
 	return err
 }
