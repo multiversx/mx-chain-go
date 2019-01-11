@@ -10,7 +10,7 @@ filebeat:
 
 output.logstash:
   enabled: true
-  hosts: ["192.168.11.53:5044"]
+  hosts: ["192.168.3.190:5044"]
   bulk_max_size: 1024
 
 shipper:
