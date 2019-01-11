@@ -570,12 +570,12 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 
 			headerHash := n.hasher.Compute(string(headerMarsh))
 
-			log.Info(fmt.Sprintf("Block with nounce %d and hash %s was added into the blockchain. Previous block hash was %s", header.Nonce, getPrettyByteArray(headerHash), getPrettyByteArray(prevHeaderHash)))
+			log.Info(fmt.Sprintf("Block with nounce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, getPrettyByteArray(headerHash), getPrettyByteArray(prevHeaderHash)))
 
 			oldNonce = header.Nonce
 			prevHeaderHash = headerHash
 			spew.Dump(header)
-			log.Info(fmt.Sprintf("********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********",
+			log.Info(fmt.Sprintf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n",
 				sposWrk.Rounds, sposWrk.RoundsWithBlock, float64(sposWrk.RoundsWithBlock)*100/float64(sposWrk.Rounds)))
 		}
 	}

@@ -333,20 +333,20 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 	// broadcast block body
 	err = sposWorker.broadcastTxBlockBody()
 	if err != nil {
-		log.Error(err.Error())
+		log.Error(fmt.Sprintf("%s\n", err.Error()))
 	}
 
 	// broadcast header
 	err = sposWorker.broadcastHeader()
 	if err != nil {
-		log.Error(err.Error())
+		log.Error(fmt.Sprintf("%s\n", err.Error()))
 	}
 
 	if sposWorker.Cns.IsNodeLeaderInCurrentRound(sposWorker.Cns.SelfPubKey()) {
-		log.Info(fmt.Sprintf("%s++++++++++++++++++++ ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN ++++++++++++++++++++\n\n",
+		log.Info(fmt.Sprintf("\n%s++++++++++++++++++++ ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN ++++++++++++++++++++\n\n",
 			sposWorker.Cns.getFormattedTime(), sposWorker.Header.Nonce))
 	} else {
-		log.Info(fmt.Sprintf("%s++++++++++++++++++++ ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN ++++++++++++++++++++\n\n",
+		log.Info(fmt.Sprintf("\n%s++++++++++++++++++++ ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN ++++++++++++++++++++\n\n",
 			sposWorker.Cns.getFormattedTime(), sposWorker.Header.Nonce))
 	}
 
