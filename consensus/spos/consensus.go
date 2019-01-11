@@ -99,6 +99,7 @@ type Consensus struct {
 	shouldCheckConsensus bool
 
 	Chr *chronology.Chronology
+	mut sync.Mutex
 }
 
 // NewConsensus creates a new Consensus object

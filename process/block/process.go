@@ -86,7 +86,6 @@ func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, he
 		return err
 	}
 
-	// TODO: Check app state root hash
 	if !bp.VerifyStateRoot(bp.accounts.RootHash()) {
 		err = process.ErrRootStateMissmatch
 		return err

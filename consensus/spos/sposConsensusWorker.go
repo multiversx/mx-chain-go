@@ -346,7 +346,7 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 		log.Info(fmt.Sprintf("\n%s++++++++++++++++++++ ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN ++++++++++++++++++++\n\n",
 			sposWorker.Cns.getFormattedTime(), sposWorker.Header.Nonce))
 	} else {
-		log.Info(fmt.Sprintf("\n%s++++++++++++++++++++ ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN ++++++++++++++++++++\n\n",
+		log.Info(fmt.Sprintf("\n%sxxxxxxxxxxxxxxxxxxxx ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN xxxxxxxxxxxxxxxxxxxx\n\n",
 			sposWorker.Cns.getFormattedTime(), sposWorker.Header.Nonce))
 	}
 
@@ -1523,6 +1523,9 @@ func (cns *Consensus) CheckStartRoundConsensus() bool {
 
 // CheckBlockConsensus method checks if the consensus in the <BLOCK> subround is achieved
 func (cns *Consensus) CheckBlockConsensus() bool {
+	cns.mut.Lock()
+	defer cns.mut.Unlock()
+
 	if cns.Status(SrBlock) == SsFinished {
 		return true
 	}
@@ -1538,6 +1541,9 @@ func (cns *Consensus) CheckBlockConsensus() bool {
 
 // CheckCommitmentHashConsensus method checks if the consensus in the <COMMITMENT_HASH> subround is achieved
 func (cns *Consensus) CheckCommitmentHashConsensus() bool {
+	cns.mut.Lock()
+	defer cns.mut.Unlock()
+
 	if cns.Status(SrCommitmentHash) == SsFinished {
 		return true
 	}
@@ -1565,6 +1571,9 @@ func (cns *Consensus) CheckCommitmentHashConsensus() bool {
 
 // CheckBitmapConsensus method checks if the consensus in the <BITMAP> subround is achieved
 func (cns *Consensus) CheckBitmapConsensus() bool {
+	cns.mut.Lock()
+	defer cns.mut.Unlock()
+
 	if cns.Status(SrBitmap) == SsFinished {
 		return true
 	}
@@ -1580,6 +1589,9 @@ func (cns *Consensus) CheckBitmapConsensus() bool {
 
 // CheckCommitmentConsensus method checks if the consensus in the <COMMITMENT> subround is achieved
 func (cns *Consensus) CheckCommitmentConsensus() bool {
+	cns.mut.Lock()
+	defer cns.mut.Unlock()
+
 	if cns.Status(SrCommitment) == SsFinished {
 		return true
 	}
@@ -1595,6 +1607,9 @@ func (cns *Consensus) CheckCommitmentConsensus() bool {
 
 // CheckSignatureConsensus method checks if the consensus in the <SIGNATURE> subround is achieved
 func (cns *Consensus) CheckSignatureConsensus() bool {
+	cns.mut.Lock()
+	defer cns.mut.Unlock()
+
 	if cns.Status(SrSignature) == SsFinished {
 		return true
 	}
