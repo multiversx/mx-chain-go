@@ -102,6 +102,12 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 		return nil, err
 	}
 
+	defer func() {
+		if err != nil {
+			_ = hostP2P.Close()
+		}
+	}()
+
 	adrTable := fmt.Sprintf("Node: %v has the following addr table: \n", hostP2P.ID().Pretty())
 	for i, addr := range hostP2P.Addrs() {
 		adrTable = adrTable + fmt.Sprintf("%d: %s/ipfs/%s\n", i, addr, hostP2P.ID().Pretty())
@@ -476,10 +482,10 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 			return true
 		}
 
-		//payload == hash
-		obj := t.ResolveRequest(mes.GetData())
+		//resolved payload
+		buff := t.ResolveRequest(mes.GetData())
 
-		if obj == nil {
+		if buff == nil {
 			//object not found
 			return true
 		}
@@ -489,13 +495,13 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 		has := false
 
 		nm.mutGossipCache.Lock()
-		has = nm.gossipCache.Has(string(obj))
+		has = nm.gossipCache.Has(string(buff))
 		nm.mutGossipCache.Unlock()
 
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,
 			//then it shall broadcast it
-			err := t.Broadcast(obj)
+			err := t.BroadcastBuff(buff)
 			if err != nil {
 				log.Error(err.Error())
 			}
