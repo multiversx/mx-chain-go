@@ -68,16 +68,16 @@ func (s2 *structNetTest2) ID() string {
 var testNetMessengerMaxWaitResponse = time.Duration(time.Second * 5)
 var testNetMessengerWaitResponseUnreceivedMsg = time.Duration(time.Second)
 
-var startingPortAutogen = int32(4000)
-
 var pubsubAnnounceDuration = time.Second * 2
 
-func createNetMessenger(t *testing.T, nConns int) (*p2p.NetMessenger, error) {
-	return createNetMessengerPubSub(t, nConns, p2p.FloodSub)
+var startingPort = 4000
+
+func createNetMessenger(t *testing.T, port int, nConns int) (*p2p.NetMessenger, error) {
+	return createNetMessengerPubSub(t, port, nConns, p2p.FloodSub)
 }
 
-func createNetMessengerPubSub(t *testing.T, nConns int, strategy p2p.PubSubStrategy) (*p2p.NetMessenger, error) {
-	cp, err := p2p.NewConnectParamsFromPort(getNextFreePort())
+func createNetMessengerPubSub(t *testing.T, port int, nConns int, strategy p2p.PubSubStrategy) (*p2p.NetMessenger, error) {
+	cp, err := p2p.NewConnectParamsFromPort(port)
 	assert.Nil(t, err)
 
 	return p2p.NewNetMessenger(context.Background(), &mock.MarshalizerMock{}, &mock.HasherMock{}, cp, nConns, strategy)
@@ -133,12 +133,6 @@ func closeAllNodes(nodes []p2p.Messenger) {
 	}
 }
 
-func getNextFreePort() int {
-	newPort := atomic.AddInt32(&startingPortAutogen, 1)
-
-	return int(newPort)
-}
-
 func getConnectableAddress(addresses []string) string {
 	for _, addr := range addresses {
 		if strings.Contains(addr, "127.0.0.1") {
@@ -154,7 +148,7 @@ func createTestNetwork(t *testing.T) ([]p2p.Messenger, error) {
 
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
-		node, err := createNetMessenger(t, 10)
+		node, err := createNetMessenger(t, startingPort+i, 10)
 		assert.Nil(t, err)
 
 		nodes = append(nodes, node)
@@ -203,18 +197,16 @@ func TestNetMessenger_RecreationSameNodeShouldWork(t *testing.T) {
 
 	nodes := make([]p2p.Messenger, 0)
 
-	port := getNextFreePort()
-	cp, err := p2p.NewConnectParamsFromPort(port)
-	assert.Nil(t, err)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
 
-	node, _ := p2p.NewNetMessenger(context.Background(), &mock.MarshalizerMock{}, &mock.HasherMock{}, cp, 10, p2p.FloodSub)
+	node, _ := createNetMessenger(t, startingPort, 10)
 	nodes = append(nodes, node)
 
-	node, err = p2p.NewNetMessenger(context.Background(), &mock.MarshalizerMock{}, &mock.HasherMock{}, cp, 10, p2p.FloodSub)
+	node, err := createNetMessenger(t, startingPort, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
-
-	defer closeAllNodes(nodes)
 
 	if nodes[0].ID().Pretty() != nodes[1].ID().Pretty() {
 		t.Fatal("ID mismatch")
@@ -224,11 +216,13 @@ func TestNetMessenger_RecreationSameNodeShouldWork(t *testing.T) {
 func TestNetMessenger_SendToSelfShouldWork(t *testing.T) {
 	nodes := make([]p2p.Messenger, 0)
 
-	node, err := createNetMessenger(t, 10)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
+
+	node, err := createNetMessenger(t, startingPort, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
-
-	defer closeAllNodes(nodes)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -262,19 +256,21 @@ func TestNetMessenger_NodesPingPongOn2TopicsShouldWork(t *testing.T) {
 
 	nodes := make([]p2p.Messenger, 0)
 
-	node, err := createNetMessenger(t, 10)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
+
+	node, err := createNetMessenger(t, startingPort, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
 
-	node, err = createNetMessenger(t, 10)
+	node, err = createNetMessenger(t, startingPort+1, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
 
 	connectGraph := make(map[int][]int)
 	connectGraph[0] = []int{1}
 	connectGraph[1] = []int{0}
-
-	defer closeAllNodes(nodes)
 
 	nodes[0].ConnectToAddresses(context.Background(), []string{getConnectableAddress(nodes[1].Addresses())})
 
@@ -359,17 +355,19 @@ func TestNetMessenger_SimpleBroadcast5nodesInlineShouldWork(t *testing.T) {
 
 	nodes := make([]p2p.Messenger, 0)
 
+	defer func() {
+		closeAllNodes(nodes)
+	}()
+
 	//create 5 nodes
 	for i := 0; i < 5; i++ {
-		node, err := createNetMessenger(t, 10)
+		node, err := createNetMessenger(t, startingPort+i, 10)
 		assert.Nil(t, err)
 
 		nodes = append(nodes, node)
 
 		fmt.Printf("Node %v is %s\n", i+1, node.Addresses()[0])
 	}
-
-	defer closeAllNodes(nodes)
 
 	//connect one with each other daisy-chain
 	for i := 1; i < 5; i++ {
@@ -431,7 +429,9 @@ func TestNetMessenger_SimpleBroadcast5nodesInlineShouldWork(t *testing.T) {
 func TestNetMessenger_SimpleBroadcast5nodesBetterConnectedShouldWork(t *testing.T) {
 	var nodes []p2p.Messenger
 
-	defer closeAllNodes(nodes)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
 
 	nodes, err := createTestNetwork(t)
 	if err != nil {
@@ -479,11 +479,13 @@ func TestNetMessenger_SimpleBroadcast5nodesBetterConnectedShouldWork(t *testing.
 func TestNetMessenger_SendingNilShouldErr(t *testing.T) {
 	nodes := make([]p2p.Messenger, 0)
 
-	node, err := createNetMessenger(t, 10)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
+
+	node, err := createNetMessenger(t, startingPort, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
-
-	defer closeAllNodes(nodes)
 
 	err = node.AddTopic(p2p.NewTopic("test", &testNetStringCreator{}, &mock.MarshalizerMock{}))
 	assert.Nil(t, err)
@@ -492,7 +494,7 @@ func TestNetMessenger_SendingNilShouldErr(t *testing.T) {
 }
 
 func TestNetMessenger_CreateNodeWithNilMarshalizerShouldErr(t *testing.T) {
-	cp, err := p2p.NewConnectParamsFromPort(getNextFreePort())
+	cp, err := p2p.NewConnectParamsFromPort(startingPort)
 	assert.Nil(t, err)
 
 	_, err = p2p.NewNetMessenger(context.Background(), nil, &mock.HasherMock{}, cp, 10, p2p.FloodSub)
@@ -500,7 +502,7 @@ func TestNetMessenger_CreateNodeWithNilMarshalizerShouldErr(t *testing.T) {
 }
 
 func TestNetMessenger_CreateNodeWithNilHasherShouldErr(t *testing.T) {
-	cp, err := p2p.NewConnectParamsFromPort(getNextFreePort())
+	cp, err := p2p.NewConnectParamsFromPort(startingPort)
 	assert.Nil(t, err)
 
 	_, err = p2p.NewNetMessenger(context.Background(), &mock.MarshalizerMock{}, nil, cp, 10, p2p.FloodSub)
@@ -517,15 +519,17 @@ func TestNetMessenger_BadObjectToUnmarshalShouldFilteredOut(t *testing.T) {
 
 	nodes := make([]p2p.Messenger, 0)
 
-	node, err := createNetMessenger(t, 10)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
+
+	node, err := createNetMessenger(t, startingPort, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
 
-	node, err = createNetMessenger(t, 10)
+	node, err = createNetMessenger(t, startingPort+1, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
-
-	defer closeAllNodes(nodes)
 
 	//connect nodes
 	nodes[0].ConnectToAddresses(context.Background(), []string{getConnectableAddress(nodes[1].Addresses())})
@@ -577,15 +581,17 @@ func TestNetMessenger_BroadcastOnInexistentTopicShouldFilteredOut(t *testing.T) 
 
 	nodes := make([]p2p.Messenger, 0)
 
-	node, err := createNetMessenger(t, 10)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
+
+	node, err := createNetMessenger(t, startingPort, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
 
-	node, err = createNetMessenger(t, 10)
+	node, err = createNetMessenger(t, startingPort+1, 10)
 	assert.Nil(t, err)
 	nodes = append(nodes, node)
-
-	defer closeAllNodes(nodes)
 
 	//connect nodes
 	nodes[0].ConnectToAddresses(context.Background(), []string{getConnectableAddress(nodes[1].Addresses())})
@@ -634,7 +640,9 @@ func TestNetMessenger_BroadcastOnInexistentTopicShouldFilteredOut(t *testing.T) 
 func TestNetMessenger_BroadcastWithValidatorsShouldWork(t *testing.T) {
 	var nodes []p2p.Messenger
 
-	defer closeAllNodes(nodes)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
 
 	nodes, err := createTestNetwork(t)
 	if err != nil {
@@ -735,7 +743,9 @@ func TestNetMessenger_BroadcastWithValidatorsShouldWork(t *testing.T) {
 func TestNetMessenger_BroadcastToGossipSubShouldWork(t *testing.T) {
 	var nodes []p2p.Messenger
 
-	defer closeAllNodes(nodes)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
 
 	nodes, err := createTestNetwork(t)
 	if err != nil {
@@ -795,14 +805,16 @@ func TestNetMessenger_BroadcastToGossipSubShouldWork(t *testing.T) {
 func TestNetMessenger_BroadcastToUnknownSubShouldErr(t *testing.T) {
 	fmt.Println()
 
-	_, err := createNetMessengerPubSub(t, 10, 500)
+	_, err := createNetMessengerPubSub(t, startingPort, 10, 500)
 	assert.NotNil(t, err)
 }
 
 func TestNetMessenger_RequestResolveTestCfg1ShouldWork(t *testing.T) {
 	var nodes []p2p.Messenger
 
-	defer closeAllNodes(nodes)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
 
 	nodes, err := createTestNetwork(t)
 	if err != nil {
@@ -871,7 +883,9 @@ func TestNetMessenger_RequestResolveTestCfg1ShouldWork(t *testing.T) {
 func TestNetMessenger_RequestResolveTestCfg2ShouldWork(t *testing.T) {
 	var nodes []p2p.Messenger
 
-	defer closeAllNodes(nodes)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
 
 	nodes, err := createTestNetwork(t)
 	if err != nil {
@@ -943,7 +957,9 @@ func TestNetMessenger_RequestResolveTestCfg2ShouldWork(t *testing.T) {
 func TestNetMessenger_RequestResolveTestSelfShouldWork(t *testing.T) {
 	var nodes []p2p.Messenger
 
-	defer closeAllNodes(nodes)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
 
 	nodes, err := createTestNetwork(t)
 	if err != nil {
@@ -1016,7 +1032,9 @@ func TestNetMessenger_RequestResolveTestSelfShouldWork(t *testing.T) {
 func TestNetMessenger_RequestResolveResendingShouldWork(t *testing.T) {
 	var nodes []p2p.Messenger
 
-	defer closeAllNodes(nodes)
+	defer func() {
+		closeAllNodes(nodes)
+	}()
 
 	nodes, err := createTestNetwork(t)
 	if err != nil {

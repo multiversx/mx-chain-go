@@ -102,6 +102,12 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 		return nil, err
 	}
 
+	defer func() {
+		if err != nil {
+			_ = hostP2P.Close()
+		}
+	}()
+
 	adrTable := fmt.Sprintf("Node: %v has the following addr table: \n", hostP2P.ID().Pretty())
 	for i, addr := range hostP2P.Addrs() {
 		adrTable = adrTable + fmt.Sprintf("%d: %s/ipfs/%s\n", i, addr, hostP2P.ID().Pretty())
