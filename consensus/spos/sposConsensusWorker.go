@@ -263,14 +263,13 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 		msg = " (MY TURN)"
 	}
 
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime()+
-		"Step 0: Preparing for this round with leader %s%s", getPrettyByteArray([]byte(leader)), msg))
+	log.Info(fmt.Sprintf("%sStep 0: Preparing for this round with leader %s%s",
+		sposWorker.Cns.getFormattedTime(), getPrettyByteArray([]byte(leader)), msg))
 
 	// TODO: Unccomment ShouldSync check
 	//if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-	//	log.Info(fmt.Sprintf(sposWorker.getFormattedTime()+
-	//		"Canceled round %d in subround %s, not synchronized",
-	//		sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
+	//	log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, not synchronized",
+	//		sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
 	//	sposWorker.Cns.Chr.SetSelfSubround(-1)
 	//	return false
 	//}
@@ -344,13 +343,11 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 	}
 
 	if sposWorker.Cns.IsNodeLeaderInCurrentRound(sposWorker.Cns.SelfPubKey()) {
-		log.Info(fmt.Sprintf(sposWorker.getFormattedTime()+
-			"++++++++++++++++++++ ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN ++++++++++++++++++++",
-			sposWorker.Header.Nonce))
+		log.Info(fmt.Sprintf("%s++++++++++++++++++++ ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN ++++++++++++++++++++",
+			sposWorker.Cns.getFormattedTime(), sposWorker.Header.Nonce))
 	} else {
-		log.Info(fmt.Sprintf(sposWorker.getFormattedTime()+
-			"++++++++++++++++++++ ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN ++++++++++++++++++++",
-			sposWorker.Header.Nonce))
+		log.Info(fmt.Sprintf("%s++++++++++++++++++++ ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN ++++++++++++++++++++",
+			sposWorker.Cns.getFormattedTime(), sposWorker.Header.Nonce))
 	}
 
 	sposWorker.Rounds++          // only for statistic
@@ -432,8 +429,7 @@ func (sposWorker *SPOSConsensusWorker) SendBlockBody() bool {
 		return false
 	}
 
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime() +
-		"Step 1: Sending block body"))
+	log.Info(fmt.Sprintf("%sStep 1: Sending block body", sposWorker.Cns.getFormattedTime()))
 
 	sposWorker.BlockBody = blk
 
@@ -500,8 +496,8 @@ func (sposWorker *SPOSConsensusWorker) SendBlockHeader() bool {
 		return false
 	}
 
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime()+
-		"Step 1: Sending block header with nonce %d and hash %s", hdr.Nonce, getPrettyByteArray(hdrHash)))
+	log.Info(fmt.Sprintf("%sStep 1: Sending block header with nonce %d and hash %s",
+		sposWorker.Cns.getFormattedTime(), hdr.Nonce, getPrettyByteArray(hdrHash)))
 
 	sposWorker.Header = hdr
 	sposWorker.Cns.Data = hdrHash
@@ -592,8 +588,7 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
 		return false
 	}
 
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime() +
-		"Step 2: Sending commitment hash"))
+	log.Info(fmt.Sprintf("%sStep 2: Sending commitment hash", sposWorker.Cns.getFormattedTime()))
 
 	err = sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrCommitmentHash, true)
 
@@ -670,8 +665,7 @@ func (sposWorker *SPOSConsensusWorker) DoBitmapJob() bool {
 		return false
 	}
 
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime() +
-		"Step 3: Sending bitmap"))
+	log.Info(fmt.Sprintf("%sStep 3: Sending bitmap", sposWorker.Cns.getFormattedTime()))
 
 	for i := 0; i < len(sposWorker.Cns.ConsensusGroup()); i++ {
 		isJobCommHashJobDone, err := sposWorker.Cns.GetJobDone(sposWorker.Cns.ConsensusGroup()[i], SrCommitmentHash)
@@ -750,8 +744,7 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentJob() bool {
 		return false
 	}
 
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime() +
-		"Step 4: Sending commitment"))
+	log.Info(fmt.Sprintf("%sStep 4: Sending commitment", sposWorker.Cns.getFormattedTime()))
 
 	err = sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrCommitment, true)
 
@@ -821,8 +814,7 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 		return false
 	}
 
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime() +
-		"Step 5: Sending signature"))
+	log.Info(fmt.Sprintf("%sStep 5: Sending signature", sposWorker.Cns.getFormattedTime()))
 
 	err = sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrSignature, true)
 
@@ -918,51 +910,45 @@ func (sposWorker *SPOSConsensusWorker) broadcastHeader() error {
 // ExtendBlock method put this subround in the extended mode and print some messages
 func (sposWorker *SPOSConsensusWorker) ExtendBlock() {
 	sposWorker.Cns.SetStatus(SrBlock, SsExtended)
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime() +
-		"Step 1: Extended the (BLOCK) subround"))
+	log.Info(fmt.Sprintf("%sStep 1: Extended the (BLOCK) subround", sposWorker.Cns.getFormattedTime()))
 }
 
 // ExtendCommitmentHash method put this subround in the extended mode and print some messages
 func (sposWorker *SPOSConsensusWorker) ExtendCommitmentHash() {
 	sposWorker.Cns.SetStatus(SrCommitmentHash, SsExtended)
 	if sposWorker.Cns.ComputeSize(SrCommitmentHash) < sposWorker.Cns.Threshold(SrCommitmentHash) {
-		log.Info(fmt.Sprintf(sposWorker.getFormattedTime()+
-			"Step 2: Extended the (COMMITMENT_HASH) subround. Got only %d from %d commitment hashes which are not enough",
-			sposWorker.Cns.ComputeSize(SrCommitmentHash), len(sposWorker.Cns.ConsensusGroup())))
+		log.Info(fmt.Sprintf("%sStep 2: Extended the (COMMITMENT_HASH) subround. Got only %d from %d commitment hashes which are not enough",
+			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.ComputeSize(SrCommitmentHash), len(sposWorker.Cns.ConsensusGroup())))
 	} else {
-		log.Info(fmt.Sprintf(sposWorker.getFormattedTime() +
-			"Step 2: Extended the (COMMITMENT_HASH) subround"))
+		log.Info(fmt.Sprintf("%sStep 2: Extended the (COMMITMENT_HASH) subround", sposWorker.Cns.getFormattedTime()))
 	}
 }
 
 // ExtendBitmap method put this subround in the extended mode and print some messages
 func (sposWorker *SPOSConsensusWorker) ExtendBitmap() {
 	sposWorker.Cns.SetStatus(SrBitmap, SsExtended)
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime() +
-		"Step 3: Extended the (BITMAP) subround"))
+	log.Info(fmt.Sprintf("%sStep 3: Extended the (BITMAP) subround", sposWorker.Cns.getFormattedTime()))
 }
 
 // ExtendCommitment method put this subround in the extended mode and print some messages
 func (sposWorker *SPOSConsensusWorker) ExtendCommitment() {
 	sposWorker.Cns.SetStatus(SrCommitment, SsExtended)
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime()+
-		"Step 4: Extended the (COMMITMENT) subround. Got only %d from %d commitments which are not enough",
-		sposWorker.Cns.ComputeSize(SrCommitment), len(sposWorker.Cns.ConsensusGroup())))
+	log.Info(fmt.Sprintf("%sStep 4: Extended the (COMMITMENT) subround. Got only %d from %d commitments which are not enough",
+		sposWorker.Cns.getFormattedTime(), sposWorker.Cns.ComputeSize(SrCommitment), len(sposWorker.Cns.ConsensusGroup())))
 }
 
 // ExtendSignature method put this subround in the extended mode and print some messages
 func (sposWorker *SPOSConsensusWorker) ExtendSignature() {
 	sposWorker.Cns.SetStatus(SrSignature, SsExtended)
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime()+
-		"Step 5: Extended the (SIGNATURE) subround. Got only %d from %d sigantures which are not enough",
-		sposWorker.Cns.ComputeSize(SrSignature), len(sposWorker.Cns.ConsensusGroup())))
+	log.Info(fmt.Sprintf("%sStep 5: Extended the (SIGNATURE) subround. Got only %d from %d sigantures which are not enough",
+		sposWorker.Cns.getFormattedTime(), sposWorker.Cns.ComputeSize(SrSignature), len(sposWorker.Cns.ConsensusGroup())))
 }
 
 // ExtendEndRound method just print some messages as no extend will be permited, because a new round
 // will be start
 func (sposWorker *SPOSConsensusWorker) ExtendEndRound() {
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime() +
-		"++++++++++++++++++++ THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN ++++++++++++++++++++"))
+	log.Info(fmt.Sprintf("%s++++++++++++++++++++ THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN ++++++++++++++++++++",
+		sposWorker.Cns.getFormattedTime()))
 	sposWorker.Rounds++ // only for statistic
 }
 
@@ -1071,8 +1057,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBlockBody(cnsDta *ConsensusData) 
 		return false
 	}
 
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime() +
-		"Step 1: Received block body"))
+	log.Info(fmt.Sprintf("%sStep 1: Received block body", sposWorker.Cns.getFormattedTime()))
 
 	sposWorker.BlockBody = sposWorker.DecodeBlockBody(cnsDta.SubRoundData)
 
@@ -1144,8 +1129,8 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBlockHeader(cnsDta *ConsensusData
 		return false
 	}
 
-	log.Info(fmt.Sprintf(sposWorker.getFormattedTime()+
-		"Step 1: Received block header with nonce %d and hash %s", hdr.Nonce, getPrettyByteArray(cnsDta.BlockHeaderHash)))
+	log.Info(fmt.Sprintf("%sStep 1: Received block header with nonce %d and hash %s",
+		sposWorker.Cns.getFormattedTime(), hdr.Nonce, getPrettyByteArray(cnsDta.BlockHeaderHash)))
 
 	sposWorker.Header = hdr
 	sposWorker.Cns.Data = cnsDta.BlockHeaderHash
@@ -1650,62 +1635,53 @@ func (cns *Consensus) GetSubroundName(subroundId chronology.SubroundId) string {
 // PrintBlockCM method prints the <BLOCK> consensus messages
 func (cns *Consensus) PrintBlockCM() {
 	if !cns.IsNodeLeaderInCurrentRound(cns.selfPubKey) {
-		log.Info(fmt.Sprintf(cns.getFormattedTime() +
-			"Step 1: Synchronized block"))
+		log.Info(fmt.Sprintf("%sStep 1: Synchronized block", cns.getFormattedTime()))
 	}
-	log.Info(fmt.Sprintf(cns.getFormattedTime() +
-		"Step 1: Subround (BLOCK) has been finished"))
+	log.Info(fmt.Sprintf("%sStep 1: Subround (BLOCK) has been finished", cns.getFormattedTime()))
 }
 
 // PrintCommitmentHashCM method prints the <COMMITMENT_HASH> consensus messages
 func (cns *Consensus) PrintCommitmentHashCM() {
 	n := cns.ComputeSize(SrCommitmentHash)
 	if n == len(cns.consensusGroup) {
-		log.Info(fmt.Sprintf(cns.getFormattedTime()+
-			"Step 2: Received all (%d from %d) commitment hashes", n, len(cns.consensusGroup)))
+		log.Info(fmt.Sprintf("%sStep 2: Received all (%d from %d) commitment hashes",
+			cns.getFormattedTime(), n, len(cns.consensusGroup)))
 	} else {
-		log.Info(fmt.Sprintf(cns.getFormattedTime()+
-			"Step 2: Received %d from %d commitment hashes, which are enough", n, len(cns.consensusGroup)))
+		log.Info(fmt.Sprintf("%sStep 2: Received %d from %d commitment hashes, which are enough",
+			cns.getFormattedTime(), n, len(cns.consensusGroup)))
 	}
-	log.Info(fmt.Sprintf(cns.getFormattedTime() +
-		"Step 2: Subround (COMMITMENT_HASH) has been finished"))
+	log.Info(fmt.Sprintf("%sStep 2: Subround (COMMITMENT_HASH) has been finished", cns.getFormattedTime()))
 }
 
 // PrintBitmapCM method prints the <BITMAP> consensus messages
 func (cns *Consensus) PrintBitmapCM() {
 	if !cns.IsNodeLeaderInCurrentRound(cns.selfPubKey) {
-		msg := fmt.Sprintf(fmt.Sprintf(cns.getFormattedTime()+
-			"Step 3: Received bitmap from leader, matching with my own, and it got %d from %d commitment hashes, which are enough",
-			cns.ComputeSize(SrBitmap), len(cns.consensusGroup)))
+		msg := fmt.Sprintf("%sStep 3: Received bitmap from leader, matching with my own, and it got %d from %d commitment hashes, which are enough",
+			cns.getFormattedTime(), cns.ComputeSize(SrBitmap), len(cns.consensusGroup))
 
 		if cns.IsValidatorInBitmap(cns.selfPubKey) {
-			msg = fmt.Sprintf(msg + ", AND I WAS selected in this bitmap")
+			msg = fmt.Sprintf("%s, AND I WAS selected in this bitmap", msg)
 		} else {
-			msg = fmt.Sprintf(msg + ", BUT I WAS NOT selected in this bitmap")
+			msg = fmt.Sprintf("%s, BUT I WAS NOT selected in this bitmap", msg)
 		}
 
 		log.Info(msg)
 	}
-	log.Info(fmt.Sprintf(cns.getFormattedTime() +
-		"Step 3: Subround (BITMAP) has been finished"))
+	log.Info(fmt.Sprintf("%sStep 3: Subround (BITMAP) has been finished", cns.getFormattedTime()))
 }
 
 // PrintCommitmentCM method prints the <COMMITMENT> consensus messages
 func (cns *Consensus) PrintCommitmentCM() {
-	log.Info(fmt.Sprintf(cns.getFormattedTime()+
-		"Step 4: Received %d from %d commitments, which are matching with bitmap and are enough",
-		cns.ComputeSize(SrCommitment), len(cns.consensusGroup)))
-	log.Info(fmt.Sprintf(cns.getFormattedTime() +
-		"Step 4: Subround (COMMITMENT) has been finished"))
+	log.Info(fmt.Sprintf("%sStep 4: Received %d from %d commitments, which are matching with bitmap and are enough",
+		cns.getFormattedTime(), cns.ComputeSize(SrCommitment), len(cns.consensusGroup)))
+	log.Info(fmt.Sprintf("%sStep 4: Subround (COMMITMENT) has been finished", cns.getFormattedTime()))
 }
 
 // PrintSignatureCM method prints the <SIGNATURE> consensus messages
 func (cns *Consensus) PrintSignatureCM() {
-	log.Info(fmt.Sprintf(cns.getFormattedTime()+
-		"Step 5: Received %d from %d signatures, which are matching with bitmap and are enough",
-		cns.ComputeSize(SrSignature), len(cns.consensusGroup)))
-	log.Info(fmt.Sprintf(cns.getFormattedTime() +
-		"Step 5: Subround (SIGNATURE) has been finished"))
+	log.Info(fmt.Sprintf("%sStep 5: Received %d from %d signatures, which are matching with bitmap and are enough",
+		cns.getFormattedTime(), cns.ComputeSize(SrSignature), len(cns.consensusGroup)))
+	log.Info(fmt.Sprintf("%sStep 5: Subround (SIGNATURE) has been finished", cns.getFormattedTime()))
 }
 
 func (sposWorker *SPOSConsensusWorker) getHeaderHash(hdr *block.Header) []byte {
@@ -1717,10 +1693,6 @@ func (sposWorker *SPOSConsensusWorker) getHeaderHash(hdr *block.Header) []byte {
 	}
 
 	return sposWorker.hasher.Compute(string(headerMarsh))
-}
-
-func (sposWorker *SPOSConsensusWorker) getFormattedTime() string {
-	return sposWorker.Cns.Chr.SyncTime().FormattedCurrentTime(sposWorker.Cns.Chr.ClockOffset())
 }
 
 func getPrettyByteArray(array []byte) string {
