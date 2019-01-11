@@ -241,20 +241,20 @@ func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology 
 	return chr
 }
 
-func (n *Node) getPrettyPublicKey() string {
-	pk, _ := n.publicKey.ToByteArray()
-	base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
-	base64.StdEncoding.Encode(base64pk, pk)
-	return string(base64pk)
-}
-
 // createRoundConsensus method creates a RoundConsensus object
 func (n *Node) createRoundConsensus() *spos.RoundConsensus {
+
+	selfId, err := n.publicKey.ToByteArray()
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
 
 	nodes := n.initialNodesPubkeys[0:n.consensusGroupSize]
 	rndc := spos.NewRoundConsensus(
 		nodes,
-		n.getPrettyPublicKey())
+		string(selfId))
 
 	rndc.ResetRoundState()
 
@@ -546,20 +546,37 @@ func (n *Node) createGenesisBlock() (*block.Header, error) {
 func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 	// TODO: this method and its call should be removed after initial testing of aur first version of testnet
 	oldNonce := uint64(0)
+	prevHeaderHash := []byte("")
+	recheckPeriod := sposWrk.Cns.Chr.Round().TimeDuration() * 5 / 100
 
 	for {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(recheckPeriod)
 
-		currentBlock := sposWrk.BlockChain.CurrentBlockHeader
-		if currentBlock == nil {
+		if sposWrk.BlockChain.CurrentBlockHeader == nil {
 			continue
 		}
 
-		if currentBlock.Nonce > oldNonce {
-			oldNonce = currentBlock.Nonce
-			spew.Dump(currentBlock)
-			fmt.Printf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n",
-				sposWrk.Rounds, sposWrk.RoundsWithBlock, float64(sposWrk.RoundsWithBlock)*100/float64(sposWrk.Rounds))
+		if sposWrk.BlockChain.CurrentBlockHeader.Nonce > oldNonce {
+			header := *sposWrk.BlockChain.CurrentBlockHeader
+
+			header.Signature = nil
+
+			headerMarsh, err := n.marshalizer.Marshal(header)
+
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+
+			headerHash := n.hasher.Compute(string(headerMarsh))
+
+			log.Info(fmt.Sprintf("Block with nounce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, getPrettyByteArray(headerHash), getPrettyByteArray(prevHeaderHash)))
+
+			oldNonce = header.Nonce
+			prevHeaderHash = headerHash
+			spew.Dump(header)
+			log.Info(fmt.Sprintf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n",
+				sposWrk.Rounds, sposWrk.RoundsWithBlock, float64(sposWrk.RoundsWithBlock)*100/float64(sposWrk.Rounds)))
 		}
 	}
 }
@@ -577,4 +594,10 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
 	}
+}
+
+func getPrettyByteArray(array []byte) string {
+	base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(array)))
+	base64.StdEncoding.Encode(base64pk, array)
+	return string(base64pk)
 }

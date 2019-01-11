@@ -69,7 +69,12 @@ func NewBlockProcessor(
 // if transaction is not valid or not found it will return error.
 // If all ok it will commit the block and state.
 func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
-	err := bp.ProcessBlock(blockChain, header, body)
+	err := bp.validateHeader(blockChain, header)
+	if err != nil {
+		return err
+	}
+
+	err = bp.ProcessBlock(blockChain, header, body)
 
 	defer func() {
 		if err != nil {
@@ -81,7 +86,6 @@ func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, he
 		return err
 	}
 
-	// TODO: Check app state root hash
 	if !bp.VerifyStateRoot(bp.accounts.RootHash()) {
 		err = process.ErrRootStateMissmatch
 		return err
@@ -106,7 +110,7 @@ func (bp *blockProcessor) RevertAccountState() {
 
 // ProcessBlock processes a block. It returns nil if all ok or the speciffic error
 func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
-	err := bp.validateBlock(blockChain, header, body)
+	err := bp.validateBlockBody(body)
 	if err != nil {
 		return err
 	}
@@ -201,21 +205,12 @@ func (bp *blockProcessor) GetRootHash() []byte {
 	return bp.accounts.RootHash()
 }
 
-func (bp *blockProcessor) validateBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, header *block.Header) error {
 	headerWrapper := HeaderWrapper{
 		Header: header,
 	}
 
-	txbWrapper := TxBlockBodyWrapper{
-		TxBlockBody: body,
-	}
-
 	err := headerWrapper.IntegrityAndValidity(bp.shardCoordinator)
-	if err != nil {
-		return err
-	}
-
-	err = txbWrapper.IntegrityAndValidity(bp.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -236,6 +231,19 @@ func (bp *blockProcessor) validateBlock(blockChain *blockchain.BlockChain, heade
 
 	if headerWrapper.VerifySig() != nil {
 		return process.ErrInvalidBlockSignature
+	}
+
+	return nil
+}
+
+func (bp *blockProcessor) validateBlockBody(body *block.TxBlockBody) error {
+	txbWrapper := TxBlockBodyWrapper{
+		TxBlockBody: body,
+	}
+
+	err := txbWrapper.IntegrityAndValidity(bp.shardCoordinator)
+	if err != nil {
+		return err
 	}
 
 	return nil

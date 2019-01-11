@@ -109,7 +109,7 @@ func (chr *Chronology) StartRound() {
 		sr := chr.LoadSubroundHandler(subRound)
 		if sr != nil {
 			if chr.Round().Index() >= 0 {
-				if sr.DoWork(chr.computeSubRoundId, chr.isCancelled) {
+				if sr.DoWork(chr.ComputeSubRoundId, chr.IsCancelled) {
 					chr.SetSelfSubround(sr.Next())
 				}
 			}
@@ -128,9 +128,10 @@ func (chr *Chronology) updateRound() SubroundId {
 
 	if oldRoundIndex != chr.round.index {
 		log.Info(fmt.Sprintf(
-			"\n%s############################## ROUND %d BEGINS ##############################\n",
+			"\n%s############################## ROUND %d BEGINS (%d) ##############################\n\n",
 			chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()),
-			chr.round.index))
+			chr.round.index,
+			chr.SyncTime().CurrentTime(chr.ClockOffset()).Unix()))
 		chr.initRound()
 	}
 
@@ -138,7 +139,7 @@ func (chr *Chronology) updateRound() SubroundId {
 		sr := chr.LoadSubroundHandler(chr.timeSubround)
 		if sr != nil {
 			log.Info(fmt.Sprintf(
-				"\n%s.................... SUBROUND %s BEGINS ....................\n",
+				"\n%s.................... SUBROUND %s BEGINS ....................\n\n",
 				chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()),
 				sr.Name(),
 			))
@@ -227,10 +228,12 @@ func (chr *Chronology) SubroundHandlers() []SubroundHandler {
 	return chr.subroundHandlers
 }
 
-func (chr *Chronology) computeSubRoundId() SubroundId {
+// ComputeSubRoundId gets the current subround id from the current time
+func (chr *Chronology) ComputeSubRoundId() SubroundId {
 	return chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
 }
 
-func (chr *Chronology) isCancelled() bool {
+// IsCancelled checks if this round is canceled
+func (chr *Chronology) IsCancelled() bool {
 	return chr.SelfSubround() == SubroundId(-1)
 }

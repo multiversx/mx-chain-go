@@ -134,6 +134,8 @@ func InitConsensus() *spos.Consensus {
 		genesisTime,
 		ntp.NewSyncTime(RoundTimeDuration, nil))
 
+	chr.SetSelfSubround(0)
+
 	cns := spos.NewConsensus(
 		nil,
 		rCns,
