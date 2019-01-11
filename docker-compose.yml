@@ -5,7 +5,7 @@ services:
     build:
       context: docker/elrond
 
-    command: bash -c "go run cmd/bootnode/main.go"
+    command: bash -c "go run cmd/bootnode/main.go -port 4000 -max-allowed-peers 4 -private-key \"ZBis8aK5I66x1hwD+fE8sIw2nwQR5EBlTM8EiAOLZwE=\""
     ports:
       - 8080:8080
   filebeat:

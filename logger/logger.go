@@ -20,7 +20,7 @@ const (
 )
 
 const (
-	defaultLogPath         = "../logs"
+	defaultLogPath         = "logs"
 	defaultStackTraceDepth = 2
 )
 
@@ -52,14 +52,14 @@ func NewElrondLogger(opts ...Option) *Logger {
 	}
 
 	if el.file != nil {
-		mw := io.MultiWriter(os.Stdout, el.file)
-		el.logger.SetOutput(mw)
+		el.logger.SetOutput(el.file)
+		el.logger.AddHook(&printerHook{Writer: os.Stdout})
 	} else {
 		el.logger.SetOutput(os.Stdout)
 	}
 
 	el.logger.SetFormatter(&log.JSONFormatter{})
-	el.logger.SetLevel(log.WarnLevel)
+	el.logger.SetLevel(log.DebugLevel)
 
 	return el
 }
