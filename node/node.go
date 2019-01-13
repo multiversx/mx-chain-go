@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"time"
@@ -17,13 +18,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
 
@@ -552,33 +553,187 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 	for {
 		time.Sleep(recheckPeriod)
 
-		if sposWrk.BlockChain.CurrentBlockHeader == nil {
+		hdr := sposWrk.BlockChain.CurrentBlockHeader
+		txBlock := sposWrk.BlockChain.CurrentTxBlockBody
+
+		if hdr == nil || txBlock == nil {
 			continue
 		}
 
-		if sposWrk.BlockChain.CurrentBlockHeader.Nonce > oldNonce {
-			header := *sposWrk.BlockChain.CurrentBlockHeader
-
-			header.Signature = nil
-
-			headerMarsh, err := n.marshalizer.Marshal(header)
+		if hdr.Nonce > oldNonce {
+			n, p, err := n.displayLogDataAndComputeNewNoncePrevHash(sposWrk, hdr, txBlock, prevHeaderHash)
 
 			if err != nil {
 				log.Error(err.Error())
 				continue
 			}
 
-			headerHash := n.hasher.Compute(string(headerMarsh))
-
-			log.Info(fmt.Sprintf("Block with nounce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, getPrettyByteArray(headerHash), getPrettyByteArray(prevHeaderHash)))
-
-			oldNonce = header.Nonce
-			prevHeaderHash = headerHash
-			spew.Dump(header)
-			log.Info(fmt.Sprintf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n",
-				sposWrk.Rounds, sposWrk.RoundsWithBlock, float64(sposWrk.RoundsWithBlock)*100/float64(sposWrk.Rounds)))
+			oldNonce = n
+			prevHeaderHash = p
 		}
 	}
+}
+
+func (n *Node) displayLogDataAndComputeNewNoncePrevHash(
+	sposWrk *spos.SPOSConsensusWorker,
+	hdr *block.Header,
+	txBlock *block.TxBlockBody,
+	prevHash []byte) (uint64, []byte, error) {
+
+	if sposWrk == nil {
+		return 0, nil, errNilSposWorker
+	}
+
+	if sposWrk.BlockChain == nil {
+		return 0, nil, errNilBlockchain
+	}
+
+	//copy data into new structs
+	header := *hdr
+	txBlk := *txBlock
+
+	headerMarsh, err := n.marshalizer.Marshal(&header)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	txBlkMarsh, err := n.marshalizer.Marshal(&txBlk)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	headerHash := n.hasher.Compute(string(headerMarsh))
+	blockHash := n.hasher.Compute(string(txBlkMarsh))
+
+	log.Info(fmt.Sprintf("Block with nonce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, toB64(headerHash), toB64(prevHash)))
+
+	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(&header, &txBlk, blockHash)
+
+	tblString, err := display.CreateTableString(dispHeader, dispLines)
+	if err != nil {
+		return 0, nil, err
+	}
+	fmt.Println(tblString)
+
+	log.Info(fmt.Sprintf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n",
+		sposWrk.Rounds, sposWrk.RoundsWithBlock, float64(sposWrk.RoundsWithBlock)*100/float64(sposWrk.Rounds)))
+
+	return header.Nonce, headerHash, nil
+}
+
+func createDisplayableHeaderAndBlockBody(
+	hdr *block.Header,
+	txBody *block.TxBlockBody,
+	txBlockHash []byte) ([]string, []*display.LineData) {
+
+	header := []string{"Part", "Parameter", "Value"}
+
+	lines := displayHeader(hdr)
+
+	if hdr.BlockBodyType == block.TxBlock {
+		lines = displayTxBlockBody(lines, txBody, txBlockHash)
+
+		return header, lines
+	}
+
+	//TODO: implement the other block bodies
+
+	lines = append(lines, display.NewLineData(false, []string{"Unknown", "", ""}))
+	return header, lines
+}
+
+func displayHeader(hdr *block.Header) []*display.LineData {
+	lines := make([]*display.LineData, 0)
+
+	lines = append(lines, display.NewLineData(false, []string{
+		"Header",
+		"Nonce",
+		fmt.Sprintf("%d", hdr.Nonce)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Shard",
+		fmt.Sprintf("%d", hdr.ShardId)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Epoch",
+		fmt.Sprintf("%d", hdr.Epoch)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Round",
+		fmt.Sprintf("%d", hdr.Round)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Timestamp",
+		fmt.Sprintf("%d", hdr.TimeStamp)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Prev hash",
+		toB64(hdr.PrevHash)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Body type",
+		hdr.BlockBodyType.String()}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Body hash",
+		toB64(hdr.BlockBodyHash)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Pub keys bitmap",
+		toHex(hdr.PubKeysBitmap)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Commitment",
+		toB64(hdr.Commitment)}))
+	lines = append(lines, display.NewLineData(true, []string{
+		"",
+		"Signature",
+		toB64(hdr.Signature)}))
+
+	return lines
+}
+
+func displayTxBlockBody(lines []*display.LineData, txBody *block.TxBlockBody, hash []byte) []*display.LineData {
+	lines = append(lines, display.NewLineData(false, []string{"TxBody", "Block hash", toB64(hash)}))
+	lines = append(lines, display.NewLineData(true, []string{"", "Root hash", toB64(txBody.RootHash)}))
+
+	for i := 0; i < len(txBody.MiniBlocks); i++ {
+		miniBlock := txBody.MiniBlocks[i]
+
+		part := fmt.Sprintf("TxBody_%d", miniBlock.ShardID)
+
+		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part, "", "<NIL> or <EMPTY>"}))
+		}
+
+		for j := 0; j < len(miniBlock.TxHashes); j++ {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				fmt.Sprintf("Tx hash %d", j),
+				toB64(miniBlock.TxHashes[j])}))
+
+			part = ""
+		}
+
+		lines[len(lines)-1].HRafterLine = true
+	}
+
+	return lines
+}
+
+func toHex(buff []byte) string {
+	if buff == nil {
+		return "<NIL>"
+	}
+	return "0x" + hex.EncodeToString(buff)
+}
+
+func toB64(buff []byte) string {
+	if buff == nil {
+		return "<NIL>"
+	}
+	return base64.StdEncoding.EncodeToString(buff)
 }
 
 func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
@@ -594,10 +749,4 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
 	}
-}
-
-func getPrettyByteArray(array []byte) string {
-	base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(array)))
-	base64.StdEncoding.Encode(base64pk, array)
-	return string(base64pk)
 }

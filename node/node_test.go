@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"reflect"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
@@ -930,4 +933,182 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tx)
 	assert.True(t, txSent)
+}
+
+//------- DisplayLogDataAndComputeNewNoncePrevHash
+
+func TestNode_DisplayLogDataAndComputeNewNoncePrevHashNilSposWrkShouldErr(t *testing.T) {
+	n, _ := node.NewNode()
+
+	hdr, txBlock := createTestHdrTxBlockBody()
+
+	newNonce, newPrevHash, err := n.DisplayLogDataAndComputeNewNoncePrevHash(nil, hdr, txBlock, []byte("prev hash"))
+
+	assert.Equal(t, uint64(0), newNonce)
+	assert.Nil(t, newPrevHash)
+	assert.Equal(t, "nil spos worker", err.Error())
+}
+
+func TestNode_DisplayLogDataAndComputeNewNoncePrevHashNilBlockchainShouldErr(t *testing.T) {
+	sposWrk := &spos.SPOSConsensusWorker{}
+	n, _ := node.NewNode()
+
+	hdr, txBlock := createTestHdrTxBlockBody()
+
+	newNonce, newPrevHash, err := n.DisplayLogDataAndComputeNewNoncePrevHash(sposWrk, hdr, txBlock, []byte("prev hash"))
+
+	assert.Equal(t, uint64(0), newNonce)
+	assert.Nil(t, newPrevHash)
+	assert.Equal(t, "nil blockchain", err.Error())
+}
+
+func TestNode_DisplayLogDataAndComputeNewNoncePrevHashMarshalizerFail1ShouldErr(t *testing.T) {
+	sposWrk := &spos.SPOSConsensusWorker{}
+	sposWrk.BlockChain = createStubBlockchain()
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(marshalizer),
+	)
+
+	hdr, txBlock := createTestHdrTxBlockBody()
+
+	expectedError := errors.New("marshalizer fail")
+
+	marshalizer.MarshalHandler = func(obj interface{}) (bytes []byte, e error) {
+		if reflect.DeepEqual(hdr, obj) {
+			return nil, expectedError
+		}
+		if reflect.DeepEqual(txBlock, obj) {
+			return []byte("txBlockBodyMarshalized"), nil
+		}
+		return nil, nil
+	}
+
+	newNonce, newPrevHash, err := n.DisplayLogDataAndComputeNewNoncePrevHash(sposWrk, hdr, txBlock, []byte("prev hash"))
+
+	assert.Equal(t, uint64(0), newNonce)
+	assert.Nil(t, newPrevHash)
+	assert.Equal(t, expectedError, err)
+}
+
+func TestNode_DisplayLogDataAndComputeNewNoncePrevHashMarshalizerFail2ShouldErr(t *testing.T) {
+	sposWrk := &spos.SPOSConsensusWorker{}
+	sposWrk.BlockChain = createStubBlockchain()
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(marshalizer),
+	)
+
+	hdr, txBlock := createTestHdrTxBlockBody()
+
+	expectedError := errors.New("marshalizer fail")
+
+	marshalizer.MarshalHandler = func(obj interface{}) (bytes []byte, e error) {
+		if reflect.DeepEqual(hdr, obj) {
+			return []byte("hdrHeaderMarshalized"), nil
+		}
+		if reflect.DeepEqual(txBlock, obj) {
+			return nil, expectedError
+		}
+		return nil, nil
+	}
+
+	newNonce, newPrevHash, err := n.DisplayLogDataAndComputeNewNoncePrevHash(sposWrk, hdr, txBlock, []byte("prev hash"))
+
+	assert.Equal(t, uint64(0), newNonce)
+	assert.Nil(t, newPrevHash)
+	assert.Equal(t, expectedError, err)
+}
+
+func TestNode_DisplayLogDataAndComputeNewNoncePrevHashShouldWork(t *testing.T) {
+	sposWrk := &spos.SPOSConsensusWorker{}
+	sposWrk.BlockChain = createStubBlockchain()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
+
+	n, _ := node.NewNode(
+		node.WithMarshalizer(marshalizer),
+		node.WithHasher(hasher),
+	)
+
+	hdr, txBlock := createTestHdrTxBlockBody()
+
+	marshalizer.MarshalHandler = func(obj interface{}) (bytes []byte, e error) {
+		if reflect.DeepEqual(hdr, obj) {
+			return []byte("hdrHeaderMarshalized"), nil
+		}
+		if reflect.DeepEqual(txBlock, obj) {
+			return []byte("txBlockBodyMarshalized"), nil
+		}
+		return nil, nil
+	}
+	hasher.ComputeCalled = func(s string) []byte {
+		if s == "hdrHeaderMarshalized" {
+			return []byte("hdr hash")
+		}
+		if s == "txBlockBodyMarshalized" {
+			return []byte("tx block body hash")
+		}
+		return nil
+	}
+
+	newNonce, newPrevHash, err := n.DisplayLogDataAndComputeNewNoncePrevHash(sposWrk, hdr, txBlock, []byte("prev hash"))
+
+	assert.NotEqual(t, uint64(0), newNonce)
+	assert.Equal(t, []byte("hdr hash"), newPrevHash)
+	assert.Nil(t, err)
+}
+
+func createTestHdrTxBlockBody() (*block.Header, *block.TxBlockBody) {
+	hdr := &block.Header{
+		Nonce:         1,
+		ShardId:       2,
+		Epoch:         3,
+		Round:         4,
+		TimeStamp:     uint64(11223344),
+		PrevHash:      []byte("prev hash"),
+		BlockBodyHash: []byte("tx block body hash"),
+		PubKeysBitmap: []byte{255, 0, 128},
+		Commitment:    []byte("commitment"),
+		Signature:     []byte("signature"),
+	}
+
+	txBlock := &block.TxBlockBody{
+		StateBlockBody: block.StateBlockBody{
+			RootHash: []byte("root hash"),
+		},
+		MiniBlocks: []block.MiniBlock{
+			{
+				ShardID: 0,
+				TxHashes: [][]byte{
+					[]byte("txHash_0_1"),
+					[]byte("txHash_0_2"),
+				},
+			},
+			{
+				ShardID: 1,
+				TxHashes: [][]byte{
+					[]byte("txHash_1_1"),
+					[]byte("txHash_1_2"),
+				},
+			},
+			{
+				ShardID: 2,
+				TxHashes: [][]byte{
+					[]byte("txHash_2_1"),
+				},
+			},
+			{
+				ShardID:  3,
+				TxHashes: make([][]byte, 0),
+			},
+		},
+	}
+
+	return hdr, txBlock
 }
