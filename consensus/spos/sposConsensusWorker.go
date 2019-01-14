@@ -268,7 +268,7 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 
 	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT SYNCRONIZED\n",
-			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
+			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrStartRound)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
 	}
@@ -279,7 +279,7 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 
 	if err != nil {
 		log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT IN THE CONSENSUS GROUP\n",
-			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
+			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrStartRound)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
 	}
