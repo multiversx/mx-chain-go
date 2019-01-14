@@ -268,12 +268,12 @@ func (n *Node) createBootstrap(round *chronology.Round) error {
 
 func requestHeader(nonce uint64) {
 	// TODO: implement me
-	log.Info(fmt.Sprintf("requested header from network"))
+	log.Info(fmt.Sprintf("requested header from network\n"))
 }
 
 func requestTxBody(hash []byte) {
 	// TODO: implement me
-	log.Info(fmt.Sprintf("requested tx body from network"))
+	log.Info(fmt.Sprintf("requested tx body from network\n"))
 }
 
 // createRoundConsensus method creates a RoundConsensus object

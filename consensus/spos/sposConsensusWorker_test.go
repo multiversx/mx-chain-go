@@ -90,6 +90,8 @@ func initConsensus(
 	rnds := initRoundStatus()
 	dta := []byte("X")
 
+	chr.SetSelfSubround(0)
+
 	cns := spos.NewConsensus(
 		dta,
 		rndConsensus,

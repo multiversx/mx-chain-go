@@ -1533,6 +1533,10 @@ func (cns *Consensus) CheckBlockConsensus() bool {
 	cns.mut.Lock()
 	defer cns.mut.Unlock()
 
+	if cns.Chr.IsCancelled() {
+		return false
+	}
+
 	if cns.Status(SrBlock) == SsFinished {
 		return true
 	}
@@ -1550,6 +1554,10 @@ func (cns *Consensus) CheckBlockConsensus() bool {
 func (cns *Consensus) CheckCommitmentHashConsensus() bool {
 	cns.mut.Lock()
 	defer cns.mut.Unlock()
+
+	if cns.Chr.IsCancelled() {
+		return false
+	}
 
 	if cns.Status(SrCommitmentHash) == SsFinished {
 		return true
@@ -1581,6 +1589,10 @@ func (cns *Consensus) CheckBitmapConsensus() bool {
 	cns.mut.Lock()
 	defer cns.mut.Unlock()
 
+	if cns.Chr.IsCancelled() {
+		return false
+	}
+
 	if cns.Status(SrBitmap) == SsFinished {
 		return true
 	}
@@ -1599,6 +1611,10 @@ func (cns *Consensus) CheckCommitmentConsensus() bool {
 	cns.mut.Lock()
 	defer cns.mut.Unlock()
 
+	if cns.Chr.IsCancelled() {
+		return false
+	}
+
 	if cns.Status(SrCommitment) == SsFinished {
 		return true
 	}
@@ -1616,6 +1632,10 @@ func (cns *Consensus) CheckCommitmentConsensus() bool {
 func (cns *Consensus) CheckSignatureConsensus() bool {
 	cns.mut.Lock()
 	defer cns.mut.Unlock()
+
+	if cns.Chr.IsCancelled() {
+		return false
+	}
 
 	if cns.Status(SrSignature) == SsFinished {
 		return true
