@@ -4,9 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -90,20 +88,15 @@ func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 	txIntercepted.SetSingleSignKeyGen(txi.singleSignKeyGen)
 	hashWithSig := txi.hasher.Compute(string(rawData))
 
-	copiedTx := transaction.Transaction{
-		Nonce:     txIntercepted.GetTransaction().Nonce,
-		Value:     txIntercepted.GetTransaction().Value,
-		RcvAddr:   txIntercepted.GetTransaction().RcvAddr,
-		SndAddr:   txIntercepted.GetTransaction().SndAddr,
-		GasPrice:  txIntercepted.GetTransaction().GasPrice,
-		GasLimit:  txIntercepted.GetTransaction().GasLimit,
-		Data:      txIntercepted.GetTransaction().Data,
-		Signature: nil,
-	}
-	//TODO: remove hack
-	marsh := &marshal.JsonMarshalizer{}
+	copiedTx := *txIntercepted.GetTransaction()
+	copiedTx.Signature = nil
 
-	buffCopiedTx, _ := marsh.Marshal(&copiedTx)
+	marshalizer := txi.Marshalizer()
+	if marshalizer == nil {
+		return process.ErrNilMarshalizer
+	}
+
+	buffCopiedTx, _ := marshalizer.Marshal(&copiedTx)
 	hashWithoutSig := txi.hasher.Compute(string(buffCopiedTx))
 	txIntercepted.SetHash(hashWithoutSig)
 

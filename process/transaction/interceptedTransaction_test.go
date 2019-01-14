@@ -38,20 +38,6 @@ func TestInterceptedTransaction_IntegrityNilSignatureShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilSignature, tx.Integrity(nil))
 }
 
-func TestInterceptedTransaction_IntegrityNilChallengeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	tx := transaction.NewInterceptedTransaction()
-
-	tx.Signature = make([]byte, 0)
-	tx.Challenge = nil
-	tx.RcvAddr = make([]byte, 0)
-	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(1)
-
-	assert.Equal(t, process.ErrNilChallenge, tx.Integrity(nil))
-}
-
 func TestInterceptedTransaction_IntegrityNilRcvAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
