@@ -279,7 +279,8 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 	selfIndex, err := sposWorker.Cns.IndexSelfConsensusGroup()
 
 	if err != nil {
-		log.Error(err.Error())
+		log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT IN THE CONSENSUS GROUP\n",
+			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
 	}
