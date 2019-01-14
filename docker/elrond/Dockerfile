@@ -25,7 +25,8 @@ RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 WORKDIR src/github.com/ElrondNetwork
 RUN ls
 
-RUN git clone -b master https://elrondtester:a73e39f0fe868e584d3c27b3b4d8aacb2e925532@github.com/ElrondNetwork/elrond-go-sandbox
+COPY ./ ./elrond-go-sandbox/
+#RUN git clone -b bug/EN-721-Bugfix-testnet-v.0.5 https://elrondtester:a73e39f0fe868e584d3c27b3b4d8aacb2e925532@github.com/ElrondNetwork/elrond-go-sandbox
 WORKDIR elrond-go-sandbox
 RUN >> skipP2PMessengerTests
 RUN ls

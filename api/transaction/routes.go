@@ -26,12 +26,6 @@ type TxRequest struct {
 
 // SendTxRequest represents the structure that maps and validates user input for publishing a new transaction
 type SendTxRequest struct {
-	TxRequest
-	Signature []byte `form:"signature" json:"signature"`
-}
-
-//TxResponse represents the structure on which the response will be validated against
-type TxResponse struct {
 	Sender    string   `form:"sender" json:"sender"`
 	Receiver  string   `form:"receiver" json:"receiver"`
 	Value     *big.Int `form:"value" json:"value"`
@@ -41,6 +35,11 @@ type TxResponse struct {
 	GasLimit  *big.Int `form:"gasLimit" json:"gasLimit"`
 	Signature string   `form:"signature" json:"signature"`
 	Challenge string   `form:"challenge" json:"challenge"`
+}
+
+//TxResponse represents the structure on which the response will be validated against
+type TxResponse struct {
+	SendTxRequest
 }
 
 // Routes defines transaction related routes
@@ -82,14 +81,14 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	var gtx = TxRequest{}
+	var gtx = SendTxRequest{}
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation error: " + err.Error()})
 		return
 	}
 
-	tx, err := ef.GenerateTransaction(gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data)
+	tx, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data, gtx.Signature)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction generation failed: " + err.Error()})
 		return

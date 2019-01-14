@@ -450,7 +450,11 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
-	accAddress, err := n.addrConverter.CreateAddressFromHex(address)
+	addrBytes, err := base64.StdEncoding.DecodeString(address)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
+	}
+	accAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(addrBytes)
 	if err != nil {
 		return nil, errors.New("invalid address: " + err.Error())
 	}
@@ -475,8 +479,15 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	if n.privateKey == nil {
 		return nil, errors.New("initialize PrivateKey first")
 	}
-
-	senderAddress, err := n.addrConverter.CreateAddressFromHex(sender)
+	receiverAddrBytes, err := base64.StdEncoding.DecodeString(receiver)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
+	}
+	senderAddrBytes, err := base64.StdEncoding.DecodeString(sender)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
+	}
+	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddrBytes)
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}
@@ -492,8 +503,8 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	tx := transaction.Transaction{
 		Nonce:   newNonce,
 		Value:   amount,
-		RcvAddr: []byte(receiver),
-		SndAddr: []byte(sender),
+		RcvAddr: receiverAddrBytes,
+		SndAddr: senderAddrBytes,
 	}
 
 	txToByteArray, err := n.marshalizer.Marshal(tx)

@@ -218,7 +218,12 @@ func (g *genesis) initialNodesBalances(log *logger.Logger) map[string]big.Int {
 	for _, in := range g.InitialNodes {
 		balance, ok := new(big.Int).SetString(in.Balance, 10)
 		if ok {
-			pubKeys[in.PubKey] = *balance
+			pubKey, err := base64.StdEncoding.DecodeString(in.PubKey)
+			if err != nil {
+				log.Error(fmt.Sprintf("%s is not a valid public key. Ignored.", in.PubKey))
+				continue
+			}
+			pubKeys[string(pubKey)] = *balance
 		} else {
 			log.Warn(fmt.Sprintf("Error decoding balance %s for public key %s - setting to 0", in.Balance, in.PubKey))
 			pubKeys[in.PubKey] = *big.NewInt(0)
