@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/davecgh/go-spew/spew"
@@ -259,21 +260,24 @@ func (n *Node) createBootstrap(round *chronology.Round) error {
 		return err
 	}
 
-	bootstrap.RequestHeaderHandler = requestHeader
-	bootstrap.RequestTxBodyHandler = requestTxBody
+	bootstrap.RequestHeaderHandler =
+		func(nonce uint64) {
+			hdrRes := n.resolvers[1].(*block2.HeaderResolver)
+			hdrRes.RequestHeaderFromNonce(nonce)
+
+			log.Info(fmt.Sprintf("Requested header with nonce %d from network\n", nonce))
+		}
+
+	bootstrap.RequestTxBodyHandler = func(hash []byte) {
+		hdrRes := n.resolvers[2].(*block2.GenericBlockBodyResolver)
+		hdrRes.RequestBlockBodyFromHash(hash)
+
+		log.Info(fmt.Sprintf("Requested tx body with hash %s from network\n", getPrettyByteArray(hash)))
+	}
+
 	bootstrap.StartSync()
 
 	return nil
-}
-
-func requestHeader(nonce uint64) {
-	// TODO: implement me
-	log.Info(fmt.Sprintf("requested header from network\n"))
-}
-
-func requestTxBody(hash []byte) {
-	// TODO: implement me
-	log.Info(fmt.Sprintf("requested tx body from network\n"))
 }
 
 // createRoundConsensus method creates a RoundConsensus object
