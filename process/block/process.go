@@ -115,8 +115,9 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		return err
 	}
 
-	bp.requestBlockTransactions(body)
-	bp.waitForTxHashes()
+	if bp.requestBlockTransactions(body) > 0 {
+		bp.waitForTxHashes()
+	}
 
 	if bp.accounts.JournalLen() != 0 {
 		return process.ErrAccountStateDirty
@@ -374,7 +375,7 @@ func (bp *blockProcessor) receivedTransaction(txHash []byte) {
 	bp.mut.Unlock()
 }
 
-func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) {
+func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) int {
 	bp.mut.Lock()
 	missingTxsForShards := bp.computeMissingTxsForShards(body)
 	bp.requestedTxHashes = make(map[string]bool)
@@ -387,6 +388,8 @@ func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) {
 		}
 	}
 	bp.mut.Unlock()
+
+	return len(missingTxsForShards)
 }
 
 func (bp *blockProcessor) computeMissingTxsForShards(body *block.TxBlockBody) map[uint32][][]byte {

@@ -174,8 +174,10 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	tx1 := &transaction.Transaction{Nonce: 7}
 	tp.AddData(txHash1, tx1, 1)
 
-	be.RequestTransactionFromNetwork(&blk)
-	be.WaitForTxHashes()
+	if be.RequestTransactionFromNetwork(&blk) > 0 {
+		be.WaitForTxHashes()
+	}
+
 	tx, _ := tp.ShardStore(shardId).DataStore.Get(txHash1)
 
 	assert.Equal(t, tx1, tx)
@@ -212,7 +214,7 @@ func TestBlockProcessor_ProcessBlockWithNilTxBlockBodyShouldErr(t *testing.T) {
 		&mock.AccountsStub{
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revToSnapshot},
-			mock.NewOneShardCoordinatorMock(),
+		mock.NewOneShardCoordinatorMock(),
 	)
 
 	// should return err
@@ -264,7 +266,7 @@ func TestBlockProc_ProcessBlockWithDirtyAccountShouldErr(t *testing.T) {
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revToSnapshot,
 		},
-			mock.NewOneShardCoordinatorMock(),
+		mock.NewOneShardCoordinatorMock(),
 	)
 
 	// should return err
@@ -357,8 +359,7 @@ func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revToSnapshot,
 		},
-			mock.NewOneShardCoordinatorMock(),
-
+		mock.NewOneShardCoordinatorMock(),
 	)
 
 	bl, err := be.CreateTxBlockBody(0, 100, 0, func() bool { return true })
@@ -382,8 +383,8 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 		&mock.MarshalizerMock{},
 		&tpm,
 		&mock.AccountsStub{
-			JournalLenCalled: journalLen,
-			RootHashCalled:   rootHashfunc,
+			JournalLenCalled:       journalLen,
+			RootHashCalled:         rootHashfunc,
 			RevertToSnapshotCalled: revToSnapshot,
 		},
 		mock.NewOneShardCoordinatorMock(),

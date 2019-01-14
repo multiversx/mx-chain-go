@@ -11,8 +11,8 @@ func (bp *blockProcessor) GetTransactionFromPool(destShardID uint32, txHash []by
 	return bp.getTransactionFromPool(destShardID, txHash)
 }
 
-func (bp *blockProcessor) RequestTransactionFromNetwork(body *block.TxBlockBody) {
-	bp.requestBlockTransactions(body)
+func (bp *blockProcessor) RequestTransactionFromNetwork(body *block.TxBlockBody) int {
+	return bp.requestBlockTransactions(body)
 }
 
 func (bp *blockProcessor) WaitForTxHashes() {
