@@ -256,7 +256,8 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	addressConverter, err := state.NewHashAddressConverter(hasher, cfg.Address.Length, cfg.Address.Prefix)
+	//addressConverter, err := state.NewHashAddressConverter(hasher, cfg.Address.Length, cfg.Address.Prefix)
+	addressConverter, err := state.NewPlainAddressConverter(cfg.Address.Length, cfg.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
 	}

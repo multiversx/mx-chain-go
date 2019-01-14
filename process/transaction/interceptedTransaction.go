@@ -110,7 +110,7 @@ func (inTx *InterceptedTransaction) VerifySig() error {
 		return process.ErrNilSingleSignKeyGen
 	}
 
-	singleSignVerifier, err := inTx.singleSignKeyGen.PublicKeyFromByteArray(inTx.RcvAddr)
+	singleSignVerifier, err := inTx.singleSignKeyGen.PublicKeyFromByteArray(inTx.SndAddr)
 	if err != nil {
 		return err
 	}
