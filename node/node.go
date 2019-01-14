@@ -657,7 +657,7 @@ func (n *Node) displayLogInfo(
 	blockHash []byte,
 ) {
 
-	log.Info(fmt.Sprintf("Block with nonce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, toB64(headerHash), toB64(prevHash)))
+	log.Info(fmt.Sprintf("Block with nonce %d and header hash %s was added into the blockchain. Previous block header hash was %s\n\n", header.Nonce, toB64(headerHash), toB64(prevHash)))
 
 	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(header, txBlock, blockHash)
 

@@ -1839,7 +1839,7 @@ func TestMessage_CheckIfBlockIsValid(t *testing.T) {
 	hdr.Nonce = 2
 
 	r = cnWorkers[0].CheckIfBlockIsValid(hdr)
-	assert.True(t, r)
+	assert.False(t, r)
 
 	hdr.Nonce = 1
 	cnWorkers[0].BlockChain.CurrentBlockHeader = hdr
@@ -1861,7 +1861,7 @@ func TestMessage_CheckIfBlockIsValid(t *testing.T) {
 	hdr.PrevHash = []byte("")
 
 	r = cnWorkers[0].CheckIfBlockIsValid(hdr)
-	assert.True(t, r)
+	assert.False(t, r)
 
 	hdr.Nonce = 2
 
