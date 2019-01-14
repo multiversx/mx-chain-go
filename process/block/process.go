@@ -330,10 +330,12 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 			if err != nil {
 				return process.ErrPersistWithoutSuccess
 			}
-
-			//now that the tx is persisted, we can safely remove it from the tx data pool
-			bp.removeTransactionFromPool(miniBlock.ShardID, txHash)
 		}
+	}
+
+	err = bp.RemoveBlockTxsFromPool(block)
+	if err != nil {
+		log.Error(err.Error())
 	}
 
 	_, err = bp.accounts.Commit()
@@ -362,17 +364,6 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 	}
 
 	return val.(*transaction.Transaction)
-}
-
-// removeTransactionFromPool removes the transaction from a given shard id and a given transaction hash
-func (bp *blockProcessor) removeTransactionFromPool(destShardID uint32, txHash []byte) {
-	txStore := bp.txPool.ShardDataStore(destShardID)
-
-	if txStore == nil {
-		return
-	}
-
-	txStore.Remove(txHash)
 }
 
 // receivedTransaction is a call back function which is called when a new transaction

@@ -30,11 +30,7 @@ func (h *printerHook) Fire(entry *log.Entry) (err error) {
 	buff := []byte(entry.Message)
 	//The log entry has to end with carriage return and new line characters
 	//as when printing to console (logging) in tests shall not interfere with golang test output strings
-	//Found the problem when logging a string like:
-	//ConnNotifier object has stopped!--- PASS: TestConnectToAddresses_NodeNotStarted (0.02s)
-	//would actually terminate the test (not marking it as passed)
-	buff = append(buff, '\r')
-	buff = append(buff, '\n')
+	buff = append(buff, '\r', '\n')
 
 	_, err = h.Writer.Write(buff)
 	return err

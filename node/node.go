@@ -545,7 +545,7 @@ func (n *Node) createGenesisBlock() (*block.Header, error) {
 }
 
 func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
-	// TODO: this method and its call should be removed after initial testing of aur first version of testnet
+	// TODO: this method and its call should be removed after initial testing of our first version of testnet
 	oldNonce := uint64(0)
 	prevHeaderHash := []byte("")
 	recheckPeriod := sposWrk.Cns.Chr.Round().TimeDuration() * 5 / 100
@@ -561,64 +561,73 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 		}
 
 		if hdr.Nonce > oldNonce {
-			n, p, err := n.displayLogDataAndComputeNewNoncePrevHash(sposWrk, hdr, txBlock, prevHeaderHash)
+			newNonce, newPrevHash, blockHash, err := n.computeNewNoncePrevHash(sposWrk, hdr, txBlock, prevHeaderHash)
 
 			if err != nil {
 				log.Error(err.Error())
 				continue
 			}
 
-			oldNonce = n
-			prevHeaderHash = p
+			n.displayLogInfo(hdr, txBlock, newPrevHash, prevHeaderHash, sposWrk, blockHash)
+
+			oldNonce = newNonce
+			prevHeaderHash = newPrevHash
 		}
 	}
 }
 
-func (n *Node) displayLogDataAndComputeNewNoncePrevHash(
+func (n *Node) computeNewNoncePrevHash(
 	sposWrk *spos.SPOSConsensusWorker,
 	hdr *block.Header,
 	txBlock *block.TxBlockBody,
-	prevHash []byte) (uint64, []byte, error) {
+	prevHash []byte,
+) (uint64, []byte, []byte, error) {
 
 	if sposWrk == nil {
-		return 0, nil, errNilSposWorker
+		return 0, nil, nil, errNilSposWorker
 	}
 
 	if sposWrk.BlockChain == nil {
-		return 0, nil, errNilBlockchain
+		return 0, nil, nil, errNilBlockchain
 	}
 
-	//copy data into new structs
-	header := *hdr
-	txBlk := *txBlock
-
-	headerMarsh, err := n.marshalizer.Marshal(&header)
+	headerMarsh, err := n.marshalizer.Marshal(hdr)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
-	txBlkMarsh, err := n.marshalizer.Marshal(&txBlk)
+	txBlkMarsh, err := n.marshalizer.Marshal(txBlock)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
 	headerHash := n.hasher.Compute(string(headerMarsh))
 	blockHash := n.hasher.Compute(string(txBlkMarsh))
 
+	return hdr.Nonce, headerHash, blockHash, nil
+}
+
+func (n *Node) displayLogInfo(
+	header *block.Header,
+	txBlock *block.TxBlockBody,
+	headerHash []byte,
+	prevHash []byte,
+	sposWrk *spos.SPOSConsensusWorker,
+	blockHash []byte,
+) {
+
 	log.Info(fmt.Sprintf("Block with nonce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, toB64(headerHash), toB64(prevHash)))
 
-	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(&header, &txBlk, blockHash)
+	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(header, txBlock, blockHash)
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
-		return 0, nil, err
+		log.Error(err.Error())
 	}
 	fmt.Println(tblString)
 
 	log.Info(fmt.Sprintf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n",
 		sposWrk.Rounds, sposWrk.RoundsWithBlock, float64(sposWrk.RoundsWithBlock)*100/float64(sposWrk.Rounds)))
-
-	return header.Nonce, headerHash, nil
 }
 
 func createDisplayableHeaderAndBlockBody(
@@ -716,7 +725,7 @@ func displayTxBlockBody(lines []*display.LineData, txBody *block.TxBlockBody, ha
 			part = ""
 		}
 
-		lines[len(lines)-1].HRafterLine = true
+		lines[len(lines)-1].HorizontalRuleAfter = true
 	}
 
 	return lines

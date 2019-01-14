@@ -105,10 +105,6 @@ func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 	}
 
 	txi.txPool.AddData(hash, txIntercepted.GetTransaction(), txIntercepted.SndShard())
-	if txIntercepted.SndShard() != txIntercepted.RcvShard() {
-		log.Debug("cross shard tx")
-		txi.txPool.AddData(hash, txIntercepted.GetTransaction(), txIntercepted.RcvShard())
-	}
 
 	return nil
 }

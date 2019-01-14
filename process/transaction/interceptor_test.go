@@ -493,5 +493,5 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 	txNewer.SndAddr = make([]byte, 0)
 
 	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
-	assert.Equal(t, 2, wasAdded)
+	assert.Equal(t, 1, wasAdded)
 }

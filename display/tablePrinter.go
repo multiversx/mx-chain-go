@@ -2,73 +2,98 @@ package display
 
 import (
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // LineData represents a displayable table line
 type LineData struct {
-	Values      []string
-	HRafterLine bool
+	Values              []string
+	HorizontalRuleAfter bool
 }
 
 // NewLineData creates a new LineData object
-func NewLineData(hrAfterLine bool, values []string) *LineData {
+func NewLineData(horizontalRuleAfter bool, values []string) *LineData {
 	return &LineData{
-		Values:      values,
-		HRafterLine: hrAfterLine,
+		Values:              values,
+		HorizontalRuleAfter: horizontalRuleAfter,
 	}
 }
 
 // CreateTableString creates an ASCII table having header as table header and a LineData slice as table rows
 // It automatically resize itself based on the lengths of every cell
 func CreateTableString(header []string, data []*LineData) (string, error) {
-	if data == nil || header == nil {
-		return "", errors.New("nil data/header")
-	}
+	err := checkValidity(header, data)
 
-	if len(data) == 0 && len(header) == 0 {
-		return "", errors.New("empty data")
+	if err != nil {
+		return "", err
 	}
 
 	columnsWidths := computeColumnsWidths(header, data)
 
 	builder := &strings.Builder{}
-	drawHR(builder, columnsWidths)
+	drawHorizontalRule(builder, columnsWidths)
 
 	drawLine(builder, columnsWidths, header)
-	drawHR(builder, columnsWidths)
+	drawHorizontalRule(builder, columnsWidths)
 
 	lastLineHadHR := false
 
 	for i := 0; i < len(data); i++ {
 		drawLine(builder, columnsWidths, data[i].Values)
-		lastLineHadHR = data[i].HRafterLine
+		lastLineHadHR = data[i].HorizontalRuleAfter
 
-		if data[i].HRafterLine {
-			drawHR(builder, columnsWidths)
+		if data[i].HorizontalRuleAfter {
+			drawHorizontalRule(builder, columnsWidths)
 		}
 	}
 
 	if !lastLineHadHR {
-		drawHR(builder, columnsWidths)
+		drawHorizontalRule(builder, columnsWidths)
 	}
 
 	return builder.String(), nil
 }
 
+func checkValidity(header []string, data []*LineData) error {
+	if header == nil {
+		return ErrNilHeader
+	}
+
+	if data == nil {
+		return ErrNilDataLines
+	}
+
+	if len(data) == 0 && len(header) == 0 {
+		return ErrEmptySlices
+	}
+
+	maxElemFound := len(header)
+
+	for _, ld := range data {
+		if ld == nil {
+			return ErrNilLineDataInSlice
+		}
+
+		if ld.Values == nil {
+			return ErrNilValuesOfLineDataInSlice
+		}
+
+		if maxElemFound < len(ld.Values) {
+			maxElemFound = len(ld.Values)
+		}
+	}
+
+	if maxElemFound == 0 {
+		return ErrEmptySlices
+	}
+
+	return nil
+}
+
 func computeColumnsWidths(header []string, data []*LineData) []int {
-	widths := make([]int, 0)
+	widths := make([]int, len(header))
 
 	for i := 0; i < len(header); i++ {
-		if len(widths) <= i {
-			widths = append(widths, len(header[i]))
-			continue
-		}
-
-		if widths[i] < len(header[i]) {
-			widths[i] = len(header[i])
-		}
+		widths[i] = len(header[i])
 	}
 
 	for i := 0; i < len(data); i++ {
@@ -89,7 +114,7 @@ func computeColumnsWidths(header []string, data []*LineData) []int {
 	return widths
 }
 
-func drawHR(builder *strings.Builder, columnsWidths []int) {
+func drawHorizontalRule(builder *strings.Builder, columnsWidths []int) {
 	builder.WriteByte('+')
 	for i := 0; i < len(columnsWidths); i++ {
 		for j := 0; j < columnsWidths[i]+2; j++ {

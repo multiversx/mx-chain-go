@@ -19,11 +19,22 @@ func (n *Node) Resolvers() []process.Resolver {
 	return n.resolvers
 }
 
-func (n *Node) DisplayLogDataAndComputeNewNoncePrevHash(
+func (n *Node) ComputeNewNoncePrevHash(
 	sposWrk *spos.SPOSConsensusWorker,
 	hdr *block.Header,
 	txBlock *block.TxBlockBody,
-	prevHash []byte) (uint64, []byte, error) {
+	prevHash []byte) (uint64, []byte, []byte, error) {
 
-	return n.displayLogDataAndComputeNewNoncePrevHash(sposWrk, hdr, txBlock, prevHash)
+	return n.computeNewNoncePrevHash(sposWrk, hdr, txBlock, prevHash)
+}
+
+func (n *Node) DisplayLogInfo(
+	header *block.Header,
+	txBlock *block.TxBlockBody,
+	headerHash []byte,
+	prevHash []byte,
+	sposWrk *spos.SPOSConsensusWorker,
+	blockHash []byte,
+) {
+	n.displayLogInfo(header, txBlock, headerHash, prevHash, sposWrk, blockHash)
 }
