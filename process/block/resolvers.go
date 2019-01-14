@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-// headerResolver is a wrapper over Resolver that is specialized in resolving headers requests
-type headerResolver struct {
+// HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
+type HeaderResolver struct {
 	process.Resolver
 	hdrPool        data.ShardedDataCacherNotifier
 	hdrNonces      data.Uint64Cacher
@@ -18,8 +18,8 @@ type headerResolver struct {
 	nonceConverter typeConverters.Uint64ByteSliceConverter
 }
 
-// genericBlockBodyResolver is a wrapper over Resolver that is specialized in resolving block body requests
-type genericBlockBodyResolver struct {
+// GenericBlockBodyResolver is a wrapper over Resolver that is specialized in resolving block body requests
+type GenericBlockBodyResolver struct {
 	process.Resolver
 	blockBodyPool storage.Cacher
 	blockStorage  storage.Storer
@@ -35,7 +35,7 @@ func NewHeaderResolver(
 	hdrStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 	nonceConverter typeConverters.Uint64ByteSliceConverter,
-) (*headerResolver, error) {
+) (*HeaderResolver, error) {
 
 	if resolver == nil {
 		return nil, process.ErrNilResolver
@@ -67,7 +67,7 @@ func NewHeaderResolver(
 		return nil, process.ErrNilNonceConverter
 	}
 
-	hdrResolver := &headerResolver{
+	hdrResolver := &HeaderResolver{
 		Resolver:       resolver,
 		hdrPool:        transient.Headers(),
 		hdrNonces:      transient.HeadersNonces(),
@@ -80,7 +80,7 @@ func NewHeaderResolver(
 	return hdrResolver, nil
 }
 
-func (hdrRes *headerResolver) resolveHdrRequest(rd process.RequestData) ([]byte, error) {
+func (hdrRes *HeaderResolver) resolveHdrRequest(rd process.RequestData) ([]byte, error) {
 	if rd.Value == nil {
 		return nil, process.ErrNilValue
 	}
@@ -100,7 +100,7 @@ func (hdrRes *headerResolver) resolveHdrRequest(rd process.RequestData) ([]byte,
 	return buff, err
 }
 
-func (hdrRes *headerResolver) resolveHeaderFromHash(key []byte) ([]byte, error) {
+func (hdrRes *HeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) {
 	dataMap := hdrRes.hdrPool.SearchData(key)
 	for _, v := range dataMap {
 		//since there might be multiple entries, it shall return the first one that it finds
@@ -115,7 +115,7 @@ func (hdrRes *headerResolver) resolveHeaderFromHash(key []byte) ([]byte, error) 
 	return hdrRes.hdrStorage.Get(key)
 }
 
-func (hdrRes *headerResolver) resolveHeaderFromNonce(key []byte) ([]byte, error) {
+func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error) {
 	//key is now an encoded nonce (uint64)
 
 	//Step 1. decode the nonce from the key
@@ -146,7 +146,7 @@ func (hdrRes *headerResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 }
 
 // RequestHeaderFromHash requests a header from other peers having input the hdr hash
-func (hdrRes *headerResolver) RequestHeaderFromHash(hash []byte) error {
+func (hdrRes *HeaderResolver) RequestHeaderFromHash(hash []byte) error {
 	return hdrRes.RequestData(process.RequestData{
 		Type:  process.HashType,
 		Value: hash,
@@ -154,7 +154,7 @@ func (hdrRes *headerResolver) RequestHeaderFromHash(hash []byte) error {
 }
 
 // RequestHeaderFromNonce requests a header from other peers having input the hdr nonce
-func (hdrRes *headerResolver) RequestHeaderFromNonce(nonce uint64) error {
+func (hdrRes *HeaderResolver) RequestHeaderFromNonce(nonce uint64) error {
 	return hdrRes.RequestData(process.RequestData{
 		Type:  process.NonceType,
 		Value: hdrRes.nonceConverter.ToByteSlice(nonce),
@@ -168,7 +168,7 @@ func NewGenericBlockBodyResolver(
 	resolver process.Resolver,
 	blockBodyPool storage.Cacher,
 	blockBodyStorage storage.Storer,
-	marshalizer marshal.Marshalizer) (*genericBlockBodyResolver, error) {
+	marshalizer marshal.Marshalizer) (*GenericBlockBodyResolver, error) {
 
 	if resolver == nil {
 		return nil, process.ErrNilResolver
@@ -186,7 +186,7 @@ func NewGenericBlockBodyResolver(
 		return nil, process.ErrNilMarshalizer
 	}
 
-	bbResolver := &genericBlockBodyResolver{
+	bbResolver := &GenericBlockBodyResolver{
 		Resolver:      resolver,
 		blockBodyPool: blockBodyPool,
 		blockStorage:  blockBodyStorage,
@@ -197,7 +197,7 @@ func NewGenericBlockBodyResolver(
 	return bbResolver, nil
 }
 
-func (gbbRes *genericBlockBodyResolver) resolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
+func (gbbRes *GenericBlockBodyResolver) resolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
 	if rd.Type != process.HashType {
 		return nil, process.ErrResolveNotHashType
 	}
@@ -220,7 +220,7 @@ func (gbbRes *genericBlockBodyResolver) resolveBlockBodyRequest(rd process.Reque
 }
 
 // RequestBlockBodyFromHash requests a block body from other peers having input the block body hash
-func (gbbRes *genericBlockBodyResolver) RequestBlockBodyFromHash(hash []byte) error {
+func (gbbRes *GenericBlockBodyResolver) RequestBlockBodyFromHash(hash []byte) error {
 	return gbbRes.RequestData(process.RequestData{
 		Type:  process.HashType,
 		Value: hash,

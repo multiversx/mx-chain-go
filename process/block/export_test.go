@@ -31,10 +31,10 @@ func (gbbi *GenericBlockBodyInterceptor) ProcessBodyBlock(bodyBlock p2p.Creator,
 	return gbbi.processBodyBlock(bodyBlock, rawData)
 }
 
-func (hdrRes *headerResolver) ResolveHdrRequest(rd process.RequestData) ([]byte, error) {
+func (hdrRes *HeaderResolver) ResolveHdrRequest(rd process.RequestData) ([]byte, error) {
 	return hdrRes.resolveHdrRequest(rd)
 }
 
-func (gbbRes *genericBlockBodyResolver) ResolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
+func (gbbRes *GenericBlockBodyResolver) ResolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
 	return gbbRes.resolveBlockBodyRequest(rd)
 }

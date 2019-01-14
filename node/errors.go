@@ -16,7 +16,7 @@ var errNilAccountsAdapter = errors.New("trying to set nil accounts adapter")
 
 var errNilAddressConverter = errors.New("trying to set nil address converter")
 
-var errNilBlockchain = errors.New("trying to set nil blockchain")
+var errNilBlockchain = errors.New("nil blockchain")
 
 var errNilPrivateKey = errors.New("trying to set nil private key")
 
@@ -41,3 +41,5 @@ var errNilUint64ByteSliceConverter = errors.New("trying to set nil uint64 - byte
 var errNilBalances = errors.New("trying to set nil balances")
 
 var errNilMultiSig = errors.New("trying to set nil multisig")
+
+var errNilSposWorker = errors.New("nil spos worker")
