@@ -85,10 +85,6 @@ func (inTx *InterceptedTransaction) Integrity(coordinator sharding.ShardCoordina
 		return process.ErrNilSignature
 	}
 
-	if inTx.Challenge == nil {
-		return process.ErrNilChallenge
-	}
-
 	if inTx.RcvAddr == nil {
 		return process.ErrNilRcvAddr
 	}

@@ -541,13 +541,12 @@ func (n *Node) SendTransaction(
 		return nil, errors.New("could not get transaction topic")
 	}
 
-	//interceptedTransaction := NewInterceptedT
-	marshalizedTx, err := n.marshalizer.Marshal(tx)
+	marshalizedTx, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, errors.New("could not marshal transaction")
 	}
 
-	err = topic.Broadcast(marshalizedTx)
+	err = topic.BroadcastBuff(marshalizedTx)
 	if err != nil {
 		return nil, errors.New("could not broadcast transaction: " + err.Error())
 	}
