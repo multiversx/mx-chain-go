@@ -268,7 +268,7 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 
 	// TODO: Unccomment ShouldSync check
 	//if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-	//	log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, not synchronized",
+	//	log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT SYNCRONIZED",
 	//		sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
 	//	sposWorker.Cns.Chr.SetSelfSubround(-1)
 	//	return false
@@ -1123,7 +1123,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBlockHeader(cnsDta *ConsensusData
 	hdr := sposWorker.DecodeBlockHeader(cnsDta.SubRoundData)
 
 	if !sposWorker.CheckIfBlockIsValid(hdr) {
-		log.Info(fmt.Sprintf("Canceled round %d in subround %s\n",
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, INVALID BLOCK\n",
 			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
@@ -1270,7 +1270,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) boo
 	nbSigners := countBitmapFlags(signersBitmap)
 
 	if int(nbSigners) < sposWorker.Cns.Threshold(SrBitmap) {
-		log.Info(fmt.Sprintf("Canceled round %d in subround %s\n",
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, TOO FEW SIGNERS IN BITMAP\n",
 			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBitmap)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
@@ -1291,6 +1291,13 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) boo
 				return false
 			}
 		}
+	}
+
+	if !sposWorker.Cns.IsValidatorInBitmap(sposWorker.Cns.selfPubKey) {
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, NOT INCLUDED IN THE BITMAP\n",
+			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBitmap)))
+		sposWorker.Cns.Chr.SetSelfSubround(-1)
+		return false
 	}
 
 	return true
