@@ -945,12 +945,95 @@ func (sposWorker *SPOSConsensusWorker) ExtendSignature() {
 		sposWorker.Cns.getFormattedTime(), sposWorker.Cns.ComputeSize(SrSignature), len(sposWorker.Cns.ConsensusGroup())))
 }
 
-// ExtendEndRound method just print some messages as no extend will be permited, because a new round
-// will be start
+// ExtendEndRound method just print some messages as no extend will be permited, because a new round will be start
 func (sposWorker *SPOSConsensusWorker) ExtendEndRound() {
-	log.Info(fmt.Sprintf("\n%s++++++++++++++++++++ THIS ROUND NO BLOCK WAS ADDED TO THE BLOCKCHAIN ++++++++++++++++++++\n\n",
-		sposWorker.Cns.getFormattedTime()))
+	err := sposWorker.CreateEmptyBlock()
+
+	if err != nil {
+		log.Info(fmt.Sprintf("%s\n", err.Error()))
+	}
+
+	log.Info(fmt.Sprintf("\n%s******************** ADDED EMPTY BLOCK WITH NONCE  %d  IN BLOCKCHAIN ********************\n\n",
+		sposWorker.Cns.getFormattedTime(), sposWorker.Header.Nonce))
+
 	sposWorker.Rounds++ // only for statistic
+}
+
+// CreateEmptyBlock creates, commits and broadcasts an empty block at the end of the round if no block was proposed or
+// syncronized in this round
+func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() error {
+	blk, err := sposWorker.BlockProcessor.CreateTxBlockBody(
+		shardId,
+		maxTransactionsInBlock,
+		sposWorker.Cns.Chr.Round().Index(),
+		func() bool { return false },
+	)
+
+	if err != nil {
+		return err
+	}
+
+	sposWorker.BlockBody = blk
+
+	hdr := &block.Header{}
+
+	if sposWorker.BlockChain.CurrentBlockHeader == nil {
+		hdr.Nonce = 1
+		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
+		hdr.TimeStamp = uint64(sposWorker.Cns.Chr.Round().TimeStamp().Unix())
+	} else {
+		hdr.Nonce = sposWorker.BlockChain.CurrentBlockHeader.Nonce + 1
+		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
+		hdr.TimeStamp = uint64(sposWorker.Cns.Chr.Round().TimeStamp().Unix())
+
+		prevHeader, err := sposWorker.marshalizer.Marshal(sposWorker.BlockChain.CurrentBlockHeader)
+
+		if err != nil {
+			return err
+		}
+
+		prevHeaderHash := sposWorker.hasher.Compute(string(prevHeader))
+		hdr.PrevHash = prevHeaderHash
+	}
+
+	blkStr, err := sposWorker.marshalizer.Marshal(sposWorker.BlockBody)
+
+	if err != nil {
+		return err
+	}
+
+	hdr.BlockBodyHash = sposWorker.hasher.Compute(string(blkStr))
+
+	sposWorker.Header = hdr
+
+	// Commit the block (commits also the account state)
+	err = sposWorker.BlockProcessor.CommitBlock(sposWorker.BlockChain, sposWorker.Header, sposWorker.BlockBody)
+
+	if err != nil {
+		sposWorker.BlockProcessor.RevertAccountState()
+		return err
+	}
+
+	err = sposWorker.BlockProcessor.RemoveBlockTxsFromPool(sposWorker.BlockBody)
+
+	if err != nil {
+		return err
+	}
+
+	// broadcast block body
+	err = sposWorker.broadcastTxBlockBody()
+
+	if err != nil {
+		return err
+	}
+
+	// broadcast header
+	err = sposWorker.broadcastHeader()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ReceivedMessage method redirects the received message to the channel which should handle it
