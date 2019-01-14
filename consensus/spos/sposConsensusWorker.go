@@ -961,6 +961,7 @@ func (sposWorker *SPOSConsensusWorker) ExtendEndRound() {
 // CreateEmptyBlock creates, commits and broadcasts an empty block at the end of the round if no block was proposed or
 // syncronized in this round
 func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() error {
+	sposWorker.BlockProcessor.RevertAccountState()
 	blk, err := sposWorker.BlockProcessor.CreateTxBlockBody(
 		shardId,
 		maxTransactionsInBlock,

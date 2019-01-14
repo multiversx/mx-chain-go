@@ -116,6 +116,7 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 	}
 
 	if bp.requestBlockTransactions(body) > 0 {
+		bp.requestBlockTransactions(body)
 		bp.waitForTxHashes()
 	}
 

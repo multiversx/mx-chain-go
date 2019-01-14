@@ -86,15 +86,15 @@ func (ef *ElrondNodeFacade) GetBalance(address string) (*big.Int, error) {
 }
 
 // GenerateTransaction generates a transaction from a sender, receiver, value and data
-func (ef *ElrondNodeFacade) GenerateTransaction(sender string, receiver string, value big.Int,
+func (ef *ElrondNodeFacade) GenerateTransaction(sender []byte, receiver []byte, value big.Int,
 	data string) (*transaction.Transaction,
 	error) {
 	return ef.node.GenerateTransaction(sender, receiver, value, data)
 }
 
 // SendTransaction will send a new transaction on the topic channel
-func (ef *ElrondNodeFacade) SendTransaction(nonce uint64, sender string, receiver string,
-	value big.Int, transactionData string, signature string) (*transaction.Transaction, error) {
+func (ef *ElrondNodeFacade) SendTransaction(nonce uint64, sender []byte, receiver []byte,
+	value big.Int, transactionData string, signature []byte) (*transaction.Transaction, error) {
 	return ef.node.SendTransaction(nonce, sender, receiver, value, transactionData, signature)
 }
 

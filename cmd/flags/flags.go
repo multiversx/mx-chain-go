@@ -30,6 +30,6 @@ var (
 	MaxAllowedPeers = cli.IntFlag{
 		Name:  "max-allowed-peers",
 		Usage: "Maximum connections the user is willing to accept",
-		Value: 4,
+		Value: 10,
 	}
 )

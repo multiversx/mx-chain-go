@@ -472,7 +472,7 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 }
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
-func (n *Node) GenerateTransaction(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error) {
+func (n *Node) GenerateTransaction(sender []byte, receiver []byte, amount big.Int, code string) (*transaction.Transaction, error) {
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
@@ -480,15 +480,8 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	if n.privateKey == nil {
 		return nil, errors.New("initialize PrivateKey first")
 	}
-	receiverAddrBytes, err := base64.StdEncoding.DecodeString(receiver)
-	if err != nil {
-		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
-	}
-	senderAddrBytes, err := base64.StdEncoding.DecodeString(sender)
-	if err != nil {
-		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
-	}
-	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddrBytes)
+
+	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(sender)
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}
@@ -501,19 +494,27 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 		newNonce = senderAccount.BaseAccount().Nonce
 	}
 
+	fmt.Println("INTERCEPTED tx value", amount)
+
 	tx := transaction.Transaction{
 		Nonce:   newNonce,
 		Value:   amount,
-		RcvAddr: receiverAddrBytes,
-		SndAddr: senderAddrBytes,
+		RcvAddr: receiver,
+		SndAddr: sender,
+		Data: []byte(code),
 	}
 
-	txToByteArray, err := n.marshalizer.Marshal(tx)
+	txToByteArray, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, errors.New("could not create byte array representation of the transaction")
 	}
 
+	fmt.Println("INTERCEPTED I will sign", string(txToByteArray))
+
 	sig, err := n.privateKey.Sign(txToByteArray)
+
+	fmt.Println("INTERCEPTED Generated signature", sig)
+
 	if err != nil {
 		return nil, errors.New("could not sign the transaction")
 	}
@@ -525,19 +526,23 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 // SendTransaction will send a new transaction on the topic channel
 func (n *Node) SendTransaction(
 	nonce uint64,
-	sender string,
-	receiver string,
+	sender []byte,
+	receiver []byte,
 	value big.Int,
 	transactionData string,
-	signature string) (*transaction.Transaction, error) {
+	signature []byte) (*transaction.Transaction, error) {
+
+
+	fmt.Println("INTERCEPTED signature", signature)
+
 
 	tx := transaction.Transaction{
 		Nonce:     nonce,
 		Value:     value,
-		RcvAddr:   []byte(receiver),
-		SndAddr:   []byte(sender),
+		RcvAddr:   receiver,
+		SndAddr:   sender,
 		Data:      []byte(transactionData),
-		Signature: []byte(signature),
+		Signature: signature,
 	}
 
 	topic := n.messenger.GetTopic(string(TransactionTopic))
