@@ -52,6 +52,7 @@ type BlockChain struct {
 	lock               sync.RWMutex
 	GenesisBlock       *block.Header               // Genesys Block pointer
 	CurrentBlockHeader *block.Header               // Current Block pointer
+	CurrentTxBlockBody *block.TxBlockBody          // Current Tx Block Body pointer
 	LocalHeight        int64                       // Height of the local chain
 	NetworkHeight      int64                       // Percieved height of the network chain
 	badBlocks          storage.Cacher              // Bad blocks cache

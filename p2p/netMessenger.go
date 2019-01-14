@@ -452,6 +452,12 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 
 	// func that publishes on network from Topic object
 	t.SendData = func(data []byte) error {
+		nm.mutClosed.RLock()
+		if nm.closed {
+			nm.mutClosed.RUnlock()
+			return nil
+		}
+		nm.mutClosed.RUnlock()
 		return nm.ps.Publish(t.Name(), data)
 	}
 

@@ -333,9 +333,15 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		}
 	}
 
+	err = bp.RemoveBlockTxsFromPool(block)
+	if err != nil {
+		log.Error(err.Error())
+	}
+
 	_, err = bp.accounts.Commit()
 
 	if err == nil {
+		blockChain.CurrentTxBlockBody = block
 		blockChain.CurrentBlockHeader = header
 		blockChain.LocalHeight = int64(header.Nonce)
 	}
