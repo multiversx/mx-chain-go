@@ -325,12 +325,6 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 		return false
 	}
 
-	err = sposWorker.BlockProcessor.RemoveBlockTxsFromPool(sposWorker.BlockBody)
-
-	if err != nil {
-		log.Error(err.Error())
-	}
-
 	// broadcast block body
 	err = sposWorker.broadcastTxBlockBody()
 	if err != nil {
