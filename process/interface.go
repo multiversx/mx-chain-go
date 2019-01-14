@@ -32,6 +32,7 @@ type BlockProcessor interface {
 	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
 	RemoveBlockTxsFromPool(body *block.TxBlockBody) error
 	GetRootHash() []byte
+	SetOnRequestTransaction(f func(destShardID uint32, txHash []byte))
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

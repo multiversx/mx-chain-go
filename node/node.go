@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
+	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/pkg/errors"
 )
@@ -226,6 +227,14 @@ func (n *Node) StartConsensus() error {
 	}
 
 	n.addSubroundsToChronology(sposWrk)
+
+	// TODO: refactor this!!!!!
+	n.blockProcessor.SetOnRequestTransaction(func(destShardID uint32, txHash []byte) {
+		txRes := n.resolvers[0].(*transaction2.TxResolver)
+		txRes.RequestTransactionFromHash(txHash)
+
+		log.Info(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+	})
 
 	go sposWrk.Cns.Chr.StartRounds()
 	go n.blockchainLog(sposWrk)

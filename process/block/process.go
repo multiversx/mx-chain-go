@@ -64,6 +64,11 @@ func NewBlockProcessor(
 	return &bp
 }
 
+// TODO: refactor this!!!!!
+func (bp *blockProcessor) SetOnRequestTransaction(f func(destShardID uint32, txHash []byte)) {
+	bp.OnRequestTransaction = f
+}
+
 // ProcessAndCommit takes each transaction from the transactions block body received as parameter
 // and processes it, updating at the same time the state trie and the associated root hash
 // if transaction is not valid or not found it will return error.
