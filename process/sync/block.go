@@ -186,6 +186,7 @@ func (boot *bootstrap) StopSync() {
 // syncBlocks method calls repeatedly synchronization method SyncBlock
 func (boot *bootstrap) syncBlocks() {
 	for {
+		time.Sleep(5 * time.Millisecond)
 		select {
 		case <-boot.chStopSync:
 			return

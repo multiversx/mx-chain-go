@@ -866,7 +866,7 @@ func (sposWorker *SPOSConsensusWorker) SendConsensusMessage(cnsDta *ConsensusDat
 }
 
 func (sposWorker *SPOSConsensusWorker) broadcastTxBlockBody() error {
-	if sposWorker.BlockBody != nil {
+	if sposWorker.BlockBody == nil {
 		return ErrNilTxBlockBody
 	}
 
