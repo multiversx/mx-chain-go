@@ -17,6 +17,9 @@ import (
 
 var log = logger.NewDefaultLogger()
 
+// sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
+const sleepTime = time.Duration(5 * time.Millisecond)
+
 // bootstrap implements the boostrsap mechanism
 type bootstrap struct {
 	headers       data.ShardedDataCacherNotifier
@@ -186,7 +189,7 @@ func (boot *bootstrap) StopSync() {
 // syncBlocks method calls repeatedly synchronization method SyncBlock
 func (boot *bootstrap) syncBlocks() {
 	for {
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(sleepTime)
 		select {
 		case <-boot.chStopSync:
 			return
