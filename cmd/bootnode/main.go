@@ -115,6 +115,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	syncer := ntp.NewSyncTime(time.Millisecond*time.Duration(genesisConfig.RoundDuration), beevikntp.Query)
 	go syncer.StartSync()
 
+	// TODO: The next 3 lines should be deleted when boostrap will work
 	time.Sleep(1000 * time.Millisecond)
 	ntpTime := syncer.CurrentTime(syncer.ClockOffset())
 	genesisConfig.StartTime = time.Date(ntpTime.Year(), ntpTime.Month(), ntpTime.Day(), ntpTime.Add(-2*time.Hour).Hour(), ntpTime.Add(1*time.Minute).Minute(), 0, 0, time.UTC).Unix()
