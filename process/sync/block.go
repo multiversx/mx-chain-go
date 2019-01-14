@@ -194,7 +194,7 @@ func (boot *bootstrap) syncBlocks() {
 			if boot.shouldSync() {
 				err := boot.SyncBlock()
 				if err != nil {
-					log.Info(err.Error())
+					log.Info(fmt.Sprintf("%s\n", err.Error()))
 				}
 			}
 		}
