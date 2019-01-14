@@ -1293,12 +1293,12 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) boo
 		}
 	}
 
-	if !sposWorker.Cns.IsValidatorInBitmap(sposWorker.Cns.selfPubKey) {
-		log.Info(fmt.Sprintf("Canceled round %d in subround %s, NOT INCLUDED IN THE BITMAP\n",
-			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBitmap)))
-		sposWorker.Cns.Chr.SetSelfSubround(-1)
-		return false
-	}
+	//if !sposWorker.Cns.IsValidatorInBitmap(sposWorker.Cns.selfPubKey) {
+	//	log.Info(fmt.Sprintf("Canceled round %d in subround %s, NOT INCLUDED IN THE BITMAP\n",
+	//		sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBitmap)))
+	//	sposWorker.Cns.Chr.SetSelfSubround(-1)
+	//	return false
+	//}
 
 	return true
 }
