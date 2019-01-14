@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"encoding/base64"
 	"math/big"
 	"net/http"
 
@@ -57,7 +58,7 @@ func GenerateTransaction(c *gin.Context) {
 		return
 	}
 
-	var gtx = SendTxRequest{}
+	var gtx = TxRequest{}
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation error: " + err.Error()})
@@ -127,10 +128,12 @@ func GetTransaction(c *gin.Context) {
 }
 
 func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
+	b64sender := base64.StdEncoding.EncodeToString(tx.SndAddr)
+	b64receiver := base64.StdEncoding.EncodeToString(tx.RcvAddr)
 	response := TxResponse{}
 	response.Nonce = tx.Nonce
-	response.Sender = string(tx.SndAddr)
-	response.Receiver = string(tx.RcvAddr)
+	response.Sender = b64sender
+	response.Receiver = b64receiver
 	response.Data = string(tx.Data)
 	response.Signature = string(tx.Signature)
 	response.Challenge = string(tx.Challenge)

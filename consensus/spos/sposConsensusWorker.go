@@ -266,13 +266,12 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 	log.Info(fmt.Sprintf("%sStep 0: Preparing for this round with leader %s%s\n",
 		sposWorker.Cns.getFormattedTime(), getPrettyByteArray([]byte(leader)), msg))
 
-	// TODO: Unccomment ShouldSync check
-	//if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-	//	log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT SYNCRONIZED\n",
-	//		sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
-	//	sposWorker.Cns.Chr.SetSelfSubround(-1)
-	//	return false
-	//}
+	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+		log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT SYNCRONIZED\n",
+			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
+		sposWorker.Cns.Chr.SetSelfSubround(-1)
+		return false
+	}
 
 	pubKeys := sposWorker.Cns.ConsensusGroup()
 
@@ -323,6 +322,12 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 		log.Error(err.Error())
 		sposWorker.BlockProcessor.RevertAccountState()
 		return false
+	}
+
+	err = sposWorker.BlockProcessor.RemoveBlockTxsFromPool(sposWorker.BlockBody)
+
+	if err != nil {
+		log.Error(err.Error())
 	}
 
 	// broadcast block body
@@ -1509,9 +1514,10 @@ func (sposWorker *SPOSConsensusWorker) CheckIfBlockIsValid(receivedHeader *block
 		// bootstrap mechanism not implemented yet (he will accept the block received)
 		log.Info(fmt.Sprintf("Nonce not match: local block nonce is 0 and node received block with nonce %d\n",
 			receivedHeader.Nonce))
-		log.Info(fmt.Sprintf("\n++++++++++++++++++++ ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET ++++++++++++++++++++\n\n",
-			receivedHeader.Nonce))
-		return true
+		//log.Info(fmt.Sprintf("\n++++++++++++++++++++ ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET ++++++++++++++++++++\n\n",
+		//	receivedHeader.Nonce))
+		//return true
+		return false
 	}
 
 	if receivedHeader.Nonce < sposWorker.BlockChain.CurrentBlockHeader.Nonce+1 {
@@ -1536,9 +1542,10 @@ func (sposWorker *SPOSConsensusWorker) CheckIfBlockIsValid(receivedHeader *block
 	// not implemented yet (he will accept the block received)
 	log.Info(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block with nonce %d\n",
 		sposWorker.BlockChain.CurrentBlockHeader.Nonce, receivedHeader.Nonce))
-	log.Info(fmt.Sprintf("\n++++++++++++++++++++ ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET ++++++++++++++++++++\n\n",
-		receivedHeader.Nonce))
-	return true
+	//log.Info(fmt.Sprintf("\n++++++++++++++++++++ ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET ++++++++++++++++++++\n\n",
+	//	receivedHeader.Nonce))
+	//return true
+	return false
 }
 
 // ShouldSync method returns the synch state of the node. If it returns 'true', this means that the node

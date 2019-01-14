@@ -451,7 +451,11 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
-	accAddress, err := n.addrConverter.CreateAddressFromHex(address)
+	addrBytes, err := base64.StdEncoding.DecodeString(address)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
+	}
+	accAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(addrBytes)
 	if err != nil {
 		return nil, errors.New("invalid address: " + err.Error())
 	}
@@ -476,8 +480,15 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	if n.privateKey == nil {
 		return nil, errors.New("initialize PrivateKey first")
 	}
-
-	senderAddress, err := n.addrConverter.CreateAddressFromHex(sender)
+	receiverAddrBytes, err := base64.StdEncoding.DecodeString(receiver)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
+	}
+	senderAddrBytes, err := base64.StdEncoding.DecodeString(sender)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
+	}
+	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddrBytes)
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}
@@ -493,8 +504,8 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	tx := transaction.Transaction{
 		Nonce:   newNonce,
 		Value:   amount,
-		RcvAddr: []byte(receiver),
-		SndAddr: []byte(sender),
+		RcvAddr: receiverAddrBytes,
+		SndAddr: senderAddrBytes,
 	}
 
 	txToByteArray, err := n.marshalizer.Marshal(tx)
@@ -520,11 +531,20 @@ func (n *Node) SendTransaction(
 	transactionData string,
 	signature string) (*transaction.Transaction, error) {
 
+	senderAddrBytes, err := base64.StdEncoding.DecodeString(sender)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
+	}
+	receiverAddrBytes, err := base64.StdEncoding.DecodeString(receiver)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
+	}
+
 	tx := transaction.Transaction{
 		Nonce:     nonce,
 		Value:     value,
-		RcvAddr:   []byte(receiver),
-		SndAddr:   []byte(sender),
+		RcvAddr:   receiverAddrBytes,
+		SndAddr:   senderAddrBytes,
 		Data:      []byte(transactionData),
 		Signature: []byte(signature),
 	}
@@ -662,7 +682,7 @@ func (n *Node) displayLogInfo(
 	blockHash []byte,
 ) {
 
-	log.Info(fmt.Sprintf("Block with nonce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, toB64(headerHash), toB64(prevHash)))
+	log.Info(fmt.Sprintf("Block with nonce %d and header hash %s was added into the blockchain. Previous block header hash was %s\n\n", header.Nonce, toB64(headerHash), toB64(prevHash)))
 
 	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(header, txBlock, blockHash)
 
