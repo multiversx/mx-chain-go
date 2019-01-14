@@ -1220,6 +1220,7 @@ func TestNode_GenerateSendInterceptTransaction(t *testing.T) {
 	select {
 	case <-chanDone:
 	case <-time.After(time.Second * 3):
+		assert.Fail(t, "timeout")
 	}
 }
 

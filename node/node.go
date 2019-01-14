@@ -531,20 +531,11 @@ func (n *Node) SendTransaction(
 	transactionData string,
 	signature string) (*transaction.Transaction, error) {
 
-	senderAddrBytes, err := base64.StdEncoding.DecodeString(sender)
-	if err != nil {
-		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
-	}
-	receiverAddrBytes, err := base64.StdEncoding.DecodeString(receiver)
-	if err != nil {
-		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
-	}
-
 	tx := transaction.Transaction{
 		Nonce:     nonce,
 		Value:     value,
-		RcvAddr:   receiverAddrBytes,
-		SndAddr:   senderAddrBytes,
+		RcvAddr:   []byte(receiver),
+		SndAddr:   []byte(sender),
 		Data:      []byte(transactionData),
 		Signature: []byte(signature),
 	}

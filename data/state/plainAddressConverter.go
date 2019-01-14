@@ -45,6 +45,7 @@ func (pac *PlainAddressConverter) CreateAddressFromPublicKeyBytes(pubKey []byte)
 	return newAddress(newPubKey), nil
 }
 
+// ConvertToHex returns the hex string representation of the address.
 func (pac *PlainAddressConverter) ConvertToHex(addressContainer AddressContainer) (string, error) {
 	if addressContainer == nil {
 		return "", ErrNilAddressContainer
@@ -53,6 +54,7 @@ func (pac *PlainAddressConverter) ConvertToHex(addressContainer AddressContainer
 	return pac.prefix + hex.EncodeToString(addressContainer.Bytes()), nil
 }
 
+// CreateAddressFromHex creates the address from hex string
 func (pac *PlainAddressConverter) CreateAddressFromHex(hexAddress string) (AddressContainer, error) {
 	if len(hexAddress) == 0 {
 		return nil, ErrEmptyAddress
@@ -82,6 +84,7 @@ func (pac *PlainAddressConverter) CreateAddressFromHex(hexAddress string) (Addre
 	return newAddress(buff), nil
 }
 
+// PrepareAddressBytes checks and returns the slice compatible to the address format
 func (pac *PlainAddressConverter) PrepareAddressBytes(addressBytes []byte) ([]byte, error) {
 	if addressBytes == nil {
 		return nil, ErrNilAddressContainer
