@@ -268,10 +268,12 @@ func (n *Node) createBootstrap(round *chronology.Round) error {
 
 func requestHeader(nonce uint64) {
 	// TODO: implement me
+	log.Info(fmt.Sprintf("requested header from network"))
 }
 
 func requestTxBody(hash []byte) {
 	// TODO: implement me
+	log.Info(fmt.Sprintf("requested tx body from network"))
 }
 
 // createRoundConsensus method creates a RoundConsensus object
@@ -350,6 +352,8 @@ func (n *Node) createConsensusWorker(cns *spos.Consensus) (*spos.SPOSConsensusWo
 	}
 
 	sposWrk.SendMessage = n.sendMessage
+	sposWrk.BroadcastBlockBody = n.broadcastBlockBody
+	sposWrk.BroadcastHeader = n.broadcastHeader
 
 	return sposWrk, nil
 }
@@ -603,7 +607,7 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 
 			headerHash := n.hasher.Compute(string(headerMarsh))
 
-			log.Info(fmt.Sprintf("Block with nounce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, getPrettyByteArray(headerHash), getPrettyByteArray(prevHeaderHash)))
+			log.Info(fmt.Sprintf("Block with nonce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, getPrettyByteArray(headerHash), getPrettyByteArray(prevHeaderHash)))
 
 			oldNonce = header.Nonce
 			prevHeaderHash = headerHash
@@ -623,6 +627,36 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 	}
 
 	err := topic.Broadcast(*cnsDta)
+
+	if err != nil {
+		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
+	}
+}
+
+func (n *Node) broadcastBlockBody(msg []byte) {
+	topic := n.messenger.GetTopic(string(TxBlockBodyTopic))
+
+	if topic == nil {
+		log.Debug(fmt.Sprintf("could not get tx block body topic"))
+		return
+	}
+
+	err := topic.Broadcast(msg)
+
+	if err != nil {
+		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
+	}
+}
+
+func (n *Node) broadcastHeader(msg []byte) {
+	topic := n.messenger.GetTopic(string(HeadersTopic))
+
+	if topic == nil {
+		log.Debug(fmt.Sprintf("could not get header topic"))
+		return
+	}
+
+	err := topic.Broadcast(msg)
 
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))

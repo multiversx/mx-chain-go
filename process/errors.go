@@ -85,7 +85,7 @@ var ErrNilTxHashes = errors.New("nil transaction hashes")
 // ErrNilRootHash signals that an operation has been attempted with a nil root hash
 var ErrNilRootHash = errors.New("root hash is nil")
 
-// ErrWrongNonceInBlock signals the nonce in block is different than expected nounce
+// ErrWrongNonceInBlock signals the nonce in block is different than expected nonce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 
 // ErrInvalidBlockHash signals the hash of the block is not matching with the previous one
