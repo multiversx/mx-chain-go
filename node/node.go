@@ -24,6 +24,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/pkg/errors"
 )
@@ -271,7 +273,7 @@ func (n *Node) createBootstrap(round *chronology.Round) error {
 		hdrRes := n.resolvers[2].(*block2.GenericBlockBodyResolver)
 		hdrRes.RequestBlockBodyFromHash(hash)
 
-		log.Info(fmt.Sprintf("Requested tx body with hash %s from network\n", getPrettyByteArray(hash)))
+		log.Info(fmt.Sprintf("Requested tx body with hash %s from network\n", toB64(hash)))
 	}
 
 	bootstrap.StartSync()
