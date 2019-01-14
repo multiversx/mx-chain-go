@@ -22,10 +22,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
+
+// WaitTime defines the time in milliseconds until node waits the requested info from the network
+const WaitTime = time.Duration(2000 * time.Millisecond)
 
 type topicName string
 
@@ -194,6 +198,13 @@ func (n *Node) StartConsensus() error {
 	n.blkc.GenesisBlock = genessisBlock
 	round := n.createRound()
 	chr := n.createChronology(round)
+
+	err = n.createBootstrap(round)
+
+	if err != nil {
+		return err
+	}
+
 	rndc := n.createRoundConsensus()
 	rth := n.createRoundThreshold()
 	rnds := n.createRoundStatus()
@@ -239,6 +250,28 @@ func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology 
 		n.syncer)
 
 	return chr
+}
+
+func (n *Node) createBootstrap(round *chronology.Round) error {
+	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, round, n.blockProcessor, WaitTime)
+
+	if err != nil {
+		return err
+	}
+
+	bootstrap.RequestHeaderHandler = requestHeader
+	bootstrap.RequestTxBodyHandler = requestTxBody
+	bootstrap.StartSync()
+
+	return nil
+}
+
+func requestHeader(nonce uint64) {
+	// TODO: implement me
+}
+
+func requestTxBody(hash []byte) {
+	// TODO: implement me
 }
 
 // createRoundConsensus method creates a RoundConsensus object
