@@ -672,10 +672,7 @@ func (n *Node) displayLogInfo(
 	sposWrk *spos.SPOSConsensusWorker,
 	blockHash []byte,
 ) {
-
-	log.Info(fmt.Sprintf("Block with nonce %d and header hash %s was added into the blockchain. Previous block header hash was %s\n\n", header.Nonce, toB64(headerHash), toB64(prevHash)))
-
-	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(header, txBlock, blockHash)
+	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(header, txBlock, headerHash, blockHash)
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
@@ -690,11 +687,12 @@ func (n *Node) displayLogInfo(
 func createDisplayableHeaderAndBlockBody(
 	hdr *block.Header,
 	txBody *block.TxBlockBody,
+	hdrHash []byte,
 	txBlockHash []byte) ([]string, []*display.LineData) {
 
 	header := []string{"Part", "Parameter", "Value"}
 
-	lines := displayHeader(hdr)
+	lines := displayHeader(hdr, hdrHash)
 
 	if hdr.BlockBodyType == block.TxBlock {
 		lines = displayTxBlockBody(lines, txBody, txBlockHash)
@@ -708,7 +706,9 @@ func createDisplayableHeaderAndBlockBody(
 	return header, lines
 }
 
-func displayHeader(hdr *block.Header) []*display.LineData {
+func displayHeader(hdr *block.Header,
+	hdrHash []byte,
+) []*display.LineData {
 	lines := make([]*display.LineData, 0)
 
 	lines = append(lines, display.NewLineData(false, []string{
@@ -731,6 +731,10 @@ func displayHeader(hdr *block.Header) []*display.LineData {
 		"",
 		"Timestamp",
 		fmt.Sprintf("%d", hdr.TimeStamp)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Current hash",
+		toB64(hdrHash)}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Prev hash",
