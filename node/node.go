@@ -22,10 +22,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
+
+// WaitTime defines the time in milliseconds until node waits the requested info from the network
+const WaitTime = time.Duration(2000 * time.Millisecond)
 
 type topicName string
 
@@ -194,6 +198,13 @@ func (n *Node) StartConsensus() error {
 	n.blkc.GenesisBlock = genessisBlock
 	round := n.createRound()
 	chr := n.createChronology(round)
+
+	err = n.createBootstrap(round)
+
+	if err != nil {
+		return err
+	}
+
 	rndc := n.createRoundConsensus()
 	rth := n.createRoundThreshold()
 	rnds := n.createRoundStatus()
@@ -239,6 +250,30 @@ func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology 
 		n.syncer)
 
 	return chr
+}
+
+func (n *Node) createBootstrap(round *chronology.Round) error {
+	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, round, n.blockProcessor, WaitTime)
+
+	if err != nil {
+		return err
+	}
+
+	bootstrap.RequestHeaderHandler = requestHeader
+	bootstrap.RequestTxBodyHandler = requestTxBody
+	bootstrap.StartSync()
+
+	return nil
+}
+
+func requestHeader(nonce uint64) {
+	// TODO: implement me
+	log.Info(fmt.Sprintf("requested header from network\n"))
+}
+
+func requestTxBody(hash []byte) {
+	// TODO: implement me
+	log.Info(fmt.Sprintf("requested tx body from network\n"))
 }
 
 // createRoundConsensus method creates a RoundConsensus object
@@ -317,6 +352,8 @@ func (n *Node) createConsensusWorker(cns *spos.Consensus) (*spos.SPOSConsensusWo
 	}
 
 	sposWrk.SendMessage = n.sendMessage
+	sposWrk.BroadcastBlockBody = n.broadcastBlockBody
+	sposWrk.BroadcastHeader = n.broadcastHeader
 
 	return sposWrk, nil
 }
@@ -581,7 +618,7 @@ func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
 
 			headerHash := n.hasher.Compute(string(headerMarsh))
 
-			log.Info(fmt.Sprintf("Block with nounce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, getPrettyByteArray(headerHash), getPrettyByteArray(prevHeaderHash)))
+			log.Info(fmt.Sprintf("Block with nonce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, getPrettyByteArray(headerHash), getPrettyByteArray(prevHeaderHash)))
 
 			oldNonce = header.Nonce
 			prevHeaderHash = headerHash
@@ -601,6 +638,36 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 	}
 
 	err := topic.Broadcast(*cnsDta)
+
+	if err != nil {
+		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
+	}
+}
+
+func (n *Node) broadcastBlockBody(msg []byte) {
+	topic := n.messenger.GetTopic(string(TxBlockBodyTopic))
+
+	if topic == nil {
+		log.Debug(fmt.Sprintf("could not get tx block body topic"))
+		return
+	}
+
+	err := topic.Broadcast(msg)
+
+	if err != nil {
+		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
+	}
+}
+
+func (n *Node) broadcastHeader(msg []byte) {
+	topic := n.messenger.GetTopic(string(HeadersTopic))
+
+	if topic == nil {
+		log.Debug(fmt.Sprintf("could not get header topic"))
+		return
+	}
+
+	err := topic.Broadcast(msg)
 
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))

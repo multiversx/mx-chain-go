@@ -267,12 +267,12 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 		sposWorker.Cns.getFormattedTime(), getPrettyByteArray([]byte(leader)), msg))
 
 	// TODO: Unccomment ShouldSync check
-	//if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-	//	log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, not synchronized",
-	//		sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
-	//	sposWorker.Cns.Chr.SetSelfSubround(-1)
-	//	return false
-	//}
+	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+		log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT SYNCRONIZED",
+			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
+		sposWorker.Cns.Chr.SetSelfSubround(-1)
+		return false
+	}
 
 	pubKeys := sposWorker.Cns.ConsensusGroup()
 
@@ -866,7 +866,7 @@ func (sposWorker *SPOSConsensusWorker) SendConsensusMessage(cnsDta *ConsensusDat
 }
 
 func (sposWorker *SPOSConsensusWorker) broadcastTxBlockBody() error {
-	if sposWorker.BlockBody != nil {
+	if sposWorker.BlockBody == nil {
 		return ErrNilTxBlockBody
 	}
 
@@ -1123,7 +1123,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBlockHeader(cnsDta *ConsensusData
 	hdr := sposWorker.DecodeBlockHeader(cnsDta.SubRoundData)
 
 	if !sposWorker.CheckIfBlockIsValid(hdr) {
-		log.Info(fmt.Sprintf("Canceled round %d in subround %s\n",
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, INVALID BLOCK\n",
 			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
@@ -1270,7 +1270,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) boo
 	nbSigners := countBitmapFlags(signersBitmap)
 
 	if int(nbSigners) < sposWorker.Cns.Threshold(SrBitmap) {
-		log.Info(fmt.Sprintf("Canceled round %d in subround %s\n",
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, TOO FEW SIGNERS IN BITMAP\n",
 			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBitmap)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
@@ -1292,6 +1292,13 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) boo
 			}
 		}
 	}
+
+	//if !sposWorker.Cns.IsValidatorInBitmap(sposWorker.Cns.selfPubKey) {
+	//	log.Info(fmt.Sprintf("Canceled round %d in subround %s, NOT INCLUDED IN THE BITMAP\n",
+	//		sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBitmap)))
+	//	sposWorker.Cns.Chr.SetSelfSubround(-1)
+	//	return false
+	//}
 
 	return true
 }
@@ -1424,9 +1431,10 @@ func (sposWorker *SPOSConsensusWorker) CheckIfBlockIsValid(receivedHeader *block
 		// bootstrap mechanism not implemented yet (he will accept the block received)
 		log.Info(fmt.Sprintf("Nonce not match: local block nonce is 0 and node received block with nonce %d\n",
 			receivedHeader.Nonce))
-		log.Info(fmt.Sprintf("\n++++++++++++++++++++ ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET ++++++++++++++++++++\n\n",
-			receivedHeader.Nonce))
-		return true
+		//log.Info(fmt.Sprintf("\n++++++++++++++++++++ ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET ++++++++++++++++++++\n\n",
+		//	receivedHeader.Nonce))
+		//return true
+		return false
 	}
 
 	if receivedHeader.Nonce < sposWorker.BlockChain.CurrentBlockHeader.Nonce+1 {
@@ -1451,9 +1459,10 @@ func (sposWorker *SPOSConsensusWorker) CheckIfBlockIsValid(receivedHeader *block
 	// not implemented yet (he will accept the block received)
 	log.Info(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block with nonce %d\n",
 		sposWorker.BlockChain.CurrentBlockHeader.Nonce, receivedHeader.Nonce))
-	log.Info(fmt.Sprintf("\n++++++++++++++++++++ ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET ++++++++++++++++++++\n\n",
-		receivedHeader.Nonce))
-	return true
+	//log.Info(fmt.Sprintf("\n++++++++++++++++++++ ACCEPTED BLOCK WITH NONCE %d BECAUSE BOOSTRAP IS NOT IMPLEMENTED YET ++++++++++++++++++++\n\n",
+	//	receivedHeader.Nonce))
+	//return true
+	return false
 }
 
 // ShouldSync method returns the synch state of the node. If it returns 'true', this means that the node
@@ -1526,6 +1535,10 @@ func (cns *Consensus) CheckBlockConsensus() bool {
 	cns.mut.Lock()
 	defer cns.mut.Unlock()
 
+	if cns.Chr.IsCancelled() {
+		return false
+	}
+
 	if cns.Status(SrBlock) == SsFinished {
 		return true
 	}
@@ -1543,6 +1556,10 @@ func (cns *Consensus) CheckBlockConsensus() bool {
 func (cns *Consensus) CheckCommitmentHashConsensus() bool {
 	cns.mut.Lock()
 	defer cns.mut.Unlock()
+
+	if cns.Chr.IsCancelled() {
+		return false
+	}
 
 	if cns.Status(SrCommitmentHash) == SsFinished {
 		return true
@@ -1574,6 +1591,10 @@ func (cns *Consensus) CheckBitmapConsensus() bool {
 	cns.mut.Lock()
 	defer cns.mut.Unlock()
 
+	if cns.Chr.IsCancelled() {
+		return false
+	}
+
 	if cns.Status(SrBitmap) == SsFinished {
 		return true
 	}
@@ -1592,6 +1613,10 @@ func (cns *Consensus) CheckCommitmentConsensus() bool {
 	cns.mut.Lock()
 	defer cns.mut.Unlock()
 
+	if cns.Chr.IsCancelled() {
+		return false
+	}
+
 	if cns.Status(SrCommitment) == SsFinished {
 		return true
 	}
@@ -1609,6 +1634,10 @@ func (cns *Consensus) CheckCommitmentConsensus() bool {
 func (cns *Consensus) CheckSignatureConsensus() bool {
 	cns.mut.Lock()
 	defer cns.mut.Unlock()
+
+	if cns.Chr.IsCancelled() {
+		return false
+	}
 
 	if cns.Status(SrSignature) == SsFinished {
 		return true
