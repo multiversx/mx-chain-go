@@ -2,7 +2,7 @@ package transaction_test
 
 import (
 	"bytes"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -68,8 +68,8 @@ func TestGenerateTransaction_WithParametersShouldReturnTransaction(t *testing.T)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, "", transactionResponse.Error)
-	assert.Equal(t, base64.StdEncoding.EncodeToString([]byte(sender)), txResp.Sender)
-	assert.Equal(t, base64.StdEncoding.EncodeToString([]byte(receiver)), txResp.Receiver)
+	assert.Equal(t, hex.EncodeToString([]byte(sender)), txResp.Sender)
+	assert.Equal(t, hex.EncodeToString([]byte(receiver)), txResp.Receiver)
 	assert.Equal(t, value, txResp.Value)
 	assert.Equal(t, data, txResp.Data)
 }
@@ -102,8 +102,8 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	txResp := transactionResponse.TxResp
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, base64.StdEncoding.EncodeToString([]byte(sender)), txResp.Sender)
-	assert.Equal(t, base64.StdEncoding.EncodeToString([]byte(receiver)), txResp.Receiver)
+	assert.Equal(t, hex.EncodeToString([]byte(sender)), txResp.Sender)
+	assert.Equal(t, hex.EncodeToString([]byte(receiver)), txResp.Receiver)
 	assert.Equal(t, value, txResp.Value)
 	assert.Equal(t, data, txResp.Data)
 }

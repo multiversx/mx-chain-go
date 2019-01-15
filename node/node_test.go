@@ -851,7 +851,7 @@ func TestSendTransaction_TopicDoesNotExistsShouldErr(t *testing.T) {
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
-	signature := "signature"
+	signature := []byte("signature")
 
 	tx, err := n.SendTransaction(
 		nonce,
@@ -894,7 +894,7 @@ func TestSendTransaction_BroadcastErrShouldErr(t *testing.T) {
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
-	signature := "signature"
+	signature := []byte("signature")
 
 	tx, err := n.SendTransaction(
 		nonce,
@@ -938,7 +938,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
-	signature := "signature"
+	signature := []byte("signature")
 
 	tx, err := n.SendTransaction(
 		nonce,
@@ -1225,7 +1225,7 @@ func TestNode_GenerateSendInterceptTransaction(t *testing.T) {
 
 	//Step 4. Send Tx
 	_, err = n.SendTransaction(tx.Nonce, hex.EncodeToString(tx.SndAddr), hex.EncodeToString(tx.RcvAddr),
-		tx.Value, string(tx.Data), string(tx.Signature))
+		tx.Value, string(tx.Data), tx.Signature)
 	assert.Nil(t, err)
 
 	select {
