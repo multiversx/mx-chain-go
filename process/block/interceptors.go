@@ -86,8 +86,8 @@ func (hi *HeaderInterceptor) processHdr(hdr p2p.Creator, rawData []byte) error {
 		return process.ErrBadInterceptorTopicImplementation
 	}
 
-	hash := hi.hasher.Compute(string(rawData))
-	hdrIntercepted.SetHash(hash)
+	hashWithSig := hi.hasher.Compute(string(rawData))
+	hdrIntercepted.SetHash(hashWithSig)
 
 	err := hdrIntercepted.IntegrityAndValidity(hi.shardCoordinator)
 	if err != nil {
@@ -99,9 +99,9 @@ func (hi *HeaderInterceptor) processHdr(hdr p2p.Creator, rawData []byte) error {
 		return err
 	}
 
-	hi.headers.AddData(hash, hdrIntercepted, hdrIntercepted.Shard())
+	hi.headers.AddData(hashWithSig, hdrIntercepted.GetHeader(), hdrIntercepted.Shard())
 	if hi.checkHeaderForCurrentShard(hdrIntercepted) {
-		_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hash)
+		_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hashWithSig)
 	}
 	return nil
 }

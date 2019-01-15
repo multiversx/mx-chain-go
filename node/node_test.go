@@ -2,30 +2,21 @@ package node_test
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"math/rand"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -851,7 +842,7 @@ func TestSendTransaction_TopicDoesNotExistsShouldErr(t *testing.T) {
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
-	signature := "signature"
+	signature := []byte("signature")
 
 	tx, err := n.SendTransaction(
 		nonce,
@@ -894,7 +885,7 @@ func TestSendTransaction_BroadcastErrShouldErr(t *testing.T) {
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
-	signature := "signature"
+	signature := []byte("signature")
 
 	tx, err := n.SendTransaction(
 		nonce,
@@ -938,7 +929,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
-	signature := "signature"
+	signature := []byte("signature")
 
 	tx, err := n.SendTransaction(
 		nonce,
@@ -1151,140 +1142,4 @@ func TestNode_DisplayLogInfo(t *testing.T) {
 
 	n.DisplayLogInfo(hdr, txBlock, hasher.Compute("header hash"),
 		hasher.Compute("prev hash"), sposWrk, hasher.Compute("block hash"))
-}
-
-func TestNode_GenerateSendInterceptTransaction(t *testing.T) {
-	hasher := mock.HasherFake{}
-	marshalizer := &mock.MarshalizerFake{}
-
-	keyGen := schnorr.NewKeyGenerator()
-	sk, pk := keyGen.GeneratePair()
-	buffPk, _ := pk.ToByteArray()
-
-	dPool := createTestDataPool()
-
-	addrConverter := mock.NewAddressConverterFake(32, "0x")
-
-	n, _ := node.NewNode(
-		node.WithPort(4000),
-		node.WithMarshalizer(marshalizer),
-		node.WithHasher(hasher),
-		node.WithMaxAllowedPeers(4),
-		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
-		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
-		node.WithPrivateKey(&mock.PrivateKeyStub{}),
-		node.WithDataPool(dPool),
-		node.WithAddressConverter(addrConverter),
-		node.WithSingleSignKeyGenerator(keyGen),
-		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
-		node.WithBlockChain(createTestBlockChain()),
-		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
-	)
-
-	n.Start()
-	defer n.Stop()
-
-	err := n.BindInterceptorsResolvers()
-	if err != nil {
-		assert.Fail(t, err.Error())
-		return
-	}
-
-	//Step 1. Generate a transaction
-	tx := transaction.Transaction{
-		Nonce:   0,
-		Value:   *big.NewInt(0),
-		RcvAddr: hasher.Compute("receiver"),
-		SndAddr: buffPk,
-		Data:    []byte("tx notarized data"),
-	}
-
-	//Step 2. Sign transaction
-	txBuff, _ := marshalizer.Marshal(&tx)
-	txHash := hasher.Compute(string(txBuff))
-	tx.Signature, _ = sk.Sign(txHash)
-
-	signedTxBuff, _ := marshalizer.Marshal(&tx)
-
-	fmt.Printf("Transaction: %v\n%v\n", tx, string(signedTxBuff))
-
-	chanDone := make(chan bool)
-
-	//step 3. wire up a received handler
-	dPool.Transactions().RegisterHandler(func(key []byte) {
-		txStored, _ := dPool.Transactions().ShardDataStore(0).Get(key)
-
-		if reflect.DeepEqual(txStored, &tx) {
-			chanDone <- true
-		}
-
-		assert.Equal(t, txStored, &tx)
-
-	})
-
-	//Step 4. Send Tx
-	_, err = n.SendTransaction(tx.Nonce, hex.EncodeToString(tx.SndAddr), hex.EncodeToString(tx.RcvAddr),
-		tx.Value, string(tx.Data), string(tx.Signature))
-	assert.Nil(t, err)
-
-	select {
-	case <-chanDone:
-	case <-time.After(time.Second * 3):
-		assert.Fail(t, "timeout")
-	}
-}
-
-func createTestDataPool() data.TransientDataHolder {
-	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
-	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
-
-	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
-
-	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-
-	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-
-	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	stateBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-
-	dPool, _ := dataPool.NewDataPool(
-		txPool,
-		hdrPool,
-		hdrNonces,
-		txBlockBody,
-		peerChangeBlockBody,
-		stateBlockBody,
-	)
-
-	return dPool
-}
-
-func createTestBlockChain() *blockchain.BlockChain {
-
-	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-
-	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
-
-	blockChain, _ := blockchain.NewBlockChain(
-		badBlockCache,
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit())
-
-	return blockChain
-}
-
-func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10)
-	persist, _ := memorydb.New()
-
-	unit, _ := storage.NewStorageUnit(cache, persist)
-	return unit
 }

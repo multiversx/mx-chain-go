@@ -5,11 +5,11 @@
   "elasticSubrounds": false,
   "initialNodes": [
     {
-      "pubkey": "199866d09b8385023c25f261460d4d20ae0d5bc72ddf1fa5c1b32768167a8fb0",
+      "pubkey": "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419",
       "balance": "10000000"
     },
     {
-      "pubkey": "0098f7634d7327139848a0f6ad926051596e5a0f692adfb671ab02092b77181d",
+      "pubkey": "8e0b815be8026a6732eea132e113913c12e2f5b19f25e86a8403afffbaf02088",
       "balance": "10000000"
     },
     {
@@ -81,11 +81,11 @@
       "balance": "10000000"
     },
     {
-      "pubkey": "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419",
+      "pubkey": "199866d09b8385023c25f261460d4d20ae0d5bc72ddf1fa5c1b32768167a8fb0",
       "balance": "10000000"
     },
     {
-      "pubkey": "8e0b815be8026a6732eea132e113913c12e2f5b19f25e86a8403afffbaf02088",
+      "pubkey": "0098f7634d7327139848a0f6ad926051596e5a0f692adfb671ab02092b77181d",
       "balance": "10000000"
     }
   ]

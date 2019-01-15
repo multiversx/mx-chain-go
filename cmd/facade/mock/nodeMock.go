@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 type NodeMock struct {
@@ -18,7 +19,7 @@ type NodeMock struct {
 	GetBalanceHandler                func(address string) (*big.Int, error)
 	GenerateTransactionHandler       func(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler            func(hash string) (*transaction.Transaction, error)
-	SendTransactionHandler           func(nonce uint64, sender string, receiver string, amount big.Int, code string, signature string) (*transaction.Transaction, error)
+	SendTransactionHandler           func(nonce uint64, sender string, receiver string, amount big.Int, code string, signature []byte) (*transaction.Transaction, error)
 }
 
 func (nm *NodeMock) Address() (string, error) {
@@ -66,6 +67,13 @@ func (nm *NodeMock) GetTransaction(hash string) (*transaction.Transaction, error
 	return nm.GetTransactionHandler(hash)
 }
 
-func (nm *NodeMock) SendTransaction(nonce uint64, sender string, receiver string, value big.Int, transactionData string, signature string) (*transaction.Transaction, error) {
+func (nm *NodeMock) SendTransaction(nonce uint64, sender string, receiver string, value big.Int, transactionData string, signature []byte) (*transaction.Transaction, error) {
 	return nm.SendTransactionHandler(nonce, sender, receiver, value, transactionData, signature)
+}
+
+func (nm *NodeMock) GetInterceptors() []process.Interceptor {
+	return nil
+}
+func (nm *NodeMock) GetResolvers() []process.Resolver {
+	return nil
 }

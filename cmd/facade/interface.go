@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 // Facade represents a facade for grouping the functionality needed for node, transaction and address
@@ -76,4 +77,7 @@ type NodeWrapper interface {
 
 	//GetTransaction gets the transaction
 	GetTransaction(hash string) (*transaction.Transaction, error)
+
+	GetInterceptors() []process.Interceptor
+	GetResolvers() []process.Resolver
 }

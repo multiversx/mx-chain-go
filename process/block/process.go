@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -363,6 +364,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			tx := bp.getTransactionFromPool(miniBlock.ShardID, txHash)
+			fmt.Println(tx)
 			if tx == nil {
 				return process.ErrMissingTransaction
 			}
