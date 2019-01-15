@@ -13,7 +13,7 @@ var (
 	PrivateKey = cli.StringFlag{
 		Name:  "private-key",
 		Usage: "Private key that the node will load on startup and will sign transactions - temporary until we have a wallet that can do that",
-		Value: "ZBis8aK5I66x1hwD+fE8sIw2nwQR5EBlTM8EiAOLZwE=",
+		Value: "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f",
 	}
 	// WithUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	WithUI = cli.BoolTFlag{

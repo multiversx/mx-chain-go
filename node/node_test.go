@@ -2,8 +2,10 @@ package node_test
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"reflect"
 	"testing"
 	"time"
@@ -318,7 +320,7 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 			return nil, errors.New("error")
 		},
 	}
-	addrConverter := getAddressConverter()
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -331,9 +333,26 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GetBalance("address")
+	_, err := n.GetBalance(createDummyHexAddress(64))
 	assert.NotNil(t, err)
 	assert.Equal(t, "could not fetch sender address from provided param", err.Error())
+}
+
+func createDummyHexAddress(chars int) string {
+	if chars < 1 {
+		return ""
+	}
+
+	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
+
+	rdm := rand.New(rand.NewSource(time.Now().Unix()))
+
+	buff := make([]byte, chars)
+	for i := 0; i < chars; i++ {
+		buff[i] = characters[rdm.Int()%16]
+	}
+
+	return string(buff)
 }
 
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
@@ -343,7 +362,7 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 			return nil, nil
 		},
 	}
-	addrConverter := getAddressConverter()
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -356,7 +375,7 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	balance, err := n.GetBalance("address")
+	balance, err := n.GetBalance(createDummyHexAddress(64))
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(0), balance)
 }
@@ -364,7 +383,7 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 func TestGetBalance(t *testing.T) {
 
 	accAdapter := getAccAdapter(*big.NewInt(100))
-	addrConverter := getAddressConverter()
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -377,7 +396,7 @@ func TestGetBalance(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	balance, err := n.GetBalance("address")
+	balance, err := n.GetBalance(createDummyHexAddress(64))
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(100), balance)
 }
@@ -433,15 +452,7 @@ func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 
 	accAdapter := getAccAdapter(*big.NewInt(0))
-	addrConverter := mock.AddressConverterStub{
-		CreateAddressFromHexHandler: func(hexAddress string) (state.AddressContainer, error) {
-			// Return that will result in a correct run of GenerateTransaction -> will fail test
-			/*return mock.AddressContainerStub{
-			}, nil*/
-
-			return nil, errors.New("error")
-		},
-	}
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -465,7 +476,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 			return nil, errors.New("error")
 		},
 	}
-	addrConverter := getAddressConverter()
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -478,7 +489,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
 	assert.NotNil(t, err)
 }
 
@@ -489,7 +500,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 			return nil, nil
 		},
 	}
-	addrConverter := getAddressConverter()
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -502,14 +513,14 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
 	assert.Nil(t, err)
 }
 
 func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 
 	accAdapter := getAccAdapter(*big.NewInt(0))
-	addrConverter := getAddressConverter()
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -522,14 +533,14 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
 	assert.Nil(t, err)
 }
 
 func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 
 	accAdapter := getAccAdapter(*big.NewInt(0))
-	addrConverter := getAddressConverter()
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	marshalizer := mock.MarshalizerMock{
 		MarshalHandler: func(obj interface{}) ([]byte, error) {
@@ -554,7 +565,7 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 
 	accAdapter := getAccAdapter(*big.NewInt(0))
-	addrConverter := getAddressConverter()
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := mock.PrivateKeyStub{
 		SignHandler: func(message []byte) ([]byte, error) {
 			return nil, errors.New("error")
@@ -571,14 +582,14 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
 	assert.NotNil(t, err)
 }
 
 func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 
 	accAdapter := getAccAdapter(*big.NewInt(0))
-	addrConverter := getAddressConverter()
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	signature := []byte{69}
 	privateKey := mock.PrivateKeyStub{
 		SignHandler: func(message []byte) ([]byte, error) {
@@ -598,7 +609,7 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 		node.WithPrivateKey(privateKey),
 	)
 
-	tx, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
 	assert.Nil(t, err)
 	assert.Equal(t, signature, tx.Signature)
 }
@@ -618,7 +629,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 			}, nil
 		},
 	}
-	addrConverter := getAddressConverter()
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -632,7 +643,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 		node.WithPrivateKey(privateKey),
 	)
 
-	tx, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, tx.Nonce)
 }
@@ -640,7 +651,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 
 	accAdapter := getAccAdapter(*big.NewInt(0))
-	addrConverter := getAddressConverter()
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -653,7 +664,7 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
 	assert.Nil(t, err)
 }
 
@@ -676,15 +687,6 @@ func getPrivateKey() mock.PrivateKeyStub {
 	return mock.PrivateKeyStub{
 		SignHandler: func(message []byte) ([]byte, error) {
 			return []byte{2}, nil
-		},
-	}
-}
-
-func getAddressConverter() mock.AddressConverterStub {
-	return mock.AddressConverterStub{
-		CreateAddressFromHexHandler: func(hexAddress string) (state.AddressContainer, error) {
-			// Return that will result in a correct run of GenerateTransaction -> will fail test
-			return mock.AddressContainerStub{}, nil
 		},
 	}
 }
@@ -833,7 +835,9 @@ func TestBindInterceptorsResolvers_CreateResolversFailsShouldErr(t *testing.T) {
 }
 
 func TestSendTransaction_TopicDoesNotExistsShouldErr(t *testing.T) {
-	n, _ := node.NewNode()
+	n, _ := node.NewNode(
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
+	)
 
 	mes := mock.NewMessengerStub()
 	n.SetMessenger(mes)
@@ -844,8 +848,8 @@ func TestSendTransaction_TopicDoesNotExistsShouldErr(t *testing.T) {
 
 	nonce := uint64(50)
 	value := *big.NewInt(567)
-	sender := "sender"
-	receiver := "receiver"
+	sender := createDummyHexAddress(64)
+	receiver := createDummyHexAddress(64)
 	txData := "data"
 	signature := "signature"
 
@@ -862,14 +866,17 @@ func TestSendTransaction_TopicDoesNotExistsShouldErr(t *testing.T) {
 }
 
 func TestSendTransaction_BroadcastErrShouldErr(t *testing.T) {
-	n, _ := node.NewNode()
+	n, _ := node.NewNode(
+		node.WithMarshalizer(&mock.MarshalizerFake{}),
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
+	)
 
 	mes := mock.NewMessengerStub()
 	n.SetMessenger(mes)
 
 	broadcastErr := errors.New("failure")
 
-	topicTx := p2p.NewTopic("", &mock.StringCreatorMock{}, mock.MarshalizerMock{})
+	topicTx := p2p.NewTopic("", &mock.StringCreatorMock{}, &mock.MarshalizerMock{})
 	topicTx.SendData = func(data []byte) error {
 		return broadcastErr
 	}
@@ -884,8 +891,8 @@ func TestSendTransaction_BroadcastErrShouldErr(t *testing.T) {
 
 	nonce := uint64(50)
 	value := *big.NewInt(567)
-	sender := "sender"
-	receiver := "receiver"
+	sender := createDummyHexAddress(64)
+	receiver := createDummyHexAddress(64)
 	txData := "data"
 	signature := "signature"
 
@@ -902,7 +909,10 @@ func TestSendTransaction_BroadcastErrShouldErr(t *testing.T) {
 }
 
 func TestSendTransaction_ShouldWork(t *testing.T) {
-	n, _ := node.NewNode()
+	n, _ := node.NewNode(
+		node.WithMarshalizer(&mock.MarshalizerFake{}),
+		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
+	)
 
 	mes := mock.NewMessengerStub()
 	n.SetMessenger(mes)
@@ -925,8 +935,8 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 
 	nonce := uint64(50)
 	value := *big.NewInt(567)
-	sender := "sender"
-	receiver := "receiver"
+	sender := createDummyHexAddress(64)
+	receiver := createDummyHexAddress(64)
 	txData := "data"
 	signature := "signature"
 
@@ -1153,7 +1163,7 @@ func TestNode_GenerateSendInterceptTransaction(t *testing.T) {
 
 	dPool := createTestDataPool()
 
-	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
 
 	n, _ := node.NewNode(
 		node.WithPort(4000),
@@ -1165,7 +1175,7 @@ func TestNode_GenerateSendInterceptTransaction(t *testing.T) {
 		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 		node.WithDataPool(dPool),
-		node.WithAddressConverter(addrConv),
+		node.WithAddressConverter(addrConverter),
 		node.WithSingleSignKeyGenerator(keyGen),
 		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
 		node.WithBlockChain(createTestBlockChain()),
@@ -1214,7 +1224,8 @@ func TestNode_GenerateSendInterceptTransaction(t *testing.T) {
 	})
 
 	//Step 4. Send Tx
-	_, err = n.SendTransaction(tx.Nonce, string(tx.SndAddr), string(tx.RcvAddr), tx.Value, string(tx.Data), string(tx.Signature))
+	_, err = n.SendTransaction(tx.Nonce, hex.EncodeToString(tx.SndAddr), hex.EncodeToString(tx.RcvAddr),
+		tx.Value, string(tx.Data), string(tx.Signature))
 	assert.Nil(t, err)
 
 	select {

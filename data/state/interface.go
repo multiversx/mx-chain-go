@@ -10,7 +10,7 @@ import (
 const HashLength = 32
 
 // RegistrationAddress holds the defined registration address
-var RegistrationAddress = newAddress(make([]byte, 32))
+var RegistrationAddress = NewAddress(make([]byte, 32))
 
 // AddressConverter is used to convert to/from AddressContainer
 type AddressConverter interface {

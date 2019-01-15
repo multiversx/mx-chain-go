@@ -37,6 +37,6 @@ func (txi *TxInterceptor) ProcessTx(tx p2p.Creator, rawData []byte) error {
 	return txi.processTx(tx, rawData)
 }
 
-func (txRes *txResolver) ResolveTxRequest(rd process.RequestData) ([]byte, error) {
+func (txRes *TxResolver) ResolveTxRequest(rd process.RequestData) ([]byte, error) {
 	return txRes.resolveTxRequest(rd)
 }

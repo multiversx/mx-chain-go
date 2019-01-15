@@ -5,8 +5,8 @@ type address struct {
 	bytes []byte
 }
 
-// newAddress creates a new Address with the same byte slice as the parameter received
-func newAddress(adr []byte) *address {
+// NewAddress creates a new Address with the same byte slice as the parameter received
+func NewAddress(adr []byte) *address {
 	return &address{bytes: adr}
 }
 

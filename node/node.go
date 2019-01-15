@@ -456,19 +456,19 @@ func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
 }
 
 // GetBalance gets the balance for a specific address
-func (n *Node) GetBalance(address string) (*big.Int, error) {
+func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
-	addrBytes, err := base64.StdEncoding.DecodeString(address)
+
+	address, err := n.addrConverter.CreateAddressFromHex(addressHex)
 	if err != nil {
-		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
+		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
 	}
-	accAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(addrBytes)
 	if err != nil {
 		return nil, errors.New("invalid address: " + err.Error())
 	}
-	account, err := n.accounts.GetExistingAccount(accAddress)
+	account, err := n.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, errors.New("could not fetch sender address from provided param")
 	}
@@ -534,17 +534,26 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 // SendTransaction will send a new transaction on the topic channel
 func (n *Node) SendTransaction(
 	nonce uint64,
-	sender string,
-	receiver string,
+	senderHex string,
+	receiverHex string,
 	value big.Int,
 	transactionData string,
 	signature string) (*transaction.Transaction, error) {
 
+	sender, err := n.addrConverter.CreateAddressFromHex(senderHex)
+	if err != nil {
+		return nil, err
+	}
+	receiver, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	if err != nil {
+		return nil, err
+	}
+
 	tx := transaction.Transaction{
 		Nonce:     nonce,
 		Value:     value,
-		RcvAddr:   []byte(receiver),
-		SndAddr:   []byte(sender),
+		RcvAddr:   receiver.Bytes(),
+		SndAddr:   sender.Bytes(),
 		Data:      []byte(transactionData),
 		Signature: []byte(signature),
 	}

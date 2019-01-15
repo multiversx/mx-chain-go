@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -208,7 +208,7 @@ func loadGenesisConfiguration(genesisFilePath string, log *logger.Logger) (*gene
 func (g *genesis) initialNodesPubkeys(log *logger.Logger) []string {
 	var pubKeys []string
 	for _, in := range g.InitialNodes {
-		pubKey, err := base64.StdEncoding.DecodeString(in.PubKey)
+		pubKey, err := decodeAddress(in.PubKey)
 
 		if err != nil {
 			log.Error(fmt.Sprintf("%s is not a valid public key. Ignored.", in))
@@ -225,7 +225,7 @@ func (g *genesis) initialNodesBalances(log *logger.Logger) map[string]big.Int {
 	for _, in := range g.InitialNodes {
 		balance, ok := new(big.Int).SetString(in.Balance, 10)
 		if ok {
-			pubKey, err := base64.StdEncoding.DecodeString(in.PubKey)
+			pubKey, err := decodeAddress(in.PubKey)
 			if err != nil {
 				log.Error(fmt.Sprintf("%s is not a valid public key. Ignored.", in.PubKey))
 				continue
@@ -345,18 +345,11 @@ func getSk(ctx *cli.Context) ([]byte, error) {
 		}
 	}
 
-	b64sk, err := ioutil.ReadFile(ctx.GlobalString(flags.PrivateKey.Name))
+	encodedSk, err := ioutil.ReadFile(ctx.GlobalString(flags.PrivateKey.Name))
 	if err != nil {
-		b64sk = []byte(ctx.GlobalString(flags.PrivateKey.Name))
+		encodedSk = []byte(ctx.GlobalString(flags.PrivateKey.Name))
 	}
-	decodedSk := make([]byte, base64.StdEncoding.DecodedLen(len(b64sk)))
-	l, err := base64.StdEncoding.Decode(decodedSk, b64sk)
-
-	if err != nil {
-		return nil, errors.New("could not decode private key: " + err.Error())
-	}
-
-	return decodedSk[:l], nil
+	return decodeAddress(string(encodedSk))
 }
 
 func getSigningParams(ctx *cli.Context, log *logger.Logger) (
@@ -380,14 +373,13 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 
 	pubKey = privKey.GeneratePublic()
 
-	base64sk := make([]byte, base64.StdEncoding.EncodedLen(len(sk)))
-	base64.StdEncoding.Encode(base64sk, sk)
-	log.Info("starting with private key: " + string(base64sk))
-
 	pk, _ := pubKey.ToByteArray()
-	base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
-	base64.StdEncoding.Encode(base64pk, pk)
-	log.Info("starting with public key: " + string(base64pk))
+
+	skEncoded := encodeAddress(sk)
+	pkEncoded := encodeAddress(pk)
+
+	log.Info("starting with private key: " + skEncoded)
+	log.Info("starting with public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
 }
@@ -597,4 +589,12 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 	}
 
 	return blockChain, err
+}
+
+func decodeAddress(address string) ([]byte, error) {
+	return hex.DecodeString(address)
+}
+
+func encodeAddress(address []byte) string {
+	return hex.EncodeToString(address)
 }
