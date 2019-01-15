@@ -74,6 +74,8 @@ type TransactionInterceptorAdapter interface {
 	GetTransaction() *transaction.Transaction
 	SingleSignKeyGen() crypto.KeyGenerator
 	SetSingleSignKeyGen(generator crypto.KeyGenerator)
+	SetTxBuffWithoutSig(txBuffWithoutSig []byte)
+	TxBuffWithoutSig() []byte
 }
 
 // BlockBodyInterceptorAdapter defines what a block body object should do

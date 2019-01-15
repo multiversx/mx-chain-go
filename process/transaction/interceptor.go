@@ -87,6 +87,7 @@ func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 	txIntercepted.SetAddressConverter(txi.addrConverter)
 	txIntercepted.SetSingleSignKeyGen(txi.singleSignKeyGen)
 	hashWithSig := txi.hasher.Compute(string(rawData))
+	txIntercepted.SetHash(hashWithSig)
 
 	copiedTx := *txIntercepted.GetTransaction()
 	copiedTx.Signature = nil
@@ -96,11 +97,13 @@ func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 		return process.ErrNilMarshalizer
 	}
 
-	buffCopiedTx, _ := marshalizer.Marshal(&copiedTx)
-	hashWithoutSig := txi.hasher.Compute(string(buffCopiedTx))
-	txIntercepted.SetHash(hashWithoutSig)
+	buffCopiedTx, err := marshalizer.Marshal(&copiedTx)
+	if err != nil {
+		return err
+	}
+	txIntercepted.SetTxBuffWithoutSig(buffCopiedTx)
 
-	err := txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
+	err = txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
 	if err != nil {
 		return err
 	}

@@ -590,10 +590,11 @@ func (n *Node) createNetMessenger() (p2p.Messenger, error) {
 		return nil, errors.New("Cannot start node without providing maxAllowedPeers")
 	}
 
-	cp, err := p2p.NewConnectParamsFromPort(n.port)
-	if err != nil {
-		return nil, err
-	}
+	//TODO check if libp2p provides a better random source
+	cp := &p2p.ConnectParams{}
+	cp.Port = n.port
+	cp.GeneratePrivPubKeys(time.Now().UnixNano())
+	cp.GenerateIDFromPubKey()
 
 	nm, err := p2p.NewNetMessenger(n.ctx, n.marshalizer, n.hasher, cp, n.maxAllowedPeers, n.pubSubStrategy)
 	if err != nil {
@@ -867,4 +868,12 @@ func (n *Node) broadcastHeader(msg []byte) {
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
 	}
+}
+
+func (n *Node) GetInterceptors() []process.Interceptor {
+	return n.interceptors
+}
+
+func (n *Node) GetResolvers() []process.Resolver {
+	return n.resolvers
 }

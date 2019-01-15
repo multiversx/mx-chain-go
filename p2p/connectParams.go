@@ -22,11 +22,9 @@ type ConnectParams struct {
 	Port    int
 }
 
-// GeneratePrivPubKeys will generate a new private key by using the port
-// as a seed for the random generation object
-// SHOULD BE USED ONLY IN TESTING!!!
-func (params *ConnectParams) GeneratePrivPubKeys(seed int) {
-	r := rand.New(rand.NewSource(int64(seed)))
+// GeneratePrivPubKeys will generate a new private/public key pair starting from a seed
+func (params *ConnectParams) GeneratePrivPubKeys(seed int64) {
+	r := rand.New(rand.NewSource(seed))
 
 	prvKey, err := ecdsa.GenerateKey(btcec.S256(), r)
 
@@ -56,7 +54,7 @@ func NewConnectParamsFromPort(port int) (*ConnectParams, error) {
 	params := new(ConnectParams)
 
 	params.Port = port
-	params.GeneratePrivPubKeys(port)
+	params.GeneratePrivPubKeys(int64(port))
 	params.GenerateIDFromPubKey()
 
 	return params, nil
