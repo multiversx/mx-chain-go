@@ -5,17 +5,22 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
@@ -392,6 +397,8 @@ func TestGetBalance(t *testing.T) {
 	assert.Equal(t, big.NewInt(100), balance)
 }
 
+//------- GenerateTransaction
+
 func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 
 	n, _ := node.NewNode(
@@ -657,6 +664,173 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
 	assert.Nil(t, err)
+}
+
+//------- GenerateAndSendBulkTransactions
+
+func TestGenerateAndSendBulkTransactions_ZeroTxShouldErr(t *testing.T) {
+	n, _ := node.NewNode()
+
+	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 0)
+	assert.Equal(t, "can not generate and broadcast 0 transactions", err.Error())
+}
+
+func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T) {
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
+	n, _ := node.NewNode(
+		node.WithAddressConverter(addrConverter),
+	)
+
+	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 1)
+	assert.Equal(t, "initialize AccountsAdapter and AddressConverter first", err.Error())
+}
+
+func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing.T) {
+	accAdapter := getAccAdapter(*big.NewInt(0))
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accAdapter),
+	)
+
+	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 1)
+	assert.Equal(t, "initialize AccountsAdapter and AddressConverter first", err.Error())
+}
+
+func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
+	accAdapter := getAccAdapter(*big.NewInt(0))
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
+	_, pk := schnorr.NewKeyGenerator().GeneratePair()
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accAdapter),
+		node.WithAddressConverter(addrConverter),
+		node.WithPublicKey(pk),
+		node.WithMarshalizer(&mock.MarshalizerFake{}),
+	)
+
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), *big.NewInt(0), 1)
+	assert.True(t, strings.Contains(err.Error(), "trying to set nil private key"))
+}
+
+func TestGenerateAndSendBulkTransactions_NilPublicKeyShouldErr(t *testing.T) {
+	accAdapter := getAccAdapter(*big.NewInt(0))
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
+	sk, _ := schnorr.NewKeyGenerator().GeneratePair()
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accAdapter),
+		node.WithAddressConverter(addrConverter),
+		node.WithPrivateKey(sk),
+	)
+
+	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 1)
+	assert.Equal(t, "trying to set nil public key", err.Error())
+}
+
+func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *testing.T) {
+	accAdapter := getAccAdapter(*big.NewInt(0))
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
+	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accAdapter),
+		node.WithAddressConverter(addrConverter),
+		node.WithPrivateKey(sk),
+		node.WithPublicKey(pk),
+	)
+
+	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 1)
+	assert.Equal(t, "could not create receiver address from provided param", err.Error())
+}
+
+func TestGenerateAndSendBulkTransactions_CreateAddressFromPublicKeyBytesErrorsShouldErr(t *testing.T) {
+	accAdapter := getAccAdapter(*big.NewInt(0))
+	addrConverter := &mock.AddressConverterStub{}
+	addrConverter.CreateAddressFromPublicKeyBytesHandler = func(pubKey []byte) (container state.AddressContainer, e error) {
+		return nil, errors.New("error")
+	}
+	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accAdapter),
+		node.WithAddressConverter(addrConverter),
+		node.WithPrivateKey(sk),
+		node.WithPublicKey(pk),
+	)
+
+	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 1)
+	assert.Equal(t, "error", err.Error())
+}
+
+func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T) {
+	accAdapter := getAccAdapter(*big.NewInt(0))
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
+	marshalizer := &mock.MarshalizerFake{}
+	marshalizer.Fail = true
+	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	n, _ := node.NewNode(
+		node.WithAccountsAdapter(accAdapter),
+		node.WithAddressConverter(addrConverter),
+		node.WithPrivateKey(sk),
+		node.WithPublicKey(pk),
+		node.WithMarshalizer(marshalizer),
+	)
+
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), *big.NewInt(1), 1)
+	assert.True(t, strings.Contains(err.Error(), "could not marshal transaction"))
+}
+
+func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
+	marshalizer := &mock.MarshalizerFake{}
+
+	noOfTx := 1000
+	mutRecoveredTransactions := &sync.RWMutex{}
+	recoveredTransactions := make(map[uint64]*transaction.Transaction)
+
+	topic := p2p.NewTopic(string(node.TransactionTopic), transaction2.NewInterceptedTransaction(), marshalizer)
+	topic.SendData = func(data []byte) error {
+		//handler to capture sent data
+		tx := transaction.Transaction{}
+
+		err := marshalizer.Unmarshal(&tx, data)
+		if err != nil {
+			return err
+		}
+
+		mutRecoveredTransactions.Lock()
+		recoveredTransactions[tx.Nonce] = &tx
+		mutRecoveredTransactions.Unlock()
+
+		return nil
+	}
+
+	mes := &mock.MessengerStub{}
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		if name == string(node.TransactionTopic) {
+			return topic
+		}
+
+		return nil
+	}
+
+	accAdapter := getAccAdapter(*big.NewInt(0))
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
+	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	n, _ := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(marshalizer),
+		node.WithHasher(mock.HasherMock{}),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithAddressConverter(addrConverter),
+		node.WithAccountsAdapter(accAdapter),
+		node.WithPrivateKey(sk),
+		node.WithPublicKey(pk),
+	)
+
+	n.SetMessenger(mes)
+
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), *big.NewInt(1), uint64(noOfTx))
+	assert.Nil(t, err)
+	mutRecoveredTransactions.RLock()
+	assert.Equal(t, noOfTx, len(recoveredTransactions))
+	mutRecoveredTransactions.RUnlock()
 }
 
 func getAccAdapter(balance big.Int) mock.AccountsAdapterStub {

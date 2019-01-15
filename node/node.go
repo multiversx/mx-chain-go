@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	sync2 "sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
@@ -480,8 +481,143 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 	return &account.BaseAccount().Balance, nil
 }
 
+func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int, noOfTx uint64) error {
+	if noOfTx == 0 {
+		return errors.New("can not generate and broadcast 0 transactions")
+	}
+
+	if n.addrConverter == nil || n.accounts == nil {
+		return errors.New("initialize AccountsAdapter and AddressConverter first")
+	}
+
+	if n.publicKey == nil {
+		return errNilPublicKey
+	}
+
+	senderAddressBytes, err := n.publicKey.ToByteArray()
+	if err != nil {
+		return err
+	}
+	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddressBytes)
+	if err != nil {
+		return err
+	}
+
+	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	if err != nil {
+		return errors.New("could not create receiver address from provided param")
+	}
+
+	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
+	if err != nil {
+		return errors.New("could not fetch sender account from provided param")
+	}
+	newNonce := uint64(0)
+	if senderAccount != nil {
+		newNonce = senderAccount.BaseAccount().Nonce
+	}
+
+	wg := sync2.WaitGroup{}
+	wg.Add(int(noOfTx))
+
+	transactions := make([][]byte, noOfTx)
+
+	mutErr := &sync2.RWMutex{}
+	var errFound error
+
+	for nonce := newNonce; nonce < newNonce+noOfTx; nonce++ {
+		go func(crtNonce uint64) {
+			_, signedTxBuff, err := n.generateAndSignTx(
+				crtNonce,
+				value,
+				receiverAddress.Bytes(),
+				senderAddressBytes,
+				nil,
+			)
+
+			if err != nil {
+				mutErr.Lock()
+				errFound = errors.New(fmt.Sprintf("failure generating transaction %d: %s", nonce, err.Error()))
+				mutErr.Unlock()
+
+				wg.Done()
+				return
+			}
+
+			transactions[crtNonce-newNonce] = signedTxBuff
+			wg.Done()
+		}(nonce)
+	}
+
+	wg.Wait()
+
+	mutErr.RLock()
+	if errFound != nil {
+		mutErr.RUnlock()
+		return errFound
+	}
+	mutErr.RUnlock()
+
+	topic := n.messenger.GetTopic(string(TransactionTopic))
+	if topic == nil {
+		return errors.New("could not get transaction topic")
+	}
+
+	for i := 0; i < len(transactions); i++ {
+		err = topic.BroadcastBuff(transactions[i])
+		if err != nil {
+			return errors.New("could not broadcast transaction: " + err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (n *Node) generateAndSignTx(
+	nonce uint64,
+	value big.Int,
+	rcvAddrBytes []byte,
+	sndAddrBytes []byte,
+	dataBytes []byte,
+) (*transaction.Transaction, []byte, error) {
+
+	tx := transaction.Transaction{
+		Nonce:   nonce,
+		Value:   value,
+		RcvAddr: rcvAddrBytes,
+		SndAddr: sndAddrBytes,
+		Data:    dataBytes,
+	}
+
+	if n.marshalizer == nil {
+		return nil, nil, errNilMarshalizer
+	}
+
+	if n.privateKey == nil {
+		return nil, nil, errNilPrivateKey
+	}
+
+	marshalizedTx, err := n.marshalizer.Marshal(&tx)
+	if err != nil {
+		return nil, nil, errors.New("could not marshal transaction")
+	}
+
+	sig, err := n.privateKey.Sign(marshalizedTx)
+	if err != nil {
+		return nil, nil, errors.New("could not sign the transaction")
+	}
+	tx.Signature = sig
+
+	signedMarshalizedTx, err := n.marshalizer.Marshal(&tx)
+	if err != nil {
+		return nil, nil, errors.New("could not marshal signed transaction")
+	}
+
+	return &tx, signedMarshalizedTx, nil
+}
+
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
-func (n *Node) GenerateTransaction(senderHex string, receiverHex string, amount big.Int, code string) (*transaction.Transaction, error) {
+func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value big.Int, transactionData string) (*transaction.Transaction, error) {
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
@@ -507,26 +643,14 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, amount 
 		newNonce = senderAccount.BaseAccount().Nonce
 	}
 
-	tx := transaction.Transaction{
-		Nonce:   newNonce,
-		Value:   amount,
-		RcvAddr: receiverAddress.Bytes(),
-		SndAddr: senderAddress.Bytes(),
-		Data:    []byte(code),
-	}
+	tx, _, err := n.generateAndSignTx(
+		newNonce,
+		value,
+		receiverAddress.Bytes(),
+		senderAddress.Bytes(),
+		[]byte(transactionData))
 
-	txToByteArray, err := n.marshalizer.Marshal(&tx)
-	if err != nil {
-		return nil, errors.New("could not create byte array representation of the transaction")
-	}
-
-	sig, err := n.privateKey.Sign(txToByteArray)
-	if err != nil {
-		return nil, errors.New("could not sign the transaction")
-	}
-	tx.Signature = sig
-
-	return &tx, nil
+	return tx, err
 }
 
 // SendTransaction will send a new transaction on the topic channel

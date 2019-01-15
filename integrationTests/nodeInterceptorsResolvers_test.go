@@ -5,7 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
@@ -285,4 +288,120 @@ func TestNode_GenerateSendInterceptHeaderByNonce(t *testing.T) {
 	case <-time.After(time.Second * 10):
 		assert.Fail(t, "timeout")
 	}
+}
+
+func TestNode_GenerateSendInterceptBulkTransactions(t *testing.T) {
+	hasher := mock.HasherFake{}
+	marshalizer := &mock.MarshalizerFake{}
+
+	keyGen := schnorr.NewKeyGenerator()
+	sk, pk := keyGen.GeneratePair()
+
+	dPool := createTestDataPool()
+
+	startingNonce := uint64(6)
+
+	addrConverter := mock.NewAddressConverterFake(32, "0x")
+	accntAdapter := &mock.AccountsAdapterStub{}
+	accntAdapter.GetExistingAccountHandler = func(addressContainer state.AddressContainer) (wrapper state.AccountWrapper, e error) {
+		return state.NewAccountWrap(state.NewAddress(make([]byte, 0)), &state.Account{Nonce: startingNonce})
+	}
+
+	//TODO change when injecting a messenger is possible
+	n, _ := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(marshalizer),
+		node.WithHasher(hasher),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithAccountsAdapter(accntAdapter),
+		node.WithDataPool(dPool),
+		node.WithAddressConverter(addrConverter),
+		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
+		node.WithBlockChain(createTestBlockChain()),
+		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
+		node.WithPublicKey(pk),
+		node.WithPrivateKey(sk),
+	)
+
+	n.Start()
+	defer n.Stop()
+
+	noOfTx := 50
+
+	err := n.BindInterceptorsResolvers()
+	if err != nil {
+		assert.Fail(t, err.Error())
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(noOfTx)
+
+	chanDone := make(chan bool)
+
+	go func() {
+		wg.Wait()
+
+		chanDone <- true
+	}()
+
+	txHashes := make([][]byte, 0)
+
+	//wire up handler
+	dPool.Transactions().RegisterHandler(func(key []byte) {
+		txHashes = append(txHashes, key)
+		wg.Done()
+	})
+
+	err = n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), *big.NewInt(1), uint64(noOfTx))
+	assert.Nil(t, err)
+
+	select {
+	case <-chanDone:
+	case <-time.After(time.Second * 3):
+		assert.Fail(t, "timeout")
+		return
+	}
+
+	assert.Equal(t, noOfTx, len(txHashes))
+
+	bitmap := make([]bool, noOfTx+int(startingNonce))
+	//set for each nonce from found tx a true flag in bitmap
+	for i := 0; i < noOfTx; i++ {
+		tx, _ := dPool.Transactions().ShardDataStore(0).Get(txHashes[i])
+
+		assert.NotNil(t, tx)
+		bitmap[tx.(*transaction.Transaction).Nonce] = true
+	}
+
+	//for the first startingNonce values, the bitmap should be false
+	//for the rest, true
+	for i := 0; i < noOfTx+int(startingNonce); i++ {
+		if i < int(startingNonce) {
+			assert.False(t, bitmap[i])
+			continue
+		}
+
+		assert.True(t, bitmap[i])
+	}
+}
+
+func createDummyHexAddress(chars int) string {
+	if chars < 1 {
+		return ""
+	}
+
+	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
+
+	rdm := rand.New(rand.NewSource(time.Now().Unix()))
+
+	buff := make([]byte, chars)
+	for i := 0; i < chars; i++ {
+		buff[i] = characters[rdm.Int()%16]
+	}
+
+	return string(buff)
 }
