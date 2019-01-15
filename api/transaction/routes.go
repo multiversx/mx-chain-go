@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"math/big"
 	"net/http"
 
@@ -12,7 +12,7 @@ import (
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
 	GenerateTransaction(sender string, receiver string, value big.Int, code string) (*transaction.Transaction, error)
-	SendTransaction(nonce uint64, sender string, receiver string, value big.Int, code string, signature string) (*transaction.Transaction, error)
+	SendTransaction(nonce uint64, sender string, receiver string, value big.Int, code string, signature []byte) (*transaction.Transaction, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 }
 
@@ -89,7 +89,13 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data, gtx.Signature)
+	signature, err := hex.DecodeString(gtx.Signature)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid signature, could not decode hex value: " + err.Error()})
+		return
+	}
+
+	tx, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data, signature)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction generation failed: " + err.Error()})
 		return
@@ -128,14 +134,12 @@ func GetTransaction(c *gin.Context) {
 }
 
 func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
-	b64sender := base64.StdEncoding.EncodeToString(tx.SndAddr)
-	b64receiver := base64.StdEncoding.EncodeToString(tx.RcvAddr)
 	response := TxResponse{}
 	response.Nonce = tx.Nonce
-	response.Sender = b64sender
-	response.Receiver = b64receiver
+	response.Sender = hex.EncodeToString(tx.SndAddr)
+	response.Receiver = hex.EncodeToString(tx.RcvAddr)
 	response.Data = string(tx.Data)
-	response.Signature = string(tx.Signature)
+	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Challenge = string(tx.Challenge)
 	response.Value = &tx.Value
 	response.GasLimit = big.NewInt(int64(tx.GasLimit))

@@ -119,6 +119,5 @@ func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 	}
 
 	txi.txPool.AddData(hashWithSig, txIntercepted.GetTransaction(), txIntercepted.SndShard())
-
 	return nil
 }

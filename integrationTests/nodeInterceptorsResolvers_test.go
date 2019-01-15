@@ -99,7 +99,7 @@ func TestNode_GenerateSendInterceptTransaction(t *testing.T) {
 
 	//Step 4. Send Tx
 	_, err = n.SendTransaction(tx.Nonce, hex.EncodeToString(tx.SndAddr), hex.EncodeToString(tx.RcvAddr),
-		tx.Value, string(tx.Data), string(tx.Signature))
+		tx.Value, string(tx.Data), tx.Signature)
 	assert.Nil(t, err)
 
 	select {

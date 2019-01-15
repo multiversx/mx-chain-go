@@ -842,7 +842,7 @@ func TestSendTransaction_TopicDoesNotExistsShouldErr(t *testing.T) {
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
-	signature := "signature"
+	signature := []byte("signature")
 
 	tx, err := n.SendTransaction(
 		nonce,
@@ -885,7 +885,7 @@ func TestSendTransaction_BroadcastErrShouldErr(t *testing.T) {
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
-	signature := "signature"
+	signature := []byte("signature")
 
 	tx, err := n.SendTransaction(
 		nonce,
@@ -929,7 +929,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
-	signature := "signature"
+	signature := []byte("signature")
 
 	tx, err := n.SendTransaction(
 		nonce,

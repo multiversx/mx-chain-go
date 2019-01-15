@@ -481,7 +481,7 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 }
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
-func (n *Node) GenerateTransaction(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error) {
+func (n *Node) GenerateTransaction(senderHex string, receiverHex string, amount big.Int, code string) (*transaction.Transaction, error) {
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
@@ -489,15 +489,12 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	if n.privateKey == nil {
 		return nil, errors.New("initialize PrivateKey first")
 	}
-	receiverAddrBytes, err := base64.StdEncoding.DecodeString(receiver)
+
+	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
-		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
+		return nil, errors.New("could not create receiver address from provided param")
 	}
-	senderAddrBytes, err := base64.StdEncoding.DecodeString(sender)
-	if err != nil {
-		return nil, errors.New("invalid address, could not decode from base64: " + err.Error())
-	}
-	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddrBytes)
+	senderAddress, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}
@@ -513,11 +510,12 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 	tx := transaction.Transaction{
 		Nonce:   newNonce,
 		Value:   amount,
-		RcvAddr: receiverAddrBytes,
-		SndAddr: senderAddrBytes,
+		RcvAddr: receiverAddress.Bytes(),
+		SndAddr: senderAddress.Bytes(),
+		Data:    []byte(code),
 	}
 
-	txToByteArray, err := n.marshalizer.Marshal(tx)
+	txToByteArray, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, errors.New("could not create byte array representation of the transaction")
 	}
@@ -538,7 +536,7 @@ func (n *Node) SendTransaction(
 	receiverHex string,
 	value big.Int,
 	transactionData string,
-	signature string) (*transaction.Transaction, error) {
+	signature []byte) (*transaction.Transaction, error) {
 
 	sender, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
@@ -555,7 +553,7 @@ func (n *Node) SendTransaction(
 		RcvAddr:   receiver.Bytes(),
 		SndAddr:   sender.Bytes(),
 		Data:      []byte(transactionData),
-		Signature: []byte(signature),
+		Signature: signature,
 	}
 
 	topic := n.messenger.GetTopic(string(TransactionTopic))
