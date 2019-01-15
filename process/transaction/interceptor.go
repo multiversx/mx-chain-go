@@ -1,8 +1,6 @@
 package transaction
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -72,7 +70,6 @@ func NewTxInterceptor(
 }
 
 func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
-	fmt.Println("INTERCEPTED@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 	if tx == nil {
 		return process.ErrNilTransaction
 	}
@@ -100,8 +97,6 @@ func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 	}
 
 	buffCopiedTx, _ := marshalizer.Marshal(&copiedTx)
-	fmt.Println("INTERCEPTED TX, ", string(buffCopiedTx))
-	//hashWithoutSig := txi.hasher.Compute(string(buffCopiedTx))
 	txIntercepted.SetHash(buffCopiedTx)
 
 	err := txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
@@ -111,7 +106,6 @@ func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 
 	err = txIntercepted.VerifySig()
 	if err != nil {
-		fmt.Println("INTERCEPTED sig error: ", err.Error())
 		return err
 	}
 

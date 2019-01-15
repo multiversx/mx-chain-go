@@ -29,10 +29,10 @@ type Facade interface {
 	GetBalance(address string) (*big.Int, error)
 
 	//GenerateTransaction generates a transaction from a sender, receiver, value and data
-	GenerateTransaction(sender []byte, receiver []byte, value big.Int, data string) (*transaction.Transaction, error)
+	GenerateTransaction(senderHex string, receiverHex string, value big.Int, data string) (*transaction.Transaction, error)
 
 	//SendTransaction will send a new transaction on the topic channel
-	SendTransaction(nonce uint64, sender []byte, receiver []byte, value big.Int, transactionData string, signature string) (*transaction.Transaction, error)
+	SendTransaction(nonce uint64, senderHex string, receiverHex string, value big.Int, transactionData string, signature string) (*transaction.Transaction, error)
 
 	//GetTransaction gets the transaction with a specified hash
 	GetTransaction(hash string) (*transaction.Transaction, error)
@@ -69,10 +69,10 @@ type NodeWrapper interface {
 	GetBalance(address string) (*big.Int, error)
 
 	//GenerateTransaction generates a new transaction with sender, receiver, amount and code
-	GenerateTransaction(sender []byte, receiver []byte, amount big.Int, code string) (*transaction.Transaction, error)
+	GenerateTransaction(senderHex string, receiverHex string, amount big.Int, code string) (*transaction.Transaction, error)
 
 	//SendTransaction will send a new transaction on the topic channel
-	SendTransaction(nonce uint64, sender []byte, receiver []byte, value big.Int, transactionData string, signature []byte) (*transaction.Transaction, error)
+	SendTransaction(nonce uint64, senderHex string, receiverHex string, value big.Int, transactionData string, signature []byte) (*transaction.Transaction, error)
 
 	//GetTransaction gets the transaction
 	GetTransaction(hash string) (*transaction.Transaction, error)

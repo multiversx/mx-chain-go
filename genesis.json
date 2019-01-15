@@ -1,11 +1,11 @@
 {
   "startTime": 0,
   "roundDuration": 4000,
-  "consensusGroupSize": 2,
+  "consensusGroupSize": 1,
   "elasticSubrounds": false,
   "initialNodes": [
     {
-      "pubkey": "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419",
+      "pubkey": "abc1b34b41ea9e8e21a7c066a3faa557fb7dba4f535307e8f5c6895728f83099",
       "balance": "10000000"
     },
     {

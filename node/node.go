@@ -481,7 +481,7 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 }
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
-func (n *Node) GenerateTransaction(sender []byte, receiver []byte, amount big.Int, code string) (*transaction.Transaction, error) {
+func (n *Node) GenerateTransaction(senderHex string, receiverHex string, amount big.Int, code string) (*transaction.Transaction, error) {
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
@@ -490,7 +490,11 @@ func (n *Node) GenerateTransaction(sender []byte, receiver []byte, amount big.In
 		return nil, errors.New("initialize PrivateKey first")
 	}
 
-	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(sender)
+	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	if err != nil {
+		return nil, errors.New("could not create receiver address from provided param")
+	}
+	senderAddress, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}
@@ -503,13 +507,11 @@ func (n *Node) GenerateTransaction(sender []byte, receiver []byte, amount big.In
 		newNonce = senderAccount.BaseAccount().Nonce
 	}
 
-	fmt.Println("INTERCEPTED tx value", amount)
-
 	tx := transaction.Transaction{
 		Nonce:   newNonce,
 		Value:   amount,
-		RcvAddr: receiver,
-		SndAddr: sender,
+		RcvAddr: receiverAddress.Bytes(),
+		SndAddr: senderAddress.Bytes(),
 		Data: []byte(code),
 	}
 
@@ -518,12 +520,7 @@ func (n *Node) GenerateTransaction(sender []byte, receiver []byte, amount big.In
 		return nil, errors.New("could not create byte array representation of the transaction")
 	}
 
-	fmt.Println("INTERCEPTED I will sign", string(txToByteArray))
-
 	sig, err := n.privateKey.Sign(txToByteArray)
-
-	fmt.Println("INTERCEPTED Generated signature", sig)
-
 	if err != nil {
 		return nil, errors.New("could not sign the transaction")
 	}
@@ -540,10 +537,6 @@ func (n *Node) SendTransaction(
 	value big.Int,
 	transactionData string,
 	signature []byte) (*transaction.Transaction, error) {
-
-
-	fmt.Println("INTERCEPTED signature", signature)
-
 
 	sender, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {

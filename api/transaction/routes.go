@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"encoding/hex"
 	"math/big"
 	"net/http"
 
@@ -10,15 +11,15 @@ import (
 
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
-	GenerateTransaction(sender []byte, receiver []byte, value big.Int, code string) (*transaction.Transaction, error)
-	SendTransaction(nonce uint64, sender []byte, receiver []byte, value big.Int, code string, signature []byte) (*transaction.Transaction, error)
+	GenerateTransaction(sender string, receiver string, value big.Int, code string) (*transaction.Transaction, error)
+	SendTransaction(nonce uint64, sender string, receiver string, value big.Int, code string, signature []byte) (*transaction.Transaction, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 }
 
 // TxRequest represents the structure on which user input for generating a new transaction will validate against
 type TxRequest struct {
-	Sender   []byte   `form:"sender" json:"sender"`
-	Receiver []byte   `form:"receiver" json:"receiver"`
+	Sender   string   `form:"sender" json:"sender"`
+	Receiver string   `form:"receiver" json:"receiver"`
 	Value    *big.Int `form:"value" json:"value"`
 	Data     string   `form:"data" json:"data"`
 	//SecretKey string `form:"sk" json:"sk" binding:"skValidator"`
@@ -26,14 +27,14 @@ type TxRequest struct {
 
 // SendTxRequest represents the structure that maps and validates user input for publishing a new transaction
 type SendTxRequest struct {
-	Sender    []byte   `form:"sender" json:"sender"`
-	Receiver  []byte   `form:"receiver" json:"receiver"`
+	Sender    string   `form:"sender" json:"sender"`
+	Receiver  string   `form:"receiver" json:"receiver"`
 	Value     *big.Int `form:"value" json:"value"`
 	Data      string   `form:"data" json:"data"`
 	Nonce     uint64   `form:"nonce" json:"nonce"`
 	GasPrice  *big.Int `form:"gasPrice" json:"gasPrice"`
 	GasLimit  *big.Int `form:"gasLimit" json:"gasLimit"`
-	Signature []byte   `form:"signature" json:"signature"`
+	Signature string   `form:"signature" json:"signature"`
 	Challenge string   `form:"challenge" json:"challenge"`
 }
 
@@ -88,7 +89,13 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data, gtx.Signature)
+	signature, err := hex.DecodeString(gtx.Signature)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid signature, could not decode hex value: " + err.Error()})
+		return
+	}
+
+	tx, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data, signature)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction generation failed: " + err.Error()})
 		return
@@ -129,10 +136,10 @@ func GetTransaction(c *gin.Context) {
 func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	response := TxResponse{}
 	response.Nonce = tx.Nonce
-	response.Sender = tx.SndAddr
-	response.Receiver = tx.RcvAddr
+	response.Sender = hex.EncodeToString(tx.SndAddr)
+	response.Receiver = hex.EncodeToString(tx.RcvAddr)
 	response.Data = string(tx.Data)
-	response.Signature = tx.Signature
+	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Challenge = string(tx.Challenge)
 	response.Value = &tx.Value
 	response.GasLimit = big.NewInt(int64(tx.GasLimit))
