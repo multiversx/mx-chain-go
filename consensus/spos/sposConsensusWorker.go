@@ -3,6 +3,7 @@ package spos
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
@@ -264,7 +265,7 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 	}
 
 	log.Info(fmt.Sprintf("%sStep 0: Preparing for this round with leader %s%s\n",
-		sposWorker.Cns.getFormattedTime(), getPrettyByteArray([]byte(leader)), msg))
+		sposWorker.Cns.getFormattedTime(), hex.EncodeToString([]byte(leader)), msg))
 
 	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT SYNCRONIZED\n",
