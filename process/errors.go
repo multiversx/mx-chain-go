@@ -70,9 +70,6 @@ var ErrNilPreviousBlockHash = errors.New("nil previous block header hash")
 // ErrNilSignature signals that a operation has been attempted with a nil signature
 var ErrNilSignature = errors.New("nil signature")
 
-// ErrNilChallenge signals that a operation has been attempted with a nil challenge
-var ErrNilChallenge = errors.New("nil challenge")
-
 // ErrNilCommitment signals that a operation has been attempted with a nil commitment
 var ErrNilCommitment = errors.New("nil commitment")
 
@@ -229,3 +226,12 @@ var ErrNilBlockBodyPool = errors.New("nil block body pool")
 
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")
+
+// ErrNilTransactionPool signals that a nil transaction pool was used
+var ErrNilTransactionPool = errors.New("nil transaction pool")
+
+// ErrNilTxProcessor signals that a nil transactions processor was used
+var ErrNilTxProcessor = errors.New("nil transactions processor")
+
+// ErrNilDataPoolHolder signals that the data pool holder is nil
+var ErrNilDataPoolHolder = errors.New("nil data pool holder")

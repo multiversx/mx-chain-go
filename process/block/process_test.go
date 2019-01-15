@@ -104,7 +104,7 @@ func createBlockchain() (*blockchain.BlockChain, error) {
 }
 
 func TestNewBlockProcessor(t *testing.T) {
-	tp, err := shardedData.NewShardedData(testCacherConfig)
+	tp, err :=  shardedData.NewShardedData(testCacherConfig)
 	assert.Nil(t, err)
 
 	be := blproc.NewBlockProcessor(

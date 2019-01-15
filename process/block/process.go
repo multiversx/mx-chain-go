@@ -25,7 +25,7 @@ var log = logger.NewDefaultLogger()
 
 // blockProcessor implements BlockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
-	txPool               data.ShardedDataCacherNotifier
+	dataPool             data.TransientDataHolder
 	hasher               hashing.Hasher
 	marshalizer          marshal.Marshalizer
 	txProcessor          process.TransactionProcessor
@@ -39,17 +39,40 @@ type blockProcessor struct {
 
 // NewBlockProcessor creates a new blockProcessor object
 func NewBlockProcessor(
-	txPool data.ShardedDataCacherNotifier,
+	dataPool data.TransientDataHolder,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	txProcessor process.TransactionProcessor,
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.ShardCoordinator,
-) *blockProcessor {
-	//TODO: check nil values
+) (*blockProcessor, error) {
+
+	if dataPool == nil {
+		return nil, process.ErrNilDataPoolHolder
+	}
+
+	if hasher == nil {
+		return nil, process.ErrNilHasher
+	}
+
+	if marshalizer == nil {
+		return nil, process.ErrNilMarshalizer
+	}
+
+	if txProcessor == nil {
+		return nil, process.ErrNilTxProcessor
+	}
+
+	if accounts == nil {
+		return nil, process.ErrNilAccountsAdapter
+	}
+
+	if shardCoordinator == nil {
+		return nil, process.ErrNilShardCoordinator
+	}
 
 	bp := blockProcessor{
-		txPool:           txPool,
+		dataPool:         dataPool,
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		txProcessor:      txProcessor,
@@ -59,9 +82,15 @@ func NewBlockProcessor(
 
 	bp.ChRcvAllTxs = make(chan bool)
 
-	bp.txPool.RegisterHandler(bp.receivedTransaction)
+	transactionPool := bp.dataPool.Transactions()
 
-	return &bp
+	if transactionPool == nil {
+		return nil, process.ErrNilTransactionPool
+	}
+
+	transactionPool.RegisterHandler(bp.receivedTransaction)
+
+	return &bp, nil
 }
 
 // TODO: refactor this!!!!!
@@ -149,8 +178,14 @@ func (bp *blockProcessor) RemoveBlockTxsFromPool(body *block.TxBlockBody) error 
 		return process.ErrNilTxBlockBody
 	}
 
+	transactionPool := bp.dataPool.Transactions()
+
+	if transactionPool == nil {
+		return process.ErrNilTransactionPool
+	}
+
 	for i := 0; i < len(body.MiniBlocks); i++ {
-		bp.txPool.RemoveSetOfDataFromPool(body.MiniBlocks[i].TxHashes,
+		transactionPool.RemoveSetOfDataFromPool(body.MiniBlocks[i].TxHashes,
 			body.MiniBlocks[i].ShardID)
 	}
 
@@ -316,6 +351,13 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		return process.ErrPersistWithoutSuccess
 	}
 
+	headerNoncePool := bp.dataPool.HeadersNonces()
+	if headerNoncePool == nil {
+		return process.ErrNilDataPoolHolder
+	}
+
+	_ = headerNoncePool.Put(header.Nonce, headerHash)
+
 	for i := 0; i < len(block.MiniBlocks); i++ {
 		miniBlock := block.MiniBlocks[i]
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
@@ -357,7 +399,14 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 
 // getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
 func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []byte) *transaction.Transaction {
-	txStore := bp.txPool.ShardDataStore(destShardID)
+	txPool := bp.dataPool.Transactions()
+
+	if txPool == nil {
+		log.Error(process.ErrNilTransactionPool.Error())
+		return nil
+	}
+
+	txStore := txPool.ShardDataStore(destShardID)
 
 	if txStore == nil {
 		return nil
@@ -435,8 +484,14 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		return miniBlocks, nil
 	}
 
+	txPool := bp.dataPool.Transactions()
+
+	if txPool == nil {
+		return nil, process.ErrNilTransactionPool
+	}
+
 	for i, txs := 0, 0; i < int(noShards); i++ {
-		txStore := bp.txPool.ShardDataStore(uint32(i))
+		txStore := txPool.ShardDataStore(uint32(i))
 
 		if txStore == nil {
 			continue

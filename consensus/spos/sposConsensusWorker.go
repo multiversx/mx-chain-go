@@ -1566,7 +1566,9 @@ func (sposWorker *SPOSConsensusWorker) ShouldSync() bool {
 		return rnd.Index() > 0
 	}
 
-	return sposWorker.BlockChain.CurrentBlockHeader.Round+1 < uint32(rnd.Index())
+	shouldSync := sposWorker.BlockChain.CurrentBlockHeader.Round+1 < uint32(rnd.Index())
+
+	return shouldSync
 }
 
 // GetMessageTypeName method returns the name of the message from a given message ID
