@@ -9,14 +9,19 @@ import (
 
 // BlockProcessorMock mocks the implementation for a BlockProcessor
 type BlockProcessorMock struct {
-	ProcessBlockCalled           func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
-	ProcessAndCommitCalled       func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
-	CommitBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error
-	RevertAccountStateCalled     func()
-	CreateGenesisBlockCalled     func(balances map[string]big.Int, shardId uint32) *block.StateBlockBody
-	CreateTxBlockCalled          func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
-	RemoveBlockTxsFromPoolCalled func(body *block.TxBlockBody) error
-	GetRootHashCalled            func() []byte
+	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
+	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
+	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error
+	RevertAccountStateCalled      func()
+	CreateGenesisBlockCalled      func(balances map[string]big.Int, shardId uint32) *block.StateBlockBody
+	CreateTxBlockCalled           func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
+	RemoveBlockTxsFromPoolCalled  func(body *block.TxBlockBody) error
+	GetRootHashCalled             func() []byte
+	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
+}
+
+func (blProcMock *BlockProcessorMock) SetOnRequestTransaction(f func(destShardID uint32, txHash []byte)) {
+	blProcMock.SetOnRequestTransactionCalled(f)
 }
 
 // ProcessBlock mocks pocessing a block

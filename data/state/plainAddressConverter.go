@@ -42,7 +42,7 @@ func (pac *PlainAddressConverter) CreateAddressFromPublicKeyBytes(pubKey []byte)
 		newPubKey = newPubKey[len(newPubKey)-pac.addressLen:]
 	}
 
-	return newAddress(newPubKey), nil
+	return NewAddress(newPubKey), nil
 }
 
 // ConvertToHex returns the hex string representation of the address.
@@ -81,7 +81,7 @@ func (pac *PlainAddressConverter) CreateAddressFromHex(hexAddress string) (Addre
 		return nil, err
 	}
 
-	return newAddress(buff), nil
+	return NewAddress(buff), nil
 }
 
 // PrepareAddressBytes checks and returns the slice compatible to the address format
