@@ -450,6 +450,16 @@ func (sposWorker *SPOSConsensusWorker) SendBlockHeader() bool {
 		hdr.Nonce = 1
 		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
 		hdr.TimeStamp = sposWorker.GetTime()
+
+		prevHeader, err := sposWorker.marshalizer.Marshal(sposWorker.BlockChain.GenesisBlock)
+
+		if err != nil {
+			log.Error(err.Error())
+			return false
+		}
+
+		prevHeaderHash := sposWorker.hasher.Compute(string(prevHeader))
+		hdr.PrevHash = prevHeaderHash
 	} else {
 		hdr.Nonce = sposWorker.BlockChain.CurrentBlockHeader.Nonce + 1
 		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
@@ -686,6 +696,8 @@ func (sposWorker *SPOSConsensusWorker) DoBitmapJob() bool {
 		}
 	}
 
+	sposWorker.Header.PubKeysBitmap = bitmap
+
 	return true
 }
 
@@ -788,7 +800,7 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 	bitmap := sposWorker.genBitmap(SrBitmap)
 
 	// first compute commitment aggregation
-	_, err = sposWorker.multiSigner.AggregateCommitments(bitmap)
+	aggComm, err := sposWorker.multiSigner.AggregateCommitments(bitmap)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -823,6 +835,8 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 		log.Error(err.Error())
 		return false
 	}
+
+	sposWorker.Header.Commitment = aggComm
 
 	return true
 }
@@ -982,6 +996,16 @@ func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() error {
 		hdr.Nonce = 1
 		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
 		hdr.TimeStamp = uint64(sposWorker.Cns.Chr.Round().TimeStamp().Unix())
+
+		prevHeader, err := sposWorker.marshalizer.Marshal(sposWorker.BlockChain.GenesisBlock)
+
+		if err != nil {
+			return err
+		}
+
+		prevHeaderHash := sposWorker.hasher.Compute(string(prevHeader))
+		hdr.PrevHash = prevHeaderHash
+
 	} else {
 		hdr.Nonce = sposWorker.BlockChain.CurrentBlockHeader.Nonce + 1
 		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
@@ -1384,6 +1408,8 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) boo
 	//	sposWorker.Cns.Chr.SetSelfSubround(-1)
 	//	return false
 	//}
+
+	sposWorker.Header.PubKeysBitmap = signersBitmap
 
 	return true
 }

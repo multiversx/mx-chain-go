@@ -266,7 +266,9 @@ func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, head
 			return process.ErrWrongNonceInBlock
 		}
 
-		if !bytes.Equal(header.PrevHash, blockChain.CurrentBlockHeader.BlockBodyHash) {
+		prevHeaderHash := bp.getHeaderHash(blockChain.CurrentBlockHeader)
+
+		if !bytes.Equal(header.PrevHash, prevHeaderHash) {
 			return process.ErrInvalidBlockHash
 		}
 	}
@@ -276,6 +278,19 @@ func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, head
 	}
 
 	return nil
+}
+
+func (bp *blockProcessor) getHeaderHash(hdr *block.Header) []byte {
+	headerMarsh, err := bp.marshalizer.Marshal(hdr)
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	headerHash := bp.hasher.Compute(string(headerMarsh))
+
+	return headerHash
 }
 
 func (bp *blockProcessor) validateBlockBody(body *block.TxBlockBody) error {
