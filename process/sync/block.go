@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
@@ -325,9 +324,9 @@ func (boot *bootstrap) getTxBodyWithHash(hash []byte) (interface{}, error) {
 		}
 	}
 
-	intercepted, _ := blk.(*block2.InterceptedTxBlockBody)
+	intercepted, _ := blk.(*block.TxBlockBody)
 
-	return intercepted.TxBlockBody, nil
+	return intercepted, nil
 }
 
 // getNonceForNextBlock will get the nonce for the next block we should request
