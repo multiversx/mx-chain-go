@@ -1,0 +1,99 @@
+package transaction
+
+import (
+	"math/rand"
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+)
+
+func createTestBlockChain() *blockchain.BlockChain {
+
+	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+
+	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
+
+	blockChain, _ := blockchain.NewBlockChain(
+		badBlockCache,
+		createMemUnit(),
+		createMemUnit(),
+		createMemUnit(),
+		createMemUnit(),
+		createMemUnit())
+
+	return blockChain
+}
+
+func createMemUnit() storage.Storer {
+	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	persist, _ := memorydb.New()
+
+	unit, _ := storage.NewStorageUnit(cache, persist)
+	return unit
+}
+
+func createTestDataPool() data.TransientDataHolder {
+	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
+	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
+
+	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
+
+	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+
+	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+
+	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	stateBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+
+	dPool, _ := dataPool.NewDataPool(
+		txPool,
+		hdrPool,
+		hdrNonces,
+		txBlockBody,
+		peerChangeBlockBody,
+		stateBlockBody,
+	)
+
+	return dPool
+}
+
+func createDummyHexAddress(chars int) string {
+	if chars < 1 {
+		return ""
+	}
+
+	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
+
+	rdm := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	buff := make([]byte, chars)
+	for i := 0; i < chars; i++ {
+		buff[i] = characters[rdm.Int()%16]
+	}
+
+	return string(buff)
+}
+
+func adbCreateAccountsDB() *state.AccountsDB {
+	marsh := &marshal.JsonMarshalizer{}
+
+	dbw, _ := trie.NewDBWriteCache(createMemUnit())
+	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh)
+
+	return adb
+}
