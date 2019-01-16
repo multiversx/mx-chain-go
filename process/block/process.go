@@ -467,31 +467,33 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 // is added in the transaction pool
 func (bp *blockProcessor) receivedTransaction(txHash []byte) {
 	bp.mut.Lock()
-	if bp.requestedTxHashes[string(txHash)] {
-		delete(bp.requestedTxHashes, string(txHash))
+	if len(bp.requestedTxHashes) > 0 {
+		if bp.requestedTxHashes[string(txHash)] {
+			delete(bp.requestedTxHashes, string(txHash))
+		}
+		lenReqTxHashes := len(bp.requestedTxHashes)
+		bp.mut.Unlock()
+
+		if lenReqTxHashes == 0 {
+			bp.ChRcvAllTxs <- true
+		}
+		return
 	}
-	lenReqTxHashes := len(bp.requestedTxHashes)
 	bp.mut.Unlock()
-
-	if lenReqTxHashes == 0 {
-		bp.ChRcvAllTxs <- true
-	}
-
 }
 
 func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) int {
+	bp.mut.Lock()
 	missingTxsForShards := bp.computeMissingTxsForShards(body)
-	requestedTxHashes := make(map[string]bool)
+	bp.requestedTxHashes = make(map[string]bool)
 	if bp.OnRequestTransaction != nil {
 		for shardId, txHashes := range missingTxsForShards {
 			for _, txHash := range txHashes {
-				requestedTxHashes[string(txHash)] = true
+				bp.requestedTxHashes[string(txHash)] = true
 				bp.OnRequestTransaction(shardId, txHash)
 			}
 		}
 	}
-	bp.mut.Lock()
-	bp.requestedTxHashes = requestedTxHashes
 	bp.mut.Unlock()
 	return len(missingTxsForShards)
 }
