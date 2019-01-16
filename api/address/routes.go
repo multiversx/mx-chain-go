@@ -11,7 +11,7 @@ import (
 // Handler interface defines methods that can be used from `elrondFacade` context variable
 type Handler interface {
 	GetBalance(address string) (*big.Int, error)
-	GetCurrentPublicKey() (string, error)
+	GetCurrentPublicKey() string
 }
 
 // Routes defines address related routes
@@ -31,7 +31,7 @@ func GetAddress(c *gin.Context) {
 	//TODO: add real implementation here
 	//addr := c.Param("address")
 
-	currentAddress, _ := ef.GetCurrentPublicKey()
+	currentAddress := ef.GetCurrentPublicKey()
 
 	address, err := url.Parse(currentAddress)
 	if err != nil {
