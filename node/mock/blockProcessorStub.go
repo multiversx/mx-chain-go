@@ -10,10 +10,6 @@ import (
 type BlockProcessorStub struct {
 }
 
-func (bps *BlockProcessorStub) CreateEmptyBlockBody(shardId uint32, round int32) *block.TxBlockBody {
-	panic("implement me")
-}
-
 func (bps *BlockProcessorStub) SetOnRequestTransaction(f func(destShardID uint32, txHash []byte)) {
 	panic("implement me")
 }
