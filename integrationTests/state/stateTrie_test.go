@@ -1,4 +1,4 @@
-package integrationTests
+package state
 
 import (
 	"encoding/base64"
@@ -10,36 +10,26 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	mock2 "github.com/ElrondNetwork/elrond-go-sandbox/data/trie/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
 //------- Helper funcs
 
 func adbCreateAccountsDB() *state.AccountsDB {
-	marsh := mock.MarshalizerMock{}
-	dbw, err := trie.NewDBWriteCache(mock2.NewMemoryStorerMock())
-	if err != nil {
-		panic(err)
-	}
+	marsh := &marshal.JsonMarshalizer{}
 
-	tr, err := trie.NewTrie(make([]byte, 32), dbw, mock.HasherMock{})
-	if err != nil {
-		panic(err)
-	}
-
-	adb, err := state.NewAccountsDB(tr, mock.HasherMock{}, &marsh)
-	if err != nil {
-		panic(err)
-	}
+	dbw, _ := trie.NewDBWriteCache(createMemUnit())
+	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh)
 
 	return adb
 }
 
 func generateAddressJurnalAccountAccountsDB() (state.AddressContainer, state.JournalizedAccountWrapper, *state.AccountsDB) {
-	adr := mock.NewAddressMock()
+	adr := createDummyAddress()
 	adb := adbCreateAccountsDB()
 
 	jaw, err := state.NewJournalizedAccountWrapFromAccountContainer(adr, state.NewAccount(), adb)
@@ -235,9 +225,9 @@ func TestAccountsDB_Commit2OkAccountsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr1, _, adb := generateAddressJurnalAccountAccountsDB()
-	buff := make([]byte, mock.HasherMock{}.Size())
+	buff := make([]byte, sha256.Sha256{}.Size())
 	rand.Read(buff)
-	adr2 := mock.NewAddressMock()
+	adr2 := createDummyAddress()
 
 	//first account has the balance of 40
 	state1, err := adb.GetJournalizedAccount(adr1)
@@ -330,8 +320,8 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := mock.NewAddressMock()
-	adr2 := mock.NewAddressMock()
+	adr1 := createDummyAddress()
+	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -387,8 +377,8 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := mock.NewAddressMock()
-	adr2 := mock.NewAddressMock()
+	adr1 := createDummyAddress()
+	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -447,8 +437,8 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts code hash + code inside trie. adr2 has the same code hash
 	//revert should work
 
-	adr1 := mock.NewAddressMock()
-	adr2 := mock.NewAddressMock()
+	adr1 := createDummyAddress()
+	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -503,8 +493,8 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
-	adr1 := mock.NewAddressMock()
-	adr2 := mock.NewAddressMock()
+	adr1 := createDummyAddress()
+	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -564,8 +554,8 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
-	adr1 := mock.NewAddressMock()
-	adr2 := mock.NewAddressMock()
+	adr1 := createDummyAddress()
+	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -641,8 +631,8 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := mock.NewAddressMock()
-	adrDest := mock.NewAddressMock()
+	adrSrc := createDummyAddress()
+	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -688,8 +678,8 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := mock.NewAddressMock()
-	adrDest := mock.NewAddressMock()
+	adrSrc := createDummyAddress()
+	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -719,8 +709,8 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := mock.NewAddressMock()
-	adrDest := mock.NewAddressMock()
+	adrSrc := createDummyAddress()
+	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -755,8 +745,8 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 }
 
 func BenchmarkTxExecution(b *testing.B) {
-	adrSrc := mock.NewAddressMock()
-	adrDest := mock.NewAddressMock()
+	adrSrc := createDummyAddress()
+	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
