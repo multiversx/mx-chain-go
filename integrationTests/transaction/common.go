@@ -49,20 +49,20 @@ func createMemUnit() storage.Storer {
 }
 
 func createTestDataPool() data.TransientDataHolder {
-	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
-	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
+	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
+	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 
-	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	cacherCfg := storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
-	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	stateBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	dPool, _ := dataPool.NewDataPool(
@@ -139,4 +139,38 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	)
 
 	return n, mes, sk
+}
+
+func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.AccountsAdapter) (
+	*node.Node,
+	p2p.Messenger,
+	crypto.PrivateKey) {
+
+	hasher := sha256.Sha256{}
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
+
+	keyGen := schnorr.NewKeyGenerator()
+	sk, pk := keyGen.GeneratePair()
+
+	n, _ := node.NewNode(
+		node.WithPort(4000),
+		node.WithMarshalizer(marshalizer),
+		node.WithHasher(hasher),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithDataPool(dPool),
+		node.WithAddressConverter(addrConverter),
+		node.WithAccountsAdapter(accntAdapter),
+		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
+		node.WithBlockChain(createTestBlockChain()),
+		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
+		node.WithPrivateKey(sk),
+		node.WithPublicKey(pk),
+	)
+
+	return n, nil, sk
 }

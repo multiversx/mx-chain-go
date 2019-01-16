@@ -1,7 +1,8 @@
 package transaction
 
 import (
-	"context"
+	"encoding/base64"
+	"fmt"
 	"math/big"
 	"sync"
 	"testing"
@@ -9,11 +10,12 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNode_GenerateSendInterceptBulkTransactionsWithMemMessenger(t *testing.T) {
+func TestNode_GenerateSendInterceptBulkTransactionsWithNetMessenger(t *testing.T) {
+	t.Skip("TODO: fix tests that run on the same local network")
+
 	dPool := createTestDataPool()
 
 	startingNonce := uint64(6)
@@ -22,11 +24,14 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMemMessenger(t *testing.T
 	accntAdapter := adbCreateAccountsDB()
 
 	//TODO change when injecting a messenger is possible
-	n, mes, sk := createMemNode(1, dPool, accntAdapter)
+	n, _, sk := createNetNode(4000, dPool, accntAdapter)
 
-	mes.Bootstrap(context.Background())
+	n.Start()
+	defer n.Stop()
 
-	defer p2p.ReInitializeGloballyRegisteredPeers()
+	n.P2PBootstrap()
+
+	time.Sleep(time.Second)
 
 	//set the account's nonce to startingNonce
 	nodePubKeyBytes, _ := sk.GeneratePublic().ToByteArray()
@@ -35,9 +40,11 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMemMessenger(t *testing.T
 	nodeAccount.SetNonceWithJournal(startingNonce)
 	accntAdapter.Commit()
 
-	noOfTx := 50
+	noOfTx := 100000
 
 	_ = n.BindInterceptorsResolvers()
+
+	time.Sleep(time.Second)
 
 	wg := sync.WaitGroup{}
 	wg.Add(noOfTx)
@@ -52,6 +59,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMemMessenger(t *testing.T
 
 	mut := sync.Mutex{}
 	txHashes := make([][]byte, 0)
+	transactions := make([]*transaction.Transaction, 0)
 
 	//wire up handler
 	dPool.Transactions().RegisterHandler(func(key []byte) {
@@ -59,28 +67,65 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMemMessenger(t *testing.T
 		defer mut.Unlock()
 
 		txHashes = append(txHashes, key)
+
+		dataStore := dPool.Transactions().ShardDataStore(0)
+		val, _ := dataStore.Get(key)
+
+		if val == nil {
+			assert.Fail(t, fmt.Sprintf("key %s not in store?", base64.StdEncoding.EncodeToString(key)))
+			return
+		}
+
+		transactions = append(transactions, val.(*transaction.Transaction))
 		wg.Done()
 	})
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), *big.NewInt(1), uint64(noOfTx))
+
 	assert.Nil(t, err)
 
 	select {
 	case <-chanDone:
-	case <-time.After(time.Second * 3):
+	case <-time.After(time.Second * 30):
 		assert.Fail(t, "timeout")
 		return
 	}
 
-	assert.Equal(t, noOfTx, len(txHashes))
+	if noOfTx != len(txHashes) {
+
+		for i := startingNonce; i < startingNonce+uint64(noOfTx); i++ {
+			found := false
+
+			for _, tx := range transactions {
+				if tx.Nonce == i {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				fmt.Printf("tx with nonce %d is missing\n", i)
+			}
+
+		}
+
+		assert.Fail(t, fmt.Sprintf("should have been %d, got %d", noOfTx, len(txHashes)))
+
+		return
+	}
 
 	bitmap := make([]bool, noOfTx+int(startingNonce))
 	//set for each nonce from found tx a true flag in bitmap
 	for i := 0; i < noOfTx; i++ {
-		tx, _ := dPool.Transactions().ShardDataStore(0).Get(txHashes[i])
+		val, _ := dPool.Transactions().ShardDataStore(0).Get(txHashes[i])
 
-		assert.NotNil(t, tx)
-		bitmap[tx.(*transaction.Transaction).Nonce] = true
+		if val == nil {
+			continue
+		}
+
+		tx := val.(*transaction.Transaction)
+
+		bitmap[tx.Nonce] = true
 	}
 
 	//for the first startingNonce values, the bitmap should be false

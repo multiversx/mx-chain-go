@@ -366,6 +366,28 @@ func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 
 }
 
+func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
+	adrSrc := mock.NewAddressMock([]byte{65})
+	acntSrc := mock.NewJournalizedAccountWrapMock(adrSrc)
+
+	acntDest := acntSrc
+
+	execTx, _ := txproc.NewTxProcessor(
+		&mock.AccountsStub{},
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	acntSrc.Balance = *big.NewInt(64)
+
+	err := execTx.MoveBalances(acntSrc, acntDest, big.NewInt(1))
+	assert.Nil(t, err)
+	assert.Equal(t, *big.NewInt(64), acntSrc.Balance)
+	assert.Equal(t, *big.NewInt(64), acntDest.Balance)
+
+}
+
 //------- increaseNonceAcntSrc
 
 func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
@@ -626,7 +648,6 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	//these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
 	tx.Nonce = 4
 	tx.SndAddr = []byte("SRC")

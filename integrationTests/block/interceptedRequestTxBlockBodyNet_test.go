@@ -26,8 +26,6 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	marshalizer := &marshal.JsonMarshalizer{}
 
 	keyGen := schnorr.NewKeyGenerator()
-	//sk, pk := keyGen.GeneratePair()
-	//buffPk, _ := pk.ToByteArray()
 
 	dPoolRequestor := createTestDataPool()
 	dPoolResolver := createTestDataPool()
