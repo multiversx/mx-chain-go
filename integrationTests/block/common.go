@@ -1,11 +1,20 @@
 package block
 
 import (
+	"context"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/node"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 )
@@ -62,4 +71,33 @@ func createTestDataPool() data.TransientDataHolder {
 	)
 
 	return dPool
+}
+
+func createMemNode(port int, dPool data.TransientDataHolder) (*node.Node, p2p.Messenger) {
+	hasher := sha256.Sha256{}
+	marshalizer := &marshal.JsonMarshalizer{}
+
+	cp, _ := p2p.NewConnectParamsFromPort(port)
+	mes, _ := p2p.NewMemMessenger(marshalizer, hasher, cp)
+
+	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
+
+	keyGen := schnorr.NewKeyGenerator()
+
+	n, _ := node.NewNode(
+		node.WithMessenger(mes),
+		node.WithMarshalizer(marshalizer),
+		node.WithHasher(hasher),
+		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
+		node.WithPubSubStrategy(p2p.GossipSub),
+		node.WithDataPool(dPool),
+		node.WithAddressConverter(addrConverter),
+		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
+		node.WithBlockChain(createTestBlockChain()),
+		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
+	)
+
+	return n, mes
 }
