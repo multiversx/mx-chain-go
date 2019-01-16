@@ -469,19 +469,19 @@ func (bp *blockProcessor) receivedTransaction(txHash []byte) {
 }
 
 func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) int {
-	bp.mut.Lock()
 	missingTxsForShards := bp.computeMissingTxsForShards(body)
-	bp.requestedTxHashes = make(map[string]bool)
+	requestedTxHashes := make(map[string]bool)
 	if bp.OnRequestTransaction != nil {
 		for shardId, txHashes := range missingTxsForShards {
 			for _, txHash := range txHashes {
-				bp.requestedTxHashes[string(txHash)] = true
+				requestedTxHashes[string(txHash)] = true
 				bp.OnRequestTransaction(shardId, txHash)
 			}
 		}
 	}
+	bp.mut.Lock()
+	bp.requestedTxHashes = requestedTxHashes
 	bp.mut.Unlock()
-
 	return len(missingTxsForShards)
 }
 
