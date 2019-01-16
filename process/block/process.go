@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"sort"
 	"sync"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
@@ -526,7 +528,10 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 	for i, txs := 0, 0; i < int(noShards); i++ {
 		txStore := txPool.ShardDataStore(uint32(i))
 
-		if txStore == nil {
+		orderedTxes, orderedTxHashes, err := sortTxByNonce(txStore)
+
+		if err != nil {
+			log.Error(err.Error())
 			continue
 		}
 
@@ -534,10 +539,8 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		miniBlock.ShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
 
-		for _, txHash := range txStore.Keys() {
+		for index, tx := range orderedTxes {
 			snapshot := bp.accounts.JournalLen()
-
-			tx := bp.getTransactionFromPool(miniBlock.ShardID, txHash)
 
 			if tx == nil {
 				log.Error("did not find transaction in pool")
@@ -553,7 +556,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 				continue
 			}
 
-			miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
+			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 			txs++
 
 			if txs >= maxTxInBlock { // max transactions count in one block was reached
@@ -580,4 +583,47 @@ func (bp *blockProcessor) waitForTxHashes() {
 	case <-time.After(WaitTime):
 		return
 	}
+}
+
+func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
+	if txShardStore == nil {
+		return nil, nil, process.ErrNilCacher
+	}
+
+	transactions := make([]*transaction.Transaction, 0)
+	txHashes := make([][]byte, 0)
+
+	mTxHashes := make(map[uint64][]byte)
+	mTransactions := make(map[uint64]*transaction.Transaction)
+
+	nonces := make([]uint64, 0)
+
+	for _, key := range txShardStore.Keys() {
+		val, _ := txShardStore.Get(key)
+		if val == nil {
+			continue
+		}
+
+		tx, ok := val.(*transaction.Transaction)
+		if !ok {
+			continue
+		}
+
+		nonces = append(nonces, tx.Nonce)
+		mTxHashes[tx.Nonce] = key
+		mTransactions[tx.Nonce] = tx
+	}
+
+	sort.Slice(nonces, func(i, j int) bool {
+		return nonces[i] < nonces[j]
+	})
+
+	for _, nonce := range nonces {
+		key := mTxHashes[nonce]
+
+		txHashes = append(txHashes, key)
+		transactions = append(transactions, mTransactions[nonce])
+	}
+
+	return transactions, txHashes, nil
 }

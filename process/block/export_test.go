@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 func (bp *blockProcessor) GetTransactionFromPool(destShardID uint32, txHash []byte) *transaction.Transaction {
@@ -37,4 +38,8 @@ func (hdrRes *HeaderResolver) ResolveHdrRequest(rd process.RequestData) ([]byte,
 
 func (gbbRes *GenericBlockBodyResolver) ResolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
 	return gbbRes.resolveBlockBodyRequest(rd)
+}
+
+func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
+	return sortTxByNonce(txShardStore)
 }
