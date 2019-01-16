@@ -267,13 +267,6 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 	log.Info(fmt.Sprintf("%sStep 0: Preparing for this round with leader %s%s\n",
 		sposWorker.Cns.getFormattedTime(), hex.EncodeToString([]byte(leader)), msg))
 
-	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-		log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT SYNCRONIZED\n",
-			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrStartRound)))
-		sposWorker.Cns.Chr.SetSelfSubround(-1)
-		return false
-	}
-
 	pubKeys := sposWorker.Cns.ConsensusGroup()
 
 	selfIndex, err := sposWorker.Cns.IndexSelfConsensusGroup()
@@ -361,6 +354,10 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 // (it is used as a handler function of the doSubroundJob pointer function declared in Subround struct,
 // from spos package)
 func (sposWorker *SPOSConsensusWorker) DoBlockJob() bool {
+	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+		return false
+	}
+
 	isBlockJobDone, err := sposWorker.Cns.GetJobDone(sposWorker.Cns.SelfPubKey(), SrBlock)
 
 	if err != nil {
@@ -556,6 +553,13 @@ func (sposWorker *SPOSConsensusWorker) genCommitmentHash() ([]byte, error) {
 // block from the leader in the CommitmentHash subround (it is used as the handler function of the doSubroundJob
 // pointer variable function in Subround struct, from spos package)
 func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
+	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+		log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT SYNCRONIZED\n",
+			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrCommitmentHash)))
+		sposWorker.Cns.Chr.SetSelfSubround(-1)
+		return false
+	}
+
 	if sposWorker.Cns.Status(SrBlock) != SsFinished { // is subround Block not finished?
 		if !sposWorker.DoBlockJob() {
 			return false
@@ -977,73 +981,57 @@ func (sposWorker *SPOSConsensusWorker) ExtendEndRound() {
 // syncronized in this round
 func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() error {
 	sposWorker.BlockProcessor.RevertAccountState()
-	blk, err := sposWorker.BlockProcessor.CreateTxBlockBody(
+	blk := sposWorker.BlockProcessor.CreateEmptyBlockBody(
 		shardId,
-		maxTransactionsInBlock,
-		sposWorker.Cns.Chr.Round().Index(),
-		func() bool { return false },
-	)
-
-	if err != nil {
-		return err
-	}
+		sposWorker.Cns.Chr.Round().Index())
 
 	sposWorker.BlockBody = blk
-
 	hdr := &block.Header{}
+	hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
+	hdr.TimeStamp = uint64(sposWorker.Cns.Chr.Round().TimeStamp().Unix())
+	var prevHeader []byte
+	var err error
 
 	if sposWorker.BlockChain.CurrentBlockHeader == nil {
 		hdr.Nonce = 1
-		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
-		hdr.TimeStamp = uint64(sposWorker.Cns.Chr.Round().TimeStamp().Unix())
-
-		prevHeader, err := sposWorker.marshalizer.Marshal(sposWorker.BlockChain.GenesisBlock)
+		prevHeader, err = sposWorker.marshalizer.Marshal(sposWorker.BlockChain.GenesisBlock)
 
 		if err != nil {
 			return err
 		}
-
-		prevHeaderHash := sposWorker.hasher.Compute(string(prevHeader))
-		hdr.PrevHash = prevHeaderHash
-
 	} else {
 		hdr.Nonce = sposWorker.BlockChain.CurrentBlockHeader.Nonce + 1
-		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
-		hdr.TimeStamp = uint64(sposWorker.Cns.Chr.Round().TimeStamp().Unix())
-
-		prevHeader, err := sposWorker.marshalizer.Marshal(sposWorker.BlockChain.CurrentBlockHeader)
+		prevHeader, err = sposWorker.marshalizer.Marshal(sposWorker.BlockChain.CurrentBlockHeader)
 
 		if err != nil {
 			return err
 		}
-
-		prevHeaderHash := sposWorker.hasher.Compute(string(prevHeader))
-		hdr.PrevHash = prevHeaderHash
 	}
 
+	prevHeaderHash := sposWorker.hasher.Compute(string(prevHeader))
+	hdr.PrevHash = prevHeaderHash
 	blkStr, err := sposWorker.marshalizer.Marshal(sposWorker.BlockBody)
 
 	if err != nil {
 		return err
 	}
-
 	hdr.BlockBodyHash = sposWorker.hasher.Compute(string(blkStr))
+
+	cnsGroup := sposWorker.Cns.ConsensusGroup()
+	cnsGroupSize := len(cnsGroup)
+
+	hdr.PubKeysBitmap = make([]byte, cnsGroupSize/8+1)
+
+	// TODO: decide the signature for the empty block
+	headerStr, err := sposWorker.marshalizer.Marshal(hdr)
+	hdrHash := sposWorker.hasher.Compute(string(headerStr))
+	hdr.Signature = hdrHash
+	hdr.Commitment = hdrHash
 
 	sposWorker.Header = hdr
 
 	// Commit the block (commits also the account state)
 	err = sposWorker.BlockProcessor.CommitBlock(sposWorker.BlockChain, sposWorker.Header, sposWorker.BlockBody)
-
-	if err != nil {
-		sposWorker.BlockProcessor.RevertAccountState()
-		return err
-	}
-
-	err = sposWorker.BlockProcessor.RemoveBlockTxsFromPool(sposWorker.BlockBody)
-
-	if err != nil {
-		return err
-	}
 
 	// broadcast block body
 	err = sposWorker.broadcastTxBlockBody()
