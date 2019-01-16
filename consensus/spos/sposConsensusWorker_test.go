@@ -70,6 +70,7 @@ func initConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
 		pubKeyMock,
 	)
 
+	cnWorker.Header = &block.Header{}
 	cnWorker.SendMessage = SendMessage
 	cnWorker.BroadcastBlockBody = BroadcastMessage
 	cnWorker.BroadcastHeader = BroadcastMessage
@@ -179,6 +180,10 @@ func initMockBlockProcessor() *mock.BlockProcessorMock {
 
 	blockProcMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
 		return nil
+	}
+
+	blockProcMock.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
+		return &block.TxBlockBody{}
 	}
 
 	return blockProcMock
@@ -1324,6 +1329,7 @@ func TestMessage_DecodeBlockHeader(t *testing.T) {
 
 func TestMessage_CheckChannelTxBlockBody(t *testing.T) {
 	cnWorkers := InitMessage()
+	cnWorkers[0].Header = nil
 	round := cnWorkers[0].Cns.Chr.Round()
 	roundDuration := round.TimeDuration()
 	round.UpdateRound(time.Now(), time.Now().Add(roundDuration))

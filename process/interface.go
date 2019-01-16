@@ -85,6 +85,7 @@ type BlockBodyInterceptorAdapter interface {
 	HashAccesser
 	p2p.Creator
 	Shard() uint32
+	GetUnderlyingObject() interface{}
 }
 
 // HeaderInterceptorAdapter is the interface used in interception of headers
