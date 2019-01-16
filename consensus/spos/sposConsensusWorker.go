@@ -267,6 +267,11 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 	log.Info(fmt.Sprintf("%sStep 0: Preparing for this round with leader %s%s\n",
 		sposWorker.Cns.getFormattedTime(), hex.EncodeToString([]byte(leader)), msg))
 
+	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+		log.Info(fmt.Sprintf("%sNOT SYNCRONIZED YET\n",
+			sposWorker.Cns.getFormattedTime()))
+	}
+
 	pubKeys := sposWorker.Cns.ConsensusGroup()
 
 	selfIndex, err := sposWorker.Cns.IndexSelfConsensusGroup()
@@ -553,13 +558,6 @@ func (sposWorker *SPOSConsensusWorker) genCommitmentHash() ([]byte, error) {
 // block from the leader in the CommitmentHash subround (it is used as the handler function of the doSubroundJob
 // pointer variable function in Subround struct, from spos package)
 func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
-	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-		log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT SYNCRONIZED\n",
-			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrCommitmentHash)))
-		sposWorker.Cns.Chr.SetSelfSubround(-1)
-		return false
-	}
-
 	if sposWorker.Cns.Status(SrBlock) != SsFinished { // is subround Block not finished?
 		if !sposWorker.DoBlockJob() {
 			return false

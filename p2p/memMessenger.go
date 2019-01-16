@@ -34,6 +34,12 @@ func init() {
 	globallyRegisteredPeers = make(map[peer.ID]*MemMessenger)
 }
 
+func ReInitializeGloballyRegisteredPeers() {
+	mutGloballyRegPeers.Lock()
+	globallyRegisteredPeers = make(map[peer.ID]*MemMessenger)
+	mutGloballyRegPeers.Unlock()
+}
+
 // MemMessenger is a fake memory Messenger used for testing
 // TODO keep up with NetMessenger modifications
 type MemMessenger struct {

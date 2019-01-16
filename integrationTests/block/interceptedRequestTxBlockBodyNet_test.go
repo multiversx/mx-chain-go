@@ -1,38 +1,38 @@
-package transaction
+package block
 
 import (
 	"context"
-	"fmt"
-	"math/big"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
+	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNode_RequestInterceptTransaction(t *testing.T) {
+func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
+	t.Skip("TODO: fix tests that run on the same local network")
+
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
 	keyGen := schnorr.NewKeyGenerator()
-	sk, pk := keyGen.GeneratePair()
-	buffPk, _ := pk.ToByteArray()
-
-	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
+	//sk, pk := keyGen.GeneratePair()
+	//buffPk, _ := pk.ToByteArray()
 
 	dPoolRequestor := createTestDataPool()
 	dPoolResolver := createTestDataPool()
+
+	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
 	blkcRequestor := createTestBlockChain()
 	blkcResolver := createTestBlockChain()
@@ -69,6 +69,7 @@ func TestNode_RequestInterceptTransaction(t *testing.T) {
 
 	nRequestor.Start()
 	nResolver.Start()
+
 	defer nRequestor.Stop()
 	defer nResolver.Stop()
 
@@ -80,53 +81,52 @@ func TestNode_RequestInterceptTransaction(t *testing.T) {
 	_ = nRequestor.BindInterceptorsResolvers()
 	_ = nResolver.BindInterceptorsResolvers()
 
-	//we wait 1 second to be sure that both nodes advertised their topics
-	//TODO change when injecting a messenger is possible
+	//TODO remove this
 	time.Sleep(time.Second)
 
-	//Step 1. Generate a signed transaction
-	tx := transaction.Transaction{
-		Nonce:   0,
-		Value:   *big.NewInt(0),
-		RcvAddr: hasher.Compute("receiver"),
-		SndAddr: buffPk,
-		Data:    []byte("tx notarized data"),
+	//Step 1. Generate a block body
+	txBlock := block.TxBlockBody{
+		MiniBlocks: []block.MiniBlock{
+			{
+				ShardID: 0,
+				TxHashes: [][]byte{
+					hasher.Compute("tx1"),
+				},
+			},
+		},
+		StateBlockBody: block.StateBlockBody{
+			RootHash: hasher.Compute("root hash"),
+			ShardID:  0,
+		},
 	}
 
-	txBuff, _ := marshalizer.Marshal(&tx)
-	tx.Signature, _ = sk.Sign(txBuff)
+	txBlockBodyBuff, _ := marshalizer.Marshal(&txBlock)
+	txBlockBodyHash := hasher.Compute(string(txBlockBodyBuff))
 
-	signedTxBuff, _ := marshalizer.Marshal(&tx)
+	//Step 2. resolver has the tx block body
+	dPoolResolver.TxBlocks().HasOrAdd(txBlockBodyHash, &txBlock)
 
-	fmt.Printf("Transaction: %v\n%v\n", tx, string(signedTxBuff))
-
+	//Step 3. wire up a received handler
 	chanDone := make(chan bool)
 
-	txHash := hasher.Compute(string(signedTxBuff))
+	dPoolRequestor.TxBlocks().RegisterHandler(func(key []byte) {
+		txBlockBodyStored, _ := dPoolRequestor.TxBlocks().Get(key)
 
-	//step 2. wire up a received handler for requestor
-	dPoolRequestor.Transactions().RegisterHandler(func(key []byte) {
-		txStored, _ := dPoolRequestor.Transactions().ShardDataStore(0).Get(key)
-
-		if reflect.DeepEqual(txStored, &tx) && tx.Signature != nil {
+		if reflect.DeepEqual(txBlockBodyStored, &txBlock) {
 			chanDone <- true
 		}
 
-		assert.Equal(t, txStored, &tx)
-		assert.Equal(t, txHash, key)
+		assert.Equal(t, txBlockBodyStored, &txBlock)
+
 	})
 
-	//Step 3. add the transaction in resolver pool
-	dPoolResolver.Transactions().AddData(txHash, &tx, 0)
-
-	//Step 4. request tx
-	txResolver := nRequestor.GetResolvers()[0].(*transaction2.TxResolver)
-	err := txResolver.RequestTransactionFromHash(txHash)
-	assert.Nil(t, err)
+	//Step 4. request tx block body
+	txBlockBodyResolver := nRequestor.GetResolvers()[2].(*block2.GenericBlockBodyResolver)
+	txBlockBodyResolver.RequestBlockBodyFromHash(txBlockBodyHash)
 
 	select {
 	case <-chanDone:
-	case <-time.After(time.Second * 3):
+	case <-time.After(time.Second * 10):
 		assert.Fail(t, "timeout")
 	}
 }

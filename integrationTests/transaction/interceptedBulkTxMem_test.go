@@ -7,25 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNode_GenerateSendInterceptBulkTransactions(t *testing.T) {
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
-
-	keyGen := schnorr.NewKeyGenerator()
-	sk, pk := keyGen.GeneratePair()
-
+func TestNode_GenerateSendInterceptBulkTransactionsWithMemMessenger(t *testing.T) {
 	dPool := createTestDataPool()
 
 	startingNonce := uint64(6)
@@ -34,29 +22,14 @@ func TestNode_GenerateSendInterceptBulkTransactions(t *testing.T) {
 	accntAdapter := adbCreateAccountsDB()
 
 	//TODO change when injecting a messenger is possible
-	n, _ := node.NewNode(
-		node.WithPort(4000),
-		node.WithMarshalizer(marshalizer),
-		node.WithHasher(hasher),
-		node.WithMaxAllowedPeers(4),
-		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
-		node.WithAccountsAdapter(accntAdapter),
-		node.WithDataPool(dPool),
-		node.WithAddressConverter(addrConverter),
-		node.WithSingleSignKeyGenerator(keyGen),
-		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
-		node.WithBlockChain(createTestBlockChain()),
-		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
-		node.WithPublicKey(pk),
-		node.WithPrivateKey(sk),
-	)
+	n, mes, sk := createMemNode(1, dPool, accntAdapter)
 
-	n.Start()
-	defer n.Stop()
+	mes.Bootstrap(context.Background())
+
+	defer p2p.ReInitializeGloballyRegisteredPeers()
 
 	//set the account's nonce to startingNonce
-	nodePubKeyBytes, _ := pk.ToByteArray()
+	nodePubKeyBytes, _ := sk.GeneratePublic().ToByteArray()
 	nodeAddress, _ := addrConverter.CreateAddressFromPublicKeyBytes(nodePubKeyBytes)
 	nodeAccount, _ := accntAdapter.GetJournalizedAccount(nodeAddress)
 	nodeAccount.SetNonceWithJournal(startingNonce)

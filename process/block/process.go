@@ -2,8 +2,11 @@ package block
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 	"sync"
 	"time"
 
@@ -12,11 +15,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
@@ -395,7 +400,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			tx := bp.getTransactionFromPool(miniBlock.ShardID, txHash)
-			fmt.Println(tx)
+
 			if tx == nil {
 				return process.ErrMissingTransaction
 			}
@@ -425,6 +430,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		blockChain.CurrentTxBlockBody = block
 		blockChain.CurrentBlockHeader = header
 		blockChain.LocalHeight = int64(header.Nonce)
+		bp.displayBlockchain(blockChain)
 	}
 
 	return err
@@ -442,6 +448,7 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 	txStore := txPool.ShardDataStore(destShardID)
 
 	if txStore == nil {
+		log.Error(process.ErrNilTxStorage.Error())
 		return nil
 	}
 
@@ -451,7 +458,9 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 		return nil
 	}
 
-	return val.(*transaction.Transaction)
+	v := val.(*transaction.Transaction)
+
+	return v
 }
 
 // receivedTransaction is a call back function which is called when a new transaction
@@ -461,11 +470,13 @@ func (bp *blockProcessor) receivedTransaction(txHash []byte) {
 	if bp.requestedTxHashes[string(txHash)] {
 		delete(bp.requestedTxHashes, string(txHash))
 	}
+	lenReqTxHashes := len(bp.requestedTxHashes)
+	bp.mut.Unlock()
 
-	if len(bp.requestedTxHashes) == 0 {
+	if lenReqTxHashes == 0 {
 		bp.ChRcvAllTxs <- true
 	}
-	bp.mut.Unlock()
+
 }
 
 func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) int {
@@ -487,6 +498,7 @@ func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) int 
 
 func (bp *blockProcessor) computeMissingTxsForShards(body *block.TxBlockBody) map[uint32][][]byte {
 	missingTxsForShard := make(map[uint32][][]byte)
+
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		shardId := miniBlock.ShardID
@@ -500,7 +512,10 @@ func (bp *blockProcessor) computeMissingTxsForShards(body *block.TxBlockBody) ma
 				currentShardMissingTransactions = append(currentShardMissingTransactions, txHash)
 			}
 		}
-		missingTxsForShard[shardId] = currentShardMissingTransactions
+
+		if len(currentShardMissingTransactions) > 0 {
+			missingTxsForShard[shardId] = currentShardMissingTransactions
+		}
 	}
 
 	return missingTxsForShard
@@ -526,7 +541,10 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 	for i, txs := 0, 0; i < int(noShards); i++ {
 		txStore := txPool.ShardDataStore(uint32(i))
 
-		if txStore == nil {
+		orderedTxes, orderedTxHashes, err := sortTxByNonce(txStore)
+
+		if err != nil {
+			log.Error(err.Error())
 			continue
 		}
 
@@ -534,10 +552,8 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		miniBlock.ShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
 
-		for _, txHash := range txStore.Keys() {
+		for index, tx := range orderedTxes {
 			snapshot := bp.accounts.JournalLen()
-
-			tx := bp.getTransactionFromPool(miniBlock.ShardID, txHash)
 
 			if tx == nil {
 				log.Error("did not find transaction in pool")
@@ -553,7 +569,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 				continue
 			}
 
-			miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
+			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 			txs++
 
 			if txs >= maxTxInBlock { // max transactions count in one block was reached
@@ -580,4 +596,216 @@ func (bp *blockProcessor) waitForTxHashes() {
 	case <-time.After(WaitTime):
 		return
 	}
+}
+
+func (bp *blockProcessor) displayBlockchain(blkc *blockchain.BlockChain) {
+	if blkc == nil {
+		return
+	}
+
+	blockHeader := blkc.CurrentBlockHeader
+	txBlockBody := blkc.CurrentTxBlockBody
+
+	if blockHeader == nil || txBlockBody == nil {
+		return
+	}
+
+	headerHash, err := bp.computeHeaderHash(blockHeader)
+
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	bp.displayLogInfo(blockHeader, txBlockBody, headerHash)
+}
+
+func (bp *blockProcessor) computeHeaderHash(hdr *block.Header) ([]byte, error) {
+	headerMarsh, err := bp.marshalizer.Marshal(hdr)
+	if err != nil {
+		return nil, err
+	}
+
+	headerHash := bp.hasher.Compute(string(headerMarsh))
+
+	return headerHash, nil
+}
+
+func (bp *blockProcessor) displayLogInfo(
+	header *block.Header,
+	txBlock *block.TxBlockBody,
+	headerHash []byte,
+) {
+	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(header, txBlock, headerHash)
+
+	tblString, err := display.CreateTableString(dispHeader, dispLines)
+	if err != nil {
+		log.Error(err.Error())
+	}
+	fmt.Println(tblString)
+}
+
+func createDisplayableHeaderAndBlockBody(
+	header *block.Header,
+	txBlockBody *block.TxBlockBody,
+	headerHash []byte,
+) ([]string, []*display.LineData) {
+
+	tableHeader := []string{"Part", "Parameter", "Value"}
+
+	lines := displayHeader(header, headerHash)
+
+	if header.BlockBodyType == block.TxBlock {
+		lines = displayTxBlockBody(lines, txBlockBody, header.BlockBodyHash)
+
+		return tableHeader, lines
+	}
+
+	//TODO: implement the other block bodies
+
+	lines = append(lines, display.NewLineData(false, []string{"Unknown", "", ""}))
+	return tableHeader, lines
+}
+
+func displayHeader(header *block.Header,
+	headerHash []byte,
+) []*display.LineData {
+	lines := make([]*display.LineData, 0)
+
+	lines = append(lines, display.NewLineData(false, []string{
+		"Header",
+		"Nonce",
+		fmt.Sprintf("%d", header.Nonce)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Shard",
+		fmt.Sprintf("%d", header.ShardId)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Epoch",
+		fmt.Sprintf("%d", header.Epoch)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Round",
+		fmt.Sprintf("%d", header.Round)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Timestamp",
+		fmt.Sprintf("%d", header.TimeStamp)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Current hash",
+		toB64(headerHash)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Prev hash",
+		toB64(header.PrevHash)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Body type",
+		header.BlockBodyType.String()}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Body hash",
+		toB64(header.BlockBodyHash)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Pub keys bitmap",
+		toHex(header.PubKeysBitmap)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Commitment",
+		toB64(header.Commitment)}))
+	lines = append(lines, display.NewLineData(true, []string{
+		"",
+		"Signature",
+		toB64(header.Signature)}))
+
+	return lines
+}
+
+func displayTxBlockBody(lines []*display.LineData, txBlockBody *block.TxBlockBody, blockBodyHash []byte) []*display.LineData {
+	lines = append(lines, display.NewLineData(false, []string{"TxBody", "Block blockBodyHash", toB64(blockBodyHash)}))
+	lines = append(lines, display.NewLineData(true, []string{"", "Root blockBodyHash", toB64(txBlockBody.RootHash)}))
+
+	for i := 0; i < len(txBlockBody.MiniBlocks); i++ {
+		miniBlock := txBlockBody.MiniBlocks[i]
+
+		part := fmt.Sprintf("TxBody_%d", miniBlock.ShardID)
+
+		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part, "", "<NIL> or <EMPTY>"}))
+		}
+
+		for j := 0; j < len(miniBlock.TxHashes); j++ {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				fmt.Sprintf("Tx blockBodyHash %d", j),
+				toB64(miniBlock.TxHashes[j])}))
+
+			part = ""
+		}
+
+		lines[len(lines)-1].HorizontalRuleAfter = true
+	}
+
+	return lines
+}
+
+func toHex(buff []byte) string {
+	if buff == nil {
+		return "<NIL>"
+	}
+	return "0x" + hex.EncodeToString(buff)
+}
+
+func toB64(buff []byte) string {
+	if buff == nil {
+		return "<NIL>"
+	}
+	return base64.StdEncoding.EncodeToString(buff)
+}
+
+func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
+	if txShardStore == nil {
+		return nil, nil, process.ErrNilCacher
+	}
+
+	transactions := make([]*transaction.Transaction, 0)
+	txHashes := make([][]byte, 0)
+
+	mTxHashes := make(map[uint64][]byte)
+	mTransactions := make(map[uint64]*transaction.Transaction)
+
+	nonces := make([]uint64, 0)
+
+	for _, key := range txShardStore.Keys() {
+		val, _ := txShardStore.Get(key)
+		if val == nil {
+			continue
+		}
+
+		tx, ok := val.(*transaction.Transaction)
+		if !ok {
+			continue
+		}
+
+		nonces = append(nonces, tx.Nonce)
+		mTxHashes[tx.Nonce] = key
+		mTransactions[tx.Nonce] = tx
+	}
+
+	sort.Slice(nonces, func(i, j int) bool {
+		return nonces[i] < nonces[j]
+	})
+
+	for _, nonce := range nonces {
+		key := mTxHashes[nonce]
+
+		txHashes = append(txHashes, key)
+		transactions = append(transactions, mTransactions[nonce])
+	}
+
+	return transactions, txHashes, nil
 }

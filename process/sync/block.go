@@ -197,7 +197,7 @@ func (boot *bootstrap) syncBlocks() {
 			if boot.shouldSync() {
 				err := boot.SyncBlock()
 				if err != nil {
-					log.Info(fmt.Sprintf("%s\n", err.Error()))
+					log.Debug(fmt.Sprintf("%s\n", err.Error()))
 				}
 			}
 		}
@@ -246,13 +246,13 @@ func (boot *bootstrap) SyncBlock() error {
 func (boot *bootstrap) getHeaderFromPool(nonce uint64) *block.Header {
 	hash, _ := boot.headersNonces.Get(nonce)
 	if hash == nil {
-		log.Info(fmt.Sprintf("nonce %d not found in headers-nonces cache\n", nonce))
+		log.Debug(fmt.Sprintf("nonce %d not found in headers-nonces cache\n", nonce))
 		return nil
 	}
 
 	hdr := boot.headers.SearchData(hash)
 	if len(hdr) == 0 {
-		log.Info(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
 	}
 
