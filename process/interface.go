@@ -30,6 +30,7 @@ type BlockProcessor interface {
 	RevertAccountState()
 	CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody
 	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
+	CreateEmptyBlockBody(shardId uint32, round int32) *block.TxBlockBody
 	RemoveBlockTxsFromPool(body *block.TxBlockBody) error
 	GetRootHash() []byte
 	SetOnRequestTransaction(f func(destShardID uint32, txHash []byte))
