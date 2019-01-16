@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
@@ -198,7 +197,7 @@ func (boot *bootstrap) syncBlocks() {
 			if boot.shouldSync() {
 				err := boot.SyncBlock()
 				if err != nil {
-					log.Info(fmt.Sprintf("%s\n", err.Error()))
+					log.Debug(fmt.Sprintf("%s\n", err.Error()))
 				}
 			}
 		}
@@ -247,13 +246,13 @@ func (boot *bootstrap) SyncBlock() error {
 func (boot *bootstrap) getHeaderFromPool(nonce uint64) *block.Header {
 	hash, _ := boot.headersNonces.Get(nonce)
 	if hash == nil {
-		log.Info(fmt.Sprintf("nonce %d not found in headers-nonces cache\n", nonce))
+		log.Debug(fmt.Sprintf("nonce %d not found in headers-nonces cache\n", nonce))
 		return nil
 	}
 
 	hdr := boot.headers.SearchData(hash)
 	if len(hdr) == 0 {
-		log.Info(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
 	}
 
@@ -325,9 +324,9 @@ func (boot *bootstrap) getTxBodyWithHash(hash []byte) (interface{}, error) {
 		}
 	}
 
-	intercepted, _ := blk.(*block2.InterceptedTxBlockBody)
+	intercepted, _ := blk.(*block.TxBlockBody)
 
-	return intercepted.TxBlockBody, nil
+	return intercepted, nil
 }
 
 // getNonceForNextBlock will get the nonce for the next block we should request

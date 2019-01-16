@@ -69,6 +69,11 @@ func (inHdr *InterceptedHeader) GetHeader() *block.Header {
 	return inHdr.Header
 }
 
+// GetUnderlyingObject returns the underlying object
+func (inHdr *InterceptedHeader) GetUnderlyingObject() interface{} {
+	return inHdr.Header
+}
+
 //------- InterceptedPeerBlockBody
 
 // NewInterceptedPeerBlockBody creates a new instance of InterceptedPeerBlockBody struct
@@ -101,6 +106,11 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) ID() string {
 // Shard returns the shard ID for which this body is addressed
 func (inPeerBlkBdy *InterceptedPeerBlockBody) Shard() uint32 {
 	return inPeerBlkBdy.ShardID
+}
+
+// GetUnderlyingObject returns the underlying object
+func (inPeerBlkBdy *InterceptedPeerBlockBody) GetUnderlyingObject() interface{} {
+	return inPeerBlkBdy.PeerBlockBody
 }
 
 //------- InterceptedStateBlockBody
@@ -137,6 +147,11 @@ func (inStateBlkBdy *InterceptedStateBlockBody) Shard() uint32 {
 	return inStateBlkBdy.ShardID
 }
 
+// GetUnderlyingObject returns the underlying object
+func (inStateBlkBdy *InterceptedStateBlockBody) GetUnderlyingObject() interface{} {
+	return inStateBlkBdy.StateBlockBody
+}
+
 //------- InterceptedTxBlockBody
 
 // NewInterceptedTxBlockBody creates a new instance of InterceptedTxBlockBody struct
@@ -169,4 +184,9 @@ func (inTxBlkBdy *InterceptedTxBlockBody) ID() string {
 // Shard returns the shard ID for which this body is addressed
 func (inTxBlkBdy *InterceptedTxBlockBody) Shard() uint32 {
 	return inTxBlkBdy.ShardID
+}
+
+// GetUnderlyingObject returns the underlying object
+func (inTxBlkBdy *InterceptedTxBlockBody) GetUnderlyingObject() interface{} {
+	return inTxBlkBdy.TxBlockBody
 }

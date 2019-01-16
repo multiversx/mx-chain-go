@@ -16,7 +16,7 @@ type printerHook struct {
 // Levels returns the array of levels for which the hook will be applicable
 func (h *printerHook) Levels() []log.Level {
 	return []log.Level{
-		log.DebugLevel,
+		//log.DebugLevel,
 		log.InfoLevel,
 		log.WarnLevel,
 		log.ErrorLevel,

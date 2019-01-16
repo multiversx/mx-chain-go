@@ -173,6 +173,6 @@ func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Creator,
 		return err
 	}
 
-	_ = gbbi.cache.Put(hash, blockBodyIntercepted)
+	_ = gbbi.cache.Put(hash, blockBodyIntercepted.GetUnderlyingObject())
 	return nil
 }

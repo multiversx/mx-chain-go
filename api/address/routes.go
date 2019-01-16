@@ -3,6 +3,7 @@ package address
 import (
 	"math/big"
 	"net/http"
+	"net/url"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,6 +11,7 @@ import (
 // Handler interface defines methods that can be used from `elrondFacade` context variable
 type Handler interface {
 	GetBalance(address string) (*big.Int, error)
+	GetCurrentPublicKey() (string, error)
 }
 
 // Routes defines address related routes
@@ -20,16 +22,23 @@ func Routes(router *gin.RouterGroup) {
 
 //GetAddress returns the information about the address passed as parameter
 func GetAddress(c *gin.Context) {
-	_, ok := c.MustGet("elrondFacade").(Handler)
+	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
 		return
 	}
 
 	//TODO: add real implementation here
-	addr := c.Param("address")
+	//addr := c.Param("address")
 
-	c.JSON(http.StatusOK, gin.H{"message": addr})
+	currentAddress, _ := ef.GetCurrentPublicKey()
+
+	address, err := url.Parse(currentAddress)
+	if err != nil {
+
+	}
+	str := address.String()
+	c.JSON(http.StatusOK, gin.H{"message": str})
 }
 
 //GetBalance returns the balance for the address parameter

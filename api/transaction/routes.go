@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"net/http"
 
@@ -14,6 +15,7 @@ type TxService interface {
 	GenerateTransaction(sender string, receiver string, value big.Int, code string) (*transaction.Transaction, error)
 	SendTransaction(nonce uint64, sender string, receiver string, value big.Int, code string, signature []byte) (*transaction.Transaction, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
+	GenerateAndSendBulkTransactions(string, big.Int, uint64) error
 }
 
 // TxRequest represents the structure on which user input for generating a new transaction will validate against
@@ -23,6 +25,13 @@ type TxRequest struct {
 	Value    *big.Int `form:"value" json:"value"`
 	Data     string   `form:"data" json:"data"`
 	//SecretKey string `form:"sk" json:"sk" binding:"skValidator"`
+}
+
+// TxRequest represents the structure on which user input for generating a new transaction will validate against
+type MultipleTxRequest struct {
+	Receiver string   `form:"receiver" json:"receiver"`
+	Value    *big.Int `form:"value" json:"value"`
+	NoTxs    int      `form:"noTxs" json:"noTxs"`
 }
 
 // SendTxRequest represents the structure that maps and validates user input for publishing a new transaction
@@ -46,6 +55,7 @@ type TxResponse struct {
 // Routes defines transaction related routes
 func Routes(router *gin.RouterGroup) {
 	router.POST("/generate", GenerateTransaction)
+	router.POST("/generateAndSendMultiple", GenerateAndSendBulkTransactions)
 	router.POST("/send", SendTransaction)
 	router.GET("/:txhash", GetTransaction)
 }
@@ -102,6 +112,30 @@ func SendTransaction(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
+}
+
+// GenerateAndSendBulkTransactions generates multipleTransactions
+func GenerateAndSendBulkTransactions(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(TxService)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
+		return
+	}
+
+	var gtx = MultipleTxRequest{}
+	err := c.ShouldBindJSON(&gtx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation error: " + err.Error()})
+		return
+	}
+
+	err = ef.GenerateAndSendBulkTransactions(gtx.Receiver, *gtx.Value, uint64(gtx.NoTxs))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Multiple Transaction generation failed: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("%d", gtx.NoTxs)})
 }
 
 // GetTransaction returns transaction details for a given txhash

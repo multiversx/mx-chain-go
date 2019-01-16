@@ -1,7 +1,7 @@
 {
   "startTime": 0,
   "roundDuration": 4000,
-  "consensusGroupSize": 2,
+  "consensusGroupSize": 1,
   "elasticSubrounds": false,
   "initialNodes": [
     {
