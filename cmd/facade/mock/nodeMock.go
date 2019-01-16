@@ -74,6 +74,15 @@ func (nm *NodeMock) SendTransaction(nonce uint64, sender string, receiver string
 func (nm *NodeMock) GetInterceptors() []process.Interceptor {
 	return nil
 }
+
 func (nm *NodeMock) GetResolvers() []process.Resolver {
+	return nil
+}
+
+func (nm *NodeMock) GetCurrentPublicKey() string {
+	return ""
+}
+
+func (nm *NodeMock) GenerateAndSendBulkTransactions(receiverHex string, value big.Int, noOfTx uint64) error {
 	return nil
 }

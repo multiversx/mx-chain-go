@@ -2,7 +2,6 @@ package block
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -36,8 +35,11 @@ func TestNode_GenerateSendInterceptHeaderByNonce(t *testing.T) {
 	blkcRequestor := createTestBlockChain()
 	blkcResolver := createTestBlockChain()
 
+	cp1, _ := p2p.NewConnectParamsFromPort(1)
+	mes1, _ := p2p.NewMemMessenger(marshalizer, hasher, cp1)
+
 	nRequestor, _ := node.NewNode(
-		node.WithPort(4000),
+		node.WithMessenger(mes1),
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(hasher),
 		node.WithMaxAllowedPeers(4),
@@ -51,8 +53,11 @@ func TestNode_GenerateSendInterceptHeaderByNonce(t *testing.T) {
 		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
 	)
 
+	cp2, _ := p2p.NewConnectParamsFromPort(2)
+	mes2, _ := p2p.NewMemMessenger(marshalizer, hasher, cp2)
+
 	nResolver, _ := node.NewNode(
-		node.WithPort(4001),
+		node.WithMessenger(mes2),
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(hasher),
 		node.WithMaxAllowedPeers(4),
@@ -66,23 +71,15 @@ func TestNode_GenerateSendInterceptHeaderByNonce(t *testing.T) {
 		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
 	)
 
-	fmt.Println("Requestor:")
-	nRequestor.Start()
-	fmt.Println("Resolver:")
-	nResolver.Start()
-	nRequestor.P2PBootstrap()
-	nResolver.P2PBootstrap()
-	defer nRequestor.Stop()
-	defer nResolver.Stop()
+	mes1.Bootstrap(context.Background())
+	mes2.Bootstrap(context.Background())
+
+	defer p2p.ReInitializeGloballyRegisteredPeers()
 
 	time.Sleep(time.Second)
 
 	_ = nRequestor.BindInterceptorsResolvers()
 	_ = nResolver.BindInterceptorsResolvers()
-
-	//we wait 1 second to be sure that both nodes advertised their topics
-	//TODO change when injecting a messenger is possible
-	time.Sleep(time.Second)
 
 	//Step 1. Generate a header
 	hdr := block.Header{

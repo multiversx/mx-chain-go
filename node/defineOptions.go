@@ -18,6 +18,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
+// WithMessenger sets up the messenger option for the Node
+func WithMessenger(mes p2p.Messenger) Option {
+	return func(n *Node) error {
+		n.messenger = mes
+		return nil
+	}
+}
+
 // WithPort sets up the port option for the Node
 func WithPort(port int) Option {
 	return func(n *Node) error {

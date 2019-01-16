@@ -37,6 +37,13 @@ type Facade interface {
 
 	//GetTransaction gets the transaction with a specified hash
 	GetTransaction(hash string) (*transaction.Transaction, error)
+
+	//GetCurrentPublicKey gets the current nodes public Key
+	GetCurrentPublicKey() string
+
+	//GenerateAndSendBulkTransactions generates a number of nrTransactions of amount value
+	//for the receiver destination
+	GenerateAndSendBulkTransactions(destination string, value big.Int, nrTransactions uint64) error
 }
 
 //NodeWrapper contains all functions that a node should contain.
@@ -79,5 +86,10 @@ type NodeWrapper interface {
 	GetTransaction(hash string) (*transaction.Transaction, error)
 
 	GetInterceptors() []process.Interceptor
+
 	GetResolvers() []process.Resolver
+
+	GetCurrentPublicKey() string
+
+	GenerateAndSendBulkTransactions(string, big.Int, uint64) error
 }

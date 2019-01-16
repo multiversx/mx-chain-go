@@ -33,9 +33,12 @@ func TestNode_GenerateSendInterceptBulkTransactions(t *testing.T) {
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 	accntAdapter := adbCreateAccountsDB()
 
+	cp, _ := p2p.NewConnectParamsFromPort(1)
+	mes, _ := p2p.NewMemMessenger(marshalizer, hasher, cp)
+
 	//TODO change when injecting a messenger is possible
 	n, _ := node.NewNode(
-		node.WithPort(4000),
+		node.WithMessenger(mes),
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(hasher),
 		node.WithMaxAllowedPeers(4),
@@ -52,8 +55,9 @@ func TestNode_GenerateSendInterceptBulkTransactions(t *testing.T) {
 		node.WithPrivateKey(sk),
 	)
 
-	n.Start()
-	defer n.Stop()
+	mes.Bootstrap(context.Background())
+
+	defer p2p.ReInitializeGloballyRegisteredPeers()
 
 	//set the account's nonce to startingNonce
 	nodePubKeyBytes, _ := pk.ToByteArray()

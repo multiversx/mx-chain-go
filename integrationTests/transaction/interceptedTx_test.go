@@ -33,9 +33,11 @@ func TestNode_GenerateSendInterceptTransaction(t *testing.T) {
 
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
-	//TODO change when injecting a messenger is possible
+	cp, _ := p2p.NewConnectParamsFromPort(1)
+	mes, _ := p2p.NewMemMessenger(marshalizer, hasher, cp)
+
 	n, _ := node.NewNode(
-		node.WithPort(4000),
+		node.WithMessenger(mes),
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(hasher),
 		node.WithMaxAllowedPeers(4),
@@ -49,8 +51,9 @@ func TestNode_GenerateSendInterceptTransaction(t *testing.T) {
 		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
 	)
 
-	n.Start()
-	defer n.Stop()
+	mes.Bootstrap(context.Background())
+
+	defer p2p.ReInitializeGloballyRegisteredPeers()
 
 	_ = n.BindInterceptorsResolvers()
 
