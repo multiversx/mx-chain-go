@@ -400,7 +400,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			tx := bp.getTransactionFromPool(miniBlock.ShardID, txHash)
-			fmt.Println(tx)
+
 			if tx == nil {
 				return process.ErrMissingTransaction
 			}
@@ -448,6 +448,7 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 	txStore := txPool.ShardDataStore(destShardID)
 
 	if txStore == nil {
+		log.Error(process.ErrNilTxStorage.Error())
 		return nil
 	}
 
@@ -457,7 +458,9 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 		return nil
 	}
 
-	return val.(*transaction.Transaction)
+	v := val.(*transaction.Transaction)
+
+	return v
 }
 
 // receivedTransaction is a call back function which is called when a new transaction
@@ -467,11 +470,13 @@ func (bp *blockProcessor) receivedTransaction(txHash []byte) {
 	if bp.requestedTxHashes[string(txHash)] {
 		delete(bp.requestedTxHashes, string(txHash))
 	}
+	lenReqTxHashes := len(bp.requestedTxHashes)
+	bp.mut.Unlock()
 
-	if len(bp.requestedTxHashes) == 0 {
+	if lenReqTxHashes == 0 {
 		bp.ChRcvAllTxs <- true
 	}
-	bp.mut.Unlock()
+
 }
 
 func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) int {
@@ -493,6 +498,7 @@ func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) int 
 
 func (bp *blockProcessor) computeMissingTxsForShards(body *block.TxBlockBody) map[uint32][][]byte {
 	missingTxsForShard := make(map[uint32][][]byte)
+
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		shardId := miniBlock.ShardID
