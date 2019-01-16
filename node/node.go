@@ -233,7 +233,7 @@ func (n *Node) StartConsensus() error {
 		log.Info(fmt.Sprintf("%d for resolver", ok))
 		if txRes != nil {
 			txRes.RequestTransactionFromHash(txHash)
-			log.Info(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+			log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
 		}
 	})
 

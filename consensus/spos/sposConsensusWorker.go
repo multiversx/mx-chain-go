@@ -42,7 +42,7 @@ const (
 const shardId = 0
 
 //TODO: maximum transactions in one block (this should be injected, and this const should be removed later)
-const maxTransactionsInBlock = 1000
+const maxTransactionsInBlock = 10000
 
 // MessageType specifies what type of message was received
 type MessageType int
@@ -298,6 +298,13 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 // (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
 // from spos package)
 func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
+	if sposWorker.ShouldSync() {
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, NOT SYNCRONIZED\n",
+			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrEndRound)))
+		sposWorker.Rounds++ // only for statistic
+		return true
+	}
+
 	if !sposWorker.Cns.CheckEndRoundConsensus() {
 		return false
 	}
@@ -399,7 +406,7 @@ func (sposWorker *SPOSConsensusWorker) SendBlockBody() bool {
 	currentSubRound := sposWorker.GetSubround()
 
 	haveTime := func() bool {
-		if sposWorker.GetSubround() > currentSubRound {
+		if sposWorker.GetSubround() > currentSubRound+2 {
 			return false
 		}
 		return true
@@ -967,6 +974,8 @@ func (sposWorker *SPOSConsensusWorker) ExtendEndRound() {
 
 	if err != nil {
 		log.Info(fmt.Sprintf("%s\n", err.Error()))
+		sposWorker.Rounds++ // only for statistic
+		return
 	}
 
 	log.Info(fmt.Sprintf("\n%s******************** ADDED EMPTY BLOCK WITH NONCE  %d  IN BLOCKCHAIN ********************\n\n",
