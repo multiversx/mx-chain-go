@@ -506,7 +506,10 @@ func (bp *blockProcessor) computeMissingTxsForShards(body *block.TxBlockBody) ma
 				currentShardMissingTransactions = append(currentShardMissingTransactions, txHash)
 			}
 		}
-		missingTxsForShard[shardId] = currentShardMissingTransactions
+
+		if len(currentShardMissingTransactions) > 0 {
+			missingTxsForShard[shardId] = currentShardMissingTransactions
+		}
 	}
 
 	return missingTxsForShard
