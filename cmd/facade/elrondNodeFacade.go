@@ -102,3 +102,15 @@ func (ef *ElrondNodeFacade) SendTransaction(nonce uint64, senderHex string, rece
 func (ef *ElrondNodeFacade) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return ef.node.GetTransaction(hash)
 }
+
+//GetCurrentPublicKey gets the current nodes public Key
+func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
+	return ef.node.GetCurrentPublicKey()
+}
+
+//GenerateAndSendBulkTransactions generates a number of nrTransactions of amount value
+//for the receiver destination
+func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactions(destination string, value big.Int,
+	nrTransactions uint64) error {
+	return ef.node.GenerateAndSendBulkTransactions(destination, value, nrTransactions)
+}

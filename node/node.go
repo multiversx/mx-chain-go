@@ -798,3 +798,11 @@ func toB64(buff []byte) string {
 	}
 	return base64.StdEncoding.EncodeToString(buff)
 }
+
+func (n *Node) GetCurrentPublicKey() string {
+	if n.publicKey != nil {
+		pkey, _ := n.publicKey.ToByteArray()
+		return fmt.Sprintf("%x", pkey)
+	}
+	return ""
+}
