@@ -38,3 +38,11 @@ func (hdrRes *HeaderResolver) ResolveHdrRequest(rd process.RequestData) ([]byte,
 func (gbbRes *GenericBlockBodyResolver) ResolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
 	return gbbRes.resolveBlockBodyRequest(rd)
 }
+
+func (bp *blockProcessor) ComputeHeaderHash(hdr *block.Header) ([]byte, error) {
+	return bp.computeHeaderHash(hdr)
+}
+
+func (bp *blockProcessor) DisplayLogInfo(header *block.Header, txBlock *block.TxBlockBody, headerHash []byte) {
+	bp.displayLogInfo(header, txBlock, headerHash)
+}
