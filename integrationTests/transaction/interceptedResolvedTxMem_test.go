@@ -8,70 +8,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNode_RequestInterceptTransaction(t *testing.T) {
+func TestNode_RequestInterceptTransactionWithMemMessenger(t *testing.T) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
-
-	keyGen := schnorr.NewKeyGenerator()
-	sk, pk := keyGen.GeneratePair()
-	buffPk, _ := pk.ToByteArray()
-
-	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
 	dPoolRequestor := createTestDataPool()
 	dPoolResolver := createTestDataPool()
 
-	blkcRequestor := createTestBlockChain()
-	blkcResolver := createTestBlockChain()
-
-	cp1, _ := p2p.NewConnectParamsFromPort(1)
-	mes1, _ := p2p.NewMemMessenger(marshalizer, hasher, cp1)
-
-	nRequestor, _ := node.NewNode(
-		node.WithMessenger(mes1),
-		node.WithMarshalizer(marshalizer),
-		node.WithHasher(hasher),
-		node.WithMaxAllowedPeers(4),
-		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
-		node.WithDataPool(dPoolRequestor),
-		node.WithAddressConverter(addrConverter),
-		node.WithSingleSignKeyGenerator(keyGen),
-		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
-		node.WithBlockChain(blkcRequestor),
-		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
-	)
-
-	cp2, _ := p2p.NewConnectParamsFromPort(2)
-	mes2, _ := p2p.NewMemMessenger(marshalizer, hasher, cp2)
-
-	nResolver, _ := node.NewNode(
-		node.WithMessenger(mes2),
-		node.WithMarshalizer(marshalizer),
-		node.WithHasher(hasher),
-		node.WithMaxAllowedPeers(4),
-		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
-		node.WithDataPool(dPoolResolver),
-		node.WithAddressConverter(addrConverter),
-		node.WithSingleSignKeyGenerator(keyGen),
-		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
-		node.WithBlockChain(blkcResolver),
-		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
-	)
+	nRequestor, mes1, sk1 := createMemNode(1, dPoolRequestor, adbCreateAccountsDB())
+	nResolver, mes2, _ := createMemNode(2, dPoolResolver, adbCreateAccountsDB())
 
 	mes1.Bootstrap(context.Background())
 	mes2.Bootstrap(context.Background())
@@ -83,17 +36,19 @@ func TestNode_RequestInterceptTransaction(t *testing.T) {
 	_ = nRequestor.BindInterceptorsResolvers()
 	_ = nResolver.BindInterceptorsResolvers()
 
+	buffPk1, _ := sk1.GeneratePublic().ToByteArray()
+
 	//Step 1. Generate a signed transaction
 	tx := transaction.Transaction{
 		Nonce:   0,
 		Value:   *big.NewInt(0),
 		RcvAddr: hasher.Compute("receiver"),
-		SndAddr: buffPk,
+		SndAddr: buffPk1,
 		Data:    []byte("tx notarized data"),
 	}
 
 	txBuff, _ := marshalizer.Marshal(&tx)
-	tx.Signature, _ = sk.Sign(txBuff)
+	tx.Signature, _ = sk1.Sign(txBuff)
 
 	signedTxBuff, _ := marshalizer.Marshal(&tx)
 

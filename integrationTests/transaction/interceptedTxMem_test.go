@@ -9,47 +9,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNode_GenerateSendInterceptTransaction(t *testing.T) {
+func TestNode_GenerateSendInterceptTransactionWithMemMessenger(t *testing.T) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	keyGen := schnorr.NewKeyGenerator()
-	sk, pk := keyGen.GeneratePair()
-	buffPk, _ := pk.ToByteArray()
-
 	dPool := createTestDataPool()
 
-	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
-
-	cp, _ := p2p.NewConnectParamsFromPort(1)
-	mes, _ := p2p.NewMemMessenger(marshalizer, hasher, cp)
-
-	n, _ := node.NewNode(
-		node.WithMessenger(mes),
-		node.WithMarshalizer(marshalizer),
-		node.WithHasher(hasher),
-		node.WithMaxAllowedPeers(4),
-		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
-		node.WithDataPool(dPool),
-		node.WithAddressConverter(addrConverter),
-		node.WithSingleSignKeyGenerator(keyGen),
-		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
-		node.WithBlockChain(createTestBlockChain()),
-		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
-	)
+	n, mes, sk := createMemNode(1, dPool, adbCreateAccountsDB())
 
 	mes.Bootstrap(context.Background())
 
@@ -57,12 +30,14 @@ func TestNode_GenerateSendInterceptTransaction(t *testing.T) {
 
 	_ = n.BindInterceptorsResolvers()
 
+	pkBuff, _ := sk.GeneratePublic().ToByteArray()
+
 	//Step 1. Generate a transaction
 	tx := transaction.Transaction{
 		Nonce:   0,
 		Value:   *big.NewInt(0),
 		RcvAddr: hasher.Compute("receiver"),
-		SndAddr: buffPk,
+		SndAddr: pkBuff,
 		Data:    []byte("tx notarized data"),
 	}
 
