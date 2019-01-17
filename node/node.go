@@ -231,8 +231,7 @@ func (n *Node) StartConsensus() error {
 
 	// TODO: refactor this!!!!!
 	n.blockProcessor.SetOnRequestTransaction(func(destShardID uint32, txHash []byte) {
-		txRes, ok := n.resolvers[0].(*transaction2.TxResolver)
-		log.Info(fmt.Sprintf("%v for resolver", ok))
+		txRes, _ := n.resolvers[0].(*transaction2.TxResolver)
 		if txRes != nil {
 			txRes.RequestTransactionFromHash(txHash)
 			log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
@@ -521,7 +520,8 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int
 	wg := sync2.WaitGroup{}
 	wg.Add(int(noOfTx))
 
-	transactions := make([][]byte, noOfTx)
+	mutTransactions := sync2.RWMutex{}
+	transactions := make([][]byte, 0)
 
 	mutErr := &sync2.RWMutex{}
 	var errFound error
@@ -545,7 +545,9 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int
 				return
 			}
 
-			transactions[crtNonce-newNonce] = signedTxBuff
+			mutTransactions.Lock()
+			transactions = append(transactions, signedTxBuff)
+			mutTransactions.Unlock()
 			wg.Done()
 		}(nonce)
 	}
@@ -564,12 +566,19 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int
 		return errors.New("could not get transaction topic")
 	}
 
+	mutTransactions.RLock()
+	if len(transactions) != int(noOfTx) {
+		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
+	}
+
 	for i := 0; i < len(transactions); i++ {
 		err = topic.BroadcastBuff(transactions[i])
 		if err != nil {
 			return errors.New("could not broadcast transaction: " + err.Error())
 		}
 	}
+
+	mutTransactions.RUnlock()
 
 	return nil
 }
@@ -776,7 +785,7 @@ func (n *Node) broadcastBlockBody(msg []byte) {
 		return
 	}
 
-	err := topic.Broadcast(msg)
+	err := topic.BroadcastBuff(msg)
 
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
@@ -791,7 +800,7 @@ func (n *Node) broadcastHeader(msg []byte) {
 		return
 	}
 
-	err := topic.Broadcast(msg)
+	err := topic.BroadcastBuff(msg)
 
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))

@@ -431,7 +431,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		blockChain.CurrentBlockHeader = header
 		blockChain.CurrentBlockHeaderHash = headerHash
 		blockChain.LocalHeight = int64(header.Nonce)
-		bp.displayBlockchain(blockChain)
+		go bp.displayBlockchain(blockChain)
 	}
 
 	return err
@@ -555,6 +555,8 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		miniBlock.ShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
 
+		log.Info(fmt.Sprintf("CREATE MINI BLOCKS STARTED: Have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ShardID))
+
 		for index, tx := range orderedTxes {
 			snapshot := bp.accounts.JournalLen()
 
@@ -576,18 +578,22 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 			txs++
 
 			if txs >= maxTxInBlock { // max transactions count in one block was reached
+				log.Info(fmt.Sprintf("MAX TXS IN ONE BLOCK EXCEEDED: Added only %d txs from %d txs for shard id %d\n", len(miniBlock.TxHashes), len(orderedTxes), miniBlock.ShardID))
 				miniBlocks = append(miniBlocks, miniBlock)
 				return miniBlocks, nil
 			}
 		}
 
 		if !haveTime() {
+			log.Info(fmt.Sprintf("TIME IS UP: Added only %d txs from %d txs for shard id %d\n", len(miniBlock.TxHashes), len(orderedTxes), miniBlock.ShardID))
 			miniBlocks = append(miniBlocks, miniBlock)
 			return miniBlocks, nil
 		}
 
 		miniBlocks = append(miniBlocks, miniBlock)
 	}
+
+	log.Info(fmt.Sprintf("CREATE MINI BLOCKS FINISHED: Created %d mini blocks\n", len(miniBlocks)))
 
 	return miniBlocks, nil
 }
@@ -742,12 +748,14 @@ func displayTxBlockBody(lines []*display.LineData, txBlockBody *block.TxBlockBod
 		}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			lines = append(lines, display.NewLineData(false, []string{
-				part,
-				fmt.Sprintf("Tx blockBodyHash %d", j),
-				toB64(miniBlock.TxHashes[j])}))
+			if j >= len(miniBlock.TxHashes)-1 {
+				lines = append(lines, display.NewLineData(false, []string{
+					part,
+					fmt.Sprintf("Tx blockBodyHash %d", j),
+					toB64(miniBlock.TxHashes[j])}))
 
-			part = ""
+				part = ""
+			}
 		}
 
 		lines[len(lines)-1].HorizontalRuleAfter = true
