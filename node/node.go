@@ -773,7 +773,7 @@ func (n *Node) broadcastBlockBody(msg []byte) {
 		return
 	}
 
-	err := topic.Broadcast(msg)
+	err := topic.BroadcastBuff(msg)
 
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
@@ -788,7 +788,7 @@ func (n *Node) broadcastHeader(msg []byte) {
 		return
 	}
 
-	err := topic.Broadcast(msg)
+	err := topic.BroadcastBuff(msg)
 
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
