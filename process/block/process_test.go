@@ -128,7 +128,15 @@ func initDataPool() data.TransientDataHolder {
 				},
 				RemoveSetOfDataFromPoolStub: func(keys [][]byte, destShardID uint32) {},
 			}
-		}}
+		},
+		HeadersNoncesCalled: func() data.Uint64Cacher {
+			return &mock.Uint64CacherStub{
+				PutCalled: func(u uint64, i []byte) bool {
+					return true
+				},
+			}
+		},
+	}
 
 	return tdp
 }
@@ -336,6 +344,10 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	// set revertToSnapshot
 	revertToSnapshot := func(snapshot int) error { return nil }
 
+	rootHashCalled := func() []byte {
+		return []byte("rootHash")
+	}
+
 	be, _ := blproc.NewBlockProcessor(
 		tdp, &mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -343,6 +355,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.AccountsStub{
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revertToSnapshot,
+			RootHashCalled:         rootHashCalled,
 		},
 		mock.NewOneShardCoordinatorMock(),
 	)

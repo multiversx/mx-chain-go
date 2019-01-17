@@ -555,10 +555,9 @@ func (bp *blockProcessor) processAndRemoveBadTransaction(
 
 	if err == process.ErrLowerNonceInTransaction {
 		txPool.RemoveData(transactionHash, shardId)
-		return err
 	}
 
-	return nil
+	return err
 }
 
 func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) ([]block.MiniBlock, error) {
