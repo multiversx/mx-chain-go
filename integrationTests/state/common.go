@@ -26,3 +26,20 @@ func createMemUnit() storage.Storer {
 	unit, _ := storage.NewStorageUnit(cache, persist)
 	return unit
 }
+
+func createDummyHexAddress(chars int) string {
+	if chars < 1 {
+		return ""
+	}
+
+	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
+
+	rdm := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	buff := make([]byte, chars)
+	for i := 0; i < chars; i++ {
+		buff[i] = characters[rdm.Int()%16]
+	}
+
+	return string(buff)
+}

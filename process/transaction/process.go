@@ -192,19 +192,31 @@ func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, ad
 	return
 }
 
-func (txProc *txProcessor) getAccounts(adrSrc, adrDest state.AddressContainer) (acntSrc, acntDest state.JournalizedAccountWrapper, err error) {
+func (txProc *txProcessor) getAccounts(adrSrc, adrDest state.AddressContainer) (
+	state.JournalizedAccountWrapper,
+	state.JournalizedAccountWrapper,
+	error) {
+
 	if adrSrc == nil || adrDest == nil {
-		err = process.ErrNilValue
-		return
+		return nil, nil, process.ErrNilValue
 	}
 
-	acntSrc, err = txProc.accounts.GetJournalizedAccount(adrSrc)
+	if bytes.Equal(adrSrc.Bytes(), adrDest.Bytes()) {
+		acnt, err := txProc.accounts.GetJournalizedAccount(adrSrc)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return acnt, acnt, nil
+	}
+
+	acntSrc, err := txProc.accounts.GetJournalizedAccount(adrSrc)
 	if err != nil {
-		return
+		return nil, nil, err
 	}
-	acntDest, err = txProc.accounts.GetJournalizedAccount(adrDest)
+	acntDest, err := txProc.accounts.GetJournalizedAccount(adrDest)
 
-	return
+	return acntSrc, acntDest, err
 }
 
 func (txProc *txProcessor) callSCHandler(tx *transaction.Transaction) error {
