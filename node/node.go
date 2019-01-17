@@ -193,11 +193,13 @@ func (n *Node) BindInterceptorsResolvers() error {
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
 
-	genessisBlock, err := n.createGenesisBlock()
+	genesisHeader, genesisHeaderHash, err := n.createGenesisBlock()
 	if err != nil {
 		return err
 	}
-	n.blkc.GenesisBlock = genessisBlock
+	n.blkc.GenesisBlock = genesisHeader
+	n.blkc.GenesisHeaderHash = genesisHeaderHash
+
 	round := n.createRound()
 	chr := n.createChronology(round)
 
@@ -733,21 +735,31 @@ func (n *Node) createNetMessenger() (p2p.Messenger, error) {
 	return nm, nil
 }
 
-func (n *Node) createGenesisBlock() (*block.Header, error) {
+func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 	blockBody := n.blockProcessor.CreateGenesisBlockBody(n.initialNodesBalances, 0)
 	marshalizedBody, err := n.marshalizer.Marshal(blockBody)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	blockBodyHash := n.hasher.Compute(string(marshalizedBody))
-	return &block.Header{
+	header := &block.Header{
 		Nonce:         0,
 		ShardId:       blockBody.ShardID,
 		TimeStamp:     uint64(n.genesisTime.Unix()),
 		BlockBodyHash: blockBodyHash,
 		BlockBodyType: block.StateBlock,
 		Signature:     blockBodyHash,
-	}, nil
+	}
+
+	marshalizedHeader, err := n.marshalizer.Marshal(header)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
+
+	return header, blockHeaderHash, nil
 }
 
 func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
@@ -773,7 +785,7 @@ func (n *Node) broadcastBlockBody(msg []byte) {
 		return
 	}
 
-	err := topic.Broadcast(msg)
+	err := topic.BroadcastBuff(msg)
 
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
@@ -788,7 +800,7 @@ func (n *Node) broadcastHeader(msg []byte) {
 		return
 	}
 
-	err := topic.Broadcast(msg)
+	err := topic.BroadcastBuff(msg)
 
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
