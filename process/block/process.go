@@ -839,5 +839,5 @@ func (bp *blockProcessor) displayTxsInfo(miniBlock *block.MiniBlock, shardId uin
 
 	txStore := txPool.ShardDataStore(shardId)
 
-	log.Info(fmt.Sprintf("PROCESS BLOCK TRANSACTION STARTED: Have %d txs in pool and need to process %d txs from this block for shard id %d\n", txStore.Len(), len(miniBlock.TxHashes), shardId))
+	log.Info(fmt.Sprintf("PROCESS BLOCK TRANSACTION STARTED: Have %d txs in pool and need to process %d txs from the received block for shard id %d\n", txStore.Len(), len(miniBlock.TxHashes), shardId))
 }
