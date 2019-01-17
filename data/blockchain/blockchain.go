@@ -49,14 +49,16 @@ type StorageService interface {
 // The BlockChain also holds pointers to the Genesis block, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
-	lock               sync.RWMutex
-	GenesisBlock       *block.Header               // Genesys Block pointer
-	CurrentBlockHeader *block.Header               // Current Block pointer
-	CurrentTxBlockBody *block.TxBlockBody          // Current Tx Block Body pointer
-	LocalHeight        int64                       // Height of the local chain
-	NetworkHeight      int64                       // Percieved height of the network chain
-	badBlocks          storage.Cacher              // Bad blocks cache
-	chain              map[UnitType]storage.Storer // chains for each unit type. Together they form the blockchain
+	lock                   sync.RWMutex				   // Lock for accessing the storers chain
+	GenesisBlock           *block.Header               // Genesys Block Header pointer
+	GenesisHeaderHash      []byte                      // Genesis Block Header hash
+	CurrentBlockHeader     *block.Header               // Current Block pointer
+	CurrentBlockHeaderHash []byte                      // Current Block Header hash
+	CurrentTxBlockBody     *block.TxBlockBody          // Current Tx Block Body pointer
+	LocalHeight            int64                       // Height of the local chain
+	NetworkHeight          int64                       // Percieved height of the network chain
+	badBlocks              storage.Cacher              // Bad blocks cache
+	chain                  map[UnitType]storage.Storer // chains for each unit type. Together they form the blockchain
 }
 
 // NewBlockChain returns an initialized blockchain

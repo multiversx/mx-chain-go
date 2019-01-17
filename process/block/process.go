@@ -429,6 +429,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 	if err == nil {
 		blockChain.CurrentTxBlockBody = block
 		blockChain.CurrentBlockHeader = header
+		blockChain.CurrentBlockHeaderHash = headerHash
 		blockChain.LocalHeight = int64(header.Nonce)
 		bp.displayBlockchain(blockChain)
 	}
