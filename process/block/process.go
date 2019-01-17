@@ -579,18 +579,24 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 
 			if txs >= maxTxInBlock { // max transactions count in one block was reached
 				log.Info(fmt.Sprintf("MAX TXS IN ONE BLOCK EXCEEDED: Added only %d txs from %d txs for shard id %d\n", len(miniBlock.TxHashes), len(orderedTxes), miniBlock.ShardID))
-				miniBlocks = append(miniBlocks, miniBlock)
+				if len(miniBlock.TxHashes) > 0 {
+					miniBlocks = append(miniBlocks, miniBlock)
+				}
 				return miniBlocks, nil
 			}
 		}
 
 		if !haveTime() {
 			log.Info(fmt.Sprintf("TIME IS UP: Added only %d txs from %d txs for shard id %d\n", len(miniBlock.TxHashes), len(orderedTxes), miniBlock.ShardID))
-			miniBlocks = append(miniBlocks, miniBlock)
+			if len(miniBlock.TxHashes) > 0 {
+				miniBlocks = append(miniBlocks, miniBlock)
+			}
 			return miniBlocks, nil
 		}
 
-		miniBlocks = append(miniBlocks, miniBlock)
+		if len(miniBlock.TxHashes) > 0 {
+			miniBlocks = append(miniBlocks, miniBlock)
+		}
 	}
 
 	log.Info(fmt.Sprintf("CREATE MINI BLOCKS FINISHED: Created %d mini blocks\n", len(miniBlocks)))
