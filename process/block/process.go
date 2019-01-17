@@ -349,6 +349,9 @@ func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody, roun
 		miniBlock := body.MiniBlocks[i]
 		shardId := miniBlock.ShardID
 
+		//TODO: Remove this display
+		bp.displayTxsInfo(&miniBlock, shardId)
+
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			tx := bp.getTransactionFromPool(shardId, txHash)
@@ -825,4 +828,16 @@ func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 	}
 
 	return transactions, txHashes, nil
+}
+
+func (bp *blockProcessor) displayTxsInfo(miniBlock *block.MiniBlock, shardId uint32) {
+	txPool := bp.dataPool.Transactions()
+
+	if txPool == nil {
+		return
+	}
+
+	txStore := txPool.ShardDataStore(shardId)
+
+	log.Info(fmt.Sprintf("PROCESS BLOCK TRANSACTION STARTED: Have %d txs in pool and need to process %d txs from the received block for shard id %d\n", txStore.Len(), len(miniBlock.TxHashes), shardId))
 }
