@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
@@ -298,13 +299,6 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 // (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
 // from spos package)
 func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
-	if sposWorker.ShouldSync() {
-		log.Info(fmt.Sprintf("Canceled round %d in subround %s, NOT SYNCRONIZED\n",
-			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrEndRound)))
-		sposWorker.Rounds++ // only for statistic
-		return true
-	}
-
 	if !sposWorker.Cns.CheckEndRoundConsensus() {
 		return false
 	}
@@ -547,6 +541,13 @@ func (sposWorker *SPOSConsensusWorker) genCommitmentHash() ([]byte, error) {
 // block from the leader in the CommitmentHash subround (it is used as the handler function of the doSubroundJob
 // pointer variable function in Subround struct, from spos package)
 func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
+	if sposWorker.ShouldSync() {
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, NOT SYNCRONIZED\n",
+			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrCommitmentHash)))
+		sposWorker.Cns.Chr.SetSelfSubround(-1)
+		return false
+	}
+
 	if sposWorker.Cns.Status(SrBlock) != SsFinished { // is subround Block not finished?
 		if !sposWorker.DoBlockJob() {
 			return false
@@ -969,6 +970,10 @@ func (sposWorker *SPOSConsensusWorker) ExtendEndRound() {
 // CreateEmptyBlock creates, commits and broadcasts an empty block at the end of the round if no block was proposed or
 // syncronized in this round
 func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() error {
+	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+		return errors.New("Avoided to create empty block, NOT SINCHRONIZED")
+	}
+
 	sposWorker.BlockProcessor.RevertAccountState()
 	blk := sposWorker.BlockProcessor.CreateEmptyBlockBody(
 		shardId,
@@ -1334,7 +1339,6 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) boo
 		!sposWorker.Cns.IsNodeLeaderInCurrentRound(node) || // is another node leader in this round?
 		isBitmapJobDone || // is bitmap already received?
 		sposWorker.Cns.Data == nil || // is consensus data not set?
-
 		!bytes.Equal(cnsDta.BlockHeaderHash, sposWorker.Cns.Data) { // is this the consesnus data of this round?
 		return false
 	}
