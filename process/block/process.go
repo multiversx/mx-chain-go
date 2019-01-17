@@ -430,7 +430,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		blockChain.CurrentTxBlockBody = block
 		blockChain.CurrentBlockHeader = header
 		blockChain.LocalHeight = int64(header.Nonce)
-		bp.displayBlockchain(blockChain)
+		go bp.displayBlockchain(blockChain)
 	}
 
 	return err
@@ -554,6 +554,8 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		miniBlock.ShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
 
+		log.Info(fmt.Sprintf("CREATE MINI BLOCKS: Have %d txs in pool for shard id %d", len(orderedTxes), miniBlock.ShardID))
+
 		for index, tx := range orderedTxes {
 			snapshot := bp.accounts.JournalLen()
 
@@ -575,12 +577,14 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 			txs++
 
 			if txs >= maxTxInBlock { // max transactions count in one block was reached
+				log.Info(fmt.Sprintf("MAX TXS IN ONE BLOCK EXCEEDED: Added only %d txs from %d txs for shard id %d", len(miniBlock.TxHashes), len(orderedTxes), miniBlock.ShardID))
 				miniBlocks = append(miniBlocks, miniBlock)
 				return miniBlocks, nil
 			}
 		}
 
 		if !haveTime() {
+			log.Info(fmt.Sprintf("TIME IS UP: Added only %d txs from %d txs for shard id %d", len(miniBlock.TxHashes), len(orderedTxes), miniBlock.ShardID))
 			miniBlocks = append(miniBlocks, miniBlock)
 			return miniBlocks, nil
 		}

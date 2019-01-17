@@ -229,8 +229,7 @@ func (n *Node) StartConsensus() error {
 
 	// TODO: refactor this!!!!!
 	n.blockProcessor.SetOnRequestTransaction(func(destShardID uint32, txHash []byte) {
-		txRes, ok := n.resolvers[0].(*transaction2.TxResolver)
-		log.Info(fmt.Sprintf("%v for resolver", ok))
+		txRes, _ := n.resolvers[0].(*transaction2.TxResolver)
 		if txRes != nil {
 			txRes.RequestTransactionFromHash(txHash)
 			log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
