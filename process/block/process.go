@@ -458,14 +458,14 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 	txPool := bp.dataPool.Transactions()
 
 	if txPool == nil {
-		log.Error(process.ErrNilTransactionPool.Error())
+		log.Debug(process.ErrNilTransactionPool.Error())
 		return nil
 	}
 
 	txStore := txPool.ShardDataStore(destShardID)
 
 	if txStore == nil {
-		log.Error(process.ErrNilTxStorage.Error())
+		log.Debug(process.ErrNilTxStorage.Error())
 		return nil
 	}
 
