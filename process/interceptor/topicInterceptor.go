@@ -87,7 +87,7 @@ func (ti *topicInterceptor) validator(ctx context.Context, message *pubsub.Messa
 	}
 
 	if ti.checkReceivedObject == nil {
-		log.Error(err.Error())
+		log.Error("nil checkReceivedObject handler")
 		return false
 	}
 
