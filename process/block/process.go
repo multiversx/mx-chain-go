@@ -29,6 +29,9 @@ const WaitTime = time.Duration(2000 * time.Millisecond)
 
 var log = logger.NewDefaultLogger()
 
+var txsCurrentBlockProcessed = 0
+var txsTotalProcessed = 0
+
 // blockProcessor implements BlockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
 	dataPool             data.TransientDataHolder
@@ -581,7 +584,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 			txs++
 
 			if txs >= maxTxInBlock { // max transactions count in one block was reached
-				log.Info(fmt.Sprintf("MAX TXS IN ONE BLOCK EXCEEDED: Added only %d txs from %d txs for shard id %d\n", len(miniBlock.TxHashes), len(orderedTxes), miniBlock.ShardID))
+				log.Info(fmt.Sprintf("MAX TXS IN ONE BLOCK EXCEEDED: Added only %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
 				if len(miniBlock.TxHashes) > 0 {
 					miniBlocks = append(miniBlocks, miniBlock)
 				}
@@ -590,7 +593,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		}
 
 		if !haveTime() {
-			log.Info(fmt.Sprintf("TIME IS UP: Added only %d txs from %d txs for shard id %d\n", len(miniBlock.TxHashes), len(orderedTxes), miniBlock.ShardID))
+			log.Info(fmt.Sprintf("TIME IS UP: Added only %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
 			if len(miniBlock.TxHashes) > 0 {
 				miniBlocks = append(miniBlocks, miniBlock)
 			}
@@ -661,6 +664,7 @@ func (bp *blockProcessor) displayLogInfo(
 		log.Error(err.Error())
 	}
 	fmt.Println(tblString)
+	fmt.Println(fmt.Sprintf("Total txs processed until now are %d. For this block was processed %d txs", txsTotalProcessed, txsCurrentBlockProcessed))
 }
 
 func createDisplayableHeaderAndBlockBody(
@@ -746,6 +750,8 @@ func displayTxBlockBody(lines []*display.LineData, txBlockBody *block.TxBlockBod
 	lines = append(lines, display.NewLineData(false, []string{"TxBody", "Block blockBodyHash", toB64(blockBodyHash)}))
 	lines = append(lines, display.NewLineData(true, []string{"", "Root blockBodyHash", toB64(txBlockBody.RootHash)}))
 
+	txsCurrentBlockProcessed = 0
+
 	for i := 0; i < len(txBlockBody.MiniBlocks); i++ {
 		miniBlock := txBlockBody.MiniBlocks[i]
 
@@ -755,6 +761,9 @@ func displayTxBlockBody(lines []*display.LineData, txBlockBody *block.TxBlockBod
 			lines = append(lines, display.NewLineData(false, []string{
 				part, "", "<NIL> or <EMPTY>"}))
 		}
+
+		txsCurrentBlockProcessed += len(miniBlock.TxHashes)
+		txsTotalProcessed += len(miniBlock.TxHashes)
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if j >= len(miniBlock.TxHashes)-1 {
