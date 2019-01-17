@@ -34,6 +34,9 @@ var ErrNilConsensusData = errors.New("consensus data is nil")
 // ErrNilSignature is raised when a valid signature was expected but nil was used
 var ErrNilSignature = errors.New("signature is nil")
 
+// ErrNilCommitment is raised when a valid commitment was expected but nil was used
+var ErrNilCommitment = errors.New("commitment is nil")
+
 // ErrNilKeyGenerator is raised when a valid key generator is expected but nil was used
 var ErrNilKeyGenerator = errors.New("key generator is nil")
 
@@ -72,3 +75,6 @@ var ErrInvalidKey = errors.New("map key is invalid")
 
 // ErrNilRoundState is raised when a valid round state is expected but nil used
 var ErrNilRoundState = errors.New("round state is nil")
+
+// ErrCommitmentHashDoesNotMatch is raised when the commitment hash does not match expected value
+var ErrCommitmentHashDoesNotMatch = errors.New("commitment hash does not match")

@@ -49,12 +49,14 @@ type MultiSigner interface {
 	AggregateCommitments(bitmap []byte) ([]byte, error)
 	// SetAggCommitment sets the aggregated commitment
 	SetAggCommitment(aggCommitment []byte) error
-	// SignPartial creates a partial signature
-	SignPartial(bitmap []byte) ([]byte, error)
-	// AddSignPartial adds the partial signature of the signer with specified position
-	AddSignPartial(index uint16, sig []byte) error
-	// VerifyPartial verifies the partial signature of the signer with specified position
-	VerifyPartial(index uint16, sig []byte, bitmap []byte) error
+	// CreateSignatureShare creates a partial signature
+	CreateSignatureShare(bitmap []byte) ([]byte, error)
+	// AddSignatureShare adds the partial signature of the signer with specified position
+	AddSignatureShare(index uint16, sig []byte) error
+	// SignatureShare returns the partial signature set for given index
+	SignatureShare(index uint16) ([]byte, error)
+	// VerifySignatureShare verifies the partial signature of the signer with specified position
+	VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error
 	// AggregateSigs aggregates all collected partial signatures
 	AggregateSigs(bitmap []byte) ([]byte, error)
 }

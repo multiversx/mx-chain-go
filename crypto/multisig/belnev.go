@@ -232,22 +232,22 @@ func (bn *belNev) SetAggCommitment(aggCommitment []byte) error {
 	return nil
 }
 
-// SignPartial creates a partial signature
-func (bn *belNev) SignPartial(bitmap []byte) ([]byte, error) {
+// CreateSignatureShare creates a partial signature
+func (bn *belNev) CreateSignatureShare(bitmap []byte) ([]byte, error) {
 	// TODO
 
 	return []byte("implement me"), nil
 }
 
-// VerifyPartial verifies the partial signature of the signer with specified position
-func (bn *belNev) VerifyPartial(index uint16, sig []byte, bitmap []byte) error {
+// VerifySignatureShare verifies the partial signature of the signer with specified position
+func (bn *belNev) VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error {
 	// TODO
 
 	return nil
 }
 
-// AddSignPartial adds the partial signature of the signer with specified position
-func (bn *belNev) AddSignPartial(index uint16, sig []byte) error {
+// AddSignatureShare adds the partial signature of the signer with specified position
+func (bn *belNev) AddSignatureShare(index uint16, sig []byte) error {
 	bn.mutSigShares.Lock()
 	if int(index) >= len(bn.sigShares) {
 		bn.mutSigShares.Unlock()
@@ -257,6 +257,22 @@ func (bn *belNev) AddSignPartial(index uint16, sig []byte) error {
 	bn.sigShares[index] = sig
 	bn.mutSigShares.Unlock()
 	return nil
+}
+
+// SignatureShare returns the partial signature set for given index
+func (bn *belNev) SignatureShare(index uint16) ([]byte, error) {
+	bn.mutSigShares.RLock()
+	defer bn.mutSigShares.RUnlock()
+
+	if int(index) >= len(bn.sigShares) {
+		return nil, crypto.ErrInvalidIndex
+	}
+
+	if bn.sigShares[index] == nil {
+		return nil, crypto.ErrNilElement
+	}
+
+	return bn.sigShares[index], nil
 }
 
 // AggregateSigs aggregates all collected partial signatures

@@ -242,6 +242,53 @@ func checkNewConsensusWorkerParams(
 	return nil
 }
 
+func (sposWorker *SPOSConsensusWorker) checkSignaturesValidity(bitmap []byte) error {
+	nbBitsBitmap := len(bitmap) * 8
+	consensusGroup := sposWorker.Cns.ConsensusGroup()
+	consensusGroupSize := len(consensusGroup)
+	size := consensusGroupSize
+
+	if consensusGroupSize > nbBitsBitmap {
+		size = nbBitsBitmap
+	}
+
+	for i := 0; i < size; i++ {
+		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
+
+		if !indexRequired {
+			continue
+		}
+
+		pubKey := consensusGroup[i]
+		isSigJobDone, err := sposWorker.Cns.GetJobDone(pubKey, SrSignature)
+
+		if err != nil {
+			return err
+		}
+
+		if !isSigJobDone {
+			return ErrNilSignature
+		}
+
+		signature, err := sposWorker.multiSigner.SignatureShare(uint16(i))
+
+		if err != nil {
+			log.Error("checked signature index %d", i)
+
+			return err
+		}
+
+		// verify partial signature
+		err = sposWorker.multiSigner.VerifySignatureShare(uint16(i), signature, bitmap)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // DoStartRoundJob method is the function which actually do the job of the StartRound subround
 // (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
 // from spos package)
@@ -310,6 +357,13 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 	}
 
 	bitmap := sposWorker.genBitmap(SrBitmap)
+
+	err := sposWorker.checkSignaturesValidity(bitmap)
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
 
 	// Aggregate sig and add it to the block
 	sig, err := sposWorker.multiSigner.AggregateSigs(bitmap)
@@ -760,6 +814,58 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentJob() bool {
 	return true
 }
 
+func (sposWorker *SPOSConsensusWorker) checkCommitmentsValidity(bitmap []byte) error {
+	nbBitsBitmap := len(bitmap) * 8
+	consensusGroup := sposWorker.Cns.ConsensusGroup()
+	consensusGroupSize := len(consensusGroup)
+	size := consensusGroupSize
+
+	if consensusGroupSize > nbBitsBitmap {
+		size = nbBitsBitmap
+	}
+
+	for i := 0; i < size; i++ {
+		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
+
+		if !indexRequired {
+			continue
+		}
+
+		pubKey := consensusGroup[i]
+		isCommJobDone, err := sposWorker.Cns.GetJobDone(pubKey, SrCommitment)
+
+		if err != nil {
+			return err
+		}
+
+		if !isCommJobDone {
+			return ErrNilCommitment
+		}
+
+		commitment, err := sposWorker.multiSigner.Commitment(uint16(i))
+
+		if err != nil {
+			return err
+		}
+
+		computedCommitmentHash := sposWorker.hasher.Compute(string(commitment))
+		receivedCommitmentHash, err := sposWorker.multiSigner.CommitmentHash(uint16(i))
+
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(computedCommitmentHash, receivedCommitmentHash) {
+			log.Info(fmt.Sprintf("Commitment %s does not match, expected %s\n",
+				getPrettyByteArray(computedCommitmentHash),
+				getPrettyByteArray(receivedCommitmentHash)))
+			return ErrCommitmentHashDoesNotMatch
+		}
+	}
+
+	return nil
+}
+
 // DoSignatureJob method is the function which is actually used to send the Signature for the received block,
 // in the Signature subround (it is used as the handler function of the doSubroundJob pointer variable function
 // in Subround struct, from spos package)
@@ -790,6 +896,13 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 
 	bitmap := sposWorker.genBitmap(SrBitmap)
 
+	err = sposWorker.checkCommitmentsValidity(bitmap)
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
 	// first compute commitment aggregation
 	aggComm, err := sposWorker.multiSigner.AggregateCommitments(bitmap)
 
@@ -798,7 +911,7 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 		return false
 	}
 
-	sigPart, err := sposWorker.multiSigner.SignPartial(bitmap)
+	sigPart, err := sposWorker.multiSigner.CreateSignatureShare(bitmap)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -819,6 +932,20 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 	}
 
 	log.Info(fmt.Sprintf("%sStep 5: Sending signature\n", sposWorker.Cns.getFormattedTime()))
+
+	selfIndex, err := sposWorker.Cns.IndexSelfConsensusGroup()
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
+
+	err = sposWorker.multiSigner.AddSignatureShare(uint16(selfIndex), sigPart)
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
 
 	err = sposWorker.Cns.SetJobDone(sposWorker.Cns.SelfPubKey(), SrSignature, true)
 
@@ -1409,16 +1536,6 @@ func (sposWorker *SPOSConsensusWorker) ReceivedCommitment(cnsDta *ConsensusData)
 		return false
 	}
 
-	computedCommitmentHash := sposWorker.hasher.Compute(string(cnsDta.SubRoundData))
-	rcvCommitmentHash, err := sposWorker.multiSigner.CommitmentHash(uint16(index))
-
-	if !bytes.Equal(computedCommitmentHash, rcvCommitmentHash) {
-		log.Info(fmt.Sprintf("Commitment %s does not match, expected %s\n",
-			getPrettyByteArray(computedCommitmentHash),
-			getPrettyByteArray(rcvCommitmentHash)))
-		return false
-	}
-
 	err = sposWorker.multiSigner.AddCommitment(uint16(index), cnsDta.SubRoundData)
 
 	if err != nil {
@@ -1464,17 +1581,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedSignature(cnsDta *ConsensusData) 
 		return false
 	}
 
-	bitmap := sposWorker.genBitmap(SrBitmap)
-
-	// verify partial signature
-	err = sposWorker.multiSigner.VerifyPartial(uint16(index), cnsDta.SubRoundData, bitmap)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	err = sposWorker.multiSigner.AddSignPartial(uint16(index), cnsDta.SubRoundData)
+	err = sposWorker.multiSigner.AddSignatureShare(uint16(index), cnsDta.SubRoundData)
 
 	if err != nil {
 		log.Error(err.Error())

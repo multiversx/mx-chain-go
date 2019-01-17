@@ -196,7 +196,7 @@ func initMultisigner() *mock.BelNevMock {
 		return []byte("commSecret"), []byte("commitment"), nil
 	}
 
-	multisigner.VerifyPartialMock = func(index uint16, sig []byte, bitmap []byte) error {
+	multisigner.VerifySignatureShareMock = func(index uint16, sig []byte, bitmap []byte) error {
 		return nil
 	}
 
@@ -212,7 +212,7 @@ func initMultisigner() *mock.BelNevMock {
 		return []byte("aggregatedCommitments"), nil
 	}
 
-	multisigner.SignPartialMock = func(bitmap []byte) ([]byte, error) {
+	multisigner.CreateSignatureShareMock = func(bitmap []byte) ([]byte, error) {
 		return []byte("partialSign"), nil
 	}
 
@@ -1144,6 +1144,7 @@ func TestMessage_SendSignature(t *testing.T) {
 	dta := []byte("X")
 	cnWorkers[0].Cns.Data = dta
 
+	cnWorkers[0].Cns.SetJobDone(cnWorkers[0].Cns.SelfPubKey(), spos.SrCommitment, true)
 	r = cnWorkers[0].DoSignatureJob()
 	assert.Equal(t, true, r)
 }
