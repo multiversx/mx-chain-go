@@ -345,6 +345,8 @@ func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody, roun
 		return err
 	}
 
+	txPool := bp.dataPool.Transactions()
+
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		shardId := miniBlock.ShardID
@@ -352,7 +354,15 @@ func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody, roun
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			tx := bp.getTransactionFromPool(shardId, txHash)
-			err := bp.txProcessor.ProcessTransaction(tx, round)
+
+			err := bp.processAndRemoveBadTransaction(
+				txHash,
+				tx,
+				txPool,
+				round,
+				miniBlock.ShardID,
+			)
+
 			if err != nil {
 				return err
 			}
@@ -524,6 +534,27 @@ func (bp *blockProcessor) computeMissingTxsForShards(body *block.TxBlockBody) ma
 	return missingTxsForShard
 }
 
+func (bp *blockProcessor) processAndRemoveBadTransaction(
+	transactionHash []byte,
+	transaction *transaction.Transaction,
+	txPool data.ShardedDataCacherNotifier,
+	round int32,
+	shardId uint32,
+) error {
+	if txPool == nil {
+		return process.ErrNilTransactionPool
+	}
+
+	err := bp.txProcessor.ProcessTransaction(transaction, round)
+
+	if err == process.ErrLowerNonceInTransaction {
+		txPool.RemoveData(transactionHash, shardId)
+		return err
+	}
+
+	return nil
+}
+
 func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) ([]block.MiniBlock, error) {
 	miniBlocks := make([]block.MiniBlock, 0)
 
@@ -566,7 +597,13 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 			}
 
 			// execute transaction to change the trie root hash
-			err := bp.txProcessor.ProcessTransaction(tx, round)
+			err := bp.processAndRemoveBadTransaction(
+				orderedTxHashes[index],
+				orderedTxes[index],
+				txPool,
+				round,
+				miniBlock.ShardID,
+			)
 
 			if err != nil {
 				err = bp.accounts.RevertToSnapshot(snapshot)
