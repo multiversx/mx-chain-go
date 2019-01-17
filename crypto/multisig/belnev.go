@@ -151,7 +151,7 @@ func (bn *belNev) AddCommitmentHash(index uint16, commHash []byte) error {
 // CommitmentHash returns the commitment hash from the list on the specified position
 func (bn *belNev) CommitmentHash(index uint16) ([]byte, error) {
 	bn.mutCommHashes.RLock()
-	defer bn.mutCommHashes.Unlock()
+	defer bn.mutCommHashes.RUnlock()
 
 	if int(index) >= len(bn.commHashes) {
 		return nil, crypto.ErrInvalidIndex
