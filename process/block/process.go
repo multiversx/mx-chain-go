@@ -458,14 +458,14 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 	txPool := bp.dataPool.Transactions()
 
 	if txPool == nil {
-		log.Debug(process.ErrNilTransactionPool.Error())
+		log.Error(process.ErrNilTransactionPool.Error())
 		return nil
 	}
 
 	txStore := txPool.ShardDataStore(destShardID)
 
 	if txStore == nil {
-		log.Debug(process.ErrNilTxStorage.Error())
+		log.Error(process.ErrNilTxStorage.Error())
 		return nil
 	}
 
@@ -700,7 +700,7 @@ func (bp *blockProcessor) displayLogInfo(
 		log.Error(err.Error())
 	}
 	fmt.Println(tblString)
-	fmt.Println(fmt.Sprintf("Current Header Hash: %s", toB64(headerHash)))
+	fmt.Println(fmt.Sprintf("Header hash: %s", toB64(headerHash)))
 	fmt.Println(fmt.Sprintf("Total txs processed until now: %d. Total txs processed for this block: %d", txsTotalProcessed, txsCurrentBlockProcessed))
 }
 
