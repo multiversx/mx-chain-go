@@ -108,9 +108,9 @@ func createBlockchain() (*blockchain.BlockChain, error) {
 func initDataPool() data.TransientDataHolder {
 	tdp := &mock.TransientDataPoolStub{
 		TransactionsCalled: func() data.ShardedDataCacherNotifier {
-			return &mock.ShardedDataCacheNotifierStub{
-				RegisterHandlerStub: func(i func(key []byte)) {},
-				ShardDataStoreStub: func(shardID uint32) (c storage.Cacher) {
+			return &mock.ShardedDataStub{
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+				ShardDataStoreCalled: func(shardID uint32) (c storage.Cacher) {
 					return &mock.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, []byte("tx1_hash")) {
@@ -126,7 +126,7 @@ func initDataPool() data.TransientDataHolder {
 						},
 					}
 				},
-				RemoveSetOfDataFromPoolStub: func(keys [][]byte, destShardID uint32) {},
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, destShardID uint32) {},
 			}
 		},
 		HeadersNoncesCalled: func() data.Uint64Cacher {

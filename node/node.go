@@ -171,6 +171,38 @@ func (n *Node) ConnectToAddresses(addresses []string) error {
 	return nil
 }
 
+// CreateShardedStores instantiate sharded cachers for Transactions and Headers
+//TODO add tests
+func (n *Node) CreateShardedStores() error {
+	if n.shardCoordinator == nil {
+		return errNilShardCoordinator
+	}
+
+	if n.dataPool == nil {
+		return errNilDataPool
+	}
+
+	transactionsDataStore := n.dataPool.Transactions()
+	headersDataStore := n.dataPool.Headers()
+
+	if transactionsDataStore == nil {
+		return errors.New("nil transaction sharded data store")
+	}
+
+	if headersDataStore == nil {
+		return errors.New("nil header sharded data store")
+	}
+
+	shards := n.shardCoordinator.NoShards()
+
+	for i := uint32(0); i < shards; i++ {
+		transactionsDataStore.CreateShardStore(i)
+		headersDataStore.CreateShardStore(i)
+	}
+
+	return nil
+}
+
 // BindInterceptorsResolvers will start the interceptors and resolvers
 func (n *Node) BindInterceptorsResolvers() error {
 	if !n.IsRunning() {

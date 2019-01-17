@@ -65,9 +65,9 @@ func newShardStore(destShardID uint32, cacherConfig storage.CacheConfig) (*shard
 	}, nil
 }
 
-// NewShardStore is a ShardedData method that is responsible for creating
+// CreateShardStore is a ShardedData method that is responsible for creating
 //  a new shardStore at the destShardID index in the shardedDataStore map
-func (sd *shardedData) NewShardStore(destShardID uint32) {
+func (sd *shardedData) CreateShardStore(destShardID uint32) {
 	sd.mutShardedDataStore.Lock()
 	sd.newShardStoreNoLock(destShardID)
 	sd.mutShardedDataStore.Unlock()

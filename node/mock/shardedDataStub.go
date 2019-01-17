@@ -16,6 +16,7 @@ type ShardedDataStub struct {
 	ClearCalled                   func()
 	ClearShardStoreCalled         func(shardID uint32)
 	RemoveSetOfDataFromPoolCalled func(keys [][]byte, destShardID uint32)
+	CreateShardStoreCalled        func(destShardID uint32)
 }
 
 func (sd *ShardedDataStub) RegisterHandler(handler func(key []byte)) {
@@ -44,6 +45,10 @@ func (sd *ShardedDataStub) RemoveDataFromAllShards(key []byte) {
 
 func (sd *ShardedDataStub) MergeShardStores(sourceShardID, destShardID uint32) {
 	sd.MergeShardStoresCalled(sourceShardID, destShardID)
+}
+
+func (sd *ShardedDataStub) CreateShardStore(destShardID uint32) {
+	sd.CreateShardStoreCalled(destShardID)
 }
 
 func (sd *ShardedDataStub) MoveData(sourceShardID, destShardID uint32, key [][]byte) {
