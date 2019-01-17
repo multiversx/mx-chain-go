@@ -80,7 +80,7 @@ func (chr *Chronology) initRound(currentTime time.Time) {
 		chr.SetSelfSubround(chr.subroundHandlers[0].Current())
 	}
 
-	if currentTime.Unix() < chr.syncTime.CurrentTime(chr.syncTime.ClockOffset()).Unix() {
+	if chr.syncTime.CurrentTime(chr.syncTime.ClockOffset()).Sub(currentTime) > 0 {
 		chr.clockOffset = chr.syncTime.ClockOffset()
 	}
 }
