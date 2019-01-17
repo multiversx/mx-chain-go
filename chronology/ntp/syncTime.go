@@ -45,9 +45,7 @@ func (s *syncTime) sync() {
 	if s.query != nil {
 		r, err := s.query("time.google.com")
 
-		if err != nil {
-			s.setClockOffset(0)
-		} else {
+		if err == nil {
 			s.setClockOffset(r.ClockOffset)
 		}
 	}

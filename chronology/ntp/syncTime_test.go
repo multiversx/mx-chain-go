@@ -72,7 +72,7 @@ func TestHandleErrorInDoSync(t *testing.T) {
 
 	st.Sync()
 
-	assert.Equal(t, st.ClockOffset(), time.Millisecond*0)
+	assert.Equal(t, st.ClockOffset(), time.Duration(1234))
 
 }
 
