@@ -700,8 +700,8 @@ func (bp *blockProcessor) displayLogInfo(
 		log.Error(err.Error())
 	}
 	fmt.Println(tblString)
-	fmt.Println(fmt.Sprintf("Current Header Hash: %s", toB64(headerHash)))
-	fmt.Println(fmt.Sprintf("Total txs processed until now: %d. Total txs processed for this block: %d", txsTotalProcessed, txsCurrentBlockProcessed))
+	fmt.Println(fmt.Sprintf("Header hash: %s", toB64(headerHash)))
+	fmt.Println(fmt.Sprintf("Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d", txsTotalProcessed, txsCurrentBlockProcessed, bp.getTxsFromPool(txBlock.ShardID)))
 }
 
 func createDisplayableHeaderAndBlockBody(
@@ -874,17 +874,23 @@ func (bp *blockProcessor) displayTxsInfo(miniBlock *block.MiniBlock, shardId uin
 		return
 	}
 
+	txsInPool := bp.getTxsFromPool(shardId)
+
+	log.Info(fmt.Sprintf("PROCESS BLOCK TRANSACTION STARTED: Have %d txs in pool and need to process %d txs from the received block for shard id %d\n", txsInPool, len(miniBlock.TxHashes), shardId))
+}
+
+func (bp *blockProcessor) getTxsFromPool(shardId uint32) int {
 	txPool := bp.dataPool.Transactions()
 
 	if txPool == nil {
-		return
+		return 0
 	}
 
 	txStore := txPool.ShardDataStore(shardId)
 
 	if txStore == nil {
-		return
+		return 0
 	}
 
-	log.Info(fmt.Sprintf("PROCESS BLOCK TRANSACTION STARTED: Have %d txs in pool and need to process %d txs from the received block for shard id %d\n", txStore.Len(), len(miniBlock.TxHashes), shardId))
+	return txStore.Len()
 }
