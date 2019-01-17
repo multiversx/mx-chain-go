@@ -519,7 +519,8 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int
 	wg := sync2.WaitGroup{}
 	wg.Add(int(noOfTx))
 
-	transactions := make([][]byte, noOfTx)
+	mutTransactions := sync2.RWMutex{}
+	transactions := make([][]byte, 0)
 
 	mutErr := &sync2.RWMutex{}
 	var errFound error
@@ -543,7 +544,9 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int
 				return
 			}
 
-			transactions[crtNonce-newNonce] = signedTxBuff
+			mutTransactions.Lock()
+			transactions = append(transactions, signedTxBuff)
+			mutTransactions.Unlock()
 			wg.Done()
 		}(nonce)
 	}
@@ -562,12 +565,19 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int
 		return errors.New("could not get transaction topic")
 	}
 
+	mutTransactions.RLock()
+	if len(transactions) != int(noOfTx) {
+		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
+	}
+
 	for i := 0; i < len(transactions); i++ {
 		err = topic.BroadcastBuff(transactions[i])
 		if err != nil {
 			return errors.New("could not broadcast transaction: " + err.Error())
 		}
 	}
+
+	mutTransactions.RUnlock()
 
 	return nil
 }
