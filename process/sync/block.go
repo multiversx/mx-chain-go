@@ -197,7 +197,7 @@ func (boot *bootstrap) syncBlocks() {
 			if boot.shouldSync() {
 				err := boot.SyncBlock()
 				if err != nil {
-					log.Debug(fmt.Sprintf("%s\n", err.Error()))
+					log.Error(fmt.Sprintf("%s\n", err.Error()))
 				}
 			}
 		}
@@ -235,11 +235,13 @@ func (boot *bootstrap) SyncBlock() error {
 	//TODO all kinds of blocks
 	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, blk.(*block.TxBlockBody))
 
-	if err == nil {
-		log.Info(fmt.Sprintf("Block with nonce %d was synced successfully\n", hdr.Nonce))
+	if err != nil {
+		return err
 	}
 
-	return err
+	log.Info(fmt.Sprintf("Block with nonce %d was synced successfully\n", hdr.Nonce))
+
+	return nil
 }
 
 // getHeaderFromPool method returns the block header from a given nonce
