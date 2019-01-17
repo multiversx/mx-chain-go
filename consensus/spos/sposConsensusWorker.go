@@ -1413,7 +1413,9 @@ func (sposWorker *SPOSConsensusWorker) ReceivedCommitment(cnsDta *ConsensusData)
 	rcvCommitmentHash, err := sposWorker.multiSigner.CommitmentHash(uint16(index))
 
 	if !bytes.Equal(computedCommitmentHash, rcvCommitmentHash) {
-		log.Info(fmt.Sprintf("Commitment %s does not match, expected %s\n", computedCommitmentHash, rcvCommitmentHash))
+		log.Info(fmt.Sprintf("Commitment %s does not match, expected %s\n",
+			getPrettyByteArray(computedCommitmentHash),
+			getPrettyByteArray(rcvCommitmentHash)))
 		return false
 	}
 
