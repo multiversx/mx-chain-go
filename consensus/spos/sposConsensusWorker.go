@@ -459,30 +459,12 @@ func (sposWorker *SPOSConsensusWorker) SendBlockHeader() bool {
 		hdr.Nonce = 1
 		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
 		hdr.TimeStamp = sposWorker.GetTime()
-
-		prevHeader, err := sposWorker.marshalizer.Marshal(sposWorker.BlockChain.GenesisBlock)
-
-		if err != nil {
-			log.Error(err.Error())
-			return false
-		}
-
-		prevHeaderHash := sposWorker.hasher.Compute(string(prevHeader))
-		hdr.PrevHash = prevHeaderHash
+		hdr.PrevHash = sposWorker.BlockChain.GenesisHeaderHash
 	} else {
 		hdr.Nonce = sposWorker.BlockChain.CurrentBlockHeader.Nonce + 1
 		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
 		hdr.TimeStamp = sposWorker.GetTime()
-
-		prevHeader, err := sposWorker.marshalizer.Marshal(sposWorker.BlockChain.CurrentBlockHeader)
-
-		if err != nil {
-			log.Error(err.Error())
-			return false
-		}
-
-		prevHeaderHash := sposWorker.hasher.Compute(string(prevHeader))
-		hdr.PrevHash = prevHeaderHash
+		hdr.PrevHash = sposWorker.BlockChain.CurrentBlockHeaderHash
 	}
 
 	blkStr, err := sposWorker.marshalizer.Marshal(sposWorker.BlockBody)
@@ -996,26 +978,15 @@ func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() error {
 	hdr := &block.Header{}
 	hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
 	hdr.TimeStamp = uint64(sposWorker.Cns.Chr.Round().TimeStamp().Unix())
-	var prevHeader []byte
-	var err error
+	var prevHeaderHash []byte
 
 	if sposWorker.BlockChain.CurrentBlockHeader == nil {
 		hdr.Nonce = 1
-		prevHeader, err = sposWorker.marshalizer.Marshal(sposWorker.BlockChain.GenesisBlock)
-
-		if err != nil {
-			return err
-		}
+		prevHeaderHash = sposWorker.BlockChain.GenesisHeaderHash
 	} else {
 		hdr.Nonce = sposWorker.BlockChain.CurrentBlockHeader.Nonce + 1
-		prevHeader, err = sposWorker.marshalizer.Marshal(sposWorker.BlockChain.CurrentBlockHeader)
-
-		if err != nil {
-			return err
-		}
+		prevHeaderHash = sposWorker.BlockChain.CurrentBlockHeaderHash
 	}
-
-	prevHeaderHash := sposWorker.hasher.Compute(string(prevHeader))
 	hdr.PrevHash = prevHeaderHash
 	blkStr, err := sposWorker.marshalizer.Marshal(sposWorker.BlockBody)
 
@@ -1524,7 +1495,7 @@ func (sposWorker *SPOSConsensusWorker) CheckIfBlockIsValid(receivedHeader *block
 
 	if sposWorker.BlockChain.CurrentBlockHeader == nil {
 		if receivedHeader.Nonce == 1 { // first block after genesis
-			if bytes.Equal(receivedHeader.PrevHash, []byte("")) {
+			if bytes.Equal(receivedHeader.PrevHash, sposWorker.BlockChain.GenesisHeaderHash) {
 				return true
 			}
 
