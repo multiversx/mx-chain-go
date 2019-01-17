@@ -547,7 +547,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		orderedTxes, orderedTxHashes, err := sortTxByNonce(txStore)
 
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug(fmt.Sprintf("when trying to order txs: %s", err.Error()))
 			continue
 		}
 
