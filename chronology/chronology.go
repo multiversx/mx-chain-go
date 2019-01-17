@@ -73,14 +73,16 @@ func NewChronology(
 }
 
 // initRound is called when a new round begins and do the necesary initialization
-func (chr *Chronology) initRound() {
+func (chr *Chronology) initRound(currentTime time.Time) {
 	chr.SetSelfSubround(-1)
 
 	if len(chr.subroundHandlers) > 0 {
 		chr.SetSelfSubround(chr.subroundHandlers[0].Current())
 	}
 
-	chr.clockOffset = chr.syncTime.ClockOffset()
+	if currentTime.Unix() < chr.syncTime.CurrentTime(chr.syncTime.ClockOffset()).Unix() {
+		chr.clockOffset = chr.syncTime.ClockOffset()
+	}
 }
 
 // AddSubround adds new SubroundHandler implementation to the chronology
@@ -132,7 +134,7 @@ func (chr *Chronology) updateRound() SubroundId {
 			chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()),
 			chr.round.index,
 			chr.SyncTime().CurrentTime(chr.ClockOffset()).Unix()))
-		chr.initRound()
+		chr.initRound(currentTime)
 	}
 
 	if oldTimeSubRound != chr.timeSubround {

@@ -121,6 +121,9 @@ func initDataPool() data.TransientDataHolder {
 						KeysCalled: func() [][]byte {
 							return [][]byte{[]byte("key1"), []byte("key2")}
 						},
+						LenCalled: func() int {
+							return 0
+						},
 					}
 				},
 				RemoveSetOfDataFromPoolStub: func(keys [][]byte, destShardID uint32) {},
