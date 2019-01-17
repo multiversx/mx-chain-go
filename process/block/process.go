@@ -700,7 +700,7 @@ func (bp *blockProcessor) displayLogInfo(
 		log.Error(err.Error())
 	}
 	fmt.Println(tblString)
-	fmt.Println(fmt.Sprintf("Total txs processed until now are %d. For this block was processed %d txs", txsTotalProcessed, txsCurrentBlockProcessed))
+	fmt.Println(fmt.Sprintf("Total txs processed until now: %d. Total txs processed for this block: %d", txsTotalProcessed, txsCurrentBlockProcessed))
 }
 
 func createDisplayableHeaderAndBlockBody(
