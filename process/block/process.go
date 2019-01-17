@@ -693,25 +693,25 @@ func (bp *blockProcessor) displayLogInfo(
 	txBlock *block.TxBlockBody,
 	headerHash []byte,
 ) {
-	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(header, txBlock, headerHash)
+	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(header, txBlock)
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
 		log.Error(err.Error())
 	}
 	fmt.Println(tblString)
+	fmt.Println(fmt.Sprintf("Current Header Hash: %s", toB64(headerHash)))
 	fmt.Println(fmt.Sprintf("Total txs processed until now: %d. Total txs processed for this block: %d", txsTotalProcessed, txsCurrentBlockProcessed))
 }
 
 func createDisplayableHeaderAndBlockBody(
 	header *block.Header,
 	txBlockBody *block.TxBlockBody,
-	headerHash []byte,
 ) ([]string, []*display.LineData) {
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
 
-	lines := displayHeader(header, headerHash)
+	lines := displayHeader(header)
 
 	if header.BlockBodyType == block.TxBlock {
 		lines = displayTxBlockBody(lines, txBlockBody, header.BlockBodyHash)
@@ -725,9 +725,7 @@ func createDisplayableHeaderAndBlockBody(
 	return tableHeader, lines
 }
 
-func displayHeader(header *block.Header,
-	headerHash []byte,
-) []*display.LineData {
+func displayHeader(header *block.Header) []*display.LineData {
 	lines := make([]*display.LineData, 0)
 
 	lines = append(lines, display.NewLineData(false, []string{
@@ -750,10 +748,6 @@ func displayHeader(header *block.Header,
 		"",
 		"Timestamp",
 		fmt.Sprintf("%d", header.TimeStamp)}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Current hash",
-		toB64(headerHash)}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Prev hash",
