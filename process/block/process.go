@@ -831,6 +831,10 @@ func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 }
 
 func (bp *blockProcessor) displayTxsInfo(miniBlock *block.MiniBlock, shardId uint32) {
+	if miniBlock == nil || miniBlock.TxHashes == nil {
+		return
+	}
+
 	txPool := bp.dataPool.Transactions()
 
 	if txPool == nil {
@@ -838,6 +842,10 @@ func (bp *blockProcessor) displayTxsInfo(miniBlock *block.MiniBlock, shardId uin
 	}
 
 	txStore := txPool.ShardDataStore(shardId)
+
+	if txStore == nil {
+		return
+	}
 
 	log.Info(fmt.Sprintf("PROCESS BLOCK TRANSACTION STARTED: Have %d txs in pool and need to process %d txs from the received block for shard id %d\n", txStore.Len(), len(miniBlock.TxHashes), shardId))
 }
