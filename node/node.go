@@ -91,20 +91,6 @@ type Node struct {
 	resolvers    []process.Resolver
 }
 
-// NewNode creates a new Node instance
-func NewNode(opts ...Option) (*Node, error) {
-	node := &Node{
-		ctx: context.Background(),
-	}
-	for _, opt := range opts {
-		err := opt(node)
-		if err != nil {
-			return nil, errors.New("error applying option: " + err.Error())
-		}
-	}
-	return node, nil
-}
-
 // ApplyOptions can set up different configurable options of a Node instance
 func (n *Node) ApplyOptions(opts ...Option) error {
 	if n.IsRunning() {
@@ -117,6 +103,20 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 		}
 	}
 	return nil
+}
+
+// NewNode creates a new Node instance
+func NewNode(opts ...Option) (*Node, error) {
+	node := &Node{
+		ctx: context.Background(),
+	}
+	for _, opt := range opts {
+		err := opt(node)
+		if err != nil {
+			return nil, errors.New("error applying option: " + err.Error())
+		}
+	}
+	return node, nil
 }
 
 // IsRunning will return the current state of the node
@@ -297,7 +297,7 @@ func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology 
 }
 
 func (n *Node) createBootstrap(round *chronology.Round) error {
-	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, round, n.blockProcessor, WaitTime)
+	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, round, n.blockProcessor, WaitTime, n.marshalizer)
 
 	if err != nil {
 		return err

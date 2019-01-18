@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
 var log = logger.NewDefaultLogger()
@@ -28,6 +29,7 @@ type bootstrap struct {
 	blkc          *blockchain.BlockChain
 	round         *chronology.Round
 	blkExecutor   process.BlockProcessor
+	marshalizer   marshal.Marshalizer
 
 	mutHeader   sync.RWMutex
 	headerNonce *uint64
@@ -51,6 +53,7 @@ func NewBootstrap(
 	round *chronology.Round,
 	blkExecutor process.BlockProcessor,
 	waitTime time.Duration,
+	marshalizer marshal.Marshalizer,
 ) (*bootstrap, error) {
 	err := checkBootstrapNilParameters(transientDataHolder, blkc, round, blkExecutor)
 
@@ -66,6 +69,7 @@ func NewBootstrap(
 		round:         round,
 		blkExecutor:   blkExecutor,
 		waitTime:      waitTime,
+		marshalizer:   marshalizer,
 	}
 
 	boot.chRcvHdr = make(chan bool)
@@ -295,9 +299,35 @@ func (boot *bootstrap) getHeaderWithNonce(nonce uint64) (*block.Header, error) {
 	return hdr, nil
 }
 
-// getBodyFromPool method returns the block header or block body from a given nonce
-func (boot *bootstrap) getTxBodyFromPool(hash []byte) interface{} {
+// getBodyFromPool method returns the block body from a given hash
+func (boot *bootstrap) getTxBody(hash []byte) interface{} {
 	txBody, _ := boot.txBlockBodies.Get(hash)
+
+	if txBody != nil {
+		return txBody
+	}
+
+	txBodyStorer := boot.blkc.GetStorer(blockchain.TxBlockBodyUnit)
+
+	if txBodyStorer == nil {
+		return nil
+	}
+
+	buff, _ := txBodyStorer.Get(hash)
+
+	if buff == nil {
+		return nil
+	}
+
+	txBody = &block.TxBlockBody{}
+
+	err := boot.marshalizer.Unmarshal(txBody, buff)
+
+	if err != nil {
+		_ = txBodyStorer.Remove(hash)
+		txBody = nil
+	}
+
 	return txBody
 }
 
@@ -315,12 +345,12 @@ func (boot *bootstrap) requestTxBody(hash []byte) {
 // that will be added. The block executor should decide by parsing the header block body type value
 // what kind of block body received.
 func (boot *bootstrap) getTxBodyWithHash(hash []byte) (interface{}, error) {
-	blk := boot.getTxBodyFromPool(hash)
+	blk := boot.getTxBody(hash)
 
 	if blk == nil {
 		boot.requestTxBody(hash)
 		boot.waitForTxBodyHash()
-		blk = boot.getTxBodyFromPool(hash)
+		blk = boot.getTxBody(hash)
 		if blk == nil {
 			return nil, process.ErrMissingBody
 		}

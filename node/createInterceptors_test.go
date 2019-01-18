@@ -58,6 +58,7 @@ func TestCreateTxInterceptor_IncompleteSettingsShouldErr(t *testing.T) {
 		return &mock.ShardedDataStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.addrConverter = mock.AddressConverterStub{}
 	//nil hasher
@@ -92,6 +93,7 @@ func TestCreateTxInterceptor_ShouldWork(t *testing.T) {
 		return &mock.ShardedDataStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.addrConverter = mock.AddressConverterStub{}
 	node.hasher = mock.HasherMock{}
@@ -142,6 +144,7 @@ func TestCreateHdrInterceptor_IncompleteSettingsShouldErr(t *testing.T) {
 		return &mock.Uint64CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.shardCoordinator = mock.NewOneShardCoordinatorMock()
 
@@ -176,6 +179,7 @@ func TestCreateHdrInterceptor_ShouldWork(t *testing.T) {
 		return &mock.Uint64CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.hasher = mock.HasherMock{}
 	node.shardCoordinator = mock.NewOneShardCoordinatorMock()
@@ -221,6 +225,7 @@ func TestCreateTxBlockBodyInterceptor_IncompleteSettingsShouldErr(t *testing.T) 
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.shardCoordinator = mock.NewOneShardCoordinatorMock()
 
@@ -251,6 +256,7 @@ func TestCreateTxBlockBodyInterceptor_ShouldWork(t *testing.T) {
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.hasher = mock.HasherMock{}
 	node.shardCoordinator = mock.NewOneShardCoordinatorMock()
@@ -296,6 +302,7 @@ func TestCreatePeerChBlockBodyInterceptor_IncompleteSettingsShouldErr(t *testing
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.shardCoordinator = mock.NewOneShardCoordinatorMock()
 
@@ -326,6 +333,7 @@ func TestCreatePeerChBlockBodyInterceptor_ShouldWork(t *testing.T) {
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.hasher = mock.HasherMock{}
 	node.shardCoordinator = mock.NewOneShardCoordinatorMock()
@@ -371,6 +379,7 @@ func TestCreateStateBlockBodyInterceptor_IncompleteSettingsShouldErr(t *testing.
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.shardCoordinator = mock.NewOneShardCoordinatorMock()
 
@@ -401,6 +410,7 @@ func TestCreateStateBlockBodyInterceptor_ShouldWork(t *testing.T) {
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.hasher = mock.HasherMock{}
 	node.shardCoordinator = mock.NewOneShardCoordinatorMock()
@@ -459,6 +469,7 @@ func TestCreateInterceptors_NilTransactionsShouldErr(t *testing.T) {
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.addrConverter = mock.AddressConverterStub{}
 	node.hasher = mock.HasherMock{}
@@ -516,6 +527,7 @@ func TestCreateInterceptors_NilHeadersShouldErr(t *testing.T) {
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.addrConverter = mock.AddressConverterStub{}
 	node.hasher = mock.HasherMock{}
@@ -573,6 +585,7 @@ func TestCreateInterceptors_NilHeadersNoncesShouldErr(t *testing.T) {
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.addrConverter = mock.AddressConverterStub{}
 	node.hasher = mock.HasherMock{}
@@ -630,6 +643,7 @@ func TestCreateInterceptors_NilTxBlockBodyShouldErr(t *testing.T) {
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.addrConverter = mock.AddressConverterStub{}
 	node.hasher = mock.HasherMock{}
@@ -687,6 +701,7 @@ func TestCreateInterceptors_NilPeerBlockBodyShouldErr(t *testing.T) {
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.addrConverter = mock.AddressConverterStub{}
 	node.hasher = mock.HasherMock{}
@@ -744,6 +759,7 @@ func TestCreateInterceptors_NilStateBlockBodyShouldErr(t *testing.T) {
 		return nil
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.addrConverter = mock.AddressConverterStub{}
 	node.hasher = mock.HasherMock{}
@@ -759,7 +775,6 @@ func TestCreateInterceptors_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
-
 	mes := mock.NewMessengerStub()
 	node.messenger = mes
 
@@ -801,6 +816,7 @@ func TestCreateInterceptors_ShouldWork(t *testing.T) {
 		return &mock.CacherStub{}
 	}
 
+	node.blkc = createBlockchain()
 	node.dataPool = dataPool
 	node.addrConverter = mock.AddressConverterStub{}
 	node.hasher = mock.HasherMock{}
