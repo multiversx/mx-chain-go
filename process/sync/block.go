@@ -11,9 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
 var log = logger.NewDefaultLogger()
@@ -201,7 +201,10 @@ func (boot *bootstrap) syncBlocks() {
 			if boot.shouldSync() {
 				err := boot.SyncBlock()
 				if err != nil {
-					log.Error(fmt.Sprintf("%s\n", err.Error()))
+					if err == process.ErrInvalidBlockHash {
+						boot.ForkChoice()
+					}
+					//log.Error(fmt.Sprintf("%s\n", err.Error()))
 				}
 			}
 		}
@@ -399,4 +402,90 @@ func (boot *bootstrap) waitForTxBodyHash() {
 	case <-time.After(boot.waitTime):
 		return
 	}
+}
+
+func (boot *bootstrap) ForkChoice() {
+	header := boot.blkc.CurrentBlockHeader
+
+	log.Info(fmt.Sprintf("#################### FORK CHOICE FOR HEADER PREVHASH: %s ####################",
+		header.PrevHash))
+
+	if header == nil {
+		return
+	}
+
+	if !isEmpty(header) {
+		return
+	}
+
+	boot.rollback(header)
+}
+
+func (boot *bootstrap) rollback(header *block.Header) {
+	headerStore := boot.blkc.GetStorer(blockchain.BlockHeaderUnit)
+	if headerStore == nil {
+		log.Error(process.ErrNilHeadersStorage.Error())
+		return
+	}
+
+	txBlockBodyStore := boot.blkc.GetStorer(blockchain.TxBlockBodyUnit)
+	if txBlockBodyStore == nil {
+		log.Error(process.ErrNilBlockBodyStorage.Error())
+		return
+	}
+
+	newHeader, err := boot.getPrevHeader(headerStore, header)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	newTxBlockBody, err := boot.getTxBlockBody(txBlockBodyStore, newHeader)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	hash, _ := boot.headersNonces.Get(header.Nonce)
+
+	boot.headersNonces.Remove(header.Nonce)
+	boot.headers.RemoveData(hash, header.ShardId)
+	_ = headerStore.Remove(hash)
+
+	boot.blkc.CurrentBlockHeader = newHeader
+	boot.blkc.CurrentTxBlockBody = newTxBlockBody
+	boot.blkc.CurrentBlockHeaderHash = header.PrevHash
+}
+
+func (boot *bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {
+	prevHash := header.PrevHash
+	boot.blkc.CurrentBlockHeaderHash = header.PrevHash
+	buffHeader, _ := headerStore.Get(prevHash)
+	newHeader := &block.Header{}
+	err := boot.marshalizer.Unmarshal(newHeader, buffHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	return newHeader, nil
+}
+
+func (boot *bootstrap) getTxBlockBody(txBlockBodyStore storage.Storer,
+	header *block.Header) (*block.TxBlockBody, error) {
+
+	buffTxBlockBody, _ := txBlockBodyStore.Get(header.BlockBodyHash)
+	txBlockBody := &block.TxBlockBody{}
+	err := boot.marshalizer.Unmarshal(txBlockBody, buffTxBlockBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return txBlockBody, nil
+}
+
+// IsEmpty verifies if a block is empty
+func isEmpty(header *block.Header) bool {
+	bitmap := header.PubKeysBitmap
+	areEqual := bytes.Equal(bitmap, make([]byte, len(bitmap)))
+	return areEqual
 }
