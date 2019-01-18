@@ -44,7 +44,7 @@ const (
 const shardId = 0
 
 //TODO: maximum transactions in one block (this should be injected, and this const should be removed later)
-const maxTransactionsInBlock = 15000
+const maxTransactionsInBlock = 20000
 
 // MessageType specifies what type of message was received
 type MessageType int
