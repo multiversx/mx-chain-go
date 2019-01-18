@@ -110,8 +110,8 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/libp2p/go-libp2p-pubsub"
+  version = "0.11.10"
 
 [[constraint]]
   name = "github.com/libp2p/go-libp2p-secio"
