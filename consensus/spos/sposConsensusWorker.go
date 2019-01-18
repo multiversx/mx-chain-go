@@ -1097,9 +1097,6 @@ func (sposWorker *SPOSConsensusWorker) ExtendEndRound() {
 		return
 	}
 
-	log.Info(fmt.Sprintf("\n%s******************** ADDED EMPTY BLOCK WITH NONCE  %d  IN BLOCKCHAIN ********************\n\n",
-		sposWorker.Cns.getFormattedTime(), sposWorker.Header.Nonce))
-
 	sposWorker.Rounds++ // only for statistic
 }
 
@@ -1161,6 +1158,9 @@ func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() error {
 	if err != nil {
 		return err
 	}
+
+	log.Info(fmt.Sprintf("\n%s******************** ADDED EMPTY BLOCK WITH NONCE  %d  IN BLOCKCHAIN ********************\n\n",
+		sposWorker.Cns.getFormattedTime(), hdr.Nonce))
 
 	return nil
 }
