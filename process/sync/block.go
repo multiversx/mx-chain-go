@@ -2,6 +2,7 @@ package sync
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"sync"
 	"time"
@@ -408,7 +409,7 @@ func (boot *bootstrap) ForkChoice() {
 	header := boot.blkc.CurrentBlockHeader
 
 	log.Info(fmt.Sprintf("#################### FORK CHOICE FOR HEADER PREVHASH: %s ####################",
-		header.PrevHash))
+		base64.StdEncoding.EncodeToString(header.PrevHash)))
 
 	if header == nil {
 		return
