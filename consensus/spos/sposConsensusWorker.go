@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
@@ -316,8 +317,7 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 		sposWorker.Cns.getFormattedTime(), hex.EncodeToString([]byte(leader)), msg))
 
 	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-		log.Info(fmt.Sprintf("%sNOT SYNCRONIZED YET\n",
-			sposWorker.Cns.getFormattedTime()))
+		log.Info(fmt.Sprintf("%sNOT SYNCRONIZED YET\n", sposWorker.Cns.getFormattedTime()))
 	}
 
 	pubKeys := sposWorker.Cns.ConsensusGroup()
@@ -337,6 +337,15 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 		log.Error(err.Error())
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
+	}
+
+	if leader == sposWorker.Cns.SelfPubKey() {
+		for {
+			if sposWorker.GetSubround() > chronology.SubroundId(SrStartRound) {
+				break
+			}
+			time.Sleep(time.Millisecond)
+		}
 	}
 
 	return true
