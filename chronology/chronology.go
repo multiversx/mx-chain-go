@@ -12,6 +12,10 @@ import (
 // sleepTime defines the time in milliseconds between each iteration made in StartRounds method
 const sleepTime = time.Duration(5 * time.Millisecond)
 
+// maxDifAccepted defines the max difference accepted in milliseconds between local time and network time without
+// needing to resync
+const maxDifAccepted = time.Duration(200 * time.Millisecond)
+
 var log = logger.NewDefaultLogger()
 
 // SubroundId defines the type used to refer the current subround
@@ -73,15 +77,11 @@ func NewChronology(
 }
 
 // initRound is called when a new round begins and do the necesary initialization
-func (chr *Chronology) initRound(currentTime time.Time) {
+func (chr *Chronology) initRound() {
 	chr.SetSelfSubround(-1)
 
 	if len(chr.subroundHandlers) > 0 {
 		chr.SetSelfSubround(chr.subroundHandlers[0].Current())
-	}
-
-	if chr.syncTime.CurrentTime(chr.syncTime.ClockOffset()).Sub(currentTime) > 0 {
-		chr.clockOffset = chr.syncTime.ClockOffset()
 	}
 }
 
@@ -121,6 +121,10 @@ func (chr *Chronology) StartRound() {
 
 // updateRound updates Rounds and subrounds inside round depending of the current time and sync mode
 func (chr *Chronology) updateRound() SubroundId {
+	if absDuration(chr.syncTime.ClockOffset()-chr.clockOffset) > maxDifAccepted {
+		chr.clockOffset = chr.syncTime.ClockOffset()
+	}
+
 	oldRoundIndex := chr.round.index
 	oldTimeSubRound := chr.timeSubround
 
@@ -134,7 +138,8 @@ func (chr *Chronology) updateRound() SubroundId {
 			chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()),
 			chr.round.index,
 			chr.SyncTime().CurrentTime(chr.ClockOffset()).Unix()))
-		chr.initRound(currentTime)
+
+		chr.initRound()
 	}
 
 	if oldTimeSubRound != chr.timeSubround {
@@ -238,4 +243,11 @@ func (chr *Chronology) ComputeSubRoundId() SubroundId {
 // IsCancelled checks if this round is canceled
 func (chr *Chronology) IsCancelled() bool {
 	return chr.SelfSubround() == SubroundId(-1)
+}
+
+func absDuration(n time.Duration) time.Duration {
+	if n < 0 {
+		return -n
+	}
+	return n
 }

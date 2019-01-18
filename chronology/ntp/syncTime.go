@@ -8,6 +8,9 @@ import (
 	"github.com/beevik/ntp"
 )
 
+// totalRequests defines the number of requests made to deterime an accurate clock offset
+const totalRequests = 10
+
 // SyncTimer defines an interface for time synchronization
 type SyncTimer interface {
 	StartSync()
@@ -43,10 +46,23 @@ func (s *syncTime) StartSync() {
 // and server time with wich it has done the syncronization
 func (s *syncTime) sync() {
 	if s.query != nil {
-		r, err := s.query("time.google.com")
+		clockOffsetSum := time.Duration(0)
+		succeededRequests := 0
 
-		if err == nil {
-			s.setClockOffset(r.ClockOffset)
+		for i := 0; i < totalRequests; i++ {
+			r, err := s.query("time.google.com")
+
+			if err != nil {
+				continue
+			}
+
+			succeededRequests++
+			clockOffsetSum += r.ClockOffset
+		}
+
+		if succeededRequests > 0 {
+			averrageClockOffset := time.Duration(int64(clockOffsetSum) / int64(succeededRequests))
+			s.setClockOffset(averrageClockOffset)
 		}
 	}
 }
