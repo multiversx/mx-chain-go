@@ -1338,7 +1338,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBlockHeader(cnsDta *ConsensusData
 	if !sposWorker.CheckIfBlockIsValid(hdr) {
 		log.Info(fmt.Sprintf("Canceled round %d in subround %s, INVALID BLOCK\n",
 			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBlock)))
-		sposWorker.Cns.Chr.SetSelfSubround(-1)
+		//sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
 	}
 
@@ -1484,7 +1484,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBitmap(cnsDta *ConsensusData) boo
 	if int(nbSigners) < sposWorker.Cns.Threshold(SrBitmap) {
 		log.Info(fmt.Sprintf("Canceled round %d in subround %s, TOO FEW SIGNERS IN BITMAP\n",
 			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrBitmap)))
-		sposWorker.Cns.Chr.SetSelfSubround(-1)
+		//sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
 	}
 
