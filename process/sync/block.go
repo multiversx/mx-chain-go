@@ -416,6 +416,7 @@ func (boot *bootstrap) ForkChoice() {
 	}
 
 	if !isEmpty(header) {
+		log.Info(fmt.Sprintf("IS EMPTY HEADER : %v", header.PubKeysBitmap))
 		return
 	}
 
@@ -425,25 +426,25 @@ func (boot *bootstrap) ForkChoice() {
 func (boot *bootstrap) rollback(header *block.Header) {
 	headerStore := boot.blkc.GetStorer(blockchain.BlockHeaderUnit)
 	if headerStore == nil {
-		log.Error(process.ErrNilHeadersStorage.Error())
+		log.Info(process.ErrNilHeadersStorage.Error())
 		return
 	}
 
 	txBlockBodyStore := boot.blkc.GetStorer(blockchain.TxBlockBodyUnit)
 	if txBlockBodyStore == nil {
-		log.Error(process.ErrNilBlockBodyStorage.Error())
+		log.Info(process.ErrNilBlockBodyStorage.Error())
 		return
 	}
 
 	newHeader, err := boot.getPrevHeader(headerStore, header)
 	if err != nil {
-		log.Error(err.Error())
+		log.Info(err.Error())
 		return
 	}
 
 	newTxBlockBody, err := boot.getTxBlockBody(txBlockBodyStore, newHeader)
 	if err != nil {
-		log.Error(err.Error())
+		log.Info(err.Error())
 		return
 	}
 
