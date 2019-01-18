@@ -86,7 +86,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithNetMessenger(t *testing.T
 
 	select {
 	case <-chanDone:
-	case <-time.After(time.Second * 30):
+	case <-time.After(time.Second * 60):
 		assert.Fail(t, "timeout")
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 )
 
 func (n *Node) createInterceptors() error {
@@ -40,9 +41,13 @@ func (n *Node) createTxInterceptor() error {
 	if err != nil {
 		return err
 	}
+
+	txStorer := n.blkc.GetStorer(blockchain.TransactionUnit)
+
 	txInterceptor, err := transaction.NewTxInterceptor(
 		intercept,
 		n.dataPool.Transactions(),
+		txStorer,
 		n.addrConverter,
 		n.hasher,
 		n.singleSignKeyGen,
@@ -61,10 +66,14 @@ func (n *Node) createHdrInterceptor() error {
 	if err != nil {
 		return err
 	}
+
+	headerStorer := n.blkc.GetStorer(blockchain.BlockHeaderUnit)
+
 	hdrInterceptor, err := block.NewHeaderInterceptor(
 		intercept,
 		n.dataPool.Headers(),
 		n.dataPool.HeadersNonces(),
+		headerStorer,
 		n.hasher,
 		n.shardCoordinator,
 	)
@@ -82,9 +91,13 @@ func (n *Node) createTxBlockBodyInterceptor() error {
 	if err != nil {
 		return err
 	}
+
+	txBlockBodyStorer := n.blkc.GetStorer(blockchain.TxBlockBodyUnit)
+
 	txBlockBodyInterceptor, err := block.NewGenericBlockBodyInterceptor(
 		intercept,
 		n.dataPool.TxBlocks(),
+		txBlockBodyStorer,
 		n.hasher,
 		n.shardCoordinator,
 	)
@@ -102,9 +115,13 @@ func (n *Node) createPeerChBlockBodyInterceptor() error {
 	if err != nil {
 		return err
 	}
+
+	peerBlockBodyStorer := n.blkc.GetStorer(blockchain.PeerBlockBodyUnit)
+
 	peerChBodyInterceptor, err := block.NewGenericBlockBodyInterceptor(
 		intercept,
 		n.dataPool.PeerChangesBlocks(),
+		peerBlockBodyStorer,
 		n.hasher,
 		n.shardCoordinator,
 	)
@@ -122,9 +139,13 @@ func (n *Node) createStateBlockBodyInterceptor() error {
 	if err != nil {
 		return err
 	}
+
+	stateBlockBodyStorer := n.blkc.GetStorer(blockchain.StateBlockBodyUnit)
+
 	stateBodyInterceptor, err := block.NewGenericBlockBodyInterceptor(
 		intercept,
 		n.dataPool.StateBlocks(),
+		stateBlockBodyStorer,
 		n.hasher,
 		n.shardCoordinator,
 	)

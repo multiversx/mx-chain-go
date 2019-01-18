@@ -17,5 +17,5 @@ func (boot *bootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
 }
 
 func (boot *bootstrap) GetTxBodyFromPool(hash []byte) interface{} {
-	return boot.getTxBodyFromPool(hash)
+	return boot.getTxBody(hash)
 }

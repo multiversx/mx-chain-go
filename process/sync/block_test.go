@@ -29,8 +29,9 @@ func TestNewBootstrap_NilTransientDataHolderShouldErr(t *testing.T) {
 	blkc := &blockchain.BlockChain{}
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	marshalizer := &mock.MarshalizerMock{}
 
-	bs, err := sync.NewBootstrap(nil, blkc, round, blkExec, WaitTime)
+	bs, err := sync.NewBootstrap(nil, blkc, round, blkExec, WaitTime, marshalizer)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilTransientDataHolder, err)
@@ -52,8 +53,9 @@ func TestNewBootstrap_TransientDataHolderRetNilOnHeadersShouldErr(t *testing.T) 
 	blkc := &blockchain.BlockChain{}
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	marshalizer := &mock.MarshalizerMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime)
+	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
@@ -75,8 +77,9 @@ func TestNewBootstrap_TransientDataHolderRetNilOnHeadersNoncesShouldErr(t *testi
 	blkc := &blockchain.BlockChain{}
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	marshalizer := &mock.MarshalizerMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime)
+	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilHeadersNoncesDataPool, err)
@@ -98,8 +101,9 @@ func TestNewBootstrap_TransientDataHolderRetNilOnTxBlockBodyShouldErr(t *testing
 	blkc := &blockchain.BlockChain{}
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	marshalizer := &mock.MarshalizerMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime)
+	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilTxBlockBody, err)
@@ -120,8 +124,9 @@ func TestNewBootstrap_NilBlockchainShouldErr(t *testing.T) {
 	}
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	marshalizer := &mock.MarshalizerMock{}
 
-	bs, err := sync.NewBootstrap(transient, nil, round, blkExec, WaitTime)
+	bs, err := sync.NewBootstrap(transient, nil, round, blkExec, WaitTime, marshalizer)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilBlockChain, err)
@@ -142,8 +147,9 @@ func TestNewBootstrap_NilRoundShouldErr(t *testing.T) {
 	}
 	blkc := &blockchain.BlockChain{}
 	blkExec := &mock.BlockProcessorMock{}
+	marshalizer := &mock.MarshalizerMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, nil, blkExec, WaitTime)
+	bs, err := sync.NewBootstrap(transient, blkc, nil, blkExec, WaitTime, marshalizer)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilRound, err)
@@ -164,8 +170,9 @@ func TestNewBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 	}
 	blkc := &blockchain.BlockChain{}
 	round := &chronology.Round{}
+	marshalizer := &mock.MarshalizerMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, round, nil, WaitTime)
+	bs, err := sync.NewBootstrap(transient, blkc, round, nil, WaitTime, marshalizer)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilBlockExecutor, err)
@@ -204,8 +211,9 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 	blkc := &blockchain.BlockChain{}
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	marshalizer := &mock.MarshalizerMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime)
+	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer)
 
 	assert.NotNil(t, bs)
 	assert.Nil(t, err)
@@ -243,13 +251,15 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 
 		return cs
 	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	bs.RequestHeaderHandler = func(nonce uint64) {}
 	bs.RequestTxBodyHandler = func(hash []byte) {}
@@ -306,13 +316,15 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 
 		return cs
 	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	bs.RequestHeader(2)
 
@@ -364,13 +376,15 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 		return cs
 	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&ebm,
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	bs.StartSync()
 	time.Sleep(200 * time.Millisecond)
@@ -447,13 +461,15 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 		return cs
 	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&ebm,
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	bs.StartSync()
 
@@ -529,12 +545,15 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		return cs
 	}
 
+	marshalizer := &mock.MarshalizerMock{}
+
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&ebm,
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	r := bs.SyncBlock()
 
@@ -561,13 +580,15 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 		}
 		return cs
 	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	assert.False(t, bs.ShouldSync())
 }
@@ -592,13 +613,15 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		}
 		return cs
 	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	assert.True(t, bs.ShouldSync())
 }
@@ -628,12 +651,15 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		return cs
 	}
 
+	marshalizer := &mock.MarshalizerMock{}
+
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	assert.False(t, bs.ShouldSync())
 }
@@ -663,12 +689,15 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		return cs
 	}
 
+	marshalizer := &mock.MarshalizerMock{}
+
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blkc,
 		chronology.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	assert.False(t, bs.ShouldSync())
 }
@@ -698,12 +727,15 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		return cs
 	}
 
+	marshalizer := &mock.MarshalizerMock{}
+
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	assert.Nil(t, bs.GetHeaderFromPool(0))
 }
@@ -745,13 +777,15 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		}
 		return cs
 	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	assert.True(t, hdr == bs.GetHeaderFromPool(0))
 }
@@ -780,12 +814,15 @@ func TestBootstrap_GetBlockFromPoolShouldReturnNil(t *testing.T) {
 		return cs
 	}
 
+	marshalizer := &mock.MarshalizerMock{}
+
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	r := bs.GetTxBodyFromPool([]byte("aaa"))
 
@@ -819,13 +856,15 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 		}
 		return cs
 	}
+	marshalizer := &mock.MarshalizerMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blockchain.BlockChain{},
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
-		WaitTime)
+		WaitTime,
+		marshalizer)
 
 	assert.True(t, blk == bs.GetTxBodyFromPool([]byte("aaa")))
 

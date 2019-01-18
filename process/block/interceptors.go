@@ -13,6 +13,7 @@ import (
 type HeaderInterceptor struct {
 	process.Interceptor
 	headers          data.ShardedDataCacherNotifier
+	storer           storage.Storer
 	headersNonces    data.Uint64Cacher
 	hasher           hashing.Hasher
 	shardCoordinator sharding.ShardCoordinator
@@ -23,6 +24,7 @@ type GenericBlockBodyInterceptor struct {
 	process.Interceptor
 	cache            storage.Cacher
 	hasher           hashing.Hasher
+	storer           storage.Storer
 	shardCoordinator sharding.ShardCoordinator
 }
 
@@ -34,6 +36,7 @@ func NewHeaderInterceptor(
 	interceptor process.Interceptor,
 	headers data.ShardedDataCacherNotifier,
 	headersNonces data.Uint64Cacher,
+	storer storage.Storer,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.ShardCoordinator,
 ) (*HeaderInterceptor, error) {
@@ -50,6 +53,10 @@ func NewHeaderInterceptor(
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
 
+	if storer == nil {
+		return nil, process.ErrNilHeadersStorage
+	}
+
 	if hasher == nil {
 		return nil, process.ErrNilHasher
 	}
@@ -62,6 +69,7 @@ func NewHeaderInterceptor(
 		Interceptor:      interceptor,
 		headers:          headers,
 		headersNonces:    headersNonces,
+		storer:           storer,
 		hasher:           hasher,
 		shardCoordinator: shardCoordinator,
 	}
@@ -99,6 +107,13 @@ func (hi *HeaderInterceptor) processHdr(hdr p2p.Creator, rawData []byte) error {
 		return err
 	}
 
+	isHeaderInStorage, _ := hi.storer.Has(hashWithSig)
+
+	if isHeaderInStorage {
+		log.Debug("intercepted block header already processed")
+		return nil
+	}
+
 	hi.headers.AddData(hashWithSig, hdrIntercepted.GetHeader(), hdrIntercepted.Shard())
 	if hi.checkHeaderForCurrentShard(hdrIntercepted) {
 		_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hashWithSig)
@@ -118,6 +133,7 @@ func (hi *HeaderInterceptor) checkHeaderForCurrentShard(header process.HeaderInt
 func NewGenericBlockBodyInterceptor(
 	interceptor process.Interceptor,
 	cache storage.Cacher,
+	storer storage.Storer,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.ShardCoordinator,
 ) (*GenericBlockBodyInterceptor, error) {
@@ -128,6 +144,10 @@ func NewGenericBlockBodyInterceptor(
 
 	if cache == nil {
 		return nil, process.ErrNilCacher
+	}
+
+	if storer == nil {
+		return nil, process.ErrNilBlockBodyStorage
 	}
 
 	if hasher == nil {
@@ -141,6 +161,7 @@ func NewGenericBlockBodyInterceptor(
 	bbIntercept := &GenericBlockBodyInterceptor{
 		Interceptor:      interceptor,
 		cache:            cache,
+		storer:           storer,
 		hasher:           hasher,
 		shardCoordinator: shardCoordinator,
 	}
@@ -171,6 +192,13 @@ func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Creator,
 	err := blockBodyIntercepted.IntegrityAndValidity(gbbi.shardCoordinator)
 	if err != nil {
 		return err
+	}
+
+	isBlockInStorage, _ := gbbi.storer.Has(hash)
+
+	if isBlockInStorage {
+		log.Debug("intercepted block body already processed")
+		return nil
 	}
 
 	_ = gbbi.cache.Put(hash, blockBodyIntercepted.GetUnderlyingObject())
