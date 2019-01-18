@@ -44,7 +44,7 @@ const (
 const shardId = 0
 
 //TODO: maximum transactions in one block (this should be injected, and this const should be removed later)
-const maxTransactionsInBlock = 20000
+const maxTransactionsInBlock = 15000
 
 // MessageType specifies what type of message was received
 type MessageType int
@@ -394,13 +394,13 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 	}
 
 	// broadcast block body
-	err = sposWorker.broadcastTxBlockBody()
+	err = sposWorker.broadcastTxBlockBody(sposWorker.BlockBody)
 	if err != nil {
 		log.Error(fmt.Sprintf("%s\n", err.Error()))
 	}
 
 	// broadcast header
-	err = sposWorker.broadcastHeader()
+	err = sposWorker.broadcastHeader(sposWorker.Header)
 	if err != nil {
 		log.Error(fmt.Sprintf("%s\n", err.Error()))
 	}
@@ -1008,12 +1008,12 @@ func (sposWorker *SPOSConsensusWorker) SendConsensusMessage(cnsDta *ConsensusDat
 	return true
 }
 
-func (sposWorker *SPOSConsensusWorker) broadcastTxBlockBody() error {
-	if sposWorker.BlockBody == nil {
+func (sposWorker *SPOSConsensusWorker) broadcastTxBlockBody(blockBody *block.TxBlockBody) error {
+	if blockBody == nil {
 		return ErrNilTxBlockBody
 	}
 
-	message, err := sposWorker.marshalizer.Marshal(sposWorker.BlockBody)
+	message, err := sposWorker.marshalizer.Marshal(blockBody)
 
 	if err != nil {
 		return err
@@ -1029,12 +1029,12 @@ func (sposWorker *SPOSConsensusWorker) broadcastTxBlockBody() error {
 	return nil
 }
 
-func (sposWorker *SPOSConsensusWorker) broadcastHeader() error {
-	if sposWorker.Header == nil {
+func (sposWorker *SPOSConsensusWorker) broadcastHeader(header *block.Header) error {
+	if header == nil {
 		return ErrNilBlockHeader
 	}
 
-	message, err := sposWorker.marshalizer.Marshal(sposWorker.Header)
+	message, err := sposWorker.marshalizer.Marshal(header)
 
 	if err != nil {
 		return err
@@ -1115,7 +1115,6 @@ func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() error {
 		shardId,
 		sposWorker.Cns.Chr.Round().Index())
 
-	sposWorker.BlockBody = blk
 	hdr := &block.Header{}
 	hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
 	hdr.TimeStamp = uint64(sposWorker.Cns.Chr.Round().TimeStamp().Unix())
@@ -1129,7 +1128,7 @@ func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() error {
 		prevHeaderHash = sposWorker.BlockChain.CurrentBlockHeaderHash
 	}
 	hdr.PrevHash = prevHeaderHash
-	blkStr, err := sposWorker.marshalizer.Marshal(sposWorker.BlockBody)
+	blkStr, err := sposWorker.marshalizer.Marshal(blk)
 
 	if err != nil {
 		return err
@@ -1147,20 +1146,18 @@ func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() error {
 	hdr.Signature = hdrHash
 	hdr.Commitment = hdrHash
 
-	sposWorker.Header = hdr
-
 	// Commit the block (commits also the account state)
-	err = sposWorker.BlockProcessor.CommitBlock(sposWorker.BlockChain, sposWorker.Header, sposWorker.BlockBody)
+	err = sposWorker.BlockProcessor.CommitBlock(sposWorker.BlockChain, hdr, blk)
 
 	// broadcast block body
-	err = sposWorker.broadcastTxBlockBody()
+	err = sposWorker.broadcastTxBlockBody(blk)
 
 	if err != nil {
 		return err
 	}
 
 	// broadcast header
-	err = sposWorker.broadcastHeader()
+	err = sposWorker.broadcastHeader(hdr)
 	if err != nil {
 		return err
 	}
