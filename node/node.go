@@ -804,7 +804,7 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 		return
 	}
 
-	err := topic.Broadcast(*cnsDta)
+	err := topic.Broadcast(cnsDta)
 
 	if err != nil {
 		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
