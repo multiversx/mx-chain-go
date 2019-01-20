@@ -173,6 +173,8 @@ func (nm *NetMessenger) createPubSub(hostP2P host.Host, pubsubStrategy PubSubStr
 
 				log.LogIfError(err)
 			}
+
+			time.Sleep(time.Microsecond * 100)
 		}
 	}(nm.ps, nm.chSendMessages)
 

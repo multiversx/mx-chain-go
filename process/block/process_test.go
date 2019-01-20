@@ -197,7 +197,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	//TODO refactor the test
 
 	if be.RequestTransactionFromNetwork(&blk) > 0 {
-		be.WaitForTxHashes()
+		be.WaitForTxHashes(blproc.WaitTime)
 	}
 }
 
@@ -359,6 +359,10 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		},
 		mock.NewOneShardCoordinatorMock(),
 	)
+
+	go func() {
+		be.ChRcvAllTxs <- true
+	}()
 
 	// should return err
 	err := be.ProcessAndCommit(blkc, &hdr, &txBody)

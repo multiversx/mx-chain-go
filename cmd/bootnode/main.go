@@ -118,8 +118,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	// TODO: The next 5 lines should be deleted when boostrap will work
 	if genesisConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
-		ntpTime := syncer.CurrentTime(syncer.ClockOffset())
-		genesisConfig.StartTime = time.Date(ntpTime.Year(), ntpTime.Month(), ntpTime.Day(), ntpTime.Add(-2*time.Hour).Hour(), ntpTime.Add(1*time.Minute).Minute(), 0, 0, time.UTC).Unix()
+		ntpTime := syncer.CurrentTime(syncer.ClockOffset()).Add(time.Minute).Unix()
+		genesisConfig.StartTime = ntpTime / 60 * 60
 	}
 
 	startTime := time.Unix(genesisConfig.StartTime, 0)

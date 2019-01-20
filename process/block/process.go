@@ -117,7 +117,7 @@ func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, he
 		return err
 	}
 
-	err = bp.ProcessBlock(blockChain, header, body)
+	err = bp.ProcessBlock(blockChain, header, body, WaitTime)
 
 	defer func() {
 		if err != nil {
@@ -129,7 +129,9 @@ func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, he
 		return err
 	}
 
-	if !bp.VerifyStateRoot(bp.accounts.RootHash()) {
+	// TODO: Check should be done with TxBlockBody root hash and not with the itself
+	//if !bp.VerifyStateRoot(bp.accounts.RootHash()) {
+	if !bp.VerifyStateRoot(body.RootHash) {
 		err = process.ErrRootStateMissmatch
 		return err
 	}
@@ -152,14 +154,18 @@ func (bp *blockProcessor) RevertAccountState() {
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the speciffic error
-func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, maxProcessingTime time.Duration) error {
 	err := bp.validateBlockBody(body)
 	if err != nil {
 		return err
 	}
 
 	if bp.requestBlockTransactions(body) > 0 {
-		bp.waitForTxHashes()
+		err := bp.waitForTxHashes(maxProcessingTime)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	if bp.accounts.JournalLen() != 0 {
@@ -201,7 +207,7 @@ func (bp *blockProcessor) RemoveBlockTxsFromPool(body *block.TxBlockBody) error 
 	return nil
 }
 
-// VerifyStateRoot verifies the state root hash given as parameter agains the
+// VerifyStateRoot verifies the state root hash given as parameter against the
 // Merkle trie root hash stored for accounts and returns if equal or not
 func (bp *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
 	return bytes.Equal(bp.accounts.RootHash(), rootHash)
@@ -446,7 +452,6 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		blockChain.CurrentTxBlockBody = block
 		blockChain.CurrentBlockHeader = header
 		blockChain.CurrentBlockHeaderHash = headerHash
-		blockChain.LocalHeight = int64(header.Nonce)
 		go bp.displayBlockchain(blockChain)
 	}
 
@@ -591,7 +596,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		miniBlock.ShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
 
-		log.Info(fmt.Sprintf("CREATE MINI BLOCKS STARTED: Have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ShardID))
+		log.Info(fmt.Sprintf("CREATING MINI BLOCKS HAS BEEN STARTED: Have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ShardID))
 
 		for index, tx := range orderedTxes {
 			snapshot := bp.accounts.JournalLen()
@@ -620,7 +625,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 			txs++
 
 			if txs >= maxTxInBlock { // max transactions count in one block was reached
-				log.Info(fmt.Sprintf("MAX TXS IN ONE BLOCK EXCEEDED: Added only %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
+				log.Info(fmt.Sprintf("MAX TXS ACCEPTED IN ONE BLOCK IS REACHED: Added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
 				if len(miniBlock.TxHashes) > 0 {
 					miniBlocks = append(miniBlocks, miniBlock)
 				}
@@ -629,7 +634,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		}
 
 		if !haveTime() {
-			log.Info(fmt.Sprintf("TIME IS UP: Added only %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
+			log.Info(fmt.Sprintf("TIME IS UP: Added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
 			if len(miniBlock.TxHashes) > 0 {
 				miniBlocks = append(miniBlocks, miniBlock)
 			}
@@ -641,17 +646,17 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		}
 	}
 
-	log.Info(fmt.Sprintf("CREATE MINI BLOCKS FINISHED: Created %d mini blocks\n", len(miniBlocks)))
+	log.Info(fmt.Sprintf("CREATING MINI BLOCKS HAS BEEN FINISHED: Created %d mini blocks\n", len(miniBlocks)))
 
 	return miniBlocks, nil
 }
 
-func (bp *blockProcessor) waitForTxHashes() {
+func (bp *blockProcessor) waitForTxHashes(waitTime time.Duration) error {
 	select {
 	case <-bp.ChRcvAllTxs:
-		return
-	case <-time.After(WaitTime):
-		return
+		return nil
+	case <-time.After(waitTime):
+		return process.ErrTimeIsOut
 	}
 }
 
@@ -700,8 +705,8 @@ func (bp *blockProcessor) displayLogInfo(
 		log.Error(err.Error())
 	}
 	fmt.Println(tblString)
-	fmt.Println(fmt.Sprintf("Header hash: %s", toB64(headerHash)))
-	fmt.Println(fmt.Sprintf("Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d", txsTotalProcessed, txsCurrentBlockProcessed, bp.getTxsFromPool(txBlock.ShardID)))
+	fmt.Println(fmt.Sprintf("Header hash: %s\n", toB64(headerHash)))
+	fmt.Println(fmt.Sprintf("Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n", txsTotalProcessed, txsCurrentBlockProcessed, bp.getTxsFromPool(txBlock.ShardID)))
 }
 
 func createDisplayableHeaderAndBlockBody(

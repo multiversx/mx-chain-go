@@ -235,3 +235,6 @@ var ErrNilTxProcessor = errors.New("nil transactions processor")
 
 // ErrNilDataPoolHolder signals that the data pool holder is nil
 var ErrNilDataPoolHolder = errors.New("nil data pool holder")
+
+// ErrTimeIsOut signals that time is out
+var ErrTimeIsOut = errors.New("time is out")

@@ -112,7 +112,9 @@ func (chr *Chronology) StartRound() {
 		if sr != nil {
 			if chr.Round().Index() >= 0 {
 				if sr.DoWork(chr.ComputeSubRoundId, chr.IsCancelled) {
-					chr.SetSelfSubround(sr.Next())
+					if !chr.IsCancelled() {
+						chr.SetSelfSubround(sr.Next())
+					}
 				}
 			}
 		}
