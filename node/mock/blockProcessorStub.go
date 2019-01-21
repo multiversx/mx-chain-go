@@ -2,6 +2,7 @@ package mock
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -26,7 +27,7 @@ func (bps *BlockProcessorStub) RevertAccountState() {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+func (bps *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 	panic("implement me")
 }
 

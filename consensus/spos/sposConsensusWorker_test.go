@@ -178,7 +178,7 @@ func initMockBlockProcessor() *mock.BlockProcessorMock {
 		return nil
 	}
 
-	blockProcMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+	blockProcMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 		return nil
 	}
 
@@ -671,7 +671,7 @@ func TestNewMessage(t *testing.T) {
 		&mock.PrivateKeyMock{},
 		&mock.PublicKeyMock{})
 
-	assert.Equal(t, len(cns.RoundConsensus.ConsensusGroup()), cap(msg2.MessageChannels[spos.MtBlockHeader]))
+	assert.Equal(t, 0, cap(msg2.MessageChannels[spos.MtBlockHeader]))
 }
 
 func TestMessage_StartRound(t *testing.T) {
@@ -1387,7 +1387,7 @@ func TestMessage_CheckChannelBlockHeader(t *testing.T) {
 		[]byte("sig"),
 		spos.MtBlockBody,
 		GetTime(cnWorkers[0]),
-		0,
+		1,
 	)
 
 	cnWorkers[0].MessageChannels[spos.MtBlockBody] <- cnsDta
@@ -1601,9 +1601,10 @@ func TestMessage_ReceivedBlock(t *testing.T) {
 		[]byte("sig"),
 		spos.MtBlockHeader,
 		cnWorkers[0].GetTime(),
-		0,
+		1,
 	)
 
+	cnWorkers[0].Header = nil
 	r = cnWorkers[0].ReceivedBlockHeader(cnsDta)
 	assert.Equal(t, true, r)
 }
@@ -1624,7 +1625,7 @@ func TestSPOSConsensusWorker_ReceivedBlockBodyHeaderReceivedJobDone(t *testing.T
 		[]byte("sig"),
 		spos.MtBlockBody,
 		cnWorkers[0].GetTime(),
-		0,
+		1,
 	)
 
 	cnWorkers[0].Header = &block.Header{}
@@ -1656,7 +1657,7 @@ func TestSPOSConsensusWorker_ReceivedBlockBodyHeaderReceivedErrProcessBlockShoul
 
 	blProcMock := initMockBlockProcessor()
 
-	blProcMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+	blProcMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 		return process.ErrNilPreviousBlockHash
 	}
 

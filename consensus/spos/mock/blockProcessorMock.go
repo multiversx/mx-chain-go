@@ -2,6 +2,7 @@ package mock
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -9,7 +10,7 @@ import (
 
 // BlockProcessorMock mocks the implementation for a BlockProcessor
 type BlockProcessorMock struct {
-	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
+	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error
 	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
 	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error
 	RevertAccountStateCalled      func()
@@ -26,8 +27,8 @@ func (blProcMock *BlockProcessorMock) SetOnRequestTransaction(f func(destShardID
 }
 
 // ProcessBlock mocks pocessing a block
-func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
-	return blProcMock.ProcessBlockCalled(blockChain, header, body)
+func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
+	return blProcMock.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
 
 // ProcessAndCommit mocks processesing and committing a block

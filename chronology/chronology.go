@@ -2,7 +2,6 @@ package chronology
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
@@ -47,8 +46,6 @@ type Chronology struct {
 	subrounds        map[SubroundId]int
 
 	syncTime ntp.SyncTimer
-
-	mut sync.RWMutex
 }
 
 // NewChronology defines a new Chr object
@@ -83,6 +80,10 @@ func (chr *Chronology) initRound() {
 	if len(chr.subroundHandlers) > 0 {
 		chr.SetSelfSubround(chr.subroundHandlers[0].Current())
 	}
+
+	if absDuration(chr.syncTime.ClockOffset()-chr.clockOffset) > maxDifAccepted {
+		chr.clockOffset = chr.syncTime.ClockOffset()
+	}
 }
 
 // AddSubround adds new SubroundHandler implementation to the chronology
@@ -112,7 +113,9 @@ func (chr *Chronology) StartRound() {
 		if sr != nil {
 			if chr.Round().Index() >= 0 {
 				if sr.DoWork(chr.ComputeSubRoundId, chr.IsCancelled) {
-					chr.SetSelfSubround(sr.Next())
+					if !chr.IsCancelled() {
+						chr.SetSelfSubround(sr.Next())
+					}
 				}
 			}
 		}
@@ -121,10 +124,6 @@ func (chr *Chronology) StartRound() {
 
 // updateRound updates Rounds and subrounds inside round depending of the current time and sync mode
 func (chr *Chronology) updateRound() SubroundId {
-	if absDuration(chr.syncTime.ClockOffset()-chr.clockOffset) > maxDifAccepted {
-		chr.clockOffset = chr.syncTime.ClockOffset()
-	}
-
 	oldRoundIndex := chr.round.index
 	oldTimeSubRound := chr.timeSubround
 
@@ -196,17 +195,11 @@ func (chr *Chronology) Round() *Round {
 
 // SelfSubround returns the subround, related to the finished tasks in the current round
 func (chr *Chronology) SelfSubround() SubroundId {
-	chr.mut.RLock()
-	defer chr.mut.RUnlock()
-
 	return chr.selfSubround
 }
 
 // SetSelfSubround set self subround depending of the finished tasks in the current round
 func (chr *Chronology) SetSelfSubround(subRound SubroundId) {
-	chr.mut.Lock()
-	defer chr.mut.Unlock()
-
 	chr.selfSubround = subRound
 }
 

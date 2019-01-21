@@ -406,19 +406,23 @@ func (boot *bootstrap) waitForTxBodyHash() {
 }
 
 func (boot *bootstrap) ForkChoice() {
+	log.Info(fmt.Sprintf("\n#################### STARTING FORK CHOICE ####################\n\n"))
+
 	header := boot.blkc.CurrentBlockHeader
 
-	log.Info(fmt.Sprintf("#################### FORK CHOICE FOR HEADER PREVHASH: %s ####################",
-		base64.StdEncoding.EncodeToString(header.PrevHash)))
-
 	if header == nil {
+		log.Info(fmt.Sprintf("The current header is nil\n"))
 		return
 	}
 
 	if !isEmpty(header) {
-		log.Info(fmt.Sprintf("IS EMPTY HEADER : %v", header.PubKeysBitmap))
+		log.Info(fmt.Sprintf("The current header is not from an empty block: header.PubKeysBitmap = %v\n",
+			header.PubKeysBitmap))
 		return
 	}
+
+	log.Info(fmt.Sprintf("\n#################### ROLL BACK TO HEADER WITH HASH: %s ####################\n\n",
+		toB64(header.PrevHash)))
 
 	boot.rollback(header)
 }
@@ -490,4 +494,11 @@ func isEmpty(header *block.Header) bool {
 	bitmap := header.PubKeysBitmap
 	areEqual := bytes.Equal(bitmap, make([]byte, len(bitmap)))
 	return areEqual
+}
+
+func toB64(buff []byte) string {
+	if buff == nil {
+		return "<NIL>"
+	}
+	return base64.StdEncoding.EncodeToString(buff)
 }

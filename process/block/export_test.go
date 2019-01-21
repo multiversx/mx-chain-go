@@ -1,6 +1,8 @@
 package block
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -16,8 +18,8 @@ func (bp *blockProcessor) RequestTransactionFromNetwork(body *block.TxBlockBody)
 	return bp.requestBlockTransactions(body)
 }
 
-func (bp *blockProcessor) WaitForTxHashes() {
-	bp.waitForTxHashes()
+func (bp *blockProcessor) WaitForTxHashes(waitTime time.Duration) {
+	bp.waitForTxHashes(waitTime)
 }
 
 func (bp *blockProcessor) ReceivedTransaction(txHash []byte) {

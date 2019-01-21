@@ -421,7 +421,7 @@ func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
 		chronology.SubroundId(spos.SrBlock), int64(roundDuration*5/100),
 		sposWrk.Cns.GetSubroundName(spos.SrStartRound),
 		sposWrk.DoStartRoundJob,
-		nil,
+		sposWrk.ExtendStartRound,
 		sposWrk.Cns.CheckStartRoundConsensus))
 
 	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
@@ -483,9 +483,9 @@ func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
 		-1,
 		int64(roundDuration*100/100),
 		sposWrk.Cns.GetSubroundName(spos.SrAdvance),
+		sposWrk.DoAdvanceJob,
 		nil,
-		nil,
-		nil))
+		sposWrk.Cns.CheckAdvanceConsensus))
 }
 
 // GetBalance gets the balance for a specific address
@@ -605,7 +605,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int
 
 	for i := 0; i < len(transactions); i++ {
 		err = topic.BroadcastBuff(transactions[i])
-		time.Sleep(time.Microsecond)
+		time.Sleep(time.Microsecond * 100)
 
 		if err != nil {
 			return errors.New("could not broadcast transaction: " + err.Error())
