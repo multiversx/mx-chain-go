@@ -712,9 +712,15 @@ func (bp *blockProcessor) displayLogInfo(
 	if err != nil {
 		log.Error(err.Error())
 	}
-	fmt.Println(tblString)
-	fmt.Println(fmt.Sprintf("Header hash: %s\n", toB64(headerHash)))
-	fmt.Println(fmt.Sprintf("Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n", txsTotalProcessed, txsCurrentBlockProcessed, bp.getTxsFromPool(txBlock.ShardID)))
+	tblString = "\r\n" + tblString
+	tblString = tblString + fmt.Sprintf("\r\nHeader hash: %s\r\nTotal txs "+
+		"processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d",
+		toB64(headerHash),
+		txsTotalProcessed,
+		txsCurrentBlockProcessed,
+		bp.getTxsFromPool(txBlock.ShardID))
+
+	log.Info(tblString)
 }
 
 func createDisplayableHeaderAndBlockBody(
