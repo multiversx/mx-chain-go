@@ -111,3 +111,9 @@ type Resolver interface {
 	SetResolverHandler(func(rd RequestData) ([]byte, error))
 	ResolverHandler() func(rd RequestData) ([]byte, error)
 }
+
+// Bootstraper is an interface that defines the behaviour of a struct that is able
+// to syncronize the node
+type Bootstraper interface {
+	CheckFork(nonce uint64) bool
+}

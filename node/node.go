@@ -235,7 +235,7 @@ func (n *Node) StartConsensus() error {
 	round := n.createRound()
 	chr := n.createChronology(round)
 
-	err = n.createBootstrap(round)
+	boot, err := n.createBootstrap(round)
 
 	if err != nil {
 		return err
@@ -245,7 +245,7 @@ func (n *Node) StartConsensus() error {
 	rth := n.createRoundThreshold()
 	rnds := n.createRoundStatus()
 	cns := n.createConsensus(rndc, rth, rnds, chr)
-	sposWrk, err := n.createConsensusWorker(cns)
+	sposWrk, err := n.createConsensusWorker(cns, boot)
 
 	if err != nil {
 		return err
@@ -296,11 +296,11 @@ func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology 
 	return chr
 }
 
-func (n *Node) createBootstrap(round *chronology.Round) error {
+func (n *Node) createBootstrap(round *chronology.Round) (*sync.Bootstrap, error) {
 	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, round, n.blockProcessor, WaitTime, n.marshalizer)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	bootstrap.RequestHeaderHandler =
@@ -320,7 +320,7 @@ func (n *Node) createBootstrap(round *chronology.Round) error {
 
 	bootstrap.StartSync()
 
-	return nil
+	return bootstrap, nil
 }
 
 // createRoundConsensus method creates a RoundConsensus object
@@ -381,13 +381,14 @@ func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThresho
 }
 
 // createConsensusWorker method creates a ConsensusWorker object
-func (n *Node) createConsensusWorker(cns *spos.Consensus) (*spos.SPOSConsensusWorker, error) {
+func (n *Node) createConsensusWorker(cns *spos.Consensus, boot *sync.Bootstrap) (*spos.SPOSConsensusWorker, error) {
 	sposWrk, err := spos.NewConsensusWorker(
 		cns,
 		n.blkc,
 		n.hasher,
 		n.marshalizer,
 		n.blockProcessor,
+		boot,
 		n.multisig,
 		n.singleSignKeyGen,
 		n.privateKey,

@@ -122,6 +122,7 @@ type SPOSConsensusWorker struct {
 	Rounds                 int // only for statistic
 	RoundsWithBlock        int // only for statistic
 	BlockProcessor         process.BlockProcessor
+	boot                   process.Bootstraper
 	MessageChannels        map[MessageType]chan *ConsensusData
 	ReceivedMessageChannel chan *ConsensusData
 	hasher                 hashing.Hasher
@@ -144,6 +145,7 @@ func NewConsensusWorker(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	blockProcessor process.BlockProcessor,
+	boot process.Bootstraper,
 	multisig crypto.MultiSigner,
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
@@ -156,6 +158,7 @@ func NewConsensusWorker(
 		hasher,
 		marshalizer,
 		blockProcessor,
+		boot,
 		multisig,
 		keyGen,
 		privKey,
@@ -172,6 +175,7 @@ func NewConsensusWorker(
 		hasher:         hasher,
 		marshalizer:    marshalizer,
 		BlockProcessor: blockProcessor,
+		boot:           boot,
 		multiSigner:    multisig,
 		keyGen:         keyGen,
 		privKey:        privKey,
@@ -210,6 +214,7 @@ func checkNewConsensusWorkerParams(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	blockProcessor process.BlockProcessor,
+	boot process.Bootstraper,
 	multisig crypto.MultiSigner,
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
@@ -233,6 +238,10 @@ func checkNewConsensusWorkerParams(
 
 	if blockProcessor == nil {
 		return ErrNilBlockProcessor
+	}
+
+	if boot == nil {
+		return ErrNilBlootstrap
 	}
 
 	if multisig == nil {
@@ -343,6 +352,15 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrStartRound)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
+	}
+
+	if sposWorker.BlockChain.CurrentBlockHeader != nil {
+		if sposWorker.boot.CheckFork(sposWorker.BlockChain.CurrentBlockHeader.Nonce) {
+			log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, FORK DETECTED\n",
+				sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrStartRound)))
+			sposWorker.Cns.Chr.SetSelfSubround(-1)
+			return false
+		}
 	}
 
 	err = sposWorker.multiSigner.Reset(pubKeys, uint16(selfIndex))

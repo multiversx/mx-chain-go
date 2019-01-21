@@ -22,8 +22,8 @@ var log = logger.NewDefaultLogger()
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = time.Duration(5 * time.Millisecond)
 
-// bootstrap implements the boostrsap mechanism
-type bootstrap struct {
+// Bootstrap implements the boostrsap mechanism
+type Bootstrap struct {
 	headers       data.ShardedDataCacherNotifier
 	headersNonces data.Uint64Cacher
 	txBlockBodies storage.Cacher
@@ -47,7 +47,7 @@ type bootstrap struct {
 	waitTime   time.Duration
 }
 
-// NewBootstrap creates a new bootstrap object
+// NewBootstrap creates a new Bootstrap object
 func NewBootstrap(
 	transientDataHolder data.TransientDataHolder,
 	blkc *blockchain.BlockChain,
@@ -55,14 +55,14 @@ func NewBootstrap(
 	blkExecutor process.BlockProcessor,
 	waitTime time.Duration,
 	marshalizer marshal.Marshalizer,
-) (*bootstrap, error) {
+) (*Bootstrap, error) {
 	err := checkBootstrapNilParameters(transientDataHolder, blkc, round, blkExecutor)
 
 	if err != nil {
 		return nil, err
 	}
 
-	boot := bootstrap{
+	boot := Bootstrap{
 		headers:       transientDataHolder.Headers(),
 		headersNonces: transientDataHolder.HeadersNonces(),
 		txBlockBodies: transientDataHolder.TxBlocks(),
@@ -126,14 +126,14 @@ func checkBootstrapNilParameters(
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
-func (boot *bootstrap) setRequestedHeaderNonce(nonce *uint64) {
+func (boot *Bootstrap) setRequestedHeaderNonce(nonce *uint64) {
 	boot.mutHeader.Lock()
 	boot.headerNonce = nonce
 	boot.mutHeader.Unlock()
 }
 
 // requestedHeaderNonce method gets the header nonce requested by the sync mechanism
-func (boot *bootstrap) requestedHeaderNonce() (nonce *uint64) {
+func (boot *Bootstrap) requestedHeaderNonce() (nonce *uint64) {
 	boot.mutHeader.RLock()
 	nonce = boot.headerNonce
 	boot.mutHeader.RUnlock()
@@ -143,12 +143,7 @@ func (boot *bootstrap) requestedHeaderNonce() (nonce *uint64) {
 
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
-func (boot *bootstrap) receivedHeaderNonce(nonce uint64) {
-	if boot.checkFork(nonce) {
-		boot.ForkChoice()
-		return
-	}
-
+func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	n := boot.requestedHeaderNonce()
 
 	if n == nil {
@@ -162,7 +157,7 @@ func (boot *bootstrap) receivedHeaderNonce(nonce uint64) {
 }
 
 // requestedTxBodyHash method gets the body hash requested by the sync mechanism
-func (boot *bootstrap) requestedTxBodyHash() []byte {
+func (boot *Bootstrap) requestedTxBodyHash() []byte {
 	boot.mutTxBody.RLock()
 	hash := boot.txBodyHash
 	boot.mutTxBody.RUnlock()
@@ -171,7 +166,7 @@ func (boot *bootstrap) requestedTxBodyHash() []byte {
 }
 
 // setRequestedTxBodyHash method sets the body hash requested by the sync mechanism
-func (boot *bootstrap) setRequestedTxBodyHash(hash []byte) {
+func (boot *Bootstrap) setRequestedTxBodyHash(hash []byte) {
 	boot.mutTxBody.Lock()
 	boot.txBodyHash = hash
 	boot.mutTxBody.Unlock()
@@ -179,7 +174,7 @@ func (boot *bootstrap) setRequestedTxBodyHash(hash []byte) {
 
 // receivedBody method is a call back function which is called when a new body is added
 // in the block bodies pool
-func (boot *bootstrap) receivedBodyHash(hash []byte) {
+func (boot *Bootstrap) receivedBodyHash(hash []byte) {
 	if bytes.Equal(boot.requestedTxBodyHash(), hash) {
 		boot.setRequestedTxBodyHash(nil)
 		boot.chRcvTxBdy <- true
@@ -187,17 +182,17 @@ func (boot *bootstrap) receivedBodyHash(hash []byte) {
 }
 
 // StartSync method will start SyncBlocks as a go routine
-func (boot *bootstrap) StartSync() {
+func (boot *Bootstrap) StartSync() {
 	go boot.syncBlocks()
 }
 
 // StopSync method will stop SyncBlocks
-func (boot *bootstrap) StopSync() {
+func (boot *Bootstrap) StopSync() {
 	boot.chStopSync <- true
 }
 
 // syncBlocks method calls repeatedly synchronization method SyncBlock
-func (boot *bootstrap) syncBlocks() {
+func (boot *Bootstrap) syncBlocks() {
 	for {
 		time.Sleep(sleepTime)
 		select {
@@ -223,7 +218,7 @@ func (boot *bootstrap) syncBlocks() {
 // If either header and body are received the ProcessAndCommit method will be called. This method will execute
 // the block and its transactions. Finally if everything works, the block will be committed in the blockchain,
 // and all this mechanism will be reiterated for the next block.
-func (boot *bootstrap) SyncBlock() error {
+func (boot *Bootstrap) SyncBlock() error {
 	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedTxBodyHash(nil)
 
@@ -258,7 +253,7 @@ func (boot *bootstrap) SyncBlock() error {
 }
 
 // getHeaderFromPool method returns the block header from a given nonce
-func (boot *bootstrap) getHeaderFromPool(nonce uint64) *block.Header {
+func (boot *Bootstrap) getHeaderFromPool(nonce uint64) *block.Header {
 	hash, _ := boot.headersNonces.Get(nonce)
 	if hash == nil {
 		log.Debug(fmt.Sprintf("nonce %d not found in headers-nonces cache\n", nonce))
@@ -284,7 +279,7 @@ func (boot *bootstrap) getHeaderFromPool(nonce uint64) *block.Header {
 }
 
 // requestHeader method requests a block header from network when it is not found in the pool
-func (boot *bootstrap) requestHeader(nonce uint64) {
+func (boot *Bootstrap) requestHeader(nonce uint64) {
 	if boot.RequestHeaderHandler != nil {
 		boot.setRequestedHeaderNonce(&nonce)
 		boot.RequestHeaderHandler(nonce)
@@ -293,7 +288,7 @@ func (boot *bootstrap) requestHeader(nonce uint64) {
 
 // getHeaderWithNonce method gets the header with given nonce from pool, if it exist there,
 // and if not it will be requested from network
-func (boot *bootstrap) getHeaderWithNonce(nonce uint64) (*block.Header, error) {
+func (boot *Bootstrap) getHeaderWithNonce(nonce uint64) (*block.Header, error) {
 	hdr := boot.getHeaderFromPool(nonce)
 
 	if hdr == nil {
@@ -309,7 +304,7 @@ func (boot *bootstrap) getHeaderWithNonce(nonce uint64) (*block.Header, error) {
 }
 
 // getBodyFromPool method returns the block body from a given hash
-func (boot *bootstrap) getTxBody(hash []byte) interface{} {
+func (boot *Bootstrap) getTxBody(hash []byte) interface{} {
 	txBody, _ := boot.txBlockBodies.Get(hash)
 
 	if txBody != nil {
@@ -341,7 +336,7 @@ func (boot *bootstrap) getTxBody(hash []byte) interface{} {
 }
 
 // requestBody method requests a block body from network when it is not found in the pool
-func (boot *bootstrap) requestTxBody(hash []byte) {
+func (boot *Bootstrap) requestTxBody(hash []byte) {
 	if boot.RequestTxBodyHandler != nil {
 		boot.setRequestedTxBodyHash(hash)
 		boot.RequestTxBodyHandler(hash)
@@ -353,7 +348,7 @@ func (boot *bootstrap) requestTxBody(hash []byte) {
 // the func returns interface{} as to match the next implementations for block body fetchers
 // that will be added. The block executor should decide by parsing the header block body type value
 // what kind of block body received.
-func (boot *bootstrap) getTxBodyWithHash(hash []byte) (interface{}, error) {
+func (boot *Bootstrap) getTxBodyWithHash(hash []byte) (interface{}, error) {
 	blk := boot.getTxBody(hash)
 
 	if blk == nil {
@@ -371,7 +366,7 @@ func (boot *bootstrap) getTxBodyWithHash(hash []byte) (interface{}, error) {
 }
 
 // getNonceForNextBlock will get the nonce for the next block we should request
-func (boot *bootstrap) getNonceForNextBlock() uint64 {
+func (boot *Bootstrap) getNonceForNextBlock() uint64 {
 	nonce := uint64(1) // first block nonce after genesis block
 	if boot.blkc != nil && boot.blkc.CurrentBlockHeader != nil {
 		nonce = boot.blkc.CurrentBlockHeader.Nonce + 1
@@ -382,7 +377,7 @@ func (boot *bootstrap) getNonceForNextBlock() uint64 {
 
 // shouldSync method returns the sync state of the node. If it returns true that means that the node should
 // continue the syncing mechanism, otherwise the node should stop syncing because it is already synced
-func (boot *bootstrap) shouldSync() bool {
+func (boot *Bootstrap) shouldSync() bool {
 	if boot.blkc.CurrentBlockHeader == nil {
 		return boot.round.Index() > 0
 	}
@@ -391,7 +386,7 @@ func (boot *bootstrap) shouldSync() bool {
 }
 
 // waitForHeaderNonce method wait for header with the requested nonce to be received
-func (boot *bootstrap) waitForHeaderNonce() {
+func (boot *Bootstrap) waitForHeaderNonce() {
 	select {
 	case <-boot.chRcvHdr:
 		return
@@ -401,7 +396,7 @@ func (boot *bootstrap) waitForHeaderNonce() {
 }
 
 // waitForBodyNonce method wait for body with the requested nonce to be received
-func (boot *bootstrap) waitForTxBodyHash() {
+func (boot *Bootstrap) waitForTxBodyHash() {
 	select {
 	case <-boot.chRcvTxBdy:
 		return
@@ -410,7 +405,7 @@ func (boot *bootstrap) waitForTxBodyHash() {
 	}
 }
 
-func (boot *bootstrap) ForkChoice() {
+func (boot *Bootstrap) ForkChoice() {
 	log.Info(fmt.Sprintf("\n#################### STARTING FORK CHOICE ####################\n\n"))
 
 	header := boot.blkc.CurrentBlockHeader
@@ -432,7 +427,7 @@ func (boot *bootstrap) ForkChoice() {
 	boot.rollback(header)
 }
 
-func (boot *bootstrap) rollback(header *block.Header) {
+func (boot *Bootstrap) rollback(header *block.Header) {
 	headerStore := boot.blkc.GetStorer(blockchain.BlockHeaderUnit)
 	if headerStore == nil {
 		log.Info(process.ErrNilHeadersStorage.Error())
@@ -468,7 +463,7 @@ func (boot *bootstrap) rollback(header *block.Header) {
 	boot.blkc.CurrentBlockHeaderHash = header.PrevHash
 }
 
-func (boot *bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {
+func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {
 	prevHash := header.PrevHash
 	boot.blkc.CurrentBlockHeaderHash = header.PrevHash
 	buffHeader, _ := headerStore.Get(prevHash)
@@ -481,7 +476,7 @@ func (boot *bootstrap) getPrevHeader(headerStore storage.Storer, header *block.H
 	return newHeader, nil
 }
 
-func (boot *bootstrap) getTxBlockBody(txBlockBodyStore storage.Storer,
+func (boot *Bootstrap) getTxBlockBody(txBlockBodyStore storage.Storer,
 	header *block.Header) (*block.TxBlockBody, error) {
 
 	buffTxBlockBody, _ := txBlockBodyStore.Get(header.BlockBodyHash)
@@ -508,7 +503,7 @@ func toB64(buff []byte) string {
 	return base64.StdEncoding.EncodeToString(buff)
 }
 
-func (boot bootstrap) checkFork(nonce uint64) bool {
+func (boot *Bootstrap) CheckFork(nonce uint64) bool {
 	currentHeader := boot.blkc.CurrentBlockHeader
 	receivedHeader := boot.getHeaderFromPool(nonce)
 

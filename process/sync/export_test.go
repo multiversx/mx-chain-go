@@ -4,18 +4,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
-func (boot *bootstrap) RequestHeader(nonce uint64) {
+func (boot *Bootstrap) RequestHeader(nonce uint64) {
 	boot.requestHeader(nonce)
 }
 
-func (boot *bootstrap) ShouldSync() bool {
+func (boot *Bootstrap) ShouldSync() bool {
 	return boot.shouldSync()
 }
 
-func (boot *bootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
+func (boot *Bootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
 	return boot.getHeaderFromPool(nonce)
 }
 
-func (boot *bootstrap) GetTxBodyFromPool(hash []byte) interface{} {
+func (boot *Bootstrap) GetTxBodyFromPool(hash []byte) interface{} {
 	return boot.getTxBody(hash)
 }

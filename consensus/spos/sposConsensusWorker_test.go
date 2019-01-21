@@ -57,6 +57,9 @@ func initConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
 	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	cnWorker, _ := spos.NewConsensusWorker(
 		cns,
@@ -64,6 +67,7 @@ func initConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
 		mock.HasherMock{},
 		mock.MarshalizerMock{},
 		blProcMock,
+		bootMock,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -359,6 +363,9 @@ func TestNewConsensusWorker_ConsensusNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	consensusGroup, err := spos.NewConsensusWorker(
 		consensus,
@@ -366,6 +373,7 @@ func TestNewConsensusWorker_ConsensusNilShouldFail(t *testing.T) {
 		hasher,
 		marshalizer,
 		blkProc,
+		bootMock,
 		multisig,
 		keyGen,
 		privKey,
@@ -390,6 +398,9 @@ func TestNewConsensusWorker_BlockChainNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	consensusWorker, err := spos.NewConsensusWorker(
 		consensus,
@@ -397,6 +408,7 @@ func TestNewConsensusWorker_BlockChainNilShouldFail(t *testing.T) {
 		hasher,
 		marshalizer,
 		blkProc,
+		bootMock,
 		multisig,
 		keyGen,
 		privKey,
@@ -421,6 +433,9 @@ func TestNewConsensusWorker_HasherNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	consensusWorker, err := spos.NewConsensusWorker(
 		consensus,
@@ -428,6 +443,7 @@ func TestNewConsensusWorker_HasherNilShouldFail(t *testing.T) {
 		nil,
 		marshalizer,
 		blkProc,
+		bootMock,
 		multisig,
 		keyGen,
 		privKey,
@@ -452,6 +468,9 @@ func TestNewConsensusWorker_MarshalizerNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	consensusWorker, err := spos.NewConsensusWorker(
 		consensus,
@@ -459,6 +478,7 @@ func TestNewConsensusWorker_MarshalizerNilShouldFail(t *testing.T) {
 		hasher,
 		nil,
 		blkProc,
+		bootMock,
 		multisig,
 		keyGen,
 		privKey,
@@ -483,6 +503,9 @@ func TestNewConsensusWorker_BlockProcessorNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	consensusWorker, err := spos.NewConsensusWorker(
 		consensus,
@@ -490,6 +513,7 @@ func TestNewConsensusWorker_BlockProcessorNilShouldFail(t *testing.T) {
 		hasher,
 		marshalizer,
 		nil,
+		bootMock,
 		multisig,
 		keyGen,
 		privKey,
@@ -514,6 +538,9 @@ func TestNewConsensusWorker_MultisigNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	consensusWorker, err := spos.NewConsensusWorker(
 		consensus,
@@ -521,6 +548,7 @@ func TestNewConsensusWorker_MultisigNilShouldFail(t *testing.T) {
 		hasher,
 		marshalizer,
 		blkProc,
+		bootMock,
 		nil,
 		keyGen,
 		privKey,
@@ -545,6 +573,9 @@ func TestNewConsensusWorker_KeyGenNilShouldFail(t *testing.T) {
 	multisig := mock.NewMultiSigner()
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	consensusWorker, err := spos.NewConsensusWorker(
 		consensus,
@@ -552,6 +583,7 @@ func TestNewConsensusWorker_KeyGenNilShouldFail(t *testing.T) {
 		hasher,
 		marshalizer,
 		blkProc,
+		bootMock,
 		multisig,
 		nil,
 		privKey,
@@ -576,6 +608,9 @@ func TestNewConsensusWorker_PrivKeyNilShouldFail(t *testing.T) {
 	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	pubKey := &mock.PublicKeyMock{}
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	consensusWorker, err := spos.NewConsensusWorker(
 		consensus,
@@ -583,6 +618,7 @@ func TestNewConsensusWorker_PrivKeyNilShouldFail(t *testing.T) {
 		hasher,
 		marshalizer,
 		blkProc,
+		bootMock,
 		multisig,
 		keyGen,
 		nil,
@@ -607,6 +643,9 @@ func TestNewConsensusWorker_PubKeyNilFail(t *testing.T) {
 	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	consensusWorker, err := spos.NewConsensusWorker(
 		consensus,
@@ -614,6 +653,7 @@ func TestNewConsensusWorker_PubKeyNilFail(t *testing.T) {
 		hasher,
 		marshalizer,
 		blkProc,
+		bootMock,
 		multisig,
 		keyGen,
 		privKey,
@@ -666,6 +706,9 @@ func TestNewMessage(t *testing.T) {
 		mock.HasherMock{},
 		mock.MarshalizerMock{},
 		&mock.BlockProcessorMock{},
+		&mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+			return false
+		}},
 		&mock.BelNevMock{},
 		&mock.KeyGenMock{},
 		&mock.PrivateKeyMock{},
@@ -695,6 +738,9 @@ func TestSPOSConsensusWorker_DoEndRoundJobErrAggregatingSigShouldFail(t *testing
 	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
@@ -720,6 +766,7 @@ func TestSPOSConsensusWorker_DoEndRoundJobErrAggregatingSigShouldFail(t *testing
 		mock.HasherMock{},
 		mock.MarshalizerMock{},
 		blProcMock,
+		bootMock,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -993,6 +1040,9 @@ func TestSPOSConsensusWorker_DoCommitmentHashJobErrCreateCommitmentShouldFail(t 
 	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
+	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		return false
+	}}
 
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
@@ -1018,6 +1068,7 @@ func TestSPOSConsensusWorker_DoCommitmentHashJobErrCreateCommitmentShouldFail(t 
 		mock.HasherMock{},
 		mock.MarshalizerMock{},
 		blProcMock,
+		bootMock,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -1917,6 +1968,9 @@ func TestConsensus_CheckConsensus(t *testing.T) {
 		mock.HasherMock{},
 		mock.MarshalizerMock{},
 		&mock.BlockProcessorMock{},
+		&mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+			return false
+		}},
 		&mock.BelNevMock{},
 		&mock.KeyGenMock{},
 		&mock.PrivateKeyMock{},

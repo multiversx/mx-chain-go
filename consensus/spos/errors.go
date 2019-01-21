@@ -70,6 +70,9 @@ var ErrNilMarshalizer = errors.New("marshalizer is nil")
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
 
+// ErrNilBlootstrap is raised when a valid block processor is expected but nil used
+var ErrNilBlootstrap = errors.New("boostrap is nil")
+
 // ErrInvalidKey is raised when an invalid key is used with a map
 var ErrInvalidKey = errors.New("map key is invalid")
 
