@@ -27,7 +27,7 @@ func (bps *BlockProcessorStub) RevertAccountState() {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, maxProcessingTime time.Duration) error {
+func (bps *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 	panic("implement me")
 }
 

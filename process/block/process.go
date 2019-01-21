@@ -107,6 +107,10 @@ func (bp *blockProcessor) SetOnRequestTransaction(f func(destShardID uint32, txH
 	bp.OnRequestTransaction = f
 }
 
+func (bp *blockProcessor) haveTime() time.Duration {
+	return WaitTime
+}
+
 // ProcessAndCommit takes each transaction from the transactions block body received as parameter
 // and processes it, updating at the same time the state trie and the associated root hash
 // if transaction is not valid or not found it will return error.
@@ -117,7 +121,7 @@ func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, he
 		return err
 	}
 
-	err = bp.ProcessBlock(blockChain, header, body, WaitTime)
+	err = bp.ProcessBlock(blockChain, header, body, bp.haveTime)
 
 	defer func() {
 		if err != nil {
@@ -154,14 +158,14 @@ func (bp *blockProcessor) RevertAccountState() {
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the speciffic error
-func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, maxProcessingTime time.Duration) error {
+func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 	err := bp.validateBlockBody(body)
 	if err != nil {
 		return err
 	}
 
 	if bp.requestBlockTransactions(body) > 0 {
-		err := bp.waitForTxHashes(maxProcessingTime)
+		err := bp.waitForTxHashes(haveTime())
 
 		if err != nil {
 			return err
@@ -178,7 +182,7 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		}
 	}()
 
-	err = bp.processBlockTransactions(body, int32(header.Round))
+	err = bp.processBlockTransactions(body, int32(header.Round), haveTime)
 
 	if err != nil {
 		return err
@@ -344,7 +348,7 @@ func (bp *blockProcessor) isFirstBlockInEpoch(header *block.Header) bool {
 	return header.Round == 0
 }
 
-func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody, round int32) error {
+func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody, round int32, haveTime func() time.Duration) error {
 	txbWrapper := TxBlockBodyWrapper{
 		TxBlockBody: body,
 	}
@@ -364,6 +368,10 @@ func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody, roun
 		bp.displayTxsInfo(&miniBlock, shardId)
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
+			if haveTime() < 0 {
+				return process.ErrTimeIsOut
+			}
+
 			txHash := miniBlock.TxHashes[j]
 			tx := bp.getTransactionFromPool(shardId, txHash)
 

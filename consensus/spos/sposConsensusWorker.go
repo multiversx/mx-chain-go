@@ -133,8 +133,8 @@ type SPOSConsensusWorker struct {
 	SendMessage            func(consensus *ConsensusData) // this is a pointer to a function which actually send the message from a node to the network
 	BroadcastHeader        func([]byte)
 	BroadcastBlockBody     func([]byte)
-	MessagesReceived       map[MessageType][]*ConsensusData
-	mutMessagesReceived    sync.Mutex
+	ReceivedMessages       map[MessageType][]*ConsensusData
+	mutMessagesReceived    sync.RWMutex
 }
 
 // NewConsensusWorker creates a new SPOSConsensusWorker object
@@ -187,16 +187,16 @@ func NewConsensusWorker(
 		nodes = len(cns.RoundConsensus.ConsensusGroup())
 	}
 
-	sposWorker.MessageChannels[MtBlockBody] = make(chan *ConsensusData, nodes)
-	sposWorker.MessageChannels[MtBlockHeader] = make(chan *ConsensusData, nodes)
-	sposWorker.MessageChannels[MtCommitmentHash] = make(chan *ConsensusData, nodes)
-	sposWorker.MessageChannels[MtBitmap] = make(chan *ConsensusData, nodes)
-	sposWorker.MessageChannels[MtCommitment] = make(chan *ConsensusData, nodes)
-	sposWorker.MessageChannels[MtSignature] = make(chan *ConsensusData, nodes)
+	sposWorker.MessageChannels[MtBlockBody] = make(chan *ConsensusData)
+	sposWorker.MessageChannels[MtBlockHeader] = make(chan *ConsensusData)
+	sposWorker.MessageChannels[MtCommitmentHash] = make(chan *ConsensusData)
+	sposWorker.MessageChannels[MtBitmap] = make(chan *ConsensusData)
+	sposWorker.MessageChannels[MtCommitment] = make(chan *ConsensusData)
+	sposWorker.MessageChannels[MtSignature] = make(chan *ConsensusData)
 
 	sposWorker.ReceivedMessageChannel = make(chan *ConsensusData, nodes*consensusSubrounds)
 
-	sposWorker.initMessagesReceived()
+	sposWorker.initReceivedMessages()
 
 	go sposWorker.checkReceivedMessageChannel()
 	go sposWorker.checkChannels()
@@ -310,7 +310,10 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 	sposWorker.Cns.Data = nil
 	sposWorker.Cns.ResetRoundStatus()
 	sposWorker.Cns.ResetRoundState()
-	sposWorker.initMessagesReceived()
+	sposWorker.cleanReceivedMessages()
+
+	// TODO: Only for checking if the received messages list is correctly cleaned at the begining of each round
+	sposWorker.displayReceivedMessages()
 
 	leader, err := sposWorker.Cns.GetLeader()
 
@@ -350,14 +353,16 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 		return false
 	}
 
-	if leader == sposWorker.Cns.SelfPubKey() {
-		for {
-			if sposWorker.GetSubround() > chronology.SubroundId(SrStartRound) {
-				break
-			}
-			time.Sleep(time.Millisecond)
-		}
-	}
+	sposWorker.Cns.SetStatus(SrStartRound, SsFinished)
+
+	//if leader == sposWorker.Cns.SelfPubKey() {
+	//	for {
+	//		if sposWorker.GetSubround() > chronology.SubroundId(SrStartRound) {
+	//			break
+	//		}
+	//		time.Sleep(time.Millisecond)
+	//	}
+	//}
 
 	return true
 }
@@ -1231,11 +1236,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedMessage(name string, data interfa
 		return
 	}
 
-	if cnsDta.RoundIndex != sposWorker.Cns.Chr.Round().Index() {
-		return
-	}
-
-	if sposWorker.GetSubround() > chronology.SubroundId(SrEndRound) {
+	if sposWorker.dropConsensusMessage(cnsDta) {
 		return
 	}
 
@@ -1249,6 +1250,19 @@ func (sposWorker *SPOSConsensusWorker) ReceivedMessage(name string, data interfa
 	}
 
 	sposWorker.ReceivedMessageChannel <- cnsDta
+}
+
+func (sposWorker *SPOSConsensusWorker) dropConsensusMessage(cnsDta *ConsensusData) bool {
+	if cnsDta.RoundIndex < sposWorker.Cns.Chr.Round().Index() {
+		return true
+	}
+
+	if cnsDta.RoundIndex == sposWorker.Cns.Chr.Round().Index() &&
+		sposWorker.GetSubround() > chronology.SubroundId(SrEndRound) {
+		return true
+	}
+
+	return false
 }
 
 // CheckChannels method is used to listen to the channels through which node receives and consumes,
@@ -1349,8 +1363,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBlockBody(cnsDta *ConsensusData) 
 
 	if sposWorker.BlockBody != nil &&
 		sposWorker.Header != nil {
-		maxProcessingTime := sposWorker.remainedTime()
-		err2 := sposWorker.BlockProcessor.ProcessBlock(sposWorker.BlockChain, sposWorker.Header, sposWorker.BlockBody, maxProcessingTime)
+		err2 := sposWorker.BlockProcessor.ProcessBlock(sposWorker.BlockChain, sposWorker.Header, sposWorker.BlockBody, sposWorker.haveTime)
 
 		if err2 != nil {
 			log.Info(fmt.Sprintf("Canceled round %d in subround %s, %s\n",
@@ -1448,8 +1461,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBlockHeader(cnsDta *ConsensusData
 
 	if sposWorker.BlockBody != nil &&
 		sposWorker.Header != nil {
-		maxProcessingTime := sposWorker.remainedTime()
-		err2 := sposWorker.BlockProcessor.ProcessBlock(sposWorker.BlockChain, sposWorker.Header, sposWorker.BlockBody, maxProcessingTime)
+		err2 := sposWorker.BlockProcessor.ProcessBlock(sposWorker.BlockChain, sposWorker.Header, sposWorker.BlockBody, sposWorker.haveTime)
 
 		if err2 != nil {
 			log.Info(fmt.Sprintf("Canceled round %d in subround %s, %s\n",
@@ -2075,7 +2087,7 @@ func toB64(buff []byte) string {
 	return base64.StdEncoding.EncodeToString(buff)
 }
 
-func (sposWorker *SPOSConsensusWorker) remainedTime() time.Duration {
+func (sposWorker *SPOSConsensusWorker) haveTime() time.Duration {
 	roundStartTime := sposWorker.Cns.Chr.Round().TimeStamp()
 	currentTime := sposWorker.Cns.Chr.SyncTime().CurrentTime(sposWorker.Cns.Chr.ClockOffset())
 	elapsedTime := currentTime.Sub(roundStartTime)

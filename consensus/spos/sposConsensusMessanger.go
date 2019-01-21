@@ -1,16 +1,55 @@
 package spos
 
-func (sposWorker *SPOSConsensusWorker) initMessagesReceived() {
+import (
+	"github.com/davecgh/go-spew/spew"
+)
+
+func (sposWorker *SPOSConsensusWorker) initReceivedMessages() {
 	sposWorker.mutMessagesReceived.Lock()
 
-	sposWorker.MessagesReceived = make(map[MessageType][]*ConsensusData)
+	sposWorker.ReceivedMessages = make(map[MessageType][]*ConsensusData)
 
-	sposWorker.MessagesReceived[MtBlockBody] = make([]*ConsensusData, 0)
-	sposWorker.MessagesReceived[MtBlockHeader] = make([]*ConsensusData, 0)
-	sposWorker.MessagesReceived[MtCommitmentHash] = make([]*ConsensusData, 0)
-	sposWorker.MessagesReceived[MtBitmap] = make([]*ConsensusData, 0)
-	sposWorker.MessagesReceived[MtCommitment] = make([]*ConsensusData, 0)
-	sposWorker.MessagesReceived[MtSignature] = make([]*ConsensusData, 0)
+	sposWorker.ReceivedMessages[MtBlockBody] = make([]*ConsensusData, 0)
+	sposWorker.ReceivedMessages[MtBlockHeader] = make([]*ConsensusData, 0)
+	sposWorker.ReceivedMessages[MtCommitmentHash] = make([]*ConsensusData, 0)
+	sposWorker.ReceivedMessages[MtBitmap] = make([]*ConsensusData, 0)
+	sposWorker.ReceivedMessages[MtCommitment] = make([]*ConsensusData, 0)
+	sposWorker.ReceivedMessages[MtSignature] = make([]*ConsensusData, 0)
+
+	sposWorker.mutMessagesReceived.Unlock()
+}
+
+func (sposWorker *SPOSConsensusWorker) displayReceivedMessages() {
+	sposWorker.mutMessagesReceived.RLock()
+
+	for i := MtBlockBody; i <= MtSignature; i++ {
+		cnsDataList := sposWorker.ReceivedMessages[i]
+
+		if len(cnsDataList) == 0 {
+			continue
+		}
+
+		for j := 0; j < len(cnsDataList); j++ {
+			spew.Dump(cnsDataList[j])
+		}
+	}
+
+	sposWorker.mutMessagesReceived.RUnlock()
+}
+
+func (sposWorker *SPOSConsensusWorker) cleanReceivedMessages() {
+	sposWorker.mutMessagesReceived.Lock()
+
+	for i := MtBlockBody; i <= MtSignature; i++ {
+		cnsDataList := sposWorker.ReceivedMessages[i]
+
+		if len(cnsDataList) == 0 {
+			continue
+		}
+
+		cleanedCnsDtaList := sposWorker.getCleanedList(cnsDataList)
+		sposWorker.ReceivedMessages[i] = cleanedCnsDtaList
+	}
 
 	sposWorker.mutMessagesReceived.Unlock()
 }
@@ -18,12 +57,12 @@ func (sposWorker *SPOSConsensusWorker) initMessagesReceived() {
 func (sposWorker *SPOSConsensusWorker) executeReceivedMessages(cnsDta *ConsensusData) {
 	sposWorker.mutMessagesReceived.Lock()
 
-	cnsDataList := sposWorker.MessagesReceived[cnsDta.MsgType]
+	cnsDataList := sposWorker.ReceivedMessages[cnsDta.MsgType]
 	cnsDataList = append(cnsDataList, cnsDta)
-	sposWorker.MessagesReceived[cnsDta.MsgType] = cnsDataList
+	sposWorker.ReceivedMessages[cnsDta.MsgType] = cnsDataList
 
 	for i := MtBlockBody; i <= MtSignature; i++ {
-		cnsDataList = sposWorker.MessagesReceived[i]
+		cnsDataList = sposWorker.ReceivedMessages[i]
 
 		if len(cnsDataList) == 0 {
 			continue
@@ -31,7 +70,7 @@ func (sposWorker *SPOSConsensusWorker) executeReceivedMessages(cnsDta *Consensus
 
 		sposWorker.executeMessage(cnsDataList)
 		cleanedCnsDtaList := sposWorker.getCleanedList(cnsDataList)
-		sposWorker.MessagesReceived[i] = cleanedCnsDtaList
+		sposWorker.ReceivedMessages[i] = cleanedCnsDtaList
 	}
 
 	sposWorker.mutMessagesReceived.Unlock()
@@ -43,13 +82,19 @@ func (sposWorker *SPOSConsensusWorker) executeMessage(cnsDtaList []*ConsensusDat
 			continue
 		}
 
+		if sposWorker.dropConsensusMessage(cnsDta) {
+			continue
+		}
+
 		switch cnsDta.MsgType {
 		case MtBlockBody:
-			if sposWorker.ShouldSync() {
+			if sposWorker.Cns.Status(SrStartRound) != SsFinished ||
+				sposWorker.ShouldSync() {
 				continue
 			}
 		case MtBlockHeader:
-			if sposWorker.ShouldSync() {
+			if sposWorker.Cns.Status(SrStartRound) != SsFinished ||
+				sposWorker.ShouldSync() {
 				continue
 			}
 		case MtCommitmentHash:
@@ -78,18 +123,22 @@ func (sposWorker *SPOSConsensusWorker) executeMessage(cnsDtaList []*ConsensusDat
 	}
 }
 
-func (sposWorker *SPOSConsensusWorker) getCleanedList(cnsDtaList []*ConsensusData) []*ConsensusData {
-	cleanedCnsDtaList := make([]*ConsensusData, 0)
+func (sposWorker *SPOSConsensusWorker) getCleanedList(cnsDataList []*ConsensusData) []*ConsensusData {
+	cleanedCnsDataList := make([]*ConsensusData, 0)
 
-	for i := 0; i < len(cnsDtaList); i++ {
-		if cnsDtaList[i] == nil {
+	for i := 0; i < len(cnsDataList); i++ {
+		if cnsDataList[i] == nil {
 			continue
 		}
 
-		cleanedCnsDtaList = append(cleanedCnsDtaList, cnsDtaList[i])
+		if sposWorker.dropConsensusMessage(cnsDataList[i]) {
+			continue
+		}
+
+		cleanedCnsDataList = append(cleanedCnsDataList, cnsDataList[i])
 	}
 
-	return cleanedCnsDtaList
+	return cleanedCnsDataList
 }
 
 func (sposWorker *SPOSConsensusWorker) checkReceivedMessageChannel() {

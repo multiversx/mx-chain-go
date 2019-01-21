@@ -9,7 +9,7 @@ import (
 )
 
 type BlockProcessorMock struct {
-	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, maxProcessingTime time.Duration) error
+	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error
 	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
 	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error
 	RevertAccountStateCalled      func()
@@ -26,8 +26,8 @@ func (bpm *BlockProcessorMock) SetOnRequestTransaction(f func(destShardID uint32
 	bpm.SetOnRequestTransactionCalled(f)
 }
 
-func (bpm *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, maxProcessingTime time.Duration) error {
-	return bpm.ProcessBlockCalled(blockChain, header, body, maxProcessingTime)
+func (bpm *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
+	return bpm.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
 
 func (bpm *BlockProcessorMock) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {

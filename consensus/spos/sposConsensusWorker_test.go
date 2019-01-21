@@ -178,7 +178,7 @@ func initMockBlockProcessor() *mock.BlockProcessorMock {
 		return nil
 	}
 
-	blockProcMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, maxProcessingTime time.Duration) error {
+	blockProcMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 		return nil
 	}
 
@@ -671,7 +671,7 @@ func TestNewMessage(t *testing.T) {
 		&mock.PrivateKeyMock{},
 		&mock.PublicKeyMock{})
 
-	assert.Equal(t, len(cns.RoundConsensus.ConsensusGroup()), cap(msg2.MessageChannels[spos.MtBlockHeader]))
+	assert.Equal(t, 0, cap(msg2.MessageChannels[spos.MtBlockHeader]))
 }
 
 func TestMessage_StartRound(t *testing.T) {
@@ -1657,7 +1657,7 @@ func TestSPOSConsensusWorker_ReceivedBlockBodyHeaderReceivedErrProcessBlockShoul
 
 	blProcMock := initMockBlockProcessor()
 
-	blProcMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, maxProcessingTime time.Duration) error {
+	blProcMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 		return process.ErrNilPreviousBlockHash
 	}
 
