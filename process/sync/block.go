@@ -144,6 +144,11 @@ func (boot *bootstrap) requestedHeaderNonce() (nonce *uint64) {
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *bootstrap) receivedHeaderNonce(nonce uint64) {
+	if boot.checkFork(nonce) {
+		boot.ForkChoice()
+		return
+	}
+
 	n := boot.requestedHeaderNonce()
 
 	if n == nil {
@@ -501,4 +506,27 @@ func toB64(buff []byte) string {
 		return "<NIL>"
 	}
 	return base64.StdEncoding.EncodeToString(buff)
+}
+
+func (boot bootstrap) checkFork(nonce uint64) bool {
+	currentHeader := boot.blkc.CurrentBlockHeader
+	receivedHeader := boot.getHeaderFromPool(nonce)
+
+	if currentHeader == nil {
+		return false
+	}
+
+	if receivedHeader == nil {
+		return false
+	}
+
+	if currentHeader.Nonce == receivedHeader.Nonce {
+		if !bytes.Equal(receivedHeader.PrevHash, currentHeader.PrevHash) {
+			if isEmpty(currentHeader) && !isEmpty(receivedHeader) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
