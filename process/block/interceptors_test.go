@@ -301,6 +301,62 @@ func TestHeaderInterceptor_ProcessOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, 2, wasCalled)
 }
 
+func TestHeaderInterceptor_ProcessIsInStorageShouldNotAdd(t *testing.T) {
+	t.Parallel()
+
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
+	}
+
+	wasCalled := 0
+
+	testedNonce := uint64(67)
+
+	headers := &mock.ShardedDataStub{}
+	headers.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+		aaaHash := mock.HasherMock{}.Compute("aaa")
+		if bytes.Equal(aaaHash, key) {
+			wasCalled++
+		}
+	}
+
+	headersNonces := &mock.Uint64CacherStub{}
+	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
+		if u == testedNonce {
+			wasCalled++
+		}
+
+		return
+	}
+
+	storer := &mock.StorerStub{}
+	storer.HasCalled = func(key []byte) (bool, error) {
+		return true, nil
+	}
+
+	hi, _ := NewHeaderInterceptor(
+		interceptor,
+		headers,
+		headersNonces,
+		storer,
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock())
+
+	hdr := NewInterceptedHeader()
+	hdr.Nonce = testedNonce
+	hdr.ShardId = 0
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyHash = make([]byte, 0)
+	hdr.BlockBodyType = block2.TxBlock
+	hdr.Signature = make([]byte, 0)
+	hdr.Commitment = make([]byte, 0)
+	hdr.SetHash([]byte("aaa"))
+
+	assert.Nil(t, hi.ProcessHdr(hdr, []byte("aaa")))
+	assert.Equal(t, 0, wasCalled)
+}
+
 //------- BlockBodyInterceptor
 
 //NewBlockBodyInterceptor
@@ -336,6 +392,23 @@ func TestNewBlockBodyInterceptor_NilPoolShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock())
 
 	assert.Equal(t, process.ErrNilCacher, err)
+	assert.Nil(t, gbbi)
+}
+
+func TestNewBlockBodyInterceptor_NilStorerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	interceptor := &mock.InterceptorStub{}
+	cache := &mock.CacherStub{}
+
+	gbbi, err := NewGenericBlockBodyInterceptor(
+		interceptor,
+		cache,
+		nil,
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock())
+
+	assert.Equal(t, process.ErrNilBlockBodyStorage, err)
 	assert.Nil(t, gbbi)
 }
 
@@ -516,4 +589,46 @@ func TestBlockBodyInterceptor_ProcessOkValsShouldRetTrue(t *testing.T) {
 
 	assert.Nil(t, gbbi.ProcessBodyBlock(txBody, []byte("aaa")))
 	assert.Equal(t, 1, wasCalled)
+}
+
+func TestBlockBodyInterceptor_ProcessIsInStorageShouldNotAdd(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := 0
+
+	cache := &mock.CacherStub{}
+	cache.PutCalled = func(key []byte, value interface{}) (evicted bool) {
+		if bytes.Equal(mock.HasherMock{}.Compute("aaa"), key) {
+			wasCalled++
+		}
+
+		return
+	}
+	storer := &mock.StorerStub{}
+	storer.HasCalled = func(key []byte) (bool, error) {
+		return true, nil
+	}
+
+	interceptor := &mock.InterceptorStub{}
+	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
+	}
+
+	gbbi, _ := NewGenericBlockBodyInterceptor(
+		interceptor,
+		cache,
+		storer,
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock())
+
+	miniBlock := block2.MiniBlock{}
+	miniBlock.TxHashes = append(miniBlock.TxHashes, []byte{65})
+
+	txBody := NewInterceptedTxBlockBody()
+	txBody.ShardID = 0
+	txBody.MiniBlocks = make([]block2.MiniBlock, 0)
+	txBody.MiniBlocks = append(txBody.MiniBlocks, miniBlock)
+	txBody.RootHash = make([]byte, 0)
+
+	assert.Nil(t, gbbi.ProcessBodyBlock(txBody, []byte("aaa")))
+	assert.Equal(t, 0, wasCalled)
 }

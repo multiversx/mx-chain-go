@@ -295,22 +295,47 @@ func TestInterceptedTransaction_VerifySigVerifyDoesPassShouldRetNil(t *testing.T
 
 //------- Getters and Setters
 
-func TestTransactionInterceptor_AllGettersAndSettersShouldWork(t *testing.T) {
+func TestTransactionInterceptor_GetterSetterAddrConv(t *testing.T) {
 	t.Parallel()
 
 	addrConv := &mock.AddressConverterMock{}
 
 	tx := transaction.NewInterceptedTransaction()
 	tx.SetAddressConverter(addrConv)
-	assert.True(t, addrConv == tx.AddressConverter())
 
-	tx.SetHash([]byte("aaaa"))
-	assert.Equal(t, "aaaa", tx.ID())
-	assert.Equal(t, "aaaa", string(tx.Hash()))
+	assert.True(t, addrConv == tx.AddressConverter())
+}
+
+func TestTransactionInterceptor_GetterSetterHash(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash")
+
+	tx := transaction.NewInterceptedTransaction()
+	tx.SetHash(hash)
+
+	assert.Equal(t, string(hash), tx.ID())
+	assert.Equal(t, string(hash), string(tx.Hash()))
+}
+
+func TestTransactionInterceptor_GetterSetterTxBuffWithoutSig(t *testing.T) {
+	t.Parallel()
+
+	txBuffWithoutSig := []byte("txBuffWithoutSig")
+
+	tx := transaction.NewInterceptedTransaction()
+	tx.SetTxBuffWithoutSig(txBuffWithoutSig)
+
+	assert.Equal(t, txBuffWithoutSig, tx.TxBuffWithoutSig())
+}
+
+func TestTransactionInterceptor_GetterSetterKeyGen(t *testing.T) {
+	t.Parallel()
 
 	keyGen := &mock.SingleSignKeyGenMock{}
 
+	tx := transaction.NewInterceptedTransaction()
 	tx.SetSingleSignKeyGen(keyGen)
-	assert.True(t, keyGen == tx.SingleSignKeyGen())
 
+	assert.True(t, keyGen == tx.SingleSignKeyGen())
 }
