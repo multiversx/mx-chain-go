@@ -44,6 +44,7 @@ type blockProcessor struct {
 	mut                  sync.RWMutex
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.ShardCoordinator
+	forkDetector         process.ForkDetector
 }
 
 // NewBlockProcessor creates a new blockProcessor object
@@ -54,6 +55,7 @@ func NewBlockProcessor(
 	txProcessor process.TransactionProcessor,
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.ShardCoordinator,
+	forkDetector process.ForkDetector,
 ) (*blockProcessor, error) {
 
 	if dataPool == nil {
@@ -80,6 +82,10 @@ func NewBlockProcessor(
 		return nil, process.ErrNilShardCoordinator
 	}
 
+	if forkDetector == nil {
+		return nil, process.ErrNilForkDetector
+	}
+
 	bp := blockProcessor{
 		dataPool:         dataPool,
 		hasher:           hasher,
@@ -87,6 +93,7 @@ func NewBlockProcessor(
 		txProcessor:      txProcessor,
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
+		forkDetector:     forkDetector,
 	}
 
 	bp.ChRcvAllTxs = make(chan bool)
@@ -164,8 +171,15 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		return err
 	}
 
-	if bp.requestBlockTransactions(body) > 0 {
+	requestedTxs := bp.requestBlockTransactions(body)
+
+	if requestedTxs > 0 {
+
+		log.Info(fmt.Sprintf("requested %d missing txs\n", requestedTxs))
+
 		err := bp.waitForTxHashes(haveTime())
+
+		log.Info(fmt.Sprintf("received %d missing txs\n", requestedTxs-len(bp.requestedTxHashes)))
 
 		if err != nil {
 			return err
@@ -460,6 +474,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		blockChain.CurrentTxBlockBody = block
 		blockChain.CurrentBlockHeader = header
 		blockChain.CurrentBlockHeaderHash = headerHash
+		bp.forkDetector.AddHeader(header, headerHash, false)
 		go bp.displayBlockchain(blockChain)
 	}
 
@@ -514,18 +529,20 @@ func (bp *blockProcessor) receivedTransaction(txHash []byte) {
 
 func (bp *blockProcessor) requestBlockTransactions(body *block.TxBlockBody) int {
 	bp.mut.Lock()
+	requestedTxs := 0
 	missingTxsForShards := bp.computeMissingTxsForShards(body)
 	bp.requestedTxHashes = make(map[string]bool)
 	if bp.OnRequestTransaction != nil {
 		for shardId, txHashes := range missingTxsForShards {
 			for _, txHash := range txHashes {
+				requestedTxs++
 				bp.requestedTxHashes[string(txHash)] = true
 				bp.OnRequestTransaction(shardId, txHash)
 			}
 		}
 	}
 	bp.mut.Unlock()
-	return len(missingTxsForShards)
+	return requestedTxs
 }
 
 func (bp *blockProcessor) computeMissingTxsForShards(body *block.TxBlockBody) map[uint32][][]byte {
@@ -712,9 +729,9 @@ func (bp *blockProcessor) displayLogInfo(
 	if err != nil {
 		log.Error(err.Error())
 	}
-	tblString = "\r\n" + tblString
-	tblString = tblString + fmt.Sprintf("\r\nHeader hash: %s\r\nTotal txs "+
-		"processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d",
+	//tblString = "\n" + tblString
+	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal txs "+
+		"processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n",
 		toB64(headerHash),
 		txsTotalProcessed,
 		txsCurrentBlockProcessed,

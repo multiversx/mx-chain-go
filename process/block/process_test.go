@@ -150,7 +150,9 @@ func TestNewBlockProcessor(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, be)
@@ -164,7 +166,9 @@ func TestBlockProc_GetTransactionFromPool(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+	)
 
 	txHash := []byte("tx1_hash")
 	tx := be.GetTransactionFromPool(1, txHash)
@@ -181,7 +185,9 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+	)
 
 	shardId := uint32(1)
 	txHash1 := []byte("tx1_hash1")
@@ -233,6 +239,7 @@ func TestBlockProcessor_ProcessBlockWithNilTxBlockBodyShouldErr(t *testing.T) {
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revToSnapshot},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	// should return err
@@ -285,6 +292,7 @@ func TestBlockProc_ProcessBlockWithDirtyAccountShouldErr(t *testing.T) {
 			RevertToSnapshotCalled: revToSnapshot,
 		},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	// should return err
@@ -358,6 +366,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			RootHashCalled:         rootHashCalled,
 		},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	go func() {
@@ -386,6 +395,7 @@ func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 			RevertToSnapshotCalled: revToSnapshot,
 		},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	bl, err := be.CreateTxBlockBody(0, 100, 0, func() bool { return true })
@@ -414,6 +424,7 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 			RevertToSnapshotCalled: revToSnapshot,
 		},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	haveTime := func() bool {
@@ -456,6 +467,7 @@ func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
 			RootHashCalled:   rootHashfunc,
 		},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	blk, err := be.CreateTxBlockBody(0, 100, 0, haveTime)
@@ -473,6 +485,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithNilTxProcessorShouldPanic(t *t
 		nil,
 		nil,
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	createGenesis := func() {
@@ -504,6 +517,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldPanic(t *t
 		&txProc,
 		nil,
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	createGenesis := func() {
@@ -535,6 +549,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 		&txProc,
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	stBlock := be.CreateGenesisBlockBody(nil, 0)
@@ -551,6 +566,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	err := be.RemoveBlockTxsFromPool(nil)
@@ -568,6 +584,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 	miniblocks := make([]block.MiniBlock, 0)
 
@@ -617,6 +634,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	hdr, txBlock := createTestHdrTxBlockBody()
@@ -654,6 +672,7 @@ func TestNode_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	hdr, txBlock := createTestHdrTxBlockBody()
@@ -747,6 +766,7 @@ func TestBlockProcessor_DisplayLogInfo(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
 	)
 
 	hdr.PrevHash = hasher.Compute("prev hash")

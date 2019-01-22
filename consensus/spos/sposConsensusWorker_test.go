@@ -57,7 +57,7 @@ func initConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
 	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -363,7 +363,7 @@ func TestNewConsensusWorker_ConsensusNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -398,7 +398,7 @@ func TestNewConsensusWorker_BlockChainNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -433,7 +433,7 @@ func TestNewConsensusWorker_HasherNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -468,7 +468,7 @@ func TestNewConsensusWorker_MarshalizerNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -503,7 +503,7 @@ func TestNewConsensusWorker_BlockProcessorNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -538,7 +538,7 @@ func TestNewConsensusWorker_MultisigNilShouldFail(t *testing.T) {
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -573,7 +573,7 @@ func TestNewConsensusWorker_KeyGenNilShouldFail(t *testing.T) {
 	multisig := mock.NewMultiSigner()
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -608,7 +608,7 @@ func TestNewConsensusWorker_PrivKeyNilShouldFail(t *testing.T) {
 	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -643,7 +643,7 @@ func TestNewConsensusWorker_PubKeyNilFail(t *testing.T) {
 	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -706,7 +706,7 @@ func TestNewMessage(t *testing.T) {
 		mock.HasherMock{},
 		mock.MarshalizerMock{},
 		&mock.BlockProcessorMock{},
-		&mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
 			return false
 		}},
 		&mock.BelNevMock{},
@@ -738,7 +738,7 @@ func TestSPOSConsensusWorker_DoEndRoundJobErrAggregatingSigShouldFail(t *testing
 	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -1040,7 +1040,7 @@ func TestSPOSConsensusWorker_DoCommitmentHashJobErrCreateCommitmentShouldFail(t 
 	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
@@ -1968,7 +1968,7 @@ func TestConsensus_CheckConsensus(t *testing.T) {
 		mock.HasherMock{},
 		mock.MarshalizerMock{},
 		&mock.BlockProcessorMock{},
-		&mock.BootstrapMock{CheckForkCalled: func(nonce uint64) bool {
+		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
 			return false
 		}},
 		&mock.BelNevMock{},

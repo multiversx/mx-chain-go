@@ -1,9 +1,9 @@
 package mock
 
 type BootstrapMock struct {
-	CheckForkCalled func(uint64) bool
+	ShouldSyncCalled func() bool
 }
 
-func (boot *BootstrapMock) CheckFork(nonce uint64) bool {
-	return boot.CheckForkCalled(nonce)
+func (boot *BootstrapMock) ShouldSync() bool {
+	return boot.ShouldSyncCalled()
 }

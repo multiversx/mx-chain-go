@@ -24,7 +24,7 @@ var (
 	Port = cli.IntFlag{
 		Name:  "port",
 		Usage: "Port number on which the application will start",
-		Value: 4000,
+		Value: 32000,
 	}
 	// MaxAllowedPeers defines a flag for setting the maximum number of connections allowed at once
 	MaxAllowedPeers = cli.IntFlag{
