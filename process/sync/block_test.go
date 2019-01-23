@@ -280,7 +280,7 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 	bs.RequestHeaderHandler = func(nonce uint64) {}
 	bs.RequestTxBodyHandler = func(hash []byte) {}
 
-	r := bs.SyncBlock()
+	_, r := bs.SyncBlock()
 
 	assert.Equal(t, process.ErrMissingHeader, r)
 }
@@ -349,7 +349,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 
 	bs.RequestHeader(2)
 
-	r := bs.SyncBlock()
+	_, r := bs.SyncBlock()
 
 	assert.Equal(t, process.ErrMissingBody, r)
 }
@@ -599,7 +599,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		marshalizer,
 		forkDetector)
 
-	r := bs.SyncBlock()
+	_, r := bs.SyncBlock()
 
 	assert.Nil(t, r)
 }
