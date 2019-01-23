@@ -192,9 +192,9 @@ func (boot *Bootstrap) getHeaderFromPoolHavingHash(hash []byte) *block.Header {
 }
 
 func (boot *Bootstrap) receivedHeaders(key []byte) {
-	header := boot.getHeaderFromPoolHavingHash(key)
+	log.Info(fmt.Sprintf("received header with hash %s from network\n", toB64(key)))
 
-	log.Info(fmt.Sprintf("received header with nonce %d and hash %s from network\n", header.Nonce, toB64(key)))
+	header := boot.getHeaderFromPoolHavingHash(key)
 
 	err := boot.forkDetector.AddHeader(header, key, true)
 
@@ -206,6 +206,8 @@ func (boot *Bootstrap) receivedHeaders(key []byte) {
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
+	log.Info(fmt.Sprintf("received header with nonce %d from network\n", nonce))
+
 	n := boot.requestedHeaderNonce()
 
 	if n == nil {
