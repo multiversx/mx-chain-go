@@ -265,10 +265,10 @@ func (boot *Bootstrap) syncBlocks() {
 				if boot.forkDetected {
 					log.Info(fmt.Sprintf("\n\n#################### FORK DETECTED ####################\n\n"))
 				}
-				err := boot.SyncBlock()
+				hdr, err := boot.SyncBlock()
 				if err != nil {
 					if err == process.ErrInvalidBlockHash {
-						boot.ForkChoice()
+						boot.ForkChoice(hdr)
 					}
 					//log.Error(fmt.Sprintf("%s\n", err.Error()))
 				}
@@ -283,7 +283,7 @@ func (boot *Bootstrap) syncBlocks() {
 // If either header and body are received the ProcessAndCommit method will be called. This method will execute
 // the block and its transactions. Finally if everything works, the block will be committed in the blockchain,
 // and all this mechanism will be reiterated for the next block.
-func (boot *Bootstrap) SyncBlock() error {
+func (boot *Bootstrap) SyncBlock() (*block.Header, error) {
 	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedTxBodyHash(nil)
 
@@ -291,17 +291,17 @@ func (boot *Bootstrap) SyncBlock() error {
 
 	hdr, err := boot.getHeaderWithNonce(nonce)
 	if err != nil {
-		return err
+		return hdr, err
 	}
 
 	//TODO remove after all types of block bodies are implemented
 	if hdr.BlockBodyType != block.TxBlock {
-		return process.ErrNotImplementedBlockProcessingType
+		return hdr, process.ErrNotImplementedBlockProcessingType
 	}
 
 	blk, err := boot.getTxBodyWithHash(hdr.BlockBodyHash)
 	if err != nil {
-		return err
+		return hdr, err
 	}
 
 	//TODO remove type assertions and implement a way for block executor to process
@@ -309,12 +309,12 @@ func (boot *Bootstrap) SyncBlock() error {
 	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, blk.(*block.TxBlockBody))
 
 	if err != nil {
-		return err
+		return hdr, err
 	}
 
 	log.Info(fmt.Sprintf("Block with nonce %d was synced successfully\n", hdr.Nonce))
 
-	return nil
+	return hdr, nil
 }
 
 // getHeaderFromPoolHavingNonce method returns the block header from a given nonce
@@ -460,7 +460,7 @@ func (boot *Bootstrap) waitForTxBodyHash() {
 	}
 }
 
-func (boot *Bootstrap) ForkChoice() {
+func (boot *Bootstrap) ForkChoice(hdr *block.Header) {
 	log.Info(fmt.Sprintf("\n#################### STARTING FORK CHOICE ####################\n\n"))
 
 	header := boot.blkc.CurrentBlockHeader
@@ -471,8 +471,9 @@ func (boot *Bootstrap) ForkChoice() {
 	}
 
 	if !isEmpty(header) {
-		log.Info(fmt.Sprintf("The current header is not from an empty block: header.PubKeysBitmap = %v\n",
-			header.PubKeysBitmap))
+		log.Info(fmt.Sprintf("The current header with nonce %d is not from an empty block, "+
+			"try to remove header with nonce %d from pool and request it again\n", header.Nonce, hdr.Nonce))
+		boot.removeHeaderFromPools(hdr)
 		return
 	}
 
@@ -511,12 +512,20 @@ func (boot *Bootstrap) rollback(header *block.Header) {
 
 	boot.headersNonces.Remove(header.Nonce)
 	boot.headers.RemoveData(hash, header.ShardId)
-	_ = headerStore.Remove(hash)
 	boot.forkDetector.RemoveHeader(header.Nonce)
+	_ = headerStore.Remove(hash)
 
 	boot.blkc.CurrentBlockHeader = newHeader
 	boot.blkc.CurrentTxBlockBody = newTxBlockBody
 	boot.blkc.CurrentBlockHeaderHash = header.PrevHash
+}
+
+func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
+	hash, _ := boot.headersNonces.Get(header.Nonce)
+
+	boot.headersNonces.Remove(header.Nonce)
+	boot.headers.RemoveData(hash, header.ShardId)
+	boot.forkDetector.RemoveHeader(header.Nonce)
 }
 
 func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {
