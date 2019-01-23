@@ -86,15 +86,17 @@ func (sposWorker *SPOSConsensusWorker) executeMessage(cnsDtaList []*ConsensusDat
 			continue
 		}
 
+		if sposWorker.boot.ShouldSync() {
+			continue
+		}
+
 		switch cnsDta.MsgType {
 		case MtBlockBody:
-			if sposWorker.Cns.Status(SrStartRound) != SsFinished ||
-				sposWorker.boot.ShouldSync() {
+			if sposWorker.Cns.Status(SrStartRound) != SsFinished {
 				continue
 			}
 		case MtBlockHeader:
-			if sposWorker.Cns.Status(SrStartRound) != SsFinished ||
-				sposWorker.boot.ShouldSync() {
+			if sposWorker.Cns.Status(SrStartRound) != SsFinished {
 				continue
 			}
 		case MtCommitmentHash:

@@ -534,7 +534,6 @@ func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
 
 func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {
 	prevHash := header.PrevHash
-	boot.blkc.CurrentBlockHeaderHash = header.PrevHash
 	buffHeader, _ := headerStore.Get(prevHash)
 	newHeader := &block.Header{}
 	err := boot.marshalizer.Unmarshal(newHeader, buffHeader)
