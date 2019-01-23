@@ -309,14 +309,14 @@ func (n *Node) createBootstrap(round *chronology.Round) (*sync.Bootstrap, error)
 			hdrRes := n.resolvers[1].(*block2.HeaderResolver)
 			hdrRes.RequestHeaderFromNonce(nonce)
 
-			log.Info(fmt.Sprintf("Requested header with nonce %d from network\n", nonce))
+			log.Info(fmt.Sprintf("requested header with nonce %d from network\n", nonce))
 		}
 
 	bootstrap.RequestTxBodyHandler = func(hash []byte) {
 		hdrRes := n.resolvers[2].(*block2.GenericBlockBodyResolver)
 		hdrRes.RequestBlockBodyFromHash(hash)
 
-		log.Info(fmt.Sprintf("Requested tx body with hash %s from network\n", toB64(hash)))
+		log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(hash)))
 	}
 
 	bootstrap.StartSync()
