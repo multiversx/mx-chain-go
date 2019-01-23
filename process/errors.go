@@ -238,3 +238,6 @@ var ErrNilDataPoolHolder = errors.New("nil data pool holder")
 
 // ErrTimeIsOut signals that time is out
 var ErrTimeIsOut = errors.New("time is out")
+
+// ErrNilForkDetector signals that the fork detector is nil
+var ErrNilForkDetector = errors.New("nil fork detector")

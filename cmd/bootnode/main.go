@@ -36,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	sync2 "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -288,7 +289,9 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
-	blockProcessor, err := block.NewBlockProcessor(transient, hasher, marshalizer, transactionProcessor, accountsAdapter, shardCoordinator)
+	forkDetector := sync2.NewBasicForkDetector()
+
+	blockProcessor, err := block.NewBlockProcessor(transient, hasher, marshalizer, transactionProcessor, accountsAdapter, shardCoordinator, forkDetector)
 
 	if err != nil {
 		return nil, errors.New("could not create block processor: " + err.Error())
@@ -333,6 +336,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithSingleSignKeyGenerator(keyGen),
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
+		node.WithForkDetector(forkDetector),
 	)
 
 	if err != nil {

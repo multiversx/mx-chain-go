@@ -82,6 +82,7 @@ type Node struct {
 	publicKey        crypto.PublicKey
 	singleSignKeyGen crypto.KeyGenerator
 	multisig         crypto.MultiSigner
+	forkDetector     process.ForkDetector
 
 	blkc             *blockchain.BlockChain
 	dataPool         data.TransientDataHolder
@@ -297,7 +298,7 @@ func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology 
 }
 
 func (n *Node) createBootstrap(round *chronology.Round) (*sync.Bootstrap, error) {
-	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, round, n.blockProcessor, WaitTime, n.marshalizer)
+	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, round, n.blockProcessor, WaitTime, n.marshalizer, n.forkDetector)
 
 	if err != nil {
 		return nil, err

@@ -339,7 +339,7 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 	log.Info(fmt.Sprintf("%sStep 0: Preparing for this round with leader %s%s\n",
 		sposWorker.Cns.getFormattedTime(), hex.EncodeToString([]byte(leader)), msg))
 
-	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+	if sposWorker.boot.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		log.Info(fmt.Sprintf("%sNOT SYNCRONIZED YET\n", sposWorker.Cns.getFormattedTime()))
 	}
 
@@ -352,15 +352,6 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 			sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrStartRound)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
 		return false
-	}
-
-	if sposWorker.BlockChain.CurrentBlockHeader != nil {
-		if sposWorker.boot.CheckFork(sposWorker.BlockChain.CurrentBlockHeader.Nonce) {
-			log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, FORK DETECTED\n",
-				sposWorker.Cns.getFormattedTime(), sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrStartRound)))
-			sposWorker.Cns.Chr.SetSelfSubround(-1)
-			return false
-		}
 	}
 
 	err = sposWorker.multiSigner.Reset(pubKeys, uint16(selfIndex))
@@ -466,7 +457,7 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 // (it is used as a handler function of the doSubroundJob pointer function declared in Subround struct,
 // from spos package)
 func (sposWorker *SPOSConsensusWorker) DoBlockJob() bool {
-	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+	if sposWorker.boot.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
 	}
 
@@ -645,7 +636,7 @@ func (sposWorker *SPOSConsensusWorker) genCommitmentHash() ([]byte, error) {
 // block from the leader in the CommitmentHash subround (it is used as the handler function of the doSubroundJob
 // pointer variable function in Subround struct, from spos package)
 func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
-	if sposWorker.ShouldSync() {
+	if sposWorker.boot.ShouldSync() {
 		log.Info(fmt.Sprintf("Canceled round %d in subround %s, NOT SYNCRONIZED\n",
 			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrCommitmentHash)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
@@ -1164,7 +1155,7 @@ func (sposWorker *SPOSConsensusWorker) ExtendEndRound() {
 // CreateEmptyBlock creates, commits and broadcasts an empty block at the end of the round if no block was proposed or
 // syncronized in this round
 func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() bool {
-	if sposWorker.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+	if sposWorker.boot.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		log.Info("Avoided to create empty block, NOT SYNCHRONIZED\n")
 		return false
 	}
@@ -1254,7 +1245,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedMessage(name string, data interfa
 		return
 	}
 
-	if sposWorker.dropConsensusMessage(cnsDta) {
+	if sposWorker.shouldDropConsensusMessage(cnsDta) {
 		return
 	}
 
@@ -1270,7 +1261,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedMessage(name string, data interfa
 	sposWorker.ReceivedMessageChannel <- cnsDta
 }
 
-func (sposWorker *SPOSConsensusWorker) dropConsensusMessage(cnsDta *ConsensusData) bool {
+func (sposWorker *SPOSConsensusWorker) shouldDropConsensusMessage(cnsDta *ConsensusData) bool {
 	if cnsDta.RoundIndex < sposWorker.Cns.Chr.Round().Index() {
 		return true
 	}
@@ -1735,6 +1726,11 @@ func (sposWorker *SPOSConsensusWorker) ReceivedSignature(cnsDta *ConsensusData) 
 	//	sposWorker.GetMessageTypeName(cnsDta.MsgType),
 	//	cnsDta.RoundIndex, toB64(cnsDta.BlockHeaderHash)))
 
+	//nodeIndex, _ := sposWorker.Cns.ConsensusGroupIndex(node)
+	//if cnsDta.RoundIndex == 10 && nodeIndex == 0 {
+	//	return false
+	//}
+
 	isSignJobDone, err := sposWorker.Cns.RoundConsensus.GetJobDone(node, SrSignature)
 
 	if err != nil {
@@ -1815,28 +1811,6 @@ func (sposWorker *SPOSConsensusWorker) CheckIfBlockIsValid(receivedHeader *block
 	log.Info(fmt.Sprintf("Nonce not match: local block nonce is %d and node received block with nonce %d\n",
 		sposWorker.BlockChain.CurrentBlockHeader.Nonce, receivedHeader.Nonce))
 	return false
-}
-
-// ShouldSync method returns the synch state of the node. If it returns 'true', this means that the node
-// is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
-// synched and it can participate to the consensus, if it is in the jobDone group of this round
-func (sposWorker *SPOSConsensusWorker) ShouldSync() bool {
-	if sposWorker.Cns == nil ||
-		sposWorker.Cns.Chr == nil ||
-		sposWorker.Cns.Chr.Round() == nil {
-		return true
-	}
-
-	rnd := sposWorker.Cns.Chr.Round()
-
-	if sposWorker.BlockChain == nil ||
-		sposWorker.BlockChain.CurrentBlockHeader == nil {
-		return rnd.Index() > 0
-	}
-
-	shouldSync := sposWorker.BlockChain.CurrentBlockHeader.Round+1 < uint32(rnd.Index())
-
-	return shouldSync
 }
 
 // GetMessageTypeName method returns the name of the message from a given message ID

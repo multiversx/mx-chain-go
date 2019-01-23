@@ -30,8 +30,9 @@ func TestNewBootstrap_NilTransientDataHolderShouldErr(t *testing.T) {
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(nil, blkc, round, blkExec, WaitTime, marshalizer)
+	bs, err := sync.NewBootstrap(nil, blkc, round, blkExec, WaitTime, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilTransientDataHolder, err)
@@ -54,8 +55,9 @@ func TestNewBootstrap_TransientDataHolderRetNilOnHeadersShouldErr(t *testing.T) 
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer)
+	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
@@ -78,8 +80,9 @@ func TestNewBootstrap_TransientDataHolderRetNilOnHeadersNoncesShouldErr(t *testi
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer)
+	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilHeadersNoncesDataPool, err)
@@ -102,8 +105,9 @@ func TestNewBootstrap_TransientDataHolderRetNilOnTxBlockBodyShouldErr(t *testing
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer)
+	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilTxBlockBody, err)
@@ -125,8 +129,9 @@ func TestNewBootstrap_NilBlockchainShouldErr(t *testing.T) {
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, nil, round, blkExec, WaitTime, marshalizer)
+	bs, err := sync.NewBootstrap(transient, nil, round, blkExec, WaitTime, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilBlockChain, err)
@@ -148,8 +153,9 @@ func TestNewBootstrap_NilRoundShouldErr(t *testing.T) {
 	blkc := &blockchain.BlockChain{}
 	blkExec := &mock.BlockProcessorMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, nil, blkExec, WaitTime, marshalizer)
+	bs, err := sync.NewBootstrap(transient, blkc, nil, blkExec, WaitTime, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilRound, err)
@@ -171,8 +177,9 @@ func TestNewBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 	blkc := &blockchain.BlockChain{}
 	round := &chronology.Round{}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, round, nil, WaitTime, marshalizer)
+	bs, err := sync.NewBootstrap(transient, blkc, round, nil, WaitTime, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilBlockExecutor, err)
@@ -186,8 +193,12 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
+
 		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
 			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
 		}
 
 		return sds
@@ -212,8 +223,9 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 	round := &chronology.Round{}
 	blkExec := &mock.BlockProcessorMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer)
+	bs, err := sync.NewBootstrap(transient, blkc, round, blkExec, WaitTime, marshalizer, forkDetector)
 
 	assert.NotNil(t, bs)
 	assert.Nil(t, err)
@@ -232,6 +244,8 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -252,6 +266,7 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		return cs
 	}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -259,7 +274,8 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	bs.RequestHeaderHandler = func(nonce uint64) {}
 	bs.RequestTxBodyHandler = func(hash []byte) {}
@@ -290,6 +306,9 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 			return m
 		}
 
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -317,6 +336,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		return cs
 	}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -324,7 +344,8 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	bs.RequestHeader(2)
 
@@ -354,6 +375,9 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 			return nil
 		}
 
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -377,6 +401,11 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		return cs
 	}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+
+	forkDetector.CheckForkCalled = func() bool {
+		return false
+	}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -384,7 +413,8 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		chronology.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&ebm,
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	bs.StartSync()
 	time.Sleep(200 * time.Millisecond)
@@ -428,6 +458,9 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 			return m
 		}
 
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -462,6 +495,11 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return cs
 	}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+
+	forkDetector.CheckForkCalled = func() bool {
+		return false
+	}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -469,7 +507,8 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		chronology.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&ebm,
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	bs.StartSync()
 
@@ -514,6 +553,9 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 			return m
 		}
 
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -546,6 +588,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -553,7 +596,8 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&ebm,
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	r := bs.SyncBlock()
 
@@ -566,6 +610,8 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -581,6 +627,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 		return cs
 	}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -588,7 +635,8 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	assert.False(t, bs.ShouldSync())
 }
@@ -599,6 +647,8 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -614,6 +664,11 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		return cs
 	}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+
+	forkDetector.CheckForkCalled = func() bool {
+		return false
+	}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -621,7 +676,8 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		chronology.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	assert.True(t, bs.ShouldSync())
 }
@@ -636,6 +692,8 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -652,6 +710,11 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+
+	forkDetector.CheckForkCalled = func() bool {
+		return false
+	}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -659,7 +722,8 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	assert.False(t, bs.ShouldSync())
 }
@@ -674,6 +738,8 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -690,6 +756,10 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector.CheckForkCalled = func() bool {
+		return false
+	}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -697,7 +767,8 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		chronology.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	assert.False(t, bs.ShouldSync())
 }
@@ -708,6 +779,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -728,6 +801,11 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+
+	forkDetector.CheckForkCalled = func() bool {
+		return false
+	}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -735,7 +813,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	assert.Nil(t, bs.GetHeaderFromPool(0))
 }
@@ -748,6 +827,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
+
 		sds.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
 			m := make(map[uint32]interface{})
 			if bytes.Equal([]byte("aaa"), key) {
@@ -755,6 +835,10 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 			}
 			return m
 		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -778,6 +862,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		return cs
 	}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -785,7 +870,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	assert.True(t, hdr == bs.GetHeaderFromPool(0))
 }
@@ -796,6 +882,8 @@ func TestBootstrap_GetBlockFromPoolShouldReturnNil(t *testing.T) {
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -815,6 +903,7 @@ func TestBootstrap_GetBlockFromPoolShouldReturnNil(t *testing.T) {
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -822,7 +911,8 @@ func TestBootstrap_GetBlockFromPoolShouldReturnNil(t *testing.T) {
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	r := bs.GetTxBodyFromPool([]byte("aaa"))
 
@@ -835,6 +925,8 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
 		return sds
 	}
 	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -857,6 +949,7 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 		return cs
 	}
 	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -864,7 +957,8 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 		chronology.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		WaitTime,
-		marshalizer)
+		marshalizer,
+		forkDetector)
 
 	assert.True(t, blk == bs.GetTxBodyFromPool([]byte("aaa")))
 

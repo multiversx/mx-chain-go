@@ -8,12 +8,8 @@ func (boot *Bootstrap) RequestHeader(nonce uint64) {
 	boot.requestHeader(nonce)
 }
 
-func (boot *Bootstrap) ShouldSync() bool {
-	return boot.shouldSync()
-}
-
 func (boot *Bootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
-	return boot.getHeaderFromPool(nonce)
+	return boot.getHeaderFromPoolHavingNonce(nonce)
 }
 
 func (boot *Bootstrap) GetTxBodyFromPool(hash []byte) interface{} {

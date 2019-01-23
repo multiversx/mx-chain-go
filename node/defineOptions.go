@@ -272,3 +272,14 @@ func WithMultisig(multisig crypto.MultiSigner) Option {
 		return nil
 	}
 }
+
+// WithMultisig sets up the multisig option for the Node
+func WithForkDetector(forkDetector process.ForkDetector) Option {
+	return func(n *Node) error {
+		if forkDetector == nil {
+			return errNilForkDetector
+		}
+		n.forkDetector = forkDetector
+		return nil
+	}
+}

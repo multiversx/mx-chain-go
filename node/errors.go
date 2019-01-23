@@ -43,3 +43,5 @@ var errNilBalances = errors.New("trying to set nil balances")
 var errNilMultiSig = errors.New("trying to set nil multisig")
 
 var errNilSposWorker = errors.New("nil spos worker")
+
+var errNilForkDetector = errors.New("nil fork detector")
