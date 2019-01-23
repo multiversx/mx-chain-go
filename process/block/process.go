@@ -317,6 +317,12 @@ func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, head
 		//prevHeaderHash := bp.getHeaderHash(blockChain.CurrentBlockHeader)
 
 		if !bytes.Equal(header.PrevHash, blockChain.CurrentBlockHeaderHash) {
+
+			log.Info(fmt.Sprintf(
+				"header.PrevHash = %s and blockChain.CurrentBlockHeaderHash = %s\n",
+				toB64(header.PrevHash),
+				toB64(blockChain.CurrentBlockHeaderHash)))
+
 			return process.ErrInvalidBlockHash
 		}
 	}

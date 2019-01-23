@@ -640,7 +640,6 @@ func (sposWorker *SPOSConsensusWorker) DoCommitmentHashJob() bool {
 		log.Info(fmt.Sprintf("Canceled round %d in subround %s, NOT SYNCRONIZED\n",
 			sposWorker.Cns.Chr.Round().Index(), sposWorker.Cns.GetSubroundName(SrCommitmentHash)))
 		sposWorker.Cns.Chr.SetSelfSubround(-1)
-		sposWorker.BlockProcessor.RevertAccountState()
 		return false
 	}
 
@@ -1385,14 +1384,18 @@ func (sposWorker *SPOSConsensusWorker) ReceivedBlockBody(cnsDta *ConsensusData) 
 		if cnsDta.RoundIndex != sposWorker.Cns.Chr.Round().Index() {
 			log.Info(fmt.Sprintf("Canceled round %d in subround %s, CURRENT ROUND IS %d\n",
 				cnsDta.RoundIndex, sposWorker.Cns.GetSubroundName(SrBlock), sposWorker.Cns.Chr.Round().Index()))
+
 			sposWorker.BlockProcessor.RevertAccountState()
+
 			return false
 		}
 
 		if subround > chronology.SubroundId(SrEndRound) {
 			log.Info(fmt.Sprintf("Canceled round %d in subround %s, CURRENT SUBROUND IS %s\n",
 				cnsDta.RoundIndex, sposWorker.Cns.GetSubroundName(SrBlock), sposWorker.Cns.GetSubroundName(subround)))
+
 			sposWorker.BlockProcessor.RevertAccountState()
+
 			return false
 		}
 
