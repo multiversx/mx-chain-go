@@ -131,9 +131,12 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 
 // SetBalancesToTrie adds balances to trie
 func (txProc *txProcessor) SetBalancesToTrie(accBalance map[string]big.Int) (rootHash []byte, err error) {
-
 	if txProc.accounts.JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
+	}
+
+	if accBalance == nil {
+		return nil, process.ErrNilValue
 	}
 
 	for i, v := range accBalance {

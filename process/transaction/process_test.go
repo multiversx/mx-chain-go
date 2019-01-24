@@ -19,61 +19,71 @@ import (
 func TestNewTxProcessor_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := txproc.NewTxProcessor(
+	txProc, err := txproc.NewTxProcessor(
 		nil,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
 	)
+
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
+	assert.Nil(t, txProc)
 }
 
 func TestNewTxProcessor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := txproc.NewTxProcessor(
+	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		nil,
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
 	)
+
 	assert.Equal(t, process.ErrNilHasher, err)
+	assert.Nil(t, txProc)
 }
 
 func TestNewTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := txproc.NewTxProcessor(
+	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
 		nil,
 		&mock.MarshalizerMock{},
 	)
+
 	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Nil(t, txProc)
 }
 
 func TestNewTxProcessor_NilMarshalizerMockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := txproc.NewTxProcessor(
+	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		nil,
 	)
+
 	assert.Equal(t, process.ErrNilMarshalizer, err)
+	assert.Nil(t, txProc)
 }
 
 func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	_, err := txproc.NewTxProcessor(
+	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
 	)
+
 	assert.Nil(t, err)
+	assert.NotNil(t, txProc)
 }
 
 //------- SChandler
@@ -169,7 +179,7 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 	adr2 := mock.NewAddressMock([]byte{67})
 
 	acnt1 := mock.NewJournalizedAccountWrapMock(adr1)
-	acnt2 := mock.NewJournalizedAccountWrapMock(adr1)
+	acnt2 := mock.NewJournalizedAccountWrapMock(adr2)
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if addressContainer == adr1 {
@@ -194,6 +204,39 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, acnt1, a1)
 	assert.Equal(t, acnt2, a2)
+}
+
+func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
+	accounts := mock.AccountsStub{}
+
+	adr1 := mock.NewAddressMock([]byte{65})
+	adr2 := mock.NewAddressMock([]byte{65})
+
+	acnt1 := mock.NewJournalizedAccountWrapMock(adr1)
+	acnt2 := mock.NewJournalizedAccountWrapMock(adr2)
+
+	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
+		if addressContainer == adr1 {
+			return acnt1, nil
+		}
+
+		if addressContainer == adr2 {
+			return acnt2, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+
+	execTx, _ := txproc.NewTxProcessor(
+		&accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	a1, a2, err := execTx.GetAccounts(adr1, adr1)
+	assert.Nil(t, err)
+	assert.True(t, a1 == a2)
 }
 
 //------- callSCHandler
@@ -677,4 +720,256 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(5), acntSrc.Nonce)
 	assert.Equal(t, *big.NewInt(29), acntSrc.Balance)
 	assert.Equal(t, *big.NewInt(71), acntDest.Balance)
+}
+
+//------- SetBalancesToTrie
+
+func TestTxProcessor_SetBalancesToTrieDirtyAccountsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	accounts := &mock.AccountsStub{
+		JournalLenCalled: func() int {
+			return 1
+		},
+	}
+
+	txProc, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	hash, err := txProc.SetBalancesToTrie(make(map[string]big.Int))
+
+	assert.Nil(t, hash)
+	assert.Equal(t, process.ErrAccountStateDirty, err)
+}
+
+func TestTxProcessor_SetBalancesToTrieNilMapShouldErr(t *testing.T) {
+	t.Parallel()
+
+	accounts := &mock.AccountsStub{
+		JournalLenCalled: func() int {
+			return 0
+		},
+	}
+
+	txProc, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	hash, err := txProc.SetBalancesToTrie(nil)
+
+	assert.Nil(t, hash)
+	assert.Equal(t, process.ErrNilValue, err)
+}
+
+func TestTxProcessor_SetBalancesToTrieCommitFailsShouldRevert(t *testing.T) {
+	t.Parallel()
+
+	adr1 := []byte("accnt1")
+	adr2 := []byte("accnt2")
+
+	accnt1 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr1))
+	accnt2 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr2))
+
+	val1 := *big.NewInt(10)
+	val2 := *big.NewInt(20)
+
+	revertCalled := false
+	errCommit := errors.New("should err")
+
+	accounts := &mock.AccountsStub{
+		JournalLenCalled: func() int {
+			return 0
+		},
+		GetJournalizedAccountCalled: func(addressContainer state.AddressContainer) (wrapper state.JournalizedAccountWrapper, e error) {
+			if bytes.Equal(addressContainer.Bytes(), adr1) {
+				return accnt1, nil
+			}
+
+			if bytes.Equal(addressContainer.Bytes(), adr2) {
+				return accnt2, nil
+			}
+
+			return nil, errors.New("should have not gone through here")
+		},
+		CommitCalled: func() (i []byte, e error) {
+			return nil, errCommit
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			revertCalled = true
+			return nil
+		},
+	}
+
+	txProc, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	m := make(map[string]big.Int)
+	m[string(adr1)] = val1
+	m[string(adr2)] = val2
+
+	hash, err := txProc.SetBalancesToTrie(m)
+
+	assert.Nil(t, hash)
+	assert.Equal(t, errCommit, err)
+	assert.True(t, revertCalled)
+}
+
+func TestTxProcessor_SetBalancesToTrieNilAddressShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr1 := []byte("accnt1")
+	adr2 := []byte("accnt2")
+
+	accnt1 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr1))
+	accnt2 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr2))
+
+	val1 := *big.NewInt(10)
+	val2 := *big.NewInt(20)
+
+	rootHash := []byte("resulted root hash")
+
+	accounts := &mock.AccountsStub{
+		JournalLenCalled: func() int {
+			return 0
+		},
+		GetJournalizedAccountCalled: func(addressContainer state.AddressContainer) (wrapper state.JournalizedAccountWrapper, e error) {
+			if bytes.Equal(addressContainer.Bytes(), adr1) {
+				return accnt1, nil
+			}
+
+			if bytes.Equal(addressContainer.Bytes(), adr2) {
+				return accnt2, nil
+			}
+
+			return nil, errors.New("should have not gone through here")
+		},
+		CommitCalled: func() (i []byte, e error) {
+			return rootHash, nil
+		},
+	}
+
+	txProc, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	m := make(map[string]big.Int)
+	m[string(adr1)] = val1
+	m[string(adr2)] = val2
+
+	hash, err := txProc.SetBalancesToTrie(m)
+
+	assert.Equal(t, rootHash, hash)
+	assert.Nil(t, err)
+	assert.Equal(t, val1, accnt1.Balance)
+	assert.Equal(t, val2, accnt2.Balance)
+}
+
+func TestTxProcessor_SetBalancesToTrieAccountsFailShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr1 := []byte("accnt1")
+	adr2 := []byte("accnt2")
+
+	val1 := *big.NewInt(10)
+	val2 := *big.NewInt(20)
+
+	rootHash := []byte("resulted root hash")
+
+	errAccounts := errors.New("accounts error")
+
+	accounts := &mock.AccountsStub{
+		JournalLenCalled: func() int {
+			return 0
+		},
+		GetJournalizedAccountCalled: func(addressContainer state.AddressContainer) (wrapper state.JournalizedAccountWrapper, e error) {
+
+			return nil, errAccounts
+		},
+		CommitCalled: func() (i []byte, e error) {
+			return rootHash, nil
+		},
+	}
+
+	txProc, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	m := make(map[string]big.Int)
+	m[string(adr1)] = val1
+	m[string(adr2)] = val2
+
+	hash, err := txProc.SetBalancesToTrie(m)
+
+	assert.Nil(t, hash)
+	assert.Equal(t, errAccounts, err)
+}
+
+func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	adr1 := []byte("accnt1")
+	adr2 := []byte("accnt2")
+
+	accnt1 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr1))
+	accnt2 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr2))
+
+	val1 := *big.NewInt(10)
+	val2 := *big.NewInt(20)
+
+	rootHash := []byte("resulted root hash")
+
+	accounts := &mock.AccountsStub{
+		JournalLenCalled: func() int {
+			return 0
+		},
+		GetJournalizedAccountCalled: func(addressContainer state.AddressContainer) (wrapper state.JournalizedAccountWrapper, e error) {
+			if bytes.Equal(addressContainer.Bytes(), adr1) {
+				return accnt1, nil
+			}
+
+			if bytes.Equal(addressContainer.Bytes(), adr2) {
+				return accnt2, nil
+			}
+
+			return nil, errors.New("should have not gone through here")
+		},
+		CommitCalled: func() (i []byte, e error) {
+			return rootHash, nil
+		},
+	}
+
+	txProc, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	m := make(map[string]big.Int)
+	m[string(adr1)] = val1
+	m[string(adr2)] = val2
+
+	hash, err := txProc.SetBalancesToTrie(m)
+
+	assert.Equal(t, rootHash, hash)
+	assert.Nil(t, err)
+	assert.Equal(t, val1, accnt1.Balance)
+	assert.Equal(t, val2, accnt2.Balance)
 }

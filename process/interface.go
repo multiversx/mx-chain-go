@@ -29,12 +29,11 @@ type BlockProcessor interface {
 	ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
 	CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error
 	RevertAccountState()
-	CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody
+	CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) (*block.StateBlockBody, error)
 	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
 	CreateEmptyBlockBody(shardId uint32, round int32) *block.TxBlockBody
 	RemoveBlockTxsFromPool(body *block.TxBlockBody) error
 	GetRootHash() []byte
-	SetOnRequestTransaction(f func(destShardID uint32, txHash []byte))
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -122,6 +121,6 @@ type Bootstraper interface {
 // to detect forks
 type ForkDetector interface {
 	AddHeader(header *block.Header, hash []byte, isReceived bool) error
-	RemoveHeader(nonce uint64)
+	RemoveHeaders(nonce uint64)
 	CheckFork() bool
 }

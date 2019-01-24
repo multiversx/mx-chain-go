@@ -241,3 +241,9 @@ var ErrTimeIsOut = errors.New("time is out")
 
 // ErrNilForkDetector signals that the fork detector is nil
 var ErrNilForkDetector = errors.New("nil fork detector")
+
+// ErrNilTransactionHandler signals that a nil transaction handler func was provided
+var ErrNilTransactionHandler = errors.New("nil request transaction handler")
+
+// ErrNilHaveTimeHandler signals that a nil have time handler func was provided
+var ErrNilHaveTimeHandler = errors.New("nil have time handler")

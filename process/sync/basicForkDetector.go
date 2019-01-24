@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/pkg/errors"
 )
 
 type headerInfo struct {
@@ -28,14 +27,14 @@ func NewBasicForkDetector() *BasicForkDetector {
 	return bfd
 }
 
-// AddHeader metrhod adds a new header to headers map
+// AddHeader method adds a new header to headers map
 func (bfd *BasicForkDetector) AddHeader(header *block.Header, hash []byte, isReceived bool) error {
 	if header == nil {
-		return errors.New("nil header")
+		return ErrNilHeader
 	}
 
 	if hash == nil {
-		return errors.New("nil hash")
+		return ErrNilHash
 	}
 
 	bfd.append(&headerInfo{
@@ -47,12 +46,15 @@ func (bfd *BasicForkDetector) AddHeader(header *block.Header, hash []byte, isRec
 	return nil
 }
 
-func (bfd *BasicForkDetector) RemoveHeader(nonce uint64) {
+// RemoveHeaders removes all stored headers with a given nonce
+func (bfd *BasicForkDetector) RemoveHeaders(nonce uint64) {
 	bfd.mutHeaders.Lock()
 	delete(bfd.headers, nonce)
 	bfd.mutHeaders.Unlock()
 }
 
+// append adds a new header in the slice found in nonce position
+// it not adds the header if its hash is already stored in the slice
 func (bfd *BasicForkDetector) append(hdrInfo *headerInfo) {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
@@ -75,7 +77,7 @@ func (bfd *BasicForkDetector) append(hdrInfo *headerInfo) {
 	bfd.headers[hdrInfo.header.Nonce] = append(bfd.headers[hdrInfo.header.Nonce], hdrInfo)
 }
 
-// CheckFork metrhod checks if the node could be on the fork
+// CheckFork method checks if the node could be on the fork
 func (bfd *BasicForkDetector) CheckFork() bool {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()

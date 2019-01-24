@@ -22,10 +22,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/pkg/errors"
 )
 
-// WaitTime defines the time in milliseconds until node waits the requested info from the network
-const WaitTime = time.Duration(2000 * time.Millisecond)
+// ProcessTime defines the duration for the node to assemble a tx block body
+const ProcessTime = time.Duration(2000 * time.Millisecond)
 
 var log = logger.NewDefaultLogger()
 
@@ -56,6 +57,7 @@ func NewBlockProcessor(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.ShardCoordinator,
 	forkDetector process.ForkDetector,
+	requestTransactionHandler func(destShardID uint32, txHash []byte),
 ) (*blockProcessor, error) {
 
 	if dataPool == nil {
@@ -86,6 +88,10 @@ func NewBlockProcessor(
 		return nil, process.ErrNilForkDetector
 	}
 
+	if requestTransactionHandler == nil {
+		return nil, process.ErrNilTransactionHandler
+	}
+
 	bp := blockProcessor{
 		dataPool:         dataPool,
 		hasher:           hasher,
@@ -97,6 +103,7 @@ func NewBlockProcessor(
 	}
 
 	bp.ChRcvAllTxs = make(chan bool)
+	bp.OnRequestTransaction = requestTransactionHandler
 
 	transactionPool := bp.dataPool.Transactions()
 
@@ -109,13 +116,8 @@ func NewBlockProcessor(
 	return &bp, nil
 }
 
-// TODO: refactor this!!!!!
-func (bp *blockProcessor) SetOnRequestTransaction(f func(destShardID uint32, txHash []byte)) {
-	bp.OnRequestTransaction = f
-}
-
 func (bp *blockProcessor) haveTime() time.Duration {
-	return WaitTime
+	return ProcessTime
 }
 
 // ProcessAndCommit takes each transaction from the transactions block body received as parameter
@@ -123,12 +125,17 @@ func (bp *blockProcessor) haveTime() time.Duration {
 // if transaction is not valid or not found it will return error.
 // If all ok it will commit the block and state.
 func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
-	err := bp.validateHeader(blockChain, header)
+	err := checkForNils(blockChain, header, body)
 	if err != nil {
 		return err
 	}
 
-	err = bp.ProcessBlock(blockChain, header, body, bp.haveTime)
+	err = bp.validateHeader(blockChain, header)
+	if err != nil {
+		return err
+	}
+
+	err = bp.processBlock(blockChain, header, body, bp.haveTime)
 
 	defer func() {
 		if err != nil {
@@ -140,8 +147,6 @@ func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, he
 		return err
 	}
 
-	// TODO: Check should be done with TxBlockBody root hash and not with the itself
-	//if !bp.VerifyStateRoot(bp.accounts.RootHash()) {
 	if !bp.VerifyStateRoot(body.RootHash) {
 		err = process.ErrRootStateMissmatch
 		return err
@@ -155,7 +160,23 @@ func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, he
 	return nil
 }
 
-// RevertAccountState reverets the account state for cleanup failed process
+func checkForNils(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+	if blockChain == nil {
+		return process.ErrNilBlockChain
+	}
+
+	if header == nil {
+		return process.ErrNilBlockHeader
+	}
+
+	if body == nil {
+		return process.ErrNilTxBlockBody
+	}
+
+	return nil
+}
+
+// RevertAccountState reverts the account state for cleanup failed process
 func (bp *blockProcessor) RevertAccountState() {
 	err := bp.accounts.RevertToSnapshot(0)
 
@@ -166,6 +187,19 @@ func (bp *blockProcessor) RevertAccountState() {
 
 // ProcessBlock processes a block. It returns nil if all ok or the speciffic error
 func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
+	err := checkForNils(blockChain, header, body)
+	if err != nil {
+		return err
+	}
+
+	if haveTime == nil {
+		return process.ErrNilHaveTimeHandler
+	}
+
+	return bp.processBlock(blockChain, header, body, haveTime)
+}
+
+func (bp *blockProcessor) processBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 	err := bp.validateBlockBody(body)
 	if err != nil {
 		return err
@@ -253,6 +287,7 @@ func (bp *blockProcessor) CreateTxBlockBody(shardId uint32, maxTxInBlock int, ro
 	return blk, nil
 }
 
+// CreateEmptyBlockBody creates a new block body without any tx hash
 func (bp *blockProcessor) CreateEmptyBlockBody(shardId uint32, round int32) *block.TxBlockBody {
 	miniBlocks := make([]block.MiniBlock, 0)
 
@@ -270,16 +305,11 @@ func (bp *blockProcessor) CreateEmptyBlockBody(shardId uint32, round int32) *blo
 }
 
 // CreateGenesisBlockBody creates the genesis block body from map of account balances
-func (bp *blockProcessor) CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody {
-	if bp.txProcessor == nil {
-		panic("transaction Processor is nil")
-	}
-
+func (bp *blockProcessor) CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) (*block.StateBlockBody, error) {
 	rootHash, err := bp.txProcessor.SetBalancesToTrie(balances)
 
 	if err != nil {
-		// cannot create Genesis block
-		panic(err)
+		return nil, errors.New("can not create genesis block body " + err.Error())
 	}
 
 	stateBlockBody := &block.StateBlockBody{
@@ -287,7 +317,7 @@ func (bp *blockProcessor) CreateGenesisBlockBody(balances map[string]big.Int, sh
 		ShardID:  shardId,
 	}
 
-	return stateBlockBody
+	return stateBlockBody, nil
 }
 
 // GetRootHash returns the accounts merkle tree root hash
@@ -314,8 +344,6 @@ func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, head
 			return process.ErrWrongNonceInBlock
 		}
 
-		//prevHeaderHash := bp.getHeaderHash(blockChain.CurrentBlockHeader)
-
 		if !bytes.Equal(header.PrevHash, blockChain.CurrentBlockHeaderHash) {
 
 			log.Info(fmt.Sprintf(
@@ -333,19 +361,6 @@ func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, head
 
 	return nil
 }
-
-//func (bp *blockProcessor) getHeaderHash(hdr *block.Header) []byte {
-//	headerMarsh, err := bp.marshalizer.Marshal(hdr)
-//
-//	if err != nil {
-//		log.Error(err.Error())
-//		return nil
-//	}
-//
-//	headerHash := bp.hasher.Compute(string(headerMarsh))
-//
-//	return headerHash
-//}
 
 func (bp *blockProcessor) validateBlockBody(body *block.TxBlockBody) error {
 	txbWrapper := TxBlockBodyWrapper{
@@ -412,7 +427,11 @@ func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody, roun
 }
 
 // CommitBlock commits the block in the blockchain if everything was checked successfully
-func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+	err := checkForNils(blockChain, header, body)
+	if err != nil {
+		return err
+	}
 
 	buff, err := bp.marshalizer.Marshal(header)
 	if err != nil {
@@ -421,19 +440,16 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 
 	headerHash := bp.hasher.Compute(string(buff))
 	err = blockChain.Put(blockchain.BlockHeaderUnit, headerHash, buff)
-
 	if err != nil {
 		return process.ErrPersistWithoutSuccess
 	}
 
-	buff, err = bp.marshalizer.Marshal(block)
-
+	buff, err = bp.marshalizer.Marshal(body)
 	if err != nil {
 		return process.ErrMarshalWithoutSuccess
 	}
 
 	err = blockChain.Put(blockchain.TxBlockBodyUnit, header.BlockBodyHash, buff)
-
 	if err != nil {
 		return process.ErrPersistWithoutSuccess
 	}
@@ -445,44 +461,43 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 
 	_ = headerNoncePool.Put(header.Nonce, headerHash)
 
-	for i := 0; i < len(block.MiniBlocks); i++ {
-		miniBlock := block.MiniBlocks[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
 			tx := bp.getTransactionFromPool(miniBlock.ShardID, txHash)
-
 			if tx == nil {
 				return process.ErrMissingTransaction
 			}
 
 			buff, err = bp.marshalizer.Marshal(tx)
-
 			if err != nil {
 				return process.ErrMarshalWithoutSuccess
 			}
 
 			err = blockChain.Put(blockchain.TransactionUnit, txHash, buff)
-
 			if err != nil {
 				return process.ErrPersistWithoutSuccess
 			}
 		}
 	}
 
-	err = bp.RemoveBlockTxsFromPool(block)
+	err = bp.RemoveBlockTxsFromPool(body)
 	if err != nil {
 		log.Error(err.Error())
 	}
 
 	_, err = bp.accounts.Commit()
-
-	if err == nil {
-		blockChain.CurrentTxBlockBody = block
-		blockChain.CurrentBlockHeader = header
-		blockChain.CurrentBlockHeaderHash = headerHash
-		bp.forkDetector.AddHeader(header, headerHash, false)
-		go bp.displayBlockchain(blockChain)
+	if err != nil {
+		return err
 	}
+
+	blockChain.CurrentTxBlockBody = body
+	blockChain.CurrentBlockHeader = header
+	blockChain.CurrentBlockHeaderHash = headerHash
+	err = bp.forkDetector.AddHeader(header, headerHash, false)
+
+	go bp.displayBlockchain(blockChain)
 
 	return err
 }
@@ -490,21 +505,18 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 // getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
 func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []byte) *transaction.Transaction {
 	txPool := bp.dataPool.Transactions()
-
 	if txPool == nil {
 		log.Error(process.ErrNilTransactionPool.Error())
 		return nil
 	}
 
 	txStore := txPool.ShardDataStore(destShardID)
-
 	if txStore == nil {
 		log.Error(process.ErrNilTxStorage.Error())
 		return nil
 	}
 
 	val, ok := txStore.Get(txHash)
-
 	if !ok {
 		return nil
 	}
