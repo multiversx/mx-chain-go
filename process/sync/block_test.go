@@ -2,6 +2,7 @@ package sync_test
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -1345,6 +1346,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldRemove(t *testing.T) {
 
 	err := bs.ForkChoice(newHdr)
 	assert.Equal(t, reflect.TypeOf(&sync.ErrNotEmptyHeader{}), reflect.TypeOf(err))
+	fmt.Printf(err.Error())
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
 	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)

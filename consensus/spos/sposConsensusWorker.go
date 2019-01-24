@@ -1165,7 +1165,7 @@ func (sposWorker *SPOSConsensusWorker) CreateEmptyBlock() bool {
 
 	hdr := &block.Header{}
 	hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
-	hdr.TimeStamp = uint64(sposWorker.Cns.Chr.Round().TimeStamp().Unix())
+	hdr.TimeStamp = sposWorker.GetTime()
 
 	var prevHeaderHash []byte
 
@@ -1840,7 +1840,7 @@ func (sposWorker *SPOSConsensusWorker) GetMessageTypeName(messageType MessageTyp
 
 // GetTime method returns a string containing the current time
 func (sposWorker *SPOSConsensusWorker) GetTime() uint64 {
-	return uint64(sposWorker.Cns.Chr.SyncTime().CurrentTime(sposWorker.Cns.Chr.ClockOffset()).Unix())
+	return uint64(sposWorker.Cns.Chr.Round().TimeStamp().Unix())
 }
 
 // CheckEndRoundConsensus method checks if the consensus is achieved in each subround from first subround to the given
