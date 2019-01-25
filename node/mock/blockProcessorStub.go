@@ -31,7 +31,7 @@ func (bps *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, h
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody {
+func (bps *BlockProcessorStub) CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) (*block.StateBlockBody, error) {
 	panic("implement me")
 }
 

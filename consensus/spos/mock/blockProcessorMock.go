@@ -14,7 +14,7 @@ type BlockProcessorMock struct {
 	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
 	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error
 	RevertAccountStateCalled      func()
-	CreateGenesisBlockCalled      func(balances map[string]big.Int, shardId uint32) *block.StateBlockBody
+	CreateGenesisBlockCalled      func(balances map[string]big.Int, shardId uint32) (*block.StateBlockBody, error)
 	CreateTxBlockCalled           func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
 	CreateEmptyBlockBodyCalled    func(shardId uint32, round int32) *block.TxBlockBody
 	RemoveBlockTxsFromPoolCalled  func(body *block.TxBlockBody) error
@@ -47,8 +47,8 @@ func (blProcMock *BlockProcessorMock) RevertAccountState() {
 }
 
 // CreateGenesisBlockBody mocks the creation of a genesis block body
-func (blProcMock *BlockProcessorMock) CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody {
-	panic("implement me")
+func (blProcMock *BlockProcessorMock) CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) (*block.StateBlockBody, error) {
+	return blProcMock.CreateGenesisBlockCalled(balances, shardId)
 }
 
 // CreateTxBlockBody mocks the creation of a transaction block body

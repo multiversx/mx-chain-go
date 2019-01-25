@@ -341,6 +341,18 @@ func TestGettersAndSetters(t *testing.T) {
 	spew.Dump(chr.SubroundHandlers())
 }
 
+func TestRoundTimeStamp_ShouldReturnCorrectTimeStamp(t *testing.T) {
+	genesisTime := time.Now()
+	currentTime := genesisTime
+
+	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
+	chr := chronology.NewChronology(true, rnd, genesisTime, ntp.NewSyncTime(roundTimeDuration, nil))
+
+	timeStamp := chr.RoundTimeStamp(2)
+
+	assert.Equal(t, genesisTime.Add(time.Duration(2*rnd.TimeDuration())).Unix(), int64(timeStamp))
+}
+
 func TestChronology_InitRoundDeviatedPositiveFromMaxDiffShouldWork(t *testing.T) {
 	clockOffsetNoOfCalls := 0
 

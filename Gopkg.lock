@@ -1087,7 +1087,6 @@
     "github.com/stretchr/testify/assert",
     "github.com/syndtr/goleveldb/leveldb",
     "github.com/urfave/cli",
-    "github.com/whyrusleeping/go-logging",
     "golang.org/x/crypto/blake2b",
     "golang.org/x/crypto/sha3",
     "gopkg.in/dedis/kyber.v2",

@@ -363,3 +363,28 @@ func TestRoundConsensus_SetJobDoneShouldNotBeSetWhenValidatorIsNotInTheConsensus
 	isJobDone, _ := rndc.GetJobDone("4", spos.SrBlock)
 	assert.False(t, isJobDone)
 }
+
+func TestIsSelfInBitmapGroup_ShoudReturnFalse(t *testing.T) {
+	rCns := spos.NewRoundConsensus(
+		[]string{"1", "2", "3"},
+		"2")
+
+	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
+		if rCns.ConsensusGroup()[i] == rCns.SelfPubKey() {
+			continue
+		}
+
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, true)
+	}
+
+	assert.False(t, rCns.IsSelfInBitmap())
+}
+
+func TestIsSelfInBitmapGroup_ShoudReturnTrue(t *testing.T) {
+	rCns := spos.NewRoundConsensus(
+		[]string{"1", "2", "3"},
+		"2")
+
+	rCns.SetJobDone(rCns.SelfPubKey(), spos.SrBitmap, true)
+	assert.True(t, rCns.IsSelfInBitmap())
+}
