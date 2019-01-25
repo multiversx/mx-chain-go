@@ -34,6 +34,7 @@ func init() {
 	globallyRegisteredPeers = make(map[peer.ID]*MemMessenger)
 }
 
+// ReInitializeGloballyRegisteredPeers will clean all known memMessenger instances
 func ReInitializeGloballyRegisteredPeers() {
 	mutGloballyRegPeers.Lock()
 	globallyRegisteredPeers = make(map[peer.ID]*MemMessenger)

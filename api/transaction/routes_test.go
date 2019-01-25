@@ -17,6 +17,7 @@ import (
 	tr "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,6 +30,8 @@ type TransactionResponse struct {
 	GeneralResponse
 	TxResp *transaction.TxResponse `json:"transaction,omitempty"`
 }
+
+//------- GenerateTransaction
 
 func TestGenerateTransaction_WithParametersShouldReturnTransaction(t *testing.T) {
 	t.Parallel()
@@ -74,6 +77,81 @@ func TestGenerateTransaction_WithParametersShouldReturnTransaction(t *testing.T)
 	assert.Equal(t, data, txResp.Data)
 }
 
+func TestGenerateTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{}
+
+	ws := startNodeServer(&facade)
+
+	badJsonString := "bad"
+
+	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(badJsonString)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, transactionResponse.Error, "Validation error: ")
+}
+
+func TestGenerateTransaction_WithBadJsonShouldReturnInternalServerError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerWrongFacade()
+
+	badJsonString := "bad"
+
+	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(badJsonString)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Contains(t, transactionResponse.Error, "Invalid app context")
+}
+
+func TestGenerateTransaction_GenerationFailedShouldReturnInternalServerError(t *testing.T) {
+	t.Parallel()
+	sender := "sender"
+	receiver := "receiver"
+	value := big.NewInt(10)
+	data := "data"
+
+	facade := mock.Facade{
+		GenerateTransactionHandler: func(sender string, receiver string, value big.Int, code string) (transaction *tr.Transaction, e error) {
+			return nil, errors.New("generation failed")
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	jsonStr := fmt.Sprintf(
+		`{"sender":"%s",`+
+			`"receiver":"%s",`+
+			`"value":%s,`+
+			`"data":"%s"}`, sender, receiver, value, data)
+
+	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(jsonStr)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Contains(t, transactionResponse.Error, "generation failed")
+}
+
+//------- GenerateAndSendMultipleTransaction
+
 func TestGenerateAndSendMultipleTransaction_WithParametersShouldReturnNoError(t *testing.T) {
 	t.Parallel()
 	receiver := "multipleReceiver"
@@ -106,6 +184,80 @@ func TestGenerateAndSendMultipleTransaction_WithParametersShouldReturnNoError(t 
 	assert.Equal(t, "", multipleTransactionResponse.Error)
 	assert.Equal(t, fmt.Sprintf("%d", noTxs), multipleTransactionResponse.Message)
 }
+
+func TestGenerateAndSendMultipleTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{}
+
+	ws := startNodeServer(&facade)
+
+	badJsonString := "bad"
+
+	req, _ := http.NewRequest("POST", "/transaction/generateAndSendMultiple", bytes.NewBuffer([]byte(badJsonString)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := GeneralResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, transactionResponse.Error, "Validation error: ")
+}
+
+func TestGenerateAndSendMultipleTransaction_WithBadJsonShouldReturnInternalServerError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerWrongFacade()
+
+	badJsonString := "bad"
+
+	req, _ := http.NewRequest("POST", "/transaction/generateAndSendMultiple", bytes.NewBuffer([]byte(badJsonString)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Contains(t, transactionResponse.Error, "Invalid app context")
+}
+
+func TestGenerateAndSendMultipleTransaction_GenerationFailedShouldReturnInternalServerError(t *testing.T) {
+	t.Parallel()
+	receiver := "multipleReceiver"
+	value := big.NewInt(5)
+	noTxs := 10
+
+	facade := mock.Facade{
+		GenerateAndSendBulkTransactionsHandler: func(receiver string, value big.Int,
+			noTxs uint64) error {
+			return errors.New("generation failed")
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	jsonStr := fmt.Sprintf(
+		`{"receiver":"%s",`+
+			`"value":%s,`+
+			`"noTxs":%d}`, receiver, value, noTxs)
+
+	req, _ := http.NewRequest("POST", "/transaction/generateAndSendMultiple", bytes.NewBuffer([]byte(jsonStr)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	multipleTransactionResponse := GeneralResponse{}
+	loadResponse(resp.Body, &multipleTransactionResponse)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Contains(t, multipleTransactionResponse.Error, "generation failed")
+}
+
+//------- GetTransaction
 
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
@@ -174,48 +326,6 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	assert.Nil(t, transactionResponse.TxResp)
 }
 
-func TestGenerateTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.Facade{}
-
-	ws := startNodeServer(&facade)
-
-	badJsonString := "bad"
-
-	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(badJsonString)))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, transactionResponse.Error, "Validation error: ")
-}
-
-func TestGenerateAndSendMultipleTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
-	t.Parallel()
-
-	facade := mock.Facade{}
-
-	ws := startNodeServer(&facade)
-
-	badJsonString := "bad"
-
-	req, _ := http.NewRequest("POST", "/transaction/generateAndSendMultiple", bytes.NewBuffer([]byte(badJsonString)))
-
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	transactionResponse := GeneralResponse{}
-	loadResponse(resp.Body, &transactionResponse)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, transactionResponse.Error, "Validation error: ")
-}
-
 func TestGetTransaction_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
 
@@ -230,14 +340,106 @@ func TestGetTransaction_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	assert.Equal(t, transactionResponse.Error, "Invalid app context")
 }
 
-func TestGenerateTransaction_WithBadJsonShouldReturnInternalServerError(t *testing.T) {
+func TestGetTransaction_GetFailedShouldReturnInternalServerError(t *testing.T) {
+	hash := "hash"
+	facade := mock.Facade{
+		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
+			return nil, errors.New("get failed")
+		},
+	}
+
+	req, _ := http.NewRequest("GET", "/transaction/"+hash, nil)
+	ws := startNodeServer(&facade)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Contains(t, transactionResponse.Error, "Transaction getting failed")
+}
+
+//------- SendTransaction
+
+func TestSendTransaction_WithParametersShouldReturnTransaction(t *testing.T) {
+	t.Parallel()
+
+	sender := "sender"
+	receiver := "receiver"
+	value := big.NewInt(10)
+	data := "data"
+	sig := hex.EncodeToString([]byte("sig"))
+
+	facade := mock.Facade{
+		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value big.Int, code string, signature []byte) (*tr.Transaction, error) {
+			return &tr.Transaction{
+				SndAddr:   []byte(sender),
+				RcvAddr:   []byte(receiver),
+				Data:      []byte(code),
+				Value:     value,
+				Signature: signature,
+			}, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	jsonStr := fmt.Sprintf(
+		`{"sender":"%s",`+
+			`"receiver":"%s",`+
+			`"value":%s,`+
+			`"data":"%s",`+
+			`"signature":"%s"}`, sender, receiver, value, data, sig)
+
+	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer([]byte(jsonStr)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	txResp := transactionResponse.TxResp
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", transactionResponse.Error)
+	assert.Equal(t, hex.EncodeToString([]byte(sender)), txResp.Sender)
+	assert.Equal(t, hex.EncodeToString([]byte(receiver)), txResp.Receiver)
+	assert.Equal(t, value, txResp.Value)
+	assert.Equal(t, data, txResp.Data)
+	assert.Equal(t, sig, txResp.Signature)
+}
+
+func TestSendTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{}
+
+	ws := startNodeServer(&facade)
+
+	badJsonString := "bad"
+
+	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer([]byte(badJsonString)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, transactionResponse.Error, "Validation error: ")
+}
+
+func TestSendTransaction_WithBadJsonShouldReturnInternalServerError(t *testing.T) {
 	t.Parallel()
 
 	ws := startNodeServerWrongFacade()
 
 	badJsonString := "bad"
 
-	req, _ := http.NewRequest("POST", "/transaction/generate", bytes.NewBuffer([]byte(badJsonString)))
+	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer([]byte(badJsonString)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -249,14 +451,62 @@ func TestGenerateTransaction_WithBadJsonShouldReturnInternalServerError(t *testi
 	assert.Contains(t, transactionResponse.Error, "Invalid app context")
 }
 
-func TestGenerateAndSendMultipleTransaction_WithBadJsonShouldReturnInternalServerError(t *testing.T) {
+func TestSendTransaction_WithBadSignatureShouldReturnBadRequest(t *testing.T) {
+	t.Parallel()
+	sender := "sender"
+	receiver := "receiver"
+	value := big.NewInt(10)
+	data := "data"
+	sig := []byte("sig is not hex!")
+
+	facade := mock.Facade{}
+
+	ws := startNodeServer(&facade)
+
+	jsonStr := fmt.Sprintf(
+		`{"sender":"%s",`+
+			`"receiver":"%s",`+
+			`"value":%s,`+
+			`"data":"%s",`+
+			`"signature":"%s"}`, sender, receiver, value, data, sig)
+
+	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer([]byte(jsonStr)))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	transactionResponse := TransactionResponse{}
+	loadResponse(resp.Body, &transactionResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, transactionResponse.Error, "Invalid signature, could not decode hex value")
+}
+
+func TestSendTransaction_SendFailedShouldReturnInternalServerError(t *testing.T) {
 	t.Parallel()
 
-	ws := startNodeServerWrongFacade()
+	sender := "sender"
+	receiver := "receiver"
+	value := big.NewInt(10)
+	data := "data"
+	sig := hex.EncodeToString([]byte("sig"))
 
-	badJsonString := "bad"
+	facade := mock.Facade{
+		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value big.Int, code string, signature []byte) (*tr.Transaction, error) {
+			return nil, errors.New("send failed")
+		},
+	}
 
-	req, _ := http.NewRequest("POST", "/transaction/generateAndSendMultiple", bytes.NewBuffer([]byte(badJsonString)))
+	ws := startNodeServer(&facade)
+
+	jsonStr := fmt.Sprintf(
+		`{"sender":"%s",`+
+			`"receiver":"%s",`+
+			`"value":%s,`+
+			`"data":"%s",`+
+			`"signature":"%s"}`, sender, receiver, value, data, sig)
+
+	req, _ := http.NewRequest("POST", "/transaction/send", bytes.NewBuffer([]byte(jsonStr)))
 
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
@@ -265,7 +515,7 @@ func TestGenerateAndSendMultipleTransaction_WithBadJsonShouldReturnInternalServe
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Contains(t, transactionResponse.Error, "Invalid app context")
+	assert.Contains(t, transactionResponse.Error, "send failed")
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

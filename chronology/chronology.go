@@ -73,7 +73,7 @@ func NewChronology(
 	return &chr
 }
 
-// initRound is called when a new round begins and do the necesary initialization
+// initRound is called when a new round begins and do the necessary initialization
 func (chr *Chronology) initRound() {
 	chr.SetSelfSubround(-1)
 
@@ -106,20 +106,34 @@ func (chr *Chronology) StartRounds() {
 
 // StartRound calls the current subround, given by the current time or by the finished tasks in this round
 func (chr *Chronology) StartRound() {
-	subRound := chr.updateRound()
+	subRoundId := chr.updateRound()
 
-	if chr.SelfSubround() == subRound {
-		sr := chr.LoadSubroundHandler(subRound)
-		if sr != nil {
-			if chr.Round().Index() >= 0 {
-				if sr.DoWork(chr.ComputeSubRoundId, chr.IsCancelled) {
-					if !chr.IsCancelled() {
-						chr.SetSelfSubround(sr.Next())
-					}
-				}
-			}
-		}
+	chr.updateSelfSubroundIfNeeded(subRoundId)
+}
+
+func (chr *Chronology) updateSelfSubroundIfNeeded(subRoundId SubroundId) {
+	if chr.SelfSubround() != subRoundId {
+		return
 	}
+
+	sr := chr.LoadSubroundHandler(subRoundId)
+	if sr == nil {
+		return
+	}
+
+	if chr.Round().Index() < 0 {
+		return
+	}
+
+	if !sr.DoWork(chr.ComputeSubRoundId, chr.IsCancelled) {
+		return
+	}
+
+	if chr.IsCancelled() {
+		return
+	}
+
+	chr.SetSelfSubround(sr.Next())
 }
 
 // updateRound updates Rounds and subrounds inside round depending of the current time and sync mode

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
@@ -284,7 +285,7 @@ func TestRoundState(t *testing.T) {
 	currentTime := time.Now()
 
 	rnd := chronology.NewRound(currentTime, currentTime, roundTimeDuration)
-	chr := chronology.NewChronology( true, rnd, currentTime, ntp.NewSyncTime(roundTimeDuration, nil))
+	chr := chronology.NewChronology(true, rnd, currentTime, ntp.NewSyncTime(roundTimeDuration, nil))
 
 	state := chr.GetSubroundFromDateTime(currentTime)
 	assert.Equal(t, chronology.SubroundId(-1), state)
@@ -338,4 +339,203 @@ func TestGettersAndSetters(t *testing.T) {
 	chr.AddSubround(&SRStartRound{})
 
 	spew.Dump(chr.SubroundHandlers())
+}
+
+func TestChronology_InitRoundDeviatedPositiveFromMaxDiffShouldWork(t *testing.T) {
+	clockOffsetNoOfCalls := 0
+
+	syncer := &mock.SyncTimeStub{
+		ClockOffsetCalled: func() time.Duration {
+			defer func() {
+				clockOffsetNoOfCalls++
+			}()
+
+			if clockOffsetNoOfCalls == 0 {
+				return time.Duration(int64(0))
+			}
+
+			return chronology.MaxDiffAccepted() + 1
+		},
+	}
+
+	chr := chronology.NewChronology(true, nil, time.Now(), syncer)
+
+	chr.InitRound()
+
+	assert.Equal(t, chronology.MaxDiffAccepted()+1, chr.ClockOffset())
+
+}
+
+func TestChronology_InitRoundDeviatedNegativeFromMaxDiffShouldWork(t *testing.T) {
+	clockOffsetNoOfCalls := 0
+
+	syncer := &mock.SyncTimeStub{
+		ClockOffsetCalled: func() time.Duration {
+			defer func() {
+				clockOffsetNoOfCalls++
+			}()
+
+			if clockOffsetNoOfCalls == 0 {
+				return chronology.MaxDiffAccepted() + 1
+			}
+
+			return time.Duration(int64(0))
+		},
+	}
+
+	chr := chronology.NewChronology(true, nil, time.Now(), syncer)
+
+	chr.InitRound()
+
+	assert.Equal(t, time.Duration(0), chr.ClockOffset())
+
+}
+
+//------- UpdateSelfSubroundIfNeeded
+
+func TestChronology_UpdateSelfSubroundIfNeededShouldNotChangeForDifferentSubroundId(t *testing.T) {
+	round := chronology.NewRound(time.Unix(0, 0), time.Unix(0, 0), time.Duration(4))
+	syncer := &mock.SyncTimeMock{
+		CurrentTimeCalled: func(duration time.Duration) time.Time {
+			return time.Unix(-1, 0)
+		},
+	}
+
+	subRoundId := chronology.SubroundId(-5)
+
+	chr := chronology.NewChronology(true, round, time.Unix(0, 0), syncer)
+	chr.SetSelfSubround(subRoundId)
+	chr.UpdateSelfSubroundIfNeeded(-4)
+
+	assert.Equal(t, subRoundId, chr.SelfSubround())
+}
+
+func TestChronology_UpdateSelfSubroundIfNeededShouldNotChangeForNotFoundSubroundHandler(t *testing.T) {
+	round := chronology.NewRound(time.Unix(0, 0), time.Unix(0, 0), time.Duration(4))
+	syncer := &mock.SyncTimeMock{
+		CurrentTimeCalled: func(duration time.Duration) time.Time {
+			return time.Unix(-1, 0)
+		},
+	}
+
+	subRoundId := chronology.SubroundId(-5)
+
+	chr := chronology.NewChronology(true, round, time.Unix(0, 0), syncer)
+	chr.SetSelfSubround(subRoundId)
+	chr.UpdateSelfSubroundIfNeeded(subRoundId)
+
+	assert.Equal(t, subRoundId, chr.SelfSubround())
+}
+
+func createStubSubroundHandler(subroundId int) *mock.SubroundHandlerStub {
+	return &mock.SubroundHandlerStub{
+		CurrentCalled: func() chronology.SubroundId {
+			return chronology.SubroundId(subroundId)
+		},
+	}
+}
+
+func TestChronology_UpdateSelfSubroundIfNeededShouldNotChangeForNegativeRound(t *testing.T) {
+	round := chronology.NewRound(time.Unix(0, 0), time.Unix(-1, 0), time.Duration(4))
+	syncer := &mock.SyncTimeMock{
+		CurrentTimeCalled: func(duration time.Duration) time.Time {
+			return time.Unix(-1, 0)
+		},
+	}
+
+	subRoundId := chronology.SubroundId(2)
+
+	chr := chronology.NewChronology(true, round, time.Unix(0, 0), syncer)
+	//add 3 stubs for subroundHandler
+	chr.AddSubround(createStubSubroundHandler(0))
+	chr.AddSubround(createStubSubroundHandler(1))
+	chr.AddSubround(createStubSubroundHandler(2))
+
+	chr.SetSelfSubround(subRoundId)
+	chr.UpdateSelfSubroundIfNeeded(subRoundId)
+
+	assert.Equal(t, subRoundId, chr.SelfSubround())
+}
+
+func TestChronology_UpdateSelfSubroundIfNeededShouldNotChangeForDoWorkReturningFalse(t *testing.T) {
+	round := chronology.NewRound(time.Unix(0, 0), time.Unix(0, 0), time.Duration(4))
+	syncer := &mock.SyncTimeMock{
+		CurrentTimeCalled: func(duration time.Duration) time.Time {
+			return time.Unix(-1, 0)
+		},
+	}
+
+	subRoundId := chronology.SubroundId(2)
+
+	chr := chronology.NewChronology(true, round, time.Unix(0, 0), syncer)
+	//add 3 stubs for subroundHandler
+	chr.AddSubround(createStubSubroundHandler(0))
+	chr.AddSubround(createStubSubroundHandler(1))
+	crtSubroundHandler := createStubSubroundHandler(2)
+	crtSubroundHandler.DoWorkCalled = func(id func() chronology.SubroundId, i func() bool) bool {
+		return false
+	}
+	chr.AddSubround(crtSubroundHandler)
+
+	chr.SetSelfSubround(subRoundId)
+	chr.UpdateSelfSubroundIfNeeded(subRoundId)
+
+	assert.Equal(t, subRoundId, chr.SelfSubround())
+}
+
+func TestChronology_UpdateSelfSubroundIfNeededShouldNotChangeWhileWorkingRoundIsCancelled(t *testing.T) {
+	round := chronology.NewRound(time.Unix(0, 0), time.Unix(0, 0), time.Duration(4))
+	syncer := &mock.SyncTimeMock{
+		CurrentTimeCalled: func(duration time.Duration) time.Time {
+			return time.Unix(-1, 0)
+		},
+	}
+
+	subRoundId := chronology.SubroundId(2)
+
+	chr := chronology.NewChronology(true, round, time.Unix(0, 0), syncer)
+	//add 3 stubs for subroundHandler
+	chr.AddSubround(createStubSubroundHandler(0))
+	chr.AddSubround(createStubSubroundHandler(1))
+	crtSubroundHandler := createStubSubroundHandler(2)
+	crtSubroundHandler.DoWorkCalled = func(id func() chronology.SubroundId, i func() bool) bool {
+		chr.SetSelfSubround(-1)
+		return true
+	}
+	chr.AddSubround(crtSubroundHandler)
+
+	chr.SetSelfSubround(subRoundId)
+	chr.UpdateSelfSubroundIfNeeded(subRoundId)
+
+	assert.Equal(t, chronology.SubroundId(-1), chr.SelfSubround())
+}
+
+func TestChronology_UpdateSelfSubroundIfNeededShouldShouldChange(t *testing.T) {
+	round := chronology.NewRound(time.Unix(0, 0), time.Unix(0, 0), time.Duration(4))
+	syncer := &mock.SyncTimeMock{
+		CurrentTimeCalled: func(duration time.Duration) time.Time {
+			return time.Unix(-1, 0)
+		},
+	}
+
+	subRoundId := chronology.SubroundId(2)
+	nextSubRoundId := chronology.SubroundId(100)
+
+	chr := chronology.NewChronology(true, round, time.Unix(0, 0), syncer)
+	//add 3 stubs for subroundHandler
+	chr.AddSubround(createStubSubroundHandler(0))
+	chr.AddSubround(createStubSubroundHandler(1))
+	crtSubroundHandler := createStubSubroundHandler(2)
+	crtSubroundHandler.DoWorkCalled = func(id func() chronology.SubroundId, i func() bool) bool {
+		return true
+	}
+	crtSubroundHandler.NextCalled = func() chronology.SubroundId {
+		return nextSubRoundId
+	}
+	chr.AddSubround(crtSubroundHandler)
+
+	chr.SetSelfSubround(subRoundId)
+	chr.UpdateSelfSubroundIfNeeded(subRoundId)
+
+	assert.Equal(t, nextSubRoundId, chr.SelfSubround())
 }

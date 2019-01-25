@@ -8,7 +8,7 @@ import (
 	"github.com/beevik/ntp"
 )
 
-// totalRequests defines the number of requests made to deterime an accurate clock offset
+// totalRequests defines the number of requests made to determine an accurate clock offset
 const totalRequests = 10
 
 // SyncTimer defines an interface for time synchronization
@@ -33,7 +33,7 @@ func NewSyncTime(syncPeriod time.Duration, query func(host string) (*ntp.Respons
 	return &s
 }
 
-// StartSync method does the time syncronization at every syncPeriod time elapsed. This should be started
+// StartSync method does the time synchronization at every syncPeriod time elapsed. This should be started
 // as a go routine
 func (s *syncTime) StartSync() {
 	for {
@@ -42,8 +42,8 @@ func (s *syncTime) StartSync() {
 	}
 }
 
-// sync method does the time syncronization and sets the current offset difference between local time
-// and server time with wich it has done the syncronization
+// sync method does the time synchronization and sets the current offset difference between local time
+// and server time with which it has done the synchronization
 func (s *syncTime) sync() {
 	if s.query != nil {
 		clockOffsetSum := time.Duration(0)
@@ -82,7 +82,7 @@ func (s *syncTime) setClockOffset(clockOffset time.Duration) {
 	s.mut.Unlock()
 }
 
-// FormattedCurrentTime method gets the formatted current time on wich is added a given offset
+// FormattedCurrentTime method gets the formatted current time on which is added a given offset
 func (s *syncTime) FormattedCurrentTime(clockOffset time.Duration) string {
 	return s.formatTime(s.CurrentTime(clockOffset))
 }
