@@ -284,7 +284,7 @@ func TestRoundState(t *testing.T) {
 	currentTime := time.Now()
 
 	rnd := chronology.NewRound(currentTime, currentTime, roundTimeDuration)
-	chr := chronology.NewChronology( true, rnd, currentTime, ntp.NewSyncTime(roundTimeDuration, nil))
+	chr := chronology.NewChronology(true, rnd, currentTime, ntp.NewSyncTime(roundTimeDuration, nil))
 
 	state := chr.GetSubroundFromDateTime(currentTime)
 	assert.Equal(t, chronology.SubroundId(-1), state)
@@ -338,4 +338,16 @@ func TestGettersAndSetters(t *testing.T) {
 	chr.AddSubround(&SRStartRound{})
 
 	spew.Dump(chr.SubroundHandlers())
+}
+
+func TestRoundTimeStamp_ShouldReturnCorrectTimeStamp(t *testing.T) {
+	genesisTime := time.Now()
+	currentTime := genesisTime
+
+	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
+	chr := chronology.NewChronology(true, rnd, genesisTime, ntp.NewSyncTime(roundTimeDuration, nil))
+
+	timeStamp := chr.RoundTimeStamp(2)
+
+	assert.Equal(t, genesisTime.Add(time.Duration(2*rnd.TimeDuration())).Unix(), int64(timeStamp))
 }

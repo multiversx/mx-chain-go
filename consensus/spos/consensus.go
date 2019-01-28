@@ -122,7 +122,12 @@ func NewConsensus(
 	return &cns
 }
 
-// IsNodeLeaderInCurrentRound method checks if the node is leader in the current round
+// IsSelfLeaderInCurrentRound method checks if the current node is leader in the current round
+func (cns *Consensus) IsSelfLeaderInCurrentRound() bool {
+	return cns.IsNodeLeaderInCurrentRound(cns.selfPubKey)
+}
+
+// IsNodeLeaderInCurrentRound method checks if the given node is leader in the current round
 func (cns *Consensus) IsNodeLeaderInCurrentRound(node string) bool {
 	leader, err := cns.GetLeader()
 

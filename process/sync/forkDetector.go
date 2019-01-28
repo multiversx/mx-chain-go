@@ -38,6 +38,10 @@ func (bfd *BasicForkDetector) AddHeader(header *block.Header, hash []byte, isRec
 		return errors.New("nil hash")
 	}
 
+	if !isEmpty(header) && !isReceived {
+		bfd.removePastHeaders(header.Nonce) // create a check point and remove all the past headers
+	}
+
 	bfd.append(&headerInfo{
 		header:     header,
 		hash:       hash,
@@ -47,6 +51,19 @@ func (bfd *BasicForkDetector) AddHeader(header *block.Header, hash []byte, isRec
 	return nil
 }
 
+func (bfd *BasicForkDetector) removePastHeaders(nonce uint64) {
+	bfd.mutHeaders.Lock()
+
+	for storedNonce := range bfd.headers {
+		if storedNonce <= nonce {
+			delete(bfd.headers, nonce)
+		}
+	}
+
+	bfd.mutHeaders.Unlock()
+}
+
+// RemoveHeader method removes all the headers stored at the given nonce
 func (bfd *BasicForkDetector) RemoveHeader(nonce uint64) {
 	bfd.mutHeaders.Lock()
 	delete(bfd.headers, nonce)

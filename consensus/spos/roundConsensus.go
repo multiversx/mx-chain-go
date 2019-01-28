@@ -101,6 +101,11 @@ func (rCns *RoundConsensus) GetJobDone(key string, subroundId chronology.Subroun
 	return retcode, nil
 }
 
+// GetSelfJobDone returns the self state of the action done in subround given by the subroundId parameter
+func (rCns *RoundConsensus) GetSelfJobDone(subroundId chronology.SubroundId) (bool, error) {
+	return rCns.GetJobDone(rCns.selfPubKey, subroundId)
+}
+
 // SetJobDone set the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
 func (rCns *RoundConsensus) SetJobDone(key string, subroundId chronology.SubroundId, value bool) error {
@@ -117,6 +122,11 @@ func (rCns *RoundConsensus) SetJobDone(key string, subroundId chronology.Subroun
 	rCns.mut.Unlock()
 
 	return nil
+}
+
+// SetSelfJobDone set the self state of the action done in subround given by the subroundId parameter
+func (rCns *RoundConsensus) SetSelfJobDone(subroundId chronology.SubroundId, value bool) error {
+	return rCns.SetJobDone(rCns.selfPubKey, subroundId, value)
 }
 
 // ResetRoundState method resets the state of each node from the current jobDone group, regarding to the
@@ -147,6 +157,11 @@ func (rCns *RoundConsensus) IsValidatorInBitmap(validator string) bool {
 	}
 
 	return isJobDone
+}
+
+// IsSelfInBitmap method checks if the current node is part of the bitmap received from leader
+func (rCns *RoundConsensus) IsSelfInBitmap() bool {
+	return rCns.IsValidatorInBitmap(rCns.selfPubKey)
 }
 
 // IsNodeInConsensusGroup method checks if the node is part of the jobDone group of the current round
@@ -215,10 +230,10 @@ func (rCns *RoundConsensus) CommitmentHashesCollected(threshold int) bool {
 		}
 
 		if isBitmapJobDone {
-			isCommHashJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrCommitmentHash)
+			isCommHashJobDone, err2 := rCns.GetJobDone(rCns.consensusGroup[i], SrCommitmentHash)
 
-			if err != nil {
-				log.Error(err.Error())
+			if err2 != nil {
+				log.Error(err2.Error())
 				continue
 			}
 
@@ -246,10 +261,10 @@ func (rCns *RoundConsensus) CommitmentsCollected(threshold int) bool {
 		}
 
 		if isBitmapJobDone {
-			isCommJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrCommitment)
+			isCommJobDone, err2 := rCns.GetJobDone(rCns.consensusGroup[i], SrCommitment)
 
-			if err != nil {
-				log.Error(err.Error())
+			if err2 != nil {
+				log.Error(err2.Error())
 				continue
 			}
 
@@ -278,10 +293,10 @@ func (rCns *RoundConsensus) SignaturesCollected(threshold int) bool {
 
 		if isBitmapJobDone {
 
-			isSignJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrSignature)
+			isSignJobDone, err2 := rCns.GetJobDone(rCns.consensusGroup[i], SrSignature)
 
-			if err != nil {
-				log.Error(err.Error())
+			if err2 != nil {
+				log.Error(err2.Error())
 				continue
 			}
 

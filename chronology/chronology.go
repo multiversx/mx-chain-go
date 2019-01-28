@@ -188,6 +188,11 @@ func (chr *Chronology) GetSubroundFromDateTime(timeStamp time.Time) SubroundId {
 	return -1
 }
 
+// RoundTimeStamp method returns time stamp of a round from a given index
+func (chr *Chronology) RoundTimeStamp(index int32) uint64 {
+	return uint64(chr.genesisTime.Add(time.Duration(int64(index) * int64(chr.round.timeDuration))).Unix())
+}
+
 // Round returns the current round object
 func (chr *Chronology) Round() *Round {
 	return chr.round
