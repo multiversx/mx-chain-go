@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -36,6 +37,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/resolver"
 	sync2 "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -72,6 +76,15 @@ type genesis struct {
 	ConsensusGroupSize int           `json:"consensusGroupSize"`
 	ElasticSubrounds   bool          `json:"elasticSubrounds"`
 	InitialNodes       []initialNode `json:"initialNodes"`
+}
+
+type netMessengerConfig struct {
+	ctx             context.Context
+	port            int
+	maxAllowedPeers int
+	marshalizer     marshal.Marshalizer
+	hasher          hashing.Hasher
+	pubSubStrategy  p2p.PubSubStrategy
 }
 
 func main() {
@@ -289,14 +302,6 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
-	forkDetector := sync2.NewBasicForkDetector()
-
-	blockProcessor, err := block.NewBlockProcessor(transient, hasher, marshalizer, transactionProcessor, accountsAdapter, shardCoordinator, forkDetector)
-
-	if err != nil {
-		return nil, errors.New("could not create block processor: " + err.Error())
-	}
-
 	initialPubKeys := genesisConfig.initialNodesPubkeys(log)
 
 	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
@@ -311,13 +316,72 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
+	netMessenger, err := createNetMessenger(netMessengerConfig{
+		ctx:             appContext,
+		port:            ctx.GlobalInt(flags.Port.Name),
+		maxAllowedPeers: ctx.GlobalInt(flags.MaxAllowedPeers.Name),
+		marshalizer:     marshalizer,
+		hasher:          hasher,
+		pubSubStrategy:  p2p.GossipSub,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	interceptorsContainer := interceptor.NewContainer()
+	resolversContainer := resolver.NewContainer()
+
+	processorFactory, err := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
+		InterceptorContainer:     interceptorsContainer,
+		ResolverContainer:        resolversContainer,
+		Messenger:                netMessenger,
+		Blockchain:               blkc,
+		DataPool:                 transient,
+		ShardCoordinator:         shardCoordinator,
+		AddrConverter:            addressConverter,
+		Hasher:                   hasher,
+		Marshalizer:              marshalizer,
+		SingleSignKeyGen:         keyGen,
+		Uint64ByteSliceConverter: uint64ByteSliceConverter,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	forkDetector := sync2.NewBasicForkDetector()
+
+	requestTransactionHandler := func(destShardID uint32, txHash []byte) {
+		res, err := resolversContainer.Get(string(node.TransactionTopic))
+		if err != nil {
+			log.Error("cannot find transaction topic resolver")
+			return
+		}
+		txRes, _ := res.(*transaction.TxResolver)
+		if txRes != nil {
+			_ = txRes.RequestTransactionFromHash(txHash)
+			log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+		}
+	}
+
+	blockProcessor, err := block.NewBlockProcessor(
+		transient,
+		hasher,
+		marshalizer,
+		transactionProcessor,
+		accountsAdapter,
+		shardCoordinator,
+		forkDetector,
+		requestTransactionHandler)
+
+	if err != nil {
+		return nil, errors.New("could not create block processor: " + err.Error())
+	}
+
 	nd, err := node.NewNode(
+		node.WithMessenger(netMessenger),
 		node.WithHasher(hasher),
 		node.WithContext(appContext),
 		node.WithMarshalizer(marshalizer),
-		node.WithPubSubStrategy(p2p.GossipSub),
-		node.WithMaxAllowedPeers(ctx.GlobalInt(flags.MaxAllowedPeers.Name)),
-		node.WithPort(ctx.GlobalInt(flags.Port.Name)),
 		node.WithInitialNodesPubKeys(initialPubKeys),
 		node.WithInitialNodesBalances(genesisConfig.initialNodesBalances(log)),
 		node.WithAddressConverter(addressConverter),
@@ -337,6 +401,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
+		node.WithProcessorCreator(processorFactory),
 	)
 
 	if err != nil {
@@ -349,6 +414,28 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 	}
 
 	return nd, nil
+}
+
+func createNetMessenger(config netMessengerConfig) (p2p.Messenger, error) {
+	if config.port == 0 {
+		return nil, errors.New("Cannot start node on port 0")
+	}
+
+	if config.maxAllowedPeers == 0 {
+		return nil, errors.New("Cannot start node without providing maxAllowedPeers")
+	}
+
+	//TODO check if libp2p provides a better random source
+	cp := &p2p.ConnectParams{}
+	cp.Port = config.port
+	cp.GeneratePrivPubKeys(time.Now().UnixNano())
+	cp.GenerateIDFromPubKey()
+
+	nm, err := p2p.NewNetMessenger(config.ctx, config.marshalizer, config.hasher, cp, config.maxAllowedPeers, config.pubSubStrategy)
+	if err != nil {
+		return nil, err
+	}
+	return nm, nil
 }
 
 func getSk(ctx *cli.Context) ([]byte, error) {
@@ -610,4 +697,11 @@ func decodeAddress(address string) ([]byte, error) {
 
 func encodeAddress(address []byte) string {
 	return hex.EncodeToString(address)
+}
+
+func toB64(buff []byte) string {
+	if buff == nil {
+		return "<NIL>"
+	}
+	return base64.StdEncoding.EncodeToString(buff)
 }

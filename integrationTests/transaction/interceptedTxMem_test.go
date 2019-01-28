@@ -1,7 +1,6 @@
 package transaction
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -22,9 +21,10 @@ func TestNode_GenerateSendInterceptTransactionWithMemMessenger(t *testing.T) {
 
 	dPool := createTestDataPool()
 
-	n, mes, sk := createMemNode(1, dPool, adbCreateAccountsDB())
+	n, _, sk, _ := createMemNode(1, dPool, adbCreateAccountsDB())
 
-	mes.Bootstrap(context.Background())
+	n.Start()
+	defer func() { _ = n.Stop() }()
 
 	defer p2p.ReInitializeGloballyRegisteredPeers()
 

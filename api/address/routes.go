@@ -3,42 +3,47 @@ package address
 import (
 	"math/big"
 	"net/http"
-	"net/url"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/gin-gonic/gin"
 )
 
 // Handler interface defines methods that can be used from `elrondFacade` context variable
 type Handler interface {
 	GetBalance(address string) (*big.Int, error)
-	GetCurrentPublicKey() string
+	GetAccount(address string) (*state.Account, error)
+}
+
+type accountResponse struct {
+	Address  string `json:"address"`
+	Nonce    uint64 `json:"nonce"`
+	Balance  string `json:"balance"`
+	CodeHash []byte `json:"codeHash"`
+	RootHash []byte `json:"rootHash"`
 }
 
 // Routes defines address related routes
 func Routes(router *gin.RouterGroup) {
-	router.GET("/:address", GetAddress)
+	router.GET("/:address", GetAccount)
 	router.GET("/:address/balance", GetBalance)
 }
 
-//GetAddress returns the information about the address passed as parameter
-func GetAddress(c *gin.Context) {
+// GetAccount returns an accountResponse containing information
+//  about the account corelated with provided address
+func GetAccount(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
 		return
 	}
 
-	//TODO: add real implementation here
-	//addr := c.Param("address")
-
-	currentAddress := ef.GetCurrentPublicKey()
-
-	address, err := url.Parse(currentAddress)
+	addr := c.Param("address")
+	acc, err := ef.GetAccount(addr)
 	if err != nil {
-
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get requested account: " + err.Error()})
+		return
 	}
-	str := address.String()
-	c.JSON(http.StatusOK, gin.H{"message": str})
+	c.JSON(http.StatusOK, gin.H{"account": accountResponseFromBaseAccount(addr, acc)})
 }
 
 //GetBalance returns the balance for the address parameter
@@ -62,4 +67,14 @@ func GetBalance(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"balance": balance})
+}
+
+func accountResponseFromBaseAccount(address string, account *state.Account) accountResponse {
+	return accountResponse{
+		Address:  address,
+		Nonce:    account.Nonce,
+		Balance:  account.Balance.String(),
+		CodeHash: account.CodeHash,
+		RootHash: account.RootHash,
+	}
 }

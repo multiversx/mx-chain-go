@@ -51,7 +51,7 @@ const consensusSubrounds = 6
 
 // maxBlockProcessingTimePercent specifies which is the max allocated time percent,
 // for processing block, from the total time of one round
-const maxBlockProcessingTimePercent = 55 / 100
+const maxBlockProcessingTimePercent = float64(0.85)
 
 // MessageType specifies what type of message was received
 type MessageType int
@@ -2088,10 +2088,9 @@ func (sposWorker *SPOSConsensusWorker) haveTime() time.Duration {
 	chr := sposWorker.Cns.Chr
 
 	roundStartTime := chr.Round().TimeStamp()
-
 	currentTime := chr.SyncTime().CurrentTime(chr.ClockOffset())
-
 	elapsedTime := currentTime.Sub(roundStartTime)
+	haveTime := float64(chr.Round().TimeDuration())*maxBlockProcessingTimePercent - float64(elapsedTime)
 
-	return chr.Round().TimeDuration()*maxBlockProcessingTimePercent - elapsedTime
+	return time.Duration(haveTime)
 }

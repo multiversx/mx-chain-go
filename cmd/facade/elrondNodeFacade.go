@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
@@ -33,7 +34,7 @@ func (ef *ElrondNodeFacade) SetLogger(log *logger.Logger) {
 	ef.log = log
 }
 
-//SetSyncer sets the current syncer
+// SetSyncer sets the current syncer
 func (ef *ElrondNodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 	ef.syncer = syncer
 }
@@ -103,7 +104,13 @@ func (ef *ElrondNodeFacade) GetTransaction(hash string) (*transaction.Transactio
 	return ef.node.GetTransaction(hash)
 }
 
-//GetCurrentPublicKey gets the current nodes public Key
+// GetAccount returns an accountResponse containing information
+//  about the account corelated with provided address
+func (ef *ElrondNodeFacade) GetAccount(address string) (*state.Account, error) {
+	return ef.node.GetAccount(address)
+}
+
+// GetCurrentPublicKey gets the current nodes public Key
 func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
 	return ef.node.GetCurrentPublicKey()
 }

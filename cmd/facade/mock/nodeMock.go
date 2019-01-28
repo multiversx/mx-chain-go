@@ -3,23 +3,27 @@ package mock
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 type NodeMock struct {
-	AddressHandler                   func() (string, error)
-	StartHandler                     func() error
-	StopHandler                      func() error
-	P2PBootstrapHandler              func()
-	IsRunningHandler                 func() bool
-	ConnectToAddressesHandler        func([]string) error
-	BindInterceptorsResolversHandler func() error
-	StartConsensusHandler            func() error
-	GetBalanceHandler                func(address string) (*big.Int, error)
-	GenerateTransactionHandler       func(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler            func(hash string) (*transaction.Transaction, error)
-	SendTransactionHandler           func(nonce uint64, sender string, receiver string, amount big.Int, code string, signature []byte) (*transaction.Transaction, error)
+	AddressHandler                         func() (string, error)
+	StartHandler                           func() error
+	StopHandler                            func() error
+	P2PBootstrapHandler                    func() error
+	IsRunningHandler                       func() bool
+	ConnectToAddressesHandler              func([]string) error
+	BindInterceptorsResolversHandler       func() error
+	StartConsensusHandler                  func() error
+	GetBalanceHandler                      func(address string) (*big.Int, error)
+	GenerateTransactionHandler             func(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error)
+	GetTransactionHandler                  func(hash string) (*transaction.Transaction, error)
+	SendTransactionHandler                 func(nonce uint64, sender string, receiver string, amount big.Int, code string, signature []byte) (*transaction.Transaction, error)
+	GetAccountHandler                      func(address string) (*state.Account, error)
+	GetCurrentPublicKeyHandler             func() string
+	GenerateAndSendBulkTransactionsHandler func(destination string, value big.Int, nrTransactions uint64) error
 }
 
 func (nm *NodeMock) Address() (string, error) {
@@ -34,8 +38,8 @@ func (nm *NodeMock) Stop() error {
 	return nm.StopHandler()
 }
 
-func (nm *NodeMock) P2PBootstrap() {
-	nm.P2PBootstrapHandler()
+func (nm *NodeMock) P2PBootstrap() error {
+	return nm.P2PBootstrapHandler()
 }
 
 func (nm *NodeMock) IsRunning() bool {
@@ -80,9 +84,13 @@ func (nm *NodeMock) GetResolvers() []process.Resolver {
 }
 
 func (nm *NodeMock) GetCurrentPublicKey() string {
-	return ""
+	return nm.GetCurrentPublicKeyHandler()
 }
 
 func (nm *NodeMock) GenerateAndSendBulkTransactions(receiverHex string, value big.Int, noOfTx uint64) error {
-	return nil
+	return nm.GenerateAndSendBulkTransactionsHandler(receiverHex, value, noOfTx)
+}
+
+func (nm *NodeMock) GetAccount(address string) (*state.Account, error) {
+	return nm.GetAccountHandler(address)
 }

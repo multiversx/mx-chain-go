@@ -14,10 +14,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/resolver"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
@@ -107,7 +112,8 @@ func adbCreateAccountsDB() *state.AccountsDB {
 func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.AccountsAdapter) (
 	*node.Node,
 	p2p.Messenger,
-	crypto.PrivateKey) {
+	crypto.PrivateKey,
+	process.ProcessorFactory) {
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -119,26 +125,42 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 
 	keyGen := schnorr.NewKeyGenerator()
 	sk, pk := keyGen.GeneratePair()
+	blockChain := createTestBlockChain()
+	shardCoordinator := &sharding.OneShardCoordinator{}
+	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
+
+	pFactory, _ := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
+		InterceptorContainer:     interceptor.NewContainer(),
+		ResolverContainer:        resolver.NewContainer(),
+		Messenger:                mes,
+		Blockchain:               blockChain,
+		DataPool:                 dPool,
+		ShardCoordinator:         shardCoordinator,
+		AddrConverter:            addrConverter,
+		Hasher:                   hasher,
+		Marshalizer:              marshalizer,
+		SingleSignKeyGen:         keyGen,
+		Uint64ByteSliceConverter: uint64Converter,
+	})
 
 	n, _ := node.NewNode(
 		node.WithMessenger(mes),
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(hasher),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
 		node.WithSingleSignKeyGenerator(keyGen),
-		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
-		node.WithBlockChain(createTestBlockChain()),
-		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
+		node.WithShardCoordinator(shardCoordinator),
+		node.WithBlockChain(blockChain),
+		node.WithUint64ByteSliceConverter(uint64Converter),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
+		node.WithProcessorCreator(pFactory),
 	)
 
-	return n, mes, sk
+	return n, mes, sk, pFactory
 }
 
 func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.AccountsAdapter) (
@@ -149,18 +171,18 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
+	messenger := createMessenger(context.Background(), marshalizer, hasher, 4, port)
+
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
 	keyGen := schnorr.NewKeyGenerator()
 	sk, pk := keyGen.GeneratePair()
 
 	n, _ := node.NewNode(
-		node.WithPort(4000),
+		node.WithMessenger(messenger),
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(hasher),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
@@ -173,4 +195,14 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	)
 
 	return n, nil, sk
+}
+
+func createMessenger(ctx context.Context, marshalizer marshal.Marshalizer, hasher hashing.Hasher, maxAllowedPeers int, port int) p2p.Messenger {
+	cp := &p2p.ConnectParams{}
+	cp.Port = port
+	cp.GeneratePrivPubKeys(time.Now().UnixNano())
+	cp.GenerateIDFromPubKey()
+
+	nm, _ := p2p.NewNetMessenger(ctx, marshalizer, hasher, cp, maxAllowedPeers, p2p.GossipSub)
+	return nm
 }

@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/big"
-	sync2 "sync"
+	gosync "sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
@@ -25,7 +25,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
-	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/pkg/errors"
 )
@@ -59,12 +58,9 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	port                     int
 	marshalizer              marshal.Marshalizer
 	ctx                      context.Context
 	hasher                   hashing.Hasher
-	maxAllowedPeers          int
-	pubSubStrategy           p2p.PubSubStrategy
 	initialNodesPubkeys      []string
 	initialNodesBalances     map[string]big.Int
 	roundDuration            uint64
@@ -77,6 +73,7 @@ type Node struct {
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	processorCreator         process.ProcessorFactory
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
@@ -88,8 +85,7 @@ type Node struct {
 	dataPool         data.TransientDataHolder
 	shardCoordinator sharding.ShardCoordinator
 
-	interceptors []process.Interceptor
-	resolvers    []process.Resolver
+	isRunning bool
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -122,26 +118,16 @@ func NewNode(opts ...Option) (*Node, error) {
 
 // IsRunning will return the current state of the node
 func (n *Node) IsRunning() bool {
-	return n.messenger != nil
-}
-
-// Address returns the first address of the running node
-func (n *Node) Address() (string, error) {
-	if !n.IsRunning() {
-		return "", errors.New("node is not started yet")
-	}
-	return n.messenger.Addresses()[0], nil
+	return n.isRunning
 }
 
 // Start will create a new messenger and and set up the Node state as running
 func (n *Node) Start() error {
-	messenger, err := n.createNetMessenger()
-	if err != nil {
-		return err
+	err := n.P2PBootstrap()
+	if err == nil {
+		n.isRunning = true
 	}
-	n.messenger = messenger
-	n.P2PBootstrap()
-	return nil
+	return err
 }
 
 // Stop closes the messenger and undos everything done in Start
@@ -159,21 +145,15 @@ func (n *Node) Stop() error {
 }
 
 // P2PBootstrap will try to connect to many peers as possible
-func (n *Node) P2PBootstrap() {
-	n.messenger.Bootstrap(n.ctx)
-}
-
-// ConnectToAddresses will take a slice of addresses and try to connect to all of them.
-func (n *Node) ConnectToAddresses(addresses []string) error {
-	if !n.IsRunning() {
-		return errNodeNotStarted
+func (n *Node) P2PBootstrap() error {
+	if n.messenger == nil {
+		return errNilMessenger
 	}
-	n.messenger.ConnectToAddresses(n.ctx, addresses)
+	n.messenger.Bootstrap(n.ctx)
 	return nil
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
-//TODO add tests
 func (n *Node) CreateShardedStores() error {
 	if n.shardCoordinator == nil {
 		return errNilShardCoordinator
@@ -210,12 +190,12 @@ func (n *Node) BindInterceptorsResolvers() error {
 		return errNodeNotStarted
 	}
 
-	err := n.createInterceptors()
+	err := n.processorCreator.CreateInterceptors()
 	if err != nil {
 		return err
 	}
 
-	err = n.createResolvers()
+	err = n.processorCreator.CreateResolvers()
 	if err != nil {
 		return err
 	}
@@ -262,16 +242,138 @@ func (n *Node) StartConsensus() error {
 
 	n.addSubroundsToChronology(sposWrk)
 
-	// TODO: refactor this!!!!!
-	n.blockProcessor.SetOnRequestTransaction(func(destShardID uint32, txHash []byte) {
-		txRes, _ := n.resolvers[0].(*transaction2.TxResolver)
-		if txRes != nil {
-			txRes.RequestTransactionFromHash(txHash)
-			log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
-		}
-	})
-
 	go sposWrk.Cns.Chr.StartRounds()
+
+	return nil
+}
+
+// GetBalance gets the balance for a specific address
+func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
+	if n.addrConverter == nil || n.accounts == nil {
+		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
+	}
+
+	address, err := n.addrConverter.CreateAddressFromHex(addressHex)
+	if err != nil {
+		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
+	}
+	if err != nil {
+		return nil, errors.New("invalid address: " + err.Error())
+	}
+	account, err := n.accounts.GetExistingAccount(address)
+	if err != nil {
+		return nil, errors.New("could not fetch sender address from provided param")
+	}
+
+	if account == nil {
+		return big.NewInt(0), nil
+	}
+
+	return &account.BaseAccount().Balance, nil
+}
+
+// GenerateAndSendBulkTransactions is a method for generating and propagating a set
+// of transactions to be processed. It is mainly used for demo purposes
+func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int, noOfTx uint64) error {
+	if noOfTx == 0 {
+		return errors.New("can not generate and broadcast 0 transactions")
+	}
+
+	if n.addrConverter == nil || n.accounts == nil {
+		return errors.New("initialize AccountsAdapter and AddressConverter first")
+	}
+
+	if n.publicKey == nil {
+		return errNilPublicKey
+	}
+
+	senderAddressBytes, err := n.publicKey.ToByteArray()
+	if err != nil {
+		return err
+	}
+	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddressBytes)
+	if err != nil {
+		return err
+	}
+
+	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	if err != nil {
+		return errors.New("could not create receiver address from provided param")
+	}
+
+	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
+	if err != nil {
+		return errors.New("could not fetch sender account from provided param")
+	}
+	newNonce := uint64(0)
+	if senderAccount != nil {
+		newNonce = senderAccount.BaseAccount().Nonce
+	}
+
+	wg := gosync.WaitGroup{}
+	wg.Add(int(noOfTx))
+
+	mutTransactions := gosync.RWMutex{}
+	transactions := make([][]byte, 0)
+
+	mutErr := &gosync.RWMutex{}
+	var errFound error
+
+	for nonce := newNonce; nonce < newNonce+noOfTx; nonce++ {
+		go func(crtNonce uint64) {
+			_, signedTxBuff, err := n.generateAndSignTx(
+				crtNonce,
+				value,
+				receiverAddress.Bytes(),
+				senderAddressBytes,
+				nil,
+			)
+
+			if err != nil {
+				mutErr.Lock()
+				errFound = errors.New(fmt.Sprintf("failure generating transaction %d: %s", nonce, err.Error()))
+				mutErr.Unlock()
+
+				wg.Done()
+				return
+			}
+
+			mutTransactions.Lock()
+			transactions = append(transactions, signedTxBuff)
+			mutTransactions.Unlock()
+			wg.Done()
+		}(nonce)
+	}
+
+	wg.Wait()
+
+	mutErr.RLock()
+	if errFound != nil {
+		mutErr.RUnlock()
+		return errFound
+	}
+	mutErr.RUnlock()
+
+	topic := n.messenger.GetTopic(string(TransactionTopic))
+	if topic == nil {
+		return errors.New("could not get transaction topic")
+	}
+
+	mutTransactions.RLock()
+	if len(transactions) != int(noOfTx) {
+		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
+	}
+
+	for i := 0; i < len(transactions); i++ {
+		err = topic.BroadcastBuff(transactions[i])
+		time.Sleep(time.Microsecond * 100)
+
+		if err != nil {
+			return errors.New("could not broadcast transaction: " + err.Error())
+		}
+	}
+
+	mutTransactions.RUnlock()
 
 	return nil
 }
@@ -306,17 +408,34 @@ func (n *Node) createBootstrap(round *chronology.Round) (*sync.Bootstrap, error)
 
 	bootstrap.RequestHeaderHandler =
 		func(nonce uint64) {
-			hdrRes := n.resolvers[1].(*block2.HeaderResolver)
-			hdrRes.RequestHeaderFromNonce(nonce)
+			resolver, err := n.processorCreator.ResolverContainer().Get(string(HeadersTopic))
+			if err != nil {
+				log.Error("cannot find headers topic resolver")
+				return
+			}
+			hdrRes := resolver.(*block2.HeaderResolver)
+			err = hdrRes.RequestHeaderFromNonce(nonce)
 
 			log.Info(fmt.Sprintf("requested header with nonce %d from network\n", nonce))
+			if err != nil {
+				log.Error("RequestHeaderFromNonce error:  ", err.Error())
+			}
 		}
 
 	bootstrap.RequestTxBodyHandler = func(hash []byte) {
-		hdrRes := n.resolvers[2].(*block2.GenericBlockBodyResolver)
-		hdrRes.RequestBlockBodyFromHash(hash)
+		resolver, err := n.processorCreator.ResolverContainer().Get(string(TxBlockBodyTopic))
+		if err != nil {
+			log.Error("cannot find tx block body topic resolver")
+			return
+		}
+		hdrRes := resolver.(*block2.GenericBlockBodyResolver)
+		err = hdrRes.RequestBlockBodyFromHash(hash)
 
 		log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(hash)))
+		if err != nil {
+			log.Error("RequestBlockBodyFromHash error: ", err.Error())
+			return
+		}
 	}
 
 	bootstrap.StartSync()
@@ -490,135 +609,6 @@ func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
 		sposWrk.Cns.CheckAdvanceConsensus))
 }
 
-// GetBalance gets the balance for a specific address
-func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
-	if n.addrConverter == nil || n.accounts == nil {
-		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
-	}
-
-	address, err := n.addrConverter.CreateAddressFromHex(addressHex)
-	if err != nil {
-		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
-	}
-	if err != nil {
-		return nil, errors.New("invalid address: " + err.Error())
-	}
-	account, err := n.accounts.GetExistingAccount(address)
-	if err != nil {
-		return nil, errors.New("could not fetch sender address from provided param")
-	}
-
-	if account == nil {
-		return big.NewInt(0), nil
-	}
-
-	return &account.BaseAccount().Balance, nil
-}
-
-func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int, noOfTx uint64) error {
-	if noOfTx == 0 {
-		return errors.New("can not generate and broadcast 0 transactions")
-	}
-
-	if n.addrConverter == nil || n.accounts == nil {
-		return errors.New("initialize AccountsAdapter and AddressConverter first")
-	}
-
-	if n.publicKey == nil {
-		return errNilPublicKey
-	}
-
-	senderAddressBytes, err := n.publicKey.ToByteArray()
-	if err != nil {
-		return err
-	}
-	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddressBytes)
-	if err != nil {
-		return err
-	}
-
-	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
-	if err != nil {
-		return errors.New("could not create receiver address from provided param")
-	}
-
-	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
-	if err != nil {
-		return errors.New("could not fetch sender account from provided param")
-	}
-	newNonce := uint64(0)
-	if senderAccount != nil {
-		newNonce = senderAccount.BaseAccount().Nonce
-	}
-
-	wg := sync2.WaitGroup{}
-	wg.Add(int(noOfTx))
-
-	mutTransactions := sync2.RWMutex{}
-	transactions := make([][]byte, 0)
-
-	mutErr := &sync2.RWMutex{}
-	var errFound error
-
-	for nonce := newNonce; nonce < newNonce+noOfTx; nonce++ {
-		go func(crtNonce uint64) {
-			_, signedTxBuff, err := n.generateAndSignTx(
-				crtNonce,
-				value,
-				receiverAddress.Bytes(),
-				senderAddressBytes,
-				nil,
-			)
-
-			if err != nil {
-				mutErr.Lock()
-				errFound = errors.New(fmt.Sprintf("failure generating transaction %d: %s", nonce, err.Error()))
-				mutErr.Unlock()
-
-				wg.Done()
-				return
-			}
-
-			mutTransactions.Lock()
-			transactions = append(transactions, signedTxBuff)
-			mutTransactions.Unlock()
-			wg.Done()
-		}(nonce)
-	}
-
-	wg.Wait()
-
-	mutErr.RLock()
-	if errFound != nil {
-		mutErr.RUnlock()
-		return errFound
-	}
-	mutErr.RUnlock()
-
-	topic := n.messenger.GetTopic(string(TransactionTopic))
-	if topic == nil {
-		return errors.New("could not get transaction topic")
-	}
-
-	mutTransactions.RLock()
-	if len(transactions) != int(noOfTx) {
-		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
-	}
-
-	for i := 0; i < len(transactions); i++ {
-		err = topic.BroadcastBuff(transactions[i])
-		time.Sleep(time.Microsecond * 100)
-
-		if err != nil {
-			return errors.New("could not broadcast transaction: " + err.Error())
-		}
-	}
-
-	mutTransactions.RUnlock()
-
-	return nil
-}
-
 func (n *Node) generateAndSignTx(
 	nonce uint64,
 	value big.Int,
@@ -749,30 +739,38 @@ func (n *Node) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 
-func (n *Node) createNetMessenger() (p2p.Messenger, error) {
-	if n.port == 0 {
-		return nil, errors.New("Cannot start node on port 0")
+// GetCurrentPublicKey will return the current node's public key
+func (n *Node) GetCurrentPublicKey() string {
+	if n.publicKey != nil {
+		pkey, _ := n.publicKey.ToByteArray()
+		return fmt.Sprintf("%x", pkey)
+	}
+	return ""
+}
+
+// GetAccount will return acount details for a given address
+func (n *Node) GetAccount(address string) (*state.Account, error) {
+	if n.addrConverter == nil || n.accounts == nil {
+		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
 
-	if n.maxAllowedPeers == 0 {
-		return nil, errors.New("Cannot start node without providing maxAllowedPeers")
-	}
-
-	//TODO check if libp2p provides a better random source
-	cp := &p2p.ConnectParams{}
-	cp.Port = n.port
-	cp.GeneratePrivPubKeys(time.Now().UnixNano())
-	cp.GenerateIDFromPubKey()
-
-	nm, err := p2p.NewNetMessenger(n.ctx, n.marshalizer, n.hasher, cp, n.maxAllowedPeers, n.pubSubStrategy)
+	addr, err := n.addrConverter.CreateAddressFromHex(address)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("could not create address object from provided string")
 	}
-	return nm, nil
+	account, err := n.accounts.GetExistingAccount(addr)
+	if err != nil {
+		return nil, errors.New("could not fetch sender address from provided param")
+	}
+	return account.BaseAccount(), nil
 }
 
 func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
-	blockBody := n.blockProcessor.CreateGenesisBlockBody(n.initialNodesBalances, 0)
+	blockBody, err := n.blockProcessor.CreateGenesisBlockBody(n.initialNodesBalances, 0)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	marshalizedBody, err := n.marshalizer.Marshal(blockBody)
 	if err != nil {
 		return nil, nil, err
@@ -843,25 +841,9 @@ func (n *Node) broadcastHeader(msg []byte) {
 	}
 }
 
-func (n *Node) GetInterceptors() []process.Interceptor {
-	return n.interceptors
-}
-
-func (n *Node) GetResolvers() []process.Resolver {
-	return n.resolvers
-}
-
 func toB64(buff []byte) string {
 	if buff == nil {
 		return "<NIL>"
 	}
 	return base64.StdEncoding.EncodeToString(buff)
-}
-
-func (n *Node) GetCurrentPublicKey() string {
-	if n.publicKey != nil {
-		pkey, _ := n.publicKey.ToByteArray()
-		return fmt.Sprintf("%x", pkey)
-	}
-	return ""
 }
