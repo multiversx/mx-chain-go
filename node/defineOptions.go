@@ -21,15 +21,10 @@ import (
 // WithMessenger sets up the messenger option for the Node
 func WithMessenger(mes p2p.Messenger) Option {
 	return func(n *Node) error {
+		if mes == nil {
+			return errNilMessenger
+		}
 		n.messenger = mes
-		return nil
-	}
-}
-
-// WithPort sets up the port option for the Node
-func WithPort(port int) Option {
-	return func(n *Node) error {
-		n.port = port
 		return nil
 	}
 }
@@ -63,22 +58,6 @@ func WithHasher(hasher hashing.Hasher) Option {
 			return errNilHasher
 		}
 		n.hasher = hasher
-		return nil
-	}
-}
-
-// WithMaxAllowedPeers sets up the maxAllowedPeers option for the Node
-func WithMaxAllowedPeers(maxAllowedPeers int) Option {
-	return func(n *Node) error {
-		n.maxAllowedPeers = maxAllowedPeers
-		return nil
-	}
-}
-
-// WithPubSubStrategy sets up the strategy option for the Node
-func WithPubSubStrategy(strategy p2p.PubSubStrategy) Option {
-	return func(n *Node) error {
-		n.pubSubStrategy = strategy
 		return nil
 	}
 }
@@ -273,13 +252,24 @@ func WithMultisig(multisig crypto.MultiSigner) Option {
 	}
 }
 
-// WithMultisig sets up the multisig option for the Node
+// WithForkDetector sets up the multisig option for the Node
 func WithForkDetector(forkDetector process.ForkDetector) Option {
 	return func(n *Node) error {
 		if forkDetector == nil {
 			return errNilForkDetector
 		}
 		n.forkDetector = forkDetector
+		return nil
+	}
+}
+
+// WithProcessorCreator sets up the processor factory option for the Node
+func WithProcessorCreator(processorCreator process.ProcessorFactory) Option {
+	return func(n *Node) error {
+		if processorCreator == nil {
+			return errNilForkDetector
+		}
+		n.processorCreator = processorCreator
 		return nil
 	}
 }

@@ -10,17 +10,21 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/resolver"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
-	t.Skip("TODO: fix tests that run on the same local network")
+	//t.Skip("TODO: fix tests that run on the same local network")
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -34,35 +38,67 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	blkcRequestor := createTestBlockChain()
 	blkcResolver := createTestBlockChain()
+	reqMessenger := createMessenger(context.Background(), marshalizer, hasher, 4, 4000)
+	resMessenger := createMessenger(context.Background(), marshalizer, hasher, 4, 4001)
+	shardCoordinatorReq := &sharding.OneShardCoordinator{}
+	shardCoordinatorRes := &sharding.OneShardCoordinator{}
+	uint64BsReq := uint64ByteSlice.NewBigEndianConverter()
+	uint64BsRes := uint64ByteSlice.NewBigEndianConverter()
+
+	pFactoryReq, _ := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
+		InterceptorContainer:     interceptor.NewContainer(),
+		ResolverContainer:        resolver.NewContainer(),
+		Messenger:                reqMessenger,
+		Blockchain:               blkcRequestor,
+		DataPool:                 dPoolRequestor,
+		ShardCoordinator:         shardCoordinatorReq,
+		AddrConverter:            addrConverter,
+		Hasher:                   hasher,
+		Marshalizer:              marshalizer,
+		SingleSignKeyGen:         keyGen,
+		Uint64ByteSliceConverter: uint64BsReq,
+	})
+
+	pFactoryRes, _ := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
+		InterceptorContainer:     interceptor.NewContainer(),
+		ResolverContainer:        resolver.NewContainer(),
+		Messenger:                resMessenger,
+		Blockchain:               blkcResolver,
+		DataPool:                 dPoolResolver,
+		ShardCoordinator:         shardCoordinatorRes,
+		AddrConverter:            addrConverter,
+		Hasher:                   hasher,
+		Marshalizer:              marshalizer,
+		SingleSignKeyGen:         keyGen,
+		Uint64ByteSliceConverter: uint64BsRes,
+	})
 
 	nRequestor, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(hasher),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithDataPool(dPoolRequestor),
 		node.WithAddressConverter(addrConverter),
 		node.WithSingleSignKeyGenerator(keyGen),
-		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
+		node.WithShardCoordinator(shardCoordinatorReq),
 		node.WithBlockChain(blkcRequestor),
-		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
+		node.WithUint64ByteSliceConverter(uint64BsReq),
+		node.WithMessenger(reqMessenger),
+		node.WithProcessorCreator(pFactoryReq),
 	)
 
 	nResolver, _ := node.NewNode(
-		node.WithPort(4001),
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(hasher),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithDataPool(dPoolResolver),
 		node.WithAddressConverter(addrConverter),
 		node.WithSingleSignKeyGenerator(keyGen),
-		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
+		node.WithShardCoordinator(shardCoordinatorRes),
 		node.WithBlockChain(blkcResolver),
-		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
+		node.WithUint64ByteSliceConverter(uint64BsRes),
+		node.WithMessenger(resMessenger),
+		node.WithProcessorCreator(pFactoryRes),
 	)
 
 	nRequestor.Start()
@@ -119,7 +155,8 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	})
 
 	//Step 4. request tx block body
-	txBlockBodyResolver := nRequestor.GetResolvers()[2].(*block2.GenericBlockBodyResolver)
+	res, _ := pFactoryRes.ResolverContainer().Get(string(node.TxBlockBodyTopic))
+	txBlockBodyResolver := res.(*block2.GenericBlockBodyResolver)
 	txBlockBodyResolver.RequestBlockBodyFromHash(txBlockBodyHash)
 
 	select {
@@ -127,4 +164,14 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	case <-time.After(time.Second * 10):
 		assert.Fail(t, "timeout")
 	}
+}
+
+func createMessenger(ctx context.Context, marshalizer marshal.Marshalizer, hasher hashing.Hasher, maxAllowedPeers int, port int) p2p.Messenger {
+	cp := &p2p.ConnectParams{}
+	cp.Port = port
+	cp.GeneratePrivPubKeys(time.Now().UnixNano())
+	cp.GenerateIDFromPubKey()
+
+	nm, _ := p2p.NewNetMessenger(ctx, marshalizer, hasher, cp, maxAllowedPeers, p2p.GossipSub)
+	return nm
 }

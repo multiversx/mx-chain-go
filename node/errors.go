@@ -8,6 +8,8 @@ var errNodeNotStarted = errors.New("node is not started yet")
 
 var errNilMarshalizer = errors.New("trying to set nil marshalizer")
 
+var errNilMessenger = errors.New("nil messenger")
+
 var errNilContext = errors.New("trying to set nil context")
 
 var errNilHasher = errors.New("trying to set nil hasher")

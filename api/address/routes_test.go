@@ -14,14 +14,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/address"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/address/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/middleware"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
-//General response structure
+// General response structure
 type GeneralResponse struct {
-	Message string `json:"message"`
 	Error   string `json:"error"`
 }
 
@@ -29,6 +29,28 @@ type GeneralResponse struct {
 type AddressResponse struct {
 	GeneralResponse
 	Balance big.Int `json:"balance"`
+}
+
+type AccountResponse struct {
+	GeneralResponse
+	Account struct{
+		Address string `json:"address"`
+		Nonce uint64 `json:"nonce"`
+		Balance string `json:"balance"`
+		CodeHash []byte `json:"codeHash"`
+		RootHash []byte `json:"rootHash"`
+	} `json:"account"`
+}
+
+func TestAddressRoute_EmptyTrailReturns404(t *testing.T) {
+	t.Parallel()
+	facade := mock.Facade{}
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", "/address", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	assert.Equal(t, http.StatusNotFound, resp.Code)
 }
 
 func TestGetBalance_WithCorrectAddressShouldNotReturnError(t *testing.T) {
@@ -120,7 +142,21 @@ func TestGetBalance_WithEmptyAddressShouldReturnZeroAndError(t *testing.T) {
 	assert.True(t, strings.Contains(addressResponse.Error, "Get balance error: Address was empty"))
 }
 
-func TestGetAddress_FailsWithWrongFacadeTypeConversion(t *testing.T) {
+func TestGetBalance_FailsWithWrongFacadeTypeConversion(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServerWrongFacade()
+	req, _ := http.NewRequest("GET", "/address/empty/balance", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	statusRsp := AddressResponse{}
+	loadResponse(resp.Body, &statusRsp)
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+	assert.Equal(t, statusRsp.Error, "Invalid app context")
+}
+
+func TestGetAccount_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
 
 	ws := startNodeServerWrongFacade()
@@ -134,18 +170,52 @@ func TestGetAddress_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	assert.Equal(t, statusRsp.Error, "Invalid app context")
 }
 
-func TestGetBalance_FailsWithWrongFacadeTypeConversion(t *testing.T) {
+func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 	t.Parallel()
+	returnedError := "i am an error"
+	facade := mock.Facade{
+		GetAccountHandler: func(address string) (*state.Account, error) {
+			return nil, errors.New(returnedError)
+		},
+	}
+	ws := startNodeServer(&facade)
 
-	ws := startNodeServerWrongFacade()
-	req, _ := http.NewRequest("GET", "/address/empty/balance", nil)
+	req, _ := http.NewRequest("GET", "/address/test", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	statusRsp := AddressResponse{}
-	loadResponse(resp.Body, &statusRsp)
-	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, "Invalid app context")
+	accountResponse := AccountResponse{}
+	loadResponse(resp.Body, &accountResponse)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Empty(t, accountResponse.Account)
+	assert.NotEmpty(t, accountResponse.Error)
+	assert.True(t, strings.Contains(accountResponse.Error, fmt.Sprintf("Could not get requested account: %s", returnedError)))
+}
+
+func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
+	t.Parallel()
+	facade := mock.Facade{
+		GetAccountHandler: func(address string) (*state.Account, error) {
+			return &state.Account{
+				Nonce: 1,
+				Balance: *big.NewInt(100),
+			}, nil
+		},
+	}
+	ws := startNodeServer(&facade)
+
+	reqAddress := "test"
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s", reqAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	accountResponse := AccountResponse{}
+	loadResponse(resp.Body, &accountResponse)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, accountResponse.Account.Address, reqAddress)
+	assert.Equal(t, accountResponse.Account.Nonce, uint64(1))
+	assert.Equal(t, accountResponse.Account.Balance, "100")
+	assert.Empty(t, accountResponse.Error)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

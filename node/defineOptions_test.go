@@ -8,23 +8,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestWithPort(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	port := 4455
-
-	opt := WithPort(port)
-	err := opt(node)
-
-	assert.Equal(t, port, node.port)
-	assert.Nil(t, err)
-}
 
 func TestWithMarshalizer_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
@@ -101,34 +86,6 @@ func TestWithHasher_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.hasher == hasher)
-	assert.Nil(t, err)
-}
-
-func TestWithMaxAllowedPeers(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	maxAllowedPeers := 456
-
-	opt := WithMaxAllowedPeers(maxAllowedPeers)
-	err := opt(node)
-
-	assert.Equal(t, maxAllowedPeers, node.maxAllowedPeers)
-	assert.Nil(t, err)
-}
-
-func TestWithPubSubStrategy(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	pubStrategy := p2p.PubSubStrategy(p2p.GossipSub)
-
-	opt := WithPubSubStrategy(pubStrategy)
-	err := opt(node)
-
-	assert.Equal(t, pubStrategy, node.pubSubStrategy)
 	assert.Nil(t, err)
 }
 
@@ -595,4 +552,29 @@ func TestWithMultisig_ShouldWork(t *testing.T) {
 
 	assert.True(t, node.multisig == multisigner)
 	assert.Nil(t, err)
+}
+
+func TestWithForkDetector_shouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	forkDetector := &mock.ForkDetectorMock{}
+	opt := WithForkDetector(forkDetector)
+	err := opt(node)
+
+	assert.True(t, node.forkDetector == forkDetector)
+	assert.Nil(t, err)
+}
+
+func TestWithForkDetector_NilForkDetectorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithForkDetector(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.forkDetector)
+	assert.Equal(t, errNilForkDetector, err)
 }

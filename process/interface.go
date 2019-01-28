@@ -125,3 +125,32 @@ type ForkDetector interface {
 	RemoveHeader(nonce uint64)
 	CheckFork() bool
 }
+
+// InterceptorContainer is an interface that defines the beahaviour for a container
+//  holding a list of interceptors organized by type
+type InterceptorContainer interface {
+	Get(key string) (Interceptor, error)
+	Add(key string, interceptor Interceptor) error
+	Replace(key string, interceptor Interceptor) error
+	Remove(key string)
+	Len() int
+}
+
+// ResolverContainer is an interface that defines the beahaviour for a container
+//  holding a list of resolvers organized by type
+type ResolverContainer interface {
+	Get(key string) (Resolver, error)
+	Add(key string, resolver Resolver) error
+	Replace(key string, interceptor Resolver) error
+	Remove(key string)
+	Len() int
+}
+
+// ProcessorFactory is an interface that defines the behaviour for a factory that
+//  can create the needed interceptors and resolvers for the application
+type ProcessorFactory interface {
+	CreateInterceptors() error
+	CreateResolvers() error
+	InterceptorContainer() InterceptorContainer
+	ResolverContainer() ResolverContainer
+}

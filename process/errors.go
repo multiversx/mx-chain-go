@@ -241,3 +241,20 @@ var ErrTimeIsOut = errors.New("time is out")
 
 // ErrNilForkDetector signals that the fork detector is nil
 var ErrNilForkDetector = errors.New("nil fork detector")
+
+// ErrNilContainerElement signals when trying to add a nil element in the container
+var ErrNilContainerElement = errors.New("element cannot be nil")
+// ErrInvalidContainerKey signals that an element does not exist in the container's map
+var ErrInvalidContainerKey = errors.New("element does not exist in container")
+
+// ErrContainerKeyAlreadyExists signals that an element was already set in the container's map
+var ErrContainerKeyAlreadyExists = errors.New("provided key already exists in container")
+
+// ErrNilUint64ByteSliceConverter signals that a nil byte slice converter was provided
+var ErrNilUint64ByteSliceConverter = errors.New("nil byte slice converter")
+
+// ErrNilInterceptorContainer signals that a nil interceptor container was provided
+var ErrNilInterceptorContainer = errors.New("nil interceptor container")
+
+// ErrNilResolverContainer signals that a nil resolver container was provided
+var ErrNilResolverContainer = errors.New("nil resolver container")

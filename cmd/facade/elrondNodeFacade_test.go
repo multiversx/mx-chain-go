@@ -8,7 +8,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,8 +32,8 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 			started = true
 			return nil
 		},
-		P2PBootstrapHandler: func() {
-			return
+		P2PBootstrapHandler: func() error {
+			return nil
 		},
 		IsRunningHandler: func() bool {
 			return started
@@ -80,8 +82,8 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 			started = true
 			return nil
 		},
-		P2PBootstrapHandler: func() {
-			return
+		P2PBootstrapHandler: func() error {
+			return nil
 		},
 		IsRunningHandler: func() bool {
 			return started
@@ -363,3 +365,71 @@ func TestElrondFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *t
 	assert.Nil(t, err)
 	assert.Nil(t, tx)
 }
+
+func TestElrondNodeFacade_SetLogger(t *testing.T) {
+	node := &mock.NodeMock{}
+
+	ef := facade.NewElrondNodeFacade(node)
+	log := logger.NewDefaultLogger()
+	ef.SetLogger(log)
+	assert.Equal(t, log, ef.GetLogger())
+}
+
+func TestElrondNodeFacade_SetSyncer(t *testing.T) {
+	node := &mock.NodeMock{}
+
+	ef := facade.NewElrondNodeFacade(node)
+	sync := &mock.SyncTimerMock{}
+	ef.SetSyncer(sync)
+	assert.Equal(t, sync, ef.GetSyncer())
+}
+
+func TestElrondNodeFacade_SendTransaction(t *testing.T) {
+	called := 0
+	node := &mock.NodeMock{}
+	node.SendTransactionHandler = func(nonce uint64, sender string, receiver string, amount big.Int, code string, signature []byte) (i *transaction.Transaction, e error) {
+		called++
+		return nil, nil
+	}
+	ef := facade.NewElrondNodeFacade(node)
+	ef.SendTransaction(1, "test", "test", *big.NewInt(0), "code", []byte{})
+	assert.Equal(t, called, 1)
+}
+
+func TestElrondNodeFacade_GetAccount(t *testing.T) {
+	called := 0
+	node := &mock.NodeMock{}
+	node.GetAccountHandler = func(address string) (account *state.Account, e error) {
+		called++
+		return nil, nil
+	}
+	ef := facade.NewElrondNodeFacade(node)
+	ef.GetAccount("test")
+	assert.Equal(t, called, 1)
+}
+
+func TestElrondNodeFacade_GetCurrentPublicKey(t *testing.T) {
+	called := 0
+	node := &mock.NodeMock{}
+	node.GetCurrentPublicKeyHandler = func() string {
+		called++
+		return ""
+	}
+	ef := facade.NewElrondNodeFacade(node)
+	ef.GetCurrentPublicKey()
+	assert.Equal(t, called, 1)
+}
+
+func TestElrondNodeFacade_GenerateAndSendBulkTransactions(t *testing.T) {
+	called := 0
+	node := &mock.NodeMock{}
+	node.GenerateAndSendBulkTransactionsHandler = func(destination string, value big.Int, nrTransactions uint64) error {
+		called++
+		return nil
+	}
+	ef := facade.NewElrondNodeFacade(node)
+	ef.GenerateAndSendBulkTransactions("", *big.NewInt(0), 0)
+	assert.Equal(t, called, 1)
+}
+
+

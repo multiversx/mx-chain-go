@@ -32,20 +32,17 @@ func logError(err error) {
 }
 
 func TestNewNode(t *testing.T) {
-
 	n, err := node.NewNode()
 	assert.NotNil(t, n)
 	assert.Nil(t, err)
 }
 
 func TestNewNode_NotRunning(t *testing.T) {
-
 	n, _ := node.NewNode()
 	assert.False(t, n.IsRunning())
 }
 
 func TestNewNode_NilOptionShouldError(t *testing.T) {
-
 	_, err := node.NewNode(node.WithAccountsAdapter(nil))
 	assert.NotNil(t, err)
 }
@@ -57,33 +54,8 @@ func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestStart_NoPort(t *testing.T) {
-
+func TestStart_NoMessenger(t *testing.T) {
 	n, _ := node.NewNode()
-	err := n.Start()
-	defer func() { _ = n.Stop() }()
-	assert.NotNil(t, err)
-}
-
-func TestStart_NoMarshalizer(t *testing.T) {
-
-	n, _ := node.NewNode(node.WithPort(4000))
-	err := n.Start()
-	defer func() { _ = n.Stop() }()
-	assert.NotNil(t, err)
-}
-
-func TestStart_NoHasher(t *testing.T) {
-
-	n, _ := node.NewNode(node.WithPort(4000), node.WithMarshalizer(mock.MarshalizerMock{}))
-	err := n.Start()
-	defer func() { _ = n.Stop() }()
-	assert.NotNil(t, err)
-}
-
-func TestStart_NoMaxAllowedPeers(t *testing.T) {
-
-	n, _ := node.NewNode(node.WithPort(4000), node.WithMarshalizer(mock.MarshalizerMock{}), node.WithHasher(mock.HasherMock{}))
 	err := n.Start()
 	defer func() { _ = n.Stop() }()
 	assert.NotNil(t, err)
@@ -91,13 +63,12 @@ func TestStart_NoMaxAllowedPeers(t *testing.T) {
 
 func TestStart_CorrectParams(t *testing.T) {
 
+	messenger := getMessenger()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
+		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
 	)
@@ -110,11 +81,11 @@ func TestStart_CorrectParams(t *testing.T) {
 func TestStart_CorrectParamsApplyingOptions(t *testing.T) {
 
 	n, _ := node.NewNode()
+	messenger := getMessenger()
 	err := n.ApplyOptions(
-		node.WithPort(4000),
+		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
 	)
@@ -129,18 +100,18 @@ func TestStart_CorrectParamsApplyingOptions(t *testing.T) {
 
 func TestApplyOptions_NodeStarted(t *testing.T) {
 
+	messenger := getMessenger()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
+		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 	)
 	err := n.Start()
 	defer func() { _ = n.Stop() }()
 	logError(err)
 
 	err = n.ApplyOptions(
-		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
 	)
 
 	assert.NotNil(t, err)
@@ -150,30 +121,9 @@ func TestApplyOptions_NodeStarted(t *testing.T) {
 func TestStop_NotStartedYet(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
-	)
-	err := n.Start()
-	defer func() { _ = n.Stop() }()
-	logError(err)
-	err = n.Stop()
-	assert.Nil(t, err)
-	assert.False(t, n.IsRunning())
-}
-
-func TestStop(t *testing.T) {
-
-	n, _ := node.NewNode(
-		node.WithPort(4000),
-		node.WithMarshalizer(mock.MarshalizerMock{}),
-		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
-		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 	)
 
 	err := n.Stop()
@@ -181,78 +131,47 @@ func TestStop(t *testing.T) {
 	assert.False(t, n.IsRunning())
 }
 
-func TestConnectToAddresses_NodeNotStarted(t *testing.T) {
-
-	n2, _ := node.NewNode(
-		node.WithPort(4001),
-		node.WithMarshalizer(mock.MarshalizerMock{}),
-		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
-	)
-	err := n2.Start()
-	defer func() { _ = n2.Stop() }()
-	assert.Nil(t, err)
-	addr, _ := n2.Address()
-
+func TestStop_MessengerCloseErrors(t *testing.T) {
+	errorString := "messenger close error"
+	messenger := getMessenger()
+	messenger.CloseCalled = func() error {
+		return errors.New(errorString)
+	}
 	n, _ := node.NewNode(
-		node.WithPort(4000),
+		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
 	)
 
-	err = n.ConnectToAddresses([]string{addr})
+	n.Start()
+
+	err := n.Stop()
 	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), errorString)
 }
 
-func TestConnectToAddresses(t *testing.T) {
-
-	n2, _ := node.NewNode(
-		node.WithPort(4001),
-		node.WithMarshalizer(mock.MarshalizerMock{}),
-		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
-	)
-	err := n2.Start()
-	defer func() { _ = n2.Stop() }()
-	assert.Nil(t, err)
-	addr, _ := n2.Address()
+func TestStop(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
+		node.WithContext(context.Background()),
 	)
-	err = n.Start()
-	defer func() { _ = n.Stop() }()
+	err := n.Start()
+	logError(err)
+
+	err = n.Stop()
 	assert.Nil(t, err)
-
-	err = n.ConnectToAddresses([]string{addr})
-	assert.Nil(t, err)
-}
-
-func TestAddress_NodeNotStarted(t *testing.T) {
-
-	n, _ := node.NewNode(
-		node.WithPort(4000),
-		node.WithMarshalizer(mock.MarshalizerMock{}),
-		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
-	)
-	_, err := n.Address()
-	assert.NotNil(t, err)
+	assert.False(t, n.IsRunning())
 }
 
 func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
@@ -264,12 +183,9 @@ func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
 func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
@@ -292,12 +208,9 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 	}
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -317,12 +230,9 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -359,12 +269,9 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -380,12 +287,9 @@ func TestGetBalance(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -400,12 +304,9 @@ func TestGetBalance(t *testing.T) {
 func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
@@ -416,12 +317,9 @@ func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
@@ -432,12 +330,9 @@ func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
 func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
 	)
@@ -451,12 +346,9 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -475,12 +367,9 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -499,12 +388,9 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -519,12 +405,9 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -544,12 +427,9 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 		},
 	}
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -568,12 +448,9 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 		},
 	}
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -594,12 +471,9 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 	}
 
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -628,12 +502,9 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -650,12 +521,9 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
@@ -810,12 +678,9 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
 	n, _ := node.NewNode(
-		node.WithPort(4000),
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(mock.HasherMock{}),
-		node.WithMaxAllowedPeers(4),
 		node.WithContext(context.Background()),
-		node.WithPubSubStrategy(p2p.GossipSub),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(sk),
@@ -863,7 +728,10 @@ func TestBindInterceptorsResolvers_NodeNotStartedShouldErr(t *testing.T) {
 }
 
 func TestBindInterceptorsResolvers_ShouldWork(t *testing.T) {
+	messenger := getMessenger()
+	processorCreator := getProcessorCreator()
 	n, _ := node.NewNode(
+		node.WithMessenger(messenger),
 		node.WithDataPool(createDataPoolMock()),
 		node.WithAddressConverter(mock.AddressConverterStub{}),
 		node.WithHasher(mock.HasherMock{}),
@@ -872,12 +740,13 @@ func TestBindInterceptorsResolvers_ShouldWork(t *testing.T) {
 		node.WithMarshalizer(&mock.MarshalizerMock{}),
 		node.WithBlockChain(createStubBlockchain()),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithProcessorCreator(processorCreator),
 	)
 
-	mes := mock.NewMessengerStub()
-	n.SetMessenger(mes)
+	n.Start()
+	defer func() { _ = n.Stop() }()
 
-	prepareMessenger(mes)
+	prepareMessenger(messenger)
 
 	err := n.BindInterceptorsResolvers()
 
@@ -956,7 +825,14 @@ func createStubBlockchain() *blockchain.BlockChain {
 }
 
 func TestBindInterceptorsResolvers_CreateInterceptorFailsShouldErr(t *testing.T) {
+	retError := "create interceptor error"
+	messenger := getMessenger()
+	processorCreator := getProcessorCreator()
+	processorCreator.CreateInterceptorsCalled = func() error {
+		return errors.New(retError)
+	}
 	n, _ := node.NewNode(
+		node.WithMessenger(messenger),
 		node.WithDataPool(createDataPoolMock()),
 		node.WithHasher(mock.HasherMock{}),
 		node.WithSingleSignKeyGenerator(&mock.SingleSignKeyGenMock{}),
@@ -964,20 +840,29 @@ func TestBindInterceptorsResolvers_CreateInterceptorFailsShouldErr(t *testing.T)
 		node.WithMarshalizer(&mock.MarshalizerMock{}),
 		node.WithBlockChain(createStubBlockchain()),
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
+		node.WithProcessorCreator(processorCreator),
 	)
 
-	mes := mock.NewMessengerStub()
-	n.SetMessenger(mes)
+	prepareMessenger(messenger)
 
-	prepareMessenger(mes)
+	n.Start()
+	defer func() { _ = n.Stop() }()
 
 	err := n.BindInterceptorsResolvers()
 
-	assert.Equal(t, "nil AddressConverter", err.Error())
+	assert.NotNil(t, err)
+	assert.Equal(t, retError, err.Error())
 }
 
 func TestBindInterceptorsResolvers_CreateResolversFailsShouldErr(t *testing.T) {
+	retError := "create resolvers error"
+	messenger := getMessenger()
+	processorCreator := getProcessorCreator()
+	processorCreator.CreateResolversCalled = func() error {
+		return errors.New(retError)
+	}
 	n, _ := node.NewNode(
+		node.WithMessenger(messenger),
 		node.WithDataPool(createDataPoolMock()),
 		node.WithAddressConverter(mock.AddressConverterStub{}),
 		node.WithHasher(mock.HasherMock{}),
@@ -985,16 +870,17 @@ func TestBindInterceptorsResolvers_CreateResolversFailsShouldErr(t *testing.T) {
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithMarshalizer(&mock.MarshalizerMock{}),
 		node.WithBlockChain(createStubBlockchain()),
+		node.WithProcessorCreator(processorCreator),
 	)
 
-	mes := mock.NewMessengerStub()
-	n.SetMessenger(mes)
-
-	prepareMessenger(mes)
+	prepareMessenger(messenger)
+	n.Start()
+	defer func() { _ = n.Stop() }()
 
 	err := n.BindInterceptorsResolvers()
 
-	assert.Equal(t, "nil nonce converter", err.Error())
+	assert.NotNil(t, err)
+	assert.Equal(t, retError, err.Error())
 }
 
 func TestSendTransaction_TopicDoesNotExistsShouldErr(t *testing.T) {
@@ -1114,4 +1000,162 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tx)
 	assert.True(t, txSent)
+}
+
+func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
+	messenger := getMessenger()
+	dataPool := &mock.TransientDataPoolMock{}
+
+	n, _ := node.NewNode(
+		node.WithMessenger(messenger),
+		node.WithDataPool(dataPool),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithHasher(mock.HasherMock{}),
+		node.WithContext(context.Background()),
+		node.WithAddressConverter(&mock.AddressConverterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+	)
+	err := n.Start()
+	logError(err)
+	defer func() { _ = n.Stop() }()
+	err = n.CreateShardedStores()
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "nil shard coordinator")
+}
+
+func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
+	messenger := getMessenger()
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	n, _ := node.NewNode(
+		node.WithMessenger(messenger),
+		node.WithShardCoordinator(shardCoordinator),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithHasher(mock.HasherMock{}),
+		node.WithContext(context.Background()),
+		node.WithAddressConverter(&mock.AddressConverterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+	)
+	err := n.Start()
+	logError(err)
+	defer func() { _ = n.Stop() }()
+	err = n.CreateShardedStores()
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "nil data pool")
+}
+
+func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
+	messenger := getMessenger()
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	dataPool := &mock.TransientDataPoolMock{}
+	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
+		return nil
+	}
+	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
+	n, _ := node.NewNode(
+		node.WithMessenger(messenger),
+		node.WithShardCoordinator(shardCoordinator),
+		node.WithDataPool(dataPool),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithHasher(mock.HasherMock{}),
+		node.WithContext(context.Background()),
+		node.WithAddressConverter(&mock.AddressConverterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+	)
+	err := n.Start()
+	logError(err)
+	defer func() { _ = n.Stop() }()
+	err = n.CreateShardedStores()
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "nil transaction sharded data store")
+}
+
+func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
+	messenger := getMessenger()
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	dataPool := &mock.TransientDataPoolMock{}
+	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
+	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		return nil
+	}
+	n, _ := node.NewNode(
+		node.WithMessenger(messenger),
+		node.WithShardCoordinator(shardCoordinator),
+		node.WithDataPool(dataPool),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithHasher(mock.HasherMock{}),
+		node.WithContext(context.Background()),
+		node.WithAddressConverter(&mock.AddressConverterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+	)
+	err := n.Start()
+	logError(err)
+	defer func() { _ = n.Stop() }()
+	err = n.CreateShardedStores()
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "nil header sharded data store")
+}
+
+func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
+	messenger := getMessenger()
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	nrOfShards := uint32(2)
+	shardCoordinator.SetNoShards(nrOfShards)
+	dataPool := &mock.TransientDataPoolMock{}
+	var txShardedDataResult uint32
+	txShardedData := &mock.ShardedDataStub{}
+	txShardedData.CreateShardStoreCalled = func(destShardID uint32) {
+		txShardedDataResult = destShardID
+	}
+	var headerShardedDataResult uint32
+	headerShardedData := &mock.ShardedDataStub{}
+	headerShardedData.CreateShardStoreCalled = func(destShardID uint32) {
+		headerShardedDataResult = destShardID
+	}
+	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
+		return txShardedData
+	}
+	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		return headerShardedData
+	}
+	n, _ := node.NewNode(
+		node.WithMessenger(messenger),
+		node.WithShardCoordinator(shardCoordinator),
+		node.WithDataPool(dataPool),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithHasher(mock.HasherMock{}),
+		node.WithContext(context.Background()),
+		node.WithAddressConverter(&mock.AddressConverterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+	)
+	err := n.Start()
+	logError(err)
+	defer func() { _ = n.Stop() }()
+	err = n.CreateShardedStores()
+	assert.Nil(t, err)
+	assert.Equal(t, txShardedDataResult, nrOfShards - 1)
+	assert.Equal(t, headerShardedDataResult, nrOfShards -1)
+}
+
+func getMessenger() *mock.MessengerStub {
+	messenger := mock.NewMessengerStub()
+	messenger.BootstrapCalled = func(ctx context.Context) {}
+	messenger.CloseCalled = func() error {
+		return nil
+	}
+	return messenger
+}
+
+func getProcessorCreator() *mock.ProcessorCreatorMock {
+	return &mock.ProcessorCreatorMock{
+		CreateInterceptorsCalled: func() error {
+			return nil
+		},
+		CreateResolversCalled: func() error {
+			return nil
+		},
+	}
 }

@@ -1,7 +1,6 @@
 package transaction
 
 import (
-	"context"
 	"math/big"
 	"sync"
 	"testing"
@@ -22,9 +21,10 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMemMessenger(t *testing.T
 	accntAdapter := adbCreateAccountsDB()
 
 	//TODO change when injecting a messenger is possible
-	n, mes, sk := createMemNode(1, dPool, accntAdapter)
+	n, _, sk, _ := createMemNode(1, dPool, accntAdapter)
 
-	mes.Bootstrap(context.Background())
+	n.Start()
+	defer func (){ _= n.Stop() }()
 
 	defer p2p.ReInitializeGloballyRegisteredPeers()
 
