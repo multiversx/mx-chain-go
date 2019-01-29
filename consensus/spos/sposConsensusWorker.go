@@ -444,7 +444,7 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 	sposWorker.Rounds++          // only for statistic
 	sposWorker.RoundsWithBlock++ // only for statistic
 
-	log.Info(fmt.Sprintf("%sCreated %d not empty blocks in %d rounds, which means %.2f%% efficency\n",
+	log.Info(fmt.Sprintf("%sCreated %d not empty blocks in %d rounds, which means %.2f%% efficiency\n",
 		sposWorker.Cns.getFormattedTime(), sposWorker.RoundsWithBlock, sposWorker.Rounds,
 		float64(sposWorker.RoundsWithBlock)*float64(100.0)/float64(sposWorker.Rounds)))
 
