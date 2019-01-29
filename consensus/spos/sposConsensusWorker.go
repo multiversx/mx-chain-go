@@ -44,7 +44,7 @@ const (
 const shardId = 0
 
 //TODO: maximum transactions in one block (this should be injected, and this const should be removed later)
-const maxTransactionsInBlock = 15000
+const maxTransactionsInBlock = 16000
 
 // consensusSubrounds specifies how many subrounds of consensus are in this implementation
 const consensusSubrounds = 6
