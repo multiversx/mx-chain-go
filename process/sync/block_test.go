@@ -1480,6 +1480,109 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, blkc.CurrentBlockHeaderHash, prevHdrHash)
 }
 
+func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T) {
+	t.Parallel()
+
+	//retain if the remove process from different storage locations has been called
+	remFlags := &removedFlags{}
+
+	currentHdrNonce := uint64(1)
+	currentHdrHash := []byte("current header hash")
+
+	//define prev tx block body "strings" as in this test there are a lot of stubs that
+	//constantly need to check some defined symbols
+	prevTxBlockBodyHash := []byte("prev block body hash")
+	prevTxBlockBodyBytes := []byte("prev block body bytes")
+	prevTxBlockBody := &block.TxBlockBody{
+		StateBlockBody: block.StateBlockBody{RootHash: []byte("state root hash")},
+	}
+
+	//define prev header "strings"
+	prevHdrHash := []byte("prev header hash")
+	prevHdrBytes := []byte("prev header bytes")
+	prevHdr := &block.Header{
+		Signature:     []byte("sig of the prev header as to be unique in this context"),
+		BlockBodyHash: prevTxBlockBodyHash,
+	}
+
+	transient := &mock.TransientDataPoolMock{}
+	//data pool headers
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		return createHeadersDataPool(currentHdrHash, remFlags)
+	}
+	//data pool headers-nonces
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		return createHeadersNoncesDataPool(
+			currentHdrNonce,
+			currentHdrHash,
+			currentHdrNonce,
+			remFlags,
+		)
+	}
+	//data pool tx block bodies
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{
+			RegisterHandlerCalled: func(i func(key []byte)) {},
+		}
+		return cs
+	}
+
+	hdrUnit := createHeadersStorage(prevHdrHash, prevHdrBytes, currentHdrHash, remFlags)
+	txBlockUnit := createHeadersStorage(prevTxBlockBodyHash, prevTxBlockBodyBytes, nil, remFlags)
+
+	//a mock blockchain with special header and tx block bodies stubs (defined above)
+	blkc, _ := blockchain.NewBlockChain(
+		&mock.CacherStub{},
+		&mock.StorerStub{},
+		txBlockUnit,
+		&mock.StorerStub{},
+		&mock.StorerStub{},
+		hdrUnit,
+	)
+	round := &chronology.Round{}
+	blkExec := &mock.BlockProcessorMock{}
+
+	//a marshalizer stub
+	marshalizer := &mock.MarshalizerStub{
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			if bytes.Equal(buff, prevHdrBytes) {
+				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
+				//copy only defined fields
+				obj.(*block.Header).Signature = prevHdr.Signature
+				obj.(*block.Header).BlockBodyHash = prevTxBlockBodyHash
+				return nil
+			}
+			if bytes.Equal(buff, prevTxBlockBodyBytes) {
+				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
+				//copy only defined fields
+				obj.(*block.TxBlockBody).RootHash = prevTxBlockBody.RootHash
+				return nil
+			}
+
+			return nil
+		},
+	}
+	forkDetector := createForkDetector(currentHdrNonce, remFlags)
+	bs, _ := sync.NewBootstrap(transient, blkc, round, blkExec, waitTime, marshalizer, forkDetector)
+
+	//this is the block we want to revert
+	blkc.CurrentBlockHeader = &block.Header{
+		Nonce: currentHdrNonce,
+		//empty bitmap
+		PrevHash: prevHdrHash,
+	}
+
+	err := bs.ForkChoice(&block.Header{})
+	assert.Nil(t, err)
+	assert.True(t, remFlags.flagHdrRemovedFromNonces)
+	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
+	assert.True(t, remFlags.flagHdrRemovedFromStorage)
+	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
+	assert.Nil(t, blkc.CurrentBlockHeader)
+	assert.Nil(t, blkc.CurrentTxBlockBody)
+	assert.Nil(t, blkc.CurrentBlockHeaderHash)
+}
+
 //------- GetTxBodyHavingHash
 
 func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) {

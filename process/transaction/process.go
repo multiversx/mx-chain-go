@@ -231,7 +231,7 @@ func (txProc *txProcessor) callSCHandler(tx *transaction.Transaction) error {
 }
 
 func (txProc *txProcessor) checkTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {
-	//TODO: undo this for nonce checking
+	//TODO: undo this for nonce checking and un-skip tests
 	//if acntSrc.BaseAccount().Nonce < nonce {
 	//	return process.ErrHigherNonceInTransaction
 	//}

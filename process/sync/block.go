@@ -504,6 +504,14 @@ func (boot *Bootstrap) forkChoice(hdr *block.Header) error {
 	return boot.rollback(header)
 }
 
+func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore storage.Storer) {
+	hash, _ := boot.headersNonces.Get(header.Nonce)
+	boot.headersNonces.Remove(header.Nonce)
+	boot.headers.RemoveData(hash, header.ShardId)
+	boot.forkDetector.RemoveHeaders(header.Nonce)
+	_ = headerStore.Remove(hash)
+}
+
 func (boot *Bootstrap) rollback(header *block.Header) error {
 	headerStore := boot.blkc.GetStorer(blockchain.BlockHeaderUnit)
 	if headerStore == nil {
@@ -513,6 +521,16 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 	txBlockBodyStore := boot.blkc.GetStorer(blockchain.TxBlockBodyUnit)
 	if txBlockBodyStore == nil {
 		return process.ErrNilBlockBodyStorage
+	}
+
+	// genesis block is treated differently
+	if header.Nonce == 1 {
+		boot.blkc.CurrentBlockHeader = nil
+		boot.blkc.CurrentTxBlockBody = nil
+		boot.blkc.CurrentBlockHeaderHash = nil
+		boot.cleanCachesOnRollback(header, headerStore)
+
+		return nil
 	}
 
 	newHeader, err := boot.getPrevHeader(headerStore, header)
@@ -525,16 +543,10 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 		return err
 	}
 
-	hash, _ := boot.headersNonces.Get(header.Nonce)
-
-	boot.headersNonces.Remove(header.Nonce)
-	boot.headers.RemoveData(hash, header.ShardId)
-	boot.forkDetector.RemoveHeaders(header.Nonce)
-	_ = headerStore.Remove(hash)
-
 	boot.blkc.CurrentBlockHeader = newHeader
 	boot.blkc.CurrentTxBlockBody = newTxBlockBody
 	boot.blkc.CurrentBlockHeaderHash = header.PrevHash
+	boot.cleanCachesOnRollback(header, headerStore)
 
 	return nil
 }
