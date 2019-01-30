@@ -1,4 +1,4 @@
-package trie2
+package encoding
 
 func KeyBytesToHex(str []byte) []byte {
 	l := len(str)*2 + 1

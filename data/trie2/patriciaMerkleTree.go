@@ -4,12 +4,17 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/encoding"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
 var hasher = keccak.Keccak{}
+var marshalizer = marshal.JsonMarshalizer{}
 
 type PatriciaMerkleTree struct {
 	root   Node
@@ -30,7 +35,7 @@ func NewTrie(hsh hashing.Hasher) *PatriciaMerkleTree {
 }
 
 func (t *PatriciaMerkleTree) Update(key, value []byte) error {
-	k := KeyBytesToHex(key)
+	k := encoding.KeyBytesToHex(key)
 	if len(value) != 0 {
 		_, n, err := t.insert(t.root, nil, k, valueNode(value))
 		if err != nil {
@@ -57,7 +62,7 @@ func (t *PatriciaMerkleTree) insert(n Node, prefix, key []byte, value Node) (boo
 	}
 	switch n := n.(type) {
 	case *shortNode:
-		matchlen := PrefixLen(key, n.Key)
+		matchlen := encoding.PrefixLen(key, n.Key)
 		// If the whole key matches, keep this short node as is
 		// and only update the value.
 		if matchlen == len(n.Key) {
@@ -65,7 +70,7 @@ func (t *PatriciaMerkleTree) insert(n Node, prefix, key []byte, value Node) (boo
 			if !dirty || err != nil {
 				return false, n, err
 			}
-			return true, &shortNode{n.Key, nn}, nil
+			return true, &shortNode{n.Key, nn, nil}, nil
 		}
 		// Otherwise branch out at the index where they differ.
 		branch := &fullNode{}
@@ -83,7 +88,7 @@ func (t *PatriciaMerkleTree) insert(n Node, prefix, key []byte, value Node) (boo
 			return true, branch, nil
 		}
 		// Otherwise, replace it with a short node leading up to the branch.
-		return true, &shortNode{key[:matchlen], branch}, nil
+		return true, &shortNode{key[:matchlen], branch, nil}, nil
 
 	case *fullNode:
 		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, key[0]), key[1:], value)
@@ -95,9 +100,14 @@ func (t *PatriciaMerkleTree) insert(n Node, prefix, key []byte, value Node) (boo
 		return true, n, nil
 
 	case nil:
-		return true, &shortNode{key, value}, nil
+		return true, &shortNode{key, value, nil}, nil
 
 	default:
 		panic(fmt.Sprintf("%T: invalid node: %v", n, n))
 	}
+}
+
+func (tr *PatriciaMerkleTree) Root() []byte {
+	h, _ := Hash(tr.root)
+	return h.Hash()
 }

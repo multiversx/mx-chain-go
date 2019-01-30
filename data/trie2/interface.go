@@ -9,5 +9,5 @@ type Trie interface {
 }
 
 type Node interface {
-	fstring(string) string
+	Hash() hashNode
 }
