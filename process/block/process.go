@@ -347,8 +347,10 @@ func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, head
 		if !bytes.Equal(header.PrevHash, blockChain.CurrentBlockHeaderHash) {
 
 			log.Info(fmt.Sprintf(
-				"header.PrevHash = %s and blockChain.CurrentBlockHeaderHash = %s\n",
+				"header.Nonce = %d has header.PrevHash = %s and blockChain.CurrentBlockHeader.Nonce = %d has blockChain.CurrentBlockHeaderHash = %s\n",
+				header.Nonce,
 				toB64(header.PrevHash),
+				blockChain.CurrentBlockHeader.Nonce,
 				toB64(blockChain.CurrentBlockHeaderHash)))
 
 			return process.ErrInvalidBlockHash
@@ -850,15 +852,15 @@ func displayTxBlockBody(lines []*display.LineData, txBlockBody *block.TxBlockBod
 		txsTotalProcessed += len(miniBlock.TxHashes)
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			if j >= len(miniBlock.TxHashes)-1 {
-				lines = append(lines, display.NewLineData(false, []string{
-					part,
-					fmt.Sprintf("Tx blockBodyHash %d", j),
-					toB64(miniBlock.TxHashes[j])}))
+			//if j >= len(miniBlock.TxHashes)-1 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				fmt.Sprintf("Tx blockBodyHash %d", j+1),
+				toB64(miniBlock.TxHashes[j])}))
 
-				part = ""
-			}
+			part = ""
 		}
+		//}
 
 		lines[len(lines)-1].HorizontalRuleAfter = true
 	}
