@@ -509,7 +509,8 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 	boot.headersNonces.Remove(header.Nonce)
 	boot.headers.RemoveData(hash, header.ShardId)
 	boot.forkDetector.RemoveHeaders(header.Nonce)
-	_ = headerStore.Remove(hash)
+	//TODO remove this when fetching the same bad processed and rollback header is fixed
+	//_ = headerStore.Remove(hash)
 }
 
 func (boot *Bootstrap) rollback(header *block.Header) error {

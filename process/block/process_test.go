@@ -1908,6 +1908,60 @@ func TestSortTxByNonce_MoreTransactionsShouldContainSortedElements(t *testing.T)
 	}
 }
 
+func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
+	t.Parallel()
+
+	transactions := []*transaction.Transaction{
+		{Nonce: 1, Signature: []byte("sig1")},
+		{Nonce: 2, Signature: []byte("sig2")},
+		{Nonce: 1, Signature: []byte("sig3")},
+		{Nonce: 2, Signature: []byte("sig4")},
+		{Nonce: 3, Signature: []byte("sig5")},
+	}
+
+	cache, _ := storage.NewCache(storage.LRUCache, uint32(len(transactions)))
+
+	for _, tx := range transactions {
+		marshalizer := &mock.MarshalizerMock{}
+		buffTx, _ := marshalizer.Marshal(tx)
+		hash := mock.HasherMock{}.Compute(string(buffTx))
+
+		cache.Put(hash, tx)
+	}
+
+	sortedTxs, _, _ := blproc.SortTxByNonce(cache)
+
+	lastNonce := uint64(0)
+
+	for i := 0; i < len(sortedTxs); i++ {
+		tx := sortedTxs[i]
+
+		assert.True(t, lastNonce <= tx.Nonce)
+
+		fmt.Printf("tx.Nonce: %d, tx.Sig: %s\n", tx.Nonce, tx.Signature)
+
+		lastNonce = tx.Nonce
+	}
+
+	assert.Equal(t, len(sortedTxs), len(transactions))
+
+	//test if one transaction from transactions might not be in sortedTx
+	for _, tx := range transactions {
+		found := false
+
+		for _, stx := range sortedTxs {
+			if reflect.DeepEqual(tx, stx) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			assert.Fail(t, "Not found tx in sorted slice for sig: "+string(tx.Signature))
+		}
+	}
+}
+
 func genCacherTransactionsHashes(noOfTx int) (storage.Cacher, []*transaction.Transaction, [][]byte) {
 	cacher, _ := storage.NewCache(storage.LRUCache, uint32(noOfTx))
 

@@ -908,8 +908,8 @@ func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 	transactions := make([]*transaction.Transaction, 0)
 	txHashes := make([][]byte, 0)
 
-	mTxHashes := make(map[uint64][]byte)
-	mTransactions := make(map[uint64]*transaction.Transaction)
+	mTxHashes := make(map[uint64][][]byte)
+	mTransactions := make(map[uint64][]*transaction.Transaction)
 
 	nonces := make([]uint64, 0)
 
@@ -924,9 +924,20 @@ func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 			continue
 		}
 
-		nonces = append(nonces, tx.Nonce)
-		mTxHashes[tx.Nonce] = key
-		mTransactions[tx.Nonce] = tx
+		if mTxHashes[tx.Nonce] == nil {
+			mTxHashes[tx.Nonce] = make([][]byte, 0)
+		}
+
+		if mTransactions[tx.Nonce] == nil {
+			mTransactions[tx.Nonce] = make([]*transaction.Transaction, 0)
+		}
+
+		if !nonceInSlice(tx.Nonce, nonces) {
+			nonces = append(nonces, tx.Nonce)
+		}
+
+		mTxHashes[tx.Nonce] = append(mTxHashes[tx.Nonce], key)
+		mTransactions[tx.Nonce] = append(mTransactions[tx.Nonce], tx)
 	}
 
 	sort.Slice(nonces, func(i, j int) bool {
@@ -934,13 +945,25 @@ func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 	})
 
 	for _, nonce := range nonces {
-		key := mTxHashes[nonce]
+		keys := mTxHashes[nonce]
 
-		txHashes = append(txHashes, key)
-		transactions = append(transactions, mTransactions[nonce])
+		for idx, key := range keys {
+			txHashes = append(txHashes, key)
+			transactions = append(transactions, mTransactions[nonce][idx])
+		}
 	}
 
 	return transactions, txHashes, nil
+}
+
+func nonceInSlice(nonce uint64, nonces []uint64) bool {
+	for _, n := range nonces {
+		if n == nonce {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (bp *blockProcessor) displayTxsInfo(miniBlock *block.MiniBlock, shardId uint32) {
