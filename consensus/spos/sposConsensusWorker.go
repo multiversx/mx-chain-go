@@ -1155,7 +1155,7 @@ func (sposWorker *SPOSConsensusWorker) ExtendCommitment() {
 func (sposWorker *SPOSConsensusWorker) ExtendSignature() {
 	sposWorker.Cns.SetStatus(SrSignature, SsExtended)
 
-	log.Info(fmt.Sprintf("%sStep 5: Extended the (SIGNATURE) subround. Got only %d from %d sigantures which are not enough\n",
+	log.Info(fmt.Sprintf("%sStep 5: Extended the (SIGNATURE) subround. Got only %d from %d signatures which are not enough\n",
 		sposWorker.Cns.getFormattedTime(), sposWorker.Cns.ComputeSize(SrSignature), len(sposWorker.Cns.ConsensusGroup())))
 }
 
