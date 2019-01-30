@@ -177,6 +177,23 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 
 	keyGen := schnorr.NewKeyGenerator()
 	sk, pk := keyGen.GeneratePair()
+	blkc := createTestBlockChain()
+	shardCoordinator := &sharding.OneShardCoordinator{}
+	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
+
+	pFactory, _ := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
+		InterceptorContainer:     interceptor.NewContainer(),
+		ResolverContainer:        resolver.NewContainer(),
+		Messenger:                messenger,
+		Blockchain:               blkc,
+		DataPool:                 dPool,
+		ShardCoordinator:         shardCoordinator,
+		AddrConverter:            addrConverter,
+		Hasher:                   hasher,
+		Marshalizer:              marshalizer,
+		SingleSignKeyGen:         keyGen,
+		Uint64ByteSliceConverter: uint64Converter,
+	})
 
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -187,11 +204,12 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
 		node.WithSingleSignKeyGenerator(keyGen),
-		node.WithShardCoordinator(&sharding.OneShardCoordinator{}),
-		node.WithBlockChain(createTestBlockChain()),
-		node.WithUint64ByteSliceConverter(uint64ByteSlice.NewBigEndianConverter()),
+		node.WithShardCoordinator(shardCoordinator),
+		node.WithBlockChain(blkc),
+		node.WithUint64ByteSliceConverter(uint64Converter),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
+		node.WithProcessorCreator(pFactory),
 	)
 
 	return n, nil, sk
