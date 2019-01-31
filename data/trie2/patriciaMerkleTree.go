@@ -57,6 +57,53 @@ func (tr *PatriciaMerkleTree) Delete(key []byte) error {
 	return nil
 }
 
+// Get returns the value for key stored in the trie.
+// The value bytes must not be modified by the caller.
+// If a node was not found in the database, a MissingNodeError is returned.
+func (tr *PatriciaMerkleTree) Get(key []byte) ([]byte, error) {
+	key = encoding.KeyBytesToHex(key)
+	value, newroot, didResolve, err := tr.tryGet(tr.root, key, 0)
+	if err == nil && didResolve {
+		tr.root = newroot
+	}
+	return value, err
+}
+
+// Copy returns a copy of Trie.
+func (t *PatriciaMerkleTree) Copy() Trie {
+	cpy := *t
+	return &cpy
+}
+
+func (tr *PatriciaMerkleTree) tryGet(origNode Node, key []byte, pos int) (value []byte, newnode Node, didResolve bool, err error) {
+	switch n := (origNode).(type) {
+	case nil:
+		return nil, nil, false, nil
+	case valueNode:
+		return n, n, false, nil
+	case *shortNode:
+		if len(key)-pos < len(n.Key) || !bytes.Equal(n.Key, key[pos:pos+len(n.Key)]) {
+			// key not found in trie
+			return nil, n, false, nil
+		}
+		value, newnode, didResolve, err = tr.tryGet(n.Val, key, pos+len(n.Key))
+		if err == nil && didResolve {
+			n = n.copy()
+			n.Val = newnode
+		}
+		return value, n, didResolve, err
+	case *fullNode:
+		value, newnode, didResolve, err = tr.tryGet(n.Children[key[pos]], key, pos+1)
+		if err == nil && didResolve {
+			n = n.copy()
+			n.Children[key[pos]] = newnode
+		}
+		return value, n, didResolve, err
+	default:
+		panic(fmt.Sprintf("%T: invalid node: %v", origNode, origNode))
+	}
+}
+
 func (tr *PatriciaMerkleTree) insert(n Node, prefix, key []byte, value Node) (bool, Node, error) {
 	if len(key) == 0 {
 		if v, ok := n.(valueNode); ok {

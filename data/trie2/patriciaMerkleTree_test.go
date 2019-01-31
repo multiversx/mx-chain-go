@@ -87,3 +87,28 @@ func TestPatriciaMerkleTree_Root(t *testing.T) {
 	assert.Equal(t, tr.Root(), expected)
 
 }
+
+func TestPatriciaMerkleTree_Copy(t *testing.T) {
+	tr := trie2.NewTrie()
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	tr2 := tr.Copy()
+
+	assert.Equal(t, tr, tr2)
+}
+
+func TestPatriciaMerkleTree_Get(t *testing.T) {
+	tr := trie2.NewTrie()
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+
+	dog, _ := tr.Get([]byte("dog"))
+	doe, _ := tr.Get([]byte("doe"))
+	dom, _ := tr.Get([]byte("dom"))
+
+	assert.Equal(t, []byte("puppy"), dog)
+	assert.Equal(t, []byte("reindeer"), doe)
+	assert.Nil(t, dom)
+}

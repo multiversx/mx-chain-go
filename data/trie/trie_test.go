@@ -229,11 +229,29 @@ func TestGet(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	tr := newEmpty()
-	updateString(tr, "doe", "reindeer")
-	updateString(tr, "dog", "puppy")
-	updateString(tr, "dogglesworth", "cat")
+	vals := []struct{ k, v string }{
+		{"do", "verb"},
+		{"ether", "wookiedoo"},
+		{"horse", "stallion"},
+		{"shaman", "horse"},
+		{"doge", "coin"},
+		{"ether", ""},
+		{"dog", "puppy"},
+		{"shaman", ""},
+	}
+	for _, val := range vals {
+		if val.v != "" {
+			updateString(tr, val.k, val.v)
+		} else {
+			deleteString(tr, val.k)
+		}
+	}
 
-	updateString(tr, "doe", "")
+	hash := tr.Root()
+	exp := encoding.HexToHash("5991bb8c6514148a29db676a14ac506cd2cd5775ace63c30a4fe457715e9ac84").Bytes()
+	if !bytes.Equal(hash, exp) {
+		t.Errorf("expected %x got %x", exp, hash)
+	}
 }
 
 func TestEmptyValues(t *testing.T) {

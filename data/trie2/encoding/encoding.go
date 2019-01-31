@@ -1,5 +1,9 @@
 package encoding
 
+import (
+	"bytes"
+)
+
 func KeyBytesToHex(str []byte) []byte {
 	l := len(str)*2 + 1
 	var nibbles = make([]byte, l)
@@ -22,4 +26,9 @@ func PrefixLen(a, b []byte) int {
 		}
 	}
 	return i
+}
+
+// HasPrefix tests whether the byte slice s begins with prefix.
+func HasPrefix(s, prefix []byte) bool {
+	return len(s) >= len(prefix) && bytes.Equal(s[0:len(prefix)], prefix)
 }
