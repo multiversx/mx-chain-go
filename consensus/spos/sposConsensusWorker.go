@@ -444,9 +444,9 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 	sposWorker.Rounds++          // only for statistic
 	sposWorker.RoundsWithBlock++ // only for statistic
 
-	log.Info(fmt.Sprintf("%sCreated %d not empty blocks in %d rounds, which means %.2f%% efficiency\n",
-		sposWorker.Cns.getFormattedTime(), sposWorker.RoundsWithBlock, sposWorker.Rounds,
-		float64(sposWorker.RoundsWithBlock)*float64(100.0)/float64(sposWorker.Rounds)))
+	//log.Info(fmt.Sprintf("%sCreated %d not empty blocks in %d rounds, which means %.2f%% efficiency\n",
+	//	sposWorker.Cns.getFormattedTime(), sposWorker.RoundsWithBlock, sposWorker.Rounds,
+	//	float64(sposWorker.RoundsWithBlock)*float64(100.0)/float64(sposWorker.Rounds)))
 
 	return true
 }
@@ -491,9 +491,10 @@ func (sposWorker *SPOSConsensusWorker) DoBlockJob() bool {
 
 // SendBlockBody method send the proposed block body in the Block subround
 func (sposWorker *SPOSConsensusWorker) SendBlockBody() bool {
-
+	roundIndex := sposWorker.Cns.Chr.Round().Index()
 	haveTime := func() bool {
-		if sposWorker.GetSubround() > chronology.SubroundId(SrBlock) {
+		if roundIndex < sposWorker.Cns.Chr.Round().Index() ||
+			sposWorker.GetSubround() > chronology.SubroundId(SrBlock) {
 			return false
 		}
 

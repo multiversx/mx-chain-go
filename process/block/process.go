@@ -632,7 +632,16 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 	for i, txs := 0, 0; i < int(noShards); i++ {
 		txStore := txPool.ShardDataStore(uint32(i))
 
-		orderedTxes, orderedTxHashes, err := sortTxByNonce(txStore)
+		timeBefore := time.Now()
+		orderedTxes, orderedTxHashes, err := getTxs(txStore)
+		timeAfter := time.Now()
+
+		if !haveTime() {
+			log.Info(fmt.Sprintf("TIME IS UP AFTER ORDERED %d TXS in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
+			return miniBlocks, nil
+		}
+
+		log.Info(fmt.Sprintf("TIME ELAPSED TO ORDERED %d TXS: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
 
 		if err != nil {
 			log.Debug(fmt.Sprintf("when trying to order txs: %s", err.Error()))
@@ -646,6 +655,10 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		log.Info(fmt.Sprintf("CREATING MINI BLOCKS HAS BEEN STARTED: Have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ShardID))
 
 		for index, tx := range orderedTxes {
+			if !haveTime() {
+				break
+			}
+
 			snapshot := bp.accounts.JournalLen()
 
 			if tx == nil {
@@ -676,6 +689,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 				if len(miniBlock.TxHashes) > 0 {
 					miniBlocks = append(miniBlocks, miniBlock)
 				}
+				log.Info(fmt.Sprintf("CREATING MINI BLOCKS HAS BEEN FINISHED: Created %d mini blocks\n", len(miniBlocks)))
 				return miniBlocks, nil
 			}
 		}
@@ -685,6 +699,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 			if len(miniBlock.TxHashes) > 0 {
 				miniBlocks = append(miniBlocks, miniBlock)
 			}
+			log.Info(fmt.Sprintf("CREATING MINI BLOCKS HAS BEEN FINISHED: Created %d mini blocks\n", len(miniBlocks)))
 			return miniBlocks, nil
 		}
 
@@ -870,14 +885,21 @@ func displayTxBlockBody(lines []*display.LineData, txBlockBody *block.TxBlockBod
 		txsTotalProcessed += len(miniBlock.TxHashes)
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			//if j >= len(miniBlock.TxHashes)-1 {
-			lines = append(lines, display.NewLineData(false, []string{
-				part,
-				fmt.Sprintf("Tx blockBodyHash %d", j+1),
-				toB64(miniBlock.TxHashes[j])}))
+			if j == 0 || j >= len(miniBlock.TxHashes)-1 {
+				lines = append(lines, display.NewLineData(false, []string{
+					part,
+					fmt.Sprintf("Tx blockBodyHash %d", j+1),
+					toB64(miniBlock.TxHashes[j])}))
 
-			part = ""
-			//}
+				part = ""
+			} else if j == 1 {
+				lines = append(lines, display.NewLineData(false, []string{
+					part,
+					fmt.Sprintf("..."),
+					fmt.Sprintf("...")}))
+
+				part = ""
+			}
 		}
 
 		lines[len(lines)-1].HorizontalRuleAfter = true
@@ -925,15 +947,9 @@ func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 		}
 
 		if mTxHashes[tx.Nonce] == nil {
-			mTxHashes[tx.Nonce] = make([][]byte, 0)
-		}
-
-		if mTransactions[tx.Nonce] == nil {
-			mTransactions[tx.Nonce] = make([]*transaction.Transaction, 0)
-		}
-
-		if !nonceInSlice(tx.Nonce, nonces) {
 			nonces = append(nonces, tx.Nonce)
+			mTxHashes[tx.Nonce] = make([][]byte, 0)
+			mTransactions[tx.Nonce] = make([]*transaction.Transaction, 0)
 		}
 
 		mTxHashes[tx.Nonce] = append(mTxHashes[tx.Nonce], key)
@@ -954,16 +970,6 @@ func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 	}
 
 	return transactions, txHashes, nil
-}
-
-func nonceInSlice(nonce uint64, nonces []uint64) bool {
-	for _, n := range nonces {
-		if n == nonce {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (bp *blockProcessor) displayTxsInfo(miniBlock *block.MiniBlock, shardId uint32) {
@@ -990,4 +996,30 @@ func (bp *blockProcessor) getTxsFromPool(shardId uint32) int {
 	}
 
 	return txStore.Len()
+}
+
+func getTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
+	if txShardStore == nil {
+		return nil, nil, process.ErrNilCacher
+	}
+
+	transactions := make([]*transaction.Transaction, 0)
+	txHashes := make([][]byte, 0)
+
+	for _, key := range txShardStore.Keys() {
+		val, _ := txShardStore.Get(key)
+		if val == nil {
+			continue
+		}
+
+		tx, ok := val.(*transaction.Transaction)
+		if !ok {
+			continue
+		}
+
+		txHashes = append(txHashes, key)
+		transactions = append(transactions, tx)
+	}
+
+	return transactions, txHashes, nil
 }

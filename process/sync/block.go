@@ -203,7 +203,7 @@ func (boot *Bootstrap) getHeaderFromStorageHavingHash(hash []byte) *block.Header
 }
 
 func (boot *Bootstrap) receivedHeaders(key []byte) {
-	log.Info(fmt.Sprintf("received header with hash %s from network\n", toB64(key)))
+	//log.Info(fmt.Sprintf("received header with hash %s from network\n", toB64(key)))
 
 	header := boot.getHeaderHavingHash(key)
 
@@ -217,8 +217,6 @@ func (boot *Bootstrap) receivedHeaders(key []byte) {
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
-	log.Info(fmt.Sprintf("received header with nonce %d from network\n", nonce))
-
 	n := boot.requestedHeaderNonce()
 
 	if n == nil {
@@ -226,6 +224,7 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 
 	if *n == nonce {
+		log.Info(fmt.Sprintf("received header with nonce %d from network\n", nonce))
 		boot.setRequestedHeaderNonce(nil)
 		boot.chRcvHdr <- true
 	}
@@ -250,9 +249,8 @@ func (boot *Bootstrap) setRequestedTxBodyHash(hash []byte) {
 // receivedBody method is a call back function which is called when a new body is added
 // in the block bodies pool
 func (boot *Bootstrap) receivedBodyHash(hash []byte) {
-	log.Info(fmt.Sprintf("received tx body with hash %s from network\n", toB64(hash)))
-
 	if bytes.Equal(boot.requestedTxBodyHash(), hash) {
+		log.Info(fmt.Sprintf("received tx body with hash %s from network\n", toB64(hash)))
 		boot.setRequestedTxBodyHash(nil)
 		boot.chRcvTxBdy <- true
 	}
