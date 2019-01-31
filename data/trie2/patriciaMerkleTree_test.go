@@ -6,21 +6,16 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 )
 
-var hasher = keccak.Keccak{}
-
 func TestNewTrieWithNilHasher(t *testing.T) {
-	tr1 := trie2.NewTrie(hasher)
-	tr2 := trie2.NewTrie(nil)
-
-	assert.Equal(t, tr1, tr2)
+	tr := trie2.NewTrie()
+	assert.NotNil(t, tr)
 }
 
 func TestPatriciaMerkleTree_Insert(t *testing.T) {
-	tr := trie2.NewTrie(keccak.Keccak{})
-	tr2 := trie2.NewTrie(keccak.Keccak{})
+	tr := trie2.NewTrie()
+	tr2 := trie2.NewTrie()
 
 	tr.Update([]byte("doe"), []byte("reindeer"))
 	tr.Update([]byte("dog"), []byte("puppy"))
@@ -30,8 +25,57 @@ func TestPatriciaMerkleTree_Insert(t *testing.T) {
 
 }
 
+func TestPatriciaMerkleTree_InsertWithEmptyVal(t *testing.T) {
+	tr := trie2.NewTrie()
+
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	root1 := tr.Root()
+
+	tr.Update([]byte("dog"), []byte("puppy"))
+	root2 := tr.Root()
+
+	tr.Update([]byte("dog"), []byte(""))
+	root3 := tr.Root()
+
+	assert.Equal(t, root1, root3)
+	assert.NotEqual(t, root1, root2)
+}
+
+func TestPatriciaMerkleTree_Delete(t *testing.T) {
+	tr := trie2.NewTrie()
+
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	root1 := tr.Root()
+
+	tr.Update([]byte("dog"), []byte("puppy"))
+	root2 := tr.Root()
+
+	tr.Delete([]byte("dog"))
+	root3 := tr.Root()
+
+	assert.Equal(t, root1, root3)
+	assert.NotEqual(t, root1, root2)
+}
+
+func TestPatriciaMerkleTree_Consistency(t *testing.T) {
+	tr := trie2.NewTrie()
+
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
+	tr.Delete([]byte("dogglesworth"))
+	root1 := tr.Root()
+
+	tr = trie2.NewTrie()
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	root2 := tr.Root()
+
+	assert.Equal(t, root2, root1)
+}
+
 func TestPatriciaMerkleTree_Root(t *testing.T) {
-	tr := trie2.NewTrie(keccak.Keccak{})
+	tr := trie2.NewTrie()
 
 	tr.Update([]byte("doe"), []byte("reindeer"))
 	tr.Update([]byte("dog"), []byte("puppy"))

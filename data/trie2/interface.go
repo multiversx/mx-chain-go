@@ -9,5 +9,5 @@ type Trie interface {
 }
 
 type Node interface {
-	Hash() hashNode
+	GetHash() []byte
 }

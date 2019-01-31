@@ -5,52 +5,46 @@ const nrOfChildrenNodes = 17
 type (
 	fullNode struct {
 		Children [nrOfChildrenNodes]Node
-		hash     hashNode
+		hash     []byte
 	}
 	shortNode struct {
 		Key  []byte
 		Val  Node
-		hash hashNode
+		hash []byte
 	}
 	valueNode []byte
-	hashNode  []byte
 )
 
 func (n *fullNode) copy() *fullNode   { cpy := *n; return &cpy }
 func (n *shortNode) copy() *shortNode { cpy := *n; return &cpy }
 
-func (n *fullNode) Hash() hashNode  { return n.hash }
-func (n *shortNode) Hash() hashNode { return n.hash }
-func (n hashNode) Hash() hashNode   { return nil }
-func (n valueNode) Hash() hashNode  { return nil }
+func (n *fullNode) GetHash() []byte  { return n.hash }
+func (n *shortNode) GetHash() []byte { return n.hash }
+func (n valueNode) GetHash() []byte  { return nil }
 
 func Hash(n Node) (Node, error) {
-	node, err := getChildren(n)
+	node, err := nextChildren(n)
 	if err != nil {
-		return hashNode{}, err
+		return nil, err
 	}
 
 	hashed, err := hash(node)
 	if err != nil {
-		return hashNode{}, err
+		return nil, err
 	}
-
-	hn, _ := hashed.(hashNode)
 
 	switch n := node.(type) {
 	case *shortNode:
-		n.hash = hn
-
+		n.hash = hashed
 	case *fullNode:
-		n.hash = hn
-
+		n.hash = hashed
 	}
 
 	return node, nil
 
 }
 
-func getChildren(original Node) (Node, error) {
+func nextChildren(original Node) (Node, error) {
 	var err error
 
 	switch n := original.(type) {
@@ -84,20 +78,16 @@ func getChildren(original Node) (Node, error) {
 
 }
 
-func hash(n Node) (Node, error) {
-
-	if _, isHash := n.(hashNode); n == nil || isHash {
-		return n, nil
-	}
+func hash(n Node) ([]byte, error) {
 
 	tmp, err := marshalizer.Marshal(n)
 	if err != nil {
-		return n, err
+		return nil, err
 	}
 
-	hash := n.Hash()
+	hash := n.GetHash()
 	if hash == nil {
-		hash = hashNode(hasher.Compute(string(tmp)))
+		hash = hasher.Compute(string(tmp))
 	}
 
 	return hash, nil
