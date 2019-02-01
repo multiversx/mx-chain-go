@@ -46,11 +46,6 @@ func (ef *ElrondNodeFacade) StartNode() error {
 		return err
 	}
 
-	err = ef.node.BindInterceptorsResolvers()
-	if err != nil {
-		return err
-	}
-
 	err = ef.node.StartConsensus()
 	return err
 }
@@ -87,15 +82,22 @@ func (ef *ElrondNodeFacade) GetBalance(address string) (*big.Int, error) {
 }
 
 // GenerateTransaction generates a transaction from a sender, receiver, value and data
-func (ef *ElrondNodeFacade) GenerateTransaction(senderHex string, receiverHex string, value big.Int,
+func (ef *ElrondNodeFacade) GenerateTransaction(senderHex string, receiverHex string, value *big.Int,
 	data string) (*transaction.Transaction,
 	error) {
 	return ef.node.GenerateTransaction(senderHex, receiverHex, value, data)
 }
 
 // SendTransaction will send a new transaction on the topic channel
-func (ef *ElrondNodeFacade) SendTransaction(nonce uint64, senderHex string, receiverHex string,
-	value big.Int, transactionData string, signature []byte) (*transaction.Transaction, error) {
+func (ef *ElrondNodeFacade) SendTransaction(
+	nonce uint64,
+	senderHex string,
+	receiverHex string,
+	value *big.Int,
+	transactionData string,
+	signature []byte,
+) (*transaction.Transaction, error) {
+
 	return ef.node.SendTransaction(nonce, senderHex, receiverHex, value, transactionData, signature)
 }
 
@@ -105,7 +107,7 @@ func (ef *ElrondNodeFacade) GetTransaction(hash string) (*transaction.Transactio
 }
 
 // GetAccount returns an accountResponse containing information
-//  about the account corelated with provided address
+//  about the account correlated with provided address
 func (ef *ElrondNodeFacade) GetAccount(address string) (*state.Account, error) {
 	return ef.node.GetAccount(address)
 }
@@ -117,7 +119,11 @@ func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
 
 //GenerateAndSendBulkTransactions generates a number of nrTransactions of amount value
 //for the receiver destination
-func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactions(destination string, value big.Int,
-	nrTransactions uint64) error {
+func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactions(
+	destination string,
+	value *big.Int,
+	nrTransactions uint64,
+) error {
+
 	return ef.node.GenerateAndSendBulkTransactions(destination, value, nrTransactions)
 }

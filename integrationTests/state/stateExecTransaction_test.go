@@ -32,14 +32,14 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	address, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 	account, _ := accnts.GetJournalizedAccount(address)
 	account.SetNonceWithJournal(nonce)
-	account.SetBalanceWithJournal(*balance)
+	account.SetBalanceWithJournal(balance)
 
 	hashCreated, _ := accnts.Commit()
 
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
 	tx := &transaction2.Transaction{
 		Nonce:   nonce,
-		Value:   *big.NewInt(1),
+		Value:   big.NewInt(1),
 		SndAddr: address.Bytes(),
 		RcvAddr: address.Bytes(),
 	}
@@ -52,7 +52,7 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 
 	accountAfterExec, _ := accnts.GetJournalizedAccount(address)
 	assert.Equal(t, nonce+1, accountAfterExec.BaseAccount().Nonce)
-	assert.Equal(t, *balance, accountAfterExec.BaseAccount().Balance)
+	assert.Equal(t, balance, accountAfterExec.BaseAccount().Balance)
 }
 
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
@@ -73,14 +73,14 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	address, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 	account, _ := accnts.GetJournalizedAccount(address)
 	account.SetNonceWithJournal(nonce)
-	account.SetBalanceWithJournal(*balance)
+	account.SetBalanceWithJournal(balance)
 
 	accnts.Commit()
 
 	//Step 2. create a tx moving 1 from pubKeyBuff to pubKeyBuff
 	tx := &transaction2.Transaction{
 		Nonce:   nonce,
-		Value:   *big.NewInt(1),
+		Value:   big.NewInt(1),
 		SndAddr: address.Bytes(),
 		RcvAddr: address.Bytes(),
 	}
@@ -92,7 +92,7 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 
 	accountAfterExec, _ := accnts.GetJournalizedAccount(address)
 	assert.Equal(t, nonce, accountAfterExec.BaseAccount().Nonce)
-	assert.Equal(t, *balance, accountAfterExec.BaseAccount().Balance)
+	assert.Equal(t, balance, accountAfterExec.BaseAccount().Balance)
 }
 
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
@@ -111,7 +111,7 @@ func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 
 	account, _ := accnts.GetJournalizedAccount(sender)
 	account.SetNonceWithJournal(nonce)
-	account.SetBalanceWithJournal(*balance)
+	account.SetBalanceWithJournal(balance)
 
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))
@@ -140,7 +140,7 @@ func testExecTransactionsMoreTxWithRevert(
 	for i := 0; i < txToGenerate; i++ {
 		tx := &transaction2.Transaction{
 			Nonce:   initialNonce + uint64(i),
-			Value:   *big.NewInt(1),
+			Value:   big.NewInt(1),
 			SndAddr: sender.Bytes(),
 			RcvAddr: receiver.Bytes(),
 		}
@@ -156,10 +156,10 @@ func testExecTransactionsMoreTxWithRevert(
 	newAccount, _ := accnts.GetJournalizedAccount(receiver)
 	account, _ := accnts.GetJournalizedAccount(sender)
 
-	assert.Equal(t, account.BaseAccount().Balance, *big.NewInt(initialBalance - int64(txToGenerate)))
+	assert.Equal(t, account.BaseAccount().Balance, big.NewInt(initialBalance-int64(txToGenerate)))
 	assert.Equal(t, account.BaseAccount().Nonce, uint64(txToGenerate)+initialNonce)
 
-	assert.Equal(t, newAccount.BaseAccount().Balance, *big.NewInt(int64(txToGenerate)))
+	assert.Equal(t, newAccount.BaseAccount().Balance, big.NewInt(int64(txToGenerate)))
 	assert.Equal(t, newAccount.BaseAccount().Nonce, uint64(0))
 
 	assert.NotEqual(t, initialHash, modifiedHash)
@@ -177,7 +177,7 @@ func testExecTransactionsMoreTxWithRevert(
 	receiver2, _ := accnts.GetExistingAccount(receiver)
 	account, _ = accnts.GetJournalizedAccount(sender)
 
-	assert.Equal(t, account.BaseAccount().Balance, *big.NewInt(initialBalance))
+	assert.Equal(t, account.BaseAccount().Balance, big.NewInt(initialBalance))
 	assert.Equal(t, account.BaseAccount().Nonce, initialNonce)
 
 	assert.Nil(t, receiver2)
@@ -203,7 +203,7 @@ func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *t
 
 	account, _ := accnts.GetJournalizedAccount(sender)
 	account.SetNonceWithJournal(nonce)
-	account.SetBalanceWithJournal(*balance)
+	account.SetBalanceWithJournal(balance)
 
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))

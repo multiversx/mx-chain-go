@@ -20,7 +20,7 @@ type TransactionProcessor interface {
 	SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error)
 
 	ProcessTransaction(transaction *transaction.Transaction, round int32) error
-	SetBalancesToTrie(accBalance map[string]big.Int) (rootHash []byte, err error)
+	SetBalancesToTrie(accBalance map[string]*big.Int) (rootHash []byte, err error)
 }
 
 // BlockProcessor is the main interface for block execution engine
@@ -29,7 +29,7 @@ type BlockProcessor interface {
 	ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
 	CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error
 	RevertAccountState()
-	CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) (*block.StateBlockBody, error)
+	CreateGenesisBlockBody(balances map[string]*big.Int, shardId uint32) (*block.StateBlockBody, error)
 	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
 	CreateEmptyBlockBody(shardId uint32, round int32) *block.TxBlockBody
 	RemoveBlockTxsFromPool(body *block.TxBlockBody) error

@@ -12,8 +12,8 @@ func (boot *Bootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
 	return boot.getHeaderFromPoolHavingNonce(nonce)
 }
 
-func (boot *Bootstrap) GetTxBodyHavingHash(hash []byte) interface{} {
-	return boot.getTxBodyHavingHash(hash)
+func (boot *Bootstrap) GetTxBody(hash []byte) interface{} {
+	return boot.getTxBody(hash)
 }
 
 func (boot *Bootstrap) ReceivedHeaders(key []byte) {
@@ -24,7 +24,7 @@ func (boot *Bootstrap) ForkChoice(hdr *block.Header) error {
 	return boot.forkChoice(hdr)
 }
 
-func (bfd *BasicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
+func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 

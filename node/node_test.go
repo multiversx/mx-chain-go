@@ -12,15 +12,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -196,7 +194,7 @@ func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
 
 func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.AddressConverterStub{
 		CreateAddressFromHexHandler: func(hexAddress string) (state.AddressContainer, error) {
 			// Return that will result in a correct run of GenerateTransaction -> will fail test
@@ -239,7 +237,7 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	)
 	_, err := n.GetBalance(createDummyHexAddress(64))
 	assert.NotNil(t, err)
-	assert.Equal(t, "could not fetch sender address from provided param", err.Error())
+	assert.Contains(t, err.Error(), "could not fetch sender address from provided param")
 }
 
 func createDummyHexAddress(chars int) string {
@@ -283,7 +281,7 @@ func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 
 func TestGetBalance(t *testing.T) {
 
-	accAdapter := getAccAdapter(*big.NewInt(100))
+	accAdapter := getAccAdapter(big.NewInt(100))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
@@ -310,7 +308,7 @@ func TestGenerateTransaction_NoAddrConverterShouldError(t *testing.T) {
 		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
 	assert.NotNil(t, err)
 }
 
@@ -323,7 +321,7 @@ func TestGenerateTransaction_NoAccAdapterShouldError(t *testing.T) {
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithPrivateKey(&mock.PrivateKeyStub{}),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
 	assert.NotNil(t, err)
 }
 
@@ -336,13 +334,13 @@ func TestGenerateTransaction_NoPrivateKeyShouldError(t *testing.T) {
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
 	assert.NotNil(t, err)
 }
 
 func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
@@ -353,7 +351,7 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
 	assert.NotNil(t, err)
 }
 
@@ -374,7 +372,7 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.NotNil(t, err)
 }
 
@@ -395,13 +393,13 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.Nil(t, err)
 }
 
 func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
@@ -412,13 +410,13 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.Nil(t, err)
 }
 
 func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	marshalizer := mock.MarshalizerMock{
@@ -434,13 +432,13 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction("sender", "receiver", *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
 	assert.NotNil(t, err)
 }
 
 func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := mock.PrivateKeyStub{
 		SignHandler: func(message []byte) ([]byte, error) {
@@ -455,13 +453,13 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.NotNil(t, err)
 }
 
 func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	signature := []byte{69}
 	privateKey := mock.PrivateKeyStub{
@@ -479,7 +477,7 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 		node.WithPrivateKey(privateKey),
 	)
 
-	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
+	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.Nil(t, err)
 	assert.Equal(t, signature, tx.Signature)
 }
@@ -493,7 +491,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 				BaseAccountHandler: func() *state.Account {
 					return &state.Account{
 						Nonce:   nonce,
-						Balance: *big.NewInt(0),
+						Balance: big.NewInt(0),
 					}
 				},
 			}, nil
@@ -510,14 +508,14 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 		node.WithPrivateKey(privateKey),
 	)
 
-	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
+	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, tx.Nonce)
 }
 
 func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
 	n, _ := node.NewNode(
@@ -528,7 +526,7 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
 	)
-	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), *big.NewInt(10), "code")
+	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.Nil(t, err)
 }
 
@@ -537,7 +535,7 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 func TestGenerateAndSendBulkTransactions_ZeroTxShouldErr(t *testing.T) {
 	n, _ := node.NewNode()
 
-	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 0)
+	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 0)
 	assert.Equal(t, "can not generate and broadcast 0 transactions", err.Error())
 }
 
@@ -547,22 +545,22 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 		node.WithAddressConverter(addrConverter),
 	)
 
-	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 1)
+	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
 	assert.Equal(t, "initialize AccountsAdapter and AddressConverter first", err.Error())
 }
 
 func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing.T) {
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 	)
 
-	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 1)
+	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
 	assert.Equal(t, "initialize AccountsAdapter and AddressConverter first", err.Error())
 }
 
 func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	_, pk := schnorr.NewKeyGenerator().GeneratePair()
 	n, _ := node.NewNode(
@@ -572,12 +570,12 @@ func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 		node.WithMarshalizer(&mock.MarshalizerFake{}),
 	)
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), *big.NewInt(0), 1)
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
 	assert.True(t, strings.Contains(err.Error(), "trying to set nil private key"))
 }
 
 func TestGenerateAndSendBulkTransactions_NilPublicKeyShouldErr(t *testing.T) {
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	sk, _ := schnorr.NewKeyGenerator().GeneratePair()
 	n, _ := node.NewNode(
@@ -586,12 +584,12 @@ func TestGenerateAndSendBulkTransactions_NilPublicKeyShouldErr(t *testing.T) {
 		node.WithPrivateKey(sk),
 	)
 
-	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 1)
+	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
 	assert.Equal(t, "trying to set nil public key", err.Error())
 }
 
 func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *testing.T) {
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
 	n, _ := node.NewNode(
@@ -601,12 +599,12 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 		node.WithPublicKey(pk),
 	)
 
-	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 1)
+	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
 	assert.Equal(t, "could not create receiver address from provided param", err.Error())
 }
 
 func TestGenerateAndSendBulkTransactions_CreateAddressFromPublicKeyBytesErrorsShouldErr(t *testing.T) {
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := &mock.AddressConverterStub{}
 	addrConverter.CreateAddressFromPublicKeyBytesHandler = func(pubKey []byte) (container state.AddressContainer, e error) {
 		return nil, errors.New("error")
@@ -619,12 +617,12 @@ func TestGenerateAndSendBulkTransactions_CreateAddressFromPublicKeyBytesErrorsSh
 		node.WithPublicKey(pk),
 	)
 
-	err := n.GenerateAndSendBulkTransactions("", *big.NewInt(0), 1)
+	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
 	assert.Equal(t, "error", err.Error())
 }
 
 func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T) {
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	marshalizer := &mock.MarshalizerFake{}
 	marshalizer.Fail = true
@@ -637,7 +635,7 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 		node.WithMarshalizer(marshalizer),
 	)
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), *big.NewInt(1), 1)
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), 1)
 	assert.True(t, strings.Contains(err.Error(), "could not marshal transaction"))
 }
 
@@ -648,7 +646,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	mutRecoveredTransactions := &sync.RWMutex{}
 	recoveredTransactions := make(map[uint64]*transaction.Transaction)
 
-	topic := p2p.NewTopic(string(node.TransactionTopic), transaction2.NewInterceptedTransaction(), marshalizer)
+	topic := p2p.NewTopic(string(factory.TransactionTopic), transaction2.NewInterceptedTransaction(), marshalizer)
 	topic.SendData = func(data []byte) error {
 		//handler to capture sent data
 		tx := transaction.Transaction{}
@@ -667,14 +665,14 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 	mes := &mock.MessengerStub{}
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		if name == string(node.TransactionTopic) {
+		if name == string(factory.TransactionTopic) {
 			return topic
 		}
 
 		return nil
 	}
 
-	accAdapter := getAccAdapter(*big.NewInt(0))
+	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
 	n, _ := node.NewNode(
@@ -689,14 +687,14 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 	n.SetMessenger(mes)
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), *big.NewInt(1), uint64(noOfTx))
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), uint64(noOfTx))
 	assert.Nil(t, err)
 	mutRecoveredTransactions.RLock()
 	assert.Equal(t, noOfTx, len(recoveredTransactions))
 	mutRecoveredTransactions.RUnlock()
 }
 
-func getAccAdapter(balance big.Int) mock.AccountsAdapterStub {
+func getAccAdapter(balance *big.Int) mock.AccountsAdapterStub {
 	return mock.AccountsAdapterStub{
 		GetExistingAccountHandler: func(addrContainer state.AddressContainer) (state.AccountWrapper, error) {
 			return mock.AccountWrapperStub{
@@ -719,170 +717,6 @@ func getPrivateKey() mock.PrivateKeyStub {
 	}
 }
 
-func TestBindInterceptorsResolvers_NodeNotStartedShouldErr(t *testing.T) {
-	n, _ := node.NewNode()
-
-	err := n.BindInterceptorsResolvers()
-
-	assert.Equal(t, "node is not started yet", err.Error())
-}
-
-func TestBindInterceptorsResolvers_ShouldWork(t *testing.T) {
-	messenger := getMessenger()
-	processorCreator := getProcessorCreator()
-	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithDataPool(createDataPoolMock()),
-		node.WithAddressConverter(mock.AddressConverterStub{}),
-		node.WithHasher(mock.HasherMock{}),
-		node.WithSingleSignKeyGenerator(&mock.SingleSignKeyGenMock{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithMarshalizer(&mock.MarshalizerMock{}),
-		node.WithBlockChain(createStubBlockchain()),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithProcessorCreator(processorCreator),
-	)
-
-	n.Start()
-	defer func() { _ = n.Stop() }()
-
-	prepareMessenger(messenger)
-
-	err := n.BindInterceptorsResolvers()
-
-	assert.Nil(t, err)
-}
-
-func createDataPoolMock() *mock.TransientDataPoolMock {
-	dataPool := &mock.TransientDataPoolMock{}
-
-	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
-	}
-	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
-	}
-	dataPool.HeadersNoncesCalled = func() data.Uint64Cacher {
-		return &mock.Uint64CacherStub{}
-	}
-	dataPool.TxBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-	dataPool.PeerChangesBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-	dataPool.StateBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-
-	return dataPool
-}
-
-func prepareMessenger(mes *mock.MessengerStub) {
-	registration := func(v pubsub.Validator) error {
-		return nil
-	}
-
-	topicTx := p2p.NewTopic("", &mock.StringCreatorMock{}, mock.MarshalizerMock{})
-	topicTx.RegisterTopicValidator = registration
-	topicHdr := p2p.NewTopic("", &mock.StringCreatorMock{}, mock.MarshalizerMock{})
-	topicHdr.RegisterTopicValidator = registration
-	topicTxBlk := p2p.NewTopic("", &mock.StringCreatorMock{}, mock.MarshalizerMock{})
-	topicTxBlk.RegisterTopicValidator = registration
-	topicPeerBlk := p2p.NewTopic("", &mock.StringCreatorMock{}, mock.MarshalizerMock{})
-	topicPeerBlk.RegisterTopicValidator = registration
-	topicStateBlk := p2p.NewTopic("", &mock.StringCreatorMock{}, mock.MarshalizerMock{})
-	topicStateBlk.RegisterTopicValidator = registration
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		switch name {
-		case string(node.TransactionTopic):
-			return topicTx
-		case string(node.HeadersTopic):
-			return topicHdr
-		case string(node.TxBlockBodyTopic):
-			return topicTxBlk
-		case string(node.PeerChBodyTopic):
-			return topicPeerBlk
-		case string(node.StateBodyTopic):
-			return topicStateBlk
-		}
-
-		return nil
-	}
-}
-
-func createStubBlockchain() *blockchain.BlockChain {
-	blkc, _ := blockchain.NewBlockChain(
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{})
-
-	return blkc
-}
-
-func TestBindInterceptorsResolvers_CreateInterceptorFailsShouldErr(t *testing.T) {
-	retError := "create interceptor error"
-	messenger := getMessenger()
-	processorCreator := getProcessorCreator()
-	processorCreator.CreateInterceptorsCalled = func() error {
-		return errors.New(retError)
-	}
-	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithDataPool(createDataPoolMock()),
-		node.WithHasher(mock.HasherMock{}),
-		node.WithSingleSignKeyGenerator(&mock.SingleSignKeyGenMock{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithMarshalizer(&mock.MarshalizerMock{}),
-		node.WithBlockChain(createStubBlockchain()),
-		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
-		node.WithProcessorCreator(processorCreator),
-	)
-
-	prepareMessenger(messenger)
-
-	n.Start()
-	defer func() { _ = n.Stop() }()
-
-	err := n.BindInterceptorsResolvers()
-
-	assert.NotNil(t, err)
-	assert.Equal(t, retError, err.Error())
-}
-
-func TestBindInterceptorsResolvers_CreateResolversFailsShouldErr(t *testing.T) {
-	retError := "create resolvers error"
-	messenger := getMessenger()
-	processorCreator := getProcessorCreator()
-	processorCreator.CreateResolversCalled = func() error {
-		return errors.New(retError)
-	}
-	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithDataPool(createDataPoolMock()),
-		node.WithAddressConverter(mock.AddressConverterStub{}),
-		node.WithHasher(mock.HasherMock{}),
-		node.WithSingleSignKeyGenerator(&mock.SingleSignKeyGenMock{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithMarshalizer(&mock.MarshalizerMock{}),
-		node.WithBlockChain(createStubBlockchain()),
-		node.WithProcessorCreator(processorCreator),
-	)
-
-	prepareMessenger(messenger)
-	n.Start()
-	defer func() { _ = n.Stop() }()
-
-	err := n.BindInterceptorsResolvers()
-
-	assert.NotNil(t, err)
-	assert.Equal(t, retError, err.Error())
-}
-
 func TestSendTransaction_TopicDoesNotExistsShouldErr(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
@@ -896,7 +730,7 @@ func TestSendTransaction_TopicDoesNotExistsShouldErr(t *testing.T) {
 	}
 
 	nonce := uint64(50)
-	value := *big.NewInt(567)
+	value := big.NewInt(567)
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
@@ -931,7 +765,7 @@ func TestSendTransaction_BroadcastErrShouldErr(t *testing.T) {
 	}
 
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		if name == string(node.TransactionTopic) {
+		if name == string(factory.TransactionTopic) {
 			return topicTx
 		}
 
@@ -939,7 +773,7 @@ func TestSendTransaction_BroadcastErrShouldErr(t *testing.T) {
 	}
 
 	nonce := uint64(50)
-	value := *big.NewInt(567)
+	value := big.NewInt(567)
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
@@ -975,7 +809,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	}
 
 	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		if name == string(node.TransactionTopic) {
+		if name == string(factory.TransactionTopic) {
 			return topicTx
 		}
 
@@ -983,7 +817,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	}
 
 	nonce := uint64(50)
-	value := *big.NewInt(567)
+	value := big.NewInt(567)
 	sender := createDummyHexAddress(64)
 	receiver := createDummyHexAddress(64)
 	txData := "data"
@@ -1147,15 +981,4 @@ func getMessenger() *mock.MessengerStub {
 		return nil
 	}
 	return messenger
-}
-
-func getProcessorCreator() *mock.ProcessorCreatorMock {
-	return &mock.ProcessorCreatorMock{
-		CreateInterceptorsCalled: func() error {
-			return nil
-		},
-		CreateResolversCalled: func() error {
-			return nil
-		},
-	}
 }

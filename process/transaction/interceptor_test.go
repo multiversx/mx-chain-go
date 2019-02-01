@@ -386,6 +386,7 @@ func TestTransactionInterceptor_ProcessTxIntegrityAndValidityShouldErr(t *testin
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = []byte("please fail, addrConverter!")
 	txNewer.SndAddr = make([]byte, 0)
+	txNewer.Value = big.NewInt(0)
 
 	addrConv.CreateAddressFromPublicKeyBytesRetErrForValue = []byte("please fail, addrConverter!")
 
@@ -432,7 +433,7 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
-	txNewer.Value = *big.NewInt(0)
+	txNewer.Value = big.NewInt(0)
 
 	assert.Equal(t, "sig not valid", txi.ProcessTx(txNewer, []byte("txHash")).Error())
 }
@@ -487,6 +488,7 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
+	txNewer.Value = big.NewInt(0)
 
 	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
 	assert.Equal(t, 1, wasAdded)
@@ -543,6 +545,7 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
+	txNewer.Value = big.NewInt(0)
 
 	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
 	assert.Equal(t, 0, wasAdded)
@@ -671,6 +674,7 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
+	txNewer.Value = big.NewInt(0)
 
 	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
 	assert.Equal(t, 1, wasAdded)
@@ -735,6 +739,7 @@ func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
+	txNewer.Value = big.NewInt(0)
 
 	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
 	assert.Equal(t, 0, wasAdded)

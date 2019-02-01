@@ -322,7 +322,7 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	acnt1.BaseAccount().Balance = *big.NewInt(67)
+	acnt1.BaseAccount().Balance = big.NewInt(67)
 
 	err := execTx.CheckTxValues(acnt1, big.NewInt(68), 0)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
@@ -339,7 +339,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	acnt1.BaseAccount().Balance = *big.NewInt(67)
+	acnt1.BaseAccount().Balance = big.NewInt(67)
 
 	err := execTx.CheckTxValues(acnt1, big.NewInt(67), 0)
 	assert.Nil(t, err)
@@ -401,13 +401,13 @@ func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	acntSrc.Balance = *big.NewInt(64)
-	acntDest.Balance = *big.NewInt(31)
+	acntSrc.Balance = big.NewInt(64)
+	acntDest.Balance = big.NewInt(31)
 
 	err := execTx.MoveBalances(acntSrc, acntDest, big.NewInt(14))
 	assert.Nil(t, err)
-	assert.Equal(t, *big.NewInt(50), acntSrc.Balance)
-	assert.Equal(t, *big.NewInt(45), acntDest.Balance)
+	assert.Equal(t, big.NewInt(50), acntSrc.Balance)
+	assert.Equal(t, big.NewInt(45), acntDest.Balance)
 
 }
 
@@ -424,12 +424,12 @@ func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	acntSrc.Balance = *big.NewInt(64)
+	acntSrc.Balance = big.NewInt(64)
 
 	err := execTx.MoveBalances(acntSrc, acntDest, big.NewInt(1))
 	assert.Nil(t, err)
-	assert.Equal(t, *big.NewInt(64), acntSrc.Balance)
-	assert.Equal(t, *big.NewInt(64), acntDest.Balance)
+	assert.Equal(t, big.NewInt(64), acntSrc.Balance)
+	assert.Equal(t, big.NewInt(64), acntDest.Balance)
 
 }
 
@@ -492,7 +492,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DEST")
-	tx.Value = *big.NewInt(45)
+	tx.Value = big.NewInt(45)
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		return nil, errors.New("failure")
@@ -522,7 +522,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DEST")
-	tx.Value = *big.NewInt(45)
+	tx.Value = big.NewInt(45)
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
@@ -560,7 +560,7 @@ func TestTxProcessor_ProcessTransactionRegisterTxShouldWork(t *testing.T) {
 		NodePubKey:       []byte("b"),
 		RoundIndex:       6,
 		Action:           state.ArUnregister,
-		Stake:            *big.NewInt(45),
+		Stake:            big.NewInt(45),
 	}
 
 	marshalizer := mock.MarshalizerMock{}
@@ -571,7 +571,7 @@ func TestTxProcessor_ProcessTransactionRegisterTxShouldWork(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = state.RegistrationAddress.Bytes()
-	tx.Value = *big.NewInt(0)
+	tx.Value = big.NewInt(0)
 	tx.Data = buff
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
@@ -602,7 +602,7 @@ func TestTxProcessor_ProcessTransactionRegisterTxShouldWork(t *testing.T) {
 	err = execTx.ProcessTransaction(&tx, 1)
 	assert.Nil(t, err)
 	assert.True(t, wasCalledAppend)
-	assert.Equal(t, *big.NewInt(45), data2.Stake)
+	assert.Equal(t, big.NewInt(45), data2.Stake)
 	assert.Equal(t, []byte("SRC"), data2.OriginatorPubKey)
 	assert.Equal(t, []byte("b"), data2.NodePubKey)
 	assert.Equal(t, int32(1), data2.RoundIndex)
@@ -626,7 +626,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DEST")
-	tx.Value = *big.NewInt(45)
+	tx.Value = big.NewInt(45)
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
@@ -662,7 +662,7 @@ func TestTxProcessor_ProcessMoveBalancesFailShouldErr(t *testing.T) {
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DEST")
-	tx.Value = *big.NewInt(0)
+	tx.Value = big.NewInt(0)
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Fail = true
@@ -698,13 +698,13 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	tx.Nonce = 4
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DEST")
-	tx.Value = *big.NewInt(61)
+	tx.Value = big.NewInt(61)
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Nonce = 4
-	acntSrc.Balance = *big.NewInt(90)
+	acntSrc.Balance = big.NewInt(90)
 	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
-	acntDest.Balance = *big.NewInt(10)
+	acntDest.Balance = big.NewInt(10)
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
@@ -721,8 +721,8 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	err := execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(5), acntSrc.Nonce)
-	assert.Equal(t, *big.NewInt(29), acntSrc.Balance)
-	assert.Equal(t, *big.NewInt(71), acntDest.Balance)
+	assert.Equal(t, big.NewInt(29), acntSrc.Balance)
+	assert.Equal(t, big.NewInt(71), acntDest.Balance)
 }
 
 //------- SetBalancesToTrie
@@ -743,7 +743,7 @@ func TestTxProcessor_SetBalancesToTrieDirtyAccountsShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	hash, err := txProc.SetBalancesToTrie(make(map[string]big.Int))
+	hash, err := txProc.SetBalancesToTrie(make(map[string]*big.Int))
 
 	assert.Nil(t, hash)
 	assert.Equal(t, process.ErrAccountStateDirty, err)
@@ -780,8 +780,8 @@ func TestTxProcessor_SetBalancesToTrieCommitFailsShouldRevert(t *testing.T) {
 	accnt1 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr1))
 	accnt2 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr2))
 
-	val1 := *big.NewInt(10)
-	val2 := *big.NewInt(20)
+	val1 := big.NewInt(10)
+	val2 := big.NewInt(20)
 
 	revertCalled := false
 	errCommit := errors.New("should err")
@@ -817,7 +817,7 @@ func TestTxProcessor_SetBalancesToTrieCommitFailsShouldRevert(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	m := make(map[string]big.Int)
+	m := make(map[string]*big.Int)
 	m[string(adr1)] = val1
 	m[string(adr2)] = val2
 
@@ -837,8 +837,8 @@ func TestTxProcessor_SetBalancesToTrieNilAddressShouldErr(t *testing.T) {
 	accnt1 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr1))
 	accnt2 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr2))
 
-	val1 := *big.NewInt(10)
-	val2 := *big.NewInt(20)
+	val1 := big.NewInt(10)
+	val2 := big.NewInt(20)
 
 	rootHash := []byte("resulted root hash")
 
@@ -869,7 +869,7 @@ func TestTxProcessor_SetBalancesToTrieNilAddressShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	m := make(map[string]big.Int)
+	m := make(map[string]*big.Int)
 	m[string(adr1)] = val1
 	m[string(adr2)] = val2
 
@@ -887,8 +887,8 @@ func TestTxProcessor_SetBalancesToTrieAccountsFailShouldErr(t *testing.T) {
 	adr1 := []byte("accnt1")
 	adr2 := []byte("accnt2")
 
-	val1 := *big.NewInt(10)
-	val2 := *big.NewInt(20)
+	val1 := big.NewInt(10)
+	val2 := big.NewInt(20)
 
 	rootHash := []byte("resulted root hash")
 
@@ -914,7 +914,7 @@ func TestTxProcessor_SetBalancesToTrieAccountsFailShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	m := make(map[string]big.Int)
+	m := make(map[string]*big.Int)
 	m[string(adr1)] = val1
 	m[string(adr2)] = val2
 
@@ -933,8 +933,8 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 	accnt1 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr1))
 	accnt2 := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(adr2))
 
-	val1 := *big.NewInt(10)
-	val2 := *big.NewInt(20)
+	val1 := big.NewInt(10)
+	val2 := big.NewInt(20)
 
 	rootHash := []byte("resulted root hash")
 
@@ -965,7 +965,7 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	m := make(map[string]big.Int)
+	m := make(map[string]*big.Int)
 	m[string(adr1)] = val1
 	m[string(adr2)] = val2
 

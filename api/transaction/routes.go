@@ -12,10 +12,10 @@ import (
 
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
-	GenerateTransaction(sender string, receiver string, value big.Int, code string) (*transaction.Transaction, error)
-	SendTransaction(nonce uint64, sender string, receiver string, value big.Int, code string, signature []byte) (*transaction.Transaction, error)
+	GenerateTransaction(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
+	SendTransaction(nonce uint64, sender string, receiver string, value *big.Int, code string, signature []byte) (*transaction.Transaction, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
-	GenerateAndSendBulkTransactions(string, big.Int, uint64) error
+	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error
 }
 
 // TxRequest represents the structure on which user input for generating a new transaction will validate against
@@ -75,7 +75,7 @@ func GenerateTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err := ef.GenerateTransaction(gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data)
+	tx, err := ef.GenerateTransaction(gtx.Sender, gtx.Receiver, gtx.Value, gtx.Data)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction generation failed: " + err.Error()})
 		return
@@ -105,7 +105,7 @@ func SendTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, *gtx.Value, gtx.Data, signature)
+	tx, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, gtx.Value, gtx.Data, signature)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction generation failed: " + err.Error()})
 		return
@@ -129,7 +129,7 @@ func GenerateAndSendBulkTransactions(c *gin.Context) {
 		return
 	}
 
-	err = ef.GenerateAndSendBulkTransactions(gtx.Receiver, *gtx.Value, uint64(gtx.TxCount))
+	err = ef.GenerateAndSendBulkTransactions(gtx.Receiver, gtx.Value, uint64(gtx.TxCount))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Multiple Transaction generation failed: " + err.Error()})
 		return
@@ -175,7 +175,7 @@ func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
 	response.Data = string(tx.Data)
 	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Challenge = string(tx.Challenge)
-	response.Value = &tx.Value
+	response.Value = tx.Value
 	response.GasLimit = big.NewInt(int64(tx.GasLimit))
 	response.GasPrice = big.NewInt(int64(tx.GasPrice))
 

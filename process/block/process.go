@@ -307,7 +307,7 @@ func (bp *blockProcessor) CreateEmptyBlockBody(shardId uint32, round int32) *blo
 }
 
 // CreateGenesisBlockBody creates the genesis block body from map of account balances
-func (bp *blockProcessor) CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) (*block.StateBlockBody, error) {
+func (bp *blockProcessor) CreateGenesisBlockBody(balances map[string]*big.Int, shardId uint32) (*block.StateBlockBody, error) {
 	rootHash, err := bp.txProcessor.SetBalancesToTrie(balances)
 
 	if err != nil {
@@ -766,7 +766,7 @@ func (bp *blockProcessor) displayLogInfo(
 	if err != nil {
 		log.Error(err.Error())
 	}
-	//tblString = "\n" + tblString
+
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal txs "+
 		"processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n",
 		toB64(headerHash),

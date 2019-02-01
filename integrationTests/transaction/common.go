@@ -160,6 +160,9 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		node.WithProcessorCreator(pFactory),
 	)
 
+	_ = pFactory.CreateInterceptors()
+	_ = pFactory.CreateResolvers()
+
 	return n, mes, sk, pFactory
 }
 

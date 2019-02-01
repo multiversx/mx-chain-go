@@ -112,9 +112,6 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	_ = nRequestor.BindInterceptorsResolvers()
-	_ = nResolver.BindInterceptorsResolvers()
-
 	//TODO remove this
 	time.Sleep(time.Second)
 
@@ -155,7 +152,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	})
 
 	//Step 4. request tx block body
-	res, _ := pFactoryRes.ResolverContainer().Get(string(node.TxBlockBodyTopic))
+	res, _ := pFactoryRes.ResolverContainer().Get(string(factory.TxBlockBodyTopic))
 	txBlockBodyResolver := res.(*block2.GenericBlockBodyResolver)
 	txBlockBodyResolver.RequestBlockBodyFromHash(txBlockBodyHash)
 

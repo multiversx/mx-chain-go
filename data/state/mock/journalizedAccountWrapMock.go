@@ -117,7 +117,7 @@ func (jawm *JournalizedAccountWrapMock) SetNonceWithJournal(uint64) error {
 	panic("implement me")
 }
 
-func (jawm *JournalizedAccountWrapMock) SetBalanceWithJournal(big.Int) error {
+func (jawm *JournalizedAccountWrapMock) SetBalanceWithJournal(*big.Int) error {
 	panic("implement me")
 }
 

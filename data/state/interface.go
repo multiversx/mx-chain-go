@@ -57,7 +57,7 @@ type JournalizedAccountWrapper interface {
 	TrackableDataAccountWrapper
 
 	SetNonceWithJournal(uint64) error
-	SetBalanceWithJournal(big.Int) error
+	SetBalanceWithJournal(*big.Int) error
 	SetCodeHashWithJournal([]byte) error
 	SetRootHashWithJournal([]byte) error
 	AppendDataRegistrationWithJournal(*RegistrationData) error

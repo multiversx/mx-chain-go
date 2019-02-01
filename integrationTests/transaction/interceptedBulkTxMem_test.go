@@ -37,8 +37,6 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMemMessenger(t *testing.T
 
 	noOfTx := 50
 
-	_ = n.BindInterceptorsResolvers()
-
 	wg := sync.WaitGroup{}
 	wg.Add(noOfTx)
 
@@ -62,7 +60,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMemMessenger(t *testing.T
 		wg.Done()
 	})
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), *big.NewInt(1), uint64(noOfTx))
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), uint64(noOfTx))
 	assert.Nil(t, err)
 
 	select {

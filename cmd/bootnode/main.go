@@ -129,7 +129,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
 	go syncer.StartSync()
 
-	// TODO: The next 5 lines should be deleted when boostrap will work
+	// TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded)
+	//  timestamp
 	if genesisConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
 		ntpTime := syncer.CurrentTime(syncer.ClockOffset())
@@ -159,7 +160,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		log.Info("Bootstrapping node....")
 		err = ef.StartNode()
 		if err != nil {
-			log.Error("Starting node failed", err.Error())
+			log.Error("starting node failed", err.Error())
 		}
 	}
 
@@ -179,14 +180,14 @@ func loadFile(dest interface{}, relativePath string, log *logger.Logger) error {
 	path, err := filepath.Abs(relativePath)
 	fmt.Println(path)
 	if err != nil {
-		log.Error("Cannot create absolute path for the provided file", err.Error())
+		log.Error("cannot create absolute path for the provided file", err.Error())
 		return err
 	}
 	f, err := os.Open(path)
 	defer func() {
 		err = f.Close()
 		if err != nil {
-			log.Error("Cannot close file: ", err.Error())
+			log.Error("cannot close file: ", err.Error())
 		}
 	}()
 	if err != nil {
@@ -225,7 +226,7 @@ func (g *genesis) initialNodesPubkeys(log *logger.Logger) []string {
 		pubKey, err := decodeAddress(in.PubKey)
 
 		if err != nil {
-			log.Error(fmt.Sprintf("%s is not a valid public key. Ignored.", in))
+			log.Error(fmt.Sprintf("%s is not a valid public key. Ignored", in))
 			continue
 		}
 
@@ -234,20 +235,20 @@ func (g *genesis) initialNodesPubkeys(log *logger.Logger) []string {
 	return pubKeys
 }
 
-func (g *genesis) initialNodesBalances(log *logger.Logger) map[string]big.Int {
-	var pubKeys = make(map[string]big.Int)
+func (g *genesis) initialNodesBalances(log *logger.Logger) map[string]*big.Int {
+	var pubKeys = make(map[string]*big.Int)
 	for _, in := range g.InitialNodes {
 		balance, ok := new(big.Int).SetString(in.Balance, 10)
 		if ok {
 			pubKey, err := decodeAddress(in.PubKey)
 			if err != nil {
-				log.Error(fmt.Sprintf("%s is not a valid public key. Ignored.", in.PubKey))
+				log.Error(fmt.Sprintf("%s is not a valid public key. Ignored", in.PubKey))
 				continue
 			}
-			pubKeys[string(pubKey)] = *balance
+			pubKeys[string(pubKey)] = balance
 		} else {
-			log.Warn(fmt.Sprintf("Error decoding balance %s for public key %s - setting to 0", in.Balance, in.PubKey))
-			pubKeys[in.PubKey] = *big.NewInt(0)
+			log.Warn(fmt.Sprintf("error decoding balance %s for public key %s - setting to 0", in.Balance, in.PubKey))
+			pubKeys[in.PubKey] = big.NewInt(0)
 		}
 
 	}
@@ -272,7 +273,6 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	//addressConverter, err := state.NewHashAddressConverter(hasher, cfg.Address.Length, cfg.Address.Prefix)
 	addressConverter, err := state.NewPlainAddressConverter(cfg.Address.Length, cfg.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
@@ -348,19 +348,25 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
+	err = processorFactory.CreateInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
+	err = processorFactory.CreateResolvers()
+	if err != nil {
+		return nil, err
+	}
+
 	forkDetector := sync2.NewBasicForkDetector()
 
-	requestTransactionHandler := func(destShardID uint32, txHash []byte) {
-		res, err := resolversContainer.Get(string(node.TransactionTopic))
-		if err != nil {
-			log.Error("cannot find transaction topic resolver")
-			return
-		}
-		txRes, _ := res.(*transaction.TxResolver)
-		if txRes != nil {
-			_ = txRes.RequestTransactionFromHash(txHash)
-			log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
-		}
+	res, err := processorFactory.ResolverContainer().Get(string(factory.TransactionTopic))
+	if err != nil {
+		return nil, err
+	}
+	txResolver, ok := res.(*transaction.TxResolver)
+	if !ok {
+		return nil, errors.New("tx resolver is not of type transaction.TxResolver")
 	}
 
 	blockProcessor, err := block.NewBlockProcessor(
@@ -371,7 +377,8 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		accountsAdapter,
 		shardCoordinator,
 		forkDetector,
-		requestTransactionHandler)
+		createRequestTransactionHandler(txResolver, log),
+	)
 
 	if err != nil {
 		return nil, errors.New("could not create block processor: " + err.Error())
@@ -416,13 +423,20 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 	return nd, nil
 }
 
+func createRequestTransactionHandler(txResolver *transaction.TxResolver, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+	return func(destShardID uint32, txHash []byte) {
+		_ = txResolver.RequestTransactionFromHash(txHash)
+		log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+	}
+}
+
 func createNetMessenger(config netMessengerConfig) (p2p.Messenger, error) {
 	if config.port == 0 {
-		return nil, errors.New("Cannot start node on port 0")
+		return nil, errors.New("cannot start node on port 0")
 	}
 
 	if config.maxAllowedPeers == 0 {
-		return nil, errors.New("Cannot start node without providing maxAllowedPeers")
+		return nil, errors.New("cannot start node without providing maxAllowedPeers")
 	}
 
 	//TODO check if libp2p provides a better random source

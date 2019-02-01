@@ -231,7 +231,7 @@ func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConver
 }
 
 // WithInitialNodesBalances sets up the initial map of nodes public keys and their respective balances
-func WithInitialNodesBalances(balances map[string]big.Int) Option {
+func WithInitialNodesBalances(balances map[string]*big.Int) Option {
 	return func(n *Node) error {
 		if balances == nil {
 			return errNilBalances

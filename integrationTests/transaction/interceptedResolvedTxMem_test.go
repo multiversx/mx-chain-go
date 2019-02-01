@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/stretchr/testify/assert"
 )
@@ -37,15 +37,12 @@ func TestNode_RequestInterceptTransactionWithMemMessenger(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	_ = nRequestor.BindInterceptorsResolvers()
-	_ = nResolver.BindInterceptorsResolvers()
-
 	buffPk1, _ := sk1.GeneratePublic().ToByteArray()
 
 	//Step 1. Generate a signed transaction
 	tx := transaction.Transaction{
 		Nonce:   0,
-		Value:   *big.NewInt(0),
+		Value:   big.NewInt(0),
 		RcvAddr: hasher.Compute("receiver"),
 		SndAddr: buffPk1,
 		Data:    []byte("tx notarized data"),
@@ -78,7 +75,7 @@ func TestNode_RequestInterceptTransactionWithMemMessenger(t *testing.T) {
 	dPoolResolver.Transactions().AddData(txHash, &tx, 0)
 
 	//Step 4. request tx
-	res, _ := pf.ResolverContainer().Get(string(node.TransactionTopic))
+	res, _ := pf.ResolverContainer().Get(string(factory.TransactionTopic))
 	txResolver := res.(*transaction2.TxResolver)
 	err := txResolver.RequestTransactionFromHash(txHash)
 	assert.Nil(t, err)

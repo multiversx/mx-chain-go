@@ -516,9 +516,9 @@ func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	balances := map[string]big.Int{
-		"pk1": *big.NewInt(45),
-		"pk2": *big.NewInt(56),
+	balances := map[string]*big.Int{
+		"pk1": big.NewInt(45),
+		"pk2": big.NewInt(56),
 	}
 
 	opt := WithInitialNodesBalances(balances)

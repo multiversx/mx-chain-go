@@ -111,12 +111,12 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 
 	value := tx.Value
 
-	err = txProc.checkTxValues(acntSrc, &value, tx.Nonce)
+	err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
 	if err != nil {
 		return err
 	}
 
-	err = txProc.moveBalances(acntSrc, acntDest, &value)
+	err = txProc.moveBalances(acntSrc, acntDest, value)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 }
 
 // SetBalancesToTrie adds balances to trie
-func (txProc *txProcessor) SetBalancesToTrie(accBalance map[string]big.Int) (rootHash []byte, err error) {
+func (txProc *txProcessor) SetBalancesToTrie(accBalance map[string]*big.Int) (rootHash []byte, err error) {
 	if txProc.accounts.JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
 	}
@@ -161,7 +161,7 @@ func (txProc *txProcessor) SetBalancesToTrie(accBalance map[string]big.Int) (roo
 	return rootHash, err
 }
 
-func (txProc *txProcessor) setBalanceToTrie(addr []byte, balance big.Int) error {
+func (txProc *txProcessor) setBalanceToTrie(addr []byte, balance *big.Int) error {
 	if addr == nil {
 		return process.ErrNilValue
 	}
@@ -196,9 +196,9 @@ func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, ad
 }
 
 func (txProc *txProcessor) getAccounts(adrSrc, adrDest state.AddressContainer) (
-	state.JournalizedAccountWrapper,
-	state.JournalizedAccountWrapper,
-	error) {
+	acntSrc state.JournalizedAccountWrapper,
+	acntDest state.JournalizedAccountWrapper,
+	err error) {
 
 	if adrSrc == nil || adrDest == nil {
 		return nil, nil, process.ErrNilValue
@@ -213,11 +213,11 @@ func (txProc *txProcessor) getAccounts(adrSrc, adrDest state.AddressContainer) (
 		return acnt, acnt, nil
 	}
 
-	acntSrc, err := txProc.accounts.GetJournalizedAccount(adrSrc)
+	acntSrc, err = txProc.accounts.GetJournalizedAccount(adrSrc)
 	if err != nil {
 		return nil, nil, err
 	}
-	acntDest, err := txProc.accounts.GetJournalizedAccount(adrDest)
+	acntDest, err = txProc.accounts.GetJournalizedAccount(adrDest)
 
 	return acntSrc, acntDest, err
 }
@@ -253,11 +253,11 @@ func (txProc *txProcessor) moveBalances(acntSrc, acntDest state.JournalizedAccou
 	operation1 := big.NewInt(0)
 	operation2 := big.NewInt(0)
 
-	err := acntSrc.SetBalanceWithJournal(*operation1.Sub(&acntSrc.BaseAccount().Balance, value))
+	err := acntSrc.SetBalanceWithJournal(operation1.Sub(acntSrc.BaseAccount().Balance, value))
 	if err != nil {
 		return err
 	}
-	err = acntDest.SetBalanceWithJournal(*operation2.Add(&acntDest.BaseAccount().Balance, value))
+	err = acntDest.SetBalanceWithJournal(operation2.Add(acntDest.BaseAccount().Balance, value))
 	if err != nil {
 		return err
 	}

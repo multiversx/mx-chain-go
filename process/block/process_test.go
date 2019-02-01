@@ -1490,7 +1490,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldPanic(t *t
 		return nil
 	}
 
-	setBalances := func(accBalance map[string]big.Int) (rootHash []byte, err error) {
+	setBalances := func(accBalance map[string]*big.Int) (rootHash []byte, err error) {
 		return nil, process.ErrAccountStateDirty
 	}
 
@@ -1526,7 +1526,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 		return nil
 	}
 
-	setBalances := func(accBalance map[string]big.Int) (rootHash []byte, err error) {
+	setBalances := func(accBalance map[string]*big.Int) (rootHash []byte, err error) {
 		return []byte("stateRootHash"), nil
 	}
 

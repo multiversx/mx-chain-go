@@ -130,7 +130,7 @@ func (jawm *JournalizedAccountWrapMock) SetNonceWithJournal(nonce uint64) error 
 	return nil
 }
 
-func (jawm *JournalizedAccountWrapMock) SetBalanceWithJournal(balance big.Int) error {
+func (jawm *JournalizedAccountWrapMock) SetBalanceWithJournal(balance *big.Int) error {
 	if jawm.Fail {
 		return errors.New("failure")
 	}

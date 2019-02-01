@@ -5,16 +5,16 @@ import (
 )
 
 type ValidatorMock struct {
-	stake  big.Int
+	stake  *big.Int
 	rating int32
 	pubKey []byte
 }
 
-func NewValidatorMock(stake big.Int, rating int32, pubKey []byte) *ValidatorMock {
+func NewValidatorMock(stake *big.Int, rating int32, pubKey []byte) *ValidatorMock {
 	return &ValidatorMock{stake: stake, rating: rating, pubKey: pubKey}
 }
 
-func (vm *ValidatorMock) Stake() big.Int {
+func (vm *ValidatorMock) Stake() *big.Int {
 	return vm.stake
 }
 

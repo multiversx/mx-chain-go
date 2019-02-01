@@ -33,7 +33,7 @@ func TestInterceptedTransaction_IntegrityNilSignatureShouldErr(t *testing.T) {
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(1)
+	tx.Value = big.NewInt(1)
 
 	assert.Equal(t, process.ErrNilSignature, tx.Integrity(nil))
 }
@@ -47,7 +47,7 @@ func TestInterceptedTransaction_IntegrityNilRcvAddrShouldErr(t *testing.T) {
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = nil
 	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(1)
+	tx.Value = big.NewInt(1)
 
 	assert.Equal(t, process.ErrNilRcvAddr, tx.Integrity(nil))
 }
@@ -61,7 +61,7 @@ func TestInterceptedTransaction_IntegrityNilSndAddrShouldErr(t *testing.T) {
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = nil
-	tx.Value = *big.NewInt(1)
+	tx.Value = big.NewInt(1)
 
 	assert.Equal(t, process.ErrNilSndAddr, tx.Integrity(nil))
 }
@@ -75,7 +75,7 @@ func TestInterceptedTransaction_IntegrityNegativeValueShouldErr(t *testing.T) {
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(-1)
+	tx.Value = big.NewInt(-1)
 
 	assert.Equal(t, process.ErrNegativeValue, tx.Integrity(nil))
 }
@@ -89,7 +89,7 @@ func TestInterceptedTransaction_IntegrityOkValsShouldWork(t *testing.T) {
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(0)
+	tx.Value = big.NewInt(0)
 
 	assert.Nil(t, tx.Integrity(nil))
 }
@@ -127,7 +127,7 @@ func TestInterceptedTransaction_IntegrityAndValidityNilAddrConverterShouldErr(t 
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(1)
+	tx.Value = big.NewInt(1)
 
 	assert.Equal(t, process.ErrNilAddressConverter, tx.IntegrityAndValidity(oneSharder))
 }
@@ -142,6 +142,7 @@ func TestTransactionInterceptor_IntegrityAndValidityInvalidSenderAddrShouldRetFa
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = []byte("please fail, addrConverter!")
+	tx.Value = big.NewInt(0)
 
 	addrConv := &mock.AddressConverterMock{}
 	addrConv.CreateAddressFromPublicKeyBytesRetErrForValue = []byte("please fail, addrConverter!")
@@ -160,6 +161,7 @@ func TestTransactionInterceptor_IntegrityAndValidityInvalidReceiverAddrShouldRet
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = []byte("please fail, addrConverter!")
 	tx.SndAddr = make([]byte, 0)
+	tx.Value = big.NewInt(0)
 
 	addrConv := &mock.AddressConverterMock{}
 	addrConv.CreateAddressFromPublicKeyBytesRetErrForValue = []byte("please fail, addrConverter!")
@@ -178,6 +180,7 @@ func TestTransactionInterceptor_IntegrityAndValiditySameShardShouldWork(t *testi
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
+	tx.Value = big.NewInt(0)
 
 	addrConv := &mock.AddressConverterMock{}
 	tx.SetAddressConverter(addrConv)
@@ -210,6 +213,7 @@ func TestTransactionInterceptor_IntegrityAndValidityOtherShardsShouldWork(t *tes
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 1)
 	tx.SndAddr = make([]byte, 0)
+	tx.Value = big.NewInt(0)
 
 	addrConv := &mock.AddressConverterMock{}
 	tx.SetAddressConverter(addrConv)

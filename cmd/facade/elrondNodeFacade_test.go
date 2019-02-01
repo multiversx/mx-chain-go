@@ -41,9 +41,6 @@ func TestElrondFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T)
 		StartConsensusHandler: func() error {
 			return nil
 		},
-		BindInterceptorsResolversHandler: func() error {
-			return nil
-		},
 	}
 
 	ef := facade.NewElrondNodeFacade(node)
@@ -91,9 +88,6 @@ func TestElrondFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *tes
 		StartConsensusHandler: func() error {
 			started = false
 			return fmt.Errorf("error on StartConsensus")
-		},
-		BindInterceptorsResolversHandler: func() error {
-			return nil
 		},
 	}
 
@@ -209,7 +203,7 @@ func TestElrondFacade_GetBalanceWithErrorOnNodeShouldReturnZeroBalanceAndError(t
 func TestElrondFacade_GenerateTransactionWithCorrectInputsShouldReturnNoError(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	value := *big.NewInt(10)
+	value := big.NewInt(10)
 	data := "code"
 
 	tr := &transaction.Transaction{
@@ -219,7 +213,7 @@ func TestElrondFacade_GenerateTransactionWithCorrectInputsShouldReturnNoError(t 
 		Value:   value}
 
 	node := &mock.NodeMock{
-		GenerateTransactionHandler: func(sender string, receiver string, value big.Int,
+		GenerateTransactionHandler: func(sender string, receiver string, value *big.Int,
 			data string) (*transaction.Transaction, error) {
 			return &transaction.Transaction{
 				SndAddr: []byte(sender),
@@ -239,11 +233,11 @@ func TestElrondFacade_GenerateTransactionWithCorrectInputsShouldReturnNoError(t 
 
 func TestElrondFacade_GenerateTransactionWithNilSenderShouldReturnError(t *testing.T) {
 	receiver := "receiver"
-	amount := *big.NewInt(10)
+	amount := big.NewInt(10)
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionHandler: func(sender string, receiver string, amount big.Int,
+		GenerateTransactionHandler: func(sender string, receiver string, amount *big.Int,
 			code string) (*transaction.Transaction, error) {
 			if sender == "" {
 				return nil, errors.New("nil sender")
@@ -261,11 +255,11 @@ func TestElrondFacade_GenerateTransactionWithNilSenderShouldReturnError(t *testi
 
 func TestElrondFacade_GenerateTransactionWithNilReceiverShouldReturnError(t *testing.T) {
 	sender := "sender"
-	amount := *big.NewInt(10)
+	amount := big.NewInt(10)
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionHandler: func(sender string, receiver string, amount big.Int,
+		GenerateTransactionHandler: func(sender string, receiver string, amount *big.Int,
 			code string) (*transaction.Transaction, error) {
 			if receiver == "" {
 				return nil, errors.New("nil receiver")
@@ -284,11 +278,11 @@ func TestElrondFacade_GenerateTransactionWithNilReceiverShouldReturnError(t *tes
 func TestElrondFacade_GenerateTransactionWithZeroAmountShouldReturnError(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	amount := *big.NewInt(0)
+	amount := big.NewInt(0)
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionHandler: func(sender string, receiver string, amount big.Int,
+		GenerateTransactionHandler: func(sender string, receiver string, amount *big.Int,
 			code string) (*transaction.Transaction, error) {
 			if amount.Cmp(big.NewInt(0)) == 0 {
 				return nil, errors.New("zero amount")
@@ -307,11 +301,11 @@ func TestElrondFacade_GenerateTransactionWithZeroAmountShouldReturnError(t *test
 func TestElrondFacade_GenerateTransactionWithNegativeAmountShouldReturnError(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	amount := *big.NewInt(-2)
+	amount := big.NewInt(-2)
 	code := "code"
 
 	node := &mock.NodeMock{
-		GenerateTransactionHandler: func(sender string, receiver string, amount big.Int,
+		GenerateTransactionHandler: func(sender string, receiver string, amount *big.Int,
 			code string) (*transaction.Transaction, error) {
 			if amount.Cmp(big.NewInt(0)) < 0 {
 				return nil, errors.New("negative amount")
@@ -387,12 +381,12 @@ func TestElrondNodeFacade_SetSyncer(t *testing.T) {
 func TestElrondNodeFacade_SendTransaction(t *testing.T) {
 	called := 0
 	node := &mock.NodeMock{}
-	node.SendTransactionHandler = func(nonce uint64, sender string, receiver string, amount big.Int, code string, signature []byte) (i *transaction.Transaction, e error) {
+	node.SendTransactionHandler = func(nonce uint64, sender string, receiver string, amount *big.Int, code string, signature []byte) (i *transaction.Transaction, e error) {
 		called++
 		return nil, nil
 	}
 	ef := facade.NewElrondNodeFacade(node)
-	ef.SendTransaction(1, "test", "test", *big.NewInt(0), "code", []byte{})
+	ef.SendTransaction(1, "test", "test", big.NewInt(0), "code", []byte{})
 	assert.Equal(t, called, 1)
 }
 
@@ -423,11 +417,11 @@ func TestElrondNodeFacade_GetCurrentPublicKey(t *testing.T) {
 func TestElrondNodeFacade_GenerateAndSendBulkTransactions(t *testing.T) {
 	called := 0
 	node := &mock.NodeMock{}
-	node.GenerateAndSendBulkTransactionsHandler = func(destination string, value big.Int, nrTransactions uint64) error {
+	node.GenerateAndSendBulkTransactionsHandler = func(destination string, value *big.Int, nrTransactions uint64) error {
 		called++
 		return nil
 	}
 	ef := facade.NewElrondNodeFacade(node)
-	ef.GenerateAndSendBulkTransactions("", *big.NewInt(0), 0)
+	ef.GenerateAndSendBulkTransactions("", big.NewInt(0), 0)
 	assert.Equal(t, called, 1)
 }

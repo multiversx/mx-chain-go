@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,9 +34,6 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithMemMessenger(t *testing.T) {
 	defer p2p.ReInitializeGloballyRegisteredPeers()
 
 	time.Sleep(time.Second)
-
-	_ = nRequestor.BindInterceptorsResolvers()
-	_ = nResolver.BindInterceptorsResolvers()
 
 	//Step 1. Generate a block body
 	txBlock := block.TxBlockBody{
@@ -75,7 +72,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithMemMessenger(t *testing.T) {
 	})
 
 	//Step 4. request tx block body
-	res, _ := pFactory1.ResolverContainer().Get(string(node.TxBlockBodyTopic))
+	res, _ := pFactory1.ResolverContainer().Get(string(factory.TxBlockBodyTopic))
 	hdrResolver := res.(*block2.GenericBlockBodyResolver)
 	hdrResolver.RequestBlockBodyFromHash(txBlockBodyHash)
 

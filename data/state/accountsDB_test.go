@@ -420,7 +420,7 @@ func TestAccountsDBGetJournalizedAccountNotFoundShouldCreateEmpty(t *testing.T) 
 	assert.Nil(t, err)
 
 	assert.Equal(t, uint64(0), account.BaseAccount().Nonce)
-	assert.Equal(t, *big.NewInt(0), account.BaseAccount().Balance)
+	assert.Equal(t, big.NewInt(0), account.BaseAccount().Balance)
 	assert.Equal(t, []byte(nil), account.BaseAccount().CodeHash)
 	assert.Equal(t, []byte(nil), account.BaseAccount().RootHash)
 	assert.Equal(t, adr, account.AddressContainer())
@@ -558,7 +558,7 @@ func TestAccountsDBGetAccountAccountNotFound(t *testing.T) {
 	//Step 1. Create an account + its DbAccount representation
 	testAccount := state.NewAccount()
 	testAccount.Nonce = 1
-	testAccount.Balance = *big.NewInt(45)
+	testAccount.Balance = big.NewInt(45)
 
 	//Step 2. marshalize the DbAccount
 	marshalizer := mock.MarshalizerMock{}
@@ -845,7 +845,7 @@ func TestAccountsDBTestCreateModifyComitSaveGet(t *testing.T) {
 	assert.Nil(t, err)
 	err = journalizedAccount.SetNonceWithJournal(34)
 	assert.Nil(t, err)
-	err = journalizedAccount.SetBalanceWithJournal(*big.NewInt(45))
+	err = journalizedAccount.SetBalanceWithJournal(big.NewInt(45))
 	assert.Nil(t, err)
 	err = adb.PutCode(journalizedAccount, []byte("Test SC code to be executed"))
 	assert.Nil(t, err)
@@ -863,7 +863,7 @@ func TestAccountsDBTestCreateModifyComitSaveGet(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, uint64(34), recoveredAccount.BaseAccount().Nonce)
-	assert.Equal(t, *big.NewInt(45), recoveredAccount.BaseAccount().Balance)
+	assert.Equal(t, big.NewInt(45), recoveredAccount.BaseAccount().Balance)
 	assert.Equal(t, []byte("Test SC code to be executed"), recoveredAccount.Code())
 	value, err := recoveredAccount.RetrieveValue([]byte("a key"))
 	assert.Nil(t, err)

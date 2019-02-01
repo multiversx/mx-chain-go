@@ -1018,7 +1018,7 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 		marshalizer,
 		forkDetector)
 
-	assert.True(t, blk == bs.GetTxBodyHavingHash([]byte("aaa")))
+	assert.True(t, blk == bs.GetTxBody([]byte("aaa")))
 
 }
 
@@ -1632,7 +1632,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	forkDetector := &mock.ForkDetectorMock{}
 
 	bs, _ := sync.NewBootstrap(transient, blkc, round, blkExec, waitTime, marshalizer, forkDetector)
-	txBlockRecovered := bs.GetTxBodyHavingHash(requestedHash)
+	txBlockRecovered := bs.GetTxBody(requestedHash)
 
 	assert.True(t, txBlockRecovered == txBlock)
 }
@@ -1683,7 +1683,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 	forkDetector := &mock.ForkDetectorMock{}
 
 	bs, _ := sync.NewBootstrap(transient, blkc, round, blkExec, waitTime, marshalizer, forkDetector)
-	txBlockRecovered := bs.GetTxBodyHavingHash(requestedHash)
+	txBlockRecovered := bs.GetTxBody(requestedHash)
 
 	assert.Nil(t, txBlockRecovered)
 }
@@ -1743,7 +1743,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 
 	bs, _ := sync.NewBootstrap(transient, blkc, round, blkExec, waitTime, marshalizer, forkDetector)
-	txBlockRecovered := bs.GetTxBodyHavingHash(requestedHash)
+	txBlockRecovered := bs.GetTxBody(requestedHash)
 
 	assert.Equal(t, txBlock, txBlockRecovered)
 }
@@ -1810,7 +1810,7 @@ func TestBootstrap_GetTxBodyHavingHashMarshalizerFailShouldRemoveAndRetNil(t *te
 	forkDetector := &mock.ForkDetectorMock{}
 
 	bs, _ := sync.NewBootstrap(transient, blkc, round, blkExec, waitTime, marshalizer, forkDetector)
-	txBlockRecovered := bs.GetTxBodyHavingHash(requestedHash)
+	txBlockRecovered := bs.GetTxBody(requestedHash)
 
 	assert.Nil(t, txBlockRecovered)
 	assert.True(t, removedCalled)

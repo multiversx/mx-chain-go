@@ -81,8 +81,7 @@ func (ti *topicInterceptor) validator(ctx context.Context, message *pubsub.Messa
 	err := ti.marshalizer.Unmarshal(obj, message.GetData())
 
 	if err != nil {
-		//TODO remove this after initial tests are done
-		log.Error(err.Error())
+		log.Debug(err.Error())
 		return false
 	}
 

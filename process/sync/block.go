@@ -157,17 +157,17 @@ func (boot *Bootstrap) requestedHeaderNonce() (nonce *uint64) {
 	return
 }
 
-func (boot *Bootstrap) getHeaderHavingHash(hash []byte) *block.Header {
-	hdr := boot.getHeaderFromPoolHavingHash(hash)
+func (boot *Bootstrap) getHeader(hash []byte) *block.Header {
+	hdr := boot.getHeaderFromPool(hash)
 
 	if hdr != nil {
 		return hdr
 	}
 
-	return boot.getHeaderFromStorageHavingHash(hash)
+	return boot.getHeaderFromStorage(hash)
 }
 
-func (boot *Bootstrap) getHeaderFromPoolHavingHash(hash []byte) *block.Header {
+func (boot *Bootstrap) getHeaderFromPool(hash []byte) *block.Header {
 	hdr := boot.headers.SearchData(hash)
 
 	for _, v := range hdr {
@@ -183,7 +183,7 @@ func (boot *Bootstrap) getHeaderFromPoolHavingHash(hash []byte) *block.Header {
 	return nil
 }
 
-func (boot *Bootstrap) getHeaderFromStorageHavingHash(hash []byte) *block.Header {
+func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 	headerStore := boot.blkc.GetStorer(blockchain.BlockHeaderUnit)
 
 	if headerStore == nil {
@@ -195,19 +195,17 @@ func (boot *Bootstrap) getHeaderFromStorageHavingHash(hash []byte) *block.Header
 	header := &block.Header{}
 	err := boot.marshalizer.Unmarshal(header, buffHeader)
 	if err != nil {
-		log.Error(process.ErrNilHeadersStorage.Error())
+		log.Error(err.Error())
 		return nil
 	}
 
 	return header
 }
 
-func (boot *Bootstrap) receivedHeaders(key []byte) {
-	//log.Info(fmt.Sprintf("received header with hash %s from network\n", toB64(key)))
+func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
+	header := boot.getHeader(headerHash)
 
-	header := boot.getHeaderHavingHash(key)
-
-	err := boot.forkDetector.AddHeader(header, key, true)
+	err := boot.forkDetector.AddHeader(header, headerHash, true)
 
 	if err != nil {
 		log.Info(err.Error())
@@ -382,8 +380,8 @@ func (boot *Bootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Header
 	return hdr, nil
 }
 
-// getTxBodyHavingHash method returns the block body from a given hash either from data pool or from storage
-func (boot *Bootstrap) getTxBodyHavingHash(hash []byte) interface{} {
+// getTxBody method returns the block body from a given hash either from data pool or from storage
+func (boot *Bootstrap) getTxBody(hash []byte) interface{} {
 	txBody, _ := boot.txBlockBodies.Get(hash)
 
 	if txBody != nil {
@@ -429,18 +427,21 @@ func (boot *Bootstrap) requestTxBody(hash []byte) {
 // that will be added. The block executor should decide by parsing the header block body type value
 // what kind of block body received.
 func (boot *Bootstrap) getTxBodyRequestingIfMissing(hash []byte) (interface{}, error) {
-	blk := boot.getTxBodyHavingHash(hash)
+	blk := boot.getTxBody(hash)
 
 	if blk == nil {
 		boot.requestTxBody(hash)
 		boot.waitForTxBodyHash()
-		blk = boot.getTxBodyHavingHash(hash)
+		blk = boot.getTxBody(hash)
 		if blk == nil {
 			return nil, process.ErrMissingBody
 		}
 	}
 
-	intercepted, _ := blk.(*block.TxBlockBody)
+	intercepted, ok := blk.(*block.TxBlockBody)
+	if !ok {
+		return nil, ErrTxBlockBodyMismatch
+	}
 
 	return intercepted, nil
 }
@@ -507,7 +508,7 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 	boot.headersNonces.Remove(header.Nonce)
 	boot.headers.RemoveData(hash, header.ShardId)
 	boot.forkDetector.RemoveHeaders(header.Nonce)
-	//TODO remove this when fetching the same bad processed and rollback header is fixed
+	//TODO uncomment this when badBlocks will be implemented
 	//_ = headerStore.Remove(hash)
 }
 

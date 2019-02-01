@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/pkg/errors"
@@ -32,22 +33,10 @@ import (
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
 const WaitTime = time.Duration(2000 * time.Millisecond)
 
-type topicName string
+// ConsensusTopic is the topic used in consensus algorithm
+const ConsensusTopic topicName = "consensus"
 
-const (
-	// TransactionTopic is the topic used for sharing transactions
-	TransactionTopic topicName = "tx"
-	// ConsensusTopic is the topic used in consensus algorithm
-	ConsensusTopic topicName = "cns"
-	// HeadersTopic is the topic used for sharing block headers
-	HeadersTopic topicName = "hdr"
-	// TxBlockBodyTopic is the topic used for sharing transactions block bodies
-	TxBlockBodyTopic topicName = "txBlk"
-	// PeerChBodyTopic is used for sharing peer change block bodies
-	PeerChBodyTopic topicName = "peerCh"
-	// StateBodyTopic is used for sharing state block bodies
-	StateBodyTopic topicName = "state"
-)
+type topicName string
 
 var log = logger.NewDefaultLogger()
 
@@ -62,7 +51,7 @@ type Node struct {
 	ctx                      context.Context
 	hasher                   hashing.Hasher
 	initialNodesPubkeys      []string
-	initialNodesBalances     map[string]big.Int
+	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
 	consensusGroupSize       int
 	messenger                p2p.Messenger
@@ -184,25 +173,6 @@ func (n *Node) CreateShardedStores() error {
 	return nil
 }
 
-// BindInterceptorsResolvers will start the interceptors and resolvers
-func (n *Node) BindInterceptorsResolvers() error {
-	if !n.IsRunning() {
-		return errNodeNotStarted
-	}
-
-	err := n.processorCreator.CreateInterceptors()
-	if err != nil {
-		return err
-	}
-
-	err = n.processorCreator.CreateResolvers()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
 
@@ -257,24 +227,21 @@ func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 	if err != nil {
 		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
 	}
-	if err != nil {
-		return nil, errors.New("invalid address: " + err.Error())
-	}
 	account, err := n.accounts.GetExistingAccount(address)
 	if err != nil {
-		return nil, errors.New("could not fetch sender address from provided param")
+		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
 	if account == nil {
 		return big.NewInt(0), nil
 	}
 
-	return &account.BaseAccount().Balance, nil
+	return account.BaseAccount().Balance, nil
 }
 
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes
-func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int, noOfTx uint64) error {
+func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTx uint64) error {
 	if noOfTx == 0 {
 		return errors.New("can not generate and broadcast 0 transactions")
 	}
@@ -316,7 +283,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int
 	mutTransactions := gosync.RWMutex{}
 	transactions := make([][]byte, 0)
 
-	mutErr := &gosync.RWMutex{}
+	mutErrFound := gosync.Mutex{}
 	var errFound error
 
 	for nonce := newNonce; nonce < newNonce+noOfTx; nonce++ {
@@ -330,9 +297,9 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int
 			)
 
 			if err != nil {
-				mutErr.Lock()
-				errFound = errors.New(fmt.Sprintf("failure generating transaction %d: %s", nonce, err.Error()))
-				mutErr.Unlock()
+				mutErrFound.Lock()
+				errFound = errors.New(fmt.Sprintf("failure generating transaction %d: %s", crtNonce, err.Error()))
+				mutErrFound.Unlock()
 
 				wg.Done()
 				return
@@ -347,19 +314,15 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int
 
 	wg.Wait()
 
-	mutErr.RLock()
 	if errFound != nil {
-		mutErr.RUnlock()
 		return errFound
 	}
-	mutErr.RUnlock()
 
-	topic := n.messenger.GetTopic(string(TransactionTopic))
+	topic := n.messenger.GetTopic(string(factory.TransactionTopic))
 	if topic == nil {
 		return errors.New("could not get transaction topic")
 	}
 
-	mutTransactions.RLock()
 	if len(transactions) != int(noOfTx) {
 		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
 	}
@@ -372,8 +335,6 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value big.Int
 			return errors.New("could not broadcast transaction: " + err.Error())
 		}
 	}
-
-	mutTransactions.RUnlock()
 
 	return nil
 }
@@ -406,30 +367,41 @@ func (n *Node) createBootstrap(round *chronology.Round) (*sync.Bootstrap, error)
 		return nil, err
 	}
 
-	bootstrap.RequestHeaderHandler =
-		func(nonce uint64) {
-			resolver, err := n.processorCreator.ResolverContainer().Get(string(HeadersTopic))
-			if err != nil {
-				log.Error("cannot find headers topic resolver")
-				return
-			}
-			hdrRes := resolver.(*block2.HeaderResolver)
-			err = hdrRes.RequestHeaderFromNonce(nonce)
+	resH, err := n.processorCreator.ResolverContainer().Get(string(factory.HeadersTopic))
+	if err != nil {
+		return nil, errors.New("cannot find headers topic resolver")
+	}
+	hdrRes := resH.(*block2.HeaderResolver)
 
-			log.Info(fmt.Sprintf("requested header with nonce %d from network\n", nonce))
-			if err != nil {
-				log.Error("RequestHeaderFromNonce error:  ", err.Error())
-			}
-		}
+	resT, err := n.processorCreator.ResolverContainer().Get(string(factory.TxBlockBodyTopic))
+	if err != nil {
+		return nil, errors.New("cannot find tx block body topic resolver")
 
-	bootstrap.RequestTxBodyHandler = func(hash []byte) {
-		resolver, err := n.processorCreator.ResolverContainer().Get(string(TxBlockBodyTopic))
+	}
+	gbbrRes := resT.(*block2.GenericBlockBodyResolver)
+
+	bootstrap.RequestHeaderHandler = createRequestHeaderHandler(hdrRes)
+	bootstrap.RequestTxBodyHandler = cerateRequestTxBodyHandler(gbbrRes)
+
+	bootstrap.StartSync()
+
+	return bootstrap, nil
+}
+
+func createRequestHeaderHandler(hdrRes *block2.HeaderResolver) func(nonce uint64) {
+	return func(nonce uint64) {
+		err := hdrRes.RequestHeaderFromNonce(nonce)
+
+		log.Info(fmt.Sprintf("requested header with nonce %d from network\n", nonce))
 		if err != nil {
-			log.Error("cannot find tx block body topic resolver")
-			return
+			log.Error("RequestHeaderFromNonce error:  ", err.Error())
 		}
-		hdrRes := resolver.(*block2.GenericBlockBodyResolver)
-		err = hdrRes.RequestBlockBodyFromHash(hash)
+	}
+}
+
+func cerateRequestTxBodyHandler(gbbrRes *block2.GenericBlockBodyResolver) func(hash []byte) {
+	return func(hash []byte) {
+		err := gbbrRes.RequestBlockBodyFromHash(hash)
 
 		log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(hash)))
 		if err != nil {
@@ -437,10 +409,6 @@ func (n *Node) createBootstrap(round *chronology.Round) (*sync.Bootstrap, error)
 			return
 		}
 	}
-
-	bootstrap.StartSync()
-
-	return bootstrap, nil
 }
 
 // createRoundConsensus method creates a RoundConsensus object
@@ -611,7 +579,7 @@ func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
 
 func (n *Node) generateAndSignTx(
 	nonce uint64,
-	value big.Int,
+	value *big.Int,
 	rcvAddrBytes []byte,
 	sndAddrBytes []byte,
 	dataBytes []byte,
@@ -653,7 +621,7 @@ func (n *Node) generateAndSignTx(
 }
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
-func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value big.Int, transactionData string) (*transaction.Transaction, error) {
+func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *big.Int, transactionData string) (*transaction.Transaction, error) {
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
@@ -694,7 +662,7 @@ func (n *Node) SendTransaction(
 	nonce uint64,
 	senderHex string,
 	receiverHex string,
-	value big.Int,
+	value *big.Int,
 	transactionData string,
 	signature []byte) (*transaction.Transaction, error) {
 
@@ -716,7 +684,7 @@ func (n *Node) SendTransaction(
 		Signature: signature,
 	}
 
-	topic := n.messenger.GetTopic(string(TransactionTopic))
+	topic := n.messenger.GetTopic(string(factory.TransactionTopic))
 
 	if topic == nil {
 		return nil, errors.New("could not get transaction topic")
@@ -812,7 +780,7 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 }
 
 func (n *Node) broadcastBlockBody(msg []byte) {
-	topic := n.messenger.GetTopic(string(TxBlockBodyTopic))
+	topic := n.messenger.GetTopic(string(factory.TxBlockBodyTopic))
 
 	if topic == nil {
 		log.Debug(fmt.Sprintf("could not get tx block body topic"))
@@ -827,7 +795,7 @@ func (n *Node) broadcastBlockBody(msg []byte) {
 }
 
 func (n *Node) broadcastHeader(msg []byte) {
-	topic := n.messenger.GetTopic(string(HeadersTopic))
+	topic := n.messenger.GetTopic(string(factory.HeadersTopic))
 
 	if topic == nil {
 		log.Debug(fmt.Sprintf("could not get header topic"))

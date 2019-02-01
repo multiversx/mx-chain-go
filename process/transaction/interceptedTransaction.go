@@ -94,6 +94,10 @@ func (inTx *InterceptedTransaction) Integrity(coordinator sharding.ShardCoordina
 		return process.ErrNilSndAddr
 	}
 
+	if inTx.Transaction.Value == nil {
+		return process.ErrNilValue
+	}
+
 	if inTx.Transaction.Value.Cmp(big.NewInt(0)) < 0 {
 		return process.ErrNegativeValue
 	}

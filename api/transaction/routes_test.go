@@ -39,7 +39,7 @@ func TestGenerateTransaction_WithParametersShouldReturnTransaction(t *testing.T)
 	data := "data"
 
 	facade := mock.Facade{
-		GenerateTransactionHandler: func(sender string, receiver string, value big.Int, code string) (transaction *tr.Transaction, e error) {
+		GenerateTransactionHandler: func(sender string, receiver string, value *big.Int, code string) (transaction *tr.Transaction, e error) {
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
@@ -82,7 +82,7 @@ func TestGenerateAndSendMultipleTransaction_WithParametersShouldReturnNoError(t 
 	txCount := 10
 
 	facade := mock.Facade{
-		GenerateAndSendBulkTransactionsHandler: func(receiver string, value big.Int,
+		GenerateAndSendBulkTransactionsHandler: func(receiver string, value *big.Int,
 			txCount uint64) error {
 			return nil
 		},
@@ -120,7 +120,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
 				Data:    []byte(data),
-				Value:   *value,
+				Value:   value,
 			}, nil
 		},
 	}
@@ -158,7 +158,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 				SndAddr: []byte(sender),
 				RcvAddr: []byte(receiver),
 				Data:    []byte(data),
-				Value:   *value,
+				Value:   value,
 			}, nil
 		},
 	}
@@ -278,7 +278,7 @@ func TestGenerateTransaction_ErrorsWhenFacadeGenerateTransactionFails(t *testing
 
 	errorString := "generate transaction error"
 	facade := mock.Facade{
-		GenerateTransactionHandler: func(sender string, receiver string, value big.Int, code string) (transaction *tr.Transaction, e error) {
+		GenerateTransactionHandler: func(sender string, receiver string, value *big.Int, code string) (transaction *tr.Transaction, e error) {
 			return nil, errors.New(errorString)
 		},
 	}
@@ -387,7 +387,7 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	errorString := "send transaction error"
 
 	facade := mock.Facade{
-		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value big.Int,
+		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value *big.Int,
 			code string, signature []byte) (transaction *tr.Transaction, e error) {
 			return nil, errors.New(errorString)
 		},
@@ -424,7 +424,7 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	signature := "aabbccdd"
 
 	facade := mock.Facade{
-		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value big.Int,
+		SendTransactionHandler: func(nonce uint64, sender string, receiver string, value *big.Int,
 			code string, signature []byte) (transaction *tr.Transaction, e error) {
 			return &tr.Transaction{
 				Nonce:     nonce,

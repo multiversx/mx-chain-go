@@ -28,14 +28,12 @@ func TestNode_GenerateSendInterceptTransactionWithMemMessenger(t *testing.T) {
 
 	defer p2p.ReInitializeGloballyRegisteredPeers()
 
-	_ = n.BindInterceptorsResolvers()
-
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
 
 	//Step 1. Generate a transaction
 	tx := transaction.Transaction{
 		Nonce:   0,
-		Value:   *big.NewInt(0),
+		Value:   big.NewInt(0),
 		RcvAddr: hasher.Compute("receiver"),
 		SndAddr: pkBuff,
 		Data:    []byte("tx notarized data"),

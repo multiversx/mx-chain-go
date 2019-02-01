@@ -20,7 +20,7 @@ type JournalEntryNonce struct {
 // JournalEntryBalance is used to revert a balance change
 type JournalEntryBalance struct {
 	jurnalizedAccount JournalizedAccountWrapper
-	oldBalance        big.Int
+	oldBalance        *big.Int
 }
 
 // JournalEntryCodeHash is used to revert a code hash change
@@ -115,7 +115,7 @@ func (jen *JournalEntryNonce) DirtiedAddress() AddressContainer {
 //------- JournalEntryBalance
 
 // NewJournalEntryBalance outputs a new JournalEntry implementation used to revert a balance change
-func NewJournalEntryBalance(jurnalizedAccount JournalizedAccountWrapper, oldBalance big.Int) *JournalEntryBalance {
+func NewJournalEntryBalance(jurnalizedAccount JournalizedAccountWrapper, oldBalance *big.Int) *JournalEntryBalance {
 	return &JournalEntryBalance{
 		jurnalizedAccount: jurnalizedAccount,
 		oldBalance:        oldBalance,

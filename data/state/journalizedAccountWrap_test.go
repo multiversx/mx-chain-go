@@ -93,7 +93,7 @@ func TestJournalizedAccountWrap_SetBalanceWithJournal(t *testing.T) {
 
 	jaw, err := state.NewJournalizedAccountWrap(mock.NewTrackableAccountWrapMock(), acntAdapter)
 	assert.Nil(t, err)
-	err = jaw.SetBalanceWithJournal(*big.NewInt(1))
+	err = jaw.SetBalanceWithJournal(big.NewInt(1))
 	assert.Nil(t, err)
 	assert.True(t, wasCalledSave)
 	assert.NotNil(t, jeAdded)

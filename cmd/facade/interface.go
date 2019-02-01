@@ -22,9 +22,6 @@ type NodeWrapper interface {
 	//IsRunning returns if the underlying node is running
 	IsRunning() bool
 
-	// BindInterceptorsResolvers will start the interceptors and resolvers
-	BindInterceptorsResolvers() error
-
 	// StartConsensus will start the consesus service for the current node
 	StartConsensus() error
 
@@ -32,10 +29,10 @@ type NodeWrapper interface {
 	GetBalance(address string) (*big.Int, error)
 
 	//GenerateTransaction generates a new transaction with sender, receiver, amount and code
-	GenerateTransaction(senderHex string, receiverHex string, amount big.Int, code string) (*transaction.Transaction, error)
+	GenerateTransaction(senderHex string, receiverHex string, amount *big.Int, code string) (*transaction.Transaction, error)
 
 	//SendTransaction will send a new transaction on the topic channel
-	SendTransaction(nonce uint64, senderHex string, receiverHex string, value big.Int, transactionData string, signature []byte) (*transaction.Transaction, error)
+	SendTransaction(nonce uint64, senderHex string, receiverHex string, value *big.Int, transactionData string, signature []byte) (*transaction.Transaction, error)
 
 	//GetTransaction gets the transaction
 	GetTransaction(hash string) (*transaction.Transaction, error)
@@ -45,7 +42,7 @@ type NodeWrapper interface {
 
 	// GenerateAndSendBulkTransactions generates a number of nrTransactions of amount value
 	//  for the receiver destination
-	GenerateAndSendBulkTransactions(string, big.Int, uint64) error
+	GenerateAndSendBulkTransactions(string, *big.Int, uint64) error
 
 	// GetAccount returns an accountResponse containing information
 	//  about the account corelated with provided address

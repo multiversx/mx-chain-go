@@ -120,5 +120,8 @@ func createMemNode(port int, dPool data.TransientDataHolder) (*node.Node, p2p.Me
 		node.WithProcessorCreator(pFactory),
 	)
 
+	_ = pFactory.CreateInterceptors()
+	_ = pFactory.CreateResolvers()
+
 	return n, mes, pFactory
 }

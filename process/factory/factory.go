@@ -21,15 +21,15 @@ type topicName string
 
 const (
 	// TransactionTopic is the topic used for sharing transactions
-	TransactionTopic topicName = "tx"
+	TransactionTopic topicName = "transactions"
 	// HeadersTopic is the topic used for sharing block headers
-	HeadersTopic topicName = "hdr"
+	HeadersTopic topicName = "headers"
 	// TxBlockBodyTopic is the topic used for sharing transactions block bodies
-	TxBlockBodyTopic topicName = "txBlk"
+	TxBlockBodyTopic topicName = "txBlockBodies"
 	// PeerChBodyTopic is used for sharing peer change block bodies
-	PeerChBodyTopic topicName = "peerCh"
+	PeerChBodyTopic topicName = "peerChangeBlockBodies"
 	// StateBodyTopic is used for sharing state block bodies
-	StateBodyTopic topicName = "state"
+	StateBodyTopic topicName = "stateBlockBodies"
 )
 
 type processorsCreator struct {

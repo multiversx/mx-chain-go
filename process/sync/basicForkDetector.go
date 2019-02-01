@@ -13,22 +13,22 @@ type headerInfo struct {
 	isReceived bool
 }
 
-// BasicForkDetector defines a struct with necessary data needed for fork detection
-type BasicForkDetector struct {
+// basicForkDetector defines a struct with necessary data needed for fork detection
+type basicForkDetector struct {
 	headers    map[uint64][]*headerInfo
 	mutHeaders sync.Mutex
 }
 
 // NewBasicForkDetector method creates a new BasicForkDetector object
-func NewBasicForkDetector() *BasicForkDetector {
-	bfd := &BasicForkDetector{}
+func NewBasicForkDetector() *basicForkDetector {
+	bfd := &basicForkDetector{}
 	bfd.headers = make(map[uint64][]*headerInfo)
 
 	return bfd
 }
 
 // AddHeader method adds a new header to headers map
-func (bfd *BasicForkDetector) AddHeader(header *block.Header, hash []byte, isReceived bool) error {
+func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isReceived bool) error {
 	if header == nil {
 		return ErrNilHeader
 	}
@@ -50,7 +50,7 @@ func (bfd *BasicForkDetector) AddHeader(header *block.Header, hash []byte, isRec
 	return nil
 }
 
-func (bfd *BasicForkDetector) removePastHeaders(nonce uint64) {
+func (bfd *basicForkDetector) removePastHeaders(nonce uint64) {
 	bfd.mutHeaders.Lock()
 
 	for storedNonce := range bfd.headers {
@@ -63,7 +63,7 @@ func (bfd *BasicForkDetector) removePastHeaders(nonce uint64) {
 }
 
 // RemoveHeaders removes all stored headers with a given nonce
-func (bfd *BasicForkDetector) RemoveHeaders(nonce uint64) {
+func (bfd *basicForkDetector) RemoveHeaders(nonce uint64) {
 	bfd.mutHeaders.Lock()
 	delete(bfd.headers, nonce)
 	bfd.mutHeaders.Unlock()
@@ -71,7 +71,7 @@ func (bfd *BasicForkDetector) RemoveHeaders(nonce uint64) {
 
 // append adds a new header in the slice found in nonce position
 // it not adds the header if its hash is already stored in the slice
-func (bfd *BasicForkDetector) append(hdrInfo *headerInfo) {
+func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
@@ -84,7 +84,7 @@ func (bfd *BasicForkDetector) append(hdrInfo *headerInfo) {
 		return
 	}
 
-	for _, hdrInfoStored := range bfd.headers[hdrInfo.header.Nonce] {
+	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) {
 			return
 		}
@@ -94,7 +94,7 @@ func (bfd *BasicForkDetector) append(hdrInfo *headerInfo) {
 }
 
 // CheckFork method checks if the node could be on the fork
-func (bfd *BasicForkDetector) CheckFork() bool {
+func (bfd *basicForkDetector) CheckFork() bool {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
