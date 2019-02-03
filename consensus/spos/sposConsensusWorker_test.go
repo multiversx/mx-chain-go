@@ -179,7 +179,7 @@ func initMockBlockProcessor() *mock.BlockProcessorMock {
 
 	blockProcMock.RevertAccountStateCalled = func() {}
 
-	blockProcMock.ProcessAndCommitCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+	blockProcMock.ProcessAndCommitCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 		return nil
 	}
 

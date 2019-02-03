@@ -416,7 +416,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	t.Parallel()
 
 	ebm := mock.BlockProcessorMock{}
-	ebm.ProcessAndCommitCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.TxBlockBody) error {
+	ebm.ProcessAndCommitCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.TxBlockBody, haveTime func() time.Duration) error {
 		blk.CurrentBlockHeader = hdr
 		return nil
 	}
@@ -483,7 +483,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	t.Parallel()
 
 	ebm := mock.BlockProcessorMock{}
-	ebm.ProcessAndCommitCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.TxBlockBody) error {
+	ebm.ProcessAndCommitCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.TxBlockBody, haveTime func() time.Duration) error {
 		blk.CurrentBlockHeader = hdr
 		return nil
 	}
@@ -585,7 +585,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	t.Parallel()
 
 	ebm := mock.BlockProcessorMock{}
-	ebm.ProcessAndCommitCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+	ebm.ProcessAndCommitCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 		return nil
 	}
 

@@ -1,11 +1,12 @@
 package spos
 
 import (
-	"github.com/davecgh/go-spew/spew"
+	"encoding/hex"
+	"fmt"
 )
 
 func (sposWorker *SPOSConsensusWorker) initReceivedMessages() {
-	sposWorker.mutMessagesReceived.Lock()
+	sposWorker.mutReceivedMessages.Lock()
 
 	sposWorker.ReceivedMessages = make(map[MessageType][]*ConsensusData)
 
@@ -16,11 +17,11 @@ func (sposWorker *SPOSConsensusWorker) initReceivedMessages() {
 	sposWorker.ReceivedMessages[MtCommitment] = make([]*ConsensusData, 0)
 	sposWorker.ReceivedMessages[MtSignature] = make([]*ConsensusData, 0)
 
-	sposWorker.mutMessagesReceived.Unlock()
+	sposWorker.mutReceivedMessages.Unlock()
 }
 
 func (sposWorker *SPOSConsensusWorker) displayReceivedMessages() {
-	sposWorker.mutMessagesReceived.RLock()
+	sposWorker.mutReceivedMessages.RLock()
 
 	for i := MtBlockBody; i <= MtSignature; i++ {
 		cnsDataList := sposWorker.ReceivedMessages[i]
@@ -30,15 +31,18 @@ func (sposWorker *SPOSConsensusWorker) displayReceivedMessages() {
 		}
 
 		for j := 0; j < len(cnsDataList); j++ {
-			spew.Dump(cnsDataList[j])
+			log.Info(fmt.Sprintf("Received message type %s for round %d from node with public key %s\n",
+				sposWorker.GetMessageTypeName(cnsDataList[j].MsgType),
+				cnsDataList[j].RoundIndex,
+				hex.EncodeToString(cnsDataList[j].Signature)))
 		}
 	}
 
-	sposWorker.mutMessagesReceived.RUnlock()
+	sposWorker.mutReceivedMessages.RUnlock()
 }
 
 func (sposWorker *SPOSConsensusWorker) cleanReceivedMessages() {
-	sposWorker.mutMessagesReceived.Lock()
+	sposWorker.mutReceivedMessages.Lock()
 
 	for i := MtBlockBody; i <= MtSignature; i++ {
 		cnsDataList := sposWorker.ReceivedMessages[i]
@@ -51,11 +55,11 @@ func (sposWorker *SPOSConsensusWorker) cleanReceivedMessages() {
 		sposWorker.ReceivedMessages[i] = cleanedCnsDtaList
 	}
 
-	sposWorker.mutMessagesReceived.Unlock()
+	sposWorker.mutReceivedMessages.Unlock()
 }
 
 func (sposWorker *SPOSConsensusWorker) executeReceivedMessages(cnsDta *ConsensusData) {
-	sposWorker.mutMessagesReceived.Lock()
+	sposWorker.mutReceivedMessages.Lock()
 
 	cnsDataList := sposWorker.ReceivedMessages[cnsDta.MsgType]
 	cnsDataList = append(cnsDataList, cnsDta)
@@ -73,7 +77,7 @@ func (sposWorker *SPOSConsensusWorker) executeReceivedMessages(cnsDta *Consensus
 		sposWorker.ReceivedMessages[i] = cleanedCnsDtaList
 	}
 
-	sposWorker.mutMessagesReceived.Unlock()
+	sposWorker.mutReceivedMessages.Unlock()
 }
 
 func (sposWorker *SPOSConsensusWorker) executeMessage(cnsDtaList []*ConsensusData) {

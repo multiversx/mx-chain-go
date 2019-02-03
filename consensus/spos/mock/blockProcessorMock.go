@@ -11,7 +11,7 @@ import (
 // BlockProcessorMock mocks the implementation for a BlockProcessor
 type BlockProcessorMock struct {
 	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error
-	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
+	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error
 	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error
 	RevertAccountStateCalled      func()
 	CreateGenesisBlockCalled      func(balances map[string]*big.Int, shardId uint32) (*block.StateBlockBody, error)
@@ -32,8 +32,8 @@ func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockC
 }
 
 // ProcessAndCommit mocks processesing and committing a block
-func (blProcMock *BlockProcessorMock) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
-	return blProcMock.ProcessAndCommitCalled(blockChain, header, body)
+func (blProcMock *BlockProcessorMock) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
+	return blProcMock.ProcessAndCommitCalled(blockChain, header, body, haveTime)
 }
 
 // CommitBlock mocks the commit of a block

@@ -353,56 +353,6 @@ func TestRoundTimeStamp_ShouldReturnCorrectTimeStamp(t *testing.T) {
 	assert.Equal(t, genesisTime.Add(time.Duration(2*rnd.TimeDuration())).Unix(), int64(timeStamp))
 }
 
-func TestChronology_InitRoundDeviatedPositiveFromMaxDiffShouldWork(t *testing.T) {
-	clockOffsetNoOfCalls := 0
-
-	syncer := &mock.SyncTimeStub{
-		ClockOffsetCalled: func() time.Duration {
-			defer func() {
-				clockOffsetNoOfCalls++
-			}()
-
-			if clockOffsetNoOfCalls == 0 {
-				return time.Duration(int64(0))
-			}
-
-			return chronology.MaxDiffAccepted() + 1
-		},
-	}
-
-	chr := chronology.NewChronology(true, nil, time.Now(), syncer)
-
-	chr.InitRound()
-
-	assert.Equal(t, chronology.MaxDiffAccepted()+1, chr.ClockOffset())
-
-}
-
-func TestChronology_InitRoundDeviatedNegativeFromMaxDiffShouldWork(t *testing.T) {
-	clockOffsetNoOfCalls := 0
-
-	syncer := &mock.SyncTimeStub{
-		ClockOffsetCalled: func() time.Duration {
-			defer func() {
-				clockOffsetNoOfCalls++
-			}()
-
-			if clockOffsetNoOfCalls == 0 {
-				return chronology.MaxDiffAccepted() + 1
-			}
-
-			return time.Duration(int64(0))
-		},
-	}
-
-	chr := chronology.NewChronology(true, nil, time.Now(), syncer)
-
-	chr.InitRound()
-
-	assert.Equal(t, time.Duration(0), chr.ClockOffset())
-
-}
-
 //------- UpdateSelfSubroundIfNeeded
 
 func TestChronology_UpdateSelfSubroundIfNeededShouldNotChangeForDifferentSubroundId(t *testing.T) {

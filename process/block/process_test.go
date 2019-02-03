@@ -23,6 +23,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func haveTime() time.Duration {
+	return time.Duration(2000 * time.Millisecond)
+}
+
 func createTestBlockchain() *blockchain.BlockChain {
 	blockChain, _ := blockchain.NewBlockChain(
 		generateTestCache(),
@@ -360,7 +364,7 @@ func TestBlockProcessor_ProcessAndCommitNilBlockchainShouldErr(t *testing.T) {
 		},
 	)
 
-	err := be.ProcessAndCommit(nil, &block.Header{}, &block.TxBlockBody{})
+	err := be.ProcessAndCommit(nil, &block.Header{}, &block.TxBlockBody{}, haveTime)
 
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
@@ -382,7 +386,7 @@ func TestBlockProcessor_ProcessAndCommitNilHeaderShouldErr(t *testing.T) {
 		},
 	)
 
-	err := be.ProcessAndCommit(createTestBlockchain(), nil, &block.TxBlockBody{})
+	err := be.ProcessAndCommit(createTestBlockchain(), nil, &block.TxBlockBody{}, haveTime)
 
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
@@ -404,7 +408,7 @@ func TestBlockProcessor_ProcessAndCommitNilTxBlockBodyShouldErr(t *testing.T) {
 		},
 	)
 
-	err := be.ProcessAndCommit(createTestBlockchain(), &block.Header{}, nil)
+	err := be.ProcessAndCommit(createTestBlockchain(), &block.Header{}, nil, haveTime)
 
 	assert.Equal(t, process.ErrNilTxBlockBody, err)
 }
@@ -455,7 +459,7 @@ func TestBlockProcessor_ProcessAndCommitBlockWithDirtyAccountShouldErr(t *testin
 	)
 
 	// should return err
-	err := be.ProcessAndCommit(blkc, &hdr, &txBody)
+	err := be.ProcessAndCommit(blkc, &hdr, &txBody, haveTime)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrAccountStateDirty)
@@ -532,7 +536,7 @@ func TestBlockProcessor_ProcessAndCommitBlockWithInvalidTransactionShouldErr(t *
 	}()
 
 	// should return err
-	err := be.ProcessAndCommit(blkc, &hdr, &txBody)
+	err := be.ProcessAndCommit(blkc, &hdr, &txBody, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -572,7 +576,7 @@ func TestBlockProcessor_ProcessAndCommitHeaderNotPassingIntegrityShouldErr(t *te
 		MiniBlocks: miniblocks,
 	}
 
-	err := be.ProcessAndCommit(createTestBlockchain(), hdr, txBody)
+	err := be.ProcessAndCommit(createTestBlockchain(), hdr, txBody, haveTime)
 
 	assert.Equal(t, "nil block body hash", err.Error())
 }
@@ -616,7 +620,7 @@ func TestBlockProcessor_ProcessAndCommitHeaderNotFirstShouldErr(t *testing.T) {
 
 	blkc := createTestBlockchain()
 
-	err := be.ProcessAndCommit(blkc, hdr, txBody)
+	err := be.ProcessAndCommit(blkc, hdr, txBody, haveTime)
 
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
@@ -663,7 +667,7 @@ func TestBlockProcessor_ProcessAndCommitHeaderNotCorrectNonceShouldErr(t *testin
 		Nonce: 0,
 	}
 
-	err := be.ProcessAndCommit(blkc, hdr, txBody)
+	err := be.ProcessAndCommit(blkc, hdr, txBody, haveTime)
 
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
@@ -711,7 +715,7 @@ func TestBlockProcessor_ProcessAndCommitHeaderNotCorrectPrevHashShouldErr(t *tes
 	}
 	blkc.CurrentBlockHeaderHash = []byte("bbb")
 
-	err := be.ProcessAndCommit(blkc, hdr, txBody)
+	err := be.ProcessAndCommit(blkc, hdr, txBody, haveTime)
 
 	assert.Equal(t, process.ErrInvalidBlockHash, err)
 }
@@ -1344,7 +1348,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	//TODO refactor the test
 
 	if be.RequestTransactionFromNetwork(&blk) > 0 {
-		be.WaitForTxHashes(blproc.ProcessTime)
+		be.WaitForTxHashes(haveTime())
 	}
 }
 

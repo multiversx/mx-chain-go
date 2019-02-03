@@ -15,7 +15,7 @@ func (bps *BlockProcessorStub) SetOnRequestTransaction(f func(destShardID uint32
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+func (bps *BlockProcessorStub) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 	panic("implement me")
 }
 

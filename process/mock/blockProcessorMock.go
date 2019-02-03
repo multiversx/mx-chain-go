@@ -10,7 +10,7 @@ import (
 
 type BlockProcessorMock struct {
 	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error
-	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
+	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error
 	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error
 	RevertAccountStateCalled      func()
 	CreateGenesisBlockCalled      func(balances map[string]*big.Int, shardId uint32) (*block.StateBlockBody, error)
@@ -26,8 +26,8 @@ func (bpm *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, h
 	return bpm.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
 
-func (bpm *BlockProcessorMock) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
-	return bpm.ProcessAndCommitCalled(blockChain, header, body)
+func (bpm *BlockProcessorMock) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
+	return bpm.ProcessAndCommitCalled(blockChain, header, body, haveTime)
 }
 
 func (bpm *BlockProcessorMock) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {

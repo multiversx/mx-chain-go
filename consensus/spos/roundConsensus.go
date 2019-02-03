@@ -230,10 +230,10 @@ func (rCns *RoundConsensus) CommitmentHashesCollected(threshold int) bool {
 		}
 
 		if isBitmapJobDone {
-			isCommHashJobDone, err2 := rCns.GetJobDone(rCns.consensusGroup[i], SrCommitmentHash)
+			isCommHashJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrCommitmentHash)
 
-			if err2 != nil {
-				log.Error(err2.Error())
+			if err != nil {
+				log.Error(err.Error())
 				continue
 			}
 
@@ -261,10 +261,10 @@ func (rCns *RoundConsensus) CommitmentsCollected(threshold int) bool {
 		}
 
 		if isBitmapJobDone {
-			isCommJobDone, err2 := rCns.GetJobDone(rCns.consensusGroup[i], SrCommitment)
+			isCommJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrCommitment)
 
-			if err2 != nil {
-				log.Error(err2.Error())
+			if err != nil {
+				log.Error(err.Error())
 				continue
 			}
 
@@ -293,10 +293,10 @@ func (rCns *RoundConsensus) SignaturesCollected(threshold int) bool {
 
 		if isBitmapJobDone {
 
-			isSignJobDone, err2 := rCns.GetJobDone(rCns.consensusGroup[i], SrSignature)
+			isSignJobDone, err := rCns.GetJobDone(rCns.consensusGroup[i], SrSignature)
 
-			if err2 != nil {
-				log.Error(err2.Error())
+			if err != nil {
+				log.Error(err.Error())
 				continue
 			}
 

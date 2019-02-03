@@ -73,7 +73,7 @@ const (
 	MtSignature
 )
 
-// ConsensusData defines the data needed by spos to comunicate between nodes over network in all subrounds
+// ConsensusData defines the data needed by spos to communicate between nodes over network in all subrounds
 type ConsensusData struct {
 	BlockHeaderHash []byte
 	SubRoundData    []byte
@@ -117,14 +117,12 @@ func (cd *ConsensusData) ID() string {
 	return id
 }
 
-// SPOSConsensusWorker defines the data needed by spos to comunicate between nodes which are in the validators group
+// SPOSConsensusWorker defines the data needed by spos to communicate between nodes which are in the validators group
 type SPOSConsensusWorker struct {
 	Cns                    *Consensus
 	Header                 *block.Header
 	BlockBody              *block.TxBlockBody
 	BlockChain             *blockchain.BlockChain
-	Rounds                 int // only for statistic
-	RoundsWithBlock        int // only for statistic
 	BlockProcessor         process.BlockProcessor
 	boot                   process.Bootstraper
 	MessageChannels        map[MessageType]chan *ConsensusData
@@ -135,11 +133,11 @@ type SPOSConsensusWorker struct {
 	privKey                crypto.PrivateKey
 	pubKey                 crypto.PublicKey
 	multiSigner            crypto.MultiSigner
-	SendMessage            func(consensus *ConsensusData) // this is a pointer to a function which actually send the message from a node to the network
+	SendMessage            func(consensus *ConsensusData)
 	BroadcastHeader        func([]byte)
 	BroadcastBlockBody     func([]byte)
 	ReceivedMessages       map[MessageType][]*ConsensusData
-	mutMessagesReceived    sync.RWMutex
+	mutReceivedMessages    sync.RWMutex
 }
 
 // NewConsensusWorker creates a new SPOSConsensusWorker object
@@ -298,8 +296,6 @@ func (sposWorker *SPOSConsensusWorker) checkSignaturesValidity(bitmap []byte) er
 		signature, err := sposWorker.multiSigner.SignatureShare(uint16(i))
 
 		if err != nil {
-			log.Error("checked signature index %d", i)
-
 			return err
 		}
 
@@ -341,10 +337,6 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 
 	log.Info(fmt.Sprintf("%sStep 0: Preparing for this round with leader %s%s\n",
 		sposWorker.Cns.getFormattedTime(), hex.EncodeToString([]byte(leader)), msg))
-
-	if sposWorker.boot.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-		log.Info(fmt.Sprintf("%sNOT SYNCRONIZED YET\n", sposWorker.Cns.getFormattedTime()))
-	}
 
 	pubKeys := sposWorker.Cns.ConsensusGroup()
 
@@ -440,13 +432,6 @@ func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
 		log.Info(fmt.Sprintf("\n%sxxxxxxxxxxxxxxxxxxxx ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN xxxxxxxxxxxxxxxxxxxx\n\n",
 			sposWorker.Cns.getFormattedTime(), sposWorker.Header.Nonce))
 	}
-
-	sposWorker.Rounds++          // only for statistic
-	sposWorker.RoundsWithBlock++ // only for statistic
-
-	//log.Info(fmt.Sprintf("%sCreated %d not empty blocks in %d rounds, which means %.2f%% efficiency\n",
-	//	sposWorker.Cns.getFormattedTime(), sposWorker.RoundsWithBlock, sposWorker.Rounds,
-	//	float64(sposWorker.RoundsWithBlock)*float64(100.0)/float64(sposWorker.Rounds)))
 
 	return true
 }
@@ -547,15 +532,14 @@ func (sposWorker *SPOSConsensusWorker) GetSubround() chronology.SubroundId {
 func (sposWorker *SPOSConsensusWorker) SendBlockHeader() bool {
 	hdr := &block.Header{}
 
+	hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
+	hdr.TimeStamp = sposWorker.GetRoundTime()
+
 	if sposWorker.BlockChain.CurrentBlockHeader == nil {
 		hdr.Nonce = 1
-		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
-		hdr.TimeStamp = sposWorker.GetRoundTime()
 		hdr.PrevHash = sposWorker.BlockChain.GenesisHeaderHash
 	} else {
 		hdr.Nonce = sposWorker.BlockChain.CurrentBlockHeader.Nonce + 1
-		hdr.Round = uint32(sposWorker.Cns.Chr.Round().Index())
-		hdr.TimeStamp = sposWorker.GetRoundTime()
 		hdr.PrevHash = sposWorker.BlockChain.CurrentBlockHeaderHash
 	}
 
@@ -765,18 +749,18 @@ func (sposWorker *SPOSConsensusWorker) DoBitmapJob() bool {
 
 	for i := 0; i < len(sposWorker.Cns.ConsensusGroup()); i++ {
 		pubKey := sposWorker.Cns.ConsensusGroup()[i]
-		isJobCommHashJobDone, err2 := sposWorker.Cns.GetJobDone(pubKey, SrCommitmentHash)
+		isJobCommHashJobDone, err := sposWorker.Cns.GetJobDone(pubKey, SrCommitmentHash)
 
-		if err2 != nil {
-			log.Error(err2.Error())
+		if err != nil {
+			log.Error(err.Error())
 			continue
 		}
 
 		if isJobCommHashJobDone {
-			err2 = sposWorker.Cns.SetJobDone(pubKey, SrBitmap, true)
+			err = sposWorker.Cns.SetJobDone(pubKey, SrBitmap, true)
 
-			if err2 != nil {
-				log.Error(err2.Error())
+			if err != nil {
+				log.Error(err.Error())
 				return false
 			}
 		}
@@ -1165,8 +1149,6 @@ func (sposWorker *SPOSConsensusWorker) ExtendEndRound() {
 	sposWorker.Cns.SetStatus(SrEndRound, SsExtended)
 
 	log.Info(fmt.Sprintf("%sStep 6: Extended the (END_ROUND) subround\n", sposWorker.Cns.getFormattedTime()))
-
-	sposWorker.Rounds++ // only for statistic
 }
 
 // createEmptyBlock creates, commits and broadcasts an empty block at the end of the round if no block was proposed or

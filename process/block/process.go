@@ -27,9 +27,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ProcessTime defines the duration for the node to assemble a tx block body
-const ProcessTime = time.Duration(2000 * time.Millisecond)
-
 var log = logger.NewDefaultLogger()
 
 var txsCurrentBlockProcessed = 0
@@ -118,15 +115,16 @@ func NewBlockProcessor(
 	return &bp, nil
 }
 
-func (bp *blockProcessor) haveTime() time.Duration {
-	return ProcessTime
-}
-
 // ProcessAndCommit takes each transaction from the transactions block body received as parameter
 // and processes it, updating at the same time the state trie and the associated root hash
 // if transaction is not valid or not found it will return error.
 // If all ok it will commit the block and state.
-func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error {
+func (bp *blockProcessor) ProcessAndCommit(
+	blockChain *blockchain.BlockChain,
+	header *block.Header,
+	body *block.TxBlockBody,
+	haveTime func() time.Duration,
+) error {
 	err := checkForNils(blockChain, header, body)
 	if err != nil {
 		return err
@@ -137,7 +135,7 @@ func (bp *blockProcessor) ProcessAndCommit(blockChain *blockchain.BlockChain, he
 		return err
 	}
 
-	err = bp.processBlock(blockChain, header, body, bp.haveTime)
+	err = bp.processBlock(blockChain, header, body, haveTime)
 
 	defer func() {
 		if err != nil {
@@ -620,6 +618,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 	}
 
 	if !haveTime() {
+		log.Info(fmt.Sprintf("time is up after entered in createMiniBlocks method\n"))
 		return miniBlocks, nil
 	}
 
@@ -637,11 +636,11 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		timeAfter := time.Now()
 
 		if !haveTime() {
-			log.Info(fmt.Sprintf("TIME IS UP AFTER ORDERED %d TXS in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
+			log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
 			return miniBlocks, nil
 		}
 
-		log.Info(fmt.Sprintf("TIME ELAPSED TO ORDERED %d TXS: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
+		log.Info(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
 
 		if err != nil {
 			log.Debug(fmt.Sprintf("when trying to order txs: %s", err.Error()))
@@ -652,7 +651,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		miniBlock.ShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
 
-		log.Info(fmt.Sprintf("CREATING MINI BLOCKS HAS BEEN STARTED: Have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ShardID))
+		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ShardID))
 
 		for index, tx := range orderedTxes {
 			if !haveTime() {
@@ -685,21 +684,27 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 			txs++
 
 			if txs >= maxTxInBlock { // max transactions count in one block was reached
-				log.Info(fmt.Sprintf("MAX TXS ACCEPTED IN ONE BLOCK IS REACHED: Added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
+				log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
+
 				if len(miniBlock.TxHashes) > 0 {
 					miniBlocks = append(miniBlocks, miniBlock)
 				}
-				log.Info(fmt.Sprintf("CREATING MINI BLOCKS HAS BEEN FINISHED: Created %d mini blocks\n", len(miniBlocks)))
+
+				log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
+
 				return miniBlocks, nil
 			}
 		}
 
 		if !haveTime() {
-			log.Info(fmt.Sprintf("TIME IS UP: Added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
+			log.Info(fmt.Sprintf("time is up: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
+
 			if len(miniBlock.TxHashes) > 0 {
 				miniBlocks = append(miniBlocks, miniBlock)
 			}
-			log.Info(fmt.Sprintf("CREATING MINI BLOCKS HAS BEEN FINISHED: Created %d mini blocks\n", len(miniBlocks)))
+
+			log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
+
 			return miniBlocks, nil
 		}
 
@@ -708,7 +713,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		}
 	}
 
-	log.Info(fmt.Sprintf("CREATING MINI BLOCKS HAS BEEN FINISHED: Created %d mini blocks\n", len(miniBlocks)))
+	log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
 
 	return miniBlocks, nil
 }

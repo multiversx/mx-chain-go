@@ -46,8 +46,6 @@ type Bootstrap struct {
 
 	chStopSync chan bool
 	waitTime   time.Duration
-
-	forkDetected bool
 }
 
 // NewBootstrap creates a new Bootstrap object
@@ -273,13 +271,14 @@ func (boot *Bootstrap) syncBlocks() {
 			return
 		default:
 			if boot.ShouldSync() {
-				if boot.forkDetected {
-					log.Info(fmt.Sprintf("\n\n#################### FORK DETECTED ####################\n\n"))
-				}
 				hdr, err := boot.SyncBlock()
+
 				if err != nil {
+					log.Info(err.Error())
+
 					if err == process.ErrInvalidBlockHash {
-						err := boot.forkChoice(hdr)
+						err = boot.forkChoice(hdr)
+
 						if err != nil {
 							log.Info(err.Error())
 						}
@@ -304,27 +303,31 @@ func (boot *Bootstrap) SyncBlock() (*block.Header, error) {
 
 	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
 	if err != nil {
-		return hdr, err
+		return nil, err
 	}
 
 	//TODO remove after all types of block bodies are implemented
 	if hdr.BlockBodyType != block.TxBlock {
-		return hdr, process.ErrNotImplementedBlockProcessingType
+		return nil, process.ErrNotImplementedBlockProcessingType
 	}
 
 	blk, err := boot.getTxBodyRequestingIfMissing(hdr.BlockBodyHash)
 	if err != nil {
-		return hdr, err
+		return nil, err
+	}
+
+	haveTime := func() time.Duration {
+		return boot.round.TimeDuration()
 	}
 
 	//TODO remove type assertions and implement a way for block executor to process
 	//TODO all kinds of headers
-	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, blk.(*block.TxBlockBody))
+	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, blk.(*block.TxBlockBody), haveTime)
 	if err != nil {
 		return hdr, err
 	}
 
-	log.Info(fmt.Sprintf("Block with nonce %d was synced successfully\n", hdr.Nonce))
+	log.Info(fmt.Sprintf("block with nonce %d was synced successfully\n", hdr.Nonce))
 
 	return hdr, nil
 }
@@ -478,7 +481,7 @@ func (boot *Bootstrap) waitForTxBodyHash() {
 
 // forkChoice decides if rollback must be called
 func (boot *Bootstrap) forkChoice(hdr *block.Header) error {
-	log.Info(fmt.Sprintf("\n#################### STARTING FORK CHOICE ####################\n\n"))
+	log.Info(fmt.Sprintf("starting fork choice\n"))
 
 	header := boot.blkc.CurrentBlockHeader
 
@@ -497,7 +500,7 @@ func (boot *Bootstrap) forkChoice(hdr *block.Header) error {
 			PoolNonce:    hdr.Nonce}
 	}
 
-	log.Info(fmt.Sprintf("\n#################### ROLL BACK TO HEADER WITH HASH: %s ####################\n\n",
+	log.Info(fmt.Sprintf("roll back to header with hash %s\n",
 		toB64(header.PrevHash)))
 
 	return boot.rollback(header)
@@ -603,14 +606,21 @@ func toB64(buff []byte) string {
 // synched and it can participate to the consensus, if it is in the jobDone group of this round
 func (boot *Bootstrap) ShouldSync() bool {
 	if boot.blkc.CurrentBlockHeader == nil {
-		return boot.round.Index() > 0
+		isNotSynchronized := boot.round.Index() > 0
+		return isNotSynchronized
 	}
 
-	if boot.blkc.CurrentBlockHeader.Round+1 < uint32(boot.round.Index()) {
+	isNotSynchronized := boot.blkc.CurrentBlockHeader.Round+1 < uint32(boot.round.Index())
+
+	if isNotSynchronized {
 		return true
 	}
 
-	boot.forkDetected = boot.forkDetector.CheckFork()
+	isForkDetected := boot.forkDetector.CheckFork()
 
-	return boot.forkDetected
+	if isForkDetected {
+		return true
+	}
+
+	return false
 }
