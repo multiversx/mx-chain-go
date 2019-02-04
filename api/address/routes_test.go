@@ -13,6 +13,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/address"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/address/mock"
+	errors2 "github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/middleware"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/gin-contrib/cors"
@@ -107,9 +108,10 @@ func TestGetBalance_WithWrongAddressShouldReturnZero(t *testing.T) {
 func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
 	t.Parallel()
 	addr := "addr"
+	balanceError := errors.New("error")
 	facade := mock.Facade{
 		BalanceHandler: func(s string) (i *big.Int, e error) {
-			return nil, errors.New("error")
+			return nil, balanceError
 		},
 	}
 
@@ -122,7 +124,7 @@ func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
 	addressResponse := NewAddressResponse()
 	loadResponse(resp.Body, &addressResponse)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Equal(t, "Get balance error: error", addressResponse.Error)
+	assert.Equal(t, fmt.Sprintf("%s: %s", errors2.ErrGetBalance.Error(), balanceError.Error()), addressResponse.Error)
 }
 
 func TestGetBalance_WithEmptyAddressShouldReturnZeroAndError(t *testing.T) {
@@ -146,7 +148,9 @@ func TestGetBalance_WithEmptyAddressShouldReturnZeroAndError(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Equal(t, big.NewInt(0), addressResponse.Balance)
 	assert.NotEmpty(t, addressResponse.Error)
-	assert.True(t, strings.Contains(addressResponse.Error, "Get balance error: Address was empty"))
+	assert.True(t, strings.Contains(addressResponse.Error,
+		fmt.Sprintf("%s: %s", errors2.ErrGetBalance.Error(), errors2.ErrEmptyAddress.Error()),
+	))
 }
 
 func TestGetBalance_FailsWithWrongFacadeTypeConversion(t *testing.T) {
@@ -160,7 +164,7 @@ func TestGetBalance_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	statusRsp := NewAddressResponse()
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, "Invalid app context")
+	assert.Equal(t, statusRsp.Error, errors2.ErrInvalidAppContext.Error())
 }
 
 func TestGetAccount_FailsWithWrongFacadeTypeConversion(t *testing.T) {
@@ -174,7 +178,7 @@ func TestGetAccount_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	statusRsp := NewAddressResponse()
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, "Invalid app context")
+	assert.Equal(t, statusRsp.Error, errors2.ErrInvalidAppContext.Error())
 }
 
 func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
@@ -196,7 +200,7 @@ func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Empty(t, accountResponse.Account)
 	assert.NotEmpty(t, accountResponse.Error)
-	assert.True(t, strings.Contains(accountResponse.Error, fmt.Sprintf("Could not get requested account: %s", returnedError)))
+	assert.True(t, strings.Contains(accountResponse.Error, fmt.Sprintf("%s: %s", errors2.ErrCouldNotGetAccount.Error(), returnedError)))
 }
 
 func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
