@@ -42,10 +42,6 @@ func (sposWorker *SPOSConsensusWorker) InitReceivedMessages() {
 	sposWorker.initReceivedMessages()
 }
 
-func (sposWorker *SPOSConsensusWorker) DisplayReceivedMessages() {
-	sposWorker.displayReceivedMessages()
-}
-
 func (sposWorker *SPOSConsensusWorker) CleanReceivedMessages() {
 	sposWorker.cleanReceivedMessages()
 }

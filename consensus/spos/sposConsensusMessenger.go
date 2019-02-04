@@ -1,10 +1,5 @@
 package spos
 
-import (
-	"encoding/hex"
-	"fmt"
-)
-
 func (sposWorker *SPOSConsensusWorker) initReceivedMessages() {
 	sposWorker.mutReceivedMessages.Lock()
 
@@ -18,27 +13,6 @@ func (sposWorker *SPOSConsensusWorker) initReceivedMessages() {
 	sposWorker.ReceivedMessages[MtSignature] = make([]*ConsensusData, 0)
 
 	sposWorker.mutReceivedMessages.Unlock()
-}
-
-func (sposWorker *SPOSConsensusWorker) displayReceivedMessages() {
-	sposWorker.mutReceivedMessages.RLock()
-
-	for i := MtBlockBody; i <= MtSignature; i++ {
-		cnsDataList := sposWorker.ReceivedMessages[i]
-
-		if len(cnsDataList) == 0 {
-			continue
-		}
-
-		for j := 0; j < len(cnsDataList); j++ {
-			log.Info(fmt.Sprintf("Received message type %s for round %d from node with public key %s\n",
-				sposWorker.GetMessageTypeName(cnsDataList[j].MsgType),
-				cnsDataList[j].RoundIndex,
-				hex.EncodeToString(cnsDataList[j].Signature)))
-		}
-	}
-
-	sposWorker.mutReceivedMessages.RUnlock()
 }
 
 func (sposWorker *SPOSConsensusWorker) cleanReceivedMessages() {
@@ -86,11 +60,11 @@ func (sposWorker *SPOSConsensusWorker) executeMessage(cnsDtaList []*ConsensusDat
 			continue
 		}
 
-		if sposWorker.shouldDropConsensusMessage(cnsDta) {
+		if sposWorker.boot.ShouldSync() {
 			continue
 		}
 
-		if sposWorker.boot.ShouldSync() {
+		if sposWorker.shouldDropConsensusMessage(cnsDta) {
 			continue
 		}
 

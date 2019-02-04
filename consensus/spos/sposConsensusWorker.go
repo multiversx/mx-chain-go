@@ -310,7 +310,7 @@ func (sposWorker *SPOSConsensusWorker) checkSignaturesValidity(bitmap []byte) er
 	return nil
 }
 
-// DoStartRoundJob method is the function which actually do the job of the StartRound subround
+// DoStartRoundJob method is the function which actually does the job of the StartRound subround
 // (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
 // from spos package)
 func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
@@ -320,8 +320,6 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 	sposWorker.Cns.ResetRoundStatus()
 	sposWorker.Cns.ResetRoundState()
 	sposWorker.cleanReceivedMessages()
-
-	sposWorker.displayReceivedMessages() // display earlier received messages for this round
 
 	leader, err := sposWorker.Cns.GetLeader()
 
@@ -366,7 +364,7 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 	return true
 }
 
-// DoEndRoundJob method is the function which actually do the job of the EndRound subround
+// DoEndRoundJob method is the function which actually does the job of the EndRound subround
 // (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
 // from spos package)
 func (sposWorker *SPOSConsensusWorker) DoEndRoundJob() bool {
@@ -987,7 +985,7 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 	return true
 }
 
-// DoAdvanceJob method is the function which actually do the job of the Advance subround (it is used as the handler
+// DoAdvanceJob method is the function which actually does the job of the Advance subround (it is used as the handler
 // function of the doSubroundJob pointer variable function in Subround struct, from spos package)
 func (sposWorker *SPOSConsensusWorker) DoAdvanceJob() bool {
 	if sposWorker.Cns.Status(SrEndRound) == SsFinished {
