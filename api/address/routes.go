@@ -1,9 +1,11 @@
 package address
 
 import (
+	"fmt"
 	"math/big"
 	"net/http"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/gin-gonic/gin"
 )
@@ -33,14 +35,14 @@ func Routes(router *gin.RouterGroup) {
 func GetAccount(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
 
 	addr := c.Param("address")
 	acc, err := ef.GetAccount(addr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get requested account: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrCouldNotGetAccount.Error(), err.Error())})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"account": accountResponseFromBaseAccount(addr, acc)})
@@ -50,19 +52,19 @@ func GetAccount(c *gin.Context) {
 func GetBalance(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
 	addr := c.Param("address")
 
 	if addr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Get balance error: Address was empty"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), errors.ErrEmptyAddress.Error())})
 		return
 	}
 
 	balance, err := ef.GetBalance(addr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Get balance error: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), err.Error())})
 		return
 	}
 

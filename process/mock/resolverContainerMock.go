@@ -20,18 +20,18 @@ func (i *ResolverContainer) Get(key string) (process.Resolver, error) {
 	return i.GetCalled(key)
 }
 
-// Add will add an resolver at a given key. Returns
+// Add will add a resolver at a given key. Returns
 //  an error if the element already exists
 func (i *ResolverContainer) Add(key string, resolver process.Resolver) error {
 	return i.AddCalled(key, resolver)
 }
 
-// Replace will add (or replace if it already exists) an resolver at a given key
+// Replace will add (or replace if it already exists) a resolver at a given key
 func (i *ResolverContainer) Replace(key string, resolver process.Resolver) error {
 	return i.ReplaceCalled(key, resolver)
 }
 
-// Remove will remove an resolver at a given key
+// Remove will remove a resolver at a given key
 func (i *ResolverContainer) Remove(key string) {
 	i.RemoveCalled(key)
 }

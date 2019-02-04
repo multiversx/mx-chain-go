@@ -273,18 +273,10 @@ func (boot *Bootstrap) syncBlocks() {
 			return
 		default:
 			if boot.ShouldSync() {
-				hdr, err := boot.SyncBlock()
+				err := boot.SyncBlock()
 
 				if err != nil {
 					log.Info(err.Error())
-
-					if err == process.ErrInvalidBlockHash {
-						err = boot.forkChoice(hdr)
-
-						if err != nil {
-							log.Info(err.Error())
-						}
-					}
 				}
 			}
 		}
@@ -297,7 +289,7 @@ func (boot *Bootstrap) syncBlocks() {
 // If either header and body are received the ProcessAndCommit method will be called. This method will execute
 // the block and its transactions. Finally if everything works, the block will be committed in the blockchain,
 // and all this mechanism will be reiterated for the next block.
-func (boot *Bootstrap) SyncBlock() (*block.Header, error) {
+func (boot *Bootstrap) SyncBlock() error {
 	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedTxBodyHash(nil)
 
@@ -305,17 +297,17 @@ func (boot *Bootstrap) SyncBlock() (*block.Header, error) {
 
 	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	//TODO remove after all types of block bodies are implemented
 	if hdr.BlockBodyType != block.TxBlock {
-		return nil, process.ErrNotImplementedBlockProcessingType
+		return process.ErrNotImplementedBlockProcessingType
 	}
 
 	blk, err := boot.getTxBodyRequestingIfMissing(hdr.BlockBodyHash)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	haveTime := func() time.Duration {
@@ -325,13 +317,18 @@ func (boot *Bootstrap) SyncBlock() (*block.Header, error) {
 	//TODO remove type assertions and implement a way for block executor to process
 	//TODO all kinds of headers
 	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, blk.(*block.TxBlockBody), haveTime)
+
 	if err != nil {
-		return hdr, err
+		if err == process.ErrInvalidBlockHash {
+			err = boot.forkChoice(hdr)
+		}
+
+		return err
 	}
 
 	log.Info(fmt.Sprintf("block with nonce %d was synced successfully\n", hdr.Nonce))
 
-	return hdr, nil
+	return nil
 }
 
 // getHeaderFromPoolHavingNonce method returns the block header from a given nonce
