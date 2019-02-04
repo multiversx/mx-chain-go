@@ -6,8 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
-// Container is a struct that defines the beahaviour for a container
-//  holding a list of resolvers organized by type
+// Container is a holder for resolvers organized by type
 type Container struct {
 	mutex     sync.RWMutex
 	resolvers map[string]process.Resolver
@@ -33,28 +32,26 @@ func (i *Container) Get(key string) (process.Resolver, error) {
 	return resolver, nil
 }
 
-// Add will add an resolver at a given key. Returns
+// Add will add a resolver at a given key. Returns
 //  an error if the element already exists
 func (i *Container) Add(key string, resolver process.Resolver) error {
 	if resolver == nil {
 		return process.ErrNilContainerElement
 	}
-	i.mutex.RLock()
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+
 	_, ok := i.resolvers[key]
-	i.mutex.RUnlock()
 
 	if ok {
 		return process.ErrContainerKeyAlreadyExists
 	}
 
-	i.mutex.Lock()
 	i.resolvers[key] = resolver
-	i.mutex.Unlock()
-
 	return nil
 }
 
-// Replace will add (or replace if it already exists) an resolver at a given key
+// Replace will add (or replace if it already exists) a resolver at a given key
 func (i *Container) Replace(key string, resolver process.Resolver) error {
 	if resolver == nil {
 		return process.ErrNilContainerElement
@@ -65,7 +62,7 @@ func (i *Container) Replace(key string, resolver process.Resolver) error {
 	return nil
 }
 
-// Remove will remove an resolver at a given key
+// Remove will remove a resolver at a given key
 func (i *Container) Remove(key string) {
 	i.mutex.Lock()
 	delete(i.resolvers, key)

@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"net/http"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/gin-gonic/gin"
 )
@@ -64,20 +65,20 @@ func Routes(router *gin.RouterGroup) {
 func GenerateTransaction(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
 
 	var gtx = TxRequest{}
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation error: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
 		return
 	}
 
 	tx, err := ef.GenerateTransaction(gtx.Sender, gtx.Receiver, gtx.Value, gtx.Data)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction generation failed: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error())})
 		return
 	}
 
@@ -88,26 +89,26 @@ func GenerateTransaction(c *gin.Context) {
 func SendTransaction(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
 
 	var gtx = SendTxRequest{}
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation error: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
 		return
 	}
 
 	signature, err := hex.DecodeString(gtx.Signature)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid signature, could not decode hex value: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrInvalidSignatureHex.Error(), err.Error())})
 		return
 	}
 
 	tx, err := ef.SendTransaction(gtx.Nonce, gtx.Sender, gtx.Receiver, gtx.Value, gtx.Data, signature)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction generation failed: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error())})
 		return
 	}
 
@@ -118,20 +119,20 @@ func SendTransaction(c *gin.Context) {
 func GenerateAndSendBulkTransactions(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
 
 	var gtx = MultipleTxRequest{}
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation error: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
 		return
 	}
 
 	err = ef.GenerateAndSendBulkTransactions(gtx.Receiver, gtx.Value, uint64(gtx.TxCount))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Multiple Transaction generation failed: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrMultipleTxGenerationFailed.Error(), err.Error())})
 		return
 	}
 
@@ -143,24 +144,24 @@ func GetTransaction(c *gin.Context) {
 
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
 
 	txhash := c.Param("txhash")
 	if txhash == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "TxHash is empty"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyTxHash.Error())})
 		return
 	}
 
 	tx, err := ef.GetTransaction(txhash)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Transaction getting failed"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrGetTransaction.Error()})
 		return
 	}
 
 	if tx == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Transaction was not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": errors.ErrTxNotFound.Error()})
 		return
 	}
 

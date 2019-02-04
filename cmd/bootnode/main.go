@@ -295,7 +295,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	transient, err := createDataPoolFromConfig(cfg, uint64ByteSliceConverter)
+	datapool, err := createDataPoolFromConfig(cfg, uint64ByteSliceConverter)
 	if err != nil {
 		return nil, errors.New("could not create transient data pool: " + err.Error())
 	}
@@ -336,7 +336,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		ResolverContainer:        resolversContainer,
 		Messenger:                netMessenger,
 		Blockchain:               blkc,
-		DataPool:                 transient,
+		DataPool:                 datapool,
 		ShardCoordinator:         shardCoordinator,
 		AddrConverter:            addressConverter,
 		Hasher:                   hasher,
@@ -370,7 +370,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 	}
 
 	blockProcessor, err := block.NewBlockProcessor(
-		transient,
+		datapool,
 		hasher,
 		marshalizer,
 		transactionProcessor,
@@ -400,7 +400,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithBlockProcessor(blockProcessor),
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
 		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
-		node.WithDataPool(transient),
+		node.WithDataPool(datapool),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 		node.WithMultisig(multisigner),

@@ -8,7 +8,7 @@ type ShardedDataStub struct {
 	RegisterHandlerCalled         func(func(key []byte))
 	ShardDataStoreCalled          func(shardID uint32) (c storage.Cacher)
 	AddDataCalled                 func(key []byte, data interface{}, destShardID uint32)
-	SearchDataCalled              func(key []byte) (shardValuesPairs map[uint32]interface{})
+	SearchFirstDataCalled         func(key []byte) (value interface{}, ok bool)
 	RemoveDataCalled              func(key []byte, destShardID uint32)
 	RemoveDataFromAllShardsCalled func(key []byte)
 	MergeShardStoresCalled        func(sourceShardID, destShardID uint32)
@@ -31,8 +31,8 @@ func (sd *ShardedDataStub) AddData(key []byte, data interface{}, destShardID uin
 	sd.AddDataCalled(key, data, destShardID)
 }
 
-func (sd *ShardedDataStub) SearchData(key []byte) (shardValuesPairs map[uint32]interface{}) {
-	return sd.SearchDataCalled(key)
+func (sd *ShardedDataStub) SearchFirstData(key []byte) (value interface{}, ok bool) {
+	return sd.SearchFirstDataCalled(key)
 }
 
 func (sd *ShardedDataStub) RemoveData(key []byte, destShardID uint32) {
@@ -45,6 +45,10 @@ func (sd *ShardedDataStub) RemoveDataFromAllShards(key []byte) {
 
 func (sd *ShardedDataStub) MergeShardStores(sourceShardID, destShardID uint32) {
 	sd.MergeShardStoresCalled(sourceShardID, destShardID)
+}
+
+func (sd *ShardedDataStub) CreateShardStore(destShardID uint32) {
+	sd.CreateShardStoreCalled(destShardID)
 }
 
 func (sd *ShardedDataStub) MoveData(sourceShardID, destShardID uint32, key [][]byte) {
@@ -61,8 +65,4 @@ func (sd *ShardedDataStub) ClearShardStore(shardID uint32) {
 
 func (sd *ShardedDataStub) RemoveSetOfDataFromPool(keys [][]byte, destShardID uint32) {
 	sd.RemoveSetOfDataFromPoolCalled(keys, destShardID)
-}
-
-func (sd *ShardedDataStub) CreateShardStore(destShardID uint32) {
-	sd.CreateShardStoreCalled(destShardID)
 }

@@ -118,15 +118,21 @@ func (bfd *basicForkDetector) CheckFork() bool {
 		}
 
 		if selfHdrInfo == nil {
-			return false
+			//current nonce has not been (yet) processed, skipping, trying the next one
+			continue
 		}
 
 		if !isEmpty(selfHdrInfo.header) {
+			//keep it clean so next time this position will be processed faster
 			delete(bfd.headers, nonce)
 			bfd.headers[nonce] = []*headerInfo{selfHdrInfo}
 		}
 
-		return foundNotEmptyBlock
+		if foundNotEmptyBlock {
+			//detected a fork: self has an unsigned header, it also received a signed block
+			//with the same nonce
+			return true
+		}
 	}
 
 	return false

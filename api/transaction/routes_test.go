@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	errors2 "github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/middleware"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/api/transaction/mock"
@@ -193,7 +194,7 @@ func TestGenerateTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, transactionResponse.Error, "Validation error: ")
+	assert.Contains(t, transactionResponse.Error, errors2.ErrValidation.Error())
 }
 
 func TestGenerateAndSendMultipleTransaction_WithBadJsonShouldReturnBadRequest(t *testing.T) {
@@ -214,7 +215,7 @@ func TestGenerateAndSendMultipleTransaction_WithBadJsonShouldReturnBadRequest(t 
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, transactionResponse.Error, "Validation error: ")
+	assert.Contains(t, transactionResponse.Error, errors2.ErrValidation.Error())
 }
 
 func TestGetTransaction_FailsWithWrongFacadeTypeConversion(t *testing.T) {
@@ -228,7 +229,7 @@ func TestGetTransaction_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	transactionResponse := TransactionResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, transactionResponse.Error, "Invalid app context")
+	assert.Equal(t, transactionResponse.Error, errors2.ErrInvalidAppContext.Error())
 }
 
 func TestGenerateTransaction_WithBadJsonShouldReturnInternalServerError(t *testing.T) {
@@ -247,7 +248,7 @@ func TestGenerateTransaction_WithBadJsonShouldReturnInternalServerError(t *testi
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Contains(t, transactionResponse.Error, "Invalid app context")
+	assert.Contains(t, transactionResponse.Error, errors2.ErrInvalidAppContext.Error())
 }
 
 func TestGenerateAndSendMultipleTransaction_WithBadJsonShouldReturnInternalServerError(t *testing.T) {
@@ -266,7 +267,7 @@ func TestGenerateAndSendMultipleTransaction_WithBadJsonShouldReturnInternalServe
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Contains(t, transactionResponse.Error, "Invalid app context")
+	assert.Contains(t, transactionResponse.Error, errors2.ErrInvalidAppContext.Error())
 }
 
 func TestGenerateTransaction_ErrorsWhenFacadeGenerateTransactionFails(t *testing.T) {
@@ -299,7 +300,7 @@ func TestGenerateTransaction_ErrorsWhenFacadeGenerateTransactionFails(t *testing
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Equal(t, fmt.Sprintf("Transaction generation failed: %s", errorString), transactionResponse.Error)
+	assert.Equal(t, fmt.Sprintf("%s: %s", errors2.ErrTxGenerationFailed.Error(), errorString), transactionResponse.Error)
 	assert.Empty(t, transactionResponse.TxResp)
 }
 
@@ -314,7 +315,7 @@ func TestSendTransaction_ErrorWithWrongFacade(t *testing.T) {
 	transactionResponse := TransactionResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, transactionResponse.Error, "Invalid app context")
+	assert.Equal(t, transactionResponse.Error, errors2.ErrInvalidAppContext.Error())
 }
 
 func TestSendTransaction_WrongParametersShouldErrorOnValidation(t *testing.T) {
@@ -342,7 +343,7 @@ func TestSendTransaction_WrongParametersShouldErrorOnValidation(t *testing.T) {
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, transactionResponse.Error, "Validation error:")
+	assert.Contains(t, transactionResponse.Error, errors2.ErrValidation.Error())
 	assert.Empty(t, transactionResponse.TxResp)
 }
 
@@ -373,7 +374,7 @@ func TestSendTransaction_InvalidHexSignatureShouldError(t *testing.T) {
 	loadResponse(resp.Body, &transactionResponse)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, transactionResponse.Error, "Invalid signature, could not decode hex value:")
+	assert.Contains(t, transactionResponse.Error, errors2.ErrInvalidSignatureHex.Error())
 	assert.Empty(t, transactionResponse.TxResp)
 }
 

@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -53,7 +54,7 @@ func TestStatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	statusRsp := StatusResponse{}
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, "Invalid app context")
+	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
 }
 
 func TestStatus_ReturnsCorrectResponseOnStart(t *testing.T) {
@@ -109,7 +110,7 @@ func TestStartNode_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	statusRsp := StatusResponse{}
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, "Invalid app context")
+	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
 }
 
 func TestStartNode_AlreadyRunning(t *testing.T) {
@@ -124,7 +125,7 @@ func TestStartNode_AlreadyRunning(t *testing.T) {
 	statusRsp := StatusResponse{}
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusOK)
-	assert.Equal(t, statusRsp.Message, "Node already running")
+	assert.Equal(t, statusRsp.Message, errors.ErrNodeAlreadyRunning.Error())
 }
 
 func TestStartNode_FromFacadeErrors(t *testing.T) {
@@ -139,7 +140,7 @@ func TestStartNode_FromFacadeErrors(t *testing.T) {
 	statusRsp := StatusResponse{}
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, "Bad init of node: error")
+	assert.Equal(t, statusRsp.Error, fmt.Sprintf("%s: error", errors.ErrBadInitOfNode.Error()))
 }
 
 func TestStartNode(t *testing.T) {
@@ -180,7 +181,7 @@ func TestStopNode_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	statusRsp := StatusResponse{}
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, "Invalid app context")
+	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
 }
 
 func TestStopNode_AlreadyStopped(t *testing.T) {
@@ -195,7 +196,7 @@ func TestStopNode_AlreadyStopped(t *testing.T) {
 	statusRsp := StatusResponse{}
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusOK)
-	assert.Equal(t, statusRsp.Message, "Node already stopped")
+	assert.Equal(t, statusRsp.Message, errors.ErrNodeAlreadyStopped.Error())
 }
 
 func TestStopNode_FromFacadeErrors(t *testing.T) {
@@ -211,7 +212,7 @@ func TestStopNode_FromFacadeErrors(t *testing.T) {
 	statusRsp := StatusResponse{}
 	loadResponse(resp.Body, &statusRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, statusRsp.Error, "Could not stop node: error")
+	assert.Equal(t, statusRsp.Error, fmt.Sprintf("%s: error", errors.ErrCouldNotStopNode.Error()))
 }
 
 func TestStopNode(t *testing.T) {
@@ -252,7 +253,7 @@ func TestAddress_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	addressRsp := AddressResponse{}
 	loadResponse(resp.Body, &addressRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, addressRsp.Error, "Invalid app context")
+	assert.Equal(t, addressRsp.Error, errors.ErrInvalidAppContext.Error())
 }
 
 func TestAddress_FailsWithInvalidUrlString(t *testing.T) {
@@ -269,7 +270,7 @@ func TestAddress_FailsWithInvalidUrlString(t *testing.T) {
 	addressRsp := AddressResponse{}
 	loadResponse(resp.Body, &addressRsp)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
-	assert.Equal(t, addressRsp.Error, "Cound not parse node's public key")
+	assert.Equal(t, addressRsp.Error, errors.ErrCouldNotParsePubKey.Error())
 }
 
 func TestAddress_ReturnsSuccessfully(t *testing.T) {

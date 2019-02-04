@@ -101,18 +101,18 @@ func (hdrRes *HeaderResolver) resolveHdrRequest(rd process.RequestData) ([]byte,
 }
 
 func (hdrRes *HeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) {
-	dataMap := hdrRes.hdrPool.SearchData(key)
-	for _, v := range dataMap {
-		//since there might be multiple entries, it shall return the first one that it finds
-		buff, err := hdrRes.marshalizer.Marshal(v)
-		if err != nil {
-			return nil, err
-		}
+	value, ok := hdrRes.hdrPool.SearchFirstData(key)
 
-		return buff, nil
+	if !ok {
+		return hdrRes.hdrStorage.Get(key)
 	}
 
-	return hdrRes.hdrStorage.Get(key)
+	buff, err := hdrRes.marshalizer.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+
+	return buff, nil
 }
 
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error) {
@@ -131,18 +131,18 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 	}
 
 	//Step 3. search header by key (hash)
-	dataMap := hdrRes.hdrPool.SearchData(hash)
-	for _, v := range dataMap {
-		//since there might be multiple entries, it shall return the first one that it finds
-		buff, err := hdrRes.marshalizer.Marshal(v)
-		if err != nil {
-			return nil, err
-		}
-
-		return buff, nil
+	value, ok := hdrRes.hdrPool.SearchFirstData(hash)
+	if !ok {
+		return hdrRes.hdrStorage.Get(hash)
 	}
 
-	return hdrRes.hdrStorage.Get(hash)
+	//since there might be multiple entries, it shall return the first one that it finds
+	buff, err := hdrRes.marshalizer.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+
+	return buff, nil
 }
 
 // RequestHeaderFromHash requests a header from other peers having input the hdr hash

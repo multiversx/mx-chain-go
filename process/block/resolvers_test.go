@@ -266,14 +266,11 @@ func TestHeaderResolver_ResolveHdrRequestHashTypeFoundInHdrPoolShouldRetValue(t 
 	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
-		headers.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(requestedData, key) {
-				return map[uint32]interface{}{
-					0: resolvedData,
-				}
+				return resolvedData, true
 			}
-
-			return nil
+			return nil, false
 		}
 
 		return headers
@@ -314,14 +311,11 @@ func TestHeaderResolver_ResolveHdrRequestHashTypeFoundInHdrPoolMarshalizerFailsS
 	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
-		headers.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(requestedData, key) {
-				return map[uint32]interface{}{
-					0: resolvedData,
-				}
+				return resolvedData, true
 			}
-
-			return nil
+			return nil, false
 		}
 
 		return headers
@@ -362,8 +356,8 @@ func TestHeaderResolver_ResolveHdrRequestRetFromStorageShouldRetVal(t *testing.T
 	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
-		headers.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
-			return make(map[uint32]interface{})
+		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+			return nil, false
 		}
 
 		return headers
@@ -409,8 +403,8 @@ func TestHeaderResolver_ResolveHdrRequestRetFromStorageCheckRetError(t *testing.
 	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
-		headers.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
-			return make(map[uint32]interface{})
+		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+			return nil, false
 		}
 
 		return headers
@@ -525,14 +519,12 @@ func TestHeaderResolver_ResolveHdrRequestNonceTypeFoundInHdrNoncePoolShouldRetFr
 	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
-		headers.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(key, []byte("aaaa")) {
-				return map[uint32]interface{}{
-					0: resolvedData,
-				}
+				return resolvedData, true
 			}
 
-			return nil
+			return nil, false
 		}
 
 		return headers
@@ -585,8 +577,8 @@ func TestHeaderResolver_ResolveHdrRequestNonceTypeFoundInHdrNoncePoolShouldRetFr
 	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
-		headers.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
-			return make(map[uint32]interface{})
+		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+			return nil, false
 		}
 
 		return headers
@@ -644,8 +636,8 @@ func TestHeaderResolver_ResolveHdrRequestNonceTypeFoundInHdrNoncePoolCheckRetErr
 	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
-		headers.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
-			return make(map[uint32]interface{})
+		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+			return nil, false
 		}
 
 		return headers

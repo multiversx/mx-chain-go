@@ -136,7 +136,7 @@ func (n *Node) Stop() error {
 // P2PBootstrap will try to connect to many peers as possible
 func (n *Node) P2PBootstrap() error {
 	if n.messenger == nil {
-		return errNilMessenger
+		return ErrNilMessenger
 	}
 	n.messenger.Bootstrap(n.ctx)
 	return nil
@@ -145,11 +145,11 @@ func (n *Node) P2PBootstrap() error {
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
 func (n *Node) CreateShardedStores() error {
 	if n.shardCoordinator == nil {
-		return errNilShardCoordinator
+		return ErrNilShardCoordinator
 	}
 
 	if n.dataPool == nil {
-		return errNilDataPool
+		return ErrNilDataPool
 	}
 
 	transactionsDataStore := n.dataPool.Transactions()
@@ -246,17 +246,16 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return errors.New("can not generate and broadcast 0 transactions")
 	}
 
-	if n.addrConverter == nil || n.accounts == nil {
-		return errors.New("initialize AccountsAdapter and AddressConverter first")
-	}
-
 	if n.publicKey == nil {
-		return errNilPublicKey
+		return ErrNilPublicKey
 	}
-
 	senderAddressBytes, err := n.publicKey.ToByteArray()
 	if err != nil {
 		return err
+	}
+
+	if n.addrConverter == nil {
+		return ErrNilAddressConverter
 	}
 	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddressBytes)
 	if err != nil {
@@ -265,12 +264,15 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 
 	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
-		return errors.New("could not create receiver address from provided param")
+		return errors.New("could not create receiver address from provided param: " + err.Error())
 	}
 
+	if n.accounts == nil {
+		return ErrNilAccountsAdapter
+	}
 	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
-		return errors.New("could not fetch sender account from provided param")
+		return errors.New("could not fetch sender account from provided param: " + err.Error())
 	}
 	newNonce := uint64(0)
 	if senderAccount != nil {
@@ -594,11 +596,11 @@ func (n *Node) generateAndSignTx(
 	}
 
 	if n.marshalizer == nil {
-		return nil, nil, errNilMarshalizer
+		return nil, nil, ErrNilMarshalizer
 	}
 
 	if n.privateKey == nil {
-		return nil, nil, errNilPrivateKey
+		return nil, nil, ErrNilPrivateKey
 	}
 
 	marshalizedTx, err := n.marshalizer.Marshal(&tx)

@@ -22,7 +22,7 @@ import (
 func WithMessenger(mes p2p.Messenger) Option {
 	return func(n *Node) error {
 		if mes == nil {
-			return errNilMessenger
+			return ErrNilMessenger
 		}
 		n.messenger = mes
 		return nil
@@ -33,7 +33,7 @@ func WithMessenger(mes p2p.Messenger) Option {
 func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
 	return func(n *Node) error {
 		if marshalizer == nil {
-			return errNilMarshalizer
+			return ErrNilMarshalizer
 		}
 		n.marshalizer = marshalizer
 		return nil
@@ -44,7 +44,7 @@ func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
 func WithContext(ctx context.Context) Option {
 	return func(n *Node) error {
 		if ctx == nil {
-			return errNilContext
+			return ErrNilContext
 		}
 		n.ctx = ctx
 		return nil
@@ -55,7 +55,7 @@ func WithContext(ctx context.Context) Option {
 func WithHasher(hasher hashing.Hasher) Option {
 	return func(n *Node) error {
 		if hasher == nil {
-			return errNilHasher
+			return ErrNilHasher
 		}
 		n.hasher = hasher
 		return nil
@@ -66,7 +66,7 @@ func WithHasher(hasher hashing.Hasher) Option {
 func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	return func(n *Node) error {
 		if accounts == nil {
-			return errNilAccountsAdapter
+			return ErrNilAccountsAdapter
 		}
 		n.accounts = accounts
 		return nil
@@ -77,7 +77,7 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 func WithAddressConverter(addrConverter state.AddressConverter) Option {
 	return func(n *Node) error {
 		if addrConverter == nil {
-			return errNilAddressConverter
+			return ErrNilAddressConverter
 		}
 		n.addrConverter = addrConverter
 		return nil
@@ -88,7 +88,7 @@ func WithAddressConverter(addrConverter state.AddressConverter) Option {
 func WithBlockChain(blkc *blockchain.BlockChain) Option {
 	return func(n *Node) error {
 		if blkc == nil {
-			return errNilBlockchain
+			return ErrNilBlockchain
 		}
 		n.blkc = blkc
 		return nil
@@ -99,7 +99,7 @@ func WithBlockChain(blkc *blockchain.BlockChain) Option {
 func WithPrivateKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
 		if sk == nil {
-			return errNilPrivateKey
+			return ErrNilPrivateKey
 		}
 		n.privateKey = sk
 		return nil
@@ -110,7 +110,7 @@ func WithPrivateKey(sk crypto.PrivateKey) Option {
 func WithSingleSignKeyGenerator(keyGen crypto.KeyGenerator) Option {
 	return func(n *Node) error {
 		if keyGen == nil {
-			return errNilSingleSignKeyGen
+			return ErrNilSingleSignKeyGen
 		}
 		n.singleSignKeyGen = keyGen
 		return nil
@@ -129,7 +129,7 @@ func WithInitialNodesPubKeys(pubKeys []string) Option {
 func WithPublicKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
 		if pk == nil {
-			return errNilPublicKey
+			return ErrNilPublicKey
 		}
 
 		n.publicKey = pk
@@ -141,7 +141,7 @@ func WithPublicKey(pk crypto.PublicKey) Option {
 func WithRoundDuration(roundDuration uint64) Option {
 	return func(n *Node) error {
 		if roundDuration == 0 {
-			return errZeroRoundDurationNotSupported
+			return ErrZeroRoundDurationNotSupported
 		}
 		n.roundDuration = roundDuration
 		return nil
@@ -152,7 +152,7 @@ func WithRoundDuration(roundDuration uint64) Option {
 func WithConsensusGroupSize(consensusGroupSize int) Option {
 	return func(n *Node) error {
 		if consensusGroupSize < 1 {
-			return errNegativeOrZeroConsensusGroupSize
+			return ErrNegativeOrZeroConsensusGroupSize
 		}
 		n.consensusGroupSize = consensusGroupSize
 		return nil
@@ -163,7 +163,7 @@ func WithConsensusGroupSize(consensusGroupSize int) Option {
 func WithSyncer(syncer ntp.SyncTimer) Option {
 	return func(n *Node) error {
 		if syncer == nil {
-			return errNilSyncTimer
+			return ErrNilSyncTimer
 		}
 		n.syncer = syncer
 		return nil
@@ -174,7 +174,7 @@ func WithSyncer(syncer ntp.SyncTimer) Option {
 func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	return func(n *Node) error {
 		if blockProcessor == nil {
-			return errNilBlockProcessor
+			return ErrNilBlockProcessor
 		}
 		n.blockProcessor = blockProcessor
 		return nil
@@ -201,7 +201,7 @@ func WithElasticSubrounds(elasticSubrounds bool) Option {
 func WithDataPool(dataPool data.TransientDataHolder) Option {
 	return func(n *Node) error {
 		if dataPool == nil {
-			return errNilDataPool
+			return ErrNilDataPool
 		}
 		n.dataPool = dataPool
 		return nil
@@ -212,7 +212,7 @@ func WithDataPool(dataPool data.TransientDataHolder) Option {
 func WithShardCoordinator(shardCoordinator sharding.ShardCoordinator) Option {
 	return func(n *Node) error {
 		if shardCoordinator == nil {
-			return errNilShardCoordinator
+			return ErrNilShardCoordinator
 		}
 		n.shardCoordinator = shardCoordinator
 		return nil
@@ -223,7 +223,7 @@ func WithShardCoordinator(shardCoordinator sharding.ShardCoordinator) Option {
 func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConverter) Option {
 	return func(n *Node) error {
 		if converter == nil {
-			return errNilUint64ByteSliceConverter
+			return ErrNilUint64ByteSliceConverter
 		}
 		n.uint64ByteSliceConverter = converter
 		return nil
@@ -234,7 +234,7 @@ func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConver
 func WithInitialNodesBalances(balances map[string]*big.Int) Option {
 	return func(n *Node) error {
 		if balances == nil {
-			return errNilBalances
+			return ErrNilBalances
 		}
 		n.initialNodesBalances = balances
 		return nil
@@ -245,7 +245,7 @@ func WithInitialNodesBalances(balances map[string]*big.Int) Option {
 func WithMultisig(multisig crypto.MultiSigner) Option {
 	return func(n *Node) error {
 		if multisig == nil {
-			return errNilMultiSig
+			return ErrNilMultiSig
 		}
 		n.multisig = multisig
 		return nil
@@ -256,7 +256,7 @@ func WithMultisig(multisig crypto.MultiSigner) Option {
 func WithForkDetector(forkDetector process.ForkDetector) Option {
 	return func(n *Node) error {
 		if forkDetector == nil {
-			return errNilForkDetector
+			return ErrNilForkDetector
 		}
 		n.forkDetector = forkDetector
 		return nil
@@ -267,7 +267,7 @@ func WithForkDetector(forkDetector process.ForkDetector) Option {
 func WithProcessorCreator(processorCreator process.ProcessorFactory) Option {
 	return func(n *Node) error {
 		if processorCreator == nil {
-			return errNilForkDetector
+			return ErrNilForkDetector
 		}
 		n.processorCreator = processorCreator
 		return nil

@@ -6,8 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
-// Container is a struct that defines the beahaviour for a container
-//  holding a list of interceptors organized by type
+// Container is a holder for interceptors organized by type
 type Container struct {
 	mutex        sync.RWMutex
 	interceptors map[string]process.Interceptor
@@ -39,18 +38,16 @@ func (i *Container) Add(key string, interceptor process.Interceptor) error {
 	if interceptor == nil {
 		return process.ErrNilContainerElement
 	}
-	i.mutex.RLock()
+	i.mutex.Lock()
+	defer i.mutex.Unlock()
+
 	_, ok := i.interceptors[key]
-	i.mutex.RUnlock()
 
 	if ok {
 		return process.ErrContainerKeyAlreadyExists
 	}
 
-	i.mutex.Lock()
 	i.interceptors[key] = interceptor
-	i.mutex.Unlock()
-
 	return nil
 }
 

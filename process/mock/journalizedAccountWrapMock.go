@@ -19,7 +19,8 @@ type JournalizedAccountWrapMock struct {
 	originalData                            map[string][]byte
 	dirtyData                               map[string][]byte
 
-	Fail bool
+	Fail                   bool
+	FailSetNonceWithJurnal bool
 }
 
 func NewJournalizedAccountWrapMock(address state.AddressContainer) *JournalizedAccountWrapMock {
@@ -123,7 +124,11 @@ func (jawm *JournalizedAccountWrapMock) SaveKeyValue(key []byte, value []byte) {
 
 func (jawm *JournalizedAccountWrapMock) SetNonceWithJournal(nonce uint64) error {
 	if jawm.Fail {
-		return errors.New("failure")
+		return errors.New("failure setting nonce")
+	}
+
+	if jawm.FailSetNonceWithJurnal {
+		return errors.New("failure setting nonce")
 	}
 
 	jawm.Nonce = nonce

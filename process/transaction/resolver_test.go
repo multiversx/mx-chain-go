@@ -144,14 +144,12 @@ func TestTxResolver_ResolveTxRequestFoundInTxPoolShouldRetVal(t *testing.T) {
 	assert.Nil(t, err)
 
 	txPool := &mock.ShardedDataStub{}
-	txPool.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal([]byte("aaa"), key) {
-			return map[uint32]interface{}{
-				0: "value",
-			}
+			return "value", true
 		}
 
-		return nil
+		return nil, false
 	}
 
 	txRes, _ := NewTxResolver(
@@ -182,14 +180,12 @@ func TestTxResolver_ResolveTxRequestFoundInTxPoolMarshalizerFailShouldRetNilAndE
 	}
 
 	txPool := &mock.ShardedDataStub{}
-	txPool.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal([]byte("aaa"), key) {
-			return map[uint32]interface{}{
-				0: "value",
-			}
+			return "value", true
 		}
 
-		return nil
+		return nil, false
 	}
 
 	txRes, _ := NewTxResolver(
@@ -216,9 +212,9 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetValAndError(t *test
 	marshalizer := &mock.MarshalizerMock{}
 
 	txPool := &mock.ShardedDataStub{}
-	txPool.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		//not found in txPool
-		return nil
+		return nil, false
 	}
 
 	expectedBuff := []byte("bbb")
@@ -255,9 +251,9 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageCheckRetError(t *testing.T) 
 	marshalizer := &mock.MarshalizerMock{}
 
 	txPool := &mock.ShardedDataStub{}
-	txPool.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		//not found in txPool
-		return nil
+		return nil, false
 	}
 
 	expectedBuff := []byte("bbb")

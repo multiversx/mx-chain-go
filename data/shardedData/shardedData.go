@@ -121,10 +121,8 @@ func (sd *shardedData) AddData(key []byte, data interface{}, destShardID uint32)
 	}
 }
 
-// SearchData searches the key against all shard data store, retrieving found data in a map
-func (sd *shardedData) SearchData(key []byte) (shardValuesPairs map[uint32]interface{}) {
-	shardValuesPairs = make(map[uint32]interface{})
-
+// SearchFirstData searches the key against all shard data store, retrieving first value found
+func (sd *shardedData) SearchFirstData(key []byte) (value interface{}, ok bool) {
 	sd.mutShardedDataStore.RLock()
 	for k := range sd.shardedDataStore {
 		m := sd.shardedDataStore[k]
@@ -133,12 +131,14 @@ func (sd *shardedData) SearchData(key []byte) (shardValuesPairs map[uint32]inter
 		}
 
 		if m.DataStore.Has(key) {
-			shardValuesPairs[k], _ = m.DataStore.Get(key)
+			value, _ = m.DataStore.Get(key)
+			sd.mutShardedDataStore.RUnlock()
+			return value, true
 		}
 	}
 	sd.mutShardedDataStore.RUnlock()
 
-	return shardValuesPairs
+	return nil, false
 }
 
 // RemoveSetOfDataFromPool removes a list of keys from the corresponding pool
