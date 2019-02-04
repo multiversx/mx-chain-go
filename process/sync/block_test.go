@@ -354,14 +354,12 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
 
-		sds.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
-			m := make(map[uint32]interface{})
-
+		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("aaa"), key) {
-				m[0] = &block.Header{Nonce: 2}
+				return &block.Header{Nonce: 2}, true
 			}
 
-			return m
+			return nil, false
 		}
 
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
@@ -429,8 +427,8 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
 
-		sds.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
-			return nil
+		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+			return nil, false
 		}
 
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
@@ -499,21 +497,19 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
 
-		sds.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
+		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 			mutDataAvailable.RLock()
 			defer mutDataAvailable.RUnlock()
 
-			m := make(map[uint32]interface{})
-
 			if bytes.Equal([]byte("aaa"), key) && dataAvailable {
-				m[0] = &block.Header{
+				return &block.Header{
 					Nonce:         2,
 					Round:         1,
 					BlockBodyType: block.TxBlock,
-					BlockBodyHash: []byte("bbb")}
+					BlockBodyHash: []byte("bbb")}, true
 			}
 
-			return m
+			return nil, false
 		}
 
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
@@ -597,18 +593,16 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
 
-		sds.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
-			m := make(map[uint32]interface{})
-
+		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("aaa"), key) {
-				m[0] = &block.Header{
+				return &block.Header{
 					Nonce:         2,
 					Round:         1,
 					BlockBodyType: block.TxBlock,
-					BlockBodyHash: []byte("bbb")}
+					BlockBodyHash: []byte("bbb")}, true
 			}
 
-			return m
+			return nil, false
 		}
 
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
@@ -886,12 +880,11 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
 
-		sds.SearchDataCalled = func(key []byte) (shardValuesPairs map[uint32]interface{}) {
-			m := make(map[uint32]interface{})
+		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("aaa"), key) {
-				m[0] = hdr
+				return hdr, true
 			}
-			return m
+			return nil, false
 		}
 
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
@@ -1035,14 +1028,12 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 		sds := &mock.ShardedDataStub{}
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
 		}
-		sds.SearchDataCalled = func(key []byte) map[uint32]interface{} {
-			m := make(map[uint32]interface{})
-
+		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(key, addedHash) {
-				m[0] = addedHdr
+				return addedHdr, true
 			}
 
-			return m
+			return nil, false
 		}
 		return sds
 	}
@@ -1108,13 +1099,11 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 		sds := &mock.ShardedDataStub{}
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
 		}
-		sds.SearchDataCalled = func(key []byte) map[uint32]interface{} {
-			m := make(map[uint32]interface{})
-
+		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 			//not found in data pool as it was already moved out to storage unit
 			//should not happen normally, but this test takes this situation into account
 
-			return m
+			return nil, false
 		}
 		return sds
 	}

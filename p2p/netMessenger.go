@@ -64,7 +64,7 @@ type NetMessenger struct {
 	closed         bool
 	mutTopics      sync.RWMutex
 	topics         map[string]*Topic
-	mutGossipCache sync.Mutex
+	mutGossipCache sync.RWMutex
 	gossipCache    *TimeCache
 
 	chSendMessages chan *message
@@ -87,7 +87,7 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 		marsh:          marsh,
 		hasher:         hasher,
 		topics:         make(map[string]*Topic, 0),
-		mutGossipCache: sync.Mutex{},
+		mutGossipCache: sync.RWMutex{},
 		gossipCache:    NewTimeCache(durTimeCache),
 		chSendMessages: make(chan *message),
 	}
@@ -529,9 +529,9 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 		//test whether we also should broadcast the message (others might have broadcast it just before us)
 		has := false
 
-		nm.mutGossipCache.Lock()
+		nm.mutGossipCache.RLock()
 		has = nm.gossipCache.Has(string(buff))
-		nm.mutGossipCache.Unlock()
+		nm.mutGossipCache.RUnlock()
 
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,

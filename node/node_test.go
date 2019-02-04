@@ -540,23 +540,44 @@ func TestGenerateAndSendBulkTransactions_ZeroTxShouldErr(t *testing.T) {
 }
 
 func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T) {
+	marshalizer := &mock.MarshalizerFake{}
+
+	mes := &mock.MessengerStub{}
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return nil
+	}
+
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
+	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+
 	n, _ := node.NewNode(
+		node.WithMarshalizer(marshalizer),
+		node.WithHasher(mock.HasherMock{}),
+		node.WithContext(context.Background()),
 		node.WithAddressConverter(addrConverter),
+		node.WithPrivateKey(sk),
+		node.WithPublicKey(pk),
 	)
 
-	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
-	assert.Equal(t, "initialize AccountsAdapter and AddressConverter first", err.Error())
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
+	assert.Equal(t, node.ErrNilAccountsAdapter, err)
 }
 
 func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing.T) {
+	marshalizer := &mock.MarshalizerFake{}
 	accAdapter := getAccAdapter(big.NewInt(0))
+	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
 	n, _ := node.NewNode(
+		node.WithMarshalizer(marshalizer),
+		node.WithHasher(mock.HasherMock{}),
+		node.WithContext(context.Background()),
 		node.WithAccountsAdapter(accAdapter),
+		node.WithPrivateKey(sk),
+		node.WithPublicKey(pk),
 	)
 
-	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
-	assert.Equal(t, "initialize AccountsAdapter and AddressConverter first", err.Error())
+	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
+	assert.Equal(t, node.ErrNilAddressConverter, err)
 }
 
 func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
@@ -600,7 +621,7 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 	)
 
 	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
-	assert.Equal(t, "could not create receiver address from provided param", err.Error())
+	assert.Contains(t, err.Error(), "could not create receiver address from provided param")
 }
 
 func TestGenerateAndSendBulkTransactions_CreateAddressFromPublicKeyBytesErrorsShouldErr(t *testing.T) {

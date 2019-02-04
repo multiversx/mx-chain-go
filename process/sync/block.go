@@ -166,19 +166,21 @@ func (boot *Bootstrap) getHeader(hash []byte) *block.Header {
 }
 
 func (boot *Bootstrap) getHeaderFromPool(hash []byte) *block.Header {
-	hdr := boot.headers.SearchData(hash)
+	hdr, ok := boot.headers.SearchFirstData(hash)
 
-	for _, v := range hdr {
-		//just get the first header that is ok
-		header, ok := v.(*block.Header)
-
-		if ok {
-			return header
-		}
+	if !ok {
+		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		return nil
 	}
 
-	log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
-	return nil
+	header, ok := hdr.(*block.Header)
+
+	if !ok {
+		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		return nil
+	}
+
+	return header
 }
 
 func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
@@ -340,22 +342,19 @@ func (boot *Bootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.Header 
 		return nil
 	}
 
-	hdr := boot.headers.SearchData(hash)
-	if len(hdr) == 0 {
+	hdr, ok := boot.headers.SearchFirstData(hash)
+	if !ok {
 		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
 	}
 
-	for _, v := range hdr {
-		//just get the first header that is ok
-		header, ok := v.(*block.Header)
-
-		if ok {
-			return header
-		}
+	header, ok := hdr.(*block.Header)
+	if !ok {
+		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
+		return nil
 	}
 
-	return nil
+	return header
 }
 
 // requestHeader method requests a block header from network when it is not found in the pool

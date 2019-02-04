@@ -46,6 +46,10 @@ func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transact
 		dest = &Transaction{}
 	}
 
+	if dest.Value == nil {
+		dest.Value = big.NewInt(0)
+	}
+
 	// Nonce
 	dest.Nonce = src.Nonce()
 	// Value
