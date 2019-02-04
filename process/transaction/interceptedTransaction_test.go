@@ -1,6 +1,7 @@
 package transaction_test
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 
@@ -257,6 +258,28 @@ func TestInterceptedTransaction_VerifySigKeyGenRetErrShouldErr(t *testing.T) {
 	tx.SetSingleSignKeyGen(keyGen)
 
 	assert.Equal(t, "failure", tx.VerifySig().Error())
+}
+
+func TestInterceptedTransaction_VerifySigKeyGenShouldReceiveSenderAddr(t *testing.T) {
+	t.Parallel()
+
+	tx := transaction.NewInterceptedTransaction()
+	senderBytes := []byte("sender")
+
+	tx.SndAddr = senderBytes
+	tx.RcvAddr = []byte("receiver")
+
+	keyGen := &mock.SingleSignKeyGenMock{}
+	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
+		if !bytes.Equal(b, senderBytes) {
+			assert.Fail(t, "publickey from byte array should have been called for sender bytes")
+		}
+
+		return nil, errors.New("failure")
+	}
+	tx.SetSingleSignKeyGen(keyGen)
+
+	tx.VerifySig()
 }
 
 func TestInterceptedTransaction_VerifySigVerifyDoesNotPassShouldErr(t *testing.T) {

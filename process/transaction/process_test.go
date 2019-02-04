@@ -684,6 +684,43 @@ func TestTxProcessor_ProcessMoveBalancesFailShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestTxProcessor_ProcessIncreaseNonceFailShouldErr(t *testing.T) {
+	accounts := &mock.AccountsStub{}
+
+	execTx, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+	)
+
+	//these values will trigger ErrHigherNonceInTransaction
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DEST")
+	tx.Value = big.NewInt(0)
+
+	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
+	acntSrc.FailSetNonceWithJurnal = true
+	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
+
+	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
+		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
+			return acntSrc, nil
+		}
+
+		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
+			return acntDest, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+
+	err := execTx.ProcessTransaction(&tx, 4)
+	assert.Equal(t, "failure setting nonce", err.Error())
+}
+
 func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	accounts := &mock.AccountsStub{}
 
