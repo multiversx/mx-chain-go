@@ -1,10 +1,12 @@
 package logger
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -22,6 +24,7 @@ const (
 const (
 	defaultLogPath         = "logs"
 	defaultStackTraceDepth = 2
+	maxHeadlineLength      = 100
 )
 
 // Logger represents the application logger.
@@ -154,6 +157,20 @@ func (el *Logger) LogIfError(err error) {
 	}
 	cl := el.defaultFields()
 	cl.Error(err.Error())
+}
+
+// Headline will build a headline message given a delimiter string
+//  timestamp parameter will be printed before the repeating delimiter
+func (el *Logger) Headline(message string, timestamp string, delimiter string) string {
+	if len(delimiter) > 1 {
+		delimiter = delimiter[:1]
+	}
+	if len(message) >= maxHeadlineLength {
+		return message
+	}
+	delimiterLength := (maxHeadlineLength - len(message)) / 2
+	delimiterText := strings.Repeat(delimiter, delimiterLength)
+	return fmt.Sprintf("\n%s %s %s %s\n\n", timestamp, delimiterText, message, delimiterText)
 }
 
 func (el *Logger) defaultFields() *log.Entry {
