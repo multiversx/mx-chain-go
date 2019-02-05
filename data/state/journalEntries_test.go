@@ -170,21 +170,21 @@ func TestJournalEntryBalance_RevertOkValsShouldWork(t *testing.T) {
 
 	adr := mock.NewAddressMock()
 	acnt := mock.NewJournalizedAccountWrapMock(adr)
-	acnt.Balance = *big.NewInt(445)
+	acnt.Balance = big.NewInt(445)
 
-	jec := state.NewJournalEntryBalance(acnt, *big.NewInt(2))
+	jec := state.NewJournalEntryBalance(acnt, big.NewInt(2))
 	err := jec.Revert(acntAdapter)
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, adr, jec.DirtiedAddress())
-	assert.Equal(t, *big.NewInt(2), acnt.Balance)
+	assert.Equal(t, big.NewInt(2), acnt.Balance)
 }
 
 func TestJournalEntryBalance_RevertNilAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	jeb := state.NewJournalEntryBalance(nil, *big.NewInt(2))
+	jeb := state.NewJournalEntryBalance(nil, big.NewInt(2))
 	err := jeb.Revert(mock.NewAccountsAdapterMock())
 	assert.NotNil(t, err)
 }
@@ -194,7 +194,7 @@ func TestJournalEntryBalance_RevertNilAccountAdapterShouldErr(t *testing.T) {
 
 	adr := mock.NewAddressMock()
 	acnt := mock.NewJournalizedAccountWrapMock(adr)
-	jeb := state.NewJournalEntryBalance(acnt, *big.NewInt(2))
+	jeb := state.NewJournalEntryBalance(acnt, big.NewInt(2))
 
 	err := jeb.Revert(nil)
 	assert.NotNil(t, err)
@@ -204,7 +204,7 @@ func TestJournalEntryBalance_RevertNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	acnt := mock.NewJournalizedAccountWrapMock(nil)
-	jen := state.NewJournalEntryBalance(acnt, *big.NewInt(2))
+	jen := state.NewJournalEntryBalance(acnt, big.NewInt(2))
 	err := jen.Revert(mock.NewAccountsAdapterMock())
 	assert.NotNil(t, err)
 }
@@ -225,15 +225,15 @@ func TestJournalEntryBalance_RevertAccountAdapterErrorShouldErr(t *testing.T) {
 		return nil
 	}
 
-	acnt.Balance = *big.NewInt(445)
+	acnt.Balance = big.NewInt(445)
 
-	jeb := state.NewJournalEntryBalance(acnt, *big.NewInt(2))
+	jeb := state.NewJournalEntryBalance(acnt, big.NewInt(2))
 	err := jeb.Revert(acntAdapter)
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, adr, jeb.DirtiedAddress())
-	assert.Equal(t, *big.NewInt(2), acnt.Balance)
+	assert.Equal(t, big.NewInt(2), acnt.Balance)
 }
 
 //------- JournalEntryCodeHash

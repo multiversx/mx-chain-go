@@ -8,6 +8,9 @@ import (
 	"github.com/beevik/ntp"
 )
 
+// totalRequests defines the number of requests made to determine an accurate clock offset
+const totalRequests = 10
+
 // SyncTimer defines an interface for time synchronization
 type SyncTimer interface {
 	StartSync()
@@ -30,7 +33,7 @@ func NewSyncTime(syncPeriod time.Duration, query func(host string) (*ntp.Respons
 	return &s
 }
 
-// StartSync method does the time syncronization at every syncPeriod time elapsed. This should be started
+// StartSync method does the time synchronization at every syncPeriod time elapsed. This should be started
 // as a go routine
 func (s *syncTime) StartSync() {
 	for {
@@ -39,16 +42,27 @@ func (s *syncTime) StartSync() {
 	}
 }
 
-// sync method does the time syncronization and sets the current offset difference between local time
-// and server time with wich it has done the syncronization
+// sync method does the time synchronization and sets the current offset difference between local time
+// and server time with which it has done the synchronization
 func (s *syncTime) sync() {
 	if s.query != nil {
-		r, err := s.query("time.google.com")
+		clockOffsetSum := time.Duration(0)
+		succeededRequests := 0
 
-		if err != nil {
-			s.setClockOffset(0)
-		} else {
-			s.setClockOffset(r.ClockOffset)
+		for i := 0; i < totalRequests; i++ {
+			r, err := s.query("time.google.com")
+
+			if err != nil {
+				continue
+			}
+
+			succeededRequests++
+			clockOffsetSum += r.ClockOffset
+		}
+
+		if succeededRequests > 0 {
+			averrageClockOffset := time.Duration(int64(clockOffsetSum) / int64(succeededRequests))
+			s.setClockOffset(averrageClockOffset)
 		}
 	}
 }
@@ -68,7 +82,7 @@ func (s *syncTime) setClockOffset(clockOffset time.Duration) {
 	s.mut.Unlock()
 }
 
-// FormattedCurrentTime method gets the formatted current time on wich is added a given offset
+// FormattedCurrentTime method gets the formatted current time on which is added a given offset
 func (s *syncTime) FormattedCurrentTime(clockOffset time.Duration) string {
 	return s.formatTime(s.CurrentTime(clockOffset))
 }

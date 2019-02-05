@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -329,4 +330,102 @@ func TestConsensus_Log(t *testing.T) {
 	)
 
 	assert.NotNil(t, cns)
+}
+
+func TestSetSelfJobDone_ShouldWork(t *testing.T) {
+	rCns := spos.NewRoundConsensus(
+		[]string{"1", "2", "3"},
+		"2")
+
+	rCns.SetSelfJobDone(spos.SrBlock, true)
+
+	jobDone, _ := rCns.GetJobDone("2", spos.SrBlock)
+	assert.True(t, jobDone)
+}
+
+func TestGetSelfJobDone_ShouldReturnFalse(t *testing.T) {
+	rCns := spos.NewRoundConsensus(
+		[]string{"1", "2", "3"},
+		"2")
+
+	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
+		if rCns.ConsensusGroup()[i] == rCns.SelfPubKey() {
+			continue
+		}
+
+		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, true)
+	}
+
+	jobDone, _ := rCns.GetSelfJobDone(spos.SrBlock)
+	assert.False(t, jobDone)
+}
+
+func TestGetSelfJobDone_ShouldReturnTrue(t *testing.T) {
+	rCns := spos.NewRoundConsensus(
+		[]string{"1", "2", "3"},
+		"2")
+
+	rCns.SetJobDone("2", spos.SrBlock, true)
+
+	jobDone, _ := rCns.GetSelfJobDone(spos.SrBlock)
+	assert.True(t, jobDone)
+}
+
+func TestIsSelfLeaderInCurrentRound_ShouldReturnFalse(t *testing.T) {
+	rCns := spos.NewRoundConsensus(
+		[]string{"1", "2", "3"},
+		"2")
+
+	genesisTime := time.Now()
+	currentTime := genesisTime
+
+	rnd := chronology.NewRound(genesisTime,
+		currentTime,
+		RoundTimeDuration)
+
+	chr := chronology.NewChronology(
+		true,
+		rnd,
+		genesisTime,
+		&mock.SyncTimerMock{})
+
+	cns := spos.NewConsensus(
+		nil,
+		rCns,
+		nil,
+		nil,
+		chr,
+	)
+
+	assert.False(t, cns.IsSelfLeaderInCurrentRound())
+}
+
+func TestIsSelfLeaderInCurrentRound_ShouldReturnTrue(t *testing.T) {
+	rCns := spos.NewRoundConsensus(
+		[]string{"1", "2", "3"},
+		"2")
+
+	genesisTime := time.Now()
+	currentTime := genesisTime
+
+	rnd := chronology.NewRound(genesisTime,
+		currentTime,
+		RoundTimeDuration)
+
+	chr := chronology.NewChronology(
+		true,
+		rnd,
+		genesisTime,
+		&mock.SyncTimerMock{})
+
+	cns := spos.NewConsensus(
+		nil,
+		rCns,
+		nil,
+		nil,
+		chr,
+	)
+
+	rnd.UpdateRound(genesisTime, genesisTime.Add(RoundTimeDuration))
+	assert.True(t, cns.IsSelfLeaderInCurrentRound())
 }

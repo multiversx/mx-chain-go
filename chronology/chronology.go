@@ -2,7 +2,6 @@ package chronology
 
 import (
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
@@ -43,8 +42,6 @@ type Chronology struct {
 	subrounds        map[SubroundId]int
 
 	syncTime ntp.SyncTimer
-
-	mut sync.RWMutex
 }
 
 // NewChronology defines a new Chr object
@@ -72,7 +69,7 @@ func NewChronology(
 	return &chr
 }
 
-// initRound is called when a new round begins and do the necesary initialization
+// initRound is called when a new round begins and do the necessary initialization
 func (chr *Chronology) initRound() {
 	chr.SetSelfSubround(-1)
 
@@ -103,18 +100,34 @@ func (chr *Chronology) StartRounds() {
 
 // StartRound calls the current subround, given by the current time or by the finished tasks in this round
 func (chr *Chronology) StartRound() {
-	subRound := chr.updateRound()
+	subRoundId := chr.updateRound()
 
-	if chr.SelfSubround() == subRound {
-		sr := chr.LoadSubroundHandler(subRound)
-		if sr != nil {
-			if chr.Round().Index() >= 0 {
-				if sr.DoWork(chr.ComputeSubRoundId, chr.IsCancelled) {
-					chr.SetSelfSubround(sr.Next())
-				}
-			}
-		}
+	chr.updateSelfSubroundIfNeeded(subRoundId)
+}
+
+func (chr *Chronology) updateSelfSubroundIfNeeded(subRoundId SubroundId) {
+	if chr.SelfSubround() != subRoundId {
+		return
 	}
+
+	sr := chr.LoadSubroundHandler(subRoundId)
+	if sr == nil {
+		return
+	}
+
+	if chr.Round().Index() < 0 {
+		return
+	}
+
+	if !sr.DoWork(chr.ComputeSubRoundId, chr.IsCancelled) {
+		return
+	}
+
+	if chr.IsCancelled() {
+		return
+	}
+
+	chr.SetSelfSubround(sr.Next())
 }
 
 // updateRound updates Rounds and subrounds inside round depending of the current time and sync mode
@@ -132,6 +145,7 @@ func (chr *Chronology) updateRound() SubroundId {
 			chr.SyncTime().FormattedCurrentTime(chr.ClockOffset()),
 			chr.round.index,
 			chr.SyncTime().CurrentTime(chr.ClockOffset()).Unix()))
+
 		chr.initRound()
 	}
 
@@ -182,6 +196,11 @@ func (chr *Chronology) GetSubroundFromDateTime(timeStamp time.Time) SubroundId {
 	return -1
 }
 
+// RoundTimeStamp method returns time stamp of a round from a given index
+func (chr *Chronology) RoundTimeStamp(index int32) uint64 {
+	return uint64(chr.genesisTime.Add(time.Duration(int64(index) * int64(chr.round.timeDuration))).Unix())
+}
+
 // Round returns the current round object
 func (chr *Chronology) Round() *Round {
 	return chr.round
@@ -189,17 +208,11 @@ func (chr *Chronology) Round() *Round {
 
 // SelfSubround returns the subround, related to the finished tasks in the current round
 func (chr *Chronology) SelfSubround() SubroundId {
-	chr.mut.RLock()
-	defer chr.mut.RUnlock()
-
 	return chr.selfSubround
 }
 
 // SetSelfSubround set self subround depending of the finished tasks in the current round
 func (chr *Chronology) SetSelfSubround(subRound SubroundId) {
-	chr.mut.Lock()
-	defer chr.mut.Unlock()
-
 	chr.selfSubround = subRound
 }
 

@@ -17,7 +17,7 @@ const RoundsToWaitToBeRemoved = 5
 
 type validatorData struct {
 	RoundIndex int32
-	Stake      big.Int
+	Stake      *big.Int
 }
 
 // syncValidators implements a validators sync mechanism
@@ -106,14 +106,14 @@ func (sv *syncValidators) processRegisterRequests(regData *state.RegistrationDat
 	if v, isInEligibleList := sv.eligibleList[k]; isInEligibleList {
 		sv.eligibleList[k] = &validatorData{
 			RoundIndex: v.RoundIndex,
-			Stake:      *big.NewInt(0).Add(&v.Stake, &regData.Stake),
+			Stake:      big.NewInt(0).Add(v.Stake, regData.Stake),
 		}
 	} else { // if the validator is not in the eligible list it should wait for some certain rounds until it
 		// would be moved there
 		if regData.RoundIndex+RoundsToWaitToBeEligible < sv.rounder.Index() {
 			sv.eligibleList[k] = &validatorData{
 				RoundIndex: regData.RoundIndex,
-				Stake:      *big.NewInt(0).Set(&regData.Stake),
+				Stake:      big.NewInt(0).Set(regData.Stake),
 			}
 		}
 	}
@@ -146,7 +146,7 @@ func (sv *syncValidators) GetEligibleList() map[string]*validatorData {
 	sv.mut.RLock()
 
 	for k, v := range sv.eligibleList {
-		eligibleList[k] = &validatorData{RoundIndex: v.RoundIndex, Stake: *big.NewInt(0).Set(&v.Stake)}
+		eligibleList[k] = &validatorData{RoundIndex: v.RoundIndex, Stake: big.NewInt(0).Set(v.Stake)}
 	}
 
 	sv.mut.RUnlock()

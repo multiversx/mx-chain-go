@@ -1,91 +1,91 @@
 {
-  "startTime": 1547134652,
+  "startTime": 0,
   "roundDuration": 4000,
-  "consensusGroupSize": 2,
-  "elasticSubrounds": false,
+  "consensusGroupSize": 1,
+  "elasticSubrounds": true,
   "initialNodes": [
     {
-      "pubkey": "bCYAUf+qhQtYKFfgQ1g3JstkJFVTsA2KAH+0L+qZlO4=",
+      "pubkey": "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419",
       "balance": "10000000"
     },
     {
-      "pubkey": "gDI39ZN3loP1Cujru6+BJtu+gNwQnBB8g4yVW0wyuaA=",
+      "pubkey": "8e0b815be8026a6732eea132e113913c12e2f5b19f25e86a8403afffbaf02088",
       "balance": "10000000"
     },
     {
-      "pubkey": "TLkPlhd8g07tiqE4Mgvq1kCp3EOEEjn8O3/DpyjUqFE=",
+      "pubkey": "e6ec171959063bd0d61f95a52de73d6a16e649ba5fa8b12663b092b48cc99434",
       "balance": "10000000"
     },
     {
-      "pubkey": "YO0S6tNhNjWwsJJzTLrJMecEKDLeuZlJNznf7nU/TcM=",
+      "pubkey": "20ccf92c80065a0f9ce1f1b8e3dee1e0b9774f4eebf2af7e8fa3ac503923360d",
       "balance": "10000000"
     },
     {
-      "pubkey": "Gkfqv+PTR9ot2TILrOBFcPojmhwE9IC7Y2psLc9ZsZc=",
+      "pubkey": "9a3b8e67f42aef9544e0888ea9daee77af90292c86336203d224691d55306d08",
       "balance": "10000000"
     },
     {
-      "pubkey": "nVnGbEbxPR4ab0thyeV/O1FZopNDTdNexNI5OPCGtRo=",
+      "pubkey": "0740bccedc28084ab811065cb618fec4ee623384b4b3d5466190d11ff6d77007",
       "balance": "10000000"
     },
     {
-      "pubkey": "xMonbskDZ1dHeW4vh3/AUzf7psbPIPTKfGz+J6gmpeA=",
+      "pubkey": "0ccba0f98829ea9f337035a1f7b13cbd8e9ffb94f2c538e2cafb34ca7f2bcd24",
       "balance": "10000000"
     },
     {
-      "pubkey": "6kVjlTw6NmSqV4kI6cEprxd+2f37FXCzpXnFsYYcsLU=",
+      "pubkey": "d9e9596c28a3945253d46bc1b9418963c0672a26a0b40ee7372cb9ec34d1ee07",
       "balance": "10000000"
     },
     {
-      "pubkey": "0NNr5LuHjgSSiXFKp37uPAjGt1HYdQJTUmJ4ASKGZyQ=",
+      "pubkey": "86fbd8606e73b7a4f45a51b443270f3050aff571a29b9804d2444c081560d1dd",
       "balance": "10000000"
     },
     {
-      "pubkey": "JyK0pKNF3UnzIFtm9pVDXF3xArpfhrU4g2bbGxwHBwE=",
+      "pubkey": "2084f2493e68443a5b156ec42a8cd9072c47aa453df4acd20524792a4fd9f474",
       "balance": "10000000"
     },
     {
-      "pubkey": "bT4UtBU3A5MpKWvvpL5nAplLAGEWccoJb9NzdXJN1fk=",
+      "pubkey": "f91d24256d918144aaacfa641cd113af05d56cfb7a5b8ba5885ebd8edd43fe1e",
       "balance": "10000000"
     },
     {
-      "pubkey": "S+goExeC5GNLPx9xYnhXB8mVQQzGJpr0B1QCU/DqqdM=",
+      "pubkey": "e8d4bcfe91c3c7788d8ab3704b192229900ec3fe3f1eb6f841c440e223d401a0",
       "balance": "10000000"
     },
     {
-      "pubkey": "1KGnod6xGDML+y5qNiwrYq2t2M1Elgbt2YNfXLRSow0=",
+      "pubkey": "4bf7ee0e17a0b76d3837494d3950113d3e77db055b2c07c9cb443f529d73c8e3",
       "balance": "10000000"
     },
     {
-      "pubkey": "84uQq3tJFjzSZ6KIcJwb7JZ1yLwuDytcPHYITVlnNjA=",
+      "pubkey": "20f12f7bdd4ab65321eb58ce8f90eec733e3e9a4cc9d6d5d7e57d2e86c6c2c76",
       "balance": "10000000"
     },
     {
-      "pubkey": "8pqG75sKgeqIKim2jR/P7ojM5QgSQkHLt6xpablZoM0=",
+      "pubkey": "34cf226f4d62a22e4993a1a2835f05a4bb2fb48304e16f2dc18f99b39c496f7d",
       "balance": "10000000"
     },
     {
-      "pubkey": "E8u9qxcr8hQ3nM6RfOOLS4bzu9fV+whiTtOY5kjaDlE=",
+      "pubkey": "b9f0fc3e1baa49c027205946af7d6c79b749481e5ab766356db3b878c0929558",
       "balance": "10000000"
     },
     {
-      "pubkey": "M+C7UJoK6poGvlPqkLVpFOuWao9dFtCoHVWaWv0ee3U=",
+      "pubkey": "6670b048a3f9d93fdacb4d60ff7c2f3bd7440d5175ca8b9d2475a444cd7a129b",
       "balance": "10000000"
     },
     {
-      "pubkey": "NBu1klLKrye76DblD8IhexsHrai2TD4+8KdWBWWqaxc=",
+      "pubkey": "d82b3f4490ccb2ffbba5695c1b7c345a5709584737a263999c77cc1a09136de1",
       "balance": "10000000"
     },
     {
-      "pubkey": "SBoD6sJA5oEmyhwK5CckOlH3ByrJkyJZyih+iy1tGno=",
+      "pubkey": "29ba49f47e2b86b143418db31c696791215236925802ea1f219780e360a8209e",
       "balance": "10000000"
     },
     {
-      "pubkey": "NUhC12eqQ0U5IIjpytuaWzBSSPYE2myNVro8I/3Rjpg=",
+      "pubkey": "199866d09b8385023c25f261460d4d20ae0d5bc72ddf1fa5c1b32768167a8fb0",
       "balance": "10000000"
     },
     {
-      "pubkey": "+cmFvcxUN9roSQnW8AMpi3kq0LDSTZCIrL8f7Pc6ez4=",
+      "pubkey": "0098f7634d7327139848a0f6ad926051596e5a0f692adfb671ab02092b77181d",
       "balance": "10000000"
     }
   ]

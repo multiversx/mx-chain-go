@@ -1,56 +1,82 @@
 package address
 
 import (
+	"fmt"
 	"math/big"
 	"net/http"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/gin-gonic/gin"
 )
 
 // Handler interface defines methods that can be used from `elrondFacade` context variable
 type Handler interface {
 	GetBalance(address string) (*big.Int, error)
+	GetAccount(address string) (*state.Account, error)
+}
+
+type accountResponse struct {
+	Address  string `json:"address"`
+	Nonce    uint64 `json:"nonce"`
+	Balance  string `json:"balance"`
+	CodeHash []byte `json:"codeHash"`
+	RootHash []byte `json:"rootHash"`
 }
 
 // Routes defines address related routes
 func Routes(router *gin.RouterGroup) {
-	router.GET("/:address", GetAddress)
+	router.GET("/:address", GetAccount)
 	router.GET("/:address/balance", GetBalance)
 }
 
-//GetAddress returns the information about the address passed as parameter
-func GetAddress(c *gin.Context) {
-	_, ok := c.MustGet("elrondFacade").(Handler)
+// GetAccount returns an accountResponse containing information
+//  about the account corelated with provided address
+func GetAccount(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
 
-	//TODO: add real implementation here
 	addr := c.Param("address")
-
-	c.JSON(http.StatusOK, gin.H{"message": addr})
+	acc, err := ef.GetAccount(addr)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrCouldNotGetAccount.Error(), err.Error())})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"account": accountResponseFromBaseAccount(addr, acc)})
 }
 
 //GetBalance returns the balance for the address parameter
 func GetBalance(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(Handler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid app context"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
 		return
 	}
 	addr := c.Param("address")
 
 	if addr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Get balance error: Address was empty"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), errors.ErrEmptyAddress.Error())})
 		return
 	}
 
 	balance, err := ef.GetBalance(addr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Get balance error: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), err.Error())})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"balance": balance})
+}
+
+func accountResponseFromBaseAccount(address string, account *state.Account) accountResponse {
+	return accountResponse{
+		Address:  address,
+		Nonce:    account.Nonce,
+		Balance:  account.Balance.String(),
+		CodeHash: account.CodeHash,
+		RootHash: account.RootHash,
+	}
 }

@@ -41,6 +41,11 @@ const (
 	GossipSub
 )
 
+type message struct {
+	buff  []byte
+	topic string
+}
+
 // NetMessenger implements a libP2P node with added functionality
 type NetMessenger struct {
 	context        context.Context
@@ -59,8 +64,10 @@ type NetMessenger struct {
 	closed         bool
 	mutTopics      sync.RWMutex
 	topics         map[string]*Topic
-	mutGossipCache sync.Mutex
+	mutGossipCache sync.RWMutex
 	gossipCache    *TimeCache
+
+	chSendMessages chan *message
 }
 
 // NewNetMessenger creates a new instance of NetMessenger.
@@ -80,8 +87,9 @@ func NewNetMessenger(ctx context.Context, marsh marshal.Marshalizer, hasher hash
 		marsh:          marsh,
 		hasher:         hasher,
 		topics:         make(map[string]*Topic, 0),
-		mutGossipCache: sync.Mutex{},
+		mutGossipCache: sync.RWMutex{},
 		gossipCache:    NewTimeCache(durTimeCache),
+		chSendMessages: make(chan *message),
 	}
 
 	node.cn = NewConnNotifier(maxAllowedPeers)
@@ -156,6 +164,19 @@ func (nm *NetMessenger) createPubSub(hostP2P host.Host, pubsubStrategy PubSubStr
 	default:
 		return errors.New("unknown pubsub strategy")
 	}
+
+	go func(ps *pubsub.PubSub, ch chan *message) {
+		for {
+			select {
+			case msg := <-ch:
+				err := ps.Publish(msg.topic, msg.buff)
+
+				log.LogIfError(err)
+			}
+
+			time.Sleep(time.Microsecond * 100)
+		}
+	}(nm.ps, nm.chSendMessages)
 
 	return nil
 }
@@ -458,7 +479,15 @@ func (nm *NetMessenger) AddTopic(t *Topic) error {
 			return nil
 		}
 		nm.mutClosed.RUnlock()
-		return nm.ps.Publish(t.Name(), data)
+
+		go func(topicName string, buffer []byte) {
+			nm.chSendMessages <- &message{
+				buff:  buffer,
+				topic: topicName,
+			}
+		}(t.Name(), data)
+
+		return nil
 	}
 
 	// validator registration func
@@ -500,9 +529,9 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 		//test whether we also should broadcast the message (others might have broadcast it just before us)
 		has := false
 
-		nm.mutGossipCache.Lock()
+		nm.mutGossipCache.RLock()
 		has = nm.gossipCache.Has(string(buff))
-		nm.mutGossipCache.Unlock()
+		nm.mutGossipCache.RUnlock()
 
 		if !has {
 			//only if the current peer did not receive an equal object to cloner,
@@ -517,7 +546,14 @@ func (nm *NetMessenger) createRequestTopicAndBind(t *Topic, subscriberRequest *p
 
 	//wire-up a plain func for publishing on request channel
 	t.Request = func(hash []byte) error {
-		return nm.ps.Publish(t.Name()+requestTopicSuffix, hash)
+		go func(topicName string, buffer []byte) {
+			nm.chSendMessages <- &message{
+				buff:  buffer,
+				topic: topicName,
+			}
+		}(t.Name()+requestTopicSuffix, hash)
+
+		return nil
 	}
 
 	//wire-up the validator

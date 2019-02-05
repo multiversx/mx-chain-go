@@ -4,42 +4,62 @@ import (
 	"errors"
 )
 
-var errNodeNotStarted = errors.New("node is not started yet")
+// ErrNilMarshalizer signals that a nil marshalizer has been provided
+var ErrNilMarshalizer = errors.New("trying to set nil marshalizer")
 
-var errNilMarshalizer = errors.New("trying to set nil marshalizer")
+// ErrNilMessenger signals that a nil messenger has been provided
+var ErrNilMessenger = errors.New("nil messenger")
 
-var errNilContext = errors.New("trying to set nil context")
+// ErrNilContext signals that a nil context has been provided
+var ErrNilContext = errors.New("trying to set nil context")
 
-var errNilHasher = errors.New("trying to set nil hasher")
+// ErrNilHasher signals that a nil hasher has been provided
+var ErrNilHasher = errors.New("trying to set nil hasher")
 
-var errNilAccountsAdapter = errors.New("trying to set nil accounts adapter")
+// ErrNilAccountsAdapter signals that a nil accounts adapter has been provided
+var ErrNilAccountsAdapter = errors.New("trying to set nil accounts adapter")
 
-var errNilAddressConverter = errors.New("trying to set nil address converter")
+// ErrNilAddressConverter signals that a nil address converter has been provided
+var ErrNilAddressConverter = errors.New("trying to set nil address converter")
 
-var errNilBlockchain = errors.New("nil blockchain")
+// ErrNilBlockchain signals that a nil blockchain structure has been provided
+var ErrNilBlockchain = errors.New("nil blockchain")
 
-var errNilPrivateKey = errors.New("trying to set nil private key")
+// ErrNilPrivateKey signals that a nil private key has been provided
+var ErrNilPrivateKey = errors.New("trying to set nil private key")
 
-var errNilSingleSignKeyGen = errors.New("trying to set nil single sign key generator")
+// ErrNilSingleSignKeyGen signals that a nil single key generator has been provided
+var ErrNilSingleSignKeyGen = errors.New("trying to set nil single sign key generator")
 
-var errNilPublicKey = errors.New("trying to set nil public key")
+// ErrNilPublicKey signals that a nil public key has been provided
+var ErrNilPublicKey = errors.New("trying to set nil public key")
 
-var errZeroRoundDurationNotSupported = errors.New("0 round duration time is not supported")
+// ErrZeroRoundDurationNotSupported signals that 0 seconds round duration is not supported
+var ErrZeroRoundDurationNotSupported = errors.New("0 round duration time is not supported")
 
-var errNegativeOrZeroConsensusGroupSize = errors.New("group size should be a strict positive number")
+// ErrNegativeOrZeroConsensusGroupSize signals that 0 elements consensus group is not supported
+var ErrNegativeOrZeroConsensusGroupSize = errors.New("group size should be a strict positive number")
 
-var errNilSyncTimer = errors.New("trying to set nil sync timer")
+// ErrNilSyncTimer signals that a nil sync timer has been provided
+var ErrNilSyncTimer = errors.New("trying to set nil sync timer")
 
-var errNilBlockProcessor = errors.New("trying to set nil block processor")
+// ErrNilBlockProcessor signals that a nil block processor has been provided
+var ErrNilBlockProcessor = errors.New("trying to set nil block processor")
 
-var errNilDataPool = errors.New("trying to set nil data pool")
+// ErrNilDataPool signals that a nil data pool has been provided
+var ErrNilDataPool = errors.New("trying to set nil data pool")
 
-var errNilShardCoordinator = errors.New("trying to set nil shard coordinator")
+// ErrNilShardCoordinator signals that a nil shard coordinator has been provided
+var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
 
-var errNilUint64ByteSliceConverter = errors.New("trying to set nil uint64 - byte slice converter")
+// ErrNilUint64ByteSliceConverter signals that a nil uint64 <-> byte slice converter has been provided
+var ErrNilUint64ByteSliceConverter = errors.New("trying to set nil uint64 - byte slice converter")
 
-var errNilBalances = errors.New("trying to set nil balances")
+// ErrNilBalances signals that a nil list of initial balances has been provided
+var ErrNilBalances = errors.New("trying to set nil balances")
 
-var errNilMultiSig = errors.New("trying to set nil multisig")
+// ErrNilMultiSig signals that a nil multisig object has been provided
+var ErrNilMultiSig = errors.New("trying to set nil multisig")
 
-var errNilSposWorker = errors.New("nil spos worker")
+// ErrNilForkDetector signals that a nil forkdetector object has been provided
+var ErrNilForkDetector = errors.New("nil fork detector")

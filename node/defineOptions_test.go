@@ -8,23 +8,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestWithPort(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	port := 4455
-
-	opt := WithPort(port)
-	err := opt(node)
-
-	assert.Equal(t, port, node.port)
-	assert.Nil(t, err)
-}
 
 func TestWithMarshalizer_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
@@ -35,7 +20,7 @@ func TestWithMarshalizer_NilMarshalizerShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.marshalizer)
-	assert.Equal(t, errNilMarshalizer, err)
+	assert.Equal(t, ErrNilMarshalizer, err)
 }
 
 func TestWithMarshalizer_ShouldWork(t *testing.T) {
@@ -61,7 +46,7 @@ func TestWithContext_NilContextShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Equal(t, context.Background(), node.ctx)
-	assert.Equal(t, errNilContext, err)
+	assert.Equal(t, ErrNilContext, err)
 }
 
 func TestWithContext_ShouldWork(t *testing.T) {
@@ -87,7 +72,7 @@ func TestWithHasher_NilHasherShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.hasher)
-	assert.Equal(t, errNilHasher, err)
+	assert.Equal(t, ErrNilHasher, err)
 }
 
 func TestWithHasher_ShouldWork(t *testing.T) {
@@ -104,34 +89,6 @@ func TestWithHasher_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithMaxAllowedPeers(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	maxAllowedPeers := 456
-
-	opt := WithMaxAllowedPeers(maxAllowedPeers)
-	err := opt(node)
-
-	assert.Equal(t, maxAllowedPeers, node.maxAllowedPeers)
-	assert.Nil(t, err)
-}
-
-func TestWithPubSubStrategy(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	pubStrategy := p2p.PubSubStrategy(p2p.GossipSub)
-
-	opt := WithPubSubStrategy(pubStrategy)
-	err := opt(node)
-
-	assert.Equal(t, pubStrategy, node.pubSubStrategy)
-	assert.Nil(t, err)
-}
-
 func TestWithAccountsAdapter_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -141,7 +98,7 @@ func TestWithAccountsAdapter_NilAccountsShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.accounts)
-	assert.Equal(t, errNilAccountsAdapter, err)
+	assert.Equal(t, ErrNilAccountsAdapter, err)
 }
 
 func TestWithAccountsAdapter_ShouldWork(t *testing.T) {
@@ -167,7 +124,7 @@ func TestWithAddressConverter_NilConverterShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.addrConverter)
-	assert.Equal(t, errNilAddressConverter, err)
+	assert.Equal(t, ErrNilAddressConverter, err)
 }
 
 func TestWithAddressConverter_ShouldWork(t *testing.T) {
@@ -193,7 +150,7 @@ func TestWithBlockChain_NilBlockchainrShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.blkc)
-	assert.Equal(t, errNilBlockchain, err)
+	assert.Equal(t, ErrNilBlockchain, err)
 }
 
 func TestWithBlockChain_ShouldWork(t *testing.T) {
@@ -225,7 +182,7 @@ func TestWithPrivateKey_NilPrivateKeyShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.privateKey)
-	assert.Equal(t, errNilPrivateKey, err)
+	assert.Equal(t, ErrNilPrivateKey, err)
 }
 
 func TestWithPrivateKey_ShouldWork(t *testing.T) {
@@ -251,7 +208,7 @@ func TestWithSingleSignKeyGenerator_NilPrivateKeyShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.singleSignKeyGen)
-	assert.Equal(t, errNilSingleSignKeyGen, err)
+	assert.Equal(t, ErrNilSingleSignKeyGen, err)
 }
 
 func TestWithSingleSignKeyGenerator_ShouldWork(t *testing.T) {
@@ -305,7 +262,7 @@ func TestWithPublicKey_NilPublicKeyShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.publicKey)
-	assert.Equal(t, errNilPublicKey, err)
+	assert.Equal(t, ErrNilPublicKey, err)
 }
 
 func TestWithPublicKey_ShouldWork(t *testing.T) {
@@ -331,7 +288,7 @@ func TestWithRoundDuration_ZeroDurationShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Equal(t, uint64(0), node.roundDuration)
-	assert.Equal(t, errZeroRoundDurationNotSupported, err)
+	assert.Equal(t, ErrZeroRoundDurationNotSupported, err)
 }
 
 func TestWithRoundDuration_ShouldWork(t *testing.T) {
@@ -357,7 +314,7 @@ func TestWithConsensusGroupSize_NegativeGroupSizeShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Equal(t, 0, node.consensusGroupSize)
-	assert.Equal(t, errNegativeOrZeroConsensusGroupSize, err)
+	assert.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
 }
 
 func TestWithConsensusGroupSize_ShouldWork(t *testing.T) {
@@ -383,7 +340,7 @@ func TestWithSyncer_NilSyncerShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.syncer)
-	assert.Equal(t, errNilSyncTimer, err)
+	assert.Equal(t, ErrNilSyncTimer, err)
 }
 
 func TestWithSyncer_ShouldWork(t *testing.T) {
@@ -409,7 +366,7 @@ func TestWithBlockProcessor_NilProcessorShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.syncer)
-	assert.Equal(t, errNilBlockProcessor, err)
+	assert.Equal(t, ErrNilBlockProcessor, err)
 }
 
 func TestWithBlockProcessor_ShouldWork(t *testing.T) {
@@ -473,7 +430,7 @@ func TestWithDataPool_NilDataPoolShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.dataPool)
-	assert.Equal(t, errNilDataPool, err)
+	assert.Equal(t, ErrNilDataPool, err)
 }
 
 func TestWithDataPool_ShouldWork(t *testing.T) {
@@ -499,7 +456,7 @@ func TestWithShardCoordinator_NilShardCoordinatorShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.shardCoordinator)
-	assert.Equal(t, errNilShardCoordinator, err)
+	assert.Equal(t, ErrNilShardCoordinator, err)
 }
 
 func TestWithShardCoordinator_ShouldWork(t *testing.T) {
@@ -525,7 +482,7 @@ func TestWithUint64ByteSliceConverter_NilConverterShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.uint64ByteSliceConverter)
-	assert.Equal(t, errNilUint64ByteSliceConverter, err)
+	assert.Equal(t, ErrNilUint64ByteSliceConverter, err)
 }
 
 func TestWithUint64ByteSliceConverter_ShouldWork(t *testing.T) {
@@ -551,7 +508,7 @@ func TestWithInitialNodesBalances_NilBalancesShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.initialNodesBalances)
-	assert.Equal(t, errNilBalances, err)
+	assert.Equal(t, ErrNilBalances, err)
 }
 
 func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
@@ -559,9 +516,9 @@ func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	balances := map[string]big.Int{
-		"pk1": *big.NewInt(45),
-		"pk2": *big.NewInt(56),
+	balances := map[string]*big.Int{
+		"pk1": big.NewInt(45),
+		"pk2": big.NewInt(56),
 	}
 
 	opt := WithInitialNodesBalances(balances)
@@ -580,7 +537,7 @@ func TestWithMultisig_NilMultisigShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.multisig)
-	assert.Equal(t, errNilMultiSig, err)
+	assert.Equal(t, ErrNilMultiSig, err)
 }
 
 func TestWithMultisig_ShouldWork(t *testing.T) {
@@ -595,4 +552,29 @@ func TestWithMultisig_ShouldWork(t *testing.T) {
 
 	assert.True(t, node.multisig == multisigner)
 	assert.Nil(t, err)
+}
+
+func TestWithForkDetector_shouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	forkDetector := &mock.ForkDetectorMock{}
+	opt := WithForkDetector(forkDetector)
+	err := opt(node)
+
+	assert.True(t, node.forkDetector == forkDetector)
+	assert.Nil(t, err)
+}
+
+func TestWithForkDetector_NilForkDetectorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithForkDetector(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.forkDetector)
+	assert.Equal(t, ErrNilForkDetector, err)
 }

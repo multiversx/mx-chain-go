@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -36,6 +37,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/resolver"
+	sync2 "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -71,6 +76,15 @@ type genesis struct {
 	ConsensusGroupSize int           `json:"consensusGroupSize"`
 	ElasticSubrounds   bool          `json:"elasticSubrounds"`
 	InitialNodes       []initialNode `json:"initialNodes"`
+}
+
+type netMessengerConfig struct {
+	ctx             context.Context
+	port            int
+	maxAllowedPeers int
+	marshalizer     marshal.Marshalizer
+	hasher          hashing.Hasher
+	pubSubStrategy  p2p.PubSubStrategy
 }
 
 func main() {
@@ -112,8 +126,16 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(flags.GenesisFile.Name)))
 
-	syncer := ntp.NewSyncTime(time.Millisecond*time.Duration(genesisConfig.RoundDuration), beevikntp.Query)
+	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
 	go syncer.StartSync()
+
+	// TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded)
+	//  timestamp
+	if genesisConfig.StartTime == 0 {
+		time.Sleep(1000 * time.Millisecond)
+		ntpTime := syncer.CurrentTime(syncer.ClockOffset())
+		genesisConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
+	}
 
 	startTime := time.Unix(genesisConfig.StartTime, 0)
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
@@ -138,7 +160,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		log.Info("Bootstrapping node....")
 		err = ef.StartNode()
 		if err != nil {
-			log.Error("Starting node failed", err.Error())
+			log.Error("starting node failed", err.Error())
 		}
 	}
 
@@ -158,14 +180,14 @@ func loadFile(dest interface{}, relativePath string, log *logger.Logger) error {
 	path, err := filepath.Abs(relativePath)
 	fmt.Println(path)
 	if err != nil {
-		log.Error("Cannot create absolute path for the provided file", err.Error())
+		log.Error("cannot create absolute path for the provided file", err.Error())
 		return err
 	}
 	f, err := os.Open(path)
 	defer func() {
 		err = f.Close()
 		if err != nil {
-			log.Error("Cannot close file: ", err.Error())
+			log.Error("cannot close file: ", err.Error())
 		}
 	}()
 	if err != nil {
@@ -201,10 +223,10 @@ func loadGenesisConfiguration(genesisFilePath string, log *logger.Logger) (*gene
 func (g *genesis) initialNodesPubkeys(log *logger.Logger) []string {
 	var pubKeys []string
 	for _, in := range g.InitialNodes {
-		pubKey, err := base64.StdEncoding.DecodeString(in.PubKey)
+		pubKey, err := decodeAddress(in.PubKey)
 
 		if err != nil {
-			log.Error(fmt.Sprintf("%s is not a valid public key. Ignored.", in))
+			log.Error(fmt.Sprintf("%s is not a valid public key. Ignored", in))
 			continue
 		}
 
@@ -213,15 +235,20 @@ func (g *genesis) initialNodesPubkeys(log *logger.Logger) []string {
 	return pubKeys
 }
 
-func (g *genesis) initialNodesBalances(log *logger.Logger) map[string]big.Int {
-	var pubKeys = make(map[string]big.Int)
+func (g *genesis) initialNodesBalances(log *logger.Logger) map[string]*big.Int {
+	var pubKeys = make(map[string]*big.Int)
 	for _, in := range g.InitialNodes {
 		balance, ok := new(big.Int).SetString(in.Balance, 10)
 		if ok {
-			pubKeys[in.PubKey] = *balance
+			pubKey, err := decodeAddress(in.PubKey)
+			if err != nil {
+				log.Error(fmt.Sprintf("%s is not a valid public key. Ignored", in.PubKey))
+				continue
+			}
+			pubKeys[string(pubKey)] = balance
 		} else {
-			log.Warn(fmt.Sprintf("Error decoding balance %s for public key %s - setting to 0", in.Balance, in.PubKey))
-			pubKeys[in.PubKey] = *big.NewInt(0)
+			log.Warn(fmt.Sprintf("error decoding balance %s for public key %s - setting to 0", in.Balance, in.PubKey))
+			pubKeys[in.PubKey] = big.NewInt(0)
 		}
 
 	}
@@ -246,7 +273,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	addressConverter, err := state.NewHashAddressConverter(hasher, cfg.Address.Length, cfg.Address.Prefix)
+	addressConverter, err := state.NewPlainAddressConverter(cfg.Address.Length, cfg.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
 	}
@@ -268,14 +295,12 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	transient, err := createDataPoolFromConfig(cfg, uint64ByteSliceConverter)
+	datapool, err := createDataPoolFromConfig(cfg, uint64ByteSliceConverter)
 	if err != nil {
 		return nil, errors.New("could not create transient data pool: " + err.Error())
 	}
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
-
-	blockProcessor := block.NewBlockProcessor(transient.Transactions(), hasher, marshalizer, transactionProcessor, accountsAdapter, shardCoordinator)
 
 	initialPubKeys := genesisConfig.initialNodesPubkeys(log)
 
@@ -291,13 +316,79 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
+	netMessenger, err := createNetMessenger(netMessengerConfig{
+		ctx:             appContext,
+		port:            ctx.GlobalInt(flags.Port.Name),
+		maxAllowedPeers: ctx.GlobalInt(flags.MaxAllowedPeers.Name),
+		marshalizer:     marshalizer,
+		hasher:          hasher,
+		pubSubStrategy:  p2p.GossipSub,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	interceptorsContainer := interceptor.NewContainer()
+	resolversContainer := resolver.NewContainer()
+
+	processorFactory, err := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
+		InterceptorContainer:     interceptorsContainer,
+		ResolverContainer:        resolversContainer,
+		Messenger:                netMessenger,
+		Blockchain:               blkc,
+		DataPool:                 datapool,
+		ShardCoordinator:         shardCoordinator,
+		AddrConverter:            addressConverter,
+		Hasher:                   hasher,
+		Marshalizer:              marshalizer,
+		SingleSignKeyGen:         keyGen,
+		Uint64ByteSliceConverter: uint64ByteSliceConverter,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = processorFactory.CreateInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
+	err = processorFactory.CreateResolvers()
+	if err != nil {
+		return nil, err
+	}
+
+	forkDetector := sync2.NewBasicForkDetector()
+
+	res, err := processorFactory.ResolverContainer().Get(string(factory.TransactionTopic))
+	if err != nil {
+		return nil, err
+	}
+	txResolver, ok := res.(*transaction.TxResolver)
+	if !ok {
+		return nil, errors.New("tx resolver is not of type transaction.TxResolver")
+	}
+
+	blockProcessor, err := block.NewBlockProcessor(
+		datapool,
+		hasher,
+		marshalizer,
+		transactionProcessor,
+		accountsAdapter,
+		shardCoordinator,
+		forkDetector,
+		createRequestTransactionHandler(txResolver, log),
+	)
+
+	if err != nil {
+		return nil, errors.New("could not create block processor: " + err.Error())
+	}
+
 	nd, err := node.NewNode(
+		node.WithMessenger(netMessenger),
 		node.WithHasher(hasher),
 		node.WithContext(appContext),
 		node.WithMarshalizer(marshalizer),
-		node.WithPubSubStrategy(p2p.GossipSub),
-		node.WithMaxAllowedPeers(ctx.GlobalInt(flags.MaxAllowedPeers.Name)),
-		node.WithPort(ctx.GlobalInt(flags.Port.Name)),
 		node.WithInitialNodesPubKeys(initialPubKeys),
 		node.WithInitialNodesBalances(genesisConfig.initialNodesBalances(log)),
 		node.WithAddressConverter(addressConverter),
@@ -309,20 +400,56 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithBlockProcessor(blockProcessor),
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
 		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
-		node.WithDataPool(transient),
+		node.WithDataPool(datapool),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 		node.WithMultisig(multisigner),
 		node.WithSingleSignKeyGenerator(keyGen),
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
+		node.WithForkDetector(forkDetector),
+		node.WithProcessorCreator(processorFactory),
 	)
 
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
+	err = nd.CreateShardedStores()
+	if err != nil {
+		return nil, err
+	}
+
 	return nd, nil
+}
+
+func createRequestTransactionHandler(txResolver *transaction.TxResolver, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+	return func(destShardID uint32, txHash []byte) {
+		_ = txResolver.RequestTransactionFromHash(txHash)
+		log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+	}
+}
+
+func createNetMessenger(config netMessengerConfig) (p2p.Messenger, error) {
+	if config.port == 0 {
+		return nil, errors.New("cannot start node on port 0")
+	}
+
+	if config.maxAllowedPeers == 0 {
+		return nil, errors.New("cannot start node without providing maxAllowedPeers")
+	}
+
+	//TODO check if libp2p provides a better random source
+	cp := &p2p.ConnectParams{}
+	cp.Port = config.port
+	cp.GeneratePrivPubKeys(time.Now().UnixNano())
+	cp.GenerateIDFromPubKey()
+
+	nm, err := p2p.NewNetMessenger(config.ctx, config.marshalizer, config.hasher, cp, config.maxAllowedPeers, config.pubSubStrategy)
+	if err != nil {
+		return nil, err
+	}
+	return nm, nil
 }
 
 func getSk(ctx *cli.Context) ([]byte, error) {
@@ -332,18 +459,11 @@ func getSk(ctx *cli.Context) ([]byte, error) {
 		}
 	}
 
-	b64sk, err := ioutil.ReadFile(ctx.GlobalString(flags.PrivateKey.Name))
+	encodedSk, err := ioutil.ReadFile(ctx.GlobalString(flags.PrivateKey.Name))
 	if err != nil {
-		b64sk = []byte(ctx.GlobalString(flags.PrivateKey.Name))
+		encodedSk = []byte(ctx.GlobalString(flags.PrivateKey.Name))
 	}
-	decodedSk := make([]byte, base64.StdEncoding.DecodedLen(len(b64sk)))
-	l, err := base64.StdEncoding.Decode(decodedSk, b64sk)
-
-	if err != nil {
-		return nil, errors.New("could not decode private key: " + err.Error())
-	}
-
-	return decodedSk[:l], nil
+	return decodeAddress(string(encodedSk))
 }
 
 func getSigningParams(ctx *cli.Context, log *logger.Logger) (
@@ -367,14 +487,13 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 
 	pubKey = privKey.GeneratePublic()
 
-	base64sk := make([]byte, base64.StdEncoding.EncodedLen(len(sk)))
-	base64.StdEncoding.Encode(base64sk, sk)
-	log.Info("starting with private key: " + string(base64sk))
-
 	pk, _ := pubKey.ToByteArray()
-	base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
-	base64.StdEncoding.Encode(base64pk, pk)
-	log.Info("starting with public key: " + string(base64pk))
+
+	skEncoded := encodeAddress(sk)
+	pkEncoded := encodeAddress(pk)
+
+	log.Info("starting with private key: " + skEncoded)
+	log.Info("starting with public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
 }
@@ -584,4 +703,19 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 	}
 
 	return blockChain, err
+}
+
+func decodeAddress(address string) ([]byte, error) {
+	return hex.DecodeString(address)
+}
+
+func encodeAddress(address []byte) string {
+	return hex.EncodeToString(address)
+}
+
+func toB64(buff []byte) string {
+	if buff == nil {
+		return "<NIL>"
+	}
+	return base64.StdEncoding.EncodeToString(buff)
 }

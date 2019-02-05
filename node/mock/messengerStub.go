@@ -13,10 +13,12 @@ import (
 )
 
 type MessengerStub struct {
-	marshalizer    marshal.Marshalizer
-	HasherObj      hashing.Hasher
-	AddTopicCalled func(t *p2p.Topic) error
-	GetTopicCalled func(name string) *p2p.Topic
+	marshalizer     marshal.Marshalizer
+	HasherObj       hashing.Hasher
+	CloseCalled     func() error
+	AddTopicCalled  func(t *p2p.Topic) error
+	GetTopicCalled  func(name string) *p2p.Topic
+	BootstrapCalled func(ctx context.Context)
 }
 
 func NewMessengerStub() *MessengerStub {
@@ -27,7 +29,7 @@ func NewMessengerStub() *MessengerStub {
 }
 
 func (ms *MessengerStub) Close() error {
-	panic("implement me")
+	return ms.CloseCalled()
 }
 
 func (ms *MessengerStub) ID() peer.ID {
@@ -63,7 +65,7 @@ func (ms *MessengerStub) ConnectToAddresses(ctx context.Context, addresses []str
 }
 
 func (ms *MessengerStub) Bootstrap(ctx context.Context) {
-	panic("implement me")
+	ms.BootstrapCalled(ctx)
 }
 
 func (ms *MessengerStub) PrintConnected() {

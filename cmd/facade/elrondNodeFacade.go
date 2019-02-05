@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
@@ -33,7 +34,7 @@ func (ef *ElrondNodeFacade) SetLogger(log *logger.Logger) {
 	ef.log = log
 }
 
-//SetSyncer sets the current syncer
+// SetSyncer sets the current syncer
 func (ef *ElrondNodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 	ef.syncer = syncer
 }
@@ -41,11 +42,6 @@ func (ef *ElrondNodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 // StartNode starts the underlying node
 func (ef *ElrondNodeFacade) StartNode() error {
 	err := ef.node.Start()
-	if err != nil {
-		return err
-	}
-
-	err = ef.node.BindInterceptorsResolvers()
 	if err != nil {
 		return err
 	}
@@ -86,19 +82,48 @@ func (ef *ElrondNodeFacade) GetBalance(address string) (*big.Int, error) {
 }
 
 // GenerateTransaction generates a transaction from a sender, receiver, value and data
-func (ef *ElrondNodeFacade) GenerateTransaction(sender string, receiver string, value big.Int,
+func (ef *ElrondNodeFacade) GenerateTransaction(senderHex string, receiverHex string, value *big.Int,
 	data string) (*transaction.Transaction,
 	error) {
-	return ef.node.GenerateTransaction(sender, receiver, value, data)
+	return ef.node.GenerateTransaction(senderHex, receiverHex, value, data)
 }
 
 // SendTransaction will send a new transaction on the topic channel
-func (ef *ElrondNodeFacade) SendTransaction(nonce uint64, sender string, receiver string,
-	value big.Int, transactionData string, signature string) (*transaction.Transaction, error) {
-	return ef.node.SendTransaction(nonce, sender, receiver, value, transactionData, signature)
+func (ef *ElrondNodeFacade) SendTransaction(
+	nonce uint64,
+	senderHex string,
+	receiverHex string,
+	value *big.Int,
+	transactionData string,
+	signature []byte,
+) (*transaction.Transaction, error) {
+
+	return ef.node.SendTransaction(nonce, senderHex, receiverHex, value, transactionData, signature)
 }
 
 // GetTransaction gets the transaction with a specified hash
 func (ef *ElrondNodeFacade) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return ef.node.GetTransaction(hash)
+}
+
+// GetAccount returns an accountResponse containing information
+//  about the account correlated with provided address
+func (ef *ElrondNodeFacade) GetAccount(address string) (*state.Account, error) {
+	return ef.node.GetAccount(address)
+}
+
+// GetCurrentPublicKey gets the current nodes public Key
+func (ef *ElrondNodeFacade) GetCurrentPublicKey() string {
+	return ef.node.GetCurrentPublicKey()
+}
+
+//GenerateAndSendBulkTransactions generates a number of nrTransactions of amount value
+//for the receiver destination
+func (ef *ElrondNodeFacade) GenerateAndSendBulkTransactions(
+	destination string,
+	value *big.Int,
+	nrTransactions uint64,
+) error {
+
+	return ef.node.GenerateAndSendBulkTransactions(destination, value, nrTransactions)
 }

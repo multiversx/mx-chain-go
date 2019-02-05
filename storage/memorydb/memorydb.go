@@ -1,6 +1,7 @@
 package memorydb
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"sync"
@@ -39,7 +40,7 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	val, ok := s.db[string(key)]
 
 	if !ok {
-		return nil, errors.New(fmt.Sprintf("key %s not found", key))
+		return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
 	}
 
 	return val, nil

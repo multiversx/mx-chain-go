@@ -67,12 +67,11 @@ func TestHandleErrorInDoSync(t *testing.T) {
 
 	assert.Equal(t, st.ClockOffset(), time.Millisecond*0)
 
-	//manually put a value in Offset and observe if it goes to 0 as a result to error
 	st.SetClockOffset(1234)
 
 	st.Sync()
 
-	assert.Equal(t, st.ClockOffset(), time.Millisecond*0)
+	assert.Equal(t, st.ClockOffset(), time.Duration(1234))
 
 }
 
@@ -86,7 +85,6 @@ func TestValueInDoSync(t *testing.T) {
 	st.Sync()
 	assert.Equal(t, st.ClockOffset(), time.Nanosecond*23456)
 
-	//manually put a value in Offset and observe if it goes to 0 as a result to error
 	st.SetClockOffset(1234)
 
 	st.Sync()

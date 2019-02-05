@@ -51,15 +51,19 @@ func (mm *MultisignMock) SetAggCommitment(aggCommitment []byte) error {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) SignPartial(bitmap []byte) ([]byte, error) {
+func (mm *MultisignMock) CreateSignatureShare(bitmap []byte) ([]byte, error) {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) AddSignPartial(index uint16, sig []byte) error {
+func (mm *MultisignMock) AddSignatureShare(index uint16, sig []byte) error {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) VerifyPartial(index uint16, sig []byte, bitmap []byte) error {
+func (mm *MultisignMock) VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error {
+	panic("implement me")
+}
+
+func (mm *MultisignMock) SignatureShare(index uint16) ([]byte, error) {
 	panic("implement me")
 }
 

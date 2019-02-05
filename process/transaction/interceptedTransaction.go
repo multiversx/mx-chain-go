@@ -15,6 +15,7 @@ import (
 type InterceptedTransaction struct {
 	*transaction.Transaction
 
+	txBuffWithoutSig         []byte
 	hash                     []byte
 	rcvShard                 uint32
 	sndShard                 uint32
@@ -85,16 +86,16 @@ func (inTx *InterceptedTransaction) Integrity(coordinator sharding.ShardCoordina
 		return process.ErrNilSignature
 	}
 
-	if inTx.Challenge == nil {
-		return process.ErrNilChallenge
-	}
-
 	if inTx.RcvAddr == nil {
 		return process.ErrNilRcvAddr
 	}
 
 	if inTx.SndAddr == nil {
 		return process.ErrNilSndAddr
+	}
+
+	if inTx.Transaction.Value == nil {
+		return process.ErrNilValue
 	}
 
 	if inTx.Transaction.Value.Cmp(big.NewInt(0)) < 0 {
@@ -114,12 +115,12 @@ func (inTx *InterceptedTransaction) VerifySig() error {
 		return process.ErrNilSingleSignKeyGen
 	}
 
-	singleSignVerifier, err := inTx.singleSignKeyGen.PublicKeyFromByteArray(inTx.RcvAddr)
+	singleSignVerifier, err := inTx.singleSignKeyGen.PublicKeyFromByteArray(inTx.SndAddr)
 	if err != nil {
 		return err
 	}
 
-	err = singleSignVerifier.Verify(inTx.hash, inTx.Signature)
+	err = singleSignVerifier.Verify(inTx.txBuffWithoutSig, inTx.Signature)
 
 	if err != nil {
 		return err
@@ -166,6 +167,16 @@ func (inTx *InterceptedTransaction) SetHash(hash []byte) {
 // Hash gets the hash of this transaction
 func (inTx *InterceptedTransaction) Hash() []byte {
 	return inTx.hash
+}
+
+// SetTxBuffWithoutSig sets the byte slice buffer of this transaction having nil in Signature field.
+func (inTx *InterceptedTransaction) SetTxBuffWithoutSig(txBuffWithoutSig []byte) {
+	inTx.txBuffWithoutSig = txBuffWithoutSig
+}
+
+// TxBuffWithoutSig gets the byte slice buffer of this transaction having nil in Signature field
+func (inTx *InterceptedTransaction) TxBuffWithoutSig() []byte {
+	return inTx.txBuffWithoutSig
 }
 
 // SingleSignKeyGen returns the key generator that is used to create a new public key verifier that will be used

@@ -1,24 +1,29 @@
 package multisig
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
 type belNev struct {
-	message       []byte
-	pubKeys       []crypto.PublicKey
-	privKey       crypto.PrivateKey
-	commHashes    [][]byte
-	commSecret    []byte
-	commitments   [][]byte
-	aggCommitment []byte
-	sigShares     [][]byte
-	aggSig        []byte
-	ownIndex      uint16
-	hasher        hashing.Hasher
-	keyGen        crypto.KeyGenerator
+	message        []byte
+	pubKeys        []crypto.PublicKey
+	privKey        crypto.PrivateKey
+	mutCommHashes  *sync.RWMutex
+	commHashes     [][]byte
+	commSecret     []byte
+	mutCommitments *sync.RWMutex
+	commitments    [][]byte
+	aggCommitment  []byte
+	mutSigShares   *sync.RWMutex
+	sigShares      [][]byte
+	aggSig         []byte
+	ownIndex       uint16
+	hasher         hashing.Hasher
+	keyGen         crypto.KeyGenerator
 }
 
 // NewBelNevMultisig creates a new Bellare Neven multi-signer
@@ -59,14 +64,17 @@ func NewBelNevMultisig(
 
 	// own index is used only for signing
 	return &belNev{
-		pubKeys:     pk,
-		privKey:     privKey,
-		ownIndex:    ownIndex,
-		hasher:      hasher,
-		keyGen:      keyGen,
-		commHashes:  commHashes,
-		commitments: commitments,
-		sigShares:   sigShares,
+		pubKeys:        pk,
+		privKey:        privKey,
+		ownIndex:       ownIndex,
+		hasher:         hasher,
+		keyGen:         keyGen,
+		mutCommHashes:  &sync.RWMutex{},
+		commHashes:     commHashes,
+		mutCommitments: &sync.RWMutex{},
+		commitments:    commitments,
+		mutSigShares:   &sync.RWMutex{},
+		sigShares:      sigShares,
 	}, nil
 }
 
@@ -104,11 +112,20 @@ func (bn *belNev) Reset(pubKeys []string, index uint16) error {
 	bn.ownIndex = index
 	bn.pubKeys = pk
 	bn.commSecret = nil
-	bn.commitments = make([][]byte, sizeConsensus)
 	bn.aggCommitment = nil
 	bn.aggSig = nil
+
+	bn.mutCommHashes.Lock()
 	bn.commHashes = make([][]byte, sizeConsensus)
+	bn.mutCommHashes.Unlock()
+
+	bn.mutCommitments.Lock()
+	bn.commitments = make([][]byte, sizeConsensus)
+	bn.mutCommitments.Unlock()
+
+	bn.mutSigShares.Lock()
 	bn.sigShares = make([][]byte, sizeConsensus)
+	bn.mutSigShares.Unlock()
 
 	return nil
 }
@@ -120,16 +137,22 @@ func (bn *belNev) SetMessage(msg []byte) {
 
 // AddCommitmentHash sets a commitment Hash
 func (bn *belNev) AddCommitmentHash(index uint16, commHash []byte) error {
+	bn.mutCommHashes.Lock()
 	if int(index) >= len(bn.commHashes) {
+		bn.mutCommHashes.Unlock()
 		return crypto.ErrInvalidIndex
 	}
 
 	bn.commHashes[index] = commHash
+	bn.mutCommHashes.Unlock()
 	return nil
 }
 
 // CommitmentHash returns the commitment hash from the list on the specified position
 func (bn *belNev) CommitmentHash(index uint16) ([]byte, error) {
+	bn.mutCommHashes.RLock()
+	defer bn.mutCommHashes.RUnlock()
+
 	if int(index) >= len(bn.commHashes) {
 		return nil, crypto.ErrInvalidIndex
 	}
@@ -169,17 +192,22 @@ func (bn *belNev) SetCommitmentSecret(commSecret []byte) error {
 
 // AddCommitment adds a commitment to the list on the specified position
 func (bn *belNev) AddCommitment(index uint16, commitment []byte) error {
+	bn.mutCommitments.Lock()
 	if int(index) >= len(bn.commitments) {
+		bn.mutCommitments.Unlock()
 		return crypto.ErrInvalidIndex
 	}
 
 	bn.commitments[index] = commitment
-
+	bn.mutCommitments.Unlock()
 	return nil
 }
 
 // Commitment returns the commitment from the list with the specified position
 func (bn *belNev) Commitment(index uint16) ([]byte, error) {
+	bn.mutCommitments.RLock()
+	defer bn.mutCommitments.RUnlock()
+
 	if int(index) >= len(bn.commitments) {
 		return nil, crypto.ErrInvalidIndex
 	}
@@ -193,7 +221,7 @@ func (bn *belNev) Commitment(index uint16) ([]byte, error) {
 
 // AggregateCommitments aggregates the list of commitments
 func (bn *belNev) AggregateCommitments(bitmap []byte) ([]byte, error) {
-	// TODO
+	// TODO, do not forget about mutCommitments
 
 	return []byte("implement me"), nil
 }
@@ -204,34 +232,52 @@ func (bn *belNev) SetAggCommitment(aggCommitment []byte) error {
 	return nil
 }
 
-// SignPartial creates a partial signature
-func (bn *belNev) SignPartial(bitmap []byte) ([]byte, error) {
+// CreateSignatureShare creates a partial signature
+func (bn *belNev) CreateSignatureShare(bitmap []byte) ([]byte, error) {
 	// TODO
 
 	return []byte("implement me"), nil
 }
 
-// VerifyPartial verifies the partial signature of the signer with specified position
-func (bn *belNev) VerifyPartial(index uint16, sig []byte, bitmap []byte) error {
+// VerifySignatureShare verifies the partial signature of the signer with specified position
+func (bn *belNev) VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error {
 	// TODO
 
 	return nil
 }
 
-// AddSignPartial adds the partial signature of the signer with specified position
-func (bn *belNev) AddSignPartial(index uint16, sig []byte) error {
+// AddSignatureShare adds the partial signature of the signer with specified position
+func (bn *belNev) AddSignatureShare(index uint16, sig []byte) error {
+	bn.mutSigShares.Lock()
 	if int(index) >= len(bn.sigShares) {
+		bn.mutSigShares.Unlock()
 		return crypto.ErrInvalidIndex
 	}
 
 	bn.sigShares[index] = sig
-
+	bn.mutSigShares.Unlock()
 	return nil
+}
+
+// SignatureShare returns the partial signature set for given index
+func (bn *belNev) SignatureShare(index uint16) ([]byte, error) {
+	bn.mutSigShares.RLock()
+	defer bn.mutSigShares.RUnlock()
+
+	if int(index) >= len(bn.sigShares) {
+		return nil, crypto.ErrInvalidIndex
+	}
+
+	if bn.sigShares[index] == nil {
+		return nil, crypto.ErrNilElement
+	}
+
+	return bn.sigShares[index], nil
 }
 
 // AggregateSigs aggregates all collected partial signatures
 func (bn *belNev) AggregateSigs(bitmap []byte) ([]byte, error) {
-	// TODO
+	// TODO, do not forget about mutSigShares
 
 	return []byte("implement me"), nil
 }

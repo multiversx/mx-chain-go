@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -44,17 +44,14 @@ func main() {
 			fmt.Println("Cound not convert pk to byte array")
 		}
 
-		base64sk := make([]byte, base64.StdEncoding.EncodedLen(len(skBytes)))
-		base64.StdEncoding.Encode(base64sk, []byte(skBytes))
+		skHex := []byte(hex.EncodeToString(skBytes))
+		pkHex := []byte(hex.EncodeToString(pkBytes))
 
-		base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pkBytes)))
-		base64.StdEncoding.Encode(base64pk, []byte(pkBytes))
-
-		if _, err3 := fsk.Write(append(base64sk, '\n')); err3 != nil {
+		if _, err3 := fsk.Write(append(skHex, '\n')); err3 != nil {
 			fmt.Println(err3)
 		}
 
-		if _, err3 := fpk.Write(append(base64pk, '\n')); err3 != nil {
+		if _, err3 := fpk.Write(append(pkHex, '\n')); err3 != nil {
 			fmt.Println(err3)
 		}
 	}

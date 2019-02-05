@@ -1,4 +1,4 @@
-package integrationTests
+package state
 
 import (
 	"encoding/base64"
@@ -10,36 +10,26 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
-	mock2 "github.com/ElrondNetwork/elrond-go-sandbox/data/trie/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
 //------- Helper funcs
 
 func adbCreateAccountsDB() *state.AccountsDB {
-	marsh := mock.MarshalizerMock{}
-	dbw, err := trie.NewDBWriteCache(mock2.NewMemoryStorerMock())
-	if err != nil {
-		panic(err)
-	}
+	marsh := &marshal.JsonMarshalizer{}
 
-	tr, err := trie.NewTrie(make([]byte, 32), dbw, mock.HasherMock{})
-	if err != nil {
-		panic(err)
-	}
-
-	adb, err := state.NewAccountsDB(tr, mock.HasherMock{}, &marsh)
-	if err != nil {
-		panic(err)
-	}
+	dbw, _ := trie.NewDBWriteCache(createMemUnit())
+	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh)
 
 	return adb
 }
 
 func generateAddressJurnalAccountAccountsDB() (state.AddressContainer, state.JournalizedAccountWrapper, *state.AccountsDB) {
-	adr := mock.NewAddressMock()
+	adr := createDummyAddress()
 	adb := adbCreateAccountsDB()
 
 	jaw, err := state.NewJournalizedAccountWrapFromAccountContainer(adr, state.NewAccount(), adb)
@@ -60,13 +50,13 @@ func adbEmulateBalanceTxExecution(acntSrc, acntDest state.JournalizedAccountWrap
 	}
 
 	//substract value from src
-	err := acntSrc.SetBalanceWithJournal(*srcVal.Sub(&srcVal, value))
+	err := acntSrc.SetBalanceWithJournal(srcVal.Sub(srcVal, value))
 	if err != nil {
 		return err
 	}
 
 	//add value to dest
-	err = acntDest.SetBalanceWithJournal(*destVal.Add(&destVal, value))
+	err = acntDest.SetBalanceWithJournal(destVal.Add(destVal, value))
 	if err != nil {
 		return err
 	}
@@ -204,7 +194,7 @@ func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testin
 	t.Parallel()
 
 	adr, jaw, adb := generateAddressJurnalAccountAccountsDB()
-	err := jaw.SetBalanceWithJournal(*big.NewInt(40))
+	err := jaw.SetBalanceWithJournal(big.NewInt(40))
 	assert.Nil(t, err)
 
 	err = adb.SaveJournalizedAccount(jaw)
@@ -213,7 +203,7 @@ func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testin
 	acnt, err := adb.GetJournalizedAccount(adr)
 	assert.Nil(t, err)
 	assert.NotNil(t, acnt)
-	assert.Equal(t, acnt.BaseAccount().Balance, *big.NewInt(40))
+	assert.Equal(t, acnt.BaseAccount().Balance, big.NewInt(40))
 }
 
 func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testing.T) {
@@ -226,7 +216,7 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 	acnt, err := adb.GetJournalizedAccount(adr)
 	assert.Nil(t, err)
 	assert.NotNil(t, acnt)
-	assert.Equal(t, acnt.BaseAccount().Balance, *big.NewInt(0))
+	assert.Equal(t, acnt.BaseAccount().Balance, big.NewInt(0))
 }
 
 func TestAccountsDB_Commit2OkAccountsShouldWork(t *testing.T) {
@@ -235,21 +225,21 @@ func TestAccountsDB_Commit2OkAccountsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adr1, _, adb := generateAddressJurnalAccountAccountsDB()
-	buff := make([]byte, mock.HasherMock{}.Size())
+	buff := make([]byte, sha256.Sha256{}.Size())
 	rand.Read(buff)
-	adr2 := mock.NewAddressMock()
+	adr2 := createDummyAddress()
 
 	//first account has the balance of 40
 	state1, err := adb.GetJournalizedAccount(adr1)
 	assert.Nil(t, err)
-	err = state1.SetBalanceWithJournal(*big.NewInt(40))
+	err = state1.SetBalanceWithJournal(big.NewInt(40))
 	assert.Nil(t, err)
 
 	//second account has the balance of 50 and some data
 	state2, err := adb.GetJournalizedAccount(adr2)
 	assert.Nil(t, err)
 
-	err = state2.SetBalanceWithJournal(*big.NewInt(50))
+	err = state2.SetBalanceWithJournal(big.NewInt(50))
 	assert.Nil(t, err)
 	state2.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
 	err = adb.SaveData(state2)
@@ -269,12 +259,12 @@ func TestAccountsDB_Commit2OkAccountsShouldWork(t *testing.T) {
 	//checking state1
 	newState1, err := adb.GetJournalizedAccount(adr1)
 	assert.Nil(t, err)
-	assert.Equal(t, newState1.BaseAccount().Balance, *big.NewInt(40))
+	assert.Equal(t, newState1.BaseAccount().Balance, big.NewInt(40))
 
 	//checking state2
 	newState2, err := adb.GetJournalizedAccount(adr2)
 	assert.Nil(t, err)
-	assert.Equal(t, newState2.BaseAccount().Balance, *big.NewInt(50))
+	assert.Equal(t, newState2.BaseAccount().Balance, big.NewInt(50))
 	assert.NotNil(t, newState2.BaseAccount().RootHash)
 	//get data
 	err = adb.LoadDataTrie(newState2)
@@ -297,7 +287,7 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 	hrCreated := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - created account: %v\n", hrCreated)
 
-	err = state1.SetBalanceWithJournal(*big.NewInt(40))
+	err = state1.SetBalanceWithJournal(big.NewInt(40))
 	assert.Nil(t, err)
 	hrWithBalance := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance)
@@ -310,7 +300,7 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 	//commit hash == account with balance
 	assert.Equal(t, hrCommit, hrWithBalance)
 
-	err = state1.SetBalanceWithJournal(*big.NewInt(0))
+	err = state1.SetBalanceWithJournal(big.NewInt(0))
 	assert.Nil(t, err)
 
 	//root hash == hrCreated
@@ -330,8 +320,8 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := mock.NewAddressMock()
-	adr2 := mock.NewAddressMock()
+	adr1 := createDummyAddress()
+	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -387,8 +377,8 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := mock.NewAddressMock()
-	adr2 := mock.NewAddressMock()
+	adr1 := createDummyAddress()
+	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -418,12 +408,12 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	snapshotPreSet := adb.JournalLen()
 
 	//Step 3. Set balances and save data
-	err = state1.SetBalanceWithJournal(*big.NewInt(40))
+	err = state1.SetBalanceWithJournal(big.NewInt(40))
 	assert.Nil(t, err)
 	hrWithBalance1 := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance1)
 
-	err = state2.SetBalanceWithJournal(*big.NewInt(50))
+	err = state2.SetBalanceWithJournal(big.NewInt(50))
 	assert.Nil(t, err)
 	hrWithBalance2 := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - account with balance 50: %v\n", hrWithBalance2)
@@ -447,8 +437,8 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts code hash + code inside trie. adr2 has the same code hash
 	//revert should work
 
-	adr1 := mock.NewAddressMock()
-	adr2 := mock.NewAddressMock()
+	adr1 := createDummyAddress()
+	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -503,8 +493,8 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
-	adr1 := mock.NewAddressMock()
-	adr2 := mock.NewAddressMock()
+	adr1 := createDummyAddress()
+	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -564,8 +554,8 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
-	adr1 := mock.NewAddressMock()
-	adr2 := mock.NewAddressMock()
+	adr1 := createDummyAddress()
+	adr2 := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -641,8 +631,8 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := mock.NewAddressMock()
-	adrDest := mock.NewAddressMock()
+	adrSrc := createDummyAddress()
+	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -653,7 +643,7 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
-	err = acntSrc.SetBalanceWithJournal(*big.NewInt(1000))
+	err = acntSrc.SetBalanceWithJournal(big.NewInt(1000))
 	assert.Nil(t, err)
 
 	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
@@ -688,8 +678,8 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := mock.NewAddressMock()
-	adrDest := mock.NewAddressMock()
+	adrSrc := createDummyAddress()
+	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -700,7 +690,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
-	err = acntSrc.SetBalanceWithJournal(*big.NewInt(10000000))
+	err = acntSrc.SetBalanceWithJournal(big.NewInt(10000000))
 	assert.Nil(t, err)
 
 	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
@@ -719,8 +709,8 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := mock.NewAddressMock()
-	adrDest := mock.NewAddressMock()
+	adrSrc := createDummyAddress()
+	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -731,7 +721,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
-	err = acntSrc.SetBalanceWithJournal(*big.NewInt(10000000))
+	err = acntSrc.SetBalanceWithJournal(big.NewInt(10000000))
 	assert.Nil(t, err)
 
 	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
@@ -755,8 +745,8 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 }
 
 func BenchmarkTxExecution(b *testing.B) {
-	adrSrc := mock.NewAddressMock()
-	adrDest := mock.NewAddressMock()
+	adrSrc := createDummyAddress()
+	adrDest := createDummyAddress()
 
 	//Step 1. create accounts objects
 	adb := adbCreateAccountsDB()
@@ -767,7 +757,7 @@ func BenchmarkTxExecution(b *testing.B) {
 	assert.Nil(b, err)
 
 	//Set a high balance to src's account
-	err = acntSrc.SetBalanceWithJournal(*big.NewInt(10000000))
+	err = acntSrc.SetBalanceWithJournal(big.NewInt(10000000))
 	assert.Nil(b, err)
 
 	b.ResetTimer()

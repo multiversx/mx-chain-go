@@ -14,7 +14,7 @@ func TestAccount_MarshalUnmarshalNilSlice_ShouldWork(t *testing.T) {
 
 	acnt := &state.Account{
 		Nonce:            8,
-		Balance:          *big.NewInt(56),
+		Balance:          big.NewInt(56),
 		CodeHash:         nil,
 		RootHash:         nil,
 		RegistrationData: nil,
@@ -35,7 +35,7 @@ func TestAccount_MarshalUnmarshalEmptySlice_ShouldWork(t *testing.T) {
 
 	acnt := &state.Account{
 		Nonce:            8,
-		Balance:          *big.NewInt(56),
+		Balance:          big.NewInt(56),
 		CodeHash:         nil,
 		RootHash:         nil,
 		RegistrationData: make([]state.RegistrationData, 0),
@@ -56,14 +56,14 @@ func TestAccount_MarshalUnmarshalWithRegData_ShouldWork(t *testing.T) {
 
 	acnt := &state.Account{
 		Nonce:    8,
-		Balance:  *big.NewInt(56),
+		Balance:  big.NewInt(56),
 		CodeHash: nil,
 		RootHash: nil,
 		RegistrationData: []state.RegistrationData{
 			{
 				OriginatorPubKey: []byte("a"),
 				NodePubKey:       []byte("b"),
-				Stake:            *big.NewInt(5),
+				Stake:            big.NewInt(5),
 				Action:           state.ArRegister,
 			},
 		},
