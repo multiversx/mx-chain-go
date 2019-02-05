@@ -134,7 +134,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	if genesisConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
 		ntpTime := syncer.CurrentTime(syncer.ClockOffset())
-		genesisConfig.StartTime = (ntpTime.Unix()/60 + 7) * 60
+		genesisConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
 	}
 
 	startTime := time.Unix(genesisConfig.StartTime, 0)
