@@ -11,7 +11,7 @@ var emptyHash []byte
 // nodeIteratorState represents the iteration state at one particular node of the
 // trie, which can be resumed at a later invocation.
 type nodeIteratorState struct {
-	hash    []byte // Hash of the node being iterated (nil if not standalone)
+	hash    []byte // Hash of the node being iterated
 	node    Node   // Trie node being iterated
 	parent  []byte // Hash of the first full ancestor node (nil if current is the root)
 	index   int    // Child to be processed next
@@ -25,37 +25,21 @@ type nodeIterator struct {
 	err   error                // Failure set in case of an internal error in the iterator
 }
 
-// seekError is stored in nodeIterator.err if the initial seek has failed.
-type seekError struct {
-	key []byte
-	err error
-}
-
-func (e seekError) Error() string {
-	return "seek error: " + e.err.Error()
-}
-
-func newNodeIterator(trie *PatriciaMerkleTree, start []byte) *nodeIterator {
+func newNodeIterator(trie *PatriciaMerkleTree) *nodeIterator {
 	it := &nodeIterator{trie: trie}
-	it.err = it.seek(start)
 	return it
 }
 
 // Next moves the iterator to the next node, returning whether there are any
 // further nodes. In case of an internal error this method returns false and
-// sets the Error field to the encountered failure. If `descend` is false,
-// skips iterating over any subnodes of the current node.
-func (it *nodeIterator) Next(descend bool) bool {
-	if it.err == errIteratorEnd {
+// sets the Error field to the encountered failure.
+func (it *nodeIterator) Next() bool {
+	if it.err != nil {
 		return false
 	}
-	if seek, ok := it.err.(seekError); ok {
-		if it.err = it.seek(seek.key); it.err != nil {
-			return false
-		}
-	}
+
 	// Otherwise step forward with the iterator and report any errors.
-	state, parentIndex, path, err := it.peek(descend)
+	state, parentIndex, path, err := it.peek()
 	it.err = err
 	if it.err != nil {
 		return false
@@ -64,34 +48,60 @@ func (it *nodeIterator) Next(descend bool) bool {
 	return true
 }
 
-func (it *nodeIterator) seek(prefix []byte) error {
-	// The path we're looking for is the hex encoded key without terminator.
-	key := encoding.KeyBytesToHex(prefix)
-	key = key[:len(key)-1]
-	// Move forward until we're just before the closest match to key.
-	for {
-		state, parentIndex, path, err := it.peek(encoding.HasPrefix(key, it.path))
-		if err == errIteratorEnd {
-			return errIteratorEnd
-		} else if err != nil {
-			return seekError{prefix, err}
-		} else if bytes.Compare(path, key) >= 0 {
-			return nil
-		}
-		it.push(state, parentIndex, path)
+func (it *nodeIterator) Error() error {
+	return it.err
+}
+
+func (it *nodeIterator) Hash() []byte {
+	if len(it.stack) == 0 {
+		return []byte{}
 	}
+	return it.stack[len(it.stack)-1].hash
+}
+
+func (it *nodeIterator) Parent() []byte {
+	if len(it.stack) == 0 {
+		return []byte{}
+	}
+	return it.stack[len(it.stack)-1].parent
+}
+
+func (it *nodeIterator) Path() []byte {
+	return it.path
+}
+
+func (it *nodeIterator) Leaf() bool {
+	return encoding.HasTerm(it.path)
+}
+
+func (it *nodeIterator) LeafKey() []byte {
+	if len(it.stack) > 0 {
+		if _, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
+			return encoding.HexToKeyBytes(it.path)
+		}
+	}
+	panic("not at leaf")
+}
+
+func (it *nodeIterator) LeafBlob() []byte {
+	if len(it.stack) > 0 {
+		if node, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
+			return []byte(node)
+		}
+	}
+	panic("not at leaf")
 }
 
 // peek creates the next state of the iterator.
-func (it *nodeIterator) peek(descend bool) (*nodeIteratorState, *int, []byte, error) {
+func (it *nodeIterator) peek() (*nodeIteratorState, *int, []byte, error) {
 	if len(it.stack) == 0 {
 		// Initialize the iterator if we've just started.
+		root := it.trie.Root()
 		state := &nodeIteratorState{node: it.trie.root, index: -1}
+		if !bytes.Equal(root, emptyHash) {
+			state.hash = root
+		}
 		return state, nil, nil, nil
-	}
-	if !descend {
-		// If we're skipping children, pop the current node first
-		it.pop()
 	}
 
 	// Continue iteration to the next child
@@ -103,6 +113,11 @@ func (it *nodeIterator) peek(descend bool) (*nodeIteratorState, *int, []byte, er
 		}
 		state, path, ok := it.nextChild(parent, ancestor)
 		if ok {
+			node, err := SetHash(state.node)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			state.hash = node.GetHash()
 			return state, &parent.index, path, nil
 		}
 		// No more child nodes, move back up.

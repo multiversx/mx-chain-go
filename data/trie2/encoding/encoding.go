@@ -32,3 +32,26 @@ func PrefixLen(a, b []byte) int {
 func HasPrefix(s, prefix []byte) bool {
 	return len(s) >= len(prefix) && bytes.Equal(s[0:len(prefix)], prefix)
 }
+
+// HasTerm returns whether a hex key has the terminator flag.
+func HasTerm(s []byte) bool {
+	return len(s) > 0 && s[len(s)-1] == 16
+}
+
+// HexToKeyBytes turns hex nibbles into key bytes.
+// This can only be used for keys of even length.
+func HexToKeyBytes(hex []byte) []byte {
+	if HasTerm(hex) {
+		hex = hex[:len(hex)-1]
+	}
+	if len(hex)&1 != 0 {
+		panic("can't convert hex key of odd length")
+	}
+	key := make([]byte, len(hex)/2)
+
+	for bi, ni := 0, 0; ni < len(hex); bi, ni = bi+1, ni+2 {
+		key[bi] = hex[ni]<<4 | hex[ni+1]
+	}
+
+	return key
+}

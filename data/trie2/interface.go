@@ -16,7 +16,7 @@ type Node interface {
 type NodeIterator interface {
 	// Next moves the iterator to the next node. If the parameter is false, any child
 	// nodes will be skipped.
-	Next(bool) bool
+	Next() bool
 
 	// Error returns the error status of the iterator.
 	Error() error
@@ -25,7 +25,7 @@ type NodeIterator interface {
 	Hash() []byte
 
 	// Parent returns the hash of the parent of the current node. The hash may be the one
-	// grandparent if the immediate parent is an internal node with no hash.
+	// grandparent.
 	Parent() []byte
 
 	// Path returns the hex-encoded path to the current node.

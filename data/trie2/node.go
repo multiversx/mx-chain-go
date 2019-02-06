@@ -22,7 +22,7 @@ func (n *fullNode) GetHash() []byte  { return n.hash }
 func (n *shortNode) GetHash() []byte { return n.hash }
 func (n valueNode) GetHash() []byte  { return nil }
 
-func Hash(n Node) (Node, error) {
+func SetHash(n Node) (Node, error) {
 	node, err := nextChildren(n)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,6 @@ func Hash(n Node) (Node, error) {
 	}
 
 	return node, nil
-
 }
 
 func nextChildren(original Node) (Node, error) {
@@ -51,7 +50,7 @@ func nextChildren(original Node) (Node, error) {
 	case *shortNode:
 		node := n.copy()
 		if _, ok := n.Val.(valueNode); !ok {
-			node.Val, err = Hash(n.Val)
+			node.Val, err = SetHash(n.Val)
 			if err != nil {
 				return original, err
 			}
@@ -63,7 +62,7 @@ func nextChildren(original Node) (Node, error) {
 
 		for i := 0; i < 16; i++ {
 			if n.Children[i] != nil {
-				node.Children[i], err = Hash(n.Children[i])
+				node.Children[i], err = SetHash(n.Children[i])
 				if err != nil {
 					return original, err
 				}
@@ -79,7 +78,6 @@ func nextChildren(original Node) (Node, error) {
 }
 
 func hash(n Node) ([]byte, error) {
-
 	tmp, err := marshalizer.Marshal(n)
 	if err != nil {
 		return nil, err

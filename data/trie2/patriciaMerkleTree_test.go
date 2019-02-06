@@ -74,20 +74,6 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 	assert.Equal(t, root2, root1)
 }
 
-func TestPatriciaMerkleTree_Root(t *testing.T) {
-	tr := trie2.NewTrie()
-
-	tr.Update([]byte("doe"), []byte("reindeer"))
-	tr.Update([]byte("dog"), []byte("puppy"))
-	tr.Update([]byte("dogglesworth"), []byte("cat"))
-
-	expected := []byte{196, 44, 8, 246, 100, 243, 150, 29, 125, 145, 179, 219, 79, 44, 157,
-		9, 159, 63, 183, 158, 117, 199, 97, 28, 203, 125, 149, 223, 21, 233, 225, 113}
-
-	assert.Equal(t, tr.Root(), expected)
-
-}
-
 func TestPatriciaMerkleTree_Copy(t *testing.T) {
 	tr := trie2.NewTrie()
 	tr.Update([]byte("doe"), []byte("reindeer"))

@@ -1,20 +1,25 @@
 package trie2
 
 import (
-	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestNewTNodeIterator(t *testing.T) {
+func testTrie() *PatriciaMerkleTree {
 	tr := NewTrie()
 
 	tr.Update([]byte("doe"), []byte("reindeer"))
 	tr.Update([]byte("dog"), []byte("puppy"))
 	tr.Update([]byte("dogglesworth"), []byte("cat"))
 
-	it := newNodeIterator(tr, nil)
+	return tr
+}
 
-	for it.Next(true) {
-		fmt.Println(it.path)
-	}
+func TestNewNodeIterator(t *testing.T) {
+	tr := testTrie()
+
+	it := newNodeIterator(tr)
+
+	assert.NotNil(t, it)
 }

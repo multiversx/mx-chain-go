@@ -24,7 +24,7 @@ func NewTrie() *PatriciaMerkleTree {
 }
 
 func (tr *PatriciaMerkleTree) Root() []byte {
-	h, _ := Hash(tr.root)
+	h, _ := SetHash(tr.root)
 	return h.GetHash()
 }
 
@@ -70,8 +70,8 @@ func (tr *PatriciaMerkleTree) Get(key []byte) ([]byte, error) {
 }
 
 // Copy returns a copy of Trie.
-func (t *PatriciaMerkleTree) Copy() Trie {
-	cpy := *t
+func (tr *PatriciaMerkleTree) Copy() Trie {
+	cpy := *tr
 	return &cpy
 }
 
