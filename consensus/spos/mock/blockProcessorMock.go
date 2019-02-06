@@ -22,6 +22,7 @@ type BlockProcessorMock struct {
 	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
 }
 
+// SetOnRequestTransaction mocks setting request transaction call back function
 func (blProcMock *BlockProcessorMock) SetOnRequestTransaction(f func(destShardID uint32, txHash []byte)) {
 	blProcMock.SetOnRequestTransactionCalled(f)
 }
@@ -67,6 +68,7 @@ func (blProcMock *BlockProcessorMock) RemoveBlockTxsFromPool(body *block.TxBlock
 	return blProcMock.RemoveBlockTxsFromPoolCalled(body)
 }
 
+// GetRootHash mocks getting root hash
 func (blProcMock BlockProcessorMock) GetRootHash() []byte {
 	return blProcMock.GetRootHashCalled()
 }

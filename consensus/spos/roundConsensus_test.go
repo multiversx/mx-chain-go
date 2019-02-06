@@ -4,298 +4,112 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewRoundConsensus(t *testing.T) {
+	eligibleList := []string{"1", "2", "3"}
 
-	roundConsensus := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		3,
 		"2")
 
-	for i := 0; i < len(roundConsensus.ConsensusGroup()); i++ {
+	rcns.SetConsensusGroup(eligibleList)
 
-		roundConsensus.SetJobDone(roundConsensus.ConsensusGroup()[i], spos.SrBlock, false)
-		roundConsensus.SetJobDone(roundConsensus.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		roundConsensus.SetJobDone(roundConsensus.ConsensusGroup()[i], spos.SrBitmap, false)
-		roundConsensus.SetJobDone(roundConsensus.ConsensusGroup()[i], spos.SrCommitment, false)
-		roundConsensus.SetJobDone(roundConsensus.ConsensusGroup()[i], spos.SrSignature, false)
+	for i := 0; i < len(rcns.ConsensusGroup()); i++ {
+
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBlock, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitmentHash, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBitmap, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitment, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrSignature, false)
 	}
 
-	assert.Equal(t, 3, len(roundConsensus.ConsensusGroup()))
-	assert.Equal(t, "3", roundConsensus.ConsensusGroup()[2])
-	assert.Equal(t, "2", roundConsensus.SelfPubKey())
+	assert.Equal(t, 3, len(rcns.ConsensusGroup()))
+	assert.Equal(t, "3", rcns.ConsensusGroup()[2])
+	assert.Equal(t, "2", rcns.SelfPubKey())
 }
 
 func TestRoundConsensus_ResetValidationMap(t *testing.T) {
+	eligibleList := []string{"1", "2", "3"}
 
-	rCns := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		3,
 		"2")
 
-	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
+	rcns.SetConsensusGroup(eligibleList)
+
+	for i := 0; i < len(rcns.ConsensusGroup()); i++ {
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBlock, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitmentHash, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBitmap, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitment, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrSignature, false)
 	}
 
-	rCns.SetJobDone("1", spos.SrBlock, true)
-	jobDone, _ := rCns.GetJobDone("1", spos.SrBlock)
+	rcns.SetJobDone("1", bn.SrBlock, true)
+	jobDone, _ := rcns.GetJobDone("1", bn.SrBlock)
 	assert.Equal(t, true, jobDone)
 
-	rCns.ResetRoundState()
-	jobDone, err := rCns.GetJobDone("1", spos.SrBlock)
+	rcns.ResetRoundState()
+	jobDone, err := rcns.GetJobDone("1", bn.SrBlock)
 	assert.Equal(t, false, jobDone)
 	assert.Nil(t, err)
 }
 
-func TestRoundConsensus_IsNodeInBitmapGroup(t *testing.T) {
-
-	rCns := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
-		"2")
-
-	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
-	}
-
-	assert.Equal(t, false, rCns.IsValidatorInBitmap(rCns.SelfPubKey()))
-	rCns.SetJobDone(rCns.SelfPubKey(), spos.SrBitmap, true)
-	assert.Equal(t, true, rCns.IsValidatorInBitmap(rCns.SelfPubKey()))
-}
-
 func TestRoundConsensus_IsNodeInValidationGroup(t *testing.T) {
+	eligibleList := []string{"1", "2", "3"}
 
-	rCns := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		3,
 		"2")
 
-	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
+	rcns.SetConsensusGroup(eligibleList)
+
+	for i := 0; i < len(rcns.ConsensusGroup()); i++ {
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBlock, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitmentHash, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBitmap, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitment, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrSignature, false)
 	}
 
-	assert.Equal(t, false, rCns.IsNodeInConsensusGroup("4"))
-	assert.Equal(t, true, rCns.IsNodeInConsensusGroup(rCns.SelfPubKey()))
-}
-
-func TestRoundConsensus_IsBlockReceived(t *testing.T) {
-
-	rCns := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
-		"2")
-
-	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
-	}
-
-	ok := rCns.IsBlockReceived(1)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("1", spos.SrBlock, true)
-	isJobDone, _ := rCns.GetJobDone("1", spos.SrBlock)
-
-	assert.Equal(t, true, isJobDone)
-
-	ok = rCns.IsBlockReceived(1)
-	assert.Equal(t, true, ok)
-
-	ok = rCns.IsBlockReceived(2)
-	assert.Equal(t, false, ok)
-}
-
-func TestRoundConsensus_IsCommitmentHashReceived(t *testing.T) {
-
-	rCns := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
-		"2")
-
-	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
-	}
-
-	ok := rCns.IsCommitmentHashReceived(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("1", spos.SrCommitmentHash, true)
-	isJobDone, _ := rCns.GetJobDone("1", spos.SrCommitmentHash)
-	assert.Equal(t, true, isJobDone)
-
-	ok = rCns.IsCommitmentHashReceived(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("2", spos.SrCommitmentHash, true)
-	ok = rCns.IsCommitmentHashReceived(2)
-	assert.Equal(t, true, ok)
-
-	rCns.SetJobDone("3", spos.SrCommitmentHash, true)
-	ok = rCns.IsCommitmentHashReceived(2)
-	assert.Equal(t, true, ok)
-}
-
-func TestRoundConsensus_IsBitmapInCommitmentHash(t *testing.T) {
-
-	rCns := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
-		"2")
-
-	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
-	}
-
-	ok := rCns.CommitmentHashesCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("1", spos.SrBitmap, true)
-	rCns.SetJobDone("3", spos.SrBitmap, true)
-	isJobDone, _ := rCns.GetJobDone("3", spos.SrBitmap)
-	assert.Equal(t, true, isJobDone)
-
-	ok = rCns.CommitmentHashesCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("2", spos.SrCommitmentHash, true)
-	isJobDone, _ = rCns.GetJobDone("2", spos.SrCommitmentHash)
-	assert.Equal(t, true, isJobDone)
-
-	ok = rCns.CommitmentHashesCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("3", spos.SrCommitmentHash, true)
-	ok = rCns.CommitmentHashesCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("1", spos.SrCommitmentHash, true)
-	ok = rCns.CommitmentHashesCollected(2)
-	assert.Equal(t, true, ok)
-}
-
-func TestRoundConsensus_IsBitmapInCommitment(t *testing.T) {
-
-	rCns := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
-		"2")
-
-	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
-	}
-
-	ok := rCns.CommitmentsCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("1", spos.SrBitmap, true)
-	rCns.SetJobDone("3", spos.SrBitmap, true)
-	isJobDone, _ := rCns.GetJobDone("3", spos.SrBitmap)
-	assert.Equal(t, true, isJobDone)
-
-	ok = rCns.CommitmentsCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("2", spos.SrCommitment, true)
-	isJobDone, _ = rCns.GetJobDone("2", spos.SrCommitment)
-	assert.Equal(t, true, isJobDone)
-
-	ok = rCns.CommitmentsCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("3", spos.SrCommitment, true)
-	ok = rCns.CommitmentsCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("1", spos.SrCommitment, true)
-	ok = rCns.CommitmentsCollected(2)
-	assert.Equal(t, true, ok)
-}
-
-func TestRoundConsensus_IsBitmapInSignature(t *testing.T) {
-
-	rCns := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
-		"2")
-
-	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
-	}
-
-	ok := rCns.SignaturesCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("1", spos.SrBitmap, true)
-	rCns.SetJobDone("3", spos.SrBitmap, true)
-	isJobDone, _ := rCns.GetJobDone("3", spos.SrBitmap)
-	assert.Equal(t, true, isJobDone)
-
-	ok = rCns.SignaturesCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("2", spos.SrSignature, true)
-	isJobDone, _ = rCns.GetJobDone("2", spos.SrSignature)
-	assert.Equal(t, true, isJobDone)
-
-	ok = rCns.SignaturesCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("3", spos.SrSignature, true)
-	ok = rCns.SignaturesCollected(2)
-	assert.Equal(t, false, ok)
-
-	rCns.SetJobDone("1", spos.SrSignature, true)
-	ok = rCns.SignaturesCollected(2)
-	assert.Equal(t, true, ok)
+	assert.Equal(t, false, rcns.IsNodeInConsensusGroup("4"))
+	assert.Equal(t, true, rcns.IsNodeInConsensusGroup(rcns.SelfPubKey()))
 }
 
 func TestRoundConsensus_ComputeSize(t *testing.T) {
+	eligibleList := []string{"1", "2", "3"}
 
-	rCns := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		3,
 		"2")
 
-	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBlock, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitmentHash, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrCommitment, false)
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrSignature, false)
+	rcns.SetConsensusGroup(eligibleList)
+
+	for i := 0; i < len(rcns.ConsensusGroup()); i++ {
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBlock, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitmentHash, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBitmap, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitment, false)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrSignature, false)
 	}
 
-	rCns.SetJobDone("1", spos.SrBlock, true)
-	assert.Equal(t, 1, rCns.ComputeSize(spos.SrBlock))
+	rcns.SetJobDone("1", bn.SrBlock, true)
+	assert.Equal(t, 1, rcns.ComputeSize(bn.SrBlock))
 }
 
 func TestRoundConsensus_ConsensusGroupIndexFound(t *testing.T) {
 	pubKeys := []string{"key1", "key2", "key3"}
 
-	rCns := spos.NewRoundConsensus(pubKeys, "key3")
-	index, err := rCns.ConsensusGroupIndex("key3")
+	rcns := spos.NewRoundConsensus(pubKeys, 3, "key3")
+	rcns.SetConsensusGroup(pubKeys)
+	index, err := rcns.ConsensusGroupIndex("key3")
 
 	assert.Equal(t, 2, index)
 	assert.Nil(t, err)
@@ -304,8 +118,9 @@ func TestRoundConsensus_ConsensusGroupIndexFound(t *testing.T) {
 func TestRoundConsensus_ConsensusGroupIndexNotFound(t *testing.T) {
 	pubKeys := []string{"key1", "key2", "key3"}
 
-	rCns := spos.NewRoundConsensus(pubKeys, "key4")
-	index, err := rCns.ConsensusGroupIndex("key4")
+	rcns := spos.NewRoundConsensus(pubKeys, 3, "key4")
+	rcns.SetConsensusGroup(pubKeys)
+	index, err := rcns.ConsensusGroupIndex("key4")
 
 	assert.Zero(t, index)
 	assert.Equal(t, spos.ErrSelfNotFoundInConsensus, err)
@@ -314,8 +129,9 @@ func TestRoundConsensus_ConsensusGroupIndexNotFound(t *testing.T) {
 func TestRoundConsensus_IndexSelfConsensusGroupInConsesus(t *testing.T) {
 	pubKeys := []string{"key1", "key2", "key3"}
 
-	rCns := spos.NewRoundConsensus(pubKeys, "key2")
-	index, err := rCns.IndexSelfConsensusGroup()
+	rcns := spos.NewRoundConsensus(pubKeys, 3, "key2")
+	rcns.SetConsensusGroup(pubKeys)
+	index, err := rcns.IndexSelfConsensusGroup()
 
 	assert.Equal(t, 1, index)
 	assert.Nil(t, err)
@@ -324,67 +140,112 @@ func TestRoundConsensus_IndexSelfConsensusGroupInConsesus(t *testing.T) {
 func TestRoundConsensus_IndexSelfConsensusGroupNotFound(t *testing.T) {
 	pubKeys := []string{"key1", "key2", "key3"}
 
-	rCns := spos.NewRoundConsensus(pubKeys, "key4")
-	index, err := rCns.IndexSelfConsensusGroup()
+	rcns := spos.NewRoundConsensus(pubKeys, 3, "key4")
+	rcns.SetConsensusGroup(pubKeys)
+	index, err := rcns.IndexSelfConsensusGroup()
 
 	assert.Zero(t, index)
 	assert.Equal(t, spos.ErrSelfNotFoundInConsensus, err)
 }
 
 func TestRoundConsensus_SetConsensusGroupShouldChangeTheConsensusGroup(t *testing.T) {
-	rndc := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
-		"1")
+	eligibleList := []string{"1", "2", "3"}
 
-	rndc.SetConsensusGroup([]string{"4", "5", "6"})
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		3,
+		"2")
 
-	assert.Equal(t, "4", rndc.ConsensusGroup()[0])
-	assert.Equal(t, "5", rndc.ConsensusGroup()[1])
-	assert.Equal(t, "6", rndc.ConsensusGroup()[2])
+	rcns.SetConsensusGroup(eligibleList)
+
+	rcns.SetConsensusGroup([]string{"4", "5", "6"})
+
+	assert.Equal(t, "4", rcns.ConsensusGroup()[0])
+	assert.Equal(t, "5", rcns.ConsensusGroup()[1])
+	assert.Equal(t, "6", rcns.ConsensusGroup()[2])
 }
 
 func TestRoundConsensus_GetJobDoneShouldReturnsFalseWhenValidatorIsNotInTheConsensusGroup(t *testing.T) {
-	rndc := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
-		"1")
+	eligibleList := []string{"1", "2", "3"}
 
-	rndc.SetJobDone("3", spos.SrBlock, true)
-	rndc.SetConsensusGroup([]string{"1", "2"})
-	isJobDone, _ := rndc.GetJobDone("3", spos.SrBlock)
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		3,
+		"2")
+
+	rcns.SetConsensusGroup(eligibleList)
+
+	rcns.SetJobDone("3", bn.SrBlock, true)
+	rcns.SetConsensusGroup([]string{"1", "2"})
+	isJobDone, _ := rcns.GetJobDone("3", bn.SrBlock)
 	assert.False(t, isJobDone)
 }
 
 func TestRoundConsensus_SetJobDoneShouldNotBeSetWhenValidatorIsNotInTheConsensusGroup(t *testing.T) {
-	rndc := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
-		"1")
+	eligibleList := []string{"1", "2", "3"}
 
-	rndc.SetJobDone("4", spos.SrBlock, true)
-	isJobDone, _ := rndc.GetJobDone("4", spos.SrBlock)
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		3,
+		"2")
+
+	rcns.SetConsensusGroup(eligibleList)
+
+	rcns.SetJobDone("4", bn.SrBlock, true)
+	isJobDone, _ := rcns.GetJobDone("4", bn.SrBlock)
 	assert.False(t, isJobDone)
 }
 
-func TestIsSelfInBitmapGroup_ShoudReturnFalse(t *testing.T) {
-	rCns := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
+func TestSetSelfJobDone_ShouldWork(t *testing.T) {
+	eligibleList := []string{"1", "2", "3"}
+
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		3,
 		"2")
 
-	for i := 0; i < len(rCns.ConsensusGroup()); i++ {
-		if rCns.ConsensusGroup()[i] == rCns.SelfPubKey() {
+	rcns.SetConsensusGroup(eligibleList)
+
+	rcns.SetSelfJobDone(bn.SrBlock, true)
+
+	jobDone, _ := rcns.GetJobDone("2", bn.SrBlock)
+	assert.True(t, jobDone)
+}
+
+func TestGetSelfJobDone_ShouldReturnFalse(t *testing.T) {
+	eligibleList := []string{"1", "2", "3"}
+
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		3,
+		"2")
+
+	rcns.SetConsensusGroup(eligibleList)
+
+	for i := 0; i < len(rcns.ConsensusGroup()); i++ {
+		if rcns.ConsensusGroup()[i] == rcns.SelfPubKey() {
 			continue
 		}
 
-		rCns.SetJobDone(rCns.ConsensusGroup()[i], spos.SrBitmap, true)
+		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBlock, true)
 	}
 
-	assert.False(t, rCns.IsSelfInBitmap())
+	jobDone, _ := rcns.GetSelfJobDone(bn.SrBlock)
+	assert.False(t, jobDone)
 }
 
-func TestIsSelfInBitmapGroup_ShoudReturnTrue(t *testing.T) {
-	rCns := spos.NewRoundConsensus(
-		[]string{"1", "2", "3"},
+func TestGetSelfJobDone_ShouldReturnTrue(t *testing.T) {
+	eligibleList := []string{"1", "2", "3"}
+
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		3,
 		"2")
 
-	rCns.SetJobDone(rCns.SelfPubKey(), spos.SrBitmap, true)
-	assert.True(t, rCns.IsSelfInBitmap())
+	rcns.SetConsensusGroup(eligibleList)
+
+	rcns.SetJobDone("2", bn.SrBlock, true)
+
+	jobDone, _ := rcns.GetSelfJobDone(bn.SrBlock)
+	assert.True(t, jobDone)
 }

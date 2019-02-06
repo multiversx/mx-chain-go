@@ -6,6 +6,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 )
 
+// sleepTime defines the time in milliseconds between each iteration made in DoWork methods of the subrounds
+const sleepTime = time.Duration(5 * time.Millisecond)
+
 // Subround defines the data needed by one subround. Actually it defines a subround with it's properties (it's ID,
 // next subround ID, it's duration, it's name and also it has some handler functions which should be set. work funvtion
 // will be the main function of this subround, extend function will handle the overtime situation of the subround and
