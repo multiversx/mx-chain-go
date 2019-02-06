@@ -4,15 +4,6 @@ import (
 	"errors"
 )
 
-// ErrNilChronology is raised when an operation is attempted with a nil chronology
-var ErrNilChronology = errors.New("chronology is null")
-
-// ErrNilRound is raised when an operation is attempted with a nil round
-var ErrNilRound = errors.New("round is null")
-
-// ErrNegativeRoundIndex is raised when an operation is attempted with a negative round index
-var ErrNegativeRoundIndex = errors.New("round index is negative")
-
 // ErrNilConsensusGroup is raised when an operation is attempted with a nil consensus group
 var ErrNilConsensusGroup = errors.New("consensusGroup is null")
 
@@ -81,3 +72,6 @@ var ErrNilRoundState = errors.New("round state is nil")
 
 // ErrCommitmentHashDoesNotMatch is raised when the commitment hash does not match expected value
 var ErrCommitmentHashDoesNotMatch = errors.New("commitment hash does not match")
+
+// ErrNilWorker is raised when a valid worker is expected but nil used
+var ErrNilWorker = errors.New("worker is nil")

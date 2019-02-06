@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -195,14 +196,14 @@ func (n *Node) StartConsensus() error {
 	rndc := n.createRoundConsensus()
 	rth := n.createRoundThreshold()
 	rnds := n.createRoundStatus()
-	cns := n.createConsensus(rndc, rth, rnds, chr)
-	sposWrk, err := n.createConsensusWorker(cns, boot)
+	sps := n.createSpos(rndc, rth, rnds, chr)
+	wrk, err := n.createSposWorker(sps, boot)
 
 	if err != nil {
 		return err
 	}
 
-	topic := n.createConsensusTopic(sposWrk)
+	topic := n.createConsensusTopic(wrk)
 
 	err = n.messenger.AddTopic(topic)
 
@@ -210,9 +211,7 @@ func (n *Node) StartConsensus() error {
 		log.Debug(fmt.Sprintf(err.Error()))
 	}
 
-	n.addSubroundsToChronology(sposWrk)
-
-	go sposWrk.Cns.Chr.StartRounds()
+	go wrk.SPoS.Chr.StartRounds()
 
 	return nil
 }
@@ -423,9 +422,9 @@ func (n *Node) createRoundConsensus() *spos.RoundConsensus {
 		return nil
 	}
 
-	nodes := n.initialNodesPubkeys[0:n.consensusGroupSize]
 	rndc := spos.NewRoundConsensus(
-		nodes,
+		n.initialNodesPubkeys,
+		n.consensusGroupSize,
 		string(selfId))
 
 	rndc.ResetRoundState()
@@ -436,15 +435,6 @@ func (n *Node) createRoundConsensus() *spos.RoundConsensus {
 // createRoundThreshold method creates a RoundThreshold object
 func (n *Node) createRoundThreshold() *spos.RoundThreshold {
 	rth := spos.NewRoundThreshold()
-
-	pbftThreshold := n.consensusGroupSize*2/3 + 1
-
-	rth.SetThreshold(spos.SrBlock, 1)
-	rth.SetThreshold(spos.SrCommitmentHash, pbftThreshold)
-	rth.SetThreshold(spos.SrBitmap, pbftThreshold)
-	rth.SetThreshold(spos.SrCommitment, pbftThreshold)
-	rth.SetThreshold(spos.SrSignature, pbftThreshold)
-
 	return rth
 }
 
@@ -457,10 +447,10 @@ func (n *Node) createRoundStatus() *spos.RoundStatus {
 	return rnds
 }
 
-// createConsensus method creates a Consensus object
-func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThreshold, rnds *spos.RoundStatus, chr *chronology.Chronology,
-) *spos.Consensus {
-	cns := spos.NewConsensus(
+// createSpos method creates a Spos object
+func (n *Node) createSpos(rndc *spos.RoundConsensus, rth *spos.RoundThreshold, rnds *spos.RoundStatus, chr *chronology.Chronology,
+) *spos.Spos {
+	cns := spos.NewSpos(
 		nil,
 		rndc,
 		rth,
@@ -470,10 +460,10 @@ func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThresho
 	return cns
 }
 
-// createConsensusWorker method creates a ConsensusWorker object
-func (n *Node) createConsensusWorker(cns *spos.Consensus, boot *sync.Bootstrap) (*spos.SPOSConsensusWorker, error) {
-	sposWrk, err := spos.NewConsensusWorker(
-		cns,
+// createSposWorker method creates a ConsensusWorker object
+func (n *Node) createSposWorker(spos *spos.Spos, boot *sync.Bootstrap) (*bn.Worker, error) {
+	wrk, err := bn.NewWorker(
+		spos,
 		n.blkc,
 		n.hasher,
 		n.marshalizer,
@@ -489,94 +479,18 @@ func (n *Node) createConsensusWorker(cns *spos.Consensus, boot *sync.Bootstrap) 
 		return nil, err
 	}
 
-	sposWrk.SendMessage = n.sendMessage
-	sposWrk.BroadcastBlockBody = n.broadcastBlockBody
-	sposWrk.BroadcastHeader = n.broadcastHeader
+	wrk.SendMessage = n.sendMessage
+	wrk.BroadcastBlockBody = n.broadcastBlockBody
+	wrk.BroadcastHeader = n.broadcastHeader
 
-	return sposWrk, nil
+	return wrk, nil
 }
 
 // createConsensusTopic creates a consensus topic for node
-func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) *p2p.Topic {
+func (n *Node) createConsensusTopic(sposWrk *bn.Worker) *p2p.Topic {
 	t := p2p.NewTopic(string(ConsensusTopic), &spos.ConsensusData{}, n.marshalizer)
 	t.AddDataReceived(sposWrk.ReceivedMessage)
 	return t
-}
-
-// addSubroundsToChronology adds subrounds to chronology
-func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
-	roundDuration := sposWrk.Cns.Chr.Round().TimeDuration()
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrStartRound),
-		chronology.SubroundId(spos.SrBlock), int64(roundDuration*5/100),
-		sposWrk.Cns.GetSubroundName(spos.SrStartRound),
-		sposWrk.DoStartRoundJob,
-		sposWrk.ExtendStartRound,
-		sposWrk.Cns.CheckStartRoundConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
-		int64(roundDuration*25/100),
-		sposWrk.Cns.GetSubroundName(spos.SrBlock),
-		sposWrk.DoBlockJob,
-		sposWrk.ExtendBlock,
-		sposWrk.Cns.CheckBlockConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrCommitmentHash),
-		chronology.SubroundId(spos.SrBitmap),
-		int64(roundDuration*40/100),
-		sposWrk.Cns.GetSubroundName(spos.SrCommitmentHash),
-		sposWrk.DoCommitmentHashJob,
-		sposWrk.ExtendCommitmentHash,
-		sposWrk.Cns.CheckCommitmentHashConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrBitmap),
-		chronology.SubroundId(spos.SrCommitment),
-		int64(roundDuration*55/100),
-		sposWrk.Cns.GetSubroundName(spos.SrBitmap),
-		sposWrk.DoBitmapJob,
-		sposWrk.ExtendBitmap,
-		sposWrk.Cns.CheckBitmapConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrCommitment),
-		chronology.SubroundId(spos.SrSignature),
-		int64(roundDuration*70/100),
-		sposWrk.Cns.GetSubroundName(spos.SrCommitment),
-		sposWrk.DoCommitmentJob,
-		sposWrk.ExtendCommitment,
-		sposWrk.Cns.CheckCommitmentConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrSignature),
-		chronology.SubroundId(spos.SrEndRound),
-		int64(roundDuration*85/100),
-		sposWrk.Cns.GetSubroundName(spos.SrSignature),
-		sposWrk.DoSignatureJob,
-		sposWrk.ExtendSignature,
-		sposWrk.Cns.CheckSignatureConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrEndRound),
-		chronology.SubroundId(spos.SrAdvance),
-		int64(roundDuration*95/100),
-		sposWrk.Cns.GetSubroundName(spos.SrEndRound),
-		sposWrk.DoEndRoundJob,
-		sposWrk.ExtendEndRound,
-		sposWrk.Cns.CheckEndRoundConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrAdvance),
-		-1,
-		int64(roundDuration*100/100),
-		sposWrk.Cns.GetSubroundName(spos.SrAdvance),
-		sposWrk.DoAdvanceJob,
-		nil,
-		sposWrk.Cns.CheckAdvanceConsensus))
 }
 
 func (n *Node) generateAndSignTx(

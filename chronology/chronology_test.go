@@ -348,7 +348,7 @@ func TestRoundTimeStamp_ShouldReturnCorrectTimeStamp(t *testing.T) {
 	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
 	chr := chronology.NewChronology(true, rnd, genesisTime, ntp.NewSyncTime(roundTimeDuration, nil))
 
-	timeStamp := chr.RoundTimeStamp(2)
+	timeStamp := chr.RoundTimeStampFromIndex(2)
 
 	assert.Equal(t, genesisTime.Add(time.Duration(2*rnd.TimeDuration())).Unix(), int64(timeStamp))
 }
@@ -500,4 +500,34 @@ func TestChronology_UpdateSelfSubroundIfNeededShouldShouldChange(t *testing.T) {
 	chr.UpdateSelfSubroundIfNeeded(subRoundId)
 
 	assert.Equal(t, nextSubRoundId, chr.SelfSubround())
+}
+
+func TestRemoveAllSubrounds_ShouldReturnEmptySubroundHandlersArray(t *testing.T) {
+	genesisTime := time.Now()
+	currentTime := genesisTime
+
+	rnd := chronology.NewRound(
+		genesisTime,
+		currentTime,
+		roundTimeDuration)
+
+	chr := chronology.NewChronology(
+		true,
+		rnd,
+		genesisTime,
+		ntp.NewSyncTime(roundTimeDuration, nil))
+
+	chr.AddSubround(&SRStartRound{})
+	chr.AddSubround(&SRBlock{})
+	chr.AddSubround(&SRCommitmentHash{})
+	chr.AddSubround(&SRBitmap{})
+	chr.AddSubround(&SRCommitment{})
+	chr.AddSubround(&SRSignature{})
+	chr.AddSubround(&SREndRound{})
+
+	assert.Equal(t, 7, len(chr.SubroundHandlers()))
+
+	chr.RemoveAllSubrounds()
+
+	assert.Equal(t, 0, len(chr.SubroundHandlers()))
 }

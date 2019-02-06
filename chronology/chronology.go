@@ -2,6 +2,7 @@ package chronology
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
@@ -40,8 +41,8 @@ type Chronology struct {
 
 	subroundHandlers []SubroundHandler
 	subrounds        map[SubroundId]int
-
-	syncTime ntp.SyncTimer
+	mut              sync.RWMutex
+	syncTime         ntp.SyncTimer
 }
 
 // NewChronology defines a new Chr object
@@ -73,21 +74,39 @@ func NewChronology(
 func (chr *Chronology) initRound() {
 	chr.SetSelfSubround(-1)
 
+	chr.mut.RLock()
+
 	if len(chr.subroundHandlers) > 0 {
 		chr.SetSelfSubround(chr.subroundHandlers[0].Current())
 	}
 
+	chr.mut.RUnlock()
+
 	chr.clockOffset = chr.syncTime.ClockOffset()
+}
+
+// RemoveAllSubrounds removes all the SubroundHandler implementations added to the chronology
+func (chr *Chronology) RemoveAllSubrounds() {
+	chr.mut.Lock()
+
+	chr.subroundHandlers = make([]SubroundHandler, 0)
+	chr.subrounds = make(map[SubroundId]int)
+
+	chr.mut.Unlock()
 }
 
 // AddSubround adds new SubroundHandler implementation to the chronology
 func (chr *Chronology) AddSubround(subroundHandler SubroundHandler) {
+	chr.mut.Lock()
+
 	if chr.subrounds == nil {
 		chr.subrounds = make(map[SubroundId]int)
 	}
 
 	chr.subrounds[subroundHandler.Current()] = len(chr.subroundHandlers)
 	chr.subroundHandlers = append(chr.subroundHandlers, subroundHandler)
+
+	chr.mut.Unlock()
 }
 
 // StartRounds actually starts the chronology and runs the subroundHandlers loaded
@@ -171,7 +190,11 @@ func (chr *Chronology) updateRound() SubroundId {
 
 // LoadSubroundHandler returns the implementation of SubroundHandler attached to the subround given
 func (chr *Chronology) LoadSubroundHandler(subround SubroundId) SubroundHandler {
+	chr.mut.RLock()
+	defer chr.mut.RUnlock()
+
 	index, ok := chr.subrounds[subround]
+
 	if !ok || index < 0 || index >= len(chr.subroundHandlers) {
 		return nil
 	}
@@ -179,8 +202,18 @@ func (chr *Chronology) LoadSubroundHandler(subround SubroundId) SubroundHandler 
 	return chr.subroundHandlers[index]
 }
 
+// GetSubround method returns current subround taking in consideration the current time
+func (chr *Chronology) GetSubround() SubroundId {
+	currentTime := chr.syncTime.CurrentTime(chr.clockOffset)
+
+	return chr.GetSubroundFromDateTime(currentTime)
+}
+
 // GetSubroundFromDateTime returns subround in the current round related to the time given
 func (chr *Chronology) GetSubroundFromDateTime(timeStamp time.Time) SubroundId {
+	chr.mut.RLock()
+	defer chr.mut.RUnlock()
+
 	delta := timeStamp.Sub(chr.round.timeStamp).Nanoseconds()
 
 	if delta < 0 || delta > chr.round.timeDuration.Nanoseconds() {
@@ -196,8 +229,18 @@ func (chr *Chronology) GetSubroundFromDateTime(timeStamp time.Time) SubroundId {
 	return -1
 }
 
-// RoundTimeStamp method returns time stamp of a round from a given index
-func (chr *Chronology) RoundTimeStamp(index int32) uint64 {
+// GetFormattedTime method returns formatted current time
+func (chr *Chronology) GetFormattedTime() string {
+	return chr.syncTime.FormattedCurrentTime(chr.clockOffset)
+}
+
+// RoundTimeStamp method returns time stamp of the current round
+func (chr *Chronology) RoundTimeStamp() uint64 {
+	return chr.RoundTimeStampFromIndex(chr.Round().Index())
+}
+
+// RoundTimeStampFromIndex method returns time stamp of a round from a given index
+func (chr *Chronology) RoundTimeStampFromIndex(index int32) uint64 {
 	return uint64(chr.genesisTime.Add(time.Duration(int64(index) * int64(chr.round.timeDuration))).Unix())
 }
 

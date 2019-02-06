@@ -32,6 +32,7 @@ type BelNevMock struct {
 	CommitmentMock           func(uint16) ([]byte, error)
 }
 
+// NewMultiSigner create a BelNevMock object
 func NewMultiSigner() *BelNevMock {
 	multisigner := &BelNevMock{}
 	multisigner.commitments = make([][]byte, 21)
@@ -174,7 +175,7 @@ func (bnm *BelNevMock) AggregateSigs(bitmap []byte) ([]byte, error) {
 	return bnm.AggregateSigsMock(bitmap)
 }
 
-// SignatureShare
+// SignatureShare returns the signature from the list with the specified position
 func (bnm *BelNevMock) SignatureShare(index uint16) ([]byte, error) {
 	if index >= uint16(len(bnm.sigs)) {
 		return nil, crypto.ErrInvalidIndex

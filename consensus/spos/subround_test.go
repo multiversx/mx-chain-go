@@ -8,10 +8,31 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/stretchr/testify/assert"
 )
 
-func InitSubround() (*chronology.Chronology, *spos.Consensus) {
+func DoSubroundJob() bool {
+	fmt.Printf("do job\n")
+	time.Sleep(5 * time.Millisecond)
+	return true
+}
+
+func DoExtendSubround() {
+	fmt.Printf("do extend subround\n")
+}
+
+func DoCheckConsensusWithSuccess() bool {
+	fmt.Printf("do check consensus with success in subround \n")
+	return true
+}
+
+func DoCheckConsensusWithoutSuccess() bool {
+	fmt.Printf("do check consensus without success in subround \n")
+	return false
+}
+
+func InitSubround() (*chronology.Chronology, *spos.Spos) {
 
 	genesisTime := time.Now()
 	currentTime := genesisTime
@@ -27,41 +48,42 @@ func InitSubround() (*chronology.Chronology, *spos.Consensus) {
 		ntp.NewSyncTime(RoundTimeDuration, nil),
 	)
 
-	vld := spos.NewRoundConsensus(
+	rcns := spos.NewRoundConsensus(
 		[]string{"1", "2", "3", "4", "5", "6", "7", "8", "9"},
+		9,
 		"1")
 
-	for i := 0; i < len(vld.ConsensusGroup()); i++ {
-		vld.ResetRoundState()
+	for i := 0; i < len(rcns.ConsensusGroup()); i++ {
+		rcns.ResetRoundState()
 	}
 
-	pbft := 2*len(vld.ConsensusGroup())/3 + 1
+	pbft := 2*len(rcns.ConsensusGroup())/3 + 1
 
-	rt := spos.NewRoundThreshold()
+	rthr := spos.NewRoundThreshold()
 
-	rt.SetThreshold(spos.SrBlock, 1)
-	rt.SetThreshold(spos.SrCommitmentHash, pbft)
-	rt.SetThreshold(spos.SrBitmap, pbft)
-	rt.SetThreshold(spos.SrCommitment, pbft)
-	rt.SetThreshold(spos.SrSignature, pbft)
+	rthr.SetThreshold(bn.SrBlock, 1)
+	rthr.SetThreshold(bn.SrCommitmentHash, pbft)
+	rthr.SetThreshold(bn.SrBitmap, pbft)
+	rthr.SetThreshold(bn.SrCommitment, pbft)
+	rthr.SetThreshold(bn.SrSignature, pbft)
 
-	rs := spos.NewRoundStatus()
+	rstatus := spos.NewRoundStatus()
 
-	rs.SetStatus(spos.SrBlock, spos.SsNotFinished)
-	rs.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
-	rs.SetStatus(spos.SrBitmap, spos.SsNotFinished)
-	rs.SetStatus(spos.SrCommitment, spos.SsNotFinished)
-	rs.SetStatus(spos.SrSignature, spos.SsNotFinished)
+	rstatus.SetStatus(bn.SrBlock, spos.SsNotFinished)
+	rstatus.SetStatus(bn.SrCommitmentHash, spos.SsNotFinished)
+	rstatus.SetStatus(bn.SrBitmap, spos.SsNotFinished)
+	rstatus.SetStatus(bn.SrCommitment, spos.SsNotFinished)
+	rstatus.SetStatus(bn.SrSignature, spos.SsNotFinished)
 
-	cns := spos.NewConsensus(
+	sps := spos.NewSpos(
 		nil,
-		vld,
-		rt,
-		rs,
+		rcns,
+		rthr,
+		rstatus,
 		chr,
 	)
 
-	return chr, cns
+	return chr, sps
 }
 
 func TestSubround_DoWork1(t *testing.T) {
@@ -70,8 +92,8 @@ func TestSubround_DoWork1(t *testing.T) {
 
 	chr, _ := InitSubround()
 
-	sr := spos.NewSubround(chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
+	sr := spos.NewSubround(chronology.SubroundId(bn.SrBlock),
+		chronology.SubroundId(bn.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
 		DoSubroundJob,
@@ -98,8 +120,8 @@ func TestSubround_DoWork2(t *testing.T) {
 
 	chr, _ := InitSubround()
 
-	sr := spos.NewSubround(chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
+	sr := spos.NewSubround(chronology.SubroundId(bn.SrBlock),
+		chronology.SubroundId(bn.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
 		DoSubroundJob,
@@ -126,8 +148,8 @@ func TestSubround_DoWork3(t *testing.T) {
 
 	chr, _ := InitSubround()
 
-	sr1 := spos.NewSubround(chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
+	sr1 := spos.NewSubround(chronology.SubroundId(bn.SrBlock),
+		chronology.SubroundId(bn.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
 		DoSubroundJob,
@@ -136,8 +158,8 @@ func TestSubround_DoWork3(t *testing.T) {
 
 	chr.AddSubround(sr1)
 
-	sr2 := spos.NewSubround(chronology.SubroundId(spos.SrCommitmentHash),
-		chronology.SubroundId(spos.SrBitmap),
+	sr2 := spos.NewSubround(chronology.SubroundId(bn.SrCommitmentHash),
+		chronology.SubroundId(bn.SrBitmap),
 		int64(40*RoundTimeDuration/100),
 		"<COMMITMENT_HASH>",
 		DoSubroundJob,
@@ -166,8 +188,8 @@ func TestSubround_DoWork4(t *testing.T) {
 
 	chr, _ := InitSubround()
 
-	sr1 := spos.NewSubround(chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
+	sr1 := spos.NewSubround(chronology.SubroundId(bn.SrBlock),
+		chronology.SubroundId(bn.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
 		DoSubroundJob,
@@ -176,8 +198,8 @@ func TestSubround_DoWork4(t *testing.T) {
 
 	chr.AddSubround(sr1)
 
-	sr2 := spos.NewSubround(chronology.SubroundId(spos.SrCommitmentHash),
-		chronology.SubroundId(spos.SrBitmap),
+	sr2 := spos.NewSubround(chronology.SubroundId(bn.SrCommitmentHash),
+		chronology.SubroundId(bn.SrBitmap),
 		int64(40*RoundTimeDuration/100),
 		"<COMMITMENT_HASH>",
 		DoSubroundJob,
@@ -200,8 +222,8 @@ func TestSubround_DoWork4(t *testing.T) {
 
 func TestNewSubround(t *testing.T) {
 
-	sr := spos.NewSubround(chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
+	sr := spos.NewSubround(chronology.SubroundId(bn.SrBlock),
+		chronology.SubroundId(bn.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
 		nil,
@@ -213,34 +235,34 @@ func TestNewSubround(t *testing.T) {
 
 func TestSubround_Current(t *testing.T) {
 
-	sr := spos.NewSubround(chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
+	sr := spos.NewSubround(chronology.SubroundId(bn.SrBlock),
+		chronology.SubroundId(bn.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
 		nil,
 		nil,
 		nil)
 
-	assert.Equal(t, chronology.SubroundId(spos.SrBlock), sr.Current())
+	assert.Equal(t, chronology.SubroundId(bn.SrBlock), sr.Current())
 }
 
 func TestSubround_Next(t *testing.T) {
 
-	sr := spos.NewSubround(chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
+	sr := spos.NewSubround(chronology.SubroundId(bn.SrBlock),
+		chronology.SubroundId(bn.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
 		nil,
 		nil,
 		nil)
 
-	assert.Equal(t, chronology.SubroundId(spos.SrCommitmentHash), sr.Next())
+	assert.Equal(t, chronology.SubroundId(bn.SrCommitmentHash), sr.Next())
 }
 
 func TestSubround_EndTime(t *testing.T) {
 
-	sr := spos.NewSubround(chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
+	sr := spos.NewSubround(chronology.SubroundId(bn.SrBlock),
+		chronology.SubroundId(bn.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
 		nil,
@@ -252,8 +274,8 @@ func TestSubround_EndTime(t *testing.T) {
 
 func TestSubround_Name(t *testing.T) {
 
-	sr := spos.NewSubround(chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
+	sr := spos.NewSubround(chronology.SubroundId(bn.SrBlock),
+		chronology.SubroundId(bn.SrCommitmentHash),
 		int64(25*RoundTimeDuration/100),
 		"<BLOCK>",
 		nil,
