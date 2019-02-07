@@ -99,6 +99,7 @@ type Consensus struct {
 	shouldCheckConsensus bool
 
 	Chr *chronology.Chronology
+	mut sync.Mutex
 }
 
 // NewConsensus creates a new Consensus object
@@ -121,7 +122,12 @@ func NewConsensus(
 	return &cns
 }
 
-// IsNodeLeaderInCurrentRound method checks if the node is leader in the current round
+// IsSelfLeaderInCurrentRound method checks if the current node is leader in the current round
+func (cns *Consensus) IsSelfLeaderInCurrentRound() bool {
+	return cns.IsNodeLeaderInCurrentRound(cns.selfPubKey)
+}
+
+// IsNodeLeaderInCurrentRound method checks if the given node is leader in the current round
 func (cns *Consensus) IsNodeLeaderInCurrentRound(node string) bool {
 	leader, err := cns.GetLeader()
 
@@ -157,4 +163,8 @@ func (cns *Consensus) GetLeader() (string, error) {
 
 	index := cns.Chr.Round().Index() % int32(len(cns.consensusGroup))
 	return cns.consensusGroup[index], nil
+}
+
+func (cns *Consensus) getFormattedTime() string {
+	return cns.Chr.SyncTime().FormattedCurrentTime(cns.Chr.ClockOffset())
 }

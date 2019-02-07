@@ -22,7 +22,7 @@ func TestNewTopicInterceptor_NilMessengerShouldErr(t *testing.T) {
 }
 
 func TestNewTopicInterceptor_NilTemplateObjectShouldErr(t *testing.T) {
-	ti, err := interceptor.NewTopicInterceptor("", &mock.MessengerStub{}, nil)
+	ti, err := interceptor.NewTopicInterceptor("", mock.NewMessengerStub(), nil)
 	assert.Equal(t, process.ErrNilNewer, err)
 	assert.Nil(t, ti)
 }
@@ -57,6 +57,26 @@ func TestNewTopicInterceptor_ErrMessengerRegistrationValidatorShouldErr(t *testi
 	assert.Nil(t, ti)
 }
 
+func TestNewTopicInterceptor_NilMessengerMarshalizerShouldErr(t *testing.T) {
+	mes := &mock.MessengerStub{}
+
+	mes.AddTopicCalled = func(t *p2p.Topic) error {
+		t.RegisterTopicValidator = func(v pubsub.Validator) error {
+			return nil
+		}
+
+		return nil
+	}
+
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return nil
+	}
+
+	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
+	assert.Nil(t, ti, err)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
 func TestNewTopicInterceptor_OkValsShouldWork(t *testing.T) {
 	mes := mock.NewMessengerStub()
 
@@ -79,6 +99,25 @@ func TestNewTopicInterceptor_OkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.NotNil(t, ti)
+}
+
+func TestNewTopicInterceptor_CompareMarshlizersShouldEqual(t *testing.T) {
+	mes := mock.NewMessengerStub()
+
+	mes.AddTopicCalled = func(t *p2p.Topic) error {
+		t.RegisterTopicValidator = func(v pubsub.Validator) error {
+			return nil
+		}
+
+		return nil
+	}
+
+	mes.GetTopicCalled = func(name string) *p2p.Topic {
+		return nil
+	}
+
+	ti, _ := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
+	assert.True(t, ti.Marshalizer() == mes.Marshalizer())
 }
 
 func TestNewTopicInterceptor_WithExistingTopicShouldWork(t *testing.T) {

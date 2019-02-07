@@ -76,7 +76,7 @@ func TestGetEligibleList_ShouldHaveNoValidatorsAfterOneRegisterRequest(t *testin
 	regData := state.RegistrationData{
 		NodePubKey: []byte("node1"),
 		Action:     state.ArRegister,
-		Stake:      *big.NewInt(1),
+		Stake:      big.NewInt(1),
 		RoundIndex: 0,
 	}
 
@@ -95,7 +95,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterRequestAndSomeRou
 	regData := state.RegistrationData{
 		NodePubKey: []byte("node1"),
 		Action:     state.ArRegister,
-		Stake:      *big.NewInt(1),
+		Stake:      big.NewInt(1),
 		RoundIndex: 0,
 	}
 
@@ -119,7 +119,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorWithIncreasedStakeAfterTwoRegiste
 	regData := state.RegistrationData{
 		NodePubKey: []byte("node1"),
 		Action:     state.ArRegister,
-		Stake:      *big.NewInt(1),
+		Stake:      big.NewInt(1),
 		RoundIndex: 0,
 	}
 
@@ -128,7 +128,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorWithIncreasedStakeAfterTwoRegiste
 	regData2 := state.RegistrationData{
 		NodePubKey: []byte("node1"),
 		Action:     state.ArRegister,
-		Stake:      *big.NewInt(2),
+		Stake:      big.NewInt(2),
 		RoundIndex: 3,
 	}
 
@@ -140,7 +140,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorWithIncreasedStakeAfterTwoRegiste
 	}
 
 	assert.Equal(t, 1, len(sv.GetEligibleList()))
-	assert.Equal(t, *big.NewInt(3), sv.GetEligibleList()["node1"].Stake)
+	assert.Equal(t, big.NewInt(3), sv.GetEligibleList()["node1"].Stake)
 }
 
 func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterAndUnregisterRequest(t *testing.T) {
@@ -153,7 +153,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterAndUnregisterRequ
 	regData := state.RegistrationData{
 		NodePubKey: []byte("node1"),
 		Action:     state.ArRegister,
-		Stake:      *big.NewInt(1),
+		Stake:      big.NewInt(1),
 		RoundIndex: 0,
 	}
 
@@ -162,7 +162,7 @@ func TestGetEligibleList_ShouldHaveOneValidatorAfterOneRegisterAndUnregisterRequ
 	regData2 := state.RegistrationData{
 		NodePubKey: []byte("node1"),
 		Action:     state.ArUnregister,
-		Stake:      *big.NewInt(1),
+		Stake:      big.NewInt(1),
 		RoundIndex: 1,
 	}
 
@@ -186,7 +186,7 @@ func TestGetEligibleList_ShouldHaveNoValidatorsAfterOneRegisterAndUnregisterRequ
 	regData := state.RegistrationData{
 		NodePubKey: []byte("node1"),
 		Action:     state.ArRegister,
-		Stake:      *big.NewInt(1),
+		Stake:      big.NewInt(1),
 		RoundIndex: 0,
 	}
 
@@ -195,7 +195,7 @@ func TestGetEligibleList_ShouldHaveNoValidatorsAfterOneRegisterAndUnregisterRequ
 	regData2 := state.RegistrationData{
 		NodePubKey: []byte("node1"),
 		Action:     state.ArUnregister,
-		Stake:      *big.NewInt(1),
+		Stake:      big.NewInt(1),
 		RoundIndex: 1,
 	}
 

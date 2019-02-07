@@ -101,6 +101,11 @@ func (rCns *RoundConsensus) GetJobDone(key string, subroundId chronology.Subroun
 	return retcode, nil
 }
 
+// GetSelfJobDone returns the self state of the action done in subround given by the subroundId parameter
+func (rCns *RoundConsensus) GetSelfJobDone(subroundId chronology.SubroundId) (bool, error) {
+	return rCns.GetJobDone(rCns.selfPubKey, subroundId)
+}
+
 // SetJobDone set the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
 func (rCns *RoundConsensus) SetJobDone(key string, subroundId chronology.SubroundId, value bool) error {
@@ -117,6 +122,11 @@ func (rCns *RoundConsensus) SetJobDone(key string, subroundId chronology.Subroun
 	rCns.mut.Unlock()
 
 	return nil
+}
+
+// SetSelfJobDone set the self state of the action done in subround given by the subroundId parameter
+func (rCns *RoundConsensus) SetSelfJobDone(subroundId chronology.SubroundId, value bool) error {
+	return rCns.SetJobDone(rCns.selfPubKey, subroundId, value)
 }
 
 // ResetRoundState method resets the state of each node from the current jobDone group, regarding to the
@@ -147,6 +157,11 @@ func (rCns *RoundConsensus) IsValidatorInBitmap(validator string) bool {
 	}
 
 	return isJobDone
+}
+
+// IsSelfInBitmap method checks if the current node is part of the bitmap received from leader
+func (rCns *RoundConsensus) IsSelfInBitmap() bool {
+	return rCns.IsValidatorInBitmap(rCns.selfPubKey)
 }
 
 // IsNodeInConsensusGroup method checks if the node is part of the jobDone group of the current round

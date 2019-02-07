@@ -6,7 +6,7 @@ import (
 
 // Validator defines what a consensus validator implementation should do.
 type Validator interface {
-	Stake() big.Int
+	Stake() *big.Int
 	Rating() int32
 	PubKey() []byte
 }

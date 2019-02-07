@@ -1,6 +1,7 @@
 package block
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnp"
@@ -22,6 +23,20 @@ const (
 	// PeerBlock identifies a block holding peer assignation
 	PeerBlock BlockType = 2
 )
+
+// String returns the string representation of the BlockType
+func (bType BlockType) String() string {
+	switch bType {
+	case TxBlock:
+		return "TxBody"
+	case StateBlock:
+		return "StateBody"
+	case PeerBlock:
+		return "PeerBody"
+	default:
+		return fmt.Sprintf("Unknown(%d)", bType)
+	}
+}
 
 // MiniBlock holds the transactions with one of the sender or recipient in node's shard and the other in ShardID
 type MiniBlock struct {

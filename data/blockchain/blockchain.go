@@ -23,19 +23,10 @@ const (
 // UnitType is the type for Storage unit identifiers
 type UnitType uint8
 
-// Config holds the configurable elements of the blockchain
-type Config struct {
-	TxBlockBodyStorage    storage.UnitConfig
-	StateBlockBodyStorage storage.UnitConfig
-	PeerBlockBodyStorage  storage.UnitConfig
-	BlockHeaderStorage    storage.UnitConfig
-	TxStorage             storage.UnitConfig
-	TxPoolStorage         storage.CacheConfig
-	TxBadBlockBodyCache   storage.CacheConfig
-}
-
 // StorageService is the interface for blockChain storage unit provided services
 type StorageService interface {
+	// GetStorer returns the storer from the chain map
+	GetStorer(unitType UnitType) storage.Storer
 	// Has returns true if the key is found in the selected Unit or false otherwise
 	Has(unitType UnitType, key []byte) (bool, error)
 	// Get returns the value for the given key if found in the selected storage unit, nil otherwise
@@ -58,24 +49,27 @@ type StorageService interface {
 // The BlockChain also holds pointers to the Genesis block, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
-	lock               sync.RWMutex
-	GenesisBlock       *block.Header               // Genesys Block pointer
-	CurrentBlockHeader *block.Header               // Current Block pointer
-	LocalHeight        int64                       // Height of the local chain
-	NetworkHeight      int64                       // Percieved height of the network chain
-	badBlocks          storage.Cacher              // Bad blocks cache
-	chain              map[UnitType]storage.Storer // chains for each unit type. Together they form the blockchain
+	lock                   sync.RWMutex				   // Lock for accessing the storers chain
+	GenesisBlock           *block.Header               // Genesys Block Header pointer
+	GenesisHeaderHash      []byte                      // Genesis Block Header hash
+	CurrentBlockHeader     *block.Header               // Current Block pointer
+	CurrentBlockHeaderHash []byte                      // Current Block Header hash
+	CurrentTxBlockBody     *block.TxBlockBody          // Current Tx Block Body pointer
+	LocalHeight            int64                       // Height of the local chain
+	NetworkHeight          int64                       // Percieved height of the network chain
+	badBlocks              storage.Cacher              // Bad blocks cache
+	chain                  map[UnitType]storage.Storer // chains for each unit type. Together they form the blockchain
 }
 
 // NewBlockChain returns an initialized blockchain
 // It uses a config file to setup it's supported storage units map
 func NewBlockChain(
 	badBlocksCache storage.Cacher,
-	txUnit *storage.Unit,
-	txBlockUnit *storage.Unit,
-	stateBlockUnit *storage.Unit,
-	peerBlockUnit *storage.Unit,
-	headerUnit *storage.Unit) (*BlockChain, error) {
+	txUnit storage.Storer,
+	txBlockUnit storage.Storer,
+	stateBlockUnit storage.Storer,
+	peerBlockUnit storage.Storer,
+	headerUnit storage.Storer) (*BlockChain, error) {
 
 	if badBlocksCache == nil {
 		return nil, ErrBadBlocksCacheNil
@@ -117,6 +111,15 @@ func NewBlockChain(
 	}
 
 	return data, nil
+}
+
+// GetStorer returns the storer from the chain map or nil if the storer was not found
+func (bc *BlockChain) GetStorer(unitType UnitType) storage.Storer {
+	bc.lock.RLock()
+	storer := bc.chain[unitType]
+	bc.lock.RUnlock()
+
+	return storer
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise

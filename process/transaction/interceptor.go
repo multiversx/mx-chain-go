@@ -8,12 +8,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 // TxInterceptor is used for intercepting transaction and storing them into a datapool
 type TxInterceptor struct {
 	process.Interceptor
 	txPool           data.ShardedDataCacherNotifier
+	txStorer         storage.Storer
 	addrConverter    state.AddressConverter
 	hasher           hashing.Hasher
 	singleSignKeyGen crypto.KeyGenerator
@@ -24,11 +26,11 @@ type TxInterceptor struct {
 func NewTxInterceptor(
 	interceptor process.Interceptor,
 	txPool data.ShardedDataCacherNotifier,
+	txStorer storage.Storer,
 	addrConverter state.AddressConverter,
 	hasher hashing.Hasher,
 	singleSignKeyGen crypto.KeyGenerator,
 	shardCoordinator sharding.ShardCoordinator,
-
 ) (*TxInterceptor, error) {
 
 	if interceptor == nil {
@@ -37,6 +39,10 @@ func NewTxInterceptor(
 
 	if txPool == nil {
 		return nil, process.ErrNilTxDataPool
+	}
+
+	if txStorer == nil {
+		return nil, process.ErrNilTxStorage
 	}
 
 	if addrConverter == nil {
@@ -58,6 +64,7 @@ func NewTxInterceptor(
 	txIntercept := &TxInterceptor{
 		Interceptor:      interceptor,
 		txPool:           txPool,
+		txStorer:         txStorer,
 		hasher:           hasher,
 		addrConverter:    addrConverter,
 		singleSignKeyGen: singleSignKeyGen,
@@ -86,10 +93,24 @@ func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 
 	txIntercepted.SetAddressConverter(txi.addrConverter)
 	txIntercepted.SetSingleSignKeyGen(txi.singleSignKeyGen)
-	hash := txi.hasher.Compute(string(rawData))
-	txIntercepted.SetHash(hash)
+	hashWithSig := txi.hasher.Compute(string(rawData))
+	txIntercepted.SetHash(hashWithSig)
 
-	err := txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
+	copiedTx := *txIntercepted.GetTransaction()
+	copiedTx.Signature = nil
+
+	marshalizer := txi.Marshalizer()
+	if marshalizer == nil {
+		return process.ErrNilMarshalizer
+	}
+
+	buffCopiedTx, err := marshalizer.Marshal(&copiedTx)
+	if err != nil {
+		return err
+	}
+	txIntercepted.SetTxBuffWithoutSig(buffCopiedTx)
+
+	err = txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -104,11 +125,13 @@ func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 		return nil
 	}
 
-	txi.txPool.AddData(hash, txIntercepted.GetTransaction(), txIntercepted.SndShard())
-	if txIntercepted.SndShard() != txIntercepted.RcvShard() {
-		log.Debug("cross shard tx")
-		txi.txPool.AddData(hash, txIntercepted.GetTransaction(), txIntercepted.RcvShard())
+	isTxInStorage, _ := txi.txStorer.Has(hashWithSig)
+
+	if isTxInStorage {
+		log.Debug("intercepted tx already processed")
+		return nil
 	}
 
+	txi.txPool.AddData(hashWithSig, txIntercepted.GetTransaction(), txIntercepted.SndShard())
 	return nil
 }

@@ -10,15 +10,15 @@ import (
 
 // Transaction holds all the data needed for a value transfer
 type Transaction struct {
-	Nonce     uint64  `capid:"0"`
-	Value     big.Int `capid:"1"`
-	RcvAddr   []byte  `capid:"2"`
-	SndAddr   []byte  `capid:"3"`
-	GasPrice  uint64  `capid:"4"`
-	GasLimit  uint64  `capid:"5"`
-	Data      []byte  `capid:"6"`
-	Signature []byte  `capid:"7"`
-	Challenge []byte  `capid:"8"`
+	Nonce     uint64   `capid:"0"`
+	Value     *big.Int `capid:"1"`
+	RcvAddr   []byte   `capid:"2"`
+	SndAddr   []byte   `capid:"3"`
+	GasPrice  uint64   `capid:"4"`
+	GasLimit  uint64   `capid:"5"`
+	Data      []byte   `capid:"6"`
+	Signature []byte   `capid:"7"`
+	Challenge []byte   `capid:"8"`
 }
 
 // Save saves the serialized data of a Transaction into a stream through Capnp protocol
@@ -44,6 +44,10 @@ func (tx *Transaction) Load(r io.Reader) error {
 func TransactionCapnToGo(src capnp.TransactionCapn, dest *Transaction) *Transaction {
 	if dest == nil {
 		dest = &Transaction{}
+	}
+
+	if dest.Value == nil {
+		dest.Value = big.NewInt(0)
 	}
 
 	// Nonce

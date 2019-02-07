@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/libp2p/go-libp2p-pubsub"
@@ -15,6 +16,7 @@ var log = logger.NewDefaultLogger()
 // the data
 type topicInterceptor struct {
 	messenger      p2p.Messenger
+	marshalizer    marshal.Marshalizer
 	templateObject p2p.Creator
 	name           string
 
@@ -32,6 +34,12 @@ func NewTopicInterceptor(
 		return nil, process.ErrNilMessenger
 	}
 
+	marshalizer := messenger.Marshalizer()
+
+	if marshalizer == nil {
+		return nil, process.ErrNilMarshalizer
+	}
+
 	if templateObject == nil {
 		return nil, process.ErrNilNewer
 	}
@@ -45,6 +53,7 @@ func NewTopicInterceptor(
 		messenger:      messenger,
 		templateObject: templateObject,
 		name:           name,
+		marshalizer:    marshalizer,
 	}
 
 	err = topic.RegisterValidator(intercept.validator)
@@ -69,14 +78,15 @@ func getOrCreateTopic(name string, templateObject p2p.Creator, messenger p2p.Mes
 func (ti *topicInterceptor) validator(ctx context.Context, message *pubsub.Message) bool {
 	obj := ti.templateObject.Create()
 
-	marshalizer := ti.messenger.Marshalizer()
-	err := marshalizer.Unmarshal(obj, message.GetData())
+	err := ti.marshalizer.Unmarshal(obj, message.GetData())
 
 	if err != nil {
+		log.Debug(err.Error())
 		return false
 	}
 
 	if ti.checkReceivedObject == nil {
+		log.Error("nil checkReceivedObject handler")
 		return false
 	}
 
@@ -104,4 +114,9 @@ func (ti *topicInterceptor) SetCheckReceivedObjectHandler(handler func(newer p2p
 // a newer object
 func (ti *topicInterceptor) CheckReceivedObjectHandler() func(newer p2p.Creator, rawData []byte) error {
 	return ti.checkReceivedObject
+}
+
+// Marshalizer returns the marshalizer used to unmarshal the received data
+func (ti *topicInterceptor) Marshalizer() marshal.Marshalizer {
+	return ti.marshalizer
 }

@@ -24,14 +24,21 @@ import (
 
 const signPrefix = "libp2p-pubsub:"
 
-var mutGloballyRegPeers *sync.Mutex
+var mutGloballyRegPeers *sync.RWMutex
 
 // globallyRegisteredPeers is the main map used for in memory communication
 var globallyRegisteredPeers map[peer.ID]*MemMessenger
 
 func init() {
-	mutGloballyRegPeers = &sync.Mutex{}
+	mutGloballyRegPeers = &sync.RWMutex{}
 	globallyRegisteredPeers = make(map[peer.ID]*MemMessenger)
+}
+
+// ReInitializeGloballyRegisteredPeers will clean all known memMessenger instances
+func ReInitializeGloballyRegisteredPeers() {
+	mutGloballyRegPeers.Lock()
+	globallyRegisteredPeers = make(map[peer.ID]*MemMessenger)
+	mutGloballyRegPeers.Unlock()
 }
 
 // MemMessenger is a fake memory Messenger used for testing
@@ -174,9 +181,9 @@ func (mm *MemMessenger) ConnectToAddresses(ctx context.Context, addresses []stri
 	for i := 0; i < len(addresses); i++ {
 		addr := peer.ID(base58.Decode(addresses[i]))
 
-		mutGloballyRegPeers.Lock()
+		mutGloballyRegPeers.RLock()
 		val, ok := globallyRegisteredPeers[addr]
-		mutGloballyRegPeers.Unlock()
+		mutGloballyRegPeers.RUnlock()
 
 		if !ok {
 			log.Error(fmt.Sprintf("Bootstrapping the peer '%v' failed! [not found]\n", addresses[i]))
@@ -213,7 +220,7 @@ func (mm *MemMessenger) doBootstrap() {
 
 		temp := make(map[peer.ID]*MemMessenger, 0)
 
-		mutGloballyRegPeers.Lock()
+		mutGloballyRegPeers.RLock()
 		for k, v := range globallyRegisteredPeers {
 			if !mm.rt.Has(k) {
 				mm.rt.Update(k)
@@ -221,7 +228,7 @@ func (mm *MemMessenger) doBootstrap() {
 				temp[k] = v
 			}
 		}
-		mutGloballyRegPeers.Unlock()
+		mutGloballyRegPeers.RUnlock()
 
 		mm.mutConnectedPeers.Lock()
 		for k, v := range temp {
@@ -249,9 +256,9 @@ func (mm *MemMessenger) PrintConnected() {
 
 // AddAddress adds a new address to peer store
 func (mm *MemMessenger) AddAddress(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration) {
-	mutGloballyRegPeers.Lock()
+	mutGloballyRegPeers.RLock()
 	val, ok := globallyRegisteredPeers[p]
-	mutGloballyRegPeers.Unlock()
+	mutGloballyRegPeers.RUnlock()
 
 	if !ok {
 		val = nil

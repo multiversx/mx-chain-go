@@ -43,13 +43,11 @@ func (c *LRUCache) Clear() {
 
 // Put adds a value to the cache.  Returns true if an eviction occurred.
 func (c *LRUCache) Put(key []byte, value interface{}) (evicted bool) {
-	found, evicted := c.cache.ContainsOrAdd(string(key), value)
+	evicted = c.cache.Add(string(key), value)
 
-	if !found {
-		c.callAddedDataHandlers(key)
-	}
+	c.callAddedDataHandlers(key)
 
-	return
+	return evicted
 }
 
 // RegisterHandler registers a new handler to be called when a new data is added

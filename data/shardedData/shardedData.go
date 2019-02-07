@@ -65,9 +65,9 @@ func newShardStore(destShardID uint32, cacherConfig storage.CacheConfig) (*shard
 	}, nil
 }
 
-// NewShardStore is a ShardedData method that is responsible for creating
+// CreateShardStore is a ShardedData method that is responsible for creating
 //  a new shardStore at the destShardID index in the shardedDataStore map
-func (sd *shardedData) NewShardStore(destShardID uint32) {
+func (sd *shardedData) CreateShardStore(destShardID uint32) {
 	sd.mutShardedDataStore.Lock()
 	sd.newShardStoreNoLock(destShardID)
 	sd.mutShardedDataStore.Unlock()
@@ -121,20 +121,24 @@ func (sd *shardedData) AddData(key []byte, data interface{}, destShardID uint32)
 	}
 }
 
-// SearchData searches the key against all shard data store, retrieving found data in a map
-func (sd *shardedData) SearchData(key []byte) (shardValuesPairs map[uint32]interface{}) {
-	shardValuesPairs = make(map[uint32]interface{})
-
+// SearchFirstData searches the key against all shard data store, retrieving first value found
+func (sd *shardedData) SearchFirstData(key []byte) (value interface{}, ok bool) {
 	sd.mutShardedDataStore.RLock()
 	for k := range sd.shardedDataStore {
-		m := sd.ShardDataStore(k)
-		if m.Has(key) {
-			shardValuesPairs[k], _ = m.Get(key)
+		m := sd.shardedDataStore[k]
+		if m == nil || m.DataStore == nil {
+			continue
+		}
+
+		if m.DataStore.Has(key) {
+			value, _ = m.DataStore.Get(key)
+			sd.mutShardedDataStore.RUnlock()
+			return value, true
 		}
 	}
 	sd.mutShardedDataStore.RUnlock()
 
-	return shardValuesPairs
+	return nil, false
 }
 
 // RemoveSetOfDataFromPool removes a list of keys from the corresponding pool
@@ -146,9 +150,7 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, destShardID uint32
 
 // RemoveData will remove data hash from the corresponding shard store
 func (sd *shardedData) RemoveData(key []byte, destShardID uint32) {
-	sd.mutShardedDataStore.RLock()
 	mpdata := sd.ShardDataStore(destShardID)
-	sd.mutShardedDataStore.RUnlock()
 
 	if mpdata != nil {
 		mpdata.Remove(key)
@@ -160,9 +162,13 @@ func (sd *shardedData) RemoveData(key []byte, destShardID uint32) {
 func (sd *shardedData) RemoveDataFromAllShards(key []byte) {
 	sd.mutShardedDataStore.RLock()
 	for k := range sd.shardedDataStore {
-		m := sd.ShardDataStore(k)
-		if m.Has(key) {
-			m.Remove(key)
+		m := sd.shardedDataStore[k]
+		if m == nil || m.DataStore == nil {
+			continue
+		}
+
+		if m.DataStore.Has(key) {
+			m.DataStore.Remove(key)
 		}
 	}
 	sd.mutShardedDataStore.RUnlock()

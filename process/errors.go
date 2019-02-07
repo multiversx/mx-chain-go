@@ -70,9 +70,6 @@ var ErrNilPreviousBlockHash = errors.New("nil previous block header hash")
 // ErrNilSignature signals that a operation has been attempted with a nil signature
 var ErrNilSignature = errors.New("nil signature")
 
-// ErrNilChallenge signals that a operation has been attempted with a nil challenge
-var ErrNilChallenge = errors.New("nil challenge")
-
 // ErrNilCommitment signals that a operation has been attempted with a nil commitment
 var ErrNilCommitment = errors.New("nil commitment")
 
@@ -85,7 +82,7 @@ var ErrNilTxHashes = errors.New("nil transaction hashes")
 // ErrNilRootHash signals that an operation has been attempted with a nil root hash
 var ErrNilRootHash = errors.New("root hash is nil")
 
-// ErrWrongNonceInBlock signals the nonce in block is different than expected nounce
+// ErrWrongNonceInBlock signals the nonce in block is different than expected nonce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 
 // ErrInvalidBlockHash signals the hash of the block is not matching with the previous one
@@ -150,9 +147,6 @@ var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
 
 // ErrNilCacher signals that a nil cache has been provided
 var ErrNilCacher = errors.New("nil cacher")
-
-// ErrNilTemplateObj signals that an operation has been attempted to or with a nil template object
-var ErrNilTemplateObj = errors.New("nil TemplateObj")
 
 // ErrNilRcvAddr signals that an operation has been attempted to or with a nil receiver address
 var ErrNilRcvAddr = errors.New("nil receiver address")
@@ -232,3 +226,42 @@ var ErrNilBlockBodyPool = errors.New("nil block body pool")
 
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")
+
+// ErrNilTransactionPool signals that a nil transaction pool was used
+var ErrNilTransactionPool = errors.New("nil transaction pool")
+
+// ErrNilTxProcessor signals that a nil transactions processor was used
+var ErrNilTxProcessor = errors.New("nil transactions processor")
+
+// ErrNilDataPoolHolder signals that the data pool holder is nil
+var ErrNilDataPoolHolder = errors.New("nil data pool holder")
+
+// ErrTimeIsOut signals that time is out
+var ErrTimeIsOut = errors.New("time is out")
+
+// ErrNilForkDetector signals that the fork detector is nil
+var ErrNilForkDetector = errors.New("nil fork detector")
+
+// ErrNilContainerElement signals when trying to add a nil element in the container
+var ErrNilContainerElement = errors.New("element cannot be nil")
+
+// ErrInvalidContainerKey signals that an element does not exist in the container's map
+var ErrInvalidContainerKey = errors.New("element does not exist in container")
+
+// ErrContainerKeyAlreadyExists signals that an element was already set in the container's map
+var ErrContainerKeyAlreadyExists = errors.New("provided key already exists in container")
+
+// ErrNilUint64ByteSliceConverter signals that a nil byte slice converter was provided
+var ErrNilUint64ByteSliceConverter = errors.New("nil byte slice converter")
+
+// ErrNilInterceptorContainer signals that a nil interceptor container was provided
+var ErrNilInterceptorContainer = errors.New("nil interceptor container")
+
+// ErrNilResolverContainer signals that a nil resolver container was provided
+var ErrNilResolverContainer = errors.New("nil resolver container")
+
+// ErrNilTransactionHandler signals that a nil transaction handler func was provided
+var ErrNilTransactionHandler = errors.New("nil request transaction handler")
+
+// ErrNilHaveTimeHandler signals that a nil have time handler func was provided
+var ErrNilHaveTimeHandler = errors.New("nil have time handler")

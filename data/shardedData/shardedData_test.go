@@ -292,17 +292,17 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 	assert.Equal(t, 1, len(sd.AddedDataHandlers()))
 }
 
-func TestShardedData_SearchNotFoundShouldRetEmptyMap(t *testing.T) {
+func TestShardedData_SearchFirstDataNotFoundShouldRetNilAndFalse(t *testing.T) {
 	t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
-	resp := sd.SearchData([]byte("aaaa"))
-	assert.NotNil(t, resp)
-	assert.Equal(t, 0, len(resp))
+	value, ok := sd.SearchFirstData([]byte("aaaa"))
+	assert.Nil(t, value)
+	assert.False(t, ok)
 }
 
-func TestShardedData_SearchFoundShouldRetResults(t *testing.T) {
+func TestShardedData_SearchFirstDataFoundShouldRetResults(t *testing.T) {
 	t.Parallel()
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
@@ -311,9 +311,7 @@ func TestShardedData_SearchFoundShouldRetResults(t *testing.T) {
 	sd.AddData([]byte("aaaa"), "a2", 4)
 	sd.AddData([]byte("aaaa"), "a3", 5)
 
-	resp := sd.SearchData([]byte("aaaa"))
-	assert.NotNil(t, resp)
-	assert.Equal(t, 2, len(resp))
-	assert.Equal(t, "a2", resp[4])
-	assert.Equal(t, "a3", resp[5])
+	value, ok := sd.SearchFirstData([]byte("aaa"))
+	assert.NotNil(t, value)
+	assert.True(t, ok)
 }
