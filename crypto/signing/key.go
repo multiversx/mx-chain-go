@@ -56,11 +56,7 @@ func (pk *publicKey) Verify(data []byte, signature []byte, signer crypto.SingleS
 		return crypto.ErrNilSingleSigner
 	}
 
-	err := signer.Verify(pk.suite, pk.pk, data, signature)
-	if err != nil {
-		return err
-	}
-	return nil
+	return signer.Verify(pk.suite, pk.pk, data, signature)
 }
 
 // ToByteArray returns the byte array representation of the public key

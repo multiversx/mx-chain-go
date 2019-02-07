@@ -25,8 +25,11 @@ var ErrInvalidPublicKeyString = errors.New("invalid public key string")
 // ErrNilHasher is raised when a valid hasher is expected but used nil
 var ErrNilHasher = errors.New("marshalizer is nil")
 
-// ErrInvalidIndex is raised when an out of bound index is used
-var ErrInvalidIndex = errors.New("index is out of bounds")
+// ErrIndexOutOfBounds is raised when an out of bound index is used
+var ErrIndexOutOfBounds = errors.New("index is out of bounds")
+
+// ErrIndexNotSelected is raised when a not selected index is used for multi-signing
+var ErrIndexNotSelected = errors.New("index is out of bounds")
 
 // ErrNilElement is raised when searching for a specific element but found nil
 var ErrNilElement = errors.New("element is nil")
@@ -54,3 +57,24 @@ var ErrNilMessage = errors.New("message to be signed or to be verified is nil")
 
 // ErrNilSingleSigner is raised when using a nil single signer
 var ErrNilSingleSigner = errors.New("single signer is nil")
+
+// ErrBitmapMismatch is raised when an invalid bitmap is passed to the multisigner
+var ErrBitmapMismatch = errors.New("multi signer reported a mismatch in used bitmap")
+
+// ErrNilCommitment is raised when a nil commitment is used
+var ErrNilCommitment = errors.New("commitment is nil")
+
+// ErrNilBitmap is raised when a nil bitmap is used
+var ErrNilBitmap = errors.New("bitmap is nil")
+
+// ErrNilCommitmentSecret is raised when a nil commitment secret is used
+var ErrNilCommitmentSecret = errors.New("commitment secret is nil")
+
+// ErrNilAggregatedCommitment is raised when nil aggregated commitment is used
+var ErrNilAggregatedCommitment = errors.New("aggregated commitment is nil")
+
+// ErrNilCommitmentHash is raised when a nil commitment hash is used
+var ErrNilCommitmentHash = errors.New("commitment hash is nil")
+
+// ErrSigNotValid is raised when a signature verification fails due to invalid signature
+var ErrSigNotValid = errors.New("signature is invalid")

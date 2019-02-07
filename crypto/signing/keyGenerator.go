@@ -1,8 +1,6 @@
 package signing
 
 import (
-	"errors"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 )
 
@@ -23,7 +21,7 @@ func NewKeyGenerator(suite crypto.Suite) *keyGenerator {
 
 // GeneratePair will generate a bundle of private and public key
 func (kg *keyGenerator) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
-	keyPair, err := NewKeyPair(kg.suite)
+	keyPair, err := newKeyPair(kg.suite)
 
 	if err != nil {
 		panic("unable to generate private/public keys")
@@ -41,7 +39,7 @@ func (kg *keyGenerator) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 // PrivateKeyFromByteArray generates a private key given a byte array
 func (kg *keyGenerator) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
 	if b == nil {
-		return nil, errors.New("cannot create private key from nil byte array")
+		return nil, crypto.ErrInvalidParam
 	}
 	sc := kg.suite.CreateScalar()
 	err := sc.UnmarshalBinary(b)
@@ -57,7 +55,7 @@ func (kg *keyGenerator) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, er
 // PublicKeyFromByteArray unmarshalls a byte array into a public key Point
 func (kg *keyGenerator) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
 	if b == nil {
-		return nil, errors.New("cannot create public key from nil byte array")
+		return nil, crypto.ErrInvalidParam
 	}
 	point := kg.suite.CreatePoint()
 	err := point.UnmarshalBinary(b)
@@ -75,30 +73,23 @@ func (kg *keyGenerator) Suite() crypto.Suite {
 	return kg.suite
 }
 
-// NewKeyPair creates a fresh public/private keypair with the given
-// ciphersuite, using a given source of cryptographic randomness.
-func NewKeyPair(suite crypto.Suite) (*Pair, error) {
+func newKeyPair(suite crypto.Suite) (*Pair, error) {
+	if suite == nil {
+		return nil, crypto.ErrNilSuite
+	}
+
 	p := new(Pair)
 	random := suite.RandomStream()
 
 	if g, ok := suite.(crypto.Generator); ok {
 		p.Private = g.CreateKey(random)
 	} else {
-		privateKey, err := suite.CreateScalar().Pick(random)
-
-		if err != nil {
-			return nil, err
-		}
-
+		privateKey, _ := suite.CreateScalar().Pick(random)
 		p.Private = privateKey
 	}
 
-	pubKey, err := suite.CreatePoint().Mul(p.Private)
-
-	if err != nil {
-		return nil, err
-	}
-
+	pubKey, _ := suite.CreatePoint().Mul(p.Private)
 	p.Public = pubKey
+
 	return p, nil
 }

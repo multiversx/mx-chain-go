@@ -5,11 +5,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 )
 
 /*
-Package belnev implements the multi-signature algorithm (BN-musig) presented in paper
+belnev.go implements the multi-signature algorithm (BN-musig) presented in paper
 "Multi-Signatures in the Plain Public-Key Model and a General Forking Lemma"
 by Mihir Bellare and Gregory Neven. See https://cseweb.ucsd.edu/~mihir/papers/multisignatures-ccs.pdf.
 This package provides the functionality for the cryptographic operations.
@@ -42,30 +41,33 @@ the sender, using a bitmap initially set to 0, by setting the corresponding bit 
 storing the received commitment. If the commitment fails to validate the hash the protocol
 is aborted. If commitment is not received in a bounded time delta and less than 2/3 of signers
 have provided the commitment then protocol is aborted. If there are enough commitments >2/3
-the leader broadcasts the bitmap.
+the leader broadcasts the bitmap and calculates the aggregated commitment R = Sum(R_i * B[i])
 
 4. When signer i receives the bitmap, it calculates the signature share and broadcasts it to all
 participating signers. R = Sum(R_i) is the aggregated commitment each signer needs to calculate
-before signing. s_i = r_i + H1(<L'>||X_i||R||m)*x_i is the signature share for signer i
-
+before signing. s_i = r_i + H1(<L'>||X_i||R||m) * x_i is the signature share for signer i
 When signer i receives all signature shares, it can calculate the aggregated signature
-S=Sum(s_i) for all s_i of the participants.
+s=Sum(s_i) for all s_i of the participants.
+
+5. Verification is done by checking the equality:
+	s * G = R + Sum(H1(<L'>||X_i||R||m) * X_i * B[i])
 */
 
-type belNev struct {
+type belNevSigner struct {
 	message        []byte
 	pubKeys        []crypto.PublicKey
 	privKey        crypto.PrivateKey
 	mutCommHashes  *sync.RWMutex
 	commHashes     [][]byte
-	commSecret     []byte
+	commSecret     crypto.Scalar
 	mutCommitments *sync.RWMutex
-	commitments    [][]byte
-	aggCommitment  []byte
+	commitments    []crypto.Point
+	aggCommitment  crypto.Point
 	mutSigShares   *sync.RWMutex
-	sigShares      [][]byte
-	aggSig         []byte
+	sigShares      []crypto.Scalar
+	aggSig         crypto.Scalar
 	ownIndex       uint16
+	suite          crypto.Suite
 	hasher         hashing.Hasher
 	keyGen         crypto.KeyGenerator
 }
@@ -76,7 +78,7 @@ func NewBelNevMultisig(
 	pubKeys []string,
 	privKey crypto.PrivateKey,
 	keyGen crypto.KeyGenerator,
-	ownIndex uint16) (*belNev, error) {
+	ownIndex uint16) (*belNevSigner, error) {
 
 	if hasher == nil {
 		return nil, crypto.ErrNilHasher
@@ -94,11 +96,15 @@ func NewBelNevMultisig(
 		return nil, crypto.ErrNilKeyGenerator
 	}
 
+	if ownIndex >= uint16(len(pubKeys)) {
+		return nil, crypto.ErrIndexOutOfBounds
+	}
+
 	sizeConsensus := len(pubKeys)
 
 	commHashes := make([][]byte, sizeConsensus)
-	commitments := make([][]byte, sizeConsensus)
-	sigShares := make([][]byte, sizeConsensus)
+	commitments := make([]crypto.Point, sizeConsensus)
+	sigShares := make([]crypto.Scalar, sizeConsensus)
 
 	pk, err := convertStringsToPubKeys(pubKeys, keyGen)
 
@@ -107,7 +113,7 @@ func NewBelNevMultisig(
 	}
 
 	// own index is used only for signing
-	return &belNev{
+	return &belNevSigner{
 		pubKeys:        pk,
 		privKey:        privKey,
 		ownIndex:       ownIndex,
@@ -119,6 +125,7 @@ func NewBelNevMultisig(
 		commitments:    commitments,
 		mutSigShares:   &sync.RWMutex{},
 		sigShares:      sigShares,
+		suite:          keyGen.Suite(),
 	}, nil
 }
 
@@ -127,23 +134,26 @@ func convertStringsToPubKeys(pubKeys []string, kg crypto.KeyGenerator) ([]crypto
 
 	//convert pubKeys
 	for _, pubKeyStr := range pubKeys {
-		if pubKeyStr != "" {
-			pubKey, err := kg.PublicKeyFromByteArray([]byte(pubKeyStr))
-
-			if err != nil {
-				return nil, crypto.ErrInvalidPublicKeyString
-			}
-
-			pk = append(pk, pubKey)
-		} else {
-			return nil, crypto.ErrNilPublicKey
+		if pubKeyStr == "" {
+			return nil, crypto.ErrNilPublicKeys
 		}
+
+		pubKey, err := kg.PublicKeyFromByteArray([]byte(pubKeyStr))
+		if err != nil {
+			return nil, crypto.ErrInvalidPublicKeyString
+		}
+
+		pk = append(pk, pubKey)
 	}
 	return pk, nil
 }
 
 // Reset resets the multiSigner and initializes corresponding fields with the given params
-func (bn *belNev) Reset(pubKeys []string, index uint16) error {
+func (bn *belNevSigner) Reset(pubKeys []string, index uint16) error {
+	if pubKeys == nil {
+		return crypto.ErrNilPublicKeys
+	}
+
 	pk, err := convertStringsToPubKeys(pubKeys, bn.keyGen)
 
 	if err != nil {
@@ -151,7 +161,6 @@ func (bn *belNev) Reset(pubKeys []string, index uint16) error {
 	}
 
 	sizeConsensus := len(pubKeys)
-
 	bn.message = nil
 	bn.ownIndex = index
 	bn.pubKeys = pk
@@ -164,27 +173,31 @@ func (bn *belNev) Reset(pubKeys []string, index uint16) error {
 	bn.mutCommHashes.Unlock()
 
 	bn.mutCommitments.Lock()
-	bn.commitments = make([][]byte, sizeConsensus)
+	bn.commitments = make([]crypto.Point, sizeConsensus)
 	bn.mutCommitments.Unlock()
 
 	bn.mutSigShares.Lock()
-	bn.sigShares = make([][]byte, sizeConsensus)
+	bn.sigShares = make([]crypto.Scalar, sizeConsensus)
 	bn.mutSigShares.Unlock()
 
 	return nil
 }
 
 // SetMessage sets the message to be multi-signed upon
-func (bn *belNev) SetMessage(msg []byte) {
+func (bn *belNevSigner) SetMessage(msg []byte) {
 	bn.message = msg
 }
 
 // AddCommitmentHash sets a commitment Hash
-func (bn *belNev) AddCommitmentHash(index uint16, commHash []byte) error {
+func (bn *belNevSigner) AddCommitmentHash(index uint16, commHash []byte) error {
+	if commHash == nil {
+		return crypto.ErrNilCommitmentHash
+	}
+
 	bn.mutCommHashes.Lock()
 	if int(index) >= len(bn.commHashes) {
 		bn.mutCommHashes.Unlock()
-		return crypto.ErrInvalidIndex
+		return crypto.ErrIndexOutOfBounds
 	}
 
 	bn.commHashes[index] = commHash
@@ -193,12 +206,12 @@ func (bn *belNev) AddCommitmentHash(index uint16, commHash []byte) error {
 }
 
 // CommitmentHash returns the commitment hash from the list on the specified position
-func (bn *belNev) CommitmentHash(index uint16) ([]byte, error) {
+func (bn *belNevSigner) CommitmentHash(index uint16) ([]byte, error) {
 	bn.mutCommHashes.RLock()
 	defer bn.mutCommHashes.RUnlock()
 
 	if int(index) >= len(bn.commHashes) {
-		return nil, crypto.ErrInvalidIndex
+		return nil, crypto.ErrIndexOutOfBounds
 	}
 
 	if bn.commHashes[index] == nil {
@@ -209,18 +222,17 @@ func (bn *belNev) CommitmentHash(index uint16) ([]byte, error) {
 }
 
 // CreateCommitment creates a secret commitment and the corresponding public commitment point
-func (bn *belNev) CreateCommitment() (commSecret []byte, commitment []byte, err error) {
-	kg := signing.NewKeyGenerator(bn.privKey.Suite())
-	sk, pk := kg.GeneratePair()
+func (bn *belNevSigner) CreateCommitment() (commSecret []byte, commitment []byte, err error) {
+	rand := bn.suite.RandomStream()
+	sk, _ := bn.suite.CreateScalar().Pick(rand)
+	pk, _ := bn.suite.CreatePoint().Mul(sk)
 
-	commSecret, err = sk.ToByteArray()
-
+	commSecret, err = sk.MarshalBinary()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	commitment, err = pk.ToByteArray()
-
+	commitment, err = pk.MarshalBinary()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -229,112 +241,467 @@ func (bn *belNev) CreateCommitment() (commSecret []byte, commitment []byte, err 
 }
 
 // SetCommitmentSecret sets the committment secret
-func (bn *belNev) SetCommitmentSecret(commSecret []byte) error {
-	bn.commSecret = commSecret
+func (bn *belNevSigner) SetCommitmentSecret(commSecret []byte) error {
+	commSecretScalar := bn.suite.CreateScalar()
+	err := commSecretScalar.UnmarshalBinary(commSecret)
+
+	if err != nil {
+		return err
+	}
+
+	bn.commSecret = commSecretScalar
+
 	return nil
 }
 
 // AddCommitment adds a commitment to the list on the specified position
-func (bn *belNev) AddCommitment(index uint16, commitment []byte) error {
+func (bn *belNevSigner) AddCommitment(index uint16, commitment []byte) error {
+	if commitment == nil {
+		return crypto.ErrNilCommitment
+	}
+
+	commPoint := bn.suite.CreatePoint()
+	err := commPoint.UnmarshalBinary(commitment)
+
+	if err != nil {
+		return err
+	}
+
 	bn.mutCommitments.Lock()
 	if int(index) >= len(bn.commitments) {
 		bn.mutCommitments.Unlock()
-		return crypto.ErrInvalidIndex
+		return crypto.ErrIndexOutOfBounds
 	}
 
-	bn.commitments[index] = commitment
+	bn.commitments[index] = commPoint
 	bn.mutCommitments.Unlock()
 	return nil
 }
 
 // Commitment returns the commitment from the list with the specified position
-func (bn *belNev) Commitment(index uint16) ([]byte, error) {
+func (bn *belNevSigner) Commitment(index uint16) ([]byte, error) {
 	bn.mutCommitments.RLock()
 	defer bn.mutCommitments.RUnlock()
 
 	if int(index) >= len(bn.commitments) {
-		return nil, crypto.ErrInvalidIndex
+		return nil, crypto.ErrIndexOutOfBounds
 	}
 
 	if bn.commitments[index] == nil {
 		return nil, crypto.ErrNilElement
 	}
 
-	return bn.commitments[index], nil
+	commArray, err := bn.commitments[index].MarshalBinary()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return commArray, nil
 }
 
 // AggregateCommitments aggregates the list of commitments
-func (bn *belNev) AggregateCommitments(bitmap []byte) ([]byte, error) {
-	// TODO, do not forget about mutCommitments
+func (bn *belNevSigner) AggregateCommitments(bitmap []byte) ([]byte, error) {
+	var err error
 
-	return []byte("implement me"), nil
+	if bitmap == nil {
+		return nil, crypto.ErrNilBitmap
+	}
+
+	maxFlags := len(bitmap) * 8
+	flagsMismatch := maxFlags < len(bn.pubKeys)
+	if flagsMismatch {
+		return nil, crypto.ErrBitmapMismatch
+	}
+
+	aggComm := bn.suite.CreatePoint().Null()
+	bn.mutCommitments.RLock()
+	defer bn.mutCommitments.RUnlock()
+
+	for i := range bn.commitments {
+		err := bn.isValidIndex(uint16(i), bitmap)
+		if err != nil {
+			continue
+		}
+
+		aggComm, err = aggComm.Add(bn.commitments[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	aggCommBytes, err := aggComm.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	bn.aggCommitment = aggComm
+
+	return aggCommBytes, nil
 }
 
 // SetAggCommitment sets the aggregated commitment for the marked signers in bitmap
-func (bn *belNev) SetAggCommitment(aggCommitment []byte) error {
-	bn.aggCommitment = aggCommitment
+func (bn *belNevSigner) SetAggCommitment(aggCommitment []byte) error {
+	aggCommPoint := bn.suite.CreatePoint()
+	err := aggCommPoint.UnmarshalBinary(aggCommitment)
+
+	if err != nil {
+		return err
+	}
+
+	bn.aggCommitment = aggCommPoint
+
 	return nil
 }
 
-// CreateSignatureShare creates a partial signature
-func (bn *belNev) CreateSignatureShare(bitmap []byte) ([]byte, error) {
-	// TODO
+// Creates the challenge for the specific index H1(<L'>||X_i||R||m)
+func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Scalar, error) {
+	sizeConsensus := uint16(len(bn.commitments))
 
-	return []byte("implement me"), nil
+	if index >= sizeConsensus {
+		return nil, crypto.ErrIndexOutOfBounds
+	}
+
+	if bn.commitments[index] == nil {
+		return nil, crypto.ErrNilCommitment
+	}
+
+	if bn.message == nil {
+		return nil, crypto.ErrNilMessage
+	}
+
+	if bitmap == nil {
+		return nil, crypto.ErrNilBitmap
+	}
+
+	concatenated := make([]byte, 0)
+
+	for i := range bn.pubKeys {
+		err := bn.isValidIndex(uint16(i), bitmap)
+
+		if err != nil {
+			continue
+		}
+
+		pubKey, err := bn.pubKeys[i].Point().MarshalBinary()
+
+		if err != nil {
+			return nil, err
+		}
+
+		concatenated = append(concatenated[:], pubKey[:]...)
+	}
+
+	// Concatenate pubKeys to form <L'>
+	pubKey, err := bn.pubKeys[index].Point().MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	if bn.aggCommitment == nil {
+		return nil, crypto.ErrNilAggregatedCommitment
+	}
+
+	aggCommBytes, err := bn.aggCommitment.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	// <L'> || X_i
+	concatenated = append(concatenated[:], pubKey[:]...)
+	// <L'> || X_i || R
+	concatenated = append(concatenated[:], aggCommBytes[:]...)
+	// <L'> || X_i || R || m
+	concatenated = append(concatenated[:], bn.message[:]...)
+	// H(<L'> || X_i || R || m)
+	challenge := bn.hasher.Compute(string(concatenated))
+	challengeScalar := bn.suite.CreateScalar()
+	err = challengeScalar.UnmarshalBinary(challenge)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return challengeScalar, nil
+}
+
+// CreateSignatureShare creates a partial signature s_i = r_i + H(<L'> || X_i || R || m)*x_i
+func (bn *belNevSigner) CreateSignatureShare(bitmap []byte) ([]byte, error) {
+	if bitmap == nil {
+		return nil, crypto.ErrNilBitmap
+	}
+
+	challengeScalar, err := bn.computeChallenge(bn.ownIndex, bitmap)
+	if err != nil {
+		return nil, err
+	}
+
+	privKeyScalar := bn.privKey.Scalar()
+	// H(<L'> || X_i || R || m)*x_i
+	sigShareScalar, err := challengeScalar.Mul(privKeyScalar)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if bn.commSecret == nil {
+		return nil, crypto.ErrNilCommitmentSecret
+	}
+
+	// s_i = r_i + H(<L'> || X_i || R || m)*x_i
+	sigShareScalar, err = sigShareScalar.Add(bn.commSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	sigShare, err := sigShareScalar.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	bn.mutSigShares.Lock()
+	bn.sigShares[bn.ownIndex] = sigShareScalar
+	bn.mutSigShares.Unlock()
+
+	return sigShare, nil
+}
+
+func (bn *belNevSigner) isValidIndex(index uint16, bitmap []byte) error {
+	indexOutOfBounds := index >= uint16(len(bn.pubKeys))
+	if indexOutOfBounds {
+		return crypto.ErrIndexOutOfBounds
+	}
+
+	indexNotInBitmap := bitmap[index/8]&(1<<uint8(index%8)) == 0
+	if indexNotInBitmap {
+		return crypto.ErrIndexNotSelected
+	}
+
+	return nil
 }
 
 // VerifySignatureShare verifies the partial signature of the signer with specified position
-func (bn *belNev) VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error {
-	// TODO
+// s_i * G = R_i + H1(<L'>||X_i||R||m)*X_i
+func (bn *belNevSigner) VerifySignatureShare(index uint16, sig []byte, bitmap []byte) error {
+	if sig == nil {
+		return crypto.ErrNilSignature
+	}
+
+	if bitmap == nil {
+		return crypto.ErrNilBitmap
+	}
+
+	err := bn.isValidIndex(index, bitmap)
+	if err != nil {
+		return err
+	}
+
+	sigScalar := bn.suite.CreateScalar()
+	err = sigScalar.UnmarshalBinary(sig)
+	if err != nil {
+		return err
+	}
+
+	// s_i * G
+	basePoint := bn.suite.CreatePoint().Base()
+	left, err := basePoint.Mul(sigScalar)
+	if err != nil {
+		return err
+	}
+
+	challengeScalar, err := bn.computeChallenge(index, bitmap)
+	if err != nil {
+		return err
+	}
+
+	pubKey := bn.pubKeys[index].Point()
+	// H1(<L'>||X_i||R||m)*X_i
+	right, err := pubKey.Mul(challengeScalar)
+	if err != nil {
+		return err
+	}
+
+	// R_i + H1(<L'>||X_i||R||m)*X_i
+	bn.mutCommitments.RLock()
+	right, err = right.Add(bn.commitments[index])
+	bn.mutCommitments.RUnlock()
+	if err != nil {
+		return err
+	}
+
+	eq, err := right.Equal(left)
+	if err != nil {
+		return err
+	}
+
+	if !eq {
+		return crypto.ErrSigNotValid
+	}
 
 	return nil
 }
 
 // AddSignatureShare adds the partial signature of the signer with specified position
-func (bn *belNev) AddSignatureShare(index uint16, sig []byte) error {
+func (bn *belNevSigner) AddSignatureShare(index uint16, sig []byte) error {
+	if sig == nil {
+		return crypto.ErrNilSignature
+	}
+
+	sigScalar := bn.suite.CreateScalar()
+	err := sigScalar.UnmarshalBinary(sig)
+
+	if err != nil {
+		return err
+	}
+
 	bn.mutSigShares.Lock()
 	if int(index) >= len(bn.sigShares) {
 		bn.mutSigShares.Unlock()
-		return crypto.ErrInvalidIndex
+		return crypto.ErrIndexOutOfBounds
 	}
 
-	bn.sigShares[index] = sig
+	bn.sigShares[index] = sigScalar
 	bn.mutSigShares.Unlock()
+
 	return nil
 }
 
 // SignatureShare returns the partial signature set for given index
-func (bn *belNev) SignatureShare(index uint16) ([]byte, error) {
+func (bn *belNevSigner) SignatureShare(index uint16) ([]byte, error) {
 	bn.mutSigShares.RLock()
 	defer bn.mutSigShares.RUnlock()
 
 	if int(index) >= len(bn.sigShares) {
-		return nil, crypto.ErrInvalidIndex
+		return nil, crypto.ErrIndexOutOfBounds
 	}
 
 	if bn.sigShares[index] == nil {
 		return nil, crypto.ErrNilElement
 	}
 
-	return bn.sigShares[index], nil
+	sigShareBytes, err := bn.sigShares[index].MarshalBinary()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return sigShareBytes, nil
 }
 
 // AggregateSigs aggregates all collected partial signatures
-func (bn *belNev) AggregateSigs(bitmap []byte) ([]byte, error) {
-	// TODO, do not forget about mutSigShares
+func (bn *belNevSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
+	var err error
 
-	return []byte("implement me"), nil
+	if bitmap == nil {
+		return nil, crypto.ErrNilBitmap
+	}
+
+	maxFlags := len(bitmap) * 8
+	flagsMismatch := maxFlags < len(bn.pubKeys)
+	if flagsMismatch {
+		return nil, crypto.ErrBitmapMismatch
+	}
+
+	aggSig := bn.suite.CreateScalar().Zero()
+	bn.mutSigShares.RLock()
+	defer bn.mutSigShares.RUnlock()
+
+	for i := range bn.sigShares {
+		err := bn.isValidIndex(uint16(i), bitmap)
+		if err != nil {
+			continue
+		}
+
+		aggSig, err = aggSig.Add(bn.sigShares[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	aggSigBytes, err := aggSig.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	bn.aggSig = aggSig
+
+	return aggSigBytes, nil
 }
 
 // SetAggregatedSig sets the aggregated signature
-func (bn *belNev) SetAggregatedSig(aggSig []byte) error {
-	bn.aggSig = aggSig
+func (bn *belNevSigner) SetAggregatedSig(aggSig []byte) error {
+	if aggSig == nil {
+		return crypto.ErrNilSignature
+	}
+
+	aggSigPoint := bn.suite.CreateScalar()
+	err := aggSigPoint.UnmarshalBinary(aggSig)
+
+	if err != nil {
+		return err
+	}
+
+	bn.aggSig = aggSigPoint
+
 	return nil
 }
 
-// Verify verifies the aggregated signature
-func (bn *belNev) Verify(bitmap []byte) error {
-	// TODO
+// Verify verifies the aggregated signature by checking equality
+// s * G = R + Sum(H1(<L'>||X_i||R||m)*X_i*B[i])
+func (bn *belNevSigner) Verify(bitmap []byte) error {
+	if bitmap == nil {
+		return crypto.ErrNilBitmap
+	}
+
+	right := bn.suite.CreatePoint().Null()
+	var err error
+
+	for i := range bn.pubKeys {
+		err := bn.isValidIndex(uint16(i), bitmap)
+		if err != nil {
+			return err
+		}
+
+		challengeScalar, err := bn.computeChallenge(uint16(i), bitmap)
+		if err != nil {
+			return err
+		}
+
+		pubKey := bn.pubKeys[i].Point()
+		// H1(<L'>||X_i||R||m)*X_i
+		part, err := pubKey.Mul(challengeScalar)
+		if err != nil {
+			return err
+		}
+
+		right, err = right.Add(part)
+		if err != nil {
+			return err
+		}
+	}
+
+	// R + Sum(H1(<L'>||X_i||R||m)*X_i)
+	right, err = right.Add(bn.aggCommitment)
+	if err != nil {
+		return err
+	}
+
+	// s * G
+	left := bn.suite.CreatePoint().Base()
+	left, err = left.Mul(bn.aggSig)
+	if err != nil {
+		return err
+	}
+
+	// s * G = R + Sum(H1(<L'>||X_i||R||m)*X_i)
+	eq, err := right.Equal(left)
+	if err != nil {
+		return err
+	}
+
+	if !eq {
+		return crypto.ErrSigNotValid
+	}
 
 	return nil
 }
