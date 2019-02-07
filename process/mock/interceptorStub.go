@@ -6,24 +6,24 @@ import (
 )
 
 type InterceptorStub struct {
-	NameCalled                          func() string
-	SetCheckReceivedObjectHandlerCalled func(func(newer p2p.Creator, rawData []byte) error)
-	CheckReceivedObjectHandlerCalled    func() func(newer p2p.Creator, rawData []byte) error
-	MarshalizerCalled                   func() marshal.Marshalizer
-}
-
-func (is *InterceptorStub) Marshalizer() marshal.Marshalizer {
-	return is.MarshalizerCalled()
+	NameCalled                      func() string
+	SetReceivedMessageHandlerCalled func(func(message p2p.MessageP2P) error)
+	ReceivedMessageHandlerCalled    func() func(message p2p.MessageP2P) error
+	MarshalizerCalled               func() marshal.Marshalizer
 }
 
 func (is *InterceptorStub) Name() string {
 	return is.NameCalled()
 }
 
-func (is *InterceptorStub) SetCheckReceivedObjectHandler(handler func(newer p2p.Creator, rawData []byte) error) {
-	is.SetCheckReceivedObjectHandlerCalled(handler)
+func (is *InterceptorStub) SetReceivedMessageHandler(handler func(message p2p.MessageP2P) error) {
+	is.SetReceivedMessageHandlerCalled(handler)
 }
 
-func (is *InterceptorStub) CheckReceivedObjectHandler() func(newer p2p.Creator, rawData []byte) error {
-	return is.CheckReceivedObjectHandlerCalled()
+func (is *InterceptorStub) ReceivedMessageHandler() func(message p2p.MessageP2P) error {
+	return is.ReceivedMessageHandlerCalled()
+}
+
+func (is *InterceptorStub) Marshalizer() marshal.Marshalizer {
+	return is.MarshalizerCalled()
 }

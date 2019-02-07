@@ -1,87 +1,83 @@
 package mock
 
 import (
-	"context"
-	"time"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peer"
-	"github.com/multiformats/go-multiaddr"
 )
 
 type MessengerStub struct {
-	marshalizer    marshal.Marshalizer
-	HasherObj      hashing.Hasher
-	AddTopicCalled func(t *p2p.Topic) error
-	GetTopicCalled func(name string) *p2p.Topic
-}
-
-func NewMessengerStub() *MessengerStub {
-	return &MessengerStub{
-		marshalizer: &MarshalizerMock{},
-		HasherObj:   HasherMock{},
-	}
+	CloseCalled                     func() error
+	IDCalled                        func() p2p.PeerID
+	PeersCalled                     func() []p2p.PeerID
+	AddressesCalled                 func() []string
+	ConnectToPeerCalled             func(address string) error
+	DiscoverNewPeersCalled          func() error
+	IsConnectedCalled               func(peerID p2p.PeerID) bool
+	ConnectedPeersCalled            func() []p2p.PeerID
+	CreateTopicCalled               func(name string, createPipeForTopic bool) error
+	HasTopicCalled                  func(name string) bool
+	HasTopicValidatorCalled         func(name string) bool
+	SendDataThrottlerCalled         func() p2p.DataThrottler
+	BroadcastDataCalled             func(pipe string, topic string, buff []byte)
+	SetTopicValidatorCalled         func(topic string, handler func(message p2p.MessageP2P) error) error
+	SendDirectToConnectedPeerCalled func(topic string, buff []byte, peerID p2p.PeerID) error
 }
 
 func (ms *MessengerStub) Close() error {
-	panic("implement me")
+	return ms.CloseCalled()
 }
 
-func (ms *MessengerStub) ID() peer.ID {
-	panic("implement me")
+func (ms *MessengerStub) ID() p2p.PeerID {
+	return ms.IDCalled()
 }
 
-func (ms *MessengerStub) Peers() []peer.ID {
-	panic("implement me")
-}
-
-func (ms *MessengerStub) Conns() []net.Conn {
-	panic("implement me")
-}
-
-func (ms *MessengerStub) Marshalizer() marshal.Marshalizer {
-	return ms.marshalizer
-}
-
-func (ms *MessengerStub) Hasher() hashing.Hasher {
-	return ms.HasherObj
-}
-
-func (ms *MessengerStub) RouteTable() *p2p.RoutingTable {
-	panic("implement me")
+func (ms *MessengerStub) Peers() []p2p.PeerID {
+	return ms.PeersCalled()
 }
 
 func (ms *MessengerStub) Addresses() []string {
-	panic("implement me")
+	return ms.AddressesCalled()
 }
 
-func (ms *MessengerStub) ConnectToAddresses(ctx context.Context, addresses []string) {
-	panic("implement me")
+func (ms *MessengerStub) ConnectToPeer(address string) error {
+	return ms.ConnectToPeerCalled(address)
 }
 
-func (ms *MessengerStub) Bootstrap(ctx context.Context) {
-	panic("implement me")
+func (ms *MessengerStub) DiscoverNewPeers() error {
+	return ms.DiscoverNewPeersCalled()
 }
 
-func (ms *MessengerStub) PrintConnected() {
-	panic("implement me")
+func (ms *MessengerStub) IsConnected(peerID p2p.PeerID) bool {
+	return ms.IsConnectedCalled(peerID)
 }
 
-func (ms *MessengerStub) AddAddress(p peer.ID, addr multiaddr.Multiaddr, ttl time.Duration) {
-	panic("implement me")
+func (ms *MessengerStub) ConnectedPeers() []p2p.PeerID {
+	return ms.ConnectedPeersCalled()
 }
 
-func (ms *MessengerStub) Connectedness(pid peer.ID) net.Connectedness {
-	panic("implement me")
+func (ms *MessengerStub) CreateTopic(name string, createPipeForTopic bool) error {
+	return ms.CreateTopicCalled(name, createPipeForTopic)
 }
 
-func (ms *MessengerStub) GetTopic(topicName string) *p2p.Topic {
-	return ms.GetTopicCalled(topicName)
+func (ms *MessengerStub) HasTopic(name string) bool {
+	return ms.HasTopicCalled(name)
 }
 
-func (ms *MessengerStub) AddTopic(t *p2p.Topic) error {
-	return ms.AddTopicCalled(t)
+func (ms *MessengerStub) HasTopicValidator(name string) bool {
+	return ms.HasTopicValidatorCalled(name)
+}
+
+func (ms *MessengerStub) SendDataThrottler() p2p.DataThrottler {
+	return ms.SendDataThrottlerCalled()
+}
+
+func (ms *MessengerStub) BroadcastData(pipe string, topic string, buff []byte) {
+	ms.BroadcastDataCalled(pipe, topic, buff)
+}
+
+func (ms *MessengerStub) SetTopicValidator(topic string, handler func(message p2p.MessageP2P) error) error {
+	return ms.SetTopicValidatorCalled(topic, handler)
+}
+
+func (ms *MessengerStub) SendDirectToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
+	return ms.SendDirectToConnectedPeerCalled(topic, buff, peerID)
 }

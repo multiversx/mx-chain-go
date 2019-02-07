@@ -6,11 +6,13 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/dataThrottle"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/mock"
 	"github.com/btcsuite/btcd/btcec"
@@ -47,6 +49,18 @@ func prepareMessengerForMatchDataReceive(mes p2p.Messenger, matchData []byte, wg
 
 		return nil
 	})
+}
+
+func getConnectableAddress(mes p2p.Messenger) string {
+	for _, addr := range mes.Addresses() {
+		if strings.Contains(addr, "circuit") {
+			continue
+		}
+
+		return addr
+	}
+
+	return ""
 }
 
 //------- NewMockLibp2pMessenger
@@ -275,6 +289,59 @@ func TestLibp2pMessenger_CreateTopicTwiceShuldErr(t *testing.T) {
 	_ = mes.CreateTopic("test", false)
 	err := mes.CreateTopic("test", false)
 	assert.Equal(t, p2p.ErrTopicAlreadyExists, err)
+}
+
+func TestLibp2pMessenger_HasTopicIfHaveTopicShouldReturnTrue(t *testing.T) {
+	netw := mocknet.New(context.Background())
+
+	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+
+	_ = mes.CreateTopic("test", false)
+
+	assert.True(t, mes.HasTopic("test"))
+}
+
+func TestLibp2pMessenger_HasTopicIfDoNotHaveTopicShouldReturnFalse(t *testing.T) {
+	netw := mocknet.New(context.Background())
+
+	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+
+	_ = mes.CreateTopic("test", false)
+
+	assert.False(t, mes.HasTopic("one topic"))
+}
+
+func TestLibp2pMessenger_HasTopicValidatorDoNotHaveTopicShouldReturnFalse(t *testing.T) {
+	netw := mocknet.New(context.Background())
+
+	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+
+	_ = mes.CreateTopic("test", false)
+
+	assert.False(t, mes.HasTopicValidator("one topic"))
+}
+
+func TestLibp2pMessenger_HasTopicValidatorHaveTopicDoNotHaveValidatorShouldReturnFalse(t *testing.T) {
+	netw := mocknet.New(context.Background())
+
+	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+
+	_ = mes.CreateTopic("test", false)
+
+	assert.False(t, mes.HasTopicValidator("test"))
+}
+
+func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue(t *testing.T) {
+	netw := mocknet.New(context.Background())
+
+	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+
+	_ = mes.CreateTopic("test", false)
+	_ = mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+		return nil
+	})
+
+	assert.True(t, mes.HasTopicValidator("test"))
 }
 
 func TestLibp2pMessenger_SetTopicValidatorOnInexistentTopicShouldErr(t *testing.T) {
@@ -662,7 +729,7 @@ func TestLibp2pMessenger_SendDataThrottlerShouldReturnCorrectObject(t *testing.T
 	mes.Close()
 }
 
-func TestLibp2pMessenger_SendDirectToConnectedPeerShouldWork(t *testing.T) {
+func TestLibp2pMessenger_SendDirectWithMockNetToConnectedPeerShouldWork(t *testing.T) {
 	msg := []byte("test message")
 
 	netw := mocknet.New(context.Background())
@@ -694,6 +761,52 @@ func TestLibp2pMessenger_SendDirectToConnectedPeerShouldWork(t *testing.T) {
 
 	err := mes1.SendDirectToConnectedPeer("test", msg, mes2.ID())
 
+	assert.Nil(t, err)
+
+	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
+}
+
+func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testing.T) {
+	msg := []byte("test message")
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	prvKey1, _ := ecdsa.GenerateKey(btcec.S256(), r)
+	sk1 := (*crypto.Secp256k1PrivateKey)(prvKey1)
+
+	prvKey2, _ := ecdsa.GenerateKey(btcec.S256(), r)
+	sk2 := (*crypto.Secp256k1PrivateKey)(prvKey2)
+
+	fmt.Println("Messenger 1:")
+	mes1, _ := libp2p.NewSocketLibp2pMessenger(context.Background(), 4000, sk1, nil, dataThrottle.NewSendDataThrottle())
+	fmt.Println("Messenger 2:")
+	mes2, _ := libp2p.NewSocketLibp2pMessenger(context.Background(), 4001, sk2, nil, dataThrottle.NewSendDataThrottle())
+
+	err := mes1.ConnectToPeer(getConnectableAddress(mes2))
+	assert.Nil(t, err)
+
+	wg := &sync.WaitGroup{}
+	chanDone := make(chan bool)
+	wg.Add(2)
+
+	go func() {
+		wg.Wait()
+		chanDone <- true
+	}()
+
+	prepareMessengerForMatchDataReceive(mes1, msg, wg)
+	prepareMessengerForMatchDataReceive(mes2, msg, wg)
+
+	fmt.Println("Delaying as to allow peers to announce themselves on the opened topic...")
+	time.Sleep(time.Second)
+
+	fmt.Printf("Messenger 1 is sending message from %s...\n", mes1.ID().Pretty())
+	err = mes1.SendDirectToConnectedPeer("test", msg, mes2.ID())
+	assert.Nil(t, err)
+
+	time.Sleep(time.Second)
+	fmt.Printf("Messenger 2 is sending message from %s...\n", mes2.ID().Pretty())
+	err = mes2.SendDirectToConnectedPeer("test", msg, mes1.ID())
 	assert.Nil(t, err)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)

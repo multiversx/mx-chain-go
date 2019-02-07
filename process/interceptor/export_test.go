@@ -1,11 +1,9 @@
 package interceptor
 
 import (
-	"context"
-
-	"github.com/libp2p/go-libp2p-pubsub"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
-func (ti *topicInterceptor) Validator(ctx context.Context, message *pubsub.Message) bool {
-	return ti.validator(ctx, message)
+func (ti *topicInterceptor) Validator(message p2p.MessageP2P) error {
+	return ti.validator(message)
 }

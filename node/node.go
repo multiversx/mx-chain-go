@@ -36,6 +36,9 @@ const WaitTime = time.Duration(2000 * time.Millisecond)
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic topicName = "consensus"
 
+// SendTransactionsPipe is the pipe used for sending new transactions
+const SendTransactionsPipe = "send transactions pipe"
+
 type topicName string
 
 var log = logger.NewDefaultLogger()
@@ -138,7 +141,8 @@ func (n *Node) P2PBootstrap() error {
 	if n.messenger == nil {
 		return ErrNilMessenger
 	}
-	n.messenger.Bootstrap(n.ctx)
+	//TODO(JLS) do bootstrap
+	//n.messenger.Bootstrap(n.ctx)
 	return nil
 }
 
@@ -202,10 +206,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	topic := n.createConsensusTopic(sposWrk)
-
-	err = n.messenger.AddTopic(topic)
-
+	err = n.createConsensusTopic(sposWrk)
 	if err != nil {
 		log.Debug(fmt.Sprintf(err.Error()))
 	}
@@ -320,17 +321,17 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return errFound
 	}
 
-	topic := n.messenger.GetTopic(string(factory.TransactionTopic))
-	if topic == nil {
-		return errors.New("could not get transaction topic")
-	}
-
 	if len(transactions) != int(noOfTx) {
 		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
 	}
 
 	for i := 0; i < len(transactions); i++ {
-		err = topic.BroadcastBuff(transactions[i])
+		n.messenger.BroadcastData(
+			SendTransactionsPipe,
+			string(factory.TransactionTopic),
+			transactions[i],
+		)
+
 		time.Sleep(time.Microsecond * 100)
 
 		if err != nil {
@@ -497,10 +498,19 @@ func (n *Node) createConsensusWorker(cns *spos.Consensus, boot *sync.Bootstrap) 
 }
 
 // createConsensusTopic creates a consensus topic for node
-func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) *p2p.Topic {
-	t := p2p.NewTopic(string(ConsensusTopic), &spos.ConsensusData{}, n.marshalizer)
-	t.AddDataReceived(sposWrk.ReceivedMessage)
-	return t
+func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) error {
+	if n.messenger.HasTopicValidator(string(ConsensusTopic)) {
+		return ErrValidatorAlreadySet
+	}
+
+	if !n.messenger.HasTopic(string(ConsensusTopic)) {
+		err := n.messenger.CreateTopic(string(ConsensusTopic), true)
+		if err != nil {
+			return err
+		}
+	}
+
+	return n.messenger.SetTopicValidator(string(ConsensusTopic), sposWrk.ReceivedMessage)
 }
 
 // addSubroundsToChronology adds subrounds to chronology
@@ -686,21 +696,17 @@ func (n *Node) SendTransaction(
 		Signature: signature,
 	}
 
-	topic := n.messenger.GetTopic(string(factory.TransactionTopic))
-
-	if topic == nil {
-		return nil, errors.New("could not get transaction topic")
-	}
-
 	marshalizedTx, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, errors.New("could not marshal transaction")
 	}
 
-	err = topic.BroadcastBuff(marshalizedTx)
-	if err != nil {
-		return nil, errors.New("could not broadcast transaction: " + err.Error())
-	}
+	n.messenger.BroadcastData(
+		SendTransactionsPipe,
+		string(factory.TransactionTopic),
+		marshalizedTx,
+	)
+
 	return &tx, nil
 }
 
@@ -767,48 +773,31 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 }
 
 func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
-	topic := n.messenger.GetTopic(string(ConsensusTopic))
-
-	if topic == nil {
-		log.Debug(fmt.Sprintf("could not get consensus topic"))
+	cnsDtaBuff, err := n.marshalizer.Marshal(cnsDta)
+	if err != nil {
+		log.Debug(err.Error())
 		return
 	}
 
-	err := topic.Broadcast(cnsDta)
-
-	if err != nil {
-		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
-	}
+	n.messenger.BroadcastData(
+		string(ConsensusTopic),
+		string(ConsensusTopic),
+		cnsDtaBuff)
 }
 
 func (n *Node) broadcastBlockBody(msg []byte) {
-	topic := n.messenger.GetTopic(string(factory.TxBlockBodyTopic))
-
-	if topic == nil {
-		log.Debug(fmt.Sprintf("could not get tx block body topic"))
-		return
-	}
-
-	err := topic.BroadcastBuff(msg)
-
-	if err != nil {
-		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
-	}
+	n.messenger.BroadcastData(
+		string(factory.TxBlockBodyTopic),
+		string(factory.TxBlockBodyTopic),
+		msg)
 }
 
 func (n *Node) broadcastHeader(msg []byte) {
-	topic := n.messenger.GetTopic(string(factory.HeadersTopic))
-
-	if topic == nil {
-		log.Debug(fmt.Sprintf("could not get header topic"))
-		return
-	}
-
-	err := topic.BroadcastBuff(msg)
-
-	if err != nil {
-		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
-	}
+	n.messenger.BroadcastData(
+		string(factory.HeadersTopic),
+		string(factory.HeadersTopic),
+		msg,
+	)
 }
 
 func toB64(buff []byte) string {

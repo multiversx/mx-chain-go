@@ -1,6 +1,8 @@
-package p2p
+package libp2p
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-pubsub"
 )
 
@@ -12,11 +14,12 @@ type Message struct {
 	topicIds  []string
 	signature []byte
 	key       []byte
+	peer      p2p.PeerID
 }
 
 // NewMessage returns a new instance of a Message object
 func NewMessage(message *pubsub.Message) *Message {
-	return &Message{
+	msg := &Message{
 		from:      message.From,
 		data:      message.Data,
 		seqNo:     message.Seqno,
@@ -24,6 +27,15 @@ func NewMessage(message *pubsub.Message) *Message {
 		signature: message.Signature,
 		key:       message.Key,
 	}
+
+	id, err := peer.IDFromBytes(msg.from)
+	if err != nil {
+		log.Debug(err.Error())
+	} else {
+		msg.peer = p2p.PeerID(id)
+	}
+
+	return msg
 }
 
 // From returns the message originator's peer ID
@@ -54,4 +66,9 @@ func (m *Message) Signature() []byte {
 // Key returns the message public key (if it can not be recovered from From field)
 func (m *Message) Key() []byte {
 	return m.key
+}
+
+// Peer returns the peer that originated the message
+func (m *Message) Peer() p2p.PeerID {
+	return m.peer
 }

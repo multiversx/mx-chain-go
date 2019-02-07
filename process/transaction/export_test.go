@@ -33,8 +33,8 @@ func (txProc *txProcessor) IncreaseNonceAcntSrc(acntSrc state.JournalizedAccount
 	return txProc.increaseNonceAcntSrc(acntSrc)
 }
 
-func (txi *TxInterceptor) ProcessTx(tx p2p.Creator, rawData []byte) error {
-	return txi.processTx(tx, rawData)
+func (txi *TxInterceptor) ProcessTx(message p2p.MessageP2P) error {
+	return txi.processTx(message)
 }
 
 func (txRes *TxResolver) ResolveTxRequest(rd process.RequestData) ([]byte, error) {

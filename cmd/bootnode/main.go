@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -36,6 +38,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/dataThrottle"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
@@ -45,6 +49,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	beevikntp "github.com/beevik/ntp"
+	"github.com/btcsuite/btcd/btcec"
+	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -84,7 +90,6 @@ type netMessengerConfig struct {
 	maxAllowedPeers int
 	marshalizer     marshal.Marshalizer
 	hasher          hashing.Hasher
-	pubSubStrategy  p2p.PubSubStrategy
 }
 
 func main() {
@@ -322,7 +327,6 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		maxAllowedPeers: ctx.GlobalInt(flags.MaxAllowedPeers.Name),
 		marshalizer:     marshalizer,
 		hasher:          hasher,
-		pubSubStrategy:  p2p.GossipSub,
 	})
 	if err != nil {
 		return nil, err
@@ -439,13 +443,11 @@ func createNetMessenger(config netMessengerConfig) (p2p.Messenger, error) {
 		return nil, errors.New("cannot start node without providing maxAllowedPeers")
 	}
 
-	//TODO check if libp2p provides a better random source
-	cp := &p2p.ConnectParams{}
-	cp.Port = config.port
-	cp.GeneratePrivPubKeys(time.Now().UnixNano())
-	cp.GenerateIDFromPubKey()
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
+	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	nm, err := p2p.NewNetMessenger(config.ctx, config.marshalizer, config.hasher, cp, config.maxAllowedPeers, config.pubSubStrategy)
+	nm, err := libp2p.NewSocketLibp2pMessenger(config.ctx, config.port, sk, nil, dataThrottle.NewSendDataThrottle())
+
 	if err != nil {
 		return nil, err
 	}

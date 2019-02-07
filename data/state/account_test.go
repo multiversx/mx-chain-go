@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
 	"github.com/stretchr/testify/assert"
 )
 

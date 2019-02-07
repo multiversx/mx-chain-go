@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+
+	//"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
@@ -106,17 +108,6 @@ func NewConsensusData(
 	}
 }
 
-// Create method creates a new ConsensusData object
-func (cd *ConsensusData) Create() p2p.Creator {
-	return &ConsensusData{}
-}
-
-// ID gets an unique id of the ConsensusData object
-func (cd *ConsensusData) ID() string {
-	id := fmt.Sprintf("%d-%s-%d", cd.RoundIndex, cd.Signature, cd.MsgType)
-	return id
-}
-
 // SPOSConsensusWorker defines the data needed by spos to communicate between nodes which are in the validators group
 type SPOSConsensusWorker struct {
 	Cns                    *Consensus
@@ -124,7 +115,7 @@ type SPOSConsensusWorker struct {
 	BlockBody              *block.TxBlockBody
 	BlockChain             *blockchain.BlockChain
 	BlockProcessor         process.BlockProcessor
-	boot                   process.Bootstraper
+	boot                   process.Bootstrapper
 	MessageChannels        map[MessageType]chan *ConsensusData
 	ReceivedMessageChannel chan *ConsensusData
 	hasher                 hashing.Hasher
@@ -147,7 +138,7 @@ func NewConsensusWorker(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	blockProcessor process.BlockProcessor,
-	boot process.Bootstraper,
+	boot process.Bootstrapper,
 	multisig crypto.MultiSigner,
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
@@ -216,7 +207,7 @@ func checkNewConsensusWorkerParams(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	blockProcessor process.BlockProcessor,
-	boot process.Bootstraper,
+	boot process.Bootstrapper,
 	multisig crypto.MultiSigner,
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
@@ -1220,37 +1211,45 @@ func (sposWorker *SPOSConsensusWorker) createEmptyBlock() bool {
 }
 
 // ReceivedMessage method redirects the received message to the channel which should handle it
-func (sposWorker *SPOSConsensusWorker) ReceivedMessage(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-	if sposWorker.Cns.Chr.IsCancelled() {
-		return
+func (sposWorker *SPOSConsensusWorker) ReceivedMessage(message p2p.MessageP2P) error {
+	if message == nil {
+		return ErrNilMessage
 	}
 
-	cnsDta, ok := data.(*ConsensusData)
+	if message.Data() == nil {
+		return ErrNilDataToProcess
+	}
 
-	if !ok {
-		return
+	if sposWorker.Cns.Chr.IsCancelled() {
+		return ErrRoundIsCancelled
+	}
+
+	cnsDta := &ConsensusData{}
+	err := sposWorker.marshalizer.Unmarshal(cnsDta, message.Data())
+	if err != nil {
+		return err
 	}
 
 	senderOK := sposWorker.Cns.IsNodeInConsensusGroup(string(cnsDta.PubKey))
-
 	if !senderOK {
-		return
+		return ErrConsensusMessageSenderNotValid
 	}
 
 	if sposWorker.shouldDropConsensusMessage(cnsDta) {
-		return
+		return ErrShouldDropConsensusMessage
 	}
 
 	if sposWorker.Cns.SelfPubKey() == string(cnsDta.PubKey) {
-		return
+		return ErrMessageSentFromSelf
 	}
 
 	sigVerifErr := sposWorker.checkSignature(cnsDta)
 	if sigVerifErr != nil {
-		return
+		return sigVerifErr
 	}
 
 	sposWorker.ReceivedMessageChannel <- cnsDta
+	return nil
 }
 
 func (sposWorker *SPOSConsensusWorker) shouldDropConsensusMessage(cnsDta *ConsensusData) bool {

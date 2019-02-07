@@ -14,8 +14,6 @@ import (
 )
 
 func TestNode_GenerateSendInterceptBulkTransactionsWithNetMessenger(t *testing.T) {
-	t.Skip("TODO: fix tests that run on the same local network")
-
 	dPool := createTestDataPool()
 
 	startingNonce := uint64(6)
@@ -23,8 +21,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithNetMessenger(t *testing.T
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 	accntAdapter := adbCreateAccountsDB()
 
-	//TODO change when injecting a messenger is possible
-	n, _, sk := createNetNode(4000, dPool, accntAdapter)
+	n, _, sk, _ := createNetNode(4000, dPool, accntAdapter)
 
 	n.Start()
 	defer n.Stop()
@@ -40,7 +37,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithNetMessenger(t *testing.T
 	nodeAccount.SetNonceWithJournal(startingNonce)
 	accntAdapter.Commit()
 
-	noOfTx := 100000
+	noOfTx := 10000
 
 	time.Sleep(time.Second)
 
@@ -84,7 +81,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithNetMessenger(t *testing.T
 
 	select {
 	case <-chanDone:
-	case <-time.After(time.Second * 60):
+	case <-time.After(time.Second * 10):
 		assert.Fail(t, "timeout")
 		return
 	}

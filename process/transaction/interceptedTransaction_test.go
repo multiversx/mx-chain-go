@@ -341,7 +341,6 @@ func TestTransactionInterceptor_GetterSetterHash(t *testing.T) {
 	tx := transaction.NewInterceptedTransaction()
 	tx.SetHash(hash)
 
-	assert.Equal(t, string(hash), tx.ID())
 	assert.Equal(t, string(hash), string(tx.Hash()))
 }
 

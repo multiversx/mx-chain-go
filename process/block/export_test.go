@@ -26,12 +26,8 @@ func (bp *blockProcessor) ReceivedTransaction(txHash []byte) {
 	bp.receivedTransaction(txHash)
 }
 
-func (hi *HeaderInterceptor) ProcessHdr(hdr p2p.Creator, rawData []byte) error {
-	return hi.processHdr(hdr, rawData)
-}
-
-func (gbbi *GenericBlockBodyInterceptor) ProcessBodyBlock(bodyBlock p2p.Creator, rawData []byte) error {
-	return gbbi.processBodyBlock(bodyBlock, rawData)
+func (hi *HeaderInterceptor) ProcessHdr(message p2p.MessageP2P) error {
+	return hi.processHdr(message)
 }
 
 func (hdrRes *HeaderResolver) ResolveHdrRequest(rd process.RequestData) ([]byte, error) {

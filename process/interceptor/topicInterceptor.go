@@ -1,102 +1,71 @@
 package interceptor
 
 import (
-	"context"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/libp2p/go-libp2p-pubsub"
 )
-
-var log = logger.NewDefaultLogger()
 
 // TopicInterceptor is a struct coupled with a p2p.Topic that calls CheckReceivedObject whenever Messenger needs to validate
 // the data
 type topicInterceptor struct {
-	messenger      p2p.Messenger
-	marshalizer    marshal.Marshalizer
-	templateObject p2p.Creator
-	name           string
+	messenger   p2p.Messenger
+	name        string
+	marshalizer marshal.Marshalizer
 
-	checkReceivedObject func(newer p2p.Creator, rawData []byte) error
+	receivedMessageHandler func(message p2p.MessageP2P) error
 }
 
 // NewTopicInterceptor returns a new data interceptor that runs coupled with p2p.Topics
 func NewTopicInterceptor(
 	name string,
 	messenger p2p.Messenger,
-	templateObject p2p.Creator,
+	marshalizer marshal.Marshalizer,
 ) (*topicInterceptor, error) {
 
 	if messenger == nil {
 		return nil, process.ErrNilMessenger
 	}
 
-	marshalizer := messenger.Marshalizer()
-
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
 	}
 
-	if templateObject == nil {
-		return nil, process.ErrNilNewer
+	intercept := topicInterceptor{
+		messenger:   messenger,
+		name:        name,
+		marshalizer: marshalizer,
 	}
 
-	topic, err := getOrCreateTopic(name, templateObject, messenger)
+	err := intercept.registerValidator()
 	if err != nil {
 		return nil, err
-	}
-
-	intercept := topicInterceptor{
-		messenger:      messenger,
-		templateObject: templateObject,
-		name:           name,
-		marshalizer:    marshalizer,
-	}
-
-	err = topic.RegisterValidator(intercept.validator)
-	if err != nil {
-		return nil, process.ErrRegisteringValidator
 	}
 
 	return &intercept, nil
 }
 
-func getOrCreateTopic(name string, templateObject p2p.Creator, messenger p2p.Messenger) (*p2p.Topic, error) {
-	existingTopic := messenger.GetTopic(name)
-
-	if existingTopic != nil {
-		return existingTopic, nil
+func (ti *topicInterceptor) registerValidator() error {
+	if ti.messenger.HasTopicValidator(ti.name) {
+		return process.ErrValidatorAlreadySet
 	}
 
-	topic := p2p.NewTopic(name, templateObject, messenger.Marshalizer())
-	return topic, messenger.AddTopic(topic)
+	if !ti.messenger.HasTopic(ti.name) {
+		err := ti.messenger.CreateTopic(ti.name, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	return ti.messenger.SetTopicValidator(ti.name, ti.validator)
 }
 
-func (ti *topicInterceptor) validator(ctx context.Context, message *pubsub.Message) bool {
-	obj := ti.templateObject.Create()
-
-	err := ti.marshalizer.Unmarshal(obj, message.GetData())
-
-	if err != nil {
-		log.Debug(err.Error())
-		return false
+func (ti *topicInterceptor) validator(message p2p.MessageP2P) error {
+	if ti.receivedMessageHandler == nil {
+		return process.ErrNilReceivedMessageHandler
 	}
 
-	if ti.checkReceivedObject == nil {
-		log.Error("nil checkReceivedObject handler")
-		return false
-	}
-
-	err = ti.checkReceivedObject(obj, message.GetData())
-	if err != nil {
-		log.Debug(err.Error())
-		return false
-	}
-
-	return true
+	return ti.receivedMessageHandler(message)
 }
 
 // Name returns the name of the interceptor
@@ -104,19 +73,16 @@ func (ti *topicInterceptor) Name() string {
 	return ti.name
 }
 
-// SetCheckReceivedObjectHandler sets the handler that gets called each time new data arrives in a form of
-// a newer object
-func (ti *topicInterceptor) SetCheckReceivedObjectHandler(handler func(newer p2p.Creator, rawData []byte) error) {
-	ti.checkReceivedObject = handler
+// SetReceivedMessageHandler sets the handler that gets called each time new message arrives from peers or from self
+func (ti *topicInterceptor) SetReceivedMessageHandler(handler func(message p2p.MessageP2P) error) {
+	ti.receivedMessageHandler = handler
 }
 
-// CheckReceivedObjectHandler returns the handler that gets called each time new data arrives in a form of
-// a newer object
-func (ti *topicInterceptor) CheckReceivedObjectHandler() func(newer p2p.Creator, rawData []byte) error {
-	return ti.checkReceivedObject
+// ReceivedMessageHandler returns the handler that gets called each time new message arrives from peers or from self
+func (ti *topicInterceptor) ReceivedMessageHandler() func(message p2p.MessageP2P) error {
+	return ti.receivedMessageHandler
 }
 
-// Marshalizer returns the marshalizer used to unmarshal the received data
 func (ti *topicInterceptor) Marshalizer() marshal.Marshalizer {
 	return ti.marshalizer
 }

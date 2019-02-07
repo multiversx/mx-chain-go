@@ -39,6 +39,8 @@ type Messenger interface {
 	ConnectedPeers() []PeerID
 
 	CreateTopic(name string, createPipeForTopic bool) error
+	HasTopic(name string) bool
+	HasTopicValidator(name string) bool
 	SendDataThrottler() DataThrottler
 	BroadcastData(pipe string, topic string, buff []byte)
 	SetTopicValidator(topic string, handler func(message MessageP2P) error) error
@@ -53,6 +55,7 @@ type MessageP2P interface {
 	TopicIDs() []string
 	Signature() []byte
 	Key() []byte
+	Peer() PeerID
 }
 
 // DataThrottler defines what a throttle software device can do

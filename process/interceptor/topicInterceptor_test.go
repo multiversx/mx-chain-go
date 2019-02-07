@@ -7,8 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
-	"github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,279 +14,311 @@ import (
 //------- NewTopicInterceptor
 
 func TestNewTopicInterceptor_NilMessengerShouldErr(t *testing.T) {
-	ti, err := interceptor.NewTopicInterceptor("", nil, &mock.StringCreator{})
+	t.Parallel()
+
+	ti, err := interceptor.NewTopicInterceptor("", nil, &mock.MarshalizerStub{})
+
+	assert.Nil(t, ti)
 	assert.Equal(t, process.ErrNilMessenger, err)
-	assert.Nil(t, ti)
 }
 
-func TestNewTopicInterceptor_NilTemplateObjectShouldErr(t *testing.T) {
-	ti, err := interceptor.NewTopicInterceptor("", mock.NewMessengerStub(), nil)
-	assert.Equal(t, process.ErrNilNewer, err)
+func TestNewTopicInterceptor_NilMArshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ti, err := interceptor.NewTopicInterceptor("", &mock.MessengerStub{}, nil)
+
 	assert.Nil(t, ti)
-}
-
-func TestNewTopicInterceptor_ErrMessengerAddTopicShouldErr(t *testing.T) {
-	mes := mock.NewMessengerStub()
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
-	}
-
-	mes.AddTopicCalled = func(t *p2p.Topic) error {
-		return errors.New("failure")
-	}
-
-	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
-	assert.NotNil(t, err)
-	assert.Nil(t, ti)
-}
-
-func TestNewTopicInterceptor_ErrMessengerRegistrationValidatorShouldErr(t *testing.T) {
-	mes := mock.NewMessengerStub()
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
-	}
-
-	mes.AddTopicCalled = func(t *p2p.Topic) error {
-		return nil
-	}
-
-	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
-	assert.Equal(t, process.ErrRegisteringValidator, err)
-	assert.Nil(t, ti)
-}
-
-func TestNewTopicInterceptor_NilMessengerMarshalizerShouldErr(t *testing.T) {
-	mes := &mock.MessengerStub{}
-
-	mes.AddTopicCalled = func(t *p2p.Topic) error {
-		t.RegisterTopicValidator = func(v pubsub.Validator) error {
-			return nil
-		}
-
-		return nil
-	}
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
-	}
-
-	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
-	assert.Nil(t, ti, err)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestNewTopicInterceptor_OkValsShouldWork(t *testing.T) {
-	mes := mock.NewMessengerStub()
+func TestNewTopicInterceptor_TopicValidatorAlreadySetShouldErr(t *testing.T) {
+	t.Parallel()
 
-	wasCalled := false
-	mes.AddTopicCalled = func(t *p2p.Topic) error {
-		t.RegisterTopicValidator = func(v pubsub.Validator) error {
-			wasCalled = true
+	topic := "test topic"
+
+	mes := &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			if name == topic {
+				return true
+			}
+
+			return false
+		},
+	}
+
+	ti, err := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
+
+	assert.Nil(t, ti)
+	assert.Equal(t, process.ErrValidatorAlreadySet, err)
+}
+
+func TestNewTopicInterceptor_CreateTopicErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	topic := "test topic"
+	errCreateTopic := errors.New("create topic err")
+
+	mes := &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		HasTopicCalled: func(name string) bool {
+			return false
+		},
+		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
+			if name == topic {
+				return errCreateTopic
+			}
 
 			return nil
-		}
-
-		return nil
+		},
 	}
 
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
+	ti, err := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
+
+	assert.Nil(t, ti)
+	assert.Equal(t, errCreateTopic, err)
+}
+
+func TestNewTopicInterceptor_OkValsCreateTopicShouldCallSetTopicValidator(t *testing.T) {
+	t.Parallel()
+
+	topic := "test topic"
+	wasCalled := false
+
+	mes := &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		HasTopicCalled: func(name string) bool {
+			return false
+		},
+		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
+			return nil
+		},
+		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+			if t == topic && handler != nil {
+				wasCalled = true
+			}
+
+			return nil
+		},
 	}
 
-	ti, err := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
-	assert.Nil(t, err)
-	assert.True(t, wasCalled)
+	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
+
 	assert.NotNil(t, ti)
+	assert.True(t, wasCalled)
 }
 
-func TestNewTopicInterceptor_CompareMarshlizersShouldEqual(t *testing.T) {
-	mes := mock.NewMessengerStub()
+func TestNewTopicInterceptor_OkValsTopicExistsShouldCallSetTopicValidator(t *testing.T) {
+	t.Parallel()
 
-	mes.AddTopicCalled = func(t *p2p.Topic) error {
-		t.RegisterTopicValidator = func(v pubsub.Validator) error {
-			return nil
-		}
-
-		return nil
-	}
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
-	}
-
-	ti, _ := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
-	assert.True(t, ti.Marshalizer() == mes.Marshalizer())
-}
-
-func TestNewTopicInterceptor_WithExistingTopicShouldWork(t *testing.T) {
-	mes := mock.NewMessengerStub()
-
+	topic := "test topic"
 	wasCalled := false
 
-	topicName := "test"
+	mes := &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		HasTopicCalled: func(name string) bool {
+			return true
+		},
+		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+			if t == topic && handler != nil {
+				wasCalled = true
+			}
 
-	topic := p2p.NewTopic(topicName, &mock.StringCreator{}, mes.Marshalizer())
-	topic.RegisterTopicValidator = func(v pubsub.Validator) error {
-		wasCalled = true
-
-		return nil
+			return nil
+		},
 	}
 
-	mes.AddTopicCalled = func(topic *p2p.Topic) error {
-		assert.Fail(t, "should have not reached this point")
+	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
 
-		return nil
-	}
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		if name == topicName {
-			return topic
-		}
-
-		return nil
-	}
-
-	ti, err := interceptor.NewTopicInterceptor(topicName, mes, &mock.StringCreator{})
-	assert.Nil(t, err)
-	assert.True(t, wasCalled)
 	assert.NotNil(t, ti)
-}
-
-//------- Validation
-
-func TestTopicInterceptor_ValidationMalfunctionMarshalizerReturnFalse(t *testing.T) {
-	mes := mock.NewMessengerStub()
-
-	var topic *p2p.Topic
-
-	mes.AddTopicCalled = func(t *p2p.Topic) error {
-		topic = t
-		topic.RegisterTopicValidator = func(v pubsub.Validator) error {
-			return nil
-		}
-
-		return nil
-	}
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
-	}
-
-	ti, _ := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
-
-	//we have the validator func, let's test with a broken marshalizer
-	mes.Marshalizer().(*mock.MarshalizerMock).Fail = true
-
-	blankMessage := pubsub.Message{}
-
-	assert.False(t, ti.Validator(nil, &blankMessage))
-}
-
-func TestTopicInterceptor_ValidationNilCheckReceivedObjectReturnFalse(t *testing.T) {
-	mes := mock.NewMessengerStub()
-
-	var topic *p2p.Topic
-
-	mes.AddTopicCalled = func(t *p2p.Topic) error {
-		topic = t
-		topic.RegisterTopicValidator = func(v pubsub.Validator) error {
-			return nil
-		}
-
-		return nil
-	}
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
-	}
-
-	ti, _ := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
-
-	//we have the validator func, let's test with a message
-	objToMarshalizeUnmarshalize := &mock.StringCreator{Data: "test data"}
-
-	message := &pubsub.Message{Message: &pubsub_pb.Message{}}
-	data, err := mes.Marshalizer().Marshal(objToMarshalizeUnmarshalize)
-	assert.Nil(t, err)
-	message.Data = data
-
-	assert.False(t, ti.Validator(nil, message))
-}
-
-func TestTopicInterceptor_ValidationCheckReceivedObjectFalseReturnFalse(t *testing.T) {
-	mes := mock.NewMessengerStub()
-
-	var topic *p2p.Topic
-
-	mes.AddTopicCalled = func(t *p2p.Topic) error {
-		topic = t
-		topic.RegisterTopicValidator = func(v pubsub.Validator) error {
-			return nil
-		}
-
-		return nil
-	}
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
-	}
-
-	intercept, _ := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
-
-	wasCalled := false
-
-	intercept.SetCheckReceivedObjectHandler(func(newer p2p.Creator, rawData []byte) error {
-		wasCalled = true
-		return errors.New("err1")
-	})
-
-	//we have the validator func, let's test with a message
-	objToMarshalizeUnmarshalize := &mock.StringCreator{Data: "test data"}
-
-	message := &pubsub.Message{Message: &pubsub_pb.Message{}}
-	data, err := mes.Marshalizer().Marshal(objToMarshalizeUnmarshalize)
-	assert.Nil(t, err)
-	message.Data = data
-
-	assert.False(t, intercept.Validator(nil, message))
 	assert.True(t, wasCalled)
 }
 
-func TestTopicInterceptor_ValidationCheckReceivedObjectTrueReturnTrue(t *testing.T) {
-	mes := mock.NewMessengerStub()
+func TestNewTopicInterceptor_OkValsShouldRetTheSetTopicValidatorError(t *testing.T) {
+	t.Parallel()
 
-	var topic *p2p.Topic
+	topic := "test topic"
+	errCheck := errors.New("check error")
 
-	mes.AddTopicCalled = func(t *p2p.Topic) error {
-		topic = t
-		topic.RegisterTopicValidator = func(v pubsub.Validator) error {
+	mes := &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		HasTopicCalled: func(name string) bool {
+			return false
+		},
+		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
 			return nil
-		}
-
-		return nil
+		},
+		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+			return errCheck
+		},
 	}
 
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
+	ti, err := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
+
+	assert.Nil(t, ti)
+	assert.Equal(t, errCheck, err)
+}
+
+//------- Validator
+
+func TestTopicInterceptor_ValidatorNotSetReceivedMessageHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	topic := "test topic"
+
+	mes := &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		HasTopicCalled: func(name string) bool {
+			return true
+		},
+		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+			return nil
+		},
 	}
 
-	intercept, _ := interceptor.NewTopicInterceptor("", mes, &mock.StringCreator{})
+	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
+	err := ti.Validator(nil)
+
+	assert.Equal(t, process.ErrNilReceivedMessageHandler, err)
+}
+
+func TestTopicInterceptor_ValidatorCallsHandler(t *testing.T) {
+	t.Parallel()
+
+	topic := "test topic"
+
+	mes := &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		HasTopicCalled: func(name string) bool {
+			return true
+		},
+		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+			return nil
+		},
+	}
 
 	wasCalled := false
 
-	intercept.SetCheckReceivedObjectHandler(func(newer p2p.Creator, rawData []byte) error {
+	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
+	ti.SetReceivedMessageHandler(func(message p2p.MessageP2P) error {
 		wasCalled = true
 		return nil
 	})
 
-	//we have the validator func, let's test with a message
-	objToMarshalizeUnmarshalize := &mock.StringCreator{Data: "test data"}
+	_ = ti.Validator(nil)
 
-	message := &pubsub.Message{Message: &pubsub_pb.Message{}}
-	data, err := mes.Marshalizer().Marshal(objToMarshalizeUnmarshalize)
-	assert.Nil(t, err)
-	message.Data = data
-
-	assert.True(t, intercept.Validator(nil, message))
 	assert.True(t, wasCalled)
+}
+
+func TestTopicInterceptor_ValidatorReturnsHandlersError(t *testing.T) {
+	t.Parallel()
+
+	topic := "test topic"
+	errCheck := errors.New("check err")
+
+	mes := &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		HasTopicCalled: func(name string) bool {
+			return true
+		},
+		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+			return nil
+		},
+	}
+
+	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
+	ti.SetReceivedMessageHandler(func(message p2p.MessageP2P) error {
+		return errCheck
+	})
+
+	err := ti.Validator(nil)
+
+	assert.Equal(t, errCheck, err)
+}
+
+func TestTopicInterceptor_Name(t *testing.T) {
+	t.Parallel()
+
+	topic := "test topic"
+
+	mes := &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		HasTopicCalled: func(name string) bool {
+			return true
+		},
+		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+			return nil
+		},
+	}
+
+	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
+
+	assert.Equal(t, topic, ti.Name())
+}
+
+func TestTopicInterceptor_ReceivedMessageHandler(t *testing.T) {
+	t.Parallel()
+
+	topic := "test topic"
+
+	mes := &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		HasTopicCalled: func(name string) bool {
+			return true
+		},
+		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+			return nil
+		},
+	}
+
+	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
+
+	assert.Nil(t, ti.ReceivedMessageHandler())
+
+	ti.SetReceivedMessageHandler(func(message p2p.MessageP2P) error {
+		return nil
+	})
+
+	assert.NotNil(t, ti.ReceivedMessageHandler())
+}
+
+func TestTopicInterceptor_Marshalizer(t *testing.T) {
+	t.Parallel()
+
+	topic := "test topic"
+
+	mes := &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		HasTopicCalled: func(name string) bool {
+			return true
+		},
+		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+			return nil
+		},
+	}
+
+	m := &mock.MarshalizerStub{}
+
+	ti, _ := interceptor.NewTopicInterceptor(topic, mes, m)
+
+	assert.True(t, ti.Marshalizer() == m)
 }

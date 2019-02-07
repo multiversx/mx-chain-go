@@ -2,7 +2,6 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
 // InterceptedHeader represents the wrapper over HeaderWrapper struct.
@@ -49,16 +48,6 @@ func (inHdr *InterceptedHeader) Hash() []byte {
 	return inHdr.hash
 }
 
-// Create returns a new instance of this struct (used in topics)
-func (inHdr *InterceptedHeader) Create() p2p.Creator {
-	return NewInterceptedHeader()
-}
-
-// ID returns the ID of this object. Set to return the hash of the header
-func (inHdr *InterceptedHeader) ID() string {
-	return string(inHdr.hash)
-}
-
 // Shard returns the shard ID for which this header is addressed
 func (inHdr *InterceptedHeader) Shard() uint32 {
 	return inHdr.ShardId
@@ -93,16 +82,6 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) Hash() []byte {
 	return inPeerBlkBdy.hash
 }
 
-// Create returns a new instance of this struct (used in topics)
-func (inPeerBlkBdy *InterceptedPeerBlockBody) Create() p2p.Creator {
-	return NewInterceptedPeerBlockBody()
-}
-
-// ID returns the ID of this object. Set to return the hash of the peer block body
-func (inPeerBlkBdy *InterceptedPeerBlockBody) ID() string {
-	return string(inPeerBlkBdy.hash)
-}
-
 // Shard returns the shard ID for which this body is addressed
 func (inPeerBlkBdy *InterceptedPeerBlockBody) Shard() uint32 {
 	return inPeerBlkBdy.ShardID
@@ -132,16 +111,6 @@ func (inStateBlkBdy *InterceptedStateBlockBody) Hash() []byte {
 	return inStateBlkBdy.hash
 }
 
-// Create returns a new instance of this struct (used in topics)
-func (inStateBlkBdy *InterceptedStateBlockBody) Create() p2p.Creator {
-	return NewInterceptedStateBlockBody()
-}
-
-// ID returns the ID of this object. Set to return the hash of the state block body
-func (inStateBlkBdy *InterceptedStateBlockBody) ID() string {
-	return string(inStateBlkBdy.hash)
-}
-
 // Shard returns the shard ID for which this body is addressed
 func (inStateBlkBdy *InterceptedStateBlockBody) Shard() uint32 {
 	return inStateBlkBdy.ShardID
@@ -169,11 +138,6 @@ func (inTxBlkBdy *InterceptedTxBlockBody) SetHash(hash []byte) {
 // Hash gets the hash of this transaction block body
 func (inTxBlkBdy *InterceptedTxBlockBody) Hash() []byte {
 	return inTxBlkBdy.hash
-}
-
-// Create returns a new instance of this struct (used in topics)
-func (inTxBlkBdy *InterceptedTxBlockBody) Create() p2p.Creator {
-	return NewInterceptedTxBlockBody()
 }
 
 // ID returns the ID of this object. Set to return the hash of the transaction block body

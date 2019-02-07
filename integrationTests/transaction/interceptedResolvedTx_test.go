@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/stretchr/testify/assert"
@@ -23,8 +22,10 @@ func TestNode_RequestInterceptTransactionWithMemMessenger(t *testing.T) {
 	dPoolRequestor := createTestDataPool()
 	dPoolResolver := createTestDataPool()
 
-	nRequestor, _, sk1, pf := createMemNode(1, dPoolRequestor, adbCreateAccountsDB())
-	nResolver, _, _, _ := createMemNode(2, dPoolResolver, adbCreateAccountsDB())
+	fmt.Println("Requestor:")
+	nRequestor, mesRequestor, sk1, pf := createNetNode(4000, dPoolRequestor, adbCreateAccountsDB())
+	fmt.Println("Resolver:")
+	nResolver, mesResolver, _, _ := createNetNode(4001, dPoolResolver, adbCreateAccountsDB())
 
 	nRequestor.Start()
 	nResolver.Start()
@@ -33,7 +34,10 @@ func TestNode_RequestInterceptTransactionWithMemMessenger(t *testing.T) {
 		_ = nResolver.Stop()
 	}()
 
-	defer p2p.ReInitializeGloballyRegisteredPeers()
+	//connect messengers together
+	time.Sleep(time.Second)
+	err := mesRequestor.ConnectToPeer(getConnectableAddress(mesResolver))
+	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
 
@@ -77,7 +81,7 @@ func TestNode_RequestInterceptTransactionWithMemMessenger(t *testing.T) {
 	//Step 4. request tx
 	res, _ := pf.ResolverContainer().Get(string(factory.TransactionTopic))
 	txResolver := res.(*transaction2.TxResolver)
-	err := txResolver.RequestTransactionFromHash(txHash)
+	err = txResolver.RequestTransactionFromHash(txHash)
 	assert.Nil(t, err)
 
 	select {

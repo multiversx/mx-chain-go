@@ -123,7 +123,7 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsub_pb.Message)
 		return p2p.ErrAlreadySeenMessage
 	}
 
-	p2pMsg := p2p.NewMessage(&pubsub.Message{Message: message})
+	p2pMsg := NewMessage(&pubsub.Message{Message: message})
 	return ds.messageHandler(p2pMsg)
 }
 
@@ -189,7 +189,10 @@ func (ds *directSender) getOrCreateStream(conn net.Conn) (net.Stream, error) {
 	streams := conn.GetStreams()
 	var foundStream net.Stream
 	for i := 0; i < len(streams); i++ {
-		if streams[i].Protocol() == DirectSendID {
+		isExpectedStream := streams[i].Protocol() == DirectSendID
+		isSendableStream := streams[i].Stat().Direction == net.DirOutbound
+
+		if isExpectedStream && isSendableStream {
 			foundStream = streams[i]
 			break
 		}

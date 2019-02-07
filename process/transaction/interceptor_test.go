@@ -177,8 +177,8 @@ func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -202,11 +202,11 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 
 //------- processTx
 
-func TestTransactionInterceptor_ProcessTxNilTxShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ProcessTxNilMesssageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -224,14 +224,14 @@ func TestTransactionInterceptor_ProcessTxNilTxShouldErr(t *testing.T) {
 		keyGen,
 		oneSharder)
 
-	assert.Equal(t, process.ErrNilTransaction, txi.ProcessTx(nil, make([]byte, 0)))
+	assert.Equal(t, process.ErrNilMessage, txi.ProcessTx(nil))
 }
 
-func TestTransactionInterceptor_ProcessTxWrongTypeOfNewerShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ProcessTxMilMessageDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -249,19 +249,19 @@ func TestTransactionInterceptor_ProcessTxWrongTypeOfNewerShouldErr(t *testing.T)
 		keyGen,
 		oneSharder)
 
-	sn := mock.StringCreator{}
+	msg := &mock.P2PMessageMock{}
 
-	assert.Equal(t, process.ErrBadInterceptorTopicImplementation, txi.ProcessTx(&sn, make([]byte, 0)))
+	assert.Equal(t, process.ErrNilDataToProcess, txi.ProcessTx(msg))
 }
 
 func TestTransactionInterceptor_ProcessTxNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
-	}
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return nil
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
+		MarshalizerCalled: func() marshal.Marshalizer {
+			return nil
+		},
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -279,23 +279,106 @@ func TestTransactionInterceptor_ProcessTxNilMarshalizerShouldErr(t *testing.T) {
 		keyGen,
 		oneSharder)
 
-	txNewer := transaction.NewInterceptedTransaction()
-	txNewer.Signature = make([]byte, 0)
-	txNewer.Challenge = make([]byte, 0)
-	txNewer.RcvAddr = make([]byte, 0)
-	txNewer.SndAddr = make([]byte, 0)
+	msg := &mock.P2PMessageMock{
+		DataField: make([]byte, 0),
+	}
 
-	assert.Equal(t, process.ErrNilMarshalizer, txi.ProcessTx(txNewer, make([]byte, 0)))
+	assert.Equal(t, process.ErrNilMarshalizer, txi.ProcessTx(msg))
+}
+
+func TestTransactionInterceptor_ProcessTxMarshalizerFailsAtUnmarshalingShouldErr(t *testing.T) {
+	t.Parallel()
+
+	errMarshalizer := errors.New("marshalizer error")
+
+	ms := &mock.MarshalizerStub{
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			return errMarshalizer
+		},
+	}
+
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
+		MarshalizerCalled: func() marshal.Marshalizer {
+			return ms
+		},
+	}
+
+	txPool := &mock.ShardedDataStub{}
+	addrConv := &mock.AddressConverterMock{}
+	keyGen := &mock.SingleSignKeyGenMock{}
+	oneSharder := mock.NewOneShardCoordinatorMock()
+	storer := &mock.StorerStub{}
+
+	txi, _ := transaction.NewTxInterceptor(
+		interceptor,
+		txPool,
+		storer,
+		addrConv,
+		mock.HasherMock{},
+		keyGen,
+		oneSharder)
+
+	msg := &mock.P2PMessageMock{
+		DataField: make([]byte, 0),
+	}
+
+	assert.Equal(t, errMarshalizer, txi.ProcessTx(msg))
+}
+
+func TestTransactionInterceptor_ProcessTxMarshalizerFailsAtMarshalingShouldErr(t *testing.T) {
+	t.Parallel()
+
+	errMarshalizer := errors.New("marshalizer error")
+
+	ms := &mock.MarshalizerStub{
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			return nil
+		},
+		MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
+			return nil, errMarshalizer
+		},
+	}
+
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
+		MarshalizerCalled: func() marshal.Marshalizer {
+			return ms
+		},
+	}
+
+	txPool := &mock.ShardedDataStub{}
+	addrConv := &mock.AddressConverterMock{}
+	keyGen := &mock.SingleSignKeyGenMock{}
+	oneSharder := mock.NewOneShardCoordinatorMock()
+	storer := &mock.StorerStub{}
+
+	txi, _ := transaction.NewTxInterceptor(
+		interceptor,
+		txPool,
+		storer,
+		addrConv,
+		mock.HasherMock{},
+		keyGen,
+		oneSharder)
+
+	msg := &mock.P2PMessageMock{
+		DataField: make([]byte, 0),
+	}
+
+	assert.Equal(t, errMarshalizer, txi.ProcessTx(msg))
 }
 
 func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
-	}
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
+		MarshalizerCalled: func() marshal.Marshalizer {
+			return marshalizer
+		},
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -319,88 +402,24 @@ func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldErr(t *testing.T) 
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
 
-	assert.Equal(t, process.ErrNilSignature, txi.ProcessTx(txNewer, make([]byte, 0)))
-}
-
-func TestTransactionInterceptor_ProcessNilDataToProcessShouldErr(t *testing.T) {
-	t.Parallel()
-
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
-	}
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return &mock.MarshalizerMock{}
+	buff, _ := marshalizer.Marshal(txNewer)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
 	}
 
-	txPool := &mock.ShardedDataStub{}
-	addrConv := &mock.AddressConverterMock{}
-	keyGen := &mock.SingleSignKeyGenMock{}
-	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
-
-	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
-		txPool,
-		storer,
-		addrConv,
-		mock.HasherMock{},
-		keyGen,
-		oneSharder)
-
-	txNewer := transaction.NewInterceptedTransaction()
-	txNewer.Signature = make([]byte, 0)
-	txNewer.Challenge = make([]byte, 0)
-	txNewer.RcvAddr = make([]byte, 0)
-	txNewer.SndAddr = make([]byte, 0)
-
-	assert.Equal(t, process.ErrNilDataToProcess, txi.ProcessTx(txNewer, nil))
-}
-
-func TestTransactionInterceptor_ProcessTxIntegrityAndValidityShouldErr(t *testing.T) {
-	t.Parallel()
-
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
-	}
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return &mock.MarshalizerMock{}
-	}
-
-	txPool := &mock.ShardedDataStub{}
-	addrConv := &mock.AddressConverterMock{}
-	keyGen := &mock.SingleSignKeyGenMock{}
-	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
-
-	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
-		txPool,
-		storer,
-		addrConv,
-		mock.HasherMock{},
-		keyGen,
-		oneSharder)
-
-	txNewer := transaction.NewInterceptedTransaction()
-	txNewer.Signature = make([]byte, 0)
-	txNewer.Challenge = make([]byte, 0)
-	txNewer.RcvAddr = []byte("please fail, addrConverter!")
-	txNewer.SndAddr = make([]byte, 0)
-	txNewer.Value = big.NewInt(0)
-
-	addrConv.CreateAddressFromPublicKeyBytesRetErrForValue = []byte("please fail, addrConverter!")
-
-	assert.Equal(t, process.ErrInvalidRcvAddr, txi.ProcessTx(txNewer, make([]byte, 0)))
+	assert.Equal(t, process.ErrNilSignature, txi.ProcessTx(msg))
 }
 
 func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
-	}
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
+		MarshalizerCalled: func() marshal.Marshalizer {
+			return marshalizer
+		},
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -435,27 +454,30 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 	txNewer.SndAddr = make([]byte, 0)
 	txNewer.Value = big.NewInt(0)
 
-	assert.Equal(t, "sig not valid", txi.ProcessTx(txNewer, []byte("txHash")).Error())
+	buff, _ := marshalizer.Marshal(txNewer)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+	}
+
+	assert.Equal(t, "sig not valid", txi.ProcessTx(msg).Error())
 }
 
 func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
-	}
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
+		MarshalizerCalled: func() marshal.Marshalizer {
+			return marshalizer
+		},
 	}
 
 	wasAdded := 0
 
 	txPool := &mock.ShardedDataStub{}
-	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
-		if bytes.Equal(mock.HasherMock{}.Compute("txHash"), key) {
-			wasAdded++
-		}
-	}
+
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
@@ -490,28 +512,37 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 	txNewer.SndAddr = make([]byte, 0)
 	txNewer.Value = big.NewInt(0)
 
-	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
+	buff, _ := marshalizer.Marshal(txNewer)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+	}
+
+	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
+			wasAdded++
+		}
+	}
+
+	assert.Nil(t, txi.ProcessTx(msg))
 	assert.Equal(t, 1, wasAdded)
 }
 
 func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
-	}
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
+		MarshalizerCalled: func() marshal.Marshalizer {
+			return marshalizer
+		},
 	}
 
 	wasAdded := 0
 
 	txPool := &mock.ShardedDataStub{}
-	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
-		if bytes.Equal(mock.HasherMock{}.Compute("txHash"), key) {
-			wasAdded++
-		}
-	}
+
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
@@ -547,157 +578,36 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 	txNewer.SndAddr = make([]byte, 0)
 	txNewer.Value = big.NewInt(0)
 
-	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
-	assert.Equal(t, 0, wasAdded)
-}
-
-func TestTransactionInterceptor_ProcessTxMarshalizerFailShouldErr(t *testing.T) {
-	t.Parallel()
-
-	marshalizer := &mock.MarshalizerMock{}
-	marshalizer.Fail = true
-
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
-	}
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return marshalizer
+	buff, _ := marshalizer.Marshal(txNewer)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
 	}
 
-	txPool := &mock.ShardedDataStub{}
 	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
-		if bytes.Equal(mock.HasherMock{}.Compute("txHash"), key) {
-		}
-	}
-	addrConv := &mock.AddressConverterMock{}
-
-	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
-		return nil
-	}
-
-	keyGen := &mock.SingleSignKeyGenMock{}
-	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
-		return pubKey, nil
-	}
-	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return false, nil
-	}
-
-	multiSharder := mock.NewMultipleShardsCoordinatorMock()
-	multiSharder.CurrentShard = 0
-	called := uint32(0)
-	multiSharder.ComputeShardForAddressCalled = func(address state.AddressContainer, addressConverter state.AddressConverter) uint32 {
-		defer func() {
-			called++
-		}()
-
-		return called
-	}
-
-	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
-		txPool,
-		storer,
-		addrConv,
-		mock.HasherMock{},
-		keyGen,
-		multiSharder)
-
-	txNewer := transaction.NewInterceptedTransaction()
-	txNewer.Signature = make([]byte, 0)
-	txNewer.Challenge = make([]byte, 0)
-	txNewer.RcvAddr = make([]byte, 0)
-	txNewer.SndAddr = make([]byte, 0)
-
-	err := txi.ProcessTx(txNewer, []byte("txHash"))
-	assert.Equal(t, "MarshalizerMock generic error", err.Error())
-}
-
-func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
-	}
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return &mock.MarshalizerMock{}
-	}
-
-	wasAdded := 0
-
-	txPool := &mock.ShardedDataStub{}
-	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
-		if bytes.Equal(mock.HasherMock{}.Compute("txHash"), key) {
+		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
 			wasAdded++
 		}
 	}
-	addrConv := &mock.AddressConverterMock{}
 
-	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
-		return nil
-	}
-
-	keyGen := &mock.SingleSignKeyGenMock{}
-	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
-		return pubKey, nil
-	}
-	storer := &mock.StorerStub{}
-	storer.HasCalled = func(key []byte) (bool, error) {
-		return false, nil
-	}
-
-	multiSharder := mock.NewMultipleShardsCoordinatorMock()
-	multiSharder.CurrentShard = 0
-	called := uint32(0)
-	multiSharder.ComputeShardForAddressCalled = func(address state.AddressContainer, addressConverter state.AddressConverter) uint32 {
-		defer func() {
-			called++
-		}()
-
-		return called
-	}
-
-	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
-		txPool,
-		storer,
-		addrConv,
-		mock.HasherMock{},
-		keyGen,
-		multiSharder)
-
-	txNewer := transaction.NewInterceptedTransaction()
-	txNewer.Signature = make([]byte, 0)
-	txNewer.Challenge = make([]byte, 0)
-	txNewer.RcvAddr = make([]byte, 0)
-	txNewer.SndAddr = make([]byte, 0)
-	txNewer.Value = big.NewInt(0)
-
-	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
-	assert.Equal(t, 1, wasAdded)
+	assert.Nil(t, txi.ProcessTx(msg))
+	assert.Equal(t, 0, wasAdded)
 }
 
 func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
-	interceptor.SetCheckReceivedObjectHandlerCalled = func(i func(newer p2p.Creator, rawData []byte) error) {
-	}
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return &mock.MarshalizerMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
+		MarshalizerCalled: func() marshal.Marshalizer {
+			return marshalizer
+		},
 	}
 
 	wasAdded := 0
 
 	txPool := &mock.ShardedDataStub{}
-	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
-		if bytes.Equal(mock.HasherMock{}.Compute("txHash"), key) {
-			wasAdded++
-		}
-	}
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
@@ -741,6 +651,17 @@ func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.
 	txNewer.SndAddr = make([]byte, 0)
 	txNewer.Value = big.NewInt(0)
 
-	assert.Nil(t, txi.ProcessTx(txNewer, []byte("txHash")))
+	buff, _ := marshalizer.Marshal(txNewer)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+	}
+
+	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
+			wasAdded++
+		}
+	}
+
+	assert.Nil(t, txi.ProcessTx(msg))
 	assert.Equal(t, 0, wasAdded)
 }

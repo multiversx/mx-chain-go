@@ -2,7 +2,10 @@ package transaction
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
@@ -14,11 +17,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/dataThrottle"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
@@ -26,6 +30,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+	"github.com/btcsuite/btcd/btcec"
+	crypto2 "github.com/libp2p/go-libp2p-crypto"
 )
 
 func createTestBlockChain() *blockchain.BlockChain {
@@ -109,7 +115,7 @@ func adbCreateAccountsDB() *state.AccountsDB {
 	return adb
 }
 
-func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.AccountsAdapter) (
+func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.AccountsAdapter) (
 	*node.Node,
 	p2p.Messenger,
 	crypto.PrivateKey,
@@ -118,63 +124,7 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	cp, _ := p2p.NewConnectParamsFromPort(port)
-	mes, _ := p2p.NewMemMessenger(marshalizer, hasher, cp)
-
-	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
-
-	keyGen := schnorr.NewKeyGenerator()
-	sk, pk := keyGen.GeneratePair()
-	blockChain := createTestBlockChain()
-	shardCoordinator := &sharding.OneShardCoordinator{}
-	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-
-	pFactory, _ := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
-		InterceptorContainer:     interceptor.NewContainer(),
-		ResolverContainer:        resolver.NewContainer(),
-		Messenger:                mes,
-		Blockchain:               blockChain,
-		DataPool:                 dPool,
-		ShardCoordinator:         shardCoordinator,
-		AddrConverter:            addrConverter,
-		Hasher:                   hasher,
-		Marshalizer:              marshalizer,
-		SingleSignKeyGen:         keyGen,
-		Uint64ByteSliceConverter: uint64Converter,
-	})
-
-	n, _ := node.NewNode(
-		node.WithMessenger(mes),
-		node.WithMarshalizer(marshalizer),
-		node.WithHasher(hasher),
-		node.WithContext(context.Background()),
-		node.WithDataPool(dPool),
-		node.WithAddressConverter(addrConverter),
-		node.WithAccountsAdapter(accntAdapter),
-		node.WithSingleSignKeyGenerator(keyGen),
-		node.WithShardCoordinator(shardCoordinator),
-		node.WithBlockChain(blockChain),
-		node.WithUint64ByteSliceConverter(uint64Converter),
-		node.WithPrivateKey(sk),
-		node.WithPublicKey(pk),
-		node.WithProcessorCreator(pFactory),
-	)
-
-	_ = pFactory.CreateInterceptors()
-	_ = pFactory.CreateResolvers()
-
-	return n, mes, sk, pFactory
-}
-
-func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.AccountsAdapter) (
-	*node.Node,
-	p2p.Messenger,
-	crypto.PrivateKey) {
-
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
-
-	messenger := createMessenger(context.Background(), marshalizer, hasher, 4, port)
+	messenger := createMessenger(context.Background(), port)
 
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
@@ -215,15 +165,34 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		node.WithProcessorCreator(pFactory),
 	)
 
-	return n, nil, sk
+	_ = pFactory.CreateInterceptors()
+	_ = pFactory.CreateResolvers()
+
+	return n, messenger, sk, pFactory
 }
 
-func createMessenger(ctx context.Context, marshalizer marshal.Marshalizer, hasher hashing.Hasher, maxAllowedPeers int, port int) p2p.Messenger {
-	cp := &p2p.ConnectParams{}
-	cp.Port = port
-	cp.GeneratePrivPubKeys(time.Now().UnixNano())
-	cp.GenerateIDFromPubKey()
+func createMessenger(ctx context.Context, port int) p2p.Messenger {
+	r := rand.New(rand.NewSource(int64(port)))
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
+	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	nm, _ := p2p.NewNetMessenger(ctx, marshalizer, hasher, cp, maxAllowedPeers, p2p.GossipSub)
-	return nm
+	libP2PMes, err := libp2p.NewSocketLibp2pMessenger(ctx, port, sk, nil, dataThrottle.NewSendDataThrottle())
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return libP2PMes
+}
+
+func getConnectableAddress(mes p2p.Messenger) string {
+	for _, addr := range mes.Addresses() {
+		if strings.Contains(addr, "circuit") {
+			continue
+		}
+
+		return addr
+	}
+
+	return ""
 }

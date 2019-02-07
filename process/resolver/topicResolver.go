@@ -1,11 +1,20 @@
 package resolver
 
 import (
+	"math/rand"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
+
+// RequestTopicSuffix represents the topic name suffix
+const RequestTopicSuffix = "_REQUEST"
+
+// PeersToSendRequest number of peers to send the message
+const PeersToSendRequest = 2
 
 var log = logger.NewDefaultLogger()
 
@@ -13,8 +22,8 @@ var log = logger.NewDefaultLogger()
 type topicResolver struct {
 	messenger   p2p.Messenger
 	name        string
-	topic       *p2p.Topic
 	marshalizer marshal.Marshalizer
+	r           *rand.Rand
 
 	resolveRequest func(rd process.RequestData) ([]byte, error)
 }
@@ -34,43 +43,63 @@ func NewTopicResolver(
 		return nil, process.ErrNilMarshalizer
 	}
 
-	topic := messenger.GetTopic(name)
-	if topic == nil {
-		return nil, process.ErrNilTopic
-	}
-
-	if topic.ResolveRequest != nil {
-		return nil, process.ErrResolveRequestAlreadyAssigned
-	}
-
 	resolver := &topicResolver{
 		name:        name,
 		messenger:   messenger,
-		topic:       topic,
 		marshalizer: marshalizer,
+		r:           rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
-	topic.ResolveRequest = func(objData []byte) []byte {
-		rd := process.RequestData{}
-
-		err := marshalizer.Unmarshal(&rd, objData)
-		if err != nil {
-			return nil
-		}
-
-		if resolver.resolveRequest != nil {
-			buff, err := resolver.resolveRequest(rd)
-			if err != nil {
-				log.Debug(err.Error())
-			}
-
-			return buff
-		}
-
-		return nil
+	err := resolver.registerRequestValidator()
+	if err != nil {
+		return nil, err
 	}
 
 	return resolver, nil
+}
+
+func (tr *topicResolver) registerRequestValidator() error {
+	if tr.messenger.HasTopicValidator(tr.name + RequestTopicSuffix) {
+		return process.ErrValidatorAlreadySet
+	}
+
+	if !tr.messenger.HasTopic(tr.name + RequestTopicSuffix) {
+		err := tr.messenger.CreateTopic(tr.name+RequestTopicSuffix, false)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tr.messenger.SetTopicValidator(tr.name+RequestTopicSuffix, tr.requestValidator)
+}
+
+func (tr *topicResolver) requestValidator(message p2p.MessageP2P) error {
+	if message == nil {
+		return process.ErrNilMessage
+	}
+
+	if message.Data() == nil {
+		return process.ErrNilDataToProcess
+	}
+
+	rd := process.RequestData{}
+	err := tr.marshalizer.Unmarshal(&rd, message.Data())
+	if err != nil {
+		return err
+	}
+
+	peerSendBack := message.Peer()
+
+	if tr.resolveRequest == nil {
+		return process.ErrNilResolverHandler
+	}
+
+	buff, err := tr.resolveRequest(rd)
+	if err != nil {
+		return err
+	}
+
+	return tr.messenger.SendDirectToConnectedPeer(tr.name, buff, peerSendBack)
 }
 
 // RequestData is used to request data over channels (topics) from other peers
@@ -81,11 +110,44 @@ func (tr *topicResolver) RequestData(rd process.RequestData) error {
 		return err
 	}
 
-	if tr.topic.Request == nil {
-		return process.ErrTopicNotWiredToMessenger
+	peersToSend := selectRandomPeers(tr.messenger.ConnectedPeers(), PeersToSendRequest, tr.r)
+	if len(peersToSend) == 0 {
+		return process.ErrNoConnectedPeerToSendRequest
 	}
 
-	return tr.topic.Request(buff)
+	for _, peer := range peersToSend {
+		err = tr.messenger.SendDirectToConnectedPeer(tr.name+RequestTopicSuffix, buff, peer)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+
+	return nil
+}
+
+func selectRandomPeers(connectedPeers []p2p.PeerID, peersToSend int, randomizer process.IntRandomizer) []p2p.PeerID {
+	selectedPeers := make([]p2p.PeerID, 0)
+
+	if len(connectedPeers) == 0 {
+		return selectedPeers
+	}
+
+	if len(connectedPeers) <= peersToSend {
+		return connectedPeers
+	}
+
+	uniqueIndexes := make(map[int]struct{})
+	//generating peersToSend number of unique indexes
+	for len(uniqueIndexes) < peersToSend {
+		newIndex := randomizer.Intn(len(connectedPeers))
+		uniqueIndexes[newIndex] = struct{}{}
+	}
+
+	for index, _ := range uniqueIndexes {
+		selectedPeers = append(selectedPeers, connectedPeers[index])
+	}
+
+	return selectedPeers
 }
 
 // SetResolverHandler sets the handler that will be called when a new request comes from other peers to

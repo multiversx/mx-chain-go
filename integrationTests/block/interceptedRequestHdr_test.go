@@ -1,6 +1,7 @@
 package block
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -8,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/stretchr/testify/assert"
@@ -21,8 +21,11 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	dPoolRequestor := createTestDataPool()
 	dPoolResolver := createTestDataPool()
 
-	nRequestor, _, pFactory1 := createMemNode(1, dPoolRequestor)
-	nResolver, _, _ := createMemNode(2, dPoolResolver)
+	fmt.Println("Requestor:")
+	nRequestor, mesRequestor, _, pFactoryReq := createNetNode(32000, dPoolRequestor, adbCreateAccountsDB())
+
+	fmt.Println("Resolver:")
+	nResolver, mesResolver, _, _ := createNetNode(32001, dPoolResolver, adbCreateAccountsDB())
 
 	nRequestor.Start()
 	nResolver.Start()
@@ -31,7 +34,10 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 		_ = nResolver.Stop()
 	}()
 
-	defer p2p.ReInitializeGloballyRegisteredPeers()
+	//connect messengers together
+	time.Sleep(time.Second)
+	err := mesRequestor.ConnectToPeer(getConnectableAddress(mesResolver))
+	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
 
@@ -72,7 +78,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	})
 
 	//Step 4. request header
-	res, err := pFactory1.ResolverContainer().Get(string(factory.HeadersTopic))
+	res, err := pFactoryReq.ResolverContainer().Get(string(factory.HeadersTopic))
 	assert.Nil(t, err)
 	hdrResolver := res.(*block2.HeaderResolver)
 	hdrResolver.RequestHeaderFromNonce(0)

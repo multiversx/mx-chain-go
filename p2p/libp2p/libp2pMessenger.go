@@ -25,7 +25,7 @@ import (
 )
 
 const elrondRandezVousString = "ElrondNetworkRandezVous"
-const durationBetweenSends = time.Duration(time.Microsecond * 100)
+const durationBetweenSends = time.Duration(time.Microsecond * 10)
 
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
@@ -389,6 +389,24 @@ func (p2pMes *libp2pMessenger) CreateTopic(name string, createPipeForTopic bool)
 	return err
 }
 
+// HasTopic returns true if the topic has been created
+func (p2pMes *libp2pMessenger) HasTopic(name string) bool {
+	p2pMes.mutTopics.RLock()
+	_, found := p2pMes.topics[name]
+	p2pMes.mutTopics.RUnlock()
+
+	return found
+}
+
+// HasTopicValidator returns true if the topic has a validator set
+func (p2pMes *libp2pMessenger) HasTopicValidator(name string) bool {
+	p2pMes.mutTopics.RLock()
+	validator, _ := p2pMes.topics[name]
+	p2pMes.mutTopics.RUnlock()
+
+	return validator != nil
+}
+
 // SendDataThrottler returns the data throttler object used by the messenger to send data
 func (p2pMes *libp2pMessenger) SendDataThrottler() p2p.DataThrottler {
 	return p2pMes.sendDataThrottle
@@ -427,7 +445,7 @@ func (p2pMes *libp2pMessenger) SetTopicValidator(topic string, handler func(mess
 
 	if handler != nil && validator == nil {
 		err := p2pMes.pb.RegisterTopicValidator(topic, func(i context.Context, message *pubsub.Message) bool {
-			err := handler(p2p.NewMessage(message))
+			err := handler(NewMessage(message))
 
 			return err == nil
 		})

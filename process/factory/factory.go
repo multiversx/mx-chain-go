@@ -156,7 +156,7 @@ func (p *processorsCreator) ResolverContainer() process.ResolverContainer {
 }
 
 func (p *processorsCreator) createTxInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(TransactionTopic), p.messenger, transaction.NewInterceptedTransaction())
+	intercept, err := interceptor.NewTopicInterceptor(string(TransactionTopic), p.messenger, p.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ func (p *processorsCreator) createTxInterceptor() error {
 }
 
 func (p *processorsCreator) createHdrInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(HeadersTopic), p.messenger, block.NewInterceptedHeader())
+	intercept, err := interceptor.NewTopicInterceptor(string(HeadersTopic), p.messenger, p.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func (p *processorsCreator) createHdrInterceptor() error {
 }
 
 func (p *processorsCreator) createTxBlockBodyInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(TxBlockBodyTopic), p.messenger, block.NewInterceptedTxBlockBody())
+	intercept, err := interceptor.NewTopicInterceptor(string(TxBlockBodyTopic), p.messenger, p.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -225,12 +225,14 @@ func (p *processorsCreator) createTxBlockBodyInterceptor() error {
 		return err
 	}
 
+	intercept.SetReceivedMessageHandler(txBlockBodyInterceptor.ProcessTxBodyBlock)
+
 	err = p.interceptorContainer.Add(string(TxBlockBodyTopic), txBlockBodyInterceptor)
 	return err
 }
 
 func (p *processorsCreator) createPeerChBlockBodyInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(PeerChBodyTopic), p.messenger, block.NewInterceptedPeerBlockBody())
+	intercept, err := interceptor.NewTopicInterceptor(string(PeerChBodyTopic), p.messenger, p.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -249,12 +251,14 @@ func (p *processorsCreator) createPeerChBlockBodyInterceptor() error {
 		return err
 	}
 
+	intercept.SetReceivedMessageHandler(peerChBodyInterceptor.ProcessPeerChangeBodyBlock)
+
 	err = p.interceptorContainer.Add(string(PeerChBodyTopic), peerChBodyInterceptor)
 	return err
 }
 
 func (p *processorsCreator) createStateBlockBodyInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(StateBodyTopic), p.messenger, block.NewInterceptedStateBlockBody())
+	intercept, err := interceptor.NewTopicInterceptor(string(StateBodyTopic), p.messenger, p.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -272,6 +276,8 @@ func (p *processorsCreator) createStateBlockBodyInterceptor() error {
 	if err != nil {
 		return err
 	}
+
+	intercept.SetReceivedMessageHandler(stateBodyInterceptor.ProcessStateBodyBlock)
 
 	err = p.interceptorContainer.Add(string(StateBodyTopic), stateBodyInterceptor)
 	return err

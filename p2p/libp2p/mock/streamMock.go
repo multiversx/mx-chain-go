@@ -98,7 +98,9 @@ func (sm *streamMock) SetProtocol(pid protocol.ID) {
 }
 
 func (sm *streamMock) Stat() net.Stat {
-	panic("implement me")
+	return net.Stat{
+		Direction: net.DirOutbound,
+	}
 }
 
 func (sm *streamMock) Conn() net.Conn {

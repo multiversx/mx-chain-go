@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -71,38 +72,40 @@ func NewTxInterceptor(
 		shardCoordinator: shardCoordinator,
 	}
 
-	interceptor.SetCheckReceivedObjectHandler(txIntercept.processTx)
+	interceptor.SetReceivedMessageHandler(txIntercept.processTx)
 
 	return txIntercept, nil
 }
 
-func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
-	if tx == nil {
-		return process.ErrNilTransaction
+func (txi *TxInterceptor) processTx(message p2p.MessageP2P) error {
+	if message == nil {
+		return process.ErrNilMessage
 	}
 
-	if rawData == nil {
+	if message.Data() == nil {
 		return process.ErrNilDataToProcess
 	}
-
-	txIntercepted, ok := tx.(process.TransactionInterceptorAdapter)
-
-	if !ok {
-		return process.ErrBadInterceptorTopicImplementation
-	}
-
-	txIntercepted.SetAddressConverter(txi.addrConverter)
-	txIntercepted.SetSingleSignKeyGen(txi.singleSignKeyGen)
-	hashWithSig := txi.hasher.Compute(string(rawData))
-	txIntercepted.SetHash(hashWithSig)
-
-	copiedTx := *txIntercepted.GetTransaction()
-	copiedTx.Signature = nil
 
 	marshalizer := txi.Marshalizer()
 	if marshalizer == nil {
 		return process.ErrNilMarshalizer
 	}
+
+	txIntercepted := &InterceptedTransaction{
+		Transaction: &transaction.Transaction{},
+	}
+	err := marshalizer.Unmarshal(txIntercepted, message.Data())
+	if err != nil {
+		return err
+	}
+
+	txIntercepted.SetAddressConverter(txi.addrConverter)
+	txIntercepted.SetSingleSignKeyGen(txi.singleSignKeyGen)
+	hashWithSig := txi.hasher.Compute(string(message.Data()))
+	txIntercepted.SetHash(hashWithSig)
+
+	copiedTx := *txIntercepted.GetTransaction()
+	copiedTx.Signature = nil
 
 	buffCopiedTx, err := marshalizer.Marshal(&copiedTx)
 	if err != nil {

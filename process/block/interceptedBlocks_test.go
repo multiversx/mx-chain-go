@@ -42,7 +42,6 @@ func TestInterceptedHeader_GetterSetterHashID(t *testing.T) {
 	hdr.SetHash(hash)
 
 	assert.Equal(t, hash, hdr.Hash())
-	assert.Equal(t, string(hash), hdr.ID())
 }
 
 func TestInterceptedHeader_ShardShouldWork(t *testing.T) {
@@ -54,26 +53,6 @@ func TestInterceptedHeader_ShardShouldWork(t *testing.T) {
 	hdr.ShardId = shard
 
 	assert.Equal(t, shard, hdr.Shard())
-}
-
-func TestInterceptedHeader_CreateShouldNotProduceNils(t *testing.T) {
-	t.Parallel()
-
-	hdr := block.NewInterceptedHeader()
-	hdrCreated := hdr.Create()
-
-	assert.NotNil(t, hdrCreated)
-	assert.NotNil(t, hdrCreated.(*block.InterceptedHeader).Header)
-}
-
-func TestInterceptedHeader_CreateShouldNotProduceSameObject(t *testing.T) {
-	t.Parallel()
-
-	hdr := block.NewInterceptedHeader()
-	hdrCreated := hdr.Create()
-
-	assert.False(t, hdrCreated == hdr)
-	assert.False(t, hdrCreated.(*block.InterceptedHeader).Header == hdr.Header)
 }
 
 //------- InterceptedPeerBlockBody
@@ -104,7 +83,6 @@ func TestInterceptedPeerBlockBody_GetterSetterHashID(t *testing.T) {
 	peerBlockBody.SetHash(hash)
 
 	assert.Equal(t, hash, peerBlockBody.Hash())
-	assert.Equal(t, string(hash), peerBlockBody.ID())
 }
 
 func TestInterceptedPeerBlockBody_ShardShouldWork(t *testing.T) {
@@ -116,26 +94,6 @@ func TestInterceptedPeerBlockBody_ShardShouldWork(t *testing.T) {
 	peerBlockBody.ShardID = shard
 
 	assert.Equal(t, shard, peerBlockBody.Shard())
-}
-
-func TestInterceptedPeerBlockBody_CreateShouldNotProduceNils(t *testing.T) {
-	t.Parallel()
-
-	peerBlockBody := block.NewInterceptedPeerBlockBody()
-	peerBlockCreated := peerBlockBody.Create()
-
-	assert.NotNil(t, peerBlockCreated)
-	assert.NotNil(t, peerBlockCreated.(*block.InterceptedPeerBlockBody).PeerBlockBody)
-}
-
-func TestInterceptedPeerBlockBody_CreateShouldNotProduceSameObject(t *testing.T) {
-	t.Parallel()
-
-	peerBlockBody := block.NewInterceptedPeerBlockBody()
-	peerBlockCreated := peerBlockBody.Create()
-
-	assert.False(t, peerBlockBody == peerBlockCreated)
-	assert.False(t, peerBlockCreated.(*block.InterceptedPeerBlockBody).PeerBlockBody == peerBlockBody.PeerBlockBody)
 }
 
 //------- InterceptedStateBlockBody
@@ -165,7 +123,6 @@ func TestInterceptedStateBlockBody_GetterSetterHashID(t *testing.T) {
 	stateBlockBody.SetHash(hash)
 
 	assert.Equal(t, hash, stateBlockBody.Hash())
-	assert.Equal(t, string(hash), stateBlockBody.ID())
 }
 
 func TestInterceptedStateBlockBody_ShardShouldWork(t *testing.T) {
@@ -177,27 +134,6 @@ func TestInterceptedStateBlockBody_ShardShouldWork(t *testing.T) {
 	stateBlockBody.ShardID = shard
 
 	assert.Equal(t, shard, stateBlockBody.Shard())
-}
-
-func TestInterceptedStateBlockBody_CreateShouldNotProduceNils(t *testing.T) {
-	t.Parallel()
-
-	stateBlockBody := block.NewInterceptedStateBlockBody()
-	stateBlockCreated := stateBlockBody.Create()
-
-	assert.NotNil(t, stateBlockCreated)
-	assert.NotNil(t, stateBlockCreated.(*block.InterceptedStateBlockBody).StateBlockBody)
-}
-
-func TestInterceptedStateBlockBody_CreateShouldNotProduceSameObject(t *testing.T) {
-	t.Parallel()
-
-	stateBlockBody := block.NewInterceptedStateBlockBody()
-	stateBlockCreated := stateBlockBody.Create()
-
-	assert.False(t, stateBlockBody == stateBlockCreated)
-	assert.False(t, stateBlockCreated.(*block.InterceptedStateBlockBody).StateBlockBody ==
-		stateBlockBody.StateBlockBody)
 }
 
 //------- InterceptedTxBlockBody
@@ -227,7 +163,6 @@ func TestInterceptedTxBlockBody_GetterSetterHashID(t *testing.T) {
 	txBlockBody := block.NewInterceptedTxBlockBody()
 	txBlockBody.SetHash(hash)
 
-	assert.Equal(t, hash, txBlockBody.Hash())
 	assert.Equal(t, string(hash), txBlockBody.ID())
 }
 
@@ -240,25 +175,4 @@ func TestInterceptedTxBlockBody_ShardShouldWork(t *testing.T) {
 	txBlockBody.ShardID = shard
 
 	assert.Equal(t, shard, txBlockBody.Shard())
-}
-
-func TestInterceptedTxBlockBody_CreateShouldNotProduceNils(t *testing.T) {
-	t.Parallel()
-
-	txBlockBody := block.NewInterceptedTxBlockBody()
-	txBlockCreated := txBlockBody.Create()
-
-	assert.NotNil(t, txBlockCreated)
-	assert.NotNil(t, txBlockCreated.(*block.InterceptedTxBlockBody).TxBlockBody)
-}
-
-func TestInterceptedTxBlockBody_CreateShouldNotProduceSameObject(t *testing.T) {
-	t.Parallel()
-
-	txBlockBody := block.NewInterceptedTxBlockBody()
-	txBlockCreated := txBlockBody.Create()
-
-	assert.False(t, txBlockBody == txBlockCreated)
-	assert.False(t, txBlockCreated.(*block.InterceptedTxBlockBody).TxBlockBody ==
-		txBlockBody.TxBlockBody)
 }

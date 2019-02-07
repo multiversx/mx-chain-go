@@ -3,7 +3,6 @@ package mock
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
 type TransactionInterceptorMock struct {
@@ -25,9 +24,9 @@ func (tim *TransactionInterceptorMock) VerifySig() bool {
 	return tim.IsVerified
 }
 
-func (tim *TransactionInterceptorMock) Create() p2p.Creator {
-	return &TransactionInterceptorMock{}
-}
+//func (tim *TransactionInterceptorMock) Create() p2p.Creator {
+//	return &TransactionInterceptorMock{}
+//}
 
 func (tim *TransactionInterceptorMock) ID() string {
 	panic("implement me")

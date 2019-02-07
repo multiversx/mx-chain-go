@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -250,14 +249,18 @@ func createBlockchain() *blockchain.BlockChain {
 }
 
 func createMessenger() p2p.Messenger {
-	mockMessenger := mock.NewMessengerStub()
-	mockMessenger.GetTopicCalled = func(name string) *p2p.Topic {
-		topic := &p2p.Topic{}
-		topic.RegisterTopicValidator = func(v pubsub.Validator) error {
+	mockMessenger := &mock.MessengerStub{
+		HasTopicCalled: func(name string) bool {
+			return true
+		},
+		HasTopicValidatorCalled: func(name string) bool {
+			return false
+		},
+		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
 			return nil
-		}
-		return topic
+		},
 	}
+
 	return mockMessenger
 }
 

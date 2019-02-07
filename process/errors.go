@@ -4,6 +4,21 @@ import (
 	"errors"
 )
 
+// ErrValidatorAlreadySet signals that a topic validator has already been set
+var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
+
+// ErrNilReceivedMessageHandler signals that a handler func has not been set
+var ErrNilReceivedMessageHandler = errors.New("nil receiverMessageHandler, message can not be processed")
+
+// ErrNilMessage signals that a nil message has been received
+var ErrNilMessage = errors.New("nil message")
+
+// ErrNoConnectedPeerToSendRequest signals that the connected peers list is empty and can not send request
+var ErrNoConnectedPeerToSendRequest = errors.New("connected peers list is empty. Can not send request")
+
+// ErrNilResolverHandler signals that resolver handler has not been wired
+var ErrNilResolverHandler = errors.New("nil resolver handler")
+
 // ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
@@ -127,12 +142,6 @@ var ErrNilRound = errors.New("nil Round")
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
 
-// ErrNilNewer signals that a nil Newer object was provided
-var ErrNilNewer = errors.New("nil Newer")
-
-// ErrRegisteringValidator signals that a registration validator occur
-var ErrRegisteringValidator = errors.New("error while registering validator")
-
 // ErrNilInterceptor signals that a nil Interceptor has been provided
 var ErrNilInterceptor = errors.New("nil Interceptor")
 
@@ -181,12 +190,6 @@ var ErrNotImplementedBlockProcessingType = errors.New("not implemented block pro
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
 
-// ErrBadInterceptorTopicImplementation signals that a bad interceptor-topic implementation occurred
-var ErrBadInterceptorTopicImplementation = errors.New("bad interceptor-topic implementation")
-
-// ErrNilBlockBody signals that a nil block body has been provided
-var ErrNilBlockBody = errors.New("nil block body")
-
 // ErrNilTransientPool signals that an operation has been attempted to or with a nil transient pool of data
 var ErrNilTransientPool = errors.New("nil transient pool")
 
@@ -195,15 +198,6 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
-
-// ErrNilTopic signals that a nil topic has been provided/fetched
-var ErrNilTopic = errors.New("nil topic")
-
-// ErrResolveRequestAlreadyAssigned signals that ResolveRequest is not nil for a particular topic
-var ErrResolveRequestAlreadyAssigned = errors.New("resolve request func has already been assigned for this topic")
-
-// ErrTopicNotWiredToMessenger signals that a call to a not-correctly-instantiated topic has been made
-var ErrTopicNotWiredToMessenger = errors.New("topic has not been wired to a p2p.Messenger implementation")
 
 // ErrNilResolver signals that a nil resolver object has been provided
 var ErrNilResolver = errors.New("nil resolver")

@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -61,45 +60,23 @@ type HashAccesser interface {
 	Hash() []byte
 }
 
-// TransactionInterceptorAdapter is the interface used in interception of transactions
-type TransactionInterceptorAdapter interface {
-	Checker
-	SigVerifier
-	HashAccesser
-	p2p.Creator
-	RcvShard() uint32
-	SndShard() uint32
-	IsAddressedToOtherShards() bool
-	SetAddressConverter(converter state.AddressConverter)
-	AddressConverter() state.AddressConverter
-	GetTransaction() *transaction.Transaction
-	SingleSignKeyGen() crypto.KeyGenerator
-	SetSingleSignKeyGen(generator crypto.KeyGenerator)
-	SetTxBuffWithoutSig(txBuffWithoutSig []byte)
-	TxBuffWithoutSig() []byte
-}
-
-// BlockBodyInterceptorAdapter defines what a block body object should do
-type BlockBodyInterceptorAdapter interface {
+// InterceptedBlockBody interface provides functionality over intercepted blocks
+type InterceptedBlockBody interface {
 	Checker
 	HashAccesser
-	p2p.Creator
-	Shard() uint32
 	GetUnderlyingObject() interface{}
 }
 
-// HeaderInterceptorAdapter is the interface used in interception of headers
-type HeaderInterceptorAdapter interface {
-	BlockBodyInterceptorAdapter
-	SigVerifier
-	GetHeader() *block.Header
+// IntRandomizer interface provides functionality over generating integer numbers
+type IntRandomizer interface {
+	Intn(n int) int
 }
 
 // Interceptor defines what a data interceptor should do
 type Interceptor interface {
 	Name() string
-	SetCheckReceivedObjectHandler(func(newer p2p.Creator, rawData []byte) error)
-	CheckReceivedObjectHandler() func(newer p2p.Creator, rawData []byte) error
+	SetReceivedMessageHandler(func(message p2p.MessageP2P) error)
+	ReceivedMessageHandler() func(message p2p.MessageP2P) error
 	Marshalizer() marshal.Marshalizer
 }
 
@@ -111,9 +88,9 @@ type Resolver interface {
 	ResolverHandler() func(rd RequestData) ([]byte, error)
 }
 
-// Bootstraper is an interface that defines the behaviour of a struct that is able
-// to syncronize the node
-type Bootstraper interface {
+// Bootstrapper is an interface that defines the behaviour of a struct that is able
+// to synchronize the node
+type Bootstrapper interface {
 	ShouldSync() bool
 }
 

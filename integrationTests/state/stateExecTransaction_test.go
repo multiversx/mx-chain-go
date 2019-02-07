@@ -186,8 +186,6 @@ func testExecTransactionsMoreTxWithRevert(
 }
 
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
-	t.Skip("This is a very long test")
-
 	accnts := adbCreateAccountsDB()
 
 	nonce := uint64(6)
@@ -208,7 +206,7 @@ func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *t
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 10; i++ {
 		fmt.Printf("Iteration: %d\n", i)
 
 		testExecTransactionsMoreTxWithRevert(t, accnts, sender, receiver, initialHash, nonce, initialBalance)

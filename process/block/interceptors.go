@@ -74,30 +74,32 @@ func NewHeaderInterceptor(
 		shardCoordinator: shardCoordinator,
 	}
 
-	interceptor.SetCheckReceivedObjectHandler(hdrIntercept.processHdr)
+	interceptor.SetReceivedMessageHandler(hdrIntercept.processHdr)
 
 	return hdrIntercept, nil
 }
 
-func (hi *HeaderInterceptor) processHdr(hdr p2p.Creator, rawData []byte) error {
-	if hdr == nil {
-		return process.ErrNilBlockHeader
+func (hi *HeaderInterceptor) processHdr(message p2p.MessageP2P) error {
+	err := checkMessage(message)
+	if err != nil {
+		return err
 	}
 
-	if rawData == nil {
-		return process.ErrNilDataToProcess
+	marshalizer := hi.Marshalizer()
+	if marshalizer == nil {
+		return process.ErrNilMarshalizer
 	}
 
-	hdrIntercepted, ok := hdr.(process.HeaderInterceptorAdapter)
-
-	if !ok {
-		return process.ErrBadInterceptorTopicImplementation
+	hdrIntercepted := NewInterceptedHeader()
+	err = marshalizer.Unmarshal(hdrIntercepted, message.Data())
+	if err != nil {
+		return err
 	}
 
-	hashWithSig := hi.hasher.Compute(string(rawData))
+	hashWithSig := hi.hasher.Compute(string(message.Data()))
 	hdrIntercepted.SetHash(hashWithSig)
 
-	err := hdrIntercepted.IntegrityAndValidity(hi.shardCoordinator)
+	err = hdrIntercepted.IntegrityAndValidity(hi.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -121,9 +123,22 @@ func (hi *HeaderInterceptor) processHdr(hdr p2p.Creator, rawData []byte) error {
 	return nil
 }
 
-func (hi *HeaderInterceptor) checkHeaderForCurrentShard(header process.HeaderInterceptorAdapter) bool {
-	//TODO add real logic here
-	return true
+func checkMessage(message p2p.MessageP2P) error {
+	if message == nil {
+		return process.ErrNilMessage
+	}
+
+	if message.Data() == nil {
+		return process.ErrNilDataToProcess
+	}
+
+	return nil
+}
+
+func (hi *HeaderInterceptor) checkHeaderForCurrentShard(header *InterceptedHeader) bool {
+	isHeaderForThisShard := hi.shardCoordinator.ShardForCurrentNode() == header.GetHeader().ShardId
+
+	return isHeaderForThisShard
 }
 
 //------- GenericBlockBodyInterceptor
@@ -166,30 +181,77 @@ func NewGenericBlockBodyInterceptor(
 		shardCoordinator: shardCoordinator,
 	}
 
-	interceptor.SetCheckReceivedObjectHandler(bbIntercept.processBodyBlock)
-
 	return bbIntercept, nil
 }
 
-func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Creator, rawData []byte) error {
-	if bodyBlock == nil {
-		return process.ErrNilBlockBody
+// ProcessTxBodyBlock process incoming message as tx block body
+func (gbbi *GenericBlockBodyInterceptor) ProcessTxBodyBlock(message p2p.MessageP2P) error {
+	err := checkMessage(message)
+	if err != nil {
+		return err
 	}
 
-	if rawData == nil {
-		return process.ErrNilDataToProcess
+	marshalizer := gbbi.Marshalizer()
+	if marshalizer == nil {
+		return process.ErrNilMarshalizer
 	}
 
-	blockBodyIntercepted, ok := bodyBlock.(process.BlockBodyInterceptorAdapter)
-
-	if !ok {
-		return process.ErrBadInterceptorTopicImplementation
+	txBlockBody := NewInterceptedTxBlockBody()
+	err = marshalizer.Unmarshal(txBlockBody, message.Data())
+	if err != nil {
+		return err
 	}
 
-	hash := gbbi.hasher.Compute(string(rawData))
-	blockBodyIntercepted.SetHash(hash)
+	return gbbi.processBlockBody(message.Data(), txBlockBody)
+}
 
-	err := blockBodyIntercepted.IntegrityAndValidity(gbbi.shardCoordinator)
+// ProcessStateBodyBlock process incoming message as state block body
+func (gbbi *GenericBlockBodyInterceptor) ProcessStateBodyBlock(message p2p.MessageP2P) error {
+	err := checkMessage(message)
+	if err != nil {
+		return err
+	}
+
+	marshalizer := gbbi.Marshalizer()
+	if marshalizer == nil {
+		return process.ErrNilMarshalizer
+	}
+
+	stateBlockBody := NewInterceptedStateBlockBody()
+	err = marshalizer.Unmarshal(stateBlockBody, message.Data())
+	if err != nil {
+		return err
+	}
+
+	return gbbi.processBlockBody(message.Data(), stateBlockBody)
+}
+
+// ProcessPeerChangeBodyBlock process the message as peer change block body
+func (gbbi *GenericBlockBodyInterceptor) ProcessPeerChangeBodyBlock(message p2p.MessageP2P) error {
+	err := checkMessage(message)
+	if err != nil {
+		return err
+	}
+
+	marshalizer := gbbi.Marshalizer()
+	if marshalizer == nil {
+		return process.ErrNilMarshalizer
+	}
+
+	peerChangeBlockBody := NewInterceptedPeerBlockBody()
+	err = marshalizer.Unmarshal(peerChangeBlockBody, message.Data())
+	if err != nil {
+		return err
+	}
+
+	return gbbi.processBlockBody(message.Data(), peerChangeBlockBody)
+}
+
+func (gbbi *GenericBlockBodyInterceptor) processBlockBody(messageData []byte, body process.InterceptedBlockBody) error {
+	hash := gbbi.hasher.Compute(string(messageData))
+	body.SetHash(hash)
+
+	err := body.IntegrityAndValidity(gbbi.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -201,6 +263,6 @@ func (gbbi *GenericBlockBodyInterceptor) processBodyBlock(bodyBlock p2p.Creator,
 		return nil
 	}
 
-	_ = gbbi.cache.Put(hash, blockBodyIntercepted.GetUnderlyingObject())
+	_ = gbbi.cache.Put(hash, body.GetUnderlyingObject())
 	return nil
 }

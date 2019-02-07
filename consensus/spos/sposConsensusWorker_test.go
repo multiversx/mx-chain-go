@@ -17,10 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type topicName string
-
 const (
-	consensusTopic topicName = "cns"
 	// RoundTimeDuration defines the time duration in milliseconds of each round
 	RoundTimeDuration = time.Duration(4000 * time.Millisecond)
 )
@@ -1302,7 +1299,9 @@ func TestMessage_ReceivedMessageTxBlockBody(t *testing.T) {
 		0,
 	)
 
-	cnWorkers[0].ReceivedMessage(string(consensusTopic), cnsDta, nil)
+	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
+
+	cnWorkers[0].ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
 }
 
 func TestMessage_ReceivedMessageUnknown(t *testing.T) {
@@ -1326,7 +1325,9 @@ func TestMessage_ReceivedMessageUnknown(t *testing.T) {
 		0,
 	)
 
-	cnWorkers[0].ReceivedMessage(string(consensusTopic), cnsDta, nil)
+	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
+
+	cnWorkers[0].ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
 }
 
 func TestMessage_DecodeBlockBody(t *testing.T) {
@@ -2150,34 +2151,6 @@ func TestConsensus_CheckSignatureConsensus(t *testing.T) {
 	ok = cns.CheckSignatureConsensus()
 	assert.True(t, ok)
 	assert.Equal(t, spos.SsFinished, cns.Status(spos.SrSignature))
-}
-
-func TestConsensusDataCreate_ShouldReturnTheSameObject(t *testing.T) {
-	dta := spos.NewConsensusData(
-		nil,
-		nil,
-		nil,
-		nil,
-		0,
-		0,
-		0)
-
-	assert.Equal(t, dta, dta.Create())
-}
-
-func TestConsensusDataID_ShouldReturnID(t *testing.T) {
-	dta := spos.NewConsensusData(
-		nil,
-		nil,
-		nil,
-		[]byte("sig"),
-		spos.MtSignature,
-		0,
-		1)
-
-	id := fmt.Sprintf("1-sig-6")
-
-	assert.Equal(t, id, dta.ID())
 }
 
 func TestCheckSignaturesValidity_ShouldErrNilSignature(t *testing.T) {
@@ -3100,7 +3073,8 @@ func TestReceivedMessage_ShouldReturnWhenIsCanceled(t *testing.T) {
 	)
 
 	cnWorker.Cns.Chr.SetSelfSubround(-1)
-	cnWorker.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
+	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3141,7 +3115,7 @@ func TestReceivedMessage_ShouldReturnWhenDataReceivedIsInvalid(t *testing.T) {
 		pubKeyMock,
 	)
 
-	cnWorker.ReceivedMessage(string(consensusTopic), nil, nil)
+	cnWorker.ReceivedMessage(nil)
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3195,7 +3169,8 @@ func TestReceivedMessage_ShouldReturnWhenNodeIsNotInTheConsensusGroup(t *testing
 		0,
 	)
 
-	cnWorker.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
+	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3249,7 +3224,8 @@ func TestReceivedMessage_ShouldReturnWhenShouldDropMessage(t *testing.T) {
 		-1,
 	)
 
-	cnWorker.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
+	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3303,7 +3279,8 @@ func TestReceivedMessage_ShouldReturnWhenReceivedMessageIsFromSelf(t *testing.T)
 		0,
 	)
 
-	cnWorker.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
+	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3357,7 +3334,8 @@ func TestReceivedMessage_ShouldReturnWhenSignatureIsInvalid(t *testing.T) {
 		0,
 	)
 
-	cnWorker.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
+	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3411,7 +3389,8 @@ func TestReceivedMessage_ShouldSendReceivedMesageOnChannel(t *testing.T) {
 		0,
 	)
 
-	cnWorker.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
+	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	time.Sleep(100 * time.Millisecond)
 
