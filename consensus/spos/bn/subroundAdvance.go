@@ -14,7 +14,7 @@ func (wrk *Worker) doAdvanceJob() bool {
 		return false
 	}
 
-	wrk.BlockProcessor.RevertAccountState()
+	wrk.blockProcessor.RevertAccountState()
 
 	log.Info(fmt.Sprintf("%sStep 7: Creating and broadcasting an empty block\n", wrk.SPoS.Chr.GetFormattedTime()))
 
@@ -31,8 +31,8 @@ func (wrk *Worker) checkAdvanceConsensus() bool {
 // createEmptyBlock creates, commits and broadcasts an empty block at the end of the round if no block was proposed or
 // syncronized in this round
 func (wrk *Worker) createEmptyBlock() bool {
-	blk := wrk.BlockProcessor.CreateEmptyBlockBody(
-		shardId,
+	blk := wrk.blockProcessor.CreateEmptyBlockBody(
+		wrk.shardCoordinator.ShardForCurrentNode(),
 		wrk.SPoS.Chr.Round().Index())
 
 	hdr := &block.Header{}
@@ -71,7 +71,7 @@ func (wrk *Worker) createEmptyBlock() bool {
 	hdr.Commitment = hdrHash
 
 	// Commit the block (commits also the account state)
-	err = wrk.BlockProcessor.CommitBlock(wrk.BlockChain, hdr, blk)
+	err = wrk.blockProcessor.CommitBlock(wrk.BlockChain, hdr, blk)
 
 	if err != nil {
 		log.Info(err.Error())

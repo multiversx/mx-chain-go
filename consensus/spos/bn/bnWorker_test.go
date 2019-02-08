@@ -20,99 +20,17 @@ type topicName string
 
 const (
 	consensusTopic topicName = "cns"
-	// RoundTimeDuration defines the time duration in milliseconds of each round
-	RoundTimeDuration = time.Duration(4000 * time.Millisecond)
 )
 
-func SendMessage(cnsDta *spos.ConsensusData) {
+func sendMessage(cnsDta *spos.ConsensusData) {
 	fmt.Println(cnsDta.Signature)
 }
 
-func BroadcastMessage(msg []byte) {
+func broadcastMessage(msg []byte) {
 	fmt.Println(msg)
 }
 
-func InitSposWorker() *spos.Spos {
-	eligibleList := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}
-
-	rcns := spos.NewRoundConsensus(
-		eligibleList,
-		9,
-		"2")
-
-	rcns.SetConsensusGroup(eligibleList)
-
-	for i := 0; i < len(rcns.ConsensusGroup()); i++ {
-		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBlock, false)
-		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitmentHash, false)
-		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBitmap, false)
-		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitment, false)
-		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrSignature, false)
-	}
-
-	rthr := spos.NewRoundThreshold()
-
-	rthr.SetThreshold(bn.SrBlock, 1)
-	rthr.SetThreshold(bn.SrCommitmentHash, 7)
-	rthr.SetThreshold(bn.SrBitmap, 7)
-	rthr.SetThreshold(bn.SrCommitment, 7)
-	rthr.SetThreshold(bn.SrSignature, 7)
-
-	rstatus := spos.NewRoundStatus()
-
-	rstatus.SetStatus(bn.SrBlock, spos.SsFinished)
-	rstatus.SetStatus(bn.SrCommitmentHash, spos.SsFinished)
-	rstatus.SetStatus(bn.SrBitmap, spos.SsFinished)
-	rstatus.SetStatus(bn.SrCommitment, spos.SsFinished)
-	rstatus.SetStatus(bn.SrSignature, spos.SsFinished)
-
-	genesisTime := time.Now()
-	currentTime := genesisTime
-
-	rnd := chronology.NewRound(genesisTime,
-		currentTime,
-		RoundTimeDuration)
-
-	chr := chronology.NewChronology(
-		true,
-		rnd,
-		genesisTime,
-		ntp.NewSyncTime(RoundTimeDuration, nil))
-
-	chr.SetSelfSubround(0)
-
-	sPoS := spos.NewSpos(
-		nil,
-		rcns,
-		rthr,
-		rstatus,
-		chr,
-	)
-
-	return sPoS
-}
-
-func initSposWorkers() []*bn.Worker {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	eligibleList := CreateEligibleList(consensusGroupSize)
-	// create instances
-	var conWorkers []*bn.Worker
-
-	for i := 0; i < consensusGroupSize; i++ {
-		sPoS := initSpos(genesisTime, roundDuration, eligibleList, consensusGroupSize, 1)
-		cnWorker := initSposWorker(sPoS)
-		GenerateSubRoundHandlers(roundDuration, sPoS, cnWorker)
-
-		conWorkers = append(conWorkers, cnWorker)
-	}
-
-	return conWorkers
-}
-
-func initSposWorker(sPoS *spos.Spos) *bn.Worker {
+func initWorker() *bn.Worker {
 	blkc := blockchain.BlockChain{}
 	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
 	multisigner := initMultisigner()
@@ -121,7 +39,20 @@ func initSposWorker(sPoS *spos.Spos) *bn.Worker {
 		return false
 	}}
 
-	cnWorker, _ := bn.NewWorker(
+	consensusGroupSize := 9
+	roundDuration := 100 * time.Millisecond
+	genesisTime := time.Now()
+	consensusGroup := createEligibleList(consensusGroupSize)
+
+	sPoS := initSpos(
+		genesisTime,
+		roundDuration,
+		consensusGroup,
+		consensusGroupSize,
+		1,
+	)
+
+	wrk, _ := bn.NewWorker(
 		sPoS,
 		&blkc,
 		mock.HasherMock{},
@@ -132,13 +63,15 @@ func initSposWorker(sPoS *spos.Spos) *bn.Worker {
 		keyGenMock,
 		privKeyMock,
 		pubKeyMock,
+		mock.ShardCoordinatorMock{},
+		mock.ValidatorGroupSelectorMock{},
 	)
 
-	cnWorker.Header = &block.Header{}
-	cnWorker.SendMessage = SendMessage
-	cnWorker.BroadcastBlockBody = BroadcastMessage
-	cnWorker.BroadcastHeader = BroadcastMessage
-	return cnWorker
+	wrk.SendMessage = sendMessage
+	wrk.BroadcastBlockBody = broadcastMessage
+	wrk.BroadcastHeader = broadcastMessage
+
+	return wrk
 }
 
 func initSpos(
@@ -342,66 +275,7 @@ func getEndTime(chr *chronology.Chronology, subroundID chronology.SubroundId) in
 	return endTime
 }
 
-func GenerateSubRoundHandlers(roundDuration time.Duration, sPoS *spos.Spos, bnWorker *bn.Worker) {
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrStartRound),
-		chronology.SubroundId(bn.SrBlock),
-		int64(roundDuration*5/100),
-		bn.GetSubroundName(bn.SrStartRound),
-		bnWorker.DoStartRoundJob,
-		nil,
-		func() bool { return true }))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrBlock),
-		chronology.SubroundId(bn.SrCommitmentHash),
-		int64(roundDuration*25/100),
-		bn.GetSubroundName(bn.SrBlock),
-		bnWorker.DoBlockJob,
-		bnWorker.ExtendBlock,
-		bnWorker.CheckBlockConsensus))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrCommitmentHash),
-		chronology.SubroundId(bn.SrBitmap),
-		int64(roundDuration*40/100),
-		bn.GetSubroundName(bn.SrCommitmentHash),
-		bnWorker.DoCommitmentHashJob,
-		bnWorker.ExtendCommitmentHash,
-		bnWorker.CheckCommitmentHashConsensus))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrBitmap),
-		chronology.SubroundId(bn.SrCommitment),
-		int64(roundDuration*55/100),
-		bn.GetSubroundName(bn.SrBitmap),
-		bnWorker.DoBitmapJob,
-		bnWorker.ExtendBitmap,
-		bnWorker.CheckBitmapConsensus))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrCommitment),
-		chronology.SubroundId(bn.SrSignature),
-		int64(roundDuration*70/100),
-		bn.GetSubroundName(bn.SrCommitment),
-		bnWorker.DoCommitmentJob,
-		bnWorker.ExtendCommitment,
-		bnWorker.CheckCommitmentConsensus))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrSignature),
-		chronology.SubroundId(bn.SrEndRound),
-		int64(roundDuration*85/100),
-		bn.GetSubroundName(bn.SrSignature),
-		bnWorker.DoSignatureJob,
-		bnWorker.ExtendSignature,
-		bnWorker.CheckSignatureConsensus))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrEndRound),
-		-1,
-		int64(roundDuration*100/100),
-		bn.GetSubroundName(bn.SrEndRound),
-		bnWorker.DoEndRoundJob,
-		bnWorker.ExtendEndRound,
-		bnWorker.CheckEndRoundConsensus))
-}
-
-func CreateEligibleList(size int) []string {
+func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
 
 	for i := 0; i < size; i++ {
@@ -424,7 +298,7 @@ func TestWorker_NewWorkerConsensusNilShouldFail(t *testing.T) {
 		return false
 	}}
 
-	consensusGroup, err := bn.NewWorker(
+	wrk, err := bn.NewWorker(
 		nil,
 		blockChain,
 		hasher,
@@ -435,9 +309,11 @@ func TestWorker_NewWorkerConsensusNilShouldFail(t *testing.T) {
 		keyGen,
 		privKey,
 		pubKey,
+		mock.ShardCoordinatorMock{},
+		mock.ValidatorGroupSelectorMock{},
 	)
 
-	assert.Nil(t, consensusGroup)
+	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilConsensus)
 }
 
@@ -445,9 +321,9 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
 	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	eligibleList := createEligibleList(consensusGroupSize)
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
+	sPoS := initSpos(genesisTime, roundDuration, eligibleList, consensusGroupSize, 0)
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	blkProc := &mock.BlockProcessorMock{}
@@ -459,7 +335,7 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 		return false
 	}}
 
-	consensusWorker, err := bn.NewWorker(
+	wrk, err := bn.NewWorker(
 		sPoS,
 		nil,
 		hasher,
@@ -470,9 +346,11 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 		keyGen,
 		privKey,
 		pubKey,
+		mock.ShardCoordinatorMock{},
+		mock.ValidatorGroupSelectorMock{},
 	)
 
-	assert.Nil(t, consensusWorker)
+	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilBlockChain)
 }
 
@@ -480,9 +358,9 @@ func TestWorker_NewWorkerHasherNilShouldFail(t *testing.T) {
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
 	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	eligibleList := createEligibleList(consensusGroupSize)
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
+	sPoS := initSpos(genesisTime, roundDuration, eligibleList, consensusGroupSize, 0)
 	blockChain := &blockchain.BlockChain{}
 	marshalizer := &mock.MarshalizerMock{}
 	blkProc := &mock.BlockProcessorMock{}
@@ -494,7 +372,7 @@ func TestWorker_NewWorkerHasherNilShouldFail(t *testing.T) {
 		return false
 	}}
 
-	consensusWorker, err := bn.NewWorker(
+	wrk, err := bn.NewWorker(
 		sPoS,
 		blockChain,
 		nil,
@@ -505,9 +383,11 @@ func TestWorker_NewWorkerHasherNilShouldFail(t *testing.T) {
 		keyGen,
 		privKey,
 		pubKey,
+		mock.ShardCoordinatorMock{},
+		mock.ValidatorGroupSelectorMock{},
 	)
 
-	assert.Nil(t, consensusWorker)
+	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilHasher)
 }
 
@@ -515,9 +395,9 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
 	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	eligibleList := createEligibleList(consensusGroupSize)
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
+	sPoS := initSpos(genesisTime, roundDuration, eligibleList, consensusGroupSize, 0)
 	blockChain := &blockchain.BlockChain{}
 	hasher := &mock.HasherMock{}
 	blkProc := &mock.BlockProcessorMock{}
@@ -529,7 +409,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		return false
 	}}
 
-	consensusWorker, err := bn.NewWorker(
+	wrk, err := bn.NewWorker(
 		sPoS,
 		blockChain,
 		hasher,
@@ -540,9 +420,11 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		keyGen,
 		privKey,
 		pubKey,
+		mock.ShardCoordinatorMock{},
+		mock.ValidatorGroupSelectorMock{},
 	)
 
-	assert.Nil(t, consensusWorker)
+	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilMarshalizer)
 }
 
@@ -550,9 +432,9 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
 	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	eligibleList := createEligibleList(consensusGroupSize)
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
+	sPoS := initSpos(genesisTime, roundDuration, eligibleList, consensusGroupSize, 0)
 	blockChain := &blockchain.BlockChain{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -564,7 +446,7 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 		return false
 	}}
 
-	consensusWorker, err := bn.NewWorker(
+	wrk, err := bn.NewWorker(
 		sPoS,
 		blockChain,
 		hasher,
@@ -575,9 +457,11 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 		keyGen,
 		privKey,
 		pubKey,
+		mock.ShardCoordinatorMock{},
+		mock.ValidatorGroupSelectorMock{},
 	)
 
-	assert.Nil(t, consensusWorker)
+	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilBlockProcessor)
 }
 
@@ -585,9 +469,9 @@ func TestWorker_NewWorkerMultisigNilShouldFail(t *testing.T) {
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
 	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	eligibleList := createEligibleList(consensusGroupSize)
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
+	sPoS := initSpos(genesisTime, roundDuration, eligibleList, consensusGroupSize, 0)
 	blockChain := &blockchain.BlockChain{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -599,7 +483,7 @@ func TestWorker_NewWorkerMultisigNilShouldFail(t *testing.T) {
 		return false
 	}}
 
-	consensusWorker, err := bn.NewWorker(
+	wrk, err := bn.NewWorker(
 		sPoS,
 		blockChain,
 		hasher,
@@ -610,9 +494,11 @@ func TestWorker_NewWorkerMultisigNilShouldFail(t *testing.T) {
 		keyGen,
 		privKey,
 		pubKey,
+		mock.ShardCoordinatorMock{},
+		mock.ValidatorGroupSelectorMock{},
 	)
 
-	assert.Nil(t, consensusWorker)
+	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilMultiSigner)
 }
 
@@ -620,9 +506,9 @@ func TestWorker_NewWorkerKeyGenNilShouldFail(t *testing.T) {
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
 	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	eligibleList := createEligibleList(consensusGroupSize)
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
+	sPoS := initSpos(genesisTime, roundDuration, eligibleList, consensusGroupSize, 0)
 	blockChain := &blockchain.BlockChain{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -634,7 +520,7 @@ func TestWorker_NewWorkerKeyGenNilShouldFail(t *testing.T) {
 		return false
 	}}
 
-	consensusWorker, err := bn.NewWorker(
+	wrk, err := bn.NewWorker(
 		sPoS,
 		blockChain,
 		hasher,
@@ -645,9 +531,11 @@ func TestWorker_NewWorkerKeyGenNilShouldFail(t *testing.T) {
 		nil,
 		privKey,
 		pubKey,
+		mock.ShardCoordinatorMock{},
+		mock.ValidatorGroupSelectorMock{},
 	)
 
-	assert.Nil(t, consensusWorker)
+	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilKeyGenerator)
 }
 
@@ -655,9 +543,9 @@ func TestWorker_NewWorkerPrivKeyNilShouldFail(t *testing.T) {
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
 	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	eligibleList := createEligibleList(consensusGroupSize)
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
+	sPoS := initSpos(genesisTime, roundDuration, eligibleList, consensusGroupSize, 0)
 	blockChain := &blockchain.BlockChain{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -669,7 +557,7 @@ func TestWorker_NewWorkerPrivKeyNilShouldFail(t *testing.T) {
 		return false
 	}}
 
-	consensusWorker, err := bn.NewWorker(
+	wrk, err := bn.NewWorker(
 		sPoS,
 		blockChain,
 		hasher,
@@ -680,9 +568,11 @@ func TestWorker_NewWorkerPrivKeyNilShouldFail(t *testing.T) {
 		keyGen,
 		nil,
 		pubKey,
+		mock.ShardCoordinatorMock{},
+		mock.ValidatorGroupSelectorMock{},
 	)
 
-	assert.Nil(t, consensusWorker)
+	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilPrivateKey)
 }
 
@@ -690,9 +580,9 @@ func TestWorker_NewWorkerPubKeyNilFail(t *testing.T) {
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
 	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	wligibleList := createEligibleList(consensusGroupSize)
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
+	sPoS := initSpos(genesisTime, roundDuration, wligibleList, consensusGroupSize, 0)
 	blockChain := &blockchain.BlockChain{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -704,7 +594,7 @@ func TestWorker_NewWorkerPubKeyNilFail(t *testing.T) {
 		return false
 	}}
 
-	consensusWorker, err := bn.NewWorker(
+	wrk, err := bn.NewWorker(
 		sPoS,
 		blockChain,
 		hasher,
@@ -715,17 +605,95 @@ func TestWorker_NewWorkerPubKeyNilFail(t *testing.T) {
 		keyGen,
 		privKey,
 		nil,
+		mock.ShardCoordinatorMock{},
+		mock.ValidatorGroupSelectorMock{},
 	)
 
-	assert.Nil(t, consensusWorker)
+	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilPublicKey)
 }
 
-func TestWorker_NewWorkerShouldNotFail(t *testing.T) {
+func TestWorker_NewWorkerShardCoordinatorNilFail(t *testing.T) {
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
 	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	wligibleList := createEligibleList(consensusGroupSize)
+
+	sPoS := initSpos(genesisTime, roundDuration, wligibleList, consensusGroupSize, 0)
+	blockChain := &blockchain.BlockChain{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	blkProc := &mock.BlockProcessorMock{}
+	multisig := mock.NewMultiSigner()
+	keyGen := &mock.KeyGenMock{}
+	privKey := &mock.PrivateKeyMock{}
+	pubKey := &mock.PublicKeyMock{}
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	wrk, err := bn.NewWorker(
+		sPoS,
+		blockChain,
+		hasher,
+		marshalizer,
+		blkProc,
+		bootMock,
+		multisig,
+		keyGen,
+		privKey,
+		pubKey,
+		nil,
+		mock.ValidatorGroupSelectorMock{},
+	)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, err, spos.ErrNilShardCoordinator)
+}
+
+func TestWorker_NewWorkerValidatorGroupSelectorNilFail(t *testing.T) {
+	consensusGroupSize := 9
+	roundDuration := 100 * time.Millisecond
+	genesisTime := time.Now()
+	wligibleList := createEligibleList(consensusGroupSize)
+
+	sPoS := initSpos(genesisTime, roundDuration, wligibleList, consensusGroupSize, 0)
+	blockChain := &blockchain.BlockChain{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	blkProc := &mock.BlockProcessorMock{}
+	multisig := mock.NewMultiSigner()
+	keyGen := &mock.KeyGenMock{}
+	privKey := &mock.PrivateKeyMock{}
+	pubKey := &mock.PublicKeyMock{}
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	wrk, err := bn.NewWorker(
+		sPoS,
+		blockChain,
+		hasher,
+		marshalizer,
+		blkProc,
+		bootMock,
+		multisig,
+		keyGen,
+		privKey,
+		pubKey,
+		mock.ShardCoordinatorMock{},
+		nil,
+	)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, err, spos.ErrNilValidatorGroupSelector)
+}
+
+func TestWorker_NewWorkerShouldWork(t *testing.T) {
+	consensusGroupSize := 9
+	roundDuration := 100 * time.Millisecond
+	genesisTime := time.Now()
+	consensusGroup := createEligibleList(consensusGroupSize)
 
 	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
 	blockChain := &blockchain.BlockChain{}
@@ -751,6 +719,8 @@ func TestWorker_NewWorkerShouldNotFail(t *testing.T) {
 		keyGen,
 		privKey,
 		pubKey,
+		mock.ShardCoordinatorMock{},
+		mock.ValidatorGroupSelectorMock{},
 	)
 
 	assert.NotNil(t, consensusWorker)

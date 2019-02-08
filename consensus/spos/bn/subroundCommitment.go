@@ -1,10 +1,8 @@
 package bn
 
 import (
-	"bytes"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
 
@@ -12,7 +10,15 @@ import (
 // in the Commitment subround (it is used as the handler function of the doSubroundJob pointer variable function
 // in Subround struct, from spos package)
 func (wrk *Worker) doCommitmentJob() bool {
-	if !wrk.canDoCommitmentJob() {
+	if wrk.isBitmapSubroundUnfinished() {
+		return false
+	}
+
+	if !wrk.isSelfInBitmap() { // is NOT self in the leader's bitmap?
+		return false
+	}
+
+	if !wrk.canDoSubroundJob(SrCommitment) {
 		return false
 	}
 
@@ -56,58 +62,39 @@ func (wrk *Worker) doCommitmentJob() bool {
 	return true
 }
 
-func (wrk *Worker) canDoCommitmentJob() bool {
-	isLastRoundUnfinished := wrk.SPoS.Status(SrBitmap) != spos.SsFinished
+func (wrk *Worker) isBitmapSubroundUnfinished() bool {
+	isBitmapSubroundUnfinished := wrk.SPoS.Status(SrBitmap) != spos.SsFinished
 
-	if isLastRoundUnfinished {
+	if isBitmapSubroundUnfinished {
 		if !wrk.doBitmapJob() {
-			return false
+			return true
 		}
 
 		if !wrk.checkBitmapConsensus() {
-			return false
+			return true
 		}
 	}
 
-	isCurrentRoundFinished := wrk.SPoS.Status(SrCommitment) == spos.SsFinished
-
-	if isCurrentRoundFinished {
-		return false
-	}
-
-	if !wrk.isSelfInBitmap() { // isn't node in the leader's bitmap?
-		return false
-	}
-
-	isJobDone, err := wrk.SPoS.GetSelfJobDone(SrCommitment)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	if isJobDone { // has been commitment already sent?
-		return false
-	}
-
-	isConsensusDataNotSet := wrk.SPoS.Data == nil
-
-	if isConsensusDataNotSet {
-		return false
-	}
-
-	return true
+	return false
 }
 
 // receivedCommitment method is called when a commitment is received through the commitment channel.
 // If the commitment is valid, than the jobDone map coresponding to the node which sent it,
 // is set on true for the subround Comitment
 func (wrk *Worker) receivedCommitment(cnsDta *spos.ConsensusData) bool {
-	if !wrk.canReceiveCommitment(cnsDta) {
+	node := string(cnsDta.PubKey)
+
+	if wrk.isConsensusDataNotSet() {
 		return false
 	}
 
-	node := string(cnsDta.PubKey)
+	if !wrk.isValidatorInBitmap(node) { // is NOT this node in the bitmap group?
+		return false
+	}
+
+	if !wrk.canReceiveMessage(node, cnsDta.RoundIndex, SrCommitment) {
+		return false
+	}
 
 	index, err := wrk.SPoS.ConsensusGroupIndex(node)
 
@@ -127,57 +114,6 @@ func (wrk *Worker) receivedCommitment(cnsDta *spos.ConsensusData) bool {
 
 	if err != nil {
 		log.Error(err.Error())
-		return false
-	}
-
-	return true
-}
-
-func (wrk *Worker) canReceiveCommitment(cnsDta *spos.ConsensusData) bool {
-	node := string(cnsDta.PubKey)
-
-	isMessageReceivedFromItself := node == wrk.SPoS.SelfPubKey()
-
-	if isMessageReceivedFromItself {
-		return false
-	}
-
-	isCurrentRoundFinished := wrk.SPoS.Status(SrCommitment) == spos.SsFinished
-
-	if isCurrentRoundFinished {
-		return false
-	}
-
-	if !wrk.isValidatorInBitmap(node) { // isn't node in the bitmap group?
-		return false
-	}
-
-	isConsensusDataNotSet := wrk.SPoS.Data == nil
-
-	if isConsensusDataNotSet {
-		return false
-	}
-
-	isMessageReceivedForAnotherRound := !bytes.Equal(cnsDta.BlockHeaderHash, wrk.SPoS.Data)
-
-	if isMessageReceivedForAnotherRound {
-		return false
-	}
-
-	isMessageReceivedTooLate := wrk.SPoS.Chr.GetSubround() > chronology.SubroundId(SrEndRound)
-
-	if isMessageReceivedTooLate {
-		return false
-	}
-
-	isJobDone, err := wrk.SPoS.RoundConsensus.GetJobDone(node, SrCommitment)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	if isJobDone {
 		return false
 	}
 

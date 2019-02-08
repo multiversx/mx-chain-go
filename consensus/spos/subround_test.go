@@ -103,7 +103,7 @@ func TestSubround_DoWork1(t *testing.T) {
 	chr.AddSubround(sr)
 
 	computeSubRoundId := func() chronology.SubroundId {
-		return chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
+		return chr.GetSubroundFromDateTime(chr.SyncTimer().CurrentTime(chr.ClockOffset()))
 	}
 
 	isCancelled := func() bool {
@@ -131,7 +131,7 @@ func TestSubround_DoWork2(t *testing.T) {
 	chr.AddSubround(sr)
 	chr.SetSelfSubround(-1)
 	computeSubRoundId := func() chronology.SubroundId {
-		return chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
+		return chr.GetSubroundFromDateTime(chr.SyncTimer().CurrentTime(chr.ClockOffset()))
 	}
 
 	isCancelled := func() bool {
@@ -170,7 +170,7 @@ func TestSubround_DoWork3(t *testing.T) {
 
 	chr.SetClockOffset(time.Duration(sr1.EndTime() + 1))
 	computeSubRoundId := func() chronology.SubroundId {
-		return chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
+		return chr.GetSubroundFromDateTime(chr.SyncTimer().CurrentTime(chr.ClockOffset()))
 	}
 
 	isCancelled := func() bool {
@@ -209,7 +209,7 @@ func TestSubround_DoWork4(t *testing.T) {
 	chr.AddSubround(sr2)
 	chr.SetClockOffset(time.Duration(sr1.EndTime() - int64(5*time.Millisecond)))
 	computeSubRoundId := func() chronology.SubroundId {
-		return chr.GetSubroundFromDateTime(chr.SyncTime().CurrentTime(chr.ClockOffset()))
+		return chr.GetSubroundFromDateTime(chr.SyncTimer().CurrentTime(chr.ClockOffset()))
 	}
 
 	isCancelled := func() bool {

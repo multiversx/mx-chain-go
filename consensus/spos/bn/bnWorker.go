@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 var log = logger.NewDefaultLogger()
@@ -22,7 +23,7 @@ type Worker struct {
 	Header                 *block.Header
 	BlockBody              *block.TxBlockBody
 	BlockChain             *blockchain.BlockChain
-	BlockProcessor         process.BlockProcessor
+	blockProcessor         process.BlockProcessor
 	boot                   process.Bootstraper
 	MessageChannels        map[MessageType]chan *spos.ConsensusData
 	ReceivedMessageChannel chan *spos.ConsensusData
@@ -40,6 +41,8 @@ type Worker struct {
 	mutReceivedMessages    sync.RWMutex
 	mutMessageChannels     sync.RWMutex
 	mutCheckConsensus      sync.Mutex
+	shardCoordinator       sharding.ShardCoordinator
+	validatorGroupSelector consensus.ValidatorGroupSelector
 }
 
 // NewWorker creates a new Worker object
@@ -54,6 +57,8 @@ func NewWorker(
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
 	pubKey crypto.PublicKey,
+	shardCoordinator sharding.ShardCoordinator,
+	validatorGroupSelector consensus.ValidatorGroupSelector,
 ) (*Worker, error) {
 
 	err := checkNewWorkerParams(
@@ -67,6 +72,8 @@ func NewWorker(
 		keyGen,
 		privKey,
 		pubKey,
+		shardCoordinator,
+		validatorGroupSelector,
 	)
 
 	if err != nil {
@@ -74,16 +81,18 @@ func NewWorker(
 	}
 
 	wrk := Worker{
-		SPoS:           sPoS,
-		BlockChain:     blkc,
-		hasher:         hasher,
-		marshalizer:    marshalizer,
-		BlockProcessor: blockProcessor,
-		boot:           boot,
-		multiSigner:    multisig,
-		keyGen:         keyGen,
-		privKey:        privKey,
-		pubKey:         pubKey,
+		SPoS:                   sPoS,
+		BlockChain:             blkc,
+		hasher:                 hasher,
+		marshalizer:            marshalizer,
+		blockProcessor:         blockProcessor,
+		boot:                   boot,
+		multiSigner:            multisig,
+		keyGen:                 keyGen,
+		privKey:                privKey,
+		pubKey:                 pubKey,
+		shardCoordinator:       shardCoordinator,
+		validatorGroupSelector: validatorGroupSelector,
 	}
 
 	wrk.ReceivedMessageChannel = make(chan *spos.ConsensusData, sPoS.ConsensusGroupSize()*consensusSubrounds)
@@ -116,6 +125,8 @@ func checkNewWorkerParams(
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
 	pubKey crypto.PublicKey,
+	shardCoordinator sharding.ShardCoordinator,
+	validatorGroupSelector consensus.ValidatorGroupSelector,
 ) error {
 	if sPoS == nil {
 		return spos.ErrNilConsensus
@@ -155,6 +166,14 @@ func checkNewWorkerParams(
 
 	if pubKey == nil {
 		return spos.ErrNilPublicKey
+	}
+
+	if shardCoordinator == nil {
+		return spos.ErrNilShardCoordinator
+	}
+
+	if validatorGroupSelector == nil {
+		return spos.ErrNilValidatorGroupSelector
 	}
 
 	return nil

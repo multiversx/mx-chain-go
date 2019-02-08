@@ -15,49 +15,49 @@ import (
 )
 
 func TestWorker_SendBlock(t *testing.T) {
-	cnWorkers := initSposWorkers()
+	wrk := initWorker()
 
-	cnWorkers[0].SPoS.Chr.Round().UpdateRound(time.Now(), time.Now().Add(cnWorkers[0].SPoS.Chr.Round().TimeDuration()))
+	wrk.SPoS.Chr.Round().UpdateRound(time.Now(), time.Now().Add(wrk.SPoS.Chr.Round().TimeDuration()))
 
-	r := cnWorkers[0].DoBlockJob()
+	r := wrk.DoBlockJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.Chr.Round().UpdateRound(time.Now(), time.Now())
-	cnWorkers[0].SPoS.SetStatus(bn.SrBlock, spos.SsFinished)
+	wrk.SPoS.Chr.Round().UpdateRound(time.Now(), time.Now())
+	wrk.SPoS.SetStatus(bn.SrBlock, spos.SsFinished)
 
-	r = cnWorkers[0].DoBlockJob()
+	r = wrk.DoBlockJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.SetStatus(bn.SrBlock, spos.SsNotFinished)
-	cnWorkers[0].SPoS.SetJobDone(cnWorkers[0].SPoS.SelfPubKey(), bn.SrBlock, true)
+	wrk.SPoS.SetStatus(bn.SrBlock, spos.SsNotFinished)
+	wrk.SPoS.SetJobDone(wrk.SPoS.SelfPubKey(), bn.SrBlock, true)
 
-	r = cnWorkers[0].DoBlockJob()
+	r = wrk.DoBlockJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.SetJobDone(cnWorkers[0].SPoS.SelfPubKey(), bn.SrBlock, false)
-	cnWorkers[0].SPoS.RoundConsensus.SetSelfPubKey(cnWorkers[0].SPoS.RoundConsensus.ConsensusGroup()[1])
+	wrk.SPoS.SetJobDone(wrk.SPoS.SelfPubKey(), bn.SrBlock, false)
+	wrk.SPoS.RoundConsensus.SetSelfPubKey(wrk.SPoS.RoundConsensus.ConsensusGroup()[1])
 
-	r = cnWorkers[0].DoBlockJob()
+	r = wrk.DoBlockJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.RoundConsensus.SetSelfPubKey(cnWorkers[0].SPoS.RoundConsensus.ConsensusGroup()[0])
+	wrk.SPoS.RoundConsensus.SetSelfPubKey(wrk.SPoS.RoundConsensus.ConsensusGroup()[0])
 
-	r = cnWorkers[0].DoBlockJob()
+	r = wrk.DoBlockJob()
 	assert.True(t, r)
-	assert.Equal(t, uint64(1), cnWorkers[0].Header.Nonce)
+	assert.Equal(t, uint64(1), wrk.Header.Nonce)
 
-	cnWorkers[0].SPoS.SetJobDone(cnWorkers[0].SPoS.SelfPubKey(), bn.SrBlock, false)
-	cnWorkers[0].BlockChain.CurrentBlockHeader = cnWorkers[0].Header
+	wrk.SPoS.SetJobDone(wrk.SPoS.SelfPubKey(), bn.SrBlock, false)
+	wrk.BlockChain.CurrentBlockHeader = wrk.Header
 
-	r = cnWorkers[0].DoBlockJob()
+	r = wrk.DoBlockJob()
 	assert.True(t, r)
-	assert.Equal(t, uint64(2), cnWorkers[0].Header.Nonce)
+	assert.Equal(t, uint64(2), wrk.Header.Nonce)
 }
 
 func TestWorker_ReceivedBlock(t *testing.T) {
-	cnWorkers := initSposWorkers()
+	wrk := initWorker()
 
-	cnWorkers[0].SPoS.Chr.Round().UpdateRound(time.Now(), time.Now().Add(cnWorkers[0].SPoS.Chr.Round().TimeDuration()))
+	wrk.SPoS.Chr.Round().UpdateRound(time.Now(), time.Now().Add(wrk.SPoS.Chr.Round().TimeDuration()))
 
 	blBody := &block.TxBlockBody{}
 
@@ -66,16 +66,16 @@ func TestWorker_ReceivedBlock(t *testing.T) {
 	cnsDta := spos.NewConsensusData(
 		nil,
 		blBodyStr,
-		[]byte(cnWorkers[0].SPoS.ConsensusGroup()[0]),
+		[]byte(wrk.SPoS.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		cnWorkers[0].SPoS.Chr.RoundTimeStamp(),
+		wrk.SPoS.Chr.RoundTimeStamp(),
 		0,
 	)
 
-	cnWorkers[0].BlockBody = &block.TxBlockBody{}
+	wrk.BlockBody = &block.TxBlockBody{}
 
-	r := cnWorkers[0].ReceivedBlockBody(cnsDta)
+	r := wrk.ReceivedBlockBody(cnsDta)
 	assert.False(t, r)
 
 	hdr := &block.Header{}
@@ -88,23 +88,23 @@ func TestWorker_ReceivedBlock(t *testing.T) {
 	cnsDta = spos.NewConsensusData(
 		hdrHash,
 		hdrStr,
-		[]byte(cnWorkers[0].SPoS.ConsensusGroup()[0]),
+		[]byte(wrk.SPoS.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockHeader),
-		cnWorkers[0].SPoS.Chr.RoundTimeStamp(),
+		wrk.SPoS.Chr.RoundTimeStamp(),
 		1,
 	)
 
-	cnWorkers[0].Header = nil
-	cnWorkers[0].SPoS.Data = nil
-	r = cnWorkers[0].ReceivedBlockHeader(cnsDta)
+	wrk.Header = nil
+	wrk.SPoS.Data = nil
+	r = wrk.ReceivedBlockHeader(cnsDta)
 	assert.True(t, r)
 }
 
 func TestWorker_ReceivedBlockBodyShouldSetJobDone(t *testing.T) {
-	cnWorkers := initSposWorkers()
+	wrk := initWorker()
 
-	cnWorkers[0].SPoS.Chr.Round().UpdateRound(time.Now(), time.Now().Add(cnWorkers[0].SPoS.Chr.Round().TimeDuration()))
+	wrk.SPoS.Chr.Round().UpdateRound(time.Now(), time.Now().Add(wrk.SPoS.Chr.Round().TimeDuration()))
 
 	blBody := &block.TxBlockBody{}
 
@@ -113,23 +113,23 @@ func TestWorker_ReceivedBlockBodyShouldSetJobDone(t *testing.T) {
 	cnsDta := spos.NewConsensusData(
 		nil,
 		blBodyStr,
-		[]byte(cnWorkers[0].SPoS.ConsensusGroup()[0]),
+		[]byte(wrk.SPoS.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		cnWorkers[0].SPoS.Chr.RoundTimeStamp(),
+		wrk.SPoS.Chr.RoundTimeStamp(),
 		1,
 	)
 
-	cnWorkers[0].Header = &block.Header{}
+	wrk.Header = &block.Header{}
 
-	r := cnWorkers[0].ReceivedBlockBody(cnsDta)
+	r := wrk.ReceivedBlockBody(cnsDta)
 	assert.True(t, r)
 }
 
 func TestWorker_ReceivedBlockBodyShouldErrProcessBlock(t *testing.T) {
-	cnWorkers := initSposWorkers()
+	wrk := initWorker()
 
-	cnWorkers[0].SPoS.Chr.Round().UpdateRound(time.Now(), time.Now().Add(cnWorkers[0].SPoS.Chr.Round().TimeDuration()))
+	wrk.SPoS.Chr.Round().UpdateRound(time.Now(), time.Now().Add(wrk.SPoS.Chr.Round().TimeDuration()))
 
 	blBody := &block.TxBlockBody{}
 
@@ -138,14 +138,14 @@ func TestWorker_ReceivedBlockBodyShouldErrProcessBlock(t *testing.T) {
 	cnsDta := spos.NewConsensusData(
 		nil,
 		blBodyStr,
-		[]byte(cnWorkers[0].SPoS.ConsensusGroup()[1]),
+		[]byte(wrk.SPoS.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		cnWorkers[0].SPoS.Chr.RoundTimeStamp(),
+		wrk.SPoS.Chr.RoundTimeStamp(),
 		0,
 	)
 
-	cnWorkers[0].Header = &block.Header{}
+	wrk.Header = &block.Header{}
 
 	blProcMock := initMockBlockProcessor()
 
@@ -153,14 +153,14 @@ func TestWorker_ReceivedBlockBodyShouldErrProcessBlock(t *testing.T) {
 		return process.ErrNilPreviousBlockHash
 	}
 
-	cnWorkers[0].BlockProcessor = blProcMock
+	wrk.SetBlockProcessor(blProcMock)
 
-	r := cnWorkers[0].ReceivedBlockBody(cnsDta)
+	r := wrk.ReceivedBlockBody(cnsDta)
 	assert.False(t, r)
 }
 
 func TestWorker_DecodeBlockBody(t *testing.T) {
-	cnWorkers := initSposWorkers()
+	wrk := initWorker()
 
 	blk := &block.TxBlockBody{}
 
@@ -172,51 +172,18 @@ func TestWorker_DecodeBlockBody(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	dcdBlk := cnWorkers[0].DecodeBlockBody(nil)
+	dcdBlk := wrk.DecodeBlockBody(nil)
 
 	assert.Nil(t, dcdBlk)
 
-	dcdBlk = cnWorkers[0].DecodeBlockBody(message)
+	dcdBlk = wrk.DecodeBlockBody(message)
 
 	assert.Equal(t, blk, dcdBlk)
 	assert.Equal(t, uint32(69), dcdBlk.MiniBlocks[0].ShardID)
 }
 
 func TestWorker_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAreNotSet(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	wrk := initWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -224,56 +191,27 @@ func TestWorker_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAreNotSet(
 	cnsDta := spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(worker.SPoS.ConsensusGroup()[1]),
+		[]byte(wrk.SPoS.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		worker.SPoS.Chr.RoundTimeStamp(),
+		wrk.SPoS.Chr.RoundTimeStamp(),
 		0,
 	)
 
-	assert.False(t, worker.ProcessReceivedBlock(cnsDta))
+	assert.False(t, wrk.ProcessReceivedBlock(cnsDta))
 }
 
 func TestWorker_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFails(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
+	wrk := initWorker()
+
 	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
 
 	err := errors.New("error process block")
 	blProcMock.ProcessBlockCalled = func(*blockchain.BlockChain, *block.Header, *block.TxBlockBody, func() time.Duration) error {
 		return err
 	}
 
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	wrk.SetBlockProcessor(blProcMock)
 
 	hdr := &block.Header{}
 	blk := &block.TxBlockBody{}
@@ -282,54 +220,21 @@ func TestWorker_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFails(t *te
 	cnsDta := spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(worker.SPoS.ConsensusGroup()[1]),
+		[]byte(wrk.SPoS.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		worker.SPoS.Chr.RoundTimeStamp(),
+		wrk.SPoS.Chr.RoundTimeStamp(),
 		0,
 	)
 
-	worker.Header = hdr
-	worker.BlockBody = blk
+	wrk.Header = hdr
+	wrk.BlockBody = blk
 
-	assert.False(t, worker.ProcessReceivedBlock(cnsDta))
+	assert.False(t, wrk.ProcessReceivedBlock(cnsDta))
 }
 
 func TestWorker_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockReturnsInNextRound(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	wrk := initWorker()
 
 	hdr := &block.Header{}
 	blk := &block.TxBlockBody{}
@@ -338,54 +243,21 @@ func TestWorker_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockReturnsInNe
 	cnsDta := spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(worker.SPoS.ConsensusGroup()[1]),
+		[]byte(wrk.SPoS.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		worker.SPoS.Chr.RoundTimeStamp(),
+		wrk.SPoS.Chr.RoundTimeStamp(),
 		-1,
 	)
 
-	worker.Header = hdr
-	worker.BlockBody = blk
+	wrk.Header = hdr
+	wrk.BlockBody = blk
 
-	assert.False(t, worker.ProcessReceivedBlock(cnsDta))
+	assert.False(t, wrk.ProcessReceivedBlock(cnsDta))
 }
 
 func TestWorker_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockReturnsTooLate(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	wrk := initWorker()
 
 	hdr := &block.Header{}
 	blk := &block.TxBlockBody{}
@@ -394,57 +266,24 @@ func TestWorker_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockReturnsTooL
 	cnsDta := spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(worker.SPoS.ConsensusGroup()[1]),
+		[]byte(wrk.SPoS.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		worker.SPoS.Chr.RoundTimeStamp(),
+		wrk.SPoS.Chr.RoundTimeStamp(),
 		0,
 	)
 
-	worker.Header = hdr
-	worker.BlockBody = blk
+	wrk.Header = hdr
+	wrk.BlockBody = blk
 
-	endTime := getEndTime(worker.SPoS.Chr, bn.SrEndRound)
-	worker.SPoS.Chr.SetClockOffset(time.Duration(endTime))
+	endTime := getEndTime(wrk.SPoS.Chr, bn.SrEndRound)
+	wrk.SPoS.Chr.SetClockOffset(time.Duration(endTime))
 
-	assert.False(t, worker.ProcessReceivedBlock(cnsDta))
+	assert.False(t, wrk.ProcessReceivedBlock(cnsDta))
 }
 
 func TestWorker_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	wrk := initWorker()
 
 	hdr := &block.Header{}
 	blk := &block.TxBlockBody{}
@@ -453,62 +292,29 @@ func TestWorker_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 	cnsDta := spos.NewConsensusData(
 		message,
 		nil,
-		[]byte(worker.SPoS.ConsensusGroup()[1]),
+		[]byte(wrk.SPoS.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBlockBody),
-		worker.SPoS.Chr.RoundTimeStamp(),
+		wrk.SPoS.Chr.RoundTimeStamp(),
 		0,
 	)
 
-	worker.Header = hdr
-	worker.BlockBody = blk
+	wrk.Header = hdr
+	wrk.BlockBody = blk
 
-	assert.True(t, worker.ProcessReceivedBlock(cnsDta))
+	assert.True(t, wrk.ProcessReceivedBlock(cnsDta))
 }
 
 func TestHaveTime_ShouldReturnNegativeValue(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+	wrk := initWorker()
 
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	time.Sleep(roundDuration)
+	time.Sleep(wrk.SPoS.Chr.Round().TimeDuration())
 
 	haveTime := func() time.Duration {
-		chr := worker.SPoS.Chr
+		chr := wrk.SPoS.Chr
 
 		roundStartTime := chr.Round().TimeStamp()
-		currentTime := chr.SyncTime().CurrentTime(chr.ClockOffset())
+		currentTime := chr.SyncTimer().CurrentTime(chr.ClockOffset())
 		elapsedTime := currentTime.Sub(roundStartTime)
 		haveTime := float64(chr.Round().TimeDuration())*float64(0.85) - float64(elapsedTime)
 
@@ -521,12 +327,12 @@ func TestHaveTime_ShouldReturnNegativeValue(t *testing.T) {
 }
 
 func TestWorker_DecodeBlockHeader(t *testing.T) {
-	cnWorkers := initSposWorkers()
+	wrk := initWorker()
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = cnWorkers[0].SPoS.Chr.RoundTimeStamp()
-	hdr.Signature = []byte(cnWorkers[0].SPoS.SelfPubKey())
+	hdr.TimeStamp = wrk.SPoS.Chr.RoundTimeStamp()
+	hdr.Signature = []byte(wrk.SPoS.SelfPubKey())
 
 	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
@@ -538,228 +344,136 @@ func TestWorker_DecodeBlockHeader(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	dcdHdr := cnWorkers[0].DecodeBlockHeader(nil)
+	dcdHdr := wrk.DecodeBlockHeader(nil)
 
 	assert.Nil(t, dcdHdr)
 
-	dcdHdr = cnWorkers[0].DecodeBlockHeader(message)
+	dcdHdr = wrk.DecodeBlockHeader(message)
 
 	assert.Equal(t, hdr, dcdHdr)
-	assert.Equal(t, []byte(cnWorkers[0].SPoS.SelfPubKey()), dcdHdr.Signature)
+	assert.Equal(t, []byte(wrk.SPoS.SelfPubKey()), dcdHdr.Signature)
 }
 
 func TestWorker_CheckBlockConsensus(t *testing.T) {
-	sPoS := InitSposWorker()
+	wrk := initWorker()
 
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blockchain.BlockChain{},
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		&mock.BlockProcessorMock{},
-		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
-			return false
-		}},
-		&mock.BelNevMock{},
-		&mock.KeyGenMock{},
-		&mock.PrivateKeyMock{},
-		&mock.PublicKeyMock{})
+	wrk.SPoS.SetStatus(bn.SrBlock, spos.SsNotFinished)
 
-	GenerateSubRoundHandlers(100*time.Millisecond, sPoS, worker)
-
-	sPoS.SetStatus(bn.SrBlock, spos.SsNotFinished)
-
-	ok := worker.CheckBlockConsensus()
+	ok := wrk.CheckBlockConsensus()
 	assert.False(t, ok)
-	assert.Equal(t, spos.SsNotFinished, sPoS.Status(bn.SrBlock))
+	assert.Equal(t, spos.SsNotFinished, wrk.SPoS.Status(bn.SrBlock))
 
-	sPoS.SetJobDone("2", bn.SrBlock, true)
+	wrk.SPoS.SetJobDone("B", bn.SrBlock, true)
 
-	ok = worker.CheckBlockConsensus()
+	ok = wrk.CheckBlockConsensus()
 	assert.True(t, ok)
-	assert.Equal(t, spos.SsFinished, sPoS.Status(bn.SrBlock))
+	assert.Equal(t, spos.SsFinished, wrk.SPoS.Status(bn.SrBlock))
 }
 
 func TestWorker_IsBlockReceived(t *testing.T) {
-	sPoS := InitSposWorker()
+	wrk := initWorker()
 
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blockchain.BlockChain{},
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		&mock.BlockProcessorMock{},
-		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
-			return false
-		}},
-		&mock.BelNevMock{},
-		&mock.KeyGenMock{},
-		&mock.PrivateKeyMock{},
-		&mock.PublicKeyMock{})
-
-	GenerateSubRoundHandlers(100*time.Millisecond, sPoS, worker)
-
-	for i := 0; i < len(worker.SPoS.ConsensusGroup()); i++ {
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrBlock, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrCommitmentHash, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrBitmap, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrCommitment, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrSignature, false)
+	for i := 0; i < len(wrk.SPoS.ConsensusGroup()); i++ {
+		wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrBlock, false)
+		wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrCommitmentHash, false)
+		wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrBitmap, false)
+		wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrCommitment, false)
+		wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrSignature, false)
 	}
 
-	ok := worker.IsBlockReceived(1)
+	ok := wrk.IsBlockReceived(1)
 	assert.False(t, ok)
 
-	worker.SPoS.SetJobDone("1", bn.SrBlock, true)
-	isJobDone, _ := worker.SPoS.GetJobDone("1", bn.SrBlock)
+	wrk.SPoS.SetJobDone("A", bn.SrBlock, true)
+	isJobDone, _ := wrk.SPoS.GetJobDone("A", bn.SrBlock)
 
 	assert.True(t, isJobDone)
 
-	ok = worker.IsBlockReceived(1)
+	ok = wrk.IsBlockReceived(1)
 	assert.True(t, ok)
 
-	ok = worker.IsBlockReceived(2)
+	ok = wrk.IsBlockReceived(2)
 	assert.False(t, ok)
 }
 
 func TestWorker_DoExtendBlockShouldNotSetBlockExtended(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
+	wrk := initWorker()
+
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
 		return true
 	}}
 
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	wrk.SetBootstraper(bootMock)
 
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
+	wrk.ExtendBlock()
 
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	worker.ExtendBlock()
-
-	assert.NotEqual(t, spos.SsExtended, worker.SPoS.Status(bn.SrBlock))
+	assert.NotEqual(t, spos.SsExtended, wrk.SPoS.Status(bn.SrBlock))
 }
 
 func TestWorker_DoExtendBlockShouldSetBlockExtended(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+	wrk := initWorker()
 
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	wrk.ExtendBlock()
 
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	worker.ExtendBlock()
-
-	assert.Equal(t, spos.SsExtended, worker.SPoS.Status(bn.SrBlock))
+	assert.Equal(t, spos.SsExtended, wrk.SPoS.Status(bn.SrBlock))
 }
 
 func TestWorker_ExtendBlock(t *testing.T) {
-	cnWorkers := initSposWorkers()
+	wrk := initWorker()
 
-	cnWorkers[0].ExtendBlock()
-	assert.Equal(t, spos.SsExtended, cnWorkers[0].SPoS.Status(bn.SrBlock))
+	wrk.ExtendBlock()
+	assert.Equal(t, spos.SsExtended, wrk.SPoS.Status(bn.SrBlock))
 }
 
 func TestWorker_CheckIfBlockIsValid(t *testing.T) {
-	cnWorkers := initSposWorkers()
+	wrk := initWorker()
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = cnWorkers[0].SPoS.Chr.RoundTimeStamp()
+	hdr.TimeStamp = wrk.SPoS.Chr.RoundTimeStamp()
 
 	hdr.PrevHash = []byte("X")
 
-	r := cnWorkers[0].CheckIfBlockIsValid(hdr)
+	r := wrk.CheckIfBlockIsValid(hdr)
 	assert.False(t, r)
 
 	hdr.PrevHash = []byte("")
 
-	r = cnWorkers[0].CheckIfBlockIsValid(hdr)
+	r = wrk.CheckIfBlockIsValid(hdr)
 	assert.True(t, r)
 
 	hdr.Nonce = 2
 
-	r = cnWorkers[0].CheckIfBlockIsValid(hdr)
+	r = wrk.CheckIfBlockIsValid(hdr)
 	assert.False(t, r)
 
 	hdr.Nonce = 1
-	cnWorkers[0].BlockChain.CurrentBlockHeader = hdr
+	wrk.BlockChain.CurrentBlockHeader = hdr
 
 	hdr = &block.Header{}
 	hdr.Nonce = 1
-	hdr.TimeStamp = cnWorkers[0].SPoS.Chr.RoundTimeStamp()
+	hdr.TimeStamp = wrk.SPoS.Chr.RoundTimeStamp()
 
-	r = cnWorkers[0].CheckIfBlockIsValid(hdr)
+	r = wrk.CheckIfBlockIsValid(hdr)
 	assert.False(t, r)
 
 	hdr.Nonce = 2
 	hdr.PrevHash = []byte("X")
 
-	r = cnWorkers[0].CheckIfBlockIsValid(hdr)
+	r = wrk.CheckIfBlockIsValid(hdr)
 	assert.False(t, r)
 
 	hdr.Nonce = 3
 	hdr.PrevHash = []byte("")
 
-	r = cnWorkers[0].CheckIfBlockIsValid(hdr)
+	r = wrk.CheckIfBlockIsValid(hdr)
 	assert.False(t, r)
 
 	hdr.Nonce = 2
 
-	prevHeader, _ := mock.MarshalizerMock{}.Marshal(cnWorkers[0].BlockChain.CurrentBlockHeader)
+	prevHeader, _ := mock.MarshalizerMock{}.Marshal(wrk.BlockChain.CurrentBlockHeader)
 	hdr.PrevHash = mock.HasherMock{}.Compute(string(prevHeader))
 
-	r = cnWorkers[0].CheckIfBlockIsValid(hdr)
+	r = wrk.CheckIfBlockIsValid(hdr)
 	assert.True(t, r)
 }

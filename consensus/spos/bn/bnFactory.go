@@ -24,9 +24,6 @@ const (
 	SrAdvance
 )
 
-//TODO: current shards (this should be injected, and this const should be removed later)
-const shardId = 0
-
 //TODO: maximum transactions in one block (this should be injected, and this const should be removed later)
 const maxTransactionsInBlock = 15000
 

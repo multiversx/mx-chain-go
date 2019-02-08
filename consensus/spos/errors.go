@@ -75,3 +75,9 @@ var ErrCommitmentHashDoesNotMatch = errors.New("commitment hash does not match")
 
 // ErrNilWorker is raised when a valid worker is expected but nil used
 var ErrNilWorker = errors.New("worker is nil")
+
+// ErrNilShardCoordinator is raised when a valid shard coordinator is expected but nil used
+var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
+
+// ErrNilValidatorGroupSelector is raised when a valid validator group selector is expected but nil used
+var ErrNilValidatorGroupSelector = errors.New("validator group selector is nil")

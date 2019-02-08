@@ -10,8 +10,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -197,7 +199,7 @@ func (n *Node) StartConsensus() error {
 	rth := n.createRoundThreshold()
 	rnds := n.createRoundStatus()
 	sps := n.createSpos(rndc, rth, rnds, chr)
-	wrk, err := n.createSposWorker(sps, boot)
+	wrk, err := n.createWorker(sps, boot)
 
 	if err != nil {
 		return err
@@ -460,8 +462,10 @@ func (n *Node) createSpos(rndc *spos.RoundConsensus, rth *spos.RoundThreshold, r
 	return cns
 }
 
-// createSposWorker method creates a ConsensusWorker object
-func (n *Node) createSposWorker(spos *spos.Spos, boot *sync.Bootstrap) (*bn.Worker, error) {
+// createWorker method creates a ConsensusWorker object
+func (n *Node) createWorker(spos *spos.Spos, boot *sync.Bootstrap) (*bn.Worker, error) {
+	vgs := n.createValidatorGroupSelector()
+
 	wrk, err := bn.NewWorker(
 		spos,
 		n.blkc,
@@ -473,6 +477,8 @@ func (n *Node) createSposWorker(spos *spos.Spos, boot *sync.Bootstrap) (*bn.Work
 		n.singleSignKeyGen,
 		n.privateKey,
 		n.publicKey,
+		n.shardCoordinator,
+		vgs,
 	)
 
 	if err != nil {
@@ -484,6 +490,18 @@ func (n *Node) createSposWorker(spos *spos.Spos, boot *sync.Bootstrap) (*bn.Work
 	wrk.BroadcastHeader = n.broadcastHeader
 
 	return wrk, nil
+}
+
+// createValidatorGroupSelector creates a index hashed group selector object
+func (n *Node) createValidatorGroupSelector() consensus.ValidatorGroupSelector {
+	ihgs, err := groupSelectors.NewIndexHashedGroupSelector(n.consensusGroupSize, n.hasher)
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	return ihgs
 }
 
 // createConsensusTopic creates a consensus topic for node

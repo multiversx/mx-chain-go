@@ -35,7 +35,7 @@ func (wrk *Worker) doEndRoundJob() bool {
 	wrk.Header.Signature = sig
 
 	// Commit the block (commits also the account state)
-	err = wrk.BlockProcessor.CommitBlock(wrk.BlockChain, wrk.Header, wrk.BlockBody)
+	err = wrk.blockProcessor.CommitBlock(wrk.BlockChain, wrk.Header, wrk.BlockBody)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -44,7 +44,7 @@ func (wrk *Worker) doEndRoundJob() bool {
 
 	wrk.SPoS.SetStatus(SrEndRound, spos.SsFinished)
 
-	err = wrk.BlockProcessor.RemoveBlockTxsFromPool(wrk.BlockBody)
+	err = wrk.blockProcessor.RemoveBlockTxsFromPool(wrk.BlockBody)
 
 	if err != nil {
 		log.Error(err.Error())

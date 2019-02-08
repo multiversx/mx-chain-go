@@ -1,10 +1,8 @@
 package bn
 
 import (
-	"bytes"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
 
@@ -12,7 +10,11 @@ import (
 // block from the leader in the CommitmentHash subround (it is used as the handler function of the doSubroundJob
 // pointer variable function in Subround struct, from spos package)
 func (wrk *Worker) doCommitmentHashJob() bool {
-	if !wrk.canDoCommitmentHashJob() {
+	if wrk.isBlockSubroundUnfinished() {
+		return false
+	}
+
+	if !wrk.canDoSubroundJob(SrCommitmentHash) {
 		return false
 	}
 
@@ -48,50 +50,37 @@ func (wrk *Worker) doCommitmentHashJob() bool {
 	return true
 }
 
-func (wrk *Worker) canDoCommitmentHashJob() bool {
-	isLastRoundUnfinished := wrk.SPoS.Status(SrBlock) != spos.SsFinished
+func (wrk *Worker) isBlockSubroundUnfinished() bool {
+	isBlockSubroundUnfinished := wrk.SPoS.Status(SrBlock) != spos.SsFinished
 
-	if isLastRoundUnfinished {
+	if isBlockSubroundUnfinished {
 		if !wrk.doBlockJob() {
-			return false
+			return true
 		}
 
 		if !wrk.checkBlockConsensus() {
-			return false
+			return true
 		}
 	}
 
-	isCurrentRoundFinished := wrk.SPoS.Status(SrCommitmentHash) == spos.SsFinished
-
-	if isCurrentRoundFinished {
-		return false
-	}
-
-	isJobDone, err := wrk.SPoS.GetSelfJobDone(SrCommitmentHash)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	if isJobDone { // has been commitment hash already sent?
-		return false
-	}
-
-	isConsensusDataNotSet := wrk.SPoS.Data == nil
-
-	if isConsensusDataNotSet {
-		return false
-	}
-
-	return true
+	return false
 }
 
 // receivedCommitmentHash method is called when a commitment hash is received through the commitment hash
 // channel. If the commitment hash is valid, than the jobDone map coresponding to the node which sent it,
 // is set on true for the subround ComitmentHash
 func (wrk *Worker) receivedCommitmentHash(cnsDta *spos.ConsensusData) bool {
-	if !wrk.canReceiveCommitmentHash(cnsDta) {
+	node := string(cnsDta.PubKey)
+
+	if wrk.isConsensusDataNotSet() {
+		return false
+	}
+
+	if !wrk.SPoS.IsNodeInConsensusGroup(node) { // is NOT this node in the consensus group?
+		return false
+	}
+
+	if !wrk.canReceiveMessage(node, cnsDta.RoundIndex, SrCommitmentHash) {
 		return false
 	}
 
@@ -103,8 +92,6 @@ func (wrk *Worker) receivedCommitmentHash(cnsDta *spos.ConsensusData) bool {
 			return false
 		}
 	}
-
-	node := string(cnsDta.PubKey)
 
 	index, err := wrk.SPoS.ConsensusGroupIndex(node)
 
@@ -124,57 +111,6 @@ func (wrk *Worker) receivedCommitmentHash(cnsDta *spos.ConsensusData) bool {
 
 	if err != nil {
 		log.Error(err.Error())
-		return false
-	}
-
-	return true
-}
-
-func (wrk *Worker) canReceiveCommitmentHash(cnsDta *spos.ConsensusData) bool {
-	node := string(cnsDta.PubKey)
-
-	isMessageReceivedFromItself := node == wrk.SPoS.SelfPubKey()
-
-	if isMessageReceivedFromItself {
-		return false
-	}
-
-	isCurrentRoundFinished := wrk.SPoS.Status(SrCommitmentHash) == spos.SsFinished
-
-	if isCurrentRoundFinished {
-		return false
-	}
-
-	if !wrk.SPoS.IsNodeInConsensusGroup(node) { // isn't node in the consensus group?
-		return false
-	}
-
-	isConsensusDataNotSet := wrk.SPoS.Data == nil
-
-	if isConsensusDataNotSet {
-		return false
-	}
-
-	isMessageReceivedForAnotherRound := !bytes.Equal(cnsDta.BlockHeaderHash, wrk.SPoS.Data)
-
-	if isMessageReceivedForAnotherRound {
-		return false
-	}
-
-	isMessageReceivedTooLate := wrk.SPoS.Chr.GetSubround() > chronology.SubroundId(SrEndRound)
-
-	if isMessageReceivedTooLate {
-		return false
-	}
-
-	isJobDone, err := wrk.SPoS.RoundConsensus.GetJobDone(node, SrCommitmentHash)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	if isJobDone {
 		return false
 	}
 

@@ -2,418 +2,268 @@ package bn_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestWorker_SendSignature(t *testing.T) {
-	cnWorkers := initSposWorkers()
+	wrk := initWorker()
 
-	cnWorkers[0].SPoS.SetSelfPubKey(cnWorkers[0].SPoS.ConsensusGroup()[0])
+	wrk.SPoS.SetSelfPubKey(wrk.SPoS.ConsensusGroup()[0])
 
-	r := cnWorkers[0].DoSignatureJob()
+	r := wrk.DoSignatureJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.SetStatus(bn.SrCommitment, spos.SsFinished)
-	cnWorkers[0].SPoS.SetStatus(bn.SrSignature, spos.SsFinished)
+	wrk.SPoS.SetStatus(bn.SrCommitment, spos.SsFinished)
+	wrk.SPoS.SetStatus(bn.SrSignature, spos.SsFinished)
 
-	r = cnWorkers[0].DoSignatureJob()
+	r = wrk.DoSignatureJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.SetStatus(bn.SrSignature, spos.SsNotFinished)
-	cnWorkers[0].SPoS.SetJobDone(cnWorkers[0].SPoS.SelfPubKey(), bn.SrSignature, true)
+	wrk.SPoS.SetStatus(bn.SrSignature, spos.SsNotFinished)
+	wrk.SPoS.SetJobDone(wrk.SPoS.SelfPubKey(), bn.SrSignature, true)
 
-	r = cnWorkers[0].DoSignatureJob()
+	r = wrk.DoSignatureJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.SetJobDone(cnWorkers[0].SPoS.SelfPubKey(), bn.SrSignature, false)
+	wrk.SPoS.SetJobDone(wrk.SPoS.SelfPubKey(), bn.SrSignature, false)
 
-	r = cnWorkers[0].DoSignatureJob()
+	r = wrk.DoSignatureJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.SetJobDone(cnWorkers[0].SPoS.SelfPubKey(), bn.SrBitmap, true)
-	cnWorkers[0].SPoS.Data = nil
+	wrk.SPoS.SetJobDone(wrk.SPoS.SelfPubKey(), bn.SrBitmap, true)
+	wrk.SPoS.Data = nil
 
-	r = cnWorkers[0].DoSignatureJob()
+	r = wrk.DoSignatureJob()
 	assert.False(t, r)
 
 	dta := []byte("X")
-	cnWorkers[0].SPoS.Data = dta
+	wrk.SPoS.Data = dta
 
-	cnWorkers[0].SPoS.SetJobDone(cnWorkers[0].SPoS.SelfPubKey(), bn.SrCommitment, true)
-	r = cnWorkers[0].DoSignatureJob()
+	wrk.SPoS.SetJobDone(wrk.SPoS.SelfPubKey(), bn.SrCommitment, true)
+	r = wrk.DoSignatureJob()
 	assert.True(t, r)
 }
 
 func TestWorker_CheckCommitmentsValidityShouldErrNilCommitmet(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+	wrk := initWorker()
 
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	err := worker.CheckCommitmentsValidity([]byte(string(2)))
+	err := wrk.CheckCommitmentsValidity([]byte(string(2)))
 	assert.Equal(t, spos.ErrNilCommitment, err)
 }
 
 func TestWorker_CheckCommitmentsValidityShouldErrInvalidIndex(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+	wrk := initWorker()
 
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	wrk.MultiSigner().Reset(nil, 0)
 
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
+	wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[0], bn.SrCommitment, true)
 
-	multisigner.Reset(nil, 0)
-
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	worker.SPoS.SetJobDone(consensusGroup[0], bn.SrCommitment, true)
-
-	err := worker.CheckCommitmentsValidity([]byte(string(1)))
+	err := wrk.CheckCommitmentsValidity([]byte(string(1)))
 	assert.Equal(t, crypto.ErrInvalidIndex, err)
 }
 
 func TestWorker_CheckCommitmentsValidityShouldErrOnCommitmentHash(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+	wrk := initWorker()
 
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
+	multiSignerMock := initMultisigner()
 
 	err := errors.New("error commitment hash")
-	multisigner.CommitmentHashMock = func(uint16) ([]byte, error) {
+	multiSignerMock.CommitmentHashMock = func(uint16) ([]byte, error) {
 		return nil, err
 	}
 
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	wrk.SetMultiSigner(multiSignerMock)
 
-	worker.SPoS.SetJobDone(consensusGroup[0], bn.SrCommitment, true)
+	wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[0], bn.SrCommitment, true)
 
-	err2 := worker.CheckCommitmentsValidity([]byte(string(1)))
+	err2 := wrk.CheckCommitmentsValidity([]byte(string(1)))
 	assert.Equal(t, err, err2)
 }
 
 func TestWorker_CheckCommitmentsValidityShouldErrCommitmentHashDoesNotMatch(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+	wrk := initWorker()
 
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	multiSignerMock := initMultisigner()
 
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.CommitmentHashMock = func(uint16) ([]byte, error) {
+	multiSignerMock.CommitmentHashMock = func(uint16) ([]byte, error) {
 		return []byte("X"), nil
 	}
 
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	wrk.SetMultiSigner(multiSignerMock)
 
-	worker.SPoS.SetJobDone(consensusGroup[0], bn.SrCommitment, true)
+	wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[0], bn.SrCommitment, true)
 
-	err := worker.CheckCommitmentsValidity([]byte(string(1)))
+	err := wrk.CheckCommitmentsValidity([]byte(string(1)))
 	assert.Equal(t, spos.ErrCommitmentHashDoesNotMatch, err)
 }
 
 func TestWorker_CheckCommitmentsValidityShouldReturnNil(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+	wrk := initWorker()
 
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	multiSignerMock := initMultisigner()
 
-	sPoS := initSpos(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.CommitmentMock = func(uint16) ([]byte, error) {
+	multiSignerMock.CommitmentMock = func(uint16) ([]byte, error) {
 		return []byte("X"), nil
 	}
 
-	multisigner.CommitmentHashMock = func(uint16) ([]byte, error) {
+	multiSignerMock.CommitmentHashMock = func(uint16) ([]byte, error) {
 		return mock.HasherMock{}.Compute(string([]byte("X"))), nil
 	}
 
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	wrk.SetMultiSigner(multiSignerMock)
 
-	worker.SPoS.SetJobDone(consensusGroup[0], bn.SrCommitment, true)
+	wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[0], bn.SrCommitment, true)
 
-	err := worker.CheckCommitmentsValidity([]byte(string(1)))
+	err := wrk.CheckCommitmentsValidity([]byte(string(1)))
 	assert.Equal(t, nil, err)
 }
 
 func TestWorker_ReceivedSignature(t *testing.T) {
-	cnWorkers := initSposWorkers()
-
-	cnWorkers[0].SPoS.Chr.Round().UpdateRound(time.Now(), time.Now().Add(cnWorkers[0].SPoS.Chr.Round().TimeDuration()))
+	wrk := initWorker()
 
 	cnsDta := spos.NewConsensusData(
-		cnWorkers[0].SPoS.Data,
+		wrk.SPoS.Data,
 		nil,
-		[]byte(cnWorkers[0].SPoS.ConsensusGroup()[0]),
+		[]byte(wrk.SPoS.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtSignature),
-		cnWorkers[0].SPoS.Chr.RoundTimeStamp(),
+		wrk.SPoS.Chr.RoundTimeStamp(),
 		0,
 	)
 
-	cnWorkers[0].SPoS.SetStatus(bn.SrSignature, spos.SsFinished)
+	wrk.SPoS.SetStatus(bn.SrSignature, spos.SsFinished)
 
-	r := cnWorkers[0].ReceivedSignature(cnsDta)
+	r := wrk.ReceivedSignature(cnsDta)
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.SetStatus(bn.SrSignature, spos.SsNotFinished)
+	wrk.SPoS.SetStatus(bn.SrSignature, spos.SsNotFinished)
 
-	r = cnWorkers[0].ReceivedSignature(cnsDta)
+	r = wrk.ReceivedSignature(cnsDta)
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.RoundConsensus.SetJobDone(cnWorkers[0].SPoS.ConsensusGroup()[0], bn.SrBitmap, true)
+	wrk.SPoS.RoundConsensus.SetJobDone(wrk.SPoS.ConsensusGroup()[0], bn.SrBitmap, true)
 
-	r = cnWorkers[0].ReceivedSignature(cnsDta)
+	r = wrk.ReceivedSignature(cnsDta)
 	assert.True(t, r)
 
-	isSignJobDone, _ := cnWorkers[0].SPoS.GetJobDone(cnWorkers[0].SPoS.ConsensusGroup()[0], bn.SrSignature)
+	isSignJobDone, _ := wrk.SPoS.GetJobDone(wrk.SPoS.ConsensusGroup()[0], bn.SrSignature)
 	assert.True(t, isSignJobDone)
 }
 
 func TestWorker_CheckSignatureConsensus(t *testing.T) {
-	sPoS := InitSposWorker()
+	wrk := initWorker()
 
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blockchain.BlockChain{},
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		&mock.BlockProcessorMock{},
-		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
-			return false
-		}},
-		&mock.BelNevMock{},
-		&mock.KeyGenMock{},
-		&mock.PrivateKeyMock{},
-		&mock.PublicKeyMock{})
+	wrk.SPoS.SetStatus(bn.SrSignature, spos.SsNotFinished)
 
-	GenerateSubRoundHandlers(100*time.Millisecond, sPoS, worker)
-
-	sPoS.SetStatus(bn.SrSignature, spos.SsNotFinished)
-
-	ok := worker.CheckSignatureConsensus()
+	ok := wrk.CheckSignatureConsensus()
 	assert.False(t, ok)
-	assert.Equal(t, spos.SsNotFinished, sPoS.Status(bn.SrSignature))
+	assert.Equal(t, spos.SsNotFinished, wrk.SPoS.Status(bn.SrSignature))
 
-	for i := 0; i < sPoS.Threshold(bn.SrBitmap); i++ {
-		sPoS.SetJobDone(sPoS.RoundConsensus.ConsensusGroup()[i], bn.SrBitmap, true)
+	for i := 0; i < wrk.SPoS.Threshold(bn.SrBitmap); i++ {
+		wrk.SPoS.SetJobDone(wrk.SPoS.RoundConsensus.ConsensusGroup()[i], bn.SrBitmap, true)
 	}
 
-	for i := 1; i < sPoS.Threshold(bn.SrSignature); i++ {
-		sPoS.SetJobDone(sPoS.RoundConsensus.ConsensusGroup()[i], bn.SrSignature, true)
+	for i := 1; i < wrk.SPoS.Threshold(bn.SrSignature); i++ {
+		wrk.SPoS.SetJobDone(wrk.SPoS.RoundConsensus.ConsensusGroup()[i], bn.SrSignature, true)
 	}
 
-	ok = worker.CheckSignatureConsensus()
+	ok = wrk.CheckSignatureConsensus()
 	assert.False(t, ok)
-	assert.Equal(t, spos.SsNotFinished, sPoS.Status(bn.SrSignature))
+	assert.Equal(t, spos.SsNotFinished, wrk.SPoS.Status(bn.SrSignature))
 
-	sPoS.SetJobDone(sPoS.RoundConsensus.ConsensusGroup()[0], bn.SrSignature, true)
+	wrk.SPoS.SetJobDone(wrk.SPoS.RoundConsensus.ConsensusGroup()[0], bn.SrSignature, true)
 
-	ok = worker.CheckSignatureConsensus()
+	ok = wrk.CheckSignatureConsensus()
 	assert.True(t, ok)
-	assert.Equal(t, spos.SsFinished, sPoS.Status(bn.SrSignature))
+	assert.Equal(t, spos.SsFinished, wrk.SPoS.Status(bn.SrSignature))
 }
 
 func TestWorker_SignaturesCollected(t *testing.T) {
-	sPoS := InitSposWorker()
+	wrk := initWorker()
 
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blockchain.BlockChain{},
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		&mock.BlockProcessorMock{},
-		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
-			return false
-		}},
-		&mock.BelNevMock{},
-		&mock.KeyGenMock{},
-		&mock.PrivateKeyMock{},
-		&mock.PublicKeyMock{})
-
-	GenerateSubRoundHandlers(100*time.Millisecond, sPoS, worker)
-
-	for i := 0; i < len(worker.SPoS.ConsensusGroup()); i++ {
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrBlock, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrCommitmentHash, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrBitmap, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrCommitment, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrSignature, false)
+	for i := 0; i < len(wrk.SPoS.ConsensusGroup()); i++ {
+		wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrBlock, false)
+		wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrCommitmentHash, false)
+		wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrBitmap, false)
+		wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrCommitment, false)
+		wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrSignature, false)
 	}
 
-	ok := worker.SignaturesCollected(2)
+	ok := wrk.SignaturesCollected(2)
 	assert.False(t, ok)
 
-	worker.SPoS.SetJobDone("1", bn.SrBitmap, true)
-	worker.SPoS.SetJobDone("3", bn.SrBitmap, true)
-	isJobDone, _ := worker.SPoS.GetJobDone("3", bn.SrBitmap)
+	wrk.SPoS.SetJobDone("A", bn.SrBitmap, true)
+	wrk.SPoS.SetJobDone("C", bn.SrBitmap, true)
+	isJobDone, _ := wrk.SPoS.GetJobDone("C", bn.SrBitmap)
 	assert.True(t, isJobDone)
 
-	ok = worker.SignaturesCollected(2)
+	ok = wrk.SignaturesCollected(2)
 	assert.False(t, ok)
 
-	worker.SPoS.SetJobDone("2", bn.SrSignature, true)
-	isJobDone, _ = worker.SPoS.GetJobDone("2", bn.SrSignature)
+	wrk.SPoS.SetJobDone("B", bn.SrSignature, true)
+	isJobDone, _ = wrk.SPoS.GetJobDone("B", bn.SrSignature)
 	assert.True(t, isJobDone)
 
-	ok = worker.SignaturesCollected(2)
+	ok = wrk.SignaturesCollected(2)
 	assert.False(t, ok)
 
-	worker.SPoS.SetJobDone("3", bn.SrSignature, true)
-	ok = worker.SignaturesCollected(2)
+	wrk.SPoS.SetJobDone("C", bn.SrSignature, true)
+	ok = wrk.SignaturesCollected(2)
 	assert.False(t, ok)
 
-	worker.SPoS.SetJobDone("1", bn.SrSignature, true)
-	ok = worker.SignaturesCollected(2)
+	wrk.SPoS.SetJobDone("A", bn.SrSignature, true)
+	ok = wrk.SignaturesCollected(2)
 	assert.True(t, ok)
 }
 
 func TestWorker_ExtendSignature(t *testing.T) {
-	cnWorkers := initSposWorkers()
+	wrk := initWorker()
 
-	cnWorkers[0].ExtendSignature()
-	assert.Equal(t, spos.SsExtended, cnWorkers[0].SPoS.Status(bn.SrSignature))
+	wrk.ExtendSignature()
+	assert.Equal(t, spos.SsExtended, wrk.SPoS.Status(bn.SrSignature))
+}
+
+func TestWorker_IsCommitmentSubroundUnfinishedShouldRetunFalseWhenSubroundIsFinished(t *testing.T) {
+	wrk := initWorker()
+	wrk.SPoS.SetStatus(bn.SrCommitment, spos.SsFinished)
+
+	assert.False(t, wrk.IsCommitmentSubroundUnfinished())
+}
+
+func TestWorker_IsCommitmentSubroundUnfinishedShouldRetunFalseWhenJobIsDone(t *testing.T) {
+	wrk := initWorker()
+
+	wrk.SPoS.SetStatus(bn.SrBitmap, spos.SsFinished)
+	wrk.SPoS.SetJobDone(wrk.SPoS.SelfPubKey(), bn.SrBitmap, true)
+
+	for i := 0; i < len(wrk.SPoS.ConsensusGroup()); i++ {
+		wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrBitmap, true)
+
+		if wrk.SPoS.ConsensusGroup()[i] != wrk.SPoS.SelfPubKey() {
+			wrk.SPoS.SetJobDone(wrk.SPoS.ConsensusGroup()[i], bn.SrCommitment, true)
+		}
+	}
+
+	assert.False(t, wrk.IsCommitmentSubroundUnfinished())
+}
+
+func TestWorker_IsCommitmentSubroundUnfinishedShouldReturnTrueWhenDoCommitmentReturnsFalse(t *testing.T) {
+	wrk := initWorker()
+
+	assert.True(t, wrk.IsCommitmentSubroundUnfinished())
+}
+
+func TestWorker_IsCommitmentSubroundUnfinishedShouldReturnTrueWhenCheckCommitmentConsensusReturnsFalse(t *testing.T) {
+	wrk := initWorker()
+
+	wrk.SPoS.SetStatus(bn.SrBitmap, spos.SsFinished)
+	wrk.SPoS.SetJobDone(wrk.SPoS.SelfPubKey(), bn.SrBitmap, true)
+
+	assert.True(t, wrk.IsCommitmentSubroundUnfinished())
 }

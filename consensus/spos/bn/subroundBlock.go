@@ -19,7 +19,15 @@ func (wrk *Worker) doBlockJob() bool {
 		return false
 	}
 
-	if !wrk.canDoBlockJob() {
+	if !wrk.SPoS.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
+		return false
+	}
+
+	if wrk.isSelfJobDone(SrBlock) {
+		return false
+	}
+
+	if wrk.isCurrentRoundFinished(SrBlock) {
 		return false
 	}
 
@@ -40,31 +48,6 @@ func (wrk *Worker) doBlockJob() bool {
 	return true
 }
 
-func (wrk *Worker) canDoBlockJob() bool {
-	isCurrentRoundFinished := wrk.SPoS.Status(SrBlock) == spos.SsFinished
-
-	if isCurrentRoundFinished {
-		return false
-	}
-
-	if !wrk.SPoS.IsSelfLeaderInCurrentRound() { // is another node leader in this round?
-		return false
-	}
-
-	isJobDone, err := wrk.SPoS.GetSelfJobDone(SrBlock)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	if isJobDone { // has been block already sent?
-		return false
-	}
-
-	return true
-}
-
 // sendBlockBody method send the proposed block body in the Block subround
 func (wrk *Worker) sendBlockBody() bool {
 	haveTime := func() bool {
@@ -75,8 +58,8 @@ func (wrk *Worker) sendBlockBody() bool {
 		return true
 	}
 
-	blk, err := wrk.BlockProcessor.CreateTxBlockBody(
-		shardId,
+	blk, err := wrk.blockProcessor.CreateTxBlockBody(
+		wrk.shardCoordinator.ShardForCurrentNode(),
 		maxTransactionsInBlock,
 		wrk.SPoS.Chr.Round().Index(),
 		haveTime,
@@ -166,7 +149,17 @@ func (wrk *Worker) sendBlockHeader() bool {
 
 // receivedBlockBody method is called when a block body is received through the block body channel.
 func (wrk *Worker) receivedBlockBody(cnsDta *spos.ConsensusData) bool {
-	if !wrk.canReceiveBlockBody(cnsDta) {
+	node := string(cnsDta.PubKey)
+
+	if wrk.isBlockBodyAlreadyReceived() {
+		return false
+	}
+
+	if !wrk.SPoS.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		return false
+	}
+
+	if !wrk.canReceiveMessage(node, cnsDta.RoundIndex, SrBlock) {
 		return false
 	}
 
@@ -181,57 +174,6 @@ func (wrk *Worker) receivedBlockBody(cnsDta *spos.ConsensusData) bool {
 	blockProcessedWithSuccess := wrk.processReceivedBlock(cnsDta)
 
 	return blockProcessedWithSuccess
-}
-
-func (wrk *Worker) canReceiveBlockBody(cnsDta *spos.ConsensusData) bool {
-	node := string(cnsDta.PubKey)
-
-	isMessageReceivedFromItself := node == wrk.SPoS.SelfPubKey()
-
-	if isMessageReceivedFromItself {
-		return false
-	}
-
-	isCurrentRoundFinished := wrk.SPoS.Status(SrBlock) == spos.SsFinished
-
-	if isCurrentRoundFinished {
-		return false
-	}
-
-	if !wrk.SPoS.IsNodeLeaderInCurrentRound(node) { // is another node leader in this round?
-		return false
-	}
-
-	isBlockBodyAlreadyReceived := wrk.BlockBody != nil
-
-	if isBlockBodyAlreadyReceived {
-		return false
-	}
-
-	isMessageReceivedForAnotherRound := cnsDta.RoundIndex != wrk.SPoS.Chr.Round().Index()
-
-	if isMessageReceivedForAnotherRound {
-		return false
-	}
-
-	isMessageReceivedTooLate := wrk.SPoS.Chr.GetSubround() > chronology.SubroundId(SrEndRound)
-
-	if isMessageReceivedTooLate {
-		return false
-	}
-
-	isJobDone, err := wrk.SPoS.RoundConsensus.GetJobDone(node, SrBlock)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	if isJobDone {
-		return false
-	}
-
-	return true
 }
 
 // decodeBlockBody method decodes block body which is marshalized in the received message
@@ -256,7 +198,21 @@ func (wrk *Worker) decodeBlockBody(dta []byte) *block.TxBlockBody {
 // If the block header is valid, than the validatorRoundStates map coresponding to the node which sent it,
 // is set on true for the subround Block
 func (wrk *Worker) receivedBlockHeader(cnsDta *spos.ConsensusData) bool {
-	if !wrk.canReceiveBlockHeader(cnsDta) {
+	node := string(cnsDta.PubKey)
+
+	if wrk.isConsensusDataAlreadySet() {
+		return false
+	}
+
+	if wrk.isHeaderAlreadyReceived() {
+		return false
+	}
+
+	if !wrk.SPoS.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+		return false
+	}
+
+	if !wrk.canReceiveMessage(node, cnsDta.RoundIndex, SrBlock) {
 		return false
 	}
 
@@ -282,124 +238,6 @@ func (wrk *Worker) receivedBlockHeader(cnsDta *spos.ConsensusData) bool {
 	return blockProcessedWithSuccess
 }
 
-func (wrk *Worker) canReceiveBlockHeader(cnsDta *spos.ConsensusData) bool {
-	node := string(cnsDta.PubKey)
-
-	isMessageReceivedFromItself := node == wrk.SPoS.SelfPubKey()
-
-	if isMessageReceivedFromItself {
-		return false
-	}
-
-	isCurrentRoundFinished := wrk.SPoS.Status(SrBlock) == spos.SsFinished
-
-	if isCurrentRoundFinished {
-		return false
-	}
-
-	if !wrk.SPoS.IsNodeLeaderInCurrentRound(node) { // is another node leader in this round?
-		return false
-	}
-
-	isHeaderAlreadyReceived := wrk.Header != nil
-
-	if isHeaderAlreadyReceived {
-		return false
-	}
-
-	isConsensusDataAlreadySet := wrk.SPoS.Data != nil
-
-	if isConsensusDataAlreadySet {
-		return false
-	}
-
-	isMessageReceivedForAnotherRound := cnsDta.RoundIndex != wrk.SPoS.Chr.Round().Index()
-
-	if isMessageReceivedForAnotherRound {
-		return false
-	}
-
-	isMessageReceivedTooLate := wrk.SPoS.Chr.GetSubround() > chronology.SubroundId(SrEndRound)
-
-	if isMessageReceivedTooLate {
-		return false
-	}
-
-	isJobDone, err := wrk.SPoS.RoundConsensus.GetJobDone(node, SrBlock)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	if isJobDone {
-		return false
-	}
-
-	return true
-}
-
-func (wrk *Worker) processReceivedBlock(cnsDta *spos.ConsensusData) bool {
-	if wrk.BlockBody == nil ||
-		wrk.Header == nil {
-		return false
-	}
-
-	node := string(cnsDta.PubKey)
-
-	haveTime := func() time.Duration {
-		chr := wrk.SPoS.Chr
-
-		roundStartTime := chr.Round().TimeStamp()
-		currentTime := chr.SyncTime().CurrentTime(chr.ClockOffset())
-		elapsedTime := currentTime.Sub(roundStartTime)
-		haveTime := float64(chr.Round().TimeDuration())*maxBlockProcessingTimePercent - float64(elapsedTime)
-
-		return time.Duration(haveTime)
-	}
-
-	err := wrk.BlockProcessor.ProcessBlock(wrk.BlockChain, wrk.Header, wrk.BlockBody, haveTime)
-
-	if err != nil {
-		log.Info(fmt.Sprintf("Canceled round %d in subround %s, %s\n",
-			wrk.SPoS.Chr.Round().Index(), getSubroundName(SrBlock), err.Error()))
-
-		return false
-	}
-
-	subround := wrk.SPoS.Chr.GetSubround()
-
-	if cnsDta.RoundIndex != wrk.SPoS.Chr.Round().Index() {
-		log.Info(fmt.Sprintf("Canceled round %d in subround %s, CURRENT ROUND IS %d\n",
-			cnsDta.RoundIndex, getSubroundName(SrBlock), wrk.SPoS.Chr.Round().Index()))
-
-		wrk.BlockProcessor.RevertAccountState()
-
-		return false
-	}
-
-	if subround > chronology.SubroundId(SrEndRound) {
-		log.Info(fmt.Sprintf("Canceled round %d in subround %s, CURRENT SUBROUND IS %s\n",
-			cnsDta.RoundIndex, getSubroundName(SrBlock), getSubroundName(subround)))
-
-		wrk.BlockProcessor.RevertAccountState()
-
-		return false
-	}
-
-	wrk.multiSigner.SetMessage(wrk.SPoS.Data)
-	err = wrk.SPoS.RoundConsensus.SetJobDone(node, SrBlock, true)
-
-	if err != nil {
-		log.Info(fmt.Sprintf("Canceled round %d in subround %s, %s\n",
-			wrk.SPoS.Chr.Round().Index(), getSubroundName(SrBlock), err.Error()))
-
-		return false
-	}
-
-	return true
-}
-
 // decodeBlockHeader method decodes block header which is marshalized in the received message
 func (wrk *Worker) decodeBlockHeader(dta []byte) *block.Header {
 	if dta == nil {
@@ -416,6 +254,67 @@ func (wrk *Worker) decodeBlockHeader(dta []byte) *block.Header {
 	}
 
 	return &hdr
+}
+
+func (wrk *Worker) processReceivedBlock(cnsDta *spos.ConsensusData) bool {
+	if wrk.BlockBody == nil ||
+		wrk.Header == nil {
+		return false
+	}
+
+	node := string(cnsDta.PubKey)
+
+	haveTime := func() time.Duration {
+		chr := wrk.SPoS.Chr
+
+		roundStartTime := chr.Round().TimeStamp()
+		currentTime := chr.SyncTimer().CurrentTime(chr.ClockOffset())
+		elapsedTime := currentTime.Sub(roundStartTime)
+		haveTime := float64(chr.Round().TimeDuration())*maxBlockProcessingTimePercent - float64(elapsedTime)
+
+		return time.Duration(haveTime)
+	}
+
+	err := wrk.blockProcessor.ProcessBlock(wrk.BlockChain, wrk.Header, wrk.BlockBody, haveTime)
+
+	if err != nil {
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, %s\n",
+			wrk.SPoS.Chr.Round().Index(), getSubroundName(SrBlock), err.Error()))
+
+		return false
+	}
+
+	subround := wrk.SPoS.Chr.GetSubround()
+
+	if cnsDta.RoundIndex != wrk.SPoS.Chr.Round().Index() {
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, CURRENT ROUND IS %d\n",
+			cnsDta.RoundIndex, getSubroundName(SrBlock), wrk.SPoS.Chr.Round().Index()))
+
+		wrk.blockProcessor.RevertAccountState()
+
+		return false
+	}
+
+	if subround > chronology.SubroundId(SrEndRound) {
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, CURRENT SUBROUND IS %s\n",
+			cnsDta.RoundIndex, getSubroundName(SrBlock), getSubroundName(subround)))
+
+		wrk.blockProcessor.RevertAccountState()
+
+		return false
+	}
+
+	wrk.multiSigner.SetMessage(wrk.SPoS.Data)
+	err = wrk.SPoS.RoundConsensus.SetJobDone(node, SrBlock, true)
+
+	if err != nil {
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, %s\n",
+			wrk.SPoS.Chr.Round().Index(), getSubroundName(SrBlock), err.Error()))
+
+		return false
+	}
+
+	return true
 }
 
 // checkBlockConsensus method checks if the consensus in the <BLOCK> subround is achieved

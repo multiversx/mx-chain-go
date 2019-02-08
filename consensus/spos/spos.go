@@ -6,8 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
@@ -76,12 +74,10 @@ func (sps *Spos) GetLeader() (string, error) {
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
 // source for the new selection
-func (sps *Spos) GetNextConsensusGroup(randomSource string, hasher hashing.Hasher) ([]string, error) {
+func (sps *Spos) GetNextConsensusGroup(randomSource string, vgs consensus.ValidatorGroupSelector) ([]string, error) {
 	validatorsList := make([]consensus.Validator, 0)
 
-	// TODO: Uncomment the next line and remove the next after it (eligibile list should be the entire list)
 	for i := 0; i < len(sps.EligibleList()); i++ {
-		//for i := 0; i < sps.ConsensusGroupSize(); i++ {
 		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(sps.EligibleList()[i]))
 
 		if err != nil {
@@ -91,19 +87,13 @@ func (sps *Spos) GetNextConsensusGroup(randomSource string, hasher hashing.Hashe
 		validatorsList = append(validatorsList, validator)
 	}
 
-	ihgs, err := groupSelectors.NewIndexHashedGroupSelector(sps.ConsensusGroupSize(), hasher)
+	err := vgs.LoadEligibleList(validatorsList)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = ihgs.LoadEligibleList(validatorsList)
-
-	if err != nil {
-		return nil, err
-	}
-
-	validatorsGroup, err := ihgs.ComputeValidatorsGroup([]byte(randomSource))
+	validatorsGroup, err := vgs.ComputeValidatorsGroup([]byte(randomSource))
 
 	if err != nil {
 		return nil, err

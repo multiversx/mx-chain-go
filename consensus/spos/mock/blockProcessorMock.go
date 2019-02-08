@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 )
 
-// BlockProcessorMock mocks the implementation for a BlockProcessor
+// BlockProcessorMock mocks the implementation for a blockProcessor
 type BlockProcessorMock struct {
 	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error
 	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error

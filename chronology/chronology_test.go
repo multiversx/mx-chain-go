@@ -331,8 +331,8 @@ func TestGettersAndSetters(t *testing.T) {
 
 	assert.Equal(t, chronology.SubroundId(-1), chr.TimeSubround())
 	assert.Equal(t, time.Duration(0), chr.ClockOffset())
-	assert.NotNil(t, chr.SyncTime())
-	assert.Equal(t, time.Duration(0), chr.SyncTime().ClockOffset())
+	assert.NotNil(t, chr.SyncTimer())
+	assert.Equal(t, time.Duration(0), chr.SyncTimer().ClockOffset())
 
 	chr.SetClockOffset(time.Duration(5))
 	assert.Equal(t, time.Duration(5), chr.ClockOffset())
@@ -341,7 +341,7 @@ func TestGettersAndSetters(t *testing.T) {
 	spew.Dump(chr.SubroundHandlers())
 }
 
-func TestRoundTimeStamp_ShouldReturnCorrectTimeStamp(t *testing.T) {
+func TestRoundTimeStampFromIndex_ShouldReturnCorrectTimeStamp(t *testing.T) {
 	genesisTime := time.Now()
 	currentTime := genesisTime
 
@@ -530,4 +530,40 @@ func TestRemoveAllSubrounds_ShouldReturnEmptySubroundHandlersArray(t *testing.T)
 	chr.RemoveAllSubrounds()
 
 	assert.Equal(t, 0, len(chr.SubroundHandlers()))
+}
+
+func TestGetSubround_ShouldReturnCorespondingTimeSubround(t *testing.T) {
+	currentTime := time.Now()
+
+	rnd := chronology.NewRound(currentTime, currentTime, roundTimeDuration)
+	chr := chronology.NewChronology(true, rnd, currentTime, ntp.NewSyncTime(roundTimeDuration, nil))
+
+	state := chr.GetSubround()
+	assert.Equal(t, chronology.SubroundId(-1), state)
+
+	chr.AddSubround(&SRStartRound{})
+
+	chr.SetClockOffset(time.Duration(-1 * time.Hour))
+	state = chr.GetSubround()
+	assert.Equal(t, chronology.SubroundId(-1), state)
+
+	chr.SetClockOffset(time.Duration(-1 * time.Hour))
+	state = chr.GetSubround()
+	assert.Equal(t, chronology.SubroundId(-1), state)
+
+	chr.SetClockOffset(time.Duration(0))
+	state = chr.GetSubround()
+	assert.Equal(t, chr.SubroundHandlers()[0].Current(), state)
+}
+
+func TestRoundTimeStamp_ShouldReturnCorrectTimeStamp(t *testing.T) {
+	genesisTime := time.Now()
+	currentTime := genesisTime
+
+	rnd := chronology.NewRound(genesisTime, currentTime, roundTimeDuration)
+	chr := chronology.NewChronology(true, rnd, genesisTime, ntp.NewSyncTime(roundTimeDuration, nil))
+
+	timeStamp := chr.RoundTimeStamp()
+
+	assert.Equal(t, genesisTime.Unix(), int64(timeStamp))
 }

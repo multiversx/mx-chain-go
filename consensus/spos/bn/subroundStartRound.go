@@ -82,7 +82,7 @@ func (wrk *Worker) generateNextConsensusGroup() error {
 
 	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
 
-	nextConsensusGroup, err := wrk.SPoS.GetNextConsensusGroup(randomSource, wrk.hasher)
+	nextConsensusGroup, err := wrk.SPoS.GetNextConsensusGroup(randomSource, wrk.validatorGroupSelector)
 
 	if err != nil {
 		return err

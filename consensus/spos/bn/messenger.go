@@ -283,7 +283,7 @@ func (wrk *Worker) sendConsensusMessage(cnsDta *spos.ConsensusData) bool {
 	signedCnsData.Signature = signature
 
 	if wrk.SendMessage == nil {
-		log.Error("SendMessage call back function is not set\n")
+		log.Error("sendMessage call back function is not set\n")
 		return false
 	}
 

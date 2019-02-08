@@ -3,7 +3,9 @@ package bn
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 func (wrk *Worker) CheckSignaturesValidity(bitmap []byte) error {
@@ -236,4 +238,88 @@ func (wrk *Worker) CheckStartRoundConsensus() bool {
 
 func (wrk *Worker) ExtendStartRound() {
 	wrk.extendStartRound()
+}
+
+func (wrk *Worker) SetKeyGen(keyGen crypto.KeyGenerator) {
+	wrk.keyGen = keyGen
+}
+
+func (wrk *Worker) SetBlockProcessor(blockProcessor process.BlockProcessor) {
+	wrk.blockProcessor = blockProcessor
+}
+
+func (wrk *Worker) SetBootstraper(boot process.Bootstraper) {
+	wrk.boot = boot
+}
+
+func (wrk *Worker) MultiSigner() crypto.MultiSigner {
+	return wrk.multiSigner
+}
+
+func (wrk *Worker) SetMultiSigner(multiSigner crypto.MultiSigner) {
+	wrk.multiSigner = multiSigner
+}
+
+func (wrk *Worker) IsConsensusDataNotSet() bool {
+	return wrk.isConsensusDataNotSet()
+}
+
+func (wrk *Worker) IsConsensusDataAlreadySet() bool {
+	return wrk.isConsensusDataAlreadySet()
+}
+
+func (wrk *Worker) IsSelfJobDone(currentRound chronology.SubroundId) bool {
+	return wrk.isSelfJobDone(currentRound)
+}
+
+func (wrk *Worker) IsJobDone(node string, currentRound chronology.SubroundId) bool {
+	return wrk.isJobDone(node, currentRound)
+}
+
+func (wrk *Worker) IsCurrentRoundFinished(currentRound chronology.SubroundId) bool {
+	return wrk.isCurrentRoundFinished(currentRound)
+}
+
+func (wrk *Worker) IsMessageReceivedFromItself(node string) bool {
+	return wrk.isMessageReceivedFromItself(node)
+}
+
+func (wrk *Worker) IsMessageReceivedTooLate() bool {
+	return wrk.isMessageReceivedTooLate()
+}
+
+func (wrk *Worker) IsMessageReceivedForOtherRound(roundIndex int32) bool {
+	return wrk.isMessageReceivedForOtherRound(roundIndex)
+}
+
+func (wrk *Worker) IsBlockBodyAlreadyReceived() bool {
+	return wrk.isBlockBodyAlreadyReceived()
+}
+
+func (wrk *Worker) IsHeaderAlreadyReceived() bool {
+	return wrk.isHeaderAlreadyReceived()
+}
+
+func (wrk *Worker) CanDoSubroundJob(currentRound chronology.SubroundId) bool {
+	return wrk.canDoSubroundJob(currentRound)
+}
+
+func (wrk *Worker) CanReceiveMessage(node string, roundIndex int32, currentSubround chronology.SubroundId) bool {
+	return wrk.canReceiveMessage(node, roundIndex, currentSubround)
+}
+
+func (wrk *Worker) IsBlockSubroundUnfinished() bool {
+	return wrk.isBlockSubroundUnfinished()
+}
+
+func (wrk *Worker) IsCommitmentHashSubroundUnfinished() bool {
+	return wrk.isCommitmentHashSubroundUnfinished()
+}
+
+func (wrk *Worker) IsBitmapSubroundUnfinished() bool {
+	return wrk.isBitmapSubroundUnfinished()
+}
+
+func (wrk *Worker) IsCommitmentSubroundUnfinished() bool {
+	return wrk.isCommitmentSubroundUnfinished()
 }
