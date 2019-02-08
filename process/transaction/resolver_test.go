@@ -10,6 +10,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createResolverStub() *mock.ResolverStub {
+	return &mock.ResolverStub{
+		SetResolverHandlerCalled: func(h func(rd process.RequestData) ([]byte, error)) {},
+	}
+}
+
 //------- NewTxResolver
 
 func TestNewTxResolver_NilResolverShouldErr(t *testing.T) {
@@ -95,12 +101,8 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 func TestTxResolver_ResolveTxRequestWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
-	}
-
 	txRes, _ := NewTxResolver(
-		res,
+		createResolverStub(),
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -115,12 +117,8 @@ func TestTxResolver_ResolveTxRequestWrongTypeShouldErr(t *testing.T) {
 func TestTxResolver_ResolveTxRequestNilValueShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
-	}
-
 	txRes, _ := NewTxResolver(
-		res,
+		createResolverStub(),
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -134,10 +132,6 @@ func TestTxResolver_ResolveTxRequestNilValueShouldRetNil(t *testing.T) {
 
 func TestTxResolver_ResolveTxRequestFoundInTxPoolShouldRetVal(t *testing.T) {
 	t.Parallel()
-
-	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
-	}
 
 	marshalizer := &mock.MarshalizerMock{}
 	buffToExpect, err := marshalizer.Marshal("value")
@@ -153,7 +147,7 @@ func TestTxResolver_ResolveTxRequestFoundInTxPoolShouldRetVal(t *testing.T) {
 	}
 
 	txRes, _ := NewTxResolver(
-		res,
+		createResolverStub(),
 		txPool,
 		&mock.StorerStub{},
 		marshalizer,
@@ -170,10 +164,6 @@ func TestTxResolver_ResolveTxRequestFoundInTxPoolShouldRetVal(t *testing.T) {
 func TestTxResolver_ResolveTxRequestFoundInTxPoolMarshalizerFailShouldRetNilAndErr(t *testing.T) {
 	t.Parallel()
 
-	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
-	}
-
 	marshalizer := &mock.MarshalizerStub{}
 	marshalizer.MarshalCalled = func(obj interface{}) (i []byte, e error) {
 		return nil, errors.New("MarshalizerMock generic error")
@@ -189,7 +179,7 @@ func TestTxResolver_ResolveTxRequestFoundInTxPoolMarshalizerFailShouldRetNilAndE
 	}
 
 	txRes, _ := NewTxResolver(
-		res,
+		createResolverStub(),
 		txPool,
 		&mock.StorerStub{},
 		marshalizer,
@@ -204,10 +194,6 @@ func TestTxResolver_ResolveTxRequestFoundInTxPoolMarshalizerFailShouldRetNilAndE
 
 func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetValAndError(t *testing.T) {
 	t.Parallel()
-
-	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
-	}
 
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -229,7 +215,7 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetValAndError(t *test
 	}
 
 	txRes, _ := NewTxResolver(
-		res,
+		createResolverStub(),
 		txPool,
 		txStorage,
 		marshalizer,
@@ -243,10 +229,6 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetValAndError(t *test
 
 func TestTxResolver_ResolveTxRequestFoundInTxStorageCheckRetError(t *testing.T) {
 	t.Parallel()
-
-	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
-	}
 
 	marshalizer := &mock.MarshalizerMock{}
 
@@ -268,7 +250,7 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageCheckRetError(t *testing.T) 
 	}
 
 	txRes, _ := NewTxResolver(
-		res,
+		createResolverStub(),
 		txPool,
 		txStorage,
 		marshalizer,
@@ -284,12 +266,9 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageCheckRetError(t *testing.T) 
 func TestTxResolver_RequestTransactionFromHashShouldWork(t *testing.T) {
 	t.Parallel()
 
-	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(h func(rd process.RequestData) ([]byte, error)) {
-	}
-
 	requested := process.RequestData{}
 
+	res := createResolverStub()
 	res.RequestDataCalled = func(rd process.RequestData) error {
 		requested = rd
 		return nil

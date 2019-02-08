@@ -63,6 +63,23 @@ func getConnectableAddress(mes p2p.Messenger) string {
 	return ""
 }
 
+func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
+	netw := mocknet.New(context.Background())
+
+	mes1, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	mes2, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+
+	return netw, mes1, mes2
+}
+
+func createMockMessenger() p2p.Messenger {
+	netw := mocknet.New(context.Background())
+
+	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+
+	return mes
+}
+
 //------- NewMockLibp2pMessenger
 
 func TestNewMockLibp2pMessenger_NilContextShouldErr(t *testing.T) {
@@ -90,14 +107,21 @@ func TestNewMockLibp2pMessenger_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, mes)
 }
 
+func createLibP2PCredentialsMessenger() (peer.ID, crypto.PrivKey) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
+	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+
+	return id, sk
+}
+
 //------- NewSocketLibp2pMessenger
 
 func TestNewSocketLibp2pMessenger_NilContextShouldErr(t *testing.T) {
 	port := 4000
 
-	r := rand.New(rand.NewSource(int64(port)))
-	prvKey, err := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	_, sk := createLibP2PCredentialsMessenger()
 
 	mes, err := libp2p.NewSocketLibp2pMessenger(
 		nil,
@@ -114,9 +138,7 @@ func TestNewSocketLibp2pMessenger_NilContextShouldErr(t *testing.T) {
 func TestNewSocketLibp2pMessenger_InvalidPortShouldErr(t *testing.T) {
 	port := 0
 
-	r := rand.New(rand.NewSource(int64(port)))
-	prvKey, err := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	_, sk := createLibP2PCredentialsMessenger()
 
 	mes, err := libp2p.NewSocketLibp2pMessenger(
 		context.Background(),
@@ -148,9 +170,7 @@ func TestNewSocketLibp2pMessenger_NilP2PprivateKeyShouldErr(t *testing.T) {
 func TestNewSocketLibp2pMessenger_NilSendDataThrottlerShouldErr(t *testing.T) {
 	port := 4000
 
-	r := rand.New(rand.NewSource(int64(port)))
-	prvKey, err := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	_, sk := createLibP2PCredentialsMessenger()
 
 	mes, err := libp2p.NewSocketLibp2pMessenger(
 		context.Background(),
@@ -167,9 +187,7 @@ func TestNewSocketLibp2pMessenger_NilSendDataThrottlerShouldErr(t *testing.T) {
 func TestNewSocketLibp2pMessenger_NoConnMgrShouldWork(t *testing.T) {
 	port := 4000
 
-	r := rand.New(rand.NewSource(int64(port)))
-	prvKey, err := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	_, sk := createLibP2PCredentialsMessenger()
 
 	mes, err := libp2p.NewSocketLibp2pMessenger(
 		context.Background(),
@@ -192,9 +210,7 @@ func TestNewSocketLibp2pMessenger_NoConnMgrShouldWork(t *testing.T) {
 func TestNewSocketLibp2pMessenger_WithConnMgrShouldWork(t *testing.T) {
 	port := 4000
 
-	r := rand.New(rand.NewSource(int64(port)))
-	prvKey, err := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	_, sk := createLibP2PCredentialsMessenger()
 
 	cns := &mock.ConnManagerNotifieeStub{
 		ListenCalled:      func(netw net.Network, ma multiaddr.Multiaddr) {},
@@ -223,10 +239,7 @@ func TestNewSocketLibp2pMessenger_WithConnMgrShouldWork(t *testing.T) {
 //------- Messenger functionality
 
 func TestLibp2pMessenger_ConnectToPeerWrongAddressShouldErr(t *testing.T) {
-	netw := mocknet.New(context.Background())
-
-	mes1, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-	_, _ = libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	mes1 := createMockMessenger()
 
 	adr2 := "invalid_address"
 
@@ -237,10 +250,7 @@ func TestLibp2pMessenger_ConnectToPeerWrongAddressShouldErr(t *testing.T) {
 }
 
 func TestLibp2pMessenger_ConnectToPeerAndClose2PeersShouldWork(t *testing.T) {
-	netw := mocknet.New(context.Background())
-
-	mes1, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-	mes2, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	_, mes1, mes2 := createMockNetworkOf2()
 
 	adr2 := mes2.Addresses()[0]
 
@@ -257,10 +267,7 @@ func TestLibp2pMessenger_ConnectToPeerAndClose2PeersShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_IsConnectedShouldWork(t *testing.T) {
-	netw := mocknet.New(context.Background())
-
-	mes1, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-	mes2, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	_, mes1, mes2 := createMockNetworkOf2()
 
 	adr2 := mes2.Addresses()[0]
 
@@ -272,84 +279,68 @@ func TestLibp2pMessenger_IsConnectedShouldWork(t *testing.T) {
 	assert.True(t, mes2.IsConnected(mes1.ID()))
 }
 
-func TestLibp2pMessenger_CreateTopicOkValsShuldWork(t *testing.T) {
-	netw := mocknet.New(context.Background())
+func TestLibp2pMessenger_CreateTopicOkValsShouldWork(t *testing.T) {
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-
-	err := mes.CreateTopic("test", false)
+	err := mes1.CreateTopic("test", false)
 	assert.Nil(t, err)
 }
 
-func TestLibp2pMessenger_CreateTopicTwiceShuldErr(t *testing.T) {
-	netw := mocknet.New(context.Background())
+func TestLibp2pMessenger_CreateTopicTwiceShouldErr(t *testing.T) {
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-
-	_ = mes.CreateTopic("test", false)
-	err := mes.CreateTopic("test", false)
+	_ = mes1.CreateTopic("test", false)
+	err := mes1.CreateTopic("test", false)
 	assert.Equal(t, p2p.ErrTopicAlreadyExists, err)
 }
 
 func TestLibp2pMessenger_HasTopicIfHaveTopicShouldReturnTrue(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	_ = mes1.CreateTopic("test", false)
 
-	_ = mes.CreateTopic("test", false)
-
-	assert.True(t, mes.HasTopic("test"))
+	assert.True(t, mes1.HasTopic("test"))
 }
 
 func TestLibp2pMessenger_HasTopicIfDoNotHaveTopicShouldReturnFalse(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	_ = mes1.CreateTopic("test", false)
 
-	_ = mes.CreateTopic("test", false)
-
-	assert.False(t, mes.HasTopic("one topic"))
+	assert.False(t, mes1.HasTopic("one topic"))
 }
 
 func TestLibp2pMessenger_HasTopicValidatorDoNotHaveTopicShouldReturnFalse(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	_ = mes1.CreateTopic("test", false)
 
-	_ = mes.CreateTopic("test", false)
-
-	assert.False(t, mes.HasTopicValidator("one topic"))
+	assert.False(t, mes1.HasTopicValidator("one topic"))
 }
 
 func TestLibp2pMessenger_HasTopicValidatorHaveTopicDoNotHaveValidatorShouldReturnFalse(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	_ = mes1.CreateTopic("test", false)
 
-	_ = mes.CreateTopic("test", false)
-
-	assert.False(t, mes.HasTopicValidator("test"))
+	assert.False(t, mes1.HasTopicValidator("test"))
 }
 
 func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-
-	_ = mes.CreateTopic("test", false)
-	_ = mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	_ = mes1.CreateTopic("test", false)
+	_ = mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
-	assert.True(t, mes.HasTopicValidator("test"))
+	assert.True(t, mes1.HasTopicValidator("test"))
 }
 
 func TestLibp2pMessenger_SetTopicValidatorOnInexistentTopicShouldErr(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-
-	err := mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	err := mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
@@ -357,25 +348,21 @@ func TestLibp2pMessenger_SetTopicValidatorOnInexistentTopicShouldErr(t *testing.
 }
 
 func TestLibp2pMessenger_SetTopicValidatorUnregisterInexistentValidatorShouldErr(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	_ = mes1.CreateTopic("test", false)
 
-	_ = mes.CreateTopic("test", false)
-
-	err := mes.SetTopicValidator("test", nil)
+	err := mes1.SetTopicValidator("test", nil)
 
 	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
 }
 
 func TestLibp2pMessenger_SetTopicValidatorOkValsShouldWork(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	_ = mes1.CreateTopic("test", false)
 
-	_ = mes.CreateTopic("test", false)
-
-	err := mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	err := mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
@@ -383,19 +370,17 @@ func TestLibp2pMessenger_SetTopicValidatorOkValsShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_SetTopicValidatorReregistrationShouldErr(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-
-	_ = mes.CreateTopic("test", false)
+	_ = mes1.CreateTopic("test", false)
 
 	//registration
-	_ = mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	_ = mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
 	//re-registration
-	err := mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	err := mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
@@ -403,19 +388,17 @@ func TestLibp2pMessenger_SetTopicValidatorReregistrationShouldErr(t *testing.T) 
 }
 
 func TestLibp2pMessenger_SetTopicValidatorUnReregistrationShouldWork(t *testing.T) {
-	netw := mocknet.New(context.Background())
+	mes1 := createMockMessenger()
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-
-	_ = mes.CreateTopic("test", false)
+	_ = mes1.CreateTopic("test", false)
 
 	//registration
-	_ = mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	_ = mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
 	//unregistration
-	err := mes.SetTopicValidator("test", nil)
+	err := mes1.SetTopicValidator("test", nil)
 
 	assert.Nil(t, err)
 }
@@ -423,10 +406,7 @@ func TestLibp2pMessenger_SetTopicValidatorUnReregistrationShouldWork(t *testing.
 func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
 	msg := []byte("test message")
 
-	netw := mocknet.New(context.Background())
-
-	mes1, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-	mes2, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	_, mes1, mes2 := createMockNetworkOf2()
 
 	adr2 := mes2.Addresses()[0]
 
@@ -457,10 +437,7 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
 }
 
 func TestLibp2pMessenger_Peers(t *testing.T) {
-	netw := mocknet.New(context.Background())
-
-	mes1, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-	mes2, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	_, mes1, mes2 := createMockNetworkOf2()
 
 	adr2 := mes2.Addresses()[0]
 
@@ -487,10 +464,7 @@ func TestLibp2pMessenger_Peers(t *testing.T) {
 }
 
 func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
-	netw := mocknet.New(context.Background())
-
-	mes1, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-	mes2, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	netw, mes1, mes2 := createMockNetworkOf2()
 	mes3, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
 
 	adr2 := mes2.Addresses()[0]
@@ -511,10 +485,10 @@ func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
 func TestLibp2pMessenger_DiscoverNewPeersNilDiscovererShouldErr(t *testing.T) {
 	netw := mocknet.New(context.Background())
 
-	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-	mes.SetDiscoverer(nil)
+	mes1, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	mes1.SetDiscoverer(nil)
 
-	err := mes.DiscoverNewPeers()
+	err := mes1.DiscoverNewPeers()
 	assert.Equal(t, p2p.ErrNilDiscoverer, err)
 }
 
@@ -638,9 +612,7 @@ func TestLibp2pMessenger_DiscoverNewPeersWithRealDiscovererShouldWork(t *testing
 func TestLibp2pMessenger_TrimConnectionsCallsConnManagerTrimConnections(t *testing.T) {
 	port := 4000
 
-	r := rand.New(rand.NewSource(int64(port)))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	_, sk := createLibP2PCredentialsMessenger()
 
 	wasCalled := false
 
@@ -675,9 +647,7 @@ func TestLibp2pMessenger_TrimConnectionsCallsConnManagerTrimConnections(t *testi
 func TestLibp2pMessenger_TrimConnectionsCallsOnNilConnManagerShouldErr(t *testing.T) {
 	port := 4000
 
-	r := rand.New(rand.NewSource(int64(port)))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	_, sk := createLibP2PCredentialsMessenger()
 
 	mes, _ := libp2p.NewSocketLibp2pMessenger(
 		context.Background(),
@@ -701,9 +671,7 @@ func TestLibp2pMessenger_TrimConnectionsCallsOnNilConnManagerShouldErr(t *testin
 func TestLibp2pMessenger_SendDataThrottlerShouldReturnCorrectObject(t *testing.T) {
 	port := 4000
 
-	r := rand.New(rand.NewSource(int64(port)))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	_, sk := createLibP2PCredentialsMessenger()
 
 	sdt := &mock.DataThrottleStub{
 		AddPipeCalled: func(pipe string) error {
@@ -732,10 +700,7 @@ func TestLibp2pMessenger_SendDataThrottlerShouldReturnCorrectObject(t *testing.T
 func TestLibp2pMessenger_SendDirectWithMockNetToConnectedPeerShouldWork(t *testing.T) {
 	msg := []byte("test message")
 
-	netw := mocknet.New(context.Background())
-
-	mes1, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-	mes2, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	_, mes1, mes2 := createMockNetworkOf2()
 
 	adr2 := mes2.Addresses()[0]
 
@@ -769,13 +734,8 @@ func TestLibp2pMessenger_SendDirectWithMockNetToConnectedPeerShouldWork(t *testi
 func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testing.T) {
 	msg := []byte("test message")
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	prvKey1, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk1 := (*crypto.Secp256k1PrivateKey)(prvKey1)
-
-	prvKey2, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk2 := (*crypto.Secp256k1PrivateKey)(prvKey2)
+	_, sk1 := createLibP2PCredentialsMessenger()
+	_, sk2 := createLibP2PCredentialsMessenger()
 
 	fmt.Println("Messenger 1:")
 	mes1, _ := libp2p.NewSocketLibp2pMessenger(context.Background(), 4000, sk1, nil, dataThrottle.NewSendDataThrottle())

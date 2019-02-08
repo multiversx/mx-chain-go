@@ -17,8 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	//"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	//transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )

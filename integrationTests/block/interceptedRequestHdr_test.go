@@ -15,6 +15,10 @@ import (
 )
 
 func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 

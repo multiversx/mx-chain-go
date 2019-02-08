@@ -332,8 +332,6 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 			transactions[i],
 		)
 
-		time.Sleep(time.Microsecond * 100)
-
 		if err != nil {
 			return errors.New("could not broadcast transaction: " + err.Error())
 		}

@@ -15,6 +15,10 @@ import (
 )
 
 func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	accnts := adbCreateAccountsDB()
 
 	pubKeyBuff := createDummyHexAddress(64)

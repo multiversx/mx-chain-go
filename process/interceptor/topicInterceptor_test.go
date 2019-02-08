@@ -11,6 +11,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMessengerStub(hasTopic bool, hasTopicValidator bool) *mock.MessengerStub {
+	return &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return hasTopicValidator
+		},
+		HasTopicCalled: func(name string) bool {
+			return hasTopic
+		},
+		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
+			return nil
+		},
+		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+			return nil
+		},
+	}
+}
+
 //------- NewTopicInterceptor
 
 func TestNewTopicInterceptor_NilMessengerShouldErr(t *testing.T) {
@@ -36,14 +53,13 @@ func TestNewTopicInterceptor_TopicValidatorAlreadySetShouldErr(t *testing.T) {
 
 	topic := "test topic"
 
-	mes := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			if name == topic {
-				return true
-			}
+	mes := createMessengerStub(false, false)
+	mes.HasTopicValidatorCalled = func(name string) bool {
+		if name == topic {
+			return true
+		}
 
-			return false
-		},
+		return false
 	}
 
 	ti, err := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
@@ -58,20 +74,13 @@ func TestNewTopicInterceptor_CreateTopicErrorsShouldErr(t *testing.T) {
 	topic := "test topic"
 	errCreateTopic := errors.New("create topic err")
 
-	mes := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return false
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			if name == topic {
-				return errCreateTopic
-			}
+	mes := createMessengerStub(false, false)
+	mes.CreateTopicCalled = func(name string, createPipeForTopic bool) error {
+		if name == topic {
+			return errCreateTopic
+		}
 
-			return nil
-		},
+		return nil
 	}
 
 	ti, err := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
@@ -86,23 +95,13 @@ func TestNewTopicInterceptor_OkValsCreateTopicShouldCallSetTopicValidator(t *tes
 	topic := "test topic"
 	wasCalled := false
 
-	mes := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return false
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
-			if t == topic && handler != nil {
-				wasCalled = true
-			}
+	mes := createMessengerStub(false, false)
+	mes.SetTopicValidatorCalled = func(t string, handler func(message p2p.MessageP2P) error) error {
+		if t == topic && handler != nil {
+			wasCalled = true
+		}
 
-			return nil
-		},
+		return nil
 	}
 
 	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
@@ -117,20 +116,13 @@ func TestNewTopicInterceptor_OkValsTopicExistsShouldCallSetTopicValidator(t *tes
 	topic := "test topic"
 	wasCalled := false
 
-	mes := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
-			if t == topic && handler != nil {
-				wasCalled = true
-			}
+	mes := createMessengerStub(true, false)
+	mes.SetTopicValidatorCalled = func(t string, handler func(message p2p.MessageP2P) error) error {
+		if t == topic && handler != nil {
+			wasCalled = true
+		}
 
-			return nil
-		},
+		return nil
 	}
 
 	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
@@ -145,19 +137,9 @@ func TestNewTopicInterceptor_OkValsShouldRetTheSetTopicValidatorError(t *testing
 	topic := "test topic"
 	errCheck := errors.New("check error")
 
-	mes := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return false
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
-			return errCheck
-		},
+	mes := createMessengerStub(false, false)
+	mes.SetTopicValidatorCalled = func(t string, handler func(message p2p.MessageP2P) error) error {
+		return errCheck
 	}
 
 	ti, err := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
@@ -173,17 +155,7 @@ func TestTopicInterceptor_ValidatorNotSetReceivedMessageHandlerShouldErr(t *test
 
 	topic := "test topic"
 
-	mes := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
+	mes := createMessengerStub(true, false)
 
 	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
 	err := ti.Validator(nil)
@@ -196,17 +168,7 @@ func TestTopicInterceptor_ValidatorCallsHandler(t *testing.T) {
 
 	topic := "test topic"
 
-	mes := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
+	mes := createMessengerStub(true, false)
 
 	wasCalled := false
 
@@ -227,17 +189,7 @@ func TestTopicInterceptor_ValidatorReturnsHandlersError(t *testing.T) {
 	topic := "test topic"
 	errCheck := errors.New("check err")
 
-	mes := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
+	mes := createMessengerStub(true, false)
 
 	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
 	ti.SetReceivedMessageHandler(func(message p2p.MessageP2P) error {
@@ -254,17 +206,7 @@ func TestTopicInterceptor_Name(t *testing.T) {
 
 	topic := "test topic"
 
-	mes := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
+	mes := createMessengerStub(true, false)
 
 	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
 
@@ -276,17 +218,7 @@ func TestTopicInterceptor_ReceivedMessageHandler(t *testing.T) {
 
 	topic := "test topic"
 
-	mes := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
+	mes := createMessengerStub(true, false)
 
 	ti, _ := interceptor.NewTopicInterceptor(topic, mes, &mock.MarshalizerStub{})
 
@@ -304,17 +236,7 @@ func TestTopicInterceptor_Marshalizer(t *testing.T) {
 
 	topic := "test topic"
 
-	mes := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
+	mes := createMessengerStub(true, false)
 
 	m := &mock.MarshalizerStub{}
 

@@ -17,6 +17,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMarshalizerInterceptor() (marshal.Marshalizer, *mock.InterceptorStub) {
+	marshalizer := &mock.MarshalizerMock{}
+
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
+		MarshalizerCalled: func() marshal.Marshalizer {
+			return marshalizer
+		},
+	}
+
+	return marshalizer, interceptor
+}
+
 //------- NewTxInterceptor
 
 func TestNewTxInterceptor_NilInterceptorShouldErr(t *testing.T) {
@@ -177,9 +190,7 @@ func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
@@ -205,9 +216,7 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 func TestTransactionInterceptor_ProcessTxNilMesssageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
@@ -230,9 +239,7 @@ func TestTransactionInterceptor_ProcessTxNilMesssageShouldErr(t *testing.T) {
 func TestTransactionInterceptor_ProcessTxMilMessageDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
@@ -257,11 +264,9 @@ func TestTransactionInterceptor_ProcessTxMilMessageDataShouldErr(t *testing.T) {
 func TestTransactionInterceptor_ProcessTxNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return nil
-		},
+	_, interceptor := createMarshalizerInterceptor()
+	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
+		return nil
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -297,11 +302,9 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailsAtUnmarshalingShouldErr
 		},
 	}
 
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return ms
-		},
+	_, interceptor := createMarshalizerInterceptor()
+	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
+		return ms
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -340,11 +343,9 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailsAtMarshalingShouldErr(t
 		},
 	}
 
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return ms
-		},
+	_, interceptor := createMarshalizerInterceptor()
+	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
+		return ms
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -372,14 +373,7 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailsAtMarshalingShouldErr(t
 func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldErr(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
@@ -413,14 +407,7 @@ func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldErr(t *testing.T) 
 func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
@@ -465,14 +452,7 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	wasAdded := 0
 
@@ -530,14 +510,7 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	wasAdded := 0
 
@@ -596,14 +569,7 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	wasAdded := 0
 

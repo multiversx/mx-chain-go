@@ -16,6 +16,19 @@ import (
 
 //------- HeaderInterceptor
 
+func createMarshalizerInterceptor() (marshal.Marshalizer, *mock.InterceptorStub) {
+	marshalizer := &mock.MarshalizerMock{}
+
+	interceptor := &mock.InterceptorStub{
+		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
+		MarshalizerCalled: func() marshal.Marshalizer {
+			return marshalizer
+		},
+	}
+
+	return marshalizer, interceptor
+}
+
 //NewHeaderInterceptor
 
 func TestNewHeaderInterceptor_NilMessengerShouldErr(t *testing.T) {
@@ -137,9 +150,7 @@ func TestNewHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 
 	headers := &mock.ShardedDataStub{}
 	headersNonces := &mock.Uint64CacherStub{}
@@ -162,9 +173,7 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 func TestHeaderInterceptor_ProcessHdrNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 
 	headers := &mock.ShardedDataStub{}
 	headersNonces := &mock.Uint64CacherStub{}
@@ -184,9 +193,7 @@ func TestHeaderInterceptor_ProcessHdrNilMessageShouldErr(t *testing.T) {
 func TestHeaderInterceptor_ProcessHdrNilDataToProcessShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 
 	headers := &mock.ShardedDataStub{}
 	headersNonces := &mock.Uint64CacherStub{}
@@ -208,11 +215,9 @@ func TestHeaderInterceptor_ProcessHdrNilDataToProcessShouldErr(t *testing.T) {
 func TestHeaderInterceptor_ProcessHdrNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return nil
-		},
+	_, interceptor := createMarshalizerInterceptor()
+	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
+		return nil
 	}
 
 	headers := &mock.ShardedDataStub{}
@@ -239,15 +244,13 @@ func TestHeaderInterceptor_ProcessHdrMarshalizerErrorsAtUnmarshalingShouldErr(t 
 
 	errMarshalizer := errors.New("marshalizer error")
 
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return &mock.MarshalizerStub{
-				UnmarshalCalled: func(obj interface{}, buff []byte) error {
-					return errMarshalizer
-				},
-			}
-		},
+	_, interceptor := createMarshalizerInterceptor()
+	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
+		return &mock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return errMarshalizer
+			},
+		}
 	}
 
 	headers := &mock.ShardedDataStub{}
@@ -272,14 +275,7 @@ func TestHeaderInterceptor_ProcessHdrMarshalizerErrorsAtUnmarshalingShouldErr(t 
 func TestHeaderInterceptor_ProcessHdrSanityCheckFailedShouldErr(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	headers := &mock.ShardedDataStub{}
 	headersNonces := &mock.Uint64CacherStub{}
@@ -305,14 +301,7 @@ func TestHeaderInterceptor_ProcessHdrSanityCheckFailedShouldErr(t *testing.T) {
 func TestHeaderInterceptor_ProcessOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	wasCalled := 0
 
@@ -372,14 +361,7 @@ func TestHeaderInterceptor_ProcessOkValsShouldWork(t *testing.T) {
 func TestHeaderInterceptor_ProcessIsInStorageShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	wasCalled := 0
 
@@ -531,9 +513,7 @@ func TestNewBlockBodyInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 	storer := &mock.StorerStub{}
 
 	gbbi, err := NewGenericBlockBodyInterceptor(
@@ -553,9 +533,7 @@ func TestBlockBodyInterceptor_ProcessTxBodyBlockNilMessageShouldErr(t *testing.T
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 	storer := &mock.StorerStub{}
 
 	gbbi, _ := NewGenericBlockBodyInterceptor(
@@ -572,9 +550,7 @@ func TestBlockBodyInterceptor_ProcessTxBodyBlockNilMessageDataShouldErr(t *testi
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 	storer := &mock.StorerStub{}
 
 	gbbi, _ := NewGenericBlockBodyInterceptor(
@@ -593,11 +569,9 @@ func TestBlockBodyInterceptor_ProcessTxBodyBlockNilMarshalizerShouldErr(t *testi
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return nil
-		},
+	_, interceptor := createMarshalizerInterceptor()
+	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
+		return nil
 	}
 	storer := &mock.StorerStub{}
 
@@ -621,15 +595,13 @@ func TestBlockBodyInterceptor_ProcessTxBodyBlockMarshalizerErrorsAtUnmarshalingS
 	errMarshalizer := errors.New("marshalizer error")
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return &mock.MarshalizerStub{
-				UnmarshalCalled: func(obj interface{}, buff []byte) error {
-					return errMarshalizer
-				},
-			}
-		},
+	_, interceptor := createMarshalizerInterceptor()
+	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
+		return &mock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return errMarshalizer
+			},
+		}
 	}
 	storer := &mock.StorerStub{}
 
@@ -650,15 +622,9 @@ func TestBlockBodyInterceptor_ProcessTxBodyBlockMarshalizerErrorsAtUnmarshalingS
 func TestBlockBodyInterceptor_ProcessTxBodyBlockIntegrityFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
 	storer := &mock.StorerStub{}
 
 	gbbi, _ := NewGenericBlockBodyInterceptor(
@@ -685,15 +651,9 @@ func TestBlockBodyInterceptor_ProcessTxBodyBlockIntegrityFailsShouldErr(t *testi
 func TestBlockBodyInterceptor_ProcessTxBodyBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
 	storer := &mock.StorerStub{
 		HasCalled: func(key []byte) (b bool, e error) {
 			return false, nil
@@ -741,9 +701,7 @@ func TestBlockBodyInterceptor_ProcessStateBodyBlockNilMessageShouldErr(t *testin
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 	storer := &mock.StorerStub{}
 
 	gbbi, _ := NewGenericBlockBodyInterceptor(
@@ -760,9 +718,7 @@ func TestBlockBodyInterceptor_ProcessStateBodyBlockNilMessageDataShouldErr(t *te
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 	storer := &mock.StorerStub{}
 
 	gbbi, _ := NewGenericBlockBodyInterceptor(
@@ -781,11 +737,9 @@ func TestBlockBodyInterceptor_ProcessStateBodyBlockNilMarshalizerShouldErr(t *te
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return nil
-		},
+	_, interceptor := createMarshalizerInterceptor()
+	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
+		return nil
 	}
 	storer := &mock.StorerStub{}
 
@@ -809,15 +763,13 @@ func TestBlockBodyInterceptor_ProcessStateBodyBlockMarshalizerErrorsAtUnmarshali
 	errMarshalizer := errors.New("marshalizer error")
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return &mock.MarshalizerStub{
-				UnmarshalCalled: func(obj interface{}, buff []byte) error {
-					return errMarshalizer
-				},
-			}
-		},
+	_, interceptor := createMarshalizerInterceptor()
+	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
+		return &mock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return errMarshalizer
+			},
+		}
 	}
 	storer := &mock.StorerStub{}
 
@@ -838,15 +790,9 @@ func TestBlockBodyInterceptor_ProcessStateBodyBlockMarshalizerErrorsAtUnmarshali
 func TestBlockBodyInterceptor_ProcessStateBodyBlockIntegrityFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
 	storer := &mock.StorerStub{}
 
 	gbbi, _ := NewGenericBlockBodyInterceptor(
@@ -875,9 +821,7 @@ func TestBlockBodyInterceptor_ProcessPeerChangeBodyBlockNilMessageShouldErr(t *t
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 	storer := &mock.StorerStub{}
 
 	gbbi, _ := NewGenericBlockBodyInterceptor(
@@ -894,9 +838,7 @@ func TestBlockBodyInterceptor_ProcessPeerChangeBodyBlockNilMessageDataShouldErr(
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-	}
+	_, interceptor := createMarshalizerInterceptor()
 	storer := &mock.StorerStub{}
 
 	gbbi, _ := NewGenericBlockBodyInterceptor(
@@ -915,11 +857,9 @@ func TestBlockBodyInterceptor_ProcessPeerChangeBodyBlockNilMarshalizerShouldErr(
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return nil
-		},
+	_, interceptor := createMarshalizerInterceptor()
+	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
+		return nil
 	}
 	storer := &mock.StorerStub{}
 
@@ -943,15 +883,13 @@ func TestBlockBodyInterceptor_ProcessPeerChangeBodyBlockMarshalizerErrorsAtUnmar
 	errMarshalizer := errors.New("marshalizer error")
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return &mock.MarshalizerStub{
-				UnmarshalCalled: func(obj interface{}, buff []byte) error {
-					return errMarshalizer
-				},
-			}
-		},
+	_, interceptor := createMarshalizerInterceptor()
+	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
+		return &mock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return errMarshalizer
+			},
+		}
 	}
 	storer := &mock.StorerStub{}
 
@@ -972,15 +910,9 @@ func TestBlockBodyInterceptor_ProcessPeerChangeBodyBlockMarshalizerErrorsAtUnmar
 func TestBlockBodyInterceptor_ProcessPeerChangeBodyBlockIntegrityFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
+	marshalizer, interceptor := createMarshalizerInterceptor()
 
 	cache := &mock.CacherStub{}
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
 	storer := &mock.StorerStub{}
 
 	gbbi, _ := NewGenericBlockBodyInterceptor(

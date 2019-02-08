@@ -14,6 +14,10 @@ import (
 )
 
 func TestNode_GenerateSendInterceptBulkTransactionsWithNetMessenger(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	dPool := createTestDataPool()
 
 	startingNonce := uint64(6)

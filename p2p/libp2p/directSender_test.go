@@ -24,6 +24,46 @@ import (
 
 const timeout = time.Second * 5
 
+var blankMessageHandler = func(msg p2p.MessageP2P) error {
+	return nil
+}
+
+func generateHostStub() *mock.HostStub {
+	return &mock.HostStub{
+		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
+	}
+}
+
+func createConnStub(stream net.Stream, id peer.ID, sk crypto.PrivKey, remotePeer peer.ID) *mock.ConnStub {
+	return &mock.ConnStub{
+		GetStreamsCalled: func() []net.Stream {
+			if stream == nil {
+				return make([]net.Stream, 0)
+			}
+
+			return []net.Stream{stream}
+		},
+		LocalPeerCalled: func() peer.ID {
+			return id
+		},
+		LocalPrivateKeyCalled: func() crypto.PrivKey {
+			return sk
+		},
+		RemotePeerCalled: func() peer.ID {
+			return remotePeer
+		},
+	}
+}
+
+func createLibP2PCredentialsDirectSender() (peer.ID, crypto.PrivKey) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
+	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+
+	return id, sk
+}
+
 //------- NewDirectSender
 
 func TestNewDirectSender_NilContextShouldErr(t *testing.T) {
@@ -47,18 +87,14 @@ func TestNewDirectSender_NilHostShouldErr(t *testing.T) {
 }
 
 func TestNewDirectSender_NilMessageHandlerShouldErr(t *testing.T) {
-	ds, err := libp2p.NewDirectSender(context.Background(), &mock.HostStub{}, nil)
+	ds, err := libp2p.NewDirectSender(context.Background(), generateHostStub(), nil)
 
 	assert.Nil(t, ds)
 	assert.Equal(t, p2p.ErrNilDirectSendMessageHandler, err)
 }
 
 func TestNewDirectSender_OkValsShouldWork(t *testing.T) {
-	hs := &mock.HostStub{
-		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-	}
-
-	ds, err := libp2p.NewDirectSender(context.Background(), hs, func(msg p2p.MessageP2P) error {
+	ds, err := libp2p.NewDirectSender(context.Background(), generateHostStub(), func(msg p2p.MessageP2P) error {
 		return nil
 	})
 
@@ -90,12 +126,8 @@ func TestNewDirectSender_OkValsShouldCallSetStreamHandlerWithCorrectValues(t *te
 func TestDirectSender_ProcessReceivedDirectMessageNilMessageShouldErr(t *testing.T) {
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
-		&mock.HostStub{
-			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-		},
-		func(msg p2p.MessageP2P) error {
-			return nil
-		},
+		generateHostStub(),
+		blankMessageHandler,
 	)
 
 	err := ds.ProcessReceivedDirectMessage(nil)
@@ -106,18 +138,11 @@ func TestDirectSender_ProcessReceivedDirectMessageNilMessageShouldErr(t *testing
 func TestDirectSender_ProcessReceivedDirectMessageNilTopicIdsShouldErr(t *testing.T) {
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
-		&mock.HostStub{
-			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-		},
-		func(msg p2p.MessageP2P) error {
-			return nil
-		},
+		generateHostStub(),
+		blankMessageHandler,
 	)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	id, _ := createLibP2PCredentialsDirectSender()
 
 	msg := &pubsub_pb.Message{}
 	msg.Data = []byte("data")
@@ -133,18 +158,11 @@ func TestDirectSender_ProcessReceivedDirectMessageNilTopicIdsShouldErr(t *testin
 func TestDirectSender_ProcessReceivedDirectMessageEmptyTopicIdsShouldErr(t *testing.T) {
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
-		&mock.HostStub{
-			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-		},
-		func(msg p2p.MessageP2P) error {
-			return nil
-		},
+		generateHostStub(),
+		blankMessageHandler,
 	)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	id, _ := createLibP2PCredentialsDirectSender()
 
 	msg := &pubsub_pb.Message{}
 	msg.Data = []byte("data")
@@ -160,18 +178,11 @@ func TestDirectSender_ProcessReceivedDirectMessageEmptyTopicIdsShouldErr(t *test
 func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *testing.T) {
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
-		&mock.HostStub{
-			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-		},
-		func(msg p2p.MessageP2P) error {
-			return nil
-		},
+		generateHostStub(),
+		blankMessageHandler,
 	)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	id, _ := createLibP2PCredentialsDirectSender()
 
 	msg := &pubsub_pb.Message{}
 	msg.Data = []byte("data")
@@ -190,18 +201,11 @@ func TestDirectSender_ProcessReceivedDirectMessageAlreadySeenMsgShouldErr(t *tes
 func TestDirectSender_ProcessReceivedDirectMessageShouldWork(t *testing.T) {
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
-		&mock.HostStub{
-			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-		},
-		func(msg p2p.MessageP2P) error {
-			return nil
-		},
+		generateHostStub(),
+		blankMessageHandler,
 	)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	id, _ := createLibP2PCredentialsDirectSender()
 
 	msg := &pubsub_pb.Message{}
 	msg.Data = []byte("data")
@@ -219,19 +223,14 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldCallMessageHandler(t *te
 
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
-		&mock.HostStub{
-			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-		},
+		generateHostStub(),
 		func(msg p2p.MessageP2P) error {
 			wasCalled = true
 			return nil
 		},
 	)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	id, _ := createLibP2PCredentialsDirectSender()
 
 	msg := &pubsub_pb.Message{}
 	msg.Data = []byte("data")
@@ -249,18 +248,13 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
-		&mock.HostStub{
-			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
-		},
+		generateHostStub(),
 		func(msg p2p.MessageP2P) error {
 			return checkErr
 		},
 	)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	id, _ := createLibP2PCredentialsDirectSender()
 
 	msg := &pubsub_pb.Message{}
 	msg.Data = []byte("data")
@@ -290,9 +284,7 @@ func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *test
 				return netw
 			},
 		},
-		func(msg p2p.MessageP2P) error {
-			return nil
-		},
+		blankMessageHandler,
 	)
 
 	err := ds.SendDirectToConnectedPeer("topic", []byte("data"), "not connected peer")
@@ -315,32 +307,14 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		hs,
-		func(msg p2p.MessageP2P) error {
-			return nil
-		},
+		blankMessageHandler,
 	)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	id, sk := createLibP2PCredentialsDirectSender()
 	remotePeer := peer.ID("remote peer")
 	errNewStream := errors.New("new stream error")
 
-	cs := &mock.ConnStub{
-		GetStreamsCalled: func() []net.Stream {
-			return make([]net.Stream, 0)
-		},
-		LocalPeerCalled: func() peer.ID {
-			return id
-		},
-		LocalPrivateKeyCalled: func() crypto.PrivKey {
-			return sk
-		},
-		RemotePeerCalled: func() peer.ID {
-			return remotePeer
-		},
-	}
+	cs := createConnStub(nil, id, sk, remotePeer)
 
 	netw.ConnsToPeerCalled = func(p peer.ID) []net.Conn {
 		return []net.Conn{cs}
@@ -368,36 +342,18 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 				return netw
 			},
 		},
-		func(msg p2p.MessageP2P) error {
-			return nil
-		},
+		blankMessageHandler,
 	)
 
 	generatedCounter := ds.Counter()
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	id, sk := createLibP2PCredentialsDirectSender()
 	remotePeer := peer.ID("remote peer")
 
 	stream := mock.NewStreamMock()
 	stream.SetProtocol(libp2p.DirectSendID)
 
-	cs := &mock.ConnStub{
-		GetStreamsCalled: func() []net.Stream {
-			return []net.Stream{stream}
-		},
-		LocalPeerCalled: func() peer.ID {
-			return id
-		},
-		LocalPrivateKeyCalled: func() crypto.PrivKey {
-			return sk
-		},
-		RemotePeerCalled: func() peer.ID {
-			return remotePeer
-		},
-	}
+	cs := createConnStub(stream, id, sk, remotePeer)
 
 	netw.ConnsToPeerCalled = func(p peer.ID) []net.Conn {
 		return []net.Conn{cs}
@@ -449,36 +405,18 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
 		hs,
-		func(msg p2p.MessageP2P) error {
-			return nil
-		},
+		blankMessageHandler,
 	)
 
 	generatedCounter := ds.Counter()
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	id, sk := createLibP2PCredentialsDirectSender()
 	remotePeer := peer.ID("remote peer")
 
 	stream := mock.NewStreamMock()
 	stream.SetProtocol(libp2p.DirectSendID)
 
-	cs := &mock.ConnStub{
-		GetStreamsCalled: func() []net.Stream {
-			return make([]net.Stream, 0)
-		},
-		LocalPeerCalled: func() peer.ID {
-			return id
-		},
-		LocalPrivateKeyCalled: func() crypto.PrivKey {
-			return sk
-		},
-		RemotePeerCalled: func() peer.ID {
-			return remotePeer
-		},
-	}
+	cs := createConnStub(stream, id, sk, remotePeer)
 
 	netw.ConnsToPeerCalled = func(p peer.ID) []net.Conn {
 		return []net.Conn{cs}
@@ -552,10 +490,7 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 		},
 	)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+	id, sk := createLibP2PCredentialsDirectSender()
 	remotePeer := peer.ID("remote peer")
 
 	stream := mock.NewStreamMock()
@@ -563,20 +498,7 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 
 	streamHandler(stream)
 
-	cs := &mock.ConnStub{
-		GetStreamsCalled: func() []net.Stream {
-			return []net.Stream{stream}
-		},
-		LocalPeerCalled: func() peer.ID {
-			return id
-		},
-		LocalPrivateKeyCalled: func() crypto.PrivKey {
-			return sk
-		},
-		RemotePeerCalled: func() peer.ID {
-			return remotePeer
-		},
-	}
+	cs := createConnStub(stream, id, sk, remotePeer)
 
 	netw.ConnsToPeerCalled = func(p peer.ID) []net.Conn {
 		return []net.Conn{cs}

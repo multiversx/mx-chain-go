@@ -12,6 +12,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMessengerStub(hasTopic bool, hasTopicValidator bool) *mock.MessengerStub {
+	return &mock.MessengerStub{
+		HasTopicValidatorCalled: func(name string) bool {
+			return hasTopicValidator
+		},
+		HasTopicCalled: func(name string) bool {
+			return hasTopic
+		},
+		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
+			return nil
+		},
+		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+			return nil
+		},
+	}
+}
+
 //-------NewTopicResolver
 
 func TestNewTopicResolver_NilMessengerShouldErr(t *testing.T) {
@@ -37,12 +54,12 @@ func TestNewTopicResolver_HasTopicValidatorShouldErr(t *testing.T) {
 
 	topicName := "test"
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return topicName+resolver.RequestTopicSuffix == name
-		},
+	mes := createMessengerStub(false, false)
+	mes.HasTopicValidatorCalled = func(name string) bool {
+		return topicName+resolver.RequestTopicSuffix == name
 	}
-	tr, err := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerMock{})
+
+	tr, err := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerMock{})
 
 	assert.Equal(t, process.ErrValidatorAlreadySet, err)
 	assert.Nil(t, tr)
@@ -54,21 +71,14 @@ func TestNewTopicResolver_CreateTopicErrorsShouldErr(t *testing.T) {
 	topicName := "test"
 	errCreateTopic := errors.New("create topic error")
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return false
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			if name == topicName+resolver.RequestTopicSuffix {
-				return errCreateTopic
-			}
-			return nil
-		},
+	mes := createMessengerStub(false, false)
+	mes.CreateTopicCalled = func(name string, createPipeForTopic bool) error {
+		if name == topicName+resolver.RequestTopicSuffix {
+			return errCreateTopic
+		}
+		return nil
 	}
-	tr, err := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerMock{})
+	tr, err := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerMock{})
 
 	assert.Equal(t, errCreateTopic, err)
 	assert.Nil(t, tr)
@@ -82,27 +92,20 @@ func TestNewTopicResolver_OkValsWithCreateTopicShouldWork(t *testing.T) {
 	createWasCalled := false
 	setWasCalled := false
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return false
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			if name == topicName+resolver.RequestTopicSuffix {
-				createWasCalled = true
-			}
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			if topic == topicName+resolver.RequestTopicSuffix {
-				setWasCalled = true
-			}
-			return nil
-		},
+	mes := createMessengerStub(false, false)
+	mes.CreateTopicCalled = func(name string, createPipeForTopic bool) error {
+		if name == topicName+resolver.RequestTopicSuffix {
+			createWasCalled = true
+		}
+		return nil
 	}
-	tr, err := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerMock{})
+	mes.SetTopicValidatorCalled = func(topic string, handler func(message p2p.MessageP2P) error) error {
+		if topic == topicName+resolver.RequestTopicSuffix {
+			setWasCalled = true
+		}
+		return nil
+	}
+	tr, err := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerMock{})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, tr)
@@ -117,27 +120,20 @@ func TestNewTopicResolver_OkValsWithoutCreateTopicShouldWork(t *testing.T) {
 	createWasCalled := false
 	setWasCalled := false
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			if name == topicName+resolver.RequestTopicSuffix {
-				createWasCalled = true
-			}
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			if topic == topicName+resolver.RequestTopicSuffix {
-				setWasCalled = true
-			}
-			return nil
-		},
+	mes := createMessengerStub(true, false)
+	mes.CreateTopicCalled = func(name string, createPipeForTopic bool) error {
+		if name == topicName+resolver.RequestTopicSuffix {
+			createWasCalled = true
+		}
+		return nil
 	}
-	tr, err := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerMock{})
+	mes.SetTopicValidatorCalled = func(topic string, handler func(message p2p.MessageP2P) error) error {
+		if topic == topicName+resolver.RequestTopicSuffix {
+			setWasCalled = true
+		}
+		return nil
+	}
+	tr, err := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerMock{})
 
 	assert.Nil(t, err)
 	assert.NotNil(t, tr)
@@ -150,21 +146,11 @@ func TestNewTopicResolver_SetTopicValidatorErrorsShouldErr(t *testing.T) {
 	topicName := "test"
 	errSetTopicValidator := errors.New("set topic validator error")
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			return errSetTopicValidator
-		},
+	mes := createMessengerStub(true, false)
+	mes.SetTopicValidatorCalled = func(topic string, handler func(message p2p.MessageP2P) error) error {
+		return errSetTopicValidator
 	}
-	tr, err := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerMock{})
+	tr, err := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerMock{})
 
 	assert.Equal(t, errSetTopicValidator, err)
 	assert.Nil(t, tr)
@@ -177,21 +163,9 @@ func TestTopicResolver_RequestValidatorNilMessageShouldErr(t *testing.T) {
 
 	topicName := "test"
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
-	tr, _ := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerMock{})
+	mes := createMessengerStub(true, false)
+
+	tr, _ := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerMock{})
 
 	err := tr.RequestValidator(nil)
 	assert.Equal(t, process.ErrNilMessage, err)
@@ -202,21 +176,8 @@ func TestTopicResolver_RequestValidatorNilDataInMessageShouldErr(t *testing.T) {
 
 	topicName := "test"
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
-	tr, _ := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerMock{})
+	mes := createMessengerStub(true, false)
+	tr, _ := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerMock{})
 
 	msg := &mock.P2PMessageMock{}
 
@@ -229,24 +190,11 @@ func TestTopicResolver_RequestValidatorMarshalizerFailsAtUnmarshalingShouldErr(t
 
 	topicName := "test"
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
+	mes := createMessengerStub(true, false)
 
 	errMarshalizer := errors.New("marshalizer error")
 
-	tr, _ := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerStub{
+	tr, _ := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return errMarshalizer
 		},
@@ -265,22 +213,9 @@ func TestTopicResolver_RequestValidatorNilResolveRequestShouldErr(t *testing.T) 
 
 	topicName := "test"
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
+	mes := createMessengerStub(true, false)
 
-	tr, _ := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerStub{
+	tr, _ := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return nil
 		},
@@ -299,22 +234,9 @@ func TestTopicResolver_RequestValidatorResolverHandlerErrorsShouldErr(t *testing
 
 	topicName := "test"
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
+	mes := createMessengerStub(true, false)
 
-	tr, _ := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerStub{
+	tr, _ := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return nil
 		},
@@ -343,28 +265,15 @@ func TestTopicResolver_RequestValidatorResolverHandlerReturnsBuffShouldWork(t *t
 	var sentTopic string
 	var sentPeerID p2p.PeerID
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-		SendDirectToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
-			sentBuffer = buff
-			sentTopic = topic
-			sentPeerID = peerID
-			return nil
-		},
+	mes := createMessengerStub(true, false)
+	mes.SendDirectToConnectedPeerCalled = func(topic string, buff []byte, peerID p2p.PeerID) error {
+		sentBuffer = buff
+		sentTopic = topic
+		sentPeerID = peerID
+		return nil
 	}
 
-	tr, _ := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerStub{
+	tr, _ := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return nil
 		},
@@ -395,25 +304,12 @@ func TestTopicResolver_RequestValidatorResolverHandlerReturnsErrorShouldErr(t *t
 
 	errSendDirect := errors.New("send direct error")
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-		SendDirectToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
-			return errSendDirect
-		},
+	mes := createMessengerStub(true, false)
+	mes.SendDirectToConnectedPeerCalled = func(topic string, buff []byte, peerID p2p.PeerID) error {
+		return errSendDirect
 	}
 
-	tr, _ := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerStub{
+	tr, _ := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return nil
 		},
@@ -441,24 +337,11 @@ func TestNewTopicResolver_RequestDataMarshalizerFailsAtMarsahlingShouldErr(t *te
 
 	topicName := "test"
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-	}
+	mes := createMessengerStub(true, false)
 
 	errMarshalizer := errors.New("marshalizer error")
 
-	tr, _ := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerStub{
+	tr, _ := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
 			return nil, errMarshalizer
 		},
@@ -473,25 +356,12 @@ func TestNewTopicResolver_RequestDataSendTo0ConnectedPeersShouldErr(t *testing.T
 
 	topicName := "test"
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
-			return nil
-		},
-		ConnectedPeersCalled: func() []p2p.PeerID {
-			return make([]p2p.PeerID, 0)
-		},
+	mes := createMessengerStub(true, false)
+	mes.ConnectedPeersCalled = func() []p2p.PeerID {
+		return make([]p2p.PeerID, 0)
 	}
 
-	tr, _ := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerStub{
+	tr, _ := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
 			return make([]byte, 0), nil
 		},
@@ -510,38 +380,25 @@ func TestNewTopicResolver_RequestDataSendTo1ConnectedPeersShouldWork(t *testing.
 	flagSentToPeer1 := false
 	buffToSend := []byte("buff to send")
 
-	ms := &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
+	mes := createMessengerStub(true, false)
+	mes.ConnectedPeersCalled = func() []p2p.PeerID {
+		return []p2p.PeerID{peer1}
+	}
+	mes.SendDirectToConnectedPeerCalled = func(topic string, buff []byte, peerID p2p.PeerID) error {
+		if !bytes.Equal(buffToSend, buff) {
 			return nil
-		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
+		}
+		if topic != topicName+resolver.RequestTopicSuffix {
 			return nil
-		},
-		ConnectedPeersCalled: func() []p2p.PeerID {
-			return []p2p.PeerID{peer1}
-		},
-		SendDirectToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
-			if !bytes.Equal(buffToSend, buff) {
-				return nil
-			}
-			if topic != topicName+resolver.RequestTopicSuffix {
-				return nil
-			}
-			if peerID == peer1 {
-				flagSentToPeer1 = true
-			}
+		}
+		if peerID == peer1 {
+			flagSentToPeer1 = true
+		}
 
-			return nil
-		},
+		return nil
 	}
 
-	tr, _ := resolver.NewTopicResolver(topicName, ms, &mock.MarshalizerStub{
+	tr, _ := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
 			return buffToSend, nil
 		},
