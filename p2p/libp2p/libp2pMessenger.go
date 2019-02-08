@@ -210,7 +210,7 @@ func createPubSub(ctx context.Context, host host.Host, withSigning bool) (*pubsu
 		pubsub.WithMessageSigning(withSigning),
 	}
 
-	ps, err := pubsub.NewFloodSub(ctx, host, optsPS...)
+	ps, err := pubsub.NewGossipSub(ctx, host, optsPS...)
 	if err != nil {
 		return nil, err
 	}
