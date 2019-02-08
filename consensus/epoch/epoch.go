@@ -1,9 +1,7 @@
-package chronology
+package epoch
 
 import (
 	"time"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 // Epoch defines the data needed by the epoch
@@ -26,9 +24,4 @@ func (epc *Epoch) Index() int {
 // GenesisTime returns the creation time of epoch
 func (epc *Epoch) GenesisTime() time.Time {
 	return epc.genesisTime
-}
-
-// Print method just spew to the console the Epoch object in some pretty format
-func (epc *Epoch) Print() {
-	spew.Dump(epc)
 }

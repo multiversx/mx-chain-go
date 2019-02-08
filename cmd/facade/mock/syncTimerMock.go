@@ -8,8 +8,8 @@ import (
 type SyncTimerMock struct {
 	StartSyncCalled            func()
 	ClockOffsetCalled          func() time.Duration
-	FormattedCurrentTimeCalled func(time.Duration) string
-	CurrentTimeCalled          func(time.Duration) time.Time
+	FormattedCurrentTimeCalled func() string
+	CurrentTimeCalled          func() time.Time
 }
 
 // StartSync is a mock implementation for StartSync
@@ -23,11 +23,11 @@ func (s *SyncTimerMock) ClockOffset() time.Duration {
 }
 
 // FormattedCurrentTime is a mock implementation for FormattedCurrentTime
-func (s *SyncTimerMock) FormattedCurrentTime(t time.Duration) string {
-	return s.FormattedCurrentTimeCalled(t)
+func (s *SyncTimerMock) FormattedCurrentTime() string {
+	return s.FormattedCurrentTimeCalled()
 }
 
 // CurrentTime is a mock implementation for CurrentTime
-func (s *SyncTimerMock) CurrentTime(t time.Duration) time.Time {
-	return s.CurrentTimeCalled(t)
+func (s *SyncTimerMock) CurrentTime() time.Time {
+	return s.CurrentTimeCalled()
 }

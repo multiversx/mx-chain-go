@@ -4,31 +4,125 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 )
 
-// doStartRoundJob method is the function which actually does the job of the StartRound subround
-// (it is used as the handler function of the doSubroundJob pointer variable function in Subround struct,
-// from spos package)
-func (wrk *Worker) doStartRoundJob() bool {
-	wrk.BlockBody = nil
-	wrk.Header = nil
-	wrk.SPoS.Data = nil
-	wrk.SPoS.ResetRoundStatus()
-	wrk.SPoS.ResetRoundState()
-	wrk.cleanReceivedMessages()
+type subroundStartRound struct {
+	*subround
 
-	err := wrk.generateNextConsensusGroup()
+	blockChain             *blockchain.BlockChain
+	consensusState         *spos.ConsensusState
+	multiSigner            crypto.MultiSigner
+	rounder                round.Rounder
+	syncTimer              ntp.SyncTimer
+	validatorGroupSelector groupSelectors.ValidatorGroupSelector
+}
+
+// NewSubroundStartRound creates a SubroundStartRound object
+func NewSubroundStartRound(
+	subround *subround,
+	blockChain *blockchain.BlockChain,
+	consensusState *spos.ConsensusState,
+	multiSigner crypto.MultiSigner,
+	rounder round.Rounder,
+	syncTimer ntp.SyncTimer,
+	validatorGroupSelector groupSelectors.ValidatorGroupSelector,
+	extend func(subroundId int),
+) (*subroundStartRound, error) {
+
+	err := checkNewSubroundStartRoundParams(
+		subround,
+		blockChain,
+		consensusState,
+		multiSigner,
+		rounder,
+		syncTimer,
+		validatorGroupSelector,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	srStartRound := subroundStartRound{
+		subround,
+		blockChain,
+		consensusState,
+		multiSigner,
+		rounder,
+		syncTimer,
+		validatorGroupSelector,
+	}
+
+	srStartRound.job = srStartRound.doStartRoundJob
+	srStartRound.check = srStartRound.doStartRoundConsensusCheck
+	srStartRound.extend = extend
+
+	return &srStartRound, nil
+}
+
+func checkNewSubroundStartRoundParams(
+	subround *subround,
+	blockChain *blockchain.BlockChain,
+	consensusState *spos.ConsensusState,
+	multiSigner crypto.MultiSigner,
+	rounder round.Rounder,
+	syncTimer ntp.SyncTimer,
+	validatorGroupSelector groupSelectors.ValidatorGroupSelector,
+) error {
+	if subround == nil {
+		return spos.ErrNilSubround
+	}
+
+	if blockChain == nil {
+		return spos.ErrNilBlockChain
+	}
+
+	if consensusState == nil {
+		return spos.ErrNilConsensusState
+	}
+
+	if multiSigner == nil {
+		return spos.ErrNilMultiSigner
+	}
+
+	if rounder == nil {
+		return spos.ErrNilRounder
+	}
+
+	if syncTimer == nil {
+		return spos.ErrNilSyncTimer
+	}
+
+	if validatorGroupSelector == nil {
+		return spos.ErrNilValidatorGroupSelector
+	}
+
+	return nil
+}
+
+// doStartRoundJob method is the function which actually does the job of the startRound subround
+// (it is used as the handler function of the doSubroundJob pointer variable function in subround struct,
+// from spos package)
+func (sr *subroundStartRound) doStartRoundJob() bool {
+	sr.consensusState.ResetConsensusState()
+
+	err := sr.generateNextConsensusGroup(sr.rounder.Index())
 
 	if err != nil {
 		log.Error(err.Error())
 
-		wrk.SPoS.Chr.SetSelfSubround(-1)
+		sr.consensusState.RoundCanceled = true
 
 		return false
 	}
 
-	leader, err := wrk.SPoS.GetLeader()
+	leader, err := sr.consensusState.GetLeader()
 
 	if err != nil {
 		log.Error(err.Error())
@@ -36,60 +130,60 @@ func (wrk *Worker) doStartRoundJob() bool {
 	}
 
 	msg := ""
-	if leader == wrk.SPoS.SelfPubKey() {
+	if leader == sr.consensusState.SelfPubKey() {
 		msg = " (MY TURN)"
 	}
 
 	log.Info(fmt.Sprintf("%sStep 0: Preparing for this round with leader %s%s\n",
-		wrk.SPoS.Chr.GetFormattedTime(), hex.EncodeToString([]byte(leader)), msg))
+		sr.syncTimer.FormattedCurrentTime(), hex.EncodeToString([]byte(leader)), msg))
 
-	pubKeys := wrk.SPoS.ConsensusGroup()
+	pubKeys := sr.consensusState.ConsensusGroup()
 
-	selfIndex, err := wrk.SPoS.IndexSelfConsensusGroup()
+	selfIndex, err := sr.consensusState.IndexSelfConsensusGroup()
 
 	if err != nil {
 		log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, NOT IN THE CONSENSUS GROUP\n",
-			wrk.SPoS.Chr.GetFormattedTime(), wrk.SPoS.Chr.Round().Index(), getSubroundName(SrStartRound)))
+			sr.syncTimer.FormattedCurrentTime(), sr.rounder.Index(), getSubroundName(SrStartRound)))
 
-		wrk.SPoS.Chr.SetSelfSubround(-1)
+		sr.consensusState.RoundCanceled = true
 
 		return false
 	}
 
-	err = wrk.multiSigner.Reset(pubKeys, uint16(selfIndex))
+	err = sr.multiSigner.Reset(pubKeys, uint16(selfIndex))
 
 	if err != nil {
 		log.Error(err.Error())
 
-		wrk.SPoS.Chr.SetSelfSubround(-1)
+		sr.consensusState.RoundCanceled = true
 
 		return false
 	}
 
-	wrk.SPoS.SetStatus(SrStartRound, spos.SsFinished)
+	sr.consensusState.SetStatus(SrStartRound, spos.SsFinished)
 
 	return true
 }
 
-func (wrk *Worker) generateNextConsensusGroup() error {
+func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error {
 	// TODO: replace random source with last block signature
-	headerHash := wrk.BlockChain.CurrentBlockHeaderHash
-	if wrk.BlockChain.CurrentBlockHeaderHash == nil {
-		headerHash = wrk.BlockChain.GenesisHeaderHash
+	headerHash := sr.blockChain.CurrentBlockHeaderHash
+	if sr.blockChain.CurrentBlockHeaderHash == nil {
+		headerHash = sr.blockChain.GenesisHeaderHash
 	}
 
-	randomSource := fmt.Sprintf("%d-%s", wrk.SPoS.Chr.Round().Index(), toB64(headerHash))
+	randomSource := fmt.Sprintf("%d-%s", roundIndex, toB64(headerHash))
 
 	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
 
-	nextConsensusGroup, err := wrk.SPoS.GetNextConsensusGroup(randomSource, wrk.hasher)
+	nextConsensusGroup, err := sr.consensusState.GetNextConsensusGroup(randomSource, sr.validatorGroupSelector)
 
 	if err != nil {
 		return err
 	}
 
 	log.Info(fmt.Sprintf("consensus group for round %d is formed by next validators:\n",
-		wrk.SPoS.Chr.Round().Index()))
+		roundIndex))
 
 	for i := 0; i < len(nextConsensusGroup); i++ {
 		log.Info(fmt.Sprintf("%s", hex.EncodeToString([]byte(nextConsensusGroup[i]))))
@@ -97,21 +191,12 @@ func (wrk *Worker) generateNextConsensusGroup() error {
 
 	log.Info(fmt.Sprintf("\n"))
 
-	wrk.SPoS.SetConsensusGroup(nextConsensusGroup)
+	sr.consensusState.SetConsensusGroup(nextConsensusGroup)
 
 	return nil
 }
 
-// checkStartRoundConsensus method checks if the consensus is achieved in the start subround.
-func (wrk *Worker) checkStartRoundConsensus() bool {
-	return !wrk.SPoS.Chr.IsCancelled()
-}
-
-// extendStartRound method just call the doStartRoundJob method to be sure that the init will be done
-func (wrk *Worker) extendStartRound() {
-	wrk.SPoS.SetStatus(SrStartRound, spos.SsExtended)
-
-	log.Info(fmt.Sprintf("%sStep 0: Extended the (START_ROUND) subround\n", wrk.SPoS.Chr.GetFormattedTime()))
-
-	wrk.doStartRoundJob()
+// doStartRoundConsensusCheck method checks if the consensus is achieved in the start subround.
+func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
+	return !sr.consensusState.RoundCanceled
 }

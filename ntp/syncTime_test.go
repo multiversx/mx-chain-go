@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	ntp2 "github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	ntp2 "github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/beevik/ntp"
 	"github.com/stretchr/testify/assert"
 )
@@ -116,5 +116,5 @@ func TestCallQuery(t *testing.T) {
 
 	assert.NotEqual(t, queryMock4Call, 0)
 
-	fmt.Printf("Current time: %v\n", st.FormattedCurrentTime(st.ClockOffset()))
+	fmt.Printf("Current time: %v\n", st.FormattedCurrentTime())
 }

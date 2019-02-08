@@ -1,17 +1,19 @@
-package chronology_test
+package round_test
 
 import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/stretchr/testify/assert"
 )
+
+const roundTimeDuration = time.Duration(10 * time.Millisecond)
 
 func TestNewRound_ShouldReturnNotNilRoundObject(t *testing.T) {
 	genesisTime := time.Now()
 
-	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
 
 	assert.NotNil(t, rnd)
 }
@@ -19,7 +21,7 @@ func TestNewRound_ShouldReturnNotNilRoundObject(t *testing.T) {
 func TestUpdateRound_ShouldNotChangeAnything(t *testing.T) {
 	genesisTime := time.Now()
 
-	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
 	oldIndex := rnd.Index()
 	oldTimeStamp := rnd.TimeStamp()
 
@@ -36,7 +38,7 @@ func TestUpdateRound_ShouldNotChangeAnything(t *testing.T) {
 func TestUpdateRound_ShouldAdvanceOneRound(t *testing.T) {
 	genesisTime := time.Now()
 
-	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
 	oldIndex := rnd.Index()
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration))
 	newIndex := rnd.Index()
@@ -47,7 +49,7 @@ func TestUpdateRound_ShouldAdvanceOneRound(t *testing.T) {
 func TestIndex_ShouldReturnFirstIndex(t *testing.T) {
 	genesisTime := time.Now()
 
-	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration/2))
 	index := rnd.Index()
 
@@ -57,7 +59,7 @@ func TestIndex_ShouldReturnFirstIndex(t *testing.T) {
 func TestTimeStamp_ShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 	genesisTime := time.Now()
 
-	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
 	rnd.UpdateRound(genesisTime, genesisTime.Add(roundTimeDuration+roundTimeDuration/2))
 	timeStamp := rnd.TimeStamp()
 
@@ -67,7 +69,7 @@ func TestTimeStamp_ShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 func TestTimeDuration_ShouldReturnTheDurationOfOneRound(t *testing.T) {
 	genesisTime := time.Now()
 
-	rnd := chronology.NewRound(genesisTime, genesisTime, roundTimeDuration)
+	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
 	timeDuration := rnd.TimeDuration()
 
 	assert.Equal(t, roundTimeDuration, timeDuration)

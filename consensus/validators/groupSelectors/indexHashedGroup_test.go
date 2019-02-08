@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,14 +29,14 @@ func TestNewIndexHashedGroupSelector_NilHasherShouldErr(t *testing.T) {
 	ihgs, err := groupSelectors.NewIndexHashedGroupSelector(1, nil)
 
 	assert.Nil(t, ihgs)
-	assert.Equal(t, consensus.ErrNilHasher, err)
+	assert.Equal(t, groupSelectors.ErrNilHasher, err)
 }
 
 func TestNewIndexHashedGroupSelector_InvalidConsensusGroupSizeShouldErr(t *testing.T) {
 	ihgs, err := groupSelectors.NewIndexHashedGroupSelector(0, mock.HasherMock{})
 
 	assert.Nil(t, ihgs)
-	assert.Equal(t, consensus.ErrInvalidConsensusGroupSize, err)
+	assert.Equal(t, groupSelectors.ErrInvalidConsensusGroupSize, err)
 }
 
 func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
@@ -51,13 +51,13 @@ func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 func TestIndexHashedGroupSelector_LoadEligibleListNilListShouldErr(t *testing.T) {
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(10, mock.HasherMock{})
 
-	assert.Equal(t, consensus.ErrNilInputSlice, ihgs.LoadEligibleList(nil))
+	assert.Equal(t, groupSelectors.ErrNilInputSlice, ihgs.LoadEligibleList(nil))
 }
 
 func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(10, mock.HasherMock{})
 
-	list := []consensus.Validator{
+	list := []validators.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1")),
 	}
@@ -72,18 +72,18 @@ func TestIndexHashedGroupSelector_OkValShouldWork(t *testing.T) {
 func TestIndexHashedGroupSelector_ComputeValidatorsGroup0SizeShouldErr(t *testing.T) {
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(1, mock.HasherMock{})
 
-	list := make([]consensus.Validator, 0)
+	list := make([]validators.Validator, 0)
 
 	list, err := ihgs.ComputeValidatorsGroup([]byte("randomness"))
 
 	assert.Nil(t, list)
-	assert.Equal(t, consensus.ErrSmallEligibleListSize, err)
+	assert.Equal(t, groupSelectors.ErrSmallEligibleListSize, err)
 }
 
 func TestIndexHashedGroupSelector_ComputeValidatorsGroupWrongSizeShouldErr(t *testing.T) {
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(10, mock.HasherMock{})
 
-	list := []consensus.Validator{
+	list := []validators.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1")),
 	}
@@ -93,13 +93,13 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupWrongSizeShouldErr(t *te
 	list, err := ihgs.ComputeValidatorsGroup([]byte("randomness"))
 
 	assert.Nil(t, list)
-	assert.Equal(t, consensus.ErrSmallEligibleListSize, err)
+	assert.Equal(t, groupSelectors.ErrSmallEligibleListSize, err)
 }
 
 func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t *testing.T) {
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(2, mock.HasherMock{})
 
-	list := []consensus.Validator{
+	list := []validators.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1")),
 	}
@@ -109,7 +109,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t
 	list2, err := ihgs.ComputeValidatorsGroup(nil)
 
 	assert.Nil(t, list2)
-	assert.Equal(t, consensus.ErrNilRandomness, err)
+	assert.Equal(t, groupSelectors.ErrNilRandomness, err)
 }
 
 //------- functionality tests
@@ -117,7 +117,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupNilRandomnessShouldErr(t
 func TestIndexHashedGroupSelector_ComputeValidatorsGroup1ValidatorShouldReturnSame(t *testing.T) {
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(1, mock.HasherMock{})
 
-	list := []consensus.Validator{
+	list := []validators.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 	}
 
@@ -151,7 +151,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2Validators(t *testi
 
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(2, hasher)
 
-	list := []consensus.Validator{
+	list := []validators.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1")),
 	}
@@ -189,7 +189,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsRevertOrd
 	validator0 := mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0"))
 	validator1 := mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1"))
 
-	list := []consensus.Validator{
+	list := []validators.Validator{
 		validator0,
 		validator1,
 	}
@@ -225,7 +225,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest2ValidatorsSameIndex
 
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(2, hasher)
 
-	list := []consensus.Validator{
+	list := []validators.Validator{
 		mock.NewValidatorMock(big.NewInt(1), 2, []byte("pk0")),
 		mock.NewValidatorMock(big.NewInt(2), 3, []byte("pk1")),
 	}
@@ -283,7 +283,7 @@ func TestIndexHashedGroupSelector_ComputeValidatorsGroupTest6From10ValidatorsSho
 	validator8 := mock.NewValidatorMock(big.NewInt(9), 9, []byte("pk8"))
 	validator9 := mock.NewValidatorMock(big.NewInt(10), 10, []byte("pk9"))
 
-	list := []consensus.Validator{
+	list := []validators.Validator{
 		validator0,
 		validator1,
 		validator2,
@@ -317,7 +317,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 
 	ihgs, _ := groupSelectors.NewIndexHashedGroupSelector(consensusGroupSize, mock.HasherMock{})
 
-	list := make([]consensus.Validator, 0)
+	list := make([]validators.Validator, 0)
 
 	//generate 400 validators
 	for i := 0; i < 400; i++ {

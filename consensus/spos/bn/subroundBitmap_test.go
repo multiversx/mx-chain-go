@@ -2,79 +2,122 @@ package bn_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWorker_SendBitmap(t *testing.T) {
-	cnWorkers := initSposWorkers()
+func initSubroundBitmap() bn.SubroundBitmap {
+	//blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	//bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+	//	return false
+	//}}
 
-	r := cnWorkers[0].DoBitmapJob()
+	consensusState := initConsensusState()
+	//hasherMock := mock.HasherMock{}
+	//marshalizerMock := mock.MarshalizerMock{}
+	//multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	//shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	//validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+
+	ch := make(chan bool, 1)
+
+	sr, _ := bn.NewSubround(
+		int(bn.SrCommitmentHash),
+		int(bn.SrBitmap),
+		int(bn.SrCommitment),
+		int64(40*roundTimeDuration/100),
+		int64(55*roundTimeDuration/100),
+		"(BITMAP)",
+		ch,
+	)
+
+	srBitmap, _ := bn.NewSubroundBitmap(
+		sr,
+		blockProcessorMock,
+		consensusState,
+		rounderMock,
+		syncTimerMock,
+		sendConsensusMessage,
+		extend,
+	)
+
+	return srBitmap
+}
+
+func TestWorker_DoBitmapJob(t *testing.T) {
+	sr := *initSubroundBitmap()
+
+	sr.ConsensusState().Header = &block.Header{}
+
+	r := sr.DoBitmapJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.SetStatus(bn.SrCommitmentHash, spos.SsFinished)
-	cnWorkers[0].SPoS.SetStatus(bn.SrBitmap, spos.SsFinished)
+	sr.ConsensusState().SetStatus(bn.SrCommitmentHash, spos.SsFinished)
+	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsFinished)
 
-	r = cnWorkers[0].DoBitmapJob()
+	r = sr.DoBitmapJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.SetStatus(bn.SrBitmap, spos.SsNotFinished)
-	cnWorkers[0].SPoS.SetJobDone(cnWorkers[0].SPoS.SelfPubKey(), bn.SrBitmap, true)
+	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsNotFinished)
+	sr.ConsensusState().SetJobDone(sr.ConsensusState().SelfPubKey(), bn.SrBitmap, true)
 
-	r = cnWorkers[0].DoBitmapJob()
+	r = sr.DoBitmapJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.SetJobDone(cnWorkers[0].SPoS.SelfPubKey(), bn.SrBitmap, false)
-	cnWorkers[0].SPoS.RoundConsensus.SetSelfPubKey(cnWorkers[0].SPoS.RoundConsensus.ConsensusGroup()[1])
+	sr.ConsensusState().SetJobDone(sr.ConsensusState().SelfPubKey(), bn.SrBitmap, false)
+	sr.ConsensusState().RoundConsensus.SetSelfPubKey(sr.ConsensusState().RoundConsensus.ConsensusGroup()[1])
 
-	r = cnWorkers[0].DoBitmapJob()
+	r = sr.DoBitmapJob()
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.RoundConsensus.SetSelfPubKey(cnWorkers[0].SPoS.RoundConsensus.ConsensusGroup()[0])
-	cnWorkers[0].SPoS.Data = nil
+	sr.ConsensusState().RoundConsensus.SetSelfPubKey(sr.ConsensusState().ConsensusGroup()[0])
+	sr.ConsensusState().Data = nil
 
-	r = cnWorkers[0].DoBitmapJob()
+	r = sr.DoBitmapJob()
 	assert.False(t, r)
 
 	dta := []byte("X")
-	cnWorkers[0].SPoS.Data = dta
-	cnWorkers[0].SPoS.SetJobDone(cnWorkers[0].SPoS.SelfPubKey(), bn.SrCommitmentHash, true)
+	sr.ConsensusState().Data = dta
+	sr.ConsensusState().SetJobDone(sr.ConsensusState().SelfPubKey(), bn.SrCommitmentHash, true)
 
-	r = cnWorkers[0].DoBitmapJob()
+	r = sr.DoBitmapJob()
 	assert.True(t, r)
-	isBitmapJobDone, _ := cnWorkers[0].SPoS.GetJobDone(cnWorkers[0].SPoS.SelfPubKey(), bn.SrBitmap)
+	isBitmapJobDone, _ := sr.ConsensusState().GetJobDone(sr.ConsensusState().SelfPubKey(), bn.SrBitmap)
 	assert.True(t, isBitmapJobDone)
 }
 
 func TestWorker_ReceivedBitmap(t *testing.T) {
-	cnWorkers := initSposWorkers()
-	cnWorkers[0].SPoS.Chr.Round().UpdateRound(time.Now(), time.Now().Add(cnWorkers[0].SPoS.Chr.Round().TimeDuration()))
+	sr := *initSubroundBitmap()
+
+	sr.ConsensusState().Header = &block.Header{}
 
 	cnsDta := spos.NewConsensusData(
-		cnWorkers[0].SPoS.Data,
+		sr.ConsensusState().Data,
 		[]byte("commHash"),
-		[]byte(cnWorkers[0].SPoS.ConsensusGroup()[0]),
+		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtCommitmentHash),
-		cnWorkers[0].SPoS.Chr.RoundTimeStamp(),
+		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 	)
 
-	cnWorkers[0].SPoS.SetStatus(bn.SrBitmap, spos.SsFinished)
+	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsFinished)
 
-	r := cnWorkers[0].ReceivedBitmap(cnsDta)
+	r := sr.ReceivedBitmap(cnsDta)
 	assert.False(t, r)
 
-	cnWorkers[0].SPoS.SetStatus(bn.SrBitmap, spos.SsNotFinished)
+	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsNotFinished)
 
 	bitmap := make([]byte, 3)
 
-	cnGroup := cnWorkers[0].SPoS.ConsensusGroup()
+	cnGroup := sr.ConsensusState().ConsensusGroup()
 
 	// fill ony few of the signers in bitmap
 	for i := 0; i < 5; i++ {
@@ -83,7 +126,7 @@ func TestWorker_ReceivedBitmap(t *testing.T) {
 
 	cnsDta.SubRoundData = bitmap
 
-	r = cnWorkers[0].ReceivedBitmap(cnsDta)
+	r = sr.ReceivedBitmap(cnsDta)
 	assert.False(t, r)
 
 	//fill the rest
@@ -93,196 +136,72 @@ func TestWorker_ReceivedBitmap(t *testing.T) {
 
 	cnsDta.SubRoundData = bitmap
 
-	r = cnWorkers[0].ReceivedBitmap(cnsDta)
+	r = sr.ReceivedBitmap(cnsDta)
 	assert.True(t, r)
 }
 
-func TestWorker_IsValidatorInBitmapGroup(t *testing.T) {
-	sPoS := InitSposWorker()
-
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blockchain.BlockChain{},
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		&mock.BlockProcessorMock{},
-		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
-			return false
-		}},
-		&mock.BelNevMock{},
-		&mock.KeyGenMock{},
-		&mock.PrivateKeyMock{},
-		&mock.PublicKeyMock{})
-
-	GenerateSubRoundHandlers(100*time.Millisecond, sPoS, worker)
-
-	for i := 0; i < len(worker.SPoS.ConsensusGroup()); i++ {
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrBlock, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrCommitmentHash, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrBitmap, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrCommitment, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrSignature, false)
-	}
-
-	assert.False(t, worker.IsValidatorInBitmap(worker.SPoS.SelfPubKey()))
-	worker.SPoS.SetJobDone(worker.SPoS.SelfPubKey(), bn.SrBitmap, true)
-	assert.True(t, worker.IsValidatorInBitmap(worker.SPoS.SelfPubKey()))
-}
-
-func TestWorker_IsSelfInBitmapGroupShoudReturnFalse(t *testing.T) {
-	sPoS := InitSposWorker()
-
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blockchain.BlockChain{},
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		&mock.BlockProcessorMock{},
-		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
-			return false
-		}},
-		&mock.BelNevMock{},
-		&mock.KeyGenMock{},
-		&mock.PrivateKeyMock{},
-		&mock.PublicKeyMock{})
-
-	GenerateSubRoundHandlers(100*time.Millisecond, sPoS, worker)
-
-	for i := 0; i < len(worker.SPoS.ConsensusGroup()); i++ {
-		if worker.SPoS.ConsensusGroup()[i] == worker.SPoS.SelfPubKey() {
-			continue
-		}
-
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrBitmap, true)
-	}
-
-	assert.False(t, worker.IsSelfInBitmap())
-}
-
-func TestWorker_IsSelfInBitmapGroupShoudReturnTrue(t *testing.T) {
-	sPoS := InitSposWorker()
-
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blockchain.BlockChain{},
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		&mock.BlockProcessorMock{},
-		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
-			return false
-		}},
-		&mock.BelNevMock{},
-		&mock.KeyGenMock{},
-		&mock.PrivateKeyMock{},
-		&mock.PublicKeyMock{})
-
-	GenerateSubRoundHandlers(100*time.Millisecond, sPoS, worker)
-
-	worker.SPoS.SetJobDone(worker.SPoS.SelfPubKey(), bn.SrBitmap, true)
-	assert.True(t, worker.IsSelfInBitmap())
-}
-
 func TestWorker_CheckBitmapConsensus(t *testing.T) {
-	sPoS := InitSposWorker()
+	sr := *initSubroundBitmap()
 
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blockchain.BlockChain{},
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		&mock.BlockProcessorMock{},
-		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
-			return false
-		}},
-		&mock.BelNevMock{},
-		&mock.KeyGenMock{},
-		&mock.PrivateKeyMock{},
-		&mock.PublicKeyMock{})
+	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsNotFinished)
 
-	GenerateSubRoundHandlers(100*time.Millisecond, sPoS, worker)
-
-	sPoS.SetStatus(bn.SrBitmap, spos.SsNotFinished)
-
-	ok := worker.CheckBitmapConsensus()
+	ok := sr.DoBitmapConsensusCheck()
 	assert.False(t, ok)
-	assert.Equal(t, spos.SsNotFinished, sPoS.Status(bn.SrBitmap))
+	assert.Equal(t, spos.SsNotFinished, sr.ConsensusState().Status(bn.SrBitmap))
 
-	for i := 1; i < sPoS.Threshold(bn.SrBitmap); i++ {
-		sPoS.SetJobDone(sPoS.RoundConsensus.ConsensusGroup()[i], bn.SrBitmap, true)
+	for i := 1; i < sr.ConsensusState().Threshold(bn.SrBitmap); i++ {
+		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBitmap, true)
 	}
 
-	ok = worker.CheckBitmapConsensus()
+	ok = sr.DoBitmapConsensusCheck()
 	assert.False(t, ok)
-	assert.Equal(t, spos.SsNotFinished, sPoS.Status(bn.SrBitmap))
+	assert.Equal(t, spos.SsNotFinished, sr.ConsensusState().Status(bn.SrBitmap))
 
-	sPoS.SetJobDone(sPoS.RoundConsensus.ConsensusGroup()[0], bn.SrBitmap, true)
+	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrBitmap, true)
 
-	ok = worker.CheckBitmapConsensus()
+	ok = sr.DoBitmapConsensusCheck()
 	assert.True(t, ok)
-	assert.Equal(t, spos.SsFinished, sPoS.Status(bn.SrBitmap))
+	assert.Equal(t, spos.SsFinished, sr.ConsensusState().Status(bn.SrBitmap))
 
-	for i := 1; i < len(sPoS.RoundConsensus.ConsensusGroup()); i++ {
-		sPoS.SetJobDone(sPoS.RoundConsensus.ConsensusGroup()[i], bn.SrBitmap, true)
+	for i := 1; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
+		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBitmap, true)
 	}
 
-	sPoS.SetJobDone(sPoS.RoundConsensus.SelfPubKey(), bn.SrBitmap, false)
+	sr.ConsensusState().SetJobDone(sr.ConsensusState().SelfPubKey(), bn.SrBitmap, false)
 
-	sPoS.SetStatus(bn.SrBitmap, spos.SsNotFinished)
+	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsNotFinished)
 
-	ok = worker.CheckBitmapConsensus()
+	ok = sr.DoBitmapConsensusCheck()
 	assert.True(t, ok)
-	assert.Equal(t, spos.SsFinished, sPoS.Status(bn.SrBitmap))
+	assert.Equal(t, spos.SsFinished, sr.ConsensusState().Status(bn.SrBitmap))
 }
 
 func TestWorker_IsBitmapReceived(t *testing.T) {
-	sPoS := InitSposWorker()
+	sr := *initSubroundBitmap()
 
-	worker, _ := bn.NewWorker(
-		sPoS,
-		&blockchain.BlockChain{},
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		&mock.BlockProcessorMock{},
-		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
-			return false
-		}},
-		&mock.BelNevMock{},
-		&mock.KeyGenMock{},
-		&mock.PrivateKeyMock{},
-		&mock.PublicKeyMock{})
-
-	GenerateSubRoundHandlers(100*time.Millisecond, sPoS, worker)
-
-	for i := 0; i < len(worker.SPoS.ConsensusGroup()); i++ {
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrBlock, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrCommitmentHash, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrBitmap, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrCommitment, false)
-		worker.SPoS.SetJobDone(worker.SPoS.ConsensusGroup()[i], bn.SrSignature, false)
+	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
+		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBlock, false)
+		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrCommitmentHash, false)
+		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBitmap, false)
+		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrCommitment, false)
+		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrSignature, false)
 	}
 
-	ok := worker.IsBitmapReceived(2)
+	ok := sr.IsBitmapReceived(2)
 	assert.False(t, ok)
 
-	worker.SPoS.SetJobDone("1", bn.SrBitmap, true)
-	isJobDone, _ := worker.SPoS.GetJobDone("1", bn.SrBitmap)
+	sr.ConsensusState().SetJobDone("A", bn.SrBitmap, true)
+	isJobDone, _ := sr.ConsensusState().GetJobDone("A", bn.SrBitmap)
 	assert.True(t, isJobDone)
 
-	ok = worker.IsBitmapReceived(2)
+	ok = sr.IsBitmapReceived(2)
 	assert.False(t, ok)
 
-	worker.SPoS.SetJobDone("2", bn.SrBitmap, true)
-	ok = worker.IsBitmapReceived(2)
+	sr.ConsensusState().SetJobDone("B", bn.SrBitmap, true)
+	ok = sr.IsBitmapReceived(2)
 	assert.True(t, ok)
 
-	worker.SPoS.SetJobDone("3", bn.SrBitmap, true)
-	ok = worker.IsBitmapReceived(2)
+	sr.ConsensusState().SetJobDone("C", bn.SrBitmap, true)
+	ok = sr.IsBitmapReceived(2)
 	assert.True(t, ok)
-}
-
-func TestWorker_ExtendBitmap(t *testing.T) {
-	cnWorkers := initSposWorkers()
-
-	cnWorkers[0].ExtendBitmap()
-	assert.Equal(t, spos.SsExtended, cnWorkers[0].SPoS.Status(bn.SrBitmap))
 }

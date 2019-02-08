@@ -2,9 +2,8 @@ package bn_test
 
 import (
 	"testing"
-	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
@@ -12,146 +11,541 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFactory_NewbnFactoryNilShouldFail(t *testing.T) {
+func initFactory() (*bn.Factory, error) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
 
-	bnf, err := bn.NewbnFactory(
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
+		worker,
+	)
+
+	return fct, err
+}
+
+func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		nil,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilBlockChain)
+}
+
+func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		nil,
+		bootstraperMock,
+		chronologyHandlerMock,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilBlockProcessor)
+}
+
+func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		nil,
+		chronologyHandlerMock,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilBlootstraper)
+}
+
+func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		nil,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilChronologyHandler)
+}
+
+func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	chronologyHandlerMock := initChronologyHandlerMock()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		nil,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilConsensusState)
+}
+
+func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		consensusState,
+		nil,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilHasher)
+}
+
+func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		consensusState,
+		hasherMock,
+		nil,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilMarshalizer)
+}
+
+func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		nil,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilMultiSigner)
+}
+
+func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		nil,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilRounder)
+}
+
+func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		nil,
+		syncTimerMock,
+		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilShardCoordinator)
+}
+
+func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		nil,
+		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilSyncTimer)
+}
+
+func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		nil,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilValidatorGroupSelector)
+}
+
+func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	chronologyHandlerMock := initChronologyHandlerMock()
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+
+	fct, err := bn.NewFactory(
+		&blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
 		nil,
 	)
 
-	assert.Nil(t, bnf)
+	assert.Nil(t, fct)
 	assert.Equal(t, err, spos.ErrNilWorker)
 }
 
-func TestFactory_NewbnFactoryShouldWork(t *testing.T) {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+func TestFactory_NewFactoryShouldWork(t *testing.T) {
+	fct, err := initFactory()
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
-	blockChain := &blockchain.BlockChain{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	blkProc := &mock.BlockProcessorMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-	multisig := mock.NewMultiSigner()
-	keyGen := &mock.KeyGenMock{}
-	privKey := &mock.PrivateKeyMock{}
-	pubKey := &mock.PublicKeyMock{}
-
-	wrk, _ := bn.NewWorker(
-		sPoS,
-		blockChain,
-		hasher,
-		marshalizer,
-		blkProc,
-		bootMock,
-		multisig,
-		keyGen,
-		privKey,
-		pubKey,
-	)
-
-	bnf, _ := bn.NewbnFactory(
-		wrk,
-	)
-
-	assert.NotNil(t, bnf)
+	assert.Nil(t, err)
+	assert.NotNil(t, fct)
 }
 
 func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+	fct, _ := initFactory()
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
-	blockChain := &blockchain.BlockChain{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	blkProc := &mock.BlockProcessorMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-	multisig := mock.NewMultiSigner()
-	keyGen := &mock.KeyGenMock{}
-	privKey := &mock.PrivateKeyMock{}
-	pubKey := &mock.PublicKeyMock{}
+	subroundHandlers := 0
 
-	wrk, _ := bn.NewWorker(
-		sPoS,
-		blockChain,
-		hasher,
-		marshalizer,
-		blkProc,
-		bootMock,
-		multisig,
-		keyGen,
-		privKey,
-		pubKey,
-	)
+	chrm := &mock.ChronologyHandlerMock{}
+	chrm.AddSubroundCalled = func(subroundHandler chronology.SubroundHandler) {
+		subroundHandlers++
+	}
 
-	bnf, _ := bn.NewbnFactory(
-		wrk,
-	)
+	fct.SetChronologyHandler(chrm)
 
-	bnf.GenerateSubrounds()
-	assert.Equal(t, 8, len(wrk.SPoS.Chr.SubroundHandlers()))
-}
+	fct.GenerateSubrounds()
 
-func TestWorker_GetMessageTypeName(t *testing.T) {
-	r := bn.GetMessageTypeName(bn.MtBlockBody)
-	assert.Equal(t, "(BLOCK_BODY)", r)
-
-	r = bn.GetMessageTypeName(bn.MtBlockHeader)
-	assert.Equal(t, "(BLOCK_HEADER)", r)
-
-	r = bn.GetMessageTypeName(bn.MtCommitmentHash)
-	assert.Equal(t, "(COMMITMENT_HASH)", r)
-
-	r = bn.GetMessageTypeName(bn.MtBitmap)
-	assert.Equal(t, "(BITMAP)", r)
-
-	r = bn.GetMessageTypeName(bn.MtCommitment)
-	assert.Equal(t, "(COMMITMENT)", r)
-
-	r = bn.GetMessageTypeName(bn.MtSignature)
-	assert.Equal(t, "(SIGNATURE)", r)
-
-	r = bn.GetMessageTypeName(bn.MtUnknown)
-	assert.Equal(t, "(UNKNOWN)", r)
-
-	r = bn.GetMessageTypeName(bn.MessageType(-1))
-	assert.Equal(t, "Undefined message type", r)
-}
-
-func TestWorker_GetSubroundName(t *testing.T) {
-	r := bn.GetSubroundName(bn.SrStartRound)
-	assert.Equal(t, "(START_ROUND)", r)
-
-	r = bn.GetSubroundName(bn.SrBlock)
-	assert.Equal(t, "(BLOCK)", r)
-
-	r = bn.GetSubroundName(bn.SrCommitmentHash)
-	assert.Equal(t, "(COMMITMENT_HASH)", r)
-
-	r = bn.GetSubroundName(bn.SrBitmap)
-	assert.Equal(t, "(BITMAP)", r)
-
-	r = bn.GetSubroundName(bn.SrCommitment)
-	assert.Equal(t, "(COMMITMENT)", r)
-
-	r = bn.GetSubroundName(bn.SrSignature)
-	assert.Equal(t, "(SIGNATURE)", r)
-
-	r = bn.GetSubroundName(bn.SrEndRound)
-	assert.Equal(t, "(END_ROUND)", r)
-
-	r = bn.GetSubroundName(bn.SrAdvance)
-	assert.Equal(t, "(ADVANCE)", r)
-
-	r = bn.GetSubroundName(chronology.SubroundId(-1))
-	assert.Equal(t, "Undefined subround", r)
+	assert.Equal(t, 7, subroundHandlers)
 }

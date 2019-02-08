@@ -1,19 +1,17 @@
-package chronology_test
+package epoch_test
 
 import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/epoch"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEpoch(t *testing.T) {
 	genesisTime := time.Now()
 	index := 0
-	epc := chronology.NewEpoch(index, genesisTime)
-
-	epc.Print()
+	epc := epoch.NewEpoch(index, genesisTime)
 
 	assert.Equal(t, epc.Index(), index)
 	assert.Equal(t, epc.GenesisTime(), genesisTime)

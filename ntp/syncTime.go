@@ -11,14 +11,6 @@ import (
 // totalRequests defines the number of requests made to determine an accurate clock offset
 const totalRequests = 10
 
-// SyncTimer defines an interface for time synchronization
-type SyncTimer interface {
-	StartSync()
-	ClockOffset() time.Duration
-	FormattedCurrentTime(time.Duration) string
-	CurrentTime(time.Duration) time.Time
-}
-
 // syncTime defines an object for time synchronization
 type syncTime struct {
 	mut         sync.RWMutex
@@ -83,8 +75,8 @@ func (s *syncTime) setClockOffset(clockOffset time.Duration) {
 }
 
 // FormattedCurrentTime method gets the formatted current time on which is added a given offset
-func (s *syncTime) FormattedCurrentTime(clockOffset time.Duration) string {
-	return s.formatTime(s.CurrentTime(clockOffset))
+func (s *syncTime) FormattedCurrentTime() string {
+	return s.formatTime(s.CurrentTime())
 }
 
 // formatTime method gets the formatted time from a given time
@@ -95,6 +87,6 @@ func (s *syncTime) formatTime(time time.Time) string {
 }
 
 // CurrentTime method gets the current time on which is added the current offset
-func (s *syncTime) CurrentTime(clockOffset time.Duration) time.Time {
-	return time.Now().Add(clockOffset)
+func (s *syncTime) CurrentTime() time.Time {
+	return time.Now().Add(s.clockOffset)
 }

@@ -23,7 +23,7 @@ type TransactionProcessor interface {
 	SetBalancesToTrie(accBalance map[string]*big.Int) (rootHash []byte, err error)
 }
 
-// BlockProcessor is the main interface for block execution engine
+// blockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
 	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error
 	ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error

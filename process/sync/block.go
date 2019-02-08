@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -28,7 +28,7 @@ type Bootstrap struct {
 	headersNonces data.Uint64Cacher
 	txBlockBodies storage.Cacher
 	blkc          *blockchain.BlockChain
-	round         *chronology.Round
+	rounder       round.Rounder
 	blkExecutor   process.BlockProcessor
 	marshalizer   marshal.Marshalizer
 	forkDetector  process.ForkDetector
@@ -52,13 +52,13 @@ type Bootstrap struct {
 func NewBootstrap(
 	transientDataHolder data.TransientDataHolder,
 	blkc *blockchain.BlockChain,
-	round *chronology.Round,
+	rounder round.Rounder,
 	blkExecutor process.BlockProcessor,
 	waitTime time.Duration,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
 ) (*Bootstrap, error) {
-	err := checkBootstrapNilParameters(transientDataHolder, blkc, round, blkExecutor, marshalizer, forkDetector)
+	err := checkBootstrapNilParameters(transientDataHolder, blkc, rounder, blkExecutor, marshalizer, forkDetector)
 
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func NewBootstrap(
 		headersNonces: transientDataHolder.HeadersNonces(),
 		txBlockBodies: transientDataHolder.TxBlocks(),
 		blkc:          blkc,
-		round:         round,
+		rounder:       rounder,
 		blkExecutor:   blkExecutor,
 		waitTime:      waitTime,
 		marshalizer:   marshalizer,
@@ -95,7 +95,7 @@ func NewBootstrap(
 func checkBootstrapNilParameters(
 	transientDataHolder data.TransientDataHolder,
 	blkc *blockchain.BlockChain,
-	round *chronology.Round,
+	rounder round.Rounder,
 	blkExecutor process.BlockProcessor,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
@@ -120,8 +120,8 @@ func checkBootstrapNilParameters(
 		return process.ErrNilBlockChain
 	}
 
-	if round == nil {
-		return process.ErrNilRound
+	if rounder == nil {
+		return process.ErrNilRounder
 	}
 
 	if blkExecutor == nil {
@@ -311,7 +311,7 @@ func (boot *Bootstrap) SyncBlock() error {
 	}
 
 	haveTime := func() time.Duration {
-		return boot.round.TimeDuration()
+		return boot.rounder.TimeDuration()
 	}
 
 	//TODO remove type assertions and implement a way for block executor to process
@@ -599,14 +599,14 @@ func toB64(buff []byte) string {
 
 // ShouldSync method returns the synch state of the node. If it returns 'true', this means that the node
 // is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
-// synched and it can participate to the consensus, if it is in the jobDone group of this round
+// synched and it can participate to the consensus, if it is in the jobDone group of this rounder
 func (boot *Bootstrap) ShouldSync() bool {
 	if boot.blkc.CurrentBlockHeader == nil {
-		isNotSynchronized := boot.round.Index() > 0
+		isNotSynchronized := boot.rounder.Index() > 0
 		return isNotSynchronized
 	}
 
-	isNotSynchronized := boot.blkc.CurrentBlockHeader.Round+1 < uint32(boot.round.Index())
+	isNotSynchronized := boot.blkc.CurrentBlockHeader.Round+1 < uint32(boot.rounder.Index())
 
 	if isNotSynchronized {
 		return true

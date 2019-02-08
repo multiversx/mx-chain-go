@@ -1,9 +1,9 @@
 package groupSelectors
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 )
 
-func (ihgs *indexHashedGroupSelector) EligibleList() []consensus.Validator {
+func (ihgs *indexHashedGroupSelector) EligibleList() []validators.Validator {
 	return ihgs.eligibleList
 }

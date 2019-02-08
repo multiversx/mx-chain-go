@@ -17,9 +17,6 @@ func TestNewRoundStatus(t *testing.T) {
 	rstatus.SetStatus(bn.SrCommitmentHash, spos.SsFinished)
 	assert.Equal(t, spos.SsFinished, rstatus.Status(bn.SrCommitmentHash))
 
-	rstatus.SetStatus(bn.SrBitmap, spos.SsExtended)
-	assert.Equal(t, spos.SsExtended, rstatus.Status(bn.SrBitmap))
-
 	rstatus.ResetRoundStatus()
 	assert.Equal(t, spos.SsNotFinished, rstatus.Status(bn.SrBitmap))
 }

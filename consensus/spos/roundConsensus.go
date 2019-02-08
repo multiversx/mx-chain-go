@@ -2,8 +2,6 @@ package spos
 
 import (
 	"sync"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
 )
 
 // RoundConsensus defines the data needed by spos to do the consensus in each round
@@ -59,7 +57,7 @@ func (rcns *RoundConsensus) EligibleList() []string {
 	return rcns.eligibleList
 }
 
-// SetConsensusGroup sets the consensus group ID's
+// SetEligibleList sets the consensus group ID's
 func (rcns *RoundConsensus) SetEligibleList(eligibleList []string) {
 	rcns.eligibleList = eligibleList
 }
@@ -106,7 +104,7 @@ func (rcns *RoundConsensus) SetSelfPubKey(selfPubKey string) {
 
 // GetJobDone returns the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
-func (rcns *RoundConsensus) GetJobDone(key string, subroundId chronology.SubroundId) (bool, error) {
+func (rcns *RoundConsensus) GetJobDone(key string, subroundId int) (bool, error) {
 	rcns.mut.RLock()
 	roundState := rcns.validatorRoundStates[key]
 
@@ -121,14 +119,9 @@ func (rcns *RoundConsensus) GetJobDone(key string, subroundId chronology.Subroun
 	return retcode, nil
 }
 
-// GetSelfJobDone returns the self state of the action done in subround given by the subroundId parameter
-func (rcns *RoundConsensus) GetSelfJobDone(subroundId chronology.SubroundId) (bool, error) {
-	return rcns.GetJobDone(rcns.selfPubKey, subroundId)
-}
-
 // SetJobDone set the state of the action done, by the node represented by the key parameter,
 // in subround given by the subroundId parameter
-func (rcns *RoundConsensus) SetJobDone(key string, subroundId chronology.SubroundId, value bool) error {
+func (rcns *RoundConsensus) SetJobDone(key string, subroundId int, value bool) error {
 	rcns.mut.Lock()
 
 	roundState := rcns.validatorRoundStates[key]
@@ -144,9 +137,46 @@ func (rcns *RoundConsensus) SetJobDone(key string, subroundId chronology.Subroun
 	return nil
 }
 
+// GetSelfJobDone returns the self state of the action done in subround given by the subroundId parameter
+func (rcns *RoundConsensus) GetSelfJobDone(subroundId int) (bool, error) {
+	return rcns.GetJobDone(rcns.selfPubKey, subroundId)
+}
+
 // SetSelfJobDone set the self state of the action done in subround given by the subroundId parameter
-func (rcns *RoundConsensus) SetSelfJobDone(subroundId chronology.SubroundId, value bool) error {
+func (rcns *RoundConsensus) SetSelfJobDone(subroundId int, value bool) error {
 	return rcns.SetJobDone(rcns.selfPubKey, subroundId, value)
+}
+
+// IsNodeInConsensusGroup method checks if the node is part of the jobDone group of the current round
+func (rcns *RoundConsensus) IsNodeInConsensusGroup(node string) bool {
+	for i := 0; i < len(rcns.consensusGroup); i++ {
+		if rcns.consensusGroup[i] == node {
+			return true
+		}
+	}
+
+	return false
+}
+
+// ComputeSize method returns the number of messages received from the nodes belonging to the current jobDone group
+// related to this subround
+func (rcns *RoundConsensus) ComputeSize(subroundId int) int {
+	n := 0
+
+	for i := 0; i < len(rcns.consensusGroup); i++ {
+		isJobDone, err := rcns.GetJobDone(rcns.consensusGroup[i], subroundId)
+
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+
+		if isJobDone {
+			n++
+		}
+	}
+
+	return n
 }
 
 // ResetRoundState method resets the state of each node from the current jobDone group, regarding to the
@@ -166,36 +196,4 @@ func (rcns *RoundConsensus) ResetRoundState() {
 
 		rcns.mut.Unlock()
 	}
-}
-
-// IsNodeInConsensusGroup method checks if the node is part of the jobDone group of the current round
-func (rcns *RoundConsensus) IsNodeInConsensusGroup(node string) bool {
-	for i := 0; i < len(rcns.consensusGroup); i++ {
-		if rcns.consensusGroup[i] == node {
-			return true
-		}
-	}
-
-	return false
-}
-
-// ComputeSize method returns the number of messages received from the nodes belonging to the current jobDone group
-// related to this subround
-func (rcns *RoundConsensus) ComputeSize(subroundId chronology.SubroundId) int {
-	n := 0
-
-	for i := 0; i < len(rcns.consensusGroup); i++ {
-		isJobDone, err := rcns.GetJobDone(rcns.consensusGroup[i], subroundId)
-
-		if err != nil {
-			log.Error(err.Error())
-			continue
-		}
-
-		if isJobDone {
-			n++
-		}
-	}
-
-	return n
 }

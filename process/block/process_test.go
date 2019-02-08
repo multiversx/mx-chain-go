@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -1660,9 +1659,6 @@ func TestNode_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-
-	sposWrk := &bn.Worker{}
-	sposWrk.BlockChain = createTestBlockchain()
 
 	marshalizer := &mock.MarshalizerStub{}
 	hasher := &mock.HasherStub{}

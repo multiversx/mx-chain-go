@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,165 +20,86 @@ type topicName string
 
 const (
 	consensusTopic topicName = "cns"
-	// RoundTimeDuration defines the time duration in milliseconds of each round
-	RoundTimeDuration = time.Duration(4000 * time.Millisecond)
 )
 
-func SendMessage(cnsDta *spos.ConsensusData) {
+const roundTimeDuration = time.Duration(100 * time.Millisecond)
+
+func sendMessage(cnsDta *spos.ConsensusData) {
 	fmt.Println(cnsDta.Signature)
 }
 
-func BroadcastMessage(msg []byte) {
+func broadcastMessage(msg []byte) {
 	fmt.Println(msg)
 }
 
-func InitSposWorker() *spos.Spos {
-	eligibleList := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}
-
-	rcns := spos.NewRoundConsensus(
-		eligibleList,
-		9,
-		"2")
-
-	rcns.SetConsensusGroup(eligibleList)
-
-	for i := 0; i < len(rcns.ConsensusGroup()); i++ {
-		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBlock, false)
-		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitmentHash, false)
-		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrBitmap, false)
-		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrCommitment, false)
-		rcns.SetJobDone(rcns.ConsensusGroup()[i], bn.SrSignature, false)
-	}
-
-	rthr := spos.NewRoundThreshold()
-
-	rthr.SetThreshold(bn.SrBlock, 1)
-	rthr.SetThreshold(bn.SrCommitmentHash, 7)
-	rthr.SetThreshold(bn.SrBitmap, 7)
-	rthr.SetThreshold(bn.SrCommitment, 7)
-	rthr.SetThreshold(bn.SrSignature, 7)
-
-	rstatus := spos.NewRoundStatus()
-
-	rstatus.SetStatus(bn.SrBlock, spos.SsFinished)
-	rstatus.SetStatus(bn.SrCommitmentHash, spos.SsFinished)
-	rstatus.SetStatus(bn.SrBitmap, spos.SsFinished)
-	rstatus.SetStatus(bn.SrCommitment, spos.SsFinished)
-	rstatus.SetStatus(bn.SrSignature, spos.SsFinished)
-
-	genesisTime := time.Now()
-	currentTime := genesisTime
-
-	rnd := chronology.NewRound(genesisTime,
-		currentTime,
-		RoundTimeDuration)
-
-	chr := chronology.NewChronology(
-		true,
-		rnd,
-		genesisTime,
-		ntp.NewSyncTime(RoundTimeDuration, nil))
-
-	chr.SetSelfSubround(0)
-
-	sPoS := spos.NewSpos(
-		nil,
-		rcns,
-		rthr,
-		rstatus,
-		chr,
-	)
-
-	return sPoS
+func sendConsensusMessage(cnsDta *spos.ConsensusData) bool {
+	fmt.Println(cnsDta)
+	return true
 }
 
-func initSposWorkers() []*bn.Worker {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	eligibleList := CreateEligibleList(consensusGroupSize)
-	// create instances
-	var conWorkers []*bn.Worker
-
-	for i := 0; i < consensusGroupSize; i++ {
-		sPoS := initSpos(genesisTime, roundDuration, eligibleList, consensusGroupSize, 1)
-		cnWorker := initSposWorker(sPoS)
-		GenerateSubRoundHandlers(roundDuration, sPoS, cnWorker)
-
-		conWorkers = append(conWorkers, cnWorker)
-	}
-
-	return conWorkers
+func broadcastTxBlockBody(txBlockBody *block.TxBlockBody) error {
+	fmt.Println(txBlockBody)
+	return nil
 }
 
-func initSposWorker(sPoS *spos.Spos) *bn.Worker {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
+func broadcastHeader(header *block.Header) error {
+	fmt.Println(header)
+	return nil
+}
+
+func extend(subroundId int) {
+	fmt.Println(subroundId)
+}
+
+func initWorker() *bn.Worker {
+	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
 		return false
 	}}
 
-	cnWorker, _ := bn.NewWorker(
-		sPoS,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
+	consensusState := initConsensusState()
+
+	keyGeneratorMock, privateKeyMock, _ := initSingleSigning()
+	marshalizerMock := mock.MarshalizerMock{}
+	rounderMock := initRounderMock()
+
+	wrk, _ := bn.NewWorker(
+		bootstraperMock,
+		consensusState,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
 	)
 
-	cnWorker.Header = &block.Header{}
-	cnWorker.SendMessage = SendMessage
-	cnWorker.BroadcastBlockBody = BroadcastMessage
-	cnWorker.BroadcastHeader = BroadcastMessage
-	return cnWorker
+	wrk.SendMessage = sendMessage
+	wrk.BroadcastBlockBody = broadcastMessage
+	wrk.BroadcastHeader = broadcastMessage
+
+	return wrk
 }
 
-func initSpos(
-	genesisTime time.Time,
-	roundDuration time.Duration,
-	eligibleList []string,
-	consensusGroupSize int,
-	indexLeader int,
-) *spos.Spos {
+func initConsensusState() *spos.ConsensusState {
+	consensusGroupSize := 9
+	eligibleList := createEligibleList(consensusGroupSize)
+	indexLeader := 1
 
-	chr := initChronology(genesisTime, roundDuration)
 	rcns := initRoundConsensus(eligibleList, consensusGroupSize, indexLeader)
 	rthr := initRoundThreshold(consensusGroupSize)
 	rstatus := initRoundStatus()
-	dta := []byte("X")
 
-	chr.SetSelfSubround(0)
-
-	sPoS := spos.NewSpos(
-		dta,
+	cns := spos.NewConsensusState(
 		rcns,
 		rthr,
 		rstatus,
-		chr,
 	)
 
-	return sPoS
+	cns.Data = []byte("X")
+
+	return cns
 }
 
-func initChronology(genesisTime time.Time, roundDuration time.Duration) *chronology.Chronology {
-	currentTime := genesisTime
-	rnd := chronology.NewRound(genesisTime, currentTime, roundDuration)
-	syncTime := ntp.NewSyncTime(roundDuration, nil)
-
-	chr := chronology.NewChronology(
-		true,
-		rnd,
-		genesisTime,
-		syncTime,
-	)
+func initChronologyHandlerMock() chronology.ChronologyHandler {
+	chr := &mock.ChronologyHandlerMock{}
 
 	return chr
 }
@@ -229,66 +150,66 @@ func initRoundConsensus(eligibleList []string, consensusGroupSize int, indexLead
 	return rcns
 }
 
-func initMockBlockProcessor() *mock.BlockProcessorMock {
-	blockProcMock := &mock.BlockProcessorMock{}
+func initBlockProcessorMock() *mock.BlockProcessorMock {
+	blockProcessorMock := &mock.BlockProcessorMock{}
 
-	blockProcMock.RemoveBlockTxsFromPoolCalled = func(*block.TxBlockBody) error { return nil }
-	blockProcMock.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error) {
+	blockProcessorMock.RemoveBlockTxsFromPoolCalled = func(*block.TxBlockBody) error { return nil }
+	blockProcessorMock.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error) {
 		return &block.TxBlockBody{}, nil
 	}
 
-	blockProcMock.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+	blockProcessorMock.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
 		return nil
 	}
 
-	blockProcMock.RevertAccountStateCalled = func() {}
+	blockProcessorMock.RevertAccountStateCalled = func() {}
 
-	blockProcMock.ProcessAndCommitCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
+	blockProcessorMock.ProcessAndCommitCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 		return nil
 	}
 
-	blockProcMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
+	blockProcessorMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 		return nil
 	}
 
-	blockProcMock.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
+	blockProcessorMock.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
 		return &block.TxBlockBody{}
 	}
 
-	return blockProcMock
+	return blockProcessorMock
 }
 
-func initMultisigner() *mock.BelNevMock {
-	multisigner := mock.NewMultiSigner()
+func initMultiSignerMock() *mock.BelNevMock {
+	multiSigner := mock.NewMultiSigner()
 
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
+	multiSigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
 		return []byte("commSecret"), []byte("commitment"), nil
 	}
 
-	multisigner.VerifySignatureShareMock = func(index uint16, sig []byte, bitmap []byte) error {
+	multiSigner.VerifySignatureShareMock = func(index uint16, sig []byte, bitmap []byte) error {
 		return nil
 	}
 
-	multisigner.VerifyMock = func(bitmap []byte) error {
+	multiSigner.VerifyMock = func(bitmap []byte) error {
 		return nil
 	}
 
-	multisigner.AggregateSigsMock = func(bitmap []byte) ([]byte, error) {
+	multiSigner.AggregateSigsMock = func(bitmap []byte) ([]byte, error) {
 		return []byte("aggregatedSig"), nil
 	}
 
-	multisigner.AggregateCommitmentsMock = func(bitmap []byte) ([]byte, error) {
+	multiSigner.AggregateCommitmentsMock = func(bitmap []byte) ([]byte, error) {
 		return []byte("aggregatedCommitments"), nil
 	}
 
-	multisigner.CreateSignatureShareMock = func(bitmap []byte) ([]byte, error) {
+	multiSigner.CreateSignatureShareMock = func(bitmap []byte) ([]byte, error) {
 		return []byte("partialSign"), nil
 	}
 
-	return multisigner
+	return multiSigner
 }
 
-func initSingleSigning() (*mock.KeyGenMock, *mock.PrivateKeyMock, *mock.PublicKeyMock) {
+func initSingleSigning() (*mock.KeyGeneratorMock, *mock.PrivateKeyMock, *mock.PublicKeyMock) {
 	toByteArrayMock := func() ([]byte, error) {
 		return []byte("byteArray"), nil
 	}
@@ -319,7 +240,7 @@ func initSingleSigning() (*mock.KeyGenMock, *mock.PrivateKeyMock, *mock.PublicKe
 		return pubKeyMock, nil
 	}
 
-	keyGenMock := &mock.KeyGenMock{
+	keyGenMock := &mock.KeyGeneratorMock{
 		PrivateKeyFromByteArrayMock: privKeyFromByteArr,
 		PublicKeyFromByteArrayMock:  pubKeyFromByteArr,
 	}
@@ -327,81 +248,15 @@ func initSingleSigning() (*mock.KeyGenMock, *mock.PrivateKeyMock, *mock.PublicKe
 	return keyGenMock, privKeyMock, pubKeyMock
 }
 
-func getEndTime(chr *chronology.Chronology, subroundID chronology.SubroundId) int64 {
-	handlers := chr.SubroundHandlers()
-
-	endTime := int64(0)
-
-	for i := 0; i < len(handlers); i++ {
-		if handlers[i].Current() == subroundID {
-			endTime = handlers[i].EndTime()
-			break
-		}
+func initRounderMock() *mock.RounderMock {
+	return &mock.RounderMock{
+		RoundIndex:        0,
+		RoundTimeStamp:    time.Unix(0, 0),
+		RoundTimeDuration: roundTimeDuration,
 	}
-
-	return endTime
 }
 
-func GenerateSubRoundHandlers(roundDuration time.Duration, sPoS *spos.Spos, bnWorker *bn.Worker) {
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrStartRound),
-		chronology.SubroundId(bn.SrBlock),
-		int64(roundDuration*5/100),
-		bn.GetSubroundName(bn.SrStartRound),
-		bnWorker.DoStartRoundJob,
-		nil,
-		func() bool { return true }))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrBlock),
-		chronology.SubroundId(bn.SrCommitmentHash),
-		int64(roundDuration*25/100),
-		bn.GetSubroundName(bn.SrBlock),
-		bnWorker.DoBlockJob,
-		bnWorker.ExtendBlock,
-		bnWorker.CheckBlockConsensus))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrCommitmentHash),
-		chronology.SubroundId(bn.SrBitmap),
-		int64(roundDuration*40/100),
-		bn.GetSubroundName(bn.SrCommitmentHash),
-		bnWorker.DoCommitmentHashJob,
-		bnWorker.ExtendCommitmentHash,
-		bnWorker.CheckCommitmentHashConsensus))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrBitmap),
-		chronology.SubroundId(bn.SrCommitment),
-		int64(roundDuration*55/100),
-		bn.GetSubroundName(bn.SrBitmap),
-		bnWorker.DoBitmapJob,
-		bnWorker.ExtendBitmap,
-		bnWorker.CheckBitmapConsensus))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrCommitment),
-		chronology.SubroundId(bn.SrSignature),
-		int64(roundDuration*70/100),
-		bn.GetSubroundName(bn.SrCommitment),
-		bnWorker.DoCommitmentJob,
-		bnWorker.ExtendCommitment,
-		bnWorker.CheckCommitmentConsensus))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrSignature),
-		chronology.SubroundId(bn.SrEndRound),
-		int64(roundDuration*85/100),
-		bn.GetSubroundName(bn.SrSignature),
-		bnWorker.DoSignatureJob,
-		bnWorker.ExtendSignature,
-		bnWorker.CheckSignatureConsensus))
-	sPoS.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(bn.SrEndRound),
-		-1,
-		int64(roundDuration*100/100),
-		bn.GetSubroundName(bn.SrEndRound),
-		bnWorker.DoEndRoundJob,
-		bnWorker.ExtendEndRound,
-		bnWorker.CheckEndRoundConsensus))
-}
-
-func CreateEligibleList(size int) []string {
+func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
 
 	for i := 0; i < size; i++ {
@@ -411,348 +266,898 @@ func CreateEligibleList(size int) []string {
 	return eligibleList
 }
 
-func TestWorker_NewWorkerConsensusNilShouldFail(t *testing.T) {
-	blockChain := &blockchain.BlockChain{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	blkProc := &mock.BlockProcessorMock{}
-	multisig := mock.NewMultiSigner()
-	keyGen := &mock.KeyGenMock{}
-	privKey := &mock.PrivateKeyMock{}
-	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
+	consensusState := initConsensusState()
+	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	rounderMock := initRounderMock()
 
-	consensusGroup, err := bn.NewWorker(
+	wrk, err := bn.NewWorker(
 		nil,
-		blockChain,
-		hasher,
-		marshalizer,
-		blkProc,
-		bootMock,
-		multisig,
-		keyGen,
-		privKey,
-		pubKey,
+		consensusState,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
 	)
 
-	assert.Nil(t, consensusGroup)
-	assert.Equal(t, err, spos.ErrNilConsensus)
+	assert.Nil(t, wrk)
+	assert.Equal(t, err, spos.ErrNilBlootstraper)
 }
 
-func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
+	bootstraperMock := &mock.BootstraperMock{}
+	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	rounderMock := initRounderMock()
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	blkProc := &mock.BlockProcessorMock{}
-	multisig := mock.NewMultiSigner()
-	keyGen := &mock.KeyGenMock{}
-	privKey := &mock.PrivateKeyMock{}
-	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusWorker, err := bn.NewWorker(
-		sPoS,
+	wrk, err := bn.NewWorker(
+		bootstraperMock,
 		nil,
-		hasher,
-		marshalizer,
-		blkProc,
-		bootMock,
-		multisig,
-		keyGen,
-		privKey,
-		pubKey,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
 	)
 
-	assert.Nil(t, consensusWorker)
-	assert.Equal(t, err, spos.ErrNilBlockChain)
+	assert.Nil(t, wrk)
+	assert.Equal(t, err, spos.ErrNilConsensusState)
 }
 
-func TestWorker_NewWorkerHasherNilShouldFail(t *testing.T) {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
+	bootstraperMock := &mock.BootstraperMock{}
+	consensusState := initConsensusState()
+	marshalizerMock := mock.MarshalizerMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	rounderMock := initRounderMock()
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
-	blockChain := &blockchain.BlockChain{}
-	marshalizer := &mock.MarshalizerMock{}
-	blkProc := &mock.BlockProcessorMock{}
-	multisig := mock.NewMultiSigner()
-	keyGen := &mock.KeyGenMock{}
-	privKey := &mock.PrivateKeyMock{}
-	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusWorker, err := bn.NewWorker(
-		sPoS,
-		blockChain,
+	wrk, err := bn.NewWorker(
+		bootstraperMock,
+		consensusState,
 		nil,
-		marshalizer,
-		blkProc,
-		bootMock,
-		multisig,
-		keyGen,
-		privKey,
-		pubKey,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
 	)
 
-	assert.Nil(t, consensusWorker)
-	assert.Equal(t, err, spos.ErrNilHasher)
-}
-
-func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
-	blockChain := &blockchain.BlockChain{}
-	hasher := &mock.HasherMock{}
-	blkProc := &mock.BlockProcessorMock{}
-	multisig := mock.NewMultiSigner()
-	keyGen := &mock.KeyGenMock{}
-	privKey := &mock.PrivateKeyMock{}
-	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusWorker, err := bn.NewWorker(
-		sPoS,
-		blockChain,
-		hasher,
-		nil,
-		blkProc,
-		bootMock,
-		multisig,
-		keyGen,
-		privKey,
-		pubKey,
-	)
-
-	assert.Nil(t, consensusWorker)
-	assert.Equal(t, err, spos.ErrNilMarshalizer)
-}
-
-func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
-	blockChain := &blockchain.BlockChain{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	multisig := mock.NewMultiSigner()
-	keyGen := &mock.KeyGenMock{}
-	privKey := &mock.PrivateKeyMock{}
-	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusWorker, err := bn.NewWorker(
-		sPoS,
-		blockChain,
-		hasher,
-		marshalizer,
-		nil,
-		bootMock,
-		multisig,
-		keyGen,
-		privKey,
-		pubKey,
-	)
-
-	assert.Nil(t, consensusWorker)
-	assert.Equal(t, err, spos.ErrNilBlockProcessor)
-}
-
-func TestWorker_NewWorkerMultisigNilShouldFail(t *testing.T) {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
-	blockChain := &blockchain.BlockChain{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	blkProc := &mock.BlockProcessorMock{}
-	keyGen := &mock.KeyGenMock{}
-	privKey := &mock.PrivateKeyMock{}
-	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusWorker, err := bn.NewWorker(
-		sPoS,
-		blockChain,
-		hasher,
-		marshalizer,
-		blkProc,
-		bootMock,
-		nil,
-		keyGen,
-		privKey,
-		pubKey,
-	)
-
-	assert.Nil(t, consensusWorker)
-	assert.Equal(t, err, spos.ErrNilMultiSigner)
-}
-
-func TestWorker_NewWorkerKeyGenNilShouldFail(t *testing.T) {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
-
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
-	blockChain := &blockchain.BlockChain{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	blkProc := &mock.BlockProcessorMock{}
-	multisig := mock.NewMultiSigner()
-	privKey := &mock.PrivateKeyMock{}
-	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusWorker, err := bn.NewWorker(
-		sPoS,
-		blockChain,
-		hasher,
-		marshalizer,
-		blkProc,
-		bootMock,
-		multisig,
-		nil,
-		privKey,
-		pubKey,
-	)
-
-	assert.Nil(t, consensusWorker)
+	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilKeyGenerator)
 }
 
-func TestWorker_NewWorkerPrivKeyNilShouldFail(t *testing.T) {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
+	bootstraperMock := &mock.BootstraperMock{}
+	consensusState := initConsensusState()
+	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	rounderMock := initRounderMock()
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
-	blockChain := &blockchain.BlockChain{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	blkProc := &mock.BlockProcessorMock{}
-	multisig := mock.NewMultiSigner()
-	keyGen := &mock.KeyGenMock{}
-	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusWorker, err := bn.NewWorker(
-		sPoS,
-		blockChain,
-		hasher,
-		marshalizer,
-		blkProc,
-		bootMock,
-		multisig,
-		keyGen,
+	wrk, err := bn.NewWorker(
+		bootstraperMock,
+		consensusState,
+		keyGeneratorMock,
 		nil,
-		pubKey,
+		privateKeyMock,
+		rounderMock,
 	)
 
-	assert.Nil(t, consensusWorker)
+	assert.Nil(t, wrk)
+	assert.Equal(t, err, spos.ErrNilMarshalizer)
+}
+
+func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
+	bootstraperMock := &mock.BootstraperMock{}
+	consensusState := initConsensusState()
+	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	rounderMock := initRounderMock()
+
+	wrk, err := bn.NewWorker(
+		bootstraperMock,
+		consensusState,
+		keyGeneratorMock,
+		marshalizerMock,
+		nil,
+		rounderMock,
+	)
+
+	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilPrivateKey)
 }
 
-func TestWorker_NewWorkerPubKeyNilFail(t *testing.T) {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
+	bootstraperMock := &mock.BootstraperMock{}
+	consensusState := initConsensusState()
+	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
-	blockChain := &blockchain.BlockChain{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	blkProc := &mock.BlockProcessorMock{}
-	multisig := mock.NewMultiSigner()
-	keyGen := &mock.KeyGenMock{}
-	privKey := &mock.PrivateKeyMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusWorker, err := bn.NewWorker(
-		sPoS,
-		blockChain,
-		hasher,
-		marshalizer,
-		blkProc,
-		bootMock,
-		multisig,
-		keyGen,
-		privKey,
+	wrk, err := bn.NewWorker(
+		bootstraperMock,
+		consensusState,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
 		nil,
 	)
 
-	assert.Nil(t, consensusWorker)
-	assert.Equal(t, err, spos.ErrNilPublicKey)
+	assert.Nil(t, wrk)
+	assert.Equal(t, err, spos.ErrNilRounder)
 }
 
-func TestWorker_NewWorkerShouldNotFail(t *testing.T) {
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	consensusGroup := CreateEligibleList(consensusGroupSize)
+func TestWorker_NewWorkerShouldWork(t *testing.T) {
+	bootstraperMock := &mock.BootstraperMock{}
+	consensusState := initConsensusState()
+	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	rounderMock := initRounderMock()
 
-	sPoS := initSpos(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
-	blockChain := &blockchain.BlockChain{}
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	blkProc := &mock.BlockProcessorMock{}
-	multisig := mock.NewMultiSigner()
-	keyGen := &mock.KeyGenMock{}
-	privKey := &mock.PrivateKeyMock{}
-	pubKey := &mock.PublicKeyMock{}
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusWorker, err := bn.NewWorker(
-		sPoS,
-		blockChain,
-		hasher,
-		marshalizer,
-		blkProc,
-		bootMock,
-		multisig,
-		keyGen,
-		privKey,
-		pubKey,
+	wrk, err := bn.NewWorker(
+		bootstraperMock,
+		consensusState,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
 	)
 
-	assert.NotNil(t, consensusWorker)
+	assert.NotNil(t, wrk)
 	assert.Nil(t, err)
+}
+
+func TestWorker_InitReceivedMessagesShouldInitMap(t *testing.T) {
+	wrk := initWorker()
+
+	wrk.ReceivedMessages = nil
+	wrk.InitReceivedMessages()
+	assert.NotNil(t, wrk.ReceivedMessages[bn.MtBlockBody])
+}
+
+func TestWorker_ShouldDropConsensusMessageShouldReturnTrueWhenMessageReceivedIsFromThePastRounds(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		-1,
+	)
+
+	assert.True(t, wrk.ShouldDropConsensusMessage(cnsDta))
+}
+
+func TestWorker_ShouldDropConsensusMessageShouldReturnFalse(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	assert.False(t, wrk.ShouldDropConsensusMessage(cnsDta))
+}
+
+func TestWorker_ReceivedMessageTxBlockBody(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().SelfPubKey()),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	wrk.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+}
+
+func TestWorker_ReceivedMessageUnknown(t *testing.T) {
+	wrk := initWorker()
+
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
+
+	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
+	message, _ = mock.MarshalizerMock{}.Marshal(hdr)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().SelfPubKey()),
+		[]byte("sig"),
+		int(bn.MtUnknown),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	wrk.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+}
+
+func TestWorker_ReceivedMessageShouldReturnWhenIsCanceled(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().SelfPubKey()),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	wrk.ConsensusState().RoundCanceled = true
+	wrk.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages[bn.MtBlockBody]))
+}
+
+func TestWorker_ReceivedMessageShouldReturnWhenDataReceivedIsInvalid(t *testing.T) {
+	wrk := initWorker()
+
+	wrk.ReceivedMessage(string(consensusTopic), nil, nil)
+	assert.Equal(t, 0, len(wrk.ReceivedMessages[bn.MtBlockBody]))
+}
+
+func TestWorker_ReceivedMessageShouldReturnWhenNodeIsNotInTheConsensusGroup(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte("X"),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	wrk.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages[bn.MtBlockBody]))
+}
+
+func TestWorker_ReceivedMessageShouldReturnWhenShouldDropMessage(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().SelfPubKey()),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		-1,
+	)
+
+	wrk.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages[bn.MtBlockBody]))
+}
+
+func TestWorker_ReceivedMessageShouldReturnWhenReceivedMessageIsFromSelf(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().SelfPubKey()),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	wrk.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages[bn.MtBlockBody]))
+}
+
+func TestWorker_ReceivedMessageShouldReturnWhenSignatureIsInvalid(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		nil,
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	wrk.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages[bn.MtBlockBody]))
+}
+
+func TestWorker_ReceivedMessageShouldSendReceivedMesageOnChannel(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	wrk.ReceivedMessage(string(consensusTopic), cnsDta, nil)
+
+	time.Sleep(10 * time.Millisecond)
+
+	assert.Equal(t, 1, len(wrk.ReceivedMessages[bn.MtBlockBody]))
+}
+
+func TestWorker_CheckSignatureShouldReturnErrNilConsensusData(t *testing.T) {
+	wrk := initWorker()
+
+	err := wrk.CheckSignature(nil)
+	assert.Equal(t, spos.ErrNilConsensusData, err)
+}
+
+func TestWorker_CheckSignatureShouldReturnErrNilPublicKey(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		nil,
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	err := wrk.CheckSignature(cnsDta)
+
+	assert.Equal(t, spos.ErrNilPublicKey, err)
+}
+
+func TestWorker_CheckSignatureShouldReturnErrNilSignature(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		nil,
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	err := wrk.CheckSignature(cnsDta)
+
+	assert.Equal(t, spos.ErrNilSignature, err)
+}
+
+func TestWorker_CheckSignatureShouldReturnPublicKeyFromByteArrayErr(t *testing.T) {
+	wrk := initWorker()
+
+	keyGeneratorMock, _, _ := initSingleSigning()
+
+	err := errors.New("error public key from byte array")
+	keyGeneratorMock.PublicKeyFromByteArrayMock = func(b []byte) (crypto.PublicKey, error) {
+		return nil, err
+	}
+
+	wrk.SetKeyGenerator(keyGeneratorMock)
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	err2 := wrk.CheckSignature(cnsDta)
+
+	assert.Equal(t, err, err2)
+}
+
+func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	err := wrk.CheckSignature(cnsDta)
+
+	assert.Nil(t, err)
+}
+
+func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	wrk.InitReceivedMessages()
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	msgType := bn.MessageType(cnsDta.MsgType)
+
+	cnsDataList := wrk.ReceivedMessages[msgType]
+	cnsDataList = append(cnsDataList, nil)
+	wrk.ReceivedMessages[msgType] = cnsDataList
+
+	wrk.ExecuteMessage(cnsDataList)
+
+	assert.Nil(t, wrk.ReceivedMessages[msgType][0])
+}
+
+func TestWorker_ExecuteMessagesShouldNotExecuteWhenShouldDropConsensusMessage(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	wrk.InitReceivedMessages()
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		-1,
+	)
+
+	msgType := bn.MessageType(cnsDta.MsgType)
+
+	cnsDataList := wrk.ReceivedMessages[msgType]
+	cnsDataList = append(cnsDataList, cnsDta)
+	wrk.ReceivedMessages[msgType] = cnsDataList
+
+	wrk.ExecuteMessage(cnsDataList)
+
+	assert.NotNil(t, wrk.ReceivedMessages[msgType][0])
+}
+
+func TestWorker_ExecuteMessagesShouldNotExecuteWhenShouldSync(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	wrk.InitReceivedMessages()
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	msgType := bn.MessageType(cnsDta.MsgType)
+
+	cnsDataList := wrk.ReceivedMessages[msgType]
+	cnsDataList = append(cnsDataList, cnsDta)
+	wrk.ReceivedMessages[msgType] = cnsDataList
+
+	wrk.ExecuteMessage(cnsDataList)
+
+	assert.NotNil(t, wrk.ReceivedMessages[msgType][0])
+}
+
+func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinished(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	wrk.InitReceivedMessages()
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	msgType := bn.MessageType(cnsDta.MsgType)
+
+	cnsDataList := wrk.ReceivedMessages[msgType]
+	cnsDataList = append(cnsDataList, cnsDta)
+	wrk.ReceivedMessages[msgType] = cnsDataList
+
+	wrk.ExecuteMessage(cnsDataList)
+
+	assert.NotNil(t, wrk.ReceivedMessages[msgType][0])
+}
+
+func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFinished(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	wrk.InitReceivedMessages()
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockHeader),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	msgType := bn.MessageType(cnsDta.MsgType)
+
+	cnsDataList := wrk.ReceivedMessages[msgType]
+	cnsDataList = append(cnsDataList, cnsDta)
+	wrk.ReceivedMessages[msgType] = cnsDataList
+
+	wrk.ExecuteMessage(cnsDataList)
+
+	assert.NotNil(t, wrk.ReceivedMessages[msgType][0])
+}
+
+func TestWorker_ExecuteCommitmentHashMessagesShouldNotExecuteWhenBlockIsNotFinished(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	wrk.InitReceivedMessages()
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtCommitmentHash),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	msgType := bn.MessageType(cnsDta.MsgType)
+
+	cnsDataList := wrk.ReceivedMessages[msgType]
+	cnsDataList = append(cnsDataList, cnsDta)
+	wrk.ReceivedMessages[msgType] = cnsDataList
+
+	wrk.ExecuteMessage(cnsDataList)
+
+	assert.NotNil(t, wrk.ReceivedMessages[msgType][0])
+}
+
+func TestWorker_ExecuteBitmapMessagesShouldNotExecuteWhenBlockIsNotFinished(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	wrk.InitReceivedMessages()
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBitmap),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	msgType := bn.MessageType(cnsDta.MsgType)
+
+	cnsDataList := wrk.ReceivedMessages[msgType]
+	cnsDataList = append(cnsDataList, cnsDta)
+	wrk.ReceivedMessages[msgType] = cnsDataList
+
+	wrk.ExecuteMessage(cnsDataList)
+
+	assert.NotNil(t, wrk.ReceivedMessages[msgType][0])
+}
+
+func TestWorker_ExecuteCommitmentMessagesShouldNotExecuteWhenBitmapIsNotFinished(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	wrk.InitReceivedMessages()
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtCommitment),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	msgType := bn.MessageType(cnsDta.MsgType)
+
+	cnsDataList := wrk.ReceivedMessages[msgType]
+	cnsDataList = append(cnsDataList, cnsDta)
+	wrk.ReceivedMessages[msgType] = cnsDataList
+
+	wrk.ExecuteMessage(cnsDataList)
+
+	assert.NotNil(t, wrk.ReceivedMessages[msgType][0])
+}
+
+func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBitmapIsNotFinished(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	wrk.InitReceivedMessages()
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtSignature),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	msgType := bn.MessageType(cnsDta.MsgType)
+
+	cnsDataList := wrk.ReceivedMessages[msgType]
+	cnsDataList = append(cnsDataList, cnsDta)
+	wrk.ReceivedMessages[msgType] = cnsDataList
+
+	wrk.ExecuteMessage(cnsDataList)
+
+	assert.NotNil(t, wrk.ReceivedMessages[msgType][0])
+}
+
+func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
+	wrk := initWorker()
+
+	blk := &block.TxBlockBody{}
+	message, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	wrk.InitReceivedMessages()
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBlockBody),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	msgType := bn.MessageType(cnsDta.MsgType)
+
+	cnsDataList := wrk.ReceivedMessages[msgType]
+	cnsDataList = append(cnsDataList, cnsDta)
+	wrk.ReceivedMessages[msgType] = cnsDataList
+
+	wrk.ConsensusState().SetStatus(bn.SrStartRound, spos.SsFinished)
+
+	wrk.ExecuteMessage(cnsDataList)
+
+	assert.Nil(t, wrk.ReceivedMessages[msgType][0])
+}
+
+func TestWorker_CheckChannelsShouldWork(t *testing.T) {
+	wrk := initWorker()
+
+	wrk.ReceivedMessagesCalls[bn.MtBlockHeader] = func(cnsDta *spos.ConsensusData) bool {
+		wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bn.SrBlock, true)
+		return true
+	}
+
+	rnd := wrk.Rounder()
+	roundDuration := rnd.TimeDuration()
+	rnd.UpdateRound(time.Now(), time.Now().Add(roundDuration))
+
+	cnsGroup := wrk.ConsensusState().ConsensusGroup()
+	rcns := wrk.ConsensusState().RoundConsensus
+
+	// BLOCK HEADER
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
+
+	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
+
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
+
+	cnsDta := spos.NewConsensusData(
+		nil,
+		message,
+		[]byte(cnsGroup[0]),
+		[]byte("sig"),
+		int(bn.MtBlockHeader),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		1,
+	)
+
+	wrk.ConsensusState().Header = hdr
+
+	wrk.ExecuteMessageChannel <- cnsDta
+	time.Sleep(10 * time.Millisecond)
+
+	cnsDta.MsgType = int(bn.MtBlockHeader)
+	wrk.ExecuteMessageChannel <- cnsDta
+	time.Sleep(10 * time.Millisecond)
+
+	isBlockJobDone, err := rcns.GetJobDone(cnsGroup[0], bn.SrBlock)
+
+	assert.Nil(t, err)
+	assert.True(t, isBlockJobDone)
+}
+
+func TestWorker_SendConsensusMessage(t *testing.T) {
+	wrk := initWorker()
+
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
+
+	message, err := mock.MarshalizerMock{}.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
+
+	message, err = mock.MarshalizerMock{}.Marshal(hdr)
+
+	assert.Nil(t, err)
+
+	cnsDta := spos.NewConsensusData(
+		message,
+		nil,
+		[]byte(wrk.ConsensusState().SelfPubKey()),
+		[]byte("sig"),
+		int(bn.MtBlockHeader),
+		uint64(wrk.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	wrk.SendMessage = nil
+	r := wrk.SendConsensusMessage(cnsDta)
+	assert.False(t, r)
+
+	wrk.SendMessage = sendMessage
+	r = wrk.SendConsensusMessage(cnsDta)
+
+	assert.True(t, r)
+}
+
+func TestWorker_GetMessageTypeName(t *testing.T) {
+	r := bn.GetMessageTypeName(bn.MtBlockBody)
+	assert.Equal(t, "(BLOCK_BODY)", r)
+
+	r = bn.GetMessageTypeName(bn.MtBlockHeader)
+	assert.Equal(t, "(BLOCK_HEADER)", r)
+
+	r = bn.GetMessageTypeName(bn.MtCommitmentHash)
+	assert.Equal(t, "(COMMITMENT_HASH)", r)
+
+	r = bn.GetMessageTypeName(bn.MtBitmap)
+	assert.Equal(t, "(BITMAP)", r)
+
+	r = bn.GetMessageTypeName(bn.MtCommitment)
+	assert.Equal(t, "(COMMITMENT)", r)
+
+	r = bn.GetMessageTypeName(bn.MtSignature)
+	assert.Equal(t, "(SIGNATURE)", r)
+
+	r = bn.GetMessageTypeName(bn.MtUnknown)
+	assert.Equal(t, "(UNKNOWN)", r)
+
+	r = bn.GetMessageTypeName(bn.MessageType(-1))
+	assert.Equal(t, "Undefined message type", r)
+}
+
+func TestWorker_GetSubroundName(t *testing.T) {
+	r := bn.GetSubroundName(bn.SrStartRound)
+	assert.Equal(t, "(START_ROUND)", r)
+
+	r = bn.GetSubroundName(bn.SrBlock)
+	assert.Equal(t, "(BLOCK)", r)
+
+	r = bn.GetSubroundName(bn.SrCommitmentHash)
+	assert.Equal(t, "(COMMITMENT_HASH)", r)
+
+	r = bn.GetSubroundName(bn.SrBitmap)
+	assert.Equal(t, "(BITMAP)", r)
+
+	r = bn.GetSubroundName(bn.SrCommitment)
+	assert.Equal(t, "(COMMITMENT)", r)
+
+	r = bn.GetSubroundName(bn.SrSignature)
+	assert.Equal(t, "(SIGNATURE)", r)
+
+	r = bn.GetSubroundName(bn.SrEndRound)
+	assert.Equal(t, "(END_ROUND)", r)
+
+	r = bn.GetSubroundName(-1)
+	assert.Equal(t, "Undefined subround", r)
 }

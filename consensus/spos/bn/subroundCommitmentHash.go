@@ -1,22 +1,119 @@
 package bn
 
 import (
-	"bytes"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 )
 
-// doCommitmentHashJob method is the function which is actually used to send the commitment hash for the received
+type subroundCommitmentHash struct {
+	*subround
+
+	consensusState *spos.ConsensusState
+	hasher         hashing.Hasher
+	multiSigner    crypto.MultiSigner
+	rounder        round.Rounder
+	syncTimer      ntp.SyncTimer
+
+	sendConsensusMessage func(*spos.ConsensusData) bool
+}
+
+// NewSubroundCommitmentHash creates a subroundCommitmentHash object
+func NewSubroundCommitmentHash(
+	subround *subround,
+	consensusState *spos.ConsensusState,
+	hasher hashing.Hasher,
+	multiSigner crypto.MultiSigner,
+	rounder round.Rounder,
+	syncTimer ntp.SyncTimer,
+	sendConsensusMessage func(*spos.ConsensusData) bool,
+	extend func(subroundId int),
+) (*subroundCommitmentHash, error) {
+
+	err := checkNewSubroundCommitmentHashParams(
+		subround,
+		consensusState,
+		hasher,
+		multiSigner,
+		rounder,
+		syncTimer,
+		sendConsensusMessage,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	srCommitmentHash := subroundCommitmentHash{
+		subround,
+		consensusState,
+		hasher,
+		multiSigner,
+		rounder,
+		syncTimer,
+		sendConsensusMessage,
+	}
+
+	srCommitmentHash.job = srCommitmentHash.doCommitmentHashJob
+	srCommitmentHash.check = srCommitmentHash.doCommitmentHashConsensusCheck
+	srCommitmentHash.extend = extend
+
+	return &srCommitmentHash, nil
+}
+
+func checkNewSubroundCommitmentHashParams(
+	subround *subround,
+	consensusState *spos.ConsensusState,
+	hasher hashing.Hasher,
+	multiSigner crypto.MultiSigner,
+	rounder round.Rounder,
+	syncTimer ntp.SyncTimer,
+	sendConsensusMessage func(*spos.ConsensusData) bool,
+) error {
+	if subround == nil {
+		return spos.ErrNilSubround
+	}
+
+	if consensusState == nil {
+		return spos.ErrNilConsensusState
+	}
+
+	if hasher == nil {
+		return spos.ErrNilHasher
+	}
+
+	if multiSigner == nil {
+		return spos.ErrNilMultiSigner
+	}
+
+	if rounder == nil {
+		return spos.ErrNilRounder
+	}
+
+	if syncTimer == nil {
+		return spos.ErrNilSyncTimer
+	}
+
+	if sendConsensusMessage == nil {
+		return spos.ErrNilSendConsensusMessageFunction
+	}
+
+	return nil
+}
+
+// doCommitmentHashJob method is the function which is actually used to job the commitment hash for the received
 // block from the leader in the CommitmentHash subround (it is used as the handler function of the doSubroundJob
-// pointer variable function in Subround struct, from spos package)
-func (wrk *Worker) doCommitmentHashJob() bool {
-	if !wrk.canDoCommitmentHashJob() {
+// pointer variable function in subround struct, from spos package)
+func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
+	if !sr.consensusState.CanDoSubroundJob(SrCommitmentHash) {
 		return false
 	}
 
-	commitmentHash, err := wrk.genCommitmentHash()
+	commitmentHash, err := sr.genCommitmentHash()
 
 	if err != nil {
 		log.Error(err.Error())
@@ -24,63 +121,24 @@ func (wrk *Worker) doCommitmentHashJob() bool {
 	}
 
 	dta := spos.NewConsensusData(
-		wrk.SPoS.Data,
+		sr.consensusState.Data,
 		commitmentHash,
-		[]byte(wrk.SPoS.SelfPubKey()),
+		[]byte(sr.consensusState.SelfPubKey()),
 		nil,
 		int(MtCommitmentHash),
-		wrk.SPoS.Chr.RoundTimeStamp(),
-		wrk.SPoS.Chr.Round().Index())
+		uint64(sr.rounder.TimeStamp().Unix()),
+		sr.rounder.Index())
 
-	if !wrk.sendConsensusMessage(dta) {
+	if !sr.sendConsensusMessage(dta) {
 		return false
 	}
 
-	log.Info(fmt.Sprintf("%sStep 2: Sending commitment hash\n", wrk.SPoS.Chr.GetFormattedTime()))
+	log.Info(fmt.Sprintf("%sStep 2: Sending commitment hash\n", sr.syncTimer.FormattedCurrentTime()))
 
-	err = wrk.SPoS.SetSelfJobDone(SrCommitmentHash, true)
+	err = sr.consensusState.SetSelfJobDone(SrCommitmentHash, true)
 
 	if err != nil {
 		log.Error(err.Error())
-		return false
-	}
-
-	return true
-}
-
-func (wrk *Worker) canDoCommitmentHashJob() bool {
-	isLastRoundUnfinished := wrk.SPoS.Status(SrBlock) != spos.SsFinished
-
-	if isLastRoundUnfinished {
-		if !wrk.doBlockJob() {
-			return false
-		}
-
-		if !wrk.checkBlockConsensus() {
-			return false
-		}
-	}
-
-	isCurrentRoundFinished := wrk.SPoS.Status(SrCommitmentHash) == spos.SsFinished
-
-	if isCurrentRoundFinished {
-		return false
-	}
-
-	isJobDone, err := wrk.SPoS.GetSelfJobDone(SrCommitmentHash)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	if isJobDone { // has been commitment hash already sent?
-		return false
-	}
-
-	isConsensusDataNotSet := wrk.SPoS.Data == nil
-
-	if isConsensusDataNotSet {
 		return false
 	}
 
@@ -90,37 +148,45 @@ func (wrk *Worker) canDoCommitmentHashJob() bool {
 // receivedCommitmentHash method is called when a commitment hash is received through the commitment hash
 // channel. If the commitment hash is valid, than the jobDone map coresponding to the node which sent it,
 // is set on true for the subround ComitmentHash
-func (wrk *Worker) receivedCommitmentHash(cnsDta *spos.ConsensusData) bool {
-	if !wrk.canReceiveCommitmentHash(cnsDta) {
+func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *spos.ConsensusData) bool {
+	node := string(cnsDta.PubKey)
+
+	if sr.consensusState.IsConsensusDataNotSet() {
+		return false
+	}
+
+	if !sr.consensusState.IsNodeInConsensusGroup(node) { // is NOT this node in the consensus group?
+		return false
+	}
+
+	if !sr.consensusState.CanProcessReceivedMessage(cnsDta, sr.rounder.Index(), SrCommitmentHash) {
 		return false
 	}
 
 	// if this node is leader in this round and it already received 2/3 + 1 of commitment hashes
 	// it will ignore any others received later
-	if wrk.SPoS.IsSelfLeaderInCurrentRound() {
-		threshold := wrk.SPoS.Threshold(SrCommitmentHash)
-		if wrk.isCommitmentHashReceived(threshold) {
+	if sr.consensusState.IsSelfLeaderInCurrentRound() {
+		threshold := sr.consensusState.Threshold(SrCommitmentHash)
+		if sr.isCommitmentHashReceived(threshold) {
 			return false
 		}
 	}
 
-	node := string(cnsDta.PubKey)
-
-	index, err := wrk.SPoS.ConsensusGroupIndex(node)
+	index, err := sr.consensusState.ConsensusGroupIndex(node)
 
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	err = wrk.multiSigner.AddCommitmentHash(uint16(index), cnsDta.SubRoundData)
+	err = sr.multiSigner.AddCommitmentHash(uint16(index), cnsDta.SubRoundData)
 
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	err = wrk.SPoS.RoundConsensus.SetJobDone(node, SrCommitmentHash, true)
+	err = sr.consensusState.SetJobDone(node, SrCommitmentHash, true)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -130,88 +196,34 @@ func (wrk *Worker) receivedCommitmentHash(cnsDta *spos.ConsensusData) bool {
 	return true
 }
 
-func (wrk *Worker) canReceiveCommitmentHash(cnsDta *spos.ConsensusData) bool {
-	node := string(cnsDta.PubKey)
-
-	isMessageReceivedFromItself := node == wrk.SPoS.SelfPubKey()
-
-	if isMessageReceivedFromItself {
+// doCommitmentHashConsensusCheck method checks if the consensus in the <COMMITMENT_HASH> subround is achieved
+func (sr *subroundCommitmentHash) doCommitmentHashConsensusCheck() bool {
+	if sr.consensusState.RoundCanceled {
 		return false
 	}
 
-	isCurrentRoundFinished := wrk.SPoS.Status(SrCommitmentHash) == spos.SsFinished
-
-	if isCurrentRoundFinished {
-		return false
-	}
-
-	if !wrk.SPoS.IsNodeInConsensusGroup(node) { // isn't node in the consensus group?
-		return false
-	}
-
-	isConsensusDataNotSet := wrk.SPoS.Data == nil
-
-	if isConsensusDataNotSet {
-		return false
-	}
-
-	isMessageReceivedForAnotherRound := !bytes.Equal(cnsDta.BlockHeaderHash, wrk.SPoS.Data)
-
-	if isMessageReceivedForAnotherRound {
-		return false
-	}
-
-	isMessageReceivedTooLate := wrk.SPoS.Chr.GetSubround() > chronology.SubroundId(SrEndRound)
-
-	if isMessageReceivedTooLate {
-		return false
-	}
-
-	isJobDone, err := wrk.SPoS.RoundConsensus.GetJobDone(node, SrCommitmentHash)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	if isJobDone {
-		return false
-	}
-
-	return true
-}
-
-// checkCommitmentHashConsensus method checks if the consensus in the <COMMITMENT_HASH> subround is achieved
-func (wrk *Worker) checkCommitmentHashConsensus() bool {
-	wrk.mutCheckConsensus.Lock()
-	defer wrk.mutCheckConsensus.Unlock()
-
-	if wrk.SPoS.Chr.IsCancelled() {
-		return false
-	}
-
-	if wrk.SPoS.Status(SrCommitmentHash) == spos.SsFinished {
+	if sr.consensusState.Status(SrCommitmentHash) == spos.SsFinished {
 		return true
 	}
 
-	threshold := wrk.SPoS.Threshold(SrCommitmentHash)
+	threshold := sr.consensusState.Threshold(SrCommitmentHash)
 
-	if !wrk.SPoS.IsSelfLeaderInCurrentRound() {
-		threshold = len(wrk.SPoS.ConsensusGroup())
+	if !sr.consensusState.IsSelfLeaderInCurrentRound() {
+		threshold = len(sr.consensusState.ConsensusGroup())
 	}
 
-	if wrk.isCommitmentHashReceived(threshold) {
-		wrk.printCommitmentHashCM() // only for printing commitment hash consensus messages
-		wrk.SPoS.SetStatus(SrCommitmentHash, spos.SsFinished)
+	if sr.isCommitmentHashReceived(threshold) {
+		sr.printCommitmentHashCM() // only for printing commitment hash consensus messages
+		sr.consensusState.SetStatus(SrCommitmentHash, spos.SsFinished)
 
 		return true
 	}
 
-	threshold = wrk.SPoS.Threshold(SrBitmap)
+	threshold = sr.consensusState.Threshold(SrBitmap)
 
-	if wrk.commitmentHashesCollected(threshold) {
-		wrk.printCommitmentHashCM() // only for printing commitment hash consensus messages
-		wrk.SPoS.SetStatus(SrCommitmentHash, spos.SsFinished)
+	if sr.commitmentHashesCollected(threshold) {
+		sr.printCommitmentHashCM() // only for printing commitment hash consensus messages
+		sr.consensusState.SetStatus(SrCommitmentHash, spos.SsFinished)
 
 		return true
 	}
@@ -221,12 +233,12 @@ func (wrk *Worker) checkCommitmentHashConsensus() bool {
 
 // isCommitmentHashReceived method checks if the commitment hashes from the nodes, belonging to the current jobDone
 // group, was received in current round
-func (wrk *Worker) isCommitmentHashReceived(threshold int) bool {
+func (sr *subroundCommitmentHash) isCommitmentHashReceived(threshold int) bool {
 	n := 0
 
-	for i := 0; i < len(wrk.SPoS.ConsensusGroup()); i++ {
-		node := wrk.SPoS.ConsensusGroup()[i]
-		isJobDone, err := wrk.SPoS.GetJobDone(node, SrCommitmentHash)
+	for i := 0; i < len(sr.consensusState.ConsensusGroup()); i++ {
+		node := sr.consensusState.ConsensusGroup()[i]
+		isJobDone, err := sr.consensusState.GetJobDone(node, SrCommitmentHash)
 
 		if err != nil {
 			log.Error(err.Error())
@@ -243,12 +255,12 @@ func (wrk *Worker) isCommitmentHashReceived(threshold int) bool {
 
 // commitmentHashesCollected method checks if the commitment hashes received from the nodes, belonging to the current
 // jobDone group, are covering the bitmap received from the leader in the current round
-func (wrk *Worker) commitmentHashesCollected(threshold int) bool {
+func (sr *subroundCommitmentHash) commitmentHashesCollected(threshold int) bool {
 	n := 0
 
-	for i := 0; i < len(wrk.SPoS.ConsensusGroup()); i++ {
-		node := wrk.SPoS.ConsensusGroup()[i]
-		isBitmapJobDone, err := wrk.SPoS.GetJobDone(node, SrBitmap)
+	for i := 0; i < len(sr.consensusState.ConsensusGroup()); i++ {
+		node := sr.consensusState.ConsensusGroup()[i]
+		isBitmapJobDone, err := sr.consensusState.GetJobDone(node, SrBitmap)
 
 		if err != nil {
 			log.Error(err.Error())
@@ -256,7 +268,7 @@ func (wrk *Worker) commitmentHashesCollected(threshold int) bool {
 		}
 
 		if isBitmapJobDone {
-			isCommHashJobDone, err := wrk.SPoS.GetJobDone(node, SrCommitmentHash)
+			isCommHashJobDone, err := sr.consensusState.GetJobDone(node, SrCommitmentHash)
 
 			if err != nil {
 				log.Error(err.Error())
@@ -273,46 +285,34 @@ func (wrk *Worker) commitmentHashesCollected(threshold int) bool {
 	return n >= threshold
 }
 
-// extendCommitmentHash method put this subround in the extended mode and print some messages
-func (wrk *Worker) extendCommitmentHash() {
-	wrk.SPoS.SetStatus(SrCommitmentHash, spos.SsExtended)
-
-	if wrk.SPoS.ComputeSize(SrCommitmentHash) < wrk.SPoS.Threshold(SrCommitmentHash) {
-		log.Info(fmt.Sprintf("%sStep 2: Extended the (COMMITMENT_HASH) subround. Got only %d from %d commitment hashes which are not enough\n",
-			wrk.SPoS.Chr.GetFormattedTime(), wrk.SPoS.ComputeSize(SrCommitmentHash), len(wrk.SPoS.ConsensusGroup())))
-	} else {
-		log.Info(fmt.Sprintf("%sStep 2: Extended the (COMMITMENT_HASH) subround\n", wrk.SPoS.Chr.GetFormattedTime()))
-	}
-}
-
-func (wrk *Worker) genCommitmentHash() ([]byte, error) {
-	commitmentSecret, commitment, err := wrk.multiSigner.CreateCommitment()
+func (sr *subroundCommitmentHash) genCommitmentHash() ([]byte, error) {
+	commitmentSecret, commitment, err := sr.multiSigner.CreateCommitment()
 
 	if err != nil {
 		return nil, err
 	}
 
-	selfIndex, err := wrk.SPoS.IndexSelfConsensusGroup()
+	selfIndex, err := sr.consensusState.IndexSelfConsensusGroup()
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = wrk.multiSigner.AddCommitment(uint16(selfIndex), commitment)
+	err = sr.multiSigner.AddCommitment(uint16(selfIndex), commitment)
 
 	if err != nil {
 		return nil, err
 	}
 
-	err = wrk.multiSigner.SetCommitmentSecret(commitmentSecret)
+	err = sr.multiSigner.SetCommitmentSecret(commitmentSecret)
 
 	if err != nil {
 		return nil, err
 	}
 
-	commitmentHash := wrk.hasher.Compute(string(commitment))
+	commitmentHash := sr.hasher.Compute(string(commitment))
 
-	err = wrk.multiSigner.AddCommitmentHash(uint16(selfIndex), commitmentHash)
+	err = sr.multiSigner.AddCommitmentHash(uint16(selfIndex), commitmentHash)
 
 	if err != nil {
 		return nil, err
@@ -322,16 +322,16 @@ func (wrk *Worker) genCommitmentHash() ([]byte, error) {
 }
 
 // printCommitmentHashCM method prints the (COMMITMENT_HASH) subround consensus messages
-func (wrk *Worker) printCommitmentHashCM() {
-	n := wrk.SPoS.ComputeSize(SrCommitmentHash)
+func (sr *subroundCommitmentHash) printCommitmentHashCM() {
+	n := sr.consensusState.ComputeSize(SrCommitmentHash)
 
-	if n == len(wrk.SPoS.ConsensusGroup()) {
+	if n == len(sr.consensusState.ConsensusGroup()) {
 		log.Info(fmt.Sprintf("%sStep 2: Received all (%d from %d) commitment hashes\n",
-			wrk.SPoS.Chr.GetFormattedTime(), n, len(wrk.SPoS.ConsensusGroup())))
+			sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
 	} else {
 		log.Info(fmt.Sprintf("%sStep 2: Received %d from %d commitment hashes, which are enough\n",
-			wrk.SPoS.Chr.GetFormattedTime(), n, len(wrk.SPoS.ConsensusGroup())))
+			sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
 	}
 
-	log.Info(fmt.Sprintf("%sStep 2: Subround (COMMITMENT_HASH) has been finished\n", wrk.SPoS.Chr.GetFormattedTime()))
+	log.Info(fmt.Sprintf("%sStep 2: subround (COMMITMENT_HASH) has been finished\n", sr.syncTimer.FormattedCurrentTime()))
 }

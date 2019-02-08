@@ -1,11 +1,11 @@
-package chronology
+package round
 
 import (
 	"math"
 	"time"
 )
 
-// Round defines the data needed by the round
+// Round defines the data needed by the rounder
 type Round struct {
 	index        int32
 	timeStamp    time.Time
@@ -25,30 +25,30 @@ func NewRound(genesisRoundTimeStamp time.Time, timeStamp time.Time, roundTimeDur
 	return &rnd
 }
 
-// UpdateRound updates the index and the time stamp of the round depending of the genesis time and the current time
+// UpdateRound updates the index and the time stamp of the rounder depending of the genesis time and the current time
 // given
-func (rnd *Round) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
-	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
+func (rnd *Round) UpdateRound(genesisTimeStamp time.Time, timeStamp time.Time) {
+	delta := timeStamp.Sub(genesisTimeStamp).Nanoseconds()
 
 	index := int32(math.Floor(float64(delta) / float64(rnd.timeDuration.Nanoseconds())))
 
 	if rnd.index != index {
 		rnd.index = index
-		rnd.timeStamp = genesisRoundTimeStamp.Add(time.Duration(int64(index) * rnd.timeDuration.Nanoseconds()))
+		rnd.timeStamp = genesisTimeStamp.Add(time.Duration(int64(index) * rnd.timeDuration.Nanoseconds()))
 	}
 }
 
-// Index returns the index of the round in current epoch
+// Index returns the index of the rounder in current epoch
 func (rnd *Round) Index() int32 {
 	return rnd.index
 }
 
-// TimeStamp returns the time stamp of the round
+// TimeStamp returns the time stamp of the rounder
 func (rnd *Round) TimeStamp() time.Time {
 	return rnd.timeStamp
 }
 
-// TimeDuration returns the duration of the round
+// TimeDuration returns the duration of the rounder
 func (rnd *Round) TimeDuration() time.Duration {
 	return rnd.timeDuration
 }

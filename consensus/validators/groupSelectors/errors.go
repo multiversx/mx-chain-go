@@ -1,14 +1,8 @@
-package consensus
+package groupSelectors
 
 import (
 	"github.com/pkg/errors"
 )
-
-// ErrNegativeStake signals that the stake is negative
-var ErrNegativeStake = errors.New("negative stake")
-
-// ErrNilPubKey signals that the public key is nil
-var ErrNilPubKey = errors.New("nil public key")
 
 // ErrNilInputSlice signals that a nil slice has been provided
 var ErrNilInputSlice = errors.New("nil input slice")

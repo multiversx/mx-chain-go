@@ -8,10 +8,12 @@ import (
 	gosync "sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -22,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
@@ -178,40 +181,77 @@ func (n *Node) CreateShardedStores() error {
 func (n *Node) StartConsensus() error {
 
 	genesisHeader, genesisHeaderHash, err := n.createGenesisBlock()
+
 	if err != nil {
 		return err
 	}
+
 	n.blkc.GenesisBlock = genesisHeader
 	n.blkc.GenesisHeaderHash = genesisHeaderHash
 
-	round := n.createRound()
-	chr := n.createChronology(round)
+	rounder := n.createRounder()
 
-	boot, err := n.createBootstrap(round)
-
-	if err != nil {
-		return err
-	}
-
-	rndc := n.createRoundConsensus()
-	rth := n.createRoundThreshold()
-	rnds := n.createRoundStatus()
-	sps := n.createSpos(rndc, rth, rnds, chr)
-	wrk, err := n.createSposWorker(sps, boot)
+	chronologyHandler, err := n.createChronologyHandler(rounder)
 
 	if err != nil {
 		return err
 	}
 
-	topic := n.createConsensusTopic(wrk)
+	bootstraper, err := n.createBootstraper(rounder)
+
+	if err != nil {
+		return err
+	}
+
+	consensusState, err := n.createConsensusState()
+
+	if err != nil {
+		return err
+	}
+
+	worker, err := n.createWorker(consensusState, bootstraper, rounder)
+
+	if err != nil {
+		return err
+	}
+
+	validatorGroupSelector, err := n.createValidatorGroupSelector()
+
+	if err != nil {
+		return err
+	}
+
+	fct, err := bn.NewFactory(
+		n.blkc,
+		n.blockProcessor,
+		bootstraper,
+		chronologyHandler,
+		consensusState,
+		n.hasher,
+		n.marshalizer,
+		n.multisig,
+		rounder,
+		n.shardCoordinator,
+		n.syncer,
+		validatorGroupSelector,
+		worker,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	fct.GenerateSubrounds()
+
+	topic := n.createConsensusTopic(worker)
 
 	err = n.messenger.AddTopic(topic)
 
 	if err != nil {
-		log.Debug(fmt.Sprintf(err.Error()))
+		return err
 	}
 
-	go wrk.SPoS.Chr.StartRounds()
+	go chronologyHandler.StartRounds()
 
 	return nil
 }
@@ -340,29 +380,32 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	return nil
 }
 
-// createRound method creates a round object
-func (n *Node) createRound() *chronology.Round {
-	rnd := chronology.NewRound(
+// createRounder method creates a round object
+func (n *Node) createRounder() round.Rounder {
+	rnd := round.NewRound(
 		n.genesisTime,
-		n.syncer.CurrentTime(n.syncer.ClockOffset()),
+		n.syncer.CurrentTime(),
 		time.Millisecond*time.Duration(n.roundDuration))
 
 	return rnd
 }
 
-// createChronology method creates a chronology object
-func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology {
-	chr := chronology.NewChronology(
-		!n.elasticSubrounds,
-		round,
+// createChronologyHandler method creates a chronology object
+func (n *Node) createChronologyHandler(rounder round.Rounder) (chronology.ChronologyHandler, error) {
+	chr, err := chronology.NewChronology(
 		n.genesisTime,
+		rounder,
 		n.syncer)
 
-	return chr
+	if err != nil {
+		return nil, err
+	}
+
+	return chr, nil
 }
 
-func (n *Node) createBootstrap(round *chronology.Round) (*sync.Bootstrap, error) {
-	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, round, n.blockProcessor, WaitTime, n.marshalizer, n.forkDetector)
+func (n *Node) createBootstraper(rounder round.Rounder) (process.Bootstraper, error) {
+	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, rounder, n.blockProcessor, WaitTime, n.marshalizer, n.forkDetector)
 
 	if err != nil {
 		return nil, err
@@ -413,77 +456,110 @@ func cerateRequestTxBodyHandler(gbbrRes *block2.GenericBlockBodyResolver) func(h
 }
 
 // createRoundConsensus method creates a RoundConsensus object
-func (n *Node) createRoundConsensus() *spos.RoundConsensus {
-
+func (n *Node) createRoundConsensus() (*spos.RoundConsensus, error) {
 	selfId, err := n.publicKey.ToByteArray()
 
 	if err != nil {
-		log.Error(err.Error())
-		return nil
+		return nil, err
 	}
 
-	rndc := spos.NewRoundConsensus(
+	roundConsensus := spos.NewRoundConsensus(
 		n.initialNodesPubkeys,
 		n.consensusGroupSize,
 		string(selfId))
 
-	rndc.ResetRoundState()
+	roundConsensus.ResetRoundState()
 
-	return rndc
+	return roundConsensus, nil
 }
 
 // createRoundThreshold method creates a RoundThreshold object
 func (n *Node) createRoundThreshold() *spos.RoundThreshold {
-	rth := spos.NewRoundThreshold()
-	return rth
+	roundThreshold := spos.NewRoundThreshold()
+	return roundThreshold
 }
 
 // createRoundStatus method creates a RoundStatus object
 func (n *Node) createRoundStatus() *spos.RoundStatus {
-	rnds := spos.NewRoundStatus()
-
-	rnds.ResetRoundStatus()
-
-	return rnds
+	roundStatus := spos.NewRoundStatus()
+	roundStatus.ResetRoundStatus()
+	return roundStatus
 }
 
-// createSpos method creates a Spos object
-func (n *Node) createSpos(rndc *spos.RoundConsensus, rth *spos.RoundThreshold, rnds *spos.RoundStatus, chr *chronology.Chronology,
-) *spos.Spos {
-	cns := spos.NewSpos(
-		nil,
-		rndc,
-		rth,
-		rnds,
-		chr)
+// createConsensusState method creates a ConsensusState object
+func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
+	roundConsensus, err := n.createRoundConsensus()
 
-	return cns
+	if err != nil {
+		return nil, err
+	}
+
+	roundThreshold := n.createRoundThreshold()
+	roundStatus := n.createRoundStatus()
+
+	consensusState := spos.NewConsensusState(
+		roundConsensus,
+		roundThreshold,
+		roundStatus)
+
+	return consensusState, nil
 }
 
-// createSposWorker method creates a ConsensusWorker object
-func (n *Node) createSposWorker(spos *spos.Spos, boot *sync.Bootstrap) (*bn.Worker, error) {
-	wrk, err := bn.NewWorker(
-		spos,
-		n.blkc,
-		n.hasher,
-		n.marshalizer,
-		n.blockProcessor,
-		boot,
-		n.multisig,
+// createWorker method creates a ConsensusWorker object
+func (n *Node) createWorker(
+	consensusState *spos.ConsensusState,
+	bootstraper process.Bootstraper,
+	rounder round.Rounder,
+) (*bn.Worker, error) {
+
+	worker, err := bn.NewWorker(
+		bootstraper,
+		consensusState,
 		n.singleSignKeyGen,
+		n.marshalizer,
 		n.privateKey,
-		n.publicKey,
+		rounder,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	wrk.SendMessage = n.sendMessage
-	wrk.BroadcastBlockBody = n.broadcastBlockBody
-	wrk.BroadcastHeader = n.broadcastHeader
+	worker.SendMessage = n.sendMessage
+	worker.BroadcastBlockBody = n.broadcastBlockBody
+	worker.BroadcastHeader = n.broadcastHeader
 
-	return wrk, nil
+	return worker, nil
+}
+
+// createValidatorGroupSelector creates a index hashed group selector object
+func (n *Node) createValidatorGroupSelector() (groupSelectors.ValidatorGroupSelector, error) {
+	validatorGroupSelector, err := groupSelectors.NewIndexHashedGroupSelector(n.consensusGroupSize, n.hasher)
+
+	if err != nil {
+		return nil, err
+	}
+
+	validatorsList := make([]validators.Validator, 0)
+
+	//for i := 0; i < len(n.initialNodesPubkeys); i++ {
+	for i := 0; i < n.consensusGroupSize; i++ {
+		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[i]))
+
+		if err != nil {
+			return nil, err
+		}
+
+		validatorsList = append(validatorsList, validator)
+	}
+
+	err = validatorGroupSelector.LoadEligibleList(validatorsList)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return validatorGroupSelector, nil
 }
 
 // createConsensusTopic creates a consensus topic for node
