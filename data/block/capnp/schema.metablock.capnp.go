@@ -12,9 +12,9 @@ import (
 
 type PeerDataCapn C.Struct
 
-func NewPeerDataCapn(s *C.Segment) PeerDataCapn      { return PeerDataCapn(s.NewStruct(24, 1)) }
-func NewRootPeerDataCapn(s *C.Segment) PeerDataCapn  { return PeerDataCapn(s.NewRootStruct(24, 1)) }
-func AutoNewPeerDataCapn(s *C.Segment) PeerDataCapn  { return PeerDataCapn(s.NewStructAR(24, 1)) }
+func NewPeerDataCapn(s *C.Segment) PeerDataCapn      { return PeerDataCapn(s.NewStruct(16, 2)) }
+func NewRootPeerDataCapn(s *C.Segment) PeerDataCapn  { return PeerDataCapn(s.NewRootStruct(16, 2)) }
+func AutoNewPeerDataCapn(s *C.Segment) PeerDataCapn  { return PeerDataCapn(s.NewStructAR(16, 2)) }
 func ReadRootPeerDataCapn(s *C.Segment) PeerDataCapn { return PeerDataCapn(s.Root(0).ToStruct()) }
 func (s PeerDataCapn) PublicKey() []byte             { return C.Struct(s).GetObject(0).ToData() }
 func (s PeerDataCapn) SetPublicKey(v []byte)         { C.Struct(s).SetObject(0, s.Segment.NewData(v)) }
@@ -22,8 +22,8 @@ func (s PeerDataCapn) Action() uint8                 { return C.Struct(s).Get8(0
 func (s PeerDataCapn) SetAction(v uint8)             { C.Struct(s).Set8(0, v) }
 func (s PeerDataCapn) Timestamp() uint64             { return C.Struct(s).Get64(8) }
 func (s PeerDataCapn) SetTimestamp(v uint64)         { C.Struct(s).Set64(8, v) }
-func (s PeerDataCapn) Value() uint64                 { return C.Struct(s).Get64(16) }
-func (s PeerDataCapn) SetValue(v uint64)             { C.Struct(s).Set64(16, v) }
+func (s PeerDataCapn) Value() []byte                 { return C.Struct(s).GetObject(1).ToData() }
+func (s PeerDataCapn) SetValue(v []byte)             { C.Struct(s).SetObject(1, s.Segment.NewData(v)) }
 func (s PeerDataCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -214,7 +214,7 @@ func (s PeerDataCapn) MarshalCapLit() ([]byte, error) {
 type PeerDataCapn_List C.PointerList
 
 func NewPeerDataCapnList(s *C.Segment, sz int) PeerDataCapn_List {
-	return PeerDataCapn_List(s.NewCompositeList(24, 1, sz))
+	return PeerDataCapn_List(s.NewCompositeList(16, 2, sz))
 }
 func (s PeerDataCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s PeerDataCapn_List) At(i int) PeerDataCapn {
