@@ -1,7 +1,6 @@
 package blockchain_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -86,13 +85,6 @@ func failOnPanic(t *testing.T) {
 	if r := recover(); r != nil {
 		t.Errorf("the code entered panic")
 	}
-}
-
-func logError(err error) {
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	return
 }
 
 func TestNewBlockchainNilBadBlockCacheShouldError(t *testing.T) {
@@ -211,279 +203,53 @@ func TestNewBlockchainConfigOK(t *testing.T) {
 	assert.NotNil(t, b)
 }
 
-func TestHasFalseOnWrongUnitType(t *testing.T) {
-	blockChainUnits := createUnits()
-
-	b, err := blockchain.NewBlockChain(
-		blockChainUnits.txBadBlockCache,
-		blockChainUnits.txUnit,
-		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
-		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	defer func() {
-		err := b.Destroy()
-		assert.Nil(t, err, "Unable to destroy blockchain")
-	}()
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.NotNil(t, b, "expected valid blockchain but got nil")
-
-	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
-	logError(err)
-	has, err := b.Has(100, []byte("key1"))
-
-	assert.NotNil(t, err, "expected error but got nil")
-	assert.False(t, has, "not expected to find key")
-}
-
-func TestHasOk(t *testing.T) {
-	blockChainUnits := createUnits()
-
-	b, err := blockchain.NewBlockChain(
-		blockChainUnits.txBadBlockCache,
-		blockChainUnits.txUnit,
-		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
-		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	defer func() {
-		err := b.Destroy()
-		assert.Nil(t, err, "Unable to destroy blockchain")
-	}()
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.NotNil(t, b, "expected valid blockchain but got nil")
-
-	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
-	logError(err)
-	has, err := b.Has(blockchain.TxBlockBodyUnit, []byte("key1"))
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.False(t, has, "not expected to find key")
-
-	err = b.Put(blockchain.TxBlockBodyUnit, []byte("key1"), []byte("bbb"))
-	logError(err)
-	has, err = b.Has(blockchain.BlockHeaderUnit, []byte("key1"))
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.False(t, has, "not expected to find key")
-
-	err = b.Put(blockchain.BlockHeaderUnit, []byte("key1"), []byte("ccc"))
-	logError(err)
-	has, err = b.Has(blockchain.TransactionUnit, []byte("key1"))
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.True(t, has, "expected to find key")
-
-	has, err = b.Has(blockchain.TxBlockBodyUnit, []byte("key1"))
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.True(t, has, "expected to find key")
-
-	has, err = b.Has(blockchain.BlockHeaderUnit, []byte("key1"))
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.True(t, has, "expected to find key")
-}
-
-func TestGetErrOnWrongUnitType(t *testing.T) {
-	blockChainUnits := createUnits()
-
-	b, err := blockchain.NewBlockChain(
-		blockChainUnits.txBadBlockCache,
-		blockChainUnits.txUnit,
-		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
-		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	defer func() {
-		err := b.Destroy()
-		assert.Nil(t, err, "Unable to destroy blockchain")
-	}()
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.NotNil(t, b, "expected valid blockchain but got nil")
-
-	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
-	logError(err)
-	val, err := b.Get(100, []byte("key1"))
-
-	assert.Equal(t, err, blockchain.ErrNoSuchStorageUnit)
-	assert.Nil(t, val, "not expected to find key")
-}
-
-func TestGetOk(t *testing.T) {
-	blockChainUnits := createUnits()
-
-	b, err := blockchain.NewBlockChain(
-		blockChainUnits.txBadBlockCache,
-		blockChainUnits.txUnit,
-		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
-		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	defer func() {
-		err := b.Destroy()
-		assert.Nil(t, err, "Unable to destroy blockchain")
-	}()
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.NotNil(t, b, "expected valid blockchain but got nil")
-
-	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
-	logError(err)
-	val, err := b.Get(blockchain.TxBlockBodyUnit, []byte("key1"))
-
-	assert.NotNil(t, err, "expected error but got nil")
-	assert.Nil(t, val, "not expected to find key")
-
-	val, err = b.Get(blockchain.TransactionUnit, []byte("key1"))
-
-	assert.Nil(t, err, "expected error but got nil")
-	assert.NotNil(t, val, "expected to find key")
-	assert.Equal(t, val, []byte("aaa"))
-}
-
-func TestPutErrOnWrongUnitType(t *testing.T) {
-	blockChainUnits := createUnits()
-
-	b, err := blockchain.NewBlockChain(
-		blockChainUnits.txBadBlockCache,
-		blockChainUnits.txUnit,
-		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
-		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	defer func() {
-		err := b.Destroy()
-		assert.Nil(t, err, "Unable to destroy blockchain")
-	}()
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.NotNil(t, b, "expected valid blockchain but got nil")
-
-	err = b.Put(100, []byte("key1"), []byte("aaa"))
-
-	assert.NotNil(t, err, "expected error but got nil")
-}
-
-func TestPutOk(t *testing.T) {
-	blockChainUnits := createUnits()
-
-	b, err := blockchain.NewBlockChain(
-		blockChainUnits.txBadBlockCache,
-		blockChainUnits.txUnit,
-		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
-		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	defer func() {
-		err := b.Destroy()
-		assert.Nil(t, err, "Unable to destroy blockchain")
-	}()
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.NotNil(t, b, "expected valid blockchain but got nil")
-
-	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("aaa"))
-	assert.Nil(t, err, "expected error but got nil")
-
-	val, err := b.Get(blockchain.TransactionUnit, []byte("key1"))
-
-	assert.Nil(t, err, "expected error but got nil")
-	assert.NotNil(t, val, "expected to find key")
-	assert.Equal(t, val, []byte("aaa"))
-}
-
-func TestGetAllErrOnWrongUnitType(t *testing.T) {
-	blockChainUnits := createUnits()
-
-	b, err := blockchain.NewBlockChain(
-		blockChainUnits.txBadBlockCache,
-		blockChainUnits.txUnit,
-		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
-		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	defer func() {
-		err := b.Destroy()
-		assert.Nil(t, err, "Unable to destroy blockchain")
-	}()
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.NotNil(t, b, "expected valid blockchain but got nil")
-
-	keys := [][]byte{[]byte("key1"), []byte("key2")}
-
-	m, err := b.GetAll(100, keys)
-
-	assert.NotNil(t, err, "expected error but got nil")
-	assert.Nil(t, m, "expected nil map but got %s", m)
-}
-
-func TestGetAllOk(t *testing.T) {
-	blockChainUnits := createUnits()
-
-	b, err := blockchain.NewBlockChain(
-		blockChainUnits.txBadBlockCache,
-		blockChainUnits.txUnit,
-		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
-		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	defer func() {
-		err := b.Destroy()
-		assert.Nil(t, err, "Unable to destroy blockchain")
-	}()
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-	assert.NotNil(t, b, "expected valid blockchain but got nil")
-
-	err = b.Put(blockchain.TransactionUnit, []byte("key1"), []byte("value1"))
-	logError(err)
-	err = b.Put(blockchain.TransactionUnit, []byte("key2"), []byte("value2"))
-	logError(err)
-
-	keys := [][]byte{[]byte("key1"), []byte("key2")}
-
-	m, err := b.GetAll(blockchain.TransactionUnit, keys)
-
-	assert.Nil(t, err, "no expected error but got %s", err)
-	assert.NotNil(t, m, "expected valid map but got nil")
-	assert.Equal(t, len(m), 2)
-}
-
-func TestBlockChain_GetStorer(t *testing.T) {
-	t.Parallel()
-
+func TestBlockChain_IsBadBlock(t *testing.T) {
+	badBlocksStub := &mock.CacherStub{}
 	txUnit := &mock.StorerStub{}
 	txBlockUnit := &mock.StorerStub{}
 	stateBlockUnit := &mock.StorerStub{}
 	peerBlockUnit := &mock.StorerStub{}
 	headerUnit := &mock.StorerStub{}
 
-	blkc, _ := blockchain.NewBlockChain(
-		&mock.CacherStub{},
+	hasReturns := true
+	badBlocksStub.HasCalled = func(key []byte) bool {
+		return hasReturns
+	}
+
+	b, _ := blockchain.NewBlockChain(
+		badBlocksStub,
 		txUnit,
 		txBlockUnit,
 		stateBlockUnit,
 		peerBlockUnit,
-		headerUnit,
-	)
+		headerUnit)
 
-	assert.True(t, txUnit == blkc.GetStorer(blockchain.TransactionUnit))
-	assert.True(t, txBlockUnit == blkc.GetStorer(blockchain.TxBlockBodyUnit))
-	assert.True(t, stateBlockUnit == blkc.GetStorer(blockchain.StateBlockBodyUnit))
-	assert.True(t, peerBlockUnit == blkc.GetStorer(blockchain.PeerBlockBodyUnit))
-	assert.True(t, headerUnit == blkc.GetStorer(blockchain.BlockHeaderUnit))
+	isBadBlock := b.IsBadBlock([]byte("test"))
+	assert.True(t, isBadBlock)
+}
 
+func TestBlockChain_PutBadBlock(t *testing.T) {
+	badBlocksStub := &mock.CacherStub{}
+	txUnit := &mock.StorerStub{}
+	txBlockUnit := &mock.StorerStub{}
+	stateBlockUnit := &mock.StorerStub{}
+	peerBlockUnit := &mock.StorerStub{}
+	headerUnit := &mock.StorerStub{}
+
+	putCalled := false
+	badBlocksStub.PutCalled = func(key []byte, value interface{}) bool {
+		putCalled = true
+		return true
+	}
+
+	b, _ := blockchain.NewBlockChain(
+		badBlocksStub,
+		txUnit,
+		txBlockUnit,
+		stateBlockUnit,
+		peerBlockUnit,
+		headerUnit)
+
+	b.PutBadBlock([]byte("test"))
+	assert.True(t, putCalled)
 }
