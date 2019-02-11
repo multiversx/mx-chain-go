@@ -11,7 +11,6 @@ import (
 func TestNewMetachain_ErrorsWhenBlockUnitIsNil(t *testing.T) {
 	metachain, err := blockchain.NewMetachain(nil)
 	assert.Nil(t, metachain)
-	assert.NotNil(t, err)
 	assert.Equal(t, blockchain.ErrMetaBlockUnitNil, err)
 }
 

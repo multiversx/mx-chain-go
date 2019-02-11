@@ -14,7 +14,7 @@ import (
 // The BlockChain also holds pointers to the Genesis block, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
-	ChainStorer
+	StorageService
 	GenesisBlock           *block.Header               // Genesys Block Header pointer
 	GenesisHeaderHash      []byte                      // Genesis Block Header hash
 	CurrentBlockHeader     *block.Header               // Current Block pointer
@@ -65,7 +65,7 @@ func NewBlockChain(
 		LocalHeight:        -1,
 		NetworkHeight:      -1,
 		badBlocks:          badBlocksCache,
-		ChainStorer: ChainStorer{
+		StorageService: &ChainStorer{
 			chain: map[UnitType]storage.Storer{
 				TransactionUnit:    txUnit,
 				TxBlockBodyUnit:    txBlockUnit,

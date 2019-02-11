@@ -10,7 +10,7 @@ import (
 )
 
 // PeerAction type represents the possible events that a node can trigger for the metachain to notarize
-type PeerAction int
+type PeerAction uint8
 
 // Constants mapping the actions that a node can take
 const (

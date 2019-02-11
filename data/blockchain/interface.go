@@ -26,6 +26,8 @@ type UnitType uint8
 type StorageService interface {
 	// GetStorer returns the storer from the chain map
 	GetStorer(unitType UnitType) storage.Storer
+	// AddStorer will add a new storer to the chain map
+	AddStorer(key UnitType, s storage.Storer)
 	// Has returns true if the key is found in the selected Unit or false otherwise
 	Has(unitType UnitType, key []byte) (bool, error)
 	// Get returns the value for the given key if found in the selected storage unit, nil otherwise

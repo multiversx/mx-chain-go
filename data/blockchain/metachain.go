@@ -6,7 +6,7 @@ import (
 
 // Metachain holds the block information for the metachain shard
 type Metachain struct {
-	ChainStorer
+	StorageService
 }
 
 // NewMetachain will initialize a new metachain instance
@@ -15,7 +15,7 @@ func NewMetachain(metaBlockUnit storage.Storer) (*Metachain, error) {
 		return nil, ErrMetaBlockUnitNil
 	}
 	return &Metachain{
-		ChainStorer: ChainStorer{
+		StorageService: &ChainStorer{
 			chain: map[UnitType]storage.Storer{
 				MetaBlockUnit: metaBlockUnit,
 			},

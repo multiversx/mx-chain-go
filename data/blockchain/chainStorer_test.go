@@ -16,7 +16,6 @@ func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
 	b.AddStorer(1, s)
 	has, err := b.Has(2, []byte("whatever"))
 	assert.False(t, has)
-	assert.NotNil(t, err)
 	assert.Equal(t, blockchain.ErrNoSuchStorageUnit, err)
 }
 
@@ -40,7 +39,6 @@ func TestGet_ErrorWhenStorerIsMissing(t *testing.T) {
 	b.AddStorer(1, s)
 	obj, err := b.Get(2, []byte("whatever"))
 	assert.Nil(t, obj)
-	assert.NotNil(t, err)
 	assert.Equal(t, blockchain.ErrNoSuchStorageUnit, err)
 }
 
@@ -65,7 +63,6 @@ func TestPut_ErrorWhenStorerIsMissing(t *testing.T) {
 	b.AddStorer(1, s)
 	err := b.Put(2, []byte("whatever"), []byte("whatever value"))
 
-	assert.NotNil(t, err)
 	assert.Equal(t, blockchain.ErrNoSuchStorageUnit, err)
 }
 
@@ -79,7 +76,6 @@ func TestPut_ReturnsCorrectly(t *testing.T) {
 	b := blockchain.NewChainStorer()
 	b.AddStorer(1, s)
 	err := b.Put(1, []byte("whatever"), []byte("whatever value"))
-	assert.NotNil(t, err)
 	assert.Equal(t, putErr, err)
 }
 
@@ -90,7 +86,6 @@ func TestGetAll_ErrorWhenStorerIsMissing(t *testing.T) {
 	b.AddStorer(1, s)
 	ret, err := b.GetAll(2, [][]byte{[]byte("whatever"), []byte("whatever 2")})
 
-	assert.NotNil(t, err)
 	assert.Nil(t, ret)
 	assert.Equal(t, blockchain.ErrNoSuchStorageUnit, err)
 }
@@ -106,7 +101,6 @@ func TestGetAll_ErrorWhenStorersGetErrors(t *testing.T) {
 	b.AddStorer(1, s)
 	ret, err := b.GetAll(1, [][]byte{[]byte("whatever"), []byte("whatever 2")})
 
-	assert.NotNil(t, err)
 	assert.Nil(t, ret)
 	assert.Equal(t, getErr, err)
 }
@@ -146,7 +140,6 @@ func TestDestroy_ErrrorsWhenStorerDestroyErrors(t *testing.T) {
 	b := blockchain.NewChainStorer()
 	b.AddStorer(1, s)
 	err := b.Destroy()
-	assert.NotNil(t, err)
 	assert.Equal(t, destroyError, err)
 }
 

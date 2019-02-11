@@ -13,6 +13,20 @@ type ChainStorer struct {
 	chain                  map[UnitType]storage.Storer
 }
 
+// NewChainStorer returns a new initialised ChainStorer
+func NewChainStorer() *ChainStorer {
+	return &ChainStorer{
+		chain: make(map[UnitType]storage.Storer),
+	}
+}
+
+// AddStorer will add a new storer to the chain map
+func (bc *ChainStorer) AddStorer(key UnitType, s storage.Storer) {
+	bc.lock.Lock()
+	bc.chain[key] = s
+	bc.lock.Unlock()
+}
+
 // GetStorer returns the storer from the chain map or nil if the storer was not found
 func (bc *ChainStorer) GetStorer(unitType UnitType) storage.Storer {
 	bc.lock.RLock()
@@ -96,8 +110,8 @@ func (bc *ChainStorer) GetAll(unitType UnitType, keys [][]byte) (map[string][]by
 
 // Destroy removes the underlying files/resources used by the storage service
 func (bc *ChainStorer) Destroy() error {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
+	bc.lock.RLock()
+	defer bc.lock.RUnlock()
 
 	var err error
 

@@ -1,7 +1,6 @@
 package blockchain_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -86,13 +85,6 @@ func failOnPanic(t *testing.T) {
 	if r := recover(); r != nil {
 		t.Errorf("the code entered panic")
 	}
-}
-
-func logError(err error) {
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	return
 }
 
 func TestNewBlockchainNilBadBlockCacheShouldError(t *testing.T) {
