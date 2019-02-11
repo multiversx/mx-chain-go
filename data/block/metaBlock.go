@@ -42,13 +42,8 @@ type PeerData struct {
 // ShardData holds the block information sent by the shards to the metachain
 type ShardData struct {
 	ShardId uint32 `capid:"0"`
-	HeaderHashes [][]byte `capid:"1"`
-}
-
-// Proof is a structure that holds inclusion and exclusion proofs for a set of transactions
-type Proof struct {
-	InclusionProof []byte `capid:"0"`
-	ExclusionProof []byte `capid:"1"`
+	HeaderHash []byte `capid:"1"`
+	TxBlockBodyHash []byte `capid:"2"`
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
@@ -58,7 +53,8 @@ type MetaBlock struct {
 	Round uint32 `capid:"2"`
 	ShardInfo []ShardData `capid:"3"`
 	PeerInfo []PeerData `capid:"4"`
-	Proof `capid:"5"`
+	Signature []byte `capid:"5"`
+	PubKeysBitmap []byte `capid:"6"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -96,25 +92,6 @@ func (s *ShardData) Load(r io.Reader) error {
 	}
 	z := capnp.ReadRootShardDataCapn(capMsg)
 	ShardDataCapnToGo(z, s)
-	return nil
-}
-
-// Save saves the serialized data of a Proof into a stream through Capnp protocol
-func (p *Proof) Save(w io.Writer) error {
-	seg := capn.NewBuffer(nil)
-	ProofGoToCapn(seg, p)
-	_, err := seg.WriteTo(w)
-	return err
-}
-
-// Load loads the data from the stream into a Proof object through Capnp protocol
-func (p *Proof) Load(r io.Reader) error {
-	capMsg, err := capn.ReadFromStream(r, nil)
-	if err != nil {
-		return err
-	}
-	z := capnp.ReadRootProofCapn(capMsg)
-	ProofCapnToGo(z, p)
 	return nil
 }
 
@@ -172,11 +149,8 @@ func ShardDataGoToCapn(seg *capn.Segment, src *ShardData) capnp.ShardDataCapn {
 	dest := capnp.AutoNewShardDataCapn(seg)
 
 	dest.SetShardId(src.ShardId)
-	mylist1 := seg.NewDataList(len(src.HeaderHashes))
-	for i := range src.HeaderHashes {
-		mylist1.Set(i, src.HeaderHashes[i])
-	}
-	dest.SetHeaderHashes(mylist1)
+	dest.SetHeaderHash(src.HeaderHash)
+	dest.SetTxBlockBodyHash(src.TxBlockBodyHash)
 
 	return dest
 }
@@ -187,32 +161,8 @@ func ShardDataCapnToGo(src capnp.ShardDataCapn, dest *ShardData) *ShardData {
 		dest = &ShardData{}
 	}
 	dest.ShardId = src.ShardId()
-	n := src.HeaderHashes().Len()
-	dest.HeaderHashes = make([][]byte, n)
-	for i := 0; i < n; i++ {
-		dest.HeaderHashes[i] = src.HeaderHashes().At(i)
-	}
-
-	return dest
-}
-
-// ProofGoToCapn is a helper function to copy fields from a Proof object to a ProofCapn object
-func ProofGoToCapn(seg *capn.Segment, src *Proof) capnp.ProofCapn {
-	dest := capnp.AutoNewProofCapn(seg)
-
-	dest.SetInclusionProof(src.InclusionProof)
-	dest.SetExclusionProof(src.ExclusionProof)
-
-	return dest
-}
-
-// ProofCapnToGo is a helper function to copy fields from a ProofCapn object to a Proof object
-func ProofCapnToGo(src capnp.ProofCapn, dest *Proof) *Proof {
-	if dest == nil {
-		dest = &Proof{}
-	}
-	dest.InclusionProof = src.InclusionProof()
-	dest.ExclusionProof = src.ExclusionProof()
+	dest.HeaderHash = src.HeaderHash()
+	dest.TxBlockBodyHash = src.TxBlockBodyHash()
 
 	return dest
 }
@@ -245,7 +195,8 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 		dest.SetPeerInfo(typedList)
 	}
 
-	dest.SetProof(ProofGoToCapn(seg, &src.Proof))
+	dest.SetSignature(src.Signature)
+	dest.SetPubKeysBitmap(src.PubKeysBitmap)
 
 	return dest
 }
@@ -269,7 +220,8 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	for i := 0; i < n; i++ {
 		dest.PeerInfo[i] = *PeerDataCapnToGo(src.PeerInfo().At(i), nil)
 	}
-	dest.Proof = *ProofCapnToGo(src.Proof(), nil)
+	dest.Signature = src.Signature()
+	dest.PubKeysBitmap = src.PubKeysBitmap()
 
 	return dest
 }

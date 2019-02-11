@@ -1,6 +1,6 @@
 @0xddffc3d7f7f36183;
 using Go = import "/go.capnp";
-$Go.package("capnproto1");
+$Go.package("capnp");
 $Go.import("_");
 
 struct PeerDataCapn {
@@ -11,22 +11,19 @@ struct PeerDataCapn {
 }
 
 struct ShardDataCapn {
-    shardId      @0: UInt32;
-    headerHashes @1: List(Data);
-}
-
-struct ProofCapn {
-    inclusionProof @0: Data;
-    exclusionProof @1: Data;
+    shardId         @0: UInt32;
+    headerHash      @1: Data;
+    txBlockBodyHash @2: Data;
 }
 
 struct MetaBlockCapn {
-    nonce     @0: UInt64;
-    epoch     @1: UInt32;
-    round     @2: UInt32;
-    shardInfo @3: List(ShardDataCapn);
-    peerInfo  @4: List(PeerDataCapn);
-    proof     @5: ProofCapn;
+    nonce         @0: UInt64;
+    epoch         @1: UInt32;
+    round         @2: UInt32;
+    shardInfo     @3: List(ShardDataCapn);
+    peerInfo      @4: List(PeerDataCapn);
+    signature     @5: Data;
+    pubKeysBitmap @6: Data;
 }
 
 ##compile with:
