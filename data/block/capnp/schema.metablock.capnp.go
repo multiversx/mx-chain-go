@@ -412,9 +412,9 @@ func (s ShardDataCapn_List) Set(i int, item ShardDataCapn) { C.PointerList(s).Se
 
 type MetaBlockCapn C.Struct
 
-func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(16, 4)) }
-func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(16, 4)) }
-func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(16, 4)) }
+func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(16, 6)) }
+func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(16, 6)) }
+func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(16, 6)) }
 func ReadRootMetaBlockCapn(s *C.Segment) MetaBlockCapn { return MetaBlockCapn(s.Root(0).ToStruct()) }
 func (s MetaBlockCapn) Nonce() uint64                  { return C.Struct(s).Get64(0) }
 func (s MetaBlockCapn) SetNonce(v uint64)              { C.Struct(s).Set64(0, v) }
@@ -434,6 +434,10 @@ func (s MetaBlockCapn) Signature() []byte               { return C.Struct(s).Get
 func (s MetaBlockCapn) SetSignature(v []byte)           { C.Struct(s).SetObject(2, s.Segment.NewData(v)) }
 func (s MetaBlockCapn) PubKeysBitmap() []byte           { return C.Struct(s).GetObject(3).ToData() }
 func (s MetaBlockCapn) SetPubKeysBitmap(v []byte)       { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) PreviousHash() []byte            { return C.Struct(s).GetObject(4).ToData() }
+func (s MetaBlockCapn) SetPreviousHash(v []byte)        { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) StateRootHash() []byte           { return C.Struct(s).GetObject(5).ToData() }
+func (s MetaBlockCapn) SetStateRootHash(v []byte)       { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
 func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -591,6 +595,44 @@ func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.PubKeysBitmap()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"previousHash\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.PreviousHash()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"stateRootHash\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.StateRootHash()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -778,6 +820,44 @@ func (s MetaBlockCapn) WriteCapLit(w io.Writer) error {
 			return err
 		}
 	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("previousHash = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.PreviousHash()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("stateRootHash = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.StateRootHash()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
 	err = b.WriteByte(')')
 	if err != nil {
 		return err
@@ -794,7 +874,7 @@ func (s MetaBlockCapn) MarshalCapLit() ([]byte, error) {
 type MetaBlockCapn_List C.PointerList
 
 func NewMetaBlockCapnList(s *C.Segment, sz int) MetaBlockCapn_List {
-	return MetaBlockCapn_List(s.NewCompositeList(16, 4, sz))
+	return MetaBlockCapn_List(s.NewCompositeList(16, 6, sz))
 }
 func (s MetaBlockCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s MetaBlockCapn_List) At(i int) MetaBlockCapn {

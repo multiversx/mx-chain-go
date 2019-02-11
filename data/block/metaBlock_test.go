@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/magiconair/properties/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPeerData_SaveLoad(t *testing.T) {
@@ -60,6 +60,8 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		PeerInfo: []block.PeerData{pd},
 		Signature: []byte("signature"),
 		PubKeysBitmap: []byte("pub_keys"),
+		PreviousHash: []byte("previous_hash"),
+		StateRootHash: []byte("state_root_hash"),
 	}
 	var b bytes.Buffer
 	mb.Save(&b)

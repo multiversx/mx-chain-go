@@ -55,6 +55,8 @@ type MetaBlock struct {
 	PeerInfo []PeerData `capid:"4"`
 	Signature []byte `capid:"5"`
 	PubKeysBitmap []byte `capid:"6"`
+	PreviousHash []byte `capid:"7"`
+	StateRootHash []byte `capid:"8"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -197,6 +199,8 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 
 	dest.SetSignature(src.Signature)
 	dest.SetPubKeysBitmap(src.PubKeysBitmap)
+	dest.SetPreviousHash(src.PreviousHash)
+	dest.SetStateRootHash(src.StateRootHash)
 
 	return dest
 }
@@ -222,6 +226,8 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	}
 	dest.Signature = src.Signature()
 	dest.PubKeysBitmap = src.PubKeysBitmap()
+	dest.PreviousHash = src.PreviousHash()
+	dest.StateRootHash = src.StateRootHash()
 
 	return dest
 }

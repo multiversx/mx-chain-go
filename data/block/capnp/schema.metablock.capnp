@@ -24,6 +24,8 @@ struct MetaBlockCapn {
     peerInfo      @4: List(PeerDataCapn);
     signature     @5: Data;
     pubKeysBitmap @6: Data;
+    previousHash  @7: Data;
+    stateRootHash @8: Data;
 }
 
 ##compile with:
