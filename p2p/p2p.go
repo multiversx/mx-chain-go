@@ -37,6 +37,7 @@ type Messenger interface {
 	DiscoverNewPeers() error
 	IsConnected(peerID PeerID) bool
 	ConnectedPeers() []PeerID
+	TrimConnections() error
 
 	CreateTopic(name string, createPipeForTopic bool) error
 	HasTopic(name string) bool
