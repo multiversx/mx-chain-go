@@ -110,8 +110,8 @@ func (bc *ChainStorer) GetAll(unitType UnitType, keys [][]byte) (map[string][]by
 
 // Destroy removes the underlying files/resources used by the storage service
 func (bc *ChainStorer) Destroy() error {
-	bc.lock.RLock()
-	defer bc.lock.RUnlock()
+	bc.lock.Lock()
+	defer bc.lock.Unlock()
 
 	var err error
 
@@ -121,6 +121,6 @@ func (bc *ChainStorer) Destroy() error {
 			return err
 		}
 	}
-
+	bc.chain = nil
 	return nil
 }
