@@ -121,6 +121,6 @@ func (bc *ChainStorer) Destroy() error {
 			return err
 		}
 	}
-	//bc.chain = nil
+	bc.chain = nil
 	return nil
 }
