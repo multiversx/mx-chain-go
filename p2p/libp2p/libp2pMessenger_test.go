@@ -80,6 +80,15 @@ func createMockMessenger() p2p.Messenger {
 	return mes
 }
 
+func createLibP2PCredentialsMessenger() (peer.ID, crypto.PrivKey) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
+	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
+	id, _ := peer.IDFromPublicKey(sk.GetPublic())
+
+	return id, sk
+}
+
 //------- NewMockLibp2pMessenger
 
 func TestNewMockLibp2pMessenger_NilContextShouldErr(t *testing.T) {
@@ -105,15 +114,8 @@ func TestNewMockLibp2pMessenger_OkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, mes)
-}
 
-func createLibP2PCredentialsMessenger() (peer.ID, crypto.PrivKey) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
-	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
-	id, _ := peer.IDFromPublicKey(sk.GetPublic())
-
-	return id, sk
+	mes.Close()
 }
 
 //------- NewSocketLibp2pMessenger
@@ -247,6 +249,8 @@ func TestLibp2pMessenger_ConnectToPeerWrongAddressShouldErr(t *testing.T) {
 
 	err := mes1.ConnectToPeer(adr2)
 	assert.NotNil(t, err)
+
+	mes1.Close()
 }
 
 func TestLibp2pMessenger_ConnectToPeerAndClose2PeersShouldWork(t *testing.T) {
@@ -277,130 +281,157 @@ func TestLibp2pMessenger_IsConnectedShouldWork(t *testing.T) {
 
 	assert.True(t, mes1.IsConnected(mes2.ID()))
 	assert.True(t, mes2.IsConnected(mes1.ID()))
+
+	mes1.Close()
+	mes2.Close()
 }
 
 func TestLibp2pMessenger_CreateTopicOkValsShouldWork(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	err := mes1.CreateTopic("test", false)
+	err := mes.CreateTopic("test", false)
 	assert.Nil(t, err)
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_CreateTopicTwiceShouldErr(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	_ = mes1.CreateTopic("test", false)
-	err := mes1.CreateTopic("test", false)
+	_ = mes.CreateTopic("test", false)
+	err := mes.CreateTopic("test", false)
 	assert.Equal(t, p2p.ErrTopicAlreadyExists, err)
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_HasTopicIfHaveTopicShouldReturnTrue(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	_ = mes1.CreateTopic("test", false)
+	_ = mes.CreateTopic("test", false)
 
-	assert.True(t, mes1.HasTopic("test"))
+	assert.True(t, mes.HasTopic("test"))
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_HasTopicIfDoNotHaveTopicShouldReturnFalse(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	_ = mes1.CreateTopic("test", false)
+	_ = mes.CreateTopic("test", false)
 
-	assert.False(t, mes1.HasTopic("one topic"))
+	assert.False(t, mes.HasTopic("one topic"))
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_HasTopicValidatorDoNotHaveTopicShouldReturnFalse(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	_ = mes1.CreateTopic("test", false)
+	_ = mes.CreateTopic("test", false)
 
-	assert.False(t, mes1.HasTopicValidator("one topic"))
+	assert.False(t, mes.HasTopicValidator("one topic"))
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_HasTopicValidatorHaveTopicDoNotHaveValidatorShouldReturnFalse(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	_ = mes1.CreateTopic("test", false)
+	_ = mes.CreateTopic("test", false)
 
-	assert.False(t, mes1.HasTopicValidator("test"))
+	assert.False(t, mes.HasTopicValidator("test"))
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	_ = mes1.CreateTopic("test", false)
-	_ = mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	_ = mes.CreateTopic("test", false)
+	_ = mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
-	assert.True(t, mes1.HasTopicValidator("test"))
+	assert.True(t, mes.HasTopicValidator("test"))
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_SetTopicValidatorOnInexistentTopicShouldErr(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	err := mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	err := mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
 	assert.Equal(t, p2p.ErrNilTopic, err)
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_SetTopicValidatorUnregisterInexistentValidatorShouldErr(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	_ = mes1.CreateTopic("test", false)
+	_ = mes.CreateTopic("test", false)
 
-	err := mes1.SetTopicValidator("test", nil)
+	err := mes.SetTopicValidator("test", nil)
 
 	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_SetTopicValidatorOkValsShouldWork(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	_ = mes1.CreateTopic("test", false)
+	_ = mes.CreateTopic("test", false)
 
-	err := mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	err := mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
 	assert.Nil(t, err)
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_SetTopicValidatorReregistrationShouldErr(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	_ = mes1.CreateTopic("test", false)
+	_ = mes.CreateTopic("test", false)
 
 	//registration
-	_ = mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	_ = mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
 	//re-registration
-	err := mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	err := mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
 	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_SetTopicValidatorUnReregistrationShouldWork(t *testing.T) {
-	mes1 := createMockMessenger()
+	mes := createMockMessenger()
 
-	_ = mes1.CreateTopic("test", false)
+	_ = mes.CreateTopic("test", false)
 
 	//registration
-	_ = mes1.SetTopicValidator("test", func(message p2p.MessageP2P) error {
+	_ = mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
 		return nil
 	})
 
 	//unregistration
-	err := mes1.SetTopicValidator("test", nil)
+	err := mes.SetTopicValidator("test", nil)
 
 	assert.Nil(t, err)
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
@@ -434,6 +465,9 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
 	mes1.BroadcastData("test", "test", msg)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
+
+	mes1.Close()
+	mes2.Close()
 }
 
 func TestLibp2pMessenger_Peers(t *testing.T) {
@@ -461,6 +495,9 @@ func TestLibp2pMessenger_Peers(t *testing.T) {
 	}
 
 	assert.True(t, foundCurrent && foundConnected)
+
+	mes1.Close()
+	mes2.Close()
 }
 
 func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
@@ -479,17 +516,22 @@ func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
 	assert.Equal(t, []p2p.PeerID{mes2.ID()}, mes1.ConnectedPeers())
 	assert.Equal(t, []p2p.PeerID{mes2.ID()}, mes3.ConnectedPeers())
 	assert.Equal(t, 2, len(mes2.ConnectedPeers()))
-	//no need to further test taht mes2 is connected to mes1 and mes3 s this was tested in first 2 asserts
+	//no need to further test that mes2 is connected to mes1 and mes3 s this was tested in first 2 asserts
+
+	mes1.Close()
+	mes2.Close()
 }
 
 func TestLibp2pMessenger_DiscoverNewPeersNilDiscovererShouldErr(t *testing.T) {
 	netw := mocknet.New(context.Background())
 
-	mes1, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
-	mes1.SetDiscoverer(nil)
+	mes, _ := libp2p.NewMockLibp2pMessenger(context.Background(), netw)
+	mes.SetDiscoverer(nil)
 
-	err := mes1.DiscoverNewPeers()
+	err := mes.DiscoverNewPeers()
 	assert.Equal(t, p2p.ErrNilDiscoverer, err)
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_DiscoverNewPeersDiscovererErrsShouldErr(t *testing.T) {
@@ -505,6 +547,8 @@ func TestLibp2pMessenger_DiscoverNewPeersDiscovererErrsShouldErr(t *testing.T) {
 
 	err := mes.DiscoverNewPeers()
 	assert.Equal(t, "error", err.Error())
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_DiscoverNewPeersShouldWork(t *testing.T) {
@@ -549,6 +593,8 @@ func TestLibp2pMessenger_DiscoverNewPeersShouldWork(t *testing.T) {
 	assert.Equal(t, 2, len(foundPeers))
 	assert.Equal(t, foundPeers[0], pInfo1)
 	assert.Equal(t, foundPeers[1], pInfo2)
+
+	mes.Close()
 }
 
 func TestLibp2pMessenger_DiscoverNewPeersWithRealDiscovererShouldWork(t *testing.T) {
@@ -729,6 +775,9 @@ func TestLibp2pMessenger_SendDirectWithMockNetToConnectedPeerShouldWork(t *testi
 	assert.Nil(t, err)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
+
+	mes1.Close()
+	mes2.Close()
 }
 
 func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testing.T) {
@@ -770,4 +819,7 @@ func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testi
 	assert.Nil(t, err)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
+
+	mes1.Close()
+	mes2.Close()
 }

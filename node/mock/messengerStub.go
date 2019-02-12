@@ -11,6 +11,7 @@ type MessengerStub struct {
 	AddressesCalled                 func() []string
 	ConnectToPeerCalled             func(address string) error
 	DiscoverNewPeersCalled          func() error
+	TrimConnectionsCalled           func() error
 	IsConnectedCalled               func(peerID p2p.PeerID) bool
 	ConnectedPeersCalled            func() []p2p.PeerID
 	CreateTopicCalled               func(name string, createPipeForTopic bool) error
@@ -44,6 +45,10 @@ func (ms *MessengerStub) ConnectToPeer(address string) error {
 
 func (ms *MessengerStub) DiscoverNewPeers() error {
 	return ms.DiscoverNewPeersCalled()
+}
+
+func (ms *MessengerStub) TrimConnections() error {
+	return ms.TrimConnectionsCalled()
 }
 
 func (ms *MessengerStub) IsConnected(peerID p2p.PeerID) bool {
