@@ -94,63 +94,6 @@ func benchUnmarshal(b *testing.B, m marshal.Marshalizer, obj interface{}, valida
 	}
 }
 
-func TestCapnpMarshalizer_TransactionUnmarshalShouldWork(t *testing.T) {
-	tx := &Transaction{}
-	cmr := &marshal.CapnpMarshalizer{}
-
-	dArray := tx.GenerateDummyArray()
-	length := len(dArray)
-	serialized := make([][]byte, length)
-
-	for i, obj := range dArray {
-		mar, _ := cmr.Marshal(obj)
-		t := make([]byte, len(mar))
-
-		_ = copy(t, mar)
-		serialized[i] = t
-	}
-
-	for i := 0; i < length; i++ {
-		err := cmr.Unmarshal(tx, serialized[i])
-
-		assert.Nil(t, err)
-
-		// Check unmarshaled data as expected
-		orig := dArray[i]
-		assert.Equal(t, orig, tx)
-	}
-
-}
-
-func TestCapnpMarshalizer_TransactionMarshalUnmarshalShouldWork(t *testing.T) {
-	tx := &transaction.Transaction{
-		Nonce:     1,
-		Value:     big.NewInt(2),
-		Signature: []byte("sig"),
-		Data:      []byte("data"),
-		RcvAddr:   []byte("recvAddr"),
-		SndAddr:   []byte("sndAddr"),
-		Challenge: []byte("challenge"),
-		GasLimit:  3,
-		GasPrice:  4,
-	}
-
-	cmr := &marshal.CapnpMarshalizer{}
-
-	buff, err := cmr.Marshal(tx)
-	assert.Nil(t, err)
-
-	tx2 := &transaction.Transaction{}
-
-	err = cmr.Unmarshal(tx2, buff)
-	assert.Nil(t, err)
-
-	assert.Equal(t, tx, tx2)
-	assert.False(t, tx == tx2)
-
-	assert.False(t, tx.Value == tx2.Value)
-}
-
 // benchmarks
 func BenchmarkCapnprotoTransactionMarshal(b *testing.B) {
 	tx := &Transaction{}
