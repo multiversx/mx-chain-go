@@ -185,7 +185,6 @@ func (ds *directSender) getConnection(p p2p.PeerID) (net.Conn, error) {
 }
 
 func (ds *directSender) getOrCreateStream(conn net.Conn) (net.Stream, error) {
-	//find or create stream
 	streams := conn.GetStreams()
 	var foundStream net.Stream
 	for i := 0; i < len(streams); i++ {
@@ -211,7 +210,6 @@ func (ds *directSender) getOrCreateStream(conn net.Conn) (net.Stream, error) {
 }
 
 func (ds *directSender) createMessage(topic string, buff []byte, conn net.Conn) *pubsub_pb.Message {
-	//create message
 	seqno := ds.NextSeqno(&ds.counter)
 	mes := pubsub_pb.Message{}
 	mes.Data = buff

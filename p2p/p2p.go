@@ -67,6 +67,7 @@ type DataThrottler interface {
 	CollectFromPipes() []*SendableData
 }
 
+// DirectSender defines a component that can send direct messages to connected peers
 type DirectSender interface {
 	NextSeqno(counter *uint64) []byte
 	SendDirectToConnectedPeer(topic string, buff []byte, peer PeerID) error
