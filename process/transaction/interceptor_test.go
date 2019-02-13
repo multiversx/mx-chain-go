@@ -407,7 +407,7 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
 		return errors.New("sig not valid")
 	}
 
@@ -459,7 +459,7 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
 		return nil
 	}
 
@@ -515,7 +515,7 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
 		return nil
 	}
 
@@ -572,7 +572,7 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailShouldErr(t *testing.T) 
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
 		return nil
 	}
 
@@ -636,7 +636,7 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
 		return nil
 	}
 
@@ -701,7 +701,7 @@ func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
+	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
 		return nil
 	}
 

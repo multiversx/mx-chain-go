@@ -70,26 +70,6 @@ func (po *kyberPoint) Clone() crypto.Point {
 	return &po2
 }
 
-// Data returns the Point as a byte array.
-// Returns an error if doesn't represent valid point.
-func (po *kyberPoint) Data() ([]byte, error) {
-	data, err := po.Point.Data()
-
-	return data, err
-}
-
-// Embedd sets the receiver using a Point byte array representation
-// This is the inverse operation of Data
-func (po *kyberPoint) Embed(data []byte, rand cipher.Stream) error {
-	if data == nil || rand == nil {
-		return crypto.ErrNilParam
-	}
-
-	_ = po.Point.Embed(data, rand)
-
-	return nil
-}
-
 // Add returns the result of adding receiver with Point p given as parameter,
 // so that their scalars add homomorphically
 func (po *kyberPoint) Add(p crypto.Point) (crypto.Point, error) {

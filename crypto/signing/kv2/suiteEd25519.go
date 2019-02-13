@@ -3,8 +3,8 @@ package kv2
 import (
 	"crypto/cipher"
 
-	kgroup "gopkg.in/dedis/kyber.v2/group/edwards25519"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	kgroup "gopkg.in/dedis/kyber.v2/group/edwards25519"
 )
 
 type suiteEd25519 struct {

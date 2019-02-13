@@ -21,7 +21,7 @@ type BelNevMock struct {
 
 	VerifyMock               func(bitmap []byte) error
 	CommitmentHashMock       func(index uint16) ([]byte, error)
-	CreateCommitmentMock     func() ([]byte, []byte, error)
+	CreateCommitmentMock     func() ([]byte, []byte)
 	AggregateCommitmentsMock func(bitmap []byte) ([]byte, error)
 	CreateSignatureShareMock func(bitmap []byte) ([]byte, error)
 	VerifySignatureShareMock func(index uint16, sig []byte, bitmap []byte) error
@@ -56,8 +56,10 @@ func (bnm *BelNevMock) Reset(pubKeys []string, index uint16) error {
 }
 
 // SetMessage sets the message to be signed
-func (bnm *BelNevMock) SetMessage(msg []byte) {
+func (bnm *BelNevMock) SetMessage(msg []byte) error {
 	bnm.msg = msg
+
+	return nil
 }
 
 // SetAggregatedSig sets the aggregated signature according to the given byte array
@@ -73,7 +75,7 @@ func (bnm *BelNevMock) Verify(bitmap []byte) error {
 }
 
 // CreateCommitment creates a secret commitment and the corresponding public commitment point
-func (bnm *BelNevMock) CreateCommitment() (commSecret []byte, commitment []byte, err error) {
+func (bnm *BelNevMock) CreateCommitment() (commSecret []byte, commitment []byte) {
 
 	return bnm.CreateCommitmentMock()
 }
@@ -113,7 +115,7 @@ func (bnm *BelNevMock) CommitmentHash(index uint16) ([]byte, error) {
 func (bnm *BelNevMock) AddCommitment(index uint16, value []byte) error {
 	if bnm.AddCommitmentMock == nil {
 		if index >= uint16(len(bnm.commitments)) {
-			return crypto.ErrInvalidIndex
+			return crypto.ErrIndexOutOfBounds
 		}
 
 		bnm.commitments[index] = value
@@ -128,7 +130,7 @@ func (bnm *BelNevMock) AddCommitment(index uint16, value []byte) error {
 func (bnm *BelNevMock) Commitment(index uint16) ([]byte, error) {
 	if bnm.CommitmentMock == nil {
 		if index >= uint16(len(bnm.commitments)) {
-			return nil, crypto.ErrInvalidIndex
+			return nil, crypto.ErrIndexOutOfBounds
 		}
 
 		return bnm.commitments[index], nil
@@ -157,7 +159,7 @@ func (bnm *BelNevMock) CreateSignatureShare(bitmap []byte) ([]byte, error) {
 // AddSignatureShare adds the partial signature of the signer with specified position
 func (bnm *BelNevMock) AddSignatureShare(index uint16, sig []byte) error {
 	if index >= uint16(len(bnm.pubkeys)) {
-		return crypto.ErrInvalidIndex
+		return crypto.ErrIndexOutOfBounds
 	}
 
 	bnm.sigs[index] = sig
@@ -177,7 +179,7 @@ func (bnm *BelNevMock) AggregateSigs(bitmap []byte) ([]byte, error) {
 // SignatureShare
 func (bnm *BelNevMock) SignatureShare(index uint16) ([]byte, error) {
 	if index >= uint16(len(bnm.sigs)) {
-		return nil, crypto.ErrInvalidIndex
+		return nil, crypto.ErrIndexOutOfBounds
 	}
 
 	return bnm.sigs[index], nil

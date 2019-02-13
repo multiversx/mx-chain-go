@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
@@ -21,6 +20,8 @@ import (
 	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 )
 
 func logError(err error) {
@@ -441,7 +442,7 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := mock.PrivateKeyStub{
-		SignHandler: func(message []byte) ([]byte, error) {
+		SignHandler: func(message []byte, signer crypto.SingleSigner) ([]byte, error) {
 			return nil, errors.New("error")
 		},
 	}
@@ -463,7 +464,7 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	signature := []byte{69}
 	privateKey := mock.PrivateKeyStub{
-		SignHandler: func(message []byte) ([]byte, error) {
+		SignHandler: func(message []byte, signer crypto.SingleSigner) ([]byte, error) {
 			return signature, nil
 		},
 	}
@@ -547,8 +548,9 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 		return nil
 	}
 
+	suite := &mock.SuiteMock{}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	sk, pk := signing.NewKeyGenerator(suite).GeneratePair()
 
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
@@ -566,7 +568,8 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing.T) {
 	marshalizer := &mock.MarshalizerFake{}
 	accAdapter := getAccAdapter(big.NewInt(0))
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	suite := &mock.SuiteMock{}
+	sk, pk := signing.NewKeyGenerator(suite).GeneratePair()
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(mock.HasherMock{}),
@@ -583,7 +586,8 @@ func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing
 func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	_, pk := schnorr.NewKeyGenerator().GeneratePair()
+	suite := &mock.SuiteMock{}
+	_, pk := signing.NewKeyGenerator(suite).GeneratePair()
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
@@ -598,7 +602,8 @@ func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 func TestGenerateAndSendBulkTransactions_NilPublicKeyShouldErr(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	sk, _ := schnorr.NewKeyGenerator().GeneratePair()
+	suite := &mock.SuiteMock{}
+	sk, _ := signing.NewKeyGenerator(suite).GeneratePair()
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
@@ -612,7 +617,8 @@ func TestGenerateAndSendBulkTransactions_NilPublicKeyShouldErr(t *testing.T) {
 func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	suite := &mock.SuiteMock{}
+	sk, pk := signing.NewKeyGenerator(suite).GeneratePair()
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
@@ -630,7 +636,8 @@ func TestGenerateAndSendBulkTransactions_CreateAddressFromPublicKeyBytesErrorsSh
 	addrConverter.CreateAddressFromPublicKeyBytesHandler = func(pubKey []byte) (container state.AddressContainer, e error) {
 		return nil, errors.New("error")
 	}
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	suite := &mock.SuiteMock{}
+	sk, pk := signing.NewKeyGenerator(suite).GeneratePair()
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
@@ -647,7 +654,8 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	marshalizer := &mock.MarshalizerFake{}
 	marshalizer.Fail = true
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	suite := &mock.SuiteMock{}
+	sk, pk := signing.NewKeyGenerator(suite).GeneratePair()
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
@@ -695,7 +703,8 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	suite := &mock.SuiteMock{}
+	sk, pk := signing.NewKeyGenerator(suite).GeneratePair()
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(mock.HasherMock{}),
@@ -732,7 +741,7 @@ func getAccAdapter(balance *big.Int) mock.AccountsAdapterStub {
 
 func getPrivateKey() mock.PrivateKeyStub {
 	return mock.PrivateKeyStub{
-		SignHandler: func(message []byte) ([]byte, error) {
+		SignHandler: func(message []byte, signer crypto.SingleSigner) ([]byte, error) {
 			return []byte{2}, nil
 		},
 	}

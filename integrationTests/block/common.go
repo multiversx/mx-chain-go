@@ -3,7 +3,8 @@ package block
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
@@ -86,7 +87,8 @@ func createMemNode(port int, dPool data.TransientDataHolder) (*node.Node, p2p.Me
 
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
-	keyGen := schnorr.NewKeyGenerator()
+	suite := kv2.NewBlakeSHA256Ed25519()
+	keyGen := signing.NewKeyGenerator(suite)
 	blockChain := createTestBlockChain()
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()

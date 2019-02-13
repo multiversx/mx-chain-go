@@ -29,7 +29,7 @@ var ErrNilHasher = errors.New("marshalizer is nil")
 var ErrIndexOutOfBounds = errors.New("index is out of bounds")
 
 // ErrIndexNotSelected is raised when a not selected index is used for multi-signing
-var ErrIndexNotSelected = errors.New("index is out of bounds")
+var ErrIndexNotSelected = errors.New("index is not selected")
 
 // ErrNilElement is raised when searching for a specific element but found nil
 var ErrNilElement = errors.New("element is nil")
@@ -78,3 +78,6 @@ var ErrNilCommitmentHash = errors.New("commitment hash is nil")
 
 // ErrSigNotValid is raised when a signature verification fails due to invalid signature
 var ErrSigNotValid = errors.New("signature is invalid")
+
+// ErrEmptyPubKeyString is raised when an empty public key string is used
+var ErrEmptyPubKeyString = errors.New("public key string is empty")

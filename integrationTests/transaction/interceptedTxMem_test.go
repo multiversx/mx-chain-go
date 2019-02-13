@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -41,7 +42,7 @@ func TestNode_GenerateSendInterceptTransactionWithMemMessenger(t *testing.T) {
 
 	//Step 2. Sign transaction
 	txBuff, _ := marshalizer.Marshal(&tx)
-	tx.Signature, _ = sk.Sign(txBuff)
+	tx.Signature, _ = sk.Sign(txBuff, &singlesig.SchnorrSigner{})
 
 	signedTxBuff, _ := marshalizer.Marshal(&tx)
 

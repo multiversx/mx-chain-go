@@ -132,6 +132,7 @@ type SPOSConsensusWorker struct {
 	keyGen                 crypto.KeyGenerator
 	privKey                crypto.PrivateKey
 	pubKey                 crypto.PublicKey
+	singleSigner           crypto.SingleSigner
 	multiSigner            crypto.MultiSigner
 	SendMessage            func(consensus *ConsensusData)
 	BroadcastHeader        func([]byte)
@@ -148,6 +149,7 @@ func NewConsensusWorker(
 	marshalizer marshal.Marshalizer,
 	blockProcessor process.BlockProcessor,
 	boot process.Bootstraper,
+	singleSigner crypto.SingleSigner,
 	multisig crypto.MultiSigner,
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
@@ -161,6 +163,7 @@ func NewConsensusWorker(
 		marshalizer,
 		blockProcessor,
 		boot,
+		singleSigner,
 		multisig,
 		keyGen,
 		privKey,
@@ -217,6 +220,7 @@ func checkNewConsensusWorkerParams(
 	marshalizer marshal.Marshalizer,
 	blockProcessor process.BlockProcessor,
 	boot process.Bootstraper,
+	singleSigner crypto.SingleSigner,
 	multisig crypto.MultiSigner,
 	keyGen crypto.KeyGenerator,
 	privKey crypto.PrivateKey,
@@ -244,6 +248,10 @@ func checkNewConsensusWorkerParams(
 
 	if boot == nil {
 		return ErrNilBlootstrap
+	}
+
+	if singleSigner == nil {
+		return ErrNilSingleSigner
 	}
 
 	if multisig == nil {
@@ -582,11 +590,7 @@ func (sposWorker *SPOSConsensusWorker) SendBlockHeader() bool {
 }
 
 func (sposWorker *SPOSConsensusWorker) genCommitmentHash() ([]byte, error) {
-	commitmentSecret, commitment, err := sposWorker.multiSigner.CreateCommitment()
-
-	if err != nil {
-		return nil, err
-	}
+	commitmentSecret, commitment := sposWorker.multiSigner.CreateCommitment()
 
 	selfIndex, err := sposWorker.Cns.IndexSelfConsensusGroup()
 
@@ -1009,7 +1013,7 @@ func (sposWorker *SPOSConsensusWorker) genConsensusDataSignature(cnsDta *Consens
 		return nil, err
 	}
 
-	signature, err := sposWorker.privKey.Sign(cnsDtaStr)
+	signature, err := sposWorker.privKey.Sign(cnsDtaStr, sposWorker.singleSigner)
 
 	if err != nil {
 		return nil, err
@@ -1328,7 +1332,7 @@ func (sposWorker *SPOSConsensusWorker) checkSignature(cnsData *ConsensusData) er
 		return err
 	}
 
-	err = pubKey.Verify(dataNoSigString, signature)
+	err = pubKey.Verify(dataNoSigString, signature, sposWorker.singleSigner)
 
 	return err
 }

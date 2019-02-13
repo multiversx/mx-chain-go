@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"bytes"
 )
 
 /*
@@ -135,7 +136,7 @@ func convertStringsToPubKeys(pubKeys []string, kg crypto.KeyGenerator) ([]crypto
 	//convert pubKeys
 	for _, pubKeyStr := range pubKeys {
 		if pubKeyStr == "" {
-			return nil, crypto.ErrNilPublicKeys
+			return nil, crypto.ErrEmptyPubKeyString
 		}
 
 		pubKey, err := kg.PublicKeyFromByteArray([]byte(pubKeyStr))
@@ -184,8 +185,18 @@ func (bn *belNevSigner) Reset(pubKeys []string, index uint16) error {
 }
 
 // SetMessage sets the message to be multi-signed upon
-func (bn *belNevSigner) SetMessage(msg []byte) {
+func (bn *belNevSigner) SetMessage(msg []byte) error {
+	if msg == nil {
+		return crypto.ErrNilMessage
+	}
+
+	if len(msg) == 0 {
+		return crypto.ErrInvalidParam
+	}
+
 	bn.message = msg
+
+	return nil
 }
 
 // AddCommitmentHash sets a commitment Hash
@@ -222,36 +233,51 @@ func (bn *belNevSigner) CommitmentHash(index uint16) ([]byte, error) {
 }
 
 // CreateCommitment creates a secret commitment and the corresponding public commitment point
-func (bn *belNevSigner) CreateCommitment() (commSecret []byte, commitment []byte, err error) {
+func (bn *belNevSigner) CreateCommitment() (commSecret []byte, commitment []byte) {
 	rand := bn.suite.RandomStream()
 	sk, _ := bn.suite.CreateScalar().Pick(rand)
-	pk, _ := bn.suite.CreatePoint().Mul(sk)
+	pk := bn.suite.CreatePoint().Base()
+	pk, _ = pk.Mul(sk)
 
-	commSecret, err = sk.MarshalBinary()
-	if err != nil {
-		return nil, nil, err
-	}
+	commSecret, _ = sk.MarshalBinary()
+	commitment, _ = pk.MarshalBinary()
 
-	commitment, err = pk.MarshalBinary()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return commSecret, commitment, nil
+	return commSecret, commitment
 }
 
 // SetCommitmentSecret sets the committment secret
 func (bn *belNevSigner) SetCommitmentSecret(commSecret []byte) error {
+	if commSecret == nil {
+		return crypto.ErrNilCommitmentSecret
+	}
+
 	commSecretScalar := bn.suite.CreateScalar()
 	err := commSecretScalar.UnmarshalBinary(commSecret)
+
+	secret, err := commSecretScalar.MarshalBinary()
 
 	if err != nil {
 		return err
 	}
 
+	if !bytes.Equal(secret, commSecret) {
+		return crypto.ErrInvalidParam
+	}
+
 	bn.commSecret = commSecretScalar
 
 	return nil
+}
+
+// CommitmentSecret returns the set commitment secret
+func (bn *belNevSigner) CommitmentSecret() ([]byte, error) {
+	if bn.commSecret == nil {
+		return nil, crypto.ErrNilCommitmentSecret
+	}
+
+	commSecret, err := bn.commSecret.MarshalBinary()
+
+	return commSecret, err
 }
 
 // AddCommitment adds a commitment to the list on the specified position
@@ -342,6 +368,10 @@ func (bn *belNevSigner) AggregateCommitments(bitmap []byte) ([]byte, error) {
 
 // SetAggCommitment sets the aggregated commitment for the marked signers in bitmap
 func (bn *belNevSigner) SetAggCommitment(aggCommitment []byte) error {
+	if aggCommitment == nil {
+		return crypto.ErrNilAggregatedCommitment
+	}
+
 	aggCommPoint := bn.suite.CreatePoint()
 	err := aggCommPoint.UnmarshalBinary(aggCommitment)
 
@@ -352,6 +382,15 @@ func (bn *belNevSigner) SetAggCommitment(aggCommitment []byte) error {
 	bn.aggCommitment = aggCommPoint
 
 	return nil
+}
+
+// AggCommitment returns the set/computed aggregated commitment or error if not set
+func (bn *belNevSigner) AggCommitment() ([]byte, error) {
+	if bn.aggCommitment == nil {
+		return nil, crypto.ErrNilAggregatedCommitment
+	}
+
+	return bn.aggCommitment.MarshalBinary()
 }
 
 // Creates the challenge for the specific index H1(<L'>||X_i||R||m)
@@ -415,6 +454,7 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 	concatenated = append(concatenated[:], bn.message[:]...)
 	// H(<L'> || X_i || R || m)
 	challenge := bn.hasher.Compute(string(concatenated))
+
 	challengeScalar := bn.suite.CreateScalar()
 	err = challengeScalar.UnmarshalBinary(challenge)
 
@@ -429,6 +469,12 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 func (bn *belNevSigner) CreateSignatureShare(bitmap []byte) ([]byte, error) {
 	if bitmap == nil {
 		return nil, crypto.ErrNilBitmap
+	}
+
+	maxFlags := len(bitmap) * 8
+	flagsMismatch := maxFlags < len(bn.pubKeys)
+	if flagsMismatch {
+		return nil, crypto.ErrBitmapMismatch
 	}
 
 	challengeScalar, err := bn.computeChallenge(bn.ownIndex, bitmap)

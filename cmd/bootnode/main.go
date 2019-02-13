@@ -20,8 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/multisig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
@@ -478,7 +478,8 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 		return nil, nil, nil, err
 	}
 
-	keyGen = schnorr.NewKeyGenerator()
+	suite := privKey.Suite()
+	keyGen = signing.NewKeyGenerator(suite)
 	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
 
 	if err != nil {

@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"crypto/cipher"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 )
 
 type ScalarMock struct {
@@ -97,7 +97,7 @@ func (sm *ScalarMock) SetBytes([]byte) (crypto.Scalar, error) {
 
 // GetUnderlyingObj returns the object the implementation wraps
 func (sm *ScalarMock) GetUnderlyingObj() interface{} {
-	panic("implement me")
+	return sm.X
 }
 
 // MarshalBinary transforms the Scalar into a byte array

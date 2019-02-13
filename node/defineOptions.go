@@ -241,6 +241,17 @@ func WithInitialNodesBalances(balances map[string]*big.Int) Option {
 	}
 }
 
+// WithSinglesig sets up the singlesig option for the Node
+func WithSinglesig(singlesig crypto.SingleSigner) Option {
+	return func(n *Node) error {
+		if singlesig == nil {
+			return ErrNilSingleSig
+		}
+		n.singlesig = singlesig
+		return nil
+	}
+}
+
 // WithMultisig sets up the multisig option for the Node
 func WithMultisig(multisig crypto.MultiSigner) Option {
 	return func(n *Node) error {

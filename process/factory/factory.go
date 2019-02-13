@@ -43,7 +43,7 @@ type processorsCreator struct {
 	addrConverter            state.AddressConverter
 	hasher                   hashing.Hasher
 	marshalizer              marshal.Marshalizer
-	singleSignKeyGen         crypto.KeyGenerator
+	KeyGen                   crypto.KeyGenerator
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -80,7 +80,7 @@ func NewProcessorsCreator(config ProcessorsCreatorConfig) (*processorsCreator, e
 		addrConverter:            config.AddrConverter,
 		hasher:                   config.Hasher,
 		marshalizer:              config.Marshalizer,
-		singleSignKeyGen:         config.SingleSignKeyGen,
+		KeyGen:                   config.SingleSignKeyGen,
 		uint64ByteSliceConverter: config.Uint64ByteSliceConverter,
 	}, nil
 }
@@ -169,7 +169,7 @@ func (p *processorsCreator) createTxInterceptor() error {
 		txStorer,
 		p.addrConverter,
 		p.hasher,
-		p.singleSignKeyGen,
+		p.KeyGen,
 		p.shardCoordinator)
 
 	if err != nil {

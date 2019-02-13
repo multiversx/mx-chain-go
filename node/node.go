@@ -67,6 +67,7 @@ type Node struct {
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
 	singleSignKeyGen crypto.KeyGenerator
+	singlesig        crypto.SingleSigner
 	multisig         crypto.MultiSigner
 	forkDetector     process.ForkDetector
 
@@ -479,6 +480,7 @@ func (n *Node) createConsensusWorker(cns *spos.Consensus, boot *sync.Bootstrap) 
 		n.marshalizer,
 		n.blockProcessor,
 		boot,
+		n.singlesig,
 		n.multisig,
 		n.singleSignKeyGen,
 		n.privateKey,
@@ -608,7 +610,7 @@ func (n *Node) generateAndSignTx(
 		return nil, nil, errors.New("could not marshal transaction")
 	}
 
-	sig, err := n.privateKey.Sign(marshalizedTx)
+	sig, err := n.privateKey.Sign(marshalizedTx, n.singlesig)
 	if err != nil {
 		return nil, nil, errors.New("could not sign the transaction")
 	}

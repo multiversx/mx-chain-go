@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
@@ -26,6 +25,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
 )
 
 func createTestBlockChain() *blockchain.BlockChain {
@@ -123,7 +124,8 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
-	keyGen := schnorr.NewKeyGenerator()
+	suite := kv2.NewBlakeSHA256Ed25519()
+	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 	blockChain := createTestBlockChain()
 	shardCoordinator := &sharding.OneShardCoordinator{}
@@ -178,7 +180,8 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
-	keyGen := schnorr.NewKeyGenerator()
+	suite := kv2.NewBlakeSHA256Ed25519()
+	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 	blkc := createTestBlockChain()
 	shardCoordinator := &sharding.OneShardCoordinator{}

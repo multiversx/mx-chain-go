@@ -64,12 +64,6 @@ type Point interface {
 	Set(p Point) error
 	// Clone returns a clone of the receiver.
 	Clone() Point
-	// Data returns the Point in a byte array representation.
-	// Returns an error if doesn't represent valid point.
-	Data() ([]byte, error)
-	// Embedd sets the receiver using a Point byte array representation
-	// This is the inverse operation of Data
-	Embed(data []byte, rand cipher.Stream) error
 	// Add returns the result of adding receiver with Point p given as parameter,
 	// so that their scalars add homomorphically
 	Add(p Point) (Point, error)
@@ -172,7 +166,7 @@ type MultiSigner interface {
 	// MultiSigVerifier Provides functionality for verifying a multi-signature
 	MultiSigVerifier
 	// CreateCommitment creates a secret commitment and the corresponding public commitment point
-	CreateCommitment() (commSecret []byte, commitment []byte, err error)
+	CreateCommitment() (commSecret []byte, commitment []byte)
 	// AddCommitmentHash adds a commitment hash to the list with the specified position
 	AddCommitmentHash(index uint16, commHash []byte) error
 	// CommitmentHash returns the commitment hash from the list with the specified position
@@ -204,7 +198,7 @@ type MultiSigVerifier interface {
 	// Reset resets the multisigner and initializes to the new params
 	Reset(pubKeys []string, index uint16) error
 	// SetMessage sets the message to be multi-signed upon
-	SetMessage(msg []byte)
+	SetMessage(msg []byte) error
 	// SetAggregatedSig sets the aggregated signature
 	SetAggregatedSig([]byte) error
 	// Verify verifies the aggregated signature

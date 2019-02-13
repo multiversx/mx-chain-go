@@ -21,6 +21,7 @@ type InterceptedTransaction struct {
 	sndShard                 uint32
 	isAddressedToOtherShards bool
 	addrConv                 state.AddressConverter
+	singleSigner             crypto.SingleSigner
 	singleSignKeyGen         crypto.KeyGenerator
 }
 
@@ -120,7 +121,7 @@ func (inTx *InterceptedTransaction) VerifySig() error {
 		return err
 	}
 
-	err = singleSignVerifier.Verify(inTx.txBuffWithoutSig, inTx.Signature)
+	err = singleSignVerifier.Verify(inTx.txBuffWithoutSig, inTx.Signature, inTx.singleSigner)
 
 	if err != nil {
 		return err

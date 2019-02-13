@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
@@ -29,7 +30,8 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	keyGen := schnorr.NewKeyGenerator()
+	suite := kv2.NewBlakeSHA256Ed25519()
+	keyGen := signing.NewKeyGenerator(suite)
 
 	dPoolRequestor := createTestDataPool()
 	dPoolResolver := createTestDataPool()

@@ -49,7 +49,7 @@ type StorageService interface {
 // The BlockChain also holds pointers to the Genesis block, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
-	lock                   sync.RWMutex				   // Lock for accessing the storers chain
+	lock                   sync.RWMutex                // Lock for accessing the storers chain
 	GenesisBlock           *block.Header               // Genesys Block Header pointer
 	GenesisHeaderHash      []byte                      // Genesis Block Header hash
 	CurrentBlockHeader     *block.Header               // Current Block pointer

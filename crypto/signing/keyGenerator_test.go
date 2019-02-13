@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/stretchr/testify/assert"
 	"strconv"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 )
 
 var invalidStr = []byte("invalid key")

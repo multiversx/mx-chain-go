@@ -52,18 +52,6 @@ func (po *PointMock) Clone() crypto.Point {
 	panic("implement me")
 }
 
-// Data returns the Point in a byte array representation.
-// Returns an error if doesn't represent valid point.
-func (po *PointMock) Data() ([]byte, error) {
-	panic("implement me")
-}
-
-// Embedd sets the receiver using a Point byte array representation
-// This is the inverse operation of Data
-func (po *PointMock) Embed(data []byte, rand cipher.Stream) error {
-	panic("implement me")
-}
-
 // Add returns the result of adding receiver with Point p given as parameter,
 // so that their scalars add homomorphically
 func (po *PointMock) Add(p crypto.Point) (crypto.Point, error) {
@@ -107,7 +95,7 @@ func (po *PointMock) Pick(rand cipher.Stream) (crypto.Point, error) {
 
 // GetUnderlyingObj returns the object the implementation wraps
 func (po *PointMock) GetUnderlyingObj() interface{} {
-	panic("implement me")
+	return 0
 }
 
 // MarshalBinary transforms the Point into a byte array

@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/stretchr/testify/assert"
 	"reflect"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 )
 
 func signOK(suite crypto.Suite, private crypto.Scalar, msg []byte) ([]byte, error) {
