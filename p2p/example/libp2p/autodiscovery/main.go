@@ -23,7 +23,7 @@ func main() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	startingPort := 32000
 
-	advertiser, _ := libp2p.NewSocketLibp2pMessenger(
+	advertiser, _ := libp2p.NewNetworkMessenger(
 		context.Background(),
 		startingPort,
 		genPrivKey(),
@@ -39,7 +39,7 @@ func main() {
 	}()
 
 	for i := 0; i < 99; i++ {
-		netPeer, _ := libp2p.NewSocketLibp2pMessenger(
+		netPeer, _ := libp2p.NewNetworkMessenger(
 			context.Background(),
 			startingPort,
 			genPrivKey(),

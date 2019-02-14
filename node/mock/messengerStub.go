@@ -18,7 +18,7 @@ type MessengerStub struct {
 	HasTopicCalled                  func(name string) bool
 	HasTopicValidatorCalled         func(name string) bool
 	SendDataThrottlerCalled         func() p2p.DataThrottler
-	BroadcastDataCalled             func(pipe string, topic string, buff []byte)
+	BroadcastCalled                 func(pipe string, topic string, buff []byte)
 	SetTopicValidatorCalled         func(topic string, handler func(message p2p.MessageP2P) error) error
 	SendDirectToConnectedPeerCalled func(topic string, buff []byte, peerID p2p.PeerID) error
 }
@@ -75,8 +75,8 @@ func (ms *MessengerStub) SendDataThrottler() p2p.DataThrottler {
 	return ms.SendDataThrottlerCalled()
 }
 
-func (ms *MessengerStub) BroadcastData(pipe string, topic string, buff []byte) {
-	ms.BroadcastDataCalled(pipe, topic, buff)
+func (ms *MessengerStub) Broadcast(pipe string, topic string, buff []byte) {
+	ms.BroadcastCalled(pipe, topic, buff)
 }
 
 func (ms *MessengerStub) SetTopicValidator(topic string, handler func(message p2p.MessageP2P) error) error {

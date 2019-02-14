@@ -43,7 +43,7 @@ type Messenger interface {
 	HasTopic(name string) bool
 	HasTopicValidator(name string) bool
 	SendDataThrottler() DataThrottler
-	BroadcastData(pipe string, topic string, buff []byte)
+	Broadcast(pipe string, topic string, buff []byte)
 	SetTopicValidator(topic string, handler func(message MessageP2P) error) error
 	SendDirectToConnectedPeer(topic string, buff []byte, peerID PeerID) error
 }
@@ -70,5 +70,5 @@ type DataThrottler interface {
 // DirectSender defines a component that can send direct messages to connected peers
 type DirectSender interface {
 	NextSeqno(counter *uint64) []byte
-	SendDirectToConnectedPeer(topic string, buff []byte, peer PeerID) error
+	Send(topic string, buff []byte, peer PeerID) error
 }
