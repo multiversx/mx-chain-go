@@ -19,6 +19,9 @@ var ErrNilPublicKey = errors.New("public key is nil")
 // ErrInvalidPublicKey is raised when an invalid public key is used
 var ErrInvalidPublicKey = errors.New("public key is invalid")
 
+// ErrNoPublicKeySet is raised when no public key was set for a multisignature
+var ErrNoPublicKeySet = errors.New("no public key was set")
+
 // ErrInvalidPublicKeyString is raised when an invalid serialization for a public key is used
 var ErrInvalidPublicKeyString = errors.New("invalid public key string")
 
@@ -60,6 +63,9 @@ var ErrNilSingleSigner = errors.New("single signer is nil")
 
 // ErrBitmapMismatch is raised when an invalid bitmap is passed to the multisigner
 var ErrBitmapMismatch = errors.New("multi signer reported a mismatch in used bitmap")
+
+// ErrBitmapNotSet is raised when a cleared bitmap is used
+var ErrBitmapNotSet = errors.New("bitmap is not set")
 
 // ErrNilCommitment is raised when a nil commitment is used
 var ErrNilCommitment = errors.New("commitment is nil")

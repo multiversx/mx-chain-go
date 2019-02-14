@@ -93,6 +93,10 @@ func NewBelNevMultisig(
 		return nil, crypto.ErrNilPublicKeys
 	}
 
+	if len(pubKeys) == 0 {
+		return nil, crypto.ErrNoPublicKeySet
+	}
+
 	if keyGen == nil {
 		return nil, crypto.ErrNilKeyGenerator
 	}
@@ -488,15 +492,8 @@ func (bn *belNevSigner) CreateSignatureShare(bitmap []byte) ([]byte, error) {
 	}
 
 	// s_i = r_i + H(<L'> || X_i || R || m)*x_i
-	sigShareScalar, err = sigShareScalar.Add(bn.commSecret)
-	if err != nil {
-		return nil, err
-	}
-
-	sigShare, err := sigShareScalar.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
+	sigShareScalar, _ = sigShareScalar.Add(bn.commSecret)
+	sigShare, _ := sigShareScalar.MarshalBinary()
 
 	bn.mutSigShares.Lock()
 	bn.sigShares[bn.ownIndex] = sigShareScalar
@@ -579,7 +576,6 @@ func (bn *belNevSigner) AddSignatureShare(index uint16, sig []byte) error {
 
 	sigScalar := bn.suite.CreateScalar()
 	err := sigScalar.UnmarshalBinary(sig)
-
 	if err != nil {
 		return err
 	}
@@ -620,8 +616,6 @@ func (bn *belNevSigner) SignatureShare(index uint16) ([]byte, error) {
 
 // AggregateSigs aggregates all collected partial signatures
 func (bn *belNevSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
-	var err error
-
 	if bitmap == nil {
 		return nil, crypto.ErrNilBitmap
 	}
@@ -648,11 +642,13 @@ func (bn *belNevSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		}
 	}
 
-	aggSigBytes, err := aggSig.MarshalBinary()
-	if err != nil {
-		return nil, err
+	isZero, _ := aggSig.Equal(bn.suite.CreateScalar().Zero())
+
+	if isZero {
+		return nil, crypto.ErrBitmapNotSet
 	}
 
+	aggSigBytes, _ := aggSig.MarshalBinary()
 	bn.aggSig = aggSig
 
 	return aggSigBytes, nil
@@ -683,13 +679,17 @@ func (bn *belNevSigner) Verify(bitmap []byte) error {
 		return crypto.ErrNilBitmap
 	}
 
-	right := bn.suite.CreatePoint().Null()
-	var err error
+	maxFlags := len(bitmap) * 8
+	flagsMismatch := maxFlags < len(bn.pubKeys)
+	if flagsMismatch {
+		return crypto.ErrBitmapMismatch
+	}
 
+	right := bn.suite.CreatePoint().Null()
 	for i := range bn.pubKeys {
 		err := bn.isValidIndex(uint16(i), bitmap)
 		if err != nil {
-			return err
+			continue
 		}
 
 		challengeScalar, err := bn.computeChallenge(uint16(i), bitmap)
@@ -699,35 +699,22 @@ func (bn *belNevSigner) Verify(bitmap []byte) error {
 
 		pubKey := bn.pubKeys[i].Point()
 		// H1(<L'>||X_i||R||m)*X_i
-		part, err := pubKey.Mul(challengeScalar)
-		if err != nil {
-			return err
-		}
-
-		right, err = right.Add(part)
-		if err != nil {
-			return err
-		}
+		part, _ := pubKey.Mul(challengeScalar)
+		right, _ = right.Add(part)
 	}
 
 	// R + Sum(H1(<L'>||X_i||R||m)*X_i)
-	right, err = right.Add(bn.aggCommitment)
-	if err != nil {
-		return err
-	}
-
+	right, _ = right.Add(bn.aggCommitment)
 	// s * G
 	left := bn.suite.CreatePoint().Base()
-	left, err = left.Mul(bn.aggSig)
-	if err != nil {
-		return err
+
+	if bn.aggSig == nil {
+		return crypto.ErrNilSignature
 	}
 
+	left, _ = left.Mul(bn.aggSig)
 	// s * G = R + Sum(H1(<L'>||X_i||R||m)*X_i)
-	eq, err := right.Equal(left)
-	if err != nil {
-		return err
-	}
+	eq, _ := right.Equal(left)
 
 	if !eq {
 		return crypto.ErrSigNotValid
