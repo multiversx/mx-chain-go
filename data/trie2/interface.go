@@ -1,21 +1,20 @@
 package trie2
 
+//Trie is an interface necessary for being able to use multiple implementations of Merkle Tries
 type Trie interface {
 	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
 	Delete(key []byte) error
 	Root() []byte
 	Copy() Trie
-}
-
-type Node interface {
-	GetHash() []byte
+	Prove(key []byte) [][]byte
+	VerifyProof(rootHash []byte, proof [][]byte, key []byte) bool
+	NodeIterator() NodeIterator
 }
 
 // NodeIterator is an iterator to traverse the trie pre-order.
 type NodeIterator interface {
-	// Next moves the iterator to the next node. If the parameter is false, any child
-	// nodes will be skipped.
+	// Next moves the iterator to the next node.
 	Next() bool
 
 	// Error returns the error status of the iterator.

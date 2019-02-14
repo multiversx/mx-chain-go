@@ -4,6 +4,7 @@ import (
 	"bytes"
 )
 
+// KeyBytesToHex turns key bytes into hex nibbles.
 func KeyBytesToHex(str []byte) []byte {
 	l := len(str)*2 + 1
 	var nibbles = make([]byte, l)
@@ -15,6 +16,7 @@ func KeyBytesToHex(str []byte) []byte {
 	return nibbles
 }
 
+// PrefixLen returns the length of the common prefix of a and b.
 func PrefixLen(a, b []byte) int {
 	var i, length = 0, len(a)
 	if len(b) < length {

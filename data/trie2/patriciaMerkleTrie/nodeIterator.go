@@ -1,9 +1,10 @@
-package trie2
+package patriciaMerkleTrie
 
 import (
 	"bytes"
+	"errors"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/encoding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/patriciaMerkleTrie/encoding"
 )
 
 var emptyHash []byte
@@ -12,7 +13,7 @@ var emptyHash []byte
 // trie, which can be resumed at a later invocation.
 type nodeIteratorState struct {
 	hash    []byte // Hash of the node being iterated
-	node    Node   // Trie node being iterated
+	node    node   // Trie node being iterated
 	parent  []byte // Hash of the first full ancestor node (nil if current is the root)
 	index   int    // Child to be processed next
 	pathlen int    // Length of the path to this node
@@ -48,50 +49,6 @@ func (it *nodeIterator) Next() bool {
 	return true
 }
 
-func (it *nodeIterator) Error() error {
-	return it.err
-}
-
-func (it *nodeIterator) Hash() []byte {
-	if len(it.stack) == 0 {
-		return []byte{}
-	}
-	return it.stack[len(it.stack)-1].hash
-}
-
-func (it *nodeIterator) Parent() []byte {
-	if len(it.stack) == 0 {
-		return []byte{}
-	}
-	return it.stack[len(it.stack)-1].parent
-}
-
-func (it *nodeIterator) Path() []byte {
-	return it.path
-}
-
-func (it *nodeIterator) Leaf() bool {
-	return encoding.HasTerm(it.path)
-}
-
-func (it *nodeIterator) LeafKey() []byte {
-	if len(it.stack) > 0 {
-		if _, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
-			return encoding.HexToKeyBytes(it.path)
-		}
-	}
-	panic("not at leaf")
-}
-
-func (it *nodeIterator) LeafBlob() []byte {
-	if len(it.stack) > 0 {
-		if node, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
-			return []byte(node)
-		}
-	}
-	panic("not at leaf")
-}
-
 // peek creates the next state of the iterator.
 func (it *nodeIterator) peek() (*nodeIteratorState, *int, []byte, error) {
 	if len(it.stack) == 0 {
@@ -113,17 +70,17 @@ func (it *nodeIterator) peek() (*nodeIteratorState, *int, []byte, error) {
 		}
 		state, path, ok := it.nextChild(parent, ancestor)
 		if ok {
-			node, err := SetHash(state.node)
+			_, node, err := it.trie.setHash(state.node)
 			if err != nil {
 				return nil, nil, nil, err
 			}
-			state.hash = node.GetHash()
+			state.hash = node.getHash()
 			return state, &parent.index, path, nil
 		}
 		// No more child nodes, move back up.
 		it.pop()
 	}
-	return nil, nil, nil, errIteratorEnd
+	return nil, nil, nil, errors.New("end of iteration")
 }
 
 func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor []byte) (*nodeIteratorState, []byte, bool) {
@@ -133,7 +90,7 @@ func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor []byte) (*
 		for i := parent.index + 1; i < len(node.Children); i++ {
 			child := node.Children[i]
 			if child != nil {
-				hash := child.GetHash()
+				hash := child.getHash()
 				state := &nodeIteratorState{
 					hash:    hash,
 					node:    child,
@@ -149,7 +106,7 @@ func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor []byte) (*
 	case *shortNode:
 		// Short node, return the pointer singleton child
 		if parent.index < 0 {
-			hash := node.Val.GetHash()
+			hash := node.Val.getHash()
 			state := &nodeIteratorState{
 				hash:    hash,
 				node:    node.Val,
@@ -162,6 +119,84 @@ func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor []byte) (*
 		}
 	}
 	return parent, it.path, false
+}
+
+func (it *nodeIterator) Error() error {
+	return it.err
+}
+
+// Hash returns the hash of the current node
+func (it *nodeIterator) Hash() []byte {
+	if len(it.stack) == 0 {
+		return []byte{}
+	}
+	return it.stack[len(it.stack)-1].hash
+}
+
+// Parent returns the hash of the parent of the current node. The hash may be the one grandparent.
+func (it *nodeIterator) Parent() []byte {
+	if len(it.stack) == 0 {
+		return []byte{}
+	}
+	return it.stack[len(it.stack)-1].parent
+}
+
+// Path returns the hex-encoded path to the current node.
+// For leaf nodes, the last element of the path is the 'terminator symbol' 0x10.
+func (it *nodeIterator) Path() []byte {
+	return it.path
+}
+
+// Leaf returns true iff the current node is a leaf node.
+func (it *nodeIterator) Leaf() bool {
+	return encoding.HasTerm(it.path)
+}
+
+// LeafKey returns the key of the leaf. The method panics if the iterator is not
+// positioned at a leaf.
+func (it *nodeIterator) LeafKey() []byte {
+	if len(it.stack) > 0 {
+		if _, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
+			return encoding.HexToKeyBytes(it.path)
+		}
+	}
+	panic("not at leaf")
+}
+
+// LeafBlob returns the content of the leaf. The method panics if the iterator
+// is not positioned at a leaf.
+func (it *nodeIterator) LeafBlob() []byte {
+	if len(it.stack) > 0 {
+		if node, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
+			return []byte(node)
+		}
+	}
+	panic("not at leaf")
+}
+
+// LeafProof returns the Merkle proof of the leaf. The method panics if the
+// iterator is not positioned at a leaf.
+func (it *nodeIterator) LeafProof() [][]byte {
+	if len(it.stack) > 0 {
+		if _, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
+			proofs := make([][]byte, 0, len(it.stack))
+
+			for i, item := range it.stack[:len(it.stack)-1] {
+				// Gather nodes that end up as hash nodes (or the root)
+				node, _, _ := it.trie.hashChildren(item.node)
+				hashed, _ := it.trie.hash(node)
+				if _, ok := hashed.(hashNode); ok || i == 0 {
+					n, err := it.trie.marshalizer.Marshal(node)
+					if err != nil {
+						return nil
+					}
+					proofs = append(proofs, n)
+				}
+			}
+			return proofs
+		}
+	}
+	panic("not at leaf")
 }
 
 func (it *nodeIterator) push(state *nodeIteratorState, parentIndex *int, path []byte) {
