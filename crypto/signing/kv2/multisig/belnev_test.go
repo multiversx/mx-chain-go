@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
 	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
 func genMultiSigParams(cnGrSize int) (
@@ -45,6 +46,24 @@ func setComms(multiSig crypto.MultiSigner, grSize uint16) (bitmap []byte) {
 	bitmap[grSize/8] |= 1 << ((grSize - 1) % 8)
 
 	return bitmap
+}
+
+func createSignerAndSigShare(
+	hasher hashing.Hasher,
+	pubKeys []string,
+	privKey crypto.PrivateKey,
+	kg crypto.KeyGenerator,
+	grSize uint16,
+	ownIndex uint16) (sigShare []byte, multiSig crypto.MultiSigner, bitmap []byte) {
+
+	multiSig, _ = multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	_ = multiSig.SetMessage([]byte("message"))
+	bitmap = setComms(multiSig, grSize)
+	_, _ = multiSig.AggregateCommitments(bitmap)
+	sigShare, _ = multiSig.CreateSignatureShare(bitmap)
+
+	return sigShare, multiSig, bitmap
+
 }
 
 func TestNewBelNevMultisig_NilHasherShouldErr(t *testing.T) {
@@ -455,8 +474,7 @@ func TestBelNevSigner_AggregateCommitmentsNilBitmapShouldErr(t *testing.T) {
 	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(4)
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	_, commitment := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(0, commitment)
+	_ = setComms(multiSig, 4)
 	aggComm, err := multiSig.AggregateCommitments(nil)
 
 	assert.Nil(t, aggComm)
@@ -470,11 +488,9 @@ func TestBelNevSigner_AggregateCommitmentsWrongBitmapShouldErr(t *testing.T) {
 	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(21)
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	_, commitment := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(0, commitment)
-	bitmap := make([]byte, 1)
+	bitmap := setComms(multiSig, 21)
 
-	aggComm, err := multiSig.AggregateCommitments(bitmap)
+	aggComm, err := multiSig.AggregateCommitments(bitmap[:1])
 
 	assert.Nil(t, aggComm)
 	assert.Equal(t, crypto.ErrBitmapMismatch, err)
@@ -508,14 +524,7 @@ func TestBelNevSigner_AggregateCommitmentsOK(t *testing.T) {
 	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(3)
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	_, commitment := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(0, commitment)
-	_, commitment2 := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(2, commitment2)
-
-	bitmap := make([]byte, 1)
-	bitmap[0] |= 5 // 0b00000101
-
+	bitmap := setComms(multiSig, 4)
 	aggComm, err := multiSig.AggregateCommitments(bitmap)
 
 	assert.Nil(t, err)
@@ -546,6 +555,35 @@ func TestBelNevSigner_SetAggCommitmentOK(t *testing.T) {
 	err := multiSig.SetAggCommitment(comm)
 	aggCommRead, _ := multiSig.AggCommitment()
 
+	assert.Nil(t, err)
+	assert.Equal(t, comm, aggCommRead)
+}
+
+func TestBelNevSigner_AggCommitmentNilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(3)
+	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+
+	aggCommRead, err := multiSig.AggCommitment()
+
+	assert.Nil(t, aggCommRead)
+	assert.Equal(t, crypto.ErrNilAggregatedCommitment, err)
+}
+
+func TestBelNevSigner_AggCommitmentOK(t *testing.T) {
+	t.Parallel()
+
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(3)
+	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	_, comm := multiSig.CreateCommitment()
+	_ = multiSig.SetAggCommitment(comm)
+
+	aggCommRead, err := multiSig.AggCommitment()
+
+	assert.NotNil(t, aggCommRead)
 	assert.Nil(t, err)
 	assert.Equal(t, comm, aggCommRead)
 }
@@ -589,7 +627,12 @@ func TestBelNevSigner_CreateSignatureShareNotSetCommitmentShouldErr(t *testing.T
 	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(15)
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	bitmap := setComms(multiSig, 15)
+	_, comm := multiSig.CreateCommitment()
+	_ = multiSig.AddCommitment(0, comm)
+
+	bitmap := make([]byte, 2)
+	bitmap[0] = 0x01
+
 	_, _ = multiSig.AggregateCommitments(bitmap)
 	_ = multiSig.SetMessage([]byte("message"))
 
@@ -623,12 +666,7 @@ func TestBelNevSigner_CreateSignatureShareNotSetAggCommitmentShouldErr(t *testin
 	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(4)
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	commSecret, comm := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(3, comm)
-	_ = multiSig.SetCommitmentSecret(commSecret)
-
-	bitmap := make([]byte, 1)
-	bitmap[0] = 1 << 3
+	bitmap := setComms(multiSig, 4)
 
 	_ = multiSig.SetMessage([]byte("message"))
 	sigShare, err := multiSig.CreateSignatureShare(bitmap)
@@ -664,14 +702,12 @@ func TestBelNevSigner_CreateSignatureShareOK(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(4)
 
-	multiSig, err := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	assert.Nil(t, err)
+	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	bitmap := setComms(multiSig, 4)
-	_, err = multiSig.AggregateCommitments(bitmap)
-	assert.Nil(t, err)
-
+	_, _ = multiSig.AggregateCommitments(bitmap)
 	_ = multiSig.SetMessage([]byte("message"))
 	sigShare, err := multiSig.CreateSignatureShare(bitmap)
+
 	verifErr := multiSig.VerifySignatureShare(3, sigShare, bitmap)
 
 	assert.Nil(t, err)
@@ -684,32 +720,72 @@ func TestBelNevSigner_VerifySignatureShareNilSigShouldErr(t *testing.T) {
 
 	hasher := &mock.HasherMock{}
 	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(4)
+	_, multiSig, bitmap := createSignerAndSigShare(hasher, pubKeys, privKey, kg, 4, ownIndex)
 
-	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-
-	bitmap := setComms(multiSig, 4)
-	_, _ = multiSig.AggregateCommitments(bitmap)
 	verifErr := multiSig.VerifySignatureShare(3, nil, bitmap)
 
 	assert.Equal(t, crypto.ErrNilSignature, verifErr)
 }
 
 func TestBelNevSigner_VerifySignatureShareNilBitmapShouldErr(t *testing.T) {
+	t.Parallel()
 
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(4)
+	sigShare, multiSig, _ := createSignerAndSigShare(hasher, pubKeys, privKey, kg, 4, ownIndex)
+
+	verifErr := multiSig.VerifySignatureShare(3, sigShare, nil)
+
+	assert.Equal(t, crypto.ErrNilBitmap, verifErr)
 }
 
 func TestBelNevSigner_VerifySignatureShareNotSelectedIndexShouldErr(t *testing.T) {
+	t.Parallel()
 
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(4)
+	sigShare, multiSig, bitmap := createSignerAndSigShare(hasher, pubKeys, privKey, kg, 4, ownIndex)
+
+	bitmap[0] = 0
+	verifErr := multiSig.VerifySignatureShare(3, sigShare, bitmap)
+
+	assert.Equal(t, crypto.ErrIndexNotSelected, verifErr)
 }
 
 func TestBelNevSigner_VerifySignatureShareNotSetCommitmentShouldErr(t *testing.T) {
+	t.Parallel()
 
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(4)
+	sigShare, multiSig, bitmap := createSignerAndSigShare(hasher, pubKeys, privKey, kg, 4, ownIndex)
+
+	bitmap[0] |= 1 << 2
+	verifErr := multiSig.VerifySignatureShare(2, sigShare, bitmap)
+
+	assert.Equal(t, crypto.ErrNilCommitment, verifErr)
 }
 
 func TestBelNevSigner_VerifySignatureShareInvalidSignatureShouldErr(t *testing.T) {
+	t.Parallel()
 
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(4)
+	sigShare, multiSig, bitmap := createSignerAndSigShare(hasher, pubKeys, privKey, kg, 4, ownIndex)
+
+	verifErr := multiSig.VerifySignatureShare(0, sigShare, bitmap)
+
+	assert.Equal(t, crypto.ErrSigNotValid, verifErr)
 }
 
 func TestBelNevSigner_VerifySignatureShareOK(t *testing.T) {
+	t.Parallel()
 
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg, ownIndex := genMultiSigParams(4)
+	sigShare, multiSig, bitmap := createSignerAndSigShare(hasher, pubKeys, privKey, kg, 4, ownIndex)
+
+	verifErr := multiSig.VerifySignatureShare(3, sigShare, bitmap)
+
+	assert.Nil(t, verifErr)
 }
+

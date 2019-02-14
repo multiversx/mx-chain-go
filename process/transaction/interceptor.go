@@ -18,7 +18,8 @@ type TxInterceptor struct {
 	txStorer         storage.Storer
 	addrConverter    state.AddressConverter
 	hasher           hashing.Hasher
-	singleSignKeyGen crypto.KeyGenerator
+	singleSigner     crypto.SingleSigner
+	keyGen           crypto.KeyGenerator
 	shardCoordinator sharding.ShardCoordinator
 }
 
@@ -29,7 +30,8 @@ func NewTxInterceptor(
 	txStorer storage.Storer,
 	addrConverter state.AddressConverter,
 	hasher hashing.Hasher,
-	singleSignKeyGen crypto.KeyGenerator,
+	singleSigner crypto.SingleSigner,
+	keyGen crypto.KeyGenerator,
 	shardCoordinator sharding.ShardCoordinator,
 ) (*TxInterceptor, error) {
 
@@ -53,8 +55,16 @@ func NewTxInterceptor(
 		return nil, process.ErrNilHasher
 	}
 
-	if singleSignKeyGen == nil {
-		return nil, process.ErrNilSingleSignKeyGen
+	if singleSigner == nil {
+		return nil, process.ErrNilSingleSigner
+	}
+
+	if singleSigner == nil {
+		return nil, process.ErrNilSingleSigner
+	}
+
+	if keyGen == nil {
+		return nil, process.ErrNilKeyGen
 	}
 
 	if shardCoordinator == nil {
@@ -67,7 +77,8 @@ func NewTxInterceptor(
 		txStorer:         txStorer,
 		hasher:           hasher,
 		addrConverter:    addrConverter,
-		singleSignKeyGen: singleSignKeyGen,
+		singleSigner:     singleSigner,
+		keyGen:           keyGen,
 		shardCoordinator: shardCoordinator,
 	}
 
@@ -92,7 +103,7 @@ func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 	}
 
 	txIntercepted.SetAddressConverter(txi.addrConverter)
-	txIntercepted.SetSingleSignKeyGen(txi.singleSignKeyGen)
+	txIntercepted.SetSingleSignKeyGen(txi.keyGen)
 	hashWithSig := txi.hasher.Compute(string(rawData))
 	txIntercepted.SetHash(hashWithSig)
 

@@ -7,7 +7,7 @@ func (mm *MultisignMock) Reset(pubKeys []string, index uint16) error {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) SetMessage(msg []byte) {
+func (mm *MultisignMock) SetMessage(msg []byte) error {
 	panic("implement me")
 }
 
@@ -19,7 +19,7 @@ func (mm *MultisignMock) Verify(bitmap []byte) error {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) CreateCommitment() (commSecret []byte, commitment []byte, err error) {
+func (mm *MultisignMock) CreateCommitment() (commSecret []byte, commitment []byte) {
 	panic("implement me")
 }
 

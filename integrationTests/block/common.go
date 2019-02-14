@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
 )
 
 func createTestBlockChain() *blockchain.BlockChain {
@@ -88,6 +89,7 @@ func createMemNode(port int, dPool data.TransientDataHolder) (*node.Node, p2p.Me
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
 	suite := kv2.NewBlakeSHA256Ed25519()
+	signer := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	blockChain := createTestBlockChain()
 	shardCoordinator := &sharding.OneShardCoordinator{}
@@ -103,7 +105,8 @@ func createMemNode(port int, dPool data.TransientDataHolder) (*node.Node, p2p.Me
 		AddrConverter:            addrConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		SingleSignKeyGen:         keyGen,
+		SingleSigner:             signer,
+		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
 
@@ -114,7 +117,8 @@ func createMemNode(port int, dPool data.TransientDataHolder) (*node.Node, p2p.Me
 		node.WithContext(context.Background()),
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
-		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithSinglesig(signer),
+		node.WithKeyGenerator(keyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blockChain),
 		node.WithUint64ByteSliceConverter(uint64Converter),

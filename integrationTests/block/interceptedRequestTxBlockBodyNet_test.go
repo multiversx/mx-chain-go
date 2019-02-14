@@ -57,7 +57,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 		AddrConverter:            addrConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		SingleSignKeyGen:         keyGen,
+		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64BsReq,
 	})
 
@@ -71,7 +71,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 		AddrConverter:            addrConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		SingleSignKeyGen:         keyGen,
+		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64BsRes,
 	})
 
@@ -81,7 +81,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 		node.WithContext(context.Background()),
 		node.WithDataPool(dPoolRequestor),
 		node.WithAddressConverter(addrConverter),
-		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithKeyGenerator(keyGen),
 		node.WithShardCoordinator(shardCoordinatorReq),
 		node.WithBlockChain(blkcRequestor),
 		node.WithUint64ByteSliceConverter(uint64BsReq),
@@ -95,7 +95,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 		node.WithContext(context.Background()),
 		node.WithDataPool(dPoolResolver),
 		node.WithAddressConverter(addrConverter),
-		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithKeyGenerator(keyGen),
 		node.WithShardCoordinator(shardCoordinatorRes),
 		node.WithBlockChain(blkcResolver),
 		node.WithUint64ByteSliceConverter(uint64BsRes),

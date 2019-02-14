@@ -240,8 +240,8 @@ func initMockBlockProcessor() *mock.BlockProcessorMock {
 func initMultisigner() *mock.BelNevMock {
 	multisigner := mock.NewMultiSigner()
 
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return []byte("commSecret"), []byte("commitment"), nil
+	multisigner.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("commitment")
 	}
 
 	multisigner.VerifySignatureShareMock = func(index uint16, sig []byte, bitmap []byte) error {
@@ -1135,60 +1135,6 @@ func TestMessage_SendCommitmentHash(t *testing.T) {
 
 	r = cnWorkers[0].DoCommitmentHashJob()
 	assert.Equal(t, true, r)
-}
-
-func TestSPOSConsensusWorker_DoCommitmentHashJobErrCreateCommitmentShouldFail(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	singleSigner := &mock.SingleSignerMock{}
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, crypto.ErrNilHasher
-	}
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		singleSigner,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	cnWorker.SendMessage = SendMessage
-	cnWorker.BroadcastBlockBody = BroadcastMessage
-	cnWorker.BroadcastHeader = BroadcastMessage
-
-	cnWorker.Cns.SetStatus(spos.SrBlock, spos.SsFinished)
-	cnWorker.Cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
-
-	done := cnWorker.DoCommitmentHashJob()
-
-	assert.False(t, done)
 }
 
 func TestMessage_SendBitmap(t *testing.T) {
@@ -2347,54 +2293,6 @@ func TestCheckSignaturesValidity_ShouldRetunNil(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
-func TestGenCommitmentHash_ShouldRetunErrOnCreateCommitment(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	singleSigner := &mock.SingleSignerMock{}
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 22
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	err := errors.New("error create commitment")
-
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, err
-	}
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		singleSigner,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	_, err2 := cnWorker.GenCommitmentHash()
-	assert.Equal(t, err, err2)
-}
-
 func TestGenCommitmentHash_ShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T) {
 	blkc := blockchain.BlockChain{}
 	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
@@ -2421,8 +2319,8 @@ func TestGenCommitmentHash_ShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T)
 
 	cns.SetSelfPubKey("X")
 
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
+	multisigner.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("comm")
 	}
 
 	multisigner.AddCommitmentMock = func(uint16, []byte) error {
@@ -2445,58 +2343,6 @@ func TestGenCommitmentHash_ShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T)
 
 	_, err := cnWorker.GenCommitmentHash()
 	assert.Equal(t, spos.ErrSelfNotFoundInConsensus, err)
-}
-
-func TestGenCommitmentHash_ShouldRetunErrOnAddCommitment(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	singleSigner := &mock.SingleSignerMock{}
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 22
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
-	}
-
-	err := errors.New("error add commitment")
-
-	multisigner.AddCommitmentMock = func(uint16, []byte) error {
-		return err
-	}
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		singleSigner,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	_, err2 := cnWorker.GenCommitmentHash()
-	assert.Equal(t, err, err2)
 }
 
 func TestGenCommitmentHash_ShouldRetunErrOnSetCommitmentSecret(t *testing.T) {
@@ -2523,8 +2369,8 @@ func TestGenCommitmentHash_ShouldRetunErrOnSetCommitmentSecret(t *testing.T) {
 		0,
 	)
 
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
+	multisigner.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("comm")
 	}
 
 	multisigner.AddCommitmentMock = func(uint16, []byte) error {
@@ -2579,8 +2425,8 @@ func TestGenCommitmentHash_ShouldRetunErrOnAddCommitmentHash(t *testing.T) {
 		0,
 	)
 
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
+	multisigner.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("comm")
 	}
 
 	multisigner.AddCommitmentMock = func(uint16, []byte) error {
@@ -2639,8 +2485,8 @@ func TestGenCommitmentHash_ShouldRetunNil(t *testing.T) {
 		0,
 	)
 
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
+	multisigner.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("comm")
 	}
 
 	multisigner.AddCommitmentMock = func(uint16, []byte) error {

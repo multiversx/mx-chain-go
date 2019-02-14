@@ -22,19 +22,20 @@ type InterceptedTransaction struct {
 	isAddressedToOtherShards bool
 	addrConv                 state.AddressConverter
 	singleSigner             crypto.SingleSigner
-	singleSignKeyGen         crypto.KeyGenerator
+	keyGen                   crypto.KeyGenerator
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
-func NewInterceptedTransaction() *InterceptedTransaction {
+func NewInterceptedTransaction(signer crypto.SingleSigner) *InterceptedTransaction {
 	return &InterceptedTransaction{
-		Transaction: &transaction.Transaction{},
+		Transaction:  &transaction.Transaction{},
+		singleSigner: signer,
 	}
 }
 
 // Create returns a new instance of this struct (used in topics)
 func (inTx *InterceptedTransaction) Create() p2p.Creator {
-	return NewInterceptedTransaction()
+	return NewInterceptedTransaction(inTx.singleSigner)
 }
 
 // ID returns the ID of this object. Set to return the hash of the transaction
@@ -112,11 +113,15 @@ func (inTx *InterceptedTransaction) VerifySig() error {
 		return process.ErrNilTransaction
 	}
 
-	if inTx.singleSignKeyGen == nil {
-		return process.ErrNilSingleSignKeyGen
+	if inTx.keyGen == nil {
+		return process.ErrNilKeyGen
 	}
 
-	singleSignVerifier, err := inTx.singleSignKeyGen.PublicKeyFromByteArray(inTx.SndAddr)
+	if inTx.singleSigner == nil {
+		return process.ErrNilSingleSigner
+	}
+
+	singleSignVerifier, err := inTx.keyGen.PublicKeyFromByteArray(inTx.SndAddr)
 	if err != nil {
 		return err
 	}
@@ -183,11 +188,11 @@ func (inTx *InterceptedTransaction) TxBuffWithoutSig() []byte {
 // SingleSignKeyGen returns the key generator that is used to create a new public key verifier that will be used
 // for validating transaction's signature
 func (inTx *InterceptedTransaction) SingleSignKeyGen() crypto.KeyGenerator {
-	return inTx.singleSignKeyGen
+	return inTx.keyGen
 }
 
 // SetSingleSignKeyGen sets the key generator that is used to create a new public key verifier that will be used
 // for validating transaction's signature
 func (inTx *InterceptedTransaction) SetSingleSignKeyGen(generator crypto.KeyGenerator) {
-	inTx.singleSignKeyGen = generator
+	inTx.keyGen = generator
 }

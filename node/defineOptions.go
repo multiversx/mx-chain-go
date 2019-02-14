@@ -106,8 +106,8 @@ func WithPrivateKey(sk crypto.PrivateKey) Option {
 	}
 }
 
-// WithSingleSignKeyGenerator sets up the single sign key generator option for the Node
-func WithSingleSignKeyGenerator(keyGen crypto.KeyGenerator) Option {
+// WithKeyGenerator sets up the single sign key generator option for the Node
+func WithKeyGenerator(keyGen crypto.KeyGenerator) Option {
 	return func(n *Node) error {
 		if keyGen == nil {
 			return ErrNilSingleSignKeyGen

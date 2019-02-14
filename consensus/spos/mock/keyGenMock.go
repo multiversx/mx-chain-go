@@ -31,7 +31,7 @@ type KeyGenMock struct {
 
 // Sign mocks signing with a private key
 func (privKey *PrivateKeyMock) Sign(message []byte, signer crypto.SingleSigner) ([]byte, error) {
-	return privKey.SignMock(message, signer)
+	return []byte("signed" + string(message)), nil
 }
 
 // GeneratePublic mocks generating a public key from the private key
@@ -41,7 +41,7 @@ func (privKey *PrivateKeyMock) GeneratePublic() crypto.PublicKey {
 
 // ToByteArray mocks converting the private key to a byte array
 func (privKey *PrivateKeyMock) ToByteArray() ([]byte, error) {
-	return privKey.ToByteArrayMock()
+	return []byte("privateKeyMock"), nil
 }
 
 func (privKey *PrivateKeyMock) Suite() crypto.Suite {
@@ -54,7 +54,7 @@ func (privKey *PrivateKeyMock) Scalar() crypto.Scalar {
 
 // ToByteArray mocks converting a public key to a byte array
 func (pubKey *PublicKeyMock) ToByteArray() ([]byte, error) {
-	return pubKey.ToByteArrayMock()
+	return []byte("publicKeyMock"), nil
 }
 
 // Verify mocks verifying a signature with a public key

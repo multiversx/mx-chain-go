@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
 )
 
 func createTestBlockChain() *blockchain.BlockChain {
@@ -125,6 +126,7 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
 	suite := kv2.NewBlakeSHA256Ed25519()
+	singlesigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 	blockChain := createTestBlockChain()
@@ -141,7 +143,8 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		AddrConverter:            addrConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		SingleSignKeyGen:         keyGen,
+		SingleSigner:             singlesigner,
+		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
 
@@ -153,10 +156,11 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithKeyGenerator(keyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blockChain),
 		node.WithUint64ByteSliceConverter(uint64Converter),
+		node.WithSinglesig(singlesigner),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
 		node.WithProcessorCreator(pFactory),
@@ -181,6 +185,7 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
 	suite := kv2.NewBlakeSHA256Ed25519()
+	singlesigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 	blkc := createTestBlockChain()
@@ -197,7 +202,8 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		AddrConverter:            addrConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		SingleSignKeyGen:         keyGen,
+		SingleSigner:             singlesigner,
+		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
 
@@ -209,10 +215,11 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithKeyGenerator(keyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
+		node.WithSinglesig(singlesigner),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
 		node.WithProcessorCreator(pFactory),

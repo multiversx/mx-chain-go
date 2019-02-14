@@ -204,7 +204,7 @@ func TestWithSingleSignKeyGenerator_NilPrivateKeyShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithSingleSignKeyGenerator(nil)
+	opt := WithKeyGenerator(nil)
 	err := opt(node)
 
 	assert.Nil(t, node.singleSignKeyGen)
@@ -216,9 +216,9 @@ func TestWithSingleSignKeyGenerator_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	keyGen := &mock.SingleSignKeyGenMock{}
+	keyGen := &mock.KeyGenMock{}
 
-	opt := WithSingleSignKeyGenerator(keyGen)
+	opt := WithKeyGenerator(keyGen)
 	err := opt(node)
 
 	assert.True(t, node.singleSignKeyGen == keyGen)
@@ -270,7 +270,7 @@ func TestWithPublicKey_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	pk := &mock.SingleSignPublicKeyMock{}
+	pk := &mock.PublicKeyMock{}
 
 	opt := WithPublicKey(pk)
 	err := opt(node)
@@ -525,6 +525,32 @@ func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.Equal(t, node.initialNodesBalances, balances)
+	assert.Nil(t, err)
+}
+
+func TestWithSinglesig_NilSinglesigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithSinglesig(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.singlesig)
+	assert.Equal(t, ErrNilSingleSig, err)
+}
+
+func TestWithSinglesig_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	singlesigner := &mock.SinglesignMock{}
+
+	opt := WithSinglesig(singlesigner)
+	err := opt(node)
+
+	assert.True(t, node.singlesig == singlesigner)
 	assert.Nil(t, err)
 }
 

@@ -102,11 +102,9 @@ func NewBelNevMultisig(
 	}
 
 	sizeConsensus := len(pubKeys)
-
 	commHashes := make([][]byte, sizeConsensus)
 	commitments := make([]crypto.Point, sizeConsensus)
 	sigShares := make([]crypto.Scalar, sizeConsensus)
-
 	pk, err := convertStringsToPubKeys(pubKeys, keyGen)
 
 	if err != nil {
@@ -253,9 +251,11 @@ func (bn *belNevSigner) SetCommitmentSecret(commSecret []byte) error {
 
 	commSecretScalar := bn.suite.CreateScalar()
 	err := commSecretScalar.UnmarshalBinary(commSecret)
+	if err != nil {
+		return err
+	}
 
 	secret, err := commSecretScalar.MarshalBinary()
-
 	if err != nil {
 		return err
 	}
@@ -422,11 +422,7 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 			continue
 		}
 
-		pubKey, err := bn.pubKeys[i].Point().MarshalBinary()
-
-		if err != nil {
-			return nil, err
-		}
+		pubKey, _ := bn.pubKeys[i].Point().MarshalBinary()
 
 		concatenated = append(concatenated[:], pubKey[:]...)
 	}
@@ -441,10 +437,7 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 		return nil, crypto.ErrNilAggregatedCommitment
 	}
 
-	aggCommBytes, err := bn.aggCommitment.MarshalBinary()
-	if err != nil {
-		return nil, err
-	}
+	aggCommBytes, _ := bn.aggCommitment.MarshalBinary()
 
 	// <L'> || X_i
 	concatenated = append(concatenated[:], pubKey[:]...)
@@ -456,7 +449,7 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 	challenge := bn.hasher.Compute(string(concatenated))
 
 	challengeScalar := bn.suite.CreateScalar()
-	err = challengeScalar.UnmarshalBinary(challenge)
+	challengeScalar, err = challengeScalar.SetBytes(challenge)
 
 	if err != nil {
 		return nil, err
@@ -543,17 +536,11 @@ func (bn *belNevSigner) VerifySignatureShare(index uint16, sig []byte, bitmap []
 	}
 
 	sigScalar := bn.suite.CreateScalar()
-	err = sigScalar.UnmarshalBinary(sig)
-	if err != nil {
-		return err
-	}
+	_ = sigScalar.UnmarshalBinary(sig)
 
 	// s_i * G
 	basePoint := bn.suite.CreatePoint().Base()
-	left, err := basePoint.Mul(sigScalar)
-	if err != nil {
-		return err
-	}
+	left, _ := basePoint.Mul(sigScalar)
 
 	challengeScalar, err := bn.computeChallenge(index, bitmap)
 	if err != nil {
@@ -562,10 +549,7 @@ func (bn *belNevSigner) VerifySignatureShare(index uint16, sig []byte, bitmap []
 
 	pubKey := bn.pubKeys[index].Point()
 	// H1(<L'>||X_i||R||m)*X_i
-	right, err := pubKey.Mul(challengeScalar)
-	if err != nil {
-		return err
-	}
+	right, _ := pubKey.Mul(challengeScalar)
 
 	// R_i + H1(<L'>||X_i||R||m)*X_i
 	bn.mutCommitments.RLock()

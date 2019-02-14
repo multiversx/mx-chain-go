@@ -47,6 +47,7 @@ import (
 	beevikntp "github.com/beevik/ntp"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -310,6 +311,8 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
+	singlesigner := &singlesig.SchnorrSigner{}
+
 	multisigner, err := multisig.NewBelNevMultisig(hasher, initialPubKeys, privKey, keyGen, uint16(0))
 
 	if err != nil {
@@ -341,7 +344,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		AddrConverter:            addressConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		SingleSignKeyGen:         keyGen,
+		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 	})
 	if err != nil {
@@ -403,8 +406,9 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithDataPool(datapool),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
+		node.WithSinglesig(singlesigner),
 		node.WithMultisig(multisigner),
-		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithKeyGenerator(keyGen),
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),

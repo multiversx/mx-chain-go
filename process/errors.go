@@ -166,8 +166,11 @@ var ErrInvalidRcvAddr = errors.New("invalid receiver address")
 // ErrInvalidSndAddr signals that an operation has been attempted to or with an invalid sender address
 var ErrInvalidSndAddr = errors.New("invalid sender address")
 
-// ErrNilSingleSignKeyGen signals that an operation has been attempted to or with a nil single sign key generator
-var ErrNilSingleSignKeyGen = errors.New("nil single sign key generator")
+// ErrNilKeyGen signals that an operation has been attempted to or with a nil single sign key generator
+var ErrNilKeyGen = errors.New("nil key generator")
+
+// ErrNilSingleSigner signals that a nil single signer is used
+var ErrNilSingleSigner = errors.New("nil single signer")
 
 // ErrInvalidBlockBodyType signals that an operation has been attempted with an invalid block body type
 var ErrInvalidBlockBodyType = errors.New("invalid block body type")

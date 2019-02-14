@@ -43,7 +43,8 @@ type processorsCreator struct {
 	addrConverter            state.AddressConverter
 	hasher                   hashing.Hasher
 	marshalizer              marshal.Marshalizer
-	KeyGen                   crypto.KeyGenerator
+	singleSigner             crypto.SingleSigner
+	keyGen                   crypto.KeyGenerator
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -60,7 +61,8 @@ type ProcessorsCreatorConfig struct {
 	AddrConverter            state.AddressConverter
 	Hasher                   hashing.Hasher
 	Marshalizer              marshal.Marshalizer
-	SingleSignKeyGen         crypto.KeyGenerator
+	SingleSigner             crypto.SingleSigner
+	KeyGen                   crypto.KeyGenerator
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -80,7 +82,8 @@ func NewProcessorsCreator(config ProcessorsCreatorConfig) (*processorsCreator, e
 		addrConverter:            config.AddrConverter,
 		hasher:                   config.Hasher,
 		marshalizer:              config.Marshalizer,
-		KeyGen:                   config.SingleSignKeyGen,
+		singleSigner:             config.SingleSigner,
+		keyGen:                   config.KeyGen,
 		uint64ByteSliceConverter: config.Uint64ByteSliceConverter,
 	}, nil
 }
@@ -156,7 +159,7 @@ func (p *processorsCreator) ResolverContainer() process.ResolverContainer {
 }
 
 func (p *processorsCreator) createTxInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(TransactionTopic), p.messenger, transaction.NewInterceptedTransaction())
+	intercept, err := interceptor.NewTopicInterceptor(string(TransactionTopic), p.messenger, transaction.NewInterceptedTransaction(p.singleSigner))
 	if err != nil {
 		return err
 	}
@@ -169,7 +172,8 @@ func (p *processorsCreator) createTxInterceptor() error {
 		txStorer,
 		p.addrConverter,
 		p.hasher,
-		p.KeyGen,
+		p.singleSigner,
+		p.keyGen,
 		p.shardCoordinator)
 
 	if err != nil {
@@ -406,8 +410,8 @@ func validateRequiredProcessCreatorParams(config ProcessorsCreatorConfig) error 
 	if config.Marshalizer == nil {
 		return process.ErrNilMarshalizer
 	}
-	if config.SingleSignKeyGen == nil {
-		return process.ErrNilSingleSignKeyGen
+	if config.KeyGen == nil {
+		return process.ErrNilKeyGen
 	}
 	if config.Uint64ByteSliceConverter == nil {
 		return process.ErrNilUint64ByteSliceConverter
