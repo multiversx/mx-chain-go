@@ -22,7 +22,7 @@ func createMessengerStub(hasTopic bool, hasTopicValidator bool) *mock.MessengerS
 		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
 			return nil
 		},
-		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+		SetTopicValidatorCalled: func(t string, handler p2p.TopicValidatorHandler) error {
 			return nil
 		},
 	}
@@ -96,7 +96,7 @@ func TestNewTopicInterceptor_OkValsCreateTopicShouldCallSetTopicValidator(t *tes
 	wasCalled := false
 
 	mes := createMessengerStub(false, false)
-	mes.SetTopicValidatorCalled = func(t string, handler func(message p2p.MessageP2P) error) error {
+	mes.SetTopicValidatorCalled = func(t string, handler p2p.TopicValidatorHandler) error {
 		if t == topic && handler != nil {
 			wasCalled = true
 		}
@@ -117,7 +117,7 @@ func TestNewTopicInterceptor_OkValsTopicExistsShouldCallSetTopicValidator(t *tes
 	wasCalled := false
 
 	mes := createMessengerStub(true, false)
-	mes.SetTopicValidatorCalled = func(t string, handler func(message p2p.MessageP2P) error) error {
+	mes.SetTopicValidatorCalled = func(t string, handler p2p.TopicValidatorHandler) error {
 		if t == topic && handler != nil {
 			wasCalled = true
 		}
@@ -138,7 +138,7 @@ func TestNewTopicInterceptor_OkValsShouldRetTheSetTopicValidatorError(t *testing
 	errCheck := errors.New("check error")
 
 	mes := createMessengerStub(false, false)
-	mes.SetTopicValidatorCalled = func(t string, handler func(message p2p.MessageP2P) error) error {
+	mes.SetTopicValidatorCalled = func(t string, handler p2p.TopicValidatorHandler) error {
 		return errCheck
 	}
 

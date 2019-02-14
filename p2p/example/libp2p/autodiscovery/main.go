@@ -18,12 +18,11 @@ import (
 var r *rand.Rand
 
 //The purpose of this example program is to show what happens if a peer connects to a network of 100 peers
-//and has its connection manager set that will trim its connections to a number of 10
 func main() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	startingPort := 32000
 
-	advertiser, _ := libp2p.NewSocketLibp2pMessenger(
+	advertiser, _ := libp2p.NewNetworkMessenger(
 		context.Background(),
 		startingPort,
 		genPrivKey(),
@@ -39,7 +38,7 @@ func main() {
 	}()
 
 	for i := 0; i < 99; i++ {
-		netPeer, _ := libp2p.NewSocketLibp2pMessenger(
+		netPeer, _ := libp2p.NewNetworkMessenger(
 			context.Background(),
 			startingPort,
 			genPrivKey(),

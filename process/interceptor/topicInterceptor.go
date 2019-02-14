@@ -13,7 +13,7 @@ type topicInterceptor struct {
 	name        string
 	marshalizer marshal.Marshalizer
 
-	receivedMessageHandler func(message p2p.MessageP2P) error
+	receivedMessageHandler p2p.TopicValidatorHandler
 }
 
 // NewTopicInterceptor returns a new data interceptor that runs coupled with p2p.Topics
@@ -74,12 +74,12 @@ func (ti *topicInterceptor) Name() string {
 }
 
 // SetReceivedMessageHandler sets the handler that gets called each time new message arrives from peers or from self
-func (ti *topicInterceptor) SetReceivedMessageHandler(handler func(message p2p.MessageP2P) error) {
+func (ti *topicInterceptor) SetReceivedMessageHandler(handler p2p.TopicValidatorHandler) {
 	ti.receivedMessageHandler = handler
 }
 
 // ReceivedMessageHandler returns the handler that gets called each time new message arrives from peers or from self
-func (ti *topicInterceptor) ReceivedMessageHandler() func(message p2p.MessageP2P) error {
+func (ti *topicInterceptor) ReceivedMessageHandler() p2p.TopicValidatorHandler {
 	return ti.receivedMessageHandler
 }
 

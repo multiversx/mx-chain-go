@@ -75,8 +75,8 @@ type IntRandomizer interface {
 // Interceptor defines what a data interceptor should do
 type Interceptor interface {
 	Name() string
-	SetReceivedMessageHandler(func(message p2p.MessageP2P) error)
-	ReceivedMessageHandler() func(message p2p.MessageP2P) error
+	SetReceivedMessageHandler(handler p2p.TopicValidatorHandler)
+	ReceivedMessageHandler() p2p.TopicValidatorHandler
 	Marshalizer() marshal.Marshalizer
 }
 

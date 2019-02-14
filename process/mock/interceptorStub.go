@@ -7,8 +7,8 @@ import (
 
 type InterceptorStub struct {
 	NameCalled                      func() string
-	SetReceivedMessageHandlerCalled func(func(message p2p.MessageP2P) error)
-	ReceivedMessageHandlerCalled    func() func(message p2p.MessageP2P) error
+	SetReceivedMessageHandlerCalled func(handler p2p.TopicValidatorHandler)
+	ReceivedMessageHandlerCalled    func() p2p.TopicValidatorHandler
 	MarshalizerCalled               func() marshal.Marshalizer
 }
 
@@ -16,11 +16,11 @@ func (is *InterceptorStub) Name() string {
 	return is.NameCalled()
 }
 
-func (is *InterceptorStub) SetReceivedMessageHandler(handler func(message p2p.MessageP2P) error) {
+func (is *InterceptorStub) SetReceivedMessageHandler(handler p2p.TopicValidatorHandler) {
 	is.SetReceivedMessageHandlerCalled(handler)
 }
 
-func (is *InterceptorStub) ReceivedMessageHandler() func(message p2p.MessageP2P) error {
+func (is *InterceptorStub) ReceivedMessageHandler() p2p.TopicValidatorHandler {
 	return is.ReceivedMessageHandlerCalled()
 }
 

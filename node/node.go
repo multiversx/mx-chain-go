@@ -326,7 +326,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	for i := 0; i < len(transactions); i++ {
-		n.messenger.BroadcastData(
+		n.messenger.Broadcast(
 			SendTransactionsPipe,
 			string(factory.TransactionTopic),
 			transactions[i],
@@ -699,7 +699,7 @@ func (n *Node) SendTransaction(
 		return nil, errors.New("could not marshal transaction")
 	}
 
-	n.messenger.BroadcastData(
+	n.messenger.Broadcast(
 		SendTransactionsPipe,
 		string(factory.TransactionTopic),
 		marshalizedTx,
@@ -777,21 +777,21 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 		return
 	}
 
-	n.messenger.BroadcastData(
+	n.messenger.Broadcast(
 		string(ConsensusTopic),
 		string(ConsensusTopic),
 		cnsDtaBuff)
 }
 
 func (n *Node) broadcastBlockBody(msg []byte) {
-	n.messenger.BroadcastData(
+	n.messenger.Broadcast(
 		string(factory.TxBlockBodyTopic),
 		string(factory.TxBlockBodyTopic),
 		msg)
 }
 
 func (n *Node) broadcastHeader(msg []byte) {
-	n.messenger.BroadcastData(
+	n.messenger.Broadcast(
 		string(factory.HeadersTopic),
 		string(factory.HeadersTopic),
 		msg,

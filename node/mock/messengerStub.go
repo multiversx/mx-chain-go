@@ -5,22 +5,22 @@ import (
 )
 
 type MessengerStub struct {
-	CloseCalled                     func() error
-	IDCalled                        func() p2p.PeerID
-	PeersCalled                     func() []p2p.PeerID
-	AddressesCalled                 func() []string
-	ConnectToPeerCalled             func(address string) error
-	DiscoverNewPeersCalled          func() error
-	TrimConnectionsCalled           func() error
-	IsConnectedCalled               func(peerID p2p.PeerID) bool
-	ConnectedPeersCalled            func() []p2p.PeerID
-	CreateTopicCalled               func(name string, createPipeForTopic bool) error
-	HasTopicCalled                  func(name string) bool
-	HasTopicValidatorCalled         func(name string) bool
-	SendDataThrottlerCalled         func() p2p.DataThrottler
-	BroadcastDataCalled             func(pipe string, topic string, buff []byte)
-	SetTopicValidatorCalled         func(topic string, handler func(message p2p.MessageP2P) error) error
-	SendDirectToConnectedPeerCalled func(topic string, buff []byte, peerID p2p.PeerID) error
+	CloseCalled               func() error
+	IDCalled                  func() p2p.PeerID
+	PeersCalled               func() []p2p.PeerID
+	AddressesCalled           func() []string
+	ConnectToPeerCalled       func(address string) error
+	DiscoverNewPeersCalled    func() error
+	TrimConnectionsCalled     func()
+	IsConnectedCalled         func(peerID p2p.PeerID) bool
+	ConnectedPeersCalled      func() []p2p.PeerID
+	CreateTopicCalled         func(name string, createPipeForTopic bool) error
+	HasTopicCalled            func(name string) bool
+	HasTopicValidatorCalled   func(name string) bool
+	SendDataThrottlerCalled   func() p2p.DataThrottler
+	BroadcastCalled           func(pipe string, topic string, buff []byte)
+	SetTopicValidatorCalled   func(topic string, handler p2p.TopicValidatorHandler) error
+	SendToConnectedPeerCalled func(topic string, buff []byte, peerID p2p.PeerID) error
 }
 
 func (ms *MessengerStub) Close() error {
@@ -47,8 +47,8 @@ func (ms *MessengerStub) DiscoverNewPeers() error {
 	return ms.DiscoverNewPeersCalled()
 }
 
-func (ms *MessengerStub) TrimConnections() error {
-	return ms.TrimConnectionsCalled()
+func (ms *MessengerStub) TrimConnections() {
+	ms.TrimConnectionsCalled()
 }
 
 func (ms *MessengerStub) IsConnected(peerID p2p.PeerID) bool {
@@ -75,14 +75,14 @@ func (ms *MessengerStub) SendDataThrottler() p2p.DataThrottler {
 	return ms.SendDataThrottlerCalled()
 }
 
-func (ms *MessengerStub) BroadcastData(pipe string, topic string, buff []byte) {
-	ms.BroadcastDataCalled(pipe, topic, buff)
+func (ms *MessengerStub) Broadcast(pipe string, topic string, buff []byte) {
+	ms.BroadcastCalled(pipe, topic, buff)
 }
 
-func (ms *MessengerStub) SetTopicValidator(topic string, handler func(message p2p.MessageP2P) error) error {
+func (ms *MessengerStub) SetTopicValidator(topic string, handler p2p.TopicValidatorHandler) error {
 	return ms.SetTopicValidatorCalled(topic, handler)
 }
 
-func (ms *MessengerStub) SendDirectToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
-	return ms.SendDirectToConnectedPeerCalled(topic, buff, peerID)
+func (ms *MessengerStub) SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {
+	return ms.SendToConnectedPeerCalled(topic, buff, peerID)
 }

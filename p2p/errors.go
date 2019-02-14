@@ -28,9 +28,6 @@ var ErrTopicValidatorOperationNotSupported = errors.New("topic validator operati
 // ErrNilDiscoverer signals that a nil discoverer object has been provided
 var ErrNilDiscoverer = errors.New("nil discoverer object")
 
-// ErrNilConnManager signals that a nil conn manager object has been provided
-var ErrNilConnManager = errors.New("nil conn manager object")
-
 // ErrNilDataThrottler signals that a nil data throttler object has been provided
 var ErrNilDataThrottler = errors.New("nil data throttler object")
 

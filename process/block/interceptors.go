@@ -136,9 +136,7 @@ func checkMessage(message p2p.MessageP2P) error {
 }
 
 func (hi *HeaderInterceptor) checkHeaderForCurrentShard(header *InterceptedHeader) bool {
-	isHeaderForThisShard := hi.shardCoordinator.ShardForCurrentNode() == header.GetHeader().ShardId
-
-	return isHeaderForThisShard
+	return hi.shardCoordinator.ShardForCurrentNode() == header.GetHeader().ShardId
 }
 
 //------- GenericBlockBodyInterceptor

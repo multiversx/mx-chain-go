@@ -23,12 +23,11 @@ import (
 const timeSeenMessages = time.Second * 120
 
 type directSender struct {
-	counter            uint64
-	ctx                context.Context
-	hostP2P            host.Host
-	receivedDirectChan chan *pubsub_pb.Message
-	messageHandler     func(msg p2p.MessageP2P) error
-	seenMessages       *timecache.TimeCache
+	counter        uint64
+	ctx            context.Context
+	hostP2P        host.Host
+	messageHandler func(msg p2p.MessageP2P) error
+	seenMessages   *timecache.TimeCache
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -51,18 +50,15 @@ func NewDirectSender(
 	}
 
 	ds := &directSender{
-		counter:            uint64(time.Now().UnixNano()),
-		ctx:                ctx,
-		hostP2P:            h,
-		receivedDirectChan: make(chan *pubsub_pb.Message),
-		seenMessages:       timecache.NewTimeCache(timeSeenMessages),
-		messageHandler:     messageHandler,
+		counter:        uint64(time.Now().UnixNano()),
+		ctx:            ctx,
+		hostP2P:        h,
+		seenMessages:   timecache.NewTimeCache(timeSeenMessages),
+		messageHandler: messageHandler,
 	}
 
 	//wire-up a handler for direct messages
 	h.SetStreamHandler(DirectSendID, ds.directStreamHandler)
-
-	go ds.processReceivedDirect()
 
 	return ds, nil
 }
@@ -89,21 +85,12 @@ func (ds *directSender) directStreamHandler(s net.Stream) {
 				return
 			}
 
-			ds.receivedDirectChan <- msg
-		}
-	}(reader)
-}
-
-func (ds *directSender) processReceivedDirect() {
-	for {
-		select {
-		case msg := <-ds.receivedDirectChan:
-			err := ds.processReceivedDirectMessage(msg)
+			err = ds.processReceivedDirectMessage(msg)
 			if err != nil {
 				log.Debug(err.Error())
 			}
 		}
-	}
+	}(reader)
 }
 
 func (ds *directSender) processReceivedDirectMessage(message *pubsub_pb.Message) error {
@@ -146,8 +133,8 @@ func (ds *directSender) NextSeqno(counter *uint64) []byte {
 	return seqno
 }
 
-// SendDirectToConnectedPeer will send a direct message to the connected peer
-func (ds *directSender) SendDirectToConnectedPeer(topic string, buff []byte, peer p2p.PeerID) error {
+// Send will send a direct message to the connected peer
+func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 	conn, err := ds.getConnection(peer)
 	if err != nil {
 		return err

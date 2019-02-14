@@ -14,8 +14,8 @@ import (
 func main() {
 	net := mocknet.New(context.Background())
 
-	mes1, _ := libp2p.NewMockLibp2pMessenger(context.Background(), net)
-	mes2, _ := libp2p.NewMockLibp2pMessenger(context.Background(), net)
+	mes1, _ := libp2p.NewMockNetworkMessenger(context.Background(), net)
+	mes2, _ := libp2p.NewMockNetworkMessenger(context.Background(), net)
 
 	adr2 := mes2.Addresses()[0]
 
@@ -67,11 +67,11 @@ func main() {
 		buff := make([]byte, buffSize)
 		bytesSent += int64(buffSize)
 
-		mes2.BroadcastData("test1", "test1", buff)
-		mes2.BroadcastData("test2", "test2", buff)
+		mes2.Broadcast("test1", "test1", buff)
+		mes2.Broadcast("test2", "test2", buff)
 		//topic test3 receives more requests to send
-		mes2.BroadcastData("test3", "test3", buff)
-		mes2.BroadcastData("test3", "test3", buff)
+		mes2.Broadcast("test3", "test3", buff)
+		mes2.Broadcast("test3", "test3", buff)
 	}
 
 	fmt.Printf("Sent: %s -> %s\nReceived pipe 1 %s -> %s\nReceived pipe 2 %s -> %s\nReceived pipe 3 %s -> %s\n",

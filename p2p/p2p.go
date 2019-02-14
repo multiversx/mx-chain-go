@@ -6,6 +6,9 @@ import (
 	"github.com/mr-tron/base58/base58"
 )
 
+// TopicValidatorHandler is the handler signature when a request to validate (process) a new message is produced
+type TopicValidatorHandler func(message MessageP2P) error
+
 // SendableData represents the struct used in data throttler implementation
 type SendableData struct {
 	Buff  []byte
@@ -37,15 +40,15 @@ type Messenger interface {
 	DiscoverNewPeers() error
 	IsConnected(peerID PeerID) bool
 	ConnectedPeers() []PeerID
-	TrimConnections() error
+	TrimConnections()
 
 	CreateTopic(name string, createPipeForTopic bool) error
 	HasTopic(name string) bool
 	HasTopicValidator(name string) bool
 	SendDataThrottler() DataThrottler
-	BroadcastData(pipe string, topic string, buff []byte)
-	SetTopicValidator(topic string, handler func(message MessageP2P) error) error
-	SendDirectToConnectedPeer(topic string, buff []byte, peerID PeerID) error
+	Broadcast(pipe string, topic string, buff []byte)
+	SetTopicValidator(topic string, handler TopicValidatorHandler) error
+	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error
 }
 
 // MessageP2P defines what a p2p message can do (should return)
@@ -70,5 +73,5 @@ type DataThrottler interface {
 // DirectSender defines a component that can send direct messages to connected peers
 type DirectSender interface {
 	NextSeqno(counter *uint64) []byte
-	SendDirectToConnectedPeer(topic string, buff []byte, peer PeerID) error
+	Send(topic string, buff []byte, peer PeerID) error
 }

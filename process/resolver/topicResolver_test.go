@@ -23,7 +23,7 @@ func createMessengerStub(hasTopic bool, hasTopicValidator bool) *mock.MessengerS
 		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
 			return nil
 		},
-		SetTopicValidatorCalled: func(t string, handler func(message p2p.MessageP2P) error) error {
+		SetTopicValidatorCalled: func(t string, handler p2p.TopicValidatorHandler) error {
 			return nil
 		},
 	}
@@ -99,7 +99,7 @@ func TestNewTopicResolver_OkValsWithCreateTopicShouldWork(t *testing.T) {
 		}
 		return nil
 	}
-	mes.SetTopicValidatorCalled = func(topic string, handler func(message p2p.MessageP2P) error) error {
+	mes.SetTopicValidatorCalled = func(topic string, handler p2p.TopicValidatorHandler) error {
 		if topic == topicName+resolver.RequestTopicSuffix {
 			setWasCalled = true
 		}
@@ -127,7 +127,7 @@ func TestNewTopicResolver_OkValsWithoutCreateTopicShouldWork(t *testing.T) {
 		}
 		return nil
 	}
-	mes.SetTopicValidatorCalled = func(topic string, handler func(message p2p.MessageP2P) error) error {
+	mes.SetTopicValidatorCalled = func(topic string, handler p2p.TopicValidatorHandler) error {
 		if topic == topicName+resolver.RequestTopicSuffix {
 			setWasCalled = true
 		}
@@ -147,7 +147,7 @@ func TestNewTopicResolver_SetTopicValidatorErrorsShouldErr(t *testing.T) {
 	errSetTopicValidator := errors.New("set topic validator error")
 
 	mes := createMessengerStub(true, false)
-	mes.SetTopicValidatorCalled = func(topic string, handler func(message p2p.MessageP2P) error) error {
+	mes.SetTopicValidatorCalled = func(topic string, handler p2p.TopicValidatorHandler) error {
 		return errSetTopicValidator
 	}
 	tr, err := resolver.NewTopicResolver(topicName, mes, &mock.MarshalizerMock{})
@@ -266,7 +266,7 @@ func TestTopicResolver_RequestValidatorResolverHandlerReturnsBuffShouldWork(t *t
 	var sentPeerID p2p.PeerID
 
 	mes := createMessengerStub(true, false)
-	mes.SendDirectToConnectedPeerCalled = func(topic string, buff []byte, peerID p2p.PeerID) error {
+	mes.SendToConnectedPeerCalled = func(topic string, buff []byte, peerID p2p.PeerID) error {
 		sentBuffer = buff
 		sentTopic = topic
 		sentPeerID = peerID
@@ -305,7 +305,7 @@ func TestTopicResolver_RequestValidatorResolverHandlerReturnsErrorShouldErr(t *t
 	errSendDirect := errors.New("send direct error")
 
 	mes := createMessengerStub(true, false)
-	mes.SendDirectToConnectedPeerCalled = func(topic string, buff []byte, peerID p2p.PeerID) error {
+	mes.SendToConnectedPeerCalled = func(topic string, buff []byte, peerID p2p.PeerID) error {
 		return errSendDirect
 	}
 
@@ -384,7 +384,7 @@ func TestNewTopicResolver_RequestDataSendTo1ConnectedPeersShouldWork(t *testing.
 	mes.ConnectedPeersCalled = func() []p2p.PeerID {
 		return []p2p.PeerID{peer1}
 	}
-	mes.SendDirectToConnectedPeerCalled = func(topic string, buff []byte, peerID p2p.PeerID) error {
+	mes.SendToConnectedPeerCalled = func(topic string, buff []byte, peerID p2p.PeerID) error {
 		if !bytes.Equal(buffToSend, buff) {
 			return nil
 		}

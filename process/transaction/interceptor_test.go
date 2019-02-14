@@ -21,7 +21,7 @@ func createMarshalizerInterceptor() (marshal.Marshalizer, *mock.InterceptorStub)
 	marshalizer := &mock.MarshalizerMock{}
 
 	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i func(message p2p.MessageP2P) error) {},
+		SetReceivedMessageHandlerCalled: func(i p2p.TopicValidatorHandler) {},
 		MarshalizerCalled: func() marshal.Marshalizer {
 			return marshalizer
 		},

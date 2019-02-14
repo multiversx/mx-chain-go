@@ -287,7 +287,7 @@ func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *test
 		blankMessageHandler,
 	)
 
-	err := ds.SendDirectToConnectedPeer("topic", []byte("data"), "not connected peer")
+	err := ds.Send("topic", []byte("data"), "not connected peer")
 
 	assert.Equal(t, p2p.ErrPeerNotDirectlyConnected, err)
 }
@@ -326,7 +326,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 
 	data := []byte("data")
 	topic := "topic"
-	err := ds.SendDirectToConnectedPeer(topic, data, p2p.PeerID(cs.RemotePeer()))
+	err := ds.Send(topic, data, p2p.PeerID(cs.RemotePeer()))
 
 	assert.Equal(t, errNewStream, err)
 }
@@ -377,7 +377,7 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 
 	data := []byte("data")
 	topic := "topic"
-	err := ds.SendDirectToConnectedPeer(topic, data, p2p.PeerID(cs.RemotePeer()))
+	err := ds.Send(topic, data, p2p.PeerID(cs.RemotePeer()))
 
 	select {
 	case <-chanDone:
@@ -447,7 +447,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 
 	data := []byte("data")
 	topic := "topic"
-	err := ds.SendDirectToConnectedPeer(topic, data, p2p.PeerID(cs.RemotePeer()))
+	err := ds.Send(topic, data, p2p.PeerID(cs.RemotePeer()))
 
 	select {
 	case <-chanDone:
@@ -506,7 +506,7 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 
 	data := []byte("data")
 	topic := "topic"
-	_ = ds.SendDirectToConnectedPeer(topic, data, p2p.PeerID(cs.RemotePeer()))
+	_ = ds.Send(topic, data, p2p.PeerID(cs.RemotePeer()))
 
 	select {
 	case <-chanDone:

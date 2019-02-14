@@ -256,7 +256,7 @@ func createMessenger() p2p.Messenger {
 		HasTopicValidatorCalled: func(name string) bool {
 			return false
 		},
-		SetTopicValidatorCalled: func(topic string, handler func(message p2p.MessageP2P) error) error {
+		SetTopicValidatorCalled: func(topic string, handler p2p.TopicValidatorHandler) error {
 			return nil
 		},
 	}

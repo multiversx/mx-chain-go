@@ -8,7 +8,7 @@ import (
 
 const defaultSendPipe = "default send pipe"
 
-// SendDataThrottle is a software device that evenly balances requests to be send
+// SendDataThrottle is software component that evenly balances requests to be sent
 type SendDataThrottle struct {
 	mut   sync.RWMutex
 	chans []chan *p2p.SendableData

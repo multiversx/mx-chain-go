@@ -446,7 +446,7 @@ func createNetMessenger(config netMessengerConfig) (p2p.Messenger, error) {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	nm, err := libp2p.NewSocketLibp2pMessenger(config.ctx, config.port, sk, nil, dataThrottle.NewSendDataThrottle())
+	nm, err := libp2p.NewNetworkMessenger(config.ctx, config.port, sk, nil, dataThrottle.NewSendDataThrottle())
 
 	if err != nil {
 		return nil, err

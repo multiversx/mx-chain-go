@@ -99,7 +99,7 @@ func (tr *topicResolver) requestValidator(message p2p.MessageP2P) error {
 		return err
 	}
 
-	return tr.messenger.SendDirectToConnectedPeer(tr.name, buff, peerSendBack)
+	return tr.messenger.SendToConnectedPeer(tr.name, buff, peerSendBack)
 }
 
 // RequestData is used to request data over channels (topics) from other peers
@@ -116,7 +116,7 @@ func (tr *topicResolver) RequestData(rd process.RequestData) error {
 	}
 
 	for _, peer := range peersToSend {
-		err = tr.messenger.SendDirectToConnectedPeer(tr.name+RequestTopicSuffix, buff, peer)
+		err = tr.messenger.SendToConnectedPeer(tr.name+RequestTopicSuffix, buff, peer)
 		if err != nil {
 			log.Debug(err.Error())
 		}
@@ -143,7 +143,7 @@ func selectRandomPeers(connectedPeers []p2p.PeerID, peersToSend int, randomizer 
 		uniqueIndexes[newIndex] = struct{}{}
 	}
 
-	for index, _ := range uniqueIndexes {
+	for index := range uniqueIndexes {
 		selectedPeers = append(selectedPeers, connectedPeers[index])
 	}
 
