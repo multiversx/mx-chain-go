@@ -48,6 +48,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -144,6 +145,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	uniqueID = fmt.Sprintf("%d", ctx.GlobalInt(flags.Port.Name))
 
 	currentNode, err := createNode(ctx, generalConfig, genesisConfig, syncer, log)
+
 	if err != nil {
 		return err
 	}
@@ -344,6 +346,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		AddrConverter:            addressConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
+		SingleSigner:             singlesigner,
 		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 	})
@@ -482,7 +485,7 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 		return nil, nil, nil, err
 	}
 
-	suite := privKey.Suite()
+	suite := kv2.NewBlakeSHA256Ed25519()
 	keyGen = signing.NewKeyGenerator(suite)
 	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
 

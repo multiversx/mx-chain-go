@@ -181,6 +181,7 @@ func NewConsensusWorker(
 		marshalizer:    marshalizer,
 		BlockProcessor: blockProcessor,
 		boot:           boot,
+		singleSigner:   singleSigner,
 		multiSigner:    multisig,
 		keyGen:         keyGen,
 		privKey:        privKey,
