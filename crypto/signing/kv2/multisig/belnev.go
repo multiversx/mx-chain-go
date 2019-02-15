@@ -120,14 +120,14 @@ func NewBelNevMultisig(
 		pubKeys:        pk,
 		privKey:        privKey,
 		ownIndex:       ownIndex,
-		hasher:         hasher,
-		keyGen:         keyGen,
 		mutCommHashes:  &sync.RWMutex{},
 		commHashes:     commHashes,
 		mutCommitments: &sync.RWMutex{},
 		commitments:    commitments,
 		mutSigShares:   &sync.RWMutex{},
 		sigShares:      sigShares,
+		hasher:         hasher,
+		keyGen:         keyGen,
 		suite:          keyGen.Suite(),
 	}, nil
 }
@@ -152,38 +152,8 @@ func convertStringsToPubKeys(pubKeys []string, kg crypto.KeyGenerator) ([]crypto
 }
 
 // Reset resets the multiSigner and initializes corresponding fields with the given params
-func (bn *belNevSigner) Reset(pubKeys []string, index uint16) error {
-	if pubKeys == nil {
-		return crypto.ErrNilPublicKeys
-	}
-
-	pk, err := convertStringsToPubKeys(pubKeys, bn.keyGen)
-
-	if err != nil {
-		return err
-	}
-
-	sizeConsensus := len(pubKeys)
-	bn.message = nil
-	bn.ownIndex = index
-	bn.pubKeys = pk
-	bn.commSecret = nil
-	bn.aggCommitment = nil
-	bn.aggSig = nil
-
-	bn.mutCommHashes.Lock()
-	bn.commHashes = make([][]byte, sizeConsensus)
-	bn.mutCommHashes.Unlock()
-
-	bn.mutCommitments.Lock()
-	bn.commitments = make([]crypto.Point, sizeConsensus)
-	bn.mutCommitments.Unlock()
-
-	bn.mutSigShares.Lock()
-	bn.sigShares = make([]crypto.Scalar, sizeConsensus)
-	bn.mutSigShares.Unlock()
-
-	return nil
+func (bn *belNevSigner) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
+	return NewBelNevMultisig(bn.hasher, pubKeys, bn.privKey, bn.keyGen, index)
 }
 
 // SetMessage sets the message to be multi-signed upon

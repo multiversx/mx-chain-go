@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
 )
 
 func createTestBlockChain() *blockchain.BlockChain {
@@ -111,6 +112,21 @@ func adbCreateAccountsDB() *state.AccountsDB {
 	return adb
 }
 
+func createMultiSigner(
+	privateKey crypto.PrivateKey,
+	publicKey crypto.PublicKey,
+	keyGen crypto.KeyGenerator,
+	hasher hashing.Hasher,
+) (crypto.MultiSigner, error) {
+
+	publicKeys := make([]string, 1)
+	pubKey, _ := publicKey.ToByteArray()
+	publicKeys[0] = string(pubKey)
+	multiSigner, err := multisig.NewBelNevMultisig(hasher, publicKeys, privateKey, keyGen, 0)
+
+	return multiSigner, err
+}
+
 func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.AccountsAdapter) (
 	*node.Node,
 	p2p.Messenger,
@@ -126,9 +142,10 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
 	suite := kv2.NewBlakeSHA256Ed25519()
-	singlesigner := &singlesig.SchnorrSigner{}
+	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
+	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
 	blockChain := createTestBlockChain()
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
@@ -143,7 +160,8 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		AddrConverter:            addrConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		SingleSigner:             singlesigner,
+		MultiSigner:              multiSigner,
+		SingleSigner:             singleSigner,
 		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
@@ -160,7 +178,8 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blockChain),
 		node.WithUint64ByteSliceConverter(uint64Converter),
-		node.WithSinglesig(singlesigner),
+		node.WithMultisig(multiSigner),
+		node.WithSinglesig(singleSigner),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
 		node.WithProcessorCreator(pFactory),
@@ -188,6 +207,7 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	singlesigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
+	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
 	blkc := createTestBlockChain()
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
@@ -202,6 +222,7 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		AddrConverter:            addrConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
+		MultiSigner:              multiSigner,
 		SingleSigner:             singlesigner,
 		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
@@ -219,6 +240,7 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
+		node.WithMultisig(multiSigner),
 		node.WithSinglesig(singlesigner),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),

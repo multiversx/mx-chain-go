@@ -200,12 +200,9 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 }
 
 func (bp *blockProcessor) processBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
-	err := bp.validateBlockBody(body)
-	if err != nil {
-		return err
-	}
-
 	requestedTxs := bp.requestBlockTransactions(body)
+
+	var err error
 
 	if requestedTxs > 0 {
 
@@ -326,15 +323,7 @@ func (bp *blockProcessor) GetRootHash() []byte {
 }
 
 func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, header *block.Header) error {
-	headerWrapper := HeaderWrapper{
-		Header: header,
-	}
-
-	err := headerWrapper.IntegrityAndValidity(bp.shardCoordinator)
-	if err != nil {
-		return err
-	}
-
+	// basic validation was already done on interceptor
 	if blockChain.CurrentBlockHeader == nil {
 		if !bp.isFirstBlockInEpoch(header) {
 			return process.ErrWrongNonceInBlock
@@ -357,23 +346,6 @@ func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, head
 		}
 	}
 
-	if headerWrapper.VerifySig() != nil {
-		return process.ErrInvalidBlockSignature
-	}
-
-	return nil
-}
-
-func (bp *blockProcessor) validateBlockBody(body *block.TxBlockBody) error {
-	txbWrapper := TxBlockBodyWrapper{
-		TxBlockBody: body,
-	}
-
-	err := txbWrapper.IntegrityAndValidity(bp.shardCoordinator)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -386,15 +358,7 @@ func (bp *blockProcessor) isFirstBlockInEpoch(header *block.Header) bool {
 }
 
 func (bp *blockProcessor) processBlockTransactions(body *block.TxBlockBody, round int32, haveTime func() time.Duration) error {
-	txbWrapper := TxBlockBodyWrapper{
-		TxBlockBody: body,
-	}
-
-	err := txbWrapper.IntegrityAndValidity(bp.shardCoordinator)
-	if err != nil {
-		return err
-	}
-
+	// basic validation already done in interceptors
 	txPool := bp.dataPool.Transactions()
 
 	for i := 0; i < len(body.MiniBlocks); i++ {

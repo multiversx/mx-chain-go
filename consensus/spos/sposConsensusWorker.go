@@ -358,7 +358,7 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 		return false
 	}
 
-	err = sposWorker.multiSigner.Reset(pubKeys, uint16(selfIndex))
+	multiSig, err := sposWorker.multiSigner.Create(pubKeys, uint16(selfIndex))
 
 	if err != nil {
 		log.Error(err.Error())
@@ -368,6 +368,7 @@ func (sposWorker *SPOSConsensusWorker) DoStartRoundJob() bool {
 		return false
 	}
 
+	sposWorker.multiSigner = multiSig
 	sposWorker.Cns.SetStatus(SrStartRound, SsFinished)
 
 	return true

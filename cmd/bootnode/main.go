@@ -321,6 +321,10 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
+	if err != nil {
+		return nil, err
+	}
+
 	netMessenger, err := createNetMessenger(netMessengerConfig{
 		ctx:             appContext,
 		port:            ctx.GlobalInt(flags.Port.Name),
@@ -346,6 +350,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		AddrConverter:            addressConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
+		MultiSigner:              multisigner,
 		SingleSigner:             singlesigner,
 		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,

@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 )
 
 // HeaderInterceptor represents an interceptor used for block headers
@@ -15,6 +16,7 @@ type HeaderInterceptor struct {
 	headers          data.ShardedDataCacherNotifier
 	storer           storage.Storer
 	headersNonces    data.Uint64Cacher
+	multiSigVerifier crypto.MultiSigVerifier
 	hasher           hashing.Hasher
 	shardCoordinator sharding.ShardCoordinator
 }
@@ -37,6 +39,7 @@ func NewHeaderInterceptor(
 	headers data.ShardedDataCacherNotifier,
 	headersNonces data.Uint64Cacher,
 	storer storage.Storer,
+	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.ShardCoordinator,
 ) (*HeaderInterceptor, error) {
@@ -57,6 +60,10 @@ func NewHeaderInterceptor(
 		return nil, process.ErrNilHeadersStorage
 	}
 
+	if multiSigVerifier == nil {
+		return nil, process.ErrNilMultiSigVerifier
+	}
+
 	if hasher == nil {
 		return nil, process.ErrNilHasher
 	}
@@ -70,6 +77,7 @@ func NewHeaderInterceptor(
 		headers:          headers,
 		headersNonces:    headersNonces,
 		storer:           storer,
+		multiSigVerifier: multiSigVerifier,
 		hasher:           hasher,
 		shardCoordinator: shardCoordinator,
 	}

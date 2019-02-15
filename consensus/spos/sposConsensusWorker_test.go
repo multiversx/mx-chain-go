@@ -2237,51 +2237,6 @@ func TestCheckSignaturesValidity_ShouldErrNilSignature(t *testing.T) {
 	assert.Equal(t, spos.ErrNilSignature, err)
 }
 
-func TestCheckSignaturesValidity_ShouldErrInvalidIndex(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	singleSigner := &mock.SingleSignerMock{}
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 22
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.Reset(nil, 0)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		singleSigner,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	cnWorker.Cns.SetJobDone(consensusGroup[0], spos.SrSignature, true)
-
-	err := cnWorker.CheckSignaturesValidity([]byte(string(1)))
-	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
-}
 
 func TestCheckSignaturesValidity_ShouldRetunNil(t *testing.T) {
 	_, cnWorker := initRoundDurationAndConsensusWorker()
@@ -2524,52 +2479,6 @@ func TestCheckCommitmentsValidity_ShouldErrNilCommitmet(t *testing.T) {
 
 	err := cnWorker.CheckCommitmentsValidity([]byte(string(2)))
 	assert.Equal(t, spos.ErrNilCommitment, err)
-}
-
-func TestCheckCommitmentsValidity_ShouldErrInvalidIndex(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	singleSigner := &mock.SingleSignerMock{}
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.Reset(nil, 0)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		singleSigner,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	cnWorker.Cns.SetJobDone(consensusGroup[0], spos.SrCommitment, true)
-
-	err := cnWorker.CheckCommitmentsValidity([]byte(string(1)))
-	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
 }
 
 func TestCheckCommitmentsValidity_ShouldErrOnCommitmentHash(t *testing.T) {

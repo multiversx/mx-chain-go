@@ -23,6 +23,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
 )
 
 func createTestBlockChain() *blockchain.BlockChain {
@@ -79,6 +82,21 @@ func createTestDataPool() data.TransientDataHolder {
 	return dPool
 }
 
+func createMultiSigner(
+	privateKey crypto.PrivateKey,
+	publicKey crypto.PublicKey,
+	keyGen crypto.KeyGenerator,
+	hasher hashing.Hasher,
+) (crypto.MultiSigner, error) {
+
+	publicKeys := make([]string, 1)
+	pubKey, _ := publicKey.ToByteArray()
+	publicKeys[0] = string(pubKey)
+	multiSigner, err := multisig.NewBelNevMultisig(hasher, publicKeys, privateKey, keyGen, 0)
+
+	return multiSigner, err
+}
+
 func createMemNode(port int, dPool data.TransientDataHolder) (*node.Node, p2p.Messenger, process.ProcessorFactory) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -91,6 +109,8 @@ func createMemNode(port int, dPool data.TransientDataHolder) (*node.Node, p2p.Me
 	suite := kv2.NewBlakeSHA256Ed25519()
 	signer := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
+	sk, pk := keyGen.GeneratePair()
+	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
 	blockChain := createTestBlockChain()
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
@@ -105,6 +125,7 @@ func createMemNode(port int, dPool data.TransientDataHolder) (*node.Node, p2p.Me
 		AddrConverter:            addrConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
+		MultiSigner:              multiSigner,
 		SingleSigner:             signer,
 		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
@@ -118,7 +139,10 @@ func createMemNode(port int, dPool data.TransientDataHolder) (*node.Node, p2p.Me
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithSinglesig(signer),
+		node.WithMultisig(multiSigner),
 		node.WithKeyGenerator(keyGen),
+		node.WithPrivateKey(sk),
+		node.WithPublicKey(pk),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blockChain),
 		node.WithUint64ByteSliceConverter(uint64Converter),

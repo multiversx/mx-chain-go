@@ -232,6 +232,7 @@ func createConfig() factory.ProcessorsCreatorConfig {
 		AddrConverter:            &mock.AddressConverterMock{},
 		Hasher:                   mock.HasherMock{},
 		Marshalizer:              &mock.MarshalizerMock{},
+		MultiSigner:			  mock.NewMultiSigner(),
 		SingleSigner:             &mock.SignerMock{},
 		KeyGen:                   &mock.SingleSignKeyGenMock{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},

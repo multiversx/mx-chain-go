@@ -290,9 +290,10 @@ func TestBelNevSigner_ResetNilPubKeysShouldErr(t *testing.T) {
 	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	err := multiSig.Reset(nil, ownIndex)
+	multiSigReset, err := multiSig.Create(nil, ownIndex)
 
 	assert.Equal(t, crypto.ErrNilPublicKeys, err)
+	assert.Nil(t, multiSigReset)
 }
 
 func TestBelNevSigner_ResetInvalidPubKeyInListShouldErr(t *testing.T) {
@@ -305,9 +306,10 @@ func TestBelNevSigner_ResetInvalidPubKeyInListShouldErr(t *testing.T) {
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 
 	pubKeys[1] = "invalid"
-	err := multiSig.Reset(pubKeys, ownIndex)
+	multiSigReset, err := multiSig.Create(pubKeys, ownIndex)
 
 	assert.Equal(t, crypto.ErrInvalidPublicKeyString, err)
+	assert.Nil(t, multiSigReset)
 }
 
 func TestBelNevSigner_ResetEmptyPubKeyInListShouldErr(t *testing.T) {
@@ -320,9 +322,10 @@ func TestBelNevSigner_ResetEmptyPubKeyInListShouldErr(t *testing.T) {
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 
 	pubKeys[1] = ""
-	err := multiSig.Reset(pubKeys, ownIndex)
+	multiSigReset, err := multiSig.Create(pubKeys, ownIndex)
 
 	assert.Equal(t, crypto.ErrEmptyPubKeyString, err)
+	assert.Nil(t, multiSigReset)
 }
 
 func TestBelNevSigner_ResetOK(t *testing.T) {
@@ -338,8 +341,9 @@ func TestBelNevSigner_ResetOK(t *testing.T) {
 	multiSig.SetCommitmentSecret(commSecret)
 	multiSig.AddCommitment(0, comm)
 
-	err := multiSig.Reset(pubKeys, ownIndex)
+	multiSigReset, err := multiSig.Create(pubKeys, ownIndex)
 	assert.Nil(t, err)
+	assert.NotNil(t, multiSigReset)
 
 	_, err = multiSig.Commitment(ownIndex)
 	assert.Equal(t, crypto.ErrNilElement, err)

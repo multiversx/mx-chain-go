@@ -43,6 +43,7 @@ type processorsCreator struct {
 	addrConverter            state.AddressConverter
 	hasher                   hashing.Hasher
 	marshalizer              marshal.Marshalizer
+	multiSigner              crypto.MultiSigner
 	singleSigner             crypto.SingleSigner
 	keyGen                   crypto.KeyGenerator
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -61,6 +62,7 @@ type ProcessorsCreatorConfig struct {
 	AddrConverter            state.AddressConverter
 	Hasher                   hashing.Hasher
 	Marshalizer              marshal.Marshalizer
+	MultiSigner              crypto.MultiSigner
 	SingleSigner             crypto.SingleSigner
 	KeyGen                   crypto.KeyGenerator
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -82,6 +84,7 @@ func NewProcessorsCreator(config ProcessorsCreatorConfig) (*processorsCreator, e
 		addrConverter:            config.AddrConverter,
 		hasher:                   config.Hasher,
 		marshalizer:              config.Marshalizer,
+		multiSigner:              config.MultiSigner,
 		singleSigner:             config.SingleSigner,
 		keyGen:                   config.KeyGen,
 		uint64ByteSliceConverter: config.Uint64ByteSliceConverter,
@@ -185,7 +188,11 @@ func (p *processorsCreator) createTxInterceptor() error {
 }
 
 func (p *processorsCreator) createHdrInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(HeadersTopic), p.messenger, block.NewInterceptedHeader())
+	intercept, err := interceptor.NewTopicInterceptor(
+		string(HeadersTopic),
+		p.messenger,
+		block.NewInterceptedHeader(p.multiSigner),
+	)
 	if err != nil {
 		return err
 	}
@@ -197,6 +204,7 @@ func (p *processorsCreator) createHdrInterceptor() error {
 		p.dataPool.Headers(),
 		p.dataPool.HeadersNonces(),
 		headerStorer,
+		p.multiSigner,
 		p.hasher,
 		p.shardCoordinator,
 	)
@@ -410,6 +418,15 @@ func validateRequiredProcessCreatorParams(config ProcessorsCreatorConfig) error 
 	if config.Marshalizer == nil {
 		return process.ErrNilMarshalizer
 	}
+
+	if config.SingleSigner == nil {
+		return process.ErrNilSingleSigner
+	}
+
+	if config.MultiSigner == nil {
+		return process.ErrNilMultiSigVerifier
+	}
+
 	if config.KeyGen == nil {
 		return process.ErrNilKeyGen
 	}

@@ -1,9 +1,13 @@
 package mock
 
+import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+)
+
 type MultisignMock struct {
 }
 
-func (mm *MultisignMock) Reset(pubKeys []string, index uint16) error {
+func (mm *MultisignMock) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
 	panic("implement me")
 }
 
