@@ -6,19 +6,20 @@ import (
 
 // KeyBytesToHex turns key bytes into hex nibbles.
 func KeyBytesToHex(str []byte) []byte {
-	l := len(str)*2 + 1
-	var nibbles = make([]byte, l)
+	length := len(str)*2 + 1
+	var nibbles = make([]byte, length)
 	for i, b := range str {
 		nibbles[i*2] = b / 16
 		nibbles[i*2+1] = b % 16
 	}
-	nibbles[l-1] = 16
+	nibbles[length-1] = 16
 	return nibbles
 }
 
 // PrefixLen returns the length of the common prefix of a and b.
 func PrefixLen(a, b []byte) int {
-	var i, length = 0, len(a)
+	i := 0
+	length := len(a)
 	if len(b) < length {
 		length = len(b)
 	}
@@ -47,7 +48,7 @@ func HexToKeyBytes(hex []byte) []byte {
 		hex = hex[:len(hex)-1]
 	}
 	if len(hex)&1 != 0 {
-		panic("can't convert hex key of odd length")
+		return nil
 	}
 	key := make([]byte, len(hex)/2)
 

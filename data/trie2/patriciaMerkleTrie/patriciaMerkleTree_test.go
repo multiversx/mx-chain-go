@@ -3,6 +3,8 @@ package patriciaMerkleTrie_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 
@@ -11,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testTrie2(nr int) (*patriciaMerkleTrie.PatriciaMerkleTree, [][]byte) {
-	tr := patriciaMerkleTrie.New(keccak.Keccak{}, marshal.JsonMarshalizer{})
+func testTrie2(nr int) (trie2.Trie, [][]byte) {
+	tr, _ := patriciaMerkleTrie.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, nil)
 
 	var values [][]byte
 	hsh := keccak.Keccak{}
@@ -27,9 +29,10 @@ func testTrie2(nr int) (*patriciaMerkleTrie.PatriciaMerkleTree, [][]byte) {
 }
 
 func TestNewTrieWithNilParameters(t *testing.T) {
-	tr := patriciaMerkleTrie.New(nil, nil)
+	tr, err := patriciaMerkleTrie.NewTrie(nil, nil, nil)
 
-	assert.NotNil(t, tr)
+	assert.Nil(t, tr)
+	assert.NotNil(t, err)
 }
 
 func TestPatriciaMerkleTree_Get(t *testing.T) {
@@ -98,16 +101,19 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 	it := tr.NodeIterator()
 	var proof1 [][]byte
 
-	for it.Next() {
+	ok, _ := it.Next()
+	for ok {
 		if it.Leaf() {
-			proof1 = it.LeafProof()
+			proof1, _ = it.LeafProof()
 			break
 		}
+		ok, _ = it.Next()
 	}
 
-	proof2 := tr.Prove([]byte("doe"))
+	proof2, err := tr.Prove([]byte("doe"))
 
 	assert.Equal(t, proof1, proof2)
+	assert.Nil(t, err)
 
 }
 
@@ -116,9 +122,15 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 	rootHash := tr.Root()
 
 	for i := range val {
-		proof := tr.Prove(val[i])
-		assert.True(t, tr.VerifyProof(rootHash, proof, val[i]))
-		assert.False(t, tr.VerifyProof(rootHash, proof, []byte("dog"+string(i))))
+		proof, _ := tr.Prove(val[i])
+
+		ok, err := tr.VerifyProof(rootHash, proof, val[i])
+		assert.Nil(t, err)
+		assert.True(t, ok)
+
+		ok, err = tr.VerifyProof(rootHash, proof, []byte("dog"+string(i)))
+		assert.Nil(t, err)
+		assert.False(t, ok)
 	}
 
 }

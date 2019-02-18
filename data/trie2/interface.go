@@ -7,18 +7,15 @@ type Trie interface {
 	Delete(key []byte) error
 	Root() []byte
 	Copy() Trie
-	Prove(key []byte) [][]byte
-	VerifyProof(rootHash []byte, proof [][]byte, key []byte) bool
+	Prove(key []byte) ([][]byte, error)
+	VerifyProof(rootHash []byte, proof [][]byte, key []byte) (bool, error)
 	NodeIterator() NodeIterator
 }
 
 // NodeIterator is an iterator to traverse the trie pre-order.
 type NodeIterator interface {
 	// Next moves the iterator to the next node.
-	Next() bool
-
-	// Error returns the error status of the iterator.
-	Error() error
+	Next() (bool, error)
 
 	// Hash returns the hash of the current node.
 	Hash() []byte
@@ -35,18 +32,24 @@ type NodeIterator interface {
 	// Leaf returns true iff the current node is a leaf node.
 	Leaf() bool
 
-	// LeafKey returns the key of the leaf. The method panics if the iterator is not
+	// LeafKey returns the key of the leaf. The method returns an error if the iterator is not
 	// positioned at a leaf. Callers must not retain references to the value after
 	// calling Next.
-	LeafKey() []byte
+	LeafKey() ([]byte, error)
 
-	// LeafBlob returns the content of the leaf. The method panics if the iterator
+	// LeafBlob returns the content of the leaf. The method returns an error if the iterator
 	// is not positioned at a leaf. Callers must not retain references to the value
 	// after calling Next.
-	LeafBlob() []byte
+	LeafBlob() ([]byte, error)
 
-	// LeafProof returns the Merkle proof of the leaf. The method panics if the
+	// LeafProof returns the Merkle proof of the leaf. The method returns an error if the
 	// iterator is not positioned at a leaf. Callers must not retain references
 	// to the value after calling Next.
-	LeafProof() [][]byte
+	LeafProof() ([][]byte, error)
+}
+
+// DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
+type DBWriteCacher interface {
+	Put(key, val []byte) error
+	Get(key []byte) ([]byte, error)
 }

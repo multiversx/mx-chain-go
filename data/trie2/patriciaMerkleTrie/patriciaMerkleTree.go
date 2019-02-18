@@ -4,46 +4,42 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/patriciaMerkleTrie/encoding"
-
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
 // PatriciaMerkleTree is an implementation of Trie interface
-type PatriciaMerkleTree struct {
+type patriciaMerkleTree struct {
 	root        node
+	dbw         trie2.DBWriteCacher
 	hasher      hashing.Hasher
 	marshalizer marshal.Marshalizer
 }
 
-// New returns a new PatriciaMerkleTree with the given hasher and marshalizer. If hasher and marshalizer
+// NewTrie returns a new PatriciaMerkleTree with the given hasher and marshalizer. If hasher and marshalizer
 // are nil, New uses keccak hasher and json marshalizer
-func New(hsh hashing.Hasher, msh marshal.Marshalizer) *PatriciaMerkleTree {
+func NewTrie(hsh hashing.Hasher, msh marshal.Marshalizer, dbw trie2.DBWriteCacher) (*patriciaMerkleTree, error) {
 
 	if hsh == nil {
-		hsh = keccak.Keccak{}
+		return nil, trie2.ErrNilHasher
 	}
 
 	if msh == nil {
-		msh = marshal.JsonMarshalizer{}
+		return nil, trie2.ErrNilMarshalizer
 	}
 
-	return &PatriciaMerkleTree{hasher: hsh, marshalizer: msh}
+	return &patriciaMerkleTree{dbw: dbw, hasher: hsh, marshalizer: msh}, nil
 }
 
 // NodeIterator returns a new node iterator for the current trie
-func (tr *PatriciaMerkleTree) NodeIterator() trie2.NodeIterator {
+func (tr *patriciaMerkleTree) NodeIterator() trie2.NodeIterator {
 	return newNodeIterator(tr)
 }
 
 // Root returns the hash of the root node
-func (tr *PatriciaMerkleTree) Root() []byte {
+func (tr *patriciaMerkleTree) Root() []byte {
 	_, h, _ := tr.setHash(tr.root)
 	return h.getHash()
 }
@@ -51,7 +47,7 @@ func (tr *PatriciaMerkleTree) Root() []byte {
 // Update updates the value at the given key.
 // If the key is not in the trie, it will be added.
 // If the value is empty, the key will be removed from the trie
-func (tr *PatriciaMerkleTree) Update(key, value []byte) error {
+func (tr *patriciaMerkleTree) Update(key, value []byte) error {
 	k := encoding.KeyBytesToHex(key)
 	if len(value) != 0 {
 		_, n, err := tr.insert(tr.root, nil, k, valueNode(value))
@@ -69,7 +65,7 @@ func (tr *PatriciaMerkleTree) Update(key, value []byte) error {
 	return nil
 }
 
-func (tr *PatriciaMerkleTree) insert(n node, prefix, key []byte, value node) (bool, node, error) {
+func (tr *patriciaMerkleTree) insert(n node, prefix, key []byte, value node) (bool, node, error) {
 	if len(key) == 0 {
 		if v, ok := n.(valueNode); ok {
 			return !bytes.Equal(v, value.(valueNode)), value, nil
@@ -119,11 +115,11 @@ func (tr *PatriciaMerkleTree) insert(n node, prefix, key []byte, value node) (bo
 		return true, &shortNode{key, value, nil, typeVal}, nil
 
 	default:
-		panic(fmt.Sprintf("%T: invalid node: %v", n, n))
+		return false, nil, trie2.ErrInvalidNode
 	}
 }
 
-func (tr *PatriciaMerkleTree) delete(n node, prefix, key []byte) (bool, node, error) {
+func (tr *patriciaMerkleTree) delete(n node, prefix, key []byte) (bool, node, error) {
 	switch n := n.(type) {
 	case *shortNode:
 		matchlen := encoding.PrefixLen(key, n.Key)
@@ -212,12 +208,12 @@ func (tr *PatriciaMerkleTree) delete(n node, prefix, key []byte) (bool, node, er
 		return false, nil, nil
 
 	default:
-		panic(fmt.Sprintf("%T: invalid node: %v (%v)", n, n, key))
+		return false, nil, trie2.ErrInvalidNode
 	}
 }
 
 // Delete removes any existing value for key from the trie.
-func (tr *PatriciaMerkleTree) Delete(key []byte) error {
+func (tr *patriciaMerkleTree) Delete(key []byte) error {
 	k := encoding.KeyBytesToHex(key)
 	_, n, err := tr.delete(tr.root, nil, k)
 	if err != nil {
@@ -228,7 +224,7 @@ func (tr *PatriciaMerkleTree) Delete(key []byte) error {
 }
 
 // Get returns the value for key stored in the trie.
-func (tr *PatriciaMerkleTree) Get(key []byte) ([]byte, error) {
+func (tr *patriciaMerkleTree) Get(key []byte) ([]byte, error) {
 	key = encoding.KeyBytesToHex(key)
 	value, newroot, didResolve, err := tr.tryGet(tr.root, key, 0)
 	if err == nil && didResolve {
@@ -237,14 +233,18 @@ func (tr *PatriciaMerkleTree) Get(key []byte) ([]byte, error) {
 	return value, err
 }
 
-func (tr *PatriciaMerkleTree) tryGet(origNode node, key []byte, pos int) (value []byte, newnode node, didResolve bool, err error) {
+func (tr *patriciaMerkleTree) tryGet(origNode node, key []byte, pos int) (value []byte, newnode node, didResolve bool, err error) {
 	switch n := (origNode).(type) {
 	case nil:
 		return nil, nil, false, nil
 	case valueNode:
 		return n, n, false, nil
 	case *shortNode:
-		if len(key)-pos < len(n.Key) || !bytes.Equal(n.Key, key[pos:pos+len(n.Key)]) {
+
+		isSmallLen := len(key)-pos < len(n.Key)
+		keysDontMatch := !bytes.Equal(n.Key, key[pos:pos+len(n.Key)])
+
+		if isSmallLen || keysDontMatch {
 			// key not found in trie
 			return nil, n, false, nil
 		}
@@ -262,12 +262,12 @@ func (tr *PatriciaMerkleTree) tryGet(origNode node, key []byte, pos int) (value 
 		}
 		return value, n, didResolve, err
 	default:
-		panic(fmt.Sprintf("%T: invalid node: %v", origNode, origNode))
+		return nil, nil, false, trie2.ErrInvalidNode
 	}
 }
 
 // Copy returns a copy of Trie.
-func (tr *PatriciaMerkleTree) Copy() trie2.Trie {
+func (tr *patriciaMerkleTree) Copy() trie2.Trie {
 	cpy := *tr
 	return &cpy
 }
@@ -281,7 +281,7 @@ func concat(s1 []byte, s2 ...byte) []byte {
 
 // setHash collapses a node down into a hash node, also returning a copy of the
 // original node initialized with the computed hash to replace the original one.
-func (tr *PatriciaMerkleTree) setHash(n node) (node, node, error) {
+func (tr *patriciaMerkleTree) setHash(n node) (node, node, error) {
 	if hash := n.getHash(); hash != nil {
 		return hashNode(hash), n, nil
 	}
@@ -308,7 +308,7 @@ func (tr *PatriciaMerkleTree) setHash(n node) (node, node, error) {
 
 // hashChildren replaces the children of a node with their hashes, returning the collapsed node as well
 // as a replacement for the original node with the child hashes cached in.
-func (tr *PatriciaMerkleTree) hashChildren(original node) (node, node, error) {
+func (tr *patriciaMerkleTree) hashChildren(original node) (node, node, error) {
 	var err error
 
 	switch n := original.(type) {
@@ -346,7 +346,7 @@ func (tr *PatriciaMerkleTree) hashChildren(original node) (node, node, error) {
 }
 
 // hash collapses any node into a hash
-func (tr *PatriciaMerkleTree) hash(n node) (node, error) {
+func (tr *patriciaMerkleTree) hash(n node) (node, error) {
 	if _, isHash := n.(hashNode); n == nil || isHash {
 		return n, nil
 	}
@@ -377,43 +377,65 @@ type full struct {
 }
 
 // Prove returns the Merkle proof for the given key
-func (tr *PatriciaMerkleTree) Prove(key []byte) [][]byte {
+func (tr *patriciaMerkleTree) Prove(key []byte) ([][]byte, error) {
 	it := newNodeIterator(tr)
 
-	for it.Next() {
-		if it.Leaf() && bytes.Equal(it.LeafKey(), key) {
-			return it.LeafProof()
+	ok, err := it.Next()
+	if err != nil {
+		return nil, err
+	}
+
+	for ok {
+
+		if it.Leaf() {
+
+			leafKey, err := it.LeafKey()
+			if err != nil {
+				return nil, err
+			}
+
+			if bytes.Equal(leafKey, key) {
+				return it.LeafProof()
+			}
+		}
+
+		ok, err = it.Next()
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	return nil
+	return nil, trie2.ErrProve
 }
 
 // VerifyProof checks Merkle proofs. The given proof must contain the value for
 // key in a trie with the given root hash.
-func (tr *PatriciaMerkleTree) VerifyProof(rootHash []byte, proofs [][]byte, key []byte) bool {
+func (tr *patriciaMerkleTree) VerifyProof(rootHash []byte, proofs [][]byte, key []byte) (bool, error) {
 	key = encoding.KeyBytesToHex(key)
 	wantHash := rootHash
 	for i := range proofs {
 		buf := proofs[i]
 		if buf == nil {
-			return false
+			return false, nil
 		}
 		n := decodeNode(buf, tr.marshalizer)
 
-		keyrest, cld := get(n, key)
+		keyrest, cld, err := get(n, key)
+		if err != nil {
+			return false, err
+		}
 		switch cld := cld.(type) {
 		case nil:
 			// The trie doesn't contain the key.
-			return false
+			return false, nil
 		case hashNode:
 			key = keyrest
 			copy(wantHash[:], cld)
 		case valueNode:
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 func decodeNode(proof []byte, msh marshal.Marshalizer) node {
@@ -452,26 +474,31 @@ func isEmpty(node *short) bool {
 	return bytes.Equal(emptyShort.Key, node.Key)
 }
 
-func get(tn node, key []byte) ([]byte, node) {
+func get(tn node, key []byte) ([]byte, node, error) {
 	for {
 		switch n := tn.(type) {
 		case *shortNode:
-			if len(key) < len(n.Key) || !bytes.Equal(n.Key, key[:len(n.Key)]) {
-				return nil, nil
+
+			if len(key) < len(n.Key) {
+				return nil, nil, nil
 			}
+			if !bytes.Equal(n.Key, key[:len(n.Key)]) {
+				return nil, nil, nil
+			}
+
 			tn = n.Val
 			key = key[len(n.Key):]
 		case *fullNode:
 			tn = n.Children[key[0]]
 			key = key[1:]
 		case hashNode:
-			return key, n
+			return key, n, nil
 		case nil:
-			return key, nil
+			return key, nil, nil
 		case valueNode:
-			return nil, n
+			return nil, n, nil
 		default:
-			panic(fmt.Sprintf("%T: invalid node: %v", tn, tn))
+			return nil, nil, trie2.ErrInvalidNode
 		}
 	}
 }

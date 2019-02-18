@@ -3,6 +3,8 @@ package patriciaMerkleTrie_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/patriciaMerkleTrie"
@@ -10,8 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
-func testTrie() *patriciaMerkleTrie.PatriciaMerkleTree {
-	tr := patriciaMerkleTrie.New(keccak.Keccak{}, marshal.JsonMarshalizer{})
+func testTrie() trie2.Trie {
+	tr, _ := patriciaMerkleTrie.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, nil)
 
 	tr.Update([]byte("doe"), []byte("reindeer"))
 	tr.Update([]byte("dog"), []byte("puppy"))
@@ -25,13 +27,6 @@ func TestNodeIterator_newIterator(t *testing.T) {
 	it := tr.NodeIterator()
 
 	assert.NotNil(t, it)
-}
-
-func TestNodeIterator_Error(t *testing.T) {
-	tr := testTrie()
-	it := tr.NodeIterator()
-
-	assert.Nil(t, it.Error())
 }
 
 func TestNodeIterator_Hash(t *testing.T) {
@@ -92,15 +87,20 @@ func TestNodeIterator_LeafKey(t *testing.T) {
 
 	searchedKey := []byte("doe")
 	var key []byte
+	var err error
 
-	for it.Next() {
+	ok, _ := it.Next()
+
+	for ok {
 		if it.Leaf() {
-			key = it.LeafKey()
+			key, err = it.LeafKey()
 			break
 		}
+		ok, _ = it.Next()
 	}
 
 	assert.Equal(t, searchedKey, key)
+	assert.Nil(t, err)
 }
 
 func TestNodeIterator_LeafBlob(t *testing.T) {
@@ -109,31 +109,54 @@ func TestNodeIterator_LeafBlob(t *testing.T) {
 
 	searchedVal := []byte("reindeer")
 	var val []byte
+	var err error
 
-	for it.Next() {
+	ok, _ := it.Next()
+
+	for ok {
 		if it.Leaf() {
-			val = it.LeafBlob()
+			val, err = it.LeafBlob()
 			break
 		}
+		ok, _ = it.Next()
 	}
 
 	assert.Equal(t, searchedVal, val)
+	assert.Nil(t, err)
 }
 
 func TestNodeIterator_LeafProof(t *testing.T) {
 	tr := testTrie()
 	it := tr.NodeIterator()
+
 	var proofs [][][]byte
 	rootHash := tr.Root()
 
-	for it.Next() {
+	ok, _ := it.Next()
+
+	for ok {
 		if it.Leaf() {
-			proofs = append(proofs, it.LeafProof())
+			proof, err := it.LeafProof()
+			assert.Nil(t, err)
+			proofs = append(proofs, proof)
 		}
+		ok, _ = it.Next()
 	}
 
-	assert.True(t, tr.VerifyProof(rootHash, proofs[0], []byte("doe")))
-	assert.True(t, tr.VerifyProof(rootHash, proofs[1], []byte("dogglesworth")))
-	assert.True(t, tr.VerifyProof(rootHash, proofs[2], []byte("dog")))
-	assert.False(t, tr.VerifyProof(rootHash, proofs[2], []byte("doge")))
+	ok, err := tr.VerifyProof(rootHash, proofs[0], []byte("doe"))
+	assert.Nil(t, err)
+	assert.True(t, ok)
+
+	ok, err = tr.VerifyProof(rootHash, proofs[1], []byte("dogglesworth"))
+	assert.Nil(t, err)
+	assert.True(t, ok)
+
+	ok, err = tr.VerifyProof(rootHash, proofs[2], []byte("dog"))
+	assert.Nil(t, err)
+	assert.True(t, ok)
+
+	ok, err = tr.VerifyProof(rootHash, proofs[2], []byte("doge"))
+	assert.Nil(t, err)
+	assert.False(t, ok)
+
 }

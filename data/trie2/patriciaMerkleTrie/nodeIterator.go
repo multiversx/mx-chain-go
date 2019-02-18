@@ -2,8 +2,8 @@ package patriciaMerkleTrie
 
 import (
 	"bytes"
-	"errors"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/patriciaMerkleTrie/encoding"
 )
 
@@ -20,33 +20,26 @@ type nodeIteratorState struct {
 }
 
 type nodeIterator struct {
-	trie  *PatriciaMerkleTree  // Trie being iterated
+	trie  *patriciaMerkleTree  // Trie being iterated
 	stack []*nodeIteratorState // Hierarchy of trie nodes persisting the iteration state
 	path  []byte               // Path to the current node
-	err   error                // Failure set in case of an internal error in the iterator
 }
 
-func newNodeIterator(trie *PatriciaMerkleTree) *nodeIterator {
-	it := &nodeIterator{trie: trie}
-	return it
+func newNodeIterator(trie *patriciaMerkleTree) *nodeIterator {
+	return &nodeIterator{trie: trie}
 }
 
 // Next moves the iterator to the next node, returning whether there are any
-// further nodes. In case of an internal error this method returns false and
-// sets the Error field to the encountered failure.
-func (it *nodeIterator) Next() bool {
-	if it.err != nil {
-		return false
-	}
+// further nodes.
+func (it *nodeIterator) Next() (bool, error) {
 
 	// Otherwise step forward with the iterator and report any errors.
 	state, parentIndex, path, err := it.peek()
-	it.err = err
-	if it.err != nil {
-		return false
+	if err != nil {
+		return false, err
 	}
 	it.push(state, parentIndex, path)
-	return true
+	return true, nil
 }
 
 // peek creates the next state of the iterator.
@@ -80,7 +73,7 @@ func (it *nodeIterator) peek() (*nodeIteratorState, *int, []byte, error) {
 		// No more child nodes, move back up.
 		it.pop()
 	}
-	return nil, nil, nil, errors.New("end of iteration")
+	return nil, nil, nil, trie2.ErrIterationEnd
 }
 
 func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor []byte) (*nodeIteratorState, []byte, bool) {
@@ -121,10 +114,6 @@ func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor []byte) (*
 	return parent, it.path, false
 }
 
-func (it *nodeIterator) Error() error {
-	return it.err
-}
-
 // Hash returns the hash of the current node
 func (it *nodeIterator) Hash() []byte {
 	if len(it.stack) == 0 {
@@ -152,31 +141,28 @@ func (it *nodeIterator) Leaf() bool {
 	return encoding.HasTerm(it.path)
 }
 
-// LeafKey returns the key of the leaf. The method panics if the iterator is not
-// positioned at a leaf.
-func (it *nodeIterator) LeafKey() []byte {
+// LeafKey returns the key of the leaf. Iterator must be positioned at leaf
+func (it *nodeIterator) LeafKey() ([]byte, error) {
 	if len(it.stack) > 0 {
 		if _, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
-			return encoding.HexToKeyBytes(it.path)
+			return encoding.HexToKeyBytes(it.path), nil
 		}
 	}
-	panic("not at leaf")
+	return nil, trie2.ErrNotAtLeaf
 }
 
-// LeafBlob returns the content of the leaf. The method panics if the iterator
-// is not positioned at a leaf.
-func (it *nodeIterator) LeafBlob() []byte {
+// LeafBlob returns the content of the leaf. Iterator must be positioned at leaf
+func (it *nodeIterator) LeafBlob() ([]byte, error) {
 	if len(it.stack) > 0 {
 		if node, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
-			return []byte(node)
+			return []byte(node), nil
 		}
 	}
-	panic("not at leaf")
+	return nil, trie2.ErrNotAtLeaf
 }
 
-// LeafProof returns the Merkle proof of the leaf. The method panics if the
-// iterator is not positioned at a leaf.
-func (it *nodeIterator) LeafProof() [][]byte {
+// LeafProof returns the Merkle proof of the leaf. Iterator must be positioned at leaf
+func (it *nodeIterator) LeafProof() ([][]byte, error) {
 	if len(it.stack) > 0 {
 		if _, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
 			proofs := make([][]byte, 0, len(it.stack))
@@ -188,15 +174,15 @@ func (it *nodeIterator) LeafProof() [][]byte {
 				if _, ok := hashed.(hashNode); ok || i == 0 {
 					n, err := it.trie.marshalizer.Marshal(node)
 					if err != nil {
-						return nil
+						return nil, err
 					}
 					proofs = append(proofs, n)
 				}
 			}
-			return proofs
+			return proofs, nil
 		}
 	}
-	panic("not at leaf")
+	return nil, trie2.ErrNotAtLeaf
 }
 
 func (it *nodeIterator) push(state *nodeIteratorState, parentIndex *int, path []byte) {
