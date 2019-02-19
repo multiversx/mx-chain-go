@@ -10,7 +10,7 @@ import (
 
 const roundTimeDuration = time.Duration(10 * time.Millisecond)
 
-func TestNewRound_ShouldReturnNotNilRoundObject(t *testing.T) {
+func TestRound_NewRoundShouldReturnNotNilRoundObject(t *testing.T) {
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
@@ -18,7 +18,7 @@ func TestNewRound_ShouldReturnNotNilRoundObject(t *testing.T) {
 	assert.NotNil(t, rnd)
 }
 
-func TestUpdateRound_ShouldNotChangeAnything(t *testing.T) {
+func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
@@ -35,7 +35,7 @@ func TestUpdateRound_ShouldNotChangeAnything(t *testing.T) {
 
 }
 
-func TestUpdateRound_ShouldAdvanceOneRound(t *testing.T) {
+func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
@@ -46,7 +46,7 @@ func TestUpdateRound_ShouldAdvanceOneRound(t *testing.T) {
 	assert.Equal(t, oldIndex, newIndex-1)
 }
 
-func TestIndex_ShouldReturnFirstIndex(t *testing.T) {
+func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
@@ -56,7 +56,7 @@ func TestIndex_ShouldReturnFirstIndex(t *testing.T) {
 	assert.Equal(t, int32(0), index)
 }
 
-func TestTimeStamp_ShouldReturnTimeStampOfTheNextRound(t *testing.T) {
+func TestRound_TimeStampShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
@@ -66,7 +66,7 @@ func TestTimeStamp_ShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 	assert.Equal(t, genesisTime.Add(roundTimeDuration), timeStamp)
 }
 
-func TestTimeDuration_ShouldReturnTheDurationOfOneRound(t *testing.T) {
+func TestRound_TimeDurationShouldReturnTheDurationOfOneRound(t *testing.T) {
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)

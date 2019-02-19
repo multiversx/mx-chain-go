@@ -115,6 +115,7 @@ type Resolver interface {
 // to syncronize the node
 type Bootstraper interface {
 	ShouldSync() bool
+	CreateEmptyBlock(uint32) (*block.TxBlockBody, *block.Header)
 }
 
 // ForkDetector is an interface that defines the behaviour of a struct that is able

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestConsensusData_NewConsensusDataShouldBeNotNil(t *testing.T) {
+func TestConsensusData_NewConsensusDataShouldWork(t *testing.T) {
 	cnsdta := spos.NewConsensusData(
 		nil,
 		nil,

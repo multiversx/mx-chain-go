@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEpoch(t *testing.T) {
+func TestEpoch_NewEpochShouldWork(t *testing.T) {
 	genesisTime := time.Now()
 	index := 0
 	epc := epoch.NewEpoch(index, genesisTime)

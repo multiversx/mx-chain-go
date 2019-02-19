@@ -39,10 +39,11 @@ func TestNewBootstrap_NilTransientDataHolderShouldErr(t *testing.T) {
 	blkc := &blockchain.BlockChain{}
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(nil, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, err := sync.NewBootstrap(nil, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilTransientDataHolder, err)
@@ -64,10 +65,11 @@ func TestNewBootstrap_TransientDataHolderRetNilOnHeadersShouldErr(t *testing.T) 
 	blkc := &blockchain.BlockChain{}
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
@@ -89,10 +91,11 @@ func TestNewBootstrap_TransientDataHolderRetNilOnHeadersNoncesShouldErr(t *testi
 	blkc := &blockchain.BlockChain{}
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilHeadersNoncesDataPool, err)
@@ -114,10 +117,11 @@ func TestNewBootstrap_TransientDataHolderRetNilOnTxBlockBodyShouldErr(t *testing
 	blkc := &blockchain.BlockChain{}
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilTxBlockBody, err)
@@ -138,10 +142,11 @@ func TestNewBootstrap_NilBlockchainShouldErr(t *testing.T) {
 	}
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, nil, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, err := sync.NewBootstrap(transient, nil, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilBlockChain, err)
@@ -162,10 +167,11 @@ func TestNewBootstrap_NilRoundShouldErr(t *testing.T) {
 	}
 	blkc := &blockchain.BlockChain{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, nil, blkExec, waitTime, marshalizer, forkDetector)
+	bs, err := sync.NewBootstrap(transient, blkc, nil, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilRounder, err)
@@ -186,13 +192,38 @@ func TestNewBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 	}
 	blkc := &blockchain.BlockChain{}
 	rnd := &round.Round{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, rnd, nil, waitTime, marshalizer, forkDetector)
+	bs, err := sync.NewBootstrap(transient, blkc, rnd, nil, waitTime, hasher, marshalizer, forkDetector)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilBlockExecutor, err)
+}
+
+func TestNewBootstrap_NilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		return &mock.Uint64CacherStub{}
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
+	}
+	blkc := &blockchain.BlockChain{}
+	rnd := &round.Round{}
+	blkExec := &mock.BlockProcessorMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, nil, marshalizer, nil)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilHasher, err)
 }
 
 func TestNewBootstrap_NilMarshalizerShouldErr(t *testing.T) {
@@ -211,12 +242,13 @@ func TestNewBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 	blkc := &blockchain.BlockChain{}
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
-	marshalizer := &mock.MarshalizerMock{}
+	hasher := &mock.HasherMock{}
+	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, nil)
+	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, nil, forkDetector)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilForkDetector, err)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
 func TestNewBootstrap_NilForkDetectorShouldErr(t *testing.T) {
@@ -235,12 +267,13 @@ func TestNewBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 	blkc := &blockchain.BlockChain{}
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
-	forkDetector := &mock.ForkDetectorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, nil, forkDetector)
+	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, nil)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilMarshalizer, err)
+	assert.Equal(t, process.ErrNilForkDetector, err)
 }
 
 func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
@@ -280,10 +313,11 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 	blkc := &blockchain.BlockChain{}
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, err := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	assert.NotNil(t, bs)
 	assert.Nil(t, err)
@@ -323,6 +357,7 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 
 		return cs
 	}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
@@ -332,6 +367,7 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -391,6 +427,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 
 		return cs
 	}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
@@ -400,6 +437,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -456,6 +494,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 		return cs
 	}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
@@ -469,6 +508,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		round.NewRound(time.Now(), time.Now().Add(0*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&ebm,
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -548,6 +588,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 		return cs
 	}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
@@ -561,6 +602,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		round.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&ebm,
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -639,6 +681,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		return cs
 	}
 
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
@@ -648,6 +691,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&ebm,
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -678,6 +722,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 		}
 		return cs
 	}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
@@ -687,6 +732,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 		round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -715,6 +761,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		}
 		return cs
 	}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
@@ -728,6 +775,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -760,7 +808,7 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		}
 		return cs
 	}
-
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
@@ -774,6 +822,7 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -806,7 +855,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		}
 		return cs
 	}
-
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() bool {
@@ -819,6 +868,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -851,7 +901,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		}
 		return cs
 	}
-
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
@@ -865,6 +915,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -912,6 +963,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		}
 		return cs
 	}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
@@ -921,6 +973,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -999,6 +1052,7 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 		}
 		return cs
 	}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
@@ -1008,6 +1062,7 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 		round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -1054,7 +1109,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	}
 
 	wasAdded := false
-
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isReceived bool) error {
@@ -1080,6 +1135,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 		round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -1124,7 +1180,7 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 	}
 
 	wasAdded := false
-
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isReceived bool) error {
@@ -1169,6 +1225,7 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 		round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
+		hasher,
 		marshalizer,
 		forkDetector)
 
@@ -1205,10 +1262,11 @@ func TestBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
 	blkc := &blockchain.BlockChain{}
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	err := bs.ForkChoice(&block.Header{})
 	assert.Equal(t, sync.ErrNilCurrentHeader, err)
@@ -1240,10 +1298,11 @@ func TestBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 	blkc := &blockchain.BlockChain{}
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	blkc.CurrentBlockHeader = &block.Header{}
 
@@ -1322,10 +1381,11 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldRemove(t *testing.T) {
 	blkc := &blockchain.BlockChain{}
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := createForkDetector(newHdrNonce, remFlags)
 
-	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	blkc.CurrentBlockHeader = &block.Header{
 		PubKeysBitmap: []byte{1},
@@ -1430,6 +1490,8 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
 
+	hasher := &mock.HasherMock{}
+
 	//a marshalizer stub
 	marshalizer := &mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -1451,7 +1513,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 		},
 	}
 	forkDetector := createForkDetector(currentHdrNonce, remFlags)
-	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	//this is the block we want to revert
 	blkc.CurrentBlockHeader = &block.Header{
@@ -1535,6 +1597,8 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
 
+	hasher := &mock.HasherMock{}
+
 	//a marshalizer stub
 	marshalizer := &mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -1556,7 +1620,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 		},
 	}
 	forkDetector := createForkDetector(currentHdrNonce, remFlags)
-	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 
 	//this is the block we want to revert
 	blkc.CurrentBlockHeader = &block.Header{
@@ -1617,10 +1681,11 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	)
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 	txBlockRecovered := bs.GetTxBody(requestedHash)
 
 	assert.True(t, txBlockRecovered == txBlock)
@@ -1668,10 +1733,11 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 	)
 	rnd := &round.Round{}
 	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 	txBlockRecovered := bs.GetTxBody(requestedHash)
 
 	assert.Nil(t, txBlockRecovered)
@@ -1685,6 +1751,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		StateBlockBody: block.StateBlockBody{RootHash: []byte("root hash")},
 	}
 
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 
 	transient := &mock.TransientDataPoolMock{}
@@ -1731,7 +1798,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	blkExec := &mock.BlockProcessorMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 	txBlockRecovered := bs.GetTxBody(requestedHash)
 
 	assert.Equal(t, txBlock, txBlockRecovered)
@@ -1743,6 +1810,7 @@ func TestBootstrap_GetTxBodyHavingHashMarshalizerFailShouldRemoveAndRetNil(t *te
 	removedCalled := false
 	requestedHash := []byte("requested hash")
 
+	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerStub{
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return errors.New("marshalizer failure")
@@ -1798,9 +1866,190 @@ func TestBootstrap_GetTxBodyHavingHashMarshalizerFailShouldRemoveAndRetNil(t *te
 	blkExec := &mock.BlockProcessorMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
-	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, marshalizer, forkDetector)
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
 	txBlockRecovered := bs.GetTxBody(requestedHash)
 
 	assert.Nil(t, txBlockRecovered)
 	assert.True(t, removedCalled)
+}
+
+func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenMarshalErr(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := 0
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+			wasCalled++
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			wasCalled++
+		}
+
+		return cs
+	}
+	blkc := &blockchain.BlockChain{}
+	rnd := &round.Round{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+
+	blkExec.RevertAccountStateCalled = func() {
+	}
+
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
+		return &block.TxBlockBody{}
+	}
+
+	marshalizer.Fail = true
+
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
+
+	blk, hdr := bs.CreateEmptyBlock(0)
+
+	assert.Nil(t, blk)
+	assert.Nil(t, hdr)
+}
+
+func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenCommitBlockErr(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := 0
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+			wasCalled++
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			wasCalled++
+		}
+
+		return cs
+	}
+	blkc := &blockchain.BlockChain{}
+	rnd := &round.Round{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+
+	blkc.CurrentBlockHeader = &block.Header{Nonce: 1}
+
+	blkExec.RevertAccountStateCalled = func() {
+	}
+
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
+		return &block.TxBlockBody{}
+	}
+
+	err := errors.New("error")
+	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+		return err
+	}
+
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
+
+	blk, hdr := bs.CreateEmptyBlock(0)
+
+	assert.Nil(t, blk)
+	assert.Nil(t, hdr)
+}
+
+func TestBootstrap_CreateEmptyBlockShouldWork(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := 0
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+			wasCalled++
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			wasCalled++
+		}
+
+		return cs
+	}
+	blkc := &blockchain.BlockChain{}
+	rnd := &round.Round{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+
+	blkExec.RevertAccountStateCalled = func() {
+	}
+
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
+		return &block.TxBlockBody{}
+	}
+
+	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+		return nil
+	}
+
+	bs, _ := sync.NewBootstrap(transient, blkc, rnd, blkExec, waitTime, hasher, marshalizer, forkDetector)
+
+	blk, hdr := bs.CreateEmptyBlock(0)
+
+	assert.NotNil(t, blk)
+	assert.NotNil(t, hdr)
 }

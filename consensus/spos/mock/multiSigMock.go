@@ -30,6 +30,8 @@ type BelNevMock struct {
 	SetCommitmentSecretMock  func([]byte) error
 	AddCommitmentHashMock    func(uint16, []byte) error
 	CommitmentMock           func(uint16) ([]byte, error)
+
+	ResetCalled func([]string, uint16) error
 }
 
 // NewMultiSigner create a BelNevMock object
@@ -44,6 +46,10 @@ func NewMultiSigner() *BelNevMock {
 
 // Reset resets the multiSigner and initializes corresponding fields with the given params
 func (bnm *BelNevMock) Reset(pubKeys []string, index uint16) error {
+	if bnm.ResetCalled != nil {
+		return bnm.ResetCalled(pubKeys, index)
+	}
+
 	bnm.msg = nil
 	bnm.aggSig = nil
 	bnm.commSecret = nil

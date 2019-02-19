@@ -533,6 +533,104 @@ func TestFactory_NewFactoryShouldWork(t *testing.T) {
 	assert.NotNil(t, fct)
 }
 
+func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.Worker().ConsensusStateChangedChannel = nil
+
+	assert.False(t, fct.GenerateStartRoundSubround())
+}
+
+func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.SetSyncTimer(nil)
+
+	assert.False(t, fct.GenerateStartRoundSubround())
+}
+
+func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.Worker().ConsensusStateChangedChannel = nil
+
+	assert.False(t, fct.GenerateBlockSubround())
+}
+
+func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.SetSyncTimer(nil)
+
+	assert.False(t, fct.GenerateBlockSubround())
+}
+
+func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.Worker().ConsensusStateChangedChannel = nil
+
+	assert.False(t, fct.GenerateCommitmentHashSubround())
+}
+
+func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundCommitmentHashFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.SetSyncTimer(nil)
+
+	assert.False(t, fct.GenerateCommitmentHashSubround())
+}
+
+func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.Worker().ConsensusStateChangedChannel = nil
+
+	assert.False(t, fct.GenerateBitmapSubround())
+}
+
+func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundBitmapFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.SetSyncTimer(nil)
+
+	assert.False(t, fct.GenerateBitmapSubround())
+}
+
+func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.Worker().ConsensusStateChangedChannel = nil
+
+	assert.False(t, fct.GenerateCommitmentSubround())
+}
+
+func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundCommitmentFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.SetSyncTimer(nil)
+
+	assert.False(t, fct.GenerateCommitmentSubround())
+}
+
+func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.Worker().ConsensusStateChangedChannel = nil
+
+	assert.False(t, fct.GenerateSignatureSubround())
+}
+
+func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.SetSyncTimer(nil)
+
+	assert.False(t, fct.GenerateSignatureSubround())
+}
+
+func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.Worker().ConsensusStateChangedChannel = nil
+
+	assert.False(t, fct.GenerateEndRoundSubround())
+}
+
+func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t *testing.T) {
+	fct, _ := initFactory()
+	fct.SetSyncTimer(nil)
+
+	assert.False(t, fct.GenerateEndRoundSubround())
+}
+
 func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	fct, _ := initFactory()
 

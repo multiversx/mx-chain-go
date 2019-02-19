@@ -74,10 +74,10 @@ func (sr *subround) DoWork(haveTimeInThisRound func() time.Duration) bool {
 		return false
 	}
 
-	if sr.job() {
-		if sr.check() {
-			return true
-		}
+	sr.job()
+
+	if sr.check() {
+		return true
 	}
 
 	for {

@@ -1,14 +1,11 @@
 package bn
 
 import (
-	"fmt"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -233,7 +230,7 @@ func (fct *Factory) generateStartRoundSubround() bool {
 		int64(fct.rounder.TimeDuration()*0/100),
 		int64(fct.rounder.TimeDuration()*5/100),
 		getSubroundName(SrStartRound),
-		fct.worker.consensusStateChangedChannel,
+		fct.worker.ConsensusStateChangedChannel,
 	)
 
 	if err != nil {
@@ -244,12 +241,13 @@ func (fct *Factory) generateStartRoundSubround() bool {
 	subroundStartRound, err := NewSubroundStartRound(
 		subround,
 		fct.blockChain,
+		fct.bootstraper,
 		fct.consensusState,
 		fct.multiSigner,
 		fct.rounder,
 		fct.syncTimer,
 		fct.validatorGroupSelector,
-		fct.extend,
+		fct.worker.extend,
 	)
 
 	if err != nil {
@@ -271,7 +269,7 @@ func (fct *Factory) generateBlockSubround() bool {
 		int64(fct.rounder.TimeDuration()*5/100),
 		int64(fct.rounder.TimeDuration()*25/100),
 		getSubroundName(SrBlock),
-		fct.worker.consensusStateChangedChannel,
+		fct.worker.ConsensusStateChangedChannel,
 	)
 
 	if err != nil {
@@ -283,7 +281,6 @@ func (fct *Factory) generateBlockSubround() bool {
 		subround,
 		fct.blockChain,
 		fct.blockProcessor,
-		fct.bootstraper,
 		fct.consensusState,
 		fct.hasher,
 		fct.marshalizer,
@@ -292,7 +289,7 @@ func (fct *Factory) generateBlockSubround() bool {
 		fct.shardCoordinator,
 		fct.syncTimer,
 		fct.worker.sendConsensusMessage,
-		fct.extend,
+		fct.worker.extend,
 	)
 
 	if err != nil {
@@ -315,7 +312,7 @@ func (fct *Factory) generateCommitmentHashSubround() bool {
 		int64(fct.rounder.TimeDuration()*25/100),
 		int64(fct.rounder.TimeDuration()*40/100),
 		getSubroundName(SrCommitmentHash),
-		fct.worker.consensusStateChangedChannel,
+		fct.worker.ConsensusStateChangedChannel,
 	)
 
 	if err != nil {
@@ -331,7 +328,7 @@ func (fct *Factory) generateCommitmentHashSubround() bool {
 		fct.rounder,
 		fct.syncTimer,
 		fct.worker.sendConsensusMessage,
-		fct.extend,
+		fct.worker.extend,
 	)
 
 	if err != nil {
@@ -353,7 +350,7 @@ func (fct *Factory) generateBitmapSubround() bool {
 		int64(fct.rounder.TimeDuration()*40/100),
 		int64(fct.rounder.TimeDuration()*55/100),
 		getSubroundName(SrBitmap),
-		fct.worker.consensusStateChangedChannel,
+		fct.worker.ConsensusStateChangedChannel,
 	)
 
 	if err != nil {
@@ -368,7 +365,7 @@ func (fct *Factory) generateBitmapSubround() bool {
 		fct.rounder,
 		fct.syncTimer,
 		fct.worker.sendConsensusMessage,
-		fct.extend,
+		fct.worker.extend,
 	)
 
 	if err != nil {
@@ -390,7 +387,7 @@ func (fct *Factory) generateCommitmentSubround() bool {
 		int64(fct.rounder.TimeDuration()*55/100),
 		int64(fct.rounder.TimeDuration()*70/100),
 		getSubroundName(SrCommitment),
-		fct.worker.consensusStateChangedChannel,
+		fct.worker.ConsensusStateChangedChannel,
 	)
 
 	if err != nil {
@@ -405,7 +402,7 @@ func (fct *Factory) generateCommitmentSubround() bool {
 		fct.rounder,
 		fct.syncTimer,
 		fct.worker.sendConsensusMessage,
-		fct.extend,
+		fct.worker.extend,
 	)
 
 	if err != nil {
@@ -427,7 +424,7 @@ func (fct *Factory) generateSignatureSubround() bool {
 		int64(fct.rounder.TimeDuration()*70/100),
 		int64(fct.rounder.TimeDuration()*85/100),
 		getSubroundName(SrSignature),
-		fct.worker.consensusStateChangedChannel,
+		fct.worker.ConsensusStateChangedChannel,
 	)
 
 	if err != nil {
@@ -443,7 +440,7 @@ func (fct *Factory) generateSignatureSubround() bool {
 		fct.rounder,
 		fct.syncTimer,
 		fct.worker.sendConsensusMessage,
-		fct.extend,
+		fct.worker.extend,
 	)
 
 	if err != nil {
@@ -465,7 +462,7 @@ func (fct *Factory) generateEndRoundSubround() bool {
 		int64(fct.rounder.TimeDuration()*85/100),
 		int64(fct.rounder.TimeDuration()*95/100),
 		getSubroundName(SrEndRound),
-		fct.worker.consensusStateChangedChannel,
+		fct.worker.ConsensusStateChangedChannel,
 	)
 
 	if err != nil {
@@ -483,7 +480,7 @@ func (fct *Factory) generateEndRoundSubround() bool {
 		fct.syncTimer,
 		fct.worker.broadcastTxBlockBody,
 		fct.worker.broadcastHeader,
-		fct.extend,
+		fct.worker.extend,
 	)
 
 	if err != nil {
@@ -504,88 +501,4 @@ func (fct *Factory) initConsensusThreshold() {
 	fct.consensusState.SetThreshold(SrBitmap, pbftThreshold)
 	fct.consensusState.SetThreshold(SrCommitment, pbftThreshold)
 	fct.consensusState.SetThreshold(SrSignature, pbftThreshold)
-}
-
-func (fct *Factory) extend(subroundId int) {
-	if fct.consensusState.RoundCanceled {
-		return
-	}
-
-	fct.blockProcessor.RevertAccountState()
-
-	log.Info(fmt.Sprintf("%sStep 7: Creating and broadcasting an empty block\n", fct.syncTimer.FormattedCurrentTime()))
-
-	fct.createEmptyBlock()
-
-	return
-}
-
-// createEmptyBlock creates, commits and broadcasts an empty block at the end of the round if no block was proposed or
-// syncronized in this round
-func (fct *Factory) createEmptyBlock() bool {
-	blk := fct.blockProcessor.CreateEmptyBlockBody(
-		fct.shardCoordinator.ShardForCurrentNode(),
-		fct.rounder.Index())
-
-	hdr := &block.Header{}
-	hdr.Round = uint32(fct.rounder.Index())
-	hdr.TimeStamp = uint64(fct.rounder.TimeStamp().Unix())
-
-	var prevHeaderHash []byte
-
-	if fct.blockChain.CurrentBlockHeader == nil {
-		hdr.Nonce = 1
-		prevHeaderHash = fct.blockChain.GenesisHeaderHash
-	} else {
-		hdr.Nonce = fct.blockChain.CurrentBlockHeader.Nonce + 1
-		prevHeaderHash = fct.blockChain.CurrentBlockHeaderHash
-	}
-
-	hdr.PrevHash = prevHeaderHash
-	blkStr, err := fct.marshalizer.Marshal(blk)
-
-	if err != nil {
-		log.Info(err.Error())
-		return false
-	}
-
-	hdr.BlockBodyHash = fct.hasher.Compute(string(blkStr))
-
-	cnsGroup := fct.consensusState.ConsensusGroup()
-	cnsGroupSize := len(cnsGroup)
-
-	hdr.PubKeysBitmap = make([]byte, cnsGroupSize/8+1)
-
-	// TODO: decide the signature for the empty block
-	headerStr, err := fct.marshalizer.Marshal(hdr)
-	hdrHash := fct.hasher.Compute(string(headerStr))
-	hdr.Signature = hdrHash
-	hdr.Commitment = hdrHash
-
-	// Commit the block (commits also the account state)
-	err = fct.blockProcessor.CommitBlock(fct.blockChain, hdr, blk)
-
-	if err != nil {
-		log.Info(err.Error())
-		return false
-	}
-
-	// broadcast block body
-	err = fct.worker.broadcastTxBlockBody(blk)
-
-	if err != nil {
-		log.Info(err.Error())
-	}
-
-	// broadcast header
-	err = fct.worker.broadcastHeader(hdr)
-
-	if err != nil {
-		log.Info(err.Error())
-	}
-
-	log.Info(fmt.Sprintf("\n%s******************** ADDED EMPTY BLOCK WITH NONCE  %d  IN BLOCKCHAIN ********************\n\n",
-		fct.syncTimer.FormattedCurrentTime(), hdr.Nonce))
-
-	return true
 }

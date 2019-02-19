@@ -1,6 +1,7 @@
 package bn
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
@@ -11,29 +12,31 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 var log = logger.NewDefaultLogger()
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
-	bootstraper    process.Bootstraper
-	consensusState *spos.ConsensusState
-	keyGenerator   crypto.KeyGenerator
-	marshalizer    marshal.Marshalizer
-	privateKey     crypto.PrivateKey
-	rounder        round.Rounder
+	bootstraper      process.Bootstraper
+	consensusState   *spos.ConsensusState
+	keyGenerator     crypto.KeyGenerator
+	marshalizer      marshal.Marshalizer
+	privateKey       crypto.PrivateKey
+	rounder          round.Rounder
+	shardCoordinator sharding.ShardCoordinator
 
 	ReceivedMessages      map[MessageType][]*spos.ConsensusData
 	ReceivedMessagesCalls map[MessageType]func(*spos.ConsensusData) bool
 
 	ExecuteMessageChannel        chan *spos.ConsensusData
 	ReceivedMessagesChannel      chan *spos.ConsensusData
-	consensusStateChangedChannel chan bool
+	ConsensusStateChangedChannel chan bool
 
-	BroadcastBlockBody func([]byte)
-	BroadcastHeader    func([]byte)
-	SendMessage        func(consensus *spos.ConsensusData)
+	BroadcastTxBlockBody func([]byte)
+	BroadcastHeader      func([]byte)
+	SendMessage          func(consensus *spos.ConsensusData)
 
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
@@ -47,6 +50,7 @@ func NewWorker(
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
 	rounder round.Rounder,
+	shardCoordinator sharding.ShardCoordinator,
 ) (*Worker, error) {
 
 	err := checkNewWorkerParams(
@@ -56,6 +60,7 @@ func NewWorker(
 		marshalizer,
 		privateKey,
 		rounder,
+		shardCoordinator,
 	)
 
 	if err != nil {
@@ -63,18 +68,19 @@ func NewWorker(
 	}
 
 	wrk := Worker{
-		bootstraper:    bootstraper,
-		consensusState: consensusState,
-		keyGenerator:   keyGenerator,
-		marshalizer:    marshalizer,
-		privateKey:     privateKey,
-		rounder:        rounder,
+		bootstraper:      bootstraper,
+		consensusState:   consensusState,
+		keyGenerator:     keyGenerator,
+		marshalizer:      marshalizer,
+		privateKey:       privateKey,
+		rounder:          rounder,
+		shardCoordinator: shardCoordinator,
 	}
 
 	wrk.ExecuteMessageChannel = make(chan *spos.ConsensusData)
 	wrk.ReceivedMessagesChannel = make(chan *spos.ConsensusData, consensusState.ConsensusGroupSize()*consensusSubrounds)
 	wrk.ReceivedMessagesCalls = make(map[MessageType]func(*spos.ConsensusData) bool)
-	wrk.consensusStateChangedChannel = make(chan bool, 1)
+	wrk.ConsensusStateChangedChannel = make(chan bool, 1)
 
 	wrk.initReceivedMessages()
 
@@ -91,6 +97,7 @@ func checkNewWorkerParams(
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
 	rounder round.Rounder,
+	shardCoordinator sharding.ShardCoordinator,
 ) error {
 	if bootstraper == nil {
 		return spos.ErrNilBlootstraper
@@ -114,6 +121,10 @@ func checkNewWorkerParams(
 
 	if rounder == nil {
 		return spos.ErrNilRounder
+	}
+
+	if shardCoordinator == nil {
+		return spos.ErrNilShardCoordinator
 	}
 
 	return nil
@@ -156,7 +167,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*spos.ConsensusData) []*spos.Con
 			continue
 		}
 
-		if wrk.shouldDropConsensusMessage(cnsDataList[i]) {
+		if wrk.consensusState.IsMessageForPastRound(wrk.rounder.Index(), cnsDataList[i].RoundIndex) {
 			continue
 		}
 
@@ -164,19 +175,6 @@ func (wrk *Worker) getCleanedList(cnsDataList []*spos.ConsensusData) []*spos.Con
 	}
 
 	return cleanedCnsDataList
-}
-
-func (wrk *Worker) shouldDropConsensusMessage(cnsDta *spos.ConsensusData) bool {
-	if cnsDta.RoundIndex < wrk.rounder.Index() {
-		return true
-	}
-
-	if cnsDta.RoundIndex == wrk.rounder.Index() &&
-		wrk.consensusState.IsMessageReceivedTooLate() { // TODO: This method returns always false
-		return true
-	}
-
-	return false
 }
 
 // ReceivedMessage method redirects the received message to the channel which should handle it
@@ -197,7 +195,7 @@ func (wrk *Worker) ReceivedMessage(name string, data interface{}, msgInfo *p2p.M
 		return
 	}
 
-	if wrk.shouldDropConsensusMessage(cnsDta) {
+	if wrk.consensusState.IsMessageForPastRound(wrk.rounder.Index(), cnsDta.RoundIndex) {
 		return
 	}
 
@@ -286,11 +284,7 @@ func (wrk *Worker) executeMessage(cnsDtaList []*spos.ConsensusData) {
 			continue
 		}
 
-		if wrk.bootstraper.ShouldSync() {
-			continue
-		}
-
-		if wrk.shouldDropConsensusMessage(cnsDta) {
+		if wrk.consensusState.IsMessageForOtherRound(wrk.rounder.Index(), cnsDta.RoundIndex) {
 			continue
 		}
 
@@ -340,8 +334,8 @@ func (wrk *Worker) checkChannels() {
 
 			if callReceivedMessage, exist := wrk.ReceivedMessagesCalls[msgType]; exist {
 				if callReceivedMessage(rcvDta) {
-					if len(wrk.consensusStateChangedChannel) == 0 {
-						wrk.consensusStateChangedChannel <- true
+					if len(wrk.ConsensusStateChangedChannel) == 0 {
+						wrk.ConsensusStateChangedChannel <- true
 					}
 				}
 			}
@@ -400,11 +394,11 @@ func (wrk *Worker) broadcastTxBlockBody(blockBody *block.TxBlockBody) error {
 	}
 
 	// job message
-	if wrk.BroadcastBlockBody == nil {
+	if wrk.BroadcastTxBlockBody == nil {
 		return spos.ErrNilOnBroadcastTxBlockBody
 	}
 
-	go wrk.BroadcastBlockBody(message)
+	go wrk.BroadcastTxBlockBody(message)
 
 	return nil
 }
@@ -428,6 +422,40 @@ func (wrk *Worker) broadcastHeader(header *block.Header) error {
 	go wrk.BroadcastHeader(message)
 
 	return nil
+}
+
+func (wrk *Worker) extend(subroundId int) {
+	log.Info(fmt.Sprintf("extend function is called from subround: %s\n", getSubroundName(subroundId)))
+
+	if wrk.consensusState.RoundCanceled {
+		return
+	}
+
+	if wrk.bootstraper.ShouldSync() {
+		return
+	}
+
+	blk, hdr := wrk.bootstraper.CreateEmptyBlock(wrk.shardCoordinator.ShardForCurrentNode())
+
+	if blk == nil || hdr == nil {
+		return
+	}
+
+	// broadcast block body
+	err := wrk.broadcastTxBlockBody(blk)
+
+	if err != nil {
+		log.Info(err.Error())
+	}
+
+	// broadcast header
+	err = wrk.broadcastHeader(hdr)
+
+	if err != nil {
+		log.Info(err.Error())
+	}
+
+	return
 }
 
 // getMessageTypeName method returns the name of the message from a given message ID

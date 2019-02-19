@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -30,6 +31,7 @@ type Bootstrap struct {
 	blkc          *blockchain.BlockChain
 	rounder       round.Rounder
 	blkExecutor   process.BlockProcessor
+	hasher        hashing.Hasher
 	marshalizer   marshal.Marshalizer
 	forkDetector  process.ForkDetector
 
@@ -55,10 +57,11 @@ func NewBootstrap(
 	rounder round.Rounder,
 	blkExecutor process.BlockProcessor,
 	waitTime time.Duration,
+	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
 ) (*Bootstrap, error) {
-	err := checkBootstrapNilParameters(transientDataHolder, blkc, rounder, blkExecutor, marshalizer, forkDetector)
+	err := checkBootstrapNilParameters(transientDataHolder, blkc, rounder, blkExecutor, hasher, marshalizer, forkDetector)
 
 	if err != nil {
 		return nil, err
@@ -72,6 +75,7 @@ func NewBootstrap(
 		rounder:       rounder,
 		blkExecutor:   blkExecutor,
 		waitTime:      waitTime,
+		hasher:        hasher,
 		marshalizer:   marshalizer,
 		forkDetector:  forkDetector,
 	}
@@ -97,6 +101,7 @@ func checkBootstrapNilParameters(
 	blkc *blockchain.BlockChain,
 	rounder round.Rounder,
 	blkExecutor process.BlockProcessor,
+	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
 ) error {
@@ -126,6 +131,10 @@ func checkBootstrapNilParameters(
 
 	if blkExecutor == nil {
 		return process.ErrNilBlockExecutor
+	}
+
+	if hasher == nil {
+		return process.ErrNilHasher
 	}
 
 	if marshalizer == nil {
@@ -619,4 +628,59 @@ func (boot *Bootstrap) ShouldSync() bool {
 	}
 
 	return false
+}
+
+// CreateEmptyBlock creates and commits an empty block
+func (boot *Bootstrap) CreateEmptyBlock(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header) {
+	log.Info(fmt.Sprintf("creating and broadcasting an empty block\n"))
+
+	boot.blkExecutor.RevertAccountState()
+
+	blk := boot.blkExecutor.CreateEmptyBlockBody(
+		shardForCurrentNode,
+		boot.rounder.Index())
+
+	hdr := &block.Header{}
+	hdr.Round = uint32(boot.rounder.Index())
+	hdr.TimeStamp = uint64(boot.rounder.TimeStamp().Unix())
+
+	var prevHeaderHash []byte
+
+	if boot.blkc.CurrentBlockHeader == nil {
+		hdr.Nonce = 1
+		prevHeaderHash = boot.blkc.GenesisHeaderHash
+	} else {
+		hdr.Nonce = boot.blkc.CurrentBlockHeader.Nonce + 1
+		prevHeaderHash = boot.blkc.CurrentBlockHeaderHash
+	}
+
+	hdr.PrevHash = prevHeaderHash
+	blkStr, err := boot.marshalizer.Marshal(blk)
+
+	if err != nil {
+		log.Info(err.Error())
+		return nil, nil
+	}
+
+	hdr.BlockBodyHash = boot.hasher.Compute(string(blkStr))
+
+	hdr.PubKeysBitmap = make([]byte, 0)
+
+	// TODO: decide the signature for the empty block
+	headerStr, err := boot.marshalizer.Marshal(hdr)
+	hdrHash := boot.hasher.Compute(string(headerStr))
+	hdr.Signature = hdrHash
+	hdr.Commitment = hdrHash
+
+	// Commit the block (commits also the account state)
+	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
+
+	if err != nil {
+		log.Info(err.Error())
+		return nil, nil
+	}
+
+	log.Info(fmt.Sprintf("\n******************** ADDED EMPTY BLOCK WITH NONCE  %d  IN BLOCKCHAIN ********************\n\n", hdr.Nonce))
+
+	return blk, hdr
 }

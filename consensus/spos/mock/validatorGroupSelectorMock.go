@@ -7,9 +7,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors/mock"
 )
 
-type ValidatorGroupSelectorMock struct{}
+type ValidatorGroupSelectorMock struct {
+	ComputeValidatorsGroupCalled func([]byte) ([]validators.Validator, error)
+}
 
 func (vgsm ValidatorGroupSelectorMock) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []validators.Validator, err error) {
+	if vgsm.ComputeValidatorsGroupCalled != nil {
+		return vgsm.ComputeValidatorsGroupCalled(randomness)
+	}
+
 	list := []validators.Validator{
 		mock.NewValidatorMock(big.NewInt(0), 0, []byte("A")),
 		mock.NewValidatorMock(big.NewInt(0), 0, []byte("B")),

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRoundState_NewRoundState(t *testing.T) {
+func TestRoundState_NewRoundStateShouldWork(t *testing.T) {
 	rstate := spos.NewRoundState()
 	assert.NotNil(t, rstate)
 }

@@ -30,7 +30,7 @@ func CheckWithoutSuccess() bool {
 	return false
 }
 
-func TestNewSubround_NilChannelShouldFail(t *testing.T) {
+func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
 
 	sr, err := bn.NewSubround(
 		int(-1),
@@ -46,7 +46,7 @@ func TestNewSubround_NilChannelShouldFail(t *testing.T) {
 	assert.Nil(t, sr)
 }
 
-func TestNewSubround_ShouldWork(t *testing.T) {
+func TestSubround_NewSubroundShouldWork(t *testing.T) {
 	ch := make(chan bool, 1)
 
 	sr, err := bn.NewSubround(
@@ -106,31 +106,6 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 
 	sr.SetJobFunction(JobWithSuccess)
 	sr.SetCheckFunction(nil)
-
-	maxTime := time.Now().Add(100 * time.Millisecond)
-	haveTime := func() time.Duration {
-		return maxTime.Sub(time.Now())
-	}
-
-	r := sr.DoWork(haveTime)
-	assert.False(t, r)
-}
-
-func TestSubround_DoWorkShouldReturnFalseWhenJobIsNotDone(t *testing.T) {
-	ch := make(chan bool, 1)
-
-	sr, _ := bn.NewSubround(
-		int(-1),
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		ch,
-	)
-
-	sr.SetJobFunction(JobWithoutSuccess)
-	sr.SetCheckFunction(CheckWithSuccess)
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	haveTime := func() time.Duration {

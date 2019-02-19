@@ -194,7 +194,15 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 // doEndRoundConsensusCheck method checks if the consensus is achieved in each subround from first subround to the given
 // subround. If the consensus is achieved in one subround, the subround status is marked as finished
 func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
-	return true
+	if sr.consensusState.RoundCanceled {
+		return false
+	}
+
+	if sr.consensusState.Status(SrEndRound) == spos.SsFinished {
+		return true
+	}
+
+	return false
 }
 
 func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {

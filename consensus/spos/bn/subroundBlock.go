@@ -23,7 +23,6 @@ type subroundBlock struct {
 
 	blockChain       *blockchain.BlockChain
 	blockProcessor   process.BlockProcessor
-	bootstraper      process.Bootstraper
 	consensusState   *spos.ConsensusState
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
@@ -40,7 +39,6 @@ func NewSubroundBlock(
 	subround *subround,
 	blockChain *blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
-	bootstraper process.Bootstraper,
 	consensusState *spos.ConsensusState,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -56,7 +54,6 @@ func NewSubroundBlock(
 		subround,
 		blockChain,
 		blockProcessor,
-		bootstraper,
 		consensusState,
 		hasher,
 		marshalizer,
@@ -75,7 +72,6 @@ func NewSubroundBlock(
 		subround,
 		blockChain,
 		blockProcessor,
-		bootstraper,
 		consensusState,
 		hasher,
 		marshalizer,
@@ -97,7 +93,6 @@ func checkNewSubroundBlockParams(
 	subround *subround,
 	blockChain *blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
-	bootstraper process.Bootstraper,
 	consensusState *spos.ConsensusState,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -117,10 +112,6 @@ func checkNewSubroundBlockParams(
 
 	if blockProcessor == nil {
 		return spos.ErrNilBlockProcessor
-	}
-
-	if bootstraper == nil {
-		return spos.ErrNilBlootstraper
 	}
 
 	if consensusState == nil {
@@ -162,10 +153,6 @@ func checkNewSubroundBlockParams(
 // (it is used as a handler function of the doSubroundJob pointer function declared in subround struct,
 // from spos package)
 func (sr *subroundBlock) doBlockJob() bool {
-	if sr.bootstraper.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-		return false
-	}
-
 	if !sr.consensusState.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
 	}
@@ -201,7 +188,8 @@ func (sr *subroundBlock) sendBlockBody() bool {
 		roundStartTime := sr.rounder.TimeStamp()
 		currentTime := sr.syncTimer.CurrentTime()
 		elapsedTime := currentTime.Sub(roundStartTime)
-		haveTime := float64(sr.EndTime()) - float64(elapsedTime)
+		//haveTime := float64(sr.EndTime()) - float64(elapsedTime)
+		haveTime := float64(sr.rounder.TimeDuration())*maxBlockProcessingTimePercent - float64(elapsedTime)
 
 		return time.Duration(haveTime) > 0
 	}
@@ -212,6 +200,11 @@ func (sr *subroundBlock) sendBlockBody() bool {
 		sr.rounder.Index(),
 		haveTimeInCurrentSubround,
 	)
+
+	if err != nil {
+		log.Error(err.Error())
+		return false
+	}
 
 	blkStr, err := sr.marshalizer.Marshal(blk)
 
@@ -266,12 +259,12 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 
 	hdrStr, err := sr.marshalizer.Marshal(hdr)
 
-	hdrHash := sr.hasher.Compute(string(hdrStr))
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
+
+	hdrHash := sr.hasher.Compute(string(hdrStr))
 
 	dta := spos.NewConsensusData(
 		hdrHash,
@@ -431,7 +424,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusData) bool {
 	}
 
 	if haveTimeInCurrentRound() < 0 {
-		log.Info(fmt.Sprintf("Canceled round %d in subround %s, OUT OF TIME\n",
+		log.Info(fmt.Sprintf("Canceled round %d in subround %s, TIME IS OUT\n",
 			cnsDta.RoundIndex, getSubroundName(SrBlock)))
 
 		sr.blockProcessor.RevertAccountState()

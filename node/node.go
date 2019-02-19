@@ -405,7 +405,7 @@ func (n *Node) createChronologyHandler(rounder round.Rounder) (chronology.Chrono
 }
 
 func (n *Node) createBootstraper(rounder round.Rounder) (process.Bootstraper, error) {
-	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, rounder, n.blockProcessor, WaitTime, n.marshalizer, n.forkDetector)
+	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, rounder, n.blockProcessor, WaitTime, n.hasher, n.marshalizer, n.forkDetector)
 
 	if err != nil {
 		return nil, err
@@ -519,6 +519,7 @@ func (n *Node) createWorker(
 		n.marshalizer,
 		n.privateKey,
 		rounder,
+		n.shardCoordinator,
 	)
 
 	if err != nil {
@@ -526,7 +527,7 @@ func (n *Node) createWorker(
 	}
 
 	worker.SendMessage = n.sendMessage
-	worker.BroadcastBlockBody = n.broadcastBlockBody
+	worker.BroadcastTxBlockBody = n.broadcastBlockBody
 	worker.BroadcastHeader = n.broadcastHeader
 
 	return worker, nil
@@ -542,8 +543,7 @@ func (n *Node) createValidatorGroupSelector() (groupSelectors.ValidatorGroupSele
 
 	validatorsList := make([]validators.Validator, 0)
 
-	//for i := 0; i < len(n.initialNodesPubkeys); i++ {
-	for i := 0; i < n.consensusGroupSize; i++ {
+	for i := 0; i < len(n.initialNodesPubkeys); i++ {
 		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[i]))
 
 		if err != nil {

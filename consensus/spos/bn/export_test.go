@@ -121,6 +121,34 @@ func (fct *Factory) SetWorker(worker *Worker) {
 	fct.worker = worker
 }
 
+func (fct *Factory) GenerateStartRoundSubround() bool {
+	return fct.generateStartRoundSubround()
+}
+
+func (fct *Factory) GenerateBlockSubround() bool {
+	return fct.generateBlockSubround()
+}
+
+func (fct *Factory) GenerateCommitmentHashSubround() bool {
+	return fct.generateCommitmentHashSubround()
+}
+
+func (fct *Factory) GenerateBitmapSubround() bool {
+	return fct.generateBitmapSubround()
+}
+
+func (fct *Factory) GenerateCommitmentSubround() bool {
+	return fct.generateCommitmentSubround()
+}
+
+func (fct *Factory) GenerateSignatureSubround() bool {
+	return fct.generateSignatureSubround()
+}
+
+func (fct *Factory) GenerateEndRoundSubround() bool {
+	return fct.generateEndRoundSubround()
+}
+
 // subround
 
 func (sr *subround) SetJobFunction(job func() bool) {
@@ -132,6 +160,14 @@ func (sr *subround) SetCheckFunction(check func() bool) {
 }
 
 // Worker
+
+func (wrk *Worker) Bootstraper() process.Bootstraper {
+	return wrk.bootstraper
+}
+
+func (wrk *Worker) SetBootstraper(bootstraper process.Bootstraper) {
+	wrk.bootstraper = bootstraper
+}
 
 func (wrk *Worker) ConsensusState() *spos.ConsensusState {
 	return wrk.consensusState
@@ -147,6 +183,14 @@ func (wrk *Worker) KeyGenerator() crypto.KeyGenerator {
 
 func (wrk *Worker) SetKeyGenerator(keyGenerator crypto.KeyGenerator) {
 	wrk.keyGenerator = keyGenerator
+}
+
+func (wrk *Worker) Marshalizer() marshal.Marshalizer {
+	return wrk.marshalizer
+}
+
+func (wrk *Worker) SetMarshalizer(marshalizer marshal.Marshalizer) {
+	wrk.marshalizer = marshalizer
 }
 
 func (wrk *Worker) Rounder() round.Rounder {
@@ -181,13 +225,37 @@ func (wrk *Worker) SendConsensusMessage(cnsDta *spos.ConsensusData) bool {
 	return wrk.sendConsensusMessage(cnsDta)
 }
 
-func (wrk *Worker) ShouldDropConsensusMessage(cnsDta *spos.ConsensusData) bool {
-	return wrk.shouldDropConsensusMessage(cnsDta)
+func (wrk *Worker) BroadcastTxBlockBody2(blockBody *block.TxBlockBody) error {
+	return wrk.broadcastTxBlockBody(blockBody)
+}
+
+func (wrk *Worker) BroadcastHeader2(header *block.Header) error {
+	return wrk.broadcastHeader(header)
+}
+
+func (wrk *Worker) Extend(subroundId int) {
+	wrk.extend(subroundId)
 }
 
 // subroundStartRound
 
 type SubroundStartRound *subroundStartRound
+
+func (sr *subroundStartRound) Bootstraper() process.Bootstraper {
+	return sr.bootstraper
+}
+
+func (sr *subroundStartRound) SetBootsraper(bootstraper process.Bootstraper) {
+	sr.bootstraper = bootstraper
+}
+
+func (sr *subroundStartRound) ConsensusState() *spos.ConsensusState {
+	return sr.consensusState
+}
+
+func (sr *subroundStartRound) SetConsensusState(consensusState *spos.ConsensusState) {
+	sr.consensusState = consensusState
+}
 
 func (sr *subroundStartRound) DoStartRoundJob() bool {
 	return sr.doStartRoundJob()
@@ -195,6 +263,10 @@ func (sr *subroundStartRound) DoStartRoundJob() bool {
 
 func (sr *subroundStartRound) DoStartRoundConsensusCheck() bool {
 	return sr.doStartRoundConsensusCheck()
+}
+
+func (sr *subroundStartRound) GenerateNextConsensusGroup(roundIndex int32) error {
+	return sr.generateNextConsensusGroup(roundIndex)
 }
 
 // subroundBlock
@@ -503,4 +575,8 @@ func (sr *subroundEndRound) BroadcastHeader() func(*block.Header) error {
 
 func (sr *subroundEndRound) SetBroadcastHeader(broadcastHeader func(*block.Header) error) {
 	sr.broadcastHeader = broadcastHeader
+}
+
+func (sr *subroundStartRound) InitCurrentRound() bool {
+	return sr.initCurrentRound()
 }

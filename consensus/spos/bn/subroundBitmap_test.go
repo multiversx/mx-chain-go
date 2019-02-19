@@ -11,20 +11,10 @@ import (
 )
 
 func initSubroundBitmap() bn.SubroundBitmap {
-	//blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	//bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-	//	return false
-	//}}
-
 	consensusState := initConsensusState()
-	//hasherMock := mock.HasherMock{}
-	//marshalizerMock := mock.MarshalizerMock{}
-	//multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
-	//shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
-	//validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 
 	ch := make(chan bool, 1)
 
@@ -51,7 +41,215 @@ func initSubroundBitmap() bn.SubroundBitmap {
 	return srBitmap
 }
 
-func TestWorker_DoBitmapJob(t *testing.T) {
+func TestSubroundBitmap_NewSubroundBitmapNilSubroundShouldFail(t *testing.T) {
+	blockProcessorMock := initBlockProcessorMock()
+	consensusState := initConsensusState()
+	rounderMock := initRounderMock()
+	syncTimerMock := mock.SyncTimerMock{}
+
+	srBitmap, err := bn.NewSubroundBitmap(
+		nil,
+		blockProcessorMock,
+		consensusState,
+		rounderMock,
+		syncTimerMock,
+		sendConsensusMessage,
+		extend,
+	)
+
+	assert.Nil(t, srBitmap)
+	assert.Equal(t, err, spos.ErrNilSubround)
+}
+
+func TestSubroundBitmap_NewSubroundBitmapNilBlockProcessorShouldFail(t *testing.T) {
+	consensusState := initConsensusState()
+	rounderMock := initRounderMock()
+	syncTimerMock := mock.SyncTimerMock{}
+
+	ch := make(chan bool, 1)
+
+	sr, _ := bn.NewSubround(
+		int(bn.SrCommitmentHash),
+		int(bn.SrBitmap),
+		int(bn.SrCommitment),
+		int64(40*roundTimeDuration/100),
+		int64(55*roundTimeDuration/100),
+		"(BITMAP)",
+		ch,
+	)
+
+	srBitmap, err := bn.NewSubroundBitmap(
+		sr,
+		nil,
+		consensusState,
+		rounderMock,
+		syncTimerMock,
+		sendConsensusMessage,
+		extend,
+	)
+
+	assert.Nil(t, srBitmap)
+	assert.Equal(t, err, spos.ErrNilBlockProcessor)
+}
+
+func TestSubroundBitmap_NewSubroundBitmapNilConsensusStateShouldFail(t *testing.T) {
+	blockProcessorMock := initBlockProcessorMock()
+	rounderMock := initRounderMock()
+	syncTimerMock := mock.SyncTimerMock{}
+
+	ch := make(chan bool, 1)
+
+	sr, _ := bn.NewSubround(
+		int(bn.SrCommitmentHash),
+		int(bn.SrBitmap),
+		int(bn.SrCommitment),
+		int64(40*roundTimeDuration/100),
+		int64(55*roundTimeDuration/100),
+		"(BITMAP)",
+		ch,
+	)
+
+	srBitmap, err := bn.NewSubroundBitmap(
+		sr,
+		blockProcessorMock,
+		nil,
+		rounderMock,
+		syncTimerMock,
+		sendConsensusMessage,
+		extend,
+	)
+
+	assert.Nil(t, srBitmap)
+	assert.Equal(t, err, spos.ErrNilConsensusState)
+}
+
+func TestSubroundBitmap_NewSubroundBitmapNilRounderShouldFail(t *testing.T) {
+	blockProcessorMock := initBlockProcessorMock()
+	consensusState := initConsensusState()
+	syncTimerMock := mock.SyncTimerMock{}
+
+	ch := make(chan bool, 1)
+
+	sr, _ := bn.NewSubround(
+		int(bn.SrCommitmentHash),
+		int(bn.SrBitmap),
+		int(bn.SrCommitment),
+		int64(40*roundTimeDuration/100),
+		int64(55*roundTimeDuration/100),
+		"(BITMAP)",
+		ch,
+	)
+
+	srBitmap, err := bn.NewSubroundBitmap(
+		sr,
+		blockProcessorMock,
+		consensusState,
+		nil,
+		syncTimerMock,
+		sendConsensusMessage,
+		extend,
+	)
+
+	assert.Nil(t, srBitmap)
+	assert.Equal(t, err, spos.ErrNilRounder)
+}
+
+func TestSubroundBitmap_NewSubroundBitmapNilSyncTimerShouldFail(t *testing.T) {
+	blockProcessorMock := initBlockProcessorMock()
+	consensusState := initConsensusState()
+	rounderMock := initRounderMock()
+
+	ch := make(chan bool, 1)
+
+	sr, _ := bn.NewSubround(
+		int(bn.SrCommitmentHash),
+		int(bn.SrBitmap),
+		int(bn.SrCommitment),
+		int64(40*roundTimeDuration/100),
+		int64(55*roundTimeDuration/100),
+		"(BITMAP)",
+		ch,
+	)
+
+	srBitmap, err := bn.NewSubroundBitmap(
+		sr,
+		blockProcessorMock,
+		consensusState,
+		rounderMock,
+		nil,
+		sendConsensusMessage,
+		extend,
+	)
+
+	assert.Nil(t, srBitmap)
+	assert.Equal(t, err, spos.ErrNilSyncTimer)
+}
+
+func TestSubroundBitmap_NewSubroundBitmapNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
+	blockProcessorMock := initBlockProcessorMock()
+	consensusState := initConsensusState()
+	rounderMock := initRounderMock()
+	syncTimerMock := mock.SyncTimerMock{}
+
+	ch := make(chan bool, 1)
+
+	sr, _ := bn.NewSubround(
+		int(bn.SrCommitmentHash),
+		int(bn.SrBitmap),
+		int(bn.SrCommitment),
+		int64(40*roundTimeDuration/100),
+		int64(55*roundTimeDuration/100),
+		"(BITMAP)",
+		ch,
+	)
+
+	srBitmap, err := bn.NewSubroundBitmap(
+		sr,
+		blockProcessorMock,
+		consensusState,
+		rounderMock,
+		syncTimerMock,
+		nil,
+		extend,
+	)
+
+	assert.Nil(t, srBitmap)
+	assert.Equal(t, err, spos.ErrNilSendConsensusMessageFunction)
+}
+
+func TestSubroundBitmap_NewSubroundBitmapShouldWork(t *testing.T) {
+	blockProcessorMock := initBlockProcessorMock()
+	consensusState := initConsensusState()
+	rounderMock := initRounderMock()
+	syncTimerMock := mock.SyncTimerMock{}
+
+	ch := make(chan bool, 1)
+
+	sr, _ := bn.NewSubround(
+		int(bn.SrCommitmentHash),
+		int(bn.SrBitmap),
+		int(bn.SrCommitment),
+		int64(40*roundTimeDuration/100),
+		int64(55*roundTimeDuration/100),
+		"(BITMAP)",
+		ch,
+	)
+
+	srBitmap, err := bn.NewSubroundBitmap(
+		sr,
+		blockProcessorMock,
+		consensusState,
+		rounderMock,
+		syncTimerMock,
+		sendConsensusMessage,
+		extend,
+	)
+
+	assert.NotNil(t, srBitmap)
+	assert.Nil(t, err)
+}
+
+func TestSubroundBitmap_DoBitmapJob(t *testing.T) {
 	sr := *initSubroundBitmap()
 
 	sr.ConsensusState().Header = &block.Header{}
@@ -93,7 +291,7 @@ func TestWorker_DoBitmapJob(t *testing.T) {
 	assert.True(t, isBitmapJobDone)
 }
 
-func TestWorker_ReceivedBitmap(t *testing.T) {
+func TestSubroundBitmap_ReceivedBitmap(t *testing.T) {
 	sr := *initSubroundBitmap()
 
 	sr.ConsensusState().Header = &block.Header{}
@@ -140,7 +338,7 @@ func TestWorker_ReceivedBitmap(t *testing.T) {
 	assert.True(t, r)
 }
 
-func TestWorker_CheckBitmapConsensus(t *testing.T) {
+func TestSubroundBitmap_CheckBitmapConsensus(t *testing.T) {
 	sr := *initSubroundBitmap()
 
 	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsNotFinished)
@@ -176,7 +374,7 @@ func TestWorker_CheckBitmapConsensus(t *testing.T) {
 	assert.Equal(t, spos.SsFinished, sr.ConsensusState().Status(bn.SrBitmap))
 }
 
-func TestWorker_IsBitmapReceived(t *testing.T) {
+func TestSubroundBitmap_IsBitmapReceived(t *testing.T) {
 	sr := *initSubroundBitmap()
 
 	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {

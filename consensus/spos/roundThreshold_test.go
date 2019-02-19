@@ -8,7 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewThreshold(t *testing.T) {
+func TestRoundThreshold_NewThresholdShouldWork(t *testing.T) {
+	rthr := spos.NewRoundThreshold()
+
+	assert.NotNil(t, rthr)
+}
+
+func TestRoundThreshold_SetThresholdShouldWork(t *testing.T) {
 	rthr := spos.NewRoundThreshold()
 
 	rthr.SetThreshold(bn.SrBlock, 1)

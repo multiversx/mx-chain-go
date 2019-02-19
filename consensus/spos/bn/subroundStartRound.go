@@ -3,6 +3,7 @@ package bn
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -10,12 +11,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 type subroundStartRound struct {
 	*subround
 
 	blockChain             *blockchain.BlockChain
+	bootstraper            process.Bootstraper
 	consensusState         *spos.ConsensusState
 	multiSigner            crypto.MultiSigner
 	rounder                round.Rounder
@@ -27,6 +30,7 @@ type subroundStartRound struct {
 func NewSubroundStartRound(
 	subround *subround,
 	blockChain *blockchain.BlockChain,
+	bootstraper process.Bootstraper,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
 	rounder round.Rounder,
@@ -38,6 +42,7 @@ func NewSubroundStartRound(
 	err := checkNewSubroundStartRoundParams(
 		subround,
 		blockChain,
+		bootstraper,
 		consensusState,
 		multiSigner,
 		rounder,
@@ -52,6 +57,7 @@ func NewSubroundStartRound(
 	srStartRound := subroundStartRound{
 		subround,
 		blockChain,
+		bootstraper,
 		consensusState,
 		multiSigner,
 		rounder,
@@ -69,6 +75,7 @@ func NewSubroundStartRound(
 func checkNewSubroundStartRoundParams(
 	subround *subround,
 	blockChain *blockchain.BlockChain,
+	bootstraper process.Bootstraper,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
 	rounder round.Rounder,
@@ -81,6 +88,10 @@ func checkNewSubroundStartRoundParams(
 
 	if blockChain == nil {
 		return spos.ErrNilBlockChain
+	}
+
+	if bootstraper == nil {
+		return spos.ErrNilBlootstraper
 	}
 
 	if consensusState == nil {
@@ -111,6 +122,30 @@ func checkNewSubroundStartRoundParams(
 // from spos package)
 func (sr *subroundStartRound) doStartRoundJob() bool {
 	sr.consensusState.ResetConsensusState()
+	return true
+}
+
+// doStartRoundConsensusCheck method checks if the consensus is achieved in the start subround.
+func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
+	if sr.consensusState.RoundCanceled {
+		return false
+	}
+
+	if sr.consensusState.Status(SrStartRound) == spos.SsFinished {
+		return true
+	}
+
+	if sr.initCurrentRound() {
+		return true
+	}
+
+	return false
+}
+
+func (sr *subroundStartRound) initCurrentRound() bool {
+	if sr.bootstraper.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+		return false
+	}
 
 	err := sr.generateNextConsensusGroup(sr.rounder.Index())
 
@@ -125,8 +160,11 @@ func (sr *subroundStartRound) doStartRoundJob() bool {
 	leader, err := sr.consensusState.GetLeader()
 
 	if err != nil {
-		log.Error(err.Error())
-		leader = "Unknown"
+		log.Info(err.Error())
+
+		sr.consensusState.RoundCanceled = true
+
+		return false
 	}
 
 	msg := ""
@@ -154,6 +192,24 @@ func (sr *subroundStartRound) doStartRoundJob() bool {
 
 	if err != nil {
 		log.Error(err.Error())
+
+		sr.consensusState.RoundCanceled = true
+
+		return false
+	}
+
+	haveTimeInCurrentRound := func() bool {
+		roundStartTime := sr.rounder.TimeStamp()
+		currentTime := sr.syncTimer.CurrentTime()
+		elapsedTime := currentTime.Sub(roundStartTime)
+		haveTime := float64(sr.rounder.TimeDuration())*maxBlockProcessingTimePercent - float64(elapsedTime)
+
+		return time.Duration(haveTime) > 0
+	}
+
+	if !haveTimeInCurrentRound() {
+		log.Info(fmt.Sprintf("%sCanceled round %d in subround %s, TIME IS OUT\n",
+			sr.syncTimer.FormattedCurrentTime(), sr.rounder.Index(), getSubroundName(SrStartRound)))
 
 		sr.consensusState.RoundCanceled = true
 
@@ -194,9 +250,4 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 	sr.consensusState.SetConsensusGroup(nextConsensusGroup)
 
 	return nil
-}
-
-// doStartRoundConsensusCheck method checks if the consensus is achieved in the start subround.
-func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
-	return !sr.consensusState.RoundCanceled
 }

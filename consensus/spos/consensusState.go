@@ -137,24 +137,25 @@ func (cns *ConsensusState) IsCurrentSubroundFinished(currentSubroundId int) bool
 	return isCurrentSubroundFinished
 }
 
-// IsMessageReceivedFromItself method returns true if the message is received from itself and false otherwise
-func (cns *ConsensusState) IsMessageReceivedFromItself(node string) bool {
+// IsMessageFromItself method returns true if the message is received from itself and false otherwise
+func (cns *ConsensusState) IsMessageFromItself(node string) bool {
 	isMessageReceivedFromItself := node == cns.SelfPubKey()
 
 	return isMessageReceivedFromItself
 }
 
-// IsMessageReceivedTooLate method returns true if the message is received too late and false otherwise
-func (cns *ConsensusState) IsMessageReceivedTooLate() bool {
-	// TODO: This method should implement, if necessary, a mechanism of detecting the late messages received
-	return false
-}
-
-// IsMessageReceivedForOtherRound method returns true if the message received is for other round and false otherwise
-func (cns *ConsensusState) IsMessageReceivedForOtherRound(currentRoundIndex int32, dataRoundIndex int32) bool {
+// IsMessageForOtherRound method returns true if the message received is for other round and false otherwise
+func (cns *ConsensusState) IsMessageForOtherRound(currentRoundIndex int32, dataRoundIndex int32) bool {
 	isMessageReceivedForOtherRound := currentRoundIndex != dataRoundIndex
 
 	return isMessageReceivedForOtherRound
+}
+
+// IsMessageForPastRound method returns true if the message received is for an old round and false otherwise
+func (cns *ConsensusState) IsMessageForPastRound(currentRoundIndex int32, dataRoundIndex int32) bool {
+	isMessageReceivedForAnOldRound := currentRoundIndex > dataRoundIndex
+
+	return isMessageReceivedForAnOldRound
 }
 
 // IsBlockBodyAlreadyReceived method returns true if block body is already received and false otherwise
@@ -190,15 +191,11 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 
 // CanProcessReceivedMessage method returns true if the message received can be processed and false otherwise
 func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *ConsensusData, currentRoundIndex int32, currentSubroundId int) bool {
-	if cns.IsMessageReceivedFromItself(string(cnsDta.PubKey)) {
+	if cns.IsMessageFromItself(string(cnsDta.PubKey)) {
 		return false
 	}
 
-	if cns.IsMessageReceivedTooLate() {
-		return false
-	}
-
-	if cns.IsMessageReceivedForOtherRound(currentRoundIndex, cnsDta.RoundIndex) {
+	if cns.IsMessageForOtherRound(currentRoundIndex, cnsDta.RoundIndex) {
 		return false
 	}
 
