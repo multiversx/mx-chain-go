@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/mock"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
@@ -35,22 +36,29 @@ func main() {
 	bytesReceived2 := int64(0)
 	bytesReceived3 := int64(0)
 
-	_ = mes1.SetTopicValidator("test1", func(message p2p.MessageP2P) error {
-		atomic.AddInt64(&bytesReceived1, int64(len(message.Data())))
+	_ = mes1.SetTopicValidator("test1",
+		&mock.TopicValidatorHandlerStub{
+			ValidateCalled: func(message p2p.MessageP2P) error {
+				atomic.AddInt64(&bytesReceived1, int64(len(message.Data())))
 
-		return nil
+				return nil
+			},
+		})
+
+	_ = mes1.SetTopicValidator("test2", &mock.TopicValidatorHandlerStub{
+		ValidateCalled: func(message p2p.MessageP2P) error {
+			atomic.AddInt64(&bytesReceived2, int64(len(message.Data())))
+
+			return nil
+		},
 	})
 
-	_ = mes1.SetTopicValidator("test2", func(message p2p.MessageP2P) error {
-		atomic.AddInt64(&bytesReceived2, int64(len(message.Data())))
+	_ = mes1.SetTopicValidator("test3", &mock.TopicValidatorHandlerStub{
+		ValidateCalled: func(message p2p.MessageP2P) error {
+			atomic.AddInt64(&bytesReceived3, int64(len(message.Data())))
 
-		return nil
-	})
-
-	_ = mes1.SetTopicValidator("test3", func(message p2p.MessageP2P) error {
-		atomic.AddInt64(&bytesReceived3, int64(len(message.Data())))
-
-		return nil
+			return nil
+		},
 	})
 
 	time.Sleep(time.Second)

@@ -334,12 +334,18 @@ func (netMes *networkMessenger) IsConnected(peerID p2p.PeerID) bool {
 func (netMes *networkMessenger) ConnectedPeers() []p2p.PeerID {
 	peerList := make([]p2p.PeerID, 0)
 
+	connectedPeers := make(map[p2p.PeerID]struct{})
+
 	for _, conn := range netMes.hostP2P.Network().Conns() {
 		p := p2p.PeerID(conn.RemotePeer())
 
 		if netMes.IsConnected(p) {
-			peerList = append(peerList, p)
+			connectedPeers[p] = struct{}{}
 		}
+	}
+
+	for k, _ := range connectedPeers {
+		peerList = append(peerList, k)
 	}
 
 	return peerList
@@ -432,7 +438,7 @@ func (netMes *networkMessenger) SetTopicValidator(topic string, handler p2p.Topi
 
 	if handler != nil && validator == nil {
 		err := netMes.pb.RegisterTopicValidator(topic, func(i context.Context, message *pubsub.Message) bool {
-			err := handler(NewMessage(message))
+			err := handler.Validate(NewMessage(message))
 
 			return err == nil
 		})
@@ -465,7 +471,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	}
 
 	go func(msg p2p.MessageP2P) {
-		log.LogIfError(validator(msg))
+		log.LogIfError(validator.Validate(msg))
 	}(message)
 
 	return nil

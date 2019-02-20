@@ -24,8 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/resolver"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
@@ -87,7 +86,7 @@ func createTestDataPool() data.TransientDataHolder {
 	return dPool
 }
 
-func adbCreateAccountsDB() *state.AccountsDB {
+func createAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
@@ -101,7 +100,7 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	*node.Node,
 	p2p.Messenger,
 	crypto.PrivateKey,
-	process.ProcessorFactory) {
+	process.InterceptorsResolversFactory) {
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -116,9 +115,9 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
-	pFactory, _ := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
-		InterceptorContainer:     interceptor.NewContainer(),
-		ResolverContainer:        resolver.NewContainer(),
+	pFactory, _ := factory.NewInterceptorsResolversCreator(factory.InterceptorsResolversConfig{
+		InterceptorContainer:     containers.NewObjectsContainer(),
+		ResolverContainer:        containers.NewResolversContainer(),
 		Messenger:                messenger,
 		Blockchain:               blkc,
 		DataPool:                 dPool,
@@ -144,7 +143,7 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 		node.WithUint64ByteSliceConverter(uint64Converter),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
-		node.WithProcessorCreator(pFactory),
+		node.WithInterceptorsResolversFactory(pFactory),
 	)
 
 	_ = pFactory.CreateInterceptors()

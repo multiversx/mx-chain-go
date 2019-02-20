@@ -5,8 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
@@ -24,18 +22,6 @@ func (bp *blockProcessor) WaitForTxHashes(waitTime time.Duration) {
 
 func (bp *blockProcessor) ReceivedTransaction(txHash []byte) {
 	bp.receivedTransaction(txHash)
-}
-
-func (hi *HeaderInterceptor) ProcessHdr(message p2p.MessageP2P) error {
-	return hi.processHdr(message)
-}
-
-func (hdrRes *HeaderResolver) ResolveHdrRequest(rd process.RequestData) ([]byte, error) {
-	return hdrRes.resolveHdrRequest(rd)
-}
-
-func (gbbRes *GenericBlockBodyResolver) ResolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
-	return gbbRes.resolveBlockBodyRequest(rd)
 }
 
 func (bp *blockProcessor) ComputeHeaderHash(hdr *block.Header) ([]byte, error) {

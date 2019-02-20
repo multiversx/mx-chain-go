@@ -1,16 +1,22 @@
-package block
+package resolvers
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
+var log = logger.NewDefaultLogger()
+
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
-	process.Resolver
+	process.TopicResolverSender
 	hdrPool        data.ShardedDataCacherNotifier
 	hdrNonces      data.Uint64Cacher
 	hdrStorage     storage.Storer
@@ -18,27 +24,17 @@ type HeaderResolver struct {
 	nonceConverter typeConverters.Uint64ByteSliceConverter
 }
 
-// GenericBlockBodyResolver is a wrapper over Resolver that is specialized in resolving block body requests
-type GenericBlockBodyResolver struct {
-	process.Resolver
-	blockBodyPool storage.Cacher
-	blockStorage  storage.Storer
-	marshalizer   marshal.Marshalizer
-}
-
-//------- headerResolver
-
 // NewHeaderResolver creates a new header resolver
 func NewHeaderResolver(
-	resolver process.Resolver,
+	senderResolver process.TopicResolverSender,
 	transient data.TransientDataHolder,
 	hdrStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 	nonceConverter typeConverters.Uint64ByteSliceConverter,
 ) (*HeaderResolver, error) {
 
-	if resolver == nil {
-		return nil, process.ErrNilResolver
+	if senderResolver == nil {
+		return nil, process.ErrNilResolverSender
 	}
 
 	if transient == nil {
@@ -68,19 +64,40 @@ func NewHeaderResolver(
 	}
 
 	hdrResolver := &HeaderResolver{
-		Resolver:       resolver,
-		hdrPool:        transient.Headers(),
-		hdrNonces:      transient.HeadersNonces(),
-		hdrStorage:     hdrStorage,
-		marshalizer:    marshalizer,
-		nonceConverter: nonceConverter,
+		TopicResolverSender: senderResolver,
+		hdrPool:             transient.Headers(),
+		hdrNonces:           transient.HeadersNonces(),
+		hdrStorage:          hdrStorage,
+		marshalizer:         marshalizer,
+		nonceConverter:      nonceConverter,
 	}
-	hdrResolver.SetResolverHandler(hdrResolver.resolveHdrRequest)
 
 	return hdrResolver, nil
 }
 
-func (hdrRes *HeaderResolver) resolveHdrRequest(rd process.RequestData) ([]byte, error) {
+// Validate will be the callback func from the p2p.Messenger and will be called each time a new message was received
+// (for the topic this validator was registered to, usually a request topic)
+func (hdrRes *HeaderResolver) Validate(message p2p.MessageP2P) error {
+	rd := &process.RequestData{}
+	err := rd.Unmarshal(hdrRes.marshalizer, message)
+	if err != nil {
+		return err
+	}
+
+	buff, err := hdrRes.resolveHdrRequest(rd)
+	if err != nil {
+		return err
+	}
+
+	if buff == nil {
+		log.Debug(fmt.Sprintf("missing data: %v", rd))
+		return nil
+	}
+
+	return hdrRes.Send(buff, message.Peer())
+}
+
+func (hdrRes *HeaderResolver) resolveHdrRequest(rd *process.RequestData) ([]byte, error) {
 	if rd.Value == nil {
 		return nil, process.ErrNilValue
 	}
@@ -145,84 +162,18 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 	return buff, nil
 }
 
-// RequestHeaderFromHash requests a header from other peers having input the hdr hash
-func (hdrRes *HeaderResolver) RequestHeaderFromHash(hash []byte) error {
-	return hdrRes.RequestData(process.RequestData{
+// RequestHash requests a header from other peers having input the hdr hash
+func (hdrRes *HeaderResolver) RequestHash(hash []byte) error {
+	return hdrRes.SendOnRequestTopic(&process.RequestData{
 		Type:  process.HashType,
 		Value: hash,
 	})
 }
 
-// RequestHeaderFromNonce requests a header from other peers having input the hdr nonce
-func (hdrRes *HeaderResolver) RequestHeaderFromNonce(nonce uint64) error {
-	return hdrRes.RequestData(process.RequestData{
+// RequestNonce requests a header from other peers having input the hdr nonce
+func (hdrRes *HeaderResolver) RequestNonce(nonce uint64) error {
+	return hdrRes.SendOnRequestTopic(&process.RequestData{
 		Type:  process.NonceType,
 		Value: hdrRes.nonceConverter.ToByteSlice(nonce),
-	})
-}
-
-//------- genericBlockBodyResolver
-
-// NewGenericBlockBodyResolver creates a new block body resolver
-func NewGenericBlockBodyResolver(
-	resolver process.Resolver,
-	blockBodyPool storage.Cacher,
-	blockBodyStorage storage.Storer,
-	marshalizer marshal.Marshalizer) (*GenericBlockBodyResolver, error) {
-
-	if resolver == nil {
-		return nil, process.ErrNilResolver
-	}
-
-	if blockBodyPool == nil {
-		return nil, process.ErrNilBlockBodyPool
-	}
-
-	if blockBodyStorage == nil {
-		return nil, process.ErrNilBlockBodyStorage
-	}
-
-	if marshalizer == nil {
-		return nil, process.ErrNilMarshalizer
-	}
-
-	bbResolver := &GenericBlockBodyResolver{
-		Resolver:      resolver,
-		blockBodyPool: blockBodyPool,
-		blockStorage:  blockBodyStorage,
-		marshalizer:   marshalizer,
-	}
-	bbResolver.SetResolverHandler(bbResolver.resolveBlockBodyRequest)
-
-	return bbResolver, nil
-}
-
-func (gbbRes *GenericBlockBodyResolver) resolveBlockBodyRequest(rd process.RequestData) ([]byte, error) {
-	if rd.Type != process.HashType {
-		return nil, process.ErrResolveNotHashType
-	}
-
-	if rd.Value == nil {
-		return nil, process.ErrNilValue
-	}
-
-	blockBody, _ := gbbRes.blockBodyPool.Get(rd.Value)
-	if blockBody != nil {
-		buff, err := gbbRes.marshalizer.Marshal(blockBody)
-		if err != nil {
-			return nil, err
-		}
-
-		return buff, nil
-	}
-
-	return gbbRes.blockStorage.Get(rd.Value)
-}
-
-// RequestBlockBodyFromHash requests a block body from other peers having input the block body hash
-func (gbbRes *GenericBlockBodyResolver) RequestBlockBodyFromHash(hash []byte) error {
-	return gbbRes.RequestData(process.RequestData{
-		Type:  process.HashType,
-		Value: hash,
 	})
 }

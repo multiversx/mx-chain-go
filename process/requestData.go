@@ -2,6 +2,9 @@ package process
 
 import (
 	"fmt"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
 // RequestDataType represents the data type for the requested data
@@ -30,4 +33,27 @@ const (
 type RequestData struct {
 	Type  RequestDataType
 	Value []byte
+}
+
+// Unmarshal sets the fields according to p2p.MessageP2P.Data() contents
+// Errors if something went wrong
+func (rd *RequestData) Unmarshal(marshalizer marshal.Marshalizer, message p2p.MessageP2P) error {
+	if marshalizer == nil {
+		return ErrNilMarshalizer
+	}
+
+	if message == nil {
+		return ErrNilMessage
+	}
+
+	if message.Data() == nil {
+		return ErrNilDataToProcess
+	}
+
+	err := marshalizer.Unmarshal(rd, message.Data())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

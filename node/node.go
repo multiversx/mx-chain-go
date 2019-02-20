@@ -23,7 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -50,22 +50,22 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	marshalizer              marshal.Marshalizer
-	ctx                      context.Context
-	hasher                   hashing.Hasher
-	initialNodesPubkeys      []string
-	initialNodesBalances     map[string]*big.Int
-	roundDuration            uint64
-	consensusGroupSize       int
-	messenger                p2p.Messenger
-	syncer                   ntp.SyncTimer
-	blockProcessor           process.BlockProcessor
-	genesisTime              time.Time
-	elasticSubrounds         bool
-	accounts                 state.AccountsAdapter
-	addrConverter            state.AddressConverter
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	processorCreator         process.ProcessorFactory
+	marshalizer                  marshal.Marshalizer
+	ctx                          context.Context
+	hasher                       hashing.Hasher
+	initialNodesPubkeys          []string
+	initialNodesBalances         map[string]*big.Int
+	roundDuration                uint64
+	consensusGroupSize           int
+	messenger                    p2p.Messenger
+	syncer                       ntp.SyncTimer
+	blockProcessor               process.BlockProcessor
+	genesisTime                  time.Time
+	elasticSubrounds             bool
+	accounts                     state.AccountsAdapter
+	addrConverter                state.AddressConverter
+	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
+	interceptorsResolversCreator process.InterceptorsResolversFactory
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
@@ -368,18 +368,18 @@ func (n *Node) createBootstrap(round *chronology.Round) (*sync.Bootstrap, error)
 		return nil, err
 	}
 
-	resH, err := n.processorCreator.ResolverContainer().Get(string(factory.HeadersTopic))
+	resH, err := n.interceptorsResolversCreator.ResolverContainer().Get(string(factory.HeadersTopic))
 	if err != nil {
 		return nil, errors.New("cannot find headers topic resolver")
 	}
-	hdrRes := resH.(*block2.HeaderResolver)
+	hdrRes := resH.(*resolvers.HeaderResolver)
 
-	resT, err := n.processorCreator.ResolverContainer().Get(string(factory.TxBlockBodyTopic))
+	resT, err := n.interceptorsResolversCreator.ResolverContainer().Get(string(factory.TxBlockBodyTopic))
 	if err != nil {
 		return nil, errors.New("cannot find tx block body topic resolver")
 
 	}
-	gbbrRes := resT.(*block2.GenericBlockBodyResolver)
+	gbbrRes := resT.(*resolvers.GenericBlockBodyResolver)
 
 	bootstrap.RequestHeaderHandler = createRequestHeaderHandler(hdrRes)
 	bootstrap.RequestTxBodyHandler = cerateRequestTxBodyHandler(gbbrRes)
@@ -389,9 +389,9 @@ func (n *Node) createBootstrap(round *chronology.Round) (*sync.Bootstrap, error)
 	return bootstrap, nil
 }
 
-func createRequestHeaderHandler(hdrRes *block2.HeaderResolver) func(nonce uint64) {
+func createRequestHeaderHandler(hdrRes *resolvers.HeaderResolver) func(nonce uint64) {
 	return func(nonce uint64) {
-		err := hdrRes.RequestHeaderFromNonce(nonce)
+		err := hdrRes.RequestNonce(nonce)
 
 		log.Info(fmt.Sprintf("requested header with nonce %d from network\n", nonce))
 		if err != nil {
@@ -400,9 +400,9 @@ func createRequestHeaderHandler(hdrRes *block2.HeaderResolver) func(nonce uint64
 	}
 }
 
-func cerateRequestTxBodyHandler(gbbrRes *block2.GenericBlockBodyResolver) func(hash []byte) {
+func cerateRequestTxBodyHandler(gbbrRes *resolvers.GenericBlockBodyResolver) func(hash []byte) {
 	return func(hash []byte) {
-		err := gbbrRes.RequestBlockBodyFromHash(hash)
+		err := gbbrRes.RequestHash(hash)
 
 		log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(hash)))
 		if err != nil {
@@ -508,7 +508,12 @@ func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) error {
 		}
 	}
 
-	return n.messenger.SetTopicValidator(string(ConsensusTopic), sposWrk.ReceivedMessage)
+	err := n.messenger.CreateTopic(string(ConsensusTopic), true)
+	if err != nil {
+		return err
+	}
+
+	return n.messenger.SetTopicValidator(string(ConsensusTopic), sposWrk)
 }
 
 // addSubroundsToChronology adds subrounds to chronology

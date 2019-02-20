@@ -42,8 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/resolver"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
 	sync2 "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -332,22 +331,24 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
-	interceptorsContainer := interceptor.NewContainer()
-	resolversContainer := resolver.NewContainer()
+	interceptorsContainer := containers.NewObjectsContainer()
+	resolversContainer := containers.NewResolversContainer()
 
-	processorFactory, err := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
-		InterceptorContainer:     interceptorsContainer,
-		ResolverContainer:        resolversContainer,
-		Messenger:                netMessenger,
-		Blockchain:               blkc,
-		DataPool:                 datapool,
-		ShardCoordinator:         shardCoordinator,
-		AddrConverter:            addressConverter,
-		Hasher:                   hasher,
-		Marshalizer:              marshalizer,
-		SingleSignKeyGen:         keyGen,
-		Uint64ByteSliceConverter: uint64ByteSliceConverter,
-	})
+	processorFactory, err := factory.NewInterceptorsResolversCreator(
+		factory.InterceptorsResolversConfig{
+
+			InterceptorContainer:     interceptorsContainer,
+			ResolverContainer:        resolversContainer,
+			Messenger:                netMessenger,
+			Blockchain:               blkc,
+			DataPool:                 datapool,
+			ShardCoordinator:         shardCoordinator,
+			AddrConverter:            addressConverter,
+			Hasher:                   hasher,
+			Marshalizer:              marshalizer,
+			SingleSignKeyGen:         keyGen,
+			Uint64ByteSliceConverter: uint64ByteSliceConverter,
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -412,7 +413,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
-		node.WithProcessorCreator(processorFactory),
+		node.WithInterceptorsResolversFactory(processorFactory),
 	)
 
 	if err != nil {
@@ -429,7 +430,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 func createRequestTransactionHandler(txResolver *transaction.TxResolver, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
-		_ = txResolver.RequestTransactionFromHash(txHash)
+		_ = txResolver.RequestHash(txHash)
 		log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
 	}
 }

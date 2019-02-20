@@ -1283,7 +1283,7 @@ func TestMessage_ExtendEndRound(t *testing.T) {
 	cnWorkers[0].ExtendEndRound()
 }
 
-func TestMessage_ReceivedMessageTxBlockBody(t *testing.T) {
+func TestMessage_ReceivedMessageTxBlockBodyFromSelfShouldErr(t *testing.T) {
 	cnWorkers := InitMessage()
 
 	blk := &block.TxBlockBody{}
@@ -1301,33 +1301,9 @@ func TestMessage_ReceivedMessageTxBlockBody(t *testing.T) {
 
 	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
 
-	cnWorkers[0].ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
-}
+	err := cnWorkers[0].Validate(&mock.P2PMessageMock{DataField: buffCnsDta})
 
-func TestMessage_ReceivedMessageUnknown(t *testing.T) {
-	cnWorkers := InitMessage()
-
-	hdr := &block.Header{}
-	hdr.Nonce = 1
-	hdr.TimeStamp = cnWorkers[0].GetRoundTime()
-
-	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
-	message, _ = mock.MarshalizerMock{}.Marshal(hdr)
-
-	cnsDta := spos.NewConsensusData(
-		message,
-		nil,
-		[]byte(cnWorkers[0].Cns.SelfPubKey()),
-		[]byte("sig"),
-		spos.MtUnknown,
-		cnWorkers[0].GetRoundTime(),
-		0,
-	)
-
-	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
-
-	cnWorkers[0].ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
+	assert.Equal(t, spos.ErrMessageSentFromSelf, err)
 }
 
 func TestMessage_DecodeBlockBody(t *testing.T) {
@@ -3074,7 +3050,7 @@ func TestReceivedMessage_ShouldReturnWhenIsCanceled(t *testing.T) {
 
 	cnWorker.Cns.Chr.SetSelfSubround(-1)
 	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
-	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
+	cnWorker.Validate(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3115,7 +3091,7 @@ func TestReceivedMessage_ShouldReturnWhenDataReceivedIsInvalid(t *testing.T) {
 		pubKeyMock,
 	)
 
-	cnWorker.ReceivedMessage(nil)
+	cnWorker.Validate(nil)
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3170,7 +3146,7 @@ func TestReceivedMessage_ShouldReturnWhenNodeIsNotInTheConsensusGroup(t *testing
 	)
 
 	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
-	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
+	cnWorker.Validate(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3225,7 +3201,7 @@ func TestReceivedMessage_ShouldReturnWhenShouldDropMessage(t *testing.T) {
 	)
 
 	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
-	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
+	cnWorker.Validate(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3280,7 +3256,7 @@ func TestReceivedMessage_ShouldReturnWhenReceivedMessageIsFromSelf(t *testing.T)
 	)
 
 	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
-	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
+	cnWorker.Validate(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3335,7 +3311,7 @@ func TestReceivedMessage_ShouldReturnWhenSignatureIsInvalid(t *testing.T) {
 	)
 
 	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
-	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
+	cnWorker.Validate(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	assert.Equal(t, 0, len(cnWorker.ReceivedMessages[spos.MtBlockBody]))
 }
@@ -3390,7 +3366,7 @@ func TestReceivedMessage_ShouldSendReceivedMesageOnChannel(t *testing.T) {
 	)
 
 	buffCnsDta, _ := mock.MarshalizerMock{}.Marshal(cnsDta)
-	cnWorker.ReceivedMessage(&mock.P2PMessageMock{DataField: buffCnsDta})
+	cnWorker.Validate(&mock.P2PMessageMock{DataField: buffCnsDta})
 
 	time.Sleep(100 * time.Millisecond)
 

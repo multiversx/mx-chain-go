@@ -7,8 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/pkg/errors"
 
@@ -17,22 +15,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMarshalizerInterceptor() (marshal.Marshalizer, *mock.InterceptorStub) {
-	marshalizer := &mock.MarshalizerMock{}
-
-	interceptor := &mock.InterceptorStub{
-		SetReceivedMessageHandlerCalled: func(i p2p.TopicValidatorHandler) {},
-		MarshalizerCalled: func() marshal.Marshalizer {
-			return marshalizer
-		},
-	}
-
-	return marshalizer, interceptor
-}
-
 //------- NewTxInterceptor
 
-func TestNewTxInterceptor_NilInterceptorShouldErr(t *testing.T) {
+func TestNewTxInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txPool := &mock.ShardedDataStub{}
@@ -50,21 +35,20 @@ func TestNewTxInterceptor_NilInterceptorShouldErr(t *testing.T) {
 		keyGen,
 		oneSharder)
 
-	assert.Equal(t, process.ErrNilInterceptor, err)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, txi)
 }
 
 func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
-		interceptor,
+		&mock.MarshalizerMock{},
 		nil,
 		storer,
 		addrConv,
@@ -80,13 +64,12 @@ func TestNewTxInterceptor_NilStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txPool := &mock.ShardedDataStub{}
-	interceptor := &mock.InterceptorStub{}
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
 	txi, err := transaction.NewTxInterceptor(
-		interceptor,
+		&mock.MarshalizerMock{},
 		txPool,
 		nil,
 		addrConv,
@@ -101,14 +84,13 @@ func TestNewTxInterceptor_NilStorerShouldErr(t *testing.T) {
 func TestNewTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
 	txPool := &mock.ShardedDataStub{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
-		interceptor,
+		&mock.MarshalizerMock{},
 		txPool,
 		storer,
 		nil,
@@ -123,7 +105,6 @@ func TestNewTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
@@ -131,7 +112,7 @@ func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
 	storer := &mock.StorerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
-		interceptor,
+		&mock.MarshalizerMock{},
 		txPool,
 		storer,
 		addrConv,
@@ -146,14 +127,13 @@ func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
 func TestNewTxInterceptor_NilKeyGenShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
-		interceptor,
+		&mock.MarshalizerMock{},
 		txPool,
 		storer,
 		addrConv,
@@ -168,14 +148,13 @@ func TestNewTxInterceptor_NilKeyGenShouldErr(t *testing.T) {
 func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	interceptor := &mock.InterceptorStub{}
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	storer := &mock.StorerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
-		interceptor,
+		&mock.MarshalizerMock{},
 		txPool,
 		storer,
 		addrConv,
@@ -190,8 +169,6 @@ func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	_, interceptor := createMarshalizerInterceptor()
-
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
@@ -199,7 +176,7 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 	storer := &mock.StorerStub{}
 
 	txi, err := transaction.NewTxInterceptor(
-		interceptor,
+		&mock.MarshalizerMock{},
 		txPool,
 		storer,
 		addrConv,
@@ -211,12 +188,10 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, txi)
 }
 
-//------- processTx
+//------- Validate
 
-func TestTransactionInterceptor_ProcessTxNilMesssageShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ValidateNilMesssageShouldErr(t *testing.T) {
 	t.Parallel()
-
-	_, interceptor := createMarshalizerInterceptor()
 
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
@@ -225,7 +200,7 @@ func TestTransactionInterceptor_ProcessTxNilMesssageShouldErr(t *testing.T) {
 	storer := &mock.StorerStub{}
 
 	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
+		&mock.MarshalizerMock{},
 		txPool,
 		storer,
 		addrConv,
@@ -233,13 +208,11 @@ func TestTransactionInterceptor_ProcessTxNilMesssageShouldErr(t *testing.T) {
 		keyGen,
 		oneSharder)
 
-	assert.Equal(t, process.ErrNilMessage, txi.ProcessTx(nil))
+	assert.Equal(t, process.ErrNilMessage, txi.Validate(nil))
 }
 
-func TestTransactionInterceptor_ProcessTxMilMessageDataShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ValidateMilMessageDataShouldErr(t *testing.T) {
 	t.Parallel()
-
-	_, interceptor := createMarshalizerInterceptor()
 
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
@@ -248,7 +221,7 @@ func TestTransactionInterceptor_ProcessTxMilMessageDataShouldErr(t *testing.T) {
 	storer := &mock.StorerStub{}
 
 	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
+		&mock.MarshalizerMock{},
 		txPool,
 		storer,
 		addrConv,
@@ -258,55 +231,14 @@ func TestTransactionInterceptor_ProcessTxMilMessageDataShouldErr(t *testing.T) {
 
 	msg := &mock.P2PMessageMock{}
 
-	assert.Equal(t, process.ErrNilDataToProcess, txi.ProcessTx(msg))
+	assert.Equal(t, process.ErrNilDataToProcess, txi.Validate(msg))
 }
 
-func TestTransactionInterceptor_ProcessTxNilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	_, interceptor := createMarshalizerInterceptor()
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return nil
-	}
-
-	txPool := &mock.ShardedDataStub{}
-	addrConv := &mock.AddressConverterMock{}
-	keyGen := &mock.SingleSignKeyGenMock{}
-	oneSharder := mock.NewOneShardCoordinatorMock()
-	storer := &mock.StorerStub{}
-
-	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
-		txPool,
-		storer,
-		addrConv,
-		mock.HasherMock{},
-		keyGen,
-		oneSharder)
-
-	msg := &mock.P2PMessageMock{
-		DataField: make([]byte, 0),
-	}
-
-	assert.Equal(t, process.ErrNilMarshalizer, txi.ProcessTx(msg))
-}
-
-func TestTransactionInterceptor_ProcessTxMarshalizerFailsAtUnmarshalingShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ValidateMarshalizerFailsAtUnmarshalingShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errMarshalizer := errors.New("marshalizer error")
 
-	ms := &mock.MarshalizerStub{
-		UnmarshalCalled: func(obj interface{}, buff []byte) error {
-			return errMarshalizer
-		},
-	}
-
-	_, interceptor := createMarshalizerInterceptor()
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return ms
-	}
-
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
@@ -314,7 +246,11 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailsAtUnmarshalingShouldErr
 	storer := &mock.StorerStub{}
 
 	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
+		&mock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return errMarshalizer
+			},
+		},
 		txPool,
 		storer,
 		addrConv,
@@ -326,28 +262,14 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailsAtUnmarshalingShouldErr
 		DataField: make([]byte, 0),
 	}
 
-	assert.Equal(t, errMarshalizer, txi.ProcessTx(msg))
+	assert.Equal(t, errMarshalizer, txi.Validate(msg))
 }
 
-func TestTransactionInterceptor_ProcessTxMarshalizerFailsAtMarshalingShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ValidateMarshalizerFailsAtMarshalingShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errMarshalizer := errors.New("marshalizer error")
 
-	ms := &mock.MarshalizerStub{
-		UnmarshalCalled: func(obj interface{}, buff []byte) error {
-			return nil
-		},
-		MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
-			return nil, errMarshalizer
-		},
-	}
-
-	_, interceptor := createMarshalizerInterceptor()
-	interceptor.MarshalizerCalled = func() marshal.Marshalizer {
-		return ms
-	}
-
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
@@ -355,7 +277,14 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailsAtMarshalingShouldErr(t
 	storer := &mock.StorerStub{}
 
 	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
+		&mock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return nil
+			},
+			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
+				return nil, errMarshalizer
+			},
+		},
 		txPool,
 		storer,
 		addrConv,
@@ -367,13 +296,13 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailsAtMarshalingShouldErr(t
 		DataField: make([]byte, 0),
 	}
 
-	assert.Equal(t, errMarshalizer, txi.ProcessTx(msg))
+	assert.Equal(t, errMarshalizer, txi.Validate(msg))
 }
 
-func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ValidateIntegrityFailedShouldErr(t *testing.T) {
 	t.Parallel()
 
-	marshalizer, interceptor := createMarshalizerInterceptor()
+	marshalizer := &mock.MarshalizerMock{}
 
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
@@ -382,7 +311,7 @@ func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldErr(t *testing.T) 
 	storer := &mock.StorerStub{}
 
 	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
+		marshalizer,
 		txPool,
 		storer,
 		addrConv,
@@ -401,13 +330,13 @@ func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldErr(t *testing.T) 
 		DataField: buff,
 	}
 
-	assert.Equal(t, process.ErrNilSignature, txi.ProcessTx(msg))
+	assert.Equal(t, process.ErrNilSignature, txi.Validate(msg))
 }
 
-func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ValidateVerifySigFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	marshalizer, interceptor := createMarshalizerInterceptor()
+	marshalizer := &mock.MarshalizerMock{}
 
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
@@ -426,7 +355,7 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 	storer := &mock.StorerStub{}
 
 	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
+		marshalizer,
 		txPool,
 		storer,
 		addrConv,
@@ -446,13 +375,13 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 		DataField: buff,
 	}
 
-	assert.Equal(t, "sig not valid", txi.ProcessTx(msg).Error())
+	assert.Equal(t, "sig not valid", txi.Validate(msg).Error())
 }
 
-func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T) {
+func TestTransactionInterceptor_ValidateOkValsSameShardShouldWork(t *testing.T) {
 	t.Parallel()
 
-	marshalizer, interceptor := createMarshalizerInterceptor()
+	marshalizer := &mock.MarshalizerMock{}
 
 	wasAdded := 0
 
@@ -477,7 +406,7 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 	}
 
 	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
+		marshalizer,
 		txPool,
 		storer,
 		addrConv,
@@ -503,14 +432,14 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 		}
 	}
 
-	assert.Nil(t, txi.ProcessTx(msg))
+	assert.Nil(t, txi.Validate(msg))
 	assert.Equal(t, 1, wasAdded)
 }
 
-func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.T) {
+func TestTransactionInterceptor_ValidateOkValsOtherShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	marshalizer, interceptor := createMarshalizerInterceptor()
+	marshalizer := &mock.MarshalizerMock{}
 
 	wasAdded := 0
 
@@ -536,7 +465,7 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 	storer := &mock.StorerStub{}
 
 	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
+		marshalizer,
 		txPool,
 		storer,
 		addrConv,
@@ -562,14 +491,14 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 		}
 	}
 
-	assert.Nil(t, txi.ProcessTx(msg))
+	assert.Nil(t, txi.Validate(msg))
 	assert.Equal(t, 0, wasAdded)
 }
 
-func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.T) {
+func TestTransactionInterceptor_ValidatePresentInStorerShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	marshalizer, interceptor := createMarshalizerInterceptor()
+	marshalizer := &mock.MarshalizerMock{}
 
 	wasAdded := 0
 
@@ -602,7 +531,7 @@ func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.
 	}
 
 	txi, _ := transaction.NewTxInterceptor(
-		interceptor,
+		marshalizer,
 		txPool,
 		storer,
 		addrConv,
@@ -628,6 +557,6 @@ func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.
 		}
 	}
 
-	assert.Nil(t, txi.ProcessTx(msg))
+	assert.Nil(t, txi.Validate(msg))
 	assert.Equal(t, 0, wasAdded)
 }

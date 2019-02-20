@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -14,7 +15,7 @@ import (
 
 // TxInterceptor is used for intercepting transaction and storing them into a datapool
 type TxInterceptor struct {
-	process.Interceptor
+	marshalizer      marshal.Marshalizer
 	txPool           data.ShardedDataCacherNotifier
 	txStorer         storage.Storer
 	addrConverter    state.AddressConverter
@@ -25,7 +26,7 @@ type TxInterceptor struct {
 
 // NewTxInterceptor hooks a new interceptor for transactions
 func NewTxInterceptor(
-	interceptor process.Interceptor,
+	marshalizer marshal.Marshalizer,
 	txPool data.ShardedDataCacherNotifier,
 	txStorer storage.Storer,
 	addrConverter state.AddressConverter,
@@ -34,8 +35,8 @@ func NewTxInterceptor(
 	shardCoordinator sharding.ShardCoordinator,
 ) (*TxInterceptor, error) {
 
-	if interceptor == nil {
-		return nil, process.ErrNilInterceptor
+	if marshalizer == nil {
+		return nil, process.ErrNilMarshalizer
 	}
 
 	if txPool == nil {
@@ -63,7 +64,7 @@ func NewTxInterceptor(
 	}
 
 	txIntercept := &TxInterceptor{
-		Interceptor:      interceptor,
+		marshalizer:      marshalizer,
 		txPool:           txPool,
 		txStorer:         txStorer,
 		hasher:           hasher,
@@ -72,12 +73,12 @@ func NewTxInterceptor(
 		shardCoordinator: shardCoordinator,
 	}
 
-	interceptor.SetReceivedMessageHandler(txIntercept.processTx)
-
 	return txIntercept, nil
 }
 
-func (txi *TxInterceptor) processTx(message p2p.MessageP2P) error {
+// Validate will be the callback func from the p2p.Messenger and will be called each time a new message was received
+// (for the topic this validator was registered to)
+func (txi *TxInterceptor) Validate(message p2p.MessageP2P) error {
 	if message == nil {
 		return process.ErrNilMessage
 	}
@@ -86,15 +87,10 @@ func (txi *TxInterceptor) processTx(message p2p.MessageP2P) error {
 		return process.ErrNilDataToProcess
 	}
 
-	marshalizer := txi.Marshalizer()
-	if marshalizer == nil {
-		return process.ErrNilMarshalizer
-	}
-
 	txIntercepted := &InterceptedTransaction{
 		Transaction: &transaction.Transaction{},
 	}
-	err := marshalizer.Unmarshal(txIntercepted, message.Data())
+	err := txi.marshalizer.Unmarshal(txIntercepted, message.Data())
 	if err != nil {
 		return err
 	}
@@ -107,7 +103,7 @@ func (txi *TxInterceptor) processTx(message p2p.MessageP2P) error {
 	copiedTx := *txIntercepted.GetTransaction()
 	copiedTx.Signature = nil
 
-	buffCopiedTx, err := marshalizer.Marshal(&copiedTx)
+	buffCopiedTx, err := txi.marshalizer.Marshal(&copiedTx)
 	if err != nil {
 		return err
 	}

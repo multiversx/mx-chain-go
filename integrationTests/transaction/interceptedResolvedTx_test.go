@@ -11,11 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNode_RequestInterceptTransactionWithMemMessenger(t *testing.T) {
+func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -27,9 +26,9 @@ func TestNode_RequestInterceptTransactionWithMemMessenger(t *testing.T) {
 	dPoolResolver := createTestDataPool()
 
 	fmt.Println("Requestor:")
-	nRequestor, mesRequestor, sk1, pf := createNetNode(4000, dPoolRequestor, adbCreateAccountsDB())
+	nRequestor, mesRequestor, sk1, pf := createNetNode(4000, dPoolRequestor, createAccountsDB())
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := createNetNode(4001, dPoolResolver, adbCreateAccountsDB())
+	nResolver, mesResolver, _, _ := createNetNode(4001, dPoolResolver, createAccountsDB())
 
 	nRequestor.Start()
 	nResolver.Start()
@@ -83,9 +82,8 @@ func TestNode_RequestInterceptTransactionWithMemMessenger(t *testing.T) {
 	dPoolResolver.Transactions().AddData(txHash, &tx, 0)
 
 	//Step 4. request tx
-	res, _ := pf.ResolverContainer().Get(string(factory.TransactionTopic))
-	txResolver := res.(*transaction2.TxResolver)
-	err = txResolver.RequestTransactionFromHash(txHash)
+	txResolver, _ := pf.ResolverContainer().Get(string(factory.TransactionTopic))
+	err = txResolver.RequestHash(txHash)
 	assert.Nil(t, err)
 
 	select {

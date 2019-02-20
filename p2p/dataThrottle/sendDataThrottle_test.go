@@ -11,13 +11,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var errLenDifferent = errors.New("len different for names and chans")
+var errLenDifferentNamesChans = errors.New("len different for names and chans")
+var errMissingPipe = errors.New("missing pipe")
+var errPipesMismatch = errors.New("pipes mismatch")
+
 func checkIntegrity(sdt *dataThrottle.SendDataThrottle, name string) error {
 	if len(sdt.Names()) != len(sdt.Chans()) {
-		return errors.New("len different for names and chans")
+		return errLenDifferent
 	}
 
 	if len(sdt.Names()) != len(sdt.NamesChans()) {
-		return errors.New("len different for names and namesChans")
+		return errLenDifferentNamesChans
 	}
 
 	idxFound := -1
@@ -29,11 +34,11 @@ func checkIntegrity(sdt *dataThrottle.SendDataThrottle, name string) error {
 	}
 
 	if idxFound == -1 && sdt.NamesChans()[name] == nil {
-		return errors.New("missing pipe")
+		return errMissingPipe
 	}
 
 	if sdt.NamesChans()[name] != sdt.Chans()[idxFound] {
-		return errors.New("pipes mismatch")
+		return errPipesMismatch
 	}
 
 	return nil
@@ -60,7 +65,7 @@ func TestNewSendDataThrottle_ShouldAddDefaultPipe(t *testing.T) {
 
 //------- AddPipe
 
-func TestSendDataThrottle_AddPipeNewPipeShouldNotProduceErr(t *testing.T) {
+func TestSendDataThrottle_AddPipeNewPipeShouldNotErrAndAddNewPipe(t *testing.T) {
 	t.Parallel()
 
 	sdt := dataThrottle.NewSendDataThrottle()
@@ -68,15 +73,6 @@ func TestSendDataThrottle_AddPipeNewPipeShouldNotProduceErr(t *testing.T) {
 	err := sdt.AddPipe("test")
 
 	assert.Nil(t, err)
-}
-
-func TestSendDataThrottle_AddPipeNewPipeShouldAddPipe(t *testing.T) {
-	t.Parallel()
-
-	sdt := dataThrottle.NewSendDataThrottle()
-
-	_ = sdt.AddPipe("test")
-
 	assert.Equal(t, 2, len(sdt.Names()))
 	assert.Nil(t, checkIntegrity(sdt, dataThrottle.DefaultSendPipe()))
 	assert.Nil(t, checkIntegrity(sdt, "test"))
@@ -142,7 +138,7 @@ func TestSendDataThrottle_RemovePipeRemoveLastPipeAddedShouldWork(t *testing.T) 
 	assert.Nil(t, checkIntegrity(sdt, dataThrottle.DefaultSendPipe()))
 	assert.Nil(t, checkIntegrity(sdt, "test1"))
 	assert.Nil(t, checkIntegrity(sdt, "test2"))
-	assert.Equal(t, "missing pipe", checkIntegrity(sdt, "test3").Error())
+	assert.Equal(t, errMissingPipe, checkIntegrity(sdt, "test3"))
 }
 
 func TestSendDataThrottle_RemovePipeRemoveFirstPipeAddedShouldWork(t *testing.T) {
@@ -160,7 +156,7 @@ func TestSendDataThrottle_RemovePipeRemoveFirstPipeAddedShouldWork(t *testing.T)
 
 	assert.Equal(t, 3, len(sdt.Names()))
 	assert.Nil(t, checkIntegrity(sdt, dataThrottle.DefaultSendPipe()))
-	assert.Equal(t, "missing pipe", checkIntegrity(sdt, "test1").Error())
+	assert.Equal(t, errMissingPipe, checkIntegrity(sdt, "test1"))
 	assert.Nil(t, checkIntegrity(sdt, "test2"))
 	assert.Nil(t, checkIntegrity(sdt, "test3"))
 }
@@ -181,7 +177,7 @@ func TestSendDataThrottle_RemovePipeRemoveMiddlePipeAddedShouldWork(t *testing.T
 	assert.Equal(t, 3, len(sdt.Names()))
 	assert.Nil(t, checkIntegrity(sdt, dataThrottle.DefaultSendPipe()))
 	assert.Nil(t, checkIntegrity(sdt, "test1"))
-	assert.Equal(t, "missing pipe", checkIntegrity(sdt, "test2").Error())
+	assert.Equal(t, errMissingPipe, checkIntegrity(sdt, "test2"))
 	assert.Nil(t, checkIntegrity(sdt, "test3"))
 }
 

@@ -11,7 +11,9 @@ import (
 )
 
 type NetworkStub struct {
-	ConnsToPeerCalled func(p peer.ID) []net.Conn
+	ConnsToPeerCalled   func(p peer.ID) []net.Conn
+	ConnsCalled         func() []net.Conn
+	ConnectednessCalled func(peer.ID) net.Connectedness
 }
 
 func (ns *NetworkStub) Peerstore() peerstore.Peerstore {
@@ -30,8 +32,8 @@ func (ns *NetworkStub) ClosePeer(pid peer.ID) error {
 	panic("implement me")
 }
 
-func (ns *NetworkStub) Connectedness(peer.ID) net.Connectedness {
-	panic("implement me")
+func (ns *NetworkStub) Connectedness(pid peer.ID) net.Connectedness {
+	return ns.ConnectednessCalled(pid)
 }
 
 func (ns *NetworkStub) Peers() []peer.ID {
@@ -39,7 +41,7 @@ func (ns *NetworkStub) Peers() []peer.ID {
 }
 
 func (ns *NetworkStub) Conns() []net.Conn {
-	panic("implement me")
+	return ns.ConnsCalled()
 }
 
 func (ns *NetworkStub) ConnsToPeer(p peer.ID) []net.Conn {

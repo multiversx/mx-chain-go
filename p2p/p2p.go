@@ -6,8 +6,11 @@ import (
 	"github.com/mr-tron/base58/base58"
 )
 
-// TopicValidatorHandler is the handler signature when a request to validate (process) a new message is produced
-type TopicValidatorHandler func(message MessageP2P) error
+// TopicValidatorHandler is the interface used to describe what a topic validator should do.
+// All implementations that will be called from Messenger implementation will need to satisfy this interface
+type TopicValidatorHandler interface {
+	Validate(message MessageP2P) error
+}
 
 // SendableData represents the struct used in data throttler implementation
 type SendableData struct {

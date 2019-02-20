@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,10 +26,10 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	dPoolResolver := createTestDataPool()
 
 	fmt.Println("Requestor:")
-	nRequestor, mesRequestor, _, pFactoryReq := createNetNode(32000, dPoolRequestor, adbCreateAccountsDB())
+	nRequestor, mesRequestor, _, pFactoryReq := createNetNode(32000, dPoolRequestor, createAccountsDB())
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, pFactoryRes := createNetNode(32001, dPoolResolver, adbCreateAccountsDB())
+	nResolver, mesResolver, _, pFactoryRes := createNetNode(32001, dPoolResolver, createAccountsDB())
 
 	_ = pFactoryReq.CreateInterceptors()
 	_ = pFactoryReq.CreateResolvers()
@@ -89,9 +88,8 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	})
 
 	//Step 4. request tx block body
-	res, _ := pFactoryReq.ResolverContainer().Get(string(factory.TxBlockBodyTopic))
-	txBlockBodyRequestor := res.(*block2.GenericBlockBodyResolver)
-	txBlockBodyRequestor.RequestBlockBodyFromHash(txBlockBodyHash)
+	txBlockBodyRequestor, _ := pFactoryReq.ResolverContainer().Get(string(factory.TxBlockBodyTopic))
+	txBlockBodyRequestor.RequestHash(txBlockBodyHash)
 
 	select {
 	case <-chanDone:

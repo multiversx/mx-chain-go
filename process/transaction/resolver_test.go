@@ -2,19 +2,14 @@ package transaction
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
-
-func createResolverStub() *mock.ResolverStub {
-	return &mock.ResolverStub{
-		SetResolverHandlerCalled: func(h func(rd process.RequestData) ([]byte, error)) {},
-	}
-}
 
 //------- NewTxResolver
 
@@ -28,7 +23,7 @@ func TestNewTxResolver_NilResolverShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	assert.Equal(t, process.ErrNilResolver, err)
+	assert.Equal(t, process.ErrNilResolverSender, err)
 	assert.Nil(t, txRes)
 }
 
@@ -36,7 +31,7 @@ func TestNewTxResolver_NilTxPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txRes, err := NewTxResolver(
-		&mock.ResolverStub{},
+		&mock.TopicResolverSenderStub{},
 		nil,
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
@@ -50,7 +45,7 @@ func TestNewTxResolver_NilTxStorageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txRes, err := NewTxResolver(
-		&mock.ResolverStub{},
+		&mock.TopicResolverSenderStub{},
 		&mock.ShardedDataStub{},
 		nil,
 		&mock.MarshalizerMock{},
@@ -64,7 +59,7 @@ func TestNewTxResolver_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txRes, err := NewTxResolver(
-		&mock.ResolverStub{},
+		&mock.TopicResolverSenderStub{},
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		nil,
@@ -77,12 +72,7 @@ func TestNewTxResolver_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	wasCalled := false
-
-	res := &mock.ResolverStub{}
-	res.SetResolverHandlerCalled = func(i func(rd process.RequestData) ([]byte, error)) {
-		wasCalled = true
-	}
+	res := &mock.TopicResolverSenderStub{}
 
 	txRes, err := NewTxResolver(
 		res,
@@ -93,80 +83,121 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, txRes)
-	assert.True(t, wasCalled)
 }
 
-//------- resolveTxRequest
+//------- Validate
 
-func TestTxResolver_ResolveTxRequestWrongTypeShouldErr(t *testing.T) {
+func TestTxResolver_ValidateNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txRes, _ := NewTxResolver(
-		createResolverStub(),
+		&mock.TopicResolverSenderStub{},
 		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)
 
-	buff, err := txRes.resolveTxRequest(process.RequestData{Type: process.NonceType, Value: []byte("aaa")})
+	err := txRes.Validate(nil)
 
-	assert.Nil(t, buff)
-	assert.Equal(t, process.ErrResolveNotHashType, err)
+	assert.Equal(t, process.ErrNilMessage, err)
 }
 
-func TestTxResolver_ResolveTxRequestNilValueShouldRetNil(t *testing.T) {
-	t.Parallel()
-
-	txRes, _ := NewTxResolver(
-		createResolverStub(),
-		&mock.ShardedDataStub{},
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-	)
-
-	buff, err := txRes.resolveTxRequest(process.RequestData{Type: process.HashType, Value: nil})
-
-	assert.Nil(t, buff)
-	assert.Equal(t, process.ErrNilValue, err)
-}
-
-func TestTxResolver_ResolveTxRequestFoundInTxPoolShouldRetVal(t *testing.T) {
+func TestTxResolver_ValidateWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	buffToExpect, err := marshalizer.Marshal("value")
-	assert.Nil(t, err)
-
-	txPool := &mock.ShardedDataStub{}
-	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
-		if bytes.Equal([]byte("aaa"), key) {
-			return "value", true
-		}
-
-		return nil, false
-	}
 
 	txRes, _ := NewTxResolver(
-		createResolverStub(),
-		txPool,
+		&mock.TopicResolverSenderStub{},
+		&mock.ShardedDataStub{},
 		&mock.StorerStub{},
 		marshalizer,
 	)
 
-	buff, err := txRes.ResolveTxRequest(process.RequestData{Type: process.HashType, Value: []byte("aaa")})
+	data, _ := marshalizer.Marshal(&process.RequestData{Type: process.NonceType, Value: []byte("aaa")})
 
-	//we are 100% sure that the txPool resolved the request because storage is a stub
-	//and any call to its method whould have panic-ed (&mock.StorerStub{} has uninitialized ...Called fields)
-	assert.Nil(t, err)
-	assert.Equal(t, buffToExpect, buff)
+	msg := &mock.P2PMessageMock{DataField: data}
+
+	err := txRes.Validate(msg)
+
+	assert.Equal(t, process.ErrResolveNotHashType, err)
 }
 
-func TestTxResolver_ResolveTxRequestFoundInTxPoolMarshalizerFailShouldRetNilAndErr(t *testing.T) {
+func TestTxResolver_ValidateNilValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerStub{}
-	marshalizer.MarshalCalled = func(obj interface{}) (i []byte, e error) {
-		return nil, errors.New("MarshalizerMock generic error")
+	marshalizer := &mock.MarshalizerMock{}
+
+	txRes, _ := NewTxResolver(
+		&mock.TopicResolverSenderStub{},
+		&mock.ShardedDataStub{},
+		&mock.StorerStub{},
+		marshalizer,
+	)
+
+	data, _ := marshalizer.Marshal(&process.RequestData{Type: process.HashType, Value: nil})
+
+	msg := &mock.P2PMessageMock{DataField: data}
+
+	err := txRes.Validate(msg)
+
+	assert.Equal(t, process.ErrNilValue, err)
+}
+
+func TestTxResolver_ValidateFoundInTxPoolShouldSearchAndSend(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	searchWasCalled := false
+	sendWasCalled := false
+
+	txPool := &mock.ShardedDataStub{}
+	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		if bytes.Equal([]byte("aaa"), key) {
+			searchWasCalled = true
+			return make([]byte, 0), true
+		}
+
+		return nil, false
+	}
+
+	txRes, _ := NewTxResolver(
+		&mock.TopicResolverSenderStub{
+			SendCalled: func(buff []byte, peer p2p.PeerID) error {
+				sendWasCalled = true
+				return nil
+			},
+		},
+		txPool,
+		&mock.StorerStub{},
+		marshalizer,
+	)
+
+	data, _ := marshalizer.Marshal(&process.RequestData{Type: process.HashType, Value: []byte("aaa")})
+
+	msg := &mock.P2PMessageMock{DataField: data}
+
+	err := txRes.Validate(msg)
+
+	assert.Nil(t, err)
+	assert.True(t, searchWasCalled)
+	assert.True(t, sendWasCalled)
+}
+
+func TestTxResolver_ValidateFoundInTxPoolMarshalizerFailShouldRetNilAndErr(t *testing.T) {
+	t.Parallel()
+
+	errExpected := errors.New("MarshalizerMock generic error")
+
+	marshalizerMock := &mock.MarshalizerMock{}
+	marshalizerStub := &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) (i []byte, e error) {
+			return nil, errExpected
+		},
+		UnmarshalCalled: func(obj interface{}, buff []byte) error {
+			return marshalizerMock.Unmarshal(obj, buff)
+		},
 	}
 
 	txPool := &mock.ShardedDataStub{}
@@ -179,20 +210,22 @@ func TestTxResolver_ResolveTxRequestFoundInTxPoolMarshalizerFailShouldRetNilAndE
 	}
 
 	txRes, _ := NewTxResolver(
-		createResolverStub(),
+		&mock.TopicResolverSenderStub{},
 		txPool,
 		&mock.StorerStub{},
-		marshalizer,
+		marshalizerStub,
 	)
 
-	buff, err := txRes.ResolveTxRequest(process.RequestData{Type: process.HashType, Value: []byte("aaa")})
-	//Same as above test, we are sure that the marshalizer from txPool request failed as the code would have panic-ed
-	//otherwise
-	assert.Nil(t, buff)
-	assert.Equal(t, "MarshalizerMock generic error", err.Error())
+	data, _ := marshalizerMock.Marshal(&process.RequestData{Type: process.HashType, Value: []byte("aaa")})
+
+	msg := &mock.P2PMessageMock{DataField: data}
+
+	err := txRes.Validate(msg)
+
+	assert.Equal(t, errExpected, err)
 }
 
-func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetValAndError(t *testing.T) {
+func TestTxResolver_ValidateFoundInTxStorageShouldRetValAndSend(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -203,28 +236,40 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageShouldRetValAndError(t *test
 		return nil, false
 	}
 
-	expectedBuff := []byte("bbb")
+	searchWasCalled := false
+	sendWasCalled := false
 
 	txStorage := &mock.StorerStub{}
 	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
-			return expectedBuff, nil
+			searchWasCalled = true
+			return make([]byte, 0), nil
 		}
 
 		return nil, nil
 	}
 
 	txRes, _ := NewTxResolver(
-		createResolverStub(),
+		&mock.TopicResolverSenderStub{
+			SendCalled: func(buff []byte, peer p2p.PeerID) error {
+				sendWasCalled = true
+				return nil
+			},
+		},
 		txPool,
 		txStorage,
 		marshalizer,
 	)
 
-	buff, _ := txRes.ResolveTxRequest(process.RequestData{Type: process.HashType, Value: []byte("aaa")})
+	data, _ := marshalizer.Marshal(&process.RequestData{Type: process.HashType, Value: []byte("aaa")})
 
-	assert.Equal(t, expectedBuff, buff)
+	msg := &mock.P2PMessageMock{DataField: data}
 
+	err := txRes.Validate(msg)
+
+	assert.Nil(t, err)
+	assert.True(t, searchWasCalled)
+	assert.True(t, sendWasCalled)
 }
 
 func TestTxResolver_ResolveTxRequestFoundInTxStorageCheckRetError(t *testing.T) {
@@ -238,38 +283,43 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageCheckRetError(t *testing.T) 
 		return nil, false
 	}
 
-	expectedBuff := []byte("bbb")
+	errExpected := errors.New("expected error")
 
 	txStorage := &mock.StorerStub{}
 	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
-			return expectedBuff, errors.New("just checking output error")
+			return nil, errExpected
 		}
 
 		return nil, nil
 	}
 
 	txRes, _ := NewTxResolver(
-		createResolverStub(),
+		&mock.TopicResolverSenderStub{},
 		txPool,
 		txStorage,
 		marshalizer,
 	)
 
-	_, err := txRes.ResolveTxRequest(process.RequestData{Type: process.HashType, Value: []byte("aaa")})
-	assert.Equal(t, "just checking output error", err.Error())
+	data, _ := marshalizer.Marshal(&process.RequestData{Type: process.HashType, Value: []byte("aaa")})
+
+	msg := &mock.P2PMessageMock{DataField: data}
+
+	err := txRes.Validate(msg)
+
+	assert.Equal(t, errExpected, err)
 
 }
 
 //------- RequestTransactionFromHash
 
-func TestTxResolver_RequestTransactionFromHashShouldWork(t *testing.T) {
+func TestTxResolver_RequestHashShouldWork(t *testing.T) {
 	t.Parallel()
 
-	requested := process.RequestData{}
+	requested := &process.RequestData{}
 
-	res := createResolverStub()
-	res.RequestDataCalled = func(rd process.RequestData) error {
+	res := &mock.TopicResolverSenderStub{}
+	res.SendOnRequestTopicCalled = func(rd *process.RequestData) error {
 		requested = rd
 		return nil
 	}
@@ -283,8 +333,8 @@ func TestTxResolver_RequestTransactionFromHashShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	assert.Nil(t, txRes.RequestTransactionFromHash(buffRequested))
-	assert.Equal(t, process.RequestData{
+	assert.Nil(t, txRes.RequestHash(buffRequested))
+	assert.Equal(t, &process.RequestData{
 		Type:  process.HashType,
 		Value: buffRequested,
 	}, requested)

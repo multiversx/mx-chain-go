@@ -66,3 +66,6 @@ var ErrNilForkDetector = errors.New("nil fork detector")
 
 // ErrValidatorAlreadySet signals that a topic validator has already been set
 var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
+
+// ErrNilInterceptorsResolversFactory signals that a nil interceptors resolvers factory has been provided
+var ErrNilInterceptorsResolversFactory = errors.New("nil interceptors resolvers factory")

@@ -41,14 +41,17 @@ func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration
 func prepareMessengerForMatchDataReceive(mes p2p.Messenger, matchData []byte, wg *sync.WaitGroup) {
 	_ = mes.CreateTopic("test", false)
 
-	_ = mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
-		if bytes.Equal(matchData, message.Data()) {
-			fmt.Printf("%s got the message\n", mes.ID().Pretty())
-			wg.Done()
-		}
+	_ = mes.SetTopicValidator("test",
+		&mock.TopicValidatorHandlerStub{
+			ValidateCalled: func(message p2p.MessageP2P) error {
+				if bytes.Equal(matchData, message.Data()) {
+					fmt.Printf("%s got the message\n", mes.ID().Pretty())
+					wg.Done()
+				}
 
-		return nil
-	})
+				return nil
+			},
+		})
 }
 
 func getConnectableAddress(mes p2p.Messenger) string {
@@ -349,9 +352,7 @@ func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
-	_ = mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
-		return nil
-	})
+	_ = mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
 
 	assert.True(t, mes.HasTopicValidator("test"))
 
@@ -361,9 +362,7 @@ func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue
 func TestLibp2pMessenger_SetTopicValidatorOnInexistentTopicShouldErr(t *testing.T) {
 	mes := createMockMessenger()
 
-	err := mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
-		return nil
-	})
+	err := mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
 
 	assert.Equal(t, p2p.ErrNilTopic, err)
 
@@ -387,9 +386,7 @@ func TestLibp2pMessenger_SetTopicValidatorOkValsShouldWork(t *testing.T) {
 
 	_ = mes.CreateTopic("test", false)
 
-	err := mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
-		return nil
-	})
+	err := mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
 
 	assert.Nil(t, err)
 
@@ -402,14 +399,10 @@ func TestLibp2pMessenger_SetTopicValidatorReregistrationShouldErr(t *testing.T) 
 	_ = mes.CreateTopic("test", false)
 
 	//registration
-	_ = mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
-		return nil
-	})
+	_ = mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
 
 	//re-registration
-	err := mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
-		return nil
-	})
+	err := mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
 
 	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
 
@@ -422,9 +415,7 @@ func TestLibp2pMessenger_SetTopicValidatorUnReregistrationShouldWork(t *testing.
 	_ = mes.CreateTopic("test", false)
 
 	//registration
-	_ = mes.SetTopicValidator("test", func(message p2p.MessageP2P) error {
-		return nil
-	})
+	_ = mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
 
 	//unregistration
 	err := mes.SetTopicValidator("test", nil)
@@ -520,6 +511,74 @@ func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
 
 	mes1.Close()
 	mes2.Close()
+}
+
+func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
+	pid1 := p2p.PeerID("pid1")
+	pid2 := p2p.PeerID("pid2")
+	pid3 := p2p.PeerID("pid3")
+	pid4 := p2p.PeerID("pid4")
+
+	hs := &mock.HostStub{
+		NetworkCalled: func() net.Network {
+			return &mock.NetworkStub{
+				ConnsCalled: func() []net.Conn {
+					//generate a mock list that contain duplicates
+					return []net.Conn{
+						generateConnWithRemotePeer(pid1),
+						generateConnWithRemotePeer(pid1),
+						generateConnWithRemotePeer(pid2),
+						generateConnWithRemotePeer(pid1),
+						generateConnWithRemotePeer(pid4),
+						generateConnWithRemotePeer(pid3),
+						generateConnWithRemotePeer(pid1),
+						generateConnWithRemotePeer(pid3),
+						generateConnWithRemotePeer(pid4),
+						generateConnWithRemotePeer(pid2),
+						generateConnWithRemotePeer(pid1),
+						generateConnWithRemotePeer(pid1),
+					}
+				},
+				ConnectednessCalled: func(id peer.ID) net.Connectedness {
+					return net.Connected
+				},
+			}
+		},
+	}
+
+	netw := mocknet.New(context.Background())
+	mes, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw)
+	//we can safely close the host as the next operations will be done on a mock
+	mes.Close()
+
+	mes.SetHost(hs)
+
+	peerList := mes.ConnectedPeers()
+
+	assert.Equal(t, 4, len(peerList))
+	assert.True(t, existInList(peerList, pid1))
+	assert.True(t, existInList(peerList, pid2))
+	assert.True(t, existInList(peerList, pid3))
+	assert.True(t, existInList(peerList, pid4))
+
+}
+
+func existInList(list []p2p.PeerID, pid p2p.PeerID) bool {
+	for _, p := range list {
+		if bytes.Equal(p.Bytes(), pid.Bytes()) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func generateConnWithRemotePeer(pid p2p.PeerID) net.Conn {
+	return &mock.ConnStub{
+		RemotePeerCalled: func() peer.ID {
+			return peer.ID(pid)
+		},
+	}
 }
 
 func TestLibp2pMessenger_DiscoverNewPeersNilDiscovererShouldErr(t *testing.T) {

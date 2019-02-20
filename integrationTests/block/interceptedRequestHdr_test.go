@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,10 +26,10 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	dPoolResolver := createTestDataPool()
 
 	fmt.Println("Requestor:")
-	nRequestor, mesRequestor, _, pFactoryReq := createNetNode(32000, dPoolRequestor, adbCreateAccountsDB())
+	nRequestor, mesRequestor, _, pFactoryReq := createNetNode(32000, dPoolRequestor, createAccountsDB())
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := createNetNode(32001, dPoolResolver, adbCreateAccountsDB())
+	nResolver, mesResolver, _, _ := createNetNode(32001, dPoolResolver, createAccountsDB())
 
 	nRequestor.Start()
 	nResolver.Start()
@@ -84,8 +84,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	//Step 4. request header
 	res, err := pFactoryReq.ResolverContainer().Get(string(factory.HeadersTopic))
 	assert.Nil(t, err)
-	hdrResolver := res.(*block2.HeaderResolver)
-	hdrResolver.RequestHeaderFromNonce(0)
+	hdrResolver := res.(*resolvers.HeaderResolver)
+	hdrResolver.RequestNonce(0)
 
 	select {
 	case <-chanDone:

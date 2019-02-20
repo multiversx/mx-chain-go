@@ -2,6 +2,7 @@ package libp2p
 
 import (
 	"github.com/libp2p/go-libp2p-discovery"
+	"github.com/libp2p/go-libp2p-host"
 	"github.com/libp2p/go-libp2p-interface-connmgr"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/whyrusleeping/timecache"
@@ -17,6 +18,10 @@ func (netMes *networkMessenger) ConnManager() ifconnmgr.ConnManager {
 
 func (netMes *networkMessenger) SetPeerDiscoveredHandler(handler PeerInfoHandler) {
 	netMes.peerDiscoveredHandler = handler
+}
+
+func (netMes *networkMessenger) SetHost(host host.Host) {
+	netMes.hostP2P = host
 }
 
 func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message) error {

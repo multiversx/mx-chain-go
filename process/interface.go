@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
@@ -72,20 +71,17 @@ type IntRandomizer interface {
 	Intn(n int) int
 }
 
-// Interceptor defines what a data interceptor should do
-type Interceptor interface {
-	Name() string
-	SetReceivedMessageHandler(handler p2p.TopicValidatorHandler)
-	ReceivedMessageHandler() p2p.TopicValidatorHandler
-	Marshalizer() marshal.Marshalizer
+// Resolver defines what a data resolver should do
+type Resolver interface {
+	RequestHash(hash []byte) error
+	Validate(message p2p.MessageP2P) error
 }
 
-// Resolver is an interface that defines the behaviour of a struct that is able
-// to send data requests to other entities and to resolve requests that came from those other entities
-type Resolver interface {
-	RequestData(rd RequestData) error
-	SetResolverHandler(func(rd RequestData) ([]byte, error))
-	ResolverHandler() func(rd RequestData) ([]byte, error)
+// TopicResolverSender defines what sending operations are allowed for a topic resolver
+type TopicResolverSender interface {
+	SendOnRequestTopic(rd *RequestData) error
+	Send(buff []byte, peer p2p.PeerID) error
+	RequestTopicSuffix() string
 }
 
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
@@ -102,31 +98,34 @@ type ForkDetector interface {
 	CheckFork() bool
 }
 
-// InterceptorContainer is an interface that defines the beahaviour for a container
-//  holding a list of interceptors organized by type
-type InterceptorContainer interface {
-	Get(key string) (Interceptor, error)
-	Add(key string, interceptor Interceptor) error
-	Replace(key string, interceptor Interceptor) error
+// Container defines a holder data type with basic functionality
+type Container interface {
+	Get(key string) (interface{}, error)
+	Add(key string, val interface{}) error
+	Replace(key string, val interface{}) error
 	Remove(key string)
 	Len() int
 }
 
-// ResolverContainer is an interface that defines the beahaviour for a container
-//  holding a list of resolvers organized by type
-type ResolverContainer interface {
+// ResolversContainer defines a resolvers holder data type with basic functionality
+type ResolversContainer interface {
 	Get(key string) (Resolver, error)
-	Add(key string, resolver Resolver) error
-	Replace(key string, interceptor Resolver) error
+	Add(key string, val Resolver) error
+	Replace(key string, val Resolver) error
 	Remove(key string)
 	Len() int
 }
 
-// ProcessorFactory is an interface that defines the behaviour for a factory that
+// InterceptorsResolversFactory is an interface that defines the behaviour for a factory that
 //  can create the needed interceptors and resolvers for the application
-type ProcessorFactory interface {
+type InterceptorsResolversFactory interface {
 	CreateInterceptors() error
 	CreateResolvers() error
-	InterceptorContainer() InterceptorContainer
-	ResolverContainer() ResolverContainer
+	InterceptorContainer() Container
+	ResolverContainer() ResolversContainer
+}
+
+type WireMessageHandler interface {
+	ConnectedPeers() []p2p.PeerID
+	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
 }

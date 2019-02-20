@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNode_GenerateSendInterceptBulkTransactionsWithNetMessenger(t *testing.T) {
+func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -23,7 +23,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithNetMessenger(t *testing.T
 	startingNonce := uint64(6)
 
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
-	accntAdapter := adbCreateAccountsDB()
+	accntAdapter := createAccountsDB()
 
 	n, _, sk, _ := createNetNode(4000, dPool, accntAdapter)
 

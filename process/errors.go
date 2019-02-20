@@ -7,17 +7,11 @@ import (
 // ErrValidatorAlreadySet signals that a topic validator has already been set
 var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
 
-// ErrNilReceivedMessageHandler signals that a handler func has not been set
-var ErrNilReceivedMessageHandler = errors.New("nil receiverMessageHandler, message can not be processed")
-
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
 
 // ErrNoConnectedPeerToSendRequest signals that the connected peers list is empty and can not send request
 var ErrNoConnectedPeerToSendRequest = errors.New("connected peers list is empty. Can not send request")
-
-// ErrNilResolverHandler signals that resolver handler has not been wired
-var ErrNilResolverHandler = errors.New("nil resolver handler")
 
 // ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
@@ -142,9 +136,6 @@ var ErrNilRound = errors.New("nil Round")
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
 
-// ErrNilInterceptor signals that a nil Interceptor has been provided
-var ErrNilInterceptor = errors.New("nil Interceptor")
-
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
@@ -201,6 +192,9 @@ var ErrNilHeadersStorage = errors.New("nil headers storage")
 
 // ErrNilResolver signals that a nil resolver object has been provided
 var ErrNilResolver = errors.New("nil resolver")
+
+// ErrNilResolverSender signals that a nil resolver sender object has been provided
+var ErrNilResolverSender = errors.New("nil resolver sender")
 
 // ErrNilNonceConverter signals that a nil nonce converter has been provided
 var ErrNilNonceConverter = errors.New("nil nonce converter")
