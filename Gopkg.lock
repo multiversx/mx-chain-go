@@ -1085,14 +1085,6 @@
   version = "v0.3.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:9fdc2b55e8e0fafe4b41884091e51e77344f7dc511c5acedcfd98200003bff90"
-  name = "golang.org/x/time"
-  packages = ["rate"]
-  pruneopts = "UT"
-  revision = "85acf8d2951cb2a3bde7632f9ff273ef0379bcbd"
-
-[[projects]]
   branch = "v2"
   digest = "1:712660a913371014b418aa83a0cd2dee3a5eb428f09247e392121cc2ea8b11e4"
   name = "gopkg.in/dedis/kyber.v2"
@@ -1194,7 +1186,6 @@
     "github.com/whyrusleeping/timecache",
     "golang.org/x/crypto/blake2b",
     "golang.org/x/crypto/sha3",
-    "golang.org/x/time/rate",
     "gopkg.in/dedis/kyber.v2",
     "gopkg.in/dedis/kyber.v2/group/edwards25519",
     "gopkg.in/dedis/kyber.v2/sign/schnorr",
