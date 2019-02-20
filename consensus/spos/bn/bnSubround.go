@@ -6,10 +6,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
 
-// subround defines the data needed by one subround. Actually it defines a subround with it's properties (it's ID,
-// next subround ID, it's duration, it's name and also it has some handler functions which should be set. job function
-// will be the main function of this subround, extend function will handle the overtime situation of the subround and
-// check function will decide if in this subround the consensus is achieved
+// subround struct contains the needed data for one subround and the subround properties. It defines a subround
+// with it's properties (it's ID, next subround ID, it's duration, it's name) and also it has some handler functions
+// which should be set. job function will be the main function of this subround, extend function will handle the overtime
+// situation of the subround and check function will decide if in this subround the consensus is achieved
 type subround struct {
 	previous  int
 	current   int
@@ -20,9 +20,9 @@ type subround struct {
 
 	consensusStateChangedChannel chan bool
 
-	job    func() bool          // this is a method through which node does the subround job and job the result to the peers
-	check  func() bool          // this is a method through which node checks if the consensus of the subround is done
-	extend func(subroundId int) // this is a method which is called when round time is out
+	job    func() bool          // method does the subround job and send the result to the peers
+	check  func() bool          // method checks if the consensus of the subround is done
+	extend func(subroundId int) // method is called when round time is out
 }
 
 // NewSubround creates a new SubroundId object
@@ -65,11 +65,10 @@ func checkNewSubroundParams(
 	return nil
 }
 
-// DoWork method actually does the work of this subround. First it tries to do the job of the subround and than it will
-// check the consensus. If the upper time limit of this subround is reached, the subround state is set to extended and
-// the chronology will advance to the next subround. This method will iterate until this subround will be done,
-// put it into extended mode or in canceled mode
-func (sr *subround) DoWork(haveTimeInThisRound func() time.Duration) bool {
+// DoWork method actually does the work of this subround. First it tries to do the job of the subround then it will
+// check the consensus. If the upper time limit of this subround is reached, the extend method will be called before
+// returning. If this method returns true the chronology will advance to the next subround.
+func (sr *subround) DoWork(remainingTimeInCurrentRound func() time.Duration) bool {
 	if sr.job == nil || sr.check == nil {
 		return false
 	}
@@ -86,7 +85,7 @@ func (sr *subround) DoWork(haveTimeInThisRound func() time.Duration) bool {
 			if sr.check() {
 				return true
 			}
-		case <-time.After(haveTimeInThisRound()):
+		case <-time.After(remainingTimeInCurrentRound()):
 			if sr.extend != nil {
 				sr.extend(sr.current)
 			}

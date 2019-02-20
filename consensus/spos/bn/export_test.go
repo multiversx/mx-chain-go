@@ -1,10 +1,10 @@
 package bn
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -15,137 +15,139 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-// Factory
+// factory
 
-func (fct *Factory) BlockChain() *blockchain.BlockChain {
+type Factory *factory
+
+func (fct *factory) BlockChain() *blockchain.BlockChain {
 	return fct.blockChain
 }
 
-func (fct *Factory) SetBlockChain(blockChain *blockchain.BlockChain) {
+func (fct *factory) SetBlockChain(blockChain *blockchain.BlockChain) {
 	fct.blockChain = blockChain
 }
 
-func (fct *Factory) BlockProcessor() process.BlockProcessor {
+func (fct *factory) BlockProcessor() process.BlockProcessor {
 	return fct.blockProcessor
 }
 
-func (fct *Factory) SetBlockProcessor(blockProcessor process.BlockProcessor) {
+func (fct *factory) SetBlockProcessor(blockProcessor process.BlockProcessor) {
 	fct.blockProcessor = blockProcessor
 }
 
-func (fct *Factory) Bootstraper() process.Bootstraper {
+func (fct *factory) Bootstraper() process.Bootstraper {
 	return fct.bootstraper
 }
 
-func (fct *Factory) SetBootsraper(bootstraper process.Bootstraper) {
+func (fct *factory) SetBootsraper(bootstraper process.Bootstraper) {
 	fct.bootstraper = bootstraper
 }
 
-func (fct *Factory) ChronologyHandler() chronology.ChronologyHandler {
+func (fct *factory) ChronologyHandler() consensus.ChronologyHandler {
 	return fct.chronologyHandler
 }
 
-func (fct *Factory) SetChronologyHandler(chronologyHandler chronology.ChronologyHandler) {
+func (fct *factory) SetChronologyHandler(chronologyHandler consensus.ChronologyHandler) {
 	fct.chronologyHandler = chronologyHandler
 }
 
-func (fct *Factory) ConsensusState() *spos.ConsensusState {
+func (fct *factory) ConsensusState() *spos.ConsensusState {
 	return fct.consensusState
 }
 
-func (fct *Factory) SetConsensusState(consensusState *spos.ConsensusState) {
+func (fct *factory) SetConsensusState(consensusState *spos.ConsensusState) {
 	fct.consensusState = consensusState
 }
 
-func (fct *Factory) Hasher() hashing.Hasher {
+func (fct *factory) Hasher() hashing.Hasher {
 	return fct.hasher
 }
 
-func (fct *Factory) SetHasher(hasher hashing.Hasher) {
+func (fct *factory) SetHasher(hasher hashing.Hasher) {
 	fct.hasher = hasher
 }
 
-func (fct *Factory) Marshalizer() marshal.Marshalizer {
+func (fct *factory) Marshalizer() marshal.Marshalizer {
 	return fct.marshalizer
 }
 
-func (fct *Factory) SetMarshalizer(marshalizer marshal.Marshalizer) {
+func (fct *factory) SetMarshalizer(marshalizer marshal.Marshalizer) {
 	fct.marshalizer = marshalizer
 }
 
-func (fct *Factory) MultiSigner() crypto.MultiSigner {
+func (fct *factory) MultiSigner() crypto.MultiSigner {
 	return fct.multiSigner
 }
 
-func (fct *Factory) SetMultiSigner(multiSigner crypto.MultiSigner) {
+func (fct *factory) SetMultiSigner(multiSigner crypto.MultiSigner) {
 	fct.multiSigner = multiSigner
 }
 
-func (fct *Factory) Rounder() round.Rounder {
+func (fct *factory) Rounder() consensus.Rounder {
 	return fct.rounder
 }
 
-func (fct *Factory) SetRounder(rounder round.Rounder) {
+func (fct *factory) SetRounder(rounder consensus.Rounder) {
 	fct.rounder = rounder
 }
 
-func (fct *Factory) ShardCoordinator() sharding.ShardCoordinator {
+func (fct *factory) ShardCoordinator() sharding.ShardCoordinator {
 	return fct.shardCoordinator
 }
 
-func (fct *Factory) SetShardCoordinator(shardCoordinator sharding.ShardCoordinator) {
+func (fct *factory) SetShardCoordinator(shardCoordinator sharding.ShardCoordinator) {
 	fct.shardCoordinator = shardCoordinator
 }
 
-func (fct *Factory) SyncTimer() ntp.SyncTimer {
+func (fct *factory) SyncTimer() ntp.SyncTimer {
 	return fct.syncTimer
 }
 
-func (fct *Factory) SetSyncTimer(syncTimer ntp.SyncTimer) {
+func (fct *factory) SetSyncTimer(syncTimer ntp.SyncTimer) {
 	fct.syncTimer = syncTimer
 }
 
-func (fct *Factory) ValidatorGroupSelector() groupSelectors.ValidatorGroupSelector {
+func (fct *factory) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return fct.validatorGroupSelector
 }
 
-func (fct *Factory) SetValidatorGroupSelector(validatorGroupSelector groupSelectors.ValidatorGroupSelector) {
+func (fct *factory) SetValidatorGroupSelector(validatorGroupSelector consensus.ValidatorGroupSelector) {
 	fct.validatorGroupSelector = validatorGroupSelector
 }
 
-func (fct *Factory) Worker() *Worker {
+func (fct *factory) Worker() *worker {
 	return fct.worker
 }
 
-func (fct *Factory) SetWorker(worker *Worker) {
+func (fct *factory) SetWorker(worker *worker) {
 	fct.worker = worker
 }
 
-func (fct *Factory) GenerateStartRoundSubround() bool {
+func (fct *factory) GenerateStartRoundSubround() error {
 	return fct.generateStartRoundSubround()
 }
 
-func (fct *Factory) GenerateBlockSubround() bool {
+func (fct *factory) GenerateBlockSubround() error {
 	return fct.generateBlockSubround()
 }
 
-func (fct *Factory) GenerateCommitmentHashSubround() bool {
+func (fct *factory) GenerateCommitmentHashSubround() error {
 	return fct.generateCommitmentHashSubround()
 }
 
-func (fct *Factory) GenerateBitmapSubround() bool {
+func (fct *factory) GenerateBitmapSubround() error {
 	return fct.generateBitmapSubround()
 }
 
-func (fct *Factory) GenerateCommitmentSubround() bool {
+func (fct *factory) GenerateCommitmentSubround() error {
 	return fct.generateCommitmentSubround()
 }
 
-func (fct *Factory) GenerateSignatureSubround() bool {
+func (fct *factory) GenerateSignatureSubround() error {
 	return fct.generateSignatureSubround()
 }
 
-func (fct *Factory) GenerateEndRoundSubround() bool {
+func (fct *factory) GenerateEndRoundSubround() error {
 	return fct.generateEndRoundSubround()
 }
 
@@ -159,82 +161,128 @@ func (sr *subround) SetCheckFunction(check func() bool) {
 	sr.check = check
 }
 
-// Worker
+// worker
 
-func (wrk *Worker) Bootstraper() process.Bootstraper {
+type Worker *worker
+
+func (wrk *worker) Bootstraper() process.Bootstraper {
 	return wrk.bootstraper
 }
 
-func (wrk *Worker) SetBootstraper(bootstraper process.Bootstraper) {
+func (wrk *worker) SetBootstraper(bootstraper process.Bootstraper) {
 	wrk.bootstraper = bootstraper
 }
 
-func (wrk *Worker) ConsensusState() *spos.ConsensusState {
+func (wrk *worker) ConsensusState() *spos.ConsensusState {
 	return wrk.consensusState
 }
 
-func (wrk *Worker) SetConsensusState(consensusState *spos.ConsensusState) {
+func (wrk *worker) SetConsensusState(consensusState *spos.ConsensusState) {
 	wrk.consensusState = consensusState
 }
 
-func (wrk *Worker) KeyGenerator() crypto.KeyGenerator {
+func (wrk *worker) KeyGenerator() crypto.KeyGenerator {
 	return wrk.keyGenerator
 }
 
-func (wrk *Worker) SetKeyGenerator(keyGenerator crypto.KeyGenerator) {
+func (wrk *worker) SetKeyGenerator(keyGenerator crypto.KeyGenerator) {
 	wrk.keyGenerator = keyGenerator
 }
 
-func (wrk *Worker) Marshalizer() marshal.Marshalizer {
+func (wrk *worker) Marshalizer() marshal.Marshalizer {
 	return wrk.marshalizer
 }
 
-func (wrk *Worker) SetMarshalizer(marshalizer marshal.Marshalizer) {
+func (wrk *worker) SetMarshalizer(marshalizer marshal.Marshalizer) {
 	wrk.marshalizer = marshalizer
 }
 
-func (wrk *Worker) Rounder() round.Rounder {
+func (wrk *worker) Rounder() consensus.Rounder {
 	return wrk.rounder
 }
 
-func (wrk *Worker) SetRounder(rounder round.Rounder) {
+func (wrk *worker) SetRounder(rounder consensus.Rounder) {
 	wrk.rounder = rounder
 }
 
-func (wrk *Worker) CheckSignature(cnsData *spos.ConsensusData) error {
+func (wrk *worker) CheckSignature(cnsData *spos.ConsensusMessage) error {
 	return wrk.checkSignature(cnsData)
 }
 
-func (wrk *Worker) ExecuteMessage(cnsDtaList []*spos.ConsensusData) {
+func (wrk *worker) ExecuteMessage(cnsDtaList []*spos.ConsensusMessage) {
 	wrk.executeMessage(cnsDtaList)
-}
-
-func GetMessageTypeName(messageType MessageType) string {
-	return getMessageTypeName(messageType)
 }
 
 func GetSubroundName(subroundId int) string {
 	return getSubroundName(subroundId)
 }
 
-func (wrk *Worker) InitReceivedMessages() {
+func (wrk *worker) InitReceivedMessages() {
 	wrk.initReceivedMessages()
 }
 
-func (wrk *Worker) SendConsensusMessage(cnsDta *spos.ConsensusData) bool {
+func (wrk *worker) SendConsensusMessage(cnsDta *spos.ConsensusMessage) bool {
 	return wrk.sendConsensusMessage(cnsDta)
 }
 
-func (wrk *Worker) BroadcastTxBlockBody2(blockBody *block.TxBlockBody) error {
+func (wrk *worker) BroadcastTxBlockBody2(blockBody *block.TxBlockBody) error {
 	return wrk.broadcastTxBlockBody(blockBody)
 }
 
-func (wrk *Worker) BroadcastHeader2(header *block.Header) error {
+func (wrk *worker) BroadcastHeader2(header *block.Header) error {
 	return wrk.broadcastHeader(header)
 }
 
-func (wrk *Worker) Extend(subroundId int) {
+func (wrk *worker) Extend(subroundId int) {
 	wrk.extend(subroundId)
+}
+
+func (wrk *worker) ReceivedSyncState(isNodeSynchronized bool) {
+	wrk.receivedSyncState(isNodeSynchronized)
+}
+
+func (wrk *worker) ReceivedMessages() map[MessageType][]*spos.ConsensusMessage {
+	wrk.mutReceivedMessages.RLock()
+	defer wrk.mutReceivedMessages.RUnlock()
+
+	return wrk.receivedMessages
+}
+
+func (wrk *worker) SetReceivedMessages(messageType MessageType, cnsDta []*spos.ConsensusMessage) {
+	wrk.mutReceivedMessages.Lock()
+	wrk.receivedMessages[messageType] = cnsDta
+	wrk.mutReceivedMessages.Unlock()
+}
+
+func (wrk *worker) NilReceivedMessages() {
+	wrk.mutReceivedMessages.Lock()
+	wrk.receivedMessages = nil
+	wrk.mutReceivedMessages.Unlock()
+}
+
+func (wrk *worker) ReceivedMessagesCalls() map[MessageType]func(*spos.ConsensusMessage) bool {
+	wrk.mutReceivedMessagesCalls.RLock()
+	defer wrk.mutReceivedMessagesCalls.RUnlock()
+
+	return wrk.receivedMessagesCalls
+}
+
+func (wrk *worker) SetReceivedMessagesCalls(messageType MessageType, f func(*spos.ConsensusMessage) bool) {
+	wrk.mutReceivedMessagesCalls.Lock()
+	wrk.receivedMessagesCalls[messageType] = f
+	wrk.mutReceivedMessagesCalls.Unlock()
+}
+
+func (wrk *worker) ExecuteMessageChannel() chan *spos.ConsensusMessage {
+	return wrk.executeMessageChannel
+}
+
+func (wrk *worker) ConsensusStateChangedChannels() chan bool {
+	return wrk.consensusStateChangedChannels
+}
+
+func (wrk *worker) SetConsensusStateChangedChannels(consensusStateChangedChannels chan bool) {
+	wrk.consensusStateChangedChannels = consensusStateChangedChannels
 }
 
 // subroundStartRound
@@ -257,6 +305,22 @@ func (sr *subroundStartRound) SetConsensusState(consensusState *spos.ConsensusSt
 	sr.consensusState = consensusState
 }
 
+func (sr *subroundStartRound) Rounder() consensus.Rounder {
+	return sr.rounder
+}
+
+func (sr *subroundStartRound) SetRounder(rounder consensus.Rounder) {
+	sr.rounder = rounder
+}
+
+func (sr *subroundStartRound) SyncTimer() ntp.SyncTimer {
+	return sr.syncTimer
+}
+
+func (sr *subroundStartRound) SetSyncTimer(syncTimer ntp.SyncTimer) {
+	sr.syncTimer = syncTimer
+}
+
 func (sr *subroundStartRound) DoStartRoundJob() bool {
 	return sr.doStartRoundJob()
 }
@@ -267,6 +331,10 @@ func (sr *subroundStartRound) DoStartRoundConsensusCheck() bool {
 
 func (sr *subroundStartRound) GenerateNextConsensusGroup(roundIndex int32) error {
 	return sr.generateNextConsensusGroup(roundIndex)
+}
+
+func (sr *subroundStartRound) RemainingTimeInCurrentRound() time.Duration {
+	return sr.remainingTimeInCurrentRound()
 }
 
 // subroundBlock
@@ -297,11 +365,11 @@ func (sr *subroundBlock) SetConsensusState(consensusState *spos.ConsensusState) 
 	sr.consensusState = consensusState
 }
 
-func (sr *subroundBlock) Rounder() round.Rounder {
+func (sr *subroundBlock) Rounder() consensus.Rounder {
 	return sr.rounder
 }
 
-func (sr *subroundBlock) SetRounder(rounder round.Rounder) {
+func (sr *subroundBlock) SetRounder(rounder consensus.Rounder) {
 	sr.rounder = rounder
 }
 
@@ -317,7 +385,7 @@ func (sr *subroundBlock) DoBlockJob() bool {
 	return sr.doBlockJob()
 }
 
-func (sr *subroundBlock) ReceivedBlockBody(cnsDta *spos.ConsensusData) bool {
+func (sr *subroundBlock) ReceivedBlockBody(cnsDta *spos.ConsensusMessage) bool {
 	return sr.receivedBlockBody(cnsDta)
 }
 
@@ -325,7 +393,7 @@ func (sr *subroundBlock) DecodeBlockBody(dta []byte) *block.TxBlockBody {
 	return sr.decodeBlockBody(dta)
 }
 
-func (sr *subroundBlock) ReceivedBlockHeader(cnsDta *spos.ConsensusData) bool {
+func (sr *subroundBlock) ReceivedBlockHeader(cnsDta *spos.ConsensusMessage) bool {
 	return sr.receivedBlockHeader(cnsDta)
 }
 
@@ -333,7 +401,7 @@ func (sr *subroundBlock) DecodeBlockHeader(dta []byte) *block.Header {
 	return sr.decodeBlockHeader(dta)
 }
 
-func (sr *subroundBlock) ProcessReceivedBlock(cnsDta *spos.ConsensusData) bool {
+func (sr *subroundBlock) ProcessReceivedBlock(cnsDta *spos.ConsensusMessage) bool {
 	return sr.processReceivedBlock(cnsDta)
 }
 
@@ -345,8 +413,12 @@ func (sr *subroundBlock) IsBlockReceived(threshold int) bool {
 	return sr.isBlockReceived(threshold)
 }
 
-func (sr *subroundBlock) CheckIfBlockIsValid(receivedHeader *block.Header) bool {
-	return sr.checkIfBlockIsValid(receivedHeader)
+func (sr *subroundBlock) RemainingTimeInCurrentRound() time.Duration {
+	return sr.remainingTimeInCurrentRound()
+}
+
+func (sr *subroundBlock) HaveTimeInCurrentSubound() bool {
+	return sr.haveTimeInCurrentSubound()
 }
 
 // subroundCommitmentHash
@@ -369,11 +441,11 @@ func (sr *subroundCommitmentHash) SetMultiSigner(multiSigner crypto.MultiSigner)
 	sr.multiSigner = multiSigner
 }
 
-func (sr *subroundCommitmentHash) Rounder() round.Rounder {
+func (sr *subroundCommitmentHash) Rounder() consensus.Rounder {
 	return sr.rounder
 }
 
-func (sr *subroundCommitmentHash) SetRounder(rounder round.Rounder) {
+func (sr *subroundCommitmentHash) SetRounder(rounder consensus.Rounder) {
 	sr.rounder = rounder
 }
 
@@ -381,7 +453,7 @@ func (sr *subroundCommitmentHash) DoCommitmentHashJob() bool {
 	return sr.doCommitmentHashJob()
 }
 
-func (sr *subroundCommitmentHash) ReceivedCommitmentHash(cnsDta *spos.ConsensusData) bool {
+func (sr *subroundCommitmentHash) ReceivedCommitmentHash(cnsDta *spos.ConsensusMessage) bool {
 	return sr.receivedCommitmentHash(cnsDta)
 }
 
@@ -413,11 +485,11 @@ func (sr *subroundBitmap) SetConsensusState(consensusState *spos.ConsensusState)
 	sr.consensusState = consensusState
 }
 
-func (sr *subroundBitmap) Rounder() round.Rounder {
+func (sr *subroundBitmap) Rounder() consensus.Rounder {
 	return sr.rounder
 }
 
-func (sr *subroundBitmap) SetRounder(rounder round.Rounder) {
+func (sr *subroundBitmap) SetRounder(rounder consensus.Rounder) {
 	sr.rounder = rounder
 }
 
@@ -425,7 +497,7 @@ func (sr *subroundBitmap) DoBitmapJob() bool {
 	return sr.doBitmapJob()
 }
 
-func (sr *subroundBitmap) ReceivedBitmap(cnsDta *spos.ConsensusData) bool {
+func (sr *subroundBitmap) ReceivedBitmap(cnsDta *spos.ConsensusMessage) bool {
 	return sr.receivedBitmap(cnsDta)
 }
 
@@ -449,11 +521,11 @@ func (sr *subroundCommitment) SetConsensusState(consensusState *spos.ConsensusSt
 	sr.consensusState = consensusState
 }
 
-func (sr *subroundCommitment) Rounder() round.Rounder {
+func (sr *subroundCommitment) Rounder() consensus.Rounder {
 	return sr.rounder
 }
 
-func (sr *subroundCommitment) SetRounder(rounder round.Rounder) {
+func (sr *subroundCommitment) SetRounder(rounder consensus.Rounder) {
 	sr.rounder = rounder
 }
 
@@ -461,7 +533,7 @@ func (sr *subroundCommitment) DoCommitmentJob() bool {
 	return sr.doCommitmentJob()
 }
 
-func (sr *subroundCommitment) ReceivedCommitment(cnsDta *spos.ConsensusData) bool {
+func (sr *subroundCommitment) ReceivedCommitment(cnsDta *spos.ConsensusMessage) bool {
 	return sr.receivedCommitment(cnsDta)
 }
 
@@ -493,11 +565,11 @@ func (sr *subroundSignature) SetMultiSigner(multiSigner crypto.MultiSigner) {
 	sr.multiSigner = multiSigner
 }
 
-func (sr *subroundSignature) Rounder() round.Rounder {
+func (sr *subroundSignature) Rounder() consensus.Rounder {
 	return sr.rounder
 }
 
-func (sr *subroundSignature) SetRounder(rounder round.Rounder) {
+func (sr *subroundSignature) SetRounder(rounder consensus.Rounder) {
 	sr.rounder = rounder
 }
 
@@ -505,7 +577,7 @@ func (sr *subroundSignature) DoSignatureJob() bool {
 	return sr.doSignatureJob()
 }
 
-func (sr *subroundSignature) ReceivedSignature(cnsDta *spos.ConsensusData) bool {
+func (sr *subroundSignature) ReceivedSignature(cnsDta *spos.ConsensusMessage) bool {
 	return sr.receivedSignature(cnsDta)
 }
 

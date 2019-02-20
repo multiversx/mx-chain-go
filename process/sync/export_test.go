@@ -51,3 +51,11 @@ func (hi *headerInfo) Hash() []byte {
 func (hi *headerInfo) IsReceived() bool {
 	return hi.isReceived
 }
+
+func (boot *Bootstrap) NotifySyncStateListners() {
+	boot.notifySyncStateListners()
+}
+
+func (boot *Bootstrap) SyncStateListners() []func(bool) {
+	return boot.syncStateListners
+}

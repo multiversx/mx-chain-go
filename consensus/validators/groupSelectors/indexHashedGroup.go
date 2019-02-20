@@ -5,14 +5,14 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 )
 
 type indexHashedGroupSelector struct {
 	hasher               hashing.Hasher
-	eligibleList         []validators.Validator
-	expandedEligibleList []validators.Validator
+	eligibleList         []consensus.Validator
+	expandedEligibleList []consensus.Validator
 	consensusGroupSize   int
 }
 
@@ -24,8 +24,8 @@ func NewIndexHashedGroupSelector(consensusGroupSize int, hasher hashing.Hasher) 
 
 	ihgs := &indexHashedGroupSelector{
 		hasher:               hasher,
-		eligibleList:         make([]validators.Validator, 0),
-		expandedEligibleList: make([]validators.Validator, 0),
+		eligibleList:         make([]consensus.Validator, 0),
+		expandedEligibleList: make([]consensus.Validator, 0),
 	}
 
 	err := ihgs.SetConsensusGroupSize(consensusGroupSize)
@@ -37,12 +37,12 @@ func NewIndexHashedGroupSelector(consensusGroupSize int, hasher hashing.Hasher) 
 }
 
 // LoadEligibleList loads the eligible list
-func (ihgs *indexHashedGroupSelector) LoadEligibleList(eligibleList []validators.Validator) error {
+func (ihgs *indexHashedGroupSelector) LoadEligibleList(eligibleList []consensus.Validator) error {
 	if eligibleList == nil {
 		return ErrNilInputSlice
 	}
 
-	ihgs.eligibleList = make([]validators.Validator, len(eligibleList))
+	ihgs.eligibleList = make([]consensus.Validator, len(eligibleList))
 	copy(ihgs.eligibleList, eligibleList)
 	return nil
 }
@@ -56,7 +56,7 @@ func (ihgs *indexHashedGroupSelector) LoadEligibleList(eligibleList []validators
 //    exceed the maximum index value permitted by the validator list), and then recheck against temp validator list until
 //    the item at the new proposed index is not found in the list. This new proposed index will be called checked index
 // 4. the item at the checked index is appended in the temp validator list
-func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []validators.Validator, err error) {
+func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []consensus.Validator, err error) {
 	if len(ihgs.eligibleList) < ihgs.consensusGroupSize {
 		return nil, ErrSmallEligibleListSize
 	}
@@ -67,7 +67,7 @@ func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) 
 
 	ihgs.expandedEligibleList = ihgs.expandEligibleList()
 
-	tempList := make([]validators.Validator, 0)
+	tempList := make([]consensus.Validator, 0)
 
 	for startIdx := 0; startIdx < ihgs.consensusGroupSize; startIdx++ {
 		proposedIndex := ihgs.computeListIndex(startIdx, string(randomness))
@@ -79,7 +79,7 @@ func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) 
 	return tempList, nil
 }
 
-func (ihgs *indexHashedGroupSelector) expandEligibleList() []validators.Validator {
+func (ihgs *indexHashedGroupSelector) expandEligibleList() []consensus.Validator {
 	//TODO implement an expand eligible list variant
 	return ihgs.eligibleList
 }
@@ -100,7 +100,7 @@ func (ihgs *indexHashedGroupSelector) computeListIndex(currentIndex int, randomS
 }
 
 // checkIndex returns a checked index starting from a proposed index
-func (ihgs *indexHashedGroupSelector) checkIndex(proposedIndex int, selectedList []validators.Validator) int {
+func (ihgs *indexHashedGroupSelector) checkIndex(proposedIndex int, selectedList []consensus.Validator) int {
 
 	for {
 		v := ihgs.expandedEligibleList[proposedIndex]
@@ -116,7 +116,7 @@ func (ihgs *indexHashedGroupSelector) checkIndex(proposedIndex int, selectedList
 }
 
 // validatorIsInList returns true if a validator has been found in provided list
-func (ihgs *indexHashedGroupSelector) validatorIsInList(v validators.Validator, list []validators.Validator) bool {
+func (ihgs *indexHashedGroupSelector) validatorIsInList(v consensus.Validator, list []consensus.Validator) bool {
 	for i := 0; i < len(list); i++ {
 		if bytes.Equal(v.PubKey(), list[i].PubKey()) {
 			return true

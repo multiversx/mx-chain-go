@@ -1,16 +1,16 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 )
 
 type ChronologyHandlerMock struct {
-	AddSubroundCalled        func(chronology.SubroundHandler)
+	AddSubroundCalled        func(consensus.SubroundHandler)
 	RemoveAllSubroundsCalled func()
 	StartRoundCalled         func()
 }
 
-func (chrm *ChronologyHandlerMock) AddSubround(subroundHandler chronology.SubroundHandler) {
+func (chrm *ChronologyHandlerMock) AddSubround(subroundHandler consensus.SubroundHandler) {
 	if chrm.AddSubroundCalled != nil {
 		chrm.AddSubroundCalled(subroundHandler)
 	}

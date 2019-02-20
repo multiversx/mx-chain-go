@@ -8,11 +8,15 @@ import (
 )
 
 func TestRoundState_NewRoundStateShouldWork(t *testing.T) {
+	t.Parallel()
+
 	rstate := spos.NewRoundState()
 	assert.NotNil(t, rstate)
 }
 
 func TestRoundState_SetJobDoneShouldWork(t *testing.T) {
+	t.Parallel()
+
 	rstate := spos.NewRoundState()
 
 	rstate.SetJobDone(1, true)
@@ -21,6 +25,8 @@ func TestRoundState_SetJobDoneShouldWork(t *testing.T) {
 }
 
 func TestRoundState_ResetJobDoneShouldWork(t *testing.T) {
+	t.Parallel()
+
 	rstate := spos.NewRoundState()
 
 	rstate.SetJobDone(1, true)

@@ -9,11 +9,15 @@ import (
 )
 
 func TestRoundStatus_NewRoundStatusShouldWork(t *testing.T) {
+	t.Parallel()
+
 	rstatus := spos.NewRoundStatus()
 	assert.NotNil(t, rstatus)
 }
 
 func TestRoundStatus_SetRoundStatusShouldWork(t *testing.T) {
+	t.Parallel()
+
 	rstatus := spos.NewRoundStatus()
 
 	rstatus.SetStatus(bn.SrCommitmentHash, spos.SsFinished)
@@ -21,6 +25,8 @@ func TestRoundStatus_SetRoundStatusShouldWork(t *testing.T) {
 }
 
 func TestRoundStatus_ResetRoundStatusShouldWork(t *testing.T) {
+	t.Parallel()
+
 	rstatus := spos.NewRoundStatus()
 
 	rstatus.SetStatus(bn.SrStartRound, spos.SsFinished)

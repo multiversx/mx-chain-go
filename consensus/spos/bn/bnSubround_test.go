@@ -15,11 +15,6 @@ func JobWithSuccess() bool {
 	return true
 }
 
-func JobWithoutSuccess() bool {
-	fmt.Printf("do job without success\n")
-	return false
-}
-
 func CheckWithSuccess() bool {
 	fmt.Printf("do check consensus with success\n")
 	return true
@@ -31,6 +26,7 @@ func CheckWithoutSuccess() bool {
 }
 
 func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
+	t.Parallel()
 
 	sr, err := bn.NewSubround(
 		int(-1),
@@ -47,6 +43,8 @@ func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
 }
 
 func TestSubround_NewSubroundShouldWork(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan bool, 1)
 
 	sr, err := bn.NewSubround(
@@ -67,6 +65,8 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 }
 
 func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -92,6 +92,8 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 }
 
 func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -117,6 +119,8 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 }
 
 func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -142,6 +146,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 }
 
 func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T) {
+	t.Parallel()
 
 	ch := make(chan bool, 1)
 
@@ -168,6 +173,8 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 }
 
 func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhile(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -199,6 +206,8 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 }
 
 func TestSubround_Previous(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -218,6 +227,8 @@ func TestSubround_Previous(t *testing.T) {
 }
 
 func TestSubround_Current(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -237,6 +248,8 @@ func TestSubround_Current(t *testing.T) {
 }
 
 func TestSubround_Next(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -256,6 +269,8 @@ func TestSubround_Next(t *testing.T) {
 }
 
 func TestSubround_StartTime(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -275,6 +290,8 @@ func TestSubround_StartTime(t *testing.T) {
 }
 
 func TestSubround_EndTime(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -294,6 +311,8 @@ func TestSubround_EndTime(t *testing.T) {
 }
 
 func TestSubround_Name(t *testing.T) {
+	t.Parallel()
+
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(

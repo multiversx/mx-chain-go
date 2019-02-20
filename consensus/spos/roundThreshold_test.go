@@ -9,12 +9,16 @@ import (
 )
 
 func TestRoundThreshold_NewThresholdShouldWork(t *testing.T) {
+	t.Parallel()
+
 	rthr := spos.NewRoundThreshold()
 
 	assert.NotNil(t, rthr)
 }
 
 func TestRoundThreshold_SetThresholdShouldWork(t *testing.T) {
+	t.Parallel()
+
 	rthr := spos.NewRoundThreshold()
 
 	rthr.SetThreshold(bn.SrBlock, 1)

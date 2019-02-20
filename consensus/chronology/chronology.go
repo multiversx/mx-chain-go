@@ -5,8 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 )
@@ -17,20 +16,20 @@ var log = logger.NewDefaultLogger()
 type chronology struct {
 	genesisTime time.Time
 
-	rounder   round.Rounder
+	rounder   consensus.Rounder
 	syncTimer ntp.SyncTimer
 
 	subroundId int
 
 	subrounds        map[int]int
-	subroundHandlers []SubroundHandler
+	subroundHandlers []consensus.SubroundHandler
 	mutSubrounds     sync.RWMutex
 }
 
-// NewChronology defines a new chronology object
+// NewChronology creates a new chronology object
 func NewChronology(
 	genesisTime time.Time,
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
 ) (*chronology, error) {
 
@@ -51,29 +50,29 @@ func NewChronology(
 	chr.subroundId = -1
 
 	chr.subrounds = make(map[int]int)
-	chr.subroundHandlers = make([]SubroundHandler, 0)
+	chr.subroundHandlers = make([]consensus.SubroundHandler, 0)
 
 	return &chr, nil
 }
 
 func checkNewChronologyParams(
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
 ) error {
 
 	if rounder == nil {
-		return spos.ErrNilRounder
+		return ErrNilRounder
 	}
 
 	if syncTimer == nil {
-		return spos.ErrNilSyncTimer
+		return ErrNilSyncTimer
 	}
 
 	return nil
 }
 
 // AddSubround adds new SubroundHandler implementation to the chronology
-func (chr *chronology) AddSubround(subroundHandler SubroundHandler) {
+func (chr *chronology) AddSubround(subroundHandler consensus.SubroundHandler) {
 	chr.mutSubrounds.Lock()
 
 	chr.subrounds[subroundHandler.Current()] = len(chr.subroundHandlers)
@@ -87,7 +86,7 @@ func (chr *chronology) RemoveAllSubrounds() {
 	chr.mutSubrounds.Lock()
 
 	chr.subrounds = make(map[int]int)
-	chr.subroundHandlers = make([]SubroundHandler, 0)
+	chr.subroundHandlers = make([]consensus.SubroundHandler, 0)
 
 	chr.mutSubrounds.Unlock()
 }
@@ -114,13 +113,10 @@ func (chr *chronology) startRound() {
 		return
 	}
 
-	log.Info(fmt.Sprintf(
-		"\n%s.................... SUBROUND %s BEGINS ....................\n\n",
-		chr.syncTimer.FormattedCurrentTime(),
-		sr.Name(),
-	))
+	msg := fmt.Sprintf("SUBROUND %s BEGINS", sr.Name())
+	log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
 
-	if !sr.DoWork(chr.haveTimeInCurrentRound) {
+	if !sr.DoWork(chr.remainingTimeInCurrentRound) {
 		return
 	}
 
@@ -133,11 +129,8 @@ func (chr *chronology) updateRound() {
 	chr.rounder.UpdateRound(chr.genesisTime, chr.syncTimer.CurrentTime())
 
 	if oldRoundIndex != chr.rounder.Index() {
-		log.Info(fmt.Sprintf(
-			"\n%s############################## ROUND %d BEGINS (%d) ##############################\n\n",
-			chr.syncTimer.FormattedCurrentTime(),
-			chr.rounder.Index(),
-			chr.rounder.TimeStamp().Unix()))
+		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.rounder.Index(), chr.rounder.TimeStamp().Unix())
+		log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
 
 		chr.initRound()
 	}
@@ -157,7 +150,7 @@ func (chr *chronology) initRound() {
 }
 
 // loadSubroundHandler returns the implementation of SubroundHandler given by the subroundId
-func (chr *chronology) loadSubroundHandler(subroundId int) SubroundHandler {
+func (chr *chronology) loadSubroundHandler(subroundId int) consensus.SubroundHandler {
 	chr.mutSubrounds.RLock()
 	defer chr.mutSubrounds.RUnlock()
 
@@ -176,11 +169,11 @@ func (chr *chronology) loadSubroundHandler(subroundId int) SubroundHandler {
 	return chr.subroundHandlers[index]
 }
 
-func (chr *chronology) haveTimeInCurrentRound() time.Duration {
+func (chr *chronology) remainingTimeInCurrentRound() time.Duration {
 	roundStartTime := chr.rounder.TimeStamp()
 	currentTime := chr.syncTimer.CurrentTime()
 	elapsedTime := currentTime.Sub(roundStartTime)
-	haveTime := float64(chr.rounder.TimeDuration()) - float64(elapsedTime)
+	remainingTime := chr.rounder.TimeDuration() - elapsedTime
 
-	return time.Duration(haveTime)
+	return time.Duration(remainingTime)
 }

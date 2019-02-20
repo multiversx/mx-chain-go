@@ -41,6 +41,8 @@ func initSubroundCommitment() bn.SubroundCommitment {
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilSubroundShouldFail(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
@@ -61,6 +63,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSubroundShouldFail(t *testin
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *testing.T) {
+	t.Parallel()
+
 	multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
@@ -92,6 +96,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
@@ -123,6 +129,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *tes
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
 	syncTimerMock := mock.SyncTimerMock{}
@@ -154,6 +162,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
@@ -185,6 +195,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testi
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
@@ -217,6 +229,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunction
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
@@ -249,6 +263,8 @@ func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
 }
 
 func TestSubroundCommitment_DoCommitmentJob(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitment()
 
 	r := sr.DoCommitmentJob()
@@ -285,11 +301,13 @@ func TestSubroundCommitment_DoCommitmentJob(t *testing.T) {
 }
 
 func TestSubroundCommitment_ReceivedCommitment(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitment()
 
 	commitment := []byte("commitment")
 
-	cnsDta := spos.NewConsensusData(
+	cnsMsg := spos.NewConsensusMessage(
 		sr.ConsensusState().Data,
 		commitment,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
@@ -299,42 +317,48 @@ func TestSubroundCommitment_ReceivedCommitment(t *testing.T) {
 		0)
 
 	sr.ConsensusState().Data = nil
-	r := sr.ReceivedCommitment(cnsDta)
+	r := sr.ReceivedCommitment(cnsMsg)
 	assert.False(t, r)
 
 	sr.ConsensusState().Data = []byte("X")
 	sr.ConsensusState().SetStatus(bn.SrCommitment, spos.SsFinished)
 
-	r = sr.ReceivedCommitment(cnsDta)
+	r = sr.ReceivedCommitment(cnsMsg)
 	assert.False(t, r)
 
 	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrBitmap, true)
 	sr.ConsensusState().SetStatus(bn.SrCommitment, spos.SsFinished)
 
-	r = sr.ReceivedCommitment(cnsDta)
+	r = sr.ReceivedCommitment(cnsMsg)
 	assert.False(t, r)
 
 	sr.ConsensusState().SetStatus(bn.SrCommitment, spos.SsNotFinished)
 
-	r = sr.ReceivedCommitment(cnsDta)
+	r = sr.ReceivedCommitment(cnsMsg)
 	assert.True(t, r)
-	isCommJobDone, _ := sr.ConsensusState().GetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrCommitment)
+	isCommJobDone, _ := sr.ConsensusState().JobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrCommitment)
 	assert.True(t, isCommJobDone)
 }
 
 func TestSubroundCommitment_DoCommitmentConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitment()
 	sr.ConsensusState().RoundCanceled = true
 	assert.False(t, sr.DoCommitmentConsensusCheck())
 }
 
 func TestSubroundCommitment_DoCommitmentConsensusCheckShouldReturnTrueWhenSubroundIsFinished(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitment()
 	sr.ConsensusState().SetStatus(bn.SrCommitment, spos.SsFinished)
 	assert.True(t, sr.DoCommitmentConsensusCheck())
 }
 
 func TestSubroundCommitment_DoCommitmentConsensusCheckShouldReturnTrueWhenCommitmentsCollectedReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitment()
 
 	for i := 0; i < sr.ConsensusState().Threshold(bn.SrBitmap); i++ {
@@ -346,11 +370,15 @@ func TestSubroundCommitment_DoCommitmentConsensusCheckShouldReturnTrueWhenCommit
 }
 
 func TestSubroundCommitment_DoCommitmentConsensusCheckShouldReturnFalseWhenCommitmentsCollectedReturnFalse(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitment()
 	assert.False(t, sr.DoCommitmentConsensusCheck())
 }
 
 func TestSubroundCommitment_CommitmentsCollected(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitment()
 
 	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
@@ -366,14 +394,14 @@ func TestSubroundCommitment_CommitmentsCollected(t *testing.T) {
 
 	sr.ConsensusState().SetJobDone("A", bn.SrBitmap, true)
 	sr.ConsensusState().SetJobDone("C", bn.SrBitmap, true)
-	isJobDone, _ := sr.ConsensusState().GetJobDone("C", bn.SrBitmap)
+	isJobDone, _ := sr.ConsensusState().JobDone("C", bn.SrBitmap)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
 	sr.ConsensusState().SetJobDone("B", bn.SrCommitment, true)
-	isJobDone, _ = sr.ConsensusState().GetJobDone("B", bn.SrCommitment)
+	isJobDone, _ = sr.ConsensusState().JobDone("B", bn.SrCommitment)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentsCollected(2)

@@ -3,20 +3,20 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors/mock"
 )
 
 type ValidatorGroupSelectorMock struct {
-	ComputeValidatorsGroupCalled func([]byte) ([]validators.Validator, error)
+	ComputeValidatorsGroupCalled func([]byte) ([]consensus.Validator, error)
 }
 
-func (vgsm ValidatorGroupSelectorMock) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []validators.Validator, err error) {
+func (vgsm ValidatorGroupSelectorMock) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []consensus.Validator, err error) {
 	if vgsm.ComputeValidatorsGroupCalled != nil {
 		return vgsm.ComputeValidatorsGroupCalled(randomness)
 	}
 
-	list := []validators.Validator{
+	list := []consensus.Validator{
 		mock.NewValidatorMock(big.NewInt(0), 0, []byte("A")),
 		mock.NewValidatorMock(big.NewInt(0), 0, []byte("B")),
 		mock.NewValidatorMock(big.NewInt(0), 0, []byte("C")),
@@ -35,7 +35,7 @@ func (vgsm ValidatorGroupSelectorMock) ConsensusGroupSize() int {
 	panic("implement me")
 }
 
-func (vgsm ValidatorGroupSelectorMock) LoadEligibleList(eligibleList []validators.Validator) error {
+func (vgsm ValidatorGroupSelectorMock) LoadEligibleList(eligibleList []consensus.Validator) error {
 	return nil
 }
 

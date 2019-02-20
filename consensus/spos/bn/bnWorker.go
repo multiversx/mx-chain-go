@@ -1,10 +1,11 @@
 package bn
 
 import (
+	"encoding/hex"
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -17,41 +18,40 @@ import (
 
 var log = logger.NewDefaultLogger()
 
-// Worker defines the data needed by spos to communicate between nodes which are in the validators group
-type Worker struct {
+// worker defines the data needed by spos to communicate between nodes which are in the validators group
+type worker struct {
 	bootstraper      process.Bootstraper
 	consensusState   *spos.ConsensusState
 	keyGenerator     crypto.KeyGenerator
 	marshalizer      marshal.Marshalizer
 	privateKey       crypto.PrivateKey
-	rounder          round.Rounder
+	rounder          consensus.Rounder
 	shardCoordinator sharding.ShardCoordinator
 
-	ReceivedMessages      map[MessageType][]*spos.ConsensusData
-	ReceivedMessagesCalls map[MessageType]func(*spos.ConsensusData) bool
+	receivedMessages      map[MessageType][]*spos.ConsensusMessage
+	receivedMessagesCalls map[MessageType]func(*spos.ConsensusMessage) bool
 
-	ExecuteMessageChannel        chan *spos.ConsensusData
-	ReceivedMessagesChannel      chan *spos.ConsensusData
-	ConsensusStateChangedChannel chan bool
+	executeMessageChannel         chan *spos.ConsensusMessage
+	consensusStateChangedChannels chan bool
 
 	BroadcastTxBlockBody func([]byte)
 	BroadcastHeader      func([]byte)
-	SendMessage          func(consensus *spos.ConsensusData)
+	SendMessage          func(consensus *spos.ConsensusMessage)
 
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
 }
 
-// NewWorker creates a new Worker object
+// NewWorker creates a new worker object
 func NewWorker(
 	bootstraper process.Bootstraper,
 	consensusState *spos.ConsensusState,
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	shardCoordinator sharding.ShardCoordinator,
-) (*Worker, error) {
+) (*worker, error) {
 
 	err := checkNewWorkerParams(
 		bootstraper,
@@ -67,7 +67,7 @@ func NewWorker(
 		return nil, err
 	}
 
-	wrk := Worker{
+	wrk := worker{
 		bootstraper:      bootstraper,
 		consensusState:   consensusState,
 		keyGenerator:     keyGenerator,
@@ -77,14 +77,14 @@ func NewWorker(
 		shardCoordinator: shardCoordinator,
 	}
 
-	wrk.ExecuteMessageChannel = make(chan *spos.ConsensusData)
-	wrk.ReceivedMessagesChannel = make(chan *spos.ConsensusData, consensusState.ConsensusGroupSize()*consensusSubrounds)
-	wrk.ReceivedMessagesCalls = make(map[MessageType]func(*spos.ConsensusData) bool)
-	wrk.ConsensusStateChangedChannel = make(chan bool, 1)
+	wrk.executeMessageChannel = make(chan *spos.ConsensusMessage)
+	wrk.receivedMessagesCalls = make(map[MessageType]func(*spos.ConsensusMessage) bool)
+	wrk.consensusStateChangedChannels = make(chan bool, 1)
+
+	wrk.bootstraper.AddSyncStateListner(wrk.receivedSyncState)
 
 	wrk.initReceivedMessages()
 
-	go wrk.checkReceivedMessageChannel()
 	go wrk.checkChannels()
 
 	return &wrk, nil
@@ -96,7 +96,7 @@ func checkNewWorkerParams(
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	shardCoordinator sharding.ShardCoordinator,
 ) error {
 	if bootstraper == nil {
@@ -130,44 +130,52 @@ func checkNewWorkerParams(
 	return nil
 }
 
-func (wrk *Worker) initReceivedMessages() {
+func (wrk *worker) receivedSyncState(isNodeSynchronized bool) {
+	if isNodeSynchronized {
+		if len(wrk.consensusStateChangedChannels) == 0 {
+			wrk.consensusStateChangedChannels <- true
+		}
+	}
+}
+
+func (wrk *worker) initReceivedMessages() {
 	wrk.mutReceivedMessages.Lock()
 
-	wrk.ReceivedMessages = make(map[MessageType][]*spos.ConsensusData)
+	wrk.receivedMessages = make(map[MessageType][]*spos.ConsensusMessage)
 
-	wrk.ReceivedMessages[MtBlockBody] = make([]*spos.ConsensusData, 0)
-	wrk.ReceivedMessages[MtBlockHeader] = make([]*spos.ConsensusData, 0)
-	wrk.ReceivedMessages[MtCommitmentHash] = make([]*spos.ConsensusData, 0)
-	wrk.ReceivedMessages[MtBitmap] = make([]*spos.ConsensusData, 0)
-	wrk.ReceivedMessages[MtCommitment] = make([]*spos.ConsensusData, 0)
-	wrk.ReceivedMessages[MtSignature] = make([]*spos.ConsensusData, 0)
+	wrk.receivedMessages[MtBlockBody] = make([]*spos.ConsensusMessage, 0)
+	wrk.receivedMessages[MtBlockHeader] = make([]*spos.ConsensusMessage, 0)
+	wrk.receivedMessages[MtCommitmentHash] = make([]*spos.ConsensusMessage, 0)
+	wrk.receivedMessages[MtBitmap] = make([]*spos.ConsensusMessage, 0)
+	wrk.receivedMessages[MtCommitment] = make([]*spos.ConsensusMessage, 0)
+	wrk.receivedMessages[MtSignature] = make([]*spos.ConsensusMessage, 0)
 
 	wrk.mutReceivedMessages.Unlock()
 }
 
 // AddReceivedMessageCall adds a new handler function for a received messege type
-func (wrk *Worker) AddReceivedMessageCall(messageType MessageType, receivedMessageCall func(cnsDta *spos.ConsensusData) bool) {
+func (wrk *worker) AddReceivedMessageCall(messageType MessageType, receivedMessageCall func(cnsDta *spos.ConsensusMessage) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.ReceivedMessagesCalls[messageType] = receivedMessageCall
+	wrk.receivedMessagesCalls[messageType] = receivedMessageCall
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
 // RemoveAllReceivedMessagesCalls removes all the functions handlers
-func (wrk *Worker) RemoveAllReceivedMessagesCalls() {
+func (wrk *worker) RemoveAllReceivedMessagesCalls() {
 	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.ReceivedMessagesCalls = make(map[MessageType]func(*spos.ConsensusData) bool)
+	wrk.receivedMessagesCalls = make(map[MessageType]func(*spos.ConsensusMessage) bool)
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
-func (wrk *Worker) getCleanedList(cnsDataList []*spos.ConsensusData) []*spos.ConsensusData {
-	cleanedCnsDataList := make([]*spos.ConsensusData, 0)
+func (wrk *worker) getCleanedList(cnsDataList []*spos.ConsensusMessage) []*spos.ConsensusMessage {
+	cleanedCnsDataList := make([]*spos.ConsensusMessage, 0)
 
 	for i := 0; i < len(cnsDataList); i++ {
 		if cnsDataList[i] == nil {
 			continue
 		}
 
-		if wrk.consensusState.IsMessageForPastRound(wrk.rounder.Index(), cnsDataList[i].RoundIndex) {
+		if wrk.rounder.Index() > cnsDataList[i].RoundIndex {
 			continue
 		}
 
@@ -177,41 +185,52 @@ func (wrk *Worker) getCleanedList(cnsDataList []*spos.ConsensusData) []*spos.Con
 	return cleanedCnsDataList
 }
 
+// TODO: This method should be deleted
+
+// ReceivedMessageMock method redirects the received message to the channel which should handle it
+func (wrk *worker) ReceivedMessageMock(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+	wrk.ReceivedMessage(name, data, msgInfo)
+}
+
 // ReceivedMessage method redirects the received message to the channel which should handle it
-func (wrk *Worker) ReceivedMessage(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+func (wrk *worker) ReceivedMessage(name string, data interface{}, msgInfo *p2p.MessageInfo) error {
 	if wrk.consensusState.RoundCanceled {
-		return
+		return ErrRoundCanceled
 	}
 
-	cnsDta, ok := data.(*spos.ConsensusData)
+	cnsDta, ok := data.(*spos.ConsensusMessage)
 
 	if !ok {
-		return
+		return ErrInvalidConsensusData
 	}
 
-	senderOK := wrk.consensusState.IsNodeInConsensusGroup(string(cnsDta.PubKey))
+	log.Debug(fmt.Sprintf("received %s from %s\n", MessageType(cnsDta.MsgType).String(), hex.EncodeToString(cnsDta.PubKey)))
+
+	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 
 	if !senderOK {
-		return
+		return ErrSenderNotOk
 	}
 
-	if wrk.consensusState.IsMessageForPastRound(wrk.rounder.Index(), cnsDta.RoundIndex) {
-		return
+	if wrk.rounder.Index() > cnsDta.RoundIndex {
+		return ErrMessageForPastRound
 	}
 
 	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) {
-		return
+		return ErrMessageFromItself
 	}
 
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
-		return
+		return ErrInvalidSignature
 	}
 
-	wrk.ReceivedMessagesChannel <- cnsDta
+	go wrk.executeReceivedMessages(cnsDta)
+
+	return nil
 }
 
-func (wrk *Worker) checkSignature(cnsDta *spos.ConsensusData) error {
+func (wrk *worker) checkSignature(cnsDta *spos.ConsensusMessage) error {
 	if cnsDta == nil {
 		return spos.ErrNilConsensusData
 	}
@@ -245,26 +264,17 @@ func (wrk *Worker) checkSignature(cnsDta *spos.ConsensusData) error {
 	return err
 }
 
-func (wrk *Worker) checkReceivedMessageChannel() {
-	for {
-		select {
-		case cnsDta := <-wrk.ReceivedMessagesChannel:
-			wrk.executeReceivedMessages(cnsDta)
-		}
-	}
-}
-
-func (wrk *Worker) executeReceivedMessages(cnsDta *spos.ConsensusData) {
+func (wrk *worker) executeReceivedMessages(cnsDta *spos.ConsensusMessage) {
 	wrk.mutReceivedMessages.Lock()
 
 	msgType := MessageType(cnsDta.MsgType)
 
-	cnsDataList := wrk.ReceivedMessages[msgType]
+	cnsDataList := wrk.receivedMessages[msgType]
 	cnsDataList = append(cnsDataList, cnsDta)
-	wrk.ReceivedMessages[msgType] = cnsDataList
+	wrk.receivedMessages[msgType] = cnsDataList
 
 	for i := MtBlockBody; i <= MtSignature; i++ {
-		cnsDataList = wrk.ReceivedMessages[i]
+		cnsDataList = wrk.receivedMessages[i]
 
 		if len(cnsDataList) == 0 {
 			continue
@@ -272,19 +282,19 @@ func (wrk *Worker) executeReceivedMessages(cnsDta *spos.ConsensusData) {
 
 		wrk.executeMessage(cnsDataList)
 		cleanedCnsDtaList := wrk.getCleanedList(cnsDataList)
-		wrk.ReceivedMessages[i] = cleanedCnsDtaList
+		wrk.receivedMessages[i] = cleanedCnsDtaList
 	}
 
 	wrk.mutReceivedMessages.Unlock()
 }
 
-func (wrk *Worker) executeMessage(cnsDtaList []*spos.ConsensusData) {
+func (wrk *worker) executeMessage(cnsDtaList []*spos.ConsensusMessage) {
 	for i, cnsDta := range cnsDtaList {
 		if cnsDta == nil {
 			continue
 		}
 
-		if wrk.consensusState.IsMessageForOtherRound(wrk.rounder.Index(), cnsDta.RoundIndex) {
+		if wrk.rounder.Index() != cnsDta.RoundIndex {
 			continue
 		}
 
@@ -319,23 +329,23 @@ func (wrk *Worker) executeMessage(cnsDtaList []*spos.ConsensusData) {
 
 		cnsDtaList[i] = nil
 
-		wrk.ExecuteMessageChannel <- cnsDta
+		wrk.executeMessageChannel <- cnsDta
 	}
 }
 
 // checkChannels method is used to listen to the channels through which node receives and consumes,
 // during the round, different messages from the nodes which are in the validators group
-func (wrk *Worker) checkChannels() {
+func (wrk *worker) checkChannels() {
 	for {
 		select {
-		case rcvDta := <-wrk.ExecuteMessageChannel:
+		case rcvDta := <-wrk.executeMessageChannel:
 
 			msgType := MessageType(rcvDta.MsgType)
 
-			if callReceivedMessage, exist := wrk.ReceivedMessagesCalls[msgType]; exist {
+			if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 				if callReceivedMessage(rcvDta) {
-					if len(wrk.ConsensusStateChangedChannel) == 0 {
-						wrk.ConsensusStateChangedChannel <- true
+					if len(wrk.consensusStateChangedChannels) == 0 {
+						wrk.consensusStateChangedChannels <- true
 					}
 				}
 			}
@@ -344,7 +354,7 @@ func (wrk *Worker) checkChannels() {
 }
 
 // sendConsensusMessage sends the consensus message
-func (wrk *Worker) sendConsensusMessage(cnsDta *spos.ConsensusData) bool {
+func (wrk *worker) sendConsensusMessage(cnsDta *spos.ConsensusMessage) bool {
 	signature, err := wrk.genConsensusDataSignature(cnsDta)
 
 	if err != nil {
@@ -365,7 +375,7 @@ func (wrk *Worker) sendConsensusMessage(cnsDta *spos.ConsensusData) bool {
 	return true
 }
 
-func (wrk *Worker) genConsensusDataSignature(cnsDta *spos.ConsensusData) ([]byte, error) {
+func (wrk *worker) genConsensusDataSignature(cnsDta *spos.ConsensusMessage) ([]byte, error) {
 
 	cnsDtaStr, err := wrk.marshalizer.Marshal(cnsDta)
 
@@ -382,7 +392,7 @@ func (wrk *Worker) genConsensusDataSignature(cnsDta *spos.ConsensusData) ([]byte
 	return signature, nil
 }
 
-func (wrk *Worker) broadcastTxBlockBody(blockBody *block.TxBlockBody) error {
+func (wrk *worker) broadcastTxBlockBody(blockBody *block.TxBlockBody) error {
 	if blockBody == nil {
 		return spos.ErrNilTxBlockBody
 	}
@@ -403,7 +413,7 @@ func (wrk *Worker) broadcastTxBlockBody(blockBody *block.TxBlockBody) error {
 	return nil
 }
 
-func (wrk *Worker) broadcastHeader(header *block.Header) error {
+func (wrk *worker) broadcastHeader(header *block.Header) error {
 	if header == nil {
 		return spos.ErrNilBlockHeader
 	}
@@ -424,7 +434,7 @@ func (wrk *Worker) broadcastHeader(header *block.Header) error {
 	return nil
 }
 
-func (wrk *Worker) extend(subroundId int) {
+func (wrk *worker) extend(subroundId int) {
 	log.Info(fmt.Sprintf("extend function is called from subround: %s\n", getSubroundName(subroundId)))
 
 	if wrk.consensusState.RoundCanceled {
@@ -435,7 +445,7 @@ func (wrk *Worker) extend(subroundId int) {
 		return
 	}
 
-	blk, hdr := wrk.bootstraper.CreateEmptyBlock(wrk.shardCoordinator.ShardForCurrentNode())
+	blk, hdr := wrk.bootstraper.CreateAndCommitEmptyBlock(wrk.shardCoordinator.ShardForCurrentNode())
 
 	if blk == nil || hdr == nil {
 		return
@@ -458,9 +468,8 @@ func (wrk *Worker) extend(subroundId int) {
 	return
 }
 
-// getMessageTypeName method returns the name of the message from a given message ID
-func getMessageTypeName(messageType MessageType) string {
-	switch messageType {
+func (msgType MessageType) String() string {
+	switch msgType {
 	case MtBlockBody:
 		return "(BLOCK_BODY)"
 	case MtBlockHeader:

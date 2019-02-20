@@ -51,6 +51,8 @@ func initSubroundEndRound() bn.SubroundEndRound {
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
@@ -76,6 +78,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -112,6 +116,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -148,6 +154,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
 	multiSignerMock := initMultiSignerMock()
@@ -184,6 +192,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
@@ -220,6 +230,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
@@ -256,6 +268,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
@@ -292,6 +306,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastTxBlockBodyFunctionShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
@@ -329,6 +345,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastTxBlockBodyFunctionShou
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastHeaderFunctionShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
@@ -366,6 +384,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastHeaderFunctionShouldFai
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
@@ -403,6 +423,8 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 }
 
 func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	multiSignerMock := initMultiSignerMock()
@@ -419,6 +441,8 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 }
 
 func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	blProcMock := initBlockProcessorMock()
@@ -439,6 +463,8 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 }
 
 func TestSubroundEndRound_DoEndRoundJobErrRemBlockTxOK(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	blProcMock := initBlockProcessorMock()
@@ -455,6 +481,8 @@ func TestSubroundEndRound_DoEndRoundJobErrRemBlockTxOK(t *testing.T) {
 }
 
 func TestSubroundEndRound_DoEndRoundJobErrBroadcastTxBlockBodyOK(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	sr.SetBroadcastTxBlockBody(func(txBlockBody *block.TxBlockBody) error {
@@ -468,6 +496,8 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTxBlockBodyOK(t *testing.T) {
 }
 
 func TestSubroundEndRound_DoEndRoundJobErrBroadcastHeaderOK(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	sr.SetBroadcastHeader(func(header *block.Header) error {
@@ -481,6 +511,8 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastHeaderOK(t *testing.T) {
 }
 
 func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	sr.ConsensusState().Header = &block.Header{}
@@ -490,6 +522,8 @@ func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
 }
 
 func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	sr.ConsensusState().RoundCanceled = true
@@ -499,6 +533,8 @@ func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnFalseWhenRoundIsCa
 }
 
 func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnTrueWhenRoundIsFinished(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	sr.ConsensusState().SetStatus(bn.SrEndRound, spos.SsFinished)
@@ -508,6 +544,8 @@ func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnTrueWhenRoundIsFin
 }
 
 func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnFalseWhenRoundIsNotFinished(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	ok := sr.DoEndRoundConsensusCheck()
@@ -515,6 +553,8 @@ func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnFalseWhenRoundIsNo
 }
 
 func TestSubroundEndRound_CheckSignaturesValidityShouldErrNilSignature(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	err := sr.CheckSignaturesValidity([]byte(string(2)))
@@ -522,6 +562,8 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrNilSignature(t *testin
 }
 
 func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidIndex(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	sr.MultiSigner().Reset(nil, 0)
@@ -533,6 +575,8 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidIndex(t *testin
 }
 
 func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	multiSignerMock := initMultiSignerMock()
@@ -551,6 +595,8 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(
 }
 
 func TestSubroundEndRound_CheckSignaturesValidityShouldRetunNil(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundEndRound()
 
 	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrSignature, true)

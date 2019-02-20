@@ -20,6 +20,7 @@ type BlockProcessorMock struct {
 	GetRootHashCalled             func() []byte
 	noShards                      uint32
 	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
+	CheckBlockValidityCalled      func(blockChain *blockchain.BlockChain, header *block.Header) bool
 }
 
 func (bpm *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
@@ -57,4 +58,8 @@ func (blProcMock BlockProcessorMock) RemoveBlockTxsFromPool(body *block.TxBlockB
 
 func (blProcMock BlockProcessorMock) GetRootHash() []byte {
 	return blProcMock.GetRootHashCalled()
+}
+
+func (blProcMock BlockProcessorMock) CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool {
+	return blProcMock.CheckBlockValidityCalled(blockChain, header)
 }

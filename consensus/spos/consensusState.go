@@ -1,7 +1,7 @@
 package spos
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
@@ -18,23 +18,25 @@ type ConsensusState struct {
 
 	RoundCanceled bool
 
-	*RoundConsensus
-	*RoundThreshold
-	*RoundStatus
+	*roundConsensus
+	*roundThreshold
+	*roundStatus
 }
 
 // NewConsensusState creates a new ConsensusState object
 func NewConsensusState(
-	roundConsensus *RoundConsensus,
-	roundThreshold *RoundThreshold,
-	roundStatus *RoundStatus,
+	roundConsensus *roundConsensus,
+	roundThreshold *roundThreshold,
+	roundStatus *roundStatus,
 ) *ConsensusState {
 
 	cns := ConsensusState{
-		RoundConsensus: roundConsensus,
-		RoundThreshold: roundThreshold,
-		RoundStatus:    roundStatus,
+		roundConsensus: roundConsensus,
+		roundThreshold: roundThreshold,
+		roundStatus:    roundStatus,
 	}
+
+	cns.ResetConsensusState()
 
 	return &cns
 }
@@ -83,7 +85,7 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
 // source for the new selection
-func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs groupSelectors.ValidatorGroupSelector) ([]string, error) {
+func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs consensus.ValidatorGroupSelector) ([]string, error) {
 	validatorsGroup, err := vgs.ComputeValidatorsGroup([]byte(randomSource))
 
 	if err != nil {
@@ -99,23 +101,16 @@ func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs groupS
 	return newConsensusGroup, nil
 }
 
-// IsConsensusDataNotSet method returns true if consensus data for the current subround is not set and false otherwise
-func (cns *ConsensusState) IsConsensusDataNotSet() bool {
-	isConsensusDataNotSet := cns.Data == nil
+// IsConsensusDataSet method returns true if the consensus data for the current subround is set and false otherwise
+func (cns *ConsensusState) IsConsensusDataSet() bool {
+	isConsensusDataSet := cns.Data != nil
 
-	return isConsensusDataNotSet
-}
-
-// IsConsensusDataAlreadySet method returns true if consensus data for the current subround is already set and false otherwise
-func (cns *ConsensusState) IsConsensusDataAlreadySet() bool {
-	isConsensusDataAlreadySet := cns.Data != nil
-
-	return isConsensusDataAlreadySet
+	return isConsensusDataSet
 }
 
 // IsJobDone method returns true if the node job for the current subround is done and false otherwise
 func (cns *ConsensusState) IsJobDone(node string, currentSubroundId int) bool {
-	jobDone, err := cns.GetJobDone(node, currentSubroundId)
+	jobDone, err := cns.JobDone(node, currentSubroundId)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -137,25 +132,11 @@ func (cns *ConsensusState) IsCurrentSubroundFinished(currentSubroundId int) bool
 	return isCurrentSubroundFinished
 }
 
-// IsMessageFromItself method returns true if the message is received from itself and false otherwise
-func (cns *ConsensusState) IsMessageFromItself(node string) bool {
-	isMessageReceivedFromItself := node == cns.SelfPubKey()
+// IsNodeSelf method returns true if the message is received from itself and false otherwise
+func (cns *ConsensusState) IsNodeSelf(node string) bool {
+	isNodeSelf := node == cns.SelfPubKey()
 
-	return isMessageReceivedFromItself
-}
-
-// IsMessageForOtherRound method returns true if the message received is for other round and false otherwise
-func (cns *ConsensusState) IsMessageForOtherRound(currentRoundIndex int32, dataRoundIndex int32) bool {
-	isMessageReceivedForOtherRound := currentRoundIndex != dataRoundIndex
-
-	return isMessageReceivedForOtherRound
-}
-
-// IsMessageForPastRound method returns true if the message received is for an old round and false otherwise
-func (cns *ConsensusState) IsMessageForPastRound(currentRoundIndex int32, dataRoundIndex int32) bool {
-	isMessageReceivedForAnOldRound := currentRoundIndex > dataRoundIndex
-
-	return isMessageReceivedForAnOldRound
+	return isNodeSelf
 }
 
 // IsBlockBodyAlreadyReceived method returns true if block body is already received and false otherwise
@@ -174,7 +155,7 @@ func (cns *ConsensusState) IsHeaderAlreadyReceived() bool {
 
 // CanDoSubroundJob method returns true if the job of the subround can be done and false otherwise
 func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
-	if cns.IsConsensusDataNotSet() {
+	if !cns.IsConsensusDataSet() {
 		return false
 	}
 
@@ -190,12 +171,12 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 }
 
 // CanProcessReceivedMessage method returns true if the message received can be processed and false otherwise
-func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *ConsensusData, currentRoundIndex int32, currentSubroundId int) bool {
-	if cns.IsMessageFromItself(string(cnsDta.PubKey)) {
+func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *ConsensusMessage, currentRoundIndex int32, currentSubroundId int) bool {
+	if cns.IsNodeSelf(string(cnsDta.PubKey)) {
 		return false
 	}
 
-	if cns.IsMessageForOtherRound(currentRoundIndex, cnsDta.RoundIndex) {
+	if currentRoundIndex != cnsDta.RoundIndex {
 		return false
 	}
 
@@ -220,7 +201,7 @@ func (cns *ConsensusState) GenerateBitmap(subroundId int) []byte {
 
 	for i := 0; i < sizeConsensus; i++ {
 		pubKey := cns.ConsensusGroup()[i]
-		isJobDone, err := cns.GetJobDone(pubKey, subroundId)
+		isJobDone, err := cns.JobDone(pubKey, subroundId)
 
 		if err != nil {
 			log.Error(err.Error())

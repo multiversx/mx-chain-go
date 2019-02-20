@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology/mock"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,7 @@ func initSubroundHandlerMock() *mock.SubroundHandlerMock {
 		return 1
 	}
 
-	srm.DoWorkCalled = func(haveTimeInThisRound func() time.Duration) bool {
+	srm.DoWorkCalled = func(remainingTimeInThisRound func() time.Duration) bool {
 		return false
 	}
 
@@ -32,6 +33,8 @@ func initSubroundHandlerMock() *mock.SubroundHandlerMock {
 }
 
 func TestChronology_NewChronologyNilRounderShouldFail(t *testing.T) {
+	t.Parallel()
+
 	syncTimerMock := &mock.SyncTimerMock{}
 
 	genesisTime := time.Now()
@@ -46,6 +49,8 @@ func TestChronology_NewChronologyNilRounderShouldFail(t *testing.T) {
 }
 
 func TestChronology_NewChronologyNilSyncerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 
 	genesisTime := time.Now()
@@ -60,6 +65,8 @@ func TestChronology_NewChronologyNilSyncerShouldFail(t *testing.T) {
 }
 
 func TestChronology_NewChronologyShouldWork(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
 
@@ -75,6 +82,8 @@ func TestChronology_NewChronologyShouldWork(t *testing.T) {
 }
 
 func TestChronology_AddSubroundShouldWork(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
 
@@ -93,6 +102,8 @@ func TestChronology_AddSubroundShouldWork(t *testing.T) {
 }
 
 func TestChronology_RemoveAllSubroundsShouldReturnEmptySubroundHandlersArray(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
 
@@ -115,6 +126,8 @@ func TestChronology_RemoveAllSubroundsShouldReturnEmptySubroundHandlersArray(t *
 }
 
 func TestChronology_StartRoundShouldReturnWhenRoundIndexIsNegative(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 
 	rounderMock.IndexCalled = func() int32 {
@@ -142,6 +155,8 @@ func TestChronology_StartRoundShouldReturnWhenRoundIndexIsNegative(t *testing.T)
 }
 
 func TestChronology_StartRoundShouldReturnWhenLoadSubroundHandlerReturnsNil(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 
 	syncTimerMock := &mock.SyncTimerMock{}
@@ -165,6 +180,8 @@ func TestChronology_StartRoundShouldReturnWhenLoadSubroundHandlerReturnsNil(t *t
 }
 
 func TestChronology_StartRoundShouldReturnWhenDoWorkReturnsFalse(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 
 	syncTimerMock := &mock.SyncTimerMock{}
@@ -188,6 +205,8 @@ func TestChronology_StartRoundShouldReturnWhenDoWorkReturnsFalse(t *testing.T) {
 }
 
 func TestChronology_StartRoundShouldWork(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 
 	syncTimerMock := &mock.SyncTimerMock{}
@@ -201,7 +220,7 @@ func TestChronology_StartRoundShouldWork(t *testing.T) {
 
 	srm := initSubroundHandlerMock()
 
-	srm.DoWorkCalled = func(haveTimeInThisRound func() time.Duration) bool {
+	srm.DoWorkCalled = func(remainingTimeInThisRound func() time.Duration) bool {
 		return true
 	}
 
@@ -215,6 +234,8 @@ func TestChronology_StartRoundShouldWork(t *testing.T) {
 }
 
 func TestChronology_UpdateRoundShouldInitRound(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 
 	syncTimerMock := &mock.SyncTimerMock{}
@@ -236,6 +257,8 @@ func TestChronology_UpdateRoundShouldInitRound(t *testing.T) {
 }
 
 func TestChronology_LoadSubrounderShouldReturnNilWhenSubroundHandlerNotExists(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 
 	syncTimerMock := &mock.SyncTimerMock{}
@@ -251,6 +274,8 @@ func TestChronology_LoadSubrounderShouldReturnNilWhenSubroundHandlerNotExists(t 
 }
 
 func TestChronology_LoadSubrounderShouldReturnNilWhenIndexIsOutOfBound(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 
 	syncTimerMock := &mock.SyncTimerMock{}
@@ -264,17 +289,19 @@ func TestChronology_LoadSubrounderShouldReturnNilWhenIndexIsOutOfBound(t *testin
 
 	chr.AddSubround(initSubroundHandlerMock())
 
-	chr.SetSubroundHandlers(make([]chronology.SubroundHandler, 0))
+	chr.SetSubroundHandlers(make([]consensus.SubroundHandler, 0))
 
 	assert.Nil(t, chr.LoadSubroundHandler(0))
 }
 
-func TestChronology_HaveTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T) {
+func TestChronology_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 
 	syncTimerMock := &mock.SyncTimerMock{}
 
-	timeElapsed := int64(rounderMock.TimeDuration() / 10)
+	timeElapsed := int64(rounderMock.TimeDuration() - 1)
 
 	syncTimerMock.CurrentTimeCalled = func() time.Time {
 		return time.Unix(0, timeElapsed)
@@ -287,18 +314,20 @@ func TestChronology_HaveTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T
 		rounderMock,
 		syncTimerMock)
 
-	haveTime := chr.HaveTimeInCurrentRound()
+	remainingTime := chr.RemainingTimeInCurrentRound()
 
-	assert.Equal(t, time.Duration(int64(rounderMock.TimeDuration())-timeElapsed), haveTime)
-	assert.True(t, haveTime > 0)
+	assert.Equal(t, time.Duration(int64(rounderMock.TimeDuration())-timeElapsed), remainingTime)
+	assert.True(t, remainingTime > 0)
 }
 
-func TestChronology_HaveTimeInCurrentRoundShouldReturnNegativeValue(t *testing.T) {
+func TestChronology_RemainingTimeInCurrentRoundShouldReturnNegativeValue(t *testing.T) {
+	t.Parallel()
+
 	rounderMock := &mock.RounderMock{}
 
 	syncTimerMock := &mock.SyncTimerMock{}
 
-	timeElapsed := int64(rounderMock.TimeDuration() * 2)
+	timeElapsed := int64(rounderMock.TimeDuration() + 1)
 
 	syncTimerMock.CurrentTimeCalled = func() time.Time {
 		return time.Unix(0, timeElapsed)
@@ -311,8 +340,8 @@ func TestChronology_HaveTimeInCurrentRoundShouldReturnNegativeValue(t *testing.T
 		rounderMock,
 		syncTimerMock)
 
-	haveTime := chr.HaveTimeInCurrentRound()
+	remainingTime := chr.RemainingTimeInCurrentRound()
 
-	assert.Equal(t, time.Duration(int64(rounderMock.TimeDuration())-timeElapsed), haveTime)
-	assert.True(t, haveTime < 0)
+	assert.Equal(t, time.Duration(int64(rounderMock.TimeDuration())-timeElapsed), remainingTime)
+	assert.True(t, remainingTime < 0)
 }

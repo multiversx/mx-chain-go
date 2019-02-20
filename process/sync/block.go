@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -29,7 +29,7 @@ type Bootstrap struct {
 	headersNonces data.Uint64Cacher
 	txBlockBodies storage.Cacher
 	blkc          *blockchain.BlockChain
-	rounder       round.Rounder
+	rounder       consensus.Rounder
 	blkExecutor   process.BlockProcessor
 	hasher        hashing.Hasher
 	marshalizer   marshal.Marshalizer
@@ -48,13 +48,17 @@ type Bootstrap struct {
 
 	chStopSync chan bool
 	waitTime   time.Duration
+
+	isNodeSynchronized   bool
+	syncStateListners    []func(bool)
+	mutSyncStateListners sync.RWMutex
 }
 
 // NewBootstrap creates a new Bootstrap object
 func NewBootstrap(
 	transientDataHolder data.TransientDataHolder,
 	blkc *blockchain.BlockChain,
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
 	waitTime time.Duration,
 	hasher hashing.Hasher,
@@ -92,6 +96,8 @@ func NewBootstrap(
 
 	boot.chStopSync = make(chan bool)
 
+	boot.syncStateListners = make([]func(bool), 0)
+
 	return &boot, nil
 }
 
@@ -99,7 +105,7 @@ func NewBootstrap(
 func checkBootstrapNilParameters(
 	transientDataHolder data.TransientDataHolder,
 	blkc *blockchain.BlockChain,
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -146,6 +152,12 @@ func checkBootstrapNilParameters(
 	}
 
 	return nil
+}
+
+func (boot *Bootstrap) AddSyncStateListner(syncStateListner func(bool)) {
+	boot.mutSyncStateListners.Lock()
+	boot.syncStateListners = append(boot.syncStateListners, syncStateListner)
+	boot.mutSyncStateListners.Unlock()
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -281,12 +293,10 @@ func (boot *Bootstrap) syncBlocks() {
 		case <-boot.chStopSync:
 			return
 		default:
-			if boot.ShouldSync() {
-				err := boot.SyncBlock()
+			err := boot.SyncBlock()
 
-				if err != nil {
-					log.Info(err.Error())
-				}
+			if err != nil {
+				log.Info(err.Error())
 			}
 		}
 	}
@@ -299,6 +309,18 @@ func (boot *Bootstrap) syncBlocks() {
 // the block and its transactions. Finally if everything works, the block will be committed in the blockchain,
 // and all this mechanism will be reiterated for the next block.
 func (boot *Bootstrap) SyncBlock() error {
+	isNodeSynchronized := !boot.ShouldSync()
+
+	if isNodeSynchronized != boot.isNodeSynchronized {
+		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
+		boot.isNodeSynchronized = isNodeSynchronized
+		boot.notifySyncStateListners()
+	}
+
+	if boot.isNodeSynchronized {
+		return nil
+	}
+
 	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedTxBodyHash(nil)
 
@@ -338,6 +360,16 @@ func (boot *Bootstrap) SyncBlock() error {
 	log.Info(fmt.Sprintf("block with nonce %d was synced successfully\n", hdr.Nonce))
 
 	return nil
+}
+
+func (boot *Bootstrap) notifySyncStateListners() {
+	boot.mutSyncStateListners.RLock()
+
+	for i := 0; i < len(boot.syncStateListners); i++ {
+		go boot.syncStateListners[i](boot.isNodeSynchronized)
+	}
+
+	boot.mutSyncStateListners.RUnlock()
 }
 
 // getHeaderFromPoolHavingNonce method returns the block header from a given nonce
@@ -624,14 +656,15 @@ func (boot *Bootstrap) ShouldSync() bool {
 	isForkDetected := boot.forkDetector.CheckFork()
 
 	if isForkDetected {
+		log.Info(fmt.Sprintf("fork detected\n"))
 		return true
 	}
 
 	return false
 }
 
-// CreateEmptyBlock creates and commits an empty block
-func (boot *Bootstrap) CreateEmptyBlock(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header) {
+// CreateAndCommitEmptyBlock creates and commits an empty block
+func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header) {
 	log.Info(fmt.Sprintf("creating and broadcasting an empty block\n"))
 
 	boot.blkExecutor.RevertAccountState()

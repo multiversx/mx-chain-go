@@ -3,10 +3,10 @@ package spos_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -44,11 +44,15 @@ func initConsensusState() *spos.ConsensusState {
 }
 
 func TestConsensusState__NewConsensusStateShouldWork(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 	assert.NotNil(t, cns)
 }
 
 func TestConsensusState_ResetConsensusStateShouldWork(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 	cns.RoundCanceled = true
 	cns.ResetConsensusState()
@@ -56,6 +60,8 @@ func TestConsensusState_ResetConsensusStateShouldWork(t *testing.T) {
 }
 
 func TestConsensusState_IsNodeLeaderInCurrentRoundShouldReturnFalseWhenGetLeaderErr(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.SetConsensusGroup(nil)
@@ -63,56 +69,40 @@ func TestConsensusState_IsNodeLeaderInCurrentRoundShouldReturnFalseWhenGetLeader
 }
 
 func TestConsensusState_IsNodeLeaderInCurrentRoundShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	assert.Equal(t, false, cns.IsNodeLeaderInCurrentRound("2"))
 }
 
 func TestConsensusState_IsNodeLeaderInCurrentRoundShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	assert.Equal(t, true, cns.IsNodeLeaderInCurrentRound("1"))
 }
 
 func TestConsensusState_IsSelfLeaderInCurrentRoundShouldReturnFalse(t *testing.T) {
-	eligibleList := []string{"1", "2", "3"}
+	t.Parallel()
 
-	rcns := spos.NewRoundConsensus(
-		eligibleList,
-		3,
-		"2")
-
-	rcns.SetConsensusGroup(eligibleList)
-
-	cns := spos.NewConsensusState(
-		rcns,
-		nil,
-		nil,
-	)
+	cns := initConsensusState()
 
 	assert.False(t, cns.IsSelfLeaderInCurrentRound())
 }
 
 func TestConsensusState_IsSelfLeaderInCurrentRoundShouldReturnTrue(t *testing.T) {
-	eligibleList := []string{"1", "2", "3"}
+	t.Parallel()
 
-	rcns := spos.NewRoundConsensus(
-		eligibleList,
-		3,
-		"2")
-
-	rcns.SetConsensusGroup(eligibleList)
-
-	cns := spos.NewConsensusState(
-		rcns,
-		nil,
-		nil,
-	)
+	cns := initConsensusState()
 
 	assert.False(t, cns.IsSelfLeaderInCurrentRound())
 }
 
 func TestConsensusState_GetLeaderShoudErrNilConsensusGroup(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.SetConsensusGroup(nil)
@@ -122,6 +112,8 @@ func TestConsensusState_GetLeaderShoudErrNilConsensusGroup(t *testing.T) {
 }
 
 func TestConsensusState_GetLeaderShouldErrEmptyConsensusGroup(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.SetConsensusGroup(make([]string, 0))
@@ -131,6 +123,8 @@ func TestConsensusState_GetLeaderShouldErrEmptyConsensusGroup(t *testing.T) {
 }
 
 func TestConsensusState_GetLeaderShouldWork(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	leader, err := cns.GetLeader()
@@ -139,11 +133,13 @@ func TestConsensusState_GetLeaderShouldWork(t *testing.T) {
 }
 
 func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGroupErr(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	vgs := mock.ValidatorGroupSelectorMock{}
 	err := errors.New("error")
-	vgs.ComputeValidatorsGroupCalled = func(randomness []byte) ([]validators.Validator, error) {
+	vgs.ComputeValidatorsGroupCalled = func(randomness []byte) ([]consensus.Validator, error) {
 		return nil, err
 	}
 
@@ -152,6 +148,8 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 }
 
 func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	vgs := mock.ValidatorGroupSelectorMock{}
@@ -161,39 +159,29 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 	assert.NotNil(t, nextConsensusGroup)
 }
 
+func TestConsensusState_IsConsensusDataSetShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	cns := initConsensusState()
+
+	cns.Data = make([]byte, 0)
+
+	assert.True(t, cns.IsConsensusDataSet())
+}
+
 func TestConsensusState_IsConsensusDataNotSetShouldReturnFalse(t *testing.T) {
-	cns := initConsensusState()
+	t.Parallel()
 
-	cns.Data = make([]byte, 0)
-
-	assert.False(t, cns.IsConsensusDataNotSet())
-}
-
-func TestConsensusState_IsConsensusDataNotSetShouldReturnTrue(t *testing.T) {
 	cns := initConsensusState()
 
 	cns.Data = nil
 
-	assert.True(t, cns.IsConsensusDataNotSet())
-}
-
-func TestConsensusState_IsConsensusDataAlreadySetShouldReturnFalse(t *testing.T) {
-	cns := initConsensusState()
-
-	cns.Data = nil
-
-	assert.False(t, cns.IsConsensusDataAlreadySet())
-}
-
-func TestConsensusState_IsConsensusDataAlreadySetShouldReturnTrue(t *testing.T) {
-	cns := initConsensusState()
-
-	cns.Data = make([]byte, 0)
-
-	assert.True(t, cns.IsConsensusDataAlreadySet())
+	assert.False(t, cns.IsConsensusDataSet())
 }
 
 func TestConsensusState_IsJobDoneShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.SetJobDone("1", bn.SrBlock, false)
@@ -207,6 +195,8 @@ func TestConsensusState_IsJobDoneShouldReturnFalse(t *testing.T) {
 }
 
 func TestConsensusState_IsJobDoneShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.SetJobDone("1", bn.SrBlock, true)
@@ -215,6 +205,8 @@ func TestConsensusState_IsJobDoneShouldReturnTrue(t *testing.T) {
 }
 
 func TestConsensusState_IsSelfJobDoneShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, false)
@@ -228,6 +220,8 @@ func TestConsensusState_IsSelfJobDoneShouldReturnFalse(t *testing.T) {
 }
 
 func TestConsensusState_IsSelfJobDoneShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, true)
@@ -236,6 +230,8 @@ func TestConsensusState_IsSelfJobDoneShouldReturnTrue(t *testing.T) {
 }
 
 func TestConsensusState_IsCurrentSubroundFinishedShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.SetStatus(bn.SrBlock, spos.SsNotFinished)
@@ -247,50 +243,33 @@ func TestConsensusState_IsCurrentSubroundFinishedShouldReturnFalse(t *testing.T)
 }
 
 func TestConsensusState_IsCurrentSubroundFinishedShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.SetStatus(bn.SrBlock, spos.SsFinished)
 	assert.True(t, cns.IsCurrentSubroundFinished(bn.SrBlock))
 }
 
-func TestConsensusState_IsMessageFromItselfShouldReturnFalse(t *testing.T) {
+func TestConsensusState_IsNodeSelfShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
-	assert.False(t, cns.IsMessageFromItself(cns.SelfPubKey()+"X"))
+	assert.False(t, cns.IsNodeSelf(cns.SelfPubKey()+"X"))
 }
 
-func TestConsensusState_IsMessageFromItselfShouldReturnTrue(t *testing.T) {
+func TestConsensusState_IsNodeSelfShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
-	assert.True(t, cns.IsMessageFromItself(cns.SelfPubKey()))
-}
-
-func TestConsensusState_IsMessageForOtherRoundShouldReturnFalse(t *testing.T) {
-	cns := initConsensusState()
-
-	assert.False(t, cns.IsMessageForOtherRound(3, 3))
-}
-
-func TestConsensusState_IsMessageForOtherRoundShouldReturnTrue(t *testing.T) {
-	cns := initConsensusState()
-
-	assert.True(t, cns.IsMessageForOtherRound(1, 0))
-}
-
-func TestConsensusState_IsMessageForPastRoundShouldReturnFalse(t *testing.T) {
-	cns := initConsensusState()
-
-	assert.False(t, cns.IsMessageForPastRound(3, 3))
-	assert.False(t, cns.IsMessageForPastRound(3, 4))
-}
-
-func TestConsensusState_IsMessageForPastRoundShouldReturnTrue(t *testing.T) {
-	cns := initConsensusState()
-
-	assert.True(t, cns.IsMessageForPastRound(1, 0))
+	assert.True(t, cns.IsNodeSelf(cns.SelfPubKey()))
 }
 
 func TestConsensusState_IsBlockBodyAlreadyReceivedShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.BlockBody = nil
@@ -299,6 +278,8 @@ func TestConsensusState_IsBlockBodyAlreadyReceivedShouldReturnFalse(t *testing.T
 }
 
 func TestConsensusState_IsBlockBodyAlreadyReceivedShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.BlockBody = &block.TxBlockBody{}
@@ -307,6 +288,8 @@ func TestConsensusState_IsBlockBodyAlreadyReceivedShouldReturnTrue(t *testing.T)
 }
 
 func TestConsensusState_IsHeaderAlreadyReceivedShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.Header = nil
@@ -315,6 +298,8 @@ func TestConsensusState_IsHeaderAlreadyReceivedShouldReturnFalse(t *testing.T) {
 }
 
 func TestConsensusState_IsHeaderAlreadyReceivedShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.Header = &block.Header{}
@@ -323,6 +308,8 @@ func TestConsensusState_IsHeaderAlreadyReceivedShouldReturnTrue(t *testing.T) {
 }
 
 func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenConsensusDataNotSet(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.Data = nil
@@ -331,6 +318,8 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenConsensusDataNotSet
 }
 
 func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenSelfJobIsDone(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.Data = make([]byte, 0)
@@ -340,6 +329,8 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenSelfJobIsDone(t *te
 }
 
 func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenCurrentRoundIsFinished(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.Data = make([]byte, 0)
@@ -350,6 +341,8 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenCurrentRoundIsFinis
 }
 
 func TestConsensusState_CanDoSubroundJobShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	cns.Data = make([]byte, 0)
@@ -360,9 +353,11 @@ func TestConsensusState_CanDoSubroundJobShouldReturnTrue(t *testing.T) {
 }
 
 func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsReceivedFromItself(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
-	cnsDta := &spos.ConsensusData{
+	cnsDta := &spos.ConsensusMessage{
 		RoundIndex: 0,
 		PubKey:     []byte(cns.SelfPubKey()),
 	}
@@ -371,9 +366,11 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsR
 }
 
 func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsReceivedForOtherRound(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
-	cnsDta := &spos.ConsensusData{
+	cnsDta := &spos.ConsensusMessage{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}
@@ -382,9 +379,11 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsR
 }
 
 func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenJobIsDone(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
-	cnsDta := &spos.ConsensusData{
+	cnsDta := &spos.ConsensusMessage{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}
@@ -395,9 +394,11 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenJobIsDone(
 }
 
 func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenCurrentRoundIsFinished(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
-	cnsDta := &spos.ConsensusData{
+	cnsDta := &spos.ConsensusMessage{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}
@@ -408,9 +409,11 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenCurrentRou
 }
 
 func TestConsensusState_CanProcessReceivedMessageShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
-	cnsDta := &spos.ConsensusData{
+	cnsDta := &spos.ConsensusMessage{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}
@@ -419,10 +422,12 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnTrue(t *testing.T) 
 }
 
 func TestConsensusState_GenerateBitmapShouldWork(t *testing.T) {
+	t.Parallel()
+
 	cns := initConsensusState()
 
 	bitmapExpected := make([]byte, cns.ConsensusGroupSize()/8+1)
-	selfIndexInConsensusGroup, _ := cns.IndexSelfConsensusGroup()
+	selfIndexInConsensusGroup, _ := cns.SelfConsensusGroupIndex()
 	bitmapExpected[selfIndexInConsensusGroup/8] |= 1 << (uint16(selfIndexInConsensusGroup) % 8)
 
 	cns.SetJobDone(cns.SelfPubKey(), bn.SrBlock, true)

@@ -9,6 +9,8 @@ import (
 )
 
 func TestEpoch_NewEpochShouldWork(t *testing.T) {
+	t.Parallel()
+
 	genesisTime := time.Now()
 	index := 0
 	epc := epoch.NewEpoch(index, genesisTime)

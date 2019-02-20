@@ -45,6 +45,8 @@ func initSubroundCommitmentHash() bn.SubroundCommitmentHash {
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSubroundShouldFail(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
 	multiSignerMock := initMultiSignerMock()
@@ -67,6 +69,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSubroundShouldFail(t
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShouldFail(t *testing.T) {
+	t.Parallel()
+
 	hasherMock := mock.HasherMock{}
 	multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
@@ -100,6 +104,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShould
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilHasherShouldFail(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
@@ -133,6 +139,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilHasherShouldFail(t *
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilMultisignerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
 	rounderMock := initRounderMock()
@@ -166,6 +174,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilMultisignerShouldFai
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilRounderShouldFail(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
 	multiSignerMock := initMultiSignerMock()
@@ -199,6 +209,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilRounderShouldFail(t 
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSyncTimerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
 	multiSignerMock := initMultiSignerMock()
@@ -232,6 +244,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSyncTimerShouldFail(
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
 	multiSignerMock := initMultiSignerMock()
@@ -266,6 +280,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSendConsensusMessage
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashShouldWork(t *testing.T) {
+	t.Parallel()
+
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
 	multiSignerMock := initMultiSignerMock()
@@ -300,6 +316,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashShouldWork(t *testing.T
 }
 
 func TestSubroundCommitmentHash_DoCommitmentHashJob(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	sr.ConsensusState().SetSelfPubKey(sr.ConsensusState().ConsensusGroup()[0])
@@ -333,6 +351,8 @@ func TestSubroundCommitmentHash_DoCommitmentHashJob(t *testing.T) {
 }
 
 func TestSubroundCommitmentHash_DoCommitmentHashJobErrCreateCommitmentShouldFail(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	multiSignerMock := initMultiSignerMock()
@@ -351,11 +371,13 @@ func TestSubroundCommitmentHash_DoCommitmentHashJobErrCreateCommitmentShouldFail
 }
 
 func TestSubroundCommitmentHash_ReceivedCommitmentHash(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	commitment := []byte("commitment")
 
-	cnsDta := spos.NewConsensusData(
+	cnsMsg := spos.NewConsensusMessage(
 		commitment,
 		nil,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
@@ -366,54 +388,60 @@ func TestSubroundCommitmentHash_ReceivedCommitmentHash(t *testing.T) {
 	)
 
 	sr.ConsensusState().Data = nil
-	r := sr.ReceivedCommitmentHash(cnsDta)
+	r := sr.ReceivedCommitmentHash(cnsMsg)
 	assert.False(t, r)
 
 	sr.ConsensusState().Data = []byte("X")
-	cnsDta.PubKey = []byte(sr.ConsensusState().ConsensusGroup()[0] + "X")
-	r = sr.ReceivedCommitmentHash(cnsDta)
+	cnsMsg.PubKey = []byte(sr.ConsensusState().ConsensusGroup()[0] + "X")
+	r = sr.ReceivedCommitmentHash(cnsMsg)
 	assert.False(t, r)
 
 	sr.ConsensusState().SetStatus(bn.SrCommitmentHash, spos.SsFinished)
-	r = sr.ReceivedCommitmentHash(cnsDta)
+	r = sr.ReceivedCommitmentHash(cnsMsg)
 	assert.False(t, r)
 
 	sr.ConsensusState().SetStatus(bn.SrCommitmentHash, spos.SsNotFinished)
 	sr.ConsensusState().SetSelfPubKey(sr.ConsensusState().ConsensusGroup()[0])
-	cnsDta.PubKey = []byte(sr.ConsensusState().ConsensusGroup()[1])
+	cnsMsg.PubKey = []byte(sr.ConsensusState().ConsensusGroup()[1])
 
 	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
-		if sr.ConsensusState().ConsensusGroup()[i] != string(cnsDta.PubKey) {
+		if sr.ConsensusState().ConsensusGroup()[i] != string(cnsMsg.PubKey) {
 			sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrCommitmentHash, true)
 		}
 	}
 
-	r = sr.ReceivedCommitmentHash(cnsDta)
+	r = sr.ReceivedCommitmentHash(cnsMsg)
 	assert.False(t, r)
 
 	sr.ConsensusState().SetSelfPubKey(sr.ConsensusState().ConsensusGroup()[1])
-	cnsDta.PubKey = []byte(sr.ConsensusState().ConsensusGroup()[0])
+	cnsMsg.PubKey = []byte(sr.ConsensusState().ConsensusGroup()[0])
 	sr.ConsensusState().ResetRoundState()
 
-	r = sr.ReceivedCommitmentHash(cnsDta)
+	r = sr.ReceivedCommitmentHash(cnsMsg)
 	assert.True(t, r)
-	isCommHashJobDone, _ := sr.ConsensusState().GetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrCommitmentHash)
+	isCommHashJobDone, _ := sr.ConsensusState().JobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrCommitmentHash)
 	assert.True(t, isCommHashJobDone)
 }
 
 func TestSubroundCommitmentHash_DoCommitmentHashConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 	sr.ConsensusState().RoundCanceled = true
 	assert.False(t, sr.DoCommitmentHashConsensusCheck())
 }
 
 func TestSubroundCommitmentHash_DoCommitmentHashConsensusCheckShouldReturnTrueWhenSubroundIsFinished(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 	sr.ConsensusState().SetStatus(bn.SrCommitmentHash, spos.SsFinished)
 	assert.True(t, sr.DoCommitmentHashConsensusCheck())
 }
 
 func TestSubroundCommitmentHash_DoCommitmentHashConsensusCheckShouldReturnTrueWhenIsCommitmentHashReceivedReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
@@ -424,6 +452,8 @@ func TestSubroundCommitmentHash_DoCommitmentHashConsensusCheckShouldReturnTrueWh
 }
 
 func TestSubroundCommitmentHash_DoCommitmentHashConsensusCheckShouldReturnTrueWhenCommitmentHashesCollectedReturnTrue(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	for i := 0; i < sr.ConsensusState().Threshold(bn.SrBitmap); i++ {
@@ -435,11 +465,15 @@ func TestSubroundCommitmentHash_DoCommitmentHashConsensusCheckShouldReturnTrueWh
 }
 
 func TestSubroundCommitmentHash_DoCommitmentHashConsensusCheckShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 	assert.False(t, sr.DoCommitmentHashConsensusCheck())
 }
 
 func TestSubroundCommitmentHash_IsCommitmentHashReceived(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
@@ -454,7 +488,7 @@ func TestSubroundCommitmentHash_IsCommitmentHashReceived(t *testing.T) {
 	assert.False(t, ok)
 
 	sr.ConsensusState().SetJobDone("A", bn.SrCommitmentHash, true)
-	isJobDone, _ := sr.ConsensusState().GetJobDone("A", bn.SrCommitmentHash)
+	isJobDone, _ := sr.ConsensusState().JobDone("A", bn.SrCommitmentHash)
 	assert.True(t, isJobDone)
 
 	ok = sr.IsCommitmentHashReceived(2)
@@ -470,6 +504,8 @@ func TestSubroundCommitmentHash_IsCommitmentHashReceived(t *testing.T) {
 }
 
 func TestSubroundCommitmentHash_CommitmentHashesCollected(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
@@ -485,14 +521,14 @@ func TestSubroundCommitmentHash_CommitmentHashesCollected(t *testing.T) {
 
 	sr.ConsensusState().SetJobDone("A", bn.SrBitmap, true)
 	sr.ConsensusState().SetJobDone("C", bn.SrBitmap, true)
-	isJobDone, _ := sr.ConsensusState().GetJobDone("C", bn.SrBitmap)
+	isJobDone, _ := sr.ConsensusState().JobDone("C", bn.SrBitmap)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentHashesCollected(2)
 	assert.False(t, ok)
 
 	sr.ConsensusState().SetJobDone("B", bn.SrCommitmentHash, true)
-	isJobDone, _ = sr.ConsensusState().GetJobDone("B", bn.SrCommitmentHash)
+	isJobDone, _ = sr.ConsensusState().JobDone("B", bn.SrCommitmentHash)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentHashesCollected(2)
@@ -508,6 +544,8 @@ func TestSubroundCommitmentHash_CommitmentHashesCollected(t *testing.T) {
 }
 
 func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnCreateCommitment(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	multiSignerMock := initMultiSignerMock()
@@ -523,6 +561,8 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnCreateCommitmen
 }
 
 func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	sr.ConsensusState().SetSelfPubKey("X")
@@ -534,14 +574,16 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnIndexSelfConsen
 	}
 
 	multiSignerMock.AddCommitmentMock = func(uint16, []byte) error {
-		return spos.ErrSelfNotFoundInConsensus
+		return spos.ErrNotFoundInConsensus
 	}
 
 	_, err := sr.GenCommitmentHash()
-	assert.Equal(t, spos.ErrSelfNotFoundInConsensus, err)
+	assert.Equal(t, spos.ErrNotFoundInConsensus, err)
 }
 
 func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnAddCommitment(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	multiSignerMock := initMultiSignerMock()
@@ -563,6 +605,8 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnAddCommitment(t
 }
 
 func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnSetCommitmentSecret(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	multiSignerMock := initMultiSignerMock()
@@ -588,6 +632,8 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnSetCommitmentSe
 }
 
 func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnAddCommitmentHash(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	multiSignerMock := initMultiSignerMock()
@@ -617,6 +663,8 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnAddCommitmentHa
 }
 
 func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunNil(t *testing.T) {
+	t.Parallel()
+
 	sr := *initSubroundCommitmentHash()
 
 	multiSignerMock := initMultiSignerMock()

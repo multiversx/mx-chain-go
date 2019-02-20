@@ -1990,3 +1990,75 @@ func BenchmarkSortTxByNonce1(b *testing.B) {
 		_, _, _ = blproc.SortTxByNonce(cache)
 	}
 }
+
+func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+
+	bp, _ := blproc.NewBlockProcessor(
+		tdp,
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	blkc := createTestBlockchain()
+
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = 0
+
+	hdr.PrevHash = []byte("X")
+
+	r := bp.CheckBlockValidity(blkc, hdr)
+	assert.False(t, r)
+
+	hdr.PrevHash = []byte("")
+
+	r = bp.CheckBlockValidity(blkc, hdr)
+	assert.True(t, r)
+
+	hdr.Nonce = 2
+
+	r = bp.CheckBlockValidity(blkc, hdr)
+	assert.False(t, r)
+
+	hdr.Nonce = 1
+	blkc.CurrentBlockHeader = hdr
+
+	hdr = &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = 0
+
+	r = bp.CheckBlockValidity(blkc, hdr)
+	assert.False(t, r)
+
+	hdr.Nonce = 2
+	hdr.PrevHash = []byte("X")
+
+	r = bp.CheckBlockValidity(blkc, hdr)
+	assert.False(t, r)
+
+	hdr.Nonce = 3
+	hdr.PrevHash = []byte("")
+
+	r = bp.CheckBlockValidity(blkc, hdr)
+	assert.False(t, r)
+
+	hdr.Nonce = 2
+
+	marshalizerMock := mock.MarshalizerMock{}
+	hasherMock := mock.HasherMock{}
+
+	prevHeader, _ := marshalizerMock.Marshal(blkc.CurrentBlockHeader)
+	hdr.PrevHash = hasherMock.Compute(string(prevHeader))
+
+	r = bp.CheckBlockValidity(blkc, hdr)
+	assert.True(t, r)
+}

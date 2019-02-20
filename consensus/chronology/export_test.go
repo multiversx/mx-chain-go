@@ -2,6 +2,8 @@ package chronology
 
 import (
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 )
 
 func (chr *chronology) StartRound() {
@@ -16,15 +18,15 @@ func (chr *chronology) SetSubroundId(subroundId int) {
 	chr.subroundId = subroundId
 }
 
-func (chr *chronology) LoadSubroundHandler(subround int) SubroundHandler {
+func (chr *chronology) LoadSubroundHandler(subround int) consensus.SubroundHandler {
 	return chr.loadSubroundHandler(subround)
 }
 
-func (chr *chronology) SubroundHandlers() []SubroundHandler {
+func (chr *chronology) SubroundHandlers() []consensus.SubroundHandler {
 	return chr.subroundHandlers
 }
 
-func (chr *chronology) SetSubroundHandlers(subroundHandlers []SubroundHandler) {
+func (chr *chronology) SetSubroundHandlers(subroundHandlers []consensus.SubroundHandler) {
 	chr.subroundHandlers = subroundHandlers
 }
 
@@ -32,6 +34,6 @@ func (chr *chronology) UpdateRound() {
 	chr.updateRound()
 }
 
-func (chr *chronology) HaveTimeInCurrentRound() time.Duration {
-	return chr.haveTimeInCurrentRound()
+func (chr *chronology) RemainingTimeInCurrentRound() time.Duration {
+	return chr.remainingTimeInCurrentRound()
 }

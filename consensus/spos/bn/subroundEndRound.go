@@ -3,7 +3,7 @@ package bn
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -19,7 +19,7 @@ type subroundEndRound struct {
 	blockProcessor process.BlockProcessor
 	consensusState *spos.ConsensusState
 	multiSigner    crypto.MultiSigner
-	rounder        round.Rounder
+	rounder        consensus.Rounder
 	syncTimer      ntp.SyncTimer
 
 	broadcastTxBlockBody func(*block.TxBlockBody) error
@@ -33,7 +33,7 @@ func NewSubroundEndRound(
 	blockProcessor process.BlockProcessor,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
 	broadcastTxBlockBody func(*block.TxBlockBody) error,
 	broadcastHeader func(*block.Header) error,
@@ -81,7 +81,7 @@ func checkNewSubroundEndRoundParams(
 	blockProcessor process.BlockProcessor,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
 	broadcastTxBlockBody func(*block.TxBlockBody) error,
 	broadcastHeader func(*block.Header) error,
@@ -125,9 +125,7 @@ func checkNewSubroundEndRoundParams(
 	return nil
 }
 
-// doEndRoundJob method is the function which actually does the job of the EndRound subround
-// (it is used as the handler function of the doSubroundJob pointer variable function in subround struct,
-// from spos package)
+// doEndRoundJob method does the job of the end round subround
 func (sr *subroundEndRound) doEndRoundJob() bool {
 	bitmap := sr.consensusState.GenerateBitmap(SrBitmap)
 
@@ -178,15 +176,15 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		log.Error(err.Error())
 	}
 
-	log.Info(fmt.Sprintf("%sStep 6: Commiting and broadcasting TxBlockBody and Header\n", sr.syncTimer.FormattedCurrentTime()))
+	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been commited and broadcasted \n", sr.syncTimer.FormattedCurrentTime()))
 
+	actionMsg := "synchronized"
 	if sr.consensusState.IsSelfLeaderInCurrentRound() {
-		log.Info(fmt.Sprintf("\n%s++++++++++++++++++++ ADDED PROPOSED BLOCK WITH NONCE  %d  IN BLOCKCHAIN ++++++++++++++++++++\n\n",
-			sr.syncTimer.FormattedCurrentTime(), sr.consensusState.Header.Nonce))
-	} else {
-		log.Info(fmt.Sprintf("\n%sxxxxxxxxxxxxxxxxxxxx ADDED SYNCHRONIZED BLOCK WITH NONCE  %d  IN BLOCKCHAIN xxxxxxxxxxxxxxxxxxxx\n\n",
-			sr.syncTimer.FormattedCurrentTime(), sr.consensusState.Header.Nonce))
+		actionMsg = "proposed"
 	}
+
+	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.consensusState.Header.Nonce)
+	log.Info(log.Headline(msg, sr.syncTimer.FormattedCurrentTime(), "+"))
 
 	return true
 }
@@ -223,7 +221,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 		}
 
 		pubKey := consensusGroup[i]
-		isSigJobDone, err := sr.consensusState.GetJobDone(pubKey, SrSignature)
+		isSigJobDone, err := sr.consensusState.JobDone(pubKey, SrSignature)
 
 		if err != nil {
 			return err

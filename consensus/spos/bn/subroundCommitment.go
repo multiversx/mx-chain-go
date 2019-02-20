@@ -3,7 +3,7 @@ package bn
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
@@ -14,10 +14,10 @@ type subroundCommitment struct {
 
 	consensusState *spos.ConsensusState
 	multiSigner    crypto.MultiSigner
-	rounder        round.Rounder
+	rounder        consensus.Rounder
 	syncTimer      ntp.SyncTimer
 
-	sendConsensusMessage func(*spos.ConsensusData) bool
+	sendConsensusMessage func(*spos.ConsensusMessage) bool
 }
 
 // NewSubroundCommitment creates a subroundCommitment object
@@ -25,9 +25,9 @@ func NewSubroundCommitment(
 	subround *subround,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
-	sendConsensusMessage func(*spos.ConsensusData) bool,
+	sendConsensusMessage func(*spos.ConsensusMessage) bool,
 	extend func(subroundId int),
 ) (*subroundCommitment, error) {
 
@@ -64,9 +64,9 @@ func checkNewSubroundCommitmentParams(
 	subround *subround,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
-	sendConsensusMessage func(*spos.ConsensusData) bool,
+	sendConsensusMessage func(*spos.ConsensusMessage) bool,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
@@ -95,9 +95,7 @@ func checkNewSubroundCommitmentParams(
 	return nil
 }
 
-// doCommitmentJob method is the function which is actually used to job the commitment for the received block,
-// in the Commitment subround (it is used as the handler function of the doSubroundJob pointer variable function
-// in subround struct, from spos package)
+// doCommitmentJob method does the job of the commitment subround
 func (sr *subroundCommitment) doCommitmentJob() bool {
 	if !sr.consensusState.IsSelfJobDone(SrBitmap) { // is NOT self in the leader's bitmap?
 		return false
@@ -107,7 +105,7 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 		return false
 	}
 
-	selfIndex, err := sr.consensusState.IndexSelfConsensusGroup()
+	selfIndex, err := sr.consensusState.SelfConsensusGroupIndex()
 
 	if err != nil {
 		log.Error(err.Error())
@@ -122,7 +120,7 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 		return false
 	}
 
-	dta := spos.NewConsensusData(
+	msg := spos.NewConsensusMessage(
 		sr.consensusState.Data,
 		commitment,
 		[]byte(sr.consensusState.SelfPubKey()),
@@ -131,11 +129,11 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 		uint64(sr.rounder.TimeStamp().Unix()),
 		sr.rounder.Index())
 
-	if !sr.sendConsensusMessage(dta) {
+	if !sr.sendConsensusMessage(msg) {
 		return false
 	}
 
-	log.Info(fmt.Sprintf("%sStep 4: Sending commitment\n", sr.syncTimer.FormattedCurrentTime()))
+	log.Info(fmt.Sprintf("%sStep 4: commitment has been sent\n", sr.syncTimer.FormattedCurrentTime()))
 
 	err = sr.consensusState.SetSelfJobDone(SrCommitment, true)
 
@@ -148,12 +146,12 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 }
 
 // receivedCommitment method is called when a commitment is received through the commitment channel.
-// If the commitment is valid, than the jobDone map coresponding to the node which sent it,
-// is set on true for the subround Comitment
-func (sr *subroundCommitment) receivedCommitment(cnsDta *spos.ConsensusData) bool {
+// If the commitment is valid, than the jobDone map corresponding to the node which sent it,
+// is set on true for the subround Commitment
+func (sr *subroundCommitment) receivedCommitment(cnsDta *spos.ConsensusMessage) bool {
 	node := string(cnsDta.PubKey)
 
-	if sr.consensusState.IsConsensusDataNotSet() {
+	if !sr.consensusState.IsConsensusDataSet() {
 		return false
 	}
 
@@ -202,7 +200,12 @@ func (sr *subroundCommitment) doCommitmentConsensusCheck() bool {
 	threshold := sr.consensusState.Threshold(SrCommitment)
 
 	if sr.commitmentsCollected(threshold) {
-		sr.printCommitmentCM() // only for printing commitment consensus messages
+
+		log.Info(fmt.Sprintf("%sStep 4: received %d from %d commitments, which are matching with bitmap and are enough\n",
+			sr.syncTimer.FormattedCurrentTime(), sr.consensusState.ComputeSize(SrCommitment), len(sr.consensusState.ConsensusGroup())))
+
+		log.Info(fmt.Sprintf("%sStep 4: subround %s has been finished\n", sr.syncTimer.FormattedCurrentTime(), sr.Name()))
+
 		sr.consensusState.SetStatus(SrCommitment, spos.SsFinished)
 
 		return true
@@ -218,7 +221,7 @@ func (sr *subroundCommitment) commitmentsCollected(threshold int) bool {
 
 	for i := 0; i < len(sr.consensusState.ConsensusGroup()); i++ {
 		node := sr.consensusState.ConsensusGroup()[i]
-		isBitmapJobDone, err := sr.consensusState.GetJobDone(node, SrBitmap)
+		isBitmapJobDone, err := sr.consensusState.JobDone(node, SrBitmap)
 
 		if err != nil {
 			log.Error(err.Error())
@@ -226,7 +229,7 @@ func (sr *subroundCommitment) commitmentsCollected(threshold int) bool {
 		}
 
 		if isBitmapJobDone {
-			isCommJobDone, err := sr.consensusState.GetJobDone(node, SrCommitment)
+			isCommJobDone, err := sr.consensusState.JobDone(node, SrCommitment)
 
 			if err != nil {
 				log.Error(err.Error())
@@ -241,12 +244,4 @@ func (sr *subroundCommitment) commitmentsCollected(threshold int) bool {
 	}
 
 	return n >= threshold
-}
-
-// printCommitmentCM method prints the (COMMITMENT) subround consensus messages
-func (sr *subroundCommitment) printCommitmentCM() {
-	log.Info(fmt.Sprintf("%sStep 4: Received %d from %d commitments, which are matching with bitmap and are enough\n",
-		sr.syncTimer.FormattedCurrentTime(), sr.consensusState.ComputeSize(SrCommitment), len(sr.consensusState.ConsensusGroup())))
-
-	log.Info(fmt.Sprintf("%sStep 4: subround (COMMITMENT) has been finished\n", sr.syncTimer.FormattedCurrentTime()))
 }

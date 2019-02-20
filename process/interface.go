@@ -34,6 +34,7 @@ type BlockProcessor interface {
 	CreateEmptyBlockBody(shardId uint32, round int32) *block.TxBlockBody
 	RemoveBlockTxsFromPool(body *block.TxBlockBody) error
 	GetRootHash() []byte
+	CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -114,8 +115,9 @@ type Resolver interface {
 // Bootstraper is an interface that defines the behaviour of a struct that is able
 // to syncronize the node
 type Bootstraper interface {
+	CreateAndCommitEmptyBlock(uint32) (*block.TxBlockBody, *block.Header)
+	AddSyncStateListner(func(bool))
 	ShouldSync() bool
-	CreateEmptyBlock(uint32) (*block.TxBlockBody, *block.Header)
 }
 
 // ForkDetector is an interface that defines the behaviour of a struct that is able

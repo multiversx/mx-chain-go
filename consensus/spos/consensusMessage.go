@@ -6,8 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
-// ConsensusData defines the data needed by spos to communicate between nodes over network in all subrounds
-type ConsensusData struct {
+// ConsensusMessage defines the data needed by spos to communicate between nodes over network in all subrounds
+type ConsensusMessage struct {
 	BlockHeaderHash []byte
 	SubRoundData    []byte
 	PubKey          []byte
@@ -17,8 +17,8 @@ type ConsensusData struct {
 	RoundIndex      int32
 }
 
-// NewConsensusData creates a new ConsensusData object
-func NewConsensusData(
+// NewConsensusMessage creates a new ConsensusMessage object
+func NewConsensusMessage(
 	blHeaderHash []byte,
 	subRoundData []byte,
 	pubKey []byte,
@@ -26,9 +26,9 @@ func NewConsensusData(
 	msg int,
 	tms uint64,
 	roundIndex int32,
-) *ConsensusData {
+) *ConsensusMessage {
 
-	return &ConsensusData{
+	return &ConsensusMessage{
 		BlockHeaderHash: blHeaderHash,
 		SubRoundData:    subRoundData,
 		PubKey:          pubKey,
@@ -39,13 +39,13 @@ func NewConsensusData(
 	}
 }
 
-// Create method creates a new ConsensusData object
-func (cnsdta *ConsensusData) Create() p2p.Creator {
-	return &ConsensusData{}
+// Create method creates a new ConsensusMessage object
+func (cnsdta *ConsensusMessage) Create() p2p.Creator {
+	return &ConsensusMessage{}
 }
 
-// ID gets an unique id of the ConsensusData object
-func (cnsdta *ConsensusData) ID() string {
+// ID gets an unique id of the ConsensusMessage object
+func (cnsdta *ConsensusMessage) ID() string {
 	id := fmt.Sprintf("%d-%s-%d", cnsdta.RoundIndex, cnsdta.Signature, cnsdta.MsgType)
 	return id
 }

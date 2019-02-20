@@ -12,6 +12,10 @@ type validator struct {
 
 // NewValidator creates a new instance of a validator
 func NewValidator(stake *big.Int, rating int32, pubKey []byte) (*validator, error) {
+	if stake == nil {
+		return nil, ErrNilStake
+	}
+
 	if stake.Cmp(big.NewInt(0)) < 0 {
 		return nil, ErrNegativeStake
 	}

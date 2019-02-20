@@ -20,6 +20,7 @@ type BlockProcessorMock struct {
 	RemoveBlockTxsFromPoolCalled  func(body *block.TxBlockBody) error
 	GetRootHashCalled             func() []byte
 	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
+	CheckBlockValidityCalled      func(blockChain *blockchain.BlockChain, header *block.Header) bool
 }
 
 // SetOnRequestTransaction mocks setting request transaction call back function
@@ -71,4 +72,8 @@ func (blProcMock *BlockProcessorMock) RemoveBlockTxsFromPool(body *block.TxBlock
 // GetRootHash mocks getting root hash
 func (blProcMock BlockProcessorMock) GetRootHash() []byte {
 	return blProcMock.GetRootHashCalled()
+}
+
+func (blProcMock BlockProcessorMock) CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool {
+	return blProcMock.CheckBlockValidityCalled(blockChain, header)
 }

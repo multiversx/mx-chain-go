@@ -3,7 +3,7 @@ package bn_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
@@ -11,12 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initFactory() (*bn.Factory, error) {
+func initFactory() bn.Factory {
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+	bootstraperMock := &mock.BootstraperMock{}
 
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
@@ -29,7 +27,7 @@ func initFactory() (*bn.Factory, error) {
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 	worker := initWorker()
 
-	fct, err := bn.NewFactory(
+	fct, _ := bn.NewFactory(
 		&blockChain,
 		blockProcessorMock,
 		bootstraperMock,
@@ -45,15 +43,14 @@ func initFactory() (*bn.Factory, error) {
 		worker,
 	)
 
-	return fct, err
+	return fct
 }
 
 func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
-	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+	t.Parallel()
 
+	blockProcessorMock := initBlockProcessorMock()
+	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -86,11 +83,10 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
-	blockChain := blockchain.BlockChain{}
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+	t.Parallel()
 
+	blockChain := blockchain.BlockChain{}
+	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -123,6 +119,8 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
 	chronologyHandlerMock := initChronologyHandlerMock()
@@ -157,12 +155,11 @@ func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
+	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
@@ -194,12 +191,11 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
+	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
@@ -231,12 +227,11 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
+	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
 	marshalizerMock := mock.MarshalizerMock{}
@@ -268,12 +263,11 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
+	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -305,12 +299,11 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
+	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -342,12 +335,11 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
+	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -379,12 +371,11 @@ func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
+	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -416,12 +407,11 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
+	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -453,12 +443,11 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
+	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -490,12 +479,11 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
+	t.Parallel()
+
 	blockChain := blockchain.BlockChain{}
 	blockProcessorMock := initBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
+	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -527,117 +515,163 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
-	fct, err := initFactory()
+	t.Parallel()
 
-	assert.Nil(t, err)
+	fct := *initFactory()
+
 	assert.NotNil(t, fct)
 }
 
 func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *testing.T) {
-	fct, _ := initFactory()
-	fct.Worker().ConsensusStateChangedChannel = nil
+	t.Parallel()
 
-	assert.False(t, fct.GenerateStartRoundSubround())
+	fct := *initFactory()
+
+	fct.Worker().SetConsensusStateChangedChannels(nil)
+
+	err := fct.GenerateStartRoundSubround()
+	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
 func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFail(t *testing.T) {
-	fct, _ := initFactory()
+	t.Parallel()
+
+	fct := *initFactory()
 	fct.SetSyncTimer(nil)
 
-	assert.False(t, fct.GenerateStartRoundSubround())
+	err := fct.GenerateStartRoundSubround()
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T) {
-	fct, _ := initFactory()
-	fct.Worker().ConsensusStateChangedChannel = nil
+	t.Parallel()
 
-	assert.False(t, fct.GenerateBlockSubround())
+	fct := *initFactory()
+	fct.Worker().SetConsensusStateChangedChannels(nil)
+
+	err := fct.GenerateBlockSubround()
+	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
 func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *testing.T) {
-	fct, _ := initFactory()
+	t.Parallel()
+
+	fct := *initFactory()
 	fct.SetSyncTimer(nil)
 
-	assert.False(t, fct.GenerateBlockSubround())
+	err := fct.GenerateBlockSubround()
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundFail(t *testing.T) {
-	fct, _ := initFactory()
-	fct.Worker().ConsensusStateChangedChannel = nil
+	t.Parallel()
 
-	assert.False(t, fct.GenerateCommitmentHashSubround())
+	fct := *initFactory()
+	fct.Worker().SetConsensusStateChangedChannels(nil)
+
+	err := fct.GenerateCommitmentHashSubround()
+	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
 func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundCommitmentHashFail(t *testing.T) {
-	fct, _ := initFactory()
+	t.Parallel()
+
+	fct := *initFactory()
 	fct.SetSyncTimer(nil)
 
-	assert.False(t, fct.GenerateCommitmentHashSubround())
+	err := fct.GenerateCommitmentHashSubround()
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundFail(t *testing.T) {
-	fct, _ := initFactory()
-	fct.Worker().ConsensusStateChangedChannel = nil
+	t.Parallel()
 
-	assert.False(t, fct.GenerateBitmapSubround())
+	fct := *initFactory()
+	fct.Worker().SetConsensusStateChangedChannels(nil)
+
+	err := fct.GenerateBitmapSubround()
+	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
 func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundBitmapFail(t *testing.T) {
-	fct, _ := initFactory()
+	t.Parallel()
+
+	fct := *initFactory()
 	fct.SetSyncTimer(nil)
 
-	assert.False(t, fct.GenerateBitmapSubround())
+	err := fct.GenerateBitmapSubround()
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundFail(t *testing.T) {
-	fct, _ := initFactory()
-	fct.Worker().ConsensusStateChangedChannel = nil
+	t.Parallel()
 
-	assert.False(t, fct.GenerateCommitmentSubround())
+	fct := *initFactory()
+	fct.Worker().SetConsensusStateChangedChannels(nil)
+
+	err := fct.GenerateCommitmentSubround()
+	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
 func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundCommitmentFail(t *testing.T) {
-	fct, _ := initFactory()
+	t.Parallel()
+
+	fct := *initFactory()
 	fct.SetSyncTimer(nil)
 
-	assert.False(t, fct.GenerateCommitmentSubround())
+	err := fct.GenerateCommitmentSubround()
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testing.T) {
-	fct, _ := initFactory()
-	fct.Worker().ConsensusStateChangedChannel = nil
+	t.Parallel()
 
-	assert.False(t, fct.GenerateSignatureSubround())
+	fct := *initFactory()
+	fct.Worker().SetConsensusStateChangedChannels(nil)
+
+	err := fct.GenerateSignatureSubround()
+	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
 func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail(t *testing.T) {
-	fct, _ := initFactory()
+	t.Parallel()
+
+	fct := *initFactory()
 	fct.SetSyncTimer(nil)
 
-	assert.False(t, fct.GenerateSignatureSubround())
+	err := fct.GenerateSignatureSubround()
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testing.T) {
-	fct, _ := initFactory()
-	fct.Worker().ConsensusStateChangedChannel = nil
+	t.Parallel()
 
-	assert.False(t, fct.GenerateEndRoundSubround())
+	fct := *initFactory()
+	fct.Worker().SetConsensusStateChangedChannels(nil)
+
+	err := fct.GenerateEndRoundSubround()
+	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
 func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t *testing.T) {
-	fct, _ := initFactory()
+	t.Parallel()
+
+	fct := *initFactory()
 	fct.SetSyncTimer(nil)
 
-	assert.False(t, fct.GenerateEndRoundSubround())
+	err := fct.GenerateEndRoundSubround()
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
-	fct, _ := initFactory()
+	t.Parallel()
+
+	fct := *initFactory()
 
 	subroundHandlers := 0
 
 	chrm := &mock.ChronologyHandlerMock{}
-	chrm.AddSubroundCalled = func(subroundHandler chronology.SubroundHandler) {
+	chrm.AddSubroundCalled = func(subroundHandler consensus.SubroundHandler) {
 		subroundHandlers++
 	}
 

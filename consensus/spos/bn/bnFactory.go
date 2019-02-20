@@ -1,10 +1,8 @@
 package bn
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -34,12 +32,9 @@ const (
 //TODO: maximum transactions in one block (this should be injected, and this const should be removed later)
 const maxTransactionsInBlock = 15000
 
-// consensusSubrounds specifies how many subrounds of consensus are in this implementation
-const consensusSubrounds = 6
-
 // maxBlockProcessingTimePercent specifies which is the max allocated time percent,
 // for processing block, from the total time of one round
-const maxBlockProcessingTimePercent = float64(0.85)
+const maxBlockProcessingTimePercent = 90
 
 // MessageType specifies what type of message was received
 type MessageType int
@@ -61,40 +56,40 @@ const (
 	MtSignature
 )
 
-// Factory defines the data needed by this factory to create all the subrounds and give them their specific
+// factory defines the data needed by this factory to create all the subrounds and give them their specific
 // functionality
-type Factory struct {
+type factory struct {
 	blockChain             *blockchain.BlockChain
 	blockProcessor         process.BlockProcessor
 	bootstraper            process.Bootstraper
-	chronologyHandler      chronology.ChronologyHandler
+	chronologyHandler      consensus.ChronologyHandler
 	consensusState         *spos.ConsensusState
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
 	multiSigner            crypto.MultiSigner
-	rounder                round.Rounder
+	rounder                consensus.Rounder
 	shardCoordinator       sharding.ShardCoordinator
 	syncTimer              ntp.SyncTimer
-	validatorGroupSelector groupSelectors.ValidatorGroupSelector
-	worker                 *Worker
+	validatorGroupSelector consensus.ValidatorGroupSelector
+	worker                 *worker
 }
 
-// NewFactory creates a new ConsensusState object
+// NewFactory creates a new consensusState object
 func NewFactory(
 	blockChain *blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstraper,
-	chronologyHandler chronology.ChronologyHandler,
+	chronologyHandler consensus.ChronologyHandler,
 	consensusState *spos.ConsensusState,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	multiSigner crypto.MultiSigner,
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	shardCoordinator sharding.ShardCoordinator,
 	syncTimer ntp.SyncTimer,
-	validatorGroupSelector groupSelectors.ValidatorGroupSelector,
-	worker *Worker,
-) (*Factory, error) {
+	validatorGroupSelector consensus.ValidatorGroupSelector,
+	worker *worker,
+) (*factory, error) {
 
 	err := checkNewFactoryParams(
 		blockChain,
@@ -116,7 +111,7 @@ func NewFactory(
 		return nil, err
 	}
 
-	fct := Factory{
+	fct := factory{
 		blockChain:             blockChain,
 		blockProcessor:         blockProcessor,
 		bootstraper:            bootstraper,
@@ -139,16 +134,16 @@ func checkNewFactoryParams(
 	blockChain *blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstraper,
-	chronologyHandler chronology.ChronologyHandler,
+	chronologyHandler consensus.ChronologyHandler,
 	consensusState *spos.ConsensusState,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	multiSigner crypto.MultiSigner,
-	rounder round.Rounder,
+	rounder consensus.Rounder,
 	shardCoordinator sharding.ShardCoordinator,
 	syncTimer ntp.SyncTimer,
-	validatorGroupSelector groupSelectors.ValidatorGroupSelector,
-	worker *Worker,
+	validatorGroupSelector consensus.ValidatorGroupSelector,
+	worker *worker,
 ) error {
 	if blockChain == nil {
 		return spos.ErrNilBlockChain
@@ -206,23 +201,57 @@ func checkNewFactoryParams(
 }
 
 // GenerateSubrounds will generate the subrounds used in Belare & Naveen Cns
-func (fct *Factory) GenerateSubrounds() error {
+func (fct *factory) GenerateSubrounds() error {
 	fct.initConsensusThreshold()
 	fct.chronologyHandler.RemoveAllSubrounds()
 	fct.worker.RemoveAllReceivedMessagesCalls()
 
-	fct.generateStartRoundSubround()
-	fct.generateBlockSubround()
-	fct.generateCommitmentHashSubround()
-	fct.generateBitmapSubround()
-	fct.generateCommitmentSubround()
-	fct.generateSignatureSubround()
-	fct.generateEndRoundSubround()
+	err := fct.generateStartRoundSubround()
+
+	if err != nil {
+		return err
+	}
+
+	err = fct.generateBlockSubround()
+
+	if err != nil {
+		return err
+	}
+
+	err = fct.generateCommitmentHashSubround()
+
+	if err != nil {
+		return err
+	}
+
+	err = fct.generateBitmapSubround()
+
+	if err != nil {
+		return err
+	}
+
+	err = fct.generateCommitmentSubround()
+
+	if err != nil {
+		return err
+	}
+
+	err = fct.generateSignatureSubround()
+
+	if err != nil {
+		return err
+	}
+
+	err = fct.generateEndRoundSubround()
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (fct *Factory) generateStartRoundSubround() bool {
+func (fct *factory) generateStartRoundSubround() error {
 	subround, err := NewSubround(
 		-1,
 		SrStartRound,
@@ -230,12 +259,11 @@ func (fct *Factory) generateStartRoundSubround() bool {
 		int64(fct.rounder.TimeDuration()*0/100),
 		int64(fct.rounder.TimeDuration()*5/100),
 		getSubroundName(SrStartRound),
-		fct.worker.ConsensusStateChangedChannel,
+		fct.worker.consensusStateChangedChannels,
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	subroundStartRound, err := NewSubroundStartRound(
@@ -251,30 +279,28 @@ func (fct *Factory) generateStartRoundSubround() bool {
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	fct.chronologyHandler.AddSubround(subroundStartRound)
 
-	return true
+	return nil
 }
 
-func (fct *Factory) generateBlockSubround() bool {
+func (fct *factory) generateBlockSubround() error {
 
 	subround, err := NewSubround(
 		SrStartRound,
 		SrBlock,
 		SrCommitmentHash,
 		int64(fct.rounder.TimeDuration()*5/100),
-		int64(fct.rounder.TimeDuration()*25/100),
+		int64(fct.rounder.TimeDuration()*50/100),
 		getSubroundName(SrBlock),
-		fct.worker.ConsensusStateChangedChannel,
+		fct.worker.consensusStateChangedChannels,
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	subroundBlock, err := NewSubroundBlock(
@@ -293,31 +319,29 @@ func (fct *Factory) generateBlockSubround() bool {
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.receivedBlockBody)
 	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.receivedBlockHeader)
 	fct.chronologyHandler.AddSubround(subroundBlock)
 
-	return true
+	return nil
 }
 
-func (fct *Factory) generateCommitmentHashSubround() bool {
+func (fct *factory) generateCommitmentHashSubround() error {
 	subround, err := NewSubround(
 		SrBlock,
 		SrCommitmentHash,
 		SrBitmap,
-		int64(fct.rounder.TimeDuration()*25/100),
-		int64(fct.rounder.TimeDuration()*40/100),
+		int64(fct.rounder.TimeDuration()*50/100),
+		int64(fct.rounder.TimeDuration()*60/100),
 		getSubroundName(SrCommitmentHash),
-		fct.worker.ConsensusStateChangedChannel,
+		fct.worker.consensusStateChangedChannels,
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	subroundCommitmentHash, err := NewSubroundCommitmentHash(
@@ -332,30 +356,28 @@ func (fct *Factory) generateCommitmentHashSubround() bool {
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	fct.worker.AddReceivedMessageCall(MtCommitmentHash, subroundCommitmentHash.receivedCommitmentHash)
 	fct.chronologyHandler.AddSubround(subroundCommitmentHash)
 
-	return true
+	return nil
 }
 
-func (fct *Factory) generateBitmapSubround() bool {
+func (fct *factory) generateBitmapSubround() error {
 	subround, err := NewSubround(
 		SrCommitmentHash,
 		SrBitmap,
 		SrCommitment,
-		int64(fct.rounder.TimeDuration()*40/100),
-		int64(fct.rounder.TimeDuration()*55/100),
+		int64(fct.rounder.TimeDuration()*60/100),
+		int64(fct.rounder.TimeDuration()*70/100),
 		getSubroundName(SrBitmap),
-		fct.worker.ConsensusStateChangedChannel,
+		fct.worker.consensusStateChangedChannels,
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	subroundBitmap, err := NewSubroundBitmap(
@@ -369,30 +391,28 @@ func (fct *Factory) generateBitmapSubround() bool {
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	fct.worker.AddReceivedMessageCall(MtBitmap, subroundBitmap.receivedBitmap)
 	fct.chronologyHandler.AddSubround(subroundBitmap)
 
-	return true
+	return nil
 }
 
-func (fct *Factory) generateCommitmentSubround() bool {
+func (fct *factory) generateCommitmentSubround() error {
 	subround, err := NewSubround(
 		SrBitmap,
 		SrCommitment,
 		SrSignature,
-		int64(fct.rounder.TimeDuration()*55/100),
 		int64(fct.rounder.TimeDuration()*70/100),
+		int64(fct.rounder.TimeDuration()*80/100),
 		getSubroundName(SrCommitment),
-		fct.worker.ConsensusStateChangedChannel,
+		fct.worker.consensusStateChangedChannels,
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	subroundCommitment, err := NewSubroundCommitment(
@@ -406,30 +426,28 @@ func (fct *Factory) generateCommitmentSubround() bool {
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	fct.worker.AddReceivedMessageCall(MtCommitment, subroundCommitment.receivedCommitment)
 	fct.chronologyHandler.AddSubround(subroundCommitment)
 
-	return true
+	return nil
 }
 
-func (fct *Factory) generateSignatureSubround() bool {
+func (fct *factory) generateSignatureSubround() error {
 	subround, err := NewSubround(
 		SrCommitment,
 		SrSignature,
 		SrEndRound,
-		int64(fct.rounder.TimeDuration()*70/100),
-		int64(fct.rounder.TimeDuration()*85/100),
+		int64(fct.rounder.TimeDuration()*80/100),
+		int64(fct.rounder.TimeDuration()*90/100),
 		getSubroundName(SrSignature),
-		fct.worker.ConsensusStateChangedChannel,
+		fct.worker.consensusStateChangedChannels,
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	subroundSignature, err := NewSubroundSignature(
@@ -444,30 +462,28 @@ func (fct *Factory) generateSignatureSubround() bool {
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignature.receivedSignature)
 	fct.chronologyHandler.AddSubround(subroundSignature)
 
-	return true
+	return nil
 }
 
-func (fct *Factory) generateEndRoundSubround() bool {
+func (fct *factory) generateEndRoundSubround() error {
 	subround, err := NewSubround(
 		SrSignature,
 		SrEndRound,
 		-1,
-		int64(fct.rounder.TimeDuration()*85/100),
+		int64(fct.rounder.TimeDuration()*90/100),
 		int64(fct.rounder.TimeDuration()*95/100),
 		getSubroundName(SrEndRound),
-		fct.worker.ConsensusStateChangedChannel,
+		fct.worker.consensusStateChangedChannels,
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	subroundEndRound, err := NewSubroundEndRound(
@@ -484,16 +500,15 @@ func (fct *Factory) generateEndRoundSubround() bool {
 	)
 
 	if err != nil {
-		log.Error(err.Error())
-		return false
+		return err
 	}
 
 	fct.chronologyHandler.AddSubround(subroundEndRound)
 
-	return true
+	return nil
 }
 
-func (fct *Factory) initConsensusThreshold() {
+func (fct *factory) initConsensusThreshold() {
 	pbftThreshold := fct.consensusState.ConsensusGroupSize()*2/3 + 1
 
 	fct.consensusState.SetThreshold(SrBlock, 1)

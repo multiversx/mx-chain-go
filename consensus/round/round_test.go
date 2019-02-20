@@ -11,6 +11,8 @@ import (
 const roundTimeDuration = time.Duration(10 * time.Millisecond)
 
 func TestRound_NewRoundShouldReturnNotNilRoundObject(t *testing.T) {
+	t.Parallel()
+
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
@@ -19,6 +21,8 @@ func TestRound_NewRoundShouldReturnNotNilRoundObject(t *testing.T) {
 }
 
 func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
+	t.Parallel()
+
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
@@ -36,6 +40,8 @@ func TestRound_UpdateRoundShouldNotChangeAnything(t *testing.T) {
 }
 
 func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
+	t.Parallel()
+
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
@@ -47,6 +53,8 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 }
 
 func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {
+	t.Parallel()
+
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
@@ -57,6 +65,8 @@ func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {
 }
 
 func TestRound_TimeStampShouldReturnTimeStampOfTheNextRound(t *testing.T) {
+	t.Parallel()
+
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
@@ -67,6 +77,8 @@ func TestRound_TimeStampShouldReturnTimeStampOfTheNextRound(t *testing.T) {
 }
 
 func TestRound_TimeDurationShouldReturnTheDurationOfOneRound(t *testing.T) {
+	t.Parallel()
+
 	genesisTime := time.Now()
 
 	rnd := round.NewRound(genesisTime, genesisTime, roundTimeDuration)
