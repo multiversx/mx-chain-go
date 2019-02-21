@@ -2,14 +2,15 @@ package transaction
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"fmt"
 	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
@@ -117,6 +118,21 @@ func (ti *testInitializer) createAccountsDB() *state.AccountsDB {
 	return adb
 }
 
+func createMultiSigner(
+	privateKey crypto.PrivateKey,
+	publicKey crypto.PublicKey,
+	keyGen crypto.KeyGenerator,
+	hasher hashing.Hasher,
+) (crypto.MultiSigner, error) {
+
+	publicKeys := make([]string, 1)
+	pubKey, _ := publicKey.ToByteArray()
+	publicKeys[0] = string(pubKey)
+	multiSigner, err := multisig.NewBelNevMultisig(hasher, publicKeys, privateKey, keyGen, 0)
+
+	return multiSigner, err
+}
+
 func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.AccountsAdapter) (
 	*node.Node,
 	p2p.Messenger,
@@ -130,8 +146,12 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
-	keyGen := schnorr.NewKeyGenerator()
+	suite := kv2.NewBlakeSHA256Ed25519()
+	singleSigner := &singlesig.SchnorrSigner{}
+	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
+	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
+	blockChain := createTestBlockChain()
 	blkc := ti.createTestBlockChain()
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
@@ -146,7 +166,9 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		AddrConverter:            addrConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		SingleSignKeyGen:         keyGen,
+		MultiSigner:          	  multiSigner,
+		SingleSigner:         	  singleSigner,
+		KeyGen:               	  keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
 
@@ -158,10 +180,12 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithKeyGenerator(keyGen),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
+		node.WithMultisig(multiSigner),
+		node.WithSinglesig(singlesigner),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
 		node.WithInterceptorsResolversFactory(pFactory),

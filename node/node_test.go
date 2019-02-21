@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
@@ -203,6 +202,7 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 		},
 	}
 	privateKey := getPrivateKey()
+	singleSigner := &mock.SinglesignMock{}
 	n, _ := node.NewNode(
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
@@ -210,6 +210,7 @@ func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
+		node.WithSinglesig(singleSigner),
 	)
 	_, err := n.GetBalance("address")
 	assert.NotNil(t, err)
@@ -383,6 +384,8 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
+	singleSigner := &mock.SinglesignMock{}
+
 	n, _ := node.NewNode(
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
@@ -390,6 +393,7 @@ func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
+		node.WithSinglesig(singleSigner),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.Nil(t, err)
@@ -400,6 +404,8 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
+	singleSigner := &mock.SinglesignMock{}
+
 	n, _ := node.NewNode(
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
@@ -407,6 +413,7 @@ func TestGenerateTransaction_GetExistingAccountShouldWork(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
+		node.WithSinglesig(singleSigner),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.Nil(t, err)
@@ -417,6 +424,7 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
+	singleSigner := &mock.SinglesignMock{}
 	marshalizer := mock.MarshalizerMock{
 		MarshalHandler: func(obj interface{}) ([]byte, error) {
 			return nil, errors.New("error")
@@ -429,6 +437,7 @@ func TestGenerateTransaction_MarshalErrorsShouldError(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
+		node.WithSinglesig(singleSigner),
 	)
 	_, err := n.GenerateTransaction("sender", "receiver", big.NewInt(10), "code")
 	assert.NotNil(t, err)
@@ -438,11 +447,9 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	privateKey := mock.PrivateKeyStub{
-		SignHandler: func(message []byte) ([]byte, error) {
-			return nil, errors.New("error")
-		},
-	}
+	privateKey := &mock.PrivateKeyStub{}
+	singleSigner := &mock.SinglesignFailMock{}
+
 	n, _ := node.NewNode(
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
@@ -450,6 +457,7 @@ func TestGenerateTransaction_SignTxErrorsShouldError(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
+		node.WithSinglesig(singleSigner),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.NotNil(t, err)
@@ -459,12 +467,9 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	signature := []byte{69}
-	privateKey := mock.PrivateKeyStub{
-		SignHandler: func(message []byte) ([]byte, error) {
-			return signature, nil
-		},
-	}
+	signature := []byte("signed")
+	privateKey := &mock.PrivateKeyStub{}
+	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
 		node.WithMarshalizer(mock.MarshalizerMock{}),
@@ -473,6 +478,7 @@ func TestGenerateTransaction_ShouldSetCorrectSignature(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
+		node.WithSinglesig(singleSigner),
 	)
 
 	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
@@ -497,6 +503,8 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 	}
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
+	singleSigner := &mock.SinglesignMock{}
+
 	n, _ := node.NewNode(
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
@@ -504,6 +512,7 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
+		node.WithSinglesig(singleSigner),
 	)
 
 	tx, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
@@ -516,6 +525,8 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	privateKey := getPrivateKey()
+	singleSigner := &mock.SinglesignMock{}
+
 	n, _ := node.NewNode(
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithHasher(mock.HasherMock{}),
@@ -523,6 +534,7 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(privateKey),
+		node.WithSinglesig(singleSigner),
 	)
 	_, err := n.GenerateTransaction(createDummyHexAddress(64), createDummyHexAddress(64), big.NewInt(10), "code")
 	assert.Nil(t, err)
@@ -541,7 +553,9 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 	marshalizer := &mock.MarshalizerFake{}
 
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	keyGen := &mock.KeyGenMock{}
+	sk, pk := keyGen.GeneratePair()
+	singleSigner := &mock.SinglesignMock{}
 
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
@@ -550,6 +564,7 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 		node.WithAddressConverter(addrConverter),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
+		node.WithSinglesig(singleSigner),
 	)
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
@@ -559,7 +574,10 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing.T) {
 	marshalizer := &mock.MarshalizerFake{}
 	accAdapter := getAccAdapter(big.NewInt(0))
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	keyGen := &mock.KeyGenMock{}
+	sk, pk := keyGen.GeneratePair()
+	singleSigner := &mock.SinglesignMock{}
+
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(mock.HasherMock{}),
@@ -567,6 +585,7 @@ func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
+		node.WithSinglesig(singleSigner),
 	)
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
@@ -576,12 +595,15 @@ func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing
 func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	_, pk := schnorr.NewKeyGenerator().GeneratePair()
+	keyGen := &mock.KeyGenMock{}
+	_, pk := keyGen.GeneratePair()
+	singleSigner := &mock.SinglesignMock{}
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
 		node.WithPublicKey(pk),
 		node.WithMarshalizer(&mock.MarshalizerFake{}),
+		node.WithSinglesig(singleSigner),
 	)
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
@@ -591,11 +613,14 @@ func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 func TestGenerateAndSendBulkTransactions_NilPublicKeyShouldErr(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	sk, _ := schnorr.NewKeyGenerator().GeneratePair()
+	keyGen := &mock.KeyGenMock{}
+	sk, _ := keyGen.GeneratePair()
+	singleSigner := &mock.SinglesignMock{}
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
 		node.WithPrivateKey(sk),
+		node.WithSinglesig(singleSigner),
 	)
 
 	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
@@ -605,12 +630,15 @@ func TestGenerateAndSendBulkTransactions_NilPublicKeyShouldErr(t *testing.T) {
 func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *testing.T) {
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	keyGen := &mock.KeyGenMock{}
+	sk, pk := keyGen.GeneratePair()
+	singleSigner := &mock.SinglesignMock{}
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
+		node.WithSinglesig(singleSigner),
 	)
 
 	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
@@ -623,12 +651,15 @@ func TestGenerateAndSendBulkTransactions_CreateAddressFromPublicKeyBytesErrorsSh
 	addrConverter.CreateAddressFromPublicKeyBytesHandler = func(pubKey []byte) (container state.AddressContainer, e error) {
 		return nil, errors.New("error")
 	}
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	keyGen := &mock.KeyGenMock{}
+	sk, pk := keyGen.GeneratePair()
+	singleSigner := &mock.SinglesignMock{}
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
+		node.WithSinglesig(singleSigner),
 	)
 
 	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
@@ -640,13 +671,16 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	marshalizer := &mock.MarshalizerFake{}
 	marshalizer.Fail = true
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	keyGen := &mock.KeyGenMock{}
+	sk, pk := keyGen.GeneratePair()
+	singleSigner := &mock.SinglesignMock{}
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressConverter(addrConverter),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
 		node.WithMarshalizer(marshalizer),
+		node.WithSinglesig(singleSigner),
 	)
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), 1)
@@ -659,7 +693,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	noOfTx := 1000
 	mutRecoveredTransactions := &sync.RWMutex{}
 	recoveredTransactions := make(map[uint64]*transaction.Transaction)
-
+	signer := &mock.SinglesignMock{}
 	mes := &mock.MessengerStub{
 		BroadcastCalled: func(pipe string, topic string, buff []byte) {
 			if topic == string(factory.TransactionTopic) {
@@ -680,7 +714,8 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 	accAdapter := getAccAdapter(big.NewInt(0))
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
-	sk, pk := schnorr.NewKeyGenerator().GeneratePair()
+	keyGen := &mock.KeyGenMock{}
+	sk, pk := keyGen.GeneratePair()
 	n, _ := node.NewNode(
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(mock.HasherMock{}),
@@ -689,6 +724,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		node.WithAccountsAdapter(accAdapter),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
+		node.WithSinglesig(signer),
 	)
 
 	n.SetMessenger(mes)
@@ -715,11 +751,8 @@ func getAccAdapter(balance *big.Int) mock.AccountsAdapterStub {
 	}
 }
 
-func getPrivateKey() mock.PrivateKeyStub {
-	return mock.PrivateKeyStub{
-		SignHandler: func(message []byte) ([]byte, error) {
-			return []byte{2}, nil
-		},
+func getPrivateKey() *mock.PrivateKeyStub {
+	return &mock.PrivateKeyStub{
 	}
 }
 
