@@ -6,10 +6,12 @@ import (
 
 type SingleSignKeyGenMock struct {
 	PublicKeyFromByteArrayCalled func(b []byte) (crypto.PublicKey, error)
+	SuiteCalled                  func() crypto.Suite
 }
 
 type SingleSignPublicKey struct {
-	VerifyCalled func(data []byte, signature []byte) error
+	SuiteCalled  func() crypto.Suite
+	PointCalled  func() crypto.Point
 }
 
 //------- SingleSignKeyGenMock
@@ -26,12 +28,20 @@ func (sskgm *SingleSignKeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.Publ
 	return sskgm.PublicKeyFromByteArrayCalled(b)
 }
 
+func (sskgm *SingleSignKeyGenMock) Suite() crypto.Suite {
+	return sskgm.SuiteCalled()
+}
+
 //------- SingleSignPublicKey
 
 func (sspk *SingleSignPublicKey) ToByteArray() ([]byte, error) {
 	panic("implement me")
 }
 
-func (sspk *SingleSignPublicKey) Verify(data []byte, signature []byte) error {
-	return sspk.VerifyCalled(data, signature)
+func (sspk *SingleSignPublicKey) Suite() crypto.Suite {
+	return sspk.SuiteCalled()
+}
+
+func (sspk *SingleSignPublicKey) Point() crypto.Point {
+	return sspk.PointCalled()
 }

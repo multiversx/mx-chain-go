@@ -1,13 +1,17 @@
 package mock
 
+import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+)
+
 type MultisignMock struct {
 }
 
-func (mm *MultisignMock) Reset(pubKeys []string, index uint16) error {
+func (mm *MultisignMock) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) SetMessage(msg []byte) {
+func (mm *MultisignMock) SetMessage(msg []byte) error {
 	panic("implement me")
 }
 
@@ -19,11 +23,11 @@ func (mm *MultisignMock) Verify(bitmap []byte) error {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) CreateCommitment() (commSecret []byte, commitment []byte, err error) {
+func (mm *MultisignMock) CreateCommitment() (commSecret []byte, commitment []byte) {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) AddCommitmentHash(index uint16, commHash []byte) error {
+func (mm *MultisignMock) StoreCommitmentHash(index uint16, commHash []byte) error {
 	panic("implement me")
 }
 
@@ -31,11 +35,7 @@ func (mm *MultisignMock) CommitmentHash(index uint16) ([]byte, error) {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) SetCommitmentSecret(commSecret []byte) error {
-	panic("implement me")
-}
-
-func (mm *MultisignMock) AddCommitment(index uint16, value []byte) error {
+func (mm *MultisignMock) StoreCommitment(index uint16, value []byte) error {
 	panic("implement me")
 }
 
@@ -55,7 +55,7 @@ func (mm *MultisignMock) CreateSignatureShare(bitmap []byte) ([]byte, error) {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) AddSignatureShare(index uint16, sig []byte) error {
+func (mm *MultisignMock) StoreSignatureShare(index uint16, sig []byte) error {
 	panic("implement me")
 }
 

@@ -6,7 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
 )
 
 // PkSkPairsToGenerate holds the number of pairs sk/pk that will be generated
@@ -32,8 +33,10 @@ func main() {
 		return
 	}
 
+	suite := kv2.NewBlakeSHA256Ed25519()
+
 	for i := 0; i < PkSkPairsToGenerate; i++ {
-		generator := schnorr.NewKeyGenerator()
+		generator := signing.NewKeyGenerator(suite)
 		sk, pk := generator.GeneratePair()
 		skBytes, err2 := sk.ToByteArray()
 		if err2 != nil {

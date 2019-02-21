@@ -126,12 +126,12 @@ func TestProcessorsCreator_NilSingleSignKeyGenShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pFactoryConfig := createConfig()
-	pFactoryConfig.SingleSignKeyGen = nil
+	pFactoryConfig.KeyGen = nil
 	pFactory, err := factory.NewProcessorsCreator(pFactoryConfig)
 
 	assert.Nil(t, pFactory)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "nil single sign key generator")
+	assert.Equal(t, process.ErrNilKeyGen, err)
 }
 
 func TestProcessorsCreator_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
@@ -232,7 +232,9 @@ func createConfig() factory.ProcessorsCreatorConfig {
 		AddrConverter:            &mock.AddressConverterMock{},
 		Hasher:                   mock.HasherMock{},
 		Marshalizer:              &mock.MarshalizerMock{},
-		SingleSignKeyGen:         &mock.SingleSignKeyGenMock{},
+		MultiSigner:			  mock.NewMultiSigner(),
+		SingleSigner:             &mock.SignerMock{},
+		KeyGen:                   &mock.SingleSignKeyGenMock{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 	}
 }

@@ -20,8 +20,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/multisig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
@@ -31,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -143,6 +146,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	uniqueID = fmt.Sprintf("%d", ctx.GlobalInt(flags.Port.Name))
 
 	currentNode, err := createNode(ctx, generalConfig, genesisConfig, syncer, log)
+
 	if err != nil {
 		return err
 	}
@@ -310,8 +314,14 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
-	multisigner, err := multisig.NewBelNevMultisig(hasher, initialPubKeys, privKey, keyGen, uint16(0))
+	singlesigner := &singlesig.SchnorrSigner{}
 
+	multisigHasher, err := getMultisigHasherFromConfig(cfg)
+	if err != nil {
+		return nil, errors.New("could not create multisig hasher: " + err.Error())
+	}
+
+	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, initialPubKeys, privKey, keyGen, uint16(0))
 	if err != nil {
 		return nil, err
 	}
@@ -332,16 +342,18 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 	resolversContainer := resolver.NewContainer()
 
 	processorFactory, err := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
-		InterceptorContainer:     interceptorsContainer,
-		ResolverContainer:        resolversContainer,
-		Messenger:                netMessenger,
-		Blockchain:               blkc,
-		DataPool:                 datapool,
-		ShardCoordinator:         shardCoordinator,
-		AddrConverter:            addressConverter,
-		Hasher:                   hasher,
-		Marshalizer:              marshalizer,
-		SingleSignKeyGen:         keyGen,
+		InterceptorContainer: interceptorsContainer,
+		ResolverContainer:    resolversContainer,
+		Messenger:            netMessenger,
+		Blockchain:           blkc,
+		DataPool:             datapool,
+		ShardCoordinator:     shardCoordinator,
+		AddrConverter:        addressConverter,
+		Hasher:               hasher,
+		Marshalizer:          marshalizer,
+		MultiSigner:          multisigner,
+		SingleSigner:         singlesigner,
+		KeyGen:               keyGen,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 	})
 	if err != nil {
@@ -403,8 +415,9 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithDataPool(datapool),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
+		node.WithSinglesig(singlesigner),
 		node.WithMultisig(multisigner),
-		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithKeyGenerator(keyGen),
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
@@ -478,7 +491,8 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 		return nil, nil, nil, err
 	}
 
-	keyGen = schnorr.NewKeyGenerator()
+	suite := kv2.NewBlakeSHA256Ed25519()
+	keyGen = signing.NewKeyGenerator(suite)
 	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
 
 	if err != nil {
@@ -520,6 +534,19 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	switch cfg.Hasher.Type {
 	case "sha256":
 		return sha256.Sha256{}, nil
+	case "blake2b":
+		return blake2b.Blake2b{}, nil
+	}
+
+	return nil, errors.New("no hasher provided in config file")
+}
+
+func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
+	switch cfg.MultisigHasher.Type {
+	case "sha256":
+		return sha256.Sha256{}, nil
+	case "blake2b":
+		return blake2b.Blake2b{}, nil
 	}
 
 	return nil, errors.New("no hasher provided in config file")

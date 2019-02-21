@@ -540,47 +540,6 @@ func TestBlockProcessor_ProcessAndCommitBlockWithInvalidTransactionShouldErr(t *
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
-func TestBlockProcessor_ProcessAndCommitHeaderNotPassingIntegrityShouldErr(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool()
-
-	be, _ := blproc.NewBlockProcessor(
-		tdp,
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
-		},
-	)
-
-	hdr := &block.Header{
-		Nonce:         0,
-		BlockBodyHash: nil,
-		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte(""),
-		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
-	}
-
-	miniblocks := make([]block.MiniBlock, 0)
-
-	txBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: miniblocks,
-	}
-
-	err := be.ProcessAndCommit(createTestBlockchain(), hdr, txBody, haveTime)
-
-	assert.Equal(t, "nil block body hash", err.Error())
-}
-
 func TestBlockProcessor_ProcessAndCommitHeaderNotFirstShouldErr(t *testing.T) {
 	t.Parallel()
 

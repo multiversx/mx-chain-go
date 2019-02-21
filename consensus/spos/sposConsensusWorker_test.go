@@ -55,7 +55,15 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 
 func initConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte("signed"), nil
+		},
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -69,6 +77,7 @@ func initConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
 		mock.MarshalizerMock{},
 		blProcMock,
 		bootMock,
+		singleSigner,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -80,6 +89,54 @@ func initConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
 	cnWorker.BroadcastBlockBody = BroadcastMessage
 	cnWorker.BroadcastHeader = BroadcastMessage
 	return cnWorker
+}
+
+func initRoundDurationAndConsensusWorker() (time.Duration, *spos.SPOSConsensusWorker) {
+	blkc := blockchain.BlockChain{}
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte("signed"), nil
+		},
+	}
+	multisigner := initMultisigner()
+	blProcMock := initMockBlockProcessor()
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	consensusGroupSize := 9
+	roundDuration := 100 * time.Millisecond
+	genesisTime := time.Now()
+	// create consensus group list
+	consensusGroup := CreateConsensusGroup(consensusGroupSize)
+
+	cns := initConsensus(
+		genesisTime,
+		roundDuration,
+		consensusGroup,
+		consensusGroupSize,
+		0,
+	)
+
+	cnWorker, _ := spos.NewConsensusWorker(
+		cns,
+		&blkc,
+		mock.HasherMock{},
+		mock.MarshalizerMock{},
+		blProcMock,
+		bootMock,
+		singleSigner,
+		multisigner,
+		keyGenMock,
+		privKeyMock,
+		pubKeyMock,
+	)
+
+	return roundDuration, cnWorker
 }
 
 func initConsensus(
@@ -197,8 +254,8 @@ func initMockBlockProcessor() *mock.BlockProcessorMock {
 func initMultisigner() *mock.BelNevMock {
 	multisigner := mock.NewMultiSigner()
 
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return []byte("commSecret"), []byte("commitment"), nil
+	multisigner.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("commitment")
 	}
 
 	multisigner.VerifySignatureShareMock = func(index uint16, sig []byte, bitmap []byte) error {
@@ -224,27 +281,17 @@ func initMultisigner() *mock.BelNevMock {
 	return multisigner
 }
 
-func initSingleSigning() (*mock.KeyGenMock, *mock.PrivateKeyMock, *mock.PublicKeyMock) {
+func initKeys() (*mock.KeyGenMock, *mock.PrivateKeyMock, *mock.PublicKeyMock) {
 	toByteArrayMock := func() ([]byte, error) {
 		return []byte("byteArray"), nil
 	}
 
-	signMock := func(message []byte) ([]byte, error) {
-		return []byte("signature"), nil
-	}
-
-	verifyMock := func(data []byte, signature []byte) error {
-		return nil
-	}
-
 	privKeyMock := &mock.PrivateKeyMock{
-		SignMock:        signMock,
 		ToByteArrayMock: toByteArrayMock,
 	}
 
 	pubKeyMock := &mock.PublicKeyMock{
 		ToByteArrayMock: toByteArrayMock,
-		VerifyMock:      verifyMock,
 	}
 
 	privKeyFromByteArr := func(b []byte) (crypto.PrivateKey, error) {
@@ -360,6 +407,7 @@ func TestNewConsensusWorker_ConsensusNilShouldFail(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	blkProc := &mock.BlockProcessorMock{}
+	singleSigner := &mock.SingleSignerMock{}
 	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
@@ -375,6 +423,7 @@ func TestNewConsensusWorker_ConsensusNilShouldFail(t *testing.T) {
 		marshalizer,
 		blkProc,
 		bootMock,
+		singleSigner,
 		multisig,
 		keyGen,
 		privKey,
@@ -395,6 +444,7 @@ func TestNewConsensusWorker_BlockChainNilShouldFail(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	blkProc := &mock.BlockProcessorMock{}
+	singleSigner := &mock.SingleSignerMock{}
 	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
@@ -410,6 +460,7 @@ func TestNewConsensusWorker_BlockChainNilShouldFail(t *testing.T) {
 		marshalizer,
 		blkProc,
 		bootMock,
+		singleSigner,
 		multisig,
 		keyGen,
 		privKey,
@@ -430,6 +481,7 @@ func TestNewConsensusWorker_HasherNilShouldFail(t *testing.T) {
 	blockChain := &blockchain.BlockChain{}
 	marshalizer := &mock.MarshalizerMock{}
 	blkProc := &mock.BlockProcessorMock{}
+	singleSigner := &mock.SingleSignerMock{}
 	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
@@ -445,6 +497,7 @@ func TestNewConsensusWorker_HasherNilShouldFail(t *testing.T) {
 		marshalizer,
 		blkProc,
 		bootMock,
+		singleSigner,
 		multisig,
 		keyGen,
 		privKey,
@@ -465,6 +518,7 @@ func TestNewConsensusWorker_MarshalizerNilShouldFail(t *testing.T) {
 	blockChain := &blockchain.BlockChain{}
 	hasher := &mock.HasherMock{}
 	blkProc := &mock.BlockProcessorMock{}
+	singleSigner := &mock.SingleSignerMock{}
 	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
@@ -480,6 +534,7 @@ func TestNewConsensusWorker_MarshalizerNilShouldFail(t *testing.T) {
 		nil,
 		blkProc,
 		bootMock,
+		singleSigner,
 		multisig,
 		keyGen,
 		privKey,
@@ -500,6 +555,7 @@ func TestNewConsensusWorker_BlockProcessorNilShouldFail(t *testing.T) {
 	blockChain := &blockchain.BlockChain{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	singleSigner := &mock.SingleSignerMock{}
 	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
@@ -515,6 +571,7 @@ func TestNewConsensusWorker_BlockProcessorNilShouldFail(t *testing.T) {
 		marshalizer,
 		nil,
 		bootMock,
+		singleSigner,
 		multisig,
 		keyGen,
 		privKey,
@@ -525,7 +582,7 @@ func TestNewConsensusWorker_BlockProcessorNilShouldFail(t *testing.T) {
 	assert.Equal(t, err, spos.ErrNilBlockProcessor)
 }
 
-func TestNewConsensusWorker_MultisigNilShouldFail(t *testing.T) {
+func TestNewConsensusWorker_SinglesigNilShouldFail(t *testing.T) {
 	consensusGroupSize := 9
 	roundDuration := 100 * time.Millisecond
 	genesisTime := time.Now()
@@ -536,6 +593,7 @@ func TestNewConsensusWorker_MultisigNilShouldFail(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	blkProc := &mock.BlockProcessorMock{}
+	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
@@ -550,6 +608,44 @@ func TestNewConsensusWorker_MultisigNilShouldFail(t *testing.T) {
 		marshalizer,
 		blkProc,
 		bootMock,
+		nil,
+		multisig,
+		keyGen,
+		privKey,
+		pubKey,
+	)
+
+	assert.Nil(t, consensusWorker)
+	assert.Equal(t, err, spos.ErrNilSingleSigner)
+}
+
+func TestNewConsensusWorker_MultisigNilShouldFail(t *testing.T) {
+	consensusGroupSize := 9
+	roundDuration := 100 * time.Millisecond
+	genesisTime := time.Now()
+	consensusGroup := CreateConsensusGroup(consensusGroupSize)
+
+	consensus := initConsensus(genesisTime, roundDuration, consensusGroup, consensusGroupSize, 0)
+	blockChain := &blockchain.BlockChain{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	blkProc := &mock.BlockProcessorMock{}
+	singleSigner := &mock.SingleSignerMock{}
+	keyGen := &mock.KeyGenMock{}
+	privKey := &mock.PrivateKeyMock{}
+	pubKey := &mock.PublicKeyMock{}
+	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
+		return false
+	}}
+
+	consensusWorker, err := spos.NewConsensusWorker(
+		consensus,
+		blockChain,
+		hasher,
+		marshalizer,
+		blkProc,
+		bootMock,
+		singleSigner,
 		nil,
 		keyGen,
 		privKey,
@@ -571,6 +667,7 @@ func TestNewConsensusWorker_KeyGenNilShouldFail(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	blkProc := &mock.BlockProcessorMock{}
+	singleSigner := &mock.SingleSignerMock{}
 	multisig := mock.NewMultiSigner()
 	privKey := &mock.PrivateKeyMock{}
 	pubKey := &mock.PublicKeyMock{}
@@ -585,6 +682,7 @@ func TestNewConsensusWorker_KeyGenNilShouldFail(t *testing.T) {
 		marshalizer,
 		blkProc,
 		bootMock,
+		singleSigner,
 		multisig,
 		nil,
 		privKey,
@@ -606,6 +704,7 @@ func TestNewConsensusWorker_PrivKeyNilShouldFail(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	blkProc := &mock.BlockProcessorMock{}
+	singleSigner := &mock.SingleSignerMock{}
 	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	pubKey := &mock.PublicKeyMock{}
@@ -620,6 +719,7 @@ func TestNewConsensusWorker_PrivKeyNilShouldFail(t *testing.T) {
 		marshalizer,
 		blkProc,
 		bootMock,
+		singleSigner,
 		multisig,
 		keyGen,
 		nil,
@@ -641,6 +741,7 @@ func TestNewConsensusWorker_PubKeyNilFail(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	blkProc := &mock.BlockProcessorMock{}
+	singleSigner := &mock.SingleSignerMock{}
 	multisig := mock.NewMultiSigner()
 	keyGen := &mock.KeyGenMock{}
 	privKey := &mock.PrivateKeyMock{}
@@ -655,6 +756,7 @@ func TestNewConsensusWorker_PubKeyNilFail(t *testing.T) {
 		marshalizer,
 		blkProc,
 		bootMock,
+		singleSigner,
 		multisig,
 		keyGen,
 		privKey,
@@ -710,6 +812,7 @@ func TestNewMessage(t *testing.T) {
 		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
 			return false
 		}},
+		&mock.SingleSignerMock{},
 		&mock.BelNevMock{},
 		&mock.KeyGenMock{},
 		&mock.PrivateKeyMock{},
@@ -736,7 +839,8 @@ func TestSPOSConsensusWorker_DoEndRoundJobNotFinished(t *testing.T) {
 
 func TestSPOSConsensusWorker_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -768,6 +872,7 @@ func TestSPOSConsensusWorker_DoEndRoundJobErrAggregatingSigShouldFail(t *testing
 		mock.MarshalizerMock{},
 		blProcMock,
 		bootMock,
+		singleSigner,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -1034,58 +1139,6 @@ func TestMessage_SendCommitmentHash(t *testing.T) {
 
 	r = cnWorkers[0].DoCommitmentHashJob()
 	assert.Equal(t, true, r)
-}
-
-func TestSPOSConsensusWorker_DoCommitmentHashJobErrCreateCommitmentShouldFail(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, crypto.ErrNilHasher
-	}
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	cnWorker.SendMessage = SendMessage
-	cnWorker.BroadcastBlockBody = BroadcastMessage
-	cnWorker.BroadcastHeader = BroadcastMessage
-
-	cnWorker.Cns.SetStatus(spos.SrBlock, spos.SsFinished)
-	cnWorker.Cns.SetStatus(spos.SrCommitmentHash, spos.SsNotFinished)
-
-	done := cnWorker.DoCommitmentHashJob()
-
-	assert.False(t, done)
 }
 
 func TestMessage_SendBitmap(t *testing.T) {
@@ -1973,6 +2026,7 @@ func TestConsensus_CheckConsensus(t *testing.T) {
 		&mock.BootstrapMock{ShouldSyncCalled: func() bool {
 			return false
 		}},
+		&mock.SingleSignerMock{},
 		&mock.BelNevMock{},
 		&mock.KeyGenMock{},
 		&mock.PrivateKeyMock{},
@@ -2181,180 +2235,26 @@ func TestConsensusDataID_ShouldReturnID(t *testing.T) {
 }
 
 func TestCheckSignaturesValidity_ShouldErrNilSignature(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	err := cnWorker.CheckSignaturesValidity([]byte(string(2)))
 	assert.Equal(t, spos.ErrNilSignature, err)
 }
 
-func TestCheckSignaturesValidity_ShouldErrInvalidIndex(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 22
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.Reset(nil, 0)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	cnWorker.Cns.SetJobDone(consensusGroup[0], spos.SrSignature, true)
-
-	err := cnWorker.CheckSignaturesValidity([]byte(string(1)))
-	assert.Equal(t, crypto.ErrInvalidIndex, err)
-}
-
 func TestCheckSignaturesValidity_ShouldRetunNil(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
-	consensusGroupSize := 22
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	cnWorker.Cns.SetJobDone(consensusGroup[0], spos.SrSignature, true)
+	leader, _ := cnWorker.Cns.GetLeader()
+	cnWorker.Cns.SetJobDone(leader, spos.SrSignature, true)
 
 	err := cnWorker.CheckSignaturesValidity([]byte(string(1)))
 	assert.Equal(t, nil, err)
 }
 
-func TestGenCommitmentHash_ShouldRetunErrOnCreateCommitment(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 22
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	err := errors.New("error create commitment")
-
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, err
-	}
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	_, err2 := cnWorker.GenCommitmentHash()
-	assert.Equal(t, err, err2)
-}
-
 func TestGenCommitmentHash_ShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -2377,11 +2277,11 @@ func TestGenCommitmentHash_ShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T)
 
 	cns.SetSelfPubKey("X")
 
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
+	multisigner.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("comm")
 	}
 
-	multisigner.AddCommitmentMock = func(uint16, []byte) error {
+	multisigner.StoreCommitmentMock = func(uint16, []byte) error {
 		return spos.ErrSelfNotFoundInConsensus
 	}
 
@@ -2392,6 +2292,7 @@ func TestGenCommitmentHash_ShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T)
 		mock.MarshalizerMock{},
 		blProcMock,
 		bootMock,
+		singleSigner,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -2402,113 +2303,10 @@ func TestGenCommitmentHash_ShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T)
 	assert.Equal(t, spos.ErrSelfNotFoundInConsensus, err)
 }
 
-func TestGenCommitmentHash_ShouldRetunErrOnAddCommitment(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 22
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
-	}
-
-	err := errors.New("error add commitment")
-
-	multisigner.AddCommitmentMock = func(uint16, []byte) error {
-		return err
-	}
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	_, err2 := cnWorker.GenCommitmentHash()
-	assert.Equal(t, err, err2)
-}
-
-func TestGenCommitmentHash_ShouldRetunErrOnSetCommitmentSecret(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 22
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
-	}
-
-	multisigner.AddCommitmentMock = func(uint16, []byte) error {
-		return nil
-	}
-
-	err := errors.New("error set commitment secret")
-
-	multisigner.SetCommitmentSecretMock = func([]byte) error {
-		return err
-	}
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	_, err2 := cnWorker.GenCommitmentHash()
-	assert.Equal(t, err, err2)
-}
-
 func TestGenCommitmentHash_ShouldRetunErrOnAddCommitmentHash(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -2529,21 +2327,17 @@ func TestGenCommitmentHash_ShouldRetunErrOnAddCommitmentHash(t *testing.T) {
 		0,
 	)
 
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
+	multisigner.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("comm")
 	}
 
-	multisigner.AddCommitmentMock = func(uint16, []byte) error {
-		return nil
-	}
-
-	multisigner.SetCommitmentSecretMock = func([]byte) error {
+	multisigner.StoreCommitmentMock = func(uint16, []byte) error {
 		return nil
 	}
 
 	err := errors.New("error add commitment hash")
 
-	multisigner.AddCommitmentHashMock = func(uint16, []byte) error {
+	multisigner.StoreCommitmentHashMock = func(uint16, []byte) error {
 		return err
 	}
 
@@ -2554,6 +2348,7 @@ func TestGenCommitmentHash_ShouldRetunErrOnAddCommitmentHash(t *testing.T) {
 		mock.MarshalizerMock{},
 		blProcMock,
 		bootMock,
+		singleSigner,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -2566,7 +2361,8 @@ func TestGenCommitmentHash_ShouldRetunErrOnAddCommitmentHash(t *testing.T) {
 
 func TestGenCommitmentHash_ShouldRetunNil(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -2587,19 +2383,15 @@ func TestGenCommitmentHash_ShouldRetunNil(t *testing.T) {
 		0,
 	)
 
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
+	multisigner.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("comm")
 	}
 
-	multisigner.AddCommitmentMock = func(uint16, []byte) error {
+	multisigner.StoreCommitmentMock = func(uint16, []byte) error {
 		return nil
 	}
 
-	multisigner.SetCommitmentSecretMock = func([]byte) error {
-		return nil
-	}
-
-	multisigner.AddCommitmentHashMock = func(uint16, []byte) error {
+	multisigner.StoreCommitmentHashMock = func(uint16, []byte) error {
 		return nil
 	}
 
@@ -2610,6 +2402,7 @@ func TestGenCommitmentHash_ShouldRetunNil(t *testing.T) {
 		mock.MarshalizerMock{},
 		blProcMock,
 		bootMock,
+		singleSigner,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -2621,92 +2414,16 @@ func TestGenCommitmentHash_ShouldRetunNil(t *testing.T) {
 }
 
 func TestCheckCommitmentsValidity_ShouldErrNilCommitmet(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	err := cnWorker.CheckCommitmentsValidity([]byte(string(2)))
 	assert.Equal(t, spos.ErrNilCommitment, err)
 }
 
-func TestCheckCommitmentsValidity_ShouldErrInvalidIndex(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.Reset(nil, 0)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	cnWorker.Cns.SetJobDone(consensusGroup[0], spos.SrCommitment, true)
-
-	err := cnWorker.CheckCommitmentsValidity([]byte(string(1)))
-	assert.Equal(t, crypto.ErrInvalidIndex, err)
-}
-
 func TestCheckCommitmentsValidity_ShouldErrOnCommitmentHash(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -2739,6 +2456,7 @@ func TestCheckCommitmentsValidity_ShouldErrOnCommitmentHash(t *testing.T) {
 		mock.MarshalizerMock{},
 		blProcMock,
 		bootMock,
+		singleSigner,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -2753,7 +2471,8 @@ func TestCheckCommitmentsValidity_ShouldErrOnCommitmentHash(t *testing.T) {
 
 func TestCheckCommitmentsValidity_ShouldErrCommitmentHashDoesNotMatch(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -2785,6 +2504,7 @@ func TestCheckCommitmentsValidity_ShouldErrCommitmentHashDoesNotMatch(t *testing
 		mock.MarshalizerMock{},
 		blProcMock,
 		bootMock,
+		singleSigner,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -2799,7 +2519,8 @@ func TestCheckCommitmentsValidity_ShouldErrCommitmentHashDoesNotMatch(t *testing
 
 func TestCheckCommitmentsValidity_ShouldReturnNil(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -2835,6 +2556,7 @@ func TestCheckCommitmentsValidity_ShouldReturnNil(t *testing.T) {
 		mock.MarshalizerMock{},
 		blProcMock,
 		bootMock,
+		singleSigner,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -2848,40 +2570,7 @@ func TestCheckCommitmentsValidity_ShouldReturnNil(t *testing.T) {
 }
 
 func TestDoAdvanceJob_ShouldReturnFalse(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	cnWorker.Cns.SetStatus(spos.SrEndRound, spos.SsFinished)
 
@@ -2889,79 +2578,13 @@ func TestDoAdvanceJob_ShouldReturnFalse(t *testing.T) {
 }
 
 func TestDoAdvanceJob_ShouldReturnTrue(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	assert.True(t, cnWorker.DoAdvanceJob())
 }
 
 func TestDoExtendStartRound_ShouldSetStartRoundFinished(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	cnWorker.ExtendStartRound()
 
@@ -2970,7 +2593,8 @@ func TestDoExtendStartRound_ShouldSetStartRoundFinished(t *testing.T) {
 
 func TestDoExtendBlock_ShouldNotSetBlockExtended(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -2998,6 +2622,7 @@ func TestDoExtendBlock_ShouldNotSetBlockExtended(t *testing.T) {
 		mock.MarshalizerMock{},
 		blProcMock,
 		bootMock,
+		singleSigner,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -3010,40 +2635,7 @@ func TestDoExtendBlock_ShouldNotSetBlockExtended(t *testing.T) {
 }
 
 func TestDoExtendBlock_ShouldSetBlockExtended(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	cnWorker.ExtendBlock()
 
@@ -3051,40 +2643,7 @@ func TestDoExtendBlock_ShouldSetBlockExtended(t *testing.T) {
 }
 
 func TestReceivedMessage_ShouldReturnWhenIsCanceled(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3106,40 +2665,7 @@ func TestReceivedMessage_ShouldReturnWhenIsCanceled(t *testing.T) {
 }
 
 func TestReceivedMessage_ShouldReturnWhenDataReceivedIsInvalid(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	cnWorker.ReceivedMessage(string(consensusTopic), nil, nil)
 
@@ -3147,40 +2673,7 @@ func TestReceivedMessage_ShouldReturnWhenDataReceivedIsInvalid(t *testing.T) {
 }
 
 func TestReceivedMessage_ShouldReturnWhenNodeIsNotInTheConsensusGroup(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3201,40 +2694,7 @@ func TestReceivedMessage_ShouldReturnWhenNodeIsNotInTheConsensusGroup(t *testing
 }
 
 func TestReceivedMessage_ShouldReturnWhenShouldDropMessage(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3255,40 +2715,7 @@ func TestReceivedMessage_ShouldReturnWhenShouldDropMessage(t *testing.T) {
 }
 
 func TestReceivedMessage_ShouldReturnWhenReceivedMessageIsFromSelf(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3309,40 +2736,7 @@ func TestReceivedMessage_ShouldReturnWhenReceivedMessageIsFromSelf(t *testing.T)
 }
 
 func TestReceivedMessage_ShouldReturnWhenSignatureIsInvalid(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3363,40 +2757,7 @@ func TestReceivedMessage_ShouldReturnWhenSignatureIsInvalid(t *testing.T) {
 }
 
 func TestReceivedMessage_ShouldSendReceivedMesageOnChannel(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3419,40 +2780,7 @@ func TestReceivedMessage_ShouldSendReceivedMesageOnChannel(t *testing.T) {
 }
 
 func TestShouldDropConsensusMessage_ShouldReturnTrueWhenMessageReceivedIsFromThePastRounds(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3471,40 +2799,7 @@ func TestShouldDropConsensusMessage_ShouldReturnTrueWhenMessageReceivedIsFromThe
 }
 
 func TestShouldDropConsensusMessage_ShouldReturnTrueWhenMessageIsReceivedAfterEndRound(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	roundDuration, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3532,40 +2827,7 @@ func TestShouldDropConsensusMessage_ShouldReturnTrueWhenMessageIsReceivedAfterEn
 }
 
 func TestShouldDropConsensusMessage_ShouldReturnFalse(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	roundDuration, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3593,40 +2855,7 @@ func TestShouldDropConsensusMessage_ShouldReturnFalse(t *testing.T) {
 }
 
 func TestCheckSignature_ShouldReturnErrNilConsensusData(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	err := cnWorker.CheckSignature(nil)
 
@@ -3634,40 +2863,7 @@ func TestCheckSignature_ShouldReturnErrNilConsensusData(t *testing.T) {
 }
 
 func TestCheckSignature_ShouldReturnErrNilPublicKey(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3688,40 +2884,7 @@ func TestCheckSignature_ShouldReturnErrNilPublicKey(t *testing.T) {
 }
 
 func TestCheckSignature_ShouldReturnErrNilSignature(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3743,7 +2906,8 @@ func TestCheckSignature_ShouldReturnErrNilSignature(t *testing.T) {
 
 func TestCheckSignature_ShouldReturnPublicKeyFromByteArrayErr(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -3776,6 +2940,7 @@ func TestCheckSignature_ShouldReturnPublicKeyFromByteArrayErr(t *testing.T) {
 		mock.MarshalizerMock{},
 		blProcMock,
 		bootMock,
+		singleSigner,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -3801,40 +2966,7 @@ func TestCheckSignature_ShouldReturnPublicKeyFromByteArrayErr(t *testing.T) {
 }
 
 func TestCheckSignature_ShouldReturnNilErr(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3855,40 +2987,7 @@ func TestCheckSignature_ShouldReturnNilErr(t *testing.T) {
 }
 
 func TestProcessReceivedBlock_ShouldReturnFalseWhenBodyAndHeaderAreNotSet(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	blk := &block.TxBlockBody{}
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -3908,7 +3007,8 @@ func TestProcessReceivedBlock_ShouldReturnFalseWhenBodyAndHeaderAreNotSet(t *tes
 
 func TestProcessReceivedBlock_ShouldReturnFalseWhenProcessBlockFails(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -3941,6 +3041,7 @@ func TestProcessReceivedBlock_ShouldReturnFalseWhenProcessBlockFails(t *testing.
 		mock.MarshalizerMock{},
 		blProcMock,
 		bootMock,
+		singleSigner,
 		multisigner,
 		keyGenMock,
 		privKeyMock,
@@ -3968,40 +3069,7 @@ func TestProcessReceivedBlock_ShouldReturnFalseWhenProcessBlockFails(t *testing.
 }
 
 func TestProcessReceivedBlock_ShouldReturnFalseWhenProcessBlockReturnsInNextRound(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	hdr := &block.Header{}
 	blk := &block.TxBlockBody{}
@@ -4024,40 +3092,7 @@ func TestProcessReceivedBlock_ShouldReturnFalseWhenProcessBlockReturnsInNextRoun
 }
 
 func TestProcessReceivedBlock_ShouldReturnFalseWhenProcessBlockReturnsTooLate(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	roundDuration, cnWorker := initRoundDurationAndConsensusWorker()
 
 	hdr := &block.Header{}
 	blk := &block.TxBlockBody{}
@@ -4089,40 +3124,7 @@ func TestProcessReceivedBlock_ShouldReturnFalseWhenProcessBlockReturnsTooLate(t 
 }
 
 func TestProcessReceivedBlock_ShouldReturnTrue(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
+	_, cnWorker := initRoundDurationAndConsensusWorker()
 
 	hdr := &block.Header{}
 	blk := &block.TxBlockBody{}
@@ -4145,41 +3147,7 @@ func TestProcessReceivedBlock_ShouldReturnTrue(t *testing.T) {
 }
 
 func TestHaveTime_ShouldReturnNegativeValue(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 9
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
+	roundDuration, cnWorker := initRoundDurationAndConsensusWorker()
 	time.Sleep(roundDuration)
 	ret := cnWorker.HaveTime()
 
