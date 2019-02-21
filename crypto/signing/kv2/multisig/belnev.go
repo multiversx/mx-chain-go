@@ -374,10 +374,6 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 		return nil, crypto.ErrIndexOutOfBounds
 	}
 
-	if bn.data.commitments[index] == nil {
-		return nil, crypto.ErrNilCommitment
-	}
-
 	if bn.data.message == nil {
 		return nil, crypto.ErrNilMessage
 	}

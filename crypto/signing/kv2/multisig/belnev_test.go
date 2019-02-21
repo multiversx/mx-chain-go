@@ -799,7 +799,7 @@ func TestBelNevSigner_CreateSignatureShareNotSetCommitmentShouldErr(t *testing.T
 	sigShare, err := multiSigCreated.CreateSignatureShare(bitmap)
 
 	assert.Nil(t, sigShare)
-	assert.Equal(t, crypto.ErrNilCommitment, err)
+	assert.Equal(t, crypto.ErrNilCommitmentSecret, err)
 }
 
 func TestBelNevSigner_CreateSignatureShareNotSetMessageShouldErr(t *testing.T) {
@@ -934,7 +934,7 @@ func TestBelNevSigner_VerifySignatureShareNotSetCommitmentShouldErr(t *testing.T
 	bitmap[0] |= 1 << 2
 	verifErr := multiSig.VerifySignatureShare(2, sigShare, bitmap)
 
-	assert.Equal(t, crypto.ErrNilCommitment, verifErr)
+	assert.Equal(t, crypto.ErrNilParam, verifErr)
 }
 
 func TestBelNevSigner_VerifySignatureShareInvalidSignatureShouldErr(t *testing.T) {
@@ -1225,19 +1225,6 @@ func TestBelNevSigner_VerifyBitmapMismatchShouldErr(t *testing.T) {
 
 	err := multiSigner.Verify(bitmap)
 	assert.Equal(t, crypto.ErrBitmapMismatch, err)
-}
-
-func TestBelNevSigner_VerifyMissingCommitmentShouldErr(t *testing.T) {
-	t.Parallel()
-
-	multiSigner, aggSig, bitmap := createAggregatedSig()
-	_ = multiSigner.SetAggregatedSig(aggSig)
-
-	bitmap[0] = 0xFF
-
-	err := multiSigner.Verify(bitmap)
-
-	assert.Equal(t, crypto.ErrNilCommitment, err)
 }
 
 func TestBelNevSigner_VerifyAggSigNotSetShouldErr(t *testing.T) {

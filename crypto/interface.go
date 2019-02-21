@@ -189,7 +189,7 @@ type MultiSigner interface {
 
 // MultiSigVerifier Provides functionality for verifying a multi-signature
 type MultiSigVerifier interface {
-	// Reset resets the multisigner and initializes to the new params
+	// Create resets the multisigner and initializes to the new params
 	Create(pubKeys []string, index uint16) (MultiSigner, error)
 	// SetMessage sets the message to be multi-signed upon
 	SetMessage(msg []byte) error

@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -49,7 +50,6 @@ import (
 	beevikntp "github.com/beevik/ntp"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -342,18 +342,18 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 	resolversContainer := resolver.NewContainer()
 
 	processorFactory, err := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
-		InterceptorContainer:     interceptorsContainer,
-		ResolverContainer:        resolversContainer,
-		Messenger:                netMessenger,
-		Blockchain:               blkc,
-		DataPool:                 datapool,
-		ShardCoordinator:         shardCoordinator,
-		AddrConverter:            addressConverter,
-		Hasher:                   hasher,
-		Marshalizer:              marshalizer,
-		MultiSigner:              multisigner,
-		SingleSigner:             singlesigner,
-		KeyGen:                   keyGen,
+		InterceptorContainer: interceptorsContainer,
+		ResolverContainer:    resolversContainer,
+		Messenger:            netMessenger,
+		Blockchain:           blkc,
+		DataPool:             datapool,
+		ShardCoordinator:     shardCoordinator,
+		AddrConverter:        addressConverter,
+		Hasher:               hasher,
+		Marshalizer:          marshalizer,
+		MultiSigner:          multisigner,
+		SingleSigner:         singlesigner,
+		KeyGen:               keyGen,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 	})
 	if err != nil {
