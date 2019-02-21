@@ -10,8 +10,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/dataThrottle"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	cr "github.com/libp2p/go-libp2p-crypto"
 )
 
@@ -27,7 +27,7 @@ func main() {
 		startingPort,
 		genPrivKey(),
 		nil,
-		dataThrottle.NewSendDataThrottle(),
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
 	)
 	startingPort++
 	fmt.Printf("advertiser is %s\n", getConnectableAddress(advertiser))
@@ -43,7 +43,7 @@ func main() {
 			startingPort,
 			genPrivKey(),
 			nil,
-			dataThrottle.NewSendDataThrottle(),
+			loadBalancer.NewOutgoingPipeLoadBalancer(),
 		)
 		startingPort++
 

@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/dataThrottle"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-discovery"
@@ -41,8 +41,8 @@ func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration
 func prepareMessengerForMatchDataReceive(mes p2p.Messenger, matchData []byte, wg *sync.WaitGroup) {
 	_ = mes.CreateTopic("test", false)
 
-	_ = mes.SetTopicValidator("test",
-		&mock.TopicValidatorHandlerStub{
+	_ = mes.RegisterTopicValidator("test",
+		&mock.TopicValidatorStub{
 			ValidateCalled: func(message p2p.MessageP2P) error {
 				if bytes.Equal(matchData, message.Data()) {
 					fmt.Printf("%s got the message\n", mes.ID().Pretty())
@@ -133,7 +133,7 @@ func TestNewSocketLibp2pMessenger_NilContextShouldErr(t *testing.T) {
 		port,
 		sk,
 		&mock.ConnManagerNotifieeStub{},
-		&mock.DataThrottleStub{},
+		&mock.PipeLoadBalancerStub{},
 	)
 
 	assert.Nil(t, mes)
@@ -150,7 +150,7 @@ func TestNewSocketLibp2pMessenger_InvalidPortShouldErr(t *testing.T) {
 		port,
 		sk,
 		&mock.ConnManagerNotifieeStub{},
-		&mock.DataThrottleStub{},
+		&mock.PipeLoadBalancerStub{},
 	)
 
 	assert.Nil(t, mes)
@@ -165,14 +165,14 @@ func TestNewSocketLibp2pMessenger_NilP2PprivateKeyShouldErr(t *testing.T) {
 		port,
 		nil,
 		&mock.ConnManagerNotifieeStub{},
-		&mock.DataThrottleStub{},
+		&mock.PipeLoadBalancerStub{},
 	)
 
 	assert.Nil(t, mes)
 	assert.Equal(t, err, p2p.ErrNilP2PprivateKey)
 }
 
-func TestNewSocketLibp2pMessenger_NilSendDataThrottlerShouldErr(t *testing.T) {
+func TestNewSocketLibp2pMessenger_NilPipeLoadBalancerShouldErr(t *testing.T) {
 	port := 4000
 
 	_, sk := createLibP2PCredentialsMessenger()
@@ -186,7 +186,7 @@ func TestNewSocketLibp2pMessenger_NilSendDataThrottlerShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, mes)
-	assert.Equal(t, err, p2p.ErrNilDataThrottler)
+	assert.Equal(t, err, p2p.ErrNilPipeLoadBalancer)
 }
 
 func TestNewSocketLibp2pMessenger_NoConnMgrShouldWork(t *testing.T) {
@@ -199,7 +199,7 @@ func TestNewSocketLibp2pMessenger_NoConnMgrShouldWork(t *testing.T) {
 		port,
 		sk,
 		nil,
-		&mock.DataThrottleStub{
+		&mock.PipeLoadBalancerStub{
 			CollectFromPipesCalled: func() []*p2p.SendableData {
 				return make([]*p2p.SendableData, 0)
 			},
@@ -227,7 +227,7 @@ func TestNewSocketLibp2pMessenger_WithConnMgrShouldWork(t *testing.T) {
 		port,
 		sk,
 		cns,
-		&mock.DataThrottleStub{
+		&mock.PipeLoadBalancerStub{
 			CollectFromPipesCalled: func() []*p2p.SendableData {
 				return make([]*p2p.SendableData, 0)
 			},
@@ -292,7 +292,7 @@ func TestLibp2pMessenger_IsConnectedShouldWork(t *testing.T) {
 func TestLibp2pMessenger_CreateTopicOkValsShouldWork(t *testing.T) {
 	mes := createMockMessenger()
 
-	err := mes.CreateTopic("test", false)
+	err := mes.CreateTopic("test", true)
 	assert.Nil(t, err)
 
 	mes.Close()
@@ -352,73 +352,95 @@ func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
-	_ = mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
+	_ = mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
 
 	assert.True(t, mes.HasTopicValidator("test"))
 
 	mes.Close()
 }
 
-func TestLibp2pMessenger_SetTopicValidatorOnInexistentTopicShouldErr(t *testing.T) {
+func TestLibp2pMessenger_RegisterTopicValidatorOnInexistentTopicShouldErr(t *testing.T) {
 	mes := createMockMessenger()
 
-	err := mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
+	err := mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
 
 	assert.Equal(t, p2p.ErrNilTopic, err)
 
 	mes.Close()
 }
 
-func TestLibp2pMessenger_SetTopicValidatorUnregisterInexistentValidatorShouldErr(t *testing.T) {
+func TestLibp2pMessenger_RegisterTopicValidatorWithNilHandlerShouldErr(t *testing.T) {
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
 
-	err := mes.SetTopicValidator("test", nil)
+	err := mes.RegisterTopicValidator("test", nil)
 
-	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
+	assert.Equal(t, p2p.ErrNilValidator, err)
 
 	mes.Close()
 }
 
-func TestLibp2pMessenger_SetTopicValidatorOkValsShouldWork(t *testing.T) {
+func TestLibp2pMessenger_RegisterTopicValidatorOkValsShouldWork(t *testing.T) {
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
 
-	err := mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
+	err := mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
 
 	assert.Nil(t, err)
 
 	mes.Close()
 }
 
-func TestLibp2pMessenger_SetTopicValidatorReregistrationShouldErr(t *testing.T) {
+func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testing.T) {
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
 
 	//registration
-	_ = mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
+	_ = mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
 
 	//re-registration
-	err := mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
+	err := mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
 
 	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
 
 	mes.Close()
 }
 
-func TestLibp2pMessenger_SetTopicValidatorUnReregistrationShouldWork(t *testing.T) {
+func TestLibp2pMessenger_UnegisterTopicValidatorOnInexistentTopicShouldErr(t *testing.T) {
+	mes := createMockMessenger()
+
+	err := mes.UnregisterTopicValidator("test")
+
+	assert.Equal(t, p2p.ErrNilTopic, err)
+
+	mes.Close()
+}
+
+func TestLibp2pMessenger_UnegisterTopicValidatorOnANotRegisteredTopicShouldErr(t *testing.T) {
+	mes := createMockMessenger()
+
+	_ = mes.CreateTopic("test", false)
+
+	err := mes.UnregisterTopicValidator("test")
+
+	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
+
+	mes.Close()
+}
+
+func TestLibp2pMessenger_UnregisterTopicValidatorShouldWork(t *testing.T) {
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
 
 	//registration
-	_ = mes.SetTopicValidator("test", &mock.TopicValidatorHandlerStub{})
+	_ = mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
 
 	//unregistration
-	err := mes.SetTopicValidator("test", nil)
+	err := mes.UnregisterTopicValidator("test")
 
 	assert.Nil(t, err)
 
@@ -734,7 +756,7 @@ func TestLibp2pMessenger_TrimConnectionsCallsConnManagerTrimConnections(t *testi
 		port,
 		sk,
 		cns,
-		&mock.DataThrottleStub{
+		&mock.PipeLoadBalancerStub{
 			CollectFromPipesCalled: func() []*p2p.SendableData {
 				return make([]*p2p.SendableData, 0)
 			},
@@ -753,7 +775,7 @@ func TestLibp2pMessenger_SendDataThrottlerShouldReturnCorrectObject(t *testing.T
 
 	_, sk := createLibP2PCredentialsMessenger()
 
-	sdt := &mock.DataThrottleStub{
+	sdt := &mock.PipeLoadBalancerStub{
 		AddPipeCalled: func(pipe string) error {
 			return nil
 		},
@@ -770,7 +792,7 @@ func TestLibp2pMessenger_SendDataThrottlerShouldReturnCorrectObject(t *testing.T
 		sdt,
 	)
 
-	sdtReturned := mes.SendDataThrottler()
+	sdtReturned := mes.OutgoingPipeLoadBalancer()
 
 	assert.True(t, sdt == sdtReturned)
 
@@ -821,9 +843,22 @@ func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testi
 	_, sk2 := createLibP2PCredentialsMessenger()
 
 	fmt.Println("Messenger 1:")
-	mes1, _ := libp2p.NewNetworkMessenger(context.Background(), 4000, sk1, nil, dataThrottle.NewSendDataThrottle())
+	mes1, _ := libp2p.NewNetworkMessenger(
+		context.Background(),
+		4000,
+		sk1,
+		nil,
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
+	)
+
 	fmt.Println("Messenger 2:")
-	mes2, _ := libp2p.NewNetworkMessenger(context.Background(), 4001, sk2, nil, dataThrottle.NewSendDataThrottle())
+	mes2, _ := libp2p.NewNetworkMessenger(
+		context.Background(),
+		4001,
+		sk2,
+		nil,
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
+	)
 
 	err := mes1.ConnectToPeer(getConnectableAddress(mes2))
 	assert.Nil(t, err)

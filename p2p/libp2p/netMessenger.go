@@ -8,7 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/dataThrottle"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-discovery"
@@ -44,13 +44,13 @@ type networkMessenger struct {
 	discoverer discovery.Discoverer
 
 	mutTopics sync.RWMutex
-	topics    map[string]p2p.TopicValidatorHandler
+	topics    map[string]p2p.TopicValidator
 	// preconnectPeerHandler is used for notifying that a peer wants to connect to another peer so
 	// in the case of mocknet use, mocknet should first link the peers
 	preconnectPeerHandler PeerInfoHandler
 	peerDiscoveredHandler PeerInfoHandler
 
-	sendDataThrottle p2p.DataThrottler
+	outgoingPLB p2p.PipeLoadBalancer
 }
 
 // NewMockNetworkMessenger creates a new sandbox testable instance of libP2P messenger
@@ -70,7 +70,7 @@ func NewMockNetworkMessenger(ctx context.Context, mockNet mocknet.Mocknet) (*net
 		return nil, err
 	}
 
-	mes, err := createMessenger(ctx, h, false, dataThrottle.NewSendDataThrottle())
+	mes, err := createMessenger(ctx, h, false, loadBalancer.NewOutgoingPipeLoadBalancer())
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func NewNetworkMessenger(
 	port int,
 	p2pPrivKey crypto.PrivKey,
 	conMgr ifconnmgr.ConnManager,
-	sendDataThrottler p2p.DataThrottler,
+	outgoingPLB p2p.PipeLoadBalancer,
 ) (*networkMessenger, error) {
 
 	if ctx == nil {
@@ -104,8 +104,8 @@ func NewNetworkMessenger(
 		return nil, p2p.ErrNilP2PprivateKey
 	}
 
-	if sendDataThrottler == nil {
-		return nil, p2p.ErrNilDataThrottler
+	if outgoingPLB == nil {
+		return nil, p2p.ErrNilPipeLoadBalancer
 	}
 
 	opts := []libp2p.Option{
@@ -123,7 +123,7 @@ func NewNetworkMessenger(
 		return nil, err
 	}
 
-	p2pNode, err := createMessenger(ctx, h, true, sendDataThrottler)
+	p2pNode, err := createMessenger(ctx, h, true, outgoingPLB)
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err
@@ -136,7 +136,7 @@ func createMessenger(
 	ctx context.Context,
 	h host.Host,
 	withSigning bool,
-	sendDataThrottler p2p.DataThrottler,
+	outgoingPLB p2p.PipeLoadBalancer,
 ) (*networkMessenger, error) {
 
 	pb, err := createPubSub(ctx, h, withSigning)
@@ -150,13 +150,13 @@ func createMessenger(
 	}
 
 	netMes := networkMessenger{
-		hostP2P:          h,
-		pb:               pb,
-		topics:           make(map[string]p2p.TopicValidatorHandler),
-		ctx:              ctx,
-		kadDHT:           kad,
-		discoverer:       discoverer,
-		sendDataThrottle: sendDataThrottler,
+		hostP2P:     h,
+		pb:          pb,
+		topics:      make(map[string]p2p.TopicValidator),
+		ctx:         ctx,
+		kadDHT:      kad,
+		discoverer:  discoverer,
+		outgoingPLB: outgoingPLB,
 	}
 
 	netMes.ds, err = NewDirectSender(ctx, h, netMes.directMessageHandler)
@@ -164,9 +164,9 @@ func createMessenger(
 		return nil, err
 	}
 
-	go func(pubsub *pubsub.PubSub, dt p2p.DataThrottler) {
+	go func(pubsub *pubsub.PubSub, plb p2p.PipeLoadBalancer) {
 		for {
-			dataToBeSent := dt.CollectFromPipes()
+			dataToBeSent := plb.CollectFromPipes()
 
 			wasSent := false
 			for i := 0; i < len(dataToBeSent); i++ {
@@ -188,7 +188,7 @@ func createMessenger(
 				time.Sleep(durationBetweenSends)
 			}
 		}
-	}(pb, netMes.sendDataThrottle)
+	}(pb, netMes.outgoingPLB)
 
 	for _, address := range netMes.hostP2P.Addrs() {
 		fmt.Println(address.String() + "/p2p/" + netMes.ID().Pretty())
@@ -332,7 +332,6 @@ func (netMes *networkMessenger) IsConnected(peerID p2p.PeerID) bool {
 
 // ConnectedPeers returns the current connected peers list
 func (netMes *networkMessenger) ConnectedPeers() []p2p.PeerID {
-	peerList := make([]p2p.PeerID, 0)
 
 	connectedPeers := make(map[p2p.PeerID]struct{})
 
@@ -344,8 +343,12 @@ func (netMes *networkMessenger) ConnectedPeers() []p2p.PeerID {
 		}
 	}
 
-	for k, _ := range connectedPeers {
-		peerList = append(peerList, k)
+	peerList := make([]p2p.PeerID, len(connectedPeers))
+
+	index := 0
+	for k := range connectedPeers {
+		peerList[index] = k
+		index++
 	}
 
 	return peerList
@@ -369,7 +372,7 @@ func (netMes *networkMessenger) CreateTopic(name string, createPipeForTopic bool
 	netMes.mutTopics.Unlock()
 
 	if createPipeForTopic {
-		err = netMes.sendDataThrottle.AddPipe(name)
+		err = netMes.outgoingPLB.AddPipe(name)
 	}
 
 	//just a dummy func to consume messages received by the newly created topic
@@ -400,9 +403,9 @@ func (netMes *networkMessenger) HasTopicValidator(name string) bool {
 	return validator != nil
 }
 
-// SendDataThrottler returns the data throttler object used by the messenger to send data
-func (netMes *networkMessenger) SendDataThrottler() p2p.DataThrottler {
-	return netMes.sendDataThrottle
+// OutgoingPipeLoadBalancer returns the pipe load balancer object used by the messenger to send data
+func (netMes *networkMessenger) OutgoingPipeLoadBalancer() p2p.PipeLoadBalancer {
+	return netMes.outgoingPLB
 }
 
 // BroadcastData tries to send a byte buffer onto a topic
@@ -412,12 +415,16 @@ func (netMes *networkMessenger) Broadcast(pipe string, topic string, buff []byte
 			Buff:  buff,
 			Topic: topic,
 		}
-		netMes.sendDataThrottle.GetChannelOrDefault(pipe) <- sendable
+		netMes.outgoingPLB.GetChannelOrDefault(pipe) <- sendable
 	}()
 }
 
-// SetTopicValidator sets a validator on a topic
-func (netMes *networkMessenger) SetTopicValidator(topic string, handler p2p.TopicValidatorHandler) error {
+// RegisterTopicValidator registers a validator on a topic
+func (netMes *networkMessenger) RegisterTopicValidator(topic string, handler p2p.TopicValidator) error {
+	if handler == nil {
+		return p2p.ErrNilValidator
+	}
+
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
 	validator, found := netMes.topics[topic]
@@ -426,32 +433,44 @@ func (netMes *networkMessenger) SetTopicValidator(topic string, handler p2p.Topi
 		return p2p.ErrNilTopic
 	}
 
-	if handler == nil && validator != nil {
-		err := netMes.pb.UnregisterTopicValidator(topic)
-		if err != nil {
-			return err
-		}
-
-		netMes.topics[topic] = nil
-		return nil
+	if validator != nil {
+		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 
-	if handler != nil && validator == nil {
-		err := netMes.pb.RegisterTopicValidator(topic, func(i context.Context, message *pubsub.Message) bool {
-			err := handler.Validate(NewMessage(message))
+	err := netMes.pb.RegisterTopicValidator(topic, func(i context.Context, message *pubsub.Message) bool {
+		err := handler.Validate(NewMessage(message))
 
-			return err == nil
-		})
-
-		if err != nil {
-			return err
-		}
-
-		netMes.topics[topic] = handler
-		return nil
+		return err == nil
+	})
+	if err != nil {
+		return err
 	}
 
-	return p2p.ErrTopicValidatorOperationNotSupported
+	netMes.topics[topic] = handler
+	return nil
+}
+
+// UnregisterTopicValidator registers a validator on a topic
+func (netMes *networkMessenger) UnregisterTopicValidator(topic string) error {
+	netMes.mutTopics.Lock()
+	defer netMes.mutTopics.Unlock()
+	validator, found := netMes.topics[topic]
+
+	if !found {
+		return p2p.ErrNilTopic
+	}
+
+	if validator == nil {
+		return p2p.ErrTopicValidatorOperationNotSupported
+	}
+
+	err := netMes.pb.UnregisterTopicValidator(topic)
+	if err != nil {
+		return err
+	}
+
+	netMes.topics[topic] = nil
+	return nil
 }
 
 // SendToConnectedPeer sends a direct message to a connected peer
@@ -460,7 +479,7 @@ func (netMes *networkMessenger) SendToConnectedPeer(topic string, buff []byte, p
 }
 
 func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) error {
-	var validator p2p.TopicValidatorHandler
+	var validator p2p.TopicValidator
 
 	netMes.mutTopics.RLock()
 	validator = netMes.topics[message.TopicIDs()[0]]

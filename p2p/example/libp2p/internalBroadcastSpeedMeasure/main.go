@@ -36,8 +36,8 @@ func main() {
 	bytesReceived2 := int64(0)
 	bytesReceived3 := int64(0)
 
-	_ = mes1.SetTopicValidator("test1",
-		&mock.TopicValidatorHandlerStub{
+	_ = mes1.RegisterTopicValidator("test1",
+		&mock.TopicValidatorStub{
 			ValidateCalled: func(message p2p.MessageP2P) error {
 				atomic.AddInt64(&bytesReceived1, int64(len(message.Data())))
 
@@ -45,7 +45,7 @@ func main() {
 			},
 		})
 
-	_ = mes1.SetTopicValidator("test2", &mock.TopicValidatorHandlerStub{
+	_ = mes1.RegisterTopicValidator("test2", &mock.TopicValidatorStub{
 		ValidateCalled: func(message p2p.MessageP2P) error {
 			atomic.AddInt64(&bytesReceived2, int64(len(message.Data())))
 
@@ -53,7 +53,7 @@ func main() {
 		},
 	})
 
-	_ = mes1.SetTopicValidator("test3", &mock.TopicValidatorHandlerStub{
+	_ = mes1.RegisterTopicValidator("test3", &mock.TopicValidatorStub{
 		ValidateCalled: func(message p2p.MessageP2P) error {
 			atomic.AddInt64(&bytesReceived3, int64(len(message.Data())))
 

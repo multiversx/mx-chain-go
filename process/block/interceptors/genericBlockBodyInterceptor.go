@@ -10,6 +10,7 @@ import (
 
 // GenericBlockBodyInterceptor represents an interceptor used for all types of block bodies
 type GenericBlockBodyInterceptor struct {
+	*messageChecker
 	marshalizer      marshal.Marshalizer
 	cache            storage.Cacher
 	hasher           hashing.Hasher
@@ -48,6 +49,7 @@ func NewGenericBlockBodyInterceptor(
 	}
 
 	bbIntercept := &GenericBlockBodyInterceptor{
+		messageChecker:   &messageChecker{},
 		marshalizer:      marshalizer,
 		cache:            cache,
 		storer:           storer,

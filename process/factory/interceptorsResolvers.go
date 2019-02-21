@@ -476,11 +476,11 @@ func validateRequiredProcessCreatorParams(config InterceptorsResolversConfig) er
 	return nil
 }
 
-func (ir *interceptorsResolvers) createTopicAndAssignHandler(topic string, handler p2p.TopicValidatorHandler, createPipe bool) error {
+func (ir *interceptorsResolvers) createTopicAndAssignHandler(topic string, handler p2p.TopicValidator, createPipe bool) error {
 	err := ir.messenger.CreateTopic(topic, createPipe)
 	if err != nil {
 		return err
 	}
 
-	return ir.messenger.SetTopicValidator(topic, handler)
+	return ir.messenger.RegisterTopicValidator(topic, handler)
 }

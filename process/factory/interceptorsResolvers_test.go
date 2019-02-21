@@ -190,7 +190,7 @@ func TestInterceptorsResolversCreator_CreateInterceptorsNewTopicInterceptorError
 		HasTopicValidatorCalled: func(name string) bool {
 			return false
 		},
-		SetTopicValidatorCalled: func(topic string, handler p2p.TopicValidatorHandler) error {
+		RegisterTopicValidatorCalled: func(topic string, handler p2p.TopicValidator) error {
 			return errExpected
 		},
 		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
@@ -229,7 +229,7 @@ func TestInterceptorsResolversCreator_CreateResolversNewTopicInterceptorErrorsWi
 		HasTopicValidatorCalled: func(name string) bool {
 			return false
 		},
-		SetTopicValidatorCalled: func(topic string, handler p2p.TopicValidatorHandler) error {
+		RegisterTopicValidatorCalled: func(topic string, handler p2p.TopicValidator) error {
 			return errExpected
 		},
 		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
@@ -293,7 +293,7 @@ func createMessenger() p2p.Messenger {
 		HasTopicValidatorCalled: func(name string) bool {
 			return false
 		},
-		SetTopicValidatorCalled: func(topic string, handler p2p.TopicValidatorHandler) error {
+		RegisterTopicValidatorCalled: func(topic string, handler p2p.TopicValidator) error {
 			return nil
 		},
 		CreateTopicCalled: func(name string, createPipeForTopic bool) error {

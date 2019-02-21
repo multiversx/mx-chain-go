@@ -38,8 +38,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/dataThrottle"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
@@ -447,7 +447,7 @@ func createNetMessenger(config netMessengerConfig) (p2p.Messenger, error) {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	nm, err := libp2p.NewNetworkMessenger(config.ctx, config.port, sk, nil, dataThrottle.NewSendDataThrottle())
+	nm, err := libp2p.NewNetworkMessenger(config.ctx, config.port, sk, nil, loadBalancer.NewOutgoingPipeLoadBalancer())
 
 	if err != nil {
 		return nil, err

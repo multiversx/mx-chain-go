@@ -8,7 +8,10 @@ import (
 
 var log = logger.NewDefaultLogger()
 
-func checkMessage(message p2p.MessageP2P) error {
+type messageChecker struct {
+}
+
+func (*messageChecker) checkMessage(message p2p.MessageP2P) error {
 	if message == nil {
 		return process.ErrNilMessage
 	}

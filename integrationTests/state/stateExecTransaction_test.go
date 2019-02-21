@@ -19,9 +19,11 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	accnts := adbCreateAccountsDB()
+	ti := &testInitializer{}
 
-	pubKeyBuff := createDummyHexAddress(64)
+	accnts := adbCreateAccountsDB(ti)
+
+	pubKeyBuff := ti.createDummyHexAddress(64)
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -60,9 +62,11 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 }
 
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
-	accnts := adbCreateAccountsDB()
+	ti := &testInitializer{}
 
-	pubKeyBuff := createDummyHexAddress(64)
+	accnts := adbCreateAccountsDB(ti)
+
+	pubKeyBuff := ti.createDummyHexAddress(64)
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -100,17 +104,19 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 }
 
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
-	accnts := adbCreateAccountsDB()
+	ti := &testInitializer{}
+
+	accnts := adbCreateAccountsDB(ti)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
 	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
-	pubKeyBuff := createDummyHexAddress(64)
+	pubKeyBuff := ti.createDummyHexAddress(64)
 	sender, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
-	pubKeyBuff = createDummyHexAddress(64)
+	pubKeyBuff = ti.createDummyHexAddress(64)
 	receiver, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
 	account, _ := accnts.GetJournalizedAccount(sender)
@@ -190,17 +196,19 @@ func testExecTransactionsMoreTxWithRevert(
 }
 
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
-	accnts := adbCreateAccountsDB()
+	ti := &testInitializer{}
+
+	accnts := adbCreateAccountsDB(ti)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
 	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
-	pubKeyBuff := createDummyHexAddress(64)
+	pubKeyBuff := ti.createDummyHexAddress(64)
 	sender, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
-	pubKeyBuff = createDummyHexAddress(64)
+	pubKeyBuff = ti.createDummyHexAddress(64)
 	receiver, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
 	account, _ := accnts.GetJournalizedAccount(sender)

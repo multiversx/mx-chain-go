@@ -28,8 +28,8 @@ var ErrTopicValidatorOperationNotSupported = errors.New("topic validator operati
 // ErrNilDiscoverer signals that a nil discoverer object has been provided
 var ErrNilDiscoverer = errors.New("nil discoverer object")
 
-// ErrNilDataThrottler signals that a nil data throttler object has been provided
-var ErrNilDataThrottler = errors.New("nil data throttler object")
+// ErrNilPipeLoadBalancer signals that a nil data throttler object has been provided
+var ErrNilPipeLoadBalancer = errors.New("nil pipe load balancer object")
 
 // ErrPipeAlreadyExists signals that the pipe is already defined (and used)
 var ErrPipeAlreadyExists = errors.New("pipe already exists")

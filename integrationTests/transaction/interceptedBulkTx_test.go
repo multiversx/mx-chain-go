@@ -18,14 +18,16 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	dPool := createTestDataPool()
+	ti := &testInitializer{}
+
+	dPool := ti.createTestDataPool()
 
 	startingNonce := uint64(6)
 
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
-	accntAdapter := createAccountsDB()
+	accntAdapter := ti.createAccountsDB()
 
-	n, _, sk, _ := createNetNode(4000, dPool, accntAdapter)
+	n, _, sk, _ := ti.createNetNode(4000, dPool, accntAdapter)
 
 	n.Start()
 	defer n.Stop()
@@ -79,7 +81,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		wg.Done()
 	})
 
-	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), uint64(noOfTx))
+	err := n.GenerateAndSendBulkTransactions(ti.createDummyHexAddress(64), big.NewInt(1), uint64(noOfTx))
 
 	assert.Nil(t, err)
 

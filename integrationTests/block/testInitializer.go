@@ -1,4 +1,4 @@
-package transaction
+package block
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
@@ -21,8 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/dataThrottle"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
@@ -33,7 +32,10 @@ import (
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 )
 
-func createTestBlockChain() *blockchain.BlockChain {
+type testInitializer struct {
+}
+
+func (ti *testInitializer) createTestBlockChain() *blockchain.BlockChain {
 
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 
@@ -41,16 +43,16 @@ func createTestBlockChain() *blockchain.BlockChain {
 
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit())
+		ti.createMemUnit(),
+		ti.createMemUnit(),
+		ti.createMemUnit(),
+		ti.createMemUnit(),
+		ti.createMemUnit())
 
 	return blockChain
 }
 
-func createMemUnit() storage.Storer {
+func (ti *testInitializer) createMemUnit() storage.Storer {
 	cache, _ := storage.NewCache(storage.LRUCache, 10)
 	persist, _ := memorydb.New()
 
@@ -58,21 +60,21 @@ func createMemUnit() storage.Storer {
 	return unit
 }
 
-func createTestDataPool() data.TransientDataHolder {
-	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
-	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
+func (ti *testInitializer) createTestDataPool() data.TransientDataHolder {
+	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
+	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
 
-	cacherCfg := storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 	txBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 	stateBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	dPool, _ := dataPool.NewDataPool(
@@ -87,34 +89,17 @@ func createTestDataPool() data.TransientDataHolder {
 	return dPool
 }
 
-func createDummyHexAddress(chars int) string {
-	if chars < 1 {
-		return ""
-	}
-
-	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
-
-	rdm := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	buff := make([]byte, chars)
-	for i := 0; i < chars; i++ {
-		buff[i] = characters[rdm.Int()%16]
-	}
-
-	return string(buff)
-}
-
-func createAccountsDB() *state.AccountsDB {
+func (ti *testInitializer) createAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 
-	dbw, _ := trie.NewDBWriteCache(createMemUnit())
+	dbw, _ := trie.NewDBWriteCache(ti.createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh)
 
 	return adb
 }
 
-func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.AccountsAdapter) (
+func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.AccountsAdapter) (
 	*node.Node,
 	p2p.Messenger,
 	crypto.PrivateKey,
@@ -123,13 +108,13 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	messenger := createMessenger(context.Background(), port)
+	messenger := ti.createMessenger(context.Background(), port)
 
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
 	keyGen := schnorr.NewKeyGenerator()
 	sk, pk := keyGen.GeneratePair()
-	blkc := createTestBlockChain()
+	blkc := ti.createTestBlockChain()
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
@@ -170,12 +155,12 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	return n, messenger, sk, pFactory
 }
 
-func createMessenger(ctx context.Context, port int) p2p.Messenger {
+func (ti *testInitializer) createMessenger(ctx context.Context, port int) p2p.Messenger {
 	r := rand.New(rand.NewSource(int64(port)))
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(ctx, port, sk, nil, dataThrottle.NewSendDataThrottle())
+	libP2PMes, err := libp2p.NewNetworkMessenger(ctx, port, sk, nil, loadBalancer.NewOutgoingPipeLoadBalancer())
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -184,7 +169,7 @@ func createMessenger(ctx context.Context, port int) p2p.Messenger {
 	return libP2PMes
 }
 
-func getConnectableAddress(mes p2p.Messenger) string {
+func (ti *testInitializer) getConnectableAddress(mes p2p.Messenger) string {
 	for _, addr := range mes.Addresses() {
 		if strings.Contains(addr, "circuit") {
 			continue

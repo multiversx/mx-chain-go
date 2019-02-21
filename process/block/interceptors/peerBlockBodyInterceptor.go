@@ -39,7 +39,7 @@ func NewPeerBlockBodyInterceptor(
 // Validate will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (pbbi *PeerBlockBodyInterceptor) Validate(message p2p.MessageP2P) error {
-	err := checkMessage(message)
+	err := pbbi.checkMessage(message)
 	if err != nil {
 		return err
 	}

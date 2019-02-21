@@ -13,6 +13,7 @@ import (
 
 // HeaderInterceptor represents an interceptor used for block headers
 type HeaderInterceptor struct {
+	*messageChecker
 	marshalizer      marshal.Marshalizer
 	headers          data.ShardedDataCacherNotifier
 	storer           storage.Storer
@@ -56,6 +57,7 @@ func NewHeaderInterceptor(
 	}
 
 	hdrIntercept := &HeaderInterceptor{
+		messageChecker:   &messageChecker{},
 		marshalizer:      marshalizer,
 		headers:          headers,
 		headersNonces:    headersNonces,
@@ -70,7 +72,7 @@ func NewHeaderInterceptor(
 // Validate will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (hi *HeaderInterceptor) Validate(message p2p.MessageP2P) error {
-	err := checkMessage(message)
+	err := hi.checkMessage(message)
 	if err != nil {
 		return err
 	}

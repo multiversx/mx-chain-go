@@ -482,7 +482,7 @@ func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) error {
 		return err
 	}
 
-	return n.messenger.SetTopicValidator(string(ConsensusTopic), sposWrk)
+	return n.messenger.RegisterTopicValidator(string(ConsensusTopic), sposWrk)
 }
 
 // addSubroundsToChronology adds subrounds to chronology
