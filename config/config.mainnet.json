@@ -60,7 +60,11 @@
     },
     "bloom": {
       "size": 2048,
-      "hashFunc": ["Keccak", "Blake2b", "Fnv"]
+      "hashFunc": [
+        "Keccak",
+        "Blake2b",
+        "Fnv"
+      ]
     }
   },
   "badBlocksCache": {
@@ -91,7 +95,6 @@
     "size": 100000,
     "type": "LRU"
   },
-
   "logger": {
     "path": "logs",
     "stackTraceDepth": 2
@@ -101,6 +104,9 @@
     "prefix": "0x"
   },
   "hasher": {
+    "type": "blake2b"
+  },
+  "multisigHasher": {
     "type": "sha256"
   },
   "marshalizer": {

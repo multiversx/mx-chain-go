@@ -14,22 +14,6 @@ import (
 
 var invalidStr = []byte("invalid key")
 
-func signOK(suite crypto.Suite, private crypto.Scalar, msg []byte) ([]byte, error) {
-	return []byte("signed"), nil
-}
-
-func signNOK(suite crypto.Suite, private crypto.Scalar, msg []byte) ([]byte, error) {
-	return nil, crypto.ErrInvalidParam
-}
-
-func Verify(suite crypto.Suite, public crypto.Point, msg []byte, sig []byte) error {
-	if !reflect.DeepEqual(sig, []byte("signed")) {
-		return crypto.ErrSigNotValid
-	}
-
-	return nil
-}
-
 func unmarshalPrivate(val []byte) (int, error) {
 	if reflect.DeepEqual(invalidStr, val) {
 		return 0, crypto.ErrInvalidPrivateKey
@@ -249,65 +233,6 @@ func TestKeyGenerator_SuiteOK(t *testing.T) {
 	assert.Equal(t, suite, s1)
 }
 
-func TestPrivateKey_SignNilSignerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	suite := &mock.SuiteMock{
-		CreateScalarStub: createScalar,
-		CreatePointStub:  createPoint,
-	}
-
-	kg := signing.NewKeyGenerator(suite)
-	privKey, _ := kg.GeneratePair()
-	msg := []byte("message")
-	signature, err := privKey.Sign(msg, nil)
-
-	assert.Nil(t, signature)
-	assert.Equal(t, crypto.ErrNilSingleSigner, err)
-}
-
-func TestPrivateKey_SignInvalidSignerParamShouldErr(t *testing.T) {
-	t.Parallel()
-
-	suite := &mock.SuiteMock{
-		CreateScalarStub: createScalar,
-		CreatePointStub:  createPoint,
-	}
-
-	signer := &mock.Signer{
-		SignStub: signNOK,
-	}
-
-	kg := signing.NewKeyGenerator(suite)
-	privKey, _ := kg.GeneratePair()
-	msg := []byte("message")
-	signature, err := privKey.Sign(msg, signer)
-
-	assert.Nil(t, signature)
-	assert.Equal(t, crypto.ErrInvalidParam, err)
-}
-
-func TestPrivateKey_SignOK(t *testing.T) {
-	t.Parallel()
-
-	suite := &mock.SuiteMock{
-		CreateScalarStub: createScalar,
-		CreatePointStub:  createPoint,
-	}
-
-	signer := &mock.Signer{
-		SignStub: signOK,
-	}
-
-	kg := signing.NewKeyGenerator(suite)
-	privKey, _ := kg.GeneratePair()
-	msg := []byte("message")
-	signature, err := privKey.Sign(msg, signer)
-
-	assert.Equal(t, []byte("signed"), signature)
-	assert.Nil(t, err)
-}
-
 func TestPrivateKey_ToByteArrayOK(t *testing.T) {
 	t.Parallel()
 
@@ -370,46 +295,6 @@ func TestPrivateKey_Scalar(t *testing.T) {
 	x := sc.(*mock.ScalarMock).X
 
 	assert.Equal(t, 20, x)
-}
-
-func TestPublicKey_VerifyNilSignerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	suite := &mock.SuiteMock{
-		CreateScalarStub: createScalar,
-		CreatePointStub:  createPoint,
-	}
-
-	kg := signing.NewKeyGenerator(suite)
-	_, pubKey := kg.GeneratePair()
-	msg := []byte("message")
-	signature := []byte("signature")
-
-	err := pubKey.Verify(msg, signature, nil)
-
-	assert.Equal(t, crypto.ErrNilSingleSigner, err)
-}
-
-func TestPublicKey_VerifyOK(t *testing.T) {
-	t.Parallel()
-
-	suite := &mock.SuiteMock{
-		CreateScalarStub: createScalar,
-		CreatePointStub:  createPoint,
-	}
-
-	signer := &mock.Signer{
-		SignStub:   signNOK,
-		VerifyStub: Verify,
-	}
-
-	kg := signing.NewKeyGenerator(suite)
-	privKey, pubKey := kg.GeneratePair()
-	msg := []byte("message")
-	signature, _ := privKey.Sign(msg, signer)
-	err := pubKey.Verify(msg, signature, signer)
-
-	assert.Equal(t, crypto.ErrSigNotValid, err)
 }
 
 func TestPublicKey_ToByteArrayOK(t *testing.T) {

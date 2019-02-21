@@ -101,6 +101,9 @@
     "prefix": "0x"
   },
   "hasher": {
+    "type": "blake2b"
+  },
+  "multisigHasher": {
     "type": "sha256"
   },
   "marshalizer": {

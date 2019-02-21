@@ -3,14 +3,18 @@ package block
 import (
 	"context"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
@@ -22,10 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
 )
 
 func createTestBlockChain() *blockchain.BlockChain {
@@ -116,18 +116,18 @@ func createMemNode(port int, dPool data.TransientDataHolder) (*node.Node, p2p.Me
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	pFactory, _ := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
-		InterceptorContainer:     interceptor.NewContainer(),
-		ResolverContainer:        resolver.NewContainer(),
-		Messenger:                mes,
-		Blockchain:               blockChain,
-		DataPool:                 dPool,
-		ShardCoordinator:         shardCoordinator,
-		AddrConverter:            addrConverter,
-		Hasher:                   hasher,
-		Marshalizer:              marshalizer,
-		MultiSigner:              multiSigner,
-		SingleSigner:             signer,
-		KeyGen:                   keyGen,
+		InterceptorContainer: interceptor.NewContainer(),
+		ResolverContainer:    resolver.NewContainer(),
+		Messenger:            mes,
+		Blockchain:           blockChain,
+		DataPool:             dPool,
+		ShardCoordinator:     shardCoordinator,
+		AddrConverter:        addrConverter,
+		Hasher:               hasher,
+		Marshalizer:          marshalizer,
+		MultiSigner:          multiSigner,
+		SingleSigner:         signer,
+		KeyGen:               keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
 

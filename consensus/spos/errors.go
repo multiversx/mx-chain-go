@@ -52,7 +52,7 @@ var ErrNilOnBroadcastHeader = errors.New("header broadcast function pointer is n
 // ErrNilOnBroadcastTxBlockBody is raised when a valid block broadcast function pointer is expected but nil used
 var ErrNilOnBroadcastTxBlockBody = errors.New("tx block body broadcast function pointer is nil")
 
-// ErrNilSingleiSigner is raised when a valid singleSigner is expected but nil used
+// ErrNilSingleSigner is raised when a valid singleSigner is expected but nil used
 var ErrNilSingleSigner = errors.New("singleSigner is nil")
 
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used

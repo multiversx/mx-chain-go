@@ -25,7 +25,7 @@ var ErrEligibleSelectionMismatch = errors.New("invalid eligible validator select
 // ErrEligibleTooManySelections signals an invalid selection for consensus group
 var ErrEligibleTooManySelections = errors.New("too many selections for consensus group")
 
-// ErrEligibleTooManySelections signals an invalid selection for consensus group
+// ErrEligibleTooFewSelections signals an invalid selection for consensus group
 var ErrEligibleTooFewSelections = errors.New("too few selections for consensus group")
 
 // ErrNilRandomness signals that a nil randomness source has been provided

@@ -136,8 +136,6 @@ type Key interface {
 // PrivateKey represents a private key that can sign data or decrypt messages encrypted with a public key
 type PrivateKey interface {
 	Key
-	// Sign can be used to sign a message with the private key
-	Sign(message []byte, signer SingleSigner) ([]byte, error)
 	// GeneratePublic builds a public key for the current private key
 	GeneratePublic() PublicKey
 	// Scalar returns the Scalar corresponding to this Private Key
@@ -147,8 +145,6 @@ type PrivateKey interface {
 // PublicKey can be used to encrypt messages
 type PublicKey interface {
 	Key
-	// Verify signature represents the signed hash of the data
-	Verify(data []byte, signature []byte, signer SingleSigner) error
 	// Point returns the Point corresponding to this Public Key
 	Point() Point
 }
@@ -156,9 +152,9 @@ type PublicKey interface {
 // SingleSigner provides functionality for signing a message and verifying a single signed message
 type SingleSigner interface {
 	// Sign is used to sign a message
-	Sign(suite Suite, private Scalar, msg []byte) ([]byte, error)
+	Sign(private PrivateKey, msg []byte) ([]byte, error)
 	// Verify is used to verify a signed message
-	Verify(suite Suite, public Point, msg []byte, sig []byte) error
+	Verify(public PublicKey, msg []byte, sig []byte) error
 }
 
 // MultiSigner provides functionality for multi-signing a message and verifying a multi-signed message
@@ -167,14 +163,12 @@ type MultiSigner interface {
 	MultiSigVerifier
 	// CreateCommitment creates a secret commitment and the corresponding public commitment point
 	CreateCommitment() (commSecret []byte, commitment []byte)
-	// AddCommitmentHash adds a commitment hash to the list with the specified position
-	AddCommitmentHash(index uint16, commHash []byte) error
+	// StoreCommitmentHash adds a commitment hash to the list with the specified position
+	StoreCommitmentHash(index uint16, commHash []byte) error
 	// CommitmentHash returns the commitment hash from the list with the specified position
 	CommitmentHash(index uint16) ([]byte, error)
-	// SetCommitmentSecret sets the committment secret
-	SetCommitmentSecret(commSecret []byte) error
-	// AddCommitment adds a commitment to the list with the specified position
-	AddCommitment(index uint16, value []byte) error
+	// StoreCommitment adds a commitment to the list with the specified position
+	StoreCommitment(index uint16, value []byte) error
 	// Commitment returns the commitment from the list with the specified position
 	Commitment(index uint16) ([]byte, error)
 	// AggregateCommitments aggregates the list of commitments
@@ -183,8 +177,8 @@ type MultiSigner interface {
 	SetAggCommitment(aggCommitment []byte) error
 	// CreateSignatureShare creates a partial signature
 	CreateSignatureShare(bitmap []byte) ([]byte, error)
-	// AddSignatureShare adds the partial signature of the signer with specified position
-	AddSignatureShare(index uint16, sig []byte) error
+	// StoreSignatureShare adds the partial signature of the signer with specified position
+	StoreSignatureShare(index uint16, sig []byte) error
 	// SignatureShare returns the partial signature set for given index
 	SignatureShare(index uint16) ([]byte, error)
 	// VerifySignatureShare verifies the partial signature of the signer with specified position

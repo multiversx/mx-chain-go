@@ -121,12 +121,12 @@ func (inTx *InterceptedTransaction) VerifySig() error {
 		return process.ErrNilSingleSigner
 	}
 
-	singleSignVerifier, err := inTx.keyGen.PublicKeyFromByteArray(inTx.SndAddr)
+	senderPubKey, err := inTx.keyGen.PublicKeyFromByteArray(inTx.SndAddr)
 	if err != nil {
 		return err
 	}
 
-	err = singleSignVerifier.Verify(inTx.txBuffWithoutSig, inTx.Signature, inTx.singleSigner)
+	err = inTx.singleSigner.Verify(senderPubKey, inTx.txBuffWithoutSig, inTx.Signature)
 
 	if err != nil {
 		return err

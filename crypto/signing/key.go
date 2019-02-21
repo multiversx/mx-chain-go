@@ -21,12 +21,6 @@ type keyGenerator struct {
 	suite crypto.Suite
 }
 
-// Pair represents a public/private keypair
-type pair struct {
-	public  crypto.Point
-	private crypto.Scalar
-}
-
 // NewKeyGenerator returns a new key generator with the given curve suite
 func NewKeyGenerator(suite crypto.Suite) *keyGenerator {
 	return &keyGenerator{suite: suite}
@@ -34,7 +28,7 @@ func NewKeyGenerator(suite crypto.Suite) *keyGenerator {
 
 // GeneratePair will generate a bundle of private and public key
 func (kg *keyGenerator) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
-	keyPair, err := newKeyPair(kg.suite)
+	private, public, err := newKeyPair(kg.suite)
 
 	if err != nil {
 		panic("unable to generate private/public keys")
@@ -42,10 +36,10 @@ func (kg *keyGenerator) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 
 	return &privateKey{
 		suite: kg.suite,
-		sk:    keyPair.private,
+		sk:    private,
 	}, &publicKey{
 		suite: kg.suite,
-		pk:    keyPair.public,
+		pk:    public,
 	}
 }
 
@@ -86,34 +80,24 @@ func (kg *keyGenerator) Suite() crypto.Suite {
 	return kg.suite
 }
 
-func newKeyPair(suite crypto.Suite) (*pair, error) {
+func newKeyPair(suite crypto.Suite) (private crypto.Scalar, public crypto.Point, err error) {
 	if suite == nil {
-		return nil, crypto.ErrNilSuite
+		return nil, nil, crypto.ErrNilSuite
 	}
 
-	p := new(pair)
 	random := suite.RandomStream()
 
 	if g, ok := suite.(crypto.Generator); ok {
-		p.private = g.CreateKey(random)
+		private = g.CreateKey(random)
 	} else {
 		privateKey, _ := suite.CreateScalar().Pick(random)
-		p.private = privateKey
+		private = privateKey
 	}
 
-	pubKey, _ := suite.CreatePoint().Mul(p.private)
-	p.public = pubKey
+	pubKey, _ := suite.CreatePoint().Mul(private)
+	public = pubKey
 
-	return p, nil
-}
-
-// Sign creates a signature of the message using the current private key
-func (spk *privateKey) Sign(message []byte, signer crypto.SingleSigner) ([]byte, error) {
-	if signer == nil {
-		return nil, crypto.ErrNilSingleSigner
-	}
-
-	return signer.Sign(spk.suite, spk.sk, message)
+	return private, public, nil
 }
 
 // ToByteArray returns the byte array representation of the private key
@@ -139,15 +123,6 @@ func (spk *privateKey) Suite() crypto.Suite {
 // Scalar returns the Scalar corresponding to this Private Key
 func (spk *privateKey) Scalar() crypto.Scalar {
 	return spk.sk
-}
-
-// Verify checks a signature over a message
-func (pk *publicKey) Verify(data []byte, signature []byte, signer crypto.SingleSigner) error {
-	if signer == nil {
-		return crypto.ErrNilSingleSigner
-	}
-
-	return signer.Verify(pk.suite, pk.pk, data, signature)
 }
 
 // ToByteArray returns the byte array representation of the public key

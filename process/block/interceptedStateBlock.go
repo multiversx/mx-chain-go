@@ -1,10 +1,10 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 // InterceptedStateBlockBody represents the wrapper over InterceptedStateBlockBody struct.
@@ -85,4 +85,3 @@ func (inStateBlkBdy *InterceptedStateBlockBody) Integrity(coordinator sharding.S
 func (inStateBlkBdy *InterceptedStateBlockBody) validityCheck(coordinator sharding.ShardCoordinator) error {
 	return nil
 }
-

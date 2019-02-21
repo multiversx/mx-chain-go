@@ -13,7 +13,7 @@ import (
 
 func TestInitReceivedMessages_ShouldInitMap(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -57,7 +57,7 @@ func TestInitReceivedMessages_ShouldInitMap(t *testing.T) {
 
 func TestCleanReceivedMessages_ShouldCleanList(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -118,7 +118,7 @@ func TestCleanReceivedMessages_ShouldCleanList(t *testing.T) {
 
 func TestExecuteMessages_ShouldNotExecuteWhenConsensusDataIsNil(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -179,7 +179,7 @@ func TestExecuteMessages_ShouldNotExecuteWhenConsensusDataIsNil(t *testing.T) {
 
 func TestExecuteMessages_ShouldNotExecuteWhenShouldDropConsensusMessage(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -240,7 +240,7 @@ func TestExecuteMessages_ShouldNotExecuteWhenShouldDropConsensusMessage(t *testi
 
 func TestExecuteMessages_ShouldNotExecuteWhenShouldSync(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -301,7 +301,7 @@ func TestExecuteMessages_ShouldNotExecuteWhenShouldSync(t *testing.T) {
 
 func TestExecuteBlockBodyMessages_ShouldNotExecuteWhenStartRoundIsNotFinished(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -362,7 +362,7 @@ func TestExecuteBlockBodyMessages_ShouldNotExecuteWhenStartRoundIsNotFinished(t 
 
 func TestExecuteBlockHeaderMessages_ShouldNotExecuteWhenStartRoundIsNotFinished(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -423,7 +423,7 @@ func TestExecuteBlockHeaderMessages_ShouldNotExecuteWhenStartRoundIsNotFinished(
 
 func TestExecuteCommitmentHashMessages_ShouldNotExecuteWhenBlockIsNotFinished(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -484,7 +484,7 @@ func TestExecuteCommitmentHashMessages_ShouldNotExecuteWhenBlockIsNotFinished(t 
 
 func TestExecuteBitmapMessages_ShouldNotExecuteWhenBlockIsNotFinished(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -545,7 +545,7 @@ func TestExecuteBitmapMessages_ShouldNotExecuteWhenBlockIsNotFinished(t *testing
 
 func TestExecuteCommitmentMessages_ShouldNotExecuteWhenBitmapIsNotFinished(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -606,7 +606,7 @@ func TestExecuteCommitmentMessages_ShouldNotExecuteWhenBitmapIsNotFinished(t *te
 
 func TestExecuteSignatureMessages_ShouldNotExecuteWhenBitmapIsNotFinished(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -667,7 +667,7 @@ func TestExecuteSignatureMessages_ShouldNotExecuteWhenBitmapIsNotFinished(t *tes
 
 func TestExecuteMessages_ShouldExecute(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {

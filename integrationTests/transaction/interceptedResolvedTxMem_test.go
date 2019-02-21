@@ -50,7 +50,9 @@ func TestNode_RequestInterceptTransactionWithMemMessenger(t *testing.T) {
 	}
 
 	txBuff, _ := marshalizer.Marshal(&tx)
-	tx.Signature, _ = sk1.Sign(txBuff, &singlesig.SchnorrSigner{})
+	signer := &singlesig.SchnorrSigner{}
+
+	tx.Signature, _ = signer.Sign(sk1, txBuff)
 
 	signedTxBuff, _ := marshalizer.Marshal(&tx)
 

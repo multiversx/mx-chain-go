@@ -27,7 +27,7 @@ func (mm *MultisignMock) CreateCommitment() (commSecret []byte, commitment []byt
 	panic("implement me")
 }
 
-func (mm *MultisignMock) AddCommitmentHash(index uint16, commHash []byte) error {
+func (mm *MultisignMock) StoreCommitmentHash(index uint16, commHash []byte) error {
 	panic("implement me")
 }
 
@@ -35,11 +35,7 @@ func (mm *MultisignMock) CommitmentHash(index uint16) ([]byte, error) {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) SetCommitmentSecret(commSecret []byte) error {
-	panic("implement me")
-}
-
-func (mm *MultisignMock) AddCommitment(index uint16, value []byte) error {
+func (mm *MultisignMock) StoreCommitment(index uint16, value []byte) error {
 	panic("implement me")
 }
 
@@ -59,7 +55,7 @@ func (mm *MultisignMock) CreateSignatureShare(bitmap []byte) ([]byte, error) {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) AddSignatureShare(index uint16, sig []byte) error {
+func (mm *MultisignMock) StoreSignatureShare(index uint16, sig []byte) error {
 	panic("implement me")
 }
 

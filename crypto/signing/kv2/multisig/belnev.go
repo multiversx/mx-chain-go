@@ -5,18 +5,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"bytes"
 )
 
 /*
-belnev.go implements the multi-signature algorithm (BN-musig) presented in paper
+belnev.go implements the multi-signature algorithm (BN-multiSig) presented in paper
 "Multi-Signatures in the Plain Public-Key Model and a General Forking Lemma"
 by Mihir Bellare and Gregory Neven. See https://cseweb.ucsd.edu/~mihir/papers/multisignatures-ccs.pdf.
 This package provides the functionality for the cryptographic operations.
 The message transfer functionality required for the algorithm are assumed to be
 handled elsewhere. An overview of the protocol will be provided below.
 
-The BN-musig protocol has 4 phases executed between a list of participants (public keys) L,
+The BN-multiSig protocol has 4 phases executed between a list of participants (public keys) L,
 having a protocol leader (index = 0) and validators (index > 0). Each participant has it's
 own private/public key pair (x_i, X_i), where x_i is the private key of participant
 i and X_i is it's associated public key X_i = x_i * G. G is the base point on the used
@@ -37,9 +36,9 @@ to be taken into account that the leader might not be honest)
 (t_j, X_j) it will send back the full R_i along with its public key, (R_i, X_i)
 
 3. When signer i receives the full commitment from a signer j, it computes t_j = H0(R_j)
-and verifies it with the previously received t_j. Locally each participant keeps track of
+and verifies it with the previously received t_j. Locally, each participant keeps track of
 the sender, using a bitmap initially set to 0, by setting the corresponding bit to 1 and
-storing the received commitment. If the commitment fails to validate the hash the protocol
+storing the received commitment. If the commitment fails to validate the hash, the protocol
 is aborted. If commitment is not received in a bounded time delta and less than 2/3 of signers
 have provided the commitment then protocol is aborted. If there are enough commitments >2/3
 the leader broadcasts the bitmap and calculates the aggregated commitment R = Sum(R_i * B[i])
@@ -181,8 +180,8 @@ func (bn *belNevSigner) SetMessage(msg []byte) error {
 	return nil
 }
 
-// AddCommitmentHash sets a commitment Hash
-func (bn *belNevSigner) AddCommitmentHash(index uint16, commHash []byte) error {
+// StoreCommitmentHash sets a commitment Hash
+func (bn *belNevSigner) StoreCommitmentHash(index uint16, commHash []byte) error {
 	if commHash == nil {
 		return crypto.ErrNilCommitmentHash
 	}
@@ -222,37 +221,15 @@ func (bn *belNevSigner) CreateCommitment() (commSecret []byte, commitment []byte
 	pk := bn.suite.CreatePoint().Base()
 	pk, _ = pk.Mul(sk)
 
+	bn.mutSigData.Lock()
+	bn.data.commSecret = sk
+	bn.data.commitments[bn.data.ownIndex] = pk
+	bn.mutSigData.Unlock()
+
 	commSecret, _ = sk.MarshalBinary()
 	commitment, _ = pk.MarshalBinary()
 
 	return commSecret, commitment
-}
-
-// SetCommitmentSecret sets the committment secret
-func (bn *belNevSigner) SetCommitmentSecret(commSecret []byte) error {
-	if commSecret == nil {
-		return crypto.ErrNilCommitmentSecret
-	}
-
-	commSecretScalar := bn.suite.CreateScalar()
-	err := commSecretScalar.UnmarshalBinary(commSecret)
-	if err != nil {
-		return err
-	}
-
-	secret, err := commSecretScalar.MarshalBinary()
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(secret, commSecret) {
-		return crypto.ErrInvalidParam
-	}
-	bn.mutSigData.Lock()
-	bn.data.commSecret = commSecretScalar
-	bn.mutSigData.Unlock()
-
-	return nil
 }
 
 // CommitmentSecret returns the set commitment secret
@@ -269,8 +246,8 @@ func (bn *belNevSigner) CommitmentSecret() ([]byte, error) {
 	return commSecret, err
 }
 
-// AddCommitment adds a commitment to the list on the specified position
-func (bn *belNevSigner) AddCommitment(index uint16, commitment []byte) error {
+// StoreCommitment adds a commitment to the list on the specified position
+func (bn *belNevSigner) StoreCommitment(index uint16, commitment []byte) error {
 	if commitment == nil {
 		return crypto.ErrNilCommitment
 	}
@@ -411,6 +388,7 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 
 	concatenated := make([]byte, 0)
 
+	// Concatenate pubKeys to form <L'>
 	for i := range bn.data.pubKeys {
 		err := bn.isValidIndex(uint16(i), bitmap)
 
@@ -420,10 +398,9 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 
 		pubKey, _ := bn.data.pubKeys[i].Point().MarshalBinary()
 
-		concatenated = append(concatenated[:], pubKey[:]...)
+		concatenated = append(concatenated, pubKey...)
 	}
 
-	// Concatenate pubKeys to form <L'>
 	pubKey, err := bn.data.pubKeys[index].Point().MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -436,11 +413,11 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 	aggCommBytes, _ := bn.data.aggCommitment.MarshalBinary()
 
 	// <L'> || X_i
-	concatenated = append(concatenated[:], pubKey[:]...)
+	concatenated = append(concatenated, pubKey...)
 	// <L'> || X_i || R
-	concatenated = append(concatenated[:], aggCommBytes[:]...)
+	concatenated = append(concatenated, aggCommBytes...)
 	// <L'> || X_i || R || m
-	concatenated = append(concatenated[:], bn.data.message[:]...)
+	concatenated = append(concatenated, bn.data.message...)
 	// H(<L'> || X_i || R || m)
 	challenge := bn.hasher.Compute(string(concatenated))
 
@@ -563,8 +540,8 @@ func (bn *belNevSigner) VerifySignatureShare(index uint16, sig []byte, bitmap []
 	return nil
 }
 
-// AddSignatureShare adds the partial signature of the signer with specified position
-func (bn *belNevSigner) AddSignatureShare(index uint16, sig []byte) error {
+// StoreSignatureShare adds the partial signature of the signer with specified position
+func (bn *belNevSigner) StoreSignatureShare(index uint16, sig []byte) error {
 	if sig == nil {
 		return crypto.ErrNilSignature
 	}

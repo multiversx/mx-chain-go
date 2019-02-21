@@ -6,6 +6,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
@@ -25,10 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
 )
 
 func createTestBlockChain() *blockchain.BlockChain {
@@ -151,18 +151,18 @@ func createMemNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	pFactory, _ := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
-		InterceptorContainer:     interceptor.NewContainer(),
-		ResolverContainer:        resolver.NewContainer(),
-		Messenger:                mes,
-		Blockchain:               blockChain,
-		DataPool:                 dPool,
-		ShardCoordinator:         shardCoordinator,
-		AddrConverter:            addrConverter,
-		Hasher:                   hasher,
-		Marshalizer:              marshalizer,
-		MultiSigner:              multiSigner,
-		SingleSigner:             singleSigner,
-		KeyGen:                   keyGen,
+		InterceptorContainer: interceptor.NewContainer(),
+		ResolverContainer:    resolver.NewContainer(),
+		Messenger:            mes,
+		Blockchain:           blockChain,
+		DataPool:             dPool,
+		ShardCoordinator:     shardCoordinator,
+		AddrConverter:        addrConverter,
+		Hasher:               hasher,
+		Marshalizer:          marshalizer,
+		MultiSigner:          multiSigner,
+		SingleSigner:         singleSigner,
+		KeyGen:               keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
 
@@ -213,18 +213,18 @@ func createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	pFactory, _ := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
-		InterceptorContainer:     interceptor.NewContainer(),
-		ResolverContainer:        resolver.NewContainer(),
-		Messenger:                messenger,
-		Blockchain:               blkc,
-		DataPool:                 dPool,
-		ShardCoordinator:         shardCoordinator,
-		AddrConverter:            addrConverter,
-		Hasher:                   hasher,
-		Marshalizer:              marshalizer,
-		MultiSigner:              multiSigner,
-		SingleSigner:             singlesigner,
-		KeyGen:                   keyGen,
+		InterceptorContainer: interceptor.NewContainer(),
+		ResolverContainer:    resolver.NewContainer(),
+		Messenger:            messenger,
+		Blockchain:           blkc,
+		DataPool:             dPool,
+		ShardCoordinator:     shardCoordinator,
+		AddrConverter:        addrConverter,
+		Hasher:               hasher,
+		Marshalizer:          marshalizer,
+		MultiSigner:          multiSigner,
+		SingleSigner:         singlesigner,
+		KeyGen:               keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
 

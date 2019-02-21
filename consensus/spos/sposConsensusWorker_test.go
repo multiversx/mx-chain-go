@@ -55,8 +55,15 @@ func InitMessage() []*spos.SPOSConsensusWorker {
 
 func initConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	singleSigner := &mock.SingleSignerMock{}
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte("signed"), nil
+		},
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -86,8 +93,15 @@ func initConsensusWorker(cns *spos.Consensus) *spos.SPOSConsensusWorker {
 
 func initRoundDurationAndConsensusWorker() (time.Duration, *spos.SPOSConsensusWorker) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	singleSigner := &mock.SingleSignerMock{}
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
+	singleSigner := &mock.SingleSignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte("signed"), nil
+		},
+	}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
 	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
@@ -267,27 +281,17 @@ func initMultisigner() *mock.BelNevMock {
 	return multisigner
 }
 
-func initSingleSigning() (*mock.KeyGenMock, *mock.PrivateKeyMock, *mock.PublicKeyMock) {
+func initKeys() (*mock.KeyGenMock, *mock.PrivateKeyMock, *mock.PublicKeyMock) {
 	toByteArrayMock := func() ([]byte, error) {
 		return []byte("byteArray"), nil
 	}
 
-	signMock := func(message []byte, signer crypto.SingleSigner) ([]byte, error) {
-		return []byte("signature"), nil
-	}
-
-	verifyMock := func(data []byte, signature []byte, signer crypto.SingleSigner) error {
-		return nil
-	}
-
 	privKeyMock := &mock.PrivateKeyMock{
-		SignMock:        signMock,
 		ToByteArrayMock: toByteArrayMock,
 	}
 
 	pubKeyMock := &mock.PublicKeyMock{
 		ToByteArrayMock: toByteArrayMock,
-		VerifyMock:      verifyMock,
 	}
 
 	privKeyFromByteArr := func(b []byte) (crypto.PrivateKey, error) {
@@ -835,7 +839,7 @@ func TestSPOSConsensusWorker_DoEndRoundJobNotFinished(t *testing.T) {
 
 func TestSPOSConsensusWorker_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
@@ -2237,7 +2241,6 @@ func TestCheckSignaturesValidity_ShouldErrNilSignature(t *testing.T) {
 	assert.Equal(t, spos.ErrNilSignature, err)
 }
 
-
 func TestCheckSignaturesValidity_ShouldRetunNil(t *testing.T) {
 	_, cnWorker := initRoundDurationAndConsensusWorker()
 
@@ -2250,7 +2253,7 @@ func TestCheckSignaturesValidity_ShouldRetunNil(t *testing.T) {
 
 func TestGenCommitmentHash_ShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
@@ -2278,7 +2281,7 @@ func TestGenCommitmentHash_ShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T)
 		return []byte("commSecret"), []byte("comm")
 	}
 
-	multisigner.AddCommitmentMock = func(uint16, []byte) error {
+	multisigner.StoreCommitmentMock = func(uint16, []byte) error {
 		return spos.ErrSelfNotFoundInConsensus
 	}
 
@@ -2300,65 +2303,9 @@ func TestGenCommitmentHash_ShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T)
 	assert.Equal(t, spos.ErrSelfNotFoundInConsensus, err)
 }
 
-func TestGenCommitmentHash_ShouldRetunErrOnSetCommitmentSecret(t *testing.T) {
-	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
-	singleSigner := &mock.SingleSignerMock{}
-	multisigner := initMultisigner()
-	blProcMock := initMockBlockProcessor()
-	bootMock := &mock.BootstrapMock{ShouldSyncCalled: func() bool {
-		return false
-	}}
-
-	consensusGroupSize := 22
-	roundDuration := 100 * time.Millisecond
-	genesisTime := time.Now()
-	// create consensus group list
-	consensusGroup := CreateConsensusGroup(consensusGroupSize)
-
-	cns := initConsensus(
-		genesisTime,
-		roundDuration,
-		consensusGroup,
-		consensusGroupSize,
-		0,
-	)
-
-	multisigner.CreateCommitmentMock = func() ([]byte, []byte) {
-		return []byte("commSecret"), []byte("comm")
-	}
-
-	multisigner.AddCommitmentMock = func(uint16, []byte) error {
-		return nil
-	}
-
-	err := errors.New("error set commitment secret")
-
-	multisigner.SetCommitmentSecretMock = func([]byte) error {
-		return err
-	}
-
-	cnWorker, _ := spos.NewConsensusWorker(
-		cns,
-		&blkc,
-		mock.HasherMock{},
-		mock.MarshalizerMock{},
-		blProcMock,
-		bootMock,
-		singleSigner,
-		multisigner,
-		keyGenMock,
-		privKeyMock,
-		pubKeyMock,
-	)
-
-	_, err2 := cnWorker.GenCommitmentHash()
-	assert.Equal(t, err, err2)
-}
-
 func TestGenCommitmentHash_ShouldRetunErrOnAddCommitmentHash(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
@@ -2384,17 +2331,13 @@ func TestGenCommitmentHash_ShouldRetunErrOnAddCommitmentHash(t *testing.T) {
 		return []byte("commSecret"), []byte("comm")
 	}
 
-	multisigner.AddCommitmentMock = func(uint16, []byte) error {
-		return nil
-	}
-
-	multisigner.SetCommitmentSecretMock = func([]byte) error {
+	multisigner.StoreCommitmentMock = func(uint16, []byte) error {
 		return nil
 	}
 
 	err := errors.New("error add commitment hash")
 
-	multisigner.AddCommitmentHashMock = func(uint16, []byte) error {
+	multisigner.StoreCommitmentHashMock = func(uint16, []byte) error {
 		return err
 	}
 
@@ -2418,7 +2361,7 @@ func TestGenCommitmentHash_ShouldRetunErrOnAddCommitmentHash(t *testing.T) {
 
 func TestGenCommitmentHash_ShouldRetunNil(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
@@ -2444,15 +2387,11 @@ func TestGenCommitmentHash_ShouldRetunNil(t *testing.T) {
 		return []byte("commSecret"), []byte("comm")
 	}
 
-	multisigner.AddCommitmentMock = func(uint16, []byte) error {
+	multisigner.StoreCommitmentMock = func(uint16, []byte) error {
 		return nil
 	}
 
-	multisigner.SetCommitmentSecretMock = func([]byte) error {
-		return nil
-	}
-
-	multisigner.AddCommitmentHashMock = func(uint16, []byte) error {
+	multisigner.StoreCommitmentHashMock = func(uint16, []byte) error {
 		return nil
 	}
 
@@ -2483,7 +2422,7 @@ func TestCheckCommitmentsValidity_ShouldErrNilCommitmet(t *testing.T) {
 
 func TestCheckCommitmentsValidity_ShouldErrOnCommitmentHash(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
@@ -2532,7 +2471,7 @@ func TestCheckCommitmentsValidity_ShouldErrOnCommitmentHash(t *testing.T) {
 
 func TestCheckCommitmentsValidity_ShouldErrCommitmentHashDoesNotMatch(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
@@ -2580,7 +2519,7 @@ func TestCheckCommitmentsValidity_ShouldErrCommitmentHashDoesNotMatch(t *testing
 
 func TestCheckCommitmentsValidity_ShouldReturnNil(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
@@ -2654,7 +2593,7 @@ func TestDoExtendStartRound_ShouldSetStartRoundFinished(t *testing.T) {
 
 func TestDoExtendBlock_ShouldNotSetBlockExtended(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
@@ -2967,7 +2906,7 @@ func TestCheckSignature_ShouldReturnErrNilSignature(t *testing.T) {
 
 func TestCheckSignature_ShouldReturnPublicKeyFromByteArrayErr(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()
@@ -3068,7 +3007,7 @@ func TestProcessReceivedBlock_ShouldReturnFalseWhenBodyAndHeaderAreNotSet(t *tes
 
 func TestProcessReceivedBlock_ShouldReturnFalseWhenProcessBlockFails(t *testing.T) {
 	blkc := blockchain.BlockChain{}
-	keyGenMock, privKeyMock, pubKeyMock := initSingleSigning()
+	keyGenMock, privKeyMock, pubKeyMock := initKeys()
 	singleSigner := &mock.SingleSignerMock{}
 	multisigner := initMultisigner()
 	blProcMock := initMockBlockProcessor()

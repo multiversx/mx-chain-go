@@ -6,14 +6,12 @@ import (
 )
 
 type PublicKeyMock struct {
-	VerifyCalled func(data []byte, signature []byte, signer crypto.SingleSigner) error
 	SuiteCalled  func() crypto.Suite
 	PointCalled  func() crypto.Point
 }
 
 type PrivateKeyStub struct {
 	ToByteArrayHandler    func() ([]byte, error)
-	SignHandler           func(message []byte, signer crypto.SingleSigner) ([]byte, error)
 	GeneratePublicHandler func() crypto.PublicKey
 	SuiteHandler          func() crypto.Suite
 	ScalarHandler         func() crypto.Scalar
@@ -32,10 +30,6 @@ func (sspk *PublicKeyMock) ToByteArray() ([]byte, error) {
 	panic("implement me")
 }
 
-func (sspk *PublicKeyMock) Verify(data []byte, signature []byte, signer crypto.SingleSigner) error {
-	return sspk.VerifyCalled(data, signature, signer)
-}
-
 func (sspk *PublicKeyMock) Suite() crypto.Suite {
 	return sspk.SuiteCalled()
 }
@@ -48,10 +42,6 @@ func (sspk *PublicKeyMock) Point() crypto.Point {
 
 func (sk *PrivateKeyStub) ToByteArray() ([]byte, error) {
 	return sk.ToByteArrayHandler()
-}
-
-func (sk *PrivateKeyStub) Sign(message []byte, signer crypto.SingleSigner) ([]byte, error) {
-	return sk.SignHandler(message, signer)
 }
 
 func (sk *PrivateKeyStub) GeneratePublic() crypto.PublicKey {

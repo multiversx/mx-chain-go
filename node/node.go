@@ -250,6 +250,11 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	if n.publicKey == nil {
 		return ErrNilPublicKey
 	}
+
+	if n.singlesig == nil {
+		return ErrNilSingleSig
+	}
+
 	senderAddressBytes, err := n.publicKey.ToByteArray()
 	if err != nil {
 		return err
@@ -610,7 +615,7 @@ func (n *Node) generateAndSignTx(
 		return nil, nil, errors.New("could not marshal transaction")
 	}
 
-	sig, err := n.privateKey.Sign(marshalizedTx, n.singlesig)
+	sig, err := n.singlesig.Sign(n.privateKey, marshalizedTx)
 	if err != nil {
 		return nil, nil, errors.New("could not sign the transaction")
 	}

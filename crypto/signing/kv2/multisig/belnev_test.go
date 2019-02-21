@@ -40,11 +40,10 @@ func genMultiSigParams(cnGrSize int, ownIndex uint16) (
 
 func setComms(multiSig crypto.MultiSigner, grSize uint16) (bitmap []byte) {
 	_, comm := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(0, comm)
+	_ = multiSig.StoreCommitment(0, comm)
 
-	commSecret, comm := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(grSize-1, comm)
-	_ = multiSig.SetCommitmentSecret(commSecret)
+	_, comm = multiSig.CreateCommitment()
+	_ = multiSig.StoreCommitment(grSize-1, comm)
 
 	bitmap = make([]byte, grSize/8+1)
 	bitmap[0] = 1
@@ -73,7 +72,7 @@ func createSignerAndSigShare(
 
 func createAndSetCommitment(multiSig crypto.MultiSigner, index uint16) (commSecret, comm []byte) {
 	commSecret, comm = multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(index, comm)
+	_ = multiSig.StoreCommitment(index, comm)
 	return commSecret, comm
 }
 
@@ -112,12 +111,11 @@ func createSigShares(
 	}
 
 	for i := uint16(0); i < nbSigs; i++ {
-		commSecret, comm := createAndSetCommitment(multiSigners[i], i)
-		multiSigners[i].SetCommitmentSecret(commSecret)
+		_, comm := createAndSetCommitment(multiSigners[i], i)
 
 		// set the <i> commitment for all signers
 		for j := uint16(0); j < nbSigs; j++ {
-			multiSigners[j].AddCommitment(i, comm)
+			multiSigners[j].StoreCommitment(i, comm)
 		}
 	}
 
@@ -143,7 +141,7 @@ func createAndAddSignatureShares() (multiSigner crypto.MultiSigner, bitmap []byt
 	sigs, multiSigner := createSigShares(nbSigners, grSize, message, bitmap, ownIndex)
 
 	for i := 0; i < len(sigs); i++ {
-		_ = multiSigner.AddSignatureShare(uint16(i), sigs[i])
+		_ = multiSigner.StoreSignatureShare(uint16(i), sigs[i])
 	}
 
 	return multiSigner, bitmap
@@ -282,7 +280,7 @@ func TestNewBelNevMultisig_OK(t *testing.T) {
 	assert.NotNil(t, multiSig)
 }
 
-func TestBelNevSigner_ResetNilPubKeysShouldErr(t *testing.T) {
+func TestBelNevSigner_CreateNilPubKeysShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ownIndex := uint16(3)
@@ -290,13 +288,13 @@ func TestBelNevSigner_ResetNilPubKeysShouldErr(t *testing.T) {
 	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	multiSigReset, err := multiSig.Create(nil, ownIndex)
+	multiSigCreated, err := multiSig.Create(nil, ownIndex)
 
 	assert.Equal(t, crypto.ErrNilPublicKeys, err)
-	assert.Nil(t, multiSigReset)
+	assert.Nil(t, multiSigCreated)
 }
 
-func TestBelNevSigner_ResetInvalidPubKeyInListShouldErr(t *testing.T) {
+func TestBelNevSigner_CreateInvalidPubKeyInListShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ownIndex := uint16(3)
@@ -306,13 +304,13 @@ func TestBelNevSigner_ResetInvalidPubKeyInListShouldErr(t *testing.T) {
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 
 	pubKeys[1] = "invalid"
-	multiSigReset, err := multiSig.Create(pubKeys, ownIndex)
+	multiSigCreated, err := multiSig.Create(pubKeys, ownIndex)
 
 	assert.Equal(t, crypto.ErrInvalidPublicKeyString, err)
-	assert.Nil(t, multiSigReset)
+	assert.Nil(t, multiSigCreated)
 }
 
-func TestBelNevSigner_ResetEmptyPubKeyInListShouldErr(t *testing.T) {
+func TestBelNevSigner_CreateEmptyPubKeyInListShouldErr(t *testing.T) {
 	t.Parallel()
 
 	ownIndex := uint16(3)
@@ -322,13 +320,13 @@ func TestBelNevSigner_ResetEmptyPubKeyInListShouldErr(t *testing.T) {
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 
 	pubKeys[1] = ""
-	multiSigReset, err := multiSig.Create(pubKeys, ownIndex)
+	multiSigCreated, err := multiSig.Create(pubKeys, ownIndex)
 
 	assert.Equal(t, crypto.ErrEmptyPubKeyString, err)
-	assert.Nil(t, multiSigReset)
+	assert.Nil(t, multiSigCreated)
 }
 
-func TestBelNevSigner_ResetOK(t *testing.T) {
+func TestBelNevSigner_CreateOK(t *testing.T) {
 	t.Parallel()
 
 	ownIndex := uint16(3)
@@ -336,16 +334,14 @@ func TestBelNevSigner_ResetOK(t *testing.T) {
 	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	commSecret, comm := multiSig.CreateCommitment()
+	_, comm := multiSig.CreateCommitment()
+	multiSig.StoreCommitment(0, comm)
 
-	multiSig.SetCommitmentSecret(commSecret)
-	multiSig.AddCommitment(0, comm)
-
-	multiSigReset, err := multiSig.Create(pubKeys, ownIndex)
+	multiSigCreated, err := multiSig.Create(pubKeys, ownIndex)
 	assert.Nil(t, err)
-	assert.NotNil(t, multiSigReset)
+	assert.NotNil(t, multiSigCreated)
 
-	_, err = multiSig.Commitment(ownIndex)
+	_, err = multiSigCreated.Commitment(ownIndex)
 	assert.Equal(t, crypto.ErrNilElement, err)
 }
 
@@ -398,7 +394,7 @@ func TestBelNevSigner_AddCommitmentHashInvalidIndexShouldErr(t *testing.T) {
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	commHash := []byte("commHash")
 	// invalid index > len(pubKeys)
-	err := multiSig.AddCommitmentHash(100, commHash)
+	err := multiSig.StoreCommitmentHash(100, commHash)
 
 	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
 }
@@ -411,7 +407,7 @@ func TestBelNevSigner_AddCommitmentHashNilCommitmentHashShouldErr(t *testing.T) 
 	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	err := multiSig.AddCommitmentHash(0, nil)
+	err := multiSig.StoreCommitmentHash(0, nil)
 
 	assert.Equal(t, crypto.ErrNilCommitmentHash, err)
 }
@@ -425,7 +421,7 @@ func TestBelNevSigner_AddCommitmentHashOK(t *testing.T) {
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	commHash := []byte("commHash")
-	err := multiSig.AddCommitmentHash(0, commHash)
+	err := multiSig.StoreCommitmentHash(0, commHash)
 	assert.Nil(t, err)
 
 	commHashRead, _ := multiSig.CommitmentHash(0)
@@ -441,7 +437,7 @@ func TestBelNevSigner_CommitmentHashIndexOutOfBoundsShouldErr(t *testing.T) {
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	commHash := []byte("commHash")
-	_ = multiSig.AddCommitmentHash(0, commHash)
+	_ = multiSig.StoreCommitmentHash(0, commHash)
 	// index > len(pubKeys)
 	commHashRead, err := multiSig.CommitmentHash(100)
 
@@ -472,7 +468,7 @@ func TestBelNevSigner_CommitmentHashOK(t *testing.T) {
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	commHash := []byte("commHash")
-	_ = multiSig.AddCommitmentHash(0, commHash)
+	_ = multiSig.StoreCommitmentHash(0, commHash)
 	commHashRead, err := multiSig.CommitmentHash(0)
 
 	assert.Nil(t, err)
@@ -499,35 +495,6 @@ func TestBelNevSigner_CreateCommitmentOK(t *testing.T) {
 	assert.Equal(t, comm, pkBytes)
 }
 
-func TestBelNevSigner_SetCommitmentSecretNilCommSecretShouldErr(t *testing.T) {
-	t.Parallel()
-
-	ownIndex := uint16(3)
-	hasher := &mock.HasherMock{}
-	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
-
-	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	err := multiSig.SetCommitmentSecret(nil)
-
-	assert.Equal(t, crypto.ErrNilCommitmentSecret, err)
-}
-
-func TestBelNevSigner_SetCommitmentSecretOK(t *testing.T) {
-	t.Parallel()
-
-	ownIndex := uint16(3)
-	hasher := &mock.HasherMock{}
-	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
-
-	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	commSecret, _ := multiSig.CreateCommitment()
-	err := multiSig.SetCommitmentSecret(commSecret)
-	commSecretRead, _ := multiSig.CommitmentSecret()
-
-	assert.Nil(t, err)
-	assert.Equal(t, commSecret, commSecretRead)
-}
-
 func TestBelNevSigner_AddCommitmentNilCommitmentShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -536,7 +503,7 @@ func TestBelNevSigner_AddCommitmentNilCommitmentShouldErr(t *testing.T) {
 	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
-	err := multiSig.AddCommitment(0, nil)
+	err := multiSig.StoreCommitment(0, nil)
 
 	assert.Equal(t, crypto.ErrNilCommitment, err)
 }
@@ -550,7 +517,7 @@ func TestBelNevSigner_AddCommitmentIndexOutOfBoundsShouldErr(t *testing.T) {
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	_, commitment := multiSig.CreateCommitment()
-	err := multiSig.AddCommitment(100, commitment)
+	err := multiSig.StoreCommitment(100, commitment)
 
 	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
 }
@@ -564,7 +531,7 @@ func TestBelNevSigner_AddCommitmentOK(t *testing.T) {
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	_, commitment := multiSig.CreateCommitment()
-	err := multiSig.AddCommitment(0, commitment)
+	err := multiSig.StoreCommitment(0, commitment)
 
 	assert.Nil(t, err)
 }
@@ -578,7 +545,7 @@ func TestBelNevSigner_CommitmentIndexOutOfBoundsShouldErr(t *testing.T) {
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	_, commitment := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(0, commitment)
+	_ = multiSig.StoreCommitment(0, commitment)
 
 	commRead, err := multiSig.Commitment(100)
 
@@ -609,11 +576,40 @@ func TestBelNevSigner_CommitmentOK(t *testing.T) {
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	_, commitment := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(0, commitment)
+	_ = multiSig.StoreCommitment(0, commitment)
 	commRead, err := multiSig.Commitment(0)
 
 	assert.Nil(t, err)
 	assert.Equal(t, commRead, commitment)
+}
+
+func TestBelNevSigner_CommitmentSecretNotSetShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ownIndex := uint16(3)
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
+
+	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	commSecretRead, err := multiSig.CommitmentSecret()
+
+	assert.Nil(t, commSecretRead)
+	assert.Equal(t, crypto.ErrNilCommitmentSecret, err)
+}
+
+func TestBelNevSigner_CommitmentSecretOK(t *testing.T) {
+	t.Parallel()
+
+	ownIndex := uint16(3)
+	hasher := &mock.HasherMock{}
+	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
+
+	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	commSecret, _ := multiSig.CreateCommitment()
+	commSecretRead, err := multiSig.CommitmentSecret()
+
+	assert.Nil(t, err)
+	assert.Equal(t, commSecret, commSecretRead)
 }
 
 func TestBelNevSigner_AggregateCommitmentsNilBitmapShouldErr(t *testing.T) {
@@ -656,9 +652,9 @@ func TestBelNevSigner_AggregateCommitmentsNotSetCommitmentShouldErr(t *testing.T
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	_, commitment := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(0, commitment)
+	_ = multiSig.StoreCommitment(0, commitment)
 	_, commitment2 := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(2, commitment2)
+	_ = multiSig.StoreCommitment(2, commitment2)
 
 	bitmap := make([]byte, 1)
 	bitmap[0] |= 7 // 0b00000111
@@ -788,17 +784,19 @@ func TestBelNevSigner_CreateSignatureShareNotSetCommitmentShouldErr(t *testing.T
 
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	_, comm := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(0, comm)
+	_ = multiSig.StoreCommitment(0, comm)
 
 	bitmap := make([]byte, 2)
 	bitmap[0] = 0x01
 
-	_, _ = multiSig.AggregateCommitments(bitmap)
+	aggComm, _ := multiSig.AggregateCommitments(bitmap)
 	_ = multiSig.SetMessage([]byte("message"))
 
-	// corrupt bitmap by selecting a not set commitment
-	bitmap[0] = 0x10
-	sigShare, err := multiSig.CreateSignatureShare(bitmap)
+	multiSigCreated, _ := multiSig.Create(pubKeys, ownIndex)
+	_ = multiSigCreated.SetAggCommitment(aggComm)
+	_ = multiSigCreated.SetMessage([]byte("message"))
+
+	sigShare, err := multiSigCreated.CreateSignatureShare(bitmap)
 
 	assert.Nil(t, sigShare)
 	assert.Equal(t, crypto.ErrNilCommitment, err)
@@ -846,14 +844,20 @@ func TestBelNevSigner_CreateSignatureShareNotSetCommSecretShouldErr(t *testing.T
 
 	multiSig, err := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	_, comm := multiSig.CreateCommitment()
-	_ = multiSig.AddCommitment(ownIndex, comm)
+	_ = multiSig.StoreCommitment(ownIndex, comm)
 
 	bitmap := make([]byte, 1)
 	bitmap[0] = 1 << 3
 
 	_ = multiSig.SetMessage([]byte("message"))
-	_, _ = multiSig.AggregateCommitments(bitmap)
-	sigShare, err := multiSig.CreateSignatureShare(bitmap)
+	aggComm, _ := multiSig.AggregateCommitments(bitmap)
+
+	multiSigCreated, _ := multiSig.Create(pubKeys, ownIndex)
+	_ = multiSigCreated.StoreCommitment(ownIndex, comm)
+	_ = multiSigCreated.SetAggCommitment(aggComm)
+	_ = multiSigCreated.SetMessage([]byte("message"))
+
+	sigShare, err := multiSigCreated.CreateSignatureShare(bitmap)
 
 	assert.Nil(t, sigShare)
 	assert.Equal(t, crypto.ErrNilCommitmentSecret, err)
@@ -967,7 +971,7 @@ func TestBelNevSigner_AddSignatureShareNilSigShouldErr(t *testing.T) {
 	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 
-	err := multiSig.AddSignatureShare(ownIndex, nil)
+	err := multiSig.StoreSignatureShare(ownIndex, nil)
 
 	assert.Equal(t, crypto.ErrNilSignature, err)
 }
@@ -981,7 +985,7 @@ func TestBelNevSigner_AddSignatureShareInvalidSigScalarShouldErr(t *testing.T) {
 	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	sig := []byte("invalid signature")
 
-	err := multiSig.AddSignatureShare(ownIndex, sig)
+	err := multiSig.StoreSignatureShare(ownIndex, sig)
 
 	assert.NotNil(t, err)
 }
@@ -999,7 +1003,7 @@ func TestBelNevSigner_AddSignatureShareIndexOutOfBoundsIndexShouldErr(t *testing
 	_ = multiSig.SetMessage([]byte("message"))
 	sigShare, _ := multiSig.CreateSignatureShare(bitmap)
 
-	err := multiSig.AddSignatureShare(15, sigShare)
+	err := multiSig.StoreSignatureShare(15, sigShare)
 
 	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
 }
@@ -1011,7 +1015,7 @@ func TestBelNevSigner_AddSignatureShareOK(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
 	sigShare, multiSig, _ := createSignerAndSigShare(hasher, pubKeys, privKey, kg, 4, ownIndex)
-	err := multiSig.AddSignatureShare(ownIndex, sigShare)
+	err := multiSig.StoreSignatureShare(ownIndex, sigShare)
 	sigShareRead, _ := multiSig.SignatureShare(ownIndex)
 
 	assert.Nil(t, err)
@@ -1025,7 +1029,7 @@ func TestBelNevSigner_SignatureShareOutOfBoundsIndexShouldErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
 	sigShare, multiSig, _ := createSignerAndSigShare(hasher, pubKeys, privKey, kg, 4, ownIndex)
-	_ = multiSig.AddSignatureShare(ownIndex, sigShare)
+	_ = multiSig.StoreSignatureShare(ownIndex, sigShare)
 	sigShareRead, err := multiSig.SignatureShare(15)
 
 	assert.Nil(t, sigShareRead)
@@ -1039,7 +1043,7 @@ func TestBelNevSigner_SignatureShareNotSetIndexShouldErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
 	sigShare, multiSig, _ := createSignerAndSigShare(hasher, pubKeys, privKey, kg, 4, ownIndex)
-	_ = multiSig.AddSignatureShare(ownIndex, sigShare)
+	_ = multiSig.StoreSignatureShare(ownIndex, sigShare)
 	sigShareRead, err := multiSig.SignatureShare(2)
 
 	assert.Nil(t, sigShareRead)
@@ -1053,7 +1057,7 @@ func TestBelNevSigner_SignatureShareOK(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
 	sigShare, multiSig, _ := createSignerAndSigShare(hasher, pubKeys, privKey, kg, 4, ownIndex)
-	_ = multiSig.AddSignatureShare(ownIndex, sigShare)
+	_ = multiSig.StoreSignatureShare(ownIndex, sigShare)
 	sigShareRead, err := multiSig.SignatureShare(ownIndex)
 
 	assert.Nil(t, err)
@@ -1073,7 +1077,7 @@ func TestBelNevSigner_AggregateSigsNilBitmapShouldErr(t *testing.T) {
 	sigs, multiSigner := createSigShares(nbSigners, grSize, message, bitmap, ownIndex)
 
 	for i := 0; i < len(sigs); i++ {
-		_ = multiSigner.AddSignatureShare(uint16(i), sigs[i])
+		_ = multiSigner.StoreSignatureShare(uint16(i), sigs[i])
 	}
 
 	aggSig, err := multiSigner.AggregateSigs(nil)
@@ -1095,7 +1099,7 @@ func TestBelNevSigner_AggregateSigsInvalidBitmapShouldErr(t *testing.T) {
 	sigs, multiSigner := createSigShares(nbSigners, grSize, message, bitmap, ownIndex)
 
 	for i := 0; i < len(sigs); i++ {
-		_ = multiSigner.AddSignatureShare(uint16(i), sigs[i])
+		_ = multiSigner.StoreSignatureShare(uint16(i), sigs[i])
 	}
 
 	bitmap = make([]byte, 1)
@@ -1120,7 +1124,7 @@ func TestBelNevSigner_AggregateSigsMissingSigShareShouldErr(t *testing.T) {
 	sigs, multiSigner := createSigShares(nbSigners, grSize, message, bitmap, ownIndex)
 
 	for i := 0; i < len(sigs)-1; i++ {
-		_ = multiSigner.AddSignatureShare(uint16(i), sigs[i])
+		_ = multiSigner.StoreSignatureShare(uint16(i), sigs[i])
 	}
 
 	aggSig, err := multiSigner.AggregateSigs(bitmap)
@@ -1142,7 +1146,7 @@ func TestBelNevSigner_AggregateSigsZeroSelectionBitmapShouldErr(t *testing.T) {
 	sigs, multiSigner := createSigShares(nbSigners, grSize, message, bitmap, ownIndex)
 
 	for i := 0; i < len(sigs)-1; i++ {
-		_ = multiSigner.AddSignatureShare(uint16(i), sigs[i])
+		_ = multiSigner.StoreSignatureShare(uint16(i), sigs[i])
 	}
 	bitmap[0] = 0
 	aggSig, err := multiSigner.AggregateSigs(bitmap)
@@ -1164,7 +1168,7 @@ func TestBelNevSigner_AggregateSigsOK(t *testing.T) {
 	sigs, multiSigner := createSigShares(nbSigners, grSize, message, bitmap, ownIndex)
 
 	for i := 0; i < len(sigs); i++ {
-		_ = multiSigner.AddSignatureShare(uint16(i), sigs[i])
+		_ = multiSigner.StoreSignatureShare(uint16(i), sigs[i])
 	}
 
 	aggSig, err := multiSigner.AggregateSigs(bitmap)

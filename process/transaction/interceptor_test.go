@@ -10,11 +10,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/pkg/errors"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/stretchr/testify/assert"
+	"github.com/pkg/errors"
 )
 
 //------- NewTxInterceptor
@@ -459,10 +458,6 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
-		return errors.New("sig not valid")
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -470,7 +465,11 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
-	signer := &mock.SignerMock{}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return errors.New("sig not valid")
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -513,10 +512,6 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
-		return nil
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -527,7 +522,11 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 	storer.HasCalled = func(key []byte) (bool, error) {
 		return false, nil
 	}
-	signer := &mock.SignerMock{}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return  nil
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -571,10 +570,6 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
-		return nil
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -586,7 +581,11 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 		return 0
 	}
 	storer := &mock.StorerStub{}
-	signer := &mock.SignerMock{}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return  nil
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -630,10 +629,6 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailShouldErr(t *testing.T) 
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
-		return nil
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -696,10 +691,6 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
-		return nil
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -719,7 +710,11 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 
 		return called
 	}
-	signer := &mock.SignerMock{}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -763,10 +758,6 @@ func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
-		return nil
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -786,7 +777,11 @@ func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.
 
 		return called
 	}
-	signer := &mock.SignerMock{}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,

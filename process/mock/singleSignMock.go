@@ -10,7 +10,6 @@ type SingleSignKeyGenMock struct {
 }
 
 type SingleSignPublicKey struct {
-	VerifyCalled func(data []byte, signature []byte, signer crypto.SingleSigner) error
 	SuiteCalled  func() crypto.Suite
 	PointCalled  func() crypto.Point
 }
@@ -37,10 +36,6 @@ func (sskgm *SingleSignKeyGenMock) Suite() crypto.Suite {
 
 func (sspk *SingleSignPublicKey) ToByteArray() ([]byte, error) {
 	panic("implement me")
-}
-
-func (sspk *SingleSignPublicKey) Verify(data []byte, signature []byte, signer crypto.SingleSigner) error {
-	return sspk.VerifyCalled(data, signature, signer)
 }
 
 func (sspk *SingleSignPublicKey) Suite() crypto.Suite {

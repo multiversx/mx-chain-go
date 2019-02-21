@@ -278,7 +278,14 @@ func TestInterceptedTransaction_VerifySigKeyGenRetErrShouldErr(t *testing.T) {
 func TestInterceptedTransaction_VerifySigKeyGenShouldReceiveSenderAddr(t *testing.T) {
 	t.Parallel()
 
-	signer := &mock.SignerMock{}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte("signed"), nil
+		},
+	}
 	tx := transaction.NewInterceptedTransaction(signer)
 	senderBytes := []byte("sender")
 
@@ -301,13 +308,14 @@ func TestInterceptedTransaction_VerifySigKeyGenShouldReceiveSenderAddr(t *testin
 func TestInterceptedTransaction_VerifySigVerifyDoesNotPassShouldErr(t *testing.T) {
 	t.Parallel()
 
-	signer := &mock.SignerMock{}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return errors.New("sig not valid")
+		},
+	}
 	tx := transaction.NewInterceptedTransaction(signer)
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
-		return errors.New("sig not valid")
-	}
 
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
@@ -321,13 +329,17 @@ func TestInterceptedTransaction_VerifySigVerifyDoesNotPassShouldErr(t *testing.T
 func TestInterceptedTransaction_VerifySigVerifyDoesPassShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	signer := &mock.SignerMock{}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte("signed"), nil
+		},
+	}
 	tx := transaction.NewInterceptedTransaction(signer)
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte, signer crypto.SingleSigner) error {
-		return nil
-	}
 
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {

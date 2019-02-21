@@ -3,7 +3,6 @@ package singlesig
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"gopkg.in/dedis/kyber.v2"
-	"gopkg.in/dedis/kyber.v2/group/edwards25519"
 	"gopkg.in/dedis/kyber.v2/sign/schnorr"
 )
 
@@ -11,23 +10,28 @@ type SchnorrSigner struct {
 }
 
 // Sign Signs a message with using a single signature schnorr scheme
-func (s *SchnorrSigner) Sign(suite crypto.Suite, private crypto.Scalar, msg []byte) ([]byte, error) {
-
-	if suite == nil {
-		return nil, crypto.ErrNilSuite
-	}
-
+func (s *SchnorrSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 	if private == nil {
 		return nil, crypto.ErrNilPrivateKey
 	}
 
-	kScalar, ok := private.GetUnderlyingObj().(kyber.Scalar)
+	scalar := private.Scalar()
+	if scalar == nil {
+		return nil, crypto.ErrNilPrivateKeyScalar
+	}
+
+	kScalar, ok := scalar.GetUnderlyingObj().(kyber.Scalar)
 
 	if !ok {
 		return nil, crypto.ErrInvalidPrivateKey
 	}
 
-	kSuite, ok := suite.GetUnderlyingSuite().(*edwards25519.SuiteEd25519)
+	suite := private.Suite()
+	if suite == nil {
+		return nil, crypto.ErrNilSuite
+	}
+
+	kSuite, ok := suite.GetUnderlyingSuite().(schnorr.Suite)
 
 	if !ok {
 		return nil, crypto.ErrInvalidSuite
@@ -37,11 +41,7 @@ func (s *SchnorrSigner) Sign(suite crypto.Suite, private crypto.Scalar, msg []by
 }
 
 // Verify verifies a signature using a single signature schnorr scheme
-func (s *SchnorrSigner) Verify(suite crypto.Suite, public crypto.Point, msg []byte, sig []byte) error {
-	if suite == nil {
-		return crypto.ErrNilSuite
-	}
-
+func (s *SchnorrSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
 	if public == nil {
 		return crypto.ErrNilPublicKey
 	}
@@ -54,13 +54,23 @@ func (s *SchnorrSigner) Verify(suite crypto.Suite, public crypto.Point, msg []by
 		return crypto.ErrNilSignature
 	}
 
-	kSuite, ok := suite.GetUnderlyingSuite().(*edwards25519.SuiteEd25519)
+	suite := public.Suite()
+	if suite == nil {
+		return crypto.ErrNilSuite
+	}
+
+	kSuite, ok := suite.GetUnderlyingSuite().(schnorr.Suite)
 
 	if !ok {
 		return crypto.ErrInvalidSuite
 	}
 
-	kPoint, ok := public.GetUnderlyingObj().(kyber.Point)
+	point := public.Point()
+	if point == nil {
+		return crypto.ErrNilPublicKeyPoint
+	}
+
+	kPoint, ok := point.GetUnderlyingObj().(kyber.Point)
 
 	if !ok {
 		return crypto.ErrInvalidPublicKey

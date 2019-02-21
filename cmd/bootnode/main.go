@@ -21,7 +21,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
@@ -47,8 +49,7 @@ import (
 	beevikntp "github.com/beevik/ntp"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -315,12 +316,12 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 	singlesigner := &singlesig.SchnorrSigner{}
 
-	multisigner, err := multisig.NewBelNevMultisig(hasher, initialPubKeys, privKey, keyGen, uint16(0))
-
+	multisigHasher, err := getMultisigHasherFromConfig(cfg)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
+	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, initialPubKeys, privKey, keyGen, uint16(0))
 	if err != nil {
 		return nil, err
 	}
@@ -533,6 +534,19 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	switch cfg.Hasher.Type {
 	case "sha256":
 		return sha256.Sha256{}, nil
+	case "blake2b":
+		return blake2b.Blake2b{}, nil
+	}
+
+	return nil, errors.New("no hasher provided in config file")
+}
+
+func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
+	switch cfg.MultisigHasher.Type {
+	case "sha256":
+		return sha256.Sha256{}, nil
+	case "blake2b":
+		return blake2b.Blake2b{}, nil
 	}
 
 	return nil, errors.New("no hasher provided in config file")

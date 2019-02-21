@@ -42,7 +42,8 @@ func TestNode_GenerateSendInterceptTransactionWithMemMessenger(t *testing.T) {
 
 	//Step 2. Sign transaction
 	txBuff, _ := marshalizer.Marshal(&tx)
-	tx.Signature, _ = sk.Sign(txBuff, &singlesig.SchnorrSigner{})
+	signer := &singlesig.SchnorrSigner{}
+	tx.Signature, _ = signer.Sign(sk, txBuff)
 
 	signedTxBuff, _ := marshalizer.Marshal(&tx)
 

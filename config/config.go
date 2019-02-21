@@ -54,6 +54,9 @@ type Config struct {
 	Hasher struct {
 		Type string `json:"type"`
 	} `json:"hasher"`
+	MultisigHasher struct {
+		Type string `json:"type"`
+	} `json:"multisigHasher"`
 	Marshalizer struct {
 		Type string `json:"type"`
 	} `json:"marshalizer"`

@@ -592,7 +592,7 @@ func (sposWorker *SPOSConsensusWorker) SendBlockHeader() bool {
 }
 
 func (sposWorker *SPOSConsensusWorker) genCommitmentHash() ([]byte, error) {
-	commitmentSecret, commitment := sposWorker.multiSigner.CreateCommitment()
+	_, commitment := sposWorker.multiSigner.CreateCommitment()
 
 	selfIndex, err := sposWorker.Cns.IndexSelfConsensusGroup()
 
@@ -600,21 +600,9 @@ func (sposWorker *SPOSConsensusWorker) genCommitmentHash() ([]byte, error) {
 		return nil, err
 	}
 
-	err = sposWorker.multiSigner.AddCommitment(uint16(selfIndex), commitment)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = sposWorker.multiSigner.SetCommitmentSecret(commitmentSecret)
-
-	if err != nil {
-		return nil, err
-	}
-
 	commitmentHash := sposWorker.hasher.Compute(string(commitment))
 
-	err = sposWorker.multiSigner.AddCommitmentHash(uint16(selfIndex), commitmentHash)
+	err = sposWorker.multiSigner.StoreCommitmentHash(uint16(selfIndex), commitmentHash)
 
 	if err != nil {
 		return nil, err
@@ -972,7 +960,7 @@ func (sposWorker *SPOSConsensusWorker) DoSignatureJob() bool {
 		return false
 	}
 
-	err = sposWorker.multiSigner.AddSignatureShare(uint16(selfIndex), sigPart)
+	err = sposWorker.multiSigner.StoreSignatureShare(uint16(selfIndex), sigPart)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -1015,7 +1003,7 @@ func (sposWorker *SPOSConsensusWorker) genConsensusDataSignature(cnsDta *Consens
 		return nil, err
 	}
 
-	signature, err := sposWorker.privKey.Sign(cnsDtaStr, sposWorker.singleSigner)
+	signature, err := sposWorker.singleSigner.Sign(sposWorker.privKey, cnsDtaStr)
 
 	if err != nil {
 		return nil, err
@@ -1334,7 +1322,7 @@ func (sposWorker *SPOSConsensusWorker) checkSignature(cnsData *ConsensusData) er
 		return err
 	}
 
-	err = pubKey.Verify(dataNoSigString, signature, sposWorker.singleSigner)
+	err = sposWorker.singleSigner.Verify(pubKey, dataNoSigString, signature)
 
 	return err
 }
@@ -1548,7 +1536,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedCommitmentHash(cnsDta *ConsensusD
 		return false
 	}
 
-	err = sposWorker.multiSigner.AddCommitmentHash(uint16(index), cnsDta.SubRoundData)
+	err = sposWorker.multiSigner.StoreCommitmentHash(uint16(index), cnsDta.SubRoundData)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -1678,7 +1666,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedCommitment(cnsDta *ConsensusData)
 		return false
 	}
 
-	err = sposWorker.multiSigner.AddCommitment(uint16(index), cnsDta.SubRoundData)
+	err = sposWorker.multiSigner.StoreCommitment(uint16(index), cnsDta.SubRoundData)
 
 	if err != nil {
 		log.Info(err.Error())
@@ -1726,7 +1714,7 @@ func (sposWorker *SPOSConsensusWorker) ReceivedSignature(cnsDta *ConsensusData) 
 		return false
 	}
 
-	err = sposWorker.multiSigner.AddSignatureShare(uint16(index), cnsDta.SubRoundData)
+	err = sposWorker.multiSigner.StoreSignatureShare(uint16(index), cnsDta.SubRoundData)
 
 	if err != nil {
 		log.Error(err.Error())

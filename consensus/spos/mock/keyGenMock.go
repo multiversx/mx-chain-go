@@ -6,7 +6,6 @@ import (
 
 // PrivateKeyMock mocks a private key implementation
 type PrivateKeyMock struct {
-	SignMock           func(message []byte, signer crypto.SingleSigner) ([]byte, error)
 	GeneratePublicMock func() crypto.PublicKey
 	ToByteArrayMock    func() ([]byte, error)
 	SuiteMock          func() crypto.Suite
@@ -16,7 +15,6 @@ type PrivateKeyMock struct {
 // PublicKeyMock mocks a public key implementation
 type PublicKeyMock struct {
 	ToByteArrayMock func() ([]byte, error)
-	VerifyMock      func(data []byte, signature []byte, signer crypto.SingleSigner) error
 	SuiteMock       func() crypto.Suite
 	PointMock       func() crypto.Point
 }
@@ -27,11 +25,6 @@ type KeyGenMock struct {
 	PrivateKeyFromByteArrayMock func(b []byte) (crypto.PrivateKey, error)
 	PublicKeyFromByteArrayMock  func(b []byte) (crypto.PublicKey, error)
 	SuiteMock                   func() crypto.Suite
-}
-
-// Sign mocks signing with a private key
-func (privKey *PrivateKeyMock) Sign(message []byte, signer crypto.SingleSigner) ([]byte, error) {
-	return []byte("signed" + string(message)), nil
 }
 
 // GeneratePublic mocks generating a public key from the private key
@@ -55,11 +48,6 @@ func (privKey *PrivateKeyMock) Scalar() crypto.Scalar {
 // ToByteArray mocks converting a public key to a byte array
 func (pubKey *PublicKeyMock) ToByteArray() ([]byte, error) {
 	return []byte("publicKeyMock"), nil
-}
-
-// Verify mocks verifying a signature with a public key
-func (pubKey *PublicKeyMock) Verify(data []byte, signature []byte, signer crypto.SingleSigner) error {
-	return pubKey.VerifyMock(data, signature, signer)
 }
 
 func (pubKey *PublicKeyMock) Suite() crypto.Suite {

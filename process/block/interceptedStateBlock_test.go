@@ -3,11 +3,11 @@ package block_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
-	"github.com/stretchr/testify/assert"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInterceptedStateBlockBody_NewShouldNotCreateNilBlock(t *testing.T) {

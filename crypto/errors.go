@@ -10,6 +10,9 @@ var ErrNilPrivateKey = errors.New("private key is nil")
 // ErrInvalidPrivateKey is raised when an invalid private key is used
 var ErrInvalidPrivateKey = errors.New("private key is invalid")
 
+// ErrNilPrivateKeyScalar is raised when a private key with nil scalar is used
+var ErrNilPrivateKeyScalar = errors.New("private key holds a nil scalar")
+
 // ErrNilPublicKeys is raised when public keys are expected but received nil
 var ErrNilPublicKeys = errors.New("public keys are nil")
 
@@ -18,6 +21,9 @@ var ErrNilPublicKey = errors.New("public key is nil")
 
 // ErrInvalidPublicKey is raised when an invalid public key is used
 var ErrInvalidPublicKey = errors.New("public key is invalid")
+
+// ErrNilPublicKeyPoint is raised when a public key with nil point is used
+var ErrNilPublicKeyPoint = errors.New("public key holds a nil point")
 
 // ErrNoPublicKeySet is raised when no public key was set for a multisignature
 var ErrNoPublicKeySet = errors.New("no public key was set")
