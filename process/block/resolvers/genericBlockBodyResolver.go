@@ -94,8 +94,8 @@ func (gbbRes *GenericBlockBodyResolver) resolveBlockBodyRequest(rd *process.Requ
 	return gbbRes.blockStorage.Get(rd.Value)
 }
 
-// RequestHash requests a block body from other peers having input the block body hash
-func (gbbRes *GenericBlockBodyResolver) RequestHash(hash []byte) error {
+// RequestDataFromHash requests a block body from other peers having input the block body hash
+func (gbbRes *GenericBlockBodyResolver) RequestDataFromHash(hash []byte) error {
 	return gbbRes.SendOnRequestTopic(&process.RequestData{
 		Type:  process.HashType,
 		Value: hash,

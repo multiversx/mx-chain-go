@@ -313,7 +313,7 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageCheckRetError(t *testing.T) 
 
 //------- RequestTransactionFromHash
 
-func TestTxResolver_RequestHashShouldWork(t *testing.T) {
+func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	t.Parallel()
 
 	requested := &process.RequestData{}
@@ -333,7 +333,7 @@ func TestTxResolver_RequestHashShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	assert.Nil(t, txRes.RequestHash(buffRequested))
+	assert.Nil(t, txRes.RequestDataFromHash(buffRequested))
 	assert.Equal(t, &process.RequestData{
 		Type:  process.HashType,
 		Value: buffRequested,

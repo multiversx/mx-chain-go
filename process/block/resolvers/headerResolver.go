@@ -162,16 +162,16 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 	return buff, nil
 }
 
-// RequestHash requests a header from other peers having input the hdr hash
-func (hdrRes *HeaderResolver) RequestHash(hash []byte) error {
+// RequestDataFromHash requests a header from other peers having input the hdr hash
+func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte) error {
 	return hdrRes.SendOnRequestTopic(&process.RequestData{
 		Type:  process.HashType,
 		Value: hash,
 	})
 }
 
-// RequestNonce requests a header from other peers having input the hdr nonce
-func (hdrRes *HeaderResolver) RequestNonce(nonce uint64) error {
+// RequestDataFromNonce requests a header from other peers having input the hdr nonce
+func (hdrRes *HeaderResolver) RequestDataFromNonce(nonce uint64) error {
 	return hdrRes.SendOnRequestTopic(&process.RequestData{
 		Type:  process.NonceType,
 		Value: hdrRes.nonceConverter.ToByteSlice(nonce),

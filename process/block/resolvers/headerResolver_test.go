@@ -605,7 +605,7 @@ func TestHeaderResolver_ResolveHdrRequestNonceTypeFoundInHdrNoncePoolCheckRetErr
 
 //------- Requests
 
-func TestHeaderResolver_RequestHashShouldWork(t *testing.T) {
+func TestHeaderResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	t.Parallel()
 
 	buffRequested := []byte("aaaa")
@@ -630,11 +630,11 @@ func TestHeaderResolver_RequestHashShouldWork(t *testing.T) {
 		nonceConverter,
 	)
 
-	assert.Nil(t, hdrRes.RequestHash(buffRequested))
+	assert.Nil(t, hdrRes.RequestDataFromHash(buffRequested))
 	assert.True(t, wasRequested)
 }
 
-func TestHeaderResolver_RequestNonceShouldWork(t *testing.T) {
+func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
 	nonceRequested := uint64(67)
@@ -659,6 +659,6 @@ func TestHeaderResolver_RequestNonceShouldWork(t *testing.T) {
 		nonceConverter,
 	)
 
-	assert.Nil(t, hdrRes.RequestNonce(nonceRequested))
+	assert.Nil(t, hdrRes.RequestDataFromNonce(nonceRequested))
 	assert.True(t, wasRequested)
 }

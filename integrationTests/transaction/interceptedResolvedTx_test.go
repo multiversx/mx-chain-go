@@ -83,7 +83,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	//Step 4. request tx
 	txResolver, _ := pf.ResolverContainer().Get(string(factory.TransactionTopic))
-	err = txResolver.RequestHash(txHash)
+	err = txResolver.RequestDataFromHash(txHash)
 	assert.Nil(t, err)
 
 	select {

@@ -89,7 +89,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	//Step 4. request tx block body
 	txBlockBodyRequestor, _ := pFactoryReq.ResolverContainer().Get(string(factory.TxBlockBodyTopic))
-	txBlockBodyRequestor.RequestHash(txBlockBodyHash)
+	txBlockBodyRequestor.RequestDataFromHash(txBlockBodyHash)
 
 	select {
 	case <-chanDone:

@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -362,54 +361,24 @@ func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology 
 }
 
 func (n *Node) createBootstrap(round *chronology.Round) (*sync.Bootstrap, error) {
-	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, round, n.blockProcessor, WaitTime, n.marshalizer, n.forkDetector)
+	bootstrap, err := sync.NewBootstrap(
+		n.dataPool,
+		n.blkc,
+		round,
+		n.blockProcessor,
+		WaitTime,
+		n.marshalizer,
+		n.forkDetector,
+		n.interceptorsResolversCreator.ResolverContainer(),
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	resH, err := n.interceptorsResolversCreator.ResolverContainer().Get(string(factory.HeadersTopic))
-	if err != nil {
-		return nil, errors.New("cannot find headers topic resolver")
-	}
-	hdrRes := resH.(*resolvers.HeaderResolver)
-
-	resT, err := n.interceptorsResolversCreator.ResolverContainer().Get(string(factory.TxBlockBodyTopic))
-	if err != nil {
-		return nil, errors.New("cannot find tx block body topic resolver")
-
-	}
-	gbbrRes := resT.(*resolvers.GenericBlockBodyResolver)
-
-	bootstrap.RequestHeaderHandler = createRequestHeaderHandler(hdrRes)
-	bootstrap.RequestTxBodyHandler = cerateRequestTxBodyHandler(gbbrRes)
-
 	bootstrap.StartSync()
 
 	return bootstrap, nil
-}
-
-func createRequestHeaderHandler(hdrRes *resolvers.HeaderResolver) func(nonce uint64) {
-	return func(nonce uint64) {
-		err := hdrRes.RequestNonce(nonce)
-
-		log.Info(fmt.Sprintf("requested header with nonce %d from network\n", nonce))
-		if err != nil {
-			log.Error("RequestHeaderFromNonce error:  ", err.Error())
-		}
-	}
-}
-
-func cerateRequestTxBodyHandler(gbbrRes *resolvers.GenericBlockBodyResolver) func(hash []byte) {
-	return func(hash []byte) {
-		err := gbbrRes.RequestHash(hash)
-
-		log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(hash)))
-		if err != nil {
-			log.Error("RequestBlockBodyFromHash error: ", err.Error())
-			return
-		}
-	}
 }
 
 // createRoundConsensus method creates a RoundConsensus object

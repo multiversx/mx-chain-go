@@ -85,7 +85,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	res, err := pFactoryReq.ResolverContainer().Get(string(factory.HeadersTopic))
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
-	hdrResolver.RequestNonce(0)
+	hdrResolver.RequestDataFromNonce(0)
 
 	select {
 	case <-chanDone:

@@ -96,8 +96,8 @@ func (txRes *TxResolver) resolveTxRequest(rd *process.RequestData) ([]byte, erro
 	return buff, nil
 }
 
-// RequestHash requests a transaction from other peers having input the tx hash
-func (txRes *TxResolver) RequestHash(hash []byte) error {
+// RequestDataFromHash requests a transaction from other peers having input the tx hash
+func (txRes *TxResolver) RequestDataFromHash(hash []byte) error {
 	return txRes.SendOnRequestTopic(&process.RequestData{
 		Type:  process.HashType,
 		Value: hash,

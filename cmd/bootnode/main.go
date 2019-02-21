@@ -334,7 +334,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 	interceptorsContainer := containers.NewObjectsContainer()
 	resolversContainer := containers.NewResolversContainer()
 
-	processorFactory, err := factory.NewInterceptorsResolversCreator(
+	interceptorsResolversFactory, err := factory.NewInterceptorsResolversCreator(
 		factory.InterceptorsResolversConfig{
 
 			InterceptorContainer:     interceptorsContainer,
@@ -353,19 +353,19 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
-	err = processorFactory.CreateInterceptors()
+	err = interceptorsResolversFactory.CreateInterceptors()
 	if err != nil {
 		return nil, err
 	}
 
-	err = processorFactory.CreateResolvers()
+	err = interceptorsResolversFactory.CreateResolvers()
 	if err != nil {
 		return nil, err
 	}
 
 	forkDetector := sync2.NewBasicForkDetector()
 
-	res, err := processorFactory.ResolverContainer().Get(string(factory.TransactionTopic))
+	res, err := interceptorsResolversFactory.ResolverContainer().Get(string(factory.TransactionTopic))
 	if err != nil {
 		return nil, err
 	}
@@ -413,7 +413,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
-		node.WithInterceptorsResolversFactory(processorFactory),
+		node.WithInterceptorsResolversFactory(interceptorsResolversFactory),
 	)
 
 	if err != nil {
@@ -430,7 +430,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 func createRequestTransactionHandler(txResolver *transaction.TxResolver, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
-		_ = txResolver.RequestHash(txHash)
+		_ = txResolver.RequestDataFromHash(txHash)
 		log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
 	}
 }

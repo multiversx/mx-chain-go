@@ -280,7 +280,7 @@ func TestGenericBlockBodyResolver_ValidateMissingDataShouldNotSend(t *testing.T)
 
 //------- Requests
 
-func TestBlockBodyResolver_RequestHashShouldWork(t *testing.T) {
+func TestBlockBodyResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -299,6 +299,6 @@ func TestBlockBodyResolver_RequestHashShouldWork(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	assert.Nil(t, gbbRes.RequestHash(buffRequested))
+	assert.Nil(t, gbbRes.RequestDataFromHash(buffRequested))
 	assert.True(t, wasCalled)
 }
