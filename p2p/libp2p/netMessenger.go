@@ -44,7 +44,7 @@ type networkMessenger struct {
 	discoverer discovery.Discoverer
 
 	mutTopics sync.RWMutex
-	topics    map[string]p2p.TopicValidator
+	topics    map[string]p2p.MessageProcessor
 	// preconnectPeerHandler is used for notifying that a peer wants to connect to another peer so
 	// in the case of mocknet use, mocknet should first link the peers
 	preconnectPeerHandler PeerInfoHandler
@@ -152,7 +152,7 @@ func createMessenger(
 	netMes := networkMessenger{
 		hostP2P:     h,
 		pb:          pb,
-		topics:      make(map[string]p2p.TopicValidator),
+		topics:      make(map[string]p2p.MessageProcessor),
 		ctx:         ctx,
 		kadDHT:      kad,
 		discoverer:  discoverer,
@@ -419,8 +419,13 @@ func (netMes *networkMessenger) Broadcast(pipe string, topic string, buff []byte
 	}()
 }
 
-// RegisterTopicValidator registers a validator on a topic
-func (netMes *networkMessenger) RegisterTopicValidator(topic string, handler p2p.TopicValidator) error {
+// BroadcastOnTopicPipe tries to send a byte buffer onto a topic using the topic name as pipe
+func (netMes *networkMessenger) BroadcastOnTopicPipe(topic string, buff []byte) {
+	netMes.Broadcast(topic, topic, buff)
+}
+
+// RegisterMessageProcessor registers a message process on a topic
+func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
 	if handler == nil {
 		return p2p.ErrNilValidator
 	}
@@ -438,7 +443,7 @@ func (netMes *networkMessenger) RegisterTopicValidator(topic string, handler p2p
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(i context.Context, message *pubsub.Message) bool {
-		err := handler.Validate(NewMessage(message))
+		err := handler.ProcessReceivedMessage(NewMessage(message))
 
 		return err == nil
 	})
@@ -450,8 +455,8 @@ func (netMes *networkMessenger) RegisterTopicValidator(topic string, handler p2p
 	return nil
 }
 
-// UnregisterTopicValidator registers a validator on a topic
-func (netMes *networkMessenger) UnregisterTopicValidator(topic string) error {
+// UnregisterMessageProcessor registers a message processes on a topic
+func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
 	validator, found := netMes.topics[topic]
@@ -479,18 +484,18 @@ func (netMes *networkMessenger) SendToConnectedPeer(topic string, buff []byte, p
 }
 
 func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) error {
-	var validator p2p.TopicValidator
+	var processor p2p.MessageProcessor
 
 	netMes.mutTopics.RLock()
-	validator = netMes.topics[message.TopicIDs()[0]]
+	processor = netMes.topics[message.TopicIDs()[0]]
 	netMes.mutTopics.RUnlock()
 
-	if validator == nil {
+	if processor == nil {
 		return p2p.ErrNilValidator
 	}
 
 	go func(msg p2p.MessageP2P) {
-		log.LogIfError(validator.Validate(msg))
+		log.LogIfError(processor.ProcessReceivedMessage(msg))
 	}(message)
 
 	return nil

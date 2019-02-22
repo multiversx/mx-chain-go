@@ -49,9 +49,9 @@ func TestNewTxBlockBodyInterceptor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, tbbi)
 }
 
-//------- Validate
+//------- ProcessReceivedMessage
 
-func TestTxBlockBodyInterceptor_ValidateNilMessageShouldErr(t *testing.T) {
+func TestTxBlockBodyInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
@@ -64,10 +64,10 @@ func TestTxBlockBodyInterceptor_ValidateNilMessageShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	assert.Equal(t, process.ErrNilMessage, tbbi.Validate(nil))
+	assert.Equal(t, process.ErrNilMessage, tbbi.ProcessReceivedMessage(nil))
 }
 
-func TestTxBlockBodyInterceptor_ValidateNilMessageDataShouldErr(t *testing.T) {
+func TestTxBlockBodyInterceptor_ProcessReceivedMessageNilMessageDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
@@ -82,10 +82,10 @@ func TestTxBlockBodyInterceptor_ValidateNilMessageDataShouldErr(t *testing.T) {
 
 	msg := &mock.P2PMessageMock{}
 
-	assert.Equal(t, process.ErrNilDataToProcess, tbbi.Validate(msg))
+	assert.Equal(t, process.ErrNilDataToProcess, tbbi.ProcessReceivedMessage(msg))
 }
 
-func TestTxBlockBodyInterceptor_ValidateMarshalizerErrorsAtUnmarshalingShouldErr(t *testing.T) {
+func TestTxBlockBodyInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarshalingShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errMarshalizer := errors.New("marshalizer error")
@@ -108,10 +108,10 @@ func TestTxBlockBodyInterceptor_ValidateMarshalizerErrorsAtUnmarshalingShouldErr
 		DataField: make([]byte, 0),
 	}
 
-	assert.Equal(t, errMarshalizer, tbbi.Validate(msg))
+	assert.Equal(t, errMarshalizer, tbbi.ProcessReceivedMessage(msg))
 }
 
-func TestTxBlockBodyInterceptor_ValidateIntegrityFailsShouldErr(t *testing.T) {
+func TestTxBlockBodyInterceptor_ProcessReceivedMessageIntegrityFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -137,10 +137,10 @@ func TestTxBlockBodyInterceptor_ValidateIntegrityFailsShouldErr(t *testing.T) {
 		DataField: buff,
 	}
 
-	assert.Equal(t, process.ErrNilMiniBlocks, tbbi.Validate(msg))
+	assert.Equal(t, process.ErrNilMiniBlocks, tbbi.ProcessReceivedMessage(msg))
 }
 
-func TestTxBlockBodyInterceptor_ValidateBlockShouldWork(t *testing.T) {
+func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -183,6 +183,6 @@ func TestTxBlockBodyInterceptor_ValidateBlockShouldWork(t *testing.T) {
 		return false
 	}
 
-	assert.Nil(t, tbbi.Validate(msg))
+	assert.Nil(t, tbbi.ProcessReceivedMessage(msg))
 	assert.True(t, putInCacheWasCalled)
 }

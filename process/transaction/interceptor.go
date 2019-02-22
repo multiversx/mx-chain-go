@@ -86,9 +86,9 @@ func NewTxInterceptor(
 	return txIntercept, nil
 }
 
-// Validate will be the callback func from the p2p.Messenger and will be called each time a new message was received
+// ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (txi *TxInterceptor) Validate(message p2p.MessageP2P) error {
+func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	if message == nil {
 		return process.ErrNilMessage
 	}

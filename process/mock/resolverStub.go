@@ -5,14 +5,14 @@ import (
 )
 
 type ResolverStub struct {
-	RequestDataFromHashCalled func(hash []byte) error
-	ValidateCalled            func(message p2p.MessageP2P) error
+	RequestDataFromHashCalled    func(hash []byte) error
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
 }
 
 func (rs *ResolverStub) RequestDataFromHash(hash []byte) error {
 	return rs.RequestDataFromHashCalled(hash)
 }
 
-func (rs *ResolverStub) Validate(message p2p.MessageP2P) error {
-	return rs.ValidateCalled(message)
+func (rs *ResolverStub) ProcessReceivedMessage(message p2p.MessageP2P) error {
+	return rs.ProcessReceivedMessageCalled(message)
 }

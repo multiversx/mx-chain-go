@@ -49,9 +49,9 @@ func TestNewPeerBlockBodyInterceptor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, pbbi)
 }
 
-//------- Validate
+//------- ProcessReceivedMessage
 
-func TestPeerBlockBodyInterceptor_ValidateNilMessageShouldErr(t *testing.T) {
+func TestPeerBlockBodyInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
@@ -64,10 +64,10 @@ func TestPeerBlockBodyInterceptor_ValidateNilMessageShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	assert.Equal(t, process.ErrNilMessage, pbbi.Validate(nil))
+	assert.Equal(t, process.ErrNilMessage, pbbi.ProcessReceivedMessage(nil))
 }
 
-func TestPeerBlockBodyInterceptor_ValidateNilMessageDataShouldErr(t *testing.T) {
+func TestPeerBlockBodyInterceptor_ProcessReceivedMessageNilMessageDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cache := &mock.CacherStub{}
@@ -82,7 +82,7 @@ func TestPeerBlockBodyInterceptor_ValidateNilMessageDataShouldErr(t *testing.T) 
 
 	msg := &mock.P2PMessageMock{}
 
-	assert.Equal(t, process.ErrNilDataToProcess, pbbi.Validate(msg))
+	assert.Equal(t, process.ErrNilDataToProcess, pbbi.ProcessReceivedMessage(msg))
 }
 
 func TestPeerBlockBodyInterceptor_ValidateMarshalizerErrorsAtUnmarshalingShouldErr(t *testing.T) {
@@ -108,10 +108,10 @@ func TestPeerBlockBodyInterceptor_ValidateMarshalizerErrorsAtUnmarshalingShouldE
 		DataField: make([]byte, 0),
 	}
 
-	assert.Equal(t, errMarshalizer, pbbi.Validate(msg))
+	assert.Equal(t, errMarshalizer, pbbi.ProcessReceivedMessage(msg))
 }
 
-func TestPeerBlockBodyInterceptor_ValidateIntegrityFailsShouldErr(t *testing.T) {
+func TestPeerBlockBodyInterceptor_ProcessReceivedMessageIntegrityFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -137,10 +137,10 @@ func TestPeerBlockBodyInterceptor_ValidateIntegrityFailsShouldErr(t *testing.T) 
 		DataField: buff,
 	}
 
-	assert.Equal(t, process.ErrNilPeerChanges, pbbi.Validate(msg))
+	assert.Equal(t, process.ErrNilPeerChanges, pbbi.ProcessReceivedMessage(msg))
 }
 
-func TestPeerBlockBodyInterceptor_ValidateBlockShouldWork(t *testing.T) {
+func TestPeerBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -180,6 +180,6 @@ func TestPeerBlockBodyInterceptor_ValidateBlockShouldWork(t *testing.T) {
 		return false
 	}
 
-	assert.Nil(t, pbbi.Validate(msg))
+	assert.Nil(t, pbbi.ProcessReceivedMessage(msg))
 	assert.True(t, putInCacheWasCalled)
 }

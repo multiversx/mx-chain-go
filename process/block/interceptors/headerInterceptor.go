@@ -77,9 +77,9 @@ func NewHeaderInterceptor(
 	return hdrIntercept, nil
 }
 
-// Validate will be the callback func from the p2p.Messenger and will be called each time a new message was received
+// ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (hi *HeaderInterceptor) Validate(message p2p.MessageP2P) error {
+func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	err := hi.checkMessage(message)
 	if err != nil {
 		return err

@@ -85,9 +85,9 @@ func TestNewTxResolver_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, txRes)
 }
 
-//------- Validate
+//------- ProcessReceivedMessage
 
-func TestTxResolver_ValidateNilMessageShouldErr(t *testing.T) {
+func TestTxResolver_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txRes, _ := NewTxResolver(
@@ -97,12 +97,12 @@ func TestTxResolver_ValidateNilMessageShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	err := txRes.Validate(nil)
+	err := txRes.ProcessReceivedMessage(nil)
 
 	assert.Equal(t, process.ErrNilMessage, err)
 }
 
-func TestTxResolver_ValidateWrongTypeShouldErr(t *testing.T) {
+func TestTxResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -118,12 +118,12 @@ func TestTxResolver_ValidateWrongTypeShouldErr(t *testing.T) {
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.Validate(msg)
+	err := txRes.ProcessReceivedMessage(msg)
 
 	assert.Equal(t, process.ErrResolveNotHashType, err)
 }
 
-func TestTxResolver_ValidateNilValueShouldErr(t *testing.T) {
+func TestTxResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -139,12 +139,12 @@ func TestTxResolver_ValidateNilValueShouldErr(t *testing.T) {
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.Validate(msg)
+	err := txRes.ProcessReceivedMessage(msg)
 
 	assert.Equal(t, process.ErrNilValue, err)
 }
 
-func TestTxResolver_ValidateFoundInTxPoolShouldSearchAndSend(t *testing.T) {
+func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -178,14 +178,14 @@ func TestTxResolver_ValidateFoundInTxPoolShouldSearchAndSend(t *testing.T) {
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.Validate(msg)
+	err := txRes.ProcessReceivedMessage(msg)
 
 	assert.Nil(t, err)
 	assert.True(t, searchWasCalled)
 	assert.True(t, sendWasCalled)
 }
 
-func TestTxResolver_ValidateFoundInTxPoolMarshalizerFailShouldRetNilAndErr(t *testing.T) {
+func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetNilAndErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("MarshalizerMock generic error")
@@ -220,12 +220,12 @@ func TestTxResolver_ValidateFoundInTxPoolMarshalizerFailShouldRetNilAndErr(t *te
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.Validate(msg)
+	err := txRes.ProcessReceivedMessage(msg)
 
 	assert.Equal(t, errExpected, err)
 }
 
-func TestTxResolver_ValidateFoundInTxStorageShouldRetValAndSend(t *testing.T) {
+func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -265,14 +265,14 @@ func TestTxResolver_ValidateFoundInTxStorageShouldRetValAndSend(t *testing.T) {
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.Validate(msg)
+	err := txRes.ProcessReceivedMessage(msg)
 
 	assert.Nil(t, err)
 	assert.True(t, searchWasCalled)
 	assert.True(t, sendWasCalled)
 }
 
-func TestTxResolver_ResolveTxRequestFoundInTxStorageCheckRetError(t *testing.T) {
+func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -305,7 +305,7 @@ func TestTxResolver_ResolveTxRequestFoundInTxStorageCheckRetError(t *testing.T) 
 
 	msg := &mock.P2PMessageMock{DataField: data}
 
-	err := txRes.Validate(msg)
+	err := txRes.ProcessReceivedMessage(msg)
 
 	assert.Equal(t, errExpected, err)
 

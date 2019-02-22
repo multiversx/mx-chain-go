@@ -50,9 +50,9 @@ func NewGenericBlockBodyResolver(
 	return bbResolver, nil
 }
 
-// Validate will be the callback func from the p2p.Messenger and will be called each time a new message was received
+// ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (gbbRes *GenericBlockBodyResolver) Validate(message p2p.MessageP2P) error {
+func (gbbRes *GenericBlockBodyResolver) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	rd := &process.RequestData{}
 	err := rd.Unmarshal(gbbRes.marshalizer, message)
 	if err != nil {

@@ -488,7 +488,7 @@ func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) error {
 		return err
 	}
 
-	return n.messenger.RegisterTopicValidator(string(ConsensusTopic), sposWrk)
+	return n.messenger.RegisterMessageProcessor(string(ConsensusTopic), sposWrk)
 }
 
 // addSubroundsToChronology adds subrounds to chronology
@@ -757,22 +757,19 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 		return
 	}
 
-	n.messenger.Broadcast(
-		string(ConsensusTopic),
+	n.messenger.BroadcastOnTopicPipe(
 		string(ConsensusTopic),
 		cnsDtaBuff)
 }
 
 func (n *Node) broadcastBlockBody(msg []byte) {
-	n.messenger.Broadcast(
-		string(factory.TxBlockBodyTopic),
+	n.messenger.BroadcastOnTopicPipe(
 		string(factory.TxBlockBodyTopic),
 		msg)
 }
 
 func (n *Node) broadcastHeader(msg []byte) {
-	n.messenger.Broadcast(
-		string(factory.HeadersTopic),
+	n.messenger.BroadcastOnTopicPipe(
 		string(factory.HeadersTopic),
 		msg,
 	)

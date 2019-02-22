@@ -1202,8 +1202,8 @@ func (sposWorker *SPOSConsensusWorker) createEmptyBlock() bool {
 	return true
 }
 
-// Validate method redirects the received message to the channel which should handle it
-func (sposWorker *SPOSConsensusWorker) Validate(message p2p.MessageP2P) error {
+// ProcessReceivedMessage method redirects the received message to the channel which should handle it
+func (sposWorker *SPOSConsensusWorker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	if message == nil {
 		return ErrNilMessage
 	}

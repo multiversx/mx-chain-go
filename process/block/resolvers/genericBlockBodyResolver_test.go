@@ -84,9 +84,9 @@ func TestNewGenericBlockBodyResolver_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, gbbRes)
 }
 
-//------- Validate
+//------- ProcessReceivedMessage
 
-func TestNewGenericBlockBodyResolver_ValidateNilValueShouldErr(t *testing.T) {
+func TestNewGenericBlockBodyResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
@@ -96,11 +96,11 @@ func TestNewGenericBlockBodyResolver_ValidateNilValueShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	err := gbbRes.Validate(createRequestMsg(process.HashType, nil))
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(process.HashType, nil))
 	assert.Equal(t, process.ErrNilValue, err)
 }
 
-func TestGenericBlockBodyResolver_ValidateWrongTypeShouldErr(t *testing.T) {
+func TestGenericBlockBodyResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
@@ -110,11 +110,11 @@ func TestGenericBlockBodyResolver_ValidateWrongTypeShouldErr(t *testing.T) {
 		&mock.MarshalizerMock{},
 	)
 
-	err := gbbRes.Validate(createRequestMsg(process.NonceType, make([]byte, 0)))
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, make([]byte, 0)))
 	assert.Equal(t, process.ErrResolveNotHashType, err)
 }
 
-func TestGenericBlockBodyResolver_ValidateFoundInPoolShouldRetValAndSend(t *testing.T) {
+func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(t *testing.T) {
 	t.Parallel()
 
 	requestedBuff := []byte("aaa")
@@ -146,7 +146,7 @@ func TestGenericBlockBodyResolver_ValidateFoundInPoolShouldRetValAndSend(t *test
 		marshalizer,
 	)
 
-	err := gbbRes.Validate(createRequestMsg(
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(
 		process.HashType,
 		requestedBuff))
 
@@ -155,7 +155,7 @@ func TestGenericBlockBodyResolver_ValidateFoundInPoolShouldRetValAndSend(t *test
 	assert.True(t, wasSent)
 }
 
-func TestGenericBlockBodyResolver_ValidateFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
+func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
 	t.Parallel()
 
 	requestedBuff := []byte("aaa")
@@ -189,7 +189,7 @@ func TestGenericBlockBodyResolver_ValidateFoundInPoolMarshalizerFailShouldErr(t 
 		marshalizer,
 	)
 
-	err := gbbRes.Validate(createRequestMsg(
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(
 		process.HashType,
 		requestedBuff))
 
@@ -197,7 +197,7 @@ func TestGenericBlockBodyResolver_ValidateFoundInPoolMarshalizerFailShouldErr(t 
 
 }
 
-func TestGenericBlockBodyResolver_ValidateNotFoundInPoolShouldRetFromStorageAndSend(t *testing.T) {
+func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStorageAndSend(t *testing.T) {
 	t.Parallel()
 
 	requestedBuff := []byte("aaa")
@@ -230,7 +230,7 @@ func TestGenericBlockBodyResolver_ValidateNotFoundInPoolShouldRetFromStorageAndS
 		marshalizer,
 	)
 
-	err := gbbRes.Validate(createRequestMsg(
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(
 		process.HashType,
 		requestedBuff))
 
@@ -239,7 +239,7 @@ func TestGenericBlockBodyResolver_ValidateNotFoundInPoolShouldRetFromStorageAndS
 	assert.True(t, wasSend)
 }
 
-func TestGenericBlockBodyResolver_ValidateMissingDataShouldNotSend(t *testing.T) {
+func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *testing.T) {
 	t.Parallel()
 
 	requestedBuff := []byte("aaa")
@@ -270,7 +270,7 @@ func TestGenericBlockBodyResolver_ValidateMissingDataShouldNotSend(t *testing.T)
 		marshalizer,
 	)
 
-	err := gbbRes.Validate(createRequestMsg(
+	err := gbbRes.ProcessReceivedMessage(createRequestMsg(
 		process.HashType,
 		requestedBuff))
 

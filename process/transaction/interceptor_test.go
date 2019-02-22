@@ -226,9 +226,9 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, txi)
 }
 
-//------- Validate
+//------- ProcessReceivedMessage
 
-func TestTransactionInterceptor_ValidateNilMesssageShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ProcessReceivedMessageNilMesssageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txPool := &mock.ShardedDataStub{}
@@ -248,10 +248,10 @@ func TestTransactionInterceptor_ValidateNilMesssageShouldErr(t *testing.T) {
 		keyGen,
 		oneSharder)
 
-	assert.Equal(t, process.ErrNilMessage, txi.Validate(nil))
+	assert.Equal(t, process.ErrNilMessage, txi.ProcessReceivedMessage(nil))
 }
 
-func TestTransactionInterceptor_ValidateMilMessageDataShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ProcessReceivedMessageMilMessageDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txPool := &mock.ShardedDataStub{}
@@ -273,10 +273,10 @@ func TestTransactionInterceptor_ValidateMilMessageDataShouldErr(t *testing.T) {
 
 	msg := &mock.P2PMessageMock{}
 
-	assert.Equal(t, process.ErrNilDataToProcess, txi.Validate(msg))
+	assert.Equal(t, process.ErrNilDataToProcess, txi.ProcessReceivedMessage(msg))
 }
 
-func TestTransactionInterceptor_ValidateMarshalizerFailsAtUnmarshalingShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarshalingShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errMarshalizer := errors.New("marshalizer error")
@@ -306,10 +306,10 @@ func TestTransactionInterceptor_ValidateMarshalizerFailsAtUnmarshalingShouldErr(
 		DataField: make([]byte, 0),
 	}
 
-	assert.Equal(t, errMarshalizer, txi.Validate(msg))
+	assert.Equal(t, errMarshalizer, txi.ProcessReceivedMessage(msg))
 }
 
-func TestTransactionInterceptor_ValidateMarshalizerFailsAtMarshalingShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtMarshalingShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errMarshalizer := errors.New("marshalizer error")
@@ -342,10 +342,10 @@ func TestTransactionInterceptor_ValidateMarshalizerFailsAtMarshalingShouldErr(t 
 		DataField: make([]byte, 0),
 	}
 
-	assert.Equal(t, errMarshalizer, txi.Validate(msg))
+	assert.Equal(t, errMarshalizer, txi.ProcessReceivedMessage(msg))
 }
 
-func TestTransactionInterceptor_ValidateIntegrityFailedShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -378,10 +378,10 @@ func TestTransactionInterceptor_ValidateIntegrityFailedShouldErr(t *testing.T) {
 		DataField: buff,
 	}
 
-	assert.Equal(t, process.ErrNilSignature, txi.Validate(msg))
+	assert.Equal(t, process.ErrNilSignature, txi.ProcessReceivedMessage(msg))
 }
 
-func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txPool := &mock.ShardedDataStub{}
@@ -426,10 +426,10 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 		DataField: buff,
 	}
 
-	assert.Equal(t, errExpected, txi.Validate(msg))
+	assert.Equal(t, errExpected, txi.ProcessReceivedMessage(msg))
 }
 
-func TestTransactionInterceptor_ValidateOkValsSameShardShouldWork(t *testing.T) {
+func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -485,11 +485,11 @@ func TestTransactionInterceptor_ValidateOkValsSameShardShouldWork(t *testing.T) 
 		}
 	}
 
-	assert.Nil(t, txi.Validate(msg))
+	assert.Nil(t, txi.ProcessReceivedMessage(msg))
 	assert.Equal(t, 1, wasAdded)
 }
 
-func TestTransactionInterceptor_ValidateOkValsOtherShardsShouldWork(t *testing.T) {
+func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -546,11 +546,11 @@ func TestTransactionInterceptor_ValidateOkValsOtherShardsShouldWork(t *testing.T
 		}
 	}
 
-	assert.Nil(t, txi.Validate(msg))
+	assert.Nil(t, txi.ProcessReceivedMessage(msg))
 	assert.Equal(t, 0, wasAdded)
 }
 
-func TestTransactionInterceptor_ValidatePresentInStorerShouldNotAdd(t *testing.T) {
+func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -614,6 +614,6 @@ func TestTransactionInterceptor_ValidatePresentInStorerShouldNotAdd(t *testing.T
 		}
 	}
 
-	assert.Nil(t, txi.Validate(msg))
+	assert.Nil(t, txi.ProcessReceivedMessage(msg))
 	assert.Equal(t, 0, wasAdded)
 }

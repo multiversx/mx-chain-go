@@ -41,9 +41,9 @@ func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration
 func prepareMessengerForMatchDataReceive(mes p2p.Messenger, matchData []byte, wg *sync.WaitGroup) {
 	_ = mes.CreateTopic("test", false)
 
-	_ = mes.RegisterTopicValidator("test",
-		&mock.TopicValidatorStub{
-			ValidateCalled: func(message p2p.MessageP2P) error {
+	_ = mes.RegisterMessageProcessor("test",
+		&mock.MessageProcessorStub{
+			ProcessMessageCalled: func(message p2p.MessageP2P) error {
 				if bytes.Equal(matchData, message.Data()) {
 					fmt.Printf("%s got the message\n", mes.ID().Pretty())
 					wg.Done()
@@ -352,7 +352,7 @@ func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
-	_ = mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
+	_ = mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
 
 	assert.True(t, mes.HasTopicValidator("test"))
 
@@ -362,7 +362,7 @@ func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue
 func TestLibp2pMessenger_RegisterTopicValidatorOnInexistentTopicShouldErr(t *testing.T) {
 	mes := createMockMessenger()
 
-	err := mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
+	err := mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
 
 	assert.Equal(t, p2p.ErrNilTopic, err)
 
@@ -374,7 +374,7 @@ func TestLibp2pMessenger_RegisterTopicValidatorWithNilHandlerShouldErr(t *testin
 
 	_ = mes.CreateTopic("test", false)
 
-	err := mes.RegisterTopicValidator("test", nil)
+	err := mes.RegisterMessageProcessor("test", nil)
 
 	assert.Equal(t, p2p.ErrNilValidator, err)
 
@@ -386,7 +386,7 @@ func TestLibp2pMessenger_RegisterTopicValidatorOkValsShouldWork(t *testing.T) {
 
 	_ = mes.CreateTopic("test", false)
 
-	err := mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
+	err := mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
 
 	assert.Nil(t, err)
 
@@ -399,10 +399,10 @@ func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testin
 	_ = mes.CreateTopic("test", false)
 
 	//registration
-	_ = mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
+	_ = mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
 
 	//re-registration
-	err := mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
+	err := mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
 
 	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
 
@@ -412,7 +412,7 @@ func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testin
 func TestLibp2pMessenger_UnegisterTopicValidatorOnInexistentTopicShouldErr(t *testing.T) {
 	mes := createMockMessenger()
 
-	err := mes.UnregisterTopicValidator("test")
+	err := mes.UnregisterMessageProcessor("test")
 
 	assert.Equal(t, p2p.ErrNilTopic, err)
 
@@ -424,7 +424,7 @@ func TestLibp2pMessenger_UnegisterTopicValidatorOnANotRegisteredTopicShouldErr(t
 
 	_ = mes.CreateTopic("test", false)
 
-	err := mes.UnregisterTopicValidator("test")
+	err := mes.UnregisterMessageProcessor("test")
 
 	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
 
@@ -437,10 +437,10 @@ func TestLibp2pMessenger_UnregisterTopicValidatorShouldWork(t *testing.T) {
 	_ = mes.CreateTopic("test", false)
 
 	//registration
-	_ = mes.RegisterTopicValidator("test", &mock.TopicValidatorStub{})
+	_ = mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
 
 	//unregistration
-	err := mes.UnregisterTopicValidator("test")
+	err := mes.UnregisterMessageProcessor("test")
 
 	assert.Nil(t, err)
 
@@ -476,6 +476,42 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersShouldWork(t *testing.T) {
 	fmt.Printf("sending message from %s...\n", mes1.ID().Pretty())
 
 	mes1.Broadcast("test", "test", msg)
+
+	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
+
+	mes1.Close()
+	mes2.Close()
+}
+
+func TestLibp2pMessenger_BroadcastDataOnTopicPipeBetween2PeersShouldWork(t *testing.T) {
+	msg := []byte("test message")
+
+	_, mes1, mes2 := createMockNetworkOf2()
+
+	adr2 := mes2.Addresses()[0]
+
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+
+	wg := &sync.WaitGroup{}
+	chanDone := make(chan bool)
+	wg.Add(2)
+
+	go func() {
+		wg.Wait()
+		chanDone <- true
+	}()
+
+	prepareMessengerForMatchDataReceive(mes1, msg, wg)
+	prepareMessengerForMatchDataReceive(mes2, msg, wg)
+
+	fmt.Println("Delaying as to allow peers to announce themselves on the opened topic...")
+	time.Sleep(time.Second)
+
+	fmt.Printf("sending message from %s...\n", mes1.ID().Pretty())
+
+	mes1.BroadcastOnTopicPipe("test", msg)
 
 	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
 

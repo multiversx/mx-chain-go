@@ -212,7 +212,7 @@ func TestInterceptorsResolversCreator_CreateInterceptorsNewTopicInterceptorError
 		HasTopicValidatorCalled: func(name string) bool {
 			return false
 		},
-		RegisterTopicValidatorCalled: func(topic string, handler p2p.TopicValidator) error {
+		RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
 			return errExpected
 		},
 		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
@@ -251,7 +251,7 @@ func TestInterceptorsResolversCreator_CreateResolversNewTopicInterceptorErrorsWi
 		HasTopicValidatorCalled: func(name string) bool {
 			return false
 		},
-		RegisterTopicValidatorCalled: func(topic string, handler p2p.TopicValidator) error {
+		RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
 			return errExpected
 		},
 		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
@@ -317,7 +317,7 @@ func createMessenger() p2p.Messenger {
 		HasTopicValidatorCalled: func(name string) bool {
 			return false
 		},
-		RegisterTopicValidatorCalled: func(topic string, handler p2p.TopicValidator) error {
+		RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
 			return nil
 		},
 		CreateTopicCalled: func(name string, createPipeForTopic bool) error {

@@ -5,31 +5,36 @@ import (
 )
 
 type MessengerStub struct {
-	CloseCalled                    func() error
-	IDCalled                       func() p2p.PeerID
-	PeersCalled                    func() []p2p.PeerID
-	AddressesCalled                func() []string
-	ConnectToPeerCalled            func(address string) error
-	DiscoverNewPeersCalled         func() error
-	TrimConnectionsCalled          func()
-	IsConnectedCalled              func(peerID p2p.PeerID) bool
-	ConnectedPeersCalled           func() []p2p.PeerID
-	CreateTopicCalled              func(name string, createPipeForTopic bool) error
-	HasTopicCalled                 func(name string) bool
-	HasTopicValidatorCalled        func(name string) bool
-	BroadcastCalled                func(pipe string, topic string, buff []byte)
-	RegisterTopicValidatorCalled   func(topic string, handler p2p.TopicValidator) error
-	UnregisterTopicValidatorCalled func(topic string) error
-	SendToConnectedPeerCalled      func(topic string, buff []byte, peerID p2p.PeerID) error
-	OutgoingPipeLoadBalancerCalled func() p2p.PipeLoadBalancer
+	CloseCalled                      func() error
+	IDCalled                         func() p2p.PeerID
+	PeersCalled                      func() []p2p.PeerID
+	AddressesCalled                  func() []string
+	ConnectToPeerCalled              func(address string) error
+	DiscoverNewPeersCalled           func() error
+	TrimConnectionsCalled            func()
+	IsConnectedCalled                func(peerID p2p.PeerID) bool
+	ConnectedPeersCalled             func() []p2p.PeerID
+	CreateTopicCalled                func(name string, createPipeForTopic bool) error
+	HasTopicCalled                   func(name string) bool
+	HasTopicValidatorCalled          func(name string) bool
+	BroadcastCalled                  func(pipe string, topic string, buff []byte)
+	BroadcastOnTopicPipeCalled       func(topic string, buff []byte)
+	RegisterMessageProcessorCalled   func(topic string, handler p2p.MessageProcessor) error
+	UnregisterMessageProcessorCalled func(topic string) error
+	SendToConnectedPeerCalled        func(topic string, buff []byte, peerID p2p.PeerID) error
+	OutgoingPipeLoadBalancerCalled   func() p2p.PipeLoadBalancer
 }
 
-func (ms *MessengerStub) RegisterTopicValidator(topic string, handler p2p.TopicValidator) error {
-	return ms.RegisterTopicValidatorCalled(topic, handler)
+func (ms *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
+	return ms.RegisterMessageProcessorCalled(topic, handler)
 }
 
-func (ms *MessengerStub) UnregisterTopicValidator(topic string) error {
-	return ms.UnregisterTopicValidatorCalled(topic)
+func (ms *MessengerStub) UnregisterMessageProcessor(topic string) error {
+	return ms.UnregisterMessageProcessorCalled(topic)
+}
+
+func (ms *MessengerStub) BroadcastOnTopicPipe(topic string, buff []byte) {
+	ms.BroadcastOnTopicPipeCalled(topic, buff)
 }
 
 func (ms *MessengerStub) OutgoingPipeLoadBalancer() p2p.PipeLoadBalancer {

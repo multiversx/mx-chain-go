@@ -6,10 +6,10 @@ import (
 	"github.com/mr-tron/base58/base58"
 )
 
-// TopicValidator is the interface used to describe what a topic validator should do.
+// MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
-type TopicValidator interface {
-	Validate(message MessageP2P) error
+type MessageProcessor interface {
+	ProcessReceivedMessage(message MessageP2P) error
 }
 
 // SendableData represents the struct used in data throttler implementation
@@ -48,10 +48,11 @@ type Messenger interface {
 	CreateTopic(name string, createPipeForTopic bool) error
 	HasTopic(name string) bool
 	HasTopicValidator(name string) bool
-	RegisterTopicValidator(topic string, handler TopicValidator) error
-	UnregisterTopicValidator(topic string) error
+	RegisterMessageProcessor(topic string, handler MessageProcessor) error
+	UnregisterMessageProcessor(topic string) error
 	OutgoingPipeLoadBalancer() PipeLoadBalancer
 	Broadcast(pipe string, topic string, buff []byte)
+	BroadcastOnTopicPipe(topic string, buff []byte)
 	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error
 }
 

@@ -74,7 +74,7 @@ type IntRandomizer interface {
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	RequestDataFromHash(hash []byte) error
-	Validate(message p2p.MessageP2P) error
+	ProcessReceivedMessage(message p2p.MessageP2P) error
 }
 
 // HeaderResolver defines what a block header resolver should do

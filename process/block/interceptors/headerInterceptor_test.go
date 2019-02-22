@@ -172,9 +172,9 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, hi)
 }
 
-//------- Validate
+//------- ProcessReceivedMessage
 
-func TestHeaderInterceptor_ValidateNilMessageShouldErr(t *testing.T) {
+func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.ShardedDataStub{}
@@ -190,10 +190,10 @@ func TestHeaderInterceptor_ValidateNilMessageShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	assert.Equal(t, process.ErrNilMessage, hi.Validate(nil))
+	assert.Equal(t, process.ErrNilMessage, hi.ProcessReceivedMessage(nil))
 }
 
-func TestHeaderInterceptor_ValidateNilDataToProcessShouldErr(t *testing.T) {
+func TestHeaderInterceptor_ProcessReceivedMessageNilDataToProcessShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.ShardedDataStub{}
@@ -211,10 +211,10 @@ func TestHeaderInterceptor_ValidateNilDataToProcessShouldErr(t *testing.T) {
 
 	msg := &mock.P2PMessageMock{}
 
-	assert.Equal(t, process.ErrNilDataToProcess, hi.Validate(msg))
+	assert.Equal(t, process.ErrNilDataToProcess, hi.ProcessReceivedMessage(msg))
 }
 
-func TestHeaderInterceptor_ValidateMarshalizerErrorsAtUnmarshalingShouldErr(t *testing.T) {
+func TestHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarshalingShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errMarshalizer := errors.New("marshalizer error")
@@ -240,10 +240,10 @@ func TestHeaderInterceptor_ValidateMarshalizerErrorsAtUnmarshalingShouldErr(t *t
 		DataField: make([]byte, 0),
 	}
 
-	assert.Equal(t, errMarshalizer, hi.Validate(msg))
+	assert.Equal(t, errMarshalizer, hi.ProcessReceivedMessage(msg))
 }
 
-func TestHeaderInterceptor_ValidateSanityCheckFailedShouldErr(t *testing.T) {
+func TestHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShouldErr(t *testing.T) {
 	t.Parallel()
 
 	headers := &mock.ShardedDataStub{}
@@ -267,10 +267,10 @@ func TestHeaderInterceptor_ValidateSanityCheckFailedShouldErr(t *testing.T) {
 		DataField: buff,
 	}
 
-	assert.Equal(t, process.ErrNilBlockBodyHash, hi.Validate(msg))
+	assert.Equal(t, process.ErrNilBlockBodyHash, hi.ProcessReceivedMessage(msg))
 }
 
-func TestHeaderInterceptor_ValidateValsOkShouldWork(t *testing.T) {
+func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -328,11 +328,11 @@ func TestHeaderInterceptor_ValidateValsOkShouldWork(t *testing.T) {
 		}
 	}
 
-	assert.Nil(t, hi.Validate(msg))
+	assert.Nil(t, hi.ProcessReceivedMessage(msg))
 	assert.Equal(t, 2, wasCalled)
 }
 
-func TestHeaderInterceptor_ValidateIsInStorageShouldNotAdd(t *testing.T) {
+func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -390,6 +390,6 @@ func TestHeaderInterceptor_ValidateIsInStorageShouldNotAdd(t *testing.T) {
 		}
 	}
 
-	assert.Nil(t, hi.Validate(msg))
+	assert.Nil(t, hi.ProcessReceivedMessage(msg))
 	assert.Equal(t, 0, wasCalled)
 }
