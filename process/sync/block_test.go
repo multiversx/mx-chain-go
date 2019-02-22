@@ -386,7 +386,13 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 	t.Parallel()
 
 	hdr := block.Header{Nonce: 1}
-	blkc := blockchain.BlockChain{}
+	blockBodyUnit := &mock.StorerStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			return nil, nil
+		},
+	}
+	blkc, _ := blockchain.NewBlockChain(&mock.CacherStub{}, &mock.StorerStub{}, blockBodyUnit,
+		&mock.StorerStub{}, &mock.StorerStub{}, &mock.StorerStub{})
 	blkc.CurrentBlockHeader = &hdr
 
 	transient := &mock.TransientDataPoolMock{}

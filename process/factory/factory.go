@@ -43,7 +43,9 @@ type processorsCreator struct {
 	addrConverter            state.AddressConverter
 	hasher                   hashing.Hasher
 	marshalizer              marshal.Marshalizer
-	singleSignKeyGen         crypto.KeyGenerator
+	multiSigner              crypto.MultiSigner
+	singleSigner             crypto.SingleSigner
+	keyGen                   crypto.KeyGenerator
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -60,7 +62,9 @@ type ProcessorsCreatorConfig struct {
 	AddrConverter            state.AddressConverter
 	Hasher                   hashing.Hasher
 	Marshalizer              marshal.Marshalizer
-	SingleSignKeyGen         crypto.KeyGenerator
+	MultiSigner              crypto.MultiSigner
+	SingleSigner             crypto.SingleSigner
+	KeyGen                   crypto.KeyGenerator
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -80,7 +84,9 @@ func NewProcessorsCreator(config ProcessorsCreatorConfig) (*processorsCreator, e
 		addrConverter:            config.AddrConverter,
 		hasher:                   config.Hasher,
 		marshalizer:              config.Marshalizer,
-		singleSignKeyGen:         config.SingleSignKeyGen,
+		multiSigner:              config.MultiSigner,
+		singleSigner:             config.SingleSigner,
+		keyGen:                   config.KeyGen,
 		uint64ByteSliceConverter: config.Uint64ByteSliceConverter,
 	}, nil
 }
@@ -156,7 +162,7 @@ func (p *processorsCreator) ResolverContainer() process.ResolverContainer {
 }
 
 func (p *processorsCreator) createTxInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(TransactionTopic), p.messenger, transaction.NewInterceptedTransaction())
+	intercept, err := interceptor.NewTopicInterceptor(string(TransactionTopic), p.messenger, transaction.NewInterceptedTransaction(p.singleSigner))
 	if err != nil {
 		return err
 	}
@@ -169,7 +175,8 @@ func (p *processorsCreator) createTxInterceptor() error {
 		txStorer,
 		p.addrConverter,
 		p.hasher,
-		p.singleSignKeyGen,
+		p.singleSigner,
+		p.keyGen,
 		p.shardCoordinator)
 
 	if err != nil {
@@ -181,7 +188,11 @@ func (p *processorsCreator) createTxInterceptor() error {
 }
 
 func (p *processorsCreator) createHdrInterceptor() error {
-	intercept, err := interceptor.NewTopicInterceptor(string(HeadersTopic), p.messenger, block.NewInterceptedHeader())
+	intercept, err := interceptor.NewTopicInterceptor(
+		string(HeadersTopic),
+		p.messenger,
+		block.NewInterceptedHeader(p.multiSigner),
+	)
 	if err != nil {
 		return err
 	}
@@ -193,6 +204,7 @@ func (p *processorsCreator) createHdrInterceptor() error {
 		p.dataPool.Headers(),
 		p.dataPool.HeadersNonces(),
 		headerStorer,
+		p.multiSigner,
 		p.hasher,
 		p.shardCoordinator,
 	)
@@ -406,8 +418,17 @@ func validateRequiredProcessCreatorParams(config ProcessorsCreatorConfig) error 
 	if config.Marshalizer == nil {
 		return process.ErrNilMarshalizer
 	}
-	if config.SingleSignKeyGen == nil {
-		return process.ErrNilSingleSignKeyGen
+
+	if config.SingleSigner == nil {
+		return process.ErrNilSingleSigner
+	}
+
+	if config.MultiSigner == nil {
+		return process.ErrNilMultiSigVerifier
+	}
+
+	if config.KeyGen == nil {
+		return process.ErrNilKeyGen
 	}
 	if config.Uint64ByteSliceConverter == nil {
 		return process.ErrNilUint64ByteSliceConverter

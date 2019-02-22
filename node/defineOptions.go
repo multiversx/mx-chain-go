@@ -106,8 +106,8 @@ func WithPrivateKey(sk crypto.PrivateKey) Option {
 	}
 }
 
-// WithSingleSignKeyGenerator sets up the single sign key generator option for the Node
-func WithSingleSignKeyGenerator(keyGen crypto.KeyGenerator) Option {
+// WithKeyGenerator sets up the single sign key generator option for the Node
+func WithKeyGenerator(keyGen crypto.KeyGenerator) Option {
 	return func(n *Node) error {
 		if keyGen == nil {
 			return ErrNilSingleSignKeyGen
@@ -237,6 +237,17 @@ func WithInitialNodesBalances(balances map[string]*big.Int) Option {
 			return ErrNilBalances
 		}
 		n.initialNodesBalances = balances
+		return nil
+	}
+}
+
+// WithSinglesig sets up the singlesig option for the Node
+func WithSinglesig(singlesig crypto.SingleSigner) Option {
+	return func(n *Node) error {
+		if singlesig == nil {
+			return ErrNilSingleSig
+		}
+		n.singlesig = singlesig
 		return nil
 	}
 }

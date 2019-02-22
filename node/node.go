@@ -72,6 +72,7 @@ type Node struct {
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
 	singleSignKeyGen crypto.KeyGenerator
+	singlesig        crypto.SingleSigner
 	multisig         crypto.MultiSigner
 	forkDetector     process.ForkDetector
 
@@ -218,6 +219,7 @@ func (n *Node) StartConsensus() error {
 		n.privateKey,
 		rounder,
 		n.shardCoordinator,
+		n.singlesig,
 	)
 
 	if err != nil {
@@ -245,6 +247,7 @@ func (n *Node) StartConsensus() error {
 		n.multisig,
 		rounder,
 		n.shardCoordinator,
+		n.singlesig,
 		n.syncer,
 		validatorGroupSelector,
 		worker,
@@ -306,6 +309,11 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	if n.publicKey == nil {
 		return ErrNilPublicKey
 	}
+
+	if n.singlesig == nil {
+		return ErrNilSingleSig
+	}
+
 	senderAddressBytes, err := n.publicKey.ToByteArray()
 	if err != nil {
 		return err
@@ -559,7 +567,7 @@ func (n *Node) generateAndSignTx(
 		return nil, nil, errors.New("could not marshal transaction")
 	}
 
-	sig, err := n.privateKey.Sign(marshalizedTx)
+	sig, err := n.singlesig.Sign(n.privateKey, marshalizedTx)
 	if err != nil {
 		return nil, nil, errors.New("could not sign the transaction")
 	}

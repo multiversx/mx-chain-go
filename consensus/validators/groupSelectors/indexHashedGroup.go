@@ -79,6 +79,42 @@ func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) 
 	return tempList, nil
 }
 
+// GetSelectedPublicKeys returns the stringified public keys of the marked validators in the selection bitmap
+// TODO: This function needs to be revised when the requirements are clarified
+func (ihgs *indexHashedGroupSelector) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {
+	selectionLen := uint16(len(selection) * 8) // 8 selection bits in each byte
+	shardEligibleLen := uint16(len(ihgs.eligibleList))
+	invalidSelection := selectionLen < shardEligibleLen
+
+	if invalidSelection {
+		return nil, consensus.ErrEligibleSelectionMismatch
+	}
+
+	publicKeys = make([]string, ihgs.consensusGroupSize)
+	cnt := 0
+
+	for i := uint16(0); i < shardEligibleLen; i++ {
+		isSelected := (selection[i/8] & (1 << (i % 8))) != 0
+
+		if !isSelected {
+			continue
+		}
+
+		publicKeys[cnt] = string(ihgs.eligibleList[i].PubKey())
+		cnt++
+
+		if cnt > ihgs.consensusGroupSize {
+			return nil, consensus.ErrEligibleTooManySelections
+		}
+	}
+
+	if cnt < ihgs.consensusGroupSize {
+		return nil, consensus.ErrEligibleTooFewSelections
+	}
+
+	return publicKeys, nil
+}
+
 func (ihgs *indexHashedGroupSelector) expandEligibleList() []consensus.Validator {
 	//TODO implement an expand eligible list variant
 	return ihgs.eligibleList

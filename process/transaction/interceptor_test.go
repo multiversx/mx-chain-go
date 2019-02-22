@@ -10,11 +10,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/pkg/errors"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/stretchr/testify/assert"
+	"github.com/pkg/errors"
 )
 
 //------- NewTxInterceptor
@@ -27,6 +26,7 @@ func TestNewTxInterceptor_NilInterceptorShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		nil,
@@ -34,6 +34,7 @@ func TestNewTxInterceptor_NilInterceptorShouldErr(t *testing.T) {
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
@@ -49,6 +50,7 @@ func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		interceptor,
@@ -56,6 +58,7 @@ func TestNewTxInterceptor_NilTransactionPoolShouldErr(t *testing.T) {
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
@@ -71,6 +74,7 @@ func TestNewTxInterceptor_NilStorerShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
+	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		interceptor,
@@ -78,6 +82,7 @@ func TestNewTxInterceptor_NilStorerShouldErr(t *testing.T) {
 		nil,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
@@ -93,6 +98,7 @@ func TestNewTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		interceptor,
@@ -100,6 +106,7 @@ func TestNewTxInterceptor_NilAddressConverterShouldErr(t *testing.T) {
 		storer,
 		nil,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
@@ -116,6 +123,7 @@ func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		interceptor,
@@ -123,10 +131,35 @@ func TestNewTxInterceptor_NilHasherShouldErr(t *testing.T) {
 		storer,
 		addrConv,
 		nil,
+		signer,
 		keyGen,
 		oneSharder)
 
 	assert.Equal(t, process.ErrNilHasher, err)
+	assert.Nil(t, txi)
+}
+
+func TestNewTxInterceptor_NilSignerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	interceptor := &mock.InterceptorStub{}
+	txPool := &mock.ShardedDataStub{}
+	addrConv := &mock.AddressConverterMock{}
+	keyGen := &mock.SingleSignKeyGenMock{}
+	oneSharder := mock.NewOneShardCoordinatorMock()
+	storer := &mock.StorerStub{}
+
+	txi, err := transaction.NewTxInterceptor(
+		interceptor,
+		txPool,
+		storer,
+		addrConv,
+		mock.HasherMock{},
+		nil,
+		keyGen,
+		oneSharder)
+
+	assert.Equal(t, process.ErrNilSingleSigner, err)
 	assert.Nil(t, txi)
 }
 
@@ -138,6 +171,7 @@ func TestNewTxInterceptor_NilKeyGenShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		interceptor,
@@ -145,10 +179,11 @@ func TestNewTxInterceptor_NilKeyGenShouldErr(t *testing.T) {
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		nil,
 		oneSharder)
 
-	assert.Equal(t, process.ErrNilSingleSignKeyGen, err)
+	assert.Equal(t, process.ErrNilKeyGen, err)
 	assert.Nil(t, txi)
 }
 
@@ -160,6 +195,7 @@ func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 	keyGen := &mock.SingleSignKeyGenMock{}
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		interceptor,
@@ -167,6 +203,7 @@ func TestNewTxInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		nil)
 
@@ -186,6 +223,7 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, err := transaction.NewTxInterceptor(
 		interceptor,
@@ -193,6 +231,7 @@ func TestNewTxInterceptor_OkValsShouldWork(t *testing.T) {
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
@@ -214,6 +253,7 @@ func TestTransactionInterceptor_ProcessTxNilTxShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -221,6 +261,7 @@ func TestTransactionInterceptor_ProcessTxNilTxShouldErr(t *testing.T) {
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
@@ -239,6 +280,7 @@ func TestTransactionInterceptor_ProcessTxWrongTypeOfNewerShouldErr(t *testing.T)
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -246,6 +288,7 @@ func TestTransactionInterceptor_ProcessTxWrongTypeOfNewerShouldErr(t *testing.T)
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
@@ -269,6 +312,7 @@ func TestTransactionInterceptor_ProcessTxNilMarshalizerShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -276,10 +320,11 @@ func TestTransactionInterceptor_ProcessTxNilMarshalizerShouldErr(t *testing.T) {
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
-	txNewer := transaction.NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction(signer)
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
@@ -303,6 +348,7 @@ func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldErr(t *testing.T) 
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -310,10 +356,11 @@ func TestTransactionInterceptor_ProcessTxIntegrityFailedShouldErr(t *testing.T) 
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
-	txNewer := transaction.NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction(signer)
 	txNewer.Signature = nil
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
@@ -337,6 +384,7 @@ func TestTransactionInterceptor_ProcessNilDataToProcessShouldErr(t *testing.T) {
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -344,10 +392,11 @@ func TestTransactionInterceptor_ProcessNilDataToProcessShouldErr(t *testing.T) {
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
-	txNewer := transaction.NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction(signer)
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
@@ -371,6 +420,7 @@ func TestTransactionInterceptor_ProcessTxIntegrityAndValidityShouldErr(t *testin
 	keyGen := &mock.SingleSignKeyGenMock{}
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -378,10 +428,11 @@ func TestTransactionInterceptor_ProcessTxIntegrityAndValidityShouldErr(t *testin
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
-	txNewer := transaction.NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction(signer)
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = []byte("please fail, addrConverter!")
@@ -407,10 +458,6 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
-		return errors.New("sig not valid")
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -418,6 +465,11 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return errors.New("sig not valid")
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -425,10 +477,11 @@ func TestTransactionInterceptor_ProcessTxVerifySigFailsShouldErr(t *testing.T) {
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
-	txNewer := transaction.NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction(signer)
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
@@ -459,10 +512,6 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
-		return nil
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -473,6 +522,11 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 	storer.HasCalled = func(key []byte) (bool, error) {
 		return false, nil
 	}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return  nil
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -480,10 +534,11 @@ func TestTransactionInterceptor_ProcessTxOkValsSameShardShouldWork(t *testing.T)
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		oneSharder)
 
-	txNewer := transaction.NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction(signer)
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
@@ -515,10 +570,6 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
-		return nil
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -530,6 +581,11 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 		return 0
 	}
 	storer := &mock.StorerStub{}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return  nil
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -537,10 +593,11 @@ func TestTransactionInterceptor_ProcessTxOkValsOtherShardsShouldWork(t *testing.
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		multiSharder)
 
-	txNewer := transaction.NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction(signer)
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
@@ -572,10 +629,6 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailShouldErr(t *testing.T) 
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
-		return nil
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -595,6 +648,7 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailShouldErr(t *testing.T) 
 
 		return called
 	}
+	signer := &mock.SignerMock{}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -602,10 +656,11 @@ func TestTransactionInterceptor_ProcessTxMarshalizerFailShouldErr(t *testing.T) 
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		multiSharder)
 
-	txNewer := transaction.NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction(signer)
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
@@ -636,10 +691,6 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
-		return nil
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -659,6 +710,11 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 
 		return called
 	}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -666,10 +722,11 @@ func TestTransactionInterceptor_ProcessTxOkVals2ShardsShouldWork(t *testing.T) {
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		multiSharder)
 
-	txNewer := transaction.NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction(signer)
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
@@ -701,10 +758,6 @@ func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.
 	addrConv := &mock.AddressConverterMock{}
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
-		return nil
-	}
-
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
 		return pubKey, nil
@@ -724,6 +777,11 @@ func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.
 
 		return called
 	}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
 
 	txi, _ := transaction.NewTxInterceptor(
 		interceptor,
@@ -731,10 +789,11 @@ func TestTransactionInterceptor_ProcessTxPresentInStorerShouldNotAdd(t *testing.
 		storer,
 		addrConv,
 		mock.HasherMock{},
+		signer,
 		keyGen,
 		multiSharder)
 
-	txNewer := transaction.NewInterceptedTransaction()
+	txNewer := transaction.NewInterceptedTransaction(signer)
 	txNewer.Signature = make([]byte, 0)
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)

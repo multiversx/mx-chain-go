@@ -10,6 +10,9 @@ var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
 
+// ErrNilPublicKeysSelector signals that a nil public keys selector has been provided
+var ErrNilPublicKeysSelector = errors.New("nil public keys selector")
+
 // ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
 var ErrNilAddressConverter = errors.New("nil AddressConverter")
 
@@ -166,8 +169,14 @@ var ErrInvalidRcvAddr = errors.New("invalid receiver address")
 // ErrInvalidSndAddr signals that an operation has been attempted to or with an invalid sender address
 var ErrInvalidSndAddr = errors.New("invalid sender address")
 
-// ErrNilSingleSignKeyGen signals that an operation has been attempted to or with a nil single sign key generator
-var ErrNilSingleSignKeyGen = errors.New("nil single sign key generator")
+// ErrNilKeyGen signals that an operation has been attempted to or with a nil single sign key generator
+var ErrNilKeyGen = errors.New("nil key generator")
+
+// ErrNilSingleSigner signals that a nil single signer is used
+var ErrNilSingleSigner = errors.New("nil single signer")
+
+// ErrNilMultiSigVerifier signals that a nil multi-signature verifier is used
+var ErrNilMultiSigVerifier = errors.New("nil multi-signature verifier")
 
 // ErrInvalidBlockBodyType signals that an operation has been attempted with an invalid block body type
 var ErrInvalidBlockBodyType = errors.New("invalid block body type")
