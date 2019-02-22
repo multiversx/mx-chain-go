@@ -399,11 +399,12 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:5908978a0de17fe0c420cc98c5103cdd06789b3152151abd7bd386cc020c9e62"
+  digest = "1:29c26e8ea16b6fb1c7c5e20f2dcd7fb37a5926d2251c2ea7e98a3c1e2b8c7649"
   name = "github.com/libp2p/go-libp2p"
   packages = [
     ".",
     "config",
+    "p2p/discovery",
     "p2p/host/basic",
     "p2p/net/mock",
     "p2p/protocol/identify",
@@ -735,6 +736,14 @@
   version = "v0.0.4"
 
 [[projects]]
+  digest = "1:1b46adc9e3d878cdf38a164cfdac2e19340f4d2662aa5bee88062f6ee08ac9df"
+  name = "github.com/miekg/dns"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "8fc2e5773bbd308ca2fcc962fd8d25c1bd0f6743"
+  version = "v1.1.4"
+
+[[projects]]
   branch = "master"
   digest = "1:130cefe87d7eeefc824978dcb78e35672d4c49a11f25c153fbf0cfd952756fa3"
   name = "github.com/minio/blake2b-simd"
@@ -993,6 +1002,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:0a017705731cb8ad506e72d842840ba89809e5b27b5593954c7eeeb631823735"
+  name = "github.com/whyrusleeping/mdns"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ef14215e6b30606f4ce84174ed7a644a05cb1af3"
+
+[[projects]]
+  branch = "master"
   digest = "1:94b933c1b26f1da25d25a089937d15987170a0a54109aa521a111345c3e84581"
   name = "github.com/whyrusleeping/multiaddr-filter"
   packages = ["."]
@@ -1017,12 +1034,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c9036fd83a4d4f1efa5472c1fb660da69a044b9cf1f5be6a03803cebd2310af8"
+  digest = "1:ae1c4ec77a314cd97688e881bb53e9ed0a7a447aa65274f6af06c56757a3f236"
   name = "golang.org/x/crypto"
   packages = [
     "blake2b",
     "blake2s",
     "blowfish",
+    "ed25519",
+    "ed25519/internal/edwards25519",
     "sha3",
     "ssh/terminal",
   ]
@@ -1031,7 +1050,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b11bc819ff8ac8b45c7d42a1c944adae8163bc102a90603e7a455088c14970bc"
+  digest = "1:fbe50fb5e0a89b4f899106a63a5de3a45ef2cae51b43a3991207c00efe6e844a"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -1042,6 +1061,7 @@
     "internal/iana",
     "internal/socket",
     "ipv4",
+    "ipv6",
   ]
   pruneopts = "UT"
   revision = "146acd28ed5894421fb5aac80ca93bc1b1f46f87"
@@ -1086,7 +1106,7 @@
 
 [[projects]]
   branch = "v2"
-  digest = "1:712660a913371014b418aa83a0cd2dee3a5eb428f09247e392121cc2ea8b11e4"
+  digest = "1:35af419dbe2008260a34284958e2e8d93b15b2aff46f2aaf074402ab8173fa6a"
   name = "gopkg.in/dedis/kyber.v2"
   packages = [
     ".",
@@ -1094,7 +1114,6 @@
     "group/internal/marshalling",
     "group/mod",
     "sign/schnorr",
-    "util/key",
     "util/random",
     "xof/blake2xb",
   ]
@@ -1172,6 +1191,7 @@
     "github.com/libp2p/go-libp2p-protocol",
     "github.com/libp2p/go-libp2p-pubsub",
     "github.com/libp2p/go-libp2p-pubsub/pb",
+    "github.com/libp2p/go-libp2p/p2p/discovery",
     "github.com/libp2p/go-libp2p/p2p/net/mock",
     "github.com/mr-tron/base58/base58",
     "github.com/multiformats/go-multiaddr",
@@ -1189,7 +1209,6 @@
     "gopkg.in/dedis/kyber.v2",
     "gopkg.in/dedis/kyber.v2/group/edwards25519",
     "gopkg.in/dedis/kyber.v2/sign/schnorr",
-    "gopkg.in/dedis/kyber.v2/util/key",
     "gopkg.in/go-playground/validator.v8",
     "gotest.tools/assert",
   ]

@@ -20,12 +20,16 @@ import (
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-protocol"
 	"github.com/libp2p/go-libp2p-pubsub"
+	discovery2 "github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/multiformats/go-multiaddr"
 )
 
 const elrondRandezVousString = "ElrondNetworkRandezVous"
 const durationBetweenSends = time.Duration(time.Microsecond * 10)
+
+// durMdnsCalls is used to define the duration used by mdns service when polling peers
+const durationMdnsCalls = time.Second
 
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
@@ -36,12 +40,15 @@ var log = logger.NewDefaultLogger()
 type PeerInfoHandler func(pInfo peerstore.PeerInfo)
 
 type networkMessenger struct {
-	ctx        context.Context
-	hostP2P    host.Host
-	pb         *pubsub.PubSub
-	ds         p2p.DirectSender
-	kadDHT     *dht.IpfsDHT
-	discoverer discovery.Discoverer
+	ctx               context.Context
+	hostP2P           host.Host
+	pb                *pubsub.PubSub
+	ds                p2p.DirectSender
+	kadDHT            *dht.IpfsDHT
+	discoverer        discovery.Discoverer
+	peerDiscoveryType p2p.PeerDiscoveryType
+	mutMdns           sync.Mutex
+	mdns              discovery2.Service
 
 	mutTopics sync.RWMutex
 	topics    map[string]p2p.MessageProcessor
@@ -70,7 +77,13 @@ func NewMockNetworkMessenger(ctx context.Context, mockNet mocknet.Mocknet) (*net
 		return nil, err
 	}
 
-	mes, err := createMessenger(ctx, h, false, loadBalancer.NewOutgoingPipeLoadBalancer())
+	mes, err := createMessenger(
+		ctx,
+		h,
+		false,
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		p2p.PeerDiscoveryOff,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +103,7 @@ func NewNetworkMessenger(
 	p2pPrivKey crypto.PrivKey,
 	conMgr ifconnmgr.ConnManager,
 	outgoingPLB p2p.PipeLoadBalancer,
+	peerDiscoveryType p2p.PeerDiscoveryType,
 ) (*networkMessenger, error) {
 
 	if ctx == nil {
@@ -123,7 +137,7 @@ func NewNetworkMessenger(
 		return nil, err
 	}
 
-	p2pNode, err := createMessenger(ctx, h, true, outgoingPLB)
+	p2pNode, err := createMessenger(ctx, h, true, outgoingPLB, peerDiscoveryType)
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err
@@ -137,14 +151,10 @@ func createMessenger(
 	h host.Host,
 	withSigning bool,
 	outgoingPLB p2p.PipeLoadBalancer,
+	peerDiscoveryType p2p.PeerDiscoveryType,
 ) (*networkMessenger, error) {
 
 	pb, err := createPubSub(ctx, h, withSigning)
-	if err != nil {
-		return nil, err
-	}
-
-	kad, discoverer, err := createKadDHT(ctx, h, elrondRandezVousString)
 	if err != nil {
 		return nil, err
 	}
@@ -154,9 +164,12 @@ func createMessenger(
 		pb:          pb,
 		topics:      make(map[string]p2p.MessageProcessor),
 		ctx:         ctx,
-		kadDHT:      kad,
-		discoverer:  discoverer,
 		outgoingPLB: outgoingPLB,
+	}
+
+	err = netMes.applyDiscoveryMechanism(peerDiscoveryType)
+	if err != nil {
+		return nil, err
 	}
 
 	netMes.ds, err = NewDirectSender(ctx, h, netMes.directMessageHandler)
@@ -210,28 +223,69 @@ func createPubSub(ctx context.Context, host host.Host, withSigning bool) (*pubsu
 	return ps, nil
 }
 
-func createKadDHT(ctx context.Context, h host.Host, randezvous string) (*dht.IpfsDHT, *discovery.RoutingDiscovery, error) {
+func (netMes *networkMessenger) applyDiscoveryMechanism(peerDiscoveryType p2p.PeerDiscoveryType) error {
+	switch peerDiscoveryType {
+	case p2p.PeerDiscoveryMdns:
+		return netMes.createMdns()
+	case p2p.PeerDiscoveryKadDht:
+		return netMes.createKadDHT(elrondRandezVousString)
+	default:
+		return nil
+	}
+}
+
+func (netMes *networkMessenger) createMdns() error {
+	if netMes.peerDiscoveryType == p2p.PeerDiscoveryOff {
+		return p2p.ErrPeerDiscoveryOff
+	}
+
+	if netMes.peerDiscoveryType == p2p.PeerDiscoveryMdns {
+		netMes.mutTopics.Lock()
+		defer netMes.mutTopics.Unlock()
+
+		if netMes.mdns != nil {
+			return p2p.ErrPeerDiscoveryProcessAlreadyStarted
+		}
+
+		mdns, err := discovery2.NewMdnsService(
+			netMes.ctx,
+			netMes.hostP2P,
+			durationMdnsCalls,
+			"discovery")
+
+		if err != nil {
+			return err
+		}
+
+	}
+
+}
+
+func (netMes *networkMessenger) createKadDHT(randezvous string) error {
 	// Start a DHT, for use in peer discovery. We can't just make a new DHT
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
 	// inhibiting future peer discovery.
-	kademliaDHT, err := dht.New(ctx, h)
+	kademliaDHT, err := dht.New(netMes.ctx, netMes.hostP2P)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
-	if err = kademliaDHT.Bootstrap(ctx); err != nil {
-		return nil, nil, err
+	if err = kademliaDHT.Bootstrap(netMes.ctx); err != nil {
+		return err
 	}
 
 	// We use a rendezvous point "meet me here" to announce our location.
 	// This is like telling your friends to meet you at the Eiffel Tower.
 	log.Debug("Announcing ourselves...")
 	routingDiscovery := discovery.NewRoutingDiscovery(kademliaDHT)
-	discovery.Advertise(ctx, routingDiscovery, randezvous)
+	discovery.Advertise(netMes.ctx, routingDiscovery, randezvous)
 	log.Debug("Successfully announced!")
 
-	return kademliaDHT, routingDiscovery, nil
+	netMes.kadDHT = kademliaDHT
+	netMes.discoverer = routingDiscovery
+
+	return nil
 }
 
 // Close closes the host, connections and streams
@@ -287,9 +341,9 @@ func (netMes *networkMessenger) ConnectToPeer(address string) error {
 	return netMes.hostP2P.Connect(netMes.ctx, *pInfo)
 }
 
-// DiscoverNewPeers starts a blocking function that searches for all known peers querying all connected peers
-// The default libp2p implementation tries to connect to all of them
-func (netMes *networkMessenger) DiscoverNewPeers() error {
+// KadDhtDiscoverNewPeers starts a blocking function that searches for all known peers querying all connected peers
+// The default libp2p kad-dht implementation tries to connect to all of them
+func (netMes *networkMessenger) KadDhtDiscoverNewPeers() error {
 	if netMes.discoverer == nil {
 		return p2p.ErrNilDiscoverer
 	}
@@ -321,6 +375,11 @@ func (netMes *networkMessenger) DiscoverNewPeers() error {
 // number of connections if needed
 func (netMes *networkMessenger) TrimConnections() {
 	netMes.hostP2P.ConnManager().TrimOpenConns(netMes.ctx)
+}
+
+// Bootstrap will start the peer discovery mechanism
+func (netMes *networkMessenger) Bootstrap() error {
+
 }
 
 // IsConnected returns true if current node is connected to provided peer
@@ -408,8 +467,8 @@ func (netMes *networkMessenger) OutgoingPipeLoadBalancer() p2p.PipeLoadBalancer 
 	return netMes.outgoingPLB
 }
 
-// BroadcastData tries to send a byte buffer onto a topic
-func (netMes *networkMessenger) Broadcast(pipe string, topic string, buff []byte) {
+// BroadcastOnPipe tries to send a byte buffer onto a topic using provided pipe
+func (netMes *networkMessenger) BroadcastOnPipe(pipe string, topic string, buff []byte) {
 	go func() {
 		sendable := &p2p.SendableData{
 			Buff:  buff,
@@ -420,8 +479,8 @@ func (netMes *networkMessenger) Broadcast(pipe string, topic string, buff []byte
 }
 
 // BroadcastOnTopicPipe tries to send a byte buffer onto a topic using the topic name as pipe
-func (netMes *networkMessenger) BroadcastOnTopicPipe(topic string, buff []byte) {
-	netMes.Broadcast(topic, topic, buff)
+func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
+	netMes.BroadcastOnPipe(topic, topic, buff)
 }
 
 // RegisterMessageProcessor registers a message process on a topic

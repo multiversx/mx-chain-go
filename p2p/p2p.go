@@ -6,6 +6,18 @@ import (
 	"github.com/mr-tron/base58/base58"
 )
 
+// PeerDiscoveryType defines the peer discovery mechanism to use
+type PeerDiscoveryType int
+
+const (
+	// PeerDiscoveryOff will not enable peer discovery
+	PeerDiscoveryOff PeerDiscoveryType = iota
+	// PeerDiscoveryMdns will enable mdns mechanism
+	PeerDiscoveryMdns
+	// PeerDiscoveryKadDht wil enable kad-dht mechanism
+	PeerDiscoveryKadDht
+)
+
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 type MessageProcessor interface {
@@ -40,10 +52,11 @@ type Messenger interface {
 
 	Addresses() []string
 	ConnectToPeer(address string) error
-	DiscoverNewPeers() error
+	KadDhtDiscoverNewPeers() error
 	IsConnected(peerID PeerID) bool
 	ConnectedPeers() []PeerID
 	TrimConnections()
+	Bootstrap() error
 
 	CreateTopic(name string, createPipeForTopic bool) error
 	HasTopic(name string) bool
@@ -51,8 +64,8 @@ type Messenger interface {
 	RegisterMessageProcessor(topic string, handler MessageProcessor) error
 	UnregisterMessageProcessor(topic string) error
 	OutgoingPipeLoadBalancer() PipeLoadBalancer
-	Broadcast(pipe string, topic string, buff []byte)
-	BroadcastOnTopicPipe(topic string, buff []byte)
+	BroadcastOnPipe(pipe string, topic string, buff []byte)
+	Broadcast(topic string, buff []byte)
 	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error
 }
 
