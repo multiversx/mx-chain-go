@@ -2,6 +2,8 @@ package transaction
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -18,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
@@ -118,7 +121,7 @@ func (ti *testInitializer) createAccountsDB() *state.AccountsDB {
 	return adb
 }
 
-func createMultiSigner(
+func (ti *testInitializer) createMultiSigner(
 	privateKey crypto.PrivateKey,
 	publicKey crypto.PublicKey,
 	keyGen crypto.KeyGenerator,
@@ -150,8 +153,7 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
-	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
-	blockChain := createTestBlockChain()
+	multiSigner, _ := ti.createMultiSigner(sk, pk, keyGen, hasher)
 	blkc := ti.createTestBlockChain()
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
@@ -166,9 +168,9 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		AddrConverter:            addrConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		MultiSigner:          	  multiSigner,
-		SingleSigner:         	  singleSigner,
-		KeyGen:               	  keyGen,
+		MultiSigner:              multiSigner,
+		SingleSigner:             singleSigner,
+		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
 
@@ -185,7 +187,7 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
 		node.WithMultisig(multiSigner),
-		node.WithSinglesig(singlesigner),
+		node.WithSinglesig(singleSigner),
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
 		node.WithInterceptorsResolversFactory(pFactory),

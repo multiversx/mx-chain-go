@@ -115,15 +115,37 @@ func TestNewInterceptorsResolversCreator_NilMarshalizerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestNewInterceptorsResolversCreator_NilSingleSignKeyGenShouldErr(t *testing.T) {
+func TestNewInterceptorsResolversCreator_NilKeyGenShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pFactoryConfig := createConfig()
-	pFactoryConfig.SingleSignKeyGen = nil
+	pFactoryConfig.KeyGen = nil
 	pFactory, err := factory.NewInterceptorsResolversCreator(pFactoryConfig)
 
 	assert.Nil(t, pFactory)
-	assert.Equal(t, process.ErrNilSingleSignKeyGen, err)
+	assert.Equal(t, process.ErrNilKeyGen, err)
+}
+
+func TestNewInterceptorsResolversCreator_NilSingleSignerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	pFactoryConfig := createConfig()
+	pFactoryConfig.SingleSigner = nil
+	pFactory, err := factory.NewInterceptorsResolversCreator(pFactoryConfig)
+
+	assert.Nil(t, pFactory)
+	assert.Equal(t, process.ErrNilSingleSigner, err)
+}
+
+func TestNewInterceptorsResolversCreator_NilMultiSignerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	pFactoryConfig := createConfig()
+	pFactoryConfig.MultiSigner = nil
+	pFactory, err := factory.NewInterceptorsResolversCreator(pFactoryConfig)
+
+	assert.Nil(t, pFactory)
+	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
 }
 
 func TestNewInterceptorsResolversCreator_NilUint64ByteSliceConverterShouldErr(t *testing.T) {
@@ -268,7 +290,9 @@ func createConfig() factory.InterceptorsResolversConfig {
 		AddrConverter:            &mock.AddressConverterMock{},
 		Hasher:                   mock.HasherMock{},
 		Marshalizer:              &mock.MarshalizerMock{},
-		SingleSignKeyGen:         &mock.SingleSignKeyGenMock{},
+		MultiSigner:              mock.NewMultiSigner(),
+		SingleSigner:             &mock.SignerMock{},
+		KeyGen:                   &mock.SingleSignKeyGenMock{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 	}
 }

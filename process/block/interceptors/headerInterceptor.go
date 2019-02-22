@@ -1,6 +1,7 @@
 package interceptors
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -18,6 +19,7 @@ type HeaderInterceptor struct {
 	headers          data.ShardedDataCacherNotifier
 	storer           storage.Storer
 	headersNonces    data.Uint64Cacher
+	multiSigVerifier crypto.MultiSigVerifier
 	hasher           hashing.Hasher
 	shardCoordinator sharding.ShardCoordinator
 }
@@ -29,6 +31,7 @@ func NewHeaderInterceptor(
 	headers data.ShardedDataCacherNotifier,
 	headersNonces data.Uint64Cacher,
 	storer storage.Storer,
+	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.ShardCoordinator,
 ) (*HeaderInterceptor, error) {
@@ -48,6 +51,10 @@ func NewHeaderInterceptor(
 		return nil, process.ErrNilHeadersStorage
 	}
 
+	if multiSigVerifier == nil {
+		return nil, process.ErrNilMultiSigVerifier
+	}
+
 	if hasher == nil {
 		return nil, process.ErrNilHasher
 	}
@@ -62,6 +69,7 @@ func NewHeaderInterceptor(
 		headers:          headers,
 		headersNonces:    headersNonces,
 		storer:           storer,
+		multiSigVerifier: multiSigVerifier,
 		hasher:           hasher,
 		shardCoordinator: shardCoordinator,
 	}
@@ -77,7 +85,7 @@ func (hi *HeaderInterceptor) Validate(message p2p.MessageP2P) error {
 		return err
 	}
 
-	hdrIntercepted := block.NewInterceptedHeader()
+	hdrIntercepted := block.NewInterceptedHeader(hi.multiSigVerifier)
 	err = hi.marshalizer.Unmarshal(hdrIntercepted, message.Data())
 	if err != nil {
 		return err

@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -98,9 +97,7 @@ func (txi *TxInterceptor) Validate(message p2p.MessageP2P) error {
 		return process.ErrNilDataToProcess
 	}
 
-	txIntercepted := &InterceptedTransaction{
-		Transaction: &transaction.Transaction{},
-	}
+	txIntercepted := NewInterceptedTransaction(txi.singleSigner)
 	err := txi.marshalizer.Unmarshal(txIntercepted, message.Data())
 	if err != nil {
 		return err

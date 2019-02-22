@@ -2,6 +2,10 @@ package block
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"fmt"
+	"math/rand"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -89,7 +93,7 @@ func (ti *testInitializer) createTestDataPool() data.TransientDataHolder {
 	return dPool
 }
 
-func createMultiSigner(
+func (ti *testInitializer) createMultiSigner(
 	privateKey crypto.PrivateKey,
 	publicKey crypto.PublicKey,
 	keyGen crypto.KeyGenerator,
@@ -131,8 +135,8 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 	signer := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
-	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
-	blockChain := createTestBlockChain()
+	multiSigner, _ := ti.createMultiSigner(sk, pk, keyGen, hasher)
+	blkc := ti.createTestBlockChain()
 	shardCoordinator := &sharding.OneShardCoordinator{}
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
@@ -146,9 +150,9 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		AddrConverter:            addrConverter,
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
-		MultiSigner:          	  multiSigner,
-		SingleSigner:         	  signer,
-		KeyGen:               	  keyGen,
+		MultiSigner:              multiSigner,
+		SingleSigner:             signer,
+		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
 
@@ -168,7 +172,6 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
-		node.WithMessenger(mes),
 		node.WithInterceptorsResolversFactory(pFactory),
 	)
 

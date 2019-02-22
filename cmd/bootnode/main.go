@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -354,9 +356,9 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 			AddrConverter:            addressConverter,
 			Hasher:                   hasher,
 			Marshalizer:              marshalizer,
-			MultiSigner:          	  multisigner,
-			SingleSigner:         	  singlesigner,
-			KeyGen:               	  keyGen,
+			MultiSigner:              multisigner,
+			SingleSigner:             singlesigner,
+			KeyGen:                   keyGen,
 			Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		})
 	if err != nil {

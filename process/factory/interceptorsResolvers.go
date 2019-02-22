@@ -43,7 +43,9 @@ type interceptorsResolvers struct {
 	addrConverter            state.AddressConverter
 	hasher                   hashing.Hasher
 	marshalizer              marshal.Marshalizer
-	singleSignKeyGen         crypto.KeyGenerator
+	multiSigner              crypto.MultiSigner
+	singleSigner             crypto.SingleSigner
+	keyGen                   crypto.KeyGenerator
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -60,7 +62,9 @@ type InterceptorsResolversConfig struct {
 	AddrConverter            state.AddressConverter
 	Hasher                   hashing.Hasher
 	Marshalizer              marshal.Marshalizer
-	SingleSignKeyGen         crypto.KeyGenerator
+	MultiSigner              crypto.MultiSigner
+	SingleSigner             crypto.SingleSigner
+	KeyGen                   crypto.KeyGenerator
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -80,7 +84,9 @@ func NewInterceptorsResolversCreator(config InterceptorsResolversConfig) (*inter
 		addrConverter:            config.AddrConverter,
 		hasher:                   config.Hasher,
 		marshalizer:              config.Marshalizer,
-		singleSignKeyGen:         config.SingleSignKeyGen,
+		multiSigner:              config.MultiSigner,
+		singleSigner:             config.SingleSigner,
+		keyGen:                   config.KeyGen,
 		uint64ByteSliceConverter: config.Uint64ByteSliceConverter,
 	}, nil
 }
@@ -164,7 +170,8 @@ func (ir *interceptorsResolvers) createTxInterceptor() error {
 		txStorer,
 		ir.addrConverter,
 		ir.hasher,
-		ir.singleSignKeyGen,
+		ir.singleSigner,
+		ir.keyGen,
 		ir.shardCoordinator)
 
 	if err != nil {
@@ -188,6 +195,7 @@ func (ir *interceptorsResolvers) createHdrInterceptor() error {
 		ir.dataPool.Headers(),
 		ir.dataPool.HeadersNonces(),
 		headerStorer,
+		ir.multiSigner,
 		ir.hasher,
 		ir.shardCoordinator,
 	)
@@ -466,8 +474,14 @@ func validateRequiredProcessCreatorParams(config InterceptorsResolversConfig) er
 	if config.Marshalizer == nil {
 		return process.ErrNilMarshalizer
 	}
-	if config.SingleSignKeyGen == nil {
-		return process.ErrNilSingleSignKeyGen
+	if config.SingleSigner == nil {
+		return process.ErrNilSingleSigner
+	}
+	if config.MultiSigner == nil {
+		return process.ErrNilMultiSigVerifier
+	}
+	if config.KeyGen == nil {
+		return process.ErrNilKeyGen
 	}
 	if config.Uint64ByteSliceConverter == nil {
 		return process.ErrNilUint64ByteSliceConverter

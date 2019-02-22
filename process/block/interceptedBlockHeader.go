@@ -3,7 +3,6 @@ package block
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
@@ -32,16 +31,6 @@ func (inHdr *InterceptedHeader) SetHash(hash []byte) {
 // Hash gets the hash of this header
 func (inHdr *InterceptedHeader) Hash() []byte {
 	return inHdr.hash
-}
-
-// Create returns a new instance of this struct (used in topics)
-func (inHdr *InterceptedHeader) Create() p2p.Creator {
-	return NewInterceptedHeader(inHdr.multiSigVerifier)
-}
-
-// ID returns the ID of this object. Set to return the hash of the header
-func (inHdr *InterceptedHeader) ID() string {
-	return string(inHdr.hash)
 }
 
 // Shard returns the shard ID for which this header is addressed

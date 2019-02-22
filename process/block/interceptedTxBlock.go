@@ -2,7 +2,6 @@ package block
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
@@ -28,16 +27,6 @@ func (inTxBlkBdy *InterceptedTxBlockBody) SetHash(hash []byte) {
 // Hash gets the hash of this transaction block body
 func (inTxBlkBdy *InterceptedTxBlockBody) Hash() []byte {
 	return inTxBlkBdy.hash
-}
-
-// Create returns a new instance of this struct (used in topics)
-func (inTxBlkBdy *InterceptedTxBlockBody) Create() p2p.Creator {
-	return NewInterceptedTxBlockBody()
-}
-
-// ID returns the ID of this object. Set to return the hash of the transaction block body
-func (inTxBlkBdy *InterceptedTxBlockBody) ID() string {
-	return string(inTxBlkBdy.hash)
 }
 
 // Shard returns the shard ID for which this body is addressed

@@ -27,7 +27,7 @@ func TestInterceptedPeerBlockBody_GetUnderlingObjectShouldReturnBlock(t *testing
 	assert.True(t, peerBlockBody.GetUnderlyingObject() == peerBlockBody.PeerBlockBody)
 }
 
-func TestInterceptedPeerBlockBody_GetterSetterHashID(t *testing.T) {
+func TestInterceptedPeerBlockBody_GetterSetterHash(t *testing.T) {
 	t.Parallel()
 
 	hash := []byte("hash")
@@ -36,7 +36,6 @@ func TestInterceptedPeerBlockBody_GetterSetterHashID(t *testing.T) {
 	peerBlockBody.SetHash(hash)
 
 	assert.Equal(t, hash, peerBlockBody.Hash())
-	assert.Equal(t, string(hash), peerBlockBody.ID())
 }
 
 func TestInterceptedPeerBlockBody_ShardShouldWork(t *testing.T) {
@@ -48,26 +47,6 @@ func TestInterceptedPeerBlockBody_ShardShouldWork(t *testing.T) {
 	peerBlockBody.ShardID = shard
 
 	assert.Equal(t, shard, peerBlockBody.Shard())
-}
-
-func TestInterceptedPeerBlockBody_CreateShouldNotProduceNils(t *testing.T) {
-	t.Parallel()
-
-	peerBlockBody := block.NewInterceptedPeerBlockBody()
-	peerBlockCreated := peerBlockBody.Create()
-
-	assert.NotNil(t, peerBlockCreated)
-	assert.NotNil(t, peerBlockCreated.(*block.InterceptedPeerBlockBody).PeerBlockBody)
-}
-
-func TestInterceptedPeerBlockBody_CreateShouldNotProduceSameObject(t *testing.T) {
-	t.Parallel()
-
-	peerBlockBody := block.NewInterceptedPeerBlockBody()
-	peerBlockCreated := peerBlockBody.Create()
-
-	assert.False(t, peerBlockBody == peerBlockCreated)
-	assert.False(t, peerBlockCreated.(*block.InterceptedPeerBlockBody).PeerBlockBody == peerBlockBody.PeerBlockBody)
 }
 
 func TestInterceptedPeerBlockBody_IntegrityInvalidStateBlockShouldErr(t *testing.T) {

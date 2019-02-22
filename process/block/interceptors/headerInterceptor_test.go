@@ -27,6 +27,7 @@ func TestNewHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 		headers,
 		headersNonces,
 		storer,
+		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
@@ -45,6 +46,7 @@ func TestNewHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 		nil,
 		headersNonces,
 		storer,
+		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
@@ -63,6 +65,7 @@ func TestNewHeaderInterceptor_NilHeadersNoncesShouldErr(t *testing.T) {
 		headers,
 		nil,
 		storer,
+		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
@@ -81,11 +84,32 @@ func TestNewHeaderInterceptor_NilStorerShouldErr(t *testing.T) {
 		headers,
 		headersNonces,
 		nil,
+		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
 	assert.Equal(t, process.ErrNilHeadersStorage, err)
 	assert.Nil(t, hi)
+}
+
+func TestNewHeaderInterceptor_NilMultiSignerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	headers := &mock.ShardedDataStub{}
+	headersNonces := &mock.Uint64CacherStub{}
+	storer := &mock.StorerStub{}
+
+	hi, err := interceptors.NewHeaderInterceptor(
+		&mock.MarshalizerMock{},
+		headers,
+		headersNonces,
+		storer,
+		nil,
+		mock.HasherMock{},
+		mock.NewOneShardCoordinatorMock())
+
+	assert.Nil(t, hi)
+	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
 }
 
 func TestNewHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
@@ -100,6 +124,7 @@ func TestNewHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
 		headers,
 		headersNonces,
 		storer,
+		mock.NewMultiSigner(),
 		nil,
 		mock.NewOneShardCoordinatorMock())
 
@@ -119,6 +144,7 @@ func TestNewHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 		headers,
 		headersNonces,
 		storer,
+		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		nil)
 
@@ -138,6 +164,7 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 		headers,
 		headersNonces,
 		storer,
+		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
@@ -159,6 +186,7 @@ func TestHeaderInterceptor_ValidateNilMessageShouldErr(t *testing.T) {
 		headers,
 		headersNonces,
 		storer,
+		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
@@ -177,6 +205,7 @@ func TestHeaderInterceptor_ValidateNilDataToProcessShouldErr(t *testing.T) {
 		headers,
 		headersNonces,
 		storer,
+		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
@@ -203,6 +232,7 @@ func TestHeaderInterceptor_ValidateMarshalizerErrorsAtUnmarshalingShouldErr(t *t
 		headers,
 		headersNonces,
 		storer,
+		mock.NewMultiSigner(),
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
@@ -220,16 +250,18 @@ func TestHeaderInterceptor_ValidateSanityCheckFailedShouldErr(t *testing.T) {
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 	marshalizer := &mock.MarshalizerMock{}
+	multisigner := mock.NewMultiSigner()
 
 	hi, _ := interceptors.NewHeaderInterceptor(
 		marshalizer,
 		headers,
 		headersNonces,
 		storer,
+		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	hdr := block.NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader(multisigner)
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
@@ -248,6 +280,7 @@ func TestHeaderInterceptor_ValidateValsOkShouldWork(t *testing.T) {
 	testedNonce := uint64(67)
 
 	headers := &mock.ShardedDataStub{}
+	multisigner := mock.NewMultiSigner()
 
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
@@ -268,10 +301,11 @@ func TestHeaderInterceptor_ValidateValsOkShouldWork(t *testing.T) {
 		headers,
 		headersNonces,
 		storer,
+		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	hdr := block.NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader(multisigner)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
@@ -308,6 +342,7 @@ func TestHeaderInterceptor_ValidateIsInStorageShouldNotAdd(t *testing.T) {
 	testedNonce := uint64(67)
 
 	headers := &mock.ShardedDataStub{}
+	multisigner := mock.NewMultiSigner()
 
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
@@ -328,10 +363,11 @@ func TestHeaderInterceptor_ValidateIsInStorageShouldNotAdd(t *testing.T) {
 		headers,
 		headersNonces,
 		storer,
+		multisigner,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	hdr := block.NewInterceptedHeader()
+	hdr := block.NewInterceptedHeader(multisigner)
 	hdr.Nonce = testedNonce
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)

@@ -2,7 +2,6 @@ package node
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"math/big"
 	gosync "sync"
@@ -777,11 +776,4 @@ func (n *Node) broadcastHeader(msg []byte) {
 		string(factory.HeadersTopic),
 		msg,
 	)
-}
-
-func toB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return base64.StdEncoding.EncodeToString(buff)
 }
