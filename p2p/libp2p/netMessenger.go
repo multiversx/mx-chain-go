@@ -265,6 +265,7 @@ func (netMes *networkMessenger) HandlePeerFound(pi peerstore.PeerInfo) {
 	//TODO design a connection manager component
 	go func() {
 		err := netMes.hostP2P.Connect(netMes.ctx, pi)
+
 		if err != nil {
 			log.Debug(err.Error())
 		}
@@ -417,6 +418,7 @@ func (netMes *networkMessenger) Bootstrap() error {
 		}
 
 		mdns.RegisterNotifee(netMes)
+		netMes.mdns = mdns
 		return nil
 	}
 

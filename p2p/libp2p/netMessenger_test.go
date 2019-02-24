@@ -21,6 +21,7 @@ import (
 	"github.com/libp2p/go-libp2p-net"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
+	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
@@ -1007,73 +1008,144 @@ func TestNetworkMessenger_BootstrapPeerDiscoveryOffShouldReturnNil(t *testing.T)
 	mes.Close()
 }
 
-func TestNetworkMessenger_BootstrapMdnsPeerDiscoveryShouldReturnNilAndConnectToPeer(t *testing.T) {
-	buffToSend := []byte("data")
+func TestNetworkMessenger_BootstrapMdnsPeerDiscoveryShouldReturnNil(t *testing.T) {
+	_, sk := createLibP2PCredentialsMessenger()
 
-	_, sk1 := createLibP2PCredentialsMessenger()
-	_, sk2 := createLibP2PCredentialsMessenger()
-
-	mes1, _ := libp2p.NewNetworkMessenger(
+	mes, _ := libp2p.NewNetworkMessenger(
 		context.Background(),
 		23000,
-		sk1,
+		sk,
 		nil,
 		loadBalancer.NewOutgoingPipeLoadBalancer(),
 		p2p.PeerDiscoveryMdns,
 	)
 
-	mes2, _ := libp2p.NewNetworkMessenger(
+	err := mes.Bootstrap()
+	assert.Nil(t, err)
+
+	mes.Close()
+}
+
+func TestNetworkMessenger_BootstrapMdnsPeerDiscoveryCalledTwiceShouldErr(t *testing.T) {
+	_, sk := createLibP2PCredentialsMessenger()
+
+	mes, _ := libp2p.NewNetworkMessenger(
 		context.Background(),
-		23001,
-		sk2,
+		23000,
+		sk,
 		nil,
 		loadBalancer.NewOutgoingPipeLoadBalancer(),
 		p2p.PeerDiscoveryMdns,
 	)
 
-	err := mes1.Bootstrap()
-	assert.Nil(t, err)
+	_ = mes.Bootstrap()
+	err := mes.Bootstrap()
+	assert.Equal(t, p2p.ErrPeerDiscoveryProcessAlreadyStarted, err)
 
-	err = mes2.Bootstrap()
-	assert.Nil(t, err)
+	mes.Close()
+}
 
-	//wait to make the bootstrap
-	time.Sleep(durationBootstrap)
+func TestNetworkMessenger_HandlePeerFoundNotFoundShouldTryToConnect(t *testing.T) {
+	_, sk := createLibP2PCredentialsMessenger()
 
-	mes1.CreateTopic("topic", true)
-	mes2.CreateTopic("topic", true)
+	mes, _ := libp2p.NewNetworkMessenger(
+		context.Background(),
+		23000,
+		sk,
+		nil,
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		p2p.PeerDiscoveryOff,
+	)
+	//closing "real" host as to check with a mock host
+	mes.Close()
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	chanDone := make(chan struct{})
+	newPeerInfo := peerstore.PeerInfo{
+		ID: peer.ID("new found peerID"),
+	}
+	testAddress := "/ip4/127.0.0.1/tcp/23000/p2p/16Uiu2HAkyqtHSEJDkYhVWTtm9j58Mq5xQJgrApBYXMwS6sdamXuE"
+	address, _ := multiaddr.NewMultiaddr(testAddress)
+	newPeerInfo.Addrs = []multiaddr.Multiaddr{address}
 
-	mes1.RegisterMessageProcessor("topic",
-		&mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P) error {
-				if bytes.Equal(message.Data(), buffToSend) {
-					wg.Done()
-				}
+	chanConnected := make(chan struct{})
 
-				return nil
-			},
-		})
+	mockHost := &mock.HostStub{
+		PeerstoreCalled: func() peerstore.Peerstore {
+			return peerstore.NewPeerstore(
+				pstoremem.NewKeyBook(),
+				pstoremem.NewAddrBook(),
+				pstoremem.NewPeerMetadata())
+		},
+		ConnectCalled: func(ctx context.Context, pi peerstore.PeerInfo) error {
+			if newPeerInfo.ID == pi.ID {
+				chanConnected <- struct{}{}
+			}
 
-	go func() {
-		wg.Wait()
-		chanDone <- struct{}{}
-	}()
-
-	//wait to announce topics
-	time.Sleep(durationBootstrap)
-
-	mes2.Broadcast("topic", buffToSend)
-
-	select {
-	case <-chanDone:
-	case <-time.After(time.Second * 2):
-		assert.Fail(t, "timeout receiving message")
+			return nil
+		},
 	}
 
-	mes1.Close()
-	mes2.Close()
+	mes.SetHost(mockHost)
+
+	mes.HandlePeerFound(newPeerInfo)
+
+	select {
+	case <-chanConnected:
+		return
+	case <-time.After(timeoutWaitResponses):
+		assert.Fail(t, "timeout while waiting to call host.Connect")
+	}
+}
+
+func TestNetworkMessenger_HandlePeerFoundPeerFoundShouldNotTryToConnect(t *testing.T) {
+	_, sk := createLibP2PCredentialsMessenger()
+
+	mes, _ := libp2p.NewNetworkMessenger(
+		context.Background(),
+		23000,
+		sk,
+		nil,
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		p2p.PeerDiscoveryOff,
+	)
+	//closing "real" host as to check with a mock host
+	mes.Close()
+
+	newPeerInfo := peerstore.PeerInfo{
+		ID: peer.ID("new found peerID"),
+	}
+	testAddress := "/ip4/127.0.0.1/tcp/23000/p2p/16Uiu2HAkyqtHSEJDkYhVWTtm9j58Mq5xQJgrApBYXMwS6sdamXuE"
+	address, _ := multiaddr.NewMultiaddr(testAddress)
+	newPeerInfo.Addrs = []multiaddr.Multiaddr{address}
+
+	chanConnected := make(chan struct{})
+
+	mockHost := &mock.HostStub{
+		PeerstoreCalled: func() peerstore.Peerstore {
+			ps := peerstore.NewPeerstore(
+				pstoremem.NewKeyBook(),
+				pstoremem.NewAddrBook(),
+				pstoremem.NewPeerMetadata())
+			ps.AddAddrs(newPeerInfo.ID, newPeerInfo.Addrs, peerstore.PermanentAddrTTL)
+
+			return ps
+		},
+		ConnectCalled: func(ctx context.Context, pi peerstore.PeerInfo) error {
+			if newPeerInfo.ID == pi.ID {
+				chanConnected <- struct{}{}
+			}
+
+			return nil
+		},
+	}
+
+	mes.SetHost(mockHost)
+
+	mes.HandlePeerFound(newPeerInfo)
+
+	select {
+	case <-chanConnected:
+		assert.Fail(t, "should have not called host.Connect")
+	case <-time.After(timeoutWaitResponses):
+		return
+	}
 }
