@@ -186,7 +186,13 @@ func (ti *testInitializer) createMessenger(ctx context.Context, port int) p2p.Me
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	libP2PMes, err := libp2p.NewNetworkMessenger(ctx, port, sk, nil, loadBalancer.NewOutgoingPipeLoadBalancer())
+	libP2PMes, err := libp2p.NewNetworkMessenger(
+		ctx,
+		port,
+		sk,
+		nil,
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		p2p.PeerDiscoveryOff)
 
 	if err != nil {
 		fmt.Println(err.Error())

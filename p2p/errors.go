@@ -60,3 +60,9 @@ var ErrNilHost = errors.New("nil host")
 
 // ErrNilValidator signals that a validator hasn't been set for the required topic
 var ErrNilValidator = errors.New("no validator has been set for this topic")
+
+// ErrPeerDiscoveryProcessAlreadyStarted signals that mdns peer discovery is already turned on
+var ErrPeerDiscoveryProcessAlreadyStarted = errors.New("mdns peer discovery is already turned enabled")
+
+// ErrPeerDiscoveryNotImplemented signals that peer discovery is not implemented
+var ErrPeerDiscoveryNotImplemented = errors.New("unimplemented peer discovery")

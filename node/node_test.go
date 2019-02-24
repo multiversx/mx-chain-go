@@ -695,7 +695,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	recoveredTransactions := make(map[uint64]*transaction.Transaction)
 	signer := &mock.SinglesignMock{}
 	mes := &mock.MessengerStub{
-		BroadcastCalled: func(pipe string, topic string, buff []byte) {
+		BroadcastOnPipeCalled: func(pipe string, topic string, buff []byte) {
 			if topic == string(factory.TransactionTopic) {
 				//handler to capture sent data
 				tx := transaction.Transaction{}
@@ -752,8 +752,7 @@ func getAccAdapter(balance *big.Int) mock.AccountsAdapterStub {
 }
 
 func getPrivateKey() *mock.PrivateKeyStub {
-	return &mock.PrivateKeyStub{
-	}
+	return &mock.PrivateKeyStub{}
 }
 
 func TestSendTransaction_ShouldWork(t *testing.T) {
@@ -765,7 +764,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	txSent := false
 
 	mes := &mock.MessengerStub{
-		BroadcastCalled: func(pipe string, topic string, buff []byte) {
+		BroadcastOnPipeCalled: func(pipe string, topic string, buff []byte) {
 			txSent = true
 		},
 	}

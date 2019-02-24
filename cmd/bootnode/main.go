@@ -87,11 +87,12 @@ type genesis struct {
 }
 
 type netMessengerConfig struct {
-	ctx             context.Context
-	port            int
-	maxAllowedPeers int
-	marshalizer     marshal.Marshalizer
-	hasher          hashing.Hasher
+	ctx               context.Context
+	port              int
+	maxAllowedPeers   int
+	marshalizer       marshal.Marshalizer
+	hasher            hashing.Hasher
+	peerDiscoveryType p2p.PeerDiscoveryType
 }
 
 func main() {
@@ -102,7 +103,7 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.PrivateKey}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.PrivateKey, flags.PeerDiscoveryType}
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
 	}
@@ -330,13 +331,22 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
-	netMessenger, err := createNetMessenger(netMessengerConfig{
+	netMessengerCfg := netMessengerConfig{
 		ctx:             appContext,
 		port:            ctx.GlobalInt(flags.Port.Name),
 		maxAllowedPeers: ctx.GlobalInt(flags.MaxAllowedPeers.Name),
 		marshalizer:     marshalizer,
 		hasher:          hasher,
-	})
+	}
+
+	netMessengerCfg.peerDiscoveryType, err = p2p.LoadPeerDiscoveryTypeFromString(
+		ctx.GlobalString(flags.PeerDiscoveryType.Name),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	netMessenger, err := createNetMessenger(netMessengerCfg, log)
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +458,7 @@ func createRequestTransactionHandler(txResolver *transaction.TxResolver, log *lo
 	}
 }
 
-func createNetMessenger(config netMessengerConfig) (p2p.Messenger, error) {
+func createNetMessenger(config netMessengerConfig, log *logger.Logger) (p2p.Messenger, error) {
 	if config.port == 0 {
 		return nil, errors.New("cannot start node on port 0")
 	}
@@ -457,10 +467,19 @@ func createNetMessenger(config netMessengerConfig) (p2p.Messenger, error) {
 		return nil, errors.New("cannot start node without providing maxAllowedPeers")
 	}
 
+	log.Info(fmt.Sprintf("Starting with peer discovery: %s", config.peerDiscoveryType))
+
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
-	nm, err := libp2p.NewNetworkMessenger(config.ctx, config.port, sk, nil, loadBalancer.NewOutgoingPipeLoadBalancer())
+	nm, err := libp2p.NewNetworkMessenger(
+		config.ctx,
+		config.port,
+		sk,
+		nil,
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		config.peerDiscoveryType,
+	)
 
 	if err != nil {
 		return nil, err

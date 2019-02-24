@@ -28,12 +28,13 @@ func main() {
 		genPrivKey(),
 		nil,
 		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		p2p.PeerDiscoveryKadDht,
 	)
 	startingPort++
 	fmt.Printf("advertiser is %s\n", getConnectableAddress(advertiser))
 	peers := make([]p2p.Messenger, 0)
 	go func() {
-		_ = advertiser.DiscoverNewPeers()
+		_ = advertiser.KadDhtDiscoverNewPeers()
 		time.Sleep(time.Second)
 	}()
 
@@ -44,6 +45,7 @@ func main() {
 			genPrivKey(),
 			nil,
 			loadBalancer.NewOutgoingPipeLoadBalancer(),
+			p2p.PeerDiscoveryKadDht,
 		)
 		startingPort++
 
@@ -52,12 +54,12 @@ func main() {
 			getConnectableAddress(advertiser))
 
 		_ = netPeer.ConnectToPeer(getConnectableAddress(advertiser))
-		_ = netPeer.DiscoverNewPeers()
+		_ = netPeer.KadDhtDiscoverNewPeers()
 
 		peers = append(peers, netPeer)
 
 		go func() {
-			_ = netPeer.DiscoverNewPeers()
+			_ = netPeer.KadDhtDiscoverNewPeers()
 			time.Sleep(time.Second)
 		}()
 	}

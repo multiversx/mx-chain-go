@@ -63,7 +63,11 @@ type networkMessenger struct {
 // NewMockNetworkMessenger creates a new sandbox testable instance of libP2P messenger
 // It should not open ports on current machine
 // Should be used only in testing!
-func NewMockNetworkMessenger(ctx context.Context, mockNet mocknet.Mocknet) (*networkMessenger, error) {
+func NewMockNetworkMessenger(
+	ctx context.Context,
+	mockNet mocknet.Mocknet,
+	peerDiscoveryType p2p.PeerDiscoveryType) (*networkMessenger, error) {
+
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
 	}
@@ -82,7 +86,7 @@ func NewMockNetworkMessenger(ctx context.Context, mockNet mocknet.Mocknet) (*net
 		h,
 		false,
 		loadBalancer.NewOutgoingPipeLoadBalancer(),
-		p2p.PeerDiscoveryOff,
+		peerDiscoveryType,
 	)
 	if err != nil {
 		return nil, err
@@ -160,11 +164,12 @@ func createMessenger(
 	}
 
 	netMes := networkMessenger{
-		hostP2P:     h,
-		pb:          pb,
-		topics:      make(map[string]p2p.MessageProcessor),
-		ctx:         ctx,
-		outgoingPLB: outgoingPLB,
+		hostP2P:           h,
+		pb:                pb,
+		topics:            make(map[string]p2p.MessageProcessor),
+		ctx:               ctx,
+		outgoingPLB:       outgoingPLB,
+		peerDiscoveryType: peerDiscoveryType,
 	}
 
 	err = netMes.applyDiscoveryMechanism(peerDiscoveryType)
@@ -225,40 +230,45 @@ func createPubSub(ctx context.Context, host host.Host, withSigning bool) (*pubsu
 
 func (netMes *networkMessenger) applyDiscoveryMechanism(peerDiscoveryType p2p.PeerDiscoveryType) error {
 	switch peerDiscoveryType {
-	case p2p.PeerDiscoveryMdns:
-		return netMes.createMdns()
 	case p2p.PeerDiscoveryKadDht:
 		return netMes.createKadDHT(elrondRandezVousString)
-	default:
+	case p2p.PeerDiscoveryMdns:
 		return nil
+	case p2p.PeerDiscoveryOff:
+		return nil
+	default:
+		return p2p.ErrPeerDiscoveryNotImplemented
 	}
 }
 
-func (netMes *networkMessenger) createMdns() error {
-	if netMes.peerDiscoveryType == p2p.PeerDiscoveryOff {
-		return p2p.ErrPeerDiscoveryOff
+// HandlePeerFound updates the routing table with this new peer
+func (netMes *networkMessenger) HandlePeerFound(pi peerstore.PeerInfo) {
+	peers := netMes.hostP2P.Peerstore().Peers()
+	found := false
+
+	for i := 0; i < len(peers); i++ {
+		if peers[i] == pi.ID {
+			found = true
+			break
+		}
 	}
 
-	if netMes.peerDiscoveryType == p2p.PeerDiscoveryMdns {
-		netMes.mutTopics.Lock()
-		defer netMes.mutTopics.Unlock()
+	if found {
+		return
+	}
 
-		if netMes.mdns != nil {
-			return p2p.ErrPeerDiscoveryProcessAlreadyStarted
-		}
+	for i := 0; i < len(pi.Addrs); i++ {
+		netMes.hostP2P.Peerstore().AddAddr(pi.ID, pi.Addrs[i], peerstore.PermanentAddrTTL)
+	}
 
-		mdns, err := discovery2.NewMdnsService(
-			netMes.ctx,
-			netMes.hostP2P,
-			durationMdnsCalls,
-			"discovery")
-
+	//will try to connect for now as the connections and peer filtering is not done yet
+	//TODO design a connection manager component
+	go func() {
+		err := netMes.hostP2P.Connect(netMes.ctx, pi)
 		if err != nil {
-			return err
+			log.Debug(err.Error())
 		}
-
-	}
-
+	}()
 }
 
 func (netMes *networkMessenger) createKadDHT(randezvous string) error {
@@ -290,8 +300,17 @@ func (netMes *networkMessenger) createKadDHT(randezvous string) error {
 
 // Close closes the host, connections and streams
 func (netMes *networkMessenger) Close() error {
-	err := netMes.kadDHT.Close()
-	log.LogIfError(err)
+	if netMes.kadDHT != nil {
+		err := netMes.kadDHT.Close()
+		log.LogIfError(err)
+	}
+
+	netMes.mutMdns.Lock()
+	if netMes.mdns != nil {
+		err := netMes.mdns.Close()
+		log.LogIfError(err)
+	}
+	netMes.mutMdns.Unlock()
 
 	return netMes.hostP2P.Close()
 }
@@ -379,7 +398,29 @@ func (netMes *networkMessenger) TrimConnections() {
 
 // Bootstrap will start the peer discovery mechanism
 func (netMes *networkMessenger) Bootstrap() error {
+	if netMes.peerDiscoveryType == p2p.PeerDiscoveryMdns {
+		netMes.mutMdns.Lock()
+		defer netMes.mutMdns.Unlock()
 
+		if netMes.mdns != nil {
+			return p2p.ErrPeerDiscoveryProcessAlreadyStarted
+		}
+
+		mdns, err := discovery2.NewMdnsService(
+			netMes.ctx,
+			netMes.hostP2P,
+			durationMdnsCalls,
+			"discovery")
+
+		if err != nil {
+			return err
+		}
+
+		mdns.RegisterNotifee(netMes)
+		return nil
+	}
+
+	return nil
 }
 
 // IsConnected returns true if current node is connected to provided peer

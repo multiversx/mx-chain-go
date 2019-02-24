@@ -2,12 +2,46 @@ package p2p
 
 import (
 	"io"
+	"strings"
 
 	"github.com/mr-tron/base58/base58"
 )
 
 // PeerDiscoveryType defines the peer discovery mechanism to use
 type PeerDiscoveryType int
+
+func (pdt PeerDiscoveryType) String() string {
+	switch pdt {
+	case PeerDiscoveryOff:
+		return "off"
+	case PeerDiscoveryKadDht:
+		return "kad-dht"
+	case PeerDiscoveryMdns:
+		return "mdns"
+	default:
+		return "unknown"
+	}
+}
+
+// LoadPeerDiscoveryTypeFromString outputs a peer discovery type by parsing the string argument
+// Errors if string is not recognized
+func LoadPeerDiscoveryTypeFromString(str string) (PeerDiscoveryType, error) {
+	str = strings.ToLower(str)
+
+	if str == PeerDiscoveryOff.String() {
+		return PeerDiscoveryOff, nil
+	}
+
+	if str == PeerDiscoveryMdns.String() {
+		return PeerDiscoveryMdns, nil
+	}
+
+	if str == PeerDiscoveryKadDht.String() {
+		return PeerDiscoveryKadDht, nil
+	}
+
+	return PeerDiscoveryOff, ErrPeerDiscoveryNotImplemented
+}
 
 const (
 	// PeerDiscoveryOff will not enable peer discovery

@@ -140,9 +140,8 @@ func (n *Node) P2PBootstrap() error {
 	if n.messenger == nil {
 		return ErrNilMessenger
 	}
-	//TODO(JLS) do bootstrap
-	//n.messenger.Bootstrap(n.ctx)
-	return nil
+
+	return n.messenger.Bootstrap()
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
@@ -330,7 +329,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	for i := 0; i < len(transactions); i++ {
-		n.messenger.Broadcast(
+		n.messenger.BroadcastOnPipe(
 			SendTransactionsPipe,
 			string(factory.TransactionTopic),
 			transactions[i],
@@ -679,7 +678,7 @@ func (n *Node) SendTransaction(
 		return nil, errors.New("could not marshal transaction")
 	}
 
-	n.messenger.Broadcast(
+	n.messenger.BroadcastOnPipe(
 		SendTransactionsPipe,
 		string(factory.TransactionTopic),
 		marshalizedTx,
@@ -757,19 +756,19 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
 		return
 	}
 
-	n.messenger.BroadcastOnTopicPipe(
+	n.messenger.Broadcast(
 		string(ConsensusTopic),
 		cnsDtaBuff)
 }
 
 func (n *Node) broadcastBlockBody(msg []byte) {
-	n.messenger.BroadcastOnTopicPipe(
+	n.messenger.Broadcast(
 		string(factory.TxBlockBodyTopic),
 		msg)
 }
 
 func (n *Node) broadcastHeader(msg []byte) {
-	n.messenger.BroadcastOnTopicPipe(
+	n.messenger.Broadcast(
 		string(factory.HeadersTopic),
 		msg,
 	)
