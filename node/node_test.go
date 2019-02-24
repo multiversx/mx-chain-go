@@ -933,6 +933,9 @@ func getMessenger() *mock.MessengerStub {
 		CloseCalled: func() error {
 			return nil
 		},
+		BootstrapCalled: func() error {
+			return nil
+		},
 	}
 
 	return messenger
