@@ -64,8 +64,8 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 	fmt.Printf("Waiting %v for topic announcement...\n", durationTopicAnnounceTime)
 	time.Sleep(durationTopicAnnounceTime)
 
-	//Step 4. run the test for a couple of times as peer discovering ant topic announcing
-	// are not deterministic and instant processes
+	//Step 4. run the test for a couple of times as peer discovering and topic announcing
+	// are not deterministic nor instant processes
 
 	noOfTests := 5
 	for i := 0; i < noOfTests; i++ {
