@@ -39,6 +39,27 @@ const maxBlockProcessingTimePercent = 90
 // MessageType specifies what type of message was received
 type MessageType int
 
+func (msgType MessageType) String() string {
+	switch msgType {
+	case MtBlockBody:
+		return "(BLOCK_BODY)"
+	case MtBlockHeader:
+		return "(BLOCK_HEADER)"
+	case MtCommitmentHash:
+		return "(COMMITMENT_HASH)"
+	case MtBitmap:
+		return "(BITMAP)"
+	case MtCommitment:
+		return "(COMMITMENT)"
+	case MtSignature:
+		return "(SIGNATURE)"
+	case MtUnknown:
+		return "(UNKNOWN)"
+	default:
+		return "Undefined message type"
+	}
+}
+
 const (
 	// MtUnknown defines ID of a message that has unknown Data inside
 	MtUnknown MessageType = iota

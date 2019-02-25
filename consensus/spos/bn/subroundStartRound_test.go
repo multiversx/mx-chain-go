@@ -643,7 +643,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenIsNotInTheConse
 	assert.False(t, r)
 }
 
-func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenResetErr(t *testing.T) {
+func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenCreateErr(t *testing.T) {
 	t.Parallel()
 
 	blockChain := blockchain.BlockChain{}
@@ -667,7 +667,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenResetErr(t *tes
 	)
 
 	err := errors.New("error")
-	multiSignerMock.ResetCalled = func([]string, uint16) error {
+	multiSignerMock.ResetCalled = func(pubKeys []string, index uint16) error {
 		return err
 	}
 
@@ -825,6 +825,15 @@ func TestSubroundStartRound_RemainingTimeInCurrentRoundShouldReturnPositiveValue
 
 	sr := *initSubroundStartRound()
 
+	remainingTimeInCurrentRound := func() time.Duration {
+		roundStartTime := sr.Rounder().TimeStamp()
+		currentTime := sr.SyncTimer().CurrentTime()
+		elapsedTime := currentTime.Sub(roundStartTime)
+		remainingTime := sr.Rounder().TimeDuration()*90/100 - elapsedTime
+
+		return remainingTime
+	}
+
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RoundTimeDuration = time.Duration(4000 * time.Millisecond)
 	rounderMock.RoundTimeStamp = time.Unix(0, 0)
@@ -840,7 +849,7 @@ func TestSubroundStartRound_RemainingTimeInCurrentRoundShouldReturnPositiveValue
 	sr.SetRounder(rounderMock)
 	sr.SetSyncTimer(syncTimerMock)
 
-	remainingTime := sr.RemainingTimeInCurrentRound()
+	remainingTime := remainingTimeInCurrentRound()
 
 	assert.Equal(t, time.Duration(int64(rounderMock.TimeDuration()*90/100)-timeElapsed), remainingTime)
 	assert.True(t, remainingTime > 0)
@@ -850,6 +859,15 @@ func TestSubroundStartRound_RemainingTimeInCurrentRoundShouldReturnNegativeValue
 	t.Parallel()
 
 	sr := *initSubroundStartRound()
+
+	remainingTimeInCurrentRound := func() time.Duration {
+		roundStartTime := sr.Rounder().TimeStamp()
+		currentTime := sr.SyncTimer().CurrentTime()
+		elapsedTime := currentTime.Sub(roundStartTime)
+		remainingTime := sr.Rounder().TimeDuration()*90/100 - elapsedTime
+
+		return remainingTime
+	}
 
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RoundTimeDuration = time.Duration(4000 * time.Millisecond)
@@ -866,7 +884,7 @@ func TestSubroundStartRound_RemainingTimeInCurrentRoundShouldReturnNegativeValue
 	sr.SetRounder(rounderMock)
 	sr.SetSyncTimer(syncTimerMock)
 
-	remainingTime := sr.RemainingTimeInCurrentRound()
+	remainingTime := remainingTimeInCurrentRound()
 
 	assert.Equal(t, time.Duration(int64(rounderMock.TimeDuration()*90/100)-timeElapsed), remainingTime)
 	assert.True(t, remainingTime < 0)

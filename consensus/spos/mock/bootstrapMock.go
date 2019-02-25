@@ -7,7 +7,7 @@ import (
 // BootstraperMock mocks the implementation for a Bootstraper
 type BootstraperMock struct {
 	CreateAndCommitEmptyBlockCalled func(uint32) (*block.TxBlockBody, *block.Header)
-	AddSyncStateListnerCalled       func(func(bool))
+	AddSyncStateListenerCalled      func(func(bool))
 	ShouldSyncCalled                func() bool
 }
 
@@ -19,9 +19,9 @@ func (boot *BootstraperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint3
 	return &block.TxBlockBody{}, &block.Header{}
 }
 
-func (boot *BootstraperMock) AddSyncStateListner(syncStateNotifier func(bool)) {
-	if boot.AddSyncStateListnerCalled != nil {
-		boot.AddSyncStateListnerCalled(syncStateNotifier)
+func (boot *BootstraperMock) AddSyncStateListener(syncStateNotifier func(bool)) {
+	if boot.AddSyncStateListenerCalled != nil {
+		boot.AddSyncStateListenerCalled(syncStateNotifier)
 		return
 	}
 

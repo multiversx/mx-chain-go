@@ -967,7 +967,7 @@ func (bp *blockProcessor) getTxsFromPool(shardId uint32) int {
 	return txStore.Len()
 }
 
-// checkIfBlockIsValid method checks if the received block is valid
+// CheckBlockValidity method checks if the given block is valid
 func (bp *blockProcessor) CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool {
 	if blockChain.CurrentBlockHeader == nil {
 		if header.Nonce == 1 { // first block after genesis

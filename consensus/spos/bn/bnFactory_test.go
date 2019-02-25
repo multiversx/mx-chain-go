@@ -46,6 +46,34 @@ func initFactory() bn.Factory {
 	return fct
 }
 
+func TestFactory_GetMessageTypeName(t *testing.T) {
+	t.Parallel()
+
+	r := bn.MtBlockBody.String()
+	assert.Equal(t, "(BLOCK_BODY)", r)
+
+	r = bn.MtBlockHeader.String()
+	assert.Equal(t, "(BLOCK_HEADER)", r)
+
+	r = bn.MtCommitmentHash.String()
+	assert.Equal(t, "(COMMITMENT_HASH)", r)
+
+	r = bn.MtBitmap.String()
+	assert.Equal(t, "(BITMAP)", r)
+
+	r = bn.MtCommitment.String()
+	assert.Equal(t, "(COMMITMENT)", r)
+
+	r = bn.MtSignature.String()
+	assert.Equal(t, "(SIGNATURE)", r)
+
+	r = bn.MtUnknown.String()
+	assert.Equal(t, "(UNKNOWN)", r)
+
+	r = bn.MessageType(-1).String()
+	assert.Equal(t, "Undefined message type", r)
+}
+
 func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 

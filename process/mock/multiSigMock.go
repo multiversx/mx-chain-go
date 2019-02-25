@@ -50,6 +50,17 @@ func (bnm *BelNevMock) Create(pubKeys []string, index uint16) (crypto.MultiSigne
 	return multiSig, nil
 }
 
+// Reset
+func (bnm *BelNevMock) Reset(pubKeys []string, index uint16) error {
+	bnm.commitments = make([][]byte, 21)
+	bnm.sigs = make([][]byte, 21)
+	bnm.pubkeys = make([]string, 21)
+	bnm.selfId = index
+	bnm.pubkeys = pubKeys
+
+	return nil
+}
+
 // SetMessage sets the message to be signed
 func (bnm *BelNevMock) SetMessage(msg []byte) error {
 	bnm.msg = msg

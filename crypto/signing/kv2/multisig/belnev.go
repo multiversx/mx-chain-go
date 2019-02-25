@@ -154,6 +154,41 @@ func convertStringsToPubKeys(pubKeys []string, kg crypto.KeyGenerator) ([]crypto
 	return pk, nil
 }
 
+// Reset resets the multiSigData inside the multiSigner
+func (bn *belNevSigner) Reset(pubKeys []string, index uint16) error {
+	if index >= uint16(len(pubKeys)) {
+		return crypto.ErrIndexOutOfBounds
+	}
+
+	sizeConsensus := len(pubKeys)
+	commHashes := make([][]byte, sizeConsensus)
+	commitments := make([]crypto.Point, sizeConsensus)
+	sigShares := make([]crypto.Scalar, sizeConsensus)
+	pk, err := convertStringsToPubKeys(pubKeys, bn.keyGen)
+
+	if err != nil {
+		return err
+	}
+
+	bn.mutSigData.Lock()
+	defer bn.mutSigData.Unlock()
+
+	privKey := bn.data.privKey
+
+	data := &multiSigData{
+		pubKeys:     pk,
+		privKey:     privKey,
+		ownIndex:    index,
+		commHashes:  commHashes,
+		commitments: commitments,
+		sigShares:   sigShares,
+	}
+
+	bn.data = data
+
+	return nil
+}
+
 // Create generates a multiSigner and initializes corresponding fields with the given params
 func (bn *belNevSigner) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
 	bn.mutSigData.RLock()

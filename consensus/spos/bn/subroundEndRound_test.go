@@ -561,17 +561,24 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrNilSignature(t *testin
 	assert.Equal(t, spos.ErrNilSignature, err)
 }
 
-func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidIndex(t *testing.T) {
+func TestSubroundEndRound_CheckSignaturesValidityShouldErrIndexOutOfBounds(t *testing.T) {
 	t.Parallel()
 
 	sr := *initSubroundEndRound()
 
-	sr.MultiSigner().Reset(nil, 0)
+	_, _ = sr.MultiSigner().Create(nil, 0)
 
 	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrSignature, true)
 
+	multiSignerMock := initMultiSignerMock()
+	multiSignerMock.SignatureShareMock = func(index uint16) ([]byte, error) {
+		return nil, crypto.ErrIndexOutOfBounds
+	}
+
+	sr.SetMultiSigner(multiSignerMock)
+
 	err := sr.CheckSignaturesValidity([]byte(string(1)))
-	assert.Equal(t, crypto.ErrInvalidIndex, err)
+	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
 }
 
 func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(t *testing.T) {

@@ -159,6 +159,8 @@ type SingleSigner interface {
 
 // MultiSigner provides functionality for multi-signing a message and verifying a multi-signed message
 type MultiSigner interface {
+	// Reset resets the data holder inside the multiSigner
+	Reset(pubKeys []string, index uint16) error
 	// MultiSigVerifier Provides functionality for verifying a multi-signature
 	MultiSigVerifier
 	// CreateCommitment creates a secret commitment and the corresponding public commitment point

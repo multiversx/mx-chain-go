@@ -195,7 +195,16 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
-	if sr.remainingTimeInCurrentRound() < 0 {
+	remainingTimeInCurrentRound := func() time.Duration {
+		roundStartTime := sr.rounder.TimeStamp()
+		currentTime := sr.syncTimer.CurrentTime()
+		elapsedTime := currentTime.Sub(roundStartTime)
+		remainingTime := sr.rounder.TimeDuration()*maxBlockProcessingTimePercent/100 - elapsedTime
+
+		return remainingTime
+	}
+
+	if remainingTimeInCurrentRound() < 0 {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, time is out\n",
 			sr.syncTimer.FormattedCurrentTime(), sr.rounder.Index(), getSubroundName(SrStartRound)))
 
@@ -238,13 +247,4 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 	sr.consensusState.SetConsensusGroup(nextConsensusGroup)
 
 	return nil
-}
-
-func (sr *subroundStartRound) remainingTimeInCurrentRound() time.Duration {
-	roundStartTime := sr.rounder.TimeStamp()
-	currentTime := sr.syncTimer.CurrentTime()
-	elapsedTime := currentTime.Sub(roundStartTime)
-	remainingTime := sr.rounder.TimeDuration()*maxBlockProcessingTimePercent/100 - elapsedTime
-
-	return remainingTime
 }

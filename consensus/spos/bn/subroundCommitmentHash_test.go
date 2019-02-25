@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -350,26 +349,6 @@ func TestSubroundCommitmentHash_DoCommitmentHashJob(t *testing.T) {
 	assert.True(t, r)
 }
 
-func TestSubroundCommitmentHash_DoCommitmentHashJobErrCreateCommitmentShouldFail(t *testing.T) {
-	t.Parallel()
-
-	sr := *initSubroundCommitmentHash()
-
-	multiSignerMock := initMultiSignerMock()
-	multiSignerMock.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, crypto.ErrNilHasher
-	}
-
-	sr.SetMultiSigner(multiSignerMock)
-
-	sr.ConsensusState().SetStatus(bn.SrBlock, spos.SsFinished)
-	sr.ConsensusState().SetStatus(bn.SrCommitmentHash, spos.SsNotFinished)
-
-	done := sr.DoCommitmentHashJob()
-
-	assert.False(t, done)
-}
-
 func TestSubroundCommitmentHash_ReceivedCommitmentHash(t *testing.T) {
 	t.Parallel()
 
@@ -543,23 +522,6 @@ func TestSubroundCommitmentHash_CommitmentHashesCollected(t *testing.T) {
 	assert.True(t, ok)
 }
 
-func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnCreateCommitment(t *testing.T) {
-	t.Parallel()
-
-	sr := *initSubroundCommitmentHash()
-
-	multiSignerMock := initMultiSignerMock()
-	err := errors.New("error create commitment")
-	multiSignerMock.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, err
-	}
-
-	sr.SetMultiSigner(multiSignerMock)
-
-	_, err2 := sr.GenCommitmentHash()
-	assert.Equal(t, err, err2)
-}
-
 func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnIndexSelfConsensusGroup(t *testing.T) {
 	t.Parallel()
 
@@ -569,11 +531,11 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnIndexSelfConsen
 
 	multiSignerMock := initMultiSignerMock()
 
-	multiSignerMock.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
+	multiSignerMock.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("comm")
 	}
 
-	multiSignerMock.AddCommitmentMock = func(uint16, []byte) error {
+	multiSignerMock.StoreCommitmentMock = func(uint16, []byte) error {
 		return spos.ErrNotFoundInConsensus
 	}
 
@@ -588,71 +550,13 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnAddCommitment(t
 
 	multiSignerMock := initMultiSignerMock()
 
-	multiSignerMock.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
+	multiSignerMock.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("comm")
 	}
 
 	err := errors.New("error add commitment")
 
-	multiSignerMock.AddCommitmentMock = func(uint16, []byte) error {
-		return err
-	}
-
-	sr.SetMultiSigner(multiSignerMock)
-
-	_, err2 := sr.GenCommitmentHash()
-	assert.Equal(t, err, err2)
-}
-
-func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnSetCommitmentSecret(t *testing.T) {
-	t.Parallel()
-
-	sr := *initSubroundCommitmentHash()
-
-	multiSignerMock := initMultiSignerMock()
-
-	multiSignerMock.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
-	}
-
-	multiSignerMock.AddCommitmentMock = func(uint16, []byte) error {
-		return nil
-	}
-
-	err := errors.New("error set commitment secret")
-
-	multiSignerMock.SetCommitmentSecretMock = func([]byte) error {
-		return err
-	}
-
-	sr.SetMultiSigner(multiSignerMock)
-
-	_, err2 := sr.GenCommitmentHash()
-	assert.Equal(t, err, err2)
-}
-
-func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnAddCommitmentHash(t *testing.T) {
-	t.Parallel()
-
-	sr := *initSubroundCommitmentHash()
-
-	multiSignerMock := initMultiSignerMock()
-
-	multiSignerMock.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
-	}
-
-	multiSignerMock.AddCommitmentMock = func(uint16, []byte) error {
-		return nil
-	}
-
-	multiSignerMock.SetCommitmentSecretMock = func([]byte) error {
-		return nil
-	}
-
-	err := errors.New("error add commitment hash")
-
-	multiSignerMock.AddCommitmentHashMock = func(uint16, []byte) error {
+	multiSignerMock.StoreCommitmentHashMock = func(uint16, []byte) error {
 		return err
 	}
 
@@ -669,19 +573,11 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunNil(t *testing.T) {
 
 	multiSignerMock := initMultiSignerMock()
 
-	multiSignerMock.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return nil, nil, nil
+	multiSignerMock.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("comm")
 	}
 
-	multiSignerMock.AddCommitmentMock = func(uint16, []byte) error {
-		return nil
-	}
-
-	multiSignerMock.SetCommitmentSecretMock = func([]byte) error {
-		return nil
-	}
-
-	multiSignerMock.AddCommitmentHashMock = func(uint16, []byte) error {
+	multiSignerMock.StoreCommitmentHashMock = func(uint16, []byte) error {
 		return nil
 	}
 
