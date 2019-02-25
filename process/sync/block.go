@@ -49,9 +49,9 @@ type Bootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	isNodeSynchronized   bool
-	syncStateListners    []func(bool)
-	mutSyncStateListners sync.RWMutex
+	isNodeSynchronized    bool
+	syncStateListeners    []func(bool)
+	mutSyncStateListeners sync.RWMutex
 }
 
 // NewBootstrap creates a new Bootstrap object
@@ -96,7 +96,7 @@ func NewBootstrap(
 
 	boot.chStopSync = make(chan bool)
 
-	boot.syncStateListners = make([]func(bool), 0)
+	boot.syncStateListeners = make([]func(bool), 0)
 
 	return &boot, nil
 }
@@ -154,10 +154,10 @@ func checkBootstrapNilParameters(
 	return nil
 }
 
-func (boot *Bootstrap) AddSyncStateListner(syncStateListner func(bool)) {
-	boot.mutSyncStateListners.Lock()
-	boot.syncStateListners = append(boot.syncStateListners, syncStateListner)
-	boot.mutSyncStateListners.Unlock()
+func (boot *Bootstrap) AddSyncStateListener(syncStateListener func(bool)) {
+	boot.mutSyncStateListeners.Lock()
+	boot.syncStateListeners = append(boot.syncStateListeners, syncStateListener)
+	boot.mutSyncStateListeners.Unlock()
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -314,7 +314,7 @@ func (boot *Bootstrap) SyncBlock() error {
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
 		boot.isNodeSynchronized = isNodeSynchronized
-		boot.notifySyncStateListners()
+		boot.notifySyncStateListeners()
 	}
 
 	if boot.isNodeSynchronized {
@@ -362,14 +362,14 @@ func (boot *Bootstrap) SyncBlock() error {
 	return nil
 }
 
-func (boot *Bootstrap) notifySyncStateListners() {
-	boot.mutSyncStateListners.RLock()
+func (boot *Bootstrap) notifySyncStateListeners() {
+	boot.mutSyncStateListeners.RLock()
 
-	for i := 0; i < len(boot.syncStateListners); i++ {
-		go boot.syncStateListners[i](boot.isNodeSynchronized)
+	for i := 0; i < len(boot.syncStateListeners); i++ {
+		go boot.syncStateListeners[i](boot.isNodeSynchronized)
 	}
 
-	boot.mutSyncStateListners.RUnlock()
+	boot.mutSyncStateListeners.RUnlock()
 }
 
 // getHeaderFromPoolHavingNonce method returns the block header from a given nonce

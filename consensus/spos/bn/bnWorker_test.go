@@ -2,6 +2,7 @@ package bn_test
 
 import (
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -55,10 +56,18 @@ func initWorker() bn.Worker {
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 
-	keyGeneratorMock, privateKeyMock, _ := initSingleSigning()
+	keyGeneratorMock, privateKeyMock, _ := initKeys()
 	marshalizerMock := mock.MarshalizerMock{}
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte("signed"), nil
+		},
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
 
 	wrk, _ := bn.NewWorker(
 		bootstraperMock,
@@ -68,6 +77,7 @@ func initWorker() bn.Worker {
 		privateKeyMock,
 		rounderMock,
 		shardCoordinatorMock,
+		singleSignerMock,
 	)
 
 	wrk.SendMessage = sendMessage
@@ -153,8 +163,8 @@ func initBlockProcessorMock() *mock.BlockProcessorMock {
 func initMultiSignerMock() *mock.BelNevMock {
 	multiSigner := mock.NewMultiSigner()
 
-	multiSigner.CreateCommitmentMock = func() ([]byte, []byte, error) {
-		return []byte("commSecret"), []byte("commitment"), nil
+	multiSigner.CreateCommitmentMock = func() ([]byte, []byte) {
+		return []byte("commSecret"), []byte("commitment")
 	}
 
 	multiSigner.VerifySignatureShareMock = func(index uint16, sig []byte, bitmap []byte) error {
@@ -180,27 +190,17 @@ func initMultiSignerMock() *mock.BelNevMock {
 	return multiSigner
 }
 
-func initSingleSigning() (*mock.KeyGeneratorMock, *mock.PrivateKeyMock, *mock.PublicKeyMock) {
+func initKeys() (*mock.KeyGenMock, *mock.PrivateKeyMock, *mock.PublicKeyMock) {
 	toByteArrayMock := func() ([]byte, error) {
 		return []byte("byteArray"), nil
 	}
 
-	signMock := func(message []byte) ([]byte, error) {
-		return []byte("signature"), nil
-	}
-
-	verifyMock := func(data []byte, signature []byte) error {
-		return nil
-	}
-
 	privKeyMock := &mock.PrivateKeyMock{
-		SignMock:        signMock,
 		ToByteArrayMock: toByteArrayMock,
 	}
 
 	pubKeyMock := &mock.PublicKeyMock{
 		ToByteArrayMock: toByteArrayMock,
-		VerifyMock:      verifyMock,
 	}
 
 	privKeyFromByteArr := func(b []byte) (crypto.PrivateKey, error) {
@@ -211,7 +211,7 @@ func initSingleSigning() (*mock.KeyGeneratorMock, *mock.PrivateKeyMock, *mock.Pu
 		return pubKeyMock, nil
 	}
 
-	keyGenMock := &mock.KeyGeneratorMock{
+	keyGenMock := &mock.KeyGenMock{
 		PrivateKeyFromByteArrayMock: privKeyFromByteArr,
 		PublicKeyFromByteArrayMock:  pubKeyFromByteArr,
 	}
@@ -241,11 +241,12 @@ func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
 		nil,
@@ -255,6 +256,7 @@ func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 		privateKeyMock,
 		rounderMock,
 		shardCoordinatorMock,
+		singleSignerMock,
 	)
 
 	assert.Nil(t, wrk)
@@ -265,11 +267,12 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	t.Parallel()
 
 	bootstraperMock := &mock.BootstraperMock{}
-	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
 		bootstraperMock,
@@ -279,6 +282,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 		privateKeyMock,
 		rounderMock,
 		shardCoordinatorMock,
+		singleSignerMock,
 	)
 
 	assert.Nil(t, wrk)
@@ -294,6 +298,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
 		bootstraperMock,
@@ -303,6 +308,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 		privateKeyMock,
 		rounderMock,
 		shardCoordinatorMock,
+		singleSignerMock,
 	)
 
 	assert.Nil(t, wrk)
@@ -314,10 +320,11 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
-	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
 		bootstraperMock,
@@ -327,6 +334,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 		privateKeyMock,
 		rounderMock,
 		shardCoordinatorMock,
+		singleSignerMock,
 	)
 
 	assert.Nil(t, wrk)
@@ -338,10 +346,11 @@ func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
-	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
 		bootstraperMock,
@@ -351,6 +360,7 @@ func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 		nil,
 		rounderMock,
 		shardCoordinatorMock,
+		singleSignerMock,
 	)
 
 	assert.Nil(t, wrk)
@@ -362,10 +372,11 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
-	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
 		bootstraperMock,
@@ -375,6 +386,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 		privateKeyMock,
 		nil,
 		shardCoordinatorMock,
+		singleSignerMock,
 	)
 
 	assert.Nil(t, wrk)
@@ -386,10 +398,11 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
-	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
+	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
 		bootstraperMock,
@@ -399,18 +412,19 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 		privateKeyMock,
 		rounderMock,
 		nil,
+		singleSignerMock,
 	)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, err, spos.ErrNilShardCoordinator)
 }
 
-func TestWorker_NewWorkerShouldWork(t *testing.T) {
+func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
-	keyGeneratorMock := &mock.KeyGeneratorMock{}
+	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
@@ -424,6 +438,34 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 		privateKeyMock,
 		rounderMock,
 		shardCoordinatorMock,
+		nil,
+	)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, err, spos.ErrNilSingleSigner)
+}
+
+func TestWorker_NewWorkerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	bootstraperMock := &mock.BootstraperMock{}
+	consensusState := initConsensusState()
+	keyGeneratorMock := &mock.KeyGenMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+
+	wrk, err := bn.NewWorker(
+		bootstraperMock,
+		consensusState,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
 	)
 
 	assert.NotNil(t, wrk)
@@ -796,7 +838,7 @@ func TestWorker_CheckSignatureShouldReturnPublicKeyFromByteArrayErr(t *testing.T
 
 	wrk := *initWorker()
 
-	keyGeneratorMock, _, _ := initSingleSigning()
+	keyGeneratorMock, _, _ := initKeys()
 
 	err := errors.New("error public key from byte array")
 	keyGeneratorMock.PublicKeyFromByteArrayMock = func(b []byte) (crypto.PublicKey, error) {
@@ -1189,12 +1231,6 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 		1,
 	)
 
-	wrk.ConsensusState().Header = hdr
-
-	wrk.ExecuteMessageChannel() <- cnsMsg
-	time.Sleep(10 * time.Millisecond)
-
-	cnsMsg.MsgType = int(bn.MtBlockHeader)
 	wrk.ExecuteMessageChannel() <- cnsMsg
 	time.Sleep(10 * time.Millisecond)
 
@@ -1414,47 +1450,19 @@ func TestWorker_ExtendShouldReturnWhenBroadcastTxBlockBodyIsNil(t *testing.T) {
 
 	wrk := *initWorker()
 
-	executed := 0
+	executed := int32(0)
 
 	wrk.BroadcastTxBlockBody = func(msg []byte) {
-		executed++
+		atomic.AddInt32(&executed, 1)
 	}
 
 	wrk.BroadcastHeader = func(msg []byte) {
-		executed++
+		atomic.AddInt32(&executed, 1)
 	}
 
 	wrk.Extend(0)
 	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, 2, executed)
-}
-
-func TestWorker_GetMessageTypeName(t *testing.T) {
-	t.Parallel()
-
-	r := bn.MtBlockBody.String()
-	assert.Equal(t, "(BLOCK_BODY)", r)
-
-	r = bn.MtBlockHeader.String()
-	assert.Equal(t, "(BLOCK_HEADER)", r)
-
-	r = bn.MtCommitmentHash.String()
-	assert.Equal(t, "(COMMITMENT_HASH)", r)
-
-	r = bn.MtBitmap.String()
-	assert.Equal(t, "(BITMAP)", r)
-
-	r = bn.MtCommitment.String()
-	assert.Equal(t, "(COMMITMENT)", r)
-
-	r = bn.MtSignature.String()
-	assert.Equal(t, "(SIGNATURE)", r)
-
-	r = bn.MtUnknown.String()
-	assert.Equal(t, "(UNKNOWN)", r)
-
-	r = bn.MessageType(-1).String()
-	assert.Equal(t, "Undefined message type", r)
+	assert.Equal(t, int32(2), atomic.LoadInt32(&executed))
 }
 
 func TestWorker_GetSubroundName(t *testing.T) {

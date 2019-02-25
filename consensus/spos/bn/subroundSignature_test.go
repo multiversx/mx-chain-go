@@ -384,12 +384,19 @@ func TestSubroundSignature_CheckCommitmentsValidityShouldErrInvalidIndex(t *test
 
 	sr := *initSubroundSignature()
 
-	sr.MultiSigner().Reset(nil, 0)
+	_ = sr.MultiSigner().Reset(nil, 0)
 
 	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrCommitment, true)
 
+	multiSignerMock := initMultiSignerMock()
+	multiSignerMock.CommitmentMock = func(u uint16) ([]byte, error) {
+		return nil, crypto.ErrIndexOutOfBounds
+	}
+
+	sr.SetMultiSigner(multiSignerMock)
+
 	err := sr.CheckCommitmentsValidity([]byte(string(1)))
-	assert.Equal(t, crypto.ErrInvalidIndex, err)
+	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
 }
 
 func TestSubroundSignature_CheckCommitmentsValidityShouldErrOnCommitmentHash(t *testing.T) {

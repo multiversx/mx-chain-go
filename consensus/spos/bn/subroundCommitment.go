@@ -170,7 +170,7 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *spos.ConsensusMessage) 
 		return false
 	}
 
-	err = sr.multiSigner.AddCommitment(uint16(index), cnsDta.SubRoundData)
+	err = sr.multiSigner.StoreCommitment(uint16(index), cnsDta.SubRoundData)
 
 	if err != nil {
 		log.Info(err.Error())

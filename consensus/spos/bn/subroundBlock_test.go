@@ -974,6 +974,15 @@ func TestSubroundBlock_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *t
 
 	sr := *initSubroundBlock()
 
+	remainingTimeInCurrentRound := func() time.Duration {
+		roundStartTime := sr.Rounder().TimeStamp()
+		currentTime := sr.SyncTimer().CurrentTime()
+		elapsedTime := currentTime.Sub(roundStartTime)
+		remainingTime := sr.Rounder().TimeDuration()*90/100 - elapsedTime
+
+		return remainingTime
+	}
+
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RoundTimeDuration = time.Duration(4000 * time.Millisecond)
 	rounderMock.RoundTimeStamp = time.Unix(0, 0)
@@ -989,7 +998,7 @@ func TestSubroundBlock_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *t
 	sr.SetRounder(rounderMock)
 	sr.SetSyncTimer(syncTimerMock)
 
-	remainingTime := sr.RemainingTimeInCurrentRound()
+	remainingTime := remainingTimeInCurrentRound()
 
 	assert.Equal(t, time.Duration(int64(rounderMock.TimeDuration()*90/100)-timeElapsed), remainingTime)
 	assert.True(t, remainingTime > 0)
@@ -999,6 +1008,15 @@ func TestSubroundBlock_RemainingTimeInCurrentRoundShouldReturnNegativeValue(t *t
 	t.Parallel()
 
 	sr := *initSubroundBlock()
+
+	remainingTimeInCurrentRound := func() time.Duration {
+		roundStartTime := sr.Rounder().TimeStamp()
+		currentTime := sr.SyncTimer().CurrentTime()
+		elapsedTime := currentTime.Sub(roundStartTime)
+		remainingTime := sr.Rounder().TimeDuration()*90/100 - elapsedTime
+
+		return remainingTime
+	}
 
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RoundTimeDuration = time.Duration(4000 * time.Millisecond)
@@ -1015,7 +1033,7 @@ func TestSubroundBlock_RemainingTimeInCurrentRoundShouldReturnNegativeValue(t *t
 	sr.SetRounder(rounderMock)
 	sr.SetSyncTimer(syncTimerMock)
 
-	remainingTime := sr.RemainingTimeInCurrentRound()
+	remainingTime := remainingTimeInCurrentRound()
 
 	assert.Equal(t, time.Duration(int64(rounderMock.TimeDuration()*90/100)-timeElapsed), remainingTime)
 	assert.True(t, remainingTime < 0)
@@ -1025,6 +1043,15 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
 	sr := *initSubroundBlock()
+
+	haveTimeInCurrentSubound := func() bool {
+		roundStartTime := sr.Rounder().TimeStamp()
+		currentTime := sr.SyncTimer().CurrentTime()
+		elapsedTime := currentTime.Sub(roundStartTime)
+		remainingTime := sr.EndTime() - int64(elapsedTime)
+
+		return time.Duration(remainingTime) > 0
+	}
 
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RoundTimeDuration = time.Duration(4000 * time.Millisecond)
@@ -1041,13 +1068,22 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 	sr.SetRounder(rounderMock)
 	sr.SetSyncTimer(syncTimerMock)
 
-	assert.True(t, sr.HaveTimeInCurrentSubound())
+	assert.True(t, haveTimeInCurrentSubound())
 }
 
 func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	sr := *initSubroundBlock()
+
+	haveTimeInCurrentSubound := func() bool {
+		roundStartTime := sr.Rounder().TimeStamp()
+		currentTime := sr.SyncTimer().CurrentTime()
+		elapsedTime := currentTime.Sub(roundStartTime)
+		remainingTime := sr.EndTime() - int64(elapsedTime)
+
+		return time.Duration(remainingTime) > 0
+	}
 
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RoundTimeDuration = time.Duration(4000 * time.Millisecond)
@@ -1064,5 +1100,5 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 	sr.SetRounder(rounderMock)
 	sr.SetSyncTimer(syncTimerMock)
 
-	assert.False(t, sr.HaveTimeInCurrentSubound())
+	assert.False(t, haveTimeInCurrentSubound())
 }

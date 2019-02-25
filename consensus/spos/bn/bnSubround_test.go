@@ -2,6 +2,7 @@ package bn_test
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -10,24 +11,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func JobWithSuccess() bool {
-	fmt.Printf("do job with success\n")
-	return true
+var jobSuccess = true
+
+func Job() bool {
+	fmt.Printf("do job with success: %v\n", jobSuccess)
+	return jobSuccess
 }
 
-func CheckWithSuccess() bool {
-	fmt.Printf("do check consensus with success\n")
-	return true
-}
+var mutCheck sync.RWMutex
+var checkSuccess = true
 
-func CheckWithoutSuccess() bool {
-	fmt.Printf("do check consensus without success\n")
-	return false
+func Check() bool {
+	mutCheck.RLock()
+	defer mutCheck.RUnlock()
+
+	fmt.Printf("do check consensus with success: %v\n", checkSuccess)
+	return checkSuccess
 }
 
 func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
-	t.Parallel()
-
 	sr, err := bn.NewSubround(
 		int(-1),
 		int(bn.SrStartRound),
@@ -43,8 +45,6 @@ func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
 }
 
 func TestSubround_NewSubroundShouldWork(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, err := bn.NewSubround(
@@ -57,16 +57,17 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 		ch,
 	)
 
-	sr.SetJobFunction(JobWithSuccess)
-	sr.SetCheckFunction(CheckWithoutSuccess)
+	jobSuccess = true
+	checkSuccess = false
+
+	sr.SetJobFunction(Job)
+	sr.SetCheckFunction(Check)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, sr)
 }
 
 func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -79,8 +80,10 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 		ch,
 	)
 
+	checkSuccess = true
+
 	sr.SetJobFunction(nil)
-	sr.SetCheckFunction(CheckWithSuccess)
+	sr.SetCheckFunction(Check)
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	haveTime := func() time.Duration {
@@ -92,8 +95,6 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 }
 
 func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -106,7 +107,9 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 		ch,
 	)
 
-	sr.SetJobFunction(JobWithSuccess)
+	jobSuccess = true
+
+	sr.SetJobFunction(Job)
 	sr.SetCheckFunction(nil)
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
@@ -119,8 +122,6 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 }
 
 func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -133,8 +134,11 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 		ch,
 	)
 
-	sr.SetJobFunction(JobWithSuccess)
-	sr.SetCheckFunction(CheckWithoutSuccess)
+	jobSuccess = true
+	checkSuccess = false
+
+	sr.SetJobFunction(Job)
+	sr.SetCheckFunction(Check)
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	haveTime := func() time.Duration {
@@ -146,8 +150,6 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 }
 
 func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -160,8 +162,11 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 		ch,
 	)
 
-	sr.SetJobFunction(JobWithSuccess)
-	sr.SetCheckFunction(CheckWithSuccess)
+	jobSuccess = true
+	checkSuccess = true
+
+	sr.SetJobFunction(Job)
+	sr.SetCheckFunction(Check)
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	haveTime := func() time.Duration {
@@ -173,8 +178,6 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 }
 
 func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhile(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -187,8 +190,14 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 		ch,
 	)
 
-	sr.SetJobFunction(JobWithSuccess)
-	sr.SetCheckFunction(CheckWithoutSuccess)
+	jobSuccess = true
+
+	mutCheck.Lock()
+	checkSuccess = false
+	mutCheck.Unlock()
+
+	sr.SetJobFunction(Job)
+	sr.SetCheckFunction(Check)
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
 	haveTime := func() time.Duration {
@@ -197,17 +206,20 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		sr.SetCheckFunction(CheckWithSuccess)
+
+		mutCheck.Lock()
+		checkSuccess = true
+		mutCheck.Unlock()
+
 		ch <- true
 	}()
 
 	r := sr.DoWork(haveTime)
+
 	assert.True(t, r)
 }
 
 func TestSubround_Previous(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -220,15 +232,16 @@ func TestSubround_Previous(t *testing.T) {
 		ch,
 	)
 
-	sr.SetJobFunction(JobWithSuccess)
-	sr.SetCheckFunction(CheckWithoutSuccess)
+	jobSuccess = true
+	checkSuccess = false
+
+	sr.SetJobFunction(Job)
+	sr.SetCheckFunction(Check)
 
 	assert.Equal(t, int(bn.SrStartRound), sr.Previous())
 }
 
 func TestSubround_Current(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -241,15 +254,16 @@ func TestSubround_Current(t *testing.T) {
 		ch,
 	)
 
-	sr.SetJobFunction(JobWithSuccess)
-	sr.SetCheckFunction(CheckWithoutSuccess)
+	jobSuccess = true
+	checkSuccess = false
+
+	sr.SetJobFunction(Job)
+	sr.SetCheckFunction(Check)
 
 	assert.Equal(t, int(bn.SrBlock), sr.Current())
 }
 
 func TestSubround_Next(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -262,15 +276,16 @@ func TestSubround_Next(t *testing.T) {
 		ch,
 	)
 
-	sr.SetJobFunction(JobWithSuccess)
-	sr.SetCheckFunction(CheckWithoutSuccess)
+	jobSuccess = true
+	checkSuccess = false
+
+	sr.SetJobFunction(Job)
+	sr.SetCheckFunction(Check)
 
 	assert.Equal(t, int(bn.SrCommitmentHash), sr.Next())
 }
 
 func TestSubround_StartTime(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -283,15 +298,16 @@ func TestSubround_StartTime(t *testing.T) {
 		ch,
 	)
 
-	sr.SetJobFunction(JobWithSuccess)
-	sr.SetCheckFunction(CheckWithoutSuccess)
+	jobSuccess = true
+	checkSuccess = false
+
+	sr.SetJobFunction(Job)
+	sr.SetCheckFunction(Check)
 
 	assert.Equal(t, int64(25*roundTimeDuration/100), sr.StartTime())
 }
 
 func TestSubround_EndTime(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -304,15 +320,16 @@ func TestSubround_EndTime(t *testing.T) {
 		ch,
 	)
 
-	sr.SetJobFunction(JobWithSuccess)
-	sr.SetCheckFunction(CheckWithoutSuccess)
+	jobSuccess = true
+	checkSuccess = false
+
+	sr.SetJobFunction(Job)
+	sr.SetCheckFunction(Check)
 
 	assert.Equal(t, int64(25*roundTimeDuration/100), sr.EndTime())
 }
 
 func TestSubround_Name(t *testing.T) {
-	t.Parallel()
-
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -325,8 +342,11 @@ func TestSubround_Name(t *testing.T) {
 		ch,
 	)
 
-	sr.SetJobFunction(JobWithSuccess)
-	sr.SetCheckFunction(CheckWithoutSuccess)
+	jobSuccess = true
+	checkSuccess = false
+
+	sr.SetJobFunction(Job)
+	sr.SetCheckFunction(Check)
 
 	assert.Equal(t, "(BLOCK)", sr.Name())
 }

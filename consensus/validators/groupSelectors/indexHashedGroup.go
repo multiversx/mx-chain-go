@@ -87,7 +87,7 @@ func (ihgs *indexHashedGroupSelector) GetSelectedPublicKeys(selection []byte) (p
 	invalidSelection := selectionLen < shardEligibleLen
 
 	if invalidSelection {
-		return nil, consensus.ErrEligibleSelectionMismatch
+		return nil, ErrEligibleSelectionMismatch
 	}
 
 	publicKeys = make([]string, ihgs.consensusGroupSize)
@@ -104,12 +104,12 @@ func (ihgs *indexHashedGroupSelector) GetSelectedPublicKeys(selection []byte) (p
 		cnt++
 
 		if cnt > ihgs.consensusGroupSize {
-			return nil, consensus.ErrEligibleTooManySelections
+			return nil, ErrEligibleTooManySelections
 		}
 	}
 
 	if cnt < ihgs.consensusGroupSize {
-		return nil, consensus.ErrEligibleTooFewSelections
+		return nil, ErrEligibleTooFewSelections
 	}
 
 	return publicKeys, nil

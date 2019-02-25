@@ -42,3 +42,7 @@ func (vgsm ValidatorGroupSelectorMock) LoadEligibleList(eligibleList []consensus
 func (vgsm ValidatorGroupSelectorMock) SetConsensusGroupSize(int) error {
 	panic("implement me")
 }
+
+func (vgsm ValidatorGroupSelectorMock) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {
+	panic("implement me")
+}

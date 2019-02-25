@@ -247,7 +247,6 @@ func (n *Node) StartConsensus() error {
 		n.multisig,
 		rounder,
 		n.shardCoordinator,
-		n.singlesig,
 		n.syncer,
 		validatorGroupSelector,
 		worker,
@@ -263,8 +262,12 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
+	receivedMessage := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+		worker.ReceivedMessage(name, data, msgInfo)
+	}
+
 	topic := p2p.NewTopic(string(ConsensusTopic), &spos.ConsensusMessage{}, n.marshalizer)
-	topic.AddDataReceived(worker.ReceivedMessageMock)
+	topic.AddDataReceived(receivedMessage)
 
 	err = n.messenger.AddTopic(topic)
 

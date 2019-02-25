@@ -27,6 +27,7 @@ type worker struct {
 	privateKey       crypto.PrivateKey
 	rounder          consensus.Rounder
 	shardCoordinator sharding.ShardCoordinator
+	singleSigner     crypto.SingleSigner
 
 	receivedMessages      map[MessageType][]*spos.ConsensusMessage
 	receivedMessagesCalls map[MessageType]func(*spos.ConsensusMessage) bool
@@ -51,6 +52,7 @@ func NewWorker(
 	privateKey crypto.PrivateKey,
 	rounder consensus.Rounder,
 	shardCoordinator sharding.ShardCoordinator,
+	singleSigner crypto.SingleSigner,
 ) (*worker, error) {
 
 	err := checkNewWorkerParams(
@@ -61,6 +63,7 @@ func NewWorker(
 		privateKey,
 		rounder,
 		shardCoordinator,
+		singleSigner,
 	)
 
 	if err != nil {
@@ -75,13 +78,14 @@ func NewWorker(
 		privateKey:       privateKey,
 		rounder:          rounder,
 		shardCoordinator: shardCoordinator,
+		singleSigner:     singleSigner,
 	}
 
 	wrk.executeMessageChannel = make(chan *spos.ConsensusMessage)
 	wrk.receivedMessagesCalls = make(map[MessageType]func(*spos.ConsensusMessage) bool)
 	wrk.consensusStateChangedChannels = make(chan bool, 1)
 
-	wrk.bootstraper.AddSyncStateListner(wrk.receivedSyncState)
+	wrk.bootstraper.AddSyncStateListener(wrk.receivedSyncState)
 
 	wrk.initReceivedMessages()
 
@@ -98,6 +102,7 @@ func checkNewWorkerParams(
 	privateKey crypto.PrivateKey,
 	rounder consensus.Rounder,
 	shardCoordinator sharding.ShardCoordinator,
+	singleSigner crypto.SingleSigner,
 ) error {
 	if bootstraper == nil {
 		return spos.ErrNilBlootstraper
@@ -125,6 +130,10 @@ func checkNewWorkerParams(
 
 	if shardCoordinator == nil {
 		return spos.ErrNilShardCoordinator
+	}
+
+	if singleSigner == nil {
+		return spos.ErrNilSingleSigner
 	}
 
 	return nil
@@ -183,13 +192,6 @@ func (wrk *worker) getCleanedList(cnsDataList []*spos.ConsensusMessage) []*spos.
 	}
 
 	return cleanedCnsDataList
-}
-
-// TODO: This method should be deleted
-
-// ReceivedMessageMock method redirects the received message to the channel which should handle it
-func (wrk *worker) ReceivedMessageMock(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-	wrk.ReceivedMessage(name, data, msgInfo)
 }
 
 // ReceivedMessage method redirects the received message to the channel which should handle it
@@ -259,7 +261,7 @@ func (wrk *worker) checkSignature(cnsDta *spos.ConsensusMessage) error {
 		return err
 	}
 
-	err = pubKey.Verify(dataNoSigString, signature)
+	err = wrk.singleSigner.Verify(pubKey, dataNoSigString, signature)
 
 	return err
 }
@@ -383,7 +385,7 @@ func (wrk *worker) genConsensusDataSignature(cnsDta *spos.ConsensusMessage) ([]b
 		return nil, err
 	}
 
-	signature, err := wrk.privateKey.Sign(cnsDtaStr)
+	signature, err := wrk.singleSigner.Sign(wrk.privateKey, cnsDtaStr)
 
 	if err != nil {
 		return nil, err
@@ -466,27 +468,6 @@ func (wrk *worker) extend(subroundId int) {
 	}
 
 	return
-}
-
-func (msgType MessageType) String() string {
-	switch msgType {
-	case MtBlockBody:
-		return "(BLOCK_BODY)"
-	case MtBlockHeader:
-		return "(BLOCK_HEADER)"
-	case MtCommitmentHash:
-		return "(COMMITMENT_HASH)"
-	case MtBitmap:
-		return "(BITMAP)"
-	case MtCommitment:
-		return "(COMMITMENT)"
-	case MtSignature:
-		return "(SIGNATURE)"
-	case MtUnknown:
-		return "(UNKNOWN)"
-	default:
-		return "Undefined message type"
-	}
 }
 
 // getSubroundName returns the name of each subround from a given subround ID

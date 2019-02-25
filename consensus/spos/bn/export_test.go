@@ -1,8 +1,6 @@
 package bn
 
 import (
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
@@ -333,10 +331,6 @@ func (sr *subroundStartRound) GenerateNextConsensusGroup(roundIndex int32) error
 	return sr.generateNextConsensusGroup(roundIndex)
 }
 
-func (sr *subroundStartRound) RemainingTimeInCurrentRound() time.Duration {
-	return sr.remainingTimeInCurrentRound()
-}
-
 // subroundBlock
 
 type SubroundBlock *subroundBlock
@@ -411,14 +405,6 @@ func (sr *subroundBlock) DoBlockConsensusCheck() bool {
 
 func (sr *subroundBlock) IsBlockReceived(threshold int) bool {
 	return sr.isBlockReceived(threshold)
-}
-
-func (sr *subroundBlock) RemainingTimeInCurrentRound() time.Duration {
-	return sr.remainingTimeInCurrentRound()
-}
-
-func (sr *subroundBlock) HaveTimeInCurrentSubound() bool {
-	return sr.haveTimeInCurrentSubound()
 }
 
 // subroundCommitmentHash

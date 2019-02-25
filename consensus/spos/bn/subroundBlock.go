@@ -181,11 +181,20 @@ func (sr *subroundBlock) doBlockJob() bool {
 
 // sendBlockBody method job the proposed block body in the Block subround
 func (sr *subroundBlock) sendBlockBody() bool {
+	haveTimeInCurrentSubound := func() bool {
+		roundStartTime := sr.rounder.TimeStamp()
+		currentTime := sr.syncTimer.CurrentTime()
+		elapsedTime := currentTime.Sub(roundStartTime)
+		remainingTime := sr.EndTime() - int64(elapsedTime)
+
+		return time.Duration(remainingTime) > 0
+	}
+
 	blk, err := sr.blockProcessor.CreateTxBlockBody(
 		sr.shardCoordinator.ShardForCurrentNode(),
 		maxTransactionsInBlock,
 		sr.rounder.Index(),
-		sr.haveTimeInCurrentSubound,
+		haveTimeInCurrentSubound,
 	)
 
 	if err != nil {
@@ -392,7 +401,16 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 
 	node := string(cnsDta.PubKey)
 
-	err := sr.blockProcessor.ProcessBlock(sr.blockChain, sr.consensusState.Header, sr.consensusState.BlockBody, sr.remainingTimeInCurrentRound)
+	remainingTimeInCurrentRound := func() time.Duration {
+		roundStartTime := sr.rounder.TimeStamp()
+		currentTime := sr.syncTimer.CurrentTime()
+		elapsedTime := currentTime.Sub(roundStartTime)
+		remainingTime := sr.rounder.TimeDuration()*maxBlockProcessingTimePercent/100 - elapsedTime
+
+		return remainingTime
+	}
+
+	err := sr.blockProcessor.ProcessBlock(sr.blockChain, sr.consensusState.Header, sr.consensusState.BlockBody, remainingTimeInCurrentRound)
 
 	if err != nil {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
@@ -405,7 +423,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 		return false
 	}
 
-	if sr.remainingTimeInCurrentRound() < 0 {
+	if remainingTimeInCurrentRound() < 0 {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, time is out\n",
 			cnsDta.RoundIndex, getSubroundName(SrBlock)))
 
@@ -484,22 +502,4 @@ func toB64(buff []byte) string {
 	}
 
 	return base64.StdEncoding.EncodeToString(buff)
-}
-
-func (sr *subroundBlock) remainingTimeInCurrentRound() time.Duration {
-	roundStartTime := sr.rounder.TimeStamp()
-	currentTime := sr.syncTimer.CurrentTime()
-	elapsedTime := currentTime.Sub(roundStartTime)
-	remainingTime := sr.rounder.TimeDuration()*maxBlockProcessingTimePercent/100 - elapsedTime
-
-	return remainingTime
-}
-
-func (sr *subroundBlock) haveTimeInCurrentSubound() bool {
-	roundStartTime := sr.rounder.TimeStamp()
-	currentTime := sr.syncTimer.CurrentTime()
-	elapsedTime := currentTime.Sub(roundStartTime)
-	remainingTime := sr.EndTime() - int64(elapsedTime)
-
-	return time.Duration(remainingTime) > 0
 }

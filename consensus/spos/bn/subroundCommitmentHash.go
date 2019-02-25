@@ -177,7 +177,7 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *spos.ConsensusM
 		return false
 	}
 
-	err = sr.multiSigner.AddCommitmentHash(uint16(index), cnsDta.SubRoundData)
+	err = sr.multiSigner.StoreCommitmentHash(uint16(index), cnsDta.SubRoundData)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -306,11 +306,7 @@ func (sr *subroundCommitmentHash) commitmentHashesCollected(threshold int) bool 
 }
 
 func (sr *subroundCommitmentHash) genCommitmentHash() ([]byte, error) {
-	commitmentSecret, commitment, err := sr.multiSigner.CreateCommitment()
-
-	if err != nil {
-		return nil, err
-	}
+	_, commitment := sr.multiSigner.CreateCommitment()
 
 	selfIndex, err := sr.consensusState.SelfConsensusGroupIndex()
 
@@ -318,21 +314,9 @@ func (sr *subroundCommitmentHash) genCommitmentHash() ([]byte, error) {
 		return nil, err
 	}
 
-	err = sr.multiSigner.AddCommitment(uint16(selfIndex), commitment)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = sr.multiSigner.SetCommitmentSecret(commitmentSecret)
-
-	if err != nil {
-		return nil, err
-	}
-
 	commitmentHash := sr.hasher.Compute(string(commitment))
 
-	err = sr.multiSigner.AddCommitmentHash(uint16(selfIndex), commitmentHash)
+	err = sr.multiSigner.StoreCommitmentHash(uint16(selfIndex), commitmentHash)
 
 	if err != nil {
 		return nil, err

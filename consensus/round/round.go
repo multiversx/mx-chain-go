@@ -45,3 +45,13 @@ func (rnd *round) TimeStamp() time.Time {
 func (rnd *round) TimeDuration() time.Duration {
 	return rnd.timeDuration
 }
+
+// RemainingTimeInRound returns the remaining time in the current round given by the current time, round start time and
+// safe threshold percent
+func (rnd *round) RemainingTimeInRound(currentTime time.Time, safeThresholdPercent uint32) time.Duration {
+	roundStartTime := rnd.timeStamp
+	elapsedTime := currentTime.Sub(roundStartTime)
+	remainingTime := rnd.timeDuration*time.Duration(safeThresholdPercent)/100 - elapsedTime
+
+	return remainingTime
+}

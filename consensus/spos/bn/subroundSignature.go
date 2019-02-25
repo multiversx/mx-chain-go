@@ -155,20 +155,6 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 	log.Info(fmt.Sprintf("%sStep 5: signature has been sent\n", sr.syncTimer.FormattedCurrentTime()))
 
-	selfIndex, err := sr.consensusState.SelfConsensusGroupIndex()
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	err = sr.multiSigner.AddSignatureShare(uint16(selfIndex), sigPart)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
 	err = sr.consensusState.SetSelfJobDone(SrSignature, true)
 
 	if err != nil {
@@ -255,7 +241,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *spos.ConsensusMessage) bo
 		return false
 	}
 
-	err = sr.multiSigner.AddSignatureShare(uint16(index), cnsDta.SubRoundData)
+	err = sr.multiSigner.StoreSignatureShare(uint16(index), cnsDta.SubRoundData)
 
 	if err != nil {
 		log.Error(err.Error())

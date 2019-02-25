@@ -445,7 +445,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		transient,
-		&blkc,
+		blkc,
 		round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond)),
 		&mock.BlockProcessorMock{},
 		waitTime,
@@ -2069,7 +2069,7 @@ func TestBootstrap_CreateEmptyBlockShouldWork(t *testing.T) {
 	assert.NotNil(t, hdr)
 }
 
-func TestBootstrap_AddSyncStateListnerShouldAppendAnotherListner(t *testing.T) {
+func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := 0
@@ -2127,14 +2127,14 @@ func TestBootstrap_AddSyncStateListnerShouldAppendAnotherListner(t *testing.T) {
 	f2 := func(bool) {}
 	f3 := func(bool) {}
 
-	bs.AddSyncStateListner(f1)
-	bs.AddSyncStateListner(f2)
-	bs.AddSyncStateListner(f3)
+	bs.AddSyncStateListener(f1)
+	bs.AddSyncStateListener(f2)
+	bs.AddSyncStateListener(f3)
 
-	assert.Equal(t, 3, len(bs.SyncStateListners()))
+	assert.Equal(t, 3, len(bs.SyncStateListeners()))
 }
 
-func TestBootstrap_NotifySyncStateListnersShouldNotify(t *testing.T) {
+func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := 0
@@ -2208,11 +2208,11 @@ func TestBootstrap_NotifySyncStateListnersShouldNotify(t *testing.T) {
 
 	wg.Add(3)
 
-	bs.AddSyncStateListner(f1)
-	bs.AddSyncStateListner(f2)
-	bs.AddSyncStateListner(f3)
+	bs.AddSyncStateListener(f1)
+	bs.AddSyncStateListener(f2)
+	bs.AddSyncStateListener(f3)
 
-	bs.NotifySyncStateListners()
+	bs.NotifySyncStateListeners()
 
 	wg.Wait()
 

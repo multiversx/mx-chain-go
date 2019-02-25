@@ -116,7 +116,7 @@ type Resolver interface {
 // to syncronize the node
 type Bootstraper interface {
 	CreateAndCommitEmptyBlock(uint32) (*block.TxBlockBody, *block.Header)
-	AddSyncStateListner(func(bool))
+	AddSyncStateListener(func(bool))
 	ShouldSync() bool
 }
 
