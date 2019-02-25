@@ -5,10 +5,11 @@ import (
 )
 
 type RoundStub struct {
-	IndexCalled        func() int32
-	TimeDurationCalled func() time.Duration
-	TimeStampCalled    func() time.Time
-	UpdateRoundCalled  func(time.Time, time.Time)
+	IndexCalled                func() int32
+	TimeDurationCalled         func() time.Duration
+	TimeStampCalled            func() time.Time
+	UpdateRoundCalled          func(time.Time, time.Time)
+	RemainingTimeInRoundCalled func(uint32) time.Duration
 }
 
 func (rnds *RoundStub) Index() int32 {
@@ -25,4 +26,8 @@ func (rnds *RoundStub) TimeStamp() time.Time {
 
 func (rnds *RoundStub) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	rnds.UpdateRoundCalled(genesisRoundTimeStamp, timeStamp)
+}
+
+func (rnds *RoundStub) RemainingTimeInRound(safeThresholdPercent uint32) time.Duration {
+	return rnds.RemainingTimeInRoundCalled(safeThresholdPercent)
 }

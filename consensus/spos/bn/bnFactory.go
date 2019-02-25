@@ -32,9 +32,13 @@ const (
 //TODO: maximum transactions in one block (this should be injected, and this const should be removed later)
 const maxTransactionsInBlock = 15000
 
-// maxBlockProcessingTimePercent specifies which is the max allocated time percent,
-// for processing block, from the total time of one round
-const maxBlockProcessingTimePercent = 90
+// safeThresholdPercent specifies which is the safe allocated time percent,
+// for doing job, from the total time of one round
+const safeThresholdPercent = 90
+
+// maxThresholdPercent specifies which is the max allocated time percent,
+// for doing job, from the total time of one round
+const maxThresholdPercent = 100
 
 // MessageType specifies what type of message was received
 type MessageType int

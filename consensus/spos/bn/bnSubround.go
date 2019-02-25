@@ -3,6 +3,7 @@ package bn
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
 
@@ -36,7 +37,9 @@ func NewSubround(
 	consensusStateChangedChannel chan bool,
 ) (*subround, error) {
 
-	err := checkNewSubroundParams(consensusStateChangedChannel)
+	err := checkNewSubroundParams(
+		consensusStateChangedChannel,
+	)
 
 	if err != nil {
 		return nil, err
@@ -68,7 +71,7 @@ func checkNewSubroundParams(
 // DoWork method actually does the work of this subround. First it tries to do the job of the subround then it will
 // check the consensus. If the upper time limit of this subround is reached, the extend method will be called before
 // returning. If this method returns true the chronology will advance to the next subround.
-func (sr *subround) DoWork(remainingTimeInCurrentRound func() time.Duration) bool {
+func (sr *subround) DoWork(rounder consensus.Rounder) bool {
 	if sr.job == nil || sr.check == nil {
 		return false
 	}
@@ -85,7 +88,7 @@ func (sr *subround) DoWork(remainingTimeInCurrentRound func() time.Duration) boo
 			if sr.check() {
 				return true
 			}
-		case <-time.After(remainingTimeInCurrentRound()):
+		case <-time.After(rounder.RemainingTimeInRound(maxThresholdPercent)):
 			if sr.extend != nil {
 				sr.extend(sr.current)
 			}

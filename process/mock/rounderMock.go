@@ -33,3 +33,7 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 		rndm.RoundTimeStamp = genesisRoundTimeStamp.Add(time.Duration(int64(index) * rndm.RoundTimeDuration.Nanoseconds()))
 	}
 }
+
+func (rndm *RounderMock) RemainingTimeInRound(safeThresholdPercent uint32) time.Duration {
+	return rndm.RoundTimeDuration
+}

@@ -21,7 +21,7 @@ func initSubroundHandlerMock() *mock.SubroundHandlerMock {
 		return 1
 	}
 
-	srm.DoWorkCalled = func(remainingTimeInThisRound func() time.Duration) bool {
+	srm.DoWorkCalled = func(rounder consensus.Rounder) bool {
 		return false
 	}
 
@@ -220,7 +220,7 @@ func TestChronology_StartRoundShouldWork(t *testing.T) {
 
 	srm := initSubroundHandlerMock()
 
-	srm.DoWorkCalled = func(remainingTimeInThisRound func() time.Duration) bool {
+	srm.DoWorkCalled = func(rounder consensus.Rounder) bool {
 		return true
 	}
 
@@ -292,56 +292,4 @@ func TestChronology_LoadSubrounderShouldReturnNilWhenIndexIsOutOfBound(t *testin
 	chr.SetSubroundHandlers(make([]consensus.SubroundHandler, 0))
 
 	assert.Nil(t, chr.LoadSubroundHandler(0))
-}
-
-func TestChronology_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T) {
-	t.Parallel()
-
-	rounderMock := &mock.RounderMock{}
-
-	syncTimerMock := &mock.SyncTimerMock{}
-
-	timeElapsed := int64(rounderMock.TimeDuration() - 1)
-
-	syncTimerMock.CurrentTimeCalled = func() time.Time {
-		return time.Unix(0, timeElapsed)
-	}
-
-	genesisTime := time.Now()
-
-	chr, _ := chronology.NewChronology(
-		genesisTime,
-		rounderMock,
-		syncTimerMock)
-
-	remainingTime := chr.RemainingTimeInCurrentRound()
-
-	assert.Equal(t, time.Duration(int64(rounderMock.TimeDuration())-timeElapsed), remainingTime)
-	assert.True(t, remainingTime > 0)
-}
-
-func TestChronology_RemainingTimeInCurrentRoundShouldReturnNegativeValue(t *testing.T) {
-	t.Parallel()
-
-	rounderMock := &mock.RounderMock{}
-
-	syncTimerMock := &mock.SyncTimerMock{}
-
-	timeElapsed := int64(rounderMock.TimeDuration() + 1)
-
-	syncTimerMock.CurrentTimeCalled = func() time.Time {
-		return time.Unix(0, timeElapsed)
-	}
-
-	genesisTime := time.Now()
-
-	chr, _ := chronology.NewChronology(
-		genesisTime,
-		rounderMock,
-		syncTimerMock)
-
-	remainingTime := chr.RemainingTimeInCurrentRound()
-
-	assert.Equal(t, time.Duration(int64(rounderMock.TimeDuration())-timeElapsed), remainingTime)
-	assert.True(t, remainingTime < 0)
 }

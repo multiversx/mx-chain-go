@@ -191,7 +191,11 @@ func (n *Node) StartConsensus() error {
 	n.blkc.GenesisBlock = genesisHeader
 	n.blkc.GenesisHeaderHash = genesisHeaderHash
 
-	rounder := n.createRounder()
+	rounder, err := n.createRounder()
+
+	if err != nil {
+		return err
+	}
 
 	chronologyHandler, err := n.createChronologyHandler(rounder)
 
@@ -410,13 +414,14 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 }
 
 // createRounder method creates a round object
-func (n *Node) createRounder() consensus.Rounder {
-	rnd := round.NewRound(
+func (n *Node) createRounder() (consensus.Rounder, error) {
+	rnd, err := round.NewRound(
 		n.genesisTime,
 		n.syncer.CurrentTime(),
-		time.Millisecond*time.Duration(n.roundDuration))
+		time.Millisecond*time.Duration(n.roundDuration),
+		n.syncer)
 
-	return rnd
+	return rnd, err
 }
 
 // createChronologyHandler method creates a chronology object

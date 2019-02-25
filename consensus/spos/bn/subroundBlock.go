@@ -402,15 +402,15 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 	node := string(cnsDta.PubKey)
 
 	remainingTimeInCurrentRound := func() time.Duration {
-		roundStartTime := sr.rounder.TimeStamp()
-		currentTime := sr.syncTimer.CurrentTime()
-		elapsedTime := currentTime.Sub(roundStartTime)
-		remainingTime := sr.rounder.TimeDuration()*maxBlockProcessingTimePercent/100 - elapsedTime
-
-		return remainingTime
+		return sr.rounder.RemainingTimeInRound(safeThresholdPercent)
 	}
 
-	err := sr.blockProcessor.ProcessBlock(sr.blockChain, sr.consensusState.Header, sr.consensusState.BlockBody, remainingTimeInCurrentRound)
+	err := sr.blockProcessor.ProcessBlock(
+		sr.blockChain,
+		sr.consensusState.Header,
+		sr.consensusState.BlockBody,
+		remainingTimeInCurrentRound,
+	)
 
 	if err != nil {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
@@ -423,7 +423,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 		return false
 	}
 
-	if remainingTimeInCurrentRound() < 0 {
+	if sr.rounder.RemainingTimeInRound(safeThresholdPercent) < 0 {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, time is out\n",
 			cnsDta.RoundIndex, getSubroundName(SrBlock)))
 

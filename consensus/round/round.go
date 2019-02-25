@@ -3,6 +3,8 @@ package round
 import (
 	"math"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 )
 
 // round defines the data needed by the rounder
@@ -10,13 +12,24 @@ type round struct {
 	index        int32         // represents the index of the round in the current chronology (current time - genesis time) / round duration
 	timeStamp    time.Time     // represents the start time of the round in the current chronology genesis time + round index * round duration
 	timeDuration time.Duration // represents the duration of the round in current chronology
+	syncTimer    ntp.SyncTimer
 }
 
 // NewRound defines a new round object
-func NewRound(genesisTimeStamp time.Time, currentTimeStamp time.Time, roundTimeDuration time.Duration) *round {
-	rnd := round{timeDuration: roundTimeDuration, timeStamp: genesisTimeStamp}
+func NewRound(
+	genesisTimeStamp time.Time,
+	currentTimeStamp time.Time,
+	roundTimeDuration time.Duration,
+	syncTimer ntp.SyncTimer,
+) (*round, error) {
+
+	if syncTimer == nil {
+		return nil, ErrNilSyncTimer
+	}
+
+	rnd := round{timeDuration: roundTimeDuration, timeStamp: genesisTimeStamp, syncTimer: syncTimer}
 	rnd.UpdateRound(genesisTimeStamp, currentTimeStamp)
-	return &rnd
+	return &rnd, nil
 }
 
 // UpdateRound updates the index and the time stamp of the round depending of the genesis time and the current time given
@@ -48,8 +61,9 @@ func (rnd *round) TimeDuration() time.Duration {
 
 // RemainingTimeInRound returns the remaining time in the current round given by the current time, round start time and
 // safe threshold percent
-func (rnd *round) RemainingTimeInRound(currentTime time.Time, safeThresholdPercent uint32) time.Duration {
+func (rnd *round) RemainingTimeInRound(safeThresholdPercent uint32) time.Duration {
 	roundStartTime := rnd.timeStamp
+	currentTime := rnd.syncTimer.CurrentTime()
 	elapsedTime := currentTime.Sub(roundStartTime)
 	remainingTime := rnd.timeDuration*time.Duration(safeThresholdPercent)/100 - elapsedTime
 

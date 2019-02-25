@@ -7,10 +7,11 @@ import (
 type RounderMock struct {
 	index int32
 
-	IndexCalled        func() int32
-	TimeDurationCalled func() time.Duration
-	TimeStampCalled    func() time.Time
-	UpdateRoundCalled  func(time.Time, time.Time)
+	IndexCalled                func() int32
+	TimeDurationCalled         func() time.Duration
+	TimeStampCalled            func() time.Time
+	UpdateRoundCalled          func(time.Time, time.Time)
+	RemainingTimeInRoundCalled func(safeThresholdPercent uint32) time.Duration
 }
 
 func (rndm *RounderMock) Index() int32 {
@@ -44,4 +45,12 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 	}
 
 	rndm.index++
+}
+
+func (rndm *RounderMock) RemainingTimeInRound(safeThresholdPercent uint32) time.Duration {
+	if rndm.RemainingTimeInRoundCalled != nil {
+		return rndm.RemainingTimeInRoundCalled(safeThresholdPercent)
+	}
+
+	return time.Duration(4000 * time.Millisecond)
 }

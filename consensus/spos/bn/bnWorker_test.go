@@ -773,7 +773,7 @@ func TestWorker_ReceivedMessageShouldSendReceivedMesageOnChannel(t *testing.T) {
 
 	wrk.ReceivedMessage(string(consensusTopic), cnsMsg, nil)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
 }
@@ -1232,7 +1232,7 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	)
 
 	wrk.ExecuteMessageChannel() <- cnsMsg
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 
 	isBlockJobDone, err := wrk.ConsensusState().JobDone(cnsGroup[0], bn.SrBlock)
 
@@ -1461,7 +1461,7 @@ func TestWorker_ExtendShouldReturnWhenBroadcastTxBlockBodyIsNil(t *testing.T) {
 	}
 
 	wrk.Extend(0)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 	assert.Equal(t, int32(2), atomic.LoadInt32(&executed))
 }
 

@@ -116,7 +116,7 @@ func (chr *chronology) startRound() {
 	msg := fmt.Sprintf("SUBROUND %s BEGINS", sr.Name())
 	log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
 
-	if !sr.DoWork(chr.remainingTimeInCurrentRound) {
+	if !sr.DoWork(chr.rounder) {
 		return
 	}
 
@@ -167,13 +167,4 @@ func (chr *chronology) loadSubroundHandler(subroundId int) consensus.SubroundHan
 	}
 
 	return chr.subroundHandlers[index]
-}
-
-func (chr *chronology) remainingTimeInCurrentRound() time.Duration {
-	roundStartTime := chr.rounder.TimeStamp()
-	currentTime := chr.syncTimer.CurrentTime()
-	elapsedTime := currentTime.Sub(roundStartTime)
-	remainingTime := chr.rounder.TimeDuration() - elapsedTime
-
-	return time.Duration(remainingTime)
 }

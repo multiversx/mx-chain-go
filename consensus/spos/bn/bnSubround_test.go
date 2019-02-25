@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -74,11 +75,13 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 	})
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	haveTime := func() time.Duration {
+
+	rounderMock := &mock.RounderMock{}
+	rounderMock.RemainingTimeInRoundCalled = func(safeThresholdPercent uint32) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 
-	r := sr.DoWork(haveTime)
+	r := sr.DoWork(rounderMock)
 	assert.False(t, r)
 }
 
@@ -103,11 +106,13 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 	sr.SetCheckFunction(nil)
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	haveTime := func() time.Duration {
+
+	rounderMock := &mock.RounderMock{}
+	rounderMock.RemainingTimeInRoundCalled = func(safeThresholdPercent uint32) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 
-	r := sr.DoWork(haveTime)
+	r := sr.DoWork(rounderMock)
 	assert.False(t, r)
 }
 
@@ -134,11 +139,13 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 	})
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	haveTime := func() time.Duration {
+
+	rounderMock := &mock.RounderMock{}
+	rounderMock.RemainingTimeInRoundCalled = func(safeThresholdPercent uint32) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 
-	r := sr.DoWork(haveTime)
+	r := sr.DoWork(rounderMock)
 	assert.False(t, r)
 }
 
@@ -166,11 +173,13 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 	})
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	haveTime := func() time.Duration {
+
+	rounderMock := &mock.RounderMock{}
+	rounderMock.RemainingTimeInRoundCalled = func(safeThresholdPercent uint32) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 
-	r := sr.DoWork(haveTime)
+	r := sr.DoWork(rounderMock)
 	assert.True(t, r)
 }
 
@@ -205,13 +214,15 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 		return checkSuccess
 	})
 
-	maxTime := time.Now().Add(100 * time.Millisecond)
-	haveTime := func() time.Duration {
+	maxTime := time.Now().Add(2000 * time.Millisecond)
+
+	rounderMock := &mock.RounderMock{}
+	rounderMock.RemainingTimeInRoundCalled = func(safeThresholdPercent uint32) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 
 	go func() {
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(1000 * time.Millisecond)
 
 		mut.Lock()
 		checkSuccess = true
@@ -220,7 +231,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 		ch <- true
 	}()
 
-	r := sr.DoWork(haveTime)
+	r := sr.DoWork(rounderMock)
 
 	assert.True(t, r)
 }

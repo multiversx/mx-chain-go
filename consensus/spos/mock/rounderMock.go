@@ -9,6 +9,8 @@ type RounderMock struct {
 	RoundIndex        int32
 	RoundTimeStamp    time.Time
 	RoundTimeDuration time.Duration
+
+	RemainingTimeInRoundCalled func(safeThresholdPercent uint32) time.Duration
 }
 
 func (rndm *RounderMock) Index() int32 {
@@ -32,4 +34,12 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 		rndm.RoundIndex = index
 		rndm.RoundTimeStamp = genesisRoundTimeStamp.Add(time.Duration(int64(index) * rndm.RoundTimeDuration.Nanoseconds()))
 	}
+}
+
+func (rndm *RounderMock) RemainingTimeInRound(safeThresholdPercent uint32) time.Duration {
+	if rndm.RemainingTimeInRoundCalled != nil {
+		return rndm.RemainingTimeInRoundCalled(safeThresholdPercent)
+	}
+
+	return rndm.RoundTimeDuration
 }
