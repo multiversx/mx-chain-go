@@ -21,7 +21,7 @@ type TransactionProcessor interface {
 	SetBalancesToTrie(accBalance map[string]*big.Int) (rootHash []byte, err error)
 }
 
-// BlockProcessor is the main interface for block execution engine
+// blockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
 	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error
 	ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error
@@ -32,6 +32,7 @@ type BlockProcessor interface {
 	CreateEmptyBlockBody(shardId uint32, round int32) *block.TxBlockBody
 	RemoveBlockTxsFromPool(body *block.TxBlockBody) error
 	GetRootHash() []byte
+	CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -93,6 +94,8 @@ type TopicResolverSender interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
+	CreateAndCommitEmptyBlock(uint32) (*block.TxBlockBody, *block.Header)
+	AddSyncStateListener(func(bool))
 	ShouldSync() bool
 }
 

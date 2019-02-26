@@ -17,7 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
@@ -40,6 +39,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
@@ -141,7 +141,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	//  timestamp
 	if genesisConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
-		ntpTime := syncer.CurrentTime(syncer.ClockOffset())
+		ntpTime := syncer.CurrentTime()
 		genesisConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
 	}
 

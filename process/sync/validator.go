@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
@@ -26,13 +26,13 @@ type syncValidators struct {
 
 	mut sync.RWMutex
 
-	rounder  chronology.Rounder
+	rounder  consensus.Rounder
 	accounts state.AccountsAdapter
 }
 
 // NewSyncValidators creates a new syncValidators object
 func NewSyncValidators(
-	rounder chronology.Rounder,
+	rounder consensus.Rounder,
 	accounts state.AccountsAdapter,
 ) (*syncValidators, error) {
 	err := checkSyncValidatorsNilParameters(rounder, accounts)
@@ -52,11 +52,11 @@ func NewSyncValidators(
 
 // checkSyncValidatorsNilParameters method will check the input parameters for nil values
 func checkSyncValidatorsNilParameters(
-	rounder chronology.Rounder,
+	rounder consensus.Rounder,
 	accounts state.AccountsAdapter,
 ) error {
 	if rounder == nil {
-		return process.ErrNilRound
+		return process.ErrNilRounder
 	}
 
 	if accounts == nil {

@@ -1,7 +1,7 @@
 package facade
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )

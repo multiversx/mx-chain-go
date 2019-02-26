@@ -50,3 +50,7 @@ func (bps *BlockProcessorStub) RemoveBlockTxsFromPool(body *block.TxBlockBody) e
 func (bps *BlockProcessorStub) GetRootHash() []byte {
 	panic("implement me")
 }
+
+func (bps BlockProcessorStub) CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool {
+	panic("implement me")
+}
