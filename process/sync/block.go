@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
@@ -26,15 +27,16 @@ const sleepTime = time.Duration(5 * time.Millisecond)
 
 // Bootstrap implements the boostrsap mechanism
 type Bootstrap struct {
-	headers       data.ShardedDataCacherNotifier
-	headersNonces data.Uint64Cacher
-	txBlockBodies storage.Cacher
-	blkc          *blockchain.BlockChain
-	rounder       consensus.Rounder
-	blkExecutor   process.BlockProcessor
-	hasher        hashing.Hasher
-	marshalizer   marshal.Marshalizer
-	forkDetector  process.ForkDetector
+	headers          data.ShardedDataCacherNotifier
+	headersNonces    data.Uint64Cacher
+	txBlockBodies    storage.Cacher
+	blkc             *blockchain.BlockChain
+	rounder          consensus.Rounder
+	blkExecutor      process.BlockProcessor
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	forkDetector     process.ForkDetector
+	shardCoordinator sharding.ShardCoordinator
 
 	mutHeader   sync.RWMutex
 	headerNonce *uint64
@@ -54,6 +56,8 @@ type Bootstrap struct {
 	isNodeSynchronized    bool
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
+
+	maxHeaderNonceReceived uint64
 }
 
 // NewBootstrap creates a new Bootstrap object
@@ -67,6 +71,7 @@ func NewBootstrap(
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
 	resolversContainer process.ResolversContainer,
+	shardCoordinator sharding.ShardCoordinator,
 ) (*Bootstrap, error) {
 
 	err := checkBootstrapNilParameters(
@@ -77,23 +82,26 @@ func NewBootstrap(
 		hasher,
 		marshalizer,
 		forkDetector,
-		resolversContainer)
+		resolversContainer,
+		shardCoordinator,
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
 	boot := Bootstrap{
-		headers:       transientDataHolder.Headers(),
-		headersNonces: transientDataHolder.HeadersNonces(),
-		txBlockBodies: transientDataHolder.TxBlocks(),
-		blkc:          blkc,
-		rounder:       rounder,
-		blkExecutor:   blkExecutor,
-		waitTime:      waitTime,
-		hasher:        hasher,
-		marshalizer:   marshalizer,
-		forkDetector:  forkDetector,
+		headers:          transientDataHolder.Headers(),
+		headersNonces:    transientDataHolder.HeadersNonces(),
+		txBlockBodies:    transientDataHolder.TxBlocks(),
+		blkc:             blkc,
+		rounder:          rounder,
+		blkExecutor:      blkExecutor,
+		waitTime:         waitTime,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		forkDetector:     forkDetector,
+		shardCoordinator: shardCoordinator,
 	}
 
 	hdrResolver, err := resolversContainer.Get(string(factory.HeadersTopic))
@@ -137,6 +145,7 @@ func checkBootstrapNilParameters(
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
 	resolvers process.ResolversContainer,
+	shardCoordinator sharding.ShardCoordinator,
 ) error {
 	if transientDataHolder == nil {
 		return process.ErrNilTransientDataHolder
@@ -180,6 +189,10 @@ func checkBootstrapNilParameters(
 
 	if resolvers == nil {
 		return process.ErrNilResolverContainer
+	}
+
+	if shardCoordinator == nil {
+		return process.ErrNilShardCoordinator
 	}
 
 	return nil
@@ -268,6 +281,10 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
+	if nonce > boot.maxHeaderNonceReceived {
+		boot.maxHeaderNonceReceived = nonce
+	}
+
 	n := boot.requestedHeaderNonce()
 
 	if n == nil {
@@ -360,6 +377,18 @@ func (boot *Bootstrap) SyncBlock() error {
 
 	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
 	if err != nil {
+		if err == process.ErrMissingHeader {
+			if nonce > boot.maxHeaderNonceReceived {
+				log.Info(err.Error())
+				txBlockBody, header, err := boot.CreateAndCommitEmptyBlock(boot.shardCoordinator.ShardForCurrentNode())
+				if err == nil {
+					log.Info(fmt.Sprintf("txBlockBody with root hash %s and header with nonce %d was created and commited through the recovery mechanism\n",
+						toB64(txBlockBody.RootHash),
+						header.Nonce))
+				}
+			}
+		}
+
 		return err
 	}
 
@@ -383,6 +412,7 @@ func (boot *Bootstrap) SyncBlock() error {
 
 	if err != nil {
 		if err == process.ErrInvalidBlockHash {
+			log.Info(err.Error())
 			err = boot.forkChoice(hdr)
 		}
 
@@ -432,8 +462,9 @@ func (boot *Bootstrap) requestHeader(nonce uint64) {
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
 
 	log.Info(fmt.Sprintf("requested header with nonce %d from network\n", nonce))
+
 	if err != nil {
-		log.Error("RequestHeaderFromNonce error:  ", err.Error())
+		log.Error(err.Error())
 	}
 }
 
@@ -700,36 +731,46 @@ func (boot *Bootstrap) ShouldSync() bool {
 	return false
 }
 
+func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
+	currentRoundIndex := boot.rounder.Index()
+	currentRoundTimeStamp := boot.rounder.TimeStamp()
+	roundDuration := boot.rounder.TimeDuration()
+
+	diff := int32(roundIndex) - currentRoundIndex
+
+	roundTimeStamp := currentRoundTimeStamp.Add(roundDuration * time.Duration(diff))
+
+	return roundTimeStamp
+}
+
 // CreateAndCommitEmptyBlock creates and commits an empty block
-func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header) {
-	log.Info(fmt.Sprintf("creating and broadcasting an empty block\n"))
+func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header, error) {
+	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
 
 	boot.blkExecutor.RevertAccountState()
 
-	blk := boot.blkExecutor.CreateEmptyBlockBody(
-		shardForCurrentNode,
-		boot.rounder.Index())
-
+	blk := boot.blkExecutor.CreateEmptyBlockBody(shardForCurrentNode)
 	hdr := &block.Header{}
-	hdr.Round = uint32(boot.rounder.Index())
-	hdr.TimeStamp = uint64(boot.rounder.TimeStamp().Unix())
 
 	var prevHeaderHash []byte
 
 	if boot.blkc.CurrentBlockHeader == nil {
 		hdr.Nonce = 1
+		hdr.Round = 0
 		prevHeaderHash = boot.blkc.GenesisHeaderHash
 	} else {
 		hdr.Nonce = boot.blkc.CurrentBlockHeader.Nonce + 1
+		hdr.Round = boot.blkc.CurrentBlockHeader.Round + 1
 		prevHeaderHash = boot.blkc.CurrentBlockHeaderHash
 	}
 
+	hdr.TimeStamp = uint64(boot.getTimeStampForRound(hdr.Round).Unix())
 	hdr.PrevHash = prevHeaderHash
+
 	blkStr, err := boot.marshalizer.Marshal(blk)
 
 	if err != nil {
-		log.Info(err.Error())
-		return nil, nil
+		return nil, nil, err
 	}
 
 	hdr.BlockBodyHash = boot.hasher.Compute(string(blkStr))
@@ -746,11 +787,10 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (*b
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
 
 	if err != nil {
-		log.Info(err.Error())
-		return nil, nil
+		return nil, nil, err
 	}
 
 	log.Info(fmt.Sprintf("\n******************** ADDED EMPTY BLOCK WITH NONCE  %d  IN BLOCKCHAIN ********************\n\n", hdr.Nonce))
 
-	return blk, hdr
+	return blk, hdr, nil
 }

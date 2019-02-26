@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
@@ -58,4 +60,12 @@ func (boot *Bootstrap) NotifySyncStateListeners() {
 
 func (boot *Bootstrap) SyncStateListeners() []func(bool) {
 	return boot.syncStateListeners
+}
+
+func (boot *Bootstrap) SetMaxHeaderNonceReceived(maxHeaderNonceReceived uint64) {
+	boot.maxHeaderNonceReceived = maxHeaderNonceReceived
+}
+
+func (boot *Bootstrap) GetTimeStampForRound(roundIndex uint32) time.Time {
+	return boot.getTimeStampForRound(roundIndex)
 }

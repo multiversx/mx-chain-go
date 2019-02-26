@@ -17,12 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type topicName string
-
-const (
-	consensusTopic topicName = "cns"
-)
-
 const roundTimeDuration = time.Duration(100 * time.Millisecond)
 
 func sendMessage(cnsMsg *spos.ConsensusMessage) {
@@ -153,7 +147,7 @@ func initBlockProcessorMock() *mock.BlockProcessorMock {
 		return nil
 	}
 
-	blockProcessorMock.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
+	blockProcessorMock.CreateEmptyBlockBodyCalled = func(shardId uint32) *block.TxBlockBody {
 		return &block.TxBlockBody{}
 	}
 
@@ -1430,9 +1424,9 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 		ShouldSyncCalled: func() bool {
 			return true
 		},
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header) {
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header, error) {
 			executed = true
-			return nil, nil
+			return nil, nil, errors.New("error")
 		},
 	}
 
@@ -1455,9 +1449,9 @@ func TestWorker_ExtendShouldReturnWhenShouldSync(t *testing.T) {
 		ShouldSyncCalled: func() bool {
 			return true
 		},
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header) {
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header, error) {
 			executed = true
-			return nil, nil
+			return nil, nil, errors.New("error")
 		},
 	}
 
@@ -1483,8 +1477,8 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 	}
 
 	bootstraperMock := &mock.BootstraperMock{
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header) {
-			return nil, nil
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header, error) {
+			return nil, nil, errors.New("error")
 		}}
 
 	wrk.SetBootstraper(bootstraperMock)

@@ -283,7 +283,7 @@ func (bp *blockProcessor) CreateTxBlockBody(shardId uint32, maxTxInBlock int, ro
 }
 
 // CreateEmptyBlockBody creates a new block body without any tx hash
-func (bp *blockProcessor) CreateEmptyBlockBody(shardId uint32, round int32) *block.TxBlockBody {
+func (bp *blockProcessor) CreateEmptyBlockBody(shardId uint32) *block.TxBlockBody {
 	miniBlocks := make([]block.MiniBlock, 0)
 
 	rootHash := bp.accounts.RootHash()

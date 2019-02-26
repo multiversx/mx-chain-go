@@ -312,7 +312,6 @@ func TestCreateEmptyBlockBody_ShouldWork(t *testing.T) {
 
 	rootHash := []byte("test root hash")
 	shardId := uint32(4)
-	round := int32(5)
 
 	accounts := &mock.AccountsStub{}
 	accounts.RootHashCalled = func() []byte {
@@ -331,7 +330,7 @@ func TestCreateEmptyBlockBody_ShouldWork(t *testing.T) {
 		},
 	)
 
-	txBlockBody := be.CreateEmptyBlockBody(shardId, round)
+	txBlockBody := be.CreateEmptyBlockBody(shardId)
 
 	expectedTxBlockBody := &block.TxBlockBody{
 		MiniBlocks: make([]block.MiniBlock, 0),

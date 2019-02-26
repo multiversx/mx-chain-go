@@ -69,6 +69,7 @@ func TestNewBootstrap_NilTransientDataHolderShouldErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		nil,
@@ -79,7 +80,9 @@ func TestNewBootstrap_NilTransientDataHolderShouldErr(t *testing.T) {
 		hasher,
 		marshalizer,
 		forkDetector,
-		&mock.ResolversContainerStub{})
+		&mock.ResolversContainerStub{},
+		shardCoordinator,
+	)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilTransientDataHolder, err)
@@ -104,6 +107,7 @@ func TestNewBootstrap_TransientDataHolderRetNilOnHeadersShouldErr(t *testing.T) 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -115,6 +119,7 @@ func TestNewBootstrap_TransientDataHolderRetNilOnHeadersShouldErr(t *testing.T) 
 		marshalizer,
 		forkDetector,
 		&mock.ResolversContainerStub{},
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
@@ -140,6 +145,7 @@ func TestNewBootstrap_TransientDataHolderRetNilOnHeadersNoncesShouldErr(t *testi
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -151,6 +157,7 @@ func TestNewBootstrap_TransientDataHolderRetNilOnHeadersNoncesShouldErr(t *testi
 		marshalizer,
 		forkDetector,
 		&mock.ResolversContainerStub{},
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
@@ -176,6 +183,7 @@ func TestNewBootstrap_TransientDataHolderRetNilOnTxBlockBodyShouldErr(t *testing
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -187,6 +195,7 @@ func TestNewBootstrap_TransientDataHolderRetNilOnTxBlockBodyShouldErr(t *testing
 		marshalizer,
 		forkDetector,
 		&mock.ResolversContainerStub{},
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
@@ -211,6 +220,7 @@ func TestNewBootstrap_NilBlockchainShouldErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -222,6 +232,7 @@ func TestNewBootstrap_NilBlockchainShouldErr(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		&mock.ResolversContainerStub{},
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
@@ -246,6 +257,7 @@ func TestNewBootstrap_NilRounderShouldErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -257,6 +269,7 @@ func TestNewBootstrap_NilRounderShouldErr(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		&mock.ResolversContainerStub{},
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
@@ -281,6 +294,7 @@ func TestNewBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -292,6 +306,7 @@ func TestNewBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		&mock.ResolversContainerStub{},
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
@@ -316,6 +331,7 @@ func TestNewBootstrap_NilHasherShouldErr(t *testing.T) {
 	blkExec := &mock.BlockProcessorMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -327,6 +343,7 @@ func TestNewBootstrap_NilHasherShouldErr(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		&mock.ResolversContainerStub{},
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
@@ -351,6 +368,7 @@ func TestNewBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -362,6 +380,7 @@ func TestNewBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 		nil,
 		forkDetector,
 		&mock.ResolversContainerStub{},
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
@@ -386,6 +405,7 @@ func TestNewBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -397,6 +417,7 @@ func TestNewBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 		marshalizer,
 		nil,
 		&mock.ResolversContainerStub{},
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
@@ -422,6 +443,7 @@ func TestNewBootstrap_NilResolversContainerShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -433,10 +455,48 @@ func TestNewBootstrap_NilResolversContainerShouldErr(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		nil,
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilResolverContainer, err)
+}
+
+func TestNewBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		return &mock.ShardedDataStub{}
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		return &mock.Uint64CacherStub{}
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
+	}
+	blkc := &blockchain.BlockChain{}
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	bs, err := sync.NewBootstrap(
+		transient,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		&mock.ResolversContainerStub{},
+		nil,
+	)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
 func TestNewBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
@@ -475,6 +535,7 @@ func TestNewBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -486,6 +547,7 @@ func TestNewBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		resContainer,
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
@@ -528,6 +590,7 @@ func TestNewBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -539,6 +602,7 @@ func TestNewBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		resContainer,
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs)
@@ -586,6 +650,7 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, err := sync.NewBootstrap(
 		transient,
@@ -597,6 +662,7 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	assert.NotNil(t, bs)
@@ -644,19 +710,36 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		return true
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+
+	blockProcessorMock := &mock.BlockProcessorMock{
+		RevertAccountStateCalled: func() {
+			return
+		},
+		CreateEmptyBlockBodyCalled: func(shardId uint32) *block.TxBlockBody {
+			return &block.TxBlockBody{}
+		},
+		CommitBlockCalled: func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+			return nil
+		},
+	}
 
 	bs, _ := sync.NewBootstrap(
 		transient,
 		&blkc,
 		rnd,
-		&mock.BlockProcessorMock{},
+		blockProcessorMock,
 		waitTime,
 		hasher,
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
+
+	bs.SetMaxHeaderNonceReceived(100)
 
 	r := bs.SyncBlock()
 
@@ -724,7 +807,10 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		return true
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+
 	bs, _ := sync.NewBootstrap(
 		transient,
 		blkc,
@@ -735,6 +821,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	bs.RequestHeader(2)
@@ -748,8 +835,21 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	t.Parallel()
 
 	ebm := mock.BlockProcessorMock{}
+
 	ebm.ProcessAndCommitCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.TxBlockBody, haveTime func() time.Duration) error {
 		blk.CurrentBlockHeader = hdr
+		return nil
+	}
+
+	ebm.RevertAccountStateCalled = func() {
+		return
+	}
+
+	ebm.CreateEmptyBlockBodyCalled = func(shardId uint32) *block.TxBlockBody {
+		return &block.TxBlockBody{}
+	}
+
+	ebm.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
 		return nil
 	}
 
@@ -798,6 +898,8 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		return false
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
@@ -810,6 +912,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	bs.StartSync()
@@ -821,8 +924,21 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	t.Parallel()
 
 	ebm := mock.BlockProcessorMock{}
+
 	ebm.ProcessAndCommitCalled = func(blk *blockchain.BlockChain, hdr *block.Header, bdy *block.TxBlockBody, haveTime func() time.Duration) error {
 		blk.CurrentBlockHeader = hdr
+		return nil
+	}
+
+	ebm.RevertAccountStateCalled = func() {
+		return
+	}
+
+	ebm.CreateEmptyBlockBodyCalled = func(shardId uint32) *block.TxBlockBody {
+		return &block.TxBlockBody{}
+	}
+
+	ebm.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
 		return nil
 	}
 
@@ -896,6 +1012,8 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return false
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now().Add(200*time.Millisecond), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
@@ -908,6 +1026,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	bs.StartSync()
@@ -992,6 +1111,8 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		return false
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
@@ -1004,6 +1125,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	r := bs.SyncBlock()
@@ -1037,6 +1159,8 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
@@ -1049,6 +1173,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1084,6 +1209,8 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		return false
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
@@ -1096,6 +1223,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	assert.True(t, bs.ShouldSync())
@@ -1135,6 +1263,8 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		return false
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
@@ -1147,6 +1277,7 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1185,6 +1316,8 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		return false
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
@@ -1197,6 +1330,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	assert.False(t, bs.ShouldSync())
@@ -1236,6 +1370,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		return false
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
@@ -1248,6 +1384,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	assert.Nil(t, bs.GetHeaderFromPool(0))
@@ -1298,6 +1435,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
@@ -1310,6 +1449,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	assert.True(t, hdr == bs.GetHeaderFromPool(0))
@@ -1348,6 +1488,8 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
@@ -1360,6 +1502,7 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	assert.True(t, blk == bs.GetTxBody([]byte("aaa")))
@@ -1425,6 +1568,8 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 		return nil
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
@@ -1437,6 +1582,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -1500,6 +1646,8 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 		return nil
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	headerStorage := &mock.StorerStub{}
 	headerStorage.GetCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal(key, addedHash) {
@@ -1531,6 +1679,7 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	bs.ReceivedHeaders(addedHash)
@@ -1569,6 +1718,7 @@ func TestBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -1580,6 +1730,7 @@ func TestBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	err := bs.ForkChoice(&block.Header{})
@@ -1615,6 +1766,7 @@ func TestBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -1626,6 +1778,7 @@ func TestBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	blkc.CurrentBlockHeader = &block.Header{}
@@ -1708,6 +1861,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldRemove(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := createForkDetector(newHdrNonce, remFlags)
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -1719,6 +1873,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldRemove(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	blkc.CurrentBlockHeader = &block.Header{
@@ -1846,7 +2001,9 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 			return nil
 		},
 	}
+
 	forkDetector := createForkDetector(currentHdrNonce, remFlags)
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -1858,6 +2015,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	//this is the block we want to revert
@@ -1964,7 +2122,10 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 			return nil
 		},
 	}
+
 	forkDetector := createForkDetector(currentHdrNonce, remFlags)
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	bs, _ := sync.NewBootstrap(
 		transient,
 		blkc,
@@ -1975,6 +2136,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	//this is the block we want to revert
@@ -2039,6 +2201,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -2050,7 +2213,9 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
+
 	txBlockRecovered := bs.GetTxBody(requestedHash)
 
 	assert.True(t, txBlockRecovered == txBlock)
@@ -2101,6 +2266,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -2112,7 +2278,9 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
+
 	txBlockRecovered := bs.GetTxBody(requestedHash)
 
 	assert.Nil(t, txBlockRecovered)
@@ -2169,9 +2337,11 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 	)
+
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -2183,6 +2353,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 	txBlockRecovered := bs.GetTxBody(requestedHash)
 
@@ -2247,9 +2418,11 @@ func TestBootstrap_GetTxBodyHavingHashMarshalizerFailShouldRemoveAndRetNil(t *te
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 	)
+
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	bs, _ := sync.NewBootstrap(
 		transient,
@@ -2261,6 +2434,7 @@ func TestBootstrap_GetTxBodyHavingHashMarshalizerFailShouldRemoveAndRetNil(t *te
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 	txBlockRecovered := bs.GetTxBody(requestedHash)
 
@@ -2302,17 +2476,19 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenMarshalErr(t *testing.T) {
 
 		return cs
 	}
+
 	blkc := &blockchain.BlockChain{}
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	blkExec.RevertAccountStateCalled = func() {
 	}
 
-	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32) *block.TxBlockBody {
 		return &block.TxBlockBody{}
 	}
 
@@ -2328,9 +2504,10 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenMarshalErr(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
-	blk, hdr := bs.CreateAndCommitEmptyBlock(0)
+	blk, hdr, _ := bs.CreateAndCommitEmptyBlock(0)
 
 	assert.Nil(t, blk)
 	assert.Nil(t, hdr)
@@ -2370,19 +2547,21 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenCommitBlockErr(t *testing.
 
 		return cs
 	}
+
 	blkc := &blockchain.BlockChain{}
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	blkc.CurrentBlockHeader = &block.Header{Nonce: 1}
 
 	blkExec.RevertAccountStateCalled = func() {
 	}
 
-	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32) *block.TxBlockBody {
 		return &block.TxBlockBody{}
 	}
 
@@ -2401,9 +2580,10 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenCommitBlockErr(t *testing.
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
-	blk, hdr := bs.CreateAndCommitEmptyBlock(0)
+	blk, hdr, _ := bs.CreateAndCommitEmptyBlock(0)
 
 	assert.Nil(t, blk)
 	assert.Nil(t, hdr)
@@ -2443,17 +2623,19 @@ func TestBootstrap_CreateEmptyBlockShouldWork(t *testing.T) {
 
 		return cs
 	}
+
 	blkc := &blockchain.BlockChain{}
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	blkExec.RevertAccountStateCalled = func() {
 	}
 
-	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32) *block.TxBlockBody {
 		return &block.TxBlockBody{}
 	}
 
@@ -2471,9 +2653,10 @@ func TestBootstrap_CreateEmptyBlockShouldWork(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
-	blk, hdr := bs.CreateAndCommitEmptyBlock(0)
+	blk, hdr, _ := bs.CreateAndCommitEmptyBlock(0)
 
 	assert.NotNil(t, blk)
 	assert.NotNil(t, hdr)
@@ -2519,11 +2702,12 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	blkExec.RevertAccountStateCalled = func() {
 	}
 
-	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32) *block.TxBlockBody {
 		return &block.TxBlockBody{}
 	}
 
@@ -2541,6 +2725,7 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	f1 := func(bool) {}
@@ -2588,17 +2773,19 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 
 		return cs
 	}
+
 	blkc := &blockchain.BlockChain{}
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	blkExec.RevertAccountStateCalled = func() {
 	}
 
-	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32) *block.TxBlockBody {
 		return &block.TxBlockBody{}
 	}
 
@@ -2616,6 +2803,7 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 		marshalizer,
 		forkDetector,
 		createMockResolversContainer(),
+		shardCoordinator,
 	)
 
 	calls := 0
@@ -2647,4 +2835,75 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	wg.Wait()
 
 	assert.Equal(t, 3, calls)
+}
+
+func TestNewBootstrap_GetTimeStampForRoundShouldWork(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := 0
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+			wasCalled++
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			wasCalled++
+		}
+
+		return cs
+	}
+
+	blkc := &blockchain.BlockChain{}
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	bs, _ := sync.NewBootstrap(
+		transient,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversContainer(),
+		shardCoordinator,
+	)
+
+	rnd.RoundIndex = 0
+	rnd.RoundTimeStamp = time.Unix(0, 0)
+	rnd.RoundTimeDuration = 4000 * time.Millisecond
+
+	timeStamp := bs.GetTimeStampForRound(2)
+	assert.Equal(t, time.Unix(8, 0), timeStamp)
+
+	rnd.RoundIndex = 5
+	rnd.RoundTimeStamp = time.Unix(20, 0)
+	rnd.RoundTimeDuration = 4000 * time.Millisecond
+
+	timeStamp = bs.GetTimeStampForRound(1)
+	assert.Equal(t, time.Unix(4, 0), timeStamp)
 }

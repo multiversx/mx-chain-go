@@ -457,14 +457,17 @@ func (wrk *worker) extend(subroundId int) {
 		return
 	}
 
-	blk, hdr := wrk.bootstraper.CreateAndCommitEmptyBlock(wrk.shardCoordinator.ShardForCurrentNode())
+	blk, hdr, err := wrk.bootstraper.CreateAndCommitEmptyBlock(wrk.shardCoordinator.ShardForCurrentNode())
 
-	if blk == nil || hdr == nil {
+	if err != nil {
+		log.Info(err.Error())
 		return
 	}
 
+	log.Info(fmt.Sprintf("broadcasting an empty block\n"))
+
 	// broadcast block body
-	err := wrk.broadcastTxBlockBody(blk)
+	err = wrk.broadcastTxBlockBody(blk)
 
 	if err != nil {
 		log.Info(err.Error())

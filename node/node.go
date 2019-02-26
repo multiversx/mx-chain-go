@@ -439,6 +439,7 @@ func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrappe
 		n.marshalizer,
 		n.forkDetector,
 		n.interceptorsResolversCreator.ResolverContainer(),
+		n.shardCoordinator,
 	)
 
 	if err != nil {
