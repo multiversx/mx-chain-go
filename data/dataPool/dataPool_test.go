@@ -18,7 +18,6 @@ func TestNewDataPool_NilTransactionsShouldErr(t *testing.T) {
 		&mock.Uint64CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
-		&mock.CacherStub{},
 	)
 
 	assert.Equal(t, data.ErrNilTxDataPool, err)
@@ -30,7 +29,6 @@ func TestNewDataPool_NilHeadersShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		nil,
 		&mock.Uint64CacherStub{},
-		&mock.CacherStub{},
 		&mock.CacherStub{},
 		&mock.CacherStub{},
 	)
@@ -46,7 +44,6 @@ func TestNewDataPool_NilHeaderNoncesShouldErr(t *testing.T) {
 		nil,
 		&mock.CacherStub{},
 		&mock.CacherStub{},
-		&mock.CacherStub{},
 	)
 
 	assert.Equal(t, data.ErrNilHeadersNoncesDataPool, err)
@@ -59,7 +56,6 @@ func TestNewDataPool_NilTxBlocksShouldErr(t *testing.T) {
 		&mock.ShardedDataStub{},
 		&mock.Uint64CacherStub{},
 		nil,
-		&mock.CacherStub{},
 		&mock.CacherStub{},
 	)
 
@@ -74,24 +70,9 @@ func TestNewDataPool_NilPeerBlocksShouldErr(t *testing.T) {
 		&mock.Uint64CacherStub{},
 		&mock.CacherStub{},
 		nil,
-		&mock.CacherStub{},
 	)
 
 	assert.Equal(t, data.ErrNilPeerChangeBlockDataPool, err)
-	assert.Nil(t, tdp)
-}
-
-func TestNewDataPool_NilStateBlocksShouldErr(t *testing.T) {
-	tdp, err := dataPool.NewDataPool(
-		&mock.ShardedDataStub{},
-		&mock.ShardedDataStub{},
-		&mock.Uint64CacherStub{},
-		&mock.CacherStub{},
-		&mock.CacherStub{},
-		nil,
-	)
-
-	assert.Equal(t, data.ErrNilStateBlockDataPool, err)
 	assert.Nil(t, tdp)
 }
 
@@ -101,7 +82,6 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	headerNonces := &mock.Uint64CacherStub{}
 	txBlocks := &mock.CacherStub{}
 	peersBlock := &mock.CacherStub{}
-	stateBlocks := &mock.CacherStub{}
 
 	tdp, err := dataPool.NewDataPool(
 		transactions,
@@ -109,7 +89,6 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 		headerNonces,
 		txBlocks,
 		peersBlock,
-		stateBlocks,
 	)
 
 	assert.Nil(t, err)
@@ -117,7 +96,6 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, transactions == tdp.Transactions())
 	assert.True(t, headers == tdp.Headers())
 	assert.True(t, headerNonces == tdp.HeadersNonces())
-	assert.True(t, txBlocks == tdp.TxBlocks())
+	assert.True(t, txBlocks == tdp.MiniBlocks())
 	assert.True(t, peersBlock == tdp.PeerChangesBlocks())
-	assert.True(t, stateBlocks == tdp.StateBlocks())
 }

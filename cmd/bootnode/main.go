@@ -646,24 +646,17 @@ func createDataPoolFromConfig(config *config.Config, uint64ByteSliceConverter ty
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.StateBlockBodyDataPool)
-	stateBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-	if err != nil {
-		return nil, err
-	}
-
 	return dataPool.NewDataPool(
 		txPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
-		stateBlockBody,
 	)
 }
 
 func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, error) {
-	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
+	var headerUnit, peerBlockUnit, txBlockUnit, txUnit *storage.Unit
 	var err error
 
 	defer func() {
@@ -674,9 +667,6 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 			}
 			if peerBlockUnit != nil {
 				_ = peerBlockUnit.DestroyUnit()
-			}
-			if stateBlockUnit != nil {
-				_ = stateBlockUnit.DestroyUnit()
 			}
 			if txBlockUnit != nil {
 				_ = txBlockUnit.DestroyUnit()
@@ -705,18 +695,9 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 	}
 
 	txBlockUnit, err = storage.NewStorageUnitFromConf(
-		getCacherFromConfig(config.TxBlockBodyStorage.Cache),
-		getDBFromConfig(config.TxBlockBodyStorage.DB),
-		getBloomFromConfig(config.TxBlockBodyStorage.Bloom))
-
-	if err != nil {
-		return nil, err
-	}
-
-	stateBlockUnit, err = storage.NewStorageUnitFromConf(
-		getCacherFromConfig(config.StateBlockBodyStorage.Cache),
-		getDBFromConfig(config.StateBlockBodyStorage.DB),
-		getBloomFromConfig(config.StateBlockBodyStorage.Bloom))
+		getCacherFromConfig(config.MiniBlocksStorage.Cache),
+		getDBFromConfig(config.MiniBlocksStorage.DB),
+		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
 
 	if err != nil {
 		return nil, err
@@ -744,7 +725,6 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 		badBlockCache,
 		txUnit,
 		txBlockUnit,
-		stateBlockUnit,
 		peerBlockUnit,
 		headerUnit)
 

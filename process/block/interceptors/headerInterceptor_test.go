@@ -267,7 +267,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShouldErr(t *t
 		DataField: buff,
 	}
 
-	assert.Equal(t, process.ErrNilBlockBodyHash, hi.ProcessReceivedMessage(msg))
+	assert.Equal(t, process.ErrNilPubKeysBitmap, hi.ProcessReceivedMessage(msg))
 }
 
 func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) {
@@ -310,11 +310,11 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
-	hdr.BlockBodyHash = make([]byte, 0)
 	hdr.BlockBodyType = block2.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
+	hdr.RootHash = make([]byte, 0)
 
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
@@ -372,10 +372,10 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
-	hdr.BlockBodyHash = make([]byte, 0)
 	hdr.BlockBodyType = block2.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
 
 	buff, _ := marshalizer.Marshal(hdr)

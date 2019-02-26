@@ -8,14 +8,14 @@ import (
 
 // InterceptedPeerBlockBody represents the wrapper over PeerBlockBodyWrapper struct.
 type InterceptedPeerBlockBody struct {
-	*block.PeerBlockBody
+	PeerBlockBody []*block.PeerChange
 	hash []byte
 }
 
 // NewInterceptedPeerBlockBody creates a new instance of InterceptedPeerBlockBody struct
 func NewInterceptedPeerBlockBody() *InterceptedPeerBlockBody {
 	return &InterceptedPeerBlockBody{
-		PeerBlockBody: &block.PeerBlockBody{},
+		PeerBlockBody: make([]*block.PeerChange, 0),
 	}
 }
 
@@ -27,11 +27,6 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) SetHash(hash []byte) {
 // Hash gets the hash of this peer block body
 func (inPeerBlkBdy *InterceptedPeerBlockBody) Hash() []byte {
 	return inPeerBlkBdy.hash
-}
-
-// Shard returns the shard ID for which this body is addressed
-func (inPeerBlkBdy *InterceptedPeerBlockBody) Shard() uint32 {
-	return inPeerBlkBdy.ShardID
 }
 
 // GetUnderlyingObject returns the underlying object
@@ -59,20 +54,7 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) Integrity(coordinator sharding.Sha
 		return process.ErrNilPeerBlockBody
 	}
 
-	interceptedStateBlock := InterceptedStateBlockBody{
-		StateBlockBody: &inPeerBlkBdy.StateBlockBody,
-	}
-
-	err := interceptedStateBlock.Integrity(coordinator)
-	if err != nil {
-		return err
-	}
-
-	if inPeerBlkBdy.Changes == nil {
-		return process.ErrNilPeerChanges
-	}
-
-	for _, change := range inPeerBlkBdy.Changes {
+	for _, change := range inPeerBlkBdy.PeerBlockBody {
 		if change.ShardIdDest >= coordinator.NoShards() {
 			return process.ErrInvalidShardId
 		}

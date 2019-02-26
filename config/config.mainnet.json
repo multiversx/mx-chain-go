@@ -1,21 +1,11 @@
 {
-  "txBlockBodyStorage": {
+  "miniBlocksStorage": {
     "cache": {
-      "size": 100,
+      "size": 1000,
       "type": "LRU"
     },
     "db": {
-      "file": "TxBlocks",
-      "type": "LvlDB"
-    }
-  },
-  "stateBlockBodyStorage": {
-    "cache": {
-      "size": 100,
-      "type": "LRU"
-    },
-    "db": {
-      "file": "StateBlocks",
+      "file": "MiniBlocks",
       "type": "LvlDB"
     }
   },

@@ -9,9 +9,8 @@ type TransientDataPoolStub struct {
 	HeadersCalled           func() data.ShardedDataCacherNotifier
 	HeadersNoncesCalled     func() data.Uint64Cacher
 	PeerChangesBlocksCalled func() storage.Cacher
-	StateBlocksCalled       func() storage.Cacher
 	TransactionsCalled      func() data.ShardedDataCacherNotifier
-	TxBlocksCalled          func() storage.Cacher
+	MiniBlocksCalled        func() storage.Cacher
 }
 
 func (tdps *TransientDataPoolStub) Headers() data.ShardedDataCacherNotifier {
@@ -26,14 +25,10 @@ func (tdps *TransientDataPoolStub) PeerChangesBlocks() storage.Cacher {
 	return tdps.PeerChangesBlocksCalled()
 }
 
-func (tdps *TransientDataPoolStub) StateBlocks() storage.Cacher {
-	return tdps.StateBlocksCalled()
-}
-
 func (tdps *TransientDataPoolStub) Transactions() data.ShardedDataCacherNotifier {
 	return tdps.TransactionsCalled()
 }
 
-func (tdps *TransientDataPoolStub) TxBlocks() storage.Cacher {
-	return tdps.TxBlocksCalled()
+func (tdps *TransientDataPoolStub) MiniBlocks() storage.Cacher {
+	return tdps.MiniBlocksCalled()
 }

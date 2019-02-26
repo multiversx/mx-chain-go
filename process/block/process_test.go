@@ -33,7 +33,6 @@ func createTestBlockchain() *blockchain.BlockChain {
 		generateTestUnit(),
 		generateTestUnit(),
 		generateTestUnit(),
-		generateTestUnit(),
 	)
 
 	return blockChain
@@ -333,13 +332,7 @@ func TestCreateEmptyBlockBody_ShouldWork(t *testing.T) {
 
 	txBlockBody := be.CreateEmptyBlockBody(shardId, round)
 
-	expectedTxBlockBody := &block.TxBlockBody{
-		MiniBlocks: make([]block.MiniBlock, 0),
-		StateBlockBody: block.StateBlockBody{
-			ShardID:  shardId,
-			RootHash: rootHash,
-		},
-	}
+	expectedTxBlockBody := make([]*block.MiniBlock, 0)
 
 	assert.Equal(t, expectedTxBlockBody, txBlockBody)
 }
@@ -363,7 +356,7 @@ func TestBlockProcessor_ProcessAndCommitNilBlockchainShouldErr(t *testing.T) {
 		},
 	)
 
-	err := be.ProcessAndCommit(nil, &block.Header{}, &block.TxBlockBody{}, haveTime)
+	err := be.ProcessAndCommit(nil, &block.Header{}, make([]*block.MiniBlock, 0), haveTime)
 
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
@@ -385,7 +378,7 @@ func TestBlockProcessor_ProcessAndCommitNilHeaderShouldErr(t *testing.T) {
 		},
 	)
 
-	err := be.ProcessAndCommit(createTestBlockchain(), nil, &block.TxBlockBody{}, haveTime)
+	err := be.ProcessAndCommit(createTestBlockchain(), nil, make([]*block.MiniBlock, 0), haveTime)
 
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
@@ -409,7 +402,7 @@ func TestBlockProcessor_ProcessAndCommitNilTxBlockBodyShouldErr(t *testing.T) {
 
 	err := be.ProcessAndCommit(createTestBlockchain(), &block.Header{}, nil, haveTime)
 
-	assert.Equal(t, process.ErrNilTxBlockBody, err)
+	assert.Equal(t, process.ErrNilMiniBlocks, err)
 }
 
 func TestBlockProcessor_ProcessAndCommitBlockWithDirtyAccountShouldErr(t *testing.T) {
@@ -426,22 +419,14 @@ func TestBlockProcessor_ProcessAndCommitBlockWithDirtyAccountShouldErr(t *testin
 
 	hdr := block.Header{
 		Nonce:         0,
-		BlockBodyHash: []byte("bodyHash"),
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
 		Commitment:    []byte("commitment"),
+		RootHash:      []byte("roothash"),
 	}
 
-	miniblocks := make([]block.MiniBlock, 0)
-
-	txBody := block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: miniblocks,
-	}
+	miniblocks := make([]*block.MiniBlock, 0)
 
 	be, _ := blproc.NewBlockProcessor(
 		tdp, &mock.HasherStub{},
@@ -458,7 +443,7 @@ func TestBlockProcessor_ProcessAndCommitBlockWithDirtyAccountShouldErr(t *testin
 	)
 
 	// should return err
-	err := be.ProcessAndCommit(blkc, &hdr, &txBody, haveTime)
+	err := be.ProcessAndCommit(blkc, &hdr, miniblocks, haveTime)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrAccountStateDirty)
@@ -483,11 +468,11 @@ func TestBlockProcessor_ProcessAndCommitBlockWithInvalidTransactionShouldErr(t *
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte("00110"),
-		BlockBodyHash: []byte("bodyHash"),
 		ShardId:       0,
 		Commitment:    []byte("commitment"),
+		RootHash:      []byte("rootHash"),
 	}
-	miniblocks := make([]block.MiniBlock, 0)
+	miniblocks := make([]*block.MiniBlock, 0)
 
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -496,15 +481,7 @@ func TestBlockProcessor_ProcessAndCommitBlockWithInvalidTransactionShouldErr(t *
 		ShardID:  0,
 		TxHashes: txHashes,
 	}
-	miniblocks = append(miniblocks, miniblock)
-
-	txBody := block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: miniblocks,
-	}
+	miniblocks = append(miniblocks, &miniblock)
 
 	// set accounts dirty
 	journalLen := func() int { return 0 }
@@ -535,7 +512,7 @@ func TestBlockProcessor_ProcessAndCommitBlockWithInvalidTransactionShouldErr(t *
 	}()
 
 	// should return err
-	err := be.ProcessAndCommit(blkc, &hdr, &txBody, haveTime)
+	err := be.ProcessAndCommit(blkc, &hdr, miniblocks, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -559,26 +536,18 @@ func TestBlockProcessor_ProcessAndCommitHeaderNotFirstShouldErr(t *testing.T) {
 	hdr := &block.Header{
 		Nonce:         0,
 		Round:         1,
-		BlockBodyHash: []byte("block body hash"),
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
 		Commitment:    []byte("commitment"),
+		RootHash:      []byte("root hash"),
 	}
 
-	miniblocks := make([]block.MiniBlock, 0)
-
-	txBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: miniblocks,
-	}
+	miniblocks := make([]*block.MiniBlock, 0)
 
 	blkc := createTestBlockchain()
 
-	err := be.ProcessAndCommit(blkc, hdr, txBody, haveTime)
+	err := be.ProcessAndCommit(blkc, hdr, miniblocks, haveTime)
 
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
@@ -603,29 +572,21 @@ func TestBlockProcessor_ProcessAndCommitHeaderNotCorrectNonceShouldErr(t *testin
 	hdr := &block.Header{
 		Nonce:         0,
 		Round:         1,
-		BlockBodyHash: []byte("block body hash"),
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
 		Commitment:    []byte("commitment"),
+		RootHash:      []byte("root hash"),
 	}
 
-	miniblocks := make([]block.MiniBlock, 0)
-
-	txBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: miniblocks,
-	}
+	miniblocks := make([]*block.MiniBlock, 0)
 
 	blkc := createTestBlockchain()
 	blkc.CurrentBlockHeader = &block.Header{
 		Nonce: 0,
 	}
 
-	err := be.ProcessAndCommit(blkc, hdr, txBody, haveTime)
+	err := be.ProcessAndCommit(blkc, hdr, miniblocks, haveTime)
 
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
@@ -650,22 +611,14 @@ func TestBlockProcessor_ProcessAndCommitHeaderNotCorrectPrevHashShouldErr(t *tes
 	hdr := &block.Header{
 		Nonce:         1,
 		Round:         1,
-		BlockBodyHash: []byte("block body hash"),
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		Commitment:    []byte("commitment"),
+		RootHash:      []byte("root hash"),
 	}
 
-	miniblocks := make([]block.MiniBlock, 0)
-
-	txBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: miniblocks,
-	}
+	miniblocks := make([]*block.MiniBlock, 0)
 
 	blkc := createTestBlockchain()
 	blkc.CurrentBlockHeader = &block.Header{
@@ -673,7 +626,7 @@ func TestBlockProcessor_ProcessAndCommitHeaderNotCorrectPrevHashShouldErr(t *tes
 	}
 	blkc.CurrentBlockHeaderHash = []byte("bbb")
 
-	err := be.ProcessAndCommit(blkc, hdr, txBody, haveTime)
+	err := be.ProcessAndCommit(blkc, hdr, miniblocks, haveTime)
 
 	assert.Equal(t, process.ErrInvalidBlockHash, err)
 }
@@ -697,7 +650,7 @@ func TestBlockProcessor_ProcessBlockNilBlockchainShouldErr(t *testing.T) {
 		},
 	)
 
-	err := be.ProcessBlock(nil, &block.Header{}, &block.TxBlockBody{}, func() time.Duration {
+	err := be.ProcessBlock(nil, &block.Header{}, make([]*block.MiniBlock, 0), func() time.Duration {
 		return time.Second
 	})
 
@@ -721,7 +674,7 @@ func TestBlockProcessor_ProcessBlockNilHaveTimeFuncShouldErr(t *testing.T) {
 		},
 	)
 
-	err := be.ProcessBlock(createTestBlockchain(), &block.Header{}, &block.TxBlockBody{}, nil)
+	err := be.ProcessBlock(createTestBlockchain(), &block.Header{}, make([]*block.MiniBlock, 0), nil)
 
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
 }
@@ -745,7 +698,7 @@ func TestBlockProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 		},
 	)
 
-	err := be.CommitBlock(nil, &block.Header{}, &block.TxBlockBody{})
+	err := be.CommitBlock(nil, &block.Header{}, make([]*block.MiniBlock, 0))
 
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
@@ -760,22 +713,14 @@ func TestBlockProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 	hdr := &block.Header{
 		Nonce:         1,
 		Round:         1,
-		BlockBodyHash: []byte("block body hash"),
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		Commitment:    []byte("commitment"),
+		RootHash:      []byte("root hash"),
 	}
 
-	miniblocks := make([]block.MiniBlock, 0)
-
-	txBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: miniblocks,
-	}
+	miniblocks := make([]*block.MiniBlock, 0)
 
 	marshalizer := &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) (i []byte, e error) {
@@ -801,63 +746,7 @@ func TestBlockProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 
 	blkc := createTestBlockchain()
 
-	err := be.CommitBlock(blkc, hdr, txBody)
-
-	assert.Equal(t, process.ErrMarshalWithoutSuccess, err)
-}
-
-func TestBlockProcessor_CommitBlockMarshalizerFailForTxBodyShouldErr(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool()
-
-	errMarshalizer := errors.New("failure")
-
-	hdr := &block.Header{
-		Nonce:         1,
-		Round:         1,
-		BlockBodyHash: []byte("block body hash"),
-		PubKeysBitmap: []byte("0100101"),
-		PrevHash:      []byte("zzz"),
-		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
-	}
-
-	miniblocks := make([]block.MiniBlock, 0)
-
-	txBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: miniblocks,
-	}
-
-	marshalizer := &mock.MarshalizerStub{
-		MarshalCalled: func(obj interface{}) (i []byte, e error) {
-			if reflect.DeepEqual(obj, txBody) {
-				return nil, errMarshalizer
-			}
-
-			return []byte("obj"), nil
-		},
-	}
-
-	be, _ := blproc.NewBlockProcessor(
-		tdp,
-		&mock.HasherStub{},
-		marshalizer,
-		&mock.TxProcessorMock{},
-		&mock.AccountsStub{},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
-		},
-	)
-
-	blkc := createTestBlockchain()
-
-	err := be.CommitBlock(blkc, hdr, txBody)
+	err := be.CommitBlock(blkc, hdr, miniblocks)
 
 	assert.Equal(t, process.ErrMarshalWithoutSuccess, err)
 }
@@ -872,22 +761,14 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	hdr := &block.Header{
 		Nonce:         1,
 		Round:         1,
-		BlockBodyHash: []byte("block body hash"),
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		Commitment:    []byte("commitment"),
+		RootHash:      []byte("root hash"),
 	}
 
-	miniblocks := make([]block.MiniBlock, 0)
-
-	txBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: miniblocks,
-	}
+	miniblocks := make([]*block.MiniBlock, 0)
 
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
@@ -912,16 +793,15 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		generateTestUnit(),
 		generateTestUnit(),
 		generateTestUnit(),
-		generateTestUnit(),
 		hdrUnit,
 	)
 
-	err := be.CommitBlock(blkc, hdr, txBody)
+	err := be.CommitBlock(blkc, hdr, miniblocks)
 
 	assert.Equal(t, process.ErrPersistWithoutSuccess, err)
 }
 
-func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
+/*func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -931,31 +811,31 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 	hdr := &block.Header{
 		Nonce:         1,
 		Round:         1,
-		BlockBodyHash: []byte("block body hash"),
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		Commitment:    []byte("commitment"),
+		RootHash:      []byte("root hash"),
 	}
 
-	miniblocks := make([]block.MiniBlock, 0)
-
-	txBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: miniblocks,
-	}
+	miniblocks := make([]*block.MiniBlock, 0)
 
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
-		&mock.AccountsStub{},
+		&mock.AccountsStub{
+			CommitCalled: func() (i []byte, e error) {
+				return nil, nil
+			},
+		},
 		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
+		&mock.ForkDetectorMock{
+			AddHeaderCalled: func(header *block.Header, hash []byte, isReceived bool) error {
+				return nil
+			},
+		},
 		func(destShardID uint32, txHash []byte) {
 		},
 	)
@@ -972,14 +852,13 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 		txBlockUnit,
 		generateTestUnit(),
 		generateTestUnit(),
-		generateTestUnit(),
 	)
 
-	err := be.CommitBlock(blkc, hdr, txBody)
+	err := be.CommitBlock(blkc, hdr, miniblocks)
 
 	assert.Equal(t, process.ErrPersistWithoutSuccess, err)
 }
-
+*/
 func TestBlockProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -988,22 +867,14 @@ func TestBlockProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	hdr := &block.Header{
 		Nonce:         1,
 		Round:         1,
-		BlockBodyHash: []byte("block body hash"),
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		Commitment:    []byte("commitment"),
+		RootHash:      []byte("root hash"),
 	}
 
-	miniblocks := make([]block.MiniBlock, 0)
-
-	txBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: miniblocks,
-	}
+	miniblocks := make([]*block.MiniBlock, 0)
 
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
@@ -1022,7 +893,7 @@ func TestBlockProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	}
 
 	blkc := createTestBlockchain()
-	err := be.CommitBlock(blkc, hdr, txBody)
+	err := be.CommitBlock(blkc, hdr, miniblocks)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
 }
@@ -1039,24 +910,17 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	hdr := &block.Header{
 		Nonce:         1,
 		Round:         1,
-		BlockBodyHash: []byte("block body hash"),
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		Commitment:    []byte("commitment"),
+		RootHash:      []byte("root hash"),
 	}
 
 	mb := block.MiniBlock{
 		TxHashes: [][]byte{[]byte(txHash)},
 	}
-
-	txBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: []block.MiniBlock{mb},
-	}
+	miniblocks := []*block.MiniBlock{&mb}
 
 	accounts := &mock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
@@ -1109,7 +973,7 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	}
 
 	blkc := createTestBlockchain()
-	err := be.CommitBlock(blkc, hdr, txBody)
+	err := be.CommitBlock(blkc, hdr, miniblocks)
 
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
@@ -1127,24 +991,17 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	hdr := &block.Header{
 		Nonce:         1,
 		Round:         1,
-		BlockBodyHash: []byte("block body hash"),
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
 		Commitment:    []byte("commitment"),
+		RootHash:      []byte("root hash"),
 	}
 
 	mb := block.MiniBlock{
 		TxHashes: [][]byte{[]byte(txHash)},
 	}
-
-	txBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: []byte("root hash"),
-			ShardID:  0,
-		},
-		MiniBlocks: []block.MiniBlock{mb},
-	}
+	miniblocks := []*block.MiniBlock{&mb}
 
 	accounts := &mock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
@@ -1212,12 +1069,11 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 
 	blkc := createTestBlockchain()
-	err := be.CommitBlock(blkc, hdr, txBody)
+	err := be.CommitBlock(blkc, hdr, miniblocks)
 
 	assert.Nil(t, err)
 	assert.True(t, removeTxWasCalled)
 	assert.True(t, forkDetectorAddCalled)
-	assert.True(t, blkc.CurrentTxBlockBody == txBody)
 	assert.True(t, blkc.CurrentBlockHeader == hdr)
 	assert.Equal(t, hdrHash, blkc.CurrentBlockHeaderHash)
 
@@ -1295,17 +1151,16 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	shardId := uint32(1)
 	txHash1 := []byte("tx1_hash1")
 
-	blk := block.TxBlockBody{}
-	mBlocks := make([]block.MiniBlock, 0)
+
+	mBlocks := make([]*block.MiniBlock, 0)
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	mBlk := block.MiniBlock{ShardID: shardId, TxHashes: txHashes}
-	mBlocks = append(mBlocks, mBlk)
-	blk.MiniBlocks = mBlocks
+	mBlocks = append(mBlocks, &mBlk)
 
 	//TODO refactor the test
 
-	if be.RequestTransactionFromNetwork(&blk) > 0 {
+	if be.RequestTransactionFromNetwork(mBlocks) > 0 {
 		be.WaitForTxHashes(haveTime())
 	}
 }
@@ -1376,7 +1231,7 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 	// no error
 	assert.Nil(t, err)
 	// no miniblocks
-	assert.Equal(t, len(bl.MiniBlocks), 0)
+	assert.Equal(t, len(bl), 0)
 }
 
 func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
@@ -1437,7 +1292,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithNilTxProcessorShouldPanic(t *t
 	)
 
 	createGenesis := func() {
-		be.CreateGenesisBlockBody(nil, 0)
+		be.CreateGenesisBlock(nil, 0)
 	}
 
 	assert.Panics(t, createGenesis)
@@ -1473,7 +1328,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldPanic(t *t
 	)
 
 	createGenesis := func() {
-		be.CreateGenesisBlockBody(nil, 0)
+		be.CreateGenesisBlock(nil, 0)
 	}
 
 	assert.Panics(t, createGenesis)
@@ -1508,10 +1363,10 @@ func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 		},
 	)
 
-	stBlock, err := be.CreateGenesisBlockBody(nil, 0)
+	rootHash, err := be.CreateGenesisBlock(nil, 0)
 	assert.Nil(t, err)
-	assert.NotNil(t, stBlock)
-	assert.Equal(t, stBlock.RootHash, []byte("stateRootHash"))
+	assert.NotNil(t, rootHash)
+	assert.Equal(t, rootHash, []byte("stateRootHash"))
 }
 
 func TestBlockProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
@@ -1533,7 +1388,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 	err := be.RemoveBlockTxsFromPool(nil)
 
 	assert.NotNil(t, err)
-	assert.Equal(t, err, process.ErrNilTxBlockBody)
+	assert.Equal(t, err, process.ErrNilMiniBlocks)
 }
 
 func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
@@ -1551,7 +1406,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		func(destShardID uint32, txHash []byte) {
 		},
 	)
-	miniblocks := make([]block.MiniBlock, 0)
+	miniblocks := make([]*block.MiniBlock, 0)
 
 	txHash := []byte("txHash")
 	txHashes := make([][]byte, 0)
@@ -1562,14 +1417,9 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		TxHashes: txHashes,
 	}
 
-	miniblocks = append(miniblocks, miniblock)
+	miniblocks = append(miniblocks, &miniblock)
 
-	txBody := block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{},
-		MiniBlocks:     miniblocks,
-	}
-
-	err := be.RemoveBlockTxsFromPool(&txBody)
+	err := be.RemoveBlockTxsFromPool(miniblocks)
 
 	assert.Nil(t, err)
 }
@@ -1603,7 +1453,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 			return nil, expectedError
 		}
 
-		if txBlock == obj {
+		if reflect.DeepEqual(txBlock, obj) {
 			return []byte("txBlockBodyMarshalized"), nil
 		}
 		return nil, nil
@@ -1639,7 +1489,7 @@ func TestNode_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		if hdr == obj {
 			return []byte("hdrHeaderMarshalized"), nil
 		}
-		if txBlock == obj {
+		if reflect.DeepEqual(txBlock, obj) {
 			return []byte("txBlockBodyMarshalized"), nil
 		}
 		return nil, nil
@@ -1659,7 +1509,7 @@ func TestNode_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func createTestHdrTxBlockBody() (*block.Header, *block.TxBlockBody) {
+func createTestHdrTxBlockBody() (*block.Header, []*block.MiniBlock) {
 	hasher := mock.HasherMock{}
 
 	hdr := &block.Header{
@@ -1669,41 +1519,36 @@ func createTestHdrTxBlockBody() (*block.Header, *block.TxBlockBody) {
 		Round:         4,
 		TimeStamp:     uint64(11223344),
 		PrevHash:      hasher.Compute("prev hash"),
-		BlockBodyHash: hasher.Compute("tx block body hash"),
 		PubKeysBitmap: []byte{255, 0, 128},
 		Commitment:    hasher.Compute("commitment"),
 		Signature:     hasher.Compute("signature"),
+		RootHash:      hasher.Compute("root hash"),
 	}
 
-	txBlock := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: hasher.Compute("root hash"),
+	txBlock := []*block.MiniBlock{
+		{
+			ShardID: 0,
+			TxHashes: [][]byte{
+				hasher.Compute("txHash_0_1"),
+				hasher.Compute("txHash_0_2"),
+			},
 		},
-		MiniBlocks: []block.MiniBlock{
-			{
-				ShardID: 0,
-				TxHashes: [][]byte{
-					hasher.Compute("txHash_0_1"),
-					hasher.Compute("txHash_0_2"),
-				},
+		{
+			ShardID: 1,
+			TxHashes: [][]byte{
+				hasher.Compute("txHash_1_1"),
+				hasher.Compute("txHash_1_2"),
 			},
-			{
-				ShardID: 1,
-				TxHashes: [][]byte{
-					hasher.Compute("txHash_1_1"),
-					hasher.Compute("txHash_1_2"),
-				},
+		},
+		{
+			ShardID: 2,
+			TxHashes: [][]byte{
+				hasher.Compute("txHash_2_1"),
 			},
-			{
-				ShardID: 2,
-				TxHashes: [][]byte{
-					hasher.Compute("txHash_2_1"),
-				},
-			},
-			{
-				ShardID:  3,
-				TxHashes: make([][]byte, 0),
-			},
+		},
+		{
+			ShardID:  3,
+			TxHashes: make([][]byte, 0),
 		},
 	}
 
@@ -1732,7 +1577,6 @@ func TestBlockProcessor_DisplayLogInfo(t *testing.T) {
 	)
 
 	hdr.PrevHash = hasher.Compute("prev hash")
-	hdr.BlockBodyHash = hasher.Compute("block hash")
 
 	be.DisplayLogInfo(hdr, txBlock, hasher.Compute("header hash"))
 }

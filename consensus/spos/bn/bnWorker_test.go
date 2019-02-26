@@ -38,7 +38,7 @@ func sendConsensusMessage(cnsMsg *spos.ConsensusMessage) bool {
 	return true
 }
 
-func broadcastTxBlockBody(txBlockBody *block.TxBlockBody) error {
+func broadcastTxBlockBody(txBlockBody []*block.MiniBlock) error {
 	fmt.Println(txBlockBody)
 	return nil
 }
@@ -134,27 +134,30 @@ func initChronologyHandlerMock() consensus.ChronologyHandler {
 func initBlockProcessorMock() *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{}
 
-	blockProcessorMock.RemoveBlockTxsFromPoolCalled = func(*block.TxBlockBody) error { return nil }
-	blockProcessorMock.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error) {
-		return &block.TxBlockBody{}, nil
+	blockProcessorMock.RemoveBlockTxsFromPoolCalled = func([]*block.MiniBlock) error { return nil }
+	blockProcessorMock.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) ([]*block.MiniBlock, error) {
+		return make([]*block.MiniBlock, 0), nil
 	}
 
-	blockProcessorMock.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+	blockProcessorMock.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block []*block.MiniBlock) error {
 		return nil
 	}
 
 	blockProcessorMock.RevertAccountStateCalled = func() {}
 
-	blockProcessorMock.ProcessAndCommitCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
+	blockProcessorMock.ProcessAndCommitCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body []*block.MiniBlock, haveTime func() time.Duration) error {
 		return nil
 	}
 
-	blockProcessorMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
+	blockProcessorMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body []*block.MiniBlock, haveTime func() time.Duration) error {
 		return nil
 	}
 
-	blockProcessorMock.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
-		return &block.TxBlockBody{}
+	blockProcessorMock.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) []*block.MiniBlock {
+		return make([]*block.MiniBlock, 0)
+	}
+	blockProcessorMock.GetRootHashCalled = func() []byte {
+		return make([]byte, 0)
 	}
 
 	return blockProcessorMock
@@ -578,7 +581,7 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -609,7 +612,6 @@ func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
 	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
 
 	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
 	message, _ = mock.MarshalizerMock{}.Marshal(hdr)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -635,7 +637,7 @@ func TestWorker_ProcessReceivedMessageRoundCanceledShouldErr(t *testing.T) {
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -690,7 +692,7 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -718,7 +720,7 @@ func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -746,7 +748,7 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -774,7 +776,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -802,7 +804,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -839,7 +841,7 @@ func TestWorker_CheckSignatureShouldReturnErrNilPublicKey(t *testing.T) {
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -862,7 +864,7 @@ func TestWorker_CheckSignatureShouldReturnErrNilSignature(t *testing.T) {
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -894,7 +896,7 @@ func TestWorker_CheckSignatureShouldReturnPublicKeyFromByteArrayErr(t *testing.T
 
 	wrk.SetKeyGenerator(keyGeneratorMock)
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -921,7 +923,7 @@ func TestWorker_CheckSignatureShouldReturnMarshalizerErr(t *testing.T) {
 	marshalizerMock.Fail = true
 	wrk.SetMarshalizer(marshalizerMock)
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -944,7 +946,7 @@ func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -967,7 +969,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	wrk.InitReceivedMessages()
@@ -998,7 +1000,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *tes
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	wrk.InitReceivedMessages()
@@ -1029,7 +1031,7 @@ func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinis
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	wrk.InitReceivedMessages()
@@ -1060,7 +1062,7 @@ func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFin
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	wrk.InitReceivedMessages()
@@ -1091,7 +1093,7 @@ func TestWorker_ExecuteCommitmentHashMessagesShouldNotExecuteWhenBlockIsNotFinis
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	wrk.InitReceivedMessages()
@@ -1122,7 +1124,7 @@ func TestWorker_ExecuteBitmapMessagesShouldNotExecuteWhenBlockIsNotFinished(t *t
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	wrk.InitReceivedMessages()
@@ -1153,7 +1155,7 @@ func TestWorker_ExecuteCommitmentMessagesShouldNotExecuteWhenBitmapIsNotFinished
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	wrk.InitReceivedMessages()
@@ -1184,7 +1186,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBitmapIsNotFinished(
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	wrk.InitReceivedMessages()
@@ -1215,7 +1217,7 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 
 	wrk := *initWorker()
 
-	blk := &block.TxBlockBody{}
+	blk := make([]*block.MiniBlock, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	wrk.InitReceivedMessages()
@@ -1266,8 +1268,6 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 
 	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
 
-	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
-
 	cnsMsg := spos.NewConsensusMessage(
 		nil,
 		message,
@@ -1301,9 +1301,7 @@ func TestWorker_SendConsensusMessage(t *testing.T) {
 	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
-
-	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
-
+	
 	message, _ = mock.MarshalizerMock{}.Marshal(hdr)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -1353,7 +1351,7 @@ func TestWorker_BroadcastTxBlockBodyShouldFailWhenMarshalErr(t *testing.T) {
 	marshalizerMock.Fail = true
 	wrk.SetMarshalizer(marshalizerMock)
 
-	err := wrk.BroadcastTxBlockBody2(&block.TxBlockBody{})
+	err := wrk.BroadcastTxBlockBody2(make([]*block.MiniBlock, 0))
 	assert.Equal(t, mock.ErrMockMarshalizer, err)
 }
 
@@ -1364,7 +1362,7 @@ func TestWorker_BroadcastTxBlockBodyShouldFailWhenBroadcastTxBlockBodyFunctionIs
 
 	wrk.BroadcastTxBlockBody = nil
 
-	err := wrk.BroadcastTxBlockBody2(&block.TxBlockBody{})
+	err := wrk.BroadcastTxBlockBody2(make([]*block.MiniBlock, 0))
 	assert.Equal(t, spos.ErrNilOnBroadcastTxBlockBody, err)
 }
 
@@ -1373,7 +1371,7 @@ func TestWorker_BroadcastTxBlockBodyShouldWork(t *testing.T) {
 
 	wrk := *initWorker()
 
-	err := wrk.BroadcastTxBlockBody2(&block.TxBlockBody{})
+	err := wrk.BroadcastTxBlockBody2(make([]*block.MiniBlock, 0))
 	assert.Nil(t, err)
 }
 
@@ -1430,7 +1428,7 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 		ShouldSyncCalled: func() bool {
 			return true
 		},
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header) {
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) ([]*block.MiniBlock, *block.Header) {
 			executed = true
 			return nil, nil
 		},
@@ -1455,7 +1453,7 @@ func TestWorker_ExtendShouldReturnWhenShouldSync(t *testing.T) {
 		ShouldSyncCalled: func() bool {
 			return true
 		},
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header) {
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) ([]*block.MiniBlock, *block.Header) {
 			executed = true
 			return nil, nil
 		},
@@ -1483,7 +1481,7 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 	}
 
 	bootstraperMock := &mock.BootstraperMock{
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header) {
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) ([]*block.MiniBlock, *block.Header) {
 			return nil, nil
 		}}
 

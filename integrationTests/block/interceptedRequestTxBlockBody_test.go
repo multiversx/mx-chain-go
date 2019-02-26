@@ -27,7 +27,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	dPoolRequestor := ti.createTestDataPool()
 	dPoolResolver := ti.createTestDataPool()
 
-	fmt.Println("Requestor:")
+	fmt.Println("Requestor:	")
 	nRequestor, mesRequestor, _, pFactoryReq := ti.createNetNode(32000, dPoolRequestor, ti.createAccountsDB())
 
 	fmt.Println("Resolver:")
@@ -53,45 +53,44 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	time.Sleep(time.Second)
 
 	//Step 1. Generate a block body
-	txBlock := block.TxBlockBody{
-		MiniBlocks: []block.MiniBlock{
-			{
-				ShardID: 0,
-				TxHashes: [][]byte{
-					hasher.Compute("tx1"),
-				},
+	miniBlocks := []*block.MiniBlock{
+		{
+			ShardID: 0,
+			TxHashes: [][]byte{
+				hasher.Compute("tx1"),
 			},
-		},
-		StateBlockBody: block.StateBlockBody{
-			RootHash: hasher.Compute("root hash"),
-			ShardID:  0,
 		},
 	}
 
-	txBlockBodyBuff, _ := marshalizer.Marshal(&txBlock)
+	miniBlock := miniBlocks[0]
+	miniBlockHashes := make([][]byte, 1)
+
+	txBlockBodyBuff, _ := marshalizer.Marshal(miniBlock)
 	txBlockBodyHash := hasher.Compute(string(txBlockBodyBuff))
 
 	//Step 2. resolver has the tx block body
-	dPoolResolver.TxBlocks().HasOrAdd(txBlockBodyHash, &txBlock)
+	dPoolResolver.MiniBlocks().HasOrAdd(txBlockBodyHash, miniBlock)
 	fmt.Printf("Added %s to dPoolResolver\n", base64.StdEncoding.EncodeToString(txBlockBodyHash))
 
 	//Step 3. wire up a received handler
 	chanDone := make(chan bool)
 
-	dPoolRequestor.TxBlocks().RegisterHandler(func(key []byte) {
-		txBlockBodyStored, _ := dPoolRequestor.TxBlocks().Get(key)
+	dPoolRequestor.MiniBlocks().RegisterHandler(func(key []byte) {
+		txBlockBodyStored, _ := dPoolRequestor.MiniBlocks().Get(key)
 
-		if reflect.DeepEqual(txBlockBodyStored, &txBlock) {
+		if reflect.DeepEqual(txBlockBodyStored, miniBlocks) {
 			chanDone <- true
 		}
 
-		assert.Equal(t, txBlockBodyStored, &txBlock)
+		assert.Equal(t, txBlockBodyStored, miniBlocks)
 
 	})
 
 	//Step 4. request tx block body
-	txBlockBodyRequestor, _ := pFactoryReq.ResolverContainer().Get(string(factory.TxBlockBodyTopic))
-	txBlockBodyRequestor.RequestDataFromHash(txBlockBodyHash)
+	txBlockBodyRequestor, _ := pFactoryReq.ResolverContainer().Get(string(factory.MiniBlocksTopic))
+	miniBlockHashes[0] = txBlockBodyHash
+	requestHash, _ := marshalizer.Marshal(miniBlockHashes)
+	txBlockBodyRequestor.RequestDataFromHash(requestHash)
 
 	select {
 	case <-chanDone:

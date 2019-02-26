@@ -16,15 +16,14 @@ func TestInterceptedPeerBlockBody_NewShouldNotCreateNilBlock(t *testing.T) {
 	peerBlockBody := block.NewInterceptedPeerBlockBody()
 
 	assert.NotNil(t, peerBlockBody.PeerBlockBody)
-	assert.NotNil(t, peerBlockBody.StateBlockBody)
 }
 
 func TestInterceptedPeerBlockBody_GetUnderlingObjectShouldReturnBlock(t *testing.T) {
 	t.Parallel()
 
 	peerBlockBody := block.NewInterceptedPeerBlockBody()
-
-	assert.True(t, peerBlockBody.GetUnderlyingObject() == peerBlockBody.PeerBlockBody)
+	_, ok := peerBlockBody.GetUnderlyingObject().([]*block2.PeerChange)
+	assert.True(t, ok)
 }
 
 func TestInterceptedPeerBlockBody_GetterSetterHash(t *testing.T) {
@@ -38,50 +37,20 @@ func TestInterceptedPeerBlockBody_GetterSetterHash(t *testing.T) {
 	assert.Equal(t, hash, peerBlockBody.Hash())
 }
 
-func TestInterceptedPeerBlockBody_ShardShouldWork(t *testing.T) {
-	t.Parallel()
-
-	shard := uint32(78)
-
-	peerBlockBody := block.NewInterceptedPeerBlockBody()
-	peerBlockBody.ShardID = shard
-
-	assert.Equal(t, shard, peerBlockBody.Shard())
-}
-
-func TestInterceptedPeerBlockBody_IntegrityInvalidStateBlockShouldErr(t *testing.T) {
-	t.Parallel()
-
-	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: &block2.PeerBlockBody{}}
-	peerBlk.ShardID = 0
-	peerBlk.RootHash = nil
-	peerBlk.Changes = []block2.PeerChange{
-		{PubKey: make([]byte, 0), ShardIdDest: 0},
-	}
-
-	assert.Equal(t, process.ErrNilRootHash, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
-}
-
 func TestInterceptedPeerBlockBody_IntegrityNilPeerChangesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: &block2.PeerBlockBody{}}
-	peerBlk.ShardID = 0
-	peerBlk.RootHash = make([]byte, 0)
-	peerBlk.Changes = nil
+	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: nil}
 
-	assert.Equal(t, process.ErrNilPeerChanges, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
+	assert.Equal(t, process.ErrNilPeerBlockBody, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
 func TestInterceptedPeerBlockBody_IntegrityPeerChangeWithInvalidShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
-	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: &block2.PeerBlockBody{}}
-	peerBlk.ShardID = 0
-	peerBlk.RootHash = make([]byte, 0)
-	peerBlk.Changes = []block2.PeerChange{
+	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: []*block2.PeerChange{
 		{PubKey: make([]byte, 0), ShardIdDest: 1},
-	}
+	}}
 
 	assert.Equal(t, process.ErrInvalidShardId, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
@@ -89,12 +58,9 @@ func TestInterceptedPeerBlockBody_IntegrityPeerChangeWithInvalidShardIdShouldErr
 func TestInterceptedPeerBlockBody_IntegrityPeerChangeWithNilPubKeyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: &block2.PeerBlockBody{}}
-	peerBlk.ShardID = 0
-	peerBlk.RootHash = make([]byte, 0)
-	peerBlk.Changes = []block2.PeerChange{
+	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: []*block2.PeerChange{
 		{PubKey: nil, ShardIdDest: 0},
-	}
+	}}
 
 	assert.Equal(t, process.ErrNilPublicKey, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
@@ -102,13 +68,9 @@ func TestInterceptedPeerBlockBody_IntegrityPeerChangeWithNilPubKeyShouldErr(t *t
 func TestInterceptedPeerBlockBody_IntegrityNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: &block2.PeerBlockBody{}}
-
-	peerBlk.ShardID = 0
-	peerBlk.RootHash = make([]byte, 0)
-	peerBlk.Changes = []block2.PeerChange{
+	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: []*block2.PeerChange{
 		{PubKey: make([]byte, 0), ShardIdDest: 0},
-	}
+	}}
 
 	assert.Equal(t, process.ErrNilShardCoordinator, peerBlk.Integrity(nil))
 }
@@ -116,8 +78,7 @@ func TestInterceptedPeerBlockBody_IntegrityNilShardCoordinatorShouldErr(t *testi
 func TestInterceptedPeerBlockBody_IntegrityNilPeerBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: &block2.PeerBlockBody{}}
-	peerBlk.PeerBlockBody = nil
+	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: nil}
 
 	assert.Equal(t, process.ErrNilPeerBlockBody, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
@@ -125,41 +86,19 @@ func TestInterceptedPeerBlockBody_IntegrityNilPeerBlockBodyShouldErr(t *testing.
 func TestInterceptedPeerBlockBody_IntegrityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: &block2.PeerBlockBody{}}
-
-	peerBlk.ShardID = 0
-	peerBlk.RootHash = make([]byte, 0)
-	peerBlk.Changes = []block2.PeerChange{
+	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: []*block2.PeerChange{
 		{PubKey: make([]byte, 0), ShardIdDest: 0},
-	}
+	}}
 
 	assert.Nil(t, peerBlk.Integrity(mock.NewOneShardCoordinatorMock()))
-}
-
-func TestInterceptedPeerBlockBody_IntegrityAndValidityIntegrityDoesNotPassShouldErr(t *testing.T) {
-	t.Parallel()
-
-	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: &block2.PeerBlockBody{}}
-
-	peerBlk.ShardID = 0
-	peerBlk.RootHash = nil
-	peerBlk.Changes = []block2.PeerChange{
-		{PubKey: make([]byte, 0), ShardIdDest: 0},
-	}
-
-	assert.Equal(t, process.ErrNilRootHash, peerBlk.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
 }
 
 func TestInterceptedPeerBlockBody_IntegrityAndValidityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: &block2.PeerBlockBody{}}
-
-	peerBlk.ShardID = 0
-	peerBlk.RootHash = make([]byte, 0)
-	peerBlk.Changes = []block2.PeerChange{
+	peerBlk := &block.InterceptedPeerBlockBody{PeerBlockBody: []*block2.PeerChange{
 		{PubKey: make([]byte, 0), ShardIdDest: 0},
-	}
+	}}
 
 	assert.Nil(t, peerBlk.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
 }

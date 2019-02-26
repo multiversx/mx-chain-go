@@ -68,10 +68,6 @@ func (inHdr *InterceptedHeader) Integrity(coordinator sharding.ShardCoordinator)
 		return process.ErrNilBlockHeader
 	}
 
-	if inHdr.BlockBodyHash == nil {
-		return process.ErrNilBlockBodyHash
-	}
-
 	if inHdr.PubKeysBitmap == nil {
 		return process.ErrNilPubKeysBitmap
 	}
@@ -98,6 +94,10 @@ func (inHdr *InterceptedHeader) Integrity(coordinator sharding.ShardCoordinator)
 	case block.TxBlock:
 	default:
 		return process.ErrInvalidBlockBodyType
+	}
+
+	if inHdr.RootHash == nil {
+		return process.ErrNilRootHash
 	}
 
 	return nil

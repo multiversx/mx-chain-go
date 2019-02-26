@@ -12,8 +12,8 @@ func (boot *Bootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
 	return boot.getHeaderFromPoolHavingNonce(nonce)
 }
 
-func (boot *Bootstrap) GetTxBody(hash []byte) interface{} {
-	return boot.getTxBody(hash)
+func (boot *Bootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
+	return boot.txBlockBodyRes.GetMiniBlocks(hashes)
 }
 
 func (boot *Bootstrap) ReceivedHeaders(key []byte) {

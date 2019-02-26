@@ -223,7 +223,7 @@ func (wrk *worker) SendConsensusMessage(cnsDta *spos.ConsensusMessage) bool {
 	return wrk.sendConsensusMessage(cnsDta)
 }
 
-func (wrk *worker) BroadcastTxBlockBody2(blockBody *block.TxBlockBody) error {
+func (wrk *worker) BroadcastTxBlockBody2(blockBody []*block.MiniBlock) error {
 	return wrk.broadcastTxBlockBody(blockBody)
 }
 
@@ -383,7 +383,7 @@ func (sr *subroundBlock) ReceivedBlockBody(cnsDta *spos.ConsensusMessage) bool {
 	return sr.receivedBlockBody(cnsDta)
 }
 
-func (sr *subroundBlock) DecodeBlockBody(dta []byte) *block.TxBlockBody {
+func (sr *subroundBlock) DecodeBlockBody(dta []byte) []*block.MiniBlock {
 	return sr.decodeBlockBody(dta)
 }
 
@@ -619,11 +619,11 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
-func (sr *subroundEndRound) BroadcastTxBlockBody() func(*block.TxBlockBody) error {
+func (sr *subroundEndRound) BroadcastTxBlockBody() func([]*block.MiniBlock) error {
 	return sr.broadcastTxBlockBody
 }
 
-func (sr *subroundEndRound) SetBroadcastTxBlockBody(broadcastTxBlockBody func(*block.TxBlockBody) error) {
+func (sr *subroundEndRound) SetBroadcastTxBlockBody(broadcastTxBlockBody func([]*block.MiniBlock) error) {
 	sr.broadcastTxBlockBody = broadcastTxBlockBody
 }
 

@@ -3,6 +3,7 @@ package resolvers
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -12,27 +13,27 @@ import (
 // GenericBlockBodyResolver is a wrapper over Resolver that is specialized in resolving block body requests
 type GenericBlockBodyResolver struct {
 	process.TopicResolverSender
-	blockBodyPool storage.Cacher
-	blockStorage  storage.Storer
-	marshalizer   marshal.Marshalizer
+	miniBlockPool    storage.Cacher
+	miniBlockStorage storage.Storer
+	marshalizer      marshal.Marshalizer
 }
 
 // NewGenericBlockBodyResolver creates a new block body resolver
 func NewGenericBlockBodyResolver(
 	senderResolver process.TopicResolverSender,
-	blockBodyPool storage.Cacher,
-	blockBodyStorage storage.Storer,
+	miniBlockPool storage.Cacher,
+	miniBlockStorage storage.Storer,
 	marshalizer marshal.Marshalizer) (*GenericBlockBodyResolver, error) {
 
 	if senderResolver == nil {
 		return nil, process.ErrNilResolverSender
 	}
 
-	if blockBodyPool == nil {
+	if miniBlockPool == nil {
 		return nil, process.ErrNilBlockBodyPool
 	}
 
-	if blockBodyStorage == nil {
+	if miniBlockStorage == nil {
 		return nil, process.ErrNilBlockBodyStorage
 	}
 
@@ -42,8 +43,8 @@ func NewGenericBlockBodyResolver(
 
 	bbResolver := &GenericBlockBodyResolver{
 		TopicResolverSender: senderResolver,
-		blockBodyPool:       blockBodyPool,
-		blockStorage:        blockBodyStorage,
+		miniBlockPool:       miniBlockPool,
+		miniBlockStorage:    miniBlockStorage,
 		marshalizer:         marshalizer,
 	}
 
@@ -81,17 +82,24 @@ func (gbbRes *GenericBlockBodyResolver) resolveBlockBodyRequest(rd *process.Requ
 		return nil, process.ErrNilValue
 	}
 
-	blockBody, _ := gbbRes.blockBodyPool.Get(rd.Value)
-	if blockBody != nil {
-		buff, err := gbbRes.marshalizer.Marshal(blockBody)
-		if err != nil {
-			return nil, err
-		}
+	miniBlockHashes := make([][]byte, 0)
+	err := gbbRes.marshalizer.Unmarshal(&miniBlockHashes, rd.Value)
 
-		return buff, nil
+	if err != nil {
+		return nil, process.ErrUnmarshalMBHashes
+	}
+	miniBlocks := gbbRes.GetMiniBlocks(miniBlockHashes)
+
+	if miniBlocks == nil {
+		return nil, process.ErrNilMiniBlocks
 	}
 
-	return gbbRes.blockStorage.Get(rd.Value)
+	buff, err := gbbRes.marshalizer.Marshal(miniBlocks)
+	if err != nil {
+		return nil, err
+	}
+
+	return buff, nil
 }
 
 // RequestDataFromHash requests a block body from other peers having input the block body hash
@@ -100,4 +108,71 @@ func (gbbRes *GenericBlockBodyResolver) RequestDataFromHash(hash []byte) error {
 		Type:  process.HashType,
 		Value: hash,
 	})
+}
+
+// GetMiniBlocks method returns a list of deserialized mini blocks from a given hash list either from data pool or from storage
+func (gbbRes *GenericBlockBodyResolver) GetMiniBlocks(hashes [][]byte) []*block.MiniBlock {
+	miniBlocks := gbbRes.getMiniBlocks(hashes)
+	if miniBlocks == nil {
+		return nil
+	}
+	mbLength := len(hashes)
+	expandedMiniBlocks := make([]*block.MiniBlock, mbLength)
+	for i := 0; i < mbLength; i++ {
+		mb := &block.MiniBlock{}
+		err := gbbRes.marshalizer.Unmarshal(mb, miniBlocks[i])
+		if err != nil {
+			return nil
+		}
+		expandedMiniBlocks[i] = mb
+	}
+	return expandedMiniBlocks
+}
+
+// getMiniBlocks method returns a list of serialized mini blocks from a given hash list either from data pool or from storage
+func (gbbRes *GenericBlockBodyResolver) getMiniBlocks(hashes [][]byte) [][]byte {
+	miniBlocks := gbbRes.getMiniBlocksFromCache(hashes)
+	if miniBlocks != nil {
+		return miniBlocks
+	}
+	return gbbRes.getMiniBlocksFromStorer(hashes)
+}
+
+// getMiniBlocksFromCache returns a full list of miniblocks from cache.
+// If any of the miniblocks is missing the function returns nil
+func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromCache(hashes [][]byte) [][]byte {
+	miniBlocksLen :=  len(hashes)
+	miniBlocks := make([][]byte, miniBlocksLen)
+	for i := 0; i < miniBlocksLen; i++ {
+		cachedMB, _ := gbbRes.miniBlockPool.Get(hashes[i])
+		if cachedMB == nil {
+			return nil
+		}
+
+		buff, err := gbbRes.marshalizer.Marshal(cachedMB)
+		if err != nil {
+			log.LogIfError(err)
+			return nil
+		}
+
+		miniBlocks[i] = buff
+	}
+	return miniBlocks
+}
+
+// getMiniBlocksFromStorer returns a full list of MiniBlocks from the storage unit.
+// If any MiniBlock is missing or is invalid, it is removed and the function returns nil
+func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte) [][]byte {
+	miniBlocksLen :=  len(hashes)
+	miniBlocks := make([][]byte, miniBlocksLen)
+	for i := 0; i < miniBlocksLen; i++ {
+		buff, err := gbbRes.miniBlockStorage.Get(hashes[i])
+		if buff == nil {
+			log.LogIfError(err)
+			return nil
+		}
+
+		miniBlocks[i] = buff
+	}
+	return miniBlocks
 }

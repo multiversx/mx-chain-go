@@ -27,3 +27,6 @@ var ErrMetaBlockUnitNil = errors.New("metablock storage unit is nil")
 
 // ErrNoSuchStorageUnit defines the error for using an invalid storage unit
 var ErrNoSuchStorageUnit = errors.New("no such unit type")
+
+// ErrMiniBlockUnitNil defines the error for using a nil storage unit for mini blocks
+var ErrMiniBlockUnitNil = errors.New("nil mini block unit")
