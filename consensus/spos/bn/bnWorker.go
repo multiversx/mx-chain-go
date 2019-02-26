@@ -20,7 +20,7 @@ var log = logger.NewDefaultLogger()
 
 // worker defines the data needed by spos to communicate between nodes which are in the validators group
 type worker struct {
-	bootstraper      process.Bootstraper
+	bootstraper      process.Bootstrapper
 	consensusState   *spos.ConsensusState
 	keyGenerator     crypto.KeyGenerator
 	marshalizer      marshal.Marshalizer
@@ -45,7 +45,7 @@ type worker struct {
 
 // NewWorker creates a new worker object
 func NewWorker(
-	bootstraper process.Bootstraper,
+	bootstraper process.Bootstrapper,
 	consensusState *spos.ConsensusState,
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
@@ -95,7 +95,7 @@ func NewWorker(
 }
 
 func checkNewWorkerParams(
-	bootstraper process.Bootstraper,
+	bootstraper process.Bootstrapper,
 	consensusState *spos.ConsensusState,
 	keyGenerator crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
@@ -194,16 +194,24 @@ func (wrk *worker) getCleanedList(cnsDataList []*spos.ConsensusMessage) []*spos.
 	return cleanedCnsDataList
 }
 
-// ReceivedMessage method redirects the received message to the channel which should handle it
-func (wrk *worker) ReceivedMessage(name string, data interface{}, msgInfo *p2p.MessageInfo) error {
+// ProcessReceivedMessage method redirects the received message to the channel which should handle it
+func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	if wrk.consensusState.RoundCanceled {
 		return ErrRoundCanceled
 	}
 
-	cnsDta, ok := data.(*spos.ConsensusMessage)
+	if message == nil {
+		return ErrNilMessage
+	}
 
-	if !ok {
-		return ErrInvalidConsensusData
+	if message.Data() == nil {
+		return ErrNilDataToProcess
+	}
+
+	cnsDta := &spos.ConsensusMessage{}
+	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
+	if err != nil {
+		return err
 	}
 
 	log.Debug(fmt.Sprintf("received %s from %s\n", MessageType(cnsDta.MsgType).String(), hex.EncodeToString(cnsDta.PubKey)))
@@ -219,7 +227,9 @@ func (wrk *worker) ReceivedMessage(name string, data interface{}, msgInfo *p2p.M
 	}
 
 	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) {
-		return ErrMessageFromItself
+		//in this case should return nil but do not process the message
+		//nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
+		return nil
 	}
 
 	sigVerifErr := wrk.checkSignature(cnsDta)

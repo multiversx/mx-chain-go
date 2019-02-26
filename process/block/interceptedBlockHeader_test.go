@@ -38,7 +38,7 @@ func TestInterceptedHeader_GetHeaderShouldReturnHeader(t *testing.T) {
 	assert.True(t, hdr.GetHeader() == hdr.Header)
 }
 
-func TestInterceptedHeader_GetterSetterHashID(t *testing.T) {
+func TestInterceptedHeader_GetterSetterHash(t *testing.T) {
 	t.Parallel()
 
 	hash := []byte("hash")
@@ -48,7 +48,6 @@ func TestInterceptedHeader_GetterSetterHashID(t *testing.T) {
 	hdr.SetHash(hash)
 
 	assert.Equal(t, hash, hdr.Hash())
-	assert.Equal(t, string(hash), hdr.ID())
 }
 
 func TestInterceptedHeader_ShardShouldWork(t *testing.T) {
@@ -61,28 +60,6 @@ func TestInterceptedHeader_ShardShouldWork(t *testing.T) {
 	hdr.ShardId = shard
 
 	assert.Equal(t, shard, hdr.Shard())
-}
-
-func TestInterceptedHeader_CreateShouldNotProduceNils(t *testing.T) {
-	t.Parallel()
-
-	multiSig := mock.NewMultiSigner()
-	hdr := block.NewInterceptedHeader(multiSig)
-	hdrCreated := hdr.Create()
-
-	assert.NotNil(t, hdrCreated)
-	assert.NotNil(t, hdrCreated.(*block.InterceptedHeader).Header)
-}
-
-func TestInterceptedHeader_CreateShouldNotProduceSameObject(t *testing.T) {
-	t.Parallel()
-
-	multiSig := mock.NewMultiSigner()
-	hdr := block.NewInterceptedHeader(multiSig)
-	hdrCreated := hdr.Create()
-
-	assert.False(t, hdrCreated == hdr)
-	assert.False(t, hdrCreated.(*block.InterceptedHeader).Header == hdr.Header)
 }
 
 func TestInterceptedHeader_IntegrityNilShardCoordinatorShouldErr(t *testing.T) {

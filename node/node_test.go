@@ -15,9 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	transaction2 "github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -554,11 +552,6 @@ func TestGenerateAndSendBulkTransactions_ZeroTxShouldErr(t *testing.T) {
 func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T) {
 	marshalizer := &mock.MarshalizerFake{}
 
-	mes := &mock.MessengerStub{}
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
-	}
-
 	addrConverter := mock.NewAddressConverterFake(32, "0x")
 	keyGen := &mock.KeyGenMock{}
 	sk, pk := keyGen.GeneratePair()
@@ -701,30 +694,22 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	mutRecoveredTransactions := &sync.RWMutex{}
 	recoveredTransactions := make(map[uint64]*transaction.Transaction)
 	signer := &mock.SinglesignMock{}
-	topic := p2p.NewTopic(string(factory.TransactionTopic), transaction2.NewInterceptedTransaction(signer), marshalizer)
-	topic.SendData = func(data []byte) error {
-		//handler to capture sent data
-		tx := transaction.Transaction{}
+	mes := &mock.MessengerStub{
+		BroadcastOnPipeCalled: func(pipe string, topic string, buff []byte) {
+			if topic == string(factory.TransactionTopic) {
+				//handler to capture sent data
+				tx := transaction.Transaction{}
 
-		err := marshalizer.Unmarshal(&tx, data)
-		if err != nil {
-			return err
-		}
+				err := marshalizer.Unmarshal(&tx, buff)
+				if err != nil {
+					assert.Fail(t, err.Error())
+				}
 
-		mutRecoveredTransactions.Lock()
-		recoveredTransactions[tx.Nonce] = &tx
-		mutRecoveredTransactions.Unlock()
-
-		return nil
-	}
-
-	mes := &mock.MessengerStub{}
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		if name == string(factory.TransactionTopic) {
-			return topic
-		}
-
-		return nil
+				mutRecoveredTransactions.Lock()
+				recoveredTransactions[tx.Nonce] = &tx
+				mutRecoveredTransactions.Unlock()
+			}
+		},
 	}
 
 	accAdapter := getAccAdapter(big.NewInt(0))
@@ -767,82 +752,7 @@ func getAccAdapter(balance *big.Int) mock.AccountsAdapterStub {
 }
 
 func getPrivateKey() *mock.PrivateKeyStub {
-	return &mock.PrivateKeyStub{
-	}
-}
-
-func TestSendTransaction_TopicDoesNotExistsShouldErr(t *testing.T) {
-	n, _ := node.NewNode(
-		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
-	)
-
-	mes := mock.NewMessengerStub()
-	n.SetMessenger(mes)
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		return nil
-	}
-
-	nonce := uint64(50)
-	value := big.NewInt(567)
-	sender := createDummyHexAddress(64)
-	receiver := createDummyHexAddress(64)
-	txData := "data"
-	signature := []byte("signature")
-
-	tx, err := n.SendTransaction(
-		nonce,
-		sender,
-		receiver,
-		value,
-		txData,
-		signature)
-
-	assert.Equal(t, "could not get transaction topic", err.Error())
-	assert.Nil(t, tx)
-}
-
-func TestSendTransaction_BroadcastErrShouldErr(t *testing.T) {
-	n, _ := node.NewNode(
-		node.WithMarshalizer(&mock.MarshalizerFake{}),
-		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
-	)
-
-	mes := mock.NewMessengerStub()
-	n.SetMessenger(mes)
-
-	broadcastErr := errors.New("failure")
-
-	topicTx := p2p.NewTopic("", &mock.StringCreatorMock{}, &mock.MarshalizerMock{})
-	topicTx.SendData = func(data []byte) error {
-		return broadcastErr
-	}
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		if name == string(factory.TransactionTopic) {
-			return topicTx
-		}
-
-		return nil
-	}
-
-	nonce := uint64(50)
-	value := big.NewInt(567)
-	sender := createDummyHexAddress(64)
-	receiver := createDummyHexAddress(64)
-	txData := "data"
-	signature := []byte("signature")
-
-	tx, err := n.SendTransaction(
-		nonce,
-		sender,
-		receiver,
-		value,
-		txData,
-		signature)
-
-	assert.Equal(t, "could not broadcast transaction: "+broadcastErr.Error(), err.Error())
-	assert.Nil(t, tx)
+	return &mock.PrivateKeyStub{}
 }
 
 func TestSendTransaction_ShouldWork(t *testing.T) {
@@ -851,24 +761,14 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
 	)
 
-	mes := mock.NewMessengerStub()
-	n.SetMessenger(mes)
-
 	txSent := false
 
-	topicTx := p2p.NewTopic("", &mock.StringCreatorMock{}, mock.MarshalizerMock{})
-	topicTx.SendData = func(data []byte) error {
-		txSent = true
-		return nil
+	mes := &mock.MessengerStub{
+		BroadcastOnPipeCalled: func(pipe string, topic string, buff []byte) {
+			txSent = true
+		},
 	}
-
-	mes.GetTopicCalled = func(name string) *p2p.Topic {
-		if name == string(factory.TransactionTopic) {
-			return topicTx
-		}
-
-		return nil
-	}
+	n.SetMessenger(mes)
 
 	nonce := uint64(50)
 	value := big.NewInt(567)
@@ -1029,10 +929,14 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 }
 
 func getMessenger() *mock.MessengerStub {
-	messenger := mock.NewMessengerStub()
-	messenger.BootstrapCalled = func(ctx context.Context) {}
-	messenger.CloseCalled = func() error {
-		return nil
+	messenger := &mock.MessengerStub{
+		CloseCalled: func() error {
+			return nil
+		},
+		BootstrapCalled: func() error {
+			return nil
+		},
 	}
+
 	return messenger
 }

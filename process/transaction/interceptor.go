@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -13,7 +14,7 @@ import (
 
 // TxInterceptor is used for intercepting transaction and storing them into a datapool
 type TxInterceptor struct {
-	process.Interceptor
+	marshalizer      marshal.Marshalizer
 	txPool           data.ShardedDataCacherNotifier
 	txStorer         storage.Storer
 	addrConverter    state.AddressConverter
@@ -25,7 +26,7 @@ type TxInterceptor struct {
 
 // NewTxInterceptor hooks a new interceptor for transactions
 func NewTxInterceptor(
-	interceptor process.Interceptor,
+	marshalizer marshal.Marshalizer,
 	txPool data.ShardedDataCacherNotifier,
 	txStorer storage.Storer,
 	addrConverter state.AddressConverter,
@@ -35,8 +36,8 @@ func NewTxInterceptor(
 	shardCoordinator sharding.ShardCoordinator,
 ) (*TxInterceptor, error) {
 
-	if interceptor == nil {
-		return nil, process.ErrNilInterceptor
+	if marshalizer == nil {
+		return nil, process.ErrNilMarshalizer
 	}
 
 	if txPool == nil {
@@ -72,7 +73,7 @@ func NewTxInterceptor(
 	}
 
 	txIntercept := &TxInterceptor{
-		Interceptor:      interceptor,
+		marshalizer:      marshalizer,
 		txPool:           txPool,
 		txStorer:         txStorer,
 		hasher:           hasher,
@@ -82,40 +83,35 @@ func NewTxInterceptor(
 		shardCoordinator: shardCoordinator,
 	}
 
-	interceptor.SetCheckReceivedObjectHandler(txIntercept.processTx)
-
 	return txIntercept, nil
 }
 
-func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
-	if tx == nil {
-		return process.ErrNilTransaction
+// ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
+// (for the topic this validator was registered to)
+func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+	if message == nil {
+		return process.ErrNilMessage
 	}
 
-	if rawData == nil {
+	if message.Data() == nil {
 		return process.ErrNilDataToProcess
 	}
 
-	txIntercepted, ok := tx.(process.TransactionInterceptorAdapter)
-
-	if !ok {
-		return process.ErrBadInterceptorTopicImplementation
+	txIntercepted := NewInterceptedTransaction(txi.singleSigner)
+	err := txi.marshalizer.Unmarshal(txIntercepted, message.Data())
+	if err != nil {
+		return err
 	}
 
 	txIntercepted.SetAddressConverter(txi.addrConverter)
 	txIntercepted.SetSingleSignKeyGen(txi.keyGen)
-	hashWithSig := txi.hasher.Compute(string(rawData))
+	hashWithSig := txi.hasher.Compute(string(message.Data()))
 	txIntercepted.SetHash(hashWithSig)
 
 	copiedTx := *txIntercepted.GetTransaction()
 	copiedTx.Signature = nil
 
-	marshalizer := txi.Marshalizer()
-	if marshalizer == nil {
-		return process.ErrNilMarshalizer
-	}
-
-	buffCopiedTx, err := marshalizer.Marshal(&copiedTx)
+	buffCopiedTx, err := txi.marshalizer.Marshal(&copiedTx)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -39,15 +41,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/interceptor"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/resolver"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
 	sync2 "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	beevikntp "github.com/beevik/ntp"
+	"github.com/btcsuite/btcd/btcec"
+	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -82,12 +87,12 @@ type genesis struct {
 }
 
 type netMessengerConfig struct {
-	ctx             context.Context
-	port            int
-	maxAllowedPeers int
-	marshalizer     marshal.Marshalizer
-	hasher          hashing.Hasher
-	pubSubStrategy  p2p.PubSubStrategy
+	ctx               context.Context
+	port              int
+	maxAllowedPeers   int
+	marshalizer       marshal.Marshalizer
+	hasher            hashing.Hasher
+	peerDiscoveryType p2p.PeerDiscoveryType
 }
 
 func main() {
@@ -98,7 +103,7 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.PrivateKey}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.PrivateKey, flags.PeerDiscoveryType}
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
 	}
@@ -165,6 +170,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		err = ef.StartNode()
 		if err != nil {
 			log.Error("starting node failed", err.Error())
+			return err
 		}
 	}
 
@@ -326,53 +332,63 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
-	netMessenger, err := createNetMessenger(netMessengerConfig{
+	netMessengerCfg := netMessengerConfig{
 		ctx:             appContext,
 		port:            ctx.GlobalInt(flags.Port.Name),
 		maxAllowedPeers: ctx.GlobalInt(flags.MaxAllowedPeers.Name),
 		marshalizer:     marshalizer,
 		hasher:          hasher,
-		pubSubStrategy:  p2p.GossipSub,
-	})
+	}
+
+	netMessengerCfg.peerDiscoveryType, err = p2p.LoadPeerDiscoveryTypeFromString(
+		ctx.GlobalString(flags.PeerDiscoveryType.Name),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	interceptorsContainer := interceptor.NewContainer()
-	resolversContainer := resolver.NewContainer()
-
-	processorFactory, err := factory.NewProcessorsCreator(factory.ProcessorsCreatorConfig{
-		InterceptorContainer: interceptorsContainer,
-		ResolverContainer:    resolversContainer,
-		Messenger:            netMessenger,
-		Blockchain:           blkc,
-		DataPool:             datapool,
-		ShardCoordinator:     shardCoordinator,
-		AddrConverter:        addressConverter,
-		Hasher:               hasher,
-		Marshalizer:          marshalizer,
-		MultiSigner:          multisigner,
-		SingleSigner:         singlesigner,
-		KeyGen:               keyGen,
-		Uint64ByteSliceConverter: uint64ByteSliceConverter,
-	})
+	netMessenger, err := createNetMessenger(netMessengerCfg, log)
 	if err != nil {
 		return nil, err
 	}
 
-	err = processorFactory.CreateInterceptors()
+	interceptorsContainer := containers.NewObjectsContainer()
+	resolversContainer := containers.NewResolversContainer()
+
+	interceptorsResolversFactory, err := factory.NewInterceptorsResolversCreator(
+		factory.InterceptorsResolversConfig{
+
+			InterceptorContainer:     interceptorsContainer,
+			ResolverContainer:        resolversContainer,
+			Messenger:                netMessenger,
+			Blockchain:               blkc,
+			DataPool:                 datapool,
+			ShardCoordinator:         shardCoordinator,
+			AddrConverter:            addressConverter,
+			Hasher:                   hasher,
+			Marshalizer:              marshalizer,
+			MultiSigner:              multisigner,
+			SingleSigner:             singlesigner,
+			KeyGen:                   keyGen,
+			Uint64ByteSliceConverter: uint64ByteSliceConverter,
+		})
 	if err != nil {
 		return nil, err
 	}
 
-	err = processorFactory.CreateResolvers()
+	err = interceptorsResolversFactory.CreateInterceptors()
+	if err != nil {
+		return nil, err
+	}
+
+	err = interceptorsResolversFactory.CreateResolvers()
 	if err != nil {
 		return nil, err
 	}
 
 	forkDetector := sync2.NewBasicForkDetector()
 
-	res, err := processorFactory.ResolverContainer().Get(string(factory.TransactionTopic))
+	res, err := interceptorsResolversFactory.ResolverContainer().Get(string(factory.TransactionTopic))
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +437,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
-		node.WithProcessorCreator(processorFactory),
+		node.WithInterceptorsResolversFactory(interceptorsResolversFactory),
 	)
 
 	if err != nil {
@@ -438,12 +454,12 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 func createRequestTransactionHandler(txResolver *transaction.TxResolver, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
-		_ = txResolver.RequestTransactionFromHash(txHash)
+		_ = txResolver.RequestDataFromHash(txHash)
 		log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
 	}
 }
 
-func createNetMessenger(config netMessengerConfig) (p2p.Messenger, error) {
+func createNetMessenger(config netMessengerConfig, log *logger.Logger) (p2p.Messenger, error) {
 	if config.port == 0 {
 		return nil, errors.New("cannot start node on port 0")
 	}
@@ -452,13 +468,20 @@ func createNetMessenger(config netMessengerConfig) (p2p.Messenger, error) {
 		return nil, errors.New("cannot start node without providing maxAllowedPeers")
 	}
 
-	//TODO check if libp2p provides a better random source
-	cp := &p2p.ConnectParams{}
-	cp.Port = config.port
-	cp.GeneratePrivPubKeys(time.Now().UnixNano())
-	cp.GenerateIDFromPubKey()
+	log.Info(fmt.Sprintf("Starting with peer discovery: %s", config.peerDiscoveryType))
 
-	nm, err := p2p.NewNetMessenger(config.ctx, config.marshalizer, config.hasher, cp, config.maxAllowedPeers, config.pubSubStrategy)
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
+	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
+
+	nm, err := libp2p.NewNetworkMessenger(
+		config.ctx,
+		config.port,
+		sk,
+		nil,
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		config.peerDiscoveryType,
+	)
+
 	if err != nil {
 		return nil, err
 	}

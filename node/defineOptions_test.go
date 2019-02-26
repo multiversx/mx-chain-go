@@ -11,6 +11,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestWithMessenger_NilMessengerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithMessenger(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.messenger)
+	assert.Equal(t, ErrNilMessenger, err)
+}
+
+func TestWithMessenger_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	messenger := &mock.MessengerStub{}
+
+	opt := WithMessenger(messenger)
+	err := opt(node)
+
+	assert.True(t, node.messenger == messenger)
+	assert.Nil(t, err)
+}
+
 func TestWithMarshalizer_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -580,7 +606,7 @@ func TestWithMultisig_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithForkDetector_shouldWork(t *testing.T) {
+func TestWithForkDetector_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
@@ -603,4 +629,30 @@ func TestWithForkDetector_NilForkDetectorShouldErr(t *testing.T) {
 
 	assert.Nil(t, node.forkDetector)
 	assert.Equal(t, ErrNilForkDetector, err)
+}
+
+func TestWithInterceptorsResolversFactory_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	interceptorsResolvers := &mock.InterceptorsResolversFactoryStub{}
+	opt := WithInterceptorsResolversFactory(interceptorsResolvers)
+
+	err := opt(node)
+
+	assert.True(t, node.interceptorsResolversCreator == interceptorsResolvers)
+	assert.Nil(t, err)
+}
+
+func TestWithInterceptorsResolversFactory_NilFactoryShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithInterceptorsResolversFactory(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.interceptorsResolversCreator)
+	assert.Equal(t, ErrNilInterceptorsResolversFactory, err)
 }

@@ -76,6 +76,24 @@ var ErrNilRoundState = errors.New("round state is nil")
 // ErrCommitmentHashDoesNotMatch is raised when the commitment hash does not match expected value
 var ErrCommitmentHashDoesNotMatch = errors.New("commitment hash does not match")
 
+// ErrNilMessage signals that a nil message has been received
+var ErrNilMessage = errors.New("nil message")
+
+// ErrNilDataToProcess signals that nil data was provided
+var ErrNilDataToProcess = errors.New("nil data to process")
+
+// ErrRoundIsCancelled signals that the message should be dropped as the round is cancelled
+var ErrRoundIsCancelled = errors.New("dropping consensus message as the round is cancelled")
+
+// ErrConsensusMessageSenderNotValid signals that the message should be dropped as the sender is not valid
+var ErrConsensusMessageSenderNotValid = errors.New("consensus message sender is not valid")
+
+// ErrShouldDropConsensusMessage signals that the consensus message should be dropped
+var ErrShouldDropConsensusMessage = errors.New("consensus message should be dropped")
+
+// ErrMessageSentFromSelf signals that the consensus message is sent from self
+var ErrMessageSentFromSelf = errors.New("consensus message was sent from self")
+
 // ErrNilWorker is raised when a valid worker is expected but nil used
 var ErrNilWorker = errors.New("worker is nil")
 

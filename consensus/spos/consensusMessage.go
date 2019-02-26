@@ -1,11 +1,5 @@
 package spos
 
-import (
-	"fmt"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-)
-
 // ConsensusMessage defines the data needed by spos to communicate between nodes over network in all subrounds
 type ConsensusMessage struct {
 	BlockHeaderHash []byte
@@ -37,15 +31,4 @@ func NewConsensusMessage(
 		TimeStamp:       tms,
 		RoundIndex:      roundIndex,
 	}
-}
-
-// Create method creates a new ConsensusMessage object
-func (cnsdta *ConsensusMessage) Create() p2p.Creator {
-	return &ConsensusMessage{}
-}
-
-// ID gets an unique id of the ConsensusMessage object
-func (cnsdta *ConsensusMessage) ID() string {
-	id := fmt.Sprintf("%d-%s-%d", cnsdta.RoundIndex, cnsdta.Signature, cnsdta.MsgType)
-	return id
 }

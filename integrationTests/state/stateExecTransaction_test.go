@@ -15,9 +15,15 @@ import (
 )
 
 func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
-	accnts := adbCreateAccountsDB()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
-	pubKeyBuff := createDummyHexAddress(64)
+	ti := &testInitializer{}
+
+	accnts := adbCreateAccountsDB(ti)
+
+	pubKeyBuff := ti.createDummyHexAddress(64)
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -56,9 +62,11 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 }
 
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
-	accnts := adbCreateAccountsDB()
+	ti := &testInitializer{}
 
-	pubKeyBuff := createDummyHexAddress(64)
+	accnts := adbCreateAccountsDB(ti)
+
+	pubKeyBuff := ti.createDummyHexAddress(64)
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -96,17 +104,19 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 }
 
 func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
-	accnts := adbCreateAccountsDB()
+	ti := &testInitializer{}
+
+	accnts := adbCreateAccountsDB(ti)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
 	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
-	pubKeyBuff := createDummyHexAddress(64)
+	pubKeyBuff := ti.createDummyHexAddress(64)
 	sender, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
-	pubKeyBuff = createDummyHexAddress(64)
+	pubKeyBuff = ti.createDummyHexAddress(64)
 	receiver, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
 	account, _ := accnts.GetJournalizedAccount(sender)
@@ -186,19 +196,19 @@ func testExecTransactionsMoreTxWithRevert(
 }
 
 func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *testing.T) {
-	t.Skip("This is a very long test")
+	ti := &testInitializer{}
 
-	accnts := adbCreateAccountsDB()
+	accnts := adbCreateAccountsDB(ti)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
 	balance := big.NewInt(initialBalance)
 
 	addrConv, _ := state.NewPlainAddressConverter(32, "0x")
-	pubKeyBuff := createDummyHexAddress(64)
+	pubKeyBuff := ti.createDummyHexAddress(64)
 	sender, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
-	pubKeyBuff = createDummyHexAddress(64)
+	pubKeyBuff = ti.createDummyHexAddress(64)
 	receiver, _ := addrConv.CreateAddressFromHex(string(pubKeyBuff))
 
 	account, _ := accnts.GetJournalizedAccount(sender)
@@ -208,7 +218,7 @@ func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *t
 	initialHash, _ := accnts.Commit()
 	fmt.Printf("Initial hash: %s\n", base64.StdEncoding.EncodeToString(initialHash))
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 10; i++ {
 		fmt.Printf("Iteration: %d\n", i)
 
 		testExecTransactionsMoreTxWithRevert(t, accnts, sender, receiver, initialHash, nonce, initialBalance)

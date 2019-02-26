@@ -4,14 +4,17 @@ import (
 	"errors"
 )
 
+// ErrNilMessage signals that a nil message has been received
+var ErrNilMessage = errors.New("nil message")
+
+// ErrNoConnectedPeerToSendRequest signals that the connected peers list is empty and can not send request
+var ErrNoConnectedPeerToSendRequest = errors.New("connected peers list is empty. Can not send request")
+
 // ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
-
-// ErrNilPublicKeysSelector signals that a nil public keys selector has been provided
-var ErrNilPublicKeysSelector = errors.New("nil public keys selector")
 
 // ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
 var ErrNilAddressConverter = errors.New("nil AddressConverter")
@@ -91,9 +94,6 @@ var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 // ErrInvalidBlockHash signals the hash of the block is not matching with the previous one
 var ErrInvalidBlockHash = errors.New("invalid block hash")
 
-// ErrInvalidBlockSignature signals the signature of the block is not valid
-var ErrInvalidBlockSignature = errors.New("invalid block signature")
-
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")
 
@@ -129,15 +129,6 @@ var ErrNilRounder = errors.New("nil Rounder")
 
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
-
-// ErrNilNewer signals that a nil Newer object was provided
-var ErrNilNewer = errors.New("nil Newer")
-
-// ErrRegisteringValidator signals that a registration validator occur
-var ErrRegisteringValidator = errors.New("error while registering validator")
-
-// ErrNilInterceptor signals that a nil Interceptor has been provided
-var ErrNilInterceptor = errors.New("nil Interceptor")
 
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
@@ -190,12 +181,6 @@ var ErrNotImplementedBlockProcessingType = errors.New("not implemented block pro
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
 
-// ErrBadInterceptorTopicImplementation signals that a bad interceptor-topic implementation occurred
-var ErrBadInterceptorTopicImplementation = errors.New("bad interceptor-topic implementation")
-
-// ErrNilBlockBody signals that a nil block body has been provided
-var ErrNilBlockBody = errors.New("nil block body")
-
 // ErrNilTransientPool signals that an operation has been attempted to or with a nil transient pool of data
 var ErrNilTransientPool = errors.New("nil transient pool")
 
@@ -205,17 +190,8 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
 
-// ErrNilTopic signals that a nil topic has been provided/fetched
-var ErrNilTopic = errors.New("nil topic")
-
-// ErrResolveRequestAlreadyAssigned signals that ResolveRequest is not nil for a particular topic
-var ErrResolveRequestAlreadyAssigned = errors.New("resolve request func has already been assigned for this topic")
-
-// ErrTopicNotWiredToMessenger signals that a call to a not-correctly-instantiated topic has been made
-var ErrTopicNotWiredToMessenger = errors.New("topic has not been wired to a p2p.Messenger implementation")
-
-// ErrNilResolver signals that a nil resolver object has been provided
-var ErrNilResolver = errors.New("nil resolver")
+// ErrNilResolverSender signals that a nil resolver sender object has been provided
+var ErrNilResolverSender = errors.New("nil resolver sender")
 
 // ErrNilNonceConverter signals that a nil nonce converter has been provided
 var ErrNilNonceConverter = errors.New("nil nonce converter")

@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
@@ -31,16 +30,6 @@ func NewInterceptedTransaction(signer crypto.SingleSigner) *InterceptedTransacti
 		Transaction:  &transaction.Transaction{},
 		singleSigner: signer,
 	}
-}
-
-// Create returns a new instance of this struct (used in topics)
-func (inTx *InterceptedTransaction) Create() p2p.Creator {
-	return NewInterceptedTransaction(inTx.singleSigner)
-}
-
-// ID returns the ID of this object. Set to return the hash of the transaction
-func (inTx *InterceptedTransaction) ID() string {
-	return string(inTx.hash)
 }
 
 // IntegrityAndValidity returns a non nil error if transaction failed some checking tests

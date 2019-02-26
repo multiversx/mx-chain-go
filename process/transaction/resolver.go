@@ -1,15 +1,18 @@
 package transaction
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 // TxResolver is a wrapper over Resolver that is specialized in resolving transaction requests
 type TxResolver struct {
-	process.Resolver
+	process.TopicResolverSender
 	txPool      data.ShardedDataCacherNotifier
 	txStorage   storage.Storer
 	marshalizer marshal.Marshalizer
@@ -17,14 +20,14 @@ type TxResolver struct {
 
 // NewTxResolver creates a new transaction resolver
 func NewTxResolver(
-	resolver process.Resolver,
+	senderResolver process.TopicResolverSender,
 	txPool data.ShardedDataCacherNotifier,
 	txStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 ) (*TxResolver, error) {
 
-	if resolver == nil {
-		return nil, process.ErrNilResolver
+	if senderResolver == nil {
+		return nil, process.ErrNilResolverSender
 	}
 
 	if txPool == nil {
@@ -40,17 +43,38 @@ func NewTxResolver(
 	}
 
 	txResolver := &TxResolver{
-		Resolver:    resolver,
-		txPool:      txPool,
-		txStorage:   txStorage,
-		marshalizer: marshalizer,
+		TopicResolverSender: senderResolver,
+		txPool:              txPool,
+		txStorage:           txStorage,
+		marshalizer:         marshalizer,
 	}
-	txResolver.SetResolverHandler(txResolver.resolveTxRequest)
 
 	return txResolver, nil
 }
 
-func (txRes *TxResolver) resolveTxRequest(rd process.RequestData) ([]byte, error) {
+// ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
+// (for the topic this validator was registered to, usually a request topic)
+func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P) error {
+	rd := &process.RequestData{}
+	err := rd.Unmarshal(txRes.marshalizer, message)
+	if err != nil {
+		return err
+	}
+
+	buff, err := txRes.resolveTxRequest(rd)
+	if err != nil {
+		return err
+	}
+
+	if buff == nil {
+		log.Debug(fmt.Sprintf("missing data: %v", rd))
+		return nil
+	}
+
+	return txRes.Send(buff, message.Peer())
+}
+
+func (txRes *TxResolver) resolveTxRequest(rd *process.RequestData) ([]byte, error) {
 	if rd.Type != process.HashType {
 		return nil, process.ErrResolveNotHashType
 	}
@@ -72,9 +96,9 @@ func (txRes *TxResolver) resolveTxRequest(rd process.RequestData) ([]byte, error
 	return buff, nil
 }
 
-// RequestTransactionFromHash requests a transaction from other peers having input the tx hash
-func (txRes *TxResolver) RequestTransactionFromHash(hash []byte) error {
-	return txRes.RequestData(process.RequestData{
+// RequestDataFromHash requests a transaction from other peers having input the tx hash
+func (txRes *TxResolver) RequestDataFromHash(hash []byte) error {
+	return txRes.SendOnRequestTopic(&process.RequestData{
 		Type:  process.HashType,
 		Value: hash,
 	})

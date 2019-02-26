@@ -21,3 +21,9 @@ var ErrMessageFromItself = errors.New("message is from itself")
 
 // ErrInvalidSignature is raised when signature is invalid
 var ErrInvalidSignature = errors.New("signature is invalid")
+
+// ErrNilMessage signals that a nil message has been received
+var ErrNilMessage = errors.New("nil message")
+
+// ErrNilDataToProcess signals that nil data was provided
+var ErrNilDataToProcess = errors.New("nil data to process")

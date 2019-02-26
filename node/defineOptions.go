@@ -274,13 +274,13 @@ func WithForkDetector(forkDetector process.ForkDetector) Option {
 	}
 }
 
-// WithProcessorCreator sets up the processor factory option for the Node
-func WithProcessorCreator(processorCreator process.ProcessorFactory) Option {
+// WithInterceptorsResolversFactory sets up the processor factory option for the Node
+func WithInterceptorsResolversFactory(interceptorsResolversCreator process.InterceptorsResolversFactory) Option {
 	return func(n *Node) error {
-		if processorCreator == nil {
-			return ErrNilForkDetector
+		if interceptorsResolversCreator == nil {
+			return ErrNilInterceptorsResolversFactory
 		}
-		n.processorCreator = processorCreator
+		n.interceptorsResolversCreator = interceptorsResolversCreator
 		return nil
 	}
 }

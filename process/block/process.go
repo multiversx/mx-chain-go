@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -770,10 +768,6 @@ func createDisplayableHeaderAndBlockBody(
 func displayHeader(header *block.Header) []*display.LineData {
 	lines := make([]*display.LineData, 0)
 
-	//TODO really remove this mock prints
-	aggrCommits := sha256.Sha256{}.Compute(string(sha256.Sha256{}.Compute(string(header.Commitment) + strconv.Itoa(int(header.Round)))))
-	aggrSigs := sha256.Sha256{}.Compute(string(sha256.Sha256{}.Compute(string(aggrCommits))))
-
 	lines = append(lines, display.NewLineData(false, []string{
 		"Header",
 		"Nonce",
@@ -811,25 +805,14 @@ func displayHeader(header *block.Header) []*display.LineData {
 		"Pub keys bitmap",
 		toHex(header.PubKeysBitmap)}))
 
-	//TODO uncomment as this
-	//lines = append(lines, display.NewLineData(false, []string{
-	//	"",
-	//	"Commitment",
-	//	toB64(header.Commitment)}))
-	//lines = append(lines, display.NewLineData(true, []string{
-	//	"",
-	//	"Signature",
-	//	toB64(header.Signature)}))
-
-	//TODO remove this
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Commitment",
-		toB64(aggrCommits)}))
+		toB64(header.Commitment)}))
 	lines = append(lines, display.NewLineData(true, []string{
 		"",
 		"Signature",
-		toB64(aggrSigs)}))
+		toB64(header.Signature)}))
 
 	return lines
 }

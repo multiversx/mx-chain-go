@@ -16,7 +16,7 @@ type subroundStartRound struct {
 	*subround
 
 	blockChain             *blockchain.BlockChain
-	bootstraper            process.Bootstraper
+	bootstraper            process.Bootstrapper
 	consensusState         *spos.ConsensusState
 	multiSigner            crypto.MultiSigner
 	rounder                consensus.Rounder
@@ -28,7 +28,7 @@ type subroundStartRound struct {
 func NewSubroundStartRound(
 	subround *subround,
 	blockChain *blockchain.BlockChain,
-	bootstraper process.Bootstraper,
+	bootstraper process.Bootstrapper,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
@@ -73,7 +73,7 @@ func NewSubroundStartRound(
 func checkNewSubroundStartRoundParams(
 	subround *subround,
 	blockChain *blockchain.BlockChain,
-	bootstraper process.Bootstraper,
+	bootstraper process.Bootstrapper,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,

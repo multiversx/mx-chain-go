@@ -18,19 +18,19 @@ import (
 
 //------- Helper funcs
 
-func adbCreateAccountsDB() *state.AccountsDB {
+func adbCreateAccountsDB(ti *testInitializer) *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 
-	dbw, _ := trie.NewDBWriteCache(createMemUnit())
+	dbw, _ := trie.NewDBWriteCache(ti.createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh)
 
 	return adb
 }
 
-func generateAddressJurnalAccountAccountsDB() (state.AddressContainer, state.JournalizedAccountWrapper, *state.AccountsDB) {
-	adr := createDummyAddress()
-	adb := adbCreateAccountsDB()
+func generateAddressJurnalAccountAccountsDB(ti *testInitializer) (state.AddressContainer, state.JournalizedAccountWrapper, *state.AccountsDB) {
+	adr := ti.createDummyAddress()
+	adb := adbCreateAccountsDB(ti)
 
 	jaw, err := state.NewJournalizedAccountWrapFromAccountContainer(adr, state.NewAccount(), adb)
 	if err != nil {
@@ -104,7 +104,9 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	//and then reloading the data trie based on the root hash generated before
 	t.Parallel()
 
-	_, jaw, adb := generateAddressJurnalAccountAccountsDB()
+	ti := &testInitializer{}
+
+	_, jaw, adb := generateAddressJurnalAccountAccountsDB(ti)
 
 	jaw.SaveKeyValue([]byte{65, 66, 67}, []byte{32, 33, 34})
 	jaw.SaveKeyValue([]byte{68, 69, 70}, []byte{35, 36, 37})
@@ -131,7 +133,9 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
-	_, jaw, adb := generateAddressJurnalAccountAccountsDB()
+	ti := &testInitializer{}
+
+	_, jaw, adb := generateAddressJurnalAccountAccountsDB(ti)
 
 	err := adb.PutCode(jaw, []byte("Smart contract code"))
 	assert.Nil(t, err)
@@ -150,7 +154,9 @@ func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 func TestAccountsDB_SaveDataNoDirtyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	_, jaw, adb := generateAddressJurnalAccountAccountsDB()
+	ti := &testInitializer{}
+
+	_, jaw, adb := generateAddressJurnalAccountAccountsDB(ti)
 
 	err := adb.SaveData(jaw)
 	assert.Nil(t, err)
@@ -160,7 +166,9 @@ func TestAccountsDB_SaveDataNoDirtyShouldWork(t *testing.T) {
 func TestAccountsDB_HasAccountNotFoundShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	adr, _, adb := generateAddressJurnalAccountAccountsDB()
+	ti := &testInitializer{}
+
+	adr, _, adb := generateAddressJurnalAccountAccountsDB(ti)
 
 	//should return false
 	val, err := adb.HasAccount(adr)
@@ -171,7 +179,9 @@ func TestAccountsDB_HasAccountNotFoundShouldRetFalse(t *testing.T) {
 func TestAccountsDB_HasAccountFoundShouldRetTrue(t *testing.T) {
 	t.Parallel()
 
-	adr, _, adb := generateAddressJurnalAccountAccountsDB()
+	ti := &testInitializer{}
+
+	adr, _, adb := generateAddressJurnalAccountAccountsDB(ti)
 	_, err := adb.GetJournalizedAccount(adr)
 	assert.Nil(t, err)
 
@@ -184,7 +194,9 @@ func TestAccountsDB_HasAccountFoundShouldRetTrue(t *testing.T) {
 func TestAccountsDB_SaveAccountStateWithSomeValues_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	_, jaw, adb := generateAddressJurnalAccountAccountsDB()
+	ti := &testInitializer{}
+
+	_, jaw, adb := generateAddressJurnalAccountAccountsDB(ti)
 
 	err := adb.SaveJournalizedAccount(jaw)
 	assert.Nil(t, err)
@@ -193,7 +205,9 @@ func TestAccountsDB_SaveAccountStateWithSomeValues_ShouldWork(t *testing.T) {
 func TestAccountsDB_GetJournalizedAccountReturnExistingAccntShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr, jaw, adb := generateAddressJurnalAccountAccountsDB()
+	ti := &testInitializer{}
+
+	adr, jaw, adb := generateAddressJurnalAccountAccountsDB(ti)
 	err := jaw.SetBalanceWithJournal(big.NewInt(40))
 	assert.Nil(t, err)
 
@@ -210,7 +224,9 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 	//test when the account does not exists
 	t.Parallel()
 
-	adr, _, adb := generateAddressJurnalAccountAccountsDB()
+	ti := &testInitializer{}
+
+	adr, _, adb := generateAddressJurnalAccountAccountsDB(ti)
 
 	//same address of the unsaved account
 	acnt, err := adb.GetJournalizedAccount(adr)
@@ -224,10 +240,12 @@ func TestAccountsDB_Commit2OkAccountsShouldWork(t *testing.T) {
 	//verifies that commit saves the new tries and that can be loaded back
 	t.Parallel()
 
-	adr1, _, adb := generateAddressJurnalAccountAccountsDB()
+	ti := &testInitializer{}
+
+	adr1, _, adb := generateAddressJurnalAccountAccountsDB(ti)
 	buff := make([]byte, sha256.Sha256{}.Size())
 	rand.Read(buff)
-	adr2 := createDummyAddress()
+	adr2 := ti.createDummyAddress()
 
 	//first account has the balance of 40
 	state1, err := adb.GetJournalizedAccount(adr1)
@@ -277,7 +295,9 @@ func TestAccountsDB_Commit2OkAccountsShouldWork(t *testing.T) {
 func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1, _, adb := generateAddressJurnalAccountAccountsDB()
+	ti := &testInitializer{}
+
+	adr1, _, adb := generateAddressJurnalAccountAccountsDB(ti)
 
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
@@ -320,11 +340,13 @@ func TestAccountsDB_CommitAccountDataShouldWork(t *testing.T) {
 func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := createDummyAddress()
-	adr2 := createDummyAddress()
+	ti := &testInitializer{}
+
+	adr1 := ti.createDummyAddress()
+	adr2 := ti.createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb := adbCreateAccountsDB(ti)
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
@@ -377,11 +399,13 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adr1 := createDummyAddress()
-	adr2 := createDummyAddress()
+	ti := &testInitializer{}
+
+	adr1 := ti.createDummyAddress()
+	adr2 := ti.createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb := adbCreateAccountsDB(ti)
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
@@ -437,11 +461,13 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts code hash + code inside trie. adr2 has the same code hash
 	//revert should work
 
-	adr1 := createDummyAddress()
-	adr2 := createDummyAddress()
+	ti := &testInitializer{}
+
+	adr1 := ti.createDummyAddress()
+	adr2 := ti.createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb := adbCreateAccountsDB(ti)
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
@@ -493,11 +519,13 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
-	adr1 := createDummyAddress()
-	adr2 := createDummyAddress()
+	ti := &testInitializer{}
+
+	adr1 := ti.createDummyAddress()
+	adr2 := ti.createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb := adbCreateAccountsDB(ti)
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
@@ -554,11 +582,13 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	//adr1 puts data inside trie. adr2 puts the same data
 	//revert should work
 
-	adr1 := createDummyAddress()
-	adr2 := createDummyAddress()
+	ti := &testInitializer{}
+
+	adr1 := ti.createDummyAddress()
+	adr2 := ti.createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb := adbCreateAccountsDB(ti)
 	hrEmpty := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
@@ -631,11 +661,13 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := createDummyAddress()
-	adrDest := createDummyAddress()
+	ti := &testInitializer{}
+
+	adrSrc := ti.createDummyAddress()
+	adrDest := ti.createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb := adbCreateAccountsDB(ti)
 
 	acntSrc, err := adb.GetJournalizedAccount(adrSrc)
 	assert.Nil(t, err)
@@ -678,11 +710,13 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := createDummyAddress()
-	adrDest := createDummyAddress()
+	ti := &testInitializer{}
+
+	adrSrc := ti.createDummyAddress()
+	adrDest := ti.createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb := adbCreateAccountsDB(ti)
 
 	acntSrc, err := adb.GetJournalizedAccount(adrSrc)
 	assert.Nil(t, err)
@@ -709,11 +743,13 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	t.Parallel()
 
-	adrSrc := createDummyAddress()
-	adrDest := createDummyAddress()
+	ti := &testInitializer{}
+
+	adrSrc := ti.createDummyAddress()
+	adrDest := ti.createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb := adbCreateAccountsDB(ti)
 
 	acntSrc, err := adb.GetJournalizedAccount(adrSrc)
 	assert.Nil(t, err)
@@ -745,11 +781,13 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 }
 
 func BenchmarkTxExecution(b *testing.B) {
-	adrSrc := createDummyAddress()
-	adrDest := createDummyAddress()
+	ti := &testInitializer{}
+
+	adrSrc := ti.createDummyAddress()
+	adrDest := ti.createDummyAddress()
 
 	//Step 1. create accounts objects
-	adb := adbCreateAccountsDB()
+	adb := adbCreateAccountsDB(ti)
 
 	acntSrc, err := adb.GetJournalizedAccount(adrSrc)
 	assert.Nil(b, err)

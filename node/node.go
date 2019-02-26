@@ -2,7 +2,6 @@ package node
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"math/big"
 	gosync "sync"
@@ -28,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -41,6 +39,9 @@ const WaitTime = time.Duration(2000 * time.Millisecond)
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic topicName = "consensus"
 
+// SendTransactionsPipe is the pipe used for sending new transactions
+const SendTransactionsPipe = "send transactions pipe"
+
 type topicName string
 
 var log = logger.NewDefaultLogger()
@@ -52,22 +53,22 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	marshalizer              marshal.Marshalizer
-	ctx                      context.Context
-	hasher                   hashing.Hasher
-	initialNodesPubkeys      []string
-	initialNodesBalances     map[string]*big.Int
-	roundDuration            uint64
-	consensusGroupSize       int
-	messenger                p2p.Messenger
-	syncer                   ntp.SyncTimer
-	blockProcessor           process.BlockProcessor
-	genesisTime              time.Time
-	elasticSubrounds         bool
-	accounts                 state.AccountsAdapter
-	addrConverter            state.AddressConverter
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	processorCreator         process.ProcessorFactory
+	marshalizer                  marshal.Marshalizer
+	ctx                          context.Context
+	hasher                       hashing.Hasher
+	initialNodesPubkeys          []string
+	initialNodesBalances         map[string]*big.Int
+	roundDuration                uint64
+	consensusGroupSize           int
+	messenger                    p2p.Messenger
+	syncer                       ntp.SyncTimer
+	blockProcessor               process.BlockProcessor
+	genesisTime                  time.Time
+	elasticSubrounds             bool
+	accounts                     state.AccountsAdapter
+	addrConverter                state.AddressConverter
+	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
+	interceptorsResolversCreator process.InterceptorsResolversFactory
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
@@ -144,8 +145,8 @@ func (n *Node) P2PBootstrap() error {
 	if n.messenger == nil {
 		return ErrNilMessenger
 	}
-	n.messenger.Bootstrap(n.ctx)
-	return nil
+
+	return n.messenger.Bootstrap()
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
@@ -225,7 +226,11 @@ func (n *Node) StartConsensus() error {
 		n.shardCoordinator,
 		n.singlesig,
 	)
+	if err != nil {
+		return err
+	}
 
+	err = n.createConsensusTopic(worker)
 	if err != nil {
 		return err
 	}
@@ -261,19 +266,6 @@ func (n *Node) StartConsensus() error {
 	}
 
 	err = fct.GenerateSubrounds()
-
-	if err != nil {
-		return err
-	}
-
-	receivedMessage := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		worker.ReceivedMessage(name, data, msgInfo)
-	}
-
-	topic := p2p.NewTopic(string(ConsensusTopic), &spos.ConsensusMessage{}, n.marshalizer)
-	topic.AddDataReceived(receivedMessage)
-
-	err = n.messenger.AddTopic(topic)
 
 	if err != nil {
 		return err
@@ -392,18 +384,16 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return errFound
 	}
 
-	topic := n.messenger.GetTopic(string(factory.TransactionTopic))
-	if topic == nil {
-		return errors.New("could not get transaction topic")
-	}
-
 	if len(transactions) != int(noOfTx) {
 		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
 	}
 
 	for i := 0; i < len(transactions); i++ {
-		err = topic.BroadcastBuff(transactions[i])
-		time.Sleep(time.Microsecond * 100)
+		n.messenger.BroadcastOnPipe(
+			SendTransactionsPipe,
+			string(factory.TransactionTopic),
+			transactions[i],
+		)
 
 		if err != nil {
 			return errors.New("could not broadcast transaction: " + err.Error())
@@ -438,55 +428,26 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 	return chr, nil
 }
 
-func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstraper, error) {
-	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, rounder, n.blockProcessor, WaitTime, n.hasher, n.marshalizer, n.forkDetector)
+func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	bootstrap, err := sync.NewBootstrap(
+		n.dataPool,
+		n.blkc,
+		rounder,
+		n.blockProcessor,
+		WaitTime,
+		n.hasher,
+		n.marshalizer,
+		n.forkDetector,
+		n.interceptorsResolversCreator.ResolverContainer(),
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	resH, err := n.processorCreator.ResolverContainer().Get(string(factory.HeadersTopic))
-	if err != nil {
-		return nil, errors.New("cannot find headers topic resolver")
-	}
-	hdrRes := resH.(*block2.HeaderResolver)
-
-	resT, err := n.processorCreator.ResolverContainer().Get(string(factory.TxBlockBodyTopic))
-	if err != nil {
-		return nil, errors.New("cannot find tx block body topic resolver")
-
-	}
-	gbbrRes := resT.(*block2.GenericBlockBodyResolver)
-
-	bootstrap.RequestHeaderHandler = createRequestHeaderHandler(hdrRes)
-	bootstrap.RequestTxBodyHandler = cerateRequestTxBodyHandler(gbbrRes)
-
 	bootstrap.StartSync()
 
 	return bootstrap, nil
-}
-
-func createRequestHeaderHandler(hdrRes *block2.HeaderResolver) func(nonce uint64) {
-	return func(nonce uint64) {
-		err := hdrRes.RequestHeaderFromNonce(nonce)
-
-		log.Info(fmt.Sprintf("requested header with nonce %d from network\n", nonce))
-		if err != nil {
-			log.Error("RequestHeaderFromNonce error:  ", err.Error())
-		}
-	}
-}
-
-func cerateRequestTxBodyHandler(gbbrRes *block2.GenericBlockBodyResolver) func(hash []byte) {
-	return func(hash []byte) {
-		err := gbbrRes.RequestBlockBodyFromHash(hash)
-
-		log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(hash)))
-		if err != nil {
-			log.Error("RequestBlockBodyFromHash error: ", err.Error())
-			return
-		}
-	}
 }
 
 // createConsensusState method creates a consensusState object
@@ -544,6 +505,22 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 	}
 
 	return validatorGroupSelector, nil
+}
+
+// createConsensusTopic creates a consensus topic for node
+func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error {
+	if n.messenger.HasTopicValidator(string(ConsensusTopic)) {
+		return ErrValidatorAlreadySet
+	}
+
+	if !n.messenger.HasTopic(string(ConsensusTopic)) {
+		err := n.messenger.CreateTopic(string(ConsensusTopic), true)
+		if err != nil {
+			return err
+		}
+	}
+
+	return n.messenger.RegisterMessageProcessor(string(ConsensusTopic), messageProcessor)
 }
 
 func (n *Node) generateAndSignTx(
@@ -653,21 +630,17 @@ func (n *Node) SendTransaction(
 		Signature: signature,
 	}
 
-	topic := n.messenger.GetTopic(string(factory.TransactionTopic))
-
-	if topic == nil {
-		return nil, errors.New("could not get transaction topic")
-	}
-
 	marshalizedTx, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
 		return nil, errors.New("could not marshal transaction")
 	}
 
-	err = topic.BroadcastBuff(marshalizedTx)
-	if err != nil {
-		return nil, errors.New("could not broadcast transaction: " + err.Error())
-	}
+	n.messenger.BroadcastOnPipe(
+		SendTransactionsPipe,
+		string(factory.TransactionTopic),
+		marshalizedTx,
+	)
+
 	return &tx, nil
 }
 
@@ -734,53 +707,26 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 }
 
 func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
-	topic := n.messenger.GetTopic(string(ConsensusTopic))
-
-	if topic == nil {
-		log.Debug(fmt.Sprintf("could not get consensus topic"))
+	cnsDtaBuff, err := n.marshalizer.Marshal(cnsDta)
+	if err != nil {
+		log.Debug(err.Error())
 		return
 	}
 
-	err := topic.Broadcast(cnsDta)
-
-	if err != nil {
-		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
-	}
+	n.messenger.Broadcast(
+		string(ConsensusTopic),
+		cnsDtaBuff)
 }
 
 func (n *Node) broadcastBlockBody(msg []byte) {
-	topic := n.messenger.GetTopic(string(factory.TxBlockBodyTopic))
-
-	if topic == nil {
-		log.Debug(fmt.Sprintf("could not get tx block body topic"))
-		return
-	}
-
-	err := topic.BroadcastBuff(msg)
-
-	if err != nil {
-		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
-	}
+	n.messenger.Broadcast(
+		string(factory.TxBlockBodyTopic),
+		msg)
 }
 
 func (n *Node) broadcastHeader(msg []byte) {
-	topic := n.messenger.GetTopic(string(factory.HeadersTopic))
-
-	if topic == nil {
-		log.Debug(fmt.Sprintf("could not get header topic"))
-		return
-	}
-
-	err := topic.BroadcastBuff(msg)
-
-	if err != nil {
-		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
-	}
-}
-
-func toB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return base64.StdEncoding.EncodeToString(buff)
+	n.messenger.Broadcast(
+		string(factory.HeadersTopic),
+		msg,
+	)
 }

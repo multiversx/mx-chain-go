@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
@@ -43,11 +44,12 @@ type Bootstrap struct {
 	txBodyHash []byte
 	chRcvTxBdy chan bool
 
-	RequestHeaderHandler func(nonce uint64)
-	RequestTxBodyHandler func(hash []byte)
-
 	chStopSync chan bool
 	waitTime   time.Duration
+
+	resolvers      process.ResolversContainer
+	hdrRes         process.HeaderResolver
+	txBlockBodyRes process.Resolver
 
 	isNodeSynchronized    bool
 	syncStateListeners    []func(bool)
@@ -64,8 +66,18 @@ func NewBootstrap(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
+	resolversContainer process.ResolversContainer,
 ) (*Bootstrap, error) {
-	err := checkBootstrapNilParameters(transientDataHolder, blkc, rounder, blkExecutor, hasher, marshalizer, forkDetector)
+
+	err := checkBootstrapNilParameters(
+		transientDataHolder,
+		blkc,
+		rounder,
+		blkExecutor,
+		hasher,
+		marshalizer,
+		forkDetector,
+		resolversContainer)
 
 	if err != nil {
 		return nil, err
@@ -83,6 +95,20 @@ func NewBootstrap(
 		marshalizer:   marshalizer,
 		forkDetector:  forkDetector,
 	}
+
+	hdrResolver, err := resolversContainer.Get(string(factory.HeadersTopic))
+	if err != nil {
+		return nil, err
+	}
+
+	txBlockBodyResolver, err := resolversContainer.Get(string(factory.TxBlockBodyTopic))
+	if err != nil {
+		return nil, err
+	}
+
+	//placed in struct fields for performance reasons
+	boot.hdrRes = hdrResolver.(process.HeaderResolver)
+	boot.txBlockBodyRes = txBlockBodyResolver.(process.Resolver)
 
 	boot.chRcvHdr = make(chan bool)
 	boot.chRcvTxBdy = make(chan bool)
@@ -110,6 +136,7 @@ func checkBootstrapNilParameters(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
+	resolvers process.ResolversContainer,
 ) error {
 	if transientDataHolder == nil {
 		return process.ErrNilTransientDataHolder
@@ -151,9 +178,14 @@ func checkBootstrapNilParameters(
 		return process.ErrNilForkDetector
 	}
 
+	if resolvers == nil {
+		return process.ErrNilResolverContainer
+	}
+
 	return nil
 }
 
+// AddSyncStateListener adds a syncStateListener that get notified each time the sync status of the node changes
 func (boot *Bootstrap) AddSyncStateListener(syncStateListener func(bool)) {
 	boot.mutSyncStateListeners.Lock()
 	boot.syncStateListeners = append(boot.syncStateListeners, syncStateListener)
@@ -397,9 +429,11 @@ func (boot *Bootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.Header 
 
 // requestHeader method requests a block header from network when it is not found in the pool
 func (boot *Bootstrap) requestHeader(nonce uint64) {
-	if boot.RequestHeaderHandler != nil {
-		boot.setRequestedHeaderNonce(&nonce)
-		boot.RequestHeaderHandler(nonce)
+	err := boot.hdrRes.RequestDataFromNonce(nonce)
+
+	log.Info(fmt.Sprintf("requested header with nonce %d from network\n", nonce))
+	if err != nil {
+		log.Error("RequestHeaderFromNonce error:  ", err.Error())
 	}
 }
 
@@ -455,9 +489,12 @@ func (boot *Bootstrap) getTxBody(hash []byte) interface{} {
 
 // requestBody method requests a block body from network when it is not found in the pool
 func (boot *Bootstrap) requestTxBody(hash []byte) {
-	if boot.RequestTxBodyHandler != nil {
-		boot.setRequestedTxBodyHash(hash)
-		boot.RequestTxBodyHandler(hash)
+	err := boot.txBlockBodyRes.RequestDataFromHash(hash)
+
+	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(hash)))
+	if err != nil {
+		log.Error("RequestBlockBodyFromHash error: ", err.Error())
+		return
 	}
 }
 
