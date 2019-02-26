@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -347,6 +348,8 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
+	initialPeersList := parsePeersList(ctx.GlobalString(flags.InitialPeersList.Name))
+
 	netMessenger, err := createNetMessenger(netMessengerCfg, log)
 	if err != nil {
 		return nil, err
@@ -438,6 +441,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsResolversFactory(interceptorsResolversFactory),
+		node.WithInitialPeersList(initialPeersList),
 	)
 
 	if err != nil {
@@ -768,4 +772,12 @@ func toB64(buff []byte) string {
 		return "<NIL>"
 	}
 	return base64.StdEncoding.EncodeToString(buff)
+}
+
+func parsePeersList(addresses string) []string {
+	if len(addresses) == 0 {
+		return make([]string, 0)
+	}
+
+	return strings.Split(addresses, ",")
 }

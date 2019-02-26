@@ -1,6 +1,8 @@
 package libp2p
 
 import (
+	"time"
+
 	"github.com/libp2p/go-libp2p-discovery"
 	"github.com/libp2p/go-libp2p-host"
 	"github.com/libp2p/go-libp2p-interface-connmgr"
@@ -18,6 +20,13 @@ func (netMes *networkMessenger) ConnManager() ifconnmgr.ConnManager {
 
 func (netMes *networkMessenger) SetPeerDiscoveredHandler(handler PeerInfoHandler) {
 	netMes.peerDiscoveredHandler = handler
+}
+
+func (netMes *networkMessenger) ConnectToOnePeerFromInitialPeersList(
+	durationBetweenAttempts time.Duration,
+	initialPeersList []string) <-chan struct{} {
+
+	return netMes.connectToOnePeerFromInitialPeersList(durationBetweenAttempts, initialPeersList)
 }
 
 func (netMes *networkMessenger) SetHost(host host.Host) {

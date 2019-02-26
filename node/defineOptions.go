@@ -284,3 +284,19 @@ func WithInterceptorsResolversFactory(interceptorsResolversCreator process.Inter
 		return nil
 	}
 }
+
+// WithInitialPeersList sets up the initial peers list for peer discovery
+func WithInitialPeersList(initialPeersList []string) Option {
+	return func(n *Node) error {
+		n.initialPeersList = initialPeersList
+		return nil
+	}
+}
+
+// WithPeersIntervalRefresh sets up the peers refresh interval
+func WithPeersIntervalRefresh(peersRefreshInterval time.Duration) Option {
+	return func(n *Node) error {
+		n.peersRefreshInterval = peersRefreshInterval
+		return nil
+	}
+}

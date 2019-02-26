@@ -39,4 +39,11 @@ var (
 			" - discovery using mdns mechanism, 'kad-dht' - discovery using seed nodes",
 		Value: "mdns",
 	}
+	// InitialPeersList defines a flag for setting the initial peers list (seed nodes peers)
+	InitialPeersList = cli.StringFlag{
+		Name: "initial-peers-list",
+		Usage: "Initial peers list separated by comma. " +
+			"Peer example: /ip4/82.5.34.12/tcp/23000/p2p/16Uiu2HAkyqtHSEJDkYhVWTtm9j58Mq5xQJgrApBYXMwS6sdamXuE",
+		Value: "",
+	}
 )

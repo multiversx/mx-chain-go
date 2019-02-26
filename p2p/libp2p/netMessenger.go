@@ -26,9 +26,6 @@ import (
 const elrondRandezVousString = "ElrondNetworkRandezVous"
 const durationBetweenSends = time.Duration(time.Microsecond * 10)
 
-// durMdnsCalls is used to define the duration used by mdns service when polling peers
-const durationMdnsCalls = time.Second
-
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
 
@@ -42,6 +39,8 @@ type networkMessenger struct {
 	hostP2P           host.Host
 	pb                *pubsub.PubSub
 	ds                p2p.DirectSender
+	mutKadDhtStarted  sync.Mutex
+	kadDhtStarted     bool
 	kadDHT            *dht.IpfsDHT
 	discoverer        discovery.Discoverer
 	peerDiscoveryType p2p.PeerDiscoveryType
@@ -129,6 +128,7 @@ func createMessenger(
 		ctx:               ctx,
 		outgoingPLB:       outgoingPLB,
 		peerDiscoveryType: peerDiscoveryType,
+		kadDhtStarted:     false,
 	}
 
 	err = netMes.applyDiscoveryMechanism(peerDiscoveryType)
@@ -357,31 +357,125 @@ func (netMes *networkMessenger) TrimConnections() {
 }
 
 // Bootstrap will start the peer discovery mechanism
-func (netMes *networkMessenger) Bootstrap() error {
+func (netMes *networkMessenger) Bootstrap(refreshInterval time.Duration, initialPeersList []string) error {
 	if netMes.peerDiscoveryType == p2p.PeerDiscoveryMdns {
-		netMes.mutMdns.Lock()
-		defer netMes.mutMdns.Unlock()
+		return netMes.doMdnsBootstrap(refreshInterval)
+	}
 
-		if netMes.mdns != nil {
-			return p2p.ErrPeerDiscoveryProcessAlreadyStarted
-		}
-
-		mdns, err := discovery2.NewMdnsService(
-			netMes.ctx,
-			netMes.hostP2P,
-			durationMdnsCalls,
-			"discovery")
-
-		if err != nil {
-			return err
-		}
-
-		mdns.RegisterNotifee(netMes)
-		netMes.mdns = mdns
-		return nil
+	if netMes.peerDiscoveryType == p2p.PeerDiscoveryKadDht {
+		return netMes.doKadDhtBootstrap(refreshInterval, initialPeersList)
 	}
 
 	return nil
+}
+
+func (netMes *networkMessenger) doMdnsBootstrap(refreshInterval time.Duration) error {
+	netMes.mutMdns.Lock()
+	defer netMes.mutMdns.Unlock()
+
+	if netMes.mdns != nil {
+		return p2p.ErrPeerDiscoveryProcessAlreadyStarted
+	}
+
+	mdns, err := discovery2.NewMdnsService(
+		netMes.ctx,
+		netMes.hostP2P,
+		refreshInterval,
+		"discovery")
+
+	if err != nil {
+		return err
+	}
+
+	mdns.RegisterNotifee(netMes)
+	netMes.mdns = mdns
+	return nil
+}
+
+func (netMes *networkMessenger) doKadDhtBootstrap(refreshInterval time.Duration, initialPeersList []string) error {
+	netMes.mutKadDhtStarted.Lock()
+	defer netMes.mutKadDhtStarted.Unlock()
+
+	if netMes.kadDhtStarted {
+		return p2p.ErrPeerDiscoveryProcessAlreadyStarted
+	}
+
+	netMes.kadDhtStarted = true
+
+	cfg := dht.BootstrapConfig{
+		Period:  refreshInterval,
+		Queries: 1,
+		Timeout: time.Duration(10 * time.Second),
+	}
+
+	chanStartBootstrap := netMes.connectToOnePeerFromInitialPeersList(refreshInterval, initialPeersList)
+
+	go func() {
+		select {
+		case <-chanStartBootstrap:
+		}
+
+		proc, err := netMes.kadDHT.BootstrapWithConfig(cfg)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		// wait till ctx or dht.Context exits.
+		// we have to do it this way to satisfy the Routing interface (contexts)
+		go func() {
+			defer func() {
+				_ = proc.Close()
+			}()
+			select {
+			case <-netMes.ctx.Done():
+			case <-netMes.kadDHT.Context().Done():
+			}
+		}()
+
+	}()
+
+	return nil
+}
+
+func (netMes *networkMessenger) connectToOnePeerFromInitialPeersList(
+	intervalBetweenAttempts time.Duration,
+	initialPeersList []string) <-chan struct{} {
+
+	chanDone := make(chan struct{}, 1)
+
+	if initialPeersList == nil {
+		chanDone <- struct{}{}
+		return chanDone
+	}
+
+	if len(initialPeersList) == 0 {
+		chanDone <- struct{}{}
+		return chanDone
+	}
+
+	go func() {
+		startIndex := 0
+
+		for {
+			err := netMes.ConnectToPeer(initialPeersList[startIndex])
+
+			if err != nil {
+				//could not connect, wait an try next one
+				startIndex++
+				startIndex = startIndex % len(initialPeersList)
+
+				time.Sleep(intervalBetweenAttempts)
+
+				continue
+			}
+
+			chanDone <- struct{}{}
+			return
+		}
+	}()
+
+	return chanDone
 }
 
 // IsConnected returns true if current node is connected to provided peer

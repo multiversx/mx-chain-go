@@ -933,7 +933,7 @@ func getMessenger() *mock.MessengerStub {
 		CloseCalled: func() error {
 			return nil
 		},
-		BootstrapCalled: func() error {
+		BootstrapCalled: func(refreshInterval time.Duration, initialPeersList []string) error {
 			return nil
 		},
 	}

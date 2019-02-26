@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
@@ -23,7 +25,7 @@ type MessengerStub struct {
 	UnregisterMessageProcessorCalled func(topic string) error
 	SendToConnectedPeerCalled        func(topic string, buff []byte, peerID p2p.PeerID) error
 	OutgoingPipeLoadBalancerCalled   func() p2p.PipeLoadBalancer
-	BootstrapCalled                  func() error
+	BootstrapCalled                  func(refreshInterval time.Duration, initialPeersList []string) error
 }
 
 func (ms *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
@@ -98,6 +100,6 @@ func (ms *MessengerStub) SendToConnectedPeer(topic string, buff []byte, peerID p
 	return ms.SendToConnectedPeerCalled(topic, buff, peerID)
 }
 
-func (ms *MessengerStub) Bootstrap() error {
-	return ms.BootstrapCalled()
+func (ms *MessengerStub) Bootstrap(refreshInterval time.Duration, initialPeersList []string) error {
+	return ms.BootstrapCalled(refreshInterval, initialPeersList)
 }

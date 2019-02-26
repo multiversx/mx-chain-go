@@ -3,6 +3,7 @@ package p2p
 import (
 	"io"
 	"strings"
+	"time"
 
 	"github.com/mr-tron/base58/base58"
 )
@@ -90,7 +91,7 @@ type Messenger interface {
 	IsConnected(peerID PeerID) bool
 	ConnectedPeers() []PeerID
 	TrimConnections()
-	Bootstrap() error
+	Bootstrap(refreshInterval time.Duration, initialPeersList []string) error
 
 	CreateTopic(name string, createPipeForTopic bool) error
 	HasTopic(name string) bool

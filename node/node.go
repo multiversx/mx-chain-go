@@ -70,6 +70,9 @@ type Node struct {
 	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
 	interceptorsResolversCreator process.InterceptorsResolversFactory
 
+	initialPeersList     []string
+	peersRefreshInterval time.Duration
+
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
 	singleSignKeyGen crypto.KeyGenerator
@@ -101,7 +104,8 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
 	node := &Node{
-		ctx: context.Background(),
+		ctx:                  context.Background(),
+		peersRefreshInterval: time.Duration(time.Second * 10),
 	}
 	for _, opt := range opts {
 		err := opt(node)
@@ -146,7 +150,7 @@ func (n *Node) P2PBootstrap() error {
 		return ErrNilMessenger
 	}
 
-	return n.messenger.Bootstrap()
+	return n.messenger.Bootstrap(n.peersRefreshInterval, n.initialPeersList)
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers

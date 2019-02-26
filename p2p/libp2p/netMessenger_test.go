@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1000,7 +1001,7 @@ func TestNetworkMessenger_BootstrapPeerDiscoveryOffShouldReturnNil(t *testing.T)
 		p2p.PeerDiscoveryOff,
 	)
 
-	err := mes.Bootstrap()
+	err := mes.Bootstrap(time.Second, nil)
 
 	assert.Nil(t, err)
 
@@ -1019,7 +1020,7 @@ func TestNetworkMessenger_BootstrapMdnsPeerDiscoveryShouldReturnNil(t *testing.T
 		p2p.PeerDiscoveryMdns,
 	)
 
-	err := mes.Bootstrap()
+	err := mes.Bootstrap(time.Second, nil)
 	assert.Nil(t, err)
 
 	mes.Close()
@@ -1037,12 +1038,51 @@ func TestNetworkMessenger_BootstrapMdnsPeerDiscoveryCalledTwiceShouldErr(t *test
 		p2p.PeerDiscoveryMdns,
 	)
 
-	_ = mes.Bootstrap()
-	err := mes.Bootstrap()
+	_ = mes.Bootstrap(time.Second, nil)
+	err := mes.Bootstrap(time.Second, nil)
 	assert.Equal(t, p2p.ErrPeerDiscoveryProcessAlreadyStarted, err)
 
 	mes.Close()
 }
+
+func TestNetworkMessenger_BootstrapKadDhtPeerDiscoveryShouldReturnNil(t *testing.T) {
+	_, sk := createLibP2PCredentialsMessenger()
+
+	mes, _ := libp2p.NewNetworkMessenger(
+		context.Background(),
+		23000,
+		sk,
+		nil,
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		p2p.PeerDiscoveryKadDht,
+	)
+
+	err := mes.Bootstrap(time.Second, nil)
+	assert.Nil(t, err)
+
+	mes.Close()
+}
+
+func TestNetworkMessenger_BootstrapKadDhtPeerDiscoveryCalledTwiceShouldErr(t *testing.T) {
+	_, sk := createLibP2PCredentialsMessenger()
+
+	mes, _ := libp2p.NewNetworkMessenger(
+		context.Background(),
+		23000,
+		sk,
+		nil,
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		p2p.PeerDiscoveryKadDht,
+	)
+
+	_ = mes.Bootstrap(time.Second, nil)
+	err := mes.Bootstrap(time.Second, nil)
+	assert.Equal(t, p2p.ErrPeerDiscoveryProcessAlreadyStarted, err)
+
+	mes.Close()
+}
+
+//------- HandlePeerFoundPeer
 
 func TestNetworkMessenger_HandlePeerFoundNotFoundShouldTryToConnect(t *testing.T) {
 	_, sk := createLibP2PCredentialsMessenger()
@@ -1146,5 +1186,155 @@ func TestNetworkMessenger_HandlePeerFoundPeerFoundShouldNotTryToConnect(t *testi
 		assert.Fail(t, "should have not called host.Connect")
 	case <-time.After(timeoutWaitResponses):
 		return
+	}
+}
+
+//------- connectToOnePeerFromInitialPeersList
+
+func TestNetworkMessenger_ConnectToOnePeerFromInitialPeersListNilListShouldRetWithChanFull(t *testing.T) {
+	netw := mocknet.New(context.Background())
+
+	mes, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
+
+	chanDone := mes.ConnectToOnePeerFromInitialPeersList(time.Second, nil)
+
+	assert.Equal(t, 1, len(chanDone))
+
+	mes.Close()
+}
+
+func TestNetworkMessenger_ConnectToOnePeerFromInitialPeersListEmptyListShouldRetWithChanFull(t *testing.T) {
+	netw := mocknet.New(context.Background())
+
+	mes, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
+
+	chanDone := mes.ConnectToOnePeerFromInitialPeersList(time.Second, make([]string, 0))
+
+	assert.Equal(t, 1, len(chanDone))
+
+	mes.Close()
+}
+
+func TestNetworkMessenger_ConnectToOnePeerFromInitialPeersOnePeerShouldTryToConnect(t *testing.T) {
+	netw := mocknet.New(context.Background())
+
+	mes, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
+	mes.Close()
+
+	peerID := "16Uiu2HAmV6xtNXjZFgap39HkbTjsBPJzo6W23HaDQvC2svFnbneJ"
+	p := "/ip4/127.0.0.1/tcp/4001/p2p/" + peerID
+
+	wasConnectCalled := int32(0)
+
+	mes.SetHost(&mock.HostStub{
+		ConnectCalled: func(ctx context.Context, pi peerstore.PeerInfo) error {
+			if peerID == pi.ID.Pretty() {
+				atomic.AddInt32(&wasConnectCalled, 1)
+			}
+
+			return nil
+		},
+	})
+
+	chanDone := mes.ConnectToOnePeerFromInitialPeersList(time.Second, []string{p})
+
+	select {
+	case <-chanDone:
+		assert.Equal(t, int32(1), atomic.LoadInt32(&wasConnectCalled))
+	case <-time.After(timeoutWaitResponses):
+		assert.Fail(t, "timeout")
+	}
+}
+
+func TestNetworkMessenger_ConnectToOnePeerFromInitialPeersOnePeerShouldTryToConnectContinously(t *testing.T) {
+	netw := mocknet.New(context.Background())
+
+	mes, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
+	mes.Close()
+
+	peerID := "16Uiu2HAmV6xtNXjZFgap39HkbTjsBPJzo6W23HaDQvC2svFnbneJ"
+	p := "/ip4/127.0.0.1/tcp/4001/p2p/" + peerID
+
+	wasConnectCalled := int32(0)
+
+	errDidNotConnect := errors.New("did not connect")
+	noOfTimesToRefuseConnection := 5
+
+	mes.SetHost(&mock.HostStub{
+		ConnectCalled: func(ctx context.Context, pi peerstore.PeerInfo) error {
+			if peerID != pi.ID.Pretty() {
+				assert.Fail(t, "should have tried to connect to the same ID")
+			}
+
+			atomic.AddInt32(&wasConnectCalled, 1)
+
+			if atomic.LoadInt32(&wasConnectCalled) < int32(noOfTimesToRefuseConnection) {
+				return errDidNotConnect
+			}
+
+			return nil
+		},
+	})
+
+	chanDone := mes.ConnectToOnePeerFromInitialPeersList(time.Millisecond*10, []string{p})
+
+	select {
+	case <-chanDone:
+		assert.Equal(t, int32(noOfTimesToRefuseConnection), atomic.LoadInt32(&wasConnectCalled))
+	case <-time.After(timeoutWaitResponses):
+		assert.Fail(t, "timeout")
+	}
+}
+
+func TestNetworkMessenger_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlternate(t *testing.T) {
+	netw := mocknet.New(context.Background())
+
+	mes, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
+	mes.Close()
+
+	peerID1 := "16Uiu2HAmV6xtNXjZFgap39HkbTjsBPJzo6W23HaDQvC2svFnbneJ"
+	p1 := "/ip4/127.0.0.1/tcp/4001/p2p/" + peerID1
+
+	peerID2 := "16Uiu2HAm2dbf9JosPd712EpqYV2tMPNdmXfVJm3bNmayzm6Q5R9L"
+	p2 := "/ip4/127.0.0.1/tcp/4001/p2p/" + peerID2
+
+	wasConnectCalled := int32(0)
+
+	errDidNotConnect := errors.New("did not connect")
+	noOfTimesToRefuseConnection := 5
+
+	mes.SetHost(&mock.HostStub{
+		ConnectCalled: func(ctx context.Context, pi peerstore.PeerInfo) error {
+			connCalled := atomic.LoadInt32(&wasConnectCalled)
+
+			atomic.AddInt32(&wasConnectCalled, 1)
+
+			if connCalled >= int32(noOfTimesToRefuseConnection) {
+				return nil
+			}
+
+			connCalled = connCalled % 2
+			if connCalled == 0 {
+				if peerID1 != pi.ID.Pretty() {
+					assert.Fail(t, "should have tried to connect to "+peerID1)
+				}
+			}
+
+			if connCalled == 1 {
+				if peerID2 != pi.ID.Pretty() {
+					assert.Fail(t, "should have tried to connect to "+peerID2)
+				}
+			}
+
+			return errDidNotConnect
+		},
+	})
+
+	chanDone := mes.ConnectToOnePeerFromInitialPeersList(time.Millisecond*10, []string{p1, p2})
+
+	select {
+	case <-chanDone:
+	case <-time.After(timeoutWaitResponses):
+		assert.Fail(t, "timeout")
 	}
 }

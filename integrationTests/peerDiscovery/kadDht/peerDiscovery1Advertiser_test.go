@@ -1,8 +1,9 @@
-package mdns
+package kadDht
 
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 var durationBootstrapingTime = time.Duration(time.Second * 2)
 var durationTopicAnnounceTime = time.Duration(time.Second * 2)
 
-func TestPeerDiscoveryAndMessageSending(t *testing.T) {
+func TestPeerDiscoveryAndMessageSending1Advertiser(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -24,7 +25,12 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 	basePort := 23000
 	noOfPeers := 20
 
-	//Step 1. Create noOfPeers instances of messenger type
+	//Step 1. Create advertiser
+	advertiser := tr.CreateMessenger(context.Background(), basePort, p2p.PeerDiscoveryKadDht)
+	basePort++
+	advertiser.Bootstrap(time.Second, nil)
+
+	//Step 2. Create noOfPeers instances of messenger type
 	peers := make([]p2p.Messenger, noOfPeers)
 
 	for i := 0; i < noOfPeers; i++ {
@@ -33,7 +39,7 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 
 	//Step 2. Call bootstrap to start the discovery process
 	for _, peer := range peers {
-		peer.Bootstrap(time.Second, nil)
+		peer.Bootstrap(time.Second, []string{chooseNonCircuitAddress(advertiser.Addresses())})
 	}
 
 	//cleanup function that closes all messengers
@@ -42,6 +48,10 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 			if peers[i] != nil {
 				peers[i].Close()
 			}
+		}
+
+		if advertiser != nil {
+			advertiser.Close()
 		}
 	}()
 
@@ -77,4 +87,16 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 	}
 
 	assert.Fail(t, "test failed. Discovery/message passing are not validated")
+}
+
+func chooseNonCircuitAddress(addresses []string) string {
+	for _, adr := range addresses {
+		if strings.Contains(adr, "circuit") {
+			continue
+		}
+
+		return adr
+	}
+
+	return ""
 }

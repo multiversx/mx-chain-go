@@ -656,3 +656,31 @@ func TestWithInterceptorsResolversFactory_NilFactoryShouldErr(t *testing.T) {
 	assert.Nil(t, node.interceptorsResolversCreator)
 	assert.Equal(t, ErrNilInterceptorsResolversFactory, err)
 }
+
+func TestWithInitialPeersList(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	pList := make([]string, 0)
+
+	opt := WithInitialPeersList(pList)
+	err := opt(node)
+
+	assert.Equal(t, pList, node.initialPeersList)
+	assert.Nil(t, err)
+}
+
+func TestWithPeersIntervalRefresh(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	interval := time.Second
+
+	opt := WithPeersIntervalRefresh(interval)
+	err := opt(node)
+
+	assert.Equal(t, interval, node.peersRefreshInterval)
+	assert.Nil(t, err)
+}

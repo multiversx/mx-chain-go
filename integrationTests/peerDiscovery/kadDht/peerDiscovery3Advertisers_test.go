@@ -1,4 +1,4 @@
-package mdns
+package kadDht
 
 import (
 	"context"
@@ -11,10 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durationBootstrapingTime = time.Duration(time.Second * 2)
-var durationTopicAnnounceTime = time.Duration(time.Second * 2)
-
-func TestPeerDiscoveryAndMessageSending(t *testing.T) {
+func TestPeerDiscoveryAndMessageSending3Advertisers(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -23,8 +20,19 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 
 	basePort := 23000
 	noOfPeers := 20
+	noOfAdvertisers := 3
 
-	//Step 1. Create noOfPeers instances of messenger type
+	//Step 1. Create 3 advertisers and connect them together
+	advertisers := make([]p2p.Messenger, noOfAdvertisers)
+	for i := 0; i < noOfAdvertisers; i++ {
+		advertisers[i] = tr.CreateMessenger(context.Background(), basePort, p2p.PeerDiscoveryKadDht)
+		basePort++
+		if i > 0 {
+			advertisers[i].Bootstrap(time.Second, []string{chooseNonCircuitAddress(advertisers[0].Addresses())})
+		}
+	}
+
+	//Step 2. Create noOfPeers instances of messenger type
 	peers := make([]p2p.Messenger, noOfPeers)
 
 	for i := 0; i < noOfPeers; i++ {
@@ -32,8 +40,8 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 	}
 
 	//Step 2. Call bootstrap to start the discovery process
-	for _, peer := range peers {
-		peer.Bootstrap(time.Second, nil)
+	for i, peer := range peers {
+		peer.Bootstrap(time.Second, []string{chooseNonCircuitAddress(advertisers[i%noOfAdvertisers].Addresses())})
 	}
 
 	//cleanup function that closes all messengers
@@ -41,6 +49,12 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 		for i := 0; i < noOfPeers; i++ {
 			if peers[i] != nil {
 				peers[i].Close()
+			}
+		}
+
+		for i := 0; i < noOfAdvertisers; i++ {
+			if advertisers[i] != nil {
+				advertisers[i].Close()
 			}
 		}
 	}()
