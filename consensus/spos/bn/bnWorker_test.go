@@ -573,7 +573,7 @@ func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 	assert.Nil(t, receivedMessageCalls[bn.MtBlockBody])
 }
 
-func TestWorker_ReceivedMessageTxBlockBody(t *testing.T) {
+func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	t.Parallel()
 
 	wrk := *initWorker()
@@ -591,11 +591,15 @@ func TestWorker_ReceivedMessageTxBlockBody(t *testing.T) {
 		0,
 	)
 
-	err := wrk.ReceivedMessage(string(consensusTopic), cnsMsg, nil)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+
+	time.Sleep(time.Second)
+
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
 	assert.Nil(t, err)
 }
 
-func TestWorker_ReceivedMessageUnknown(t *testing.T) {
+func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
 	t.Parallel()
 
 	wrk := *initWorker()
@@ -618,11 +622,15 @@ func TestWorker_ReceivedMessageUnknown(t *testing.T) {
 		0,
 	)
 
-	err := wrk.ReceivedMessage(string(consensusTopic), cnsMsg, nil)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+
+	time.Sleep(time.Second)
+
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
 	assert.Nil(t, err)
 }
 
-func TestWorker_ReceivedMessageShouldReturnWhenIsCanceled(t *testing.T) {
+func TestWorker_ProcessReceivedMessageRoundCanceledShouldErr(t *testing.T) {
 	t.Parallel()
 
 	wrk := *initWorker()
@@ -641,23 +649,43 @@ func TestWorker_ReceivedMessageShouldReturnWhenIsCanceled(t *testing.T) {
 	)
 
 	wrk.ConsensusState().RoundCanceled = true
-	err := wrk.ReceivedMessage(string(consensusTopic), cnsMsg, nil)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+
+	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
 	assert.Equal(t, bn.ErrRoundCanceled, err)
 }
 
-func TestWorker_ReceivedMessageShouldReturnWhenDataReceivedIsInvalid(t *testing.T) {
+func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	wrk := *initWorker()
 
-	err := wrk.ReceivedMessage(string(consensusTopic), nil, nil)
+	err := wrk.ProcessReceivedMessage(nil)
+
+	time.Sleep(time.Second)
+
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
-	assert.Equal(t, bn.ErrInvalidConsensusData, err)
+	assert.Equal(t, bn.ErrNilMessage, err)
 }
 
-func TestWorker_ReceivedMessageShouldReturnWhenNodeIsNotInTheEligibleList(t *testing.T) {
+func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T) {
+	t.Parallel()
+
+	wrk := *initWorker()
+
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{})
+
+	time.Sleep(time.Second)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
+	assert.Equal(t, bn.ErrNilDataToProcess, err)
+}
+
+func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.T) {
 	t.Parallel()
 
 	wrk := *initWorker()
@@ -675,13 +703,17 @@ func TestWorker_ReceivedMessageShouldReturnWhenNodeIsNotInTheEligibleList(t *tes
 		0,
 	)
 
-	err := wrk.ReceivedMessage(string(consensusTopic), cnsMsg, nil)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+
+	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
 	assert.Equal(t, bn.ErrSenderNotOk, err)
 }
 
-func TestWorker_ReceivedMessageShouldReturnWhenMessageIsForPastRound(t *testing.T) {
+func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	wrk := *initWorker()
@@ -699,13 +731,17 @@ func TestWorker_ReceivedMessageShouldReturnWhenMessageIsForPastRound(t *testing.
 		-1,
 	)
 
-	err := wrk.ReceivedMessage(string(consensusTopic), cnsMsg, nil)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+
+	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
 	assert.Equal(t, bn.ErrMessageForPastRound, err)
 }
 
-func TestWorker_ReceivedMessageShouldReturnWhenReceivedMessageIsFromSelf(t *testing.T) {
+func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNotProcess(t *testing.T) {
 	t.Parallel()
 
 	wrk := *initWorker()
@@ -723,13 +759,17 @@ func TestWorker_ReceivedMessageShouldReturnWhenReceivedMessageIsFromSelf(t *test
 		0,
 	)
 
-	err := wrk.ReceivedMessage(string(consensusTopic), cnsMsg, nil)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+
+	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
-	assert.Equal(t, bn.ErrMessageFromItself, err)
+	assert.Nil(t, err)
 }
 
-func TestWorker_ReceivedMessageShouldReturnWhenSignatureIsInvalid(t *testing.T) {
+func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 
 	wrk := *initWorker()
@@ -747,13 +787,17 @@ func TestWorker_ReceivedMessageShouldReturnWhenSignatureIsInvalid(t *testing.T) 
 		0,
 	)
 
-	err := wrk.ReceivedMessage(string(consensusTopic), cnsMsg, nil)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+
+	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
 	assert.Equal(t, bn.ErrInvalidSignature, err)
 }
 
-func TestWorker_ReceivedMessageShouldSendReceivedMesageOnChannel(t *testing.T) {
+func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wrk := *initWorker()
@@ -771,11 +815,14 @@ func TestWorker_ReceivedMessageShouldSendReceivedMesageOnChannel(t *testing.T) {
 		0,
 	)
 
-	wrk.ReceivedMessage(string(consensusTopic), cnsMsg, nil)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 
-	time.Sleep(1000 * time.Millisecond)
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
+
+	time.Sleep(time.Second)
 
 	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
+	assert.Nil(t, err)
 }
 
 func TestWorker_CheckSignatureShouldReturnErrNilConsensusData(t *testing.T) {

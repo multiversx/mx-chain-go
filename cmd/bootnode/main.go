@@ -170,6 +170,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		err = ef.StartNode()
 		if err != nil {
 			log.Error("starting node failed", err.Error())
+			return err
 		}
 	}
 

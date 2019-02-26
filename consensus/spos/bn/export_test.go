@@ -33,11 +33,11 @@ func (fct *factory) SetBlockProcessor(blockProcessor process.BlockProcessor) {
 	fct.blockProcessor = blockProcessor
 }
 
-func (fct *factory) Bootstraper() process.Bootstraper {
+func (fct *factory) Bootstraper() process.Bootstrapper {
 	return fct.bootstraper
 }
 
-func (fct *factory) SetBootsraper(bootstraper process.Bootstraper) {
+func (fct *factory) SetBootsraper(bootstraper process.Bootstrapper) {
 	fct.bootstraper = bootstraper
 }
 
@@ -163,11 +163,11 @@ func (sr *subround) SetCheckFunction(check func() bool) {
 
 type Worker *worker
 
-func (wrk *worker) Bootstraper() process.Bootstraper {
+func (wrk *worker) Bootstraper() process.Bootstrapper {
 	return wrk.bootstraper
 }
 
-func (wrk *worker) SetBootstraper(bootstraper process.Bootstraper) {
+func (wrk *worker) SetBootstraper(bootstraper process.Bootstrapper) {
 	wrk.bootstraper = bootstraper
 }
 
@@ -287,11 +287,11 @@ func (wrk *worker) SetConsensusStateChangedChannels(consensusStateChangedChannel
 
 type SubroundStartRound *subroundStartRound
 
-func (sr *subroundStartRound) Bootstraper() process.Bootstraper {
+func (sr *subroundStartRound) Bootstraper() process.Bootstrapper {
 	return sr.bootstraper
 }
 
-func (sr *subroundStartRound) SetBootsraper(bootstraper process.Bootstraper) {
+func (sr *subroundStartRound) SetBootsraper(bootstraper process.Bootstrapper) {
 	sr.bootstraper = bootstraper
 }
 

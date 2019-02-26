@@ -44,7 +44,6 @@ type Bootstrap struct {
 	txBodyHash []byte
 	chRcvTxBdy chan bool
 
-
 	chStopSync chan bool
 	waitTime   time.Duration
 
@@ -186,6 +185,7 @@ func checkBootstrapNilParameters(
 	return nil
 }
 
+// AddSyncStateListener adds a syncStateListener that get notified each time the sync status of the node changes
 func (boot *Bootstrap) AddSyncStateListener(syncStateListener func(bool)) {
 	boot.mutSyncStateListeners.Lock()
 	boot.syncStateListeners = append(boot.syncStateListeners, syncStateListener)

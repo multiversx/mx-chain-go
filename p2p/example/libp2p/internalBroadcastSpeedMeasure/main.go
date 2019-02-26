@@ -15,8 +15,8 @@ import (
 func main() {
 	net := mocknet.New(context.Background())
 
-	mes1, _ := libp2p.NewMockNetworkMessenger(context.Background(), net, p2p.PeerDiscoveryOff)
-	mes2, _ := libp2p.NewMockNetworkMessenger(context.Background(), net, p2p.PeerDiscoveryOff)
+	mes1, _ := libp2p.NewMemoryMessenger(context.Background(), net, p2p.PeerDiscoveryOff)
+	mes2, _ := libp2p.NewMemoryMessenger(context.Background(), net, p2p.PeerDiscoveryOff)
 
 	adr2 := mes2.Addresses()[0]
 

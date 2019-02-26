@@ -29,7 +29,6 @@ import (
 )
 
 var timeoutWaitResponses = time.Second * 2
-var durationBootstrap = time.Second * 2
 
 func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration) {
 	select {
@@ -71,8 +70,8 @@ func getConnectableAddress(mes p2p.Messenger) string {
 func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 	netw := mocknet.New(context.Background())
 
-	mes1, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
-	mes2, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
+	mes1, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
+	mes2, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
 
 	return netw, mes1, mes2
 }
@@ -80,7 +79,7 @@ func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 func createMockMessenger() p2p.Messenger {
 	netw := mocknet.New(context.Background())
 
-	mes, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
+	mes, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
 
 	return mes
 }
@@ -99,14 +98,14 @@ func createLibP2PCredentialsMessenger() (peer.ID, crypto.PrivKey) {
 func TestNewMockLibp2pMessenger_NilContextShouldErr(t *testing.T) {
 	netw := mocknet.New(context.Background())
 
-	mes, err := libp2p.NewMockNetworkMessenger(nil, netw, p2p.PeerDiscoveryOff)
+	mes, err := libp2p.NewMemoryMessenger(nil, netw, p2p.PeerDiscoveryOff)
 
 	assert.Nil(t, mes)
 	assert.Equal(t, err, p2p.ErrNilContext)
 }
 
 func TestNewMockLibp2pMessenger_NilMocknetShouldErr(t *testing.T) {
-	mes, err := libp2p.NewMockNetworkMessenger(context.Background(), nil, p2p.PeerDiscoveryOff)
+	mes, err := libp2p.NewMemoryMessenger(context.Background(), nil, p2p.PeerDiscoveryOff)
 
 	assert.Nil(t, mes)
 	assert.Equal(t, err, p2p.ErrNilMockNet)
@@ -115,7 +114,7 @@ func TestNewMockLibp2pMessenger_NilMocknetShouldErr(t *testing.T) {
 func TestNewMockLibp2pMessenger_OkValsShouldWork(t *testing.T) {
 	netw := mocknet.New(context.Background())
 
-	mes, err := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
+	mes, err := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, mes)
@@ -605,7 +604,7 @@ func TestLibp2pMessenger_Peers(t *testing.T) {
 
 func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
 	netw, mes1, mes2 := createMockNetworkOf2()
-	mes3, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
+	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
 
 	adr2 := mes2.Addresses()[0]
 
@@ -659,7 +658,7 @@ func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
 	}
 
 	netw := mocknet.New(context.Background())
-	mes, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
+	mes, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryOff)
 	//we can safely close the host as the next operations will be done on a mock
 	mes.Close()
 
@@ -696,7 +695,7 @@ func generateConnWithRemotePeer(pid p2p.PeerID) net.Conn {
 func TestLibp2pMessenger_KadDhtDiscoverNewPeersNilDiscovererShouldErr(t *testing.T) {
 	netw := mocknet.New(context.Background())
 
-	mes, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
+	mes, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
 	mes.SetDiscoverer(nil)
 
 	err := mes.KadDhtDiscoverNewPeers()
@@ -713,7 +712,7 @@ func TestLibp2pMessenger_KadDhtDiscoverNewPeersDiscovererErrsShouldErr(t *testin
 
 	netw := mocknet.New(context.Background())
 
-	mes, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
+	mes, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
 	mes.SetDiscoverer(ds)
 
 	err := mes.KadDhtDiscoverNewPeers()
@@ -750,7 +749,7 @@ func TestLibp2pMessenger_KadDhtDiscoverNewPeersShouldWork(t *testing.T) {
 
 	netw := mocknet.New(context.Background())
 
-	mes, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
+	mes, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
 	mes.SetDiscoverer(ds)
 
 	foundPeers := make([]peerstore.PeerInfo, 0)
@@ -771,9 +770,9 @@ func TestLibp2pMessenger_KadDhtDiscoverNewPeersShouldWork(t *testing.T) {
 func TestLibp2pMessenger_KadDhtDiscoverNewPeersWithRealDiscovererShouldWork(t *testing.T) {
 	netw := mocknet.New(context.Background())
 
-	advertiser, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
-	mes1, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
-	mes2, _ := libp2p.NewMockNetworkMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
+	advertiser, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
+	mes1, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
+	mes2, _ := libp2p.NewMemoryMessenger(context.Background(), netw, p2p.PeerDiscoveryKadDht)
 
 	adrAdvertiser := advertiser.Addresses()[0]
 

@@ -216,7 +216,6 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	err = n.createConsensusTopic(sposWrk)
 	worker, err := bn.NewWorker(
 		bootstraper,
 		consensusState,
@@ -227,7 +226,11 @@ func (n *Node) StartConsensus() error {
 		n.shardCoordinator,
 		n.singlesig,
 	)
+	if err != nil {
+		return err
+	}
 
+	err = n.createConsensusTopic(worker)
 	if err != nil {
 		return err
 	}
@@ -263,19 +266,6 @@ func (n *Node) StartConsensus() error {
 	}
 
 	err = fct.GenerateSubrounds()
-
-	if err != nil {
-		return err
-	}
-
-	receivedMessage := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
-		worker.ReceivedMessage(name, data, msgInfo)
-	}
-
-	topic := p2p.NewTopic(string(ConsensusTopic), &spos.ConsensusMessage{}, n.marshalizer)
-	topic.AddDataReceived(receivedMessage)
-
-	err = n.messenger.AddTopic(topic)
 
 	if err != nil {
 		return err
@@ -438,10 +428,18 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 	return chr, nil
 }
 
-func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstraper, error) {
-	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, rounder, n.blockProcessor, WaitTime, n.hasher, n.marshalizer, n.forkDetector)
-
-	//n.interceptorsResolversCreator.ResolverContainer(),
+func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	bootstrap, err := sync.NewBootstrap(
+		n.dataPool,
+		n.blkc,
+		rounder,
+		n.blockProcessor,
+		WaitTime,
+		n.hasher,
+		n.marshalizer,
+		n.forkDetector,
+		n.interceptorsResolversCreator.ResolverContainer(),
+	)
 
 	if err != nil {
 		return nil, err
@@ -510,7 +508,7 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 }
 
 // createConsensusTopic creates a consensus topic for node
-func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) error {
+func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error {
 	if n.messenger.HasTopicValidator(string(ConsensusTopic)) {
 		return ErrValidatorAlreadySet
 	}
@@ -522,12 +520,7 @@ func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) error {
 		}
 	}
 
-	err := n.messenger.CreateTopic(string(ConsensusTopic), true)
-	if err != nil {
-		return err
-	}
-
-	return n.messenger.RegisterMessageProcessor(string(ConsensusTopic), sposWrk)
+	return n.messenger.RegisterMessageProcessor(string(ConsensusTopic), messageProcessor)
 }
 
 func (n *Node) generateAndSignTx(

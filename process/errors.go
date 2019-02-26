@@ -4,9 +4,6 @@ import (
 	"errors"
 )
 
-// ErrValidatorAlreadySet signals that a topic validator has already been set
-var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
-
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
 
@@ -18,9 +15,6 @@ var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
-
-// ErrNilPublicKeysSelector signals that a nil public keys selector has been provided
-var ErrNilPublicKeysSelector = errors.New("nil public keys selector")
 
 // ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
 var ErrNilAddressConverter = errors.New("nil AddressConverter")
@@ -99,9 +93,6 @@ var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 
 // ErrInvalidBlockHash signals the hash of the block is not matching with the previous one
 var ErrInvalidBlockHash = errors.New("invalid block hash")
-
-// ErrInvalidBlockSignature signals the signature of the block is not valid
-var ErrInvalidBlockSignature = errors.New("invalid block signature")
 
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")
@@ -198,9 +189,6 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
-
-// ErrNilResolver signals that a nil resolver object has been provided
-var ErrNilResolver = errors.New("nil resolver")
 
 // ErrNilResolverSender signals that a nil resolver sender object has been provided
 var ErrNilResolverSender = errors.New("nil resolver sender")

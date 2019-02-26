@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-discovery"
@@ -21,7 +20,6 @@ import (
 	"github.com/libp2p/go-libp2p-protocol"
 	"github.com/libp2p/go-libp2p-pubsub"
 	discovery2 "github.com/libp2p/go-libp2p/p2p/discovery"
-	"github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -58,45 +56,6 @@ type networkMessenger struct {
 	peerDiscoveredHandler PeerInfoHandler
 
 	outgoingPLB p2p.PipeLoadBalancer
-}
-
-// NewMockNetworkMessenger creates a new sandbox testable instance of libP2P messenger
-// It should not open ports on current machine
-// Should be used only in testing!
-func NewMockNetworkMessenger(
-	ctx context.Context,
-	mockNet mocknet.Mocknet,
-	peerDiscoveryType p2p.PeerDiscoveryType) (*networkMessenger, error) {
-
-	if ctx == nil {
-		return nil, p2p.ErrNilContext
-	}
-
-	if mockNet == nil {
-		return nil, p2p.ErrNilMockNet
-	}
-
-	h, err := mockNet.GenPeer()
-	if err != nil {
-		return nil, err
-	}
-
-	mes, err := createMessenger(
-		ctx,
-		h,
-		false,
-		loadBalancer.NewOutgoingPipeLoadBalancer(),
-		peerDiscoveryType,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	mes.preconnectPeerHandler = func(pInfo peerstore.PeerInfo) {
-		_ = mockNet.LinkAll()
-	}
-
-	return mes, err
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine

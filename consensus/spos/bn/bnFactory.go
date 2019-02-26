@@ -86,7 +86,7 @@ const (
 type factory struct {
 	blockChain             *blockchain.BlockChain
 	blockProcessor         process.BlockProcessor
-	bootstraper            process.Bootstraper
+	bootstraper            process.Bootstrapper
 	chronologyHandler      consensus.ChronologyHandler
 	consensusState         *spos.ConsensusState
 	hasher                 hashing.Hasher
@@ -103,7 +103,7 @@ type factory struct {
 func NewFactory(
 	blockChain *blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
-	bootstraper process.Bootstraper,
+	bootstraper process.Bootstrapper,
 	chronologyHandler consensus.ChronologyHandler,
 	consensusState *spos.ConsensusState,
 	hasher hashing.Hasher,
@@ -158,7 +158,7 @@ func NewFactory(
 func checkNewFactoryParams(
 	blockChain *blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
-	bootstraper process.Bootstraper,
+	bootstraper process.Bootstrapper,
 	chronologyHandler consensus.ChronologyHandler,
 	consensusState *spos.ConsensusState,
 	hasher hashing.Hasher,
