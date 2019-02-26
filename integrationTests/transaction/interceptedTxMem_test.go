@@ -63,7 +63,7 @@ func TestNode_GenerateSendInterceptTransactionWithMemMessenger(t *testing.T) {
 
 	})
 
-	//Step 4. Send Tx
+	//Step 4. Job Tx
 	_, err := n.SendTransaction(tx.Nonce, hex.EncodeToString(tx.SndAddr), hex.EncodeToString(tx.RcvAddr),
 		tx.Value, string(tx.Data), tx.Signature)
 	assert.Nil(t, err)

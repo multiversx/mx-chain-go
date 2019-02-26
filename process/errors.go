@@ -124,8 +124,8 @@ var ErrNilBlockExecutor = errors.New("nil BlockExecutor")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
-// ErrNilRound signals that an operation has been attempted to or with a nil Round
-var ErrNilRound = errors.New("nil Round")
+// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
+var ErrNilRounder = errors.New("nil Rounder")
 
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")

@@ -8,9 +8,13 @@ import (
 	gosync "sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -21,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	block2 "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
@@ -178,42 +183,103 @@ func (n *Node) CreateShardedStores() error {
 func (n *Node) StartConsensus() error {
 
 	genesisHeader, genesisHeaderHash, err := n.createGenesisBlock()
+
 	if err != nil {
 		return err
 	}
+
 	n.blkc.GenesisBlock = genesisHeader
 	n.blkc.GenesisHeaderHash = genesisHeaderHash
 
-	round := n.createRound()
-	chr := n.createChronology(round)
-
-	boot, err := n.createBootstrap(round)
+	rounder, err := n.createRounder()
 
 	if err != nil {
 		return err
 	}
 
-	rndc := n.createRoundConsensus()
-	rth := n.createRoundThreshold()
-	rnds := n.createRoundStatus()
-	cns := n.createConsensus(rndc, rth, rnds, chr)
-	sposWrk, err := n.createConsensusWorker(cns, boot)
+	chronologyHandler, err := n.createChronologyHandler(rounder)
 
 	if err != nil {
 		return err
 	}
 
-	topic := n.createConsensusTopic(sposWrk)
+	bootstraper, err := n.createBootstraper(rounder)
+
+	if err != nil {
+		return err
+	}
+
+	consensusState, err := n.createConsensusState()
+
+	if err != nil {
+		return err
+	}
+
+	worker, err := bn.NewWorker(
+		bootstraper,
+		consensusState,
+		n.singleSignKeyGen,
+		n.marshalizer,
+		n.privateKey,
+		rounder,
+		n.shardCoordinator,
+		n.singlesig,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	worker.SendMessage = n.sendMessage
+	worker.BroadcastTxBlockBody = n.broadcastBlockBody
+	worker.BroadcastHeader = n.broadcastHeader
+
+	validatorGroupSelector, err := n.createValidatorGroupSelector()
+
+	if err != nil {
+		return err
+	}
+
+	fct, err := bn.NewFactory(
+		n.blkc,
+		n.blockProcessor,
+		bootstraper,
+		chronologyHandler,
+		consensusState,
+		n.hasher,
+		n.marshalizer,
+		n.multisig,
+		rounder,
+		n.shardCoordinator,
+		n.syncer,
+		validatorGroupSelector,
+		worker,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	err = fct.GenerateSubrounds()
+
+	if err != nil {
+		return err
+	}
+
+	receivedMessage := func(name string, data interface{}, msgInfo *p2p.MessageInfo) {
+		worker.ReceivedMessage(name, data, msgInfo)
+	}
+
+	topic := p2p.NewTopic(string(ConsensusTopic), &spos.ConsensusMessage{}, n.marshalizer)
+	topic.AddDataReceived(receivedMessage)
 
 	err = n.messenger.AddTopic(topic)
 
 	if err != nil {
-		log.Debug(fmt.Sprintf(err.Error()))
+		return err
 	}
 
-	n.addSubroundsToChronology(sposWrk)
-
-	go sposWrk.Cns.Chr.StartRounds()
+	go chronologyHandler.StartRounds()
 
 	return nil
 }
@@ -347,29 +413,33 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	return nil
 }
 
-// createRound method creates a round object
-func (n *Node) createRound() *chronology.Round {
-	rnd := chronology.NewRound(
+// createRounder method creates a round object
+func (n *Node) createRounder() (consensus.Rounder, error) {
+	rnd, err := round.NewRound(
 		n.genesisTime,
-		n.syncer.CurrentTime(n.syncer.ClockOffset()),
-		time.Millisecond*time.Duration(n.roundDuration))
-
-	return rnd
-}
-
-// createChronology method creates a chronology object
-func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology {
-	chr := chronology.NewChronology(
-		!n.elasticSubrounds,
-		round,
-		n.genesisTime,
+		n.syncer.CurrentTime(),
+		time.Millisecond*time.Duration(n.roundDuration),
 		n.syncer)
 
-	return chr
+	return rnd, err
 }
 
-func (n *Node) createBootstrap(round *chronology.Round) (*sync.Bootstrap, error) {
-	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, round, n.blockProcessor, WaitTime, n.marshalizer, n.forkDetector)
+// createChronologyHandler method creates a chronology object
+func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.ChronologyHandler, error) {
+	chr, err := chronology.NewChronology(
+		n.genesisTime,
+		rounder,
+		n.syncer)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return chr, nil
+}
+
+func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstraper, error) {
+	bootstrap, err := sync.NewBootstrap(n.dataPool, n.blkc, rounder, n.blockProcessor, WaitTime, n.hasher, n.marshalizer, n.forkDetector)
 
 	if err != nil {
 		return nil, err
@@ -419,171 +489,61 @@ func cerateRequestTxBodyHandler(gbbrRes *block2.GenericBlockBodyResolver) func(h
 	}
 }
 
-// createRoundConsensus method creates a RoundConsensus object
-func (n *Node) createRoundConsensus() *spos.RoundConsensus {
-
+// createConsensusState method creates a consensusState object
+func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 	selfId, err := n.publicKey.ToByteArray()
-
-	if err != nil {
-		log.Error(err.Error())
-		return nil
-	}
-
-	nodes := n.initialNodesPubkeys[0:n.consensusGroupSize]
-	rndc := spos.NewRoundConsensus(
-		nodes,
-		string(selfId))
-
-	rndc.ResetRoundState()
-
-	return rndc
-}
-
-// createRoundThreshold method creates a RoundThreshold object
-func (n *Node) createRoundThreshold() *spos.RoundThreshold {
-	rth := spos.NewRoundThreshold()
-
-	pbftThreshold := n.consensusGroupSize*2/3 + 1
-
-	rth.SetThreshold(spos.SrBlock, 1)
-	rth.SetThreshold(spos.SrCommitmentHash, pbftThreshold)
-	rth.SetThreshold(spos.SrBitmap, pbftThreshold)
-	rth.SetThreshold(spos.SrCommitment, pbftThreshold)
-	rth.SetThreshold(spos.SrSignature, pbftThreshold)
-
-	return rth
-}
-
-// createRoundStatus method creates a RoundStatus object
-func (n *Node) createRoundStatus() *spos.RoundStatus {
-	rnds := spos.NewRoundStatus()
-
-	rnds.ResetRoundStatus()
-
-	return rnds
-}
-
-// createConsensus method creates a Consensus object
-func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThreshold, rnds *spos.RoundStatus, chr *chronology.Chronology,
-) *spos.Consensus {
-	cns := spos.NewConsensus(
-		nil,
-		rndc,
-		rth,
-		rnds,
-		chr)
-
-	return cns
-}
-
-// createConsensusWorker method creates a ConsensusWorker object
-func (n *Node) createConsensusWorker(cns *spos.Consensus, boot *sync.Bootstrap) (*spos.SPOSConsensusWorker, error) {
-	sposWrk, err := spos.NewConsensusWorker(
-		cns,
-		n.blkc,
-		n.hasher,
-		n.marshalizer,
-		n.blockProcessor,
-		boot,
-		n.singlesig,
-		n.multisig,
-		n.singleSignKeyGen,
-		n.privateKey,
-		n.publicKey,
-	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	sposWrk.SendMessage = n.sendMessage
-	sposWrk.BroadcastBlockBody = n.broadcastBlockBody
-	sposWrk.BroadcastHeader = n.broadcastHeader
+	roundConsensus := spos.NewRoundConsensus(
+		n.initialNodesPubkeys,
+		n.consensusGroupSize,
+		string(selfId))
 
-	return sposWrk, nil
+	roundConsensus.ResetRoundState()
+
+	roundThreshold := spos.NewRoundThreshold()
+
+	roundStatus := spos.NewRoundStatus()
+	roundStatus.ResetRoundStatus()
+
+	consensusState := spos.NewConsensusState(
+		roundConsensus,
+		roundThreshold,
+		roundStatus)
+
+	return consensusState, nil
 }
 
-// createConsensusTopic creates a consensus topic for node
-func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) *p2p.Topic {
-	t := p2p.NewTopic(string(ConsensusTopic), &spos.ConsensusData{}, n.marshalizer)
-	t.AddDataReceived(sposWrk.ReceivedMessage)
-	return t
-}
+// createValidatorGroupSelector creates a index hashed group selector object
+func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector, error) {
+	validatorGroupSelector, err := groupSelectors.NewIndexHashedGroupSelector(n.consensusGroupSize, n.hasher)
 
-// addSubroundsToChronology adds subrounds to chronology
-func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
-	roundDuration := sposWrk.Cns.Chr.Round().TimeDuration()
+	if err != nil {
+		return nil, err
+	}
 
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrStartRound),
-		chronology.SubroundId(spos.SrBlock), int64(roundDuration*5/100),
-		sposWrk.Cns.GetSubroundName(spos.SrStartRound),
-		sposWrk.DoStartRoundJob,
-		sposWrk.ExtendStartRound,
-		sposWrk.Cns.CheckStartRoundConsensus))
+	validatorsList := make([]consensus.Validator, 0)
 
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
-		int64(roundDuration*25/100),
-		sposWrk.Cns.GetSubroundName(spos.SrBlock),
-		sposWrk.DoBlockJob,
-		sposWrk.ExtendBlock,
-		sposWrk.Cns.CheckBlockConsensus))
+	for i := 0; i < len(n.initialNodesPubkeys); i++ {
+		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[i]))
 
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrCommitmentHash),
-		chronology.SubroundId(spos.SrBitmap),
-		int64(roundDuration*40/100),
-		sposWrk.Cns.GetSubroundName(spos.SrCommitmentHash),
-		sposWrk.DoCommitmentHashJob,
-		sposWrk.ExtendCommitmentHash,
-		sposWrk.Cns.CheckCommitmentHashConsensus))
+		if err != nil {
+			return nil, err
+		}
 
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrBitmap),
-		chronology.SubroundId(spos.SrCommitment),
-		int64(roundDuration*55/100),
-		sposWrk.Cns.GetSubroundName(spos.SrBitmap),
-		sposWrk.DoBitmapJob,
-		sposWrk.ExtendBitmap,
-		sposWrk.Cns.CheckBitmapConsensus))
+		validatorsList = append(validatorsList, validator)
+	}
 
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrCommitment),
-		chronology.SubroundId(spos.SrSignature),
-		int64(roundDuration*70/100),
-		sposWrk.Cns.GetSubroundName(spos.SrCommitment),
-		sposWrk.DoCommitmentJob,
-		sposWrk.ExtendCommitment,
-		sposWrk.Cns.CheckCommitmentConsensus))
+	err = validatorGroupSelector.LoadEligibleList(validatorsList)
 
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrSignature),
-		chronology.SubroundId(spos.SrEndRound),
-		int64(roundDuration*85/100),
-		sposWrk.Cns.GetSubroundName(spos.SrSignature),
-		sposWrk.DoSignatureJob,
-		sposWrk.ExtendSignature,
-		sposWrk.Cns.CheckSignatureConsensus))
+	if err != nil {
+		return nil, err
+	}
 
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrEndRound),
-		chronology.SubroundId(spos.SrAdvance),
-		int64(roundDuration*95/100),
-		sposWrk.Cns.GetSubroundName(spos.SrEndRound),
-		sposWrk.DoEndRoundJob,
-		sposWrk.ExtendEndRound,
-		sposWrk.Cns.CheckEndRoundConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrAdvance),
-		-1,
-		int64(roundDuration*100/100),
-		sposWrk.Cns.GetSubroundName(spos.SrAdvance),
-		sposWrk.DoAdvanceJob,
-		nil,
-		sposWrk.Cns.CheckAdvanceConsensus))
+	return validatorGroupSelector, nil
 }
 
 func (n *Node) generateAndSignTx(
@@ -773,7 +733,7 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 	return header, blockHeaderHash, nil
 }
 
-func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
+func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
 	topic := n.messenger.GetTopic(string(ConsensusTopic))
 
 	if topic == nil {

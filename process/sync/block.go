@@ -7,10 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -28,8 +29,9 @@ type Bootstrap struct {
 	headersNonces data.Uint64Cacher
 	txBlockBodies storage.Cacher
 	blkc          *blockchain.BlockChain
-	round         *chronology.Round
+	rounder       consensus.Rounder
 	blkExecutor   process.BlockProcessor
+	hasher        hashing.Hasher
 	marshalizer   marshal.Marshalizer
 	forkDetector  process.ForkDetector
 
@@ -46,19 +48,24 @@ type Bootstrap struct {
 
 	chStopSync chan bool
 	waitTime   time.Duration
+
+	isNodeSynchronized    bool
+	syncStateListeners    []func(bool)
+	mutSyncStateListeners sync.RWMutex
 }
 
 // NewBootstrap creates a new Bootstrap object
 func NewBootstrap(
 	transientDataHolder data.TransientDataHolder,
 	blkc *blockchain.BlockChain,
-	round *chronology.Round,
+	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
 	waitTime time.Duration,
+	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
 ) (*Bootstrap, error) {
-	err := checkBootstrapNilParameters(transientDataHolder, blkc, round, blkExecutor, marshalizer, forkDetector)
+	err := checkBootstrapNilParameters(transientDataHolder, blkc, rounder, blkExecutor, hasher, marshalizer, forkDetector)
 
 	if err != nil {
 		return nil, err
@@ -69,9 +76,10 @@ func NewBootstrap(
 		headersNonces: transientDataHolder.HeadersNonces(),
 		txBlockBodies: transientDataHolder.TxBlocks(),
 		blkc:          blkc,
-		round:         round,
+		rounder:       rounder,
 		blkExecutor:   blkExecutor,
 		waitTime:      waitTime,
+		hasher:        hasher,
 		marshalizer:   marshalizer,
 		forkDetector:  forkDetector,
 	}
@@ -88,6 +96,8 @@ func NewBootstrap(
 
 	boot.chStopSync = make(chan bool)
 
+	boot.syncStateListeners = make([]func(bool), 0)
+
 	return &boot, nil
 }
 
@@ -95,8 +105,9 @@ func NewBootstrap(
 func checkBootstrapNilParameters(
 	transientDataHolder data.TransientDataHolder,
 	blkc *blockchain.BlockChain,
-	round *chronology.Round,
+	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
+	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
 ) error {
@@ -120,12 +131,16 @@ func checkBootstrapNilParameters(
 		return process.ErrNilBlockChain
 	}
 
-	if round == nil {
-		return process.ErrNilRound
+	if rounder == nil {
+		return process.ErrNilRounder
 	}
 
 	if blkExecutor == nil {
 		return process.ErrNilBlockExecutor
+	}
+
+	if hasher == nil {
+		return process.ErrNilHasher
 	}
 
 	if marshalizer == nil {
@@ -137,6 +152,12 @@ func checkBootstrapNilParameters(
 	}
 
 	return nil
+}
+
+func (boot *Bootstrap) AddSyncStateListener(syncStateListener func(bool)) {
+	boot.mutSyncStateListeners.Lock()
+	boot.syncStateListeners = append(boot.syncStateListeners, syncStateListener)
+	boot.mutSyncStateListeners.Unlock()
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -272,12 +293,10 @@ func (boot *Bootstrap) syncBlocks() {
 		case <-boot.chStopSync:
 			return
 		default:
-			if boot.ShouldSync() {
-				err := boot.SyncBlock()
+			err := boot.SyncBlock()
 
-				if err != nil {
-					log.Info(err.Error())
-				}
+			if err != nil {
+				log.Info(err.Error())
 			}
 		}
 	}
@@ -290,6 +309,18 @@ func (boot *Bootstrap) syncBlocks() {
 // the block and its transactions. Finally if everything works, the block will be committed in the blockchain,
 // and all this mechanism will be reiterated for the next block.
 func (boot *Bootstrap) SyncBlock() error {
+	isNodeSynchronized := !boot.ShouldSync()
+
+	if isNodeSynchronized != boot.isNodeSynchronized {
+		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
+		boot.isNodeSynchronized = isNodeSynchronized
+		boot.notifySyncStateListeners()
+	}
+
+	if boot.isNodeSynchronized {
+		return nil
+	}
+
 	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedTxBodyHash(nil)
 
@@ -311,7 +342,7 @@ func (boot *Bootstrap) SyncBlock() error {
 	}
 
 	haveTime := func() time.Duration {
-		return boot.round.TimeDuration()
+		return boot.rounder.TimeDuration()
 	}
 
 	//TODO remove type assertions and implement a way for block executor to process
@@ -329,6 +360,16 @@ func (boot *Bootstrap) SyncBlock() error {
 	log.Info(fmt.Sprintf("block with nonce %d was synced successfully\n", hdr.Nonce))
 
 	return nil
+}
+
+func (boot *Bootstrap) notifySyncStateListeners() {
+	boot.mutSyncStateListeners.RLock()
+
+	for i := 0; i < len(boot.syncStateListeners); i++ {
+		go boot.syncStateListeners[i](boot.isNodeSynchronized)
+	}
+
+	boot.mutSyncStateListeners.RUnlock()
 }
 
 // getHeaderFromPoolHavingNonce method returns the block header from a given nonce
@@ -599,14 +640,14 @@ func toB64(buff []byte) string {
 
 // ShouldSync method returns the synch state of the node. If it returns 'true', this means that the node
 // is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
-// synched and it can participate to the consensus, if it is in the jobDone group of this round
+// synched and it can participate to the consensus, if it is in the jobDone group of this rounder
 func (boot *Bootstrap) ShouldSync() bool {
 	if boot.blkc.CurrentBlockHeader == nil {
-		isNotSynchronized := boot.round.Index() > 0
+		isNotSynchronized := boot.rounder.Index() > 0
 		return isNotSynchronized
 	}
 
-	isNotSynchronized := boot.blkc.CurrentBlockHeader.Round+1 < uint32(boot.round.Index())
+	isNotSynchronized := boot.blkc.CurrentBlockHeader.Round+1 < uint32(boot.rounder.Index())
 
 	if isNotSynchronized {
 		return true
@@ -615,8 +656,64 @@ func (boot *Bootstrap) ShouldSync() bool {
 	isForkDetected := boot.forkDetector.CheckFork()
 
 	if isForkDetected {
+		log.Info(fmt.Sprintf("fork detected\n"))
 		return true
 	}
 
 	return false
+}
+
+// CreateAndCommitEmptyBlock creates and commits an empty block
+func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header) {
+	log.Info(fmt.Sprintf("creating and broadcasting an empty block\n"))
+
+	boot.blkExecutor.RevertAccountState()
+
+	blk := boot.blkExecutor.CreateEmptyBlockBody(
+		shardForCurrentNode,
+		boot.rounder.Index())
+
+	hdr := &block.Header{}
+	hdr.Round = uint32(boot.rounder.Index())
+	hdr.TimeStamp = uint64(boot.rounder.TimeStamp().Unix())
+
+	var prevHeaderHash []byte
+
+	if boot.blkc.CurrentBlockHeader == nil {
+		hdr.Nonce = 1
+		prevHeaderHash = boot.blkc.GenesisHeaderHash
+	} else {
+		hdr.Nonce = boot.blkc.CurrentBlockHeader.Nonce + 1
+		prevHeaderHash = boot.blkc.CurrentBlockHeaderHash
+	}
+
+	hdr.PrevHash = prevHeaderHash
+	blkStr, err := boot.marshalizer.Marshal(blk)
+
+	if err != nil {
+		log.Info(err.Error())
+		return nil, nil
+	}
+
+	hdr.BlockBodyHash = boot.hasher.Compute(string(blkStr))
+
+	hdr.PubKeysBitmap = make([]byte, 0)
+
+	// TODO: decide the signature for the empty block
+	headerStr, err := boot.marshalizer.Marshal(hdr)
+	hdrHash := boot.hasher.Compute(string(headerStr))
+	hdr.Signature = hdrHash
+	hdr.Commitment = hdrHash
+
+	// Commit the block (commits also the account state)
+	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
+
+	if err != nil {
+		log.Info(err.Error())
+		return nil, nil
+	}
+
+	log.Info(fmt.Sprintf("\n******************** ADDED EMPTY BLOCK WITH NONCE  %d  IN BLOCKCHAIN ********************\n\n", hdr.Nonce))
+
+	return blk, hdr
 }

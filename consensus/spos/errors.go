@@ -4,23 +4,14 @@ import (
 	"errors"
 )
 
-// ErrNilChronology is raised when an operation is attempted with a nil chronology
-var ErrNilChronology = errors.New("chronology is null")
-
-// ErrNilRound is raised when an operation is attempted with a nil round
-var ErrNilRound = errors.New("round is null")
-
-// ErrNegativeRoundIndex is raised when an operation is attempted with a negative round index
-var ErrNegativeRoundIndex = errors.New("round index is negative")
-
 // ErrNilConsensusGroup is raised when an operation is attempted with a nil consensus group
 var ErrNilConsensusGroup = errors.New("consensusGroup is null")
 
 // ErrEmptyConsensusGroup is raised when an operation is attempted with an empty consensus group
 var ErrEmptyConsensusGroup = errors.New("consensusGroup is empty")
 
-// ErrSelfNotFoundInConsensus is raised when self expected in consensus group but not found
-var ErrSelfNotFoundInConsensus = errors.New("self not found in consensus group")
+// ErrNotFoundInConsensus is raised when self expected in consensus group but not found
+var ErrNotFoundInConsensus = errors.New("self not found in consensus group")
 
 // ErrNilPublicKey is raised when a valid public key was expected but nil was used
 var ErrNilPublicKey = errors.New("public key is nil")
@@ -58,8 +49,8 @@ var ErrNilSingleSigner = errors.New("singleSigner is nil")
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
 var ErrNilMultiSigner = errors.New("multiSigner is nil")
 
-// ErrNilConsensus is raised when a valid consensus is expected but nil used
-var ErrNilConsensus = errors.New("consensus is nil")
+// ErrNilConsensusState is raised when a valid consensus is expected but nil used
+var ErrNilConsensusState = errors.New("consensus state is nil")
 
 // ErrNilBlockChain is raised when a valid blockchain is expected but nil used
 var ErrNilBlockChain = errors.New("blockchain is nil")
@@ -73,8 +64,8 @@ var ErrNilMarshalizer = errors.New("marshalizer is nil")
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
 
-// ErrNilBlootstrap is raised when a valid block processor is expected but nil used
-var ErrNilBlootstrap = errors.New("boostrap is nil")
+// ErrNilBlootstraper is raised when a valid block processor is expected but nil used
+var ErrNilBlootstraper = errors.New("boostraper is nil")
 
 // ErrInvalidKey is raised when an invalid key is used with a map
 var ErrInvalidKey = errors.New("map key is invalid")
@@ -84,3 +75,36 @@ var ErrNilRoundState = errors.New("round state is nil")
 
 // ErrCommitmentHashDoesNotMatch is raised when the commitment hash does not match expected value
 var ErrCommitmentHashDoesNotMatch = errors.New("commitment hash does not match")
+
+// ErrNilWorker is raised when a valid worker is expected but nil used
+var ErrNilWorker = errors.New("worker is nil")
+
+// ErrNilShardCoordinator is raised when a valid shard coordinator is expected but nil used
+var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
+
+// ErrNilValidatorGroupSelector is raised when a valid validator group selector is expected but nil used
+var ErrNilValidatorGroupSelector = errors.New("validator group selector is nil")
+
+// ErrNilChronologyHandler is raised when a valid chronology handler is expected but nil used
+var ErrNilChronologyHandler = errors.New("chronology handler is nil")
+
+// ErrNilRounder is raised when a valid rounder is expected but nil used
+var ErrNilRounder = errors.New("rounder is nil")
+
+// ErrNilSyncTimer is raised when a valid sync timer is expected but nil used
+var ErrNilSyncTimer = errors.New("sync timer is nil")
+
+// ErrNilSubround is raised when a valid subround is expected but nil used
+var ErrNilSubround = errors.New("subround is nil")
+
+// ErrNilSendConsensusMessageFunction is raised when a valid send consensus message function is expected but nil used
+var ErrNilSendConsensusMessageFunction = errors.New("send consnensus message function is nil")
+
+// ErrNilBroadcastTxBlockBodyFunction is raised when a valid broadcast tx block body function is expected but nil used
+var ErrNilBroadcastTxBlockBodyFunction = errors.New("broadcast tx block body function is nil")
+
+// ErrNilBroadcastHeaderFunction is raised when a valid broadcast header function is expected but nil used
+var ErrNilBroadcastHeaderFunction = errors.New("broadcast header function is nil")
+
+// ErrNilChannel is raised when a valid channel is expected but nil used
+var ErrNilChannel = errors.New("channel is nil")

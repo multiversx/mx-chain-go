@@ -32,7 +32,7 @@ var log = logger.NewDefaultLogger()
 var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
-// blockProcessor implements BlockProcessor interface and actually it tries to execute block
+// blockProcessor implements blockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
 	dataPool             data.TransientDataHolder
 	hasher               hashing.Hasher
@@ -965,6 +965,63 @@ func (bp *blockProcessor) getTxsFromPool(shardId uint32) int {
 	}
 
 	return txStore.Len()
+}
+
+// CheckBlockValidity method checks if the given block is valid
+func (bp *blockProcessor) CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool {
+	if blockChain.CurrentBlockHeader == nil {
+		if header.Nonce == 1 { // first block after genesis
+			if bytes.Equal(header.PrevHash, blockChain.GenesisHeaderHash) {
+				return true
+			}
+
+			log.Info(fmt.Sprintf("hash not match: local block hash is empty and node received block with previous hash %s\n",
+				toB64(header.PrevHash)))
+
+			return false
+		}
+
+		log.Info(fmt.Sprintf("nonce not match: local block nonce is 0 and node received block with nonce %d\n",
+			header.Nonce))
+
+		return false
+	}
+
+	if header.Nonce < blockChain.CurrentBlockHeader.Nonce+1 {
+		log.Info(fmt.Sprintf("nonce not match: local block nonce is %d and node received block with nonce %d\n",
+			blockChain.CurrentBlockHeader.Nonce, header.Nonce))
+
+		return false
+	}
+
+	if header.Nonce == blockChain.CurrentBlockHeader.Nonce+1 {
+		prevHeaderHash := bp.getHeaderHash(blockChain.CurrentBlockHeader)
+
+		if bytes.Equal(header.PrevHash, prevHeaderHash) {
+			return true
+		}
+
+		log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
+			toB64(prevHeaderHash), toB64(header.PrevHash)))
+
+		return false
+	}
+
+	log.Info(fmt.Sprintf("nonce not match: local block nonce is %d and node received block with nonce %d\n",
+		blockChain.CurrentBlockHeader.Nonce, header.Nonce))
+
+	return false
+}
+
+func (bp *blockProcessor) getHeaderHash(hdr *block.Header) []byte {
+	headerMarsh, err := bp.marshalizer.Marshal(hdr)
+
+	if err != nil {
+		log.Error(err.Error())
+		return nil
+	}
+
+	return bp.hasher.Compute(string(headerMarsh))
 }
 
 func getTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {

@@ -43,7 +43,7 @@ func TestNewSyncValidators_ShouldThrowNilRound(t *testing.T) {
 	)
 
 	assert.Nil(t, sv)
-	assert.Equal(t, process.ErrNilRound, err)
+	assert.Equal(t, process.ErrNilRounder, err)
 }
 
 func TestNewSyncValidators_ShouldThrowNilAccountsAdapter(t *testing.T) {

@@ -11,6 +11,10 @@ func (mm *MultisignMock) Create(pubKeys []string, index uint16) (crypto.MultiSig
 	panic("implement me")
 }
 
+func (mm *MultisignMock) Reset(pubKeys []string, index uint16) error {
+	panic("implement me")
+}
+
 func (mm *MultisignMock) SetMessage(msg []byte) error {
 	panic("implement me")
 }

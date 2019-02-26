@@ -2,24 +2,26 @@ package validators
 
 import (
 	"math/big"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 )
 
 type validator struct {
-	stake  big.Int
+	stake  *big.Int
 	rating int32
 	pubKey []byte
 }
 
 // NewValidator creates a new instance of a validator
-func NewValidator(stake big.Int, rating int32, pubKey []byte) (*validator, error) {
+func NewValidator(stake *big.Int, rating int32, pubKey []byte) (*validator, error) {
+	if stake == nil {
+		return nil, ErrNilStake
+	}
+
 	if stake.Cmp(big.NewInt(0)) < 0 {
-		return nil, consensus.ErrNegativeStake
+		return nil, ErrNegativeStake
 	}
 
 	if pubKey == nil {
-		return nil, consensus.ErrNilPubKey
+		return nil, ErrNilPubKey
 	}
 
 	return &validator{
@@ -30,7 +32,7 @@ func NewValidator(stake big.Int, rating int32, pubKey []byte) (*validator, error
 }
 
 // Stake returns the validator's stake
-func (v *validator) Stake() big.Int {
+func (v *validator) Stake() *big.Int {
 	return v.stake
 }
 

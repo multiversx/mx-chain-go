@@ -19,7 +19,7 @@ type indexHashedGroupSelector struct {
 // NewIndexHashedGroupSelector creates a new index hashed group selector
 func NewIndexHashedGroupSelector(consensusGroupSize int, hasher hashing.Hasher) (*indexHashedGroupSelector, error) {
 	if hasher == nil {
-		return nil, consensus.ErrNilHasher
+		return nil, ErrNilHasher
 	}
 
 	ihgs := &indexHashedGroupSelector{
@@ -39,7 +39,7 @@ func NewIndexHashedGroupSelector(consensusGroupSize int, hasher hashing.Hasher) 
 // LoadEligibleList loads the eligible list
 func (ihgs *indexHashedGroupSelector) LoadEligibleList(eligibleList []consensus.Validator) error {
 	if eligibleList == nil {
-		return consensus.ErrNilInputSlice
+		return ErrNilInputSlice
 	}
 
 	ihgs.eligibleList = make([]consensus.Validator, len(eligibleList))
@@ -58,11 +58,11 @@ func (ihgs *indexHashedGroupSelector) LoadEligibleList(eligibleList []consensus.
 // 4. the item at the checked index is appended in the temp validator list
 func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []consensus.Validator, err error) {
 	if len(ihgs.eligibleList) < ihgs.consensusGroupSize {
-		return nil, consensus.ErrSmallEligibleListSize
+		return nil, ErrSmallEligibleListSize
 	}
 
 	if randomness == nil {
-		return nil, consensus.ErrNilRandomness
+		return nil, ErrNilRandomness
 	}
 
 	ihgs.expandedEligibleList = ihgs.expandEligibleList()
@@ -87,7 +87,7 @@ func (ihgs *indexHashedGroupSelector) GetSelectedPublicKeys(selection []byte) (p
 	invalidSelection := selectionLen < shardEligibleLen
 
 	if invalidSelection {
-		return nil, consensus.ErrEligibleSelectionMismatch
+		return nil, ErrEligibleSelectionMismatch
 	}
 
 	publicKeys = make([]string, ihgs.consensusGroupSize)
@@ -104,12 +104,12 @@ func (ihgs *indexHashedGroupSelector) GetSelectedPublicKeys(selection []byte) (p
 		cnt++
 
 		if cnt > ihgs.consensusGroupSize {
-			return nil, consensus.ErrEligibleTooManySelections
+			return nil, ErrEligibleTooManySelections
 		}
 	}
 
 	if cnt < ihgs.consensusGroupSize {
-		return nil, consensus.ErrEligibleTooFewSelections
+		return nil, ErrEligibleTooFewSelections
 	}
 
 	return publicKeys, nil
@@ -170,7 +170,7 @@ func (ihgs *indexHashedGroupSelector) ConsensusGroupSize() int {
 // SetConsensusGroupSize sets the consensus group size
 func (ihgs *indexHashedGroupSelector) SetConsensusGroupSize(consensusGroupSize int) error {
 	if consensusGroupSize < 1 {
-		return consensus.ErrInvalidConsensusGroupSize
+		return ErrInvalidConsensusGroupSize
 	}
 
 	ihgs.consensusGroupSize = consensusGroupSize
