@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -43,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
@@ -54,6 +54,7 @@ import (
 	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
+	"github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -70,8 +71,8 @@ VERSION:
    {{.Version}}
    {{end}}
 `
-var configurationFile = "./config/config.testnet.json"
-var uniqueID = ""
+var configurationFile = "./config/config.toml"
+var p2pConfigurationFile = "./config/p2p.toml"
 
 type initialNode struct {
 	Address string `json:"address"`
@@ -87,15 +88,6 @@ type genesis struct {
 	InitialNodes       []initialNode `json:"initialNodes"`
 }
 
-type netMessengerConfig struct {
-	ctx               context.Context
-	port              int
-	maxAllowedPeers   int
-	marshalizer       marshal.Marshalizer
-	hasher            hashing.Hasher
-	peerDiscoveryType p2p.PeerDiscoveryType
-}
-
 func main() {
 	log := logger.NewDefaultLogger()
 	log.SetLevel(logger.LogInfo)
@@ -104,7 +96,7 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.PrivateKey, flags.PeerDiscoveryType}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.PrivateKey}
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
 	}
@@ -129,6 +121,12 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFile))
 
+	p2pConfig, err := loadP2PConfig(p2pConfigurationFile, log)
+	if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFile))
+
 	genesisConfig, err := loadGenesisConfiguration(ctx.GlobalString(flags.GenesisFile.Name), log)
 	if err != nil {
 		return err
@@ -149,9 +147,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	startTime := time.Unix(genesisConfig.StartTime, 0)
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
 
-	uniqueID = fmt.Sprintf("%d", ctx.GlobalInt(flags.Port.Name))
-
-	currentNode, err := createNode(ctx, generalConfig, genesisConfig, syncer, log)
+	currentNode, err := createNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, log)
 
 	if err != nil {
 		return err
@@ -187,7 +183,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	return nil
 }
 
-func loadFile(dest interface{}, relativePath string, log *logger.Logger) error {
+func loadJsonFile(dest interface{}, relativePath string, log *logger.Logger) error {
 	path, err := filepath.Abs(relativePath)
 	fmt.Println(path)
 	if err != nil {
@@ -213,9 +209,44 @@ func loadFile(dest interface{}, relativePath string, log *logger.Logger) error {
 	return nil
 }
 
+func loadTomlFile(dest interface{}, relativePath string, log *logger.Logger) error {
+	path, err := filepath.Abs(relativePath)
+	fmt.Println(path)
+	if err != nil {
+		log.Error("cannot create absolute path for the provided file", err.Error())
+		return err
+	}
+	f, err := os.Open(path)
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			log.Error("cannot close file: ", err.Error())
+		}
+	}()
+	if err != nil {
+		return err
+	}
+
+	tomlParser := toml.NewDecoder(f)
+	err = tomlParser.Decode(dest)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error) {
 	cfg := &config.Config{}
-	err := loadFile(cfg, filepath, log)
+	err := loadTomlFile(cfg, filepath, log)
+	if err != nil {
+		return nil, err
+	}
+	return cfg, nil
+}
+
+func loadP2PConfig(filepath string, log *logger.Logger) (*config.P2PConfig, error) {
+	cfg := &config.P2PConfig{}
+	err := loadTomlFile(cfg, filepath, log)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +255,7 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 
 func loadGenesisConfiguration(genesisFilePath string, log *logger.Logger) (*genesis, error) {
 	cfg := &genesis{}
-	err := loadFile(cfg, genesisFilePath, log)
+	err := loadJsonFile(cfg, genesisFilePath, log)
 	if err != nil {
 		return nil, err
 	}
@@ -266,25 +297,31 @@ func (g *genesis) initialNodesBalances(log *logger.Logger) map[string]*big.Int {
 	return pubKeys
 }
 
-func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, syncer ntp.SyncTimer, log *logger.Logger) (*node.Node, error) {
-	appContext := context.Background()
+func createNode(
+	ctx *cli.Context,
+	config *config.Config,
+	genesisConfig *genesis,
+	p2pConfig *config.P2PConfig,
+	syncer ntp.SyncTimer,
+	log *logger.Logger,
+) (*node.Node, error) {
 
-	hasher, err := getHasherFromConfig(cfg)
+	hasher, err := getHasherFromConfig(config)
 	if err != nil {
 		return nil, errors.New("could not create hasher: " + err.Error())
 	}
 
-	marshalizer, err := getMarshalizerFromConfig(cfg)
+	marshalizer, err := getMarshalizerFromConfig(config)
 	if err != nil {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	tr, err := getTrie(cfg.AccountsTrieStorage, hasher)
+	tr, err := getTrie(config.AccountsTrieStorage, hasher)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	addressConverter, err := state.NewPlainAddressConverter(cfg.Address.Length, cfg.Address.Prefix)
+	addressConverter, err := state.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
 	}
@@ -294,7 +331,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	blkc, err := createBlockChainFromConfig(cfg)
+	blkc, err := createBlockChainFromConfig(config)
 	if err != nil {
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
@@ -306,7 +343,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	datapool, err := createDataPoolFromConfig(cfg, uint64ByteSliceConverter)
+	datapool, err := createDataPoolFromConfig(config, uint64ByteSliceConverter)
 	if err != nil {
 		return nil, errors.New("could not create transient data pool: " + err.Error())
 	}
@@ -323,7 +360,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 
 	singlesigner := &singlesig.SchnorrSigner{}
 
-	multisigHasher, err := getMultisigHasherFromConfig(cfg)
+	multisigHasher, err := getMultisigHasherFromConfig(config)
 	if err != nil {
 		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
@@ -333,24 +370,7 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, err
 	}
 
-	netMessengerCfg := netMessengerConfig{
-		ctx:             appContext,
-		port:            ctx.GlobalInt(flags.Port.Name),
-		maxAllowedPeers: ctx.GlobalInt(flags.MaxAllowedPeers.Name),
-		marshalizer:     marshalizer,
-		hasher:          hasher,
-	}
-
-	netMessengerCfg.peerDiscoveryType, err = p2p.LoadPeerDiscoveryTypeFromString(
-		ctx.GlobalString(flags.PeerDiscoveryType.Name),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	initialPeersList := parsePeersList(ctx.GlobalString(flags.InitialPeersList.Name))
-
-	netMessenger, err := createNetMessenger(netMessengerCfg, log)
+	netMessenger, err := createNetMessenger(p2pConfig, log)
 	if err != nil {
 		return nil, err
 	}
@@ -418,7 +438,6 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 	nd, err := node.NewNode(
 		node.WithMessenger(netMessenger),
 		node.WithHasher(hasher),
-		node.WithContext(appContext),
 		node.WithMarshalizer(marshalizer),
 		node.WithInitialNodesPubKeys(initialPubKeys),
 		node.WithInitialNodesBalances(genesisConfig.initialNodesBalances(log)),
@@ -441,7 +460,6 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsResolversFactory(interceptorsResolversFactory),
-		node.WithInitialPeersList(initialPeersList),
 	)
 
 	if err != nil {
@@ -463,27 +481,30 @@ func createRequestTransactionHandler(txResolver *transaction.TxResolver, log *lo
 	}
 }
 
-func createNetMessenger(config netMessengerConfig, log *logger.Logger) (p2p.Messenger, error) {
-	if config.port == 0 {
-		return nil, errors.New("cannot start node on port 0")
+func createNetMessenger(p2pConfig *config.P2PConfig, log *logger.Logger) (p2p.Messenger, error) {
+	if p2pConfig.Node.Port <= 0 {
+		return nil, errors.New("cannot start node on port <= 0")
 	}
 
-	if config.maxAllowedPeers == 0 {
-		return nil, errors.New("cannot start node without providing maxAllowedPeers")
+	pDiscoveryFactory := factoryP2P.NewPeerDiscovererCreator(*p2pConfig)
+	pDiscoverer, err := pDiscoveryFactory.CreatePeerDiscoverer()
+
+	if err != nil {
+		return nil, err
 	}
 
-	log.Info(fmt.Sprintf("Starting with peer discovery: %s", config.peerDiscoveryType))
+	log.Info(fmt.Sprintf("Starting with peer discovery: %s", pDiscoverer.Name()))
 
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
 	nm, err := libp2p.NewNetworkMessenger(
-		config.ctx,
-		config.port,
+		context.Background(),
+		p2pConfig.Node.Port,
 		sk,
 		nil,
 		loadBalancer.NewOutgoingPipeLoadBalancer(),
-		config.peerDiscoveryType,
+		pDiscoverer,
 	)
 
 	if err != nil {
@@ -597,7 +618,7 @@ func getCacherFromConfig(cfg config.CacheConfig) storage.CacheConfig {
 
 func getDBFromConfig(cfg config.DBConfig) storage.DBConfig {
 	return storage.DBConfig{
-		FilePath: filepath.Join(config.DefaultPath()+uniqueID, cfg.FilePath),
+		FilePath: filepath.Join(config.DefaultPath(), cfg.FilePath),
 		Type:     storage.DBType(cfg.Type),
 	}
 }
@@ -772,12 +793,4 @@ func toB64(buff []byte) string {
 		return "<NIL>"
 	}
 	return base64.StdEncoding.EncodeToString(buff)
-}
-
-func parsePeersList(addresses string) []string {
-	if len(addresses) == 0 {
-		return make([]string, 0)
-	}
-
-	return strings.Split(addresses, ",")
 }

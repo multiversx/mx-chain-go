@@ -1,7 +1,6 @@
 package node
 
 import (
-	"context"
 	"math/big"
 	"time"
 
@@ -36,17 +35,6 @@ func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
 			return ErrNilMarshalizer
 		}
 		n.marshalizer = marshalizer
-		return nil
-	}
-}
-
-// WithContext sets up the context option for the Node
-func WithContext(ctx context.Context) Option {
-	return func(n *Node) error {
-		if ctx == nil {
-			return ErrNilContext
-		}
-		n.ctx = ctx
 		return nil
 	}
 }
@@ -281,22 +269,6 @@ func WithInterceptorsResolversFactory(interceptorsResolversCreator process.Inter
 			return ErrNilInterceptorsResolversFactory
 		}
 		n.interceptorsResolversCreator = interceptorsResolversCreator
-		return nil
-	}
-}
-
-// WithInitialPeersList sets up the initial peers list for peer discovery
-func WithInitialPeersList(initialPeersList []string) Option {
-	return func(n *Node) error {
-		n.initialPeersList = initialPeersList
-		return nil
-	}
-}
-
-// WithPeersIntervalRefresh sets up the peers refresh interval
-func WithPeersIntervalRefresh(peersRefreshInterval time.Duration) Option {
-	return func(n *Node) error {
-		n.peersRefreshInterval = peersRefreshInterval
 		return nil
 	}
 }

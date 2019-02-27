@@ -20,30 +20,4 @@ var (
 		Name:  "with-ui",
 		Usage: "If true, the application will be accompanied by a UI. The node will have to be manually started from the UI",
 	}
-	// Port defines a flag for setting the port on which the node will listen for connections
-	Port = cli.IntFlag{
-		Name:  "port",
-		Usage: "Port number on which the application will start",
-		Value: 32000,
-	}
-	// MaxAllowedPeers defines a flag for setting the maximum number of connections allowed at once
-	MaxAllowedPeers = cli.IntFlag{
-		Name:  "max-allowed-peers",
-		Usage: "Maximum connections the user is willing to accept",
-		Value: 10,
-	}
-	// PeerDiscoveryType defines a flag for setting the peer discovery type
-	PeerDiscoveryType = cli.StringFlag{
-		Name: "peer-discovery-type",
-		Usage: "Peer discovery type. 'off' - discovery turned off, 'mdns'" +
-			" - discovery using mdns mechanism, 'kad-dht' - discovery using seed nodes",
-		Value: "mdns",
-	}
-	// InitialPeersList defines a flag for setting the initial peers list (seed nodes peers)
-	InitialPeersList = cli.StringFlag{
-		Name: "initial-peers-list",
-		Usage: "Initial peers list separated by comma. " +
-			"Peer example: /ip4/82.5.34.12/tcp/23000/p2p/16Uiu2HAkyqtHSEJDkYhVWTtm9j58Mq5xQJgrApBYXMwS6sdamXuE",
-		Value: "",
-	}
 )

@@ -150,7 +150,7 @@ func (n *Node) P2PBootstrap() error {
 		return ErrNilMessenger
 	}
 
-	return n.messenger.Bootstrap(n.peersRefreshInterval, n.initialPeersList)
+	return n.messenger.Bootstrap()
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers

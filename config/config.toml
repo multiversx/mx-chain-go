@@ -1,0 +1,95 @@
+[TxBlockBodyStorage]
+    [TxBlockBodyStorage.Cache]
+        Size = 100
+        Type = "LRU"
+    [TxBlockBodyStorage.DB]
+        FilePath = "TxBlocks"
+        Type = "LvlDB"
+
+[StateBlockBodyStorage]
+    [StateBlockBodyStorage.Cache]
+        Size = 100
+        Type = "LRU"
+    [StateBlockBodyStorage.DB]
+        FilePath = "StateBlocks"
+        Type = "LvlDB"
+
+[PeerBlockBodyStorage]
+    [PeerBlockBodyStorage.Cache]
+        Size = 100
+        Type = "LRU"
+    [PeerBlockBodyStorage.DB]
+        FilePath = "PeerBlocks"
+        Type = "LvlDB"
+
+[BlockHeaderStorage]
+    [BlockHeaderStorage.Cache]
+        Size = 100
+        Type = "LRU"
+    [BlockHeaderStorage.DB]
+        FilePath = "BlockHeaders"
+        Type = "LvlDB"
+
+[TxStorage]
+    [TxStorage.Cache]
+        Size = 100000
+        Type = "LRU"
+    [TxStorage.DB]
+        FilePath = "Transactions"
+        Type = "LvlDB"
+
+[AccountsTrieStorage]
+    [AccountsTrieStorage.Cache]
+        Size = 100000
+        Type = "LRU"
+    [AccountsTrieStorage.DB]
+        FilePath = "AccountsTrie"
+        Type = "LvlDB"
+    [AccountsTrieStorage.Bloom]
+        Size = 2048
+        HashFunc = ["Keccak", "Blake2b", "Fnv"]
+
+[BadBlocksCache]
+    Size = 100
+    Type = "LRU"
+
+[TxBlockBodyDataPool]
+    Size = 100
+    Type = "LRU"
+
+[StateBlockBodyDataPool]
+    Size = 100
+    Type = "LRU"
+
+[PeerBlockBodyDataPool]
+    Size = 10000
+    Type = "LRU"
+
+[BlockHeaderDataPool]
+    Size = 10000
+    Type = "LRU"
+
+[BlockHeaderNoncesDataPool]
+    Size = 100000
+    Type = "LRU"
+
+[TxDataPool]
+    Size = 100000
+    Type = "LRU"
+
+[Logger]
+    Path = "logs"
+    StackTraceDepth = 2
+
+[Address]
+    Length = 32
+    Prefix = "0x"
+
+[Hasher]
+   Type = "blake2b"
+
+[MultisigHasher]
+   Type = "sha256"
+
+[Marshalizer]
+   Type = "json"
