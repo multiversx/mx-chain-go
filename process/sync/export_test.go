@@ -62,10 +62,26 @@ func (boot *Bootstrap) SyncStateListeners() []func(bool) {
 	return boot.syncStateListeners
 }
 
-func (boot *Bootstrap) SetMaxHeaderNonceReceived(maxHeaderNonceReceived uint64) {
-	boot.maxHeaderNonceReceived = maxHeaderNonceReceived
+func (boot *Bootstrap) SetHigherHeaderNonceReceived(higherHeaderNonceReceived uint64) {
+	boot.higherHeaderNonceReceived = higherHeaderNonceReceived
+}
+
+func (boot *Bootstrap) SetIsForkDetected(isForkDetected bool) {
+	boot.isForkDetected = isForkDetected
 }
 
 func (boot *Bootstrap) GetTimeStampForRound(roundIndex uint32) time.Time {
 	return boot.getTimeStampForRound(roundIndex)
+}
+
+func (boot *Bootstrap) ShouldCreateEmptyBlock(nonce uint64) bool {
+	return boot.shouldCreateEmptyBlock(nonce)
+}
+
+func (boot *Bootstrap) CreateAndBroadcastEmptyBlock() error {
+	return boot.createAndBroadcastEmptyBlock()
+}
+
+func (boot *Bootstrap) BroadcastBlock(txBlockBody *block.TxBlockBody, header *block.Header) error {
+	return boot.broadcastBlock(txBlockBody, header)
 }

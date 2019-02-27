@@ -23,10 +23,6 @@ func sendMessage(cnsMsg *spos.ConsensusMessage) {
 	fmt.Println(cnsMsg.Signature)
 }
 
-func broadcastMessage(msg []byte) {
-	fmt.Println(msg)
-}
-
 func sendConsensusMessage(cnsMsg *spos.ConsensusMessage) bool {
 	fmt.Println(cnsMsg)
 	return true
@@ -75,8 +71,8 @@ func initWorker() bn.Worker {
 	)
 
 	wrk.SendMessage = sendMessage
-	wrk.BroadcastTxBlockBody = broadcastMessage
-	wrk.BroadcastHeader = broadcastMessage
+	wrk.BroadcastTxBlockBody = broadcastTxBlockBody
+	wrk.BroadcastHeader = broadcastHeader
 
 	return wrk
 }
@@ -1329,90 +1325,6 @@ func TestWorker_SendConsensusMessage(t *testing.T) {
 	assert.True(t, r)
 }
 
-func TestWorker_BroadcastTxBlockBodyShouldFailWhenBlockBodyNil(t *testing.T) {
-	t.Parallel()
-
-	wrk := *initWorker()
-
-	err := wrk.BroadcastTxBlockBody2(nil)
-	assert.Equal(t, spos.ErrNilTxBlockBody, err)
-}
-
-func TestWorker_BroadcastTxBlockBodyShouldFailWhenMarshalErr(t *testing.T) {
-	t.Parallel()
-
-	wrk := *initWorker()
-
-	marshalizerMock := mock.MarshalizerMock{}
-	marshalizerMock.Fail = true
-	wrk.SetMarshalizer(marshalizerMock)
-
-	err := wrk.BroadcastTxBlockBody2(&block.TxBlockBody{})
-	assert.Equal(t, mock.ErrMockMarshalizer, err)
-}
-
-func TestWorker_BroadcastTxBlockBodyShouldFailWhenBroadcastTxBlockBodyFunctionIsNil(t *testing.T) {
-	t.Parallel()
-
-	wrk := *initWorker()
-
-	wrk.BroadcastTxBlockBody = nil
-
-	err := wrk.BroadcastTxBlockBody2(&block.TxBlockBody{})
-	assert.Equal(t, spos.ErrNilOnBroadcastTxBlockBody, err)
-}
-
-func TestWorker_BroadcastTxBlockBodyShouldWork(t *testing.T) {
-	t.Parallel()
-
-	wrk := *initWorker()
-
-	err := wrk.BroadcastTxBlockBody2(&block.TxBlockBody{})
-	assert.Nil(t, err)
-}
-
-func TestWorker_BroadcastHeaderShouldFailWhenHeaderNil(t *testing.T) {
-	t.Parallel()
-
-	wrk := *initWorker()
-
-	err := wrk.BroadcastHeader2(nil)
-	assert.Equal(t, spos.ErrNilBlockHeader, err)
-}
-
-func TestWorker_BroadcastHeaderShouldFailWhenMarshalErr(t *testing.T) {
-	t.Parallel()
-
-	wrk := *initWorker()
-
-	marshalizerMock := mock.MarshalizerMock{}
-	marshalizerMock.Fail = true
-	wrk.SetMarshalizer(marshalizerMock)
-
-	err := wrk.BroadcastHeader2(&block.Header{})
-	assert.Equal(t, mock.ErrMockMarshalizer, err)
-}
-
-func TestWorker_BroadcastHeaderShouldFailWhenBroadcastHeaderFunctionIsNil(t *testing.T) {
-	t.Parallel()
-
-	wrk := *initWorker()
-
-	wrk.BroadcastHeader = nil
-
-	err := wrk.BroadcastHeader2(&block.Header{})
-	assert.Equal(t, spos.ErrNilOnBroadcastHeader, err)
-}
-
-func TestWorker_BroadcastHeaderShouldWork(t *testing.T) {
-	t.Parallel()
-
-	wrk := *initWorker()
-
-	err := wrk.BroadcastHeader2(&block.Header{})
-	assert.Nil(t, err)
-}
-
 func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
 
@@ -1468,12 +1380,14 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 
 	executed := false
 
-	wrk.BroadcastTxBlockBody = func(msg []byte) {
+	wrk.BroadcastTxBlockBody = func(*block.TxBlockBody) error {
 		executed = true
+		return nil
 	}
 
-	wrk.BroadcastHeader = func(msg []byte) {
+	wrk.BroadcastHeader = func(*block.Header) error {
 		executed = true
+		return nil
 	}
 
 	bootstraperMock := &mock.BootstraperMock{
@@ -1486,19 +1400,21 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 	assert.False(t, executed)
 }
 
-func TestWorker_ExtendShouldReturnWhenBroadcastTxBlockBodyIsNil(t *testing.T) {
+func TestWorker_ExtendShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wrk := *initWorker()
 
 	executed := int32(0)
 
-	wrk.BroadcastTxBlockBody = func(msg []byte) {
+	wrk.BroadcastTxBlockBody = func(*block.TxBlockBody) error {
 		atomic.AddInt32(&executed, 1)
+		return nil
 	}
 
-	wrk.BroadcastHeader = func(msg []byte) {
+	wrk.BroadcastHeader = func(*block.Header) error {
 		atomic.AddInt32(&executed, 1)
+		return nil
 	}
 
 	wrk.Extend(0)

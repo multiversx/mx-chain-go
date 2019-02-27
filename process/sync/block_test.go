@@ -739,7 +739,15 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		shardCoordinator,
 	)
 
-	bs.SetMaxHeaderNonceReceived(100)
+	bs.BroadcastTxBlockBody = func(body *block.TxBlockBody) error {
+		return nil
+	}
+
+	bs.BroadcastHeader = func(header *block.Header) error {
+		return nil
+	}
+
+	bs.SetHigherHeaderNonceReceived(100)
 
 	r := bs.SyncBlock()
 
@@ -823,6 +831,14 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		createMockResolversContainer(),
 		shardCoordinator,
 	)
+
+	bs.BroadcastTxBlockBody = func(body *block.TxBlockBody) error {
+		return nil
+	}
+
+	bs.BroadcastHeader = func(header *block.Header) error {
+		return nil
+	}
 
 	bs.RequestHeader(2)
 
@@ -914,6 +930,14 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		createMockResolversContainer(),
 		shardCoordinator,
 	)
+
+	bs.BroadcastTxBlockBody = func(body *block.TxBlockBody) error {
+		return nil
+	}
+
+	bs.BroadcastHeader = func(header *block.Header) error {
+		return nil
+	}
 
 	bs.StartSync()
 	time.Sleep(200 * time.Millisecond)
@@ -1028,6 +1052,14 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		createMockResolversContainer(),
 		shardCoordinator,
 	)
+
+	bs.BroadcastTxBlockBody = func(body *block.TxBlockBody) error {
+		return nil
+	}
+
+	bs.BroadcastHeader = func(header *block.Header) error {
+		return nil
+	}
 
 	bs.StartSync()
 
@@ -1157,7 +1189,9 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 	}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector := &mock.ForkDetectorMock{CheckForkCalled: func() bool {
+		return false
+	}}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
@@ -2906,4 +2940,517 @@ func TestNewBootstrap_GetTimeStampForRoundShouldWork(t *testing.T) {
 
 	timeStamp = bs.GetTimeStampForRound(1)
 	assert.Equal(t, time.Unix(4, 0), timeStamp)
+}
+
+func TestNewBootstrap_ShouldCreateEmptyBlockShouldReturnFalseWhenForkIsDetected(t *testing.T) {
+	t.Parallel()
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+
+		return cs
+	}
+
+	blkc := &blockchain.BlockChain{}
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	bs, _ := sync.NewBootstrap(
+		transient,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversContainer(),
+		shardCoordinator,
+	)
+
+	bs.SetIsForkDetected(true)
+
+	assert.False(t, bs.ShouldCreateEmptyBlock(0))
+}
+
+func TestNewBootstrap_ShouldCreateEmptyBlockShouldReturnFalseWhenNonceIsSmallerOrEqualThanMaxHeaderNonceReceived(t *testing.T) {
+	t.Parallel()
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+
+		return cs
+	}
+
+	blkc := &blockchain.BlockChain{}
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	bs, _ := sync.NewBootstrap(
+		transient,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversContainer(),
+		shardCoordinator,
+	)
+
+	bs.SetHigherHeaderNonceReceived(1)
+
+	assert.False(t, bs.ShouldCreateEmptyBlock(0))
+}
+
+func TestNewBootstrap_ShouldCreateEmptyBlockShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+
+		return cs
+	}
+
+	blkc := &blockchain.BlockChain{}
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	bs, _ := sync.NewBootstrap(
+		transient,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversContainer(),
+		shardCoordinator,
+	)
+
+	assert.True(t, bs.ShouldCreateEmptyBlock(1))
+}
+
+func TestNewBootstrap_CreateAndBroadcastEmptyBlockShouldReturnErr(t *testing.T) {
+	t.Parallel()
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+
+		return cs
+	}
+
+	blkc := &blockchain.BlockChain{}
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	blkExec.RevertAccountStateCalled = func() {
+		return
+	}
+
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32) *block.TxBlockBody {
+		return &block.TxBlockBody{}
+	}
+
+	err := errors.New("error")
+	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+		return err
+	}
+
+	bs, _ := sync.NewBootstrap(
+		transient,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversContainer(),
+		shardCoordinator,
+	)
+
+	err2 := bs.CreateAndBroadcastEmptyBlock()
+
+	assert.Equal(t, err2, err)
+}
+
+func TestNewBootstrap_CreateAndBroadcastEmptyBlockShouldReturnNil(t *testing.T) {
+	t.Parallel()
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+
+		return cs
+	}
+
+	blkc := &blockchain.BlockChain{}
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	blkExec.RevertAccountStateCalled = func() {
+		return
+	}
+
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32) *block.TxBlockBody {
+		return &block.TxBlockBody{}
+	}
+
+	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+		return nil
+	}
+
+	bs, _ := sync.NewBootstrap(
+		transient,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversContainer(),
+		shardCoordinator,
+	)
+
+	bs.BroadcastTxBlockBody = func(body *block.TxBlockBody) error {
+		return nil
+	}
+
+	bs.BroadcastHeader = func(header *block.Header) error {
+		return nil
+	}
+
+	err := bs.CreateAndBroadcastEmptyBlock()
+
+	assert.Nil(t, err)
+}
+
+func TestNewBootstrap_BroadcastBlockShouldErrWhenBroadcastTxBlockBodyErr(t *testing.T) {
+	t.Parallel()
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+
+		return cs
+	}
+
+	blkc := &blockchain.BlockChain{}
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	bs, _ := sync.NewBootstrap(
+		transient,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversContainer(),
+		shardCoordinator,
+	)
+
+	err := errors.New("error")
+	bs.BroadcastTxBlockBody = func(body *block.TxBlockBody) error {
+		return err
+	}
+
+	bs.BroadcastHeader = func(header *block.Header) error {
+		return nil
+	}
+
+	err2 := bs.BroadcastBlock(nil, nil)
+
+	assert.Equal(t, err, err2)
+}
+
+func TestNewBootstrap_BroadcastBlockShouldErrWhenBroadcastHeaderErr(t *testing.T) {
+	t.Parallel()
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+
+		return cs
+	}
+
+	blkc := &blockchain.BlockChain{}
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	bs, _ := sync.NewBootstrap(
+		transient,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversContainer(),
+		shardCoordinator,
+	)
+
+	bs.BroadcastTxBlockBody = func(body *block.TxBlockBody) error {
+		return nil
+	}
+
+	err := errors.New("error")
+	bs.BroadcastHeader = func(header *block.Header) error {
+		return err
+	}
+
+	err2 := bs.BroadcastBlock(nil, nil)
+
+	assert.Equal(t, err, err2)
+}
+
+func TestNewBootstrap_BroadcastBlockShouldReturnNil(t *testing.T) {
+	t.Parallel()
+
+	transient := &mock.TransientDataPoolMock{}
+	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+			assert.Fail(t, "should have not reached this point")
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+
+		return sds
+	}
+	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+		}
+
+		return hnc
+	}
+	transient.TxBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+
+		return cs
+	}
+
+	blkc := &blockchain.BlockChain{}
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	bs, _ := sync.NewBootstrap(
+		transient,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversContainer(),
+		shardCoordinator,
+	)
+
+	bs.BroadcastTxBlockBody = func(body *block.TxBlockBody) error {
+		return nil
+	}
+
+	bs.BroadcastHeader = func(header *block.Header) error {
+		return nil
+	}
+
+	err := bs.BroadcastBlock(nil, nil)
+
+	assert.Nil(t, err)
 }

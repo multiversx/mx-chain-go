@@ -150,6 +150,11 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	uniqueID = fmt.Sprintf("%d", ctx.GlobalInt(flags.Port.Name))
 
+	err = os.RemoveAll(config.DefaultPath() + uniqueID)
+	if err != nil {
+		return err
+	}
+
 	currentNode, err := createNode(ctx, generalConfig, genesisConfig, syncer, log)
 
 	if err != nil {
@@ -193,6 +198,7 @@ func loadFile(dest interface{}, relativePath string, log *logger.Logger) error {
 		log.Error("cannot create absolute path for the provided file", err.Error())
 		return err
 	}
+
 	f, err := os.Open(path)
 	defer func() {
 		err = f.Close()

@@ -57,7 +57,11 @@ type Bootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 
-	maxHeaderNonceReceived uint64
+	higherHeaderNonceReceived uint64
+	isForkDetected            bool
+
+	BroadcastTxBlockBody func(*block.TxBlockBody) error
+	BroadcastHeader      func(*block.Header) error
 }
 
 // NewBootstrap creates a new Bootstrap object
@@ -281,8 +285,8 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
-	if nonce > boot.maxHeaderNonceReceived {
-		boot.maxHeaderNonceReceived = nonce
+	if nonce > boot.higherHeaderNonceReceived {
+		boot.higherHeaderNonceReceived = nonce
 	}
 
 	n := boot.requestedHeaderNonce()
@@ -292,7 +296,7 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 
 	if *n == nonce {
-		log.Info(fmt.Sprintf("received header with nonce %d from network\n", nonce))
+		log.Info(fmt.Sprintf("received requested header with nonce %d from network and higher nonce received until now is %d\n", nonce, boot.higherHeaderNonceReceived))
 		boot.setRequestedHeaderNonce(nil)
 		boot.chRcvHdr <- true
 	}
@@ -318,7 +322,7 @@ func (boot *Bootstrap) setRequestedTxBodyHash(hash []byte) {
 // in the block bodies pool
 func (boot *Bootstrap) receivedBodyHash(hash []byte) {
 	if bytes.Equal(boot.requestedTxBodyHash(), hash) {
-		log.Info(fmt.Sprintf("received tx body with hash %s from network\n", toB64(hash)))
+		log.Info(fmt.Sprintf("received requested txBlockBody with hash %s from network\n", toB64(hash)))
 		boot.setRequestedTxBodyHash(nil)
 		boot.chRcvTxBdy <- true
 	}
@@ -378,14 +382,9 @@ func (boot *Bootstrap) SyncBlock() error {
 	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
 	if err != nil {
 		if err == process.ErrMissingHeader {
-			if nonce > boot.maxHeaderNonceReceived {
+			if boot.shouldCreateEmptyBlock(nonce) {
 				log.Info(err.Error())
-				txBlockBody, header, err := boot.CreateAndCommitEmptyBlock(boot.shardCoordinator.ShardForCurrentNode())
-				if err == nil {
-					log.Info(fmt.Sprintf("txBlockBody with root hash %s and header with nonce %d was created and commited through the recovery mechanism\n",
-						toB64(txBlockBody.RootHash),
-						header.Nonce))
-				}
+				err = boot.createAndBroadcastEmptyBlock()
 			}
 		}
 
@@ -420,6 +419,52 @@ func (boot *Bootstrap) SyncBlock() error {
 	}
 
 	log.Info(fmt.Sprintf("block with nonce %d was synced successfully\n", hdr.Nonce))
+
+	return nil
+}
+
+func (boot *Bootstrap) shouldCreateEmptyBlock(nonce uint64) bool {
+	if boot.isForkDetected {
+		return false
+	}
+
+	if nonce <= boot.higherHeaderNonceReceived {
+		return false
+	}
+
+	return true
+}
+
+func (boot *Bootstrap) createAndBroadcastEmptyBlock() error {
+	txBlockBody, header, err := boot.CreateAndCommitEmptyBlock(boot.shardCoordinator.ShardForCurrentNode())
+
+	if err == nil {
+		log.Info(fmt.Sprintf("txBlockBody with root hash %s and header with nonce %d was created and commited through the recovery mechanism\n",
+			toB64(txBlockBody.RootHash),
+			header.Nonce))
+
+		err = boot.broadcastBlock(txBlockBody, header)
+	}
+
+	return err
+}
+
+func (boot *Bootstrap) broadcastBlock(txBlockBody *block.TxBlockBody, header *block.Header) error {
+	log.Info(fmt.Sprintf("broadcasting an empty block\n"))
+
+	// broadcast block body
+	err := boot.BroadcastTxBlockBody(txBlockBody)
+
+	if err != nil {
+		return err
+	}
+
+	// broadcast header
+	err = boot.BroadcastHeader(header)
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -459,6 +504,7 @@ func (boot *Bootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.Header 
 
 // requestHeader method requests a block header from network when it is not found in the pool
 func (boot *Bootstrap) requestHeader(nonce uint64) {
+	boot.setRequestedHeaderNonce(&nonce)
 	err := boot.hdrRes.RequestDataFromNonce(nonce)
 
 	log.Info(fmt.Sprintf("requested header with nonce %d from network\n", nonce))
@@ -520,12 +566,13 @@ func (boot *Bootstrap) getTxBody(hash []byte) interface{} {
 
 // requestBody method requests a block body from network when it is not found in the pool
 func (boot *Bootstrap) requestTxBody(hash []byte) {
+	boot.setRequestedTxBodyHash(hash)
 	err := boot.txBlockBodyRes.RequestDataFromHash(hash)
 
 	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(hash)))
+
 	if err != nil {
-		log.Error("RequestBlockBodyFromHash error: ", err.Error())
-		return
+		log.Error(err.Error())
 	}
 }
 
@@ -710,6 +757,13 @@ func toB64(buff []byte) string {
 // is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
 // synched and it can participate to the consensus, if it is in the jobDone group of this rounder
 func (boot *Bootstrap) ShouldSync() bool {
+	boot.isForkDetected = boot.forkDetector.CheckFork()
+
+	if boot.isForkDetected {
+		log.Info(fmt.Sprintf("fork detected\n"))
+		return true
+	}
+
 	if boot.blkc.CurrentBlockHeader == nil {
 		isNotSynchronized := boot.rounder.Index() > 0
 		return isNotSynchronized
@@ -718,13 +772,6 @@ func (boot *Bootstrap) ShouldSync() bool {
 	isNotSynchronized := boot.blkc.CurrentBlockHeader.Round+1 < uint32(boot.rounder.Index())
 
 	if isNotSynchronized {
-		return true
-	}
-
-	isForkDetected := boot.forkDetector.CheckFork()
-
-	if isForkDetected {
-		log.Info(fmt.Sprintf("fork detected\n"))
 		return true
 	}
 

@@ -223,14 +223,6 @@ func (wrk *worker) SendConsensusMessage(cnsDta *spos.ConsensusMessage) bool {
 	return wrk.sendConsensusMessage(cnsDta)
 }
 
-func (wrk *worker) BroadcastTxBlockBody2(blockBody *block.TxBlockBody) error {
-	return wrk.broadcastTxBlockBody(blockBody)
-}
-
-func (wrk *worker) BroadcastHeader2(header *block.Header) error {
-	return wrk.broadcastHeader(header)
-}
-
 func (wrk *worker) Extend(subroundId int) {
 	wrk.extend(subroundId)
 }

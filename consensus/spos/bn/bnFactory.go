@@ -519,8 +519,8 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.multiSigner,
 		fct.rounder,
 		fct.syncTimer,
-		fct.worker.broadcastTxBlockBody,
-		fct.worker.broadcastHeader,
+		fct.worker.BroadcastTxBlockBody,
+		fct.worker.BroadcastHeader,
 		fct.worker.extend,
 	)
 

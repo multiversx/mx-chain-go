@@ -37,12 +37,6 @@ var ErrNilBlockHeader = errors.New("block header is nil")
 // ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
 var ErrNilTxBlockBody = errors.New("tx block body is nil")
 
-// ErrNilOnBroadcastHeader is raised when a valid header broadcast function pointer is expected but nil used
-var ErrNilOnBroadcastHeader = errors.New("header broadcast function pointer is nil")
-
-// ErrNilOnBroadcastTxBlockBody is raised when a valid block broadcast function pointer is expected but nil used
-var ErrNilOnBroadcastTxBlockBody = errors.New("tx block body broadcast function pointer is nil")
-
 // ErrNilSingleSigner is raised when a valid singleSigner is expected but nil used
 var ErrNilSingleSigner = errors.New("singleSigner is nil")
 
@@ -81,18 +75,6 @@ var ErrNilMessage = errors.New("nil message")
 
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
-
-// ErrRoundIsCancelled signals that the message should be dropped as the round is cancelled
-var ErrRoundIsCancelled = errors.New("dropping consensus message as the round is cancelled")
-
-// ErrConsensusMessageSenderNotValid signals that the message should be dropped as the sender is not valid
-var ErrConsensusMessageSenderNotValid = errors.New("consensus message sender is not valid")
-
-// ErrShouldDropConsensusMessage signals that the consensus message should be dropped
-var ErrShouldDropConsensusMessage = errors.New("consensus message should be dropped")
-
-// ErrMessageSentFromSelf signals that the consensus message is sent from self
-var ErrMessageSentFromSelf = errors.New("consensus message was sent from self")
 
 // ErrNilWorker is raised when a valid worker is expected but nil used
 var ErrNilWorker = errors.New("worker is nil")
