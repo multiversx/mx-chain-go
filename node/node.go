@@ -70,9 +70,6 @@ type Node struct {
 	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
 	interceptorsResolversCreator process.InterceptorsResolversFactory
 
-	initialPeersList     []string
-	peersRefreshInterval time.Duration
-
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
 	singleSignKeyGen crypto.KeyGenerator
@@ -104,8 +101,7 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
 	node := &Node{
-		ctx:                  context.Background(),
-		peersRefreshInterval: time.Duration(time.Second * 10),
+		ctx: context.Background(),
 	}
 	for _, opt := range opts {
 		err := opt(node)

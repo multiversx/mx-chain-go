@@ -45,8 +45,8 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
 
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
 	defer func() {
-		h.Close()
 		kdd.Close()
+		h.Close()
 	}()
 
 	kdd.ApplyContext(ctx)
@@ -64,8 +64,8 @@ func TestKadDhtPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
 
 	defer func() {
-		h.Close()
 		kdd.Close()
+		h.Close()
 	}()
 
 	kdd.ApplyContext(ctx)

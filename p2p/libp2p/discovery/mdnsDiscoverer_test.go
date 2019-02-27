@@ -64,8 +64,8 @@ func TestMdnsPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
 
 	mdns := discovery.NewMdnsPeerDiscoverer(interval, serviceTag)
 	defer func() {
-		h.Close()
 		mdns.Close()
+		h.Close()
 	}()
 
 	mdns.ApplyContext(ctx)
@@ -84,8 +84,8 @@ func TestMdnsPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
 	mdns := discovery.NewMdnsPeerDiscoverer(interval, serviceTag)
 
 	defer func() {
-		h.Close()
 		mdns.Close()
+		h.Close()
 	}()
 
 	mdns.ApplyContext(ctx)

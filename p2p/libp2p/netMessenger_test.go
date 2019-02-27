@@ -150,7 +150,7 @@ func TestNewMemoryLibp2pMessenger_OkValsShouldWork(t *testing.T) {
 	mes.Close()
 }
 
-//------- NewSocketLibp2pMessenger
+//------- NewNetworkMessenger
 
 func TestNewNetworkMessenger_NilContextShouldErr(t *testing.T) {
 	port := 4000
@@ -674,6 +674,7 @@ func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
 
 	mes1.Close()
 	mes2.Close()
+	mes3.Close()
 }
 
 func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
@@ -930,4 +931,6 @@ func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *te
 	_ = mes.Bootstrap()
 
 	assert.True(t, wasCalled)
+
+	mes.Close()
 }
