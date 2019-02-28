@@ -35,9 +35,8 @@ type worker struct {
 	executeMessageChannel         chan *spos.ConsensusMessage
 	consensusStateChangedChannels chan bool
 
-	BroadcastTxBlockBody func([]byte)
-	BroadcastHeader      func([]byte)
-	SendMessage          func(consensus *spos.ConsensusMessage)
+	BroadcastBlock func(*block.TxBlockBody, *block.Header) error
+	SendMessage    func(consensus *spos.ConsensusMessage)
 
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
@@ -404,48 +403,6 @@ func (wrk *worker) genConsensusDataSignature(cnsDta *spos.ConsensusMessage) ([]b
 	return signature, nil
 }
 
-func (wrk *worker) broadcastTxBlockBody(blockBody *block.TxBlockBody) error {
-	if blockBody == nil {
-		return spos.ErrNilTxBlockBody
-	}
-
-	message, err := wrk.marshalizer.Marshal(blockBody)
-
-	if err != nil {
-		return err
-	}
-
-	// job message
-	if wrk.BroadcastTxBlockBody == nil {
-		return spos.ErrNilOnBroadcastTxBlockBody
-	}
-
-	go wrk.BroadcastTxBlockBody(message)
-
-	return nil
-}
-
-func (wrk *worker) broadcastHeader(header *block.Header) error {
-	if header == nil {
-		return spos.ErrNilBlockHeader
-	}
-
-	message, err := wrk.marshalizer.Marshal(header)
-
-	if err != nil {
-		return err
-	}
-
-	// job message
-	if wrk.BroadcastHeader == nil {
-		return spos.ErrNilOnBroadcastHeader
-	}
-
-	go wrk.BroadcastHeader(message)
-
-	return nil
-}
-
 func (wrk *worker) extend(subroundId int) {
 	log.Info(fmt.Sprintf("extend function is called from subround: %s\n", getSubroundName(subroundId)))
 
@@ -457,21 +414,17 @@ func (wrk *worker) extend(subroundId int) {
 		return
 	}
 
-	blk, hdr := wrk.bootstraper.CreateAndCommitEmptyBlock(wrk.shardCoordinator.ShardForCurrentNode())
-
-	if blk == nil || hdr == nil {
-		return
-	}
-
-	// broadcast block body
-	err := wrk.broadcastTxBlockBody(blk)
+	blk, hdr, err := wrk.bootstraper.CreateAndCommitEmptyBlock(wrk.shardCoordinator.ShardForCurrentNode())
 
 	if err != nil {
 		log.Info(err.Error())
+		return
 	}
 
-	// broadcast header
-	err = wrk.broadcastHeader(hdr)
+	log.Info("broadcasting an empty block\n")
+
+	// broadcast block body and header
+	err = wrk.BroadcastBlock(blk, hdr)
 
 	if err != nil {
 		log.Info(err.Error())

@@ -303,47 +303,6 @@ func TestNewBlockProcessor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, be)
 }
 
-//------- CreateEmptyBlockBody
-
-func TestCreateEmptyBlockBody_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	tdp := initDataPool()
-
-	rootHash := []byte("test root hash")
-	shardId := uint32(4)
-	round := int32(5)
-
-	accounts := &mock.AccountsStub{}
-	accounts.RootHashCalled = func() []byte {
-		return rootHash
-	}
-
-	be, _ := blproc.NewBlockProcessor(
-		tdp,
-		&mock.HasherStub{},
-		&mock.MarshalizerMock{},
-		&mock.TxProcessorMock{},
-		accounts,
-		mock.NewOneShardCoordinatorMock(),
-		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
-		},
-	)
-
-	txBlockBody := be.CreateEmptyBlockBody(shardId, round)
-
-	expectedTxBlockBody := &block.TxBlockBody{
-		MiniBlocks: make([]block.MiniBlock, 0),
-		StateBlockBody: block.StateBlockBody{
-			ShardID:  shardId,
-			RootHash: rootHash,
-		},
-	}
-
-	assert.Equal(t, expectedTxBlockBody, txBlockBody)
-}
-
 //------- ProcessAndCommit
 
 func TestBlockProcessor_ProcessAndCommitNilBlockchainShouldErr(t *testing.T) {

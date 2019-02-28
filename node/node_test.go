@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
@@ -936,7 +937,94 @@ func getMessenger() *mock.MessengerStub {
 		BootstrapCalled: func() error {
 			return nil
 		},
+		BroadcastCalled: func(topic string, buff []byte) {
+			return
+		},
 	}
 
 	return messenger
+}
+
+func TestNode_BroadcastBlockShouldFailWhenTxBlockBodyNil(t *testing.T) {
+	n, _ := node.NewNode()
+	messenger := getMessenger()
+	_ = n.ApplyOptions(
+		node.WithMessenger(messenger),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+	)
+
+	err := n.BroadcastBlock(nil, &block.Header{})
+	assert.Equal(t, node.ErrNilTxBlockBody, err)
+}
+
+func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
+	n, _ := node.NewNode()
+	messenger := getMessenger()
+
+	marshalizerMock := mock.MarshalizerMock{}
+	err := errors.New("error marshal tx vlock body")
+	marshalizerMock.MarshalHandler = func(obj interface{}) ([]byte, error) {
+		switch obj.(type) {
+		case *block.TxBlockBody:
+			return nil, err
+		}
+
+		return []byte("marshalized ok"), nil
+	}
+
+	_ = n.ApplyOptions(
+		node.WithMessenger(messenger),
+		node.WithMarshalizer(marshalizerMock),
+	)
+
+	err2 := n.BroadcastBlock(&block.TxBlockBody{}, &block.Header{})
+	assert.Equal(t, err, err2)
+}
+
+func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
+	n, _ := node.NewNode()
+	messenger := getMessenger()
+	_ = n.ApplyOptions(
+		node.WithMessenger(messenger),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+	)
+
+	err := n.BroadcastBlock(&block.TxBlockBody{}, nil)
+	assert.Equal(t, node.ErrNilBlockHeader, err)
+}
+
+func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
+	n, _ := node.NewNode()
+	messenger := getMessenger()
+
+	marshalizerMock := mock.MarshalizerMock{}
+	err := errors.New("error marshal header")
+	marshalizerMock.MarshalHandler = func(obj interface{}) ([]byte, error) {
+		switch obj.(type) {
+		case *block.Header:
+			return nil, err
+		}
+
+		return []byte("marshalized ok"), nil
+	}
+
+	_ = n.ApplyOptions(
+		node.WithMessenger(messenger),
+		node.WithMarshalizer(marshalizerMock),
+	)
+
+	err2 := n.BroadcastBlock(&block.TxBlockBody{}, &block.Header{})
+	assert.Equal(t, err, err2)
+}
+
+func TestNode_BroadcastBlockShouldWork(t *testing.T) {
+	n, _ := node.NewNode()
+	messenger := getMessenger()
+	_ = n.ApplyOptions(
+		node.WithMessenger(messenger),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+	)
+
+	err := n.BroadcastBlock(&block.TxBlockBody{}, &block.Header{})
+	assert.Nil(t, err)
 }

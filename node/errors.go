@@ -72,3 +72,9 @@ var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
 
 // ErrNilInterceptorsResolversFactory signals that a nil interceptors resolvers factory has been provided
 var ErrNilInterceptorsResolversFactory = errors.New("nil interceptors resolvers factory")
+
+// ErrNilBlockHeader is raised when a valid block header is expected but nil was used
+var ErrNilBlockHeader = errors.New("block header is nil")
+
+// ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
+var ErrNilTxBlockBody = errors.New("tx block body is nil")

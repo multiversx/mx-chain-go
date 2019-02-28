@@ -42,8 +42,7 @@ func initSubroundEndRound() bn.SubroundEndRound {
 		multiSignerMock,
 		rounderMock,
 		syncTimerMock,
-		broadcastTxBlockBody,
-		broadcastHeader,
+		broadcastBlock,
 		extend,
 	)
 
@@ -68,8 +67,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 		multiSignerMock,
 		rounderMock,
 		syncTimerMock,
-		broadcastTxBlockBody,
-		broadcastHeader,
+		broadcastBlock,
 		extend,
 	)
 
@@ -106,8 +104,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		multiSignerMock,
 		rounderMock,
 		syncTimerMock,
-		broadcastTxBlockBody,
-		broadcastHeader,
+		broadcastBlock,
 		extend,
 	)
 
@@ -144,8 +141,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		multiSignerMock,
 		rounderMock,
 		syncTimerMock,
-		broadcastTxBlockBody,
-		broadcastHeader,
+		broadcastBlock,
 		extend,
 	)
 
@@ -182,8 +178,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		multiSignerMock,
 		rounderMock,
 		syncTimerMock,
-		broadcastTxBlockBody,
-		broadcastHeader,
+		broadcastBlock,
 		extend,
 	)
 
@@ -220,8 +215,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 		nil,
 		rounderMock,
 		syncTimerMock,
-		broadcastTxBlockBody,
-		broadcastHeader,
+		broadcastBlock,
 		extend,
 	)
 
@@ -258,8 +252,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 		multiSignerMock,
 		nil,
 		syncTimerMock,
-		broadcastTxBlockBody,
-		broadcastHeader,
+		broadcastBlock,
 		extend,
 	)
 
@@ -296,8 +289,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		multiSignerMock,
 		rounderMock,
 		nil,
-		broadcastTxBlockBody,
-		broadcastHeader,
+		broadcastBlock,
 		extend,
 	)
 
@@ -305,7 +297,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 	assert.Equal(t, err, spos.ErrNilSyncTimer)
 }
 
-func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastTxBlockBodyFunctionShouldFail(t *testing.T) {
+func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastBlockFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := blockchain.BlockChain{}
@@ -336,51 +328,11 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastTxBlockBodyFunctionShou
 		rounderMock,
 		syncTimerMock,
 		nil,
-		broadcastHeader,
 		extend,
 	)
 
 	assert.Nil(t, srEndRound)
-	assert.Equal(t, err, spos.ErrNilBroadcastTxBlockBodyFunction)
-}
-
-func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastHeaderFunctionShouldFail(t *testing.T) {
-	t.Parallel()
-
-	blockChain := blockchain.BlockChain{}
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
-
-	ch := make(chan bool, 1)
-
-	sr, _ := bn.NewSubround(
-		int(bn.SrSignature),
-		int(bn.SrEndRound),
-		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
-		"(END_ROUND)",
-		ch,
-	)
-
-	srEndRound, err := bn.NewSubroundEndRound(
-		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
-		broadcastTxBlockBody,
-		nil,
-		extend,
-	)
-
-	assert.Nil(t, srEndRound)
-	assert.Equal(t, err, spos.ErrNilBroadcastHeaderFunction)
+	assert.Equal(t, err, spos.ErrNilBroadcastBlockFunction)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
@@ -413,8 +365,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		multiSignerMock,
 		rounderMock,
 		syncTimerMock,
-		broadcastTxBlockBody,
-		broadcastHeader,
+		broadcastBlock,
 		extend,
 	)
 
@@ -480,28 +431,13 @@ func TestSubroundEndRound_DoEndRoundJobErrRemBlockTxOK(t *testing.T) {
 	assert.True(t, r)
 }
 
-func TestSubroundEndRound_DoEndRoundJobErrBroadcastTxBlockBodyOK(t *testing.T) {
+func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 	t.Parallel()
 
 	sr := *initSubroundEndRound()
 
-	sr.SetBroadcastTxBlockBody(func(txBlockBody *block.TxBlockBody) error {
-		return spos.ErrNilBroadcastTxBlockBodyFunction
-	})
-
-	sr.ConsensusState().Header = &block.Header{}
-
-	r := sr.DoEndRoundJob()
-	assert.True(t, r)
-}
-
-func TestSubroundEndRound_DoEndRoundJobErrBroadcastHeaderOK(t *testing.T) {
-	t.Parallel()
-
-	sr := *initSubroundEndRound()
-
-	sr.SetBroadcastHeader(func(header *block.Header) error {
-		return spos.ErrNilBroadcastHeaderFunction
+	sr.SetBroadcastBlock(func(*block.TxBlockBody, *block.Header) error {
+		return spos.ErrNilBroadcastBlockFunction
 	})
 
 	sr.ConsensusState().Header = &block.Header{}
