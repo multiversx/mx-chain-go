@@ -74,7 +74,7 @@ With the text below could be created a start.sh file in the same
 # 20: 199866d09b8385023c25f261460d4d20ae0d5bc72ddf1fa5c1b32768167a8fb0
 # 21: 0098f7634d7327139848a0f6ad926051596e5a0f692adfb671ab02092b77181d
 
-gnome-terminal -- ./bootnode -port 4000 -max-allowed-peers 4 -private-key "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f"
-gnome-terminal -- ./bootnode -port 4001 -max-allowed-peers 4 -private-key "8c7e9c79206f2bf7425050dc14d9b220596cee91c09bcbdd1579297572b63109"
-gnome-terminal -- ./bootnode -port 4002 -max-allowed-peers 4 -private-key "52964f3887b72ea0bd385ee3b60d2321034256d17cb4eec8333d4a4ce1692b08"
+gnome-terminal -- ./bootnode -port 23000 -private-key "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f"
+gnome-terminal -- ./bootnode -port 23001 -private-key "8c7e9c79206f2bf7425050dc14d9b220596cee91c09bcbdd1579297572b63109"
+gnome-terminal -- ./bootnode -port 23002 -private-key "52964f3887b72ea0bd385ee3b60d2321034256d17cb4eec8333d4a4ce1692b08"
 ```

@@ -81,7 +81,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListNilListShouldR
 	interval := time.Duration(time.Second * 1)
 
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
-	lctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.UpgradedHostStub{})
+	lctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
 	kdd.ApplyContext(lctx)
 
 	chanDone := kdd.ConnectToOnePeerFromInitialPeersList(time.Second, nil)
@@ -93,7 +93,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersListEmptyListShoul
 	interval := time.Duration(time.Second * 1)
 
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
-	lctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.UpgradedHostStub{})
+	lctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
 	kdd.ApplyContext(lctx)
 
 	chanDone := kdd.ConnectToOnePeerFromInitialPeersList(time.Second, make([]string, 0))
@@ -108,7 +108,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryTo
 
 	wasConnectCalled := int32(0)
 
-	uhs := &mock.UpgradedHostStub{
+	uhs := &mock.ConnectableHostStub{
 		ConnectToPeerCalled: func(ctx context.Context, address string) error {
 			if peerID == address {
 				atomic.AddInt32(&wasConnectCalled, 1)
@@ -141,7 +141,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShouldTryTo
 	errDidNotConnect := errors.New("did not connect")
 	noOfTimesToRefuseConnection := 5
 
-	uhs := &mock.UpgradedHostStub{
+	uhs := &mock.ConnectableHostStub{
 		ConnectToPeerCalled: func(ctx context.Context, address string) error {
 			if peerID != address {
 				assert.Fail(t, "should have tried to connect to the same ID")
@@ -182,7 +182,7 @@ func TestKadDhtPeerDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShouldAlte
 	errDidNotConnect := errors.New("did not connect")
 	noOfTimesToRefuseConnection := 5
 
-	uhs := &mock.UpgradedHostStub{
+	uhs := &mock.ConnectableHostStub{
 		ConnectToPeerCalled: func(ctx context.Context, address string) error {
 			connCalled := atomic.LoadInt32(&wasConnectCalled)
 
@@ -243,7 +243,7 @@ func TestKadDhtPeerDiscoverer_ApplyContextWrongProviderShouldErr(t *testing.T) {
 }
 
 func TestKadDhtPeerDiscoverer_ApplyContextShouldWork(t *testing.T) {
-	ctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.UpgradedHostStub{})
+	ctx, _ := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
 	interval := time.Duration(time.Second * 1)
 	kdd := discovery.NewKadDhtPeerDiscoverer(interval, "", nil)
 

@@ -11,23 +11,25 @@ import (
 // PeerInfoHandler is the signature of the handler that gets called whenever an action for a peerInfo is triggered
 type PeerInfoHandler func(pInfo peerstore.PeerInfo)
 
-// UpgradedHost is an enhanced Host interface
-type UpgradedHost interface {
+// ConnectableHost is an enhanced Host interface that has the ability to connect to a string address
+type ConnectableHost interface {
 	host.Host
 	ConnectToPeer(ctx context.Context, address string) error
 }
 
-type upgradedHost struct {
+type connectableHost struct {
 	host.Host
 }
 
-func NewUpgradedHost(h host.Host) *upgradedHost {
-	return &upgradedHost{
+// NewConnectableHost creates a new connectable host implementation
+func NewConnectableHost(h host.Host) *connectableHost {
+	return &connectableHost{
 		Host: h,
 	}
 }
 
-func (updHost *upgradedHost) ConnectToPeer(ctx context.Context, address string) error {
+// ConnectToPeer connects to a peer by knowing its string address
+func (connHost *connectableHost) ConnectToPeer(ctx context.Context, address string) error {
 	multiAddr, err := multiaddr.NewMultiaddr(address)
 	if err != nil {
 		return err
@@ -38,5 +40,5 @@ func (updHost *upgradedHost) ConnectToPeer(ctx context.Context, address string) 
 		return err
 	}
 
-	return updHost.Connect(ctx, *pInfo)
+	return connHost.Connect(ctx, *pInfo)
 }

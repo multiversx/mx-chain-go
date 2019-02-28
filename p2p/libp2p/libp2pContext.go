@@ -8,23 +8,23 @@ import (
 
 // Libp2pContext holds the context for the wrappers over libp2p implementation
 type Libp2pContext struct {
-	ctx     context.Context
-	updHost UpgradedHost
+	ctx      context.Context
+	connHost ConnectableHost
 }
 
 // NewLibp2pContext constructs a new Libp2pContext object
-func NewLibp2pContext(ctx context.Context, updHost UpgradedHost) (*Libp2pContext, error) {
+func NewLibp2pContext(ctx context.Context, connHost ConnectableHost) (*Libp2pContext, error) {
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
 	}
 
-	if updHost == nil {
+	if connHost == nil {
 		return nil, p2p.ErrNilHost
 	}
 
 	return &Libp2pContext{
-		ctx:     ctx,
-		updHost: updHost,
+		ctx:      ctx,
+		connHost: connHost,
 	}, nil
 }
 
@@ -33,7 +33,7 @@ func (lctx *Libp2pContext) Context() context.Context {
 	return lctx.ctx
 }
 
-// Host returns the upgraded host
-func (lctx *Libp2pContext) Host() UpgradedHost {
-	return lctx.updHost
+// Host returns the connectable host
+func (lctx *Libp2pContext) Host() ConnectableHost {
+	return lctx.connHost
 }

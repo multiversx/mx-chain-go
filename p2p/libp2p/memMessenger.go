@@ -33,7 +33,7 @@ func NewMemoryMessenger(
 		return nil, err
 	}
 
-	lctx, err := NewLibp2pContext(ctx, NewUpgradedHost(h))
+	lctx, err := NewLibp2pContext(ctx, NewConnectableHost(h))
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err

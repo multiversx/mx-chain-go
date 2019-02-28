@@ -362,7 +362,7 @@ func TestLibp2pMessenger_ConnectToPeerShoulsCallUpgradedHost(t *testing.T) {
 
 	p := "peer"
 
-	uhs := &mock.UpgradedHostStub{
+	uhs := &mock.ConnectableHostStub{
 		ConnectToPeerCalled: func(ctx context.Context, address string) error {
 			if p == address {
 				wasCalled = true
@@ -683,7 +683,7 @@ func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
 	pid3 := p2p.PeerID("pid3")
 	pid4 := p2p.PeerID("pid4")
 
-	hs := &mock.UpgradedHostStub{
+	hs := &mock.ConnectableHostStub{
 		NetworkCalled: func() net.Network {
 			return &mock.NetworkStub{
 				ConnsCalled: func() []net.Conn {

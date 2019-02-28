@@ -7,11 +7,11 @@ import (
 )
 
 func (netMes *networkMessenger) ConnManager() ifconnmgr.ConnManager {
-	return netMes.ctxProvider.updHost.ConnManager()
+	return netMes.ctxProvider.connHost.ConnManager()
 }
 
-func (netMes *networkMessenger) SetHost(newHost UpgradedHost) {
-	netMes.ctxProvider.updHost = newHost
+func (netMes *networkMessenger) SetHost(newHost ConnectableHost) {
+	netMes.ctxProvider.connHost = newHost
 }
 
 func (ds *directSender) ProcessReceivedDirectMessage(message *pubsub_pb.Message) error {

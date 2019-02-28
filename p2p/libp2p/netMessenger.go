@@ -84,7 +84,7 @@ func NewNetworkMessenger(
 		return nil, err
 	}
 
-	lctx, err := NewLibp2pContext(ctx, NewUpgradedHost(h))
+	lctx, err := NewLibp2pContext(ctx, NewConnectableHost(h))
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err
@@ -215,7 +215,7 @@ func (netMes *networkMessenger) Addresses() []string {
 
 // ConnectToPeer tries to open a new connection to a peer
 func (netMes *networkMessenger) ConnectToPeer(address string) error {
-	h := netMes.ctxProvider.updHost
+	h := netMes.ctxProvider.Host()
 	ctx := netMes.ctxProvider.ctx
 
 	return h.ConnectToPeer(ctx, address)

@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -107,7 +108,7 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 	}
 
 	if len(srr.seed) == 0 {
-		return 0, errors.New("nil seed")
+		return 0, errors.New("empty seed")
 	}
 
 	if p == nil {
@@ -128,8 +129,6 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-var p2pSeedRandReader *seedRandReader
-
 func main() {
 	log := logger.NewDefaultLogger()
 	log.SetLevel(logger.LogInfo)
@@ -138,7 +137,7 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.PrivateKey}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey}
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
 	}
@@ -168,6 +167,9 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFile))
+	if ctx.IsSet(flags.Port.Name) {
+		p2pConfig.Node.Port = ctx.GlobalInt(flags.Port.Name)
+	}
 	uniqueID = strconv.Itoa(p2pConfig.Node.Port)
 
 	genesisConfig, err := loadGenesisConfiguration(ctx.GlobalString(flags.GenesisFile.Name), log)
@@ -226,56 +228,51 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	return nil
 }
 
-func loadJsonFile(dest interface{}, relativePath string, log *logger.Logger) error {
+func loadFile(relativePath string, log *logger.Logger) (*os.File, error) {
 	path, err := filepath.Abs(relativePath)
 	fmt.Println(path)
 	if err != nil {
 		log.Error("cannot create absolute path for the provided file", err.Error())
-		return err
+		return nil, err
 	}
 	f, err := os.Open(path)
-	defer func() {
-		err = f.Close()
-		if err != nil {
-			log.Error("cannot close file: ", err.Error())
-		}
-	}()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	jsonParser := json.NewDecoder(f)
-	err = jsonParser.Decode(dest)
-	if err != nil {
-		return err
-	}
-	return nil
+	return f, nil
 }
 
 func loadTomlFile(dest interface{}, relativePath string, log *logger.Logger) error {
-	path, err := filepath.Abs(relativePath)
-	fmt.Println(path)
+	f, err := loadFile(relativePath, log)
 	if err != nil {
-		log.Error("cannot create absolute path for the provided file", err.Error())
 		return err
 	}
-	f, err := os.Open(path)
+
 	defer func() {
 		err = f.Close()
 		if err != nil {
 			log.Error("cannot close file: ", err.Error())
 		}
 	}()
+
+	return toml.NewDecoder(f).Decode(dest)
+}
+
+func loadJsonFile(dest interface{}, relativePath string, log *logger.Logger) error {
+	f, err := loadFile(relativePath, log)
 	if err != nil {
 		return err
 	}
 
-	tomlParser := toml.NewDecoder(f)
-	err = tomlParser.Decode(dest)
-	if err != nil {
-		return err
-	}
-	return nil
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			log.Error("cannot close file: ", err.Error())
+		}
+	}()
+
+	return json.NewDecoder(f).Decode(dest)
 }
 
 func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error) {
@@ -413,10 +410,14 @@ func createNode(
 		return nil, err
 	}
 
-	//TODO refactor this
-	p2pSeedRandReader = NewSeedRandReader(hasher.Compute(p2pConfig.Node.Seed))
+	var randReader io.Reader
+	if p2pConfig.Node.Seed != "" {
+		randReader = NewSeedRandReader(hasher.Compute(p2pConfig.Node.Seed))
+	} else {
+		randReader = rand.Reader
+	}
 
-	netMessenger, err := createNetMessenger(p2pConfig, log)
+	netMessenger, err := createNetMessenger(p2pConfig, log, randReader)
 	if err != nil {
 		return nil, err
 	}
@@ -527,7 +528,12 @@ func createRequestTransactionHandler(txResolver *transaction.TxResolver, log *lo
 	}
 }
 
-func createNetMessenger(p2pConfig *config.P2PConfig, log *logger.Logger) (p2p.Messenger, error) {
+func createNetMessenger(
+	p2pConfig *config.P2PConfig,
+	log *logger.Logger,
+	randReader io.Reader,
+) (p2p.Messenger, error) {
+
 	if p2pConfig.Node.Port <= 0 {
 		return nil, errors.New("cannot start node on port <= 0")
 	}
@@ -541,13 +547,7 @@ func createNetMessenger(p2pConfig *config.P2PConfig, log *logger.Logger) (p2p.Me
 
 	log.Info(fmt.Sprintf("Starting with peer discovery: %s", pDiscoverer.Name()))
 
-	reader := rand.Reader
-
-	if p2pConfig.Node.Seed != "" {
-		reader = p2pSeedRandReader
-	}
-
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), reader)
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
 	nm, err := libp2p.NewNetworkMessenger(

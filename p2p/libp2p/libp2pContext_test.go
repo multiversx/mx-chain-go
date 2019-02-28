@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewLibp2pContext_NilContextShoulsErr(t *testing.T) {
-	lctx, err := libp2p.NewLibp2pContext(nil, &mock.UpgradedHostStub{})
+	lctx, err := libp2p.NewLibp2pContext(nil, &mock.ConnectableHostStub{})
 
 	assert.Nil(t, lctx)
 	assert.Equal(t, p2p.ErrNilContext, err)
@@ -25,7 +25,7 @@ func TestNewLibp2pContext_NilHostShoulsErr(t *testing.T) {
 }
 
 func TestNewLibp2pContext_OkValsShouldWork(t *testing.T) {
-	lctx, err := libp2p.NewLibp2pContext(context.Background(), &mock.UpgradedHostStub{})
+	lctx, err := libp2p.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
 
 	assert.NotNil(t, lctx)
 	assert.Nil(t, err)
@@ -34,13 +34,13 @@ func TestNewLibp2pContext_OkValsShouldWork(t *testing.T) {
 func TestLibp2pContext_Context(t *testing.T) {
 	ctx := context.Background()
 
-	lctx, _ := libp2p.NewLibp2pContext(ctx, &mock.UpgradedHostStub{})
+	lctx, _ := libp2p.NewLibp2pContext(ctx, &mock.ConnectableHostStub{})
 
 	assert.True(t, ctx == lctx.Context())
 }
 
 func TestLibp2pContext_Host(t *testing.T) {
-	h := &mock.UpgradedHostStub{}
+	h := &mock.ConnectableHostStub{}
 
 	lctx, _ := libp2p.NewLibp2pContext(context.Background(), h)
 

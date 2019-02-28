@@ -20,4 +20,10 @@ var (
 		Name:  "with-ui",
 		Usage: "If true, the application will be accompanied by a UI. The node will have to be manually started from the UI",
 	}
+	// Port defines a flag for setting the port on which the node will listen for connections
+	Port = cli.IntFlag{
+		Name:  "port",
+		Usage: "Port number on which the application will start",
+		Value: 32000,
+	}
 )

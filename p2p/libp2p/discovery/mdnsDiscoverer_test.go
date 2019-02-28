@@ -20,7 +20,7 @@ import (
 
 var timeoutWaitResponses = time.Second * 2
 
-func createDummyHost() libp2p2.UpgradedHost {
+func createDummyHost() libp2p2.ConnectableHost {
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 23000)),
 		libp2p.DefaultTransports,
@@ -30,7 +30,7 @@ func createDummyHost() libp2p2.UpgradedHost {
 	}
 
 	h, _ := libp2p.New(context.Background(), opts...)
-	return libp2p2.NewUpgradedHost(h)
+	return libp2p2.NewConnectableHost(h)
 }
 
 func TestNewMdnsDiscoverer_ShouldSetValues(t *testing.T) {
@@ -114,7 +114,7 @@ func TestMdnsPeerDiscoverer_ApplyContextWrongProviderShouldErr(t *testing.T) {
 }
 
 func TestMdnsPeerDiscoverer_ApplyContextShouldWork(t *testing.T) {
-	ctx, _ := libp2p2.NewLibp2pContext(context.Background(), &mock.UpgradedHostStub{})
+	ctx, _ := libp2p2.NewLibp2pContext(context.Background(), &mock.ConnectableHostStub{})
 	mdns := discovery.NewMdnsPeerDiscoverer(time.Duration(time.Second*1), "srvcTag")
 
 	err := mdns.ApplyContext(ctx)
@@ -135,7 +135,7 @@ func TestNetworkMessenger_HandlePeerFoundNotFoundShouldTryToConnect(t *testing.T
 
 	chanConnected := make(chan struct{})
 
-	mockHost := &mock.UpgradedHostStub{
+	mockHost := &mock.ConnectableHostStub{
 		PeerstoreCalled: func() peerstore.Peerstore {
 			return peerstore.NewPeerstore(
 				pstoremem.NewKeyBook(),
@@ -175,7 +175,7 @@ func TestNetworkMessenger_HandlePeerFoundPeerFoundShouldNotTryToConnect(t *testi
 
 	chanConnected := make(chan struct{})
 
-	mockHost := &mock.UpgradedHostStub{
+	mockHost := &mock.ConnectableHostStub{
 		PeerstoreCalled: func() peerstore.Peerstore {
 			ps := peerstore.NewPeerstore(
 				pstoremem.NewKeyBook(),
