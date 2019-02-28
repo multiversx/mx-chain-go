@@ -62,8 +62,8 @@ func (boot *Bootstrap) SyncStateListeners() []func(bool) {
 	return boot.syncStateListeners
 }
 
-func (boot *Bootstrap) SetHigherHeaderNonceReceived(higherHeaderNonceReceived uint64) {
-	boot.higherHeaderNonceReceived = higherHeaderNonceReceived
+func (boot *Bootstrap) SetHighestNonceReceived(highestNonceReceived uint64) {
+	boot.highestNonceReceived = highestNonceReceived
 }
 
 func (boot *Bootstrap) SetIsForkDetected(isForkDetected bool) {
@@ -82,6 +82,6 @@ func (boot *Bootstrap) CreateAndBroadcastEmptyBlock() error {
 	return boot.createAndBroadcastEmptyBlock()
 }
 
-func (boot *Bootstrap) BroadcastBlock(txBlockBody *block.TxBlockBody, header *block.Header) error {
-	return boot.broadcastBlock(txBlockBody, header)
+func (boot *Bootstrap) BroadcastEmptyBlock(txBlockBody *block.TxBlockBody, header *block.Header) error {
+	return boot.broadcastEmptyBlock(txBlockBody, header)
 }

@@ -22,8 +22,7 @@ type subroundEndRound struct {
 	rounder        consensus.Rounder
 	syncTimer      ntp.SyncTimer
 
-	broadcastTxBlockBody func(*block.TxBlockBody) error
-	broadcastHeader      func(*block.Header) error
+	broadcastBlock func(*block.TxBlockBody, *block.Header) error
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -35,8 +34,7 @@ func NewSubroundEndRound(
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
-	broadcastTxBlockBody func(*block.TxBlockBody) error,
-	broadcastHeader func(*block.Header) error,
+	broadcastBlock func(*block.TxBlockBody, *block.Header) error,
 	extend func(subroundId int),
 ) (*subroundEndRound, error) {
 
@@ -48,8 +46,7 @@ func NewSubroundEndRound(
 		multiSigner,
 		rounder,
 		syncTimer,
-		broadcastTxBlockBody,
-		broadcastHeader,
+		broadcastBlock,
 	)
 
 	if err != nil {
@@ -64,8 +61,7 @@ func NewSubroundEndRound(
 		multiSigner,
 		rounder,
 		syncTimer,
-		broadcastTxBlockBody,
-		broadcastHeader,
+		broadcastBlock,
 	}
 
 	srEndRound.job = srEndRound.doEndRoundJob
@@ -83,8 +79,7 @@ func checkNewSubroundEndRoundParams(
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
-	broadcastTxBlockBody func(*block.TxBlockBody) error,
-	broadcastHeader func(*block.Header) error,
+	broadcastBlock func(*block.TxBlockBody, *block.Header) error,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
@@ -114,12 +109,8 @@ func checkNewSubroundEndRoundParams(
 		return spos.ErrNilSyncTimer
 	}
 
-	if broadcastTxBlockBody == nil {
-		return spos.ErrNilBroadcastTxBlockBodyFunction
-	}
-
-	if broadcastHeader == nil {
-		return spos.ErrNilBroadcastHeaderFunction
+	if broadcastBlock == nil {
+		return spos.ErrNilBroadcastBlockFunction
 	}
 
 	return nil
@@ -162,15 +153,8 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		log.Error(err.Error())
 	}
 
-	// broadcast block body
-	err = sr.broadcastTxBlockBody(sr.consensusState.BlockBody)
-
-	if err != nil {
-		log.Error(err.Error())
-	}
-
-	// broadcast header
-	err = sr.broadcastHeader(sr.consensusState.Header)
+	// broadcast block body and header
+	err = sr.broadcastBlock(sr.consensusState.BlockBody, sr.consensusState.Header)
 
 	if err != nil {
 		log.Error(err.Error())

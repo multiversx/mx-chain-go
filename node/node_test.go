@@ -945,7 +945,7 @@ func getMessenger() *mock.MessengerStub {
 	return messenger
 }
 
-func TestNode_BroadcastTxBlockBodyShouldFailWhenBlockBodyNil(t *testing.T) {
+func TestNode_BroadcastBlockShouldFailWhenTxBlockBodyNil(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
 	_ = n.ApplyOptions(
@@ -953,18 +953,23 @@ func TestNode_BroadcastTxBlockBodyShouldFailWhenBlockBodyNil(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 	)
 
-	err := n.BroadcastTxBlockBody(nil)
+	err := n.BroadcastBlock(nil, &block.Header{})
 	assert.Equal(t, node.ErrNilTxBlockBody, err)
 }
 
-func TestNode_BroadcastTxBlockBodyShouldFailWhenMarshalErr(t *testing.T) {
+func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
 
 	marshalizerMock := mock.MarshalizerMock{}
-	err := errors.New("error")
+	err := errors.New("error marshal tx vlock body")
 	marshalizerMock.MarshalHandler = func(obj interface{}) ([]byte, error) {
-		return nil, err
+		switch obj.(type) {
+		case *block.TxBlockBody:
+			return nil, err
+		}
+
+		return []byte("marshalized ok"), nil
 	}
 
 	_ = n.ApplyOptions(
@@ -972,11 +977,11 @@ func TestNode_BroadcastTxBlockBodyShouldFailWhenMarshalErr(t *testing.T) {
 		node.WithMarshalizer(marshalizerMock),
 	)
 
-	err2 := n.BroadcastTxBlockBody(&block.TxBlockBody{})
+	err2 := n.BroadcastBlock(&block.TxBlockBody{}, &block.Header{})
 	assert.Equal(t, err, err2)
 }
 
-func TestNode_BroadcastTxBlockBodyShouldWork(t *testing.T) {
+func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
 	_ = n.ApplyOptions(
@@ -984,30 +989,23 @@ func TestNode_BroadcastTxBlockBodyShouldWork(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 	)
 
-	err := n.BroadcastTxBlockBody(&block.TxBlockBody{})
-	assert.Nil(t, err)
-}
-
-func TestNode_BroadcastHeaderShouldFailWhenHeaderNil(t *testing.T) {
-	n, _ := node.NewNode()
-	messenger := getMessenger()
-	_ = n.ApplyOptions(
-		node.WithMessenger(messenger),
-		node.WithMarshalizer(mock.MarshalizerMock{}),
-	)
-
-	err := n.BroadcastHeader(nil)
+	err := n.BroadcastBlock(&block.TxBlockBody{}, nil)
 	assert.Equal(t, node.ErrNilBlockHeader, err)
 }
 
-func TestNode_BroadcastHeaderShouldFailWhenMarshalErr(t *testing.T) {
+func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
 
 	marshalizerMock := mock.MarshalizerMock{}
-	err := errors.New("error")
+	err := errors.New("error marshal header")
 	marshalizerMock.MarshalHandler = func(obj interface{}) ([]byte, error) {
-		return nil, err
+		switch obj.(type) {
+		case *block.Header:
+			return nil, err
+		}
+
+		return []byte("marshalized ok"), nil
 	}
 
 	_ = n.ApplyOptions(
@@ -1015,11 +1013,11 @@ func TestNode_BroadcastHeaderShouldFailWhenMarshalErr(t *testing.T) {
 		node.WithMarshalizer(marshalizerMock),
 	)
 
-	err2 := n.BroadcastHeader(&block.Header{})
+	err2 := n.BroadcastBlock(&block.TxBlockBody{}, &block.Header{})
 	assert.Equal(t, err, err2)
 }
 
-func TestNode_BroadcastHeaderShouldWork(t *testing.T) {
+func TestNode_BroadcastBlockShouldWork(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
 	_ = n.ApplyOptions(
@@ -1027,6 +1025,6 @@ func TestNode_BroadcastHeaderShouldWork(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 	)
 
-	err := n.BroadcastHeader(&block.Header{})
+	err := n.BroadcastBlock(&block.TxBlockBody{}, &block.Header{})
 	assert.Nil(t, err)
 }

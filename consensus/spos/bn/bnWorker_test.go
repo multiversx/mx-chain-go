@@ -28,12 +28,8 @@ func sendConsensusMessage(cnsMsg *spos.ConsensusMessage) bool {
 	return true
 }
 
-func broadcastTxBlockBody(txBlockBody *block.TxBlockBody) error {
+func broadcastBlock(txBlockBody *block.TxBlockBody, header *block.Header) error {
 	fmt.Println(txBlockBody)
-	return nil
-}
-
-func broadcastHeader(header *block.Header) error {
 	fmt.Println(header)
 	return nil
 }
@@ -71,8 +67,7 @@ func initWorker() bn.Worker {
 	)
 
 	wrk.SendMessage = sendMessage
-	wrk.BroadcastTxBlockBody = broadcastTxBlockBody
-	wrk.BroadcastHeader = broadcastHeader
+	wrk.BroadcastBlock = broadcastBlock
 
 	return wrk
 }
@@ -141,10 +136,6 @@ func initBlockProcessorMock() *mock.BlockProcessorMock {
 
 	blockProcessorMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody, haveTime func() time.Duration) error {
 		return nil
-	}
-
-	blockProcessorMock.CreateEmptyBlockBodyCalled = func(shardId uint32) *block.TxBlockBody {
-		return &block.TxBlockBody{}
 	}
 
 	return blockProcessorMock
@@ -1380,12 +1371,7 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 
 	executed := false
 
-	wrk.BroadcastTxBlockBody = func(*block.TxBlockBody) error {
-		executed = true
-		return nil
-	}
-
-	wrk.BroadcastHeader = func(*block.Header) error {
+	wrk.BroadcastBlock = func(*block.TxBlockBody, *block.Header) error {
 		executed = true
 		return nil
 	}
@@ -1407,19 +1393,14 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 
 	executed := int32(0)
 
-	wrk.BroadcastTxBlockBody = func(*block.TxBlockBody) error {
-		atomic.AddInt32(&executed, 1)
-		return nil
-	}
-
-	wrk.BroadcastHeader = func(*block.Header) error {
+	wrk.BroadcastBlock = func(*block.TxBlockBody, *block.Header) error {
 		atomic.AddInt32(&executed, 1)
 		return nil
 	}
 
 	wrk.Extend(0)
 	time.Sleep(1000 * time.Millisecond)
-	assert.Equal(t, int32(2), atomic.LoadInt32(&executed))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&executed))
 }
 
 func TestWorker_GetSubroundName(t *testing.T) {

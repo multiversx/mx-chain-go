@@ -31,12 +31,6 @@ var ErrNilCommitment = errors.New("commitment is nil")
 // ErrNilKeyGenerator is raised when a valid key generator is expected but nil was used
 var ErrNilKeyGenerator = errors.New("key generator is nil")
 
-// ErrNilBlockHeader is raised when a valid block header is expected but nil was used
-var ErrNilBlockHeader = errors.New("block header is nil")
-
-// ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
-var ErrNilTxBlockBody = errors.New("tx block body is nil")
-
 // ErrNilSingleSigner is raised when a valid singleSigner is expected but nil used
 var ErrNilSingleSigner = errors.New("singleSigner is nil")
 
@@ -100,11 +94,8 @@ var ErrNilSubround = errors.New("subround is nil")
 // ErrNilSendConsensusMessageFunction is raised when a valid send consensus message function is expected but nil used
 var ErrNilSendConsensusMessageFunction = errors.New("send consnensus message function is nil")
 
-// ErrNilBroadcastTxBlockBodyFunction is raised when a valid broadcast tx block body function is expected but nil used
-var ErrNilBroadcastTxBlockBodyFunction = errors.New("broadcast tx block body function is nil")
-
-// ErrNilBroadcastHeaderFunction is raised when a valid broadcast header function is expected but nil used
-var ErrNilBroadcastHeaderFunction = errors.New("broadcast header function is nil")
+// ErrNilBroadcastBlockFunction is raised when a valid broadcast block function is expected but nil used
+var ErrNilBroadcastBlockFunction = errors.New("broadcast block function is nil")
 
 // ErrNilChannel is raised when a valid channel is expected but nil used
 var ErrNilChannel = errors.New("channel is nil")

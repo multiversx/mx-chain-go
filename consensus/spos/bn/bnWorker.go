@@ -35,9 +35,8 @@ type worker struct {
 	executeMessageChannel         chan *spos.ConsensusMessage
 	consensusStateChangedChannels chan bool
 
-	BroadcastTxBlockBody func(*block.TxBlockBody) error
-	BroadcastHeader      func(*block.Header) error
-	SendMessage          func(consensus *spos.ConsensusMessage)
+	BroadcastBlock func(*block.TxBlockBody, *block.Header) error
+	SendMessage    func(consensus *spos.ConsensusMessage)
 
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
@@ -422,17 +421,10 @@ func (wrk *worker) extend(subroundId int) {
 		return
 	}
 
-	log.Info(fmt.Sprintf("broadcasting an empty block\n"))
+	log.Info("broadcasting an empty block\n")
 
-	// broadcast block body
-	err = wrk.BroadcastTxBlockBody(blk)
-
-	if err != nil {
-		log.Info(err.Error())
-	}
-
-	// broadcast header
-	err = wrk.BroadcastHeader(hdr)
+	// broadcast block body and header
+	err = wrk.BroadcastBlock(blk, hdr)
 
 	if err != nil {
 		log.Info(err.Error())

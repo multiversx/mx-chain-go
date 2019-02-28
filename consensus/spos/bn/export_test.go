@@ -611,20 +611,12 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
-func (sr *subroundEndRound) BroadcastTxBlockBody() func(*block.TxBlockBody) error {
-	return sr.broadcastTxBlockBody
+func (sr *subroundEndRound) BroadcastBlock() func(*block.TxBlockBody, *block.Header) error {
+	return sr.broadcastBlock
 }
 
-func (sr *subroundEndRound) SetBroadcastTxBlockBody(broadcastTxBlockBody func(*block.TxBlockBody) error) {
-	sr.broadcastTxBlockBody = broadcastTxBlockBody
-}
-
-func (sr *subroundEndRound) BroadcastHeader() func(*block.Header) error {
-	return sr.broadcastHeader
-}
-
-func (sr *subroundEndRound) SetBroadcastHeader(broadcastHeader func(*block.Header) error) {
-	sr.broadcastHeader = broadcastHeader
+func (sr *subroundEndRound) SetBroadcastBlock(broadcastBlock func(*block.TxBlockBody, *block.Header) error) {
+	sr.broadcastBlock = broadcastBlock
 }
 
 func (sr *subroundStartRound) InitCurrentRound() bool {

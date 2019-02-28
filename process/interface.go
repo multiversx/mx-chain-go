@@ -29,7 +29,6 @@ type BlockProcessor interface {
 	RevertAccountState()
 	CreateGenesisBlockBody(balances map[string]*big.Int, shardId uint32) (*block.StateBlockBody, error)
 	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
-	CreateEmptyBlockBody(shardId uint32) *block.TxBlockBody
 	RemoveBlockTxsFromPool(body *block.TxBlockBody) error
 	GetRootHash() []byte
 	CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool

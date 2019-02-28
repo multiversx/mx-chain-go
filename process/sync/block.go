@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -37,6 +38,7 @@ type Bootstrap struct {
 	marshalizer      marshal.Marshalizer
 	forkDetector     process.ForkDetector
 	shardCoordinator sharding.ShardCoordinator
+	accounts         state.AccountsAdapter
 
 	mutHeader   sync.RWMutex
 	headerNonce *uint64
@@ -57,11 +59,10 @@ type Bootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 
-	higherHeaderNonceReceived uint64
-	isForkDetected            bool
+	highestNonceReceived uint64
+	isForkDetected       bool
 
-	BroadcastTxBlockBody func(*block.TxBlockBody) error
-	BroadcastHeader      func(*block.Header) error
+	BroadcastBlock func(*block.TxBlockBody, *block.Header) error
 }
 
 // NewBootstrap creates a new Bootstrap object
@@ -76,6 +77,7 @@ func NewBootstrap(
 	forkDetector process.ForkDetector,
 	resolversContainer process.ResolversContainer,
 	shardCoordinator sharding.ShardCoordinator,
+	accounts state.AccountsAdapter,
 ) (*Bootstrap, error) {
 
 	err := checkBootstrapNilParameters(
@@ -88,6 +90,7 @@ func NewBootstrap(
 		forkDetector,
 		resolversContainer,
 		shardCoordinator,
+		accounts,
 	)
 
 	if err != nil {
@@ -106,6 +109,7 @@ func NewBootstrap(
 		marshalizer:      marshalizer,
 		forkDetector:     forkDetector,
 		shardCoordinator: shardCoordinator,
+		accounts:         accounts,
 	}
 
 	hdrResolver, err := resolversContainer.Get(string(factory.HeadersTopic))
@@ -150,6 +154,7 @@ func checkBootstrapNilParameters(
 	forkDetector process.ForkDetector,
 	resolvers process.ResolversContainer,
 	shardCoordinator sharding.ShardCoordinator,
+	accounts state.AccountsAdapter,
 ) error {
 	if transientDataHolder == nil {
 		return process.ErrNilTransientDataHolder
@@ -197,6 +202,10 @@ func checkBootstrapNilParameters(
 
 	if shardCoordinator == nil {
 		return process.ErrNilShardCoordinator
+	}
+
+	if accounts == nil {
+		return process.ErrNilAccountsAdapter
 	}
 
 	return nil
@@ -285,8 +294,9 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
-	if nonce > boot.higherHeaderNonceReceived {
-		boot.higherHeaderNonceReceived = nonce
+	//TODO: make sure that header validation done on interceptors do not add headers with wrong nonces/round numbers
+	if nonce > boot.highestNonceReceived {
+		boot.highestNonceReceived = nonce
 	}
 
 	n := boot.requestedHeaderNonce()
@@ -296,7 +306,7 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 
 	if *n == nonce {
-		log.Info(fmt.Sprintf("received requested header with nonce %d from network and higher nonce received until now is %d\n", nonce, boot.higherHeaderNonceReceived))
+		log.Info(fmt.Sprintf("received requested header with nonce %d from network and higher nonce received until now is %d\n", nonce, boot.highestNonceReceived))
 		boot.setRequestedHeaderNonce(nil)
 		boot.chRcvHdr <- true
 	}
@@ -428,7 +438,7 @@ func (boot *Bootstrap) shouldCreateEmptyBlock(nonce uint64) bool {
 		return false
 	}
 
-	if nonce <= boot.higherHeaderNonceReceived {
+	if nonce <= boot.highestNonceReceived {
 		return false
 	}
 
@@ -443,24 +453,17 @@ func (boot *Bootstrap) createAndBroadcastEmptyBlock() error {
 			toB64(txBlockBody.RootHash),
 			header.Nonce))
 
-		err = boot.broadcastBlock(txBlockBody, header)
+		err = boot.broadcastEmptyBlock(txBlockBody, header)
 	}
 
 	return err
 }
 
-func (boot *Bootstrap) broadcastBlock(txBlockBody *block.TxBlockBody, header *block.Header) error {
+func (boot *Bootstrap) broadcastEmptyBlock(txBlockBody *block.TxBlockBody, header *block.Header) error {
 	log.Info(fmt.Sprintf("broadcasting an empty block\n"))
 
-	// broadcast block body
-	err := boot.BroadcastTxBlockBody(txBlockBody)
-
-	if err != nil {
-		return err
-	}
-
-	// broadcast header
-	err = boot.BroadcastHeader(header)
+	// broadcast block body and header
+	err := boot.BroadcastBlock(txBlockBody, header)
 
 	if err != nil {
 		return err
@@ -760,7 +763,7 @@ func (boot *Bootstrap) ShouldSync() bool {
 	boot.isForkDetected = boot.forkDetector.CheckFork()
 
 	if boot.isForkDetected {
-		log.Info(fmt.Sprintf("fork detected\n"))
+		log.Info("fork detected\n")
 		return true
 	}
 
@@ -792,11 +795,22 @@ func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
 
 // CreateAndCommitEmptyBlock creates and commits an empty block
 func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header, error) {
-	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
+	log.Info("creating and commiting an empty block\n")
 
 	boot.blkExecutor.RevertAccountState()
 
-	blk := boot.blkExecutor.CreateEmptyBlockBody(shardForCurrentNode)
+	miniBlocks := make([]block.MiniBlock, 0)
+
+	rootHash := boot.accounts.RootHash()
+
+	blk := &block.TxBlockBody{
+		StateBlockBody: block.StateBlockBody{
+			RootHash: rootHash,
+			ShardID:  shardForCurrentNode,
+		},
+		MiniBlocks: miniBlocks,
+	}
+
 	hdr := &block.Header{}
 
 	var prevHeaderHash []byte
@@ -837,7 +851,8 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (*b
 		return nil, nil, err
 	}
 
-	log.Info(fmt.Sprintf("\n******************** ADDED EMPTY BLOCK WITH NONCE  %d  IN BLOCKCHAIN ********************\n\n", hdr.Nonce))
+	msg := fmt.Sprintf("Added empty block with nonce  %d  in blockchain", hdr.Nonce)
+	log.Info(log.Headline(msg, "", "*"))
 
 	return blk, hdr, nil
 }

@@ -236,8 +236,7 @@ func (n *Node) StartConsensus() error {
 	}
 
 	worker.SendMessage = n.sendMessage
-	worker.BroadcastTxBlockBody = n.broadcastTxBlockBody
-	worker.BroadcastHeader = n.broadcastHeader
+	worker.BroadcastBlock = n.broadcastBlock
 
 	validatorGroupSelector, err := n.createValidatorGroupSelector()
 
@@ -440,14 +439,14 @@ func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrappe
 		n.forkDetector,
 		n.interceptorsResolversCreator.ResolverContainer(),
 		n.shardCoordinator,
+		n.accounts,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	bootstrap.BroadcastTxBlockBody = n.broadcastTxBlockBody
-	bootstrap.BroadcastHeader = n.broadcastHeader
+	bootstrap.BroadcastBlock = n.broadcastBlock
 
 	bootstrap.StartSync()
 
@@ -722,12 +721,12 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
 		cnsDtaBuff)
 }
 
-func (n *Node) broadcastTxBlockBody(blockBody *block.TxBlockBody) error {
+func (n *Node) broadcastBlock(blockBody *block.TxBlockBody, header *block.Header) error {
 	if blockBody == nil {
 		return ErrNilTxBlockBody
 	}
 
-	msg, err := n.marshalizer.Marshal(blockBody)
+	msgBlockBody, err := n.marshalizer.Marshal(blockBody)
 
 	if err != nil {
 		return err
@@ -735,17 +734,13 @@ func (n *Node) broadcastTxBlockBody(blockBody *block.TxBlockBody) error {
 
 	go n.messenger.Broadcast(
 		string(factory.TxBlockBodyTopic),
-		msg)
+		msgBlockBody)
 
-	return nil
-}
-
-func (n *Node) broadcastHeader(header *block.Header) error {
 	if header == nil {
 		return ErrNilBlockHeader
 	}
 
-	msg, err := n.marshalizer.Marshal(header)
+	msgHeader, err := n.marshalizer.Marshal(header)
 
 	if err != nil {
 		return err
@@ -753,7 +748,7 @@ func (n *Node) broadcastHeader(header *block.Header) error {
 
 	go n.messenger.Broadcast(
 		string(factory.HeadersTopic),
-		msg,
+		msgHeader,
 	)
 
 	return nil

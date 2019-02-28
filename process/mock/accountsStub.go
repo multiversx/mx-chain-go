@@ -71,7 +71,11 @@ func (as *AccountsStub) SaveData(journalizedAccountWrapper state.JournalizedAcco
 }
 
 func (as *AccountsStub) RootHash() []byte {
-	return as.RootHashCalled()
+	if as.RootHashCalled != nil {
+		return as.RootHashCalled()
+	}
+
+	return nil
 }
 
 func (as *AccountsStub) RecreateTrie(rootHash []byte) error {
