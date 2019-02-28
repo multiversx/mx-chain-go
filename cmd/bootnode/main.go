@@ -172,6 +172,11 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	uniqueID = strconv.Itoa(p2pConfig.Node.Port)
 
+	err = os.RemoveAll(config.DefaultPath() + uniqueID)
+	if err != nil {
+		return err
+	}
+
 	genesisConfig, err := loadGenesisConfiguration(ctx.GlobalString(flags.GenesisFile.Name), log)
 	if err != nil {
 		return err
