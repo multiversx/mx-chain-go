@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
@@ -58,4 +60,28 @@ func (boot *Bootstrap) NotifySyncStateListeners() {
 
 func (boot *Bootstrap) SyncStateListeners() []func(bool) {
 	return boot.syncStateListeners
+}
+
+func (boot *Bootstrap) SetHighestNonceReceived(highestNonceReceived uint64) {
+	boot.highestNonceReceived = highestNonceReceived
+}
+
+func (boot *Bootstrap) SetIsForkDetected(isForkDetected bool) {
+	boot.isForkDetected = isForkDetected
+}
+
+func (boot *Bootstrap) GetTimeStampForRound(roundIndex uint32) time.Time {
+	return boot.getTimeStampForRound(roundIndex)
+}
+
+func (boot *Bootstrap) ShouldCreateEmptyBlock(nonce uint64) bool {
+	return boot.shouldCreateEmptyBlock(nonce)
+}
+
+func (boot *Bootstrap) CreateAndBroadcastEmptyBlock() error {
+	return boot.createAndBroadcastEmptyBlock()
+}
+
+func (boot *Bootstrap) BroadcastEmptyBlock(txBlockBody *block.TxBlockBody, header *block.Header) error {
+	return boot.broadcastEmptyBlock(txBlockBody, header)
 }

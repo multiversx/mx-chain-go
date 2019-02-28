@@ -282,23 +282,6 @@ func (bp *blockProcessor) CreateTxBlockBody(shardId uint32, maxTxInBlock int, ro
 	return blk, nil
 }
 
-// CreateEmptyBlockBody creates a new block body without any tx hash
-func (bp *blockProcessor) CreateEmptyBlockBody(shardId uint32, round int32) *block.TxBlockBody {
-	miniBlocks := make([]block.MiniBlock, 0)
-
-	rootHash := bp.accounts.RootHash()
-
-	blk := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: rootHash,
-			ShardID:  shardId,
-		},
-		MiniBlocks: miniBlocks,
-	}
-
-	return blk
-}
-
 // CreateGenesisBlockBody creates the genesis block body from map of account balances
 func (bp *blockProcessor) CreateGenesisBlockBody(balances map[string]*big.Int, shardId uint32) (*block.StateBlockBody, error) {
 	rootHash, err := bp.txProcessor.SetBalancesToTrie(balances)

@@ -223,14 +223,6 @@ func (wrk *worker) SendConsensusMessage(cnsDta *spos.ConsensusMessage) bool {
 	return wrk.sendConsensusMessage(cnsDta)
 }
 
-func (wrk *worker) BroadcastTxBlockBody2(blockBody *block.TxBlockBody) error {
-	return wrk.broadcastTxBlockBody(blockBody)
-}
-
-func (wrk *worker) BroadcastHeader2(header *block.Header) error {
-	return wrk.broadcastHeader(header)
-}
-
 func (wrk *worker) Extend(subroundId int) {
 	wrk.extend(subroundId)
 }
@@ -619,20 +611,12 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
-func (sr *subroundEndRound) BroadcastTxBlockBody() func(*block.TxBlockBody) error {
-	return sr.broadcastTxBlockBody
+func (sr *subroundEndRound) BroadcastBlock() func(*block.TxBlockBody, *block.Header) error {
+	return sr.broadcastBlock
 }
 
-func (sr *subroundEndRound) SetBroadcastTxBlockBody(broadcastTxBlockBody func(*block.TxBlockBody) error) {
-	sr.broadcastTxBlockBody = broadcastTxBlockBody
-}
-
-func (sr *subroundEndRound) BroadcastHeader() func(*block.Header) error {
-	return sr.broadcastHeader
-}
-
-func (sr *subroundEndRound) SetBroadcastHeader(broadcastHeader func(*block.Header) error) {
-	sr.broadcastHeader = broadcastHeader
+func (sr *subroundEndRound) SetBroadcastBlock(broadcastBlock func(*block.TxBlockBody, *block.Header) error) {
+	sr.broadcastBlock = broadcastBlock
 }
 
 func (sr *subroundStartRound) InitCurrentRound() bool {
