@@ -801,7 +801,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	assert.Equal(t, process.ErrPersistWithoutSuccess, err)
 }
 
-/*func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
+func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -818,7 +818,9 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		RootHash:      []byte("root hash"),
 	}
 
+	mb := block.MiniBlock{}
 	miniblocks := make([]*block.MiniBlock, 0)
+	miniblocks = append(miniblocks, &mb)
 
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
@@ -858,7 +860,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 
 	assert.Equal(t, process.ErrPersistWithoutSuccess, err)
 }
-*/
+
 func TestBlockProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
