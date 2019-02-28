@@ -701,6 +701,10 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) ([]
 
 	// TODO: decide the signature for the empty block
 	headerStr, err := boot.marshalizer.Marshal(hdr)
+	if err != nil {
+		log.Info(err.Error())
+		return nil, nil
+	}
 	hdrHash := boot.hasher.Compute(string(headerStr))
 	hdr.Signature = hdrHash
 	hdr.Commitment = hdrHash

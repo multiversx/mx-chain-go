@@ -122,6 +122,9 @@ func (gbbRes *GenericBlockBodyResolver) GetMiniBlocks(hashes [][]byte) []*block.
 		mb := &block.MiniBlock{}
 		err := gbbRes.marshalizer.Unmarshal(mb, miniBlocks[i])
 		if err != nil {
+			gbbRes.miniBlockPool.Remove(hashes[i])
+			err = gbbRes.miniBlockStorage.Remove(hashes[i])
+			log.LogIfError(err)
 			return nil
 		}
 		expandedMiniBlocks[i] = mb

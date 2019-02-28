@@ -1793,7 +1793,7 @@ func createHeadersStorage(
 	}
 }
 
-/*func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
+func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	t.Skip("unskip this test after the fix is applied on rollback, storer not erasing header")
 
 	t.Parallel()
@@ -1806,8 +1806,8 @@ func createHeadersStorage(
 
 	//define prev tx block body "strings" as in this test there are a lot of stubs that
 	//constantly need to check some defined symbols
-	//prevTxBlockBodyHash := []byte("prev block body hash")
-	//prevTxBlockBodyBytes := []byte("prev block body bytes")
+	prevTxBlockBodyHash := []byte("prev block body hash")
+	prevTxBlockBodyBytes := []byte("prev block body bytes")
 	prevTxBlockBody := make([]*block.MiniBlock, 0)
 
 	//define prev header "strings"
@@ -1864,13 +1864,13 @@ func createHeadersStorage(
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj.(*block.Header).Signature = prevHdr.Signature
-				obj.(*block.Header).BlockBodyHash = prevTxBlockBodyHash
+				obj.(*block.Header).RootHash = prevHdrRootHash
 				return nil
 			}
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
 				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
 				//copy only defined fields
-				obj.(*block.TxBlockBody).RootHash = prevTxBlockBody.RootHash
+				obj = prevTxBlockBody
 				return nil
 			}
 
@@ -1924,16 +1924,15 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 	//constantly need to check some defined symbols
 	prevTxBlockBodyHash := []byte("prev block body hash")
 	prevTxBlockBodyBytes := []byte("prev block body bytes")
-	prevTxBlockBody := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{RootHash: []byte("state root hash")},
-	}
+	prevTxBlockBody := make([]*block.MiniBlock, 0)
 
 	//define prev header "strings"
 	prevHdrHash := []byte("prev header hash")
 	prevHdrBytes := []byte("prev header bytes")
+	prevHdrRootHash := []byte("prev header root hash")
 	prevHdr := &block.Header{
 		Signature:     []byte("sig of the prev header as to be unique in this context"),
-		BlockBodyHash: prevTxBlockBodyHash,
+		RootHash:      prevHdrRootHash,
 	}
 
 	transient := &mock.TransientDataPoolMock{}
@@ -1967,7 +1966,6 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 		&mock.StorerStub{},
 		txBlockUnit,
 		&mock.StorerStub{},
-		&mock.StorerStub{},
 		hdrUnit,
 	)
 	rnd := &mock.RounderMock{}
@@ -1982,13 +1980,13 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj.(*block.Header).Signature = prevHdr.Signature
-				obj.(*block.Header).BlockBodyHash = prevTxBlockBodyHash
+				obj.(*block.Header).RootHash = prevHdrRootHash
 				return nil
 			}
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
 				//bytes represent a tx block body (strings are returns from txBlockUnit.Get which is also a stub here)
 				//copy only defined fields
-				obj.(*block.TxBlockBody).RootHash = prevTxBlockBody.RootHash
+				obj = prevTxBlockBody
 				return nil
 			}
 
@@ -2031,8 +2029,11 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) {
 	t.Parallel()
 
-	requestedHash := []byte("requested hash")
-	txBlock := &block.TxBlockBody{}
+	mbh := []byte("requested hash")
+	requestedHash := make([][]byte, 0)
+	requestedHash = append(requestedHash, mbh)
+	mb := &block.MiniBlock{}
+	txBlock := make([]*block.MiniBlock, 0)
 
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
@@ -2050,8 +2051,8 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		return &mock.CacherStub{
 			RegisterHandlerCalled: func(i func(key []byte)) {},
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal(key, requestedHash) {
-					return txBlock, true
+				if bytes.Equal(key, mbh) {
+					return mb, true
 				}
 				return nil, false
 			},
@@ -2059,7 +2060,6 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	}
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
@@ -2082,15 +2082,18 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		forkDetector,
 		createMockResolversContainer(),
 	)
-	txBlockRecovered := bs.GetTxBody(requestedHash)
+	txBlockRecovered := bs.GetMiniBlocks(requestedHash)
 
-	assert.True(t, txBlockRecovered == txBlock)
+	assert.True(t, reflect.DeepEqual(txBlockRecovered, txBlock))
 }
 
 func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	requestedHash := []byte("requested hash")
+	mbh := []byte("requested hash")
+	requestedHash := make([][]byte, 0)
+	requestedHash = append(requestedHash, mbh)
+
 
 	transient := &mock.TransientDataPoolMock{}
 	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
@@ -2125,7 +2128,6 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 		txBlockUnit,
 		&mock.StorerStub{},
 		&mock.StorerStub{},
-		&mock.StorerStub{},
 	)
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
@@ -2142,9 +2144,9 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 		hasher,
 		marshalizer,
 		forkDetector,
-		createMockResolversContainer(),
+		createMockResolversContainerNilMiniBlocks(),
 	)
-	txBlockRecovered := bs.GetTxBody(requestedHash)
+	txBlockRecovered := bs.GetMiniBlocks(requestedHash)
 
 	assert.Nil(t, txBlockRecovered)
 }
@@ -2152,10 +2154,10 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	t.Parallel()
 
-	requestedHash := []byte("requested hash")
-	txBlock := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{RootHash: []byte("root hash")},
-	}
+	mbh := []byte("requested hash")
+	requestedHash := make([][]byte, 0)
+	requestedHash = append(requestedHash, mbh)
+	txBlock := make([]*block.MiniBlock, 0)
 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -2183,7 +2185,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 
 	txBlockUnit := &mock.StorerStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
-			if bytes.Equal(key, requestedHash) {
+			if bytes.Equal(key, mbh) {
 				buff, _ := marshalizer.Marshal(txBlock)
 				return buff, nil
 			}
@@ -2198,7 +2200,6 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		txBlockUnit,
 		&mock.StorerStub{},
 		&mock.StorerStub{},
-		&mock.StorerStub{},
 	)
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
@@ -2215,89 +2216,11 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		forkDetector,
 		createMockResolversContainer(),
 	)
-	txBlockRecovered := bs.GetTxBody(requestedHash)
+	txBlockRecovered := bs.GetMiniBlocks(requestedHash)
 
 	assert.Equal(t, txBlock, txBlockRecovered)
 }
 
-func TestBootstrap_GetTxBodyHavingHashMarshalizerFailShouldRemoveAndRetNil(t *testing.T) {
-	t.Parallel()
-
-	removedCalled := false
-	requestedHash := []byte("requested hash")
-
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerStub{
-		UnmarshalCalled: func(obj interface{}, buff []byte) error {
-			return errors.New("marshalizer failure")
-		},
-	}
-
-	transient := &mock.TransientDataPoolMock{}
-	transient.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{
-			AddDataCalled:         func(key []byte, data interface{}, destShardID uint32) {},
-			RegisterHandlerCalled: func(func(key []byte)) {},
-		}
-	}
-	transient.HeadersNoncesCalled = func() data.Uint64Cacher {
-		return &mock.Uint64CacherStub{
-			RegisterHandlerCalled: func(handler func(nonce uint64)) {},
-		}
-	}
-	transient.MiniBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {},
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
-			},
-		}
-	}
-
-	txBlockUnit := &mock.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
-			if bytes.Equal(key, requestedHash) {
-				return make([]byte, 0), nil
-			}
-
-			return nil, errors.New("not found")
-		},
-		RemoveCalled: func(key []byte) error {
-			if bytes.Equal(key, requestedHash) {
-				removedCalled = true
-			}
-			return nil
-		},
-	}
-
-	blkc, _ := blockchain.NewBlockChain(
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		txBlockUnit,
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-	)
-	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
-	forkDetector := &mock.ForkDetectorMock{}
-
-	bs, _ := sync.NewBootstrap(
-		transient,
-		blkc,
-		rnd,
-		blkExec,
-		waitTime,
-		hasher,
-		marshalizer,
-		forkDetector,
-		createMockResolversContainer(),
-	)
-	txBlockRecovered := bs.GetTxBody(requestedHash)
-
-	assert.Nil(t, txBlockRecovered)
-	assert.True(t, removedCalled)
-}
 
 func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenMarshalErr(t *testing.T) {
 	t.Parallel()
@@ -2335,7 +2258,11 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenMarshalErr(t *testing.T) {
 	}
 	blkc := &blockchain.BlockChain{}
 	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
+	blkExec := &mock.BlockProcessorMock{
+		CommitBlockCalled: func(blockChain *blockchain.BlockChain, header *block.Header, block []*block.MiniBlock) error {
+			return nil
+		},
+	}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
@@ -2343,8 +2270,8 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenMarshalErr(t *testing.T) {
 	blkExec.RevertAccountStateCalled = func() {
 	}
 
-	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
-		return &block.TxBlockBody{}
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) []*block.MiniBlock {
+		return make([]*block.MiniBlock, 0)
 	}
 
 	marshalizer.Fail = true
@@ -2413,12 +2340,12 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenCommitBlockErr(t *testing.
 	blkExec.RevertAccountStateCalled = func() {
 	}
 
-	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
-		return &block.TxBlockBody{}
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) []*block.MiniBlock {
+		return make([]*block.MiniBlock, 0)
 	}
 
 	err := errors.New("error")
-	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block []*block.MiniBlock) error {
 		return err
 	}
 
@@ -2484,11 +2411,11 @@ func TestBootstrap_CreateEmptyBlockShouldWork(t *testing.T) {
 	blkExec.RevertAccountStateCalled = func() {
 	}
 
-	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
-		return &block.TxBlockBody{}
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) []*block.MiniBlock {
+		return make([]*block.MiniBlock, 0)
 	}
 
-	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block []*block.MiniBlock) error {
 		return nil
 	}
 
@@ -2554,11 +2481,11 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 	blkExec.RevertAccountStateCalled = func() {
 	}
 
-	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
-		return &block.TxBlockBody{}
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) []*block.MiniBlock {
+		return make([]*block.MiniBlock, 0)
 	}
 
-	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block []*block.MiniBlock) error {
 		return nil
 	}
 
@@ -2629,11 +2556,11 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	blkExec.RevertAccountStateCalled = func() {
 	}
 
-	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) *block.TxBlockBody {
-		return &block.TxBlockBody{}
+	blkExec.CreateEmptyBlockBodyCalled = func(shardId uint32, round int32) []*block.MiniBlock {
+		return make([]*block.MiniBlock, 0)
 	}
 
-	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error {
+	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block []*block.MiniBlock) error {
 		return nil
 	}
 
@@ -2679,4 +2606,3 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 
 	assert.Equal(t, 3, calls)
 }
-*/
