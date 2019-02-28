@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
@@ -178,7 +179,6 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(marshalizer),
 		node.WithHasher(hasher),
-		node.WithContext(context.Background()),
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
@@ -210,7 +210,7 @@ func (ti *testInitializer) createMessenger(ctx context.Context, port int) p2p.Me
 		sk,
 		nil,
 		loadBalancer.NewOutgoingPipeLoadBalancer(),
-		p2p.PeerDiscoveryOff)
+		discovery.NewNullDiscoverer())
 
 	if err != nil {
 		fmt.Println(err.Error())

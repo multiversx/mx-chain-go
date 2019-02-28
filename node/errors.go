@@ -10,9 +10,6 @@ var ErrNilMarshalizer = errors.New("trying to set nil marshalizer")
 // ErrNilMessenger signals that a nil messenger has been provided
 var ErrNilMessenger = errors.New("nil messenger")
 
-// ErrNilContext signals that a nil context has been provided
-var ErrNilContext = errors.New("trying to set nil context")
-
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("trying to set nil hasher")
 

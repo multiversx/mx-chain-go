@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/mock"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 )
@@ -15,8 +16,10 @@ import (
 func main() {
 	net := mocknet.New(context.Background())
 
-	mes1, _ := libp2p.NewMemoryMessenger(context.Background(), net, p2p.PeerDiscoveryOff)
-	mes2, _ := libp2p.NewMemoryMessenger(context.Background(), net, p2p.PeerDiscoveryOff)
+	mes1, _ := libp2p.NewMemoryMessenger(context.Background(), net, discovery.NewNullDiscoverer())
+	mes2, _ := libp2p.NewMemoryMessenger(context.Background(), net, discovery.NewNullDiscoverer())
+
+	_ = net.LinkAll()
 
 	adr2 := mes2.Addresses()[0]
 

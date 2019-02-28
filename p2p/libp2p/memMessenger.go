@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
-	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
@@ -15,7 +14,7 @@ import (
 func NewMemoryMessenger(
 	ctx context.Context,
 	mockNet mocknet.Mocknet,
-	peerDiscoveryType p2p.PeerDiscoveryType) (*networkMessenger, error) {
+	peerDiscoverer p2p.PeerDiscoverer) (*networkMessenger, error) {
 
 	if ctx == nil {
 		return nil, p2p.ErrNilContext
@@ -25,24 +24,29 @@ func NewMemoryMessenger(
 		return nil, p2p.ErrNilMockNet
 	}
 
+	if peerDiscoverer == nil {
+		return nil, p2p.ErrNilPeerDiscoverer
+	}
+
 	h, err := mockNet.GenPeer()
 	if err != nil {
 		return nil, err
 	}
 
-	mes, err := createMessenger(
-		ctx,
-		h,
-		false,
-		loadBalancer.NewOutgoingPipeLoadBalancer(),
-		peerDiscoveryType,
-	)
+	lctx, err := NewLibp2pContext(ctx, NewConnectableHost(h))
 	if err != nil {
+		log.LogIfError(h.Close())
 		return nil, err
 	}
 
-	mes.preconnectPeerHandler = func(pInfo peerstore.PeerInfo) {
-		_ = mockNet.LinkAll()
+	mes, err := createMessenger(
+		lctx,
+		false,
+		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		peerDiscoverer,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	return mes, err

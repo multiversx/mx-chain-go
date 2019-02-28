@@ -10,7 +10,6 @@ type MessengerStub struct {
 	PeersCalled                      func() []p2p.PeerID
 	AddressesCalled                  func() []string
 	ConnectToPeerCalled              func(address string) error
-	KadDhtDiscoverNewPeersCalled     func() error
 	TrimConnectionsCalled            func()
 	IsConnectedCalled                func(peerID p2p.PeerID) bool
 	ConnectedPeersCalled             func() []p2p.PeerID
@@ -60,10 +59,6 @@ func (ms *MessengerStub) Addresses() []string {
 
 func (ms *MessengerStub) ConnectToPeer(address string) error {
 	return ms.ConnectToPeerCalled(address)
-}
-
-func (ms *MessengerStub) KadDhtDiscoverNewPeers() error {
-	return ms.KadDhtDiscoverNewPeersCalled()
 }
 
 func (ms *MessengerStub) TrimConnections() {
