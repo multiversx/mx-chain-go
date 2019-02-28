@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -74,6 +75,9 @@ VERSION:
 var configurationFile = "./config/config.toml"
 var p2pConfigurationFile = "./config/p2p.toml"
 
+//TODO remove uniqueID
+var uniqueID = ""
+
 type initialNode struct {
 	Address string `json:"address"`
 	PubKey  string `json:"pubkey"`
@@ -126,6 +130,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFile))
+	uniqueID = strconv.Itoa(p2pConfig.Node.Port)
 
 	genesisConfig, err := loadGenesisConfiguration(ctx.GlobalString(flags.GenesisFile.Name), log)
 	if err != nil {
@@ -618,7 +623,7 @@ func getCacherFromConfig(cfg config.CacheConfig) storage.CacheConfig {
 
 func getDBFromConfig(cfg config.DBConfig) storage.DBConfig {
 	return storage.DBConfig{
-		FilePath: filepath.Join(config.DefaultPath(), cfg.FilePath),
+		FilePath: filepath.Join(config.DefaultPath()+uniqueID, cfg.FilePath),
 		Type:     storage.DBType(cfg.Type),
 	}
 }
