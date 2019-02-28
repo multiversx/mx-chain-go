@@ -70,6 +70,7 @@ type Config struct {
 //NodeConfig will hold basic p2p settings
 type NodeConfig struct {
 	Port int
+	Seed string
 }
 
 //MdnsPeerDiscoveryConfig will hold the mdns discovery config settings

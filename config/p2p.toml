@@ -5,6 +5,17 @@
     #Port is the port that will be opened by the node on all interfaces so other peers can connect to it
     Port = 32000
 
+    #Seed represents the seed string generator for p2p identity (used during authentication and message passing).
+    #An empty Seed value will mean that the identity will be generated randomly in a secure cryptographically manner.
+    #The seed provided in this string can be of any length.
+    ##########################################################################################
+    # WARNING! For security reasons, one might use a generatated string as long as possible! #
+    # It is recommended that the seed field should remain empty (no caracters between "")    #
+    ##########################################################################################
+    #The seed provided will be hashed using SHA256 and the resulting 32 byte length byte array will be used in
+    #p2p identity generation
+    Seed = ""
+
 # P2P peer discovery section
 
 #The following sections correspond to the way new peers will be discovered
@@ -25,7 +36,7 @@
 
 [KadDhtPeerDiscovery]
     #Enabled: true/false to enable/disable this discovery mechanism
-    Enabled = true
+    Enabled = false
 
     #RefreshIntervalInSec represents the time in seconds between querying for new peers
     RefreshIntervalInSec = 10

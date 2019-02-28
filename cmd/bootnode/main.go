@@ -92,6 +92,44 @@ type genesis struct {
 	InitialNodes       []initialNode `json:"initialNodes"`
 }
 
+type seedRandReader struct {
+	index int
+	seed  []byte
+}
+
+func NewSeedRandReader(seed []byte) *seedRandReader {
+	return &seedRandReader{seed: seed, index: 0}
+}
+
+func (srr *seedRandReader) Read(p []byte) (n int, err error) {
+	if srr.seed == nil {
+		return 0, errors.New("nil seed")
+	}
+
+	if len(srr.seed) == 0 {
+		return 0, errors.New("nil seed")
+	}
+
+	if p == nil {
+		return 0, errors.New("nil buffer")
+	}
+
+	if len(p) == 0 {
+		return 0, errors.New("empty buffer")
+	}
+
+	for i := 0; i < len(p); i++ {
+		p[i] = srr.seed[srr.index]
+
+		srr.index++
+		srr.index = srr.index % len(srr.seed)
+	}
+
+	return len(p), nil
+}
+
+var p2pSeedRandReader *seedRandReader
+
 func main() {
 	log := logger.NewDefaultLogger()
 	log.SetLevel(logger.LogInfo)
@@ -375,6 +413,9 @@ func createNode(
 		return nil, err
 	}
 
+	//TODO refactor this
+	p2pSeedRandReader = NewSeedRandReader(hasher.Compute(p2pConfig.Node.Seed))
+
 	netMessenger, err := createNetMessenger(p2pConfig, log)
 	if err != nil {
 		return nil, err
@@ -500,7 +541,13 @@ func createNetMessenger(p2pConfig *config.P2PConfig, log *logger.Logger) (p2p.Me
 
 	log.Info(fmt.Sprintf("Starting with peer discovery: %s", pDiscoverer.Name()))
 
-	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), rand.Reader)
+	reader := rand.Reader
+
+	if p2pConfig.Node.Seed != "" {
+		reader = p2pSeedRandReader
+	}
+
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), reader)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
 	nm, err := libp2p.NewNetworkMessenger(
