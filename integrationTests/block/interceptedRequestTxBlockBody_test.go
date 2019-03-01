@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/stretchr/testify/assert"
 )
@@ -88,9 +89,9 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	//Step 4. request tx block body
 	txBlockBodyRequestor, _ := pFactoryReq.ResolverContainer().Get(string(factory.MiniBlocksTopic))
+	miniBlockRequestor := txBlockBodyRequestor.(process.MiniBlocksResolver)
 	miniBlockHashes[0] = txBlockBodyHash
-	requestHash, _ := marshalizer.Marshal(miniBlockHashes)
-	txBlockBodyRequestor.RequestDataFromHash(requestHash)
+	miniBlockRequestor.RequestDataFromHashArray(miniBlockHashes)
 
 	select {
 	case <-chanDone:

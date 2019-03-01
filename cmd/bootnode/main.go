@@ -656,7 +656,7 @@ func createDataPoolFromConfig(config *config.Config, uint64ByteSliceConverter ty
 }
 
 func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, error) {
-	var headerUnit, peerBlockUnit, txBlockUnit, txUnit *storage.Unit
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit *storage.Unit
 	var err error
 
 	defer func() {
@@ -668,8 +668,8 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 			if peerBlockUnit != nil {
 				_ = peerBlockUnit.DestroyUnit()
 			}
-			if txBlockUnit != nil {
-				_ = txBlockUnit.DestroyUnit()
+			if miniBlockUnit != nil {
+				_ = miniBlockUnit.DestroyUnit()
 			}
 			if txUnit != nil {
 				_ = txUnit.DestroyUnit()
@@ -694,7 +694,7 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 		return nil, err
 	}
 
-	txBlockUnit, err = storage.NewStorageUnitFromConf(
+	miniBlockUnit, err = storage.NewStorageUnitFromConf(
 		getCacherFromConfig(config.MiniBlocksStorage.Cache),
 		getDBFromConfig(config.MiniBlocksStorage.DB),
 		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
@@ -724,7 +724,7 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 	blockChain, err := blockchain.NewBlockChain(
 		badBlockCache,
 		txUnit,
-		txBlockUnit,
+		miniBlockUnit,
 		peerBlockUnit,
 		headerUnit)
 

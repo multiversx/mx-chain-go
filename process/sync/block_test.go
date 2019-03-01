@@ -77,6 +77,9 @@ func createMockResolversContainerNilMiniBlocks() *mock.ResolversContainerStub {
 					RequestDataFromHashCalled: func(hash []byte) error {
 						return nil
 					},
+					RequestDataFromHashArrayCalled: func(hash [][]byte) error {
+						return nil
+					},
 					GetMiniBlocksCalled: func(hashes [][]byte) block.MiniBlockSlice {
 						return nil
 					},

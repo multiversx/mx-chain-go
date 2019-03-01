@@ -14,8 +14,8 @@ import (
 // each of the miniblocks has a different destination shard
 // The body can be transmitted even before having built the heder and go through a prevalidation of each transaction
 
-// Type identifies the type of the block
-type Type uint8
+// BlockType identifies the type of the block
+type BlockType uint8
 
 // BlockBody should be used when referring to the full list of mini blocks that forms a block body
 type BlockBody []*MiniBlock
@@ -26,15 +26,15 @@ type MiniBlockSlice []*MiniBlock
 
 const (
 	// TxBlock identifies a block holding transactions
-	TxBlock Type = 0
+	TxBlock BlockType = 0
 	// StateBlock identifies a block holding account state
-	StateBlock Type = 1
+	StateBlock BlockType = 1
 	// PeerBlock identifies a block holding peer assignation
-	PeerBlock Type = 2
+	PeerBlock BlockType = 2
 )
 
-// String returns the string representation of the Type
-func (bType Type) String() string {
+// String returns the string representation of the BlockType
+func (bType BlockType) String() string {
 	switch bType {
 	case TxBlock:
 		return "TxBody"
@@ -77,7 +77,7 @@ type Header struct {
 	TimeStamp        uint64            `capid:"4"`
 	Round            uint32            `capid:"5"`
 	Epoch            uint32            `capid:"6"`
-	BlockBodyType    Type              `capid:"7"`
+	BlockBodyType    BlockType         `capid:"7"`
 	Signature        []byte            `capid:"8"`
 	Commitment       []byte            `capid:"9"`
 	MiniBlockHeaders []MiniBlockHeader `capid:"10"`
@@ -125,7 +125,7 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	// Epoch
 	dest.Epoch = src.Epoch()
 	// BlockBodyType
-	dest.BlockBodyType = Type(src.BlockBodyType())
+	dest.BlockBodyType = BlockType(src.BlockBodyType())
 	// Signature
 	dest.Signature = src.Signature()
 	// Commitment

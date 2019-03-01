@@ -74,19 +74,14 @@ func (gbbRes *GenericBlockBodyResolver) ProcessReceivedMessage(message p2p.Messa
 }
 
 func (gbbRes *GenericBlockBodyResolver) resolveBlockBodyRequest(rd *process.RequestData) ([]byte, error) {
-	if rd.Type != process.HashType {
-		return nil, process.ErrResolveNotHashType
-	}
 
 	if rd.Value == nil {
 		return nil, process.ErrNilValue
 	}
 
-	miniBlockHashes := make([][]byte, 0)
-	err := gbbRes.marshalizer.Unmarshal(&miniBlockHashes, rd.Value)
-
+	miniBlockHashes, err := gbbRes.miniBlockHashesFromRequestType(rd)
 	if err != nil {
-		return nil, process.ErrUnmarshalMBHashes
+		return nil, err
 	}
 	miniBlocks := gbbRes.GetMiniBlocks(miniBlockHashes)
 
@@ -102,10 +97,38 @@ func (gbbRes *GenericBlockBodyResolver) resolveBlockBodyRequest(rd *process.Requ
 	return buff, nil
 }
 
+func (gbbRes *GenericBlockBodyResolver) miniBlockHashesFromRequestType(requestData *process.RequestData) ([][]byte, error) {
+	miniBlockHashes := make([][]byte, 0)
+	switch requestData.Type {
+	case process.HashType:
+		miniBlockHashes = append(miniBlockHashes, requestData.Value)
+	case process.HashArrayType:
+		err := gbbRes.marshalizer.Unmarshal(&miniBlockHashes, requestData.Value)
+		if err != nil {
+			return nil, process.ErrUnmarshalMBHashes
+		}
+	default:
+		return nil, process.ErrInvalidRequestType
+	}
+	return miniBlockHashes, nil
+}
+
 // RequestDataFromHash requests a block body from other peers having input the block body hash
 func (gbbRes *GenericBlockBodyResolver) RequestDataFromHash(hash []byte) error {
 	return gbbRes.SendOnRequestTopic(&process.RequestData{
 		Type:  process.HashType,
+		Value: hash,
+	})
+}
+
+// RequestDataFromHashArray requests a block body from other peers having input the block body hash
+func (gbbRes *GenericBlockBodyResolver) RequestDataFromHashArray(hashes [][]byte) error {
+	hash, err := gbbRes.marshalizer.Marshal(hashes)
+	if err != nil {
+		return err
+	}
+	return gbbRes.SendOnRequestTopic(&process.RequestData{
+		Type:  process.HashArrayType,
 		Value: hash,
 	})
 }

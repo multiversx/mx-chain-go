@@ -71,4 +71,3 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 
 	assert.Equal(t, loadMb, mb)
 }
-

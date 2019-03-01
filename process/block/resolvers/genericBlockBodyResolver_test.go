@@ -2,6 +2,7 @@ package resolvers_test
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -111,7 +112,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageWrongTypeShouldErr(t *te
 	)
 
 	err := gbbRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, make([]byte, 0)))
-	assert.Equal(t, process.ErrResolveNotHashType, err)
+	assert.Equal(t, process.ErrInvalidRequestType, err)
 }
 
 func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(t *testing.T) {
@@ -156,7 +157,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 	)
 
 	err := gbbRes.ProcessReceivedMessage(createRequestMsg(
-		process.HashType,
+		process.HashArrayType,
 		requestedBuff))
 
 	assert.Nil(t, err)
@@ -164,7 +165,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 	assert.True(t, wasSent)
 }
 
-/*func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
+func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
@@ -199,20 +200,22 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 		cache,
 		&mock.StorerStub{
 			GetCalled: func(key []byte) (i []byte, e error) {
-				return nil, nil
+				body := block.MiniBlock{}
+				buff, _ := goodMarshalizer.Marshal(&body)
+				return buff, nil
 			},
 		},
 		marshalizer,
 	)
 
 	err := gbbRes.ProcessReceivedMessage(createRequestMsg(
-		process.HashType,
+		process.HashArrayType,
 		requestedBuff))
 
 	assert.Equal(t, errExpected, err)
 
 }
-*/
+
 func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStorageAndSend(t *testing.T) {
 	t.Parallel()
 

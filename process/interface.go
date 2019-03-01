@@ -88,6 +88,7 @@ type HeaderResolver interface {
 // MiniBlocksResolver defines what a mini blocks resolver should do
 type MiniBlocksResolver interface {
 	Resolver
+	RequestDataFromHashArray(hashes [][]byte) error
 	GetMiniBlocks(hashes [][]byte) block.MiniBlockSlice
 }
 

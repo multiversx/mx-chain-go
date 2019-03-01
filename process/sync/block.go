@@ -47,9 +47,9 @@ type Bootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	resolvers      process.ResolversContainer
-	hdrRes         process.HeaderResolver
-	txBlockBodyRes process.MiniBlocksResolver
+	resolvers         process.ResolversContainer
+	hdrRes            process.HeaderResolver
+	miniBlockResolver process.MiniBlocksResolver
 
 	isNodeSynchronized    bool
 	syncStateListeners    []func(bool)
@@ -101,14 +101,14 @@ func NewBootstrap(
 		return nil, err
 	}
 
-	txBlockBodyResolver, err := resolversContainer.Get(string(factory.MiniBlocksTopic))
+	miniBlocksResolver, err := resolversContainer.Get(string(factory.MiniBlocksTopic))
 	if err != nil {
 		return nil, err
 	}
 
 	//placed in struct fields for performance reasons
 	boot.hdrRes = hdrResolver.(process.HeaderResolver)
-	boot.txBlockBodyRes = txBlockBodyResolver.(process.MiniBlocksResolver)
+	boot.miniBlockResolver = miniBlocksResolver.(process.MiniBlocksResolver)
 
 	boot.chRcvHdr = make(chan bool)
 	boot.chRcvTxBdy = make(chan bool)
@@ -460,8 +460,6 @@ func (boot *Bootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Header
 	return hdr, nil
 }
 
-
-
 // requestBody method requests a block body from network when it is not found in the pool
 func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
 	buff, err := boot.marshalizer.Marshal(hashes)
@@ -469,7 +467,7 @@ func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
 		log.Error("Could not marshal MiniBlock hashes: ", err.Error())
 		return
 	}
-	err = boot.txBlockBodyRes.RequestDataFromHash(buff)
+	err = boot.miniBlockResolver.RequestDataFromHashArray(hashes)
 
 	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(buff)))
 	if err != nil {
@@ -484,12 +482,12 @@ func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
 // that will be added. The block executor should decide by parsing the header block body type value
 // what kind of block body received.
 func (boot *Bootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (interface{}, error) {
-	miniBlocks := boot.txBlockBodyRes.GetMiniBlocks(hashes)
+	miniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
 
 	if miniBlocks == nil {
 		boot.requestMiniBlocks(hashes)
 		boot.waitForTxBodyHash()
-		miniBlocks = boot.txBlockBodyRes.GetMiniBlocks(hashes)
+		miniBlocks = boot.miniBlockResolver.GetMiniBlocks(hashes)
 		if miniBlocks == nil {
 			return nil, process.ErrMissingBody
 		}
@@ -630,7 +628,7 @@ func (boot *Bootstrap) getTxBlockBody(header *block.Header) (block.BlockBody, er
 	for i := 0; i < mbLength; i++ {
 		hashes[i] = header.MiniBlockHeaders[i].Hash
 	}
-	bodyMiniBlocks := boot.txBlockBodyRes.GetMiniBlocks(hashes)
+	bodyMiniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
 	return block.BlockBody(bodyMiniBlocks), nil
 }
 

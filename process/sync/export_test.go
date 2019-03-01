@@ -13,7 +13,7 @@ func (boot *Bootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
 }
 
 func (boot *Bootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
-	return boot.txBlockBodyRes.GetMiniBlocks(hashes)
+	return boot.miniBlockResolver.GetMiniBlocks(hashes)
 }
 
 func (boot *Bootstrap) ReceivedHeaders(key []byte) {

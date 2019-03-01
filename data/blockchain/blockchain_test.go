@@ -24,7 +24,7 @@ func createUnits() *blockChainUnits {
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
 	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
 
-	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "MiniBlocksStorage"}
+	persisterMiniBlocksStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "MiniBlocksStorage"}
 	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "PeerBlockBodyStorage"}
 	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
 	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
@@ -40,7 +40,7 @@ func createUnits() *blockChainUnits {
 
 	blUnits.txBlockUnit, _ = storage.NewStorageUnitFromConf(
 		cacher,
-		persisterTxBlockBodyStorage,
+		persisterMiniBlocksStorage,
 		bloom)
 
 	blUnits.peerBlockUnit, _ = storage.NewStorageUnitFromConf(

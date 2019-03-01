@@ -79,6 +79,9 @@ var ErrNilCommitment = errors.New("nil commitment")
 // ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
 var ErrNilMiniBlocks = errors.New("nil mini blocks")
 
+// ErrNilMiniBlockHeaders signals that an operation has been attempted with a nil mini-block
+var ErrNilMiniBlockHeaders = errors.New("nil mini block headers")
+
 // ErrNilTxHashes signals that an operation has been atempted with snil transaction hashes
 var ErrNilTxHashes = errors.New("nil transaction hashes")
 
@@ -250,3 +253,6 @@ var ErrNilHaveTimeHandler = errors.New("nil have time handler")
 
 // ErrUnmarshalMBHashes signals the value is nil
 var ErrUnmarshalMBHashes = errors.New("could not unmarshal miniblock hashes")
+
+// ErrInvalidRequestType signals that a request on a topic sends an invalid type
+var ErrInvalidRequestType = errors.New("invalid request type")
