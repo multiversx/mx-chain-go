@@ -195,7 +195,7 @@ func BenchmarkJsonHeaderUnmarshalValidate(b *testing.B) {
 	benchUnmarshal(b, jmr, h, true)
 }
 
-// GenerateDummyArray is used to generate an array of MiniBlocks with dummy data
+// GenerateDummyArray is used to generate an array of MiniBlockHeaders with dummy data
 func (sBlock *MiniBlock) GenerateDummyArray() []data.CapnpHelper {
 	sBlocks := make([]data.CapnpHelper, 0, 1000)
 

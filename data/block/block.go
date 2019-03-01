@@ -8,12 +8,21 @@ import (
 	"github.com/glycerine/go-capnproto"
 )
 
+// This file holds the data structures related with the functionality of a shard block
+//
 // MiniBlock structure represents the body of a transaction block, holding an array of miniblocks
 // each of the miniblocks has a different destination shard
 // The body can be transmitted even before having built the heder and go through a prevalidation of each transaction
 
 // Type identifies the type of the block
 type Type uint8
+
+// BlockBody should be used when referring to the full list of mini blocks that forms a block body
+type BlockBody []*MiniBlock
+
+// MiniBlockSlice should be used when referring to subset of mini blocks that is not
+//  necessarily representing a full block body
+type MiniBlockSlice []*MiniBlock
 
 const (
 	// TxBlock identifies a block holding transactions
@@ -61,19 +70,19 @@ type PeerChange struct {
 // Header holds the metadata of a block. This is the part that is being hashed and run through consensus.
 // The header holds the hash of the body and also the link to the previous block header hash
 type Header struct {
-	Nonce         uint64            `capid:"0"`
-	PrevHash      []byte            `capid:"1"`
-	PubKeysBitmap []byte            `capid:"2"`
-	ShardId       uint32            `capid:"3"`
-	TimeStamp     uint64            `capid:"4"`
-	Round         uint32            `capid:"5"`
-	Epoch         uint32            `capid:"6"`
-	BlockBodyType Type              `capid:"7"`
-	Signature     []byte            `capid:"8"`
-	Commitment    []byte            `capid:"9"`
-	MiniBlocks    []MiniBlockHeader `capid:"10"`
-	PeerChanges   [][]byte          `capid:"11"`
-	RootHash      []byte            `capid:"12"`
+	Nonce            uint64            `capid:"0"`
+	PrevHash         []byte            `capid:"1"`
+	PubKeysBitmap    []byte            `capid:"2"`
+	ShardId          uint32            `capid:"3"`
+	TimeStamp        uint64            `capid:"4"`
+	Round            uint32            `capid:"5"`
+	Epoch            uint32            `capid:"6"`
+	BlockBodyType    Type              `capid:"7"`
+	Signature        []byte            `capid:"8"`
+	Commitment       []byte            `capid:"9"`
+	MiniBlockHeaders []MiniBlockHeader `capid:"10"`
+	PeerChanges      [][]byte          `capid:"11"`
+	RootHash         []byte            `capid:"12"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -121,11 +130,11 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.Signature = src.Signature()
 	// Commitment
 	dest.Commitment = src.Commitment()
-	// MiniBlocks
-	mbLength := src.MiniBlocks().Len()
-	dest.MiniBlocks = make([]MiniBlockHeader, mbLength)
+	// MiniBlockHeaders
+	mbLength := src.MiniBlockHeaders().Len()
+	dest.MiniBlockHeaders = make([]MiniBlockHeader, mbLength)
 	for i := 0; i < mbLength; i++ {
-		dest.MiniBlocks[i] = *MiniBlockHeaderCapnToGo(src.MiniBlocks().At(i), nil)
+		dest.MiniBlockHeaders[i] = *MiniBlockHeaderCapnToGo(src.MiniBlockHeaders().At(i), nil)
 	}
 	// PeerChanges
 	peerChangesLen := src.PeerChanges().Len()
@@ -152,18 +161,18 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	dest.SetBlockBodyType(uint8(src.BlockBodyType))
 	dest.SetSignature(src.Signature)
 	dest.SetCommitment(src.Commitment)
-	if len(src.MiniBlocks) > 0 {
-		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlocks))
-		plist := capn.PointerList(miniBlockList)
+	if len(src.MiniBlockHeaders) > 0 {
+		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlockHeaders))
+		pList := capn.PointerList(miniBlockList)
 
-		for i, elem := range src.MiniBlocks {
-			plist.Set(i, capn.Object(MiniBlockHeaderGoToCapn(seg, &elem)))
+		for i, elem := range src.MiniBlockHeaders {
+			pList.Set(i, capn.Object(MiniBlockHeaderGoToCapn(seg, &elem)))
 		}
-		dest.SetMiniBlocks(miniBlockList)
+		dest.SetMiniBlockHeaders(miniBlockList)
 	}
 	peerChangesList := seg.NewDataList(len(src.PeerChanges))
-	for i := range src.PeerChanges {
-		peerChangesList.Set(i, src.PeerChanges[i])
+	for i, peerChange := range src.PeerChanges {
+		peerChangesList.Set(i, peerChange)
 	}
 	dest.SetRootHash(src.RootHash)
 

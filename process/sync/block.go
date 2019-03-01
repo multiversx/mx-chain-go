@@ -368,10 +368,10 @@ func (boot *Bootstrap) SyncBlock() error {
 		return process.ErrNotImplementedBlockProcessingType
 	}
 
-	miniBlocksLen := len(hdr.MiniBlocks)
+	miniBlocksLen := len(hdr.MiniBlockHeaders)
 	miniBlockHashes := make([][]byte, miniBlocksLen)
 	for i := 0; i < miniBlocksLen; i++ {
-		miniBlockHashes[i] = hdr.MiniBlocks[i].Hash
+		miniBlockHashes[i] = hdr.MiniBlockHeaders[i].Hash
 	}
 	blk, err := boot.getMiniBlocksRequestingIfMissing(miniBlockHashes)
 	if err != nil {
@@ -384,7 +384,8 @@ func (boot *Bootstrap) SyncBlock() error {
 
 	//TODO remove type assertions and implement a way for block executor to process
 	//TODO all kinds of headers
-	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, blk.([]*block.MiniBlock), haveTime)
+	miniBlocks := blk.(block.MiniBlockSlice)
+	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, block.BlockBody(miniBlocks), haveTime)
 
 	if err != nil {
 		if err == process.ErrInvalidBlockHash {
@@ -622,15 +623,15 @@ func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.H
 	return newHeader, nil
 }
 
-func (boot *Bootstrap) getTxBlockBody(header *block.Header) ([]*block.MiniBlock, error) {
+func (boot *Bootstrap) getTxBlockBody(header *block.Header) (block.BlockBody, error) {
 
-	mbLength := len(header.MiniBlocks)
+	mbLength := len(header.MiniBlockHeaders)
 	hashes := make([][]byte, mbLength)
 	for i := 0; i < mbLength; i++ {
-		hashes[i] = header.MiniBlocks[i].Hash
+		hashes[i] = header.MiniBlockHeaders[i].Hash
 	}
-
-	return boot.txBlockBodyRes.GetMiniBlocks(hashes), nil
+	bodyMiniBlocks := boot.txBlockBodyRes.GetMiniBlocks(hashes)
+	return block.BlockBody(bodyMiniBlocks), nil
 }
 
 // IsEmpty verifies if a block is empty
@@ -673,7 +674,7 @@ func (boot *Bootstrap) ShouldSync() bool {
 }
 
 // CreateAndCommitEmptyBlock creates and commits an empty block
-func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) ([]*block.MiniBlock, *block.Header) {
+func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (block.BlockBody, *block.Header) {
 	log.Info(fmt.Sprintf("creating and broadcasting an empty block\n"))
 
 	boot.blkExecutor.RevertAccountState()

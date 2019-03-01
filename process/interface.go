@@ -23,15 +23,15 @@ type TransactionProcessor interface {
 
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
-	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, miniBlocks []*block.MiniBlock, haveTime func() time.Duration) error
-	ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, miniBlocks []*block.MiniBlock, haveTime func() time.Duration) error
-	CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, miniBlocks []*block.MiniBlock) error
+	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error
+	ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error
+	CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody) error
 	RevertAccountState()
 
-	CreateGenesisBlock(balances map[string]*big.Int, shardId uint32) ([]byte, error)
-	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) ([]*block.MiniBlock, error)
-	CreateEmptyBlockBody(shardId uint32, round int32) []*block.MiniBlock
-	RemoveBlockTxsFromPool(miniBlocks []*block.MiniBlock) error
+	CreateGenesisBlock(balances map[string]*big.Int) ([]byte, error)
+	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.BlockBody, error)
+	CreateEmptyBlockBody(shardId uint32, round int32) block.BlockBody
+	RemoveBlockTxsFromPool(body block.BlockBody) error
 	GetRootHash() []byte
 	CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool
 }
@@ -88,7 +88,7 @@ type HeaderResolver interface {
 // MiniBlocksResolver defines what a mini blocks resolver should do
 type MiniBlocksResolver interface {
 	Resolver
-	GetMiniBlocks(hashes [][]byte) []*block.MiniBlock
+	GetMiniBlocks(hashes [][]byte) block.MiniBlockSlice
 }
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
@@ -101,7 +101,7 @@ type TopicResolverSender interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
-	CreateAndCommitEmptyBlock(uint32) ([]*block.MiniBlock, *block.Header)
+	CreateAndCommitEmptyBlock(uint32) (block.BlockBody, *block.Header)
 	AddSyncStateListener(func(bool))
 	ShouldSync() bool
 }

@@ -36,14 +36,16 @@ func (s HeaderCapn) Signature() []byte           { return C.Struct(s).GetObject(
 func (s HeaderCapn) SetSignature(v []byte)       { C.Struct(s).SetObject(2, s.Segment.NewData(v)) }
 func (s HeaderCapn) Commitment() []byte          { return C.Struct(s).GetObject(3).ToData() }
 func (s HeaderCapn) SetCommitment(v []byte)      { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
-func (s HeaderCapn) MiniBlocks() MiniBlockHeaderCapn_List {
+func (s HeaderCapn) MiniBlockHeaders() MiniBlockHeaderCapn_List {
 	return MiniBlockHeaderCapn_List(C.Struct(s).GetObject(4))
 }
-func (s HeaderCapn) SetMiniBlocks(v MiniBlockHeaderCapn_List) { C.Struct(s).SetObject(4, C.Object(v)) }
-func (s HeaderCapn) PeerChanges() C.DataList                  { return C.DataList(C.Struct(s).GetObject(5)) }
-func (s HeaderCapn) SetPeerChanges(v C.DataList)              { C.Struct(s).SetObject(5, C.Object(v)) }
-func (s HeaderCapn) RootHash() []byte                         { return C.Struct(s).GetObject(6).ToData() }
-func (s HeaderCapn) SetRootHash(v []byte)                     { C.Struct(s).SetObject(6, s.Segment.NewData(v)) }
+func (s HeaderCapn) SetMiniBlockHeaders(v MiniBlockHeaderCapn_List) {
+	C.Struct(s).SetObject(4, C.Object(v))
+}
+func (s HeaderCapn) PeerChanges() C.DataList     { return C.DataList(C.Struct(s).GetObject(5)) }
+func (s HeaderCapn) SetPeerChanges(v C.DataList) { C.Struct(s).SetObject(5, C.Object(v)) }
+func (s HeaderCapn) RootHash() []byte            { return C.Struct(s).GetObject(6).ToData() }
+func (s HeaderCapn) SetRootHash(v []byte)        { C.Struct(s).SetObject(6, s.Segment.NewData(v)) }
 func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -243,12 +245,12 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("\"miniBlocks\":")
+	_, err = b.WriteString("\"miniBlockHeaders\":")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.MiniBlocks()
+		s := s.MiniBlockHeaders()
 		{
 			err = b.WriteByte('[')
 			if err != nil {
@@ -539,12 +541,12 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("miniBlocks = ")
+	_, err = b.WriteString("miniBlockHeaders = ")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.MiniBlocks()
+		s := s.MiniBlockHeaders()
 		{
 			err = b.WriteByte('[')
 			if err != nil {

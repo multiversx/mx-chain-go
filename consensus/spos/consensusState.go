@@ -13,7 +13,7 @@ type ConsensusState struct {
 	// hold the data on which validators do the consensus (could be for example a hash of the block header
 	// proposed by the leader)
 	Data      []byte
-	BlockBody []*block.MiniBlock
+	BlockBody block.BlockBody
 	Header    *block.Header
 
 	RoundCanceled bool

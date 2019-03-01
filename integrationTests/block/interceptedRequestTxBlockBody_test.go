@@ -53,7 +53,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	time.Sleep(time.Second)
 
 	//Step 1. Generate a block body
-	miniBlocks := []*block.MiniBlock{
+	body := block.BlockBody{
 		{
 			ShardID: 0,
 			TxHashes: [][]byte{
@@ -62,7 +62,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 		},
 	}
 
-	miniBlock := miniBlocks[0]
+	miniBlock := body[0]
 	miniBlockHashes := make([][]byte, 1)
 
 	txBlockBodyBuff, _ := marshalizer.Marshal(miniBlock)
@@ -78,11 +78,11 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	dPoolRequestor.MiniBlocks().RegisterHandler(func(key []byte) {
 		txBlockBodyStored, _ := dPoolRequestor.MiniBlocks().Get(key)
 
-		if reflect.DeepEqual(txBlockBodyStored, miniBlocks) {
+		if reflect.DeepEqual(txBlockBodyStored, body) {
 			chanDone <- true
 		}
 
-		assert.Equal(t, txBlockBodyStored, miniBlocks)
+		assert.Equal(t, txBlockBodyStored, body)
 
 	})
 

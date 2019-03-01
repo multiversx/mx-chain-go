@@ -306,12 +306,12 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *spos.ConsensusMessage) bool {
 }
 
 // decodeBlockBody method decodes block body which is marshalized in the received message
-func (sr *subroundBlock) decodeBlockBody(dta []byte) []*block.MiniBlock {
+func (sr *subroundBlock) decodeBlockBody(dta []byte) block.BlockBody {
 	if dta == nil {
 		return nil
 	}
 
-	var blk []*block.MiniBlock
+	var blk block.BlockBody
 
 	err := sr.marshalizer.Unmarshal(&blk, dta)
 

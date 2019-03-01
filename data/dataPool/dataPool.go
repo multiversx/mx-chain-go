@@ -66,7 +66,7 @@ func (tdp *dataPool) HeadersNonces() data.Uint64Cacher {
 	return tdp.hdrNonces
 }
 
-// MiniBlocks returns the holder for transaction block bodies
+// MiniBlockHeaders returns the holder for transaction block bodies
 func (tdp *dataPool) MiniBlocks() storage.Cacher {
 	return tdp.miniBlocks
 }

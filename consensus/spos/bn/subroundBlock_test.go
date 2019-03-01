@@ -587,7 +587,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		},
 	}
 	err := errors.New("error")
-	bpm.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, remainingTime func() bool) ([]*block.MiniBlock, error) {
+	bpm.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, remainingTime func() bool) (block.BlockBody, error) {
 		return nil, err
 	}
 	sr.SetBlockProcessor(bpm)
@@ -610,7 +610,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 
 	blockProcessorMock := initBlockProcessorMock()
 
-	blBody := make([]*block.MiniBlock, 0)
+	blBody := make(block.BlockBody, 0)
 
 	blBodyStr, _ := mock.MarshalizerMock{}.Marshal(blBody)
 
@@ -624,7 +624,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		0,
 	)
 
-	sr.ConsensusState().BlockBody = make([]*block.MiniBlock, 0)
+	sr.ConsensusState().BlockBody = make(block.BlockBody, 0)
 	r := sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
@@ -712,10 +712,10 @@ func TestSubroundBlock_DecodeBlockBody(t *testing.T) {
 
 	sr := *initSubroundBlock()
 
-	mblks := make([]*block.MiniBlock, 0)
-	mblks = append(mblks, &block.MiniBlock{ShardID: 69})
+	body := make(block.BlockBody, 0)
+	body = append(body, &block.MiniBlock{ShardID: 69})
 
-	message, err := mock.MarshalizerMock{}.Marshal(mblks)
+	message, err := mock.MarshalizerMock{}.Marshal(body)
 
 	assert.Nil(t, err)
 
@@ -725,8 +725,8 @@ func TestSubroundBlock_DecodeBlockBody(t *testing.T) {
 
 	dcdBlk = sr.DecodeBlockBody(message)
 
-	assert.Equal(t, mblks, dcdBlk)
-	assert.Equal(t, uint32(69), mblks[0].ShardID)
+	assert.Equal(t, body, dcdBlk)
+	assert.Equal(t, uint32(69), body[0].ShardID)
 }
 
 func TestSubroundBlock_DecodeBlockHeader(t *testing.T) {
@@ -762,7 +762,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 
 	sr := *initSubroundBlock()
 
-	blk := make([]*block.MiniBlock, 0)
+	blk := make(block.BlockBody, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -786,14 +786,14 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 	blProcMock := initBlockProcessorMock()
 
 	err := errors.New("error process block")
-	blProcMock.ProcessBlockCalled = func(*blockchain.BlockChain, *block.Header, []*block.MiniBlock, func() time.Duration) error {
+	blProcMock.ProcessBlockCalled = func(*blockchain.BlockChain, *block.Header, block.BlockBody, func() time.Duration) error {
 		return err
 	}
 
 	sr.SetBlockProcessor(blProcMock)
 
 	hdr := &block.Header{}
-	blk := make([]*block.MiniBlock, 0)
+	blk := make(block.BlockBody, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -818,7 +818,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 	sr := *initSubroundBlock()
 
 	hdr := &block.Header{}
-	blk := make([]*block.MiniBlock, 0)
+	blk := make(block.BlockBody, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -847,7 +847,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 	sr := *initSubroundBlock()
 
 	hdr := &block.Header{}
-	blk := make([]*block.MiniBlock, 0)
+	blk := make(block.BlockBody, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(

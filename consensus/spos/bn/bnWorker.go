@@ -404,7 +404,7 @@ func (wrk *worker) genConsensusDataSignature(cnsDta *spos.ConsensusMessage) ([]b
 	return signature, nil
 }
 
-func (wrk *worker) broadcastTxBlockBody(blockBody []*block.MiniBlock) error {
+func (wrk *worker) broadcastTxBlockBody(blockBody block.BlockBody) error {
 	if blockBody == nil {
 		return spos.ErrNilTxBlockBody
 	}

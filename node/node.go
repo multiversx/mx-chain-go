@@ -676,15 +676,14 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 }
 
 func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
-	shardId := uint32(0)
-	rootHash, err := n.blockProcessor.CreateGenesisBlock(n.initialNodesBalances, shardId)
+	rootHash, err := n.blockProcessor.CreateGenesisBlock(n.initialNodesBalances)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	header := &block.Header{
 		Nonce:         0,
-		ShardId:       shardId,
+		ShardId:       n.shardCoordinator.ShardForCurrentNode(),
 		TimeStamp:     uint64(n.genesisTime.Unix()),
 		BlockBodyType: block.StateBlock,
 		Signature:     rootHash,

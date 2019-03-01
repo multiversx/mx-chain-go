@@ -15,11 +15,11 @@ func (bps *BlockProcessorStub) SetOnRequestTransaction(f func(destShardID uint32
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body []*block.MiniBlock, haveTime func() time.Duration) error {
+func (bps *BlockProcessorStub) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block []*block.MiniBlock) error {
+func (bps *BlockProcessorStub) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block block.BlockBody) error {
 	panic("implement me")
 }
 
@@ -27,23 +27,23 @@ func (bps *BlockProcessorStub) RevertAccountState() {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body []*block.MiniBlock, haveTime func() time.Duration) error {
+func (bps *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int, shardId uint32) (rootHash []byte, err error) {
+func (bps *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) (rootHash []byte, err error) {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) ([]*block.MiniBlock, error) {
+func (bps *BlockProcessorStub) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.BlockBody, error) {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) CreateEmptyBlockBody(shardId uint32, round int32) []*block.MiniBlock {
+func (bps *BlockProcessorStub) CreateEmptyBlockBody(shardId uint32, round int32) block.BlockBody {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) RemoveBlockTxsFromPool(body []*block.MiniBlock) error {
+func (bps *BlockProcessorStub) RemoveBlockTxsFromPool(body block.BlockBody) error {
 	panic("implement me")
 }
 

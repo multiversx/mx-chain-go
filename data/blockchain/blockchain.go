@@ -19,7 +19,7 @@ type BlockChain struct {
 	GenesisHeaderHash      []byte                      // Genesis Block Header hash
 	CurrentBlockHeader     *block.Header               // Current Block pointer
 	CurrentBlockHeaderHash []byte                      // Current Block Header hash
-	CurrentTxBlockBody     []*block.MiniBlock          // Current Tx Block Body pointer
+	CurrentTxBlockBody     block.BlockBody             // Current Tx Block Body pointer
 	LocalHeight            int64                       // Height of the local chain
 	NetworkHeight          int64                       // Percieved height of the network chain
 	badBlocks              storage.Cacher              // Bad blocks cache

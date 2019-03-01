@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
@@ -129,7 +129,7 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	miniBlocks := []*block2.MiniBlock{
+	miniBlocks := dataBlock.BlockBody{
 		{
 			ShardID:  uint32(0),
 			TxHashes: [][]byte{[]byte("tx hash 1")},
