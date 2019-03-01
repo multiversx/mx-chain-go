@@ -35,7 +35,7 @@ type networkMessenger struct {
 	mutTopics sync.RWMutex
 	topics    map[string]p2p.MessageProcessor
 
-	outgoingPLB p2p.PipeLoadBalancer
+	outgoingPLB p2p.ChannelLoadBalancer
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
@@ -45,7 +45,7 @@ func NewNetworkMessenger(
 	port int,
 	p2pPrivKey crypto.PrivKey,
 	conMgr ifconnmgr.ConnManager,
-	outgoingPLB p2p.PipeLoadBalancer,
+	outgoingPLB p2p.ChannelLoadBalancer,
 	peerDiscoverer p2p.PeerDiscoverer,
 ) (*networkMessenger, error) {
 
@@ -62,7 +62,7 @@ func NewNetworkMessenger(
 	}
 
 	if outgoingPLB == nil {
-		return nil, p2p.ErrNilPipeLoadBalancer
+		return nil, p2p.ErrNilChannelLoadBalancer
 	}
 
 	if peerDiscoverer == nil {
@@ -102,7 +102,7 @@ func NewNetworkMessenger(
 func createMessenger(
 	lctx *Libp2pContext,
 	withSigning bool,
-	outgoingPLB p2p.PipeLoadBalancer,
+	outgoingPLB p2p.ChannelLoadBalancer,
 	peerDiscoverer p2p.PeerDiscoverer,
 ) (*networkMessenger, error) {
 
@@ -129,29 +129,16 @@ func createMessenger(
 		return nil, err
 	}
 
-	go func(pubsub *pubsub.PubSub, plb p2p.PipeLoadBalancer) {
+	go func(pubsub *pubsub.PubSub, plb p2p.ChannelLoadBalancer) {
 		for {
-			dataToBeSent := plb.CollectFromPipes()
+			sendableData := plb.CollectOneElementFromChannels()
 
-			wasSent := false
-			for i := 0; i < len(dataToBeSent); i++ {
-				sendableData := dataToBeSent[i]
-
-				if sendableData == nil {
-					continue
-				}
-
-				_ = pb.Publish(sendableData.Topic, sendableData.Buff)
-				wasSent = true
-
-				time.Sleep(durationBetweenSends)
+			if sendableData == nil {
+				continue
 			}
 
-			//if nothing was sent over the network, it makes sense to sleep for a bit
-			//as to not make this for loop iterate at max CPU speed
-			if !wasSent {
-				time.Sleep(durationBetweenSends)
-			}
+			_ = pb.Publish(sendableData.Topic, sendableData.Buff)
+			time.Sleep(durationBetweenSends)
 		}
 	}(pb, netMes.outgoingPLB)
 
@@ -270,7 +257,7 @@ func (netMes *networkMessenger) ConnectedPeers() []p2p.PeerID {
 }
 
 // CreateTopic opens a new topic using pubsub infrastructure
-func (netMes *networkMessenger) CreateTopic(name string, createPipeForTopic bool) error {
+func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic bool) error {
 	ctx := netMes.ctxProvider.Context()
 
 	netMes.mutTopics.Lock()
@@ -288,8 +275,8 @@ func (netMes *networkMessenger) CreateTopic(name string, createPipeForTopic bool
 	}
 	netMes.mutTopics.Unlock()
 
-	if createPipeForTopic {
-		err = netMes.outgoingPLB.AddPipe(name)
+	if createChannelForTopic {
+		err = netMes.outgoingPLB.AddChannel(name)
 	}
 
 	//just a dummy func to consume messages received by the newly created topic
@@ -320,25 +307,25 @@ func (netMes *networkMessenger) HasTopicValidator(name string) bool {
 	return validator != nil
 }
 
-// OutgoingPipeLoadBalancer returns the pipe load balancer object used by the messenger to send data
-func (netMes *networkMessenger) OutgoingPipeLoadBalancer() p2p.PipeLoadBalancer {
+// OutgoingChannelLoadBalancer returns the channel load balancer object used by the messenger to send data
+func (netMes *networkMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBalancer {
 	return netMes.outgoingPLB
 }
 
-// BroadcastOnPipe tries to send a byte buffer onto a topic using provided pipe
-func (netMes *networkMessenger) BroadcastOnPipe(pipe string, topic string, buff []byte) {
+// BroadcastOnChannel tries to send a byte buffer onto a topic using provided channel
+func (netMes *networkMessenger) BroadcastOnChannel(channel string, topic string, buff []byte) {
 	go func() {
 		sendable := &p2p.SendableData{
 			Buff:  buff,
 			Topic: topic,
 		}
-		netMes.outgoingPLB.GetChannelOrDefault(pipe) <- sendable
+		netMes.outgoingPLB.GetChannelOrDefault(channel) <- sendable
 	}()
 }
 
-// BroadcastOnTopicPipe tries to send a byte buffer onto a topic using the topic name as pipe
+// Broadcast tries to send a byte buffer onto a topic using the topic name as channel
 func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
-	netMes.BroadcastOnPipe(topic, topic, buff)
+	netMes.BroadcastOnChannel(topic, topic, buff)
 }
 
 // RegisterMessageProcessor registers a message process on a topic
@@ -361,6 +348,10 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(i context.Context, message *pubsub.Message) bool {
 		err := handler.ProcessReceivedMessage(NewMessage(message))
+
+		if err != nil {
+			log.Debug(err.Error())
+		}
 
 		return err == nil
 	})
@@ -412,7 +403,11 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	}
 
 	go func(msg p2p.MessageP2P) {
-		log.LogIfError(processor.ProcessReceivedMessage(msg))
+		err := processor.ProcessReceivedMessage(msg)
+
+		if err != nil {
+			log.Debug(err.Error())
+		}
 	}(message)
 
 	return nil

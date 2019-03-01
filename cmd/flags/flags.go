@@ -26,4 +26,10 @@ var (
 		Usage: "Port number on which the application will start",
 		Value: 32000,
 	}
+	// ProfileMode defines a flag for profiling the binary
+	ProfileMode = cli.StringFlag{
+		Name:  "profile-mode",
+		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
+		Value: "",
+	}
 )

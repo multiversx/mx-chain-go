@@ -162,7 +162,7 @@ func TestNewNetworkMessenger_NilContextShouldErr(t *testing.T) {
 		port,
 		sk,
 		&mock.ConnManagerNotifieeStub{},
-		&mock.PipeLoadBalancerStub{},
+		&mock.ChannelLoadBalancerStub{},
 		discovery.NewNullDiscoverer(),
 	)
 
@@ -180,7 +180,7 @@ func TestNewNetworkMessenger_InvalidPortShouldErr(t *testing.T) {
 		port,
 		sk,
 		&mock.ConnManagerNotifieeStub{},
-		&mock.PipeLoadBalancerStub{},
+		&mock.ChannelLoadBalancerStub{},
 		discovery.NewNullDiscoverer(),
 	)
 
@@ -196,7 +196,7 @@ func TestNewNetworkMessenger_NilP2PprivateKeyShouldErr(t *testing.T) {
 		port,
 		nil,
 		&mock.ConnManagerNotifieeStub{},
-		&mock.PipeLoadBalancerStub{},
+		&mock.ChannelLoadBalancerStub{},
 		discovery.NewNullDiscoverer(),
 	)
 
@@ -219,7 +219,7 @@ func TestNewNetworkMessenger_NilPipeLoadBalancerShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, mes)
-	assert.Equal(t, err, p2p.ErrNilPipeLoadBalancer)
+	assert.Equal(t, err, p2p.ErrNilChannelLoadBalancer)
 }
 
 func TestNewNetworkMessenger_NoConnMgrShouldWork(t *testing.T) {
@@ -232,9 +232,10 @@ func TestNewNetworkMessenger_NoConnMgrShouldWork(t *testing.T) {
 		port,
 		sk,
 		nil,
-		&mock.PipeLoadBalancerStub{
-			CollectFromPipesCalled: func() []*p2p.SendableData {
-				return make([]*p2p.SendableData, 0)
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
 			},
 		},
 		discovery.NewNullDiscoverer(),
@@ -261,9 +262,10 @@ func TestNewNetworkMessenger_WithConnMgrShouldWork(t *testing.T) {
 		port,
 		sk,
 		cns,
-		&mock.PipeLoadBalancerStub{
-			CollectFromPipesCalled: func() []*p2p.SendableData {
-				return make([]*p2p.SendableData, 0)
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
 			},
 		},
 		discovery.NewNullDiscoverer(),
@@ -286,9 +288,10 @@ func TestNewNetworkMessenger_WithNullPeerDiscoveryShouldWork(t *testing.T) {
 		port,
 		sk,
 		nil,
-		&mock.PipeLoadBalancerStub{
-			CollectFromPipesCalled: func() []*p2p.SendableData {
-				return make([]*p2p.SendableData, 0)
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
 			},
 		},
 		discovery.NewNullDiscoverer(),
@@ -310,9 +313,10 @@ func TestNewNetworkMessenger_NilPeerDiscoveryShouldErr(t *testing.T) {
 		port,
 		sk,
 		nil,
-		&mock.PipeLoadBalancerStub{
-			CollectFromPipesCalled: func() []*p2p.SendableData {
-				return make([]*p2p.SendableData, 0)
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
 			},
 		},
 		nil,
@@ -334,9 +338,10 @@ func TestNewNetworkMessenger_PeerDiscovererFailsWhenApplyingContextShouldErr(t *
 		port,
 		sk,
 		nil,
-		&mock.PipeLoadBalancerStub{
-			CollectFromPipesCalled: func() []*p2p.SendableData {
-				return make([]*p2p.SendableData, 0)
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
 			},
 		},
 		&mock.PeerDiscovererStub{
@@ -765,9 +770,10 @@ func TestLibp2pMessenger_TrimConnectionsCallsConnManagerTrimConnections(t *testi
 		port,
 		sk,
 		cns,
-		&mock.PipeLoadBalancerStub{
-			CollectFromPipesCalled: func() []*p2p.SendableData {
-				return make([]*p2p.SendableData, 0)
+		&mock.ChannelLoadBalancerStub{
+			CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+				time.Sleep(time.Millisecond * 100)
+				return nil
 			},
 		},
 		discovery.NewNullDiscoverer(),
@@ -785,12 +791,13 @@ func TestLibp2pMessenger_SendDataThrottlerShouldReturnCorrectObject(t *testing.T
 
 	_, sk := createLibP2PCredentialsMessenger()
 
-	sdt := &mock.PipeLoadBalancerStub{
-		AddPipeCalled: func(pipe string) error {
+	sdt := &mock.ChannelLoadBalancerStub{
+		AddChannelCalled: func(pipe string) error {
 			return nil
 		},
-		CollectFromPipesCalled: func() []*p2p.SendableData {
-			return make([]*p2p.SendableData, 0)
+		CollectOneElementFromChannelsCalled: func() *p2p.SendableData {
+			time.Sleep(time.Millisecond * 100)
+			return nil
 		},
 	}
 
@@ -803,7 +810,7 @@ func TestLibp2pMessenger_SendDataThrottlerShouldReturnCorrectObject(t *testing.T
 		discovery.NewNullDiscoverer(),
 	)
 
-	sdtReturned := mes.OutgoingPipeLoadBalancer()
+	sdtReturned := mes.OutgoingChannelLoadBalancer()
 
 	assert.True(t, sdt == sdtReturned)
 
@@ -859,7 +866,7 @@ func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testi
 		4000,
 		sk1,
 		nil,
-		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		discovery.NewNullDiscoverer(),
 	)
 
@@ -869,7 +876,7 @@ func TestLibp2pMessenger_SendDirectWithRealNetToConnectedPeerShouldWork(t *testi
 		4001,
 		sk2,
 		nil,
-		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		discovery.NewNullDiscoverer(),
 	)
 

@@ -388,7 +388,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	for i := 0; i < len(transactions); i++ {
-		n.messenger.BroadcastOnPipe(
+		n.messenger.BroadcastOnChannel(
 			SendTransactionsPipe,
 			string(factory.TransactionTopic),
 			transactions[i],
@@ -638,7 +638,7 @@ func (n *Node) SendTransaction(
 		return nil, errors.New("could not marshal transaction")
 	}
 
-	n.messenger.BroadcastOnPipe(
+	n.messenger.BroadcastOnChannel(
 		SendTransactionsPipe,
 		string(factory.TransactionTopic),
 		marshalizedTx,
