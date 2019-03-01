@@ -54,7 +54,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	time.Sleep(time.Second)
 
 	//Step 1. Generate a block body
-	body := block.BlockBody{
+	body := block.Body{
 		{
 			ShardID: 0,
 			TxHashes: [][]byte{

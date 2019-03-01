@@ -119,7 +119,7 @@ func NewBlockProcessor(
 func (bp *blockProcessor) ProcessAndCommit(
 	blockChain *blockchain.BlockChain,
 	header *block.Header,
-	body block.BlockBody,
+	body block.Body,
 	haveTime func() time.Duration,
 ) error {
 	err := checkForNils(blockChain, header, body)
@@ -157,7 +157,7 @@ func (bp *blockProcessor) ProcessAndCommit(
 	return nil
 }
 
-func checkForNils(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody) error {
+func checkForNils(blockChain *blockchain.BlockChain, header *block.Header, body block.Body) error {
 	if blockChain == nil {
 		return process.ErrNilBlockChain
 	}
@@ -183,7 +183,7 @@ func (bp *blockProcessor) RevertAccountState() {
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the speciffic error
-func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error {
+func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
 	err := checkForNils(blockChain, header, body)
 	if err != nil {
 		return err
@@ -196,7 +196,7 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 	return bp.processBlock(blockChain, header, body, haveTime)
 }
 
-func (bp *blockProcessor) processBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error {
+func (bp *blockProcessor) processBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
 	requestedTxs := bp.requestBlockTransactions(body)
 
 	var err error
@@ -234,7 +234,7 @@ func (bp *blockProcessor) processBlock(blockChain *blockchain.BlockChain, header
 }
 
 // RemoveBlockTxsFromPool removes the TxBlock transactions from associated tx pools
-func (bp *blockProcessor) RemoveBlockTxsFromPool(body block.BlockBody) error {
+func (bp *blockProcessor) RemoveBlockTxsFromPool(body block.Body) error {
 	if body == nil {
 		return process.ErrNilTxBlockBody
 	}
@@ -261,17 +261,17 @@ func (bp *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
 
 // CreateTxBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
-func (bp *blockProcessor) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.BlockBody, error) {
+func (bp *blockProcessor) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
 	miniBlocks, err := bp.createMiniBlocks(bp.shardCoordinator.NoShards(), maxTxInBlock, round, haveTime)
 	if err != nil {
 		return nil, err
 	}
-	return block.BlockBody(miniBlocks), nil
+	return block.Body(miniBlocks), nil
 }
 
 // CreateEmptyBlockBody creates a new block body without any tx hash
-func (bp *blockProcessor) CreateEmptyBlockBody(shardId uint32, round int32) block.BlockBody {
-	miniBlocks := make(block.BlockBody, 0)
+func (bp *blockProcessor) CreateEmptyBlockBody(shardId uint32, round int32) block.Body {
+	miniBlocks := make(block.Body, 0)
 	return miniBlocks
 }
 
@@ -321,7 +321,7 @@ func (bp *blockProcessor) isFirstBlockInEpoch(header *block.Header) bool {
 	return header.Round == 0
 }
 
-func (bp *blockProcessor) processBlockTransactions(body block.BlockBody, round int32, haveTime func() time.Duration) error {
+func (bp *blockProcessor) processBlockTransactions(body block.Body, round int32, haveTime func() time.Duration) error {
 	// basic validation already done in interceptors
 	txPool := bp.dataPool.Transactions()
 
@@ -357,7 +357,7 @@ func (bp *blockProcessor) processBlockTransactions(body block.BlockBody, round i
 }
 
 // CommitBlock commits the block in the blockchain if everything was checked successfully
-func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody) error {
+func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body) error {
 	err := checkForNils(blockChain, header, body)
 	if err != nil {
 		return err
@@ -478,7 +478,7 @@ func (bp *blockProcessor) receivedTransaction(txHash []byte) {
 	bp.mut.Unlock()
 }
 
-func (bp *blockProcessor) requestBlockTransactions(body block.BlockBody) int {
+func (bp *blockProcessor) requestBlockTransactions(body block.Body) int {
 	bp.mut.Lock()
 	requestedTxs := 0
 	missingTxsForShards := bp.computeMissingTxsForShards(body)
@@ -496,7 +496,7 @@ func (bp *blockProcessor) requestBlockTransactions(body block.BlockBody) int {
 	return requestedTxs
 }
 
-func (bp *blockProcessor) computeMissingTxsForShards(body block.BlockBody) map[uint32][][]byte {
+func (bp *blockProcessor) computeMissingTxsForShards(body block.Body) map[uint32][][]byte {
 	missingTxsForShard := make(map[uint32][][]byte)
 
 	for i := 0; i < len(body); i++ {
@@ -693,7 +693,7 @@ func (bp *blockProcessor) computeHeaderHash(hdr *block.Header) ([]byte, error) {
 
 func (bp *blockProcessor) displayLogInfo(
 	header *block.Header,
-	body block.BlockBody,
+	body block.Body,
 	headerHash []byte,
 ) {
 	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(header, body)
@@ -715,7 +715,7 @@ func (bp *blockProcessor) displayLogInfo(
 
 func createDisplayableHeaderAndBlockBody(
 	header *block.Header,
-	body block.BlockBody,
+	body block.Body,
 ) ([]string, []*display.LineData) {
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
@@ -787,7 +787,7 @@ func displayHeader(header *block.Header) []*display.LineData {
 	return lines
 }
 
-func displayTxBlockBody(lines []*display.LineData, body block.BlockBody) []*display.LineData {
+func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {
 
 	txsCurrentBlockProcessed = 0
 

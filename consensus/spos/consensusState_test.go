@@ -282,7 +282,7 @@ func TestConsensusState_IsBlockBodyAlreadyReceivedShouldReturnTrue(t *testing.T)
 
 	cns := initConsensusState()
 
-	cns.BlockBody = make(block.BlockBody, 0)
+	cns.BlockBody = make(block.Body, 0)
 
 	assert.True(t, cns.IsBlockBodyAlreadyReceived())
 }

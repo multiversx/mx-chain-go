@@ -12,7 +12,7 @@ func (bp *blockProcessor) GetTransactionFromPool(destShardID uint32, txHash []by
 	return bp.getTransactionFromPool(destShardID, txHash)
 }
 
-func (bp *blockProcessor) RequestTransactionFromNetwork(body block.BlockBody) int {
+func (bp *blockProcessor) RequestTransactionFromNetwork(body block.Body) int {
 	return bp.requestBlockTransactions(body)
 }
 
@@ -28,7 +28,7 @@ func (bp *blockProcessor) ComputeHeaderHash(hdr *block.Header) ([]byte, error) {
 	return bp.computeHeaderHash(hdr)
 }
 
-func (bp *blockProcessor) DisplayLogInfo(header *block.Header, txBlock block.BlockBody, headerHash []byte) {
+func (bp *blockProcessor) DisplayLogInfo(header *block.Header, txBlock block.Body, headerHash []byte) {
 	bp.displayLogInfo(header, txBlock, headerHash)
 }
 

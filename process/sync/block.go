@@ -385,7 +385,7 @@ func (boot *Bootstrap) SyncBlock() error {
 	//TODO remove type assertions and implement a way for block executor to process
 	//TODO all kinds of headers
 	miniBlocks := blk.(block.MiniBlockSlice)
-	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, block.BlockBody(miniBlocks), haveTime)
+	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, block.Body(miniBlocks), haveTime)
 
 	if err != nil {
 		if err == process.ErrInvalidBlockHash {
@@ -621,7 +621,7 @@ func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.H
 	return newHeader, nil
 }
 
-func (boot *Bootstrap) getTxBlockBody(header *block.Header) (block.BlockBody, error) {
+func (boot *Bootstrap) getTxBlockBody(header *block.Header) (block.Body, error) {
 
 	mbLength := len(header.MiniBlockHeaders)
 	hashes := make([][]byte, mbLength)
@@ -629,7 +629,7 @@ func (boot *Bootstrap) getTxBlockBody(header *block.Header) (block.BlockBody, er
 		hashes[i] = header.MiniBlockHeaders[i].Hash
 	}
 	bodyMiniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
-	return block.BlockBody(bodyMiniBlocks), nil
+	return block.Body(bodyMiniBlocks), nil
 }
 
 // IsEmpty verifies if a block is empty
@@ -672,7 +672,7 @@ func (boot *Bootstrap) ShouldSync() bool {
 }
 
 // CreateAndCommitEmptyBlock creates and commits an empty block
-func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (block.BlockBody, *block.Header) {
+func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (block.Body, *block.Header) {
 	log.Info(fmt.Sprintf("creating and broadcasting an empty block\n"))
 
 	boot.blkExecutor.RevertAccountState()

@@ -15,14 +15,14 @@ import (
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
 	StorageService
-	GenesisBlock           *block.Header               // Genesys Block Header pointer
-	GenesisHeaderHash      []byte                      // Genesis Block Header hash
-	CurrentBlockHeader     *block.Header               // Current Block pointer
-	CurrentBlockHeaderHash []byte                      // Current Block Header hash
-	CurrentTxBlockBody     block.BlockBody             // Current Tx Block Body pointer
-	LocalHeight            int64                       // Height of the local chain
-	NetworkHeight          int64                       // Percieved height of the network chain
-	badBlocks              storage.Cacher              // Bad blocks cache
+	GenesisBlock           *block.Header  // Genesys Block Header pointer
+	GenesisHeaderHash      []byte         // Genesis Block Header hash
+	CurrentBlockHeader     *block.Header  // Current Block pointer
+	CurrentBlockHeaderHash []byte         // Current Block Header hash
+	CurrentTxBlockBody     block.Body     // Current Tx Block Body pointer
+	LocalHeight            int64          // Height of the local chain
+	NetworkHeight          int64          // Percieved height of the network chain
+	badBlocks              storage.Cacher // Bad blocks cache
 }
 
 // NewBlockChain returns an initialized blockchain

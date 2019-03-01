@@ -9,29 +9,29 @@ import (
 )
 
 type BlockProcessorMock struct {
-	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error
-	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error
-	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header *block.Header, block block.BlockBody) error
+	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error
+	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error
+	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header *block.Header, block block.Body) error
 	RevertAccountStateCalled      func()
 	CreateGenesisBlockCalled      func(balances map[string]*big.Int) (rootHash []byte, err error)
-	CreateTxBlockCalled           func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.BlockBody, error)
-	CreateEmptyBlockBodyCalled    func(shardId uint32, round int32) block.BlockBody
-	RemoveBlockTxsFromPoolCalled  func(body block.BlockBody) error
+	CreateTxBlockCalled           func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error)
+	CreateEmptyBlockBodyCalled    func(shardId uint32, round int32) block.Body
+	RemoveBlockTxsFromPoolCalled  func(body block.Body) error
 	GetRootHashCalled             func() []byte
 	noShards                      uint32
 	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
 	CheckBlockValidityCalled      func(blockChain *blockchain.BlockChain, header *block.Header) bool
 }
 
-func (bpm *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error {
+func (bpm *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
 	return bpm.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
 
-func (bpm *BlockProcessorMock) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error {
+func (bpm *BlockProcessorMock) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
 	return bpm.ProcessAndCommitCalled(blockChain, header, body, haveTime)
 }
 
-func (bpm *BlockProcessorMock) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block block.BlockBody) error {
+func (bpm *BlockProcessorMock) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block block.Body) error {
 	return bpm.CommitBlockCalled(blockChain, header, block)
 }
 
@@ -43,15 +43,15 @@ func (blProcMock BlockProcessorMock) CreateGenesisBlock(balances map[string]*big
 	return blProcMock.CreateGenesisBlockCalled(balances)
 }
 
-func (blProcMock BlockProcessorMock) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.BlockBody, error) {
+func (blProcMock BlockProcessorMock) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
 	return blProcMock.CreateTxBlockCalled(shardId, maxTxInBlock, round, haveTime)
 }
 
-func (blProcMock BlockProcessorMock) CreateEmptyBlockBody(shardId uint32, round int32) block.BlockBody {
+func (blProcMock BlockProcessorMock) CreateEmptyBlockBody(shardId uint32, round int32) block.Body {
 	return blProcMock.CreateEmptyBlockBodyCalled(shardId, round)
 }
 
-func (blProcMock BlockProcessorMock) RemoveBlockTxsFromPool(body block.BlockBody) error {
+func (blProcMock BlockProcessorMock) RemoveBlockTxsFromPool(body block.Body) error {
 	// pretend we removed the data
 	return blProcMock.RemoveBlockTxsFromPoolCalled(body)
 }

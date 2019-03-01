@@ -14,11 +14,11 @@ import (
 // each of the miniblocks has a different destination shard
 // The body can be transmitted even before having built the heder and go through a prevalidation of each transaction
 
-// BlockType identifies the type of the block
-type BlockType uint8
+// Type identifies the type of the block
+type Type uint8
 
-// BlockBody should be used when referring to the full list of mini blocks that forms a block body
-type BlockBody []*MiniBlock
+// Body should be used when referring to the full list of mini blocks that forms a block body
+type Body []*MiniBlock
 
 // MiniBlockSlice should be used when referring to subset of mini blocks that is not
 //  necessarily representing a full block body
@@ -26,15 +26,15 @@ type MiniBlockSlice []*MiniBlock
 
 const (
 	// TxBlock identifies a block holding transactions
-	TxBlock BlockType = 0
+	TxBlock Type = 0
 	// StateBlock identifies a block holding account state
-	StateBlock BlockType = 1
+	StateBlock Type = 1
 	// PeerBlock identifies a block holding peer assignation
-	PeerBlock BlockType = 2
+	PeerBlock Type = 2
 )
 
-// String returns the string representation of the BlockType
-func (bType BlockType) String() string {
+// String returns the string representation of the Type
+func (bType Type) String() string {
 	switch bType {
 	case TxBlock:
 		return "TxBody"
@@ -77,7 +77,7 @@ type Header struct {
 	TimeStamp        uint64            `capid:"4"`
 	Round            uint32            `capid:"5"`
 	Epoch            uint32            `capid:"6"`
-	BlockBodyType    BlockType         `capid:"7"`
+	BlockBodyType    Type              `capid:"7"`
 	Signature        []byte            `capid:"8"`
 	Commitment       []byte            `capid:"9"`
 	MiniBlockHeaders []MiniBlockHeader `capid:"10"`
@@ -125,7 +125,7 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	// Epoch
 	dest.Epoch = src.Epoch()
 	// BlockBodyType
-	dest.BlockBodyType = BlockType(src.BlockBodyType())
+	dest.BlockBodyType = Type(src.BlockBodyType())
 	// Signature
 	dest.Signature = src.Signature()
 	// Commitment

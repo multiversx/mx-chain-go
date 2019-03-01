@@ -15,11 +15,11 @@ func (bps *BlockProcessorStub) SetOnRequestTransaction(f func(destShardID uint32
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error {
+func (bps *BlockProcessorStub) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block block.BlockBody) error {
+func (bps *BlockProcessorStub) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block block.Body) error {
 	panic("implement me")
 }
 
@@ -27,7 +27,7 @@ func (bps *BlockProcessorStub) RevertAccountState() {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.BlockBody, haveTime func() time.Duration) error {
+func (bps *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
 	panic("implement me")
 }
 
@@ -35,15 +35,15 @@ func (bps *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) 
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.BlockBody, error) {
+func (bps *BlockProcessorStub) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) CreateEmptyBlockBody(shardId uint32, round int32) block.BlockBody {
+func (bps *BlockProcessorStub) CreateEmptyBlockBody(shardId uint32, round int32) block.Body {
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) RemoveBlockTxsFromPool(body block.BlockBody) error {
+func (bps *BlockProcessorStub) RemoveBlockTxsFromPool(body block.Body) error {
 	panic("implement me")
 }
 

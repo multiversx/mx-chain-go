@@ -23,7 +23,7 @@ func TestInterceptedTxBlockBody_GetUnderlingObjectShouldReturnBlock(t *testing.T
 
 	txBlockBody := block.NewInterceptedTxBlockBody()
 
-	_, ok := txBlockBody.GetUnderlyingObject().(dataBlock.BlockBody)
+	_, ok := txBlockBody.GetUnderlyingObject().(dataBlock.Body)
 	assert.True(t, ok)
 }
 
@@ -49,7 +49,7 @@ func TestInterceptedTxBlockBody_IntegrityNilMiniBlocksShouldErr(t *testing.T) {
 func TestInterceptedTxBlockBody_IntegrityMiniblockWithNilTxHashesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.BlockBody{
+	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{ShardID: 0, TxHashes: nil},
 	}}
 
@@ -59,7 +59,7 @@ func TestInterceptedTxBlockBody_IntegrityMiniblockWithNilTxHashesShouldErr(t *te
 func TestInterceptedTxBlockBody_IntegrityMiniblockWithInvalidTxHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.BlockBody{
+	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0), nil}},
 	}}
 
@@ -77,7 +77,7 @@ func TestInterceptedTxBlockBody_IntegrityNilTxBlockBodyShouldErr(t *testing.T) {
 func TestInterceptedTxBlockBody_IntegrityNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.BlockBody{
+	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0)}},
 	}}
 
@@ -87,7 +87,7 @@ func TestInterceptedTxBlockBody_IntegrityNilShardCoordinatorShouldErr(t *testing
 func TestInterceptedTxBlockBody_IntegrityMiniblockWithInvalidShardIdsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.BlockBody{
+	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{ShardID: 4, TxHashes: [][]byte{make([]byte, 0)}},
 	}}
 	assert.Equal(t, process.ErrInvalidShardId, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
@@ -96,7 +96,7 @@ func TestInterceptedTxBlockBody_IntegrityMiniblockWithInvalidShardIdsShouldErr(t
 func TestInterceptedTxBlockBody_IntegrityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.BlockBody{
+	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0)}},
 	}}
 
@@ -106,7 +106,7 @@ func TestInterceptedTxBlockBody_IntegrityOkValsShouldWork(t *testing.T) {
 func TestInterceptedTxBlockBody_IntegrityAndValidityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.BlockBody{
+	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0)}},
 	}}
 

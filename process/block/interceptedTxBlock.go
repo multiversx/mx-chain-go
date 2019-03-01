@@ -8,14 +8,14 @@ import (
 
 // InterceptedTxBlockBody represents the wrapper over TxBlockBodyWrapper struct.
 type InterceptedTxBlockBody struct {
-	TxBlockBody block.BlockBody
+	TxBlockBody block.Body
 	hash []byte
 }
 
 // NewInterceptedTxBlockBody creates a new instance of InterceptedTxBlockBody struct
 func NewInterceptedTxBlockBody() *InterceptedTxBlockBody {
 	return &InterceptedTxBlockBody{
-		TxBlockBody: make(block.BlockBody, 0),
+		TxBlockBody: make(block.Body, 0),
 	}
 }
 
