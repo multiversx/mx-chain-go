@@ -205,7 +205,7 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromCache(hashes [][]byte) 
 	return miniBlocks
 }
 
-// getMiniBlocksFromStorer returns a full list of MiniBlockHeaders from the storage unit.
+// getMiniBlocksFromStorer returns a full list of MiniBlocks from the storage unit.
 // If any MiniBlock is missing or is invalid, it is removed and the function returns nil
 func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte) [][]byte {
 	miniBlocksLen :=  len(hashes)
