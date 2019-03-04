@@ -31,8 +31,8 @@ var ErrNilChannelLoadBalancer = errors.New("nil channel load balancer object")
 // ErrChannelAlreadyExists signals that the channel is already defined (and used)
 var ErrChannelAlreadyExists = errors.New("channel already exists")
 
-// ErrChannelDoNotExists signals that a requested channel does not exists
-var ErrChannelDoNotExists = errors.New("channel does not exists")
+// ErrChannelDoesNotExist signals that a requested channel does not exist
+var ErrChannelDoesNotExist = errors.New("channel does not exist")
 
 // ErrChannelCanNotBeDeleted signals that a channel can not be deleted (might be the default channel)
 var ErrChannelCanNotBeDeleted = errors.New("channel can not be deleted")

@@ -17,28 +17,28 @@ var errMissingChannel = errors.New("missing channel")
 var errChannelsMismatch = errors.New("channels mismatch")
 var durationWait = time.Second * 2
 
-func checkIntegrity(oplb *loadBalancer.OutgoingChannelLoadBalancer, name string) error {
-	if len(oplb.Names()) != len(oplb.Chans()) {
+func checkIntegrity(oclb *loadBalancer.OutgoingChannelLoadBalancer, name string) error {
+	if len(oclb.Names()) != len(oclb.Chans()) {
 		return errLenDifferent
 	}
 
-	if len(oplb.Names()) != len(oplb.NamesChans()) {
+	if len(oclb.Names()) != len(oclb.NamesChans()) {
 		return errLenDifferentNamesChans
 	}
 
 	idxFound := -1
-	for i, n := range oplb.Names() {
+	for i, n := range oclb.Names() {
 		if n == name {
 			idxFound = i
 			break
 		}
 	}
 
-	if idxFound == -1 && oplb.NamesChans()[name] == nil {
+	if idxFound == -1 && oclb.NamesChans()[name] == nil {
 		return errMissingChannel
 	}
 
-	if oplb.NamesChans()[name] != oplb.Chans()[idxFound] {
+	if oclb.NamesChans()[name] != oclb.Chans()[idxFound] {
 		return errChannelsMismatch
 	}
 
@@ -50,18 +50,18 @@ func checkIntegrity(oplb *loadBalancer.OutgoingChannelLoadBalancer, name string)
 func TestNewOutgoingChannelLoadBalancer_ShouldNotProduceNil(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	assert.NotNil(t, oplb)
+	assert.NotNil(t, oclb)
 }
 
 func TestNewOutgoingChannelLoadBalancer_ShouldAddDefaultChannel(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	assert.Equal(t, 1, len(oplb.Names()))
-	assert.Nil(t, checkIntegrity(oplb, loadBalancer.DefaultSendChannel()))
+	assert.Equal(t, 1, len(oclb.Names()))
+	assert.Nil(t, checkIntegrity(oclb, loadBalancer.DefaultSendChannel()))
 }
 
 //------- AddChannel
@@ -69,22 +69,22 @@ func TestNewOutgoingChannelLoadBalancer_ShouldAddDefaultChannel(t *testing.T) {
 func TestOutgoingChannelLoadBalancer_AddChannelNewChannelShouldNotErrAndAddNewChannel(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	err := oplb.AddChannel("test")
+	err := oclb.AddChannel("test")
 
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(oplb.Names()))
-	assert.Nil(t, checkIntegrity(oplb, loadBalancer.DefaultSendChannel()))
-	assert.Nil(t, checkIntegrity(oplb, "test"))
+	assert.Equal(t, 2, len(oclb.Names()))
+	assert.Nil(t, checkIntegrity(oclb, loadBalancer.DefaultSendChannel()))
+	assert.Nil(t, checkIntegrity(oclb, "test"))
 }
 
 func TestOutgoingChannelLoadBalancer_AddChannelDefaultChannelShouldErr(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	err := oplb.AddChannel(loadBalancer.DefaultSendChannel())
+	err := oclb.AddChannel(loadBalancer.DefaultSendChannel())
 
 	assert.Equal(t, p2p.ErrChannelAlreadyExists, err)
 }
@@ -92,10 +92,10 @@ func TestOutgoingChannelLoadBalancer_AddChannelDefaultChannelShouldErr(t *testin
 func TestOutgoingChannelLoadBalancer_AddChannelReAddChannelShouldErr(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	_ = oplb.AddChannel("test")
-	err := oplb.AddChannel("test")
+	_ = oclb.AddChannel("test")
+	err := oclb.AddChannel("test")
 
 	assert.Equal(t, p2p.ErrChannelAlreadyExists, err)
 }
@@ -105,9 +105,9 @@ func TestOutgoingChannelLoadBalancer_AddChannelReAddChannelShouldErr(t *testing.
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveDefaultShouldErr(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	err := oplb.RemoveChannel(loadBalancer.DefaultSendChannel())
+	err := oclb.RemoveChannel(loadBalancer.DefaultSendChannel())
 
 	assert.Equal(t, p2p.ErrChannelCanNotBeDeleted, err)
 }
@@ -115,71 +115,71 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveDefaultShouldErr(t *test
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveNotFoundChannelShouldErr(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	err := oplb.RemoveChannel("test")
+	err := oclb.RemoveChannel("test")
 
-	assert.Equal(t, p2p.ErrChannelDoNotExists, err)
+	assert.Equal(t, p2p.ErrChannelDoesNotExist, err)
 }
 
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveLastChannelAddedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	_ = oplb.AddChannel("test1")
-	_ = oplb.AddChannel("test2")
-	_ = oplb.AddChannel("test3")
+	_ = oclb.AddChannel("test1")
+	_ = oclb.AddChannel("test2")
+	_ = oclb.AddChannel("test3")
 
-	err := oplb.RemoveChannel("test3")
+	err := oclb.RemoveChannel("test3")
 
 	assert.Nil(t, err)
 
-	assert.Equal(t, 3, len(oplb.Names()))
-	assert.Nil(t, checkIntegrity(oplb, loadBalancer.DefaultSendChannel()))
-	assert.Nil(t, checkIntegrity(oplb, "test1"))
-	assert.Nil(t, checkIntegrity(oplb, "test2"))
-	assert.Equal(t, errMissingChannel, checkIntegrity(oplb, "test3"))
+	assert.Equal(t, 3, len(oclb.Names()))
+	assert.Nil(t, checkIntegrity(oclb, loadBalancer.DefaultSendChannel()))
+	assert.Nil(t, checkIntegrity(oclb, "test1"))
+	assert.Nil(t, checkIntegrity(oclb, "test2"))
+	assert.Equal(t, errMissingChannel, checkIntegrity(oclb, "test3"))
 }
 
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveFirstChannelAddedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	_ = oplb.AddChannel("test1")
-	_ = oplb.AddChannel("test2")
-	_ = oplb.AddChannel("test3")
+	_ = oclb.AddChannel("test1")
+	_ = oclb.AddChannel("test2")
+	_ = oclb.AddChannel("test3")
 
-	err := oplb.RemoveChannel("test1")
+	err := oclb.RemoveChannel("test1")
 
 	assert.Nil(t, err)
 
-	assert.Equal(t, 3, len(oplb.Names()))
-	assert.Nil(t, checkIntegrity(oplb, loadBalancer.DefaultSendChannel()))
-	assert.Equal(t, errMissingChannel, checkIntegrity(oplb, "test1"))
-	assert.Nil(t, checkIntegrity(oplb, "test2"))
-	assert.Nil(t, checkIntegrity(oplb, "test3"))
+	assert.Equal(t, 3, len(oclb.Names()))
+	assert.Nil(t, checkIntegrity(oclb, loadBalancer.DefaultSendChannel()))
+	assert.Equal(t, errMissingChannel, checkIntegrity(oclb, "test1"))
+	assert.Nil(t, checkIntegrity(oclb, "test2"))
+	assert.Nil(t, checkIntegrity(oclb, "test3"))
 }
 
 func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveMiddleChannelAddedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	_ = oplb.AddChannel("test1")
-	_ = oplb.AddChannel("test2")
-	_ = oplb.AddChannel("test3")
+	_ = oclb.AddChannel("test1")
+	_ = oclb.AddChannel("test2")
+	_ = oclb.AddChannel("test3")
 
-	err := oplb.RemoveChannel("test2")
+	err := oclb.RemoveChannel("test2")
 
 	assert.Nil(t, err)
 
-	assert.Equal(t, 3, len(oplb.Names()))
-	assert.Nil(t, checkIntegrity(oplb, loadBalancer.DefaultSendChannel()))
-	assert.Nil(t, checkIntegrity(oplb, "test1"))
-	assert.Equal(t, errMissingChannel, checkIntegrity(oplb, "test2"))
-	assert.Nil(t, checkIntegrity(oplb, "test3"))
+	assert.Equal(t, 3, len(oclb.Names()))
+	assert.Nil(t, checkIntegrity(oclb, loadBalancer.DefaultSendChannel()))
+	assert.Nil(t, checkIntegrity(oclb, "test1"))
+	assert.Equal(t, errMissingChannel, checkIntegrity(oclb, "test2"))
+	assert.Nil(t, checkIntegrity(oclb, "test3"))
 }
 
 //------- GetChannelOrDefault
@@ -187,25 +187,25 @@ func TestOutgoingChannelLoadBalancer_RemoveChannelRemoveMiddleChannelAddedShould
 func TestOutgoingChannelLoadBalancer_GetChannelOrDefaultNotFoundShouldReturnDefault(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	_ = oplb.AddChannel("test1")
+	_ = oclb.AddChannel("test1")
 
-	channel := oplb.GetChannelOrDefault("missing channel")
+	channel := oclb.GetChannelOrDefault("missing channel")
 
-	assert.True(t, oplb.NamesChans()[loadBalancer.DefaultSendChannel()] == channel)
+	assert.True(t, oclb.NamesChans()[loadBalancer.DefaultSendChannel()] == channel)
 }
 
 func TestOutgoingChannelLoadBalancer_GetChannelOrDefaultFoundShouldReturnChannel(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	_ = oplb.AddChannel("test1")
+	_ = oclb.AddChannel("test1")
 
-	channel := oplb.GetChannelOrDefault("test1")
+	channel := oclb.GetChannelOrDefault("test1")
 
-	assert.True(t, oplb.NamesChans()["test1"] == channel)
+	assert.True(t, oclb.NamesChans()["test1"] == channel)
 }
 
 //------- CollectOneElementFromChannels
@@ -213,12 +213,12 @@ func TestOutgoingChannelLoadBalancer_GetChannelOrDefaultFoundShouldReturnChannel
 func TestOutgoingChannelLoadBalancer_CollectFromChannelsNoObjectsShouldWaitBlocking(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
 	chanDone := make(chan struct{})
 
 	go func() {
-		_ = oplb.CollectOneElementFromChannels()
+		_ = oclb.CollectOneElementFromChannels()
 
 		chanDone <- struct{}{}
 	}()
@@ -233,9 +233,9 @@ func TestOutgoingChannelLoadBalancer_CollectFromChannelsNoObjectsShouldWaitBlock
 func TestOutgoingChannelLoadBalancer_CollectOneElementFromChannelsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	oplb := loadBalancer.NewOutgoingChannelLoadBalancer()
+	oclb := loadBalancer.NewOutgoingChannelLoadBalancer()
 
-	oplb.AddChannel("test")
+	oclb.AddChannel("test")
 
 	obj1 := &p2p.SendableData{Topic: "test"}
 	obj2 := &p2p.SendableData{Topic: "default"}
@@ -246,13 +246,13 @@ func TestOutgoingChannelLoadBalancer_CollectOneElementFromChannelsShouldWork(t *
 
 	//send on channel test
 	go func() {
-		oplb.GetChannelOrDefault("test") <- obj1
+		oclb.GetChannelOrDefault("test") <- obj1
 		wg.Done()
 	}()
 
 	//send on default channel
 	go func() {
-		oplb.GetChannelOrDefault(loadBalancer.DefaultSendChannel()) <- obj2
+		oclb.GetChannelOrDefault(loadBalancer.DefaultSendChannel()) <- obj2
 		wg.Done()
 	}()
 
@@ -268,7 +268,7 @@ func TestOutgoingChannelLoadBalancer_CollectOneElementFromChannelsShouldWork(t *
 		foundObj2 := false
 
 		for {
-			obj := oplb.CollectOneElementFromChannels()
+			obj := oclb.CollectOneElementFromChannels()
 
 			if !foundObj1 {
 				if obj == obj1 {

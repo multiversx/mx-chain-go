@@ -22,16 +22,16 @@ type OutgoingChannelLoadBalancer struct {
 
 // NewOutgoingChannelLoadBalancer creates a new instance of a ChannelLoadBalancer instance
 func NewOutgoingChannelLoadBalancer() *OutgoingChannelLoadBalancer {
-	sdt := &OutgoingChannelLoadBalancer{
+	oclb := &OutgoingChannelLoadBalancer{
 		chans:      make([]chan *p2p.SendableData, 0),
 		names:      make([]string, 0),
 		namesChans: make(map[string]chan *p2p.SendableData),
 		mainChan:   make(chan *p2p.SendableData),
 	}
 
-	sdt.appendChannel(defaultSendChannel)
+	oclb.appendChannel(defaultSendChannel)
 
-	return sdt
+	return oclb
 }
 
 func (oplb *OutgoingChannelLoadBalancer) appendChannel(channel string) {
@@ -89,7 +89,7 @@ func (oplb *OutgoingChannelLoadBalancer) RemoveChannel(channel string) error {
 	}
 
 	if index == -1 {
-		return p2p.ErrChannelDoNotExists
+		return p2p.ErrChannelDoesNotExist
 	}
 
 	sendableChan := oplb.chans[index]
