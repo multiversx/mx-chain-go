@@ -25,20 +25,17 @@ var ErrTopicAlreadyExists = errors.New("topic already exists")
 // ErrTopicValidatorOperationNotSupported signals that an unsupported validator operation occurred
 var ErrTopicValidatorOperationNotSupported = errors.New("topic validator operation is not supported")
 
-// ErrNilDiscoverer signals that a nil discoverer object has been provided
-var ErrNilDiscoverer = errors.New("nil discoverer object")
+// ErrNilChannelLoadBalancer signals that a nil data throttler object has been provided
+var ErrNilChannelLoadBalancer = errors.New("nil channel load balancer object")
 
-// ErrNilPipeLoadBalancer signals that a nil data throttler object has been provided
-var ErrNilPipeLoadBalancer = errors.New("nil pipe load balancer object")
+// ErrChannelAlreadyExists signals that the channel is already defined (and used)
+var ErrChannelAlreadyExists = errors.New("channel already exists")
 
-// ErrPipeAlreadyExists signals that the pipe is already defined (and used)
-var ErrPipeAlreadyExists = errors.New("pipe already exists")
+// ErrChannelDoesNotExist signals that a requested channel does not exist
+var ErrChannelDoesNotExist = errors.New("channel does not exist")
 
-// ErrPipeDoNotExists signals that a requested pipe does not exists
-var ErrPipeDoNotExists = errors.New("pipe does not exists")
-
-// ErrPipeCanNotBeDeleted signals that a pipe can not be deleted (might be the default pipe)
-var ErrPipeCanNotBeDeleted = errors.New("pipe can not be deleted")
+// ErrChannelCanNotBeDeleted signals that a channel can not be deleted (might be the default channel)
+var ErrChannelCanNotBeDeleted = errors.New("channel can not be deleted")
 
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")

@@ -42,7 +42,7 @@ func NewMemoryMessenger(
 	mes, err := createMessenger(
 		lctx,
 		false,
-		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		peerDiscoverer,
 	)
 	if err != nil {

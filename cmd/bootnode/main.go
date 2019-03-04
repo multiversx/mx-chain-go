@@ -58,6 +58,7 @@ import (
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
+	"github.com/pkg/profile"
 	"github.com/urfave/cli"
 )
 
@@ -98,6 +99,7 @@ type seedRandReader struct {
 	seed  []byte
 }
 
+// NewSeedRandReader will return a new instance of a seed-based reader
 func NewSeedRandReader(seed []byte) *seedRandReader {
 	return &seedRandReader{seed: seed, index: 0}
 }
@@ -137,7 +139,8 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode}
+
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
 	}
@@ -150,6 +153,22 @@ func main() {
 }
 
 func startNode(ctx *cli.Context, log *logger.Logger) error {
+	profileMode := ctx.GlobalString(flags.ProfileMode.Name)
+	switch profileMode {
+	case "cpu":
+		p := profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+		defer p.Stop()
+	case "mem":
+		p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+		defer p.Stop()
+	case "mutex":
+		p := profile.Start(profile.MutexProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+		defer p.Stop()
+	case "block":
+		p := profile.Start(profile.BlockProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+		defer p.Stop()
+	}
+
 	log.Info("Starting node...")
 
 	stop := make(chan bool, 1)
@@ -560,7 +579,7 @@ func createNetMessenger(
 		p2pConfig.Node.Port,
 		sk,
 		nil,
-		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		pDiscoverer,
 	)
 
