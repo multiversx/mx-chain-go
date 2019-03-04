@@ -12,7 +12,7 @@ import (
 	"github.com/multiformats/go-multistream"
 )
 
-type HostStub struct {
+type ConnectableHostStub struct {
 	IDCalled                    func() peer.ID
 	PeerstoreCalled             func() peerstore.Peerstore
 	AddrsCalled                 func() []multiaddr.Multiaddr
@@ -25,52 +25,57 @@ type HostStub struct {
 	NewStreamCalled             func(ctx context.Context, p peer.ID, pids ...protocol.ID) (net.Stream, error)
 	CloseCalled                 func() error
 	ConnManagerCalled           func() ifconnmgr.ConnManager
+	ConnectToPeerCalled         func(ctx context.Context, address string) error
 }
 
-func (hs *HostStub) ID() peer.ID {
+func (hs *ConnectableHostStub) ConnectToPeer(ctx context.Context, address string) error {
+	return hs.ConnectToPeerCalled(ctx, address)
+}
+
+func (hs *ConnectableHostStub) ID() peer.ID {
 	return hs.IDCalled()
 }
 
-func (hs *HostStub) Peerstore() peerstore.Peerstore {
+func (hs *ConnectableHostStub) Peerstore() peerstore.Peerstore {
 	return hs.PeerstoreCalled()
 }
 
-func (hs *HostStub) Addrs() []multiaddr.Multiaddr {
+func (hs *ConnectableHostStub) Addrs() []multiaddr.Multiaddr {
 	return hs.AddrsCalled()
 }
 
-func (hs *HostStub) Network() net.Network {
+func (hs *ConnectableHostStub) Network() net.Network {
 	return hs.NetworkCalled()
 }
 
-func (hs *HostStub) Mux() *multistream.MultistreamMuxer {
+func (hs *ConnectableHostStub) Mux() *multistream.MultistreamMuxer {
 	return hs.MuxCalled()
 }
 
-func (hs *HostStub) Connect(ctx context.Context, pi peerstore.PeerInfo) error {
+func (hs *ConnectableHostStub) Connect(ctx context.Context, pi peerstore.PeerInfo) error {
 	return hs.ConnectCalled(ctx, pi)
 }
 
-func (hs *HostStub) SetStreamHandler(pid protocol.ID, handler net.StreamHandler) {
+func (hs *ConnectableHostStub) SetStreamHandler(pid protocol.ID, handler net.StreamHandler) {
 	hs.SetStreamHandlerCalled(pid, handler)
 }
 
-func (hs *HostStub) SetStreamHandlerMatch(pid protocol.ID, handler func(string) bool, streamHandler net.StreamHandler) {
+func (hs *ConnectableHostStub) SetStreamHandlerMatch(pid protocol.ID, handler func(string) bool, streamHandler net.StreamHandler) {
 	hs.SetStreamHandlerMatchCalled(pid, handler, streamHandler)
 }
 
-func (hs *HostStub) RemoveStreamHandler(pid protocol.ID) {
+func (hs *ConnectableHostStub) RemoveStreamHandler(pid protocol.ID) {
 	hs.RemoveStreamHandlerCalled(pid)
 }
 
-func (hs *HostStub) NewStream(ctx context.Context, p peer.ID, pids ...protocol.ID) (net.Stream, error) {
+func (hs *ConnectableHostStub) NewStream(ctx context.Context, p peer.ID, pids ...protocol.ID) (net.Stream, error) {
 	return hs.NewStreamCalled(ctx, p, pids...)
 }
 
-func (hs *HostStub) Close() error {
+func (hs *ConnectableHostStub) Close() error {
 	return hs.CloseCalled()
 }
 
-func (hs *HostStub) ConnManager() ifconnmgr.ConnManager {
+func (hs *ConnectableHostStub) ConnManager() ifconnmgr.ConnManager {
 	return hs.ConnManagerCalled()
 }

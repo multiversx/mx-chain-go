@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	cr "github.com/libp2p/go-libp2p-crypto"
 )
@@ -28,15 +29,12 @@ func main() {
 		genPrivKey(),
 		nil,
 		loadBalancer.NewOutgoingPipeLoadBalancer(),
-		p2p.PeerDiscoveryKadDht,
+		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", nil),
 	)
 	startingPort++
 	fmt.Printf("advertiser is %s\n", getConnectableAddress(advertiser))
 	peers := make([]p2p.Messenger, 0)
-	go func() {
-		_ = advertiser.KadDhtDiscoverNewPeers()
-		time.Sleep(time.Second)
-	}()
+	_ = advertiser.Bootstrap()
 
 	for i := 0; i < 99; i++ {
 		netPeer, _ := libp2p.NewNetworkMessenger(
@@ -45,23 +43,17 @@ func main() {
 			genPrivKey(),
 			nil,
 			loadBalancer.NewOutgoingPipeLoadBalancer(),
-			p2p.PeerDiscoveryKadDht,
+			discovery.NewKadDhtPeerDiscoverer(
+				time.Second,
+				"test",
+				[]string{getConnectableAddress(advertiser)},
+			),
 		)
-		startingPort++
-
-		fmt.Printf("%s connecting to %s...\n",
-			getConnectableAddress(netPeer),
-			getConnectableAddress(advertiser))
-
-		_ = netPeer.ConnectToPeer(getConnectableAddress(advertiser))
-		_ = netPeer.KadDhtDiscoverNewPeers()
+		_ = netPeer.Bootstrap()
 
 		peers = append(peers, netPeer)
 
-		go func() {
-			_ = netPeer.KadDhtDiscoverNewPeers()
-			time.Sleep(time.Second)
-		}()
+		startingPort++
 	}
 
 	//display func

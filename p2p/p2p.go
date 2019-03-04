@@ -1,55 +1,10 @@
 package p2p
 
 import (
+	"context"
 	"io"
-	"strings"
 
 	"github.com/mr-tron/base58/base58"
-)
-
-// PeerDiscoveryType defines the peer discovery mechanism to use
-type PeerDiscoveryType int
-
-func (pdt PeerDiscoveryType) String() string {
-	switch pdt {
-	case PeerDiscoveryOff:
-		return "off"
-	case PeerDiscoveryKadDht:
-		return "kad-dht"
-	case PeerDiscoveryMdns:
-		return "mdns"
-	default:
-		return "unknown"
-	}
-}
-
-// LoadPeerDiscoveryTypeFromString outputs a peer discovery type by parsing the string argument
-// Errors if string is not recognized
-func LoadPeerDiscoveryTypeFromString(str string) (PeerDiscoveryType, error) {
-	str = strings.ToLower(str)
-
-	if str == PeerDiscoveryOff.String() {
-		return PeerDiscoveryOff, nil
-	}
-
-	if str == PeerDiscoveryMdns.String() {
-		return PeerDiscoveryMdns, nil
-	}
-
-	if str == PeerDiscoveryKadDht.String() {
-		return PeerDiscoveryKadDht, nil
-	}
-
-	return PeerDiscoveryOff, ErrPeerDiscoveryNotImplemented
-}
-
-const (
-	// PeerDiscoveryOff will not enable peer discovery
-	PeerDiscoveryOff PeerDiscoveryType = iota
-	// PeerDiscoveryMdns will enable mdns mechanism
-	PeerDiscoveryMdns
-	// PeerDiscoveryKadDht wil enable kad-dht mechanism
-	PeerDiscoveryKadDht
 )
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
@@ -77,6 +32,20 @@ func (pid PeerID) Pretty() string {
 	return base58.Encode(pid.Bytes())
 }
 
+// ContextProvider defines an interface for providing context to various messenger components
+type ContextProvider interface {
+	Context() context.Context
+}
+
+// PeerDiscoverer defines the behaviour of a peer discovery mechanism
+type PeerDiscoverer interface {
+	Bootstrap() error
+	Close() error
+	Name() string
+
+	ApplyContext(ctxProvider ContextProvider) error
+}
+
 // Messenger is the main struct used for communication with other peers
 type Messenger interface {
 	io.Closer
@@ -86,7 +55,6 @@ type Messenger interface {
 
 	Addresses() []string
 	ConnectToPeer(address string) error
-	KadDhtDiscoverNewPeers() error
 	IsConnected(peerID PeerID) bool
 	ConnectedPeers() []PeerID
 	TrimConnections()
@@ -126,4 +94,9 @@ type PipeLoadBalancer interface {
 type DirectSender interface {
 	NextSeqno(counter *uint64) []byte
 	Send(topic string, buff []byte, peer PeerID) error
+}
+
+// PeerDiscoveryFactory defines the factory for peer discoverer implementation
+type PeerDiscoveryFactory interface {
+	CreatePeerDiscoverer() (PeerDiscoverer, error)
 }

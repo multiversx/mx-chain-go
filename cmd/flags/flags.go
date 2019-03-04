@@ -26,17 +26,4 @@ var (
 		Usage: "Port number on which the application will start",
 		Value: 32000,
 	}
-	// MaxAllowedPeers defines a flag for setting the maximum number of connections allowed at once
-	MaxAllowedPeers = cli.IntFlag{
-		Name:  "max-allowed-peers",
-		Usage: "Maximum connections the user is willing to accept",
-		Value: 10,
-	}
-	// PeerDiscoveryType defines a flag for setting the peer discovery type
-	PeerDiscoveryType = cli.StringFlag{
-		Name: "peer-discovery-type",
-		Usage: "Peer discovery type. 'off' - discovery turned off, 'mdns'" +
-			" - discovery using mdns mechanism, 'kad-dht' - discovery using seed nodes",
-		Value: "mdns",
-	}
 )

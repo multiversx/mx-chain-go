@@ -10,9 +10,6 @@ var ErrNilMarshalizer = errors.New("trying to set nil marshalizer")
 // ErrNilMessenger signals that a nil messenger has been provided
 var ErrNilMessenger = errors.New("nil messenger")
 
-// ErrNilContext signals that a nil context has been provided
-var ErrNilContext = errors.New("trying to set nil context")
-
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("trying to set nil hasher")
 
@@ -72,3 +69,9 @@ var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
 
 // ErrNilInterceptorsResolversFactory signals that a nil interceptors resolvers factory has been provided
 var ErrNilInterceptorsResolversFactory = errors.New("nil interceptors resolvers factory")
+
+// ErrNilBlockHeader is raised when a valid block header is expected but nil was used
+var ErrNilBlockHeader = errors.New("block header is nil")
+
+// ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
+var ErrNilTxBlockBody = errors.New("tx block body is nil")

@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -27,6 +28,7 @@ type directSender struct {
 	ctx            context.Context
 	hostP2P        host.Host
 	messageHandler func(msg p2p.MessageP2P) error
+	mutSeenMesages sync.Mutex
 	seenMessages   *timecache.TimeCache
 }
 
@@ -116,6 +118,9 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsub_pb.Message)
 
 func (ds *directSender) checkAndSetSeenMessage(msg *pubsub_pb.Message) bool {
 	msgId := string(msg.GetFrom()) + string(msg.GetSeqno())
+
+	ds.mutSeenMesages.Lock()
+	defer ds.mutSeenMesages.Unlock()
 
 	if ds.seenMessages.Has(msgId) {
 		return true

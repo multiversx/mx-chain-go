@@ -28,8 +28,8 @@ var blankMessageHandler = func(msg p2p.MessageP2P) error {
 	return nil
 }
 
-func generateHostStub() *mock.HostStub {
-	return &mock.HostStub{
+func generateHostStub() *mock.ConnectableHostStub {
+	return &mock.ConnectableHostStub{
 		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
 	}
 }
@@ -67,7 +67,7 @@ func createLibP2PCredentialsDirectSender() (peer.ID, crypto.PrivKey) {
 //------- NewDirectSender
 
 func TestNewDirectSender_NilContextShouldErr(t *testing.T) {
-	hs := &mock.HostStub{}
+	hs := &mock.ConnectableHostStub{}
 
 	ds, err := libp2p.NewDirectSender(nil, hs, func(msg p2p.MessageP2P) error {
 		return nil
@@ -106,7 +106,7 @@ func TestNewDirectSender_OkValsShouldCallSetStreamHandlerWithCorrectValues(t *te
 	var pidCalled protocol.ID
 	var handlerCalled net.StreamHandler
 
-	hs := &mock.HostStub{
+	hs := &mock.ConnectableHostStub{
 		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {
 			pidCalled = pid
 			handlerCalled = handler
@@ -278,7 +278,7 @@ func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *test
 
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
-		&mock.HostStub{
+		&mock.ConnectableHostStub{
 			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
 			NetworkCalled: func() net.Network {
 				return netw
@@ -297,7 +297,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamErrorsShouldErr(t *testi
 
 	netw := &mock.NetworkStub{}
 
-	hs := &mock.HostStub{
+	hs := &mock.ConnectableHostStub{
 		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
 		NetworkCalled: func() net.Network {
 			return netw
@@ -336,7 +336,7 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 
 	ds, _ := libp2p.NewDirectSender(
 		context.Background(),
-		&mock.HostStub{
+		&mock.ConnectableHostStub{
 			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
 			NetworkCalled: func() net.Network {
 				return netw
@@ -395,7 +395,7 @@ func TestDirectSender_SendDirectToConnectedPeerExistingStreamShouldSendToStream(
 func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *testing.T) {
 	netw := &mock.NetworkStub{}
 
-	hs := &mock.HostStub{
+	hs := &mock.ConnectableHostStub{
 		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
 		NetworkCalled: func() net.Network {
 			return netw
@@ -468,7 +468,7 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 	var streamHandler net.StreamHandler
 	netw := &mock.NetworkStub{}
 
-	hs := &mock.HostStub{
+	hs := &mock.ConnectableHostStub{
 		SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {
 			streamHandler = handler
 		},

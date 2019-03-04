@@ -64,5 +64,17 @@ var ErrNilValidator = errors.New("no validator has been set for this topic")
 // ErrPeerDiscoveryProcessAlreadyStarted signals that mdns peer discovery is already turned on
 var ErrPeerDiscoveryProcessAlreadyStarted = errors.New("mdns peer discovery is already turned enabled")
 
-// ErrPeerDiscoveryNotImplemented signals that peer discovery is not implemented
-var ErrPeerDiscoveryNotImplemented = errors.New("unimplemented peer discovery")
+// ErrNilContextProvider signals that a nil context applier has been provided
+var ErrNilContextProvider = errors.New("nil context provider")
+
+// ErrWrongContextApplier signals that a wrong type of context applier has been provided
+var ErrWrongContextApplier = errors.New("wrong type of ContextApplier")
+
+// ErrNilPeerDiscoverer signals that a nil peer dicoverer has been provided
+var ErrNilPeerDiscoverer = errors.New("nil peer discoverer")
+
+// ErrMoreThanOnePeerDiscoveryActive signals that more than one peer discovery mechanism are enabled
+var ErrMoreThanOnePeerDiscoveryActive = errors.New("more than one peer discovery mechanisms are enabled")
+
+// ErrNegativeOrZeroPeersRefreshInterval signals that a negative or zero peers refresh interval has been provided
+var ErrNegativeOrZeroPeersRefreshInterval = errors.New("negative or zero peers refresh interval")

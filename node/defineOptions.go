@@ -1,7 +1,6 @@
 package node
 
 import (
-	"context"
 	"math/big"
 	"time"
 
@@ -36,17 +35,6 @@ func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
 			return ErrNilMarshalizer
 		}
 		n.marshalizer = marshalizer
-		return nil
-	}
-}
-
-// WithContext sets up the context option for the Node
-func WithContext(ctx context.Context) Option {
-	return func(n *Node) error {
-		if ctx == nil {
-			return ErrNilContext
-		}
-		n.ctx = ctx
 		return nil
 	}
 }

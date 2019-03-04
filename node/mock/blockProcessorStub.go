@@ -39,10 +39,6 @@ func (bps *BlockProcessorStub) CreateTxBlockBody(shardId uint32, maxTxInBlock in
 	panic("implement me")
 }
 
-func (bps *BlockProcessorStub) CreateEmptyBlockBody(shardId uint32, round int32) block.Body {
-	panic("implement me")
-}
-
 func (bps *BlockProcessorStub) RemoveBlockTxsFromPool(body block.Body) error {
 	panic("implement me")
 }

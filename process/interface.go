@@ -27,10 +27,8 @@ type BlockProcessor interface {
 	ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error
 	CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body) error
 	RevertAccountState()
-
 	CreateGenesisBlock(balances map[string]*big.Int) ([]byte, error)
 	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error)
-	CreateEmptyBlockBody(shardId uint32, round int32) block.Body
 	RemoveBlockTxsFromPool(body block.Body) error
 	GetRootHash() []byte
 	CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool
@@ -102,7 +100,7 @@ type TopicResolverSender interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
-	CreateAndCommitEmptyBlock(uint32) (block.Body, *block.Header)
+	CreateAndCommitEmptyBlock(uint32) (block.Body, *block.Header, error)
 	AddSyncStateListener(func(bool))
 	ShouldSync() bool
 }

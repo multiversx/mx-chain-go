@@ -23,7 +23,7 @@ type TestRunner struct {
 
 func (tr *TestRunner) CreateMessenger(ctx context.Context,
 	port int,
-	peerDiscoveryType p2p.PeerDiscoveryType) p2p.Messenger {
+	peerDiscoverer p2p.PeerDiscoverer) p2p.Messenger {
 
 	r := rand.New(rand.NewSource(int64(port)))
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
@@ -35,7 +35,7 @@ func (tr *TestRunner) CreateMessenger(ctx context.Context,
 		sk,
 		nil,
 		loadBalancer.NewOutgoingPipeLoadBalancer(),
-		peerDiscoveryType)
+		peerDiscoverer)
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -76,11 +76,22 @@ func (tr *TestRunner) RunTest(peers []p2p.Messenger, testIndex int, topic string
 		for {
 			<-chanMessageProcessor
 
+			completelyRecv := true
+
+			atomic.StoreInt32(&msgReceived, 0)
+
 			//to be 100% all peers received the messages, iterate all message processors and check received flag
 			for _, mp := range messageProcessors {
 				if !mp.WasDataReceived() {
+					completelyRecv = false
 					continue
 				}
+
+				atomic.AddInt32(&msgReceived, 1)
+			}
+
+			if !completelyRecv {
+				continue
 			}
 
 			//all messengers got the message

@@ -1,7 +1,6 @@
 package node
 
 import (
-	"context"
 	"math/big"
 	"testing"
 	"time"
@@ -60,32 +59,6 @@ func TestWithMarshalizer_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.marshalizer == marshalizer)
-	assert.Nil(t, err)
-}
-
-func TestWithContext_NilContextShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithContext(nil)
-	err := opt(node)
-
-	assert.Equal(t, context.Background(), node.ctx)
-	assert.Equal(t, ErrNilContext, err)
-}
-
-func TestWithContext_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	ctx, _ := context.WithCancel(context.Background())
-
-	opt := WithContext(ctx)
-	err := opt(node)
-
-	assert.Equal(t, ctx, node.ctx)
 	assert.Nil(t, err)
 }
 

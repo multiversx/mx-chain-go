@@ -15,7 +15,6 @@ type BlockProcessorMock struct {
 	RevertAccountStateCalled      func()
 	CreateGenesisBlockCalled      func(balances map[string]*big.Int) (rootHash []byte, err error)
 	CreateTxBlockCalled           func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error)
-	CreateEmptyBlockBodyCalled    func(shardId uint32, round int32) block.Body
 	RemoveBlockTxsFromPoolCalled  func(body block.Body) error
 	GetRootHashCalled             func() []byte
 	noShards                      uint32
@@ -45,10 +44,6 @@ func (blProcMock BlockProcessorMock) CreateGenesisBlock(balances map[string]*big
 
 func (blProcMock BlockProcessorMock) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
 	return blProcMock.CreateTxBlockCalled(shardId, maxTxInBlock, round, haveTime)
-}
-
-func (blProcMock BlockProcessorMock) CreateEmptyBlockBody(shardId uint32, round int32) block.Body {
-	return blProcMock.CreateEmptyBlockBodyCalled(shardId, round)
 }
 
 func (blProcMock BlockProcessorMock) RemoveBlockTxsFromPool(body block.Body) error {

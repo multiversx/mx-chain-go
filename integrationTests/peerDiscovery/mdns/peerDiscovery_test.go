@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/peerDiscovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +29,10 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 	peers := make([]p2p.Messenger, noOfPeers)
 
 	for i := 0; i < noOfPeers; i++ {
-		peers[i] = tr.CreateMessenger(context.Background(), basePort+i, p2p.PeerDiscoveryMdns)
+		peers[i] = tr.CreateMessenger(
+			context.Background(),
+			basePort+i,
+			discovery.NewMdnsPeerDiscoverer(time.Second, "subnet"))
 	}
 
 	//Step 2. Call bootstrap to start the discovery process
