@@ -22,7 +22,7 @@ type subroundEndRound struct {
 	rounder        consensus.Rounder
 	syncTimer      ntp.SyncTimer
 
-	broadcastBlock func(*block.TxBlockBody, *block.Header) error
+	broadcastBlock func(block.Body, *block.Header) error
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -34,7 +34,7 @@ func NewSubroundEndRound(
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
-	broadcastBlock func(*block.TxBlockBody, *block.Header) error,
+	broadcastBlock func(block.Body, *block.Header) error,
 	extend func(subroundId int),
 ) (*subroundEndRound, error) {
 
@@ -79,7 +79,7 @@ func checkNewSubroundEndRoundParams(
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
-	broadcastBlock func(*block.TxBlockBody, *block.Header) error,
+	broadcastBlock func(block.Body, *block.Header) error,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround

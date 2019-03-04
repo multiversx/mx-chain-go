@@ -47,7 +47,6 @@ type TransientDataHolder interface {
 	Transactions() ShardedDataCacherNotifier
 	Headers() ShardedDataCacherNotifier
 	HeadersNonces() Uint64Cacher
-	TxBlocks() storage.Cacher
+	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
-	StateBlocks() storage.Cacher
 }

@@ -51,7 +51,6 @@ func (ti *testInitializer) createTestBlockChain() *blockchain.BlockChain {
 		ti.createMemUnit(),
 		ti.createMemUnit(),
 		ti.createMemUnit(),
-		ti.createMemUnit(),
 		ti.createMemUnit())
 
 	return blockChain
@@ -79,16 +78,12 @@ func (ti *testInitializer) createTestDataPool() data.TransientDataHolder {
 	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-	stateBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-
 	dPool, _ := dataPool.NewDataPool(
 		txPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
-		stateBlockBody,
 	)
 
 	return dPool

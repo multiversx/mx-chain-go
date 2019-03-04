@@ -14,8 +14,8 @@ func (boot *Bootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
 	return boot.getHeaderFromPoolHavingNonce(nonce)
 }
 
-func (boot *Bootstrap) GetTxBody(hash []byte) interface{} {
-	return boot.getTxBody(hash)
+func (boot *Bootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
+	return boot.miniBlockResolver.GetMiniBlocks(hashes)
 }
 
 func (boot *Bootstrap) ReceivedHeaders(key []byte) {
@@ -82,6 +82,6 @@ func (boot *Bootstrap) CreateAndBroadcastEmptyBlock() error {
 	return boot.createAndBroadcastEmptyBlock()
 }
 
-func (boot *Bootstrap) BroadcastEmptyBlock(txBlockBody *block.TxBlockBody, header *block.Header) error {
+func (boot *Bootstrap) BroadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
 	return boot.broadcastEmptyBlock(txBlockBody, header)
 }

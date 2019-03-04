@@ -15,14 +15,14 @@ import (
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
 	StorageService
-	GenesisBlock           *block.Header               // Genesys Block Header pointer
-	GenesisHeaderHash      []byte                      // Genesis Block Header hash
-	CurrentBlockHeader     *block.Header               // Current Block pointer
-	CurrentBlockHeaderHash []byte                      // Current Block Header hash
-	CurrentTxBlockBody     *block.TxBlockBody          // Current Tx Block Body pointer
-	LocalHeight            int64                       // Height of the local chain
-	NetworkHeight          int64                       // Percieved height of the network chain
-	badBlocks              storage.Cacher              // Bad blocks cache
+	GenesisBlock           *block.Header  // Genesys Block Header pointer
+	GenesisHeaderHash      []byte         // Genesis Block Header hash
+	CurrentBlockHeader     *block.Header  // Current Block pointer
+	CurrentBlockHeaderHash []byte         // Current Block Header hash
+	CurrentTxBlockBody     block.Body     // Current Tx Block Body pointer
+	LocalHeight            int64          // Height of the local chain
+	NetworkHeight          int64          // Percieved height of the network chain
+	badBlocks              storage.Cacher // Bad blocks cache
 }
 
 // NewBlockChain returns an initialized blockchain
@@ -30,9 +30,8 @@ type BlockChain struct {
 func NewBlockChain(
 	badBlocksCache storage.Cacher,
 	txUnit storage.Storer,
-	txBlockUnit storage.Storer,
-	stateBlockUnit storage.Storer,
-	peerBlockUnit storage.Storer,
+	miniBlockUnit storage.Storer,
+	peerChangesBlockUnit storage.Storer,
 	headerUnit storage.Storer) (*BlockChain, error) {
 
 	if badBlocksCache == nil {
@@ -43,15 +42,11 @@ func NewBlockChain(
 		return nil, ErrTxUnitNil
 	}
 
-	if txBlockUnit == nil {
-		return nil, ErrTxBlockUnitNil
+	if miniBlockUnit == nil {
+		return nil, ErrMiniBlockUnitNil
 	}
 
-	if stateBlockUnit == nil {
-		return nil, ErrStateBlockUnitNil
-	}
-
-	if peerBlockUnit == nil {
+	if peerChangesBlockUnit == nil {
 		return nil, ErrPeerBlockUnitNil
 	}
 
@@ -67,11 +62,10 @@ func NewBlockChain(
 		badBlocks:          badBlocksCache,
 		StorageService: &ChainStorer{
 			chain: map[UnitType]storage.Storer{
-				TransactionUnit:    txUnit,
-				TxBlockBodyUnit:    txBlockUnit,
-				StateBlockBodyUnit: stateBlockUnit,
-				PeerBlockBodyUnit:  peerBlockUnit,
-				BlockHeaderUnit:    headerUnit,
+				TransactionUnit: txUnit,
+				MiniBlockUnit:   miniBlockUnit,
+				PeerChangesUnit: peerChangesBlockUnit,
+				BlockHeaderUnit: headerUnit,
 			},
 		},
 	}

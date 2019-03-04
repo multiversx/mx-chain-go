@@ -8,14 +8,14 @@ import (
 
 // InterceptedTxBlockBody represents the wrapper over TxBlockBodyWrapper struct.
 type InterceptedTxBlockBody struct {
-	*block.TxBlockBody
+	TxBlockBody block.Body
 	hash []byte
 }
 
 // NewInterceptedTxBlockBody creates a new instance of InterceptedTxBlockBody struct
 func NewInterceptedTxBlockBody() *InterceptedTxBlockBody {
 	return &InterceptedTxBlockBody{
-		TxBlockBody: &block.TxBlockBody{},
+		TxBlockBody: make(block.Body, 0),
 	}
 }
 
@@ -27,11 +27,6 @@ func (inTxBlkBdy *InterceptedTxBlockBody) SetHash(hash []byte) {
 // Hash gets the hash of this transaction block body
 func (inTxBlkBdy *InterceptedTxBlockBody) Hash() []byte {
 	return inTxBlkBdy.hash
-}
-
-// Shard returns the shard ID for which this body is addressed
-func (inTxBlkBdy *InterceptedTxBlockBody) Shard() uint32 {
-	return inTxBlkBdy.ShardID
 }
 
 // GetUnderlyingObject returns the underlying object
@@ -60,20 +55,7 @@ func (inTxBlkBdy *InterceptedTxBlockBody) Integrity(coordinator sharding.ShardCo
 		return process.ErrNilTxBlockBody
 	}
 
-	interceptedStateBlockBody := InterceptedStateBlockBody{
-		StateBlockBody: &inTxBlkBdy.StateBlockBody,
-	}
-
-	err := interceptedStateBlockBody.Integrity(coordinator)
-	if err != nil {
-		return err
-	}
-
-	if inTxBlkBdy.MiniBlocks == nil {
-		return process.ErrNilMiniBlocks
-	}
-
-	for _, miniBlock := range inTxBlkBdy.MiniBlocks {
+	for _, miniBlock := range inTxBlkBdy.TxBlockBody {
 		if miniBlock.TxHashes == nil {
 			return process.ErrNilTxHashes
 		}

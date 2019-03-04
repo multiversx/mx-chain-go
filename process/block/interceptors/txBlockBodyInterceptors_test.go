@@ -5,15 +5,14 @@ import (
 	"errors"
 	"testing"
 
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-//------- NewTxBlockBodyInterceptor
+//------- NewMiniBlocksInterceptor
 
 func TestNewTxBlockBodyInterceptor_WithNilParameterShouldErr(t *testing.T) {
 	t.Parallel()
@@ -21,7 +20,7 @@ func TestNewTxBlockBodyInterceptor_WithNilParameterShouldErr(t *testing.T) {
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
-	tbbi, err := interceptors.NewTxBlockBodyInterceptor(
+	tbbi, err := interceptors.NewMiniBlocksInterceptor(
 		nil,
 		cache,
 		storer,
@@ -38,7 +37,7 @@ func TestNewTxBlockBodyInterceptor_OkValsShouldWork(t *testing.T) {
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
-	tbbi, err := interceptors.NewTxBlockBodyInterceptor(
+	tbbi, err := interceptors.NewMiniBlocksInterceptor(
 		&mock.MarshalizerMock{},
 		cache,
 		storer,
@@ -57,7 +56,7 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *tes
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
-	tbbi, _ := interceptors.NewTxBlockBodyInterceptor(
+	tbbi, _ := interceptors.NewMiniBlocksInterceptor(
 		&mock.MarshalizerMock{},
 		cache,
 		storer,
@@ -73,7 +72,7 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageNilMessageDataShouldErr(t 
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
-	tbbi, _ := interceptors.NewTxBlockBodyInterceptor(
+	tbbi, _ := interceptors.NewMiniBlocksInterceptor(
 		&mock.MarshalizerMock{},
 		cache,
 		storer,
@@ -93,7 +92,7 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarsh
 	cache := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
-	tbbi, _ := interceptors.NewTxBlockBodyInterceptor(
+	tbbi, _ := interceptors.NewMiniBlocksInterceptor(
 		&mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return errMarshalizer
@@ -111,35 +110,6 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarsh
 	assert.Equal(t, errMarshalizer, tbbi.ProcessReceivedMessage(msg))
 }
 
-func TestTxBlockBodyInterceptor_ProcessReceivedMessageIntegrityFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	marshalizer := &mock.MarshalizerMock{}
-
-	cache := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
-
-	tbbi, _ := interceptors.NewTxBlockBodyInterceptor(
-		marshalizer,
-		cache,
-		storer,
-		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
-
-	txBlock := block.NewInterceptedTxBlockBody()
-	txBlock.RootHash = []byte("root hash")
-	txBlock.ShardID = uint32(0)
-	txBlock.MiniBlocks = nil
-
-	buff, _ := marshalizer.Marshal(txBlock)
-
-	msg := &mock.P2PMessageMock{
-		DataField: buff,
-	}
-
-	assert.Equal(t, process.ErrNilMiniBlocks, tbbi.ProcessReceivedMessage(msg))
-}
-
 func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -152,24 +122,21 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing
 		},
 	}
 
-	tbbi, _ := interceptors.NewTxBlockBodyInterceptor(
+	tbbi, _ := interceptors.NewMiniBlocksInterceptor(
 		marshalizer,
 		cache,
 		storer,
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	txBlock := block.NewInterceptedTxBlockBody()
-	txBlock.RootHash = []byte("root hash")
-	txBlock.ShardID = uint32(0)
-	txBlock.MiniBlocks = []block2.MiniBlock{
+	miniBlocks := dataBlock.Body{
 		{
 			ShardID:  uint32(0),
 			TxHashes: [][]byte{[]byte("tx hash 1")},
 		},
 	}
 
-	buff, _ := marshalizer.Marshal(txBlock)
+	buff, _ := marshalizer.Marshal(miniBlocks)
 
 	msg := &mock.P2PMessageMock{
 		DataField: buff,

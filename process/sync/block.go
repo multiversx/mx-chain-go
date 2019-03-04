@@ -30,7 +30,7 @@ const sleepTime = time.Duration(5 * time.Millisecond)
 type Bootstrap struct {
 	headers          data.ShardedDataCacherNotifier
 	headersNonces    data.Uint64Cacher
-	txBlockBodies    storage.Cacher
+	miniBlocks       storage.Cacher
 	blkc             *blockchain.BlockChain
 	rounder          consensus.Rounder
 	blkExecutor      process.BlockProcessor
@@ -51,9 +51,9 @@ type Bootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	resolvers      process.ResolversContainer
-	hdrRes         process.HeaderResolver
-	txBlockBodyRes process.Resolver
+	resolvers         process.ResolversContainer
+	hdrRes            process.HeaderResolver
+	miniBlockResolver process.MiniBlocksResolver
 
 	isNodeSynchronized    bool
 	syncStateListeners    []func(bool)
@@ -62,7 +62,7 @@ type Bootstrap struct {
 	highestNonceReceived uint64
 	isForkDetected       bool
 
-	BroadcastBlock func(*block.TxBlockBody, *block.Header) error
+	BroadcastBlock func(block.Body, *block.Header) error
 }
 
 // NewBootstrap creates a new Bootstrap object
@@ -100,7 +100,7 @@ func NewBootstrap(
 	boot := Bootstrap{
 		headers:          transientDataHolder.Headers(),
 		headersNonces:    transientDataHolder.HeadersNonces(),
-		txBlockBodies:    transientDataHolder.TxBlocks(),
+		miniBlocks:       transientDataHolder.MiniBlocks(),
 		blkc:             blkc,
 		rounder:          rounder,
 		blkExecutor:      blkExecutor,
@@ -117,14 +117,14 @@ func NewBootstrap(
 		return nil, err
 	}
 
-	txBlockBodyResolver, err := resolversContainer.Get(string(factory.TxBlockBodyTopic))
+	miniBlocksResolver, err := resolversContainer.Get(string(factory.MiniBlocksTopic))
 	if err != nil {
 		return nil, err
 	}
 
 	//placed in struct fields for performance reasons
 	boot.hdrRes = hdrResolver.(process.HeaderResolver)
-	boot.txBlockBodyRes = txBlockBodyResolver.(process.Resolver)
+	boot.miniBlockResolver = miniBlocksResolver.(process.MiniBlocksResolver)
 
 	boot.chRcvHdr = make(chan bool)
 	boot.chRcvTxBdy = make(chan bool)
@@ -133,7 +133,7 @@ func NewBootstrap(
 	boot.setRequestedTxBodyHash(nil)
 
 	boot.headersNonces.RegisterHandler(boot.receivedHeaderNonce)
-	boot.txBlockBodies.RegisterHandler(boot.receivedBodyHash)
+	boot.miniBlocks.RegisterHandler(boot.receivedBodyHash)
 	boot.headers.RegisterHandler(boot.receivedHeaders)
 
 	boot.chStopSync = make(chan bool)
@@ -168,7 +168,7 @@ func checkBootstrapNilParameters(
 		return process.ErrNilHeadersNoncesDataPool
 	}
 
-	if transientDataHolder.TxBlocks() == nil {
+	if transientDataHolder.MiniBlocks() == nil {
 		return process.ErrNilTxBlockBody
 	}
 
@@ -406,7 +406,12 @@ func (boot *Bootstrap) SyncBlock() error {
 		return process.ErrNotImplementedBlockProcessingType
 	}
 
-	blk, err := boot.getTxBodyRequestingIfMissing(hdr.BlockBodyHash)
+	miniBlocksLen := len(hdr.MiniBlockHeaders)
+	miniBlockHashes := make([][]byte, miniBlocksLen)
+	for i := 0; i < miniBlocksLen; i++ {
+		miniBlockHashes[i] = hdr.MiniBlockHeaders[i].Hash
+	}
+	blk, err := boot.getMiniBlocksRequestingIfMissing(miniBlockHashes)
 	if err != nil {
 		return err
 	}
@@ -417,7 +422,8 @@ func (boot *Bootstrap) SyncBlock() error {
 
 	//TODO remove type assertions and implement a way for block executor to process
 	//TODO all kinds of headers
-	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, blk.(*block.TxBlockBody), haveTime)
+	miniBlocks := blk.(block.MiniBlockSlice)
+	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, block.Body(miniBlocks), haveTime)
 
 	if err != nil {
 		if err == process.ErrInvalidBlockHash {
@@ -449,8 +455,8 @@ func (boot *Bootstrap) createAndBroadcastEmptyBlock() error {
 	txBlockBody, header, err := boot.CreateAndCommitEmptyBlock(boot.shardCoordinator.ShardForCurrentNode())
 
 	if err == nil {
-		log.Info(fmt.Sprintf("txBlockBody with root hash %s and header with nonce %d was created and commited through the recovery mechanism\n",
-			toB64(txBlockBody.RootHash),
+		log.Info(fmt.Sprintf("body and header with root hash %s and nonce %d were created and commited through the recovery mechanism\n",
+			toB64(header.RootHash),
 			header.Nonce))
 
 		err = boot.broadcastEmptyBlock(txBlockBody, header)
@@ -459,7 +465,7 @@ func (boot *Bootstrap) createAndBroadcastEmptyBlock() error {
 	return err
 }
 
-func (boot *Bootstrap) broadcastEmptyBlock(txBlockBody *block.TxBlockBody, header *block.Header) error {
+func (boot *Bootstrap) broadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
 	log.Info(fmt.Sprintf("broadcasting an empty block\n"))
 
 	// broadcast block body and header
@@ -534,46 +540,17 @@ func (boot *Bootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Header
 	return hdr, nil
 }
 
-// getTxBody method returns the block body from a given hash either from data pool or from storage
-func (boot *Bootstrap) getTxBody(hash []byte) interface{} {
-	txBody, _ := boot.txBlockBodies.Get(hash)
-
-	if txBody != nil {
-		return txBody
-	}
-
-	txBodyStorer := boot.blkc.GetStorer(blockchain.TxBlockBodyUnit)
-
-	if txBodyStorer == nil {
-		return nil
-	}
-
-	buff, err := txBodyStorer.Get(hash)
-	if buff == nil {
-		log.LogIfError(err)
-		return nil
-	}
-
-	txBody = &block.TxBlockBody{}
-
-	err = boot.marshalizer.Unmarshal(txBody, buff)
-	log.LogIfError(err)
+// requestMiniBlocks method requests a block body from network when it is not found in the pool
+func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
+	buff, err := boot.marshalizer.Marshal(hashes)
 	if err != nil {
-		err = txBodyStorer.Remove(hash)
-		log.LogIfError(err)
-		txBody = nil
+		log.Error("Could not marshal MiniBlock hashes: ", err.Error())
+		return
 	}
+	boot.setRequestedTxBodyHash(buff)
+	err = boot.miniBlockResolver.RequestDataFromHashArray(hashes)
 
-	return txBody
-}
-
-// requestBody method requests a block body from network when it is not found in the pool
-func (boot *Bootstrap) requestTxBody(hash []byte) {
-	boot.setRequestedTxBodyHash(hash)
-	err := boot.txBlockBodyRes.RequestDataFromHash(hash)
-
-	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(hash)))
-
+	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(buff)))
 	if err != nil {
 		log.Error(err.Error())
 	}
@@ -584,24 +561,19 @@ func (boot *Bootstrap) requestTxBody(hash []byte) {
 // the func returns interface{} as to match the next implementations for block body fetchers
 // that will be added. The block executor should decide by parsing the header block body type value
 // what kind of block body received.
-func (boot *Bootstrap) getTxBodyRequestingIfMissing(hash []byte) (interface{}, error) {
-	blk := boot.getTxBody(hash)
+func (boot *Bootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (interface{}, error) {
+	miniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
 
-	if blk == nil {
-		boot.requestTxBody(hash)
+	if miniBlocks == nil {
+		boot.requestMiniBlocks(hashes)
 		boot.waitForTxBodyHash()
-		blk = boot.getTxBody(hash)
-		if blk == nil {
+		miniBlocks = boot.miniBlockResolver.GetMiniBlocks(hashes)
+		if miniBlocks == nil {
 			return nil, process.ErrMissingBody
 		}
 	}
 
-	intercepted, ok := blk.(*block.TxBlockBody)
-	if !ok {
-		return nil, ErrTxBlockBodyMismatch
-	}
-
-	return intercepted, nil
+	return miniBlocks, nil
 }
 
 // getNonceForNextBlock will get the nonce for the next block we should request
@@ -676,8 +648,8 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 		return process.ErrNilHeadersStorage
 	}
 
-	txBlockBodyStore := boot.blkc.GetStorer(blockchain.TxBlockBodyUnit)
-	if txBlockBodyStore == nil {
+	miniBlocksStore := boot.blkc.GetStorer(blockchain.MiniBlockUnit)
+	if miniBlocksStore == nil {
 		return process.ErrNilBlockBodyStorage
 	}
 
@@ -696,7 +668,7 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 		return err
 	}
 
-	newTxBlockBody, err := boot.getTxBlockBody(txBlockBodyStore, newHeader)
+	newTxBlockBody, err := boot.getTxBlockBody(newHeader)
 	if err != nil {
 		return err
 	}
@@ -729,17 +701,15 @@ func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.H
 	return newHeader, nil
 }
 
-func (boot *Bootstrap) getTxBlockBody(txBlockBodyStore storage.Storer,
-	header *block.Header) (*block.TxBlockBody, error) {
+func (boot *Bootstrap) getTxBlockBody(header *block.Header) (block.Body, error) {
 
-	buffTxBlockBody, _ := txBlockBodyStore.Get(header.BlockBodyHash)
-	txBlockBody := &block.TxBlockBody{}
-	err := boot.marshalizer.Unmarshal(txBlockBody, buffTxBlockBody)
-	if err != nil {
-		return nil, err
+	mbLength := len(header.MiniBlockHeaders)
+	hashes := make([][]byte, mbLength)
+	for i := 0; i < mbLength; i++ {
+		hashes[i] = header.MiniBlockHeaders[i].Hash
 	}
-
-	return txBlockBody, nil
+	bodyMiniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
+	return block.Body(bodyMiniBlocks), nil
 }
 
 // IsEmpty verifies if a block is empty
@@ -794,22 +764,12 @@ func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
 }
 
 // CreateAndCommitEmptyBlock creates and commits an empty block
-func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (*block.TxBlockBody, *block.Header, error) {
-	log.Info("creating and commiting an empty block\n")
+func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
 
 	boot.blkExecutor.RevertAccountState()
 
-	miniBlocks := make([]block.MiniBlock, 0)
-
-	rootHash := boot.accounts.RootHash()
-
-	blk := &block.TxBlockBody{
-		StateBlockBody: block.StateBlockBody{
-			RootHash: rootHash,
-			ShardID:  shardForCurrentNode,
-		},
-		MiniBlocks: miniBlocks,
-	}
+	blk := make(block.Body, 0)
 
 	hdr := &block.Header{}
 
@@ -827,19 +787,14 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (*b
 
 	hdr.TimeStamp = uint64(boot.getTimeStampForRound(hdr.Round).Unix())
 	hdr.PrevHash = prevHeaderHash
-
-	blkStr, err := boot.marshalizer.Marshal(blk)
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	hdr.BlockBodyHash = boot.hasher.Compute(string(blkStr))
-
+	hdr.RootHash = boot.accounts.RootHash()
 	hdr.PubKeysBitmap = make([]byte, 0)
 
 	// TODO: decide the signature for the empty block
 	headerStr, err := boot.marshalizer.Marshal(hdr)
+	if err != nil {
+		return nil, nil, err
+	}
 	hdrHash := boot.hasher.Compute(string(headerStr))
 	hdr.Signature = hdrHash
 	hdr.Commitment = hdrHash

@@ -30,7 +30,7 @@ func TestTomlParser(t *testing.T) {
 	multiSigHasherType := "hashFunc5"
 
 	cfgExpected := Config{
-		TxBlockBodyStorage: StorageConfig{
+		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
 				Size: uint32(txBlockBodyStorageSize),
 				Type: txBlockBodyStorageType,
@@ -67,11 +67,11 @@ func TestTomlParser(t *testing.T) {
 	}
 
 	testString := `
-[TxBlockBodyStorage]
-    [TxBlockBodyStorage.Cache]
+[MiniBlocksStorage]
+    [MiniBlocksStorage.Cache]
         Size = ` + strconv.Itoa(txBlockBodyStorageSize) + `
         Type = "` + txBlockBodyStorageType + `"
-    [TxBlockBodyStorage.DB]
+    [MiniBlocksStorage.DB]
         FilePath = "` + txBlockBodyStorageFile + `"
         Type = "` + txBlockBodyStorageTypeDB + `"
 

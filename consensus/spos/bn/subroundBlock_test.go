@@ -581,9 +581,13 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 
 	sr.ConsensusState().SetStatus(bn.SrBlock, spos.SsNotFinished)
 
-	bpm := &mock.BlockProcessorMock{}
+	bpm := &mock.BlockProcessorMock{
+		GetRootHashCalled: func() []byte {
+			return []byte{}
+		},
+	}
 	err := errors.New("error")
-	bpm.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, remainingTime func() bool) (*block.TxBlockBody, error) {
+	bpm.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, remainingTime func() bool) (block.Body, error) {
 		return nil, err
 	}
 	sr.SetBlockProcessor(bpm)
@@ -606,7 +610,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 
 	blockProcessorMock := initBlockProcessorMock()
 
-	blBody := &block.TxBlockBody{}
+	blBody := make(block.Body, 0)
 
 	blBodyStr, _ := mock.MarshalizerMock{}.Marshal(blBody)
 
@@ -620,7 +624,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		0,
 	)
 
-	sr.ConsensusState().BlockBody = &block.TxBlockBody{}
+	sr.ConsensusState().BlockBody = make(block.Body, 0)
 	r := sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
@@ -640,7 +644,6 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 
 	hdr := &block.Header{}
 	hdr.Nonce = 2
-	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(blBodyStr))
 
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	hdrHash := mock.HasherMock{}.Compute(string(hdrStr))
@@ -694,7 +697,6 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 
 	hdr = &block.Header{}
 	hdr.Nonce = 1
-	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(blBodyStr))
 
 	hdrStr, _ = mock.MarshalizerMock{}.Marshal(hdr)
 	hdrHash = mock.HasherMock{}.Compute(string(hdrStr))
@@ -710,13 +712,10 @@ func TestSubroundBlock_DecodeBlockBody(t *testing.T) {
 
 	sr := *initSubroundBlock()
 
-	blk := &block.TxBlockBody{}
+	body := make(block.Body, 0)
+	body = append(body, &block.MiniBlock{ShardID: 69})
 
-	mblks := make([]block.MiniBlock, 0)
-	mblks = append(mblks, block.MiniBlock{ShardID: 69})
-	blk.MiniBlocks = mblks
-
-	message, err := mock.MarshalizerMock{}.Marshal(blk)
+	message, err := mock.MarshalizerMock{}.Marshal(body)
 
 	assert.Nil(t, err)
 
@@ -726,8 +725,8 @@ func TestSubroundBlock_DecodeBlockBody(t *testing.T) {
 
 	dcdBlk = sr.DecodeBlockBody(message)
 
-	assert.Equal(t, blk, dcdBlk)
-	assert.Equal(t, uint32(69), dcdBlk.MiniBlocks[0].ShardID)
+	assert.Equal(t, body, dcdBlk)
+	assert.Equal(t, uint32(69), body[0].ShardID)
 }
 
 func TestSubroundBlock_DecodeBlockHeader(t *testing.T) {
@@ -743,9 +742,7 @@ func TestSubroundBlock_DecodeBlockHeader(t *testing.T) {
 	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
-
-	hdr.BlockBodyHash = mock.HasherMock{}.Compute(string(message))
-
+	
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
@@ -765,7 +762,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 
 	sr := *initSubroundBlock()
 
-	blk := &block.TxBlockBody{}
+	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -789,14 +786,14 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 	blProcMock := initBlockProcessorMock()
 
 	err := errors.New("error process block")
-	blProcMock.ProcessBlockCalled = func(*blockchain.BlockChain, *block.Header, *block.TxBlockBody, func() time.Duration) error {
+	blProcMock.ProcessBlockCalled = func(*blockchain.BlockChain, *block.Header, block.Body, func() time.Duration) error {
 		return err
 	}
 
 	sr.SetBlockProcessor(blProcMock)
 
 	hdr := &block.Header{}
-	blk := &block.TxBlockBody{}
+	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -821,7 +818,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 	sr := *initSubroundBlock()
 
 	hdr := &block.Header{}
-	blk := &block.TxBlockBody{}
+	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(
@@ -850,7 +847,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 	sr := *initSubroundBlock()
 
 	hdr := &block.Header{}
-	blk := &block.TxBlockBody{}
+	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 
 	cnsMsg := spos.NewConsensusMessage(

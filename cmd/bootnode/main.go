@@ -747,24 +747,17 @@ func createDataPoolFromConfig(config *config.Config, uint64ByteSliceConverter ty
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.StateBlockBodyDataPool)
-	stateBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-	if err != nil {
-		return nil, err
-	}
-
 	return dataPool.NewDataPool(
 		txPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
-		stateBlockBody,
 	)
 }
 
 func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, error) {
-	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit *storage.Unit
 	var err error
 
 	defer func() {
@@ -776,11 +769,8 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 			if peerBlockUnit != nil {
 				_ = peerBlockUnit.DestroyUnit()
 			}
-			if stateBlockUnit != nil {
-				_ = stateBlockUnit.DestroyUnit()
-			}
-			if txBlockUnit != nil {
-				_ = txBlockUnit.DestroyUnit()
+			if miniBlockUnit != nil {
+				_ = miniBlockUnit.DestroyUnit()
 			}
 			if txUnit != nil {
 				_ = txUnit.DestroyUnit()
@@ -805,19 +795,10 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 		return nil, err
 	}
 
-	txBlockUnit, err = storage.NewStorageUnitFromConf(
-		getCacherFromConfig(config.TxBlockBodyStorage.Cache),
-		getDBFromConfig(config.TxBlockBodyStorage.DB),
-		getBloomFromConfig(config.TxBlockBodyStorage.Bloom))
-
-	if err != nil {
-		return nil, err
-	}
-
-	stateBlockUnit, err = storage.NewStorageUnitFromConf(
-		getCacherFromConfig(config.StateBlockBodyStorage.Cache),
-		getDBFromConfig(config.StateBlockBodyStorage.DB),
-		getBloomFromConfig(config.StateBlockBodyStorage.Bloom))
+	miniBlockUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.MiniBlocksStorage.Cache),
+		getDBFromConfig(config.MiniBlocksStorage.DB),
+		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
 
 	if err != nil {
 		return nil, err
@@ -844,8 +825,7 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 	blockChain, err := blockchain.NewBlockChain(
 		badBlockCache,
 		txUnit,
-		txBlockUnit,
-		stateBlockUnit,
+		miniBlockUnit,
 		peerBlockUnit,
 		headerUnit)
 

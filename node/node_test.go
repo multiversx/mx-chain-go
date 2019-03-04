@@ -929,7 +929,7 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 	err := errors.New("error marshal tx vlock body")
 	marshalizerMock.MarshalHandler = func(obj interface{}) ([]byte, error) {
 		switch obj.(type) {
-		case *block.TxBlockBody:
+		case block.Body:
 			return nil, err
 		}
 
@@ -941,7 +941,7 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 		node.WithMarshalizer(marshalizerMock),
 	)
 
-	err2 := n.BroadcastBlock(&block.TxBlockBody{}, &block.Header{})
+	err2 := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
 	assert.Equal(t, err, err2)
 }
 
@@ -953,7 +953,7 @@ func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 	)
 
-	err := n.BroadcastBlock(&block.TxBlockBody{}, nil)
+	err := n.BroadcastBlock(make(block.Body, 0), nil)
 	assert.Equal(t, node.ErrNilBlockHeader, err)
 }
 
@@ -977,7 +977,7 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 		node.WithMarshalizer(marshalizerMock),
 	)
 
-	err2 := n.BroadcastBlock(&block.TxBlockBody{}, &block.Header{})
+	err2 := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
 	assert.Equal(t, err, err2)
 }
 
@@ -989,6 +989,6 @@ func TestNode_BroadcastBlockShouldWork(t *testing.T) {
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 	)
 
-	err := n.BroadcastBlock(&block.TxBlockBody{}, &block.Header{})
+	err := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
 	assert.Nil(t, err)
 }

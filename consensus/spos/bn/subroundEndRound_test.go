@@ -401,7 +401,7 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	blProcMock.CommitBlockCalled = func(
 		blockChain *blockchain.BlockChain,
 		header *block.Header,
-		block *block.TxBlockBody,
+		block block.Body,
 	) error {
 		return blockchain.ErrHeaderUnitNil
 	}
@@ -420,7 +420,7 @@ func TestSubroundEndRound_DoEndRoundJobErrRemBlockTxOK(t *testing.T) {
 
 	blProcMock := initBlockProcessorMock()
 
-	blProcMock.RemoveBlockTxsFromPoolCalled = func(body *block.TxBlockBody) error {
+	blProcMock.RemoveBlockTxsFromPoolCalled = func(body block.Body) error {
 		return process.ErrNilBlockBodyPool
 	}
 
@@ -436,7 +436,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 
 	sr := *initSubroundEndRound()
 
-	sr.SetBroadcastBlock(func(*block.TxBlockBody, *block.Header) error {
+	sr.SetBroadcastBlock(func(block.Body, *block.Header) error {
 		return spos.ErrNilBroadcastBlockFunction
 	})
 

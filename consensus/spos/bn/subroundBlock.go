@@ -235,6 +235,7 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 
 	hdr.Round = uint32(sr.rounder.Index())
 	hdr.TimeStamp = uint64(sr.rounder.TimeStamp().Unix())
+	hdr.RootHash = sr.blockProcessor.GetRootHash()
 
 	if sr.blockChain.CurrentBlockHeader == nil {
 		hdr.Nonce = 1
@@ -243,15 +244,6 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 		hdr.Nonce = sr.blockChain.CurrentBlockHeader.Nonce + 1
 		hdr.PrevHash = sr.blockChain.CurrentBlockHeaderHash
 	}
-
-	blkStr, err := sr.marshalizer.Marshal(sr.consensusState.BlockBody)
-
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-
-	hdr.BlockBodyHash = sr.hasher.Compute(string(blkStr))
 
 	hdrStr, err := sr.marshalizer.Marshal(hdr)
 
@@ -314,12 +306,12 @@ func (sr *subroundBlock) receivedBlockBody(cnsDta *spos.ConsensusMessage) bool {
 }
 
 // decodeBlockBody method decodes block body which is marshalized in the received message
-func (sr *subroundBlock) decodeBlockBody(dta []byte) *block.TxBlockBody {
+func (sr *subroundBlock) decodeBlockBody(dta []byte) block.Body {
 	if dta == nil {
 		return nil
 	}
 
-	var blk block.TxBlockBody
+	var blk block.Body
 
 	err := sr.marshalizer.Unmarshal(&blk, dta)
 
@@ -328,7 +320,7 @@ func (sr *subroundBlock) decodeBlockBody(dta []byte) *block.TxBlockBody {
 		return nil
 	}
 
-	return &blk
+	return blk
 }
 
 // receivedBlockHeader method is called when a block header is received through the block header channel.

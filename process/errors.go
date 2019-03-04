@@ -46,9 +46,6 @@ var ErrNilBlockChain = errors.New("nil block chain")
 // ErrNilTxBlockBody signals that an operation has been attempted to or with a nil block body
 var ErrNilTxBlockBody = errors.New("nil block body")
 
-// ErrNilStateBlockBody signals that an operation has been attempted to or with a nil block body
-var ErrNilStateBlockBody = errors.New("nil block body")
-
 // ErrNilPeerBlockBody signals that an operation has been attempted to or with a nil block body
 var ErrNilPeerBlockBody = errors.New("nil block body")
 
@@ -81,6 +78,9 @@ var ErrNilCommitment = errors.New("nil commitment")
 
 // ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
 var ErrNilMiniBlocks = errors.New("nil mini blocks")
+
+// ErrNilMiniBlockHeaders signals that an operation has been attempted with a nil mini-block
+var ErrNilMiniBlockHeaders = errors.New("nil mini block headers")
 
 // ErrNilTxHashes signals that an operation has been atempted with snil transaction hashes
 var ErrNilTxHashes = errors.New("nil transaction hashes")
@@ -250,3 +250,9 @@ var ErrNilTransactionHandler = errors.New("nil request transaction handler")
 
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")
+
+// ErrUnmarshalMBHashes signals the value is nil
+var ErrUnmarshalMBHashes = errors.New("could not unmarshal miniblock hashes")
+
+// ErrInvalidRequestType signals that a request on a topic sends an invalid type
+var ErrInvalidRequestType = errors.New("invalid request type")

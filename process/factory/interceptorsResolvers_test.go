@@ -303,7 +303,6 @@ func createBlockchain() *blockchain.BlockChain {
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
-		&mock.StorerStub{},
 		&mock.StorerStub{})
 
 	return blkc
@@ -339,13 +338,10 @@ func createDataPool() data.TransientDataHolder {
 	mockTransientDataPool.HeadersNoncesCalled = func() data.Uint64Cacher {
 		return &mock.Uint64CacherStub{}
 	}
-	mockTransientDataPool.TxBlocksCalled = func() storage.Cacher {
+	mockTransientDataPool.MiniBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
 	mockTransientDataPool.PeerChangesBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-	mockTransientDataPool.StateBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
 	return mockTransientDataPool

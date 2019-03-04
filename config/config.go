@@ -44,11 +44,10 @@ type TypeConfig struct {
 
 // Config will hold the entire application configuration parameters
 type Config struct {
-	TxBlockBodyStorage    StorageConfig `json:"txBlockBodyStorage"`
-	StateBlockBodyStorage StorageConfig `json:"stateBlockBodyStorage"`
-	PeerBlockBodyStorage  StorageConfig `json:"peerBlockBodyStorage"`
-	BlockHeaderStorage    StorageConfig `json:"blockHeaderStorage"`
-	TxStorage             StorageConfig `json:"txStorage"`
+	MiniBlocksStorage    StorageConfig `json:"miniBlocksStorage"`
+	PeerBlockBodyStorage StorageConfig `json:"peerBlockBodyStorage"`
+	BlockHeaderStorage   StorageConfig `json:"blockHeaderStorage"`
+	TxStorage            StorageConfig `json:"txStorage"`
 
 	AccountsTrieStorage StorageConfig `json:"accountsTrieStorage"`
 	BadBlocksCache      CacheConfig   `json:"badBlocksCache"`

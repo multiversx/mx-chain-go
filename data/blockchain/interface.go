@@ -7,16 +7,14 @@ import (
 const (
 	// TransactionUnit is the transactions storage unit identifier
 	TransactionUnit UnitType = 0
-	// TxBlockBodyUnit is the transaction block body storage unit identifier
-	TxBlockBodyUnit UnitType = 1
-	// StateBlockBodyUnit is the state block body storage unit identifier
-	StateBlockBodyUnit UnitType = 2
-	// PeerBlockBodyUnit is the peer change block body storage unit identifier
-	PeerBlockBodyUnit UnitType = 3
+	// MiniBlockUnit is the transaction block body storage unit identifier
+	MiniBlockUnit UnitType = 1
+	// PeerChangesUnit is the peer change block body storage unit identifier
+	PeerChangesUnit UnitType = 2
 	// BlockHeaderUnit is the Block Headers Storage unit identifier
-	BlockHeaderUnit UnitType = 4
+	BlockHeaderUnit UnitType = 3
 	// MetaBlockUnit is the metachain blocks storage unit identifier
-	MetaBlockUnit UnitType = 5
+	MetaBlockUnit UnitType = 4
 )
 
 // UnitType is the type for Storage unit identifiers

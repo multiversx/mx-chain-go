@@ -162,7 +162,6 @@ func TestWithBlockChain_ShouldWork(t *testing.T) {
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
-		&mock.StorerStub{},
 		&mock.StorerStub{})
 
 	opt := WithBlockChain(blkc)

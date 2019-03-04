@@ -679,23 +679,18 @@ func (n *Node) GetAccount(address string) (*state.Account, error) {
 }
 
 func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
-	blockBody, err := n.blockProcessor.CreateGenesisBlockBody(n.initialNodesBalances, 0)
+	rootHash, err := n.blockProcessor.CreateGenesisBlock(n.initialNodesBalances)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	marshalizedBody, err := n.marshalizer.Marshal(blockBody)
-	if err != nil {
-		return nil, nil, err
-	}
-	blockBodyHash := n.hasher.Compute(string(marshalizedBody))
 	header := &block.Header{
 		Nonce:         0,
-		ShardId:       blockBody.ShardID,
+		ShardId:       n.shardCoordinator.ShardForCurrentNode(),
 		TimeStamp:     uint64(n.genesisTime.Unix()),
-		BlockBodyHash: blockBodyHash,
 		BlockBodyType: block.StateBlock,
-		Signature:     blockBodyHash,
+		Signature:     rootHash,
+		RootHash:      rootHash,
 	}
 
 	marshalizedHeader, err := n.marshalizer.Marshal(header)
@@ -721,7 +716,7 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
 		cnsDtaBuff)
 }
 
-func (n *Node) broadcastBlock(blockBody *block.TxBlockBody, header *block.Header) error {
+func (n *Node) broadcastBlock(blockBody block.Body, header *block.Header) error {
 	if blockBody == nil {
 		return ErrNilTxBlockBody
 	}
@@ -733,7 +728,7 @@ func (n *Node) broadcastBlock(blockBody *block.TxBlockBody, header *block.Header
 	}
 
 	go n.messenger.Broadcast(
-		string(factory.TxBlockBodyTopic),
+		string(factory.MiniBlocksTopic),
 		msgBlockBody)
 
 	if header == nil {

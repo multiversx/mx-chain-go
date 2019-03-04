@@ -24,8 +24,7 @@ func createUnits() *blockChainUnits {
 	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
 	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
 
-	persisterTxBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxBlockBodyStorage"}
-	persisterStateBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "StateBlockBodyStorage"}
+	persisterMiniBlocksStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "MiniBlocksStorage"}
 	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "PeerBlockBodyStorage"}
 	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
 	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
@@ -41,12 +40,7 @@ func createUnits() *blockChainUnits {
 
 	blUnits.txBlockUnit, _ = storage.NewStorageUnitFromConf(
 		cacher,
-		persisterTxBlockBodyStorage,
-		bloom)
-
-	blUnits.stateBlockUnit, _ = storage.NewStorageUnitFromConf(
-		cacher,
-		persisterStateBlockBodyStorage,
+		persisterMiniBlocksStorage,
 		bloom)
 
 	blUnits.peerBlockUnit, _ = storage.NewStorageUnitFromConf(
@@ -94,7 +88,6 @@ func TestNewBlockchainNilBadBlockCacheShouldError(t *testing.T) {
 		nil,
 		blockChainUnits.txUnit,
 		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
 		blockChainUnits.peerBlockUnit,
 		blockChainUnits.headerUnit)
 
@@ -110,7 +103,6 @@ func TestNewBlockchainNilTxUnitShouldError(t *testing.T) {
 		blockChainUnits.txBadBlockCache,
 		nil,
 		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
 		blockChainUnits.peerBlockUnit,
 		blockChainUnits.headerUnit)
 
@@ -126,28 +118,12 @@ func TestNewBlockchainNilTxBlockUnitShouldError(t *testing.T) {
 		blockChainUnits.txBadBlockCache,
 		blockChainUnits.txUnit,
 		nil,
-		blockChainUnits.stateBlockUnit,
 		blockChainUnits.peerBlockUnit,
 		blockChainUnits.headerUnit)
 
 	blockChainUnits.cleanupBlockchainUnits()
 
-	assert.Equal(t, err, blockchain.ErrTxBlockUnitNil)
-}
-
-func TestNewBlockchainNilStateBlockUnitShouldError(t *testing.T) {
-	blockChainUnits := createUnits()
-
-	_, err := blockchain.NewBlockChain(
-		blockChainUnits.txBadBlockCache,
-		blockChainUnits.txUnit,
-		blockChainUnits.txBlockUnit,
-		nil,
-		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	blockChainUnits.cleanupBlockchainUnits()
-	assert.Equal(t, err, blockchain.ErrStateBlockUnitNil)
+	assert.Equal(t, err, blockchain.ErrMiniBlockUnitNil)
 }
 
 func TestNewBlockchainNilPeerBlockUnitShouldError(t *testing.T) {
@@ -157,7 +133,6 @@ func TestNewBlockchainNilPeerBlockUnitShouldError(t *testing.T) {
 		blockChainUnits.txBadBlockCache,
 		blockChainUnits.txUnit,
 		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
 		nil,
 		blockChainUnits.headerUnit)
 
@@ -172,7 +147,6 @@ func TestNewBlockchainNilHeaderUnitShouldError(t *testing.T) {
 		blockChainUnits.txBadBlockCache,
 		blockChainUnits.txUnit,
 		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
 		blockChainUnits.peerBlockUnit,
 		nil)
 
@@ -190,7 +164,6 @@ func TestNewBlockchainConfigOK(t *testing.T) {
 		blockChainUnits.txBadBlockCache,
 		blockChainUnits.txUnit,
 		blockChainUnits.txBlockUnit,
-		blockChainUnits.stateBlockUnit,
 		blockChainUnits.peerBlockUnit,
 		blockChainUnits.headerUnit)
 
@@ -207,7 +180,6 @@ func TestBlockChain_IsBadBlock(t *testing.T) {
 	badBlocksStub := &mock.CacherStub{}
 	txUnit := &mock.StorerStub{}
 	txBlockUnit := &mock.StorerStub{}
-	stateBlockUnit := &mock.StorerStub{}
 	peerBlockUnit := &mock.StorerStub{}
 	headerUnit := &mock.StorerStub{}
 
@@ -220,7 +192,6 @@ func TestBlockChain_IsBadBlock(t *testing.T) {
 		badBlocksStub,
 		txUnit,
 		txBlockUnit,
-		stateBlockUnit,
 		peerBlockUnit,
 		headerUnit)
 
@@ -232,7 +203,6 @@ func TestBlockChain_PutBadBlock(t *testing.T) {
 	badBlocksStub := &mock.CacherStub{}
 	txUnit := &mock.StorerStub{}
 	txBlockUnit := &mock.StorerStub{}
-	stateBlockUnit := &mock.StorerStub{}
 	peerBlockUnit := &mock.StorerStub{}
 	headerUnit := &mock.StorerStub{}
 
@@ -246,7 +216,6 @@ func TestBlockChain_PutBadBlock(t *testing.T) {
 		badBlocksStub,
 		txUnit,
 		txBlockUnit,
-		stateBlockUnit,
 		peerBlockUnit,
 		headerUnit)
 

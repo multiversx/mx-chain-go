@@ -1,17 +1,9 @@
-[TxBlockBodyStorage]
-    [TxBlockBodyStorage.Cache]
-        Size = 100
+[MiniBlocksStorage]
+    [MiniBlocksStorage.Cache]
+        Size = 1000
         Type = "LRU"
-    [TxBlockBodyStorage.DB]
-        FilePath = "TxBlocks"
-        Type = "LvlDB"
-
-[StateBlockBodyStorage]
-    [StateBlockBodyStorage.Cache]
-        Size = 100
-        Type = "LRU"
-    [StateBlockBodyStorage.DB]
-        FilePath = "StateBlocks"
+    [MiniBlocksStorage.DB]
+        FilePath = "MiniBlocks"
         Type = "LvlDB"
 
 [PeerBlockBodyStorage]

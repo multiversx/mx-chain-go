@@ -111,35 +111,6 @@ func TestPeerBlockBodyInterceptor_ValidateMarshalizerErrorsAtUnmarshalingShouldE
 	assert.Equal(t, errMarshalizer, pbbi.ProcessReceivedMessage(msg))
 }
 
-func TestPeerBlockBodyInterceptor_ProcessReceivedMessageIntegrityFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	marshalizer := &mock.MarshalizerMock{}
-
-	cache := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
-
-	pbbi, _ := interceptors.NewPeerBlockBodyInterceptor(
-		marshalizer,
-		cache,
-		storer,
-		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
-
-	peerChangeBlock := block.NewInterceptedPeerBlockBody()
-	peerChangeBlock.ShardID = uint32(0)
-	peerChangeBlock.RootHash = []byte("root hash")
-	peerChangeBlock.Changes = nil
-
-	buff, _ := marshalizer.Marshal(peerChangeBlock)
-
-	msg := &mock.P2PMessageMock{
-		DataField: buff,
-	}
-
-	assert.Equal(t, process.ErrNilPeerChanges, pbbi.ProcessReceivedMessage(msg))
-}
-
 func TestPeerBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -160,9 +131,7 @@ func TestPeerBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testi
 		mock.NewOneShardCoordinatorMock())
 
 	peerChangeBlock := block.NewInterceptedPeerBlockBody()
-	peerChangeBlock.ShardID = uint32(0)
-	peerChangeBlock.RootHash = []byte("root hash")
-	peerChangeBlock.Changes = []block2.PeerChange{
+	peerChangeBlock.PeerBlockBody = []*block2.PeerChange{
 		{PubKey: []byte("pub key"), ShardIdDest: uint32(0)},
 	}
 

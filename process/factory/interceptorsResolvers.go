@@ -24,12 +24,10 @@ const (
 	TransactionTopic topicName = "transactions"
 	// HeadersTopic is the topic used for sharing block headers
 	HeadersTopic topicName = "headers"
-	// TxBlockBodyTopic is the topic used for sharing transactions block bodies
-	TxBlockBodyTopic topicName = "txBlockBodies"
+	// MiniBlocksTopic is the topic used for sharing mini blocks
+	MiniBlocksTopic topicName = "txBlockBodies"
 	// PeerChBodyTopic is used for sharing peer change block bodies
 	PeerChBodyTopic topicName = "peerChangeBlockBodies"
-	// StateBodyTopic is used for sharing state block bodies
-	StateBodyTopic topicName = "stateBlockBodies"
 )
 
 type interceptorsResolvers struct {
@@ -103,17 +101,12 @@ func (ir *interceptorsResolvers) CreateInterceptors() error {
 		return err
 	}
 
-	err = ir.createTxBlockBodyInterceptor()
+	err = ir.createMiniBlocksInterceptor()
 	if err != nil {
 		return err
 	}
 
 	err = ir.createPeerChBlockBodyInterceptor()
-	if err != nil {
-		return err
-	}
-
-	err = ir.createStateBlockBodyInterceptor()
 	if err != nil {
 		return err
 	}
@@ -139,11 +132,6 @@ func (ir *interceptorsResolvers) CreateResolvers() error {
 	}
 
 	err = ir.createPeerChBlockBodyResolver()
-	if err != nil {
-		return err
-	}
-
-	err = ir.createStateBlockBodyResolver()
 	if err != nil {
 		return err
 	}
@@ -213,12 +201,12 @@ func (ir *interceptorsResolvers) createHdrInterceptor() error {
 	return err
 }
 
-func (ir *interceptorsResolvers) createTxBlockBodyInterceptor() error {
-	txBlockBodyStorer := ir.blockchain.GetStorer(blockchain.TxBlockBodyUnit)
+func (ir *interceptorsResolvers) createMiniBlocksInterceptor() error {
+	txBlockBodyStorer := ir.blockchain.GetStorer(blockchain.MiniBlockUnit)
 
-	txBlockBodyInterceptor, err := interceptors.NewTxBlockBodyInterceptor(
+	txBlockBodyInterceptor, err := interceptors.NewMiniBlocksInterceptor(
 		ir.marshalizer,
-		ir.dataPool.TxBlocks(),
+		ir.dataPool.MiniBlocks(),
 		txBlockBodyStorer,
 		ir.hasher,
 		ir.shardCoordinator,
@@ -228,17 +216,17 @@ func (ir *interceptorsResolvers) createTxBlockBodyInterceptor() error {
 		return err
 	}
 
-	err = ir.createTopicAndAssignHandler(string(TxBlockBodyTopic), txBlockBodyInterceptor, true)
+	err = ir.createTopicAndAssignHandler(string(MiniBlocksTopic), txBlockBodyInterceptor, true)
 	if err != nil {
 		return err
 	}
 
-	err = ir.interceptorContainer.Add(string(TxBlockBodyTopic), txBlockBodyInterceptor)
+	err = ir.interceptorContainer.Add(string(MiniBlocksTopic), txBlockBodyInterceptor)
 	return err
 }
 
 func (ir *interceptorsResolvers) createPeerChBlockBodyInterceptor() error {
-	peerBlockBodyStorer := ir.blockchain.GetStorer(blockchain.PeerBlockBodyUnit)
+	peerBlockBodyStorer := ir.blockchain.GetStorer(blockchain.PeerChangesUnit)
 
 	peerChBodyInterceptor, err := interceptors.NewPeerBlockBodyInterceptor(
 		ir.marshalizer,
@@ -258,30 +246,6 @@ func (ir *interceptorsResolvers) createPeerChBlockBodyInterceptor() error {
 	}
 
 	err = ir.interceptorContainer.Add(string(PeerChBodyTopic), peerChBodyInterceptor)
-	return err
-}
-
-func (ir *interceptorsResolvers) createStateBlockBodyInterceptor() error {
-	stateBlockBodyStorer := ir.blockchain.GetStorer(blockchain.StateBlockBodyUnit)
-
-	stateBodyInterceptor, err := interceptors.NewStateBlockBodyInterceptor(
-		ir.marshalizer,
-		ir.dataPool.StateBlocks(),
-		stateBlockBodyStorer,
-		ir.hasher,
-		ir.shardCoordinator,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	err = ir.createTopicAndAssignHandler(string(StateBodyTopic), stateBodyInterceptor, true)
-	if err != nil {
-		return err
-	}
-
-	err = ir.interceptorContainer.Add(string(StateBodyTopic), stateBodyInterceptor)
 	return err
 }
 
@@ -353,7 +317,7 @@ func (ir *interceptorsResolvers) createHdrResolver() error {
 func (ir *interceptorsResolvers) createTxBlockBodyResolver() error {
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
-		string(TxBlockBodyTopic),
+		string(MiniBlocksTopic),
 		ir.marshalizer)
 	if err != nil {
 		return err
@@ -361,8 +325,8 @@ func (ir *interceptorsResolvers) createTxBlockBodyResolver() error {
 
 	txBlkResolver, err := resolvers.NewGenericBlockBodyResolver(
 		resolverSender,
-		ir.dataPool.TxBlocks(),
-		ir.blockchain.GetStorer(blockchain.TxBlockBodyUnit),
+		ir.dataPool.MiniBlocks(),
+		ir.blockchain.GetStorer(blockchain.MiniBlockUnit),
 		ir.marshalizer)
 
 	if err != nil {
@@ -371,14 +335,14 @@ func (ir *interceptorsResolvers) createTxBlockBodyResolver() error {
 
 	//add on the request topic
 	err = ir.createTopicAndAssignHandler(
-		string(TxBlockBodyTopic)+resolverSender.RequestTopicSuffix(),
+		string(MiniBlocksTopic)+resolverSender.RequestTopicSuffix(),
 		txBlkResolver,
 		false)
 	if err != nil {
 		return err
 	}
 
-	err = ir.resolverContainer.Add(string(TxBlockBodyTopic), txBlkResolver)
+	err = ir.resolverContainer.Add(string(MiniBlocksTopic), txBlkResolver)
 	return err
 }
 
@@ -394,7 +358,7 @@ func (ir *interceptorsResolvers) createPeerChBlockBodyResolver() error {
 	peerChBlkResolver, err := resolvers.NewGenericBlockBodyResolver(
 		resolverSender,
 		ir.dataPool.PeerChangesBlocks(),
-		ir.blockchain.GetStorer(blockchain.PeerBlockBodyUnit),
+		ir.blockchain.GetStorer(blockchain.PeerChangesUnit),
 		ir.marshalizer)
 
 	if err != nil {
@@ -411,38 +375,6 @@ func (ir *interceptorsResolvers) createPeerChBlockBodyResolver() error {
 	}
 
 	err = ir.resolverContainer.Add(string(PeerChBodyTopic), peerChBlkResolver)
-	return err
-}
-
-func (ir *interceptorsResolvers) createStateBlockBodyResolver() error {
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		ir.messenger,
-		string(StateBodyTopic),
-		ir.marshalizer)
-	if err != nil {
-		return err
-	}
-
-	stateBlkResolver, err := resolvers.NewGenericBlockBodyResolver(
-		resolverSender,
-		ir.dataPool.StateBlocks(),
-		ir.blockchain.GetStorer(blockchain.StateBlockBodyUnit),
-		ir.marshalizer)
-
-	if err != nil {
-		return err
-	}
-
-	//add on the request topic
-	err = ir.createTopicAndAssignHandler(
-		string(StateBodyTopic)+resolverSender.RequestTopicSuffix(),
-		stateBlkResolver,
-		false)
-	if err != nil {
-		return err
-	}
-
-	err = ir.resolverContainer.Add(string(StateBodyTopic), stateBlkResolver)
 	return err
 }
 

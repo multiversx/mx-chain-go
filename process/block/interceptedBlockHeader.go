@@ -68,10 +68,6 @@ func (inHdr *InterceptedHeader) Integrity(coordinator sharding.ShardCoordinator)
 		return process.ErrNilBlockHeader
 	}
 
-	if inHdr.BlockBodyHash == nil {
-		return process.ErrNilBlockBodyHash
-	}
-
 	if inHdr.PubKeysBitmap == nil {
 		return process.ErrNilPubKeysBitmap
 	}
@@ -92,15 +88,20 @@ func (inHdr *InterceptedHeader) Integrity(coordinator sharding.ShardCoordinator)
 		return process.ErrNilCommitment
 	}
 
+	if inHdr.RootHash == nil {
+		return process.ErrNilRootHash
+	}
+
 	switch inHdr.BlockBodyType {
 	case block.PeerBlock:
+		return inHdr.validatePeerBlock()
 	case block.StateBlock:
+		return inHdr.validateStateBlock()
 	case block.TxBlock:
+		return inHdr.validateTxBlock()
 	default:
 		return process.ErrInvalidBlockBodyType
 	}
-
-	return nil
 }
 
 func (inHdr *InterceptedHeader) validityCheck() error {
@@ -113,5 +114,20 @@ func (inHdr *InterceptedHeader) VerifySig() error {
 	// TODO: Check block signature after multisig will be implemented
 	// TODO: the interceptors do not have access yet to consensus group selection to validate multisigs
 
+	return nil
+}
+
+func (inHdr *InterceptedHeader) validatePeerBlock() error {
+	return nil
+}
+
+func (inHdr *InterceptedHeader) validateStateBlock() error {
+	return nil
+}
+
+func (inHdr *InterceptedHeader) validateTxBlock() error {
+	if inHdr.MiniBlockHeaders == nil {
+		return process.ErrNilMiniBlockHeaders
+	}
 	return nil
 }

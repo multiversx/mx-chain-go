@@ -53,13 +53,14 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 		PubKeysBitmap: []byte{255, 0},
 		Commitment:    []byte("commitment"),
 		Signature:     []byte("signature"),
-		BlockBodyHash: []byte("block body hash"),
 		PrevHash:      []byte("prev hash"),
 		TimeStamp:     uint64(time.Now().Unix()),
 		Round:         1,
 		Epoch:         2,
 		ShardId:       0,
 		BlockBodyType: block.TxBlock,
+		RootHash:      []byte{255, 255},
+		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
 	}
 
 	hdrBuff, _ := marshalizer.Marshal(&hdr)

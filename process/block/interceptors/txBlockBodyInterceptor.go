@@ -1,6 +1,7 @@
 package interceptors
 
 import (
+	blockData "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -14,8 +15,8 @@ type TxBlockBodyInterceptor struct {
 	*GenericBlockBodyInterceptor
 }
 
-// NewTxBlockBodyInterceptor creates a new instance of a TxBlockBodyInterceptor
-func NewTxBlockBodyInterceptor(
+// NewMiniBlocksInterceptor creates a new instance of a TxBlockBodyInterceptor
+func NewMiniBlocksInterceptor(
 	marshalizer marshal.Marshalizer,
 	cache storage.Cacher,
 	storer storage.Storer,
@@ -45,10 +46,13 @@ func (tbbi *TxBlockBodyInterceptor) ProcessReceivedMessage(message p2p.MessageP2
 	}
 
 	txBlockBody := block.NewInterceptedTxBlockBody()
-	err = tbbi.marshalizer.Unmarshal(txBlockBody, message.Data())
+	miniBlocks := make([]*blockData.MiniBlock, 0)
+	x := message.Data()
+	err = tbbi.marshalizer.Unmarshal(&miniBlocks, x)
 	if err != nil {
 		return err
 	}
+	txBlockBody.TxBlockBody = miniBlocks
 
 	return tbbi.processBlockBody(message.Data(), txBlockBody)
 }

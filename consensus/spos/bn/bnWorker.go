@@ -35,7 +35,7 @@ type worker struct {
 	executeMessageChannel         chan *spos.ConsensusMessage
 	consensusStateChangedChannels chan bool
 
-	BroadcastBlock func(*block.TxBlockBody, *block.Header) error
+	BroadcastBlock func(block.Body, *block.Header) error
 	SendMessage    func(consensus *spos.ConsensusMessage)
 
 	mutReceivedMessages      sync.RWMutex

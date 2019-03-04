@@ -14,6 +14,8 @@ func (rdt RequestDataType) String() string {
 	switch rdt {
 	case HashType:
 		return "hash type"
+	case HashArrayType:
+		return "hash array type"
 	case NonceType:
 		return "nonce type"
 	default:
@@ -24,6 +26,8 @@ func (rdt RequestDataType) String() string {
 const (
 	// HashType indicates that the request data object is of type hash
 	HashType RequestDataType = iota + 1
+	// HashArrayType that the request data object contains a serialised array of hashes
+	HashArrayType
 	// NonceType indicates that the request data object is of type nonce (uint64)
 	NonceType
 )

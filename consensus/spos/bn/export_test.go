@@ -375,7 +375,7 @@ func (sr *subroundBlock) ReceivedBlockBody(cnsDta *spos.ConsensusMessage) bool {
 	return sr.receivedBlockBody(cnsDta)
 }
 
-func (sr *subroundBlock) DecodeBlockBody(dta []byte) *block.TxBlockBody {
+func (sr *subroundBlock) DecodeBlockBody(dta []byte) block.Body {
 	return sr.decodeBlockBody(dta)
 }
 
@@ -611,11 +611,11 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
-func (sr *subroundEndRound) BroadcastBlock() func(*block.TxBlockBody, *block.Header) error {
+func (sr *subroundEndRound) BroadcastBlock() func(block.Body, *block.Header) error {
 	return sr.broadcastBlock
 }
 
-func (sr *subroundEndRound) SetBroadcastBlock(broadcastBlock func(*block.TxBlockBody, *block.Header) error) {
+func (sr *subroundEndRound) SetBroadcastBlock(broadcastBlock func(block.Body, *block.Header) error) {
 	sr.broadcastBlock = broadcastBlock
 }
 

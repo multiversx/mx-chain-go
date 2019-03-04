@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	block2 "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/interceptors"
@@ -267,7 +267,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShouldErr(t *t
 		DataField: buff,
 	}
 
-	assert.Equal(t, process.ErrNilBlockBodyHash, hi.ProcessReceivedMessage(msg))
+	assert.Equal(t, process.ErrNilPubKeysBitmap, hi.ProcessReceivedMessage(msg))
 }
 
 func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) {
@@ -310,11 +310,12 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
-	hdr.BlockBodyHash = make([]byte, 0)
-	hdr.BlockBodyType = block2.TxBlock
+	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
+	hdr.RootHash = make([]byte, 0)
+	hdr.MiniBlockHeaders = make([]dataBlock.MiniBlockHeader, 0)
 
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
@@ -372,11 +373,12 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 	hdr.ShardId = 0
 	hdr.PrevHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
-	hdr.BlockBodyHash = make([]byte, 0)
-	hdr.BlockBodyType = block2.TxBlock
+	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.Commitment = make([]byte, 0)
+	hdr.RootHash = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
+	hdr.MiniBlockHeaders = make([]dataBlock.MiniBlockHeader, 0)
 
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
