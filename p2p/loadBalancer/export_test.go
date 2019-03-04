@@ -4,18 +4,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
-func (oplb *OutgoingPipeLoadBalancer) Chans() []chan *p2p.SendableData {
+func (oplb *OutgoingChannelLoadBalancer) Chans() []chan *p2p.SendableData {
 	return oplb.chans
 }
 
-func (oplb *OutgoingPipeLoadBalancer) Names() []string {
+func (oplb *OutgoingChannelLoadBalancer) Names() []string {
 	return oplb.names
 }
 
-func (oplb *OutgoingPipeLoadBalancer) NamesChans() map[string]chan *p2p.SendableData {
+func (oplb *OutgoingChannelLoadBalancer) NamesChans() map[string]chan *p2p.SendableData {
 	return oplb.namesChans
 }
 
-func DefaultSendPipe() string {
-	return defaultSendPipe
+func DefaultSendChannel() string {
+	return defaultSendChannel
 }

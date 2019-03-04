@@ -60,13 +60,13 @@ type Messenger interface {
 	TrimConnections()
 	Bootstrap() error
 
-	CreateTopic(name string, createPipeForTopic bool) error
+	CreateTopic(name string, createChannelForTopic bool) error
 	HasTopic(name string) bool
 	HasTopicValidator(name string) bool
 	RegisterMessageProcessor(topic string, handler MessageProcessor) error
 	UnregisterMessageProcessor(topic string) error
-	OutgoingPipeLoadBalancer() PipeLoadBalancer
-	BroadcastOnPipe(pipe string, topic string, buff []byte)
+	OutgoingChannelLoadBalancer() ChannelLoadBalancer
+	BroadcastOnChannel(channel string, topic string, buff []byte)
 	Broadcast(topic string, buff []byte)
 	SendToConnectedPeer(topic string, buff []byte, peerID PeerID) error
 }
@@ -82,12 +82,12 @@ type MessageP2P interface {
 	Peer() PeerID
 }
 
-// PipeLoadBalancer defines what a load balancer that uses pipes should do
-type PipeLoadBalancer interface {
-	AddPipe(pipe string) error
-	RemovePipe(pipe string) error
-	GetChannelOrDefault(pipe string) chan *SendableData
-	CollectFromPipes() []*SendableData
+// ChannelLoadBalancer defines what a load balancer that uses chans should do
+type ChannelLoadBalancer interface {
+	AddChannel(channel string) error
+	RemoveChannel(channel string) error
+	GetChannelOrDefault(channel string) chan *SendableData
+	CollectOneElementFromChannels() *SendableData
 }
 
 // DirectSender defines a component that can send direct messages to connected peers

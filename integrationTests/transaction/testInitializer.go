@@ -209,7 +209,7 @@ func (ti *testInitializer) createMessenger(ctx context.Context, port int) p2p.Me
 		port,
 		sk,
 		nil,
-		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		discovery.NewNullDiscoverer())
 
 	if err != nil {

@@ -34,7 +34,7 @@ func (tr *TestRunner) CreateMessenger(ctx context.Context,
 		port,
 		sk,
 		nil,
-		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		peerDiscoverer)
 
 	if err != nil {

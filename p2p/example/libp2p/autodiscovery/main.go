@@ -28,7 +28,7 @@ func main() {
 		startingPort,
 		genPrivKey(),
 		nil,
-		loadBalancer.NewOutgoingPipeLoadBalancer(),
+		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", nil),
 	)
 	startingPort++
@@ -42,7 +42,7 @@ func main() {
 			startingPort,
 			genPrivKey(),
 			nil,
-			loadBalancer.NewOutgoingPipeLoadBalancer(),
+			loadBalancer.NewOutgoingChannelLoadBalancer(),
 			discovery.NewKadDhtPeerDiscoverer(
 				time.Second,
 				"test",
