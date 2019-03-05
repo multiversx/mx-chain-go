@@ -763,14 +763,7 @@ func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
 	return roundTimeStamp
 }
 
-// CreateAndCommitEmptyBlock creates and commits an empty block
-func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
-	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
-
-	boot.blkExecutor.RevertAccountState()
-
-	blk := make(block.Body, 0)
-
+func (boot *Bootstrap) createHeader() (*block.Header, error) {
 	hdr := &block.Header{}
 
 	var prevHeaderHash []byte
@@ -789,6 +782,23 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (bl
 	hdr.PrevHash = prevHeaderHash
 	hdr.RootHash = boot.accounts.RootHash()
 	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.MiniBlockHeaders = make([]block.MiniBlockHeader, 0)
+
+	return hdr, nil
+}
+
+// CreateAndCommitEmptyBlock creates and commits an empty block
+func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
+
+	boot.blkExecutor.RevertAccountState()
+
+	blk := make(block.Body, 0)
+
+	hdr, err := boot.createHeader()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// TODO: decide the signature for the empty block
 	headerStr, err := boot.marshalizer.Marshal(hdr)
