@@ -50,3 +50,7 @@ func (bps *BlockProcessorStub) GetRootHash() []byte {
 func (bps BlockProcessorStub) CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool {
 	panic("implement me")
 }
+
+func (bps BlockProcessorStub)CreateMiniBlockHeaders(body block.Body) ([]block.MiniBlockHeader, error) {
+	panic("implement me")
+}
