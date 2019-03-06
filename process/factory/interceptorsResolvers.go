@@ -31,8 +31,7 @@ const (
 )
 
 type interceptorsResolvers struct {
-	interceptorContainer process.Container
-	resolverContainer    process.ResolversContainer
+	resolverContainer process.ResolversContainer
 
 	messenger                p2p.Messenger
 	blockchain               *blockchain.BlockChain
@@ -73,7 +72,6 @@ func NewInterceptorsResolversCreator(config InterceptorsResolversConfig) (*inter
 		return nil, err
 	}
 	return &interceptorsResolvers{
-		interceptorContainer:     config.InterceptorContainer,
 		resolverContainer:        config.ResolverContainer,
 		messenger:                config.Messenger,
 		blockchain:               config.Blockchain,
@@ -137,11 +135,6 @@ func (ir *interceptorsResolvers) CreateResolvers() error {
 	}
 
 	return nil
-}
-
-// InterceptorContainer is a getter for interceptorContainer property
-func (ir *interceptorsResolvers) InterceptorContainer() process.Container {
-	return ir.interceptorContainer
 }
 
 // ResolverContainer is a getter for resolverContainer property

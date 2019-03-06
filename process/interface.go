@@ -131,6 +131,15 @@ type ResolversContainer interface {
 	Len() int
 }
 
+// InterceptorsContainer defines an interceptors holder data type with basic functionality
+type InterceptorsContainer interface {
+	Get(key string) (Interceptor, error)
+	Add(key string, val Interceptor) error
+	Replace(key string, val Interceptor) error
+	Remove(key string)
+	Len() int
+}
+
 // InterceptorsResolversFactory is an interface that defines the behaviour for a factory that
 //  can create the needed interceptors and resolvers for the application
 type InterceptorsResolversFactory interface {
@@ -140,6 +149,18 @@ type InterceptorsResolversFactory interface {
 	ResolverContainer() ResolversContainer
 }
 
+// InterceptorsContainerFactory defines the functionality to create an interceptors container
+type InterceptorsContainerFactory interface {
+	Create() (InterceptorsContainer, error)
+}
+
+// Interceptor defines what a data interceptor should do
+// It should also adhere to the p2p.BlockProcessor interface so it can wire to a p2p.Messenger
+type Interceptor interface {
+	ProcessReceivedMessage(message p2p.MessageP2P) error
+}
+
+// WireMessageHandler defines the functionality needed by this package to send data to other peers
 type WireMessageHandler interface {
 	ConnectedPeers() []p2p.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
