@@ -79,9 +79,7 @@ func (gbbi *GenericBlockBodyInterceptor) processBlockBody(messageData []byte, bo
 
 	blockBody, ok := body.GetUnderlyingObject().(block.Body)
 	if !ok {
-		// Not a block body containing miniblocks, just write it to it's own cache
-		_ = gbbi.cache.Put(hash, body.GetUnderlyingObject())
-		return nil
+		return process.ErrCouldNotDecodeUnderlyingBody
 	}
 
 	for _, miniblock := range blockBody {
