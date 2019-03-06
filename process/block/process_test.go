@@ -1214,7 +1214,7 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 	// no error
 	assert.Nil(t, err)
 	// no miniblocks
-	assert.Equal(t, len(*bl.(*block.Body)), 0)
+	assert.Equal(t, len(bl.(block.Body)), 0)
 }
 
 func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
