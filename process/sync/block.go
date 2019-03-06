@@ -320,6 +320,10 @@ func (boot *Bootstrap) setRequestedTxBody(hashes [][]byte) {
 // receivedBody method is a call back function which is called when a new body is added
 // in the block bodies pool
 func (boot *Bootstrap) receivedBodyHash(hash []byte) {
+	if len(boot.requestedHashes.ExpectedData()) == 0 {
+		return
+	}
+
 	boot.requestedHashes.SetReceivedHash(hash)
 	if  boot.requestedHashes.ReceivedAll() {
 		log.Info(fmt.Sprintf("received requested txBlockBody with hash %s from network\n", toB64(hash)))
