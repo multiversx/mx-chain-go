@@ -11,13 +11,17 @@ import (
 )
 
 type testInitializer struct {
+	r *rand.Rand
 }
 
 func (ti *testInitializer) createDummyAddress() state.AddressContainer {
 	buff := make([]byte, sha256.Sha256{}.Size())
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	r.Read(buff)
+	if ti.r == nil {
+		ti.r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	}
+
+	ti.r.Read(buff)
 
 	return state.NewAddress(buff)
 }
