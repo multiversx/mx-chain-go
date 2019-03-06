@@ -13,7 +13,7 @@ type BlockProcessorMock struct {
 	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled      func()
 	CreateGenesisBlockCalled      func(balances map[string]*big.Int) (rootHash []byte, err error)
-	CreateBlockCalled             func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockCalled             func(round int32, haveTime func() bool) (data.BodyHandler, error)
 	RemoveBlockInfoFromPoolCalled func(body data.BodyHandler) error
 	GetRootHashCalled             func() []byte
 	noShards                      uint32
@@ -37,8 +37,8 @@ func (blProcMock BlockProcessorMock) CreateGenesisBlock(balances map[string]*big
 	return blProcMock.CreateGenesisBlockCalled(balances)
 }
 
-func (blProcMock BlockProcessorMock) CreateBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (data.BodyHandler, error) {
-	return blProcMock.CreateBlockCalled(shardId, maxTxInBlock, round, haveTime)
+func (blProcMock BlockProcessorMock) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
+	return blProcMock.CreateBlockCalled(round, haveTime)
 }
 
 func (blProcMock BlockProcessorMock) RemoveBlockInfoFromPool(body data.BodyHandler) error {

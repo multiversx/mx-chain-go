@@ -588,7 +588,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		},
 	}
 	err := errors.New("error")
-	bpm.CreateBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, remainingTime func() bool) (data.BodyHandler, error) {
+	bpm.CreateBlockCalled = func(round int32, remainingTime func() bool) (data.BodyHandler, error) {
 		return nil, err
 	}
 	sr.SetBlockProcessor(bpm)

@@ -121,7 +121,7 @@ func initBlockProcessorMock() *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{}
 
 	blockProcessorMock.RemoveBlockInfoFromPoolCalled = func(body data.BodyHandler) error { return nil }
-	blockProcessorMock.CreateBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (data.BodyHandler, error) {
+	blockProcessorMock.CreateBlockCalled = func(round int32, haveTime func() bool) (data.BodyHandler, error) {
 		emptyBlock := make(block.Body, 0)
 
 		return emptyBlock, nil

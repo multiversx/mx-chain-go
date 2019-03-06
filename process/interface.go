@@ -28,7 +28,7 @@ type BlockProcessor interface {
 	CommitBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
 	CreateGenesisBlock(balances map[string]*big.Int) ([]byte, error)
-	CreateBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error)
 	RemoveBlockInfoFromPool(body data.BodyHandler) error
 	GetRootHash() []byte
 	CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool

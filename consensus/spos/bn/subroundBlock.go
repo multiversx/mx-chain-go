@@ -191,8 +191,6 @@ func (sr *subroundBlock) sendBlockBody() bool {
 	}
 
 	blk, err := sr.blockProcessor.CreateBlockBody(
-		sr.shardCoordinator.ShardForCurrentNode(),
-		maxTransactionsInBlock,
 		sr.rounder.Index(),
 		haveTimeInCurrentSubound,
 	)

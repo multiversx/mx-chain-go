@@ -14,7 +14,7 @@ type BlockProcessorMock struct {
 	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled      func()
 	CreateGenesisBlockCalled      func(balances map[string]*big.Int) (rootHash []byte, err error)
-	CreateBlockCalled             func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (data.BodyHandler, error)
+	CreateBlockCalled             func(round int32, haveTime func() bool) (data.BodyHandler, error)
 	RemoveBlockInfoFromPoolCalled func(body data.BodyHandler) error
 	GetRootHashCalled             func() []byte
 	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
@@ -47,8 +47,8 @@ func (blProcMock *BlockProcessorMock) CreateGenesisBlock(balances map[string]*bi
 }
 
 // CreateTxBlockBody mocks the creation of a transaction block body
-func (blProcMock *BlockProcessorMock) CreateBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (data.BodyHandler, error) {
-	return blProcMock.CreateBlockCalled(shardId, maxTxInBlock, round, haveTime)
+func (blProcMock *BlockProcessorMock) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
+	return blProcMock.CreateBlockCalled(round, haveTime)
 }
 
 // RemoveBlockTxsFromPool mocks the removal of block transactions from transaction pools

@@ -29,6 +29,8 @@ var log = logger.NewDefaultLogger()
 var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
+const maxTransactionsInBlock = 15000
+
 // blockProcessor implements blockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
 	dataPool             data.TransientDataHolder
@@ -226,8 +228,8 @@ func (bp *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
 
 // CreateTxBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
-func (bp *blockProcessor) CreateBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (data.BodyHandler, error) {
-	miniBlocks, err := bp.createMiniBlocks(bp.shardCoordinator.NoShards(), maxTxInBlock, round, haveTime)
+func (bp *blockProcessor) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
+	miniBlocks, err := bp.createMiniBlocks(bp.shardCoordinator.NoShards(), maxTransactionsInBlock, round, haveTime)
 
 	if err != nil {
 		return nil, err

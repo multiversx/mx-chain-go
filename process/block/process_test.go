@@ -1172,7 +1172,7 @@ func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 		},
 	)
 
-	bl, err := be.CreateBlockBody(0, 100, 0, func() bool { return true })
+	bl, err := be.CreateBlockBody(0, func() bool { return true })
 
 	// nil block
 	assert.Nil(t, bl)
@@ -1209,7 +1209,7 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 		return false
 	}
 
-	bl, err := be.CreateBlockBody(0, 100, 0, haveTime)
+	bl, err := be.CreateBlockBody(0, haveTime)
 
 	// no error
 	assert.Nil(t, err)
@@ -1252,7 +1252,7 @@ func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
 		},
 	)
 
-	blk, err := be.CreateBlockBody(0, 100, 0, haveTime)
+	blk, err := be.CreateBlockBody(0, haveTime)
 
 	assert.NotNil(t, blk)
 	assert.Nil(t, err)
