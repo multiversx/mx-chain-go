@@ -422,8 +422,9 @@ func (boot *Bootstrap) SyncBlock() error {
 
 	//TODO remove type assertions and implement a way for block executor to process
 	//TODO all kinds of headers
-	miniBlocks := blk.(block.MiniBlockSlice)
-	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, block.Body(miniBlocks), haveTime)
+	blockBody := block.Body(blk.(block.MiniBlockSlice))
+
+	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 
 	if err != nil {
 		if err == process.ErrInvalidBlockHash {
@@ -431,6 +432,13 @@ func (boot *Bootstrap) SyncBlock() error {
 			err = boot.forkChoice(hdr)
 		}
 
+		return err
+	}
+
+	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
+
+	if err != nil {
+		log.Info(err.Error())
 		return err
 	}
 
@@ -800,7 +808,7 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (bl
 	hdr.Commitment = hdrHash
 
 	// Commit the block (commits also the account state)
-	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
+	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, &blk)
 
 	if err != nil {
 		return nil, nil, err

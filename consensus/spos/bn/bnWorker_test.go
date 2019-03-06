@@ -2,6 +2,7 @@ package bn_test
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -119,22 +120,20 @@ func initChronologyHandlerMock() consensus.ChronologyHandler {
 func initBlockProcessorMock() *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{}
 
-	blockProcessorMock.RemoveBlockTxsFromPoolCalled = func(body block.Body) error { return nil }
-	blockProcessorMock.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
-		return make(block.Body, 0), nil
+	blockProcessorMock.RemoveBlockInfoFromPoolCalled = func(body data.BodyHandler) error { return nil }
+	blockProcessorMock.CreateBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (data.BodyHandler, error) {
+		emptyBlock := make(block.Body, 0)
+
+		return emptyBlock, nil
 	}
 
-	blockProcessorMock.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block block.Body) error {
+	blockProcessorMock.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
 
 	blockProcessorMock.RevertAccountStateCalled = func() {}
 
-	blockProcessorMock.ProcessAndCommitCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
-		return nil
-	}
-
-	blockProcessorMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
+	blockProcessorMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
 

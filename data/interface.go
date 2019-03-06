@@ -50,3 +50,20 @@ type TransientDataHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 }
+
+// HeaderHandler defines getters for header data holder
+type HeaderHandler interface {
+	UnderlyingObject() interface{}
+	GetNonce() uint64
+	GetEpoch() uint32
+	GetRound() uint32
+	GetRootHash() []byte
+	GetPrevHash() []byte
+	GetPubKeysBitmap() []byte
+	GetSignature() []byte
+}
+
+// BodyHandler defines getters and setters for body data holder
+type BodyHandler interface {
+	UnderlyingObject() interface{}
+}

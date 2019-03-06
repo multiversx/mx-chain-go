@@ -1,6 +1,7 @@
 package bn_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"testing"
 	"time"
 
@@ -587,7 +588,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		},
 	}
 	err := errors.New("error")
-	bpm.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, remainingTime func() bool) (block.Body, error) {
+	bpm.CreateBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, remainingTime func() bool) (data.BodyHandler, error) {
 		return nil, err
 	}
 	sr.SetBlockProcessor(bpm)
@@ -676,7 +677,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	blockProcessorMock.CheckBlockValidityCalled = func(blockChain *blockchain.BlockChain, header *block.Header) bool {
+	blockProcessorMock.CheckBlockValidityCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
 		return false
 	}
 
@@ -686,7 +687,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	blockProcessorMock.CheckBlockValidityCalled = func(blockChain *blockchain.BlockChain, header *block.Header) bool {
+	blockProcessorMock.CheckBlockValidityCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
 		return true
 	}
 
@@ -742,7 +743,7 @@ func TestSubroundBlock_DecodeBlockHeader(t *testing.T) {
 	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
-	
+
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
@@ -786,7 +787,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 	blProcMock := initBlockProcessorMock()
 
 	err := errors.New("error process block")
-	blProcMock.ProcessBlockCalled = func(*blockchain.BlockChain, *block.Header, block.Body, func() time.Duration) error {
+	blProcMock.ProcessBlockCalled = func(*blockchain.BlockChain, data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
 		return err
 	}
 

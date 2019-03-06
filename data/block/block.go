@@ -56,8 +56,8 @@ type MiniBlock struct {
 // MiniBlockHeader holds the hash of a miniblock together with sender/deastination shard id pair.
 // The shard ids are both kept in order to differentiate between cross and single shard transactions
 type MiniBlockHeader struct {
-	Hash []byte `capid:"0"`
-	SenderShardID uint32 `capid:"1"`
+	Hash            []byte `capid:"0"`
+	SenderShardID   uint32 `capid:"1"`
 	ReceiverShardID uint32 `capid:"2"`
 }
 
@@ -314,4 +314,49 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	dest.SetSenderShardID(src.SenderShardID)
 
 	return dest
+}
+
+// Get returns a pointer to the struct Header as an interface
+func (h *Header) UnderlyingObject() interface{} {
+	return h
+}
+
+// GetNonce return header nonce
+func (h *Header) GetNonce() uint64 {
+	return h.Nonce
+}
+
+// GetEpoch return header epoch
+func (h *Header) GetEpoch() uint32 {
+	return h.Epoch
+}
+
+// GetRound return round from header
+func (h *Header) GetRound() uint32 {
+	return h.Round
+}
+
+// GetRootHash returns the roothash from header
+func (h *Header) GetRootHash() []byte {
+	return h.RootHash
+}
+
+// GetPrevHash returns previous block header hash
+func (h *Header) GetPrevHash() []byte {
+	return h.PrevHash
+}
+
+// GetPubKeysBitmap return signers bitmap
+func (h *Header) GetPubKeysBitmap() []byte {
+	return h.PubKeysBitmap
+}
+
+// GetSignature return signed data
+func (h *Header) GetSignature() []byte {
+	return h.Signature
+}
+
+// Get body pointer as interface
+func (b Body) UnderlyingObject() interface{} {
+	return b
 }

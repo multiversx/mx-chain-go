@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"math/big"
 	"time"
 
@@ -23,15 +24,14 @@ type TransactionProcessor interface {
 
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
-	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error
-	ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error
-	CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body) error
+	ProcessBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
 	CreateGenesisBlock(balances map[string]*big.Int) ([]byte, error)
-	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error)
-	RemoveBlockTxsFromPool(body block.Body) error
+	CreateBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (data.BodyHandler, error)
+	RemoveBlockInfoFromPool(body data.BodyHandler) error
 	GetRootHash() []byte
-	CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool
+	CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

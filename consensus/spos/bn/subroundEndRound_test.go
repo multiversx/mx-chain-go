@@ -1,6 +1,7 @@
 package bn_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -400,8 +401,8 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 
 	blProcMock.CommitBlockCalled = func(
 		blockChain *blockchain.BlockChain,
-		header *block.Header,
-		block block.Body,
+		header data.HeaderHandler,
+		body data.BodyHandler,
 	) error {
 		return blockchain.ErrHeaderUnitNil
 	}
@@ -420,7 +421,7 @@ func TestSubroundEndRound_DoEndRoundJobErrRemBlockTxOK(t *testing.T) {
 
 	blProcMock := initBlockProcessorMock()
 
-	blProcMock.RemoveBlockTxsFromPoolCalled = func(body block.Body) error {
+	blProcMock.RemoveBlockInfoFromPoolCalled = func(body data.BodyHandler) error {
 		return process.ErrNilBlockBodyPool
 	}
 
