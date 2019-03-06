@@ -32,7 +32,7 @@
 
     #ServiceTag represents the subnetwork on which this node will respond to queries
     #To connect to other nodes, those nodes should have the same ServiceTag string
-    ServiceTag = "corco"
+    ServiceTag = "elrond"
 
 [KadDhtPeerDiscovery]
     #Enabled: true/false to enable/disable this discovery mechanism
@@ -43,7 +43,7 @@
 
     #RandezVous represents the meeting point that this node will advertize itself
     #To connect to other nodes, those nodes should have the same RandezVous string
-    RandezVous = "corco"
+    RandezVous = "elrond"
 
     #InitialPeerList represents the list of strings of some known nodes that will bootstrap this node
     #The address will be in a self-describing addressing format.
