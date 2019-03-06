@@ -438,7 +438,6 @@ func (boot *Bootstrap) SyncBlock() error {
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
 
 	if err != nil {
-		log.Info(err.Error())
 		return err
 	}
 
@@ -808,7 +807,7 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (bl
 	hdr.Commitment = hdrHash
 
 	// Commit the block (commits also the account state)
-	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, &blk)
+	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
 
 	if err != nil {
 		return nil, nil, err

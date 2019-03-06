@@ -15,7 +15,6 @@ type ShardedDataCacherNotifier interface {
 
 	ShardDataStore(shardID uint32) (c storage.Cacher)
 	AddData(key []byte, data interface{}, destShardID uint32)
-	//SearchData(key []byte) (shardValuesPairs map[uint32]interface{})
 	SearchFirstData(key []byte) (value interface{}, ok bool)
 	RemoveData(key []byte, destShardID uint32)
 	RemoveSetOfDataFromPool(keys [][]byte, destShardID uint32)

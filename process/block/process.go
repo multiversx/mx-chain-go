@@ -198,7 +198,7 @@ func (bp *blockProcessor) processBlock(blockChain *blockchain.BlockChain, header
 	return nil
 }
 
-// RemoveBlockTxsFromPool removes the TxBlock transactions from associated tx pools
+// RemoveBlockInfoFromPool removes the TxBlock transactions from associated tx pools
 func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 	if body == nil {
 		return process.ErrNilTxBlockBody
@@ -226,7 +226,7 @@ func (bp *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
 	return bytes.Equal(bp.accounts.RootHash(), rootHash)
 }
 
-// CreateTxBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
+// CreateBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (bp *blockProcessor) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
 	miniBlocks, err := bp.createMiniBlocks(bp.shardCoordinator.NoShards(), maxTransactionsInBlock, round, haveTime)
@@ -235,7 +235,7 @@ func (bp *blockProcessor) CreateBlockBody(round int32, haveTime func() bool) (da
 		return nil, err
 	}
 
-	return &miniBlocks, nil
+	return miniBlocks, nil
 }
 
 // CreateGenesisBlockBody creates the genesis block body from map of account balances
@@ -895,7 +895,12 @@ func (bp *blockProcessor) getTxsFromPool(shardId uint32) int {
 func (bp *blockProcessor) CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
 
 	if header == nil {
-		log.Info(fmt.Sprintf("header is nil"))
+		log.Info(fmt.Sprintf(process.ErrNilBlockHeader.Error()))
+		return false
+	}
+
+	if blockChain == nil {
+		log.Info(fmt.Sprintf(process.ErrNilBlockChain.Error()))
 		return false
 	}
 
@@ -914,18 +919,6 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain *blockchain.BlockChain, 
 
 		log.Info(fmt.Sprintf("nonce not match: local block nonce is 0 and node received block with nonce %d\n",
 			header.GetNonce()))
-
-		return false
-	}
-
-	if blockChain == nil {
-		log.Info(fmt.Sprintf("blockchain is nil"))
-		return false
-	}
-
-	if header.GetNonce() < blockChain.CurrentBlockHeader.Nonce+1 {
-		log.Info(fmt.Sprintf("nonce not match: local block nonce is %d and node received block with nonce %d\n",
-			blockChain.CurrentBlockHeader.Nonce, header.GetNonce()))
 
 		return false
 	}

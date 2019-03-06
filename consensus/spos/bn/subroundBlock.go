@@ -181,7 +181,7 @@ func (sr *subroundBlock) doBlockJob() bool {
 
 // sendBlockBody method job the proposed block body in the Block subround
 func (sr *subroundBlock) sendBlockBody() bool {
-	haveTimeInCurrentSubound := func() bool {
+	haveTimeInCurrentSubround := func() bool {
 		roundStartTime := sr.rounder.TimeStamp()
 		currentTime := sr.syncTimer.CurrentTime()
 		elapsedTime := currentTime.Sub(roundStartTime)
@@ -192,7 +192,7 @@ func (sr *subroundBlock) sendBlockBody() bool {
 
 	blk, err := sr.blockProcessor.CreateBlockBody(
 		sr.rounder.Index(),
-		haveTimeInCurrentSubound,
+		haveTimeInCurrentSubround,
 	)
 
 	if err != nil {

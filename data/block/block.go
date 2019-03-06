@@ -316,7 +316,7 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	return dest
 }
 
-// Get returns a pointer to the struct Header as an interface
+// UnderlyingObject returns a pointer to the struct Header as an interface
 func (h *Header) UnderlyingObject() interface{} {
 	return h
 }
@@ -356,7 +356,7 @@ func (h *Header) GetSignature() []byte {
 	return h.Signature
 }
 
-// Get body pointer as interface
+// UnderlyingObject returns body as interface
 func (b Body) UnderlyingObject() interface{} {
 	return b
 }

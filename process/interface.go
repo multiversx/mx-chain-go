@@ -1,10 +1,10 @@
 package process
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -140,6 +140,7 @@ type InterceptorsResolversFactory interface {
 	ResolverContainer() ResolversContainer
 }
 
+// WireMessageHandler is an interface that defines the behaviour to get list of connected peers and to send message to them
 type WireMessageHandler interface {
 	ConnectedPeers() []p2p.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
