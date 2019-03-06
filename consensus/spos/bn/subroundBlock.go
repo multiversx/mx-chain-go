@@ -284,7 +284,7 @@ func (sr *subroundBlock) createHeader() (*block.Header, error) {
 		hdr.PrevHash = sr.blockChain.CurrentBlockHeaderHash
 	}
 
-	headers, err := sr.blockProcessor.CreateMiniBlockHeaders(sr.blockChain.CurrentTxBlockBody)
+	headers, err := sr.blockProcessor.CreateMiniBlockHeaders(sr.consensusState.BlockBody)
 	if err != nil {
 		return nil, err
 	}

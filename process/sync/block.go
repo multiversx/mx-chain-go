@@ -44,9 +44,8 @@ type Bootstrap struct {
 	headerNonce *uint64
 	chRcvHdr    chan bool
 
-	mutTxBody  sync.RWMutex
-	txBodyHash []byte
-	chRcvTxBdy chan bool
+	requestedHashes process.RequiredDataPool
+	chRcvTxBdy      chan bool
 
 	chStopSync chan bool
 	waitTime   time.Duration
@@ -130,7 +129,7 @@ func NewBootstrap(
 	boot.chRcvTxBdy = make(chan bool)
 
 	boot.setRequestedHeaderNonce(nil)
-	boot.setRequestedTxBodyHash(nil)
+	boot.setRequestedTxBody(nil)
 
 	boot.headersNonces.RegisterHandler(boot.receivedHeaderNonce)
 	boot.miniBlocks.RegisterHandler(boot.receivedBodyHash)
@@ -139,6 +138,7 @@ func NewBootstrap(
 	boot.chStopSync = make(chan bool)
 
 	boot.syncStateListeners = make([]func(bool), 0)
+	boot.requestedHashes = process.RequiredDataPool{}
 
 	return &boot, nil
 }
@@ -312,28 +312,18 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 }
 
-// requestedTxBodyHash method gets the body hash requested by the sync mechanism
-func (boot *Bootstrap) requestedTxBodyHash() []byte {
-	boot.mutTxBody.RLock()
-	hash := boot.txBodyHash
-	boot.mutTxBody.RUnlock()
-
-	return hash
-}
-
-// setRequestedTxBodyHash method sets the body hash requested by the sync mechanism
-func (boot *Bootstrap) setRequestedTxBodyHash(hash []byte) {
-	boot.mutTxBody.Lock()
-	boot.txBodyHash = hash
-	boot.mutTxBody.Unlock()
+// setRequestedTxBody method sets the body hash requested by the sync mechanism
+func (boot *Bootstrap) setRequestedTxBody(hashes [][]byte) {
+	boot.requestedHashes.SetHashes(hashes)
 }
 
 // receivedBody method is a call back function which is called when a new body is added
 // in the block bodies pool
 func (boot *Bootstrap) receivedBodyHash(hash []byte) {
-	if bytes.Equal(boot.requestedTxBodyHash(), hash) {
+	boot.requestedHashes.SetReceivedHash(hash)
+	if  boot.requestedHashes.ReceivedAll() {
 		log.Info(fmt.Sprintf("received requested txBlockBody with hash %s from network\n", toB64(hash)))
-		boot.setRequestedTxBodyHash(nil)
+		boot.requestedHashes.Reset()
 		boot.chRcvTxBdy <- true
 	}
 }
@@ -385,7 +375,7 @@ func (boot *Bootstrap) SyncBlock() error {
 	}
 
 	boot.setRequestedHeaderNonce(nil)
-	boot.setRequestedTxBodyHash(nil)
+	boot.setRequestedTxBody(nil)
 
 	nonce := boot.getNonceForNextBlock()
 
@@ -547,7 +537,7 @@ func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
 		log.Error("Could not marshal MiniBlock hashes: ", err.Error())
 		return
 	}
-	boot.setRequestedTxBodyHash(buff)
+	boot.requestedHashes.SetHashes(hashes)
 	err = boot.miniBlockResolver.RequestDataFromHashArray(hashes)
 
 	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(buff)))
