@@ -22,6 +22,7 @@ import (
 )
 
 const timeSeenMessages = time.Second * 120
+const maxSendBuffSize = 1 << 22
 
 type directSender struct {
 	counter        uint64
@@ -140,6 +141,10 @@ func (ds *directSender) NextSeqno(counter *uint64) []byte {
 
 // Send will send a direct message to the connected peer
 func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
+	if len(buff) >= maxSendBuffSize {
+		return p2p.ErrMessageTooLarge
+	}
+
 	conn, err := ds.getConnection(peer)
 	if err != nil {
 		return err
@@ -157,10 +162,20 @@ func (ds *directSender) Send(topic string, buff []byte, peer p2p.PeerID) error {
 
 	go func(msg proto.Message) {
 		err := w.WriteMsg(msg)
-		log.LogIfError(err)
+		if err != nil {
+			log.LogIfError(err)
+			_ = stream.Reset()
+			_ = net.FullClose(stream)
+			return
+		}
 
 		err = bufw.Flush()
-		log.LogIfError(err)
+		if err != nil {
+			log.LogIfError(err)
+			_ = stream.Reset()
+			_ = net.FullClose(stream)
+			return
+		}
 	}(msg)
 
 	return nil
