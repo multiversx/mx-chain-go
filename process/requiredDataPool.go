@@ -2,6 +2,7 @@ package process
 
 import (
 	"bytes"
+	"math/bits"
 	"sync"
 )
 
@@ -21,19 +22,12 @@ func (rh *RequiredDataPool) ExpectedData() [][]byte {
 	return rh.expectedData
 }
 
-// Reset unsets the expectedData and bitmap fields and set them to nil values
-func (rh *RequiredDataPool) Reset() {
-	rh.dataLock.Lock()
-	rh.expectedData = nil
-	rh.receivedBitmap = nil
-	rh.dataLock.Unlock()
-}
 // SetHashes sets the expected data to the passed hashes parameter. The bitmap is also
 // reset and adapted to the length of the new expected data
 func (rh *RequiredDataPool) SetHashes(hashes [][]byte) {
 	hashLength := len(hashes)
 	if hashLength < 1 {
-		rh.Reset()
+		rh.reset()
 		return
 	}
 	rh.dataLock.Lock()
@@ -65,12 +59,16 @@ func (rh *RequiredDataPool) ReceivedAll() bool {
 	bitmapLength := len(rh.receivedBitmap)
 	dataLength := len(rh.expectedData)
 	for i := 0; i < bitmapLength; i++ {
-		for j := 0; j < 8; j++ {
-			if rh.receivedBitmap[i]&(1<<uint8(j)) != 0 {
-				flags++
-			}
-		}
+		flags += bits.OnesCount8(rh.receivedBitmap[i])
 	}
     rh.dataLock.Unlock()
 	return flags >= dataLength
+}
+
+// reset unsets the expectedData and bitmap fields and set them to nil values
+func (rh *RequiredDataPool) reset() {
+	rh.dataLock.Lock()
+	rh.expectedData = nil
+	rh.receivedBitmap = nil
+	rh.dataLock.Unlock()
 }

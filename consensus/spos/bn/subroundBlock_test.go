@@ -1075,14 +1075,18 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	sr := *initSubroundBlock()
 	sr.BlockChain().CurrentBlockHeader = nil
 	header, _ := sr.CreateHeader()
-
-	assert.Equal(t,  uint32(sr.Rounder().Index()), header.Round)
-	assert.Equal(t, uint64(sr.Rounder().TimeStamp().Unix()), header.TimeStamp)
-	assert.Equal(t, sr.BlockProcessor().GetRootHash(), header.RootHash)
-	assert.Equal(t, uint64(1), header.Nonce)
-	assert.Equal(t, sr.BlockChain().GenesisHeaderHash, header.PrevHash)
 	mbHeaders, _ := sr.BlockProcessor().CreateMiniBlockHeaders(sr.BlockChain().CurrentTxBlockBody)
-	assert.Equal(t, mbHeaders, header.MiniBlockHeaders)
+
+	expectedHeader := &block.Header{
+		Round: uint32(sr.Rounder().Index()),
+		TimeStamp: uint64(sr.Rounder().TimeStamp().Unix()),
+		RootHash: sr.BlockProcessor().GetRootHash(),
+		Nonce: uint64(1),
+		PrevHash: sr.BlockChain().GenesisHeaderHash,
+		MiniBlockHeaders: mbHeaders,
+	}
+
+	assert.Equal(t, expectedHeader, header)
 }
 
 func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
@@ -1091,14 +1095,18 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 		Nonce: 1,
 	}
 	header, _ := sr.CreateHeader()
-
-	assert.Equal(t,  uint32(sr.Rounder().Index()), header.Round)
-	assert.Equal(t, uint64(sr.Rounder().TimeStamp().Unix()), header.TimeStamp)
-	assert.Equal(t, sr.BlockProcessor().GetRootHash(), header.RootHash)
-	assert.Equal(t, uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1), header.Nonce)
-	assert.Equal(t, sr.BlockChain().CurrentBlockHeaderHash, header.PrevHash)
 	mbHeaders, _ := sr.BlockProcessor().CreateMiniBlockHeaders(sr.BlockChain().CurrentTxBlockBody)
-	assert.Equal(t, mbHeaders, header.MiniBlockHeaders)
+
+	expectedHeader := &block.Header{
+		Round: uint32(sr.Rounder().Index()),
+		TimeStamp: uint64(sr.Rounder().TimeStamp().Unix()),
+		RootHash: sr.BlockProcessor().GetRootHash(),
+		Nonce: uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1),
+		PrevHash: sr.BlockChain().CurrentBlockHeaderHash,
+		MiniBlockHeaders: mbHeaders,
+	}
+
+	assert.Equal(t, expectedHeader, header)
 }
 
 func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
@@ -1118,13 +1126,16 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 
 	header, _ := sr.CreateHeader()
 
-	assert.Equal(t,  uint32(sr.Rounder().Index()), header.Round)
-	assert.Equal(t, uint64(sr.Rounder().TimeStamp().Unix()), header.TimeStamp)
-	assert.Equal(t, sr.BlockProcessor().GetRootHash(), header.RootHash)
-	assert.Equal(t, uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1), header.Nonce)
-	assert.Equal(t, sr.BlockChain().CurrentBlockHeaderHash, header.PrevHash)
+	expectedHeader := &block.Header{
+		Round: uint32(sr.Rounder().Index()),
+		TimeStamp: uint64(sr.Rounder().TimeStamp().Unix()),
+		RootHash: sr.BlockProcessor().GetRootHash(),
+		Nonce: uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1),
+		PrevHash: sr.BlockChain().CurrentBlockHeaderHash,
+		MiniBlockHeaders: mbHeaders,
+	}
 
-	assert.Equal(t, mbHeaders, header.MiniBlockHeaders)
+	assert.Equal(t, expectedHeader, header)
 }
 
 func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {

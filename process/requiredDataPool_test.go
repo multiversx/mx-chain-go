@@ -1,6 +1,7 @@
 package process_test
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -102,6 +103,25 @@ func TestRequiredDataPool_SetReceivedHashSettingWrongHashThenCorrectWorks(t *tes
 	rd.SetReceivedHash([]byte("first_data"))
 	rd.SetReceivedHash([]byte("third_data"))
 	rd.SetReceivedHash([]byte("second_data"))
+
+	assert.True(t, rd.ReceivedAll())
+}
+
+func TestRequiredDataPool_SetReceivedHashMultipleSettingAllWorks(t *testing.T) {
+	maxHashes := 8
+
+	hashes := make([][]byte, maxHashes)
+
+	for idx := 0; idx < maxHashes; idx++ {
+		hashes[idx] = []byte("hash " + strconv.Itoa(idx))
+	}
+
+	rd := process.RequiredDataPool{}
+	rd.SetHashes(hashes)
+
+	for idx := 0; idx < maxHashes; idx++ {
+		rd.SetReceivedHash([]byte("hash " + strconv.Itoa(idx)))
+	}
 
 	assert.True(t, rd.ReceivedAll())
 }

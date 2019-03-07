@@ -2583,26 +2583,3 @@ func TestNewBootstrap_BroadcastEmptyBlockShouldReturnNil(t *testing.T) {
 
 	assert.Nil(t, err)
 }
-
-func countBitmapFlags(bitmap []byte) uint16 {
-	nbBytes := len(bitmap)
-	flags := 0
-
-	for i := 0; i < nbBytes; i++ {
-		for j := 0; j < 8; j++ {
-			if bitmap[i]&(1<<uint8(j)) != 0 {
-				flags++
-			}
-		}
-	}
-
-	return uint16(flags)
-}
-func TestShit(t *testing.T) {
-	myLength := 12
-	bitmap := make([]byte, myLength/8+1)
-	for i := 0; i < myLength; i++ {
-		bitmap[i/8] |= 1 << (uint16(i) % 8)
-	}
-	fmt.Println(countBitmapFlags(bitmap))
-}

@@ -45,7 +45,7 @@ type Bootstrap struct {
 	chRcvHdr    chan bool
 
 	requestedHashes process.RequiredDataPool
-	chRcvTxBdy      chan bool
+	chRcvMiniBlocks chan bool
 
 	chStopSync chan bool
 	waitTime   time.Duration
@@ -126,7 +126,7 @@ func NewBootstrap(
 	boot.miniBlockResolver = miniBlocksResolver.(process.MiniBlocksResolver)
 
 	boot.chRcvHdr = make(chan bool)
-	boot.chRcvTxBdy = make(chan bool)
+	boot.chRcvMiniBlocks = make(chan bool)
 
 	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedTxBody(nil)
@@ -327,8 +327,8 @@ func (boot *Bootstrap) receivedBodyHash(hash []byte) {
 	boot.requestedHashes.SetReceivedHash(hash)
 	if  boot.requestedHashes.ReceivedAll() {
 		log.Info(fmt.Sprintf("received requested txBlockBody with hash %s from network\n", toB64(hash)))
-		boot.requestedHashes.Reset()
-		boot.chRcvTxBdy <- true
+		boot.setRequestedTxBody(nil)
+		boot.chRcvMiniBlocks <- true
 	}
 }
 
@@ -523,6 +523,7 @@ func (boot *Bootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Header
 	hdr := boot.getHeaderFromPoolHavingNonce(nonce)
 
 	if hdr == nil {
+		boot.emptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
 		boot.waitForHeaderNonce()
 		hdr = boot.getHeaderFromPoolHavingNonce(nonce)
@@ -541,7 +542,7 @@ func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
 		log.Error("Could not marshal MiniBlock hashes: ", err.Error())
 		return
 	}
-	boot.requestedHashes.SetHashes(hashes)
+	boot.setRequestedTxBody(hashes)
 	err = boot.miniBlockResolver.RequestDataFromHashArray(hashes)
 
 	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(buff)))
@@ -559,8 +560,9 @@ func (boot *Bootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (interf
 	miniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
 
 	if miniBlocks == nil {
+		boot.emptyChannel(boot.chRcvMiniBlocks)
 		boot.requestMiniBlocks(hashes)
-		boot.waitForTxBodyHash()
+		boot.waitForMiniBlocks()
 		miniBlocks = boot.miniBlockResolver.GetMiniBlocks(hashes)
 		if miniBlocks == nil {
 			return nil, process.ErrMissingBody
@@ -590,10 +592,10 @@ func (boot *Bootstrap) waitForHeaderNonce() {
 	}
 }
 
-// waitForBodyNonce method wait for body with the requested nonce to be received
-func (boot *Bootstrap) waitForTxBodyHash() {
+// waitForMiniBlocks method wait for body with the requested nonce to be received
+func (boot *Bootstrap) waitForMiniBlocks() {
 	select {
-	case <-boot.chRcvTxBdy:
+	case <-boot.chRcvMiniBlocks:
 		return
 	case <-time.After(boot.waitTime):
 		return
@@ -814,4 +816,10 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (bl
 	log.Info(log.Headline(msg, "", "*"))
 
 	return blk, hdr, nil
+}
+
+func (boot *Bootstrap) emptyChannel(ch chan bool) {
+	for len(ch) > 0 {
+		<-ch
+	}
 }

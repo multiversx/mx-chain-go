@@ -26,7 +26,7 @@ func (rdt RequestDataType) String() string {
 const (
 	// HashType indicates that the request data object is of type hash
 	HashType RequestDataType = iota + 1
-	// HashArrayType that the request data object contains a serialised array of expectedData
+	// HashArrayType that the request data object contains a serialised array of hashes
 	HashArrayType
 	// NonceType indicates that the request data object is of type nonce (uint64)
 	NonceType
