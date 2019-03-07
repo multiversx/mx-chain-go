@@ -109,6 +109,10 @@ func (tr *patriciaMerkleTree) insert(n node, prefix, key []byte, value []byte) (
 		n.childrenNodes[key[0]] = nn
 		return true, n, nil
 	case *leafNode:
+		if len(key) == 0 {
+			n.Value = value
+			return true, n, nil
+		}
 		matchlen := prefixLen(key, n.Key)
 		branch := &branchNode{}
 		var err error
@@ -191,6 +195,9 @@ func (tr *patriciaMerkleTree) delete(n node, prefix, key []byte) (bool, node, er
 		n = n.copy()
 		n.hash = nil
 		n.childrenNodes[key[0]] = nn
+		if nn == nil {
+			n.Children[key[0]] = nil
+		}
 
 		// Check how many non-nil entries are left after deleting and
 		// reduce the full node to a short node if only one entry is
@@ -374,17 +381,19 @@ func (tr *patriciaMerkleTree) collapseNode(n node) (node, error) {
 			return n, err
 		}
 	}
-	switch collapsed := n.(type) {
+	switch n := n.(type) {
 	case *leafNode:
-		return collapsed, nil
+		return n, nil
 	case *extensionNode:
-		collapsed.Next = collapsed.nextNode.getHash()
+		collapsed := n.copy()
+		collapsed.Next = n.nextNode.getHash()
 		collapsed.nextNode = nil
 		return collapsed, nil
 	case *branchNode:
-		for i := range collapsed.Children {
-			if collapsed.childrenNodes[i] != nil {
-				collapsed.Children[i] = collapsed.childrenNodes[i].getHash()
+		collapsed := n.copy()
+		for i := range n.Children {
+			if n.childrenNodes[i] != nil {
+				collapsed.Children[i] = n.childrenNodes[i].getHash()
 				collapsed.childrenNodes[i] = nil
 			}
 		}
@@ -397,10 +406,6 @@ func (tr *patriciaMerkleTree) collapseNode(n node) (node, error) {
 // setHash collapses a node down into a hash node, also returning a copy of the
 // original node initialized with the computed hash to replace the original one.
 func (tr *patriciaMerkleTree) setHash(n node) (node, error) {
-	if hash := n.getHash(); hash != nil {
-		return n, nil
-	}
-
 	node, err := tr.hashChildren(n)
 	if err != nil {
 		return n, err
