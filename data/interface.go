@@ -50,9 +50,8 @@ type TransientDataHolder interface {
 	PeerChangesBlocks() storage.Cacher
 }
 
-// HeaderHandler defines getters for header data holder
+// HeaderHandler defines getters and setters for header data holder
 type HeaderHandler interface {
-	UnderlyingObject() interface{}
 	GetNonce() uint64
 	GetEpoch() uint32
 	GetRound() uint32
@@ -60,9 +59,19 @@ type HeaderHandler interface {
 	GetPrevHash() []byte
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
+
+	SetNonce(n uint64)
+	SetEpoch(e uint32)
+	SetRound(r uint32)
+	SetRootHash(rHash []byte)
+	SetPrevHash(pvHash []byte)
+	SetPubKeysBitmap(pkbm []byte)
+	SetSignature(sg []byte)
+	SetCommitment(commitment []byte)
 }
 
 // BodyHandler defines getters and setters for body data holder
 type BodyHandler interface {
 	UnderlyingObject() interface{}
+	// TODO find common point between different body's -> metablockbody and blockbody.
 }

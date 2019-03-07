@@ -100,7 +100,7 @@ type TopicResolverSender interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
-	CreateAndCommitEmptyBlock(uint32) (block.Body, *block.Header, error)
+	CreateAndCommitEmptyBlock(uint32) (data.BodyHandler, data.HeaderHandler, error)
 	AddSyncStateListener(func(bool))
 	ShouldSync() bool
 }

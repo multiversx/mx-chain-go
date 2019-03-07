@@ -601,7 +601,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 
 	r = sr.DoBlockJob()
 	assert.True(t, r)
-	assert.Equal(t, uint64(1), sr.ConsensusState().Header.Nonce)
+	assert.Equal(t, uint64(1), sr.ConsensusState().Header.GetNonce())
 }
 
 func TestSubroundBlock_ReceivedBlock(t *testing.T) {

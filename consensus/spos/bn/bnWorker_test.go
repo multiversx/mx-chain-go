@@ -29,7 +29,7 @@ func sendConsensusMessage(cnsMsg *spos.ConsensusMessage) bool {
 	return true
 }
 
-func broadcastBlock(txBlockBody block.Body, header *block.Header) error {
+func broadcastBlock(txBlockBody data.BodyHandler, header data.HeaderHandler) error {
 	fmt.Println(txBlockBody)
 	fmt.Println(header)
 	return nil
@@ -1325,7 +1325,7 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 		ShouldSyncCalled: func() bool {
 			return true
 		},
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
 			return nil, nil, errors.New("error")
 		},
@@ -1350,7 +1350,7 @@ func TestWorker_ExtendShouldReturnWhenShouldSync(t *testing.T) {
 		ShouldSyncCalled: func() bool {
 			return true
 		},
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
 			return nil, nil, errors.New("error")
 		},
@@ -1369,13 +1369,13 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 
 	executed := false
 
-	wrk.BroadcastBlock = func(block.Body, *block.Header) error {
+	wrk.BroadcastBlock = func(data.BodyHandler, data.HeaderHandler) error {
 		executed = true
 		return nil
 	}
 
 	bootstraperMock := &mock.BootstraperMock{
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			return nil, nil, errors.New("error")
 		}}
 
@@ -1391,7 +1391,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 
 	executed := int32(0)
 
-	wrk.BroadcastBlock = func(block.Body, *block.Header) error {
+	wrk.BroadcastBlock = func(data.BodyHandler, data.HeaderHandler) error {
 		atomic.AddInt32(&executed, 1)
 		return nil
 	}

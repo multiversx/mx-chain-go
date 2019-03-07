@@ -150,7 +150,7 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		return process.ErrNilHaveTimeHandler
 	}
 
-	err = bp.validateHeader(blockChain, header.UnderlyingObject().(*block.Header))
+	err = bp.validateHeader(blockChain, header.(*block.Header))
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 
 func (bp *blockProcessor) processBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	// transform from interface into struct
-	blockBody := body.UnderlyingObject().(block.Body)
+	blockBody := body.(block.Body)
 
 	requestedTxs := bp.requestBlockTransactions(blockBody)
 
@@ -204,7 +204,7 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 		return process.ErrNilTxBlockBody
 	}
 
-	blockBody := body.UnderlyingObject().(block.Body)
+	blockBody := body.(block.Body)
 
 	transactionPool := bp.dataPool.Transactions()
 
@@ -342,7 +342,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		return process.ErrPersistWithoutSuccess
 	}
 
-	blockBody := body.UnderlyingObject().(block.Body)
+	blockBody := body.(block.Body)
 
 	for i := 0; i < len(blockBody); i++ {
 		buff, err = bp.marshalizer.Marshal((blockBody)[i])
@@ -395,7 +395,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		return err
 	}
 
-	blockHeader := header.UnderlyingObject().(*block.Header)
+	blockHeader := header.(*block.Header)
 	blockChain.CurrentTxBlockBody = blockBody
 	blockChain.CurrentBlockHeader = blockHeader
 	blockChain.CurrentBlockHeaderHash = headerHash

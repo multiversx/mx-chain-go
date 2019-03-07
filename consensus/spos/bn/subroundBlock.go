@@ -222,7 +222,7 @@ func (sr *subroundBlock) sendBlockBody() bool {
 
 	log.Info(fmt.Sprintf("%sStep 1: block body has been sent\n", sr.syncTimer.FormattedCurrentTime()))
 
-	sr.consensusState.BlockBody = blk.UnderlyingObject().(block.Body)
+	sr.consensusState.BlockBody = blk.(block.Body)
 
 	return true
 }
@@ -351,7 +351,7 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *spos.ConsensusMessage) bool
 	}
 
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been received\n",
-		sr.syncTimer.FormattedCurrentTime(), sr.consensusState.Header.Nonce, toB64(cnsDta.BlockHeaderHash)))
+		sr.syncTimer.FormattedCurrentTime(), sr.consensusState.Header.GetNonce(), toB64(cnsDta.BlockHeaderHash)))
 
 	if !sr.blockProcessor.CheckBlockValidity(sr.blockChain, sr.consensusState.Header, nil) {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, invalid block\n",

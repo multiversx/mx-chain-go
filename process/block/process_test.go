@@ -1378,7 +1378,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 
 	body = append(body, &miniblock)
 
-	err := be.RemoveBlockInfoFromPool(&body)
+	err := be.RemoveBlockInfoFromPool(body)
 
 	assert.Nil(t, err)
 }

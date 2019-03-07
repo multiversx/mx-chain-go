@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -22,7 +22,7 @@ type subroundEndRound struct {
 	rounder        consensus.Rounder
 	syncTimer      ntp.SyncTimer
 
-	broadcastBlock func(block.Body, *block.Header) error
+	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -34,7 +34,7 @@ func NewSubroundEndRound(
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
-	broadcastBlock func(block.Body, *block.Header) error,
+	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 	extend func(subroundId int),
 ) (*subroundEndRound, error) {
 
@@ -79,7 +79,7 @@ func checkNewSubroundEndRoundParams(
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
 	syncTimer ntp.SyncTimer,
-	broadcastBlock func(block.Body, *block.Header) error,
+	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
@@ -135,7 +135,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		return false
 	}
 
-	sr.consensusState.Header.Signature = sig
+	sr.consensusState.Header.SetSignature(sig)
 
 	// Commit the block (commits also the account state)
 	err = sr.blockProcessor.CommitBlock(sr.blockChain, sr.consensusState.Header, sr.consensusState.BlockBody)
@@ -167,7 +167,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		actionMsg = "proposed"
 	}
 
-	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.consensusState.Header.Nonce)
+	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.consensusState.Header.GetNonce())
 	log.Info(log.Headline(msg, sr.syncTimer.FormattedCurrentTime(), "+"))
 
 	return true

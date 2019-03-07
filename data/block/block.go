@@ -316,11 +316,6 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	return dest
 }
 
-// UnderlyingObject returns a pointer to the struct Header as an interface
-func (h *Header) UnderlyingObject() interface{} {
-	return h
-}
-
 // GetNonce return header nonce
 func (h *Header) GetNonce() uint64 {
 	return h.Nonce
@@ -354,6 +349,38 @@ func (h *Header) GetPubKeysBitmap() []byte {
 // GetSignature return signed data
 func (h *Header) GetSignature() []byte {
 	return h.Signature
+}
+
+func (h *Header) SetNonce(n uint64) {
+	h.Nonce = n
+}
+
+func (h *Header) SetEpoch(e uint32) {
+	h.Epoch = e
+}
+
+func (h *Header) SetRound(r uint32) {
+	h.Round = r
+}
+
+func (h *Header) SetRootHash(rHash []byte) {
+	h.RootHash = rHash
+}
+
+func (h *Header) SetPrevHash(pvHash []byte) {
+	h.PrevHash = pvHash
+}
+
+func (h *Header) SetPubKeysBitmap(pkbm []byte) {
+	h.PubKeysBitmap = pkbm
+}
+
+func (h *Header) SetSignature(sg []byte) {
+	h.Signature = sg
+}
+
+func (h *Header) SetCommitment(commitment []byte) {
+	h.Commitment = commitment
 }
 
 // UnderlyingObject returns body as interface

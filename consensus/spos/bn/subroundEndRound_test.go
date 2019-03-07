@@ -437,7 +437,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 
 	sr := *initSubroundEndRound()
 
-	sr.SetBroadcastBlock(func(block.Body, *block.Header) error {
+	sr.SetBroadcastBlock(func(data.BodyHandler, data.HeaderHandler) error {
 		return spos.ErrNilBroadcastBlockFunction
 	})
 

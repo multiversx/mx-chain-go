@@ -128,7 +128,7 @@ func createMockTransient() *mock.TransientDataPoolMock {
 func createBlockProcessor() *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{
 		ProcessBlockCalled: func(blk *blockchain.BlockChain, hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
-			blk.CurrentBlockHeader = hdr.UnderlyingObject().(*block.Header)
+			blk.CurrentBlockHeader = hdr.(*block.Header)
 			return nil
 		},
 		RevertAccountStateCalled: func() {
@@ -817,7 +817,7 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 
@@ -898,7 +898,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 
@@ -947,7 +947,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 
@@ -1054,7 +1054,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 
@@ -2500,7 +2500,7 @@ func TestNewBootstrap_CreateAndBroadcastEmptyBlockShouldReturnNil(t *testing.T) 
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 
@@ -2537,7 +2537,7 @@ func TestNewBootstrap_BroadcastEmptyBlockShouldErrWhenBroadcastBlockErr(t *testi
 	)
 
 	err := errors.New("error")
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return err
 	}
 
@@ -2573,7 +2573,7 @@ func TestNewBootstrap_BroadcastEmptyBlockShouldReturnNil(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 

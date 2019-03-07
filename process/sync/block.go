@@ -62,7 +62,7 @@ type Bootstrap struct {
 	highestNonceReceived uint64
 	isForkDetected       bool
 
-	BroadcastBlock func(block.Body, *block.Header) error
+	BroadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
 
 // NewBootstrap creates a new Bootstrap object
@@ -463,10 +463,10 @@ func (boot *Bootstrap) createAndBroadcastEmptyBlock() error {
 
 	if err == nil {
 		log.Info(fmt.Sprintf("body and header with root hash %s and nonce %d were created and commited through the recovery mechanism\n",
-			toB64(header.RootHash),
-			header.Nonce))
+			toB64(header.GetRootHash()),
+			header.GetNonce()))
 
-		err = boot.broadcastEmptyBlock(txBlockBody, header)
+		err = boot.broadcastEmptyBlock(txBlockBody.(block.Body), header.(*block.Header))
 	}
 
 	return err
@@ -771,7 +771,7 @@ func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
 }
 
 // CreateAndCommitEmptyBlock creates and commits an empty block
-func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
 
 	boot.blkExecutor.RevertAccountState()
