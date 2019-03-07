@@ -19,18 +19,6 @@ func TestRequiredDataPool_ExpectedData(t *testing.T) {
 	assert.Equal(t, hashes, rd.ExpectedData())
 }
 
-func TestRequiredDataPool_Reset(t *testing.T) {
-	hashes := [][]byte{
-		[]byte("first_data"),
-		[]byte("second_data"),
-	}
-	rd := process.RequiredDataPool{}
-	rd.SetHashes(hashes)
-	rd.Reset()
-
-	assert.Nil(t, rd.ExpectedData())
-}
-
 func TestRequiredDataPool_SetHashesNilListResets(t *testing.T) {
 	hashes := [][]byte{
 		[]byte("first_data"),

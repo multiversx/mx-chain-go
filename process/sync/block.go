@@ -129,7 +129,7 @@ func NewBootstrap(
 	boot.chRcvMiniBlocks = make(chan bool)
 
 	boot.setRequestedHeaderNonce(nil)
-	boot.setRequestedTxBody(nil)
+	boot.setRequestedMiniBlocks(nil)
 
 	boot.headersNonces.RegisterHandler(boot.receivedHeaderNonce)
 	boot.miniBlocks.RegisterHandler(boot.receivedBodyHash)
@@ -312,8 +312,8 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 }
 
-// setRequestedTxBody method sets the body hash requested by the sync mechanism
-func (boot *Bootstrap) setRequestedTxBody(hashes [][]byte) {
+// setRequestedMiniBlocks method sets the body hash requested by the sync mechanism
+func (boot *Bootstrap) setRequestedMiniBlocks(hashes [][]byte) {
 	boot.requestedHashes.SetHashes(hashes)
 }
 
@@ -327,7 +327,7 @@ func (boot *Bootstrap) receivedBodyHash(hash []byte) {
 	boot.requestedHashes.SetReceivedHash(hash)
 	if  boot.requestedHashes.ReceivedAll() {
 		log.Info(fmt.Sprintf("received requested txBlockBody with hash %s from network\n", toB64(hash)))
-		boot.setRequestedTxBody(nil)
+		boot.setRequestedMiniBlocks(nil)
 		boot.chRcvMiniBlocks <- true
 	}
 }
@@ -379,7 +379,7 @@ func (boot *Bootstrap) SyncBlock() error {
 	}
 
 	boot.setRequestedHeaderNonce(nil)
-	boot.setRequestedTxBody(nil)
+	boot.setRequestedMiniBlocks(nil)
 
 	nonce := boot.getNonceForNextBlock()
 
@@ -542,7 +542,7 @@ func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
 		log.Error("Could not marshal MiniBlock hashes: ", err.Error())
 		return
 	}
-	boot.setRequestedTxBody(hashes)
+	boot.setRequestedMiniBlocks(hashes)
 	err = boot.miniBlockResolver.RequestDataFromHashArray(hashes)
 
 	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(buff)))
@@ -551,7 +551,7 @@ func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
 	}
 }
 
-// getTxBodyWithHash method gets the body with given nonce from pool, if it exist there,
+// getMiniBlocksRequestingIfMissing method gets the body with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 // the func returns interface{} as to match the next implementations for block body fetchers
 // that will be added. The block executor should decide by parsing the header block body type value
