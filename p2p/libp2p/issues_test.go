@@ -40,15 +40,12 @@ func createMessenger(port int) p2p.Messenger {
 	return libP2PMes
 }
 
-// TestIssueEN898_StreamResetError emphasize what happens if direct sender writes to a stream that has been reset
+// TestIssueEN898_StreamResetError emphasizes what happens if direct sender writes to a stream that has been reset
 // Testing is done by writing a large buffer that will cause the recipient to reset its inbound stream
 // Sender will then be notified that the stream writing did not succeed but it will only log the error
 // Next message that the sender tries to send will cause a new error to be logged and no data to be sent
-// The fix consists in the full stream closing after when an error occurs during writing.
+// The fix consists in the full stream closing when an error occurs during writing.
 func TestIssueEN898_StreamResetError(t *testing.T) {
-	//the test emphasize what happens if direct sender writes to a stream that has been reset
-	//to test the scenario,
-
 	mes1 := createMessenger(23100)
 	mes2 := createMessenger(23101)
 
@@ -61,10 +58,13 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 
 	topic := "test topic"
 
+	size4MB := 1 << 22
+	size4kB := 1 << 12
+
 	//a 4MB slice containing character A
-	largePacket := bytes.Repeat([]byte{65}, 1<<22)
+	largePacket := bytes.Repeat([]byte{65}, size4MB)
 	//a 4kB slice containing character B
-	smallPacket := bytes.Repeat([]byte{66}, 1<<12)
+	smallPacket := bytes.Repeat([]byte{66}, size4kB)
 
 	largePacketReceived := &atomic.Value{}
 	largePacketReceived.Store(false)

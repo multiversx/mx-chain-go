@@ -22,7 +22,7 @@ import (
 )
 
 const timeSeenMessages = time.Second * 120
-const maxSendBuffSize = 1 << 22
+const maxSendBuffSize = 1 << 20
 
 type directSender struct {
 	counter        uint64
