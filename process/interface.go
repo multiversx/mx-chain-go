@@ -143,9 +143,7 @@ type InterceptorsContainer interface {
 // InterceptorsResolversFactory is an interface that defines the behaviour for a factory that
 //  can create the needed interceptors and resolvers for the application
 type InterceptorsResolversFactory interface {
-	CreateInterceptors() error
 	CreateResolvers() error
-	InterceptorContainer() Container
 	ResolverContainer() ResolversContainer
 }
 
@@ -160,8 +158,15 @@ type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P) error
 }
 
-// WireMessageHandler defines the functionality needed by this package to send data to other peers
+// WireMessageHandler defines the functionality needed by structs to send data to other peers
 type WireMessageHandler interface {
 	ConnectedPeers() []p2p.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
+}
+
+// WireTopicHandler defines the functionality needed by structs to manage topics and message processors
+type WireTopicHandler interface {
+	HasTopic(name string) bool
+	CreateTopic(name string, createChannelForTopic bool) error
+	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
 }

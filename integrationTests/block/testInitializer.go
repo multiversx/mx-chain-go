@@ -128,7 +128,7 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
 	suite := kv2.NewBlakeSHA256Ed25519()
-	signer := &singlesig.SchnorrSigner{}
+	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 	multiSigner, _ := ti.createMultiSigner(sk, pk, keyGen, hasher)
@@ -137,7 +137,6 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	pFactory, _ := factory.NewInterceptorsResolversCreator(factory.InterceptorsResolversConfig{
-		InterceptorContainer:     containers.NewObjectsContainer(),
 		ResolverContainer:        containers.NewResolversContainer(),
 		Messenger:                messenger,
 		Blockchain:               blkc,
@@ -147,10 +146,24 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		Hasher:                   hasher,
 		Marshalizer:              marshalizer,
 		MultiSigner:              multiSigner,
-		SingleSigner:             signer,
+		SingleSigner:             singleSigner,
 		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
+
+	interceptorFactory, _ := factory.NewInterceptorsContainerCreator(
+		shardCoordinator,
+		messenger,
+		blkc,
+		marshalizer,
+		hasher,
+		keyGen,
+		singleSigner,
+		multiSigner,
+		dPool,
+		addrConverter,
+	)
+	interceptorsContainer, _ := interceptorFactory.Create()
 
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -159,7 +172,7 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
-		node.WithSinglesig(signer),
+		node.WithSinglesig(singleSigner),
 		node.WithMultisig(multiSigner),
 		node.WithKeyGenerator(keyGen),
 		node.WithPrivateKey(sk),
@@ -168,9 +181,9 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
 		node.WithInterceptorsResolversFactory(pFactory),
+		node.WithInterceptorsContainer(interceptorsContainer),
 	)
 
-	_ = pFactory.CreateInterceptors()
 	_ = pFactory.CreateResolvers()
 
 	return n, messenger, sk, pFactory

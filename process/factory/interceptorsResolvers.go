@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/interceptors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
@@ -49,8 +48,7 @@ type interceptorsResolvers struct {
 // InterceptorsResolversConfig is the struct containing the needed params to be
 //  provided when initialising a new interceptorsResolvers factory
 type InterceptorsResolversConfig struct {
-	InterceptorContainer process.Container
-	ResolverContainer    process.ResolversContainer
+	ResolverContainer process.ResolversContainer
 
 	Messenger                p2p.Messenger
 	Blockchain               *blockchain.BlockChain
@@ -87,31 +85,6 @@ func NewInterceptorsResolversCreator(config InterceptorsResolversConfig) (*inter
 	}, nil
 }
 
-// CreateInterceptors creates the interceptors and initializes the interceptor container
-func (ir *interceptorsResolvers) CreateInterceptors() error {
-	err := ir.createTxInterceptor()
-	if err != nil {
-		return err
-	}
-
-	err = ir.createHdrInterceptor()
-	if err != nil {
-		return err
-	}
-
-	err = ir.createMiniBlocksInterceptor()
-	if err != nil {
-		return err
-	}
-
-	err = ir.createPeerChBlockBodyInterceptor()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // CreateResolvers creates the resolvers and initializes the resolver container
 func (ir *interceptorsResolvers) CreateResolvers() error {
 	err := ir.createTxResolver()
@@ -142,110 +115,13 @@ func (ir *interceptorsResolvers) ResolverContainer() process.ResolversContainer 
 	return ir.resolverContainer
 }
 
-func (ir *interceptorsResolvers) createTxInterceptor() error {
-	txStorer := ir.blockchain.GetStorer(blockchain.TransactionUnit)
-
-	txInterceptor, err := transaction.NewTxInterceptor(
-		ir.marshalizer,
-		ir.dataPool.Transactions(),
-		txStorer,
-		ir.addrConverter,
-		ir.hasher,
-		ir.singleSigner,
-		ir.keyGen,
-		ir.shardCoordinator)
-
-	if err != nil {
-		return err
-	}
-
-	err = ir.createTopicAndAssignHandler(string(TransactionTopic), txInterceptor, true)
-	if err != nil {
-		return err
-	}
-
-	err = ir.interceptorContainer.Add(string(TransactionTopic), txInterceptor)
-	return err
-}
-
-func (ir *interceptorsResolvers) createHdrInterceptor() error {
-	headerStorer := ir.blockchain.GetStorer(blockchain.BlockHeaderUnit)
-
-	hdrInterceptor, err := interceptors.NewHeaderInterceptor(
-		ir.marshalizer,
-		ir.dataPool.Headers(),
-		ir.dataPool.HeadersNonces(),
-		headerStorer,
-		ir.multiSigner,
-		ir.hasher,
-		ir.shardCoordinator,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	err = ir.createTopicAndAssignHandler(string(HeadersTopic), hdrInterceptor, true)
-	if err != nil {
-		return err
-	}
-
-	err = ir.interceptorContainer.Add(string(HeadersTopic), hdrInterceptor)
-	return err
-}
-
-func (ir *interceptorsResolvers) createMiniBlocksInterceptor() error {
-	txBlockBodyStorer := ir.blockchain.GetStorer(blockchain.MiniBlockUnit)
-
-	txBlockBodyInterceptor, err := interceptors.NewMiniBlocksInterceptor(
-		ir.marshalizer,
-		ir.dataPool.MiniBlocks(),
-		txBlockBodyStorer,
-		ir.hasher,
-		ir.shardCoordinator,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	err = ir.createTopicAndAssignHandler(string(MiniBlocksTopic), txBlockBodyInterceptor, true)
-	if err != nil {
-		return err
-	}
-
-	err = ir.interceptorContainer.Add(string(MiniBlocksTopic), txBlockBodyInterceptor)
-	return err
-}
-
-func (ir *interceptorsResolvers) createPeerChBlockBodyInterceptor() error {
-	peerBlockBodyStorer := ir.blockchain.GetStorer(blockchain.PeerChangesUnit)
-
-	peerChBodyInterceptor, err := interceptors.NewPeerBlockBodyInterceptor(
-		ir.marshalizer,
-		ir.dataPool.PeerChangesBlocks(),
-		peerBlockBodyStorer,
-		ir.hasher,
-		ir.shardCoordinator,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	err = ir.createTopicAndAssignHandler(string(PeerChBodyTopic), peerChBodyInterceptor, true)
-	if err != nil {
-		return err
-	}
-
-	err = ir.interceptorContainer.Add(string(PeerChBodyTopic), peerChBodyInterceptor)
-	return err
-}
-
 func (ir *interceptorsResolvers) createTxResolver() error {
+	//TODO temporary, will be refactored in EN-1104
+	identifier := string(TransactionTopic) + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
-		string(TransactionTopic),
+		identifier,
 		ir.marshalizer)
 	if err != nil {
 		return err
@@ -263,7 +139,7 @@ func (ir *interceptorsResolvers) createTxResolver() error {
 
 	//add on the request topic
 	err = ir.createTopicAndAssignHandler(
-		string(TransactionTopic)+resolverSender.RequestTopicSuffix(),
+		identifier+resolverSender.RequestTopicSuffix(),
 		txResolver,
 		false)
 	if err != nil {
@@ -275,9 +151,12 @@ func (ir *interceptorsResolvers) createTxResolver() error {
 }
 
 func (ir *interceptorsResolvers) createHdrResolver() error {
+	//TODO temporary, will be refactored in EN-1104
+	identifier := string(HeadersTopic) + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
-		string(HeadersTopic),
+		identifier,
 		ir.marshalizer)
 	if err != nil {
 		return err
@@ -296,7 +175,7 @@ func (ir *interceptorsResolvers) createHdrResolver() error {
 
 	//add on the request topic
 	err = ir.createTopicAndAssignHandler(
-		string(HeadersTopic)+resolverSender.RequestTopicSuffix(),
+		identifier+resolverSender.RequestTopicSuffix(),
 		hdrResolver,
 		false)
 	if err != nil {
@@ -308,9 +187,12 @@ func (ir *interceptorsResolvers) createHdrResolver() error {
 }
 
 func (ir *interceptorsResolvers) createTxBlockBodyResolver() error {
+	//TODO temporary, will be refactored in EN-1104
+	identifier := string(MiniBlocksTopic) + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
-		string(MiniBlocksTopic),
+		identifier,
 		ir.marshalizer)
 	if err != nil {
 		return err
@@ -328,7 +210,7 @@ func (ir *interceptorsResolvers) createTxBlockBodyResolver() error {
 
 	//add on the request topic
 	err = ir.createTopicAndAssignHandler(
-		string(MiniBlocksTopic)+resolverSender.RequestTopicSuffix(),
+		identifier+resolverSender.RequestTopicSuffix(),
 		txBlkResolver,
 		false)
 	if err != nil {
@@ -340,9 +222,12 @@ func (ir *interceptorsResolvers) createTxBlockBodyResolver() error {
 }
 
 func (ir *interceptorsResolvers) createPeerChBlockBodyResolver() error {
+	//TODO temporary, will be refactored in EN-1104
+	identifier := string(PeerChBodyTopic) + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
-		string(PeerChBodyTopic),
+		identifier,
 		ir.marshalizer)
 	if err != nil {
 		return err
@@ -360,7 +245,7 @@ func (ir *interceptorsResolvers) createPeerChBlockBodyResolver() error {
 
 	//add on the request topic
 	err = ir.createTopicAndAssignHandler(
-		string(PeerChBodyTopic)+resolverSender.RequestTopicSuffix(),
+		identifier+resolverSender.RequestTopicSuffix(),
 		peerChBlkResolver,
 		false)
 	if err != nil {
@@ -372,9 +257,6 @@ func (ir *interceptorsResolvers) createPeerChBlockBodyResolver() error {
 }
 
 func validateRequiredProcessCreatorParams(config InterceptorsResolversConfig) error {
-	if config.InterceptorContainer == nil {
-		return process.ErrNilInterceptorContainer
-	}
 	if config.ResolverContainer == nil {
 		return process.ErrNilResolverContainer
 	}

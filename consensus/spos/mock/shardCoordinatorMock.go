@@ -22,3 +22,7 @@ func (scm ShardCoordinatorMock) ComputeShardForAddress(address state.AddressCont
 func (scm ShardCoordinatorMock) ShardForCurrentNode() uint32 {
 	return 0
 }
+
+func (scm ShardCoordinatorMock) CrossShardIdentifier(crossShardID uint32) string {
+	return "_0"
+}

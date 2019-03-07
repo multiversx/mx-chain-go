@@ -155,7 +155,6 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	pFactory, _ := factory.NewInterceptorsResolversCreator(factory.InterceptorsResolversConfig{
-		InterceptorContainer:     containers.NewObjectsContainer(),
 		ResolverContainer:        containers.NewResolversContainer(),
 		Messenger:                messenger,
 		Blockchain:               blkc,
@@ -169,6 +168,20 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		KeyGen:                   keyGen,
 		Uint64ByteSliceConverter: uint64Converter,
 	})
+
+	interceptorFactory, _ := factory.NewInterceptorsContainerCreator(
+		shardCoordinator,
+		messenger,
+		blkc,
+		marshalizer,
+		hasher,
+		keyGen,
+		singleSigner,
+		multiSigner,
+		dPool,
+		addrConverter,
+	)
+	interceptorsContainer, _ := interceptorFactory.Create()
 
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -186,9 +199,9 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
 		node.WithInterceptorsResolversFactory(pFactory),
+		node.WithInterceptorsContainer(interceptorsContainer),
 	)
 
-	_ = pFactory.CreateInterceptors()
 	_ = pFactory.CreateResolvers()
 
 	return n, messenger, sk, pFactory

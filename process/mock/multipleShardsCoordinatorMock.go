@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 )
 
@@ -31,4 +33,18 @@ func (scm *multipleShardsCoordinatorMock) ComputeShardForAddress(
 
 func (scm *multipleShardsCoordinatorMock) ShardForCurrentNode() uint32 {
 	return scm.CurrentShard
+}
+
+// CrossShardIdentifier returns the identifier between current shard ID and cross shard ID
+// identifier is generated such as the first shard from identifier is always smaller than the last
+func (scm *multipleShardsCoordinatorMock) CrossShardIdentifier(crossShardID uint32) string {
+	if crossShardID == scm.CurrentShard {
+		return fmt.Sprintf("_%d", scm.CurrentShard)
+	}
+
+	if crossShardID < scm.CurrentShard {
+		return fmt.Sprintf("_%d_%d", crossShardID, scm.CurrentShard)
+	}
+
+	return fmt.Sprintf("_%d_%d", scm.CurrentShard, crossShardID)
 }

@@ -34,10 +34,8 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	fmt.Println("Resolver:")
 	nResolver, mesResolver, _, pFactoryRes := ti.createNetNode(32001, dPoolResolver, ti.createAccountsDB())
 
-	_ = pFactoryReq.CreateInterceptors()
 	_ = pFactoryReq.CreateResolvers()
 
-	_ = pFactoryRes.CreateInterceptors()
 	_ = pFactoryRes.CreateResolvers()
 
 	nRequestor.Start()

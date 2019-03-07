@@ -30,3 +30,7 @@ func (scm *oneShardCoordinatorMock) ComputeShardForAddress(
 func (scm *oneShardCoordinatorMock) ShardForCurrentNode() uint32 {
 	return 0
 }
+
+func (scm *oneShardCoordinatorMock) CrossShardIdentifier(crossShardID uint32) string {
+	return "_0"
+}
