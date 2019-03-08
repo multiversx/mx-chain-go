@@ -6,6 +6,8 @@ import (
 	"github.com/whyrusleeping/timecache"
 )
 
+var MaxSendBuffSize = maxSendBuffSize
+
 func (netMes *networkMessenger) ConnManager() ifconnmgr.ConnManager {
 	return netMes.ctxProvider.connHost.ConnManager()
 }
