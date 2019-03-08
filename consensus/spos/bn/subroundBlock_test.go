@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/pkg/errors"
@@ -628,7 +629,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		},
 	}
 	err := errors.New("error")
-	bpm.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, remainingTime func() bool) (block.Body, error) {
+	bpm.CreateBlockCalled = func(round int32, remainingTime func() bool) (data.BodyHandler, error) {
 		return nil, err
 	}
 	sr.SetBlockProcessor(bpm)
@@ -641,7 +642,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 
 	r = sr.DoBlockJob()
 	assert.True(t, r)
-	assert.Equal(t, uint64(1), sr.ConsensusState().Header.Nonce)
+	assert.Equal(t, uint64(1), sr.ConsensusState().Header.GetNonce())
 }
 
 func TestSubroundBlock_ReceivedBlock(t *testing.T) {
@@ -717,7 +718,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	blockProcessorMock.CheckBlockValidityCalled = func(blockChain *blockchain.BlockChain, header *block.Header) bool {
+	blockProcessorMock.CheckBlockValidityCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
 		return false
 	}
 
@@ -727,7 +728,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	blockProcessorMock.CheckBlockValidityCalled = func(blockChain *blockchain.BlockChain, header *block.Header) bool {
+	blockProcessorMock.CheckBlockValidityCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
 		return true
 	}
 
@@ -783,7 +784,7 @@ func TestSubroundBlock_DecodeBlockHeader(t *testing.T) {
 	message, err := mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
-	
+
 	message, err = mock.MarshalizerMock{}.Marshal(hdr)
 
 	assert.Nil(t, err)
@@ -827,7 +828,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 	blProcMock := initBlockProcessorMock()
 
 	err := errors.New("error process block")
-	blProcMock.ProcessBlockCalled = func(*blockchain.BlockChain, *block.Header, block.Body, func() time.Duration) error {
+	blProcMock.ProcessBlockCalled = func(*blockchain.BlockChain, data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
 		return err
 	}
 
@@ -1075,15 +1076,14 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	sr := *initSubroundBlock()
 	sr.BlockChain().CurrentBlockHeader = nil
 	header, _ := sr.CreateHeader()
-	mbHeaders, _ := sr.BlockProcessor().CreateMiniBlockHeaders(sr.BlockChain().CurrentTxBlockBody)
 
 	expectedHeader := &block.Header{
-		Round: uint32(sr.Rounder().Index()),
-		TimeStamp: uint64(sr.Rounder().TimeStamp().Unix()),
-		RootHash: sr.BlockProcessor().GetRootHash(),
-		Nonce: uint64(1),
-		PrevHash: sr.BlockChain().GenesisHeaderHash,
-		MiniBlockHeaders: mbHeaders,
+		Round:            uint32(sr.Rounder().Index()),
+		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
+		RootHash:         sr.BlockProcessor().GetRootHash(),
+		Nonce:            uint64(1),
+		PrevHash:         sr.BlockChain().GenesisHeaderHash,
+		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
 	}
 
 	assert.Equal(t, expectedHeader, header)
@@ -1095,15 +1095,14 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 		Nonce: 1,
 	}
 	header, _ := sr.CreateHeader()
-	mbHeaders, _ := sr.BlockProcessor().CreateMiniBlockHeaders(sr.BlockChain().CurrentTxBlockBody)
 
 	expectedHeader := &block.Header{
-		Round: uint32(sr.Rounder().Index()),
-		TimeStamp: uint64(sr.Rounder().TimeStamp().Unix()),
-		RootHash: sr.BlockProcessor().GetRootHash(),
-		Nonce: uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1),
-		PrevHash: sr.BlockChain().CurrentBlockHeaderHash,
-		MiniBlockHeaders: mbHeaders,
+		Round:            uint32(sr.Rounder().Index()),
+		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
+		RootHash:         sr.BlockProcessor().GetRootHash(),
+		Nonce:            uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1),
+		PrevHash:         sr.BlockChain().CurrentBlockHeaderHash,
+		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
 	}
 
 	assert.Equal(t, expectedHeader, header)
@@ -1116,8 +1115,8 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 		{Hash: []byte("mb3"), SenderShardID: 2, ReceiverShardID: 3},
 	}
 	bp := initBlockProcessorMock()
-	bp.CreateMiniBlockHeadersCalled = func(body block.Body) (headers []block.MiniBlockHeader, e error) {
-		return mbHeaders, nil
+	bp.CreateBlockHeaderCalled = func(body data.BodyHandler) (header data.HeaderHandler, e error) {
+		return &block.Header{MiniBlockHeaders: mbHeaders, RootHash: bp.GetRootHash()}, nil
 	}
 	sr := *initSubroundBlockWithBlockProcessor(bp)
 	sr.BlockChain().CurrentBlockHeader = &block.Header{
@@ -1127,11 +1126,11 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 	header, _ := sr.CreateHeader()
 
 	expectedHeader := &block.Header{
-		Round: uint32(sr.Rounder().Index()),
-		TimeStamp: uint64(sr.Rounder().TimeStamp().Unix()),
-		RootHash: sr.BlockProcessor().GetRootHash(),
-		Nonce: uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1),
-		PrevHash: sr.BlockChain().CurrentBlockHeaderHash,
+		Round:            uint32(sr.Rounder().Index()),
+		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
+		RootHash:         sr.BlockProcessor().GetRootHash(),
+		Nonce:            uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1),
+		PrevHash:         sr.BlockChain().CurrentBlockHeaderHash,
 		MiniBlockHeaders: mbHeaders,
 	}
 
@@ -1141,7 +1140,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	expectedErr := errors.New("nil mini blocks")
 	bp := initBlockProcessorMock()
-	bp.CreateMiniBlockHeadersCalled = func(body block.Body) (headers []block.MiniBlockHeader, e error) {
+	bp.CreateBlockHeaderCalled = func(body data.BodyHandler) (header data.HeaderHandler, e error) {
 		return nil, expectedErr
 	}
 	sr := *initSubroundBlockWithBlockProcessor(bp)

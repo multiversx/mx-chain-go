@@ -127,14 +127,14 @@ func createMockTransient() *mock.TransientDataPoolMock {
 
 func createBlockProcessor() *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{
-		ProcessAndCommitCalled: func(blk *blockchain.BlockChain, hdr *block.Header, bdy block.Body, haveTime func() time.Duration) error {
-			blk.CurrentBlockHeader = hdr
+		ProcessBlockCalled: func(blk *blockchain.BlockChain, hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
+			blk.CurrentBlockHeader = hdr.(*block.Header)
 			return nil
 		},
 		RevertAccountStateCalled: func() {
 			return
 		},
-		CommitBlockCalled: func(blockChain *blockchain.BlockChain, header *block.Header, block block.Body) error {
+		CommitBlockCalled: func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
 	}
@@ -817,7 +817,7 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 
@@ -898,7 +898,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 
@@ -947,7 +947,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 
@@ -981,7 +981,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 					Nonce:         2,
 					Round:         1,
 					BlockBodyType: block.TxBlock,
-					RootHash: []byte("bbb")}, true
+					RootHash:      []byte("bbb")}, true
 			}
 
 			return nil, false
@@ -1054,7 +1054,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 
@@ -1090,7 +1090,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 					Nonce:         2,
 					Round:         1,
 					BlockBodyType: block.TxBlock,
-					RootHash: []byte("bbb")}, true
+					RootHash:      []byte("bbb")}, true
 			}
 
 			return nil, false
@@ -1728,8 +1728,8 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
 	prevHdr := &block.Header{
-		Signature:     []byte("sig of the prev header as to be unique in this context"),
-		RootHash:      prevHdrRootHash,
+		Signature: []byte("sig of the prev header as to be unique in this context"),
+		RootHash:  prevHdrRootHash,
 	}
 
 	transient := createMockTransient()
@@ -1843,8 +1843,8 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
 	prevHdr := &block.Header{
-		Signature:     []byte("sig of the prev header as to be unique in this context"),
-		RootHash:      prevHdrRootHash,
+		Signature: []byte("sig of the prev header as to be unique in this context"),
+		RootHash:  prevHdrRootHash,
 	}
 
 	transient := createMockTransient()
@@ -1999,7 +1999,6 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 	requestedHash := make([][]byte, 0)
 	requestedHash = append(requestedHash, mbh)
 
-
 	transient := createMockTransient()
 
 	txBlockUnit := &mock.StorerStub{
@@ -2097,7 +2096,6 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	assert.Equal(t, txBlock, txBlockRecovered)
 }
 
-
 func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenMarshalErr(t *testing.T) {
 	t.Parallel()
 
@@ -2149,7 +2147,7 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenCommitBlockErr(t *testing.
 	blkc.CurrentBlockHeader = &block.Header{Nonce: 1}
 
 	err := errors.New("error")
-	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block block.Body) error {
+	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
 		return err
 	}
 
@@ -2452,7 +2450,7 @@ func TestNewBootstrap_CreateAndBroadcastEmptyBlockShouldReturnErr(t *testing.T) 
 	account := &mock.AccountsStub{}
 
 	err := errors.New("error")
-	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block block.Body) error {
+	blkExec.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
 		return err
 	}
 
@@ -2502,7 +2500,7 @@ func TestNewBootstrap_CreateAndBroadcastEmptyBlockShouldReturnNil(t *testing.T) 
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 
@@ -2539,7 +2537,7 @@ func TestNewBootstrap_BroadcastEmptyBlockShouldErrWhenBroadcastBlockErr(t *testi
 	)
 
 	err := errors.New("error")
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return err
 	}
 
@@ -2575,7 +2573,7 @@ func TestNewBootstrap_BroadcastEmptyBlockShouldReturnNil(t *testing.T) {
 		account,
 	)
 
-	bs.BroadcastBlock = func(body block.Body, header *block.Header) error {
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
 

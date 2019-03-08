@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -400,8 +401,8 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 
 	blProcMock.CommitBlockCalled = func(
 		blockChain *blockchain.BlockChain,
-		header *block.Header,
-		block block.Body,
+		header data.HeaderHandler,
+		body data.BodyHandler,
 	) error {
 		return blockchain.ErrHeaderUnitNil
 	}
@@ -420,7 +421,7 @@ func TestSubroundEndRound_DoEndRoundJobErrRemBlockTxOK(t *testing.T) {
 
 	blProcMock := initBlockProcessorMock()
 
-	blProcMock.RemoveBlockTxsFromPoolCalled = func(body block.Body) error {
+	blProcMock.RemoveBlockInfoFromPoolCalled = func(body data.BodyHandler) error {
 		return process.ErrNilBlockBodyPool
 	}
 
@@ -436,7 +437,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 
 	sr := *initSubroundEndRound()
 
-	sr.SetBroadcastBlock(func(block.Body, *block.Header) error {
+	sr.SetBroadcastBlock(func(data.BodyHandler, data.HeaderHandler) error {
 		return spos.ErrNilBroadcastBlockFunction
 	})
 

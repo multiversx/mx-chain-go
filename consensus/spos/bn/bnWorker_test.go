@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/pkg/errors"
@@ -28,7 +29,7 @@ func sendConsensusMessage(cnsMsg *spos.ConsensusMessage) bool {
 	return true
 }
 
-func broadcastBlock(txBlockBody block.Body, header *block.Header) error {
+func broadcastBlock(txBlockBody data.BodyHandler, header data.HeaderHandler) error {
 	fmt.Println(txBlockBody)
 	fmt.Println(header)
 	return nil
@@ -119,22 +120,20 @@ func initChronologyHandlerMock() consensus.ChronologyHandler {
 func initBlockProcessorMock() *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{}
 
-	blockProcessorMock.RemoveBlockTxsFromPoolCalled = func(body block.Body) error { return nil }
-	blockProcessorMock.CreateTxBlockCalled = func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
-		return make(block.Body, 0), nil
+	blockProcessorMock.RemoveBlockInfoFromPoolCalled = func(body data.BodyHandler) error { return nil }
+	blockProcessorMock.CreateBlockCalled = func(round int32, haveTime func() bool) (data.BodyHandler, error) {
+		emptyBlock := make(block.Body, 0)
+
+		return emptyBlock, nil
 	}
 
-	blockProcessorMock.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, block block.Body) error {
+	blockProcessorMock.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
 
 	blockProcessorMock.RevertAccountStateCalled = func() {}
 
-	blockProcessorMock.ProcessAndCommitCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
-		return nil
-	}
-
-	blockProcessorMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
+	blockProcessorMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
 
@@ -142,8 +141,8 @@ func initBlockProcessorMock() *mock.BlockProcessorMock {
 		return []byte{}
 	}
 
-	blockProcessorMock.CreateMiniBlockHeadersCalled = func(body block.Body) (headers []block.MiniBlockHeader, e error) {
-		return make([]block.MiniBlockHeader, 0), nil
+	blockProcessorMock.CreateBlockHeaderCalled = func(body data.BodyHandler) (header data.HeaderHandler, e error) {
+		return &block.Header{RootHash: blockProcessorMock.GetRootHashCalled()}, nil
 	}
 
 	return blockProcessorMock
@@ -1330,7 +1329,7 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 		ShouldSyncCalled: func() bool {
 			return true
 		},
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
 			return nil, nil, errors.New("error")
 		},
@@ -1355,7 +1354,7 @@ func TestWorker_ExtendShouldReturnWhenShouldSync(t *testing.T) {
 		ShouldSyncCalled: func() bool {
 			return true
 		},
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			executed = true
 			return nil, nil, errors.New("error")
 		},
@@ -1374,13 +1373,13 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 
 	executed := false
 
-	wrk.BroadcastBlock = func(block.Body, *block.Header) error {
+	wrk.BroadcastBlock = func(data.BodyHandler, data.HeaderHandler) error {
 		executed = true
 		return nil
 	}
 
 	bootstraperMock := &mock.BootstraperMock{
-		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			return nil, nil, errors.New("error")
 		}}
 
@@ -1396,7 +1395,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 
 	executed := int32(0)
 
-	wrk.BroadcastBlock = func(block.Body, *block.Header) error {
+	wrk.BroadcastBlock = func(data.BodyHandler, data.HeaderHandler) error {
 		atomic.AddInt32(&executed, 1)
 		return nil
 	}

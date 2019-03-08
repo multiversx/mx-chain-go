@@ -4,53 +4,68 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 )
 
+// BlockProcessorMock mocks the implementation for a blockProcessor
 type BlockProcessorStub struct {
+	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error
+	RevertAccountStateCalled      func()
+	CreateGenesisBlockCalled      func(balances map[string]*big.Int) (rootHash []byte, err error)
+	CreateBlockCalled             func(round int32, haveTime func() bool) (data.BodyHandler, error)
+	RemoveBlockInfoFromPoolCalled func(body data.BodyHandler) error
+	GetRootHashCalled             func() []byte
+	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
+	CheckBlockValidityCalled      func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool
 }
 
-func (bps *BlockProcessorStub) SetOnRequestTransaction(f func(destShardID uint32, txHash []byte)) {
-	panic("implement me")
+// SetOnRequestTransaction mocks setting request transaction call back function
+func (blProcMock *BlockProcessorStub) SetOnRequestTransaction(f func(destShardID uint32, txHash []byte)) {
+	blProcMock.SetOnRequestTransactionCalled(f)
 }
 
-func (bps *BlockProcessorStub) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
-	panic("implement me")
+// ProcessBlock mocks pocessing a block
+func (blProcMock *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	return blProcMock.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
 
-func (bps *BlockProcessorStub) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block block.Body) error {
-	panic("implement me")
+// CommitBlock mocks the commit of a block
+func (blProcMock *BlockProcessorStub) CommitBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
+	return blProcMock.CommitBlockCalled(blockChain, header, body)
 }
 
-func (bps *BlockProcessorStub) RevertAccountState() {
-	panic("implement me")
+// RevertAccountState mocks revert of the accounts state
+func (blProcMock *BlockProcessorStub) RevertAccountState() {
+	blProcMock.RevertAccountStateCalled()
 }
 
-func (bps *BlockProcessorStub) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
-	panic("implement me")
+// CreateGenesisBlock mocks the creation of a genesis block body
+func (blProcMock *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) (rootHash []byte, err error) {
+	return blProcMock.CreateGenesisBlockCalled(balances)
 }
 
-func (bps *BlockProcessorStub) CreateGenesisBlock(balances map[string]*big.Int) (rootHash []byte, err error) {
-	panic("implement me")
+// CreateTxBlockBody mocks the creation of a transaction block body
+func (blProcMock *BlockProcessorStub) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
+	return blProcMock.CreateBlockCalled(round, haveTime)
 }
 
-func (bps *BlockProcessorStub) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
-	panic("implement me")
+// RemoveBlockTxsFromPool mocks the removal of block transactions from transaction pools
+func (blProcMock *BlockProcessorStub) RemoveBlockInfoFromPool(body data.BodyHandler) error {
+	// pretend we removed the data
+	return blProcMock.RemoveBlockInfoFromPoolCalled(body)
 }
 
-func (bps *BlockProcessorStub) RemoveBlockTxsFromPool(body block.Body) error {
-	panic("implement me")
+// GetRootHash mocks getting root hash
+func (blProcMock BlockProcessorStub) GetRootHash() []byte {
+	return blProcMock.GetRootHashCalled()
 }
 
-func (bps *BlockProcessorStub) GetRootHash() []byte {
-	panic("implement me")
+func (blProcMock BlockProcessorStub) CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
+	return blProcMock.CheckBlockValidityCalled(blockChain, header, body)
 }
 
-func (bps BlockProcessorStub) CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool {
-	panic("implement me")
-}
-
-func (bps BlockProcessorStub)CreateMiniBlockHeaders(body block.Body) ([]block.MiniBlockHeader, error) {
+func (bps BlockProcessorStub) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
 	panic("implement me")
 }

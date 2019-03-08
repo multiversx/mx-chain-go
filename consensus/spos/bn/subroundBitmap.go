@@ -141,7 +141,7 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 		}
 	}
 
-	sr.consensusState.Header.PubKeysBitmap = bitmap
+	sr.consensusState.Header.SetPubKeysBitmap(bitmap)
 
 	return true
 }
@@ -204,7 +204,7 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *spos.ConsensusMessage) bool {
 		return false
 	}
 
-	sr.consensusState.Header.PubKeysBitmap = signersBitmap
+	sr.consensusState.Header.SetPubKeysBitmap(signersBitmap)
 
 	return true
 }

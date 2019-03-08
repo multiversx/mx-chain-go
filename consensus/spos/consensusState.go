@@ -2,7 +2,7 @@ package spos
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
@@ -13,8 +13,8 @@ type ConsensusState struct {
 	// hold the data on which validators do the consensus (could be for example a hash of the block header
 	// proposed by the leader)
 	Data      []byte
-	BlockBody block.Body
-	Header    *block.Header
+	BlockBody data.BodyHandler
+	Header    data.HeaderHandler
 
 	RoundCanceled bool
 
