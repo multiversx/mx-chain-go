@@ -1824,3 +1824,74 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	r = bp.CheckBlockValidity(blkc, hdr, nil)
 	assert.True(t, r)
 }
+
+func TestBlockProcessor_CreateMiniBlockHeadersShouldNotReturnNil(t *testing.T) {
+	t.Parallel()
+
+	bp, _ := blproc.NewBlockProcessor(
+		initDataPool(),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	mbHeaders, err := bp.CreateMiniBlockHeaders(nil)
+	assert.Nil(t, err)
+	assert.NotNil(t, mbHeaders)
+	assert.Equal(t, 0, len(mbHeaders))
+}
+
+func TestBlockProcessor_CreateMiniBlockHeadersShouldErrWhenMarshalizerErrors(t *testing.T) {
+	t.Parallel()
+
+	bp, _ := blproc.NewBlockProcessor(
+		initDataPool(),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{Fail:true},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	body := block.Body{
+		{ShardID: 1, TxHashes: make([][]byte, 0)},
+		{ShardID: 2, TxHashes: make([][]byte, 0)},
+		{ShardID: 3, TxHashes: make([][]byte, 0)},
+	}
+	mbHeaders, err := bp.CreateMiniBlockHeaders(body)
+	assert.NotNil(t, err)
+	assert.Nil(t, mbHeaders)
+}
+
+func TestBlockProcessor_CreateMiniBlockHeadersReturnsOK(t *testing.T) {
+	t.Parallel()
+
+	bp, _ := blproc.NewBlockProcessor(
+		initDataPool(),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	body := block.Body{
+		{ShardID: 1, TxHashes: make([][]byte, 0)},
+		{ShardID: 2, TxHashes: make([][]byte, 0)},
+		{ShardID: 3, TxHashes: make([][]byte, 0)},
+	}
+	mbHeaders, err := bp.CreateMiniBlockHeaders(body)
+	assert.Nil(t, err)
+	assert.Equal(t, len(body), len(mbHeaders))
+}

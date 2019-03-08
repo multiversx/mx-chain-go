@@ -19,6 +19,7 @@ type BlockProcessorMock struct {
 	GetRootHashCalled             func() []byte
 	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
 	CheckBlockValidityCalled      func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool
+	CreateMiniBlockHeadersCalled  func(body block.Body) ([]block.MiniBlockHeader, error)
 }
 
 // SetOnRequestTransaction mocks setting request transaction call back function
@@ -64,4 +65,8 @@ func (blProcMock BlockProcessorMock) GetRootHash() []byte {
 
 func (blProcMock BlockProcessorMock) CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
 	return blProcMock.CheckBlockValidityCalled(blockChain, header, body)
+}
+
+func (blProcMock BlockProcessorMock)CreateMiniBlockHeaders(body block.Body) ([]block.MiniBlockHeader, error) {
+	return blProcMock.CreateMiniBlockHeadersCalled(body)
 }

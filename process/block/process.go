@@ -622,6 +622,26 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 	return miniBlocks, nil
 }
 
+// CreateMiniBlockHeaders creates a miniblock header list given a block body
+func (bp *blockProcessor) CreateMiniBlockHeaders(body block.Body) ([]block.MiniBlockHeader, error) {
+	mbLen := len(body)
+	miniBlockHeaders := make([]block.MiniBlockHeader, mbLen)
+	for i := 0; i < mbLen; i++ {
+		mbBytes, err := bp.marshalizer.Marshal(body[i])
+		if err != nil {
+			return nil, err
+		}
+		mbHash := bp.hasher.Compute(string(mbBytes))
+		// TODO: Add correct shard ids in shard coordinator task
+		miniBlockHeaders[i] = block.MiniBlockHeader{
+			Hash: mbHash,
+			SenderShardID: bp.shardCoordinator.ShardForCurrentNode(),
+			ReceiverShardID: body[i].ShardID,
+		}
+	}
+	return miniBlockHeaders, nil
+}
+
 func (bp *blockProcessor) waitForTxHashes(waitTime time.Duration) error {
 	select {
 	case <-bp.ChRcvAllTxs:

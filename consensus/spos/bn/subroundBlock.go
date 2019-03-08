@@ -229,18 +229,11 @@ func (sr *subroundBlock) sendBlockBody() bool {
 
 // sendBlockHeader method job the proposed block header in the Block subround
 func (sr *subroundBlock) sendBlockHeader() bool {
-	hdr := &block.Header{}
 
-	hdr.Round = uint32(sr.rounder.Index())
-	hdr.TimeStamp = uint64(sr.rounder.TimeStamp().Unix())
-	hdr.RootHash = sr.blockProcessor.GetRootHash()
-
-	if sr.blockChain.CurrentBlockHeader == nil {
-		hdr.Nonce = 1
-		hdr.PrevHash = sr.blockChain.GenesisHeaderHash
-	} else {
-		hdr.Nonce = sr.blockChain.CurrentBlockHeader.Nonce + 1
-		hdr.PrevHash = sr.blockChain.CurrentBlockHeaderHash
+	hdr, err := sr.createHeader()
+	if err != nil {
+		log.Error(err.Error())
+		return false
 	}
 
 	hdrStr, err := sr.marshalizer.Marshal(hdr)
@@ -272,6 +265,29 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 	sr.consensusState.Header = hdr
 
 	return true
+}
+
+func (sr *subroundBlock) createHeader() (*block.Header, error) {
+	hdr := &block.Header{}
+
+	hdr.Round = uint32(sr.rounder.Index())
+	hdr.TimeStamp = uint64(sr.rounder.TimeStamp().Unix())
+	hdr.RootHash = sr.blockProcessor.GetRootHash()
+
+	if sr.blockChain.CurrentBlockHeader == nil {
+		hdr.Nonce = 1
+		hdr.PrevHash = sr.blockChain.GenesisHeaderHash
+	} else {
+		hdr.Nonce = sr.blockChain.CurrentBlockHeader.Nonce + 1
+		hdr.PrevHash = sr.blockChain.CurrentBlockHeaderHash
+	}
+
+	headers, err := sr.blockProcessor.CreateMiniBlockHeaders(sr.consensusState.BlockBody)
+	if err != nil {
+		return nil, err
+	}
+	hdr.MiniBlockHeaders = headers
+	return hdr, nil
 }
 
 // receivedBlockBody method is called when a block body is received through the block body channel.

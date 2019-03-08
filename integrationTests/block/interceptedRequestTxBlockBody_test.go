@@ -79,11 +79,11 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	dPoolRequestor.MiniBlocks().RegisterHandler(func(key []byte) {
 		txBlockBodyStored, _ := dPoolRequestor.MiniBlocks().Get(key)
 
-		if reflect.DeepEqual(txBlockBodyStored, body) {
+		if reflect.DeepEqual(txBlockBodyStored, miniBlock) {
 			chanDone <- true
 		}
 
-		assert.Equal(t, txBlockBodyStored, body)
+		assert.Equal(t, txBlockBodyStored, miniBlock)
 
 	})
 

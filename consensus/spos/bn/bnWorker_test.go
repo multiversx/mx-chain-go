@@ -141,6 +141,10 @@ func initBlockProcessorMock() *mock.BlockProcessorMock {
 		return []byte{}
 	}
 
+	blockProcessorMock.CreateMiniBlockHeadersCalled = func(body block.Body) (headers []block.MiniBlockHeader, e error) {
+		return make([]block.MiniBlockHeader, 0), nil
+	}
+
 	return blockProcessorMock
 }
 

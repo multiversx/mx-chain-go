@@ -400,6 +400,10 @@ func (sr *subroundBlock) IsBlockReceived(threshold int) bool {
 	return sr.isBlockReceived(threshold)
 }
 
+func (sr *subroundBlock) CreateHeader() (*block.Header, error) {
+	return sr.createHeader()
+}
+
 // subroundCommitmentHash
 
 type SubroundCommitmentHash *subroundCommitmentHash

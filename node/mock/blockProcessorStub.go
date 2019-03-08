@@ -65,3 +65,7 @@ func (blProcMock BlockProcessorStub) GetRootHash() []byte {
 func (blProcMock BlockProcessorStub) CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
 	return blProcMock.CheckBlockValidityCalled(blockChain, header, body)
 }
+
+func (bps BlockProcessorStub)CreateMiniBlockHeaders(body block.Body) ([]block.MiniBlockHeader, error) {
+	panic("implement me")
+}
