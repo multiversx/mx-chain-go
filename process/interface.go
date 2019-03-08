@@ -32,6 +32,7 @@ type BlockProcessor interface {
 	RemoveBlockTxsFromPool(body block.Body) error
 	GetRootHash() []byte
 	CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool
+	CreateMiniBlockHeaders(body block.Body) ([]block.MiniBlockHeader, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
