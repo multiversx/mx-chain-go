@@ -111,12 +111,12 @@ func NewBootstrap(
 		accounts:         accounts,
 	}
 
-	hdrResolver, err := resolversContainer.Get(string(factory.HeadersTopic))
+	hdrResolver, err := resolversContainer.Get(factory.HeadersTopic)
 	if err != nil {
 		return nil, err
 	}
 
-	miniBlocksResolver, err := resolversContainer.Get(string(factory.MiniBlocksTopic))
+	miniBlocksResolver, err := resolversContainer.Get(factory.MiniBlocksTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -325,7 +325,7 @@ func (boot *Bootstrap) receivedBodyHash(hash []byte) {
 	}
 
 	boot.requestedHashes.SetReceivedHash(hash)
-	if  boot.requestedHashes.ReceivedAll() {
+	if boot.requestedHashes.ReceivedAll() {
 		log.Info(fmt.Sprintf("received requested txBlockBody with hash %s from network\n", toB64(hash)))
 		boot.setRequestedMiniBlocks(nil)
 		boot.chRcvMiniBlocks <- true

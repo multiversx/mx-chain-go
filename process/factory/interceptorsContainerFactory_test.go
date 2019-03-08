@@ -259,7 +259,7 @@ func TestInterceptorsContainerCreator_CreateTopicCreationTxFailsShouldErr(t *tes
 
 	icc, _ := factory.NewInterceptorsContainerCreator(
 		mock.NewOneShardCoordinatorMock(),
-		createStubWireTopicHandler(string(factory.TransactionTopic), ""),
+		createStubWireTopicHandler(factory.TransactionTopic, ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -280,7 +280,7 @@ func TestInterceptorsContainerCreator_CreateTopicCreationHdrFailsShouldErr(t *te
 
 	icc, _ := factory.NewInterceptorsContainerCreator(
 		mock.NewOneShardCoordinatorMock(),
-		createStubWireTopicHandler(string(factory.HeadersTopic), ""),
+		createStubWireTopicHandler(factory.HeadersTopic, ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -301,7 +301,7 @@ func TestInterceptorsContainerCreator_CreateTopicCreationMiniBlocksFailsShouldEr
 
 	icc, _ := factory.NewInterceptorsContainerCreator(
 		mock.NewOneShardCoordinatorMock(),
-		createStubWireTopicHandler(string(factory.MiniBlocksTopic), ""),
+		createStubWireTopicHandler(factory.MiniBlocksTopic, ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -322,7 +322,7 @@ func TestInterceptorsContainerCreator_CreateTopicCreationPeerChBlocksFailsShould
 
 	icc, _ := factory.NewInterceptorsContainerCreator(
 		mock.NewOneShardCoordinatorMock(),
-		createStubWireTopicHandler(string(factory.PeerChBodyTopic), ""),
+		createStubWireTopicHandler(factory.PeerChBodyTopic, ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -343,7 +343,7 @@ func TestInterceptorsContainerCreator_CreateRegisterTxFailsShouldErr(t *testing.
 
 	icc, _ := factory.NewInterceptorsContainerCreator(
 		mock.NewOneShardCoordinatorMock(),
-		createStubWireTopicHandler("", string(factory.TransactionTopic)),
+		createStubWireTopicHandler("", factory.TransactionTopic),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -364,7 +364,7 @@ func TestInterceptorsContainerCreator_CreateRegisterHdrFailsShouldErr(t *testing
 
 	icc, _ := factory.NewInterceptorsContainerCreator(
 		mock.NewOneShardCoordinatorMock(),
-		createStubWireTopicHandler("", string(factory.HeadersTopic)),
+		createStubWireTopicHandler("", factory.HeadersTopic),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -385,7 +385,7 @@ func TestInterceptorsContainerCreator_CreateRegisterMiniBlocksFailsShouldErr(t *
 
 	icc, _ := factory.NewInterceptorsContainerCreator(
 		mock.NewOneShardCoordinatorMock(),
-		createStubWireTopicHandler("", string(factory.MiniBlocksTopic)),
+		createStubWireTopicHandler("", factory.MiniBlocksTopic),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -406,7 +406,7 @@ func TestInterceptorsContainerCreator_CreateRegisterPeerChBlocksFailsShouldErr(t
 
 	icc, _ := factory.NewInterceptorsContainerCreator(
 		mock.NewOneShardCoordinatorMock(),
-		createStubWireTopicHandler("", string(factory.PeerChBodyTopic)),
+		createStubWireTopicHandler("", factory.PeerChBodyTopic),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},

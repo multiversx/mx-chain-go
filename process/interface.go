@@ -114,15 +114,6 @@ type ForkDetector interface {
 	CheckFork() bool
 }
 
-// Container defines a holder data type with basic functionality
-type Container interface {
-	Get(key string) (interface{}, error)
-	Add(key string, val interface{}) error
-	Replace(key string, val interface{}) error
-	Remove(key string)
-	Len() int
-}
-
 // ResolversContainer defines a resolvers holder data type with basic functionality
 type ResolversContainer interface {
 	Get(key string) (Resolver, error)

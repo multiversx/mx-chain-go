@@ -495,7 +495,7 @@ func createNode(
 
 	forkDetector := sync2.NewBasicForkDetector()
 
-	res, err := interceptorsResolversFactory.ResolverContainer().Get(string(factory.TransactionTopic))
+	res, err := interceptorsResolversFactory.ResolverContainer().Get(factory.TransactionTopic)
 	if err != nil {
 		return nil, err
 	}

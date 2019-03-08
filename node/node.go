@@ -389,7 +389,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	//TODO temporary, will be refactored in EN-1104
-	identifier := string(factory.TransactionTopic) + n.shardCoordinator.CrossShardIdentifier(n.shardCoordinator.ShardForCurrentNode())
+	identifier := factory.TransactionTopic + n.shardCoordinator.CrossShardIdentifier(n.shardCoordinator.ShardForCurrentNode())
 
 	for i := 0; i < len(transactions); i++ {
 		n.messenger.BroadcastOnChannel(
@@ -643,7 +643,7 @@ func (n *Node) SendTransaction(
 	}
 
 	//TODO temporary, will be refactored in EN-1104
-	identifier := string(factory.TransactionTopic) + n.shardCoordinator.CrossShardIdentifier(n.shardCoordinator.ShardForCurrentNode())
+	identifier := factory.TransactionTopic + n.shardCoordinator.CrossShardIdentifier(n.shardCoordinator.ShardForCurrentNode())
 
 	n.messenger.BroadcastOnChannel(
 		SendTransactionsPipe,
@@ -734,9 +734,7 @@ func (n *Node) broadcastBlock(blockBody block.Body, header *block.Header) error 
 		return err
 	}
 
-	go n.messenger.Broadcast(
-		string(factory.MiniBlocksTopic),
-		msgBlockBody)
+	go n.messenger.Broadcast(factory.MiniBlocksTopic, msgBlockBody)
 
 	if header == nil {
 		return ErrNilBlockHeader
@@ -748,10 +746,7 @@ func (n *Node) broadcastBlock(blockBody block.Body, header *block.Header) error 
 		return err
 	}
 
-	go n.messenger.Broadcast(
-		string(factory.HeadersTopic),
-		msgHeader,
-	)
+	go n.messenger.Broadcast(factory.HeadersTopic, msgHeader)
 
 	return nil
 }

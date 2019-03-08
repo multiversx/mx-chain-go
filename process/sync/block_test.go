@@ -34,7 +34,7 @@ type removedFlags struct {
 func createMockResolversContainer() *mock.ResolversContainerStub {
 	return &mock.ResolversContainerStub{
 		GetCalled: func(key string) (resolver process.Resolver, e error) {
-			if key == string(factory.HeadersTopic) {
+			if key == factory.HeadersTopic {
 				return &mock.HeaderResolverMock{
 					RequestDataFromNonceCalled: func(nonce uint64) error {
 						return nil
@@ -45,7 +45,7 @@ func createMockResolversContainer() *mock.ResolversContainerStub {
 				}, nil
 			}
 
-			if key == string(factory.MiniBlocksTopic) {
+			if key == factory.MiniBlocksTopic {
 				return &mock.MiniBlocksResolverMock{
 					GetMiniBlocksCalled: func(hashes [][]byte) block.MiniBlockSlice {
 						return make(block.MiniBlockSlice, 0)
@@ -61,7 +61,7 @@ func createMockResolversContainer() *mock.ResolversContainerStub {
 func createMockResolversContainerNilMiniBlocks() *mock.ResolversContainerStub {
 	return &mock.ResolversContainerStub{
 		GetCalled: func(key string) (resolver process.Resolver, e error) {
-			if key == string(factory.HeadersTopic) {
+			if key == factory.HeadersTopic {
 				return &mock.HeaderResolverMock{
 					RequestDataFromNonceCalled: func(nonce uint64) error {
 						return nil
@@ -72,7 +72,7 @@ func createMockResolversContainerNilMiniBlocks() *mock.ResolversContainerStub {
 				}, nil
 			}
 
-			if key == string(factory.MiniBlocksTopic) {
+			if key == factory.MiniBlocksTopic {
 				return &mock.MiniBlocksResolverMock{
 					RequestDataFromHashCalled: func(hash []byte) error {
 						return nil
@@ -628,11 +628,11 @@ func TestNewBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 
 	resContainer := &mock.ResolversContainerStub{
 		GetCalled: func(key string) (resolver process.Resolver, e error) {
-			if key == string(factory.HeadersTopic) {
+			if key == factory.HeadersTopic {
 				return nil, errExpected
 			}
 
-			if key == string(factory.MiniBlocksTopic) {
+			if key == factory.MiniBlocksTopic {
 				return &mock.ResolverStub{}, nil
 			}
 
@@ -676,11 +676,11 @@ func TestNewBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 
 	resContainer := &mock.ResolversContainerStub{
 		GetCalled: func(key string) (resolver process.Resolver, e error) {
-			if key == string(factory.HeadersTopic) {
+			if key == factory.HeadersTopic {
 				return &mock.HeaderResolverMock{}, errExpected
 			}
 
-			if key == string(factory.MiniBlocksTopic) {
+			if key == factory.MiniBlocksTopic {
 				return nil, errExpected
 			}
 
@@ -981,7 +981,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 					Nonce:         2,
 					Round:         1,
 					BlockBodyType: block.TxBlock,
-					RootHash: []byte("bbb")}, true
+					RootHash:      []byte("bbb")}, true
 			}
 
 			return nil, false
@@ -1090,7 +1090,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 					Nonce:         2,
 					Round:         1,
 					BlockBodyType: block.TxBlock,
-					RootHash: []byte("bbb")}, true
+					RootHash:      []byte("bbb")}, true
 			}
 
 			return nil, false
@@ -1728,8 +1728,8 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
 	prevHdr := &block.Header{
-		Signature:     []byte("sig of the prev header as to be unique in this context"),
-		RootHash:      prevHdrRootHash,
+		Signature: []byte("sig of the prev header as to be unique in this context"),
+		RootHash:  prevHdrRootHash,
 	}
 
 	transient := createMockTransient()
@@ -1843,8 +1843,8 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
 	prevHdr := &block.Header{
-		Signature:     []byte("sig of the prev header as to be unique in this context"),
-		RootHash:      prevHdrRootHash,
+		Signature: []byte("sig of the prev header as to be unique in this context"),
+		RootHash:  prevHdrRootHash,
 	}
 
 	transient := createMockTransient()
@@ -1999,7 +1999,6 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 	requestedHash := make([][]byte, 0)
 	requestedHash = append(requestedHash, mbh)
 
-
 	transient := createMockTransient()
 
 	txBlockUnit := &mock.StorerStub{
@@ -2096,7 +2095,6 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 
 	assert.Equal(t, txBlock, txBlockRecovered)
 }
-
 
 func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenMarshalErr(t *testing.T) {
 	t.Parallel()

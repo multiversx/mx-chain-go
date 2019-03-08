@@ -132,7 +132,7 @@ func (icc *interceptorsContainerCreator) addTxInterceptors(container process.Int
 	shardC := icc.shardCoordinator
 
 	for idx := uint32(0); idx < shardC.NoShards(); idx++ {
-		identifierTx := string(TransactionTopic) + shardC.CrossShardIdentifier(idx)
+		identifierTx := TransactionTopic + shardC.CrossShardIdentifier(idx)
 
 		interceptor, err := icc.createOneTxInterceptor(identifierTx)
 		if err != nil {
@@ -174,7 +174,7 @@ func (icc *interceptorsContainerCreator) addHdrInterceptors(container process.In
 	shardC := icc.shardCoordinator
 
 	//only one intrashard header topic
-	identifierHdr := string(HeadersTopic) + shardC.CrossShardIdentifier(shardC.ShardForCurrentNode())
+	identifierHdr := HeadersTopic + shardC.CrossShardIdentifier(shardC.ShardForCurrentNode())
 
 	interceptor, err := icc.createOneHdrInterceptor(identifierHdr)
 	if err != nil {
@@ -210,7 +210,7 @@ func (icc *interceptorsContainerCreator) addMiniBlocksInterceptors(container pro
 	shardC := icc.shardCoordinator
 
 	for idx := uint32(0); idx < shardC.NoShards(); idx++ {
-		identifierMiniBlocks := string(MiniBlocksTopic) + shardC.CrossShardIdentifier(idx)
+		identifierMiniBlocks := MiniBlocksTopic + shardC.CrossShardIdentifier(idx)
 
 		interceptor, err := icc.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 		if err != nil {

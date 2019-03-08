@@ -16,17 +16,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-type topicName string
-
 const (
 	// TransactionTopic is the topic used for sharing transactions
-	TransactionTopic topicName = "transactions"
+	TransactionTopic = "transactions"
 	// HeadersTopic is the topic used for sharing block headers
-	HeadersTopic topicName = "headers"
+	HeadersTopic = "headers"
 	// MiniBlocksTopic is the topic used for sharing mini blocks
-	MiniBlocksTopic topicName = "txBlockBodies"
+	MiniBlocksTopic = "txBlockBodies"
 	// PeerChBodyTopic is used for sharing peer change block bodies
-	PeerChBodyTopic topicName = "peerChangeBlockBodies"
+	PeerChBodyTopic = "peerChangeBlockBodies"
 )
 
 type interceptorsResolvers struct {
@@ -117,7 +115,7 @@ func (ir *interceptorsResolvers) ResolverContainer() process.ResolversContainer 
 
 func (ir *interceptorsResolvers) createTxResolver() error {
 	//TODO temporary, will be refactored in EN-1104
-	identifier := string(TransactionTopic) + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+	identifier := TransactionTopic + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
@@ -146,13 +144,13 @@ func (ir *interceptorsResolvers) createTxResolver() error {
 		return err
 	}
 
-	err = ir.resolverContainer.Add(string(TransactionTopic), txResolver)
+	err = ir.resolverContainer.Add(TransactionTopic, txResolver)
 	return err
 }
 
 func (ir *interceptorsResolvers) createHdrResolver() error {
 	//TODO temporary, will be refactored in EN-1104
-	identifier := string(HeadersTopic) + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+	identifier := HeadersTopic + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
@@ -182,13 +180,13 @@ func (ir *interceptorsResolvers) createHdrResolver() error {
 		return err
 	}
 
-	err = ir.resolverContainer.Add(string(HeadersTopic), hdrResolver)
+	err = ir.resolverContainer.Add(HeadersTopic, hdrResolver)
 	return err
 }
 
 func (ir *interceptorsResolvers) createTxBlockBodyResolver() error {
 	//TODO temporary, will be refactored in EN-1104
-	identifier := string(MiniBlocksTopic) + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+	identifier := MiniBlocksTopic + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
@@ -217,13 +215,13 @@ func (ir *interceptorsResolvers) createTxBlockBodyResolver() error {
 		return err
 	}
 
-	err = ir.resolverContainer.Add(string(MiniBlocksTopic), txBlkResolver)
+	err = ir.resolverContainer.Add(MiniBlocksTopic, txBlkResolver)
 	return err
 }
 
 func (ir *interceptorsResolvers) createPeerChBlockBodyResolver() error {
 	//TODO temporary, will be refactored in EN-1104
-	identifier := string(PeerChBodyTopic) + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+	identifier := PeerChBodyTopic + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
