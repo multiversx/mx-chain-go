@@ -7,36 +7,18 @@ type node interface {
 }
 
 type branchNode struct {
-	Children      [nrOfChildren][]byte
-	childrenNodes [nrOfChildren]node
-	hash          []byte
-	dirty         bool
-}
-
-func (bn *branchNode) ChildrenNodes() [nrOfChildren]node {
-	return bn.childrenNodes
-}
-
-func (bn *branchNode) copy() *branchNode {
-	cpy := *bn
-	return &cpy
+	EncodedChildren [nrOfChildren][]byte
+	children        [nrOfChildren]node
+	hash            []byte
+	dirty           bool
 }
 
 type extensionNode struct {
-	Key      []byte
-	Next     []byte
-	nextNode node
-	hash     []byte
-	dirty    bool
-}
-
-func (en *extensionNode) NextNode() node {
-	return en.nextNode
-}
-
-func (en *extensionNode) copy() *extensionNode {
-	cpy := *en
-	return &cpy
+	Key          []byte
+	EncodedChild []byte
+	child        node
+	hash         []byte
+	dirty        bool
 }
 
 type leafNode struct {
@@ -44,11 +26,6 @@ type leafNode struct {
 	Value []byte
 	hash  []byte
 	dirty bool
-}
-
-func (ln *leafNode) copy() *leafNode {
-	cpy := *ln
-	return &cpy
 }
 
 func (bn *branchNode) getHash() []byte {
@@ -61,4 +38,19 @@ func (en *extensionNode) getHash() []byte {
 
 func (ln *leafNode) getHash() []byte {
 	return ln.hash
+}
+
+func (bn *branchNode) copy() *branchNode {
+	cpy := *bn
+	return &cpy
+}
+
+func (en *extensionNode) copy() *extensionNode {
+	cpy := *en
+	return &cpy
+}
+
+func (ln *leafNode) copy() *leafNode {
+	cpy := *ln
+	return &cpy
 }

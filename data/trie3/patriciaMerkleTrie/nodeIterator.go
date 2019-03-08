@@ -82,8 +82,8 @@ func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor []byte) (*
 	switch node := parent.node.(type) {
 	case *branchNode:
 		// Full node, move to the first non-nil child.
-		for i := parent.index + 1; i < len(node.Children); i++ {
-			child := node.childrenNodes[i]
+		for i := parent.index + 1; i < len(node.children); i++ {
+			child := node.children[i]
 
 			if child != nil {
 				hash := child.getHash()
@@ -105,10 +105,10 @@ func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor []byte) (*
 	case *extensionNode:
 		// Short node, return the pointer singleton child
 		if parent.index < 0 {
-			hash := node.nextNode.getHash()
+			hash := node.child.getHash()
 			state := &nodeIteratorState{
 				hash:    hash,
-				node:    node.nextNode,
+				node:    node.child,
 				parent:  ancestor,
 				index:   -1,
 				pathlen: len(it.path),

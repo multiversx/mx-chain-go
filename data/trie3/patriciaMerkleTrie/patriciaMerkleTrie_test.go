@@ -1,6 +1,7 @@
 package patriciaMerkleTrie_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie3"
@@ -145,4 +146,13 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 
 	assert.Equal(t, root1, root3)
 	assert.NotEqual(t, root1, root2)
+}
+
+func TestNewTrie(t *testing.T) {
+	tr := testTrie()
+
+	fmt.Println(tr.Get([]byte("doe")))
+	tr.Update([]byte("doe"), []byte("dooooooooge"))
+	fmt.Println(tr.Get([]byte("doe")))
+	//fmt.Println(tr.Get([]byte("d")))
 }

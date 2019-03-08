@@ -30,3 +30,5 @@ var ErrNilDatabase = errors.New("no database provided")
 
 // ErrInvalidEncoding is raised when it is tried to decode an invalid encoding
 var ErrInvalidEncoding = errors.New("cannot decode this invalid encoding")
+
+var ErrValueTooShort = errors.New("cannot remove bytes from value because value is too short")
