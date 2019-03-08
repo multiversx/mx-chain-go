@@ -10,17 +10,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 var log = logger.NewDefaultLogger()
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
-	accounts    state.AccountsAdapter
-	adrConv     state.AddressConverter
-	hasher      hashing.Hasher
-	scHandler   func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
-	marshalizer marshal.Marshalizer
+	accounts         state.AccountsAdapter
+	adrConv          state.AddressConverter
+	hasher           hashing.Hasher
+	scHandler        func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
+	marshalizer      marshal.Marshalizer
+	shardCoordinator sharding.ShardCoordinator
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -29,6 +31,7 @@ func NewTxProcessor(
 	hasher hashing.Hasher,
 	addressConv state.AddressConverter,
 	marshalizer marshal.Marshalizer,
+	shardCoordinator sharding.ShardCoordinator,
 ) (*txProcessor, error) {
 
 	if accounts == nil {
@@ -47,11 +50,16 @@ func NewTxProcessor(
 		return nil, process.ErrNilMarshalizer
 	}
 
+	if shardCoordinator == nil {
+		return nil, process.ErrNilShardCoordinator
+	}
+
 	return &txProcessor{
-		accounts:    accounts,
-		hasher:      hasher,
-		adrConv:     addressConv,
-		marshalizer: marshalizer,
+		accounts:         accounts,
+		hasher:           hasher,
+		adrConv:          addressConv,
+		marshalizer:      marshalizer,
+		shardCoordinator: shardCoordinator,
 	}, nil
 }
 
@@ -76,16 +84,18 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return err
 	}
 
-	acntSrc, acntDest, err := txProc.getAccounts(adrSrc, adrDest)
+	shardForAdrSrc := txProc.shardCoordinator.ComputeShardForAddress(adrSrc, txProc.adrConv)
+	shardForAdrDest := txProc.shardCoordinator.ComputeShardForAddress(adrDest, txProc.adrConv)
+
+	adrSrcInNodeShard := shardForAdrSrc == txProc.shardCoordinator.ShardForCurrentNode()
+	adrDestInNodeShard := shardForAdrDest == txProc.shardCoordinator.ShardForCurrentNode()
+
+	acntSrc, acntDest, err := txProc.getAccounts(adrSrc, adrDest, adrSrcInNodeShard, adrDestInNodeShard)
 	if err != nil {
 		return err
 	}
 
-	if acntSrc == nil || acntDest == nil {
-		return process.ErrNilValue
-	}
-
-	if acntDest.Code() != nil {
+	if adrDestInNodeShard && acntDest.Code() != nil {
 		return txProc.callSCHandler(tx)
 	}
 
@@ -111,19 +121,23 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 
 	value := tx.Value
 
-	err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
+	if adrSrcInNodeShard {
+		err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = txProc.moveBalances(acntSrc, acntDest, adrSrcInNodeShard, adrDestInNodeShard, value)
 	if err != nil {
 		return err
 	}
 
-	err = txProc.moveBalances(acntSrc, acntDest, value)
-	if err != nil {
-		return err
-	}
-
-	err = txProc.increaseNonceAcntSrc(acntSrc)
-	if err != nil {
-		return err
+	if adrSrcInNodeShard {
+		err = txProc.increaseNonceAcntSrc(acntSrc)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -195,13 +209,13 @@ func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, ad
 	return
 }
 
-func (txProc *txProcessor) getAccounts(adrSrc, adrDest state.AddressContainer) (
-	acntSrc state.JournalizedAccountWrapper,
-	acntDest state.JournalizedAccountWrapper,
-	err error) {
-
-	if adrSrc == nil || adrDest == nil {
-		return nil, nil, process.ErrNilValue
+func (txProc *txProcessor) getAccounts(
+	adrSrc, adrDest state.AddressContainer,
+	adrSrcInNodeShard, adrDestInNodeShard bool,
+) (acntSrc, acntDest state.JournalizedAccountWrapper, err error) {
+	if adrSrcInNodeShard && adrSrc == nil ||
+		adrDestInNodeShard && adrDest == nil {
+		return nil, nil, process.ErrNilAddressContainer
 	}
 
 	if bytes.Equal(adrSrc.Bytes(), adrDest.Bytes()) {
@@ -213,13 +227,21 @@ func (txProc *txProcessor) getAccounts(adrSrc, adrDest state.AddressContainer) (
 		return acnt, acnt, nil
 	}
 
-	acntSrc, err = txProc.accounts.GetJournalizedAccount(adrSrc)
-	if err != nil {
-		return nil, nil, err
+	if adrSrcInNodeShard {
+		acntSrc, err = txProc.accounts.GetJournalizedAccount(adrSrc)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
-	acntDest, err = txProc.accounts.GetJournalizedAccount(adrDest)
 
-	return acntSrc, acntDest, err
+	if adrDestInNodeShard {
+		acntDest, err = txProc.accounts.GetJournalizedAccount(adrDest)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return acntSrc, acntDest, nil
 }
 
 func (txProc *txProcessor) callSCHandler(tx *transaction.Transaction) error {
@@ -249,17 +271,26 @@ func (txProc *txProcessor) checkTxValues(acntSrc state.JournalizedAccountWrapper
 	return nil
 }
 
-func (txProc *txProcessor) moveBalances(acntSrc, acntDest state.JournalizedAccountWrapper, value *big.Int) error {
+func (txProc *txProcessor) moveBalances(
+	acntSrc, acntDest state.JournalizedAccountWrapper,
+	adrSrcInNodeShard, adrDestInNodeShard bool,
+	value *big.Int,
+) error {
 	operation1 := big.NewInt(0)
 	operation2 := big.NewInt(0)
 
-	err := acntSrc.SetBalanceWithJournal(operation1.Sub(acntSrc.BaseAccount().Balance, value))
-	if err != nil {
-		return err
+	if adrSrcInNodeShard {
+		err := acntSrc.SetBalanceWithJournal(operation1.Sub(acntSrc.BaseAccount().Balance, value))
+		if err != nil {
+			return err
+		}
 	}
-	err = acntDest.SetBalanceWithJournal(operation2.Add(acntDest.BaseAccount().Balance, value))
-	if err != nil {
-		return err
+
+	if adrDestInNodeShard {
+		err := acntDest.SetBalanceWithJournal(operation2.Add(acntDest.BaseAccount().Balance, value))
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
