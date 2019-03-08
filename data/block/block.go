@@ -379,6 +379,10 @@ func (h *Header) SetSignature(sg []byte) {
 	h.Signature = sg
 }
 
+func (h *Header) SetTimeStamp(ts uint64) {
+	h.TimeStamp = ts
+}
+
 func (h *Header) SetCommitment(commitment []byte) {
 	h.Commitment = commitment
 }

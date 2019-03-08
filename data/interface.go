@@ -63,6 +63,7 @@ type HeaderHandler interface {
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
 	SetRound(r uint32)
+	SetTimeStamp(ts uint64)
 	SetRootHash(rHash []byte)
 	SetPrevHash(pvHash []byte)
 	SetPubKeysBitmap(pkbm []byte)

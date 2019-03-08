@@ -400,7 +400,7 @@ func (sr *subroundBlock) IsBlockReceived(threshold int) bool {
 	return sr.isBlockReceived(threshold)
 }
 
-func (sr *subroundBlock) CreateHeader() (*block.Header, error) {
+func (sr *subroundBlock) CreateHeader() (data.HeaderHandler, error) {
 	return sr.createHeader()
 }
 

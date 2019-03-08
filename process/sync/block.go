@@ -325,7 +325,7 @@ func (boot *Bootstrap) receivedBodyHash(hash []byte) {
 	}
 
 	boot.requestedHashes.SetReceivedHash(hash)
-	if  boot.requestedHashes.ReceivedAll() {
+	if boot.requestedHashes.ReceivedAll() {
 		log.Info(fmt.Sprintf("received requested txBlockBody with hash %s from network\n", toB64(hash)))
 		boot.setRequestedMiniBlocks(nil)
 		boot.chRcvMiniBlocks <- true
@@ -809,8 +809,8 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (da
 		return nil, nil, err
 	}
 	hdrHash := boot.hasher.Compute(string(headerStr))
-	hdr.Signature = hdrHash
-	hdr.Commitment = hdrHash
+	hdr.SetSignature(hdrHash)
+	hdr.SetCommitment(hdrHash)
 
 	// Commit the block (commits also the account state)
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
@@ -819,7 +819,7 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (da
 		return nil, nil, err
 	}
 
-	msg := fmt.Sprintf("Added empty block with nonce  %d  in blockchain", hdr.Nonce)
+	msg := fmt.Sprintf("Added empty block with nonce  %d  in blockchain", hdr.GetNonce())
 	log.Info(log.Headline(msg, "", "*"))
 
 	return blk, hdr, nil

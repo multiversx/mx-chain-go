@@ -1843,7 +1843,7 @@ func TestBlockProcessor_CreateMiniBlockHeadersShouldNotReturnNil(t *testing.T) {
 	mbHeaders, err := bp.CreateMiniBlockHeaders(nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, mbHeaders)
-	assert.Equal(t, 0, len(mbHeaders))
+	assert.Equal(t, 0, len(mbHeaders.(*block.Header).MiniBlockHeaders))
 }
 
 func TestBlockProcessor_CreateMiniBlockHeadersShouldErrWhenMarshalizerErrors(t *testing.T) {
@@ -1852,7 +1852,7 @@ func TestBlockProcessor_CreateMiniBlockHeadersShouldErrWhenMarshalizerErrors(t *
 	bp, _ := blproc.NewBlockProcessor(
 		initDataPool(),
 		&mock.HasherStub{},
-		&mock.MarshalizerMock{Fail:true},
+		&mock.MarshalizerMock{Fail: true},
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
@@ -1893,5 +1893,5 @@ func TestBlockProcessor_CreateMiniBlockHeadersReturnsOK(t *testing.T) {
 	}
 	mbHeaders, err := bp.CreateMiniBlockHeaders(body)
 	assert.Nil(t, err)
-	assert.Equal(t, len(body), len(mbHeaders))
+	assert.Equal(t, len(body), len(mbHeaders.(*block.Header).MiniBlockHeaders))
 }

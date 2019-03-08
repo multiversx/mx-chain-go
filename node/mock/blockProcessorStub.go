@@ -66,6 +66,6 @@ func (blProcMock BlockProcessorStub) CheckBlockValidity(blockChain *blockchain.B
 	return blProcMock.CheckBlockValidityCalled(blockChain, header, body)
 }
 
-func (bps BlockProcessorStub)CreateMiniBlockHeaders(body block.Body) ([]block.MiniBlockHeader, error) {
+func (bps BlockProcessorStub) CreateMiniBlockHeaders(body data.BodyHandler) (data.HeaderHandler, error) {
 	panic("implement me")
 }

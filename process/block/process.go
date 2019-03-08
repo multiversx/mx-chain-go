@@ -623,23 +623,31 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 }
 
 // CreateMiniBlockHeaders creates a miniblock header list given a block body
-func (bp *blockProcessor) CreateMiniBlockHeaders(body block.Body) ([]block.MiniBlockHeader, error) {
-	mbLen := len(body)
+func (bp *blockProcessor) CreateMiniBlockHeaders(body data.BodyHandler) (data.HeaderHandler, error) {
+	header := &block.Header{MiniBlockHeaders: make([]block.MiniBlockHeader, 0)}
+	if body == nil {
+		return header, nil
+	}
+
+	blockBody := body.(block.Body)
+	mbLen := len(blockBody)
 	miniBlockHeaders := make([]block.MiniBlockHeader, mbLen)
 	for i := 0; i < mbLen; i++ {
-		mbBytes, err := bp.marshalizer.Marshal(body[i])
+		mbBytes, err := bp.marshalizer.Marshal(blockBody[i])
 		if err != nil {
 			return nil, err
 		}
 		mbHash := bp.hasher.Compute(string(mbBytes))
 		// TODO: Add correct shard ids in shard coordinator task
 		miniBlockHeaders[i] = block.MiniBlockHeader{
-			Hash: mbHash,
-			SenderShardID: bp.shardCoordinator.ShardForCurrentNode(),
-			ReceiverShardID: body[i].ShardID,
+			Hash:            mbHash,
+			SenderShardID:   bp.shardCoordinator.ShardForCurrentNode(),
+			ReceiverShardID: blockBody[i].ShardID,
 		}
 	}
-	return miniBlockHeaders, nil
+
+	header.MiniBlockHeaders = miniBlockHeaders
+	return header, nil
 }
 
 func (bp *blockProcessor) waitForTxHashes(waitTime time.Duration) error {

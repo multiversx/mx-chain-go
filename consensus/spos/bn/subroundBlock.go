@@ -3,6 +3,7 @@ package bn
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
@@ -259,7 +260,7 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 	}
 
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been sent\n",
-		sr.syncTimer.FormattedCurrentTime(), hdr.Nonce, toB64(hdrHash)))
+		sr.syncTimer.FormattedCurrentTime(), hdr.GetNonce(), toB64(hdrHash)))
 
 	sr.consensusState.Data = hdrHash
 	sr.consensusState.Header = hdr
@@ -267,26 +268,25 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 	return true
 }
 
-func (sr *subroundBlock) createHeader() (*block.Header, error) {
-	hdr := &block.Header{}
+func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
+	hdr, err := sr.blockProcessor.CreateMiniBlockHeaders(sr.consensusState.BlockBody)
 
-	hdr.Round = uint32(sr.rounder.Index())
-	hdr.TimeStamp = uint64(sr.rounder.TimeStamp().Unix())
-	hdr.RootHash = sr.blockProcessor.GetRootHash()
-
-	if sr.blockChain.CurrentBlockHeader == nil {
-		hdr.Nonce = 1
-		hdr.PrevHash = sr.blockChain.GenesisHeaderHash
-	} else {
-		hdr.Nonce = sr.blockChain.CurrentBlockHeader.Nonce + 1
-		hdr.PrevHash = sr.blockChain.CurrentBlockHeaderHash
-	}
-
-	headers, err := sr.blockProcessor.CreateMiniBlockHeaders(sr.consensusState.BlockBody)
 	if err != nil {
 		return nil, err
 	}
-	hdr.MiniBlockHeaders = headers
+
+	hdr.SetRound(uint32(sr.rounder.Index()))
+	hdr.SetTimeStamp(uint64(sr.rounder.TimeStamp().Unix()))
+	hdr.SetRootHash(sr.blockProcessor.GetRootHash())
+
+	if sr.blockChain.CurrentBlockHeader == nil {
+		hdr.SetNonce(1)
+		hdr.SetPrevHash(sr.blockChain.GenesisHeaderHash)
+	} else {
+		hdr.SetNonce(sr.blockChain.CurrentBlockHeader.Nonce + 1)
+		hdr.SetPrevHash(sr.blockChain.CurrentBlockHeaderHash)
+	}
+
 	return hdr, nil
 }
 
