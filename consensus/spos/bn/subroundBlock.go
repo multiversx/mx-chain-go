@@ -3,12 +3,12 @@ package bn
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -223,7 +223,7 @@ func (sr *subroundBlock) sendBlockBody() bool {
 
 	log.Info(fmt.Sprintf("%sStep 1: block body has been sent\n", sr.syncTimer.FormattedCurrentTime()))
 
-	sr.consensusState.BlockBody = blockBody.(block.Body)
+	sr.consensusState.BlockBody = blockBody
 
 	return true
 }

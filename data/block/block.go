@@ -356,7 +356,7 @@ func (h *Header) SetNonce(n uint64) {
 	h.Nonce = n
 }
 
-// SetEpock sets header epock
+// SetEpoch sets header epoch
 func (h *Header) SetEpoch(e uint32) {
 	h.Epoch = e
 }
