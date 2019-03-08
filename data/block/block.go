@@ -351,38 +351,47 @@ func (h *Header) GetSignature() []byte {
 	return h.Signature
 }
 
+// SetNonce sets header nonce
 func (h *Header) SetNonce(n uint64) {
 	h.Nonce = n
 }
 
+// SetEpock sets header epock
 func (h *Header) SetEpoch(e uint32) {
 	h.Epoch = e
 }
 
+// SetRound sets header round
 func (h *Header) SetRound(r uint32) {
 	h.Round = r
 }
 
+// SetRootHash sets root hash
 func (h *Header) SetRootHash(rHash []byte) {
 	h.RootHash = rHash
 }
 
+// SetPrevHash sets prev hash
 func (h *Header) SetPrevHash(pvHash []byte) {
 	h.PrevHash = pvHash
 }
 
+// SetPubKeysBitmap sets publick key bitmap
 func (h *Header) SetPubKeysBitmap(pkbm []byte) {
 	h.PubKeysBitmap = pkbm
 }
 
+// SetSignature set header signature
 func (h *Header) SetSignature(sg []byte) {
 	h.Signature = sg
 }
 
+// SetTimeStamp sets header timestamp
 func (h *Header) SetTimeStamp(ts uint64) {
 	h.TimeStamp = ts
 }
 
+// SetCommitment sets header commitment
 func (h *Header) SetCommitment(commitment []byte) {
 	h.Commitment = commitment
 }

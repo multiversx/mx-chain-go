@@ -191,7 +191,7 @@ func (sr *subroundBlock) sendBlockBody() bool {
 		return time.Duration(remainingTime) > 0
 	}
 
-	blk, err := sr.blockProcessor.CreateBlockBody(
+	blockBody, err := sr.blockProcessor.CreateBlockBody(
 		sr.rounder.Index(),
 		haveTimeInCurrentSubround,
 	)
@@ -201,7 +201,7 @@ func (sr *subroundBlock) sendBlockBody() bool {
 		return false
 	}
 
-	blkStr, err := sr.marshalizer.Marshal(blk)
+	blkStr, err := sr.marshalizer.Marshal(blockBody)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -223,14 +223,13 @@ func (sr *subroundBlock) sendBlockBody() bool {
 
 	log.Info(fmt.Sprintf("%sStep 1: block body has been sent\n", sr.syncTimer.FormattedCurrentTime()))
 
-	sr.consensusState.BlockBody = blk.(block.Body)
+	sr.consensusState.BlockBody = blockBody.(block.Body)
 
 	return true
 }
 
 // sendBlockHeader method job the proposed block header in the Block subround
 func (sr *subroundBlock) sendBlockHeader() bool {
-
 	hdr, err := sr.createHeader()
 	if err != nil {
 		log.Error(err.Error())
@@ -269,7 +268,7 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 }
 
 func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
-	hdr, err := sr.blockProcessor.CreateMiniBlockHeaders(sr.consensusState.BlockBody)
+	hdr, err := sr.blockProcessor.CreateBlockHeader(sr.consensusState.BlockBody)
 
 	if err != nil {
 		return nil, err
@@ -277,7 +276,6 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 
 	hdr.SetRound(uint32(sr.rounder.Index()))
 	hdr.SetTimeStamp(uint64(sr.rounder.TimeStamp().Unix()))
-	hdr.SetRootHash(sr.blockProcessor.GetRootHash())
 
 	if sr.blockChain.CurrentBlockHeader == nil {
 		hdr.SetNonce(1)

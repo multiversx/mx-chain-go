@@ -1825,7 +1825,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	assert.True(t, r)
 }
 
-func TestBlockProcessor_CreateMiniBlockHeadersShouldNotReturnNil(t *testing.T) {
+func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
 	t.Parallel()
 
 	bp, _ := blproc.NewBlockProcessor(
@@ -1840,13 +1840,13 @@ func TestBlockProcessor_CreateMiniBlockHeadersShouldNotReturnNil(t *testing.T) {
 		},
 	)
 
-	mbHeaders, err := bp.CreateMiniBlockHeaders(nil)
+	mbHeaders, err := bp.CreateBlockHeader(nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, mbHeaders)
 	assert.Equal(t, 0, len(mbHeaders.(*block.Header).MiniBlockHeaders))
 }
 
-func TestBlockProcessor_CreateMiniBlockHeadersShouldErrWhenMarshalizerErrors(t *testing.T) {
+func TestBlockProcessor_CreateBlockHeaderShouldErrWhenMarshalizerErrors(t *testing.T) {
 	t.Parallel()
 
 	bp, _ := blproc.NewBlockProcessor(
@@ -1866,12 +1866,12 @@ func TestBlockProcessor_CreateMiniBlockHeadersShouldErrWhenMarshalizerErrors(t *
 		{ShardID: 2, TxHashes: make([][]byte, 0)},
 		{ShardID: 3, TxHashes: make([][]byte, 0)},
 	}
-	mbHeaders, err := bp.CreateMiniBlockHeaders(body)
+	mbHeaders, err := bp.CreateBlockHeader(body)
 	assert.NotNil(t, err)
 	assert.Nil(t, mbHeaders)
 }
 
-func TestBlockProcessor_CreateMiniBlockHeadersReturnsOK(t *testing.T) {
+func TestBlockProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 	t.Parallel()
 
 	bp, _ := blproc.NewBlockProcessor(
@@ -1891,7 +1891,7 @@ func TestBlockProcessor_CreateMiniBlockHeadersReturnsOK(t *testing.T) {
 		{ShardID: 2, TxHashes: make([][]byte, 0)},
 		{ShardID: 3, TxHashes: make([][]byte, 0)},
 	}
-	mbHeaders, err := bp.CreateMiniBlockHeaders(body)
+	mbHeaders, err := bp.CreateBlockHeader(body)
 	assert.Nil(t, err)
 	assert.Equal(t, len(body), len(mbHeaders.(*block.Header).MiniBlockHeaders))
 }

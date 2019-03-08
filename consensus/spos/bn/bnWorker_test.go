@@ -141,8 +141,8 @@ func initBlockProcessorMock() *mock.BlockProcessorMock {
 		return []byte{}
 	}
 
-	blockProcessorMock.CreateMiniBlockHeadersCalled = func(body data.BodyHandler) (header data.HeaderHandler, e error) {
-		return &block.Header{}, nil
+	blockProcessorMock.CreateBlockHeaderCalled = func(body data.BodyHandler) (header data.HeaderHandler, e error) {
+		return &block.Header{RootHash: blockProcessorMock.GetRootHashCalled()}, nil
 	}
 
 	return blockProcessorMock
