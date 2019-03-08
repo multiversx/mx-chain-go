@@ -129,14 +129,14 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	miniBlocks := dataBlock.Body{
-		{
-			ShardID:  uint32(0),
-			TxHashes: [][]byte{[]byte("tx hash 1")},
-		},
+	mb := dataBlock.MiniBlock{
+		ShardID:  uint32(0),
+		TxHashes: [][]byte{[]byte("tx hash 1")},
 	}
+	miniBlocks := dataBlock.Body{&mb}
 
 	buff, _ := marshalizer.Marshal(miniBlocks)
+	miniBlockBuff, _ := marshalizer.Marshal(mb)
 
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
@@ -144,7 +144,7 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing
 
 	putInCacheWasCalled := false
 	cache.PutCalled = func(key []byte, value interface{}) (evicted bool) {
-		if bytes.Equal(key, mock.HasherMock{}.Compute(string(buff))) {
+		if bytes.Equal(key, mock.HasherMock{}.Compute(string(miniBlockBuff))) {
 			putInCacheWasCalled = true
 		}
 		return false

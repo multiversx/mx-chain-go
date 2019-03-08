@@ -54,6 +54,47 @@ func initSubroundBlock() bn.SubroundBlock {
 	return srBlock
 }
 
+func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock) bn.SubroundBlock {
+	blockChain := blockchain.BlockChain{}
+	blockProcessorMock := bp
+	consensusState := initConsensusState()
+	hasherMock := mock.HasherMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	multiSignerMock := initMultiSignerMock()
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := mock.SyncTimerMock{}
+
+	ch := make(chan bool, 1)
+
+	sr, _ := bn.NewSubround(
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int(bn.SrCommitmentHash),
+		int64(5*roundTimeDuration/100),
+		int64(25*roundTimeDuration/100),
+		"(BLOCK)",
+		ch,
+	)
+
+	srBlock, _ := bn.NewSubroundBlock(
+		sr,
+		&blockChain,
+		blockProcessorMock,
+		consensusState,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		sendConsensusMessage,
+		extend,
+	)
+
+	return srBlock
+}
+
 func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -1028,4 +1069,87 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 	sr.SetSyncTimer(syncTimerMock)
 
 	assert.False(t, haveTimeInCurrentSubound())
+}
+
+func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
+	sr := *initSubroundBlock()
+	sr.BlockChain().CurrentBlockHeader = nil
+	header, _ := sr.CreateHeader()
+	mbHeaders, _ := sr.BlockProcessor().CreateMiniBlockHeaders(sr.BlockChain().CurrentTxBlockBody)
+
+	expectedHeader := &block.Header{
+		Round: uint32(sr.Rounder().Index()),
+		TimeStamp: uint64(sr.Rounder().TimeStamp().Unix()),
+		RootHash: sr.BlockProcessor().GetRootHash(),
+		Nonce: uint64(1),
+		PrevHash: sr.BlockChain().GenesisHeaderHash,
+		MiniBlockHeaders: mbHeaders,
+	}
+
+	assert.Equal(t, expectedHeader, header)
+}
+
+func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
+	sr := *initSubroundBlock()
+	sr.BlockChain().CurrentBlockHeader = &block.Header{
+		Nonce: 1,
+	}
+	header, _ := sr.CreateHeader()
+	mbHeaders, _ := sr.BlockProcessor().CreateMiniBlockHeaders(sr.BlockChain().CurrentTxBlockBody)
+
+	expectedHeader := &block.Header{
+		Round: uint32(sr.Rounder().Index()),
+		TimeStamp: uint64(sr.Rounder().TimeStamp().Unix()),
+		RootHash: sr.BlockProcessor().GetRootHash(),
+		Nonce: uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1),
+		PrevHash: sr.BlockChain().CurrentBlockHeaderHash,
+		MiniBlockHeaders: mbHeaders,
+	}
+
+	assert.Equal(t, expectedHeader, header)
+}
+
+func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
+	mbHeaders := []block.MiniBlockHeader{
+		{Hash: []byte("mb1"), SenderShardID: 1, ReceiverShardID: 1},
+		{Hash: []byte("mb2"), SenderShardID: 1, ReceiverShardID: 2},
+		{Hash: []byte("mb3"), SenderShardID: 2, ReceiverShardID: 3},
+	}
+	bp := initBlockProcessorMock()
+	bp.CreateMiniBlockHeadersCalled = func(body block.Body) (headers []block.MiniBlockHeader, e error) {
+		return mbHeaders, nil
+	}
+	sr := *initSubroundBlockWithBlockProcessor(bp)
+	sr.BlockChain().CurrentBlockHeader = &block.Header{
+		Nonce: 1,
+	}
+
+	header, _ := sr.CreateHeader()
+
+	expectedHeader := &block.Header{
+		Round: uint32(sr.Rounder().Index()),
+		TimeStamp: uint64(sr.Rounder().TimeStamp().Unix()),
+		RootHash: sr.BlockProcessor().GetRootHash(),
+		Nonce: uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1),
+		PrevHash: sr.BlockChain().CurrentBlockHeaderHash,
+		MiniBlockHeaders: mbHeaders,
+	}
+
+	assert.Equal(t, expectedHeader, header)
+}
+
+func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
+	expectedErr := errors.New("nil mini blocks")
+	bp := initBlockProcessorMock()
+	bp.CreateMiniBlockHeadersCalled = func(body block.Body) (headers []block.MiniBlockHeader, e error) {
+		return nil, expectedErr
+	}
+	sr := *initSubroundBlockWithBlockProcessor(bp)
+	sr.BlockChain().CurrentBlockHeader = &block.Header{
+		Nonce: 1,
+	}
+
+	header, err := sr.CreateHeader()
+	assert.Nil(t, header)
+	assert.Equal(t, expectedErr, err)
 }

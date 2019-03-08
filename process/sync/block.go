@@ -44,9 +44,8 @@ type Bootstrap struct {
 	headerNonce *uint64
 	chRcvHdr    chan bool
 
-	mutTxBody  sync.RWMutex
-	txBodyHash []byte
-	chRcvTxBdy chan bool
+	requestedHashes process.RequiredDataPool
+	chRcvMiniBlocks chan bool
 
 	chStopSync chan bool
 	waitTime   time.Duration
@@ -127,10 +126,10 @@ func NewBootstrap(
 	boot.miniBlockResolver = miniBlocksResolver.(process.MiniBlocksResolver)
 
 	boot.chRcvHdr = make(chan bool)
-	boot.chRcvTxBdy = make(chan bool)
+	boot.chRcvMiniBlocks = make(chan bool)
 
 	boot.setRequestedHeaderNonce(nil)
-	boot.setRequestedTxBodyHash(nil)
+	boot.setRequestedMiniBlocks(nil)
 
 	boot.headersNonces.RegisterHandler(boot.receivedHeaderNonce)
 	boot.miniBlocks.RegisterHandler(boot.receivedBodyHash)
@@ -139,6 +138,7 @@ func NewBootstrap(
 	boot.chStopSync = make(chan bool)
 
 	boot.syncStateListeners = make([]func(bool), 0)
+	boot.requestedHashes = process.RequiredDataPool{}
 
 	return &boot, nil
 }
@@ -312,29 +312,23 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 }
 
-// requestedTxBodyHash method gets the body hash requested by the sync mechanism
-func (boot *Bootstrap) requestedTxBodyHash() []byte {
-	boot.mutTxBody.RLock()
-	hash := boot.txBodyHash
-	boot.mutTxBody.RUnlock()
-
-	return hash
-}
-
-// setRequestedTxBodyHash method sets the body hash requested by the sync mechanism
-func (boot *Bootstrap) setRequestedTxBodyHash(hash []byte) {
-	boot.mutTxBody.Lock()
-	boot.txBodyHash = hash
-	boot.mutTxBody.Unlock()
+// setRequestedMiniBlocks method sets the body hash requested by the sync mechanism
+func (boot *Bootstrap) setRequestedMiniBlocks(hashes [][]byte) {
+	boot.requestedHashes.SetHashes(hashes)
 }
 
 // receivedBody method is a call back function which is called when a new body is added
 // in the block bodies pool
 func (boot *Bootstrap) receivedBodyHash(hash []byte) {
-	if bytes.Equal(boot.requestedTxBodyHash(), hash) {
+	if len(boot.requestedHashes.ExpectedData()) == 0 {
+		return
+	}
+
+	boot.requestedHashes.SetReceivedHash(hash)
+	if  boot.requestedHashes.ReceivedAll() {
 		log.Info(fmt.Sprintf("received requested txBlockBody with hash %s from network\n", toB64(hash)))
-		boot.setRequestedTxBodyHash(nil)
-		boot.chRcvTxBdy <- true
+		boot.setRequestedMiniBlocks(nil)
+		boot.chRcvMiniBlocks <- true
 	}
 }
 
@@ -385,7 +379,7 @@ func (boot *Bootstrap) SyncBlock() error {
 	}
 
 	boot.setRequestedHeaderNonce(nil)
-	boot.setRequestedTxBodyHash(nil)
+	boot.setRequestedMiniBlocks(nil)
 
 	nonce := boot.getNonceForNextBlock()
 
@@ -529,6 +523,7 @@ func (boot *Bootstrap) getHeaderRequestingIfMissing(nonce uint64) (*block.Header
 	hdr := boot.getHeaderFromPoolHavingNonce(nonce)
 
 	if hdr == nil {
+		boot.emptyChannel(boot.chRcvHdr)
 		boot.requestHeader(nonce)
 		boot.waitForHeaderNonce()
 		hdr = boot.getHeaderFromPoolHavingNonce(nonce)
@@ -547,7 +542,7 @@ func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
 		log.Error("Could not marshal MiniBlock hashes: ", err.Error())
 		return
 	}
-	boot.setRequestedTxBodyHash(buff)
+	boot.setRequestedMiniBlocks(hashes)
 	err = boot.miniBlockResolver.RequestDataFromHashArray(hashes)
 
 	log.Info(fmt.Sprintf("requested tx body with hash %s from network\n", toB64(buff)))
@@ -556,7 +551,7 @@ func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
 	}
 }
 
-// getTxBodyWithHash method gets the body with given nonce from pool, if it exist there,
+// getMiniBlocksRequestingIfMissing method gets the body with given nonce from pool, if it exist there,
 // and if not it will be requested from network
 // the func returns interface{} as to match the next implementations for block body fetchers
 // that will be added. The block executor should decide by parsing the header block body type value
@@ -565,8 +560,9 @@ func (boot *Bootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (interf
 	miniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
 
 	if miniBlocks == nil {
+		boot.emptyChannel(boot.chRcvMiniBlocks)
 		boot.requestMiniBlocks(hashes)
-		boot.waitForTxBodyHash()
+		boot.waitForMiniBlocks()
 		miniBlocks = boot.miniBlockResolver.GetMiniBlocks(hashes)
 		if miniBlocks == nil {
 			return nil, process.ErrMissingBody
@@ -596,10 +592,10 @@ func (boot *Bootstrap) waitForHeaderNonce() {
 	}
 }
 
-// waitForBodyNonce method wait for body with the requested nonce to be received
-func (boot *Bootstrap) waitForTxBodyHash() {
+// waitForMiniBlocks method wait for body with the requested nonce to be received
+func (boot *Bootstrap) waitForMiniBlocks() {
 	select {
-	case <-boot.chRcvTxBdy:
+	case <-boot.chRcvMiniBlocks:
 		return
 	case <-time.After(boot.waitTime):
 		return
@@ -763,14 +759,7 @@ func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
 	return roundTimeStamp
 }
 
-// CreateAndCommitEmptyBlock creates and commits an empty block
-func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
-	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
-
-	boot.blkExecutor.RevertAccountState()
-
-	blk := make(block.Body, 0)
-
+func (boot *Bootstrap) createHeader() (*block.Header, error) {
 	hdr := &block.Header{}
 
 	var prevHeaderHash []byte
@@ -789,6 +778,23 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (bl
 	hdr.PrevHash = prevHeaderHash
 	hdr.RootHash = boot.accounts.RootHash()
 	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.MiniBlockHeaders = make([]block.MiniBlockHeader, 0)
+
+	return hdr, nil
+}
+
+// CreateAndCommitEmptyBlock creates and commits an empty block
+func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
+
+	boot.blkExecutor.RevertAccountState()
+
+	blk := make(block.Body, 0)
+
+	hdr, err := boot.createHeader()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// TODO: decide the signature for the empty block
 	headerStr, err := boot.marshalizer.Marshal(hdr)
@@ -810,4 +816,10 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (bl
 	log.Info(log.Headline(msg, "", "*"))
 
 	return blk, hdr, nil
+}
+
+func (boot *Bootstrap) emptyChannel(ch chan bool) {
+	for len(ch) > 0 {
+		<-ch
+	}
 }
