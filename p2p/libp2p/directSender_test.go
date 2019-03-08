@@ -1,6 +1,7 @@
 package libp2p_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"fmt"
@@ -268,6 +269,39 @@ func TestDirectSender_ProcessReceivedDirectMessageShouldReturnHandlersError(t *t
 }
 
 //------- SendDirectToConnectedPeer
+
+func TestDirectSender_SendDirectToConnectedPeerBufferToLargeShouldErr(t *testing.T) {
+	netw := &mock.NetworkStub{}
+
+	id, sk := createLibP2PCredentialsDirectSender()
+	remotePeer := peer.ID("remote peer")
+
+	stream := mock.NewStreamMock()
+	stream.SetProtocol(libp2p.DirectSendID)
+
+	cs := createConnStub(stream, id, sk, remotePeer)
+
+	netw.ConnsToPeerCalled = func(p peer.ID) []net.Conn {
+		return []net.Conn{cs}
+	}
+
+	ds, _ := libp2p.NewDirectSender(
+		context.Background(),
+		&mock.ConnectableHostStub{
+			SetStreamHandlerCalled: func(pid protocol.ID, handler net.StreamHandler) {},
+			NetworkCalled: func() net.Network {
+				return netw
+			},
+		},
+		blankMessageHandler,
+	)
+
+	messageTooLarge := bytes.Repeat([]byte{65}, libp2p.MaxSendBuffSize)
+
+	err := ds.Send("topic", messageTooLarge, p2p.PeerID(cs.RemotePeer()))
+
+	assert.Equal(t, p2p.ErrMessageTooLarge, err)
+}
 
 func TestDirectSender_SendDirectToConnectedPeerNotConnectedPeerShouldErr(t *testing.T) {
 	netw := &mock.NetworkStub{
