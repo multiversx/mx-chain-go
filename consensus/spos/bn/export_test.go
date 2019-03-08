@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -399,7 +400,7 @@ func (sr *subroundBlock) IsBlockReceived(threshold int) bool {
 	return sr.isBlockReceived(threshold)
 }
 
-func (sr *subroundBlock) CreateHeader() (*block.Header, error) {
+func (sr *subroundBlock) CreateHeader() (data.HeaderHandler, error) {
 	return sr.createHeader()
 }
 
@@ -615,11 +616,11 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
-func (sr *subroundEndRound) BroadcastBlock() func(block.Body, *block.Header) error {
+func (sr *subroundEndRound) BroadcastBlock() func(data.BodyHandler, data.HeaderHandler) error {
 	return sr.broadcastBlock
 }
 
-func (sr *subroundEndRound) SetBroadcastBlock(broadcastBlock func(block.Body, *block.Header) error) {
+func (sr *subroundEndRound) SetBroadcastBlock(broadcastBlock func(data.BodyHandler, data.HeaderHandler) error) {
 	sr.broadcastBlock = broadcastBlock
 }
 

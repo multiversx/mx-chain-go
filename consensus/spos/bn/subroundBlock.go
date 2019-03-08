@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -181,7 +182,7 @@ func (sr *subroundBlock) doBlockJob() bool {
 
 // sendBlockBody method job the proposed block body in the Block subround
 func (sr *subroundBlock) sendBlockBody() bool {
-	haveTimeInCurrentSubound := func() bool {
+	haveTimeInCurrentSubround := func() bool {
 		roundStartTime := sr.rounder.TimeStamp()
 		currentTime := sr.syncTimer.CurrentTime()
 		elapsedTime := currentTime.Sub(roundStartTime)
@@ -190,11 +191,9 @@ func (sr *subroundBlock) sendBlockBody() bool {
 		return time.Duration(remainingTime) > 0
 	}
 
-	blk, err := sr.blockProcessor.CreateTxBlockBody(
-		sr.shardCoordinator.ShardForCurrentNode(),
-		maxTransactionsInBlock,
+	blockBody, err := sr.blockProcessor.CreateBlockBody(
 		sr.rounder.Index(),
-		haveTimeInCurrentSubound,
+		haveTimeInCurrentSubround,
 	)
 
 	if err != nil {
@@ -202,7 +201,7 @@ func (sr *subroundBlock) sendBlockBody() bool {
 		return false
 	}
 
-	blkStr, err := sr.marshalizer.Marshal(blk)
+	blkStr, err := sr.marshalizer.Marshal(blockBody)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -224,14 +223,13 @@ func (sr *subroundBlock) sendBlockBody() bool {
 
 	log.Info(fmt.Sprintf("%sStep 1: block body has been sent\n", sr.syncTimer.FormattedCurrentTime()))
 
-	sr.consensusState.BlockBody = blk
+	sr.consensusState.BlockBody = blockBody
 
 	return true
 }
 
 // sendBlockHeader method job the proposed block header in the Block subround
 func (sr *subroundBlock) sendBlockHeader() bool {
-
 	hdr, err := sr.createHeader()
 	if err != nil {
 		log.Error(err.Error())
@@ -261,7 +259,7 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 	}
 
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been sent\n",
-		sr.syncTimer.FormattedCurrentTime(), hdr.Nonce, toB64(hdrHash)))
+		sr.syncTimer.FormattedCurrentTime(), hdr.GetNonce(), toB64(hdrHash)))
 
 	sr.consensusState.Data = hdrHash
 	sr.consensusState.Header = hdr
@@ -269,26 +267,24 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 	return true
 }
 
-func (sr *subroundBlock) createHeader() (*block.Header, error) {
-	hdr := &block.Header{}
+func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
+	hdr, err := sr.blockProcessor.CreateBlockHeader(sr.consensusState.BlockBody)
 
-	hdr.Round = uint32(sr.rounder.Index())
-	hdr.TimeStamp = uint64(sr.rounder.TimeStamp().Unix())
-	hdr.RootHash = sr.blockProcessor.GetRootHash()
-
-	if sr.blockChain.CurrentBlockHeader == nil {
-		hdr.Nonce = 1
-		hdr.PrevHash = sr.blockChain.GenesisHeaderHash
-	} else {
-		hdr.Nonce = sr.blockChain.CurrentBlockHeader.Nonce + 1
-		hdr.PrevHash = sr.blockChain.CurrentBlockHeaderHash
-	}
-
-	headers, err := sr.blockProcessor.CreateMiniBlockHeaders(sr.consensusState.BlockBody)
 	if err != nil {
 		return nil, err
 	}
-	hdr.MiniBlockHeaders = headers
+
+	hdr.SetRound(uint32(sr.rounder.Index()))
+	hdr.SetTimeStamp(uint64(sr.rounder.TimeStamp().Unix()))
+
+	if sr.blockChain.CurrentBlockHeader == nil {
+		hdr.SetNonce(1)
+		hdr.SetPrevHash(sr.blockChain.GenesisHeaderHash)
+	} else {
+		hdr.SetNonce(sr.blockChain.CurrentBlockHeader.Nonce + 1)
+		hdr.SetPrevHash(sr.blockChain.CurrentBlockHeaderHash)
+	}
+
 	return hdr, nil
 }
 
@@ -369,9 +365,9 @@ func (sr *subroundBlock) receivedBlockHeader(cnsDta *spos.ConsensusMessage) bool
 	}
 
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been received\n",
-		sr.syncTimer.FormattedCurrentTime(), sr.consensusState.Header.Nonce, toB64(cnsDta.BlockHeaderHash)))
+		sr.syncTimer.FormattedCurrentTime(), sr.consensusState.Header.GetNonce(), toB64(cnsDta.BlockHeaderHash)))
 
-	if !sr.blockProcessor.CheckBlockValidity(sr.blockChain, sr.consensusState.Header) {
+	if !sr.blockProcessor.CheckBlockValidity(sr.blockChain, sr.consensusState.Header, nil) {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, invalid block\n",
 			sr.rounder.Index(), getSubroundName(SrBlock)))
 

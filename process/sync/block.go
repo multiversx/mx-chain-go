@@ -61,7 +61,7 @@ type Bootstrap struct {
 	highestNonceReceived uint64
 	isForkDetected       bool
 
-	BroadcastBlock func(block.Body, *block.Header) error
+	BroadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
 
 // NewBootstrap creates a new Bootstrap object
@@ -325,7 +325,7 @@ func (boot *Bootstrap) receivedBodyHash(hash []byte) {
 	}
 
 	boot.requestedHashes.SetReceivedHash(hash)
-	if  boot.requestedHashes.ReceivedAll() {
+	if boot.requestedHashes.ReceivedAll() {
 		log.Info(fmt.Sprintf("received requested txBlockBody with hash %s from network\n", toB64(hash)))
 		boot.setRequestedMiniBlocks(nil)
 		boot.chRcvMiniBlocks <- true
@@ -416,8 +416,9 @@ func (boot *Bootstrap) SyncBlock() error {
 
 	//TODO remove type assertions and implement a way for block executor to process
 	//TODO all kinds of headers
-	miniBlocks := blk.(block.MiniBlockSlice)
-	err = boot.blkExecutor.ProcessAndCommit(boot.blkc, hdr, block.Body(miniBlocks), haveTime)
+	blockBody := block.Body(blk.(block.MiniBlockSlice))
+
+	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 
 	if err != nil {
 		if err == process.ErrInvalidBlockHash {
@@ -425,6 +426,12 @@ func (boot *Bootstrap) SyncBlock() error {
 			err = boot.forkChoice(hdr)
 		}
 
+		return err
+	}
+
+	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
+
+	if err != nil {
 		return err
 	}
 
@@ -450,10 +457,10 @@ func (boot *Bootstrap) createAndBroadcastEmptyBlock() error {
 
 	if err == nil {
 		log.Info(fmt.Sprintf("body and header with root hash %s and nonce %d were created and commited through the recovery mechanism\n",
-			toB64(header.RootHash),
-			header.Nonce))
+			toB64(header.GetRootHash()),
+			header.GetNonce()))
 
-		err = boot.broadcastEmptyBlock(txBlockBody, header)
+		err = boot.broadcastEmptyBlock(txBlockBody.(block.Body), header.(*block.Header))
 	}
 
 	return err
@@ -759,7 +766,7 @@ func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
 	return roundTimeStamp
 }
 
-func (boot *Bootstrap) createHeader() (*block.Header, error) {
+func (boot *Bootstrap) createHeader() (data.HeaderHandler, error) {
 	hdr := &block.Header{}
 
 	var prevHeaderHash []byte
@@ -784,7 +791,7 @@ func (boot *Bootstrap) createHeader() (*block.Header, error) {
 }
 
 // CreateAndCommitEmptyBlock creates and commits an empty block
-func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
 
 	boot.blkExecutor.RevertAccountState()
@@ -802,8 +809,8 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (bl
 		return nil, nil, err
 	}
 	hdrHash := boot.hasher.Compute(string(headerStr))
-	hdr.Signature = hdrHash
-	hdr.Commitment = hdrHash
+	hdr.SetSignature(hdrHash)
+	hdr.SetCommitment(hdrHash)
 
 	// Commit the block (commits also the account state)
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
@@ -812,7 +819,7 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (bl
 		return nil, nil, err
 	}
 
-	msg := fmt.Sprintf("Added empty block with nonce  %d  in blockchain", hdr.Nonce)
+	msg := fmt.Sprintf("Added empty block with nonce  %d  in blockchain", hdr.GetNonce())
 	log.Info(log.Headline(msg, "", "*"))
 
 	return blk, hdr, nil
