@@ -45,7 +45,7 @@ func (pdc *peerDiscovererCreator) createKadDhtPeerDiscoverer() (p2p.PeerDiscover
 	}
 
 	return discovery.NewKadDhtPeerDiscoverer(
-		time.Duration(pdc.p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
+		time.Second*time.Duration(pdc.p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
 		pdc.p2pConfig.KadDhtPeerDiscovery.RandezVous,
 		pdc.p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
 	), nil
@@ -57,7 +57,7 @@ func (pdc *peerDiscovererCreator) createMdnsPeerDiscoverer() (p2p.PeerDiscoverer
 	}
 
 	return discovery.NewMdnsPeerDiscoverer(
-		time.Duration(pdc.p2pConfig.MdnsPeerDiscovery.RefreshIntervalInSec),
+		time.Second*time.Duration(pdc.p2pConfig.MdnsPeerDiscovery.RefreshIntervalInSec),
 		pdc.p2pConfig.MdnsPeerDiscovery.ServiceTag,
 	), nil
 }
