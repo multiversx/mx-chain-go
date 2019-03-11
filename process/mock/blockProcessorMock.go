@@ -4,35 +4,30 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 )
 
 type BlockProcessorMock struct {
-	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error
-	ProcessAndCommitCalled        func(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error
-	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header *block.Header, block block.Body) error
+	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled      func()
 	CreateGenesisBlockCalled      func(balances map[string]*big.Int) (rootHash []byte, err error)
-	CreateTxBlockCalled           func(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error)
-	RemoveBlockTxsFromPoolCalled  func(body block.Body) error
+	CreateBlockCalled             func(round int32, haveTime func() bool) (data.BodyHandler, error)
+	RemoveBlockInfoFromPoolCalled func(body data.BodyHandler) error
 	GetRootHashCalled             func() []byte
 	noShards                      uint32
 	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
-	CheckBlockValidityCalled      func(blockChain *blockchain.BlockChain, header *block.Header) bool
-	CreateMiniBlockHeadersCalled  func(body block.Body) ([]block.MiniBlockHeader, error)
+	CheckBlockValidityCalled      func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool
+	CreateBlockHeaderCalled       func(body data.BodyHandler) (data.HeaderHandler, error)
 }
 
-func (bpm *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
+func (bpm *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return bpm.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
 
-func (bpm *BlockProcessorMock) ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error {
-	return bpm.ProcessAndCommitCalled(blockChain, header, body, haveTime)
-}
-
-func (bpm *BlockProcessorMock) CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block block.Body) error {
-	return bpm.CommitBlockCalled(blockChain, header, block)
+func (bpm *BlockProcessorMock) CommitBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
+	return bpm.CommitBlockCalled(blockChain, header, body)
 }
 
 func (bpm *BlockProcessorMock) RevertAccountState() {
@@ -43,23 +38,23 @@ func (blProcMock BlockProcessorMock) CreateGenesisBlock(balances map[string]*big
 	return blProcMock.CreateGenesisBlockCalled(balances)
 }
 
-func (blProcMock BlockProcessorMock) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
-	return blProcMock.CreateTxBlockCalled(shardId, maxTxInBlock, round, haveTime)
+func (blProcMock BlockProcessorMock) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
+	return blProcMock.CreateBlockCalled(round, haveTime)
 }
 
-func (blProcMock BlockProcessorMock) RemoveBlockTxsFromPool(body block.Body) error {
+func (blProcMock BlockProcessorMock) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 	// pretend we removed the data
-	return blProcMock.RemoveBlockTxsFromPoolCalled(body)
+	return blProcMock.RemoveBlockInfoFromPoolCalled(body)
 }
 
 func (blProcMock BlockProcessorMock) GetRootHash() []byte {
 	return blProcMock.GetRootHashCalled()
 }
 
-func (blProcMock BlockProcessorMock) CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool {
-	return blProcMock.CheckBlockValidityCalled(blockChain, header)
+func (blProcMock BlockProcessorMock) CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
+	return blProcMock.CheckBlockValidityCalled(blockChain, header, nil)
 }
 
-func (blProcMock BlockProcessorMock)CreateMiniBlockHeaders(body block.Body) ([]block.MiniBlockHeader, error) {
-	return blProcMock.CreateMiniBlockHeadersCalled(body)
+func (blProcMock BlockProcessorMock) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
+	return blProcMock.CreateBlockHeaderCalled(body)
 }

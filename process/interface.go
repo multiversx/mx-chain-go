@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -23,16 +24,15 @@ type TransactionProcessor interface {
 
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
-	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error
-	ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body block.Body, haveTime func() time.Duration) error
-	CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, body block.Body) error
+	ProcessBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
 	CreateGenesisBlock(balances map[string]*big.Int) ([]byte, error)
-	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error)
-	RemoveBlockTxsFromPool(body block.Body) error
+	CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error)
+	RemoveBlockInfoFromPool(body data.BodyHandler) error
 	GetRootHash() []byte
-	CheckBlockValidity(blockChain *blockchain.BlockChain, header *block.Header) bool
-	CreateMiniBlockHeaders(body block.Body) ([]block.MiniBlockHeader, error)
+	CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool
+	CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -101,7 +101,7 @@ type TopicResolverSender interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
-	CreateAndCommitEmptyBlock(uint32) (block.Body, *block.Header, error)
+	CreateAndCommitEmptyBlock(uint32) (data.BodyHandler, data.HeaderHandler, error)
 	AddSyncStateListener(func(bool))
 	ShouldSync() bool
 }

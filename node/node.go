@@ -723,7 +723,7 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
 		cnsDtaBuff)
 }
 
-func (n *Node) broadcastBlock(blockBody block.Body, header *block.Header) error {
+func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
 	if blockBody == nil {
 		return ErrNilTxBlockBody
 	}

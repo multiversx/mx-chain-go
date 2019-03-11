@@ -162,7 +162,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	sr.consensusState.Header.Commitment = aggComm
+	sr.consensusState.Header.SetCommitment(aggComm)
 
 	return true
 }

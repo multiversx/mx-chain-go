@@ -1,17 +1,18 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
 // BootstraperMock mocks the implementation for a Bootstraper
 type BootstraperMock struct {
-	CreateAndCommitEmptyBlockCalled func(uint32) (block.Body, *block.Header, error)
+	CreateAndCommitEmptyBlockCalled func(uint32) (data.BodyHandler, data.HeaderHandler, error)
 	AddSyncStateListenerCalled      func(func(bool))
 	ShouldSyncCalled                func() bool
 }
 
-func (boot *BootstraperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (block.Body, *block.Header, error) {
+func (boot *BootstraperMock) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 	if boot.CreateAndCommitEmptyBlockCalled != nil {
 		return boot.CreateAndCommitEmptyBlockCalled(shardForCurrentNode)
 	}
