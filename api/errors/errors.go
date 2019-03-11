@@ -51,3 +51,9 @@ var ErrGetTransaction = errors.New("transaction getting failed")
 
 // ErrTxNotFound signals an error happend trying to fetch a transaction
 var ErrTxNotFound = errors.New("transaction was not found")
+
+// ErrFilePathNil signals an error when file path is not set
+var ErrFilePathNil = errors.New("Filepath is nil")
+
+// ErrNilShardCoordinator signals an error when shard coordinator is nil
+var ErrNilShardCoordinatior = errors.New("Shard coordinator is nil")
