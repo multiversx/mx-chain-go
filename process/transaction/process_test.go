@@ -233,7 +233,7 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 		}
 
 		if addressContainer == adr2 {
-			return nil, errors.New("failure on dest")
+			return nil, errors.New("failure on destination")
 		}
 
 		return nil, errors.New("failure")
@@ -254,7 +254,7 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 	assert.Equal(t, nil, a2)
 }
 
-func TestTxProcessor_GetAccountsOkValsDesthouldWork(t *testing.T) {
+func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 	accounts := mock.AccountsStub{}
 
 	adr1 := mock.NewAddressMock([]byte{65})
@@ -265,7 +265,7 @@ func TestTxProcessor_GetAccountsOkValsDesthouldWork(t *testing.T) {
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if addressContainer == adr1 {
-			return nil, errors.New("failure on src")
+			return nil, errors.New("failure on source")
 		}
 
 		if addressContainer == adr2 {
@@ -441,14 +441,14 @@ func TestTxProcessor_MoveBalancesFailureAcnt1ShouldErr(t *testing.T) {
 	adrSrc := mock.NewAddressMock([]byte{65})
 	acntSrc := mock.NewJournalizedAccountWrapMock(adrSrc)
 
-	adrDest := mock.NewAddressMock([]byte{67})
-	acntDest := mock.NewJournalizedAccountWrapMock(adrDest)
+	adrDst := mock.NewAddressMock([]byte{67})
+	acntDst := mock.NewJournalizedAccountWrapMock(adrDst)
 
 	execTx := *createTxProcessor()
 
 	acntSrc.Fail = true
 
-	err := execTx.MoveBalances(acntSrc, acntDest, true, true, big.NewInt(0))
+	err := execTx.MoveBalances(acntSrc, acntDst, true, true, big.NewInt(0))
 	assert.NotNil(t, err)
 }
 
@@ -456,14 +456,14 @@ func TestTxProcessor_MoveBalancesFailureAcnt2ShouldErr(t *testing.T) {
 	adrSrc := mock.NewAddressMock([]byte{65})
 	acntSrc := mock.NewJournalizedAccountWrapMock(adrSrc)
 
-	adrDest := mock.NewAddressMock([]byte{67})
-	acntDest := mock.NewJournalizedAccountWrapMock(adrDest)
+	adrDst := mock.NewAddressMock([]byte{67})
+	acntDst := mock.NewJournalizedAccountWrapMock(adrDst)
 
 	execTx := *createTxProcessor()
 
-	acntDest.Fail = true
+	acntDst.Fail = true
 
-	err := execTx.MoveBalances(acntSrc, acntDest, true, true, big.NewInt(0))
+	err := execTx.MoveBalances(acntSrc, acntDst, true, true, big.NewInt(0))
 	assert.NotNil(t, err)
 }
 
@@ -471,29 +471,29 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *tes
 	adrSrc := mock.NewAddressMock([]byte{65})
 	acntSrc := mock.NewJournalizedAccountWrapMock(adrSrc)
 
-	adrDest := mock.NewAddressMock([]byte{67})
-	acntDest := mock.NewJournalizedAccountWrapMock(adrDest)
+	adrDst := mock.NewAddressMock([]byte{67})
+	acntDst := mock.NewJournalizedAccountWrapMock(adrDst)
 
 	execTx := *createTxProcessor()
 
 	acntSrc.Fail = true
 
-	err := execTx.MoveBalances(acntSrc, acntDest, false, true, big.NewInt(0))
+	err := execTx.MoveBalances(acntSrc, acntDst, false, true, big.NewInt(0))
 	assert.Nil(t, err)
 }
 
-func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDestIsNotInNodeShard(t *testing.T) {
+func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *testing.T) {
 	adrSrc := mock.NewAddressMock([]byte{65})
 	acntSrc := mock.NewJournalizedAccountWrapMock(adrSrc)
 
-	adrDest := mock.NewAddressMock([]byte{67})
-	acntDest := mock.NewJournalizedAccountWrapMock(adrDest)
+	adrDst := mock.NewAddressMock([]byte{67})
+	acntDst := mock.NewJournalizedAccountWrapMock(adrDst)
 
 	execTx := *createTxProcessor()
 
-	acntDest.Fail = true
+	acntDst.Fail = true
 
-	err := execTx.MoveBalances(acntSrc, acntDest, true, false, big.NewInt(0))
+	err := execTx.MoveBalances(acntSrc, acntDst, true, false, big.NewInt(0))
 	assert.Nil(t, err)
 }
 
@@ -501,18 +501,18 @@ func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 	adrSrc := mock.NewAddressMock([]byte{65})
 	acntSrc := mock.NewJournalizedAccountWrapMock(adrSrc)
 
-	adrDest := mock.NewAddressMock([]byte{67})
-	acntDest := mock.NewJournalizedAccountWrapMock(adrDest)
+	adrDst := mock.NewAddressMock([]byte{67})
+	acntDst := mock.NewJournalizedAccountWrapMock(adrDst)
 
 	execTx := *createTxProcessor()
 
 	acntSrc.Balance = big.NewInt(64)
-	acntDest.Balance = big.NewInt(31)
+	acntDst.Balance = big.NewInt(31)
 
-	err := execTx.MoveBalances(acntSrc, acntDest, true, true, big.NewInt(14))
+	err := execTx.MoveBalances(acntSrc, acntDst, true, true, big.NewInt(14))
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(50), acntSrc.Balance)
-	assert.Equal(t, big.NewInt(45), acntDest.Balance)
+	assert.Equal(t, big.NewInt(45), acntDst.Balance)
 
 }
 
@@ -520,20 +520,20 @@ func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 	adrSrc := mock.NewAddressMock([]byte{65})
 	acntSrc := mock.NewJournalizedAccountWrapMock(adrSrc)
 
-	acntDest := acntSrc
+	acntDst := acntSrc
 
 	execTx := *createTxProcessor()
 
 	acntSrc.Balance = big.NewInt(64)
 
-	err := execTx.MoveBalances(acntSrc, acntDest, true, true, big.NewInt(1))
+	err := execTx.MoveBalances(acntSrc, acntDst, true, true, big.NewInt(1))
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(64), acntSrc.Balance)
-	assert.Equal(t, big.NewInt(64), acntDest.Balance)
+	assert.Equal(t, big.NewInt(64), acntDst.Balance)
 
 }
 
-//------- increaseNonceAcntSrc
+//------- increaseNonce
 
 func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 	adrSrc := mock.NewAddressMock([]byte{65})
@@ -543,7 +543,7 @@ func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 
 	acntSrc.Nonce = 45
 
-	err := execTx.IncreaseNonceAcntSrc(acntSrc)
+	err := execTx.IncreaseNonce(acntSrc)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(46), acntSrc.Nonce)
 }
@@ -588,7 +588,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DEST")
+	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
@@ -619,12 +619,12 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DEST")
+	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
-	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
-	acntDest.SetCode([]byte{65})
+	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
+	acntDst.SetCode([]byte{65})
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
@@ -632,7 +632,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		}
 
 		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDest, nil
+			return acntDst, nil
 		}
 
 		return nil, errors.New("failure")
@@ -643,7 +643,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDestIsNotInNodeShard(t *testing.T) {
+func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNodeShard(t *testing.T) {
 	accounts := &mock.AccountsStub{}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -665,7 +665,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDestIsNotInNo
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DEST")
+	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
@@ -678,8 +678,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDestIsNotInNo
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Balance = big.NewInt(45)
-	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
-	acntDest.SetCode([]byte{65})
+	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
+	acntDst.SetCode([]byte{65})
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
@@ -687,7 +687,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDestIsNotInNo
 		}
 
 		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDest, nil
+			return acntDst, nil
 		}
 
 		return nil, errors.New("failure")
@@ -780,11 +780,11 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DEST")
+	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
-	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
+	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
@@ -792,7 +792,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		}
 
 		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDest, nil
+			return acntDst, nil
 		}
 
 		return nil, errors.New("failure")
@@ -818,7 +818,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DEST")
+	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
@@ -830,7 +830,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 	}
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
-	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
+	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
@@ -838,7 +838,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 		}
 
 		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDest, nil
+			return acntDst, nil
 		}
 
 		return nil, errors.New("failure")
@@ -863,12 +863,12 @@ func TestTxProcessor_ProcessMoveBalancesFailShouldErr(t *testing.T) {
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DEST")
+	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Fail = true
-	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
+	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
@@ -876,7 +876,7 @@ func TestTxProcessor_ProcessMoveBalancesFailShouldErr(t *testing.T) {
 		}
 
 		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDest, nil
+			return acntDst, nil
 		}
 
 		return nil, errors.New("failure")
@@ -902,7 +902,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DEST")
+	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
 	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
@@ -915,7 +915,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Fail = true
-	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
+	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
@@ -923,7 +923,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 		}
 
 		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDest, nil
+			return acntDst, nil
 		}
 
 		return nil, errors.New("failure")
@@ -948,12 +948,12 @@ func TestTxProcessor_ProcessIncreaseNonceFailShouldErr(t *testing.T) {
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DEST")
+	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.FailSetNonceWithJurnal = true
-	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
+	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
@@ -961,7 +961,7 @@ func TestTxProcessor_ProcessIncreaseNonceFailShouldErr(t *testing.T) {
 		}
 
 		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDest, nil
+			return acntDst, nil
 		}
 
 		return nil, errors.New("failure")
@@ -987,7 +987,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DEST")
+	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
 	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
@@ -1000,7 +1000,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.FailSetNonceWithJurnal = true
-	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
+	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
@@ -1008,7 +1008,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 		}
 
 		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDest, nil
+			return acntDst, nil
 		}
 
 		return nil, errors.New("failure")
@@ -1032,14 +1032,14 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	tx := transaction.Transaction{}
 	tx.Nonce = 4
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DEST")
+	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(61)
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Nonce = 4
 	acntSrc.Balance = big.NewInt(90)
-	acntDest := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
-	acntDest.Balance = big.NewInt(10)
+	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
+	acntDst.Balance = big.NewInt(10)
 
 	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
 		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
@@ -1047,7 +1047,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 		}
 
 		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDest, nil
+			return acntDst, nil
 		}
 
 		return nil, errors.New("failure")
@@ -1057,7 +1057,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(5), acntSrc.Nonce)
 	assert.Equal(t, big.NewInt(29), acntSrc.Balance)
-	assert.Equal(t, big.NewInt(71), acntDest.Balance)
+	assert.Equal(t, big.NewInt(71), acntDst.Balance)
 }
 
 //------- SetBalancesToTrie

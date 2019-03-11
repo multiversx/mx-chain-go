@@ -9,15 +9,14 @@ import (
 
 type TxProcessor *txProcessor
 
-func (txProc *txProcessor) GetAddresses(tx *transaction.Transaction) (adrSrc, adrDest state.AddressContainer, err error) {
+func (txProc *txProcessor) GetAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
 	return txProc.getAddresses(tx)
 }
 
-func (txProc *txProcessor) GetAccounts(
-	adrSrc, adrDest state.AddressContainer,
-	adrSrcInNodeShard, adrDestInNodeShard bool,
-) (acntSrc, acntDest state.JournalizedAccountWrapper, err error) {
-	return txProc.getAccounts(adrSrc, adrDest, adrSrcInNodeShard, adrDestInNodeShard)
+func (txProc *txProcessor) GetAccounts(adrSrc, adrDst state.AddressContainer,
+	srcInShard, dstInShard bool,
+) (acntSrc, acntDst state.JournalizedAccountWrapper, err error) {
+	return txProc.getAccounts(adrSrc, adrDst, srcInShard, dstInShard)
 }
 
 func (txProc *txProcessor) CallSCHandler(tx *transaction.Transaction) error {
@@ -28,14 +27,13 @@ func (txProc *txProcessor) CheckTxValues(acntSrc state.JournalizedAccountWrapper
 	return txProc.checkTxValues(acntSrc, value, nonce)
 }
 
-func (txProc *txProcessor) MoveBalances(
-	acntSrc, acntDest state.JournalizedAccountWrapper,
-	adrSrcInNodeShard, adrDestInNodeShard bool,
+func (txProc *txProcessor) MoveBalances(acntSrc, acntDst state.JournalizedAccountWrapper,
+	srcInShard, dstInShard bool,
 	value *big.Int,
 ) error {
-	return txProc.moveBalances(acntSrc, acntDest, adrSrcInNodeShard, adrDestInNodeShard, value)
+	return txProc.moveBalances(acntSrc, acntDst, srcInShard, dstInShard, value)
 }
 
-func (txProc *txProcessor) IncreaseNonceAcntSrc(acntSrc state.JournalizedAccountWrapper) error {
-	return txProc.increaseNonceAcntSrc(acntSrc)
+func (txProc *txProcessor) IncreaseNonce(acntSrc state.JournalizedAccountWrapper) error {
+	return txProc.increaseNonce(acntSrc)
 }
