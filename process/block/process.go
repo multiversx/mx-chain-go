@@ -641,7 +641,7 @@ func (bp *blockProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderH
 			return nil, err
 		}
 		mbHash := bp.hasher.Compute(string(mbBytes))
-		// TODO: Add correct shard ids in shard coordinator task
+
 		miniBlockHeaders[i] = block.MiniBlockHeader{
 			Hash:            mbHash,
 			SenderShardID:   bp.shardCoordinator.CurrentShardId(),
