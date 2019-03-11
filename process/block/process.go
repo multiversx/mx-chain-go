@@ -626,7 +626,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 func (bp *blockProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
 	header := &block.Header{MiniBlockHeaders: make([]block.MiniBlockHeader, 0)}
 	header.RootHash = bp.GetRootHash()
-	header.ShardId = bp.shardCoordinator.ShardForCurrentNode()
+	header.ShardId = bp.shardCoordinator.CurrentShardId()
 
 	if body == nil {
 		return header, nil
@@ -644,7 +644,7 @@ func (bp *blockProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderH
 		// TODO: Add correct shard ids in shard coordinator task
 		miniBlockHeaders[i] = block.MiniBlockHeader{
 			Hash:            mbHash,
-			SenderShardID:   bp.shardCoordinator.ShardForCurrentNode(),
+			SenderShardID:   bp.shardCoordinator.CurrentShardId(),
 			ReceiverShardID: blockBody[i].ShardID,
 		}
 	}
