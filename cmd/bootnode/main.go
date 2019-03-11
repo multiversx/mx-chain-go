@@ -139,7 +139,7 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode, flags.Shards}
 
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
@@ -412,7 +412,8 @@ func createNode(
 		return nil, errors.New("could not create transient data pool: " + err.Error())
 	}
 
-	shardRegistry, err := sharding.NewShardRegistry(uint32(ctx.GlobalInt(flags.Shards.Name)))
+	nrOfShards := ctx.GlobalInt(flags.Shards.Name)
+	shardRegistry, err := sharding.NewShardRegistry(uint32(nrOfShards))
 	if err != nil {
 		return nil, err
 	}
