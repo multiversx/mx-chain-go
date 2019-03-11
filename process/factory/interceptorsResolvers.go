@@ -250,7 +250,7 @@ func (ir *interceptorsResolvers) createPeerChBlockBodyResolver() error {
 		return err
 	}
 
-	err = ir.resolverContainer.Add(string(PeerChBodyTopic), peerChBlkResolver)
+	err = ir.resolverContainer.Add(PeerChBodyTopic, peerChBlkResolver)
 	return err
 }
 

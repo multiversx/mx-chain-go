@@ -40,6 +40,16 @@ func TestResolversContainer_AddNilShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilContainerElement, err)
 }
 
+func TestResolversContainer_AddEmptyKeyShouldWork(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewResolversContainer()
+
+	err := c.Add("", &mock.ResolverStub{})
+
+	assert.Nil(t, err)
+}
+
 func TestResolversContainer_AddShouldWork(t *testing.T) {
 	t.Parallel()
 

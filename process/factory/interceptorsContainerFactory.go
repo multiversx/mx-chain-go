@@ -254,7 +254,7 @@ func (icf *interceptorsContainerFactory) addPeerChBlockBodyInterceptors(containe
 	shardC := icf.shardCoordinator
 
 	//only one intrashard peer change blocks topic
-	identifierPeerCh := string(PeerChBodyTopic) + shardC.CommunicationIdentifier(shardC.ShardForCurrentNode())
+	identifierPeerCh := PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.ShardForCurrentNode())
 
 	interceptor, err := icf.createOnePeerChBlockBodyInterceptor(identifierPeerCh)
 	if err != nil {
