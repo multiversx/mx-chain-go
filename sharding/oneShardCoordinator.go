@@ -26,8 +26,8 @@ func (osc *OneShardCoordinator) ShardForCurrentNode() uint32 {
 	return 0
 }
 
-// CrossShardIdentifier returns the identifier between current shard ID and cross shard ID
+// CommunicationIdentifier returns the identifier between current shard ID and destination shard ID
 // for this implementation, it will always return "_0" as there is a single shard
-func (osc *OneShardCoordinator) CrossShardIdentifier(crossShardID uint32) string {
+func (osc *OneShardCoordinator) CommunicationIdentifier(destShardID uint32) string {
 	return "_0"
 }

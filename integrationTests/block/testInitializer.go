@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"io"
 	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -36,6 +38,12 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 )
+
+var r io.Reader
+
+func init() {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
 
 type testInitializer struct {
 }
@@ -151,7 +159,7 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		Uint64ByteSliceConverter: uint64Converter,
 	})
 
-	interceptorFactory, _ := factory.NewInterceptorsContainerCreator(
+	interceptorContainerFactory, _ := factory.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		messenger,
 		blkc,
@@ -163,7 +171,7 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		dPool,
 		addrConverter,
 	)
-	interceptorsContainer, _ := interceptorFactory.Create()
+	interceptorsContainer, _ := interceptorContainerFactory.Create()
 
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -190,7 +198,6 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 }
 
 func (ti *testInitializer) createMessenger(ctx context.Context, port int) p2p.Messenger {
-	r := rand.New(rand.NewSource(int64(port)))
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 

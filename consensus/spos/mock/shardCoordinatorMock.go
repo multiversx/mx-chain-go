@@ -23,6 +23,6 @@ func (scm ShardCoordinatorMock) ShardForCurrentNode() uint32 {
 	return 0
 }
 
-func (scm ShardCoordinatorMock) CrossShardIdentifier(crossShardID uint32) string {
+func (scm ShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) string {
 	return "_0"
 }

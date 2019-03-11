@@ -145,19 +145,19 @@ type InterceptorsContainerFactory interface {
 }
 
 // Interceptor defines what a data interceptor should do
-// It should also adhere to the p2p.BlockProcessor interface so it can wire to a p2p.Messenger
+// It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P) error
 }
 
-// WireMessageHandler defines the functionality needed by structs to send data to other peers
-type WireMessageHandler interface {
+// MessageHandler defines the functionality needed by structs to send data to other peers
+type MessageHandler interface {
 	ConnectedPeers() []p2p.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
 }
 
-// WireTopicHandler defines the functionality needed by structs to manage topics and message processors
-type WireTopicHandler interface {
+// TopicHandler defines the functionality needed by structs to manage topics and message processors
+type TopicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error

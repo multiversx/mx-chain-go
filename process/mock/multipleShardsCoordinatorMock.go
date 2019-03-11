@@ -35,16 +35,16 @@ func (scm *multipleShardsCoordinatorMock) ShardForCurrentNode() uint32 {
 	return scm.CurrentShard
 }
 
-// CrossShardIdentifier returns the identifier between current shard ID and cross shard ID
+// CommunicationIdentifier returns the identifier between current shard ID and destination shard ID
 // identifier is generated such as the first shard from identifier is always smaller than the last
-func (scm *multipleShardsCoordinatorMock) CrossShardIdentifier(crossShardID uint32) string {
-	if crossShardID == scm.CurrentShard {
+func (scm *multipleShardsCoordinatorMock) CommunicationIdentifier(destShardID uint32) string {
+	if destShardID == scm.CurrentShard {
 		return fmt.Sprintf("_%d", scm.CurrentShard)
 	}
 
-	if crossShardID < scm.CurrentShard {
-		return fmt.Sprintf("_%d_%d", crossShardID, scm.CurrentShard)
+	if destShardID < scm.CurrentShard {
+		return fmt.Sprintf("_%d_%d", destShardID, scm.CurrentShard)
 	}
 
-	return fmt.Sprintf("_%d_%d", scm.CurrentShard, crossShardID)
+	return fmt.Sprintf("_%d_%d", scm.CurrentShard, destShardID)
 }

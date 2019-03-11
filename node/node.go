@@ -389,7 +389,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	//TODO temporary, will be refactored in EN-1104
-	identifier := factory.TransactionTopic + n.shardCoordinator.CrossShardIdentifier(n.shardCoordinator.ShardForCurrentNode())
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.ShardForCurrentNode())
 
 	for i := 0; i < len(transactions); i++ {
 		n.messenger.BroadcastOnChannel(
@@ -643,7 +643,7 @@ func (n *Node) SendTransaction(
 	}
 
 	//TODO temporary, will be refactored in EN-1104
-	identifier := factory.TransactionTopic + n.shardCoordinator.CrossShardIdentifier(n.shardCoordinator.ShardForCurrentNode())
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.ShardForCurrentNode())
 
 	n.messenger.BroadcastOnChannel(
 		SendTransactionsPipe,

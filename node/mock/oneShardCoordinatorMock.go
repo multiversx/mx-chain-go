@@ -31,6 +31,6 @@ func (scm *oneShardCoordinatorMock) ShardForCurrentNode() uint32 {
 	return 0
 }
 
-func (scm *oneShardCoordinatorMock) CrossShardIdentifier(crossShardID uint32) string {
+func (scm *oneShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) string {
 	return "_0"
 }

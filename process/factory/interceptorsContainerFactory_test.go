@@ -14,8 +14,8 @@ import (
 
 var errExpected = errors.New("expected error")
 
-func createStubWireTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.WireTopicHandler {
-	return &mock.WireTopicHandlerStub{
+func createStubWireTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
+	return &mock.TopicHandlerStub{
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 			if matchStrToErrOnCreate == "" {
 				return nil
@@ -41,14 +41,14 @@ func createStubWireTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnReg
 	}
 }
 
-//------- NewInterceptorsContainerCreator
+//------- NewInterceptorsContainerFactory
 
-func TestNewInterceptorsContainerCreator_NilShardCoordinatorShouldErr(t *testing.T) {
+func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, err := factory.NewInterceptorsContainerCreator(
+	icf, err := factory.NewInterceptorsContainerFactory(
 		nil,
-		&mock.WireTopicHandlerStub{},
+		&mock.TopicHandlerStub{},
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -58,14 +58,14 @@ func TestNewInterceptorsContainerCreator_NilShardCoordinatorShouldErr(t *testing
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	assert.Nil(t, icc)
+	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestNewInterceptorsContainerCreator_NilWireTopicHandlerShouldErr(t *testing.T) {
+func TestNewInterceptorsContainerFactory_NilWireTopicHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, err := factory.NewInterceptorsContainerCreator(
+	icf, err := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		createBlockchain(),
@@ -77,16 +77,16 @@ func TestNewInterceptorsContainerCreator_NilWireTopicHandlerShouldErr(t *testing
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	assert.Nil(t, icc)
+	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilMessenger, err)
 }
 
-func TestNewInterceptorsContainerCreator_NilBlockchainShouldErr(t *testing.T) {
+func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, err := factory.NewInterceptorsContainerCreator(
+	icf, err := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		&mock.WireTopicHandlerStub{},
+		&mock.TopicHandlerStub{},
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -96,16 +96,16 @@ func TestNewInterceptorsContainerCreator_NilBlockchainShouldErr(t *testing.T) {
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	assert.Nil(t, icc)
+	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilBlockChain, err)
 }
 
-func TestNewInterceptorsContainerCreator_NilMarshalizerShouldErr(t *testing.T) {
+func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, err := factory.NewInterceptorsContainerCreator(
+	icf, err := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		&mock.WireTopicHandlerStub{},
+		&mock.TopicHandlerStub{},
 		createBlockchain(),
 		nil,
 		&mock.HasherMock{},
@@ -115,16 +115,16 @@ func TestNewInterceptorsContainerCreator_NilMarshalizerShouldErr(t *testing.T) {
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	assert.Nil(t, icc)
+	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestNewInterceptorsContainerCreator_NilHasherShouldErr(t *testing.T) {
+func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, err := factory.NewInterceptorsContainerCreator(
+	icf, err := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		&mock.WireTopicHandlerStub{},
+		&mock.TopicHandlerStub{},
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		nil,
@@ -134,16 +134,16 @@ func TestNewInterceptorsContainerCreator_NilHasherShouldErr(t *testing.T) {
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	assert.Nil(t, icc)
+	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestNewInterceptorsContainerCreator_NilKeyGenShouldErr(t *testing.T) {
+func TestNewInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, err := factory.NewInterceptorsContainerCreator(
+	icf, err := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		&mock.WireTopicHandlerStub{},
+		&mock.TopicHandlerStub{},
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -153,16 +153,16 @@ func TestNewInterceptorsContainerCreator_NilKeyGenShouldErr(t *testing.T) {
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	assert.Nil(t, icc)
+	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilKeyGen, err)
 }
 
-func TestNewInterceptorsContainerCreator_NilSingleSignerShouldErr(t *testing.T) {
+func TestNewInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, err := factory.NewInterceptorsContainerCreator(
+	icf, err := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		&mock.WireTopicHandlerStub{},
+		&mock.TopicHandlerStub{},
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -172,16 +172,16 @@ func TestNewInterceptorsContainerCreator_NilSingleSignerShouldErr(t *testing.T) 
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	assert.Nil(t, icc)
+	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilSingleSigner, err)
 }
 
-func TestNewInterceptorsContainerCreator_NilMultiSignerShouldErr(t *testing.T) {
+func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, err := factory.NewInterceptorsContainerCreator(
+	icf, err := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		&mock.WireTopicHandlerStub{},
+		&mock.TopicHandlerStub{},
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -191,16 +191,16 @@ func TestNewInterceptorsContainerCreator_NilMultiSignerShouldErr(t *testing.T) {
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	assert.Nil(t, icc)
+	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
 }
 
-func TestNewInterceptorsContainerCreator_NilDataPoolShouldErr(t *testing.T) {
+func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, err := factory.NewInterceptorsContainerCreator(
+	icf, err := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		&mock.WireTopicHandlerStub{},
+		&mock.TopicHandlerStub{},
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -210,16 +210,16 @@ func TestNewInterceptorsContainerCreator_NilDataPoolShouldErr(t *testing.T) {
 		nil,
 		&mock.AddressConverterMock{})
 
-	assert.Nil(t, icc)
+	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
 }
 
-func TestNewInterceptorsContainerCreator_NilAddrConverterShouldErr(t *testing.T) {
+func TestNewInterceptorsContainerFactory_NilAddrConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, err := factory.NewInterceptorsContainerCreator(
+	icf, err := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		&mock.WireTopicHandlerStub{},
+		&mock.TopicHandlerStub{},
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -229,16 +229,16 @@ func TestNewInterceptorsContainerCreator_NilAddrConverterShouldErr(t *testing.T)
 		createDataPool(),
 		nil)
 
-	assert.Nil(t, icc)
+	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
 }
 
-func TestNewInterceptorsContainerCreator_ShouldWork(t *testing.T) {
+func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	icc, err := factory.NewInterceptorsContainerCreator(
+	icf, err := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		&mock.WireTopicHandlerStub{},
+		&mock.TopicHandlerStub{},
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
@@ -248,16 +248,16 @@ func TestNewInterceptorsContainerCreator_ShouldWork(t *testing.T) {
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	assert.NotNil(t, icc)
+	assert.NotNil(t, icf)
 	assert.Nil(t, err)
 }
 
 //------- Create
 
-func TestInterceptorsContainerCreator_CreateTopicCreationTxFailsShouldErr(t *testing.T) {
+func TestInterceptorsContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, _ := factory.NewInterceptorsContainerCreator(
+	icf, _ := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubWireTopicHandler(factory.TransactionTopic, ""),
 		createBlockchain(),
@@ -269,16 +269,16 @@ func TestInterceptorsContainerCreator_CreateTopicCreationTxFailsShouldErr(t *tes
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	container, err := icc.Create()
+	container, err := icf.Create()
 
 	assert.Nil(t, container)
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerCreator_CreateTopicCreationHdrFailsShouldErr(t *testing.T) {
+func TestInterceptorsContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, _ := factory.NewInterceptorsContainerCreator(
+	icf, _ := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubWireTopicHandler(factory.HeadersTopic, ""),
 		createBlockchain(),
@@ -290,16 +290,16 @@ func TestInterceptorsContainerCreator_CreateTopicCreationHdrFailsShouldErr(t *te
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	container, err := icc.Create()
+	container, err := icf.Create()
 
 	assert.Nil(t, container)
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerCreator_CreateTopicCreationMiniBlocksFailsShouldErr(t *testing.T) {
+func TestInterceptorsContainerFactory_CreateTopicCreationMiniBlocksFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, _ := factory.NewInterceptorsContainerCreator(
+	icf, _ := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubWireTopicHandler(factory.MiniBlocksTopic, ""),
 		createBlockchain(),
@@ -311,16 +311,16 @@ func TestInterceptorsContainerCreator_CreateTopicCreationMiniBlocksFailsShouldEr
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	container, err := icc.Create()
+	container, err := icf.Create()
 
 	assert.Nil(t, container)
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerCreator_CreateTopicCreationPeerChBlocksFailsShouldErr(t *testing.T) {
+func TestInterceptorsContainerFactory_CreateTopicCreationPeerChBlocksFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, _ := factory.NewInterceptorsContainerCreator(
+	icf, _ := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubWireTopicHandler(factory.PeerChBodyTopic, ""),
 		createBlockchain(),
@@ -332,16 +332,16 @@ func TestInterceptorsContainerCreator_CreateTopicCreationPeerChBlocksFailsShould
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	container, err := icc.Create()
+	container, err := icf.Create()
 
 	assert.Nil(t, container)
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerCreator_CreateRegisterTxFailsShouldErr(t *testing.T) {
+func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, _ := factory.NewInterceptorsContainerCreator(
+	icf, _ := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubWireTopicHandler("", factory.TransactionTopic),
 		createBlockchain(),
@@ -353,16 +353,16 @@ func TestInterceptorsContainerCreator_CreateRegisterTxFailsShouldErr(t *testing.
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	container, err := icc.Create()
+	container, err := icf.Create()
 
 	assert.Nil(t, container)
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerCreator_CreateRegisterHdrFailsShouldErr(t *testing.T) {
+func TestInterceptorsContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, _ := factory.NewInterceptorsContainerCreator(
+	icf, _ := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubWireTopicHandler("", factory.HeadersTopic),
 		createBlockchain(),
@@ -374,16 +374,16 @@ func TestInterceptorsContainerCreator_CreateRegisterHdrFailsShouldErr(t *testing
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	container, err := icc.Create()
+	container, err := icf.Create()
 
 	assert.Nil(t, container)
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerCreator_CreateRegisterMiniBlocksFailsShouldErr(t *testing.T) {
+func TestInterceptorsContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, _ := factory.NewInterceptorsContainerCreator(
+	icf, _ := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubWireTopicHandler("", factory.MiniBlocksTopic),
 		createBlockchain(),
@@ -395,16 +395,16 @@ func TestInterceptorsContainerCreator_CreateRegisterMiniBlocksFailsShouldErr(t *
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	container, err := icc.Create()
+	container, err := icf.Create()
 
 	assert.Nil(t, container)
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerCreator_CreateRegisterPeerChBlocksFailsShouldErr(t *testing.T) {
+func TestInterceptorsContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	icc, _ := factory.NewInterceptorsContainerCreator(
+	icf, _ := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubWireTopicHandler("", factory.PeerChBodyTopic),
 		createBlockchain(),
@@ -416,18 +416,18 @@ func TestInterceptorsContainerCreator_CreateRegisterPeerChBlocksFailsShouldErr(t
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	container, err := icc.Create()
+	container, err := icf.Create()
 
 	assert.Nil(t, container)
 	assert.Equal(t, errExpected, err)
 }
 
-func TestInterceptorsContainerCreator_CreateShouldWork(t *testing.T) {
+func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
-	icc, _ := factory.NewInterceptorsContainerCreator(
+	icf, _ := factory.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		&mock.WireTopicHandlerStub{
+		&mock.TopicHandlerStub{
 			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 				return nil
 			},
@@ -444,13 +444,13 @@ func TestInterceptorsContainerCreator_CreateShouldWork(t *testing.T) {
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	container, err := icc.Create()
+	container, err := icf.Create()
 
 	assert.NotNil(t, container)
 	assert.Nil(t, err)
 }
 
-func TestInterceptorsContainerCreator_With4ShardsShouldWork(t *testing.T) {
+func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	noOfShards := 4
@@ -459,9 +459,9 @@ func TestInterceptorsContainerCreator_With4ShardsShouldWork(t *testing.T) {
 	shardCoordinator.SetNoShards(uint32(noOfShards))
 	shardCoordinator.CurrentShard = 1
 
-	icc, _ := factory.NewInterceptorsContainerCreator(
+	icf, _ := factory.NewInterceptorsContainerFactory(
 		shardCoordinator,
-		&mock.WireTopicHandlerStub{
+		&mock.TopicHandlerStub{
 			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 				return nil
 			},
@@ -478,7 +478,7 @@ func TestInterceptorsContainerCreator_With4ShardsShouldWork(t *testing.T) {
 		createDataPool(),
 		&mock.AddressConverterMock{})
 
-	container, _ := icc.Create()
+	container, _ := icf.Create()
 
 	assert.Equal(t, noOfShards+1+noOfShards+1, container.Len())
 }

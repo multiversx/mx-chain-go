@@ -467,7 +467,7 @@ func createNode(
 		return nil, err
 	}
 
-	interceptorFactory, err := factory.NewInterceptorsContainerCreator(
+	interceptorContainerFactory, err := factory.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		netMessenger,
 		blkc,
@@ -483,7 +483,7 @@ func createNode(
 		return nil, err
 	}
 
-	interceptorsContainer, err := interceptorFactory.Create()
+	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
 		return nil, err
 	}

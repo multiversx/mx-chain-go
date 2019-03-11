@@ -115,7 +115,7 @@ func (ir *interceptorsResolvers) ResolverContainer() process.ResolversContainer 
 
 func (ir *interceptorsResolvers) createTxResolver() error {
 	//TODO temporary, will be refactored in EN-1104
-	identifier := TransactionTopic + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+	identifier := TransactionTopic + ir.shardCoordinator.CommunicationIdentifier(ir.shardCoordinator.ShardForCurrentNode())
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
@@ -150,7 +150,7 @@ func (ir *interceptorsResolvers) createTxResolver() error {
 
 func (ir *interceptorsResolvers) createHdrResolver() error {
 	//TODO temporary, will be refactored in EN-1104
-	identifier := HeadersTopic + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+	identifier := HeadersTopic + ir.shardCoordinator.CommunicationIdentifier(ir.shardCoordinator.ShardForCurrentNode())
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
@@ -186,7 +186,7 @@ func (ir *interceptorsResolvers) createHdrResolver() error {
 
 func (ir *interceptorsResolvers) createTxBlockBodyResolver() error {
 	//TODO temporary, will be refactored in EN-1104
-	identifier := MiniBlocksTopic + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+	identifier := MiniBlocksTopic + ir.shardCoordinator.CommunicationIdentifier(ir.shardCoordinator.ShardForCurrentNode())
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,
@@ -221,7 +221,7 @@ func (ir *interceptorsResolvers) createTxBlockBodyResolver() error {
 
 func (ir *interceptorsResolvers) createPeerChBlockBodyResolver() error {
 	//TODO temporary, will be refactored in EN-1104
-	identifier := PeerChBodyTopic + ir.shardCoordinator.CrossShardIdentifier(ir.shardCoordinator.ShardForCurrentNode())
+	identifier := PeerChBodyTopic + ir.shardCoordinator.CommunicationIdentifier(ir.shardCoordinator.ShardForCurrentNode())
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		ir.messenger,

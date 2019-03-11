@@ -10,5 +10,5 @@ type ShardCoordinator interface {
 	SetNoShards(uint32)
 	ComputeShardForAddress(address state.AddressContainer, addressConverter state.AddressConverter) uint32
 	ShardForCurrentNode() uint32
-	CrossShardIdentifier(crossShardID uint32) string
+	CommunicationIdentifier(destShardID uint32) string
 }

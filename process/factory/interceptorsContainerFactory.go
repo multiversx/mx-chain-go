@@ -14,9 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-type interceptorsContainerCreator struct {
+type interceptorsContainerFactory struct {
 	shardCoordinator sharding.ShardCoordinator
-	messenger        process.WireTopicHandler
+	messenger        process.TopicHandler
 	blockchain       *blockchain.BlockChain
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
@@ -27,10 +27,10 @@ type interceptorsContainerCreator struct {
 	addrConverter    state.AddressConverter
 }
 
-// NewInterceptorsContainerCreator is responsible for creating a new interceptors factory object
-func NewInterceptorsContainerCreator(
+// NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
+func NewInterceptorsContainerFactory(
 	shardCoordinator sharding.ShardCoordinator,
-	messenger process.WireTopicHandler,
+	messenger process.TopicHandler,
 	blockchain *blockchain.BlockChain,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
@@ -39,7 +39,7 @@ func NewInterceptorsContainerCreator(
 	multiSigner crypto.MultiSigner,
 	dataPool data.TransientDataHolder,
 	addrConverter state.AddressConverter,
-) (*interceptorsContainerCreator, error) {
+) (*interceptorsContainerFactory, error) {
 
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
@@ -72,7 +72,7 @@ func NewInterceptorsContainerCreator(
 		return nil, process.ErrNilAddressConverter
 	}
 
-	return &interceptorsContainerCreator{
+	return &interceptorsContainerFactory{
 		shardCoordinator: shardCoordinator,
 		messenger:        messenger,
 		blockchain:       blockchain,
@@ -87,25 +87,25 @@ func NewInterceptorsContainerCreator(
 }
 
 // Create returns an interceptor container that will hold all interceptors in the system
-func (icc *interceptorsContainerCreator) Create() (process.InterceptorsContainer, error) {
+func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer, error) {
 	container := containers.NewInterceptorsContainer()
 
-	err := icc.addTxInterceptors(container)
+	err := icf.addTxInterceptors(container)
 	if err != nil {
 		return nil, err
 	}
 
-	err = icc.addHdrInterceptors(container)
+	err = icf.addHdrInterceptors(container)
 	if err != nil {
 		return nil, err
 	}
 
-	err = icc.addMiniBlocksInterceptors(container)
+	err = icf.addMiniBlocksInterceptors(container)
 	if err != nil {
 		return nil, err
 	}
 
-	err = icc.addPeerChBlockBodyInterceptors(container)
+	err = icf.addPeerChBlockBodyInterceptors(container)
 	if err != nil {
 		return nil, err
 	}
@@ -113,28 +113,30 @@ func (icc *interceptorsContainerCreator) Create() (process.InterceptorsContainer
 	return container, nil
 }
 
-func (icc *interceptorsContainerCreator) createTopicAndAssignHandler(
+func (icf *interceptorsContainerFactory) createTopicAndAssignHandler(
 	topic string,
 	interceptor process.Interceptor,
-	createPipe bool) (process.Interceptor, error) {
+	createChannel bool) (process.Interceptor, error) {
 
-	err := icc.messenger.CreateTopic(topic, createPipe)
+	err := icf.messenger.CreateTopic(topic, createChannel)
 	if err != nil {
 		return nil, err
 	}
 
-	return interceptor, icc.messenger.RegisterMessageProcessor(topic, interceptor)
+	return interceptor, icf.messenger.RegisterMessageProcessor(topic, interceptor)
 }
 
 //------- Tx interceptors
 
-func (icc *interceptorsContainerCreator) addTxInterceptors(container process.InterceptorsContainer) error {
-	shardC := icc.shardCoordinator
+func (icf *interceptorsContainerFactory) addTxInterceptors(container process.InterceptorsContainer) error {
+	shardC := icf.shardCoordinator
 
-	for idx := uint32(0); idx < shardC.NoShards(); idx++ {
-		identifierTx := TransactionTopic + shardC.CrossShardIdentifier(idx)
+	noOfShards := shardC.NoShards()
 
-		interceptor, err := icc.createOneTxInterceptor(identifierTx)
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifierTx := TransactionTopic + shardC.CommunicationIdentifier(idx)
+
+		interceptor, err := icf.createOneTxInterceptor(identifierTx)
 		if err != nil {
 			return err
 		}
@@ -148,35 +150,35 @@ func (icc *interceptorsContainerCreator) addTxInterceptors(container process.Int
 	return nil
 }
 
-func (icc *interceptorsContainerCreator) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
-	txStorer := icc.blockchain.GetStorer(blockchain.TransactionUnit)
+func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
+	txStorer := icf.blockchain.GetStorer(blockchain.TransactionUnit)
 
 	interceptor, err := transaction.NewTxInterceptor(
-		icc.marshalizer,
-		icc.dataPool.Transactions(),
+		icf.marshalizer,
+		icf.dataPool.Transactions(),
 		txStorer,
-		icc.addrConverter,
-		icc.hasher,
-		icc.singleSigner,
-		icc.keyGen,
-		icc.shardCoordinator)
+		icf.addrConverter,
+		icf.hasher,
+		icf.singleSigner,
+		icf.keyGen,
+		icf.shardCoordinator)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return icc.createTopicAndAssignHandler(identifier, interceptor, true)
+	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
 
 //------- Hdr interceptors
 
-func (icc *interceptorsContainerCreator) addHdrInterceptors(container process.InterceptorsContainer) error {
-	shardC := icc.shardCoordinator
+func (icf *interceptorsContainerFactory) addHdrInterceptors(container process.InterceptorsContainer) error {
+	shardC := icf.shardCoordinator
 
 	//only one intrashard header topic
-	identifierHdr := HeadersTopic + shardC.CrossShardIdentifier(shardC.ShardForCurrentNode())
+	identifierHdr := HeadersTopic + shardC.CommunicationIdentifier(shardC.ShardForCurrentNode())
 
-	interceptor, err := icc.createOneHdrInterceptor(identifierHdr)
+	interceptor, err := icf.createOneHdrInterceptor(identifierHdr)
 	if err != nil {
 		return err
 	}
@@ -184,35 +186,37 @@ func (icc *interceptorsContainerCreator) addHdrInterceptors(container process.In
 	return container.Add(identifierHdr, interceptor)
 }
 
-func (icc *interceptorsContainerCreator) createOneHdrInterceptor(identifier string) (process.Interceptor, error) {
-	headerStorer := icc.blockchain.GetStorer(blockchain.BlockHeaderUnit)
+func (icf *interceptorsContainerFactory) createOneHdrInterceptor(identifier string) (process.Interceptor, error) {
+	headerStorer := icf.blockchain.GetStorer(blockchain.BlockHeaderUnit)
 
 	interceptor, err := interceptors.NewHeaderInterceptor(
-		icc.marshalizer,
-		icc.dataPool.Headers(),
-		icc.dataPool.HeadersNonces(),
+		icf.marshalizer,
+		icf.dataPool.Headers(),
+		icf.dataPool.HeadersNonces(),
 		headerStorer,
-		icc.multiSigner,
-		icc.hasher,
-		icc.shardCoordinator,
+		icf.multiSigner,
+		icf.hasher,
+		icf.shardCoordinator,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return icc.createTopicAndAssignHandler(identifier, interceptor, true)
+	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
 
 //------- MiniBlocks interceptors
 
-func (icc *interceptorsContainerCreator) addMiniBlocksInterceptors(container process.InterceptorsContainer) error {
-	shardC := icc.shardCoordinator
+func (icf *interceptorsContainerFactory) addMiniBlocksInterceptors(container process.InterceptorsContainer) error {
+	shardC := icf.shardCoordinator
 
-	for idx := uint32(0); idx < shardC.NoShards(); idx++ {
-		identifierMiniBlocks := MiniBlocksTopic + shardC.CrossShardIdentifier(idx)
+	noOfShards := shardC.NoShards()
 
-		interceptor, err := icc.createOneMiniBlocksInterceptor(identifierMiniBlocks)
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		identifierMiniBlocks := MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
+
+		interceptor, err := icf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 		if err != nil {
 			return err
 		}
@@ -226,33 +230,33 @@ func (icc *interceptorsContainerCreator) addMiniBlocksInterceptors(container pro
 	return nil
 }
 
-func (icc *interceptorsContainerCreator) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {
-	txBlockBodyStorer := icc.blockchain.GetStorer(blockchain.MiniBlockUnit)
+func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {
+	txBlockBodyStorer := icf.blockchain.GetStorer(blockchain.MiniBlockUnit)
 
 	interceptor, err := interceptors.NewMiniBlocksInterceptor(
-		icc.marshalizer,
-		icc.dataPool.MiniBlocks(),
+		icf.marshalizer,
+		icf.dataPool.MiniBlocks(),
 		txBlockBodyStorer,
-		icc.hasher,
-		icc.shardCoordinator,
+		icf.hasher,
+		icf.shardCoordinator,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return icc.createTopicAndAssignHandler(identifier, interceptor, true)
+	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
 
 //------- PeerChBlocks interceptors
 
-func (icc *interceptorsContainerCreator) addPeerChBlockBodyInterceptors(container process.InterceptorsContainer) error {
-	shardC := icc.shardCoordinator
+func (icf *interceptorsContainerFactory) addPeerChBlockBodyInterceptors(container process.InterceptorsContainer) error {
+	shardC := icf.shardCoordinator
 
 	//only one intrashard peer change blocks topic
-	identifierPeerCh := string(PeerChBodyTopic) + shardC.CrossShardIdentifier(shardC.ShardForCurrentNode())
+	identifierPeerCh := string(PeerChBodyTopic) + shardC.CommunicationIdentifier(shardC.ShardForCurrentNode())
 
-	interceptor, err := icc.createOnePeerChBlockBodyInterceptor(identifierPeerCh)
+	interceptor, err := icf.createOnePeerChBlockBodyInterceptor(identifierPeerCh)
 	if err != nil {
 		return err
 	}
@@ -260,20 +264,20 @@ func (icc *interceptorsContainerCreator) addPeerChBlockBodyInterceptors(containe
 	return container.Add(identifierPeerCh, interceptor)
 }
 
-func (icc *interceptorsContainerCreator) createOnePeerChBlockBodyInterceptor(identifier string) (process.Interceptor, error) {
-	peerBlockBodyStorer := icc.blockchain.GetStorer(blockchain.PeerChangesUnit)
+func (icf *interceptorsContainerFactory) createOnePeerChBlockBodyInterceptor(identifier string) (process.Interceptor, error) {
+	peerBlockBodyStorer := icf.blockchain.GetStorer(blockchain.PeerChangesUnit)
 
 	interceptor, err := interceptors.NewPeerBlockBodyInterceptor(
-		icc.marshalizer,
-		icc.dataPool.PeerChangesBlocks(),
+		icf.marshalizer,
+		icf.dataPool.PeerChangesBlocks(),
 		peerBlockBodyStorer,
-		icc.hasher,
-		icc.shardCoordinator,
+		icf.hasher,
+		icf.shardCoordinator,
 	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return icc.createTopicAndAssignHandler(identifier, interceptor, true)
+	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
