@@ -14,9 +14,8 @@ func (txProc *txProcessor) GetAddresses(tx *transaction.Transaction) (adrSrc, ad
 }
 
 func (txProc *txProcessor) GetAccounts(adrSrc, adrDst state.AddressContainer,
-	srcInShard, dstInShard bool,
 ) (acntSrc, acntDst state.JournalizedAccountWrapper, err error) {
-	return txProc.getAccounts(adrSrc, adrDst, srcInShard, dstInShard)
+	return txProc.getAccounts(adrSrc, adrDst)
 }
 
 func (txProc *txProcessor) CallSCHandler(tx *transaction.Transaction) error {
@@ -28,10 +27,9 @@ func (txProc *txProcessor) CheckTxValues(acntSrc state.JournalizedAccountWrapper
 }
 
 func (txProc *txProcessor) MoveBalances(acntSrc, acntDst state.JournalizedAccountWrapper,
-	srcInShard, dstInShard bool,
 	value *big.Int,
 ) error {
-	return txProc.moveBalances(acntSrc, acntDst, srcInShard, dstInShard, value)
+	return txProc.moveBalances(acntSrc, acntDst, value)
 }
 
 func (txProc *txProcessor) IncreaseNonce(acntSrc state.JournalizedAccountWrapper) error {

@@ -14,6 +14,46 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createAccountStub(adr1, adr2 *mock.AddressMock,
+	acnt1, acnt2 *mock.JournalizedAccountWrapMock,
+) *mock.AccountsStub {
+	accounts := mock.AccountsStub{}
+
+	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
+		if addressContainer == adr1 {
+			return acnt1, nil
+		}
+
+		if addressContainer == adr2 {
+			return acnt2, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+
+	return &accounts
+}
+
+func createAccountStub2(sndAddr, rcvAddr []byte,
+	acntSrc, acntDst *mock.JournalizedAccountWrapMock,
+) *mock.AccountsStub {
+	accounts := mock.AccountsStub{}
+
+	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
+		if bytes.Equal(addressContainer.Bytes(), sndAddr) {
+			return acntSrc, nil
+		}
+
+		if bytes.Equal(addressContainer.Bytes(), rcvAddr) {
+			return acntDst, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+
+	return &accounts
+}
+
 func createTxProcessor() txproc.TxProcessor {
 	txProc, _ := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
@@ -174,13 +214,10 @@ func TestTxProcessor_GetAddressOkValsShouldWork(t *testing.T) {
 //------- getAccounts
 
 func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
-	accounts := mock.AccountsStub{}
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		return nil, errors.New("failure")
-	}
+	accounts := createAccountStub(nil, nil, nil, nil)
 
 	execTx, _ := txproc.NewTxProcessor(
-		&accounts,
+		accounts,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
@@ -190,21 +227,18 @@ func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{67})
 
-	_, _, err := execTx.GetAccounts(nil, adr2, true, false)
+	_, _, err := execTx.GetAccounts(nil, adr2)
 	assert.Equal(t, process.ErrNilAddressContainer, err)
 
-	_, _, err = execTx.GetAccounts(adr1, nil, false, true)
+	_, _, err = execTx.GetAccounts(adr1, nil)
 	assert.Equal(t, process.ErrNilAddressContainer, err)
 }
 
 func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
-	accounts := mock.AccountsStub{}
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		return nil, errors.New("failure")
-	}
+	accounts := createAccountStub(nil, nil, nil, nil)
 
 	execTx, _ := txproc.NewTxProcessor(
-		&accounts,
+		accounts,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
@@ -214,7 +248,7 @@ func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{67})
 
-	_, _, err := execTx.GetAccounts(adr1, adr2, true, true)
+	_, _, err := execTx.GetAccounts(adr1, adr2)
 	assert.NotNil(t, err)
 }
 
@@ -239,15 +273,25 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 		return nil, errors.New("failure")
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	execTx, _ := txproc.NewTxProcessor(
 		&accounts,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
+		shardCoordinator,
 	)
 
-	a1, a2, err := execTx.GetAccounts(adr1, adr2, true, false)
+	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
+		if bytes.Equal(container.Bytes(), adr2.Bytes()) {
+			return 1
+		}
+
+		return 0
+	}
+
+	a1, a2, err := execTx.GetAccounts(adr1, adr2)
 	assert.Nil(t, err)
 	assert.Equal(t, acnt1, a1)
 	assert.NotEqual(t, acnt2, a2)
@@ -275,15 +319,25 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 		return nil, errors.New("failure")
 	}
 
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	execTx, _ := txproc.NewTxProcessor(
 		&accounts,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
+		shardCoordinator,
 	)
 
-	a1, a2, err := execTx.GetAccounts(adr1, adr2, false, true)
+	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
+		if bytes.Equal(container.Bytes(), adr1.Bytes()) {
+			return 1
+		}
+
+		return 0
+	}
+
+	a1, a2, err := execTx.GetAccounts(adr1, adr2)
 	assert.Nil(t, err)
 	assert.NotEqual(t, acnt1, a1)
 	assert.Equal(t, nil, a1)
@@ -291,70 +345,46 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 }
 
 func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
-	accounts := mock.AccountsStub{}
-
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{67})
 
 	acnt1 := mock.NewJournalizedAccountWrapMock(adr1)
 	acnt2 := mock.NewJournalizedAccountWrapMock(adr2)
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if addressContainer == adr1 {
-			return acnt1, nil
-		}
-
-		if addressContainer == adr2 {
-			return acnt2, nil
-		}
-
-		return nil, errors.New("failure")
-	}
+	accounts := createAccountStub(adr1, adr2, acnt1, acnt2)
 
 	execTx, _ := txproc.NewTxProcessor(
-		&accounts,
+		accounts,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 	)
 
-	a1, a2, err := execTx.GetAccounts(adr1, adr2, true, true)
+	a1, a2, err := execTx.GetAccounts(adr1, adr2)
 	assert.Nil(t, err)
 	assert.Equal(t, acnt1, a1)
 	assert.Equal(t, acnt2, a2)
 }
 
 func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
-	accounts := mock.AccountsStub{}
-
 	adr1 := mock.NewAddressMock([]byte{65})
 	adr2 := mock.NewAddressMock([]byte{65})
 
 	acnt1 := mock.NewJournalizedAccountWrapMock(adr1)
 	acnt2 := mock.NewJournalizedAccountWrapMock(adr2)
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if addressContainer == adr1 {
-			return acnt1, nil
-		}
-
-		if addressContainer == adr2 {
-			return acnt2, nil
-		}
-
-		return nil, errors.New("failure")
-	}
+	accounts := createAccountStub(adr1, adr2, acnt1, acnt2)
 
 	execTx, _ := txproc.NewTxProcessor(
-		&accounts,
+		accounts,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 	)
 
-	a1, a2, err := execTx.GetAccounts(adr1, adr1, true, true)
+	a1, a2, err := execTx.GetAccounts(adr1, adr1)
 	assert.Nil(t, err)
 	assert.True(t, a1 == a2)
 }
@@ -448,7 +478,7 @@ func TestTxProcessor_MoveBalancesFailureAcnt1ShouldErr(t *testing.T) {
 
 	acntSrc.Fail = true
 
-	err := execTx.MoveBalances(acntSrc, acntDst, true, true, big.NewInt(0))
+	err := execTx.MoveBalances(acntSrc, acntDst, big.NewInt(0))
 	assert.NotNil(t, err)
 }
 
@@ -463,7 +493,7 @@ func TestTxProcessor_MoveBalancesFailureAcnt2ShouldErr(t *testing.T) {
 
 	acntDst.Fail = true
 
-	err := execTx.MoveBalances(acntSrc, acntDst, true, true, big.NewInt(0))
+	err := execTx.MoveBalances(acntSrc, acntDst, big.NewInt(0))
 	assert.NotNil(t, err)
 }
 
@@ -478,7 +508,7 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntSrcIsNotInNodeShard(t *tes
 
 	acntSrc.Fail = true
 
-	err := execTx.MoveBalances(acntSrc, acntDst, false, true, big.NewInt(0))
+	err := execTx.MoveBalances(nil, acntDst, big.NewInt(0))
 	assert.Nil(t, err)
 }
 
@@ -493,7 +523,7 @@ func TestTxProcessor_MoveBalancesShouldNotFailWhenAcntDstIsNotInNodeShard(t *tes
 
 	acntDst.Fail = true
 
-	err := execTx.MoveBalances(acntSrc, acntDst, true, false, big.NewInt(0))
+	err := execTx.MoveBalances(acntSrc, nil, big.NewInt(0))
 	assert.Nil(t, err)
 }
 
@@ -509,7 +539,7 @@ func TestTxProcessor_MoveBalancesOkValsShouldWork(t *testing.T) {
 	acntSrc.Balance = big.NewInt(64)
 	acntDst.Balance = big.NewInt(31)
 
-	err := execTx.MoveBalances(acntSrc, acntDst, true, true, big.NewInt(14))
+	err := execTx.MoveBalances(acntSrc, acntDst, big.NewInt(14))
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(50), acntSrc.Balance)
 	assert.Equal(t, big.NewInt(45), acntDst.Balance)
@@ -526,7 +556,7 @@ func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 
 	acntSrc.Balance = big.NewInt(64)
 
-	err := execTx.MoveBalances(acntSrc, acntDst, true, true, big.NewInt(1))
+	err := execTx.MoveBalances(acntSrc, acntDst, big.NewInt(1))
 	assert.Nil(t, err)
 	assert.Equal(t, big.NewInt(64), acntSrc.Balance)
 	assert.Equal(t, big.NewInt(64), acntDst.Balance)
@@ -575,7 +605,7 @@ func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
 }
 
 func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T) {
-	accounts := &mock.AccountsStub{}
+	accounts := createAccountStub(nil, nil, nil, nil)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -591,31 +621,11 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		return nil, errors.New("failure")
-	}
-
 	err := execTx.ProcessTransaction(&tx, 4)
 	assert.NotNil(t, err)
 }
 
 func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
-	accounts := &mock.AccountsStub{}
-
-	execTx, _ := txproc.NewTxProcessor(
-		accounts,
-		mock.HasherMock{},
-		&mock.AddressConverterMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-	)
-
-	wasCalled := false
-	execTx.SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error {
-		wasCalled = true
-		return nil
-	})
-
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
@@ -623,37 +633,18 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
+	acntSrc.Balance = big.NewInt(45)
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 	acntDst.SetCode([]byte{65})
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
-			return acntSrc, nil
-		}
-
-		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDst, nil
-		}
-
-		return nil, errors.New("failure")
-	}
-
-	err := execTx.ProcessTransaction(&tx, 4)
-	assert.Nil(t, err)
-	assert.True(t, wasCalled)
-}
-
-func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNodeShard(t *testing.T) {
-	accounts := &mock.AccountsStub{}
-
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
-		shardCoordinator,
+		mock.NewOneShardCoordinatorMock(),
 	)
 
 	wasCalled := false
@@ -661,6 +652,60 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		wasCalled = true
 		return nil
 	})
+
+	err := execTx.ProcessTransaction(&tx, 4)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+}
+
+func TestTxProcessor_ProcessTransactionScTxShouldRevertStateIfItExecutionFails(t *testing.T) {
+	initialSrcBalance := big.NewInt(69)
+	initialDstBalance := big.NewInt(12)
+	initialSrcNonce := uint64(2)
+
+	tx := transaction.Transaction{}
+	tx.Nonce = initialSrcNonce
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Value = big.NewInt(45)
+
+	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
+	acntSrc.Balance = initialSrcBalance
+	acntSrc.Nonce = initialSrcNonce
+	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
+	acntDst.Balance = initialDstBalance
+	acntDst.SetCode([]byte{65})
+
+	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+
+	execTx, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		mock.NewOneShardCoordinatorMock(),
+	)
+
+	execTx.SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error {
+		return errors.New("sc execution error")
+	})
+
+	accounts.RevertToSnapshotCalled = func(snapshot int) error {
+		acntSrc.Nonce = initialSrcNonce
+		acntSrc.Balance = initialSrcBalance
+		acntDst.Balance = initialDstBalance
+		return nil
+	}
+
+	err := execTx.ProcessTransaction(&tx, 4)
+	assert.Nil(t, err)
+	assert.Equal(t, initialSrcNonce, acntSrc.Nonce)
+	assert.Equal(t, initialSrcBalance, acntSrc.Balance)
+	assert.Equal(t, initialDstBalance, acntDst.Balance)
+}
+
+func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNodeShard(t *testing.T) {
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
@@ -681,17 +726,21 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 	acntDst.SetCode([]byte{65})
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
-			return acntSrc, nil
-		}
+	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDst, nil
-		}
+	execTx, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		shardCoordinator,
+	)
 
-		return nil, errors.New("failure")
-	}
+	wasCalled := false
+	execTx.SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error {
+		wasCalled = true
+		return nil
+	})
 
 	err := execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
@@ -699,16 +748,6 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 }
 
 func TestTxProcessor_ProcessTransactionRegisterTxShouldWork(t *testing.T) {
-	accounts := &mock.AccountsStub{}
-
-	execTx, _ := txproc.NewTxProcessor(
-		accounts,
-		mock.HasherMock{},
-		&mock.AddressConverterMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-	)
-
 	rd := state.RegistrationData{
 		OriginatorPubKey: []byte("a"),
 		NodePubKey:       []byte("b"),
@@ -741,17 +780,15 @@ func TestTxProcessor_ProcessTransactionRegisterTxShouldWork(t *testing.T) {
 		return nil
 	}
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
-			return acntSrc, nil
-		}
+	accounts := createAccountStub2(tx.SndAddr, state.RegistrationAddress.Bytes(), acntSrc, acntReg)
 
-		if bytes.Equal(addressContainer.Bytes(), state.RegistrationAddress.Bytes()) {
-			return acntReg, nil
-		}
-
-		return nil, errors.New("failure")
-	}
+	execTx, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		mock.NewOneShardCoordinatorMock(),
+	)
 
 	err = execTx.ProcessTransaction(&tx, 1)
 	assert.Nil(t, err)
@@ -761,20 +798,10 @@ func TestTxProcessor_ProcessTransactionRegisterTxShouldWork(t *testing.T) {
 	assert.Equal(t, []byte("b"), data2.NodePubKey)
 	assert.Equal(t, int32(1), data2.RoundIndex)
 	assert.Equal(t, state.ArUnregister, data2.Action)
-
 }
 
 func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	t.Skip()
-	accounts := &mock.AccountsStub{}
-
-	execTx, _ := txproc.NewTxProcessor(
-		accounts,
-		mock.HasherMock{},
-		&mock.AddressConverterMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-	)
 
 	//these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
@@ -786,35 +813,23 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
-			return acntSrc, nil
-		}
+	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDst, nil
-		}
-
-		return nil, errors.New("failure")
-	}
+	execTx, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		mock.NewOneShardCoordinatorMock(),
+	)
 
 	err := execTx.ProcessTransaction(&tx, 4)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
 func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
-	accounts := &mock.AccountsStub{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
-	execTx, _ := txproc.NewTxProcessor(
-		accounts,
-		mock.HasherMock{},
-		&mock.AddressConverterMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-	)
-
-	//these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
@@ -832,34 +847,21 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
-			return acntSrc, nil
-		}
+	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDst, nil
-		}
-
-		return nil, errors.New("failure")
-	}
+	execTx, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		shardCoordinator,
+	)
 
 	err := execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
 }
 
 func TestTxProcessor_ProcessMoveBalancesFailShouldErr(t *testing.T) {
-	accounts := &mock.AccountsStub{}
-
-	execTx, _ := txproc.NewTxProcessor(
-		accounts,
-		mock.HasherMock{},
-		&mock.AddressConverterMock{},
-		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
-	)
-
-	//these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
@@ -870,35 +872,23 @@ func TestTxProcessor_ProcessMoveBalancesFailShouldErr(t *testing.T) {
 	acntSrc.Fail = true
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
-			return acntSrc, nil
-		}
+	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDst, nil
-		}
-
-		return nil, errors.New("failure")
-	}
+	execTx, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		mock.NewOneShardCoordinatorMock(),
+	)
 
 	err := execTx.ProcessTransaction(&tx, 4)
 	assert.NotNil(t, err)
 }
 
 func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
-	accounts := &mock.AccountsStub{}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
-	execTx, _ := txproc.NewTxProcessor(
-		accounts,
-		mock.HasherMock{},
-		&mock.AddressConverterMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-	)
-
-	//these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
@@ -917,34 +907,21 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 	acntSrc.Fail = true
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
-			return acntSrc, nil
-		}
-
-		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDst, nil
-		}
-
-		return nil, errors.New("failure")
-	}
-
-	err := execTx.ProcessTransaction(&tx, 4)
-	assert.Nil(t, err)
-}
-
-func TestTxProcessor_ProcessIncreaseNonceFailShouldErr(t *testing.T) {
-	accounts := &mock.AccountsStub{}
+	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
+		shardCoordinator,
 	)
 
-	//these values will trigger ErrHigherNonceInTransaction
+	err := execTx.ProcessTransaction(&tx, 4)
+	assert.Nil(t, err)
+}
+
+func TestTxProcessor_ProcessIncreaseNonceFailShouldErr(t *testing.T) {
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
@@ -955,35 +932,23 @@ func TestTxProcessor_ProcessIncreaseNonceFailShouldErr(t *testing.T) {
 	acntSrc.FailSetNonceWithJurnal = true
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
-			return acntSrc, nil
-		}
-
-		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDst, nil
-		}
-
-		return nil, errors.New("failure")
-	}
-
-	err := execTx.ProcessTransaction(&tx, 4)
-	assert.Equal(t, "failure setting nonce", err.Error())
-}
-
-func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
-	accounts := &mock.AccountsStub{}
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
-		shardCoordinator,
+		mock.NewOneShardCoordinatorMock(),
 	)
 
-	//these values will trigger ErrHigherNonceInTransaction
+	err := execTx.ProcessTransaction(&tx, 4)
+	assert.Equal(t, "failure setting nonce", err.Error())
+}
+
+func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
@@ -1002,33 +967,21 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 	acntSrc.FailSetNonceWithJurnal = true
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
-			return acntSrc, nil
-		}
-
-		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDst, nil
-		}
-
-		return nil, errors.New("failure")
-	}
-
-	err := execTx.ProcessTransaction(&tx, 4)
-	assert.Nil(t, err)
-}
-
-func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
-	accounts := &mock.AccountsStub{}
+	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
 		mock.HasherMock{},
 		&mock.AddressConverterMock{},
 		&mock.MarshalizerMock{},
-		mock.NewOneShardCoordinatorMock(),
+		shardCoordinator,
 	)
 
+	err := execTx.ProcessTransaction(&tx, 4)
+	assert.Nil(t, err)
+}
+
+func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	tx := transaction.Transaction{}
 	tx.Nonce = 4
 	tx.SndAddr = []byte("SRC")
@@ -1041,17 +994,15 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 	acntDst.Balance = big.NewInt(10)
 
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if bytes.Equal(addressContainer.Bytes(), tx.SndAddr) {
-			return acntSrc, nil
-		}
+	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-		if bytes.Equal(addressContainer.Bytes(), tx.RcvAddr) {
-			return acntDst, nil
-		}
-
-		return nil, errors.New("failure")
-	}
+	execTx, _ := txproc.NewTxProcessor(
+		accounts,
+		mock.HasherMock{},
+		&mock.AddressConverterMock{},
+		&mock.MarshalizerMock{},
+		mock.NewOneShardCoordinatorMock(),
+	)
 
 	err := execTx.ProcessTransaction(&tx, 4)
 	assert.Nil(t, err)
@@ -1123,28 +1074,19 @@ func TestTxProcessor_SetBalancesToTrieCommitFailsShouldRevert(t *testing.T) {
 	revertCalled := false
 	errCommit := errors.New("should err")
 
-	accounts := &mock.AccountsStub{
-		JournalLenCalled: func() int {
-			return 0
-		},
-		GetJournalizedAccountCalled: func(addressContainer state.AddressContainer) (wrapper state.JournalizedAccountWrapper, e error) {
-			if bytes.Equal(addressContainer.Bytes(), adr1) {
-				return accnt1, nil
-			}
+	accounts := createAccountStub2(adr1, adr2, accnt1, accnt2)
 
-			if bytes.Equal(addressContainer.Bytes(), adr2) {
-				return accnt2, nil
-			}
+	accounts.JournalLenCalled = func() int {
+		return 0
+	}
 
-			return nil, errors.New("should have not gone through here")
-		},
-		CommitCalled: func() (i []byte, e error) {
-			return nil, errCommit
-		},
-		RevertToSnapshotCalled: func(snapshot int) error {
-			revertCalled = true
-			return nil
-		},
+	accounts.CommitCalled = func() (i []byte, e error) {
+		return nil, errCommit
+	}
+
+	accounts.RevertToSnapshotCalled = func(snapshot int) error {
+		revertCalled = true
+		return nil
 	}
 
 	txProc, _ := txproc.NewTxProcessor(
@@ -1180,24 +1122,14 @@ func TestTxProcessor_SetBalancesToTrieNilAddressShouldErr(t *testing.T) {
 
 	rootHash := []byte("resulted root hash")
 
-	accounts := &mock.AccountsStub{
-		JournalLenCalled: func() int {
-			return 0
-		},
-		GetJournalizedAccountCalled: func(addressContainer state.AddressContainer) (wrapper state.JournalizedAccountWrapper, e error) {
-			if bytes.Equal(addressContainer.Bytes(), adr1) {
-				return accnt1, nil
-			}
+	accounts := createAccountStub2(adr1, adr2, accnt1, accnt2)
 
-			if bytes.Equal(addressContainer.Bytes(), adr2) {
-				return accnt2, nil
-			}
+	accounts.JournalLenCalled = func() int {
+		return 0
+	}
 
-			return nil, errors.New("should have not gone through here")
-		},
-		CommitCalled: func() (i []byte, e error) {
-			return rootHash, nil
-		},
+	accounts.CommitCalled = func() (i []byte, e error) {
+		return rootHash, nil
 	}
 
 	txProc, _ := txproc.NewTxProcessor(
@@ -1278,24 +1210,14 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 
 	rootHash := []byte("resulted root hash")
 
-	accounts := &mock.AccountsStub{
-		JournalLenCalled: func() int {
-			return 0
-		},
-		GetJournalizedAccountCalled: func(addressContainer state.AddressContainer) (wrapper state.JournalizedAccountWrapper, e error) {
-			if bytes.Equal(addressContainer.Bytes(), adr1) {
-				return accnt1, nil
-			}
+	accounts := createAccountStub2(adr1, adr2, accnt1, accnt2)
 
-			if bytes.Equal(addressContainer.Bytes(), adr2) {
-				return accnt2, nil
-			}
+	accounts.JournalLenCalled = func() int {
+		return 0
+	}
 
-			return nil, errors.New("should have not gone through here")
-		},
-		CommitCalled: func() (i []byte, e error) {
-			return rootHash, nil
-		},
+	accounts.CommitCalled = func() (i []byte, e error) {
+		return rootHash, nil
 	}
 
 	txProc, _ := txproc.NewTxProcessor(

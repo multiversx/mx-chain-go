@@ -84,19 +84,11 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		return err
 	}
 
-	shardForSrc := txProc.shardCoordinator.ComputeShardForAddress(adrSrc, txProc.adrConv)
-	shardForDst := txProc.shardCoordinator.ComputeShardForAddress(adrDst, txProc.adrConv)
-
-	srcInShard := shardForSrc == txProc.shardCoordinator.ShardForCurrentNode()
-	dstInShard := shardForDst == txProc.shardCoordinator.ShardForCurrentNode()
-
-	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst, srcInShard, dstInShard)
+	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
+	// if adrDst is in the node shard. If an error occurs it will be signal in err variable.
+	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
 	if err != nil {
 		return err
-	}
-
-	if dstInShard && acntDst.Code() != nil {
-		return txProc.callSCHandler(tx)
 	}
 
 	if bytes.Equal(adrDst.Bytes(), state.RegistrationAddress.Bytes()) {
@@ -121,22 +113,39 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 
 	value := tx.Value
 
-	if srcInShard {
+	// is sender address in node shard
+	if acntSrc != nil {
 		err = txProc.checkTxValues(acntSrc, value, tx.Nonce)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = txProc.moveBalances(acntSrc, acntDst, srcInShard, dstInShard, value)
+	err = txProc.moveBalances(acntSrc, acntDst, value)
 	if err != nil {
 		return err
 	}
 
-	if srcInShard {
+	// is sender address in node shard
+	if acntSrc != nil {
 		err = txProc.increaseNonce(acntSrc)
 		if err != nil {
 			return err
+		}
+	}
+
+	// is receiver address in node shard
+	if acntDst != nil {
+		if acntDst.Code() != nil {
+			err = txProc.callSCHandler(tx)
+			if err != nil {
+				// TODO: Revert state if SC execution failed and substract only some fee for SC job done
+				log.Info(err.Error())
+				err = txProc.accounts.RevertToSnapshot(0)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -210,8 +219,14 @@ func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, ad
 }
 
 func (txProc *txProcessor) getAccounts(adrSrc, adrDst state.AddressContainer,
-	srcInShard, dstInShard bool,
 ) (acntSrc, acntDst state.JournalizedAccountWrapper, err error) {
+	shardForCurrentNode := txProc.shardCoordinator.ShardForCurrentNode()
+	shardForSrc := txProc.shardCoordinator.ComputeShardForAddress(adrSrc, txProc.adrConv)
+	shardForDst := txProc.shardCoordinator.ComputeShardForAddress(adrDst, txProc.adrConv)
+
+	srcInShard := shardForSrc == shardForCurrentNode
+	dstInShard := shardForDst == shardForCurrentNode
+
 	if srcInShard && adrSrc == nil ||
 		dstInShard && adrDst == nil {
 		return nil, nil, process.ErrNilAddressContainer
@@ -271,20 +286,21 @@ func (txProc *txProcessor) checkTxValues(acntSrc state.JournalizedAccountWrapper
 }
 
 func (txProc *txProcessor) moveBalances(acntSrc, acntDst state.JournalizedAccountWrapper,
-	srcInShard, dstInShard bool,
 	value *big.Int,
 ) error {
 	operation1 := big.NewInt(0)
 	operation2 := big.NewInt(0)
 
-	if srcInShard {
+	// is sender address in node shard
+	if acntSrc != nil {
 		err := acntSrc.SetBalanceWithJournal(operation1.Sub(acntSrc.BaseAccount().Balance, value))
 		if err != nil {
 			return err
 		}
 	}
 
-	if dstInShard {
+	// is receiver address in node shard
+	if acntDst != nil {
 		err := acntDst.SetBalanceWithJournal(operation2.Add(acntDst.BaseAccount().Balance, value))
 		if err != nil {
 			return err
