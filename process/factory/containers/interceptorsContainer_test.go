@@ -68,6 +68,20 @@ func TestInterceptorsContainer_GetNotFoundShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInvalidContainerKey, err)
 }
 
+func TestInterceptorsContainer_GetWrongTypeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewInterceptorsContainer()
+
+	key := "key"
+
+	_ = c.Insert(key, "string value")
+	valRecovered, err := c.Get(key)
+
+	assert.Nil(t, valRecovered)
+	assert.Equal(t, process.ErrWrongTypeInContainer, err)
+}
+
 func TestInterceptorsContainer_GetShouldWork(t *testing.T) {
 	t.Parallel()
 

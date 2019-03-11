@@ -20,11 +20,17 @@ func NewResolversContainer() *ResolversContainer {
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
 func (rc *ResolversContainer) Get(key string) (process.Resolver, error) {
-	resolver, ok := rc.objects.Get(key)
+	value, ok := rc.objects.Get(key)
 	if !ok {
 		return nil, process.ErrInvalidContainerKey
 	}
-	return resolver.(process.Resolver), nil
+
+	resolver, ok := value.(process.Resolver)
+	if !ok {
+		return nil, process.ErrWrongTypeInContainer
+	}
+
+	return resolver, nil
 }
 
 // Add will add an object at a given key. Returns

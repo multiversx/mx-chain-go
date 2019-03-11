@@ -20,11 +20,17 @@ func NewInterceptorsContainer() *InterceptorsContainer {
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
 func (ic *InterceptorsContainer) Get(key string) (process.Interceptor, error) {
-	interceptor, ok := ic.objects.Get(key)
+	value, ok := ic.objects.Get(key)
 	if !ok {
 		return nil, process.ErrInvalidContainerKey
 	}
-	return interceptor.(process.Interceptor), nil
+
+	interceptor, ok := value.(process.Interceptor)
+	if !ok {
+		return nil, process.ErrWrongTypeInContainer
+	}
+
+	return interceptor, nil
 }
 
 // Add will add an object at a given key. Returns

@@ -78,6 +78,20 @@ func TestResolversContainer_GetNotFoundShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInvalidContainerKey, err)
 }
 
+func TestResolversContainer_GetWrongTypeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewResolversContainer()
+
+	key := "key"
+
+	_ = c.Insert(key, "string value")
+	valRecovered, err := c.Get(key)
+
+	assert.Nil(t, valRecovered)
+	assert.Equal(t, process.ErrWrongTypeInContainer, err)
+}
+
 func TestResolversContainer_GetShouldWork(t *testing.T) {
 	t.Parallel()
 
