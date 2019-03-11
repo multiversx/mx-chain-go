@@ -75,3 +75,6 @@ var ErrMoreThanOnePeerDiscoveryActive = errors.New("more than one peer discovery
 
 // ErrNegativeOrZeroPeersRefreshInterval signals that a negative or zero peers refresh interval has been provided
 var ErrNegativeOrZeroPeersRefreshInterval = errors.New("negative or zero peers refresh interval")
+
+// ErrMessageTooLarge signals that the message provided is too large
+var ErrMessageTooLarge = errors.New("buffer too large")

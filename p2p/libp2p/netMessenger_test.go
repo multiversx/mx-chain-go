@@ -28,6 +28,12 @@ import (
 
 var timeoutWaitResponses = time.Second * 2
 
+var r *rand.Rand
+
+func init() {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
 func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration) {
 	select {
 	case <-chanDone:
@@ -85,7 +91,6 @@ func createMockMessenger() p2p.Messenger {
 }
 
 func createLibP2PCredentialsMessenger() (peer.ID, crypto.PrivKey) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
 	id, _ := peer.IDFromPublicKey(sk.GetPublic())

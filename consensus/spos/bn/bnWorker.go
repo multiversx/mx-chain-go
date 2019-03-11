@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -35,7 +35,7 @@ type worker struct {
 	executeMessageChannel         chan *spos.ConsensusMessage
 	consensusStateChangedChannels chan bool
 
-	BroadcastBlock func(block.Body, *block.Header) error
+	BroadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 	SendMessage    func(consensus *spos.ConsensusMessage)
 
 	mutReceivedMessages      sync.RWMutex

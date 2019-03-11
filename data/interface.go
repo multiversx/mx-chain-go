@@ -15,7 +15,6 @@ type ShardedDataCacherNotifier interface {
 
 	ShardDataStore(shardID uint32) (c storage.Cacher)
 	AddData(key []byte, data interface{}, destShardID uint32)
-	//SearchData(key []byte) (shardValuesPairs map[uint32]interface{})
 	SearchFirstData(key []byte) (value interface{}, ok bool)
 	RemoveData(key []byte, destShardID uint32)
 	RemoveSetOfDataFromPool(keys [][]byte, destShardID uint32)
@@ -49,4 +48,31 @@ type TransientDataHolder interface {
 	HeadersNonces() Uint64Cacher
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
+}
+
+// HeaderHandler defines getters and setters for header data holder
+type HeaderHandler interface {
+	GetNonce() uint64
+	GetEpoch() uint32
+	GetRound() uint32
+	GetRootHash() []byte
+	GetPrevHash() []byte
+	GetPubKeysBitmap() []byte
+	GetSignature() []byte
+
+	SetNonce(n uint64)
+	SetEpoch(e uint32)
+	SetRound(r uint32)
+	SetTimeStamp(ts uint64)
+	SetRootHash(rHash []byte)
+	SetPrevHash(pvHash []byte)
+	SetPubKeysBitmap(pkbm []byte)
+	SetSignature(sg []byte)
+	SetCommitment(commitment []byte)
+}
+
+// BodyHandler defines getters and setters for body data holder
+type BodyHandler interface {
+	UnderlyingObject() interface{}
+	// TODO find common point between different body's -> metablockbody and blockbody.
 }

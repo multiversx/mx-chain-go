@@ -1,6 +1,7 @@
 package interceptors
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -76,6 +77,19 @@ func (gbbi *GenericBlockBodyInterceptor) processBlockBody(messageData []byte, bo
 		return nil
 	}
 
-	_ = gbbi.cache.Put(hash, body.GetUnderlyingObject())
+	blockBody, ok := body.GetUnderlyingObject().(block.Body)
+	if !ok {
+		return process.ErrCouldNotDecodeUnderlyingBody
+	}
+
+	for _, miniblock := range blockBody {
+		mbBytes, err := gbbi.marshalizer.Marshal(miniblock)
+		if err != nil {
+			return err
+		}
+
+		_ = gbbi.cache.Put(gbbi.hasher.Compute(string(mbBytes)), miniblock)
+	}
+
 	return nil
 }
