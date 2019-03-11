@@ -26,4 +26,3 @@ func (osc *OneShardCoordinator) CurrentShardId() uint32 {
 func (osc *OneShardCoordinator) SetCurrentShardId(shardId uint32) {
 
 }
-
