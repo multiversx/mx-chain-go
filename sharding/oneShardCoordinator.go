@@ -7,21 +7,23 @@ import (
 // OneShardCoordinator creates a shard coordinator object
 type OneShardCoordinator struct{}
 
-// NoShards gets number of shards
-func (osc *OneShardCoordinator) NoShards() uint32 {
+// CurrentNumberOfShards gets number of shards
+func (osc *OneShardCoordinator) CurrentNumberOfShards() uint32 {
 	return 1
 }
 
-// SetNoShards sets number of shards
-func (osc *OneShardCoordinator) SetNoShards(uint32) {
-}
-
 // ComputeShardForAddress gets shard for the given address
-func (osc *OneShardCoordinator) ComputeShardForAddress(address state.AddressContainer, addressConverter state.AddressConverter) uint32 {
+func (osc *OneShardCoordinator) ComputeShardForAddress(address state.AddressContainer) uint32 {
 	return 0
 }
 
-// ShardForCurrentNode gets shard of the current node
-func (osc *OneShardCoordinator) ShardForCurrentNode() uint32 {
+// CurrentShardId gets shard of the current node
+func (osc *OneShardCoordinator) CurrentShardId() uint32 {
 	return 0
 }
+
+// SetCurrentShardId gets shard of the current node
+func (osc *OneShardCoordinator) SetCurrentShardId(shardId uint32) {
+
+}
+

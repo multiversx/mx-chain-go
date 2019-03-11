@@ -27,7 +27,7 @@ type subroundBlock struct {
 	marshalizer      marshal.Marshalizer
 	multiSigner      crypto.MultiSigner
 	rounder          consensus.Rounder
-	shardCoordinator sharding.ShardCoordinator
+	shardCoordinator sharding.Sharder
 	syncTimer        ntp.SyncTimer
 
 	sendConsensusMessage func(*spos.ConsensusMessage) bool
@@ -43,7 +43,7 @@ func NewSubroundBlock(
 	marshalizer marshal.Marshalizer,
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Sharder,
 	syncTimer ntp.SyncTimer,
 	sendConsensusMessage func(*spos.ConsensusMessage) bool,
 	extend func(subroundId int),
@@ -97,7 +97,7 @@ func checkNewSubroundBlockParams(
 	marshalizer marshal.Marshalizer,
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Sharder,
 	syncTimer ntp.SyncTimer,
 	sendConsensusMessage func(*spos.ConsensusMessage) bool,
 ) error {
@@ -191,7 +191,7 @@ func (sr *subroundBlock) sendBlockBody() bool {
 	}
 
 	blk, err := sr.blockProcessor.CreateTxBlockBody(
-		sr.shardCoordinator.ShardForCurrentNode(),
+		sr.shardCoordinator.CurrentShardId(),
 		maxTransactionsInBlock,
 		sr.rounder.Index(),
 		haveTimeInCurrentSubound,

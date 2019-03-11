@@ -49,7 +49,7 @@ func (inHdr *InterceptedHeader) GetUnderlyingObject() interface{} {
 }
 
 // IntegrityAndValidity checks the integrity and validity of a block header wrapper
-func (inHdr *InterceptedHeader) IntegrityAndValidity(coordinator sharding.ShardCoordinator) error {
+func (inHdr *InterceptedHeader) IntegrityAndValidity(coordinator sharding.Sharder) error {
 	err := inHdr.Integrity(coordinator)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func (inHdr *InterceptedHeader) IntegrityAndValidity(coordinator sharding.ShardC
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (inHdr *InterceptedHeader) Integrity(coordinator sharding.ShardCoordinator) error {
+func (inHdr *InterceptedHeader) Integrity(coordinator sharding.Sharder) error {
 	if coordinator == nil {
 		return process.ErrNilShardCoordinator
 	}
@@ -72,7 +72,7 @@ func (inHdr *InterceptedHeader) Integrity(coordinator sharding.ShardCoordinator)
 		return process.ErrNilPubKeysBitmap
 	}
 
-	if inHdr.ShardId >= coordinator.NoShards() {
+	if inHdr.ShardId >= coordinator.CurrentNumberOfShards() {
 		return process.ErrInvalidShardId
 	}
 

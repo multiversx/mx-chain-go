@@ -32,4 +32,10 @@ var (
 		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
 		Value: "",
 	}
+	// Shards defines a flag for setting the number of shards the application will run
+	Shards = cli.IntFlag{
+		Name:  "shards",
+		Usage: "Number of shards the application will bootstrap with",
+		Value: 1,
+	}
 )

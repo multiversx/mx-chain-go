@@ -37,7 +37,7 @@ type interceptorsResolvers struct {
 	messenger                p2p.Messenger
 	blockchain               *blockchain.BlockChain
 	dataPool                 data.TransientDataHolder
-	shardCoordinator         sharding.ShardCoordinator
+	shardCoordinator         sharding.Sharder
 	addrConverter            state.AddressConverter
 	hasher                   hashing.Hasher
 	marshalizer              marshal.Marshalizer
@@ -56,7 +56,7 @@ type InterceptorsResolversConfig struct {
 	Messenger                p2p.Messenger
 	Blockchain               *blockchain.BlockChain
 	DataPool                 data.TransientDataHolder
-	ShardCoordinator         sharding.ShardCoordinator
+	ShardCoordinator         sharding.Sharder
 	AddrConverter            state.AddressConverter
 	Hasher                   hashing.Hasher
 	Marshalizer              marshal.Marshalizer

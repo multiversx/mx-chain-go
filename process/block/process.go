@@ -40,7 +40,7 @@ type blockProcessor struct {
 	requestedTxHashes    map[string]bool
 	mut                  sync.RWMutex
 	accounts             state.AccountsAdapter
-	shardCoordinator     sharding.ShardCoordinator
+	shardCoordinator     sharding.Sharder
 	forkDetector         process.ForkDetector
 }
 
@@ -51,7 +51,7 @@ func NewBlockProcessor(
 	marshalizer marshal.Marshalizer,
 	txProcessor process.TransactionProcessor,
 	accounts state.AccountsAdapter,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Sharder,
 	forkDetector process.ForkDetector,
 	requestTransactionHandler func(destShardID uint32, txHash []byte),
 ) (*blockProcessor, error) {
@@ -262,7 +262,7 @@ func (bp *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
 // CreateTxBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (bp *blockProcessor) CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
-	miniBlocks, err := bp.createMiniBlocks(bp.shardCoordinator.NoShards(), maxTxInBlock, round, haveTime)
+	miniBlocks, err := bp.createMiniBlocks(bp.shardCoordinator.CurrentNumberOfShards(), maxTxInBlock, round, haveTime)
 	if err != nil {
 		return nil, err
 	}

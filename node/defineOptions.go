@@ -197,7 +197,7 @@ func WithDataPool(dataPool data.TransientDataHolder) Option {
 }
 
 // WithShardCoordinator sets up the transient shard coordinator for the Node
-func WithShardCoordinator(shardCoordinator sharding.ShardCoordinator) Option {
+func WithShardCoordinator(shardCoordinator sharding.Sharder) Option {
 	return func(n *Node) error {
 		if shardCoordinator == nil {
 			return ErrNilShardCoordinator

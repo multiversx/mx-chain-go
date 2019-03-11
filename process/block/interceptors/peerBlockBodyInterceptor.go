@@ -20,7 +20,7 @@ func NewPeerBlockBodyInterceptor(
 	cache storage.Cacher,
 	storer storage.Storer,
 	hasher hashing.Hasher,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Sharder,
 ) (*PeerBlockBodyInterceptor, error) {
 	gbbi, err := NewGenericBlockBodyInterceptor(
 		marshalizer,

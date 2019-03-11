@@ -21,7 +21,7 @@ func NewMiniBlocksInterceptor(
 	cache storage.Cacher,
 	storer storage.Storer,
 	hasher hashing.Hasher,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Sharder,
 ) (*TxBlockBodyInterceptor, error) {
 	gbbi, err := NewGenericBlockBodyInterceptor(
 		marshalizer,

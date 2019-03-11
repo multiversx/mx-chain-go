@@ -412,7 +412,12 @@ func createNode(
 		return nil, errors.New("could not create transient data pool: " + err.Error())
 	}
 
-	shardCoordinator := &sharding.OneShardCoordinator{}
+	shardRegistry, err := sharding.NewShardRegistry(uint32(ctx.GlobalInt(flags.Shards.Name)))
+	if err != nil {
+		return nil, err
+	}
+	// TODO: This should be changed with the acutal shardId assigned to this node
+	shardRegistry.SetCurrentShardId(0)
 
 	initialPubKeys := genesisConfig.initialNodesPubkeys(log)
 
@@ -457,7 +462,7 @@ func createNode(
 			Messenger:                netMessenger,
 			Blockchain:               blkc,
 			DataPool:                 datapool,
-			ShardCoordinator:         shardCoordinator,
+			ShardCoordinator:         shardRegistry,
 			AddrConverter:            addressConverter,
 			Hasher:                   hasher,
 			Marshalizer:              marshalizer,
@@ -497,7 +502,7 @@ func createNode(
 		marshalizer,
 		transactionProcessor,
 		accountsAdapter,
-		shardCoordinator,
+		shardRegistry,
 		forkDetector,
 		createRequestTransactionHandler(txResolver, log),
 	)
@@ -522,7 +527,7 @@ func createNode(
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
 		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
 		node.WithDataPool(datapool),
-		node.WithShardCoordinator(shardCoordinator),
+		node.WithShardCoordinator(shardRegistry),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 		node.WithSinglesig(singlesigner),
 		node.WithMultisig(multisigner),
