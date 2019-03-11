@@ -23,6 +23,6 @@ func (osc *OneShardCoordinator) CurrentShardId() uint32 {
 }
 
 // SetCurrentShardId gets shard of the current node
-func (osc *OneShardCoordinator) SetCurrentShardId(shardId uint32) {
-
+func (osc *OneShardCoordinator) SetCurrentShardId(shardId uint32) error {
+	return nil
 }
