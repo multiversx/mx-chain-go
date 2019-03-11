@@ -533,7 +533,7 @@ func TestTxProcessor_MoveBalancesToSelfOkValsShouldWork(t *testing.T) {
 
 }
 
-//------- increaseNonceAcntSrc
+//------- increaseNonce
 
 func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 	adrSrc := mock.NewAddressMock([]byte{65})
@@ -543,7 +543,7 @@ func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 
 	acntSrc.Nonce = 45
 
-	err := execTx.IncreaseNonceAcntSrc(acntSrc)
+	err := execTx.IncreaseNonce(acntSrc)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(46), acntSrc.Nonce)
 }

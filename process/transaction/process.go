@@ -134,7 +134,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 	}
 
 	if adrSrcInNodeShard {
-		err = txProc.increaseNonceAcntSrc(acntSrc)
+		err = txProc.increaseNonce(acntSrc)
 		if err != nil {
 			return err
 		}
@@ -209,8 +209,7 @@ func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, ad
 	return
 }
 
-func (txProc *txProcessor) getAccounts(
-	adrSrc, adrDest state.AddressContainer,
+func (txProc *txProcessor) getAccounts(adrSrc, adrDest state.AddressContainer,
 	adrSrcInNodeShard, adrDestInNodeShard bool,
 ) (acntSrc, acntDest state.JournalizedAccountWrapper, err error) {
 	if adrSrcInNodeShard && adrSrc == nil ||
@@ -271,8 +270,7 @@ func (txProc *txProcessor) checkTxValues(acntSrc state.JournalizedAccountWrapper
 	return nil
 }
 
-func (txProc *txProcessor) moveBalances(
-	acntSrc, acntDest state.JournalizedAccountWrapper,
+func (txProc *txProcessor) moveBalances(acntSrc, acntDest state.JournalizedAccountWrapper,
 	adrSrcInNodeShard, adrDestInNodeShard bool,
 	value *big.Int,
 ) error {
@@ -296,6 +294,6 @@ func (txProc *txProcessor) moveBalances(
 	return nil
 }
 
-func (txProc *txProcessor) increaseNonceAcntSrc(acntSrc state.JournalizedAccountWrapper) error {
+func (txProc *txProcessor) increaseNonce(acntSrc state.JournalizedAccountWrapper) error {
 	return acntSrc.SetNonceWithJournal(acntSrc.BaseAccount().Nonce + 1)
 }
