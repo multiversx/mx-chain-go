@@ -29,6 +29,6 @@ func (scm *oneShardCoordinatorMock) CurrentShardId() uint32 {
 	return 0
 }
 
-func (scm *oneShardCoordinatorMock) SetCurrentShardId(shardId uint32) {
-
+func (scm *oneShardCoordinatorMock) SetCurrentShardId(shardId uint32) error {
+	return nil
 }

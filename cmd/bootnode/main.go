@@ -417,7 +417,10 @@ func createNode(
 		return nil, err
 	}
 	// TODO: This should be changed with the acutal shardId assigned to this node
-	shardRegistry.SetCurrentShardId(0)
+	err = shardRegistry.SetCurrentShardId(0)
+	if err != nil {
+		return nil, err
+	}
 
 	initialPubKeys := genesisConfig.initialNodesPubkeys(log)
 

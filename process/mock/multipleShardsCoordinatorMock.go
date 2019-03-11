@@ -27,6 +27,6 @@ func (scm *multipleShardsCoordinatorMock) CurrentShardId() uint32 {
 	return scm.CurrentShard
 }
 
-func (scm *multipleShardsCoordinatorMock) SetCurrentShardId(shardId uint32) {
-
+func (scm *multipleShardsCoordinatorMock) SetCurrentShardId(shardId uint32) error {
+	return nil
 }

@@ -15,7 +15,7 @@ func (scm ShardCoordinatorMock) ComputeShardForAddress(address state.AddressCont
 	panic("implement me")
 }
 
-func (scm ShardCoordinatorMock) SetCurrentShardId(shardId uint32) {
+func (scm ShardCoordinatorMock) SetCurrentShardId(shardId uint32) error {
 	panic("implement me")
 }
 

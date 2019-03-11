@@ -9,5 +9,5 @@ type Sharder interface {
 	CurrentNumberOfShards() uint32
 	ComputeShardForAddress(address state.AddressContainer) uint32
 	CurrentShardId() uint32
-	SetCurrentShardId(shardId uint32)
+	SetCurrentShardId(shardId uint32) error
 }
