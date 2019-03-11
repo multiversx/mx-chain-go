@@ -139,7 +139,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		if acntDst.Code() != nil {
 			err = txProc.callSCHandler(tx)
 			if err != nil {
-				// TODO: Revert state if SC execution failed and substract only some fee for SC job done
+				// TODO: Revert state if SC execution failed and substract only some fee needed for SC job done
 				log.Info(err.Error())
 				err = txProc.accounts.RevertToSnapshot(0)
 				if err != nil {

@@ -26,9 +26,7 @@ func (txProc *txProcessor) CheckTxValues(acntSrc state.JournalizedAccountWrapper
 	return txProc.checkTxValues(acntSrc, value, nonce)
 }
 
-func (txProc *txProcessor) MoveBalances(acntSrc, acntDst state.JournalizedAccountWrapper,
-	value *big.Int,
-) error {
+func (txProc *txProcessor) MoveBalances(acntSrc, acntDst state.JournalizedAccountWrapper, value *big.Int) error {
 	return txProc.moveBalances(acntSrc, acntDst, value)
 }
 
