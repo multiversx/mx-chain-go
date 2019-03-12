@@ -2,6 +2,7 @@ package sharding_test
 
 import (
 	"encoding/binary"
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -113,4 +114,28 @@ func TestMultiShardCoordinator_SameShardDifferentAddressMultipleShards(t *testin
 	addr2 := getAddressFromUint32(uint32(2))
 
 	assert.False(t, shard.SameShard(addr1, addr2))
+}
+
+func TestMultiShardCoordinator_CommunicationIdentifierSameShard(t *testing.T) {
+	destId := uint32(1)
+	selfId := uint32(1)
+	shard, _ := sharding.NewMultiShardCoordinator(2)
+	shard.SetSelfId(selfId)
+	assert.Equal(t, fmt.Sprintf("_%d", selfId), shard.CommunicationIdentifier(destId))
+}
+
+func TestMultiShardCoordinator_CommunicationIdentifierSmallerDestination(t *testing.T) {
+	destId := uint32(0)
+	selfId := uint32(1)
+	shard, _ := sharding.NewMultiShardCoordinator(2)
+	shard.SetSelfId(selfId)
+	assert.Equal(t, fmt.Sprintf("_%d_%d", destId, selfId), shard.CommunicationIdentifier(destId))
+}
+
+func TestMultiShardCoordinator_CommunicationIdentifier(t *testing.T) {
+	destId := uint32(1)
+	selfId := uint32(0)
+	shard, _ := sharding.NewMultiShardCoordinator(2)
+	shard.SetSelfId(selfId)
+	assert.Equal(t, fmt.Sprintf("_%d_%d", selfId, destId), shard.CommunicationIdentifier(destId))
 }
