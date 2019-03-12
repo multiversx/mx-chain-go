@@ -33,7 +33,7 @@ func NewInterceptedTransaction(signer crypto.SingleSigner) *InterceptedTransacti
 }
 
 // IntegrityAndValidity returns a non nil error if transaction failed some checking tests
-func (inTx *InterceptedTransaction) IntegrityAndValidity(coordinator sharding.Sharder) error {
+func (inTx *InterceptedTransaction) IntegrityAndValidity(coordinator sharding.Coordinator) error {
 	if coordinator == nil {
 		return process.ErrNilShardCoordinator
 	}
@@ -57,18 +57,18 @@ func (inTx *InterceptedTransaction) IntegrityAndValidity(coordinator sharding.Sh
 		return process.ErrInvalidRcvAddr
 	}
 
-	inTx.rcvShard = coordinator.ComputeShardForAddress(rcvAddr)
-	inTx.sndShard = coordinator.ComputeShardForAddress(sndAddr)
+	inTx.rcvShard = coordinator.ComputeId(rcvAddr)
+	inTx.sndShard = coordinator.ComputeId(sndAddr)
 
 	inTx.isAddressedToOtherShards =
-		inTx.rcvShard != coordinator.CurrentShardId() &&
-			inTx.sndShard != coordinator.CurrentShardId()
+		inTx.rcvShard != coordinator.SelfId() &&
+			inTx.sndShard != coordinator.SelfId()
 
 	return nil
 }
 
 // Integrity checks for not nil fields and negative value
-func (inTx *InterceptedTransaction) Integrity(coordinator sharding.Sharder) error {
+func (inTx *InterceptedTransaction) Integrity(coordinator sharding.Coordinator) error {
 	if inTx.Transaction == nil {
 		return process.ErrNilTransaction
 	}

@@ -37,7 +37,7 @@ type Bootstrap struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	forkDetector     process.ForkDetector
-	shardCoordinator sharding.Sharder
+	shardCoordinator sharding.Coordinator
 	accounts         state.AccountsAdapter
 
 	mutHeader   sync.RWMutex
@@ -75,7 +75,7 @@ func NewBootstrap(
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
 	resolversContainer process.ResolversContainer,
-	shardCoordinator sharding.Sharder,
+	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 ) (*Bootstrap, error) {
 
@@ -153,7 +153,7 @@ func checkBootstrapNilParameters(
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
 	resolvers process.ResolversContainer,
-	shardCoordinator sharding.Sharder,
+	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 ) error {
 	if transientDataHolder == nil {
@@ -453,7 +453,7 @@ func (boot *Bootstrap) shouldCreateEmptyBlock(nonce uint64) bool {
 }
 
 func (boot *Bootstrap) createAndBroadcastEmptyBlock() error {
-	txBlockBody, header, err := boot.CreateAndCommitEmptyBlock(boot.shardCoordinator.CurrentShardId())
+	txBlockBody, header, err := boot.CreateAndCommitEmptyBlock(boot.shardCoordinator.SelfId())
 
 	if err == nil {
 		log.Info(fmt.Sprintf("body and header with root hash %s and nonce %d were created and commited through the recovery mechanism\n",

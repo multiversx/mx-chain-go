@@ -1,9 +1,9 @@
 package sharding
 
-func (sr *shardRegistry) CalculateMasks() (uint32, uint32) {
-	return sr.calculateMasks()
+func (msc *multiShardCoordinator) CalculateMasks() (uint32, uint32) {
+	return msc.calculateMasks()
 }
 
-func (sr *shardRegistry) Masks() (uint32, uint32) {
-	return sr.mask1, sr.mask2
+func (msc *multiShardCoordinator) Masks() (uint32, uint32) {
+	return msc.maskHigh, msc.maskLow
 }

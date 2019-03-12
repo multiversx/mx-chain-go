@@ -7,18 +7,22 @@ import (
 type ShardCoordinatorMock struct {
 }
 
-func (scm ShardCoordinatorMock) CurrentNumberOfShards() uint32 {
+func (scm ShardCoordinatorMock) NumberOfShards() uint32 {
 	panic("implement me")
 }
 
-func (scm ShardCoordinatorMock) ComputeShardForAddress(address state.AddressContainer) uint32 {
+func (scm ShardCoordinatorMock) ComputeId(address state.AddressContainer) uint32 {
 	panic("implement me")
 }
 
-func (scm ShardCoordinatorMock) SetCurrentShardId(shardId uint32) error {
+func (scm ShardCoordinatorMock) SetSelfId(shardId uint32) error {
 	panic("implement me")
 }
 
-func (scm ShardCoordinatorMock) CurrentShardId() uint32 {
+func (scm ShardCoordinatorMock) SelfId() uint32 {
 	return 0
+}
+
+func (scm ShardCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
+	return true
 }

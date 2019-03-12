@@ -413,12 +413,12 @@ func createNode(
 	}
 
 	nrOfShards := ctx.GlobalInt(flags.Shards.Name)
-	shardRegistry, err := sharding.NewShardRegistry(uint32(nrOfShards))
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(uint32(nrOfShards))
 	if err != nil {
 		return nil, err
 	}
 	// TODO: This should be changed with the acutal shardId assigned to this node
-	err = shardRegistry.SetCurrentShardId(0)
+	err = shardCoordinator.SetSelfId(0)
 	if err != nil {
 		return nil, err
 	}
@@ -466,7 +466,7 @@ func createNode(
 			Messenger:                netMessenger,
 			Blockchain:               blkc,
 			DataPool:                 datapool,
-			ShardCoordinator:         shardRegistry,
+			ShardCoordinator:         shardCoordinator,
 			AddrConverter:            addressConverter,
 			Hasher:                   hasher,
 			Marshalizer:              marshalizer,
@@ -506,7 +506,7 @@ func createNode(
 		marshalizer,
 		transactionProcessor,
 		accountsAdapter,
-		shardRegistry,
+		shardCoordinator,
 		forkDetector,
 		createRequestTransactionHandler(txResolver, log),
 	)
@@ -531,7 +531,7 @@ func createNode(
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
 		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
 		node.WithDataPool(datapool),
-		node.WithShardCoordinator(shardRegistry),
+		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
 		node.WithSinglesig(singlesigner),
 		node.WithMultisig(multisigner),

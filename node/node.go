@@ -79,7 +79,7 @@ type Node struct {
 
 	blkc             *blockchain.BlockChain
 	dataPool         data.TransientDataHolder
-	shardCoordinator sharding.Sharder
+	shardCoordinator sharding.Coordinator
 
 	isRunning bool
 }
@@ -170,7 +170,7 @@ func (n *Node) CreateShardedStores() error {
 		return errors.New("nil header sharded data store")
 	}
 
-	shards := n.shardCoordinator.CurrentNumberOfShards()
+	shards := n.shardCoordinator.NumberOfShards()
 
 	for i := uint32(0); i < shards; i++ {
 		transactionsDataStore.CreateShardStore(i)
@@ -686,7 +686,7 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 
 	header := &block.Header{
 		Nonce:         0,
-		ShardId:       n.shardCoordinator.CurrentShardId(),
+		ShardId:       n.shardCoordinator.SelfId(),
 		TimeStamp:     uint64(n.genesisTime.Unix()),
 		BlockBodyType: block.StateBlock,
 		Signature:     rootHash,
