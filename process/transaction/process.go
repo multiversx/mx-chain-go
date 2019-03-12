@@ -85,7 +85,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 	}
 
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
-	// if adrDst is in the node shard. If an error occurs it will be signal in err variable.
+	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
 	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
 	if err != nil {
 		return err
@@ -134,18 +134,12 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction, round
 		}
 	}
 
-	// is receiver address in node shard
-	if acntDst != nil {
-		if acntDst.Code() != nil {
-			err = txProc.callSCHandler(tx)
-			if err != nil {
-				// TODO: Revert state if SC execution failed and substract only some fee needed for SC job done
-				log.Info(err.Error())
-				err = txProc.accounts.RevertToSnapshot(0)
-				if err != nil {
-					return err
-				}
-			}
+	// is receiver address in node shard and this address contains a SC code
+	if acntDst != nil && acntDst.Code() != nil {
+		err = txProc.callSCHandler(tx)
+		if err != nil {
+			// TODO: Revert state if SC execution failed and substract only some fee needed for SC job done
+			return err
 		}
 	}
 

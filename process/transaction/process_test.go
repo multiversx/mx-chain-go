@@ -14,27 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createAccountStub(adr1, adr2 *mock.AddressMock,
-	acnt1, acnt2 *mock.JournalizedAccountWrapMock,
-) *mock.AccountsStub {
-	accounts := mock.AccountsStub{}
-
-	accounts.GetJournalizedAccountCalled = func(addressContainer state.AddressContainer) (state.JournalizedAccountWrapper, error) {
-		if addressContainer == adr1 {
-			return acnt1, nil
-		}
-
-		if addressContainer == adr2 {
-			return acnt2, nil
-		}
-
-		return nil, errors.New("failure")
-	}
-
-	return &accounts
-}
-
-func createAccountStub2(sndAddr, rcvAddr []byte,
+func createAccountStub(sndAddr, rcvAddr []byte,
 	acntSrc, acntDst *mock.JournalizedAccountWrapMock,
 ) *mock.AccountsStub {
 	accounts := mock.AccountsStub{}
@@ -351,7 +331,7 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 	acnt1 := mock.NewJournalizedAccountWrapMock(adr1)
 	acnt2 := mock.NewJournalizedAccountWrapMock(adr2)
 
-	accounts := createAccountStub(adr1, adr2, acnt1, acnt2)
+	accounts := createAccountStub(adr1.Bytes(), adr2.Bytes(), acnt1, acnt2)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -374,7 +354,7 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 	acnt1 := mock.NewJournalizedAccountWrapMock(adr1)
 	acnt2 := mock.NewJournalizedAccountWrapMock(adr2)
 
-	accounts := createAccountStub(adr1, adr2, acnt1, acnt2)
+	accounts := createAccountStub(adr1.Bytes(), adr2.Bytes(), acnt1, acnt2)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -637,7 +617,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 	acntDst.SetCode([]byte{65})
 
-	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -658,25 +638,19 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestTxProcessor_ProcessTransactionScTxShouldRevertStateIfItExecutionFails(t *testing.T) {
-	initialSrcBalance := big.NewInt(69)
-	initialDstBalance := big.NewInt(12)
-	initialSrcNonce := uint64(2)
-
+func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *testing.T) {
 	tx := transaction.Transaction{}
-	tx.Nonce = initialSrcNonce
+	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
-	acntSrc.Balance = initialSrcBalance
-	acntSrc.Nonce = initialSrcNonce
+	acntSrc.Balance = big.NewInt(45)
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
-	acntDst.Balance = initialDstBalance
 	acntDst.SetCode([]byte{65})
 
-	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -686,22 +660,13 @@ func TestTxProcessor_ProcessTransactionScTxShouldRevertStateIfItExecutionFails(t
 		mock.NewOneShardCoordinatorMock(),
 	)
 
+	err := errors.New("sc execution error")
 	execTx.SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error {
-		return errors.New("sc execution error")
+		return err
 	})
 
-	accounts.RevertToSnapshotCalled = func(snapshot int) error {
-		acntSrc.Nonce = initialSrcNonce
-		acntSrc.Balance = initialSrcBalance
-		acntDst.Balance = initialDstBalance
-		return nil
-	}
-
-	err := execTx.ProcessTransaction(&tx, 4)
-	assert.Nil(t, err)
-	assert.Equal(t, initialSrcNonce, acntSrc.Nonce)
-	assert.Equal(t, initialSrcBalance, acntSrc.Balance)
-	assert.Equal(t, initialDstBalance, acntDst.Balance)
+	err2 := execTx.ProcessTransaction(&tx, 4)
+	assert.Equal(t, err, err2)
 }
 
 func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNodeShard(t *testing.T) {
@@ -726,7 +691,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 	acntDst.SetCode([]byte{65})
 
-	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -780,7 +745,7 @@ func TestTxProcessor_ProcessTransactionRegisterTxShouldWork(t *testing.T) {
 		return nil
 	}
 
-	accounts := createAccountStub2(tx.SndAddr, state.RegistrationAddress.Bytes(), acntSrc, acntReg)
+	accounts := createAccountStub(tx.SndAddr, state.RegistrationAddress.Bytes(), acntSrc, acntReg)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -813,7 +778,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -847,7 +812,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 	acntSrc := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.SndAddr))
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -872,7 +837,7 @@ func TestTxProcessor_ProcessMoveBalancesFailShouldErr(t *testing.T) {
 	acntSrc.Fail = true
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -907,7 +872,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 	acntSrc.Fail = true
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -932,7 +897,7 @@ func TestTxProcessor_ProcessIncreaseNonceFailShouldErr(t *testing.T) {
 	acntSrc.FailSetNonceWithJurnal = true
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -967,7 +932,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 	acntSrc.FailSetNonceWithJurnal = true
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 
-	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -994,7 +959,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	acntDst := mock.NewJournalizedAccountWrapMock(mock.NewAddressMock(tx.RcvAddr))
 	acntDst.Balance = big.NewInt(10)
 
-	accounts := createAccountStub2(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	accounts := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
 	execTx, _ := txproc.NewTxProcessor(
 		accounts,
@@ -1074,7 +1039,7 @@ func TestTxProcessor_SetBalancesToTrieCommitFailsShouldRevert(t *testing.T) {
 	revertCalled := false
 	errCommit := errors.New("should err")
 
-	accounts := createAccountStub2(adr1, adr2, accnt1, accnt2)
+	accounts := createAccountStub(adr1, adr2, accnt1, accnt2)
 
 	accounts.JournalLenCalled = func() int {
 		return 0
@@ -1122,7 +1087,7 @@ func TestTxProcessor_SetBalancesToTrieNilAddressShouldErr(t *testing.T) {
 
 	rootHash := []byte("resulted root hash")
 
-	accounts := createAccountStub2(adr1, adr2, accnt1, accnt2)
+	accounts := createAccountStub(adr1, adr2, accnt1, accnt2)
 
 	accounts.JournalLenCalled = func() int {
 		return 0
@@ -1210,7 +1175,7 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 
 	rootHash := []byte("resulted root hash")
 
-	accounts := createAccountStub2(adr1, adr2, accnt1, accnt2)
+	accounts := createAccountStub(adr1, adr2, accnt1, accnt2)
 
 	accounts.JournalLenCalled = func() int {
 		return 0
