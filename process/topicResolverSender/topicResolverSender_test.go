@@ -26,7 +26,7 @@ func TestNewTopicResolverSender_NilMessengerShouldErr(t *testing.T) {
 func TestNewTopicResolverSender_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	trs, err := topicResolverSender.NewTopicResolverSender(&mock.WireMessageHandlerStub{}, "topic", nil)
+	trs, err := topicResolverSender.NewTopicResolverSender(&mock.MessageHandlerStub{}, "topic", nil)
 
 	assert.Nil(t, trs)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -36,7 +36,7 @@ func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	trs, err := topicResolverSender.NewTopicResolverSender(
-		&mock.WireMessageHandlerStub{},
+		&mock.MessageHandlerStub{},
 		"topic",
 		&mock.MarshalizerMock{})
 
@@ -52,7 +52,7 @@ func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *test
 	errExpected := errors.New("expected error")
 
 	trs, _ := topicResolverSender.NewTopicResolverSender(
-		&mock.WireMessageHandlerStub{},
+		&mock.MessageHandlerStub{},
 		"topic",
 		&mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
@@ -69,7 +69,7 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 	t.Parallel()
 
 	trs, _ := topicResolverSender.NewTopicResolverSender(
-		&mock.WireMessageHandlerStub{
+		&mock.MessageHandlerStub{
 			ConnectedPeersCalled: func() []p2p.PeerID {
 				return make([]p2p.PeerID, 0)
 			},
@@ -90,7 +90,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 	sentToPid1 := false
 
 	trs, _ := topicResolverSender.NewTopicResolverSender(
-		&mock.WireMessageHandlerStub{
+		&mock.MessageHandlerStub{
 			ConnectedPeersCalled: func() []p2p.PeerID {
 				return []p2p.PeerID{pID1}
 			},
@@ -122,7 +122,7 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 	buffToSend := []byte("buff")
 
 	trs, _ := topicResolverSender.NewTopicResolverSender(
-		&mock.WireMessageHandlerStub{
+		&mock.MessageHandlerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pID1.Bytes()) &&
 					bytes.Equal(buff, buffToSend) {

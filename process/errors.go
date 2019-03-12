@@ -52,14 +52,8 @@ var ErrNilPeerBlockBody = errors.New("nil block body")
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
 
-// ErrNilBlockBodyHash signals that an operation has been attempted to or with a nil block body hash
-var ErrNilBlockBodyHash = errors.New("nil block body hash")
-
 // ErrNilTxHash signals that an operation has been attempted with a nil hash
 var ErrNilTxHash = errors.New("nil transaction hash")
-
-// ErrNilPeerChanges signals that an operation has been attempted with nil peer changes
-var ErrNilPeerChanges = errors.New("nil peer block changes")
 
 // ErrNilPublicKey signals that a operation has been attempted with a nil public key
 var ErrNilPublicKey = errors.New("nil public key")
@@ -239,9 +233,6 @@ var ErrContainerKeyAlreadyExists = errors.New("provided key already exists in co
 // ErrNilUint64ByteSliceConverter signals that a nil byte slice converter was provided
 var ErrNilUint64ByteSliceConverter = errors.New("nil byte slice converter")
 
-// ErrNilInterceptorContainer signals that a nil interceptor container was provided
-var ErrNilInterceptorContainer = errors.New("nil interceptor container")
-
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
 
@@ -259,3 +250,6 @@ var ErrInvalidRequestType = errors.New("invalid request type")
 
 // ErrCouldNotDecodeUnderlyingBody signals that an InterceptedBlockBody could not be decoded to a block.Body using type assertion
 var ErrCouldNotDecodeUnderlyingBody = errors.New("could not decode InterceptedBlockBody to block.Body")
+
+// ErrWrongTypeInContainer signals that a wrong type of object was found in container
+var ErrWrongTypeInContainer = errors.New("wrong type of object inside container")

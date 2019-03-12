@@ -1,34 +1,35 @@
 package containers
 
 import (
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/cornelk/hashmap"
 )
 
 // ResolversContainer is a resolvers holder organized by type
 type ResolversContainer struct {
-	mutex   sync.RWMutex
-	objects map[string]process.Resolver
+	objects *hashmap.HashMap
 }
 
 // NewResolversContainer will create a new instance of a container
 func NewResolversContainer() *ResolversContainer {
 	return &ResolversContainer{
-		mutex:   sync.RWMutex{},
-		objects: make(map[string]process.Resolver),
+		objects: &hashmap.HashMap{},
 	}
 }
 
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
 func (rc *ResolversContainer) Get(key string) (process.Resolver, error) {
-	rc.mutex.RLock()
-	resolver, ok := rc.objects[key]
-	rc.mutex.RUnlock()
+	value, ok := rc.objects.Get(key)
 	if !ok {
 		return nil, process.ErrInvalidContainerKey
 	}
+
+	resolver, ok := value.(process.Resolver)
+	if !ok {
+		return nil, process.ErrWrongTypeInContainer
+	}
+
 	return resolver, nil
 }
 
@@ -38,16 +39,13 @@ func (rc *ResolversContainer) Add(key string, resolver process.Resolver) error {
 	if resolver == nil {
 		return process.ErrNilContainerElement
 	}
-	rc.mutex.Lock()
-	defer rc.mutex.Unlock()
 
-	_, ok := rc.objects[key]
+	ok := rc.objects.Insert(key, resolver)
 
-	if ok {
+	if !ok {
 		return process.ErrContainerKeyAlreadyExists
 	}
 
-	rc.objects[key] = resolver
 	return nil
 }
 
@@ -56,23 +54,17 @@ func (rc *ResolversContainer) Replace(key string, resolver process.Resolver) err
 	if resolver == nil {
 		return process.ErrNilContainerElement
 	}
-	rc.mutex.Lock()
-	rc.objects[key] = resolver
-	rc.mutex.Unlock()
+
+	rc.objects.Set(key, resolver)
 	return nil
 }
 
 // Remove will remove an object at a given key
 func (rc *ResolversContainer) Remove(key string) {
-	rc.mutex.Lock()
-	delete(rc.objects, key)
-	rc.mutex.Unlock()
+	rc.objects.Del(key)
 }
 
 // Len returns the length of the added objects
 func (rc *ResolversContainer) Len() int {
-	rc.mutex.RLock()
-	l := len(rc.objects)
-	rc.mutex.RUnlock()
-	return l
+	return rc.objects.Len()
 }

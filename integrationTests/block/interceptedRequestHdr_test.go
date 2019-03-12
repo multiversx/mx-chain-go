@@ -49,17 +49,17 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 
 	//Step 1. Generate a header
 	hdr := block.Header{
-		Nonce:         0,
-		PubKeysBitmap: []byte{255, 0},
-		Commitment:    []byte("commitment"),
-		Signature:     []byte("signature"),
-		PrevHash:      []byte("prev hash"),
-		TimeStamp:     uint64(time.Now().Unix()),
-		Round:         1,
-		Epoch:         2,
-		ShardId:       0,
-		BlockBodyType: block.TxBlock,
-		RootHash:      []byte{255, 255},
+		Nonce:            0,
+		PubKeysBitmap:    []byte{255, 0},
+		Commitment:       []byte("commitment"),
+		Signature:        []byte("signature"),
+		PrevHash:         []byte("prev hash"),
+		TimeStamp:        uint64(time.Now().Unix()),
+		Round:            1,
+		Epoch:            2,
+		ShardId:          0,
+		BlockBodyType:    block.TxBlock,
+		RootHash:         []byte{255, 255},
 		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
 	}
 
@@ -85,7 +85,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	})
 
 	//Step 4. request header
-	res, err := pFactoryReq.ResolverContainer().Get(string(factory.HeadersTopic))
+	res, err := pFactoryReq.ResolverContainer().Get(factory.HeadersTopic)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	hdrResolver.RequestDataFromNonce(0)

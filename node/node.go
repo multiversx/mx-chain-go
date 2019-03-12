@@ -69,6 +69,7 @@ type Node struct {
 	addrConverter                state.AddressConverter
 	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
 	interceptorsResolversCreator process.InterceptorsResolversFactory
+	interceptorsContainer        process.InterceptorsContainer
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
@@ -387,10 +388,13 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
 	}
 
+	//TODO temporary, will be refactored in EN-1104
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.ShardForCurrentNode())
+
 	for i := 0; i < len(transactions); i++ {
 		n.messenger.BroadcastOnChannel(
 			SendTransactionsPipe,
-			string(factory.TransactionTopic),
+			identifier,
 			transactions[i],
 		)
 
@@ -638,9 +642,12 @@ func (n *Node) SendTransaction(
 		return nil, errors.New("could not marshal transaction")
 	}
 
+	//TODO temporary, will be refactored in EN-1104
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.ShardForCurrentNode())
+
 	n.messenger.BroadcastOnChannel(
 		SendTransactionsPipe,
-		string(factory.TransactionTopic),
+		identifier,
 		marshalizedTx,
 	)
 
@@ -727,9 +734,7 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 		return err
 	}
 
-	go n.messenger.Broadcast(
-		string(factory.MiniBlocksTopic),
-		msgBlockBody)
+	go n.messenger.Broadcast(factory.MiniBlocksTopic, msgBlockBody)
 
 	if header == nil {
 		return ErrNilBlockHeader
@@ -741,10 +746,7 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 		return err
 	}
 
-	go n.messenger.Broadcast(
-		string(factory.HeadersTopic),
-		msgHeader,
-	)
+	go n.messenger.Broadcast(factory.HeadersTopic, msgHeader)
 
 	return nil
 }
