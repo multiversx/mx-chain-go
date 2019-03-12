@@ -111,12 +111,17 @@ func NewBootstrap(
 		accounts:         accounts,
 	}
 
-	hdrResolver, err := resolversContainer.Get(factory.HeadersTopic)
+	//there is one header topic so it is ok to save it
+	hdrResolver, err := resolversContainer.Get(factory.HeadersTopic +
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
 	if err != nil {
 		return nil, err
 	}
 
-	miniBlocksResolver, err := resolversContainer.Get(factory.MiniBlocksTopic)
+	//TODO refactor this as requesting a miniblock should consider passing also the shard ID,
+	// for now this should work on a one shard architecture
+	miniBlocksResolver, err := resolversContainer.Get(factory.MiniBlocksTopic +
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
 	if err != nil {
 		return nil, err
 	}

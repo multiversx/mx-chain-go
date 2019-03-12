@@ -603,32 +603,6 @@ func TestWithForkDetector_NilForkDetectorShouldErr(t *testing.T) {
 	assert.Equal(t, ErrNilForkDetector, err)
 }
 
-func TestWithInterceptorsResolversFactory_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	interceptorsResolvers := &mock.InterceptorsResolversFactoryStub{}
-	opt := WithInterceptorsResolversFactory(interceptorsResolvers)
-
-	err := opt(node)
-
-	assert.True(t, node.interceptorsResolversCreator == interceptorsResolvers)
-	assert.Nil(t, err)
-}
-
-func TestWithInterceptorsResolversFactory_NilFactoryShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithInterceptorsResolversFactory(nil)
-	err := opt(node)
-
-	assert.Nil(t, node.interceptorsResolversCreator)
-	assert.Equal(t, ErrNilInterceptorsResolversFactory, err)
-}
-
 func TestWithInterceptorsContainer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -653,4 +627,30 @@ func TestWithInterceptorsContainer_NilContainerShouldErr(t *testing.T) {
 
 	assert.Nil(t, node.interceptorsContainer)
 	assert.Equal(t, ErrNilInterceptorsContainer, err)
+}
+
+func TestWithResolversContainer_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	resolversContainer := &mock.ResolversContainerStub{}
+	opt := WithResolversContainer(resolversContainer)
+
+	err := opt(node)
+
+	assert.True(t, node.resolversContainer == resolversContainer)
+	assert.Nil(t, err)
+}
+
+func TestWithResolversContainer_NilContainerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithResolversContainer(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.resolversContainer)
+	assert.Equal(t, ErrNilResolversContainer, err)
 }

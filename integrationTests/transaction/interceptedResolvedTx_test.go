@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,10 +29,21 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	dPoolRequestor := ti.createTestDataPool()
 	dPoolResolver := ti.createTestDataPool()
 
+	shardCoordinator := &sharding.OneShardCoordinator{}
+
 	fmt.Println("Requestor:")
-	nRequestor, mesRequestor, sk1, pf := ti.createNetNode(4000, dPoolRequestor, ti.createAccountsDB())
+	nRequestor, mesRequestor, sk1, resolvers := ti.createNetNode(
+		4000,
+		dPoolRequestor,
+		ti.createAccountsDB(),
+		shardCoordinator)
+
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := ti.createNetNode(4001, dPoolResolver, ti.createAccountsDB())
+	nResolver, mesResolver, _, _ := ti.createNetNode(
+		4001,
+		dPoolResolver,
+		ti.createAccountsDB(),
+		shardCoordinator)
 
 	nRequestor.Start()
 	nResolver.Start()
@@ -87,7 +99,8 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	dPoolResolver.Transactions().AddData(txHash, &tx, 0)
 
 	//Step 4. request tx
-	txResolver, _ := pf.ResolverContainer().Get(factory.TransactionTopic)
+	txResolver, _ := resolvers.Get(factory.TransactionTopic +
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
 	err = txResolver.RequestDataFromHash(txHash)
 	assert.Nil(t, err)
 

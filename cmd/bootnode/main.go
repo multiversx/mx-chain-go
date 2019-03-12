@@ -48,7 +48,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
 	sync2 "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -446,27 +445,6 @@ func createNode(
 		return nil, err
 	}
 
-	resolversContainer := containers.NewResolversContainer()
-
-	interceptorsResolversFactory, err := factory.NewInterceptorsResolversCreator(
-		factory.InterceptorsResolversConfig{
-			ResolverContainer:        resolversContainer,
-			Messenger:                netMessenger,
-			Blockchain:               blkc,
-			DataPool:                 datapool,
-			ShardCoordinator:         shardCoordinator,
-			AddrConverter:            addressConverter,
-			Hasher:                   hasher,
-			Marshalizer:              marshalizer,
-			MultiSigner:              multisigner,
-			SingleSigner:             singlesigner,
-			KeyGen:                   keyGen,
-			Uint64ByteSliceConverter: uint64ByteSliceConverter,
-		})
-	if err != nil {
-		return nil, err
-	}
-
 	interceptorContainerFactory, err := factory.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		netMessenger,
@@ -488,14 +466,26 @@ func createNode(
 		return nil, err
 	}
 
-	err = interceptorsResolversFactory.CreateResolvers()
+	resolversContainerFactory, err := factory.NewResolversContainerFactory(
+		shardCoordinator,
+		netMessenger,
+		blkc,
+		marshalizer,
+		datapool,
+		uint64ByteSliceConverter,
+	)
+
+	resolversContainer, err := resolversContainerFactory.Create()
 	if err != nil {
 		return nil, err
 	}
 
 	forkDetector := sync2.NewBasicForkDetector()
 
-	res, err := interceptorsResolversFactory.ResolverContainer().Get(factory.TransactionTopic)
+	//TODO refactor this as this resolver must not be saved but enquired each time a transaction
+	// (or batch of transactions) is needed according to the shard where this tx might reside
+	res, err := resolversContainer.Get(factory.TransactionTopic +
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
 	if err != nil {
 		return nil, err
 	}
@@ -543,8 +533,8 @@ func createNode(
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
-		node.WithInterceptorsResolversFactory(interceptorsResolversFactory),
 		node.WithInterceptorsContainer(interceptorsContainer),
+		node.WithResolversContainer(resolversContainer),
 	)
 
 	if err != nil {

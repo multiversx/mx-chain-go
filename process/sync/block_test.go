@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strings"
 	goSync "sync"
 	"testing"
 	"time"
@@ -34,7 +35,7 @@ type removedFlags struct {
 func createMockResolversContainer() *mock.ResolversContainerStub {
 	return &mock.ResolversContainerStub{
 		GetCalled: func(key string) (resolver process.Resolver, e error) {
-			if key == factory.HeadersTopic {
+			if strings.Contains(key, factory.HeadersTopic) {
 				return &mock.HeaderResolverMock{
 					RequestDataFromNonceCalled: func(nonce uint64) error {
 						return nil
@@ -45,7 +46,7 @@ func createMockResolversContainer() *mock.ResolversContainerStub {
 				}, nil
 			}
 
-			if key == factory.MiniBlocksTopic {
+			if strings.Contains(key, factory.MiniBlocksTopic) {
 				return &mock.MiniBlocksResolverMock{
 					GetMiniBlocksCalled: func(hashes [][]byte) block.MiniBlockSlice {
 						return make(block.MiniBlockSlice, 0)
@@ -61,7 +62,7 @@ func createMockResolversContainer() *mock.ResolversContainerStub {
 func createMockResolversContainerNilMiniBlocks() *mock.ResolversContainerStub {
 	return &mock.ResolversContainerStub{
 		GetCalled: func(key string) (resolver process.Resolver, e error) {
-			if key == factory.HeadersTopic {
+			if strings.Contains(key, factory.HeadersTopic) {
 				return &mock.HeaderResolverMock{
 					RequestDataFromNonceCalled: func(nonce uint64) error {
 						return nil
@@ -72,7 +73,7 @@ func createMockResolversContainerNilMiniBlocks() *mock.ResolversContainerStub {
 				}, nil
 			}
 
-			if key == factory.MiniBlocksTopic {
+			if strings.Contains(key, factory.MiniBlocksTopic) {
 				return &mock.MiniBlocksResolverMock{
 					RequestDataFromHashCalled: func(hash []byte) error {
 						return nil
@@ -628,11 +629,11 @@ func TestNewBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 
 	resContainer := &mock.ResolversContainerStub{
 		GetCalled: func(key string) (resolver process.Resolver, e error) {
-			if key == factory.HeadersTopic {
+			if strings.Contains(key, factory.HeadersTopic) {
 				return nil, errExpected
 			}
 
-			if key == factory.MiniBlocksTopic {
+			if strings.Contains(key, factory.MiniBlocksTopic) {
 				return &mock.ResolverStub{}, nil
 			}
 
@@ -676,11 +677,11 @@ func TestNewBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 
 	resContainer := &mock.ResolversContainerStub{
 		GetCalled: func(key string) (resolver process.Resolver, e error) {
-			if key == factory.HeadersTopic {
+			if strings.Contains(key, factory.HeadersTopic) {
 				return &mock.HeaderResolverMock{}, errExpected
 			}
 
-			if key == factory.MiniBlocksTopic {
+			if strings.Contains(key, factory.MiniBlocksTopic) {
 				return nil, errExpected
 			}
 

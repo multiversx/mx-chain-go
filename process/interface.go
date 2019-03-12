@@ -132,16 +132,14 @@ type InterceptorsContainer interface {
 	Len() int
 }
 
-// InterceptorsResolversFactory is an interface that defines the behaviour for a factory that
-//  can create the needed interceptors and resolvers for the application
-type InterceptorsResolversFactory interface {
-	CreateResolvers() error
-	ResolverContainer() ResolversContainer
-}
-
 // InterceptorsContainerFactory defines the functionality to create an interceptors container
 type InterceptorsContainerFactory interface {
 	Create() (InterceptorsContainer, error)
+}
+
+// ResolversContainerFactory defines the functionality to create a resolvers container
+type ResolversContainerFactory interface {
+	Create() (ResolversContainer, error)
 }
 
 // Interceptor defines what a data interceptor should do
@@ -161,4 +159,11 @@ type TopicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+}
+
+// TopicMessageHandler defines the functionality needed by structs to manage topics, message processors and to send data
+// to other peers
+type TopicMessageHandler interface {
+	MessageHandler
+	TopicHandler
 }

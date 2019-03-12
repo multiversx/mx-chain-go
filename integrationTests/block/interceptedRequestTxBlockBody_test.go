@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,15 +29,21 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	dPoolRequestor := ti.createTestDataPool()
 	dPoolResolver := ti.createTestDataPool()
 
+	shardCoordinator := &sharding.OneShardCoordinator{}
+
 	fmt.Println("Requestor:	")
-	nRequestor, mesRequestor, _, pFactoryReq := ti.createNetNode(32000, dPoolRequestor, ti.createAccountsDB())
+	nRequestor, mesRequestor, _, resolversContainer := ti.createNetNode(
+		32000,
+		dPoolRequestor,
+		ti.createAccountsDB(),
+		shardCoordinator)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, pFactoryRes := ti.createNetNode(32001, dPoolResolver, ti.createAccountsDB())
-
-	_ = pFactoryReq.CreateResolvers()
-
-	_ = pFactoryRes.CreateResolvers()
+	nResolver, mesResolver, _, _ := ti.createNetNode(
+		32001,
+		dPoolResolver,
+		ti.createAccountsDB(),
+		shardCoordinator)
 
 	nRequestor.Start()
 	nResolver.Start()
@@ -86,7 +93,8 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	})
 
 	//Step 4. request tx block body
-	txBlockBodyRequestor, _ := pFactoryReq.ResolverContainer().Get(factory.MiniBlocksTopic)
+	txBlockBodyRequestor, _ := resolversContainer.Get(factory.MiniBlocksTopic +
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
 	miniBlockRequestor := txBlockBodyRequestor.(process.MiniBlocksResolver)
 	miniBlockHashes[0] = txBlockBodyHash
 	miniBlockRequestor.RequestDataFromHashArray(miniBlockHashes)
