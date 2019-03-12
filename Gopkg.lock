@@ -46,12 +46,28 @@
   version = "v0.2.0"
 
 [[projects]]
+  digest = "1:90a52b2e006c21d53b90e3e2df4cdd37de3ba7bed05feb037f9a5c218d0781b9"
+  name = "github.com/cornelk/hashmap"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "b893f4923161d485d2151f427c378e09784ec1db"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   pruneopts = "UT"
   revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
   version = "v1.1.1"
+
+[[projects]]
+  digest = "1:1e9a0ec4f7e852123fefad9aadd7647eed1e9fd3716118e99a4b3dc463705c82"
+  name = "github.com/dchest/siphash"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "34f201214d993633bb24f418ba11736ab8b55aa7"
+  version = "v1.2.1"
 
 [[projects]]
   digest = "1:c594f17a44dc0df66ef67ae61b126fc51c84b826af250493f2e37c2ac4389bbe"
@@ -1173,6 +1189,7 @@
     "github.com/360EntSecGroup-Skylar/excelize",
     "github.com/beevik/ntp",
     "github.com/btcsuite/btcd/btcec",
+    "github.com/cornelk/hashmap",
     "github.com/davecgh/go-spew/spew",
     "github.com/dedis/kyber",
     "github.com/dedis/kyber/group/edwards25519",

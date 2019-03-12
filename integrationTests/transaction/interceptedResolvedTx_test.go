@@ -87,7 +87,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	dPoolResolver.Transactions().AddData(txHash, &tx, 0)
 
 	//Step 4. request tx
-	txResolver, _ := pf.ResolverContainer().Get(string(factory.TransactionTopic))
+	txResolver, _ := pf.ResolverContainer().Get(factory.TransactionTopic)
 	err = txResolver.RequestDataFromHash(txHash)
 	assert.Nil(t, err)
 
