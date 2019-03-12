@@ -3,6 +3,7 @@ package sharding
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -76,3 +77,18 @@ func (msc *multiShardCoordinator) SameShard(firstAddress, secondAddress state.Ad
 
 	return msc.ComputeId(firstAddress) == msc.ComputeId(secondAddress)
 }
+
+// CommunicationIdentifier returns the identifier between current shard ID and destination shard ID
+// identifier is generated such as the first shard from identifier is always smaller than the last
+func (msc *multiShardCoordinator) CommunicationIdentifier(destShardID uint32) string {
+	if destShardID == msc.selfId {
+		return fmt.Sprintf("_%d", msc.selfId)
+	}
+
+	if destShardID < msc.selfId {
+		return fmt.Sprintf("_%d_%d", destShardID, msc.selfId)
+	}
+
+	return fmt.Sprintf("_%d_%d", msc.selfId, destShardID)
+}
+

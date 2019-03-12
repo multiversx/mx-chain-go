@@ -34,10 +34,8 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	fmt.Println("Resolver:")
 	nResolver, mesResolver, _, pFactoryRes := ti.createNetNode(32001, dPoolResolver, ti.createAccountsDB())
 
-	_ = pFactoryReq.CreateInterceptors()
 	_ = pFactoryReq.CreateResolvers()
 
-	_ = pFactoryRes.CreateInterceptors()
 	_ = pFactoryRes.CreateResolvers()
 
 	nRequestor.Start()
@@ -88,7 +86,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	})
 
 	//Step 4. request tx block body
-	txBlockBodyRequestor, _ := pFactoryReq.ResolverContainer().Get(string(factory.MiniBlocksTopic))
+	txBlockBodyRequestor, _ := pFactoryReq.ResolverContainer().Get(factory.MiniBlocksTopic)
 	miniBlockRequestor := txBlockBodyRequestor.(process.MiniBlocksResolver)
 	miniBlockHashes[0] = txBlockBodyHash
 	miniBlockRequestor.RequestDataFromHashArray(miniBlockHashes)

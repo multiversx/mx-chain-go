@@ -26,3 +26,7 @@ func (scm ShardCoordinatorMock) SelfId() uint32 {
 func (scm ShardCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
 	return true
 }
+
+func (scm ShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) string {
+	return "_0"
+}

@@ -400,18 +400,6 @@ func createNode(
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
-	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer)
-	if err != nil {
-		return nil, errors.New("could not create transaction processor: " + err.Error())
-	}
-
-	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
-
-	datapool, err := createDataPoolFromConfig(config, uint64ByteSliceConverter)
-	if err != nil {
-		return nil, errors.New("could not create transient data pool: " + err.Error())
-	}
-
 	nrOfShards := ctx.GlobalInt(flags.Shards.Name)
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(uint32(nrOfShards))
 	if err != nil {
@@ -421,6 +409,18 @@ func createNode(
 	err = shardCoordinator.SetSelfId(0)
 	if err != nil {
 		return nil, err
+	}
+
+	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
+	if err != nil {
+		return nil, errors.New("could not create transaction processor: " + err.Error())
+	}
+
+	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
+
+	datapool, err := createDataPoolFromConfig(config, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, errors.New("could not create transient data pool: " + err.Error())
 	}
 
 	initialPubKeys := genesisConfig.initialNodesPubkeys(log)
@@ -455,13 +455,10 @@ func createNode(
 		return nil, err
 	}
 
-	interceptorsContainer := containers.NewObjectsContainer()
 	resolversContainer := containers.NewResolversContainer()
 
 	interceptorsResolversFactory, err := factory.NewInterceptorsResolversCreator(
 		factory.InterceptorsResolversConfig{
-
-			InterceptorContainer:     interceptorsContainer,
 			ResolverContainer:        resolversContainer,
 			Messenger:                netMessenger,
 			Blockchain:               blkc,
@@ -479,7 +476,23 @@ func createNode(
 		return nil, err
 	}
 
-	err = interceptorsResolversFactory.CreateInterceptors()
+	interceptorContainerFactory, err := factory.NewInterceptorsContainerFactory(
+		shardCoordinator,
+		netMessenger,
+		blkc,
+		marshalizer,
+		hasher,
+		keyGen,
+		singlesigner,
+		multisigner,
+		datapool,
+		addressConverter,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -491,7 +504,7 @@ func createNode(
 
 	forkDetector := sync2.NewBasicForkDetector()
 
-	res, err := interceptorsResolversFactory.ResolverContainer().Get(string(factory.TransactionTopic))
+	res, err := interceptorsResolversFactory.ResolverContainer().Get(factory.TransactionTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -540,6 +553,7 @@ func createNode(
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsResolversFactory(interceptorsResolversFactory),
+		node.WithInterceptorsContainer(interceptorsContainer),
 	)
 
 	if err != nil {

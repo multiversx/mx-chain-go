@@ -114,15 +114,6 @@ type ForkDetector interface {
 	CheckFork() bool
 }
 
-// Container defines a holder data type with basic functionality
-type Container interface {
-	Get(key string) (interface{}, error)
-	Add(key string, val interface{}) error
-	Replace(key string, val interface{}) error
-	Remove(key string)
-	Len() int
-}
-
 // ResolversContainer defines a resolvers holder data type with basic functionality
 type ResolversContainer interface {
 	Get(key string) (Resolver, error)
@@ -132,17 +123,42 @@ type ResolversContainer interface {
 	Len() int
 }
 
+// InterceptorsContainer defines an interceptors holder data type with basic functionality
+type InterceptorsContainer interface {
+	Get(key string) (Interceptor, error)
+	Add(key string, val Interceptor) error
+	Replace(key string, val Interceptor) error
+	Remove(key string)
+	Len() int
+}
+
 // InterceptorsResolversFactory is an interface that defines the behaviour for a factory that
 //  can create the needed interceptors and resolvers for the application
 type InterceptorsResolversFactory interface {
-	CreateInterceptors() error
 	CreateResolvers() error
-	InterceptorContainer() Container
 	ResolverContainer() ResolversContainer
 }
 
-// WireMessageHandler is an interface that defines the behaviour to get list of connected peers and to send message to them
-type WireMessageHandler interface {
+// InterceptorsContainerFactory defines the functionality to create an interceptors container
+type InterceptorsContainerFactory interface {
+	Create() (InterceptorsContainer, error)
+}
+
+// Interceptor defines what a data interceptor should do
+// It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
+type Interceptor interface {
+	ProcessReceivedMessage(message p2p.MessageP2P) error
+}
+
+// MessageHandler defines the functionality needed by structs to send data to other peers
+type MessageHandler interface {
 	ConnectedPeers() []p2p.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
+}
+
+// TopicHandler defines the functionality needed by structs to manage topics and message processors
+type TopicHandler interface {
+	HasTopic(name string) bool
+	CreateTopic(name string, createChannelForTopic bool) error
+	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
 }

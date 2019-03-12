@@ -628,3 +628,29 @@ func TestWithInterceptorsResolversFactory_NilFactoryShouldErr(t *testing.T) {
 	assert.Nil(t, node.interceptorsResolversCreator)
 	assert.Equal(t, ErrNilInterceptorsResolversFactory, err)
 }
+
+func TestWithInterceptorsContainer_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	interceptorsContainer := &mock.InterceptorsContainerStub{}
+	opt := WithInterceptorsContainer(interceptorsContainer)
+
+	err := opt(node)
+
+	assert.True(t, node.interceptorsContainer == interceptorsContainer)
+	assert.Nil(t, err)
+}
+
+func TestWithInterceptorsContainer_NilContainerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithInterceptorsContainer(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.interceptorsContainer)
+	assert.Equal(t, ErrNilInterceptorsContainer, err)
+}

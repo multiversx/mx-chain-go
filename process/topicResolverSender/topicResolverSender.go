@@ -19,7 +19,7 @@ const PeersToSendRequest = 2
 var log = logger.NewDefaultLogger()
 
 type topicResolverSender struct {
-	messenger   process.WireMessageHandler
+	messenger   process.MessageHandler
 	marshalizer marshal.Marshalizer
 	topicName   string
 	r           *rand.Rand
@@ -27,7 +27,7 @@ type topicResolverSender struct {
 
 // NewTopicResolverSender returns a new topic resolver instance
 func NewTopicResolverSender(
-	messenger process.WireMessageHandler,
+	messenger process.MessageHandler,
 	topicName string,
 	marshalizer marshal.Marshalizer,
 ) (*topicResolverSender, error) {

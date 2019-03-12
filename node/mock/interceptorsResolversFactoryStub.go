@@ -5,10 +5,9 @@ import (
 )
 
 type InterceptorsResolversFactoryStub struct {
-	CreateInterceptorsCalled   func() error
-	CreateResolversCalled      func() error
-	InterceptorContainerCalled func() process.Container
-	ResolverContainerCalled    func() process.ResolversContainer
+	CreateInterceptorsCalled func() error
+	CreateResolversCalled    func() error
+	ResolverContainerCalled  func() process.ResolversContainer
 }
 
 func (irfs *InterceptorsResolversFactoryStub) CreateInterceptors() error {
@@ -17,10 +16,6 @@ func (irfs *InterceptorsResolversFactoryStub) CreateInterceptors() error {
 
 func (irfs *InterceptorsResolversFactoryStub) CreateResolvers() error {
 	return irfs.CreateResolversCalled()
-}
-
-func (irfs *InterceptorsResolversFactoryStub) InterceptorContainer() process.Container {
-	return irfs.InterceptorContainerCalled()
 }
 
 func (irfs *InterceptorsResolversFactoryStub) ResolverContainer() process.ResolversContainer {

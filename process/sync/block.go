@@ -111,12 +111,12 @@ func NewBootstrap(
 		accounts:         accounts,
 	}
 
-	hdrResolver, err := resolversContainer.Get(string(factory.HeadersTopic))
+	hdrResolver, err := resolversContainer.Get(factory.HeadersTopic)
 	if err != nil {
 		return nil, err
 	}
 
-	miniBlocksResolver, err := resolversContainer.Get(string(factory.MiniBlocksTopic))
+	miniBlocksResolver, err := resolversContainer.Get(factory.MiniBlocksTopic)
 	if err != nil {
 		return nil, err
 	}

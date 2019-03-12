@@ -36,3 +36,7 @@ func (scm *oneShardCoordinatorMock) SetSelfId(shardId uint32) error {
 func (scm *oneShardCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
 	return true
 }
+
+func (scm *oneShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) string {
+	return "_0"
+}
