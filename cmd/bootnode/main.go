@@ -399,7 +399,9 @@ func createNode(
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
-	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer)
+	shardCoordinator := &sharding.OneShardCoordinator{}
+
+	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
@@ -410,8 +412,6 @@ func createNode(
 	if err != nil {
 		return nil, errors.New("could not create transient data pool: " + err.Error())
 	}
-
-	shardCoordinator := &sharding.OneShardCoordinator{}
 
 	initialPubKeys := genesisConfig.initialNodesPubkeys(log)
 
