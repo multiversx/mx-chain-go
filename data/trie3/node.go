@@ -1,10 +1,6 @@
-package patriciaMerkleTrie
+package trie3
 
 const nrOfChildren = 17
-
-type node interface {
-	getHash() []byte
-}
 
 type branchNode struct {
 	EncodedChildren [nrOfChildren][]byte

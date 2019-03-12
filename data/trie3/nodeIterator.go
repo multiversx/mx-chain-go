@@ -1,4 +1,4 @@
-package patriciaMerkleTrie
+package trie3
 
 import (
 	"bytes"

@@ -8,7 +8,8 @@ type Trie interface {
 	Root() ([]byte, error)
 	Prove(key []byte) ([][]byte, error)
 	VerifyProof(proofs [][]byte, key []byte) (bool, error)
-	NodeIterator() NodeIterator
+	NewNodeIterator() NodeIterator
+	Commit() error
 }
 
 // NodeIterator is an iterator to traverse the trie pre-order.
@@ -45,6 +46,10 @@ type NodeIterator interface {
 	// iterator is not positioned at a leaf. Callers must not retain references
 	// to the value after calling Next.
 	LeafProof() ([][]byte, error)
+}
+
+type node interface {
+	getHash() []byte
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed

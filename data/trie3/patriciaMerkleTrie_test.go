@@ -1,18 +1,19 @@
-package patriciaMerkleTrie_test
+package trie3_test
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie3"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie3/patriciaMerkleTrie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
 func testTrie2(nr int) (trie3.Trie, [][]byte) {
-	tr, _ := patriciaMerkleTrie.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, nil)
+	tr, _ := trie3.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, nil)
 
 	var values [][]byte
 	hsh := keccak.Keccak{}
@@ -27,7 +28,7 @@ func testTrie2(nr int) (trie3.Trie, [][]byte) {
 }
 
 func TestNewTrieWithNilParameters(t *testing.T) {
-	tr, err := patriciaMerkleTrie.NewTrie(nil, nil, nil)
+	tr, err := trie3.NewTrie(nil, nil, nil)
 
 	assert.Nil(t, tr)
 	assert.NotNil(t, err)
@@ -91,7 +92,7 @@ func TestPatriciaMerkleTree_Root(t *testing.T) {
 
 func TestPatriciaMerkleTree_Prove(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 	var proof1 [][]byte
 
 	ok, _ := it.Next()
@@ -129,7 +130,7 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 
 func TestPatriciaMerkleTree_NodeIterator(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 
 	assert.NotNil(t, it)
 }
@@ -149,10 +150,14 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 }
 
 func TestNewTrie(t *testing.T) {
-	tr := testTrie()
+	db, err := memorydb.New()
+	fmt.Println(err, " database")
+	tr, _ := trie3.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, db)
 
-	fmt.Println(tr.Get([]byte("doe")))
-	tr.Update([]byte("doe"), []byte("dooooooooge"))
-	fmt.Println(tr.Get([]byte("doe")))
-	//fmt.Println(tr.Get([]byte("d")))
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	err = tr.Commit()
+	fmt.Println(err, " commit")
 }

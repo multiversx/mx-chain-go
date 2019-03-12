@@ -1,4 +1,4 @@
-package patriciaMerkleTrie
+package trie3
 
 func keyBytesToHex(str []byte) []byte {
 	length := len(str)*2 + 1

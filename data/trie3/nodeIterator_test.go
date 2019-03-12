@@ -1,17 +1,16 @@
-package patriciaMerkleTrie_test
+package trie3_test
 
 import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie3"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie3/patriciaMerkleTrie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/stretchr/testify/assert"
 )
 
 func testTrie() trie3.Trie {
-	tr, _ := patriciaMerkleTrie.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, nil)
+	tr, _ := trie3.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, nil)
 
 	tr.Update([]byte("doe"), []byte("reindeer"))
 	tr.Update([]byte("dog"), []byte("puppy"))
@@ -22,14 +21,14 @@ func testTrie() trie3.Trie {
 
 func TestNodeIterator_newIterator(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 
 	assert.NotNil(t, it)
 }
 
 func TestNodeIterator_Hash(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 
 	assert.Equal(t, []byte{}, it.Hash())
 
@@ -40,7 +39,7 @@ func TestNodeIterator_Hash(t *testing.T) {
 
 func TestNodeIterator_Parent(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 
 	rootParent := it.Hash()
 
@@ -56,7 +55,7 @@ func TestNodeIterator_Parent(t *testing.T) {
 
 func TestNodeIterator_Path(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 
 	assert.Nil(t, it.Path())
 
@@ -68,7 +67,7 @@ func TestNodeIterator_Path(t *testing.T) {
 
 func TestNodeIterator_Leaf(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 
 	it.Next()
 	it.Next()
@@ -80,7 +79,7 @@ func TestNodeIterator_Leaf(t *testing.T) {
 
 func TestNodeIterator_LeafKey(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 
 	searchedKey := []byte("doe")
 	var key []byte
@@ -102,7 +101,7 @@ func TestNodeIterator_LeafKey(t *testing.T) {
 
 func TestNodeIterator_LeafBlob(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 
 	searchedVal := []byte("reindeer")
 	var val []byte
@@ -124,7 +123,7 @@ func TestNodeIterator_LeafBlob(t *testing.T) {
 
 func TestNodeIterator_LeafProof(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 
 	var proofs [][][]byte
 
@@ -155,4 +154,18 @@ func TestNodeIterator_LeafProof(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, ok)
 
+}
+
+func TestNodeIterator_Next(t *testing.T) {
+	tr := testTrie()
+	it := tr.NewNodeIterator()
+
+	ok, err := it.Next()
+	for ok {
+		assert.Nil(t, err)
+		assert.True(t, ok)
+		ok, err = it.Next()
+	}
+	assert.False(t, ok)
+	assert.NotNil(t, err)
 }
