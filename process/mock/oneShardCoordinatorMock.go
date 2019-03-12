@@ -5,7 +5,8 @@ import (
 )
 
 type oneShardCoordinatorMock struct {
-	noShards uint32
+	noShards                     uint32
+	ComputeShardForAddressCalled func(state.AddressContainer, state.AddressConverter) uint32
 }
 
 func NewOneShardCoordinatorMock() *oneShardCoordinatorMock {
@@ -23,6 +24,9 @@ func (scm *oneShardCoordinatorMock) SetNoShards(shards uint32) {
 func (scm *oneShardCoordinatorMock) ComputeShardForAddress(
 	address state.AddressContainer,
 	addressConverter state.AddressConverter) uint32 {
+	if scm.ComputeShardForAddressCalled != nil {
+		return scm.ComputeShardForAddressCalled(address, addressConverter)
+	}
 
 	return uint32(0)
 }
