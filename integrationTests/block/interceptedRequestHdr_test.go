@@ -32,14 +32,14 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 
 	fmt.Println("Requestor:")
 	nRequestor, mesRequestor, _, resolversContainer := ti.createNetNode(
-		32000,
+		33000,
 		dPoolRequestor,
 		ti.createAccountsDB(),
 		shardCoordinator)
 
 	fmt.Println("Resolver:")
 	nResolver, mesResolver, _, _ := ti.createNetNode(
-		32001,
+		33001,
 		dPoolResolver,
 		ti.createAccountsDB(),
 		shardCoordinator)

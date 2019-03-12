@@ -33,14 +33,14 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	fmt.Println("Requestor:	")
 	nRequestor, mesRequestor, _, resolversContainer := ti.createNetNode(
-		32000,
+		33100,
 		dPoolRequestor,
 		ti.createAccountsDB(),
 		shardCoordinator)
 
 	fmt.Println("Resolver:")
 	nResolver, mesResolver, _, _ := ti.createNetNode(
-		32001,
+		33101,
 		dPoolResolver,
 		ti.createAccountsDB(),
 		shardCoordinator)

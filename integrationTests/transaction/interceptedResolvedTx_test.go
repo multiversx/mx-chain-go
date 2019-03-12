@@ -33,14 +33,14 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	fmt.Println("Requestor:")
 	nRequestor, mesRequestor, sk1, resolvers := ti.createNetNode(
-		4000,
+		34100,
 		dPoolRequestor,
 		ti.createAccountsDB(),
 		shardCoordinator)
 
 	fmt.Println("Resolver:")
 	nResolver, mesResolver, _, _ := ti.createNetNode(
-		4001,
+		34101,
 		dPoolResolver,
 		ti.createAccountsDB(),
 		shardCoordinator)
