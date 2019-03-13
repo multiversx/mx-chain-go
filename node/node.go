@@ -70,23 +70,6 @@ type Node struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer    process.InterceptorsContainer
 	resolversContainer       process.ResolversContainer
-	marshalizer                  marshal.Marshalizer
-	ctx                          context.Context
-	hasher                       hashing.Hasher
-	initialNodesPubkeys          [][]string
-	initialNodesBalances         map[string]*big.Int
-	roundDuration                uint64
-	consensusGroupSize           int
-	messenger                    p2p.Messenger
-	syncer                       ntp.SyncTimer
-	blockProcessor               process.BlockProcessor
-	genesisTime                  time.Time
-	elasticSubrounds             bool
-	accounts                     state.AccountsAdapter
-	addrConverter                state.AddressConverter
-	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
-	interceptorsResolversCreator process.InterceptorsResolversFactory
-	interceptorsContainer        process.InterceptorsContainer
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
