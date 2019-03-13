@@ -401,12 +401,7 @@ func createNode(
 	}
 
 	nrOfShards := ctx.GlobalInt(flags.Shards.Name)
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(uint32(nrOfShards))
-	if err != nil {
-		return nil, err
-	}
-	// TODO: This should be changed with the acutal shardId assigned to this node
-	err = shardCoordinator.SetSelfId(0)
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(uint32(nrOfShards), 0)
 	if err != nil {
 		return nil, err
 	}

@@ -19,7 +19,7 @@ func getAddressFromUint32(address uint32) state.AddressContainer {
 
 func TestMultiShardCoordinator_NewMultiShardCoordinator(t *testing.T) {
 	nrOfShards := uint32(10)
-	sr, _ := sharding.NewMultiShardCoordinator(nrOfShards)
+	sr, _ := sharding.NewMultiShardCoordinator(nrOfShards, 0)
 	assert.Equal(t, nrOfShards, sr.NumberOfShards())
 	expectedMask1, expectedMask2 := sr.CalculateMasks()
 	actualMask1, actualMask2 := sr.Masks()
@@ -28,27 +28,26 @@ func TestMultiShardCoordinator_NewMultiShardCoordinator(t *testing.T) {
 }
 
 func TestMultiShardCoordinator_NewMultiShardCoordinatorInvalidNumberOfShards(t *testing.T) {
-	sr, err := sharding.NewMultiShardCoordinator(0)
+	sr, err := sharding.NewMultiShardCoordinator(0, 0)
 	assert.Nil(t, sr)
 	assert.Equal(t, sharding.ErrInvalidNumberOfShards, err)
 }
 
-func TestMultiShardCoordinator_SetSelfIdGraterThanNrOfShardsShouldError(t *testing.T) {
-	sr, _ := sharding.NewMultiShardCoordinator(1)
-	err := sr.SetSelfId(2)
+func TestMultiShardCoordinator_NewMultiShardCoordinatorSelfIdGraterThanNrOfShardsShouldError(t *testing.T) {
+	_, err := sharding.NewMultiShardCoordinator(1, 2)
 	assert.Equal(t, sharding.ErrInvalidShardId, err)
 }
 
-func TestMultiShardCoordinator_SetSelfId(t *testing.T) {
+func TestMultiShardCoordinator_NewMultiShardCoordinatorCorrectSelfId(t *testing.T) {
 	currentShardId := uint32(0)
-	sr, _ := sharding.NewMultiShardCoordinator(1)
-	_ = sr.SetSelfId(currentShardId)
+	sr, _ := sharding.NewMultiShardCoordinator(1, currentShardId)
 	assert.Equal(t, currentShardId, sr.SelfId())
 }
 
 func TestMultiShardCoordinator_ComputeIdDoesNotGenerateInvalidShards(t *testing.T) {
 	nrOfShards := uint32(10)
-	sr, _ := sharding.NewMultiShardCoordinator(nrOfShards)
+	selfId := uint32(0)
+	sr, _ := sharding.NewMultiShardCoordinator(nrOfShards, selfId)
 
 	for i := 0; i < 200; i++ {
 		addr := getAddressFromUint32(uint32(i))
@@ -59,7 +58,8 @@ func TestMultiShardCoordinator_ComputeIdDoesNotGenerateInvalidShards(t *testing.
 
 func TestMultiShardCoordinator_ComputeIdSameSuffixHasSameShard(t *testing.T) {
 	nrOfShards := uint32(2)
-	sr, _ := sharding.NewMultiShardCoordinator(nrOfShards)
+	selfId := uint32(0)
+	sr, _ := sharding.NewMultiShardCoordinator(nrOfShards, selfId)
 
 	dataSet := []struct {
 		address, shardId uint32
@@ -84,7 +84,7 @@ func TestMultiShardCoordinator_ComputeIdSameSuffixHasSameShard(t *testing.T) {
 }
 
 func TestMultiShardCoordinator_SameShardSameAddress(t *testing.T) {
-	shard, _ := sharding.NewMultiShardCoordinator(1)
+	shard, _ := sharding.NewMultiShardCoordinator(1, 0)
 	addr1 := getAddressFromUint32(uint32(1))
 	addr2 := getAddressFromUint32(uint32(1))
 
@@ -92,7 +92,7 @@ func TestMultiShardCoordinator_SameShardSameAddress(t *testing.T) {
 }
 
 func TestMultiShardCoordinator_SameShardSameAddressMultipleShards(t *testing.T) {
-	shard, _ := sharding.NewMultiShardCoordinator(11)
+	shard, _ := sharding.NewMultiShardCoordinator(11, 0)
 	addr1 := getAddressFromUint32(uint32(1))
 	addr2 := getAddressFromUint32(uint32(1))
 
@@ -100,7 +100,7 @@ func TestMultiShardCoordinator_SameShardSameAddressMultipleShards(t *testing.T) 
 }
 
 func TestMultiShardCoordinator_SameShardDifferentAddress(t *testing.T) {
-	shard, _ := sharding.NewMultiShardCoordinator(1)
+	shard, _ := sharding.NewMultiShardCoordinator(1, 0)
 	addr1 := getAddressFromUint32(uint32(1))
 	addr2 := getAddressFromUint32(uint32(2))
 
@@ -108,7 +108,7 @@ func TestMultiShardCoordinator_SameShardDifferentAddress(t *testing.T) {
 }
 
 func TestMultiShardCoordinator_SameShardDifferentAddressMultipleShards(t *testing.T) {
-	shard, _ := sharding.NewMultiShardCoordinator(2)
+	shard, _ := sharding.NewMultiShardCoordinator(2, 0)
 
 	addr1 := getAddressFromUint32(uint32(1))
 	addr2 := getAddressFromUint32(uint32(2))
@@ -119,23 +119,20 @@ func TestMultiShardCoordinator_SameShardDifferentAddressMultipleShards(t *testin
 func TestMultiShardCoordinator_CommunicationIdentifierSameShard(t *testing.T) {
 	destId := uint32(1)
 	selfId := uint32(1)
-	shard, _ := sharding.NewMultiShardCoordinator(2)
-	shard.SetSelfId(selfId)
+	shard, _ := sharding.NewMultiShardCoordinator(2, selfId)
 	assert.Equal(t, fmt.Sprintf("_%d", selfId), shard.CommunicationIdentifier(destId))
 }
 
 func TestMultiShardCoordinator_CommunicationIdentifierSmallerDestination(t *testing.T) {
 	destId := uint32(0)
 	selfId := uint32(1)
-	shard, _ := sharding.NewMultiShardCoordinator(2)
-	shard.SetSelfId(selfId)
+	shard, _ := sharding.NewMultiShardCoordinator(2, selfId)
 	assert.Equal(t, fmt.Sprintf("_%d_%d", destId, selfId), shard.CommunicationIdentifier(destId))
 }
 
 func TestMultiShardCoordinator_CommunicationIdentifier(t *testing.T) {
 	destId := uint32(1)
 	selfId := uint32(0)
-	shard, _ := sharding.NewMultiShardCoordinator(2)
-	shard.SetSelfId(selfId)
+	shard, _ := sharding.NewMultiShardCoordinator(2, selfId)
 	assert.Equal(t, fmt.Sprintf("_%d_%d", selfId, destId), shard.CommunicationIdentifier(destId))
 }

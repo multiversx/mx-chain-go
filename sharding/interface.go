@@ -9,7 +9,6 @@ type Coordinator interface {
 	NumberOfShards() uint32
 	ComputeId(address state.AddressContainer) uint32
 	SelfId() uint32
-	SetSelfId(shardId uint32) error
 	SameShard(firstAddress, secondAddress state.AddressContainer) bool
 	CommunicationIdentifier(destShardID uint32) string
 }

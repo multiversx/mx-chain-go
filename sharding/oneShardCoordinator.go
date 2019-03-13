@@ -22,11 +22,6 @@ func (osc *OneShardCoordinator) SelfId() uint32 {
 	return 0
 }
 
-// SetSelfId gets shard of the current node
-func (osc *OneShardCoordinator) SetSelfId(shardId uint32) error {
-	return nil
-}
-
 // SameShard returns weather two addresses belong to the same shard
 func (osc *OneShardCoordinator) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
 	return true

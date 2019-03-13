@@ -20,11 +20,15 @@ type multiShardCoordinator struct {
 }
 
 // NewMultiShardCoordinator returns a new multiShardCoordinator and initializes the masks
-func NewMultiShardCoordinator(numberOfShards uint32) (*multiShardCoordinator, error) {
+func NewMultiShardCoordinator(numberOfShards, selfId uint32) (*multiShardCoordinator, error) {
 	if numberOfShards < 1 {
 		return nil, ErrInvalidNumberOfShards
 	}
+	if selfId >= numberOfShards {
+		return nil, ErrInvalidShardId
+	}
 	sr := &multiShardCoordinator{}
+	sr.selfId = selfId
 	sr.numberOfShards = numberOfShards
 	sr.maskHigh, sr.maskLow = sr.calculateMasks()
 
@@ -32,7 +36,7 @@ func NewMultiShardCoordinator(numberOfShards uint32) (*multiShardCoordinator, er
 }
 
 // calculateMasks will create two numbers who's binary form is composed from as many
-// ones needed to be taken into consideration for the shard assignement. The result
+// ones needed to be taken into consideration for the shard assignment. The result
 // of a bitwise AND operation of an address with this mask will result in the
 // shard id where a transaction from that address will be dispatched
 func (msc *multiShardCoordinator) calculateMasks() (uint32, uint32) {
@@ -60,15 +64,6 @@ func (msc *multiShardCoordinator) SelfId() uint32 {
 	return msc.selfId
 }
 
-// SetSelfId sets the shard id for the current node
-func (msc *multiShardCoordinator) SetSelfId(shardId uint32) error {
-	if shardId >= msc.numberOfShards {
-		return ErrInvalidShardId
-	}
-	msc.selfId = shardId
-	return nil
-}
-
 // SameShard returns weather two addresses belong to the same shard
 func (msc *multiShardCoordinator) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
 	if bytes.Equal(firstAddress.Bytes(), secondAddress.Bytes()) {
@@ -91,4 +86,3 @@ func (msc *multiShardCoordinator) CommunicationIdentifier(destShardID uint32) st
 
 	return fmt.Sprintf("_%d_%d", msc.selfId, destShardID)
 }
-

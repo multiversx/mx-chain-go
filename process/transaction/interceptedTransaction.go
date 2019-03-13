@@ -60,9 +60,7 @@ func (inTx *InterceptedTransaction) IntegrityAndValidity(coordinator sharding.Co
 	inTx.rcvShard = coordinator.ComputeId(rcvAddr)
 	inTx.sndShard = coordinator.ComputeId(sndAddr)
 
-	inTx.isAddressedToOtherShards =
-		inTx.rcvShard != coordinator.SelfId() &&
-			inTx.sndShard != coordinator.SelfId()
+	inTx.isAddressedToOtherShards = inTx.rcvShard != coordinator.SelfId() && inTx.sndShard != coordinator.SelfId()
 
 	return nil
 }
