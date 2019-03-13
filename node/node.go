@@ -56,7 +56,7 @@ type Node struct {
 	marshalizer              marshal.Marshalizer
 	ctx                      context.Context
 	hasher                   hashing.Hasher
-	initialNodesPubkeys      []string
+	initialNodesPubkeys      [][]string
 	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
 	consensusGroupSize       int
@@ -70,6 +70,23 @@ type Node struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer    process.InterceptorsContainer
 	resolversContainer       process.ResolversContainer
+	marshalizer                  marshal.Marshalizer
+	ctx                          context.Context
+	hasher                       hashing.Hasher
+	initialNodesPubkeys          [][]string
+	initialNodesBalances         map[string]*big.Int
+	roundDuration                uint64
+	consensusGroupSize           int
+	messenger                    p2p.Messenger
+	syncer                       ntp.SyncTimer
+	blockProcessor               process.BlockProcessor
+	genesisTime                  time.Time
+	elasticSubrounds             bool
+	accounts                     state.AccountsAdapter
+	addrConverter                state.AddressConverter
+	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
+	interceptorsResolversCreator process.InterceptorsResolversFactory
+	interceptorsContainer        process.InterceptorsContainer
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
@@ -466,7 +483,7 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 	}
 
 	roundConsensus := spos.NewRoundConsensus(
-		n.initialNodesPubkeys,
+		n.initialNodesPubkeys[n.shardCoordinator.ShardForCurrentNode()],
 		n.consensusGroupSize,
 		string(selfId))
 
@@ -494,9 +511,14 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 	}
 
 	validatorsList := make([]consensus.Validator, 0)
+	shID := n.shardCoordinator.ShardForCurrentNode()
 
-	for i := 0; i < len(n.initialNodesPubkeys); i++ {
-		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[i]))
+	if int(shID) >= len(n.initialNodesPubkeys) {
+		return nil, errors.New("could not create validator group as shardID is out of range")
+	}
+
+	for i := 0; i < len(n.initialNodesPubkeys[shID]); i++ {
+		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shID][i]))
 
 		if err != nil {
 			return nil, err
