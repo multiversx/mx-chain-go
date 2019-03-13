@@ -6,11 +6,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
+
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -22,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
@@ -56,7 +56,6 @@ import (
 	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
-	"github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
@@ -79,20 +78,6 @@ var p2pConfigurationFile = "./config/p2p.toml"
 
 //TODO remove uniqueID
 var uniqueID = ""
-
-type initialNode struct {
-	Address string `json:"address"`
-	PubKey  string `json:"pubkey"`
-	Balance string `json:"balance"`
-}
-
-type genesis struct {
-	StartTime          int64         `json:"startTime"`
-	RoundDuration      uint64        `json:"roundDuration"`
-	ConsensusGroupSize int           `json:"consensusGroupSize"`
-	ElasticSubrounds   bool          `json:"elasticSubrounds"`
-	InitialNodes       []initialNode `json:"initialNodes"`
-}
 
 type seedRandReader struct {
 	index int
@@ -196,7 +181,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	genesisConfig, err := loadGenesisConfiguration(ctx.GlobalString(flags.GenesisFile.Name), log)
+	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(flags.GenesisFile.Name))
 	if err != nil {
 		return err
 	}
@@ -252,56 +237,9 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	return nil
 }
 
-func loadFile(relativePath string, log *logger.Logger) (*os.File, error) {
-	path, err := filepath.Abs(relativePath)
-	fmt.Println(path)
-	if err != nil {
-		log.Error("cannot create absolute path for the provided file", err.Error())
-		return nil, err
-	}
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return f, nil
-}
-
-func loadTomlFile(dest interface{}, relativePath string, log *logger.Logger) error {
-	f, err := loadFile(relativePath, log)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		err = f.Close()
-		if err != nil {
-			log.Error("cannot close file: ", err.Error())
-		}
-	}()
-
-	return toml.NewDecoder(f).Decode(dest)
-}
-
-func loadJsonFile(dest interface{}, relativePath string, log *logger.Logger) error {
-	f, err := loadFile(relativePath, log)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		err = f.Close()
-		if err != nil {
-			log.Error("cannot close file: ", err.Error())
-		}
-	}()
-
-	return json.NewDecoder(f).Decode(dest)
-}
-
 func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error) {
 	cfg := &config.Config{}
-	err := loadTomlFile(cfg, filepath, log)
+	err := core.LoadTomlFile(cfg, filepath, log)
 	if err != nil {
 		return nil, err
 	}
@@ -310,61 +248,17 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 
 func loadP2PConfig(filepath string, log *logger.Logger) (*config.P2PConfig, error) {
 	cfg := &config.P2PConfig{}
-	err := loadTomlFile(cfg, filepath, log)
+	err := core.LoadTomlFile(cfg, filepath, log)
 	if err != nil {
 		return nil, err
 	}
 	return cfg, nil
-}
-
-func loadGenesisConfiguration(genesisFilePath string, log *logger.Logger) (*genesis, error) {
-	cfg := &genesis{}
-	err := loadJsonFile(cfg, genesisFilePath, log)
-	if err != nil {
-		return nil, err
-	}
-	return cfg, nil
-}
-
-func (g *genesis) initialNodesPubkeys(log *logger.Logger) []string {
-	var pubKeys []string
-	for _, in := range g.InitialNodes {
-		pubKey, err := decodeAddress(in.PubKey)
-
-		if err != nil {
-			log.Error(fmt.Sprintf("%s is not a valid public key. Ignored", in))
-			continue
-		}
-
-		pubKeys = append(pubKeys, string(pubKey))
-	}
-	return pubKeys
-}
-
-func (g *genesis) initialNodesBalances(log *logger.Logger) map[string]*big.Int {
-	var pubKeys = make(map[string]*big.Int)
-	for _, in := range g.InitialNodes {
-		balance, ok := new(big.Int).SetString(in.Balance, 10)
-		if ok {
-			pubKey, err := decodeAddress(in.PubKey)
-			if err != nil {
-				log.Error(fmt.Sprintf("%s is not a valid public key. Ignored", in.PubKey))
-				continue
-			}
-			pubKeys[string(pubKey)] = balance
-		} else {
-			log.Warn(fmt.Sprintf("error decoding balance %s for public key %s - setting to 0", in.Balance, in.PubKey))
-			pubKeys[in.PubKey] = big.NewInt(0)
-		}
-
-	}
-	return pubKeys
 }
 
 func createNode(
 	ctx *cli.Context,
 	config *config.Config,
-	genesisConfig *genesis,
+	genesisConfig *sharding.Genesis,
 	p2pConfig *config.P2PConfig,
 	syncer ntp.SyncTimer,
 	log *logger.Logger,
@@ -414,12 +308,17 @@ func createNode(
 		return nil, errors.New("could not create transient data pool: " + err.Error())
 	}
 
-	initialPubKeys := genesisConfig.initialNodesPubkeys(log)
+	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 
 	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
 
 	if err != nil {
 		return nil, err
+	}
+
+	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator.ShardForCurrentNode())
+	if err != nil {
+		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
 	singlesigner := &singlesig.SchnorrSigner{}
@@ -429,7 +328,12 @@ func createNode(
 		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, initialPubKeys, privKey, keyGen, uint16(0))
+	currentShardPubKeys, err := genesisConfig.InitialNodesPubKeysForShard(shardCoordinator.ShardForCurrentNode())
+	if err != nil {
+		return nil, errors.New("could not start creation of multisigner: " + err.Error())
+	}
+
+	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, currentShardPubKeys, privKey, keyGen, uint16(0))
 	if err != nil {
 		return nil, err
 	}
@@ -524,12 +428,12 @@ func createNode(
 		node.WithHasher(hasher),
 		node.WithMarshalizer(marshalizer),
 		node.WithInitialNodesPubKeys(initialPubKeys),
-		node.WithInitialNodesBalances(genesisConfig.initialNodesBalances(log)),
+		node.WithInitialNodesBalances(inBalanceForShard),
 		node.WithAddressConverter(addressConverter),
 		node.WithAccountsAdapter(accountsAdapter),
 		node.WithBlockChain(blkc),
 		node.WithRoundDuration(genesisConfig.RoundDuration),
-		node.WithConsensusGroupSize(genesisConfig.ConsensusGroupSize),
+		node.WithConsensusGroupSize(int(genesisConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),

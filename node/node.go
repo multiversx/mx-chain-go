@@ -56,7 +56,7 @@ type Node struct {
 	marshalizer                  marshal.Marshalizer
 	ctx                          context.Context
 	hasher                       hashing.Hasher
-	initialNodesPubkeys          []string
+	initialNodesPubkeys          [][]string
 	initialNodesBalances         map[string]*big.Int
 	roundDuration                uint64
 	consensusGroupSize           int
@@ -466,7 +466,7 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 	}
 
 	roundConsensus := spos.NewRoundConsensus(
-		n.initialNodesPubkeys,
+		n.initialNodesPubkeys[n.shardCoordinator.ShardForCurrentNode()],
 		n.consensusGroupSize,
 		string(selfId))
 
@@ -494,9 +494,14 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 	}
 
 	validatorsList := make([]consensus.Validator, 0)
+	shID := n.shardCoordinator.ShardForCurrentNode()
 
-	for i := 0; i < len(n.initialNodesPubkeys); i++ {
-		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[i]))
+	if int(shID) >= len(n.initialNodesPubkeys) {
+		return nil, errors.New("could not create validator group as shardID is out of range")
+	}
+
+	for i := 0; i < len(n.initialNodesPubkeys[shID]); i++ {
+		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shID][i]))
 
 		if err != nil {
 			return nil, err
