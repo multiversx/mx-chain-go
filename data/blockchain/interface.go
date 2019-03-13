@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
@@ -37,4 +38,25 @@ type StorageService interface {
 	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
 	// Destroy removes the underlying files/resources used by the storage service
 	Destroy() error
+}
+
+// Blockchain is the interface defining the functionality a blockchain should implement
+type Blockhain interface {
+	StorageService
+	GenesisBlock() *block.Header
+	SetGenesisBlock(gb *block.Header)
+	GenesisHeaderHash() []byte
+	SetGenesisHeaderHash(hash []byte)
+	CurrentBlockHeader() *block.Header
+	SetCurrentBlockHeader(bh *block.Header)
+	CurrentBlockHeaderHash() []byte
+	SetCurrentBlockHeaderHash(hash []byte)
+	CurrentTxBlockBody() block.Body
+	SetCurrentTxBlockBody(body block.Body)
+	LocalHeight() int64
+	SetLocalHeight(height int64)
+	NetworkHeight() int64
+	SetNetworkHeight(height int64)
+	IsBadBlock(blockHash []byte) bool
+	PutBadBlock(blockHash []byte)
 }
