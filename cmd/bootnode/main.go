@@ -316,6 +316,11 @@ func createNode(
 		return nil, err
 	}
 
+	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator.ShardForCurrentNode())
+	if err != nil {
+		return nil, errors.New("initial balances could not be processed " + err.Error())
+	}
+
 	singlesigner := &singlesig.SchnorrSigner{}
 
 	multisigHasher, err := getMultisigHasherFromConfig(config)
@@ -323,7 +328,12 @@ func createNode(
 		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, initialPubKeys[shardCoordinator.ShardForCurrentNode()], privKey, keyGen, uint16(0))
+	currentShardPubKeys, err := genesisConfig.InitialNodesPubKeysForShard(shardCoordinator.ShardForCurrentNode())
+	if err != nil {
+		return nil, errors.New("could not start creation of multisigner: " + err.Error())
+	}
+
+	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, currentShardPubKeys, privKey, keyGen, uint16(0))
 	if err != nil {
 		return nil, err
 	}
@@ -405,12 +415,12 @@ func createNode(
 		node.WithHasher(hasher),
 		node.WithMarshalizer(marshalizer),
 		node.WithInitialNodesPubKeys(initialPubKeys),
-		node.WithInitialNodesBalances(genesisConfig.InitialNodesBalances(shardCoordinator.ShardForCurrentNode())),
+		node.WithInitialNodesBalances(inBalanceForShard),
 		node.WithAddressConverter(addressConverter),
 		node.WithAccountsAdapter(accountsAdapter),
 		node.WithBlockChain(blkc),
 		node.WithRoundDuration(genesisConfig.RoundDuration),
-		node.WithConsensusGroupSize(genesisConfig.ConsensusGroupSize),
+		node.WithConsensusGroupSize(int(genesisConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
