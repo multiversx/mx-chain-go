@@ -56,6 +56,39 @@ func TestMultiShardCoordinator_ComputeIdDoesNotGenerateInvalidShards(t *testing.
 	}
 }
 
+func TestMultiShardCoordinator_ComputeId10ShardsShouldWork(t *testing.T) {
+	nrOfShards := uint32(10)
+	selfId := uint32(0)
+	sr, _ := sharding.NewMultiShardCoordinator(nrOfShards, selfId)
+
+	dataSet := []struct {
+		address, shardId uint32
+	}{
+		{0, 0},
+		{1, 1},
+		{2, 2},
+		{3, 3},
+		{4, 4},
+		{5, 5},
+		{6, 6},
+		{7, 7},
+		{8, 8},
+		{9, 9},
+		{10, 2},
+		{11, 3},
+		{12, 4},
+		{13, 5},
+		{14, 6},
+		{15, 7},
+	}
+	for _, data := range dataSet {
+		addr := getAddressFromUint32(data.address)
+		shardId := sr.ComputeId(addr)
+
+		assert.Equal(t, data.shardId, shardId)
+	}
+}
+
 func TestMultiShardCoordinator_ComputeIdSameSuffixHasSameShard(t *testing.T) {
 	nrOfShards := uint32(2)
 	selfId := uint32(0)
