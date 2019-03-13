@@ -42,14 +42,14 @@ func (tr *patriciaMerkleTree) NewNodeIterator() NodeIterator {
 
 func (tr *patriciaMerkleTree) Get(key []byte) ([]byte, error) {
 	hexKey := keyBytesToHex(key)
-	value, err := tryGet(tr.root, hexKey)
+	value, err := tr.tryGet(tr.root, hexKey)
 	if err != nil {
 		return nil, err
 	}
 	return value, nil
 }
 
-func tryGet(n node, key []byte) (value []byte, err error) {
+func (tr *patriciaMerkleTree) tryGet(n node, key []byte) (value []byte, err error) {
 	switch n := n.(type) {
 	case *extensionNode:
 		keyTooShort := len(key) < len(n.Key)
@@ -63,7 +63,13 @@ func tryGet(n node, key []byte) (value []byte, err error) {
 		}
 
 		key = key[len(n.Key):]
-		value, err = tryGet(n.child, key)
+		if n.isCollapsed() {
+			n, err = tr.resolveExtNode(n)
+			if err != nil {
+				return nil, err
+			}
+		}
+		value, err = tr.tryGet(n.child, key)
 		if err != nil {
 			return nil, err
 		}
@@ -76,9 +82,22 @@ func tryGet(n node, key []byte) (value []byte, err error) {
 			return nil, err
 		}
 
-		value, err = tryGet(n.children[childPos], key)
+		if n.isCollapsed(childPos) {
+			n, err = tr.resolveBrNode(n)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		value, err = tr.tryGet(n.children[childPos], key)
 		return value, err
 	case *leafNode:
+		if n.isCollapsed(tr) {
+			n, err = tr.resolveLeafNode(n)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if bytes.Equal(key, n.Key) {
 			return n.Value, nil
 		}
@@ -90,10 +109,77 @@ func tryGet(n node, key []byte) (value []byte, err error) {
 	}
 }
 
+func (tr *patriciaMerkleTree) resolveExtNode(en *extensionNode) (*extensionNode, error) {
+	child, err := tr.getNodeFromDB(en.EncodedChild)
+	if err != nil {
+		return nil, err
+	}
+	en.child = child
+	return en, nil
+}
+
+func (tr *patriciaMerkleTree) resolveBrNode(bn *branchNode) (*branchNode, error) {
+	for i := range bn.children {
+		if bn.EncodedChildren[i] != nil {
+			child, err := tr.getNodeFromDB(bn.EncodedChildren[i])
+			if err != nil {
+				return nil, err
+			}
+			bn.children[i] = child
+		}
+	}
+	return bn, nil
+}
+
+func (tr *patriciaMerkleTree) resolveLeafNode(ln *leafNode) (*leafNode, error) {
+	node, err := tr.getNodeFromDB(ln.Value)
+	if err != nil {
+		return nil, err
+	}
+	if node, ok := node.(*leafNode); ok {
+		ln = node
+	}
+	return ln, nil
+}
+
+func (tr *patriciaMerkleTree) getNodeFromDB(n []byte) (node, error) {
+	encChild, err := tr.dbw.Get(n)
+	if err != nil {
+		return nil, err
+	}
+	node, err := tr.decodeNode(encChild)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (tr *patriciaMerkleTree) isCollapsed(n node) bool {
+	switch n := n.(type) {
+	case *extensionNode:
+		return n.isCollapsed()
+	case *branchNode:
+		for i := range n.children {
+			if n.children[i] == nil && n.EncodedChildren[i] != nil {
+				return true
+			}
+		}
+		return false
+	case *leafNode:
+		_, err := tr.decodeNode(n.Value)
+		if err != nil {
+			return false
+		}
+		return true
+	default:
+		return false
+	}
+}
+
 func (tr *patriciaMerkleTree) Update(key, value []byte) error {
 	hexKey := keyBytesToHex(key)
 	if len(value) != 0 {
-		_, newRoot, err := insert(tr.root, hexKey, value)
+		_, newRoot, err := tr.insert(tr.root, hexKey, value)
 		if err != nil {
 			return err
 		}
@@ -108,15 +194,23 @@ func (tr *patriciaMerkleTree) Update(key, value []byte) error {
 	return nil
 }
 
-func insert(n node, key []byte, value []byte) (bool, node, error) {
+func (tr *patriciaMerkleTree) insert(n node, key []byte, value []byte) (bool, node, error) {
 	var err error
 	switch n := n.(type) {
 	case *extensionNode:
 		keyMatchLen := prefixLen(key, n.Key)
+
+		if n.isCollapsed() {
+			n, err = tr.resolveExtNode(n)
+			if err != nil {
+				return false, nil, err
+			}
+		}
+
 		// If the whole key matches, keep this extension node as is
 		// and only update the value.
 		if keyMatchLen == len(n.Key) {
-			dirty, newNode, err := insert(n.child, key[keyMatchLen:], value)
+			dirty, newNode, err := tr.insert(n.child, key[keyMatchLen:], value)
 			if !dirty || err != nil {
 				return false, n, err
 			}
@@ -129,7 +223,7 @@ func insert(n node, key []byte, value []byte) (bool, node, error) {
 		newChildPos := key[keyMatchLen]
 
 		branch.children[oldChildPos] = &extensionNode{n.Key[keyMatchLen+1:], nil, n.child, nil, true}
-		_, branch.children[newChildPos], err = insert(nil, key[keyMatchLen+1:], value)
+		_, branch.children[newChildPos], err = tr.insert(nil, key[keyMatchLen+1:], value)
 		if err != nil {
 			return false, nil, err
 		}
@@ -142,10 +236,18 @@ func insert(n node, key []byte, value []byte) (bool, node, error) {
 	case *branchNode:
 		childPos := key[firstByte]
 		key, err = removeFirstByte(key)
+
+		if n.isCollapsed(childPos) {
+			n, err = tr.resolveBrNode(n)
+			if err != nil {
+				return false, nil, err
+			}
+		}
+
 		if err != nil {
 			return false, nil, err
 		}
-		dirty, newNode, err := insert(n.children[childPos], key, value)
+		dirty, newNode, err := tr.insert(n.children[childPos], key, value)
 		if !dirty || err != nil {
 			return false, n, err
 		}
@@ -153,6 +255,12 @@ func insert(n node, key []byte, value []byte) (bool, node, error) {
 		n.children[childPos] = newNode
 		return true, n, nil
 	case *leafNode:
+		if n.isCollapsed(tr) {
+			n, err = tr.resolveLeafNode(n)
+			if err != nil {
+				return false, nil, err
+			}
+		}
 		if bytes.Equal(key, n.Key) {
 			n.Value = value
 			return true, n, nil
@@ -164,12 +272,12 @@ func insert(n node, key []byte, value []byte) (bool, node, error) {
 		oldChildPos := n.Key[keyMatchLen]
 		newChildPos := key[keyMatchLen]
 
-		_, branch.children[oldChildPos], err = insert(nil, n.Key[keyMatchLen+1:], n.Value)
+		_, branch.children[oldChildPos], err = tr.insert(nil, n.Key[keyMatchLen+1:], n.Value)
 		if err != nil {
 			return false, nil, err
 		}
 
-		_, branch.children[newChildPos], err = insert(nil, key[keyMatchLen+1:], value)
+		_, branch.children[newChildPos], err = tr.insert(nil, key[keyMatchLen+1:], value)
 		if err != nil {
 			return false, nil, err
 		}
@@ -198,11 +306,18 @@ func (tr *patriciaMerkleTree) Delete(key []byte) error {
 }
 
 func (tr *patriciaMerkleTree) delete(n node, key []byte) (bool, node, error) {
+	var err error
 	switch n := n.(type) {
 	case *extensionNode:
 		keyMatchLen := prefixLen(key, n.Key)
 		if keyMatchLen < len(n.Key) {
 			return false, n, nil // don't replace n on mismatch
+		}
+		if n.isCollapsed() {
+			n, err = tr.resolveExtNode(n)
+			if err != nil {
+				return false, nil, err
+			}
 		}
 
 		dirty, newNode, err := tr.delete(n.child, key[len(n.Key):])
@@ -222,6 +337,12 @@ func (tr *patriciaMerkleTree) delete(n node, key []byte) (bool, node, error) {
 		key, err := removeFirstByte(key)
 		if err != nil {
 			return false, nil, err
+		}
+		if n.isCollapsed(childPos) {
+			n, err = tr.resolveBrNode(n)
+			if err != nil {
+				return false, nil, err
+			}
 		}
 		dirty, newNode, err := tr.delete(n.children[childPos], key)
 		if !dirty || err != nil {
@@ -254,6 +375,12 @@ func (tr *patriciaMerkleTree) delete(n node, key []byte) (bool, node, error) {
 		return true, n, nil
 	case *leafNode:
 		keyMatchLen := prefixLen(key, n.Key)
+		if n.isCollapsed(tr) {
+			n, err = tr.resolveLeafNode(n)
+			if err != nil {
+				return false, nil, err
+			}
+		}
 		if keyMatchLen == len(key) {
 			return true, nil, nil
 		}
@@ -369,7 +496,11 @@ func (tr *patriciaMerkleTree) VerifyProof(proofs [][]byte, key []byte) (bool, er
 	}
 	return false, nil
 }
+
 func (tr *patriciaMerkleTree) Commit() error {
+	if tr.isCollapsed(tr.root) {
+		return nil
+	}
 	n, err := tr.setHash(tr.root)
 	if err != nil {
 		return err
@@ -389,11 +520,11 @@ func (tr *patriciaMerkleTree) commit(n node) error {
 	switch n := n.(type) {
 	case *extensionNode:
 		err := tr.commit(n.child)
-		if !n.dirty {
-			return nil
-		}
 		if err != nil {
 			return err
+		}
+		if !n.dirty {
+			return nil
 		}
 		key := n.getHash()
 		collapsedNode, err := tr.collapseNode(n)

@@ -32,3 +32,5 @@ var ErrNilDatabase = errors.New("no database provided")
 var ErrInvalidEncoding = errors.New("cannot decode this invalid encoding")
 
 var ErrValueTooShort = errors.New("cannot remove bytes from value because value is too short")
+
+var ErrUnableToGetFromDB = errors.New("cannot get value from database")

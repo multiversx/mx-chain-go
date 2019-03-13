@@ -1,7 +1,6 @@
 package trie3_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
@@ -27,6 +26,16 @@ func testTrie2(nr int) (trie3.Trie, [][]byte) {
 
 }
 
+func testTrie(db trie3.DBWriteCacher) trie3.Trie {
+	tr, _ := trie3.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, db)
+
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	return tr
+}
+
 func TestNewTrieWithNilParameters(t *testing.T) {
 	tr, err := trie3.NewTrie(nil, nil, nil)
 
@@ -44,7 +53,7 @@ func TestPatriciaMerkleTree_Get(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Update(t *testing.T) {
-	tr := testTrie()
+	tr := testTrie(nil)
 
 	newVal := []byte("doge")
 	tr.Update([]byte("dog"), newVal)
@@ -54,7 +63,7 @@ func TestPatriciaMerkleTree_Update(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_UpdateEmptyVal(t *testing.T) {
-	tr := testTrie()
+	tr := testTrie(nil)
 	var empty []byte
 
 	tr.Update([]byte("doe"), []byte{})
@@ -64,7 +73,7 @@ func TestPatriciaMerkleTree_UpdateEmptyVal(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_UpdateNotExisting(t *testing.T) {
-	tr := testTrie()
+	tr := testTrie(nil)
 
 	tr.Update([]byte("does"), []byte("this"))
 
@@ -73,7 +82,7 @@ func TestPatriciaMerkleTree_UpdateNotExisting(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Delete(t *testing.T) {
-	tr := testTrie()
+	tr := testTrie(nil)
 	var empty []byte
 
 	tr.Delete([]byte("doe"))
@@ -83,7 +92,7 @@ func TestPatriciaMerkleTree_Delete(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Root(t *testing.T) {
-	tr := testTrie()
+	tr := testTrie(nil)
 
 	root, err := tr.Root()
 	assert.NotNil(t, root)
@@ -91,7 +100,7 @@ func TestPatriciaMerkleTree_Root(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Prove(t *testing.T) {
-	tr := testTrie()
+	tr := testTrie(nil)
 	it := tr.NewNodeIterator()
 	var proof1 [][]byte
 
@@ -129,14 +138,14 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_NodeIterator(t *testing.T) {
-	tr := testTrie()
+	tr := testTrie(nil)
 	it := tr.NewNodeIterator()
 
 	assert.NotNil(t, it)
 }
 
 func TestPatriciaMerkleTree_Consistency(t *testing.T) {
-	tr := testTrie()
+	tr := testTrie(nil)
 	root1, _ := tr.Root()
 
 	tr.Update([]byte("dodge"), []byte("viper"))
@@ -149,15 +158,59 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 	assert.NotEqual(t, root1, root2)
 }
 
-func TestNewTrie(t *testing.T) {
+func TestPatriciaMerkleTree_Commit(t *testing.T) {
 	db, err := memorydb.New()
-	fmt.Println(err, " database")
-	tr, _ := trie3.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, db)
-
-	tr.Update([]byte("doe"), []byte("reindeer"))
-	tr.Update([]byte("dog"), []byte("puppy"))
-	tr.Update([]byte("dogglesworth"), []byte("cat"))
+	assert.Nil(t, err)
+	assert.NotNil(t, db)
+	tr := testTrie(db)
 
 	err = tr.Commit()
-	fmt.Println(err, " commit")
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTree_GetAfterCommit(t *testing.T) {
+	db, _ := memorydb.New()
+	tr := testTrie(db)
+
+	err := tr.Commit()
+	assert.Nil(t, err)
+
+	val, err := tr.Get([]byte("dog"))
+	assert.Equal(t, []byte("puppy"), val)
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTree_InsertAfterCommit(t *testing.T) {
+	db, _ := memorydb.New()
+	tr1 := testTrie(db)
+	tr2 := testTrie(db)
+
+	err := tr1.Commit()
+	assert.Nil(t, err)
+
+	tr1.Update([]byte("doge"), []byte("coin"))
+	tr2.Update([]byte("doge"), []byte("coin"))
+
+	root1, _ := tr1.Root()
+	root2, _ := tr2.Root()
+
+	assert.Equal(t, root2, root1)
+
+}
+
+func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
+	db, _ := memorydb.New()
+	tr1 := testTrie(db)
+	tr2 := testTrie(db)
+
+	err := tr1.Commit()
+	assert.Nil(t, err)
+
+	tr1.Delete([]byte("dogglesworth"))
+	tr2.Delete([]byte("dogglesworth"))
+
+	root1, _ := tr1.Root()
+	root2, _ := tr2.Root()
+
+	assert.Equal(t, root2, root1)
 }

@@ -36,6 +36,28 @@ func (ln *leafNode) getHash() []byte {
 	return ln.hash
 }
 
+func (bn *branchNode) isCollapsed(pos byte) bool {
+	if bn.children[pos] == nil && bn.EncodedChildren[pos] != nil {
+		return true
+	}
+	return false
+}
+
+func (en *extensionNode) isCollapsed() bool {
+	if en.child == nil && en.EncodedChild != nil {
+		return true
+	}
+	return false
+}
+
+func (ln *leafNode) isCollapsed(tr *patriciaMerkleTree) bool {
+	_, err := tr.decodeNode(ln.Value)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 func (bn *branchNode) copy() *branchNode {
 	cpy := *bn
 	return &cpy
