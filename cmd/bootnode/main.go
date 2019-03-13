@@ -294,7 +294,9 @@ func createNode(
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
-	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer)
+	shardCoordinator := &sharding.OneShardCoordinator{}
+
+	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
@@ -305,8 +307,6 @@ func createNode(
 	if err != nil {
 		return nil, errors.New("could not create transient data pool: " + err.Error())
 	}
-
-	shardCoordinator := &sharding.OneShardCoordinator{}
 
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 
@@ -350,13 +350,10 @@ func createNode(
 		return nil, err
 	}
 
-	interceptorsContainer := containers.NewObjectsContainer()
 	resolversContainer := containers.NewResolversContainer()
 
 	interceptorsResolversFactory, err := factory.NewInterceptorsResolversCreator(
 		factory.InterceptorsResolversConfig{
-
-			InterceptorContainer:     interceptorsContainer,
 			ResolverContainer:        resolversContainer,
 			Messenger:                netMessenger,
 			Blockchain:               blkc,
@@ -374,7 +371,23 @@ func createNode(
 		return nil, err
 	}
 
-	err = interceptorsResolversFactory.CreateInterceptors()
+	interceptorContainerFactory, err := factory.NewInterceptorsContainerFactory(
+		shardCoordinator,
+		netMessenger,
+		blkc,
+		marshalizer,
+		hasher,
+		keyGen,
+		singlesigner,
+		multisigner,
+		datapool,
+		addressConverter,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -386,7 +399,7 @@ func createNode(
 
 	forkDetector := sync2.NewBasicForkDetector()
 
-	res, err := interceptorsResolversFactory.ResolverContainer().Get(string(factory.TransactionTopic))
+	res, err := interceptorsResolversFactory.ResolverContainer().Get(factory.TransactionTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -435,6 +448,7 @@ func createNode(
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsResolversFactory(interceptorsResolversFactory),
+		node.WithInterceptorsContainer(interceptorsContainer),
 	)
 
 	if err != nil {

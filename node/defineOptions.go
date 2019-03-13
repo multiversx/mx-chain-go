@@ -272,3 +272,14 @@ func WithInterceptorsResolversFactory(interceptorsResolversCreator process.Inter
 		return nil
 	}
 }
+
+// WithInterceptorsContainer sets up the interceptors container option for the Node
+func WithInterceptorsContainer(interceptorsContainer process.InterceptorsContainer) Option {
+	return func(n *Node) error {
+		if interceptorsContainer == nil {
+			return ErrNilInterceptorsContainer
+		}
+		n.interceptorsContainer = interceptorsContainer
+		return nil
+	}
+}

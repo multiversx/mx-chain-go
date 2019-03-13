@@ -665,9 +665,13 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 	mutRecoveredTransactions := &sync.RWMutex{}
 	recoveredTransactions := make(map[uint64]*transaction.Transaction)
 	signer := &mock.SinglesignMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
 	mes := &mock.MessengerStub{
 		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
-			if topic == string(factory.TransactionTopic) {
+			identifier := factory.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode())
+
+			if topic == identifier {
 				//handler to capture sent data
 				tx := transaction.Transaction{}
 
@@ -695,6 +699,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
 		node.WithSinglesig(signer),
+		node.WithShardCoordinator(shardCoordinator),
 	)
 
 	n.SetMessenger(mes)
@@ -729,6 +734,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithMarshalizer(&mock.MarshalizerFake{}),
 		node.WithAddressConverter(mock.NewAddressConverterFake(32, "0x")),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	txSent := false

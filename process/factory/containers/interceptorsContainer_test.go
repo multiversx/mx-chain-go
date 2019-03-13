@@ -9,67 +9,57 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewResolversContainer_ShouldWork(t *testing.T) {
+func TestNewInterceptorsContainer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewResolversContainer()
+	c := containers.NewInterceptorsContainer()
 
 	assert.NotNil(t, c)
 }
 
 //------- Add
 
-func TestResolversContainer_AddAlreadyExistingShouldErr(t *testing.T) {
+func TestInterceptorsContainer_AddAlreadyExistingShouldErr(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewResolversContainer()
+	c := containers.NewInterceptorsContainer()
 
-	_ = c.Add("key", &mock.ResolverStub{})
-	err := c.Add("key", &mock.ResolverStub{})
+	_ = c.Add("key", &mock.InterceptorStub{})
+	err := c.Add("key", &mock.InterceptorStub{})
 
 	assert.Equal(t, process.ErrContainerKeyAlreadyExists, err)
 }
 
-func TestResolversContainer_AddNilShouldErr(t *testing.T) {
+func TestInterceptorsContainer_AddNilShouldErr(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewResolversContainer()
+	c := containers.NewInterceptorsContainer()
 
 	err := c.Add("key", nil)
 
 	assert.Equal(t, process.ErrNilContainerElement, err)
 }
 
-func TestResolversContainer_AddEmptyKeyShouldWork(t *testing.T) {
+func TestInterceptorsContainer_AddShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewResolversContainer()
+	c := containers.NewInterceptorsContainer()
 
-	err := c.Add("", &mock.ResolverStub{})
-
-	assert.Nil(t, err)
-}
-
-func TestResolversContainer_AddShouldWork(t *testing.T) {
-	t.Parallel()
-
-	c := containers.NewResolversContainer()
-
-	err := c.Add("key", &mock.ResolverStub{})
+	err := c.Add("key", &mock.InterceptorStub{})
 
 	assert.Nil(t, err)
 }
 
 //------- Get
 
-func TestResolversContainer_GetNotFoundShouldErr(t *testing.T) {
+func TestInterceptorsContainer_GetNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewResolversContainer()
+	c := containers.NewInterceptorsContainer()
 
 	key := "key"
 	keyNotFound := "key not found"
-	val := &mock.ResolverStub{}
+	val := &mock.InterceptorStub{}
 
 	_ = c.Add(key, val)
 	valRecovered, err := c.Get(keyNotFound)
@@ -78,10 +68,10 @@ func TestResolversContainer_GetNotFoundShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInvalidContainerKey, err)
 }
 
-func TestResolversContainer_GetWrongTypeShouldErr(t *testing.T) {
+func TestInterceptorsContainer_GetWrongTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewResolversContainer()
+	c := containers.NewInterceptorsContainer()
 
 	key := "key"
 
@@ -92,13 +82,13 @@ func TestResolversContainer_GetWrongTypeShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrWrongTypeInContainer, err)
 }
 
-func TestResolversContainer_GetShouldWork(t *testing.T) {
+func TestInterceptorsContainer_GetShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewResolversContainer()
+	c := containers.NewInterceptorsContainer()
 
 	key := "key"
-	val := &mock.ResolverStub{}
+	val := &mock.InterceptorStub{}
 
 	_ = c.Add(key, val)
 	valRecovered, err := c.Get(key)
@@ -109,13 +99,13 @@ func TestResolversContainer_GetShouldWork(t *testing.T) {
 
 //------- Replace
 
-func TestResolversContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
+func TestInterceptorsContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewResolversContainer()
+	c := containers.NewInterceptorsContainer()
 
 	key := "key"
-	val := &mock.ResolverStub{}
+	val := &mock.InterceptorStub{}
 
 	_ = c.Add(key, val)
 	err := c.Replace(key, nil)
@@ -126,14 +116,14 @@ func TestResolversContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
 	assert.Equal(t, val, valRecovered)
 }
 
-func TestResolversContainer_ReplaceShouldWork(t *testing.T) {
+func TestInterceptorsContainer_ReplaceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewResolversContainer()
+	c := containers.NewInterceptorsContainer()
 
 	key := "key"
-	val := &mock.ResolverStub{}
-	val2 := &mock.ResolverStub{}
+	val := &mock.InterceptorStub{}
+	val2 := &mock.InterceptorStub{}
 
 	_ = c.Add(key, val)
 	err := c.Replace(key, val2)
@@ -146,13 +136,13 @@ func TestResolversContainer_ReplaceShouldWork(t *testing.T) {
 
 //------- Remove
 
-func TestResolversContainer_RemoveShouldWork(t *testing.T) {
+func TestInterceptorsContainer_RemoveShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewResolversContainer()
+	c := containers.NewInterceptorsContainer()
 
 	key := "key"
-	val := &mock.ResolverStub{}
+	val := &mock.InterceptorStub{}
 
 	_ = c.Add(key, val)
 	c.Remove(key)
@@ -165,15 +155,15 @@ func TestResolversContainer_RemoveShouldWork(t *testing.T) {
 
 //------- Len
 
-func TestResolversContainer_LenShouldWork(t *testing.T) {
+func TestInterceptorsContainer_LenShouldWork(t *testing.T) {
 	t.Parallel()
 
-	c := containers.NewResolversContainer()
+	c := containers.NewInterceptorsContainer()
 
-	_ = c.Add("key1", &mock.ResolverStub{})
+	_ = c.Add("key1", &mock.InterceptorStub{})
 	assert.Equal(t, 1, c.Len())
 
-	_ = c.Add("key2", &mock.ResolverStub{})
+	_ = c.Add("key2", &mock.InterceptorStub{})
 	assert.Equal(t, 2, c.Len())
 
 	c.Remove("key1")

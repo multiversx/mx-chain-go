@@ -16,17 +16,6 @@ import (
 
 //------- NewInterceptorsResolversCreator
 
-func TestNewInterceptorsResolversCreator_NilInterceptorContainerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	pFactoryConfig := createConfig()
-	pFactoryConfig.InterceptorContainer = nil
-	pFactory, err := factory.NewInterceptorsResolversCreator(pFactoryConfig)
-
-	assert.Nil(t, pFactory)
-	assert.Equal(t, process.ErrNilInterceptorContainer, err)
-}
-
 func TestNewInterceptorsResolversCreator_NilResolverContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -169,62 +158,6 @@ func TestNewInterceptorsResolversCreator_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestNewInterceptorsResolversCreator_ShouldNotModifyContainerPointers(t *testing.T) {
-	t.Parallel()
-
-	pFactoryConfig := createConfig()
-
-	cm1 := &mock.ObjectsContainerStub{}
-	cm2 := &mock.ResolversContainerStub{}
-
-	pFactoryConfig.InterceptorContainer = cm1
-	pFactoryConfig.ResolverContainer = cm2
-
-	pFactory, _ := factory.NewInterceptorsResolversCreator(pFactoryConfig)
-
-	assert.True(t, cm1 == pFactory.InterceptorContainer())
-	assert.True(t, cm2 == pFactory.ResolverContainer())
-}
-
-//------- CreateInterceptors
-
-func TestInterceptorsResolversCreator_CreateInterceptorsReturnsSuccessfully(t *testing.T) {
-	t.Parallel()
-
-	pFactoryConfig := createConfig()
-	pFactory, err := factory.NewInterceptorsResolversCreator(pFactoryConfig)
-	assert.Nil(t, err)
-
-	err = pFactory.CreateInterceptors()
-	assert.Nil(t, err)
-}
-
-func TestInterceptorsResolversCreator_CreateInterceptorsNewTopicInterceptorErrorsWillMakeCreateInterceptorsError(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected error")
-
-	pFactoryConfig := createConfig()
-	pFactoryConfig.Messenger = &mock.MessengerStub{
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		HasTopicValidatorCalled: func(name string) bool {
-			return false
-		},
-		RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
-			return errExpected
-		},
-		CreateTopicCalled: func(name string, createPipeForTopic bool) error {
-			return nil
-		},
-	}
-	pFactory, _ := factory.NewInterceptorsResolversCreator(pFactoryConfig)
-
-	err := pFactory.CreateInterceptors()
-	assert.Equal(t, errExpected, err)
-}
-
 func TestInterceptorsResolversCreator_CreateResolversReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
 
@@ -269,11 +202,6 @@ func createConfig() factory.InterceptorsResolversConfig {
 
 	mockMessenger := createMessenger()
 	mockTransientDataPool := createDataPool()
-	mockInterceptorContainer := &mock.ObjectsContainerStub{
-		AddCalled: func(key string, val interface{}) error {
-			return nil
-		},
-	}
 	mockResolverContainer := &mock.ResolversContainerStub{
 		AddCalled: func(key string, val process.Resolver) error {
 			return nil
@@ -281,7 +209,6 @@ func createConfig() factory.InterceptorsResolversConfig {
 	}
 
 	return factory.InterceptorsResolversConfig{
-		InterceptorContainer:     mockInterceptorContainer,
 		ResolverContainer:        mockResolverContainer,
 		Messenger:                mockMessenger,
 		DataPool:                 mockTransientDataPool,
