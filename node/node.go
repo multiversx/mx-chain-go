@@ -496,7 +496,11 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 	validatorsList := make([]consensus.Validator, 0)
 	shID := n.shardCoordinator.ShardForCurrentNode()
 
-	for i := 0; i < len(n.initialNodesPubkeys); i++ {
+	if int(shID) >= len(n.initialNodesPubkeys) {
+		return nil, errors.New("could not create validator group as shardID is out of range")
+	}
+
+	for i := 0; i < len(n.initialNodesPubkeys[shID]); i++ {
 		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shID][i]))
 
 		if err != nil {

@@ -14,11 +14,9 @@ var log = logger.NewDefaultLogger()
 
 // InitialNode holds data from json and decoded data from genesis process
 type InitialNode struct {
-	Address string `json:"address"`
 	PubKey  string `json:"pubkey"`
 	Balance string `json:"balance"`
 	shard   uint32
-	address []byte
 	pubKey  []byte
 	balance *big.Int
 }
@@ -34,7 +32,6 @@ type Genesis struct {
 	nrOfShards         uint32
 	nrOfNodes          uint32
 	allNodesPubKeys    [][]string
-	allNodesAddress    [][]string
 }
 
 // NewGenesisConfig creates a new decoded genesis structure from json config file
@@ -46,15 +43,18 @@ func NewGenesisConfig(genesisFilePath string) (*Genesis, error) {
 		return nil, err
 	}
 
-	genesis.processConfig()
-	genesis.processShardAssigment()
+	err = genesis.processConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	genesis.processShardAssignment()
 	genesis.createInitialNodesPubKeys()
-	genesis.createInitialNodesAddress()
 
 	return genesis, nil
 }
 
-func (g *Genesis) processConfig() {
+func (g *Genesis) processConfig() error {
 	var err error
 	var ok bool
 
@@ -62,9 +62,11 @@ func (g *Genesis) processConfig() {
 	for i := 0; i < len(g.InitialNodes); i++ {
 		g.InitialNodes[i].pubKey, err = hex.DecodeString(g.InitialNodes[i].PubKey)
 
-		if err != nil {
+		// decoder treats empty string as correct, it is not allowed to have empty string as public key
+		if g.InitialNodes[i].PubKey == "" || err != nil {
+			g.InitialNodes[i].pubKey = nil
 			log.Error(fmt.Sprintf("%s is not a valid public key. Ignored", g.InitialNodes[i].PubKey))
-			continue
+			return errors.ErrCouldNotParsePubKey
 		}
 
 		g.InitialNodes[i].balance, ok = new(big.Int).SetString(g.InitialNodes[i].Balance, 10)
@@ -75,21 +77,12 @@ func (g *Genesis) processConfig() {
 		}
 
 		g.nrOfNodes++
-
-		if g.InitialNodes[i].Address != "" {
-			g.InitialNodes[i].address, err = hex.DecodeString(g.InitialNodes[i].Address)
-
-			if err != nil {
-				log.Error(fmt.Sprintf("%s is not a valid address. Ignored",
-					g.InitialNodes[i].Address))
-				continue
-			}
-		}
-
 	}
+
+	return nil
 }
 
-func (g *Genesis) processShardAssigment() {
+func (g *Genesis) processShardAssignment() {
 	// initial verification - should not happen.
 	if g.ConsensusGroupSize < 1 {
 		g.ConsensusGroupSize = 1
@@ -98,11 +91,11 @@ func (g *Genesis) processShardAssigment() {
 		g.MinNodesPerShard = g.ConsensusGroupSize
 	}
 
-	// initial implementation - as there is no other info than public key, we allocate first N nodes to first shard and so on.
+	// initial implementation - as there is no other info than public key, we allocate first nodes in FIFO order to shards
 	g.nrOfShards = g.nrOfNodes / g.MinNodesPerShard
 	currentShard := uint32(0)
 	countSetNodes := uint32(0)
-	for currentShard = uint32(0); currentShard < g.nrOfShards; currentShard++ {
+	for ; currentShard < g.nrOfShards; currentShard++ {
 		for id := countSetNodes; id < (currentShard+1)*g.MinNodesPerShard; id++ {
 			// consider only nodes with valid public key
 			if g.InitialNodes[id].pubKey != nil {
@@ -113,9 +106,10 @@ func (g *Genesis) processShardAssigment() {
 	}
 
 	// allocate the rest
+	currentShard = 0
 	for i := countSetNodes; i < g.nrOfNodes; i++ {
 		g.InitialNodes[i].shard = currentShard
-		currentShard = (currentShard + 1) % g.nrOfNodes
+		currentShard = (currentShard + 1) % g.nrOfShards
 	}
 }
 
@@ -128,52 +122,40 @@ func (g *Genesis) createInitialNodesPubKeys() {
 	}
 }
 
-func (g *Genesis) createInitialNodesAddress() {
-	g.allNodesAddress = make([][]string, g.nrOfShards)
-	for _, in := range g.InitialNodes {
-		if in.address != nil {
-			g.allNodesAddress[in.shard] = append(g.allNodesAddress[in.shard], string(in.address))
-		}
-	}
-}
-
 // InitialNodesPubKeys - gets initial public keys
 func (g *Genesis) InitialNodesPubKeys() [][]string {
 	return g.allNodesPubKeys
 }
 
-// InitialNodesAddress - gets initial addresses
-func (g *Genesis) InitialNodesAddress() [][]string {
-	return g.allNodesAddress
-}
-
 // InitialNodesPubKeysForShard - gets initial public keys
-func (g *Genesis) InitialNodesPubKeysForShard(shardID uint32) ([]string, error) {
-	if shardID >= g.nrOfShards {
+func (g *Genesis) InitialNodesPubKeysForShard(ShardID uint32) ([]string, error) {
+	if ShardID >= g.nrOfShards {
 		return nil, errors.ErrShardIdOutOfRange
 	}
-	return g.allNodesPubKeys[shardID], nil
-}
 
-// InitialNodesAddressForShard - gets initial addresses keys
-func (g *Genesis) InitialNodesAddressForShard(shardID uint32) ([]string, error) {
-	if shardID >= g.nrOfShards {
-		return nil, errors.ErrShardIdOutOfRange
+	if len(g.allNodesPubKeys[ShardID]) == 0 {
+		return nil, errors.ErrNoPubKeys
 	}
-	return g.allNodesAddress[shardID], nil
+
+	return g.allNodesPubKeys[ShardID], nil
 }
 
 // InitialNodesBalances - gets the initial balances of the nodes
-func (g *Genesis) InitialNodesBalances(shardID uint32) (map[string]*big.Int, error) {
-	if shardID >= g.nrOfShards {
+func (g *Genesis) InitialNodesBalances(ShardID uint32) (map[string]*big.Int, error) {
+	if ShardID >= g.nrOfShards {
 		return nil, errors.ErrShardIdOutOfRange
 	}
 
 	var balances = make(map[string]*big.Int)
 	for _, in := range g.InitialNodes {
-		if in.shard == shardID {
+		if in.shard == ShardID {
 			balances[string(in.pubKey)] = in.balance
 		}
 	}
+
+	if len(balances) == 0 {
+		return nil, errors.ErrNoPubKeys
+	}
+
 	return balances, nil
 }

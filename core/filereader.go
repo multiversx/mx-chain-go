@@ -10,7 +10,7 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
-// LoadFile method to open file from given path
+// LoadFile method to open file from given path - does not close the file
 func LoadFile(relativePath string, log *logger.Logger) (*os.File, error) {
 	path, err := filepath.Abs(relativePath)
 	fmt.Println(path)
