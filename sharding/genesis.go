@@ -65,7 +65,6 @@ func (g *Genesis) processConfig() error {
 		// decoder treats empty string as correct, it is not allowed to have empty string as public key
 		if g.InitialNodes[i].PubKey == "" || err != nil {
 			g.InitialNodes[i].pubKey = nil
-			log.Error(fmt.Sprintf("%s is not a valid public key. Ignored", g.InitialNodes[i].PubKey))
 			return errors.ErrCouldNotParsePubKey
 		}
 
@@ -128,27 +127,27 @@ func (g *Genesis) InitialNodesPubKeys() [][]string {
 }
 
 // InitialNodesPubKeysForShard - gets initial public keys
-func (g *Genesis) InitialNodesPubKeysForShard(ShardID uint32) ([]string, error) {
-	if ShardID >= g.nrOfShards {
+func (g *Genesis) InitialNodesPubKeysForShard(shardId uint32) ([]string, error) {
+	if shardId >= g.nrOfShards {
 		return nil, errors.ErrShardIdOutOfRange
 	}
 
-	if len(g.allNodesPubKeys[ShardID]) == 0 {
+	if len(g.allNodesPubKeys[shardId]) == 0 {
 		return nil, errors.ErrNoPubKeys
 	}
 
-	return g.allNodesPubKeys[ShardID], nil
+	return g.allNodesPubKeys[shardId], nil
 }
 
 // InitialNodesBalances - gets the initial balances of the nodes
-func (g *Genesis) InitialNodesBalances(ShardID uint32) (map[string]*big.Int, error) {
-	if ShardID >= g.nrOfShards {
+func (g *Genesis) InitialNodesBalances(shardId uint32) (map[string]*big.Int, error) {
+	if shardId >= g.nrOfShards {
 		return nil, errors.ErrShardIdOutOfRange
 	}
 
 	var balances = make(map[string]*big.Int)
 	for _, in := range g.InitialNodes {
-		if in.shard == ShardID {
+		if in.shard == shardId {
 			balances[string(in.pubKey)] = in.balance
 		}
 	}
