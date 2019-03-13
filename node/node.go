@@ -79,7 +79,7 @@ type Node struct {
 	forkDetector     process.ForkDetector
 
 	blkc             *blockchain.BlockChain
-	dataPool         data.TransientDataHolder
+	dataPool         data.PoolsHolder
 	shardCoordinator sharding.ShardCoordinator
 
 	isRunning bool

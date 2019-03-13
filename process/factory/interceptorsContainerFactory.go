@@ -23,7 +23,7 @@ type interceptorsContainerFactory struct {
 	keyGen           crypto.KeyGenerator
 	singleSigner     crypto.SingleSigner
 	multiSigner      crypto.MultiSigner
-	dataPool         data.TransientDataHolder
+	dataPool         data.PoolsHolder
 	addrConverter    state.AddressConverter
 }
 
@@ -37,7 +37,7 @@ func NewInterceptorsContainerFactory(
 	keyGen crypto.KeyGenerator,
 	singleSigner crypto.SingleSigner,
 	multiSigner crypto.MultiSigner,
-	dataPool data.TransientDataHolder,
+	dataPool data.PoolsHolder,
 	addrConverter state.AddressConverter,
 ) (*interceptorsContainerFactory, error) {
 
@@ -90,22 +90,38 @@ func NewInterceptorsContainerFactory(
 func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer, error) {
 	container := containers.NewInterceptorsContainer()
 
-	err := icf.addTxInterceptors(container)
+	keys, interceptorSlice, err := icf.generateTxInterceptors()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
 	}
 
-	err = icf.addHdrInterceptors(container)
+	keys, interceptorSlice, err = icf.generateHdrInterceptors()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
 	}
 
-	err = icf.addMiniBlocksInterceptors(container)
+	keys, interceptorSlice, err = icf.generateMiniBlocksInterceptors()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
 	}
 
-	err = icf.addPeerChBlockBodyInterceptors(container)
+	keys, interceptorSlice, err = icf.generatePeerChBlockBodyInterceptors()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
 	}
@@ -128,26 +144,27 @@ func (icf *interceptorsContainerFactory) createTopicAndAssignHandler(
 
 //------- Tx interceptors
 
-func (icf *interceptorsContainerFactory) addTxInterceptors(container process.InterceptorsContainer) error {
+func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
 	noOfShards := shardC.NoShards()
+
+	keys := make([]string, noOfShards)
+	interceptorSlice := make([]process.Interceptor, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := TransactionTopic + shardC.CommunicationIdentifier(idx)
 
 		interceptor, err := icf.createOneTxInterceptor(identifierTx)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 
-		err = container.Add(identifierTx, interceptor)
-		if err != nil {
-			return err
-		}
+		keys[int(idx)] = identifierTx
+		interceptorSlice[int(idx)] = interceptor
 	}
 
-	return nil
+	return keys, interceptorSlice, nil
 }
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
@@ -172,7 +189,7 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 
 //------- Hdr interceptors
 
-func (icf *interceptorsContainerFactory) addHdrInterceptors(container process.InterceptorsContainer) error {
+func (icf *interceptorsContainerFactory) generateHdrInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
 	//only one intrashard header topic
@@ -180,10 +197,10 @@ func (icf *interceptorsContainerFactory) addHdrInterceptors(container process.In
 
 	interceptor, err := icf.createOneHdrInterceptor(identifierHdr)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return container.Add(identifierHdr, interceptor)
+	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
 }
 
 func (icf *interceptorsContainerFactory) createOneHdrInterceptor(identifier string) (process.Interceptor, error) {
@@ -208,26 +225,27 @@ func (icf *interceptorsContainerFactory) createOneHdrInterceptor(identifier stri
 
 //------- MiniBlocks interceptors
 
-func (icf *interceptorsContainerFactory) addMiniBlocksInterceptors(container process.InterceptorsContainer) error {
+func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
 	noOfShards := shardC.NoShards()
+
+	keys := make([]string, noOfShards)
+	interceptorSlice := make([]process.Interceptor, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
 
 		interceptor, err := icf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 
-		err = container.Add(identifierMiniBlocks, interceptor)
-		if err != nil {
-			return err
-		}
+		keys[int(idx)] = identifierMiniBlocks
+		interceptorSlice[int(idx)] = interceptor
 	}
 
-	return nil
+	return keys, interceptorSlice, nil
 }
 
 func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {
@@ -250,7 +268,7 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifi
 
 //------- PeerChBlocks interceptors
 
-func (icf *interceptorsContainerFactory) addPeerChBlockBodyInterceptors(container process.InterceptorsContainer) error {
+func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
 	//only one intrashard peer change blocks topic
@@ -258,10 +276,10 @@ func (icf *interceptorsContainerFactory) addPeerChBlockBodyInterceptors(containe
 
 	interceptor, err := icf.createOnePeerChBlockBodyInterceptor(identifierPeerCh)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return container.Add(identifierPeerCh, interceptor)
+	return []string{identifierPeerCh}, []process.Interceptor{interceptor}, nil
 }
 
 func (icf *interceptorsContainerFactory) createOnePeerChBlockBodyInterceptor(identifier string) (process.Interceptor, error) {

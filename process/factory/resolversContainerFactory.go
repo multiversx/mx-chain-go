@@ -18,16 +18,19 @@ type resolversContainerFactory struct {
 	messenger                process.TopicMessageHandler
 	blockchain               *blockchain.BlockChain
 	marshalizer              marshal.Marshalizer
-	dataPool                 data.TransientDataHolder
+	dataPools                data.PoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
+// TODO ,ddm add constructor name
+
+// NewResolversContainerFactory ddd
 func NewResolversContainerFactory(
 	shardCoordinator sharding.ShardCoordinator,
 	messenger process.TopicMessageHandler,
 	blockchain *blockchain.BlockChain,
 	marshalizer marshal.Marshalizer,
-	dataPool data.TransientDataHolder,
+	dataPools data.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (*resolversContainerFactory, error) {
 
@@ -43,7 +46,7 @@ func NewResolversContainerFactory(
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
 	}
-	if dataPool == nil {
+	if dataPools == nil {
 		return nil, process.ErrNilDataPoolHolder
 	}
 	if uint64ByteSliceConverter == nil {
@@ -55,7 +58,7 @@ func NewResolversContainerFactory(
 		messenger:                messenger,
 		blockchain:               blockchain,
 		marshalizer:              marshalizer,
-		dataPool:                 dataPool,
+		dataPools:                dataPools,
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
 	}, nil
 }
@@ -64,22 +67,38 @@ func NewResolversContainerFactory(
 func (rcf *resolversContainerFactory) Create() (process.ResolversContainer, error) {
 	container := containers.NewResolversContainer()
 
-	err := rcf.addTxResolvers(container)
+	keys, resolverSlice, err := rcf.generateTxResolvers()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, resolverSlice)
 	if err != nil {
 		return nil, err
 	}
 
-	err = rcf.addHdrResolvers(container)
+	keys, resolverSlice, err = rcf.generateHdrResolvers()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, resolverSlice)
 	if err != nil {
 		return nil, err
 	}
 
-	err = rcf.addMiniBlocksResolvers(container)
+	keys, resolverSlice, err = rcf.generateMiniBlocksResolvers()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, resolverSlice)
 	if err != nil {
 		return nil, err
 	}
 
-	err = rcf.addPeerChBlockBodyResolvers(container)
+	keys, resolverSlice, err = rcf.generatePeerChBlockBodyResolvers()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, resolverSlice)
 	if err != nil {
 		return nil, err
 	}
@@ -88,40 +107,42 @@ func (rcf *resolversContainerFactory) Create() (process.ResolversContainer, erro
 }
 
 func (rcf *resolversContainerFactory) createTopicAndAssignHandler(
-	topic string,
+	topicName string,
 	resolver process.Resolver,
-	createChannel bool) (process.Resolver, error) {
+	createChannel bool,
+) (process.Resolver, error) {
 
-	err := rcf.messenger.CreateTopic(topic, createChannel)
+	err := rcf.messenger.CreateTopic(topicName, createChannel)
 	if err != nil {
 		return nil, err
 	}
 
-	return resolver, rcf.messenger.RegisterMessageProcessor(topic, resolver)
+	return resolver, rcf.messenger.RegisterMessageProcessor(topicName, resolver)
 }
 
 //------- Tx resolvers
 
-func (rcf *resolversContainerFactory) addTxResolvers(container process.ResolversContainer) error {
+func (rcf *resolversContainerFactory) generateTxResolvers() ([]string, []process.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
 	noOfShards := shardC.NoShards()
+
+	keys := make([]string, noOfShards)
+	resolverSlice := make([]process.Resolver, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := TransactionTopic + shardC.CommunicationIdentifier(idx)
 
 		resolver, err := rcf.createOneTxResolver(identifierTx)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 
-		err = container.Add(identifierTx, resolver)
-		if err != nil {
-			return err
-		}
+		resolverSlice[idx] = resolver
+		keys[idx] = identifierTx
 	}
 
-	return nil
+	return keys, resolverSlice, nil
 }
 
 func (rcf *resolversContainerFactory) createOneTxResolver(identifier string) (process.Resolver, error) {
@@ -137,7 +158,7 @@ func (rcf *resolversContainerFactory) createOneTxResolver(identifier string) (pr
 
 	resolver, err := transaction.NewTxResolver(
 		resolverSender,
-		rcf.dataPool.Transactions(),
+		rcf.dataPools.Transactions(),
 		txStorer,
 		rcf.marshalizer)
 	if err != nil {
@@ -146,14 +167,14 @@ func (rcf *resolversContainerFactory) createOneTxResolver(identifier string) (pr
 
 	//add on the request topic
 	return rcf.createTopicAndAssignHandler(
-		identifier+resolverSender.RequestTopicSuffix(),
+		identifier+resolverSender.TopicRequestSuffix(),
 		resolver,
 		false)
 }
 
 //------- Hdr resolvers
 
-func (rcf *resolversContainerFactory) addHdrResolvers(container process.ResolversContainer) error {
+func (rcf *resolversContainerFactory) generateHdrResolvers() ([]string, []process.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
 	//only one intrashard header topic
@@ -161,10 +182,10 @@ func (rcf *resolversContainerFactory) addHdrResolvers(container process.Resolver
 
 	resolver, err := rcf.createOneHdrResolver(identifierHdr)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return container.Add(identifierHdr, resolver)
+	return []string{identifierHdr}, []process.Resolver{resolver}, nil
 }
 
 func (rcf *resolversContainerFactory) createOneHdrResolver(identifier string) (process.Resolver, error) {
@@ -180,7 +201,7 @@ func (rcf *resolversContainerFactory) createOneHdrResolver(identifier string) (p
 
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
-		rcf.dataPool,
+		rcf.dataPools,
 		hdrStorer,
 		rcf.marshalizer,
 		rcf.uint64ByteSliceConverter)
@@ -190,33 +211,34 @@ func (rcf *resolversContainerFactory) createOneHdrResolver(identifier string) (p
 
 	//add on the request topic
 	return rcf.createTopicAndAssignHandler(
-		identifier+resolverSender.RequestTopicSuffix(),
+		identifier+resolverSender.TopicRequestSuffix(),
 		resolver,
 		false)
 }
 
 //------- MiniBlocks resolvers
 
-func (rcf *resolversContainerFactory) addMiniBlocksResolvers(container process.ResolversContainer) error {
+func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, []process.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
 	noOfShards := shardC.NoShards()
+
+	keys := make([]string, noOfShards)
+	resolverSlice := make([]process.Resolver, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierMiniBlocks := MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
 
 		resolver, err := rcf.createOneMiniBlocksResolver(identifierMiniBlocks)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 
-		err = container.Add(identifierMiniBlocks, resolver)
-		if err != nil {
-			return err
-		}
+		resolverSlice[idx] = resolver
+		keys[idx] = identifierMiniBlocks
 	}
 
-	return nil
+	return keys, resolverSlice, nil
 }
 
 func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(identifier string) (process.Resolver, error) {
@@ -232,7 +254,7 @@ func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(identifier str
 
 	txBlkResolver, err := resolvers.NewGenericBlockBodyResolver(
 		resolverSender,
-		rcf.dataPool.MiniBlocks(),
+		rcf.dataPools.MiniBlocks(),
 		miniBlocksStorer,
 		rcf.marshalizer)
 	if err != nil {
@@ -241,14 +263,14 @@ func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(identifier str
 
 	//add on the request topic
 	return rcf.createTopicAndAssignHandler(
-		identifier+resolverSender.RequestTopicSuffix(),
+		identifier+resolverSender.TopicRequestSuffix(),
 		txBlkResolver,
 		false)
 }
 
 //------- PeerChBlocks resolvers
 
-func (rcf *resolversContainerFactory) addPeerChBlockBodyResolvers(container process.ResolversContainer) error {
+func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolvers() ([]string, []process.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
 	//only one intrashard peer change blocks topic
@@ -256,10 +278,10 @@ func (rcf *resolversContainerFactory) addPeerChBlockBodyResolvers(container proc
 
 	resolver, err := rcf.createOnePeerChBlockBodyResolver(identifierPeerCh)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return container.Add(identifierPeerCh, resolver)
+	return []string{identifierPeerCh}, []process.Resolver{resolver}, nil
 }
 
 func (rcf *resolversContainerFactory) createOnePeerChBlockBodyResolver(identifier string) (process.Resolver, error) {
@@ -275,7 +297,7 @@ func (rcf *resolversContainerFactory) createOnePeerChBlockBodyResolver(identifie
 
 	peerChResolver, err := resolvers.NewGenericBlockBodyResolver(
 		resolverSender,
-		rcf.dataPool.MiniBlocks(),
+		rcf.dataPools.MiniBlocks(),
 		peerBlockBodyStorer,
 		rcf.marshalizer)
 	if err != nil {
@@ -284,7 +306,7 @@ func (rcf *resolversContainerFactory) createOnePeerChBlockBodyResolver(identifie
 
 	//add on the request topic
 	return rcf.createTopicAndAssignHandler(
-		identifier+resolverSender.RequestTopicSuffix(),
+		identifier+resolverSender.TopicRequestSuffix(),
 		peerChResolver,
 		false)
 }

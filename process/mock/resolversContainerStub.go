@@ -20,6 +20,10 @@ func (rcs *ResolversContainerStub) Add(key string, val process.Resolver) error {
 	return rcs.AddCalled(key, val)
 }
 
+func (rcs *ResolversContainerStub) AddMultiple(keys []string, resolvers []process.Resolver) error {
+	panic("implement me")
+}
+
 func (rcs *ResolversContainerStub) Replace(key string, val process.Resolver) error {
 	return rcs.ReplaceCalled(key, val)
 }

@@ -20,7 +20,7 @@ func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
 
 	hdrRes, err := resolvers.NewHeaderResolver(
 		nil,
-		&mock.TransientDataPoolStub{},
+		&mock.PoolsHolderStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
@@ -30,7 +30,7 @@ func TestNewHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
 	assert.Nil(t, hdrRes)
 }
 
-func TestNewHeaderResolver_NilTransientPoolShouldErr(t *testing.T) {
+func TestNewHeaderResolver_NilPoolsHolderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hdrRes, err := resolvers.NewHeaderResolver(
@@ -41,21 +41,21 @@ func TestNewHeaderResolver_NilTransientPoolShouldErr(t *testing.T) {
 		mock.NewNonceHashConverterMock(),
 	)
 
-	assert.Equal(t, process.ErrNilTransientPool, err)
+	assert.Equal(t, process.ErrNilPoolsHolder, err)
 	assert.Nil(t, hdrRes)
 }
 
-func TestNewHeaderResolver_NilTransientHeadersPoolShouldErr(t *testing.T) {
+func TestNewHeaderResolver_NilHeadersPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	transientPool := createDataPool()
-	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools := createDataPool()
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		return nil
 	}
 
 	hdrRes, err := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		transientPool,
+		pools,
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
@@ -65,17 +65,17 @@ func TestNewHeaderResolver_NilTransientHeadersPoolShouldErr(t *testing.T) {
 	assert.Nil(t, hdrRes)
 }
 
-func TestNewHeaderResolver_NilTransientHeadersNoncesPoolShouldErr(t *testing.T) {
+func TestNewHeaderResolver_NilHeadersNoncesPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	transientPool := createDataPool()
-	transientPool.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools := createDataPool()
+	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		return nil
 	}
 
 	hdrRes, err := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		transientPool,
+		pools,
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		mock.NewNonceHashConverterMock(),
@@ -186,8 +186,8 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 	searchWasCalled := false
 	sendWasCalled := false
 
-	transientPool := createDataPool()
-	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools := createDataPool()
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
 		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
@@ -210,7 +210,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 				return nil
 			},
 		},
-		transientPool,
+		pools,
 		&mock.StorerStub{},
 		marshalizer,
 		mock.NewNonceHashConverterMock(),
@@ -230,8 +230,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 
 	errExpected := errors.New("MarshalizerMock generic error")
 
-	transientPool := createDataPool()
-	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools := createDataPool()
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
 		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
@@ -260,7 +260,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 				return nil
 			},
 		},
-		transientPool,
+		pools,
 		&mock.StorerStub{},
 		marshalizerStub,
 		mock.NewNonceHashConverterMock(),
@@ -275,8 +275,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 
 	requestedData := []byte("aaaa")
 
-	transientPool := createDataPool()
-	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools := createDataPool()
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
 		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
@@ -308,7 +308,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 				return nil
 			},
 		},
-		transientPool,
+		pools,
 		store,
 		marshalizer,
 		mock.NewNonceHashConverterMock(),
@@ -325,8 +325,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageCheckRetError
 
 	requestedData := []byte("aaaa")
 
-	transientPool := createDataPool()
-	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools := createDataPool()
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
 		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
@@ -351,7 +351,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageCheckRetError
 
 	hdrRes, _ := resolvers.NewHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		transientPool,
+		pools,
 		store,
 		marshalizer,
 		mock.NewNonceHashConverterMock(),
@@ -381,8 +381,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 
 	requestedNonce := uint64(67)
 
-	transientPool := createDataPool()
-	transientPool.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools := createDataPool()
+	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		headersNonces := &mock.Uint64CacherStub{}
 		headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
 			return nil, false
@@ -402,7 +402,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 				return nil
 			},
 		},
-		transientPool,
+		pools,
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 		nonceConverter,
@@ -423,8 +423,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	wasResolved := false
 	wasSent := false
 
-	transientPool := &mock.TransientDataPoolStub{}
-	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools := &mock.PoolsHolderStub{}
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
 		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
@@ -438,7 +438,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 		return headers
 	}
-	transientPool.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		headersNonces := &mock.Uint64CacherStub{}
 		headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
 			if u == requestedNonce {
@@ -461,7 +461,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 				return nil
 			},
 		},
-		transientPool,
+		pools,
 		&mock.StorerStub{},
 		marshalizer,
 		nonceConverter,
@@ -484,8 +484,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	wasResolved := false
 	wasSend := false
 
-	transientPool := &mock.TransientDataPoolStub{}
-	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools := &mock.PoolsHolderStub{}
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
 		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
@@ -494,7 +494,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 		return headers
 	}
-	transientPool.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		headersNonces := &mock.Uint64CacherStub{}
 		headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
 			if u == requestedNonce {
@@ -527,7 +527,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 				return nil
 			},
 		},
-		transientPool,
+		pools,
 		store,
 		marshalizer,
 		nonceConverter,
@@ -549,8 +549,8 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 	errExpected := errors.New("expected error")
 
-	transientPool := &mock.TransientDataPoolStub{}
-	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools := &mock.PoolsHolderStub{}
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		headers := &mock.ShardedDataStub{}
 
 		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
@@ -559,7 +559,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 
 		return headers
 	}
-	transientPool.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		headersNonces := &mock.Uint64CacherStub{}
 		headersNonces.GetCalled = func(u uint64) (i []byte, b bool) {
 			if u == requestedNonce {
@@ -590,7 +590,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 				return nil
 			},
 		},
-		transientPool,
+		pools,
 		store,
 		marshalizer,
 		nonceConverter,

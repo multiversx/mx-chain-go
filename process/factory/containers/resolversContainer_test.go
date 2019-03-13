@@ -60,6 +60,48 @@ func TestResolversContainer_AddShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+//------- AddMultiple
+
+func TestResolversContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewResolversContainer()
+
+	keys := []string{"key", "key"}
+	resolvers := []process.Resolver{&mock.ResolverStub{}, &mock.ResolverStub{}}
+
+	err := c.AddMultiple(keys, resolvers)
+
+	assert.Equal(t, process.ErrContainerKeyAlreadyExists, err)
+}
+
+func TestResolversContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewResolversContainer()
+
+	keys := []string{"key"}
+	resolvers := []process.Resolver{&mock.ResolverStub{}, &mock.ResolverStub{}}
+
+	err := c.AddMultiple(keys, resolvers)
+
+	assert.Equal(t, process.ErrLenMismatch, err)
+}
+
+func TestResolversContainer_AddMultipleShouldWork(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewResolversContainer()
+
+	keys := []string{"key1", "key2"}
+	resolvers := []process.Resolver{&mock.ResolverStub{}, &mock.ResolverStub{}}
+
+	err := c.AddMultiple(keys, resolvers)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, c.Len())
+}
+
 //------- Get
 
 func TestResolversContainer_GetNotFoundShouldErr(t *testing.T) {

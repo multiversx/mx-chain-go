@@ -71,7 +71,7 @@ func (ti *testInitializer) createMemUnit() storage.Storer {
 	return unit
 }
 
-func (ti *testInitializer) createTestDataPool() data.TransientDataHolder {
+func (ti *testInitializer) createTestDataPool() data.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 
@@ -140,7 +140,7 @@ func (ti *testInitializer) createMultiSigner(
 
 func (ti *testInitializer) createNetNode(
 	port int,
-	dPool data.TransientDataHolder,
+	dPool data.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.ShardCoordinator,
 ) (

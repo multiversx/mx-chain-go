@@ -44,24 +44,24 @@ func createStubTopicMessageHandler(matchStrToErrOnCreate string, matchStrToErrOn
 	return tmhs
 }
 
-func createDataPool() data.TransientDataHolder {
-	mockTransientDataPool := &mock.TransientDataPoolMock{}
-	mockTransientDataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
+func createDataPools() data.PoolsHolder {
+	pools := &mock.PoolsHolderStub{}
+	pools.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	mockTransientDataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	mockTransientDataPool.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		return &mock.Uint64CacherStub{}
 	}
-	mockTransientDataPool.MiniBlocksCalled = func() storage.Cacher {
+	pools.MiniBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
-	mockTransientDataPool.PeerChangesBlocksCalled = func() storage.Cacher {
+	pools.PeerChangesBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
-	return mockTransientDataPool
+	return pools
 }
 
 func createBlockchain() *blockchain.BlockChain {
@@ -85,7 +85,7 @@ func TestNewResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T)
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -101,7 +101,7 @@ func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 		nil,
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -117,7 +117,7 @@ func TestNewResolversContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 		createStubTopicMessageHandler("", ""),
 		nil,
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -133,7 +133,7 @@ func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
 		nil,
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -165,7 +165,7 @@ func TestNewResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testin
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		nil,
 	)
 
@@ -181,7 +181,7 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -199,7 +199,7 @@ func TestResolversContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testin
 		createStubTopicMessageHandler(factory.TransactionTopic, ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -217,7 +217,7 @@ func TestResolversContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *testi
 		createStubTopicMessageHandler(factory.HeadersTopic, ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -235,7 +235,7 @@ func TestResolversContainerFactory_CreateTopicCreationMiniBlocksFailsShouldErr(t
 		createStubTopicMessageHandler(factory.MiniBlocksTopic, ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -253,7 +253,7 @@ func TestResolversContainerFactory_CreateTopicCreationPeerChBlocksFailsShouldErr
 		createStubTopicMessageHandler(factory.PeerChBodyTopic, ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -271,7 +271,7 @@ func TestResolversContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) 
 		createStubTopicMessageHandler("", factory.TransactionTopic),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -289,7 +289,7 @@ func TestResolversContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing.T)
 		createStubTopicMessageHandler("", factory.HeadersTopic),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -307,7 +307,7 @@ func TestResolversContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *tes
 		createStubTopicMessageHandler("", factory.MiniBlocksTopic),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -325,7 +325,7 @@ func TestResolversContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t *t
 		createStubTopicMessageHandler("", factory.PeerChBodyTopic),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -343,7 +343,7 @@ func TestResolversContainerFactory_CreateShouldWork(t *testing.T) {
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 
@@ -367,7 +367,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
-		createDataPool(),
+		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
 	)
 

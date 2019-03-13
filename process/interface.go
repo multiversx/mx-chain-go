@@ -95,7 +95,7 @@ type MiniBlocksResolver interface {
 type TopicResolverSender interface {
 	SendOnRequestTopic(rd *RequestData) error
 	Send(buff []byte, peer p2p.PeerID) error
-	RequestTopicSuffix() string
+	TopicRequestSuffix() string
 }
 
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
@@ -118,6 +118,7 @@ type ForkDetector interface {
 type ResolversContainer interface {
 	Get(key string) (Resolver, error)
 	Add(key string, val Resolver) error
+	AddMultiple(keys []string, resolvers []Resolver) error
 	Replace(key string, val Resolver) error
 	Remove(key string)
 	Len() int
@@ -127,6 +128,7 @@ type ResolversContainer interface {
 type InterceptorsContainer interface {
 	Get(key string) (Interceptor, error)
 	Add(key string, val Interceptor) error
+	AddMultiple(keys []string, interceptors []Interceptor) error
 	Replace(key string, val Interceptor) error
 	Remove(key string)
 	Len() int

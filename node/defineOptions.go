@@ -185,8 +185,8 @@ func WithElasticSubrounds(elasticSubrounds bool) Option {
 	}
 }
 
-// WithDataPool sets up the transient data pool option for the Node
-func WithDataPool(dataPool data.TransientDataHolder) Option {
+// WithDataPool sets up the data pools option for the Node
+func WithDataPool(dataPool data.PoolsHolder) Option {
 	return func(n *Node) error {
 		if dataPool == nil {
 			return ErrNilDataPool
@@ -196,7 +196,7 @@ func WithDataPool(dataPool data.TransientDataHolder) Option {
 	}
 }
 
-// WithShardCoordinator sets up the transient shard coordinator for the Node
+// WithShardCoordinator sets up the shard coordinator for the Node
 func WithShardCoordinator(shardCoordinator sharding.ShardCoordinator) Option {
 	return func(n *Node) error {
 		if shardCoordinator == nil {

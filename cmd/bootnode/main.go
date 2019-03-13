@@ -410,7 +410,7 @@ func createNode(
 
 	datapool, err := createDataPoolFromConfig(config, uint64ByteSliceConverter)
 	if err != nil {
-		return nil, errors.New("could not create transient data pool: " + err.Error())
+		return nil, errors.New("could not create data pools: " + err.Error())
 	}
 
 	initialPubKeys := genesisConfig.initialNodesPubkeys(log)
@@ -718,7 +718,11 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 	}
 }
 
-func createDataPoolFromConfig(config *config.Config, uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter) (data.TransientDataHolder, error) {
+func createDataPoolFromConfig(
+	config *config.Config,
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+) (data.PoolsHolder, error) {
+
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
 		return nil, err

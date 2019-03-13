@@ -436,7 +436,7 @@ func TestWithDataPool_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	dataPool := &mock.TransientDataPoolMock{}
+	dataPool := &mock.PoolsHolderStub{}
 
 	opt := WithDataPool(dataPool)
 	err := opt(node)
