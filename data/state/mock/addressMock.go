@@ -13,13 +13,13 @@ type AddressMock struct {
 
 var r *rand.Rand
 
+func init() {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
 // NewAddressMock generates a new address
 func NewAddressMock() *AddressMock {
 	buff := make([]byte, HasherMock{}.Size())
-
-	if r == nil {
-		r = rand.New(rand.NewSource(time.Now().UnixNano()))
-	}
 
 	r.Read(buff)
 

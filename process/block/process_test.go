@@ -22,6 +22,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var r *rand.Rand
+
+func init() {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
 func haveTime() time.Duration {
 	return time.Duration(2000 * time.Millisecond)
 }
@@ -1568,8 +1574,6 @@ func TestSortTxByNonce_OneTxShouldWork(t *testing.T) {
 
 	cacher, _ := storage.NewCache(storage.LRUCache, 100)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	hash, tx := createRandTx(r)
 
 	cacher.HasOrAdd(hash, tx)
@@ -1726,8 +1730,6 @@ func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 
 func genCacherTransactionsHashes(noOfTx int) (storage.Cacher, []*transaction.Transaction, [][]byte) {
 	cacher, _ := storage.NewCache(storage.LRUCache, uint32(noOfTx))
-
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	genHashes := make([][]byte, 0)
 	genTransactions := make([]*transaction.Transaction, 0)

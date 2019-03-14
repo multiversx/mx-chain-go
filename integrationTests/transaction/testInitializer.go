@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"io"
 	"math/rand"
 	"strings"
 	"time"
@@ -38,7 +37,7 @@ import (
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 )
 
-var r io.Reader
+var r *rand.Rand
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -103,11 +102,9 @@ func (ti *testInitializer) createDummyHexAddress(chars int) string {
 
 	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
 
-	rdm := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	buff := make([]byte, chars)
 	for i := 0; i < chars; i++ {
-		buff[i] = characters[rdm.Int()%16]
+		buff[i] = characters[r.Int()%16]
 	}
 
 	return string(buff)

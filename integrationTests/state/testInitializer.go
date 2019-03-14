@@ -10,18 +10,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 )
 
+var r *rand.Rand
+
+func init() {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
 type testInitializer struct {
-	r *rand.Rand
 }
 
 func (ti *testInitializer) createDummyAddress() state.AddressContainer {
 	buff := make([]byte, sha256.Sha256{}.Size())
 
-	if ti.r == nil {
-		ti.r = rand.New(rand.NewSource(time.Now().UnixNano()))
-	}
-
-	ti.r.Read(buff)
+	r.Read(buff)
 
 	return state.NewAddress(buff)
 }
@@ -41,11 +42,9 @@ func (ti *testInitializer) createDummyHexAddress(chars int) string {
 
 	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
 
-	rdm := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	buff := make([]byte, chars)
 	for i := 0; i < chars; i++ {
-		buff[i] = characters[rdm.Int()%16]
+		buff[i] = characters[r.Int()%16]
 	}
 
 	return string(buff)

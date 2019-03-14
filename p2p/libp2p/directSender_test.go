@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -57,7 +56,6 @@ func createConnStub(stream net.Stream, id peer.ID, sk crypto.PrivKey, remotePeer
 }
 
 func createLibP2PCredentialsDirectSender() (peer.ID, crypto.PrivKey) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
 	id, _ := peer.IDFromPublicKey(sk.GetPublic())
