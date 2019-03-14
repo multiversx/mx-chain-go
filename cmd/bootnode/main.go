@@ -123,7 +123,7 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode, flags.Shards}
 
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
@@ -293,7 +293,11 @@ func createNode(
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
-	shardCoordinator := &sharding.OneShardCoordinator{}
+	// TODO: Constructor parameters should be changed when node assignment in the sharding package is implemented
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), 0)
+	if err != nil {
+		return nil, err
+	}
 
 	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
 	if err != nil {
@@ -315,7 +319,7 @@ func createNode(
 		return nil, err
 	}
 
-	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator.ShardForCurrentNode())
+	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator.SelfId())
 	if err != nil {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
@@ -327,7 +331,7 @@ func createNode(
 		return nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
-	currentShardPubKeys, err := genesisConfig.InitialNodesPubKeysForShard(shardCoordinator.ShardForCurrentNode())
+	currentShardPubKeys, err := genesisConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
 	if err != nil {
 		return nil, errors.New("could not start creation of multisigner: " + err.Error())
 	}
@@ -389,7 +393,7 @@ func createNode(
 	//TODO refactor this as this resolver must not be saved but enquired each time a transaction
 	// (or batch of transactions) is needed according to the shard where this tx might reside
 	res, err := resolversContainer.Get(factory.TransactionTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
 	if err != nil {
 		return nil, err
 	}

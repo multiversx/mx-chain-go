@@ -124,7 +124,7 @@ func (ti *testInitializer) createAccountsDB() *state.AccountsDB {
 func (ti *testInitializer) createNetNode(port int,
 	dPool data.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 ) (
 	*node.Node,
 	p2p.Messenger,

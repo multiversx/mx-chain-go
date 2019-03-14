@@ -22,7 +22,7 @@ type txProcessor struct {
 	hasher           hashing.Hasher
 	scHandler        func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error
 	marshalizer      marshal.Marshalizer
-	shardCoordinator sharding.ShardCoordinator
+	shardCoordinator sharding.Coordinator
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -31,7 +31,7 @@ func NewTxProcessor(
 	hasher hashing.Hasher,
 	addressConv state.AddressConverter,
 	marshalizer marshal.Marshalizer,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 ) (*txProcessor, error) {
 
 	if accounts == nil {
@@ -214,9 +214,9 @@ func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, ad
 
 func (txProc *txProcessor) getAccounts(adrSrc, adrDst state.AddressContainer,
 ) (acntSrc, acntDst state.JournalizedAccountWrapper, err error) {
-	shardForCurrentNode := txProc.shardCoordinator.ShardForCurrentNode()
-	shardForSrc := txProc.shardCoordinator.ComputeShardForAddress(adrSrc, txProc.adrConv)
-	shardForDst := txProc.shardCoordinator.ComputeShardForAddress(adrDst, txProc.adrConv)
+	shardForCurrentNode := txProc.shardCoordinator.SelfId()
+	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
+	shardForDst := txProc.shardCoordinator.ComputeId(adrDst)
 
 	srcInShard := shardForSrc == shardForCurrentNode
 	dstInShard := shardForDst == shardForCurrentNode

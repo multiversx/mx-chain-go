@@ -80,7 +80,7 @@ type Node struct {
 
 	blkc             *blockchain.BlockChain
 	dataPool         data.PoolsHolder
-	shardCoordinator sharding.ShardCoordinator
+	shardCoordinator sharding.Coordinator
 
 	isRunning bool
 }
@@ -171,7 +171,7 @@ func (n *Node) CreateShardedStores() error {
 		return errors.New("nil header sharded data store")
 	}
 
-	shards := n.shardCoordinator.NoShards()
+	shards := n.shardCoordinator.NumberOfShards()
 
 	for i := uint32(0); i < shards; i++ {
 		transactionsDataStore.CreateShardStore(i)
@@ -389,7 +389,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	//TODO temporary, will be refactored in EN-1104
-	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.ShardForCurrentNode())
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId())
 
 	for i := 0; i < len(transactions); i++ {
 		n.messenger.BroadcastOnChannel(
@@ -466,7 +466,7 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 	}
 
 	roundConsensus := spos.NewRoundConsensus(
-		n.initialNodesPubkeys[n.shardCoordinator.ShardForCurrentNode()],
+		n.initialNodesPubkeys[n.shardCoordinator.SelfId()],
 		n.consensusGroupSize,
 		string(selfId))
 
@@ -494,7 +494,7 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 	}
 
 	validatorsList := make([]consensus.Validator, 0)
-	shID := n.shardCoordinator.ShardForCurrentNode()
+	shID := n.shardCoordinator.SelfId()
 
 	if int(shID) >= len(n.initialNodesPubkeys) {
 		return nil, errors.New("could not create validator group as shardID is out of range")
@@ -648,7 +648,7 @@ func (n *Node) SendTransaction(
 	}
 
 	//TODO temporary, will be refactored in EN-1104
-	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.ShardForCurrentNode())
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId())
 
 	n.messenger.BroadcastOnChannel(
 		SendTransactionsPipe,
@@ -698,7 +698,7 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 
 	header := &block.Header{
 		Nonce:         0,
-		ShardId:       n.shardCoordinator.ShardForCurrentNode(),
+		ShardId:       n.shardCoordinator.SelfId(),
 		TimeStamp:     uint64(n.genesisTime.Unix()),
 		BlockBodyType: block.StateBlock,
 		Signature:     rootHash,

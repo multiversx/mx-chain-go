@@ -37,7 +37,7 @@ type Bootstrap struct {
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	forkDetector     process.ForkDetector
-	shardCoordinator sharding.ShardCoordinator
+	shardCoordinator sharding.Coordinator
 	accounts         state.AccountsAdapter
 
 	mutHeader   sync.RWMutex
@@ -75,7 +75,7 @@ func NewBootstrap(
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
 	resolversContainer process.ResolversContainer,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 ) (*Bootstrap, error) {
 
@@ -113,7 +113,7 @@ func NewBootstrap(
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversContainer.Get(factory.HeadersTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func NewBootstrap(
 	//TODO refactor this as requesting a miniblock should consider passing also the shard ID,
 	// for now this should work on a one shard architecture
 	miniBlocksResolver, err := resolversContainer.Get(factory.MiniBlocksTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func checkBootstrapNilParameters(
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
 	resolvers process.ResolversContainer,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 ) error {
 	if pools == nil {
@@ -458,7 +458,7 @@ func (boot *Bootstrap) shouldCreateEmptyBlock(nonce uint64) bool {
 }
 
 func (boot *Bootstrap) createAndBroadcastEmptyBlock() error {
-	txBlockBody, header, err := boot.CreateAndCommitEmptyBlock(boot.shardCoordinator.ShardForCurrentNode())
+	txBlockBody, header, err := boot.CreateAndCommitEmptyBlock(boot.shardCoordinator.SelfId())
 
 	if err == nil {
 		log.Info(fmt.Sprintf("body and header with root hash %s and nonce %d were created and commited through the recovery mechanism\n",

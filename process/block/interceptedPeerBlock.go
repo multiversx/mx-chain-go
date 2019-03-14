@@ -35,7 +35,7 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) GetUnderlyingObject() interface{} 
 }
 
 // IntegrityAndValidity checks the integrity and validity of a peer block wrapper
-func (inPeerBlkBdy *InterceptedPeerBlockBody) IntegrityAndValidity(coordinator sharding.ShardCoordinator) error {
+func (inPeerBlkBdy *InterceptedPeerBlockBody) IntegrityAndValidity(coordinator sharding.Coordinator) error {
 	err := inPeerBlkBdy.Integrity(coordinator)
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) IntegrityAndValidity(coordinator s
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (inPeerBlkBdy *InterceptedPeerBlockBody) Integrity(coordinator sharding.ShardCoordinator) error {
+func (inPeerBlkBdy *InterceptedPeerBlockBody) Integrity(coordinator sharding.Coordinator) error {
 	if coordinator == nil {
 		return process.ErrNilShardCoordinator
 	}
@@ -55,7 +55,7 @@ func (inPeerBlkBdy *InterceptedPeerBlockBody) Integrity(coordinator sharding.Sha
 	}
 
 	for _, change := range inPeerBlkBdy.PeerBlockBody {
-		if change.ShardIdDest >= coordinator.NoShards() {
+		if change.ShardIdDest >= coordinator.NumberOfShards() {
 			return process.ErrInvalidShardId
 		}
 

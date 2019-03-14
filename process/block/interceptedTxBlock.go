@@ -35,7 +35,7 @@ func (inTxBlkBdy *InterceptedTxBlockBody) GetUnderlyingObject() interface{} {
 }
 
 // IntegrityAndValidity checks the integrity of a transactions block
-func (inTxBlkBdy *InterceptedTxBlockBody) IntegrityAndValidity(coordinator sharding.ShardCoordinator) error {
+func (inTxBlkBdy *InterceptedTxBlockBody) IntegrityAndValidity(coordinator sharding.Coordinator) error {
 	err := inTxBlkBdy.Integrity(coordinator)
 
 	if err != nil {
@@ -46,7 +46,7 @@ func (inTxBlkBdy *InterceptedTxBlockBody) IntegrityAndValidity(coordinator shard
 }
 
 // Integrity checks the integrity of the state block wrapper
-func (inTxBlkBdy *InterceptedTxBlockBody) Integrity(coordinator sharding.ShardCoordinator) error {
+func (inTxBlkBdy *InterceptedTxBlockBody) Integrity(coordinator sharding.Coordinator) error {
 	if coordinator == nil {
 		return process.ErrNilShardCoordinator
 	}
@@ -60,7 +60,7 @@ func (inTxBlkBdy *InterceptedTxBlockBody) Integrity(coordinator sharding.ShardCo
 			return process.ErrNilTxHashes
 		}
 
-		if miniBlock.ShardID >= coordinator.NoShards() {
+		if miniBlock.ShardID >= coordinator.NumberOfShards() {
 			return process.ErrInvalidShardId
 		}
 

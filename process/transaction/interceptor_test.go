@@ -508,7 +508,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 
 	multiSharder := mock.NewMultipleShardsCoordinatorMock()
 	multiSharder.CurrentShard = 7
-	multiSharder.ComputeShardForAddressCalled = func(address state.AddressContainer, addressConverter state.AddressConverter) uint32 {
+	multiSharder.ComputeIdCalled = func(address state.AddressContainer) uint32 {
 		return 0
 	}
 	storer := &mock.StorerStub{}
@@ -573,7 +573,7 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 	multiSharder := mock.NewMultipleShardsCoordinatorMock()
 	multiSharder.CurrentShard = 0
 	called := uint32(0)
-	multiSharder.ComputeShardForAddressCalled = func(address state.AddressContainer, addressConverter state.AddressConverter) uint32 {
+	multiSharder.ComputeIdCalled = func(address state.AddressContainer) uint32 {
 		defer func() {
 			called++
 		}()

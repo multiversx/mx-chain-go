@@ -21,7 +21,7 @@ type HeaderInterceptor struct {
 	headersNonces    data.Uint64Cacher
 	multiSigVerifier crypto.MultiSigVerifier
 	hasher           hashing.Hasher
-	shardCoordinator sharding.ShardCoordinator
+	shardCoordinator sharding.Coordinator
 }
 
 // NewHeaderInterceptor hooks a new interceptor for block headers
@@ -33,7 +33,7 @@ func NewHeaderInterceptor(
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 ) (*HeaderInterceptor, error) {
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
@@ -119,5 +119,5 @@ func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) erro
 }
 
 func (hi *HeaderInterceptor) checkHeaderForCurrentShard(header *block.InterceptedHeader) bool {
-	return hi.shardCoordinator.ShardForCurrentNode() == header.GetHeader().ShardId
+	return hi.shardCoordinator.SelfId() == header.GetHeader().ShardId
 }

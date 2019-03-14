@@ -42,7 +42,7 @@ type blockProcessor struct {
 	requestedTxHashes    map[string]bool
 	mut                  sync.RWMutex
 	accounts             state.AccountsAdapter
-	shardCoordinator     sharding.ShardCoordinator
+	shardCoordinator     sharding.Coordinator
 	forkDetector         process.ForkDetector
 }
 
@@ -53,7 +53,7 @@ func NewBlockProcessor(
 	marshalizer marshal.Marshalizer,
 	txProcessor process.TransactionProcessor,
 	accounts state.AccountsAdapter,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 	forkDetector process.ForkDetector,
 	requestTransactionHandler func(destShardID uint32, txHash []byte),
 ) (*blockProcessor, error) {
@@ -229,7 +229,7 @@ func (bp *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
 // CreateBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (bp *blockProcessor) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
-	miniBlocks, err := bp.createMiniBlocks(bp.shardCoordinator.NoShards(), maxTransactionsInBlock, round, haveTime)
+	miniBlocks, err := bp.createMiniBlocks(bp.shardCoordinator.NumberOfShards(), maxTransactionsInBlock, round, haveTime)
 
 	if err != nil {
 		return nil, err
@@ -626,7 +626,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 func (bp *blockProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
 	header := &block.Header{MiniBlockHeaders: make([]block.MiniBlockHeader, 0)}
 	header.RootHash = bp.GetRootHash()
-	header.ShardId = bp.shardCoordinator.ShardForCurrentNode()
+	header.ShardId = bp.shardCoordinator.SelfId()
 
 	if body == nil {
 		return header, nil
@@ -641,10 +641,10 @@ func (bp *blockProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderH
 			return nil, err
 		}
 		mbHash := bp.hasher.Compute(string(mbBytes))
-		// TODO: Add correct shard ids in shard coordinator task
+
 		miniBlockHeaders[i] = block.MiniBlockHeader{
 			Hash:            mbHash,
-			SenderShardID:   bp.shardCoordinator.ShardForCurrentNode(),
+			SenderShardID:   bp.shardCoordinator.SelfId(),
 			ReceiverShardID: blockBody[i].ShardID,
 		}
 	}

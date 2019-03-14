@@ -669,7 +669,7 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 	mes := &mock.MessengerStub{
 		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
-			identifier := factory.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode())
+			identifier := factory.TransactionTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
 
 			if topic == identifier {
 				//handler to capture sent data

@@ -263,7 +263,7 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 		shardCoordinator,
 	)
 
-	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
+	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), adr2.Bytes()) {
 			return 1
 		}
@@ -309,7 +309,7 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 		shardCoordinator,
 	)
 
-	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
+	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), adr1.Bytes()) {
 			return 1
 		}
@@ -678,7 +678,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
+	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.RcvAddr) {
 			return 1
 		}
@@ -801,7 +801,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
+	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.SndAddr) {
 			return 1
 		}
@@ -860,7 +860,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
-	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
+	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.SndAddr) {
 			return 1
 		}
@@ -920,7 +920,7 @@ func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t 
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
-	shardCoordinator.ComputeShardForAddressCalled = func(container state.AddressContainer, converter state.AddressConverter) uint32 {
+	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.SndAddr) {
 			return 1
 		}

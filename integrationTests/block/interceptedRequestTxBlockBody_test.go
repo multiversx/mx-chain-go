@@ -96,7 +96,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	//Step 4. request tx block body
 	txBlockBodyRequestor, _ := resolversContainer.Get(factory.MiniBlocksTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
 	miniBlockRequestor := txBlockBodyRequestor.(process.MiniBlocksResolver)
 	miniBlockHashes[0] = txBlockBodyHash
 	miniBlockRequestor.RequestDataFromHashArray(miniBlockHashes)

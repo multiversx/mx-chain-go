@@ -78,6 +78,10 @@ func (g *Genesis) processConfig() error {
 		g.nrOfNodes++
 	}
 
+	if g.nrOfNodes < g.ConsensusGroupSize {
+		return ErrNotEnoughValidators
+	}
+
 	return nil
 }
 
@@ -92,6 +96,17 @@ func (g *Genesis) processShardAssignment() {
 
 	// initial implementation - as there is no other info than public key, we allocate first nodes in FIFO order to shards
 	g.nrOfShards = g.nrOfNodes / g.MinNodesPerShard
+	if g.nrOfShards == 0 {
+		g.nrOfShards = 1
+		for id := uint32(0); id < g.nrOfNodes; id++ {
+			// consider only nodes with valid public key
+			if g.InitialNodes[id].pubKey != nil {
+				g.InitialNodes[id].shard = 0
+			}
+		}
+		return
+	}
+
 	currentShard := uint32(0)
 	countSetNodes := uint32(0)
 	for ; currentShard < g.nrOfShards; currentShard++ {
@@ -110,6 +125,7 @@ func (g *Genesis) processShardAssignment() {
 		g.InitialNodes[i].shard = currentShard
 		currentShard = (currentShard + 1) % g.nrOfShards
 	}
+
 }
 
 func (g *Genesis) createInitialNodesPubKeys() {
@@ -129,11 +145,11 @@ func (g *Genesis) InitialNodesPubKeys() [][]string {
 // InitialNodesPubKeysForShard - gets initial public keys
 func (g *Genesis) InitialNodesPubKeysForShard(shardId uint32) ([]string, error) {
 	if shardId >= g.nrOfShards {
-		return nil, errors.ErrShardIdOutOfRange
+		return nil, ErrShardIdOutOfRange
 	}
 
 	if len(g.allNodesPubKeys[shardId]) == 0 {
-		return nil, errors.ErrNoPubKeys
+		return nil, ErrNoPubKeys
 	}
 
 	return g.allNodesPubKeys[shardId], nil
@@ -142,7 +158,7 @@ func (g *Genesis) InitialNodesPubKeysForShard(shardId uint32) ([]string, error) 
 // InitialNodesBalances - gets the initial balances of the nodes
 func (g *Genesis) InitialNodesBalances(shardId uint32) (map[string]*big.Int, error) {
 	if shardId >= g.nrOfShards {
-		return nil, errors.ErrShardIdOutOfRange
+		return nil, ErrShardIdOutOfRange
 	}
 
 	var balances = make(map[string]*big.Int)
@@ -153,8 +169,13 @@ func (g *Genesis) InitialNodesBalances(shardId uint32) (map[string]*big.Int, err
 	}
 
 	if len(balances) == 0 {
-		return nil, errors.ErrNoPubKeys
+		return nil, ErrNoPubKeys
 	}
 
 	return balances, nil
+}
+
+// NumberOfShards returns the calculated number of shards
+func (g *Genesis) NumberOfShards() uint32 {
+	return g.nrOfShards
 }

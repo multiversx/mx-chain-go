@@ -14,7 +14,7 @@ import (
 )
 
 type resolversContainerFactory struct {
-	shardCoordinator         sharding.ShardCoordinator
+	shardCoordinator         sharding.Coordinator
 	messenger                process.TopicMessageHandler
 	blockchain               *blockchain.BlockChain
 	marshalizer              marshal.Marshalizer
@@ -22,11 +22,9 @@ type resolversContainerFactory struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
-// TODO ,ddm add constructor name
-
-// NewResolversContainerFactory ddd
+// NewResolversContainerFactory creates a new container filled with topic resolvers
 func NewResolversContainerFactory(
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 	messenger process.TopicMessageHandler,
 	blockchain *blockchain.BlockChain,
 	marshalizer marshal.Marshalizer,
@@ -125,7 +123,7 @@ func (rcf *resolversContainerFactory) createTopicAndAssignHandler(
 func (rcf *resolversContainerFactory) generateTxResolvers() ([]string, []process.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
-	noOfShards := shardC.NoShards()
+	noOfShards := shardC.NumberOfShards()
 
 	keys := make([]string, noOfShards)
 	resolverSlice := make([]process.Resolver, noOfShards)
@@ -180,7 +178,7 @@ func (rcf *resolversContainerFactory) generateHdrResolvers() ([]string, []proces
 	shardC := rcf.shardCoordinator
 
 	//only one intrashard header topic
-	identifierHdr := HeadersTopic + shardC.CommunicationIdentifier(shardC.ShardForCurrentNode())
+	identifierHdr := HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	resolver, err := rcf.createOneHdrResolver(identifierHdr)
 	if err != nil {
@@ -225,7 +223,7 @@ func (rcf *resolversContainerFactory) createOneHdrResolver(identifier string) (p
 func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, []process.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
-	noOfShards := shardC.NoShards()
+	noOfShards := shardC.NumberOfShards()
 
 	keys := make([]string, noOfShards)
 	resolverSlice := make([]process.Resolver, noOfShards)
@@ -280,7 +278,7 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolvers() ([]stri
 	shardC := rcf.shardCoordinator
 
 	//only one intrashard peer change blocks topic
-	identifierPeerCh := PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.ShardForCurrentNode())
+	identifierPeerCh := PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	resolver, err := rcf.createOnePeerChBlockBodyResolver(identifierPeerCh)
 	if err != nil {

@@ -21,7 +21,7 @@ type TxInterceptor struct {
 	hasher           hashing.Hasher
 	singleSigner     crypto.SingleSigner
 	keyGen           crypto.KeyGenerator
-	shardCoordinator sharding.ShardCoordinator
+	shardCoordinator sharding.Coordinator
 }
 
 // NewTxInterceptor hooks a new interceptor for transactions
@@ -33,7 +33,7 @@ func NewTxInterceptor(
 	hasher hashing.Hasher,
 	singleSigner crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 ) (*TxInterceptor, error) {
 
 	if marshalizer == nil {
