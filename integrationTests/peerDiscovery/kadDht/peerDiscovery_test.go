@@ -22,13 +22,11 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	tr := peerDiscovery.TestRunner{}
-
 	basePort := 25000
 	noOfPeers := 20
 
 	//Step 1. Create advertiser
-	advertiser := tr.CreateMessenger(
+	advertiser := peerDiscovery.CreateMessenger(
 		context.Background(),
 		basePort,
 		discovery.NewKadDhtPeerDiscoverer(time.Second, randezVous, nil))
@@ -44,7 +42,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 			randezVous,
 			[]string{chooseNonCircuitAddress(advertiser.Addresses())})
 
-		peers[i] = tr.CreateMessenger(
+		peers[i] = peerDiscovery.CreateMessenger(
 			context.Background(),
 			basePort+i,
 			kadDht)
@@ -75,7 +73,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 
 	noOfTests := 5
 	for i := 0; i < noOfTests; i++ {
-		testResult := tr.RunTest(peers, i, "test topic")
+		testResult := peerDiscovery.RunTest(peers, i, "test topic")
 
 		if testResult {
 			return
@@ -90,8 +88,6 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	tr := peerDiscovery.TestRunner{}
-
 	basePort := 25100
 	noOfPeers := 20
 	noOfAdvertisers := 3
@@ -100,12 +96,12 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 	advertisers := make([]p2p.Messenger, noOfAdvertisers)
 	for i := 0; i < noOfAdvertisers; i++ {
 		if i == 0 {
-			advertisers[i] = tr.CreateMessenger(
+			advertisers[i] = peerDiscovery.CreateMessenger(
 				context.Background(),
 				basePort,
 				discovery.NewKadDhtPeerDiscoverer(time.Second, randezVous, nil))
 		} else {
-			advertisers[i] = tr.CreateMessenger(
+			advertisers[i] = peerDiscovery.CreateMessenger(
 				context.Background(),
 				basePort,
 				discovery.NewKadDhtPeerDiscoverer(
@@ -127,7 +123,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 			randezVous,
 			[]string{chooseNonCircuitAddress(advertisers[i%noOfAdvertisers].Addresses())})
 
-		peers[i] = tr.CreateMessenger(
+		peers[i] = peerDiscovery.CreateMessenger(
 			context.Background(),
 			basePort+i,
 			kadDht)
@@ -160,7 +156,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 
 	noOfTests := 5
 	for i := 0; i < noOfTests; i++ {
-		testResult := tr.RunTest(peers, i, "test topic")
+		testResult := peerDiscovery.RunTest(peers, i, "test topic")
 
 		if testResult {
 			return
