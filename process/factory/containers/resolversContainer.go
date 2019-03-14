@@ -49,6 +49,23 @@ func (rc *ResolversContainer) Add(key string, resolver process.Resolver) error {
 	return nil
 }
 
+// AddMultiple will add objects with given keys. Returns
+// an error if one element already exists, lengths mismatch or an interceptor is nil
+func (rc *ResolversContainer) AddMultiple(keys []string, resolvers []process.Resolver) error {
+	if len(keys) != len(resolvers) {
+		return process.ErrLenMismatch
+	}
+
+	for idx, key := range keys {
+		err := rc.Add(key, resolvers[idx])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Replace will add (or replace if it already exists) an object at a given key
 func (rc *ResolversContainer) Replace(key string, resolver process.Resolver) error {
 	if resolver == nil {

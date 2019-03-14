@@ -16,7 +16,7 @@ type GenericBlockBodyInterceptor struct {
 	cache            storage.Cacher
 	hasher           hashing.Hasher
 	storer           storage.Storer
-	shardCoordinator sharding.ShardCoordinator
+	shardCoordinator sharding.Coordinator
 }
 
 // NewGenericBlockBodyInterceptor hooks a new interceptor for block bodies
@@ -26,7 +26,7 @@ func NewGenericBlockBodyInterceptor(
 	cache storage.Cacher,
 	storer storage.Storer,
 	hasher hashing.Hasher,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 ) (*GenericBlockBodyInterceptor, error) {
 
 	if marshalizer == nil {

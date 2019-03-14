@@ -357,8 +357,8 @@ func TestSubroundCommitmentHash_ReceivedCommitmentHash(t *testing.T) {
 	commitment := []byte("commitment")
 
 	cnsMsg := spos.NewConsensusMessage(
+		sr.ConsensusState().Data,
 		commitment,
-		nil,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
 		nil,
 		int(bn.MtCommitmentHash),
@@ -375,6 +375,7 @@ func TestSubroundCommitmentHash_ReceivedCommitmentHash(t *testing.T) {
 	r = sr.ReceivedCommitmentHash(cnsMsg)
 	assert.False(t, r)
 
+	cnsMsg.PubKey = []byte(sr.ConsensusState().ConsensusGroup()[0])
 	sr.ConsensusState().SetStatus(bn.SrCommitmentHash, spos.SsFinished)
 	r = sr.ReceivedCommitmentHash(cnsMsg)
 	assert.False(t, r)
@@ -585,4 +586,22 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunNil(t *testing.T) {
 
 	_, err := sr.GenCommitmentHash()
 	assert.Equal(t, nil, err)
+}
+
+func TestSubroundCommitmentHash_ReceivedCommitmentHashReturnFalseWhenConsensusDataIsNotEqual(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundCommitmentHash()
+
+	cnsMsg := spos.NewConsensusMessage(
+		append(sr.ConsensusState().Data, []byte("X")...),
+		[]byte("commitment"),
+		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtCommitmentHash),
+		uint64(sr.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	assert.False(t, sr.ReceivedCommitmentHash(cnsMsg))
 }

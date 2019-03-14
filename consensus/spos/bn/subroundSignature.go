@@ -226,6 +226,10 @@ func (sr *subroundSignature) receivedSignature(cnsDta *spos.ConsensusMessage) bo
 		return false
 	}
 
+	if !sr.consensusState.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+		return false
+	}
+
 	if !sr.consensusState.IsJobDone(node, SrBitmap) { // is NOT this node in the bitmap group?
 		return false
 	}

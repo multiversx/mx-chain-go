@@ -1,6 +1,8 @@
 package spos
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
@@ -101,11 +103,19 @@ func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs consen
 	return newConsensusGroup, nil
 }
 
-// IsConsensusDataSet method returns true if the consensus data for the current subround is set and false otherwise
+// IsConsensusDataSet method returns true if the consensus data for the current round is set and false otherwise
 func (cns *ConsensusState) IsConsensusDataSet() bool {
 	isConsensusDataSet := cns.Data != nil
 
 	return isConsensusDataSet
+}
+
+// IsConsensusDataEqual method returns true if the consensus data for the current round is the same with the given
+// one and false otherwise
+func (cns *ConsensusState) IsConsensusDataEqual(data []byte) bool {
+	isConsensusDataEqual := bytes.Equal(cns.Data, data)
+
+	return isConsensusDataEqual
 }
 
 // IsJobDone method returns true if the node job for the current subround is done and false otherwise

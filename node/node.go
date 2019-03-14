@@ -53,23 +53,23 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	marshalizer                  marshal.Marshalizer
-	ctx                          context.Context
-	hasher                       hashing.Hasher
-	initialNodesPubkeys          []string
-	initialNodesBalances         map[string]*big.Int
-	roundDuration                uint64
-	consensusGroupSize           int
-	messenger                    p2p.Messenger
-	syncer                       ntp.SyncTimer
-	blockProcessor               process.BlockProcessor
-	genesisTime                  time.Time
-	elasticSubrounds             bool
-	accounts                     state.AccountsAdapter
-	addrConverter                state.AddressConverter
-	uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
-	interceptorsResolversCreator process.InterceptorsResolversFactory
-	interceptorsContainer        process.InterceptorsContainer
+	marshalizer              marshal.Marshalizer
+	ctx                      context.Context
+	hasher                   hashing.Hasher
+	initialNodesPubkeys      [][]string
+	initialNodesBalances     map[string]*big.Int
+	roundDuration            uint64
+	consensusGroupSize       int
+	messenger                p2p.Messenger
+	syncer                   ntp.SyncTimer
+	blockProcessor           process.BlockProcessor
+	genesisTime              time.Time
+	elasticSubrounds         bool
+	accounts                 state.AccountsAdapter
+	addrConverter            state.AddressConverter
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	interceptorsContainer    process.InterceptorsContainer
+	resolversContainer       process.ResolversContainer
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
@@ -79,8 +79,8 @@ type Node struct {
 	forkDetector     process.ForkDetector
 
 	blkc             blockchain.BlockChain
-	dataPool         data.TransientDataHolder
-	shardCoordinator sharding.ShardCoordinator
+	dataPool         data.PoolsHolder
+	shardCoordinator sharding.Coordinator
 
 	isRunning bool
 }
@@ -171,7 +171,7 @@ func (n *Node) CreateShardedStores() error {
 		return errors.New("nil header sharded data store")
 	}
 
-	shards := n.shardCoordinator.NoShards()
+	shards := n.shardCoordinator.NumberOfShards()
 
 	for i := uint32(0); i < shards; i++ {
 		transactionsDataStore.CreateShardStore(i)
@@ -389,7 +389,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	}
 
 	//TODO temporary, will be refactored in EN-1104
-	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.ShardForCurrentNode())
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId())
 
 	for i := 0; i < len(transactions); i++ {
 		n.messenger.BroadcastOnChannel(
@@ -441,7 +441,7 @@ func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrappe
 		n.hasher,
 		n.marshalizer,
 		n.forkDetector,
-		n.interceptorsResolversCreator.ResolverContainer(),
+		n.resolversContainer,
 		n.shardCoordinator,
 		n.accounts,
 	)
@@ -466,7 +466,7 @@ func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
 	}
 
 	roundConsensus := spos.NewRoundConsensus(
-		n.initialNodesPubkeys,
+		n.initialNodesPubkeys[n.shardCoordinator.SelfId()],
 		n.consensusGroupSize,
 		string(selfId))
 
@@ -494,9 +494,14 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 	}
 
 	validatorsList := make([]consensus.Validator, 0)
+	shID := n.shardCoordinator.SelfId()
 
-	for i := 0; i < len(n.initialNodesPubkeys); i++ {
-		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[i]))
+	if int(shID) >= len(n.initialNodesPubkeys) {
+		return nil, errors.New("could not create validator group as shardID is out of range")
+	}
+
+	for i := 0; i < len(n.initialNodesPubkeys[shID]); i++ {
+		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shID][i]))
 
 		if err != nil {
 			return nil, err
@@ -643,7 +648,7 @@ func (n *Node) SendTransaction(
 	}
 
 	//TODO temporary, will be refactored in EN-1104
-	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.ShardForCurrentNode())
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId())
 
 	n.messenger.BroadcastOnChannel(
 		SendTransactionsPipe,
@@ -693,7 +698,7 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 
 	header := &block.Header{
 		Nonce:         0,
-		ShardId:       n.shardCoordinator.ShardForCurrentNode(),
+		ShardId:       n.shardCoordinator.SelfId(),
 		TimeStamp:     uint64(n.genesisTime.Unix()),
 		BlockBodyType: block.StateBlock,
 		Signature:     rootHash,
@@ -734,7 +739,8 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 		return err
 	}
 
-	go n.messenger.Broadcast(factory.MiniBlocksTopic, msgBlockBody)
+	go n.messenger.Broadcast(factory.MiniBlocksTopic+
+		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
 	if header == nil {
 		return ErrNilBlockHeader
@@ -746,7 +752,8 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 		return err
 	}
 
-	go n.messenger.Broadcast(factory.HeadersTopic, msgHeader)
+	go n.messenger.Broadcast(factory.HeadersTopic+
+		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgHeader)
 
 	return nil
 }

@@ -10,7 +10,7 @@ type TopicResolverSenderStub struct {
 	SendCalled               func(buff []byte, peer p2p.PeerID) error
 }
 
-func (trss *TopicResolverSenderStub) RequestTopicSuffix() string {
+func (trss *TopicResolverSenderStub) TopicRequestSuffix() string {
 	return "_REQUEST"
 }
 

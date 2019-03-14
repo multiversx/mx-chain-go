@@ -8,7 +8,7 @@ import (
 
 type multipleShardsCoordinatorMock struct {
 	noShards                     uint32
-	ComputeShardForAddressCalled func(address state.AddressContainer, addressConverter state.AddressConverter) uint32
+	ComputeIdCalled func(address state.AddressContainer) uint32
 	CurrentShard                 uint32
 }
 
@@ -16,23 +16,29 @@ func NewMultipleShardsCoordinatorMock() *multipleShardsCoordinatorMock {
 	return &multipleShardsCoordinatorMock{noShards: 1}
 }
 
-func (scm *multipleShardsCoordinatorMock) NoShards() uint32 {
+func (scm *multipleShardsCoordinatorMock) NumberOfShards() uint32 {
 	return scm.noShards
 }
 
-func (scm *multipleShardsCoordinatorMock) SetNoShards(shards uint32) {
-	scm.noShards = shards
+func (scm *multipleShardsCoordinatorMock) ComputeId(address state.AddressContainer) uint32 {
+
+	return scm.ComputeIdCalled(address)
 }
 
-func (scm *multipleShardsCoordinatorMock) ComputeShardForAddress(
-	address state.AddressContainer,
-	addressConverter state.AddressConverter) uint32 {
-
-	return scm.ComputeShardForAddressCalled(address, addressConverter)
-}
-
-func (scm *multipleShardsCoordinatorMock) ShardForCurrentNode() uint32 {
+func (scm *multipleShardsCoordinatorMock) SelfId() uint32 {
 	return scm.CurrentShard
+}
+
+func (scm *multipleShardsCoordinatorMock) SetSelfId(shardId uint32) error {
+	return nil
+}
+
+func (scm *multipleShardsCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
+	return true
+}
+
+func (scm *multipleShardsCoordinatorMock) SetNoShards(noShards uint32) {
+	scm.noShards = noShards
 }
 
 // CommunicationIdentifier returns the identifier between current shard ID and destination shard ID

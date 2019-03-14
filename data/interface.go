@@ -41,8 +41,8 @@ type Uint64Cacher interface {
 	RegisterHandler(handler func(nonce uint64))
 }
 
-// TransientDataHolder defines getters for a transient data holder
-type TransientDataHolder interface {
+// PoolsHolder defines getters for data pools
+type PoolsHolder interface {
 	Transactions() ShardedDataCacherNotifier
 	Headers() ShardedDataCacherNotifier
 	HeadersNonces() Uint64Cacher

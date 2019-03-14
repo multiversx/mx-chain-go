@@ -48,6 +48,49 @@ func TestInterceptorsContainer_AddShouldWork(t *testing.T) {
 	err := c.Add("key", &mock.InterceptorStub{})
 
 	assert.Nil(t, err)
+	assert.Equal(t, 1, c.Len())
+}
+
+//------- AddMultiple
+
+func TestInterceptorsContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewInterceptorsContainer()
+
+	keys := []string{"key", "key"}
+	interceptors := []process.Interceptor{&mock.InterceptorStub{}, &mock.InterceptorStub{}}
+
+	err := c.AddMultiple(keys, interceptors)
+
+	assert.Equal(t, process.ErrContainerKeyAlreadyExists, err)
+}
+
+func TestInterceptorsContainer_AddMultipleLenMismatchShouldErr(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewInterceptorsContainer()
+
+	keys := []string{"key"}
+	interceptors := []process.Interceptor{&mock.InterceptorStub{}, &mock.InterceptorStub{}}
+
+	err := c.AddMultiple(keys, interceptors)
+
+	assert.Equal(t, process.ErrLenMismatch, err)
+}
+
+func TestInterceptorsContainer_AddMultipleShouldWork(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewInterceptorsContainer()
+
+	keys := []string{"key1", "key2"}
+	interceptors := []process.Interceptor{&mock.InterceptorStub{}, &mock.InterceptorStub{}}
+
+	err := c.AddMultiple(keys, interceptors)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, c.Len())
 }
 
 //------- Get

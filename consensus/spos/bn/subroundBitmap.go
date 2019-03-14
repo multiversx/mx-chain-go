@@ -156,6 +156,10 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *spos.ConsensusMessage) bool {
 		return false
 	}
 
+	if !sr.consensusState.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+		return false
+	}
+
 	if !sr.consensusState.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
 		return false
 	}

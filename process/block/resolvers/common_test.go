@@ -7,16 +7,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 )
 
-func createDataPool() *mock.TransientDataPoolStub {
-	transientPool := &mock.TransientDataPoolStub{}
-	transientPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+func createDataPool() *mock.PoolsHolderStub {
+	pools := &mock.PoolsHolderStub{}
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	transientPool.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		return &mock.Uint64CacherStub{}
 	}
 
-	return transientPool
+	return pools
 }
 
 func createRequestMsg(dataType process.RequestDataType, val []byte) p2p.MessageP2P {

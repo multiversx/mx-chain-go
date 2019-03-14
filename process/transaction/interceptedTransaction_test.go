@@ -208,7 +208,7 @@ func TestTransactionInterceptor_IntegrityAndValidityOtherShardsShouldWork(t *tes
 	t.Parallel()
 
 	multiSharder := mock.NewMultipleShardsCoordinatorMock()
-	multiSharder.ComputeShardForAddressCalled = func(address state.AddressContainer, addressConverter state.AddressConverter) uint32 {
+	multiSharder.ComputeIdCalled = func(address state.AddressContainer) uint32 {
 		if len(address.Bytes()) == 0 {
 			return uint32(5)
 		}

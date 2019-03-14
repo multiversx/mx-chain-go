@@ -13,7 +13,7 @@ type dataPool struct {
 	peerChangesBlocks storage.Cacher
 }
 
-// NewDataPool a transient data holder
+// NewDataPool creates a data pools holder object
 func NewDataPool(
 	transactions data.ShardedDataCacherNotifier,
 	headers data.ShardedDataCacherNotifier,

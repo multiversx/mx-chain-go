@@ -466,9 +466,11 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 
 	sr := *initSubroundSignature()
 
+	commitment := []byte("commitment")
+
 	cnsMsg := spos.NewConsensusMessage(
 		sr.ConsensusState().Data,
-		nil,
+		commitment,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtSignature),
@@ -574,4 +576,24 @@ func TestSubroundSignature_SignaturesCollected(t *testing.T) {
 	sr.ConsensusState().SetJobDone("A", bn.SrSignature, true)
 	ok = sr.SignaturesCollected(2)
 	assert.True(t, ok)
+}
+
+func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqual(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundSignature()
+
+	cnsMsg := spos.NewConsensusMessage(
+		append(sr.ConsensusState().Data, []byte("X")...),
+		[]byte("commitment"),
+		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtCommitmentHash),
+		uint64(sr.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrBitmap, true)
+
+	assert.False(t, sr.ReceivedSignature(cnsMsg))
 }
