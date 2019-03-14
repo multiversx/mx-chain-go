@@ -294,6 +294,7 @@ func createNode(
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
+	// TODO: Constructor parameters should be changed when node assignment in the sharding package is implemented
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), 0)
 	if err != nil {
 		return nil, err
