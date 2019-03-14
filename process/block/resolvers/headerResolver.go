@@ -27,7 +27,7 @@ type HeaderResolver struct {
 // NewHeaderResolver creates a new header resolver
 func NewHeaderResolver(
 	senderResolver process.TopicResolverSender,
-	transient data.TransientDataHolder,
+	pools data.PoolsHolder,
 	hdrStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 	nonceConverter typeConverters.Uint64ByteSliceConverter,
@@ -37,16 +37,16 @@ func NewHeaderResolver(
 		return nil, process.ErrNilResolverSender
 	}
 
-	if transient == nil {
-		return nil, process.ErrNilTransientPool
+	if pools == nil {
+		return nil, process.ErrNilPoolsHolder
 	}
 
-	headers := transient.Headers()
+	headers := pools.Headers()
 	if headers == nil {
 		return nil, process.ErrNilHeadersDataPool
 	}
 
-	headersNonces := transient.HeadersNonces()
+	headersNonces := pools.HeadersNonces()
 	if headersNonces == nil {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
@@ -65,8 +65,8 @@ func NewHeaderResolver(
 
 	hdrResolver := &HeaderResolver{
 		TopicResolverSender: senderResolver,
-		hdrPool:             transient.Headers(),
-		hdrNonces:           transient.HeadersNonces(),
+		hdrPool:             pools.Headers(),
+		hdrNonces:           pools.HeadersNonces(),
 		hdrStorage:          hdrStorage,
 		marshalizer:         marshalizer,
 		nonceConverter:      nonceConverter,

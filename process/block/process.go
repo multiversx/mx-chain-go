@@ -33,7 +33,7 @@ const maxTransactionsInBlock = 15000
 
 // blockProcessor implements blockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
-	dataPool             data.TransientDataHolder
+	dataPool             data.PoolsHolder
 	hasher               hashing.Hasher
 	marshalizer          marshal.Marshalizer
 	txProcessor          process.TransactionProcessor
@@ -48,7 +48,7 @@ type blockProcessor struct {
 
 // NewBlockProcessor creates a new blockProcessor object
 func NewBlockProcessor(
-	dataPool data.TransientDataHolder,
+	dataPool data.PoolsHolder,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	txProcessor process.TransactionProcessor,

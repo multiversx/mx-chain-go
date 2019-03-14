@@ -166,17 +166,14 @@ var ErrNilMultiSigVerifier = errors.New("nil multi-signature verifier")
 // ErrInvalidBlockBodyType signals that an operation has been attempted with an invalid block body type
 var ErrInvalidBlockBodyType = errors.New("invalid block body type")
 
-// ErrNilTransientDataHolder signals that an operation has been attempted to or with a nil transient data holder
-var ErrNilTransientDataHolder = errors.New("nil transient data holder")
-
 // ErrNotImplementedBlockProcessingType signals that a not supported block body type was found in header
 var ErrNotImplementedBlockProcessingType = errors.New("not implemented block processing type")
 
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
 
-// ErrNilTransientPool signals that an operation has been attempted to or with a nil transient pool of data
-var ErrNilTransientPool = errors.New("nil transient pool")
+// ErrNilPoolsHolder signals that an operation has been attempted to or with a nil pools holder object
+var ErrNilPoolsHolder = errors.New("nil pools holder")
 
 // ErrNilTxStorage signals that a nil transaction storage has been provided
 var ErrNilTxStorage = errors.New("nil transaction storage")
@@ -253,3 +250,6 @@ var ErrCouldNotDecodeUnderlyingBody = errors.New("could not decode InterceptedBl
 
 // ErrWrongTypeInContainer signals that a wrong type of object was found in container
 var ErrWrongTypeInContainer = errors.New("wrong type of object inside container")
+
+// ErrLenMismatch signals that 2 or more slices have different lengths
+var ErrLenMismatch = errors.New("lengths mismatch")

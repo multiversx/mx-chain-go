@@ -10,8 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
-// requestTopicSuffix represents the topic name suffix
-const requestTopicSuffix = "_REQUEST"
+// topicRequestSuffix represents the topic name suffix
+const topicRequestSuffix = "_REQUEST"
 
 // PeersToSendRequest number of peers to send the message
 const PeersToSendRequest = 2
@@ -22,7 +22,7 @@ type topicResolverSender struct {
 	messenger   process.MessageHandler
 	marshalizer marshal.Marshalizer
 	topicName   string
-	r           *rand.Rand
+	rnd         *rand.Rand
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
@@ -43,7 +43,7 @@ func NewTopicResolverSender(
 		messenger:   messenger,
 		topicName:   topicName,
 		marshalizer: marshalizer,
-		r:           rand.New(rand.NewSource(time.Now().UnixNano())),
+		rnd:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	return resolver, nil
@@ -57,13 +57,13 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *process.RequestData) erro
 		return err
 	}
 
-	peersToSend := selectRandomPeers(trs.messenger.ConnectedPeers(), PeersToSendRequest, trs.r)
+	peersToSend := selectRandomPeers(trs.messenger.ConnectedPeers(), PeersToSendRequest, trs.rnd)
 	if len(peersToSend) == 0 {
 		return process.ErrNoConnectedPeerToSendRequest
 	}
 
 	for _, peer := range peersToSend {
-		err = trs.messenger.SendToConnectedPeer(trs.topicName+requestTopicSuffix, buff, peer)
+		err = trs.messenger.SendToConnectedPeer(trs.topicName+topicRequestSuffix, buff, peer)
 		if err != nil {
 			log.Debug(err.Error())
 		}
@@ -78,9 +78,9 @@ func (trs *topicResolverSender) Send(buff []byte, peer p2p.PeerID) error {
 	return trs.messenger.SendToConnectedPeer(trs.topicName, buff, peer)
 }
 
-// RequestTopicSuffix returns the suffix that will be added to create a new channel for requests
-func (trs *topicResolverSender) RequestTopicSuffix() string {
-	return requestTopicSuffix
+// TopicRequestSuffix returns the suffix that will be added to create a new channel for requests
+func (trs *topicResolverSender) TopicRequestSuffix() string {
+	return topicRequestSuffix
 }
 
 func selectRandomPeers(connectedPeers []p2p.PeerID, peersToSend int, randomizer process.IntRandomizer) []p2p.PeerID {

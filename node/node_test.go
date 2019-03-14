@@ -768,7 +768,7 @@ func TestSendTransaction_ShouldWork(t *testing.T) {
 
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	messenger := getMessenger()
-	dataPool := &mock.TransientDataPoolMock{}
+	dataPool := &mock.PoolsHolderStub{}
 
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -808,7 +808,7 @@ func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	dataPool := &mock.TransientDataPoolMock{}
+	dataPool := &mock.PoolsHolderStub{}
 	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return nil
 	}
@@ -835,7 +835,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	dataPool := &mock.TransientDataPoolMock{}
+	dataPool := &mock.PoolsHolderStub{}
 	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
@@ -864,7 +864,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	nrOfShards := uint32(2)
 	shardCoordinator.SetNoShards(nrOfShards)
-	dataPool := &mock.TransientDataPoolMock{}
+	dataPool := &mock.PoolsHolderStub{}
 	var txShardedDataResult uint32
 	txShardedData := &mock.ShardedDataStub{}
 	txShardedData.CreateShardStoreCalled = func(destShardID uint32) {

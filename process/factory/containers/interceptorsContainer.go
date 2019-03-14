@@ -49,6 +49,23 @@ func (ic *InterceptorsContainer) Add(key string, interceptor process.Interceptor
 	return nil
 }
 
+// AddMultiple will add objects with given keys. Returns
+// an error if one element already exists, lengths mismatch or an interceptor is nil
+func (ic *InterceptorsContainer) AddMultiple(keys []string, interceptors []process.Interceptor) error {
+	if len(keys) != len(interceptors) {
+		return process.ErrLenMismatch
+	}
+
+	for idx, key := range keys {
+		err := ic.Add(key, interceptors[idx])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Replace will add (or replace if it already exists) an object at a given key
 func (ic *InterceptorsContainer) Replace(key string, interceptor process.Interceptor) error {
 	if interceptor == nil {
