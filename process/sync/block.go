@@ -66,7 +66,7 @@ type Bootstrap struct {
 
 // NewBootstrap creates a new Bootstrap object
 func NewBootstrap(
-	transientDataHolder data.TransientDataHolder,
+	poolsHolder data.PoolsHolder,
 	blkc *blockchain.BlockChain,
 	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
@@ -80,7 +80,7 @@ func NewBootstrap(
 ) (*Bootstrap, error) {
 
 	err := checkBootstrapNilParameters(
-		transientDataHolder,
+		poolsHolder,
 		blkc,
 		rounder,
 		blkExecutor,
@@ -97,9 +97,9 @@ func NewBootstrap(
 	}
 
 	boot := Bootstrap{
-		headers:          transientDataHolder.Headers(),
-		headersNonces:    transientDataHolder.HeadersNonces(),
-		miniBlocks:       transientDataHolder.MiniBlocks(),
+		headers:          poolsHolder.Headers(),
+		headersNonces:    poolsHolder.HeadersNonces(),
+		miniBlocks:       poolsHolder.MiniBlocks(),
 		blkc:             blkc,
 		rounder:          rounder,
 		blkExecutor:      blkExecutor,
@@ -111,12 +111,17 @@ func NewBootstrap(
 		accounts:         accounts,
 	}
 
-	hdrResolver, err := resolversContainer.Get(factory.HeadersTopic)
+	//there is one header topic so it is ok to save it
+	hdrResolver, err := resolversContainer.Get(factory.HeadersTopic +
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
 	if err != nil {
 		return nil, err
 	}
 
-	miniBlocksResolver, err := resolversContainer.Get(factory.MiniBlocksTopic)
+	//TODO refactor this as requesting a miniblock should consider passing also the shard ID,
+	// for now this should work on a one shard architecture
+	miniBlocksResolver, err := resolversContainer.Get(factory.MiniBlocksTopic +
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +150,7 @@ func NewBootstrap(
 
 // checkBootstrapNilParameters will check the imput parameters for nil values
 func checkBootstrapNilParameters(
-	transientDataHolder data.TransientDataHolder,
+	pools data.PoolsHolder,
 	blkc *blockchain.BlockChain,
 	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
@@ -156,19 +161,19 @@ func checkBootstrapNilParameters(
 	shardCoordinator sharding.ShardCoordinator,
 	accounts state.AccountsAdapter,
 ) error {
-	if transientDataHolder == nil {
-		return process.ErrNilTransientDataHolder
+	if pools == nil {
+		return process.ErrNilPoolsHolder
 	}
 
-	if transientDataHolder.Headers() == nil {
+	if pools.Headers() == nil {
 		return process.ErrNilHeadersDataPool
 	}
 
-	if transientDataHolder.HeadersNonces() == nil {
+	if pools.HeadersNonces() == nil {
 		return process.ErrNilHeadersNoncesDataPool
 	}
 
-	if transientDataHolder.MiniBlocks() == nil {
+	if pools.MiniBlocks() == nil {
 		return process.ErrNilTxBlockBody
 	}
 

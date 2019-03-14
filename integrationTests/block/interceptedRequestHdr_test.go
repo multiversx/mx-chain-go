@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,11 +28,21 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	dPoolRequestor := ti.createTestDataPool()
 	dPoolResolver := ti.createTestDataPool()
 
+	shardCoordinator := &sharding.OneShardCoordinator{}
+
 	fmt.Println("Requestor:")
-	nRequestor, mesRequestor, _, pFactoryReq := ti.createNetNode(32000, dPoolRequestor, ti.createAccountsDB())
+	nRequestor, mesRequestor, _, resolversContainer := ti.createNetNode(
+		33000,
+		dPoolRequestor,
+		ti.createAccountsDB(),
+		shardCoordinator)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := ti.createNetNode(32001, dPoolResolver, ti.createAccountsDB())
+	nResolver, mesResolver, _, _ := ti.createNetNode(
+		33001,
+		dPoolResolver,
+		ti.createAccountsDB(),
+		shardCoordinator)
 
 	nRequestor.Start()
 	nResolver.Start()
@@ -85,7 +96,8 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	})
 
 	//Step 4. request header
-	res, err := pFactoryReq.ResolverContainer().Get(factory.HeadersTopic)
+	res, err := resolversContainer.Get(factory.HeadersTopic +
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	hdrResolver.RequestDataFromNonce(0)

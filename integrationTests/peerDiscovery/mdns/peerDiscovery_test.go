@@ -22,7 +22,7 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 
 	tr := peerDiscovery.TestRunner{}
 
-	basePort := 23000
+	basePort := 26000
 	noOfPeers := 20
 
 	//Step 1. Create noOfPeers instances of messenger type

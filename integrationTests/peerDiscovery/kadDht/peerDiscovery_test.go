@@ -92,7 +92,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 
 	tr := peerDiscovery.TestRunner{}
 
-	basePort := 26000
+	basePort := 25100
 	noOfPeers := 20
 	noOfAdvertisers := 3
 

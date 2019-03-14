@@ -15,6 +15,10 @@ func (ics *InterceptorsContainerStub) Add(key string, val process.Interceptor) e
 	panic("implement me")
 }
 
+func (ics *InterceptorsContainerStub) AddMultiple(keys []string, interceptors []process.Interceptor) error {
+	panic("implement me")
+}
+
 func (ics *InterceptorsContainerStub) Replace(key string, val process.Interceptor) error {
 	panic("implement me")
 }

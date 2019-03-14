@@ -185,8 +185,8 @@ func WithElasticSubrounds(elasticSubrounds bool) Option {
 	}
 }
 
-// WithDataPool sets up the transient data pool option for the Node
-func WithDataPool(dataPool data.TransientDataHolder) Option {
+// WithDataPool sets up the data pools option for the Node
+func WithDataPool(dataPool data.PoolsHolder) Option {
 	return func(n *Node) error {
 		if dataPool == nil {
 			return ErrNilDataPool
@@ -196,7 +196,7 @@ func WithDataPool(dataPool data.TransientDataHolder) Option {
 	}
 }
 
-// WithShardCoordinator sets up the transient shard coordinator for the Node
+// WithShardCoordinator sets up the shard coordinator for the Node
 func WithShardCoordinator(shardCoordinator sharding.ShardCoordinator) Option {
 	return func(n *Node) error {
 		if shardCoordinator == nil {
@@ -262,17 +262,6 @@ func WithForkDetector(forkDetector process.ForkDetector) Option {
 	}
 }
 
-// WithInterceptorsResolversFactory sets up the processor factory option for the Node
-func WithInterceptorsResolversFactory(interceptorsResolversCreator process.InterceptorsResolversFactory) Option {
-	return func(n *Node) error {
-		if interceptorsResolversCreator == nil {
-			return ErrNilInterceptorsResolversFactory
-		}
-		n.interceptorsResolversCreator = interceptorsResolversCreator
-		return nil
-	}
-}
-
 // WithInterceptorsContainer sets up the interceptors container option for the Node
 func WithInterceptorsContainer(interceptorsContainer process.InterceptorsContainer) Option {
 	return func(n *Node) error {
@@ -280,6 +269,17 @@ func WithInterceptorsContainer(interceptorsContainer process.InterceptorsContain
 			return ErrNilInterceptorsContainer
 		}
 		n.interceptorsContainer = interceptorsContainer
+		return nil
+	}
+}
+
+// WithResolversContainer sets up the interceptors container option for the Node
+func WithResolversContainer(resolversContainer process.ResolversContainer) Option {
+	return func(n *Node) error {
+		if resolversContainer == nil {
+			return ErrNilResolversContainer
+		}
+		n.resolversContainer = resolversContainer
 		return nil
 	}
 }

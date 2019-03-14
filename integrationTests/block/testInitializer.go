@@ -31,7 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
@@ -72,7 +71,7 @@ func (ti *testInitializer) createMemUnit() storage.Storer {
 	return unit
 }
 
-func (ti *testInitializer) createTestDataPool() data.TransientDataHolder {
+func (ti *testInitializer) createTestDataPool() data.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
 	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
 
@@ -122,11 +121,15 @@ func (ti *testInitializer) createAccountsDB() *state.AccountsDB {
 	return adb
 }
 
-func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolder, accntAdapter state.AccountsAdapter) (
+func (ti *testInitializer) createNetNode(port int,
+	dPool data.PoolsHolder,
+	accntAdapter state.AccountsAdapter,
+	shardCoordinator sharding.ShardCoordinator,
+) (
 	*node.Node,
 	p2p.Messenger,
 	crypto.PrivateKey,
-	process.InterceptorsResolversFactory) {
+	process.ResolversContainer) {
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -141,23 +144,7 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 	sk, pk := keyGen.GeneratePair()
 	multiSigner, _ := ti.createMultiSigner(sk, pk, keyGen, hasher)
 	blkc := ti.createTestBlockChain()
-	shardCoordinator := &sharding.OneShardCoordinator{}
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-
-	pFactory, _ := factory.NewInterceptorsResolversCreator(factory.InterceptorsResolversConfig{
-		ResolverContainer:        containers.NewResolversContainer(),
-		Messenger:                messenger,
-		Blockchain:               blkc,
-		DataPool:                 dPool,
-		ShardCoordinator:         shardCoordinator,
-		AddrConverter:            addrConverter,
-		Hasher:                   hasher,
-		Marshalizer:              marshalizer,
-		MultiSigner:              multiSigner,
-		SingleSigner:             singleSigner,
-		KeyGen:                   keyGen,
-		Uint64ByteSliceConverter: uint64Converter,
-	})
 
 	interceptorContainerFactory, _ := factory.NewInterceptorsContainerFactory(
 		shardCoordinator,
@@ -172,6 +159,16 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		addrConverter,
 	)
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
+
+	resolversContainerFactory, _ := factory.NewResolversContainerFactory(
+		shardCoordinator,
+		messenger,
+		blkc,
+		marshalizer,
+		dPool,
+		uint64Converter,
+	)
+	resolversContainer, _ := resolversContainerFactory.Create()
 
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -188,13 +185,11 @@ func (ti *testInitializer) createNetNode(port int, dPool data.TransientDataHolde
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
-		node.WithInterceptorsResolversFactory(pFactory),
 		node.WithInterceptorsContainer(interceptorsContainer),
+		node.WithResolversContainer(resolversContainer),
 	)
 
-	_ = pFactory.CreateResolvers()
-
-	return n, messenger, sk, pFactory
+	return n, messenger, sk, resolversContainer
 }
 
 func (ti *testInitializer) createMessenger(ctx context.Context, port int) p2p.Messenger {

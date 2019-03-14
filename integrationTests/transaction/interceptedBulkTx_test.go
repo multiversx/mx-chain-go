@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +28,9 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 	accntAdapter := ti.createAccountsDB()
 
-	n, _, sk, _ := ti.createNetNode(4000, dPool, accntAdapter)
+	shardCoordinator := &sharding.OneShardCoordinator{}
+
+	n, _, sk, _ := ti.createNetNode(34000, dPool, accntAdapter, shardCoordinator)
 
 	n.Start()
 	defer n.Stop()

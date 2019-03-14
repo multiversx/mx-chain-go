@@ -54,8 +54,8 @@ func generateTestUnit() storage.Storer {
 	return storer
 }
 
-func initDataPool() *mock.TransientDataPoolStub {
-	tdp := &mock.TransientDataPoolStub{
+func initDataPool() *mock.PoolsHolderStub {
+	tdp := &mock.PoolsHolderStub{
 		TransactionsCalled: func() data.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
 				RegisterHandlerCalled: func(i func(key []byte)) {},

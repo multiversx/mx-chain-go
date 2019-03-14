@@ -67,11 +67,11 @@ var ErrNilForkDetector = errors.New("nil fork detector")
 // ErrValidatorAlreadySet signals that a topic validator has already been set
 var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
 
-// ErrNilInterceptorsResolversFactory signals that a nil interceptors resolvers factory has been provided
-var ErrNilInterceptorsResolversFactory = errors.New("nil interceptors resolvers factory")
-
 // ErrNilInterceptorsContainer signals that a nil interceptors container has been provided
 var ErrNilInterceptorsContainer = errors.New("nil interceptors container")
+
+// ErrNilResolversContainer signals that a nil resolvers container has been provided
+var ErrNilResolversContainer = errors.New("nil resolvers container")
 
 // ErrNilBlockHeader is raised when a valid block header is expected but nil was used
 var ErrNilBlockHeader = errors.New("block header is nil")
