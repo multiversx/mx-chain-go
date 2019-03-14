@@ -1,6 +1,7 @@
 package bn
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
@@ -107,6 +108,8 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 
 	bitmap := sr.consensusState.GenerateBitmap(SrCommitmentHash)
 
+	log.Info(fmt.Sprintf("snd: bitmap = 0x%s\n", hex.EncodeToString(bitmap)))
+
 	msg := spos.NewConsensusMessage(
 		sr.consensusState.Data,
 		bitmap,
@@ -156,6 +159,10 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *spos.ConsensusMessage) bool {
 		return false
 	}
 
+	if !sr.consensusState.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+		return false
+	}
+
 	if !sr.consensusState.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
 		return false
 	}
@@ -165,6 +172,8 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *spos.ConsensusMessage) bool {
 	}
 
 	signersBitmap := cnsDta.SubRoundData
+
+	log.Info(fmt.Sprintf("rcv: bitmap = 0x%s\n", hex.EncodeToString(signersBitmap)))
 
 	// count signers
 	nbSigners := countBitmapFlags(signersBitmap)

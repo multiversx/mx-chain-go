@@ -62,6 +62,10 @@ func (boot *Bootstrap) SyncStateListeners() []func(bool) {
 	return boot.syncStateListeners
 }
 
+func (boot *Bootstrap) HighestNonceReceived() uint64 {
+	return boot.highestNonceReceived
+}
+
 func (boot *Bootstrap) SetHighestNonceReceived(highestNonceReceived uint64) {
 	boot.highestNonceReceived = highestNonceReceived
 }

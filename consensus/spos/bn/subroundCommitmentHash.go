@@ -153,6 +153,10 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *spos.ConsensusM
 		return false
 	}
 
+	if !sr.consensusState.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+		return false
+	}
+
 	if !sr.consensusState.IsNodeInConsensusGroup(node) { // is NOT this node in the consensus group?
 		return false
 	}

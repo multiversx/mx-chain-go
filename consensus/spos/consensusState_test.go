@@ -169,7 +169,7 @@ func TestConsensusState_IsConsensusDataSetShouldReturnTrue(t *testing.T) {
 	assert.True(t, cns.IsConsensusDataSet())
 }
 
-func TestConsensusState_IsConsensusDataNotSetShouldReturnFalse(t *testing.T) {
+func TestConsensusState_IsConsensusDataSetShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	cns := initConsensusState()
@@ -177,6 +177,30 @@ func TestConsensusState_IsConsensusDataNotSetShouldReturnFalse(t *testing.T) {
 	cns.Data = nil
 
 	assert.False(t, cns.IsConsensusDataSet())
+}
+
+func TestConsensusState_IsConsensusDataEqualShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	cns := initConsensusState()
+
+	data := []byte("consensus data")
+
+	cns.Data = data
+
+	assert.True(t, cns.IsConsensusDataEqual(data))
+}
+
+func TestConsensusState_IsConsensusDataEqualShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	cns := initConsensusState()
+
+	data := []byte("consensus data")
+
+	cns.Data = data
+
+	assert.False(t, cns.IsConsensusDataEqual([]byte("X")))
 }
 
 func TestConsensusState_IsJobDoneShouldReturnFalse(t *testing.T) {

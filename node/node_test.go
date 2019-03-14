@@ -957,6 +957,7 @@ func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	err := n.BroadcastBlock(make(block.Body, 0), nil)
@@ -981,6 +982,7 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(marshalizerMock),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	err2 := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
@@ -993,6 +995,7 @@ func TestNode_BroadcastBlockShouldWork(t *testing.T) {
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	err := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
