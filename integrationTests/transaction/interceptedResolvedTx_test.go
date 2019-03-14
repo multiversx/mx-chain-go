@@ -21,28 +21,26 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	ti := &testInitializer{}
-
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	dPoolRequestor := ti.createTestDataPool()
-	dPoolResolver := ti.createTestDataPool()
+	dPoolRequestor := createTestDataPool()
+	dPoolResolver := createTestDataPool()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
 	fmt.Println("Requestor:")
-	nRequestor, mesRequestor, sk1, resolvers := ti.createNetNode(
+	nRequestor, mesRequestor, sk1, resolvers := createNetNode(
 		34100,
 		dPoolRequestor,
-		ti.createAccountsDB(),
+		createAccountsDB(),
 		shardCoordinator)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := ti.createNetNode(
+	nResolver, mesResolver, _, _ := createNetNode(
 		34101,
 		dPoolResolver,
-		ti.createAccountsDB(),
+		createAccountsDB(),
 		shardCoordinator)
 
 	nRequestor.Start()
@@ -54,7 +52,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := mesRequestor.ConnectToPeer(ti.getConnectableAddress(mesResolver))
+	err := mesRequestor.ConnectToPeer(getConnectableAddress(mesResolver))
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)

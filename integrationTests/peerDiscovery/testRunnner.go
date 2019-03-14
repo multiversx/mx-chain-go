@@ -18,10 +18,7 @@ import (
 
 var durationMsgRecieved = time.Duration(time.Second * 2)
 
-type TestRunner struct {
-}
-
-func (tr *TestRunner) CreateMessenger(ctx context.Context,
+func CreateMessenger(ctx context.Context,
 	port int,
 	peerDiscoverer p2p.PeerDiscoverer) p2p.Messenger {
 
@@ -44,7 +41,7 @@ func (tr *TestRunner) CreateMessenger(ctx context.Context,
 	return libP2PMes
 }
 
-func (tr *TestRunner) RunTest(peers []p2p.Messenger, testIndex int, topic string) bool {
+func RunTest(peers []p2p.Messenger, testIndex int, topic string) bool {
 	fmt.Printf("Running test %v\n", testIndex)
 
 	testMessage := "test " + strconv.Itoa(testIndex)

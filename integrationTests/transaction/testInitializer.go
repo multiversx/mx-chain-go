@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"io"
 	"math/rand"
 	"strings"
 	"time"
@@ -38,16 +37,13 @@ import (
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
 )
 
-var r io.Reader
+var r *rand.Rand
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-type testInitializer struct {
-}
-
-func (ti *testInitializer) createTestBlockChain() *blockchain.BlockChain {
+func createTestBlockChain() *blockchain.BlockChain {
 
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 
@@ -55,15 +51,15 @@ func (ti *testInitializer) createTestBlockChain() *blockchain.BlockChain {
 
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
-		ti.createMemUnit(),
-		ti.createMemUnit(),
-		ti.createMemUnit(),
-		ti.createMemUnit())
+		createMemUnit(),
+		createMemUnit(),
+		createMemUnit(),
+		createMemUnit())
 
 	return blockChain
 }
 
-func (ti *testInitializer) createMemUnit() storage.Storer {
+func createMemUnit() storage.Storer {
 	cache, _ := storage.NewCache(storage.LRUCache, 10)
 	persist, _ := memorydb.New()
 
@@ -71,7 +67,7 @@ func (ti *testInitializer) createMemUnit() storage.Storer {
 	return unit
 }
 
-func (ti *testInitializer) createTestDataPool() data.PoolsHolder {
+func createTestDataPool() data.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 
@@ -96,34 +92,32 @@ func (ti *testInitializer) createTestDataPool() data.PoolsHolder {
 	return dPool
 }
 
-func (ti *testInitializer) createDummyHexAddress(chars int) string {
+func createDummyHexAddress(chars int) string {
 	if chars < 1 {
 		return ""
 	}
 
 	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
 
-	rdm := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	buff := make([]byte, chars)
 	for i := 0; i < chars; i++ {
-		buff[i] = characters[rdm.Int()%16]
+		buff[i] = characters[r.Int()%16]
 	}
 
 	return string(buff)
 }
 
-func (ti *testInitializer) createAccountsDB() *state.AccountsDB {
+func createAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
 
-	dbw, _ := trie.NewDBWriteCache(ti.createMemUnit())
+	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh)
 
 	return adb
 }
 
-func (ti *testInitializer) createMultiSigner(
+func createMultiSigner(
 	privateKey crypto.PrivateKey,
 	publicKey crypto.PublicKey,
 	keyGen crypto.KeyGenerator,
@@ -138,7 +132,7 @@ func (ti *testInitializer) createMultiSigner(
 	return multiSigner, err
 }
 
-func (ti *testInitializer) createNetNode(
+func createNetNode(
 	port int,
 	dPool data.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
@@ -152,7 +146,7 @@ func (ti *testInitializer) createNetNode(
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	messenger := ti.createMessenger(context.Background(), port)
+	messenger := createMessenger(context.Background(), port)
 
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
@@ -160,8 +154,8 @@ func (ti *testInitializer) createNetNode(
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
-	multiSigner, _ := ti.createMultiSigner(sk, pk, keyGen, hasher)
-	blkc := ti.createTestBlockChain()
+	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
+	blkc := createTestBlockChain()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	interceptorContainerFactory, _ := factory.NewInterceptorsContainerFactory(
@@ -210,7 +204,7 @@ func (ti *testInitializer) createNetNode(
 	return n, messenger, sk, resolversContainer
 }
 
-func (ti *testInitializer) createMessenger(ctx context.Context, port int) p2p.Messenger {
+func createMessenger(ctx context.Context, port int) p2p.Messenger {
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
 
@@ -229,7 +223,7 @@ func (ti *testInitializer) createMessenger(ctx context.Context, port int) p2p.Me
 	return libP2PMes
 }
 
-func (ti *testInitializer) getConnectableAddress(mes p2p.Messenger) string {
+func getConnectableAddress(mes p2p.Messenger) string {
 	for _, addr := range mes.Addresses() {
 		if strings.Contains(addr, "circuit") {
 			continue
