@@ -38,9 +38,9 @@ type BlockProcessor interface {
 // Checker provides functionality to checks the integrity and validity of a data structure
 type Checker interface {
 	// IntegrityAndValidity does both validity and integrity checks on the data structure
-	IntegrityAndValidity(coordinator sharding.ShardCoordinator) error
+	IntegrityAndValidity(coordinator sharding.Coordinator) error
 	// Integrity checks only the integrity of the data
-	Integrity(coordinator sharding.ShardCoordinator) error
+	Integrity(coordinator sharding.Coordinator) error
 }
 
 // SigVerifier provides functionality to verify a signature of a signed data structure that holds also the verifying parameters

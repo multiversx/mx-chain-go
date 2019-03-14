@@ -197,7 +197,7 @@ func WithDataPool(dataPool data.PoolsHolder) Option {
 }
 
 // WithShardCoordinator sets up the shard coordinator for the Node
-func WithShardCoordinator(shardCoordinator sharding.ShardCoordinator) Option {
+func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	return func(n *Node) error {
 		if shardCoordinator == nil {
 			return ErrNilShardCoordinator

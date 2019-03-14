@@ -51,9 +51,3 @@ var ErrGetTransaction = errors.New("transaction getting failed")
 
 // ErrTxNotFound signals an error happend trying to fetch a transaction
 var ErrTxNotFound = errors.New("transaction was not found")
-
-// ErrShardIdOutOfRange signals an error when shard id is out of range
-var ErrShardIdOutOfRange = errors.New("shard id out of range")
-
-// ErrNoPubKeys signals an error when public keys are missing
-var ErrNoPubKeys = errors.New("shard id out of range")

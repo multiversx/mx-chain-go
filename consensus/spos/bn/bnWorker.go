@@ -26,7 +26,7 @@ type worker struct {
 	marshalizer      marshal.Marshalizer
 	privateKey       crypto.PrivateKey
 	rounder          consensus.Rounder
-	shardCoordinator sharding.ShardCoordinator
+	shardCoordinator sharding.Coordinator
 	singleSigner     crypto.SingleSigner
 
 	receivedMessages      map[MessageType][]*spos.ConsensusMessage
@@ -50,7 +50,7 @@ func NewWorker(
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
 	rounder consensus.Rounder,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 ) (*worker, error) {
 
@@ -100,7 +100,7 @@ func checkNewWorkerParams(
 	marshalizer marshal.Marshalizer,
 	privateKey crypto.PrivateKey,
 	rounder consensus.Rounder,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 ) error {
 	if bootstraper == nil {
@@ -414,7 +414,7 @@ func (wrk *worker) extend(subroundId int) {
 		return
 	}
 
-	blk, hdr, err := wrk.bootstraper.CreateAndCommitEmptyBlock(wrk.shardCoordinator.ShardForCurrentNode())
+	blk, hdr, err := wrk.bootstraper.CreateAndCommitEmptyBlock(wrk.shardCoordinator.SelfId())
 
 	if err != nil {
 		log.Info(err.Error())

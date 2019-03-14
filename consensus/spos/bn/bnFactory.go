@@ -93,7 +93,7 @@ type factory struct {
 	marshalizer            marshal.Marshalizer
 	multiSigner            crypto.MultiSigner
 	rounder                consensus.Rounder
-	shardCoordinator       sharding.ShardCoordinator
+	shardCoordinator       sharding.Coordinator
 	syncTimer              ntp.SyncTimer
 	validatorGroupSelector consensus.ValidatorGroupSelector
 	worker                 *worker
@@ -110,7 +110,7 @@ func NewFactory(
 	marshalizer marshal.Marshalizer,
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 	syncTimer ntp.SyncTimer,
 	validatorGroupSelector consensus.ValidatorGroupSelector,
 	worker *worker,
@@ -165,7 +165,7 @@ func checkNewFactoryParams(
 	marshalizer marshal.Marshalizer,
 	multiSigner crypto.MultiSigner,
 	rounder consensus.Rounder,
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 	syncTimer ntp.SyncTimer,
 	validatorGroupSelector consensus.ValidatorGroupSelector,
 	worker *worker,

@@ -4,11 +4,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 )
 
-// ShardCoordinator defines what a shard state coordinator should hold
-type ShardCoordinator interface {
-	NoShards() uint32
-	SetNoShards(uint32)
-	ComputeShardForAddress(address state.AddressContainer, addressConverter state.AddressConverter) uint32
-	ShardForCurrentNode() uint32
+// Coordinator defines what a shard state coordinator should hold
+type Coordinator interface {
+	NumberOfShards() uint32
+	ComputeId(address state.AddressContainer) uint32
+	SelfId() uint32
+	SameShard(firstAddress, secondAddress state.AddressContainer) bool
 	CommunicationIdentifier(destShardID uint32) string
 }

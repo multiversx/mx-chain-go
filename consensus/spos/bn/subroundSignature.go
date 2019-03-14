@@ -2,7 +2,6 @@ package bn
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
@@ -141,8 +140,6 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	log.Info(fmt.Sprintf("snd: pk: %s sigPart: %s\n", hex.EncodeToString([]byte(sr.consensusState.SelfPubKey())), hex.EncodeToString(sigPart)))
-
 	msg := spos.NewConsensusMessage(
 		sr.consensusState.Data,
 		sigPart,
@@ -247,8 +244,6 @@ func (sr *subroundSignature) receivedSignature(cnsDta *spos.ConsensusMessage) bo
 		log.Error(err.Error())
 		return false
 	}
-
-	log.Info(fmt.Sprintf("rcv: pk: %s sigPart: %s\n", hex.EncodeToString(cnsDta.PubKey), hex.EncodeToString(cnsDta.SubRoundData)))
 
 	err = sr.multiSigner.StoreSignatureShare(uint16(index), cnsDta.SubRoundData)
 

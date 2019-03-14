@@ -90,11 +90,11 @@ func (fct *factory) SetRounder(rounder consensus.Rounder) {
 	fct.rounder = rounder
 }
 
-func (fct *factory) ShardCoordinator() sharding.ShardCoordinator {
+func (fct *factory) ShardCoordinator() sharding.Coordinator {
 	return fct.shardCoordinator
 }
 
-func (fct *factory) SetShardCoordinator(shardCoordinator sharding.ShardCoordinator) {
+func (fct *factory) SetShardCoordinator(shardCoordinator sharding.Coordinator) {
 	fct.shardCoordinator = shardCoordinator
 }
 

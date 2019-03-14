@@ -97,7 +97,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 
 	//Step 4. request header
 	res, err := resolversContainer.Get(factory.HeadersTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	hdrResolver.RequestDataFromNonce(0)

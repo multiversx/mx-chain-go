@@ -15,7 +15,7 @@ import (
 )
 
 type interceptorsContainerFactory struct {
-	shardCoordinator sharding.ShardCoordinator
+	shardCoordinator sharding.Coordinator
 	messenger        process.TopicHandler
 	blockchain       *blockchain.BlockChain
 	marshalizer      marshal.Marshalizer
@@ -29,7 +29,7 @@ type interceptorsContainerFactory struct {
 
 // NewInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewInterceptorsContainerFactory(
-	shardCoordinator sharding.ShardCoordinator,
+	shardCoordinator sharding.Coordinator,
 	messenger process.TopicHandler,
 	blockchain *blockchain.BlockChain,
 	marshalizer marshal.Marshalizer,
@@ -147,7 +147,7 @@ func (icf *interceptorsContainerFactory) createTopicAndAssignHandler(
 func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
-	noOfShards := shardC.NoShards()
+	noOfShards := shardC.NumberOfShards()
 
 	keys := make([]string, noOfShards)
 	interceptorSlice := make([]process.Interceptor, noOfShards)
@@ -193,7 +193,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptors() ([]string, []
 	shardC := icf.shardCoordinator
 
 	//only one intrashard header topic
-	identifierHdr := HeadersTopic + shardC.CommunicationIdentifier(shardC.ShardForCurrentNode())
+	identifierHdr := HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	interceptor, err := icf.createOneHdrInterceptor(identifierHdr)
 	if err != nil {
@@ -228,7 +228,7 @@ func (icf *interceptorsContainerFactory) createOneHdrInterceptor(identifier stri
 func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
-	noOfShards := shardC.NoShards()
+	noOfShards := shardC.NumberOfShards()
 
 	keys := make([]string, noOfShards)
 	interceptorSlice := make([]process.Interceptor, noOfShards)
@@ -272,7 +272,7 @@ func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptors() (
 	shardC := icf.shardCoordinator
 
 	//only one intrashard peer change blocks topic
-	identifierPeerCh := PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.ShardForCurrentNode())
+	identifierPeerCh := PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	interceptor, err := icf.createOnePeerChBlockBodyInterceptor(identifierPeerCh)
 	if err != nil {

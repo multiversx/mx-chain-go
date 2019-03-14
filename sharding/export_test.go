@@ -1,6 +1,12 @@
 package sharding
 
-// test exports for genesis private process functions
+func (msc *multiShardCoordinator) CalculateMasks() (uint32, uint32) {
+	return msc.calculateMasks()
+}
+
+func (msc *multiShardCoordinator) Masks() (uint32, uint32) {
+	return msc.maskHigh, msc.maskLow
+}
 
 func (g *Genesis) ProcessConfig() error {
 	return g.processConfig()

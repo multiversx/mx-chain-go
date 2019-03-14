@@ -100,7 +100,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	//Step 4. request tx
 	txResolver, _ := resolvers.Get(factory.TransactionTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.ShardForCurrentNode()))
+		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
 	err = txResolver.RequestDataFromHash(txHash)
 	assert.Nil(t, err)
 
