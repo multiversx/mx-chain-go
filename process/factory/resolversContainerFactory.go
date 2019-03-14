@@ -151,7 +151,8 @@ func (rcf *resolversContainerFactory) createOneTxResolver(identifier string) (pr
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifier,
-		rcf.marshalizer)
+		rcf.marshalizer,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +161,8 @@ func (rcf *resolversContainerFactory) createOneTxResolver(identifier string) (pr
 		resolverSender,
 		rcf.dataPools.Transactions(),
 		txStorer,
-		rcf.marshalizer)
+		rcf.marshalizer,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +196,8 @@ func (rcf *resolversContainerFactory) createOneHdrResolver(identifier string) (p
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifier,
-		rcf.marshalizer)
+		rcf.marshalizer,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +207,8 @@ func (rcf *resolversContainerFactory) createOneHdrResolver(identifier string) (p
 		rcf.dataPools,
 		hdrStorer,
 		rcf.marshalizer,
-		rcf.uint64ByteSliceConverter)
+		rcf.uint64ByteSliceConverter,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +251,8 @@ func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(identifier str
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifier,
-		rcf.marshalizer)
+		rcf.marshalizer,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +261,8 @@ func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(identifier str
 		resolverSender,
 		rcf.dataPools.MiniBlocks(),
 		miniBlocksStorer,
-		rcf.marshalizer)
+		rcf.marshalizer,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +296,8 @@ func (rcf *resolversContainerFactory) createOnePeerChBlockBodyResolver(identifie
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
 		identifier,
-		rcf.marshalizer)
+		rcf.marshalizer,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +306,8 @@ func (rcf *resolversContainerFactory) createOnePeerChBlockBodyResolver(identifie
 		resolverSender,
 		rcf.dataPools.MiniBlocks(),
 		peerBlockBodyStorer,
-		rcf.marshalizer)
+		rcf.marshalizer,
+	)
 	if err != nil {
 		return nil, err
 	}
