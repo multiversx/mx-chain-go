@@ -104,26 +104,28 @@ func (g *Genesis) processShardAssignment() {
 				g.InitialNodes[id].shard = 0
 			}
 		}
-	} else {
-		currentShard := uint32(0)
-		countSetNodes := uint32(0)
-		for ; currentShard < g.nrOfShards; currentShard++ {
-			for id := countSetNodes; id < (currentShard+1)*g.MinNodesPerShard; id++ {
-				// consider only nodes with valid public key
-				if g.InitialNodes[id].pubKey != nil {
-					g.InitialNodes[id].shard = currentShard
-					countSetNodes++
-				}
+		return
+	}
+
+	currentShard := uint32(0)
+	countSetNodes := uint32(0)
+	for ; currentShard < g.nrOfShards; currentShard++ {
+		for id := countSetNodes; id < (currentShard+1)*g.MinNodesPerShard; id++ {
+			// consider only nodes with valid public key
+			if g.InitialNodes[id].pubKey != nil {
+				g.InitialNodes[id].shard = currentShard
+				countSetNodes++
 			}
 		}
-
-		// allocate the rest
-		currentShard = 0
-		for i := countSetNodes; i < g.nrOfNodes; i++ {
-			g.InitialNodes[i].shard = currentShard
-			currentShard = (currentShard + 1) % g.nrOfShards
-		}
 	}
+
+	// allocate the rest
+	currentShard = 0
+	for i := countSetNodes; i < g.nrOfNodes; i++ {
+		g.InitialNodes[i].shard = currentShard
+		currentShard = (currentShard + 1) % g.nrOfShards
+	}
+
 }
 
 func (g *Genesis) createInitialNodesPubKeys() {
