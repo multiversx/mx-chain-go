@@ -415,3 +415,22 @@ func TestSubroundCommitment_CommitmentsCollected(t *testing.T) {
 	ok = sr.CommitmentsCollected(2)
 	assert.True(t, ok)
 }
+
+func TestSubroundCommitment_ReceivedCommitmentReturnFalseWhenConsensusDataIsNotEqual(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundCommitment()
+
+	cnsMsg := spos.NewConsensusMessage(
+		append(sr.ConsensusState().Data, []byte("X")...),
+		[]byte("commitment"),
+		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtCommitment),
+		uint64(sr.Rounder().TimeStamp().Unix()),
+		0)
+
+	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrBitmap, true)
+
+	assert.False(t, sr.ReceivedCommitment(cnsMsg))
+}

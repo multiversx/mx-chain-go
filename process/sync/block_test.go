@@ -1588,6 +1588,60 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 	assert.True(t, wasAdded)
 }
 
+func TestBootstrap_ReceivedHeadersShouldSetHighestNonceReceived(t *testing.T) {
+	t.Parallel()
+
+	addedHash := []byte("hash")
+	addedHdr := &block.Header{Nonce: 100}
+
+	pools := createMockPools()
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+			if bytes.Equal(key, addedHash) {
+				return addedHdr, true
+			}
+
+			return nil, false
+		}
+		return sds
+	}
+
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isReceived bool) error {
+		return nil
+	}
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+
+	bs, _ := sync.NewBootstrap(
+		pools,
+		&blockchain.BlockChain{},
+		rnd,
+		&mock.BlockProcessorMock{},
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversContainer(),
+		shardCoordinator,
+		account,
+	)
+
+	bs.SetHighestNonceReceived(25)
+
+	bs.ReceivedHeaders(addedHash)
+
+	assert.Equal(t, uint64(100), bs.HighestNonceReceived())
+}
+
 //------- ForkChoice
 
 func TestBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
