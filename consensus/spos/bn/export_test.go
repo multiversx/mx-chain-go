@@ -18,11 +18,11 @@ import (
 
 type Factory *factory
 
-func (fct *factory) BlockChain() *blockchain.BlockChain {
+func (fct *factory) BlockChain() blockchain.BlockChain {
 	return fct.blockChain
 }
 
-func (fct *factory) SetBlockChain(blockChain *blockchain.BlockChain) {
+func (fct *factory) SetBlockChain(blockChain blockchain.BlockChain) {
 	fct.blockChain = blockChain
 }
 
@@ -328,11 +328,11 @@ func (sr *subroundStartRound) GenerateNextConsensusGroup(roundIndex int32) error
 
 type SubroundBlock *subroundBlock
 
-func (sr *subroundBlock) BlockChain() *blockchain.BlockChain {
+func (sr *subroundBlock) BlockChain() blockchain.BlockChain {
 	return sr.blockChain
 }
 
-func (sr *subroundBlock) SetBlockChain(blockChain *blockchain.BlockChain) {
+func (sr *subroundBlock) SetBlockChain(blockChain blockchain.BlockChain) {
 	sr.blockChain = blockChain
 }
 

@@ -84,7 +84,7 @@ const (
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
 // functionality
 type factory struct {
-	blockChain             *blockchain.BlockChain
+	blockChain             blockchain.BlockChain
 	blockProcessor         process.BlockProcessor
 	bootstraper            process.Bootstrapper
 	chronologyHandler      consensus.ChronologyHandler
@@ -101,7 +101,7 @@ type factory struct {
 
 // NewFactory creates a new consensusState object
 func NewFactory(
-	blockChain *blockchain.BlockChain,
+	blockChain blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	chronologyHandler consensus.ChronologyHandler,
@@ -156,7 +156,7 @@ func NewFactory(
 }
 
 func checkNewFactoryParams(
-	blockChain *blockchain.BlockChain,
+	blockChain blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	chronologyHandler consensus.ChronologyHandler,

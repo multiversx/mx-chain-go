@@ -15,7 +15,7 @@ import (
 type subroundEndRound struct {
 	*subround
 
-	blockChain     *blockchain.BlockChain
+	blockChain     blockchain.BlockChain
 	blockProcessor process.BlockProcessor
 	consensusState *spos.ConsensusState
 	multiSigner    crypto.MultiSigner
@@ -28,7 +28,7 @@ type subroundEndRound struct {
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
 	subround *subround,
-	blockChain *blockchain.BlockChain,
+	blockChain blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
@@ -73,7 +73,7 @@ func NewSubroundEndRound(
 
 func checkNewSubroundEndRoundParams(
 	subround *subround,
-	blockChain *blockchain.BlockChain,
+	blockChain blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,

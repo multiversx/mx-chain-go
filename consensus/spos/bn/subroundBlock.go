@@ -21,7 +21,7 @@ import (
 type subroundBlock struct {
 	*subround
 
-	blockChain       *blockchain.BlockChain
+	blockChain       blockchain.BlockChain
 	blockProcessor   process.BlockProcessor
 	consensusState   *spos.ConsensusState
 	hasher           hashing.Hasher
@@ -37,7 +37,7 @@ type subroundBlock struct {
 // NewSubroundBlock creates a subroundBlock object
 func NewSubroundBlock(
 	subround *subround,
-	blockChain *blockchain.BlockChain,
+	blockChain blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
 	consensusState *spos.ConsensusState,
 	hasher hashing.Hasher,
@@ -91,7 +91,7 @@ func NewSubroundBlock(
 
 func checkNewSubroundBlockParams(
 	subround *subround,
-	blockChain *blockchain.BlockChain,
+	blockChain blockchain.BlockChain,
 	blockProcessor process.BlockProcessor,
 	consensusState *spos.ConsensusState,
 	hasher hashing.Hasher,
@@ -277,12 +277,12 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	hdr.SetRound(uint32(sr.rounder.Index()))
 	hdr.SetTimeStamp(uint64(sr.rounder.TimeStamp().Unix()))
 
-	if sr.blockChain.CurrentBlockHeader == nil {
+	if sr.blockChain.CurrentBlockHeader() == nil {
 		hdr.SetNonce(1)
-		hdr.SetPrevHash(sr.blockChain.GenesisHeaderHash)
+		hdr.SetPrevHash(sr.blockChain.GenesisHeaderHash())
 	} else {
-		hdr.SetNonce(sr.blockChain.CurrentBlockHeader.Nonce + 1)
-		hdr.SetPrevHash(sr.blockChain.CurrentBlockHeaderHash)
+		hdr.SetNonce(sr.blockChain.CurrentBlockHeader().Nonce + 1)
+		hdr.SetPrevHash(sr.blockChain.CurrentBlockHeaderHash())
 	}
 
 	return hdr, nil

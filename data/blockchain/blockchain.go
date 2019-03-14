@@ -5,15 +5,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-// BlockChain holds the block information for the current shard.
+// blockChain holds the block information for the current shard.
 //
-// The BlockChain through it's Storage units map manages the storage,
+// The blockChain through it's Storage units map manages the storage,
 // retrieval search of blocks (body), transactions, block headers,
 // bad blocks.
 //
-// The BlockChain also holds pointers to the Genesis block, the current block
+// The blockChain also holds pointers to the Genesis block, the current block
 // the height of the local chain and the perceived height of the chain in the network.
-type BlockChain struct {
+type blockChain struct {
 	StorageService
 	genesisBlock           *block.Header
 	genesisHeaderHash      []byte
@@ -32,7 +32,7 @@ func NewBlockChain(
 	txUnit storage.Storer,
 	miniBlockUnit storage.Storer,
 	peerChangesBlockUnit storage.Storer,
-	headerUnit storage.Storer) (*BlockChain, error) {
+	headerUnit storage.Storer) (*blockChain, error) {
 
 	if badBlocksCache == nil {
 		return nil, ErrBadBlocksCacheNil
@@ -54,7 +54,7 @@ func NewBlockChain(
 		return nil, ErrHeaderUnitNil
 	}
 
-	data := &BlockChain{
+	data := &blockChain{
 		genesisBlock:       nil,
 		currentBlockHeader: nil,
 		localHeight:        -1,
@@ -74,81 +74,81 @@ func NewBlockChain(
 }
 
 // GenesisBlock returns the genesis block header pointer
-func (bc *BlockChain) GenesisBlock() *block.Header {
+func (bc *blockChain) GenesisBlock() *block.Header {
 	return bc.genesisBlock
 }
 
 // SetGenesisBlock sets the genesis block header pointer
-func (bc *BlockChain) SetGenesisBlock(genesisBlock *block.Header) {
+func (bc *blockChain) SetGenesisBlock(genesisBlock *block.Header) {
 	bc.genesisBlock = genesisBlock
 }
 
 // GenesisHeaderHash returns the genesis block header hash
-func (bc *BlockChain) GenesisHeaderHash() []byte {
+func (bc *blockChain) GenesisHeaderHash() []byte {
 	return bc.genesisHeaderHash
 }
 
 // SetGenesisHeaderHash sets the genesis block header hash
-func (bc *BlockChain) SetGenesisHeaderHash(hash []byte) {
+func (bc *blockChain) SetGenesisHeaderHash(hash []byte) {
 	bc.genesisHeaderHash = hash
 }
 
 // CurrentBlockHeader returns current block header pointer
-func (bc *BlockChain) CurrentBlockHeader() *block.Header {
+func (bc *blockChain) CurrentBlockHeader() *block.Header {
 	return bc.currentBlockHeader
 }
 
 // SetCurrentBlockHeader sets current block header pointer
-func (bc *BlockChain) SetCurrentBlockHeader(header *block.Header) {
+func (bc *blockChain) SetCurrentBlockHeader(header *block.Header) {
 	bc.currentBlockHeader = header
 }
 
 // CurrentBlockHeaderHash returns the current block header hash
-func (bc *BlockChain) CurrentBlockHeaderHash() []byte {
+func (bc *blockChain) CurrentBlockHeaderHash() []byte {
 	return bc.currentBlockHeaderHash
 }
 
 // SetCurrentBlockHeaderHash returns the current block header hash
-func (bc *BlockChain) SetCurrentBlockHeaderHash(hash []byte) {
+func (bc *blockChain) SetCurrentBlockHeaderHash(hash []byte) {
 	bc.currentBlockHeaderHash = hash
 }
 
 // CurrentTxBlockBody returns the tx block body pointer
-func (bc *BlockChain) CurrentTxBlockBody() block.Body {
+func (bc *blockChain) CurrentTxBlockBody() block.Body {
 	return bc.currentTxBlockBody
 }
 
 // SetCurrentTxBlockBody sets the tx block body pointer
-func (bc *BlockChain) SetCurrentTxBlockBody(body block.Body) {
+func (bc *blockChain) SetCurrentTxBlockBody(body block.Body) {
 	bc.currentTxBlockBody = body
 }
 
 // LocalHeight returns the height of the local chain
-func (bc *BlockChain) LocalHeight() int64 {
+func (bc *blockChain) LocalHeight() int64 {
 	return bc.localHeight
 }
 
 // SetLocalHeight sets the height of the local chain
-func (bc *BlockChain) SetLocalHeight(height int64) {
+func (bc *blockChain) SetLocalHeight(height int64) {
 	bc.localHeight = height
 }
 
 // NetworkHeight sets the percieved height of the network chain
-func (bc *BlockChain) NetworkHeight() int64 {
+func (bc *blockChain) NetworkHeight() int64 {
 	return bc.localHeight
 }
 
 // SetNetworkHeight sets the percieved height of the network chain
-func (bc *BlockChain) SetNetworkHeight(height int64) {
+func (bc *blockChain) SetNetworkHeight(height int64) {
 	bc.localHeight = height
 }
 
 // IsBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise
-func (bc *BlockChain) IsBadBlock(blockHash []byte) bool {
+func (bc *blockChain) IsBadBlock(blockHash []byte) bool {
 	return bc.badBlocks.Has(blockHash)
 }
 
 // PutBadBlock adds the given serialized block to the bad block cache, blacklisting it
-func (bc *BlockChain) PutBadBlock(blockHash []byte) {
+func (bc *blockChain) PutBadBlock(blockHash []byte) {
 	bc.badBlocks.Put(blockHash, struct{}{})
 }

@@ -48,7 +48,7 @@ func init() {
 type testInitializer struct {
 }
 
-func (ti *testInitializer) createTestBlockChain() *blockchain.BlockChain {
+func (ti *testInitializer) createTestBlockChain() blockchain.BlockChain {
 
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 

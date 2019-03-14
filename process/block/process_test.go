@@ -26,8 +26,11 @@ func haveTime() time.Duration {
 	return time.Duration(2000 * time.Millisecond)
 }
 
-func createTestBlockchain() *blockchain.BlockChain {
-	blockChain, _ := blockchain.NewBlockChain(
+func createTestBlockchain() *mock.BlockChainMock {
+	return &mock.BlockChainMock{
+		StorageService: &mock.ChainStorerMock{},
+	}
+	/*blockChain, _ := blockchain.NewBlockChain(
 		generateTestCache(),
 		generateTestUnit(),
 		generateTestUnit(),
@@ -35,7 +38,7 @@ func createTestBlockchain() *blockchain.BlockChain {
 		generateTestUnit(),
 	)
 
-	return blockChain
+	return blockChain*/
 }
 
 func generateTestCache() storage.Cacher {
@@ -575,8 +578,10 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 	body := make(block.Body, 0)
 
 	blkc := createTestBlockchain()
-	blkc.CurrentBlockHeader = &block.Header{
-		Nonce: 0,
+	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+		return &block.Header{
+			Nonce: 0,
+		}
 	}
 
 	err := be.ProcessBlock(blkc, hdr, body, haveTime)
@@ -614,10 +619,14 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 	body := make(block.Body, 0)
 
 	blkc := createTestBlockchain()
-	blkc.CurrentBlockHeader = &block.Header{
-		Nonce: 0,
+	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+		return &block.Header{
+			Nonce: 0,
+		}
 	}
-	blkc.CurrentBlockHeaderHash = []byte("bbb")
+	blkc.CurrentBlockHeaderHashCalled = func() []byte {
+		return []byte("bbb")
+	}
 
 	err := be.ProcessBlock(blkc, hdr, body, haveTime)
 
@@ -1053,13 +1062,19 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 
 	blkc := createTestBlockchain()
+	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+		return hdr
+	}
+	blkc.CurrentBlockHeaderHashCalled = func() []byte {
+		return hdrHash
+	}
 	err := be.CommitBlock(blkc, hdr, body)
 
 	assert.Nil(t, err)
 	assert.True(t, removeTxWasCalled)
 	assert.True(t, forkDetectorAddCalled)
-	assert.True(t, blkc.CurrentBlockHeader == hdr)
-	assert.Equal(t, hdrHash, blkc.CurrentBlockHeaderHash)
+	assert.True(t, blkc.CurrentBlockHeader() == hdr)
+	assert.Equal(t, hdrHash, blkc.CurrentBlockHeaderHash())
 
 	//this should sleep as there is an async call to display current header and block in CommitBlock
 	time.Sleep(time.Second)
@@ -1792,7 +1807,9 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	assert.False(t, r)
 
 	hdr.Nonce = 1
-	blkc.CurrentBlockHeader = hdr
+	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+		return &block.Header{Nonce: 1}
+	}
 
 	hdr = &block.Header{}
 	hdr.Nonce = 1
@@ -1818,7 +1835,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	marshalizerMock := mock.MarshalizerMock{}
 	hasherMock := mock.HasherMock{}
 
-	prevHeader, _ := marshalizerMock.Marshal(blkc.CurrentBlockHeader)
+	prevHeader, _ := marshalizerMock.Marshal(blkc.CurrentBlockHeader())
 	hdr.PrevHash = hasherMock.Compute(string(prevHeader))
 
 	r = bp.CheckBlockValidity(blkc, hdr, nil)

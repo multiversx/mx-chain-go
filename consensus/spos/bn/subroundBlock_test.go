@@ -15,7 +15,11 @@ import (
 )
 
 func initSubroundBlock() bn.SubroundBlock {
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{
+		CurrentBlockHeaderCalled: func() *block.Header {
+			return &block.Header{}
+		},
+	}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -56,7 +60,7 @@ func initSubroundBlock() bn.SubroundBlock {
 }
 
 func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock) bn.SubroundBlock {
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := bp
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -99,7 +103,7 @@ func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock) bn.Subroun
 func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -174,7 +178,7 @@ func TestSubroundBlock_NewSubroundBlockNilBlockchainShouldFail(t *testing.T) {
 func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
@@ -217,7 +221,7 @@ func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T)
 func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
@@ -260,7 +264,7 @@ func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T)
 func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	marshalizerMock := mock.MarshalizerMock{}
@@ -303,7 +307,7 @@ func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
 func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -346,7 +350,7 @@ func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -389,7 +393,7 @@ func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
 func TestSubroundBlock_NewSubroundBlockNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -432,7 +436,7 @@ func TestSubroundBlock_NewSubroundBlockNilRounderShouldFail(t *testing.T) {
 func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -475,7 +479,7 @@ func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.
 func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -518,7 +522,7 @@ func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 func TestSubroundBlock_NewSubroundBlockNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -562,7 +566,7 @@ func TestSubroundBlock_NewSubroundBlockNilSendConsensusMessageFunctionShouldFail
 func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -718,7 +722,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	blockProcessorMock.CheckBlockValidityCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
+	blockProcessorMock.CheckBlockValidityCalled = func(blockChain blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
 		return false
 	}
 
@@ -728,7 +732,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	blockProcessorMock.CheckBlockValidityCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
+	blockProcessorMock.CheckBlockValidityCalled = func(blockChain blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
 		return true
 	}
 
@@ -828,7 +832,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 	blProcMock := initBlockProcessorMock()
 
 	err := errors.New("error process block")
-	blProcMock.ProcessBlockCalled = func(*blockchain.BlockChain, data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
+	blProcMock.ProcessBlockCalled = func(blockchain.BlockChain, data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
 		return err
 	}
 
@@ -1074,7 +1078,7 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 
 func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	sr := *initSubroundBlock()
-	sr.BlockChain().CurrentBlockHeader = nil
+	sr.BlockChain().SetCurrentBlockHeader(nil)
 	header, _ := sr.CreateHeader()
 
 	expectedHeader := &block.Header{
@@ -1082,7 +1086,7 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
 		RootHash:         sr.BlockProcessor().GetRootHash(),
 		Nonce:            uint64(1),
-		PrevHash:         sr.BlockChain().GenesisHeaderHash,
+		PrevHash:         sr.BlockChain().GenesisHeaderHash(),
 		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
 	}
 
@@ -1091,17 +1095,17 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 
 func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 	sr := *initSubroundBlock()
-	sr.BlockChain().CurrentBlockHeader = &block.Header{
+	sr.BlockChain().SetCurrentBlockHeader(&block.Header{
 		Nonce: 1,
-	}
+	})
 	header, _ := sr.CreateHeader()
 
 	expectedHeader := &block.Header{
 		Round:            uint32(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
 		RootHash:         sr.BlockProcessor().GetRootHash(),
-		Nonce:            uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1),
-		PrevHash:         sr.BlockChain().CurrentBlockHeaderHash,
+		Nonce:            uint64(sr.BlockChain().CurrentBlockHeader().Nonce + 1),
+		PrevHash:         sr.BlockChain().CurrentBlockHeaderHash(),
 		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
 	}
 
@@ -1114,14 +1118,19 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 		{Hash: []byte("mb2"), SenderShardID: 1, ReceiverShardID: 2},
 		{Hash: []byte("mb3"), SenderShardID: 2, ReceiverShardID: 3},
 	}
+	blockChainMock := mock.BlockChainMock{
+		CurrentBlockHeaderCalled: func() *block.Header {
+			return &block.Header{
+				Nonce: 1,
+			}
+		},
+	}
 	bp := initBlockProcessorMock()
 	bp.CreateBlockHeaderCalled = func(body data.BodyHandler) (header data.HeaderHandler, e error) {
 		return &block.Header{MiniBlockHeaders: mbHeaders, RootHash: bp.GetRootHash()}, nil
 	}
 	sr := *initSubroundBlockWithBlockProcessor(bp)
-	sr.BlockChain().CurrentBlockHeader = &block.Header{
-		Nonce: 1,
-	}
+	sr.SetBlockChain(&blockChainMock)
 
 	header, _ := sr.CreateHeader()
 
@@ -1129,8 +1138,8 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 		Round:            uint32(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
 		RootHash:         sr.BlockProcessor().GetRootHash(),
-		Nonce:            uint64(sr.BlockChain().CurrentBlockHeader.Nonce + 1),
-		PrevHash:         sr.BlockChain().CurrentBlockHeaderHash,
+		Nonce:            uint64(sr.BlockChain().CurrentBlockHeader().Nonce + 1),
+		PrevHash:         sr.BlockChain().CurrentBlockHeaderHash(),
 		MiniBlockHeaders: mbHeaders,
 	}
 
@@ -1144,9 +1153,9 @@ func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 		return nil, expectedErr
 	}
 	sr := *initSubroundBlockWithBlockProcessor(bp)
-	sr.BlockChain().CurrentBlockHeader = &block.Header{
+	sr.BlockChain().SetCurrentBlockHeader(&block.Header{
 		Nonce: 1,
-	}
+	})
 
 	header, err := sr.CreateHeader()
 	assert.Nil(t, header)

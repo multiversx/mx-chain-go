@@ -78,7 +78,7 @@ type Node struct {
 	multisig         crypto.MultiSigner
 	forkDetector     process.ForkDetector
 
-	blkc             *blockchain.BlockChain
+	blkc             blockchain.BlockChain
 	dataPool         data.TransientDataHolder
 	shardCoordinator sharding.ShardCoordinator
 
@@ -190,8 +190,8 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	n.blkc.GenesisBlock = genesisHeader
-	n.blkc.GenesisHeaderHash = genesisHeaderHash
+	n.blkc.SetGenesisBlock(genesisHeader)
+	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
 
 	rounder, err := n.createRounder()
 

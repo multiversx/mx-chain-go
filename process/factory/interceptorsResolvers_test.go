@@ -224,7 +224,7 @@ func createConfig() factory.InterceptorsResolversConfig {
 	}
 }
 
-func createBlockchain() *blockchain.BlockChain {
+func createBlockchain() blockchain.BlockChain {
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
 		&mock.StorerStub{},

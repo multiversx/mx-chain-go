@@ -31,7 +31,7 @@ type Bootstrap struct {
 	headers          data.ShardedDataCacherNotifier
 	headersNonces    data.Uint64Cacher
 	miniBlocks       storage.Cacher
-	blkc             *blockchain.BlockChain
+	blkc             blockchain.BlockChain
 	rounder          consensus.Rounder
 	blkExecutor      process.BlockProcessor
 	hasher           hashing.Hasher
@@ -67,7 +67,7 @@ type Bootstrap struct {
 // NewBootstrap creates a new Bootstrap object
 func NewBootstrap(
 	transientDataHolder data.TransientDataHolder,
-	blkc *blockchain.BlockChain,
+	blkc blockchain.BlockChain,
 	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
 	waitTime time.Duration,
@@ -146,7 +146,7 @@ func NewBootstrap(
 // checkBootstrapNilParameters will check the imput parameters for nil values
 func checkBootstrapNilParameters(
 	transientDataHolder data.TransientDataHolder,
-	blkc *blockchain.BlockChain,
+	blkc blockchain.BlockChain,
 	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
 	hasher hashing.Hasher,
@@ -582,8 +582,8 @@ func (boot *Bootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (interf
 // getNonceForNextBlock will get the nonce for the next block we should request
 func (boot *Bootstrap) getNonceForNextBlock() uint64 {
 	nonce := uint64(1) // first block nonce after genesis block
-	if boot.blkc != nil && boot.blkc.CurrentBlockHeader != nil {
-		nonce = boot.blkc.CurrentBlockHeader.Nonce + 1
+	if boot.blkc != nil && boot.blkc.CurrentBlockHeader() != nil {
+		nonce = boot.blkc.CurrentBlockHeader().Nonce + 1
 	}
 
 	return nonce
@@ -613,7 +613,7 @@ func (boot *Bootstrap) waitForMiniBlocks() {
 func (boot *Bootstrap) forkChoice(hdr *block.Header) error {
 	log.Info(fmt.Sprintf("starting fork choice\n"))
 
-	header := boot.blkc.CurrentBlockHeader
+	header := boot.blkc.CurrentBlockHeader()
 
 	if header == nil {
 		return ErrNilCurrentHeader
@@ -658,9 +658,9 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 
 	// genesis block is treated differently
 	if header.Nonce == 1 {
-		boot.blkc.CurrentBlockHeader = nil
-		boot.blkc.CurrentTxBlockBody = nil
-		boot.blkc.CurrentBlockHeaderHash = nil
+		boot.blkc.SetCurrentBlockHeader(nil)
+		boot.blkc.SetCurrentTxBlockBody(nil)
+		boot.blkc.SetCurrentBlockHeaderHash(nil)
 		boot.cleanCachesOnRollback(header, headerStore)
 
 		return nil
@@ -676,9 +676,9 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 		return err
 	}
 
-	boot.blkc.CurrentBlockHeader = newHeader
-	boot.blkc.CurrentTxBlockBody = newTxBlockBody
-	boot.blkc.CurrentBlockHeaderHash = header.PrevHash
+	boot.blkc.SetCurrentBlockHeader(newHeader)
+	boot.blkc.SetCurrentTxBlockBody(newTxBlockBody)
+	boot.blkc.SetCurrentBlockHeaderHash(header.PrevHash)
 	boot.cleanCachesOnRollback(header, headerStore)
 
 	return nil
@@ -740,12 +740,12 @@ func (boot *Bootstrap) ShouldSync() bool {
 		return true
 	}
 
-	if boot.blkc.CurrentBlockHeader == nil {
+	if boot.blkc.CurrentBlockHeader() == nil {
 		isNotSynchronized := boot.rounder.Index() > 0
 		return isNotSynchronized
 	}
 
-	isNotSynchronized := boot.blkc.CurrentBlockHeader.Round+1 < uint32(boot.rounder.Index())
+	isNotSynchronized := boot.blkc.CurrentBlockHeader().Round+1 < uint32(boot.rounder.Index())
 
 	if isNotSynchronized {
 		return true
@@ -771,14 +771,14 @@ func (boot *Bootstrap) createHeader() (data.HeaderHandler, error) {
 
 	var prevHeaderHash []byte
 
-	if boot.blkc.CurrentBlockHeader == nil {
+	if boot.blkc.CurrentBlockHeader() == nil {
 		hdr.Nonce = 1
 		hdr.Round = 0
-		prevHeaderHash = boot.blkc.GenesisHeaderHash
+		prevHeaderHash = boot.blkc.GenesisHeaderHash()
 	} else {
-		hdr.Nonce = boot.blkc.CurrentBlockHeader.Nonce + 1
-		hdr.Round = boot.blkc.CurrentBlockHeader.Round + 1
-		prevHeaderHash = boot.blkc.CurrentBlockHeaderHash
+		hdr.Nonce = boot.blkc.CurrentBlockHeader().Nonce + 1
+		hdr.Round = boot.blkc.CurrentBlockHeader().Round + 1
+		prevHeaderHash = boot.blkc.CurrentBlockHeaderHash()
 	}
 
 	hdr.TimeStamp = uint64(boot.getTimeStampForRound(hdr.Round).Unix())

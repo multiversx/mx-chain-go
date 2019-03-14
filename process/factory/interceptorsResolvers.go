@@ -31,7 +31,7 @@ type interceptorsResolvers struct {
 	resolverContainer process.ResolversContainer
 
 	messenger                p2p.Messenger
-	blockchain               *blockchain.BlockChain
+	blockchain               blockchain.BlockChain
 	dataPool                 data.TransientDataHolder
 	shardCoordinator         sharding.ShardCoordinator
 	addrConverter            state.AddressConverter
@@ -49,7 +49,7 @@ type InterceptorsResolversConfig struct {
 	ResolverContainer process.ResolversContainer
 
 	Messenger                p2p.Messenger
-	Blockchain               *blockchain.BlockChain
+	Blockchain               blockchain.BlockChain
 	DataPool                 data.TransientDataHolder
 	ShardCoordinator         sharding.ShardCoordinator
 	AddrConverter            state.AddressConverter

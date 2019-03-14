@@ -73,7 +73,7 @@ func WithAddressConverter(addrConverter state.AddressConverter) Option {
 }
 
 // WithBlockChain sets up the blockchain option for the Node
-func WithBlockChain(blkc *blockchain.BlockChain) Option {
+func WithBlockChain(blkc blockchain.BlockChain) Option {
 	return func(n *Node) error {
 		if blkc == nil {
 			return ErrNilBlockchain

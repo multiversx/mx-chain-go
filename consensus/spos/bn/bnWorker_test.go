@@ -127,13 +127,13 @@ func initBlockProcessorMock() *mock.BlockProcessorMock {
 		return emptyBlock, nil
 	}
 
-	blockProcessorMock.CommitBlockCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
+	blockProcessorMock.CommitBlockCalled = func(blockChain blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
 
 	blockProcessorMock.RevertAccountStateCalled = func() {}
 
-	blockProcessorMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+	blockProcessorMock.ProcessBlockCalled = func(blockChain blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
 

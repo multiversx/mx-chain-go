@@ -40,8 +40,8 @@ type StorageService interface {
 	Destroy() error
 }
 
-// Blockchain is the interface defining the functionality a blockchain should implement
-type Blockhain interface {
+// BlockChain is the interface defining the functionality a blockchain should implement
+type BlockChain interface {
 	StorageService
 	GenesisBlock() *block.Header
 	SetGenesisBlock(gb *block.Header)

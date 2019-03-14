@@ -17,7 +17,7 @@ import (
 type interceptorsContainerFactory struct {
 	shardCoordinator sharding.ShardCoordinator
 	messenger        process.TopicHandler
-	blockchain       *blockchain.BlockChain
+	blockchain       blockchain.BlockChain
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
 	keyGen           crypto.KeyGenerator
@@ -31,7 +31,7 @@ type interceptorsContainerFactory struct {
 func NewInterceptorsContainerFactory(
 	shardCoordinator sharding.ShardCoordinator,
 	messenger process.TopicHandler,
-	blockchain *blockchain.BlockChain,
+	blockchain blockchain.BlockChain,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	keyGen crypto.KeyGenerator,

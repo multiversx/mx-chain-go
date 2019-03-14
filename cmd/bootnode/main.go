@@ -770,7 +770,7 @@ func createDataPoolFromConfig(config *config.Config, uint64ByteSliceConverter ty
 	)
 }
 
-func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, error) {
+func createBlockChainFromConfig(config *config.Config) (blockchain.BlockChain, error) {
 	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit *storage.Unit
 	var err error
 
