@@ -12,16 +12,20 @@ import (
 
 type HeaderCapn C.Struct
 
-func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(32, 7)) }
-func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(32, 7)) }
-func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(32, 7)) }
+func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(32, 9)) }
+func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(32, 9)) }
+func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(32, 9)) }
 func ReadRootHeaderCapn(s *C.Segment) HeaderCapn { return HeaderCapn(s.Root(0).ToStruct()) }
 func (s HeaderCapn) Nonce() uint64               { return C.Struct(s).Get64(0) }
 func (s HeaderCapn) SetNonce(v uint64)           { C.Struct(s).Set64(0, v) }
 func (s HeaderCapn) PrevHash() []byte            { return C.Struct(s).GetObject(0).ToData() }
 func (s HeaderCapn) SetPrevHash(v []byte)        { C.Struct(s).SetObject(0, s.Segment.NewData(v)) }
-func (s HeaderCapn) PubKeysBitmap() []byte       { return C.Struct(s).GetObject(1).ToData() }
-func (s HeaderCapn) SetPubKeysBitmap(v []byte)   { C.Struct(s).SetObject(1, s.Segment.NewData(v)) }
+func (s HeaderCapn) PrevRandSeed() []byte        { return C.Struct(s).GetObject(1).ToData() }
+func (s HeaderCapn) SetPrevRandSeed(v []byte)    { C.Struct(s).SetObject(1, s.Segment.NewData(v)) }
+func (s HeaderCapn) RandSeed() []byte            { return C.Struct(s).GetObject(2).ToData() }
+func (s HeaderCapn) SetRandSeed(v []byte)        { C.Struct(s).SetObject(2, s.Segment.NewData(v)) }
+func (s HeaderCapn) PubKeysBitmap() []byte       { return C.Struct(s).GetObject(3).ToData() }
+func (s HeaderCapn) SetPubKeysBitmap(v []byte)   { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
 func (s HeaderCapn) ShardId() uint32             { return C.Struct(s).Get32(8) }
 func (s HeaderCapn) SetShardId(v uint32)         { C.Struct(s).Set32(8, v) }
 func (s HeaderCapn) TimeStamp() uint64           { return C.Struct(s).Get64(16) }
@@ -32,20 +36,22 @@ func (s HeaderCapn) Epoch() uint32               { return C.Struct(s).Get32(24) 
 func (s HeaderCapn) SetEpoch(v uint32)           { C.Struct(s).Set32(24, v) }
 func (s HeaderCapn) BlockBodyType() uint8        { return C.Struct(s).Get8(28) }
 func (s HeaderCapn) SetBlockBodyType(v uint8)    { C.Struct(s).Set8(28, v) }
-func (s HeaderCapn) Signature() []byte           { return C.Struct(s).GetObject(2).ToData() }
-func (s HeaderCapn) SetSignature(v []byte)       { C.Struct(s).SetObject(2, s.Segment.NewData(v)) }
-func (s HeaderCapn) Commitment() []byte          { return C.Struct(s).GetObject(3).ToData() }
-func (s HeaderCapn) SetCommitment(v []byte)      { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
+func (s HeaderCapn) Signature() []byte           { return C.Struct(s).GetObject(4).ToData() }
+func (s HeaderCapn) SetSignature(v []byte)       { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
+func (s HeaderCapn) Commitment() []byte          { return C.Struct(s).GetObject(5).ToData() }
+func (s HeaderCapn) SetCommitment(v []byte)      { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
 func (s HeaderCapn) MiniBlockHeaders() MiniBlockHeaderCapn_List {
-	return MiniBlockHeaderCapn_List(C.Struct(s).GetObject(4))
+	return MiniBlockHeaderCapn_List(C.Struct(s).GetObject(6))
 }
 func (s HeaderCapn) SetMiniBlockHeaders(v MiniBlockHeaderCapn_List) {
-	C.Struct(s).SetObject(4, C.Object(v))
+	C.Struct(s).SetObject(6, C.Object(v))
 }
-func (s HeaderCapn) PeerChanges() C.DataList     { return C.DataList(C.Struct(s).GetObject(5)) }
-func (s HeaderCapn) SetPeerChanges(v C.DataList) { C.Struct(s).SetObject(5, C.Object(v)) }
-func (s HeaderCapn) RootHash() []byte            { return C.Struct(s).GetObject(6).ToData() }
-func (s HeaderCapn) SetRootHash(v []byte)        { C.Struct(s).SetObject(6, s.Segment.NewData(v)) }
+func (s HeaderCapn) PeerChanges() PeerChangeCapn_List {
+	return PeerChangeCapn_List(C.Struct(s).GetObject(7))
+}
+func (s HeaderCapn) SetPeerChanges(v PeerChangeCapn_List) { C.Struct(s).SetObject(7, C.Object(v)) }
+func (s HeaderCapn) RootHash() []byte                     { return C.Struct(s).GetObject(8).ToData() }
+func (s HeaderCapn) SetRootHash(v []byte)                 { C.Struct(s).SetObject(8, s.Segment.NewData(v)) }
 func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -80,6 +86,44 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.PrevHash()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"prevRandSeed\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.PrevRandSeed()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"randSeed\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.RandSeed()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -296,11 +340,7 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 				if err != nil {
 					return err
 				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
+				err = s.WriteJSON(b)
 				if err != nil {
 					return err
 				}
@@ -376,6 +416,44 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.PrevHash()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("prevRandSeed = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.PrevRandSeed()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("randSeed = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.RandSeed()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -592,11 +670,7 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 				if err != nil {
 					return err
 				}
-				buf, err = json.Marshal(s)
-				if err != nil {
-					return err
-				}
-				_, err = b.Write(buf)
+				err = s.WriteCapLit(b)
 				if err != nil {
 					return err
 				}
@@ -642,7 +716,7 @@ func (s HeaderCapn) MarshalCapLit() ([]byte, error) {
 type HeaderCapn_List C.PointerList
 
 func NewHeaderCapnList(s *C.Segment, sz int) HeaderCapn_List {
-	return HeaderCapn_List(s.NewCompositeList(32, 7, sz))
+	return HeaderCapn_List(s.NewCompositeList(32, 9, sz))
 }
 func (s HeaderCapn_List) Len() int            { return C.PointerList(s).Len() }
 func (s HeaderCapn_List) At(i int) HeaderCapn { return HeaderCapn(C.PointerList(s).At(i).ToStruct()) }

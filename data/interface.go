@@ -57,8 +57,11 @@ type HeaderHandler interface {
 	GetRound() uint32
 	GetRootHash() []byte
 	GetPrevHash() []byte
+	GetPrevRandSeed() []byte
+	GetRandSeed() []byte
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
+	GetCommitment() []byte
 
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
@@ -66,6 +69,8 @@ type HeaderHandler interface {
 	SetTimeStamp(ts uint64)
 	SetRootHash(rHash []byte)
 	SetPrevHash(pvHash []byte)
+	SetPrevRandSeed(pvRandSeed []byte)
+	SetRandSeed(randSeed []byte)
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
 	SetCommitment(commitment []byte)
@@ -73,6 +78,5 @@ type HeaderHandler interface {
 
 // BodyHandler defines getters and setters for body data holder
 type BodyHandler interface {
-	UnderlyingObject() interface{}
 	// TODO find common point between different body's -> metablockbody and blockbody.
 }

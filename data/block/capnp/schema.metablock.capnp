@@ -17,15 +17,17 @@ struct ShardDataCapn {
 }
 
 struct MetaBlockCapn {
-    nonce         @0: UInt64;
-    epoch         @1: UInt32;
-    round         @2: UInt32;
-    shardInfo     @3: List(ShardDataCapn);
-    peerInfo      @4: List(PeerDataCapn);
-    signature     @5: Data;
-    pubKeysBitmap @6: Data;
-    previousHash  @7: Data;
-    stateRootHash @8: Data;
+    nonce         @0:  UInt64;
+    epoch         @1:  UInt32;
+    round         @2:  UInt32;
+    shardInfo     @3:  List(ShardDataCapn);
+    peerInfo      @4:  List(PeerDataCapn);
+    signature     @5:  Data;
+    pubKeysBitmap @6:  Data;
+    previousHash  @7:  Data;
+    prevRandSeed  @8:  Data;
+    randSeed      @9:  Data;
+    stateRootHash @10: Data;
 }
 
 ##compile with:

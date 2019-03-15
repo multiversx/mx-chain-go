@@ -33,30 +33,32 @@ func (pa PeerAction) String() string {
 //  - a peer can register with an amount to become a validator
 //  - a peer can choose to deregister and get back the deposited value
 type PeerData struct {
-	PublicKey []byte `capid:"0"`
-	Action PeerAction `capid:"1"`
-	TimeStamp uint64 `capid:"2"`
-	Value *big.Int `capid:"3"`
+	PublicKey []byte     `capid:"0"`
+	Action    PeerAction `capid:"1"`
+	TimeStamp uint64     `capid:"2"`
+	Value     *big.Int   `capid:"3"`
 }
 
 // ShardData holds the block information sent by the shards to the metachain
 type ShardData struct {
-	ShardId uint32 `capid:"0"`
-	HeaderHash []byte `capid:"1"`
+	ShardId         uint32 `capid:"0"`
+	HeaderHash      []byte `capid:"1"`
 	TxBlockBodyHash []byte `capid:"2"`
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
 type MetaBlock struct {
-	Nonce uint64 `capid:"0"`
-	Epoch uint32 `capid:"1"`
-	Round uint32 `capid:"2"`
-	ShardInfo []ShardData `capid:"3"`
-	PeerInfo []PeerData `capid:"4"`
-	Signature []byte `capid:"5"`
-	PubKeysBitmap []byte `capid:"6"`
-	PreviousHash []byte `capid:"7"`
-	StateRootHash []byte `capid:"8"`
+	Nonce         uint64      `capid:"0"`
+	Epoch         uint32      `capid:"1"`
+	Round         uint32      `capid:"2"`
+	ShardInfo     []ShardData `capid:"3"`
+	PeerInfo      []PeerData  `capid:"4"`
+	Signature     []byte      `capid:"5"`
+	PubKeysBitmap []byte      `capid:"6"`
+	PreviousHash  []byte      `capid:"7"`
+	PrevRandSeed  []byte      `capid:"8"`
+	RandSeed      []byte      `capid:"9"`
+	StateRootHash []byte      `capid:"10"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -200,6 +202,8 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetSignature(src.Signature)
 	dest.SetPubKeysBitmap(src.PubKeysBitmap)
 	dest.SetPreviousHash(src.PreviousHash)
+	dest.SetPrevRandSeed(src.PrevRandSeed)
+	dest.SetRandSeed(src.RandSeed)
 	dest.SetStateRootHash(src.StateRootHash)
 
 	return dest
@@ -227,6 +231,8 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.Signature = src.Signature()
 	dest.PubKeysBitmap = src.PubKeysBitmap()
 	dest.PreviousHash = src.PreviousHash()
+	dest.PrevRandSeed = src.PrevRandSeed()
+	dest.RandSeed = src.RandSeed()
 	dest.StateRootHash = src.StateRootHash()
 
 	return dest

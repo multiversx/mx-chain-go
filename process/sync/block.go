@@ -784,12 +784,15 @@ func (boot *Bootstrap) createHeader() (data.HeaderHandler, error) {
 		hdr.Nonce = 1
 		hdr.Round = 0
 		prevHeaderHash = boot.blkc.GenesisHeaderHash
+		hdr.PrevRandSeed = boot.blkc.GenesisBlock.Signature
 	} else {
 		hdr.Nonce = boot.blkc.CurrentBlockHeader.Nonce + 1
 		hdr.Round = boot.blkc.CurrentBlockHeader.Round + 1
 		prevHeaderHash = boot.blkc.CurrentBlockHeaderHash
+		hdr.PrevRandSeed = boot.blkc.CurrentBlockHeader.Signature
 	}
 
+	hdr.RandSeed = []byte{0}
 	hdr.TimeStamp = uint64(boot.getTimeStampForRound(hdr.Round).Unix())
 	hdr.PrevHash = prevHeaderHash
 	hdr.RootHash = boot.accounts.RootHash()

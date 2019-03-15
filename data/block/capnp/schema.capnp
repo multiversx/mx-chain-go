@@ -7,17 +7,19 @@ $Go.import("_");
 struct HeaderCapn {
    nonce            @0:   UInt64;
    prevHash         @1:   Data;
-   pubKeysBitmap    @2:   Data;
-   shardId          @3:   UInt32;
-   timeStamp        @4:   UInt64;
-   round            @5:   UInt32;
-   epoch            @6:   UInt32;
-   blockBodyType    @7:   UInt8;
-   signature        @8:   Data;
-   commitment       @9:   Data;
-   miniBlockHeaders @10:  List(MiniBlockHeaderCapn);
-   peerChanges      @11:  List(Data);
-   rootHash         @12:  Data;
+   prevRandSeed     @2:   Data;
+   randSeed         @3:   Data;
+   pubKeysBitmap    @4:   Data;
+   shardId          @5:   UInt32;
+   timeStamp        @6:   UInt64;
+   round            @7:   UInt32;
+   epoch            @8:   UInt32;
+   blockBodyType    @9:   UInt8;
+   signature        @10:  Data;
+   commitment       @11:  Data;
+   miniBlockHeaders @12:  List(MiniBlockHeaderCapn);
+   peerChanges      @13:  List(PeerChangeCapn);
+   rootHash         @14:  Data;
 }
 
 struct MiniBlockHeaderCapn {

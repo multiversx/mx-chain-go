@@ -220,19 +220,35 @@ func (sBlock *MiniBlock) GenerateDummyArray() []data.CapnpHelper {
 func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 	headers := make([]data.CapnpHelper, 0, 1000)
 
+	mbh := block.MiniBlockHeader{
+		Hash:            []byte("mini block header"),
+		SenderShardID:   uint32(1),
+		ReceiverShardID: uint32(0),
+	}
+
+	pc := block.PeerChange{
+		PubKey:      []byte("public key"),
+		ShardIdDest: uint32(0),
+	}
+
 	for i := 0; i < 1000; i++ {
 		headers = append(headers, &Header{
 			Header: block.Header{
-				Nonce:         uint64(rand.Int63n(10000)),
-				PrevHash:      []byte(RandomStr(32)),
-				ShardId:       uint32(rand.Intn(20)),
-				TimeStamp:     uint64(rand.Intn(20)),
-				Round:         uint32(rand.Intn(20000)),
-				Epoch:         uint32(rand.Intn(20000)),
-				BlockBodyType: block.TxBlock,
-				Signature:     []byte(RandomStr(32)),
-				Commitment:    []byte(RandomStr(32)),
-				PubKeysBitmap: []byte(RandomStr(10)),
+				Nonce:            uint64(rand.Int63n(10000)),
+				PrevHash:         []byte(RandomStr(32)),
+				PrevRandSeed:     []byte(RandomStr(32)),
+				RandSeed:         []byte(RandomStr(32)),
+				ShardId:          uint32(rand.Intn(20)),
+				TimeStamp:        uint64(rand.Intn(20)),
+				Round:            uint32(rand.Intn(20000)),
+				Epoch:            uint32(rand.Intn(20000)),
+				BlockBodyType:    block.TxBlock,
+				Signature:        []byte(RandomStr(32)),
+				Commitment:       []byte(RandomStr(32)),
+				PubKeysBitmap:    []byte(RandomStr(10)),
+				MiniBlockHeaders: []block.MiniBlockHeader{mbh},
+				PeerChanges:      []block.PeerChange{pc},
+				RootHash:         []byte("root hash"),
 			},
 		})
 	}
