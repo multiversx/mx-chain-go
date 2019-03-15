@@ -146,16 +146,28 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		return err
 	}
 
+	// transform from interface into struct
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	// transform from interface into struct
+	blockHeader, ok := header.(*block.Header)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
 
-	err = bp.validateHeader(blockChain, header)
+	err = bp.validateHeader(blockChain, blockHeader)
 	if err != nil {
 		return err
 	}
 
-	requestedTxs := bp.requestBlockTransactions(body)
+	requestedTxs := bp.requestBlockTransactions(blockBody)
 
 	if requestedTxs > 0 {
 
@@ -180,13 +192,13 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		}
 	}()
 
-	err = bp.processBlockTransactions(body, int32(header.GetRound()), haveTime)
+	err = bp.processBlockTransactions(blockBody, int32(blockHeader.Round), haveTime)
 
 	if err != nil {
 		return err
 	}
 
-	if !bp.verifyStateRoot(header.GetRootHash()) {
+	if !bp.verifyStateRoot(blockHeader.RootHash) {
 		return process.ErrRootStateMissmatch
 	}
 
@@ -200,7 +212,10 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 	}
 
 	// transform from interface into struct
-	blockBody := body.(block.Body)
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
 
 	transactionPool := bp.dataPool.Transactions()
 
@@ -245,23 +260,23 @@ func (bp *blockProcessor) getRootHash() []byte {
 	return bp.accounts.RootHash()
 }
 
-func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, header data.HeaderHandler) error {
+func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, header *block.Header) error {
 	// basic validation was already done on interceptor
 	if blockChain.CurrentBlockHeader == nil {
 		if !bp.isFirstBlockInEpoch(header) {
 			return process.ErrWrongNonceInBlock
 		}
 	} else {
-		if bp.isCorrectNonce(blockChain.CurrentBlockHeader.Nonce, header.GetNonce()) {
+		if bp.isCorrectNonce(blockChain.CurrentBlockHeader.Nonce, header.Nonce) {
 			return process.ErrWrongNonceInBlock
 		}
 
-		if !bytes.Equal(header.GetPrevHash(), blockChain.CurrentBlockHeaderHash) {
+		if !bytes.Equal(header.PrevHash, blockChain.CurrentBlockHeaderHash) {
 
 			log.Info(fmt.Sprintf(
 				"header.Nonce = %d has header.PrevHash = %s and blockChain.CurrentBlockHeader.Nonce = %d has blockChain.CurrentBlockHeaderHash = %s\n",
-				header.GetNonce(),
-				toB64(header.GetPrevHash()),
+				header.Nonce,
+				toB64(header.PrevHash),
 				blockChain.CurrentBlockHeader.Nonce,
 				toB64(blockChain.CurrentBlockHeaderHash)))
 
@@ -276,19 +291,16 @@ func (bp *blockProcessor) isCorrectNonce(currentBlockNonce, receivedBlockNonce u
 	return currentBlockNonce+1 != receivedBlockNonce
 }
 
-func (bp *blockProcessor) isFirstBlockInEpoch(header data.HeaderHandler) bool {
-	return header.GetRound() == 0
+func (bp *blockProcessor) isFirstBlockInEpoch(header *block.Header) bool {
+	return header.Round == 0
 }
 
-func (bp *blockProcessor) processBlockTransactions(body data.BodyHandler, round int32, haveTime func() time.Duration) error {
+func (bp *blockProcessor) processBlockTransactions(body block.Body, round int32, haveTime func() time.Duration) error {
 	// basic validation already done in interceptors
 	txPool := bp.dataPool.Transactions()
 
-	// transform from interface into struct
-	blockBody := body.(block.Body)
-
-	for i := 0; i < len(blockBody); i++ {
-		miniBlock := blockBody[i]
+	for i := 0; i < len(body); i++ {
+		miniBlock := body[i]
 		shardId := miniBlock.ShardID
 
 		//TODO: Remove this display
@@ -345,7 +357,10 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 	}
 
 	// transform from interface into struct
-	blockBody := body.(block.Body)
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
 
 	for i := 0; i < len(blockBody); i++ {
 		buff, err = bp.marshalizer.Marshal((blockBody)[i])
@@ -453,7 +468,7 @@ func (bp *blockProcessor) receivedTransaction(txHash []byte) {
 	bp.mut.Unlock()
 }
 
-func (bp *blockProcessor) requestBlockTransactions(body data.BodyHandler) int {
+func (bp *blockProcessor) requestBlockTransactions(body block.Body) int {
 	bp.mut.Lock()
 	requestedTxs := 0
 	missingTxsForShards := bp.computeMissingTxsForShards(body)
@@ -471,14 +486,11 @@ func (bp *blockProcessor) requestBlockTransactions(body data.BodyHandler) int {
 	return requestedTxs
 }
 
-func (bp *blockProcessor) computeMissingTxsForShards(body data.BodyHandler) map[uint32][][]byte {
+func (bp *blockProcessor) computeMissingTxsForShards(body block.Body) map[uint32][][]byte {
 	missingTxsForShard := make(map[uint32][][]byte)
 
-	// transform from interface into struct
-	blockBody := body.(block.Body)
-
-	for i := 0; i < len(blockBody); i++ {
-		miniBlock := blockBody[i]
+	for i := 0; i < len(body); i++ {
+		miniBlock := body[i]
 		shardId := miniBlock.ShardID
 		currentShardMissingTransactions := make([][]byte, 0)
 
@@ -519,7 +531,7 @@ func (bp *blockProcessor) processAndRemoveBadTransaction(
 	return err
 }
 
-func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (data.BodyHandler, error) {
+func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
 	miniBlocks := make(block.Body, 0)
 
 	if bp.accounts.JournalLen() != 0 {
@@ -643,7 +655,10 @@ func (bp *blockProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderH
 	}
 
 	// transform from interface into struct
-	blockBody := body.(block.Body)
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
 
 	mbLen := len(blockBody)
 	miniBlockHeaders := make([]block.MiniBlockHeader, mbLen)
@@ -708,8 +723,8 @@ func (bp *blockProcessor) computeHeaderHash(hdr *block.Header) ([]byte, error) {
 }
 
 func (bp *blockProcessor) displayLogInfo(
-	header data.HeaderHandler,
-	body data.BodyHandler,
+	header *block.Header,
+	body block.Body,
 	headerHash []byte,
 ) {
 	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(header, body)
@@ -724,21 +739,21 @@ func (bp *blockProcessor) displayLogInfo(
 		toB64(headerHash),
 		txsTotalProcessed,
 		txsCurrentBlockProcessed,
-		bp.getTxsFromPool(header.GetShardId()))
+		bp.getTxsFromPool(header.ShardId))
 
 	log.Info(tblString)
 }
 
 func createDisplayableHeaderAndBlockBody(
-	header data.HeaderHandler,
-	body data.BodyHandler,
+	header *block.Header,
+	body block.Body,
 ) ([]string, []*display.LineData) {
 
 	tableHeader := []string{"Part", "Parameter", "Value"}
 
 	lines := displayHeader(header)
 
-	if header.GetBlockBodyType() == block.TxBlock {
+	if header.BlockBodyType == block.TxBlock {
 		lines = displayTxBlockBody(lines, body)
 
 		return tableHeader, lines
@@ -750,68 +765,65 @@ func createDisplayableHeaderAndBlockBody(
 	return tableHeader, lines
 }
 
-func displayHeader(header data.HeaderHandler) []*display.LineData {
+func displayHeader(header *block.Header) []*display.LineData {
 	lines := make([]*display.LineData, 0)
 
 	lines = append(lines, display.NewLineData(false, []string{
 		"Header",
 		"Nonce",
-		fmt.Sprintf("%d", header.GetNonce())}))
+		fmt.Sprintf("%d", header.Nonce)}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Shard",
-		fmt.Sprintf("%d", header.GetShardId())}))
+		fmt.Sprintf("%d", header.ShardId)}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Epoch",
-		fmt.Sprintf("%d", header.GetEpoch())}))
+		fmt.Sprintf("%d", header.Epoch)}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Round",
-		fmt.Sprintf("%d", header.GetRound())}))
+		fmt.Sprintf("%d", header.Round)}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Timestamp",
-		fmt.Sprintf("%d", header.GetTimeStamp())}))
+		fmt.Sprintf("%d", header.TimeStamp)}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Prev hash",
-		toB64(header.GetPrevHash())}))
+		toB64(header.PrevHash)}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Body type",
-		header.GetBlockBodyType().String()}))
+		header.BlockBodyType.String()}))
 
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Pub keys bitmap",
-		toHex(header.GetPubKeysBitmap())}))
+		toHex(header.PubKeysBitmap)}))
 
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Commitment",
-		toB64(header.GetCommitment())}))
+		toB64(header.Commitment)}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Signature",
-		toB64(header.GetSignature())}))
+		toB64(header.Signature)}))
 
 	lines = append(lines, display.NewLineData(true, []string{
 		"",
 		"Root hash",
-		toB64(header.GetRootHash())}))
+		toB64(header.RootHash)}))
 	return lines
 }
 
-func displayTxBlockBody(lines []*display.LineData, body data.BodyHandler) []*display.LineData {
+func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {
 
 	txsCurrentBlockProcessed = 0
 
-	// transform from interface into struct
-	blockBody := body.(block.Body)
-
-	for i := 0; i < len(blockBody); i++ {
-		miniBlock := blockBody[i]
+	for i := 0; i < len(body); i++ {
+		miniBlock := body[i]
 
 		part := fmt.Sprintf("TxBody_%d", miniBlock.ShardID)
 

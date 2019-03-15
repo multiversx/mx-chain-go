@@ -253,3 +253,6 @@ var ErrWrongTypeInContainer = errors.New("wrong type of object inside container"
 
 // ErrLenMismatch signals that 2 or more slices have different lengths
 var ErrLenMismatch = errors.New("lengths mismatch")
+
+// ErrWrongTypeAssertion signals that an type assertion failed
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
