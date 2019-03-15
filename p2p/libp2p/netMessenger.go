@@ -75,7 +75,6 @@ func NewNetworkMessenger(
 		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
-		libp2p.NATPortMap(),
 		libp2p.ConnectionManager(conMgr),
 	}
 
@@ -260,13 +259,8 @@ func (netMes *networkMessenger) ConnectedPeers() []p2p.PeerID {
 func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
 	//as the peers in pubsub impl are held inside a map where the key is the peerID,
 	//the returned list will hold distinct values
-
 	list := netMes.pb.ListPeers(topic)
 	connectedPeers := make([]p2p.PeerID, len(list))
-
-	if list == nil {
-		return connectedPeers
-	}
 
 	for idx, pid := range list {
 		connectedPeers[idx] = p2p.PeerID(pid)
@@ -365,7 +359,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 
-	err := netMes.pb.RegisterTopicValidator(topic, func(i context.Context, message *pubsub.Message) bool {
+	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 		err := handler.ProcessReceivedMessage(NewMessage(message))
 
 		if err != nil {

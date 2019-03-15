@@ -81,13 +81,6 @@ func (mpd *MdnsPeerDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) err
 
 // Close closes the mdns service implementation
 func (mpd *MdnsPeerDiscoverer) Close() error {
-	mpd.mutMdns.Lock()
-	defer mpd.mutMdns.Unlock()
-
-	if mpd.mdns != nil {
-		return mpd.mdns.Close()
-	}
-
 	return nil
 }
 

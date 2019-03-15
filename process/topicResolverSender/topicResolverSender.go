@@ -13,8 +13,8 @@ import (
 // topicRequestSuffix represents the topic name suffix
 const topicRequestSuffix = "_REQUEST"
 
-// NumberPeersToSendRequest number of peers to send the message
-const NumberPeersToSendRequest = 2
+// NumPeersToQuery number of peers to send the message
+const NumPeersToQuery = 2
 
 var log = logger.NewDefaultLogger()
 
@@ -58,8 +58,7 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *process.RequestData) erro
 	}
 
 	topicToSendRequest := trs.topicName + topicRequestSuffix
-
-	peersToSend := selectRandomPeers(trs.messenger.ConnectedPeersOnTopic(topicToSendRequest), NumberPeersToSendRequest, trs.rnd)
+	peersToSend := selectRandomPeers(trs.messenger.ConnectedPeersOnTopic(topicToSendRequest), NumPeersToQuery, trs.rnd)
 	if len(peersToSend) == 0 {
 		return process.ErrNoConnectedPeerToSendRequest
 	}

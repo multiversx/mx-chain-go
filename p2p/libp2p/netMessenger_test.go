@@ -104,7 +104,6 @@ func containsPeerID(list []p2p.PeerID, searchFor p2p.PeerID) bool {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -702,18 +701,14 @@ func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
 func TestLibp2pMessenger_ConnectedPeersOnTopicInvalidTopicShouldRetEmptyList(t *testing.T) {
 	netw, mes1, mes2 := createMockNetworkOf2()
 	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
-
 	netw.LinkAll()
 
 	adr2 := mes2.Addresses()[0]
-
 	fmt.Printf("Connecting to %s...\n", adr2)
 
 	_ = mes1.ConnectToPeer(adr2)
 	_ = mes3.ConnectToPeer(adr2)
-
 	//connected peers:  1 ----- 2 ----- 3
-
 	connPeers := mes1.ConnectedPeersOnTopic("non-existent topic")
 	assert.Equal(t, 0, len(connPeers))
 
@@ -726,23 +721,18 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicOneTopicShouldWork(t *testing.T) {
 	netw, mes1, mes2 := createMockNetworkOf2()
 	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
 	mes4, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
-
 	netw.LinkAll()
 
 	adr2 := mes2.Addresses()[0]
-
 	fmt.Printf("Connecting to %s...\n", adr2)
 
 	_ = mes1.ConnectToPeer(adr2)
 	_ = mes3.ConnectToPeer(adr2)
 	_ = mes4.ConnectToPeer(adr2)
-
 	//connected peers:  1 ----- 2 ----- 3
 	//                          |
 	//                          4
-
 	//1, 2, 3 should be on topic "topic123"
-
 	mes1.CreateTopic("topic123", false)
 	mes2.CreateTopic("topic123", false)
 	mes3.CreateTopic("topic123", false)
@@ -766,23 +756,18 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicOneTopicDifferentViewsShouldWork(t
 	netw, mes1, mes2 := createMockNetworkOf2()
 	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
 	mes4, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
-
 	netw.LinkAll()
 
 	adr2 := mes2.Addresses()[0]
-
 	fmt.Printf("Connecting to %s...\n", adr2)
 
 	_ = mes1.ConnectToPeer(adr2)
 	_ = mes3.ConnectToPeer(adr2)
 	_ = mes4.ConnectToPeer(adr2)
-
 	//connected peers:  1 ----- 2 ----- 3
 	//                          |
 	//                          4
-
 	//1, 2, 3 should be on topic "topic123"
-
 	mes1.CreateTopic("topic123", false)
 	mes2.CreateTopic("topic123", false)
 	mes3.CreateTopic("topic123", false)
@@ -811,24 +796,19 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicTwoTopicsShouldWork(t *testing.T) 
 	netw, mes1, mes2 := createMockNetworkOf2()
 	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
 	mes4, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
-
 	netw.LinkAll()
 
 	adr2 := mes2.Addresses()[0]
-
 	fmt.Printf("Connecting to %s...\n", adr2)
 
 	_ = mes1.ConnectToPeer(adr2)
 	_ = mes3.ConnectToPeer(adr2)
 	_ = mes4.ConnectToPeer(adr2)
-
 	//connected peers:  1 ----- 2 ----- 3
 	//                          |
 	//                          4
-
 	//1, 2, 3 should be on topic "topic123"
 	//2, 4 should be on topic "topic24"
-
 	mes1.CreateTopic("topic123", false)
 	mes2.CreateTopic("topic123", false)
 	mes2.CreateTopic("topic24", false)
