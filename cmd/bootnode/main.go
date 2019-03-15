@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 
 	"fmt"
 	"io"
@@ -34,7 +35,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -288,11 +288,6 @@ func createNode(
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	blkc, err := createBlockChainFromConfig(config)
-	if err != nil {
-		return nil, errors.New("could not create block chain: " + err.Error())
-	}
-
 	// TODO: Constructor parameters should be changed when node assignment in the sharding package is implemented
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), 0)
 	if err != nil {
@@ -304,12 +299,30 @@ func createNode(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
-
-	datapool, err := createDataPoolFromConfig(config, uint64ByteSliceConverter)
+	blkc, err := createBlockChainFromConfig(config)
 	if err != nil {
-		return nil, errors.New("could not create data pools: " + err.Error())
+		return nil, errors.New("could not create block chain: " + err.Error())
 	}
+
+	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
+	datapool, err := createShardDataPoolFromConfig(config, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, errors.New("could not create shard data pools: " + err.Error())
+	}
+
+	// TODO create metachain / blockchain from data from shardcoordinator
+	// TODO move this creation in another place, to prepare for shard movement
+	//mtc, err := createMetaChainFromConfig(config)
+	//if err != nil {
+	//	return nil, errors.New("could not create meta chain: " + err.Error())
+	//}
+
+	// TODO create metadatapool / blockchain from according to shardcoordinator
+	// TODO save config, and move this creation into another place for node movement
+	//metadatapool, err := createMetaDataPoolFromConfig(config, uint64ByteSliceConverter)
+	//if err != nil {
+	//	return nil, errors.New("could not create meta data pools: " + err.Error())
+	//}
 
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 
@@ -626,7 +639,7 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 	}
 }
 
-func createDataPoolFromConfig(
+func createShardDataPoolFromConfig(
 	config *config.Config,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (data.PoolsHolder, error) {
@@ -663,12 +676,18 @@ func createDataPoolFromConfig(
 		return nil, err
 	}
 
-	return dataPool.NewDataPool(
+	metaBlockBody, err := shardedData.NewShardedData(getCacherFromConfig(config.MetaBlockBodyDataPool))
+	if err != nil {
+		return nil, err
+	}
+
+	return dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
+		metaBlockBody,
 	)
 }
 
@@ -750,6 +769,106 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 	}
 
 	return blockChain, err
+}
+
+func createMetaDataPoolFromConfig(
+	config *config.Config,
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+) (data.MetaPoolsHolder, error) {
+	metaBlockBody, err := shardedData.NewShardedData(getCacherFromConfig(config.MetaBlockBodyDataPool))
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlockHashes, err := shardedData.NewShardedData(getCacherFromConfig(config.MiniBlockHeaderHashesDataPool))
+	if err != nil {
+		return nil, err
+	}
+
+	shardHeaders, err := shardedData.NewShardedData(getCacherFromConfig(config.ShardHeaders))
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg := getCacherFromConfig(config.MetaHeaderNoncesDataPool)
+	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, err
+	}
+
+	return dataPool.NewMetaDataPool(metaBlockBody, miniBlockHashes, shardHeaders, metaBlockNonces)
+}
+
+func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, error) {
+	var peerDataUnit, shardDataUnit, metaBlockUnit *storage.Unit
+	var err error
+
+	defer func() {
+		// cleanup
+		if err != nil {
+			if peerDataUnit != nil {
+				_ = peerDataUnit.DestroyUnit()
+			}
+			if shardDataUnit != nil {
+				_ = shardDataUnit.DestroyUnit()
+			}
+			if metaBlockUnit != nil {
+				_ = metaBlockUnit.DestroyUnit()
+			}
+		}
+	}()
+
+	badBlockCache, err := storage.NewCache(
+		storage.CacheType(config.BadBlocksCache.Type),
+		config.BadBlocksCache.Size)
+
+	if err != nil {
+		return nil, err
+	}
+
+	metaBlockUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.MetaBlockStorage.Cache),
+		getDBFromConfig(config.MetaBlockStorage.DB),
+		getBloomFromConfig(config.MetaBlockStorage.Bloom))
+
+	if err != nil {
+		return nil, err
+	}
+
+	shardDataUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.ShardDataStorage.Cache),
+		getDBFromConfig(config.ShardDataStorage.DB),
+		getBloomFromConfig(config.ShardDataStorage.Bloom))
+
+	if err != nil {
+		return nil, err
+	}
+
+	peerDataUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.PeerDataStorage.Cache),
+		getDBFromConfig(config.PeerDataStorage.DB),
+		getBloomFromConfig(config.PeerDataStorage.Bloom))
+
+	if err != nil {
+		return nil, err
+	}
+
+	metaChain, err := blockchain.NewMetaChain(
+		badBlockCache,
+		metaBlockUnit,
+		shardDataUnit,
+		peerDataUnit,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return metaChain, err
 }
 
 func decodeAddress(address string) ([]byte, error) {

@@ -33,30 +33,30 @@ func (pa PeerAction) String() string {
 //  - a peer can register with an amount to become a validator
 //  - a peer can choose to deregister and get back the deposited value
 type PeerData struct {
-	PublicKey []byte `capid:"0"`
-	Action PeerAction `capid:"1"`
-	TimeStamp uint64 `capid:"2"`
-	Value *big.Int `capid:"3"`
+	PublicKey []byte     `capid:"0"`
+	Action    PeerAction `capid:"1"`
+	TimeStamp uint64     `capid:"2"`
+	Value     *big.Int   `capid:"3"`
 }
 
 // ShardData holds the block information sent by the shards to the metachain
 type ShardData struct {
-	ShardId uint32 `capid:"0"`
-	HeaderHash []byte `capid:"1"`
+	ShardId         uint32 `capid:"0"`
+	HeaderHash      []byte `capid:"1"`
 	TxBlockBodyHash []byte `capid:"2"`
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
 type MetaBlock struct {
-	Nonce uint64 `capid:"0"`
-	Epoch uint32 `capid:"1"`
-	Round uint32 `capid:"2"`
-	ShardInfo []ShardData `capid:"3"`
-	PeerInfo []PeerData `capid:"4"`
-	Signature []byte `capid:"5"`
-	PubKeysBitmap []byte `capid:"6"`
-	PreviousHash []byte `capid:"7"`
-	StateRootHash []byte `capid:"8"`
+	Nonce         uint64      `capid:"0"`
+	Epoch         uint32      `capid:"1"`
+	Round         uint32      `capid:"2"`
+	ShardInfo     []ShardData `capid:"3"`
+	PeerInfo      []PeerData  `capid:"4"`
+	Signature     []byte      `capid:"5"`
+	PubKeysBitmap []byte      `capid:"6"`
+	PreviousHash  []byte      `capid:"7"`
+	StateRootHash []byte      `capid:"8"`
 }
 
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
@@ -230,4 +230,84 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.StateRootHash = src.StateRootHash()
 
 	return dest
+}
+
+// GetNonce return header nonce
+func (h *MetaBlock) GetNonce() uint64 {
+	return h.Nonce
+}
+
+// GetEpoch return header epoch
+func (h *MetaBlock) GetEpoch() uint32 {
+	return h.Epoch
+}
+
+// GetRound return round from header
+func (h *MetaBlock) GetRound() uint32 {
+	return h.Round
+}
+
+// GetRootHash returns the roothash from header
+func (h *MetaBlock) GetRootHash() []byte {
+	return h.StateRootHash
+}
+
+// GetPrevHash returns previous block header hash
+func (h *MetaBlock) GetPrevHash() []byte {
+	return h.PreviousHash
+}
+
+// GetPubKeysBitmap return signers bitmap
+func (h *MetaBlock) GetPubKeysBitmap() []byte {
+	return h.PubKeysBitmap
+}
+
+// GetSignature return signed data
+func (h *MetaBlock) GetSignature() []byte {
+	return h.Signature
+}
+
+// SetNonce sets header nonce
+func (h *MetaBlock) SetNonce(n uint64) {
+	h.Nonce = n
+}
+
+// SetEpoch sets header epoch
+func (h *MetaBlock) SetEpoch(e uint32) {
+	h.Epoch = e
+}
+
+// SetRound sets header round
+func (h *MetaBlock) SetRound(r uint32) {
+	h.Round = r
+}
+
+// SetRootHash sets root hash
+func (h *MetaBlock) SetRootHash(rHash []byte) {
+	h.StateRootHash = rHash
+}
+
+// SetPrevHash sets prev hash
+func (h *MetaBlock) SetPrevHash(pvHash []byte) {
+	h.PreviousHash = pvHash
+}
+
+// SetPubKeysBitmap sets publick key bitmap
+func (h *MetaBlock) SetPubKeysBitmap(pkbm []byte) {
+	h.PubKeysBitmap = pkbm
+}
+
+// SetSignature set header signature
+func (h *MetaBlock) SetSignature(sg []byte) {
+	h.Signature = sg
+}
+
+// SetTimeStamp sets header timestamp
+func (h *MetaBlock) SetTimeStamp(ts uint64) {
+	// TODO implement me
+}
+
+// SetCommitment sets header commitment
+func (h *MetaBlock) SetCommitment(commitment []byte) {
+	// TODO implement me - it is implemented in another pull request
 }

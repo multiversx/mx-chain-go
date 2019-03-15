@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
@@ -15,32 +16,21 @@ import (
 // the height of the local chain and the perceived height of the chain in the network.
 type MetaChain struct {
 	StorageService
-	genesisBlock     *block.MetaBlock // Genesys Block pointer
-	genesisBlockHash []byte           // Genesis Block hash
-	currentBlock     *block.MetaBlock // Current Block pointer
-	currentBlockHash []byte           // Current Block hash
-	localHeight      int64            // Height of the local chain
-	networkHeight    int64            // Percieved height of the network chain
+	GenesisBlock     *block.MetaBlock // Genesys Block pointer
+	GenesisBlockHash []byte           // Genesis Block hash
+	CurrentBlock     *block.MetaBlock // Current Block pointer
+	CurrentBlockHash []byte           // Current Block hash
+	LocalHeight      int64            // Height of the local chain
+	NetworkHeight    int64            // Percieved height of the network chain
 	badBlocks        storage.Cacher   // Bad blocks cache
 }
 
 // NewMetachain will initialize a new metachain instance
 func NewMetaChain(
-	firstBlock *block.MetaBlock,
-	firstBlockHash []byte,
 	badBlocksCache storage.Cacher,
 	metaBlockUnit storage.Storer,
 	shardDataUnit storage.Storer,
 	peerDataUnit storage.Storer) (*MetaChain, error) {
-
-	if firstBlock == nil {
-		return nil, ErrMetaGenesisBlockNil
-	}
-
-	if firstBlockHash == nil {
-		return nil, ErrMetaGenesisBlockHashNil
-	}
-
 	if badBlocksCache == nil {
 		return nil, ErrBadBlocksCacheNil
 	}
@@ -69,64 +59,74 @@ func NewMetaChain(
 	}, nil
 }
 
-// GenesisBlock returns the genesis block header pointer
-func (mc *MetaChain) GenesisBlock() *block.MetaBlock {
-	return mc.genesisBlock
+// GetGenesisBlock returns the genesis block header pointer
+func (mc *MetaChain) GetGenesisBlock() data.HeaderHandler {
+	return mc.GenesisBlock
 }
 
-// GenesisHeaderHash returns the genesis block header hash
-func (mc *MetaChain) GenesisHeaderHash() []byte {
-	return mc.genesisBlockHash
+// SetGenesisBlock returns the genesis block header pointer
+func (mc *MetaChain) SetGenesisBlock(header data.HeaderHandler) {
+	mc.GenesisBlock = header.(*block.MetaBlock)
 }
 
-// CurrentBlockHeader returns current block header pointer
-func (mc *MetaChain) CurrentBlockHeader() *block.MetaBlock {
-	return mc.currentBlock
+// GetGenesisHeaderHash returns the genesis block header hash
+func (mc *MetaChain) GetGenesisHeaderHash() []byte {
+	return mc.GenesisBlockHash
+}
+
+// SetGenesisHeaderHash returns the genesis block header hash
+func (mc *MetaChain) SetGenesisHeaderHash(headerHash []byte) {
+	mc.GenesisBlockHash = headerHash
+}
+
+// GetCurrentBlockHeader returns current block header pointer
+func (mc *MetaChain) GetCurrentBlockHeader() data.HeaderHandler {
+	return mc.CurrentBlock
 }
 
 // SetCurrentBlockHeader sets current block header pointer
-func (mc *MetaChain) SetCurrentBlockHeader(header *block.MetaBlock) {
-	mc.currentBlock = header
+func (mc *MetaChain) SetCurrentBlockHeader(header data.HeaderHandler) {
+	mc.CurrentBlock = header.(*block.MetaBlock)
 }
 
-// CurrentBlockHeaderHash returns the current block header hash
-func (mc *MetaChain) CurrentBlockHeaderHash() []byte {
-	return mc.currentBlockHash
+// GetCurrentBlockHeaderHash returns the current block header hash
+func (mc *MetaChain) GetCurrentBlockHeaderHash() []byte {
+	return mc.CurrentBlockHash
 }
 
 // SetCurrentBlockHeaderHash returns the current block header hash
 func (mc *MetaChain) SetCurrentBlockHeaderHash(hash []byte) {
-	mc.currentBlockHash = hash
+	mc.CurrentBlockHash = hash
 }
 
-// CurrentBlockBody returns the block body pointer
-func (mc *MetaChain) CurrentBlockBody() *block.MetaBlock {
+// GetCurrentBlockBody returns the block body pointer
+func (mc *MetaChain) GetCurrentBlockBody() data.BodyHandler {
 	return nil
 }
 
 // SetCurrentBlockBody sets the block body pointer
-func (mc *MetaChain) SetCurrentBlockBody(body *block.MetaBlock) {
+func (mc *MetaChain) SetCurrentBlockBody(body data.BodyHandler) {
 	// not needed to be implemented in metachain.
 }
 
-// LocalHeight returns the height of the local chain
-func (mc *MetaChain) LocalHeight() int64 {
-	return mc.localHeight
+// GetLocalHeight returns the height of the local chain
+func (mc *MetaChain) GetLocalHeight() int64 {
+	return mc.LocalHeight
 }
 
 // SetLocalHeight sets the height of the local chain
 func (mc *MetaChain) SetLocalHeight(height int64) {
-	mc.localHeight = height
+	mc.LocalHeight = height
 }
 
-// NetworkHeight sets the percieved height of the network chain
-func (mc *MetaChain) NetworkHeight() int64 {
-	return mc.localHeight
+// GetNetworkHeight sets the percieved height of the network chain
+func (mc *MetaChain) GetNetworkHeight() int64 {
+	return mc.NetworkHeight
 }
 
 // SetNetworkHeight sets the percieved height of the network chain
 func (mc *MetaChain) SetNetworkHeight(height int64) {
-	mc.localHeight = height
+	mc.NetworkHeight = height
 }
 
 // IsBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise

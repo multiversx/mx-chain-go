@@ -3,7 +3,6 @@ package blockchain_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -62,48 +61,9 @@ func (blUnits *metaChainUnits) cleanupMetaChainUnits() {
 	}
 }
 
-func TestNewMetaChainNilFirstBlockShouldError(t *testing.T) {
-	blockChainUnits := createMetaUnits()
-	genHash := make([]byte, 2)
-
-	_, err := blockchain.NewMetaChain(
-		nil,
-		genHash,
-		blockChainUnits.badBlocksCache,
-		blockChainUnits.metaBlockUnit,
-		blockChainUnits.shardDataUnit,
-		blockChainUnits.peerDataUnit)
-
-	blockChainUnits.cleanupMetaChainUnits()
-
-	assert.Equal(t, err, blockchain.ErrMetaGenesisBlockNil)
-}
-
-func TestNewMetaChainNilFirstBlockHashShouldError(t *testing.T) {
-	blockChainUnits := createMetaUnits()
-	genBlock := &block.MetaBlock{}
-
-	_, err := blockchain.NewMetaChain(
-		genBlock,
-		nil,
-		blockChainUnits.badBlocksCache,
-		blockChainUnits.metaBlockUnit,
-		blockChainUnits.shardDataUnit,
-		blockChainUnits.peerDataUnit)
-
-	blockChainUnits.cleanupMetaChainUnits()
-
-	assert.Equal(t, err, blockchain.ErrMetaGenesisBlockHashNil)
-}
-
 func TestNewMetaChainNilBadBlockCacheShouldError(t *testing.T) {
 	blockChainUnits := createMetaUnits()
-	genBlock := &block.MetaBlock{}
-	genHash := make([]byte, 2)
-
 	_, err := blockchain.NewMetaChain(
-		genBlock,
-		genHash,
 		nil,
 		blockChainUnits.metaBlockUnit,
 		blockChainUnits.shardDataUnit,
@@ -116,12 +76,8 @@ func TestNewMetaChainNilBadBlockCacheShouldError(t *testing.T) {
 
 func TestNewMetaChainNilMetaBlockUnitShouldError(t *testing.T) {
 	blockChainUnits := createMetaUnits()
-	genBlock := &block.MetaBlock{}
-	genHash := make([]byte, 2)
 
 	_, err := blockchain.NewMetaChain(
-		genBlock,
-		genHash,
 		blockChainUnits.badBlocksCache,
 		nil,
 		blockChainUnits.shardDataUnit,
@@ -134,12 +90,7 @@ func TestNewMetaChainNilMetaBlockUnitShouldError(t *testing.T) {
 
 func TestNewMetaChainNilShardDataUnitShouldError(t *testing.T) {
 	blockChainUnits := createMetaUnits()
-	genBlock := &block.MetaBlock{}
-	genHash := make([]byte, 2)
-
 	_, err := blockchain.NewMetaChain(
-		genBlock,
-		genHash,
 		blockChainUnits.badBlocksCache,
 		blockChainUnits.metaBlockUnit,
 		nil,
@@ -152,12 +103,7 @@ func TestNewMetaChainNilShardDataUnitShouldError(t *testing.T) {
 
 func TestNewMetaChainNilPeerDataUnitShouldError(t *testing.T) {
 	blockChainUnits := createMetaUnits()
-	genBlock := &block.MetaBlock{}
-	genHash := make([]byte, 2)
-
 	_, err := blockchain.NewMetaChain(
-		genBlock,
-		genHash,
 		blockChainUnits.badBlocksCache,
 		blockChainUnits.metaBlockUnit,
 		blockChainUnits.shardDataUnit,
@@ -172,12 +118,7 @@ func TestNewMetachainConfigOK(t *testing.T) {
 	defer failOnPanic(t)
 
 	blockChainUnits := createMetaUnits()
-	genBlock := &block.MetaBlock{}
-	genHash := make([]byte, 2)
-
 	b, err := blockchain.NewMetaChain(
-		genBlock,
-		genHash,
 		blockChainUnits.badBlocksCache,
 		blockChainUnits.metaBlockUnit,
 		blockChainUnits.shardDataUnit,
@@ -199,8 +140,6 @@ func TestMetaChain_IsBadBlock(t *testing.T) {
 	metablockUnit := &mock.StorerStub{}
 	sharddataUnit := &mock.StorerStub{}
 	peerdataUnit := &mock.StorerStub{}
-	genBlock := &block.MetaBlock{}
-	genHash := make([]byte, 2)
 
 	hasReturns := true
 	badBlocksStub.HasCalled = func(key []byte) bool {
@@ -208,8 +147,6 @@ func TestMetaChain_IsBadBlock(t *testing.T) {
 	}
 
 	b, _ := blockchain.NewMetaChain(
-		genBlock,
-		genHash,
 		badBlocksStub,
 		metablockUnit,
 		sharddataUnit,
@@ -224,8 +161,6 @@ func TestMetaChain_PutBadBlock(t *testing.T) {
 	metablockUnit := &mock.StorerStub{}
 	sharddataUnit := &mock.StorerStub{}
 	peerdataUnit := &mock.StorerStub{}
-	genBlock := &block.MetaBlock{}
-	genHash := make([]byte, 2)
 
 	putCalled := false
 	badBlocksStub.PutCalled = func(key []byte, value interface{}) bool {
@@ -234,8 +169,6 @@ func TestMetaChain_PutBadBlock(t *testing.T) {
 	}
 
 	b, _ := blockchain.NewMetaChain(
-		genBlock,
-		genHash,
 		badBlocksStub,
 		metablockUnit,
 		sharddataUnit,
