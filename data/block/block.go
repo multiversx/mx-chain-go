@@ -351,26 +351,6 @@ func (h *Header) GetSignature() []byte {
 	return h.Signature
 }
 
-// GetShardId returns the id of the shard
-func (h *Header) GetShardId() uint32 {
-	return h.ShardId
-}
-
-// GetBlockBodyType returns the type of the block body
-func (h *Header) GetBlockBodyType() Type {
-	return h.BlockBodyType
-}
-
-// GetTimeStamp returns the time stamp of the block
-func (h *Header) GetTimeStamp() uint64 {
-	return h.TimeStamp
-}
-
-// GetCommitment returns the commitment of the block
-func (h *Header) GetCommitment() []byte {
-	return h.Commitment
-}
-
 // SetNonce sets header nonce
 func (h *Header) SetNonce(n uint64) {
 	h.Nonce = n
@@ -414,16 +394,6 @@ func (h *Header) SetTimeStamp(ts uint64) {
 // SetCommitment sets header commitment
 func (h *Header) SetCommitment(commitment []byte) {
 	h.Commitment = commitment
-}
-
-// SetShardId sets id of the shard
-func (h *Header) SetShardId(shId uint32) {
-	h.ShardId = shId
-}
-
-// SetBlockBodyType sets the type of the block body
-func (h *Header) SetBlockBodyType(blkType Type) {
-	h.BlockBodyType = blkType
 }
 
 // UnderlyingObject returns body as interface
