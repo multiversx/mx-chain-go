@@ -446,3 +446,23 @@ func TestSubroundBitmap_IsBitmapReceived(t *testing.T) {
 	ok = sr.IsBitmapReceived(2)
 	assert.True(t, ok)
 }
+
+func TestSubroundBitmap_ReceivedBitmapReturnFalseWhenConsensusDataIsNotEqual(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundBitmap()
+
+	sr.ConsensusState().Header = &block.Header{}
+
+	cnsMsg := spos.NewConsensusMessage(
+		append(sr.ConsensusState().Data, []byte("X")...),
+		[]byte("commitment"),
+		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bn.MtBitmap),
+		uint64(sr.Rounder().TimeStamp().Unix()),
+		0,
+	)
+
+	assert.False(t, sr.ReceivedBitmap(cnsMsg))
+}

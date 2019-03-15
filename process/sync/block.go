@@ -289,6 +289,10 @@ func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 	header := boot.getHeader(headerHash)
 
+	if header != nil && header.Nonce > boot.highestNonceReceived {
+		boot.highestNonceReceived = header.Nonce
+	}
+
 	err := boot.forkDetector.AddHeader(header, headerHash, true)
 
 	if err != nil {

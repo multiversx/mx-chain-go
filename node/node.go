@@ -739,7 +739,8 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 		return err
 	}
 
-	go n.messenger.Broadcast(factory.MiniBlocksTopic, msgBlockBody)
+	go n.messenger.Broadcast(factory.MiniBlocksTopic+
+		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
 	if header == nil {
 		return ErrNilBlockHeader
@@ -751,7 +752,8 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 		return err
 	}
 
-	go n.messenger.Broadcast(factory.HeadersTopic, msgHeader)
+	go n.messenger.Broadcast(factory.HeadersTopic+
+		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgHeader)
 
 	return nil
 }

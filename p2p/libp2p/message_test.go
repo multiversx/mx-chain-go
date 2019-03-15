@@ -2,9 +2,7 @@ package libp2p_test
 
 import (
 	"crypto/ecdsa"
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
@@ -89,7 +87,6 @@ func TestMessage_TopicIDs(t *testing.T) {
 }
 
 func TestMessage_Peer(t *testing.T) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), r)
 	sk := (*crypto.Secp256k1PrivateKey)(prvKey)
 	id, _ := peer.IDFromPublicKey(sk.GetPublic())
