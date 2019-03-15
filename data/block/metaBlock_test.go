@@ -64,7 +64,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		PubKeysBitmap: []byte("pub keys"),
 		PreviousHash:  []byte("previous hash"),
 		PrevRandSeed:  []byte("previous random seed"),
-		RandSeed:	   []byte("random seed"),
+		RandSeed:      []byte("random seed"),
 		StateRootHash: []byte("state root hash"),
 	}
 	var b bytes.Buffer
