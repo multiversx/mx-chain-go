@@ -1,6 +1,7 @@
 package data
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
@@ -59,6 +60,10 @@ type HeaderHandler interface {
 	GetPrevHash() []byte
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
+	GetShardId() uint32
+	GetBlockBodyType() block.Type
+	GetTimeStamp() uint64
+	GetCommitment() []byte
 
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
@@ -69,6 +74,8 @@ type HeaderHandler interface {
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
 	SetCommitment(commitment []byte)
+	SetShardId(shId uint32)
+	SetBlockBodyType(blkType block.Type)
 }
 
 // BodyHandler defines getters and setters for body data holder

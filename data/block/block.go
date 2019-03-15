@@ -316,17 +316,17 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	return dest
 }
 
-// GetNonce return header nonce
+// GetNonce returns header nonce
 func (h *Header) GetNonce() uint64 {
 	return h.Nonce
 }
 
-// GetEpoch return header epoch
+// GetEpoch returns header epoch
 func (h *Header) GetEpoch() uint32 {
 	return h.Epoch
 }
 
-// GetRound return round from header
+// GetRound returns round from header
 func (h *Header) GetRound() uint32 {
 	return h.Round
 }
@@ -341,14 +341,34 @@ func (h *Header) GetPrevHash() []byte {
 	return h.PrevHash
 }
 
-// GetPubKeysBitmap return signers bitmap
+// GetPubKeysBitmap returns signers bitmap
 func (h *Header) GetPubKeysBitmap() []byte {
 	return h.PubKeysBitmap
 }
 
-// GetSignature return signed data
+// GetSignature returns signed data
 func (h *Header) GetSignature() []byte {
 	return h.Signature
+}
+
+// GetShardId returns the id of the shard
+func (h *Header) GetShardId() uint32 {
+	return h.ShardId
+}
+
+// GetBlockBodyType returns the type of the block body
+func (h *Header) GetBlockBodyType() Type {
+	return h.BlockBodyType
+}
+
+// GetTimeStamp returns the time stamp of the block
+func (h *Header) GetTimeStamp() uint64 {
+	return h.TimeStamp
+}
+
+// GetCommitment returns the commitment of the block
+func (h *Header) GetCommitment() []byte {
+	return h.Commitment
 }
 
 // SetNonce sets header nonce
@@ -381,7 +401,7 @@ func (h *Header) SetPubKeysBitmap(pkbm []byte) {
 	h.PubKeysBitmap = pkbm
 }
 
-// SetSignature set header signature
+// SetSignature sets header signature
 func (h *Header) SetSignature(sg []byte) {
 	h.Signature = sg
 }
@@ -394,6 +414,16 @@ func (h *Header) SetTimeStamp(ts uint64) {
 // SetCommitment sets header commitment
 func (h *Header) SetCommitment(commitment []byte) {
 	h.Commitment = commitment
+}
+
+// SetShardId sets id of the shard
+func (h *Header) SetShardId(shId uint32) {
+	h.ShardId = shId
+}
+
+// SetBlockBodyType sets the type of the block body
+func (h *Header) SetBlockBodyType(blkType Type) {
+	h.BlockBodyType = blkType
 }
 
 // UnderlyingObject returns body as interface
