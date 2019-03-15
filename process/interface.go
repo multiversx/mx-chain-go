@@ -152,7 +152,7 @@ type Interceptor interface {
 
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
-	ConnectedPeers() []p2p.PeerID
+	ConnectedPeersOnTopic(topic string) []p2p.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
 }
 

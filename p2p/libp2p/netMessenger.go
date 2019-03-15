@@ -256,6 +256,25 @@ func (netMes *networkMessenger) ConnectedPeers() []p2p.PeerID {
 	return peerList
 }
 
+// ConnectedPeersOnTopic returns the connected peers on a provided topic
+func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
+	//as the peers in pubsub impl are held inside a map where the key is the peerID,
+	//the returned list will hold distinct values
+
+	list := netMes.pb.ListPeers(topic)
+	connectedPeers := make([]p2p.PeerID, len(list))
+
+	if list == nil {
+		return connectedPeers
+	}
+
+	for idx, pid := range list {
+		connectedPeers[idx] = p2p.PeerID(pid)
+	}
+
+	return connectedPeers
+}
+
 // CreateTopic opens a new topic using pubsub infrastructure
 func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic bool) error {
 	ctx := netMes.ctxProvider.Context()

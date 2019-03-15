@@ -57,6 +57,7 @@ type Messenger interface {
 	ConnectToPeer(address string) error
 	IsConnected(peerID PeerID) bool
 	ConnectedPeers() []PeerID
+	ConnectedPeersOnTopic(topic string) []PeerID
 	TrimConnections()
 	Bootstrap() error
 
