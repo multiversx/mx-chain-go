@@ -715,7 +715,7 @@ func TestBlockProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 
 	err := be.CommitBlock(blkc, hdr, body)
 
-	assert.Equal(t, process.ErrMarshalWithoutSuccess, err)
+	assert.Equal(t, errMarshalizer, err)
 }
 
 func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
@@ -776,7 +776,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 
 	err := be.CommitBlock(blkc, hdr, body)
 
-	assert.Equal(t, process.ErrPersistWithoutSuccess, err)
+	assert.Equal(t, errPersister, err)
 }
 
 func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
@@ -846,7 +846,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 
 	err := be.CommitBlock(blkc, hdr, body)
 
-	assert.Equal(t, process.ErrPersistWithoutSuccess, err)
+	assert.Equal(t, errPersister, err)
 }
 
 func TestBlockProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
@@ -859,6 +859,9 @@ func TestBlockProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	accounts := &mock.AccountsStub{
 		RootHashCalled: func() []byte {
 			return rootHash
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
 		},
 	}
 
@@ -926,6 +929,9 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		},
 		RootHashCalled: func() []byte {
 			return rootHash
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
 		},
 	}
 
