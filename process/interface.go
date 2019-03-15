@@ -124,6 +124,12 @@ type ResolversContainer interface {
 	Len() int
 }
 
+type ResolversFinder interface {
+	ResolversContainer
+	IntraShardResolver(baseTopic string) (Resolver, error)
+	CrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
+}
+
 // InterceptorsContainer defines an interceptors holder data type with basic functionality
 type InterceptorsContainer interface {
 	Get(key string) (Interceptor, error)

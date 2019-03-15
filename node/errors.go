@@ -70,8 +70,8 @@ var ErrValidatorAlreadySet = errors.New("topic validator has already been set")
 // ErrNilInterceptorsContainer signals that a nil interceptors container has been provided
 var ErrNilInterceptorsContainer = errors.New("nil interceptors container")
 
-// ErrNilResolversContainer signals that a nil resolvers container has been provided
-var ErrNilResolversContainer = errors.New("nil resolvers container")
+// ErrNilResolversFinder signals that a nil resolvers finder has been provided
+var ErrNilResolversFinder = errors.New("nil resolvers finder")
 
 // ErrNilBlockHeader is raised when a valid block header is expected but nil was used
 var ErrNilBlockHeader = errors.New("block header is nil")

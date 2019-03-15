@@ -30,7 +30,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
 	fmt.Println("Requestor:	")
-	nRequestor, mesRequestor, _, resolversContainer := createNetNode(
+	nRequestor, mesRequestor, _, resolversFinder := createNetNode(
 		33100,
 		dPoolRequestor,
 		createAccountsDB(),
@@ -93,8 +93,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	})
 
 	//Step 4. request tx block body
-	txBlockBodyRequestor, _ := resolversContainer.Get(factory.MiniBlocksTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
+	txBlockBodyRequestor, _ := resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	miniBlockRequestor := txBlockBodyRequestor.(process.MiniBlocksResolver)
 	miniBlockHashes[0] = txBlockBodyHash
 	miniBlockRequestor.RequestDataFromHashArray(miniBlockHashes)
