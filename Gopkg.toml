@@ -66,7 +66,71 @@
   version = "0.5.0"
 
 [[constraint]]
+  name = "github.com/ipfs/go-ipfs-addr"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-conn-security-multistream"
+  version = "v0.0.1"
+
+[[constraint]]
   name = "github.com/libp2p/go-libp2p"
+  version = "v0.0.2"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-crypto"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-host"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-metrics"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-net"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-peer"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-peerstore"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-protocol"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-pubsub"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-secio"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-swarm"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-libp2p-transport-upgrader"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-tcp-transport"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/libp2p/go-testutil"
+  version = "v0.0.1"
+
+[[constraint]]
+  name = "github.com/multiformats/go-multiaddr"
   version = "v0.0.2"
 
 [[constraint]]
@@ -92,6 +156,14 @@
 [[constraint]]
   branch = "master"
   name = "github.com/syndtr/goleveldb"
+
+[[constraint]]
+  name = "github.com/whyrusleeping/go-smux-multistream"
+  version = "v2.0.2"
+
+[[constraint]]
+  name = "github.com/whyrusleeping/go-smux-yamux"
+  version = "v2.0.9"
 
 [[constraint]]
   branch = "master"
