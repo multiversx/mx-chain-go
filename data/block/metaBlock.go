@@ -233,81 +233,81 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 }
 
 // GetNonce return header nonce
-func (h *MetaBlock) GetNonce() uint64 {
-	return h.Nonce
+func (m *MetaBlock) GetNonce() uint64 {
+	return m.Nonce
 }
 
 // GetEpoch return header epoch
-func (h *MetaBlock) GetEpoch() uint32 {
-	return h.Epoch
+func (m *MetaBlock) GetEpoch() uint32 {
+	return m.Epoch
 }
 
 // GetRound return round from header
-func (h *MetaBlock) GetRound() uint32 {
-	return h.Round
+func (m *MetaBlock) GetRound() uint32 {
+	return m.Round
 }
 
 // GetRootHash returns the roothash from header
-func (h *MetaBlock) GetRootHash() []byte {
-	return h.StateRootHash
+func (m *MetaBlock) GetRootHash() []byte {
+	return m.StateRootHash
 }
 
 // GetPrevHash returns previous block header hash
-func (h *MetaBlock) GetPrevHash() []byte {
-	return h.PreviousHash
+func (m *MetaBlock) GetPrevHash() []byte {
+	return m.PreviousHash
 }
 
 // GetPubKeysBitmap return signers bitmap
-func (h *MetaBlock) GetPubKeysBitmap() []byte {
-	return h.PubKeysBitmap
+func (m *MetaBlock) GetPubKeysBitmap() []byte {
+	return m.PubKeysBitmap
 }
 
 // GetSignature return signed data
-func (h *MetaBlock) GetSignature() []byte {
-	return h.Signature
+func (m *MetaBlock) GetSignature() []byte {
+	return m.Signature
 }
 
 // SetNonce sets header nonce
-func (h *MetaBlock) SetNonce(n uint64) {
-	h.Nonce = n
+func (m *MetaBlock) SetNonce(n uint64) {
+	m.Nonce = n
 }
 
 // SetEpoch sets header epoch
-func (h *MetaBlock) SetEpoch(e uint32) {
-	h.Epoch = e
+func (m *MetaBlock) SetEpoch(e uint32) {
+	m.Epoch = e
 }
 
 // SetRound sets header round
-func (h *MetaBlock) SetRound(r uint32) {
-	h.Round = r
+func (m *MetaBlock) SetRound(r uint32) {
+	m.Round = r
 }
 
 // SetRootHash sets root hash
-func (h *MetaBlock) SetRootHash(rHash []byte) {
-	h.StateRootHash = rHash
+func (m *MetaBlock) SetRootHash(rHash []byte) {
+	m.StateRootHash = rHash
 }
 
 // SetPrevHash sets prev hash
-func (h *MetaBlock) SetPrevHash(pvHash []byte) {
-	h.PreviousHash = pvHash
+func (m *MetaBlock) SetPrevHash(pvHash []byte) {
+	m.PreviousHash = pvHash
 }
 
 // SetPubKeysBitmap sets publick key bitmap
-func (h *MetaBlock) SetPubKeysBitmap(pkbm []byte) {
-	h.PubKeysBitmap = pkbm
+func (m *MetaBlock) SetPubKeysBitmap(pkbm []byte) {
+	m.PubKeysBitmap = pkbm
 }
 
 // SetSignature set header signature
-func (h *MetaBlock) SetSignature(sg []byte) {
-	h.Signature = sg
+func (m *MetaBlock) SetSignature(sg []byte) {
+	m.Signature = sg
 }
 
 // SetTimeStamp sets header timestamp
-func (h *MetaBlock) SetTimeStamp(ts uint64) {
+func (m *MetaBlock) SetTimeStamp(ts uint64) {
 	// TODO implement me
 }
 
 // SetCommitment sets header commitment
-func (h *MetaBlock) SetCommitment(commitment []byte) {
+func (m *MetaBlock) SetCommitment(commitment []byte) {
 	// TODO implement me - it is implemented in another pull request
 }

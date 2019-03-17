@@ -6,8 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
-
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -35,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -654,6 +653,11 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	metaBlockBody, err := shardedData.NewShardedData(getCacherFromConfig(config.MetaBlockBodyDataPool))
+	if err != nil {
+		return nil, err
+	}
+
 	cacherCfg := getCacherFromConfig(config.BlockHeaderNoncesDataPool)
 	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
@@ -672,11 +676,6 @@ func createShardDataPoolFromConfig(
 
 	cacherCfg = getCacherFromConfig(config.PeerBlockBodyDataPool)
 	peerChangeBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-	if err != nil {
-		return nil, err
-	}
-
-	metaBlockBody, err := shardedData.NewShardedData(getCacherFromConfig(config.MetaBlockBodyDataPool))
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,7 @@ package blockchain_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -176,4 +177,135 @@ func TestMetaChain_PutBadBlock(t *testing.T) {
 
 	b.PutBadBlock([]byte("test"))
 	assert.True(t, putCalled)
+}
+
+func TestMetaChain_GetCurrentBlockBody(t *testing.T) {
+	t.Parallel()
+
+	m := blockchain.MetaChain{}
+
+	assert.Equal(t, nil, m.GetCurrentBlockBody())
+}
+
+func TestMetaChain_GetCurrentBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	bl := &block.MetaBlock{}
+	m := blockchain.MetaChain{CurrentBlock: bl}
+
+	assert.Equal(t, bl, m.GetCurrentBlockHeader())
+}
+
+func TestMetaChain_GetCurrentBlockHeaderHash(t *testing.T) {
+	t.Parallel()
+
+	h := []byte{10, 11, 12, 13}
+	m := blockchain.MetaChain{CurrentBlockHash: h}
+
+	assert.Equal(t, h, m.GetCurrentBlockHeaderHash())
+}
+
+func TestMetaChain_GetGenesisBlock(t *testing.T) {
+	t.Parallel()
+
+	bl := &block.MetaBlock{}
+	m := blockchain.MetaChain{GenesisBlock: bl}
+
+	assert.Equal(t, bl, m.GetGenesisBlock())
+}
+
+func TestMetaChain_GetGenesisHeaderHash(t *testing.T) {
+	t.Parallel()
+
+	h := []byte{10, 11, 12, 13}
+	m := blockchain.MetaChain{GenesisBlockHash: h}
+
+	assert.Equal(t, h, m.GetGenesisHeaderHash())
+}
+
+func TestMetaChain_GetLocalHeight(t *testing.T) {
+	t.Parallel()
+
+	height := int64(3)
+	m := blockchain.MetaChain{LocalHeight: height}
+
+	assert.Equal(t, height, m.GetLocalHeight())
+}
+
+func TestMetaChain_GetNetworkHeight(t *testing.T) {
+	t.Parallel()
+
+	height := int64(4)
+	m := blockchain.MetaChain{NetworkHeight: height}
+
+	assert.Equal(t, height, m.GetNetworkHeight())
+}
+
+func TestMetaChain_SetCurrentBlockBody(t *testing.T) {
+	t.Parallel()
+
+	m := blockchain.MetaChain{}
+	m.SetCurrentBlockBody(&block.Body{})
+
+	assert.Equal(t, nil, m.GetCurrentBlockBody())
+}
+
+func TestMetaChain_SetCurrentBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	bl := &block.MetaBlock{}
+	m := blockchain.MetaChain{}
+	m.SetCurrentBlockHeader(bl)
+
+	assert.Equal(t, bl, m.CurrentBlock)
+}
+
+func TestMetaChain_SetCurrentBlockHeaderHash(t *testing.T) {
+	t.Parallel()
+
+	h := []byte{10, 11, 12, 13}
+	m := blockchain.MetaChain{}
+	m.SetCurrentBlockHeaderHash(h)
+
+	assert.Equal(t, h, m.CurrentBlockHash)
+}
+
+func TestMetaChain_SetGenesisBlock(t *testing.T) {
+	t.Parallel()
+
+	bl := &block.MetaBlock{}
+	m := blockchain.MetaChain{}
+	m.SetGenesisBlock(bl)
+
+	assert.Equal(t, bl, m.GenesisBlock)
+}
+
+func TestMetaChain_SetGenesisHeaderHash(t *testing.T) {
+	t.Parallel()
+
+	h := []byte{10, 11, 12, 13}
+	m := blockchain.MetaChain{}
+	m.SetGenesisHeaderHash(h)
+
+	assert.Equal(t, h, m.GenesisBlockHash)
+}
+
+func TestMetaChain_SetLocalHeight(t *testing.T) {
+	t.Parallel()
+
+	height := int64(3)
+	m := blockchain.MetaChain{}
+	m.SetLocalHeight(height)
+
+	assert.Equal(t, height, m.LocalHeight)
+}
+
+func TestMetaChain_SetNetworkHeight(t *testing.T) {
+	t.Parallel()
+
+	height := int64(3)
+	m := blockchain.MetaChain{}
+	m.SetNetworkHeight(height)
+
+	assert.Equal(t, height, m.NetworkHeight)
 }
