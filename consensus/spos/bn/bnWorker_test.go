@@ -617,35 +617,6 @@ func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWorker_ProcessReceivedMessageRoundCanceledShouldErr(t *testing.T) {
-	t.Parallel()
-
-	wrk := *initWorker()
-
-	blk := make(block.Body, 0)
-	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-
-	cnsMsg := spos.NewConsensusMessage(
-		message,
-		nil,
-		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
-		int(bn.MtBlockBody),
-		uint64(wrk.Rounder().TimeStamp().Unix()),
-		0,
-	)
-
-	wrk.ConsensusState().RoundCanceled = true
-	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff})
-
-	time.Sleep(time.Second)
-
-	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
-	assert.Equal(t, bn.ErrRoundCanceled, err)
-}
-
 func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 

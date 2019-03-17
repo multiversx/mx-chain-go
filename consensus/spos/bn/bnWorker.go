@@ -195,10 +195,6 @@ func (wrk *worker) getCleanedList(cnsDataList []*spos.ConsensusMessage) []*spos.
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
 func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	if wrk.consensusState.RoundCanceled {
-		return ErrRoundCanceled
-	}
-
 	if message == nil {
 		return ErrNilMessage
 	}
@@ -283,6 +279,11 @@ func (wrk *worker) executeReceivedMessages(cnsDta *spos.ConsensusMessage) {
 	cnsDataList := wrk.receivedMessages[msgType]
 	cnsDataList = append(cnsDataList, cnsDta)
 	wrk.receivedMessages[msgType] = cnsDataList
+
+	if wrk.consensusState.RoundCanceled {
+		wrk.mutReceivedMessages.Unlock()
+		return
+	}
 
 	for i := MtBlockBody; i <= MtSignature; i++ {
 		cnsDataList = wrk.receivedMessages[i]

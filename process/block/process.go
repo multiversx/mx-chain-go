@@ -418,7 +418,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 	blockChain.CurrentBlockHeader = blockHeader
 	blockChain.CurrentBlockHeaderHash = headerHash
 
-	err = bp.forkDetector.AddHeader(blockHeader, headerHash, false)
+	err = bp.forkDetector.AddHeader(blockHeader, headerHash, true)
 	if err != nil {
 		log.Error(err.Error())
 	}

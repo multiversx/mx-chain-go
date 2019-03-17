@@ -1476,9 +1476,9 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isReceived bool) error {
-		if !isReceived {
-			return errors.New("not received")
+	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isProcessed bool) error {
+		if isProcessed {
+			return errors.New("processed")
 		}
 
 		if !bytes.Equal(hash, addedHash) {
@@ -1529,9 +1529,9 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isReceived bool) error {
-		if !isReceived {
-			return errors.New("not received")
+	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isProcessed bool) error {
+		if isProcessed {
+			return errors.New("processed")
 		}
 
 		if !bytes.Equal(hash, addedHash) {
@@ -1612,7 +1612,7 @@ func TestBootstrap_ReceivedHeadersShouldSetHighestNonceReceived(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isReceived bool) error {
+	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isProcessed bool) error {
 		return nil
 	}
 

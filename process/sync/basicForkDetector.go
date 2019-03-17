@@ -8,9 +8,9 @@ import (
 )
 
 type headerInfo struct {
-	header     *block.Header
-	hash       []byte
-	isReceived bool
+	header      *block.Header
+	hash        []byte
+	isProcessed bool
 }
 
 // basicForkDetector defines a struct with necessary data needed for fork detection
@@ -28,7 +28,7 @@ func NewBasicForkDetector() *basicForkDetector {
 }
 
 // AddHeader method adds a new header to headers map
-func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isReceived bool) error {
+func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isProcessed bool) error {
 	if header == nil {
 		return ErrNilHeader
 	}
@@ -37,14 +37,14 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isRec
 		return ErrNilHash
 	}
 
-	if !isEmpty(header) && !isReceived {
+	if !isEmpty(header) && isProcessed {
 		bfd.removePastHeaders(header.Nonce) // create a check point and remove all the past headers
 	}
 
 	bfd.append(&headerInfo{
-		header:     header,
-		hash:       hash,
-		isReceived: isReceived,
+		header:      header,
+		hash:        hash,
+		isProcessed: isProcessed,
 	})
 
 	return nil
@@ -86,6 +86,10 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 
 	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) {
+			if !hdrInfoStored.isProcessed && hdrInfo.isProcessed {
+				delete(bfd.headers, hdrInfo.header.Nonce)
+				bfd.headers[hdrInfo.header.Nonce] = []*headerInfo{hdrInfo}
+			}
 			return
 		}
 	}
@@ -107,7 +111,7 @@ func (bfd *basicForkDetector) CheckFork() bool {
 		foundNotEmptyBlock := false
 
 		for i := 0; i < len(hdrInfos); i++ {
-			if !hdrInfos[i].isReceived {
+			if hdrInfos[i].isProcessed {
 				selfHdrInfo = hdrInfos[i]
 				continue
 			}
@@ -122,10 +126,11 @@ func (bfd *basicForkDetector) CheckFork() bool {
 			continue
 		}
 
-		if !isEmpty(selfHdrInfo.header) {
+		if !isEmpty(selfHdrInfo.header) && !foundNotEmptyBlock {
 			//keep it clean so next time this position will be processed faster
 			delete(bfd.headers, nonce)
 			bfd.headers[nonce] = []*headerInfo{selfHdrInfo}
+			continue
 		}
 
 		if foundNotEmptyBlock {

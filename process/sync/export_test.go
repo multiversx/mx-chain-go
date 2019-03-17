@@ -50,8 +50,8 @@ func (hi *headerInfo) Hash() []byte {
 	return hi.hash
 }
 
-func (hi *headerInfo) IsReceived() bool {
-	return hi.isReceived
+func (hi *headerInfo) IsProcessed() bool {
+	return hi.isProcessed
 }
 
 func (boot *Bootstrap) NotifySyncStateListeners() {

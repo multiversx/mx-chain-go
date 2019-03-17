@@ -55,6 +55,8 @@ type Bootstrap struct {
 	miniBlockResolver process.MiniBlocksResolver
 
 	isNodeSynchronized    bool
+	hasLastBlock          bool
+	roundIndex            int32
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 
@@ -293,7 +295,7 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 		boot.highestNonceReceived = header.Nonce
 	}
 
-	err := boot.forkDetector.AddHeader(header, headerHash, true)
+	err := boot.forkDetector.AddHeader(header, headerHash, false)
 
 	if err != nil {
 		log.Info(err.Error())
@@ -375,15 +377,7 @@ func (boot *Bootstrap) syncBlocks() {
 // the block and its transactions. Finally if everything works, the block will be committed in the blockchain,
 // and all this mechanism will be reiterated for the next block.
 func (boot *Bootstrap) SyncBlock() error {
-	isNodeSynchronized := !boot.ShouldSync()
-
-	if isNodeSynchronized != boot.isNodeSynchronized {
-		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
-		boot.isNodeSynchronized = isNodeSynchronized
-		boot.notifySyncStateListeners()
-	}
-
-	if boot.isNodeSynchronized {
+	if !boot.ShouldSync() {
 		return nil
 	}
 
@@ -742,25 +736,33 @@ func toB64(buff []byte) string {
 // is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
 // synched and it can participate to the consensus, if it is in the jobDone group of this rounder
 func (boot *Bootstrap) ShouldSync() bool {
+	if boot.roundIndex == boot.rounder.Index() && boot.isNodeSynchronized {
+		return false
+	}
+
 	boot.isForkDetected = boot.forkDetector.CheckFork()
 
 	if boot.isForkDetected {
 		log.Info("fork detected\n")
-		return true
 	}
 
 	if boot.blkc.CurrentBlockHeader == nil {
-		isNotSynchronized := boot.rounder.Index() > 0
-		return isNotSynchronized
+		boot.hasLastBlock = boot.rounder.Index() <= 0
+	} else {
+		boot.hasLastBlock = boot.blkc.CurrentBlockHeader.Round+1 >= uint32(boot.rounder.Index())
 	}
 
-	isNotSynchronized := boot.blkc.CurrentBlockHeader.Round+1 < uint32(boot.rounder.Index())
+	isNodeSynchronized := !boot.isForkDetected && boot.hasLastBlock
 
-	if isNotSynchronized {
-		return true
+	if isNodeSynchronized != boot.isNodeSynchronized {
+		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
+		boot.isNodeSynchronized = isNodeSynchronized
+		boot.notifySyncStateListeners()
 	}
 
-	return false
+	boot.roundIndex = boot.rounder.Index()
+
+	return !isNodeSynchronized
 }
 
 func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {

@@ -21,7 +21,7 @@ func TestBasicForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 
 	bfd := sync.NewBasicForkDetector()
 
-	err := bfd.AddHeader(nil, make([]byte, 0), false)
+	err := bfd.AddHeader(nil, make([]byte, 0), true)
 
 	assert.Equal(t, sync.ErrNilHeader, err)
 }
@@ -31,7 +31,7 @@ func TestBasicForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 
 	bfd := sync.NewBasicForkDetector()
 
-	err := bfd.AddHeader(&block.Header{}, nil, false)
+	err := bfd.AddHeader(&block.Header{}, nil, true)
 
 	assert.Equal(t, sync.ErrNilHash, err)
 }
@@ -44,7 +44,7 @@ func TestBasicForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 
 	bfd := sync.NewBasicForkDetector()
 
-	err := bfd.AddHeader(hdr, hash, false)
+	err := bfd.AddHeader(hdr, hash, true)
 	assert.Nil(t, err)
 
 	hInfos := bfd.GetHeaders(0)
@@ -64,8 +64,8 @@ func TestBasicForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 
 	bfd := sync.NewBasicForkDetector()
 
-	_ = bfd.AddHeader(hdr1, hash1, false)
-	err := bfd.AddHeader(hdr2, hash2, false)
+	_ = bfd.AddHeader(hdr1, hash1, true)
+	err := bfd.AddHeader(hdr2, hash2, true)
 	assert.Nil(t, err)
 
 	hInfos := bfd.GetHeaders(0)
@@ -87,8 +87,8 @@ func TestBasicForkDetector_AddHeaderPresentShouldNotRewriteWhenSameHash(t *testi
 
 	bfd := sync.NewBasicForkDetector()
 
-	_ = bfd.AddHeader(hdr1, hash, false)
-	err := bfd.AddHeader(hdr2, hash, false)
+	_ = bfd.AddHeader(hdr1, hash, true)
+	err := bfd.AddHeader(hdr2, hash, true)
 	assert.Nil(t, err)
 
 	hInfos := bfd.GetHeaders(0)
@@ -106,7 +106,7 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 
 	bfd := sync.NewBasicForkDetector()
 
-	_ = bfd.AddHeader(hdr1, hash, false)
+	_ = bfd.AddHeader(hdr1, hash, true)
 	hInfos := bfd.GetHeaders(0)
 	assert.Equal(t, 1, len(hInfos))
 
@@ -116,49 +116,49 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 	assert.Nil(t, hInfos)
 }
 
-func TestBasicForkDetector_CheckForkOnlyOneHeaderOnANonceShouldRetFalse(t *testing.T) {
+func TestBasicForkDetector_CheckForkOnlyOneHeaderOnANonceShouldRettrue(t *testing.T) {
 	t.Parallel()
 
 	bfd := sync.NewBasicForkDetector()
 
-	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), false)
-	_ = bfd.AddHeader(&block.Header{Nonce: 1}, []byte("hash2"), false)
-
-	assert.False(t, bfd.CheckFork())
-}
-
-func TestBasicForkDetector_CheckForkNodeHasNonEmptyBlockShouldRetFalse(t *testing.T) {
-	t.Parallel()
-
-	bfd := sync.NewBasicForkDetector()
-
-	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), false)
+	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), true)
 	_ = bfd.AddHeader(&block.Header{Nonce: 1}, []byte("hash2"), true)
-	_ = bfd.AddHeader(&block.Header{Nonce: 1, PubKeysBitmap: []byte{1}}, []byte("hash3"), false)
 
 	assert.False(t, bfd.CheckFork())
 }
 
-func TestBasicForkDetector_CheckForkNodeHasEmptyBlockShouldRetTrue(t *testing.T) {
+func TestBasicForkDetector_CheckForkNodeHasNonEmptyBlockShouldRettrue(t *testing.T) {
 	t.Parallel()
 
 	bfd := sync.NewBasicForkDetector()
 
-	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), false)
+	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), true)
 	_ = bfd.AddHeader(&block.Header{Nonce: 1}, []byte("hash2"), false)
 	_ = bfd.AddHeader(&block.Header{Nonce: 1, PubKeysBitmap: []byte{1}}, []byte("hash3"), true)
+
+	assert.False(t, bfd.CheckFork())
+}
+
+func TestBasicForkDetector_CheckForkNodeHasEmptyBlockShouldRetfalse(t *testing.T) {
+	t.Parallel()
+
+	bfd := sync.NewBasicForkDetector()
+
+	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), true)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1}, []byte("hash2"), true)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, PubKeysBitmap: []byte{1}}, []byte("hash3"), false)
 
 	assert.True(t, bfd.CheckFork())
 }
 
-func TestBasicForkDetector_CheckForkNodeHasOnlyReceivedShouldRetFalse(t *testing.T) {
+func TestBasicForkDetector_CheckForkNodeHasOnlyReceivedShouldRettrue(t *testing.T) {
 	t.Parallel()
 
 	bfd := sync.NewBasicForkDetector()
 
-	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), false)
-	_ = bfd.AddHeader(&block.Header{Nonce: 1}, []byte("hash2"), true)
-	_ = bfd.AddHeader(&block.Header{Nonce: 1, PubKeysBitmap: []byte{1}}, []byte("hash3"), true)
+	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), true)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1}, []byte("hash2"), false)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, PubKeysBitmap: []byte{1}}, []byte("hash3"), false)
 
 	assert.False(t, bfd.CheckFork())
 }
