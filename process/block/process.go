@@ -146,25 +146,28 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		return err
 	}
 
+	// transform from interface into struct
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	// transform from interface into struct
+	blockHeader, ok := header.(*block.Header)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
 
-	err = bp.validateHeader(blockChain, header.(*block.Header))
+	err = bp.validateHeader(blockChain, blockHeader)
 	if err != nil {
 		return err
 	}
 
-	return bp.processBlock(blockChain, header, body, haveTime)
-}
-
-func (bp *blockProcessor) processBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	// transform from interface into struct
-	blockBody := body.(block.Body)
-
 	requestedTxs := bp.requestBlockTransactions(blockBody)
-
-	var err error
 
 	if requestedTxs > 0 {
 
@@ -189,10 +192,14 @@ func (bp *blockProcessor) processBlock(blockChain *blockchain.BlockChain, header
 		}
 	}()
 
-	err = bp.processBlockTransactions(blockBody, int32(header.GetRound()), haveTime)
+	err = bp.processBlockTransactions(blockBody, int32(blockHeader.Round), haveTime)
 
 	if err != nil {
 		return err
+	}
+
+	if !bp.verifyStateRoot(blockHeader.RootHash) {
+		return process.ErrRootStateMissmatch
 	}
 
 	return nil
@@ -204,7 +211,11 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 		return process.ErrNilTxBlockBody
 	}
 
-	blockBody := body.(block.Body)
+	// transform from interface into struct
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
 
 	transactionPool := bp.dataPool.Transactions()
 
@@ -220,9 +231,9 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 	return nil
 }
 
-// VerifyStateRoot verifies the state root hash given as parameter against the
+// verifyStateRoot verifies the state root hash given as parameter against the
 // Merkle trie root hash stored for accounts and returns if equal or not
-func (bp *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
+func (bp *blockProcessor) verifyStateRoot(rootHash []byte) bool {
 	return bytes.Equal(bp.accounts.RootHash(), rootHash)
 }
 
@@ -244,8 +255,8 @@ func (bp *blockProcessor) CreateGenesisBlock(balances map[string]*big.Int) (root
 	return bp.txProcessor.SetBalancesToTrie(balances)
 }
 
-// GetRootHash returns the accounts merkle tree root hash
-func (bp *blockProcessor) GetRootHash() []byte {
+// getRootHash returns the accounts merkle tree root hash
+func (bp *blockProcessor) getRootHash() []byte {
 	return bp.accounts.RootHash()
 }
 
@@ -321,13 +332,16 @@ func (bp *blockProcessor) processBlockTransactions(body block.Body, round int32,
 
 // CommitBlock commits the block in the blockchain if everything was checked successfully
 func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
-	err := checkForNils(blockChain, header, body)
-	if err != nil {
-		return err
-	}
+	var err error
 
-	if !bp.VerifyStateRoot(header.GetRootHash()) {
-		err = process.ErrRootStateMissmatch
+	defer func() {
+		if err != nil {
+			bp.RevertAccountState()
+		}
+	}()
+
+	err = checkForNils(blockChain, header, body)
+	if err != nil {
 		return err
 	}
 
@@ -342,7 +356,11 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		return process.ErrPersistWithoutSuccess
 	}
 
-	blockBody := body.(block.Body)
+	// transform from interface into struct
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
 
 	for i := 0; i < len(blockBody); i++ {
 		buff, err = bp.marshalizer.Marshal((blockBody)[i])
@@ -579,8 +597,12 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 			)
 
 			if err != nil {
+				log.Error(err.Error())
 				err = bp.accounts.RevertToSnapshot(snapshot)
-				log.LogIfError(err)
+				if err != nil {
+					log.Error(err.Error())
+				}
+
 				continue
 			}
 
@@ -625,14 +647,19 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 // CreateBlockHeader creates a miniblock header list given a block body
 func (bp *blockProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
 	header := &block.Header{MiniBlockHeaders: make([]block.MiniBlockHeader, 0)}
-	header.RootHash = bp.GetRootHash()
+	header.RootHash = bp.getRootHash()
 	header.ShardId = bp.shardCoordinator.SelfId()
 
 	if body == nil {
 		return header, nil
 	}
 
-	blockBody := body.(block.Body)
+	// transform from interface into struct
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
 	mbLen := len(blockBody)
 	miniBlockHeaders := make([]block.MiniBlockHeader, mbLen)
 	for i := 0; i < mbLen; i++ {
@@ -926,12 +953,12 @@ func (bp *blockProcessor) getTxsFromPool(shardId uint32) int {
 func (bp *blockProcessor) CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
 
 	if header == nil {
-		log.Info(fmt.Sprintf(process.ErrNilBlockHeader.Error()))
+		log.Info(process.ErrNilBlockHeader.Error())
 		return false
 	}
 
 	if blockChain == nil {
-		log.Info(fmt.Sprintf(process.ErrNilBlockChain.Error()))
+		log.Info(process.ErrNilBlockChain.Error())
 		return false
 	}
 
@@ -961,7 +988,12 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain *blockchain.BlockChain, 
 		return false
 	}
 
-	prevHeaderHash := bp.getHeaderHash(blockChain.CurrentBlockHeader)
+	prevHeaderHash, err := bp.computeHeaderHash(blockChain.CurrentBlockHeader)
+
+	if err != nil {
+		log.Info(err.Error())
+		return false
+	}
 
 	if !bytes.Equal(header.GetPrevHash(), prevHeaderHash) {
 		log.Info(fmt.Sprintf("hash not match: local block hash is %s and node received block with previous hash %s\n",
@@ -975,17 +1007,6 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain *blockchain.BlockChain, 
 	}
 
 	return true
-}
-
-func (bp *blockProcessor) getHeaderHash(hdr *block.Header) []byte {
-	headerMarsh, err := bp.marshalizer.Marshal(hdr)
-
-	if err != nil {
-		log.Error(err.Error())
-		return nil
-	}
-
-	return bp.hasher.Compute(string(headerMarsh))
 }
 
 func getTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {

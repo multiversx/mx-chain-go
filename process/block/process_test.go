@@ -637,12 +637,17 @@ func TestBlockProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 
 	tdp := initDataPool()
 
+	accounts := &mock.AccountsStub{}
+	accounts.RevertToSnapshotCalled = func(snapshot int) error {
+		return nil
+	}
+
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
-		&mock.AccountsStub{},
+		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
@@ -664,6 +669,9 @@ func TestBlockProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 	accounts := &mock.AccountsStub{
 		RootHashCalled: func() []byte {
 			return rootHash
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
 		},
 	}
 
@@ -722,6 +730,9 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	accounts := &mock.AccountsStub{
 		RootHashCalled: func() []byte {
 			return rootHash
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
 		},
 	}
 
@@ -783,6 +794,9 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 		},
 		CommitCalled: func() (i []byte, e error) {
 			return nil, nil
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
 		},
 	}
 
@@ -1896,4 +1910,34 @@ func TestBlockProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 	mbHeaders, err := bp.CreateBlockHeader(body)
 	assert.Nil(t, err)
 	assert.Equal(t, len(body), len(mbHeaders.(*block.Header).MiniBlockHeaders))
+}
+
+func TestBlockProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {
+	t.Parallel()
+
+	// set accounts dirty
+	journalEntries := 3
+	revToSnapshot := func(snapshot int) error {
+		journalEntries = 0
+		return nil
+	}
+
+	bp, _ := blproc.NewBlockProcessor(
+		initDataPool(),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{
+			RevertToSnapshotCalled: revToSnapshot,
+		},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	err := bp.CommitBlock(nil, nil, nil)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, 0, journalEntries)
 }

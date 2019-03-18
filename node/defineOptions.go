@@ -273,13 +273,13 @@ func WithInterceptorsContainer(interceptorsContainer process.InterceptorsContain
 	}
 }
 
-// WithResolversContainer sets up the interceptors container option for the Node
-func WithResolversContainer(resolversContainer process.ResolversContainer) Option {
+// WithResolversFinder sets up the resolvers finder option for the Node
+func WithResolversFinder(resolversFinder process.ResolversFinder) Option {
 	return func(n *Node) error {
-		if resolversContainer == nil {
-			return ErrNilResolversContainer
+		if resolversFinder == nil {
+			return ErrNilResolversFinder
 		}
-		n.resolversContainer = resolversContainer
+		n.resolversFinder = resolversFinder
 		return nil
 	}
 }
