@@ -81,10 +81,9 @@ type Header struct {
 	Epoch            uint32            `capid:"8"`
 	BlockBodyType    Type              `capid:"9"`
 	Signature        []byte            `capid:"10"`
-	Commitment       []byte            `capid:"11"`
-	MiniBlockHeaders []MiniBlockHeader `capid:"12"`
-	PeerChanges      []PeerChange      `capid:"13"`
-	RootHash         []byte            `capid:"14"`
+	MiniBlockHeaders []MiniBlockHeader `capid:"11"`
+	PeerChanges      []PeerChange      `capid:"12"`
+	RootHash         []byte            `capid:"13"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -134,8 +133,6 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.BlockBodyType = Type(src.BlockBodyType())
 	// Signature
 	dest.Signature = src.Signature()
-	// Commitment
-	dest.Commitment = src.Commitment()
 	// MiniBlockHeaders
 	mbLength := src.MiniBlockHeaders().Len()
 	dest.MiniBlockHeaders = make([]MiniBlockHeader, mbLength)
@@ -170,7 +167,6 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	dest.SetEpoch(src.Epoch)
 	dest.SetBlockBodyType(uint8(src.BlockBodyType))
 	dest.SetSignature(src.Signature)
-	dest.SetCommitment(src.Commitment)
 	if len(src.MiniBlockHeaders) > 0 {
 		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlockHeaders))
 		pList := capn.PointerList(miniBlockList)
@@ -378,12 +374,7 @@ func (h *Header) GetSignature() []byte {
 	return h.Signature
 }
 
-// GetCommitment return signed data
-func (h *Header) GetCommitment() []byte {
-	return h.Commitment
-}
-
-//
+// GetTimestamp returns the time stamp
 func (h *Header) GetTimestamp() uint64 {
 	return h.TimeStamp
 }
@@ -436,9 +427,4 @@ func (h *Header) SetSignature(sg []byte) {
 // SetTimeStamp sets header timestamp
 func (h *Header) SetTimeStamp(ts uint64) {
 	h.TimeStamp = ts
-}
-
-// SetCommitment sets header commitment
-func (h *Header) SetCommitment(commitment []byte) {
-	h.Commitment = commitment
 }

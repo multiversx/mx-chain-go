@@ -244,7 +244,6 @@ func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 				Epoch:            uint32(rand.Intn(20000)),
 				BlockBodyType:    block.TxBlock,
 				Signature:        []byte(RandomStr(32)),
-				Commitment:       []byte(RandomStr(32)),
 				PubKeysBitmap:    []byte(RandomStr(10)),
 				MiniBlockHeaders: []block.MiniBlockHeader{mbh},
 				PeerChanges:      []block.PeerChange{pc},

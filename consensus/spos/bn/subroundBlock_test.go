@@ -25,12 +25,12 @@ func initSubroundBlock() bn.SubroundBlock {
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
 
-	blockChain.GenesisBlock = &block.Header{
+	blockChain.GenesisBlockHeader = &block.Header{
 		Nonce:     uint64(0),
 		Signature: []byte("genesis signature"),
 	}
 	blockChain.GenesisHeaderHash = []byte("genesis header hash")
-	blockChain.GenesisBlock.RandSeed = []byte{0}
+	blockChain.GenesisBlockHeader.RandSeed = []byte{0}
 
 	ch := make(chan bool, 1)
 
@@ -73,7 +73,7 @@ func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock) bn.Subroun
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
 
-	blockChain.GenesisBlock = &block.Header{
+	blockChain.GenesisBlockHeader = &block.Header{
 		Nonce:     uint64(0),
 		Signature: []byte("genesis signature"),
 	}
@@ -1096,7 +1096,7 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 		RootHash:         sr.BlockProcessor().GetRootHash(),
 		Nonce:            uint64(1),
 		PrevHash:         sr.BlockChain().GenesisHeaderHash,
-		PrevRandSeed:     sr.BlockChain().GenesisBlock.Signature,
+		PrevRandSeed:     sr.BlockChain().GenesisBlockHeader.Signature,
 		RandSeed:         []byte{0},
 		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
 	}

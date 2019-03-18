@@ -785,10 +785,6 @@ func displayHeader(header *block.Header) []*display.LineData {
 
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
-		"Commitment",
-		toB64(header.Commitment)}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
 		"Signature",
 		toB64(header.Signature)}))
 

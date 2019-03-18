@@ -190,7 +190,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	n.blkc.GenesisBlock = genesisHeader
+	n.blkc.GenesisBlockHeader = genesisHeader
 	n.blkc.GenesisHeaderHash = genesisHeaderHash
 
 	rounder, err := n.createRounder()

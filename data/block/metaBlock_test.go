@@ -26,11 +26,19 @@ func TestPeerData_SaveLoad(t *testing.T) {
 }
 
 func TestShardData_SaveLoad(t *testing.T) {
-	sd := block.ShardData{
-		ShardId:         uint32(10),
-		HeaderHash:      []byte("header_hash"),
-		TxBlockBodyHash: []byte("tx block body hash"),
+
+	mbh := block.ShardMiniBlockHeader{
+		Hash:            []byte("miniblock hash"),
+		SenderShardId:   uint32(0),
+		ReceiverShardId: uint32(1),
 	}
+
+	sd := block.ShardData{
+		ShardId:               uint32(10),
+		HeaderHash:            []byte("header_hash"),
+		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
+	}
+
 	var b bytes.Buffer
 	sd.Save(&b)
 
@@ -48,16 +56,23 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		Value:     big.NewInt(1),
 	}
 
+	mbh := block.ShardMiniBlockHeader{
+		Hash:            []byte("miniblock hash"),
+		SenderShardId:   uint32(0),
+		ReceiverShardId: uint32(1),
+	}
+
 	sd := block.ShardData{
-		ShardId:         uint32(10),
-		HeaderHash:      []byte("header hash"),
-		TxBlockBodyHash: []byte("tx block body hash"),
+		ShardId:               uint32(10),
+		HeaderHash:            []byte("header_hash"),
+		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
 	}
 
 	mb := block.MetaBlock{
 		Nonce:         uint64(1),
 		Epoch:         uint32(1),
 		Round:         uint32(1),
+		TimeStamp:     uint64(100000),
 		ShardInfo:     []block.ShardData{sd},
 		PeerInfo:      []block.PeerData{pd},
 		Signature:     []byte("signature"),

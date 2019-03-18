@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -34,7 +35,6 @@ func TestHeader_SaveLoad(t *testing.T) {
 		Epoch:            uint32(1),
 		BlockBodyType:    block.TxBlock,
 		Signature:        []byte("signature"),
-		Commitment:       []byte("commitment"),
 		MiniBlockHeaders: []block.MiniBlockHeader{mb},
 		PeerChanges:      []block.PeerChange{pc},
 		RootHash:         []byte("root hash"),
@@ -200,16 +200,6 @@ func TestHeader_GetSignature(t *testing.T) {
 	assert.Equal(t, signature, h.GetSignature())
 }
 
-func TestHeader_SetCommitment(t *testing.T) {
-	t.Parallel()
-
-	commitment := []byte("commitment")
-	h := block.Header{}
-	h.SetCommitment(commitment)
-
-	assert.Equal(t, commitment, h.GetCommitment())
-}
-
 func TestHeader_SetEpoch(t *testing.T) {
 	t.Parallel()
 
@@ -308,4 +298,14 @@ func TestHeader_SetTimeStamp(t *testing.T) {
 	h.SetTimeStamp(timeStamp)
 
 	assert.Equal(t, timeStamp, h.GetTimestamp())
+}
+
+
+func Test_test(t *testing.T){
+	var list []string
+	list = nil
+
+	for i:= range list {
+		fmt.Println("entered ", i)
+	}
 }

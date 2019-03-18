@@ -328,11 +328,9 @@ func (bn *belNevSigner) Commitment(index uint16) ([]byte, error) {
 }
 
 // AggregateCommitments aggregates the list of commitments
-func (bn *belNevSigner) AggregateCommitments(bitmap []byte) ([]byte, error) {
-	var err error
-
+func (bn *belNevSigner) AggregateCommitments(bitmap []byte) error {
 	if bitmap == nil {
-		return nil, crypto.ErrNilBitmap
+		return crypto.ErrNilBitmap
 	}
 
 	maxFlags := len(bitmap) * 8
@@ -342,7 +340,7 @@ func (bn *belNevSigner) AggregateCommitments(bitmap []byte) ([]byte, error) {
 
 	flagsMismatch := maxFlags < len(bn.data.pubKeys)
 	if flagsMismatch {
-		return nil, crypto.ErrBitmapMismatch
+		return crypto.ErrBitmapMismatch
 	}
 
 	aggComm := bn.suite.CreatePoint().Null()
@@ -355,49 +353,13 @@ func (bn *belNevSigner) AggregateCommitments(bitmap []byte) ([]byte, error) {
 
 		aggComm, err = aggComm.Add(bn.data.commitments[i])
 		if err != nil {
-			return nil, err
+			return err
 		}
-	}
-
-	aggCommBytes, err := aggComm.MarshalBinary()
-	if err != nil {
-		return nil, err
 	}
 
 	bn.data.aggCommitment = aggComm
 
-	return aggCommBytes, nil
-}
-
-// SetAggCommitment sets the aggregated commitment for the marked signers in bitmap
-func (bn *belNevSigner) SetAggCommitment(aggCommitment []byte) error {
-	if aggCommitment == nil {
-		return crypto.ErrNilAggregatedCommitment
-	}
-
-	aggCommPoint := bn.suite.CreatePoint()
-	err := aggCommPoint.UnmarshalBinary(aggCommitment)
-
-	if err != nil {
-		return err
-	}
-
-	bn.mutSigData.Lock()
-	bn.data.aggCommitment = aggCommPoint
-	bn.mutSigData.Unlock()
-
 	return nil
-}
-
-// AggCommitment returns the set/computed aggregated commitment or error if not set
-func (bn *belNevSigner) AggCommitment() ([]byte, error) {
-	bn.mutSigData.RLock()
-	defer bn.mutSigData.RUnlock()
-	if bn.data.aggCommitment == nil {
-		return nil, crypto.ErrNilAggregatedCommitment
-	}
-
-	return bn.data.aggCommitment.MarshalBinary()
 }
 
 // Creates the challenge for the specific index H1(<L'>||X_i||R||m)
@@ -652,10 +614,27 @@ func (bn *belNevSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 		return nil, crypto.ErrBitmapNotSet
 	}
 
-	aggSigBytes, _ := aggSig.MarshalBinary()
+	aggSigBytes, err := aggSig.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
 	bn.data.aggSig = aggSig
 
-	return aggSigBytes, nil
+	aggCommBytes, err := bn.data.aggCommitment.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	// concatenate signature and aggregated commitment
+	lenComm := len(aggCommBytes)
+	lenSig := len(aggSigBytes)
+
+	resultSig := make([]byte, lenComm+lenSig)
+	copy(resultSig, aggCommBytes)
+	copy(resultSig[lenComm:], aggSigBytes)
+
+	return resultSig, nil
 }
 
 // SetAggregatedSig sets the aggregated signature
@@ -664,15 +643,25 @@ func (bn *belNevSigner) SetAggregatedSig(aggSig []byte) error {
 		return crypto.ErrNilSignature
 	}
 
-	aggSigPoint := bn.suite.CreateScalar()
-	err := aggSigPoint.UnmarshalBinary(aggSig)
+	// unpack the commitment and signature
+	lenComm := bn.suite.PointLen()
+
+	aggCommPoint := bn.suite.CreatePoint()
+	err := aggCommPoint.UnmarshalBinary(aggSig[:lenComm])
+	if err != nil {
+		return err
+	}
+
+	aggSigScalar := bn.suite.CreateScalar()
+	err = aggSigScalar.UnmarshalBinary(aggSig[lenComm:])
 
 	if err != nil {
 		return err
 	}
 
 	bn.mutSigData.Lock()
-	bn.data.aggSig = aggSigPoint
+	bn.data.aggCommitment = aggCommPoint
+	bn.data.aggSig = aggSigScalar
 	bn.mutSigData.Unlock()
 
 	return nil

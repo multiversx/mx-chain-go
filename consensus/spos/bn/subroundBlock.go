@@ -281,7 +281,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		hdr.SetNonce(1)
 		hdr.SetPrevHash(sr.blockChain.GenesisHeaderHash)
 		// Previous random seed is the signature of the previous block
-		hdr.SetPrevRandSeed(sr.blockChain.GenesisBlock.Signature)
+		hdr.SetPrevRandSeed(sr.blockChain.GenesisBlockHeader.Signature)
 	} else {
 		hdr.SetNonce(sr.blockChain.CurrentBlockHeader.Nonce + 1)
 		hdr.SetPrevHash(sr.blockChain.CurrentBlockHeaderHash)

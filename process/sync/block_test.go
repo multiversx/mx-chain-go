@@ -217,12 +217,12 @@ func createHeadersStorage(
 func initBlockchain() *blockchain.BlockChain {
 	blkc := &blockchain.BlockChain{}
 
-	blkc.GenesisBlock = &block.Header{
+	blkc.GenesisBlockHeader = &block.Header{
 		Nonce:     uint64(0),
 		Signature: []byte("genesis signature"),
 	}
 	blkc.GenesisHeaderHash = []byte("genesis header hash")
-	blkc.GenesisBlock.RandSeed = []byte{0}
+	blkc.GenesisBlockHeader.RandSeed = []byte{0}
 
 	return blkc
 }

@@ -61,7 +61,6 @@ type HeaderHandler interface {
 	GetRandSeed() []byte
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
-	GetCommitment() []byte
 
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
@@ -73,7 +72,6 @@ type HeaderHandler interface {
 	SetRandSeed(randSeed []byte)
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
-	SetCommitment(commitment []byte)
 }
 
 // BodyHandler defines getters and setters for body data holder

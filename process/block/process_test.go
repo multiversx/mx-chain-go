@@ -415,7 +415,6 @@ func TestBlockProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
 		RootHash:      []byte("roothash"),
 	}
 
@@ -462,7 +461,6 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte("00110"),
 		ShardId:       0,
-		Commitment:    []byte("commitment"),
 		RootHash:      []byte("rootHash"),
 	}
 	body := make(block.Body, 0)
@@ -532,7 +530,6 @@ func TestBlockProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
 		RootHash:      []byte("root hash"),
 	}
 
@@ -568,7 +565,6 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
 		RootHash:      []byte("root hash"),
 	}
 
@@ -607,7 +603,6 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
 		RootHash:      []byte("root hash"),
 	}
 
@@ -669,7 +664,6 @@ func TestBlockProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
 		RootHash:      rootHash,
 	}
 
@@ -725,7 +719,6 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
 		RootHash:      rootHash,
 	}
 
@@ -786,7 +779,6 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
 		RootHash:      rootHash,
 	}
 
@@ -848,7 +840,6 @@ func TestBlockProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
 		RootHash:      rootHash,
 	}
 
@@ -891,7 +882,6 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
 		RootHash:      rootHash,
 	}
 
@@ -975,7 +965,6 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		PubKeysBitmap: []byte("0100101"),
 		PrevHash:      []byte("zzz"),
 		Signature:     []byte("signature"),
-		Commitment:    []byte("commitment"),
 		RootHash:      rootHash,
 	}
 
@@ -1479,7 +1468,6 @@ func createTestHdrTxBlockBody() (*block.Header, block.Body) {
 		TimeStamp:     uint64(11223344),
 		PrevHash:      hasher.Compute("prev hash"),
 		PubKeysBitmap: []byte{255, 0, 128},
-		Commitment:    hasher.Compute("commitment"),
 		Signature:     hasher.Compute("signature"),
 		RootHash:      hasher.Compute("root hash"),
 	}

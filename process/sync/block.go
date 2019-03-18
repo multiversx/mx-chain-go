@@ -784,7 +784,7 @@ func (boot *Bootstrap) createHeader() (data.HeaderHandler, error) {
 		hdr.Nonce = 1
 		hdr.Round = 0
 		prevHeaderHash = boot.blkc.GenesisHeaderHash
-		hdr.PrevRandSeed = boot.blkc.GenesisBlock.Signature
+		hdr.PrevRandSeed = boot.blkc.GenesisBlockHeader.Signature
 	} else {
 		hdr.Nonce = boot.blkc.CurrentBlockHeader.Nonce + 1
 		hdr.Round = boot.blkc.CurrentBlockHeader.Round + 1
@@ -822,7 +822,6 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (da
 	}
 	hdrHash := boot.hasher.Compute(string(headerStr))
 	hdr.SetSignature(hdrHash)
-	hdr.SetCommitment(hdrHash)
 
 	// Commit the block (commits also the account state)
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
