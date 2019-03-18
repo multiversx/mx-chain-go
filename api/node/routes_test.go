@@ -32,6 +32,10 @@ type AddressResponse struct {
 	Address string `json:"address"`
 }
 
+func init() {
+	gin.SetMode(gin.TestMode)
+}
+
 func TestStatus_FailsWithoutFacade(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
@@ -306,7 +310,8 @@ func logError(err error) {
 }
 
 func startNodeServer(handler node.Handler) *gin.Engine {
-	return startNodeServerWithFacade(handler)
+	server := startNodeServerWithFacade(handler)
+	return server
 }
 
 func startNodeServerWrongFacade() *gin.Engine {
@@ -314,7 +319,6 @@ func startNodeServerWrongFacade() *gin.Engine {
 }
 
 func startNodeServerWithFacade(facade interface{}) *gin.Engine {
-	gin.SetMode(gin.TestMode)
 	ws := gin.New()
 	ws.Use(cors.Default())
 	if facade != nil {
