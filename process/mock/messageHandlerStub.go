@@ -5,12 +5,12 @@ import (
 )
 
 type MessageHandlerStub struct {
-	ConnectedPeersCalled      func() []p2p.PeerID
-	SendToConnectedPeerCalled func(topic string, buff []byte, peerID p2p.PeerID) error
+	ConnectedPeersOnTopicCalled func(topic string) []p2p.PeerID
+	SendToConnectedPeerCalled   func(topic string, buff []byte, peerID p2p.PeerID) error
 }
 
-func (mhs *MessageHandlerStub) ConnectedPeers() []p2p.PeerID {
-	return mhs.ConnectedPeersCalled()
+func (mhs *MessageHandlerStub) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
+	return mhs.ConnectedPeersOnTopicCalled(topic)
 }
 
 func (mhs *MessageHandlerStub) SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error {

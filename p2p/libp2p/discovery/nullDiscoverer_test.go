@@ -21,11 +21,3 @@ func TestNullDiscoverer_Bootstrap(t *testing.T) {
 
 	assert.Nil(t, nd.Bootstrap())
 }
-
-func TestNullDiscoverer_Close(t *testing.T) {
-	t.Parallel()
-
-	nd := NewNullDiscoverer()
-
-	assert.Nil(t, nd.Close())
-}

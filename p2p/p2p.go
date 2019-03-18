@@ -40,7 +40,6 @@ type ContextProvider interface {
 // PeerDiscoverer defines the behaviour of a peer discovery mechanism
 type PeerDiscoverer interface {
 	Bootstrap() error
-	Close() error
 	Name() string
 
 	ApplyContext(ctxProvider ContextProvider) error
@@ -57,6 +56,7 @@ type Messenger interface {
 	ConnectToPeer(address string) error
 	IsConnected(peerID PeerID) bool
 	ConnectedPeers() []PeerID
+	ConnectedPeersOnTopic(topic string) []PeerID
 	TrimConnections()
 	Bootstrap() error
 

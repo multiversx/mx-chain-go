@@ -13,6 +13,7 @@ type MessengerStub struct {
 	TrimConnectionsCalled             func()
 	IsConnectedCalled                 func(peerID p2p.PeerID) bool
 	ConnectedPeersCalled              func() []p2p.PeerID
+	ConnectedPeersOnTopicCalled       func(topic string) []p2p.PeerID
 	CreateTopicCalled                 func(name string, createChannelForTopic bool) error
 	HasTopicCalled                    func(name string) bool
 	HasTopicValidatorCalled           func(name string) bool
@@ -71,6 +72,10 @@ func (ms *MessengerStub) IsConnected(peerID p2p.PeerID) bool {
 
 func (ms *MessengerStub) ConnectedPeers() []p2p.PeerID {
 	return ms.ConnectedPeersCalled()
+}
+
+func (ms *MessengerStub) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
+	return ms.ConnectedPeersOnTopicCalled(topic)
 }
 
 func (ms *MessengerStub) CreateTopic(name string, createChannelForTopic bool) error {

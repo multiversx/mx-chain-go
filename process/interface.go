@@ -30,7 +30,6 @@ type BlockProcessor interface {
 	CreateGenesisBlock(balances map[string]*big.Int) ([]byte, error)
 	CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error)
 	RemoveBlockInfoFromPool(body data.BodyHandler) error
-	GetRootHash() []byte
 	CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool
 	CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error)
 }
@@ -158,7 +157,7 @@ type Interceptor interface {
 
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
-	ConnectedPeers() []p2p.PeerID
+	ConnectedPeersOnTopic(topic string) []p2p.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
 }
 

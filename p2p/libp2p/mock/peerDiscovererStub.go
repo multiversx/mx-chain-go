@@ -14,10 +14,6 @@ func (pds *PeerDiscovererStub) Bootstrap() error {
 	return pds.BootstrapCalled()
 }
 
-func (pds *PeerDiscovererStub) Close() error {
-	return pds.CloseCalled()
-}
-
 func (pds *PeerDiscovererStub) Name() string {
 	return "PeerDiscovererStub"
 }
