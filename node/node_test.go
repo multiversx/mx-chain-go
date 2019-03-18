@@ -537,6 +537,7 @@ func TestGenerateAndSendBulkTransactions_NilAccountAdapterShouldErr(t *testing.T
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
 		node.WithSinglesig(singleSigner),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
@@ -575,6 +576,7 @@ func TestGenerateAndSendBulkTransactions_NilPrivateKeyShouldErr(t *testing.T) {
 		node.WithPublicKey(pk),
 		node.WithMarshalizer(&mock.MarshalizerFake{}),
 		node.WithSinglesig(singleSigner),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(0), 1)
@@ -610,6 +612,7 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 		node.WithPrivateKey(sk),
 		node.WithPublicKey(pk),
 		node.WithSinglesig(singleSigner),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1)
@@ -652,6 +655,7 @@ func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T
 		node.WithPublicKey(pk),
 		node.WithMarshalizer(marshalizer),
 		node.WithSinglesig(singleSigner),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 	)
 
 	err := n.GenerateAndSendBulkTransactions(createDummyHexAddress(64), big.NewInt(1), 1)

@@ -30,7 +30,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
 	fmt.Println("Requestor:")
-	nRequestor, mesRequestor, sk1, resolvers := createNetNode(
+	nRequestor, mesRequestor, sk1, resolversFinder := createNetNode(
 		34100,
 		dPoolRequestor,
 		createAccountsDB(),
@@ -97,8 +97,7 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	dPoolResolver.Transactions().AddData(txHash, &tx, 0)
 
 	//Step 4. request tx
-	txResolver, _ := resolvers.Get(factory.TransactionTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
+	txResolver, _ := resolversFinder.IntraShardResolver(factory.TransactionTopic)
 	err = txResolver.RequestDataFromHash(txHash)
 	assert.Nil(t, err)
 

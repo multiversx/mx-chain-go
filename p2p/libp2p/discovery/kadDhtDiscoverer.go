@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
-	"github.com/libp2p/go-libp2p-discovery"
 	"github.com/libp2p/go-libp2p-kad-dht"
 )
 
@@ -95,32 +94,11 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 	go func() {
 		<-chanStartBootstrap
 
-		proc, err := kdd.kadDHT.BootstrapWithConfig(cfg)
+		err := kdd.kadDHT.BootstrapWithConfig(ctx, cfg)
 		if err != nil {
 			log.Error(err.Error())
 			return
 		}
-
-		// We use a rendezvous point "meet me here" to announce our location.
-		// This is like telling your friends to meet you at the Eiffel Tower.
-		log.Debug("Announcing ourselves...")
-		routingDiscovery := discovery.NewRoutingDiscovery(kdd.kadDHT)
-		discovery.Advertise(ctx, routingDiscovery, kdd.randezVous)
-		log.Debug("Successfully announced!")
-
-		// wait till ctx or dht.Context exits.
-		// we have to do it this way to satisfy the Routing interface (contexts)
-		go func() {
-			defer func() {
-				err = proc.Close()
-				log.LogIfError(err)
-			}()
-			select {
-			case <-ctx.Done():
-			case <-kdd.kadDHT.Context().Done():
-			}
-		}()
-
 	}()
 }
 
@@ -165,18 +143,6 @@ func (kdd *KadDhtDiscoverer) connectToOnePeerFromInitialPeersList(
 	}()
 
 	return chanDone
-}
-
-// Close closes the kad-dht service implementation
-func (kdd *KadDhtDiscoverer) Close() error {
-	kdd.mutKadDht.Lock()
-	defer kdd.mutKadDht.Unlock()
-
-	if kdd.kadDHT != nil {
-		return kdd.kadDHT.Close()
-	}
-
-	return nil
 }
 
 // Name returns the name of the kad dht peer discovery implementation

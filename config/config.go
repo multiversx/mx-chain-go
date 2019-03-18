@@ -44,26 +44,35 @@ type TypeConfig struct {
 
 // Config will hold the entire application configuration parameters
 type Config struct {
-	MiniBlocksStorage    StorageConfig `json:"miniBlocksStorage"`
-	PeerBlockBodyStorage StorageConfig `json:"peerBlockBodyStorage"`
-	BlockHeaderStorage   StorageConfig `json:"blockHeaderStorage"`
-	TxStorage            StorageConfig `json:"txStorage"`
+	MiniBlocksStorage    StorageConfig
+	PeerBlockBodyStorage StorageConfig
+	BlockHeaderStorage   StorageConfig
+	TxStorage            StorageConfig
 
-	AccountsTrieStorage StorageConfig `json:"accountsTrieStorage"`
-	BadBlocksCache      CacheConfig   `json:"badBlocksCache"`
+	ShardDataStorage StorageConfig
+	MetaBlockStorage StorageConfig
+	PeerDataStorage  StorageConfig
 
-	TxBlockBodyDataPool       CacheConfig `json:"txBlockBodyDataPool"`
-	StateBlockBodyDataPool    CacheConfig `json:"stateBlockBodyDataPool"`
-	PeerBlockBodyDataPool     CacheConfig `json:"peerBlockBodyDataPool"`
-	BlockHeaderDataPool       CacheConfig `json:"blockHeaderDataPool"`
-	BlockHeaderNoncesDataPool CacheConfig `json:"blockHeaderNoncesDataPool"`
-	TxDataPool                CacheConfig `json:"txDataPool"`
+	AccountsTrieStorage StorageConfig
+	BadBlocksCache      CacheConfig
 
-	Logger         LoggerConfig  `json:"logger"`
-	Address        AddressConfig `json:"address"`
-	Hasher         TypeConfig    `json:"hasher"`
-	MultisigHasher TypeConfig    `json:"multisigHasher"`
-	Marshalizer    TypeConfig    `json:"marshalizer"`
+	TxBlockBodyDataPool       CacheConfig
+	StateBlockBodyDataPool    CacheConfig
+	PeerBlockBodyDataPool     CacheConfig
+	BlockHeaderDataPool       CacheConfig
+	BlockHeaderNoncesDataPool CacheConfig
+	TxDataPool                CacheConfig
+	MetaBlockBodyDataPool     CacheConfig
+
+	MiniBlockHeaderHashesDataPool CacheConfig
+	ShardHeadersDataPool          CacheConfig
+	MetaHeaderNoncesDataPool      CacheConfig
+
+	Logger         LoggerConfig
+	Address        AddressConfig
+	Hasher         TypeConfig
+	MultisigHasher TypeConfig
+	Marshalizer    TypeConfig
 }
 
 //NodeConfig will hold basic p2p settings

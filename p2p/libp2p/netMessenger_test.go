@@ -98,6 +98,15 @@ func createLibP2PCredentialsMessenger() (peer.ID, crypto.PrivKey) {
 	return id, sk
 }
 
+func containsPeerID(list []p2p.PeerID, searchFor p2p.PeerID) bool {
+	for _, pid := range list {
+		if bytes.Equal(pid.Bytes(), searchFor.Bytes()) {
+			return true
+		}
+	}
+	return false
+}
+
 //------- NewMemoryLibp2pMessenger
 
 func TestNewMemoryLibp2pMessenger_NilContextShouldErr(t *testing.T) {
@@ -685,6 +694,145 @@ func TestLibp2pMessenger_ConnectedPeers(t *testing.T) {
 	mes1.Close()
 	mes2.Close()
 	mes3.Close()
+}
+
+//------- ConnectedPeersOnTopic
+
+func TestLibp2pMessenger_ConnectedPeersOnTopicInvalidTopicShouldRetEmptyList(t *testing.T) {
+	netw, mes1, mes2 := createMockNetworkOf2()
+	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+	netw.LinkAll()
+
+	adr2 := mes2.Addresses()[0]
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+	_ = mes3.ConnectToPeer(adr2)
+	//connected peers:  1 ----- 2 ----- 3
+	connPeers := mes1.ConnectedPeersOnTopic("non-existent topic")
+	assert.Equal(t, 0, len(connPeers))
+
+	mes1.Close()
+	mes2.Close()
+	mes3.Close()
+}
+
+func TestLibp2pMessenger_ConnectedPeersOnTopicOneTopicShouldWork(t *testing.T) {
+	netw, mes1, mes2 := createMockNetworkOf2()
+	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+	mes4, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+	netw.LinkAll()
+
+	adr2 := mes2.Addresses()[0]
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+	_ = mes3.ConnectToPeer(adr2)
+	_ = mes4.ConnectToPeer(adr2)
+	//connected peers:  1 ----- 2 ----- 3
+	//                          |
+	//                          4
+	//1, 2, 3 should be on topic "topic123"
+	mes1.CreateTopic("topic123", false)
+	mes2.CreateTopic("topic123", false)
+	mes3.CreateTopic("topic123", false)
+
+	//wait a bit for topic announcements
+	time.Sleep(time.Second)
+
+	peersOnTopic123 := mes2.ConnectedPeersOnTopic("topic123")
+
+	assert.Equal(t, 2, len(peersOnTopic123))
+	assert.True(t, containsPeerID(peersOnTopic123, mes1.ID()))
+	assert.True(t, containsPeerID(peersOnTopic123, mes3.ID()))
+
+	mes1.Close()
+	mes2.Close()
+	mes3.Close()
+	mes4.Close()
+}
+
+func TestLibp2pMessenger_ConnectedPeersOnTopicOneTopicDifferentViewsShouldWork(t *testing.T) {
+	netw, mes1, mes2 := createMockNetworkOf2()
+	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+	mes4, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+	netw.LinkAll()
+
+	adr2 := mes2.Addresses()[0]
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+	_ = mes3.ConnectToPeer(adr2)
+	_ = mes4.ConnectToPeer(adr2)
+	//connected peers:  1 ----- 2 ----- 3
+	//                          |
+	//                          4
+	//1, 2, 3 should be on topic "topic123"
+	mes1.CreateTopic("topic123", false)
+	mes2.CreateTopic("topic123", false)
+	mes3.CreateTopic("topic123", false)
+
+	//wait a bit for topic announcements
+	time.Sleep(time.Second)
+
+	peersOnTopic123FromMes2 := mes2.ConnectedPeersOnTopic("topic123")
+	peersOnTopic123FromMes4 := mes4.ConnectedPeersOnTopic("topic123")
+
+	//keep the same checks as the test above as to be 100% that the returned list are correct
+	assert.Equal(t, 2, len(peersOnTopic123FromMes2))
+	assert.True(t, containsPeerID(peersOnTopic123FromMes2, mes1.ID()))
+	assert.True(t, containsPeerID(peersOnTopic123FromMes2, mes3.ID()))
+
+	assert.Equal(t, 1, len(peersOnTopic123FromMes4))
+	assert.True(t, containsPeerID(peersOnTopic123FromMes4, mes2.ID()))
+
+	mes1.Close()
+	mes2.Close()
+	mes3.Close()
+	mes4.Close()
+}
+
+func TestLibp2pMessenger_ConnectedPeersOnTopicTwoTopicsShouldWork(t *testing.T) {
+	netw, mes1, mes2 := createMockNetworkOf2()
+	mes3, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+	mes4, _ := libp2p.NewMemoryMessenger(context.Background(), netw, discovery.NewNullDiscoverer())
+	netw.LinkAll()
+
+	adr2 := mes2.Addresses()[0]
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+	_ = mes3.ConnectToPeer(adr2)
+	_ = mes4.ConnectToPeer(adr2)
+	//connected peers:  1 ----- 2 ----- 3
+	//                          |
+	//                          4
+	//1, 2, 3 should be on topic "topic123"
+	//2, 4 should be on topic "topic24"
+	mes1.CreateTopic("topic123", false)
+	mes2.CreateTopic("topic123", false)
+	mes2.CreateTopic("topic24", false)
+	mes3.CreateTopic("topic123", false)
+	mes4.CreateTopic("topic24", false)
+
+	//wait a bit for topic announcements
+	time.Sleep(time.Second)
+
+	peersOnTopic123 := mes2.ConnectedPeersOnTopic("topic123")
+	peersOnTopic24 := mes2.ConnectedPeersOnTopic("topic24")
+
+	//keep the same checks as the test above as to be 100% that the returned list are correct
+	assert.Equal(t, 2, len(peersOnTopic123))
+	assert.True(t, containsPeerID(peersOnTopic123, mes1.ID()))
+	assert.True(t, containsPeerID(peersOnTopic123, mes3.ID()))
+
+	assert.Equal(t, 1, len(peersOnTopic24))
+	assert.True(t, containsPeerID(peersOnTopic24, mes4.ID()))
+
+	mes1.Close()
+	mes2.Close()
+	mes3.Close()
+	mes4.Close()
 }
 
 func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {
