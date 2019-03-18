@@ -624,6 +624,7 @@ func (boot *Bootstrap) forkChoice(hdr *block.Header) error {
 		return ErrNilCurrentHeader
 	}
 
+	// TODO: Forkchoice and sync should work with interfaces, so all type assertion should be removed
 	currentHeader, ok := header.(*block.Header)
 	if !ok {
 		return process.ErrWrongTypeAssertion

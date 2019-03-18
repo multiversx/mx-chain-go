@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
@@ -161,7 +162,12 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		return process.ErrNilHaveTimeHandler
 	}
 
-	err = bp.validateHeader(blockChain, blockHeader)
+	concreteBlockChain, ok := blockChain.(*blockchain.BlockChain)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	err = bp.validateHeader(concreteBlockChain, blockHeader)
 	if err != nil {
 		return err
 	}
@@ -259,7 +265,7 @@ func (bp *blockProcessor) getRootHash() []byte {
 	return bp.accounts.RootHash()
 }
 
-func (bp *blockProcessor) validateHeader(blockChain data.ChainHandler, header *block.Header) error {
+func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, header *block.Header) error {
 	// basic validation was already done on interceptor
 	if blockChain.GetCurrentBlockHeader() == nil {
 		if !bp.isFirstBlockInEpoch(header) {
