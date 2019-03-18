@@ -61,6 +61,11 @@ func createDataPools() data.PoolsHolder {
 	pools.PeerChangesBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
+
+	pools.MetaBlocksCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
+	}
+
 	return pools
 }
 
