@@ -631,17 +631,17 @@ func TestWithInterceptorsContainer_NilContainerShouldErr(t *testing.T) {
 	assert.Equal(t, ErrNilInterceptorsContainer, err)
 }
 
-func TestWithResolversContainer_ShouldWork(t *testing.T) {
+func TestWithResolversFinder_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	resolversContainer := &mock.ResolversContainerStub{}
-	opt := WithResolversContainer(resolversContainer)
+	resolversFinder := &mock.ResolversFinderStub{}
+	opt := WithResolversFinder(resolversFinder)
 
 	err := opt(node)
 
-	assert.True(t, node.resolversContainer == resolversContainer)
+	assert.True(t, node.resolversFinder == resolversFinder)
 	assert.Nil(t, err)
 }
 
@@ -650,9 +650,9 @@ func TestWithResolversContainer_NilContainerShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithResolversContainer(nil)
+	opt := WithResolversFinder(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.resolversContainer)
-	assert.Equal(t, ErrNilResolversContainer, err)
+	assert.Nil(t, node.resolversFinder)
+	assert.Equal(t, ErrNilResolversFinder, err)
 }

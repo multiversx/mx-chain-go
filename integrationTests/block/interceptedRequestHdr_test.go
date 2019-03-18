@@ -29,7 +29,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
 	fmt.Println("Requestor:")
-	nRequestor, mesRequestor, _, resolversContainer := createNetNode(
+	nRequestor, mesRequestor, _, resolversFinder := createNetNode(
 		33000,
 		dPoolRequestor,
 		createAccountsDB(),
@@ -94,8 +94,7 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	})
 
 	//Step 4. request header
-	res, err := resolversContainer.Get(factory.HeadersTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
+	res, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
 	assert.Nil(t, err)
 	hdrResolver := res.(*resolvers.HeaderResolver)
 	hdrResolver.RequestDataFromNonce(0)

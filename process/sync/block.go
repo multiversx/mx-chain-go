@@ -50,7 +50,7 @@ type Bootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	resolvers         process.ResolversContainer
+	resolversFinder   process.ResolversFinder
 	hdrRes            process.HeaderResolver
 	miniBlockResolver process.MiniBlocksResolver
 
@@ -74,7 +74,7 @@ func NewBootstrap(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
-	resolversContainer process.ResolversContainer,
+	resolversFinder process.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 ) (*Bootstrap, error) {
@@ -87,7 +87,7 @@ func NewBootstrap(
 		hasher,
 		marshalizer,
 		forkDetector,
-		resolversContainer,
+		resolversFinder,
 		shardCoordinator,
 		accounts,
 	)
@@ -112,16 +112,13 @@ func NewBootstrap(
 	}
 
 	//there is one header topic so it is ok to save it
-	hdrResolver, err := resolversContainer.Get(factory.HeadersTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
+	hdrResolver, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)
 	if err != nil {
 		return nil, err
 	}
 
-	//TODO refactor this as requesting a miniblock should consider passing also the shard ID,
-	// for now this should work on a one shard architecture
-	miniBlocksResolver, err := resolversContainer.Get(factory.MiniBlocksTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
+	//sync should request the missing block body on the intrashard topic
+	miniBlocksResolver, err := resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +154,7 @@ func checkBootstrapNilParameters(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
-	resolvers process.ResolversContainer,
+	resolversFinder process.ResolversContainer,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 ) error {
@@ -201,7 +198,7 @@ func checkBootstrapNilParameters(
 		return process.ErrNilForkDetector
 	}
 
-	if resolvers == nil {
+	if resolversFinder == nil {
 		return process.ErrNilResolverContainer
 	}
 
