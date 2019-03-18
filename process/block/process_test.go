@@ -408,7 +408,7 @@ func TestBlockProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	journalLen := func() int { return 3 }
 	revToSnapshot := func(snapshot int) error { return nil }
 
-	blkc := createTestBlockchain()
+	blkc := &blockchain.BlockChain{}
 
 	hdr := block.Header{
 		Nonce:         0,
@@ -455,7 +455,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	}
 
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
-	blkc := createTestBlockchain()
+	blkc := &blockchain.BlockChain{}
 	hdr := block.Header{
 		Nonce:         0,
 		PrevHash:      []byte(""),
@@ -538,7 +538,7 @@ func TestBlockProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 
 	body := make(block.Body, 0)
 
-	blkc := createTestBlockchain()
+	blkc := &blockchain.BlockChain{}
 
 	err := be.ProcessBlock(blkc, hdr, body, haveTime)
 
@@ -574,12 +574,7 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 
 	body := make(block.Body, 0)
 
-	blkc := createTestBlockchain()
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &block.Header{
-			Nonce: 0,
-		}
-	}
+	blkc := &blockchain.BlockChain{}
 
 	err := be.ProcessBlock(blkc, hdr, body, haveTime)
 
@@ -615,14 +610,10 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 
 	body := make(block.Body, 0)
 
-	blkc := createTestBlockchain()
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &block.Header{
+	blkc := &blockchain.BlockChain{
+		CurrentBlockHeader: &block.Header{
 			Nonce: 0,
-		}
-	}
-	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-		return []byte("bbb")
+		},
 	}
 
 	err := be.ProcessBlock(blkc, hdr, body, haveTime)
