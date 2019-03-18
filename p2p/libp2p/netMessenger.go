@@ -163,9 +163,6 @@ func createPubSub(ctxProvider *Libp2pContext, withSigning bool) (*pubsub.PubSub,
 
 // Close closes the host, connections and streams
 func (netMes *networkMessenger) Close() error {
-	err := netMes.peerDiscoverer.Close()
-	log.LogIfError(err)
-
 	return netMes.ctxProvider.Host().Close()
 }
 

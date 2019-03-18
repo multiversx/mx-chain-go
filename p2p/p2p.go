@@ -40,7 +40,6 @@ type ContextProvider interface {
 // PeerDiscoverer defines the behaviour of a peer discovery mechanism
 type PeerDiscoverer interface {
 	Bootstrap() error
-	Close() error
 	Name() string
 
 	ApplyContext(ctxProvider ContextProvider) error

@@ -145,11 +145,6 @@ func (kdd *KadDhtDiscoverer) connectToOnePeerFromInitialPeersList(
 	return chanDone
 }
 
-// Close closes the kad-dht service implementation
-func (kdd *KadDhtDiscoverer) Close() error {
-	return nil
-}
-
 // Name returns the name of the kad dht peer discovery implementation
 func (kdd *KadDhtDiscoverer) Name() string {
 	return kadDhtName

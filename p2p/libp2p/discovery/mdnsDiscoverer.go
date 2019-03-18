@@ -79,11 +79,6 @@ func (mpd *MdnsPeerDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) err
 	return nil
 }
 
-// Close closes the mdns service implementation
-func (mpd *MdnsPeerDiscoverer) Close() error {
-	return nil
-}
-
 // Name returns the name of the mdns peer discovery implementation
 func (mpd *MdnsPeerDiscoverer) Name() string {
 	return mdnsName
