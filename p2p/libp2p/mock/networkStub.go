@@ -14,6 +14,7 @@ type NetworkStub struct {
 	ConnsToPeerCalled   func(p peer.ID) []net.Conn
 	ConnsCalled         func() []net.Conn
 	ConnectednessCalled func(peer.ID) net.Connectedness
+	NotifyCalled        func(net.Notifiee)
 }
 
 func (ns *NetworkStub) Peerstore() peerstore.Peerstore {
@@ -48,8 +49,8 @@ func (ns *NetworkStub) ConnsToPeer(p peer.ID) []net.Conn {
 	return ns.ConnsToPeerCalled(p)
 }
 
-func (ns *NetworkStub) Notify(net.Notifiee) {
-	panic("implement me")
+func (ns *NetworkStub) Notify(notifee net.Notifiee) {
+	ns.NotifyCalled(notifee)
 }
 
 func (ns *NetworkStub) StopNotify(net.Notifiee) {

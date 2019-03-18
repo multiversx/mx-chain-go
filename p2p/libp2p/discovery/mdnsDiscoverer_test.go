@@ -2,7 +2,6 @@ package discovery_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -10,10 +9,10 @@ import (
 	libp2p2 "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/mock"
-	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-peerstore"
 	"github.com/libp2p/go-libp2p-peerstore/pstoremem"
+	"github.com/libp2p/go-libp2p/p2p/net/mock"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,15 +20,9 @@ import (
 var timeoutWaitResponses = time.Second * 2
 
 func createDummyHost() libp2p2.ConnectableHost {
-	opts := []libp2p.Option{
-		libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 23000)),
-		libp2p.DefaultTransports,
-		libp2p.DefaultMuxers,
-		libp2p.DefaultSecurity,
-		libp2p.NATPortMap(),
-	}
+	netw := mocknet.New(context.Background())
 
-	h, _ := libp2p.New(context.Background(), opts...)
+	h, _ := netw.GenPeer()
 	return libp2p2.NewConnectableHost(h)
 }
 
@@ -64,7 +57,6 @@ func TestMdnsPeerDiscoverer_BootstrapCalledOnceShouldWork(t *testing.T) {
 
 	mdns := discovery.NewMdnsPeerDiscoverer(interval, serviceTag)
 	defer func() {
-		mdns.Close()
 		h.Close()
 	}()
 
@@ -84,7 +76,6 @@ func TestMdnsPeerDiscoverer_BootstrapCalledTwiceShouldErr(t *testing.T) {
 	mdns := discovery.NewMdnsPeerDiscoverer(interval, serviceTag)
 
 	defer func() {
-		mdns.Close()
 		h.Close()
 	}()
 

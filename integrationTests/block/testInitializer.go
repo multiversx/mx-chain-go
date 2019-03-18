@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
@@ -128,7 +129,7 @@ func createNetNode(port int,
 	*node.Node,
 	p2p.Messenger,
 	crypto.PrivateKey,
-	process.ResolversContainer) {
+	process.ResolversFinder) {
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -168,6 +169,7 @@ func createNetNode(port int,
 		uint64Converter,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
+	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -185,10 +187,10 @@ func createNetNode(port int,
 		node.WithBlockChain(blkc),
 		node.WithUint64ByteSliceConverter(uint64Converter),
 		node.WithInterceptorsContainer(interceptorsContainer),
-		node.WithResolversContainer(resolversContainer),
+		node.WithResolversFinder(resolversFinder),
 	)
 
-	return n, messenger, sk, resolversContainer
+	return n, messenger, sk, resolversFinder
 }
 
 func createMessenger(ctx context.Context, port int) p2p.Messenger {

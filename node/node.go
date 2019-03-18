@@ -69,7 +69,7 @@ type Node struct {
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer    process.InterceptorsContainer
-	resolversContainer       process.ResolversContainer
+	resolversFinder          process.ResolversFinder
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
@@ -326,6 +326,11 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return err
 	}
 
+	if n.shardCoordinator == nil {
+		return ErrNilShardCoordinator
+	}
+	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
+
 	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
 		return errors.New("could not create receiver address from provided param: " + err.Error())
@@ -388,8 +393,8 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
 	}
 
-	//TODO temporary, will be refactored in EN-1104
-	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId())
+	//the topic identifier is made of the current shard id and sender's shard id
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
 
 	for i := 0; i < len(transactions); i++ {
 		n.messenger.BroadcastOnChannel(
@@ -441,7 +446,7 @@ func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrappe
 		n.hasher,
 		n.marshalizer,
 		n.forkDetector,
-		n.resolversContainer,
+		n.resolversFinder,
 		n.shardCoordinator,
 		n.accounts,
 	)
@@ -633,6 +638,11 @@ func (n *Node) SendTransaction(
 		return nil, err
 	}
 
+	if n.shardCoordinator == nil {
+		return nil, ErrNilShardCoordinator
+	}
+	senderShardId := n.shardCoordinator.ComputeId(sender)
+
 	tx := transaction.Transaction{
 		Nonce:     nonce,
 		Value:     value,
@@ -647,8 +657,8 @@ func (n *Node) SendTransaction(
 		return nil, errors.New("could not marshal transaction")
 	}
 
-	//TODO temporary, will be refactored in EN-1104
-	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId())
+	//the topic identifier is made of the current shard id and sender's shard id
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
 
 	n.messenger.BroadcastOnChannel(
 		SendTransactionsPipe,
