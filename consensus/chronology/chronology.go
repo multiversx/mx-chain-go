@@ -117,6 +117,7 @@ func (chr *chronology) startRound() {
 	log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
 
 	if !sr.DoWork(chr.rounder) {
+		chr.subroundId = -1
 		return
 	}
 

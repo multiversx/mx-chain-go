@@ -403,7 +403,7 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 	node := string(cnsDta.PubKey)
 
 	roundStartTime := sr.consensusState.RoundTimeStamp
-	maxTime := sr.rounder.TimeDuration() * time.Duration(safeThresholdPercent) / 100
+	maxTime := sr.rounder.TimeDuration() * safeThresholdPercent / 100
 	remainingTimeInCurrentRound := func() time.Duration {
 		return sr.rounder.RemainingTime(roundStartTime, maxTime)
 	}

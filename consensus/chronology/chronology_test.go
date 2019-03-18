@@ -168,15 +168,11 @@ func TestChronology_StartRoundShouldReturnWhenLoadSubroundHandlerReturnsNil(t *t
 		rounderMock,
 		syncTimerMock)
 
-	srm := initSubroundHandlerMock()
-
-	chr.AddSubround(srm)
-
-	chr.SetSubroundId(0)
+	initSubroundHandlerMock()
 
 	chr.StartRound()
 
-	assert.Equal(t, srm.Current(), chr.SubroundId())
+	assert.Equal(t, -1, chr.SubroundId())
 }
 
 func TestChronology_StartRoundShouldReturnWhenDoWorkReturnsFalse(t *testing.T) {
@@ -201,7 +197,7 @@ func TestChronology_StartRoundShouldReturnWhenDoWorkReturnsFalse(t *testing.T) {
 
 	chr.StartRound()
 
-	assert.Equal(t, srm.Current(), chr.SubroundId())
+	assert.Equal(t, -1, chr.SubroundId())
 }
 
 func TestChronology_StartRoundShouldWork(t *testing.T) {

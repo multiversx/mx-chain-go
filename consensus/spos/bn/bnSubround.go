@@ -77,7 +77,7 @@ func (sr *subround) DoWork(rounder consensus.Rounder) bool {
 	}
 
 	roundStartTime := rounder.TimeStamp()
-	maxTime := rounder.TimeDuration() * time.Duration(maxThresholdPercent) / 100
+	maxTime := rounder.TimeDuration() * maxThresholdPercent / 100
 
 	sr.job()
 
