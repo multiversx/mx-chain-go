@@ -65,8 +65,13 @@ func (mc *MetaChain) GetGenesisBlock() data.HeaderHandler {
 }
 
 // SetGenesisBlock returns the genesis block header pointer
-func (mc *MetaChain) SetGenesisBlock(header data.HeaderHandler) {
-	mc.GenesisBlock = header.(*block.MetaBlock)
+func (mc *MetaChain) SetGenesisBlock(header data.HeaderHandler) error {
+	genBlock, ok := header.(*block.MetaBlock)
+	if !ok {
+		return ErrWrongTypeInSet
+	}
+	mc.GenesisBlock = genBlock
+	return nil
 }
 
 // GetGenesisHeaderHash returns the genesis block header hash
@@ -85,8 +90,13 @@ func (mc *MetaChain) GetCurrentBlockHeader() data.HeaderHandler {
 }
 
 // SetCurrentBlockHeader sets current block header pointer
-func (mc *MetaChain) SetCurrentBlockHeader(header data.HeaderHandler) {
-	mc.CurrentBlock = header.(*block.MetaBlock)
+func (mc *MetaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+	currHead, ok := header.(*block.MetaBlock)
+	if !ok {
+		return ErrWrongTypeInSet
+	}
+	mc.CurrentBlock = currHead
+	return nil
 }
 
 // GetCurrentBlockHeaderHash returns the current block header hash
@@ -105,8 +115,9 @@ func (mc *MetaChain) GetCurrentBlockBody() data.BodyHandler {
 }
 
 // SetCurrentBlockBody sets the block body pointer
-func (mc *MetaChain) SetCurrentBlockBody(body data.BodyHandler) {
+func (mc *MetaChain) SetCurrentBlockBody(body data.BodyHandler) error {
 	// not needed to be implemented in metachain.
+	return nil
 }
 
 // GetLocalHeight returns the height of the local chain

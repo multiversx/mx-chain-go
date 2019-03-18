@@ -16,12 +16,6 @@ var ErrPeerBlockUnitNil = errors.New("peerBlockUnit nil")
 // ErrHeaderUnitNil defines the error for using a nil storage unit for block headers
 var ErrHeaderUnitNil = errors.New("header nil")
 
-// ErrMetaGenesisBlockNil defines the error for using a nil genesis block at creation
-var ErrMetaGenesisBlockNil = errors.New("metachain genesis block is nil")
-
-// ErrMetaGenesisBlockHashNil defines the error for nil genesis block hash at creation
-var ErrMetaGenesisBlockHashNil = errors.New("metachain genesis block hash is nil")
-
 // ErrMetaBlockUnitNil defines the error for using a nil storage unit for metachain blocks
 var ErrMetaBlockUnitNil = errors.New("metablock storage unit is nil")
 
@@ -36,3 +30,6 @@ var ErrNoSuchStorageUnit = errors.New("no such unit type")
 
 // ErrMiniBlockUnitNil defines the error for using a nil storage unit for mini blocks
 var ErrMiniBlockUnitNil = errors.New("nil mini block unit")
+
+// ErrWrongTypeInSet defines the error for trying to set the wrong type
+var ErrWrongTypeInSet = errors.New("wrong type in setter")

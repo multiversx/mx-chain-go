@@ -70,7 +70,6 @@ func createMemUnit() storage.Storer {
 func createTestDataPool() data.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
-	metaPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 
 	cacherCfg := storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
@@ -81,6 +80,7 @@ func createTestDataPool() data.PoolsHolder {
 
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,

@@ -309,7 +309,7 @@ func createNode(
 		return nil, errors.New("could not create shard data pools: " + err.Error())
 	}
 
-	// TODO create metachain / blockchain from data from shardcoordinator
+	// TODO create metachain / blockchain
 	// TODO save config, and move this creation into another place for node movement
 	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig
 
@@ -641,12 +641,13 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	metaBlockBody, err := shardedData.NewShardedData(getCacherFromConfig(config.MetaBlockBodyDataPool))
+	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
 	}
 
-	cacherCfg := getCacherFromConfig(config.BlockHeaderNoncesDataPool)
+	cacherCfg = getCacherFromConfig(config.BlockHeaderNoncesDataPool)
 	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
@@ -762,7 +763,8 @@ func createMetaDataPoolFromConfig(
 	config *config.Config,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (data.MetaPoolsHolder, error) {
-	metaBlockBody, err := shardedData.NewShardedData(getCacherFromConfig(config.MetaBlockBodyDataPool))
+	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
 	}
@@ -777,7 +779,7 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	cacherCfg := getCacherFromConfig(config.MetaHeaderNoncesDataPool)
+	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
 	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err

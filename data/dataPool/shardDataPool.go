@@ -8,7 +8,7 @@ import (
 type shardedDataPool struct {
 	transactions      data.ShardedDataCacherNotifier
 	headers           data.ShardedDataCacherNotifier
-	metaBlocks        data.ShardedDataCacherNotifier
+	metaBlocks        storage.Cacher
 	hdrNonces         data.Uint64Cacher
 	miniBlocks        storage.Cacher
 	peerChangesBlocks storage.Cacher
@@ -21,7 +21,7 @@ func NewShardedDataPool(
 	hdrNonces data.Uint64Cacher,
 	miniBlocks storage.Cacher,
 	peerChangesBlocks storage.Cacher,
-	metaBlocks data.ShardedDataCacherNotifier,
+	metaBlocks storage.Cacher,
 ) (*shardedDataPool, error) {
 
 	if transactions == nil {
@@ -84,6 +84,6 @@ func (tdp *shardedDataPool) PeerChangesBlocks() storage.Cacher {
 }
 
 // MetaBlocks returns the holder for meta blocks
-func (tdp *shardedDataPool) MetaBlocks() data.ShardedDataCacherNotifier {
+func (tdp *shardedDataPool) MetaBlocks() storage.Cacher {
 	return tdp.metaBlocks
 }

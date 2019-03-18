@@ -24,7 +24,7 @@ func TestNewMetaDataPool_NilMetaBlockShouldErr(t *testing.T) {
 
 func TestNewMetaDataPool_NilMiniBlockHeaderHashesShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewMetaDataPool(
-		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
 		nil,
 		&mock.ShardedDataStub{},
 		&mock.Uint64CacherStub{})
@@ -35,7 +35,7 @@ func TestNewMetaDataPool_NilMiniBlockHeaderHashesShouldErr(t *testing.T) {
 
 func TestNewMetaDataPool_NilShardHeaderShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewMetaDataPool(
-		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
 		&mock.ShardedDataStub{},
 		nil,
 		&mock.Uint64CacherStub{})
@@ -46,7 +46,7 @@ func TestNewMetaDataPool_NilShardHeaderShouldErr(t *testing.T) {
 
 func TestNewMetaDataPool_NilMetaHeaderNouncesShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewMetaDataPool(
-		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
 		&mock.ShardedDataStub{},
 		&mock.ShardedDataStub{},
 		nil)
@@ -56,7 +56,7 @@ func TestNewMetaDataPool_NilMetaHeaderNouncesShouldErr(t *testing.T) {
 }
 
 func TestNewMetaDataPool_ConfigOk(t *testing.T) {
-	metaChainBlocks := &mock.ShardedDataStub{}
+	metaChainBlocks := &mock.CacherStub{}
 	shardHeaders := &mock.ShardedDataStub{}
 	miniBlockheaders := &mock.ShardedDataStub{}
 	metaBlockNonce := &mock.Uint64CacherStub{}

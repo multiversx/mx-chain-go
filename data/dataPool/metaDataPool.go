@@ -2,10 +2,11 @@ package dataPool
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 type metaDataPool struct {
-	metaBlocks      data.ShardedDataCacherNotifier
+	metaBlocks      storage.Cacher
 	miniBlockHashes data.ShardedDataCacherNotifier
 	shardHeaders    data.ShardedDataCacherNotifier
 	metaBlockNonces data.Uint64Cacher
@@ -13,7 +14,7 @@ type metaDataPool struct {
 
 // NewMetaDataPool creates a data pools holder object
 func NewMetaDataPool(
-	metaBlocks data.ShardedDataCacherNotifier,
+	metaBlocks storage.Cacher,
 	miniBlockHashes data.ShardedDataCacherNotifier,
 	shardHeaders data.ShardedDataCacherNotifier,
 	metaBlockNonces data.Uint64Cacher,
@@ -44,7 +45,7 @@ func NewMetaDataPool(
 }
 
 // MetaChainBlocks returns the holder for meta blocks
-func (mdp *metaDataPool) MetaChainBlocks() data.ShardedDataCacherNotifier {
+func (mdp *metaDataPool) MetaChainBlocks() storage.Cacher {
 	return mdp.metaBlocks
 }
 
