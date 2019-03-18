@@ -17,11 +17,11 @@ import (
 type MetaChain struct {
 	StorageService
 	GenesisBlock     *block.MetaBlock // Genesys Block pointer
-	GenesisBlockHash []byte           // Genesis Block hash
+	genesisBlockHash []byte           // Genesis Block hash
 	CurrentBlock     *block.MetaBlock // Current Block pointer
-	CurrentBlockHash []byte           // Current Block hash
-	LocalHeight      int64            // Height of the local chain
-	NetworkHeight    int64            // Percieved height of the network chain
+	currentBlockHash []byte           // Current Block hash
+	localHeight      int64            // Height of the local chain
+	networkHeight    int64            // Percieved height of the network chain
 	badBlocks        storage.Cacher   // Bad blocks cache
 }
 
@@ -76,16 +76,19 @@ func (mc *MetaChain) SetGenesisBlock(header data.HeaderHandler) error {
 
 // GetGenesisHeaderHash returns the genesis block header hash
 func (mc *MetaChain) GetGenesisHeaderHash() []byte {
-	return mc.GenesisBlockHash
+	return mc.genesisBlockHash
 }
 
 // SetGenesisHeaderHash returns the genesis block header hash
 func (mc *MetaChain) SetGenesisHeaderHash(headerHash []byte) {
-	mc.GenesisBlockHash = headerHash
+	mc.genesisBlockHash = headerHash
 }
 
 // GetCurrentBlockHeader returns current block header pointer
 func (mc *MetaChain) GetCurrentBlockHeader() data.HeaderHandler {
+	if mc.CurrentBlock == nil {
+		return nil
+	}
 	return mc.CurrentBlock
 }
 
@@ -101,12 +104,12 @@ func (mc *MetaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 
 // GetCurrentBlockHeaderHash returns the current block header hash
 func (mc *MetaChain) GetCurrentBlockHeaderHash() []byte {
-	return mc.CurrentBlockHash
+	return mc.currentBlockHash
 }
 
 // SetCurrentBlockHeaderHash returns the current block header hash
 func (mc *MetaChain) SetCurrentBlockHeaderHash(hash []byte) {
-	mc.CurrentBlockHash = hash
+	mc.currentBlockHash = hash
 }
 
 // GetCurrentBlockBody returns the block body pointer
@@ -122,22 +125,22 @@ func (mc *MetaChain) SetCurrentBlockBody(body data.BodyHandler) error {
 
 // GetLocalHeight returns the height of the local chain
 func (mc *MetaChain) GetLocalHeight() int64 {
-	return mc.LocalHeight
+	return mc.localHeight
 }
 
 // SetLocalHeight sets the height of the local chain
 func (mc *MetaChain) SetLocalHeight(height int64) {
-	mc.LocalHeight = height
+	mc.localHeight = height
 }
 
 // GetNetworkHeight sets the percieved height of the network chain
 func (mc *MetaChain) GetNetworkHeight() int64 {
-	return mc.NetworkHeight
+	return mc.networkHeight
 }
 
 // SetNetworkHeight sets the percieved height of the network chain
 func (mc *MetaChain) SetNetworkHeight(height int64) {
-	mc.NetworkHeight = height
+	mc.networkHeight = height
 }
 
 // IsBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise

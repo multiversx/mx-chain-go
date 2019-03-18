@@ -196,15 +196,6 @@ func TestMetaChain_GetCurrentBlockHeader(t *testing.T) {
 	assert.Equal(t, bl, m.GetCurrentBlockHeader())
 }
 
-func TestMetaChain_GetCurrentBlockHeaderHash(t *testing.T) {
-	t.Parallel()
-
-	h := []byte{10, 11, 12, 13}
-	m := blockchain.MetaChain{CurrentBlockHash: h}
-
-	assert.Equal(t, h, m.GetCurrentBlockHeaderHash())
-}
-
 func TestMetaChain_GetGenesisBlock(t *testing.T) {
 	t.Parallel()
 
@@ -212,33 +203,6 @@ func TestMetaChain_GetGenesisBlock(t *testing.T) {
 	m := blockchain.MetaChain{GenesisBlock: bl}
 
 	assert.Equal(t, bl, m.GetGenesisBlock())
-}
-
-func TestMetaChain_GetGenesisHeaderHash(t *testing.T) {
-	t.Parallel()
-
-	h := []byte{10, 11, 12, 13}
-	m := blockchain.MetaChain{GenesisBlockHash: h}
-
-	assert.Equal(t, h, m.GetGenesisHeaderHash())
-}
-
-func TestMetaChain_GetLocalHeight(t *testing.T) {
-	t.Parallel()
-
-	height := int64(3)
-	m := blockchain.MetaChain{LocalHeight: height}
-
-	assert.Equal(t, height, m.GetLocalHeight())
-}
-
-func TestMetaChain_GetNetworkHeight(t *testing.T) {
-	t.Parallel()
-
-	height := int64(4)
-	m := blockchain.MetaChain{NetworkHeight: height}
-
-	assert.Equal(t, height, m.GetNetworkHeight())
 }
 
 func TestMetaChain_SetCurrentBlockBody(t *testing.T) {
@@ -280,7 +244,7 @@ func TestMetaChain_SetCurrentBlockHeaderHash(t *testing.T) {
 	m := blockchain.MetaChain{}
 	m.SetCurrentBlockHeaderHash(h)
 
-	assert.Equal(t, h, m.CurrentBlockHash)
+	assert.Equal(t, h, m.GetCurrentBlockHeaderHash())
 }
 
 func TestMetaChain_SetGenesisBlock(t *testing.T) {
@@ -311,7 +275,7 @@ func TestMetaChain_SetGenesisHeaderHash(t *testing.T) {
 	m := blockchain.MetaChain{}
 	m.SetGenesisHeaderHash(h)
 
-	assert.Equal(t, h, m.GenesisBlockHash)
+	assert.Equal(t, h, m.GetGenesisHeaderHash())
 }
 
 func TestMetaChain_SetLocalHeight(t *testing.T) {
@@ -321,7 +285,7 @@ func TestMetaChain_SetLocalHeight(t *testing.T) {
 	m := blockchain.MetaChain{}
 	m.SetLocalHeight(height)
 
-	assert.Equal(t, height, m.LocalHeight)
+	assert.Equal(t, height, m.GetLocalHeight())
 }
 
 func TestMetaChain_SetNetworkHeight(t *testing.T) {
@@ -331,5 +295,5 @@ func TestMetaChain_SetNetworkHeight(t *testing.T) {
 	m := blockchain.MetaChain{}
 	m.SetNetworkHeight(height)
 
-	assert.Equal(t, height, m.NetworkHeight)
+	assert.Equal(t, height, m.GetNetworkHeight())
 }
