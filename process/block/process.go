@@ -363,6 +363,13 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		return err
 	}
 
+	// transform from interface into struct
+	blockHeader, ok := header.(*block.Header)
+	if !ok {
+		err = process.ErrWrongTypeAssertion
+		return err
+	}
+
 	for i := 0; i < len(blockBody); i++ {
 		buff, err = bp.marshalizer.Marshal((blockBody)[i])
 		if err != nil {
@@ -409,7 +416,12 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 
 	err = bp.RemoveBlockInfoFromPool(body)
 	if err != nil {
-		log.Error(err.Error())
+		return err
+	}
+
+	err = bp.forkDetector.AddHeader(blockHeader, headerHash, true)
+	if err != nil {
+		return err
 	}
 
 	_, err = bp.accounts.Commit()
@@ -417,15 +429,9 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		return err
 	}
 
-	blockHeader := header.(*block.Header)
 	blockChain.CurrentTxBlockBody = blockBody
 	blockChain.CurrentBlockHeader = blockHeader
 	blockChain.CurrentBlockHeaderHash = headerHash
-
-	err = bp.forkDetector.AddHeader(blockHeader, headerHash, true)
-	if err != nil {
-		log.Error(err.Error())
-	}
 
 	// write data to log
 	go bp.displayBlockchain(blockChain)
