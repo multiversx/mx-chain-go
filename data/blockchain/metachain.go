@@ -60,12 +60,15 @@ func NewMetaChain(
 }
 
 // GetGenesisBlock returns the genesis block header pointer
-func (mc *MetaChain) GetGenesisBlock() data.HeaderHandler {
+func (mc *MetaChain) GetGenesisHeader() data.HeaderHandler {
+	if mc.GenesisBlock == nil {
+		return nil
+	}
 	return mc.GenesisBlock
 }
 
 // SetGenesisBlock returns the genesis block header pointer
-func (mc *MetaChain) SetGenesisBlock(header data.HeaderHandler) error {
+func (mc *MetaChain) SetGenesisHeader(header data.HeaderHandler) error {
 	genBlock, ok := header.(*block.MetaBlock)
 	if !ok {
 		return ErrWrongTypeInSet

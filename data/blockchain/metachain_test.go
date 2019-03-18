@@ -202,7 +202,7 @@ func TestMetaChain_GetGenesisBlock(t *testing.T) {
 	bl := &block.MetaBlock{}
 	m := blockchain.MetaChain{GenesisBlock: bl}
 
-	assert.Equal(t, bl, m.GetGenesisBlock())
+	assert.Equal(t, bl, m.GetGenesisHeader())
 }
 
 func TestMetaChain_SetCurrentBlockBody(t *testing.T) {
@@ -252,7 +252,7 @@ func TestMetaChain_SetGenesisBlock(t *testing.T) {
 
 	bl := &block.MetaBlock{}
 	m := blockchain.MetaChain{}
-	err := m.SetGenesisBlock(bl)
+	err := m.SetGenesisHeader(bl)
 
 	assert.Nil(t, err)
 	assert.Equal(t, bl, m.GenesisBlock)
@@ -263,7 +263,7 @@ func TestMetaChain_SetGenesisBlockWrongType(t *testing.T) {
 
 	bl := &block.Header{}
 	m := blockchain.MetaChain{}
-	err := m.SetGenesisBlock(bl)
+	err := m.SetGenesisHeader(bl)
 
 	assert.Equal(t, blockchain.ErrWrongTypeInSet, err)
 }
