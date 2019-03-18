@@ -46,9 +46,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	sync2 "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -369,6 +371,7 @@ func createNode(
 		return nil, err
 	}
 
+	//TODO refactor all these factory calls
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
 		return nil, err
@@ -388,19 +391,12 @@ func createNode(
 		return nil, err
 	}
 
-	forkDetector := sync2.NewBasicForkDetector()
-
-	//TODO refactor this as this resolver must not be saved but enquired each time a transaction
-	// (or batch of transactions) is needed according to the shard where this tx might reside
-	res, err := resolversContainer.Get(factory.TransactionTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
+	resolversFinder, err := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
-	txResolver, ok := res.(*transaction.TxResolver)
-	if !ok {
-		return nil, errors.New("tx resolver is not of type transaction.TxResolver")
-	}
+
+	forkDetector := processSync.NewBasicForkDetector()
 
 	blockProcessor, err := block.NewBlockProcessor(
 		datapool,
@@ -410,7 +406,7 @@ func createNode(
 		accountsAdapter,
 		shardCoordinator,
 		forkDetector,
-		createRequestTransactionHandler(txResolver, log),
+		createRequestTransactionHandler(resolversFinder, log),
 	)
 
 	if err != nil {
@@ -442,7 +438,7 @@ func createNode(
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
-		node.WithResolversContainer(resolversContainer),
+		node.WithResolversFinder(resolversFinder),
 	)
 
 	if err != nil {
@@ -457,10 +453,19 @@ func createNode(
 	return nd, nil
 }
 
-func createRequestTransactionHandler(txResolver *transaction.TxResolver, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+func createRequestTransactionHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
-		_ = txResolver.RequestDataFromHash(txHash)
-		log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+		log.Debug(fmt.Sprintf("Requesting tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+		resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to transaction topic to shard %d", destShardID))
+			return
+		}
+
+		err = resolver.RequestDataFromHash(txHash)
+		if err != nil {
+			log.Debug(err.Error())
+		}
 	}
 }
 
