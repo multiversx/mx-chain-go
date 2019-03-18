@@ -1,29 +1,29 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 type ChainStorerMock struct {
-	AddStorerCalled func(key blockchain.UnitType, s storage.Storer)
-	GetStorerCalled func(unitType blockchain.UnitType) storage.Storer
-	HasCalled func(unitType blockchain.UnitType, key []byte) (bool, error)
-	GetCalled func(unitType blockchain.UnitType, key []byte) ([]byte, error)
-	PutCalled func(unitType blockchain.UnitType, key []byte, value []byte) error
-	GetAllCalled func(unitType blockchain.UnitType, keys [][]byte) (map[string][]byte, error)
+	AddStorerCalled func(key data.UnitType, s storage.Storer)
+	GetStorerCalled func(unitType data.UnitType) storage.Storer
+	HasCalled func(unitType data.UnitType, key []byte) (bool, error)
+	GetCalled func(unitType data.UnitType, key []byte) ([]byte, error)
+	PutCalled func(unitType data.UnitType, key []byte, value []byte) error
+	GetAllCalled func(unitType data.UnitType, keys [][]byte) (map[string][]byte, error)
 	DestroyCalled func() error
 }
 
 // AddStorer will add a new storer to the chain map
-func (bc *ChainStorerMock) AddStorer(key blockchain.UnitType, s storage.Storer) {
+func (bc *ChainStorerMock) AddStorer(key data.UnitType, s storage.Storer) {
 	if bc.AddStorerCalled != nil {
 		bc.AddStorerCalled(key, s)
 	}
 }
 
 // GetStorer returns the storer from the chain map or nil if the storer was not found
-func (bc *ChainStorerMock) GetStorer(unitType blockchain.UnitType) storage.Storer {
+func (bc *ChainStorerMock) GetStorer(unitType data.UnitType) storage.Storer {
 	if bc.GetStorerCalled != nil {
 		return bc.GetStorerCalled(unitType)
 	}
@@ -33,7 +33,7 @@ func (bc *ChainStorerMock) GetStorer(unitType blockchain.UnitType) storage.Store
 // Has returns true if the key is found in the selected Unit or false otherwise
 // It can return an error if the provided unit type is not supported or if the
 // underlying implementation of the storage unit reports an error.
-func (bc *ChainStorerMock) Has(unitType blockchain.UnitType, key []byte) (bool, error) {
+func (bc *ChainStorerMock) Has(unitType data.UnitType, key []byte) (bool, error) {
 	if bc.HasCalled != nil {
 		return bc.HasCalled(unitType, key)
 	}
@@ -43,7 +43,7 @@ func (bc *ChainStorerMock) Has(unitType blockchain.UnitType, key []byte) (bool, 
 // Get returns the value for the given key if found in the selected storage unit,
 // nil otherwise. It can return an error if the provided unit type is not supported
 // or if the storage unit underlying implementation reports an error
-func (bc *ChainStorerMock) Get(unitType blockchain.UnitType, key []byte) ([]byte, error) {
+func (bc *ChainStorerMock) Get(unitType data.UnitType, key []byte) ([]byte, error) {
 	if bc.GetCalled != nil {
 		return bc.GetCalled(unitType, key)
 	}
@@ -53,7 +53,7 @@ func (bc *ChainStorerMock) Get(unitType blockchain.UnitType, key []byte) ([]byte
 // Put stores the key, value pair in the selected storage unit
 // It can return an error if the provided unit type is not supported
 // or if the storage unit underlying implementation reports an error
-func (bc *ChainStorerMock) Put(unitType blockchain.UnitType, key []byte, value []byte) error {
+func (bc *ChainStorerMock) Put(unitType data.UnitType, key []byte, value []byte) error {
 	if bc.PutCalled != nil {
 		return bc.PutCalled(unitType, key, value)
 	}
@@ -63,7 +63,7 @@ func (bc *ChainStorerMock) Put(unitType blockchain.UnitType, key []byte, value [
 // GetAll gets all the elements with keys in the keys array, from the selected storage unit
 // It can report an error if the provided unit type is not supported, if there is a missing
 // key in the unit, or if the underlying implementation of the storage unit reports an error.
-func (bc *ChainStorerMock) GetAll(unitType blockchain.UnitType, keys [][]byte) (map[string][]byte, error) {
+func (bc *ChainStorerMock) GetAll(unitType data.UnitType, keys [][]byte) (map[string][]byte, error) {
 	if bc.GetAllCalled != nil {
 		return bc.GetAllCalled(unitType, keys)
 	}

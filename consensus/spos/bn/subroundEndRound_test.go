@@ -400,7 +400,7 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	blProcMock := initBlockProcessorMock()
 
 	blProcMock.CommitBlockCalled = func(
-		blockChain blockchain.BlockChain,
+		blockChain data.ChainHandler,
 		header data.HeaderHandler,
 		body data.BodyHandler,
 	) error {

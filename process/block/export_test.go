@@ -35,3 +35,7 @@ func (bp *blockProcessor) DisplayLogInfo(header *block.Header, txBlock block.Bod
 func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
 	return sortTxByNonce(txShardStore)
 }
+
+func (bp *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
+	return bp.verifyStateRoot(rootHash)
+}

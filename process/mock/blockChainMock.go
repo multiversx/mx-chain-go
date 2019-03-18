@@ -1,49 +1,50 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
 
+// BlockChainMock is a mock implementation of the blockchain interface
 type BlockChainMock struct {
-	blockchain.StorageService
-	GenesisBlockCalled func() *block.Header
-	SetGenesisBlockCalled func(*block.Header)
-	GenesisHeaderHashCalled func() []byte
+	data.StorageService
+	GetGenesisHeaderCalled func() data.HeaderHandler
+	SetGenesisHeaderCalled func(handler data.HeaderHandler) error
+	GetGenesisHeaderHashCalled func() []byte
 	SetGenesisHeaderHashCalled func([]byte)
-	CurrentBlockHeaderCalled func() *block.Header
-	SetCurrentBlockHeaderCalled func(*block.Header)
-	CurrentBlockHeaderHashCalled func() []byte
+	GetCurrentBlockHeaderCalled func() data.HeaderHandler
+	SetCurrentBlockHeaderCalled func(data.HeaderHandler) error
+	GetCurrentBlockHeaderHashCalled func() []byte
 	SetCurrentBlockHeaderHashCalled func([]byte)
-	CurrentTxBlockBodyCalled func() block.Body
-	SetCurrentTxBlockBodyCalled func(block.Body)
-	LocalHeightCalled func() int64
+	GetCurrentBlockBodyCalled func() data.BodyHandler
+	SetCurrentBlockBodyCalled func(data.BodyHandler) error
+	GetLocalHeightCalled func() int64
 	SetLocalHeightCalled func(int64)
-	NetworkHeightCalled func() int64
+	GetNetworkHeightCalled func() int64
 	SetNetworkHeightCalled func(int64)
 	IsBadBlockCalled func([]byte) bool
 	PutBadBlockCalled func([]byte)
 }
 
-// GenesisBlock returns the genesis block header pointer
-func (bc *BlockChainMock) GenesisBlock() *block.Header {
-	if bc.GenesisBlockCalled != nil {
-		return bc.GenesisBlockCalled()
+// GetGenesisHeader returns the genesis block header pointer
+func (bc *BlockChainMock) GetGenesisHeader() data.HeaderHandler {
+	if bc.GetGenesisHeaderCalled != nil {
+		return bc.GetGenesisHeaderCalled()
 	}
 	return nil
 }
 
-// SetGenesisBlock sets the genesis block header pointer
-func (bc *BlockChainMock) SetGenesisBlock(genesisBlock *block.Header) {
-	if bc.SetGenesisBlockCalled != nil {
-		bc.SetGenesisBlockCalled(genesisBlock)
+// SetGenesisHeader sets the genesis block header pointer
+func (bc *BlockChainMock) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
+	if bc.SetGenesisHeaderCalled != nil {
+		return bc.SetGenesisHeaderCalled(genesisBlock)
 	}
+	return nil
 }
 
-// GenesisHeaderHash returns the genesis block header hash
-func (bc *BlockChainMock) GenesisHeaderHash() []byte {
-	if bc.GenesisHeaderHashCalled != nil {
-		return bc.GenesisHeaderHashCalled()
+// GetGenesisHeaderHash returns the genesis block header hash
+func (bc *BlockChainMock) GetGenesisHeaderHash() []byte {
+	if bc.GetGenesisHeaderHashCalled != nil {
+		return bc.GetGenesisHeaderHashCalled()
 	}
 	return nil
 }
@@ -55,25 +56,26 @@ func (bc *BlockChainMock) SetGenesisHeaderHash(hash []byte) {
 	}
 }
 
-// CurrentBlockHeader returns current block header pointer
-func (bc *BlockChainMock) CurrentBlockHeader() *block.Header {
-	if bc.CurrentBlockHeaderCalled != nil {
-		return bc.CurrentBlockHeaderCalled()
+// GetCurrentBlockHeader returns current block header pointer
+func (bc *BlockChainMock) GetCurrentBlockHeader() data.HeaderHandler {
+	if bc.GetCurrentBlockHeaderCalled != nil {
+		return bc.GetCurrentBlockHeaderCalled()
 	}
 	return nil
 }
 
 // SetCurrentBlockHeader sets current block header pointer
-func (bc *BlockChainMock) SetCurrentBlockHeader(header *block.Header) {
+func (bc *BlockChainMock) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	if bc.SetCurrentBlockHeaderCalled != nil {
-		bc.SetCurrentBlockHeaderCalled(header)
+		return bc.SetCurrentBlockHeaderCalled(header)
 	}
+	return nil
 }
 
-// CurrentBlockHeaderHash returns the current block header hash
-func (bc *BlockChainMock) CurrentBlockHeaderHash() []byte {
-	if bc.CurrentBlockHeaderHashCalled != nil {
-		return bc.CurrentBlockHeaderHashCalled()
+// GetCurrentBlockHeaderHash returns the current block header hash
+func (bc *BlockChainMock) GetCurrentBlockHeaderHash() []byte {
+	if bc.GetCurrentBlockHeaderHashCalled != nil {
+		return bc.GetCurrentBlockHeaderHashCalled()
 	}
 	return nil
 }
@@ -85,25 +87,26 @@ func (bc *BlockChainMock) SetCurrentBlockHeaderHash(hash []byte) {
 	}
 }
 
-// CurrentTxBlockBody returns the tx block body pointer
-func (bc *BlockChainMock) CurrentTxBlockBody() block.Body {
-	if bc.CurrentTxBlockBodyCalled != nil {
-		return bc.CurrentTxBlockBodyCalled()
+// GetCurrentBlockBody returns the tx block body pointer
+func (bc *BlockChainMock) GetCurrentBlockBody() data.BodyHandler {
+	if bc.GetCurrentBlockBodyCalled != nil {
+		return bc.GetCurrentBlockBodyCalled()
 	}
 	return nil
 }
 
-// SetCurrentTxBlockBody sets the tx block body pointer
-func (bc *BlockChainMock) SetCurrentTxBlockBody(body block.Body) {
-	if bc.SetCurrentTxBlockBodyCalled != nil {
-		bc.SetCurrentTxBlockBodyCalled(body)
+// SetCurrentBlockBody sets the tx block body pointer
+func (bc *BlockChainMock) SetCurrentBlockBody(body data.BodyHandler) error {
+	if bc.SetCurrentBlockBodyCalled != nil {
+		return bc.SetCurrentBlockBodyCalled(body)
 	}
+	return nil
 }
 
-// LocalHeight returns the height of the local chain
-func (bc *BlockChainMock) LocalHeight() int64 {
-	if bc.LocalHeightCalled != nil {
-		return bc.LocalHeight()
+// GetLocalHeight returns the height of the local chain
+func (bc *BlockChainMock) GetLocalHeight() int64 {
+	if bc.GetLocalHeightCalled != nil {
+		return bc.GetLocalHeightCalled()
 	}
 	return 0
 }
@@ -115,10 +118,10 @@ func (bc *BlockChainMock) SetLocalHeight(height int64) {
 	}
 }
 
-// NetworkHeight sets the percieved height of the network chain
-func (bc *BlockChainMock) NetworkHeight() int64 {
-	if bc.NetworkHeightCalled != nil {
-		return bc.NetworkHeightCalled()
+// GetNetworkHeight sets the percieved height of the network chain
+func (bc *BlockChainMock) GetNetworkHeight() int64 {
+	if bc.GetNetworkHeightCalled != nil {
+		return bc.GetNetworkHeightCalled()
 	}
 	return 0
 }

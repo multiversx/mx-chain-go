@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
@@ -64,10 +63,10 @@ func createDataPools() data.PoolsHolder {
 	return pools
 }
 
-func createBlockchain() blockchain.BlockChain {
+func createBlockchain() data.ChainHandler {
 	return &mock.BlockChainMock{
 		StorageService: &mock.ChainStorerMock{
-			GetStorerCalled: func(unitType blockchain.UnitType) storage.Storer {
+			GetStorerCalled: func(unitType data.UnitType) storage.Storer {
 				return &mock.StorerStub{}
 			},
 		},

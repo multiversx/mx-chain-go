@@ -27,3 +27,9 @@ var ErrNilCacher = errors.New("nil cacher")
 
 // ErrNilNonceConverter signals that a nil nonce-byte slice converter has been provided
 var ErrNilNonceConverter = errors.New("nil nonce converter")
+
+// ErrInvalidHeaderType signals an invalid header pointer was provided
+var ErrInvalidHeaderType = errors.New("invalid header type")
+
+// ErrInvalidBodyType signals an invalid header pointer was provided
+var ErrInvalidBodyType = errors.New("invalid body type")

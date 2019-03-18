@@ -36,15 +36,6 @@ func createTestBlockchain() *mock.BlockChainMock {
 	return &mock.BlockChainMock{
 		StorageService: &mock.ChainStorerMock{},
 	}
-	/*blockChain, _ := blockchain.NewBlockChain(
-		generateTestCache(),
-		generateTestUnit(),
-		generateTestUnit(),
-		generateTestUnit(),
-		generateTestUnit(),
-	)
-
-	return blockChain*/
 }
 
 func generateTestCache() storage.Cacher {
@@ -584,7 +575,7 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 	body := make(block.Body, 0)
 
 	blkc := createTestBlockchain()
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
 			Nonce: 0,
 		}
@@ -625,12 +616,12 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 	body := make(block.Body, 0)
 
 	blkc := createTestBlockchain()
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
 			Nonce: 0,
 		}
 	}
-	blkc.CurrentBlockHeaderHashCalled = func() []byte {
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
 		return []byte("bbb")
 	}
 
@@ -646,12 +637,17 @@ func TestBlockProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 
 	tdp := initDataPool()
 
+	accounts := &mock.AccountsStub{}
+	accounts.RevertToSnapshotCalled = func(snapshot int) error {
+		return nil
+	}
+
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
-		&mock.AccountsStub{},
+		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
@@ -673,6 +669,9 @@ func TestBlockProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 	accounts := &mock.AccountsStub{
 		RootHashCalled: func() []byte {
 			return rootHash
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
 		},
 	}
 
@@ -731,6 +730,9 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	accounts := &mock.AccountsStub{
 		RootHashCalled: func() []byte {
 			return rootHash
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
 		},
 	}
 
@@ -792,6 +794,9 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 		},
 		CommitCalled: func() (i []byte, e error) {
 			return nil, nil
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
 		},
 	}
 
@@ -1068,10 +1073,10 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 
 	blkc := createTestBlockchain()
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return hdr
 	}
-	blkc.CurrentBlockHeaderHashCalled = func() []byte {
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
 		return hdrHash
 	}
 	err := be.CommitBlock(blkc, hdr, body)
@@ -1079,8 +1084,8 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, removeTxWasCalled)
 	assert.True(t, forkDetectorAddCalled)
-	assert.True(t, blkc.CurrentBlockHeader() == hdr)
-	assert.Equal(t, hdrHash, blkc.CurrentBlockHeaderHash())
+	assert.True(t, blkc.GetCurrentBlockHeader() == hdr)
+	assert.Equal(t, hdrHash, blkc.GetCurrentBlockHeaderHash())
 
 	//this should sleep as there is an async call to display current header and block in CommitBlock
 	time.Sleep(time.Second)
@@ -1809,7 +1814,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	assert.False(t, r)
 
 	hdr.Nonce = 1
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{Nonce: 1}
 	}
 
@@ -1837,7 +1842,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	marshalizerMock := mock.MarshalizerMock{}
 	hasherMock := mock.HasherMock{}
 
-	prevHeader, _ := marshalizerMock.Marshal(blkc.CurrentBlockHeader())
+	prevHeader, _ := marshalizerMock.Marshal(blkc.GetCurrentBlockHeader())
 	hdr.PrevHash = hasherMock.Compute(string(prevHeader))
 
 	r = bp.CheckBlockValidity(blkc, hdr, nil)
@@ -1913,4 +1918,34 @@ func TestBlockProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 	mbHeaders, err := bp.CreateBlockHeader(body)
 	assert.Nil(t, err)
 	assert.Equal(t, len(body), len(mbHeaders.(*block.Header).MiniBlockHeaders))
+}
+
+func TestBlockProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {
+	t.Parallel()
+
+	// set accounts dirty
+	journalEntries := 3
+	revToSnapshot := func(snapshot int) error {
+		journalEntries = 0
+		return nil
+	}
+
+	bp, _ := blproc.NewBlockProcessor(
+		initDataPool(),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{
+			RevertToSnapshotCalled: revToSnapshot,
+		},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	err := bp.CommitBlock(nil, nil, nil)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, 0, journalEntries)
 }

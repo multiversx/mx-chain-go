@@ -9,14 +9,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
 func initSubroundBlock() bn.SubroundBlock {
 	blockChain := mock.BlockChainMock{
-		CurrentBlockHeaderCalled: func() *block.Header {
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{}
 		},
 	}
@@ -722,7 +721,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	blockProcessorMock.CheckBlockValidityCalled = func(blockChain blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
+	blockProcessorMock.CheckBlockValidityCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool {
 		return false
 	}
 
@@ -732,7 +731,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	blockProcessorMock.CheckBlockValidityCalled = func(blockChain blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
+	blockProcessorMock.CheckBlockValidityCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool {
 		return true
 	}
 
@@ -832,7 +831,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 	blProcMock := initBlockProcessorMock()
 
 	err := errors.New("error process block")
-	blProcMock.ProcessBlockCalled = func(blockchain.BlockChain, data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
+	blProcMock.ProcessBlockCalled = func(data.ChainHandler, data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
 		return err
 	}
 
@@ -1081,12 +1080,14 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	sr.BlockChain().SetCurrentBlockHeader(nil)
 	header, _ := sr.CreateHeader()
 
+	bp := initBlockProcessorMock()
+
 	expectedHeader := &block.Header{
 		Round:            uint32(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
-		RootHash:         sr.BlockProcessor().GetRootHash(),
+		RootHash:         bp.GetRootHash(),
 		Nonce:            uint64(1),
-		PrevHash:         sr.BlockChain().GenesisHeaderHash(),
+		PrevHash:         sr.BlockChain().GetGenesisHeaderHash(),
 		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
 	}
 
@@ -1100,12 +1101,14 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 	})
 	header, _ := sr.CreateHeader()
 
+	bp := initBlockProcessorMock()
+
 	expectedHeader := &block.Header{
 		Round:            uint32(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
-		RootHash:         sr.BlockProcessor().GetRootHash(),
-		Nonce:            uint64(sr.BlockChain().CurrentBlockHeader().Nonce + 1),
-		PrevHash:         sr.BlockChain().CurrentBlockHeaderHash(),
+		RootHash:         bp.GetRootHash(),
+		Nonce:            uint64(sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1),
+		PrevHash:         sr.BlockChain().GetCurrentBlockHeaderHash(),
 		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
 	}
 
@@ -1119,7 +1122,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 		{Hash: []byte("mb3"), SenderShardID: 2, ReceiverShardID: 3},
 	}
 	blockChainMock := mock.BlockChainMock{
-		CurrentBlockHeaderCalled: func() *block.Header {
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Nonce: 1,
 			}
@@ -1137,9 +1140,9 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 	expectedHeader := &block.Header{
 		Round:            uint32(sr.Rounder().Index()),
 		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
-		RootHash:         sr.BlockProcessor().GetRootHash(),
-		Nonce:            uint64(sr.BlockChain().CurrentBlockHeader().Nonce + 1),
-		PrevHash:         sr.BlockChain().CurrentBlockHeaderHash(),
+		RootHash:         bp.GetRootHash(),
+		Nonce:            uint64(sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1),
+		PrevHash:         sr.BlockChain().GetCurrentBlockHeaderHash(),
 		MiniBlockHeaders: mbHeaders,
 	}
 

@@ -128,14 +128,14 @@ func createMockPools() *mock.PoolsHolderStub {
 
 func createBlockProcessor() *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{
-		ProcessBlockCalled: func(blk blockchain.BlockChain, hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
+		ProcessBlockCalled: func(blk data.ChainHandler, hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
 			blk.SetCurrentBlockHeader(hdr.(*block.Header))
 			return nil
 		},
 		RevertAccountStateCalled: func() {
 			return
 		},
-		CommitBlockCalled: func(blockChain blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
+		CommitBlockCalled: func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
 		},
 	}
@@ -786,7 +786,7 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 
 	hdr := block.Header{Nonce: 1}
 	blkc := mock.BlockChainMock{}
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 
@@ -836,7 +836,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 
 	hdr := block.Header{Nonce: 1}
 	blkc := mock.BlockChainMock{}
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 
@@ -915,7 +915,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	hdr := block.Header{Nonce: 1, Round: 0}
 	blkc := mock.BlockChainMock{}
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 
@@ -964,7 +964,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 	hdr := block.Header{Nonce: 1, Round: 0}
 	blkc := mock.BlockChainMock{}
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 
@@ -1081,7 +1081,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 
 	hdr := block.Header{Nonce: 1}
 	blkc := mock.BlockChainMock{}
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 
@@ -1239,7 +1239,7 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 
 	hdr := block.Header{Nonce: 0}
 	blkc := mock.BlockChainMock{}
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 
@@ -1279,7 +1279,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 
 	hdr := block.Header{Nonce: 0}
 	blkc := mock.BlockChainMock{}
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &hdr
 	}
 
@@ -1710,7 +1710,7 @@ func TestBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 		account,
 	)
 
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{}
 	}
 
@@ -1756,7 +1756,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldRemove(t *testing.T) {
 		account,
 	)
 
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
 			PubKeysBitmap: []byte{1},
 		}
@@ -1865,7 +1865,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	)
 
 	//this is the block we want to revert
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
 			Nonce: currentHdrNonce,
 			//empty bitmap
@@ -1880,9 +1880,9 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
-	assert.Equal(t, blkc.CurrentBlockHeader(), prevHdr)
-	assert.Equal(t, blkc.CurrentTxBlockBody(), prevTxBlockBody)
-	assert.Equal(t, blkc.CurrentBlockHeaderHash(), prevHdrHash)
+	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
+	assert.Equal(t, blkc.GetCurrentBlockBody(), prevTxBlockBody)
+	assert.Equal(t, blkc.GetCurrentBlockHeaderHash(), prevHdrHash)
 }
 
 func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T) {
@@ -1977,7 +1977,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 	)
 
 	//this is the block we want to revert
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
 			Nonce: currentHdrNonce,
 			//empty bitmap
@@ -1991,9 +1991,9 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
-	assert.Nil(t, blkc.CurrentBlockHeader)
-	assert.Nil(t, blkc.CurrentTxBlockBody)
-	assert.Nil(t, blkc.CurrentBlockHeaderHash)
+	assert.Nil(t, blkc.GetCurrentBlockHeader())
+	assert.Nil(t, blkc.GetCurrentBlockBody())
+	assert.Nil(t, blkc.GetCurrentBlockHeaderHash())
 }
 
 //------- GetTxBodyHavingHash
@@ -2204,12 +2204,12 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenCommitBlockErr(t *testing.
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	blkc.CurrentBlockHeaderCalled = func() *block.Header {
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{Nonce: 1}
 	}
 
 	err := errors.New("error")
-	blkExec.CommitBlockCalled = func(blockChain blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
+	blkExec.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 		return err
 	}
 
@@ -2512,7 +2512,7 @@ func TestNewBootstrap_CreateAndBroadcastEmptyBlockShouldReturnErr(t *testing.T) 
 	account := &mock.AccountsStub{}
 
 	err := errors.New("error")
-	blkExec.CommitBlockCalled = func(blockChain blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
+	blkExec.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 		return err
 	}
 

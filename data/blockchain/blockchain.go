@@ -1,27 +1,28 @@
 package blockchain
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-// blockChain holds the block information for the current shard.
+// BlockChain holds the block information for the current shard.
 //
-// The blockChain through it's Storage units map manages the storage,
+// The BlockChain through it's Storage units map manages the storage,
 // retrieval search of blocks (body), transactions, block headers,
 // bad blocks.
 //
-// The blockChain also holds pointers to the Genesis block, the current block
+// The BlockChain also holds pointers to the Genesis block, the current block
 // the height of the local chain and the perceived height of the chain in the network.
-type blockChain struct {
-	StorageService
-	genesisBlock           *block.Header
-	genesisHeaderHash      []byte
-	currentBlockHeader     *block.Header
-	currentBlockHeaderHash []byte
-	currentTxBlockBody     block.Body
-	localHeight            int64
-	networkHeight          int64
+type BlockChain struct {
+	data.StorageService
+	GenesisHeader          *block.Header
+	GenesisHeaderHash      []byte
+	CurrentBlockHeader     *block.Header
+	CurrentBlockHeaderHash []byte
+	CurrentBlockBody       block.Body
+	LocalHeight            int64
+	NetworkHeight          int64
 	badBlocks              storage.Cacher // Bad blocks cache
 }
 
@@ -32,7 +33,7 @@ func NewBlockChain(
 	txUnit storage.Storer,
 	miniBlockUnit storage.Storer,
 	peerChangesBlockUnit storage.Storer,
-	headerUnit storage.Storer) (*blockChain, error) {
+	headerUnit storage.Storer) (*BlockChain, error) {
 
 	if badBlocksCache == nil {
 		return nil, ErrBadBlocksCacheNil
@@ -54,101 +55,125 @@ func NewBlockChain(
 		return nil, ErrHeaderUnitNil
 	}
 
-	data := &blockChain{
-		genesisBlock:       nil,
-		currentBlockHeader: nil,
-		localHeight:        -1,
-		networkHeight:      -1,
+	blockChain := &BlockChain{
+		GenesisHeader:      nil,
+		CurrentBlockHeader: nil,
+		LocalHeight:        -1,
+		NetworkHeight:      -1,
 		badBlocks:          badBlocksCache,
 		StorageService: &ChainStorer{
-			chain: map[UnitType]storage.Storer{
-				TransactionUnit: txUnit,
-				MiniBlockUnit:   miniBlockUnit,
-				PeerChangesUnit: peerChangesBlockUnit,
-				BlockHeaderUnit: headerUnit,
+			chain: map[data.UnitType]storage.Storer{
+				data.TransactionUnit: txUnit,
+				data.MiniBlockUnit:   miniBlockUnit,
+				data.PeerChangesUnit: peerChangesBlockUnit,
+				data.BlockHeaderUnit: headerUnit,
 			},
 		},
 	}
 
-	return data, nil
+	return blockChain, nil
 }
 
-// GenesisBlock returns the genesis block header pointer
-func (bc *blockChain) GenesisBlock() *block.Header {
-	return bc.genesisBlock
+// GetGenesisHeader returns the genesis block header pointer
+func (bc *BlockChain) GetGenesisHeader() data.HeaderHandler {
+	if bc.GenesisHeader == nil {
+		return nil
+	}
+	return bc.GenesisHeader
 }
 
-// SetGenesisBlock sets the genesis block header pointer
-func (bc *blockChain) SetGenesisBlock(genesisBlock *block.Header) {
-	bc.genesisBlock = genesisBlock
+// SetGenesisHeader sets the genesis block header pointer
+func (bc *BlockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
+	gb, ok := genesisBlock.(*block.Header)
+	if !ok {
+		return data.ErrInvalidHeaderType
+	}
+	bc.GenesisHeader = gb
+	return nil
 }
 
-// GenesisHeaderHash returns the genesis block header hash
-func (bc *blockChain) GenesisHeaderHash() []byte {
-	return bc.genesisHeaderHash
+// GetGenesisHeaderHash returns the genesis block header hash
+func (bc *BlockChain) GetGenesisHeaderHash() []byte {
+	return bc.GenesisHeaderHash
 }
 
 // SetGenesisHeaderHash sets the genesis block header hash
-func (bc *blockChain) SetGenesisHeaderHash(hash []byte) {
-	bc.genesisHeaderHash = hash
+func (bc *BlockChain) SetGenesisHeaderHash(hash []byte) {
+	bc.GenesisHeaderHash = hash
 }
 
-// CurrentBlockHeader returns current block header pointer
-func (bc *blockChain) CurrentBlockHeader() *block.Header {
-	return bc.currentBlockHeader
+// GetCurrentBlockHeader returns current block header pointer
+func (bc *BlockChain) GetCurrentBlockHeader() data.HeaderHandler {
+	if bc.CurrentBlockHeader == nil {
+		return nil
+	}
+	return bc.CurrentBlockHeader
 }
 
 // SetCurrentBlockHeader sets current block header pointer
-func (bc *blockChain) SetCurrentBlockHeader(header *block.Header) {
-	bc.currentBlockHeader = header
+func (bc *BlockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+	h, ok := header.(*block.Header)
+	if !ok {
+		return data.ErrInvalidHeaderType
+	}
+	bc.CurrentBlockHeader = h
+	return nil
 }
 
-// CurrentBlockHeaderHash returns the current block header hash
-func (bc *blockChain) CurrentBlockHeaderHash() []byte {
-	return bc.currentBlockHeaderHash
+// GetCurrentBlockHeaderHash returns the current block header hash
+func (bc *BlockChain) GetCurrentBlockHeaderHash() []byte {
+	return bc.CurrentBlockHeaderHash
 }
 
 // SetCurrentBlockHeaderHash returns the current block header hash
-func (bc *blockChain) SetCurrentBlockHeaderHash(hash []byte) {
-	bc.currentBlockHeaderHash = hash
+func (bc *BlockChain) SetCurrentBlockHeaderHash(hash []byte) {
+	bc.CurrentBlockHeaderHash = hash
 }
 
-// CurrentTxBlockBody returns the tx block body pointer
-func (bc *blockChain) CurrentTxBlockBody() block.Body {
-	return bc.currentTxBlockBody
+// GetCurrentBlockBody returns the tx block body pointer
+func (bc *BlockChain) GetCurrentBlockBody() data.BodyHandler {
+	if bc.CurrentBlockBody == nil {
+		return nil
+	}
+	return bc.CurrentBlockBody
 }
 
-// SetCurrentTxBlockBody sets the tx block body pointer
-func (bc *blockChain) SetCurrentTxBlockBody(body block.Body) {
-	bc.currentTxBlockBody = body
+// SetCurrentBlockBody sets the tx block body pointer
+func (bc *BlockChain) SetCurrentBlockBody(body data.BodyHandler) error {
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return data.ErrInvalidBodyType
+	}
+	bc.CurrentBlockBody = blockBody
+	return nil
 }
 
-// LocalHeight returns the height of the local chain
-func (bc *blockChain) LocalHeight() int64 {
-	return bc.localHeight
+// GetLocalHeight returns the height of the local chain
+func (bc *BlockChain) GetLocalHeight() int64 {
+	return bc.LocalHeight
 }
 
 // SetLocalHeight sets the height of the local chain
-func (bc *blockChain) SetLocalHeight(height int64) {
-	bc.localHeight = height
+func (bc *BlockChain) SetLocalHeight(height int64) {
+	bc.LocalHeight = height
 }
 
-// NetworkHeight sets the percieved height of the network chain
-func (bc *blockChain) NetworkHeight() int64 {
-	return bc.localHeight
+// GetNetworkHeight sets the percieved height of the network chain
+func (bc *BlockChain) GetNetworkHeight() int64 {
+	return bc.LocalHeight
 }
 
 // SetNetworkHeight sets the percieved height of the network chain
-func (bc *blockChain) SetNetworkHeight(height int64) {
-	bc.localHeight = height
+func (bc *BlockChain) SetNetworkHeight(height int64) {
+	bc.LocalHeight = height
 }
 
 // IsBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise
-func (bc *blockChain) IsBadBlock(blockHash []byte) bool {
+func (bc *BlockChain) IsBadBlock(blockHash []byte) bool {
 	return bc.badBlocks.Has(blockHash)
 }
 
 // PutBadBlock adds the given serialized block to the bad block cache, blacklisting it
-func (bc *blockChain) PutBadBlock(blockHash []byte) {
+func (bc *BlockChain) PutBadBlock(blockHash []byte) {
 	bc.badBlocks.Put(blockHash, struct{}{})
 }

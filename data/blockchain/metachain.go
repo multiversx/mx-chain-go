@@ -1,12 +1,13 @@
 package blockchain
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 // Metachain holds the block information for the metachain shard
 type Metachain struct {
-	StorageService
+	data.StorageService
 }
 
 // NewMetachain will initialize a new metachain instance
@@ -16,8 +17,8 @@ func NewMetachain(metaBlockUnit storage.Storer) (*Metachain, error) {
 	}
 	return &Metachain{
 		StorageService: &ChainStorer{
-			chain: map[UnitType]storage.Storer{
-				MetaBlockUnit: metaBlockUnit,
+			chain: map[data.UnitType]storage.Storer{
+				data.MetaBlockUnit: metaBlockUnit,
 			},
 		},
 	}, nil
