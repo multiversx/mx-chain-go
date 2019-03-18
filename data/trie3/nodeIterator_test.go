@@ -7,14 +7,14 @@ import (
 )
 
 func TestNodeIterator_newIterator(t *testing.T) {
-	tr := testTrie(nil)
+	tr := testTrie()
 	it := tr.NewNodeIterator()
 
 	assert.NotNil(t, it)
 }
 
 func TestNodeIterator_Hash(t *testing.T) {
-	tr := testTrie(nil)
+	tr := testTrie()
 	it := tr.NewNodeIterator()
 
 	assert.Equal(t, []byte{}, it.Hash())
@@ -25,7 +25,7 @@ func TestNodeIterator_Hash(t *testing.T) {
 }
 
 func TestNodeIterator_Parent(t *testing.T) {
-	tr := testTrie(nil)
+	tr := testTrie()
 	it := tr.NewNodeIterator()
 
 	rootParent := it.Hash()
@@ -41,7 +41,7 @@ func TestNodeIterator_Parent(t *testing.T) {
 }
 
 func TestNodeIterator_Path(t *testing.T) {
-	tr := testTrie(nil)
+	tr := testTrie()
 	it := tr.NewNodeIterator()
 
 	assert.Nil(t, it.Path())
@@ -53,7 +53,7 @@ func TestNodeIterator_Path(t *testing.T) {
 }
 
 func TestNodeIterator_Leaf(t *testing.T) {
-	tr := testTrie(nil)
+	tr := testTrie()
 	it := tr.NewNodeIterator()
 
 	it.Next()
@@ -65,7 +65,7 @@ func TestNodeIterator_Leaf(t *testing.T) {
 }
 
 func TestNodeIterator_LeafKey(t *testing.T) {
-	tr := testTrie(nil)
+	tr := testTrie()
 	it := tr.NewNodeIterator()
 
 	searchedKey := []byte("doe")
@@ -87,7 +87,7 @@ func TestNodeIterator_LeafKey(t *testing.T) {
 }
 
 func TestNodeIterator_LeafBlob(t *testing.T) {
-	tr := testTrie(nil)
+	tr := testTrie()
 	it := tr.NewNodeIterator()
 
 	searchedVal := []byte("reindeer")
@@ -109,7 +109,7 @@ func TestNodeIterator_LeafBlob(t *testing.T) {
 }
 
 func TestNodeIterator_LeafProof(t *testing.T) {
-	tr := testTrie(nil)
+	tr := testTrie()
 	it := tr.NewNodeIterator()
 
 	var proofs [][][]byte
@@ -144,7 +144,7 @@ func TestNodeIterator_LeafProof(t *testing.T) {
 }
 
 func TestNodeIterator_Next(t *testing.T) {
-	tr := testTrie(nil)
+	tr := testTrie()
 	it := tr.NewNodeIterator()
 
 	ok, err := it.Next()

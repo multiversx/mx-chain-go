@@ -1,9 +1,23 @@
+// Copyright 2015 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie3
 
 import (
 	"bytes"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
 )
 
 var emptyHash []byte
@@ -33,49 +47,51 @@ func newNodeIterator(trie *patriciaMerkleTree) *nodeIterator {
 func (it *nodeIterator) Next() (bool, error) {
 
 	// Otherwise step forward with the iterator and report any errors.
-	state, parentIndex, path, err := it.peek()
+	err := it.peek()
 	if err != nil {
 		return false, err
 	}
-	it.push(state, parentIndex, path)
 	return true, nil
 }
 
 // peek creates the next state of the iterator.
-func (it *nodeIterator) peek() (*nodeIteratorState, *int, []byte, error) {
+func (it *nodeIterator) peek() error {
+	var state *nodeIteratorState
 	if len(it.stack) == 0 {
-		// Initialize the iterator if we've just started.
 		root, err := it.trie.Root()
 		if err != nil {
-			return nil, nil, nil, err
+			return err
 		}
-		state := &nodeIteratorState{node: it.trie.root, index: -1}
+		state = &nodeIteratorState{node: it.trie.root, index: -1}
 		if !bytes.Equal(root, emptyHash) {
 			state.hash = root
 		}
-		return state, nil, nil, nil
+		it.push(state, nil, nil)
+		return nil
 	}
-
 	// Continue iteration to the next child
+	var parent *nodeIteratorState
 	for len(it.stack) > 0 {
-		parent := it.stack[len(it.stack)-1]
+		parent = it.stack[len(it.stack)-1]
 		ancestor := parent.hash
 		if bytes.Equal(ancestor, emptyHash) {
 			ancestor = parent.parent
 		}
 		state, path, ok := it.nextChild(parent, ancestor)
 		if ok {
-			node, err := it.trie.setHash(state.node)
+			err := state.node.setHash(it.trie.marshalizer, it.trie.hasher)
 			if err != nil {
-				return nil, nil, nil, err
+				return err
 			}
-			state.hash = node.getHash()
-			return state, &parent.index, path, nil
+			state.hash = state.node.getHash()
+			it.push(state, &parent.index, path)
+			return nil
 		}
 		// No more child nodes, move back up.
 		it.pop()
 	}
-	return nil, nil, nil, trie2.ErrIterationEnd
+
+	return ErrIterationEnd
 }
 
 func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor []byte) (*nodeIteratorState, []byte, bool) {
@@ -154,7 +170,7 @@ func (it *nodeIterator) LeafKey() ([]byte, error) {
 			return hexToKeyBytes(it.path), nil
 		}
 	}
-	return nil, trie2.ErrNotAtLeaf
+	return nil, ErrNotAtLeaf
 }
 
 // LeafBlob returns the content of the leaf. Iterator must be positioned at leaf
@@ -164,7 +180,7 @@ func (it *nodeIterator) LeafBlob() ([]byte, error) {
 			return node.Value, nil
 		}
 	}
-	return nil, trie2.ErrNotAtLeaf
+	return nil, ErrNotAtLeaf
 }
 
 // LeafProof returns the Merkle proof of the leaf. Iterator must be positioned at leaf
@@ -175,10 +191,13 @@ func (it *nodeIterator) LeafProof() ([][]byte, error) {
 
 			for _, item := range it.stack[:len(it.stack)] {
 				// Gather nodes that end up as hash nodes (or the root)
-				node, _ := it.trie.setHash(item.node)
-				collapsed, _ := it.trie.collapseNode(node)
+				err := item.node.setHash(it.trie.marshalizer, it.trie.hasher)
+				if err != nil {
+					return nil, err
+				}
+				node := item.node.getCollapsed()
 
-				encNode, err := it.trie.encodeNode(collapsed)
+				encNode, err := node.getEncodedNodeUsing(it.trie.marshalizer)
 				if err != nil {
 					return nil, err
 				}
@@ -188,7 +207,7 @@ func (it *nodeIterator) LeafProof() ([][]byte, error) {
 			return proofs, nil
 		}
 	}
-	return nil, trie2.ErrNotAtLeaf
+	return nil, ErrNotAtLeaf
 }
 
 func (it *nodeIterator) push(state *nodeIteratorState, parentIndex *int, path []byte) {

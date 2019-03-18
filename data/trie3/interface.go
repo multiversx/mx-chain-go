@@ -48,10 +48,6 @@ type NodeIterator interface {
 	LeafProof() ([][]byte, error)
 }
 
-type node interface {
-	getHash() []byte
-}
-
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
 type DBWriteCacher interface {
 	Put(key, val []byte) error
