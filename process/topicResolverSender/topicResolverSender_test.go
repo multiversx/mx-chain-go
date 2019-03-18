@@ -70,7 +70,7 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 
 	trs, _ := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{
-			ConnectedPeersCalled: func() []p2p.PeerID {
+			ConnectedPeersOnTopicCalled: func(topic string) []p2p.PeerID {
 				return make([]p2p.PeerID, 0)
 			},
 		},
@@ -91,7 +91,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 
 	trs, _ := topicResolverSender.NewTopicResolverSender(
 		&mock.MessageHandlerStub{
-			ConnectedPeersCalled: func() []p2p.PeerID {
+			ConnectedPeersOnTopicCalled: func(topic string) []p2p.PeerID {
 				return []p2p.PeerID{pID1}
 			},
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID p2p.PeerID) error {
