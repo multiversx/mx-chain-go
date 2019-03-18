@@ -50,7 +50,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
-	sync2 "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
+	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -396,7 +396,7 @@ func createNode(
 		return nil, err
 	}
 
-	forkDetector := sync2.NewBasicForkDetector()
+	forkDetector := processSync.NewBasicForkDetector()
 
 	blockProcessor, err := block.NewBlockProcessor(
 		datapool,

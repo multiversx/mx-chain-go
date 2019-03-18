@@ -32,7 +32,6 @@ func NewResolversFinder(container process.ResolversContainer, coordinator shardi
 // baseTopic will be one of the constants defined in factory.go: TransactionTopic, HeadersTopic and so on
 func (rf *resolversFinder) IntraShardResolver(baseTopic string) (process.Resolver, error) {
 	topic := baseTopic + rf.coordinator.CommunicationIdentifier(rf.coordinator.SelfId())
-
 	return rf.Get(topic)
 }
 
@@ -40,6 +39,5 @@ func (rf *resolversFinder) IntraShardResolver(baseTopic string) (process.Resolve
 // baseTopic will be one of the constants defined in factory.go: TransactionTopic, HeadersTopic and so on
 func (rf *resolversFinder) CrossShardResolver(baseTopic string, crossShard uint32) (process.Resolver, error) {
 	topic := baseTopic + rf.coordinator.CommunicationIdentifier(crossShard)
-
 	return rf.Get(topic)
 }

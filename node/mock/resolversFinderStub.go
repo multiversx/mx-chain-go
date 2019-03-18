@@ -5,11 +5,13 @@ import (
 )
 
 type ResolversFinderStub struct {
-	GetCalled     func(key string) (process.Resolver, error)
-	AddCalled     func(key string, val process.Resolver) error
-	ReplaceCalled func(key string, val process.Resolver) error
-	RemoveCalled  func(key string)
-	LenCalled     func() int
+	GetCalled                func(key string) (process.Resolver, error)
+	AddCalled                func(key string, val process.Resolver) error
+	ReplaceCalled            func(key string, val process.Resolver) error
+	RemoveCalled             func(key string)
+	LenCalled                func() int
+	IntraShardResolverCalled func(baseTopic string) (process.Resolver, error)
+	CrossShardResolverCalled func(baseTopic string, crossShard uint32) (process.Resolver, error)
 }
 
 func (rfs *ResolversFinderStub) Get(key string) (process.Resolver, error) {
@@ -37,9 +39,9 @@ func (rfs *ResolversFinderStub) Len() int {
 }
 
 func (rfs *ResolversFinderStub) IntraShardResolver(baseTopic string) (process.Resolver, error) {
-	panic("implement me")
+	return rfs.IntraShardResolverCalled(baseTopic)
 }
 
 func (rfs *ResolversFinderStub) CrossShardResolver(baseTopic string, crossShard uint32) (process.Resolver, error) {
-	panic("implement me")
+	return rfs.CrossShardResolverCalled(baseTopic, crossShard)
 }
