@@ -169,6 +169,10 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 
 	requestedTxs := bp.requestBlockTransactions(blockBody)
 
+	if haveTime() < 0 {
+		return process.ErrTimeIsOut
+	}
+
 	if requestedTxs > 0 {
 		log.Info(fmt.Sprintf("requested %d missing txs\n", requestedTxs))
 		err = bp.waitForTxHashes(haveTime())

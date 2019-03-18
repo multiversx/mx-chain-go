@@ -182,13 +182,10 @@ func (sr *subroundBlock) doBlockJob() bool {
 
 // sendBlockBody method job the proposed block body in the Block subround
 func (sr *subroundBlock) sendBlockBody() bool {
+	roundStartTime := sr.consensusState.RoundTimeStamp
+	maxTime := time.Duration(sr.EndTime())
 	haveTimeInCurrentSubround := func() bool {
-		roundStartTime := sr.rounder.TimeStamp()
-		currentTime := sr.syncTimer.CurrentTime()
-		elapsedTime := currentTime.Sub(roundStartTime)
-		remainingTime := sr.EndTime() - int64(elapsedTime)
-
-		return time.Duration(remainingTime) > 0
+		return sr.rounder.RemainingTime(roundStartTime, maxTime) > 0
 	}
 
 	blockBody, err := sr.blockProcessor.CreateBlockBody(
@@ -405,8 +402,10 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 
 	node := string(cnsDta.PubKey)
 
+	roundStartTime := sr.consensusState.RoundTimeStamp
+	maxTime := sr.rounder.TimeDuration() * time.Duration(safeThresholdPercent) / 100
 	remainingTimeInCurrentRound := func() time.Duration {
-		return sr.rounder.RemainingTimeInRound(safeThresholdPercent)
+		return sr.rounder.RemainingTime(roundStartTime, maxTime)
 	}
 
 	err := sr.blockProcessor.ProcessBlock(
@@ -417,23 +416,13 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 	)
 
 	if err != nil {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
-			sr.rounder.Index(), getSubroundName(SrBlock), err.Error()))
-
-		if err == process.ErrTimeIsOut {
-			sr.consensusState.RoundCanceled = true
+		if cnsDta.RoundIndex < sr.rounder.Index() {
+			log.Info(fmt.Sprintf("canceled round %d in subround %s, meantime round index has been changed to %d\n",
+				cnsDta.RoundIndex, getSubroundName(SrBlock), sr.rounder.Index()))
+		} else {
+			log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
+				sr.rounder.Index(), getSubroundName(SrBlock), err.Error()))
 		}
-
-		return false
-	}
-
-	if sr.rounder.RemainingTimeInRound(safeThresholdPercent) < 0 {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, time is out\n",
-			cnsDta.RoundIndex, getSubroundName(SrBlock)))
-
-		sr.consensusState.RoundCanceled = true
-
-		sr.blockProcessor.RevertAccountState()
 
 		return false
 	}

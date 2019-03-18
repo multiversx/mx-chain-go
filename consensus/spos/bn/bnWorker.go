@@ -211,13 +211,17 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	log.Debug(fmt.Sprintf("received %s from %s\n", MessageType(cnsDta.MsgType).String(), hex.EncodeToString(cnsDta.PubKey)))
 
+	if wrk.consensusState.RoundCanceled && wrk.consensusState.RoundIndex == cnsDta.RoundIndex {
+		return ErrRoundCanceled
+	}
+
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 
 	if !senderOK {
 		return ErrSenderNotOk
 	}
 
-	if wrk.rounder.Index() > cnsDta.RoundIndex {
+	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
 		return ErrMessageForPastRound
 	}
 
@@ -280,11 +284,6 @@ func (wrk *worker) executeReceivedMessages(cnsDta *spos.ConsensusMessage) {
 	cnsDataList = append(cnsDataList, cnsDta)
 	wrk.receivedMessages[msgType] = cnsDataList
 
-	if wrk.consensusState.RoundCanceled {
-		wrk.mutReceivedMessages.Unlock()
-		return
-	}
-
 	for i := MtBlockBody; i <= MtSignature; i++ {
 		cnsDataList = wrk.receivedMessages[i]
 
@@ -306,7 +305,7 @@ func (wrk *worker) executeMessage(cnsDtaList []*spos.ConsensusMessage) {
 			continue
 		}
 
-		if wrk.rounder.Index() != cnsDta.RoundIndex {
+		if wrk.consensusState.RoundIndex != cnsDta.RoundIndex {
 			continue
 		}
 

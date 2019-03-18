@@ -876,9 +876,14 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 	sr.ConsensusState().Header = hdr
 	sr.ConsensusState().BlockBody = blk
 
-	sr.SetRounder(&mock.RounderMock{RemainingTimeInRoundCalled: func(safeThresholdPercent uint32) time.Duration {
-		return time.Duration(-1)
-	}})
+	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock.ProcessBlockCalled = func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+		return errors.New("error")
+	}
+
+	sr.SetBlockProcessor(blockProcessorMock)
+
+	sr.SetRounder(&mock.RounderMock{RoundIndex: 1})
 
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
