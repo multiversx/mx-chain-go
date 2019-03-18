@@ -310,23 +310,11 @@ func createNode(
 	}
 
 	// TODO create metachain / blockchain from data from shardcoordinator
-	// TODO move this creation in another place, to prepare for shard movement
-	//mtc, err := createMetaChainFromConfig(config)
-	//if err != nil {
-	//	return nil, errors.New("could not create meta chain: " + err.Error())
-	//}
-
-	// TODO create metadatapool / blockchain from according to shardcoordinator
 	// TODO save config, and move this creation into another place for node movement
-	//metadatapool, err := createMetaDataPoolFromConfig(config, uint64ByteSliceConverter)
-	//if err != nil {
-	//	return nil, errors.New("could not create meta data pools: " + err.Error())
-	//}
+	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig
 
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
-
 	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
-
 	if err != nil {
 		return nil, err
 	}
@@ -784,7 +772,7 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	shardHeaders, err := shardedData.NewShardedData(getCacherFromConfig(config.ShardHeaders))
+	shardHeaders, err := shardedData.NewShardedData(getCacherFromConfig(config.ShardHeadersDataPool))
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,7 @@ type shardedDataPool struct {
 	peerChangesBlocks storage.Cacher
 }
 
-// NewDataPool creates a data pools holder object
+// NewShardedDataPool creates a data pools holder object
 func NewShardedDataPool(
 	transactions data.ShardedDataCacherNotifier,
 	headers data.ShardedDataCacherNotifier,
@@ -83,7 +83,7 @@ func (tdp *shardedDataPool) PeerChangesBlocks() storage.Cacher {
 	return tdp.peerChangesBlocks
 }
 
-// MetaMiniBlockHeaders returns the holder for meta mini block headers
+// MetaBlocks returns the holder for meta blocks
 func (tdp *shardedDataPool) MetaBlocks() data.ShardedDataCacherNotifier {
 	return tdp.metaBlocks
 }

@@ -97,7 +97,7 @@
     Size = 100000
     Type = "LRU"
 
-[ShardHeaders]
+[ShardHeadersDataPool]
     Size = 10000
     Type = "LRU"
 

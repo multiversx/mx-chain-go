@@ -11,7 +11,7 @@ type metaDataPool struct {
 	metaBlockNonces data.Uint64Cacher
 }
 
-// NewDataPool creates a data pools holder object
+// NewMetaDataPool creates a data pools holder object
 func NewMetaDataPool(
 	metaBlocks data.ShardedDataCacherNotifier,
 	miniBlockHashes data.ShardedDataCacherNotifier,
