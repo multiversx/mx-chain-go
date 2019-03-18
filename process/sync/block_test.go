@@ -190,30 +190,6 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 	}
 }
 
-func createHeadersStorage(
-	getHashCompare []byte,
-	getRetBytes []byte,
-	removedHash []byte,
-	remFlags *removedFlags,
-) storage.Storer {
-
-	return &mock.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
-			if bytes.Equal(key, getHashCompare) {
-				return getRetBytes, nil
-			}
-
-			return nil, errors.New("not found")
-		},
-		RemoveCalled: func(key []byte) error {
-			if bytes.Equal(key, removedHash) {
-				remFlags.flagHdrRemovedFromStorage = true
-			}
-			return nil
-		},
-	}
-}
-
 //------- NewBootstrap
 
 func TestNewBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
@@ -1815,9 +1791,6 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 		)
 	}
 
-	//hdrUnit := createHeadersStorage(prevHdrHash, prevHdrBytes, currentHdrHash, remFlags)
-	//txBlockUnit := createHeadersStorage(prevTxBlockBodyHash, prevTxBlockBodyBytes, nil, remFlags)
-
 	//a mock blockchain with special header and tx block bodies stubs (defined above)
 	blkc := &mock.BlockChainMock{}
 	rnd := &mock.RounderMock{}
@@ -1926,9 +1899,6 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 			remFlags,
 		)
 	}
-
-	//hdrUnit := createHeadersStorage(prevHdrHash, prevHdrBytes, currentHdrHash, remFlags)
-	//txBlockUnit := createHeadersStorage(prevTxBlockBodyHash, prevTxBlockBodyBytes, nil, remFlags)
 
 	//a mock blockchain with special header and tx block bodies stubs (defined above)
 	blkc := &mock.BlockChainMock{}

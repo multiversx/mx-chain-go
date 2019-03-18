@@ -29,9 +29,6 @@ const (
 	SrEndRound
 )
 
-//TODO: maximum transactions in one block (this should be injected, and this const should be removed later)
-const maxTransactionsInBlock = 15000
-
 // safeThresholdPercent specifies which is the safe allocated time percent,
 // for doing job, from the total time of one round
 const safeThresholdPercent = 90
