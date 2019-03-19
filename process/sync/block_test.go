@@ -190,12 +190,52 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 	}
 }
 
+func createHeadersStorage(
+	getHashCompare []byte,
+	getRetBytes []byte,
+	removedHash []byte,
+	remFlags *removedFlags,
+) storage.Storer {
+
+	return &mock.StorerStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			if bytes.Equal(key, getHashCompare) {
+				return getRetBytes, nil
+			}
+
+			return nil, errors.New("not found")
+		},
+		RemoveCalled: func(key []byte) error {
+			if bytes.Equal(key, removedHash) {
+				remFlags.flagHdrRemovedFromStorage = true
+			}
+			return nil
+		},
+	}
+}
+
+func initBlockchain() *mock.BlockChainMock {
+	blkc := &mock.BlockChainMock{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Nonce:     uint64(0),
+				Signature: []byte("genesis signature"),
+				RandSeed:  []byte{0},
+			}
+		},
+		GetGenesisHeaderHashCalled: func() []byte {
+			return []byte("genesis header hash")
+		},
+	}
+	return blkc
+}
+
 //------- NewBootstrap
 
 func TestNewBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -230,7 +270,7 @@ func TestNewBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 		return nil
 	}
 
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -264,7 +304,7 @@ func TestNewBootstrap_PoolsHolderRetNilOnHeadersNoncesShouldErr(t *testing.T) {
 	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		return nil
 	}
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -298,7 +338,7 @@ func TestNewBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T) {
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		return nil
 	}
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -359,7 +399,7 @@ func TestNewBootstrap_NilRounderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -389,7 +429,7 @@ func TestNewBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -419,7 +459,7 @@ func TestNewBootstrap_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -449,7 +489,7 @@ func TestNewBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -479,7 +519,7 @@ func TestNewBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -509,7 +549,7 @@ func TestNewBootstrap_NilResolversContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	forkDetector := &mock.ForkDetectorMock{}
@@ -540,7 +580,7 @@ func TestNewBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	forkDetector := &mock.ForkDetectorMock{}
@@ -570,7 +610,7 @@ func TestNewBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	forkDetector := &mock.ForkDetectorMock{}
@@ -617,7 +657,7 @@ func TestNewBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 		},
 	}
 
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	forkDetector := &mock.ForkDetectorMock{}
@@ -665,7 +705,7 @@ func TestNewBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 		},
 	}
 
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	forkDetector := &mock.ForkDetectorMock{}
@@ -727,7 +767,7 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 		return cs
 	}
 
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -1160,7 +1200,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 
 	bs, _ := sync.NewBootstrap(
 		pools,
-		&mock.BlockChainMock{},
+		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
 		waitTime,
@@ -1195,7 +1235,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 
 	bs, _ := sync.NewBootstrap(
 		pools,
-		&mock.BlockChainMock{},
+		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
 		waitTime,
@@ -1308,7 +1348,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
-		&mock.BlockChainMock{},
+		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
 		waitTime,
@@ -1369,7 +1409,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
-		&mock.BlockChainMock{},
+		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
 		waitTime,
@@ -1413,7 +1453,7 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
-		&mock.BlockChainMock{},
+		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
 		waitTime,
@@ -1484,7 +1524,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 
 	bs, _ := sync.NewBootstrap(
 		pools,
-		&mock.BlockChainMock{},
+		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
 		waitTime,
@@ -1607,7 +1647,7 @@ func TestBootstrap_ReceivedHeadersShouldSetHighestNonceReceived(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
-		&mock.BlockChainMock{},
+		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
 		waitTime,
@@ -1632,7 +1672,7 @@ func TestBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -1663,7 +1703,7 @@ func TestBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -1709,7 +1749,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldRemove(t *testing.T) {
 	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		return createHeadersNoncesDataPool(newHdrNonce, newHdrHash, newHdrNonce, remFlags)
 	}
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -2130,7 +2170,7 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenMarshalErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := createBlockProcessor()
 	hasher := &mock.HasherMock{}
@@ -2165,7 +2205,7 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenCommitBlockErr(t *testing.
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := createBlockProcessor()
 	hasher := &mock.HasherMock{}
@@ -2207,7 +2247,7 @@ func TestBootstrap_CreateEmptyBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := createBlockProcessor()
 	hasher := &mock.HasherMock{}
@@ -2240,7 +2280,7 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := createBlockProcessor()
 	hasher := &mock.HasherMock{}
@@ -2278,7 +2318,7 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := createBlockProcessor()
 	hasher := &mock.HasherMock{}
@@ -2336,7 +2376,7 @@ func TestNewBootstrap_GetTimeStampForRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -2378,7 +2418,7 @@ func TestNewBootstrap_ShouldCreateEmptyBlockShouldReturnFalseWhenForkIsDetected(
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -2410,7 +2450,7 @@ func TestNewBootstrap_ShouldCreateEmptyBlockShouldReturnFalseWhenNonceIsSmallerO
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -2442,7 +2482,7 @@ func TestNewBootstrap_ShouldCreateEmptyBlockShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -2472,7 +2512,7 @@ func TestNewBootstrap_CreateAndBroadcastEmptyBlockShouldReturnErr(t *testing.T) 
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := createBlockProcessor()
 	hasher := &mock.HasherMock{}
@@ -2509,7 +2549,7 @@ func TestNewBootstrap_CreateAndBroadcastEmptyBlockShouldReturnNil(t *testing.T) 
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := createBlockProcessor()
 	hasher := &mock.HasherMock{}
@@ -2545,7 +2585,7 @@ func TestNewBootstrap_BroadcastEmptyBlockShouldErrWhenBroadcastBlockErr(t *testi
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -2582,7 +2622,7 @@ func TestNewBootstrap_BroadcastEmptyBlockShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	blkc := &mock.BlockChainMock{}
+	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}

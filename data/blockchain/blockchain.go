@@ -12,17 +12,17 @@ import (
 // retrieval search of blocks (body), transactions, block headers,
 // bad blocks.
 //
-// The BlockChain also holds pointers to the Genesis block, the current block
+// The BlockChain also holds pointers to the Genesis block header, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
 	data.StorageService
-	GenesisHeader          *block.Header
-	genesisHeaderHash      []byte
-	CurrentBlockHeader     *block.Header
-	currentBlockHeaderHash []byte
-	CurrentBlockBody       block.Body
-	localHeight            int64
-	networkHeight          int64
+	GenesisHeader          *block.Header  // Genesis Block Header pointer
+	genesisHeaderHash      []byte         // Genesis Block Header hash
+	CurrentBlockHeader     *block.Header  // Current Block Header pointer
+	currentBlockHeaderHash []byte         // Current Block Header hash
+	CurrentBlockBody       block.Body     // Current Block Body pointer
+	localHeight            int64          // Height of the local chain
+	networkHeight          int64          // Percieved height of the network chain
 	badBlocks              storage.Cacher // Bad blocks cache
 }
 

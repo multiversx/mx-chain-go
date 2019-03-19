@@ -72,17 +72,18 @@ type PeerChange struct {
 type Header struct {
 	Nonce            uint64            `capid:"0"`
 	PrevHash         []byte            `capid:"1"`
-	PubKeysBitmap    []byte            `capid:"2"`
-	ShardId          uint32            `capid:"3"`
-	TimeStamp        uint64            `capid:"4"`
-	Round            uint32            `capid:"5"`
-	Epoch            uint32            `capid:"6"`
-	BlockBodyType    Type              `capid:"7"`
-	Signature        []byte            `capid:"8"`
-	Commitment       []byte            `capid:"9"`
-	MiniBlockHeaders []MiniBlockHeader `capid:"10"`
-	PeerChanges      [][]byte          `capid:"11"`
-	RootHash         []byte            `capid:"12"`
+	PrevRandSeed     []byte            `capid:"2"`
+	RandSeed         []byte            `capid:"3"`
+	PubKeysBitmap    []byte            `capid:"4"`
+	ShardId          uint32            `capid:"5"`
+	TimeStamp        uint64            `capid:"6"`
+	Round            uint32            `capid:"7"`
+	Epoch            uint32            `capid:"8"`
+	BlockBodyType    Type              `capid:"9"`
+	Signature        []byte            `capid:"10"`
+	MiniBlockHeaders []MiniBlockHeader `capid:"11"`
+	PeerChanges      []PeerChange      `capid:"12"`
+	RootHash         []byte            `capid:"13"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -114,6 +115,10 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.Nonce = src.Nonce()
 	// PrevHash
 	dest.PrevHash = src.PrevHash()
+	// PrevRandSeed
+	dest.PrevRandSeed = src.PrevRandSeed()
+	// RandSeed
+	dest.RandSeed = src.RandSeed()
 	// PubKeysBitmap
 	dest.PubKeysBitmap = src.PubKeysBitmap()
 	// ShardId
@@ -128,20 +133,20 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 	dest.BlockBodyType = Type(src.BlockBodyType())
 	// Signature
 	dest.Signature = src.Signature()
-	// Commitment
-	dest.Commitment = src.Commitment()
 	// MiniBlockHeaders
 	mbLength := src.MiniBlockHeaders().Len()
 	dest.MiniBlockHeaders = make([]MiniBlockHeader, mbLength)
 	for i := 0; i < mbLength; i++ {
 		dest.MiniBlockHeaders[i] = *MiniBlockHeaderCapnToGo(src.MiniBlockHeaders().At(i), nil)
 	}
+
 	// PeerChanges
 	peerChangesLen := src.PeerChanges().Len()
-	dest.PeerChanges = make([][]byte, peerChangesLen)
+	dest.PeerChanges = make([]PeerChange, peerChangesLen)
 	for i := 0; i < peerChangesLen; i++ {
-		dest.PeerChanges[i] = src.PeerChanges().At(i)
+		dest.PeerChanges[i] = *PeerChangeCapnToGo(src.PeerChanges().At(i), nil)
 	}
+
 	// RootHash
 	dest.RootHash = src.RootHash()
 	return dest
@@ -153,6 +158,8 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 
 	dest.SetNonce(src.Nonce)
 	dest.SetPrevHash(src.PrevHash)
+	dest.SetPrevRandSeed(src.PrevRandSeed)
+	dest.SetRandSeed(src.RandSeed)
 	dest.SetPubKeysBitmap(src.PubKeysBitmap)
 	dest.SetShardId(src.ShardId)
 	dest.SetTimeStamp(src.TimeStamp)
@@ -160,7 +167,6 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	dest.SetEpoch(src.Epoch)
 	dest.SetBlockBodyType(uint8(src.BlockBodyType))
 	dest.SetSignature(src.Signature)
-	dest.SetCommitment(src.Commitment)
 	if len(src.MiniBlockHeaders) > 0 {
 		miniBlockList := capnp.NewMiniBlockHeaderCapnList(seg, len(src.MiniBlockHeaders))
 		pList := capn.PointerList(miniBlockList)
@@ -170,10 +176,17 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 		}
 		dest.SetMiniBlockHeaders(miniBlockList)
 	}
-	peerChangesList := seg.NewDataList(len(src.PeerChanges))
-	for i, peerChange := range src.PeerChanges {
-		peerChangesList.Set(i, peerChange)
+
+	if len(src.PeerChanges) > 0 {
+		peerChangeList := capnp.NewPeerChangeCapnList(seg, len(src.PeerChanges))
+		plist := capn.PointerList(peerChangeList)
+
+		for i, elem := range src.PeerChanges {
+			_ = plist.Set(i, capn.Object(PeerChangeGoToCapn(seg, &elem)))
+		}
+		dest.SetPeerChanges(peerChangeList)
 	}
+
 	dest.SetRootHash(src.RootHash)
 
 	return dest
@@ -341,7 +354,17 @@ func (h *Header) GetPrevHash() []byte {
 	return h.PrevHash
 }
 
-// GetPubKeysBitmap returns signers bitmap
+// GetPrevRandSeed returns previous random seed
+func (h *Header) GetPrevRandSeed() []byte {
+	return h.PrevRandSeed
+}
+
+// GetRandSeed returns the random seed
+func (h *Header) GetRandSeed() []byte {
+	return h.RandSeed
+}
+
+// GetPubKeysBitmap return signers bitmap
 func (h *Header) GetPubKeysBitmap() []byte {
 	return h.PubKeysBitmap
 }
@@ -349,6 +372,11 @@ func (h *Header) GetPubKeysBitmap() []byte {
 // GetSignature returns signed data
 func (h *Header) GetSignature() []byte {
 	return h.Signature
+}
+
+// GetTimestamp returns the time stamp
+func (h *Header) GetTimestamp() uint64 {
+	return h.TimeStamp
 }
 
 // SetNonce sets header nonce
@@ -376,6 +404,16 @@ func (h *Header) SetPrevHash(pvHash []byte) {
 	h.PrevHash = pvHash
 }
 
+// SetPrevRandSeed sets previous random seed
+func (h *Header) SetPrevRandSeed(pvRandSeed []byte) {
+	h.PrevRandSeed = pvRandSeed
+}
+
+// SetRandSeed sets previous random seed
+func (h *Header) SetRandSeed(randSeed []byte) {
+	h.RandSeed = randSeed
+}
+
 // SetPubKeysBitmap sets publick key bitmap
 func (h *Header) SetPubKeysBitmap(pkbm []byte) {
 	h.PubKeysBitmap = pkbm
@@ -389,14 +427,4 @@ func (h *Header) SetSignature(sg []byte) {
 // SetTimeStamp sets header timestamp
 func (h *Header) SetTimeStamp(ts uint64) {
 	h.TimeStamp = ts
-}
-
-// SetCommitment sets header commitment
-func (h *Header) SetCommitment(commitment []byte) {
-	h.Commitment = commitment
-}
-
-// UnderlyingObject returns body as interface
-func (b Body) UnderlyingObject() interface{} {
-	return b
 }

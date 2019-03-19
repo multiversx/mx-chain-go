@@ -312,7 +312,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
-	hdr.Commitment = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
 	hdr.RootHash = make([]byte, 0)
 	hdr.MiniBlockHeaders = make([]dataBlock.MiniBlockHeader, 0)
@@ -375,7 +374,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
-	hdr.Commitment = make([]byte, 0)
 	hdr.RootHash = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
 	hdr.MiniBlockHeaders = make([]dataBlock.MiniBlockHeader, 0)

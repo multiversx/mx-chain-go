@@ -13,12 +13,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initSubroundBlock() bn.SubroundBlock {
-	blockChain := mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
-		},
+func initSubroundBlock(blockChain data.ChainHandler) bn.SubroundBlock {
+	if blockChain == nil {
+		blockChain = &mock.BlockChainMock{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					Nonce:     uint64(0),
+					Signature: []byte("genesis signature"),
+					RandSeed:  []byte{0},
+				}
+			},
+			GetGenesisHeaderHashCalled: func() []byte {
+				return []byte("genesis header hash")
+			},
+		}
 	}
+
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -42,7 +55,7 @@ func initSubroundBlock() bn.SubroundBlock {
 
 	srBlock, _ := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
+		blockChain,
 		blockProcessorMock,
 		consensusState,
 		hasherMock,
@@ -59,7 +72,17 @@ func initSubroundBlock() bn.SubroundBlock {
 }
 
 func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock) bn.SubroundBlock {
-	blockChain := mock.BlockChainMock{}
+	blockChain := mock.BlockChainMock{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Nonce:     uint64(0),
+				Signature: []byte("genesis signature"),
+			}
+		},
+		GetGenesisHeaderHashCalled: func() []byte {
+			return []byte("genesis header hash")
+		},
+	}
 	blockProcessorMock := bp
 	consensusState := initConsensusState()
 	hasherMock := mock.HasherMock{}
@@ -609,7 +632,7 @@ func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	r := sr.DoBlockJob()
 	assert.False(t, r)
@@ -651,7 +674,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	blockProcessorMock := initBlockProcessorMock()
 
@@ -755,7 +778,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 func TestSubroundBlock_DecodeBlockBody(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	body := make(block.Body, 0)
 	body = append(body, &block.MiniBlock{ShardID: 69})
@@ -777,7 +800,7 @@ func TestSubroundBlock_DecodeBlockBody(t *testing.T) {
 func TestSubroundBlock_DecodeBlockHeader(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
@@ -805,7 +828,7 @@ func TestSubroundBlock_DecodeBlockHeader(t *testing.T) {
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAreNotSet(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -826,7 +849,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFails(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	blProcMock := initBlockProcessorMock()
 
@@ -860,7 +883,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockReturnsInNextRound(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	hdr := &block.Header{}
 	blk := make(block.Body, 0)
@@ -889,7 +912,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	hdr := &block.Header{}
 	blk := make(block.Body, 0)
@@ -914,7 +937,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	remainingTimeInThisRound := func() time.Duration {
 		roundStartTime := sr.Rounder().TimeStamp()
@@ -951,7 +974,7 @@ func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 	sr.ConsensusState().RoundCanceled = true
 	assert.False(t, sr.DoBlockConsensusCheck())
 }
@@ -959,7 +982,7 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnFalseWhenRoundIsCanceled
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenSubroundIsFinished(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 	sr.ConsensusState().SetStatus(bn.SrBlock, spos.SsFinished)
 	assert.True(t, sr.DoBlockConsensusCheck())
 }
@@ -967,7 +990,7 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenSubroundIsFinish
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenBlockIsReceivedReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	for i := 0; i < sr.ConsensusState().Threshold(bn.SrBlock); i++ {
 		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBlock, true)
@@ -979,14 +1002,14 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenBlockIsReceivedR
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnFalseWhenBlockIsReceivedReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 	assert.False(t, sr.DoBlockConsensusCheck())
 }
 
 func TestSubroundBlock_IsBlockReceived(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
 		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBlock, false)
@@ -1014,7 +1037,7 @@ func TestSubroundBlock_IsBlockReceived(t *testing.T) {
 func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	haveTimeInCurrentSubound := func() bool {
 		roundStartTime := sr.Rounder().TimeStamp()
@@ -1046,7 +1069,7 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 
 	haveTimeInCurrentSubound := func() bool {
 		roundStartTime := sr.Rounder().TimeStamp()
@@ -1076,7 +1099,22 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 }
 
 func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
-	sr := *initSubroundBlock()
+	blockChain := &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return nil
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Nonce:     uint64(0),
+				Signature: []byte("genesis signature"),
+				RandSeed:  []byte{0},
+			}
+		},
+		GetGenesisHeaderHashCalled: func() []byte {
+			return []byte("genesis header hash")
+		},
+	}
+	sr := *initSubroundBlock(blockChain)
 	sr.BlockChain().SetCurrentBlockHeader(nil)
 	header, _ := sr.CreateHeader()
 
@@ -1088,6 +1126,8 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 		RootHash:         bp.GetRootHash(),
 		Nonce:            uint64(1),
 		PrevHash:         sr.BlockChain().GetGenesisHeaderHash(),
+		PrevRandSeed:     sr.BlockChain().GetGenesisHeader().GetSignature(),
+		RandSeed:         []byte{0},
 		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
 	}
 
@@ -1095,7 +1135,7 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 }
 
 func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
-	sr := *initSubroundBlock()
+	sr := *initSubroundBlock(nil)
 	sr.BlockChain().SetCurrentBlockHeader(&block.Header{
 		Nonce: 1,
 	})
@@ -1109,6 +1149,7 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 		RootHash:         bp.GetRootHash(),
 		Nonce:            uint64(sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1),
 		PrevHash:         sr.BlockChain().GetCurrentBlockHeaderHash(),
+		RandSeed:         []byte{0},
 		MiniBlockHeaders: header.(*block.Header).MiniBlockHeaders,
 	}
 
@@ -1143,6 +1184,7 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 		RootHash:         bp.GetRootHash(),
 		Nonce:            uint64(sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1),
 		PrevHash:         sr.BlockChain().GetCurrentBlockHeaderHash(),
+		RandSeed:         []byte{0},
 		MiniBlockHeaders: mbHeaders,
 	}
 
