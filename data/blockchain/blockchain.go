@@ -84,6 +84,11 @@ func (bc *BlockChain) GetGenesisHeader() data.HeaderHandler {
 
 // SetGenesisHeader sets the genesis block header pointer
 func (bc *BlockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
+	if genesisBlock == nil {
+		bc.GenesisHeader = nil
+		return nil
+	}
+
 	gb, ok := genesisBlock.(*block.Header)
 	if !ok {
 		return data.ErrInvalidHeaderType
@@ -112,6 +117,11 @@ func (bc *BlockChain) GetCurrentBlockHeader() data.HeaderHandler {
 
 // SetCurrentBlockHeader sets current block header pointer
 func (bc *BlockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+	if header == nil {
+		bc.CurrentBlockHeader = nil
+		return nil
+	}
+
 	h, ok := header.(*block.Header)
 	if !ok {
 		return data.ErrInvalidHeaderType
@@ -140,6 +150,11 @@ func (bc *BlockChain) GetCurrentBlockBody() data.BodyHandler {
 
 // SetCurrentBlockBody sets the tx block body pointer
 func (bc *BlockChain) SetCurrentBlockBody(body data.BodyHandler) error {
+	if body == nil {
+		bc.CurrentBlockBody = nil
+		return nil
+	}
+
 	blockBody, ok := body.(block.Body)
 	if !ok {
 		return data.ErrInvalidBodyType

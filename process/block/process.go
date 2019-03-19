@@ -279,7 +279,7 @@ func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, head
 		if !bytes.Equal(header.PrevHash, blockChain.GetCurrentBlockHeaderHash()) {
 
 			log.Info(fmt.Sprintf(
-				"header.Nonce = %d has header.PrevHash = %s and blockChain.GetCurrentBlockHeader.Nonce = %d has blockChain.GetCurrentBlockHeaderHash = %s\n",
+				"header.Nonce = %d has header.PrevHash = %s and blockChain.CurrentBlockHeader.Nonce = %d has blockChain.CurrentBlockHeaderHash = %s\n",
 				header.Nonce,
 				toB64(header.PrevHash),
 				blockChain.GetCurrentBlockHeader().GetNonce(),
@@ -996,11 +996,12 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain data.ChainHandler, heade
 		return false
 	}
 
-	blockChainHeader, ok := blockChain.GetCurrentBlockHeader().(*block.Header)
+	blockHeader, ok := blockChain.GetCurrentBlockHeader().(*block.Header)
 	if !ok {
+		log.Error(process.ErrWrongTypeAssertion.Error())
 		return false
 	}
-	prevHeaderHash, err := bp.computeHeaderHash(blockChainHeader)
+	prevHeaderHash, err := bp.computeHeaderHash(blockHeader)
 
 	if err != nil {
 		log.Info(err.Error())

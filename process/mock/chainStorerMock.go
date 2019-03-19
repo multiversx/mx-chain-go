@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
+// ChainStorerMock is a mock implementation of the ChianStorer interface
 type ChainStorerMock struct {
 	AddStorerCalled func(key data.UnitType, s storage.Storer)
 	GetStorerCalled func(unitType data.UnitType) storage.Storer

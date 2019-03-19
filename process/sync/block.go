@@ -751,9 +751,7 @@ func (boot *Bootstrap) ShouldSync() bool {
 		return true
 	}
 
-	cbh := boot.blkc.GetCurrentBlockHeader()
-
-	if cbh == nil {
+	if boot.blkc.GetCurrentBlockHeader() == nil {
 		isNotSynchronized := boot.rounder.Index() > 0
 		return isNotSynchronized
 	}
