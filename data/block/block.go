@@ -431,8 +431,12 @@ func (h *Header) SetTimeStamp(ts uint64) {
 
 // IntegrityAndValidity checks if data is valid
 func (b Body) IntegrityAndValidity() bool {
+	if len(b) == 0 {
+		return false
+	}
+
 	for i := 0; i < len(b); i++ {
-		if b[i].TxHashes == nil {
+		if len(b[i].TxHashes) == 0 {
 			return false
 		}
 	}

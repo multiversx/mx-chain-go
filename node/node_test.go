@@ -961,7 +961,16 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 		node.WithBlockProcessor(bp),
 	)
 
-	err2 := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+
+	err2 := n.BroadcastBlock(body, &block.Header{})
 	assert.Equal(t, err, err2)
 }
 
@@ -1003,7 +1012,16 @@ func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
 		node.WithBlockProcessor(bp),
 	)
 
-	err := n.BroadcastBlock(make(block.Body, 0), nil)
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+
+	err := n.BroadcastBlock(body, nil)
 	assert.Equal(t, node.ErrNilBlockHeader, err)
 }
 
@@ -1033,7 +1051,16 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 		node.WithBlockProcessor(bp),
 	)
 
-	err2 := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+
+	err2 := n.BroadcastBlock(body, &block.Header{})
 	assert.Equal(t, err, err2)
 }
 
@@ -1050,6 +1077,15 @@ func TestNode_BroadcastBlockShouldWork(t *testing.T) {
 		node.WithBlockProcessor(bp),
 	)
 
-	err := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+
+	err := n.BroadcastBlock(body, &block.Header{})
 	assert.Nil(t, err)
 }

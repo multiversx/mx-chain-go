@@ -300,12 +300,52 @@ func TestHeader_SetTimeStamp(t *testing.T) {
 	assert.Equal(t, timeStamp, h.GetTimestamp())
 }
 
+func TestBody_IntegrityAndValidityNil(t *testing.T) {
+	t.Parallel()
 
-func Test_test(t *testing.T){
+	body := block.Body{}
+	body = nil
+	assert.Equal(t, false, body.IntegrityAndValidity())
+}
+
+func TestBody_IntegrityAndValidityMiniNil(t *testing.T) {
+	t.Parallel()
+
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	mb1 := block.MiniBlock{}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+	body = append(body, &mb1)
+
+	assert.Equal(t, false, body.IntegrityAndValidity())
+}
+
+func TestBody_IntegrityAndValidityOK(t *testing.T) {
+	t.Parallel()
+
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+
+	assert.Equal(t, true, body.IntegrityAndValidity())
+}
+
+func Test_test(t *testing.T) {
 	var list []string
 	list = nil
 
-	for i:= range list {
+	for i := range list {
 		fmt.Println("entered ", i)
 	}
 }
