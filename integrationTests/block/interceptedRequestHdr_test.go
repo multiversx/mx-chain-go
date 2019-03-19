@@ -60,7 +60,6 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	hdr := block.Header{
 		Nonce:            0,
 		PubKeysBitmap:    []byte{255, 0},
-		Commitment:       []byte("commitment"),
 		Signature:        []byte("signature"),
 		PrevHash:         []byte("prev hash"),
 		TimeStamp:        uint64(time.Now().Unix()),

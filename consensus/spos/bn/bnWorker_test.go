@@ -167,8 +167,8 @@ func initMultiSignerMock() *mock.BelNevMock {
 		return []byte("aggregatedSig"), nil
 	}
 
-	multiSigner.AggregateCommitmentsMock = func(bitmap []byte) ([]byte, error) {
-		return []byte("aggregatedCommitments"), nil
+	multiSigner.AggregateCommitmentsMock = func(bitmap []byte) error {
+		return nil
 	}
 
 	multiSigner.CreateSignatureShareMock = func(bitmap []byte) ([]byte, error) {

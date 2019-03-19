@@ -78,26 +78,16 @@ func createAndSetCommitmentsAllSigners(multiSigners []crypto.MultiSigner) error 
 	return nil
 }
 
-func aggregateCommitmentsForAllSigners(multiSigners []crypto.MultiSigner, bitmap []byte, grSize uint16) (aggComm []byte, err error) {
-	aggComm, err = multiSigners[0].AggregateCommitments(bitmap)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for i := uint16(1); i < grSize; i++ {
-		aggComm2, err := multiSigners[i].AggregateCommitments(bitmap)
+func aggregateCommitmentsForAllSigners(multiSigners []crypto.MultiSigner, bitmap []byte, grSize uint16) error {
+	for i := uint16(0); i < grSize; i++ {
+		err := multiSigners[i].AggregateCommitments(bitmap)
 
 		if err != nil {
-			return nil, err
-		}
-
-		if !bytes.Equal(aggComm, aggComm2) {
-			return nil, errors.New("aggregated commitments not equal")
+			return err
 		}
 	}
 
-	return aggComm, nil
+	return nil
 }
 
 func setMessageAllSigners(multiSigners []crypto.MultiSigner, msg []byte) error {
@@ -164,7 +154,6 @@ func aggregateSignatureSharesAllSigners(multiSigners []crypto.MultiSigner, bitma
 func verifySigAllSigners(
 	multiSigners []crypto.MultiSigner,
 	message []byte,
-	aggCommitment []byte,
 	signature []byte,
 	pubKeys []string,
 	bitmap []byte,
@@ -179,11 +168,6 @@ func verifySigAllSigners(
 		}
 
 		err = multiSigners[i].SetMessage(message)
-		if err != nil {
-			return err
-		}
-
-		err = multiSigners[i].SetAggCommitment(aggCommitment)
 		if err != nil {
 			return err
 		}
@@ -225,7 +209,7 @@ func TestBelnev_MultiSigningMultipleSignersOK(t *testing.T) {
 		bitmap[i] = byte((((1 << consensusGroupSize) - 1) >> i) & byteMask)
 	}
 
-	aggComm, err := aggregateCommitmentsForAllSigners(multiSigners, bitmap, consensusGroupSize)
+	err = aggregateCommitmentsForAllSigners(multiSigners, bitmap, consensusGroupSize)
 	assert.Nil(t, err)
 
 	message := []byte("message to be signed")
@@ -238,6 +222,6 @@ func TestBelnev_MultiSigningMultipleSignersOK(t *testing.T) {
 	aggSig, err := aggregateSignatureSharesAllSigners(multiSigners, bitmap, consensusGroupSize)
 	assert.Nil(t, err)
 
-	err = verifySigAllSigners(multiSigners, message, aggComm, aggSig, pubKeysStr, bitmap, consensusGroupSize)
+	err = verifySigAllSigners(multiSigners, message, aggSig, pubKeysStr, bitmap, consensusGroupSize)
 	assert.Nil(t, err)
 }

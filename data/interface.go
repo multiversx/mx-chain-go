@@ -66,6 +66,8 @@ type HeaderHandler interface {
 	GetRound() uint32
 	GetRootHash() []byte
 	GetPrevHash() []byte
+	GetPrevRandSeed() []byte
+	GetRandSeed() []byte
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
 
@@ -75,9 +77,10 @@ type HeaderHandler interface {
 	SetTimeStamp(ts uint64)
 	SetRootHash(rHash []byte)
 	SetPrevHash(pvHash []byte)
+	SetPrevRandSeed(pvRandSeed []byte)
+	SetRandSeed(randSeed []byte)
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
-	SetCommitment(commitment []byte)
 }
 
 // BodyHandler interface for a block body

@@ -11,11 +11,11 @@ import (
 // retrieval search of blocks (body), transactions, block headers,
 // bad blocks.
 //
-// The BlockChain also holds pointers to the Genesis block, the current block
+// The BlockChain also holds pointers to the Genesis block header, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
 	StorageService
-	GenesisBlock           *block.Header  // Genesys Block Header pointer
+	GenesisBlockHeader     *block.Header  // Genesys Block Header pointer
 	GenesisHeaderHash      []byte         // Genesis Block Header hash
 	CurrentBlockHeader     *block.Header  // Current Block pointer
 	CurrentBlockHeaderHash []byte         // Current Block Header hash
@@ -55,7 +55,7 @@ func NewBlockChain(
 	}
 
 	data := &BlockChain{
-		GenesisBlock:       nil,
+		GenesisBlockHeader: nil,
 		CurrentBlockHeader: nil,
 		LocalHeight:        -1,
 		NetworkHeight:      -1,
