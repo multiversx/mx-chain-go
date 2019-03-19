@@ -11,7 +11,7 @@ import (
 
 func TestPeerData_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
-		PublicKey: []byte("test"),
+		PublicKey: []byte("public key"),
 		Action:    block.PeerRegistrantion,
 		TimeStamp: uint64(1234),
 		Value:     big.NewInt(1),
@@ -26,11 +26,19 @@ func TestPeerData_SaveLoad(t *testing.T) {
 }
 
 func TestShardData_SaveLoad(t *testing.T) {
-	sd := block.ShardData{
-		ShardId:         uint32(10),
-		HeaderHash:      []byte("header_hash"),
-		TxBlockBodyHash: []byte("tx_block_body_hash"),
+
+	mbh := block.ShardMiniBlockHeader{
+		Hash:            []byte("miniblock hash"),
+		SenderShardId:   uint32(0),
+		ReceiverShardId: uint32(1),
 	}
+
+	sd := block.ShardData{
+		ShardId:               uint32(10),
+		HeaderHash:            []byte("header_hash"),
+		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
+	}
+
 	var b bytes.Buffer
 	sd.Save(&b)
 
@@ -42,26 +50,37 @@ func TestShardData_SaveLoad(t *testing.T) {
 
 func TestMetaBlock_SaveLoad(t *testing.T) {
 	pd := block.PeerData{
-		PublicKey: []byte("test"),
+		PublicKey: []byte("public key"),
 		Action:    block.PeerRegistrantion,
 		TimeStamp: uint64(1234),
 		Value:     big.NewInt(1),
 	}
-	sd := block.ShardData{
-		ShardId:         uint32(10),
-		HeaderHash:      []byte("header_hash"),
-		TxBlockBodyHash: []byte("tx_block_body_hash"),
+
+	mbh := block.ShardMiniBlockHeader{
+		Hash:            []byte("miniblock hash"),
+		SenderShardId:   uint32(0),
+		ReceiverShardId: uint32(1),
 	}
+
+	sd := block.ShardData{
+		ShardId:               uint32(10),
+		HeaderHash:            []byte("header_hash"),
+		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
+	}
+
 	mb := block.MetaBlock{
 		Nonce:         uint64(1),
 		Epoch:         uint32(1),
 		Round:         uint32(1),
+		TimeStamp:     uint64(100000),
 		ShardInfo:     []block.ShardData{sd},
 		PeerInfo:      []block.PeerData{pd},
 		Signature:     []byte("signature"),
-		PubKeysBitmap: []byte("pub_keys"),
-		PreviousHash:  []byte("previous_hash"),
-		StateRootHash: []byte("state_root_hash"),
+		PubKeysBitmap: []byte("pub keys"),
+		PreviousHash:  []byte("previous hash"),
+		PrevRandSeed:  []byte("previous random seed"),
+		RandSeed:      []byte("random seed"),
+		StateRootHash: []byte("state root hash"),
 	}
 	var b bytes.Buffer
 	mb.Save(&b)
@@ -76,145 +95,208 @@ func TestMetaBlock_GetEpoch(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(1)
-	h := block.MetaBlock{
+	m := block.MetaBlock{
 		Epoch: epoch,
 	}
 
-	assert.Equal(t, epoch, h.GetEpoch())
+	assert.Equal(t, epoch, m.GetEpoch())
 }
 
-func TestHeader_GetNonce(t *testing.T) {
+func TestMetaBlock_GetNonce(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(2)
-	h := block.MetaBlock{
+	m := block.MetaBlock{
 		Nonce: nonce,
 	}
 
-	assert.Equal(t, nonce, h.GetNonce())
+	assert.Equal(t, nonce, m.GetNonce())
 }
 
-func TestHeader_GetPrevHash(t *testing.T) {
+func TestMetaBlock_GetPrevHash(t *testing.T) {
 	t.Parallel()
 
 	prevHash := []byte("prev hash")
-	h := block.MetaBlock{
+	m := block.MetaBlock{
 		PreviousHash: prevHash,
 	}
 
-	assert.Equal(t, prevHash, h.GetPrevHash())
+	assert.Equal(t, prevHash, m.GetPrevHash())
 }
 
-func TestHeader_GetPubKeysBitmap(t *testing.T) {
+func TestMetaBlock_GetPubKeysBitmap(t *testing.T) {
 	t.Parallel()
 
 	pubKeysBitmap := []byte{10, 11, 12, 13}
-	h := block.MetaBlock{
+	m := block.MetaBlock{
 		PubKeysBitmap: pubKeysBitmap,
 	}
 
-	assert.Equal(t, pubKeysBitmap, h.GetPubKeysBitmap())
+	assert.Equal(t, pubKeysBitmap, m.GetPubKeysBitmap())
 }
 
-func TestHeader_GetRootHash(t *testing.T) {
+func TestMetaBlock_GetPrevRandSeed(t *testing.T) {
+	t.Parallel()
+
+	prevRandSeed := []byte("previous random seed")
+	m := block.MetaBlock{
+		PrevRandSeed: prevRandSeed,
+	}
+
+	assert.Equal(t, prevRandSeed, m.GetPrevRandSeed())
+}
+
+func TestMetaBlock_GetRandSeed(t *testing.T) {
+	t.Parallel()
+
+	randSeed := []byte("random seed")
+	m := block.MetaBlock{
+		RandSeed: randSeed,
+	}
+
+	assert.Equal(t, randSeed, m.GetRandSeed())
+}
+
+func TestMetaBlock_GetRootHash(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("root hash")
-	h := block.MetaBlock{
+	m := block.MetaBlock{
 		StateRootHash: rootHash,
 	}
 
-	assert.Equal(t, rootHash, h.GetRootHash())
+	assert.Equal(t, rootHash, m.GetRootHash())
 }
 
-func TestHeader_GetRound(t *testing.T) {
+func TestMetaBlock_GetRound(t *testing.T) {
 	t.Parallel()
 
 	round := uint32(1234)
-	h := block.MetaBlock{
+	m := block.MetaBlock{
 		Round: round,
 	}
 
-	assert.Equal(t, round, h.GetRound())
+	assert.Equal(t, round, m.GetRound())
 }
 
-func TestHeader_GetSignature(t *testing.T) {
+func TestMetaBlock_GetTimestamp(t *testing.T) {
+	t.Parallel()
+
+	timestamp := uint64(1000000)
+	m := block.MetaBlock{
+		TimeStamp: timestamp,
+	}
+
+	assert.Equal(t, timestamp, m.GetTimestamp())
+}
+
+func TestMetaBlock_GetSignature(t *testing.T) {
 	t.Parallel()
 
 	signature := []byte("signature")
-	h := block.MetaBlock{
+	m := block.MetaBlock{
 		Signature: signature,
 	}
 
-	assert.Equal(t, signature, h.GetSignature())
+	assert.Equal(t, signature, m.GetSignature())
 }
 
-func TestHeader_SetEpoch(t *testing.T) {
+func TestMetaBlock_SetEpoch(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(10)
-	h := block.MetaBlock{}
-	h.SetEpoch(epoch)
+	m := block.MetaBlock{}
+	m.SetEpoch(epoch)
 
-	assert.Equal(t, epoch, h.GetEpoch())
+	assert.Equal(t, epoch, m.GetEpoch())
 }
 
-func TestHeader_SetNonce(t *testing.T) {
+func TestMetaBlock_SetNonce(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(11)
-	h := block.MetaBlock{}
-	h.SetNonce(nonce)
+	m := block.MetaBlock{}
+	m.SetNonce(nonce)
 
-	assert.Equal(t, nonce, h.GetNonce())
+	assert.Equal(t, nonce, m.GetNonce())
 }
 
-func TestHeader_SetPrevHash(t *testing.T) {
+func TestMetaBlock_SetPrevHash(t *testing.T) {
 	t.Parallel()
 
 	prevHash := []byte("prev hash")
-	h := block.MetaBlock{}
-	h.SetPrevHash(prevHash)
+	m := block.MetaBlock{}
+	m.SetPrevHash(prevHash)
 
-	assert.Equal(t, prevHash, h.GetPrevHash())
+	assert.Equal(t, prevHash, m.GetPrevHash())
 }
 
-func TestHeader_SetPubKeysBitmap(t *testing.T) {
+func TestMetaBlock_SetPubKeysBitmap(t *testing.T) {
 	t.Parallel()
 
 	pubKeysBitmap := []byte{12, 13, 14, 15}
-	h := block.MetaBlock{}
-	h.SetPubKeysBitmap(pubKeysBitmap)
+	m := block.MetaBlock{}
+	m.SetPubKeysBitmap(pubKeysBitmap)
 
-	assert.Equal(t, pubKeysBitmap, h.GetPubKeysBitmap())
+	assert.Equal(t, pubKeysBitmap, m.GetPubKeysBitmap())
 }
 
-func TestHeader_SetRootHash(t *testing.T) {
+func TestMetaBlock_SetPrevRandSeed(t *testing.T) {
+	t.Parallel()
+
+	prevRandSeed := []byte("previous random seed")
+	m := block.MetaBlock{}
+	m.SetPrevRandSeed(prevRandSeed)
+
+	assert.Equal(t, prevRandSeed, m.GetPrevRandSeed())
+}
+
+func TestMetaBlock_SetRandSeed(t *testing.T) {
+	t.Parallel()
+
+	randSeed := []byte("random seed")
+	m := block.MetaBlock{}
+	m.SetRandSeed(randSeed)
+
+	assert.Equal(t, randSeed, m.GetRandSeed())
+}
+
+func TestMetaBlock_SetRootHash(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("root hash")
-	h := block.MetaBlock{}
-	h.SetRootHash(rootHash)
+	m := block.MetaBlock{}
+	m.SetRootHash(rootHash)
 
-	assert.Equal(t, rootHash, h.GetRootHash())
+	assert.Equal(t, rootHash, m.GetRootHash())
 }
 
-func TestHeader_SetRound(t *testing.T) {
+func TestMetaBlock_SetRound(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("root hash")
-	h := block.MetaBlock{}
-	h.SetRootHash(rootHash)
+	m := block.MetaBlock{}
+	m.SetRootHash(rootHash)
 
-	assert.Equal(t, rootHash, h.GetRootHash())
+	assert.Equal(t, rootHash, m.GetRootHash())
 }
 
-func TestHeader_SetSignature(t *testing.T) {
+func TestMetaBlock_SetSignature(t *testing.T) {
 	t.Parallel()
 
 	signature := []byte("signature")
-	h := block.MetaBlock{}
-	h.SetSignature(signature)
+	m := block.MetaBlock{}
+	m.SetSignature(signature)
 
-	assert.Equal(t, signature, h.GetSignature())
+	assert.Equal(t, signature, m.GetSignature())
+}
+
+func TestMetaBlock_SetTimeStamp(t *testing.T) {
+	t.Parallel()
+
+	timestamp := uint64(100000)
+	m := block.MetaBlock{}
+	m.SetTimeStamp(timestamp)
+
+	assert.Equal(t, timestamp, m.GetTimestamp())
 }

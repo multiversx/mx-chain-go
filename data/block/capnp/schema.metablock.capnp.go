@@ -230,6 +230,196 @@ func (s PeerDataCapn_List) ToArray() []PeerDataCapn {
 }
 func (s PeerDataCapn_List) Set(i int, item PeerDataCapn) { C.PointerList(s).Set(i, C.Object(item)) }
 
+type ShardMiniBlockHeaderCapn C.Struct
+
+func NewShardMiniBlockHeaderCapn(s *C.Segment) ShardMiniBlockHeaderCapn {
+	return ShardMiniBlockHeaderCapn(s.NewStruct(8, 1))
+}
+func NewRootShardMiniBlockHeaderCapn(s *C.Segment) ShardMiniBlockHeaderCapn {
+	return ShardMiniBlockHeaderCapn(s.NewRootStruct(8, 1))
+}
+func AutoNewShardMiniBlockHeaderCapn(s *C.Segment) ShardMiniBlockHeaderCapn {
+	return ShardMiniBlockHeaderCapn(s.NewStructAR(8, 1))
+}
+func ReadRootShardMiniBlockHeaderCapn(s *C.Segment) ShardMiniBlockHeaderCapn {
+	return ShardMiniBlockHeaderCapn(s.Root(0).ToStruct())
+}
+func (s ShardMiniBlockHeaderCapn) Hash() []byte                { return C.Struct(s).GetObject(0).ToData() }
+func (s ShardMiniBlockHeaderCapn) SetHash(v []byte)            { C.Struct(s).SetObject(0, s.Segment.NewData(v)) }
+func (s ShardMiniBlockHeaderCapn) ReceiverShardId() uint32     { return C.Struct(s).Get32(0) }
+func (s ShardMiniBlockHeaderCapn) SetReceiverShardId(v uint32) { C.Struct(s).Set32(0, v) }
+func (s ShardMiniBlockHeaderCapn) SenderShardId() uint32       { return C.Struct(s).Get32(4) }
+func (s ShardMiniBlockHeaderCapn) SetSenderShardId(v uint32)   { C.Struct(s).Set32(4, v) }
+func (s ShardMiniBlockHeaderCapn) WriteJSON(w io.Writer) error {
+	b := bufio.NewWriter(w)
+	var err error
+	var buf []byte
+	_ = buf
+	err = b.WriteByte('{')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"hash\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Hash()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"receiverShardId\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.ReceiverShardId()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"senderShardId\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.SenderShardId()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte('}')
+	if err != nil {
+		return err
+	}
+	err = b.Flush()
+	return err
+}
+func (s ShardMiniBlockHeaderCapn) MarshalJSON() ([]byte, error) {
+	b := bytes.Buffer{}
+	err := s.WriteJSON(&b)
+	return b.Bytes(), err
+}
+func (s ShardMiniBlockHeaderCapn) WriteCapLit(w io.Writer) error {
+	b := bufio.NewWriter(w)
+	var err error
+	var buf []byte
+	_ = buf
+	err = b.WriteByte('(')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("hash = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.Hash()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("receiverShardId = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.ReceiverShardId()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("senderShardId = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.SenderShardId()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(')')
+	if err != nil {
+		return err
+	}
+	err = b.Flush()
+	return err
+}
+func (s ShardMiniBlockHeaderCapn) MarshalCapLit() ([]byte, error) {
+	b := bytes.Buffer{}
+	err := s.WriteCapLit(&b)
+	return b.Bytes(), err
+}
+
+type ShardMiniBlockHeaderCapn_List C.PointerList
+
+func NewShardMiniBlockHeaderCapnList(s *C.Segment, sz int) ShardMiniBlockHeaderCapn_List {
+	return ShardMiniBlockHeaderCapn_List(s.NewCompositeList(8, 1, sz))
+}
+func (s ShardMiniBlockHeaderCapn_List) Len() int { return C.PointerList(s).Len() }
+func (s ShardMiniBlockHeaderCapn_List) At(i int) ShardMiniBlockHeaderCapn {
+	return ShardMiniBlockHeaderCapn(C.PointerList(s).At(i).ToStruct())
+}
+func (s ShardMiniBlockHeaderCapn_List) ToArray() []ShardMiniBlockHeaderCapn {
+	n := s.Len()
+	a := make([]ShardMiniBlockHeaderCapn, n)
+	for i := 0; i < n; i++ {
+		a[i] = s.At(i)
+	}
+	return a
+}
+func (s ShardMiniBlockHeaderCapn_List) Set(i int, item ShardMiniBlockHeaderCapn) {
+	C.PointerList(s).Set(i, C.Object(item))
+}
+
 type ShardDataCapn C.Struct
 
 func NewShardDataCapn(s *C.Segment) ShardDataCapn      { return ShardDataCapn(s.NewStruct(8, 2)) }
@@ -240,8 +430,12 @@ func (s ShardDataCapn) ShardId() uint32                { return C.Struct(s).Get3
 func (s ShardDataCapn) SetShardId(v uint32)            { C.Struct(s).Set32(0, v) }
 func (s ShardDataCapn) HeaderHash() []byte             { return C.Struct(s).GetObject(0).ToData() }
 func (s ShardDataCapn) SetHeaderHash(v []byte)         { C.Struct(s).SetObject(0, s.Segment.NewData(v)) }
-func (s ShardDataCapn) TxBlockBodyHash() []byte        { return C.Struct(s).GetObject(1).ToData() }
-func (s ShardDataCapn) SetTxBlockBodyHash(v []byte)    { C.Struct(s).SetObject(1, s.Segment.NewData(v)) }
+func (s ShardDataCapn) ShardMiniBlockHeaders() ShardMiniBlockHeaderCapn_List {
+	return ShardMiniBlockHeaderCapn_List(C.Struct(s).GetObject(1))
+}
+func (s ShardDataCapn) SetShardMiniBlockHeaders(v ShardMiniBlockHeaderCapn_List) {
+	C.Struct(s).SetObject(1, C.Object(v))
+}
 func (s ShardDataCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -289,17 +483,31 @@ func (s ShardDataCapn) WriteJSON(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("\"txBlockBodyHash\":")
+	_, err = b.WriteString("\"shardMiniBlockHeaders\":")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.TxBlockBodyHash()
-		buf, err = json.Marshal(s)
-		if err != nil {
-			return err
+		s := s.ShardMiniBlockHeaders()
+		{
+			err = b.WriteByte('[')
+			if err != nil {
+				return err
+			}
+			for i, s := range s.ToArray() {
+				if i != 0 {
+					_, err = b.WriteString(", ")
+				}
+				if err != nil {
+					return err
+				}
+				err = s.WriteJSON(b)
+				if err != nil {
+					return err
+				}
+			}
+			err = b.WriteByte(']')
 		}
-		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -363,17 +571,31 @@ func (s ShardDataCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("txBlockBodyHash = ")
+	_, err = b.WriteString("shardMiniBlockHeaders = ")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.TxBlockBodyHash()
-		buf, err = json.Marshal(s)
-		if err != nil {
-			return err
+		s := s.ShardMiniBlockHeaders()
+		{
+			err = b.WriteByte('[')
+			if err != nil {
+				return err
+			}
+			for i, s := range s.ToArray() {
+				if i != 0 {
+					_, err = b.WriteString(", ")
+				}
+				if err != nil {
+					return err
+				}
+				err = s.WriteCapLit(b)
+				if err != nil {
+					return err
+				}
+			}
+			err = b.WriteByte(']')
 		}
-		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -412,9 +634,9 @@ func (s ShardDataCapn_List) Set(i int, item ShardDataCapn) { C.PointerList(s).Se
 
 type MetaBlockCapn C.Struct
 
-func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(16, 6)) }
-func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(16, 6)) }
-func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(16, 6)) }
+func NewMetaBlockCapn(s *C.Segment) MetaBlockCapn      { return MetaBlockCapn(s.NewStruct(24, 8)) }
+func NewRootMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewRootStruct(24, 8)) }
+func AutoNewMetaBlockCapn(s *C.Segment) MetaBlockCapn  { return MetaBlockCapn(s.NewStructAR(24, 8)) }
 func ReadRootMetaBlockCapn(s *C.Segment) MetaBlockCapn { return MetaBlockCapn(s.Root(0).ToStruct()) }
 func (s MetaBlockCapn) Nonce() uint64                  { return C.Struct(s).Get64(0) }
 func (s MetaBlockCapn) SetNonce(v uint64)              { C.Struct(s).Set64(0, v) }
@@ -422,6 +644,8 @@ func (s MetaBlockCapn) Epoch() uint32                  { return C.Struct(s).Get3
 func (s MetaBlockCapn) SetEpoch(v uint32)              { C.Struct(s).Set32(8, v) }
 func (s MetaBlockCapn) Round() uint32                  { return C.Struct(s).Get32(12) }
 func (s MetaBlockCapn) SetRound(v uint32)              { C.Struct(s).Set32(12, v) }
+func (s MetaBlockCapn) TimeStamp() uint64              { return C.Struct(s).Get64(16) }
+func (s MetaBlockCapn) SetTimeStamp(v uint64)          { C.Struct(s).Set64(16, v) }
 func (s MetaBlockCapn) ShardInfo() ShardDataCapn_List {
 	return ShardDataCapn_List(C.Struct(s).GetObject(0))
 }
@@ -436,8 +660,12 @@ func (s MetaBlockCapn) PubKeysBitmap() []byte           { return C.Struct(s).Get
 func (s MetaBlockCapn) SetPubKeysBitmap(v []byte)       { C.Struct(s).SetObject(3, s.Segment.NewData(v)) }
 func (s MetaBlockCapn) PreviousHash() []byte            { return C.Struct(s).GetObject(4).ToData() }
 func (s MetaBlockCapn) SetPreviousHash(v []byte)        { C.Struct(s).SetObject(4, s.Segment.NewData(v)) }
-func (s MetaBlockCapn) StateRootHash() []byte           { return C.Struct(s).GetObject(5).ToData() }
-func (s MetaBlockCapn) SetStateRootHash(v []byte)       { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) PrevRandSeed() []byte            { return C.Struct(s).GetObject(5).ToData() }
+func (s MetaBlockCapn) SetPrevRandSeed(v []byte)        { C.Struct(s).SetObject(5, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) RandSeed() []byte                { return C.Struct(s).GetObject(6).ToData() }
+func (s MetaBlockCapn) SetRandSeed(v []byte)            { C.Struct(s).SetObject(6, s.Segment.NewData(v)) }
+func (s MetaBlockCapn) StateRootHash() []byte           { return C.Struct(s).GetObject(7).ToData() }
+func (s MetaBlockCapn) SetStateRootHash(v []byte)       { C.Struct(s).SetObject(7, s.Segment.NewData(v)) }
 func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -491,6 +719,25 @@ func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.Round()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"timeStamp\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.TimeStamp()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -627,6 +874,44 @@ func (s MetaBlockCapn) WriteJSON(w io.Writer) error {
 	if err != nil {
 		return err
 	}
+	_, err = b.WriteString("\"prevRandSeed\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.PrevRandSeed()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"randSeed\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.RandSeed()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
 	_, err = b.WriteString("\"stateRootHash\":")
 	if err != nil {
 		return err
@@ -707,6 +992,25 @@ func (s MetaBlockCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.Round()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("timeStamp = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.TimeStamp()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -843,6 +1147,44 @@ func (s MetaBlockCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
+	_, err = b.WriteString("prevRandSeed = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.PrevRandSeed()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("randSeed = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.RandSeed()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
 	_, err = b.WriteString("stateRootHash = ")
 	if err != nil {
 		return err
@@ -874,7 +1216,7 @@ func (s MetaBlockCapn) MarshalCapLit() ([]byte, error) {
 type MetaBlockCapn_List C.PointerList
 
 func NewMetaBlockCapnList(s *C.Segment, sz int) MetaBlockCapn_List {
-	return MetaBlockCapn_List(s.NewCompositeList(16, 6, sz))
+	return MetaBlockCapn_List(s.NewCompositeList(24, 8, sz))
 }
 func (s MetaBlockCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s MetaBlockCapn_List) At(i int) MetaBlockCapn {

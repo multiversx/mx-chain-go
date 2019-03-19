@@ -280,10 +280,17 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	if sr.blockChain.CurrentBlockHeader == nil {
 		hdr.SetNonce(1)
 		hdr.SetPrevHash(sr.blockChain.GenesisHeaderHash)
+		// Previous random seed is the signature of the previous block
+		hdr.SetPrevRandSeed(sr.blockChain.GenesisBlockHeader.Signature)
 	} else {
 		hdr.SetNonce(sr.blockChain.CurrentBlockHeader.Nonce + 1)
 		hdr.SetPrevHash(sr.blockChain.CurrentBlockHeaderHash)
+		// Previous random seed is the signature of the previous block
+		hdr.SetPrevRandSeed(sr.blockChain.CurrentBlockHeader.Signature)
 	}
+
+	// currently for bnSPoS RandSeed field is not used
+	hdr.SetRandSeed([]byte{0})
 
 	return hdr, nil
 }

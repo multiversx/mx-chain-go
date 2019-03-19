@@ -794,6 +794,14 @@ func displayHeader(header *block.Header) []*display.LineData {
 		toB64(header.PrevHash)}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
+		"Prev rand seed",
+		toB64(header.PrevRandSeed)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"Rand seed",
+		toB64(header.RandSeed)}))
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
 		"Body type",
 		header.BlockBodyType.String()}))
 
@@ -802,10 +810,6 @@ func displayHeader(header *block.Header) []*display.LineData {
 		"Pub keys bitmap",
 		toHex(header.PubKeysBitmap)}))
 
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Commitment",
-		toB64(header.Commitment)}))
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Signature",
