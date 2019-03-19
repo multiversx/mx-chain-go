@@ -390,7 +390,6 @@ func (bn *belNevSigner) computeChallenge(index uint16, bitmap []byte) (crypto.Sc
 		}
 
 		pubKey, _ := bn.data.pubKeys[i].Point().MarshalBinary()
-
 		concatenated = append(concatenated, pubKey...)
 	}
 
@@ -493,7 +492,6 @@ func (bn *belNevSigner) VerifySignatureShare(index uint16, sig []byte, bitmap []
 
 	sigScalar := bn.suite.CreateScalar()
 	_ = sigScalar.UnmarshalBinary(sig)
-
 	// s_i * G
 	basePoint := bn.suite.CreatePoint().Base()
 	left, _ := basePoint.Mul(sigScalar)
@@ -514,7 +512,6 @@ func (bn *belNevSigner) VerifySignatureShare(index uint16, sig []byte, bitmap []
 	pubKey := bn.data.pubKeys[index].Point()
 	// H1(<L'>||X_i||R||m)*X_i
 	right, _ := pubKey.Mul(challengeScalar)
-
 	// R_i + H1(<L'>||X_i||R||m)*X_i
 	right, err = right.Add(bn.data.commitments[index])
 	if err != nil {
@@ -627,12 +624,9 @@ func (bn *belNevSigner) AggregateSigs(bitmap []byte) ([]byte, error) {
 	}
 
 	// concatenate signature and aggregated commitment
-	lenComm := len(aggCommBytes)
-	lenSig := len(aggSigBytes)
-
-	resultSig := make([]byte, lenComm+lenSig)
-	copy(resultSig, aggCommBytes)
-	copy(resultSig[lenComm:], aggSigBytes)
+	resultSig := make([]byte, 0)
+	resultSig = append(resultSig, aggCommBytes...)
+	resultSig = append(resultSig, aggSigBytes...)
 
 	return resultSig, nil
 }
@@ -645,9 +639,9 @@ func (bn *belNevSigner) SetAggregatedSig(aggSig []byte) error {
 
 	// unpack the commitment and signature
 	lenComm := bn.suite.PointLen()
-
 	aggCommPoint := bn.suite.CreatePoint()
 	err := aggCommPoint.UnmarshalBinary(aggSig[:lenComm])
+
 	if err != nil {
 		return err
 	}
