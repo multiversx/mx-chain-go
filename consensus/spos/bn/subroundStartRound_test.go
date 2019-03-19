@@ -8,13 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
 func initSubroundStartRound() bn.SubroundStartRound {
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -52,7 +51,7 @@ func initSubroundStartRound() bn.SubroundStartRound {
 func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -117,7 +116,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *test
 func TestSubroundStartRound_NewSubroundStartRoundNilBootstraperShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
@@ -155,7 +154,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBootstraperShouldFail(t *tes
 func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
@@ -193,7 +192,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	rounderMock := initRounderMock()
@@ -231,7 +230,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *tes
 func TestSubroundStartRound_NewSubroundStartRoundNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -269,7 +268,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilRounderShouldFail(t *testing
 func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -307,7 +306,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testi
 func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -345,7 +344,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -384,7 +383,7 @@ func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
 func TestSubroundStartRound_DoStartRoundShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -475,7 +474,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitC
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenShouldSyncReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -518,7 +517,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenShouldSyncRetur
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextConsensusGroupErr(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -562,7 +561,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -605,7 +604,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenIsNotInTheConsensusGroup(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -646,7 +645,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenIsNotInTheConse
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenCreateErr(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -690,7 +689,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenCreateErr(t *te
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -733,7 +732,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *te
 func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -776,7 +775,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()

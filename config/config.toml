@@ -105,6 +105,10 @@
     Size = 10000
     Type = "LRU"
 
+[MetaBlockBodyDataPool]
+    Size = 10000
+    Type = "LRU"
+
 [Logger]
     Path = "logs"
     StackTraceDepth = 2

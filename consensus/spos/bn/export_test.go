@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
@@ -18,11 +17,11 @@ import (
 
 type Factory *factory
 
-func (fct *factory) BlockChain() *blockchain.BlockChain {
+func (fct *factory) BlockChain() data.ChainHandler {
 	return fct.blockChain
 }
 
-func (fct *factory) SetBlockChain(blockChain *blockchain.BlockChain) {
+func (fct *factory) SetBlockChain(blockChain data.ChainHandler) {
 	fct.blockChain = blockChain
 }
 
@@ -328,11 +327,11 @@ func (sr *subroundStartRound) GenerateNextConsensusGroup(roundIndex int32) error
 
 type SubroundBlock *subroundBlock
 
-func (sr *subroundBlock) BlockChain() *blockchain.BlockChain {
+func (sr *subroundBlock) BlockChain() data.ChainHandler {
 	return sr.blockChain
 }
 
-func (sr *subroundBlock) SetBlockChain(blockChain *blockchain.BlockChain) {
+func (sr *subroundBlock) SetBlockChain(blockChain data.ChainHandler) {
 	sr.blockChain = blockChain
 }
 

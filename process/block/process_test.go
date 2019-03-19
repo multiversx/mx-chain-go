@@ -32,16 +32,10 @@ func haveTime() time.Duration {
 	return time.Duration(2000 * time.Millisecond)
 }
 
-func createTestBlockchain() *blockchain.BlockChain {
-	blockChain, _ := blockchain.NewBlockChain(
-		generateTestCache(),
-		generateTestUnit(),
-		generateTestUnit(),
-		generateTestUnit(),
-		generateTestUnit(),
-	)
-
-	return blockChain
+func createTestBlockchain() *mock.BlockChainMock {
+	return &mock.BlockChainMock{
+		StorageService: &mock.ChainStorerMock{},
+	}
 }
 
 func generateTestCache() storage.Cacher {
@@ -414,7 +408,7 @@ func TestBlockProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	journalLen := func() int { return 3 }
 	revToSnapshot := func(snapshot int) error { return nil }
 
-	blkc := createTestBlockchain()
+	blkc := &blockchain.BlockChain{}
 
 	hdr := block.Header{
 		Nonce:         0,
@@ -460,7 +454,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	}
 
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
-	blkc := createTestBlockchain()
+	blkc := &blockchain.BlockChain{}
 	hdr := block.Header{
 		Nonce:         0,
 		PrevHash:      []byte(""),
@@ -541,7 +535,7 @@ func TestBlockProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 
 	body := make(block.Body, 0)
 
-	blkc := createTestBlockchain()
+	blkc := &blockchain.BlockChain{}
 
 	err := be.ProcessBlock(blkc, hdr, body, haveTime)
 
@@ -576,10 +570,7 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 
 	body := make(block.Body, 0)
 
-	blkc := createTestBlockchain()
-	blkc.CurrentBlockHeader = &block.Header{
-		Nonce: 0,
-	}
+	blkc := &blockchain.BlockChain{}
 
 	err := be.ProcessBlock(blkc, hdr, body, haveTime)
 
@@ -614,11 +605,11 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 
 	body := make(block.Body, 0)
 
-	blkc := createTestBlockchain()
-	blkc.CurrentBlockHeader = &block.Header{
-		Nonce: 0,
+	blkc := &blockchain.BlockChain{
+		CurrentBlockHeader: &block.Header{
+			Nonce: 0,
+		},
 	}
-	blkc.CurrentBlockHeaderHash = []byte("bbb")
 
 	err := be.ProcessBlock(blkc, hdr, body, haveTime)
 
@@ -1062,13 +1053,19 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 
 	blkc := createTestBlockchain()
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return hdr
+	}
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return hdrHash
+	}
 	err := be.CommitBlock(blkc, hdr, body)
 
 	assert.Nil(t, err)
 	assert.True(t, removeTxWasCalled)
 	assert.True(t, forkDetectorAddCalled)
-	assert.True(t, blkc.CurrentBlockHeader == hdr)
-	assert.Equal(t, hdrHash, blkc.CurrentBlockHeaderHash)
+	assert.True(t, blkc.GetCurrentBlockHeader() == hdr)
+	assert.Equal(t, hdrHash, blkc.GetCurrentBlockHeaderHash())
 
 	//this should sleep as there is an async call to display current header and block in CommitBlock
 	time.Sleep(time.Second)
@@ -1796,7 +1793,9 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	assert.False(t, r)
 
 	hdr.Nonce = 1
-	blkc.CurrentBlockHeader = hdr
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return &block.Header{Nonce: 1}
+	}
 
 	hdr = &block.Header{}
 	hdr.Nonce = 1
@@ -1822,7 +1821,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	marshalizerMock := mock.MarshalizerMock{}
 	hasherMock := mock.HasherMock{}
 
-	prevHeader, _ := marshalizerMock.Marshal(blkc.CurrentBlockHeader)
+	prevHeader, _ := marshalizerMock.Marshal(blkc.GetCurrentBlockHeader())
 	hdr.PrevHash = hasherMock.Compute(string(prevHeader))
 
 	r = bp.CheckBlockValidity(blkc, hdr, nil)
