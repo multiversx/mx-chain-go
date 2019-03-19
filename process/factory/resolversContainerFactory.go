@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -16,7 +15,7 @@ import (
 type resolversContainerFactory struct {
 	shardCoordinator         sharding.Coordinator
 	messenger                process.TopicMessageHandler
-	blockchain               *blockchain.BlockChain
+	blockchain               data.ChainHandler
 	marshalizer              marshal.Marshalizer
 	dataPools                data.PoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
@@ -26,7 +25,7 @@ type resolversContainerFactory struct {
 func NewResolversContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	messenger process.TopicMessageHandler,
-	blockchain *blockchain.BlockChain,
+	blockchain data.ChainHandler,
 	marshalizer marshal.Marshalizer,
 	dataPools data.PoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
@@ -144,7 +143,7 @@ func (rcf *resolversContainerFactory) generateTxResolvers() ([]string, []process
 }
 
 func (rcf *resolversContainerFactory) createOneTxResolver(identifier string) (process.Resolver, error) {
-	txStorer := rcf.blockchain.GetStorer(blockchain.TransactionUnit)
+	txStorer := rcf.blockchain.GetStorer(data.TransactionUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
@@ -189,7 +188,7 @@ func (rcf *resolversContainerFactory) generateHdrResolvers() ([]string, []proces
 }
 
 func (rcf *resolversContainerFactory) createOneHdrResolver(identifier string) (process.Resolver, error) {
-	hdrStorer := rcf.blockchain.GetStorer(blockchain.BlockHeaderUnit)
+	hdrStorer := rcf.blockchain.GetStorer(data.BlockHeaderUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
@@ -244,7 +243,7 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 }
 
 func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(identifier string) (process.Resolver, error) {
-	miniBlocksStorer := rcf.blockchain.GetStorer(blockchain.MiniBlockUnit)
+	miniBlocksStorer := rcf.blockchain.GetStorer(data.MiniBlockUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
@@ -289,7 +288,7 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolvers() ([]stri
 }
 
 func (rcf *resolversContainerFactory) createOnePeerChBlockBodyResolver(identifier string) (process.Resolver, error) {
-	peerBlockBodyStorer := rcf.blockchain.GetStorer(blockchain.PeerChangesUnit)
+	peerBlockBodyStorer := rcf.blockchain.GetStorer(data.PeerChangesUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,

@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
@@ -15,7 +15,7 @@ import (
 type subroundStartRound struct {
 	*subround
 
-	blockChain             *blockchain.BlockChain
+	blockChain             data.ChainHandler
 	bootstraper            process.Bootstrapper
 	consensusState         *spos.ConsensusState
 	multiSigner            crypto.MultiSigner
@@ -27,7 +27,7 @@ type subroundStartRound struct {
 // NewSubroundStartRound creates a SubroundStartRound object
 func NewSubroundStartRound(
 	subround *subround,
-	blockChain *blockchain.BlockChain,
+	blockChain data.ChainHandler,
 	bootstraper process.Bootstrapper,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
@@ -72,7 +72,7 @@ func NewSubroundStartRound(
 
 func checkNewSubroundStartRoundParams(
 	subround *subround,
-	blockChain *blockchain.BlockChain,
+	blockChain data.ChainHandler,
 	bootstraper process.Bootstrapper,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
@@ -210,9 +210,9 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error {
 	// TODO: replace random source with last block signature
-	headerHash := sr.blockChain.CurrentBlockHeaderHash
-	if sr.blockChain.CurrentBlockHeaderHash == nil {
-		headerHash = sr.blockChain.GenesisHeaderHash
+	headerHash := sr.blockChain.GetCurrentBlockHeaderHash()
+	if sr.blockChain.GetCurrentBlockHeaderHash() == nil {
+		headerHash = sr.blockChain.GetGenesisHeaderHash()
 	}
 
 	randomSource := fmt.Sprintf("%d-%s", roundIndex, toB64(headerHash))

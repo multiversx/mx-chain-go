@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
@@ -78,7 +77,7 @@ type Node struct {
 	multisig         crypto.MultiSigner
 	forkDetector     process.ForkDetector
 
-	blkc             *blockchain.BlockChain
+	blkc             data.ChainHandler
 	dataPool         data.PoolsHolder
 	shardCoordinator sharding.Coordinator
 
@@ -190,8 +189,12 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	n.blkc.GenesisBlockHeader = genesisHeader
-	n.blkc.GenesisHeaderHash = genesisHeaderHash
+	err = n.blkc.SetGenesisHeader(genesisHeader)
+	if err != nil {
+		return err
+	}
+
+	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
 
 	rounder, err := n.createRounder()
 

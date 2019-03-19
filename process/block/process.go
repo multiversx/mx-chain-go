@@ -114,7 +114,7 @@ func NewBlockProcessor(
 	return &bp, nil
 }
 
-func checkForNils(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
+func checkForNils(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 	if blockChain == nil {
 		return process.ErrNilBlockChain
 	}
@@ -140,7 +140,7 @@ func (bp *blockProcessor) RevertAccountState() {
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the speciffic error
-func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	err := checkForNils(blockChain, header, body)
 	if err != nil {
 		return err
@@ -162,7 +162,12 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		return process.ErrNilHaveTimeHandler
 	}
 
-	err = bp.validateHeader(blockChain, blockHeader)
+	concreteBlockChain, ok := blockChain.(*blockchain.BlockChain)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	err = bp.validateHeader(concreteBlockChain, blockHeader)
 	if err != nil {
 		return err
 	}
@@ -262,23 +267,23 @@ func (bp *blockProcessor) getRootHash() []byte {
 
 func (bp *blockProcessor) validateHeader(blockChain *blockchain.BlockChain, header *block.Header) error {
 	// basic validation was already done on interceptor
-	if blockChain.CurrentBlockHeader == nil {
+	if blockChain.GetCurrentBlockHeader() == nil {
 		if !bp.isFirstBlockInEpoch(header) {
 			return process.ErrWrongNonceInBlock
 		}
 	} else {
-		if bp.isCorrectNonce(blockChain.CurrentBlockHeader.Nonce, header.Nonce) {
+		if bp.isCorrectNonce(blockChain.GetCurrentBlockHeader().GetNonce(), header.Nonce) {
 			return process.ErrWrongNonceInBlock
 		}
 
-		if !bytes.Equal(header.PrevHash, blockChain.CurrentBlockHeaderHash) {
+		if !bytes.Equal(header.PrevHash, blockChain.GetCurrentBlockHeaderHash()) {
 
 			log.Info(fmt.Sprintf(
 				"header.Nonce = %d has header.PrevHash = %s and blockChain.CurrentBlockHeader.Nonce = %d has blockChain.CurrentBlockHeaderHash = %s\n",
 				header.Nonce,
 				toB64(header.PrevHash),
-				blockChain.CurrentBlockHeader.Nonce,
-				toB64(blockChain.CurrentBlockHeaderHash)))
+				blockChain.GetCurrentBlockHeader().GetNonce(),
+				toB64(blockChain.GetCurrentBlockHeaderHash())))
 
 			return process.ErrInvalidBlockHash
 		}
@@ -331,7 +336,7 @@ func (bp *blockProcessor) processBlockTransactions(body block.Body, round int32,
 }
 
 // CommitBlock commits the block in the blockchain if everything was checked successfully
-func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
+func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 	var err error
 
 	defer func() {
@@ -351,7 +356,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 	}
 
 	headerHash := bp.hasher.Compute(string(buff))
-	err = blockChain.Put(blockchain.BlockHeaderUnit, headerHash, buff)
+	err = blockChain.Put(data.BlockHeaderUnit, headerHash, buff)
 	if err != nil {
 		return process.ErrPersistWithoutSuccess
 	}
@@ -369,7 +374,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		}
 		miniBlockHash := bp.hasher.Compute(string(buff))
 
-		err = blockChain.Put(blockchain.MiniBlockUnit, miniBlockHash, buff)
+		err = blockChain.Put(data.MiniBlockUnit, miniBlockHash, buff)
 		if err != nil {
 			return process.ErrPersistWithoutSuccess
 		}
@@ -396,7 +401,7 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 				return process.ErrMarshalWithoutSuccess
 			}
 
-			err = blockChain.Put(blockchain.TransactionUnit, txHash, buff)
+			err = blockChain.Put(data.TransactionUnit, txHash, buff)
 			if err != nil {
 				return process.ErrPersistWithoutSuccess
 			}
@@ -414,13 +419,22 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 	}
 
 	blockHeader := header.(*block.Header)
-	blockChain.CurrentTxBlockBody = blockBody
-	blockChain.CurrentBlockHeader = blockHeader
-	blockChain.CurrentBlockHeaderHash = headerHash
+
+	err = blockChain.SetCurrentBlockBody(blockBody)
+	if err != nil {
+		return err
+	}
+
+	err = blockChain.SetCurrentBlockHeader(blockHeader)
+	if err != nil {
+		return err
+	}
+
+	blockChain.SetCurrentBlockHeaderHash(headerHash)
 	err = bp.forkDetector.AddHeader(blockHeader, headerHash, false)
 
 	// write data to log
-	go bp.displayBlockchain(blockChain)
+	go bp.displayBlockchain(blockHeader, blockBody)
 
 	return err
 }
@@ -689,13 +703,7 @@ func (bp *blockProcessor) waitForTxHashes(waitTime time.Duration) error {
 	}
 }
 
-func (bp *blockProcessor) displayBlockchain(blkc *blockchain.BlockChain) {
-	if blkc == nil {
-		return
-	}
-
-	blockHeader := blkc.CurrentBlockHeader
-	txBlockBody := blkc.CurrentTxBlockBody
+func (bp *blockProcessor) displayBlockchain(blockHeader *block.Header, txBlockBody block.Body) {
 
 	if blockHeader == nil || txBlockBody == nil {
 		return
@@ -954,7 +962,7 @@ func (bp *blockProcessor) getTxsFromPool(shardId uint32) int {
 }
 
 // CheckBlockValidity method checks if the given block is valid
-func (bp *blockProcessor) CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
+func (bp *blockProcessor) CheckBlockValidity(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool {
 
 	if header == nil {
 		log.Info(process.ErrNilBlockHeader.Error())
@@ -966,9 +974,9 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain *blockchain.BlockChain, 
 		return false
 	}
 
-	if blockChain.CurrentBlockHeader == nil {
+	if blockChain.GetCurrentBlockHeader() == nil {
 		if header.GetNonce() == 1 { // first block after genesis
-			if bytes.Equal(header.GetPrevHash(), blockChain.GenesisHeaderHash) {
+			if bytes.Equal(header.GetPrevHash(), blockChain.GetGenesisHeaderHash()) {
 				// TODO add genesis block verification
 				return true
 			}
@@ -985,14 +993,19 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain *blockchain.BlockChain, 
 		return false
 	}
 
-	if header.GetNonce() != blockChain.CurrentBlockHeader.Nonce+1 {
+	if header.GetNonce() != blockChain.GetCurrentBlockHeader().GetNonce()+1 {
 		log.Info(fmt.Sprintf("nonce not match: local block nonce is %d and node received block with nonce %d\n",
-			blockChain.CurrentBlockHeader.Nonce, header.GetNonce()))
+			blockChain.GetCurrentBlockHeader().GetNonce(), header.GetNonce()))
 
 		return false
 	}
 
-	prevHeaderHash, err := bp.computeHeaderHash(blockChain.CurrentBlockHeader)
+	blockHeader, ok := blockChain.GetCurrentBlockHeader().(*block.Header)
+	if !ok {
+		log.Error(process.ErrWrongTypeAssertion.Error())
+		return false
+	}
+	prevHeaderHash, err := bp.computeHeaderHash(blockHeader)
 
 	if err != nil {
 		log.Info(err.Error())

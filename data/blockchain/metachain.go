@@ -15,7 +15,7 @@ import (
 // The MetaChain also holds pointers to the Genesis block, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type MetaChain struct {
-	StorageService
+	data.StorageService
 	GenesisBlock     *block.MetaBlock // Genesys Block pointer
 	genesisBlockHash []byte           // Genesis Block hash
 	CurrentBlock     *block.MetaBlock // Current Block pointer
@@ -25,7 +25,7 @@ type MetaChain struct {
 	badBlocks        storage.Cacher   // Bad blocks cache
 }
 
-// NewMetachain will initialize a new metachain instance
+// NewMetaChain will initialize a new metachain instance
 func NewMetaChain(
 	badBlocksCache storage.Cacher,
 	metaBlockUnit storage.Storer,
@@ -50,16 +50,16 @@ func NewMetaChain(
 	return &MetaChain{
 		badBlocks: badBlocksCache,
 		StorageService: &ChainStorer{
-			chain: map[UnitType]storage.Storer{
-				MetaBlockUnit:     metaBlockUnit,
-				MetaShardDataUnit: shardDataUnit,
-				MetaPeerDataUnit:  peerDataUnit,
+			chain: map[data.UnitType]storage.Storer{
+				data.MetaBlockUnit:     metaBlockUnit,
+				data.MetaShardDataUnit: shardDataUnit,
+				data.MetaPeerDataUnit:  peerDataUnit,
 			},
 		},
 	}, nil
 }
 
-// GetGenesisBlock returns the genesis block header pointer
+// GetGenesisHeader returns the genesis block header pointer
 func (mc *MetaChain) GetGenesisHeader() data.HeaderHandler {
 	if mc.GenesisBlock == nil {
 		return nil
@@ -67,8 +67,13 @@ func (mc *MetaChain) GetGenesisHeader() data.HeaderHandler {
 	return mc.GenesisBlock
 }
 
-// SetGenesisBlock returns the genesis block header pointer
+// SetGenesisHeader returns the genesis block header pointer
 func (mc *MetaChain) SetGenesisHeader(header data.HeaderHandler) error {
+	if header == nil {
+		mc.GenesisBlock = nil
+		return nil
+	}
+
 	genBlock, ok := header.(*block.MetaBlock)
 	if !ok {
 		return ErrWrongTypeInSet
@@ -97,6 +102,11 @@ func (mc *MetaChain) GetCurrentBlockHeader() data.HeaderHandler {
 
 // SetCurrentBlockHeader sets current block header pointer
 func (mc *MetaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+	if header == nil {
+		mc.CurrentBlock = nil
+		return nil
+	}
+
 	currHead, ok := header.(*block.MetaBlock)
 	if !ok {
 		return ErrWrongTypeInSet

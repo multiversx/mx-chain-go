@@ -5,20 +5,19 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 )
 
 // BlockProcessorMock mocks the implementation for a blockProcessor
 type BlockProcessorMock struct {
-	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error
+	ProcessBlockCalled            func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled             func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountStateCalled      func()
 	CreateGenesisBlockCalled      func(balances map[string]*big.Int) (rootHash []byte, err error)
 	CreateBlockCalled             func(round int32, haveTime func() bool) (data.BodyHandler, error)
 	RemoveBlockInfoFromPoolCalled func(body data.BodyHandler) error
 	GetRootHashCalled             func() []byte
 	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
-	CheckBlockValidityCalled      func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool
+	CheckBlockValidityCalled      func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
 	CreateBlockHeaderCalled       func(body data.BodyHandler) (data.HeaderHandler, error)
 }
 
@@ -28,12 +27,12 @@ func (blProcMock *BlockProcessorMock) SetOnRequestTransaction(f func(destShardID
 }
 
 // ProcessBlock mocks pocessing a block
-func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+func (blProcMock *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	return blProcMock.ProcessBlockCalled(blockChain, header, body, haveTime)
 }
 
 // CommitBlock mocks the commit of a block
-func (blProcMock *BlockProcessorMock) CommitBlock(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error {
+func (blProcMock *BlockProcessorMock) CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 	return blProcMock.CommitBlockCalled(blockChain, header, body)
 }
 
@@ -63,7 +62,7 @@ func (blProcMock BlockProcessorMock) GetRootHash() []byte {
 	return blProcMock.GetRootHashCalled()
 }
 
-func (blProcMock BlockProcessorMock) CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool {
+func (blProcMock BlockProcessorMock) CheckBlockValidity(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool {
 	return blProcMock.CheckBlockValidityCalled(blockChain, header, body)
 }
 
