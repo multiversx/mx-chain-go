@@ -99,7 +99,7 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 				// (actually this happens when a node is bootstrapping and it receives alongside the nonces
 				// requested for bootstrapping, also the other nonces broadcasted to the network by the consensus group.
 				// So, it stores them as received but not processed yet. When it will reach to that nonce and
-				// eventually it will successfully processed it, this nonce will be marked here from now as a processed one.
+				// if eventually it will be successfully processed, this nonce will be marked here from now on as a processed one.
 				delete(bfd.headers, hdrInfo.header.Nonce)
 				bfd.headers[hdrInfo.header.Nonce] = []*headerInfo{hdrInfo}
 			}
