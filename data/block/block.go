@@ -329,17 +329,17 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	return dest
 }
 
-// GetNonce return header nonce
+// GetNonce returns header nonce
 func (h *Header) GetNonce() uint64 {
 	return h.Nonce
 }
 
-// GetEpoch return header epoch
+// GetEpoch returns header epoch
 func (h *Header) GetEpoch() uint32 {
 	return h.Epoch
 }
 
-// GetRound return round from header
+// GetRound returns round from header
 func (h *Header) GetRound() uint32 {
 	return h.Round
 }
@@ -369,7 +369,7 @@ func (h *Header) GetPubKeysBitmap() []byte {
 	return h.PubKeysBitmap
 }
 
-// GetSignature return signed data
+// GetSignature returns signed data
 func (h *Header) GetSignature() []byte {
 	return h.Signature
 }
@@ -419,7 +419,7 @@ func (h *Header) SetPubKeysBitmap(pkbm []byte) {
 	h.PubKeysBitmap = pkbm
 }
 
-// SetSignature set header signature
+// SetSignature sets header signature
 func (h *Header) SetSignature(sg []byte) {
 	h.Signature = sg
 }

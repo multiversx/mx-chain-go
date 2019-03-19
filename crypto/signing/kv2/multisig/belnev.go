@@ -15,7 +15,7 @@ This package provides the functionality for the cryptographic operations.
 The message transfer functionality required for the algorithm are assumed to be
 handled elsewhere. An overview of the protocol will be provided below.
 
-The BN-multiSig protocol has 4 phases executed between a list of participants (public keys) L,
+The BN-multiSig protocol has 4 phases executed between a list of participants (public keys)
 having a protocol leader (index = 0) and validators (index > 0). Each participant has it's
 own private/public key pair (x_i, X_i), where x_i is the private key of participant
 i and X_i is it's associated public key X_i = x_i * G. G is the base point on the used

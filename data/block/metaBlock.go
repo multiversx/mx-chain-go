@@ -287,3 +287,103 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 
 	return dest
 }
+
+// GetNonce return header nonce
+func (m *MetaBlock) GetNonce() uint64 {
+	return m.Nonce
+}
+
+// GetEpoch return header epoch
+func (m *MetaBlock) GetEpoch() uint32 {
+	return m.Epoch
+}
+
+// GetRound return round from header
+func (m *MetaBlock) GetRound() uint32 {
+	return m.Round
+}
+
+// GetTimestamp returns the time stamp
+func (m *MetaBlock) GetTimestamp() uint64 {
+	return m.TimeStamp
+}
+
+// GetRootHash returns the roothash from header
+func (m *MetaBlock) GetRootHash() []byte {
+	return m.StateRootHash
+}
+
+// GetPrevHash returns previous block header hash
+func (m *MetaBlock) GetPrevHash() []byte {
+	return m.PreviousHash
+}
+
+// GetPrevRandSeed gets the previous random seed
+func (m *MetaBlock) GetPrevRandSeed() []byte {
+	return m.PrevRandSeed
+}
+
+// GetRandSeed gets the current random seed
+func (m *MetaBlock) GetRandSeed() []byte {
+	return m.RandSeed
+}
+
+// GetPubKeysBitmap return signers bitmap
+func (m *MetaBlock) GetPubKeysBitmap() []byte {
+	return m.PubKeysBitmap
+}
+
+// GetSignature return signed data
+func (m *MetaBlock) GetSignature() []byte {
+	return m.Signature
+}
+
+// SetNonce sets header nonce
+func (m *MetaBlock) SetNonce(n uint64) {
+	m.Nonce = n
+}
+
+// SetEpoch sets header epoch
+func (m *MetaBlock) SetEpoch(e uint32) {
+	m.Epoch = e
+}
+
+// SetRound sets header round
+func (m *MetaBlock) SetRound(r uint32) {
+	m.Round = r
+}
+
+// SetRootHash sets root hash
+func (m *MetaBlock) SetRootHash(rHash []byte) {
+	m.StateRootHash = rHash
+}
+
+// SetPrevHash sets prev hash
+func (m *MetaBlock) SetPrevHash(pvHash []byte) {
+	m.PreviousHash = pvHash
+}
+
+// SetPrevRandSeed sets the previous randomness seed
+func (m *MetaBlock) SetPrevRandSeed(pvRandSeed []byte) {
+	m.PrevRandSeed = pvRandSeed
+}
+
+// SetRandSeed sets the current random seed
+func (m *MetaBlock) SetRandSeed(randSeed []byte) {
+	m.RandSeed = randSeed
+}
+
+// SetPubKeysBitmap sets publick key bitmap
+func (m *MetaBlock) SetPubKeysBitmap(pkbm []byte) {
+	m.PubKeysBitmap = pkbm
+}
+
+// SetSignature set header signature
+func (m *MetaBlock) SetSignature(sg []byte) {
+	m.Signature = sg
+}
+
+// SetTimeStamp sets header timestamp
+func (m *MetaBlock) SetTimeStamp(ts uint64) {
+	m.TimeStamp = ts
+}

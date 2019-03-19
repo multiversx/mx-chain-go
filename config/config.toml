@@ -22,6 +22,30 @@
         FilePath = "BlockHeaders"
         Type = "LvlDB"
 
+[ShardDataStorage]
+    [ShardDataStorage.Cache]
+        Size = 1000
+        Type = "LRU"
+    [ShardDataStorage.DB]
+        FilePath = "ShardData"
+        Type = "LvlDB"
+
+[PeerDataStorage]
+    [PeerDataStorage.Cache]
+        Size = 100
+        Type = "LRU"
+    [PeerDataStorage.DB]
+        FilePath = "PeerData"
+        Type = "LvlDB"
+
+[MetaBlockStorage]
+    [MetaBlockStorage.Cache]
+        Size = 100
+        Type = "LRU"
+    [MetaBlockStorage.DB]
+        FilePath = "MetaBlock"
+        Type = "LvlDB"
+
 [TxStorage]
     [TxStorage.Cache]
         Size = 100000
@@ -65,8 +89,20 @@
     Size = 100000
     Type = "LRU"
 
+[MetaHeaderNoncesDataPool]
+    Size = 100000
+    Type = "LRU"
+
 [TxDataPool]
     Size = 100000
+    Type = "LRU"
+
+[ShardHeadersDataPool]
+    Size = 10000
+    Type = "LRU"
+
+[MiniBlockHeaderHashesDataPool]
+    Size = 10000
     Type = "LRU"
 
 [Logger]

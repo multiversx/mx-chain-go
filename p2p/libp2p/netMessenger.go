@@ -75,7 +75,6 @@ func NewNetworkMessenger(
 		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
-		libp2p.NATPortMap(),
 		libp2p.ConnectionManager(conMgr),
 	}
 
@@ -164,9 +163,6 @@ func createPubSub(ctxProvider *Libp2pContext, withSigning bool) (*pubsub.PubSub,
 
 // Close closes the host, connections and streams
 func (netMes *networkMessenger) Close() error {
-	err := netMes.peerDiscoverer.Close()
-	log.LogIfError(err)
-
 	return netMes.ctxProvider.Host().Close()
 }
 
@@ -254,6 +250,20 @@ func (netMes *networkMessenger) ConnectedPeers() []p2p.PeerID {
 	}
 
 	return peerList
+}
+
+// ConnectedPeersOnTopic returns the connected peers on a provided topic
+func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
+	//as the peers in pubsub impl are held inside a map where the key is the peerID,
+	//the returned list will hold distinct values
+	list := netMes.pb.ListPeers(topic)
+	connectedPeers := make([]p2p.PeerID, len(list))
+
+	for idx, pid := range list {
+		connectedPeers[idx] = p2p.PeerID(pid)
+	}
+
+	return connectedPeers
 }
 
 // CreateTopic opens a new topic using pubsub infrastructure
@@ -346,7 +356,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 		return p2p.ErrTopicValidatorOperationNotSupported
 	}
 
-	err := netMes.pb.RegisterTopicValidator(topic, func(i context.Context, message *pubsub.Message) bool {
+	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 		err := handler.ProcessReceivedMessage(NewMessage(message))
 
 		if err != nil {

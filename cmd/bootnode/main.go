@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
-
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -46,9 +45,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	sync2 "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -288,11 +289,6 @@ func createNode(
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	blkc, err := createBlockChainFromConfig(config)
-	if err != nil {
-		return nil, errors.New("could not create block chain: " + err.Error())
-	}
-
 	// TODO: Constructor parameters should be changed when node assignment in the sharding package is implemented
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), 0)
 	if err != nil {
@@ -304,17 +300,23 @@ func createNode(
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
-
-	datapool, err := createDataPoolFromConfig(config, uint64ByteSliceConverter)
+	blkc, err := createBlockChainFromConfig(config)
 	if err != nil {
-		return nil, errors.New("could not create data pools: " + err.Error())
+		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
+	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
+	datapool, err := createShardDataPoolFromConfig(config, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, errors.New("could not create shard data pools: " + err.Error())
+	}
+
+	// TODO create metachain / blockchain
+	// TODO save config, and move this creation into another place for node movement
+	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig
+
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
-
 	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
-
 	if err != nil {
 		return nil, err
 	}
@@ -369,6 +371,7 @@ func createNode(
 		return nil, err
 	}
 
+	//TODO refactor all these factory calls
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
 		return nil, err
@@ -388,19 +391,12 @@ func createNode(
 		return nil, err
 	}
 
-	forkDetector := sync2.NewBasicForkDetector()
-
-	//TODO refactor this as this resolver must not be saved but enquired each time a transaction
-	// (or batch of transactions) is needed according to the shard where this tx might reside
-	res, err := resolversContainer.Get(factory.TransactionTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
+	resolversFinder, err := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
-	txResolver, ok := res.(*transaction.TxResolver)
-	if !ok {
-		return nil, errors.New("tx resolver is not of type transaction.TxResolver")
-	}
+
+	forkDetector := processSync.NewBasicForkDetector()
 
 	blockProcessor, err := block.NewBlockProcessor(
 		datapool,
@@ -410,7 +406,7 @@ func createNode(
 		accountsAdapter,
 		shardCoordinator,
 		forkDetector,
-		createRequestTransactionHandler(txResolver, log),
+		createRequestTransactionHandler(resolversFinder, log),
 	)
 
 	if err != nil {
@@ -442,7 +438,7 @@ func createNode(
 		node.WithPrivateKey(privKey),
 		node.WithForkDetector(forkDetector),
 		node.WithInterceptorsContainer(interceptorsContainer),
-		node.WithResolversContainer(resolversContainer),
+		node.WithResolversFinder(resolversFinder),
 	)
 
 	if err != nil {
@@ -457,10 +453,19 @@ func createNode(
 	return nd, nil
 }
 
-func createRequestTransactionHandler(txResolver *transaction.TxResolver, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+func createRequestTransactionHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
-		_ = txResolver.RequestDataFromHash(txHash)
-		log.Debug(fmt.Sprintf("Requested tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+		log.Debug(fmt.Sprintf("Requesting tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+		resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to transaction topic to shard %d", destShardID))
+			return
+		}
+
+		err = resolver.RequestDataFromHash(txHash)
+		if err != nil {
+			log.Debug(err.Error())
+		}
 	}
 }
 
@@ -626,7 +631,7 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 	}
 }
 
-func createDataPoolFromConfig(
+func createShardDataPoolFromConfig(
 	config *config.Config,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (data.PoolsHolder, error) {
@@ -641,7 +646,13 @@ func createDataPoolFromConfig(
 		return nil, err
 	}
 
-	cacherCfg := getCacherFromConfig(config.BlockHeaderNoncesDataPool)
+	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg = getCacherFromConfig(config.BlockHeaderNoncesDataPool)
 	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
@@ -663,12 +674,13 @@ func createDataPoolFromConfig(
 		return nil, err
 	}
 
-	return dataPool.NewDataPool(
+	return dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
+		metaBlockBody,
 	)
 }
 
@@ -750,6 +762,107 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 	}
 
 	return blockChain, err
+}
+
+func createMetaDataPoolFromConfig(
+	config *config.Config,
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+) (data.MetaPoolsHolder, error) {
+	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlockHashes, err := shardedData.NewShardedData(getCacherFromConfig(config.MiniBlockHeaderHashesDataPool))
+	if err != nil {
+		return nil, err
+	}
+
+	shardHeaders, err := shardedData.NewShardedData(getCacherFromConfig(config.ShardHeadersDataPool))
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
+	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, err
+	}
+
+	return dataPool.NewMetaDataPool(metaBlockBody, miniBlockHashes, shardHeaders, metaBlockNonces)
+}
+
+func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, error) {
+	var peerDataUnit, shardDataUnit, metaBlockUnit *storage.Unit
+	var err error
+
+	defer func() {
+		// cleanup
+		if err != nil {
+			if peerDataUnit != nil {
+				_ = peerDataUnit.DestroyUnit()
+			}
+			if shardDataUnit != nil {
+				_ = shardDataUnit.DestroyUnit()
+			}
+			if metaBlockUnit != nil {
+				_ = metaBlockUnit.DestroyUnit()
+			}
+		}
+	}()
+
+	badBlockCache, err := storage.NewCache(
+		storage.CacheType(config.BadBlocksCache.Type),
+		config.BadBlocksCache.Size)
+
+	if err != nil {
+		return nil, err
+	}
+
+	metaBlockUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.MetaBlockStorage.Cache),
+		getDBFromConfig(config.MetaBlockStorage.DB),
+		getBloomFromConfig(config.MetaBlockStorage.Bloom))
+
+	if err != nil {
+		return nil, err
+	}
+
+	shardDataUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.ShardDataStorage.Cache),
+		getDBFromConfig(config.ShardDataStorage.DB),
+		getBloomFromConfig(config.ShardDataStorage.Bloom))
+
+	if err != nil {
+		return nil, err
+	}
+
+	peerDataUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.PeerDataStorage.Cache),
+		getDBFromConfig(config.PeerDataStorage.DB),
+		getBloomFromConfig(config.PeerDataStorage.Bloom))
+
+	if err != nil {
+		return nil, err
+	}
+
+	metaChain, err := blockchain.NewMetaChain(
+		badBlockCache,
+		metaBlockUnit,
+		shardDataUnit,
+		peerDataUnit,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return metaChain, err
 }
 
 func decodeAddress(address string) ([]byte, error) {

@@ -22,6 +22,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var r *rand.Rand
+
+func init() {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
 func haveTime() time.Duration {
 	return time.Duration(2000 * time.Millisecond)
 }
@@ -626,12 +632,17 @@ func TestBlockProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 
 	tdp := initDataPool()
 
+	accounts := &mock.AccountsStub{}
+	accounts.RevertToSnapshotCalled = func(snapshot int) error {
+		return nil
+	}
+
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
-		&mock.AccountsStub{},
+		accounts,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
@@ -653,6 +664,9 @@ func TestBlockProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 	accounts := &mock.AccountsStub{
 		RootHashCalled: func() []byte {
 			return rootHash
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
 		},
 	}
 
@@ -710,6 +724,9 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	accounts := &mock.AccountsStub{
 		RootHashCalled: func() []byte {
 			return rootHash
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
 		},
 	}
 
@@ -770,6 +787,9 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 		},
 		CommitCalled: func() (i []byte, e error) {
 			return nil, nil
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
 		},
 	}
 
@@ -1556,8 +1576,6 @@ func TestSortTxByNonce_OneTxShouldWork(t *testing.T) {
 
 	cacher, _ := storage.NewCache(storage.LRUCache, 100)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	hash, tx := createRandTx(r)
 
 	cacher.HasOrAdd(hash, tx)
@@ -1714,8 +1732,6 @@ func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 
 func genCacherTransactionsHashes(noOfTx int) (storage.Cacher, []*transaction.Transaction, [][]byte) {
 	cacher, _ := storage.NewCache(storage.LRUCache, uint32(noOfTx))
-
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	genHashes := make([][]byte, 0)
 	genTransactions := make([]*transaction.Transaction, 0)
@@ -1882,4 +1898,34 @@ func TestBlockProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 	mbHeaders, err := bp.CreateBlockHeader(body)
 	assert.Nil(t, err)
 	assert.Equal(t, len(body), len(mbHeaders.(*block.Header).MiniBlockHeaders))
+}
+
+func TestBlockProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T) {
+	t.Parallel()
+
+	// set accounts dirty
+	journalEntries := 3
+	revToSnapshot := func(snapshot int) error {
+		journalEntries = 0
+		return nil
+	}
+
+	bp, _ := blproc.NewBlockProcessor(
+		initDataPool(),
+		&mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{
+			RevertToSnapshotCalled: revToSnapshot,
+		},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	err := bp.CommitBlock(nil, nil, nil)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, 0, journalEntries)
 }

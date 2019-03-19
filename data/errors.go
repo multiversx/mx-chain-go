@@ -27,3 +27,15 @@ var ErrNilCacher = errors.New("nil cacher")
 
 // ErrNilNonceConverter signals that a nil nonce-byte slice converter has been provided
 var ErrNilNonceConverter = errors.New("nil nonce converter")
+
+// ErrNilMetaBlockPool signals that a nil meta block data pool was provided
+var ErrNilMetaBlockPool = errors.New("nil meta block data pool")
+
+// ErrNilMiniBlockHashesPool signals that a nil meta block data pool was provided
+var ErrNilMiniBlockHashesPool = errors.New("nil meta block mini block hashes data pool")
+
+// ErrNilShardHeaderPool signals that a nil meta block data pool was provided
+var ErrNilShardHeaderPool = errors.New("nil meta block shard header data pool")
+
+// ErrNilMetaBlockNouncesPool signals that a nil meta block data pool was provided
+var ErrNilMetaBlockNouncesPool = errors.New("nil meta block nounces data pool")

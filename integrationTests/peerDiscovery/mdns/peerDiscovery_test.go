@@ -20,8 +20,6 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	tr := peerDiscovery.TestRunner{}
-
 	basePort := 26000
 	noOfPeers := 20
 
@@ -29,7 +27,7 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 	peers := make([]p2p.Messenger, noOfPeers)
 
 	for i := 0; i < noOfPeers; i++ {
-		peers[i] = tr.CreateMessenger(
+		peers[i] = peerDiscovery.CreateMessenger(
 			context.Background(),
 			basePort+i,
 			discovery.NewMdnsPeerDiscoverer(time.Second, "subnet"))
@@ -73,7 +71,7 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 
 	noOfTests := 5
 	for i := 0; i < noOfTests; i++ {
-		testResult := tr.RunTest(peers, i, "test topic")
+		testResult := peerDiscovery.RunTest(peers, i, "test topic")
 
 		if testResult {
 			return

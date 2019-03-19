@@ -21,29 +21,27 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	ti := &testInitializer{}
-
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
 
-	dPoolRequestor := ti.createTestDataPool()
-	dPoolResolver := ti.createTestDataPool()
+	dPoolRequestor := createTestDataPool()
+	dPoolResolver := createTestDataPool()
 
 	shardCoordinator := &sharding.OneShardCoordinator{}
 
 	fmt.Println("Requestor:	")
-	nRequestor, mesRequestor, _, resolversContainer := ti.createNetNode(
+	nRequestor, mesRequestor, _, resolversFinder := createNetNode(
 		33100,
 		dPoolRequestor,
-		ti.createAccountsDB(),
+		createAccountsDB(),
 		shardCoordinator,
 	)
 
 	fmt.Println("Resolver:")
-	nResolver, mesResolver, _, _ := ti.createNetNode(
+	nResolver, mesResolver, _, _ := createNetNode(
 		33101,
 		dPoolResolver,
-		ti.createAccountsDB(),
+		createAccountsDB(),
 		shardCoordinator,
 	)
 
@@ -55,7 +53,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := mesRequestor.ConnectToPeer(ti.getConnectableAddress(mesResolver))
+	err := mesRequestor.ConnectToPeer(getConnectableAddress(mesResolver))
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -95,8 +93,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	})
 
 	//Step 4. request tx block body
-	txBlockBodyRequestor, _ := resolversContainer.Get(factory.MiniBlocksTopic +
-		shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId()))
+	txBlockBodyRequestor, _ := resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	miniBlockRequestor := txBlockBodyRequestor.(process.MiniBlocksResolver)
 	miniBlockHashes[0] = txBlockBodyHash
 	miniBlockRequestor.RequestDataFromHashArray(miniBlockHashes)
