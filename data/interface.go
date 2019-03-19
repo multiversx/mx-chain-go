@@ -15,6 +15,10 @@ const (
 	BlockHeaderUnit UnitType = 3
 	// MetaBlockUnit is the metachain blocks storage unit identifier
 	MetaBlockUnit UnitType = 4
+	// MetaShardDataUnit is the metachain shard data unit identifier
+	MetaShardDataUnit UnitType = 5
+	// MetaPeerDataUnit is the metachain peer data unit identifier
+	MetaPeerDataUnit UnitType = 6
 )
 
 // UnitType is the type for Storage unit identifiers
@@ -64,6 +68,15 @@ type PoolsHolder interface {
 	HeadersNonces() Uint64Cacher
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
+	MetaBlocks() storage.Cacher
+}
+
+// MetaPoolsHolder defines getter for data pools for metachain
+type MetaPoolsHolder interface {
+	MetaChainBlocks() storage.Cacher
+	MiniBlockHashes() ShardedDataCacherNotifier
+	ShardHeaders() ShardedDataCacherNotifier
+	MetaBlockNonces() Uint64Cacher
 }
 
 // HeaderHandler defines getters and setters for header data holder
