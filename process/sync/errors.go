@@ -14,16 +14,14 @@ var ErrNilHash = errors.New("nil hash")
 // ErrNilCurrentHeader signals that the current header is nil
 var ErrNilCurrentHeader = errors.New("The current header is nil\n")
 
-// ErrTxBlockBodyMismatch signals that a tx block body can not by asserted to TxBlockBody type
-var ErrTxBlockBodyMismatch = errors.New("tx block body mismatch")
+// ErrLowerNonceInBlock signals the nonce in block is lower than the last check point nonce
+var ErrLowerNonceInBlock = errors.New("lower nonce in block")
 
 type ErrNotEmptyHeader struct {
 	CurrentNonce uint64
-	PoolNonce    uint64
 }
 
 func (err ErrNotEmptyHeader) Error() string {
-	return fmt.Sprintf("the current header with nonce %d is not from an empty block, "+
-		"try to remove header with nonce %d from pool and request it again\n",
-		err.CurrentNonce, err.PoolNonce)
+	return fmt.Sprintf("the current header with nonce %d is not from an empty block\n",
+		err.CurrentNonce)
 }

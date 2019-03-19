@@ -15,8 +15,9 @@ type headerInfo struct {
 
 // basicForkDetector defines a struct with necessary data needed for fork detection
 type basicForkDetector struct {
-	headers    map[uint64][]*headerInfo
-	mutHeaders sync.Mutex
+	headers         map[uint64][]*headerInfo
+	mutHeaders      sync.Mutex
+	checkPointNonce uint64
 }
 
 // NewBasicForkDetector method creates a new BasicForkDetector object
@@ -37,8 +38,14 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isPro
 		return ErrNilHash
 	}
 
+	if header.Nonce < bfd.checkPointNonce {
+		return ErrLowerNonceInBlock
+	}
+
 	if !isEmpty(header) && isProcessed {
-		bfd.removePastHeaders(header.Nonce) // create a check point and remove all the past headers
+		// create a check point and remove all the past headers
+		bfd.checkPointNonce = header.Nonce
+		bfd.removePastHeaders(header.Nonce)
 	}
 
 	bfd.append(&headerInfo{
@@ -87,6 +94,12 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) {
 			if !hdrInfoStored.isProcessed && hdrInfo.isProcessed {
+				// if the stored received header is now processed and their hashes are equal the record
+				// will be replaced with the processed one as this noce should be marked now as processed.
+				// (actually this will happen when a node is bootstrapping and it will receive, beside the nonces
+				// requested for bootstrap, also the current nonces broadcasted to the network by the consensus group.
+				// it will store them as received but not processed yet. After it will reach to that noce and
+				// eventualy it will be successfully processed the nonce will be marked here as processed now.
 				delete(bfd.headers, hdrInfo.header.Nonce)
 				bfd.headers[hdrInfo.header.Nonce] = []*headerInfo{hdrInfo}
 			}
@@ -102,12 +115,14 @@ func (bfd *basicForkDetector) CheckFork() bool {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
+	var selfHdrInfo *headerInfo
+
 	for nonce, hdrInfos := range bfd.headers {
 		if len(hdrInfos) == 1 {
 			continue
 		}
 
-		var selfHdrInfo *headerInfo
+		selfHdrInfo = nil
 		foundNotEmptyBlock := false
 
 		for i := 0; i < len(hdrInfos); i++ {
@@ -126,7 +141,7 @@ func (bfd *basicForkDetector) CheckFork() bool {
 			continue
 		}
 
-		if !isEmpty(selfHdrInfo.header) && !foundNotEmptyBlock {
+		if !isEmpty(selfHdrInfo.header) {
 			//keep it clean so next time this position will be processed faster
 			delete(bfd.headers, nonce)
 			bfd.headers[nonce] = []*headerInfo{selfHdrInfo}

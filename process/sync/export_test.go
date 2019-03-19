@@ -22,8 +22,8 @@ func (boot *Bootstrap) ReceivedHeaders(key []byte) {
 	boot.receivedHeaders(key)
 }
 
-func (boot *Bootstrap) ForkChoice(hdr *block.Header) error {
-	return boot.forkChoice(hdr)
+func (boot *Bootstrap) ForkChoice() error {
+	return boot.forkChoice()
 }
 
 func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
@@ -40,6 +40,10 @@ func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	copy(newHeaders, headers)
 
 	return newHeaders
+}
+
+func (bfd *basicForkDetector) SetCheckPointNonce(checkPointNonce uint64) {
+	bfd.checkPointNonce = checkPointNonce
 }
 
 func (hi *headerInfo) Header() *block.Header {
@@ -88,4 +92,12 @@ func (boot *Bootstrap) CreateAndBroadcastEmptyBlock() error {
 
 func (boot *Bootstrap) BroadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
 	return boot.broadcastEmptyBlock(txBlockBody, header)
+}
+
+func (boot *Bootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
+	boot.isNodeSynchronized = isNodeSyncronized
+}
+
+func (boot *Bootstrap) SetRoundIndex(roundIndex int32) {
+	boot.roundIndex = roundIndex
 }

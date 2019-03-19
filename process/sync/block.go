@@ -378,6 +378,10 @@ func (boot *Bootstrap) SyncBlock() error {
 		return nil
 	}
 
+	if boot.isForkDetected {
+		return boot.forkChoice()
+	}
+
 	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedMiniBlocks(nil)
 
@@ -421,11 +425,6 @@ func (boot *Bootstrap) SyncBlock() error {
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 
 	if err != nil {
-		if err == process.ErrInvalidBlockHash {
-			log.Info(err.Error())
-			err = boot.forkChoice(hdr)
-		}
-
 		return err
 	}
 
@@ -610,7 +609,7 @@ func (boot *Bootstrap) waitForMiniBlocks() {
 }
 
 // forkChoice decides if rollback must be called
-func (boot *Bootstrap) forkChoice(hdr *block.Header) error {
+func (boot *Bootstrap) forkChoice() error {
 	log.Info(fmt.Sprintf("starting fork choice\n"))
 
 	header := boot.blkc.CurrentBlockHeader
@@ -619,15 +618,10 @@ func (boot *Bootstrap) forkChoice(hdr *block.Header) error {
 		return ErrNilCurrentHeader
 	}
 
-	if hdr == nil {
-		return ErrNilHeader
-	}
-
 	if !isEmpty(header) {
-		boot.removeHeaderFromPools(hdr)
+		boot.removeHeaderFromPools(header)
 		return &ErrNotEmptyHeader{
-			CurrentNonce: header.Nonce,
-			PoolNonce:    hdr.Nonce}
+			CurrentNonce: header.Nonce}
 	}
 
 	log.Info(fmt.Sprintf("roll back to header with hash %s\n",
@@ -649,11 +643,6 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 	headerStore := boot.blkc.GetStorer(blockchain.BlockHeaderUnit)
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
-	}
-
-	miniBlocksStore := boot.blkc.GetStorer(blockchain.MiniBlockUnit)
-	if miniBlocksStore == nil {
-		return process.ErrNilBlockBodyStorage
 	}
 
 	// genesis block is treated differently
@@ -705,7 +694,6 @@ func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.H
 }
 
 func (boot *Bootstrap) getTxBlockBody(header *block.Header) (block.Body, error) {
-
 	mbLength := len(header.MiniBlockHeaders)
 	hashes := make([][]byte, mbLength)
 	for i := 0; i < mbLength; i++ {
@@ -733,7 +721,9 @@ func toB64(buff []byte) string {
 // is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
 // synched and it can participate to the consensus, if it is in the jobDone group of this rounder
 func (boot *Bootstrap) ShouldSync() bool {
-	if boot.roundIndex == boot.rounder.Index() && boot.isNodeSynchronized {
+	isNodeSynchronizedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeSynchronized
+
+	if isNodeSynchronizedInCurrentRound {
 		return false
 	}
 
