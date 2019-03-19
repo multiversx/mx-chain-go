@@ -32,6 +32,7 @@ type BlockProcessor interface {
 	RemoveBlockInfoFromPool(body data.BodyHandler) error
 	CheckBlockValidity(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool
 	CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error)
+	MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

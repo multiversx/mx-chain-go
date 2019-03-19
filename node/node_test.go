@@ -2,6 +2,7 @@ package node_test
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -922,9 +923,14 @@ func getMessenger() *mock.MessengerStub {
 func TestNode_BroadcastBlockShouldFailWhenTxBlockBodyNil(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
+		return make(map[uint32][]byte, 1), nil
+	}}
+
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithBlockProcessor(bp),
 	)
 
 	err := n.BroadcastBlock(nil, &block.Header{})
@@ -945,23 +951,56 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 
 		return []byte("marshalized ok"), nil
 	}
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
+		return make(map[uint32][]byte, 1), nil
+	}}
 
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(marshalizerMock),
+		node.WithBlockProcessor(bp),
 	)
 
 	err2 := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
 	assert.Equal(t, err, err2)
 }
 
-func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
+type wrongBody struct {
+}
+
+func (wr wrongBody) IntegrityAndValidity() bool {
+	return true
+}
+
+func TestNode_BroadcastBlockShouldFailWhenBlockIsNotGoodType(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
+		return nil, process.ErrWrongTypeAssertion
+	}}
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithBlockProcessor(bp),
+	)
+
+	wr := wrongBody{}
+	err := n.BroadcastBlock(wr, &block.Header{})
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
+	n, _ := node.NewNode()
+	messenger := getMessenger()
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
+		return make(map[uint32][]byte, 1), nil
+	}}
+	_ = n.ApplyOptions(
+		node.WithMessenger(messenger),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithBlockProcessor(bp),
 	)
 
 	err := n.BroadcastBlock(make(block.Body, 0), nil)
@@ -983,10 +1022,15 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 		return []byte("marshalized ok"), nil
 	}
 
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
+		return make(map[uint32][]byte, 1), nil
+	}}
+
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(marshalizerMock),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithBlockProcessor(bp),
 	)
 
 	err2 := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
@@ -996,10 +1040,14 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 func TestNode_BroadcastBlockShouldWork(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
+		return make(map[uint32][]byte, 0), nil
+	}}
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithBlockProcessor(bp),
 	)
 
 	err := n.BroadcastBlock(make(block.Body, 0), &block.Header{})

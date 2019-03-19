@@ -1133,7 +1133,7 @@
   version = "v2.2.2"
 
 [[projects]]
-  digest = "1:a5cc901b8e54c4b73a62f97dc7c8f6c46e347c148a7a38e09b2e942c2587ba03"
+  digest = "1:2ad5e4bbe42ffd64b10babe1ec1ac99d64122170cb2524326ad81708ebd0b9cc"
   name = "gotest.tools"
   packages = [
     "assert",

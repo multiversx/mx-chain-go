@@ -738,9 +738,14 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
 		cnsDtaBuff)
 }
 
+// TODO make broadcastBlock to be able to work with metablocks as well.
 func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
 	if blockBody == nil {
 		return ErrNilTxBlockBody
+	}
+
+	if !blockBody.IntegrityAndValidity() {
+		return ErrNotValidBlockBody
 	}
 
 	msgBlockBody, err := n.marshalizer.Marshal(blockBody)
@@ -751,6 +756,12 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 
 	go n.messenger.Broadcast(factory.MiniBlocksTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
+
+	err = n.broadcastMiniBlocksToDest(blockBody)
+
+	if err != nil {
+		return err
+	}
 
 	if header == nil {
 		return ErrNilBlockHeader
@@ -764,6 +775,29 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 
 	go n.messenger.Broadcast(factory.HeadersTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgHeader)
+
+	return nil
+}
+
+func (n *Node) broadcastMiniBlocksToDest(blockBody data.BodyHandler) error {
+	if blockBody == nil {
+		return ErrNilTxBlockBody
+	}
+
+	if !blockBody.IntegrityAndValidity() {
+		return ErrNotValidBlockBody
+	}
+
+	msgMapBlockBody, err := n.blockProcessor.MarshalizedDataForCrossShard(blockBody)
+
+	if err != nil {
+		return err
+	}
+
+	for k, v := range msgMapBlockBody {
+		go n.messenger.Broadcast(factory.MiniBlocksTopic+
+			n.shardCoordinator.CommunicationIdentifier(k), v)
+	}
 
 	return nil
 }

@@ -59,6 +59,10 @@ type MetaBlock struct {
 	StateRootHash []byte      `capid:"8"`
 }
 
+// MetaBlockBody hold the data for metablock body
+type MetaBlockBody struct {
+}
+
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
 func (p *PeerData) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
@@ -310,4 +314,9 @@ func (m *MetaBlock) SetTimeStamp(ts uint64) {
 // SetCommitment sets header commitment
 func (m *MetaBlock) SetCommitment(commitment []byte) {
 	// TODO implement me - it is implemented in another pull request
+}
+
+// IntegrityAndValidity return true as block is nil for metablock.
+func (mb *MetaBlockBody) IntegrityAndValidity() bool {
+	return true
 }

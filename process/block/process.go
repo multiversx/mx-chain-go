@@ -1009,6 +1009,33 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain *blockchain.BlockChain, 
 	return true
 }
 
+// MarshalizedDataForCrossShard prepares underlying data into a marshalized object according to destination
+func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32]([]byte), error) {
+	if body == nil {
+		return nil, process.ErrNilMiniBlocks
+	}
+
+	mrsData := make(map[uint32][]byte)
+	blockBody, ok := body.(block.Body)
+
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	for i := 0; i < len(blockBody); i++ {
+		buff, err := bp.marshalizer.Marshal((blockBody)[i])
+		shardId := (blockBody)[i].ShardID
+		if err != nil {
+			return nil, process.ErrMarshalWithoutSuccess
+		}
+		if shardId != bp.shardCoordinator.SelfId() {
+			mrsData[shardId] = buff
+		}
+	}
+
+	return mrsData, nil
+}
+
 func getTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
 	if txShardStore == nil {
 		return nil, nil, process.ErrNilCacher

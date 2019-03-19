@@ -10,20 +10,15 @@ import (
 
 // BlockProcessorMock mocks the implementation for a blockProcessor
 type BlockProcessorStub struct {
-	ProcessBlockCalled            func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled             func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled      func()
-	CreateGenesisBlockCalled      func(balances map[string]*big.Int) (rootHash []byte, err error)
-	CreateBlockCalled             func(round int32, haveTime func() bool) (data.BodyHandler, error)
-	RemoveBlockInfoFromPoolCalled func(body data.BodyHandler) error
-	GetRootHashCalled             func() []byte
-	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
-	CheckBlockValidityCalled      func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool
-}
-
-// SetOnRequestTransaction mocks setting request transaction call back function
-func (blProcMock *BlockProcessorStub) SetOnRequestTransaction(f func(destShardID uint32, txHash []byte)) {
-	blProcMock.SetOnRequestTransactionCalled(f)
+	ProcessBlockCalled                 func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                  func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) error
+	RevertAccountStateCalled           func()
+	CreateGenesisBlockCalled           func(balances map[string]*big.Int) (rootHash []byte, err error)
+	CreateBlockCalled                  func(round int32, haveTime func() bool) (data.BodyHandler, error)
+	RemoveBlockInfoFromPoolCalled      func(body data.BodyHandler) error
+	GetRootHashCalled                  func() []byte
+	CheckBlockValidityCalled           func(blockChain *blockchain.BlockChain, header data.HeaderHandler, body data.BodyHandler) bool
+	MarshalizedDataForCrossShardCalled func(body data.BodyHandler) (map[uint32][]byte, error)
 }
 
 // ProcessBlock mocks pocessing a block
@@ -68,4 +63,8 @@ func (blProcMock BlockProcessorStub) CheckBlockValidity(blockChain *blockchain.B
 
 func (bps BlockProcessorStub) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
 	panic("implement me")
+}
+
+func (blProcMock BlockProcessorStub) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, error) {
+	return blProcMock.MarshalizedDataForCrossShardCalled(body)
 }

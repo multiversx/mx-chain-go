@@ -396,7 +396,12 @@ func (h *Header) SetCommitment(commitment []byte) {
 	h.Commitment = commitment
 }
 
-// UnderlyingObject returns body as interface
-func (b Body) UnderlyingObject() interface{} {
-	return b
+// IntegrityAndValidity checks if data is valid
+func (b Body) IntegrityAndValidity() bool {
+	for i := 0; i < len(b); i++ {
+		if b[i].TxHashes == nil {
+			return false
+		}
+	}
+	return true
 }
