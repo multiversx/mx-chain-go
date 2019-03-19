@@ -94,12 +94,12 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) {
 			if !hdrInfoStored.isProcessed && hdrInfo.isProcessed {
-				// if the stored received header is now processed and their hashes are equal the record
-				// will be replaced with the processed one as this noce should be marked now as processed.
-				// (actually this will happen when a node is bootstrapping and it will receive, beside the nonces
-				// requested for bootstrap, also the current nonces broadcasted to the network by the consensus group.
-				// it will store them as received but not processed yet. After it will reach to that noce and
-				// eventualy it will be successfully processed the nonce will be marked here as processed now.
+				// if the stored received header is now also processed and their hashes are equal, the old record
+				// will be replaced with the processed one, as this noce should be marked now as processed.
+				// (actually this happens when a node is bootstrapping and it receives alongside the nonces
+				// requested for bootstrapping, also the other nonces broadcasted to the network by the consensus group.
+				// So, it stores them as received but not processed yet. When it will reach to that nonce and
+				// eventualy it will successfully processed it, this nonce will be marked here from now as a processed one.
 				delete(bfd.headers, hdrInfo.header.Nonce)
 				bfd.headers[hdrInfo.header.Nonce] = []*headerInfo{hdrInfo}
 			}
