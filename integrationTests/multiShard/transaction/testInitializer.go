@@ -99,12 +99,16 @@ func createTestDataPool() data.PoolsHolder {
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	dPool, _ := dataPool.NewDataPool(
+	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+
+	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
+		metaBlocks,
 	)
 
 	return dPool
@@ -269,7 +273,7 @@ func createMessengerWithKadDht(ctx context.Context, port int, initialAddr string
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(time.Nanosecond, "test", []string{initialAddr}),
+		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", []string{initialAddr}),
 	)
 
 	if err != nil {
@@ -314,6 +318,22 @@ func makeDisplayTable(nodes []*testNode) string {
 	table, _ := display.CreateTableString(header, dataLines)
 
 	return table
+}
+
+func displayAndStartNodes(nodes []*testNode) {
+	for _, n := range nodes {
+		skBuff, _ := n.sk.ToByteArray()
+		pkBuff, _ := n.pk.ToByteArray()
+
+		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
+			n.shardId,
+			hex.EncodeToString(skBuff),
+			hex.EncodeToString(pkBuff),
+		)
+
+		_ = n.node.Start()
+		_ = n.node.P2PBootstrap()
+	}
 }
 
 func createNodesWithNodeSkInShardExceptFirst(

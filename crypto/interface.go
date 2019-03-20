@@ -174,9 +174,7 @@ type MultiSigner interface {
 	// Commitment returns the commitment from the list with the specified position
 	Commitment(index uint16) ([]byte, error)
 	// AggregateCommitments aggregates the list of commitments
-	AggregateCommitments(bitmap []byte) ([]byte, error)
-	// SetAggCommitment sets the aggregated commitment
-	SetAggCommitment(aggCommitment []byte) error
+	AggregateCommitments(bitmap []byte) error
 	// CreateSignatureShare creates a partial signature
 	CreateSignatureShare(bitmap []byte) ([]byte, error)
 	// StoreSignatureShare adds the partial signature of the signer with specified position

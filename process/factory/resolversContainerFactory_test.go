@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
@@ -61,18 +60,22 @@ func createDataPools() data.PoolsHolder {
 	pools.PeerChangesBlocksCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
+
+	pools.MetaBlocksCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
+	}
+
 	return pools
 }
 
-func createBlockchain() *blockchain.BlockChain {
-	blkc, _ := blockchain.NewBlockChain(
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{})
-
-	return blkc
+func createBlockchain() data.ChainHandler {
+	return &mock.BlockChainMock{
+		StorageService: &mock.ChainStorerMock{
+			GetStorerCalled: func(unitType data.UnitType) storage.Storer {
+				return &mock.StorerStub{}
+			},
+		},
+	}
 }
 
 //------- NewResolversContainerFactory

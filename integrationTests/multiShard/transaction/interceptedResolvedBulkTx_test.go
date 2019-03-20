@@ -2,7 +2,6 @@ package transaction
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -18,23 +17,7 @@ import (
 )
 
 func init() {
-	logging.SetLevel(logging.DEBUG, "pubsub")
-}
-
-func displayAndStartNodes(nodes []*testNode) {
-	for _, n := range nodes {
-		skBuff, _ := n.sk.ToByteArray()
-		pkBuff, _ := n.pk.ToByteArray()
-
-		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
-			n.shardId,
-			hex.EncodeToString(skBuff),
-			hex.EncodeToString(pkBuff),
-		)
-
-		n.node.Start()
-		n.node.P2PBootstrap()
-	}
+	logging.SetLevel(logging.ERROR, "pubsub")
 }
 
 // TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard tests what happens when
@@ -75,7 +58,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(time.Second * 5)
 
-	txToSend := 10000
+	txToSend := 100
 
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 5)
 	generateAddrConverter, _ := state.NewPlainAddressConverter(32, "0x")
@@ -85,7 +68,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 
 	//display, can be removed
-	for i := 0; i < 30; i++ {
+	for i := 0; i < 10; i++ {
 		time.Sleep(time.Second)
 
 		fmt.Println(makeDisplayTable(nodes))

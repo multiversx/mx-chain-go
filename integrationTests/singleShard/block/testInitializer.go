@@ -45,7 +45,7 @@ func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-func createTestBlockChain() *blockchain.BlockChain {
+func createTestBlockChain() data.ChainHandler {
 
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 
@@ -82,13 +82,15 @@ func createTestDataPool() data.PoolsHolder {
 
 	cacherCfg = storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	metaPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	dPool, _ := dataPool.NewDataPool(
+	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
+		metaPool,
 	)
 
 	return dPool

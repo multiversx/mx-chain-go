@@ -1,6 +1,7 @@
-package transaction
+package block
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
@@ -17,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
@@ -26,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/multiShard/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -33,6 +36,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -43,22 +47,27 @@ import (
 )
 
 var r *rand.Rand
+var testHasher = sha256.Sha256{}
+var testMarshalizer = &marshal.JsonMarshalizer{}
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 type testNode struct {
-	node         *node.Node
-	mesenger     p2p.Messenger
-	shardId      uint32
-	sk           crypto.PrivateKey
-	pk           crypto.PublicKey
-	dPool        data.PoolsHolder
-	resFinder    process.ResolversFinder
-	txRecv       int32
-	mutNeededTxs sync.Mutex
-	neededTxs    [][]byte
+	node             *node.Node
+	mesenger         p2p.Messenger
+	shardId          uint32
+	sk               crypto.PrivateKey
+	pk               crypto.PublicKey
+	dPool            data.PoolsHolder
+	resFinder        process.ResolversFinder
+	headersRecv      int32
+	miniblocksRecv   int32
+	mutHeaders       sync.Mutex
+	headersHashes    [][]byte
+	mutMiniblocks    sync.Mutex
+	miniblocksHashes [][]byte
 }
 
 func createTestBlockChain() *blockchain.BlockChain {
@@ -99,23 +108,25 @@ func createTestDataPool() data.PoolsHolder {
 	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	dPool, _ := dataPool.NewDataPool(
+	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	metaBlocks, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+
+	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
+		metaBlocks,
 	)
 
 	return dPool
 }
 
 func createAccountsDB() *state.AccountsDB {
-	marsh := &marshal.JsonMarshalizer{}
-
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh)
+	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer)
 
 	return adb
 }
@@ -148,9 +159,6 @@ func createNetNode(
 	crypto.PrivateKey,
 	process.ResolversFinder) {
 
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.JsonMarshalizer{}
-
 	//messenger := createMessenger(context.Background(), port, serviceID)
 	messenger := createMessengerWithKadDht(context.Background(), port, initialAddr)
 
@@ -175,7 +183,7 @@ func createNetNode(
 	pkBuff, _ := pk.ToByteArray()
 	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
 
-	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
+	multiSigner, _ := createMultiSigner(sk, pk, keyGen, testHasher)
 	blkc := createTestBlockChain()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
@@ -183,8 +191,8 @@ func createNetNode(
 		shardCoordinator,
 		messenger,
 		blkc,
-		marshalizer,
-		hasher,
+		testMarshalizer,
+		testHasher,
 		keyGen,
 		singleSigner,
 		multiSigner,
@@ -197,17 +205,28 @@ func createNetNode(
 		shardCoordinator,
 		messenger,
 		blkc,
-		marshalizer,
+		testMarshalizer,
 		dPool,
 		uint64Converter,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
 	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 
+	blockProcessor, _ := block.NewBlockProcessor(
+		dPool,
+		testHasher,
+		testMarshalizer,
+		&mock.TxProcessorMock{},
+		accntAdapter,
+		shardCoordinator,
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {},
+	)
+
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
-		node.WithMarshalizer(marshalizer),
-		node.WithHasher(hasher),
+		node.WithMarshalizer(testMarshalizer),
+		node.WithHasher(testHasher),
 		node.WithDataPool(dPool),
 		node.WithAddressConverter(addrConverter),
 		node.WithAccountsAdapter(accntAdapter),
@@ -221,6 +240,7 @@ func createNetNode(
 		node.WithPublicKey(pk),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
+		node.WithBlockProcessor(blockProcessor),
 	)
 
 	return n, messenger, sk, resolversFinder
@@ -236,7 +256,7 @@ func createMessengerWithKadDht(ctx context.Context, port int, initialAddr string
 		sk,
 		nil,
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
-		discovery.NewKadDhtPeerDiscoverer(time.Nanosecond, "test", []string{initialAddr}),
+		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", []string{initialAddr}),
 	)
 
 	if err != nil {
@@ -271,7 +291,8 @@ func makeDisplayTable(nodes []*testNode) string {
 			[]string{
 				hex.EncodeToString(buffPk),
 				fmt.Sprintf("%d", n.shardId),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.txRecv)),
+				fmt.Sprintf("%d", atomic.LoadInt32(&n.headersRecv)),
+				fmt.Sprintf("%d", atomic.LoadInt32(&n.miniblocksRecv)),
 				fmt.Sprintf("%d / %d", len(n.mesenger.ConnectedPeersOnTopic(factory.TransactionTopic+"_"+
 					fmt.Sprintf("%d", n.shardId))), len(n.mesenger.ConnectedPeers())),
 			},
@@ -283,11 +304,26 @@ func makeDisplayTable(nodes []*testNode) string {
 	return table
 }
 
-func createNodesWithNodeSkInShardExceptFirst(
+func displayAndStartNodes(nodes []*testNode) {
+	for _, n := range nodes {
+		skBuff, _ := n.sk.ToByteArray()
+		pkBuff, _ := n.pk.ToByteArray()
+
+		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
+			n.shardId,
+			hex.EncodeToString(skBuff),
+			hex.EncodeToString(pkBuff),
+		)
+
+		_ = n.node.Start()
+		_ = n.node.P2PBootstrap()
+	}
+}
+
+func createNodes(
 	startingPort int,
 	numOfShards int,
 	nodesPerShard int,
-	firstSkShardId uint32,
 	serviceID string,
 ) []*testNode {
 
@@ -304,40 +340,32 @@ func createNodesWithNodeSkInShardExceptFirst(
 
 			shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
 			accntAdapter := createAccountsDB()
-			var n *node.Node
-			var mes p2p.Messenger
-			var sk crypto.PrivateKey
-			var resFinder process.ResolversFinder
 
-			isFirstNodeGenerated := shardId == 0 && j == 0
-
-			if isFirstNodeGenerated {
-				n, mes, sk, resFinder = createNetNode(
-					startingPort+idx,
-					testNode.dPool,
-					accntAdapter,
-					shardCoordinator,
-					firstSkShardId,
-					serviceID,
-				)
-			} else {
-				n, mes, sk, resFinder = createNetNode(
-					startingPort+idx,
-					testNode.dPool,
-					accntAdapter,
-					shardCoordinator,
-					testNode.shardId,
-					serviceID,
-				)
-			}
+			n, mes, sk, resFinder := createNetNode(
+				startingPort+idx,
+				testNode.dPool,
+				accntAdapter,
+				shardCoordinator,
+				testNode.shardId,
+				serviceID,
+			)
 
 			testNode.node = n
 			testNode.sk = sk
 			testNode.mesenger = mes
 			testNode.pk = sk.GeneratePublic()
 			testNode.resFinder = resFinder
-			testNode.dPool.Transactions().RegisterHandler(func(key []byte) {
-				atomic.AddInt32(&testNode.txRecv, 1)
+			testNode.dPool.Headers().RegisterHandler(func(key []byte) {
+				atomic.AddInt32(&testNode.headersRecv, 1)
+				testNode.mutHeaders.Lock()
+				testNode.headersHashes = append(testNode.headersHashes, key)
+				testNode.mutHeaders.Unlock()
+			})
+			testNode.dPool.MiniBlocks().RegisterHandler(func(key []byte) {
+				atomic.AddInt32(&testNode.miniblocksRecv, 1)
+				testNode.mutMiniblocks.Lock()
+				testNode.miniblocksHashes = append(testNode.miniblocksHashes, key)
+				testNode.mutMiniblocks.Unlock()
 			})
 
 			nodes[idx] = testNode
@@ -346,4 +374,69 @@ func createNodesWithNodeSkInShardExceptFirst(
 	}
 
 	return nodes
+}
+
+func getMiniBlocksHashesFromShardIds(body dataBlock.Body, shardIds ...uint32) [][]byte {
+	hashes := make([][]byte, 0)
+
+	for _, miniblock := range body {
+		for _, shardId := range shardIds {
+			if miniblock.ShardID == shardId {
+				buff, _ := testMarshalizer.Marshal(miniblock)
+				hashes = append(hashes, testHasher.Compute(string(buff)))
+			}
+		}
+	}
+
+	return hashes
+}
+
+func equalSlices(slice1 [][]byte, slice2 [][]byte) bool {
+	if len(slice1) != len(slice2) {
+		return false
+	}
+
+	//check slice1 has all elements in slice2
+	for _, buff1 := range slice1 {
+		found := false
+
+		for _, buff2 := range slice2 {
+			if bytes.Equal(buff1, buff2) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return false
+		}
+	}
+
+	//check slice2 has all elements in slice1
+	for _, buff2 := range slice2 {
+		found := false
+
+		for _, buff1 := range slice1 {
+			if bytes.Equal(buff1, buff2) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return false
+		}
+	}
+
+	return true
+}
+
+func uint32InSlice(searched uint32, list []uint32) bool {
+	for _, val := range list {
+		if val == searched {
+			return true
+		}
+	}
+
+	return false
 }

@@ -22,7 +22,7 @@ type BelNevMock struct {
 	VerifyMock               func(bitmap []byte) error
 	CommitmentHashMock       func(index uint16) ([]byte, error)
 	CreateCommitmentMock     func() ([]byte, []byte)
-	AggregateCommitmentsMock func(bitmap []byte) ([]byte, error)
+	AggregateCommitmentsMock func(bitmap []byte) error
 	CreateSignatureShareMock func(bitmap []byte) ([]byte, error)
 	VerifySignatureShareMock func(index uint16, sig []byte, bitmap []byte) error
 	AggregateSigsMock        func(bitmap []byte) ([]byte, error)
@@ -149,15 +149,8 @@ func (bnm *BelNevMock) Commitment(index uint16) ([]byte, error) {
 }
 
 // AggregateCommitments aggregates the list of commitments
-func (bnm *BelNevMock) AggregateCommitments(bitmap []byte) ([]byte, error) {
+func (bnm *BelNevMock) AggregateCommitments(bitmap []byte) error {
 	return bnm.AggregateCommitmentsMock(bitmap)
-}
-
-// SetAggCommitment sets the aggregated commitment
-func (bnm *BelNevMock) SetAggCommitment(aggCommitment []byte) error {
-	bnm.aggCom = aggCommitment
-
-	return nil
 }
 
 // CreateSignatureShare creates a partial signature
