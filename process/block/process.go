@@ -29,7 +29,7 @@ var log = logger.NewDefaultLogger()
 var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
-const maxTransactionsInBlock = 15000
+const maxTransactionsInBlock = 1500
 
 // blockProcessor implements blockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
@@ -505,7 +505,7 @@ func (bp *blockProcessor) requestBlockTransactions(body block.Body) int {
 			for _, txHash := range txHashes {
 				requestedTxs++
 				bp.requestedTxHashes[string(txHash)] = true
-				bp.OnRequestTransaction(shardId, txHash)
+				go bp.OnRequestTransaction(shardId, txHash)
 			}
 		}
 	}
