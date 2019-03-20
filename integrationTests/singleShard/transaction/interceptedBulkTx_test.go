@@ -44,7 +44,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	nodeAccount.SetNonceWithJournal(startingNonce)
 	accntAdapter.Commit()
 
-	noOfTx := 10000
+	noOfTx := 100000
 
 	time.Sleep(time.Second)
 

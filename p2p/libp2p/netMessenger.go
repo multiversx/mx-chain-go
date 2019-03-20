@@ -137,7 +137,7 @@ func createMessenger(
 			}
 
 			_ = pb.Publish(sendableData.Topic, sendableData.Buff)
-			time.Sleep(durationBetweenSends)
+			//time.Sleep(durationBetweenSends)
 		}
 	}(pb, netMes.outgoingPLB)
 
