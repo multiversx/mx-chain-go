@@ -8,17 +8,18 @@ import (
 )
 
 type BlockProcessorMock struct {
-	ProcessBlockCalled            func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled             func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountStateCalled      func()
-	CreateGenesisBlockCalled      func(balances map[string]*big.Int) (rootHash []byte, err error)
-	CreateBlockCalled             func(round int32, haveTime func() bool) (data.BodyHandler, error)
-	RemoveBlockInfoFromPoolCalled func(body data.BodyHandler) error
-	GetRootHashCalled             func() []byte
-	noShards                      uint32
-	SetOnRequestTransactionCalled func(f func(destShardID uint32, txHash []byte))
-	CheckBlockValidityCalled      func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
-	CreateBlockHeaderCalled       func(body data.BodyHandler) (data.HeaderHandler, error)
+	ProcessBlockCalled                 func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                  func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
+	RevertAccountStateCalled           func()
+	CreateGenesisBlockCalled           func(balances map[string]*big.Int) (rootHash []byte, err error)
+	CreateBlockCalled                  func(round int32, haveTime func() bool) (data.BodyHandler, error)
+	RemoveBlockInfoFromPoolCalled      func(body data.BodyHandler) error
+	GetRootHashCalled                  func() []byte
+	noShards                           uint32
+	SetOnRequestTransactionCalled      func(f func(destShardID uint32, txHash []byte))
+	CheckBlockValidityCalled           func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
+	CreateBlockHeaderCalled            func(body data.BodyHandler) (data.HeaderHandler, error)
+	MarshalizedDataForCrossShardCalled func(body data.BodyHandler) (map[uint32][][]byte, error)
 }
 
 func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
@@ -56,4 +57,8 @@ func (blProcMock BlockProcessorMock) CheckBlockValidity(blockChain data.ChainHan
 
 func (blProcMock BlockProcessorMock) CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error) {
 	return blProcMock.CreateBlockHeaderCalled(body)
+}
+
+func (blProcMock BlockProcessorMock) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][][]byte, error) {
+	return blProcMock.MarshalizedDataForCrossShardCalled(body)
 }

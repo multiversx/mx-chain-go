@@ -2,7 +2,7 @@ package block_test
 
 import (
 	"bytes"
-	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -300,12 +300,43 @@ func TestHeader_SetTimeStamp(t *testing.T) {
 	assert.Equal(t, timeStamp, h.GetTimestamp())
 }
 
+func TestBody_IntegrityAndValidityNil(t *testing.T) {
+	t.Parallel()
 
-func Test_test(t *testing.T){
-	var list []string
-	list = nil
+	body := block.Body{}
+	body = nil
+	assert.Equal(t, data.ErrBlockBodyEmpty, body.IntegrityAndValidity())
+}
 
-	for i:= range list {
-		fmt.Println("entered ", i)
+func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.T) {
+	t.Parallel()
+
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
 	}
+
+	mb1 := block.MiniBlock{}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+	body = append(body, &mb1)
+
+	assert.Equal(t, data.ErrMiniBlockEmpty, body.IntegrityAndValidity())
+}
+
+func TestBody_IntegrityAndValidityOK(t *testing.T) {
+	t.Parallel()
+
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+
+	assert.Equal(t, nil, body.IntegrityAndValidity())
 }

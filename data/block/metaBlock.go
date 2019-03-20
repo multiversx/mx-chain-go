@@ -69,6 +69,10 @@ type MetaBlock struct {
 	StateRootHash []byte      `capid:"11"`
 }
 
+// MetaBlockBody hold the data for metablock body
+type MetaBlockBody struct {
+}
+
 // Save saves the serialized data of a PeerData into a stream through Capnp protocol
 func (p *PeerData) Save(w io.Writer) error {
 	seg := capn.NewBuffer(nil)
@@ -386,4 +390,9 @@ func (m *MetaBlock) SetSignature(sg []byte) {
 // SetTimeStamp sets header timestamp
 func (m *MetaBlock) SetTimeStamp(ts uint64) {
 	m.TimeStamp = ts
+}
+
+// IntegrityAndValidity return true as block is nil for metablock.
+func (mb *MetaBlockBody) IntegrityAndValidity() error {
+	return nil
 }

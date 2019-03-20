@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"io"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnp"
@@ -427,4 +428,18 @@ func (h *Header) SetSignature(sg []byte) {
 // SetTimeStamp sets header timestamp
 func (h *Header) SetTimeStamp(ts uint64) {
 	h.TimeStamp = ts
+}
+
+// IntegrityAndValidity checks if data is valid
+func (b Body) IntegrityAndValidity() error {
+	if len(b) == 0 {
+		return data.ErrBlockBodyEmpty
+	}
+
+	for i := 0; i < len(b); i++ {
+		if len(b[i].TxHashes) == 0 {
+			return data.ErrMiniBlockEmpty
+		}
+	}
+	return nil
 }

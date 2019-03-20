@@ -1928,3 +1928,157 @@ func TestBlockProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T)
 	assert.NotNil(t, err)
 	assert.Equal(t, 0, journalEntries)
 }
+
+func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	txHash1 := []byte("txHash1")
+	mb1 := block.MiniBlock{
+		ShardID:  1,
+		TxHashes: [][]byte{[]byte(txHash1)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+	body = append(body, &mb1)
+	body = append(body, &mb0)
+	body = append(body, &mb1)
+
+	marshal := &mock.MarshalizerMock{
+		false,
+	}
+
+	be, _ := blproc.NewBlockProcessor(
+		tdp,
+		&mock.HasherStub{},
+		marshal,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	msh, err := be.MarshalizedDataForCrossShard(body)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, msh)
+
+	_, found := msh[0]
+	assert.Equal(t, false, found)
+	m1, _ := marshal.Marshal(mb1)
+	assert.Equal(t, m1, msh[1][0])
+	assert.Equal(t, m1, msh[1][1])
+}
+
+type wrongBody struct {
+}
+
+func (wr wrongBody) IntegrityAndValidity() error {
+	return nil
+}
+
+func TestBlockProcessor_MarshalizedDataWrongType(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+
+	marshal := &mock.MarshalizerMock{
+		false,
+	}
+
+	be, _ := blproc.NewBlockProcessor(
+		tdp,
+		&mock.HasherStub{},
+		marshal,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	wr := wrongBody{}
+	msh, err := be.MarshalizedDataForCrossShard(wr)
+
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Nil(t, msh)
+}
+
+func TestBlockProcessor_MarshalizedDataNilInput(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+
+	marshal := &mock.MarshalizerMock{
+		false,
+	}
+
+	be, _ := blproc.NewBlockProcessor(
+		tdp,
+		&mock.HasherStub{},
+		marshal,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	msh, err := be.MarshalizedDataForCrossShard(nil)
+
+	assert.Equal(t, process.ErrNilMiniBlocks, err)
+	assert.Nil(t, msh)
+}
+
+func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	mb1 := block.MiniBlock{}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+	body = append(body, &mb1)
+
+	marshal := &mock.MarshalizerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, process.ErrMarshalWithoutSuccess
+		},
+	}
+
+	be, _ := blproc.NewBlockProcessor(
+		tdp,
+		&mock.HasherStub{},
+		marshal,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	msh, err := be.MarshalizedDataForCrossShard(body)
+
+	assert.Equal(t, process.ErrMarshalWithoutSuccess, err)
+	assert.Nil(t, msh)
+}
