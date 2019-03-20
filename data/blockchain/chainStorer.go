@@ -10,8 +10,8 @@ import (
 // ChainStorer is a StorageService implementation that can hold multiple storages
 //  grouped by storage unit type
 type ChainStorer struct {
-	lock                   sync.RWMutex
-	chain                  map[data.UnitType]storage.Storer
+	lock  sync.RWMutex
+	chain map[data.UnitType]storage.Storer
 }
 
 // NewChainStorer returns a new initialised ChainStorer

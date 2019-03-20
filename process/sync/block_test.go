@@ -1796,11 +1796,11 @@ func TestBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &block.Header{}
+		return nil
 	}
 
 	err := bs.ForkChoice()
-	assert.Equal(t, sync.ErrNilHeader, err)
+	assert.Equal(t, sync.ErrNilCurrentHeader, err)
 }
 
 func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
@@ -1948,7 +1948,6 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 			PrevHash: prevHdrHash,
 		}
 	}
-
 
 	err := bs.ForkChoice()
 	assert.Nil(t, err)

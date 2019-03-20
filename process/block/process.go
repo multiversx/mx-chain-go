@@ -29,7 +29,7 @@ var log = logger.NewDefaultLogger()
 var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
-const maxTransactionsInBlock = 1500
+const maxTransactionsInBlock = 15000
 
 // blockProcessor implements blockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
@@ -467,7 +467,7 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 		return nil
 	}
 
-	val, ok := txStore.Get(txHash)
+	val, ok := txStore.Peek(txHash)
 	if !ok {
 		return nil
 	}
@@ -911,7 +911,7 @@ func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 	nonces := make([]uint64, 0)
 
 	for _, key := range txShardStore.Keys() {
-		val, _ := txShardStore.Get(key)
+		val, _ := txShardStore.Peek(key)
 		if val == nil {
 			continue
 		}
@@ -1073,7 +1073,7 @@ func getTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, 
 	txHashes := make([][]byte, 0)
 
 	for _, key := range txShardStore.Keys() {
-		val, _ := txShardStore.Get(key)
+		val, _ := txShardStore.Peek(key)
 		if val == nil {
 			continue
 		}

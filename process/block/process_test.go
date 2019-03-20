@@ -629,14 +629,19 @@ func TestBlockProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	}
 
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
-	blkc := createTestBlockchain()
+
+	blkc := &blockchain.BlockChain{
+		CurrentBlockHeader: &block.Header{
+			Nonce: 0,
+		},
+	}
+
 	hdr := block.Header{
-		Nonce:         0,
+		Nonce:         1,
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte("00110"),
 		ShardId:       0,
-		Commitment:    []byte("commitment"),
 		RootHash:      []byte("rootHash"),
 	}
 	body := make(block.Body, 0)
@@ -700,14 +705,19 @@ func TestBlockProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	}
 
 	tpm := mock.TxProcessorMock{ProcessTransactionCalled: txProcess}
-	blkc := createTestBlockchain()
+
+	blkc := &blockchain.BlockChain{
+		CurrentBlockHeader: &block.Header{
+			Nonce: 0,
+		},
+	}
+
 	hdr := block.Header{
-		Nonce:         0,
+		Nonce:         1,
 		PrevHash:      []byte(""),
 		Signature:     []byte("signature"),
 		PubKeysBitmap: []byte("00110"),
 		ShardId:       0,
-		Commitment:    []byte("commitment"),
 		RootHash:      []byte("rootHash"),
 	}
 	body := make(block.Body, 0)
@@ -2102,7 +2112,7 @@ func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 	body = append(body, &mb1)
 
 	marshal := &mock.MarshalizerMock{
-		false,
+		Fail: false,
 	}
 
 	be, _ := blproc.NewBlockProcessor(
@@ -2142,7 +2152,7 @@ func TestBlockProcessor_MarshalizedDataWrongType(t *testing.T) {
 	tdp := initDataPool()
 
 	marshal := &mock.MarshalizerMock{
-		false,
+		Fail: false,
 	}
 
 	be, _ := blproc.NewBlockProcessor(
@@ -2170,7 +2180,7 @@ func TestBlockProcessor_MarshalizedDataNilInput(t *testing.T) {
 	tdp := initDataPool()
 
 	marshal := &mock.MarshalizerMock{
-		false,
+		Fail: false,
 	}
 
 	be, _ := blproc.NewBlockProcessor(

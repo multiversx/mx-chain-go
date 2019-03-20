@@ -631,9 +631,9 @@ func (boot *Bootstrap) forkChoice() error {
 		return process.ErrWrongTypeAssertion
 	}
 
-	if !isEmpty(header) {
+	if !isEmpty(currentHeader) {
 		return &ErrNotEmptyHeader{
-			CurrentNonce: header.Nonce}
+			CurrentNonce: currentHeader.Nonce}
 	}
 
 	log.Info(fmt.Sprintf("roll back to header with hash %s\n",

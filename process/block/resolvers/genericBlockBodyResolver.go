@@ -182,11 +182,11 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocks(hashes [][]byte) [][]byte 
 // getMiniBlocksFromCache returns a full list of miniblocks from cache.
 // If any of the miniblocks is missing the function returns nil
 func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromCache(hashes [][]byte) [][]byte {
-	miniBlocksLen :=  len(hashes)
+	miniBlocksLen := len(hashes)
 	miniBlocks := make([][]byte, miniBlocksLen)
 
 	for i := 0; i < miniBlocksLen; i++ {
-		cachedMB, _ := gbbRes.miniBlockPool.Get(hashes[i])
+		cachedMB, _ := gbbRes.miniBlockPool.Peek(hashes[i])
 
 		if cachedMB == nil {
 			return nil
@@ -208,7 +208,7 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromCache(hashes [][]byte) 
 // getMiniBlocksFromStorer returns a full list of MiniBlocks from the storage unit.
 // If any MiniBlock is missing or is invalid, it is removed and the function returns nil
 func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte) [][]byte {
-	miniBlocksLen :=  len(hashes)
+	miniBlocksLen := len(hashes)
 	miniBlocks := make([][]byte, miniBlocksLen)
 
 	for i := 0; i < miniBlocksLen; i++ {
@@ -221,6 +221,6 @@ func (gbbRes *GenericBlockBodyResolver) getMiniBlocksFromStorer(hashes [][]byte)
 
 		miniBlocks[i] = buff
 	}
-	
+
 	return miniBlocks
 }
