@@ -29,7 +29,7 @@ var log = logger.NewDefaultLogger()
 var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
-const maxTransactionsInBlock = 1500
+const maxTransactionsInBlock = 15000
 
 // blockProcessor implements blockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
