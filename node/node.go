@@ -747,21 +747,7 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 		return ErrNilTxBlockBody
 	}
 
-	if !blockBody.IntegrityAndValidity() {
-		return ErrNotValidBlockBody
-	}
-
-	msgBlockBody, err := n.marshalizer.Marshal(blockBody)
-
-	if err != nil {
-		return err
-	}
-
-	go n.messenger.Broadcast(factory.MiniBlocksTopic+
-		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
-
-	err = n.broadcastMiniBlocksToDest(blockBody)
-
+	err := blockBody.IntegrityAndValidity()
 	if err != nil {
 		return err
 	}
@@ -771,7 +757,16 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	}
 
 	msgHeader, err := n.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
 
+	msgBlockBody, err := n.marshalizer.Marshal(blockBody)
+	if err != nil {
+		return err
+	}
+
+	msgMapBlockBody, err := n.blockProcessor.MarshalizedDataForCrossShard(blockBody)
 	if err != nil {
 		return err
 	}
@@ -779,27 +774,14 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	go n.messenger.Broadcast(factory.HeadersTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgHeader)
 
-	return nil
-}
-
-func (n *Node) broadcastMiniBlocksToDest(blockBody data.BodyHandler) error {
-	if blockBody == nil {
-		return ErrNilTxBlockBody
-	}
-
-	if !blockBody.IntegrityAndValidity() {
-		return ErrNotValidBlockBody
-	}
-
-	msgMapBlockBody, err := n.blockProcessor.MarshalizedDataForCrossShard(blockBody)
-
-	if err != nil {
-		return err
-	}
+	go n.messenger.Broadcast(factory.MiniBlocksTopic+
+		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
 	for k, v := range msgMapBlockBody {
-		go n.messenger.Broadcast(factory.MiniBlocksTopic+
-			n.shardCoordinator.CommunicationIdentifier(k), v)
+		for i := 0; i < len(v); i++ {
+			go n.messenger.Broadcast(factory.MiniBlocksTopic+
+				n.shardCoordinator.CommunicationIdentifier(k), v[i])
+		}
 	}
 
 	return nil

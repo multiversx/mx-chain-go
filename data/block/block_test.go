@@ -2,7 +2,7 @@ package block_test
 
 import (
 	"bytes"
-	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -305,10 +305,10 @@ func TestBody_IntegrityAndValidityNil(t *testing.T) {
 
 	body := block.Body{}
 	body = nil
-	assert.Equal(t, false, body.IntegrityAndValidity())
+	assert.Equal(t, data.ErrBlockBodyEmpty, body.IntegrityAndValidity())
 }
 
-func TestBody_IntegrityAndValidityMiniNil(t *testing.T) {
+func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.T) {
 	t.Parallel()
 
 	txHash0 := []byte("txHash0")
@@ -323,7 +323,7 @@ func TestBody_IntegrityAndValidityMiniNil(t *testing.T) {
 	body = append(body, &mb0)
 	body = append(body, &mb1)
 
-	assert.Equal(t, false, body.IntegrityAndValidity())
+	assert.Equal(t, data.ErrMiniBlockEmpty, body.IntegrityAndValidity())
 }
 
 func TestBody_IntegrityAndValidityOK(t *testing.T) {
@@ -338,14 +338,5 @@ func TestBody_IntegrityAndValidityOK(t *testing.T) {
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
 
-	assert.Equal(t, true, body.IntegrityAndValidity())
-}
-
-func Test_test(t *testing.T) {
-	var list []string
-	list = nil
-
-	for i := range list {
-		fmt.Println("entered ", i)
-	}
+	assert.Equal(t, nil, body.IntegrityAndValidity())
 }

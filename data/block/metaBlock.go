@@ -393,6 +393,6 @@ func (m *MetaBlock) SetTimeStamp(ts uint64) {
 }
 
 // IntegrityAndValidity return true as block is nil for metablock.
-func (mb *MetaBlockBody) IntegrityAndValidity() bool {
-	return true
+func (mb *MetaBlockBody) IntegrityAndValidity() error {
+	return nil
 }

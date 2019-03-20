@@ -45,3 +45,9 @@ var ErrInvalidHeaderType = errors.New("invalid header type")
 
 // ErrInvalidBodyType signals an invalid header pointer was provided
 var ErrInvalidBodyType = errors.New("invalid body type")
+
+// ErrBlockBodyEmpty signals that block body is empty
+var ErrBlockBodyEmpty = errors.New("block body empty")
+
+// ErrMiniBlockEmpty signals that mini block is empty
+var ErrMiniBlockEmpty = errors.New("mini block is empty")

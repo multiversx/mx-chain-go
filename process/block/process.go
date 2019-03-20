@@ -704,7 +704,6 @@ func (bp *blockProcessor) waitForTxHashes(waitTime time.Duration) error {
 }
 
 func (bp *blockProcessor) displayBlockchain(blockHeader *block.Header, txBlockBody block.Body) {
-
 	if blockHeader == nil || txBlockBody == nil {
 		return
 	}
@@ -963,7 +962,6 @@ func (bp *blockProcessor) getTxsFromPool(shardId uint32) int {
 
 // CheckBlockValidity method checks if the given block is valid
 func (bp *blockProcessor) CheckBlockValidity(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool {
-
 	if header == nil {
 		log.Info(process.ErrNilBlockHeader.Error())
 		return false
@@ -1027,12 +1025,12 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain data.ChainHandler, heade
 }
 
 // MarshalizedDataForCrossShard prepares underlying data into a marshalized object according to destination
-func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32]([]byte), error) {
+func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][][]byte, error) {
 	if body == nil {
 		return nil, process.ErrNilMiniBlocks
 	}
 
-	mrsData := make(map[uint32][]byte)
+	mrsData := make(map[uint32][][]byte)
 	blockBody, ok := body.(block.Body)
 
 	if !ok {
@@ -1046,7 +1044,7 @@ func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (m
 			return nil, process.ErrMarshalWithoutSuccess
 		}
 		if shardId != bp.shardCoordinator.SelfId() {
-			mrsData[shardId] = buff
+			mrsData[shardId] = append(mrsData[shardId], buff)
 		}
 	}
 

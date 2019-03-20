@@ -1949,6 +1949,8 @@ func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
 	body = append(body, &mb1)
+	body = append(body, &mb0)
+	body = append(body, &mb1)
 
 	marshal := &mock.MarshalizerMock{
 		false,
@@ -1974,14 +1976,15 @@ func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 	_, found := msh[0]
 	assert.Equal(t, false, found)
 	m1, _ := marshal.Marshal(mb1)
-	assert.Equal(t, m1, msh[1])
+	assert.Equal(t, m1, msh[1][0])
+	assert.Equal(t, m1, msh[1][1])
 }
 
 type wrongBody struct {
 }
 
-func (wr wrongBody) IntegrityAndValidity() bool {
-	return true
+func (wr wrongBody) IntegrityAndValidity() error {
+	return nil
 }
 
 func TestBlockProcessor_MarshalizedDataWrongType(t *testing.T) {

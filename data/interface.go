@@ -106,7 +106,7 @@ type HeaderHandler interface {
 // BodyHandler interface for a block body
 type BodyHandler interface {
 	// checks the integrity and validity of the block
-	IntegrityAndValidity() bool
+	IntegrityAndValidity() error
 }
 
 // StorageService is the interface for blockChain storage unit provided services
