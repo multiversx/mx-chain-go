@@ -61,7 +61,7 @@ func initDataPool() *mock.PoolsHolderStub {
 				RegisterHandlerCalled: func(i func(key []byte)) {},
 				ShardDataStoreCalled: func(shardID uint32) (c storage.Cacher) {
 					return &mock.CacherStub{
-						GetCalled: func(key []byte) (value interface{}, ok bool) {
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, []byte("tx1_hash")) {
 								return &transaction.Transaction{Nonce: 10}, true
 							}
@@ -1093,7 +1093,7 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	)
 
 	txCache := &mock.CacherStub{
-		GetCalled: func(key []byte) (value interface{}, ok bool) {
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
 		LenCalled: func() int {
@@ -1183,7 +1183,7 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	)
 
 	txCache := &mock.CacherStub{
-		GetCalled: func(key []byte) (value interface{}, ok bool) {
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(txHash, key) {
 				return tx, true
 			}

@@ -190,7 +190,6 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		if err != nil {
 			bp.RevertAccountState()
 		}
-
 		bp.mutProcessBlock.Unlock()
 	}()
 
@@ -425,14 +424,14 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 		return err
 	}
 
-	err2 := bp.RemoveBlockInfoFromPool(body)
-	if err2 != nil {
-		log.Info(err2.Error())
+	errNotCritical := bp.RemoveBlockInfoFromPool(body)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
 	}
 
-	err2 = bp.forkDetector.AddHeader(blockHeader, headerHash, true)
-	if err2 != nil {
-		log.Info(err2.Error())
+	errNotCritical = bp.forkDetector.AddHeader(blockHeader, headerHash, true)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
 	}
 
 	err = blockChain.SetCurrentBlockBody(blockBody)
