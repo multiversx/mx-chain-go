@@ -2,7 +2,6 @@ package sync_test
 
 import (
 	"bytes"
-	"fmt"
 	"reflect"
 	"strings"
 	goSync "sync"
@@ -1745,7 +1744,7 @@ func TestBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
 	assert.Equal(t, sync.ErrNilCurrentHeader, err)
 }
 
-func TestBootstrap_ForkChoiceIsNotEmptyShouldRemove(t *testing.T) {
+func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	newHdrHash := []byte("new hdr hash")
@@ -1790,11 +1789,6 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldRemove(t *testing.T) {
 
 	err := bs.ForkChoice()
 	assert.Equal(t, reflect.TypeOf(&sync.ErrNotEmptyHeader{}), reflect.TypeOf(err))
-	fmt.Printf(err.Error())
-	assert.True(t, remFlags.flagHdrRemovedFromNonces)
-	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
-	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
-
 }
 
 func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {

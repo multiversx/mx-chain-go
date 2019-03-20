@@ -1161,3 +1161,51 @@ func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	assert.Nil(t, header)
 	assert.Equal(t, expectedErr, err)
 }
+
+func TestSubroundBlock_CallFuncRemainingTimeShouldWork(t *testing.T) {
+	roundStartTime := time.Now()
+	sec := roundStartTime.Unix()
+	nsec := int64(roundStartTime.Nanosecond())
+	maxTime := time.Duration(100 * time.Millisecond)
+
+	remainingTimeInCurrentRound := func() time.Duration {
+		return RemainingTime(sec, nsec, maxTime)
+	}
+
+	assert.True(t, remainingTimeInCurrentRound() > 0)
+	time.Sleep(200 * time.Millisecond)
+	assert.True(t, remainingTimeInCurrentRound() < 0)
+	roundStartTime = roundStartTime.Add(500 * time.Millisecond)
+	assert.True(t, remainingTimeInCurrentRound() < 0)
+}
+
+func TestSubroundBlock_CallFuncRemainingTimeWithStructShouldNotWork(t *testing.T) {
+	roundStartTime := time.Now()
+	maxTime := time.Duration(100 * time.Millisecond)
+
+	remainingTimeInCurrentRound := func() time.Duration {
+		return RemainingTimeWithStruct(roundStartTime, maxTime)
+	}
+
+	assert.True(t, remainingTimeInCurrentRound() > 0)
+	time.Sleep(200 * time.Millisecond)
+	assert.True(t, remainingTimeInCurrentRound() < 0)
+	roundStartTime = roundStartTime.Add(500 * time.Millisecond)
+	assert.False(t, remainingTimeInCurrentRound() < 0)
+}
+
+func RemainingTime(sec int64, nsec int64, maxTime time.Duration) time.Duration {
+	currentTime := time.Now()
+	elapsedTime := currentTime.Sub(time.Unix(sec, nsec))
+	remainingTime := maxTime - elapsedTime
+
+	return remainingTime
+}
+
+func RemainingTimeWithStruct(startTime time.Time, maxTime time.Duration) time.Duration {
+	currentTime := time.Now()
+	elapsedTime := currentTime.Sub(startTime)
+	remainingTime := maxTime - elapsedTime
+
+	return remainingTime
+}

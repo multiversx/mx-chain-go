@@ -34,6 +34,6 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 	}
 }
 
-func (rndm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
+func (rndm *RounderMock) RemainingTime(sec int64, nsec int64, maxTime time.Duration) time.Duration {
 	return rndm.RoundTimeDuration
 }

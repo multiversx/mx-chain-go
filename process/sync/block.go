@@ -379,6 +379,7 @@ func (boot *Bootstrap) SyncBlock() error {
 	}
 
 	if boot.isForkDetected {
+		log.Info("fork detected\n")
 		return boot.forkChoice()
 	}
 
@@ -425,6 +426,13 @@ func (boot *Bootstrap) SyncBlock() error {
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 
 	if err != nil {
+		isForkDetected := err == process.ErrInvalidBlockHash || err == process.ErrRootStateMissmatch
+		if isForkDetected {
+			log.Info(err.Error())
+			boot.removeHeaderFromPools(hdr)
+			err = boot.forkChoice()
+		}
+
 		return err
 	}
 
@@ -619,7 +627,6 @@ func (boot *Bootstrap) forkChoice() error {
 	}
 
 	if !isEmpty(header) {
-		boot.removeHeaderFromPools(header)
 		return &ErrNotEmptyHeader{
 			CurrentNonce: header.Nonce}
 	}
@@ -728,10 +735,6 @@ func (boot *Bootstrap) ShouldSync() bool {
 	}
 
 	boot.isForkDetected = boot.forkDetector.CheckFork()
-
-	if boot.isForkDetected {
-		log.Info("fork detected\n")
-	}
 
 	if boot.blkc.CurrentBlockHeader == nil {
 		boot.hasLastBlock = boot.rounder.Index() <= 0

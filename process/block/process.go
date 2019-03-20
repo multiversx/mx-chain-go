@@ -29,7 +29,7 @@ var log = logger.NewDefaultLogger()
 var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
-const maxTransactionsInBlock = 15000
+const maxTransactionsInBlock = 1500
 
 // blockProcessor implements blockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
@@ -44,6 +44,7 @@ type blockProcessor struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
 	forkDetector         process.ForkDetector
+	mutProcessBlock      sync.Mutex
 }
 
 // NewBlockProcessor creates a new blockProcessor object
@@ -150,13 +151,11 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		return process.ErrNilHaveTimeHandler
 	}
 
-	// transform from interface into struct
 	blockBody, ok := body.(block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	// transform from interface into struct
 	blockHeader, ok := header.(*block.Header)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -182,15 +181,20 @@ func (bp *blockProcessor) ProcessBlock(blockChain *blockchain.BlockChain, header
 		}
 	}
 
-	if bp.accounts.JournalLen() != 0 {
-		return process.ErrAccountStateDirty
-	}
-
 	defer func() {
 		if err != nil {
 			bp.RevertAccountState()
 		}
+
+		bp.mutProcessBlock.Unlock()
 	}()
+
+	bp.mutProcessBlock.Lock()
+
+	if bp.accounts.JournalLen() != 0 {
+		err = process.ErrAccountStateDirty
+		return err
+	}
 
 	err = bp.processBlockTransactions(blockBody, int32(blockHeader.Round), haveTime)
 	if err != nil {
@@ -211,7 +215,6 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 		return process.ErrNilTxBlockBody
 	}
 
-	// transform from interface into struct
 	blockBody, ok := body.(block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -356,14 +359,12 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		return err
 	}
 
-	// transform from interface into struct
 	blockBody, ok := body.(block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
 		return err
 	}
 
-	// transform from interface into struct
 	blockHeader, ok := header.(*block.Header)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
@@ -414,19 +415,19 @@ func (bp *blockProcessor) CommitBlock(blockChain *blockchain.BlockChain, header 
 		}
 	}
 
-	err = bp.RemoveBlockInfoFromPool(body)
-	if err != nil {
-		return err
-	}
-
-	err = bp.forkDetector.AddHeader(blockHeader, headerHash, true)
-	if err != nil {
-		return err
-	}
-
 	_, err = bp.accounts.Commit()
 	if err != nil {
 		return err
+	}
+
+	err2 := bp.RemoveBlockInfoFromPool(body)
+	if err2 != nil {
+		log.Info(err2.Error())
+	}
+
+	err2 = bp.forkDetector.AddHeader(blockHeader, headerHash, true)
+	if err2 != nil {
+		log.Info(err2.Error())
 	}
 
 	blockChain.CurrentTxBlockBody = blockBody
@@ -668,7 +669,6 @@ func (bp *blockProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderH
 		return header, nil
 	}
 
-	// transform from interface into struct
 	blockBody, ok := body.(block.Body)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion

@@ -17,7 +17,7 @@ type headerInfo struct {
 type basicForkDetector struct {
 	headers         map[uint64][]*headerInfo
 	mutHeaders      sync.Mutex
-	checkPointNonce uint64
+	checkpointNonce uint64
 }
 
 // NewBasicForkDetector method creates a new BasicForkDetector object
@@ -38,13 +38,13 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isPro
 		return ErrNilHash
 	}
 
-	if header.Nonce < bfd.checkPointNonce {
+	if header.Nonce < bfd.checkpointNonce {
 		return ErrLowerNonceInBlock
 	}
 
 	if !isEmpty(header) && isProcessed {
 		// create a check point and remove all the past headers
-		bfd.checkPointNonce = header.Nonce
+		bfd.checkpointNonce = header.Nonce
 		bfd.removePastHeaders(header.Nonce)
 	}
 

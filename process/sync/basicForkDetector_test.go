@@ -40,7 +40,7 @@ func TestBasicForkDetector_AddHeaderLowerNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	bfd := sync.NewBasicForkDetector()
-	bfd.SetCheckPointNonce(3)
+	bfd.SetCheckpointNonce(3)
 	err := bfd.AddHeader(&block.Header{Nonce: 2}, make([]byte, 0), true)
 
 	assert.Equal(t, sync.ErrLowerNonceInBlock, err)

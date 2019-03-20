@@ -698,7 +698,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *te
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 
-	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
+	rounderMock.RemainingTimeCalled = func(int64, int64, time.Duration) time.Duration {
 		return time.Duration(-1)
 	}
 
