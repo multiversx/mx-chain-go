@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
@@ -31,7 +30,7 @@ type Bootstrap struct {
 	headers          data.ShardedDataCacherNotifier
 	headersNonces    data.Uint64Cacher
 	miniBlocks       storage.Cacher
-	blkc             *blockchain.BlockChain
+	blkc             data.ChainHandler
 	rounder          consensus.Rounder
 	blkExecutor      process.BlockProcessor
 	hasher           hashing.Hasher
@@ -69,7 +68,7 @@ type Bootstrap struct {
 // NewBootstrap creates a new Bootstrap object
 func NewBootstrap(
 	poolsHolder data.PoolsHolder,
-	blkc *blockchain.BlockChain,
+	blkc data.ChainHandler,
 	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
 	waitTime time.Duration,
@@ -150,7 +149,7 @@ func NewBootstrap(
 // checkBootstrapNilParameters will check the imput parameters for nil values
 func checkBootstrapNilParameters(
 	pools data.PoolsHolder,
-	blkc *blockchain.BlockChain,
+	blkc data.ChainHandler,
 	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
 	hasher hashing.Hasher,
@@ -267,7 +266,7 @@ func (boot *Bootstrap) getHeaderFromPool(hash []byte) *block.Header {
 }
 
 func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
-	headerStore := boot.blkc.GetStorer(blockchain.BlockHeaderUnit)
+	headerStore := boot.blkc.GetStorer(data.BlockHeaderUnit)
 
 	if headerStore == nil {
 		log.Error(process.ErrNilHeadersStorage.Error())
@@ -589,8 +588,8 @@ func (boot *Bootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (interf
 // getNonceForNextBlock will get the nonce for the next block we should request
 func (boot *Bootstrap) getNonceForNextBlock() uint64 {
 	nonce := uint64(1) // first block nonce after genesis block
-	if boot.blkc != nil && boot.blkc.CurrentBlockHeader != nil {
-		nonce = boot.blkc.CurrentBlockHeader.Nonce + 1
+	if boot.blkc != nil && boot.blkc.GetCurrentBlockHeader() != nil {
+		nonce = boot.blkc.GetCurrentBlockHeader().GetNonce() + 1
 	}
 
 	return nonce
@@ -620,10 +619,16 @@ func (boot *Bootstrap) waitForMiniBlocks() {
 func (boot *Bootstrap) forkChoice() error {
 	log.Info(fmt.Sprintf("starting fork choice\n"))
 
-	header := boot.blkc.CurrentBlockHeader
+	header := boot.blkc.GetCurrentBlockHeader()
 
 	if header == nil {
 		return ErrNilCurrentHeader
+	}
+
+	// TODO: Forkchoice and sync should work with interfaces, so all type assertion should be removed
+	currentHeader, ok := header.(*block.Header)
+	if !ok {
+		return process.ErrWrongTypeAssertion
 	}
 
 	if !isEmpty(header) {
@@ -632,9 +637,9 @@ func (boot *Bootstrap) forkChoice() error {
 	}
 
 	log.Info(fmt.Sprintf("roll back to header with hash %s\n",
-		toB64(header.PrevHash)))
+		toB64(header.GetPrevHash())))
 
-	return boot.rollback(header)
+	return boot.rollback(currentHeader)
 }
 
 func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore storage.Storer) {
@@ -647,19 +652,19 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 }
 
 func (boot *Bootstrap) rollback(header *block.Header) error {
-	headerStore := boot.blkc.GetStorer(blockchain.BlockHeaderUnit)
+	headerStore := boot.blkc.GetStorer(data.BlockHeaderUnit)
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
 	}
 
 	// genesis block is treated differently
 	if header.Nonce == 1 {
-		boot.blkc.CurrentBlockHeader = nil
-		boot.blkc.CurrentTxBlockBody = nil
-		boot.blkc.CurrentBlockHeaderHash = nil
+		err := boot.blkc.SetCurrentBlockHeader(nil)
+		err = boot.blkc.SetCurrentBlockBody(nil)
+		boot.blkc.SetCurrentBlockHeaderHash(nil)
 		boot.cleanCachesOnRollback(header, headerStore)
 
-		return nil
+		return err
 	}
 
 	newHeader, err := boot.getPrevHeader(headerStore, header)
@@ -672,12 +677,12 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 		return err
 	}
 
-	boot.blkc.CurrentBlockHeader = newHeader
-	boot.blkc.CurrentTxBlockBody = newTxBlockBody
-	boot.blkc.CurrentBlockHeaderHash = header.PrevHash
+	err = boot.blkc.SetCurrentBlockHeader(newHeader)
+	err = boot.blkc.SetCurrentBlockBody(newTxBlockBody)
+	boot.blkc.SetCurrentBlockHeaderHash(header.PrevHash)
 	boot.cleanCachesOnRollback(header, headerStore)
 
-	return nil
+	return err
 }
 
 func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
@@ -736,10 +741,10 @@ func (boot *Bootstrap) ShouldSync() bool {
 
 	boot.isForkDetected = boot.forkDetector.CheckFork()
 
-	if boot.blkc.CurrentBlockHeader == nil {
+	if boot.blkc.GetCurrentBlockHeader() == nil {
 		boot.hasLastBlock = boot.rounder.Index() <= 0
 	} else {
-		boot.hasLastBlock = boot.blkc.CurrentBlockHeader.Round+1 >= uint32(boot.rounder.Index())
+		boot.hasLastBlock = boot.blkc.GetCurrentBlockHeader().GetRound()+1 >= uint32(boot.rounder.Index())
 	}
 
 	isNodeSynchronized := !boot.isForkDetected && boot.hasLastBlock
@@ -772,16 +777,19 @@ func (boot *Bootstrap) createHeader() (data.HeaderHandler, error) {
 
 	var prevHeaderHash []byte
 
-	if boot.blkc.CurrentBlockHeader == nil {
+	if boot.blkc.GetCurrentBlockHeader() == nil {
 		hdr.Nonce = 1
 		hdr.Round = 0
-		prevHeaderHash = boot.blkc.GenesisHeaderHash
+		prevHeaderHash = boot.blkc.GetGenesisHeaderHash()
+		hdr.PrevRandSeed = boot.blkc.GetGenesisHeader().GetSignature()
 	} else {
-		hdr.Nonce = boot.blkc.CurrentBlockHeader.Nonce + 1
-		hdr.Round = boot.blkc.CurrentBlockHeader.Round + 1
-		prevHeaderHash = boot.blkc.CurrentBlockHeaderHash
+		hdr.Nonce = boot.blkc.GetCurrentBlockHeader().GetNonce() + 1
+		hdr.Round = boot.blkc.GetCurrentBlockHeader().GetRound() + 1
+		prevHeaderHash = boot.blkc.GetCurrentBlockHeaderHash()
+		hdr.PrevRandSeed = boot.blkc.GetCurrentBlockHeader().GetSignature()
 	}
 
+	hdr.RandSeed = []byte{0}
 	hdr.TimeStamp = uint64(boot.getTimeStampForRound(hdr.Round).Unix())
 	hdr.PrevHash = prevHeaderHash
 	hdr.RootHash = boot.accounts.RootHash()
@@ -811,7 +819,6 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (da
 	}
 	hdrHash := boot.hasher.Compute(string(headerStr))
 	hdr.SetSignature(hdrHash)
-	hdr.SetCommitment(hdrHash)
 
 	// Commit the block (commits also the account state)
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)

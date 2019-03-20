@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
@@ -78,7 +77,7 @@ type Node struct {
 	multisig         crypto.MultiSigner
 	forkDetector     process.ForkDetector
 
-	blkc             *blockchain.BlockChain
+	blkc             data.ChainHandler
 	dataPool         data.PoolsHolder
 	shardCoordinator sharding.Coordinator
 
@@ -190,8 +189,12 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	n.blkc.GenesisBlock = genesisHeader
-	n.blkc.GenesisHeaderHash = genesisHeaderHash
+	err = n.blkc.SetGenesisHeader(genesisHeader)
+	if err != nil {
+		return err
+	}
+
+	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
 
 	rounder, err := n.createRounder()
 
@@ -738,32 +741,48 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
 		cnsDtaBuff)
 }
 
+// TODO make broadcastBlock to be able to work with metablocks as well.
 func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
 	if blockBody == nil {
 		return ErrNilTxBlockBody
 	}
 
-	msgBlockBody, err := n.marshalizer.Marshal(blockBody)
-
+	err := blockBody.IntegrityAndValidity()
 	if err != nil {
 		return err
 	}
-
-	go n.messenger.Broadcast(factory.MiniBlocksTopic+
-		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
 	if header == nil {
 		return ErrNilBlockHeader
 	}
 
 	msgHeader, err := n.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
 
+	msgBlockBody, err := n.marshalizer.Marshal(blockBody)
+	if err != nil {
+		return err
+	}
+
+	msgMapBlockBody, err := n.blockProcessor.MarshalizedDataForCrossShard(blockBody)
 	if err != nil {
 		return err
 	}
 
 	go n.messenger.Broadcast(factory.HeadersTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgHeader)
+
+	go n.messenger.Broadcast(factory.MiniBlocksTopic+
+		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
+
+	for k, v := range msgMapBlockBody {
+		for i := 0; i < len(v); i++ {
+			go n.messenger.Broadcast(factory.MiniBlocksTopic+
+				n.shardCoordinator.CommunicationIdentifier(k), v[i])
+		}
+	}
 
 	return nil
 }

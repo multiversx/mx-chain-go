@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
@@ -81,7 +81,7 @@ const (
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
 // functionality
 type factory struct {
-	blockChain             *blockchain.BlockChain
+	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
 	bootstraper            process.Bootstrapper
 	chronologyHandler      consensus.ChronologyHandler
@@ -98,7 +98,7 @@ type factory struct {
 
 // NewFactory creates a new consensusState object
 func NewFactory(
-	blockChain *blockchain.BlockChain,
+	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	chronologyHandler consensus.ChronologyHandler,
@@ -153,7 +153,7 @@ func NewFactory(
 }
 
 func checkNewFactoryParams(
-	blockChain *blockchain.BlockChain,
+	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	chronologyHandler consensus.ChronologyHandler,

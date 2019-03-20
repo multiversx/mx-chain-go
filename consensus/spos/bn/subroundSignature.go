@@ -126,7 +126,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	}
 
 	// first compute commitment aggregation
-	aggComm, err := sr.multiSigner.AggregateCommitments(bitmap)
+	err = sr.multiSigner.AggregateCommitments(bitmap)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -161,8 +161,6 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		log.Error(err.Error())
 		return false
 	}
-
-	sr.consensusState.Header.SetCommitment(aggComm)
 
 	return true
 }

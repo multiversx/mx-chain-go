@@ -44,7 +44,7 @@ func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-func createTestBlockChain() *blockchain.BlockChain {
+func createTestBlockChain() data.ChainHandler {
 
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 
