@@ -1,4 +1,4 @@
-package trie3
+package trie2
 
 import (
 	"bytes"

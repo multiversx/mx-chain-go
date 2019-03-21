@@ -1,4 +1,4 @@
-package trie3_test
+package trie2_test
 
 import (
 	"testing"

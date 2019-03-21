@@ -1,20 +1,18 @@
-package patriciaMerkleTrie_test
+package trie2_test
 
 import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2/patriciaMerkleTrie"
-
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 )
 
 func testTrie2(nr int) (trie2.Trie, [][]byte) {
-	tr, _ := patriciaMerkleTrie.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, nil)
+	db, _ := memorydb.New()
+	tr, _ := trie2.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, db)
 
 	var values [][]byte
 	hsh := keccak.Keccak{}
@@ -28,15 +26,26 @@ func testTrie2(nr int) (trie2.Trie, [][]byte) {
 
 }
 
+func testTrie() trie2.Trie {
+	db, _ := memorydb.New()
+	tr, _ := trie2.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, db)
+
+	tr.Update([]byte("doe"), []byte("reindeer"))
+	tr.Update([]byte("dog"), []byte("puppy"))
+	tr.Update([]byte("dogglesworth"), []byte("cat"))
+
+	return tr
+}
+
 func TestNewTrieWithNilParameters(t *testing.T) {
-	tr, err := patriciaMerkleTrie.NewTrie(nil, nil, nil)
+	tr, err := trie2.NewTrie(nil, nil, nil)
 
 	assert.Nil(t, tr)
 	assert.NotNil(t, err)
 }
 
 func TestPatriciaMerkleTree_Get(t *testing.T) {
-	tr, val := testTrie2(50)
+	tr, val := testTrie2(10000)
 
 	for i := range val {
 		v, _ := tr.Get(val[i])
@@ -86,19 +95,14 @@ func TestPatriciaMerkleTree_Delete(t *testing.T) {
 func TestPatriciaMerkleTree_Root(t *testing.T) {
 	tr := testTrie()
 
-	assert.NotNil(t, tr.Root())
-}
-
-func TestPatriciaMerkleTree_Copy(t *testing.T) {
-	tr := testTrie()
-	tr2 := tr.Copy()
-
-	assert.Equal(t, tr, tr2)
+	root, err := tr.Root()
+	assert.NotNil(t, root)
+	assert.Nil(t, err)
 }
 
 func TestPatriciaMerkleTree_Prove(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 	var proof1 [][]byte
 
 	ok, _ := it.Next()
@@ -119,16 +123,15 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 
 func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 	tr, val := testTrie2(50)
-	rootHash := tr.Root()
 
 	for i := range val {
 		proof, _ := tr.Prove(val[i])
 
-		ok, err := tr.VerifyProof(rootHash, proof, val[i])
+		ok, err := tr.VerifyProof(proof, val[i])
 		assert.Nil(t, err)
 		assert.True(t, ok)
 
-		ok, err = tr.VerifyProof(rootHash, proof, []byte("dog"+string(i)))
+		ok, err = tr.VerifyProof(proof, []byte("dog"+string(i)))
 		assert.Nil(t, err)
 		assert.False(t, ok)
 	}
@@ -137,21 +140,75 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 
 func TestPatriciaMerkleTree_NodeIterator(t *testing.T) {
 	tr := testTrie()
-	it := tr.NodeIterator()
+	it := tr.NewNodeIterator()
 
 	assert.NotNil(t, it)
 }
 
 func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 	tr := testTrie()
-	root1 := tr.Root()
+	root1, _ := tr.Root()
 
 	tr.Update([]byte("dodge"), []byte("viper"))
-	root2 := tr.Root()
+	root2, _ := tr.Root()
 
 	tr.Delete([]byte("dodge"))
-	root3 := tr.Root()
+	root3, _ := tr.Root()
 
 	assert.Equal(t, root1, root3)
 	assert.NotEqual(t, root1, root2)
+}
+
+func TestPatriciaMerkleTree_Commit(t *testing.T) {
+	db, err := memorydb.New()
+	assert.Nil(t, err)
+	assert.NotNil(t, db)
+	tr := testTrie()
+
+	err = tr.Commit()
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTree_GetAfterCommit(t *testing.T) {
+	tr := testTrie()
+
+	err := tr.Commit()
+	assert.Nil(t, err)
+
+	val, err := tr.Get([]byte("dog"))
+	assert.Equal(t, []byte("puppy"), val)
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTree_InsertAfterCommit(t *testing.T) {
+	tr1 := testTrie()
+	tr2 := testTrie()
+
+	err := tr1.Commit()
+	assert.Nil(t, err)
+
+	tr1.Update([]byte("doge"), []byte("coin"))
+	tr2.Update([]byte("doge"), []byte("coin"))
+
+	root1, _ := tr1.Root()
+	root2, _ := tr2.Root()
+
+	assert.Equal(t, root2, root1)
+
+}
+
+func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
+	tr1 := testTrie()
+	tr2 := testTrie()
+
+	err := tr1.Commit()
+	assert.Nil(t, err)
+
+	tr1.Delete([]byte("dogglesworth"))
+	tr2.Delete([]byte("dogglesworth"))
+
+	root1, _ := tr1.Root()
+	root2, _ := tr2.Root()
+
+	assert.Equal(t, root2, root1)
 }
