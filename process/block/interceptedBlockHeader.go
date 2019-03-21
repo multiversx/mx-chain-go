@@ -84,10 +84,6 @@ func (inHdr *InterceptedHeader) Integrity(coordinator sharding.Coordinator) erro
 		return process.ErrNilSignature
 	}
 
-	if inHdr.Commitment == nil {
-		return process.ErrNilCommitment
-	}
-
 	if inHdr.RootHash == nil {
 		return process.ErrNilRootHash
 	}

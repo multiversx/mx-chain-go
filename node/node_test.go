@@ -2,6 +2,7 @@ package node_test
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -922,9 +923,14 @@ func getMessenger() *mock.MessengerStub {
 func TestNode_BroadcastBlockShouldFailWhenTxBlockBodyNil(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][][]byte, e error) {
+		return make(map[uint32][][]byte, 1), nil
+	}}
+
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithBlockProcessor(bp),
 	)
 
 	err := n.BroadcastBlock(nil, &block.Header{})
@@ -945,26 +951,77 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 
 		return []byte("marshalized ok"), nil
 	}
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][][]byte, e error) {
+		return make(map[uint32][][]byte, 1), nil
+	}}
 
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(marshalizerMock),
+		node.WithBlockProcessor(bp),
 	)
 
-	err2 := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+
+	err2 := n.BroadcastBlock(body, &block.Header{})
 	assert.Equal(t, err, err2)
+}
+
+type wrongBody struct {
+}
+
+func (wr wrongBody) IntegrityAndValidity() error {
+	return nil
+}
+
+func TestNode_BroadcastBlockShouldFailWhenBlockIsNotGoodType(t *testing.T) {
+	n, _ := node.NewNode()
+	messenger := getMessenger()
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][][]byte, e error) {
+		return nil, process.ErrWrongTypeAssertion
+	}}
+	_ = n.ApplyOptions(
+		node.WithMessenger(messenger),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithBlockProcessor(bp),
+	)
+
+	wr := wrongBody{}
+	err := n.BroadcastBlock(wr, &block.Header{})
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
 func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][][]byte, e error) {
+		return make(map[uint32][][]byte, 1), nil
+	}}
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithBlockProcessor(bp),
 	)
 
-	err := n.BroadcastBlock(make(block.Body, 0), nil)
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+
+	err := n.BroadcastBlock(body, nil)
 	assert.Equal(t, node.ErrNilBlockHeader, err)
 }
 
@@ -983,25 +1040,91 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 		return []byte("marshalized ok"), nil
 	}
 
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][][]byte, e error) {
+		return make(map[uint32][][]byte, 1), nil
+	}}
+
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(marshalizerMock),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithBlockProcessor(bp),
 	)
 
-	err2 := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+
+	err2 := n.BroadcastBlock(body, &block.Header{})
 	assert.Equal(t, err, err2)
 }
 
-func TestNode_BroadcastBlockShouldWork(t *testing.T) {
+func TestNode_BroadcastBlockShouldWorkWithOneShard(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][][]byte, e error) {
+		return make(map[uint32][][]byte, 0), nil
+	}}
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(mock.MarshalizerMock{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithBlockProcessor(bp),
 	)
 
-	err := n.BroadcastBlock(make(block.Body, 0), &block.Header{})
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+
+	err := n.BroadcastBlock(body, &block.Header{})
+	assert.Nil(t, err)
+}
+
+func TestNode_BroadcastBlockShouldWorkMultiShard(t *testing.T) {
+	n, _ := node.NewNode()
+	messenger := getMessenger()
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][][]byte, e error) {
+		return make(map[uint32][][]byte, 0), nil
+	}}
+	_ = n.ApplyOptions(
+		node.WithMessenger(messenger),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
+		node.WithBlockProcessor(bp),
+	)
+
+	txHash0 := []byte("txHash0")
+	mb0 := block.MiniBlock{
+		ShardID:  0,
+		TxHashes: [][]byte{[]byte(txHash0)},
+	}
+
+	txHash1 := []byte("txHash1")
+	mb1 := block.MiniBlock{
+		ShardID:  1,
+		TxHashes: [][]byte{[]byte(txHash1)},
+	}
+
+	body := make(block.Body, 0)
+	body = append(body, &mb0)
+	body = append(body, &mb0)
+	body = append(body, &mb0)
+	body = append(body, &mb1)
+	body = append(body, &mb1)
+	body = append(body, &mb1)
+	body = append(body, &mb1)
+	body = append(body, &mb1)
+
+	err := n.BroadcastBlock(body, &block.Header{})
 	assert.Nil(t, err)
 }

@@ -7,12 +7,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/stretchr/testify/assert"
 )
 
 func initFactory() bn.Factory {
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 
@@ -113,7 +112,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
@@ -149,7 +148,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	chronologyHandlerMock := initChronologyHandlerMock()
 	consensusState := initConsensusState()
@@ -185,7 +184,7 @@ func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
@@ -221,7 +220,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
@@ -257,7 +256,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
@@ -293,7 +292,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
@@ -329,7 +328,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
@@ -365,7 +364,7 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
@@ -401,7 +400,7 @@ func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
@@ -437,7 +436,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
@@ -473,7 +472,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()
@@ -509,7 +508,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := initChronologyHandlerMock()

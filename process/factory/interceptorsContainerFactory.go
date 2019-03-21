@@ -3,7 +3,6 @@ package factory
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -17,7 +16,7 @@ import (
 type interceptorsContainerFactory struct {
 	shardCoordinator sharding.Coordinator
 	messenger        process.TopicHandler
-	blockchain       *blockchain.BlockChain
+	blockchain       data.ChainHandler
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
 	keyGen           crypto.KeyGenerator
@@ -31,7 +30,7 @@ type interceptorsContainerFactory struct {
 func NewInterceptorsContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	messenger process.TopicHandler,
-	blockchain *blockchain.BlockChain,
+	blockchain data.ChainHandler,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	keyGen crypto.KeyGenerator,
@@ -168,7 +167,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 }
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
-	txStorer := icf.blockchain.GetStorer(blockchain.TransactionUnit)
+	txStorer := icf.blockchain.GetStorer(data.TransactionUnit)
 
 	interceptor, err := transaction.NewTxInterceptor(
 		icf.marshalizer,
@@ -204,7 +203,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptors() ([]string, []
 }
 
 func (icf *interceptorsContainerFactory) createOneHdrInterceptor(identifier string) (process.Interceptor, error) {
-	headerStorer := icf.blockchain.GetStorer(blockchain.BlockHeaderUnit)
+	headerStorer := icf.blockchain.GetStorer(data.BlockHeaderUnit)
 
 	interceptor, err := interceptors.NewHeaderInterceptor(
 		icf.marshalizer,
@@ -249,7 +248,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 }
 
 func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {
-	txBlockBodyStorer := icf.blockchain.GetStorer(blockchain.MiniBlockUnit)
+	txBlockBodyStorer := icf.blockchain.GetStorer(data.MiniBlockUnit)
 
 	interceptor, err := interceptors.NewMiniBlocksInterceptor(
 		icf.marshalizer,
@@ -283,7 +282,7 @@ func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptors() (
 }
 
 func (icf *interceptorsContainerFactory) createOnePeerChBlockBodyInterceptor(identifier string) (process.Interceptor, error) {
-	peerBlockBodyStorer := icf.blockchain.GetStorer(blockchain.PeerChangesUnit)
+	peerBlockBodyStorer := icf.blockchain.GetStorer(data.PeerChangesUnit)
 
 	interceptor, err := interceptors.NewPeerBlockBodyInterceptor(
 		icf.marshalizer,

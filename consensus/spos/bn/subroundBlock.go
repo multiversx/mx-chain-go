@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
@@ -21,7 +20,7 @@ import (
 type subroundBlock struct {
 	*subround
 
-	blockChain       *blockchain.BlockChain
+	blockChain       data.ChainHandler
 	blockProcessor   process.BlockProcessor
 	consensusState   *spos.ConsensusState
 	hasher           hashing.Hasher
@@ -37,7 +36,7 @@ type subroundBlock struct {
 // NewSubroundBlock creates a subroundBlock object
 func NewSubroundBlock(
 	subround *subround,
-	blockChain *blockchain.BlockChain,
+	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
 	consensusState *spos.ConsensusState,
 	hasher hashing.Hasher,
@@ -91,7 +90,7 @@ func NewSubroundBlock(
 
 func checkNewSubroundBlockParams(
 	subround *subround,
-	blockChain *blockchain.BlockChain,
+	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
 	consensusState *spos.ConsensusState,
 	hasher hashing.Hasher,
@@ -277,13 +276,20 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	hdr.SetRound(uint32(sr.rounder.Index()))
 	hdr.SetTimeStamp(uint64(sr.rounder.TimeStamp().Unix()))
 
-	if sr.blockChain.CurrentBlockHeader == nil {
+	if sr.blockChain.GetCurrentBlockHeader() == nil {
 		hdr.SetNonce(1)
-		hdr.SetPrevHash(sr.blockChain.GenesisHeaderHash)
+		hdr.SetPrevHash(sr.blockChain.GetGenesisHeaderHash())
+		// Previous random seed is the signature of the previous block
+		hdr.SetPrevRandSeed(sr.blockChain.GetGenesisHeader().GetSignature())
 	} else {
-		hdr.SetNonce(sr.blockChain.CurrentBlockHeader.Nonce + 1)
-		hdr.SetPrevHash(sr.blockChain.CurrentBlockHeaderHash)
+		hdr.SetNonce(sr.blockChain.GetCurrentBlockHeader().GetNonce() + 1)
+		hdr.SetPrevHash(sr.blockChain.GetCurrentBlockHeaderHash())
+		// Previous random seed is the signature of the previous block
+		hdr.SetPrevRandSeed(sr.blockChain.GetCurrentBlockHeader().GetSignature())
 	}
+
+	// currently for bnSPoS RandSeed field is not used
+	hdr.SetRandSeed([]byte{0})
 
 	return hdr, nil
 }

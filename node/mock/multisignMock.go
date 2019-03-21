@@ -47,11 +47,7 @@ func (mm *MultisignMock) Commitment(index uint16) ([]byte, error) {
 	panic("implement me")
 }
 
-func (mm *MultisignMock) AggregateCommitments(bitmap []byte) ([]byte, error) {
-	panic("implement me")
-}
-
-func (mm *MultisignMock) SetAggCommitment(aggCommitment []byte) error {
+func (mm *MultisignMock) AggregateCommitments(bitmap []byte) error {
 	panic("implement me")
 }
 

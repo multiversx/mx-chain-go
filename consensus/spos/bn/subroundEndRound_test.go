@@ -16,7 +16,7 @@ import (
 )
 
 func initSubroundEndRound() bn.SubroundEndRound {
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -53,7 +53,7 @@ func initSubroundEndRound() bn.SubroundEndRound {
 func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -116,7 +116,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
@@ -153,7 +153,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	multiSignerMock := initMultiSignerMock()
 	rounderMock := initRounderMock()
@@ -190,7 +190,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	rounderMock := initRounderMock()
@@ -227,7 +227,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -264,7 +264,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -301,7 +301,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastBlockFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -339,7 +339,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastBlockFunctionShouldFail
 func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blockChain := blockchain.BlockChain{}
+	blockChain := mock.BlockChainMock{}
 	blockProcessorMock := initBlockProcessorMock()
 	consensusState := initConsensusState()
 	multiSignerMock := initMultiSignerMock()
@@ -400,7 +400,7 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	blProcMock := initBlockProcessorMock()
 
 	blProcMock.CommitBlockCalled = func(
-		blockChain *blockchain.BlockChain,
+		blockChain data.ChainHandler,
 		header data.HeaderHandler,
 		body data.BodyHandler,
 	) error {

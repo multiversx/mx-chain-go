@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
@@ -15,7 +14,7 @@ import (
 type subroundEndRound struct {
 	*subround
 
-	blockChain     *blockchain.BlockChain
+	blockChain     data.ChainHandler
 	blockProcessor process.BlockProcessor
 	consensusState *spos.ConsensusState
 	multiSigner    crypto.MultiSigner
@@ -28,7 +27,7 @@ type subroundEndRound struct {
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
 	subround *subround,
-	blockChain *blockchain.BlockChain,
+	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
@@ -73,7 +72,7 @@ func NewSubroundEndRound(
 
 func checkNewSubroundEndRoundParams(
 	subround *subround,
-	blockChain *blockchain.BlockChain,
+	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
 	consensusState *spos.ConsensusState,
 	multiSigner crypto.MultiSigner,
