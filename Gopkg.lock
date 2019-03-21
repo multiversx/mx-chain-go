@@ -34,12 +34,12 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:90a52b2e006c21d53b90e3e2df4cdd37de3ba7bed05feb037f9a5c218d0781b9"
+  branch = "master"
+  digest = "1:58e50f5a8b11010f664ef2b95609868e07163ed6b23d9b03499c26c2beec1544"
   name = "github.com/cornelk/hashmap"
   packages = ["."]
   pruneopts = "UT"
-  revision = "b893f4923161d485d2151f427c378e09784ec1db"
-  version = "v1.0.0"
+  revision = "33e58823eb9d4426a8d2b604cece33c3c15df8cc"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"

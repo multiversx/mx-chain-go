@@ -240,7 +240,7 @@ func (n *Node) StartConsensus() error {
 	}
 
 	worker.SendMessage = n.sendMessage
-	worker.BroadcastBlock = n.broadcastBlock
+	worker.BroadcastBlock = n.BroadcastBlock
 
 	validatorGroupSelector, err := n.createValidatorGroupSelector()
 
@@ -458,7 +458,7 @@ func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrappe
 		return nil, err
 	}
 
-	bootstrap.BroadcastBlock = n.broadcastBlock
+	bootstrap.BroadcastBlock = n.BroadcastBlock
 
 	bootstrap.StartSync()
 
@@ -741,8 +741,12 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
 		cnsDtaBuff)
 }
 
+// BroadcastBlock will send on intra shard topics the header and block body and on cross shard topics
+// the miniblocks. This func needs to be exported as it is tested in integrationTests package.
 // TODO make broadcastBlock to be able to work with metablocks as well.
-func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+// TODO: investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross
+//  shard topics
+func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
 	if blockBody == nil {
 		return ErrNilTxBlockBody
 	}
@@ -778,10 +782,8 @@ func (n *Node) broadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
 	for k, v := range msgMapBlockBody {
-		for i := 0; i < len(v); i++ {
-			go n.messenger.Broadcast(factory.MiniBlocksTopic+
-				n.shardCoordinator.CommunicationIdentifier(k), v[i])
-		}
+		go n.messenger.Broadcast(factory.MiniBlocksTopic+
+			n.shardCoordinator.CommunicationIdentifier(k), v)
 	}
 
 	return nil

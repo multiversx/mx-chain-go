@@ -1979,10 +1979,14 @@ func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 	assert.NotNil(t, msh)
 
 	_, found := msh[0]
-	assert.Equal(t, false, found)
-	m1, _ := marshal.Marshal(mb1)
-	assert.Equal(t, m1, msh[1][0])
-	assert.Equal(t, m1, msh[1][1])
+	assert.False(t, found)
+
+	expectedBody := make(block.Body, 0)
+	err = marshal.Unmarshal(&expectedBody, msh[1])
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(expectedBody))
+	assert.Equal(t, &mb1, expectedBody[0])
+	assert.Equal(t, &mb1, expectedBody[1])
 }
 
 type wrongBody struct {
@@ -2054,15 +2058,12 @@ func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  0,
+		ShardID:  1,
 		TxHashes: [][]byte{[]byte(txHash0)},
 	}
 
-	mb1 := block.MiniBlock{}
-
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
-	body = append(body, &mb1)
 
 	marshal := &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {

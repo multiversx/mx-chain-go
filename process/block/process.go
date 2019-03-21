@@ -1032,27 +1032,36 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain data.ChainHandler, heade
 }
 
 // MarshalizedDataForCrossShard prepares underlying data into a marshalized object according to destination
-func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][][]byte, error) {
+func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, error) {
 	if body == nil {
 		return nil, process.ErrNilMiniBlocks
 	}
 
-	mrsData := make(map[uint32][][]byte)
 	blockBody, ok := body.(block.Body)
-
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	mrsData := make(map[uint32][]byte)
+	bodies := make(map[uint32]block.Body)
+
 	for i := 0; i < len(blockBody); i++ {
-		buff, err := bp.marshalizer.Marshal((blockBody)[i])
-		shardId := (blockBody)[i].ShardID
+		miniblock := blockBody[i]
+
+		if miniblock.ShardID == bp.shardCoordinator.SelfId() {
+			//not taking into account miniblocks for current shard
+			continue
+		}
+
+		bodies[miniblock.ShardID] = append(bodies[miniblock.ShardID], miniblock)
+	}
+
+	for shardId, subsetBlockBody := range bodies {
+		buff, err := bp.marshalizer.Marshal(subsetBlockBody)
 		if err != nil {
 			return nil, process.ErrMarshalWithoutSuccess
 		}
-		if shardId != bp.shardCoordinator.SelfId() {
-			mrsData[shardId] = append(mrsData[shardId], buff)
-		}
+		mrsData[shardId] = buff
 	}
 
 	return mrsData, nil

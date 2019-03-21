@@ -105,7 +105,7 @@ type HeaderHandler interface {
 
 // BodyHandler interface for a block body
 type BodyHandler interface {
-	// checks the integrity and validity of the block
+	// IntegrityAndValidity checks the integrity and validity of the block
 	IntegrityAndValidity() error
 }
 
