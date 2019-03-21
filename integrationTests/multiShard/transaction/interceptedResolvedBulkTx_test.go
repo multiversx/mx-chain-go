@@ -159,7 +159,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 
 	assert.True(t, maxTxReceived > 0)
 
-	//only sender shard (all 3 nodes from shard firstSkInShard) have the transactions
+	//only sender shard (all 3 nodes from shard firstSkInShard) has the transactions
 	for _, n := range nodes {
 		if n.shardId == firstSkInShard {
 			assert.Equal(t, atomic.LoadInt32(&n.txRecv), maxTxReceived)
@@ -239,12 +239,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
 
 	fmt.Println("Waiting for senders to fetch generated transactions...")
-	//display, can be removed
-	for i := 0; i < 10; i++ {
-		time.Sleep(time.Second)
-
-		fmt.Println(makeDisplayTable(nodes))
-	}
+	time.Sleep(time.Second * 10)
 
 	//right now all 3 nodes from sender shard have the transactions
 	//nodes from shardRequestor should ask and receive all generated transactions

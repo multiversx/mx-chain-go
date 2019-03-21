@@ -379,6 +379,5 @@ func createNodesWithNodeSkInShardExceptFirst(
 			idx++
 		}
 	}
-
 	return nodes
 }

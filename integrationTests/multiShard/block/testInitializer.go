@@ -406,7 +406,6 @@ func equalSlices(slice1 [][]byte, slice2 [][]byte) bool {
 			return false
 		}
 	}
-
 	return true
 }
 
