@@ -1,12 +1,13 @@
 package main
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
 )
 
 // PkSkPairsToGenerate holds the number of pairs sk/pk that will be generated
@@ -32,8 +33,10 @@ func main() {
 		return
 	}
 
+	suite := kv2.NewBlakeSHA256Ed25519()
+
 	for i := 0; i < PkSkPairsToGenerate; i++ {
-		generator := schnorr.NewKeyGenerator()
+		generator := signing.NewKeyGenerator(suite)
 		sk, pk := generator.GeneratePair()
 		skBytes, err2 := sk.ToByteArray()
 		if err2 != nil {
@@ -44,17 +47,14 @@ func main() {
 			fmt.Println("Cound not convert pk to byte array")
 		}
 
-		base64sk := make([]byte, base64.StdEncoding.EncodedLen(len(skBytes)))
-		base64.StdEncoding.Encode(base64sk, []byte(skBytes))
+		skHex := []byte(hex.EncodeToString(skBytes))
+		pkHex := []byte(hex.EncodeToString(pkBytes))
 
-		base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pkBytes)))
-		base64.StdEncoding.Encode(base64pk, []byte(pkBytes))
-
-		if _, err3 := fsk.Write(append(base64sk, '\n')); err3 != nil {
+		if _, err3 := fsk.Write(append(skHex, '\n')); err3 != nil {
 			fmt.Println(err3)
 		}
 
-		if _, err3 := fpk.Write(append(base64pk, '\n')); err3 != nil {
+		if _, err3 := fpk.Write(append(pkHex, '\n')); err3 != nil {
 			fmt.Println(err3)
 		}
 	}

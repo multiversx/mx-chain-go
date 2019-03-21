@@ -1,6 +1,7 @@
 package transaction_test
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 
@@ -18,7 +19,8 @@ import (
 func TestInterceptedTransaction_IntegrityNilTransactionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	tx.Transaction = nil
 	assert.Equal(t, process.ErrNilTransaction, tx.Integrity(nil))
@@ -27,41 +29,29 @@ func TestInterceptedTransaction_IntegrityNilTransactionShouldErr(t *testing.T) {
 func TestInterceptedTransaction_IntegrityNilSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	tx.Signature = nil
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(1)
+	tx.Value = big.NewInt(1)
 
 	assert.Equal(t, process.ErrNilSignature, tx.Integrity(nil))
-}
-
-func TestInterceptedTransaction_IntegrityNilChallengeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	tx := transaction.NewInterceptedTransaction()
-
-	tx.Signature = make([]byte, 0)
-	tx.Challenge = nil
-	tx.RcvAddr = make([]byte, 0)
-	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(1)
-
-	assert.Equal(t, process.ErrNilChallenge, tx.Integrity(nil))
 }
 
 func TestInterceptedTransaction_IntegrityNilRcvAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = nil
 	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(1)
+	tx.Value = big.NewInt(1)
 
 	assert.Equal(t, process.ErrNilRcvAddr, tx.Integrity(nil))
 }
@@ -69,13 +59,14 @@ func TestInterceptedTransaction_IntegrityNilRcvAddrShouldErr(t *testing.T) {
 func TestInterceptedTransaction_IntegrityNilSndAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = nil
-	tx.Value = *big.NewInt(1)
+	tx.Value = big.NewInt(1)
 
 	assert.Equal(t, process.ErrNilSndAddr, tx.Integrity(nil))
 }
@@ -83,13 +74,14 @@ func TestInterceptedTransaction_IntegrityNilSndAddrShouldErr(t *testing.T) {
 func TestInterceptedTransaction_IntegrityNegativeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(-1)
+	tx.Value = big.NewInt(-1)
 
 	assert.Equal(t, process.ErrNegativeValue, tx.Integrity(nil))
 }
@@ -97,13 +89,14 @@ func TestInterceptedTransaction_IntegrityNegativeValueShouldErr(t *testing.T) {
 func TestInterceptedTransaction_IntegrityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(0)
+	tx.Value = big.NewInt(0)
 
 	assert.Nil(t, tx.Integrity(nil))
 }
@@ -113,7 +106,8 @@ func TestInterceptedTransaction_IntegrityOkValsShouldWork(t *testing.T) {
 func TestInterceptedTransaction_IntegrityAndValidityNilTransactionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	tx.Transaction = nil
 	assert.Equal(t, process.ErrNilShardCoordinator, tx.IntegrityAndValidity(nil))
@@ -124,7 +118,8 @@ func TestInterceptedTransaction_IntegrityAndValidityIntegrityFailsShouldErr(t *t
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	tx.Transaction = nil
 	assert.Equal(t, process.ErrNilTransaction, tx.IntegrityAndValidity(oneSharder))
@@ -135,13 +130,14 @@ func TestInterceptedTransaction_IntegrityAndValidityNilAddrConverterShouldErr(t 
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
-	tx.Value = *big.NewInt(1)
+	tx.Value = big.NewInt(1)
 
 	assert.Equal(t, process.ErrNilAddressConverter, tx.IntegrityAndValidity(oneSharder))
 }
@@ -150,12 +146,14 @@ func TestTransactionInterceptor_IntegrityAndValidityInvalidSenderAddrShouldRetFa
 	t.Parallel()
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
+	signer := &mock.SignerMock{}
 
-	tx := transaction.NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction(signer)
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = []byte("please fail, addrConverter!")
+	tx.Value = big.NewInt(0)
 
 	addrConv := &mock.AddressConverterMock{}
 	addrConv.CreateAddressFromPublicKeyBytesRetErrForValue = []byte("please fail, addrConverter!")
@@ -168,12 +166,14 @@ func TestTransactionInterceptor_IntegrityAndValidityInvalidReceiverAddrShouldRet
 	t.Parallel()
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
+	signer := &mock.SignerMock{}
 
-	tx := transaction.NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction(signer)
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = []byte("please fail, addrConverter!")
 	tx.SndAddr = make([]byte, 0)
+	tx.Value = big.NewInt(0)
 
 	addrConv := &mock.AddressConverterMock{}
 	addrConv.CreateAddressFromPublicKeyBytesRetErrForValue = []byte("please fail, addrConverter!")
@@ -186,12 +186,14 @@ func TestTransactionInterceptor_IntegrityAndValiditySameShardShouldWork(t *testi
 	t.Parallel()
 
 	oneSharder := mock.NewOneShardCoordinatorMock()
+	signer := &mock.SignerMock{}
 
-	tx := transaction.NewInterceptedTransaction()
+	tx := transaction.NewInterceptedTransaction(signer)
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 0)
 	tx.SndAddr = make([]byte, 0)
+	tx.Value = big.NewInt(0)
 
 	addrConv := &mock.AddressConverterMock{}
 	tx.SetAddressConverter(addrConv)
@@ -206,7 +208,7 @@ func TestTransactionInterceptor_IntegrityAndValidityOtherShardsShouldWork(t *tes
 	t.Parallel()
 
 	multiSharder := mock.NewMultipleShardsCoordinatorMock()
-	multiSharder.ComputeShardForAddressCalled = func(address state.AddressContainer, addressConverter state.AddressConverter) uint32 {
+	multiSharder.ComputeIdCalled = func(address state.AddressContainer) uint32 {
 		if len(address.Bytes()) == 0 {
 			return uint32(5)
 		}
@@ -218,12 +220,13 @@ func TestTransactionInterceptor_IntegrityAndValidityOtherShardsShouldWork(t *tes
 		return uint32(0)
 	}
 	multiSharder.CurrentShard = 10
-
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 	tx.Signature = make([]byte, 0)
 	tx.Challenge = make([]byte, 0)
 	tx.RcvAddr = make([]byte, 1)
 	tx.SndAddr = make([]byte, 0)
+	tx.Value = big.NewInt(0)
 
 	addrConv := &mock.AddressConverterMock{}
 	tx.SetAddressConverter(addrConv)
@@ -239,7 +242,8 @@ func TestTransactionInterceptor_IntegrityAndValidityOtherShardsShouldWork(t *tes
 func TestInterceptedTransaction_VerifySigNilTransactionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 	tx.Transaction = nil
 
 	tx.SetSingleSignKeyGen(&mock.SingleSignKeyGenMock{})
@@ -250,15 +254,17 @@ func TestInterceptedTransaction_VerifySigNilTransactionShouldErr(t *testing.T) {
 func TestInterceptedTransaction_VerifySigNilSingleSignKeyGenShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 
-	assert.Equal(t, process.ErrNilSingleSignKeyGen, tx.VerifySig())
+	assert.Equal(t, process.ErrNilKeyGen, tx.VerifySig())
 }
 
 func TestInterceptedTransaction_VerifySigKeyGenRetErrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
@@ -269,15 +275,47 @@ func TestInterceptedTransaction_VerifySigKeyGenRetErrShouldErr(t *testing.T) {
 	assert.Equal(t, "failure", tx.VerifySig().Error())
 }
 
+func TestInterceptedTransaction_VerifySigKeyGenShouldReceiveSenderAddr(t *testing.T) {
+	t.Parallel()
+
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte("signed"), nil
+		},
+	}
+	tx := transaction.NewInterceptedTransaction(signer)
+	senderBytes := []byte("sender")
+
+	tx.SndAddr = senderBytes
+	tx.RcvAddr = []byte("receiver")
+
+	keyGen := &mock.SingleSignKeyGenMock{}
+	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
+		if !bytes.Equal(b, senderBytes) {
+			assert.Fail(t, "publickey from byte array should have been called for sender bytes")
+		}
+
+		return nil, errors.New("failure")
+	}
+	tx.SetSingleSignKeyGen(keyGen)
+
+	tx.VerifySig()
+}
+
 func TestInterceptedTransaction_VerifySigVerifyDoesNotPassShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return errors.New("sig not valid")
+		},
+	}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
-		return errors.New("sig not valid")
-	}
 
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
@@ -291,12 +329,17 @@ func TestInterceptedTransaction_VerifySigVerifyDoesNotPassShouldErr(t *testing.T
 func TestInterceptedTransaction_VerifySigVerifyDoesPassShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
+			return []byte("signed"), nil
+		},
+	}
+	tx := transaction.NewInterceptedTransaction(signer)
 
 	pubKey := &mock.SingleSignPublicKey{}
-	pubKey.VerifyCalled = func(data []byte, signature []byte) error {
-		return nil
-	}
 
 	keyGen := &mock.SingleSignKeyGenMock{}
 	keyGen.PublicKeyFromByteArrayCalled = func(b []byte) (key crypto.PublicKey, e error) {
@@ -309,22 +352,50 @@ func TestInterceptedTransaction_VerifySigVerifyDoesPassShouldRetNil(t *testing.T
 
 //------- Getters and Setters
 
-func TestTransactionInterceptor_AllGettersAndSettersShouldWork(t *testing.T) {
+func TestTransactionInterceptor_GetterSetterAddrConv(t *testing.T) {
 	t.Parallel()
 
 	addrConv := &mock.AddressConverterMock{}
 
-	tx := transaction.NewInterceptedTransaction()
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 	tx.SetAddressConverter(addrConv)
-	assert.True(t, addrConv == tx.AddressConverter())
 
-	tx.SetHash([]byte("aaaa"))
-	assert.Equal(t, "aaaa", tx.ID())
-	assert.Equal(t, "aaaa", string(tx.Hash()))
+	assert.True(t, addrConv == tx.AddressConverter())
+}
+
+func TestTransactionInterceptor_GetterSetterHash(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash")
+
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
+	tx.SetHash(hash)
+
+	assert.Equal(t, string(hash), string(tx.Hash()))
+}
+
+func TestTransactionInterceptor_GetterSetterTxBuffWithoutSig(t *testing.T) {
+	t.Parallel()
+
+	txBuffWithoutSig := []byte("txBuffWithoutSig")
+
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
+	tx.SetTxBuffWithoutSig(txBuffWithoutSig)
+
+	assert.Equal(t, txBuffWithoutSig, tx.TxBuffWithoutSig())
+}
+
+func TestTransactionInterceptor_GetterSetterKeyGen(t *testing.T) {
+	t.Parallel()
 
 	keyGen := &mock.SingleSignKeyGenMock{}
 
+	signer := &mock.SignerMock{}
+	tx := transaction.NewInterceptedTransaction(signer)
 	tx.SetSingleSignKeyGen(keyGen)
-	assert.True(t, keyGen == tx.SingleSignKeyGen())
 
+	assert.True(t, keyGen == tx.SingleSignKeyGen())
 }

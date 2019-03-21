@@ -1,6 +1,7 @@
 package leveldb
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 
@@ -41,13 +42,13 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	has, err := s.db.Has(key, nil)
 
 	if err != nil || !has {
-		return nil, errors.New(fmt.Sprintf("key: %s not found", string(key)))
+		return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
 	}
 
 	data, err := s.db.Get(key, nil)
 
 	if err == leveldb.ErrNotFound {
-		return nil, errors.New(fmt.Sprintf("key: %s not found", string(key)))
+		return nil, errors.New(fmt.Sprintf("key: %s not found", base64.StdEncoding.EncodeToString(key)))
 	}
 
 	return data, nil

@@ -13,7 +13,7 @@ import (
 
 var timeoutWaitForWaitGroups = time.Second * 2
 
-func TestAddNotPresent(t *testing.T) {
+func TestLRUCache_PutNotPresent(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	c, err := lrucache.NewCache(10)
 
@@ -26,10 +26,10 @@ func TestAddNotPresent(t *testing.T) {
 	c.Put(key, val)
 	l = c.Len()
 
-	assert.Equal(t, l, 1, "cachhe size expected 1 but found %d", l)
+	assert.Equal(t, l, 1, "cache size expected 1 but found %d", l)
 }
 
-func TestAddPresent(t *testing.T) {
+func TestLRUCache_PutPresent(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	c, err := lrucache.NewCache(10)
 
@@ -42,7 +42,25 @@ func TestAddPresent(t *testing.T) {
 	assert.Equal(t, l, 1, "cache size expected 1 but found %d", l)
 }
 
-func TestGetNotPresent(t *testing.T) {
+func TestLRUCache_PutPresentRewrite(t *testing.T) {
+	key := []byte("key")
+	val1 := []byte("value1")
+	val2 := []byte("value2")
+	c, err := lrucache.NewCache(10)
+
+	assert.Nil(t, err, "no error expected but got %s", err)
+
+	c.Put(key, val1)
+	c.Put(key, val2)
+
+	l := c.Len()
+	assert.Equal(t, l, 1, "cache size expected 1 but found %d", l)
+	recoveredVal, has := c.Get(key)
+	assert.True(t, has)
+	assert.Equal(t, val2, recoveredVal)
+}
+
+func TestLRUCache_GetNotPresent(t *testing.T) {
 	key := []byte("key1")
 	c, err := lrucache.NewCache(10)
 
@@ -53,7 +71,7 @@ func TestGetNotPresent(t *testing.T) {
 	assert.False(t, ok, "value %s not expected to be found", v)
 }
 
-func TestGetPresent(t *testing.T) {
+func TestLRUCache_GetPresent(t *testing.T) {
 	key, val := []byte("key2"), []byte("value2")
 	c, err := lrucache.NewCache(10)
 
@@ -67,7 +85,7 @@ func TestGetPresent(t *testing.T) {
 	assert.Equal(t, val, v)
 }
 
-func TestHasNotPresent(t *testing.T) {
+func TestLRUCache_HasNotPresent(t *testing.T) {
 	key := []byte("key3")
 	c, err := lrucache.NewCache(10)
 
@@ -78,7 +96,7 @@ func TestHasNotPresent(t *testing.T) {
 	assert.False(t, found, "key %s not expected to be found", key)
 }
 
-func TestHasPresent(t *testing.T) {
+func TestLRUCache_HasPresent(t *testing.T) {
 	key, val := []byte("key4"), []byte("value4")
 	c, err := lrucache.NewCache(10)
 
@@ -91,7 +109,7 @@ func TestHasPresent(t *testing.T) {
 	assert.True(t, found, "value expected but not found")
 }
 
-func TestPeekNotPresent(t *testing.T) {
+func TestLRUCache_PeekNotPresent(t *testing.T) {
 	key := []byte("key5")
 	c, err := lrucache.NewCache(10)
 
@@ -102,7 +120,7 @@ func TestPeekNotPresent(t *testing.T) {
 	assert.False(t, ok, "not expected to find key %s", key)
 }
 
-func TestPeekPresent(t *testing.T) {
+func TestLRUCache_PeekPresent(t *testing.T) {
 	key, val := []byte("key6"), []byte("value6")
 	c, err := lrucache.NewCache(10)
 
@@ -115,7 +133,7 @@ func TestPeekPresent(t *testing.T) {
 	assert.Equal(t, val, v, "expected to find %s but found %s", val, v)
 }
 
-func TestHasOrAddNotPresent(t *testing.T) {
+func TestLRUCache_HasOrAddNotPresent(t *testing.T) {
 	key, val := []byte("key7"), []byte("value7")
 	c, err := lrucache.NewCache(10)
 
@@ -132,7 +150,7 @@ func TestHasOrAddNotPresent(t *testing.T) {
 	assert.Equal(t, val, v, "expected to find %s but found %s", val, v)
 }
 
-func TestHasOrAddPresent(t *testing.T) {
+func TestLRUCache_HasOrAddPresent(t *testing.T) {
 	key, val := []byte("key8"), []byte("value8")
 	c, err := lrucache.NewCache(10)
 
@@ -149,7 +167,7 @@ func TestHasOrAddPresent(t *testing.T) {
 	assert.Equal(t, val, v, "expected to find %s but found %s", val, v)
 }
 
-func TestRemoveNotPresent(t *testing.T) {
+func TestLRUCache_RemoveNotPresent(t *testing.T) {
 	key := []byte("key9")
 	c, err := lrucache.NewCache(10)
 
@@ -165,7 +183,7 @@ func TestRemoveNotPresent(t *testing.T) {
 	assert.False(t, found, "not expected to find key %s", key)
 }
 
-func TestRemovePresent(t *testing.T) {
+func TestLRUCache_RemovePresent(t *testing.T) {
 	key, val := []byte("key10"), []byte("value10")
 	c, err := lrucache.NewCache(10)
 
@@ -182,7 +200,7 @@ func TestRemovePresent(t *testing.T) {
 	assert.False(t, found, "not expected to find key %s", key)
 }
 
-func TestRemoveOldestEmpty(t *testing.T) {
+func TestLRUCache_RemoveOldestEmpty(t *testing.T) {
 	c, err := lrucache.NewCache(10)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -198,7 +216,7 @@ func TestRemoveOldestEmpty(t *testing.T) {
 	assert.Zero(t, l, "expected size 0 but got %d", l)
 }
 
-func TestRemoveOldestPresent(t *testing.T) {
+func TestLRUCache_RemoveOldestPresent(t *testing.T) {
 	c, err := lrucache.NewCache(10)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -217,7 +235,7 @@ func TestRemoveOldestPresent(t *testing.T) {
 	assert.False(t, found, "not expected to find key key0")
 }
 
-func TestKeys(t *testing.T) {
+func TestLRUCache_Keys(t *testing.T) {
 	c, err := lrucache.NewCache(10)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -233,7 +251,7 @@ func TestKeys(t *testing.T) {
 	assert.Equal(t, 10, len(keys), "expected cache size 10 but current size %d", len(keys))
 }
 
-func TestLen(t *testing.T) {
+func TestLRUCache_Len(t *testing.T) {
 	c, err := lrucache.NewCache(10)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -248,7 +266,7 @@ func TestLen(t *testing.T) {
 	assert.Equal(t, 10, l, "expected cache size 10 but current size %d", l)
 }
 
-func TestClear(t *testing.T) {
+func TestLRUCache_Clear(t *testing.T) {
 	c, err := lrucache.NewCache(10)
 
 	assert.Nil(t, err, "no error expected but got %s", err)
@@ -268,7 +286,7 @@ func TestClear(t *testing.T) {
 	assert.Zero(t, l, "expected size 0, got %d", l)
 }
 
-func TestCacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
+func TestLRUCache_CacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
 	t.Parallel()
 
 	c, err := lrucache.NewCache(100)
@@ -278,7 +296,7 @@ func TestCacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
 	assert.Equal(t, 0, len(c.AddedDataHandlers()))
 }
 
-func TestCacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
+func TestLRUCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wg := sync.WaitGroup{}
@@ -313,7 +331,7 @@ func TestCacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
 	assert.Equal(t, 1, len(c.AddedDataHandlers()))
 }
 
-func TestCacherRegisterHasOrAddAddedDataHandlerShouldWork(t *testing.T) {
+func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wg := sync.WaitGroup{}
@@ -348,41 +366,7 @@ func TestCacherRegisterHasOrAddAddedDataHandlerShouldWork(t *testing.T) {
 	assert.Equal(t, 1, len(c.AddedDataHandlers()))
 }
 
-func TestCacherRegisterPutAddedDataHandlerNotAddedShouldNotCall(t *testing.T) {
-	t.Parallel()
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	chDone := make(chan bool, 0)
-
-	f := func(key []byte) {
-		wg.Done()
-	}
-
-	go func() {
-		wg.Wait()
-		chDone <- true
-	}()
-
-	c, err := lrucache.NewCache(100)
-	assert.Nil(t, err)
-	//first add, no call
-	c.Put([]byte("aaaa"), "bbbb")
-	c.RegisterHandler(f)
-	//second add, should not call as the data was found
-	c.Put([]byte("aaaa"), "bbbb")
-
-	select {
-	case <-chDone:
-		assert.Fail(t, "should have not been called")
-		return
-	case <-time.After(timeoutWaitForWaitGroups):
-	}
-
-	assert.Equal(t, 1, len(c.AddedDataHandlers()))
-}
-
-func TestCacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNotCall(t *testing.T) {
+func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNotCall(t *testing.T) {
 	t.Parallel()
 
 	wg := sync.WaitGroup{}

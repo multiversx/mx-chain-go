@@ -68,7 +68,7 @@ func (jaw *JournalizedAccountWrap) SetNonceWithJournal(nonce uint64) error {
 }
 
 // SetBalanceWithJournal sets the account's balance, saving the old balance before changing
-func (jaw *JournalizedAccountWrap) SetBalanceWithJournal(balance big.Int) error {
+func (jaw *JournalizedAccountWrap) SetBalanceWithJournal(balance *big.Int) error {
 	jaw.accounts.AddJournalEntry(NewJournalEntryBalance(jaw, jaw.BaseAccount().Balance))
 	jaw.BaseAccount().Balance = balance
 

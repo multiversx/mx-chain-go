@@ -2,48 +2,46 @@ package node
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"math/big"
+	gosync "sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/pkg/errors"
 )
 
-type topicName string
+// WaitTime defines the time in milliseconds until node waits the requested info from the network
+const WaitTime = time.Duration(2000 * time.Millisecond)
 
-const (
-	// TransactionTopic is the topic used for sharing transactions
-	TransactionTopic topicName = "tx"
-	// ConsensusTopic is the topic used in consensus algorithm
-	ConsensusTopic topicName = "cns"
-	// HeadersTopic is the topic used for sharing block headers
-	HeadersTopic topicName = "hdr"
-	// TxBlockBodyTopic is the topic used for sharing transactions block bodies
-	TxBlockBodyTopic topicName = "txBlk"
-	// PeerChBodyTopic is used for sharing peer change block bodies
-	PeerChBodyTopic topicName = "peerCh"
-	// StateBodyTopic is used for sharing state block bodies
-	StateBodyTopic topicName = "state"
-)
+// ConsensusTopic is the topic used in consensus algorithm
+const ConsensusTopic topicName = "consensus"
+
+// SendTransactionsPipe is the pipe used for sending new transactions
+const SendTransactionsPipe = "send transactions pipe"
+
+type topicName string
 
 var log = logger.NewDefaultLogger()
 
@@ -54,14 +52,11 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	port                     int
 	marshalizer              marshal.Marshalizer
 	ctx                      context.Context
 	hasher                   hashing.Hasher
-	maxAllowedPeers          int
-	pubSubStrategy           p2p.PubSubStrategy
-	initialNodesPubkeys      []string
-	initialNodesBalances     map[string]big.Int
+	initialNodesPubkeys      [][]string
+	initialNodesBalances     map[string]*big.Int
 	roundDuration            uint64
 	consensusGroupSize       int
 	messenger                p2p.Messenger
@@ -72,32 +67,21 @@ type Node struct {
 	accounts                 state.AccountsAdapter
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	interceptorsContainer    process.InterceptorsContainer
+	resolversFinder          process.ResolversFinder
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
 	singleSignKeyGen crypto.KeyGenerator
+	singlesig        crypto.SingleSigner
 	multisig         crypto.MultiSigner
+	forkDetector     process.ForkDetector
 
-	blkc             *blockchain.BlockChain
-	dataPool         data.TransientDataHolder
-	shardCoordinator sharding.ShardCoordinator
+	blkc             data.ChainHandler
+	dataPool         data.PoolsHolder
+	shardCoordinator sharding.Coordinator
 
-	interceptors []process.Interceptor
-	resolvers    []process.Resolver
-}
-
-// NewNode creates a new Node instance
-func NewNode(opts ...Option) (*Node, error) {
-	node := &Node{
-		ctx: context.Background(),
-	}
-	for _, opt := range opts {
-		err := opt(node)
-		if err != nil {
-			return nil, errors.New("error applying option: " + err.Error())
-		}
-	}
-	return node, nil
+	isRunning bool
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -114,28 +98,32 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 	return nil
 }
 
-// IsRunning will return the current state of the node
-func (n *Node) IsRunning() bool {
-	return n.messenger != nil
+// NewNode creates a new Node instance
+func NewNode(opts ...Option) (*Node, error) {
+	node := &Node{
+		ctx: context.Background(),
+	}
+	for _, opt := range opts {
+		err := opt(node)
+		if err != nil {
+			return nil, errors.New("error applying option: " + err.Error())
+		}
+	}
+	return node, nil
 }
 
-// Address returns the first address of the running node
-func (n *Node) Address() (string, error) {
-	if !n.IsRunning() {
-		return "", errors.New("node is not started yet")
-	}
-	return n.messenger.Addresses()[0], nil
+// IsRunning will return the current state of the node
+func (n *Node) IsRunning() bool {
+	return n.isRunning
 }
 
 // Start will create a new messenger and and set up the Node state as running
 func (n *Node) Start() error {
-	messenger, err := n.createNetMessenger()
-	if err != nil {
-		return err
+	err := n.P2PBootstrap()
+	if err == nil {
+		n.isRunning = true
 	}
-	n.messenger = messenger
-	n.P2PBootstrap()
-	return nil
+	return err
 }
 
 // Stop closes the messenger and undos everything done in Start
@@ -153,33 +141,40 @@ func (n *Node) Stop() error {
 }
 
 // P2PBootstrap will try to connect to many peers as possible
-func (n *Node) P2PBootstrap() {
-	n.messenger.Bootstrap(n.ctx)
+func (n *Node) P2PBootstrap() error {
+	if n.messenger == nil {
+		return ErrNilMessenger
+	}
+
+	return n.messenger.Bootstrap()
 }
 
-// ConnectToAddresses will take a slice of addresses and try to connect to all of them.
-func (n *Node) ConnectToAddresses(addresses []string) error {
-	if !n.IsRunning() {
-		return errNodeNotStarted
-	}
-	n.messenger.ConnectToAddresses(n.ctx, addresses)
-	return nil
-}
-
-// BindInterceptorsResolvers will start the interceptors and resolvers
-func (n *Node) BindInterceptorsResolvers() error {
-	if !n.IsRunning() {
-		return errNodeNotStarted
+// CreateShardedStores instantiate sharded cachers for Transactions and Headers
+func (n *Node) CreateShardedStores() error {
+	if n.shardCoordinator == nil {
+		return ErrNilShardCoordinator
 	}
 
-	err := n.createInterceptors()
-	if err != nil {
-		return err
+	if n.dataPool == nil {
+		return ErrNilDataPool
 	}
 
-	err = n.createResolvers()
-	if err != nil {
-		return err
+	transactionsDataStore := n.dataPool.Transactions()
+	headersDataStore := n.dataPool.Headers()
+
+	if transactionsDataStore == nil {
+		return errors.New("nil transaction sharded data store")
+	}
+
+	if headersDataStore == nil {
+		return errors.New("nil header sharded data store")
+	}
+
+	shards := n.shardCoordinator.NumberOfShards()
+
+	for i := uint32(0); i < shards; i++ {
+		transactionsDataStore.CreateShardStore(i)
+		headersDataStore.CreateShardStore(i)
 	}
 
 	return nil
@@ -188,246 +183,411 @@ func (n *Node) BindInterceptorsResolvers() error {
 // StartConsensus will start the consesus service for the current node
 func (n *Node) StartConsensus() error {
 
-	genessisBlock, err := n.createGenesisBlock()
-	if err != nil {
-		return err
-	}
-	n.blkc.GenesisBlock = genessisBlock
-	round := n.createRound()
-	chr := n.createChronology(round)
-	rndc := n.createRoundConsensus()
-	rth := n.createRoundThreshold()
-	rnds := n.createRoundStatus()
-	cns := n.createConsensus(rndc, rth, rnds, chr)
-	sposWrk, err := n.createConsensusWorker(cns)
+	genesisHeader, genesisHeaderHash, err := n.createGenesisBlock()
 
 	if err != nil {
 		return err
 	}
 
-	topic := n.createConsensusTopic(sposWrk)
-
-	err = n.messenger.AddTopic(topic)
-
+	err = n.blkc.SetGenesisHeader(genesisHeader)
 	if err != nil {
-		log.Debug(fmt.Sprintf(err.Error()))
+		return err
 	}
 
-	n.addSubroundsToChronology(sposWrk)
+	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
 
-	go sposWrk.Cns.Chr.StartRounds()
-	go n.blockchainLog(sposWrk)
+	rounder, err := n.createRounder()
+
+	if err != nil {
+		return err
+	}
+
+	chronologyHandler, err := n.createChronologyHandler(rounder)
+
+	if err != nil {
+		return err
+	}
+
+	bootstraper, err := n.createBootstraper(rounder)
+
+	if err != nil {
+		return err
+	}
+
+	consensusState, err := n.createConsensusState()
+
+	if err != nil {
+		return err
+	}
+
+	worker, err := bn.NewWorker(
+		bootstraper,
+		consensusState,
+		n.singleSignKeyGen,
+		n.marshalizer,
+		n.privateKey,
+		rounder,
+		n.shardCoordinator,
+		n.singlesig,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = n.createConsensusTopic(worker)
+	if err != nil {
+		return err
+	}
+
+	worker.SendMessage = n.sendMessage
+	worker.BroadcastBlock = n.BroadcastBlock
+
+	validatorGroupSelector, err := n.createValidatorGroupSelector()
+
+	if err != nil {
+		return err
+	}
+
+	fct, err := bn.NewFactory(
+		n.blkc,
+		n.blockProcessor,
+		bootstraper,
+		chronologyHandler,
+		consensusState,
+		n.hasher,
+		n.marshalizer,
+		n.multisig,
+		rounder,
+		n.shardCoordinator,
+		n.syncer,
+		validatorGroupSelector,
+		worker,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	err = fct.GenerateSubrounds()
+
+	if err != nil {
+		return err
+	}
+
+	go chronologyHandler.StartRounds()
 
 	return nil
 }
 
-// createRound method creates a round object
-func (n *Node) createRound() *chronology.Round {
-	rnd := chronology.NewRound(
-		n.genesisTime,
-		n.syncer.CurrentTime(n.syncer.ClockOffset()),
-		time.Millisecond*time.Duration(n.roundDuration))
-
-	return rnd
-}
-
-// createChronology method creates a chronology object
-func (n *Node) createChronology(round *chronology.Round) *chronology.Chronology {
-	chr := chronology.NewChronology(
-		!n.elasticSubrounds,
-		round,
-		n.genesisTime,
-		n.syncer)
-
-	return chr
-}
-
-// createRoundConsensus method creates a RoundConsensus object
-func (n *Node) createRoundConsensus() *spos.RoundConsensus {
-
-	selfId, err := n.publicKey.ToByteArray()
-
-	if err != nil {
-		log.Error(err.Error())
-		return nil
-	}
-
-	nodes := n.initialNodesPubkeys[0:n.consensusGroupSize]
-	rndc := spos.NewRoundConsensus(
-		nodes,
-		string(selfId))
-
-	rndc.ResetRoundState()
-
-	return rndc
-}
-
-// createRoundThreshold method creates a RoundThreshold object
-func (n *Node) createRoundThreshold() *spos.RoundThreshold {
-	rth := spos.NewRoundThreshold()
-
-	pbftThreshold := n.consensusGroupSize*2/3 + 1
-
-	rth.SetThreshold(spos.SrBlock, 1)
-	rth.SetThreshold(spos.SrCommitmentHash, pbftThreshold)
-	rth.SetThreshold(spos.SrBitmap, pbftThreshold)
-	rth.SetThreshold(spos.SrCommitment, pbftThreshold)
-	rth.SetThreshold(spos.SrSignature, pbftThreshold)
-
-	return rth
-}
-
-// createRoundStatus method creates a RoundStatus object
-func (n *Node) createRoundStatus() *spos.RoundStatus {
-	rnds := spos.NewRoundStatus()
-
-	rnds.ResetRoundStatus()
-
-	return rnds
-}
-
-// createConsensus method creates a Consensus object
-func (n *Node) createConsensus(rndc *spos.RoundConsensus, rth *spos.RoundThreshold, rnds *spos.RoundStatus, chr *chronology.Chronology,
-) *spos.Consensus {
-	cns := spos.NewConsensus(
-		nil,
-		rndc,
-		rth,
-		rnds,
-		chr)
-
-	return cns
-}
-
-// createConsensusWorker method creates a ConsensusWorker object
-func (n *Node) createConsensusWorker(cns *spos.Consensus) (*spos.SPOSConsensusWorker, error) {
-	sposWrk, err := spos.NewConsensusWorker(
-		cns,
-		n.blkc,
-		n.hasher,
-		n.marshalizer,
-		n.blockProcessor,
-		n.multisig,
-		n.singleSignKeyGen,
-		n.privateKey,
-		n.publicKey,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	sposWrk.SendMessage = n.sendMessage
-
-	return sposWrk, nil
-}
-
-// createConsensusTopic creates a consensus topic for node
-func (n *Node) createConsensusTopic(sposWrk *spos.SPOSConsensusWorker) *p2p.Topic {
-	t := p2p.NewTopic(string(ConsensusTopic), &spos.ConsensusData{}, n.marshalizer)
-	t.AddDataReceived(sposWrk.ReceivedMessage)
-	return t
-}
-
-// addSubroundsToChronology adds subrounds to chronology
-func (n *Node) addSubroundsToChronology(sposWrk *spos.SPOSConsensusWorker) {
-	roundDuration := sposWrk.Cns.Chr.Round().TimeDuration()
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrStartRound),
-		chronology.SubroundId(spos.SrBlock), int64(roundDuration*5/100),
-		sposWrk.Cns.GetSubroundName(spos.SrStartRound),
-		sposWrk.DoStartRoundJob,
-		nil,
-		sposWrk.Cns.CheckStartRoundConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrBlock),
-		chronology.SubroundId(spos.SrCommitmentHash),
-		int64(roundDuration*25/100),
-		sposWrk.Cns.GetSubroundName(spos.SrBlock),
-		sposWrk.DoBlockJob,
-		sposWrk.ExtendBlock,
-		sposWrk.Cns.CheckBlockConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrCommitmentHash),
-		chronology.SubroundId(spos.SrBitmap),
-		int64(roundDuration*40/100),
-		sposWrk.Cns.GetSubroundName(spos.SrCommitmentHash),
-		sposWrk.DoCommitmentHashJob,
-		sposWrk.ExtendCommitmentHash,
-		sposWrk.Cns.CheckCommitmentHashConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrBitmap),
-		chronology.SubroundId(spos.SrCommitment),
-		int64(roundDuration*55/100),
-		sposWrk.Cns.GetSubroundName(spos.SrBitmap),
-		sposWrk.DoBitmapJob,
-		sposWrk.ExtendBitmap,
-		sposWrk.Cns.CheckBitmapConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrCommitment),
-		chronology.SubroundId(spos.SrSignature),
-		int64(roundDuration*70/100),
-		sposWrk.Cns.GetSubroundName(spos.SrCommitment),
-		sposWrk.DoCommitmentJob,
-		sposWrk.ExtendCommitment,
-		sposWrk.Cns.CheckCommitmentConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrSignature),
-		chronology.SubroundId(spos.SrEndRound),
-		int64(roundDuration*85/100),
-		sposWrk.Cns.GetSubroundName(spos.SrSignature),
-		sposWrk.DoSignatureJob,
-		sposWrk.ExtendSignature,
-		sposWrk.Cns.CheckSignatureConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrEndRound),
-		chronology.SubroundId(spos.SrAdvance),
-		int64(roundDuration*95/100),
-		sposWrk.Cns.GetSubroundName(spos.SrEndRound),
-		sposWrk.DoEndRoundJob,
-		sposWrk.ExtendEndRound,
-		sposWrk.Cns.CheckEndRoundConsensus))
-
-	sposWrk.Cns.Chr.AddSubround(spos.NewSubround(
-		chronology.SubroundId(spos.SrAdvance),
-		-1,
-		int64(roundDuration*100/100),
-		sposWrk.Cns.GetSubroundName(spos.SrAdvance),
-		nil,
-		nil,
-		nil))
-}
-
 // GetBalance gets the balance for a specific address
-func (n *Node) GetBalance(address string) (*big.Int, error) {
+func (n *Node) GetBalance(addressHex string) (*big.Int, error) {
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
-	accAddress, err := n.addrConverter.CreateAddressFromHex(address)
+
+	address, err := n.addrConverter.CreateAddressFromHex(addressHex)
 	if err != nil {
-		return nil, errors.New("invalid address: " + err.Error())
+		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
 	}
-	account, err := n.accounts.GetExistingAccount(accAddress)
+	account, err := n.accounts.GetExistingAccount(address)
 	if err != nil {
-		return nil, errors.New("could not fetch sender address from provided param")
+		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
 	if account == nil {
 		return big.NewInt(0), nil
 	}
 
-	return &account.BaseAccount().Balance, nil
+	return account.BaseAccount().Balance, nil
+}
+
+// GenerateAndSendBulkTransactions is a method for generating and propagating a set
+// of transactions to be processed. It is mainly used for demo purposes
+func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.Int, noOfTx uint64) error {
+	if noOfTx == 0 {
+		return errors.New("can not generate and broadcast 0 transactions")
+	}
+
+	if n.publicKey == nil {
+		return ErrNilPublicKey
+	}
+
+	if n.singlesig == nil {
+		return ErrNilSingleSig
+	}
+
+	senderAddressBytes, err := n.publicKey.ToByteArray()
+	if err != nil {
+		return err
+	}
+
+	if n.addrConverter == nil {
+		return ErrNilAddressConverter
+	}
+	senderAddress, err := n.addrConverter.CreateAddressFromPublicKeyBytes(senderAddressBytes)
+	if err != nil {
+		return err
+	}
+
+	if n.shardCoordinator == nil {
+		return ErrNilShardCoordinator
+	}
+	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
+
+	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	if err != nil {
+		return errors.New("could not create receiver address from provided param: " + err.Error())
+	}
+
+	if n.accounts == nil {
+		return ErrNilAccountsAdapter
+	}
+	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
+	if err != nil {
+		return errors.New("could not fetch sender account from provided param: " + err.Error())
+	}
+	newNonce := uint64(0)
+	if senderAccount != nil {
+		newNonce = senderAccount.BaseAccount().Nonce
+	}
+
+	wg := gosync.WaitGroup{}
+	wg.Add(int(noOfTx))
+
+	mutTransactions := gosync.RWMutex{}
+	transactions := make([][]byte, 0)
+
+	mutErrFound := gosync.Mutex{}
+	var errFound error
+
+	for nonce := newNonce; nonce < newNonce+noOfTx; nonce++ {
+		go func(crtNonce uint64) {
+			_, signedTxBuff, err := n.generateAndSignTx(
+				crtNonce,
+				value,
+				receiverAddress.Bytes(),
+				senderAddressBytes,
+				nil,
+			)
+
+			if err != nil {
+				mutErrFound.Lock()
+				errFound = errors.New(fmt.Sprintf("failure generating transaction %d: %s", crtNonce, err.Error()))
+				mutErrFound.Unlock()
+
+				wg.Done()
+				return
+			}
+
+			mutTransactions.Lock()
+			transactions = append(transactions, signedTxBuff)
+			mutTransactions.Unlock()
+			wg.Done()
+		}(nonce)
+	}
+
+	wg.Wait()
+
+	if errFound != nil {
+		return errFound
+	}
+
+	if len(transactions) != int(noOfTx) {
+		return errors.New(fmt.Sprintf("generated only %d from required %d transactions", len(transactions), noOfTx))
+	}
+
+	//the topic identifier is made of the current shard id and sender's shard id
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
+
+	for i := 0; i < len(transactions); i++ {
+		n.messenger.BroadcastOnChannel(
+			SendTransactionsPipe,
+			identifier,
+			transactions[i],
+		)
+
+		if err != nil {
+			return errors.New("could not broadcast transaction: " + err.Error())
+		}
+	}
+
+	return nil
+}
+
+// createRounder method creates a round object
+func (n *Node) createRounder() (consensus.Rounder, error) {
+	rnd, err := round.NewRound(
+		n.genesisTime,
+		n.syncer.CurrentTime(),
+		time.Millisecond*time.Duration(n.roundDuration),
+		n.syncer)
+
+	return rnd, err
+}
+
+// createChronologyHandler method creates a chronology object
+func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.ChronologyHandler, error) {
+	chr, err := chronology.NewChronology(
+		n.genesisTime,
+		rounder,
+		n.syncer)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return chr, nil
+}
+
+func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	bootstrap, err := sync.NewBootstrap(
+		n.dataPool,
+		n.blkc,
+		rounder,
+		n.blockProcessor,
+		WaitTime,
+		n.hasher,
+		n.marshalizer,
+		n.forkDetector,
+		n.resolversFinder,
+		n.shardCoordinator,
+		n.accounts,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	bootstrap.BroadcastBlock = n.BroadcastBlock
+
+	bootstrap.StartSync()
+
+	return bootstrap, nil
+}
+
+// createConsensusState method creates a consensusState object
+func (n *Node) createConsensusState() (*spos.ConsensusState, error) {
+	selfId, err := n.publicKey.ToByteArray()
+
+	if err != nil {
+		return nil, err
+	}
+
+	roundConsensus := spos.NewRoundConsensus(
+		n.initialNodesPubkeys[n.shardCoordinator.SelfId()],
+		n.consensusGroupSize,
+		string(selfId))
+
+	roundConsensus.ResetRoundState()
+
+	roundThreshold := spos.NewRoundThreshold()
+
+	roundStatus := spos.NewRoundStatus()
+	roundStatus.ResetRoundStatus()
+
+	consensusState := spos.NewConsensusState(
+		roundConsensus,
+		roundThreshold,
+		roundStatus)
+
+	return consensusState, nil
+}
+
+// createValidatorGroupSelector creates a index hashed group selector object
+func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector, error) {
+	validatorGroupSelector, err := groupSelectors.NewIndexHashedGroupSelector(n.consensusGroupSize, n.hasher)
+
+	if err != nil {
+		return nil, err
+	}
+
+	validatorsList := make([]consensus.Validator, 0)
+	shID := n.shardCoordinator.SelfId()
+
+	if int(shID) >= len(n.initialNodesPubkeys) {
+		return nil, errors.New("could not create validator group as shardID is out of range")
+	}
+
+	for i := 0; i < len(n.initialNodesPubkeys[shID]); i++ {
+		validator, err := validators.NewValidator(big.NewInt(0), 0, []byte(n.initialNodesPubkeys[shID][i]))
+
+		if err != nil {
+			return nil, err
+		}
+
+		validatorsList = append(validatorsList, validator)
+	}
+
+	err = validatorGroupSelector.LoadEligibleList(validatorsList)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return validatorGroupSelector, nil
+}
+
+// createConsensusTopic creates a consensus topic for node
+func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error {
+	if n.messenger.HasTopicValidator(string(ConsensusTopic)) {
+		return ErrValidatorAlreadySet
+	}
+
+	if !n.messenger.HasTopic(string(ConsensusTopic)) {
+		err := n.messenger.CreateTopic(string(ConsensusTopic), true)
+		if err != nil {
+			return err
+		}
+	}
+
+	return n.messenger.RegisterMessageProcessor(string(ConsensusTopic), messageProcessor)
+}
+
+func (n *Node) generateAndSignTx(
+	nonce uint64,
+	value *big.Int,
+	rcvAddrBytes []byte,
+	sndAddrBytes []byte,
+	dataBytes []byte,
+) (*transaction.Transaction, []byte, error) {
+
+	tx := transaction.Transaction{
+		Nonce:   nonce,
+		Value:   value,
+		RcvAddr: rcvAddrBytes,
+		SndAddr: sndAddrBytes,
+		Data:    dataBytes,
+	}
+
+	if n.marshalizer == nil {
+		return nil, nil, ErrNilMarshalizer
+	}
+
+	if n.privateKey == nil {
+		return nil, nil, ErrNilPrivateKey
+	}
+
+	marshalizedTx, err := n.marshalizer.Marshal(&tx)
+	if err != nil {
+		return nil, nil, errors.New("could not marshal transaction")
+	}
+
+	sig, err := n.singlesig.Sign(n.privateKey, marshalizedTx)
+	if err != nil {
+		return nil, nil, errors.New("could not sign the transaction")
+	}
+	tx.Signature = sig
+
+	signedMarshalizedTx, err := n.marshalizer.Marshal(&tx)
+	if err != nil {
+		return nil, nil, errors.New("could not marshal signed transaction")
+	}
+
+	return &tx, signedMarshalizedTx, nil
 }
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
-func (n *Node) GenerateTransaction(sender string, receiver string, amount big.Int, code string) (*transaction.Transaction, error) {
+func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *big.Int, transactionData string) (*transaction.Transaction, error) {
 	if n.addrConverter == nil || n.accounts == nil {
 		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
@@ -436,7 +596,11 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 		return nil, errors.New("initialize PrivateKey first")
 	}
 
-	senderAddress, err := n.addrConverter.CreateAddressFromHex(sender)
+	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	if err != nil {
+		return nil, errors.New("could not create receiver address from provided param")
+	}
+	senderAddress, err := n.addrConverter.CreateAddressFromHex(senderHex)
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}
@@ -449,55 +613,62 @@ func (n *Node) GenerateTransaction(sender string, receiver string, amount big.In
 		newNonce = senderAccount.BaseAccount().Nonce
 	}
 
-	tx := transaction.Transaction{
-		Nonce:   newNonce,
-		Value:   amount,
-		RcvAddr: []byte(receiver),
-		SndAddr: []byte(sender),
-	}
+	tx, _, err := n.generateAndSignTx(
+		newNonce,
+		value,
+		receiverAddress.Bytes(),
+		senderAddress.Bytes(),
+		[]byte(transactionData))
 
-	txToByteArray, err := n.marshalizer.Marshal(tx)
-	if err != nil {
-		return nil, errors.New("could not create byte array representation of the transaction")
-	}
-
-	sig, err := n.privateKey.Sign(txToByteArray)
-	if err != nil {
-		return nil, errors.New("could not sign the transaction")
-	}
-	tx.Signature = sig
-
-	return &tx, nil
+	return tx, err
 }
 
 // SendTransaction will send a new transaction on the topic channel
 func (n *Node) SendTransaction(
 	nonce uint64,
-	sender string,
-	receiver string,
-	value big.Int,
+	senderHex string,
+	receiverHex string,
+	value *big.Int,
 	transactionData string,
-	signature string) (*transaction.Transaction, error) {
+	signature []byte) (*transaction.Transaction, error) {
+
+	sender, err := n.addrConverter.CreateAddressFromHex(senderHex)
+	if err != nil {
+		return nil, err
+	}
+	receiver, err := n.addrConverter.CreateAddressFromHex(receiverHex)
+	if err != nil {
+		return nil, err
+	}
+
+	if n.shardCoordinator == nil {
+		return nil, ErrNilShardCoordinator
+	}
+	senderShardId := n.shardCoordinator.ComputeId(sender)
 
 	tx := transaction.Transaction{
 		Nonce:     nonce,
 		Value:     value,
-		RcvAddr:   []byte(receiver),
-		SndAddr:   []byte(sender),
+		RcvAddr:   receiver.Bytes(),
+		SndAddr:   sender.Bytes(),
 		Data:      []byte(transactionData),
-		Signature: []byte(signature),
+		Signature: signature,
 	}
 
-	topic := n.messenger.GetTopic(string(TransactionTopic))
-
-	if topic == nil {
-		return nil, errors.New("could not get transaction topic")
-	}
-
-	err := topic.Broadcast(tx)
+	marshalizedTx, err := n.marshalizer.Marshal(&tx)
 	if err != nil {
-		return nil, errors.New("could not broadcast transaction: " + err.Error())
+		return nil, errors.New("could not marshal transaction")
 	}
+
+	//the topic identifier is made of the current shard id and sender's shard id
+	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
+
+	n.messenger.BroadcastOnChannel(
+		SendTransactionsPipe,
+		identifier,
+		marshalizedTx,
+	)
+
 	return &tx, nil
 }
 
@@ -506,256 +677,114 @@ func (n *Node) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
 
-func (n *Node) createNetMessenger() (p2p.Messenger, error) {
-	if n.port == 0 {
-		return nil, errors.New("Cannot start node on port 0")
+// GetCurrentPublicKey will return the current node's public key
+func (n *Node) GetCurrentPublicKey() string {
+	if n.publicKey != nil {
+		pkey, _ := n.publicKey.ToByteArray()
+		return fmt.Sprintf("%x", pkey)
 	}
-
-	if n.maxAllowedPeers == 0 {
-		return nil, errors.New("Cannot start node without providing maxAllowedPeers")
-	}
-
-	cp, err := p2p.NewConnectParamsFromPort(n.port)
-	if err != nil {
-		return nil, err
-	}
-
-	nm, err := p2p.NewNetMessenger(n.ctx, n.marshalizer, n.hasher, cp, n.maxAllowedPeers, n.pubSubStrategy)
-	if err != nil {
-		return nil, err
-	}
-	return nm, nil
+	return ""
 }
 
-func (n *Node) createGenesisBlock() (*block.Header, error) {
-	blockBody := n.blockProcessor.CreateGenesisBlockBody(n.initialNodesBalances, 0)
-	marshalizedBody, err := n.marshalizer.Marshal(blockBody)
-	if err != nil {
-		return nil, err
+// GetAccount will return acount details for a given address
+func (n *Node) GetAccount(address string) (*state.Account, error) {
+	if n.addrConverter == nil || n.accounts == nil {
+		return nil, errors.New("initialize AccountsAdapter and AddressConverter first")
 	}
-	blockBodyHash := n.hasher.Compute(string(marshalizedBody))
-	return &block.Header{
+
+	addr, err := n.addrConverter.CreateAddressFromHex(address)
+	if err != nil {
+		return nil, errors.New("could not create address object from provided string")
+	}
+	account, err := n.accounts.GetExistingAccount(addr)
+	if err != nil {
+		return nil, errors.New("could not fetch sender address from provided param")
+	}
+	return account.BaseAccount(), nil
+}
+
+func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
+	rootHash, err := n.blockProcessor.CreateGenesisBlock(n.initialNodesBalances)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	header := &block.Header{
 		Nonce:         0,
-		ShardId:       blockBody.ShardID,
+		ShardId:       n.shardCoordinator.SelfId(),
 		TimeStamp:     uint64(n.genesisTime.Unix()),
-		BlockBodyHash: blockBodyHash,
 		BlockBodyType: block.StateBlock,
-		Signature:     blockBodyHash,
-	}, nil
-}
-
-func (n *Node) blockchainLog(sposWrk *spos.SPOSConsensusWorker) {
-	// TODO: this method and its call should be removed after initial testing of our first version of testnet
-	oldNonce := uint64(0)
-	prevHeaderHash := []byte("")
-	recheckPeriod := sposWrk.Cns.Chr.Round().TimeDuration() * 5 / 100
-
-	for {
-		time.Sleep(recheckPeriod)
-
-		hdr := sposWrk.BlockChain.CurrentBlockHeader
-		txBlock := sposWrk.BlockChain.CurrentTxBlockBody
-
-		if hdr == nil || txBlock == nil {
-			continue
-		}
-
-		if hdr.Nonce > oldNonce {
-			newNonce, newPrevHash, blockHash, err := n.computeNewNoncePrevHash(sposWrk, hdr, txBlock, prevHeaderHash)
-
-			if err != nil {
-				log.Error(err.Error())
-				continue
-			}
-
-			n.displayLogInfo(hdr, txBlock, newPrevHash, prevHeaderHash, sposWrk, blockHash)
-
-			oldNonce = newNonce
-			prevHeaderHash = newPrevHash
-		}
-	}
-}
-
-func (n *Node) computeNewNoncePrevHash(
-	sposWrk *spos.SPOSConsensusWorker,
-	hdr *block.Header,
-	txBlock *block.TxBlockBody,
-	prevHash []byte,
-) (uint64, []byte, []byte, error) {
-
-	if sposWrk == nil {
-		return 0, nil, nil, errNilSposWorker
+		Signature:     rootHash,
+		RootHash:      rootHash,
 	}
 
-	if sposWrk.BlockChain == nil {
-		return 0, nil, nil, errNilBlockchain
-	}
+	marshalizedHeader, err := n.marshalizer.Marshal(header)
 
-	headerMarsh, err := n.marshalizer.Marshal(hdr)
 	if err != nil {
-		return 0, nil, nil, err
+		return nil, nil, err
 	}
 
-	txBlkMarsh, err := n.marshalizer.Marshal(txBlock)
+	blockHeaderHash := n.hasher.Compute(string(marshalizedHeader))
+
+	return header, blockHeaderHash, nil
+}
+
+func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
+	cnsDtaBuff, err := n.marshalizer.Marshal(cnsDta)
 	if err != nil {
-		return 0, nil, nil, err
-	}
-
-	headerHash := n.hasher.Compute(string(headerMarsh))
-	blockHash := n.hasher.Compute(string(txBlkMarsh))
-
-	return hdr.Nonce, headerHash, blockHash, nil
-}
-
-func (n *Node) displayLogInfo(
-	header *block.Header,
-	txBlock *block.TxBlockBody,
-	headerHash []byte,
-	prevHash []byte,
-	sposWrk *spos.SPOSConsensusWorker,
-	blockHash []byte,
-) {
-
-	log.Info(fmt.Sprintf("Block with nonce %d and hash %s was added into the blockchain. Previous block hash was %s\n\n", header.Nonce, toB64(headerHash), toB64(prevHash)))
-
-	dispHeader, dispLines := createDisplayableHeaderAndBlockBody(header, txBlock, blockHash)
-
-	tblString, err := display.CreateTableString(dispHeader, dispLines)
-	if err != nil {
-		log.Error(err.Error())
-	}
-	fmt.Println(tblString)
-
-	log.Info(fmt.Sprintf("\n********** There was %d rounds and was proposed %d blocks, which means %.2f%% hit rate **********\n",
-		sposWrk.Rounds, sposWrk.RoundsWithBlock, float64(sposWrk.RoundsWithBlock)*100/float64(sposWrk.Rounds)))
-}
-
-func createDisplayableHeaderAndBlockBody(
-	hdr *block.Header,
-	txBody *block.TxBlockBody,
-	txBlockHash []byte) ([]string, []*display.LineData) {
-
-	header := []string{"Part", "Parameter", "Value"}
-
-	lines := displayHeader(hdr)
-
-	if hdr.BlockBodyType == block.TxBlock {
-		lines = displayTxBlockBody(lines, txBody, txBlockHash)
-
-		return header, lines
-	}
-
-	//TODO: implement the other block bodies
-
-	lines = append(lines, display.NewLineData(false, []string{"Unknown", "", ""}))
-	return header, lines
-}
-
-func displayHeader(hdr *block.Header) []*display.LineData {
-	lines := make([]*display.LineData, 0)
-
-	lines = append(lines, display.NewLineData(false, []string{
-		"Header",
-		"Nonce",
-		fmt.Sprintf("%d", hdr.Nonce)}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Shard",
-		fmt.Sprintf("%d", hdr.ShardId)}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Epoch",
-		fmt.Sprintf("%d", hdr.Epoch)}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Round",
-		fmt.Sprintf("%d", hdr.Round)}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Timestamp",
-		fmt.Sprintf("%d", hdr.TimeStamp)}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Prev hash",
-		toB64(hdr.PrevHash)}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Body type",
-		hdr.BlockBodyType.String()}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Body hash",
-		toB64(hdr.BlockBodyHash)}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Pub keys bitmap",
-		toHex(hdr.PubKeysBitmap)}))
-	lines = append(lines, display.NewLineData(false, []string{
-		"",
-		"Commitment",
-		toB64(hdr.Commitment)}))
-	lines = append(lines, display.NewLineData(true, []string{
-		"",
-		"Signature",
-		toB64(hdr.Signature)}))
-
-	return lines
-}
-
-func displayTxBlockBody(lines []*display.LineData, txBody *block.TxBlockBody, hash []byte) []*display.LineData {
-	lines = append(lines, display.NewLineData(false, []string{"TxBody", "Block hash", toB64(hash)}))
-	lines = append(lines, display.NewLineData(true, []string{"", "Root hash", toB64(txBody.RootHash)}))
-
-	for i := 0; i < len(txBody.MiniBlocks); i++ {
-		miniBlock := txBody.MiniBlocks[i]
-
-		part := fmt.Sprintf("TxBody_%d", miniBlock.ShardID)
-
-		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
-			lines = append(lines, display.NewLineData(false, []string{
-				part, "", "<NIL> or <EMPTY>"}))
-		}
-
-		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			lines = append(lines, display.NewLineData(false, []string{
-				part,
-				fmt.Sprintf("Tx hash %d", j),
-				toB64(miniBlock.TxHashes[j])}))
-
-			part = ""
-		}
-
-		lines[len(lines)-1].HorizontalRuleAfter = true
-	}
-
-	return lines
-}
-
-func toHex(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return "0x" + hex.EncodeToString(buff)
-}
-
-func toB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return base64.StdEncoding.EncodeToString(buff)
-}
-
-func (n *Node) sendMessage(cnsDta *spos.ConsensusData) {
-	topic := n.messenger.GetTopic(string(ConsensusTopic))
-
-	if topic == nil {
-		log.Debug(fmt.Sprintf("could not get consensus topic"))
+		log.Debug(err.Error())
 		return
 	}
 
-	err := topic.Broadcast(*cnsDta)
+	n.messenger.Broadcast(
+		string(ConsensusTopic),
+		cnsDtaBuff)
+}
 
-	if err != nil {
-		log.Debug(fmt.Sprintf("could not broadcast message: " + err.Error()))
+// BroadcastBlock will send on intra shard topics the header and block body and on cross shard topics
+// the miniblocks. This func needs to be exported as it is tested in integrationTests package.
+// TODO make broadcastBlock to be able to work with metablocks as well.
+// TODO: investigate if the body block needs to be sent on intra shard topic as each miniblock is already sent on cross
+//  shard topics
+func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+	if blockBody == nil {
+		return ErrNilTxBlockBody
 	}
+
+	err := blockBody.IntegrityAndValidity()
+	if err != nil {
+		return err
+	}
+
+	if header == nil {
+		return ErrNilBlockHeader
+	}
+
+	msgHeader, err := n.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	msgBlockBody, err := n.marshalizer.Marshal(blockBody)
+	if err != nil {
+		return err
+	}
+
+	msgMapBlockBody, err := n.blockProcessor.MarshalizedDataForCrossShard(blockBody)
+	if err != nil {
+		return err
+	}
+
+	go n.messenger.Broadcast(factory.HeadersTopic+
+		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgHeader)
+
+	go n.messenger.Broadcast(factory.MiniBlocksTopic+
+		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
+
+	for k, v := range msgMapBlockBody {
+		go n.messenger.Broadcast(factory.MiniBlocksTopic+
+			n.shardCoordinator.CommunicationIdentifier(k), v)
+	}
+
+	return nil
 }

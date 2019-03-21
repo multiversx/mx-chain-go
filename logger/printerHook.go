@@ -7,8 +7,8 @@ import (
 )
 
 // printerHook is a logrus hook that prints out in the console only the message
-// from the logged line. It is used to easlily follow logged messages
-// instead of trying to decypher through the full logged json
+// from the logged line. It is used to easily follow logged messages
+// instead of trying to decrypt through the full logged json
 type printerHook struct {
 	Writer io.Writer
 }
@@ -16,7 +16,6 @@ type printerHook struct {
 // Levels returns the array of levels for which the hook will be applicable
 func (h *printerHook) Levels() []log.Level {
 	return []log.Level{
-		log.DebugLevel,
 		log.InfoLevel,
 		log.WarnLevel,
 		log.ErrorLevel,

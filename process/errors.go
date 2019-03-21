@@ -4,6 +4,12 @@ import (
 	"errors"
 )
 
+// ErrNilMessage signals that a nil message has been received
+var ErrNilMessage = errors.New("nil message")
+
+// ErrNoConnectedPeerToSendRequest signals that the connected peers list is empty and can not send request
+var ErrNoConnectedPeerToSendRequest = errors.New("connected peers list is empty. Can not send request")
+
 // ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
@@ -40,23 +46,14 @@ var ErrNilBlockChain = errors.New("nil block chain")
 // ErrNilTxBlockBody signals that an operation has been attempted to or with a nil block body
 var ErrNilTxBlockBody = errors.New("nil block body")
 
-// ErrNilStateBlockBody signals that an operation has been attempted to or with a nil block body
-var ErrNilStateBlockBody = errors.New("nil block body")
-
 // ErrNilPeerBlockBody signals that an operation has been attempted to or with a nil block body
 var ErrNilPeerBlockBody = errors.New("nil block body")
 
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
 
-// ErrNilBlockBodyHash signals that an operation has been attempted to or with a nil block body hash
-var ErrNilBlockBodyHash = errors.New("nil block body hash")
-
 // ErrNilTxHash signals that an operation has been attempted with a nil hash
 var ErrNilTxHash = errors.New("nil transaction hash")
-
-// ErrNilPeerChanges signals that an operation has been attempted with nil peer changes
-var ErrNilPeerChanges = errors.New("nil peer block changes")
 
 // ErrNilPublicKey signals that a operation has been attempted with a nil public key
 var ErrNilPublicKey = errors.New("nil public key")
@@ -70,29 +67,26 @@ var ErrNilPreviousBlockHash = errors.New("nil previous block header hash")
 // ErrNilSignature signals that a operation has been attempted with a nil signature
 var ErrNilSignature = errors.New("nil signature")
 
-// ErrNilChallenge signals that a operation has been attempted with a nil challenge
-var ErrNilChallenge = errors.New("nil challenge")
-
 // ErrNilCommitment signals that a operation has been attempted with a nil commitment
 var ErrNilCommitment = errors.New("nil commitment")
 
 // ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
 var ErrNilMiniBlocks = errors.New("nil mini blocks")
 
-// ErrNilTxHashes signals that an operation has been atempted with snil transaction hashes
+// ErrNilMiniBlockHeaders signals that an operation has been attempted with a nil mini-block
+var ErrNilMiniBlockHeaders = errors.New("nil mini block headers")
+
+// ErrNilTxHashes signals that an operation has been atempted with nil transaction hashes
 var ErrNilTxHashes = errors.New("nil transaction hashes")
 
 // ErrNilRootHash signals that an operation has been attempted with a nil root hash
 var ErrNilRootHash = errors.New("root hash is nil")
 
-// ErrWrongNonceInBlock signals the nonce in block is different than expected nounce
+// ErrWrongNonceInBlock signals the nonce in block is different than expected nonce
 var ErrWrongNonceInBlock = errors.New("wrong nonce in block")
 
 // ErrInvalidBlockHash signals the hash of the block is not matching with the previous one
 var ErrInvalidBlockHash = errors.New("invalid block hash")
-
-// ErrInvalidBlockSignature signals the signature of the block is not valid
-var ErrInvalidBlockSignature = errors.New("invalid block signature")
 
 // ErrMissingTransaction signals that one transaction is missing
 var ErrMissingTransaction = errors.New("missing transaction")
@@ -124,20 +118,11 @@ var ErrNilBlockExecutor = errors.New("nil BlockExecutor")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
-// ErrNilRound signals that an operation has been attempted to or with a nil Round
-var ErrNilRound = errors.New("nil Round")
+// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
+var ErrNilRounder = errors.New("nil Rounder")
 
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")
-
-// ErrNilNewer signals that a nil Newer object was provided
-var ErrNilNewer = errors.New("nil Newer")
-
-// ErrRegisteringValidator signals that a registration validator occur
-var ErrRegisteringValidator = errors.New("error while registering validator")
-
-// ErrNilInterceptor signals that a nil Interceptor has been provided
-var ErrNilInterceptor = errors.New("nil Interceptor")
 
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
@@ -169,14 +154,17 @@ var ErrInvalidRcvAddr = errors.New("invalid receiver address")
 // ErrInvalidSndAddr signals that an operation has been attempted to or with an invalid sender address
 var ErrInvalidSndAddr = errors.New("invalid sender address")
 
-// ErrNilSingleSignKeyGen signals that an operation has been attempted to or with a nil single sign key generator
-var ErrNilSingleSignKeyGen = errors.New("nil single sign key generator")
+// ErrNilKeyGen signals that an operation has been attempted to or with a nil single sign key generator
+var ErrNilKeyGen = errors.New("nil key generator")
+
+// ErrNilSingleSigner signals that a nil single signer is used
+var ErrNilSingleSigner = errors.New("nil single signer")
+
+// ErrNilMultiSigVerifier signals that a nil multi-signature verifier is used
+var ErrNilMultiSigVerifier = errors.New("nil multi-signature verifier")
 
 // ErrInvalidBlockBodyType signals that an operation has been attempted with an invalid block body type
 var ErrInvalidBlockBodyType = errors.New("invalid block body type")
-
-// ErrNilTransientDataHolder signals that an operation has been attempted to or with a nil transient data holder
-var ErrNilTransientDataHolder = errors.New("nil transient data holder")
 
 // ErrNotImplementedBlockProcessingType signals that a not supported block body type was found in header
 var ErrNotImplementedBlockProcessingType = errors.New("not implemented block processing type")
@@ -184,14 +172,8 @@ var ErrNotImplementedBlockProcessingType = errors.New("not implemented block pro
 // ErrNilDataToProcess signals that nil data was provided
 var ErrNilDataToProcess = errors.New("nil data to process")
 
-// ErrBadInterceptorTopicImplementation signals that a bad interceptor-topic implementation occurred
-var ErrBadInterceptorTopicImplementation = errors.New("bad interceptor-topic implementation")
-
-// ErrNilBlockBody signals that a nil block body has been provided
-var ErrNilBlockBody = errors.New("nil block body")
-
-// ErrNilTransientPool signals that an operation has been attempted to or with a nil transient pool of data
-var ErrNilTransientPool = errors.New("nil transient pool")
+// ErrNilPoolsHolder signals that an operation has been attempted to or with a nil pools holder object
+var ErrNilPoolsHolder = errors.New("nil pools holder")
 
 // ErrNilTxStorage signals that a nil transaction storage has been provided
 var ErrNilTxStorage = errors.New("nil transaction storage")
@@ -199,17 +181,8 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
 
-// ErrNilTopic signals that a nil topic has been provided/fetched
-var ErrNilTopic = errors.New("nil topic")
-
-// ErrResolveRequestAlreadyAssigned signals that ResolveRequest is not nil for a particular topic
-var ErrResolveRequestAlreadyAssigned = errors.New("resolve request func has already been assigned for this topic")
-
-// ErrTopicNotWiredToMessenger signals that a call to a not-correctly-instantiated topic has been made
-var ErrTopicNotWiredToMessenger = errors.New("topic has not been wired to a p2p.Messenger implementation")
-
-// ErrNilResolver signals that a nil resolver object has been provided
-var ErrNilResolver = errors.New("nil resolver")
+// ErrNilResolverSender signals that a nil resolver sender object has been provided
+var ErrNilResolverSender = errors.New("nil resolver sender")
 
 // ErrNilNonceConverter signals that a nil nonce converter has been provided
 var ErrNilNonceConverter = errors.New("nil nonce converter")
@@ -229,3 +202,57 @@ var ErrNilBlockBodyPool = errors.New("nil block body pool")
 
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")
+
+// ErrNilTransactionPool signals that a nil transaction pool was used
+var ErrNilTransactionPool = errors.New("nil transaction pool")
+
+// ErrNilTxProcessor signals that a nil transactions processor was used
+var ErrNilTxProcessor = errors.New("nil transactions processor")
+
+// ErrNilDataPoolHolder signals that the data pool holder is nil
+var ErrNilDataPoolHolder = errors.New("nil data pool holder")
+
+// ErrTimeIsOut signals that time is out
+var ErrTimeIsOut = errors.New("time is out")
+
+// ErrNilForkDetector signals that the fork detector is nil
+var ErrNilForkDetector = errors.New("nil fork detector")
+
+// ErrNilContainerElement signals when trying to add a nil element in the container
+var ErrNilContainerElement = errors.New("element cannot be nil")
+
+// ErrInvalidContainerKey signals that an element does not exist in the container's map
+var ErrInvalidContainerKey = errors.New("element does not exist in container")
+
+// ErrContainerKeyAlreadyExists signals that an element was already set in the container's map
+var ErrContainerKeyAlreadyExists = errors.New("provided key already exists in container")
+
+// ErrNilUint64ByteSliceConverter signals that a nil byte slice converter was provided
+var ErrNilUint64ByteSliceConverter = errors.New("nil byte slice converter")
+
+// ErrNilResolverContainer signals that a nil resolver container was provided
+var ErrNilResolverContainer = errors.New("nil resolver container")
+
+// ErrNilTransactionHandler signals that a nil transaction handler func was provided
+var ErrNilTransactionHandler = errors.New("nil request transaction handler")
+
+// ErrNilHaveTimeHandler signals that a nil have time handler func was provided
+var ErrNilHaveTimeHandler = errors.New("nil have time handler")
+
+// ErrUnmarshalMBHashes signals the value is nil
+var ErrUnmarshalMBHashes = errors.New("could not unmarshal miniblock hashes")
+
+// ErrInvalidRequestType signals that a request on a topic sends an invalid type
+var ErrInvalidRequestType = errors.New("invalid request type")
+
+// ErrCouldNotDecodeUnderlyingBody signals that an InterceptedBlockBody could not be decoded to a block.Body using type assertion
+var ErrCouldNotDecodeUnderlyingBody = errors.New("could not decode InterceptedBlockBody to block.Body")
+
+// ErrWrongTypeInContainer signals that a wrong type of object was found in container
+var ErrWrongTypeInContainer = errors.New("wrong type of object inside container")
+
+// ErrLenMismatch signals that 2 or more slices have different lengths
+var ErrLenMismatch = errors.New("lengths mismatch")
+
+// ErrWrongTypeAssertion signals that an type assertion failed
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")

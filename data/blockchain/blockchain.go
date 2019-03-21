@@ -1,44 +1,10 @@
 package blockchain
 
 import (
-	"sync"
-
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
-
-const (
-	// TransactionUnit is the transactions storage unit identifier
-	TransactionUnit UnitType = 0
-	// TxBlockBodyUnit is the transaction block body storage unit identifier
-	TxBlockBodyUnit UnitType = 1
-	// StateBlockBodyUnit is the state block body storage unit identifier
-	StateBlockBodyUnit UnitType = 2
-	// PeerBlockBodyUnit is the peer change block body storage unit identifier
-	PeerBlockBodyUnit UnitType = 3
-	// BlockHeaderUnit is the Block Headers Storage unit identifier
-	BlockHeaderUnit UnitType = 4
-)
-
-// UnitType is the type for Storage unit identifiers
-type UnitType uint8
-
-// StorageService is the interface for blockChain storage unit provided services
-type StorageService interface {
-	// GetStorer returns the storer from the chain map
-	GetStorer(unitType UnitType) storage.Storer
-	// Has returns true if the key is found in the selected Unit or false otherwise
-	Has(unitType UnitType, key []byte) (bool, error)
-	// Get returns the value for the given key if found in the selected storage unit, nil otherwise
-	Get(unitType UnitType, key []byte) ([]byte, error)
-	// Put stores the key, value pair in the selected storage unit
-	Put(unitType UnitType, key []byte, value []byte) error
-	// GetAll gets all the elements with keys in the keys array, from the selected storage unit
-	// If there is a missing key in the unit, it returns an error
-	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
-	// Destroy removes the underlying files/resources used by the storage service
-	Destroy() error
-}
 
 // BlockChain holds the block information for the current shard.
 //
@@ -46,17 +12,18 @@ type StorageService interface {
 // retrieval search of blocks (body), transactions, block headers,
 // bad blocks.
 //
-// The BlockChain also holds pointers to the Genesis block, the current block
+// The BlockChain also holds pointers to the Genesis block header, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
-	lock               sync.RWMutex
-	GenesisBlock       *block.Header               // Genesys Block pointer
-	CurrentBlockHeader *block.Header               // Current Block pointer
-	CurrentTxBlockBody *block.TxBlockBody          // Current Tx Block Body pointer
-	LocalHeight        int64                       // Height of the local chain
-	NetworkHeight      int64                       // Percieved height of the network chain
-	badBlocks          storage.Cacher              // Bad blocks cache
-	chain              map[UnitType]storage.Storer // chains for each unit type. Together they form the blockchain
+	data.StorageService
+	GenesisHeader          *block.Header  // Genesis Block Header pointer
+	genesisHeaderHash      []byte         // Genesis Block Header hash
+	CurrentBlockHeader     *block.Header  // Current Block Header pointer
+	currentBlockHeaderHash []byte         // Current Block Header hash
+	CurrentBlockBody       block.Body     // Current Block Body pointer
+	localHeight            int64          // Height of the local chain
+	networkHeight          int64          // Percieved height of the network chain
+	badBlocks              storage.Cacher // Bad blocks cache
 }
 
 // NewBlockChain returns an initialized blockchain
@@ -64,9 +31,8 @@ type BlockChain struct {
 func NewBlockChain(
 	badBlocksCache storage.Cacher,
 	txUnit storage.Storer,
-	txBlockUnit storage.Storer,
-	stateBlockUnit storage.Storer,
-	peerBlockUnit storage.Storer,
+	miniBlockUnit storage.Storer,
+	peerChangesBlockUnit storage.Storer,
 	headerUnit storage.Storer) (*BlockChain, error) {
 
 	if badBlocksCache == nil {
@@ -77,15 +43,11 @@ func NewBlockChain(
 		return nil, ErrTxUnitNil
 	}
 
-	if txBlockUnit == nil {
-		return nil, ErrTxBlockUnitNil
+	if miniBlockUnit == nil {
+		return nil, ErrMiniBlockUnitNil
 	}
 
-	if stateBlockUnit == nil {
-		return nil, ErrStateBlockUnitNil
-	}
-
-	if peerBlockUnit == nil {
+	if peerChangesBlockUnit == nil {
 		return nil, ErrPeerBlockUnitNil
 	}
 
@@ -93,120 +55,132 @@ func NewBlockChain(
 		return nil, ErrHeaderUnitNil
 	}
 
-	data := &BlockChain{
-		GenesisBlock:       nil,
+	blockChain := &BlockChain{
+		GenesisHeader:      nil,
 		CurrentBlockHeader: nil,
-		LocalHeight:        -1,
-		NetworkHeight:      -1,
+		localHeight:        -1,
+		networkHeight:      -1,
 		badBlocks:          badBlocksCache,
-		chain: map[UnitType]storage.Storer{
-			TransactionUnit:    txUnit,
-			TxBlockBodyUnit:    txBlockUnit,
-			StateBlockBodyUnit: stateBlockUnit,
-			PeerBlockBodyUnit:  peerBlockUnit,
-			BlockHeaderUnit:    headerUnit,
+		StorageService: &ChainStorer{
+			chain: map[data.UnitType]storage.Storer{
+				data.TransactionUnit: txUnit,
+				data.MiniBlockUnit:   miniBlockUnit,
+				data.PeerChangesUnit: peerChangesBlockUnit,
+				data.BlockHeaderUnit: headerUnit,
+			},
 		},
 	}
 
-	return data, nil
+	return blockChain, nil
 }
 
-// GetStorer returns the storer from the chain map or nil if the storer was not found
-func (bc *BlockChain) GetStorer(unitType UnitType) storage.Storer {
-	bc.lock.RLock()
-	storer := bc.chain[unitType]
-	bc.lock.RUnlock()
-
-	return storer
+// GetGenesisHeader returns the genesis block header pointer
+func (bc *BlockChain) GetGenesisHeader() data.HeaderHandler {
+	if bc.GenesisHeader == nil {
+		return nil
+	}
+	return bc.GenesisHeader
 }
 
-// Has returns true if the key is found in the selected Unit or false otherwise
-// It can return an error if the provided unit type is not supported or if the
-// underlying implementation of the storage unit reports an error.
-func (bc *BlockChain) Has(unitType UnitType, key []byte) (bool, error) {
-	bc.lock.RLock()
-	storer := bc.chain[unitType]
-	bc.lock.RUnlock()
-
-	if storer == nil {
-		return false, ErrNoSuchStorageUnit
+// SetGenesisHeader sets the genesis block header pointer
+func (bc *BlockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
+	if genesisBlock == nil {
+		bc.GenesisHeader = nil
+		return nil
 	}
 
-	return storer.Has(key)
-}
-
-// Get returns the value for the given key if found in the selected storage unit,
-// nil otherwise. It can return an error if the provided unit type is not supported
-// or if the storage unit underlying implementation reports an error
-func (bc *BlockChain) Get(unitType UnitType, key []byte) ([]byte, error) {
-	bc.lock.RLock()
-	storer := bc.chain[unitType]
-	bc.lock.RUnlock()
-
-	if storer == nil {
-		return nil, ErrNoSuchStorageUnit
+	gb, ok := genesisBlock.(*block.Header)
+	if !ok {
+		return data.ErrInvalidHeaderType
 	}
-
-	return storer.Get(key)
-}
-
-// Put stores the key, value pair in the selected storage unit
-// It can return an error if the provided unit type is not supported
-// or if the storage unit underlying implementation reports an error
-func (bc *BlockChain) Put(unitType UnitType, key []byte, value []byte) error {
-	bc.lock.RLock()
-	storer := bc.chain[unitType]
-	bc.lock.RUnlock()
-
-	if storer == nil {
-		return ErrNoSuchStorageUnit
-	}
-
-	return storer.Put(key, value)
-}
-
-// GetAll gets all the elements with keys in the keys array, from the selected storage unit
-// It can report an error if the provided unit type is not supported, if there is a missing
-// key in the unit, or if the underlying implementation of the storage unit reports an error.
-func (bc *BlockChain) GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error) {
-	bc.lock.RLock()
-	storer := bc.chain[unitType]
-	bc.lock.RUnlock()
-
-	if storer == nil {
-		return nil, ErrNoSuchStorageUnit
-	}
-
-	m := map[string][]byte{}
-
-	for _, key := range keys {
-		val, err := storer.Get(key)
-
-		if err != nil {
-			return nil, err
-		}
-
-		m[string(key)] = val
-	}
-
-	return m, nil
-}
-
-// Destroy removes the underlying files/resources used by the storage service
-func (bc *BlockChain) Destroy() error {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
-
-	var err error
-
-	for _, v := range bc.chain {
-		err = v.DestroyUnit()
-		if err != nil {
-			return err
-		}
-	}
-
+	bc.GenesisHeader = gb
 	return nil
+}
+
+// GetGenesisHeaderHash returns the genesis block header hash
+func (bc *BlockChain) GetGenesisHeaderHash() []byte {
+	return bc.genesisHeaderHash
+}
+
+// SetGenesisHeaderHash sets the genesis block header hash
+func (bc *BlockChain) SetGenesisHeaderHash(hash []byte) {
+	bc.genesisHeaderHash = hash
+}
+
+// GetCurrentBlockHeader returns current block header pointer
+func (bc *BlockChain) GetCurrentBlockHeader() data.HeaderHandler {
+	if bc.CurrentBlockHeader == nil {
+		return nil
+	}
+	return bc.CurrentBlockHeader
+}
+
+// SetCurrentBlockHeader sets current block header pointer
+func (bc *BlockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+	if header == nil {
+		bc.CurrentBlockHeader = nil
+		return nil
+	}
+
+	h, ok := header.(*block.Header)
+	if !ok {
+		return data.ErrInvalidHeaderType
+	}
+	bc.CurrentBlockHeader = h
+	return nil
+}
+
+// GetCurrentBlockHeaderHash returns the current block header hash
+func (bc *BlockChain) GetCurrentBlockHeaderHash() []byte {
+	return bc.currentBlockHeaderHash
+}
+
+// SetCurrentBlockHeaderHash returns the current block header hash
+func (bc *BlockChain) SetCurrentBlockHeaderHash(hash []byte) {
+	bc.currentBlockHeaderHash = hash
+}
+
+// GetCurrentBlockBody returns the tx block body pointer
+func (bc *BlockChain) GetCurrentBlockBody() data.BodyHandler {
+	if bc.CurrentBlockBody == nil {
+		return nil
+	}
+	return bc.CurrentBlockBody
+}
+
+// SetCurrentBlockBody sets the tx block body pointer
+func (bc *BlockChain) SetCurrentBlockBody(body data.BodyHandler) error {
+	if body == nil {
+		bc.CurrentBlockBody = nil
+		return nil
+	}
+
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return data.ErrInvalidBodyType
+	}
+	bc.CurrentBlockBody = blockBody
+	return nil
+}
+
+// GetLocalHeight returns the height of the local chain
+func (bc *BlockChain) GetLocalHeight() int64 {
+	return bc.localHeight
+}
+
+// SetLocalHeight sets the height of the local chain
+func (bc *BlockChain) SetLocalHeight(height int64) {
+	bc.localHeight = height
+}
+
+// GetNetworkHeight sets the percieved height of the network chain
+func (bc *BlockChain) GetNetworkHeight() int64 {
+	return bc.localHeight
+}
+
+// SetNetworkHeight sets the percieved height of the network chain
+func (bc *BlockChain) SetNetworkHeight(height int64) {
+	bc.localHeight = height
 }
 
 // IsBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise

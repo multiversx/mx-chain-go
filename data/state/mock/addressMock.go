@@ -2,6 +2,7 @@ package mock
 
 import (
 	"math/rand"
+	"sync"
 	"time"
 )
 
@@ -11,12 +12,20 @@ type AddressMock struct {
 	hash  []byte
 }
 
+var r *rand.Rand
+var mutex sync.Mutex
+
+func init() {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
 // NewAddressMock generates a new address
 func NewAddressMock() *AddressMock {
 	buff := make([]byte, HasherMock{}.Size())
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	mutex.Lock()
 	r.Read(buff)
+	mutex.Unlock()
 
 	return &AddressMock{bytes: buff}
 }

@@ -5,16 +5,17 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
-func (txProc *txProcessor) GetAddresses(tx *transaction.Transaction) (adrSrc, adrDest state.AddressContainer, err error) {
+type TxProcessor *txProcessor
+
+func (txProc *txProcessor) GetAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
 	return txProc.getAddresses(tx)
 }
 
-func (txProc *txProcessor) GetAccounts(adrSrc, adrDest state.AddressContainer) (acntSrc, acntDest state.JournalizedAccountWrapper, err error) {
-	return txProc.getAccounts(adrSrc, adrDest)
+func (txProc *txProcessor) GetAccounts(adrSrc, adrDst state.AddressContainer,
+) (acntSrc, acntDst state.JournalizedAccountWrapper, err error) {
+	return txProc.getAccounts(adrSrc, adrDst)
 }
 
 func (txProc *txProcessor) CallSCHandler(tx *transaction.Transaction) error {
@@ -25,18 +26,10 @@ func (txProc *txProcessor) CheckTxValues(acntSrc state.JournalizedAccountWrapper
 	return txProc.checkTxValues(acntSrc, value, nonce)
 }
 
-func (txProc *txProcessor) MoveBalances(acntSrc, acntDest state.JournalizedAccountWrapper, value *big.Int) error {
-	return txProc.moveBalances(acntSrc, acntDest, value)
+func (txProc *txProcessor) MoveBalances(acntSrc, acntDst state.JournalizedAccountWrapper, value *big.Int) error {
+	return txProc.moveBalances(acntSrc, acntDst, value)
 }
 
-func (txProc *txProcessor) IncreaseNonceAcntSrc(acntSrc state.JournalizedAccountWrapper) error {
-	return txProc.increaseNonceAcntSrc(acntSrc)
-}
-
-func (txi *TxInterceptor) ProcessTx(tx p2p.Creator, rawData []byte) error {
-	return txi.processTx(tx, rawData)
-}
-
-func (txRes *txResolver) ResolveTxRequest(rd process.RequestData) ([]byte, error) {
-	return txRes.resolveTxRequest(rd)
+func (txProc *txProcessor) IncreaseNonce(acntSrc state.JournalizedAccountWrapper) error {
+	return txProc.increaseNonce(acntSrc)
 }

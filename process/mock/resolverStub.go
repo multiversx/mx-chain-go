@@ -1,23 +1,18 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
 
 type ResolverStub struct {
-	RequestDataCalled        func(rd process.RequestData) error
-	SetResolverHandlerCalled func(func(rd process.RequestData) ([]byte, error))
-	ResolverHandlerCalled    func() func(rd process.RequestData) ([]byte, error)
+	RequestDataFromHashCalled    func(hash []byte) error
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
 }
 
-func (rs *ResolverStub) RequestData(rd process.RequestData) error {
-	return rs.RequestDataCalled(rd)
+func (rs *ResolverStub) RequestDataFromHash(hash []byte) error {
+	return rs.RequestDataFromHashCalled(hash)
 }
 
-func (rs *ResolverStub) SetResolverHandler(handler func(rd process.RequestData) ([]byte, error)) {
-	rs.SetResolverHandlerCalled(handler)
-}
-
-func (rs *ResolverStub) ResolverHandler() func(rd process.RequestData) ([]byte, error) {
-	return rs.ResolverHandlerCalled()
+func (rs *ResolverStub) ProcessReceivedMessage(message p2p.MessageP2P) error {
+	return rs.ProcessReceivedMessageCalled(message)
 }

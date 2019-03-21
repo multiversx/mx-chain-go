@@ -30,13 +30,13 @@ func accountsDBRevertEmulateBalanceTxExecution(acntSrc, acntDest state.Journaliz
 	}
 
 	//substract value from src
-	err := acntSrc.SetBalanceWithJournal(*srcVal.Sub(&srcVal, value))
+	err := acntSrc.SetBalanceWithJournal(srcVal.Sub(srcVal, value))
 	if err != nil {
 		return err
 	}
 
 	//add value to dest
-	err = acntDest.SetBalanceWithJournal(*destVal.Add(&destVal, value))
+	err = acntDest.SetBalanceWithJournal(destVal.Add(destVal, value))
 	if err != nil {
 		return err
 	}
@@ -167,12 +167,12 @@ func TestAccountsDBRevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	snapshotPreSet := adb.JournalLen()
 
 	//Step 3. Set balances and save data
-	err = state1.SetBalanceWithJournal(*big.NewInt(40))
+	err = state1.SetBalanceWithJournal(big.NewInt(40))
 	assert.Nil(t, err)
 	hrWithBalance1 := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance1)
 
-	err = state2.SetBalanceWithJournal(*big.NewInt(50))
+	err = state2.SetBalanceWithJournal(big.NewInt(50))
 	assert.Nil(t, err)
 	hrWithBalance2 := base64.StdEncoding.EncodeToString(adb.RootHash())
 	fmt.Printf("State root - account with balance 50: %v\n", hrWithBalance2)
@@ -402,7 +402,7 @@ func TestAccountsDBExecBalanceTxExecution(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
-	err = acntSrc.SetBalanceWithJournal(*big.NewInt(1000))
+	err = acntSrc.SetBalanceWithJournal(big.NewInt(1000))
 	assert.Nil(t, err)
 
 	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
@@ -449,7 +449,7 @@ func TestAccountsDBExecALotOfBalanceTxOK(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
-	err = acntSrc.SetBalanceWithJournal(*big.NewInt(10000000))
+	err = acntSrc.SetBalanceWithJournal(big.NewInt(10000000))
 	assert.Nil(t, err)
 
 	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
@@ -480,7 +480,7 @@ func TestAccountsDBExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Set a high balance to src's account
-	err = acntSrc.SetBalanceWithJournal(*big.NewInt(10000000))
+	err = acntSrc.SetBalanceWithJournal(big.NewInt(10000000))
 	assert.Nil(t, err)
 
 	hrOriginal := base64.StdEncoding.EncodeToString(adb.RootHash())
@@ -516,7 +516,7 @@ func BenchmarkTxExecution(b *testing.B) {
 	assert.Nil(b, err)
 
 	//Set a high balance to src's account
-	err = acntSrc.SetBalanceWithJournal(*big.NewInt(10000000))
+	err = acntSrc.SetBalanceWithJournal(big.NewInt(10000000))
 	assert.Nil(b, err)
 
 	b.ResetTimer()

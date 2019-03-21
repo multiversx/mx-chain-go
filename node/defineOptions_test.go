@@ -1,28 +1,38 @@
 package node
 
 import (
-	"context"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWithPort(t *testing.T) {
+func TestWithMessenger_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	port := 4455
-
-	opt := WithPort(port)
+	opt := WithMessenger(nil)
 	err := opt(node)
 
-	assert.Equal(t, port, node.port)
+	assert.Nil(t, node.messenger)
+	assert.Equal(t, ErrNilMessenger, err)
+}
+
+func TestWithMessenger_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	messenger := &mock.MessengerStub{}
+
+	opt := WithMessenger(messenger)
+	err := opt(node)
+
+	assert.True(t, node.messenger == messenger)
 	assert.Nil(t, err)
 }
 
@@ -35,7 +45,7 @@ func TestWithMarshalizer_NilMarshalizerShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.marshalizer)
-	assert.Equal(t, errNilMarshalizer, err)
+	assert.Equal(t, ErrNilMarshalizer, err)
 }
 
 func TestWithMarshalizer_ShouldWork(t *testing.T) {
@@ -52,32 +62,6 @@ func TestWithMarshalizer_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithContext_NilContextShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithContext(nil)
-	err := opt(node)
-
-	assert.Equal(t, context.Background(), node.ctx)
-	assert.Equal(t, errNilContext, err)
-}
-
-func TestWithContext_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	ctx, _ := context.WithCancel(context.Background())
-
-	opt := WithContext(ctx)
-	err := opt(node)
-
-	assert.Equal(t, ctx, node.ctx)
-	assert.Nil(t, err)
-}
-
 func TestWithHasher_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -87,7 +71,7 @@ func TestWithHasher_NilHasherShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.hasher)
-	assert.Equal(t, errNilHasher, err)
+	assert.Equal(t, ErrNilHasher, err)
 }
 
 func TestWithHasher_ShouldWork(t *testing.T) {
@@ -104,34 +88,6 @@ func TestWithHasher_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithMaxAllowedPeers(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	maxAllowedPeers := 456
-
-	opt := WithMaxAllowedPeers(maxAllowedPeers)
-	err := opt(node)
-
-	assert.Equal(t, maxAllowedPeers, node.maxAllowedPeers)
-	assert.Nil(t, err)
-}
-
-func TestWithPubSubStrategy(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	pubStrategy := p2p.PubSubStrategy(p2p.GossipSub)
-
-	opt := WithPubSubStrategy(pubStrategy)
-	err := opt(node)
-
-	assert.Equal(t, pubStrategy, node.pubSubStrategy)
-	assert.Nil(t, err)
-}
-
 func TestWithAccountsAdapter_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -141,7 +97,7 @@ func TestWithAccountsAdapter_NilAccountsShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.accounts)
-	assert.Equal(t, errNilAccountsAdapter, err)
+	assert.Equal(t, ErrNilAccountsAdapter, err)
 }
 
 func TestWithAccountsAdapter_ShouldWork(t *testing.T) {
@@ -167,7 +123,7 @@ func TestWithAddressConverter_NilConverterShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.addrConverter)
-	assert.Equal(t, errNilAddressConverter, err)
+	assert.Equal(t, ErrNilAddressConverter, err)
 }
 
 func TestWithAddressConverter_ShouldWork(t *testing.T) {
@@ -193,7 +149,7 @@ func TestWithBlockChain_NilBlockchainrShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.blkc)
-	assert.Equal(t, errNilBlockchain, err)
+	assert.Equal(t, ErrNilBlockchain, err)
 }
 
 func TestWithBlockChain_ShouldWork(t *testing.T) {
@@ -203,7 +159,6 @@ func TestWithBlockChain_ShouldWork(t *testing.T) {
 
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
@@ -225,7 +180,7 @@ func TestWithPrivateKey_NilPrivateKeyShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.privateKey)
-	assert.Equal(t, errNilPrivateKey, err)
+	assert.Equal(t, ErrNilPrivateKey, err)
 }
 
 func TestWithPrivateKey_ShouldWork(t *testing.T) {
@@ -247,11 +202,11 @@ func TestWithSingleSignKeyGenerator_NilPrivateKeyShouldErr(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithSingleSignKeyGenerator(nil)
+	opt := WithKeyGenerator(nil)
 	err := opt(node)
 
 	assert.Nil(t, node.singleSignKeyGen)
-	assert.Equal(t, errNilSingleSignKeyGen, err)
+	assert.Equal(t, ErrNilSingleSignKeyGen, err)
 }
 
 func TestWithSingleSignKeyGenerator_ShouldWork(t *testing.T) {
@@ -259,9 +214,9 @@ func TestWithSingleSignKeyGenerator_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	keyGen := &mock.SingleSignKeyGenMock{}
+	keyGen := &mock.KeyGenMock{}
 
-	opt := WithSingleSignKeyGenerator(keyGen)
+	opt := WithKeyGenerator(keyGen)
 	err := opt(node)
 
 	assert.True(t, node.singleSignKeyGen == keyGen)
@@ -273,7 +228,8 @@ func TestWithInitialNodesPubKeys(t *testing.T) {
 
 	node, _ := NewNode()
 
-	pubKeys := []string{"pk1", "pk2", "pk3"}
+	pubKeys := make([][]string, 1)
+	pubKeys[0] = []string{"pk1", "pk2", "pk3"}
 
 	opt := WithInitialNodesPubKeys(pubKeys)
 	err := opt(node)
@@ -287,7 +243,8 @@ func TestWithPublicKey(t *testing.T) {
 
 	node, _ := NewNode()
 
-	pubKeys := []string{"pk1", "pk2", "pk3"}
+	pubKeys := make([][]string, 1)
+	pubKeys[0] = []string{"pk1", "pk2", "pk3"}
 
 	opt := WithInitialNodesPubKeys(pubKeys)
 	err := opt(node)
@@ -305,7 +262,7 @@ func TestWithPublicKey_NilPublicKeyShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.publicKey)
-	assert.Equal(t, errNilPublicKey, err)
+	assert.Equal(t, ErrNilPublicKey, err)
 }
 
 func TestWithPublicKey_ShouldWork(t *testing.T) {
@@ -313,7 +270,7 @@ func TestWithPublicKey_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	pk := &mock.SingleSignPublicKeyMock{}
+	pk := &mock.PublicKeyMock{}
 
 	opt := WithPublicKey(pk)
 	err := opt(node)
@@ -331,7 +288,7 @@ func TestWithRoundDuration_ZeroDurationShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Equal(t, uint64(0), node.roundDuration)
-	assert.Equal(t, errZeroRoundDurationNotSupported, err)
+	assert.Equal(t, ErrZeroRoundDurationNotSupported, err)
 }
 
 func TestWithRoundDuration_ShouldWork(t *testing.T) {
@@ -357,7 +314,7 @@ func TestWithConsensusGroupSize_NegativeGroupSizeShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Equal(t, 0, node.consensusGroupSize)
-	assert.Equal(t, errNegativeOrZeroConsensusGroupSize, err)
+	assert.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
 }
 
 func TestWithConsensusGroupSize_ShouldWork(t *testing.T) {
@@ -383,7 +340,7 @@ func TestWithSyncer_NilSyncerShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.syncer)
-	assert.Equal(t, errNilSyncTimer, err)
+	assert.Equal(t, ErrNilSyncTimer, err)
 }
 
 func TestWithSyncer_ShouldWork(t *testing.T) {
@@ -409,7 +366,7 @@ func TestWithBlockProcessor_NilProcessorShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.syncer)
-	assert.Equal(t, errNilBlockProcessor, err)
+	assert.Equal(t, ErrNilBlockProcessor, err)
 }
 
 func TestWithBlockProcessor_ShouldWork(t *testing.T) {
@@ -473,7 +430,7 @@ func TestWithDataPool_NilDataPoolShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.dataPool)
-	assert.Equal(t, errNilDataPool, err)
+	assert.Equal(t, ErrNilDataPool, err)
 }
 
 func TestWithDataPool_ShouldWork(t *testing.T) {
@@ -481,7 +438,7 @@ func TestWithDataPool_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	dataPool := &mock.TransientDataPoolMock{}
+	dataPool := &mock.PoolsHolderStub{}
 
 	opt := WithDataPool(dataPool)
 	err := opt(node)
@@ -499,7 +456,7 @@ func TestWithShardCoordinator_NilShardCoordinatorShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.shardCoordinator)
-	assert.Equal(t, errNilShardCoordinator, err)
+	assert.Equal(t, ErrNilShardCoordinator, err)
 }
 
 func TestWithShardCoordinator_ShouldWork(t *testing.T) {
@@ -525,7 +482,7 @@ func TestWithUint64ByteSliceConverter_NilConverterShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.uint64ByteSliceConverter)
-	assert.Equal(t, errNilUint64ByteSliceConverter, err)
+	assert.Equal(t, ErrNilUint64ByteSliceConverter, err)
 }
 
 func TestWithUint64ByteSliceConverter_ShouldWork(t *testing.T) {
@@ -551,7 +508,7 @@ func TestWithInitialNodesBalances_NilBalancesShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.initialNodesBalances)
-	assert.Equal(t, errNilBalances, err)
+	assert.Equal(t, ErrNilBalances, err)
 }
 
 func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
@@ -559,15 +516,41 @@ func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	balances := map[string]big.Int{
-		"pk1": *big.NewInt(45),
-		"pk2": *big.NewInt(56),
+	balances := map[string]*big.Int{
+		"pk1": big.NewInt(45),
+		"pk2": big.NewInt(56),
 	}
 
 	opt := WithInitialNodesBalances(balances)
 	err := opt(node)
 
 	assert.Equal(t, node.initialNodesBalances, balances)
+	assert.Nil(t, err)
+}
+
+func TestWithSinglesig_NilSinglesigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithSinglesig(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.singlesig)
+	assert.Equal(t, ErrNilSingleSig, err)
+}
+
+func TestWithSinglesig_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	singlesigner := &mock.SinglesignMock{}
+
+	opt := WithSinglesig(singlesigner)
+	err := opt(node)
+
+	assert.True(t, node.singlesig == singlesigner)
 	assert.Nil(t, err)
 }
 
@@ -580,7 +563,7 @@ func TestWithMultisig_NilMultisigShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, node.multisig)
-	assert.Equal(t, errNilMultiSig, err)
+	assert.Equal(t, ErrNilMultiSig, err)
 }
 
 func TestWithMultisig_ShouldWork(t *testing.T) {
@@ -595,4 +578,81 @@ func TestWithMultisig_ShouldWork(t *testing.T) {
 
 	assert.True(t, node.multisig == multisigner)
 	assert.Nil(t, err)
+}
+
+func TestWithForkDetector_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	forkDetector := &mock.ForkDetectorMock{}
+	opt := WithForkDetector(forkDetector)
+	err := opt(node)
+
+	assert.True(t, node.forkDetector == forkDetector)
+	assert.Nil(t, err)
+}
+
+func TestWithForkDetector_NilForkDetectorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithForkDetector(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.forkDetector)
+	assert.Equal(t, ErrNilForkDetector, err)
+}
+
+func TestWithInterceptorsContainer_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	interceptorsContainer := &mock.InterceptorsContainerStub{}
+	opt := WithInterceptorsContainer(interceptorsContainer)
+
+	err := opt(node)
+
+	assert.True(t, node.interceptorsContainer == interceptorsContainer)
+	assert.Nil(t, err)
+}
+
+func TestWithInterceptorsContainer_NilContainerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithInterceptorsContainer(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.interceptorsContainer)
+	assert.Equal(t, ErrNilInterceptorsContainer, err)
+}
+
+func TestWithResolversFinder_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	resolversFinder := &mock.ResolversFinderStub{}
+	opt := WithResolversFinder(resolversFinder)
+
+	err := opt(node)
+
+	assert.True(t, node.resolversFinder == resolversFinder)
+	assert.Nil(t, err)
+}
+
+func TestWithResolversContainer_NilContainerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithResolversFinder(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.resolversFinder)
+	assert.Equal(t, ErrNilResolversFinder, err)
 }

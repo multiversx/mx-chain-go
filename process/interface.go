@@ -2,10 +2,10 @@ package process
 
 import (
 	"math/big"
+	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -18,27 +18,28 @@ type TransactionProcessor interface {
 	SetSCHandler(func(accountsAdapter state.AccountsAdapter, transaction *transaction.Transaction) error)
 
 	ProcessTransaction(transaction *transaction.Transaction, round int32) error
-	SetBalancesToTrie(accBalance map[string]big.Int) (rootHash []byte, err error)
+	SetBalancesToTrie(accBalance map[string]*big.Int) (rootHash []byte, err error)
 }
 
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
-	ProcessBlock(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
-	ProcessAndCommit(blockChain *blockchain.BlockChain, header *block.Header, body *block.TxBlockBody) error
-	CommitBlock(blockChain *blockchain.BlockChain, header *block.Header, block *block.TxBlockBody) error
+	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
 	RevertAccountState()
-	CreateGenesisBlockBody(balances map[string]big.Int, shardId uint32) *block.StateBlockBody
-	CreateTxBlockBody(shardId uint32, maxTxInBlock int, round int32, haveTime func() bool) (*block.TxBlockBody, error)
-	RemoveBlockTxsFromPool(body *block.TxBlockBody) error
-	GetRootHash() []byte
+	CreateGenesisBlock(balances map[string]*big.Int) ([]byte, error)
+	CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error)
+	RemoveBlockInfoFromPool(body data.BodyHandler) error
+	CheckBlockValidity(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
+	CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error)
+	MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
 type Checker interface {
 	// IntegrityAndValidity does both validity and integrity checks on the data structure
-	IntegrityAndValidity(coordinator sharding.ShardCoordinator) error
+	IntegrityAndValidity(coordinator sharding.Coordinator) error
 	// Integrity checks only the integrity of the data
-	Integrity(coordinator sharding.ShardCoordinator) error
+	Integrity(coordinator sharding.Coordinator) error
 }
 
 // SigVerifier provides functionality to verify a signature of a signed data structure that holds also the verifying parameters
@@ -58,48 +59,118 @@ type HashAccesser interface {
 	Hash() []byte
 }
 
-// TransactionInterceptorAdapter is the interface used in interception of transactions
-type TransactionInterceptorAdapter interface {
-	Checker
-	SigVerifier
-	HashAccesser
-	p2p.Creator
-	RcvShard() uint32
-	SndShard() uint32
-	IsAddressedToOtherShards() bool
-	SetAddressConverter(converter state.AddressConverter)
-	AddressConverter() state.AddressConverter
-	GetTransaction() *transaction.Transaction
-	SingleSignKeyGen() crypto.KeyGenerator
-	SetSingleSignKeyGen(generator crypto.KeyGenerator)
-}
-
-// BlockBodyInterceptorAdapter defines what a block body object should do
-type BlockBodyInterceptorAdapter interface {
+// InterceptedBlockBody interface provides functionality over intercepted blocks
+type InterceptedBlockBody interface {
 	Checker
 	HashAccesser
-	p2p.Creator
-	Shard() uint32
+	GetUnderlyingObject() interface{}
 }
 
-// HeaderInterceptorAdapter is the interface used in interception of headers
-type HeaderInterceptorAdapter interface {
-	BlockBodyInterceptorAdapter
-	SigVerifier
-	GetHeader() *block.Header
+// IntRandomizer interface provides functionality over generating integer numbers
+type IntRandomizer interface {
+	Intn(n int) int
+}
+
+// Resolver defines what a data resolver should do
+type Resolver interface {
+	RequestDataFromHash(hash []byte) error
+	ProcessReceivedMessage(message p2p.MessageP2P) error
+}
+
+// HeaderResolver defines what a block header resolver should do
+type HeaderResolver interface {
+	Resolver
+	RequestDataFromNonce(nonce uint64) error
+}
+
+// MiniBlocksResolver defines what a mini blocks resolver should do
+type MiniBlocksResolver interface {
+	Resolver
+	RequestDataFromHashArray(hashes [][]byte) error
+	GetMiniBlocks(hashes [][]byte) block.MiniBlockSlice
+}
+
+// TopicResolverSender defines what sending operations are allowed for a topic resolver
+type TopicResolverSender interface {
+	SendOnRequestTopic(rd *RequestData) error
+	Send(buff []byte, peer p2p.PeerID) error
+	TopicRequestSuffix() string
+}
+
+// Bootstrapper is an interface that defines the behaviour of a struct that is able
+// to synchronize the node
+type Bootstrapper interface {
+	CreateAndCommitEmptyBlock(uint32) (data.BodyHandler, data.HeaderHandler, error)
+	AddSyncStateListener(func(bool))
+	ShouldSync() bool
+}
+
+// ForkDetector is an interface that defines the behaviour of a struct that is able
+// to detect forks
+type ForkDetector interface {
+	AddHeader(header *block.Header, hash []byte, isReceived bool) error
+	RemoveHeaders(nonce uint64)
+	CheckFork() bool
+}
+
+// ResolversContainer defines a resolvers holder data type with basic functionality
+type ResolversContainer interface {
+	Get(key string) (Resolver, error)
+	Add(key string, val Resolver) error
+	AddMultiple(keys []string, resolvers []Resolver) error
+	Replace(key string, val Resolver) error
+	Remove(key string)
+	Len() int
+}
+
+type ResolversFinder interface {
+	ResolversContainer
+	IntraShardResolver(baseTopic string) (Resolver, error)
+	CrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
+}
+
+// InterceptorsContainer defines an interceptors holder data type with basic functionality
+type InterceptorsContainer interface {
+	Get(key string) (Interceptor, error)
+	Add(key string, val Interceptor) error
+	AddMultiple(keys []string, interceptors []Interceptor) error
+	Replace(key string, val Interceptor) error
+	Remove(key string)
+	Len() int
+}
+
+// InterceptorsContainerFactory defines the functionality to create an interceptors container
+type InterceptorsContainerFactory interface {
+	Create() (InterceptorsContainer, error)
+}
+
+// ResolversContainerFactory defines the functionality to create a resolvers container
+type ResolversContainerFactory interface {
+	Create() (ResolversContainer, error)
 }
 
 // Interceptor defines what a data interceptor should do
+// It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	Name() string
-	SetCheckReceivedObjectHandler(func(newer p2p.Creator, rawData []byte) error)
-	CheckReceivedObjectHandler() func(newer p2p.Creator, rawData []byte) error
+	ProcessReceivedMessage(message p2p.MessageP2P) error
 }
 
-// Resolver is an interface that defines the behaviour of a struct that is able
-// to send data requests to other entities and to resolve requests that came from those other entities
-type Resolver interface {
-	RequestData(rd RequestData) error
-	SetResolverHandler(func(rd RequestData) ([]byte, error))
-	ResolverHandler() func(rd RequestData) ([]byte, error)
+// MessageHandler defines the functionality needed by structs to send data to other peers
+type MessageHandler interface {
+	ConnectedPeersOnTopic(topic string) []p2p.PeerID
+	SendToConnectedPeer(topic string, buff []byte, peerID p2p.PeerID) error
+}
+
+// TopicHandler defines the functionality needed by structs to manage topics and message processors
+type TopicHandler interface {
+	HasTopic(name string) bool
+	CreateTopic(name string, createChannelForTopic bool) error
+	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+}
+
+// TopicMessageHandler defines the functionality needed by structs to manage topics, message processors and to send data
+// to other peers
+type TopicMessageHandler interface {
+	MessageHandler
+	TopicHandler
 }

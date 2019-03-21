@@ -19,7 +19,7 @@ type indexHashedGroupSelector struct {
 // NewIndexHashedGroupSelector creates a new index hashed group selector
 func NewIndexHashedGroupSelector(consensusGroupSize int, hasher hashing.Hasher) (*indexHashedGroupSelector, error) {
 	if hasher == nil {
-		return nil, consensus.ErrNilHasher
+		return nil, ErrNilHasher
 	}
 
 	ihgs := &indexHashedGroupSelector{
@@ -39,7 +39,7 @@ func NewIndexHashedGroupSelector(consensusGroupSize int, hasher hashing.Hasher) 
 // LoadEligibleList loads the eligible list
 func (ihgs *indexHashedGroupSelector) LoadEligibleList(eligibleList []consensus.Validator) error {
 	if eligibleList == nil {
-		return consensus.ErrNilInputSlice
+		return ErrNilInputSlice
 	}
 
 	ihgs.eligibleList = make([]consensus.Validator, len(eligibleList))
@@ -58,11 +58,11 @@ func (ihgs *indexHashedGroupSelector) LoadEligibleList(eligibleList []consensus.
 // 4. the item at the checked index is appended in the temp validator list
 func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) (validatorsGroup []consensus.Validator, err error) {
 	if len(ihgs.eligibleList) < ihgs.consensusGroupSize {
-		return nil, consensus.ErrSmallEligibleListSize
+		return nil, ErrSmallEligibleListSize
 	}
 
 	if randomness == nil {
-		return nil, consensus.ErrNilRandomness
+		return nil, ErrNilRandomness
 	}
 
 	ihgs.expandedEligibleList = ihgs.expandEligibleList()
@@ -77,6 +77,42 @@ func (ihgs *indexHashedGroupSelector) ComputeValidatorsGroup(randomness []byte) 
 	}
 
 	return tempList, nil
+}
+
+// GetSelectedPublicKeys returns the stringified public keys of the marked validators in the selection bitmap
+// TODO: This function needs to be revised when the requirements are clarified
+func (ihgs *indexHashedGroupSelector) GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error) {
+	selectionLen := uint16(len(selection) * 8) // 8 selection bits in each byte
+	shardEligibleLen := uint16(len(ihgs.eligibleList))
+	invalidSelection := selectionLen < shardEligibleLen
+
+	if invalidSelection {
+		return nil, ErrEligibleSelectionMismatch
+	}
+
+	publicKeys = make([]string, ihgs.consensusGroupSize)
+	cnt := 0
+
+	for i := uint16(0); i < shardEligibleLen; i++ {
+		isSelected := (selection[i/8] & (1 << (i % 8))) != 0
+
+		if !isSelected {
+			continue
+		}
+
+		publicKeys[cnt] = string(ihgs.eligibleList[i].PubKey())
+		cnt++
+
+		if cnt > ihgs.consensusGroupSize {
+			return nil, ErrEligibleTooManySelections
+		}
+	}
+
+	if cnt < ihgs.consensusGroupSize {
+		return nil, ErrEligibleTooFewSelections
+	}
+
+	return publicKeys, nil
 }
 
 func (ihgs *indexHashedGroupSelector) expandEligibleList() []consensus.Validator {
@@ -134,7 +170,7 @@ func (ihgs *indexHashedGroupSelector) ConsensusGroupSize() int {
 // SetConsensusGroupSize sets the consensus group size
 func (ihgs *indexHashedGroupSelector) SetConsensusGroupSize(consensusGroupSize int) error {
 	if consensusGroupSize < 1 {
-		return consensus.ErrInvalidConsensusGroupSize
+		return ErrInvalidConsensusGroupSize
 	}
 
 	ihgs.consensusGroupSize = consensusGroupSize

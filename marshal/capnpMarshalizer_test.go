@@ -19,20 +19,12 @@ type dataGenerator interface {
 	GenerateDummyArray() []data.CapnpHelper
 }
 
-type TxBlockBody struct {
-	block.TxBlockBody
-}
-
-type StateBlockBody struct {
-	block.StateBlockBody
-}
-
-type PeerBlockBody struct {
-	block.PeerBlockBody
-}
-
 type Header struct {
 	block.Header
+}
+
+type MiniBlock struct {
+	block.MiniBlock
 }
 
 type Transaction struct {
@@ -131,124 +123,40 @@ func BenchmarkJsonTransactionUnmarshalValidate(b *testing.B) {
 	benchUnmarshal(b, jmr, tx, true)
 }
 
-func BenchmarkCapnprotoStateBlocksMarshal(b *testing.B) {
-	bl := &StateBlockBody{}
+func BenchmarkCapnprotoMiniBlocksMarshal(b *testing.B) {
+	bl := &MiniBlock{}
 	cmr := &marshal.CapnpMarshalizer{}
 	benchMarshal(b, cmr, bl)
 }
 
-func BenchmarkJsonStateBlocksMarshal(b *testing.B) {
-	bl := &StateBlockBody{}
+func BenchmarkJsonMiniBlocksMarshal(b *testing.B) {
+	bl := &MiniBlock{}
 	jmr := &marshal.JsonMarshalizer{}
 	benchMarshal(b, jmr, bl)
 }
 
-func BenchmarkCapnprotoStateBlocksUnmarshalNoValidate(b *testing.B) {
-	bl := &StateBlockBody{}
+func BenchmarkCapnprotoMiniBlocksUnmarshalNoValidate(b *testing.B) {
+	bl := &MiniBlock{}
 	cmr := &marshal.CapnpMarshalizer{}
 	benchUnmarshal(b, cmr, bl, false)
 }
 
-func BenchmarkJsonStateBlocksUnmarshalNoValidate(b *testing.B) {
-	bl := &StateBlockBody{}
+func BenchmarkJsonMiniBlocksUnmarshalNoValidate(b *testing.B) {
+	bl := &MiniBlock{}
 	jmr := &marshal.JsonMarshalizer{}
 	benchUnmarshal(b, jmr, bl, false)
 }
 
-func BenchmarkCapnprotoStateBlocksUnmarshalValidate(b *testing.B) {
-	bl := &StateBlockBody{}
+func BenchmarkCapnprotoMiniBlocksUnmarshalValidate(b *testing.B) {
+	bl := &MiniBlock{}
 	cmr := &marshal.CapnpMarshalizer{}
 	benchUnmarshal(b, cmr, bl, true)
 }
 
-func BenchmarkJsonStateBlocksUnmarshalValidate(b *testing.B) {
-	bl := &StateBlockBody{}
+func BenchmarkJsonMiniBlocksUnmarshalValidate(b *testing.B) {
+	bl := &MiniBlock{}
 	cmr := &marshal.JsonMarshalizer{}
 	benchUnmarshal(b, cmr, bl, true)
-}
-
-func BenchmarkCapnprotoPeerBlocksMarshal(b *testing.B) {
-	bl := &PeerBlockBody{}
-	cmr := &marshal.CapnpMarshalizer{}
-	benchMarshal(b, cmr, bl)
-}
-
-func BenchmarkJsonPeerBlocksMarshal(b *testing.B) {
-	bl := &PeerBlockBody{}
-	jmr := &marshal.JsonMarshalizer{}
-	benchMarshal(b, jmr, bl)
-}
-
-func BenchmarkCapnprotoPeerBlocksUnmarshalNoValidate(b *testing.B) {
-	bl := &PeerBlockBody{}
-	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, bl, false)
-}
-
-func BenchmarkJsonPeerBlocksUnmarshalNoValidate(b *testing.B) {
-	bl := &PeerBlockBody{}
-	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, bl, false)
-}
-
-func BenchmarkCapnprotoPeerBlocksUnmarshalValidate(b *testing.B) {
-	bl := &PeerBlockBody{}
-	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, bl, true)
-}
-
-func BenchmarkJsonPeerBlocksUnmarshalValidate(b *testing.B) {
-	bl := &PeerBlockBody{}
-	cmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, cmr, bl, true)
-}
-
-func BenchmarkCapnprotoStateTxBlocksUnmarshalValidate(b *testing.B) {
-	bl := &StateBlockBody{}
-	jmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, jmr, bl, true)
-}
-
-func BenchmarkJsonStateTxBlocksUnmarshalValidate(b *testing.B) {
-	bl := &StateBlockBody{}
-	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, bl, true)
-}
-
-func BenchmarkCapnprotoTxBlocksMarshal(b *testing.B) {
-	bl := &TxBlockBody{}
-	cmr := &marshal.CapnpMarshalizer{}
-	benchMarshal(b, cmr, bl)
-}
-
-func BenchmarkJsonTxBlocksMarshal(b *testing.B) {
-	bl := &TxBlockBody{}
-	jmr := &marshal.JsonMarshalizer{}
-	benchMarshal(b, jmr, bl)
-}
-
-func BenchmarkCapnprotoTxBlocksUnmarshalNoValidate(b *testing.B) {
-	bl := &TxBlockBody{}
-	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, bl, false)
-}
-
-func BenchmarkJsonTxBlocksUnmarshalNoValidate(b *testing.B) {
-	bl := &TxBlockBody{}
-	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, bl, false)
-}
-
-func BenchmarkCapnprotoTxBlocksUnmarshalValidate(b *testing.B) {
-	bl := &TxBlockBody{}
-	cmr := &marshal.CapnpMarshalizer{}
-	benchUnmarshal(b, cmr, bl, true)
-}
-
-func BenchmarkJsonTxBlocksUnmarshalValidate(b *testing.B) {
-	bl := &TxBlockBody{}
-	jmr := &marshal.JsonMarshalizer{}
-	benchUnmarshal(b, jmr, bl, true)
 }
 
 func BenchmarkCapnprotoHeaderMarshal(b *testing.B) {
@@ -287,42 +195,19 @@ func BenchmarkJsonHeaderUnmarshalValidate(b *testing.B) {
 	benchUnmarshal(b, jmr, h, true)
 }
 
-// GenerateDummyArray is used to generate an array of PeerBlockBody with dummy data
-func (peerBlock *PeerBlockBody) GenerateDummyArray() []data.CapnpHelper {
-	peerBlocks := make([]data.CapnpHelper, 0, 1000)
-
-	changes := make([]block.PeerChange, 0, 1000)
-
-	for i := 0; i < 1000; i++ {
-		changes = append(changes, block.PeerChange{
-			PubKey:      []byte(RandomStr(32)),
-			ShardIdDest: uint32(rand.Intn(100)),
-		})
-	}
-
-	for i := 0; i < 1000; i++ {
-		peerBlocks = append(peerBlocks, &PeerBlockBody{
-			PeerBlockBody: block.PeerBlockBody{
-				StateBlockBody: block.StateBlockBody{
-					RootHash: []byte(RandomStr(32)),
-					ShardID:  uint32(rand.Intn(1000)),
-				},
-				Changes: changes,
-			},
-		})
-	}
-
-	return peerBlocks
-}
-
-// GenerateDummyArray is used to generate an array of StateBlockBody with dummy data
-func (sBlock *StateBlockBody) GenerateDummyArray() []data.CapnpHelper {
+// GenerateDummyArray is used to generate an array of MiniBlockHeaders with dummy data
+func (sBlock *MiniBlock) GenerateDummyArray() []data.CapnpHelper {
 	sBlocks := make([]data.CapnpHelper, 0, 1000)
 
 	for i := 0; i < 1000; i++ {
-		sBlocks = append(sBlocks, &StateBlockBody{
-			StateBlockBody: block.StateBlockBody{
-				RootHash: []byte(RandomStr(32)),
+		lenTxHashes := rand.Intn(20) + 1
+		txHashes := make([][]byte, 0, lenTxHashes)
+		for k := 0; k < lenTxHashes; k++ {
+			txHashes = append(txHashes, []byte(RandomStr(32)))
+		}
+		sBlocks = append(sBlocks, &MiniBlock{
+			MiniBlock: block.MiniBlock{
+				TxHashes: txHashes,
 				ShardID:  uint32(rand.Intn(1000)),
 			},
 		})
@@ -331,57 +216,38 @@ func (sBlock *StateBlockBody) GenerateDummyArray() []data.CapnpHelper {
 	return sBlocks
 }
 
-// GenerateDummyArray is used to generate an array of TxBlockBody with dummy data
-func (txBlk *TxBlockBody) GenerateDummyArray() []data.CapnpHelper {
-	blocks := make([]data.CapnpHelper, 0, 100)
-	for i := 0; i < 100; i++ {
-		lenMini := rand.Intn(20) + 1
-		miniblocks := make([]block.MiniBlock, 0, lenMini)
-		for j := 0; j < lenMini; j++ {
-			lenTxHashes := rand.Intn(20) + 1
-			txHashes := make([][]byte, 0, lenTxHashes)
-			for k := 0; k < lenTxHashes; k++ {
-				txHashes = append(txHashes, []byte(RandomStr(32)))
-			}
-			miniblock := block.MiniBlock{
-				ShardID:  uint32(rand.Intn(20)),
-				TxHashes: txHashes,
-			}
-
-			miniblocks = append(miniblocks, miniblock)
-		}
-		bl := TxBlockBody{
-			TxBlockBody: block.TxBlockBody{
-				StateBlockBody: block.StateBlockBody{
-					RootHash: []byte(RandomStr(32)),
-				},
-				MiniBlocks: miniblocks,
-			},
-		}
-		blocks = append(blocks, &bl)
-	}
-
-	return blocks
-}
-
 // GenerateDummyArray is used to generate an array of block headers with dummy data
 func (h *Header) GenerateDummyArray() []data.CapnpHelper {
 	headers := make([]data.CapnpHelper, 0, 1000)
 
+	mbh := block.MiniBlockHeader{
+		Hash:            []byte("mini block header"),
+		SenderShardID:   uint32(1),
+		ReceiverShardID: uint32(0),
+	}
+
+	pc := block.PeerChange{
+		PubKey:      []byte("public key"),
+		ShardIdDest: uint32(0),
+	}
+
 	for i := 0; i < 1000; i++ {
 		headers = append(headers, &Header{
 			Header: block.Header{
-				Nonce:         uint64(rand.Int63n(10000)),
-				PrevHash:      []byte(RandomStr(32)),
-				ShardId:       uint32(rand.Intn(20)),
-				TimeStamp:     uint64(rand.Intn(20)),
-				Round:         uint32(rand.Intn(20000)),
-				Epoch:         uint32(rand.Intn(20000)),
-				BlockBodyHash: []byte(RandomStr(32)),
-				BlockBodyType: block.TxBlock,
-				Signature:     []byte(RandomStr(32)),
-				Commitment:    []byte(RandomStr(32)),
-				PubKeysBitmap: []byte(RandomStr(10)),
+				Nonce:            uint64(rand.Int63n(10000)),
+				PrevHash:         []byte(RandomStr(32)),
+				PrevRandSeed:     []byte(RandomStr(32)),
+				RandSeed:         []byte(RandomStr(32)),
+				ShardId:          uint32(rand.Intn(20)),
+				TimeStamp:        uint64(rand.Intn(20)),
+				Round:            uint32(rand.Intn(20000)),
+				Epoch:            uint32(rand.Intn(20000)),
+				BlockBodyType:    block.TxBlock,
+				Signature:        []byte(RandomStr(32)),
+				PubKeysBitmap:    []byte(RandomStr(10)),
+				MiniBlockHeaders: []block.MiniBlockHeader{mbh},
+				PeerChanges:      []block.PeerChange{pc},
+				RootHash:         []byte("root hash"),
 			},
 		})
 	}
@@ -400,7 +266,7 @@ func (tx *Transaction) GenerateDummyArray() []data.CapnpHelper {
 		transactions = append(transactions, &Transaction{
 			Transaction: transaction.Transaction{
 				Nonce:     uint64(rand.Int63n(10000)),
-				Value:     *val,
+				Value:     val,
 				RcvAddr:   []byte(RandomStr(32)),
 				SndAddr:   []byte(RandomStr(32)),
 				GasPrice:  uint64(rand.Int63n(10000)),

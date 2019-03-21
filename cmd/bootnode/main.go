@@ -2,25 +2,30 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/multisig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/schnorr"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
@@ -30,17 +35,29 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
+	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	beevikntp "github.com/beevik/ntp"
+	"github.com/btcsuite/btcd/btcec"
+	crypto2 "github.com/libp2p/go-libp2p-crypto"
 	"github.com/pkg/errors"
+	"github.com/pkg/profile"
 	"github.com/urfave/cli"
 )
 
@@ -56,21 +73,47 @@ VERSION:
    {{.Version}}
    {{end}}
 `
-var configurationFile = "./config/config.testnet.json"
+var configurationFile = "./config/config.toml"
+var p2pConfigurationFile = "./config/p2p.toml"
+
+//TODO remove uniqueID
 var uniqueID = ""
 
-type initialNode struct {
-	Address string `json:"address"`
-	PubKey  string `json:"pubkey"`
-	Balance string `json:"balance"`
+type seedRandReader struct {
+	index int
+	seed  []byte
 }
 
-type genesis struct {
-	StartTime          int64         `json:"startTime"`
-	RoundDuration      uint64        `json:"roundDuration"`
-	ConsensusGroupSize int           `json:"consensusGroupSize"`
-	ElasticSubrounds   bool          `json:"elasticSubrounds"`
-	InitialNodes       []initialNode `json:"initialNodes"`
+// NewSeedRandReader will return a new instance of a seed-based reader
+func NewSeedRandReader(seed []byte) *seedRandReader {
+	return &seedRandReader{seed: seed, index: 0}
+}
+
+func (srr *seedRandReader) Read(p []byte) (n int, err error) {
+	if srr.seed == nil {
+		return 0, errors.New("nil seed")
+	}
+
+	if len(srr.seed) == 0 {
+		return 0, errors.New("empty seed")
+	}
+
+	if p == nil {
+		return 0, errors.New("nil buffer")
+	}
+
+	if len(p) == 0 {
+		return 0, errors.New("empty buffer")
+	}
+
+	for i := 0; i < len(p); i++ {
+		p[i] = srr.seed[srr.index]
+
+		srr.index++
+		srr.index = srr.index % len(srr.seed)
+	}
+
+	return len(p), nil
 }
 
 func main() {
@@ -81,7 +124,8 @@ func main() {
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.MaxAllowedPeers, flags.PrivateKey}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode, flags.Shards}
+
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
 	}
@@ -94,6 +138,22 @@ func main() {
 }
 
 func startNode(ctx *cli.Context, log *logger.Logger) error {
+	profileMode := ctx.GlobalString(flags.ProfileMode.Name)
+	switch profileMode {
+	case "cpu":
+		p := profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+		defer p.Stop()
+	case "mem":
+		p := profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+		defer p.Stop()
+	case "mutex":
+		p := profile.Start(profile.MutexProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+		defer p.Stop()
+	case "block":
+		p := profile.Start(profile.BlockProfile, profile.ProfilePath("."), profile.NoShutdownHook)
+		defer p.Stop()
+	}
+
 	log.Info("Starting node...")
 
 	stop := make(chan bool, 1)
@@ -106,21 +166,43 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFile))
 
-	genesisConfig, err := loadGenesisConfiguration(ctx.GlobalString(flags.GenesisFile.Name), log)
+	p2pConfig, err := loadP2PConfig(p2pConfigurationFile, log)
+	if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFile))
+	if ctx.IsSet(flags.Port.Name) {
+		p2pConfig.Node.Port = ctx.GlobalInt(flags.Port.Name)
+	}
+	uniqueID = strconv.Itoa(p2pConfig.Node.Port)
+
+	err = os.RemoveAll(config.DefaultPath() + uniqueID)
+	if err != nil {
+		return err
+	}
+
+	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(flags.GenesisFile.Name))
 	if err != nil {
 		return err
 	}
 	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(flags.GenesisFile.Name)))
 
-	syncer := ntp.NewSyncTime(time.Millisecond*time.Duration(genesisConfig.RoundDuration), beevikntp.Query)
+	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
 	go syncer.StartSync()
+
+	// TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded)
+	//  timestamp
+	if genesisConfig.StartTime == 0 {
+		time.Sleep(1000 * time.Millisecond)
+		ntpTime := syncer.CurrentTime()
+		genesisConfig.StartTime = (ntpTime.Unix()/60 + 1) * 60
+	}
 
 	startTime := time.Unix(genesisConfig.StartTime, 0)
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
 
-	uniqueID = fmt.Sprintf("%d", ctx.GlobalInt(flags.Port.Name))
+	currentNode, err := createNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, log)
 
-	currentNode, err := createNode(ctx, generalConfig, genesisConfig, syncer, log)
 	if err != nil {
 		return err
 	}
@@ -138,7 +220,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		log.Info("Bootstrapping node....")
 		err = ef.StartNode()
 		if err != nil {
-			log.Error("Starting node failed", err.Error())
+			log.Error("starting node failed", err.Error())
+			return err
 		}
 	}
 
@@ -154,99 +237,49 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	return nil
 }
 
-func loadFile(dest interface{}, relativePath string, log *logger.Logger) error {
-	path, err := filepath.Abs(relativePath)
-	fmt.Println(path)
-	if err != nil {
-		log.Error("Cannot create absolute path for the provided file", err.Error())
-		return err
-	}
-	f, err := os.Open(path)
-	defer func() {
-		err = f.Close()
-		if err != nil {
-			log.Error("Cannot close file: ", err.Error())
-		}
-	}()
-	if err != nil {
-		return err
-	}
-
-	jsonParser := json.NewDecoder(f)
-	err = jsonParser.Decode(dest)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error) {
 	cfg := &config.Config{}
-	err := loadFile(cfg, filepath, log)
+	err := core.LoadTomlFile(cfg, filepath, log)
 	if err != nil {
 		return nil, err
 	}
 	return cfg, nil
 }
 
-func loadGenesisConfiguration(genesisFilePath string, log *logger.Logger) (*genesis, error) {
-	cfg := &genesis{}
-	err := loadFile(cfg, genesisFilePath, log)
+func loadP2PConfig(filepath string, log *logger.Logger) (*config.P2PConfig, error) {
+	cfg := &config.P2PConfig{}
+	err := core.LoadTomlFile(cfg, filepath, log)
 	if err != nil {
 		return nil, err
 	}
 	return cfg, nil
 }
 
-func (g *genesis) initialNodesPubkeys(log *logger.Logger) []string {
-	var pubKeys []string
-	for _, in := range g.InitialNodes {
-		pubKey, err := base64.StdEncoding.DecodeString(in.PubKey)
+func createNode(
+	ctx *cli.Context,
+	config *config.Config,
+	genesisConfig *sharding.Genesis,
+	p2pConfig *config.P2PConfig,
+	syncer ntp.SyncTimer,
+	log *logger.Logger,
+) (*node.Node, error) {
 
-		if err != nil {
-			log.Error(fmt.Sprintf("%s is not a valid public key. Ignored.", in))
-			continue
-		}
-
-		pubKeys = append(pubKeys, string(pubKey))
-	}
-	return pubKeys
-}
-
-func (g *genesis) initialNodesBalances(log *logger.Logger) map[string]big.Int {
-	var pubKeys = make(map[string]big.Int)
-	for _, in := range g.InitialNodes {
-		balance, ok := new(big.Int).SetString(in.Balance, 10)
-		if ok {
-			pubKeys[in.PubKey] = *balance
-		} else {
-			log.Warn(fmt.Sprintf("Error decoding balance %s for public key %s - setting to 0", in.Balance, in.PubKey))
-			pubKeys[in.PubKey] = *big.NewInt(0)
-		}
-
-	}
-	return pubKeys
-}
-
-func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, syncer ntp.SyncTimer, log *logger.Logger) (*node.Node, error) {
-	appContext := context.Background()
-
-	hasher, err := getHasherFromConfig(cfg)
+	hasher, err := getHasherFromConfig(config)
 	if err != nil {
 		return nil, errors.New("could not create hasher: " + err.Error())
 	}
 
-	marshalizer, err := getMarshalizerFromConfig(cfg)
+	marshalizer, err := getMarshalizerFromConfig(config)
 	if err != nil {
 		return nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
-	tr, err := getTrie(cfg.AccountsTrieStorage, hasher)
+	tr, err := getTrie(config.AccountsTrieStorage, hasher)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	addressConverter, err := state.NewHashAddressConverter(hasher, cfg.Address.Length, cfg.Address.Prefix)
+	addressConverter, err := state.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
 	if err != nil {
 		return nil, errors.New("could not create address converter: " + err.Error())
 	}
@@ -256,73 +289,221 @@ func createNode(ctx *cli.Context, cfg *config.Config, genesisConfig *genesis, sy
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	blkc, err := createBlockChainFromConfig(cfg)
+	// TODO: Constructor parameters should be changed when node assignment in the sharding package is implemented
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), 0)
 	if err != nil {
-		return nil, errors.New("could not create block chain: " + err.Error())
+		return nil, err
 	}
 
-	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer)
+	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
+	blkc, err := createBlockChainFromConfig(config)
+	if err != nil {
+		return nil, errors.New("could not create block chain: " + err.Error())
+	}
+
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
-
-	transient, err := createDataPoolFromConfig(cfg, uint64ByteSliceConverter)
+	datapool, err := createShardDataPoolFromConfig(config, uint64ByteSliceConverter)
 	if err != nil {
-		return nil, errors.New("could not create transient data pool: " + err.Error())
+		return nil, errors.New("could not create shard data pools: " + err.Error())
 	}
 
-	shardCoordinator := &sharding.OneShardCoordinator{}
+	// TODO create metachain / blockchain
+	// TODO save config, and move this creation into another place for node movement
+	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig
 
-	blockProcessor := block.NewBlockProcessor(transient.Transactions(), hasher, marshalizer, transactionProcessor, accountsAdapter, shardCoordinator)
-
-	initialPubKeys := genesisConfig.initialNodesPubkeys(log)
-
+	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
-
 	if err != nil {
 		return nil, err
 	}
 
-	multisigner, err := multisig.NewBelNevMultisig(hasher, initialPubKeys, privKey, keyGen, uint16(0))
+	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator.SelfId())
+	if err != nil {
+		return nil, errors.New("initial balances could not be processed " + err.Error())
+	}
 
+	singlesigner := &singlesig.SchnorrSigner{}
+
+	multisigHasher, err := getMultisigHasherFromConfig(config)
+	if err != nil {
+		return nil, errors.New("could not create multisig hasher: " + err.Error())
+	}
+
+	currentShardPubKeys, err := genesisConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
+	if err != nil {
+		return nil, errors.New("could not start creation of multisigner: " + err.Error())
+	}
+
+	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, currentShardPubKeys, privKey, keyGen, uint16(0))
 	if err != nil {
 		return nil, err
+	}
+
+	var randReader io.Reader
+	if p2pConfig.Node.Seed != "" {
+		randReader = NewSeedRandReader(hasher.Compute(p2pConfig.Node.Seed))
+	} else {
+		randReader = rand.Reader
+	}
+
+	netMessenger, err := createNetMessenger(p2pConfig, log, randReader)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptorContainerFactory, err := factory.NewInterceptorsContainerFactory(
+		shardCoordinator,
+		netMessenger,
+		blkc,
+		marshalizer,
+		hasher,
+		keyGen,
+		singlesigner,
+		multisigner,
+		datapool,
+		addressConverter,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	//TODO refactor all these factory calls
+	interceptorsContainer, err := interceptorContainerFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	resolversContainerFactory, err := factory.NewResolversContainerFactory(
+		shardCoordinator,
+		netMessenger,
+		blkc,
+		marshalizer,
+		datapool,
+		uint64ByteSliceConverter,
+	)
+
+	resolversContainer, err := resolversContainerFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	resolversFinder, err := containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	forkDetector := processSync.NewBasicForkDetector()
+
+	blockProcessor, err := block.NewBlockProcessor(
+		datapool,
+		hasher,
+		marshalizer,
+		transactionProcessor,
+		accountsAdapter,
+		shardCoordinator,
+		forkDetector,
+		createRequestTransactionHandler(resolversFinder, log),
+	)
+
+	if err != nil {
+		return nil, errors.New("could not create block processor: " + err.Error())
 	}
 
 	nd, err := node.NewNode(
+		node.WithMessenger(netMessenger),
 		node.WithHasher(hasher),
-		node.WithContext(appContext),
 		node.WithMarshalizer(marshalizer),
-		node.WithPubSubStrategy(p2p.GossipSub),
-		node.WithMaxAllowedPeers(ctx.GlobalInt(flags.MaxAllowedPeers.Name)),
-		node.WithPort(ctx.GlobalInt(flags.Port.Name)),
 		node.WithInitialNodesPubKeys(initialPubKeys),
-		node.WithInitialNodesBalances(genesisConfig.initialNodesBalances(log)),
+		node.WithInitialNodesBalances(inBalanceForShard),
 		node.WithAddressConverter(addressConverter),
 		node.WithAccountsAdapter(accountsAdapter),
 		node.WithBlockChain(blkc),
 		node.WithRoundDuration(genesisConfig.RoundDuration),
-		node.WithConsensusGroupSize(genesisConfig.ConsensusGroupSize),
+		node.WithConsensusGroupSize(int(genesisConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
 		node.WithBlockProcessor(blockProcessor),
 		node.WithGenesisTime(time.Unix(genesisConfig.StartTime, 0)),
 		node.WithElasticSubrounds(genesisConfig.ElasticSubrounds),
-		node.WithDataPool(transient),
+		node.WithDataPool(datapool),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithUint64ByteSliceConverter(uint64ByteSliceConverter),
+		node.WithSinglesig(singlesigner),
 		node.WithMultisig(multisigner),
-		node.WithSingleSignKeyGenerator(keyGen),
+		node.WithKeyGenerator(keyGen),
 		node.WithPublicKey(pubKey),
 		node.WithPrivateKey(privKey),
+		node.WithForkDetector(forkDetector),
+		node.WithInterceptorsContainer(interceptorsContainer),
+		node.WithResolversFinder(resolversFinder),
 	)
 
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
+	err = nd.CreateShardedStores()
+	if err != nil {
+		return nil, err
+	}
+
 	return nd, nil
+}
+
+func createRequestTransactionHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+	return func(destShardID uint32, txHash []byte) {
+		log.Debug(fmt.Sprintf("Requesting tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+		resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to transaction topic to shard %d", destShardID))
+			return
+		}
+
+		err = resolver.RequestDataFromHash(txHash)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+}
+
+func createNetMessenger(
+	p2pConfig *config.P2PConfig,
+	log *logger.Logger,
+	randReader io.Reader,
+) (p2p.Messenger, error) {
+
+	if p2pConfig.Node.Port <= 0 {
+		return nil, errors.New("cannot start node on port <= 0")
+	}
+
+	pDiscoveryFactory := factoryP2P.NewPeerDiscovererCreator(*p2pConfig)
+	pDiscoverer, err := pDiscoveryFactory.CreatePeerDiscoverer()
+
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info(fmt.Sprintf("Starting with peer discovery: %s", pDiscoverer.Name()))
+
+	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
+	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
+
+	nm, err := libp2p.NewNetworkMessenger(
+		context.Background(),
+		p2pConfig.Node.Port,
+		sk,
+		nil,
+		loadBalancer.NewOutgoingChannelLoadBalancer(),
+		pDiscoverer,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	return nm, nil
 }
 
 func getSk(ctx *cli.Context) ([]byte, error) {
@@ -332,18 +513,11 @@ func getSk(ctx *cli.Context) ([]byte, error) {
 		}
 	}
 
-	b64sk, err := ioutil.ReadFile(ctx.GlobalString(flags.PrivateKey.Name))
+	encodedSk, err := ioutil.ReadFile(ctx.GlobalString(flags.PrivateKey.Name))
 	if err != nil {
-		b64sk = []byte(ctx.GlobalString(flags.PrivateKey.Name))
+		encodedSk = []byte(ctx.GlobalString(flags.PrivateKey.Name))
 	}
-	decodedSk := make([]byte, base64.StdEncoding.DecodedLen(len(b64sk)))
-	l, err := base64.StdEncoding.Decode(decodedSk, b64sk)
-
-	if err != nil {
-		return nil, errors.New("could not decode private key: " + err.Error())
-	}
-
-	return decodedSk[:l], nil
+	return decodeAddress(string(encodedSk))
 }
 
 func getSigningParams(ctx *cli.Context, log *logger.Logger) (
@@ -358,7 +532,8 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 		return nil, nil, nil, err
 	}
 
-	keyGen = schnorr.NewKeyGenerator()
+	suite := kv2.NewBlakeSHA256Ed25519()
+	keyGen = signing.NewKeyGenerator(suite)
 	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
 
 	if err != nil {
@@ -367,14 +542,13 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 
 	pubKey = privKey.GeneratePublic()
 
-	base64sk := make([]byte, base64.StdEncoding.EncodedLen(len(sk)))
-	base64.StdEncoding.Encode(base64sk, sk)
-	log.Info("starting with private key: " + string(base64sk))
-
 	pk, _ := pubKey.ToByteArray()
-	base64pk := make([]byte, base64.StdEncoding.EncodedLen(len(pk)))
-	base64.StdEncoding.Encode(base64pk, pk)
-	log.Info("starting with public key: " + string(base64pk))
+
+	skEncoded := encodeAddress(sk)
+	pkEncoded := encodeAddress(pk)
+
+	log.Info("starting with private key: " + skEncoded)
+	log.Info("starting with public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
 }
@@ -401,6 +575,19 @@ func getHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
 	switch cfg.Hasher.Type {
 	case "sha256":
 		return sha256.Sha256{}, nil
+	case "blake2b":
+		return blake2b.Blake2b{}, nil
+	}
+
+	return nil, errors.New("no hasher provided in config file")
+}
+
+func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
+	switch cfg.MultisigHasher.Type {
+	case "sha256":
+		return sha256.Sha256{}, nil
+	case "blake2b":
+		return blake2b.Blake2b{}, nil
 	}
 
 	return nil, errors.New("no hasher provided in config file")
@@ -444,7 +631,11 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 	}
 }
 
-func createDataPoolFromConfig(config *config.Config, uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter) (data.TransientDataHolder, error) {
+func createShardDataPoolFromConfig(
+	config *config.Config,
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+) (data.PoolsHolder, error) {
+
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
 		return nil, err
@@ -455,7 +646,13 @@ func createDataPoolFromConfig(config *config.Config, uint64ByteSliceConverter ty
 		return nil, err
 	}
 
-	cacherCfg := getCacherFromConfig(config.BlockHeaderNoncesDataPool)
+	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg = getCacherFromConfig(config.BlockHeaderNoncesDataPool)
 	hdrNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
@@ -477,24 +674,18 @@ func createDataPoolFromConfig(config *config.Config, uint64ByteSliceConverter ty
 		return nil, err
 	}
 
-	cacherCfg = getCacherFromConfig(config.StateBlockBodyDataPool)
-	stateBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
-	if err != nil {
-		return nil, err
-	}
-
-	return dataPool.NewDataPool(
+	return dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
 		hdrNonces,
 		txBlockBody,
 		peerChangeBlockBody,
-		stateBlockBody,
+		metaBlockBody,
 	)
 }
 
-func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, error) {
-	var headerUnit, peerBlockUnit, stateBlockUnit, txBlockUnit, txUnit *storage.Unit
+func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error) {
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit *storage.Unit
 	var err error
 
 	defer func() {
@@ -506,11 +697,8 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 			if peerBlockUnit != nil {
 				_ = peerBlockUnit.DestroyUnit()
 			}
-			if stateBlockUnit != nil {
-				_ = stateBlockUnit.DestroyUnit()
-			}
-			if txBlockUnit != nil {
-				_ = txBlockUnit.DestroyUnit()
+			if miniBlockUnit != nil {
+				_ = miniBlockUnit.DestroyUnit()
 			}
 			if txUnit != nil {
 				_ = txUnit.DestroyUnit()
@@ -535,19 +723,10 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 		return nil, err
 	}
 
-	txBlockUnit, err = storage.NewStorageUnitFromConf(
-		getCacherFromConfig(config.TxBlockBodyStorage.Cache),
-		getDBFromConfig(config.TxBlockBodyStorage.DB),
-		getBloomFromConfig(config.TxBlockBodyStorage.Bloom))
-
-	if err != nil {
-		return nil, err
-	}
-
-	stateBlockUnit, err = storage.NewStorageUnitFromConf(
-		getCacherFromConfig(config.StateBlockBodyStorage.Cache),
-		getDBFromConfig(config.StateBlockBodyStorage.DB),
-		getBloomFromConfig(config.StateBlockBodyStorage.Bloom))
+	miniBlockUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.MiniBlocksStorage.Cache),
+		getDBFromConfig(config.MiniBlocksStorage.DB),
+		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
 
 	if err != nil {
 		return nil, err
@@ -574,8 +753,7 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 	blockChain, err := blockchain.NewBlockChain(
 		badBlockCache,
 		txUnit,
-		txBlockUnit,
-		stateBlockUnit,
+		miniBlockUnit,
 		peerBlockUnit,
 		headerUnit)
 
@@ -584,4 +762,120 @@ func createBlockChainFromConfig(config *config.Config) (*blockchain.BlockChain, 
 	}
 
 	return blockChain, err
+}
+
+func createMetaDataPoolFromConfig(
+	config *config.Config,
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
+) (data.MetaPoolsHolder, error) {
+	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
+	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlockHashes, err := shardedData.NewShardedData(getCacherFromConfig(config.MiniBlockHeaderHashesDataPool))
+	if err != nil {
+		return nil, err
+	}
+
+	shardHeaders, err := shardedData.NewShardedData(getCacherFromConfig(config.ShardHeadersDataPool))
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg = getCacherFromConfig(config.MetaHeaderNoncesDataPool)
+	metaBlockNoncesCacher, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+	metaBlockNonces, err := dataPool.NewNonceToHashCacher(metaBlockNoncesCacher, uint64ByteSliceConverter)
+	if err != nil {
+		return nil, err
+	}
+
+	return dataPool.NewMetaDataPool(metaBlockBody, miniBlockHashes, shardHeaders, metaBlockNonces)
+}
+
+func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, error) {
+	var peerDataUnit, shardDataUnit, metaBlockUnit *storage.Unit
+	var err error
+
+	defer func() {
+		// cleanup
+		if err != nil {
+			if peerDataUnit != nil {
+				_ = peerDataUnit.DestroyUnit()
+			}
+			if shardDataUnit != nil {
+				_ = shardDataUnit.DestroyUnit()
+			}
+			if metaBlockUnit != nil {
+				_ = metaBlockUnit.DestroyUnit()
+			}
+		}
+	}()
+
+	badBlockCache, err := storage.NewCache(
+		storage.CacheType(config.BadBlocksCache.Type),
+		config.BadBlocksCache.Size)
+
+	if err != nil {
+		return nil, err
+	}
+
+	metaBlockUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.MetaBlockStorage.Cache),
+		getDBFromConfig(config.MetaBlockStorage.DB),
+		getBloomFromConfig(config.MetaBlockStorage.Bloom))
+
+	if err != nil {
+		return nil, err
+	}
+
+	shardDataUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.ShardDataStorage.Cache),
+		getDBFromConfig(config.ShardDataStorage.DB),
+		getBloomFromConfig(config.ShardDataStorage.Bloom))
+
+	if err != nil {
+		return nil, err
+	}
+
+	peerDataUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.PeerDataStorage.Cache),
+		getDBFromConfig(config.PeerDataStorage.DB),
+		getBloomFromConfig(config.PeerDataStorage.Bloom))
+
+	if err != nil {
+		return nil, err
+	}
+
+	metaChain, err := blockchain.NewMetaChain(
+		badBlockCache,
+		metaBlockUnit,
+		shardDataUnit,
+		peerDataUnit,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return metaChain, err
+}
+
+func decodeAddress(address string) ([]byte, error) {
+	return hex.DecodeString(address)
+}
+
+func encodeAddress(address []byte) string {
+	return hex.EncodeToString(address)
+}
+
+func toB64(buff []byte) string {
+	if buff == nil {
+		return "<NIL>"
+	}
+	return base64.StdEncoding.EncodeToString(buff)
 }

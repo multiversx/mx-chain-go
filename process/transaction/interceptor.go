@@ -5,38 +5,47 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 // TxInterceptor is used for intercepting transaction and storing them into a datapool
 type TxInterceptor struct {
-	process.Interceptor
+	marshalizer      marshal.Marshalizer
 	txPool           data.ShardedDataCacherNotifier
+	txStorer         storage.Storer
 	addrConverter    state.AddressConverter
 	hasher           hashing.Hasher
-	singleSignKeyGen crypto.KeyGenerator
-	shardCoordinator sharding.ShardCoordinator
+	singleSigner     crypto.SingleSigner
+	keyGen           crypto.KeyGenerator
+	shardCoordinator sharding.Coordinator
 }
 
 // NewTxInterceptor hooks a new interceptor for transactions
 func NewTxInterceptor(
-	interceptor process.Interceptor,
+	marshalizer marshal.Marshalizer,
 	txPool data.ShardedDataCacherNotifier,
+	txStorer storage.Storer,
 	addrConverter state.AddressConverter,
 	hasher hashing.Hasher,
-	singleSignKeyGen crypto.KeyGenerator,
-	shardCoordinator sharding.ShardCoordinator,
-
+	singleSigner crypto.SingleSigner,
+	keyGen crypto.KeyGenerator,
+	shardCoordinator sharding.Coordinator,
 ) (*TxInterceptor, error) {
 
-	if interceptor == nil {
-		return nil, process.ErrNilInterceptor
+	if marshalizer == nil {
+		return nil, process.ErrNilMarshalizer
 	}
 
 	if txPool == nil {
 		return nil, process.ErrNilTxDataPool
+	}
+
+	if txStorer == nil {
+		return nil, process.ErrNilTxStorage
 	}
 
 	if addrConverter == nil {
@@ -47,8 +56,16 @@ func NewTxInterceptor(
 		return nil, process.ErrNilHasher
 	}
 
-	if singleSignKeyGen == nil {
-		return nil, process.ErrNilSingleSignKeyGen
+	if singleSigner == nil {
+		return nil, process.ErrNilSingleSigner
+	}
+
+	if singleSigner == nil {
+		return nil, process.ErrNilSingleSigner
+	}
+
+	if keyGen == nil {
+		return nil, process.ErrNilKeyGen
 	}
 
 	if shardCoordinator == nil {
@@ -56,40 +73,51 @@ func NewTxInterceptor(
 	}
 
 	txIntercept := &TxInterceptor{
-		Interceptor:      interceptor,
+		marshalizer:      marshalizer,
 		txPool:           txPool,
+		txStorer:         txStorer,
 		hasher:           hasher,
 		addrConverter:    addrConverter,
-		singleSignKeyGen: singleSignKeyGen,
+		singleSigner:     singleSigner,
+		keyGen:           keyGen,
 		shardCoordinator: shardCoordinator,
 	}
-
-	interceptor.SetCheckReceivedObjectHandler(txIntercept.processTx)
 
 	return txIntercept, nil
 }
 
-func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
-	if tx == nil {
-		return process.ErrNilTransaction
+// ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
+// (for the topic this validator was registered to)
+func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+	if message == nil {
+		return process.ErrNilMessage
 	}
 
-	if rawData == nil {
+	if message.Data() == nil {
 		return process.ErrNilDataToProcess
 	}
 
-	txIntercepted, ok := tx.(process.TransactionInterceptorAdapter)
-
-	if !ok {
-		return process.ErrBadInterceptorTopicImplementation
+	txIntercepted := NewInterceptedTransaction(txi.singleSigner)
+	err := txi.marshalizer.Unmarshal(txIntercepted, message.Data())
+	if err != nil {
+		return err
 	}
 
 	txIntercepted.SetAddressConverter(txi.addrConverter)
-	txIntercepted.SetSingleSignKeyGen(txi.singleSignKeyGen)
-	hash := txi.hasher.Compute(string(rawData))
-	txIntercepted.SetHash(hash)
+	txIntercepted.SetSingleSignKeyGen(txi.keyGen)
+	hashWithSig := txi.hasher.Compute(string(message.Data()))
+	txIntercepted.SetHash(hashWithSig)
 
-	err := txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
+	copiedTx := *txIntercepted.GetTransaction()
+	copiedTx.Signature = nil
+
+	buffCopiedTx, err := txi.marshalizer.Marshal(&copiedTx)
+	if err != nil {
+		return err
+	}
+	txIntercepted.SetTxBuffWithoutSig(buffCopiedTx)
+
+	err = txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -104,7 +132,13 @@ func (txi *TxInterceptor) processTx(tx p2p.Creator, rawData []byte) error {
 		return nil
 	}
 
-	txi.txPool.AddData(hash, txIntercepted.GetTransaction(), txIntercepted.SndShard())
+	isTxInStorage, _ := txi.txStorer.Has(hashWithSig)
 
+	if isTxInStorage {
+		log.Debug("intercepted tx already processed")
+		return nil
+	}
+
+	txi.txPool.AddData(hashWithSig, txIntercepted.GetTransaction(), txIntercepted.SndShard())
 	return nil
 }

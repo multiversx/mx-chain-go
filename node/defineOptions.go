@@ -1,27 +1,28 @@
 package node
 
 import (
-	"context"
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-// WithPort sets up the port option for the Node
-func WithPort(port int) Option {
+// WithMessenger sets up the messenger option for the Node
+func WithMessenger(mes p2p.Messenger) Option {
 	return func(n *Node) error {
-		n.port = port
+		if mes == nil {
+			return ErrNilMessenger
+		}
+		n.messenger = mes
 		return nil
 	}
 }
@@ -30,20 +31,9 @@ func WithPort(port int) Option {
 func WithMarshalizer(marshalizer marshal.Marshalizer) Option {
 	return func(n *Node) error {
 		if marshalizer == nil {
-			return errNilMarshalizer
+			return ErrNilMarshalizer
 		}
 		n.marshalizer = marshalizer
-		return nil
-	}
-}
-
-// WithContext sets up the context option for the Node
-func WithContext(ctx context.Context) Option {
-	return func(n *Node) error {
-		if ctx == nil {
-			return errNilContext
-		}
-		n.ctx = ctx
 		return nil
 	}
 }
@@ -52,25 +42,9 @@ func WithContext(ctx context.Context) Option {
 func WithHasher(hasher hashing.Hasher) Option {
 	return func(n *Node) error {
 		if hasher == nil {
-			return errNilHasher
+			return ErrNilHasher
 		}
 		n.hasher = hasher
-		return nil
-	}
-}
-
-// WithMaxAllowedPeers sets up the maxAllowedPeers option for the Node
-func WithMaxAllowedPeers(maxAllowedPeers int) Option {
-	return func(n *Node) error {
-		n.maxAllowedPeers = maxAllowedPeers
-		return nil
-	}
-}
-
-// WithPubSubStrategy sets up the strategy option for the Node
-func WithPubSubStrategy(strategy p2p.PubSubStrategy) Option {
-	return func(n *Node) error {
-		n.pubSubStrategy = strategy
 		return nil
 	}
 }
@@ -79,7 +53,7 @@ func WithPubSubStrategy(strategy p2p.PubSubStrategy) Option {
 func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	return func(n *Node) error {
 		if accounts == nil {
-			return errNilAccountsAdapter
+			return ErrNilAccountsAdapter
 		}
 		n.accounts = accounts
 		return nil
@@ -90,7 +64,7 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 func WithAddressConverter(addrConverter state.AddressConverter) Option {
 	return func(n *Node) error {
 		if addrConverter == nil {
-			return errNilAddressConverter
+			return ErrNilAddressConverter
 		}
 		n.addrConverter = addrConverter
 		return nil
@@ -98,10 +72,10 @@ func WithAddressConverter(addrConverter state.AddressConverter) Option {
 }
 
 // WithBlockChain sets up the blockchain option for the Node
-func WithBlockChain(blkc *blockchain.BlockChain) Option {
+func WithBlockChain(blkc data.ChainHandler) Option {
 	return func(n *Node) error {
 		if blkc == nil {
-			return errNilBlockchain
+			return ErrNilBlockchain
 		}
 		n.blkc = blkc
 		return nil
@@ -112,18 +86,18 @@ func WithBlockChain(blkc *blockchain.BlockChain) Option {
 func WithPrivateKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
 		if sk == nil {
-			return errNilPrivateKey
+			return ErrNilPrivateKey
 		}
 		n.privateKey = sk
 		return nil
 	}
 }
 
-// WithSingleSignKeyGenerator sets up the single sign key generator option for the Node
-func WithSingleSignKeyGenerator(keyGen crypto.KeyGenerator) Option {
+// WithKeyGenerator sets up the single sign key generator option for the Node
+func WithKeyGenerator(keyGen crypto.KeyGenerator) Option {
 	return func(n *Node) error {
 		if keyGen == nil {
-			return errNilSingleSignKeyGen
+			return ErrNilSingleSignKeyGen
 		}
 		n.singleSignKeyGen = keyGen
 		return nil
@@ -131,7 +105,7 @@ func WithSingleSignKeyGenerator(keyGen crypto.KeyGenerator) Option {
 }
 
 // WithInitialNodesPubKeys sets up the initial nodes public key option for the Node
-func WithInitialNodesPubKeys(pubKeys []string) Option {
+func WithInitialNodesPubKeys(pubKeys [][]string) Option {
 	return func(n *Node) error {
 		n.initialNodesPubkeys = pubKeys
 		return nil
@@ -142,7 +116,7 @@ func WithInitialNodesPubKeys(pubKeys []string) Option {
 func WithPublicKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
 		if pk == nil {
-			return errNilPublicKey
+			return ErrNilPublicKey
 		}
 
 		n.publicKey = pk
@@ -154,7 +128,7 @@ func WithPublicKey(pk crypto.PublicKey) Option {
 func WithRoundDuration(roundDuration uint64) Option {
 	return func(n *Node) error {
 		if roundDuration == 0 {
-			return errZeroRoundDurationNotSupported
+			return ErrZeroRoundDurationNotSupported
 		}
 		n.roundDuration = roundDuration
 		return nil
@@ -165,7 +139,7 @@ func WithRoundDuration(roundDuration uint64) Option {
 func WithConsensusGroupSize(consensusGroupSize int) Option {
 	return func(n *Node) error {
 		if consensusGroupSize < 1 {
-			return errNegativeOrZeroConsensusGroupSize
+			return ErrNegativeOrZeroConsensusGroupSize
 		}
 		n.consensusGroupSize = consensusGroupSize
 		return nil
@@ -176,7 +150,7 @@ func WithConsensusGroupSize(consensusGroupSize int) Option {
 func WithSyncer(syncer ntp.SyncTimer) Option {
 	return func(n *Node) error {
 		if syncer == nil {
-			return errNilSyncTimer
+			return ErrNilSyncTimer
 		}
 		n.syncer = syncer
 		return nil
@@ -187,7 +161,7 @@ func WithSyncer(syncer ntp.SyncTimer) Option {
 func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	return func(n *Node) error {
 		if blockProcessor == nil {
-			return errNilBlockProcessor
+			return ErrNilBlockProcessor
 		}
 		n.blockProcessor = blockProcessor
 		return nil
@@ -210,22 +184,22 @@ func WithElasticSubrounds(elasticSubrounds bool) Option {
 	}
 }
 
-// WithDataPool sets up the transient data pool option for the Node
-func WithDataPool(dataPool data.TransientDataHolder) Option {
+// WithDataPool sets up the data pools option for the Node
+func WithDataPool(dataPool data.PoolsHolder) Option {
 	return func(n *Node) error {
 		if dataPool == nil {
-			return errNilDataPool
+			return ErrNilDataPool
 		}
 		n.dataPool = dataPool
 		return nil
 	}
 }
 
-// WithShardCoordinator sets up the transient shard coordinator for the Node
-func WithShardCoordinator(shardCoordinator sharding.ShardCoordinator) Option {
+// WithShardCoordinator sets up the shard coordinator for the Node
+func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	return func(n *Node) error {
 		if shardCoordinator == nil {
-			return errNilShardCoordinator
+			return ErrNilShardCoordinator
 		}
 		n.shardCoordinator = shardCoordinator
 		return nil
@@ -236,7 +210,7 @@ func WithShardCoordinator(shardCoordinator sharding.ShardCoordinator) Option {
 func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConverter) Option {
 	return func(n *Node) error {
 		if converter == nil {
-			return errNilUint64ByteSliceConverter
+			return ErrNilUint64ByteSliceConverter
 		}
 		n.uint64ByteSliceConverter = converter
 		return nil
@@ -244,12 +218,23 @@ func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConver
 }
 
 // WithInitialNodesBalances sets up the initial map of nodes public keys and their respective balances
-func WithInitialNodesBalances(balances map[string]big.Int) Option {
+func WithInitialNodesBalances(balances map[string]*big.Int) Option {
 	return func(n *Node) error {
 		if balances == nil {
-			return errNilBalances
+			return ErrNilBalances
 		}
 		n.initialNodesBalances = balances
+		return nil
+	}
+}
+
+// WithSinglesig sets up the singlesig option for the Node
+func WithSinglesig(singlesig crypto.SingleSigner) Option {
+	return func(n *Node) error {
+		if singlesig == nil {
+			return ErrNilSingleSig
+		}
+		n.singlesig = singlesig
 		return nil
 	}
 }
@@ -258,9 +243,42 @@ func WithInitialNodesBalances(balances map[string]big.Int) Option {
 func WithMultisig(multisig crypto.MultiSigner) Option {
 	return func(n *Node) error {
 		if multisig == nil {
-			return errNilMultiSig
+			return ErrNilMultiSig
 		}
 		n.multisig = multisig
+		return nil
+	}
+}
+
+// WithForkDetector sets up the multisig option for the Node
+func WithForkDetector(forkDetector process.ForkDetector) Option {
+	return func(n *Node) error {
+		if forkDetector == nil {
+			return ErrNilForkDetector
+		}
+		n.forkDetector = forkDetector
+		return nil
+	}
+}
+
+// WithInterceptorsContainer sets up the interceptors container option for the Node
+func WithInterceptorsContainer(interceptorsContainer process.InterceptorsContainer) Option {
+	return func(n *Node) error {
+		if interceptorsContainer == nil {
+			return ErrNilInterceptorsContainer
+		}
+		n.interceptorsContainer = interceptorsContainer
+		return nil
+	}
+}
+
+// WithResolversFinder sets up the resolvers finder option for the Node
+func WithResolversFinder(resolversFinder process.ResolversFinder) Option {
+	return func(n *Node) error {
+		if resolversFinder == nil {
+			return ErrNilResolversFinder
+		}
+		n.resolversFinder = resolversFinder
 		return nil
 	}
 }

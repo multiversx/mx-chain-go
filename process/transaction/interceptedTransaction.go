@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
@@ -15,33 +14,26 @@ import (
 type InterceptedTransaction struct {
 	*transaction.Transaction
 
+	txBuffWithoutSig         []byte
 	hash                     []byte
 	rcvShard                 uint32
 	sndShard                 uint32
 	isAddressedToOtherShards bool
 	addrConv                 state.AddressConverter
-	singleSignKeyGen         crypto.KeyGenerator
+	singleSigner             crypto.SingleSigner
+	keyGen                   crypto.KeyGenerator
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
-func NewInterceptedTransaction() *InterceptedTransaction {
+func NewInterceptedTransaction(signer crypto.SingleSigner) *InterceptedTransaction {
 	return &InterceptedTransaction{
-		Transaction: &transaction.Transaction{},
+		Transaction:  &transaction.Transaction{},
+		singleSigner: signer,
 	}
 }
 
-// Create returns a new instance of this struct (used in topics)
-func (inTx *InterceptedTransaction) Create() p2p.Creator {
-	return NewInterceptedTransaction()
-}
-
-// ID returns the ID of this object. Set to return the hash of the transaction
-func (inTx *InterceptedTransaction) ID() string {
-	return string(inTx.hash)
-}
-
 // IntegrityAndValidity returns a non nil error if transaction failed some checking tests
-func (inTx *InterceptedTransaction) IntegrityAndValidity(coordinator sharding.ShardCoordinator) error {
+func (inTx *InterceptedTransaction) IntegrityAndValidity(coordinator sharding.Coordinator) error {
 	if coordinator == nil {
 		return process.ErrNilShardCoordinator
 	}
@@ -65,18 +57,16 @@ func (inTx *InterceptedTransaction) IntegrityAndValidity(coordinator sharding.Sh
 		return process.ErrInvalidRcvAddr
 	}
 
-	inTx.rcvShard = coordinator.ComputeShardForAddress(rcvAddr, inTx.addrConv)
-	inTx.sndShard = coordinator.ComputeShardForAddress(sndAddr, inTx.addrConv)
+	inTx.rcvShard = coordinator.ComputeId(rcvAddr)
+	inTx.sndShard = coordinator.ComputeId(sndAddr)
 
-	inTx.isAddressedToOtherShards =
-		inTx.rcvShard != coordinator.ShardForCurrentNode() &&
-			inTx.sndShard != coordinator.ShardForCurrentNode()
+	inTx.isAddressedToOtherShards = inTx.rcvShard != coordinator.SelfId() && inTx.sndShard != coordinator.SelfId()
 
 	return nil
 }
 
 // Integrity checks for not nil fields and negative value
-func (inTx *InterceptedTransaction) Integrity(coordinator sharding.ShardCoordinator) error {
+func (inTx *InterceptedTransaction) Integrity(coordinator sharding.Coordinator) error {
 	if inTx.Transaction == nil {
 		return process.ErrNilTransaction
 	}
@@ -85,16 +75,16 @@ func (inTx *InterceptedTransaction) Integrity(coordinator sharding.ShardCoordina
 		return process.ErrNilSignature
 	}
 
-	if inTx.Challenge == nil {
-		return process.ErrNilChallenge
-	}
-
 	if inTx.RcvAddr == nil {
 		return process.ErrNilRcvAddr
 	}
 
 	if inTx.SndAddr == nil {
 		return process.ErrNilSndAddr
+	}
+
+	if inTx.Transaction.Value == nil {
+		return process.ErrNilValue
 	}
 
 	if inTx.Transaction.Value.Cmp(big.NewInt(0)) < 0 {
@@ -110,16 +100,20 @@ func (inTx *InterceptedTransaction) VerifySig() error {
 		return process.ErrNilTransaction
 	}
 
-	if inTx.singleSignKeyGen == nil {
-		return process.ErrNilSingleSignKeyGen
+	if inTx.keyGen == nil {
+		return process.ErrNilKeyGen
 	}
 
-	singleSignVerifier, err := inTx.singleSignKeyGen.PublicKeyFromByteArray(inTx.RcvAddr)
+	if inTx.singleSigner == nil {
+		return process.ErrNilSingleSigner
+	}
+
+	senderPubKey, err := inTx.keyGen.PublicKeyFromByteArray(inTx.SndAddr)
 	if err != nil {
 		return err
 	}
 
-	err = singleSignVerifier.Verify(inTx.hash, inTx.Signature)
+	err = inTx.singleSigner.Verify(senderPubKey, inTx.txBuffWithoutSig, inTx.Signature)
 
 	if err != nil {
 		return err
@@ -168,14 +162,24 @@ func (inTx *InterceptedTransaction) Hash() []byte {
 	return inTx.hash
 }
 
+// SetTxBuffWithoutSig sets the byte slice buffer of this transaction having nil in Signature field.
+func (inTx *InterceptedTransaction) SetTxBuffWithoutSig(txBuffWithoutSig []byte) {
+	inTx.txBuffWithoutSig = txBuffWithoutSig
+}
+
+// TxBuffWithoutSig gets the byte slice buffer of this transaction having nil in Signature field
+func (inTx *InterceptedTransaction) TxBuffWithoutSig() []byte {
+	return inTx.txBuffWithoutSig
+}
+
 // SingleSignKeyGen returns the key generator that is used to create a new public key verifier that will be used
 // for validating transaction's signature
 func (inTx *InterceptedTransaction) SingleSignKeyGen() crypto.KeyGenerator {
-	return inTx.singleSignKeyGen
+	return inTx.keyGen
 }
 
 // SetSingleSignKeyGen sets the key generator that is used to create a new public key verifier that will be used
 // for validating transaction's signature
 func (inTx *InterceptedTransaction) SetSingleSignKeyGen(generator crypto.KeyGenerator) {
-	inTx.singleSignKeyGen = generator
+	inTx.keyGen = generator
 }

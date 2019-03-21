@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/chronology"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
@@ -17,7 +17,7 @@ const RoundsToWaitToBeRemoved = 5
 
 type validatorData struct {
 	RoundIndex int32
-	Stake      big.Int
+	Stake      *big.Int
 }
 
 // syncValidators implements a validators sync mechanism
@@ -26,13 +26,13 @@ type syncValidators struct {
 
 	mut sync.RWMutex
 
-	rounder  chronology.Rounder
+	rounder  consensus.Rounder
 	accounts state.AccountsAdapter
 }
 
 // NewSyncValidators creates a new syncValidators object
 func NewSyncValidators(
-	rounder chronology.Rounder,
+	rounder consensus.Rounder,
 	accounts state.AccountsAdapter,
 ) (*syncValidators, error) {
 	err := checkSyncValidatorsNilParameters(rounder, accounts)
@@ -52,11 +52,11 @@ func NewSyncValidators(
 
 // checkSyncValidatorsNilParameters method will check the input parameters for nil values
 func checkSyncValidatorsNilParameters(
-	rounder chronology.Rounder,
+	rounder consensus.Rounder,
 	accounts state.AccountsAdapter,
 ) error {
 	if rounder == nil {
-		return process.ErrNilRound
+		return process.ErrNilRounder
 	}
 
 	if accounts == nil {
@@ -106,14 +106,14 @@ func (sv *syncValidators) processRegisterRequests(regData *state.RegistrationDat
 	if v, isInEligibleList := sv.eligibleList[k]; isInEligibleList {
 		sv.eligibleList[k] = &validatorData{
 			RoundIndex: v.RoundIndex,
-			Stake:      *big.NewInt(0).Add(&v.Stake, &regData.Stake),
+			Stake:      big.NewInt(0).Add(v.Stake, regData.Stake),
 		}
 	} else { // if the validator is not in the eligible list it should wait for some certain rounds until it
 		// would be moved there
 		if regData.RoundIndex+RoundsToWaitToBeEligible < sv.rounder.Index() {
 			sv.eligibleList[k] = &validatorData{
 				RoundIndex: regData.RoundIndex,
-				Stake:      *big.NewInt(0).Set(&regData.Stake),
+				Stake:      big.NewInt(0).Set(regData.Stake),
 			}
 		}
 	}
@@ -146,7 +146,7 @@ func (sv *syncValidators) GetEligibleList() map[string]*validatorData {
 	sv.mut.RLock()
 
 	for k, v := range sv.eligibleList {
-		eligibleList[k] = &validatorData{RoundIndex: v.RoundIndex, Stake: *big.NewInt(0).Set(&v.Stake)}
+		eligibleList[k] = &validatorData{RoundIndex: v.RoundIndex, Stake: big.NewInt(0).Set(v.Stake)}
 	}
 
 	sv.mut.RUnlock()

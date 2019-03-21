@@ -15,10 +15,10 @@ func (ss *SyncStub) ClockOffset() time.Duration {
 	panic("implement me")
 }
 
-func (ss *SyncStub) FormattedCurrentTime(time.Duration) string {
+func (ss *SyncStub) FormattedCurrentTime() string {
 	panic("implement me")
 }
 
-func (ss *SyncStub) CurrentTime(time.Duration) time.Time {
+func (ss *SyncStub) CurrentTime() time.Time {
 	panic("implement me")
 }
