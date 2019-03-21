@@ -19,7 +19,7 @@ type BlockProcessorMock struct {
 	SetOnRequestTransactionCalled      func(f func(destShardID uint32, txHash []byte))
 	CheckBlockValidityCalled           func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
 	CreateBlockHeaderCalled            func(body data.BodyHandler) (data.HeaderHandler, error)
-	MarshalizedDataForCrossShardCalled func(body data.BodyHandler) (map[uint32][][]byte, error)
+	MarshalizedDataForCrossShardCalled func(body data.BodyHandler) (map[uint32][]byte, error)
 }
 
 func (bpm *BlockProcessorMock) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
@@ -59,6 +59,6 @@ func (blProcMock BlockProcessorMock) CreateBlockHeader(body data.BodyHandler) (d
 	return blProcMock.CreateBlockHeaderCalled(body)
 }
 
-func (blProcMock BlockProcessorMock) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][][]byte, error) {
+func (blProcMock BlockProcessorMock) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, error) {
 	return blProcMock.MarshalizedDataForCrossShardCalled(body)
 }

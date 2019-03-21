@@ -88,7 +88,7 @@ func (gbbi *GenericBlockBodyInterceptor) processBlockBody(messageData []byte, bo
 			return err
 		}
 
-		_ = gbbi.cache.Put(gbbi.hasher.Compute(string(mbBytes)), miniblock)
+		_, _ = gbbi.cache.HasOrAdd(gbbi.hasher.Compute(string(mbBytes)), miniblock)
 	}
 
 	return nil

@@ -1157,7 +1157,7 @@ func TestBelNevSigner_VerifySigInvalid(t *testing.T) {
 
 	multiSigner, aggSig, bitmap := createAggregatedSig()
 	// make sig invalid
-	aggSig[len(aggSig)-1] = 0
+	aggSig[len(aggSig)-1] = aggSig[len(aggSig)-1] ^ 255
 	_ = multiSigner.SetAggregatedSig(aggSig)
 
 	err := multiSigner.Verify(bitmap)
