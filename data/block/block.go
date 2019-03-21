@@ -455,9 +455,10 @@ func (h *Header) SetProcessed(hash []byte) {
 
 // IntegrityAndValidity checks if data is valid
 func (b Body) IntegrityAndValidity() error {
-	if len(b) == 0 {
-		return data.ErrBlockBodyEmpty
-	}
+	//TODO(jls) really really remove
+	//if len(b) == 0 {
+	//	return data.ErrBlockBodyEmpty
+	//}
 
 	for i := 0; i < len(b); i++ {
 		if len(b[i].TxHashes) == 0 {

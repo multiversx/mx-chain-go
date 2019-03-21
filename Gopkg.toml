@@ -177,6 +177,10 @@
   name = "gotest.tools"
   version = "2.2.0"
 
+[[constraint]]
+  branch = "master"
+  name = "github.com/cornelk/hashmap"
+
 [prune]
   go-tests = true
   unused-packages = true

@@ -143,11 +143,12 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing
 	}
 
 	putInCacheWasCalled := false
-	cache.PutCalled = func(key []byte, value interface{}) (evicted bool) {
+	cache.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		if bytes.Equal(key, mock.HasherMock{}.Compute(string(miniBlockBuff))) {
 			putInCacheWasCalled = true
 		}
-		return false
+
+		return false, false
 	}
 
 	assert.Nil(t, tbbi.ProcessReceivedMessage(msg))

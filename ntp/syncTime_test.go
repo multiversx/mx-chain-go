@@ -3,6 +3,7 @@ package ntp_test
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -20,6 +21,7 @@ var failNtpMock3 = false
 
 var errNtpMock = errors.New("NTP Mock generic error")
 var queryMock4Call = 0
+var mutex = sync.Mutex{}
 
 func queryMock1(host string) (*ntp.Response, error) {
 	fmt.Printf("Host: %s\n", host)
@@ -54,7 +56,9 @@ func queryMock3(host string) (*ntp.Response, error) {
 func queryMock4(host string) (*ntp.Response, error) {
 	fmt.Printf("Host: %s\n", host)
 
+	mutex.Lock()
 	queryMock4Call++
+	mutex.Unlock()
 
 	return nil, errNtpMock
 }
@@ -114,7 +118,10 @@ func TestCallQuery(t *testing.T) {
 	// wait a few cycles
 	time.Sleep(time.Millisecond * 100)
 
-	assert.NotEqual(t, queryMock4Call, 0)
+	mutex.Lock()
+	qmc := queryMock4Call
+	mutex.Unlock()
+	assert.NotEqual(t, qmc, 0)
 
 	fmt.Printf("Current time: %v\n", st.FormattedCurrentTime())
 }
