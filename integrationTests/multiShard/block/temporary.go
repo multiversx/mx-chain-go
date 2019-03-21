@@ -49,6 +49,7 @@ import (
 var r *rand.Rand
 var testHasher = sha256.Sha256{}
 var testMarshalizer = &marshal.JsonMarshalizer{}
+var testAddressConverter, _ = state.NewPlainAddressConverter(32, "0x")
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -58,6 +59,7 @@ type testNode struct {
 	node             *node.Node
 	mesenger         p2p.Messenger
 	shardId          uint32
+	accntState       state.AccountsAdapter
 	sk               crypto.PrivateKey
 	pk               crypto.PublicKey
 	dPool            data.PoolsHolder
@@ -157,7 +159,6 @@ func createNetNode(
 
 	//messenger := createMessenger(context.Background(), port, serviceID)
 	messenger := createMessengerWithKadDht(context.Background(), port, initialAddr)
-	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 	suite := kv2.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
@@ -165,7 +166,7 @@ func createNetNode(
 
 	for {
 		pkBytes, _ := pk.ToByteArray()
-		addr, _ := addrConverter.CreateAddressFromPublicKeyBytes(pkBytes)
+		addr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(pkBytes)
 		if shardCoordinator.ComputeId(addr) == targetShardId {
 			break
 		}
@@ -189,7 +190,7 @@ func createNetNode(
 		singleSigner,
 		multiSigner,
 		dPool,
-		addrConverter,
+		testAddressConverter,
 	)
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
 
@@ -220,7 +221,7 @@ func createNetNode(
 		node.WithMarshalizer(testMarshalizer),
 		node.WithHasher(testHasher),
 		node.WithDataPool(dPool),
-		node.WithAddressConverter(addrConverter),
+		node.WithAddressConverter(testAddressConverter),
 		node.WithAccountsAdapter(accntAdapter),
 		node.WithKeyGenerator(keyGen),
 		node.WithShardCoordinator(shardCoordinator),
@@ -338,6 +339,7 @@ func createNodes(
 			testNode.mesenger = mes
 			testNode.pk = sk.GeneratePublic()
 			testNode.resFinder = resFinder
+			testNode.accntState = accntAdapter
 			testNode.dPool.Headers().RegisterHandler(func(key []byte) {
 				atomic.AddInt32(&testNode.headersRecv, 1)
 				testNode.mutHeaders.Lock()
@@ -417,4 +419,23 @@ func uint32InSlice(searched uint32, list []uint32) bool {
 		}
 	}
 	return false
+}
+
+func generatePrivateKeyInShardId(
+	coordinator sharding.Coordinator,
+	shardId uint32,
+) crypto.PrivateKey {
+
+	suite := kv2.NewBlakeSHA256Ed25519()
+	keyGen := signing.NewKeyGenerator(suite)
+	sk, pk := keyGen.GeneratePair()
+
+	for {
+		buff, _ := pk.ToByteArray()
+		addr, _ := testAddressConverter.CreateAddressFromPublicKeyBytes(buff)
+
+		if coordinator.ComputeId(addr) == shardId {
+			return sk
+		}
+	}
 }
