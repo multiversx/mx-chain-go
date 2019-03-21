@@ -4,7 +4,6 @@ import (
 	"crypto/cipher"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"gopkg.in/dedis/kyber.v2"
 )
 
 // kyberScalar is a wrapper over kyber.v2 scalar

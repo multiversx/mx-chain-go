@@ -2,8 +2,6 @@ package singlesig
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"gopkg.in/dedis/kyber.v2"
-	"gopkg.in/dedis/kyber.v2/sign/schnorr"
 )
 
 type SchnorrSigner struct {

@@ -170,10 +170,6 @@
   name = "golang.org/x/crypto"
 
 [[constraint]]
-  branch = "v2"
-  name = "gopkg.in/dedis/kyber.v2"
-
-[[constraint]]
   name = "gotest.tools"
   version = "2.2.0"
 

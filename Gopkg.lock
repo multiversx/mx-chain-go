@@ -23,7 +23,7 @@
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
   pruneopts = "UT"
-  revision = "306aecffea325e97f513b3ff0cf7895a5310651d"
+  revision = "aa6e0f35703c1438cc45860ddc0c3f6e6c633c93"
 
 [[projects]]
   digest = "1:0ef770954bca104ee99b3b6b7f9b240605ac03517d9f98cbc1893daa03f3c038"
@@ -56,14 +56,6 @@
   pruneopts = "UT"
   revision = "34f201214d993633bb24f418ba11736ab8b55aa7"
   version = "v1.2.1"
-
-[[projects]]
-  digest = "1:c594f17a44dc0df66ef67ae61b126fc51c84b826af250493f2e37c2ac4389bbe"
-  name = "github.com/dedis/fixbuf"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "290118f838f79dd2f76edf7a98cccf989eaf3310"
-  version = "v1.0.2"
 
 [[projects]]
   digest = "1:d1341a04a4443bba8c8af76ec6c3960206074490a1284b4853ff5a88a66c63b7"
@@ -427,12 +419,12 @@
   version = "v0.0.1"
 
 [[projects]]
-  digest = "1:eefb0f3dc3b8f28a3449adb4a604220814aa1e62a0e14219751a32e980ae5c73"
+  digest = "1:1df10c788e75259f6ebae0612de30f0db09e690042b9db64551a188c6509cc8b"
   name = "github.com/libp2p/go-libp2p-host"
   packages = ["."]
   pruneopts = "UT"
-  revision = "7e2de4bb2b77a5b155b9993309b34e0e8b1890b0"
-  version = "v0.0.1"
+  revision = "df61f890baee33effc62473e65c0ce481407181d"
+  version = "v0.0.2"
 
 [[projects]]
   digest = "1:4cd4b5905ba6780005015290a0e3fd5ed0e6354ede303ab0c84caa6b7bb2e311"
@@ -451,7 +443,7 @@
   version = "v0.0.1"
 
 [[projects]]
-  digest = "1:275ca859f4bf4df859f192b742511c663dc79e4464c08273e0c2c3515bf9dc26"
+  digest = "1:cdad40b825921ede4f0139dfbc361027c29c4151a614b9c9d6ebc5e8c080426e"
   name = "github.com/libp2p/go-libp2p-kad-dht"
   packages = [
     ".",
@@ -460,8 +452,8 @@
     "providers",
   ]
   pruneopts = "UT"
-  revision = "7bdf621a661616003dcf678d662667c5d476be26"
-  version = "v0.0.4"
+  revision = "fcfeef928d1b1db66001e767eff971e2d4f01aeb"
+  version = "v0.0.5"
 
 [[projects]]
   digest = "1:26df3b5a2463f1586156b48c7da8fcc1957111aa2751d5afdd431ff619fda4af"
@@ -722,11 +714,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:eea9588ebf4cf89c7da8360e8d19627b74b78eec74df6df9e0c5defcee4f3617"
+  digest = "1:04d69739a5e01a32391a952b4243c1308fb875b9ad7302355eb37bbdb8c3e70b"
   name = "github.com/minio/sha256-simd"
   packages = ["."]
   pruneopts = "UT"
-  revision = "2d45a736cd16732fe6a57563cc20d8b035193e58"
+  revision = "3557f3d43a123835ffa5846e4d055146e773d52e"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
@@ -757,8 +749,8 @@
   name = "github.com/mr-tron/base58"
   packages = ["base58"]
   pruneopts = "UT"
-  revision = "89529c6904fcd077434931b4eac8b4b2f0991baf"
-  version = "v1.1.0"
+  revision = "6598572f05537592acb5a609ff53c4c7fbba7a3e"
+  version = "v1.1.1"
 
 [[projects]]
   digest = "1:b9fe622bbadbb060338620752b1cb3aa1473855071195ebe83813af5ebb3629b"
@@ -886,7 +878,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b983d08e2d583d99f1021d888aaaa773019de98ec9d454a0205478933534177e"
+  digest = "1:3f0c28875fb78456bc1815a9c13cb5962a4f0c462b37ec72e90c2f2cc407b54f"
   name = "github.com/syndtr/goleveldb"
   packages = [
     "leveldb",
@@ -903,7 +895,7 @@
     "leveldb/util",
   ]
   pruneopts = "UT"
-  revision = "7bd84fdc8ccda40c12af62ed4f0a94a0dd04a362"
+  revision = "c3a204f8e96543bb0cc090385c001078f184fc46"
 
 [[projects]]
   digest = "1:4887e9e89c80299aa520d718239809fdd2a47a9aa394909b169959bfbc424ddf"
@@ -1031,11 +1023,11 @@
     "ssh/terminal",
   ]
   pruneopts = "UT"
-  revision = "a1f597ede03a7bef967a422b5b3a5bd08805a01e"
+  revision = "b7391e95e576cacdcdd422573063bc057239113d"
 
 [[projects]]
   branch = "master"
-  digest = "1:b3fea6a22417efb12394e45cf6b165e70f7051b8205a83edcd1c8aa7d49f65cd"
+  digest = "1:2ad9bc3001e10c14df06dd5608f47922bcfaa3a333b787c2a552e102438080f9"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -1049,11 +1041,11 @@
     "ipv6",
   ]
   pruneopts = "UT"
-  revision = "9f648a60d9775ef5c977e7669d1673a7a67bef33"
+  revision = "1272bf9dcd53ea65c09668fb4c76e65deb740072"
 
 [[projects]]
   branch = "master"
-  digest = "1:426092407910bee4a539be5d377abbaf629bae216c8eb2f80409c8cbe2647508"
+  digest = "1:51e9c8a64ecddbba456f24b2119aade9dc8e062fc6d10b30548f75f483e08b76"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
@@ -1061,7 +1053,7 @@
     "windows",
   ]
   pruneopts = "UT"
-  revision = "fead79001313d15903fb4605b4a1b781532cd93e"
+  revision = "f7bb7a8bee54210937e93ec56d007d892c1f0580"
 
 [[projects]]
   digest = "1:aa4d6967a3237f8367b6bf91503964a77183ecf696f1273e8ad3551bb4412b5f"
@@ -1099,22 +1091,6 @@
   ]
   pruneopts = "UT"
   revision = "d61658bd2e18010be0e21349cc92b1b706e35146"
-
-[[projects]]
-  branch = "v2"
-  digest = "1:35af419dbe2008260a34284958e2e8d93b15b2aff46f2aaf074402ab8173fa6a"
-  name = "gopkg.in/dedis/kyber.v2"
-  packages = [
-    ".",
-    "group/edwards25519",
-    "group/internal/marshalling",
-    "group/mod",
-    "sign/schnorr",
-    "util/random",
-    "xof/blake2xb",
-  ]
-  pruneopts = "UT"
-  revision = "f066f8d2cd58398b231c3e32429fec42109eb1e6"
 
 [[projects]]
   digest = "1:cbc72c4c4886a918d6ab4b95e347ffe259846260f99ebdd8a198c2331cf2b2e9"
@@ -1194,9 +1170,6 @@
     "github.com/whyrusleeping/timecache",
     "golang.org/x/crypto/blake2b",
     "golang.org/x/crypto/sha3",
-    "gopkg.in/dedis/kyber.v2",
-    "gopkg.in/dedis/kyber.v2/group/edwards25519",
-    "gopkg.in/dedis/kyber.v2/sign/schnorr",
     "gopkg.in/go-playground/validator.v8",
     "gotest.tools/assert",
   ]
