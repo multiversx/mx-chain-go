@@ -2317,6 +2317,7 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	t.Parallel()
 
+	mutex := goSync.RWMutex{}
 	pools := createMockPools()
 	blkc := initBlockchain()
 	rnd := &mock.RounderMock{}
@@ -2341,21 +2342,29 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 		account,
 	)
 
+	mutex.RLock()
 	calls := 0
+	mutex.RUnlock()
 	var wg goSync.WaitGroup
 
 	f1 := func(bool) {
+		mutex.Lock()
 		calls++
+		mutex.Unlock()
 		wg.Done()
 	}
 
 	f2 := func(bool) {
+		mutex.Lock()
 		calls++
+		mutex.Unlock()
 		wg.Done()
 	}
 
 	f3 := func(bool) {
+		mutex.Lock()
 		calls++
+		mutex.Unlock()
 		wg.Done()
 	}
 

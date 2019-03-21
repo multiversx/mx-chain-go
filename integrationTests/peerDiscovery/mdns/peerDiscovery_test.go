@@ -16,9 +16,11 @@ var durationBootstrapingTime = time.Duration(time.Second * 2)
 var durationTopicAnnounceTime = time.Duration(time.Second * 2)
 
 func TestPeerDiscoveryAndMessageSending(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	// TODO: this test still generates a race condition due to: https://github.com/whyrusleeping/mdns/pull/4
+	// This pull request doesn't have a correct solution yet and it is not merged. When this is fixed,
+	// we can add the short condition back so this test would be run on the nightly build.
+	// Remember to skip this test when the short flag is set
+	t.Skip("this is not a short test")
 
 	basePort := 26000
 	noOfPeers := 20

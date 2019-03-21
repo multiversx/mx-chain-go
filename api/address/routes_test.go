@@ -38,6 +38,10 @@ func NewAddressResponse() *addressResponse {
 	}
 }
 
+func init() {
+	gin.SetMode(gin.TestMode)
+}
+
 type AccountResponse struct {
 	GeneralResponse
 	Account struct {
@@ -242,7 +246,6 @@ func logError(err error) {
 }
 
 func startNodeServer(handler address.Handler) *gin.Engine {
-	gin.SetMode(gin.TestMode)
 	ws := gin.New()
 	ws.Use(cors.Default())
 	addressRoutes := ws.Group("/address")
@@ -254,7 +257,6 @@ func startNodeServer(handler address.Handler) *gin.Engine {
 }
 
 func startNodeServerWrongFacade() *gin.Engine {
-	gin.SetMode(gin.TestMode)
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ws.Use(func(c *gin.Context) {

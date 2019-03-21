@@ -2,7 +2,6 @@ package sharding
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"math"
 
@@ -41,12 +40,24 @@ func NewMultiShardCoordinator(numberOfShards, selfId uint32) (*multiShardCoordin
 // shard id where a transaction from that address will be dispatched
 func (msc *multiShardCoordinator) calculateMasks() (uint32, uint32) {
 	n := math.Ceil(math.Log2(float64(msc.numberOfShards)))
-	return (1 << uint(n)) - 1, (1 << uint(n -1)) - 1
+	return (1 << uint(n)) - 1, (1 << uint(n-1)) - 1
 }
 
 // ComputeId calculates the shard for a given address used for transaction dispatching
 func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint32 {
-	addr := binary.BigEndian.Uint32(address.Bytes())
+	bytesNeed := int(msc.numberOfShards/256) + 1
+	startingIndex := 0
+	if len(address.Bytes()) > bytesNeed {
+		startingIndex = len(address.Bytes()) - bytesNeed
+	}
+
+	buffNeeded := address.Bytes()[startingIndex:]
+
+	addr := uint32(0)
+	for i := 0; i < len(buffNeeded); i++ {
+		addr = addr<<8 + uint32(buffNeeded[i])
+	}
+
 	shard := addr & msc.maskHigh
 	if shard > msc.numberOfShards-1 {
 		shard = addr & msc.maskLow
