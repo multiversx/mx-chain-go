@@ -434,10 +434,6 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
 			sr.rounder.Index(), getSubroundName(SrBlock), err.Error()))
 
-		if err == process.ErrTimeIsOut {
-			sr.consensusState.RoundCanceled = true
-		}
-
 		return false
 	}
 

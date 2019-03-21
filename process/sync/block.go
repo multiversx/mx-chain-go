@@ -291,6 +291,10 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 		boot.highestNonceReceived = header.Nonce
 	}
 
+	if header != nil {
+		log.Debug(fmt.Sprintf("1: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
+	}
+
 	err := boot.forkDetector.AddHeader(header, headerHash, false)
 
 	if err != nil {
@@ -304,6 +308,12 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	//TODO: make sure that header validation done on interceptors do not add headers with wrong nonces/round numbers
 	if nonce > boot.highestNonceReceived {
 		boot.highestNonceReceived = nonce
+	}
+
+	headerHash, _ := boot.headersNonces.Get(nonce)
+
+	if headerHash != nil {
+		log.Debug(fmt.Sprintf("2: received header with nonce %d and hash %s from network\n", nonce, toB64(headerHash)))
 	}
 
 	n := boot.requestedHeaderNonce()
@@ -389,12 +399,12 @@ func (boot *Bootstrap) SyncBlock() error {
 
 	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
 	if err != nil {
-		if err == process.ErrMissingHeader {
-			if boot.shouldCreateEmptyBlock(nonce) {
-				log.Info(err.Error())
-				err = boot.createAndBroadcastEmptyBlock()
-			}
-		}
+		//if err == process.ErrMissingHeader {
+		//	if boot.shouldCreateEmptyBlock(nonce) {
+		//		log.Info(err.Error())
+		//		err = boot.createAndBroadcastEmptyBlock()
+		//	}
+		//}
 
 		return err
 	}
@@ -646,7 +656,7 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 	boot.headersNonces.Remove(header.Nonce)
 	boot.headers.RemoveData(hash, header.ShardId)
-	boot.forkDetector.RemoveHeaders(header.Nonce)
+	boot.forkDetector.RemoveProcessedHeader(header.Nonce)
 	//TODO uncomment this when badBlocks will be implemented
 	//_ = headerStore.Remove(hash)
 }
@@ -685,12 +695,24 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 	return err
 }
 
-func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
-	hash, _ := boot.headersNonces.Get(header.Nonce)
+func (boot *Bootstrap) removeHeaderFromPools(hdr *block.Header) {
+	header := boot.blkc.GetCurrentBlockHeader()
 
-	boot.headersNonces.Remove(header.Nonce)
-	boot.headers.RemoveData(hash, header.ShardId)
-	boot.forkDetector.RemoveHeaders(header.Nonce)
+	if header == nil {
+		return
+	}
+
+	// TODO: Forkchoice and sync should work with interfaces, so all type assertion should be removed
+	currentHeader, ok := header.(*block.Header)
+	if !ok {
+		return
+	}
+
+	if !isEmpty(currentHeader) {
+		hash, _ := boot.headersNonces.Get(hdr.Nonce)
+		boot.headersNonces.Remove(hdr.Nonce)
+		boot.headers.RemoveData(hash, hdr.ShardId)
+	}
 }
 
 func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {

@@ -69,11 +69,35 @@ func (bfd *basicForkDetector) removePastHeaders(nonce uint64) {
 	bfd.mutHeaders.Unlock()
 }
 
-// RemoveHeaders removes all stored headers with a given nonce
-func (bfd *basicForkDetector) RemoveHeaders(nonce uint64) {
+// RemoveProcessedHeader removes all stored headers with a given nonce
+func (bfd *basicForkDetector) RemoveProcessedHeader(nonce uint64) {
 	bfd.mutHeaders.Lock()
-	delete(bfd.headers, nonce)
-	bfd.mutHeaders.Unlock()
+	defer bfd.mutHeaders.Unlock()
+
+	hdrInfosStored := bfd.headers[nonce]
+
+	isHdrInfosStoredNilOrEmpty := hdrInfosStored == nil || len(hdrInfosStored) == 0
+
+	if isHdrInfosStoredNilOrEmpty {
+		return
+	}
+
+	var newHdrInfosStored []*headerInfo
+
+	for _, hdrInfoStored := range hdrInfosStored {
+		if !hdrInfoStored.isProcessed {
+			newHdrInfosStored = append(newHdrInfosStored, hdrInfoStored)
+		}
+	}
+
+	isNewHdrInfosStoredNilOrEmpty := newHdrInfosStored == nil || len(newHdrInfosStored) == 0
+
+	if isNewHdrInfosStoredNilOrEmpty {
+		delete(bfd.headers, nonce)
+		return
+	}
+
+	bfd.headers[nonce] = newHdrInfosStored
 }
 
 // append adds a new header in the slice found in nonce position
@@ -100,8 +124,7 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 				// requested for bootstrapping, also the other nonces broadcasted to the network by the consensus group.
 				// So, it stores them as received but not processed yet. When it will reach to that nonce and
 				// if eventually it will be successfully processed, this nonce will be marked here from now on as a processed one.
-				delete(bfd.headers, hdrInfo.header.Nonce)
-				bfd.headers[hdrInfo.header.Nonce] = []*headerInfo{hdrInfo}
+				hdrInfoStored.isProcessed = hdrInfo.isProcessed
 			}
 			return
 		}

@@ -120,7 +120,7 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 	hInfos := bfd.GetHeaders(0)
 	assert.Equal(t, 1, len(hInfos))
 
-	bfd.RemoveHeaders(0)
+	bfd.RemoveProcessedHeader(0)
 
 	hInfos = bfd.GetHeaders(0)
 	assert.Nil(t, hInfos)
