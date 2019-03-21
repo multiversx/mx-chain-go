@@ -493,6 +493,7 @@ func (bp *blockProcessor) requestBlockTransactions(body block.Body) int {
 			for _, txHash := range txHashes {
 				requestedTxs++
 				bp.requestedTxHashes[string(txHash)] = true
+				//TODO(jls) this needs to be fixed as it does not request on the right topic
 				bp.OnRequestTransaction(shardId, txHash)
 			}
 		}
