@@ -3,11 +3,10 @@ package trie3_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie3"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,7 +45,7 @@ func TestNewTrieWithNilParameters(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Get(t *testing.T) {
-	tr, val := testTrie2(50)
+	tr, val := testTrie2(10000)
 
 	for i := range val {
 		v, _ := tr.Get(val[i])

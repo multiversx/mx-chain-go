@@ -16,11 +16,11 @@
 
 package trie3
 
-import (
-	"bytes"
-)
-
-var emptyHash []byte
+type nodeIterator struct {
+	trie  *patriciaMerkleTree  // Trie being iterated
+	stack []*nodeIteratorState // Hierarchy of trie nodes persisting the iteration state
+	path  []byte               // Path to the current node
+}
 
 // nodeIteratorState represents the iteration state at one particular node of the
 // trie, which can be resumed at a later invocation.
@@ -32,21 +32,22 @@ type nodeIteratorState struct {
 	pathlen int    // Length of the path to this node
 }
 
-type nodeIterator struct {
-	trie  *patriciaMerkleTree  // Trie being iterated
-	stack []*nodeIteratorState // Hierarchy of trie nodes persisting the iteration state
-	path  []byte               // Path to the current node
-}
-
 func newNodeIterator(trie *patriciaMerkleTree) *nodeIterator {
 	return &nodeIterator{trie: trie}
 }
 
-// Next moves the iterator to the next node, returning whether there are any
-// further nodes.
-func (it *nodeIterator) Next() (bool, error) {
+func newIteratorState(hash []byte, node node, parent []byte, pathlen int) *nodeIteratorState {
+	return &nodeIteratorState{hash, node, parent, -1, pathlen}
+}
 
-	// Otherwise step forward with the iterator and report any errors.
+// Next moves the iterator to the next node
+func (it *nodeIterator) Next() (bool, error) {
+	if it.trie.root.getHash() == nil {
+		err := it.trie.root.setHash(it.trie.marshalizer, it.trie.hasher)
+		if err != nil {
+			return false, err
+		}
+	}
 	err := it.peek()
 	if err != nil {
 		return false, err
@@ -56,84 +57,30 @@ func (it *nodeIterator) Next() (bool, error) {
 
 // peek creates the next state of the iterator.
 func (it *nodeIterator) peek() error {
-	var state *nodeIteratorState
 	if len(it.stack) == 0 {
-		root, err := it.trie.Root()
-		if err != nil {
-			return err
-		}
-		state = &nodeIteratorState{node: it.trie.root, index: -1}
-		if !bytes.Equal(root, emptyHash) {
-			state.hash = root
-		}
-		it.push(state, nil, nil)
-		return nil
+		err := it.initialise()
+		return err
 	}
-	// Continue iteration to the next child
-	var parent *nodeIteratorState
 	for len(it.stack) > 0 {
-		parent = it.stack[len(it.stack)-1]
-		ancestor := parent.hash
-		if bytes.Equal(ancestor, emptyHash) {
-			ancestor = parent.parent
-		}
-		state, path, ok := it.nextChild(parent, ancestor)
+		parent := it.stack[len(it.stack)-1]
+		state, path, ok := parent.node.nextChild(parent, it.path)
 		if ok {
-			err := state.node.setHash(it.trie.marshalizer, it.trie.hasher)
-			if err != nil {
-				return err
-			}
-			state.hash = state.node.getHash()
 			it.push(state, &parent.index, path)
 			return nil
 		}
-		// No more child nodes, move back up.
 		it.pop()
 	}
-
 	return ErrIterationEnd
 }
 
-func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor []byte) (*nodeIteratorState, []byte, bool) {
-	switch node := parent.node.(type) {
-	case *branchNode:
-		// Full node, move to the first non-nil child.
-		for i := parent.index + 1; i < len(node.children); i++ {
-			child := node.children[i]
-
-			if child != nil {
-				hash := child.getHash()
-				state := &nodeIteratorState{
-					hash:    hash,
-					node:    child,
-					parent:  ancestor,
-					index:   -1,
-					pathlen: len(it.path),
-				}
-				path := append(it.path, byte(i))
-				if child, ok := child.(*leafNode); ok {
-					path = append(path, child.Key...)
-				}
-				parent.index = i - 1
-				return state, path, true
-			}
-		}
-	case *extensionNode:
-		// Short node, return the pointer singleton child
-		if parent.index < 0 {
-			hash := node.child.getHash()
-			state := &nodeIteratorState{
-				hash:    hash,
-				node:    node.child,
-				parent:  ancestor,
-				index:   -1,
-				pathlen: len(it.path),
-			}
-			path := append(it.path, node.Key...)
-			return state, path, true
-		}
+func (it *nodeIterator) initialise() error {
+	root, err := it.trie.Root()
+	if err != nil {
+		return err
 	}
-	return parent, it.path, false
+	state := &nodeIteratorState{hash: root, node: it.trie.root, index: -1}
+	it.push(state, nil, nil)
+	return nil
 }
 
 // Hash returns the hash of the current node
@@ -165,10 +112,8 @@ func (it *nodeIterator) Leaf() bool {
 
 // LeafKey returns the key of the leaf. Iterator must be positioned at leaf
 func (it *nodeIterator) LeafKey() ([]byte, error) {
-	if len(it.stack) > 0 {
-		if _, ok := it.stack[len(it.stack)-1].node.(*leafNode); ok {
-			return hexToKeyBytes(it.path), nil
-		}
+	if it.Leaf() {
+		return hexToKeyBytes(it.path), nil
 	}
 	return nil, ErrNotAtLeaf
 }
@@ -185,27 +130,23 @@ func (it *nodeIterator) LeafBlob() ([]byte, error) {
 
 // LeafProof returns the Merkle proof of the leaf. Iterator must be positioned at leaf
 func (it *nodeIterator) LeafProof() ([][]byte, error) {
-	if len(it.stack) > 0 {
-		if _, ok := it.stack[len(it.stack)-1].node.(*leafNode); ok {
-			proofs := make([][]byte, 0, len(it.stack))
-
-			for _, item := range it.stack[:len(it.stack)] {
-				// Gather nodes that end up as hash nodes (or the root)
-				err := item.node.setHash(it.trie.marshalizer, it.trie.hasher)
-				if err != nil {
-					return nil, err
-				}
-				node := item.node.getCollapsed()
-
-				encNode, err := node.getEncodedNodeUsing(it.trie.marshalizer)
-				if err != nil {
-					return nil, err
-				}
-				proofs = append(proofs, encNode)
-
-			}
-			return proofs, nil
+	if it.trie.root.getHash() == nil {
+		err := it.trie.root.setHash(it.trie.marshalizer, it.trie.hasher)
+		if err != nil {
+			return nil, err
 		}
+	}
+	if it.Leaf() {
+		proofs := make([][]byte, 0, len(it.stack))
+		for _, item := range it.stack {
+			node := item.node.getCollapsed()
+			encNode, err := node.getEncodedNodeUsing(it.trie.marshalizer)
+			if err != nil {
+				return nil, err
+			}
+			proofs = append(proofs, encNode)
+		}
+		return proofs, nil
 	}
 	return nil, ErrNotAtLeaf
 }

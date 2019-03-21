@@ -22,15 +22,11 @@ var ErrNilHasher = errors.New("no hasher provided")
 // ErrNilMarshalizer is raised when the NewTrie() function is called, but a marshalizer isn't provided
 var ErrNilMarshalizer = errors.New("no marshalizer provided")
 
-// ErrNilEncoder is raised when the NewTrie() function is called, but an encoder isn't provided
-var ErrNilEncoder = errors.New("no encoder provided")
-
 // ErrNilDatabase is raised when a database operation is called, but no database is provided
 var ErrNilDatabase = errors.New("no database provided")
 
-// ErrInvalidEncoding is raised when it is tried to decode an invalid encoding
+// ErrInvalidEncoding is raised when the decoder can't decode the encoding
 var ErrInvalidEncoding = errors.New("cannot decode this invalid encoding")
 
+// ErrValueTooShort is raised when we try to remove something from a value, and the value is too short
 var ErrValueTooShort = errors.New("cannot remove bytes from value because value is too short")
-
-var ErrUnableToGetFromDB = errors.New("cannot get value from database")

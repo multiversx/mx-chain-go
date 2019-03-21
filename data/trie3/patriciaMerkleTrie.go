@@ -20,7 +20,7 @@ type patriciaMerkleTree struct {
 	marshalizer marshal.Marshalizer
 }
 
-// NewTrie creates a new Merkle Patricia Tree
+// NewTrie creates a new Patricia Merkle Tree
 func NewTrie(hsh hashing.Hasher, msh marshal.Marshalizer, db DBWriteCacher) (*patriciaMerkleTree, error) {
 	if hsh == nil {
 		return nil, ErrNilHasher
@@ -84,11 +84,11 @@ func (tr *patriciaMerkleTree) Update(key, value []byte) error {
 
 // Delete removes the node that has the given key from the tree
 func (tr *patriciaMerkleTree) Delete(key []byte) error {
-	k := keyBytesToHex(key)
+	hexKey := keyBytesToHex(key)
 	if tr.root == nil {
 		return nil
 	}
-	_, newRoot, err := tr.root.delete(k, tr.marshalizer, tr.db)
+	_, newRoot, err := tr.root.delete(hexKey, tr.marshalizer, tr.db)
 	if err != nil {
 		return err
 	}
@@ -98,6 +98,10 @@ func (tr *patriciaMerkleTree) Delete(key []byte) error {
 
 // Root returns the hash of the root node
 func (tr *patriciaMerkleTree) Root() ([]byte, error) {
+	hash := tr.root.getHash()
+	if !tr.root.isDirty() && hash != nil {
+		return hash, nil
+	}
 	err := tr.root.setHash(tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, err

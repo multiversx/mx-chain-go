@@ -1,6 +1,6 @@
 package trie3
 
-//Trie is an interface necessary for being able to use multiple implementations of Merkle Tries
+//Trie is an interface for different Merkle Trees implementations
 type Trie interface {
 	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
@@ -25,7 +25,6 @@ type NodeIterator interface {
 	Parent() []byte
 
 	// Path returns the hex-encoded path to the current node.
-	// Callers must not retain references to the return value after calling Next.
 	// For leaf nodes, the last element of the path is the 'terminator symbol' 0x10.
 	Path() []byte
 
@@ -33,18 +32,15 @@ type NodeIterator interface {
 	Leaf() bool
 
 	// LeafKey returns the key of the leaf. The method returns an error if the iterator is not
-	// positioned at a leaf. Callers must not retain references to the value after
-	// calling Next.
+	// positioned at a leaf.
 	LeafKey() ([]byte, error)
 
 	// LeafBlob returns the content of the leaf. The method returns an error if the iterator
-	// is not positioned at a leaf. Callers must not retain references to the value
-	// after calling Next.
+	// is not positioned at a leaf.
 	LeafBlob() ([]byte, error)
 
 	// LeafProof returns the Merkle proof of the leaf. The method returns an error if the
-	// iterator is not positioned at a leaf. Callers must not retain references
-	// to the value after calling Next.
+	// iterator is not positioned at a leaf.
 	LeafProof() ([][]byte, error)
 }
 
