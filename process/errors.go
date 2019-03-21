@@ -206,6 +206,15 @@ var ErrNilBlockBodyStorage = errors.New("nil block body storage")
 // ErrNilTransactionPool signals that a nil transaction pool was used
 var ErrNilTransactionPool = errors.New("nil transaction pool")
 
+// ErrNilMiniBlockPool signals that a nil mini blocks pool was used
+var ErrNilMiniBlockPool = errors.New("nil mini block pool")
+
+// ErrNilMetaBlockPool signals that a nil meta blocks pool was used
+var ErrNilMetaBlockPool = errors.New("nil meta block pool")
+
+// ErrMiniBlockHeaderBlockMismatch signals that mini block header data is not equal with mini block
+var ErrMiniBlockHeaderBlockMismatch = errors.New("mini block header and body mismatch")
+
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
 

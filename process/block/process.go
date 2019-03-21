@@ -173,13 +173,10 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 	}
 
 	requestedTxs := bp.requestBlockTransactions(blockBody)
-
 	if requestedTxs > 0 {
-
 		log.Info(fmt.Sprintf("requested %d missing txs\n", requestedTxs))
 
 		err := bp.waitForTxHashes(haveTime())
-
 		log.Info(fmt.Sprintf("received %d missing txs\n", requestedTxs-len(bp.requestedTxHashes)))
 
 		if err != nil {
@@ -198,7 +195,6 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 	}()
 
 	err = bp.processBlockTransactions(blockBody, int32(blockHeader.Round), haveTime)
-
 	if err != nil {
 		return err
 	}
@@ -223,7 +219,6 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 	}
 
 	transactionPool := bp.dataPool.Transactions()
-
 	if transactionPool == nil {
 		return process.ErrNilTransactionPool
 	}
@@ -459,7 +454,6 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 	}
 
 	v := val.(*transaction.Transaction)
-
 	return v
 }
 
@@ -537,12 +531,160 @@ func (bp *blockProcessor) processAndRemoveBadTransaction(
 	}
 
 	err := bp.txProcessor.ProcessTransaction(transaction, round)
-
 	if err == process.ErrLowerNonceInTransaction {
 		txPool.RemoveData(transactionHash, shardId)
 	}
 
 	return err
+}
+
+func (bp *blockProcessor) getAllTxsFromMiniBlock(mb block.MiniBlock, srShardId uint32, haveTime func() bool) ([]*transaction.Transaction, [][]byte, error) {
+	txPool := bp.dataPool.Transactions()
+	if txPool == nil {
+		return nil, nil, process.ErrNilTransactionPool
+	}
+
+	txCache := txPool.ShardDataStore(srShardId)
+	if txCache == nil {
+		return nil, nil, process.ErrNilTransactionPool
+	}
+
+	// verify if all transaction exists
+	transactions := make([]*transaction.Transaction, 0)
+	txHashes := make([][]byte, 0)
+	for _, txHash := range mb.TxHashes {
+		if !haveTime() {
+			return nil, nil, process.ErrTimeIsOut
+		}
+		tmp, _ := txCache.Peek(txHash)
+		if tmp == nil {
+			if bp.OnRequestTransaction != nil {
+				bp.OnRequestTransaction(srShardId, txHash)
+			}
+			return nil, nil, process.ErrNilTransaction
+		}
+		tx, ok := tmp.(*transaction.Transaction)
+		if !ok {
+			return nil, nil, process.ErrWrongTypeAssertion
+		}
+		txHashes = append(txHashes, txHash)
+		transactions = append(transactions, tx)
+	}
+
+	return transactions, txHashes, nil
+}
+
+// full verification through metachain header
+func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.MiniBlockSlice, uint32, error) {
+	metaBlockCache := bp.dataPool.MetaBlocks()
+	if metaBlockCache == nil {
+		return nil, 0, process.ErrNilMetaBlockPool
+	}
+
+	miniBlockCache := bp.dataPool.MiniBlocks()
+	if miniBlockCache == nil {
+		return nil, 0, process.ErrNilMiniBlockPool
+	}
+
+	txPool := bp.dataPool.Transactions()
+	if txPool == nil {
+		return nil, 0, process.ErrNilTransactionPool
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, 0)
+	nrTxAdded := uint32(0)
+	// parse all the metablock headers
+	for _, key := range metaBlockCache.Keys() {
+		if !haveTime() {
+			log.Info(fmt.Sprintf("time is up after putting %d cross txs with destination to current shard \n", nrTxAdded))
+			return miniBlocks, nrTxAdded, nil
+		}
+
+		val, _ := metaBlockCache.Peek(key)
+		if val == nil {
+			continue
+		}
+
+		hdr, ok := val.(data.HeaderHandler)
+		if !ok {
+			continue
+		}
+
+		// get mini block hashes and senders id with destination to me
+		hashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
+		for k, v := range hashSnd {
+			if !haveTime() {
+				break
+			}
+
+			miniVal, _ := miniBlockCache.Peek([]byte(k))
+			if miniVal == nil {
+				// TODO ask for miniblock, on topic v (senderId), selfId
+				// is this done at sync\block ? as miniblockresolver is there
+				continue
+			}
+
+			miniBlock, ok := miniVal.(block.MiniBlock)
+			if !ok {
+				continue
+			}
+
+			if miniBlock.ShardID != bp.shardCoordinator.SelfId() {
+				miniBlockCache.Remove([]byte(k))
+				return miniBlocks, nrTxAdded, process.ErrMiniBlockHeaderBlockMismatch
+			}
+
+			// overflow would happen if processing would continue
+			txOverFlow := nrTxAdded+uint32(len(miniBlock.TxHashes)) > uint32(maxTxInBlock)
+			if txOverFlow {
+				return miniBlocks, nrTxAdded, nil
+			}
+
+			miniBlockTxs, txHashes, err := bp.getAllTxsFromMiniBlock(miniBlock, v, haveTime)
+			if err != nil {
+				break
+			}
+
+			// process all transactions from miniblock
+			snapshot := bp.accounts.JournalLen()
+			for index, tx := range miniBlockTxs {
+				if !haveTime() {
+					err = process.ErrTimeIsOut
+					break
+				}
+				if tx == nil {
+					err = process.ErrNilTransaction
+					break
+				}
+
+				err = bp.processAndRemoveBadTransaction(
+					txHashes[index],
+					miniBlockTxs[index],
+					txPool,
+					round,
+					miniBlock.ShardID)
+
+				if err != nil {
+					break
+				}
+			}
+			// all txs from miniblock has to be processed together
+			if err != nil {
+				log.Error(err.Error())
+				err = bp.accounts.RevertToSnapshot(snapshot)
+				if err != nil {
+					log.Error(err.Error())
+				}
+				continue
+			}
+
+			// all txs processed, add to processed miniblocks
+			miniBlocks = append(miniBlocks, &miniBlock)
+			nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
+		}
+	}
+
+	return miniBlocks, nrTxAdded, nil
 }
 
 func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
@@ -563,7 +705,16 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		return nil, process.ErrNilTransactionPool
 	}
 
-	for i, txs := 0, 0; i < int(noShards); i++ {
+	destMeMiniBlocks, txs, err := bp.createAndProcessCrossMiniBlocksDstMe(noShards, maxTxInBlock, round, haveTime)
+	if err != nil {
+		log.Info(err.Error())
+	}
+
+	if len(destMeMiniBlocks) > 0 {
+		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
+	}
+
+	for i := 0; i < int(noShards); i++ {
 		txStore := txPool.ShardDataStore(uint32(i))
 
 		timeBefore := time.Now()
@@ -593,12 +744,12 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 				break
 			}
 
-			snapshot := bp.accounts.JournalLen()
-
 			if tx == nil {
 				log.Error("did not find transaction in pool")
 				continue
 			}
+
+			snapshot := bp.accounts.JournalLen()
 
 			// TODO why is this called BadTransaction ?
 			// execute transaction to change the trie root hash
@@ -616,14 +767,13 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 				if err != nil {
 					log.Error(err.Error())
 				}
-
 				continue
 			}
 
 			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 			txs++
 
-			if txs >= maxTxInBlock { // max transactions count in one block was reached
+			if txs >= uint32(maxTxInBlock) { // max transactions count in one block was reached
 				log.Info(fmt.Sprintf("max txs accepted in one block is reached: added %d txs from %d txs\n", len(miniBlock.TxHashes), len(orderedTxes)))
 
 				if len(miniBlock.TxHashes) > 0 {
@@ -631,7 +781,6 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 				}
 
 				log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
-
 				return miniBlocks, nil
 			}
 		}
@@ -644,7 +793,6 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 			}
 
 			log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
-
 			return miniBlocks, nil
 		}
 
@@ -654,7 +802,6 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 	}
 
 	log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
-
 	return miniBlocks, nil
 }
 

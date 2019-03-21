@@ -85,6 +85,48 @@ func initDataPool() *mock.PoolsHolderStub {
 				},
 			}
 		},
+		MetaBlocksCalled: func() storage.Cacher {
+			return &mock.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				KeysCalled: func() [][]byte {
+					return [][]byte{[]byte("key1"), []byte("key2")}
+				},
+				LenCalled: func() int {
+					return 0
+				},
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+			}
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			cs := &mock.CacherStub{}
+			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			}
+			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal([]byte("bbb"), key) {
+					return make(block.MiniBlockSlice, 0), true
+				}
+
+				return nil, false
+			}
+			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal([]byte("bbb"), key) {
+					return make(block.MiniBlockSlice, 0), true
+				}
+
+				return nil, false
+			}
+			return cs
+		},
 	}
 
 	return tdp
