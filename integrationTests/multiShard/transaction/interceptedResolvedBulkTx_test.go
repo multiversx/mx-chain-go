@@ -22,9 +22,8 @@ func init() {
 
 // TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard tests what happens when
 // a network with 5 shards, each containing 3 nodes broadcast 100 transactions from node 0.
-// Node 0 is part of the shard 0 and its public key (derived from its private key that is used
-// to generate all transactions) is mapped also in shard 0.
-// Since all transactions have the sender public key in shard 0, they should spread only in shard 0
+// Node 0 is part of the shard 0 and its public key is mapped also in shard 0.
+// Transactions should spread only in shard 0.
 func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -63,18 +62,12 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), 5)
 	generateAddrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
+	fmt.Println("Generating and broadcasting transactions...")
 	addrInShardFive := createDummyHexAddressInShard(generateCoordinator, generateAddrConverter)
-
 	nodes[0].node.GenerateAndSendBulkTransactions(addrInShardFive, big.NewInt(1), uint64(txToSend))
+	time.Sleep(time.Second * 10)
 
-	//display, can be removed
-	for i := 0; i < 10; i++ {
-		time.Sleep(time.Second)
-
-		fmt.Println(makeDisplayTable(nodes))
-	}
-
-	//since there is a slight chance that some transactions get lost (peer to slow, queue full...)
+	//since there is a slight chance that some transactions get lost (peer to slow, queue full, validators throttling...)
 	//we should get the max transactions received
 	maxTxReceived := int32(0)
 	for _, n := range nodes {
@@ -100,11 +93,8 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 
 // TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard tests what happens when
 // a network with 5 shards, each containing 3 nodes broadcast 100 transactions from node 0.
-// Node 0 is part of the shard 0 and its public key (derived from its private key that is used
-// to generate all transactions) is mapped in shard 4.
-// Since all transactions have the sender public key in shard 4, they should spread only in shard 4.
-// This test is a generalization of the previous test and both tests actually check if transactions
-// dispatching works in intra shard and cross shard situations.
+// Node 0 is part of the shard 0 and its public key is mapped in shard 4.
+// Transactions should spread only in shard 4.
 func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -183,14 +173,11 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 // TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAndRequestShouldWork tests what happens when
 // a network with 5 shards, each containing 3 nodes broadcast 100 transactions from node 0 and the destination shard
 // requests the same set of those generated transactions.
-// Node 0 is part of the shard 0 and its public key (derived from its private key that is used
-// to generate all transactions) is mapped in shard 4. Up until this point this test resembles the previous test
-// but the destination shard nodes (shard id 5) requests the same transactions set from nodes in shard 4 (senders).
-// After the first dissemination process happening in shard 4 and the request-response process for shard 5 nodes ends,
-// all nodes from shard 4 and 5 (sender and destination) will have to have the same transactions in their pools.
-// Also, this test checks that some other nodes beside those from shard 4 and 5 (example here: nodes from shard 2)
-// if they happen to request the same transactions set, their interceptors will filter out the transactions and leave
-// their data pools empty.e
+// Node 0 is part of the shard 0 and its public key is mapped in shard 4.
+// Destination shard nodes (shard id 5) requests the same transactions set from nodes in shard 4 (senders).
+// Transactions should spread only in shards 4 and 5.
+// Transactions requested by another shard (2 for example) will not store the received transactions
+// (interceptors will filter them out)
 func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAndRequestShouldWork(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")

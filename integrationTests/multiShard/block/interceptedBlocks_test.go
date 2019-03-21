@@ -16,6 +16,8 @@ func init() {
 	logging.SetLevel(logging.ERROR, "pubsub")
 }
 
+// TestHeaderAndMiniBlocksAreRoutedCorrectly tests what happens if a shard node broadcasts a header and a
+// body with 3 miniblocks. One miniblock will be an intra-shard type and the other 2 will be cross-shard type.
 func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -51,20 +53,18 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(time.Second * 5)
 
+	fmt.Println("Generating and header and block body...")
 	body, hdr := generateHeaderAndBody(senderShard, recvShards...)
 	err := nodes[0].node.BroadcastBlock(body, hdr)
 	assert.Nil(t, err)
 
-	//display, can be removed
-	for i := 0; i < 10; i++ {
-		time.Sleep(time.Second)
-
-		fmt.Println(makeDisplayTable(nodes))
-	}
+	time.Sleep(time.Second * 10)
 
 	for _, n := range nodes {
-		if n.shardId == senderShard {
-			//sender shard nodes
+		isSenderShard := n.shardId == senderShard
+		isRecvShard := uint32InSlice(n.shardId, recvShards)
+
+		if isSenderShard {
 			assert.Equal(t, int32(1), n.headersRecv)
 
 			shards := []uint32{senderShard}
@@ -73,22 +73,20 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 			expectedMiniblocks := getMiniBlocksHashesFromShardIds(body.(block.Body), shards...)
 
 			assert.True(t, equalSlices(expectedMiniblocks, n.miniblocksHashes))
-			continue
 		}
 
-		//all other nodes should have not got the header
-		assert.Equal(t, int32(0), n.headersRecv)
-
-		if uint32InSlice(n.shardId, recvShards) {
-			//receiver shard nodes
+		if isRecvShard && !isSenderShard {
+			assert.Equal(t, int32(0), n.headersRecv)
 			expectedMiniblocks := getMiniBlocksHashesFromShardIds(body.(block.Body), n.shardId)
-
 			assert.True(t, equalSlices(expectedMiniblocks, n.miniblocksHashes))
 			continue
 		}
 
-		//other shard nodes
-		assert.Equal(t, int32(0), n.miniblocksRecv)
+		if !isSenderShard && !isRecvShard {
+			//other nodes should have not received neither the header nor the miniblocks
+			assert.Equal(t, int32(0), n.headersRecv)
+			assert.Equal(t, int32(0), n.miniblocksRecv)
+		}
 	}
 }
 

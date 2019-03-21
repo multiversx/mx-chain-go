@@ -1030,12 +1030,12 @@ func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (m
 		return nil, process.ErrNilMiniBlocks
 	}
 
-	mrsData := make(map[uint32][]byte)
 	blockBody, ok := body.(block.Body)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	mrsData := make(map[uint32][]byte)
 	bodies := make(map[uint32]block.Body)
 
 	for i := 0; i < len(blockBody); i++ {
@@ -1046,13 +1046,7 @@ func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (m
 			continue
 		}
 
-		subsetBlockBody := bodies[miniblock.ShardID]
-		if subsetBlockBody == nil {
-			subsetBlockBody = make([]*block.MiniBlock, 0)
-		}
-
-		subsetBlockBody = append(subsetBlockBody, miniblock)
-		bodies[miniblock.ShardID] = subsetBlockBody
+		bodies[miniblock.ShardID] = append(bodies[miniblock.ShardID], miniblock)
 	}
 
 	for shardId, subsetBlockBody := range bodies {
@@ -1060,7 +1054,6 @@ func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (m
 		if err != nil {
 			return nil, process.ErrMarshalWithoutSuccess
 		}
-
 		mrsData[shardId] = buff
 	}
 

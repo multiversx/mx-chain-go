@@ -62,11 +62,8 @@ type testNode struct {
 }
 
 func createTestBlockChain() *blockchain.BlockChain {
-
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-
 	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
-
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
 		createMemUnit(),
@@ -118,9 +115,7 @@ func createDummyHexAddress(chars int) string {
 	if chars < 1 {
 		return ""
 	}
-
 	var characters = []byte{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'}
-
 	buff := make([]byte, chars)
 	for i := 0; i < chars; i++ {
 		buff[i] = characters[r.Int()%16]
@@ -138,18 +133,15 @@ func createDummyHexAddressInShard(
 	for {
 		buff, _ := hex.DecodeString(hexAddr)
 		addr, _ := addrConv.CreateAddressFromPublicKeyBytes(buff)
-
 		if coordinator.ComputeId(addr) == coordinator.SelfId() {
 			return hexAddr
 		}
-
 		hexAddr = createDummyHexAddress(64)
 	}
 }
 
 func createAccountsDB() *state.AccountsDB {
 	marsh := &marshal.JsonMarshalizer{}
-
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marsh)
@@ -187,12 +179,8 @@ func createNetNode(
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
-
-	//messenger := createMessenger(context.Background(), port, serviceID)
 	messenger := createMessengerWithKadDht(context.Background(), port, initialAddr)
-
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
-
 	suite := kv2.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
@@ -201,11 +189,9 @@ func createNetNode(
 	for {
 		pkBytes, _ := pk.ToByteArray()
 		addr, _ := addrConverter.CreateAddressFromPublicKeyBytes(pkBytes)
-
 		if shardCoordinator.ComputeId(addr) == targetShardId {
 			break
 		}
-
 		sk, pk = keyGen.GeneratePair()
 	}
 
@@ -275,7 +261,6 @@ func createMessengerWithKadDht(ctx context.Context, port int, initialAddr string
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", []string{initialAddr}),
 	)
-
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -288,7 +273,6 @@ func getConnectableAddress(mes p2p.Messenger) string {
 		if strings.Contains(addr, "circuit") {
 			continue
 		}
-
 		return addr
 	}
 
@@ -314,7 +298,6 @@ func makeDisplayTable(nodes []*testNode) string {
 			},
 		)
 	}
-
 	table, _ := display.CreateTableString(header, dataLines)
 
 	return table
@@ -344,7 +327,7 @@ func createNodesWithNodeSkInShardExceptFirst(
 	serviceID string,
 ) []*testNode {
 
-	//first node generated will have is pk belonging to firstSkShardId
+	//first node generated will have its pk belonging to firstSkShardId
 	nodes := make([]*testNode, int(numOfShards)*nodesPerShard)
 
 	idx := 0
@@ -363,7 +346,6 @@ func createNodesWithNodeSkInShardExceptFirst(
 			var resFinder process.ResolversFinder
 
 			isFirstNodeGenerated := shardId == 0 && j == 0
-
 			if isFirstNodeGenerated {
 				n, mes, sk, resFinder = createNetNode(
 					startingPort+idx,

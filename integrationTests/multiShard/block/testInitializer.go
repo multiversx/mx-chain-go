@@ -71,11 +71,8 @@ type testNode struct {
 }
 
 func createTestBlockChain() *blockchain.BlockChain {
-
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-
 	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
-
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
 		createMemUnit(),
@@ -127,7 +124,6 @@ func createAccountsDB() *state.AccountsDB {
 	dbw, _ := trie.NewDBWriteCache(createMemUnit())
 	tr, _ := trie.NewTrie(make([]byte, 32), dbw, sha256.Sha256{})
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, testMarshalizer)
-
 	return adb
 }
 
@@ -161,9 +157,7 @@ func createNetNode(
 
 	//messenger := createMessenger(context.Background(), port, serviceID)
 	messenger := createMessengerWithKadDht(context.Background(), port, initialAddr)
-
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
-
 	suite := kv2.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
@@ -172,11 +166,9 @@ func createNetNode(
 	for {
 		pkBytes, _ := pk.ToByteArray()
 		addr, _ := addrConverter.CreateAddressFromPublicKeyBytes(pkBytes)
-
 		if shardCoordinator.ComputeId(addr) == targetShardId {
 			break
 		}
-
 		sk, pk = keyGen.GeneratePair()
 	}
 
@@ -258,7 +250,6 @@ func createMessengerWithKadDht(ctx context.Context, port int, initialAddr string
 		loadBalancer.NewOutgoingChannelLoadBalancer(),
 		discovery.NewKadDhtPeerDiscoverer(time.Second, "test", []string{initialAddr}),
 	)
-
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -271,18 +262,14 @@ func getConnectableAddress(mes p2p.Messenger) string {
 		if strings.Contains(addr, "circuit") {
 			continue
 		}
-
 		return addr
 	}
-
 	return ""
 }
 
 func makeDisplayTable(nodes []*testNode) string {
 	header := []string{"pk", "shard ID", "headers cache size", "miniblocks cache size", "connections"}
-
 	dataLines := make([]*display.LineData, len(nodes))
-
 	for idx, n := range nodes {
 		buffPk, _ := n.pk.ToByteArray()
 
@@ -298,9 +285,7 @@ func makeDisplayTable(nodes []*testNode) string {
 			},
 		)
 	}
-
 	table, _ := display.CreateTableString(header, dataLines)
-
 	return table
 }
 
@@ -314,7 +299,6 @@ func displayAndStartNodes(nodes []*testNode) {
 			hex.EncodeToString(skBuff),
 			hex.EncodeToString(pkBuff),
 		)
-
 		_ = n.node.Start()
 		_ = n.node.P2PBootstrap()
 	}
@@ -340,7 +324,6 @@ func createNodes(
 
 			shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), uint32(shardId))
 			accntAdapter := createAccountsDB()
-
 			n, mes, sk, resFinder := createNetNode(
 				startingPort+idx,
 				testNode.dPool,
@@ -399,14 +382,12 @@ func equalSlices(slice1 [][]byte, slice2 [][]byte) bool {
 	//check slice1 has all elements in slice2
 	for _, buff1 := range slice1 {
 		found := false
-
 		for _, buff2 := range slice2 {
 			if bytes.Equal(buff1, buff2) {
 				found = true
 				break
 			}
 		}
-
 		if !found {
 			return false
 		}
@@ -415,14 +396,12 @@ func equalSlices(slice1 [][]byte, slice2 [][]byte) bool {
 	//check slice2 has all elements in slice1
 	for _, buff2 := range slice2 {
 		found := false
-
 		for _, buff1 := range slice1 {
 			if bytes.Equal(buff1, buff2) {
 				found = true
 				break
 			}
 		}
-
 		if !found {
 			return false
 		}
@@ -437,6 +416,5 @@ func uint32InSlice(searched uint32, list []uint32) bool {
 			return true
 		}
 	}
-
 	return false
 }
