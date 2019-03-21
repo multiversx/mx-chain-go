@@ -116,6 +116,7 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+// Test go modules
 func main() {
 	log := logger.NewDefaultLogger()
 	log.SetLevel(logger.LogInfo)
