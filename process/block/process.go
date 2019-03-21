@@ -612,9 +612,15 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 
 		// get mini block hashes and senders id with destination to me
 		hashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
+		processedMbs := 0
 		for k, v := range hashSnd {
 			if !haveTime() {
 				break
+			}
+
+			if hdr.WasMiniBlockProcessed([]byte(k)) {
+				processedMbs++
+				continue
 			}
 
 			miniVal, _ := miniBlockCache.Peek([]byte(k))
@@ -630,6 +636,9 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 			}
 
 			if miniBlock.ShardID != bp.shardCoordinator.SelfId() {
+				hdr.SetProcessed([]byte(k))
+				processedMbs++
+				// bad miniblock removed
 				miniBlockCache.Remove([]byte(k))
 				return miniBlocks, nrTxAdded, process.ErrMiniBlockHeaderBlockMismatch
 			}
@@ -681,6 +690,12 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 			// all txs processed, add to processed miniblocks
 			miniBlocks = append(miniBlocks, &miniBlock)
 			nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
+			hdr.SetProcessed([]byte(k))
+			processedMbs++
+		}
+
+		if processedMbs >= len(hashSnd) {
+			log.Info("All miniblocks processed with dest current shard from %s\n", string(hdr.GetRootHash()))
 		}
 	}
 

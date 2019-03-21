@@ -85,6 +85,7 @@ type Header struct {
 	MiniBlockHeaders []MiniBlockHeader `capid:"11"`
 	PeerChanges      []PeerChange      `capid:"12"`
 	RootHash         []byte            `capid:"13"`
+	processedMBs     map[string]bool
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -439,6 +440,17 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 		}
 	}
 	return hashDst
+}
+
+func (h *Header) WasMiniBlockProcessed(hash []byte) bool {
+	if h.processedMBs[string(hash)] {
+		return true
+	}
+	return false
+}
+
+func (h *Header) SetProcessed(hash []byte) {
+	h.processedMBs[string(hash)] = true
 }
 
 // IntegrityAndValidity checks if data is valid
