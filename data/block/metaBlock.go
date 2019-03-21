@@ -392,6 +392,19 @@ func (m *MetaBlock) SetTimeStamp(ts uint64) {
 	m.TimeStamp = ts
 }
 
+// GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
+func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
+	hashDst := make(map[string]uint32, 0)
+	for i := 0; i < len(m.ShardInfo); i++ {
+		for _, val := range m.ShardInfo[i].ShardMiniBlockHeaders {
+			if val.ReceiverShardId == destId && val.SenderShardId != destId {
+				hashDst[string(val.Hash)] = val.SenderShardId
+			}
+		}
+	}
+	return hashDst
+}
+
 // IntegrityAndValidity return true as block is nil for metablock.
 func (mb *MetaBlockBody) IntegrityAndValidity() error {
 	return nil

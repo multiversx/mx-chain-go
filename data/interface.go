@@ -101,6 +101,9 @@ type HeaderHandler interface {
 	SetRandSeed(randSeed []byte)
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
+
+	// miniblock headers data
+	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
 }
 
 // BodyHandler interface for a block body
