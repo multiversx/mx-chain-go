@@ -2,6 +2,7 @@ package state
 
 import (
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -11,6 +12,7 @@ import (
 )
 
 var r *rand.Rand
+var mutex sync.Mutex
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -19,7 +21,9 @@ func init() {
 func createDummyAddress() state.AddressContainer {
 	buff := make([]byte, sha256.Sha256{}.Size())
 
+	mutex.Lock()
 	r.Read(buff)
+	mutex.Unlock()
 
 	return state.NewAddress(buff)
 }
