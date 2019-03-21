@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 )
 
 var r *rand.Rand
+var mutex sync.Mutex
 
 func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -1588,8 +1590,11 @@ func TestSortTxByNonce_OneTxShouldWork(t *testing.T) {
 }
 
 func createRandTx(rand *rand.Rand) ([]byte, *transaction.Transaction) {
+	mutex.Lock()
+	nonce := rand.Uint64()
+	mutex.Unlock()
 	tx := &transaction.Transaction{
-		Nonce: rand.Uint64(),
+		Nonce: nonce,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}

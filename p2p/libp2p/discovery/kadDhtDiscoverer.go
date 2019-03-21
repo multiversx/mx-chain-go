@@ -94,7 +94,9 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 	go func() {
 		<-chanStartBootstrap
 
+		kdd.mutKadDht.Lock()
 		err := kdd.kadDHT.BootstrapWithConfig(ctx, cfg)
+		kdd.mutKadDht.Unlock()
 		if err != nil {
 			log.Error(err.Error())
 			return

@@ -32,6 +32,10 @@ type TransactionResponse struct {
 	TxResp *transaction.TxResponse `json:"transaction,omitempty"`
 }
 
+func init() {
+	gin.SetMode(gin.TestMode)
+}
+
 func TestGenerateTransaction_WithParametersShouldReturnTransaction(t *testing.T) {
 	t.Parallel()
 	sender := "sender"
@@ -476,7 +480,6 @@ func logError(err error) {
 }
 
 func startNodeServer(handler transaction.TxService) *gin.Engine {
-	gin.SetMode(gin.TestMode)
 	ws := gin.New()
 	ws.Use(cors.Default())
 	transactionRoute := ws.Group("/transaction")
@@ -488,7 +491,6 @@ func startNodeServer(handler transaction.TxService) *gin.Engine {
 }
 
 func startNodeServerWrongFacade() *gin.Engine {
-	gin.SetMode(gin.TestMode)
 	ws := gin.New()
 	ws.Use(cors.Default())
 	ws.Use(func(c *gin.Context) {

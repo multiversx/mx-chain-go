@@ -26,6 +26,7 @@ import (
 
 var log = logger.NewDefaultLogger()
 
+var txCounterMutex = sync.RWMutex{}
 var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
@@ -741,12 +742,14 @@ func (bp *blockProcessor) displayLogInfo(
 		log.Error(err.Error())
 	}
 
+	txCounterMutex.Lock()
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal txs "+
 		"processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n",
 		toB64(headerHash),
 		txsTotalProcessed,
 		txsCurrentBlockProcessed,
 		bp.getTxsFromPool(header.ShardId))
+	txCounterMutex.Unlock()
 
 	log.Info(tblString)
 }
@@ -831,7 +834,9 @@ func displayHeader(header *block.Header) []*display.LineData {
 
 func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {
 
+	txCounterMutex.RLock()
 	txsCurrentBlockProcessed = 0
+	txCounterMutex.RUnlock()
 
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -843,8 +848,10 @@ func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.L
 				part, "", "<NIL> or <EMPTY>"}))
 		}
 
+		txCounterMutex.Lock()
 		txsCurrentBlockProcessed += len(miniBlock.TxHashes)
 		txsTotalProcessed += len(miniBlock.TxHashes)
+		txCounterMutex.Unlock()
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if j == 0 || j >= len(miniBlock.TxHashes)-1 {
