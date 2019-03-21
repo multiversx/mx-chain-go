@@ -1,12 +1,13 @@
-package kv2
+package kv3
 
 import (
 	"crypto/cipher"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	"go.dedis.ch/kyber/v3"
 )
 
-// kyberScalar is a wrapper over kyber.v2 scalar
+// kyberScalar is a wrapper over kyber.v3 scalar
 type kyberScalar struct {
 	kyber.Scalar
 }

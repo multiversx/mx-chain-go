@@ -1,9 +1,10 @@
-package kv2
+package kv3
 
 import (
 	"crypto/cipher"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+	kgroup "go.dedis.ch/kyber/v3/group/edwards25519"
 )
 
 type suiteEd25519 struct {
@@ -11,7 +12,7 @@ type suiteEd25519 struct {
 }
 
 // NewBlakeSHA256Ed25519 returns a wrapper over a cipher suite based on package
-// gopkg.in/dedis/kyber.v2/xof/blake2xb, SHA-256, and the Ed25519 curve.
+// gopkg.in/dedis/kyber.v3/xof/blake2xb, SHA-256, and the Ed25519 curve.
 func NewBlakeSHA256Ed25519() *suiteEd25519 {
 	suite := suiteEd25519{}
 	suite.suite = kgroup.NewBlakeSHA256Ed25519()
