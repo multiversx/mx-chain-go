@@ -32,7 +32,7 @@ var txsTotalProcessed = 0
 
 const maxTransactionsInBlock = 15000
 
-type crossTxsForShard map[uint32]([]*transaction.Transaction)
+type crossTxsForShard map[uint32][]*transaction.Transaction
 
 // blockProcessor implements blockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
@@ -228,8 +228,8 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 	}
 
 	for i := 0; i < len(blockBody); i++ {
-		transactionPool.RemoveSetOfDataFromPool((blockBody)[i].TxHashes,
-			(blockBody)[i].ShardID)
+		strCache := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), blockBody[i].ShardID)
+		transactionPool.RemoveSetOfDataFromPool((blockBody)[i].TxHashes, strCache)
 	}
 
 	return nil
@@ -319,9 +319,6 @@ func (bp *blockProcessor) processBlockTransactions(body block.Body, round int32,
 		miniBlock := body[i]
 		shardId := miniBlock.ShardID
 
-		//TODO: Remove this display
-		bp.displayTxsInfo(miniBlock, shardId)
-
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if haveTime() < 0 {
 				return process.ErrTimeIsOut
@@ -329,12 +326,12 @@ func (bp *blockProcessor) processBlockTransactions(body block.Body, round int32,
 
 			txHash := miniBlock.TxHashes[j]
 			tx := bp.getTransactionFromPool(shardId, txHash)
-
 			err := bp.processAndRemoveBadTransaction(
 				txHash,
 				tx,
 				txPool,
 				round,
+				bp.shardCoordinator.SelfId(),
 				miniBlock.ShardID,
 			)
 
@@ -457,7 +454,8 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 		return nil
 	}
 
-	txStore := txPool.ShardDataStore(destShardID)
+	strCache := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), destShardID)
+	txStore := txPool.ShardDataStore(strCache)
 	if txStore == nil {
 		log.Error(process.ErrNilTxStorage.Error())
 		return nil
@@ -501,7 +499,6 @@ func (bp *blockProcessor) requestBlockTransactions(body block.Body) int {
 			for _, txHash := range txHashes {
 				requestedTxs++
 				bp.requestedTxHashes[string(txHash)] = true
-				//TODO(jls) this needs to be fixed as it does not request on the right topic
 				bp.OnRequestTransaction(shardId, txHash)
 			}
 		}
@@ -540,7 +537,8 @@ func (bp *blockProcessor) processAndRemoveBadTransaction(
 	transaction *transaction.Transaction,
 	txPool data.ShardedDataCacherNotifier,
 	round int32,
-	shardId uint32,
+	sndShardId uint32,
+	dstShardId uint32,
 ) error {
 	if txPool == nil {
 		return process.ErrNilTransactionPool
@@ -548,7 +546,8 @@ func (bp *blockProcessor) processAndRemoveBadTransaction(
 
 	err := bp.txProcessor.ProcessTransaction(transaction, round)
 	if err == process.ErrLowerNonceInTransaction {
-		txPool.RemoveData(transactionHash, shardId)
+		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+		txPool.RemoveData(transactionHash, strCache)
 	}
 
 	return err
@@ -560,7 +559,8 @@ func (bp *blockProcessor) getAllTxsFromMiniBlock(mb block.MiniBlock, srShardId u
 		return nil, nil, process.ErrNilTransactionPool
 	}
 
-	txCache := txPool.ShardDataStore(srShardId)
+	strCache := process.ShardCacherIdentifier(srShardId, bp.shardCoordinator.SelfId())
+	txCache := txPool.ShardDataStore(strCache)
 	if txCache == nil {
 		return nil, nil, process.ErrNilTransactionPool
 	}
@@ -629,7 +629,7 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 		// get mini block hashes and senders id with destination to me
 		hashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
 		processedMbs := 0
-		for k, v := range hashSnd {
+		for k, senderShardId := range hashSnd {
 			if !haveTime() {
 				break
 			}
@@ -665,7 +665,7 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 				return miniBlocks, nrTxAdded, nil
 			}
 
-			miniBlockTxs, txHashes, err := bp.getAllTxsFromMiniBlock(miniBlock, v, haveTime)
+			miniBlockTxs, txHashes, err := bp.getAllTxsFromMiniBlock(miniBlock, senderShardId, haveTime)
 			if err != nil {
 				break
 			}
@@ -682,12 +682,11 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 					break
 				}
 
-				err = bp.processAndRemoveBadTransaction(
-					txHashes[index],
-					miniBlockTxs[index],
-					txPool,
-					round,
-					miniBlock.ShardID)
+				err = bp.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
+				if err == process.ErrLowerNonceInTransaction {
+					strCache := process.ShardCacherIdentifier(senderShardId, bp.shardCoordinator.SelfId())
+					txPool.RemoveData(txHashes[index], strCache)
+				}
 
 				if err != nil {
 					break
@@ -720,7 +719,7 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 
 func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, map[uint32][]*transaction.Transaction, error) {
 	miniBlocks := make(block.Body, 0)
-	mapTxs := make(map[uint32]([]*transaction.Transaction))
+	mapTxs := make(map[uint32][]*transaction.Transaction)
 
 	if bp.accounts.JournalLen() != 0 {
 		return nil, nil, process.ErrAccountStateDirty
@@ -757,7 +756,8 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 	}
 
 	for i := 0; i < int(noShards); i++ {
-		txStore := txPool.ShardDataStore(uint32(i))
+		strCache := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), uint32(i))
+		txStore := txPool.ShardDataStore(strCache)
 
 		timeBefore := time.Now()
 		orderedTxes, orderedTxHashes, err := getTxs(txStore)
@@ -778,7 +778,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		miniBlock := block.MiniBlock{}
 		miniBlock.ShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
-		tXsForShard := make([]*(transaction.Transaction), 0)
+		tXsForShard := make([]*transaction.Transaction, 0)
 		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ShardID))
 
 		for index, tx := range orderedTxes {
@@ -800,6 +800,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 				orderedTxes[index],
 				txPool,
 				round,
+				bp.shardCoordinator.SelfId(),
 				miniBlock.ShardID,
 			)
 
@@ -940,7 +941,7 @@ func (bp *blockProcessor) displayLogInfo(
 		toB64(headerHash),
 		txsTotalProcessed,
 		txsCurrentBlockProcessed,
-		bp.getTxsFromPool(header.ShardId))
+		bp.getNrTxsWithDst(header.ShardId))
 	txCounterMutex.Unlock()
 
 	log.Info(tblString)
@@ -1133,30 +1134,24 @@ func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 	return transactions, txHashes, nil
 }
 
-func (bp *blockProcessor) displayTxsInfo(miniBlock *block.MiniBlock, shardId uint32) {
-	if miniBlock == nil || miniBlock.TxHashes == nil {
-		return
-	}
-
-	txsInPool := bp.getTxsFromPool(shardId)
-
-	log.Info(fmt.Sprintf("PROCESS BLOCK TRANSACTION STARTED: Have %d txs in pool and need to process %d txs from the received block for shard id %d\n", txsInPool, len(miniBlock.TxHashes), shardId))
-}
-
-func (bp *blockProcessor) getTxsFromPool(shardId uint32) int {
+func (bp *blockProcessor) getNrTxsWithDst(dstShardId uint32) int {
 	txPool := bp.dataPool.Transactions()
-
 	if txPool == nil {
 		return 0
 	}
 
-	txStore := txPool.ShardDataStore(shardId)
+	sumTxs := 0
 
-	if txStore == nil {
-		return 0
+	for i := uint32(0); i < bp.shardCoordinator.NumberOfShards(); i++ {
+		strCache := process.ShardCacherIdentifier(i, dstShardId)
+		txStore := txPool.ShardDataStore(strCache)
+		if txStore == nil {
+			continue
+		}
+		sumTxs += txStore.Len()
 	}
 
-	return txStore.Len()
+	return sumTxs
 }
 
 // CheckBlockValidity method checks if the given block is valid

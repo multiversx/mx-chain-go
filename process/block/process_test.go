@@ -61,7 +61,7 @@ func initDataPool() *mock.PoolsHolderStub {
 		TransactionsCalled: func() data.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
 				RegisterHandlerCalled: func(i func(key []byte)) {},
-				ShardDataStoreCalled: func(shardID uint32) (c storage.Cacher) {
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &mock.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, []byte("tx1_hash")) {
@@ -77,7 +77,7 @@ func initDataPool() *mock.PoolsHolderStub {
 						},
 					}
 				},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, destShardID uint32) {},
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
 			}
 		},
 		HeadersNoncesCalled: func() data.Uint64Cacher {
@@ -988,11 +988,11 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 
 	tdp.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			ShardDataStoreCalled: func(shardID uint32) (c storage.Cacher) {
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return txCache
 			},
 
-			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, destShardID uint32) {
+			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {
 			},
 		}
 
@@ -1083,11 +1083,11 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 
 	tdp.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			ShardDataStoreCalled: func(shardID uint32) (c storage.Cacher) {
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return txCache
 			},
 
-			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, destShardID uint32) {
+			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {
 				if bytes.Equal(keys[0], []byte(txHash)) && len(keys) == 1 {
 					removeTxWasCalled = true
 				}
