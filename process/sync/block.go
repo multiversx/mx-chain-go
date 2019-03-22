@@ -292,7 +292,7 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 	}
 
 	if header != nil {
-		log.Debug(fmt.Sprintf("1: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
+		log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
 	}
 
 	err := boot.forkDetector.AddHeader(header, headerHash, false)
@@ -313,7 +313,7 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	headerHash, _ := boot.headersNonces.Get(nonce)
 
 	if headerHash != nil {
-		log.Debug(fmt.Sprintf("2: received header with nonce %d and hash %s from network\n", nonce, toB64(headerHash)))
+		log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n", nonce, toB64(headerHash)))
 	}
 
 	n := boot.requestedHeaderNonce()
@@ -399,12 +399,12 @@ func (boot *Bootstrap) SyncBlock() error {
 
 	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
 	if err != nil {
-		//if err == process.ErrMissingHeader {
-		//	if boot.shouldCreateEmptyBlock(nonce) {
-		//		log.Info(err.Error())
-		//		err = boot.createAndBroadcastEmptyBlock()
-		//	}
-		//}
+		if err == process.ErrMissingHeader {
+			if boot.shouldCreateEmptyBlock(nonce) {
+				log.Info(err.Error())
+				err = boot.createAndBroadcastEmptyBlock()
+			}
+		}
 
 		return err
 	}
@@ -629,27 +629,20 @@ func (boot *Bootstrap) waitForMiniBlocks() {
 func (boot *Bootstrap) forkChoice() error {
 	log.Info(fmt.Sprintf("starting fork choice\n"))
 
-	header := boot.blkc.GetCurrentBlockHeader()
-
-	if header == nil {
-		return ErrNilCurrentHeader
+	header, err := boot.getCurrentHeader()
+	if err != nil {
+		return err
 	}
 
-	// TODO: Forkchoice and sync should work with interfaces, so all type assertion should be removed
-	currentHeader, ok := header.(*block.Header)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	if !isEmpty(currentHeader) {
+	if !isEmpty(header) {
 		return &ErrNotEmptyHeader{
-			CurrentNonce: currentHeader.Nonce}
+			CurrentNonce: header.Nonce}
 	}
 
 	log.Info(fmt.Sprintf("roll back to header with hash %s\n",
-		toB64(header.GetPrevHash())))
+		toB64(header.PrevHash)))
 
-	return boot.rollback(currentHeader)
+	return boot.rollback(header)
 }
 
 func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore storage.Storer) {
@@ -657,8 +650,7 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 	boot.headersNonces.Remove(header.Nonce)
 	boot.headers.RemoveData(hash, header.ShardId)
 	boot.forkDetector.RemoveProcessedHeader(header.Nonce)
-	//TODO uncomment this when badBlocks will be implemented
-	//_ = headerStore.Remove(hash)
+	_ = headerStore.Remove(hash)
 }
 
 func (boot *Bootstrap) rollback(header *block.Header) error {
@@ -695,23 +687,17 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 	return err
 }
 
-func (boot *Bootstrap) removeHeaderFromPools(hdr *block.Header) {
-	header := boot.blkc.GetCurrentBlockHeader()
-
-	if header == nil {
-		return
-	}
-
-	// TODO: Forkchoice and sync should work with interfaces, so all type assertion should be removed
-	currentHeader, ok := header.(*block.Header)
-	if !ok {
+func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
+	currentHeader, err := boot.getCurrentHeader()
+	if err != nil {
+		log.Info(err.Error())
 		return
 	}
 
 	if !isEmpty(currentHeader) {
-		hash, _ := boot.headersNonces.Get(hdr.Nonce)
-		boot.headersNonces.Remove(hdr.Nonce)
-		boot.headers.RemoveData(hash, hdr.ShardId)
+		hash, _ := boot.headersNonces.Get(header.Nonce)
+		boot.headersNonces.Remove(header.Nonce)
+		boot.headers.RemoveData(hash, header.ShardId)
 	}
 }
 
@@ -825,8 +811,6 @@ func (boot *Bootstrap) createHeader() (data.HeaderHandler, error) {
 func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
 
-	boot.blkExecutor.RevertAccountState()
-
 	blk := make(block.Body, 0)
 
 	hdr, err := boot.createHeader()
@@ -859,4 +843,20 @@ func (boot *Bootstrap) emptyChannel(ch chan bool) {
 	for len(ch) > 0 {
 		<-ch
 	}
+}
+
+func (boot *Bootstrap) getCurrentHeader() (*block.Header, error) {
+	blockHeader := boot.blkc.GetCurrentBlockHeader()
+
+	if blockHeader == nil {
+		return nil, process.ErrNilBlockHeader
+	}
+
+	// TODO: Forkchoice and sync should work with interfaces, so all type assertion should be removed
+	header, ok := blockHeader.(*block.Header)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return header, nil
 }

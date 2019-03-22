@@ -101,7 +101,9 @@ func (chr *chronology) StartRounds() {
 
 // startRound calls the current subround, given by the finished tasks in this round
 func (chr *chronology) startRound() {
-	chr.updateRound()
+	if chr.subroundId == -1 {
+		chr.updateRound()
+	}
 
 	if chr.rounder.Index() < 0 {
 		return
@@ -143,7 +145,7 @@ func (chr *chronology) initRound() {
 
 	chr.mutSubrounds.RLock()
 
-	if len(chr.subroundHandlers) > 0 {
+	if chr.rounder.Index() >= 0 && len(chr.subroundHandlers) > 0 {
 		chr.subroundId = chr.subroundHandlers[0].Current()
 	}
 

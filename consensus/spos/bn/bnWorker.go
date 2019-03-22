@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -20,6 +21,7 @@ var log = logger.NewDefaultLogger()
 
 // worker defines the data needed by spos to communicate between nodes which are in the validators group
 type worker struct {
+	blockProcessor   process.BlockProcessor
 	bootstraper      process.Bootstrapper
 	consensusState   *spos.ConsensusState
 	keyGenerator     crypto.KeyGenerator
@@ -44,6 +46,7 @@ type worker struct {
 
 // NewWorker creates a new worker object
 func NewWorker(
+	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	consensusState *spos.ConsensusState,
 	keyGenerator crypto.KeyGenerator,
@@ -55,6 +58,7 @@ func NewWorker(
 ) (*worker, error) {
 
 	err := checkNewWorkerParams(
+		blockProcessor,
 		bootstraper,
 		consensusState,
 		keyGenerator,
@@ -70,6 +74,7 @@ func NewWorker(
 	}
 
 	wrk := worker{
+		blockProcessor:   blockProcessor,
 		bootstraper:      bootstraper,
 		consensusState:   consensusState,
 		keyGenerator:     keyGenerator,
@@ -94,6 +99,7 @@ func NewWorker(
 }
 
 func checkNewWorkerParams(
+	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	consensusState *spos.ConsensusState,
 	keyGenerator crypto.KeyGenerator,
@@ -103,6 +109,10 @@ func checkNewWorkerParams(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 ) error {
+	if blockProcessor == nil {
+		return spos.ErrNilBlockProcessor
+	}
+
 	if bootstraper == nil {
 		return spos.ErrNilBlootstraper
 	}
@@ -406,11 +416,17 @@ func (wrk *worker) genConsensusDataSignature(cnsDta *spos.ConsensusMessage) ([]b
 func (wrk *worker) extend(subroundId int) {
 	log.Info(fmt.Sprintf("extend function is called from subround: %s\n", getSubroundName(subroundId)))
 
-	if wrk.consensusState.RoundCanceled {
+	if wrk.bootstraper.ShouldSync() {
 		return
 	}
 
-	if wrk.bootstraper.ShouldSync() {
+	for wrk.consensusState.ProcessingBlock {
+		time.Sleep(time.Millisecond)
+	}
+
+	wrk.blockProcessor.RevertAccountState()
+
+	if wrk.consensusState.RoundCanceled {
 		return
 	}
 

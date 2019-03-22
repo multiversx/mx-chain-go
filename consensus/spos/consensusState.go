@@ -19,9 +19,10 @@ type ConsensusState struct {
 	BlockBody data.BodyHandler
 	Header    data.HeaderHandler
 
-	RoundIndex     int32
-	RoundTimeStamp time.Time
-	RoundCanceled  bool
+	RoundIndex      int32
+	RoundTimeStamp  time.Time
+	RoundCanceled   bool
+	ProcessingBlock bool
 
 	*roundConsensus
 	*roundThreshold

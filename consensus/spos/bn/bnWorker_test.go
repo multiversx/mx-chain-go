@@ -39,6 +39,7 @@ func extend(subroundId int) {
 }
 
 func initWorker() bn.Worker {
+	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 
@@ -56,6 +57,7 @@ func initWorker() bn.Worker {
 	}
 
 	wrk, _ := bn.NewWorker(
+		blockProcessor,
 		bootstraperMock,
 		consensusState,
 		keyGeneratorMock,
@@ -225,9 +227,10 @@ func createEligibleList(size int) []string {
 	return eligibleList
 }
 
-func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
+func TestWorker_NewWorkerBlockprocessorNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
@@ -237,6 +240,35 @@ func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
+		nil,
+		bootstraperMock,
+		consensusState,
+		keyGeneratorMock,
+		marshalizerMock,
+		privateKeyMock,
+		rounderMock,
+		shardCoordinatorMock,
+		singleSignerMock,
+	)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, err, spos.ErrNilBlockProcessor)
+}
+
+func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	blockProcessor := &mock.BlockProcessorMock{}
+	consensusState := initConsensusState()
+	keyGeneratorMock := &mock.KeyGenMock{}
+	marshalizerMock := mock.MarshalizerMock{}
+	privateKeyMock := &mock.PrivateKeyMock{}
+	rounderMock := initRounderMock()
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	singleSignerMock := &mock.SingleSignerMock{}
+
+	wrk, err := bn.NewWorker(
+		blockProcessor,
 		nil,
 		consensusState,
 		keyGeneratorMock,
@@ -254,6 +286,7 @@ func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
@@ -263,6 +296,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
+		blockProcessor,
 		bootstraperMock,
 		nil,
 		keyGeneratorMock,
@@ -280,6 +314,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	marshalizerMock := mock.MarshalizerMock{}
@@ -289,6 +324,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
+		blockProcessor,
 		bootstraperMock,
 		consensusState,
 		nil,
@@ -306,6 +342,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
@@ -315,6 +352,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
+		blockProcessor,
 		bootstraperMock,
 		consensusState,
 		keyGeneratorMock,
@@ -332,6 +370,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
@@ -341,6 +380,7 @@ func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
+		blockProcessor,
 		bootstraperMock,
 		consensusState,
 		keyGeneratorMock,
@@ -358,6 +398,7 @@ func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
@@ -367,6 +408,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
+		blockProcessor,
 		bootstraperMock,
 		consensusState,
 		keyGeneratorMock,
@@ -384,6 +426,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
@@ -393,6 +436,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
+		blockProcessor,
 		bootstraperMock,
 		consensusState,
 		keyGeneratorMock,
@@ -410,6 +454,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
+	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
@@ -419,6 +464,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 
 	wrk, err := bn.NewWorker(
+		blockProcessor,
 		bootstraperMock,
 		consensusState,
 		keyGeneratorMock,
@@ -436,6 +482,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	t.Parallel()
 
+	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
@@ -446,6 +493,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	singleSignerMock := &mock.SingleSignerMock{}
 
 	wrk, err := bn.NewWorker(
+		blockProcessor,
 		bootstraperMock,
 		consensusState,
 		keyGeneratorMock,

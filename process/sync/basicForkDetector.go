@@ -124,7 +124,7 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 				// requested for bootstrapping, also the other nonces broadcasted to the network by the consensus group.
 				// So, it stores them as received but not processed yet. When it will reach to that nonce and
 				// if eventually it will be successfully processed, this nonce will be marked here from now on as a processed one.
-				hdrInfoStored.isProcessed = hdrInfo.isProcessed
+				hdrInfoStored.isProcessed = true
 			}
 			return
 		}

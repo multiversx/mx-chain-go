@@ -407,11 +407,17 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 		return false
 	}
 
+	defer func() {
+		sr.consensusState.ProcessingBlock = false
+	}()
+
+	sr.consensusState.ProcessingBlock = true
+
 	node := string(cnsDta.PubKey)
 
 	sec := sr.consensusState.RoundTimeStamp.Unix()
 	nsec := int64(sr.consensusState.RoundTimeStamp.Nanosecond())
-	maxTime := sr.rounder.TimeDuration() * safeThresholdPercent / 100
+	maxTime := sr.rounder.TimeDuration() * processingThresholdPercent / 100
 	remainingTimeInCurrentRound := func() time.Duration {
 		return sr.rounder.RemainingTime(sec, nsec, maxTime)
 	}
@@ -433,6 +439,10 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 	if err != nil {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
 			sr.rounder.Index(), getSubroundName(SrBlock), err.Error()))
+
+		if err == process.ErrTimeIsOut {
+			sr.consensusState.RoundCanceled = true
+		}
 
 		return false
 	}

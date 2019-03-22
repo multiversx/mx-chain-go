@@ -29,13 +29,17 @@ const (
 	SrEndRound
 )
 
-// safeThresholdPercent specifies which is the safe allocated time percent,
-// for doing job, from the total time of one round
-const safeThresholdPercent = 90
+// syncThresholdPercent specifies which is the max allocated time percent,
+// waiting to be synchronized, from the total time of the round
+const syncThresholdPercent = 50
+
+// processingThresholdPercent specifies which is the max allocated time percent,
+// for processing received block, from the total time of the round
+const processingThresholdPercent = 75
 
 // maxThresholdPercent specifies which is the max allocated time percent,
 // for doing job, from the total time of one round
-const maxThresholdPercent = 95
+const maxThresholdPercent = 85
 
 // MessageType specifies what type of message was received
 type MessageType int
@@ -316,7 +320,7 @@ func (fct *factory) generateBlockSubround() error {
 		SrBlock,
 		SrCommitmentHash,
 		int64(fct.rounder.TimeDuration()*5/100),
-		int64(fct.rounder.TimeDuration()*50/100),
+		int64(fct.rounder.TimeDuration()*35/100),
 		getSubroundName(SrBlock),
 		fct.worker.consensusStateChangedChannels,
 	)
@@ -356,8 +360,8 @@ func (fct *factory) generateCommitmentHashSubround() error {
 		SrBlock,
 		SrCommitmentHash,
 		SrBitmap,
-		int64(fct.rounder.TimeDuration()*50/100),
-		int64(fct.rounder.TimeDuration()*60/100),
+		int64(fct.rounder.TimeDuration()*35/100),
+		int64(fct.rounder.TimeDuration()*45/100),
 		getSubroundName(SrCommitmentHash),
 		fct.worker.consensusStateChangedChannels,
 	)
@@ -392,8 +396,8 @@ func (fct *factory) generateBitmapSubround() error {
 		SrCommitmentHash,
 		SrBitmap,
 		SrCommitment,
-		int64(fct.rounder.TimeDuration()*60/100),
-		int64(fct.rounder.TimeDuration()*70/100),
+		int64(fct.rounder.TimeDuration()*45/100),
+		int64(fct.rounder.TimeDuration()*55/100),
 		getSubroundName(SrBitmap),
 		fct.worker.consensusStateChangedChannels,
 	)
@@ -427,8 +431,8 @@ func (fct *factory) generateCommitmentSubround() error {
 		SrBitmap,
 		SrCommitment,
 		SrSignature,
-		int64(fct.rounder.TimeDuration()*70/100),
-		int64(fct.rounder.TimeDuration()*80/100),
+		int64(fct.rounder.TimeDuration()*55/100),
+		int64(fct.rounder.TimeDuration()*65/100),
 		getSubroundName(SrCommitment),
 		fct.worker.consensusStateChangedChannels,
 	)
@@ -462,8 +466,8 @@ func (fct *factory) generateSignatureSubround() error {
 		SrCommitment,
 		SrSignature,
 		SrEndRound,
-		int64(fct.rounder.TimeDuration()*80/100),
-		int64(fct.rounder.TimeDuration()*90/100),
+		int64(fct.rounder.TimeDuration()*65/100),
+		int64(fct.rounder.TimeDuration()*75/100),
 		getSubroundName(SrSignature),
 		fct.worker.consensusStateChangedChannels,
 	)
@@ -498,8 +502,8 @@ func (fct *factory) generateEndRoundSubround() error {
 		SrSignature,
 		SrEndRound,
 		-1,
-		int64(fct.rounder.TimeDuration()*90/100),
-		int64(fct.rounder.TimeDuration()*95/100),
+		int64(fct.rounder.TimeDuration()*75/100),
+		int64(fct.rounder.TimeDuration()*85/100),
 		getSubroundName(SrEndRound),
 		fct.worker.consensusStateChangedChannels,
 	)

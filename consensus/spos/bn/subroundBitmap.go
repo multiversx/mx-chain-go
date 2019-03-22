@@ -203,8 +203,6 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *spos.ConsensusMessage) bool {
 
 		sr.consensusState.RoundCanceled = true
 
-		sr.blockProcessor.RevertAccountState()
-
 		return false
 	}
 

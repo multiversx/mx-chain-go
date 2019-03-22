@@ -44,7 +44,6 @@ type blockProcessor struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
 	forkDetector         process.ForkDetector
-	mutProcessBlock      sync.Mutex
 }
 
 // NewBlockProcessor creates a new blockProcessor object
@@ -190,14 +189,10 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		if err != nil {
 			bp.RevertAccountState()
 		}
-		bp.mutProcessBlock.Unlock()
 	}()
 
-	bp.mutProcessBlock.Lock()
-
 	if bp.accounts.JournalLen() != 0 {
-		err = process.ErrAccountStateDirty
-		return err
+		return process.ErrAccountStateDirty
 	}
 
 	err = bp.processBlockTransactions(blockBody, int32(blockHeader.Round), haveTime)
@@ -420,6 +415,7 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 	}
 
 	_, err = bp.accounts.Commit()
+
 	if err != nil {
 		return err
 	}

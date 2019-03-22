@@ -11,9 +11,6 @@ var ErrNilHeader = errors.New("nil header")
 // ErrNilHash signals that a nil hash has been provided
 var ErrNilHash = errors.New("nil hash")
 
-// ErrNilCurrentHeader signals that the current header is nil
-var ErrNilCurrentHeader = errors.New("The current header is nil\n")
-
 // ErrLowerNonceInBlock signals the nonce in block is lower than the last check point nonce
 var ErrLowerNonceInBlock = errors.New("lower nonce in block")
 

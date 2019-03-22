@@ -2,9 +2,9 @@ package block_test
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/stretchr/testify/assert"
 )
@@ -305,7 +305,7 @@ func TestBody_IntegrityAndValidityNil(t *testing.T) {
 
 	body := block.Body{}
 	body = nil
-	assert.Equal(t, data.ErrBlockBodyEmpty, body.IntegrityAndValidity())
+	assert.Equal(t, data.ErrNilBlockBody, body.IntegrityAndValidity())
 }
 
 func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.T) {

@@ -198,7 +198,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	sec := sr.consensusState.RoundTimeStamp.Unix()
 	nsec := int64(sr.consensusState.RoundTimeStamp.Nanosecond())
-	maxTime := sr.rounder.TimeDuration() * safeThresholdPercent / 100
+	maxTime := sr.rounder.TimeDuration() * syncThresholdPercent / 100
 	if sr.rounder.RemainingTime(sec, nsec, maxTime) < 0 {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, time is out\n",
 			sr.syncTimer.FormattedCurrentTime(), sr.rounder.Index(), getSubroundName(SrStartRound)))
