@@ -813,32 +813,3 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 
 	return nil
 }
-
-// TODO check if this can be safely removed
-//func (n *Node) getAllTxsForMiniBlock(mb block.MiniBlock, senderShardId uint32) ([]*transaction.Transaction, error) {
-//	txPool := n.dataPool.Transactions()
-//	if txPool == nil {
-//		return nil, process.ErrNilTransactionPool
-//	}
-//
-//	txCache := txPool.ShardDataStore(senderShardId)
-//	if txCache == nil {
-//		return nil, process.ErrNilTransactionPool
-//	}
-//
-//	// verify if all transaction exists
-//	transactions := make([]*transaction.Transaction, 0)
-//	for _, txHash := range mb.TxHashes {
-//		tmp, _ := txCache.Peek(txHash)
-//		if tmp == nil {
-//			return nil, process.ErrNilTransaction
-//		}
-//		tx, ok := tmp.(*transaction.Transaction)
-//		if !ok {
-//			return nil, process.ErrWrongTypeAssertion
-//		}
-//		transactions = append(transactions, tx)
-//	}
-//
-//	return transactions, nil
-//}

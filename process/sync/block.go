@@ -650,7 +650,10 @@ func (boot *Bootstrap) forkChoice(hdr *block.Header) error {
 func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore storage.Storer) {
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 	boot.headersNonces.Remove(header.Nonce)
-	boot.headers.RemoveData(hash, header.ShardId)
+	boot.headers.RemoveData(
+		hash,
+		process.ShardCacherIdentifier(header.ShardId, header.ShardId),
+	)
 	boot.forkDetector.RemoveHeaders(header.Nonce)
 	//TODO uncomment this when badBlocks will be implemented
 	//_ = headerStore.Remove(hash)
@@ -699,7 +702,9 @@ func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 
 	boot.headersNonces.Remove(header.Nonce)
-	boot.headers.RemoveData(hash, header.ShardId)
+	boot.headers.RemoveData(hash,
+		process.ShardCacherIdentifier(header.ShardId, header.ShardId),
+	)
 	boot.forkDetector.RemoveHeaders(header.Nonce)
 }
 

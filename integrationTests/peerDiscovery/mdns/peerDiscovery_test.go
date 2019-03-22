@@ -20,7 +20,7 @@ func TestPeerDiscoveryAndMessageSending(t *testing.T) {
 	// This pull request doesn't have a correct solution yet and it is not merged. When this is fixed,
 	// we can add the short condition back so this test would be run on the nightly build.
 	// Remember to skip this test when the short flag is set
-	t.Skip("this is not a short test")
+	t.Skip("skip for now as mdns library needs to be fixed")
 
 	basePort := 26000
 	noOfPeers := 20

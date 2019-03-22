@@ -142,6 +142,6 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	txi.txPool.AddData(
 		hashWithSig,
 		txIntercepted.GetTransaction(),
-		process.ShardCacherIdentifier(txIntercepted.RcvShard(), txIntercepted.SndShard()))
+		process.ShardCacherIdentifier(txIntercepted.SndShard(), txIntercepted.RcvShard()))
 	return nil
 }

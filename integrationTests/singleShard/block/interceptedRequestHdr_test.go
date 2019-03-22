@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -75,14 +76,20 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	hdrHash := hasher.Compute(string(hdrBuff))
 
 	//Step 2. resolver has the header
-	dPoolResolver.Headers().AddData(hdrHash, &hdr, 0)
+	dPoolResolver.Headers().AddData(
+		hdrHash,
+		&hdr,
+		process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+	)
 	dPoolResolver.HeadersNonces().HasOrAdd(0, hdrHash)
 
 	//Step 3. wire up a received handler
 	chanDone := make(chan bool)
 
 	dPoolRequestor.Headers().RegisterHandler(func(key []byte) {
-		hdrStored, _ := dPoolRequestor.Headers().ShardDataStore(0).Get(key)
+		hdrStored, _ := dPoolRequestor.Headers().ShardDataStore(
+			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+		).Get(key)
 
 		if reflect.DeepEqual(hdrStored, &hdr) && hdr.Signature != nil {
 			chanDone <- true
