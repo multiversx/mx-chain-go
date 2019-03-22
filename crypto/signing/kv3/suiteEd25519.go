@@ -11,8 +11,8 @@ type suiteEd25519 struct {
 	suite *kgroup.SuiteEd25519
 }
 
-// NewBlakeSHA256Ed25519 returns a wrapper over a cipher suite based on package
-// gopkg.in/dedis/kyber.v3/xof/blake2xb, SHA-256, and the Ed25519 curve.
+// NewBlakeSHA256Ed25519 returns a wrapper over a cipher suite based on kyber
+// blake2xb package, SHA-256, and the Ed25519 curve.
 func NewBlakeSHA256Ed25519() *suiteEd25519 {
 	suite := suiteEd25519{}
 	suite.suite = kgroup.NewBlakeSHA256Ed25519()
