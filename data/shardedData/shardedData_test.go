@@ -49,14 +49,14 @@ func TestShardedData_AddData(t *testing.T) {
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
 	keyTx1 := []byte("hash_tx1")
-	shardID1 := uint32(1)
+	shardID1 := "1"
 
 	keyTx2 := []byte("hash_tx2")
-	shardID2 := uint32(2)
+	shardID2 := "2"
 
 	sd.AddData(keyTx1, &transaction.Transaction{Nonce: 1}, shardID1)
 
-	shardStore := sd.ShardDataStore(1)
+	shardStore := sd.ShardDataStore("1")
 	has := shardStore.Has(keyTx1)
 	assert.True(t, has, "Key was not added to minipool")
 	assert.True(t, shardStore.Len() == 1,
@@ -75,10 +75,10 @@ func TestShardedData_StorageEvictsData(t *testing.T) {
 
 	for i := 1; i < int(defaultTestConfig.Size+100); i++ {
 		key := []byte(strconv.Itoa(i))
-		sd.AddData(key, &transaction.Transaction{Nonce: uint64(i)}, 1)
+		sd.AddData(key, &transaction.Transaction{Nonce: uint64(i)}, "1")
 	}
 
-	assert.Equal(t, int(defaultTestConfig.Size), sd.ShardDataStore(1).Len(),
+	assert.Equal(t, int(defaultTestConfig.Size), sd.ShardDataStore("1").Len(),
 		"Transaction pool entries excedes the maximum configured number")
 }
 
@@ -87,9 +87,9 @@ func TestShardedData_NoDuplicates(t *testing.T) {
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
-	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
-	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
-	assert.Equal(t, 1, sd.ShardDataStore(1).Len(),
+	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, "1")
+	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, "1")
+	assert.Equal(t, 1, sd.ShardDataStore("1").Len(),
 		"Transaction pool should not contain duplicates")
 }
 
@@ -106,7 +106,7 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 	for i := 0; i < vals; i++ {
 		key := []byte(strconv.Itoa(i))
 		go func(i int, wg *sync.WaitGroup) {
-			sd.AddData(key, &transaction.Transaction{Nonce: uint64(i)}, 1)
+			sd.AddData(key, &transaction.Transaction{Nonce: uint64(i)}, "1")
 			wg.Done()
 		}(i, &wg)
 	}
@@ -116,7 +116,7 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 	//checking
 	for i := 0; i < vals; i++ {
 		key := []byte(strconv.Itoa(i))
-		assert.True(t, sd.ShardStore(1).DataStore.Has(key), fmt.Sprintf("for val %d", i))
+		assert.True(t, sd.ShardStore("1").DataStore.Has(key), fmt.Sprintf("for val %d", i))
 	}
 }
 
@@ -125,25 +125,25 @@ func TestShardedData_RemoveData(t *testing.T) {
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
-	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
-	assert.Equal(t, 1, sd.ShardDataStore(1).Len(),
+	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, "1")
+	assert.Equal(t, 1, sd.ShardDataStore("1").Len(),
 		"AddData failed, length should be 1")
-	sd.RemoveData([]byte("tx_hash1"), 1)
-	assert.Equal(t, 0, sd.ShardDataStore(1).Len(),
+	sd.RemoveData([]byte("tx_hash1"), "1")
+	assert.Equal(t, 0, sd.ShardDataStore("1").Len(),
 		"RemoveData failed, length should be 0")
 
-	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
-	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 2)
-	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 2)
-	assert.Equal(t, 1, sd.ShardDataStore(1).Len(),
+	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, "1")
+	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, "2")
+	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, "2")
+	assert.Equal(t, 1, sd.ShardDataStore("1").Len(),
 		"AddData failed, length should be 1")
-	assert.Equal(t, 2, sd.ShardDataStore(2).Len(),
+	assert.Equal(t, 2, sd.ShardDataStore("2").Len(),
 		"AddData failed, length should be 2")
 
 	sd.RemoveDataFromAllShards([]byte("tx_hash1"))
-	assert.Equal(t, 0, sd.ShardDataStore(1).Len(),
+	assert.Equal(t, 0, sd.ShardDataStore("1").Len(),
 		"FindAndRemoveData failed, length should be 0 in shard 1")
-	assert.Equal(t, 1, sd.ShardDataStore(2).Len(),
+	assert.Equal(t, 1, sd.ShardDataStore("2").Len(),
 		"FindAndRemoveData failed, length should be 1 in shard 2")
 }
 
@@ -152,19 +152,19 @@ func TestShardedData_Clear(t *testing.T) {
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
-	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
-	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 2)
-	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 2)
+	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, "1")
+	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, "2")
+	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, "2")
 
-	sd.ClearShardStore(2)
-	assert.Equal(t, 0, sd.ShardDataStore(2).Len(),
+	sd.ClearShardStore("2")
+	assert.Equal(t, 0, sd.ShardDataStore("2").Len(),
 		"Mini pool for shard 2 should be empty after clear")
-	assert.Equal(t, 1, sd.ShardDataStore(1).Len(),
+	assert.Equal(t, 1, sd.ShardDataStore("1").Len(),
 		"Mini pool for shard 1 should still have one element")
 
 	sd.Clear()
-	assert.Nil(t, sd.ShardStore(1), "Shard 1 should not be in the store anymore")
-	assert.Nil(t, sd.ShardStore(2), "Shard 2 should not be in the store anymore")
+	assert.Nil(t, sd.ShardStore("1"), "Shard 1 should not be in the store anymore")
+	assert.Nil(t, sd.ShardStore("2"), "Shard 2 should not be in the store anymore")
 }
 
 func TestShardedData_MergeShardStores(t *testing.T) {
@@ -172,14 +172,14 @@ func TestShardedData_MergeShardStores(t *testing.T) {
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
-	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
-	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 2)
-	sd.AddData([]byte("tx_hash3"), &transaction.Transaction{Nonce: 3}, 2)
+	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, "1")
+	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, "2")
+	sd.AddData([]byte("tx_hash3"), &transaction.Transaction{Nonce: 3}, "2")
 
-	sd.MergeShardStores(1, 2)
-	assert.Equal(t, 3, sd.ShardDataStore(2).Len(),
+	sd.MergeShardStores("1", "2")
+	assert.Equal(t, 3, sd.ShardDataStore("2").Len(),
 		"Mini pool for shard 1 should have 3 elements")
-	assert.Nil(t, sd.ShardDataStore(1))
+	assert.Nil(t, sd.ShardDataStore("1"))
 }
 
 func TestShardedData_MoveData(t *testing.T) {
@@ -187,18 +187,18 @@ func TestShardedData_MoveData(t *testing.T) {
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
-	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, 1)
-	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, 2)
-	sd.AddData([]byte("tx_hash3"), &transaction.Transaction{Nonce: 3}, 2)
-	sd.AddData([]byte("tx_hash4"), &transaction.Transaction{Nonce: 4}, 2)
-	sd.AddData([]byte("tx_hash5"), &transaction.Transaction{Nonce: 5}, 2)
-	sd.AddData([]byte("tx_hash6"), &transaction.Transaction{Nonce: 6}, 2)
+	sd.AddData([]byte("tx_hash1"), &transaction.Transaction{Nonce: 1}, "1")
+	sd.AddData([]byte("tx_hash2"), &transaction.Transaction{Nonce: 2}, "2")
+	sd.AddData([]byte("tx_hash3"), &transaction.Transaction{Nonce: 3}, "2")
+	sd.AddData([]byte("tx_hash4"), &transaction.Transaction{Nonce: 4}, "2")
+	sd.AddData([]byte("tx_hash5"), &transaction.Transaction{Nonce: 5}, "2")
+	sd.AddData([]byte("tx_hash6"), &transaction.Transaction{Nonce: 6}, "2")
 
-	sd.MoveData(2, 3, [][]byte{[]byte("tx_hash5"), []byte("tx_hash6")})
+	sd.MoveData("2", "3", [][]byte{[]byte("tx_hash5"), []byte("tx_hash6")})
 
-	assert.Equal(t, 3, sd.ShardDataStore(2).Len(),
+	assert.Equal(t, 3, sd.ShardDataStore("2").Len(),
 		"Mini pool for shard 2 should have 3 elements")
-	assert.Equal(t, 2, sd.ShardDataStore(3).Len(),
+	assert.Equal(t, 2, sd.ShardDataStore("3").Len(),
 		"Mini pool for shard 3 should have 2 elements")
 }
 
@@ -235,7 +235,7 @@ func TestShardedData_RegisterAddedDataHandlerShouldWork(t *testing.T) {
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
 	sd.RegisterHandler(f)
-	sd.AddData([]byte("aaaa"), "bbbb", 0)
+	sd.AddData([]byte("aaaa"), "bbbb", "0")
 
 	select {
 	case <-chDone:
@@ -277,10 +277,10 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
 	//first add, no call
-	sd.AddData([]byte("aaaa"), "bbbb", 0)
+	sd.AddData([]byte("aaaa"), "bbbb", "0")
 	sd.RegisterHandler(f)
 	//second add, should not call as the data was found
-	sd.AddData([]byte("aaaa"), "bbbb", 0)
+	sd.AddData([]byte("aaaa"), "bbbb", "0")
 
 	select {
 	case <-chDone:
@@ -307,9 +307,9 @@ func TestShardedData_SearchFirstDataFoundShouldRetResults(t *testing.T) {
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
-	sd.AddData([]byte("aaa"), "a1", 0)
-	sd.AddData([]byte("aaaa"), "a2", 4)
-	sd.AddData([]byte("aaaa"), "a3", 5)
+	sd.AddData([]byte("aaa"), "a1", "0")
+	sd.AddData([]byte("aaaa"), "a2", "4")
+	sd.AddData([]byte("aaaa"), "a3", "5")
 
 	value, ok := sd.SearchFirstData([]byte("aaa"))
 	assert.NotNil(t, value)
