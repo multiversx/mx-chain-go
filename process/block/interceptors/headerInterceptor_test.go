@@ -321,7 +321,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		DataField: buff,
 	}
 
-	headers.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+	headers.AddDataCalled = func(key []byte, data interface{}, cacherId string) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
 		if bytes.Equal(aaaHash, key) {
 			wasCalled++
@@ -383,7 +383,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 		DataField: buff,
 	}
 
-	headers.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+	headers.AddDataCalled = func(key []byte, data interface{}, cacherId string) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
 		if bytes.Equal(aaaHash, key) {
 			wasCalled++

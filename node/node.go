@@ -172,9 +172,26 @@ func (n *Node) CreateShardedStores() error {
 
 	shards := n.shardCoordinator.NumberOfShards()
 
+	//TODO - change headers to plain cacher
+	// for now we just need one cacher for headers
+	headersDataStore.CreateShardStore(
+		process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), n.shardCoordinator.SelfId()),
+	)
+
 	for i := uint32(0); i < shards; i++ {
-		transactionsDataStore.CreateShardStore(i)
-		headersDataStore.CreateShardStore(i)
+		if i == n.shardCoordinator.SelfId() {
+			transactionsDataStore.CreateShardStore(
+				process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), n.shardCoordinator.SelfId()),
+			)
+		} else {
+			transactionsDataStore.CreateShardStore(
+				process.ShardCacherIdentifier(i, n.shardCoordinator.SelfId()),
+			)
+			transactionsDataStore.CreateShardStore(
+				process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), i),
+			)
+		}
+
 	}
 
 	return nil
@@ -797,30 +814,31 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	return nil
 }
 
-func (n *Node) getAllTxsForMiniBlock(mb block.MiniBlock, senderShardId uint32) ([]*transaction.Transaction, error) {
-	txPool := n.dataPool.Transactions()
-	if txPool == nil {
-		return nil, process.ErrNilTransactionPool
-	}
-
-	txCache := txPool.ShardDataStore(senderShardId)
-	if txCache == nil {
-		return nil, process.ErrNilTransactionPool
-	}
-
-	// verify if all transaction exists
-	transactions := make([]*transaction.Transaction, 0)
-	for _, txHash := range mb.TxHashes {
-		tmp, _ := txCache.Peek(txHash)
-		if tmp == nil {
-			return nil, process.ErrNilTransaction
-		}
-		tx, ok := tmp.(*transaction.Transaction)
-		if !ok {
-			return nil, process.ErrWrongTypeAssertion
-		}
-		transactions = append(transactions, tx)
-	}
-
-	return transactions, nil
-}
+// TODO check if this can be safely removed
+//func (n *Node) getAllTxsForMiniBlock(mb block.MiniBlock, senderShardId uint32) ([]*transaction.Transaction, error) {
+//	txPool := n.dataPool.Transactions()
+//	if txPool == nil {
+//		return nil, process.ErrNilTransactionPool
+//	}
+//
+//	txCache := txPool.ShardDataStore(senderShardId)
+//	if txCache == nil {
+//		return nil, process.ErrNilTransactionPool
+//	}
+//
+//	// verify if all transaction exists
+//	transactions := make([]*transaction.Transaction, 0)
+//	for _, txHash := range mb.TxHashes {
+//		tmp, _ := txCache.Peek(txHash)
+//		if tmp == nil {
+//			return nil, process.ErrNilTransaction
+//		}
+//		tx, ok := tmp.(*transaction.Transaction)
+//		if !ok {
+//			return nil, process.ErrWrongTypeAssertion
+//		}
+//		transactions = append(transactions, tx)
+//	}
+//
+//	return transactions, nil
+//}
