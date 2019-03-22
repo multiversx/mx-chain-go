@@ -406,6 +406,7 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 	return hashDst
 }
 
+// WasMiniBlockProcessed verifies if miniblock from header was processed
 func (m *MetaBlock) WasMiniBlockProcessed(hash []byte) bool {
 	if m.processedMBs[string(hash)] {
 		return true
@@ -413,6 +414,7 @@ func (m *MetaBlock) WasMiniBlockProcessed(hash []byte) bool {
 	return false
 }
 
+// SetProcessed set that miniblock with hash to processed
 func (m *MetaBlock) SetProcessed(hash []byte) {
 	m.processedMBs[string(hash)] = true
 }

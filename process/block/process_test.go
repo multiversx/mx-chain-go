@@ -2015,11 +2015,11 @@ func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 		},
 	)
 
-	msh, err := be.MarshalizedDataForCrossShard(body)
+	msh, mstx, err := be.MarshalizedDataForCrossShard(body)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, msh)
-
+	assert.NotNil(t, mstx)
 	_, found := msh[0]
 	assert.False(t, found)
 
@@ -2060,10 +2060,11 @@ func TestBlockProcessor_MarshalizedDataWrongType(t *testing.T) {
 	)
 
 	wr := wrongBody{}
-	msh, err := be.MarshalizedDataForCrossShard(wr)
+	msh, mstx, err := be.MarshalizedDataForCrossShard(wr)
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, msh)
+	assert.Nil(t, mstx)
 }
 
 func TestBlockProcessor_MarshalizedDataNilInput(t *testing.T) {
@@ -2087,10 +2088,11 @@ func TestBlockProcessor_MarshalizedDataNilInput(t *testing.T) {
 		},
 	)
 
-	msh, err := be.MarshalizedDataForCrossShard(nil)
+	msh, mstx, err := be.MarshalizedDataForCrossShard(nil)
 
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
 	assert.Nil(t, msh)
+	assert.Nil(t, mstx)
 }
 
 func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
@@ -2125,8 +2127,9 @@ func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		},
 	)
 
-	msh, err := be.MarshalizedDataForCrossShard(body)
+	msh, mstx, err := be.MarshalizedDataForCrossShard(body)
 
 	assert.Equal(t, process.ErrMarshalWithoutSuccess, err)
 	assert.Nil(t, msh)
+	assert.Nil(t, mstx)
 }

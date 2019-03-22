@@ -442,13 +442,12 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	return hashDst
 }
 
+// WasMiniBlockProcessed verifies if miniblock from header was processed
 func (h *Header) WasMiniBlockProcessed(hash []byte) bool {
-	if h.processedMBs[string(hash)] {
-		return true
-	}
-	return false
+	return h.processedMBs[string(hash)]
 }
 
+// SetProcessed set that miniblock with hash to processed
 func (h *Header) SetProcessed(hash []byte) {
 	h.processedMBs[string(hash)] = true
 }

@@ -32,6 +32,8 @@ var txsTotalProcessed = 0
 
 const maxTransactionsInBlock = 15000
 
+type crossTxsForShard map[uint32]([]*transaction.Transaction)
+
 // blockProcessor implements blockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
 	dataPool             data.PoolsHolder
@@ -45,6 +47,7 @@ type blockProcessor struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
 	forkDetector         process.ForkDetector
+	crossTxsForBlock     map[string]crossTxsForShard
 }
 
 // NewBlockProcessor creates a new blockProcessor object
@@ -111,7 +114,7 @@ func NewBlockProcessor(
 	}
 
 	transactionPool.RegisterHandler(bp.receivedTransaction)
-
+	bp.crossTxsForBlock = make(map[string]crossTxsForShard, 0)
 	return &bp, nil
 }
 
@@ -241,11 +244,23 @@ func (bp *blockProcessor) verifyStateRoot(rootHash []byte) bool {
 // CreateBlockBody creates a a list of miniblocks by filling them with transactions out of the transactions pools
 // as long as the transactions limit for the block has not been reached and there is still time to add transactions
 func (bp *blockProcessor) CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error) {
-	miniBlocks, err := bp.createMiniBlocks(bp.shardCoordinator.NumberOfShards(), maxTransactionsInBlock, round, haveTime)
+	miniBlocks, mapTxs, err := bp.createMiniBlocks(bp.shardCoordinator.NumberOfShards(), maxTransactionsInBlock, round, haveTime)
 
 	if err != nil {
 		return nil, err
 	}
+
+	// save the transactions for cross shard for broadcast purposes
+	mrsBody, err := bp.marshalizer.Marshal(miniBlocks)
+	if err != nil {
+		return miniBlocks, nil
+	}
+
+	blockKey := bp.hasher.Compute(string(mrsBody))
+	if blockKey == nil {
+		return miniBlocks, nil
+	}
+	bp.crossTxsForBlock[string(blockKey)] = mapTxs
 
 	return miniBlocks, nil
 }
@@ -334,7 +349,6 @@ func (bp *blockProcessor) processBlockTransactions(body block.Body, round int32,
 // CommitBlock commits the block in the blockchain if everything was checked successfully
 func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
 	var err error
-
 	defer func() {
 		if err != nil {
 			bp.RevertAccountState()
@@ -704,22 +718,23 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 	return miniBlocks, nrTxAdded, nil
 }
 
-func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
+func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, map[uint32][]*transaction.Transaction, error) {
 	miniBlocks := make(block.Body, 0)
+	mapTxs := make(map[uint32]([]*transaction.Transaction))
 
 	if bp.accounts.JournalLen() != 0 {
-		return nil, process.ErrAccountStateDirty
+		return nil, nil, process.ErrAccountStateDirty
 	}
 
 	if !haveTime() {
 		log.Info(fmt.Sprintf("time is up after entered in createMiniBlocks method\n"))
-		return miniBlocks, nil
+		return miniBlocks, mapTxs, nil
 	}
 
 	txPool := bp.dataPool.Transactions()
 
 	if txPool == nil {
-		return nil, process.ErrNilTransactionPool
+		return nil, nil, process.ErrNilTransactionPool
 	}
 
 	destMeMiniBlocks, txs, err := bp.createAndProcessCrossMiniBlocksDstMe(noShards, maxTxInBlock, round, haveTime)
@@ -731,6 +746,16 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		miniBlocks = append(miniBlocks, destMeMiniBlocks...)
 	}
 
+	if !haveTime() {
+		log.Info(fmt.Sprintf("time is up added %d transactions\n", txs))
+		return miniBlocks, mapTxs, nil
+	}
+
+	if txs > uint32(maxTxInBlock) {
+		log.Info(fmt.Sprintf("block is full: added %d transactions\n", txs))
+		return miniBlocks, mapTxs, nil
+	}
+
 	for i := 0; i < int(noShards); i++ {
 		txStore := txPool.ShardDataStore(uint32(i))
 
@@ -740,7 +765,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 
 		if !haveTime() {
 			log.Info(fmt.Sprintf("time is up after ordered %d txs in %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
-			return miniBlocks, nil
+			return miniBlocks, mapTxs, nil
 		}
 
 		log.Info(fmt.Sprintf("time elapsed to ordered %d txs: %v sec\n", len(orderedTxes), timeAfter.Sub(timeBefore).Seconds()))
@@ -753,7 +778,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		miniBlock := block.MiniBlock{}
 		miniBlock.ShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
-
+		tXsForShard := make([]*(transaction.Transaction), 0)
 		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ShardID))
 
 		for index, tx := range orderedTxes {
@@ -788,6 +813,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 			}
 
 			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
+			tXsForShard = append(tXsForShard, orderedTxes[index])
 			txs++
 
 			if txs >= uint32(maxTxInBlock) { // max transactions count in one block was reached
@@ -795,10 +821,11 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 
 				if len(miniBlock.TxHashes) > 0 {
 					miniBlocks = append(miniBlocks, &miniBlock)
+					mapTxs[miniBlock.ShardID] = tXsForShard
 				}
 
 				log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
-				return miniBlocks, nil
+				return miniBlocks, mapTxs, nil
 			}
 		}
 
@@ -807,19 +834,21 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 
 			if len(miniBlock.TxHashes) > 0 {
 				miniBlocks = append(miniBlocks, &miniBlock)
+				mapTxs[miniBlock.ShardID] = tXsForShard
 			}
 
 			log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
-			return miniBlocks, nil
+			return miniBlocks, mapTxs, nil
 		}
 
 		if len(miniBlock.TxHashes) > 0 {
 			miniBlocks = append(miniBlocks, &miniBlock)
+			mapTxs[miniBlock.ShardID] = tXsForShard
 		}
 	}
 
 	log.Info(fmt.Sprintf("creating mini blocks has been finished: created %d mini blocks\n", len(miniBlocks)))
-	return miniBlocks, nil
+	return miniBlocks, mapTxs, nil
 }
 
 // CreateBlockHeader creates a miniblock header list given a block body
@@ -1195,39 +1224,52 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain data.ChainHandler, heade
 }
 
 // MarshalizedDataForCrossShard prepares underlying data into a marshalized object according to destination
-func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, error) {
+func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error) {
 	if body == nil {
-		return nil, process.ErrNilMiniBlocks
+		return nil, nil, process.ErrNilMiniBlocks
 	}
 
 	blockBody, ok := body.(block.Body)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	mrsData := make(map[uint32][]byte)
+	mrsTxs := make(map[uint32][][]byte)
 	bodies := make(map[uint32]block.Body)
 
 	for i := 0; i < len(blockBody); i++ {
 		miniblock := blockBody[i]
-
 		if miniblock.ShardID == bp.shardCoordinator.SelfId() {
 			//not taking into account miniblocks for current shard
 			continue
 		}
-
 		bodies[miniblock.ShardID] = append(bodies[miniblock.ShardID], miniblock)
 	}
 
 	for shardId, subsetBlockBody := range bodies {
 		buff, err := bp.marshalizer.Marshal(subsetBlockBody)
 		if err != nil {
-			return nil, process.ErrMarshalWithoutSuccess
+			return nil, nil, process.ErrMarshalWithoutSuccess
 		}
 		mrsData[shardId] = buff
 	}
 
-	return mrsData, nil
+	mrsBody, err := bp.marshalizer.Marshal(blockBody)
+	if err != nil {
+		return nil, nil, process.ErrMarshalWithoutSuccess
+	}
+	blockKey := bp.hasher.Compute(string(mrsBody))
+	crossTXsForBlock := bp.crossTxsForBlock[string(blockKey)]
+	for k, tx := range crossTXsForBlock {
+		txMrs, err := bp.marshalizer.Marshal(tx)
+		if err != nil {
+			return nil, nil, process.ErrMarshalWithoutSuccess
+		}
+		mrsTxs[k] = append(mrsTxs[k], txMrs)
+	}
+
+	return mrsData, mrsTxs, nil
 }
 
 func getTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, error) {
