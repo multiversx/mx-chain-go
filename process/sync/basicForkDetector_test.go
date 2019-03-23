@@ -88,6 +88,19 @@ func TestBasicForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 	assert.Equal(t, hash2, hInfos[1].Hash())
 }
 
+func TestBasicForkDetector_AddHeaderWithSignedAndProcessedBlockShouldSetCheckpoint(t *testing.T) {
+	t.Parallel()
+
+	hdr1 := &block.Header{Nonce: 69, PubKeysBitmap: []byte("X")}
+	hash1 := []byte("hash1")
+
+	bfd := sync.NewBasicForkDetector()
+
+	_ = bfd.AddHeader(hdr1, hash1, true)
+
+	assert.Equal(t, hdr1.Nonce, bfd.CheckpointNonce())
+}
+
 func TestBasicForkDetector_AddHeaderPresentShouldNotRewriteWhenSameHash(t *testing.T) {
 	t.Parallel()
 
@@ -108,22 +121,82 @@ func TestBasicForkDetector_AddHeaderPresentShouldNotRewriteWhenSameHash(t *testi
 	assert.Equal(t, hash, hInfos[0].Hash())
 }
 
-func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
+func TestBasicForkDetector_RemoveProcessedHeaderShouldNotRemoveWhenHeaderStoredIsNilOrEmpty(t *testing.T) {
 	t.Parallel()
 
-	hdr1 := &block.Header{}
+	pubKeysBitmap := make([]byte, 0)
+	hdr1 := &block.Header{Nonce: 2, PubKeysBitmap: pubKeysBitmap}
 	hash := []byte("hash1")
 
 	bfd := sync.NewBasicForkDetector()
 
 	_ = bfd.AddHeader(hdr1, hash, true)
-	hInfos := bfd.GetHeaders(0)
+
+	bfd.RemoveProcessedHeader(3)
+
+	hInfos := bfd.GetHeaders(2)
+	assert.NotNil(t, hInfos)
 	assert.Equal(t, 1, len(hInfos))
+}
 
-	bfd.RemoveProcessedHeader(0)
+func TestBasicForkDetector_RemoveProcessedHeaderShouldRemoveTheWholeNonce(t *testing.T) {
+	t.Parallel()
 
-	hInfos = bfd.GetHeaders(0)
+	pubKeysBitmap := []byte("X")
+	hdr1 := &block.Header{Nonce: 2, PubKeysBitmap: pubKeysBitmap}
+	hash := []byte("hash1")
+
+	bfd := sync.NewBasicForkDetector()
+
+	_ = bfd.AddHeader(hdr1, hash, true)
+
+	bfd.RemoveProcessedHeader(2)
+
+	hInfos := bfd.GetHeaders(2)
 	assert.Nil(t, hInfos)
+}
+
+func TestBasicForkDetector_RemoveProcessedHeaderShouldRemoveOnlyProcessedHeaderStored(t *testing.T) {
+	t.Parallel()
+
+	pubKeysBitmap := []byte("X")
+	hdr1 := &block.Header{Nonce: 2, PubKeysBitmap: pubKeysBitmap}
+	hash1 := []byte("hash1")
+
+	pubKeysBitmap = make([]byte, 0)
+	hdr2 := &block.Header{Nonce: 2, PubKeysBitmap: pubKeysBitmap}
+	hash2 := []byte("hash2")
+
+	bfd := sync.NewBasicForkDetector()
+
+	_ = bfd.AddHeader(hdr1, hash1, true)
+	_ = bfd.AddHeader(hdr2, hash2, false)
+
+	bfd.RemoveProcessedHeader(2)
+
+	hInfos := bfd.GetHeaders(2)
+	assert.NotNil(t, hInfos)
+	assert.Equal(t, 1, len(hInfos))
+	assert.Equal(t, make([]byte, 0), hInfos[0].Header().PubKeysBitmap)
+}
+
+func TestBasicForkDetector_AppendShouldSetIsProcessed(t *testing.T) {
+	t.Parallel()
+
+	pubKeysBitmap := make([]byte, 0)
+	hash := []byte("hash")
+
+	hdr1 := &block.Header{Nonce: 2, PubKeysBitmap: pubKeysBitmap}
+	hdr2 := &block.Header{Nonce: 2, PubKeysBitmap: pubKeysBitmap}
+
+	bfd := sync.NewBasicForkDetector()
+
+	_ = bfd.AddHeader(hdr1, hash, false)
+	_ = bfd.AddHeader(hdr2, hash, true)
+
+	hInfos := bfd.GetHeaders(2)
+	assert.Equal(t, 1, len(hInfos))
+	assert.True(t, hInfos[0].IsProcessed())
 }
 
 func TestBasicForkDetector_CheckForkOnlyOneHeaderOnANonceShouldRettrue(t *testing.T) {

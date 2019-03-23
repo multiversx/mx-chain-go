@@ -3,6 +3,7 @@ package bn
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -196,10 +197,10 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
-	sec := sr.consensusState.RoundTimeStamp.Unix()
-	nsec := int64(sr.consensusState.RoundTimeStamp.Nanosecond())
+	startTime := time.Time{}
+	startTime = sr.consensusState.RoundTimeStamp
 	maxTime := sr.rounder.TimeDuration() * syncThresholdPercent / 100
-	if sr.rounder.RemainingTime(sec, nsec, maxTime) < 0 {
+	if sr.rounder.RemainingTime(startTime, maxTime) < 0 {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, time is out\n",
 			sr.syncTimer.FormattedCurrentTime(), sr.rounder.Index(), getSubroundName(SrStartRound)))
 

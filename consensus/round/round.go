@@ -61,9 +61,9 @@ func (rnd *round) TimeDuration() time.Duration {
 
 // RemainingTime returns the remaining time in the current round given by the current time, round start time and
 // safe threshold percent
-func (rnd *round) RemainingTime(sec int64, nsec int64, maxTime time.Duration) time.Duration {
+func (rnd *round) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
 	currentTime := rnd.syncTimer.CurrentTime()
-	elapsedTime := currentTime.Sub(time.Unix(sec, nsec))
+	elapsedTime := currentTime.Sub(startTime)
 	remainingTime := maxTime - elapsedTime
 
 	return remainingTime

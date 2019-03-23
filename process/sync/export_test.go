@@ -46,6 +46,14 @@ func (bfd *basicForkDetector) SetCheckpointNonce(checkpointNonce uint64) {
 	bfd.checkpointNonce = checkpointNonce
 }
 
+func (bfd *basicForkDetector) CheckpointNonce() uint64 {
+	return bfd.checkpointNonce
+}
+
+func (bfd *basicForkDetector) Append(hdrInfo *headerInfo) {
+	bfd.append(hdrInfo)
+}
+
 func (hi *headerInfo) Header() *block.Header {
 	return hi.header
 }

@@ -76,8 +76,8 @@ func (sr *subround) DoWork(rounder consensus.Rounder) bool {
 		return false
 	}
 
-	sec := rounder.TimeStamp().Unix()
-	nsec := int64(rounder.TimeStamp().Nanosecond())
+	startTime := time.Time{}
+	startTime = rounder.TimeStamp()
 	maxTime := rounder.TimeDuration() * maxThresholdPercent / 100
 
 	sr.job()
@@ -92,7 +92,7 @@ func (sr *subround) DoWork(rounder consensus.Rounder) bool {
 			if sr.check() {
 				return true
 			}
-		case <-time.After(rounder.RemainingTime(sec, nsec, maxTime)):
+		case <-time.After(rounder.RemainingTime(startTime, maxTime)):
 			if sr.extend != nil {
 				sr.extend(sr.current)
 			}

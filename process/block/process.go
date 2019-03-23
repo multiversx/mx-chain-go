@@ -146,10 +146,6 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		return err
 	}
 
-	if haveTime == nil {
-		return process.ErrNilHaveTimeHandler
-	}
-
 	blockBody, ok := body.(block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -158,6 +154,10 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 	blockHeader, ok := header.(*block.Header)
 	if !ok {
 		return process.ErrWrongTypeAssertion
+	}
+
+	if haveTime == nil {
+		return process.ErrNilHaveTimeHandler
 	}
 
 	concreteBlockChain, ok := blockChain.(*blockchain.BlockChain)
@@ -185,15 +185,15 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		}
 	}
 
+	if bp.accounts.JournalLen() != 0 {
+		return process.ErrAccountStateDirty
+	}
+
 	defer func() {
 		if err != nil {
 			bp.RevertAccountState()
 		}
 	}()
-
-	if bp.accounts.JournalLen() != 0 {
-		return process.ErrAccountStateDirty
-	}
 
 	err = bp.processBlockTransactions(blockBody, int32(blockHeader.Round), haveTime)
 	if err != nil {
@@ -415,7 +415,6 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 	}
 
 	_, err = bp.accounts.Commit()
-
 	if err != nil {
 		return err
 	}

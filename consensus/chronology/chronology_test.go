@@ -289,3 +289,80 @@ func TestChronology_LoadSubrounderShouldReturnNilWhenIndexIsOutOfBound(t *testin
 
 	assert.Nil(t, chr.LoadSubroundHandler(0))
 }
+
+func TestChronology_InitRoundShouldNotSetSubroundWhenRoundIndexIsNegative(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+
+	chr, _ := chronology.NewChronology(
+		syncTimerMock.CurrentTime(),
+		rounderMock,
+		syncTimerMock)
+
+	chr.AddSubround(initSubroundHandlerMock())
+
+	rounderMock.IndexCalled = func() int32 {
+		return -1
+	}
+
+	chr.InitRound()
+
+	assert.Equal(t, -1, chr.SubroundId())
+}
+
+func TestChronology_InitRoundShouldSetSubroundWhenRoundIndexIsPositive(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+
+	chr, _ := chronology.NewChronology(
+		syncTimerMock.CurrentTime(),
+		rounderMock,
+		syncTimerMock)
+
+	sr := initSubroundHandlerMock()
+	chr.AddSubround(sr)
+
+	chr.InitRound()
+
+	assert.Equal(t, sr.Current(), chr.SubroundId())
+}
+
+func TestChronology_StartRoundShouldNotUpdateRoundWhenCurrentRoundIsNotFinished(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+
+	chr, _ := chronology.NewChronology(
+		syncTimerMock.CurrentTime(),
+		rounderMock,
+		syncTimerMock)
+
+	chr.SetSubroundId(0)
+
+	chr.StartRound()
+
+	assert.Equal(t, int32(0), rounderMock.Index())
+}
+
+func TestChronology_StartRoundShouldUpdateRoundWhenCurrentRoundIsFinished(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
+
+	chr, _ := chronology.NewChronology(
+		syncTimerMock.CurrentTime(),
+		rounderMock,
+		syncTimerMock)
+
+	chr.SetSubroundId(-1)
+
+	chr.StartRound()
+
+	assert.Equal(t, int32(1), rounderMock.Index())
+}

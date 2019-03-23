@@ -39,7 +39,10 @@ func extend(subroundId int) {
 }
 
 func initWorker() bn.Worker {
-	blockProcessor := &mock.BlockProcessorMock{}
+	blockProcessor := &mock.BlockProcessorMock{
+		RevertAccountStateCalled: func() {
+		},
+	}
 	bootstraperMock := &mock.BootstraperMock{}
 	consensusState := initConsensusState()
 
@@ -1405,6 +1408,35 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 	wrk.SetBootstraper(bootstraperMock)
 	wrk.Extend(0)
 	assert.False(t, executed)
+}
+
+func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
+	t.Parallel()
+
+	wrk := *initWorker()
+
+	executed := int32(0)
+
+	wrk.BroadcastBlock = func(data.BodyHandler, data.HeaderHandler) error {
+		atomic.AddInt32(&executed, 1)
+		return nil
+	}
+
+	wrk.ConsensusState().ProcessingBlock = true
+
+	n := 10
+
+	go func() {
+		for n > 0 {
+			time.Sleep(100 * time.Millisecond)
+			n--
+		}
+		wrk.ConsensusState().ProcessingBlock = false
+	}()
+
+	wrk.Extend(0)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&executed))
+	assert.Equal(t, 0, n)
 }
 
 func TestWorker_ExtendShouldWork(t *testing.T) {

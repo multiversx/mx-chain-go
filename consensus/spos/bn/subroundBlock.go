@@ -181,11 +181,11 @@ func (sr *subroundBlock) doBlockJob() bool {
 
 // sendBlockBody method job the proposed block body in the Block subround
 func (sr *subroundBlock) sendBlockBody() bool {
-	sec := sr.consensusState.RoundTimeStamp.Unix()
-	nsec := int64(sr.consensusState.RoundTimeStamp.Nanosecond())
+	startTime := time.Time{}
+	startTime = sr.consensusState.RoundTimeStamp
 	maxTime := time.Duration(sr.EndTime())
 	haveTimeInCurrentSubround := func() bool {
-		return sr.rounder.RemainingTime(sec, nsec, maxTime) > 0
+		return sr.rounder.RemainingTime(startTime, maxTime) > 0
 	}
 
 	blockBody, err := sr.blockProcessor.CreateBlockBody(
@@ -415,11 +415,11 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 
 	node := string(cnsDta.PubKey)
 
-	sec := sr.consensusState.RoundTimeStamp.Unix()
-	nsec := int64(sr.consensusState.RoundTimeStamp.Nanosecond())
+	startTime := time.Time{}
+	startTime = sr.consensusState.RoundTimeStamp
 	maxTime := sr.rounder.TimeDuration() * processingThresholdPercent / 100
 	remainingTimeInCurrentRound := func() time.Duration {
-		return sr.rounder.RemainingTime(sec, nsec, maxTime)
+		return sr.rounder.RemainingTime(startTime, maxTime)
 	}
 
 	err := sr.blockProcessor.ProcessBlock(

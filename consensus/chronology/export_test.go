@@ -31,3 +31,7 @@ func (chr *chronology) SetSubroundHandlers(subroundHandlers []consensus.Subround
 func (chr *chronology) UpdateRound() {
 	chr.updateRound()
 }
+
+func (chr *chronology) InitRound() {
+	chr.initRound()
+}

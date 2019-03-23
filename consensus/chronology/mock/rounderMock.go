@@ -11,7 +11,7 @@ type RounderMock struct {
 	TimeDurationCalled  func() time.Duration
 	TimeStampCalled     func() time.Time
 	UpdateRoundCalled   func(time.Time, time.Time)
-	RemainingTimeCalled func(sec int64, nsec int64, maxTime time.Duration) time.Duration
+	RemainingTimeCalled func(startTime time.Time, maxTime time.Duration) time.Duration
 }
 
 func (rndm *RounderMock) Index() int32 {
@@ -47,9 +47,9 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 	rndm.index++
 }
 
-func (rndm *RounderMock) RemainingTime(sec int64, nsec int64, maxTime time.Duration) time.Duration {
+func (rndm *RounderMock) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
 	if rndm.RemainingTimeCalled != nil {
-		return rndm.RemainingTimeCalled(sec, nsec, maxTime)
+		return rndm.RemainingTimeCalled(startTime, maxTime)
 	}
 
 	return time.Duration(4000 * time.Millisecond)
