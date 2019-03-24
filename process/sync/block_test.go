@@ -1589,7 +1589,9 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
-		headerStorage)
+		headerStorage,
+		&mock.StorerStub{},
+	)
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
@@ -1886,7 +1888,6 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 		}
 	}
 
-
 	err := bs.ForkChoice(&block.Header{})
 	assert.Nil(t, err)
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
@@ -2035,6 +2036,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
+		&mock.StorerStub{},
 	)
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
@@ -2081,6 +2083,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		txBlockUnit,
+		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 	)
@@ -2138,6 +2141,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		txBlockUnit,
+		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 	)

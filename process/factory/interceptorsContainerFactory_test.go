@@ -338,6 +338,27 @@ func TestInterceptorsContainerFactory_CreateTopicCreationPeerChBlocksFailsShould
 	assert.Equal(t, errExpected, err)
 }
 
+func TestInterceptorsContainerFactory_CreateTopicCreationMetachainHeadersFailsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, _ := factory.NewInterceptorsContainerFactory(
+		mock.NewOneShardCoordinatorMock(),
+		createStubTopicHandler(factory.MetachainHeadersTopic, ""),
+		createBlockchain(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{})
+
+	container, err := icf.Create()
+
+	assert.Nil(t, container)
+	assert.Equal(t, errExpected, err)
+}
+
 func TestInterceptorsContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -422,6 +443,27 @@ func TestInterceptorsContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t
 	assert.Equal(t, errExpected, err)
 }
 
+func TestInterceptorsContainerFactory_CreateRegisterMetachainHeadersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	icf, _ := factory.NewInterceptorsContainerFactory(
+		mock.NewOneShardCoordinatorMock(),
+		createStubTopicHandler("", factory.MetachainHeadersTopic),
+		createBlockchain(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		mock.NewMultiSigner(),
+		createDataPools(),
+		&mock.AddressConverterMock{})
+
+	container, err := icf.Create()
+
+	assert.Nil(t, container)
+	assert.Equal(t, errExpected, err)
+}
+
 func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -480,5 +522,5 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	container, _ := icf.Create()
 
-	assert.Equal(t, noOfShards+1+noOfShards+1, container.Len())
+	assert.Equal(t, noOfShards+1+noOfShards+1+1, container.Len())
 }

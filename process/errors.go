@@ -67,9 +67,6 @@ var ErrNilPreviousBlockHash = errors.New("nil previous block header hash")
 // ErrNilSignature signals that a operation has been attempted with a nil signature
 var ErrNilSignature = errors.New("nil signature")
 
-// ErrNilCommitment signals that a operation has been attempted with a nil commitment
-var ErrNilCommitment = errors.New("nil commitment")
-
 // ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
 var ErrNilMiniBlocks = errors.New("nil mini blocks")
 
@@ -130,6 +127,9 @@ var ErrNilTxDataPool = errors.New("nil transaction data pool")
 // ErrNilHeadersDataPool signals that a nil header pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
+// ErrNilMetachainHeadersDataPool signals that a nil metachain header pool has been provided
+var ErrNilMetachainHeadersDataPool = errors.New("nil metachain headers data pool")
+
 // ErrNilHeadersNoncesDataPool signals that a nil header - nonce cache
 var ErrNilHeadersNoncesDataPool = errors.New("nil headers nonces cache")
 
@@ -180,6 +180,9 @@ var ErrNilTxStorage = errors.New("nil transaction storage")
 
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
+
+// ErrNilMetachainHeadersStorage signals that a nil metachain header storage has been provided
+var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
 
 // ErrNilResolverSender signals that a nil resolver sender object has been provided
 var ErrNilResolverSender = errors.New("nil resolver sender")

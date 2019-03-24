@@ -16,6 +16,9 @@ var ErrPeerBlockUnitNil = errors.New("peerBlockUnit nil")
 // ErrHeaderUnitNil defines the error for using a nil storage unit for block headers
 var ErrHeaderUnitNil = errors.New("header nil")
 
+// ErrMetachainHeaderUnitNil defines the error for using a nil storage unit for metachain block headers
+var ErrMetachainHeaderUnitNil = errors.New("metachain header nil")
+
 // ErrMetaBlockUnitNil defines the error for using a nil storage unit for metachain blocks
 var ErrMetaBlockUnitNil = errors.New("metablock storage unit is nil")
 

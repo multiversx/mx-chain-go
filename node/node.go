@@ -781,6 +781,10 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	go n.messenger.Broadcast(factory.MiniBlocksTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
+	//TODO - this shall be removed after first sharding iteration
+	// we broadcast header to the other shards
+	go n.messenger.Broadcast(factory.MetachainHeadersTopic, msgHeader)
+
 	for k, v := range msgMapBlockBody {
 		go n.messenger.Broadcast(factory.MiniBlocksTopic+
 			n.shardCoordinator.CommunicationIdentifier(k), v)
