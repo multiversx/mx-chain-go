@@ -2,9 +2,9 @@ package block_test
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/stretchr/testify/assert"
 )
@@ -300,14 +300,13 @@ func TestHeader_SetTimeStamp(t *testing.T) {
 	assert.Equal(t, timeStamp, h.GetTimestamp())
 }
 
-//TODO(jls) repair this
-//func TestBody_IntegrityAndValidityNil(t *testing.T) {
-//	t.Parallel()
-//
-//	body := block.Body{}
-//	body = nil
-//	assert.Equal(t, data.ErrBlockBodyEmpty, body.IntegrityAndValidity())
-//}
+func TestBody_IntegrityAndValidityNil(t *testing.T) {
+	t.Parallel()
+
+	body := block.Body{}
+	body = nil
+	assert.Equal(t, data.ErrNilBlockBody, body.IntegrityAndValidity())
+}
 
 func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.T) {
 	t.Parallel()

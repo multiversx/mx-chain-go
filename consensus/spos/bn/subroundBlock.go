@@ -181,13 +181,11 @@ func (sr *subroundBlock) doBlockJob() bool {
 
 // sendBlockBody method job the proposed block body in the Block subround
 func (sr *subroundBlock) sendBlockBody() bool {
+	startTime := time.Time{}
+	startTime = sr.consensusState.RoundTimeStamp
+	maxTime := time.Duration(sr.EndTime())
 	haveTimeInCurrentSubround := func() bool {
-		roundStartTime := sr.rounder.TimeStamp()
-		currentTime := sr.syncTimer.CurrentTime()
-		elapsedTime := currentTime.Sub(roundStartTime)
-		remainingTime := sr.EndTime() - int64(elapsedTime)
-
-		return time.Duration(remainingTime) > 0
+		return sr.rounder.RemainingTime(startTime, maxTime) > 0
 	}
 
 	blockBody, err := sr.blockProcessor.CreateBlockBody(
@@ -409,10 +407,19 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 		return false
 	}
 
+	defer func() {
+		sr.consensusState.ProcessingBlock = false
+	}()
+
+	sr.consensusState.ProcessingBlock = true
+
 	node := string(cnsDta.PubKey)
 
+	startTime := time.Time{}
+	startTime = sr.consensusState.RoundTimeStamp
+	maxTime := sr.rounder.TimeDuration() * processingThresholdPercent / 100
 	remainingTimeInCurrentRound := func() time.Duration {
-		return sr.rounder.RemainingTimeInRound(safeThresholdPercent)
+		return sr.rounder.RemainingTime(startTime, maxTime)
 	}
 
 	err := sr.blockProcessor.ProcessBlock(
@@ -422,35 +429,26 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 		remainingTimeInCurrentRound,
 	)
 
-	if err != nil {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
-			sr.rounder.Index(), getSubroundName(SrBlock), err.Error()))
-
-		if err == process.ErrTimeIsOut {
-			sr.consensusState.RoundCanceled = true
-		}
-
+	if cnsDta.RoundIndex < sr.rounder.Index() {
+		log.Info(fmt.Sprintf("canceled round %d in subround %s, meantime round index has been changed to %d\n",
+			cnsDta.RoundIndex, getSubroundName(SrBlock), sr.rounder.Index()))
 		return false
 	}
 
-	if sr.rounder.RemainingTimeInRound(safeThresholdPercent) < 0 {
-		log.Info(fmt.Sprintf("canceled round %d in subround %s, time is out\n",
-			cnsDta.RoundIndex, getSubroundName(SrBlock)))
-
-		sr.consensusState.RoundCanceled = true
-
-		sr.blockProcessor.RevertAccountState()
-
+	if err != nil {
+		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
+			sr.rounder.Index(), getSubroundName(SrBlock), err.Error()))
+		if err == process.ErrTimeIsOut {
+			sr.consensusState.RoundCanceled = true
+		}
 		return false
 	}
 
 	sr.multiSigner.SetMessage(sr.consensusState.Data)
 	err = sr.consensusState.SetJobDone(node, SrBlock, true)
-
 	if err != nil {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
 			sr.rounder.Index(), getSubroundName(SrBlock), err.Error()))
-
 		return false
 	}
 
@@ -468,16 +466,9 @@ func (sr *subroundBlock) doBlockConsensusCheck() bool {
 	}
 
 	threshold := sr.consensusState.Threshold(SrBlock)
-
 	if sr.isBlockReceived(threshold) {
-		if !sr.consensusState.IsSelfLeaderInCurrentRound() {
-			log.Info(fmt.Sprintf("%sStep 1: synchronized block\n", sr.syncTimer.FormattedCurrentTime()))
-		}
-
 		log.Info(fmt.Sprintf("%sStep 1: subround %s has been finished\n", sr.syncTimer.FormattedCurrentTime(), sr.Name()))
-
 		sr.consensusState.SetStatus(SrBlock, spos.SsFinished)
-
 		return true
 	}
 

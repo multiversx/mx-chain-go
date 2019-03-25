@@ -238,6 +238,7 @@ func (n *Node) StartConsensus() error {
 	}
 
 	worker, err := bn.NewWorker(
+		n.blockProcessor,
 		bootstraper,
 		consensusState,
 		n.singleSignKeyGen,

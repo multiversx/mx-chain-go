@@ -9,11 +9,11 @@ import (
 type ChainStorerMock struct {
 	AddStorerCalled func(key data.UnitType, s storage.Storer)
 	GetStorerCalled func(unitType data.UnitType) storage.Storer
-	HasCalled func(unitType data.UnitType, key []byte) (bool, error)
-	GetCalled func(unitType data.UnitType, key []byte) ([]byte, error)
-	PutCalled func(unitType data.UnitType, key []byte, value []byte) error
-	GetAllCalled func(unitType data.UnitType, keys [][]byte) (map[string][]byte, error)
-	DestroyCalled func() error
+	HasCalled       func(unitType data.UnitType, key []byte) (bool, error)
+	GetCalled       func(unitType data.UnitType, key []byte) ([]byte, error)
+	PutCalled       func(unitType data.UnitType, key []byte, value []byte) error
+	GetAllCalled    func(unitType data.UnitType, keys [][]byte) (map[string][]byte, error)
+	DestroyCalled   func() error
 }
 
 // AddStorer will add a new storer to the chain map
@@ -78,4 +78,3 @@ func (bc *ChainStorerMock) Destroy() error {
 	}
 	return nil
 }
-

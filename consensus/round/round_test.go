@@ -127,7 +127,7 @@ func TestRound_RemainingTimeInCurrentRoundShouldReturnPositiveValue(t *testing.T
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
 
-	remainingTime := rnd.RemainingTimeInRound(100)
+	remainingTime := rnd.RemainingTime(rnd.TimeStamp(), roundTimeDuration)
 
 	assert.Equal(t, time.Duration(int64(rnd.TimeDuration())-timeElapsed), remainingTime)
 	assert.True(t, remainingTime > 0)
@@ -148,7 +148,7 @@ func TestRound_RemainingTimeInCurrentRoundShouldReturnNegativeValue(t *testing.T
 
 	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock)
 
-	remainingTime := rnd.RemainingTimeInRound(100)
+	remainingTime := rnd.RemainingTime(rnd.TimeStamp(), roundTimeDuration)
 
 	assert.Equal(t, time.Duration(int64(rnd.TimeDuration())-timeElapsed), remainingTime)
 	assert.True(t, remainingTime < 0)

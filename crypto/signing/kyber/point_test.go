@@ -1,10 +1,10 @@
-package kv2_test
+package kyber_test
 
 import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,7 +12,7 @@ import (
 func TestKyberPoint_EqualShouldNotChangeReceiver(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint().Base()
 	point2 := suite.CreatePoint().Null()
@@ -28,7 +28,7 @@ func TestKyberPoint_EqualShouldNotChangeReceiver(t *testing.T) {
 func TestKyberPoint_EqualNilParamShouldRetError(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint().Base()
 	eq, err := point.Equal(nil)
@@ -40,7 +40,7 @@ func TestKyberPoint_EqualNilParamShouldRetError(t *testing.T) {
 func TestKyberPoint_EqualInvalidParamShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint().Base()
 	point2 := &mock.PointMock{}
@@ -53,7 +53,7 @@ func TestKyberPoint_EqualInvalidParamShouldRetErr(t *testing.T) {
 func TestKyberPoint_EqualShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint().Base()
 	point2 := suite.CreatePoint().Base().Neg()
@@ -66,7 +66,7 @@ func TestKyberPoint_EqualShouldRetFalse(t *testing.T) {
 func TestKyberPoint_EqualShouldRetTrue(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint().Base()
 	point2 := suite.CreatePoint().Base()
@@ -79,7 +79,7 @@ func TestKyberPoint_EqualShouldRetTrue(t *testing.T) {
 func TestKyberPoint_NullShouldNotChangeReceiver(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint().Base()
 	point2 := point.Clone()
@@ -92,7 +92,7 @@ func TestKyberPoint_NullShouldNotChangeReceiver(t *testing.T) {
 func TestKyberPoint_NullOK(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint().Base()
 	point2 := point.Null()
@@ -106,7 +106,7 @@ func TestKyberPoint_NullOK(t *testing.T) {
 func TestKyberPoint_BaseShouldNotChangeReceiver(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	stream := suite.RandomStream()
 	point, _ := suite.CreatePoint().Pick(stream)
@@ -120,7 +120,7 @@ func TestKyberPoint_BaseShouldNotChangeReceiver(t *testing.T) {
 func TestKyberPoint_BaseOK(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint().Base()
 	assert.NotNil(t, point)
@@ -129,7 +129,7 @@ func TestKyberPoint_BaseOK(t *testing.T) {
 func TestKyberPoint_SetNilParamShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint().Base()
 
@@ -140,7 +140,7 @@ func TestKyberPoint_SetNilParamShouldRetErr(t *testing.T) {
 func TestKyberPoint_SetInvalidParamShouldRetErr(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint().Base()
 	point2 := &mock.PointMock{}
@@ -152,7 +152,7 @@ func TestKyberPoint_SetInvalidParamShouldRetErr(t *testing.T) {
 func TestKyberPoint_SetOK(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	stream := suite.RandomStream()
 	point := suite.CreatePoint().Base()
@@ -166,7 +166,7 @@ func TestKyberPoint_SetOK(t *testing.T) {
 func TestKyberPoint_CloneShouldNotChangeReceiver(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint()
 	point2 := point.Clone()
@@ -177,7 +177,7 @@ func TestKyberPoint_CloneShouldNotChangeReceiver(t *testing.T) {
 func TestKyberPoint_CloneOK(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint()
 	point2 := point.Clone()
@@ -188,7 +188,7 @@ func TestKyberPoint_CloneOK(t *testing.T) {
 func TestKyberPoint_AddNilParamShouldErr(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint()
 	point2, err := point.Add(nil)
@@ -200,7 +200,7 @@ func TestKyberPoint_AddNilParamShouldErr(t *testing.T) {
 func TestKyberPoint_AddInvalidParamShouldErr(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint()
 	point2 := &mock.PointMock{}
@@ -213,7 +213,7 @@ func TestKyberPoint_AddInvalidParamShouldErr(t *testing.T) {
 func TestKyberPoint_AddOK(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	stream := suite.RandomStream()
 	point1 := suite.CreatePoint()
@@ -236,7 +236,7 @@ func TestKyberPoint_AddOK(t *testing.T) {
 func TestKyberPoint_SubNilParamShouldErr(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint()
 	point2, err := point.Sub(nil)
@@ -248,7 +248,7 @@ func TestKyberPoint_SubNilParamShouldErr(t *testing.T) {
 func TestKyberPoint_SubInvalidParamShouldErr(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint()
 	point2 := &mock.PointMock{}
@@ -261,7 +261,7 @@ func TestKyberPoint_SubInvalidParamShouldErr(t *testing.T) {
 func TestKyberPoint_SubOK(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	stream := suite.RandomStream()
 	point1 := suite.CreatePoint()
@@ -278,7 +278,7 @@ func TestKyberPoint_SubOK(t *testing.T) {
 func TestKyberPoint_NegShouldNotChangeReceiver(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint()
 	pointClone := point.Clone()
@@ -291,7 +291,7 @@ func TestKyberPoint_NegShouldNotChangeReceiver(t *testing.T) {
 func TestKyberPoint_NegOK(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint()
 	point2 := point.Neg()
@@ -304,7 +304,7 @@ func TestKyberPoint_NegOK(t *testing.T) {
 func TestKyberPoint_MulNilParamShouldErr(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint()
 	res, err := point.Mul(nil)
@@ -316,7 +316,7 @@ func TestKyberPoint_MulNilParamShouldErr(t *testing.T) {
 func TestKyberPoint_MulInvalidParamShouldErr(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point := suite.CreatePoint()
 	scalar := &mock.ScalarMock{}
@@ -329,7 +329,7 @@ func TestKyberPoint_MulInvalidParamShouldErr(t *testing.T) {
 func TestKyberPoint_MulOK(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	stream := suite.RandomStream()
 	point := suite.CreatePoint()
@@ -344,7 +344,7 @@ func TestKyberPoint_MulOK(t *testing.T) {
 func TestKyberPoint_PickNilParamShouldErr(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	point1 := suite.CreatePoint()
 	point2, err := point1.Pick(nil)
@@ -356,7 +356,7 @@ func TestKyberPoint_PickNilParamShouldErr(t *testing.T) {
 func TestKyberPoint_PickOK(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	stream := suite.RandomStream()
 	point1 := suite.CreatePoint()
@@ -371,7 +371,7 @@ func TestKyberPoint_PickOK(t *testing.T) {
 func TestKyberPoint_GetUnderlyingObj(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	point1 := suite.CreatePoint().Base()
 	p := point1.GetUnderlyingObj()
 
@@ -381,7 +381,7 @@ func TestKyberPoint_GetUnderlyingObj(t *testing.T) {
 func TestKyberPoint_MarshalBinary(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	point1 := suite.CreatePoint().Base()
 	pointBytes, err := point1.MarshalBinary()
 
@@ -392,7 +392,7 @@ func TestKyberPoint_MarshalBinary(t *testing.T) {
 func TestKyberPoint_UnmarshalBinary(t *testing.T) {
 	t.Parallel()
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	stream := suite.RandomStream()
 	point1, _ := suite.CreatePoint().Pick(stream)
 	pointBytes, _ := point1.MarshalBinary()

@@ -5,9 +5,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +18,7 @@ func genMultiSigParams(cnGrSize int, ownIndex uint16) (
 	pubKeys []string,
 	kg crypto.KeyGenerator,
 ) {
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	kg = signing.NewKeyGenerator(suite)
 
 	var pubKeyBytes []byte
@@ -85,7 +85,7 @@ func createSigShares(
 ) (sigShares [][]byte, multiSigner crypto.MultiSigner) {
 
 	hasher := &mock.HasherMock{}
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
 
 	var pubKeyBytes []byte
