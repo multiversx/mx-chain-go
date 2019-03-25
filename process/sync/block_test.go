@@ -788,8 +788,14 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 			return nil, nil
 		},
 	}
-	blkc, _ := blockchain.NewBlockChain(&mock.CacherStub{}, &mock.StorerStub{}, blockBodyUnit,
-		&mock.StorerStub{}, &mock.StorerStub{})
+	blkc, _ := blockchain.NewBlockChain(
+		&mock.CacherStub{},
+		&mock.StorerStub{},
+		blockBodyUnit,
+		&mock.StorerStub{},
+		&mock.StorerStub{},
+		&mock.StorerStub{},
+	)
 
 	blkc.CurrentBlockHeader = &hdr
 
