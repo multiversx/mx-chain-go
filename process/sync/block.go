@@ -311,13 +311,11 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 
 	headerHash, _ := boot.headersNonces.Get(nonce)
-
 	if headerHash != nil {
 		log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n", nonce, toB64(headerHash)))
 	}
 
 	n := boot.requestedHeaderNonce()
-
 	if n == nil {
 		return
 	}

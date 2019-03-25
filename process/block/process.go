@@ -140,18 +140,18 @@ func (bp *blockProcessor) RevertAccountState() {
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the speciffic error
-func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	err := checkForNils(blockChain, header, body)
+func (bp *blockProcessor) ProcessBlock(chainHandler data.ChainHandler, headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
+	err := checkForNils(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
 
-	blockBody, ok := body.(block.Body)
+	body, ok := bodyHandler.(block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	blockHeader, ok := header.(*block.Header)
+	header, ok := headerHandler.(*block.Header)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -160,17 +160,17 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		return process.ErrNilHaveTimeHandler
 	}
 
-	concreteBlockChain, ok := blockChain.(*blockchain.BlockChain)
+	blockChain, ok := chainHandler.(*blockchain.BlockChain)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = bp.validateHeader(concreteBlockChain, blockHeader)
+	err = bp.validateHeader(blockChain, header)
 	if err != nil {
 		return err
 	}
 
-	requestedTxs := bp.requestBlockTransactions(blockBody)
+	requestedTxs := bp.requestBlockTransactions(body)
 
 	if haveTime() < 0 {
 		return process.ErrTimeIsOut
@@ -195,12 +195,12 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		}
 	}()
 
-	err = bp.processBlockTransactions(blockBody, int32(blockHeader.Round), haveTime)
+	err = bp.processBlockTransactions(body, int32(header.Round), haveTime)
 	if err != nil {
 		return err
 	}
 
-	if !bp.verifyStateRoot(blockHeader.RootHash) {
+	if !bp.verifyStateRoot(header.RootHash) {
 		err = process.ErrRootStateMissmatch
 		return err
 	}

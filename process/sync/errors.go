@@ -14,6 +14,9 @@ var ErrNilHash = errors.New("nil hash")
 // ErrLowerNonceInBlock signals the nonce in block is lower than the last check point nonce
 var ErrLowerNonceInBlock = errors.New("lower nonce in block")
 
+// ErrNilOrEmptyInfoStored signals that info stored si nil or empty
+var ErrNilOrEmptyInfoStored = errors.New("info stored is nil or empty")
+
 type ErrNotEmptyHeader struct {
 	CurrentNonce uint64
 }

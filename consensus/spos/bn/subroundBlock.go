@@ -432,28 +432,23 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 	if cnsDta.RoundIndex < sr.rounder.Index() {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, meantime round index has been changed to %d\n",
 			cnsDta.RoundIndex, getSubroundName(SrBlock), sr.rounder.Index()))
-
 		return false
 	}
 
 	if err != nil {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
 			sr.rounder.Index(), getSubroundName(SrBlock), err.Error()))
-
 		if err == process.ErrTimeIsOut {
 			sr.consensusState.RoundCanceled = true
 		}
-
 		return false
 	}
 
 	sr.multiSigner.SetMessage(sr.consensusState.Data)
 	err = sr.consensusState.SetJobDone(node, SrBlock, true)
-
 	if err != nil {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
 			sr.rounder.Index(), getSubroundName(SrBlock), err.Error()))
-
 		return false
 	}
 

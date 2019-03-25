@@ -24,7 +24,6 @@ type basicForkDetector struct {
 func NewBasicForkDetector() *basicForkDetector {
 	bfd := &basicForkDetector{}
 	bfd.headers = make(map[uint64][]*headerInfo)
-
 	return bfd
 }
 
@@ -33,11 +32,9 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isPro
 	if header == nil {
 		return ErrNilHeader
 	}
-
 	if hash == nil {
 		return ErrNilHash
 	}
-
 	if header.Nonce < bfd.checkpointNonce {
 		return ErrLowerNonceInBlock
 	}
@@ -70,20 +67,17 @@ func (bfd *basicForkDetector) removePastHeaders(nonce uint64) {
 }
 
 // RemoveProcessedHeader removes all stored headers with a given nonce
-func (bfd *basicForkDetector) RemoveProcessedHeader(nonce uint64) {
+func (bfd *basicForkDetector) RemoveProcessedHeader(nonce uint64) error {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
 	hdrInfosStored := bfd.headers[nonce]
-
 	isHdrInfosStoredNilOrEmpty := hdrInfosStored == nil || len(hdrInfosStored) == 0
-
 	if isHdrInfosStoredNilOrEmpty {
-		return
+		return ErrNilOrEmptyInfoStored
 	}
 
 	var newHdrInfosStored []*headerInfo
-
 	for _, hdrInfoStored := range hdrInfosStored {
 		if !hdrInfoStored.isProcessed {
 			newHdrInfosStored = append(newHdrInfosStored, hdrInfoStored)
@@ -91,13 +85,13 @@ func (bfd *basicForkDetector) RemoveProcessedHeader(nonce uint64) {
 	}
 
 	isNewHdrInfosStoredNilOrEmpty := newHdrInfosStored == nil || len(newHdrInfosStored) == 0
-
 	if isNewHdrInfosStoredNilOrEmpty {
 		delete(bfd.headers, nonce)
-		return
+	} else {
+		bfd.headers[nonce] = newHdrInfosStored
 	}
 
-	bfd.headers[nonce] = newHdrInfosStored
+	return nil
 }
 
 // append adds a new header in the slice found in nonce position
@@ -107,9 +101,7 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 	defer bfd.mutHeaders.Unlock()
 
 	hdrInfos := bfd.headers[hdrInfo.header.Nonce]
-
 	isHdrInfosNilOrEmpty := hdrInfos == nil || len(hdrInfos) == 0
-
 	if isHdrInfosNilOrEmpty {
 		bfd.headers[hdrInfo.header.Nonce] = []*headerInfo{hdrInfo}
 		return
@@ -118,12 +110,9 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 	for _, hdrInfoStored := range hdrInfos {
 		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) {
 			if !hdrInfoStored.isProcessed && hdrInfo.isProcessed {
-				// if the stored received header is now also processed and their hashes are equal, the old record
-				// will be replaced with the processed one, as this nonce should be marked now as processed.
-				// (actually this happens when a node is bootstrapping and it receives alongside the nonces
-				// requested for bootstrapping, also the other nonces broadcasted to the network by the consensus group.
-				// So, it stores them as received but not processed yet. When it will reach to that nonce and
-				// if eventually it will be successfully processed, this nonce will be marked here from now on as a processed one.
+				// if the stored and received headers processed at the same time have equal hashes, that the old record
+				// will be replaced with the processed one. This nonce is marked at bootsrapping as processed, but as it
+				// is also received through broadcasting, the system stores as received.
 				hdrInfoStored.isProcessed = true
 			}
 			return
@@ -139,7 +128,6 @@ func (bfd *basicForkDetector) CheckFork() bool {
 	defer bfd.mutHeaders.Unlock()
 
 	var selfHdrInfo *headerInfo
-
 	for nonce, hdrInfos := range bfd.headers {
 		if len(hdrInfos) == 1 {
 			continue

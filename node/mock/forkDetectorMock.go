@@ -8,7 +8,7 @@ import (
 type ForkDetectorMock struct {
 	RemoveHeadersCalled         func(nonce uint64)
 	AddHeaderCalled             func(header *block.Header, hash []byte, isProcessed bool) error
-	RemoveProcessedHeaderCalled func(nonce uint64)
+	RemoveProcessedHeaderCalled func(nonce uint64) error
 	CheckForkCalled             func() bool
 }
 
@@ -22,8 +22,8 @@ func (f *ForkDetectorMock) AddHeader(header *block.Header, hash []byte, isProces
 }
 
 // RemoveHeader is a mock implementation for RemoveHeader
-func (f *ForkDetectorMock) RemoveProcessedHeader(nonce uint64) {
-	f.RemoveProcessedHeaderCalled(nonce)
+func (f *ForkDetectorMock) RemoveProcessedHeader(nonce uint64) error {
+	return f.RemoveProcessedHeaderCalled(nonce)
 }
 
 // CheckFork is a mock implementation for CheckFork

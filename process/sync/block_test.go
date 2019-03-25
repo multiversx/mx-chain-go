@@ -187,32 +187,9 @@ func createHeadersNoncesDataPool(
 
 func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.ForkDetector {
 	return &mock.ForkDetectorMock{
-		RemoveProcessedHeaderCalled: func(nonce uint64) {
+		RemoveProcessedHeaderCalled: func(nonce uint64) error {
 			if nonce == removedNonce {
 				remFlags.flagHdrRemovedFromForkDetector = true
-			}
-		},
-	}
-}
-
-func createHeadersStorage(
-	getHashCompare []byte,
-	getRetBytes []byte,
-	removedHash []byte,
-	remFlags *removedFlags,
-) storage.Storer {
-
-	return &mock.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
-			if bytes.Equal(key, getHashCompare) {
-				return getRetBytes, nil
-			}
-
-			return nil, errors.New("not found")
-		},
-		RemoveCalled: func(key []byte) error {
-			if bytes.Equal(key, removedHash) {
-				remFlags.flagHdrRemovedFromStorage = true
 			}
 			return nil
 		},
@@ -824,8 +801,8 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	forkDetector.CheckForkCalled = func() bool {
 		return true
 	}
-	forkDetector.RemoveProcessedHeaderCalled = func(nonce uint64) {
-		return
+	forkDetector.RemoveProcessedHeaderCalled = func(nonce uint64) error {
+		return nil
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
