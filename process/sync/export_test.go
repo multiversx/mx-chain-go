@@ -22,8 +22,8 @@ func (boot *Bootstrap) ReceivedHeaders(key []byte) {
 	boot.receivedHeaders(key)
 }
 
-func (boot *Bootstrap) ForkChoice(hdr *block.Header) error {
-	return boot.forkChoice(hdr)
+func (boot *Bootstrap) ForkChoice() error {
+	return boot.forkChoice()
 }
 
 func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
@@ -42,6 +42,18 @@ func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	return newHeaders
 }
 
+func (bfd *basicForkDetector) SetCheckpointNonce(checkpointNonce uint64) {
+	bfd.checkpointNonce = checkpointNonce
+}
+
+func (bfd *basicForkDetector) CheckpointNonce() uint64 {
+	return bfd.checkpointNonce
+}
+
+func (bfd *basicForkDetector) Append(hdrInfo *headerInfo) {
+	bfd.append(hdrInfo)
+}
+
 func (hi *headerInfo) Header() *block.Header {
 	return hi.header
 }
@@ -50,8 +62,8 @@ func (hi *headerInfo) Hash() []byte {
 	return hi.hash
 }
 
-func (hi *headerInfo) IsReceived() bool {
-	return hi.isReceived
+func (hi *headerInfo) IsProcessed() bool {
+	return hi.isProcessed
 }
 
 func (boot *Bootstrap) NotifySyncStateListeners() {
@@ -88,4 +100,12 @@ func (boot *Bootstrap) CreateAndBroadcastEmptyBlock() error {
 
 func (boot *Bootstrap) BroadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
 	return boot.broadcastEmptyBlock(txBlockBody, header)
+}
+
+func (boot *Bootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
+	boot.isNodeSynchronized = isNodeSyncronized
+}
+
+func (boot *Bootstrap) SetRoundIndex(roundIndex int32) {
+	boot.roundIndex = roundIndex
 }

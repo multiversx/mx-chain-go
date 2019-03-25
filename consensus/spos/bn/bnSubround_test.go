@@ -77,7 +77,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 	maxTime := time.Now().Add(100 * time.Millisecond)
 
 	rounderMock := &mock.RounderMock{}
-	rounderMock.RemainingTimeInRoundCalled = func(safeThresholdPercent uint32) time.Duration {
+	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 
@@ -108,7 +108,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 	maxTime := time.Now().Add(100 * time.Millisecond)
 
 	rounderMock := &mock.RounderMock{}
-	rounderMock.RemainingTimeInRoundCalled = func(safeThresholdPercent uint32) time.Duration {
+	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 
@@ -141,7 +141,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 	maxTime := time.Now().Add(100 * time.Millisecond)
 
 	rounderMock := &mock.RounderMock{}
-	rounderMock.RemainingTimeInRoundCalled = func(safeThresholdPercent uint32) time.Duration {
+	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 
@@ -175,7 +175,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 	maxTime := time.Now().Add(100 * time.Millisecond)
 
 	rounderMock := &mock.RounderMock{}
-	rounderMock.RemainingTimeInRoundCalled = func(safeThresholdPercent uint32) time.Duration {
+	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 
@@ -217,7 +217,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	maxTime := time.Now().Add(2000 * time.Millisecond)
 
 	rounderMock := &mock.RounderMock{}
-	rounderMock.RemainingTimeInRoundCalled = func(safeThresholdPercent uint32) time.Duration {
+	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 

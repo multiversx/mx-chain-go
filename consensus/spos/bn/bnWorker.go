@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -20,6 +21,7 @@ var log = logger.NewDefaultLogger()
 
 // worker defines the data needed by spos to communicate between nodes which are in the validators group
 type worker struct {
+	blockProcessor   process.BlockProcessor
 	bootstraper      process.Bootstrapper
 	consensusState   *spos.ConsensusState
 	keyGenerator     crypto.KeyGenerator
@@ -44,6 +46,7 @@ type worker struct {
 
 // NewWorker creates a new worker object
 func NewWorker(
+	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	consensusState *spos.ConsensusState,
 	keyGenerator crypto.KeyGenerator,
@@ -53,8 +56,8 @@ func NewWorker(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 ) (*worker, error) {
-
 	err := checkNewWorkerParams(
+		blockProcessor,
 		bootstraper,
 		consensusState,
 		keyGenerator,
@@ -70,6 +73,7 @@ func NewWorker(
 	}
 
 	wrk := worker{
+		blockProcessor:   blockProcessor,
 		bootstraper:      bootstraper,
 		consensusState:   consensusState,
 		keyGenerator:     keyGenerator,
@@ -83,17 +87,14 @@ func NewWorker(
 	wrk.executeMessageChannel = make(chan *spos.ConsensusMessage)
 	wrk.receivedMessagesCalls = make(map[MessageType]func(*spos.ConsensusMessage) bool)
 	wrk.consensusStateChangedChannels = make(chan bool, 1)
-
 	wrk.bootstraper.AddSyncStateListener(wrk.receivedSyncState)
-
 	wrk.initReceivedMessages()
-
 	go wrk.checkChannels()
-
 	return &wrk, nil
 }
 
 func checkNewWorkerParams(
+	blockProcessor process.BlockProcessor,
 	bootstraper process.Bootstrapper,
 	consensusState *spos.ConsensusState,
 	keyGenerator crypto.KeyGenerator,
@@ -103,6 +104,10 @@ func checkNewWorkerParams(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 ) error {
+	if blockProcessor == nil {
+		return spos.ErrNilBlockProcessor
+	}
+
 	if bootstraper == nil {
 		return spos.ErrNilBlootstraper
 	}
@@ -150,7 +155,6 @@ func (wrk *worker) initReceivedMessages() {
 	wrk.mutReceivedMessages.Lock()
 
 	wrk.receivedMessages = make(map[MessageType][]*spos.ConsensusMessage)
-
 	wrk.receivedMessages[MtBlockBody] = make([]*spos.ConsensusMessage, 0)
 	wrk.receivedMessages[MtBlockHeader] = make([]*spos.ConsensusMessage, 0)
 	wrk.receivedMessages[MtCommitmentHash] = make([]*spos.ConsensusMessage, 0)
@@ -195,10 +199,6 @@ func (wrk *worker) getCleanedList(cnsDataList []*spos.ConsensusMessage) []*spos.
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
 func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	if wrk.consensusState.RoundCanceled {
-		return ErrRoundCanceled
-	}
-
 	if message == nil {
 		return ErrNilMessage
 	}
@@ -215,13 +215,16 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	log.Debug(fmt.Sprintf("received %s from %s\n", MessageType(cnsDta.MsgType).String(), hex.EncodeToString(cnsDta.PubKey)))
 
-	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
+	if wrk.consensusState.RoundCanceled && wrk.consensusState.RoundIndex == cnsDta.RoundIndex {
+		return ErrRoundCanceled
+	}
 
+	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
 		return ErrSenderNotOk
 	}
 
-	if wrk.rounder.Index() > cnsDta.RoundIndex {
+	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
 		return ErrMessageForPastRound
 	}
 
@@ -237,7 +240,6 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	}
 
 	go wrk.executeReceivedMessages(cnsDta)
-
 	return nil
 }
 
@@ -255,23 +257,19 @@ func (wrk *worker) checkSignature(cnsDta *spos.ConsensusMessage) error {
 	}
 
 	pubKey, err := wrk.keyGenerator.PublicKeyFromByteArray(cnsDta.PubKey)
-
 	if err != nil {
 		return err
 	}
 
 	dataNoSig := *cnsDta
 	signature := cnsDta.Signature
-
 	dataNoSig.Signature = nil
 	dataNoSigString, err := wrk.marshalizer.Marshal(dataNoSig)
-
 	if err != nil {
 		return err
 	}
 
 	err = wrk.singleSigner.Verify(pubKey, dataNoSigString, signature)
-
 	return err
 }
 
@@ -279,14 +277,12 @@ func (wrk *worker) executeReceivedMessages(cnsDta *spos.ConsensusMessage) {
 	wrk.mutReceivedMessages.Lock()
 
 	msgType := MessageType(cnsDta.MsgType)
-
 	cnsDataList := wrk.receivedMessages[msgType]
 	cnsDataList = append(cnsDataList, cnsDta)
 	wrk.receivedMessages[msgType] = cnsDataList
 
 	for i := MtBlockBody; i <= MtSignature; i++ {
 		cnsDataList = wrk.receivedMessages[i]
-
 		if len(cnsDataList) == 0 {
 			continue
 		}
@@ -305,7 +301,7 @@ func (wrk *worker) executeMessage(cnsDtaList []*spos.ConsensusMessage) {
 			continue
 		}
 
-		if wrk.rounder.Index() != cnsDta.RoundIndex {
+		if wrk.consensusState.RoundIndex != cnsDta.RoundIndex {
 			continue
 		}
 
@@ -339,7 +335,6 @@ func (wrk *worker) executeMessage(cnsDtaList []*spos.ConsensusMessage) {
 		}
 
 		cnsDtaList[i] = nil
-
 		wrk.executeMessageChannel <- cnsDta
 	}
 }
@@ -350,9 +345,7 @@ func (wrk *worker) checkChannels() {
 	for {
 		select {
 		case rcvDta := <-wrk.executeMessageChannel:
-
 			msgType := MessageType(rcvDta.MsgType)
-
 			if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 				if callReceivedMessage(rcvDta) {
 					if len(wrk.consensusStateChangedChannels) == 0 {
@@ -367,7 +360,6 @@ func (wrk *worker) checkChannels() {
 // sendConsensusMessage sends the consensus message
 func (wrk *worker) sendConsensusMessage(cnsDta *spos.ConsensusMessage) bool {
 	signature, err := wrk.genConsensusDataSignature(cnsDta)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -382,20 +374,16 @@ func (wrk *worker) sendConsensusMessage(cnsDta *spos.ConsensusMessage) bool {
 	}
 
 	go wrk.SendMessage(&signedCnsData)
-
 	return true
 }
 
 func (wrk *worker) genConsensusDataSignature(cnsDta *spos.ConsensusMessage) ([]byte, error) {
-
 	cnsDtaStr, err := wrk.marshalizer.Marshal(cnsDta)
-
 	if err != nil {
 		return nil, err
 	}
 
 	signature, err := wrk.singleSigner.Sign(wrk.privateKey, cnsDtaStr)
-
 	if err != nil {
 		return nil, err
 	}
@@ -406,16 +394,21 @@ func (wrk *worker) genConsensusDataSignature(cnsDta *spos.ConsensusMessage) ([]b
 func (wrk *worker) extend(subroundId int) {
 	log.Info(fmt.Sprintf("extend function is called from subround: %s\n", getSubroundName(subroundId)))
 
-	if wrk.consensusState.RoundCanceled {
-		return
-	}
-
 	if wrk.bootstraper.ShouldSync() {
 		return
 	}
 
-	blk, hdr, err := wrk.bootstraper.CreateAndCommitEmptyBlock(wrk.shardCoordinator.SelfId())
+	for wrk.consensusState.ProcessingBlock {
+		time.Sleep(time.Millisecond)
+	}
 
+	wrk.blockProcessor.RevertAccountState()
+
+	if wrk.consensusState.RoundCanceled {
+		return
+	}
+
+	blk, hdr, err := wrk.bootstraper.CreateAndCommitEmptyBlock(wrk.shardCoordinator.SelfId())
 	if err != nil {
 		log.Info(err.Error())
 		return
@@ -425,7 +418,6 @@ func (wrk *worker) extend(subroundId int) {
 
 	// broadcast block body and header
 	err = wrk.BroadcastBlock(blk, hdr)
-
 	if err != nil {
 		log.Info(err.Error())
 	}

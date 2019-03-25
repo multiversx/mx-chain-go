@@ -7,22 +7,22 @@ import (
 // BlockChainMock is a mock implementation of the blockchain interface
 type BlockChainMock struct {
 	data.StorageService
-	GetGenesisHeaderCalled func() data.HeaderHandler
-	SetGenesisHeaderCalled func(handler data.HeaderHandler) error
-	GetGenesisHeaderHashCalled func() []byte
-	SetGenesisHeaderHashCalled func([]byte)
-	GetCurrentBlockHeaderCalled func() data.HeaderHandler
-	SetCurrentBlockHeaderCalled func(data.HeaderHandler) error
+	GetGenesisHeaderCalled          func() data.HeaderHandler
+	SetGenesisHeaderCalled          func(handler data.HeaderHandler) error
+	GetGenesisHeaderHashCalled      func() []byte
+	SetGenesisHeaderHashCalled      func([]byte)
+	GetCurrentBlockHeaderCalled     func() data.HeaderHandler
+	SetCurrentBlockHeaderCalled     func(data.HeaderHandler) error
 	GetCurrentBlockHeaderHashCalled func() []byte
 	SetCurrentBlockHeaderHashCalled func([]byte)
-	GetCurrentBlockBodyCalled func() data.BodyHandler
-	SetCurrentBlockBodyCalled func(data.BodyHandler) error
-	GetLocalHeightCalled func() int64
-	SetLocalHeightCalled func(int64)
-	GetNetworkHeightCalled func() int64
-	SetNetworkHeightCalled func(int64)
-	IsBadBlockCalled func([]byte) bool
-	PutBadBlockCalled func([]byte)
+	GetCurrentBlockBodyCalled       func() data.BodyHandler
+	SetCurrentBlockBodyCalled       func(data.BodyHandler) error
+	GetLocalHeightCalled            func() int64
+	SetLocalHeightCalled            func(int64)
+	GetNetworkHeightCalled          func() int64
+	SetNetworkHeightCalled          func(int64)
+	IsBadBlockCalled                func([]byte) bool
+	PutBadBlockCalled               func([]byte)
 }
 
 // GetGenesisHeader returns the genesis block header pointer
