@@ -198,9 +198,8 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *spos.ConsensusMessage) bool {
 	}
 
 	n := sr.consensusState.ComputeSize(SrBitmap)
-	msg := fmt.Sprintf("%sStep 3: received bitmap from leader and it got %d from %d commitment hashes",
-		sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup()))
-	log.Info(msg)
+	log.Info(fmt.Sprintf("%sStep 3: received bitmap from leader and it got %d from %d commitment hashes\n",
+		sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
 
 	if !sr.consensusState.IsSelfJobDone(SrBitmap) {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, not included in the bitmap\n",
