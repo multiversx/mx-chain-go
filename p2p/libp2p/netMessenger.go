@@ -252,6 +252,17 @@ func (netMes *networkMessenger) ConnectedPeers() []p2p.PeerID {
 	return peerList
 }
 
+// ConnectedAddresses returns all connected peer's addresses
+func (netMes *networkMessenger) ConnectedAddresses() []string {
+	h := netMes.ctxProvider.Host()
+	conns := make([]string, 0)
+
+	for _, c := range h.Network().Conns() {
+		conns = append(conns, c.RemoteMultiaddr().String()+"/p2p/"+c.RemotePeer().Pretty())
+	}
+	return conns
+}
+
 // ConnectedPeersOnTopic returns the connected peers on a provided topic
 func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
 	//as the peers in pubsub impl are held inside a map where the key is the peerID,

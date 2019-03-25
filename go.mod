@@ -12,7 +12,6 @@ require (
 	github.com/glycerine/go-capnproto v0.0.0-20190118050403-2d07de3aa7fc
 	github.com/glycerine/rbtree v0.0.0-20180524195614-80eebfe947f7 // indirect
 	github.com/gogo/protobuf v1.2.1
-	github.com/google/go-cmp v0.2.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/ipfs/go-log v0.0.1
 	github.com/jbenet/goprocess v0.0.0-20160826012719-b497e2f366b8
@@ -47,5 +46,5 @@ require (
 	go.dedis.ch/kyber/v3 v3.0.1
 	golang.org/x/crypto v0.0.0-20190320223903-b7391e95e576
 	gopkg.in/go-playground/validator.v8 v8.18.2
-	gotest.tools v2.2.0+incompatible
+	gotest.tools v0.0.0-20181223230014-1083505acf35
 )

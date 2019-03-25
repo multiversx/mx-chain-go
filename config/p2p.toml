@@ -25,7 +25,7 @@
 #MdnsPeerDiscovery can be used on LAN networks for discovering the new peers
 [MdnsPeerDiscovery]
     #Enabled: true/false to enable/disable this discovery mechanism
-    Enabled = true
+    Enabled = false
 
     #RefreshIntervalInSec represents the time in seconds between querying for new peers
     RefreshIntervalInSec = 1
@@ -36,7 +36,7 @@
 
 [KadDhtPeerDiscovery]
     #Enabled: true/false to enable/disable this discovery mechanism
-    Enabled = false
+    Enabled = true
 
     #RefreshIntervalInSec represents the time in seconds between querying for new peers
     RefreshIntervalInSec = 2

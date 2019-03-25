@@ -41,6 +41,7 @@ VERSION:
    {{end}}
 `
 var p2pConfigurationFile = "./config/p2p.toml"
+var log = logger.NewDefaultLogger()
 
 type seedRandReader struct {
 	index int
@@ -80,9 +81,6 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 }
 
 func main() {
-	log := logger.NewDefaultLogger()
-	log.SetLevel(logger.LogInfo)
-
 	app := cli.NewApp()
 	cli.AppHelpTemplate = seedNodeHelpTemplate
 	app.Name = "SeedNode CLI App"
@@ -90,28 +88,28 @@ func main() {
 	app.Flags = []cli.Flag{flags.Port, flags.P2PSeed}
 
 	app.Action = func(c *cli.Context) error {
-		return startNode(c, log)
+		return startNode(c)
 	}
 
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Error(err.Error())
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 }
 
-func startNode(ctx *cli.Context, log *logger.Logger) error {
-	log.Info("Starting node...")
+func startNode(ctx *cli.Context) error {
+	fmt.Println("Starting node...")
 
 	stop := make(chan bool, 1)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	p2pConfig, err := loadP2PConfig(p2pConfigurationFile, log)
+	p2pConfig, err := loadP2PConfig(p2pConfigurationFile)
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFile))
+	fmt.Printf("Initialized with p2p config from: %s\n", p2pConfigurationFile)
 	if ctx.IsSet(flags.Port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalInt(flags.Port.Name)
 	}
@@ -119,8 +117,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		p2pConfig.Node.Seed = ctx.GlobalString(flags.P2PSeed.Name)
 	}
 
-	log.Info("Seed node....")
-	messenger, err := createNode(p2pConfig, log)
+	fmt.Println("Seed node....")
+	messenger, err := createNode(p2pConfig)
 	if err != nil {
 		return err
 	}
@@ -131,23 +129,24 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	go func() {
 		<-sigs
-		log.Info("terminating at user's signal...")
+		fmt.Println("terminating at user's signal...")
 		stop <- true
 	}()
 
-	log.Info("Application is now running...")
+	fmt.Println("Application is now running...")
 
+	displayMessengerInfo(messenger)
 	for {
 		select {
 		case <-stop:
 			return nil
-		case <-time.After(time.Second):
+		case <-time.After(time.Second * 5):
 			displayMessengerInfo(messenger)
 		}
 	}
 }
 
-func loadP2PConfig(filepath string, log *logger.Logger) (*config.P2PConfig, error) {
+func loadP2PConfig(filepath string) (*config.P2PConfig, error) {
 	cfg := &config.P2PConfig{}
 	err := core.LoadTomlFile(cfg, filepath, log)
 	if err != nil {
@@ -156,10 +155,7 @@ func loadP2PConfig(filepath string, log *logger.Logger) (*config.P2PConfig, erro
 	return cfg, nil
 }
 
-func createNode(
-	p2pConfig *config.P2PConfig,
-	log *logger.Logger,
-) (p2p.Messenger, error) {
+func createNode(p2pConfig *config.P2PConfig) (p2p.Messenger, error) {
 
 	hasher := sha256.Sha256{}
 
@@ -170,7 +166,7 @@ func createNode(
 		randReader = rand.Reader
 	}
 
-	netMessenger, err := createNetMessenger(p2pConfig, log, randReader)
+	netMessenger, err := createNetMessenger(p2pConfig, randReader)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +176,6 @@ func createNode(
 
 func createNetMessenger(
 	p2pConfig *config.P2PConfig,
-	log *logger.Logger,
 	randReader io.Reader,
 ) (p2p.Messenger, error) {
 
@@ -198,7 +193,7 @@ func createNetMessenger(
 		return nil, errors.New("kad-dht peer discovery should have been enabled")
 	}
 
-	log.Info(fmt.Sprintf("Starting with peer discovery: %s", pDiscoverer.Name()))
+	fmt.Printf("Starting with peer discovery: %s\n", pDiscoverer.Name())
 
 	prvKey, _ := ecdsa.GenerateKey(btcec.S256(), randReader)
 	sk := (*crypto2.Secp256k1PrivateKey)(prvKey)
@@ -219,18 +214,27 @@ func createNetMessenger(
 }
 
 func displayMessengerInfo(messenger p2p.Messenger) {
-	header1 := []string{"Available addresses:"}
+	header1 := []string{"Seednode addresses:"}
 	addresses := make([]*display.LineData, 0)
 	for _, address := range messenger.Addresses() {
 		addresses = append(addresses, display.NewLineData(false, []string{address}))
 	}
-	fmt.Println(display.CreateTableString(header1, addresses))
+	tbl, _ := display.CreateTableString(header1, addresses)
+	fmt.Println(tbl)
 
-	header1 := []string{"Available addresses:"}
-	addresses := make([]*display.LineData, 0)
-	for _, address := range messenger.Addresses() {
-		addresses = append(addresses, display.NewLineData(false, []string{address}))
+	header2 := []string{"Seednode is connected to:"}
+	connAddresses := make([]*display.LineData, 0)
+	for _, address := range messenger.ConnectedAddresses() {
+		connAddresses = append(connAddresses, display.NewLineData(false, []string{address}))
 	}
-	fmt.Println(display.CreateTableString(header1, addresses))
+	tbl2, _ := display.CreateTableString(header2, connAddresses)
+	fmt.Println(tbl2)
+
+	//header1 := []string{"Available addresses:"}
+	//addresses := make([]*display.LineData, 0)
+	//for _, address := range messenger.Addresses() {
+	//	addresses = append(addresses, display.NewLineData(false, []string{address}))
+	//}
+	//fmt.Println(display.CreateTableString(header1, addresses))
 
 }
