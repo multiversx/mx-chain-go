@@ -131,7 +131,7 @@ func (sd *shardedData) SearchFirstData(key []byte) (value interface{}, ok bool) 
 		}
 
 		if m.DataStore.Has(key) {
-			value, _ = m.DataStore.Get(key)
+			value, _ = m.DataStore.Peek(key)
 			sd.mutShardedDataStore.RUnlock()
 			return value, true
 		}

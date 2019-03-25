@@ -12,7 +12,7 @@ type Rounder interface {
 	UpdateRound(time.Time, time.Time)
 	TimeStamp() time.Time
 	TimeDuration() time.Duration
-	RemainingTimeInRound(safeThresholdPercent uint32) time.Duration
+	RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
 }
 
 // SubroundHandler defines the actions which should be handled by a subround implementation

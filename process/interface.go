@@ -108,8 +108,8 @@ type Bootstrapper interface {
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header *block.Header, hash []byte, isReceived bool) error
-	RemoveHeaders(nonce uint64)
+	AddHeader(header *block.Header, hash []byte, isProcessed bool) error
+	RemoveProcessedHeader(nonce uint64) error
 	CheckFork() bool
 }
 

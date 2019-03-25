@@ -176,7 +176,7 @@ func TestNonceToHashCacher_GetNotFoundShouldRetNil(t *testing.T) {
 
 	wasCalled := false
 
-	mockLRU.GetCalled = func(key []byte) (value interface{}, ok bool) {
+	mockLRU.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		wasCalled = true
 		return nil, false
 	}
@@ -196,7 +196,7 @@ func TestNonceToHashCacher_GetFoundShouldRetValue(t *testing.T) {
 
 	wasCalled := false
 
-	mockLRU.GetCalled = func(key []byte) (value interface{}, ok bool) {
+	mockLRU.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		wasCalled = true
 		return []byte("bbbb"), true
 	}

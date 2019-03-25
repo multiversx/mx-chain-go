@@ -195,6 +195,24 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *spos.ConsensusM
 		return false
 	}
 
+	threshold := sr.consensusState.Threshold(SrCommitmentHash)
+	if !sr.consensusState.IsSelfLeaderInCurrentRound() {
+		threshold = len(sr.consensusState.ConsensusGroup())
+	}
+
+	if sr.isCommitmentHashReceived(threshold) {
+		n := sr.consensusState.ComputeSize(SrCommitmentHash)
+		log.Info(fmt.Sprintf("%sStep 2: received %d from %d commitment hashes\n",
+			sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
+	} else {
+		threshold = sr.consensusState.Threshold(SrBitmap)
+		if sr.commitmentHashesCollected(threshold) {
+			n := sr.consensusState.ComputeSize(SrCommitmentHash)
+			log.Info(fmt.Sprintf("%sStep 2: received %d from %d commitment hashes\n",
+				sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
+		}
+	}
+
 	return true
 }
 
@@ -209,46 +227,20 @@ func (sr *subroundCommitmentHash) doCommitmentHashConsensusCheck() bool {
 	}
 
 	threshold := sr.consensusState.Threshold(SrCommitmentHash)
-
 	if !sr.consensusState.IsSelfLeaderInCurrentRound() {
 		threshold = len(sr.consensusState.ConsensusGroup())
 	}
 
 	if sr.isCommitmentHashReceived(threshold) {
-		n := sr.consensusState.ComputeSize(SrCommitmentHash)
-
-		if n == len(sr.consensusState.ConsensusGroup()) {
-			log.Info(fmt.Sprintf("%sStep 2: received all (%d from %d) commitment hashes\n",
-				sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
-		} else {
-			log.Info(fmt.Sprintf("%sStep 2: received %d from %d commitment hashes, which are enough\n",
-				sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
-		}
-
 		log.Info(fmt.Sprintf("%sStep 2: subround %s has been finished\n", sr.syncTimer.FormattedCurrentTime(), sr.Name()))
-
 		sr.consensusState.SetStatus(SrCommitmentHash, spos.SsFinished)
-
 		return true
 	}
 
 	threshold = sr.consensusState.Threshold(SrBitmap)
-
 	if sr.commitmentHashesCollected(threshold) {
-		n := sr.consensusState.ComputeSize(SrCommitmentHash)
-
-		if n == len(sr.consensusState.ConsensusGroup()) {
-			log.Info(fmt.Sprintf("%sStep 2: received all (%d from %d) commitment hashes\n",
-				sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
-		} else {
-			log.Info(fmt.Sprintf("%sStep 2: received %d from %d commitment hashes, which are enough\n",
-				sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
-		}
-
 		log.Info(fmt.Sprintf("%sStep 2: subround %s has been finished\n", sr.syncTimer.FormattedCurrentTime(), sr.Name()))
-
 		sr.consensusState.SetStatus(SrCommitmentHash, spos.SsFinished)
-
 		return true
 	}
 

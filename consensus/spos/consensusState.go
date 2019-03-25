@@ -2,6 +2,7 @@ package spos
 
 import (
 	"bytes"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -18,7 +19,10 @@ type ConsensusState struct {
 	BlockBody data.BodyHandler
 	Header    data.HeaderHandler
 
-	RoundCanceled bool
+	RoundIndex      int32
+	RoundTimeStamp  time.Time
+	RoundCanceled   bool
+	ProcessingBlock bool
 
 	*roundConsensus
 	*roundThreshold
