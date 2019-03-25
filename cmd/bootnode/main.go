@@ -407,6 +407,7 @@ func createNode(
 		shardCoordinator,
 		forkDetector,
 		createRequestTransactionHandler(resolversFinder, log),
+		createRequestMiniBlocksHandler(resolversFinder, log),
 	)
 
 	if err != nil {
@@ -466,6 +467,12 @@ func createRequestTransactionHandler(resolversFinder process.ResolversFinder, lo
 		if err != nil {
 			log.Debug(err.Error())
 		}
+	}
+}
+
+func createRequestMiniBlocksHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(hashes map[uint32][][]byte) {
+	return func(hashes map[uint32][][]byte) {
+		// TODO implement this
 	}
 }
 

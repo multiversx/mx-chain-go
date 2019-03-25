@@ -107,6 +107,7 @@ func initDataPool() *mock.PoolsHolderStub {
 					}
 					return nil, false
 				},
+				RegisterHandlerCalled: func(i func(key []byte)) {},
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
@@ -127,6 +128,7 @@ func initDataPool() *mock.PoolsHolderStub {
 
 				return nil, false
 			}
+			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
 			return cs
 		},
 	}
@@ -147,8 +149,8 @@ func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
-		},
+		func(destShardID uint32, txHash []byte) {},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -170,6 +172,7 @@ func TestNewBlockProcessor_NilHasherShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -191,6 +194,7 @@ func TestNewBlockProcessor_NilMarshalizerShouldWork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -212,6 +216,7 @@ func TestNewBlockProcessor_NilTxProcessorShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	assert.Equal(t, process.ErrNilTxProcessor, err)
@@ -233,6 +238,7 @@ func TestNewBlockProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -254,6 +260,7 @@ func TestNewBlockProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -275,6 +282,7 @@ func TestNewBlockProcessor_NilForkDetectorShouldErr(t *testing.T) {
 		nil,
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	assert.Equal(t, process.ErrNilForkDetector, err)
@@ -295,6 +303,7 @@ func TestNewBlockProcessor_NilRequestTransactionHandlerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		nil,
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	assert.Equal(t, process.ErrNilTransactionHandler, err)
@@ -319,6 +328,7 @@ func TestNewBlockProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	assert.Equal(t, process.ErrNilTransactionPool, err)
@@ -340,6 +350,7 @@ func TestNewBlockProcessor_OkValsShouldWork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	assert.Nil(t, err)
@@ -363,6 +374,7 @@ func TestBlockProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	blk := make(block.Body, 0)
@@ -387,6 +399,7 @@ func TestBlockProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	body := make(block.Body, 0)
@@ -411,6 +424,7 @@ func TestBlockProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	err := be.ProcessBlock(createTestBlockchain(), &block.Header{}, nil, haveTime)
@@ -433,6 +447,7 @@ func TestBlockProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	blk := make(block.Body, 0)
@@ -476,6 +491,7 @@ func TestBlockProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	// should return err
@@ -540,6 +556,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	go func() {
@@ -566,6 +583,7 @@ func TestBlockProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	hdr := &block.Header{
@@ -601,6 +619,7 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	hdr := &block.Header{
@@ -636,6 +655,7 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	hdr := &block.Header{
@@ -682,6 +702,7 @@ func TestBlockProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 	blk := make(block.Body, 0)
 	err := be.CommitBlock(nil, &block.Header{}, blk)
@@ -738,6 +759,7 @@ func TestBlockProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	blkc := createTestBlockchain()
@@ -786,6 +808,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	hdrUnit := &mock.StorerStub{
@@ -855,6 +878,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 		},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	txBlockUnit := &mock.StorerStub{
@@ -910,6 +934,7 @@ func TestBlockProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	tdp.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -975,6 +1000,7 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		fd,
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	txCache := &mock.CacherStub{
@@ -1065,6 +1091,7 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		fd,
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	txCache := &mock.CacherStub{
@@ -1138,6 +1165,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	assert.True(t, be.VerifyStateRoot(rootHash))
@@ -1157,6 +1185,7 @@ func TestBlockProc_GetTransactionFromPool(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	txHash := []byte("tx1_hash")
@@ -1180,6 +1209,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	shardId := uint32(1)
@@ -1220,6 +1250,7 @@ func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	bl, err := be.CreateBlockBody(0, func() bool { return true })
@@ -1253,6 +1284,7 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	haveTime := func() bool {
@@ -1300,6 +1332,7 @@ func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	blk, err := be.CreateBlockBody(0, haveTime)
@@ -1336,6 +1369,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldErr(t *tes
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	_, err := be.CreateGenesisBlock(nil)
@@ -1370,6 +1404,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	rootHash, err := be.CreateGenesisBlock(nil)
@@ -1392,6 +1427,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	err := be.RemoveBlockInfoFromPool(nil)
@@ -1414,6 +1450,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 	body := make(block.Body, 0)
 
@@ -1451,6 +1488,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	hdr, txBlock := createTestHdrTxBlockBody()
@@ -1490,6 +1528,7 @@ func TestNode_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	hdr, txBlock := createTestHdrTxBlockBody()
@@ -1582,6 +1621,7 @@ func TestBlockProcessor_DisplayLogInfo(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	hdr.PrevHash = hasher.Compute("prev hash")
@@ -1816,6 +1856,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	blkc := createTestBlockchain()
@@ -1888,6 +1929,7 @@ func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	mbHeaders, err := bp.CreateBlockHeader(nil)
@@ -1909,6 +1951,7 @@ func TestBlockProcessor_CreateBlockHeaderShouldErrWhenMarshalizerErrors(t *testi
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	body := block.Body{
@@ -1934,6 +1977,7 @@ func TestBlockProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	body := block.Body{
@@ -1968,6 +2012,7 @@ func TestBlockProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T)
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	err := bp.CommitBlock(nil, nil, nil)
@@ -2013,6 +2058,7 @@ func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	msh, mstx, err := be.MarshalizedDataForCrossShard(body)
@@ -2057,6 +2103,7 @@ func TestBlockProcessor_MarshalizedDataWrongType(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	wr := wrongBody{}
@@ -2086,6 +2133,7 @@ func TestBlockProcessor_MarshalizedDataNilInput(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	msh, mstx, err := be.MarshalizedDataForCrossShard(nil)
@@ -2125,6 +2173,7 @@ func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	msh, mstx, err := be.MarshalizedDataForCrossShard(body)

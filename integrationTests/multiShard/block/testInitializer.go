@@ -211,6 +211,7 @@ func createNetNode(
 		shardCoordinator,
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {},
+		func(hashes map[uint32][][]byte) {},
 	)
 
 	n, _ := node.NewNode(

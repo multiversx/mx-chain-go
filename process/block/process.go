@@ -44,10 +44,13 @@ type blockProcessor struct {
 	OnRequestTransaction func(destShardID uint32, txHash []byte)
 	requestedTxHashes    map[string]bool
 	mut                  sync.RWMutex
+	mutCrossData         sync.RWMutex
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
 	forkDetector         process.ForkDetector
 	crossTxsForBlock     map[string]crossTxsForShard
+	miniBlockMissing     map[string]uint32
+	OnRequestMiniBlocks  func(hashes map[uint32][][]byte)
 }
 
 // NewBlockProcessor creates a new blockProcessor object
@@ -60,6 +63,7 @@ func NewBlockProcessor(
 	shardCoordinator sharding.Coordinator,
 	forkDetector process.ForkDetector,
 	requestTransactionHandler func(destShardID uint32, txHash []byte),
+	requestMiniBlockHandler func(hashes map[uint32][][]byte),
 ) (*blockProcessor, error) {
 
 	if dataPool == nil {
@@ -94,6 +98,10 @@ func NewBlockProcessor(
 		return nil, process.ErrNilTransactionHandler
 	}
 
+	if requestMiniBlockHandler == nil {
+		return nil, process.ErrNilMiniBlocksRequestHandler
+	}
+
 	bp := blockProcessor{
 		dataPool:         dataPool,
 		hasher:           hasher,
@@ -108,13 +116,27 @@ func NewBlockProcessor(
 	bp.OnRequestTransaction = requestTransactionHandler
 
 	transactionPool := bp.dataPool.Transactions()
-
 	if transactionPool == nil {
 		return nil, process.ErrNilTransactionPool
 	}
-
 	transactionPool.RegisterHandler(bp.receivedTransaction)
+
+	bp.OnRequestMiniBlocks = requestMiniBlockHandler
 	bp.crossTxsForBlock = make(map[string]crossTxsForShard, 0)
+	bp.miniBlockMissing = make(map[string]uint32, 0)
+
+	metaBlockPool := bp.dataPool.MetaBlocks()
+	if metaBlockPool == nil {
+		return nil, process.ErrNilMetaBlockPool
+	}
+	metaBlockPool.RegisterHandler(bp.receivedMetaBlock)
+
+	miniBlockPool := bp.dataPool.MiniBlocks()
+	if miniBlockPool == nil {
+		return nil, process.ErrNilMiniBlockPool
+	}
+	miniBlockPool.RegisterHandler(bp.receivedMiniBlock)
+
 	return &bp, nil
 }
 
@@ -122,28 +144,24 @@ func checkForNils(blockChain data.ChainHandler, header data.HeaderHandler, body 
 	if blockChain == nil {
 		return process.ErrNilBlockChain
 	}
-
 	if header == nil {
 		return process.ErrNilBlockHeader
 	}
-
 	if body == nil {
 		return process.ErrNilMiniBlocks
 	}
-
 	return nil
 }
 
 // RevertAccountState reverts the account state for cleanup failed process
 func (bp *blockProcessor) RevertAccountState() {
 	err := bp.accounts.RevertToSnapshot(0)
-
 	if err != nil {
 		log.Error(err.Error())
 	}
 }
 
-// ProcessBlock processes a block. It returns nil if all ok or the speciffic error
+// ProcessBlock processes a block. It returns nil if all ok or the specific error
 func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	err := checkForNils(blockChain, header, body)
 	if err != nil {
@@ -470,6 +488,30 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 	return v
 }
 
+// getCrossTransactionFromPool gets the transaction from a given shard id and a given transaction hash
+func (bp *blockProcessor) getCrossTransactionFromPool(senderShardID, destShardID uint32, txHash []byte) *transaction.Transaction {
+	txPool := bp.dataPool.Transactions()
+	if txPool == nil {
+		log.Error(process.ErrNilTransactionPool.Error())
+		return nil
+	}
+
+	strCache := process.ShardCacherIdentifier(senderShardID, destShardID)
+	txStore := txPool.ShardDataStore(strCache)
+	if txStore == nil {
+		log.Error(process.ErrNilTxStorage.Error())
+		return nil
+	}
+
+	val, ok := txStore.Get(txHash)
+	if !ok {
+		return nil
+	}
+
+	v := val.(*transaction.Transaction)
+	return v
+}
+
 // receivedTransaction is a call back function which is called when a new transaction
 // is added in the transaction pool
 func (bp *blockProcessor) receivedTransaction(txHash []byte) {
@@ -485,6 +527,88 @@ func (bp *blockProcessor) receivedTransaction(txHash []byte) {
 			bp.ChRcvAllTxs <- true
 		}
 		return
+	}
+	bp.mut.Unlock()
+}
+
+// receivedMetaBlock is a callback function when a new metablock was received
+// upon receiving, it parses the new metablock and requests miniblocks and transactions
+// which destination is the current shard
+func (bp *blockProcessor) receivedMetaBlock(metaBlockHash []byte) {
+	metaBlockCache := bp.dataPool.MetaBlocks()
+	if metaBlockCache == nil {
+		return
+	}
+
+	miniBlockCache := bp.dataPool.MiniBlocks()
+	if miniBlockCache == nil {
+		return
+	}
+
+	metaBlock, ok := metaBlockCache.Peek(metaBlockHash)
+	if !ok {
+		return
+	}
+
+	hdr, ok := metaBlock.(data.HeaderHandler)
+	if !ok {
+		return
+	}
+
+	currentMissingMiniBlocks := make(map[uint32][][]byte, 0)
+	hashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
+
+	bp.mutCrossData.Lock()
+	for k, senderShardId := range hashSnd {
+		miniVal, _ := miniBlockCache.Peek([]byte(k))
+		if miniVal == nil {
+			bp.miniBlockMissing[k] = senderShardId
+			currentMissingMiniBlocks[senderShardId] = append(currentMissingMiniBlocks[senderShardId], []byte(k))
+			continue
+		}
+	}
+	bp.mutCrossData.Unlock()
+	go bp.OnRequestMiniBlocks(currentMissingMiniBlocks)
+}
+
+// receivedMiniBlock is a callback function when a new miniblock was received
+// it will further ask for missing transactions
+func (bp *blockProcessor) receivedMiniBlock(miniBlockHash []byte) {
+	metaBlockCache := bp.dataPool.MetaBlocks()
+	if metaBlockCache == nil {
+		return
+	}
+
+	miniBlockCache := bp.dataPool.MiniBlocks()
+	if miniBlockCache == nil {
+		return
+	}
+
+	bp.mutCrossData.Lock()
+	defer bp.mutCrossData.Unlock()
+
+	val, ok := miniBlockCache.Peek(miniBlockHash)
+	if !ok {
+		return
+	}
+
+	miniBlock, ok := val.(block.MiniBlock)
+	if !ok {
+		return
+	}
+
+	srId, ok := bp.miniBlockMissing[string(miniBlockHash)]
+	if !ok {
+		return
+	}
+
+	// request transactions
+	bp.mut.Lock()
+	for _, txHash := range miniBlock.TxHashes {
+		tx := bp.getCrossTransactionFromPool(srId, miniBlock.ShardID, txHash)
+		if tx == nil {
+			go bp.OnRequestTransaction(srId, txHash)
+		}
 	}
 	bp.mut.Unlock()
 }
@@ -572,13 +696,12 @@ func (bp *blockProcessor) getAllTxsFromMiniBlock(mb block.MiniBlock, srShardId u
 		if !haveTime() {
 			return nil, nil, process.ErrTimeIsOut
 		}
+
 		tmp, _ := txCache.Peek(txHash)
 		if tmp == nil {
-			if bp.OnRequestTransaction != nil {
-				bp.OnRequestTransaction(srShardId, txHash)
-			}
 			return nil, nil, process.ErrNilTransaction
 		}
+
 		tx, ok := tmp.(*transaction.Transaction)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
@@ -641,8 +764,6 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 
 			miniVal, _ := miniBlockCache.Peek([]byte(k))
 			if miniVal == nil {
-				// TODO ask for miniblock, on topic v (senderId), selfId
-				// is this done at sync\block ? as miniblockresolver is there
 				continue
 			}
 
@@ -654,9 +775,10 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 			if miniBlock.ShardID != bp.shardCoordinator.SelfId() {
 				hdr.SetProcessed([]byte(k))
 				processedMbs++
-				// bad miniblock removed
+				// miniblock is not for me removed
 				miniBlockCache.Remove([]byte(k))
-				return miniBlocks, nrTxAdded, process.ErrMiniBlockHeaderBlockMismatch
+				delete(bp.miniBlockMissing, k)
+				continue
 			}
 
 			// overflow would happen if processing would continue
@@ -703,6 +825,7 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 			}
 
 			// all txs processed, add to processed miniblocks
+			delete(bp.miniBlockMissing, k)
 			miniBlocks = append(miniBlocks, &miniBlock)
 			nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
 			hdr.SetProcessed([]byte(k))
@@ -731,7 +854,6 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 	}
 
 	txPool := bp.dataPool.Transactions()
-
 	if txPool == nil {
 		return nil, nil, process.ErrNilTransactionPool
 	}
@@ -793,7 +915,6 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 
 			snapshot := bp.accounts.JournalLen()
 
-			// TODO why is this called BadTransaction ?
 			// execute transaction to change the trie root hash
 			err := bp.processAndRemoveBadTransaction(
 				orderedTxHashes[index],
@@ -1197,8 +1318,8 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain data.ChainHandler, heade
 		log.Error(process.ErrWrongTypeAssertion.Error())
 		return false
 	}
-	prevHeaderHash, err := bp.computeHeaderHash(blockHeader)
 
+	prevHeaderHash, err := bp.computeHeaderHash(blockHeader)
 	if err != nil {
 		log.Info(err.Error())
 		return false
