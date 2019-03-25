@@ -2,7 +2,6 @@ package sync_test
 
 import (
 	"bytes"
-	"fmt"
 	"reflect"
 	"strings"
 	goSync "sync"
@@ -101,6 +100,9 @@ func createMockPools() *mock.PoolsHolderStub {
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
+			RemoveDataCalled: func(key []byte, destShardID uint32) {
+				return
+			},
 		}
 		return sds
 	}
@@ -110,6 +112,9 @@ func createMockPools() *mock.PoolsHolderStub {
 				return nil, false
 			},
 			RegisterHandlerCalled: func(handler func(nonce uint64)) {},
+			RemoveCalled: func(u uint64) {
+				return
+			},
 		}
 		return hnc
 	}
@@ -182,32 +187,9 @@ func createHeadersNoncesDataPool(
 
 func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.ForkDetector {
 	return &mock.ForkDetectorMock{
-		RemoveHeadersCalled: func(nonce uint64) {
+		RemoveProcessedHeaderCalled: func(nonce uint64) error {
 			if nonce == removedNonce {
 				remFlags.flagHdrRemovedFromForkDetector = true
-			}
-		},
-	}
-}
-
-func createHeadersStorage(
-	getHashCompare []byte,
-	getRetBytes []byte,
-	removedHash []byte,
-	remFlags *removedFlags,
-) storage.Storer {
-
-	return &mock.StorerStub{
-		GetCalled: func(key []byte) (i []byte, e error) {
-			if bytes.Equal(key, getHashCompare) {
-				return getRetBytes, nil
-			}
-
-			return nil, errors.New("not found")
-		},
-		RemoveCalled: func(key []byte) error {
-			if bytes.Equal(key, removedHash) {
-				remFlags.flagHdrRemovedFromStorage = true
 			}
 			return nil
 		},
@@ -797,6 +779,64 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 
 //------- processing
 
+func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
+	t.Parallel()
+
+	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
+	blockBodyUnit := &mock.StorerStub{
+		GetCalled: func(key []byte) (i []byte, e error) {
+			return nil, nil
+		},
+	}
+	blkc, _ := blockchain.NewBlockChain(&mock.CacherStub{}, &mock.StorerStub{}, blockBodyUnit,
+		&mock.StorerStub{}, &mock.StorerStub{})
+
+	blkc.CurrentBlockHeader = &hdr
+
+	pools := createMockPools()
+
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector.CheckForkCalled = func() bool {
+		return true
+	}
+	forkDetector.RemoveProcessedHeaderCalled = func(nonce uint64) error {
+		return nil
+	}
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+
+	blockProcessorMock := createBlockProcessor()
+
+	bs, _ := sync.NewBootstrap(
+		pools,
+		blkc,
+		rnd,
+		blockProcessorMock,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinder(),
+		shardCoordinator,
+		account,
+	)
+
+	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
+		return nil
+	}
+
+	bs.SetHighestNonceReceived(100)
+
+	r := bs.SyncBlock()
+
+	assert.Equal(t, &sync.ErrNotEmptyHeader{CurrentNonce: hdr.Nonce}, r)
+}
+
 func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 	t.Parallel()
 
@@ -812,13 +852,16 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() bool {
-		return true
+		return false
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(),
+		time.Now().Add(2*time.Duration(100*time.Millisecond)),
+		time.Duration(100*time.Millisecond),
+		mock.SyncTimerMock{})
 
 	blockProcessorMock := createBlockProcessor()
 
@@ -891,13 +934,16 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() bool {
-		return true
+		return false
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(),
+		time.Now().Add(2*time.Duration(100*time.Millisecond)),
+		time.Duration(100*time.Millisecond),
+		mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
 		pools,
@@ -1161,7 +1207,10 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
 
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
+	rnd, _ := round.NewRound(time.Now(),
+		time.Now().Add(2*time.Duration(100*time.Millisecond)),
+		time.Duration(100*time.Millisecond),
+		mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
 		pools,
@@ -1180,6 +1229,109 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	r := bs.SyncBlock()
 
 	assert.Nil(t, r)
+}
+
+func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T) {
+	t.Parallel()
+
+	ebm := createBlockProcessor()
+
+	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
+	blkc := mock.BlockChainMock{}
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return &hdr
+	}
+
+	pools := &mock.PoolsHolderStub{}
+	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		sds := &mock.ShardedDataStub{}
+
+		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+			if bytes.Equal([]byte("aaa"), key) {
+				return &block.Header{
+					Nonce:         2,
+					Round:         1,
+					BlockBodyType: block.TxBlock,
+					RootHash:      []byte("bbb")}, true
+			}
+
+			return nil, false
+		}
+
+		sds.RegisterHandlerCalled = func(func(key []byte)) {
+		}
+		sds.RemoveDataCalled = func(key []byte, destShardID uint32) {
+		}
+
+		return sds
+	}
+	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+		hnc := &mock.Uint64CacherStub{}
+		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
+		}
+		hnc.RemoveCalled = func(u uint64) {
+		}
+		hnc.GetCalled = func(u uint64) (bytes []byte, b bool) {
+			if u == 2 {
+				return []byte("aaa"), false
+			}
+
+			return nil, false
+		}
+		return hnc
+	}
+	pools.MiniBlocksCalled = func() storage.Cacher {
+		cs := &mock.CacherStub{}
+		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		}
+		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
+			if bytes.Equal([]byte("bbb"), key) {
+				return make(block.MiniBlockSlice, 0), true
+			}
+
+			return nil, false
+		}
+
+		return cs
+	}
+
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector.CheckForkCalled = func() bool {
+		return false
+	}
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	rnd, _ := round.NewRound(time.Now(),
+		time.Now().Add(2*time.Duration(100*time.Millisecond)),
+		time.Duration(100*time.Millisecond),
+		mock.SyncTimerMock{})
+
+	ebm.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+		return process.ErrInvalidBlockHash
+	}
+
+	bs, _ := sync.NewBootstrap(
+		pools,
+		&blkc,
+		rnd,
+		ebm,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		createMockResolversFinder(),
+		shardCoordinator,
+		account,
+	)
+
+	err := bs.SyncBlock()
+
+	assert.Equal(t, &sync.ErrNotEmptyHeader{
+		CurrentNonce: hdr.Nonce}, err)
 }
 
 func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {
@@ -1500,9 +1652,9 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isReceived bool) error {
-		if !isReceived {
-			return errors.New("not received")
+	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isProcessed bool) error {
+		if isProcessed {
+			return errors.New("processed")
 		}
 
 		if !bytes.Equal(hash, addedHash) {
@@ -1553,9 +1705,9 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isReceived bool) error {
-		if !isReceived {
-			return errors.New("not received")
+	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isProcessed bool) error {
+		if isProcessed {
+			return errors.New("processed")
 		}
 
 		if !bytes.Equal(hash, addedHash) {
@@ -1638,7 +1790,7 @@ func TestBootstrap_ReceivedHeadersShouldSetHighestNonceReceived(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isReceived bool) error {
+	forkDetector.AddHeaderCalled = func(header *block.Header, hash []byte, isProcessed bool) error {
 		return nil
 	}
 
@@ -1697,8 +1849,8 @@ func TestBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
 		account,
 	)
 
-	err := bs.ForkChoice(&block.Header{})
-	assert.Equal(t, sync.ErrNilCurrentHeader, err)
+	err := bs.ForkChoice()
+	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
 func TestBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
@@ -1729,14 +1881,14 @@ func TestBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 	)
 
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &block.Header{}
+		return nil
 	}
 
-	err := bs.ForkChoice(nil)
-	assert.Equal(t, sync.ErrNilHeader, err)
+	err := bs.ForkChoice()
+	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
-func TestBootstrap_ForkChoiceIsNotEmptyShouldRemove(t *testing.T) {
+func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	newHdrHash := []byte("new hdr hash")
@@ -1777,18 +1929,12 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldRemove(t *testing.T) {
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return &block.Header{
 			PubKeysBitmap: []byte{1},
+			Nonce:         newHdrNonce,
 		}
 	}
 
-	newHdr := &block.Header{Nonce: newHdrNonce}
-
-	err := bs.ForkChoice(newHdr)
+	err := bs.ForkChoice()
 	assert.Equal(t, reflect.TypeOf(&sync.ErrNotEmptyHeader{}), reflect.TypeOf(err))
-	fmt.Printf(err.Error())
-	assert.True(t, remFlags.flagHdrRemovedFromNonces)
-	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
-	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
-
 }
 
 func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
@@ -1888,7 +2034,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 		}
 	}
 
-	err := bs.ForkChoice(&block.Header{})
+	err := bs.ForkChoice()
 	assert.Nil(t, err)
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
 	assert.True(t, remFlags.flagHdrRemovedFromHeaders)
@@ -1996,7 +2142,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 		}
 	}
 
-	err := bs.ForkChoice(&block.Header{})
+	err := bs.ForkChoice()
 	assert.Nil(t, err)
 	assert.True(t, remFlags.flagHdrRemovedFromNonces)
 	assert.True(t, remFlags.flagHdrRemovedFromHeaders)

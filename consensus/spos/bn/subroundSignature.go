@@ -257,6 +257,13 @@ func (sr *subroundSignature) receivedSignature(cnsDta *spos.ConsensusMessage) bo
 		return false
 	}
 
+	threshold := sr.consensusState.Threshold(SrSignature)
+	if sr.signaturesCollected(threshold) {
+		n := sr.consensusState.ComputeSize(SrSignature)
+		log.Info(fmt.Sprintf("%sStep 5: received %d from %d signatures\n",
+			sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
+	}
+
 	return true
 }
 
@@ -271,15 +278,9 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 
 	threshold := sr.consensusState.Threshold(SrSignature)
-
 	if sr.signaturesCollected(threshold) {
-		log.Info(fmt.Sprintf("%sStep 5: received %d from %d signatures, which are matching with bitmap and are enough\n",
-			sr.syncTimer.FormattedCurrentTime(), sr.consensusState.ComputeSize(SrSignature), len(sr.consensusState.ConsensusGroup())))
-
 		log.Info(fmt.Sprintf("%sStep 5: subround %s has been finished\n", sr.syncTimer.FormattedCurrentTime(), sr.Name()))
-
 		sr.consensusState.SetStatus(SrSignature, spos.SsFinished)
-
 		return true
 	}
 

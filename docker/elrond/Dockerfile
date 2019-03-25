@@ -18,9 +18,6 @@ ENV GOPATH /go
 ENV PATH /usr/local/go/bin:/go/bin:$PATH
 WORKDIR /go
 
-# install godep
-RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-
 # fetch repository
 WORKDIR src/github.com/ElrondNetwork
 RUN ls
@@ -30,4 +27,4 @@ COPY ./ ./elrond-go-sandbox/
 WORKDIR elrond-go-sandbox
 RUN >> skipP2PMessengerTests
 RUN ls
-RUN dep ensure
+RUN GO111MODULE=on go mod vendor

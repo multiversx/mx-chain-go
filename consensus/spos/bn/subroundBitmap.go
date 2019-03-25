@@ -197,13 +197,15 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *spos.ConsensusMessage) bool {
 		}
 	}
 
+	n := sr.consensusState.ComputeSize(SrBitmap)
+	log.Info(fmt.Sprintf("%sStep 3: received bitmap from leader and it got %d from %d commitment hashes\n",
+		sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
+
 	if !sr.consensusState.IsSelfJobDone(SrBitmap) {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, not included in the bitmap\n",
 			sr.rounder.Index(), getSubroundName(SrBitmap)))
 
 		sr.consensusState.RoundCanceled = true
-
-		sr.blockProcessor.RevertAccountState()
 
 		return false
 	}
@@ -239,25 +241,9 @@ func (sr *subroundBitmap) doBitmapConsensusCheck() bool {
 	}
 
 	threshold := sr.consensusState.Threshold(SrBitmap)
-
 	if sr.isBitmapReceived(threshold) {
-		if !sr.consensusState.IsSelfLeaderInCurrentRound() {
-			msg := fmt.Sprintf("%sStep 3: received bitmap from leader, matching with my own, and it got %d from %d commitment hashes, which are enough",
-				sr.syncTimer.FormattedCurrentTime(), sr.consensusState.ComputeSize(SrBitmap), len(sr.consensusState.ConsensusGroup()))
-
-			if sr.consensusState.IsSelfJobDone(SrBitmap) {
-				msg = fmt.Sprintf("%s, and i was selected in this bitmap\n", msg)
-			} else {
-				msg = fmt.Sprintf("%s, and i was not selected in this bitmap\n", msg)
-			}
-
-			log.Info(msg)
-		}
-
 		log.Info(fmt.Sprintf("%sStep 3: subround %s has been finished\n", sr.syncTimer.FormattedCurrentTime(), sr.Name()))
-
 		sr.consensusState.SetStatus(SrBitmap, spos.SsFinished)
-
 		return true
 	}
 

@@ -29,13 +29,56 @@ const (
 	SrEndRound
 )
 
-// safeThresholdPercent specifies which is the safe allocated time percent,
-// for doing job, from the total time of one round
-const safeThresholdPercent = 90
+// syncThesholdPercent sepcifies the max allocated time to syncronize as a percentage of the total time of the round
+const syncThresholdPercent = 50
 
-// maxThresholdPercent specifies which is the max allocated time percent,
-// for doing job, from the total time of one round
-const maxThresholdPercent = 100
+// processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
+const processingThresholdPercent = 75
+
+// maxThresholdPercent specifies the max allocated time percent for doing job as a percentage of the total time of one round
+const maxThresholdPercent = 85
+
+// srStartStartTime specifies the start time, from the total time of the round, of subround Start
+const srStartStartTime = 0.0
+
+// srEndStartTime specifies the end time, from the total time of the round, of subround Start
+const srStartEndTime = 0.05
+
+// srBlockStartTime specifies the start time, from the total time of the round, of subround Block
+const srBlockStartTime = 0.05
+
+// srBlockEndTime specifies the end time, from the total time of the round, of subround Block
+const srBlockEndTime = 0.35
+
+// srCommitmentHashStartTime specifies the start time, from the total time of the round, of subround CommitmentHash
+const srCommitmentHashStartTime = 0.35
+
+// srCommitmentHashEndTime specifies the end time, from the total time of the round, of subround CommitmentHash
+const srCommitmentHashEndTime = 0.45
+
+// srBitmapStartTime specifies the start time, from the total time of the round, of subround Bitmap
+const srBitmapStartTime = 0.45
+
+// srBitmapEndTime specifies the end time, from the total time of the round, of subround Bitmap
+const srBitmapEndTime = 0.55
+
+// srCommitmentStartTime specifies the start time, from the total time of the round, of subround Commitment
+const srCommitmentStartTime = 0.55
+
+// srCommitmentEndTime specifies the end time, from the total time of the round, of subround Commitment
+const srCommitmentEndTime = 0.65
+
+// srSignatureStartTime specifies the start time, from the total time of the round, of subround Signature
+const srSignatureStartTime = 0.65
+
+// srSignatureEndTime specifies the end time, from the total time of the round, of subround Signature
+const srSignatureEndTime = 0.75
+
+// srEndStartTime specifies the start time, from the total time of the round, of subround End
+const srEndStartTime = 0.75
+
+// srEndEndTime specifies the end time, from the total time of the round, of subround End
+const srEndEndTime = 0.85
 
 // MessageType specifies what type of message was received
 type MessageType int
@@ -278,8 +321,8 @@ func (fct *factory) generateStartRoundSubround() error {
 		-1,
 		SrStartRound,
 		SrBlock,
-		int64(fct.rounder.TimeDuration()*0/100),
-		int64(fct.rounder.TimeDuration()*5/100),
+		int64(float64(fct.rounder.TimeDuration())*srStartStartTime),
+		int64(float64(fct.rounder.TimeDuration())*srStartEndTime),
 		getSubroundName(SrStartRound),
 		fct.worker.consensusStateChangedChannels,
 	)
@@ -315,8 +358,8 @@ func (fct *factory) generateBlockSubround() error {
 		SrStartRound,
 		SrBlock,
 		SrCommitmentHash,
-		int64(fct.rounder.TimeDuration()*5/100),
-		int64(fct.rounder.TimeDuration()*50/100),
+		int64(float64(fct.rounder.TimeDuration())*srBlockStartTime),
+		int64(float64(fct.rounder.TimeDuration())*srBlockEndTime),
 		getSubroundName(SrBlock),
 		fct.worker.consensusStateChangedChannels,
 	)
@@ -356,8 +399,8 @@ func (fct *factory) generateCommitmentHashSubround() error {
 		SrBlock,
 		SrCommitmentHash,
 		SrBitmap,
-		int64(fct.rounder.TimeDuration()*50/100),
-		int64(fct.rounder.TimeDuration()*60/100),
+		int64(float64(fct.rounder.TimeDuration())*srCommitmentHashStartTime),
+		int64(float64(fct.rounder.TimeDuration())*srCommitmentHashEndTime),
 		getSubroundName(SrCommitmentHash),
 		fct.worker.consensusStateChangedChannels,
 	)
@@ -392,8 +435,8 @@ func (fct *factory) generateBitmapSubround() error {
 		SrCommitmentHash,
 		SrBitmap,
 		SrCommitment,
-		int64(fct.rounder.TimeDuration()*60/100),
-		int64(fct.rounder.TimeDuration()*70/100),
+		int64(float64(fct.rounder.TimeDuration())*srBitmapStartTime),
+		int64(float64(fct.rounder.TimeDuration())*srBitmapEndTime),
 		getSubroundName(SrBitmap),
 		fct.worker.consensusStateChangedChannels,
 	)
@@ -427,8 +470,8 @@ func (fct *factory) generateCommitmentSubround() error {
 		SrBitmap,
 		SrCommitment,
 		SrSignature,
-		int64(fct.rounder.TimeDuration()*70/100),
-		int64(fct.rounder.TimeDuration()*80/100),
+		int64(float64(fct.rounder.TimeDuration())*srCommitmentStartTime),
+		int64(float64(fct.rounder.TimeDuration())*srCommitmentEndTime),
 		getSubroundName(SrCommitment),
 		fct.worker.consensusStateChangedChannels,
 	)
@@ -462,8 +505,8 @@ func (fct *factory) generateSignatureSubround() error {
 		SrCommitment,
 		SrSignature,
 		SrEndRound,
-		int64(fct.rounder.TimeDuration()*80/100),
-		int64(fct.rounder.TimeDuration()*90/100),
+		int64(float64(fct.rounder.TimeDuration())*srSignatureStartTime),
+		int64(float64(fct.rounder.TimeDuration())*srSignatureEndTime),
 		getSubroundName(SrSignature),
 		fct.worker.consensusStateChangedChannels,
 	)
@@ -498,8 +541,8 @@ func (fct *factory) generateEndRoundSubround() error {
 		SrSignature,
 		SrEndRound,
 		-1,
-		int64(fct.rounder.TimeDuration()*90/100),
-		int64(fct.rounder.TimeDuration()*95/100),
+		int64(float64(fct.rounder.TimeDuration())*srEndStartTime),
+		int64(float64(fct.rounder.TimeDuration())*srEndEndTime),
 		getSubroundName(SrEndRound),
 		fct.worker.consensusStateChangedChannels,
 	)

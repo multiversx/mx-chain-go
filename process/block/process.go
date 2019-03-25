@@ -141,20 +141,18 @@ func (bp *blockProcessor) RevertAccountState() {
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the speciffic error
-func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	err := checkForNils(blockChain, header, body)
+func (bp *blockProcessor) ProcessBlock(chainHandler data.ChainHandler, headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
+	err := checkForNils(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
 
-	// transform from interface into struct
-	blockBody, ok := body.(block.Body)
+	body, ok := bodyHandler.(block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	// transform from interface into struct
-	blockHeader, ok := header.(*block.Header)
+	header, ok := headerHandler.(*block.Header)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -163,26 +161,26 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		return process.ErrNilHaveTimeHandler
 	}
 
-	concreteBlockChain, ok := blockChain.(*blockchain.BlockChain)
+	blockChain, ok := chainHandler.(*blockchain.BlockChain)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = bp.validateHeader(concreteBlockChain, blockHeader)
+	err = bp.validateHeader(blockChain, header)
 	if err != nil {
 		return err
 	}
 
-	requestedTxs := bp.requestBlockTransactions(blockBody)
+	requestedTxs := bp.requestBlockTransactions(body)
+
+	if haveTime() < 0 {
+		return process.ErrTimeIsOut
+	}
 
 	if requestedTxs > 0 {
-
 		log.Info(fmt.Sprintf("requested %d missing txs\n", requestedTxs))
-
-		err := bp.waitForTxHashes(haveTime())
-
+		err = bp.waitForTxHashes(haveTime())
 		log.Info(fmt.Sprintf("received %d missing txs\n", requestedTxs-len(bp.requestedTxHashes)))
-
 		if err != nil {
 			return err
 		}
@@ -198,14 +196,14 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		}
 	}()
 
-	err = bp.processBlockTransactions(blockBody, int32(blockHeader.Round), haveTime)
-
+	err = bp.processBlockTransactions(body, int32(header.Round), haveTime)
 	if err != nil {
 		return err
 	}
 
-	if !bp.verifyStateRoot(blockHeader.RootHash) {
-		return process.ErrRootStateMissmatch
+	if !bp.verifyStateRoot(header.RootHash) {
+		err = process.ErrRootStateMissmatch
+		return err
 	}
 
 	return nil
@@ -217,7 +215,6 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 		return process.ErrNilTxBlockBody
 	}
 
-	// transform from interface into struct
 	blockBody, ok := body.(block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -353,37 +350,45 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 
 	buff, err := bp.marshalizer.Marshal(header)
 	if err != nil {
-		return process.ErrMarshalWithoutSuccess
+		return err
 	}
 
 	headerHash := bp.hasher.Compute(string(buff))
 	err = blockChain.Put(data.BlockHeaderUnit, headerHash, buff)
 	if err != nil {
-		return process.ErrPersistWithoutSuccess
+		return err
 	}
 
-	// transform from interface into struct
 	blockBody, ok := body.(block.Body)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		err = process.ErrWrongTypeAssertion
+		return err
+	}
+
+	blockHeader, ok := header.(*block.Header)
+	if !ok {
+		err = process.ErrWrongTypeAssertion
+		return err
 	}
 
 	for i := 0; i < len(blockBody); i++ {
 		buff, err = bp.marshalizer.Marshal((blockBody)[i])
 		if err != nil {
-			return process.ErrMarshalWithoutSuccess
+			return err
 		}
+
 		miniBlockHash := bp.hasher.Compute(string(buff))
 
 		err = blockChain.Put(data.MiniBlockUnit, miniBlockHash, buff)
 		if err != nil {
-			return process.ErrPersistWithoutSuccess
+			return err
 		}
 	}
 
 	headerNoncePool := bp.dataPool.HeadersNonces()
 	if headerNoncePool == nil {
-		return process.ErrNilDataPoolHolder
+		err = process.ErrNilDataPoolHolder
+		return err
 	}
 
 	_ = headerNoncePool.Put(header.GetNonce(), headerHash)
@@ -394,24 +399,20 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 			txHash := miniBlock.TxHashes[j]
 			tx := bp.getTransactionFromPool(miniBlock.ShardID, txHash)
 			if tx == nil {
-				return process.ErrMissingTransaction
+				err = process.ErrMissingTransaction
+				return err
 			}
 
 			buff, err = bp.marshalizer.Marshal(tx)
 			if err != nil {
-				return process.ErrMarshalWithoutSuccess
+				return err
 			}
 
 			err = blockChain.Put(data.TransactionUnit, txHash, buff)
 			if err != nil {
-				return process.ErrPersistWithoutSuccess
+				return err
 			}
 		}
-	}
-
-	err = bp.RemoveBlockInfoFromPool(body)
-	if err != nil {
-		log.Error(err.Error())
 	}
 
 	_, err = bp.accounts.Commit()
@@ -419,7 +420,15 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 		return err
 	}
 
-	blockHeader := header.(*block.Header)
+	errNotCritical := bp.RemoveBlockInfoFromPool(body)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
+	errNotCritical = bp.forkDetector.AddHeader(blockHeader, headerHash, true)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
 
 	err = blockChain.SetCurrentBlockBody(blockBody)
 	if err != nil {
@@ -432,12 +441,11 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 	}
 
 	blockChain.SetCurrentBlockHeaderHash(headerHash)
-	err = bp.forkDetector.AddHeader(blockHeader, headerHash, false)
 
 	// write data to log
 	go bp.displayBlockchain(blockHeader, blockBody)
 
-	return err
+	return nil
 }
 
 // getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
@@ -454,7 +462,7 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 		return nil
 	}
 
-	val, ok := txStore.Get(txHash)
+	val, ok := txStore.Peek(txHash)
 	if !ok {
 		return nil
 	}
@@ -493,7 +501,7 @@ func (bp *blockProcessor) requestBlockTransactions(body block.Body) int {
 			for _, txHash := range txHashes {
 				requestedTxs++
 				bp.requestedTxHashes[string(txHash)] = true
-				bp.OnRequestTransaction(shardId, txHash)
+				go bp.OnRequestTransaction(shardId, txHash)
 			}
 		}
 	}
@@ -669,7 +677,6 @@ func (bp *blockProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderH
 		return header, nil
 	}
 
-	// transform from interface into struct
 	blockBody, ok := body.(block.Body)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
@@ -905,7 +912,7 @@ func sortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 	nonces := make([]uint64, 0)
 
 	for _, key := range txShardStore.Keys() {
-		val, _ := txShardStore.Get(key)
+		val, _ := txShardStore.Peek(key)
 		if val == nil {
 			continue
 		}
@@ -1076,7 +1083,7 @@ func getTxs(txShardStore storage.Cacher) ([]*transaction.Transaction, [][]byte, 
 	txHashes := make([][]byte, 0)
 
 	for _, key := range txShardStore.Keys() {
-		val, _ := txShardStore.Get(key)
+		val, _ := txShardStore.Peek(key)
 		if val == nil {
 			continue
 		}

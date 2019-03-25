@@ -54,6 +54,8 @@ type Bootstrap struct {
 	miniBlockResolver process.MiniBlocksResolver
 
 	isNodeSynchronized    bool
+	hasLastBlock          bool
+	roundIndex            int32
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 
@@ -289,7 +291,11 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 		boot.highestNonceReceived = header.Nonce
 	}
 
-	err := boot.forkDetector.AddHeader(header, headerHash, true)
+	if header != nil {
+		log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
+	}
+
+	err := boot.forkDetector.AddHeader(header, headerHash, false)
 
 	if err != nil {
 		log.Info(err.Error())
@@ -304,8 +310,12 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 		boot.highestNonceReceived = nonce
 	}
 
-	n := boot.requestedHeaderNonce()
+	headerHash, _ := boot.headersNonces.Get(nonce)
+	if headerHash != nil {
+		log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n", nonce, toB64(headerHash)))
+	}
 
+	n := boot.requestedHeaderNonce()
 	if n == nil {
 		return
 	}
@@ -371,16 +381,13 @@ func (boot *Bootstrap) syncBlocks() {
 // the block and its transactions. Finally if everything works, the block will be committed in the blockchain,
 // and all this mechanism will be reiterated for the next block.
 func (boot *Bootstrap) SyncBlock() error {
-	isNodeSynchronized := !boot.ShouldSync()
-
-	if isNodeSynchronized != boot.isNodeSynchronized {
-		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
-		boot.isNodeSynchronized = isNodeSynchronized
-		boot.notifySyncStateListeners()
+	if !boot.ShouldSync() {
+		return nil
 	}
 
-	if boot.isNodeSynchronized {
-		return nil
+	if boot.isForkDetected {
+		log.Info("fork detected\n")
+		return boot.forkChoice()
 	}
 
 	boot.setRequestedHeaderNonce(nil)
@@ -426,9 +433,11 @@ func (boot *Bootstrap) SyncBlock() error {
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
 
 	if err != nil {
-		if err == process.ErrInvalidBlockHash {
+		isForkDetected := err == process.ErrInvalidBlockHash || err == process.ErrRootStateMissmatch
+		if isForkDetected {
 			log.Info(err.Error())
-			err = boot.forkChoice(hdr)
+			boot.removeHeaderFromPools(hdr)
+			err = boot.forkChoice()
 		}
 
 		return err
@@ -615,56 +624,37 @@ func (boot *Bootstrap) waitForMiniBlocks() {
 }
 
 // forkChoice decides if rollback must be called
-func (boot *Bootstrap) forkChoice(hdr *block.Header) error {
+func (boot *Bootstrap) forkChoice() error {
 	log.Info(fmt.Sprintf("starting fork choice\n"))
 
-	header := boot.blkc.GetCurrentBlockHeader()
-
-	if header == nil {
-		return ErrNilCurrentHeader
+	header, err := boot.getCurrentHeader()
+	if err != nil {
+		return err
 	}
 
-	// TODO: Forkchoice and sync should work with interfaces, so all type assertion should be removed
-	currentHeader, ok := header.(*block.Header)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	if hdr == nil {
-		return ErrNilHeader
-	}
-
-	if !isEmpty(currentHeader) {
-		boot.removeHeaderFromPools(hdr)
+	if !isEmpty(header) {
 		return &ErrNotEmptyHeader{
-			CurrentNonce: currentHeader.Nonce,
-			PoolNonce:    hdr.Nonce}
+			CurrentNonce: header.Nonce}
 	}
 
 	log.Info(fmt.Sprintf("roll back to header with hash %s\n",
-		toB64(header.GetPrevHash())))
+		toB64(header.PrevHash)))
 
-	return boot.rollback(currentHeader)
+	return boot.rollback(header)
 }
 
 func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore storage.Storer) {
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 	boot.headersNonces.Remove(header.Nonce)
 	boot.headers.RemoveData(hash, header.ShardId)
-	boot.forkDetector.RemoveHeaders(header.Nonce)
-	//TODO uncomment this when badBlocks will be implemented
-	//_ = headerStore.Remove(hash)
+	boot.forkDetector.RemoveProcessedHeader(header.Nonce)
+	_ = headerStore.Remove(hash)
 }
 
 func (boot *Bootstrap) rollback(header *block.Header) error {
 	headerStore := boot.blkc.GetStorer(data.BlockHeaderUnit)
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
-	}
-
-	miniBlocksStore := boot.blkc.GetStorer(data.MiniBlockUnit)
-	if miniBlocksStore == nil {
-		return process.ErrNilBlockBodyStorage
 	}
 
 	// genesis block is treated differently
@@ -696,11 +686,17 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 }
 
 func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
-	hash, _ := boot.headersNonces.Get(header.Nonce)
+	currentHeader, err := boot.getCurrentHeader()
+	if err != nil {
+		log.Info(err.Error())
+		return
+	}
 
-	boot.headersNonces.Remove(header.Nonce)
-	boot.headers.RemoveData(hash, header.ShardId)
-	boot.forkDetector.RemoveHeaders(header.Nonce)
+	if !isEmpty(currentHeader) {
+		hash, _ := boot.headersNonces.Get(header.Nonce)
+		boot.headersNonces.Remove(header.Nonce)
+		boot.headers.RemoveData(hash, header.ShardId)
+	}
 }
 
 func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {
@@ -716,7 +712,6 @@ func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.H
 }
 
 func (boot *Bootstrap) getTxBlockBody(header *block.Header) (block.Body, error) {
-
 	mbLength := len(header.MiniBlockHeaders)
 	hashes := make([][]byte, mbLength)
 	for i := 0; i < mbLength; i++ {
@@ -744,25 +739,31 @@ func toB64(buff []byte) string {
 // is not synchronized yet and it has to continue the bootstrapping mechanism, otherwise the node is already
 // synched and it can participate to the consensus, if it is in the jobDone group of this rounder
 func (boot *Bootstrap) ShouldSync() bool {
+	isNodeSynchronizedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeSynchronized
+
+	if isNodeSynchronizedInCurrentRound {
+		return false
+	}
+
 	boot.isForkDetected = boot.forkDetector.CheckFork()
 
-	if boot.isForkDetected {
-		log.Info("fork detected\n")
-		return true
-	}
-
 	if boot.blkc.GetCurrentBlockHeader() == nil {
-		isNotSynchronized := boot.rounder.Index() > 0
-		return isNotSynchronized
+		boot.hasLastBlock = boot.rounder.Index() <= 0
+	} else {
+		boot.hasLastBlock = boot.blkc.GetCurrentBlockHeader().GetRound()+1 >= uint32(boot.rounder.Index())
 	}
 
-	isNotSynchronized := boot.blkc.GetCurrentBlockHeader().GetRound()+1 < uint32(boot.rounder.Index())
+	isNodeSynchronized := !boot.isForkDetected && boot.hasLastBlock
 
-	if isNotSynchronized {
-		return true
+	if isNodeSynchronized != boot.isNodeSynchronized {
+		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
+		boot.isNodeSynchronized = isNodeSynchronized
+		boot.notifySyncStateListeners()
 	}
 
-	return false
+	boot.roundIndex = boot.rounder.Index()
+
+	return !isNodeSynchronized
 }
 
 func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
@@ -808,8 +809,6 @@ func (boot *Bootstrap) createHeader() (data.HeaderHandler, error) {
 func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
 
-	boot.blkExecutor.RevertAccountState()
-
 	blk := make(block.Body, 0)
 
 	hdr, err := boot.createHeader()
@@ -842,4 +841,20 @@ func (boot *Bootstrap) emptyChannel(ch chan bool) {
 	for len(ch) > 0 {
 		<-ch
 	}
+}
+
+func (boot *Bootstrap) getCurrentHeader() (*block.Header, error) {
+	blockHeader := boot.blkc.GetCurrentBlockHeader()
+
+	if blockHeader == nil {
+		return nil, process.ErrNilBlockHeader
+	}
+
+	// TODO: Forkchoice and sync should work with interfaces, so all type assertion should be removed
+	header, ok := blockHeader.(*block.Header)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return header, nil
 }

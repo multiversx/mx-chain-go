@@ -49,7 +49,7 @@ func (nthc *NonceToHashCacher) Put(nonce uint64, hash []byte) (evicted bool) {
 
 // Get looks up for a nonce in cache.
 func (nthc *NonceToHashCacher) Get(nonce uint64) ([]byte, bool) {
-	val, ok := nthc.cacher.Get(nthc.nonceConverter.ToByteSlice(nonce))
+	val, ok := nthc.cacher.Peek(nthc.nonceConverter.ToByteSlice(nonce))
 
 	if !ok {
 		return []byte(nil), ok
