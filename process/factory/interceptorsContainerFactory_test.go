@@ -522,5 +522,12 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	container, _ := icf.Create()
 
-	assert.Equal(t, noOfShards+1+noOfShards+1+1, container.Len())
+	numInterceptorTxs := noOfShards
+	numInterceptorHeaders := 1
+	numInterceptorMiniBlocks := noOfShards
+	numInterceptorPeerChanges := 1
+	numInterceptorMetachainHeaders := 1
+
+	assert.Equal(t, numInterceptorTxs+numInterceptorHeaders+numInterceptorMiniBlocks+
+		numInterceptorPeerChanges+numInterceptorMetachainHeaders, container.Len())
 }

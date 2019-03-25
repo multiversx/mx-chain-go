@@ -185,8 +185,8 @@ func (bc *BlockChain) SetNetworkHeight(height int64) {
 	bc.localHeight = height
 }
 
-// IsBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise
-func (bc *BlockChain) IsBadBlock(blockHash []byte) bool {
+// HasBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise
+func (bc *BlockChain) HasBadBlock(blockHash []byte) bool {
 	return bc.badBlocks.Has(blockHash)
 }
 

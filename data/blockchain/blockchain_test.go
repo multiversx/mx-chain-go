@@ -193,8 +193,8 @@ func TestBlockChain_IsBadBlock(t *testing.T) {
 		metachainHeaderUnit,
 	)
 
-	isBadBlock := b.IsBadBlock([]byte("test"))
-	assert.True(t, isBadBlock)
+	hasBadBlock := b.HasBadBlock([]byte("test"))
+	assert.True(t, hasBadBlock)
 }
 
 func TestBlockChain_PutBadBlock(t *testing.T) {

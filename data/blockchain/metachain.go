@@ -156,8 +156,8 @@ func (mc *MetaChain) SetNetworkHeight(height int64) {
 	mc.networkHeight = height
 }
 
-// IsBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise
-func (mc *MetaChain) IsBadBlock(blockHash []byte) bool {
+// HasBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise
+func (mc *MetaChain) HasBadBlock(blockHash []byte) bool {
 	return mc.badBlocks.Has(blockHash)
 }
 

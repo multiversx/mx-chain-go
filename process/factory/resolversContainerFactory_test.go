@@ -376,5 +376,10 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	container, _ := rcf.Create()
 
-	assert.Equal(t, noOfShards+1+noOfShards+1, container.Len())
+	numResolverTxs := noOfShards
+	numResolverHeaders := 1
+	numResolverMiniBlocks := noOfShards
+	numResolverPeerChanges := 1
+
+	assert.Equal(t, numResolverTxs+numResolverHeaders+numResolverMiniBlocks+numResolverPeerChanges, container.Len())
 }

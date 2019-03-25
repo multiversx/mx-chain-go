@@ -781,8 +781,8 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	go n.messenger.Broadcast(factory.MiniBlocksTopic+
 		n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId()), msgBlockBody)
 
-	//TODO - this have to be called only if header is from metachain.
-	// In all other cases the header should be broadcasted to metachain only.
+	//TODO - for now, on MetachainHeaderTopic we will broadcast shard headers
+	// Later, this call should be done by metachain nodes when they agree upon a metachain header
 	go n.messenger.Broadcast(factory.MetachainHeadersTopic, msgHeader)
 
 	for k, v := range msgMapBlockBody {
