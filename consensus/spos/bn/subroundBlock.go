@@ -466,16 +466,9 @@ func (sr *subroundBlock) doBlockConsensusCheck() bool {
 	}
 
 	threshold := sr.consensusState.Threshold(SrBlock)
-
 	if sr.isBlockReceived(threshold) {
-		if !sr.consensusState.IsSelfLeaderInCurrentRound() {
-			log.Info(fmt.Sprintf("%sStep 1: synchronized block\n", sr.syncTimer.FormattedCurrentTime()))
-		}
-
 		log.Info(fmt.Sprintf("%sStep 1: subround %s has been finished\n", sr.syncTimer.FormattedCurrentTime(), sr.Name()))
-
 		sr.consensusState.SetStatus(SrBlock, spos.SsFinished)
-
 		return true
 	}
 

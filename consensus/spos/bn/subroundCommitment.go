@@ -188,6 +188,13 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *spos.ConsensusMessage) 
 		return false
 	}
 
+	threshold := sr.consensusState.Threshold(SrCommitment)
+	if sr.commitmentsCollected(threshold) {
+		n := sr.consensusState.ComputeSize(SrCommitment)
+		log.Info(fmt.Sprintf("%sStep 4: received %d from %d commitments\n",
+			sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
+	}
+
 	return true
 }
 
@@ -202,16 +209,9 @@ func (sr *subroundCommitment) doCommitmentConsensusCheck() bool {
 	}
 
 	threshold := sr.consensusState.Threshold(SrCommitment)
-
 	if sr.commitmentsCollected(threshold) {
-
-		log.Info(fmt.Sprintf("%sStep 4: received %d from %d commitments, which are matching with bitmap and are enough\n",
-			sr.syncTimer.FormattedCurrentTime(), sr.consensusState.ComputeSize(SrCommitment), len(sr.consensusState.ConsensusGroup())))
-
 		log.Info(fmt.Sprintf("%sStep 4: subround %s has been finished\n", sr.syncTimer.FormattedCurrentTime(), sr.Name()))
-
 		sr.consensusState.SetStatus(SrCommitment, spos.SsFinished)
-
 		return true
 	}
 
