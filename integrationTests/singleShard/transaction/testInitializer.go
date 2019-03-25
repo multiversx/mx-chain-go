@@ -10,9 +10,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv3"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv3/multisig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv3/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
@@ -153,7 +153,7 @@ func createNetNode(
 
 	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 
-	suite := kv3.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()

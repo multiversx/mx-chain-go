@@ -1,4 +1,4 @@
-package kv3
+package kyber
 
 import (
 	"crypto/cipher"
@@ -7,7 +7,7 @@ import (
 	"go.dedis.ch/kyber/v3"
 )
 
-// kyberScalar is a wrapper over kyber.v3 scalar
+// kyberScalar is a wrapper over kyber scalar
 type kyberScalar struct {
 	kyber.Scalar
 }

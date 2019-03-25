@@ -1,4 +1,4 @@
-package kv3
+package kyber
 
 import (
 	"crypto/cipher"
