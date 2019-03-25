@@ -1,10 +1,10 @@
-package kv2
+package kyber
 
 import (
 	"crypto/cipher"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"gopkg.in/dedis/kyber.v2"
+	"go.dedis.ch/kyber/v3"
 )
 
 // kyberPoint is a wrapper over the kyber point interface
