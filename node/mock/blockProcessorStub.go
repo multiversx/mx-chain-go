@@ -18,7 +18,7 @@ type BlockProcessorStub struct {
 	GetRootHashCalled                  func() []byte
 	SetOnRequestTransactionCalled      func(f func(destShardID uint32, txHash []byte))
 	CheckBlockValidityCalled           func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
-	MarshalizedDataForCrossShardCalled func(body data.BodyHandler) (map[uint32][][]byte, error)
+	MarshalizedDataForCrossShardCalled func(body data.BodyHandler) (map[uint32][]byte, error)
 }
 
 // ProcessBlock mocks pocessing a block
@@ -65,6 +65,6 @@ func (bps BlockProcessorStub) CreateBlockHeader(body data.BodyHandler) (data.Hea
 	panic("implement me")
 }
 
-func (blProcMock BlockProcessorStub) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][][]byte, error) {
+func (blProcMock BlockProcessorStub) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, error) {
 	return blProcMock.MarshalizedDataForCrossShardCalled(body)
 }

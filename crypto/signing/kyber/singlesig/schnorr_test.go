@@ -5,9 +5,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
-	mock2 "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	mock2 "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +22,7 @@ func TestSchnorrSigner_SignNilPrivateKeyShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
@@ -44,7 +44,7 @@ func TestSchnorrSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
@@ -66,7 +66,7 @@ func TestSchnorrSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignInvalidScalarShouldErr(t *testing.T) {
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
@@ -88,7 +88,7 @@ func TestSchnorrSigner_SignInvalidScalarShouldErr(t *testing.T) {
 }
 
 func TestSchnorrSigner_SignInvalidSuiteShouldErr(t *testing.T) {
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
@@ -122,7 +122,7 @@ func sign(msg []byte, signer crypto.SingleSigner, t *testing.T) (
 	signature []byte,
 	err error) {
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, pubKey = kg.GeneratePair()
 

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
 )
 
 // PkSkPairsToGenerate holds the number of pairs sk/pk that will be generated
@@ -33,7 +33,7 @@ func main() {
 		return
 	}
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 
 	for i := 0; i < PkSkPairsToGenerate; i++ {
 		generator := signing.NewKeyGenerator(suite)

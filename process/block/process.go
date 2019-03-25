@@ -26,6 +26,7 @@ import (
 
 var log = logger.NewDefaultLogger()
 
+var txCounterMutex = sync.RWMutex{}
 var txsCurrentBlockProcessed = 0
 var txsTotalProcessed = 0
 
@@ -748,12 +749,14 @@ func (bp *blockProcessor) displayLogInfo(
 		log.Error(err.Error())
 	}
 
+	txCounterMutex.Lock()
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal txs "+
 		"processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n",
 		toB64(headerHash),
 		txsTotalProcessed,
 		txsCurrentBlockProcessed,
 		bp.getTxsFromPool(header.ShardId))
+	txCounterMutex.Unlock()
 
 	log.Info(tblString)
 }
@@ -838,7 +841,9 @@ func displayHeader(header *block.Header) []*display.LineData {
 
 func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {
 
+	txCounterMutex.RLock()
 	txsCurrentBlockProcessed = 0
+	txCounterMutex.RUnlock()
 
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
@@ -850,8 +855,10 @@ func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.L
 				part, "", "<NIL> or <EMPTY>"}))
 		}
 
+		txCounterMutex.Lock()
 		txsCurrentBlockProcessed += len(miniBlock.TxHashes)
 		txsTotalProcessed += len(miniBlock.TxHashes)
+		txCounterMutex.Unlock()
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if j == 0 || j >= len(miniBlock.TxHashes)-1 {
@@ -1032,27 +1039,36 @@ func (bp *blockProcessor) CheckBlockValidity(blockChain data.ChainHandler, heade
 }
 
 // MarshalizedDataForCrossShard prepares underlying data into a marshalized object according to destination
-func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][][]byte, error) {
+func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, error) {
 	if body == nil {
 		return nil, process.ErrNilMiniBlocks
 	}
 
-	mrsData := make(map[uint32][][]byte)
 	blockBody, ok := body.(block.Body)
-
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	mrsData := make(map[uint32][]byte)
+	bodies := make(map[uint32]block.Body)
+
 	for i := 0; i < len(blockBody); i++ {
-		buff, err := bp.marshalizer.Marshal((blockBody)[i])
-		shardId := (blockBody)[i].ShardID
+		miniblock := blockBody[i]
+
+		if miniblock.ShardID == bp.shardCoordinator.SelfId() {
+			//not taking into account miniblocks for current shard
+			continue
+		}
+
+		bodies[miniblock.ShardID] = append(bodies[miniblock.ShardID], miniblock)
+	}
+
+	for shardId, subsetBlockBody := range bodies {
+		buff, err := bp.marshalizer.Marshal(subsetBlockBody)
 		if err != nil {
 			return nil, process.ErrMarshalWithoutSuccess
 		}
-		if shardId != bp.shardCoordinator.SelfId() {
-			mrsData[shardId] = append(mrsData[shardId], buff)
-		}
+		mrsData[shardId] = buff
 	}
 
 	return mrsData, nil
