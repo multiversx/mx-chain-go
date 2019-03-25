@@ -91,7 +91,6 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 	}
 
 	isHeaderInStorage, _ := mhi.storer.Has(hashWithSig)
-
 	if isHeaderInStorage {
 		log.Debug("intercepted block header already processed")
 		return nil

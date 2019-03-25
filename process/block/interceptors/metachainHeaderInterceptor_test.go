@@ -181,7 +181,6 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnm
 	t.Parallel()
 
 	errMarshalizer := errors.New("marshalizer error")
-
 	metachainHeaders := &mock.CacherStub{}
 	metachainStorer := &mock.StorerStub{}
 
@@ -233,11 +232,8 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-
 	wasCalled := 0
-
 	testedNonce := uint64(67)
-
 	metachainHeaders := &mock.CacherStub{}
 	metachainStorer := &mock.StorerStub{
 		HasCalled: func(key []byte) (b bool, e error) {
@@ -286,12 +282,9 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-
 	wasCalled := 0
-
 	testedNonce := uint64(67)
 	multisigner := mock.NewMultiSigner()
-
 	metachainHeaders := &mock.CacherStub{}
 	metachainStorer := &mock.StorerStub{
 		HasCalled: func(key []byte) (b bool, e error) {
