@@ -69,7 +69,9 @@ func createTestBlockChain() *blockchain.BlockChain {
 		createMemUnit(),
 		createMemUnit(),
 		createMemUnit(),
-		createMemUnit())
+		createMemUnit(),
+		createMemUnit(),
+	)
 
 	return blockChain
 }

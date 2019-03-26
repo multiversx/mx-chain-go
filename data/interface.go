@@ -145,6 +145,6 @@ type ChainHandler interface {
 	SetLocalHeight(height int64)
 	GetNetworkHeight() int64
 	SetNetworkHeight(height int64)
-	IsBadBlock(blockHash []byte) bool
+	HasBadBlock(blockHash []byte) bool
 	PutBadBlock(blockHash []byte)
 }
