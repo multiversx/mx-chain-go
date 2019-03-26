@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/rand"
@@ -75,6 +76,7 @@ type testNode struct {
 	miniblocksHashes [][]byte
 	miniblocks       []*dataBlock.MiniBlock
 	metachainHdrRecv int32
+	txsRecv          int32
 }
 
 func createTestBlockChain() *blockchain.BlockChain {
@@ -216,8 +218,34 @@ func createNetNode(
 		accntAdapter,
 		shardCoordinator,
 		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {},
-		func(hashes map[uint32][][]byte) {},
+		func(destShardID uint32, txHash []byte) {
+			resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+
+			err = resolver.RequestDataFromHash(txHash)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+		},
+		func(hashes map[uint32][][]byte) {
+			for senderId, miniBlockHashes := range hashes {
+				for _, miniBlockHash := range miniBlockHashes {
+					resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, senderId)
+					if err != nil {
+						fmt.Println(err.Error())
+						return
+					}
+
+					err = resolver.RequestDataFromHash(miniBlockHash)
+					if err != nil {
+						fmt.Println(err.Error())
+					}
+				}
+			}
+		},
 	)
 
 	n, err := node.NewNode(
@@ -277,7 +305,7 @@ func getConnectableAddress(mes p2p.Messenger) string {
 }
 
 func makeDisplayTable(nodes []*testNode) string {
-	header := []string{"pk", "shard ID", "headers", "miniblocks", "metachain headers", "connections"}
+	header := []string{"pk", "shard ID", "txs", "miniblocks", "headers", "metachain headers", "connections"}
 	dataLines := make([]*display.LineData, len(nodes))
 	for idx, n := range nodes {
 		buffPk, _ := n.pk.ToByteArray()
@@ -287,8 +315,9 @@ func makeDisplayTable(nodes []*testNode) string {
 			[]string{
 				hex.EncodeToString(buffPk),
 				fmt.Sprintf("%d", n.shardId),
-				fmt.Sprintf("%d", atomic.LoadInt32(&n.headersRecv)),
+				fmt.Sprintf("%d", atomic.LoadInt32(&n.txsRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.miniblocksRecv)),
+				fmt.Sprintf("%d", atomic.LoadInt32(&n.headersRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.metachainHdrRecv)),
 				fmt.Sprintf("%d / %d", len(n.mesenger.ConnectedPeersOnTopic(factory.TransactionTopic+"_"+
 					fmt.Sprintf("%d", n.shardId))), len(n.mesenger.ConnectedPeers())),
@@ -342,6 +371,7 @@ func createNodes(
 				testNode.shardId,
 				serviceID,
 			)
+			_ = n.CreateShardedStores()
 
 			testNode.node = n
 			testNode.sk = sk
@@ -368,7 +398,11 @@ func createNodes(
 				testNode.mutMiniblocks.Unlock()
 			})
 			testNode.dPool.MetaBlocks().RegisterHandler(func(key []byte) {
+				fmt.Printf("Got metachain header: %v\n", base64.StdEncoding.EncodeToString(key))
 				atomic.AddInt32(&testNode.metachainHdrRecv, 1)
+			})
+			testNode.dPool.Transactions().RegisterHandler(func(key []byte) {
+				atomic.AddInt32(&testNode.txsRecv, 1)
 			})
 
 			nodes[idx] = testNode
