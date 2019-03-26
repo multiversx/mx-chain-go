@@ -398,7 +398,7 @@ func (wrk *worker) extend(subroundId int) {
 		return
 	}
 
-	for wrk.consensusState.ProcessingBlock {
+	for wrk.consensusState.ProcessingBlock() {
 		time.Sleep(time.Millisecond)
 	}
 
