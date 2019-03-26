@@ -233,6 +233,7 @@ func (cns *ConsensusState) GenerateBitmap(subroundId int) []byte {
 	return bitmap
 }
 
+// ProcessingBlock gets the state of block processing
 func (cns *ConsensusState) ProcessingBlock() bool {
 	cns.mutProcessingBlock.RLock()
 	processingBlock := cns.processingBlock
@@ -240,6 +241,7 @@ func (cns *ConsensusState) ProcessingBlock() bool {
 	return processingBlock
 }
 
+// SetProcessingBlock sets the state of block processing
 func (cns *ConsensusState) SetProcessingBlock(processingBlock bool) {
 	cns.mutProcessingBlock.Lock()
 	cns.processingBlock = processingBlock
