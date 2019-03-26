@@ -168,12 +168,12 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		return err
 	}
 
-	body, ok := bodyHandler.(block.Body)
+	blockBody, ok := body.(block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	header, ok := headerHandler.(*block.Header)
+	blockHeader, ok := header.(*block.Header)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -192,7 +192,7 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		return err
 	}
 
-	requestedTxs := bp.requestBlockTransactions(body)
+	requestedTxs := bp.requestBlockTransactions(blockBody)
 
 	if haveTime() < 0 {
 		return process.ErrTimeIsOut
@@ -222,7 +222,7 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		return err
 	}
 
-	if !bp.verifyStateRoot(header.RootHash) {
+	if !bp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateMissmatch
 		return err
 	}
@@ -490,7 +490,7 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 		return nil
 	}
 
-	val, ok := txStore.Get(txHash)
+	val, ok := txStore.Peek(txHash)
 	if !ok {
 		return nil
 	}

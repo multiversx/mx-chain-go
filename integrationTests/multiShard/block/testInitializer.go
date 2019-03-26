@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -151,7 +150,6 @@ func createNetNode(
 	data.ChainHandler) {
 
 	messenger := createMessengerWithKadDht(context.Background(), port, initialAddr)
-	addrConverter, _ := state.NewPlainAddressConverter(32, "0x")
 	suite := kyber.NewBlakeSHA256Ed25519()
 	singleSigner := &singlesig.SchnorrSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
@@ -431,7 +429,7 @@ func generatePrivateKeyInShardId(
 	shardId uint32,
 ) crypto.PrivateKey {
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 

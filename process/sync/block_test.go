@@ -100,7 +100,7 @@ func createMockPools() *mock.PoolsHolderStub {
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
-			RemoveDataCalled: func(key []byte, destShardID uint32) {
+			RemoveDataCalled: func(key []byte, cacherId string) {
 				return
 			},
 		}
@@ -1260,7 +1260,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
 		}
-		sds.RemoveDataCalled = func(key []byte, destShardID uint32) {
+		sds.RemoveDataCalled = func(key []byte, cacherId string) {
 		}
 
 		return sds
