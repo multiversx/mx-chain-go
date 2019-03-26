@@ -1187,14 +1187,14 @@ func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 		atomic.AddInt32(&executed, 1)
 		return nil
 	}
-	wrk.ConsensusState().ProcessingBlock = true
+	wrk.ConsensusState().SetProcessingBlock(true)
 	n := 10
 	go func() {
 		for n > 0 {
 			time.Sleep(100 * time.Millisecond)
 			n--
 		}
-		wrk.ConsensusState().ProcessingBlock = false
+		wrk.ConsensusState().SetProcessingBlock(false)
 	}()
 	wrk.Extend(0)
 

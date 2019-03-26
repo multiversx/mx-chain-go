@@ -836,6 +836,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		generateTestUnit(),
 		generateTestUnit(),
 		hdrUnit,
+		generateTestUnit(),
 	)
 	err := be.CommitBlock(blkc, hdr, body)
 	assert.Equal(t, errPersister, err)
@@ -893,6 +894,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 		generateTestCache(),
 		generateTestUnit(),
 		txBlockUnit,
+		generateTestUnit(),
 		generateTestUnit(),
 		generateTestUnit(),
 	)

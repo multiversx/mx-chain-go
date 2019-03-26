@@ -74,6 +74,7 @@ type testNode struct {
 	mutMiniblocks    sync.Mutex
 	miniblocksHashes [][]byte
 	miniblocks       []*dataBlock.MiniBlock
+	metachainHdrRecv int32
 }
 
 func createTestBlockChain() *blockchain.BlockChain {
@@ -84,7 +85,9 @@ func createTestBlockChain() *blockchain.BlockChain {
 		createMemUnit(),
 		createMemUnit(),
 		createMemUnit(),
-		createMemUnit())
+		createMemUnit(),
+		createMemUnit(),
+	)
 	blockChain.GenesisHeader = &dataBlock.Header{}
 
 	return blockChain
@@ -182,7 +185,10 @@ func createNetNode(
 		dPool,
 		testAddressConverter,
 	)
-	interceptorsContainer, _ := interceptorContainerFactory.Create()
+	interceptorsContainer, err := interceptorContainerFactory.Create()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
 	resolversContainerFactory, _ := factory.NewResolversContainerFactory(
 		shardCoordinator,
@@ -214,7 +220,7 @@ func createNetNode(
 		func(hashes map[uint32][][]byte) {},
 	)
 
-	n, _ := node.NewNode(
+	n, err := node.NewNode(
 		node.WithMessenger(messenger),
 		node.WithMarshalizer(testMarshalizer),
 		node.WithHasher(testHasher),
@@ -233,6 +239,10 @@ func createNetNode(
 		node.WithResolversFinder(resolversFinder),
 		node.WithBlockProcessor(blockProcessor),
 	)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
 	return n, messenger, sk, resolversFinder, blockProcessor, blkc
 }
@@ -267,7 +277,7 @@ func getConnectableAddress(mes p2p.Messenger) string {
 }
 
 func makeDisplayTable(nodes []*testNode) string {
-	header := []string{"pk", "shard ID", "headers cache size", "miniblocks cache size", "connections"}
+	header := []string{"pk", "shard ID", "headers", "miniblocks", "metachain headers", "connections"}
 	dataLines := make([]*display.LineData, len(nodes))
 	for idx, n := range nodes {
 		buffPk, _ := n.pk.ToByteArray()
@@ -279,6 +289,7 @@ func makeDisplayTable(nodes []*testNode) string {
 				fmt.Sprintf("%d", n.shardId),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.headersRecv)),
 				fmt.Sprintf("%d", atomic.LoadInt32(&n.miniblocksRecv)),
+				fmt.Sprintf("%d", atomic.LoadInt32(&n.metachainHdrRecv)),
 				fmt.Sprintf("%d / %d", len(n.mesenger.ConnectedPeersOnTopic(factory.TransactionTopic+"_"+
 					fmt.Sprintf("%d", n.shardId))), len(n.mesenger.ConnectedPeers())),
 			},
@@ -355,6 +366,9 @@ func createNodes(
 				miniblock, _ := testNode.dPool.MiniBlocks().Peek(key)
 				testNode.miniblocks = append(testNode.miniblocks, miniblock.(*dataBlock.MiniBlock))
 				testNode.mutMiniblocks.Unlock()
+			})
+			testNode.dPool.MetaBlocks().RegisterHandler(func(key []byte) {
+				atomic.AddInt32(&testNode.metachainHdrRecv, 1)
 			})
 
 			nodes[idx] = testNode

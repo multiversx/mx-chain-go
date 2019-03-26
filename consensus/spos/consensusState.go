@@ -2,6 +2,7 @@ package spos
 
 import (
 	"bytes"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
@@ -19,10 +20,12 @@ type ConsensusState struct {
 	BlockBody data.BodyHandler
 	Header    data.HeaderHandler
 
-	RoundIndex      int32
-	RoundTimeStamp  time.Time
-	RoundCanceled   bool
-	ProcessingBlock bool
+	RoundIndex     int32
+	RoundTimeStamp time.Time
+	RoundCanceled  bool
+
+	processingBlock    bool
+	mutProcessingBlock sync.RWMutex
 
 	*roundConsensus
 	*roundThreshold
@@ -228,4 +231,19 @@ func (cns *ConsensusState) GenerateBitmap(subroundId int) []byte {
 	}
 
 	return bitmap
+}
+
+// ProcessingBlock gets the state of block processing
+func (cns *ConsensusState) ProcessingBlock() bool {
+	cns.mutProcessingBlock.RLock()
+	processingBlock := cns.processingBlock
+	cns.mutProcessingBlock.RUnlock()
+	return processingBlock
+}
+
+// SetProcessingBlock sets the state of block processing
+func (cns *ConsensusState) SetProcessingBlock(processingBlock bool) {
+	cns.mutProcessingBlock.Lock()
+	cns.processingBlock = processingBlock
+	cns.mutProcessingBlock.Unlock()
 }

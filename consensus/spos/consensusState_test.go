@@ -459,3 +459,11 @@ func TestConsensusState_GenerateBitmapShouldWork(t *testing.T) {
 
 	assert.Equal(t, bitmapExpected, bitmap)
 }
+
+func TestConsensusState_SetAndGetProcessingBlockShouldWork(t *testing.T) {
+	t.Parallel()
+	cns := initConsensusState()
+	cns.SetProcessingBlock(true)
+
+	assert.Equal(t, true, cns.ProcessingBlock())
+}

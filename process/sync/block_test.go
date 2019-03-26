@@ -788,8 +788,14 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 			return nil, nil
 		},
 	}
-	blkc, _ := blockchain.NewBlockChain(&mock.CacherStub{}, &mock.StorerStub{}, blockBodyUnit,
-		&mock.StorerStub{}, &mock.StorerStub{})
+	blkc, _ := blockchain.NewBlockChain(
+		&mock.CacherStub{},
+		&mock.StorerStub{},
+		blockBodyUnit,
+		&mock.StorerStub{},
+		&mock.StorerStub{},
+		&mock.StorerStub{},
+	)
 
 	blkc.CurrentBlockHeader = &hdr
 
@@ -1741,7 +1747,9 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
-		headerStorage)
+		headerStorage,
+		&mock.StorerStub{},
+	)
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
@@ -2180,6 +2188,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
+		&mock.StorerStub{},
 	)
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
@@ -2226,6 +2235,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		txBlockUnit,
+		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 	)
@@ -2283,6 +2293,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		&mock.CacherStub{},
 		&mock.StorerStub{},
 		txBlockUnit,
+		&mock.StorerStub{},
 		&mock.StorerStub{},
 		&mock.StorerStub{},
 	)
