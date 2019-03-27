@@ -55,7 +55,9 @@ func createTestBlockChain() data.ChainHandler {
 		createMemUnit(),
 		createMemUnit(),
 		createMemUnit(),
-		createMemUnit())
+		createMemUnit(),
+		createMemUnit(),
+	)
 
 	return blockChain
 }

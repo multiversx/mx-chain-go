@@ -21,7 +21,7 @@ type BlockChainMock struct {
 	SetLocalHeightCalled            func(int64)
 	GetNetworkHeightCalled          func() int64
 	SetNetworkHeightCalled          func(int64)
-	IsBadBlockCalled                func([]byte) bool
+	HasBadBlockCalled               func([]byte) bool
 	PutBadBlockCalled               func([]byte)
 }
 
@@ -133,10 +133,10 @@ func (bc *BlockChainMock) SetNetworkHeight(height int64) {
 	}
 }
 
-// IsBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise
-func (bc *BlockChainMock) IsBadBlock(blockHash []byte) bool {
-	if bc.IsBadBlockCalled != nil {
-		return bc.IsBadBlockCalled(blockHash)
+// HasBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise
+func (bc *BlockChainMock) HasBadBlock(blockHash []byte) bool {
+	if bc.HasBadBlockCalled != nil {
+		return bc.HasBadBlockCalled(blockHash)
 	}
 	return false
 }

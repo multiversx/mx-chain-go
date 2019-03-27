@@ -33,26 +33,27 @@ func NewBlockChain(
 	txUnit storage.Storer,
 	miniBlockUnit storage.Storer,
 	peerChangesBlockUnit storage.Storer,
-	headerUnit storage.Storer) (*BlockChain, error) {
+	headerUnit storage.Storer,
+	metachainHeadersUnit storage.Storer,
+) (*BlockChain, error) {
 
 	if badBlocksCache == nil {
 		return nil, ErrBadBlocksCacheNil
 	}
-
 	if txUnit == nil {
 		return nil, ErrTxUnitNil
 	}
-
 	if miniBlockUnit == nil {
 		return nil, ErrMiniBlockUnitNil
 	}
-
 	if peerChangesBlockUnit == nil {
 		return nil, ErrPeerBlockUnitNil
 	}
-
 	if headerUnit == nil {
 		return nil, ErrHeaderUnitNil
+	}
+	if metachainHeadersUnit == nil {
+		return nil, ErrMetachainHeaderUnitNil
 	}
 
 	blockChain := &BlockChain{
@@ -67,6 +68,7 @@ func NewBlockChain(
 				data.MiniBlockUnit:   miniBlockUnit,
 				data.PeerChangesUnit: peerChangesBlockUnit,
 				data.BlockHeaderUnit: headerUnit,
+				data.MetaBlockUnit:   metachainHeadersUnit,
 			},
 		},
 	}
@@ -183,8 +185,8 @@ func (bc *BlockChain) SetNetworkHeight(height int64) {
 	bc.localHeight = height
 }
 
-// IsBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise
-func (bc *BlockChain) IsBadBlock(blockHash []byte) bool {
+// HasBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise
+func (bc *BlockChain) HasBadBlock(blockHash []byte) bool {
 	return bc.badBlocks.Has(blockHash)
 }
 

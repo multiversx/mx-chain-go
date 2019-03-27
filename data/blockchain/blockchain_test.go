@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,63 +17,30 @@ type blockChainUnits struct {
 	stateBlockUnit  storage.Storer
 	txBlockUnit     storage.Storer
 	txUnit          storage.Storer
+	metaChainUnits  storage.Storer
+}
+
+func createCacher() storage.Cacher {
+	cacher, _ := storage.NewCache(storage.LRUCache, 100)
+	return cacher
+}
+
+func createMemDb() storage.Persister {
+	db, _ := memorydb.New()
+	return db
 }
 
 func createUnits() *blockChainUnits {
 	blUnits := &blockChainUnits{}
 
-	cacher := storage.CacheConfig{Type: storage.LRUCache, Size: 100}
-	bloom := storage.BloomConfig{Size: 2048, HashFunc: []storage.HasherType{storage.Keccak, storage.Blake2b, storage.Fnv}}
-
-	persisterMiniBlocksStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "MiniBlocksStorage"}
-	persisterPeerBlockBodyStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "PeerBlockBodyStorage"}
-	persisterBlockHeaderStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "BlockHeaderStorage"}
-	persisterTxStorage := storage.DBConfig{Type: storage.LvlDB, FilePath: "TxStorage"}
-
-	txBadBlockCache, _ := storage.NewCache(cacher.Type, cacher.Size)
-
-	blUnits.txBadBlockCache = txBadBlockCache
-
-	blUnits.txUnit, _ = storage.NewStorageUnitFromConf(
-		cacher,
-		persisterTxStorage,
-		bloom)
-
-	blUnits.txBlockUnit, _ = storage.NewStorageUnitFromConf(
-		cacher,
-		persisterMiniBlocksStorage,
-		bloom)
-
-	blUnits.peerBlockUnit, _ = storage.NewStorageUnitFromConf(
-		cacher,
-		persisterPeerBlockBodyStorage,
-		bloom)
-
-	blUnits.headerUnit, _ = storage.NewStorageUnitFromConf(
-		cacher,
-		persisterBlockHeaderStorage,
-		bloom)
+	blUnits.txUnit, _ = storage.NewStorageUnit(createCacher(), createMemDb())
+	blUnits.txBlockUnit, _ = storage.NewStorageUnit(createCacher(), createMemDb())
+	blUnits.peerBlockUnit, _ = storage.NewStorageUnit(createCacher(), createMemDb())
+	blUnits.headerUnit, _ = storage.NewStorageUnit(createCacher(), createMemDb())
+	blUnits.metaChainUnits, _ = storage.NewStorageUnit(createCacher(), createMemDb())
+	blUnits.txBadBlockCache = createCacher()
 
 	return blUnits
-}
-
-func (blUnits *blockChainUnits) cleanupBlockchainUnits() {
-	// cleanup
-	if blUnits.headerUnit != nil {
-		_ = blUnits.headerUnit.DestroyUnit()
-	}
-	if blUnits.peerBlockUnit != nil {
-		_ = blUnits.peerBlockUnit.DestroyUnit()
-	}
-	if blUnits.stateBlockUnit != nil {
-		_ = blUnits.stateBlockUnit.DestroyUnit()
-	}
-	if blUnits.txBlockUnit != nil {
-		_ = blUnits.txBlockUnit.DestroyUnit()
-	}
-	if blUnits.txUnit != nil {
-		_ = blUnits.txUnit.DestroyUnit()
-	}
 }
 
 func failOnPanic(t *testing.T) {
@@ -81,7 +49,9 @@ func failOnPanic(t *testing.T) {
 	}
 }
 
-func TestNewBlockchainNilBadBlockCacheShouldError(t *testing.T) {
+func TestNewBlockChain_NilBadBlockCacheShouldError(t *testing.T) {
+	t.Parallel()
+
 	blockChainUnits := createUnits()
 
 	_, err := blockchain.NewBlockChain(
@@ -89,14 +59,16 @@ func TestNewBlockchainNilBadBlockCacheShouldError(t *testing.T) {
 		blockChainUnits.txUnit,
 		blockChainUnits.txBlockUnit,
 		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	blockChainUnits.cleanupBlockchainUnits()
+		blockChainUnits.headerUnit,
+		blockChainUnits.metaChainUnits,
+	)
 
 	assert.Equal(t, err, blockchain.ErrBadBlocksCacheNil)
 }
 
-func TestNewBlockchainNilTxUnitShouldError(t *testing.T) {
+func TestNewBlockChain_NilTxUnitShouldError(t *testing.T) {
+	t.Parallel()
+
 	blockChainUnits := createUnits()
 
 	_, err := blockchain.NewBlockChain(
@@ -104,14 +76,16 @@ func TestNewBlockchainNilTxUnitShouldError(t *testing.T) {
 		nil,
 		blockChainUnits.txBlockUnit,
 		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	blockChainUnits.cleanupBlockchainUnits()
+		blockChainUnits.headerUnit,
+		blockChainUnits.metaChainUnits,
+	)
 
 	assert.Equal(t, err, blockchain.ErrTxUnitNil)
 }
 
-func TestNewBlockchainNilTxBlockUnitShouldError(t *testing.T) {
+func TestNewBlockChain_NilTxBlockUnitShouldError(t *testing.T) {
+	t.Parallel()
+
 	blockChainUnits := createUnits()
 
 	_, err := blockchain.NewBlockChain(
@@ -119,14 +93,16 @@ func TestNewBlockchainNilTxBlockUnitShouldError(t *testing.T) {
 		blockChainUnits.txUnit,
 		nil,
 		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	blockChainUnits.cleanupBlockchainUnits()
+		blockChainUnits.headerUnit,
+		blockChainUnits.metaChainUnits,
+	)
 
 	assert.Equal(t, err, blockchain.ErrMiniBlockUnitNil)
 }
 
-func TestNewBlockchainNilPeerBlockUnitShouldError(t *testing.T) {
+func TestNewBlockChain_NilPeerBlockUnitShouldError(t *testing.T) {
+	t.Parallel()
+
 	blockChainUnits := createUnits()
 
 	_, err := blockchain.NewBlockChain(
@@ -134,13 +110,16 @@ func TestNewBlockchainNilPeerBlockUnitShouldError(t *testing.T) {
 		blockChainUnits.txUnit,
 		blockChainUnits.txBlockUnit,
 		nil,
-		blockChainUnits.headerUnit)
+		blockChainUnits.headerUnit,
+		blockChainUnits.metaChainUnits,
+	)
 
-	blockChainUnits.cleanupBlockchainUnits()
 	assert.Equal(t, err, blockchain.ErrPeerBlockUnitNil)
 }
 
-func TestNewBlockchainNilHeaderUnitShouldError(t *testing.T) {
+func TestNewBlockChain_NilHeaderUnitShouldError(t *testing.T) {
+	t.Parallel()
+
 	blockChainUnits := createUnits()
 
 	_, err := blockchain.NewBlockChain(
@@ -148,15 +127,32 @@ func TestNewBlockchainNilHeaderUnitShouldError(t *testing.T) {
 		blockChainUnits.txUnit,
 		blockChainUnits.txBlockUnit,
 		blockChainUnits.peerBlockUnit,
-		nil)
-
-	blockChainUnits.cleanupBlockchainUnits()
+		nil,
+		blockChainUnits.metaChainUnits,
+	)
 
 	assert.Equal(t, err, blockchain.ErrHeaderUnitNil)
 }
 
-func TestNewBlockchainConfigOK(t *testing.T) {
-	defer failOnPanic(t)
+func TestNewBlockChain_NilMetachainHeaderUnitShouldError(t *testing.T) {
+	t.Parallel()
+
+	blockChainUnits := createUnits()
+
+	_, err := blockchain.NewBlockChain(
+		blockChainUnits.txBadBlockCache,
+		blockChainUnits.txUnit,
+		blockChainUnits.txBlockUnit,
+		blockChainUnits.peerBlockUnit,
+		blockChainUnits.headerUnit,
+		nil,
+	)
+
+	assert.Equal(t, err, blockchain.ErrMetachainHeaderUnitNil)
+}
+
+func TestNewBlockChain_ConfigOK(t *testing.T) {
+	t.Parallel()
 
 	blockChainUnits := createUnits()
 
@@ -165,23 +161,23 @@ func TestNewBlockchainConfigOK(t *testing.T) {
 		blockChainUnits.txUnit,
 		blockChainUnits.txBlockUnit,
 		blockChainUnits.peerBlockUnit,
-		blockChainUnits.headerUnit)
-
-	defer func() {
-		err := b.Destroy()
-		assert.Nil(t, err, "Unable to destroy blockchain")
-	}()
+		blockChainUnits.headerUnit,
+		blockChainUnits.metaChainUnits,
+	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, b)
 }
 
 func TestBlockChain_IsBadBlock(t *testing.T) {
+	t.Parallel()
+
 	badBlocksStub := &mock.CacherStub{}
 	txUnit := &mock.StorerStub{}
 	txBlockUnit := &mock.StorerStub{}
 	peerBlockUnit := &mock.StorerStub{}
 	headerUnit := &mock.StorerStub{}
+	metachainHeaderUnit := &mock.StorerStub{}
 
 	hasReturns := true
 	badBlocksStub.HasCalled = func(key []byte) bool {
@@ -193,18 +189,23 @@ func TestBlockChain_IsBadBlock(t *testing.T) {
 		txUnit,
 		txBlockUnit,
 		peerBlockUnit,
-		headerUnit)
+		headerUnit,
+		metachainHeaderUnit,
+	)
 
-	isBadBlock := b.IsBadBlock([]byte("test"))
-	assert.True(t, isBadBlock)
+	hasBadBlock := b.HasBadBlock([]byte("test"))
+	assert.True(t, hasBadBlock)
 }
 
 func TestBlockChain_PutBadBlock(t *testing.T) {
+	t.Parallel()
+
 	badBlocksStub := &mock.CacherStub{}
 	txUnit := &mock.StorerStub{}
 	txBlockUnit := &mock.StorerStub{}
 	peerBlockUnit := &mock.StorerStub{}
 	headerUnit := &mock.StorerStub{}
+	metachainHeaderUnit := &mock.StorerStub{}
 
 	putCalled := false
 	badBlocksStub.PutCalled = func(key []byte, value interface{}) bool {
@@ -217,7 +218,9 @@ func TestBlockChain_PutBadBlock(t *testing.T) {
 		txUnit,
 		txBlockUnit,
 		peerBlockUnit,
-		headerUnit)
+		headerUnit,
+		metachainHeaderUnit,
+	)
 
 	b.PutBadBlock([]byte("test"))
 	assert.True(t, putCalled)

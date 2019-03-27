@@ -408,10 +408,10 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *spos.ConsensusMessage) boo
 	}
 
 	defer func() {
-		sr.consensusState.ProcessingBlock = false
+		sr.consensusState.SetProcessingBlock(false)
 	}()
 
-	sr.consensusState.ProcessingBlock = true
+	sr.consensusState.SetProcessingBlock(true)
 
 	node := string(cnsDta.PubKey)
 

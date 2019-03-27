@@ -685,7 +685,7 @@ func createShardDataPoolFromConfig(
 }
 
 func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error) {
-	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit *storage.Unit
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit *storage.Unit
 	var err error
 
 	defer func() {
@@ -703,6 +703,9 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 			if txUnit != nil {
 				_ = txUnit.DestroyUnit()
 			}
+			if metachainHeaderUnit != nil {
+				_ = metachainHeaderUnit.DestroyUnit()
+			}
 		}
 	}()
 
@@ -718,7 +721,6 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		getCacherFromConfig(config.TxStorage.Cache),
 		getDBFromConfig(config.TxStorage.DB),
 		getBloomFromConfig(config.TxStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
@@ -727,7 +729,6 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		getCacherFromConfig(config.MiniBlocksStorage.Cache),
 		getDBFromConfig(config.MiniBlocksStorage.DB),
 		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
@@ -736,7 +737,6 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		getCacherFromConfig(config.PeerBlockBodyStorage.Cache),
 		getDBFromConfig(config.PeerBlockBodyStorage.DB),
 		getBloomFromConfig(config.PeerBlockBodyStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
@@ -745,7 +745,14 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		getCacherFromConfig(config.BlockHeaderStorage.Cache),
 		getDBFromConfig(config.BlockHeaderStorage.DB),
 		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
 
+	metachainHeaderUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.MetaBlockStorage.Cache),
+		getDBFromConfig(config.MetaBlockStorage.DB),
+		getBloomFromConfig(config.MetaBlockStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -755,7 +762,9 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		txUnit,
 		miniBlockUnit,
 		peerBlockUnit,
-		headerUnit)
+		headerUnit,
+		metachainHeaderUnit,
+	)
 
 	if err != nil {
 		return nil, err
