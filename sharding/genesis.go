@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -178,4 +179,14 @@ func (g *Genesis) InitialNodesBalances(shardId uint32) (map[string]*big.Int, err
 // NumberOfShards returns the calculated number of shards
 func (g *Genesis) NumberOfShards() uint32 {
 	return g.nrOfShards
+}
+
+// GetShardIDFromPubKey returns the allocated shard ID from publick key
+func (g *Genesis) GetShardIDFromPubKey(pubKey []byte) (uint32, error) {
+	for _, in := range g.InitialNodes {
+		if in.pubKey != nil && bytes.Equal(pubKey, in.pubKey) {
+			return in.shard, nil
+		}
+	}
+	return 0, ErrNoValidPublicKey
 }

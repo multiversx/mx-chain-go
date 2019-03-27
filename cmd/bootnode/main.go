@@ -289,8 +289,20 @@ func createNode(
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	// TODO: Constructor parameters should be changed when node assignment in the sharding package is implemented
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), 0)
+	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
+	if err != nil {
+		return nil, err
+	}
+
+	initialPubKeys := genesisConfig.InitialNodesPubKeys()
+
+	publickKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	selfShardId, err := genesisConfig.GetShardIDFromPubKey(publickKey)
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -314,12 +326,6 @@ func createNode(
 	// TODO create metachain / blockchain
 	// TODO save config, and move this creation into another place for node movement
 	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig
-
-	initialPubKeys := genesisConfig.InitialNodesPubKeys()
-	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
-	if err != nil {
-		return nil, err
-	}
 
 	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator.SelfId())
 	if err != nil {

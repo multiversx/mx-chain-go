@@ -1,6 +1,7 @@
 package sharding_test
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 
@@ -202,4 +203,24 @@ func TestGenesis_Initial5NodesBalancesGood(t *testing.T) {
 	assert.NotNil(t, genesis)
 	assert.Equal(t, 2, len(inBalance))
 	assert.Nil(t, err)
+}
+
+func TestGenesis_PublicKeyNotGood(t *testing.T) {
+	genesis := createGenesisTwoShard5Nodes()
+
+	_, err := genesis.GetShardIDFromPubKey([]byte("5126b6505a73e59a994caa8f956f8c335d4399229de42102bb4814ca261c7419"))
+
+	assert.NotNil(t, genesis)
+	assert.NotNil(t, err)
+}
+
+func TestGenesis_PublicKeyGood(t *testing.T) {
+	genesis := createGenesisTwoShard5Nodes()
+	publicKey, err := hex.DecodeString("5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417")
+
+	selfId, err := genesis.GetShardIDFromPubKey(publicKey)
+
+	assert.NotNil(t, genesis)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), selfId)
 }
