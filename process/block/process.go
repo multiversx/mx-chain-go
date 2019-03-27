@@ -344,6 +344,8 @@ func (bp *blockProcessor) processBlockTransactions(body block.Body, round int32,
 				return err
 			}
 		}
+
+		// TODO delete miniblock and transactions from cache, mark them as executed.
 	}
 	return nil
 }
@@ -552,19 +554,22 @@ func (bp *blockProcessor) receivedMetaBlock(metaBlockHash []byte) {
 		return
 	}
 
+	// TODO validate the metaheader, through metaprocessor
+	// TODO save only headers with nonce higher than current
 	currentMissingMiniBlocks := make(map[uint32][][]byte, 0)
 	hashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
 
-	bp.mutCrossData.Lock()
 	for k, senderShardId := range hashSnd {
+		bp.mutCrossData.RLock()
 		miniVal, _ := miniBlockCache.Peek([]byte(k))
+		bp.mutCrossData.RUnlock()
 		if miniVal == nil {
 			bp.miniBlockMissing[k] = senderShardId
 			currentMissingMiniBlocks[senderShardId] = append(currentMissingMiniBlocks[senderShardId], []byte(k))
 			continue
 		}
 	}
-	bp.mutCrossData.Unlock()
+
 	go bp.OnRequestMiniBlocks(currentMissingMiniBlocks)
 }
 
