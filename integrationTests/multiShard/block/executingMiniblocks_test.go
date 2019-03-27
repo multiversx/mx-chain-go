@@ -149,8 +149,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	time.Sleep(time.Second * 5)
 	fmt.Println(makeDisplayTable(nodes))
 
-	//TODO(jls) uncomment this when impl is ready
-
 	fmt.Println("Step 10. Nodes from receivers shards will have to successfully process the block sent by their proposer...")
 	fmt.Println(makeDisplayTable(nodes))
 	for _, n := range nodes {

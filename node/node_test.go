@@ -864,46 +864,61 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	assert.Contains(t, err.Error(), "nil header sharded data store")
 }
 
-//TODO(jls) fix this test
-//func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
-//	messenger := getMessenger()
-//	shardCoordinator := mock.NewOneShardCoordinatorMock()
-//	nrOfShards := uint32(2)
-//	shardCoordinator.SetNoShards(nrOfShards)
-//	dataPool := &mock.PoolsHolderStub{}
-//	var txShardedDataResult uint32
-//	txShardedData := &mock.ShardedDataStub{}
-//	txShardedData.CreateShardStoreCalled = func(cacherId string) {
-//		txShardedDataResult = destShardID
-//	}
-//	var headerShardedDataResult uint32
-//	headerShardedData := &mock.ShardedDataStub{}
-//	headerShardedData.CreateShardStoreCalled = func(cacherId string) {
-//		headerShardedDataResult = destShardID
-//	}
-//	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
-//		return txShardedData
-//	}
-//	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
-//		return headerShardedData
-//	}
-//	n, _ := node.NewNode(
-//		node.WithMessenger(messenger),
-//		node.WithShardCoordinator(shardCoordinator),
-//		node.WithDataPool(dataPool),
-//		node.WithMarshalizer(mock.MarshalizerMock{}),
-//		node.WithHasher(mock.HasherMock{}),
-//		node.WithAddressConverter(&mock.AddressConverterStub{}),
-//		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
-//	)
-//	err := n.Start()
-//	logError(err)
-//	defer func() { _ = n.Stop() }()
-//	err = n.CreateShardedStores()
-//	assert.Nil(t, err)
-//	assert.Equal(t, txShardedDataResult, nrOfShards-1)
-//	assert.Equal(t, headerShardedDataResult, nrOfShards-1)
-//}
+func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
+	messenger := getMessenger()
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	nrOfShards := uint32(2)
+	shardCoordinator.SetNoShards(nrOfShards)
+	dataPool := &mock.PoolsHolderStub{}
+
+	var txShardedStores []string
+	txShardedData := &mock.ShardedDataStub{}
+	txShardedData.CreateShardStoreCalled = func(cacherId string) {
+		txShardedStores = append(txShardedStores, cacherId)
+	}
+
+	var headerShardedStores []string
+	headerShardedData := &mock.ShardedDataStub{}
+	headerShardedData.CreateShardStoreCalled = func(cacherId string) {
+		headerShardedStores = append(headerShardedStores, cacherId)
+	}
+	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
+		return txShardedData
+	}
+	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+		return headerShardedData
+	}
+	n, _ := node.NewNode(
+		node.WithMessenger(messenger),
+		node.WithShardCoordinator(shardCoordinator),
+		node.WithDataPool(dataPool),
+		node.WithMarshalizer(mock.MarshalizerMock{}),
+		node.WithHasher(mock.HasherMock{}),
+		node.WithAddressConverter(&mock.AddressConverterStub{}),
+		node.WithAccountsAdapter(&mock.AccountsAdapterStub{}),
+	)
+	err := n.Start()
+	logError(err)
+	defer func() { _ = n.Stop() }()
+	err = n.CreateShardedStores()
+	assert.Nil(t, err)
+
+	assert.True(t, containString(process.ShardCacherIdentifier(0, 0), txShardedStores))
+	assert.True(t, containString(process.ShardCacherIdentifier(0, 1), txShardedStores))
+	assert.True(t, containString(process.ShardCacherIdentifier(1, 0), txShardedStores))
+
+	assert.True(t, containString(process.ShardCacherIdentifier(0, 0), headerShardedStores))
+}
+
+func containString(search string, list []string) bool {
+	for _, str := range list {
+		if str == search {
+			return true
+		}
+	}
+
+	return false
+}
 
 func getMessenger() *mock.MessengerStub {
 	messenger := &mock.MessengerStub{

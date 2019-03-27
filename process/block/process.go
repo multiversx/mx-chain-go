@@ -478,6 +478,7 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 	//	return nil
 	//}
 
+	//TODO optimize this when miniblocks will have both shard ID fields
 	val, ok := txPool.SearchFirstData(txHash)
 	if !ok {
 		return nil
