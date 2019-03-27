@@ -267,17 +267,6 @@ func (bp *blockProcessor) CreateBlockBody(round int32, haveTime func() bool) (da
 		return nil, err
 	}
 
-	// save the transactions for cross shard for broadcast purposes
-	mrsBody, err := bp.marshalizer.Marshal(miniBlocks)
-	if err != nil {
-		return miniBlocks, nil
-	}
-
-	blockKey := bp.hasher.Compute(string(mrsBody))
-	if blockKey == nil {
-		return miniBlocks, nil
-	}
-
 	return miniBlocks, nil
 }
 
@@ -685,7 +674,7 @@ func (bp *blockProcessor) processAndRemoveBadTransaction(
 	return err
 }
 
-func (bp *blockProcessor) getAllTxsFromMiniBlock(mb block.MiniBlock, srShardId uint32, haveTime func() bool) ([]*transaction.Transaction, [][]byte, error) {
+func (bp *blockProcessor) getAllTxsFromMiniBlock(mb *block.MiniBlock, srShardId uint32, haveTime func() bool) ([]*transaction.Transaction, [][]byte, error) {
 	txPool := bp.dataPool.Transactions()
 	if txPool == nil {
 		return nil, nil, process.ErrNilTransactionPool
@@ -775,7 +764,7 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 				continue
 			}
 
-			miniBlock, ok := miniVal.(block.MiniBlock)
+			miniBlock, ok := miniVal.(*block.MiniBlock)
 			if !ok {
 				continue
 			}
@@ -834,14 +823,16 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 
 			// all txs processed, add to processed miniblocks
 			delete(bp.miniBlockMissing, k)
-			miniBlocks = append(miniBlocks, &miniBlock)
+			miniBlocks = append(miniBlocks, miniBlock)
 			nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
 			hdr.SetProcessed([]byte(k))
 			processedMbs++
 		}
 
 		if processedMbs >= len(hashSnd) {
-			log.Info("All miniblocks processed with dest current shard from %s\n", string(hdr.GetRootHash()))
+			log.Info(fmt.Sprintf("All miniblocks processed with dest current shard from %s\n", string(hdr.GetRootHash())))
+			// relevant information from
+			metaBlockCache.Remove(key)
 		}
 	}
 

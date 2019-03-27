@@ -150,56 +150,61 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	fmt.Println(makeDisplayTable(nodes))
 
 	//TODO(jls) uncomment this when impl is ready
-	//
-	//fmt.Println("Step 10. Nodes from receivers shards will have to successfully process the block sent by their proposer...")
-	//fmt.Println(makeDisplayTable(nodes))
-	//for _, n := range nodes{
-	//	isNodeInReceiverShardAndNotProposer := false
-	//	for _, shardId := range recvShards{
-	//		if n.shardId == shardId{
-	//			isNodeInReceiverShardAndNotProposer = true
-	//			break
-	//		}
-	//	}
-	//	for _, proposerReceiver := range firstReceiverNodes{
-	//		if proposerReceiver == n{
-	//			isNodeInReceiverShardAndNotProposer = false
-	//		}
-	//	}
-	//
-	//	if isNodeInReceiverShardAndNotProposer{
-	//		err := n.blkProcessor.ProcessBlock(
-	//			n.blkc,
-	//			n.headers[0],
-	//			block.Body(n.miniblocks),
-	//			func() time.Duration {
-	//				//fair enough to process a few transactions
-	//				return time.Second * 2
-	//			},
-	//		)
-	//
-	//		assert.Nil(t, err)
-	//	}
-	//}
-	//
-	//fmt.Println("Step 11. Test nodes from receiver shards to have the correct balances...")
-	//for _, n := range nodes {
-	//	isNodeInReceiverShardAndNotProposer := false
-	//	for _, shardId := range recvShards{
-	//		if n.shardId == shardId{
-	//			isNodeInReceiverShardAndNotProposer = true
-	//			break
-	//		}
-	//	}
-	//	if !isNodeInReceiverShardAndNotProposer{
-	//		continue
-	//	}
-	//
-	//	//test receiver balances from same shard
-	//	for _, sk := range receiversPrivateKeys[n.shardId]{
-	//		testPrivateKeyHasBalance(t, n, sk, valToTransferPerTx)
-	//	}
-	//}
+
+	fmt.Println("Step 10. Nodes from receivers shards will have to successfully process the block sent by their proposer...")
+	fmt.Println(makeDisplayTable(nodes))
+	for _, n := range nodes {
+		isNodeInReceiverShardAndNotProposer := false
+		for _, shardId := range recvShards {
+			if n.shardId == shardId {
+				isNodeInReceiverShardAndNotProposer = true
+				break
+			}
+		}
+		for _, proposerReceiver := range firstReceiverNodes {
+			if proposerReceiver == n {
+				isNodeInReceiverShardAndNotProposer = false
+			}
+		}
+
+		if isNodeInReceiverShardAndNotProposer {
+			if len(n.headers) > 0 {
+				err := n.blkProcessor.ProcessBlock(
+					n.blkc,
+					n.headers[0],
+					block.Body(n.miniblocks),
+					func() time.Duration {
+						// time 5 seconds as they have to request from leader the TXs
+						return time.Second * 5
+					},
+				)
+
+				assert.Nil(t, err)
+				if err != nil {
+					return
+				}
+			}
+		}
+	}
+
+	fmt.Println("Step 11. Test nodes from receiver shards to have the correct balances...")
+	for _, n := range nodes {
+		isNodeInReceiverShardAndNotProposer := false
+		for _, shardId := range recvShards {
+			if n.shardId == shardId {
+				isNodeInReceiverShardAndNotProposer = true
+				break
+			}
+		}
+		if !isNodeInReceiverShardAndNotProposer {
+			continue
+		}
+
+		//test receiver balances from same shard
+		for _, sk := range receiversPrivateKeys[n.shardId] {
+			testPrivateKeyHasBalance(t, n, sk, valToTransferPerTx)
+		}
+	}
 
 }
 
