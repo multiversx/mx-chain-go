@@ -35,6 +35,7 @@ struct MetaBlockCapn {
     prevRandSeed  @9:  Data;
     randSeed      @10: Data;
     stateRootHash @11: Data;
+    txCount       @12: UInt32;
 }
 
 ##compile with:

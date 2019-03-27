@@ -60,7 +60,7 @@ func (inTxBlkBdy *InterceptedTxBlockBody) Integrity(coordinator sharding.Coordin
 			return process.ErrNilTxHashes
 		}
 
-		if miniBlock.ShardID >= coordinator.NumberOfShards() {
+		if miniBlock.DestShardID >= coordinator.NumberOfShards() {
 			return process.ErrInvalidShardId
 		}
 

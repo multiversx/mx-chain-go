@@ -67,6 +67,7 @@ type MetaBlock struct {
 	PrevRandSeed  []byte      `capid:"9"`
 	RandSeed      []byte      `capid:"10"`
 	StateRootHash []byte      `capid:"11"`
+	TxCount       uint32      `capid:"12"`
 }
 
 // MetaBlockBody hold the data for metablock body
@@ -258,6 +259,7 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetPrevRandSeed(src.PrevRandSeed)
 	dest.SetRandSeed(src.RandSeed)
 	dest.SetStateRootHash(src.StateRootHash)
+	dest.SetTxCount(src.TxCount)
 
 	return dest
 }
@@ -288,6 +290,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.PrevRandSeed = src.PrevRandSeed()
 	dest.RandSeed = src.RandSeed()
 	dest.StateRootHash = src.StateRootHash()
+	dest.TxCount = src.TxCount()
 
 	return dest
 }
@@ -342,6 +345,11 @@ func (m *MetaBlock) GetSignature() []byte {
 	return m.Signature
 }
 
+// GetTxCount returns transaction count in the current meta block
+func (m *MetaBlock) GetTxCount() uint32 {
+	return m.TxCount
+}
+
 // SetNonce sets header nonce
 func (m *MetaBlock) SetNonce(n uint64) {
 	m.Nonce = n
@@ -390,6 +398,11 @@ func (m *MetaBlock) SetSignature(sg []byte) {
 // SetTimeStamp sets header timestamp
 func (m *MetaBlock) SetTimeStamp(ts uint64) {
 	m.TimeStamp = ts
+}
+
+// SetTxCount sets the transaction count of the current meta block
+func (m *MetaBlock) SetTxCount(txCount uint32) {
+	m.TxCount = txCount
 }
 
 // IntegrityAndValidity return true as block is nil for metablock.

@@ -201,6 +201,17 @@ func TestMetaBlock_GetSignature(t *testing.T) {
 	assert.Equal(t, signature, m.GetSignature())
 }
 
+func TestMetaBlock_GetTxCount(t *testing.T) {
+	t.Parallel()
+
+	txCount := uint32(100)
+	m := block.MetaBlock{
+		TxCount: txCount,
+	}
+
+	assert.Equal(t, txCount, m.GetTxCount())
+}
+
 func TestMetaBlock_SetEpoch(t *testing.T) {
 	t.Parallel()
 
@@ -299,4 +310,14 @@ func TestMetaBlock_SetTimeStamp(t *testing.T) {
 	m.SetTimeStamp(timestamp)
 
 	assert.Equal(t, timestamp, m.GetTimestamp())
+}
+
+func TestMetaBlock_SetTxCount(t *testing.T) {
+	t.Parallel()
+
+	txCount := uint32(100)
+	m := block.MetaBlock{}
+	m.SetTxCount(txCount)
+
+	assert.Equal(t, txCount, m.GetTxCount())
 }

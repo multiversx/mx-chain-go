@@ -207,8 +207,8 @@ func (sBlock *MiniBlock) GenerateDummyArray() []data.CapnpHelper {
 		}
 		sBlocks = append(sBlocks, &MiniBlock{
 			MiniBlock: block.MiniBlock{
-				TxHashes: txHashes,
-				ShardID:  uint32(rand.Intn(1000)),
+				TxHashes:    txHashes,
+				DestShardID: uint32(rand.Intn(1000)),
 			},
 		})
 	}

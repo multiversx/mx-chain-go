@@ -19,17 +19,19 @@ struct HeaderCapn {
    miniBlockHeaders @11:  List(MiniBlockHeaderCapn);
    peerChanges      @12:  List(PeerChangeCapn);
    rootHash         @13:  Data;
+   txCount          @14:  UInt32;
 }
 
 struct MiniBlockHeaderCapn {
    hash            @0: Data;
    receiverShardID @1: UInt32;
    senderShardID   @2: UInt32;
+   txCount         @3: UInt32;
 }
 
 struct MiniBlockCapn {
    txHashes     @0:   List(Data);
-   shardID      @1:   UInt32;
+   destShardID  @1:   UInt32;
 }
 
 struct PeerChangeCapn {
