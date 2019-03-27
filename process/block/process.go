@@ -471,14 +471,14 @@ func (bp *blockProcessor) getTransactionFromPool(destShardID uint32, txHash []by
 		return nil
 	}
 
-	strCache := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), destShardID)
-	txStore := txPool.ShardDataStore(strCache)
-	if txStore == nil {
-		log.Error(process.ErrNilTxStorage.Error())
-		return nil
-	}
+	//strCache := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), destShardID)
+	//txStore := txPool.ShardDataStore(strCache)
+	//if txStore == nil {
+	//	log.Error(process.ErrNilTxStorage.Error())
+	//	return nil
+	//}
 
-	val, ok := txStore.Peek(txHash)
+	val, ok := txPool.SearchFirstData(txHash)
 	if !ok {
 		return nil
 	}
