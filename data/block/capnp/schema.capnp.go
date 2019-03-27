@@ -970,6 +970,8 @@ func (s MiniBlockCapn) TxHashes() C.DataList           { return C.DataList(C.Str
 func (s MiniBlockCapn) SetTxHashes(v C.DataList)       { C.Struct(s).SetObject(0, C.Object(v)) }
 func (s MiniBlockCapn) DestShardID() uint32            { return C.Struct(s).Get32(0) }
 func (s MiniBlockCapn) SetDestShardID(v uint32)        { C.Struct(s).Set32(0, v) }
+func (s MiniBlockCapn) SenderShardID() uint32          { return C.Struct(s).Get32(4) }
+func (s MiniBlockCapn) SetSenderShardID(v uint32)      { C.Struct(s).Set32(4, v) }
 func (s MiniBlockCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -1022,6 +1024,25 @@ func (s MiniBlockCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.DestShardID()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"senderShardID\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.SenderShardID()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -1095,6 +1116,25 @@ func (s MiniBlockCapn) WriteCapLit(w io.Writer) error {
 	}
 	{
 		s := s.DestShardID()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("senderShardID = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.SenderShardID()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err

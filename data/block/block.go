@@ -48,10 +48,11 @@ func (bType Type) String() string {
 	}
 }
 
-// MiniBlock holds the transactions with one of the sender or recipient in node's shard and the other in DestShardID
+// MiniBlock holds the transactions and the sender/destination shard ids
 type MiniBlock struct {
-	TxHashes    [][]byte `capid:"0"`
-	DestShardID uint32   `capid:"1"`
+	TxHashes      [][]byte `capid:"0"`
+	DestShardID   uint32   `capid:"1"`
+	SenderShardID uint32   `capid:"2"`
 }
 
 // MiniBlockHeader holds the hash of a miniblock together with sender/deastination shard id pair.
@@ -235,6 +236,7 @@ func MiniBlockCapnToGo(src capnp.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
 	}
 
 	dest.DestShardID = src.DestShardID()
+	dest.SenderShardID = src.SenderShardID()
 
 	return dest
 }
@@ -249,6 +251,7 @@ func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnp.MiniBlockCapn {
 	}
 	dest.SetTxHashes(mylist1)
 	dest.SetDestShardID(src.DestShardID)
+	dest.SetSenderShardID(src.SenderShardID)
 
 	return dest
 }
