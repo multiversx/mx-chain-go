@@ -244,9 +244,22 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 		return process.ErrNilTransactionPool
 	}
 
+	miniBlockPool := bp.dataPool.MiniBlocks()
+	if miniBlockPool == nil {
+		return process.ErrNilMiniBlockPool
+	}
+
 	for i := 0; i < len(blockBody); i++ {
 		strCache := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), blockBody[i].ShardID)
 		transactionPool.RemoveSetOfDataFromPool((blockBody)[i].TxHashes, strCache)
+
+		buff, err := bp.marshalizer.Marshal((blockBody)[i])
+		if err != nil {
+			return err
+		}
+
+		miniBlockHash := bp.hasher.Compute(string(buff))
+		miniBlockPool.Remove(miniBlockHash)
 	}
 
 	return nil

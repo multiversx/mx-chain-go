@@ -78,6 +78,12 @@ func initDataPool() *mock.PoolsHolderStub {
 					}
 				},
 				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
 			}
 		},
 		HeadersNoncesCalled: func() data.Uint64Cacher {
@@ -129,6 +135,7 @@ func initDataPool() *mock.PoolsHolderStub {
 				return nil, false
 			}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
+			cs.RemoveCalled = func(key []byte) {}
 			return cs
 		},
 	}
@@ -1009,8 +1016,14 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 
 			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {
 			},
-		}
 
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				if reflect.DeepEqual(key, []byte("tx1_hash")) {
+					return &transaction.Transaction{Nonce: 10}, true
+				}
+				return nil, false
+			},
+		}
 	}
 	blkc := createTestBlockchain()
 	err := be.CommitBlock(blkc, hdr, body)
@@ -1093,6 +1106,12 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 				if bytes.Equal(keys[0], []byte(txHash)) && len(keys) == 1 {
 					removeTxWasCalled = true
 				}
+			},
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				if reflect.DeepEqual(key, []byte(txHash)) {
+					return &transaction.Transaction{Nonce: 10}, true
+				}
+				return nil, false
 			},
 		}
 
