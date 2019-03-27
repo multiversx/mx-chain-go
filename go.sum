@@ -20,6 +20,8 @@ github.com/coreos/go-semver v0.2.1-0.20180108230905-e214231b295a h1:U0BbGfKnviqV
 github.com/coreos/go-semver v0.2.1-0.20180108230905-e214231b295a/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
 github.com/cornelk/hashmap v1.0.0 h1:jNHWycAM10SO5Ig76HppMQ69jnbqaziRpqVTNvAxdJQ=
 github.com/cornelk/hashmap v1.0.0/go.mod h1:8wbysTUDnwJGrPZ1Iwsou3m+An6sldFrJItjRhfegCw=
+github.com/cornelk/hashmap v1.0.1-0.20190121140111-33e58823eb9d h1:4WQYfG+ptVtf0+bb7Jg2ESPzoLH6+L0RQEsUJ1X/yTs=
+github.com/cornelk/hashmap v1.0.1-0.20190121140111-33e58823eb9d/go.mod h1:8wbysTUDnwJGrPZ1Iwsou3m+An6sldFrJItjRhfegCw=
 github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
