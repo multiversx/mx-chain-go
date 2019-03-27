@@ -91,5 +91,8 @@ var ErrNilCommitmentHash = errors.New("commitment hash is nil")
 // ErrSigNotValid is raised when a signature verification fails due to invalid signature
 var ErrSigNotValid = errors.New("signature is invalid")
 
+// ErrAggSigNotValid is raised when an aggregate signature is invalid
+var ErrAggSigNotValid = errors.New("aggregate signature is invalid")
+
 // ErrEmptyPubKeyString is raised when an empty public key string is used
 var ErrEmptyPubKeyString = errors.New("public key string is empty")
