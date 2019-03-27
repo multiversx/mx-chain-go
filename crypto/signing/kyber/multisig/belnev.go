@@ -637,18 +637,23 @@ func (bn *belNevSigner) SetAggregatedSig(aggSig []byte) error {
 		return crypto.ErrNilSignature
 	}
 
-	// unpack the commitment and signature
 	lenComm := bn.suite.PointLen()
-	aggCommPoint := bn.suite.CreatePoint()
-	err := aggCommPoint.UnmarshalBinary(aggSig[:lenComm])
+	lenSig := bn.suite.ScalarLen()
+	if len(aggSig) != lenComm+lenSig {
+		return crypto.ErrAggSigNotValid
+	}
 
+	// unpack the commitment and signature
+	aggCommPoint := bn.suite.CreatePoint()
+
+	err := aggCommPoint.UnmarshalBinary(aggSig[:lenComm])
 	if err != nil {
 		return err
 	}
 
 	aggSigScalar := bn.suite.CreateScalar()
-	err = aggSigScalar.UnmarshalBinary(aggSig[lenComm:])
 
+	err = aggSigScalar.UnmarshalBinary(aggSig[lenComm:])
 	if err != nil {
 		return err
 	}
