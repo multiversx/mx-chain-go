@@ -968,8 +968,8 @@ func AutoNewMiniBlockCapn(s *C.Segment) MiniBlockCapn  { return MiniBlockCapn(s.
 func ReadRootMiniBlockCapn(s *C.Segment) MiniBlockCapn { return MiniBlockCapn(s.Root(0).ToStruct()) }
 func (s MiniBlockCapn) TxHashes() C.DataList           { return C.DataList(C.Struct(s).GetObject(0)) }
 func (s MiniBlockCapn) SetTxHashes(v C.DataList)       { C.Struct(s).SetObject(0, C.Object(v)) }
-func (s MiniBlockCapn) DestShardID() uint32            { return C.Struct(s).Get32(0) }
-func (s MiniBlockCapn) SetDestShardID(v uint32)        { C.Struct(s).Set32(0, v) }
+func (s MiniBlockCapn) ReceiverShardID() uint32        { return C.Struct(s).Get32(0) }
+func (s MiniBlockCapn) SetReceiverShardID(v uint32)    { C.Struct(s).Set32(0, v) }
 func (s MiniBlockCapn) SenderShardID() uint32          { return C.Struct(s).Get32(4) }
 func (s MiniBlockCapn) SetSenderShardID(v uint32)      { C.Struct(s).Set32(4, v) }
 func (s MiniBlockCapn) WriteJSON(w io.Writer) error {
@@ -1018,12 +1018,12 @@ func (s MiniBlockCapn) WriteJSON(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("\"destShardID\":")
+	_, err = b.WriteString("\"receiverShardID\":")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.DestShardID()
+		s := s.ReceiverShardID()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -1110,12 +1110,12 @@ func (s MiniBlockCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("destShardID = ")
+	_, err = b.WriteString("receiverShardID = ")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.DestShardID()
+		s := s.ReceiverShardID()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err

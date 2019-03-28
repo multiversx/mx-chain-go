@@ -30,9 +30,9 @@ struct MiniBlockHeaderCapn {
 }
 
 struct MiniBlockCapn {
-   txHashes      @0:   List(Data);
-   destShardID   @1:   UInt32;
-   senderShardID @2:   UInt32;
+   txHashes        @0:   List(Data);
+   receiverShardID @1:   UInt32;
+   senderShardID   @2:   UInt32;
 }
 
 struct PeerChangeCapn {

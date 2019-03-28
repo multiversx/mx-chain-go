@@ -44,6 +44,7 @@ type ShardMiniBlockHeader struct {
 	Hash            []byte `capid:"0"`
 	ReceiverShardId uint32 `capid:"1"`
 	SenderShardId   uint32 `capid:"2"`
+	TxCount         uint32 `capid:"3"`
 }
 
 // ShardData holds the block information sent by the shards to the metachain
@@ -51,6 +52,7 @@ type ShardData struct {
 	ShardId               uint32                 `capid:"0"`
 	HeaderHash            []byte                 `capid:"1"`
 	ShardMiniBlockHeaders []ShardMiniBlockHeader `capid:"2"`
+	TxCount               uint32                 `capid:"3"`
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
@@ -169,6 +171,7 @@ func ShardMiniBlockHeaderGoToCapn(seg *capn.Segment, src *ShardMiniBlockHeader) 
 	dest.SetHash(src.Hash)
 	dest.SetReceiverShardId(src.ReceiverShardId)
 	dest.SetSenderShardId(src.SenderShardId)
+	dest.SetTxCount(src.TxCount)
 
 	return dest
 }
@@ -182,6 +185,7 @@ func ShardMiniBlockHeaderCapnToGo(src capnp.ShardMiniBlockHeaderCapn, dest *Shar
 	dest.Hash = src.Hash()
 	dest.ReceiverShardId = src.ReceiverShardId()
 	dest.SenderShardId = src.SenderShardId()
+	dest.TxCount = src.TxCount()
 
 	return dest
 }
@@ -203,6 +207,7 @@ func ShardDataGoToCapn(seg *capn.Segment, src *ShardData) capnp.ShardDataCapn {
 		}
 		dest.SetShardMiniBlockHeaders(typedList)
 	}
+	dest.SetTxCount(src.TxCount)
 
 	return dest
 }
@@ -220,6 +225,7 @@ func ShardDataCapnToGo(src capnp.ShardDataCapn, dest *ShardData) *ShardData {
 	for i := 0; i < n; i++ {
 		dest.ShardMiniBlockHeaders[i] = *ShardMiniBlockHeaderCapnToGo(src.ShardMiniBlockHeaders().At(i), nil)
 	}
+	dest.TxCount = src.TxCount()
 
 	return dest
 }

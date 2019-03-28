@@ -50,9 +50,9 @@ func (bType Type) String() string {
 
 // MiniBlock holds the transactions and the sender/destination shard ids
 type MiniBlock struct {
-	TxHashes      [][]byte `capid:"0"`
-	DestShardID   uint32   `capid:"1"`
-	SenderShardID uint32   `capid:"2"`
+	TxHashes        [][]byte `capid:"0"`
+	ReceiverShardID uint32   `capid:"1"`
+	SenderShardID   uint32   `capid:"2"`
 }
 
 // MiniBlockHeader holds the hash of a miniblock together with sender/deastination shard id pair.
@@ -115,46 +115,31 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 		dest = &Header{}
 	}
 
-	// Nonce
 	dest.Nonce = src.Nonce()
-	// PrevHash
 	dest.PrevHash = src.PrevHash()
-	// PrevRandSeed
 	dest.PrevRandSeed = src.PrevRandSeed()
-	// RandSeed
 	dest.RandSeed = src.RandSeed()
-	// PubKeysBitmap
 	dest.PubKeysBitmap = src.PubKeysBitmap()
-	// ShardId
 	dest.ShardId = src.ShardId()
-	// TimeStamp
 	dest.TimeStamp = src.TimeStamp()
-	// Round
 	dest.Round = src.Round()
-	// Epoch
 	dest.Epoch = src.Epoch()
-	// BlockBodyType
 	dest.BlockBodyType = Type(src.BlockBodyType())
-	// Signature
 	dest.Signature = src.Signature()
-	// MiniBlockHeaders
+
 	mbLength := src.MiniBlockHeaders().Len()
 	dest.MiniBlockHeaders = make([]MiniBlockHeader, mbLength)
 	for i := 0; i < mbLength; i++ {
 		dest.MiniBlockHeaders[i] = *MiniBlockHeaderCapnToGo(src.MiniBlockHeaders().At(i), nil)
 	}
 
-	// PeerChanges
 	peerChangesLen := src.PeerChanges().Len()
 	dest.PeerChanges = make([]PeerChange, peerChangesLen)
 	for i := 0; i < peerChangesLen; i++ {
 		dest.PeerChanges[i] = *PeerChangeCapnToGo(src.PeerChanges().At(i), nil)
 	}
 
-	// RootHash
 	dest.RootHash = src.RootHash()
-
-	// TxCount
 	dest.TxCount = src.TxCount()
 
 	return dest
@@ -228,14 +213,13 @@ func MiniBlockCapnToGo(src capnp.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
 
 	var n int
 
-	// TxHashes
 	n = src.TxHashes().Len()
 	dest.TxHashes = make([][]byte, n)
 	for i := 0; i < n; i++ {
 		dest.TxHashes[i] = src.TxHashes().At(i)
 	}
 
-	dest.DestShardID = src.DestShardID()
+	dest.ReceiverShardID = src.ReceiverShardID()
 	dest.SenderShardID = src.SenderShardID()
 
 	return dest
@@ -250,7 +234,7 @@ func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnp.MiniBlockCapn {
 		mylist1.Set(i, src.TxHashes[i])
 	}
 	dest.SetTxHashes(mylist1)
-	dest.SetDestShardID(src.DestShardID)
+	dest.SetReceiverShardID(src.ReceiverShardID)
 	dest.SetSenderShardID(src.SenderShardID)
 
 	return dest
@@ -281,9 +265,7 @@ func PeerChangeCapnToGo(src capnp.PeerChangeCapn, dest *PeerChange) *PeerChange 
 		dest = &PeerChange{}
 	}
 
-	// PubKey
 	dest.PubKey = src.PubKey()
-	// ShardIdDest
 	dest.ShardIdDest = src.ShardIdDest()
 
 	return dest

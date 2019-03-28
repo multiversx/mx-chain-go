@@ -233,13 +233,13 @@ func (s PeerDataCapn_List) Set(i int, item PeerDataCapn) { C.PointerList(s).Set(
 type ShardMiniBlockHeaderCapn C.Struct
 
 func NewShardMiniBlockHeaderCapn(s *C.Segment) ShardMiniBlockHeaderCapn {
-	return ShardMiniBlockHeaderCapn(s.NewStruct(8, 1))
+	return ShardMiniBlockHeaderCapn(s.NewStruct(16, 1))
 }
 func NewRootShardMiniBlockHeaderCapn(s *C.Segment) ShardMiniBlockHeaderCapn {
-	return ShardMiniBlockHeaderCapn(s.NewRootStruct(8, 1))
+	return ShardMiniBlockHeaderCapn(s.NewRootStruct(16, 1))
 }
 func AutoNewShardMiniBlockHeaderCapn(s *C.Segment) ShardMiniBlockHeaderCapn {
-	return ShardMiniBlockHeaderCapn(s.NewStructAR(8, 1))
+	return ShardMiniBlockHeaderCapn(s.NewStructAR(16, 1))
 }
 func ReadRootShardMiniBlockHeaderCapn(s *C.Segment) ShardMiniBlockHeaderCapn {
 	return ShardMiniBlockHeaderCapn(s.Root(0).ToStruct())
@@ -250,6 +250,8 @@ func (s ShardMiniBlockHeaderCapn) ReceiverShardId() uint32     { return C.Struct
 func (s ShardMiniBlockHeaderCapn) SetReceiverShardId(v uint32) { C.Struct(s).Set32(0, v) }
 func (s ShardMiniBlockHeaderCapn) SenderShardId() uint32       { return C.Struct(s).Get32(4) }
 func (s ShardMiniBlockHeaderCapn) SetSenderShardId(v uint32)   { C.Struct(s).Set32(4, v) }
+func (s ShardMiniBlockHeaderCapn) TxCount() uint32             { return C.Struct(s).Get32(8) }
+func (s ShardMiniBlockHeaderCapn) SetTxCount(v uint32)         { C.Struct(s).Set32(8, v) }
 func (s ShardMiniBlockHeaderCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -303,6 +305,25 @@ func (s ShardMiniBlockHeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.SenderShardId()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"txCount\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.TxCount()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -386,6 +407,25 @@ func (s ShardMiniBlockHeaderCapn) WriteCapLit(w io.Writer) error {
 			return err
 		}
 	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("txCount = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.TxCount()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
 	err = b.WriteByte(')')
 	if err != nil {
 		return err
@@ -402,7 +442,7 @@ func (s ShardMiniBlockHeaderCapn) MarshalCapLit() ([]byte, error) {
 type ShardMiniBlockHeaderCapn_List C.PointerList
 
 func NewShardMiniBlockHeaderCapnList(s *C.Segment, sz int) ShardMiniBlockHeaderCapn_List {
-	return ShardMiniBlockHeaderCapn_List(s.NewCompositeList(8, 1, sz))
+	return ShardMiniBlockHeaderCapn_List(s.NewCompositeList(16, 1, sz))
 }
 func (s ShardMiniBlockHeaderCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s ShardMiniBlockHeaderCapn_List) At(i int) ShardMiniBlockHeaderCapn {
@@ -436,6 +476,8 @@ func (s ShardDataCapn) ShardMiniBlockHeaders() ShardMiniBlockHeaderCapn_List {
 func (s ShardDataCapn) SetShardMiniBlockHeaders(v ShardMiniBlockHeaderCapn_List) {
 	C.Struct(s).SetObject(1, C.Object(v))
 }
+func (s ShardDataCapn) TxCount() uint32     { return C.Struct(s).Get32(4) }
+func (s ShardDataCapn) SetTxCount(v uint32) { C.Struct(s).Set32(4, v) }
 func (s ShardDataCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -508,6 +550,25 @@ func (s ShardDataCapn) WriteJSON(w io.Writer) error {
 			}
 			err = b.WriteByte(']')
 		}
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"txCount\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.TxCount()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}
@@ -596,6 +657,25 @@ func (s ShardDataCapn) WriteCapLit(w io.Writer) error {
 			}
 			err = b.WriteByte(']')
 		}
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("txCount = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.TxCount()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
 		if err != nil {
 			return err
 		}

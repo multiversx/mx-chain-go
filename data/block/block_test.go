@@ -16,7 +16,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		Hash:            []byte("mini block hash"),
 		ReceiverShardID: uint32(0),
 		SenderShardID:   uint32(10),
-		TxCount: uint32(10),
+		TxCount:         uint32(10),
 	}
 
 	pc := block.PeerChange{
@@ -90,8 +90,9 @@ func TestMiniBlock_SaveLoad(t *testing.T) {
 	t.Parallel()
 
 	mb := block.MiniBlock{
-		TxHashes:    [][]byte{[]byte("tx hash1"), []byte("tx hash2")},
-		DestShardID: uint32(0),
+		TxHashes:        [][]byte{[]byte("tx hash1"), []byte("tx hash2")},
+		ReceiverShardID: uint32(0),
+		SenderShardID:   uint32(0),
 	}
 
 	var b bytes.Buffer
@@ -336,8 +337,9 @@ func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		DestShardID: 0,
-		TxHashes:    [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 
 	mb1 := block.MiniBlock{}
@@ -354,8 +356,9 @@ func TestBody_IntegrityAndValidityOK(t *testing.T) {
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		DestShardID: 0,
-		TxHashes:    [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 
 	body := make(block.Body, 0)

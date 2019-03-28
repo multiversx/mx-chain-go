@@ -31,12 +31,14 @@ func TestShardData_SaveLoad(t *testing.T) {
 		Hash:            []byte("miniblock hash"),
 		SenderShardId:   uint32(0),
 		ReceiverShardId: uint32(1),
+		TxCount:         uint32(1),
 	}
 
 	sd := block.ShardData{
 		ShardId:               uint32(10),
 		HeaderHash:            []byte("header_hash"),
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
+		TxCount:               uint32(1),
 	}
 
 	var b bytes.Buffer
@@ -60,12 +62,14 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		Hash:            []byte("miniblock hash"),
 		SenderShardId:   uint32(0),
 		ReceiverShardId: uint32(1),
+		TxCount:         uint32(1),
 	}
 
 	sd := block.ShardData{
 		ShardId:               uint32(10),
 		HeaderHash:            []byte("header_hash"),
 		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{mbh},
+		TxCount:               uint32(1),
 	}
 
 	mb := block.MetaBlock{
@@ -81,6 +85,7 @@ func TestMetaBlock_SaveLoad(t *testing.T) {
 		PrevRandSeed:  []byte("previous random seed"),
 		RandSeed:      []byte("random seed"),
 		StateRootHash: []byte("state root hash"),
+		TxCount:       uint32(1),
 	}
 	var b bytes.Buffer
 	mb.Save(&b)

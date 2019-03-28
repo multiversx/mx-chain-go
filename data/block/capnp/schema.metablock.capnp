@@ -14,12 +14,14 @@ struct ShardMiniBlockHeaderCapn {
    hash            @0: Data;
    receiverShardId @1: UInt32;
    senderShardId   @2: UInt32;
+   txCount         @3: UInt32;
 }
 
 struct ShardDataCapn {
-    shardId          @0: UInt32;
-    headerHash       @1: Data;
+    shardId               @0: UInt32;
+    headerHash            @1: Data;
     shardMiniBlockHeaders @2: List(ShardMiniBlockHeaderCapn);
+    txCount               @3: UInt32;
 }
 
 struct MetaBlockCapn {
