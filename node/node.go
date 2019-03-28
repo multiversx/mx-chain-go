@@ -171,24 +171,24 @@ func (n *Node) CreateShardedStores() error {
 	}
 
 	shards := n.shardCoordinator.NumberOfShards()
-
+	currentShardId := n.shardCoordinator.SelfId()
 	//TODO - change headers to plain cacher
 	// for now we just need one cacher for headers
 	headersDataStore.CreateShardStore(
-		process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), n.shardCoordinator.SelfId()),
+		process.ShardCacherIdentifier(currentShardId, currentShardId),
 	)
 
 	for i := uint32(0); i < shards; i++ {
 		if i == n.shardCoordinator.SelfId() {
 			transactionsDataStore.CreateShardStore(
-				process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), n.shardCoordinator.SelfId()),
+				process.ShardCacherIdentifier(currentShardId, currentShardId),
 			)
 		} else {
 			transactionsDataStore.CreateShardStore(
-				process.ShardCacherIdentifier(i, n.shardCoordinator.SelfId()),
+				process.ShardCacherIdentifier(i, currentShardId),
 			)
 			transactionsDataStore.CreateShardStore(
-				process.ShardCacherIdentifier(n.shardCoordinator.SelfId(), i),
+				process.ShardCacherIdentifier(currentShardId, i),
 			)
 		}
 

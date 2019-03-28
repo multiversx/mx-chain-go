@@ -248,10 +248,11 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 	}
 
 	for i := 0; i < len(blockBody); i++ {
-		strCache := process.ShardCacherIdentifier(blockBody[i].SenderShardID, blockBody[i].ReceiverShardID)
-		transactionPool.RemoveSetOfDataFromPool((blockBody)[i].TxHashes, strCache)
+		currentMiniBlock := blockBody[i]
+		strCache := process.ShardCacherIdentifier(currentMiniBlock.SenderShardID, currentMiniBlock.ReceiverShardID)
+		transactionPool.RemoveSetOfDataFromPool(currentMiniBlock.TxHashes, strCache)
 
-		buff, err := bp.marshalizer.Marshal((blockBody)[i])
+		buff, err := bp.marshalizer.Marshal(currentMiniBlock)
 		if err != nil {
 			return err
 		}
@@ -750,6 +751,51 @@ func (bp *blockProcessor) getAllTxsFromMiniBlock(mb *block.MiniBlock, haveTime f
 	return transactions, txHashes, nil
 }
 
+// processMiniBlockComplete - all transactions must be processed together, otherwise error
+func (bp *blockProcessor) processMiniBlockComplete(miniBlock *block.MiniBlock, round int32, haveTime func() bool) error {
+	txPool := bp.dataPool.Transactions()
+	if txPool == nil {
+		return process.ErrNilTransactionPool
+	}
+
+	miniBlockTxs, txHashes, err := bp.getAllTxsFromMiniBlock(miniBlock, haveTime)
+	if err != nil {
+		return err
+	}
+
+	strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+
+	snapshot := bp.accounts.JournalLen()
+	for index, tx := range miniBlockTxs {
+		if !haveTime() {
+			err = process.ErrTimeIsOut
+			break
+		}
+		if tx == nil {
+			err = process.ErrNilTransaction
+			break
+		}
+
+		err = bp.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
+		if err == process.ErrLowerNonceInTransaction {
+			txPool.RemoveData(txHashes[index], strCache)
+		}
+
+		if err != nil {
+			break
+		}
+	}
+	// all txs from miniblock has to be processed together
+	if err != nil {
+		log.Error(err.Error())
+		err = bp.accounts.RevertToSnapshot(snapshot)
+		if err != nil {
+			log.Error(err.Error())
+		}
+	}
+	return err
+}
+
 // full verification through metachain header
 func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.MiniBlockSlice, uint32, error) {
 	metaBlockCache := bp.dataPool.MetaBlocks()
@@ -824,56 +870,20 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 				return miniBlocks, nrTxAdded, nil
 			}
 
-			miniBlockTxs, txHashes, err := bp.getAllTxsFromMiniBlock(miniBlock, haveTime)
+			err := bp.processMiniBlockComplete(miniBlock, round, haveTime)
 			if err != nil {
-				break
-			}
-
-			strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-			// process all transactions from miniblock
-			snapshot := bp.accounts.JournalLen()
-			for index, tx := range miniBlockTxs {
-				if !haveTime() {
-					err = process.ErrTimeIsOut
-					break
-				}
-				if tx == nil {
-					err = process.ErrNilTransaction
-					break
-				}
-
-				err = bp.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
-				if err == process.ErrLowerNonceInTransaction {
-					txPool.RemoveData(txHashes[index], strCache)
-				}
-
-				if err != nil {
-					break
-				}
-			}
-			// all txs from miniblock has to be processed together
-			if err != nil {
-				log.Error(err.Error())
-				err = bp.accounts.RevertToSnapshot(snapshot)
-				if err != nil {
-					log.Error(err.Error())
-				}
 				continue
 			}
 
 			// all txs processed, add to processed miniblocks
 			miniBlocks = append(miniBlocks, miniBlock)
 			nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
-
-			hdr.SetProcessed([]byte(k))
 			processedMbs++
 		}
 
 		if processedMbs >= len(hashSnd) {
 			log.Info(fmt.Sprintf("All miniblocks processed with dest current shard from header with nonce %d\n",
 				hdr.GetNonce()))
-			// relevant information from
-			metaBlockCache.Remove(key)
 		}
 	}
 
@@ -1391,11 +1401,12 @@ func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (m
 
 	for i := 0; i < len(blockBody); i++ {
 		miniblock := blockBody[i]
-		if miniblock.ReceiverShardID == bp.shardCoordinator.SelfId() {
+		receiverShardId := miniblock.ReceiverShardID
+		if receiverShardId == bp.shardCoordinator.SelfId() {
 			//not taking into account miniblocks for current shard
 			continue
 		}
-		bodies[miniblock.ReceiverShardID] = append(bodies[miniblock.ReceiverShardID], miniblock)
+		bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 
 		for _, txHash := range miniblock.TxHashes {
 			tx := bp.crossTxsForBlock[string(txHash)]
@@ -1404,7 +1415,7 @@ func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (m
 				if err != nil {
 					return nil, nil, process.ErrMarshalWithoutSuccess
 				}
-				mrsTxs[miniblock.ReceiverShardID] = append(mrsTxs[miniblock.ReceiverShardID], txMrs)
+				mrsTxs[receiverShardId] = append(mrsTxs[receiverShardId], txMrs)
 			}
 		}
 	}
