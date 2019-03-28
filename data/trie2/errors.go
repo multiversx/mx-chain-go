@@ -4,7 +4,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ErrNotAtLeaf is raised when the iterator it's not positioned at a leaf
+// ErrNotAtLeaf is raised when the iterator is not positioned at a leaf
 var ErrNotAtLeaf = errors.New("iterator not positioned at leaf")
 
 // ErrIterationEnd is raised when the trie iteration has reached an end
@@ -25,8 +25,14 @@ var ErrNilMarshalizer = errors.New("no marshalizer provided")
 // ErrNilDatabase is raised when a database operation is called, but no database is provided
 var ErrNilDatabase = errors.New("no database provided")
 
-// ErrInvalidEncoding is raised when the decoder can't decode the encoding
+// ErrInvalidEncoding is raised when the encoded information cannot be decoded
 var ErrInvalidEncoding = errors.New("cannot decode this invalid encoding")
 
 // ErrValueTooShort is raised when we try to remove something from a value, and the value is too short
 var ErrValueTooShort = errors.New("cannot remove bytes from value because value is too short")
+
+// ErrChildPosOutOfRange is raised when the position of a child in a branch node is less than 0 or greater than 16
+var ErrChildPosOutOfRange = errors.New("the position of the child is out of range")
+
+// ErrNodeNotFound is raised when we try to get a node that is not present in the trie
+var ErrNodeNotFound = errors.New("the node is not present in the trie")

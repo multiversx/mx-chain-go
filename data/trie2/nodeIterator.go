@@ -17,7 +17,7 @@
 package trie2
 
 type nodeIterator struct {
-	trie  *patriciaMerkleTree  // Trie being iterated
+	trie  *patriciaMerkleTrie  // Trie being iterated
 	stack []*nodeIteratorState // Hierarchy of trie nodes persisting the iteration state
 	path  []byte               // Path to the current node
 }
@@ -32,7 +32,7 @@ type nodeIteratorState struct {
 	pathlen int    // Length of the path to this node
 }
 
-func newNodeIterator(trie *patriciaMerkleTree) *nodeIterator {
+func newNodeIterator(trie *patriciaMerkleTrie) *nodeIterator {
 	return &nodeIterator{trie: trie}
 }
 
@@ -140,7 +140,7 @@ func (it *nodeIterator) LeafProof() ([][]byte, error) {
 		proofs := make([][]byte, 0, len(it.stack))
 		for _, item := range it.stack {
 			node := item.node.getCollapsed()
-			encNode, err := node.getEncodedNodeUsing(it.trie.marshalizer)
+			encNode, err := node.getEncodedNode(it.trie.marshalizer)
 			if err != nil {
 				return nil, err
 			}

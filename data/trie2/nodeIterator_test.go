@@ -11,13 +11,13 @@ func TestNodeIterator_newIterator(t *testing.T) {
 	it := tr.NewNodeIterator()
 
 	assert.NotNil(t, it)
+	assert.Equal(t, []byte{}, it.Hash())
+	assert.Nil(t, it.Path())
 }
 
 func TestNodeIterator_Hash(t *testing.T) {
 	tr := testTrie()
 	it := tr.NewNodeIterator()
-
-	assert.Equal(t, []byte{}, it.Hash())
 
 	it.Next()
 
@@ -43,8 +43,6 @@ func TestNodeIterator_Parent(t *testing.T) {
 func TestNodeIterator_Path(t *testing.T) {
 	tr := testTrie()
 	it := tr.NewNodeIterator()
-
-	assert.Nil(t, it.Path())
 
 	it.Next()
 	it.Next()
@@ -125,21 +123,24 @@ func TestNodeIterator_LeafProof(t *testing.T) {
 		ok, _ = it.Next()
 	}
 
-	ok, err := tr.VerifyProof(proofs[0], []byte("doe"))
-	assert.Nil(t, err)
-	assert.True(t, ok)
+	assert.NotNil(t, proofs)
+	if proofs != nil {
+		ok, err := tr.VerifyProof(proofs[0], []byte("doe"))
+		assert.Nil(t, err)
+		assert.True(t, ok)
 
-	ok, err = tr.VerifyProof(proofs[1], []byte("dogglesworth"))
-	assert.Nil(t, err)
-	assert.True(t, ok)
+		ok, err = tr.VerifyProof(proofs[1], []byte("dogglesworth"))
+		assert.Nil(t, err)
+		assert.True(t, ok)
 
-	ok, err = tr.VerifyProof(proofs[2], []byte("dog"))
-	assert.Nil(t, err)
-	assert.True(t, ok)
+		ok, err = tr.VerifyProof(proofs[2], []byte("dog"))
+		assert.Nil(t, err)
+		assert.True(t, ok)
 
-	ok, err = tr.VerifyProof(proofs[2], []byte("doge"))
-	assert.Nil(t, err)
-	assert.False(t, ok)
+		ok, err = tr.VerifyProof(proofs[2], []byte("doge"))
+		assert.Nil(t, err)
+		assert.False(t, ok)
+	}
 
 }
 

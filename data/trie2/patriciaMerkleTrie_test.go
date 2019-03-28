@@ -1,6 +1,7 @@
 package trie2_test
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
@@ -12,7 +13,7 @@ import (
 
 func testTrie2(nr int) (trie2.Trie, [][]byte) {
 	db, _ := memorydb.New()
-	tr, _ := trie2.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, db)
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
 
 	var values [][]byte
 	hsh := keccak.Keccak{}
@@ -28,7 +29,7 @@ func testTrie2(nr int) (trie2.Trie, [][]byte) {
 
 func testTrie() trie2.Trie {
 	db, _ := memorydb.New()
-	tr, _ := trie2.NewTrie(keccak.Keccak{}, marshal.JsonMarshalizer{}, db)
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
 
 	tr.Update([]byte("doe"), []byte("reindeer"))
 	tr.Update([]byte("dog"), []byte("puppy"))
@@ -37,8 +38,24 @@ func testTrie() trie2.Trie {
 	return tr
 }
 
-func TestNewTrieWithNilParameters(t *testing.T) {
-	tr, err := trie2.NewTrie(nil, nil, nil)
+func TestNewTrieWithNilDB(t *testing.T) {
+	tr, err := trie2.NewTrie(nil, marshal.JsonMarshalizer{}, keccak.Keccak{})
+
+	assert.Nil(t, tr)
+	assert.NotNil(t, err)
+}
+
+func TestNewTrieWithNilMarshalizer(t *testing.T) {
+	db, _ := memorydb.New()
+	tr, err := trie2.NewTrie(db, nil, keccak.Keccak{})
+
+	assert.Nil(t, tr)
+	assert.NotNil(t, err)
+}
+
+func TestNewTrieWithNilHasher(t *testing.T) {
+	db, _ := memorydb.New()
+	tr, err := trie2.NewTrie(db, marshal.JsonMarshalizer{}, nil)
 
 	assert.Nil(t, tr)
 	assert.NotNil(t, err)
@@ -131,7 +148,7 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, ok)
 
-		ok, err = tr.VerifyProof(proof, []byte("dog"+string(i)))
+		ok, err = tr.VerifyProof(proof, []byte("dog"+strconv.Itoa(i)))
 		assert.Nil(t, err)
 		assert.False(t, ok)
 	}

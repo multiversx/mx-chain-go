@@ -9,7 +9,6 @@ import (
 
 const nrOfChildren = 17
 const firstByte = 0
-const moreThanOneChildren = -2
 
 type node interface {
 	getHash() []byte
@@ -17,16 +16,16 @@ type node interface {
 	getCollapsed() node // a collapsed node is a node that instead of the children holds the children hashes
 	isCollapsed() bool
 	isDirty() bool
-	getEncodedNodeUsing(marshal.Marshalizer) ([]byte, error)
+	getEncodedNode(marshal.Marshalizer) ([]byte, error)
 	commit(dbw DBWriteCacher, marshalizer marshal.Marshalizer) error
-	resolve(pos byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) error
+	resolveCollapsed(pos byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) error
 	hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error)
 	hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
-	tryGet(key []byte, marshalizer marshal.Marshalizer, dbw DBWriteCacher) ([]byte, error)
-	insert(n *leafNode, marshalizer marshal.Marshalizer, dbw DBWriteCacher) (bool, node, error)
-	delete(key []byte, marshalizer marshal.Marshalizer, dbw DBWriteCacher) (bool, node, error)
-	nextChild(previousState *nodeIteratorState, path []byte) (*nodeIteratorState, []byte, bool)
-	reduceNode(pos int) (bool, node)
+	tryGet(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) ([]byte, error)
+	insert(n *leafNode, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
+	delete(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
+	nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool)
+	reduceNode(pos int) node
 }
 
 type branchNode struct {
@@ -52,11 +51,22 @@ type leafNode struct {
 }
 
 func newExtensionNode(key []byte, child node) *extensionNode {
-	return &extensionNode{key, nil, child, nil, true}
+	return &extensionNode{
+		Key:          key,
+		EncodedChild: nil,
+		child:        child,
+		hash:         nil,
+		dirty:        true,
+	}
 }
 
 func newLeafNode(key, value []byte) *leafNode {
-	return &leafNode{key, value, nil, true}
+	return &leafNode{
+		Key:   key,
+		Value: value,
+		hash:  nil,
+		dirty: true,
+	}
 }
 
 func (bn *branchNode) getHash() []byte {
@@ -84,7 +94,7 @@ func (ln *leafNode) isDirty() bool {
 }
 
 func (bn *branchNode) getCollapsed() node {
-	collapsed := bn.copy()
+	collapsed := bn.clone()
 	for i := range bn.EncodedChildren {
 		if bn.children[i] != nil {
 			collapsed.EncodedChildren[i] = bn.children[i].getHash()
@@ -95,7 +105,7 @@ func (bn *branchNode) getCollapsed() node {
 }
 
 func (en *extensionNode) getCollapsed() node {
-	collapsed := en.copy()
+	collapsed := en.clone()
 	collapsed.EncodedChild = en.child.getHash()
 	collapsed.child = nil
 	return collapsed
@@ -106,6 +116,14 @@ func (ln *leafNode) getCollapsed() node {
 }
 
 func (bn *branchNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+	if bn.isCollapsed() && !bn.isDirty() {
+		hash, err := encodeNodeAndGetHash(bn, marshalizer, hasher)
+		if err != nil {
+			return err
+		}
+		bn.hash = hash
+		return nil
+	}
 	hash, err := hashChildrenAndNode(bn, marshalizer, hasher)
 	if err != nil {
 		return err
@@ -115,6 +133,14 @@ func (bn *branchNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Ha
 }
 
 func (en *extensionNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+	if en.isCollapsed() {
+		hash, err := encodeNodeAndGetHash(en, marshalizer, hasher)
+		if err != nil {
+			return err
+		}
+		en.hash = hash
+		return nil
+	}
 	hash, err := hashChildrenAndNode(en, marshalizer, hasher)
 	if err != nil {
 		return err
@@ -195,7 +221,7 @@ func (ln *leafNode) hashNode(marshalizer marshal.Marshalizer, hasher hashing.Has
 }
 
 func encodeNodeAndGetHash(n node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
-	encNode, err := n.getEncodedNodeUsing(marshalizer)
+	encNode, err := n.getEncodedNode(marshalizer)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +241,8 @@ func (bn *branchNode) commit(db DBWriteCacher, marshalizer marshal.Marshalizer) 
 	if !bn.dirty {
 		return nil
 	}
-	return encodeNodeAndCommitToDB(bn, marshalizer, db)
+	bn.dirty = false
+	return encodeNodeAndCommitToDB(bn, db, marshalizer)
 }
 
 func (en *extensionNode) commit(db DBWriteCacher, marshalizer marshal.Marshalizer) error {
@@ -226,31 +253,30 @@ func (en *extensionNode) commit(db DBWriteCacher, marshalizer marshal.Marshalize
 	if !en.dirty {
 		return nil
 	}
-	return encodeNodeAndCommitToDB(en, marshalizer, db)
+	en.dirty = false
+	return encodeNodeAndCommitToDB(en, db, marshalizer)
 }
 
 func (ln *leafNode) commit(db DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	if !ln.dirty {
 		return nil
 	}
-	return encodeNodeAndCommitToDB(ln, marshalizer, db)
+	ln.dirty = false
+	return encodeNodeAndCommitToDB(ln, db, marshalizer)
 }
 
-func encodeNodeAndCommitToDB(n node, marshalizer marshal.Marshalizer, db DBWriteCacher) error {
+func encodeNodeAndCommitToDB(n node, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	key := n.getHash()
 	n = n.getCollapsed()
-	val, err := n.getEncodedNodeUsing(marshalizer)
+	val, err := n.getEncodedNode(marshalizer)
 	if err != nil {
 		return err
 	}
 	err = db.Put(key, val)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
-func (bn *branchNode) getEncodedNodeUsing(marshalizer marshal.Marshalizer) ([]byte, error) {
+func (bn *branchNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, error) {
 	marshaledNode, err := marshalizer.Marshal(bn)
 	if err != nil {
 		return nil, err
@@ -259,7 +285,7 @@ func (bn *branchNode) getEncodedNodeUsing(marshalizer marshal.Marshalizer) ([]by
 	return marshaledNode, nil
 }
 
-func (en *extensionNode) getEncodedNodeUsing(marshalizer marshal.Marshalizer) ([]byte, error) {
+func (en *extensionNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, error) {
 	marshaledNode, err := marshalizer.Marshal(en)
 	if err != nil {
 		return nil, err
@@ -268,7 +294,7 @@ func (en *extensionNode) getEncodedNodeUsing(marshalizer marshal.Marshalizer) ([
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) getEncodedNodeUsing(marshalizer marshal.Marshalizer) ([]byte, error) {
+func (ln *leafNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, error) {
 	marshaledNode, err := marshalizer.Marshal(ln)
 	if err != nil {
 		return nil, err
@@ -277,7 +303,7 @@ func (ln *leafNode) getEncodedNodeUsing(marshalizer marshal.Marshalizer) ([]byte
 	return marshaledNode, nil
 }
 
-func (en *extensionNode) resolve(pos byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func (en *extensionNode) resolveCollapsed(pos byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	child, err := getNodeFromDBAndDecode(en.EncodedChild, db, marshalizer)
 	if err != nil {
 		return err
@@ -286,7 +312,10 @@ func (en *extensionNode) resolve(pos byte, db DBWriteCacher, marshalizer marshal
 	return nil
 }
 
-func (bn *branchNode) resolve(pos byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func (bn *branchNode) resolveCollapsed(pos byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
+	if childPosOutOfRange(pos) {
+		return ErrChildPosOutOfRange
+	}
 	if bn.EncodedChildren[pos] != nil {
 		child, err := getNodeFromDBAndDecode(bn.EncodedChildren[pos], db, marshalizer)
 		if err != nil {
@@ -297,7 +326,7 @@ func (bn *branchNode) resolve(pos byte, db DBWriteCacher, marshalizer marshal.Ma
 	return nil
 }
 
-func (ln *leafNode) resolve(pos byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func (ln *leafNode) resolveCollapsed(pos byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	node, err := getNodeFromDBAndDecode(ln.Value, db, marshalizer)
 	if err != nil {
 		return err
@@ -340,54 +369,54 @@ func (ln *leafNode) isCollapsed() bool {
 	return false
 }
 
-func (bn *branchNode) tryGet(key []byte, marshalizer marshal.Marshalizer, db DBWriteCacher) (value []byte, err error) {
+func (bn *branchNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
 	childPos := key[firstByte]
+	if childPosOutOfRange(childPos) {
+		return nil, ErrChildPosOutOfRange
+	}
 	key, err = removeFirstByte(key)
 	if err != nil {
 		return nil, err
 	}
-	err = resolveIfCollapsed(bn, childPos, marshalizer, db)
+	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
 	if err != nil {
 		return nil, err
 	}
 	if bn.children[childPos] == nil {
-		return nil, nil
+		return nil, ErrNodeNotFound
 	}
-	value, err = bn.children[childPos].tryGet(key, marshalizer, db)
+	value, err = bn.children[childPos].tryGet(key, db, marshalizer)
 	return value, err
 }
 
-func (en *extensionNode) tryGet(key []byte, marshalizer marshal.Marshalizer, db DBWriteCacher) (value []byte, err error) {
+func (en *extensionNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
-		return nil, nil
+		return nil, ErrNodeNotFound
 	}
 	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
 	if keysDontMatch {
-		return nil, nil
+		return nil, ErrNodeNotFound
 	}
 	key = key[len(en.Key):]
-	err = resolveIfCollapsed(en, 0, marshalizer, db)
+	err = resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {
 		return nil, err
 	}
-	value, err = en.child.tryGet(key, marshalizer, db)
-	if err != nil {
-		return nil, err
-	}
+	value, err = en.child.tryGet(key, db, marshalizer)
 	return value, err
 }
 
-func (ln *leafNode) tryGet(key []byte, marshalizer marshal.Marshalizer, db DBWriteCacher) (value []byte, err error) {
+func (ln *leafNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
 	if bytes.Equal(key, ln.Key) {
 		return ln.Value, nil
 	}
-	return nil, nil
+	return nil, ErrNodeNotFound
 }
 
-func resolveIfCollapsed(n node, pos byte, marshalizer marshal.Marshalizer, db DBWriteCacher) error {
+func resolveIfCollapsed(n node, pos byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	if n.isCollapsed() {
-		err := n.resolve(pos, db, marshalizer)
+		err := n.resolveCollapsed(pos, db, marshalizer)
 		if err != nil {
 			return err
 		}
@@ -395,22 +424,25 @@ func resolveIfCollapsed(n node, pos byte, marshalizer marshal.Marshalizer, db DB
 	return nil
 }
 
-func (bn *branchNode) insert(n *leafNode, marshalizer marshal.Marshalizer, db DBWriteCacher) (bool, node, error) {
+func (bn *branchNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
 	var err error
 
 	childPos := n.Key[firstByte]
+	if childPosOutOfRange(childPos) {
+		return false, nil, ErrChildPosOutOfRange
+	}
 	n.Key, err = removeFirstByte(n.Key)
 	if err != nil {
 		return false, nil, err
 	}
 
-	err = resolveIfCollapsed(bn, childPos, marshalizer, db)
+	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
 	if err != nil {
 		return false, nil, err
 	}
 
 	if bn.children[childPos] != nil {
-		dirty, newNode, err := bn.children[childPos].insert(n, marshalizer, db)
+		dirty, newNode, err := bn.children[childPos].insert(n, db, marshalizer)
 		if !dirty || err != nil {
 			return false, bn, err
 		}
@@ -422,8 +454,8 @@ func (bn *branchNode) insert(n *leafNode, marshalizer marshal.Marshalizer, db DB
 	return true, bn, nil
 }
 
-func (en *extensionNode) insert(n *leafNode, marshalizer marshal.Marshalizer, db DBWriteCacher) (bool, node, error) {
-	err := resolveIfCollapsed(en, 0, marshalizer, db)
+func (en *extensionNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
+	err := resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {
 		return false, nil, err
 	}
@@ -433,9 +465,9 @@ func (en *extensionNode) insert(n *leafNode, marshalizer marshal.Marshalizer, db
 	// and only update the value.
 	if keyMatchLen == len(en.Key) {
 		n.Key = n.Key[keyMatchLen:]
-		dirty, newNode, err := en.child.insert(n, marshalizer, db)
+		dirty, newNode, err := en.child.insert(n, db, marshalizer)
 		if !dirty || err != nil {
-			return false, en, err
+			return false, nil, err
 		}
 		return true, newExtensionNode(en.Key, newNode), nil
 	}
@@ -455,7 +487,7 @@ func (en *extensionNode) insert(n *leafNode, marshalizer marshal.Marshalizer, db
 	return true, newExtensionNode(en.Key[:keyMatchLen], branch), nil
 }
 
-func (ln *leafNode) insert(n *leafNode, marshalizer marshal.Marshalizer, db DBWriteCacher) (bool, node, error) {
+func (ln *leafNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
 	if bytes.Equal(n.Key, ln.Key) {
 		ln.Value = n.Value
 		ln.dirty = true
@@ -477,19 +509,19 @@ func (ln *leafNode) insert(n *leafNode, marshalizer marshal.Marshalizer, db DBWr
 	return true, newExtensionNode(ln.Key[:keyMatchLen], branch), nil
 }
 
-func (bn *branchNode) delete(key []byte, marshalizer marshal.Marshalizer, db DBWriteCacher) (bool, node, error) {
+func (bn *branchNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
 	childPos := key[firstByte]
 	key, err := removeFirstByte(key)
 	if err != nil {
 		return false, nil, err
 	}
-	err = resolveIfCollapsed(bn, childPos, marshalizer, db)
+	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
 	if err != nil {
 		return false, nil, err
 	}
-	dirty, newNode, err := bn.children[childPos].delete(key, marshalizer, db)
+	dirty, newNode, err := bn.children[childPos].delete(key, db, marshalizer)
 	if !dirty || err != nil {
-		return false, bn, err
+		return false, nil, err
 	}
 
 	bn.hash = nil
@@ -498,16 +530,16 @@ func (bn *branchNode) delete(key []byte, marshalizer marshal.Marshalizer, db DBW
 		bn.EncodedChildren[childPos] = nil
 	}
 
-	pos := getChildPosition(bn)
+	nrOfChildren, pos := getChildPosition(bn)
 
-	if pos >= 0 {
-		err = bn.resolve(byte(pos), db, marshalizer)
+	if nrOfChildren == 1 {
+		err = bn.resolveCollapsed(byte(pos), db, marshalizer)
 		if err != nil {
 			return false, nil, err
 		}
-		if pos != 16 {
-			dirty, newNode := bn.children[pos].reduceNode(pos)
-			return dirty, newNode, nil
+		if childPos != 16 {
+			newNode := bn.children[pos].reduceNode(pos)
+			return true, newNode, nil
 		}
 		child := bn.children[pos]
 		if child, ok := child.(*leafNode); ok {
@@ -520,17 +552,17 @@ func (bn *branchNode) delete(key []byte, marshalizer marshal.Marshalizer, db DBW
 	return true, bn, nil
 }
 
-func (en *extensionNode) delete(key []byte, marshalizer marshal.Marshalizer, db DBWriteCacher) (bool, node, error) {
+func (en *extensionNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
 	keyMatchLen := prefixLen(key, en.Key)
 	if keyMatchLen < len(en.Key) {
 		return false, en, nil // don't replace n on mismatch
 	}
-	err := resolveIfCollapsed(en, 0, marshalizer, db)
+	err := resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {
 		return false, nil, err
 	}
 
-	dirty, newNode, err := en.child.delete(key[len(en.Key):], marshalizer, db)
+	dirty, newNode, err := en.child.delete(key[len(en.Key):], db, marshalizer)
 	if !dirty || err != nil {
 		return false, en, err
 	}
@@ -545,7 +577,7 @@ func (en *extensionNode) delete(key []byte, marshalizer marshal.Marshalizer, db 
 	}
 }
 
-func (ln *leafNode) delete(key []byte, marshalizer marshal.Marshalizer, db DBWriteCacher) (bool, node, error) {
+func (ln *leafNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
 	keyMatchLen := prefixLen(key, ln.Key)
 	if keyMatchLen == len(key) {
 		return true, nil, nil
@@ -553,35 +585,31 @@ func (ln *leafNode) delete(key []byte, marshalizer marshal.Marshalizer, db DBWri
 	return false, ln, nil
 }
 
-func (bn *branchNode) reduceNode(pos int) (bool, node) {
-	return true, newExtensionNode([]byte{byte(pos)}, bn.children[pos])
+func (bn *branchNode) reduceNode(pos int) node {
+	return newExtensionNode([]byte{byte(pos)}, bn.children[pos])
 }
 
-func (en *extensionNode) reduceNode(pos int) (bool, node) {
+func (en *extensionNode) reduceNode(pos int) node {
 	k := append([]byte{byte(pos)}, en.Key...)
-	return true, newExtensionNode(k, en.child)
+	return newExtensionNode(k, en.child)
 }
 
-func (ln *leafNode) reduceNode(pos int) (bool, node) {
+func (ln *leafNode) reduceNode(pos int) node {
 	k := append([]byte{byte(pos)}, ln.Key...)
-	return true, newLeafNode(k, ln.Value)
+	return newLeafNode(k, ln.Value)
 }
 
-func getChildPosition(n *branchNode) int {
-	pos := -1
+func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {
 	for i := range &n.children {
 		if n.children[i] != nil || n.EncodedChildren[i] != nil {
-			if pos == -1 {
-				pos = i
-			} else {
-				return moreThanOneChildren
-			}
+			nrOfChildren++
+			childPos = i
 		}
 	}
-	return pos
+	return
 }
 
-func (bn *branchNode) nextChild(previousState *nodeIteratorState, path []byte) (*nodeIteratorState, []byte, bool) {
+func (bn *branchNode) nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool) {
 	for i := previousState.index + 1; i < len(bn.children); i++ {
 		child := bn.children[i]
 		if child != nil {
@@ -598,7 +626,7 @@ func (bn *branchNode) nextChild(previousState *nodeIteratorState, path []byte) (
 	return previousState, path, false
 }
 
-func (en *extensionNode) nextChild(previousState *nodeIteratorState, path []byte) (*nodeIteratorState, []byte, bool) {
+func (en *extensionNode) nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool) {
 	if previousState.index < 0 {
 		hash := en.child.getHash()
 		state := newIteratorState(hash, en.child, previousState.hash, len(path))
@@ -608,18 +636,18 @@ func (en *extensionNode) nextChild(previousState *nodeIteratorState, path []byte
 	return previousState, path, false
 }
 
-func (ln *leafNode) nextChild(previousState *nodeIteratorState, path []byte) (*nodeIteratorState, []byte, bool) {
+func (ln *leafNode) nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool) {
 	return previousState, path, false
 }
 
-func (bn *branchNode) copy() *branchNode {
-	cpy := *bn
-	return &cpy
+func (bn *branchNode) clone() *branchNode {
+	nodeClone := *bn
+	return &nodeClone
 }
 
-func (en *extensionNode) copy() *extensionNode {
-	cpy := *en
-	return &cpy
+func (en *extensionNode) clone() *extensionNode {
+	nodeClone := *en
+	return &nodeClone
 }
 
 func removeFirstByte(val []byte) ([]byte, error) {
@@ -634,4 +662,44 @@ func concat(s1 []byte, s2 ...byte) []byte {
 	copy(r, s1)
 	copy(r[len(s1):], s2)
 	return r
+}
+
+func decodeNode(encNode []byte, marshalizer marshal.Marshalizer) (node, error) {
+	if encNode == nil || len(encNode) < 1 {
+		return nil, ErrInvalidEncoding
+	}
+	nodeType := encNode[len(encNode)-1]
+	encNode = encNode[:len(encNode)-1]
+
+	node, err := getEmptyNodeOfType(nodeType)
+	if err != nil {
+		return nil, err
+	}
+	err = marshalizer.Unmarshal(node, encNode)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func getEmptyNodeOfType(t byte) (node, error) {
+	var decNode node
+	switch t {
+	case extension:
+		decNode = &extensionNode{}
+	case leaf:
+		decNode = &leafNode{}
+	case branch:
+		decNode = &branchNode{}
+	default:
+		return nil, ErrInvalidNode
+	}
+	return decNode, nil
+}
+
+func childPosOutOfRange(pos byte) bool {
+	if pos < 0 || pos >= nrOfChildren {
+		return true
+	}
+	return false
 }
