@@ -38,4 +38,10 @@ var (
 		Usage: "Number of shards the application will bootstrap with",
 		Value: 1,
 	}
+	// P2PSeed defines a flag to be used as a seed when generating P2P credentials. Useful for seed nodes.
+	P2PSeed = cli.StringFlag{
+		Name:  "p2p-seed",
+		Usage: "P2P seed will be used when generating credentials for p2p component. Can be any string.",
+		Value: "seed",
+	}
 )
