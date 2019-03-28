@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	blproc "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
@@ -1910,13 +1912,13 @@ func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 	body = append(body, &mb1)
 	body = append(body, &mb0)
 	body = append(body, &mb1)
-	marshal := &mock.MarshalizerMock{
+	marshalizer := &mock.MarshalizerMock{
 		Fail: false,
 	}
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
-		marshal,
+		marshalizer,
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
@@ -1932,7 +1934,7 @@ func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 	assert.False(t, found)
 
 	expectedBody := make(block.Body, 0)
-	err = marshal.Unmarshal(&expectedBody, msh[1])
+	err = marshalizer.Unmarshal(&expectedBody, msh[1])
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(expectedBody))
 	assert.Equal(t, &mb1, expectedBody[0])
@@ -1949,13 +1951,13 @@ func (wr wrongBody) IntegrityAndValidity() error {
 func TestBlockProcessor_MarshalizedDataWrongType(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	marshal := &mock.MarshalizerMock{
+	marshalizer := &mock.MarshalizerMock{
 		Fail: false,
 	}
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
-		marshal,
+		marshalizer,
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
@@ -1974,13 +1976,13 @@ func TestBlockProcessor_MarshalizedDataWrongType(t *testing.T) {
 func TestBlockProcessor_MarshalizedDataNilInput(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	marshal := &mock.MarshalizerMock{
+	marshalizer := &mock.MarshalizerMock{
 		Fail: false,
 	}
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
-		marshal,
+		marshalizer,
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
@@ -2006,7 +2008,7 @@ func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	}
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
-	marshal := &mock.MarshalizerStub{
+	marshalizer := &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
 			return nil, process.ErrMarshalWithoutSuccess
 		},
@@ -2014,7 +2016,7 @@ func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
-		marshal,
+		marshalizer,
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
@@ -2027,4 +2029,80 @@ func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	assert.Equal(t, process.ErrMarshalWithoutSuccess, err)
 	assert.Nil(t, msh)
 	assert.Nil(t, mstx)
+}
+
+//------- GetAllTxsFromMiniBlock
+
+func TestBlockProcessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+	senderShardId := uint32(0)
+	destinationShardId := uint32(1)
+
+	transactions := []*transaction.Transaction{
+		{Nonce: 1},
+		{Nonce: 2},
+		{Nonce: 3},
+	}
+	transactionsHashes := make([][]byte, len(transactions))
+
+	//add defined transactions to sender-destination cacher
+	for idx, tx := range transactions {
+		transactionsHashes[idx] = computeHash(tx, marshalizer, hasher)
+
+		dataPool.Transactions().AddData(
+			transactionsHashes[idx],
+			tx,
+			process.ShardCacherIdentifier(senderShardId, destinationShardId),
+		)
+	}
+
+	//add some random data
+	txRandom := &transaction.Transaction{Nonce: 4}
+	dataPool.Transactions().AddData(
+		computeHash(txRandom, marshalizer, hasher),
+		txRandom,
+		process.ShardCacherIdentifier(3, 4),
+	)
+
+	bp, _ := blproc.NewBlockProcessor(
+		dataPool,
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, txHash []byte) {},
+	)
+
+	mb := &block.MiniBlock{
+		SenderShardID:   senderShardId,
+		ReceiverShardID: destinationShardId,
+		TxHashes:        transactionsHashes,
+	}
+
+	txsRetrieved, txHashesRetrieved, err := bp.GetAllTxsFromMiniBlock(mb, func() bool {
+		return true
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, len(transactions), len(txsRetrieved))
+	assert.Equal(t, len(transactions), len(txHashesRetrieved))
+	for idx, tx := range transactions {
+		//txReceived should be all txs in the same order
+		assert.Equal(t, txsRetrieved[idx], tx)
+		//verify corresponding transaction hashes
+		assert.Equal(t, txHashesRetrieved[idx], computeHash(tx, marshalizer, hasher))
+	}
+
+}
+
+func computeHash(data interface{}, marshalizer marshal.Marshalizer, hasher hashing.Hasher) []byte {
+	buff, _ := marshalizer.Marshal(data)
+	return hasher.Compute(string(buff))
 }

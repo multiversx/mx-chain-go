@@ -39,3 +39,7 @@ func SortTxByNonce(txShardStore storage.Cacher) ([]*transaction.Transaction, [][
 func (bp *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
 	return bp.verifyStateRoot(rootHash)
 }
+
+func (bp *blockProcessor) GetAllTxsFromMiniBlock(mb *block.MiniBlock, haveTime func() bool) ([]*transaction.Transaction, [][]byte, error) {
+	return bp.getAllTxsFromMiniBlock(mb, haveTime)
+}
