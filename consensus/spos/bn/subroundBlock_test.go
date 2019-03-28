@@ -691,7 +691,7 @@ func TestSubroundBlock_DecodeBlockBody(t *testing.T) {
 	t.Parallel()
 	sr := *initSubroundBlock(nil)
 	body := make(block.Body, 0)
-	body = append(body, &block.MiniBlock{ShardID: 69})
+	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
 	message, err := mock.MarshalizerMock{}.Marshal(body)
 	assert.Nil(t, err)
 
@@ -700,7 +700,7 @@ func TestSubroundBlock_DecodeBlockBody(t *testing.T) {
 
 	dcdBlk = sr.DecodeBlockBody(message)
 	assert.Equal(t, body, dcdBlk)
-	assert.Equal(t, uint32(69), body[0].ShardID)
+	assert.Equal(t, uint32(69), body[0].ReceiverShardID)
 }
 
 func TestSubroundBlock_DecodeBlockHeader(t *testing.T) {

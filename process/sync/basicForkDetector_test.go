@@ -188,3 +188,31 @@ func TestBasicForkDetector_CheckForkNodeHasOnlyReceivedShouldRettrue(t *testing.
 	_ = bfd.AddHeader(&block.Header{Nonce: 1, PubKeysBitmap: []byte{1}}, []byte("hash3"), false)
 	assert.False(t, bfd.CheckFork())
 }
+
+func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hdr1 := &block.Header{Nonce: 1}
+	hash1 := []byte("hash1")
+	hdr2 := &block.Header{Nonce: 2}
+	hash2 := []byte("hash2")
+	hdr3 := &block.Header{Nonce: 3}
+	hash3 := []byte("hash3")
+
+	bfd := sync.NewBasicForkDetector()
+
+	_ = bfd.AddHeader(hdr1, hash1, false)
+	_ = bfd.AddHeader(hdr2, hash2, false)
+	_ = bfd.AddHeader(hdr3, hash3, false)
+
+	bfd.RemovePastHeaders(3)
+
+	hInfos := bfd.GetHeaders(3)
+	assert.Nil(t, hInfos)
+
+	hInfos = bfd.GetHeaders(2)
+	assert.Nil(t, hInfos)
+
+	hInfos = bfd.GetHeaders(1)
+	assert.Nil(t, hInfos)
+}

@@ -33,10 +33,10 @@ const (
 const syncThresholdPercent = 50
 
 // processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
-const processingThresholdPercent = 75
+const processingThresholdPercent = 65
 
 // maxThresholdPercent specifies the max allocated time percent for doing job as a percentage of the total time of one round
-const maxThresholdPercent = 85
+const maxThresholdPercent = 75
 
 // srStartStartTime specifies the start time, from the total time of the round, of subround Start
 const srStartStartTime = 0.0
@@ -48,37 +48,37 @@ const srStartEndTime = 0.05
 const srBlockStartTime = 0.05
 
 // srBlockEndTime specifies the end time, from the total time of the round, of subround Block
-const srBlockEndTime = 0.35
+const srBlockEndTime = 0.25
 
 // srCommitmentHashStartTime specifies the start time, from the total time of the round, of subround CommitmentHash
-const srCommitmentHashStartTime = 0.35
+const srCommitmentHashStartTime = 0.25
 
 // srCommitmentHashEndTime specifies the end time, from the total time of the round, of subround CommitmentHash
-const srCommitmentHashEndTime = 0.45
+const srCommitmentHashEndTime = 0.35
 
 // srBitmapStartTime specifies the start time, from the total time of the round, of subround Bitmap
-const srBitmapStartTime = 0.45
+const srBitmapStartTime = 0.35
 
 // srBitmapEndTime specifies the end time, from the total time of the round, of subround Bitmap
-const srBitmapEndTime = 0.55
+const srBitmapEndTime = 0.45
 
 // srCommitmentStartTime specifies the start time, from the total time of the round, of subround Commitment
-const srCommitmentStartTime = 0.55
+const srCommitmentStartTime = 0.45
 
 // srCommitmentEndTime specifies the end time, from the total time of the round, of subround Commitment
-const srCommitmentEndTime = 0.65
+const srCommitmentEndTime = 0.55
 
 // srSignatureStartTime specifies the start time, from the total time of the round, of subround Signature
-const srSignatureStartTime = 0.65
+const srSignatureStartTime = 0.55
 
 // srSignatureEndTime specifies the end time, from the total time of the round, of subround Signature
-const srSignatureEndTime = 0.75
+const srSignatureEndTime = 0.65
 
 // srEndStartTime specifies the start time, from the total time of the round, of subround End
-const srEndStartTime = 0.75
+const srEndStartTime = 0.65
 
 // srEndEndTime specifies the end time, from the total time of the round, of subround End
-const srEndEndTime = 0.85
+const srEndEndTime = 0.75
 
 // MessageType specifies what type of message was received
 type MessageType int

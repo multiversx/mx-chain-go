@@ -339,7 +339,7 @@ func (bp *blockProcessor) processBlockTransactions(body block.Body, round int32,
 
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
-		shardId := miniBlock.ShardID
+		shardId := miniBlock.ReceiverShardID
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			if haveTime() < 0 {
@@ -429,7 +429,7 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 		miniBlock := (blockBody)[i]
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
-			tx := bp.getTransactionFromPool(miniBlock.ShardID, txHash)
+			tx := bp.getTransactionFromPool(miniBlock.ReceiverShardID, txHash)
 			if tx == nil {
 				err = process.ErrMissingTransaction
 				return err
@@ -718,7 +718,7 @@ func (bp *blockProcessor) computeMissingTxsForShards(body block.Body) map[uint32
 
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
-		shardId := miniBlock.ShardID
+		shardId := miniBlock.ReceiverShardID
 		currentShardMissingTransactions := make([][]byte, 0)
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
@@ -984,7 +984,7 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		}
 
 		miniBlock := block.MiniBlock{}
-		miniBlock.ShardID = uint32(i)
+		miniBlock.ReceiverShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
 		tXsForShard := make([]*transaction.Transaction, 0)
 		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ShardID))
@@ -1084,7 +1084,7 @@ func (bp *blockProcessor) CreateBlockHeader(body data.BodyHandler) (data.HeaderH
 		miniBlockHeaders[i] = block.MiniBlockHeader{
 			Hash:            mbHash,
 			SenderShardID:   bp.shardCoordinator.SelfId(),
-			ReceiverShardID: blockBody[i].ShardID,
+			ReceiverShardID: blockBody[i].ReceiverShardID,
 		}
 	}
 
@@ -1235,7 +1235,7 @@ func displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.L
 	for i := 0; i < len(body); i++ {
 		miniBlock := body[i]
 
-		part := fmt.Sprintf("TxBody_%d", miniBlock.ShardID)
+		part := fmt.Sprintf("TxBody_%d", miniBlock.ReceiverShardID)
 
 		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
