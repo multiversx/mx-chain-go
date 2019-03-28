@@ -481,23 +481,18 @@ func createRequestTransactionHandler(resolversFinder process.ResolversFinder, lo
 	}
 }
 
-func createRequestMiniBlocksHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(hashes map[uint32][][]byte) {
-	return func(hashes map[uint32][][]byte) {
-		// TODO verify this, think if launching them in GO threads would be better.
-		for senderId, miniBlockHashes := range hashes {
-			for _, miniBlockHash := range miniBlockHashes {
-				log.Debug(fmt.Sprintf("Requesting miniblock froms shard %d with hash %s from network\n", senderId, toB64(miniBlockHash)))
-				resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, senderId)
-				if err != nil {
-					log.Error(fmt.Sprintf("missing resolver to miniblock topic to shard %d", senderId))
-					return
-				}
+func createRequestMiniBlocksHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+	return func(shardId uint32, mbHash []byte) {
+		log.Debug(fmt.Sprintf("Requesting miniblock froms shard %d with hash %s from network\n", shardId, toB64(mbHash)))
+		resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to miniblock topic to shard %d", shardId))
+			return
+		}
 
-				err = resolver.RequestDataFromHash(miniBlockHash)
-				if err != nil {
-					log.Debug(err.Error())
-				}
-			}
+		err = resolver.RequestDataFromHash(mbHash)
+		if err != nil {
+			log.Debug(err.Error())
 		}
 	}
 }

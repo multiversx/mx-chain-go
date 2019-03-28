@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-func (bp *blockProcessor) GetTransactionFromPool(destShardID uint32, txHash []byte) *transaction.Transaction {
-	return bp.getTransactionFromPool(destShardID, txHash)
+func (bp *blockProcessor) GetTransactionFromPool(senderShardID, destShardID uint32, txHash []byte) *transaction.Transaction {
+	return bp.getTransactionFromPool(senderShardID, destShardID, txHash)
 }
 
 func (bp *blockProcessor) RequestTransactionFromNetwork(body block.Body) int {

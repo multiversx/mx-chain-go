@@ -217,7 +217,11 @@ func createNetNode(
 		txProcessor,
 		accntAdapter,
 		shardCoordinator,
-		&mock.ForkDetectorMock{},
+		&mock.ForkDetectorMock{
+			AddHeaderCalled: func(header *dataBlock.Header, hash []byte, isProcessed bool) error {
+				return nil
+			},
+		},
 		func(destShardID uint32, txHash []byte) {
 			resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
 			if err != nil {
@@ -230,20 +234,16 @@ func createNetNode(
 				fmt.Println(err.Error())
 			}
 		},
-		func(hashes map[uint32][][]byte) {
-			for senderId, miniBlockHashes := range hashes {
-				for _, miniBlockHash := range miniBlockHashes {
-					resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, senderId)
-					if err != nil {
-						fmt.Println(err.Error())
-						return
-					}
+		func(shardId uint32, mbHash []byte) {
+			resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
 
-					err = resolver.RequestDataFromHash(miniBlockHash)
-					if err != nil {
-						fmt.Println(err.Error())
-					}
-				}
+			err = resolver.RequestDataFromHash(mbHash)
+			if err != nil {
+				fmt.Println(err.Error())
 			}
 		},
 	)
