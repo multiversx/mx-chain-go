@@ -499,7 +499,8 @@ func (bp *blockProcessor) removeMiniBlocksFromMetaHeader(blockBody block.Body, b
 		if err != nil {
 			return err
 		}
-		miniBlockHashes[i] = buff
+		mbHash := bp.hasher.Compute(string(buff))
+		miniBlockHashes[i] = mbHash
 	}
 
 	for _, metaBlockKey := range bp.dataPool.MetaBlocks().Keys() {
