@@ -166,7 +166,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFile))
 
-	p2pConfig, err := loadP2PConfig(p2pConfigurationFile, log)
+	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFile)
 	if err != nil {
 		return err
 	}
@@ -239,15 +239,6 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error) {
 	cfg := &config.Config{}
-	err := core.LoadTomlFile(cfg, filepath, log)
-	if err != nil {
-		return nil, err
-	}
-	return cfg, nil
-}
-
-func loadP2PConfig(filepath string, log *logger.Logger) (*config.P2PConfig, error) {
-	cfg := &config.P2PConfig{}
 	err := core.LoadTomlFile(cfg, filepath, log)
 	if err != nil {
 		return nil, err
