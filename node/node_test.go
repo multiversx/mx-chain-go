@@ -963,8 +963,9 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 
 	body := make(block.Body, 0)
@@ -1014,8 +1015,9 @@ func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 
 	body := make(block.Body, 0)
@@ -1053,8 +1055,9 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 
 	body := make(block.Body, 0)
@@ -1079,8 +1082,9 @@ func TestNode_BroadcastBlockShouldWorkWithOneShard(t *testing.T) {
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 
 	body := make(block.Body, 0)
@@ -1105,14 +1109,16 @@ func TestNode_BroadcastBlockShouldWorkMultiShard(t *testing.T) {
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 
 	txHash1 := []byte("txHash1")
 	mb1 := block.MiniBlock{
-		ShardID:  1,
-		TxHashes: [][]byte{[]byte(txHash1)},
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash1)},
 	}
 
 	body := make(block.Body, 0)

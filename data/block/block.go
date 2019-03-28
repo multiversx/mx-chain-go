@@ -48,10 +48,11 @@ func (bType Type) String() string {
 	}
 }
 
-// MiniBlock holds the transactions with one of the sender or recipient in node's shard and the other in ShardID
+// MiniBlock holds the transactions and the sender/destination shard ids
 type MiniBlock struct {
-	TxHashes [][]byte `capid:"0"`
-	ShardID  uint32   `capid:"1"`
+	TxHashes        [][]byte `capid:"0"`
+	ReceiverShardID uint32   `capid:"1"`
+	SenderShardID   uint32   `capid:"2"`
 }
 
 // MiniBlockHeader holds the hash of a miniblock together with sender/deastination shard id pair.
@@ -60,6 +61,7 @@ type MiniBlockHeader struct {
 	Hash            []byte `capid:"0"`
 	SenderShardID   uint32 `capid:"1"`
 	ReceiverShardID uint32 `capid:"2"`
+	TxCount         uint32 `capid:"3"`
 }
 
 // PeerChange holds a change in one peer to shard assignation
@@ -85,6 +87,7 @@ type Header struct {
 	MiniBlockHeaders []MiniBlockHeader `capid:"11"`
 	PeerChanges      []PeerChange      `capid:"12"`
 	RootHash         []byte            `capid:"13"`
+	TxCount          uint32            `capid:"14"`
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -112,44 +115,33 @@ func HeaderCapnToGo(src capnp.HeaderCapn, dest *Header) *Header {
 		dest = &Header{}
 	}
 
-	// Nonce
 	dest.Nonce = src.Nonce()
-	// PrevHash
 	dest.PrevHash = src.PrevHash()
-	// PrevRandSeed
 	dest.PrevRandSeed = src.PrevRandSeed()
-	// RandSeed
 	dest.RandSeed = src.RandSeed()
-	// PubKeysBitmap
 	dest.PubKeysBitmap = src.PubKeysBitmap()
-	// ShardId
 	dest.ShardId = src.ShardId()
-	// TimeStamp
 	dest.TimeStamp = src.TimeStamp()
-	// Round
 	dest.Round = src.Round()
-	// Epoch
 	dest.Epoch = src.Epoch()
-	// BlockBodyType
 	dest.BlockBodyType = Type(src.BlockBodyType())
-	// Signature
 	dest.Signature = src.Signature()
-	// MiniBlockHeaders
+
 	mbLength := src.MiniBlockHeaders().Len()
 	dest.MiniBlockHeaders = make([]MiniBlockHeader, mbLength)
 	for i := 0; i < mbLength; i++ {
 		dest.MiniBlockHeaders[i] = *MiniBlockHeaderCapnToGo(src.MiniBlockHeaders().At(i), nil)
 	}
 
-	// PeerChanges
 	peerChangesLen := src.PeerChanges().Len()
 	dest.PeerChanges = make([]PeerChange, peerChangesLen)
 	for i := 0; i < peerChangesLen; i++ {
 		dest.PeerChanges[i] = *PeerChangeCapnToGo(src.PeerChanges().At(i), nil)
 	}
 
-	// RootHash
 	dest.RootHash = src.RootHash()
+	dest.TxCount = src.TxCount()
+
 	return dest
 }
 
@@ -189,6 +181,7 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 	}
 
 	dest.SetRootHash(src.RootHash)
+	dest.SetTxCount(src.TxCount)
 
 	return dest
 }
@@ -220,14 +213,14 @@ func MiniBlockCapnToGo(src capnp.MiniBlockCapn, dest *MiniBlock) *MiniBlock {
 
 	var n int
 
-	// TxHashes
 	n = src.TxHashes().Len()
 	dest.TxHashes = make([][]byte, n)
 	for i := 0; i < n; i++ {
 		dest.TxHashes[i] = src.TxHashes().At(i)
 	}
 
-	dest.ShardID = src.ShardID()
+	dest.ReceiverShardID = src.ReceiverShardID()
+	dest.SenderShardID = src.SenderShardID()
 
 	return dest
 }
@@ -241,7 +234,8 @@ func MiniBlockGoToCapn(seg *capn.Segment, src *MiniBlock) capnp.MiniBlockCapn {
 		mylist1.Set(i, src.TxHashes[i])
 	}
 	dest.SetTxHashes(mylist1)
-	dest.SetShardID(src.ShardID)
+	dest.SetReceiverShardID(src.ReceiverShardID)
+	dest.SetSenderShardID(src.SenderShardID)
 
 	return dest
 }
@@ -271,9 +265,7 @@ func PeerChangeCapnToGo(src capnp.PeerChangeCapn, dest *PeerChange) *PeerChange 
 		dest = &PeerChange{}
 	}
 
-	// PubKey
 	dest.PubKey = src.PubKey()
-	// ShardIdDest
 	dest.ShardIdDest = src.ShardIdDest()
 
 	return dest
@@ -315,6 +307,7 @@ func MiniBlockHeaderCapnToGo(src capnp.MiniBlockHeaderCapn, dest *MiniBlockHeade
 	dest.Hash = src.Hash()
 	dest.ReceiverShardID = src.ReceiverShardID()
 	dest.SenderShardID = src.SenderShardID()
+	dest.TxCount = src.TxCount()
 
 	return dest
 }
@@ -326,6 +319,7 @@ func MiniBlockHeaderGoToCapn(seg *capn.Segment, src *MiniBlockHeader) capnp.Mini
 	dest.SetHash(src.Hash)
 	dest.SetReceiverShardID(src.ReceiverShardID)
 	dest.SetSenderShardID(src.SenderShardID)
+	dest.SetTxCount(src.TxCount)
 
 	return dest
 }
@@ -380,6 +374,11 @@ func (h *Header) GetTimestamp() uint64 {
 	return h.TimeStamp
 }
 
+// GetTxCount returns transaction count in the block associated with this header
+func (h *Header) GetTxCount() uint32 {
+	return h.TxCount
+}
+
 // SetNonce sets header nonce
 func (h *Header) SetNonce(n uint64) {
 	h.Nonce = n
@@ -428,6 +427,11 @@ func (h *Header) SetSignature(sg []byte) {
 // SetTimeStamp sets header timestamp
 func (h *Header) SetTimeStamp(ts uint64) {
 	h.TimeStamp = ts
+}
+
+// SetTxCount sets the transaction count of the block associated with this header
+func (h *Header) SetTxCount(txCount uint32) {
+	h.TxCount = txCount
 }
 
 // IntegrityAndValidity checks if data is valid

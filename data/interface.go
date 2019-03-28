@@ -90,6 +90,7 @@ type HeaderHandler interface {
 	GetRandSeed() []byte
 	GetPubKeysBitmap() []byte
 	GetSignature() []byte
+	GetTxCount() uint32
 
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
@@ -101,6 +102,7 @@ type HeaderHandler interface {
 	SetRandSeed(randSeed []byte)
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
+	SetTxCount(txCount uint32)
 }
 
 // BodyHandler interface for a block body

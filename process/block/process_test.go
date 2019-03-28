@@ -408,8 +408,9 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
 	miniblock := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: txHashes,
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
 	}
 	body = append(body, &miniblock)
 	// set accounts not dirty
@@ -554,8 +555,9 @@ func TestBlockProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
 	miniblock := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: txHashes,
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
 	}
 	body = append(body, &miniblock)
 	// set accounts not dirty
@@ -616,8 +618,9 @@ func TestBlockProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
 	miniblock := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: txHashes,
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
 	}
 	body = append(body, &miniblock)
 	// set accounts not dirty
@@ -1103,7 +1106,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	body := make(block.Body, 0)
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
-	mBlk := block.MiniBlock{ShardID: shardId, TxHashes: txHashes}
+	mBlk := block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes}
 	body = append(body, &mBlk)
 	//TODO refactor the test
 	if be.RequestTransactionFromNetwork(body) > 0 {
@@ -1295,8 +1298,9 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
 	miniblock := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: txHashes,
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        txHashes,
 	}
 	body = append(body, &miniblock)
 	err := be.RemoveBlockInfoFromPool(body)
@@ -1388,28 +1392,32 @@ func createTestHdrTxBlockBody() (*block.Header, block.Body) {
 	}
 	txBlock := block.Body{
 		{
-			ShardID: 0,
-			TxHashes: [][]byte{
+			ReceiverShardID: 0,
+			SenderShardID:   0,
+			TxHashes:        [][]byte{
 				hasher.Compute("txHash_0_1"),
 				hasher.Compute("txHash_0_2"),
 			},
 		},
 		{
-			ShardID: 1,
-			TxHashes: [][]byte{
+			ReceiverShardID: 1,
+			SenderShardID:   0,
+			TxHashes:        [][]byte{
 				hasher.Compute("txHash_1_1"),
 				hasher.Compute("txHash_1_2"),
 			},
 		},
 		{
-			ShardID: 2,
-			TxHashes: [][]byte{
+			ReceiverShardID: 2,
+			SenderShardID:   0,
+			TxHashes:        [][]byte{
 				hasher.Compute("txHash_2_1"),
 			},
 		},
 		{
-			ShardID:  3,
-			TxHashes: make([][]byte, 0),
+			ReceiverShardID: 3,
+			SenderShardID:   0,
+			TxHashes:        make([][]byte, 0),
 		},
 	}
 	return hdr, txBlock
@@ -1692,9 +1700,21 @@ func TestBlockProcessor_CreateBlockHeaderShouldErrWhenMarshalizerErrors(t *testi
 		},
 	)
 	body := block.Body{
-		{ShardID: 1, TxHashes: make([][]byte, 0)},
-		{ShardID: 2, TxHashes: make([][]byte, 0)},
-		{ShardID: 3, TxHashes: make([][]byte, 0)},
+		{
+			ReceiverShardID: 1,
+			SenderShardID: 0,
+			TxHashes: make([][]byte, 0),
+		},
+		{
+			ReceiverShardID: 2,
+			SenderShardID: 0,
+			TxHashes: make([][]byte, 0),
+		},
+		{
+			ReceiverShardID: 3,
+			SenderShardID: 0,
+			TxHashes: make([][]byte, 0),
+		},
 	}
 	mbHeaders, err := bp.CreateBlockHeader(body)
 	assert.NotNil(t, err)
@@ -1715,9 +1735,21 @@ func TestBlockProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 		},
 	)
 	body := block.Body{
-		{ShardID: 1, TxHashes: make([][]byte, 0)},
-		{ShardID: 2, TxHashes: make([][]byte, 0)},
-		{ShardID: 3, TxHashes: make([][]byte, 0)},
+		{
+			ReceiverShardID: 1,
+			SenderShardID: 0,
+			TxHashes: make([][]byte, 0),
+		},
+		{
+			ReceiverShardID: 2,
+			SenderShardID: 0,
+			TxHashes: make([][]byte, 0),
+		},
+		{
+			ReceiverShardID: 3,
+			SenderShardID: 0,
+			TxHashes: make([][]byte, 0),
+		},
 	}
 	mbHeaders, err := bp.CreateBlockHeader(body)
 	assert.Nil(t, err)
@@ -1755,13 +1787,15 @@ func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 	tdp := initDataPool()
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 	txHash1 := []byte("txHash1")
 	mb1 := block.MiniBlock{
-		ShardID:  1,
-		TxHashes: [][]byte{[]byte(txHash1)},
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash1)},
 	}
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
@@ -1854,8 +1888,9 @@ func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	tdp := initDataPool()
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  1,
-		TxHashes: [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 	body := make(block.Body, 0)
 	body = append(body, &mb0)

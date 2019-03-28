@@ -378,7 +378,7 @@ func getMiniBlocksHashesFromShardIds(body dataBlock.Body, shardIds ...uint32) []
 
 	for _, miniblock := range body {
 		for _, shardId := range shardIds {
-			if miniblock.ShardID == shardId {
+			if miniblock.ReceiverShardID == shardId {
 				buff, _ := testMarshalizer.Marshal(miniblock)
 				hashes = append(hashes, testHasher.Compute(string(buff)))
 			}

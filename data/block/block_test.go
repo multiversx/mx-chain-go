@@ -16,6 +16,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		Hash:            []byte("mini block hash"),
 		ReceiverShardID: uint32(0),
 		SenderShardID:   uint32(10),
+		TxCount:         uint32(10),
 	}
 
 	pc := block.PeerChange{
@@ -38,6 +39,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		MiniBlockHeaders: []block.MiniBlockHeader{mb},
 		PeerChanges:      []block.PeerChange{pc},
 		RootHash:         []byte("root hash"),
+		TxCount:          uint32(10),
 	}
 
 	var b bytes.Buffer
@@ -88,8 +90,9 @@ func TestMiniBlock_SaveLoad(t *testing.T) {
 	t.Parallel()
 
 	mb := block.MiniBlock{
-		TxHashes: [][]byte{[]byte("tx hash1"), []byte("tx hash2")},
-		ShardID:  uint32(0),
+		TxHashes:        [][]byte{[]byte("tx hash1"), []byte("tx hash2")},
+		ReceiverShardID: uint32(0),
+		SenderShardID:   uint32(0),
 	}
 
 	var b bytes.Buffer
@@ -200,6 +203,17 @@ func TestHeader_GetSignature(t *testing.T) {
 	assert.Equal(t, signature, h.GetSignature())
 }
 
+func TestHeader_GetTxCount(t *testing.T) {
+	t.Parallel()
+
+	txCount := uint32(10)
+	h := block.Header{
+		TxCount: txCount,
+	}
+
+	assert.Equal(t, txCount, h.GetTxCount())
+}
+
 func TestHeader_SetEpoch(t *testing.T) {
 	t.Parallel()
 
@@ -300,6 +314,16 @@ func TestHeader_SetTimeStamp(t *testing.T) {
 	assert.Equal(t, timeStamp, h.GetTimestamp())
 }
 
+func TestHeader_SetTxCount(t *testing.T) {
+	t.Parallel()
+
+	txCount := uint32(10)
+	h := block.Header{}
+	h.SetTxCount(txCount)
+
+	assert.Equal(t, txCount, h.GetTxCount())
+}
+
 func TestBody_IntegrityAndValidityNil(t *testing.T) {
 	t.Parallel()
 
@@ -313,8 +337,9 @@ func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 
 	mb1 := block.MiniBlock{}
@@ -331,8 +356,9 @@ func TestBody_IntegrityAndValidityOK(t *testing.T) {
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 
 	body := make(block.Body, 0)

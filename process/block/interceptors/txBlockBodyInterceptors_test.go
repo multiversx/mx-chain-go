@@ -130,8 +130,9 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing
 		mock.NewOneShardCoordinatorMock())
 
 	mb := dataBlock.MiniBlock{
-		ShardID:  uint32(0),
-		TxHashes: [][]byte{[]byte("tx hash 1")},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte("tx hash 1")},
 	}
 	miniBlocks := dataBlock.Body{&mb}
 
