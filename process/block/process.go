@@ -250,7 +250,11 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 	}
 
 	for i := 0; i < len(blockBody); i++ {
+		//TODO refactor this when miniblock structure changes
 		strCache := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), blockBody[i].ShardID)
+		transactionPool.RemoveSetOfDataFromPool((blockBody)[i].TxHashes, strCache)
+
+		strCache = process.ShardCacherIdentifier(blockBody[i].ShardID, bp.shardCoordinator.SelfId())
 		transactionPool.RemoveSetOfDataFromPool((blockBody)[i].TxHashes, strCache)
 
 		buff, err := bp.marshalizer.Marshal((blockBody)[i])
@@ -283,7 +287,7 @@ func (bp *blockProcessor) CreateBlockBody(round int32, haveTime func() bool) (da
 	return miniBlocks, nil
 }
 
-// CreateGenesisBlockBody creates the genesis block body from map of account balances
+// CreateGenesisBlock creates the genesis block body from map of account balances
 func (bp *blockProcessor) CreateGenesisBlock(balances map[string]*big.Int) (rootHash []byte, err error) {
 	// TODO: balances map should be validated
 	return bp.txProcessor.SetBalancesToTrie(balances)
@@ -453,6 +457,11 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 		log.Info(errNotCritical.Error())
 	}
 
+	errNotCritical = bp.removeMiniblocksFromMetaHeader(blockBody, blockChain)
+	if errNotCritical != nil {
+		log.Info(errNotCritical.Error())
+	}
+
 	errNotCritical = bp.forkDetector.AddHeader(blockHeader, headerHash, true)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
@@ -474,6 +483,26 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 	go bp.displayBlockchain(blockHeader, blockBody)
 
 	return nil
+}
+
+func (bp *blockProcessor) removeMiniblocksFromMetaHeader(blockBody block.Body, blockChain *blockchain.BlockChain) error {
+	if blockBody == nil {
+		return process.ErrNilTxBlockBody
+	}
+	if blockChain == nil {
+		return process.ErrNilBlockChain
+	}
+
+	for _, metaBlockKey := range bp.dataPool.MetaBlocks().Keys() {
+		metaBlock, _ := bp.dataPool.MetaBlocks().Peek(metaBlockKey)
+		if metaBlock == nil {
+			return process.ErrNilMetaBlockHeader
+		}
+
+		//TODO for now, metablock shall
+
+	}
+
 }
 
 // getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
@@ -849,7 +878,8 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 		}
 
 		if processedMbs >= len(hashSnd) {
-			log.Info(fmt.Sprintf("All miniblocks processed with dest current shard from %s\n", string(hdr.GetRootHash())))
+			log.Info(fmt.Sprintf("All miniblocks processed with dest current shard from header with nonce %d\n",
+				hdr.GetNonce()))
 			// relevant information from
 			metaBlockCache.Remove(key)
 		}

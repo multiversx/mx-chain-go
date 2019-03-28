@@ -351,6 +351,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return ErrNilShardCoordinator
 	}
 	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
+	fmt.Printf("Sender shard Id: %d\n", senderShardId)
 
 	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
@@ -416,6 +417,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 
 	//the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
+	fmt.Printf("Identifier: %s\n", identifier)
 
 	for i := 0; i < len(transactions); i++ {
 		n.messenger.BroadcastOnChannel(
@@ -547,6 +549,7 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 
 // createConsensusTopic creates a consensus topic for node
 func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error {
+	//TODO fix consensus topic name on shards
 	if n.messenger.HasTopicValidator(string(ConsensusTopic)) {
 		return ErrValidatorAlreadySet
 	}

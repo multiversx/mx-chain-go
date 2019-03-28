@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -121,7 +122,7 @@ func TestGenesis_GenesisWithUncomlpeteData(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestGenesis_GenesisWithUncomlpeteBalance(t *testing.T) {
+func TestGenesis_GenesisWithUncompleteBalance(t *testing.T) {
 	g := sharding.Genesis{}
 
 	g.InitialNodes = make([]*sharding.InitialNode, 1)
@@ -133,7 +134,10 @@ func TestGenesis_GenesisWithUncomlpeteBalance(t *testing.T) {
 	g.ProcessShardAssignment()
 	g.CreateInitialNodesPubKeys()
 
-	inBal, err := g.InitialNodesBalances(0)
+	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
+	adrConv := mock.NewAddressConverterFake(32, "")
+
+	inBal, err := g.InitialNodesBalances(shardCoordinator, adrConv)
 
 	assert.NotNil(t, g)
 	assert.Nil(t, err)
@@ -144,25 +148,40 @@ func TestGenesis_GenesisWithUncomlpeteBalance(t *testing.T) {
 
 func TestGenesis_InitialNodesBalancesNil(t *testing.T) {
 	genesis := sharding.Genesis{}
-	inBalance, err := genesis.InitialNodesBalances(0)
+	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
+	adrConv := mock.NewAddressConverterFake(32, "")
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
 
 	assert.NotNil(t, genesis)
 	assert.Nil(t, inBalance)
 	assert.NotNil(t, err)
 }
 
-func TestGenesis_InitialNodesBalancesWrongShard(t *testing.T) {
+func TestGenesis_InitialNodesBalancesNilShardCoordinatorShouldErr(t *testing.T) {
 	genesis := createGenesisOneShardOneNode()
-	inBalance, err := genesis.InitialNodesBalances(1)
+	adrConv := mock.NewAddressConverterFake(32, "")
+	inBalance, err := genesis.InitialNodesBalances(nil, adrConv)
 
 	assert.NotNil(t, genesis)
 	assert.Nil(t, inBalance)
-	assert.NotNil(t, err)
+	assert.Equal(t, sharding.ErrNilShardCoordinator, err)
+}
+
+func TestGenesis_InitialNodesBalancesNilAddrConverterShouldErr(t *testing.T) {
+	genesis := createGenesisOneShardOneNode()
+	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, nil)
+
+	assert.NotNil(t, genesis)
+	assert.Nil(t, inBalance)
+	assert.Equal(t, sharding.ErrNilAddressConverter, err)
 }
 
 func TestGenesis_InitialNodesBalancesGood(t *testing.T) {
 	genesis := createGenesisTwoShardTwoNodes()
-	inBalance, err := genesis.InitialNodesBalances(1)
+	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(2, 1)
+	adrConv := mock.NewAddressConverterFake(32, "")
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
 
 	assert.NotNil(t, genesis)
 	assert.Equal(t, 2, len(inBalance))
@@ -198,10 +217,12 @@ func TestGenesis_InitialNodesPubKeysForShardGood(t *testing.T) {
 
 func TestGenesis_Initial5NodesBalancesGood(t *testing.T) {
 	genesis := createGenesisTwoShard5Nodes()
-	inBalance, err := genesis.InitialNodesBalances(1)
+	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(2, 1)
+	adrConv := mock.NewAddressConverterFake(32, "")
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
 
 	assert.NotNil(t, genesis)
-	assert.Equal(t, 2, len(inBalance))
+	assert.Equal(t, 3, len(inBalance))
 	assert.Nil(t, err)
 }
 

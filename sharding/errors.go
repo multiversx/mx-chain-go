@@ -21,3 +21,9 @@ var ErrNotEnoughValidators = errors.New("not enough validators to make consensus
 
 // ErrNoValidPublicKey signals an error when the public key is not in genesis file
 var ErrNoValidPublicKey = errors.New("Public key is not valid, it is missing from genesis file")
+
+// ErrNilShardCoordinator signals that a nil shard coordinator has been provided
+var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
+
+// ErrNilAddressConverter signals that a nil address converter has been provided
+var ErrNilAddressConverter = errors.New("trying to set nil address converter")

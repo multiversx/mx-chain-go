@@ -293,6 +293,20 @@ func createNode(
 	}
 
 	selfShardId, err := genesisConfig.GetShardIDFromPubKey(publickKey)
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		for {
+			time.Sleep(time.Second * 5)
+
+			msg := fmt.Sprintf("####### Current shard ID: %d of %d #######", selfShardId, genesisConfig.NumberOfShards())
+			log.Info(msg)
+
+		}
+	}()
+
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
 	if err != nil {
 		return nil, err
@@ -318,7 +332,7 @@ func createNode(
 	// TODO save config, and move this creation into another place for node movement
 	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig
 
-	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator.SelfId())
+	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
 	if err != nil {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}

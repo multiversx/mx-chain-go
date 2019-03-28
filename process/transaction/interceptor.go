@@ -139,9 +139,11 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return nil
 	}
 
+	cacherIdentifier := process.ShardCacherIdentifier(txIntercepted.SndShard(), txIntercepted.RcvShard())
 	txi.txPool.AddData(
 		hashWithSig,
 		txIntercepted.GetTransaction(),
-		process.ShardCacherIdentifier(txIntercepted.SndShard(), txIntercepted.RcvShard()))
+		cacherIdentifier,
+	)
 	return nil
 }
