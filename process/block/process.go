@@ -457,7 +457,7 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 		log.Info(errNotCritical.Error())
 	}
 
-	errNotCritical = bp.removeMiniblocksFromMetaHeader(blockBody, blockChain)
+	errNotCritical = bp.removeMiniBlocksFromMetaHeader(blockBody, blockChain)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
@@ -485,12 +485,21 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 	return nil
 }
 
-func (bp *blockProcessor) removeMiniblocksFromMetaHeader(blockBody block.Body, blockChain *blockchain.BlockChain) error {
+func (bp *blockProcessor) removeMiniBlocksFromMetaHeader(blockBody block.Body, blockChain data.ChainHandler) error {
 	if blockBody == nil {
 		return process.ErrNilTxBlockBody
 	}
 	if blockChain == nil {
 		return process.ErrNilBlockChain
+	}
+
+	miniBlockHashes := make(map[int][]byte, 0)
+	for i := 0; i < len(blockBody); i++ {
+		buff, err := bp.marshalizer.Marshal((blockBody)[i])
+		if err != nil {
+			return err
+		}
+		miniBlockHashes[i] = buff
 	}
 
 	for _, metaBlockKey := range bp.dataPool.MetaBlocks().Keys() {
@@ -499,10 +508,37 @@ func (bp *blockProcessor) removeMiniblocksFromMetaHeader(blockBody block.Body, b
 			return process.ErrNilMetaBlockHeader
 		}
 
-		//TODO for now, metablock shall
+		hdr, _ := metaBlock.(data.HeaderHandler)
+		if hdr == nil {
+			return process.ErrWrongTypeAssertion
+		}
 
+		processedMBs := 0
+		headerHashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
+		for i := 0; i < len(miniBlockHashes); i++ {
+			_, ok := headerHashSnd[string(miniBlockHashes[i])]
+
+			if !ok {
+				continue
+			}
+
+			hdr.SetProcessed(miniBlockHashes[i])
+			delete(miniBlockHashes, i)
+			processedMBs++
+		}
+
+		if processedMBs >= len(headerHashSnd) {
+			// metablock was processed
+			buff, err := bp.marshalizer.Marshal(hdr)
+			if err != nil {
+				return err
+			}
+			blockChain.Put(data.MetaBlockUnit, metaBlockKey, buff)
+			bp.dataPool.MetaBlocks().Remove(metaBlockKey)
+		}
 	}
 
+	return nil
 }
 
 // getTransactionFromPool gets the transaction from a given shard id and a given transaction hash
@@ -870,11 +906,12 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 			}
 
 			// all txs processed, add to processed miniblocks
-			delete(bp.miniBlockMissing, k)
 			miniBlocks = append(miniBlocks, miniBlock)
 			nrTxAdded = nrTxAdded + uint32(len(miniBlock.TxHashes))
+
 			hdr.SetProcessed([]byte(k))
 			processedMbs++
+			delete(bp.miniBlockMissing, k)
 		}
 
 		if processedMbs >= len(hashSnd) {

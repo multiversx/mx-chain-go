@@ -43,6 +43,9 @@ var ErrNilValue = errors.New("nil value")
 // ErrNilBlockChain signals that an operation has been attempted to or with a nil blockchain
 var ErrNilBlockChain = errors.New("nil block chain")
 
+// ErrNilMetaBlockHeader signals that an operation has been attempted to or with a nil metablock
+var ErrNilMetaBlockHeader = errors.New("nil metablock header")
+
 // ErrNilTxBlockBody signals that an operation has been attempted to or with a nil block body
 var ErrNilTxBlockBody = errors.New("nil block body")
 
