@@ -1211,17 +1211,14 @@ func displayHeader(header *block.Header) []*display.LineData {
 		"",
 		"Body type",
 		header.BlockBodyType.String()}))
-
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Pub keys bitmap",
 		toHex(header.PubKeysBitmap)}))
-
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"Signature",
 		toB64(header.Signature)}))
-
 	lines = append(lines, display.NewLineData(true, []string{
 		"",
 		"Root hash",

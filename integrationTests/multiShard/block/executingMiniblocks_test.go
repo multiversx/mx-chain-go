@@ -181,6 +181,8 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 				if err != nil {
 					return
 				}
+
+				err = n.blkProcessor.CommitBlock(n.blkc, n.headers[0], block.Body(n.miniblocks))
 			}
 		}
 	}
