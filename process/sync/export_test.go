@@ -54,6 +54,10 @@ func (bfd *basicForkDetector) Append(hdrInfo *headerInfo) {
 	bfd.append(hdrInfo)
 }
 
+func (bfd *basicForkDetector) RemovePastHeaders(nonce uint64) {
+	bfd.removePastHeaders(nonce)
+}
+
 func (hi *headerInfo) Header() *block.Header {
 	return hi.header
 }

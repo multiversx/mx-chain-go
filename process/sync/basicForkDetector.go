@@ -59,7 +59,7 @@ func (bfd *basicForkDetector) removePastHeaders(nonce uint64) {
 
 	for storedNonce := range bfd.headers {
 		if storedNonce <= nonce {
-			delete(bfd.headers, nonce)
+			delete(bfd.headers, storedNonce)
 		}
 	}
 
