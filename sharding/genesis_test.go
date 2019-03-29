@@ -153,8 +153,8 @@ func TestGenesis_InitialNodesBalancesNil(t *testing.T) {
 	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
 
 	assert.NotNil(t, genesis)
-	assert.Nil(t, inBalance)
-	assert.NotNil(t, err)
+	assert.Equal(t, 0, len(inBalance))
+	assert.Nil(t, err)
 }
 
 func TestGenesis_InitialNodesBalancesNilShardCoordinatorShouldErr(t *testing.T) {

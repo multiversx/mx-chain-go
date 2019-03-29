@@ -36,12 +36,10 @@ import (
 const WaitTime = time.Duration(2000 * time.Millisecond)
 
 // ConsensusTopic is the topic used in consensus algorithm
-const ConsensusTopic topicName = "consensus"
+const ConsensusTopic = "consensus"
 
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
-
-type topicName string
 
 var log = logger.NewDefaultLogger()
 
@@ -80,6 +78,8 @@ type Node struct {
 	blkc             data.ChainHandler
 	dataPool         data.PoolsHolder
 	shardCoordinator sharding.Coordinator
+
+	consensusTopic string
 
 	isRunning bool
 }
@@ -252,7 +252,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	err = n.createConsensusTopic(worker)
+	err = n.createConsensusTopic(worker, n.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -425,10 +425,6 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 			identifier,
 			transactions[i],
 		)
-
-		if err != nil {
-			return errors.New("could not broadcast transaction: " + err.Error())
-		}
 	}
 
 	return nil
@@ -548,20 +544,27 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 }
 
 // createConsensusTopic creates a consensus topic for node
-func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error {
-	//TODO fix consensus topic name on shards
-	if n.messenger.HasTopicValidator(string(ConsensusTopic)) {
+func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor, shardCoordinator sharding.Coordinator) error {
+	if shardCoordinator == nil {
+		return ErrNilShardCoordinator
+	}
+	if messageProcessor == nil {
+		return ErrNilMessenger
+	}
+
+	n.consensusTopic = ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
+	if n.messenger.HasTopicValidator(n.consensusTopic) {
 		return ErrValidatorAlreadySet
 	}
 
-	if !n.messenger.HasTopic(string(ConsensusTopic)) {
-		err := n.messenger.CreateTopic(string(ConsensusTopic), true)
+	if !n.messenger.HasTopic(n.consensusTopic) {
+		err := n.messenger.CreateTopic(n.consensusTopic, true)
 		if err != nil {
 			return err
 		}
 	}
 
-	return n.messenger.RegisterMessageProcessor(string(ConsensusTopic), messageProcessor)
+	return n.messenger.RegisterMessageProcessor(n.consensusTopic, messageProcessor)
 }
 
 func (n *Node) generateAndSignTx(
@@ -758,7 +761,7 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
 	}
 
 	n.messenger.Broadcast(
-		string(ConsensusTopic),
+		n.consensusTopic,
 		cnsDtaBuff)
 }
 

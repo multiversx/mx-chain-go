@@ -14,7 +14,7 @@ var ErrInvalidShardId = errors.New("shard id must be smaller than the total numb
 var ErrShardIdOutOfRange = errors.New("shard id out of range")
 
 // ErrNoPubKeys signals an error when public keys are missing
-var ErrNoPubKeys = errors.New("shard id out of range")
+var ErrNoPubKeys = errors.New("no public keys defined")
 
 // ErrNotEnoughValidators signals an error when there are not enough validators for consensus
 var ErrNotEnoughValidators = errors.New("not enough validators to make consensus group")

@@ -178,10 +178,6 @@ func (g *Genesis) InitialNodesBalances(shardCoordinator Coordinator, adrConv sta
 		}
 	}
 
-	if len(balances) == 0 {
-		return nil, ErrNoPubKeys
-	}
-
 	return balances, nil
 }
 
