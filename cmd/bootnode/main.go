@@ -297,16 +297,6 @@ func createNode(
 		return nil, err
 	}
 
-	go func() {
-		for {
-			time.Sleep(time.Second * 5)
-
-			msg := fmt.Sprintf("####### Current shard ID: %d of %d #######", selfShardId, genesisConfig.NumberOfShards())
-			log.Info(msg)
-
-		}
-	}()
-
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
 	if err != nil {
 		return nil, err
@@ -467,7 +457,7 @@ func createNode(
 
 func createRequestTransactionHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
-		log.Debug(fmt.Sprintf("Requesting tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+		log.Debug(fmt.Sprintf("Requesting tx from shard %d with hash %s from network\n", destShardID, toB64(txHash)))
 		resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
 		if err != nil {
 			log.Error(fmt.Sprintf("missing resolver to transaction topic to shard %d", destShardID))
@@ -483,7 +473,7 @@ func createRequestTransactionHandler(resolversFinder process.ResolversFinder, lo
 
 func createRequestMiniBlocksHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(shardId uint32, mbHash []byte) {
-		log.Debug(fmt.Sprintf("Requesting miniblock froms shard %d with hash %s from network\n", shardId, toB64(mbHash)))
+		log.Debug(fmt.Sprintf("Requesting miniblock from shard %d with hash %s from network\n", shardId, toB64(mbHash)))
 		resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
 		if err != nil {
 			log.Error(fmt.Sprintf("missing resolver to miniblock topic to shard %d", shardId))

@@ -2,9 +2,9 @@ package block
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"io"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnp"
 	"github.com/glycerine/go-capnproto"
 )
@@ -88,7 +88,7 @@ type Header struct {
 	PeerChanges      []PeerChange      `capid:"12"`
 	RootHash         []byte            `capid:"13"`
 	TxCount          uint32            `capid:"14"`
-	processedMBs     map[string]bool
+	processedMBs     map[string]bool   // TODO remove this field when metachain processing is running
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol

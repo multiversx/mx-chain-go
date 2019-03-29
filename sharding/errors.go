@@ -20,7 +20,7 @@ var ErrNoPubKeys = errors.New("no public keys defined")
 var ErrNotEnoughValidators = errors.New("not enough validators to make consensus group")
 
 // ErrNoValidPublicKey signals an error when the public key is not in genesis file
-var ErrNoValidPublicKey = errors.New("Public key is not valid, it is missing from genesis file")
+var ErrNoValidPublicKey = errors.New("public key is not valid, it is missing from genesis file")
 
 // ErrNilShardCoordinator signals that a nil shard coordinator has been provided
 var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")

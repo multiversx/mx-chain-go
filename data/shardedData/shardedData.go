@@ -12,7 +12,7 @@ var log = logger.NewDefaultLogger()
 // shardedData holds the list of data organised by destination shard
 //
 // The shardStores field maps a cacher, containing data
-//  hashes, to a corresponding shard id. It is able to add or remove
+//  hashes, to a corresponding identifier. It is able to add or remove
 //  data given the shard id it is associated with. It can
 //  also merge and split pools when required
 type shardedData struct {
@@ -191,7 +191,7 @@ func (sd *shardedData) MergeShardStores(sourceCacheId, destCacheId string) {
 	sd.mutShardedDataStore.Unlock()
 }
 
-// MoveData will move all given data associated with the sourceShardId to the destShardId
+// MoveData will move all given data associated with the sourceCacheId to the destCacheId
 func (sd *shardedData) MoveData(sourceCacheId, destCacheId string, key [][]byte) {
 	sourceStore := sd.ShardDataStore(sourceCacheId)
 

@@ -817,6 +817,7 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	for k, v := range msgMapTx {
 		// for on values as those are list of txs with dest to K.
 		for _, tx := range v {
+			// TODO optimize this to send bulk transactions
 			go n.messenger.Broadcast(factory.TransactionTopic+
 				n.shardCoordinator.CommunicationIdentifier(k), tx)
 		}

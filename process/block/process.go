@@ -157,18 +157,18 @@ func (bp *blockProcessor) RevertAccountState() {
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
-func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-	err := checkForNils(blockChain, header, body)
+func (bp *blockProcessor) ProcessBlock(chainHandler data.ChainHandler, headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
+	err := checkForNils(chainHandler, headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
 
-	blockBody, ok := body.(block.Body)
+	blockBody, ok := bodyHandler.(block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	blockHeader, ok := header.(*block.Header)
+	blockHeader, ok := headerHandler.(*block.Header)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -177,12 +177,12 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		return process.ErrNilHaveTimeHandler
 	}
 
-	concreteBlockChain, ok := blockChain.(*blockchain.BlockChain)
+	blockChain, ok := chainHandler.(*blockchain.BlockChain)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = bp.validateHeader(concreteBlockChain, blockHeader)
+	err = bp.validateHeader(blockChain, blockHeader)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (bp *blockProcessor) ProcessBlock(blockChain data.ChainHandler, header data
 		return err
 	}
 
-	if !bp.verifyStateRoot(header.GetRootHash()) {
+	if !bp.verifyStateRoot(blockHeader.GetRootHash()) {
 		err = process.ErrRootStateMissmatch
 		return err
 	}
@@ -447,7 +447,7 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 		log.Info(errNotCritical.Error())
 	}
 
-	errNotCritical = bp.removeMiniBlocksFromMetaHeader(blockBody, blockChain)
+	errNotCritical = bp.removeMetaBlockFromPool(blockBody, blockChain)
 	if errNotCritical != nil {
 		log.Info(errNotCritical.Error())
 	}
@@ -475,7 +475,7 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 	return nil
 }
 
-func (bp *blockProcessor) removeMiniBlocksFromMetaHeader(blockBody block.Body, blockChain data.ChainHandler) error {
+func (bp *blockProcessor) removeMetaBlockFromPool(blockBody block.Body, blockChain data.ChainHandler) error {
 	if blockBody == nil {
 		return process.ErrNilTxBlockBody
 	}
@@ -504,18 +504,22 @@ func (bp *blockProcessor) removeMiniBlocksFromMetaHeader(blockBody block.Body, b
 			return process.ErrWrongTypeAssertion
 		}
 
-		processedMBs := 0
 		headerHashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
 		for i := 0; i < len(miniBlockHashes); i++ {
 			_, ok := headerHashSnd[string(miniBlockHashes[i])]
-
 			if !ok {
 				continue
 			}
 
 			hdr.SetProcessed(miniBlockHashes[i])
 			delete(miniBlockHashes, i)
-			processedMBs++
+		}
+
+		processedMBs := 0
+		for key, _ := range headerHashSnd {
+			if hdr.WasMiniBlockProcessed([]byte(key)) {
+				processedMBs++
+			}
 		}
 
 		if processedMBs >= len(headerHashSnd) {
@@ -1099,6 +1103,8 @@ func (bp *blockProcessor) displayLogInfo(
 	}
 
 	txCounterMutex.Lock()
+	tblString = tblString + fmt.Sprintf("####### Current shard ID: %d of %d #######",
+		bp.shardCoordinator.SelfId(), bp.shardCoordinator.NumberOfShards())
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal txs "+
 		"processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n",
 		toB64(headerHash),
