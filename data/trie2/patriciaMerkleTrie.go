@@ -169,10 +169,14 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if err != nil {
 		return err
 	}
-	err = tr.root.commit(tr.db, tr.marshalizer)
+	err = tr.root.commit(tr.db, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return err
 	}
-	tr.root = tr.root.getCollapsed()
+	newRoot, err := tr.root.getCollapsed(tr.marshalizer, tr.hasher)
+	if err != nil {
+		return err
+	}
+	tr.root = newRoot
 	return nil
 }

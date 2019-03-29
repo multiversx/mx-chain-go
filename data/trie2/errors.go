@@ -36,3 +36,9 @@ var ErrChildPosOutOfRange = errors.New("the position of the child is out of rang
 
 // ErrNodeNotFound is raised when we try to get a node that is not present in the trie
 var ErrNodeNotFound = errors.New("the node is not present in the trie")
+
+// ErrEmptyNode is raised when we reach an empty node (a node with no children or no value)
+var ErrEmptyNode = errors.New("the node is empty")
+
+// ErrNilNode is raised when we reach a nil node
+var ErrNilNode = errors.New("the node is nil")

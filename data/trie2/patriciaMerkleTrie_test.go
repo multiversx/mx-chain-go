@@ -177,12 +177,9 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 }
 
 func TestPatriciaMerkleTree_Commit(t *testing.T) {
-	db, err := memorydb.New()
-	assert.Nil(t, err)
-	assert.NotNil(t, db)
 	tr := testTrie()
 
-	err = tr.Commit()
+	err := tr.Commit()
 	assert.Nil(t, err)
 }
 

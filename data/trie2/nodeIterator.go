@@ -139,7 +139,10 @@ func (it *nodeIterator) LeafProof() ([][]byte, error) {
 	if it.Leaf() {
 		proofs := make([][]byte, 0, len(it.stack))
 		for _, item := range it.stack {
-			node := item.node.getCollapsed()
+			node, err := item.node.getCollapsed(it.trie.marshalizer, it.trie.hasher)
+			if err != nil {
+				return nil, err
+			}
 			encNode, err := node.getEncodedNode(it.trie.marshalizer)
 			if err != nil {
 				return nil, err
