@@ -106,8 +106,8 @@ type HeaderHandler interface {
 
 	// miniblock headers data
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
-	WasMiniBlockProcessed(hash []byte) bool
-	SetProcessed(hash []byte)
+	GetMiniBlockProcessed(hash []byte) bool
+	SetMiniBlockProcessed(hash []byte)
 }
 
 // BodyHandler interface for a block body
