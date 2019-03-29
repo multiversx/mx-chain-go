@@ -40,9 +40,8 @@ type blockProcessor struct {
 	txProcessor          process.TransactionProcessor
 	ChRcvAllTxs          chan bool
 	OnRequestTransaction func(shardID uint32, txHash []byte)
+	mutRequestedTxHashes sync.RWMutex
 	requestedTxHashes    map[string]bool
-	mut                  sync.RWMutex
-	mutCrossData         sync.RWMutex
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
 	forkDetector         process.ForkDetector
@@ -60,7 +59,7 @@ func NewBlockProcessor(
 	shardCoordinator sharding.Coordinator,
 	forkDetector process.ForkDetector,
 	requestTransactionHandler func(shardId uint32, txHash []byte),
-	requestMiniBlockHandler func(shardId uint32, txHash []byte),
+	requestMiniBlockHandler func(shardId uint32, miniblockHash []byte),
 ) (*blockProcessor, error) {
 
 	if dataPool == nil {
@@ -525,7 +524,10 @@ func (bp *blockProcessor) removeMiniBlocksFromMetaHeader(blockBody block.Body, b
 			if err != nil {
 				return err
 			}
-			blockChain.Put(data.MetaBlockUnit, metaBlockKey, buff)
+			err = blockChain.Put(data.MetaBlockUnit, metaBlockKey, buff)
+			if err != nil {
+				return err
+			}
 			bp.dataPool.MetaBlocks().Remove(metaBlockKey)
 		}
 	}
@@ -560,20 +562,20 @@ func (bp *blockProcessor) getTransactionFromPool(senderShardID, destShardID uint
 // receivedTransaction is a call back function which is called when a new transaction
 // is added in the transaction pool
 func (bp *blockProcessor) receivedTransaction(txHash []byte) {
-	bp.mut.Lock()
+	bp.mutRequestedTxHashes.Lock()
 	if len(bp.requestedTxHashes) > 0 {
 		if bp.requestedTxHashes[string(txHash)] {
 			delete(bp.requestedTxHashes, string(txHash))
 		}
 		lenReqTxHashes := len(bp.requestedTxHashes)
-		bp.mut.Unlock()
+		bp.mutRequestedTxHashes.Unlock()
 
 		if lenReqTxHashes == 0 {
 			bp.ChRcvAllTxs <- true
 		}
 		return
 	}
-	bp.mut.Unlock()
+	bp.mutRequestedTxHashes.Unlock()
 }
 
 // receivedMetaBlock is a callback function when a new metablock was received
@@ -605,9 +607,7 @@ func (bp *blockProcessor) receivedMetaBlock(metaBlockHash []byte) {
 
 	hashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
 	for k, senderShardId := range hashSnd {
-		bp.mutCrossData.RLock()
 		miniVal, _ := miniBlockCache.Peek([]byte(k))
-		bp.mutCrossData.RUnlock()
 		if miniVal == nil {
 			go bp.OnRequestMiniBlock(senderShardId, []byte(k))
 		}
@@ -627,9 +627,6 @@ func (bp *blockProcessor) receivedMiniBlock(miniBlockHash []byte) {
 		return
 	}
 
-	bp.mutCrossData.Lock()
-	defer bp.mutCrossData.Unlock()
-
 	val, ok := miniBlockCache.Peek(miniBlockHash)
 	if !ok {
 		return
@@ -641,19 +638,16 @@ func (bp *blockProcessor) receivedMiniBlock(miniBlockHash []byte) {
 	}
 
 	// request transactions
-	bp.mut.Lock()
 	for _, txHash := range miniBlock.TxHashes {
 		tx := bp.getTransactionFromPool(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHash)
 		if tx == nil {
 			go bp.OnRequestTransaction(miniBlock.SenderShardID, txHash)
 		}
 	}
-	bp.mut.Unlock()
-
 }
 
 func (bp *blockProcessor) requestBlockTransactions(body block.Body) int {
-	bp.mut.Lock()
+	bp.mutRequestedTxHashes.Lock()
 	requestedTxs := 0
 	missingTxsForShards := bp.computeMissingTxsForShards(body)
 	bp.requestedTxHashes = make(map[string]bool)
@@ -666,7 +660,7 @@ func (bp *blockProcessor) requestBlockTransactions(body block.Body) int {
 			}
 		}
 	}
-	bp.mut.Unlock()
+	bp.mutRequestedTxHashes.Unlock()
 	return requestedTxs
 }
 
@@ -835,7 +829,7 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 		// get mini block hashes and senders id with destination to me
 		hashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
 		processedMbs := 0
-		for k, _ := range hashSnd {
+		for k := range hashSnd {
 			if !haveTime() {
 				break
 			}

@@ -43,3 +43,37 @@ func (bp *blockProcessor) VerifyStateRoot(rootHash []byte) bool {
 func (bp *blockProcessor) GetAllTxsFromMiniBlock(mb *block.MiniBlock, haveTime func() bool) ([]*transaction.Transaction, [][]byte, error) {
 	return bp.getAllTxsFromMiniBlock(mb, haveTime)
 }
+
+func (bp *blockProcessor) ReceivedMiniBlock(miniBlockHash []byte) {
+	bp.receivedMiniBlock(miniBlockHash)
+}
+
+func (bp *blockProcessor) ReceivedMetaBlock(metaBlockHash []byte) {
+	bp.receivedMetaBlock(metaBlockHash)
+}
+
+func (bp *blockProcessor) AddTxHashToRequestedList(txHash []byte) {
+	bp.mutRequestedTxHashes.Lock()
+	defer bp.mutRequestedTxHashes.Unlock()
+
+	if bp.requestedTxHashes == nil {
+		bp.requestedTxHashes = make(map[string]bool)
+	}
+	bp.requestedTxHashes[string(txHash)] = true
+}
+
+func (bp *blockProcessor) IsTxHashRequested(txHash []byte) bool {
+	bp.mutRequestedTxHashes.Lock()
+	defer bp.mutRequestedTxHashes.Unlock()
+
+	_, found := bp.requestedTxHashes[string(txHash)]
+	return found
+}
+
+func (bp *blockProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, round int32, haveTime func() bool) error {
+	return bp.processMiniBlockComplete(miniBlock, round, haveTime)
+}
+
+func (bp *blockProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
+	return bp.createMiniBlocks(noShards, maxTxInBlock, round, haveTime)
+}
