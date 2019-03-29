@@ -519,7 +519,7 @@ func (bp *blockProcessor) removeMetaBlockFromPool(blockBody block.Body, blockCha
 		}
 
 		processedMBs := 0
-		for key, _ := range headerHashSnd {
+		for key := range headerHashSnd {
 			if hdr.WasMiniBlockProcessed([]byte(key)) {
 				processedMBs++
 			}
@@ -759,29 +759,19 @@ func (bp *blockProcessor) processMiniBlockComplete(miniBlock *block.MiniBlock, r
 		return process.ErrNilTransactionPool
 	}
 
-	miniBlockTxs, txHashes, err := bp.getAllTxsFromMiniBlock(miniBlock, haveTime)
+	miniBlockTxs, _, err := bp.getAllTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
 		return err
 	}
 
-	strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-
 	snapshot := bp.accounts.JournalLen()
-	for index, tx := range miniBlockTxs {
+	for index := range miniBlockTxs {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
 			break
 		}
-		if tx == nil {
-			err = process.ErrNilTransaction
-			break
-		}
 
 		err = bp.txProcessor.ProcessTransaction(miniBlockTxs[index], round)
-		if err == process.ErrLowerNonceInTransaction {
-			txPool.RemoveData(txHashes[index], strCache)
-		}
-
 		if err != nil {
 			break
 		}
@@ -789,9 +779,10 @@ func (bp *blockProcessor) processMiniBlockComplete(miniBlock *block.MiniBlock, r
 	// all txs from miniblock has to be processed together
 	if err != nil {
 		log.Error(err.Error())
-		err = bp.accounts.RevertToSnapshot(snapshot)
-		if err != nil {
-			log.Error(err.Error())
+		errAccountState := bp.accounts.RevertToSnapshot(snapshot)
+		if errAccountState != nil {
+			//TODO evaluate if reloading the trie from disk will might solve the problem
+			log.Error(errAccountState.Error())
 		}
 	}
 	return err
@@ -954,17 +945,11 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 		miniBlock.SenderShardID = bp.shardCoordinator.SelfId()
 		miniBlock.ReceiverShardID = uint32(i)
 		miniBlock.TxHashes = make([][]byte, 0)
-		tXsForShard := make([]*transaction.Transaction, 0)
 		log.Info(fmt.Sprintf("creating mini blocks has been started: have %d txs in pool for shard id %d\n", len(orderedTxes), miniBlock.ReceiverShardID))
 
-		for index, tx := range orderedTxes {
+		for index := range orderedTxes {
 			if !haveTime() {
 				break
-			}
-
-			if tx == nil {
-				log.Error("did not find transaction in pool")
-				continue
 			}
 
 			snapshot := bp.accounts.JournalLen()
@@ -992,7 +977,6 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 			bp.crossTxsForBlock[string(orderedTxHashes[index])] = orderedTxes[index]
 			bp.mutCrossTxsForBlock.Unlock()
 			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
-			tXsForShard = append(tXsForShard, orderedTxes[index])
 			txs++
 
 			if txs >= uint32(maxTxInBlock) { // max transactions count in one block was reached
@@ -1110,7 +1094,7 @@ func (bp *blockProcessor) displayLogInfo(
 	}
 
 	txCounterMutex.Lock()
-	tblString = tblString + fmt.Sprintf("####### Current shard ID: %d of %d #######",
+	tblString = tblString + fmt.Sprintf("\nCurrent shard ID: %d of %d\n",
 		bp.shardCoordinator.SelfId(), bp.shardCoordinator.NumberOfShards())
 	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal txs "+
 		"processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n",

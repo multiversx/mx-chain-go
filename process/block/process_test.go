@@ -2463,8 +2463,7 @@ func TestBlockProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		return true
 	})
 
-	//err is nil because it is overwritten by err = bp.accounts.RevertToSnapshot(snapshot) which doesn't output err
-	assert.Nil(t, err)
+	assert.Equal(t, errTxProcessor, err)
 	assert.True(t, revertAccntStateCalled)
 }
 
