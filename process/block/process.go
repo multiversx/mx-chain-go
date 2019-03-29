@@ -45,6 +45,7 @@ type blockProcessor struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
 	forkDetector         process.ForkDetector
+	mutCrossTxsForBlock  sync.RWMutex
 	crossTxsForBlock     map[string]*transaction.Transaction
 	OnRequestMiniBlock   func(shardId uint32, mbHash []byte)
 }
@@ -118,7 +119,9 @@ func NewBlockProcessor(
 	transactionPool.RegisterHandler(bp.receivedTransaction)
 
 	bp.OnRequestMiniBlock = requestMiniBlockHandler
+	bp.mutCrossTxsForBlock.Lock()
 	bp.crossTxsForBlock = make(map[string]*transaction.Transaction, 0)
+	bp.mutCrossTxsForBlock.Unlock()
 
 	metaBlockPool := bp.dataPool.MetaBlocks()
 	if metaBlockPool == nil {
@@ -890,7 +893,9 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 
 func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
 	miniBlocks := make(block.Body, 0)
+	bp.mutCrossTxsForBlock.Lock()
 	bp.crossTxsForBlock = make(map[string]*transaction.Transaction)
+	bp.mutCrossTxsForBlock.Unlock()
 
 	if bp.accounts.JournalLen() != 0 {
 		return nil, process.ErrAccountStateDirty
@@ -983,7 +988,9 @@ func (bp *blockProcessor) createMiniBlocks(noShards uint32, maxTxInBlock int, ro
 				continue
 			}
 
+			bp.mutCrossTxsForBlock.Lock()
 			bp.crossTxsForBlock[string(orderedTxHashes[index])] = orderedTxes[index]
+			bp.mutCrossTxsForBlock.Unlock()
 			miniBlock.TxHashes = append(miniBlock.TxHashes, orderedTxHashes[index])
 			tXsForShard = append(tXsForShard, orderedTxes[index])
 			txs++
@@ -1409,7 +1416,9 @@ func (bp *blockProcessor) MarshalizedDataForCrossShard(body data.BodyHandler) (m
 		bodies[receiverShardId] = append(bodies[receiverShardId], miniblock)
 
 		for _, txHash := range miniblock.TxHashes {
+			bp.mutCrossTxsForBlock.RLock()
 			tx := bp.crossTxsForBlock[string(txHash)]
+			bp.mutCrossTxsForBlock.RUnlock()
 			if tx != nil {
 				txMrs, err := bp.marshalizer.Marshal(tx)
 				if err != nil {
