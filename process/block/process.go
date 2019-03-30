@@ -488,7 +488,12 @@ func (bp *blockProcessor) removeMetaBlockFromPool(blockBody block.Body, blockCha
 
 	miniBlockHashes := make(map[int][]byte, 0)
 	for i := 0; i < len(blockBody); i++ {
-		buff, err := bp.marshalizer.Marshal((blockBody)[i])
+		miniBlock := blockBody[i]
+		if miniBlock.ReceiverShardID != bp.shardCoordinator.SelfId() || miniBlock.SenderShardID == bp.shardCoordinator.SelfId() {
+			continue
+		}
+
+		buff, err := bp.marshalizer.Marshal(miniBlock)
 		if err != nil {
 			return err
 		}
