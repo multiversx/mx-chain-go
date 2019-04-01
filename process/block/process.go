@@ -508,14 +508,14 @@ func (bp *blockProcessor) removeMetaBlockFromPool(blockBody block.Body, blockCha
 		}
 
 		headerHashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
-		for i := 0; i < len(miniBlockHashes); i++ {
-			_, ok := headerHashSnd[string(miniBlockHashes[i])]
+		for key := range miniBlockHashes {
+			_, ok := headerHashSnd[string(miniBlockHashes[key])]
 			if !ok {
 				continue
 			}
 
-			hdr.SetProcessed(miniBlockHashes[i])
-			delete(miniBlockHashes, i)
+			hdr.SetProcessed(miniBlockHashes[key])
+			delete(miniBlockHashes, key)
 		}
 
 		processedMBs := 0

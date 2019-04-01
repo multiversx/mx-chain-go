@@ -2,7 +2,7 @@
   "startTime": 0,
   "roundDuration": 4000,
   "consensusGroupSize": 21,
-  "minNodesPerShard": 100,
+  "minNodesPerShard": 21,
   "elasticSubrounds": true,
   "initialNodes": [
     {

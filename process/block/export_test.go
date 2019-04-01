@@ -3,6 +3,7 @@ package block
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -76,4 +77,8 @@ func (bp *blockProcessor) ProcessMiniBlockComplete(miniBlock *block.MiniBlock, r
 
 func (bp *blockProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, round int32, haveTime func() bool) (block.Body, error) {
 	return bp.createMiniBlocks(noShards, maxTxInBlock, round, haveTime)
+}
+
+func (bp *blockProcessor) RemoveMetaBlockFromPool(blockBody block.Body, blockChain data.ChainHandler) error {
+	return bp.removeMetaBlockFromPool(blockBody, blockChain)
 }

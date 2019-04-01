@@ -2570,3 +2570,129 @@ func isInTxHashes(searched []byte, list [][]byte) bool {
 	}
 	return false
 }
+
+//------- removeMetaBlockFromPool
+
+func TestBlockProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
+	t.Parallel()
+
+	//we have 3 metablocks in pool each containing 2 miniblocks.
+	//blockbody will have 2 + 1 miniblocks from 2 out of the 3 metablocks
+	//The test should remove only one metablock
+
+	destShardId := uint32(2)
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+
+	miniblocks := make([]*block.MiniBlock, 6)
+	miniblockHashes := make([][]byte, 6)
+
+	destShards := []uint32{1, 3, 4}
+	for i := 0; i < 6; i++ {
+		mb, hash := createDummyMiniBlock(fmt.Sprintf("tx hash %d", i), marshalizer, hasher, destShardId, destShards[i/2])
+		miniblocks[i] = mb
+		miniblockHashes[i] = hash
+	}
+
+	//put 3 metablocks in pool
+	mb1Hash := []byte("meta block 1")
+	dataPool.MetaBlocks().Put(
+		mb1Hash,
+		createDummyMetaBlock(destShardId, destShards[0], miniblockHashes[0], miniblockHashes[1]),
+	)
+	mb2Hash := []byte("meta block 2")
+	dataPool.MetaBlocks().Put(
+		mb2Hash,
+		createDummyMetaBlock(destShardId, destShards[1], miniblockHashes[2], miniblockHashes[3]),
+	)
+	mb3Hash := []byte("meta block 3")
+	dataPool.MetaBlocks().Put(
+		mb3Hash,
+		createDummyMetaBlock(destShardId, destShards[2], miniblockHashes[4], miniblockHashes[5]),
+	)
+
+	wasCalledPut := false
+
+	blkc := &mock.BlockChainMock{
+		StorageService: &mock.ChainStorerMock{
+			PutCalled: func(unitType data.UnitType, key []byte, value []byte) error {
+				if bytes.Equal(key, mb1Hash) {
+					wasCalledPut = true
+				}
+
+				return nil
+			},
+		},
+	}
+
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	shardCoordinator.CurrentShard = destShardId
+	shardCoordinator.SetNoShards(destShardId + 1)
+
+	bp, _ := blproc.NewBlockProcessor(
+		dataPool,
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		shardCoordinator,
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, miniblockHash []byte) {},
+	)
+
+	//create block body with first 3 miniblocks from miniblocks var
+	blockBody := block.Body{miniblocks[0], miniblocks[1], miniblocks[2]}
+
+	err := bp.RemoveMetaBlockFromPool(blockBody, blkc)
+
+	assert.Nil(t, err)
+	assert.True(t, wasCalledPut)
+	//check WasMiniBlockProcessed for remaining metablocks
+	metaBlock2Recov, _ := dataPool.MetaBlocks().Get(mb2Hash)
+	assert.True(t, (metaBlock2Recov.(data.HeaderHandler)).WasMiniBlockProcessed(miniblockHashes[2]))
+	assert.False(t, (metaBlock2Recov.(data.HeaderHandler)).WasMiniBlockProcessed(miniblockHashes[3]))
+
+	metaBlock3Recov, _ := dataPool.MetaBlocks().Get(mb3Hash)
+	assert.False(t, (metaBlock3Recov.(data.HeaderHandler)).WasMiniBlockProcessed(miniblockHashes[4]))
+	assert.False(t, (metaBlock3Recov.(data.HeaderHandler)).WasMiniBlockProcessed(miniblockHashes[5]))
+}
+
+func createDummyMiniBlock(
+	txHash string,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	destShardId uint32,
+	senderShardId uint32) (*block.MiniBlock, []byte) {
+
+	miniblock := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte(txHash)},
+		ReceiverShardID: destShardId,
+		SenderShardID:   senderShardId,
+	}
+
+	buff, _ := marshalizer.Marshal(miniblock)
+	hash := hasher.Compute(string(buff))
+
+	return miniblock, hash
+}
+
+func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHashes ...[]byte) data.HeaderHandler {
+	metaBlock := &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{
+				ShardMiniBlockHeaders: make([]block.ShardMiniBlockHeader, len(miniBlockHashes)),
+			},
+		},
+	}
+
+	for idx, mbHash := range miniBlockHashes {
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].ReceiverShardId = destShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].SenderShardId = senderShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].Hash = mbHash
+	}
+
+	return metaBlock
+}

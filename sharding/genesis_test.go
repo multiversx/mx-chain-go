@@ -107,7 +107,7 @@ func TestGenesis_InitialNodesPubKeysFromNil(t *testing.T) {
 	assert.Nil(t, inPubKeys)
 }
 
-func TestGenesis_GenesisWithUncomlpeteData(t *testing.T) {
+func TestGenesis_ProcessConfigGenesisWithIncompleteDataShouldErr(t *testing.T) {
 	g := sharding.Genesis{}
 
 	g.InitialNodes = make([]*sharding.InitialNode, 2)
@@ -119,18 +119,97 @@ func TestGenesis_GenesisWithUncomlpeteData(t *testing.T) {
 	err := g.ProcessConfig()
 
 	assert.NotNil(t, g)
-	assert.NotNil(t, err)
+	assert.Equal(t, sharding.ErrCouldNotParsePubKey, err)
 }
 
-func TestGenesis_GenesisWithUncompleteBalance(t *testing.T) {
-	g := sharding.Genesis{}
+func TestGenesis_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize: 0,
+		MinNodesPerShard:   0,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 2)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrNegativeOrZeroConsensusGroupSize, err)
+}
+
+func TestGenesis_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize: 3,
+		MinNodesPerShard:   0,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 2)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrNotEnoughValidators, err)
+}
+
+func TestGenesis_ProcessConfigInvalidMinNodesPerShardShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize: 2,
+		MinNodesPerShard:   0,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 2)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrMinNodesPerShardSmallerThanConsensusSize, err)
+}
+
+func TestGenesis_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize: 2,
+		MinNodesPerShard:   3,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 2)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrNodesSizeSmallerThanMinNoOfNodes, err)
+}
+
+func TestGenesis_GenesisWithIncompleteBalance(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize: 1,
+		MinNodesPerShard:   1,
+	}
 
 	g.InitialNodes = make([]*sharding.InitialNode, 1)
 	g.InitialNodes[0] = &sharding.InitialNode{}
 
 	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 
-	err := g.ProcessConfig()
+	_ = g.ProcessConfig()
 	g.ProcessShardAssignment()
 	g.CreateInitialNodesPubKeys()
 

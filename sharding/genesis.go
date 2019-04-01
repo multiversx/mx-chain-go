@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/api/errors"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
@@ -67,7 +66,7 @@ func (g *Genesis) processConfig() error {
 		// decoder treats empty string as correct, it is not allowed to have empty string as public key
 		if g.InitialNodes[i].PubKey == "" || err != nil {
 			g.InitialNodes[i].pubKey = nil
-			return errors.ErrCouldNotParsePubKey
+			return ErrCouldNotParsePubKey
 		}
 
 		g.InitialNodes[i].balance, ok = new(big.Int).SetString(g.InitialNodes[i].Balance, 10)
@@ -80,34 +79,25 @@ func (g *Genesis) processConfig() error {
 		g.nrOfNodes++
 	}
 
+	if g.ConsensusGroupSize < 1 {
+		return ErrNegativeOrZeroConsensusGroupSize
+	}
 	if g.nrOfNodes < g.ConsensusGroupSize {
 		return ErrNotEnoughValidators
+	}
+	if g.MinNodesPerShard < g.ConsensusGroupSize {
+		return ErrMinNodesPerShardSmallerThanConsensusSize
+	}
+	if g.nrOfNodes < g.MinNodesPerShard {
+		return ErrNodesSizeSmallerThanMinNoOfNodes
 	}
 
 	return nil
 }
 
 func (g *Genesis) processShardAssignment() {
-	// initial verification - should not happen.
-	if g.ConsensusGroupSize < 1 {
-		g.ConsensusGroupSize = 1
-	}
-	if g.MinNodesPerShard < g.ConsensusGroupSize {
-		g.MinNodesPerShard = g.ConsensusGroupSize
-	}
-
 	// initial implementation - as there is no other info than public key, we allocate first nodes in FIFO order to shards
 	g.nrOfShards = g.nrOfNodes / g.MinNodesPerShard
-	if g.nrOfShards == 0 {
-		g.nrOfShards = 1
-		for id := uint32(0); id < g.nrOfNodes; id++ {
-			// consider only nodes with valid public key
-			if g.InitialNodes[id].pubKey != nil {
-				g.InitialNodes[id].assignedShard = 0
-			}
-		}
-		return
-	}
 
 	currentShard := uint32(0)
 	countSetNodes := uint32(0)
@@ -127,7 +117,6 @@ func (g *Genesis) processShardAssignment() {
 		g.InitialNodes[i].assignedShard = currentShard
 		currentShard = (currentShard + 1) % g.nrOfShards
 	}
-
 }
 
 func (g *Genesis) createInitialNodesPubKeys() {
