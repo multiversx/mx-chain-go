@@ -489,7 +489,7 @@ func (bp *blockProcessor) removeMetaBlockFromPool(blockBody block.Body, blockCha
 	miniBlockHashes := make(map[int][]byte, 0)
 	for i := 0; i < len(blockBody); i++ {
 		miniBlock := blockBody[i]
-		if miniBlock.ReceiverShardID != bp.shardCoordinator.SelfId() || miniBlock.SenderShardID == bp.shardCoordinator.SelfId() {
+		if miniBlock.SenderShardID == bp.shardCoordinator.SelfId() {
 			continue
 		}
 
