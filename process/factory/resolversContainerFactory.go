@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/metablock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -92,6 +93,15 @@ func (rcf *resolversContainerFactory) Create() (process.ResolversContainer, erro
 	}
 
 	keys, resolverSlice, err = rcf.generatePeerChBlockBodyResolvers()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, resolverSlice)
+	if err != nil {
+		return nil, err
+	}
+
+	keys, resolverSlice, err = rcf.generateMetachainShardHeaderResolvers()
 	if err != nil {
 		return nil, err
 	}
@@ -313,5 +323,50 @@ func (rcf *resolversContainerFactory) createOnePeerChBlockBodyResolver(identifie
 	return rcf.createTopicAndAssignHandler(
 		identifier+resolverSender.TopicRequestSuffix(),
 		peerChResolver,
+		false)
+}
+
+//------- MetachainShardHeaderResolvers
+
+func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolvers() ([]string, []process.Resolver, error) {
+	shardC := rcf.shardCoordinator
+
+	//only one metachain header topic
+	identifierHdr := MetachainShardHeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+
+	resolver, err := rcf.createOneMetachainShardHdrResolver(identifierHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []string{identifierHdr}, []process.Resolver{resolver}, nil
+}
+
+func (rcf *resolversContainerFactory) createOneMetachainShardHdrResolver(identifier string) (process.Resolver, error) {
+	hdrStorer := rcf.blockchain.GetStorer(data.BlockHeaderUnit)
+
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(
+		rcf.messenger,
+		identifier,
+		rcf.marshalizer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resolver, err := metablock.NewShardHeaderResolver(
+		resolverSender,
+		rcf.dataPools.Headers(),
+		hdrStorer,
+		rcf.marshalizer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	//add on the request topic
+	return rcf.createTopicAndAssignHandler(
+		identifier+resolverSender.TopicRequestSuffix(),
+		resolver,
 		false)
 }

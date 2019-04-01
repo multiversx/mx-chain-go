@@ -380,6 +380,12 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverHeaders := 1
 	numResolverMiniBlocks := noOfShards
 	numResolverPeerChanges := 1
+	numResolverMetachainShardHeaders := 1
 
-	assert.Equal(t, numResolverTxs+numResolverHeaders+numResolverMiniBlocks+numResolverPeerChanges, container.Len())
+	assert.Equal(t,
+		numResolverTxs+
+			numResolverHeaders+
+			numResolverMiniBlocks+
+			numResolverPeerChanges+
+			numResolverMetachainShardHeaders, container.Len())
 }
