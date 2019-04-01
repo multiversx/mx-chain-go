@@ -11,4 +11,6 @@ const (
 	PeerChBodyTopic = "peerChangeBlockBodies"
 	// MetachainHeadersTopic is used for sharing metachain block headers between shards
 	MetachainHeadersTopic = "metachainHeaders"
+	// MetachainShardHeadersTopic is used for sharing metachain block headers between shards
+	MetachainShardHeadersTopic = "metachainShardHeaders"
 )
