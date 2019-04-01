@@ -6,14 +6,10 @@ import (
 
 // ForkDetectorMock is a mock implementation for the ForkDetector interface
 type ForkDetectorMock struct {
-	RemoveHeadersCalled         func(nonce uint64)
-	AddHeaderCalled             func(header *block.Header, hash []byte, isProcessed bool) error
-	RemoveProcessedHeaderCalled func(nonce uint64) error
-	CheckForkCalled             func() bool
-}
-
-func (f *ForkDetectorMock) RemoveHeaders(nonce uint64) {
-	f.RemoveHeadersCalled(nonce)
+	AddHeaderCalled                  func(header *block.Header, hash []byte, isProcessed bool) error
+	ResetProcessedHeaderCalled       func(nonce uint64) error
+	CheckForkCalled                  func() bool
+	GetHighestSignedBlockNonceCalled func() uint64
 }
 
 // AddHeader is a mock implementation for AddHeader
@@ -21,12 +17,17 @@ func (f *ForkDetectorMock) AddHeader(header *block.Header, hash []byte, isProces
 	return f.AddHeaderCalled(header, hash, isProcessed)
 }
 
-// RemoveHeader is a mock implementation for RemoveHeader
-func (f *ForkDetectorMock) RemoveProcessedHeader(nonce uint64) error {
-	return f.RemoveProcessedHeaderCalled(nonce)
+// ResetProcessedHeader is a mock implementation for ResetProcessedHeader
+func (f *ForkDetectorMock) ResetProcessedHeader(nonce uint64) error {
+	return f.ResetProcessedHeaderCalled(nonce)
 }
 
 // CheckFork is a mock implementation for CheckFork
 func (f *ForkDetectorMock) CheckFork() bool {
 	return f.CheckForkCalled()
+}
+
+// GetHighestSignedBlockNonce is a mock implementation for GetHighestSignedBlockNonce
+func (f *ForkDetectorMock) GetHighestSignedBlockNonce() uint64 {
+	return f.GetHighestSignedBlockNonceCalled()
 }

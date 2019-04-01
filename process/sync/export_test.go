@@ -54,8 +54,8 @@ func (bfd *basicForkDetector) Append(hdrInfo *headerInfo) {
 	bfd.append(hdrInfo)
 }
 
-func (bfd *basicForkDetector) RemovePastHeaders(nonce uint64) {
-	bfd.removePastHeaders(nonce)
+func (bfd *basicForkDetector) GetLastCheckpointNonce() uint64 {
+	return bfd.getLastCheckpointNonce()
 }
 
 func (hi *headerInfo) Header() *block.Header {

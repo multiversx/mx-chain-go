@@ -109,8 +109,9 @@ type Bootstrapper interface {
 // to detect forks
 type ForkDetector interface {
 	AddHeader(header *block.Header, hash []byte, isProcessed bool) error
-	RemoveProcessedHeader(nonce uint64) error
+	ResetProcessedHeader(nonce uint64) error
 	CheckFork() bool
+	GetHighestSignedBlockNonce() uint64
 }
 
 // ResolversContainer defines a resolvers holder data type with basic functionality

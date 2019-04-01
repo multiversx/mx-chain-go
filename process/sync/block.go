@@ -632,13 +632,19 @@ func (boot *Bootstrap) forkChoice() error {
 		return err
 	}
 
-	if !isEmpty(header) {
+	isEmpty := isEmpty(header)
+	if !isEmpty && header.Nonce >= boot.forkDetector.GetHighestSignedBlockNonce() {
 		return &ErrNotEmptyHeader{
 			CurrentNonce: header.Nonce}
 	}
 
-	log.Info(fmt.Sprintf("roll back to header with hash %s\n",
-		toB64(header.PrevHash)))
+	msg := ""
+	if !isEmpty {
+		msg = " from a signed block"
+	}
+
+	log.Info(fmt.Sprintf("roll back to header with hash %s%s\n",
+		toB64(header.PrevHash), msg))
 
 	return boot.rollback(header)
 }
@@ -647,7 +653,7 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 	boot.headersNonces.Remove(header.Nonce)
 	boot.headers.RemoveData(hash, header.ShardId)
-	boot.forkDetector.RemoveProcessedHeader(header.Nonce)
+	boot.forkDetector.ResetProcessedHeader(header.Nonce)
 	_ = headerStore.Remove(hash)
 }
 
@@ -660,10 +666,24 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 	// genesis block is treated differently
 	if header.Nonce == 1 {
 		err := boot.blkc.SetCurrentBlockHeader(nil)
-		err = boot.blkc.SetCurrentBlockBody(nil)
-		boot.blkc.SetCurrentBlockHeaderHash(nil)
-		boot.cleanCachesOnRollback(header, headerStore)
+		if err != nil {
+			return err
+		}
 
+		err = boot.blkc.SetCurrentBlockBody(nil)
+		if err != nil {
+			return err
+		}
+
+		boot.blkc.SetCurrentBlockHeaderHash(nil)
+
+		rootHash := boot.blkc.GetGenesisHeader().GetRootHash()
+		err = boot.accounts.RecreateTrie(rootHash)
+		if err != nil {
+			return err
+		}
+
+		boot.cleanCachesOnRollback(header, headerStore)
 		return err
 	}
 
@@ -678,25 +698,31 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 	}
 
 	err = boot.blkc.SetCurrentBlockHeader(newHeader)
-	err = boot.blkc.SetCurrentBlockBody(newTxBlockBody)
-	boot.blkc.SetCurrentBlockHeaderHash(header.PrevHash)
-	boot.cleanCachesOnRollback(header, headerStore)
+	if err != nil {
+		return err
+	}
 
+	err = boot.blkc.SetCurrentBlockBody(newTxBlockBody)
+	if err != nil {
+		return err
+	}
+
+	boot.blkc.SetCurrentBlockHeaderHash(header.PrevHash)
+
+	rootHash := boot.blkc.GetCurrentBlockHeader().GetRootHash()
+	err = boot.accounts.RecreateTrie(rootHash)
+	if err != nil {
+		return err
+	}
+
+	boot.cleanCachesOnRollback(header, headerStore)
 	return err
 }
 
 func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
-	currentHeader, err := boot.getCurrentHeader()
-	if err != nil {
-		log.Info(err.Error())
-		return
-	}
-
-	if !isEmpty(currentHeader) {
-		hash, _ := boot.headersNonces.Get(header.Nonce)
-		boot.headersNonces.Remove(header.Nonce)
-		boot.headers.RemoveData(hash, header.ShardId)
-	}
+	hash, _ := boot.headersNonces.Get(header.Nonce)
+	boot.headersNonces.Remove(header.Nonce)
+	boot.headers.RemoveData(hash, header.ShardId)
 }
 
 func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {

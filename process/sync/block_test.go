@@ -187,11 +187,14 @@ func createHeadersNoncesDataPool(
 
 func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.ForkDetector {
 	return &mock.ForkDetectorMock{
-		RemoveProcessedHeaderCalled: func(nonce uint64) error {
+		ResetProcessedHeaderCalled: func(nonce uint64) error {
 			if nonce == removedNonce {
 				remFlags.flagHdrRemovedFromForkDetector = true
 			}
 			return nil
+		},
+		GetHighestSignedBlockNonceCalled: func() uint64 {
+			return uint64(0)
 		},
 	}
 }
@@ -807,8 +810,11 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	forkDetector.CheckForkCalled = func() bool {
 		return true
 	}
-	forkDetector.RemoveProcessedHeaderCalled = func(nonce uint64) error {
+	forkDetector.ResetProcessedHeaderCalled = func(nonce uint64) error {
 		return nil
+	}
+	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
+		return uint64(0)
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -992,9 +998,11 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-
 	forkDetector.CheckForkCalled = func() bool {
 		return false
+	}
+	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
+		return uint64(0)
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1097,9 +1105,11 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-
 	forkDetector.CheckForkCalled = func() bool {
 		return false
+	}
+	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
+		return 0
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1306,6 +1316,9 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() bool {
 		return false
+	}
+	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
+		return uint64(0)
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()

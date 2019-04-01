@@ -16,7 +16,7 @@ type headerInfo struct {
 // basicForkDetector defines a struct with necessary data needed for fork detection
 type basicForkDetector struct {
 	headers         map[uint64][]*headerInfo
-	mutHeaders      sync.Mutex
+	mutHeaders      sync.RWMutex
 	checkpointNonce uint64
 }
 
@@ -35,14 +35,10 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isPro
 	if hash == nil {
 		return ErrNilHash
 	}
-	if header.Nonce < bfd.checkpointNonce {
-		return ErrLowerNonceInBlock
-	}
 
 	if !isEmpty(header) && isProcessed {
-		// create a check point and remove all the past headers
+		// create a check point
 		bfd.checkpointNonce = header.Nonce
-		bfd.removePastHeaders(header.Nonce)
 	}
 
 	bfd.append(&headerInfo{
@@ -54,22 +50,10 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isPro
 	return nil
 }
 
-func (bfd *basicForkDetector) removePastHeaders(nonce uint64) {
-	bfd.mutHeaders.Lock()
-
-	for storedNonce := range bfd.headers {
-		if storedNonce <= nonce {
-			delete(bfd.headers, storedNonce)
-		}
-	}
-
-	bfd.mutHeaders.Unlock()
-}
-
-// RemoveProcessedHeader removes all stored headers with a given nonce
-func (bfd *basicForkDetector) RemoveProcessedHeader(nonce uint64) error {
-	bfd.mutHeaders.Lock()
-	defer bfd.mutHeaders.Unlock()
+// ResetProcessedHeader removes all stored headers with a given nonce
+func (bfd *basicForkDetector) ResetProcessedHeader(nonce uint64) error {
+	bfd.mutHeaders.RLock()
+	defer bfd.mutHeaders.RUnlock()
 
 	hdrInfosStored := bfd.headers[nonce]
 	isHdrInfosStoredNilOrEmpty := hdrInfosStored == nil || len(hdrInfosStored) == 0
@@ -77,18 +61,14 @@ func (bfd *basicForkDetector) RemoveProcessedHeader(nonce uint64) error {
 		return ErrNilOrEmptyInfoStored
 	}
 
-	var newHdrInfosStored []*headerInfo
 	for _, hdrInfoStored := range hdrInfosStored {
-		if !hdrInfoStored.isProcessed {
-			newHdrInfosStored = append(newHdrInfosStored, hdrInfoStored)
+		if hdrInfoStored.isProcessed {
+			hdrInfoStored.isProcessed = false
+			if !isEmpty(hdrInfoStored.header) {
+				bfd.checkpointNonce = bfd.getLastCheckpointNonce()
+			}
+			break
 		}
-	}
-
-	isNewHdrInfosStoredNilOrEmpty := newHdrInfosStored == nil || len(newHdrInfosStored) == 0
-	if isNewHdrInfosStoredNilOrEmpty {
-		delete(bfd.headers, nonce)
-	} else {
-		bfd.headers[nonce] = newHdrInfosStored
 	}
 
 	return nil
@@ -124,12 +104,15 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 
 // CheckFork method checks if the node could be on the fork
 func (bfd *basicForkDetector) CheckFork() bool {
-	bfd.mutHeaders.Lock()
-	defer bfd.mutHeaders.Unlock()
+	bfd.mutHeaders.RLock()
+	defer bfd.mutHeaders.RUnlock()
 
 	var selfHdrInfo *headerInfo
 	for nonce, hdrInfos := range bfd.headers {
 		if len(hdrInfos) == 1 {
+			continue
+		}
+		if nonce < bfd.checkpointNonce {
 			continue
 		}
 
@@ -147,24 +130,56 @@ func (bfd *basicForkDetector) CheckFork() bool {
 			}
 		}
 
-		if selfHdrInfo == nil {
-			//current nonce has not been (yet) processed, skipping, trying the next one
-			continue
-		}
-
-		if !isEmpty(selfHdrInfo.header) {
-			//keep it clean so next time this position will be processed faster
-			delete(bfd.headers, nonce)
-			bfd.headers[nonce] = []*headerInfo{selfHdrInfo}
+		if selfHdrInfo == nil || !isEmpty(selfHdrInfo.header) {
+			// if current nonce has not been processed yet or it is processed and signed, then skipping and checking the next one
 			continue
 		}
 
 		if foundNotEmptyBlock {
-			//detected a fork: self has an unsigned header, it also received a signed block
-			//with the same nonce
+			// detected a fork: self has an unsigned header, it also received a signed block
+			// with the same nonce
 			return true
 		}
 	}
 
 	return false
+}
+
+// GetHighestSignedBlockNonce gets the highest stored nonce of one signed block received/processed
+func (bfd *basicForkDetector) GetHighestSignedBlockNonce() uint64 {
+	bfd.mutHeaders.RLock()
+
+	highestNonce := bfd.checkpointNonce
+	for nonce, hdrInfos := range bfd.headers {
+		if nonce <= highestNonce {
+			continue
+		}
+		for i := 0; i < len(hdrInfos); i++ {
+			if !isEmpty(hdrInfos[i].header) {
+				highestNonce = nonce
+				break
+			}
+		}
+	}
+
+	bfd.mutHeaders.RUnlock()
+
+	return highestNonce
+}
+
+// getLastCheckpointNonce gets the last set checkpoint behind the current one
+func (bfd *basicForkDetector) getLastCheckpointNonce() uint64 {
+	lastCheckpointNonce := uint64(0)
+	for nonce, hdrInfos := range bfd.headers {
+		if nonce >= bfd.checkpointNonce || nonce <= lastCheckpointNonce {
+			continue
+		}
+		for i := 0; i < len(hdrInfos); i++ {
+			if !isEmpty(hdrInfos[i].header) && hdrInfos[i].isProcessed {
+				lastCheckpointNonce = nonce
+				break
+			}
+		}
+	}
+	return lastCheckpointNonce
 }
