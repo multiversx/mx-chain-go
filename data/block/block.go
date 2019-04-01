@@ -166,7 +166,7 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 		pList := capn.PointerList(miniBlockList)
 
 		for i, elem := range src.MiniBlockHeaders {
-			pList.Set(i, capn.Object(MiniBlockHeaderGoToCapn(seg, &elem)))
+			_ = pList.Set(i, capn.Object(MiniBlockHeaderGoToCapn(seg, &elem)))
 		}
 		dest.SetMiniBlockHeaders(miniBlockList)
 	}
@@ -446,16 +446,16 @@ func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
 	return hashDst
 }
 
-// WasMiniBlockProcessed verifies if miniblock from header was processed
-func (h *Header) WasMiniBlockProcessed(hash []byte) bool {
+// GetMiniBlockProcessed verifies if miniblock from header was processed
+func (h *Header) GetMiniBlockProcessed(hash []byte) bool {
 	if h.processedMBs == nil {
 		h.processedMBs = make(map[string]bool, 0)
 	}
 	return h.processedMBs[string(hash)]
 }
 
-// SetProcessed set that miniblock with hash to processed
-func (h *Header) SetProcessed(hash []byte) {
+// SetMiniBlockProcessed set that miniblock with hash to processed
+func (h *Header) SetMiniBlockProcessed(hash []byte) {
 	if h.processedMBs == nil {
 		h.processedMBs = make(map[string]bool, 0)
 	}

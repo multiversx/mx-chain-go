@@ -488,7 +488,12 @@ func (bp *blockProcessor) removeMetaBlockFromPool(blockBody block.Body, blockCha
 
 	miniBlockHashes := make(map[int][]byte, 0)
 	for i := 0; i < len(blockBody); i++ {
-		buff, err := bp.marshalizer.Marshal((blockBody)[i])
+		miniBlock := blockBody[i]
+		if miniBlock.ReceiverShardID != bp.shardCoordinator.SelfId() || miniBlock.SenderShardID == bp.shardCoordinator.SelfId() {
+			continue
+		}
+
+		buff, err := bp.marshalizer.Marshal(miniBlock)
 		if err != nil {
 			return err
 		}
@@ -514,18 +519,19 @@ func (bp *blockProcessor) removeMetaBlockFromPool(blockBody block.Body, blockCha
 				continue
 			}
 
-			hdr.SetProcessed(miniBlockHashes[key])
+			hdr.SetMiniBlockProcessed(miniBlockHashes[key])
 			delete(miniBlockHashes, key)
 		}
 
-		processedMBs := 0
+		processedAll := true
 		for key := range headerHashSnd {
-			if hdr.WasMiniBlockProcessed([]byte(key)) {
-				processedMBs++
+			if !hdr.GetMiniBlockProcessed([]byte(key)) {
+				processedAll = false
+				break
 			}
 		}
 
-		if processedMBs >= len(headerHashSnd) {
+		if processedAll {
 			// metablock was processed
 			buff, err := bp.marshalizer.Marshal(hdr)
 			if err != nil {
@@ -832,7 +838,7 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 				break
 			}
 
-			if hdr.WasMiniBlockProcessed([]byte(k)) {
+			if hdr.GetMiniBlockProcessed([]byte(k)) {
 				processedMbs++
 				continue
 			}
@@ -844,15 +850,6 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 
 			miniBlock, ok := miniVal.(*block.MiniBlock)
 			if !ok {
-				continue
-			}
-
-			crossShardForMe := miniBlock.SenderShardID != bp.shardCoordinator.SelfId() && miniBlock.ReceiverShardID == bp.shardCoordinator.SelfId()
-			if !crossShardForMe {
-				hdr.SetProcessed([]byte(k))
-				processedMbs++
-				// miniblock is not for me removed
-				miniBlockCache.Remove([]byte(k))
 				continue
 			}
 

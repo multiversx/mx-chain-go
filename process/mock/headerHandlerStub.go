@@ -92,10 +92,10 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(destId uint32) map[stri
 	return hhs.GetMiniBlockHeadersWithDstCalled(destId)
 }
 
-func (hhs *HeaderHandlerStub) WasMiniBlockProcessed(hash []byte) bool {
+func (hhs *HeaderHandlerStub) GetMiniBlockProcessed(hash []byte) bool {
 	panic("implement me")
 }
 
-func (hhs *HeaderHandlerStub) SetProcessed(hash []byte) {
+func (hhs *HeaderHandlerStub) SetMiniBlockProcessed(hash []byte) {
 	panic("implement me")
 }

@@ -2652,12 +2652,12 @@ func TestBlockProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
 	assert.True(t, wasCalledPut)
 	//check WasMiniBlockProcessed for remaining metablocks
 	metaBlock2Recov, _ := dataPool.MetaBlocks().Get(mb2Hash)
-	assert.True(t, (metaBlock2Recov.(data.HeaderHandler)).WasMiniBlockProcessed(miniblockHashes[2]))
-	assert.False(t, (metaBlock2Recov.(data.HeaderHandler)).WasMiniBlockProcessed(miniblockHashes[3]))
+	assert.True(t, (metaBlock2Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[2]))
+	assert.False(t, (metaBlock2Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[3]))
 
 	metaBlock3Recov, _ := dataPool.MetaBlocks().Get(mb3Hash)
-	assert.False(t, (metaBlock3Recov.(data.HeaderHandler)).WasMiniBlockProcessed(miniblockHashes[4]))
-	assert.False(t, (metaBlock3Recov.(data.HeaderHandler)).WasMiniBlockProcessed(miniblockHashes[5]))
+	assert.False(t, (metaBlock3Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[4]))
+	assert.False(t, (metaBlock3Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[5]))
 }
 
 func createDummyMiniBlock(
