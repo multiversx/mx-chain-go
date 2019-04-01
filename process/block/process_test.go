@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	blproc "github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
@@ -61,7 +64,7 @@ func initDataPool() *mock.PoolsHolderStub {
 		TransactionsCalled: func() data.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
 				RegisterHandlerCalled: func(i func(key []byte)) {},
-				ShardDataStoreCalled: func(shardID uint32) (c storage.Cacher) {
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &mock.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, []byte("tx1_hash")) {
@@ -77,7 +80,13 @@ func initDataPool() *mock.PoolsHolderStub {
 						},
 					}
 				},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, destShardID uint32) {},
+				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
 			}
 		},
 		HeadersNoncesCalled: func() data.Uint64Cacher {
@@ -86,6 +95,51 @@ func initDataPool() *mock.PoolsHolderStub {
 					return true
 				},
 			}
+		},
+		MetaBlocksCalled: func() storage.Cacher {
+			return &mock.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				KeysCalled: func() [][]byte {
+					return [][]byte{[]byte("key1"), []byte("key2")}
+				},
+				LenCalled: func() int {
+					return 0
+				},
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &transaction.Transaction{Nonce: 10}, true
+					}
+					return nil, false
+				},
+				RegisterHandlerCalled: func(i func(key []byte)) {},
+			}
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			cs := &mock.CacherStub{}
+			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			}
+			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal([]byte("bbb"), key) {
+					return make(block.MiniBlockSlice, 0), true
+				}
+
+				return nil, false
+			}
+			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+				if bytes.Equal([]byte("bbb"), key) {
+					return make(block.MiniBlockSlice, 0), true
+				}
+
+				return nil, false
+			}
+			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
+			cs.RemoveCalled = func(key []byte) {}
+			return cs
 		},
 	}
 	return tdp
@@ -103,8 +157,8 @@ func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
-		},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, mbHash []byte) {},
 	)
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
 	assert.Nil(t, be)
@@ -123,6 +177,7 @@ func TestNewBlockProcessor_NilHasherShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	assert.Equal(t, process.ErrNilHasher, err)
 	assert.Nil(t, be)
@@ -141,6 +196,7 @@ func TestNewBlockProcessor_NilMarshalizerShouldWork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, be)
@@ -159,6 +215,7 @@ func TestNewBlockProcessor_NilTxProcessorShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	assert.Equal(t, process.ErrNilTxProcessor, err)
 	assert.Nil(t, be)
@@ -177,6 +234,7 @@ func TestNewBlockProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 	assert.Nil(t, be)
@@ -195,6 +253,7 @@ func TestNewBlockProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 	assert.Nil(t, be)
@@ -213,6 +272,7 @@ func TestNewBlockProcessor_NilForkDetectorShouldErr(t *testing.T) {
 		nil,
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	assert.Equal(t, process.ErrNilForkDetector, err)
 	assert.Nil(t, be)
@@ -230,6 +290,7 @@ func TestNewBlockProcessor_NilRequestTransactionHandlerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		nil,
+		func(destShardID uint32, txHash []byte) {},
 	)
 	assert.Equal(t, process.ErrNilTransactionHandler, err)
 	assert.Nil(t, be)
@@ -251,6 +312,7 @@ func TestNewBlockProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	assert.Equal(t, process.ErrNilTransactionPool, err)
 	assert.Nil(t, be)
@@ -269,6 +331,7 @@ func TestNewBlockProcessor_OkValsShouldWork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, be)
@@ -289,6 +352,7 @@ func TestBlockProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	blk := make(block.Body, 0)
 	err := be.ProcessBlock(nil, &block.Header{}, blk, haveTime)
@@ -308,6 +372,7 @@ func TestBlockProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	body := make(block.Body, 0)
 	err := be.ProcessBlock(createTestBlockchain(), nil, body, haveTime)
@@ -327,6 +392,7 @@ func TestBlockProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	err := be.ProcessBlock(createTestBlockchain(), &block.Header{}, nil, haveTime)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
@@ -345,6 +411,7 @@ func TestBlockProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	blk := make(block.Body, 0)
 	err := be.ProcessBlock(createTestBlockchain(), &block.Header{}, blk, nil)
@@ -379,6 +446,7 @@ func TestBlockProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	// should return err
 	err := be.ProcessBlock(blkc, &hdr, body, haveTime)
@@ -432,6 +500,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
 		be.ChRcvAllTxs <- true
@@ -454,6 +523,7 @@ func TestBlockProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	hdr := &block.Header{
 		Nonce:         0,
@@ -482,6 +552,7 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	hdr := &block.Header{
 		Nonce:         0,
@@ -510,6 +581,7 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	hdr := &block.Header{
 		Nonce:         1,
@@ -583,6 +655,7 @@ func TestBlockProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
 		be.ChRcvAllTxs <- true
@@ -646,6 +719,7 @@ func TestBlockProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	go func() {
 		be.ChRcvAllTxs <- true
@@ -675,6 +749,7 @@ func TestBlockProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	blk := make(block.Body, 0)
 	err := be.CommitBlock(nil, &block.Header{}, blk)
@@ -722,6 +797,7 @@ func TestBlockProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	blkc := createTestBlockchain()
 	err := be.CommitBlock(blkc, hdr, body)
@@ -760,6 +836,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	hdrUnit := &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
@@ -819,6 +896,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 		},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	txBlockUnit := &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
@@ -868,6 +946,7 @@ func TestBlockProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	tdp.HeadersNoncesCalled = func() data.Uint64Cacher {
 		return nil
@@ -925,6 +1004,7 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 		fd,
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	txCache := &mock.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -936,14 +1016,20 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	}
 	tdp.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			ShardDataStoreCalled: func(shardID uint32) (c storage.Cacher) {
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return txCache
 			},
 
-			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, destShardID uint32) {
+			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {
+			},
+
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				if reflect.DeepEqual(key, []byte("tx1_hash")) {
+					return &transaction.Transaction{Nonce: 10}, true
+				}
+				return nil, false
 			},
 		}
-
 	}
 	blkc := createTestBlockchain()
 	err := be.CommitBlock(blkc, hdr, body)
@@ -1002,6 +1088,7 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		fd,
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	txCache := &mock.CacherStub{
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1017,14 +1104,20 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	removeTxWasCalled := false
 	tdp.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			ShardDataStoreCalled: func(shardID uint32) (c storage.Cacher) {
+			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return txCache
 			},
 
-			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, destShardID uint32) {
+			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {
 				if bytes.Equal(keys[0], []byte(txHash)) && len(keys) == 1 {
 					removeTxWasCalled = true
 				}
+			},
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				if reflect.DeepEqual(key, []byte(txHash)) {
+					return &transaction.Transaction{Nonce: 10}, true
+				}
+				return nil, false
 			},
 		}
 
@@ -1065,6 +1158,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	assert.True(t, be.VerifyStateRoot(rootHash))
 }
@@ -1081,9 +1175,10 @@ func TestBlockProc_GetTransactionFromPool(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	txHash := []byte("tx1_hash")
-	tx := be.GetTransactionFromPool(1, txHash)
+	tx := be.GetTransactionFromPool(1, 1, txHash)
 	assert.NotNil(t, tx)
 	assert.Equal(t, uint64(10), tx.Nonce)
 }
@@ -1100,6 +1195,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	shardId := uint32(1)
 	txHash1 := []byte("tx1_hash1")
@@ -1133,6 +1229,7 @@ func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	bl, err := be.CreateBlockBody(0, func() bool { return true })
 	// nil block
@@ -1161,6 +1258,7 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	haveTime := func() bool {
 		return false
@@ -1199,6 +1297,7 @@ func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	blk, err := be.CreateBlockBody(0, haveTime)
 	assert.NotNil(t, blk)
@@ -1228,6 +1327,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldErr(t *tes
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	_, err := be.CreateGenesisBlock(nil)
 	assert.Equal(t, process.ErrAccountStateDirty, err)
@@ -1255,6 +1355,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	rootHash, err := be.CreateGenesisBlock(nil)
 	assert.Nil(t, err)
@@ -1274,6 +1375,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	err := be.RemoveBlockInfoFromPool(nil)
 	assert.NotNil(t, err)
@@ -1292,6 +1394,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	body := make(block.Body, 0)
 	txHash := []byte("txHash")
@@ -1322,6 +1425,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	expectedError := errors.New("marshalizer fail")
@@ -1353,6 +1457,7 @@ func TestNode_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	hdr, txBlock := createTestHdrTxBlockBody()
 	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
@@ -1394,7 +1499,7 @@ func createTestHdrTxBlockBody() (*block.Header, block.Body) {
 		{
 			ReceiverShardID: 0,
 			SenderShardID:   0,
-			TxHashes:        [][]byte{
+			TxHashes: [][]byte{
 				hasher.Compute("txHash_0_1"),
 				hasher.Compute("txHash_0_2"),
 			},
@@ -1402,7 +1507,7 @@ func createTestHdrTxBlockBody() (*block.Header, block.Body) {
 		{
 			ReceiverShardID: 1,
 			SenderShardID:   0,
-			TxHashes:        [][]byte{
+			TxHashes: [][]byte{
 				hasher.Compute("txHash_1_1"),
 				hasher.Compute("txHash_1_2"),
 			},
@@ -1410,7 +1515,7 @@ func createTestHdrTxBlockBody() (*block.Header, block.Body) {
 		{
 			ReceiverShardID: 2,
 			SenderShardID:   0,
-			TxHashes:        [][]byte{
+			TxHashes: [][]byte{
 				hasher.Compute("txHash_2_1"),
 			},
 		},
@@ -1439,6 +1544,7 @@ func TestBlockProcessor_DisplayLogInfo(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	hdr.PrevHash = hasher.Compute("prev hash")
 	be.DisplayLogInfo(hdr, txBlock, hasher.Compute("header hash"))
@@ -1621,6 +1727,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	blkc := createTestBlockchain()
 	hdr := &block.Header{}
@@ -1679,6 +1786,7 @@ func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	mbHeaders, err := bp.CreateBlockHeader(nil)
 	assert.Nil(t, err)
@@ -1698,22 +1806,23 @@ func TestBlockProcessor_CreateBlockHeaderShouldErrWhenMarshalizerErrors(t *testi
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	body := block.Body{
 		{
 			ReceiverShardID: 1,
-			SenderShardID: 0,
-			TxHashes: make([][]byte, 0),
+			SenderShardID:   0,
+			TxHashes:        make([][]byte, 0),
 		},
 		{
 			ReceiverShardID: 2,
-			SenderShardID: 0,
-			TxHashes: make([][]byte, 0),
+			SenderShardID:   0,
+			TxHashes:        make([][]byte, 0),
 		},
 		{
 			ReceiverShardID: 3,
-			SenderShardID: 0,
-			TxHashes: make([][]byte, 0),
+			SenderShardID:   0,
+			TxHashes:        make([][]byte, 0),
 		},
 	}
 	mbHeaders, err := bp.CreateBlockHeader(body)
@@ -1733,22 +1842,23 @@ func TestBlockProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	body := block.Body{
 		{
 			ReceiverShardID: 1,
-			SenderShardID: 0,
-			TxHashes: make([][]byte, 0),
+			SenderShardID:   0,
+			TxHashes:        make([][]byte, 0),
 		},
 		{
 			ReceiverShardID: 2,
-			SenderShardID: 0,
-			TxHashes: make([][]byte, 0),
+			SenderShardID:   0,
+			TxHashes:        make([][]byte, 0),
 		},
 		{
 			ReceiverShardID: 3,
-			SenderShardID: 0,
-			TxHashes: make([][]byte, 0),
+			SenderShardID:   0,
+			TxHashes:        make([][]byte, 0),
 		},
 	}
 	mbHeaders, err := bp.CreateBlockHeader(body)
@@ -1776,6 +1886,7 @@ func TestBlockProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T)
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	err := bp.CommitBlock(nil, nil, nil)
 	assert.NotNil(t, err)
@@ -1802,29 +1913,29 @@ func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 	body = append(body, &mb1)
 	body = append(body, &mb0)
 	body = append(body, &mb1)
-	marshal := &mock.MarshalizerMock{
+	marshalizer := &mock.MarshalizerMock{
 		Fail: false,
 	}
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
-		marshal,
+		marshalizer,
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
-		func(destShardID uint32, txHash []byte) {
-		},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, txHash []byte) {},
 	)
-	msh, err := be.MarshalizedDataForCrossShard(body)
+	msh, mstx, err := be.MarshalizedDataForCrossShard(body)
 	assert.Nil(t, err)
 	assert.NotNil(t, msh)
-
+	assert.NotNil(t, mstx)
 	_, found := msh[0]
 	assert.False(t, found)
 
 	expectedBody := make(block.Body, 0)
-	err = marshal.Unmarshal(&expectedBody, msh[1])
+	err = marshalizer.Unmarshal(&expectedBody, msh[1])
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(expectedBody))
 	assert.Equal(t, &mb1, expectedBody[0])
@@ -1841,46 +1952,50 @@ func (wr wrongBody) IntegrityAndValidity() error {
 func TestBlockProcessor_MarshalizedDataWrongType(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	marshal := &mock.MarshalizerMock{
+	marshalizer := &mock.MarshalizerMock{
 		Fail: false,
 	}
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
-		marshal,
+		marshalizer,
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
 	wr := wrongBody{}
-	msh, err := be.MarshalizedDataForCrossShard(wr)
+	msh, mstx, err := be.MarshalizedDataForCrossShard(wr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, msh)
+	assert.Nil(t, mstx)
 }
 
 func TestBlockProcessor_MarshalizedDataNilInput(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	marshal := &mock.MarshalizerMock{
+	marshalizer := &mock.MarshalizerMock{
 		Fail: false,
 	}
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
-		marshal,
+		marshalizer,
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
-	msh, err := be.MarshalizedDataForCrossShard(nil)
+	msh, mstx, err := be.MarshalizedDataForCrossShard(nil)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
 	assert.Nil(t, msh)
+	assert.Nil(t, mstx)
 }
 
 func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
@@ -1894,7 +2009,7 @@ func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	}
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
-	marshal := &mock.MarshalizerStub{
+	marshalizer := &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
 			return nil, process.ErrMarshalWithoutSuccess
 		},
@@ -1902,15 +2017,682 @@ func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
 		&mock.HasherStub{},
-		marshal,
+		marshalizer,
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
+		func(destShardID uint32, txHash []byte) {},
 	)
-	msh, err := be.MarshalizedDataForCrossShard(body)
+	msh, mstx, err := be.MarshalizedDataForCrossShard(body)
 	assert.Equal(t, process.ErrMarshalWithoutSuccess, err)
 	assert.Nil(t, msh)
+	assert.Nil(t, mstx)
+}
+
+//------- GetAllTxsFromMiniBlock
+
+func TestBlockProcessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+	senderShardId := uint32(0)
+	destinationShardId := uint32(1)
+
+	transactions := []*transaction.Transaction{
+		{Nonce: 1},
+		{Nonce: 2},
+		{Nonce: 3},
+	}
+	transactionsHashes := make([][]byte, len(transactions))
+
+	//add defined transactions to sender-destination cacher
+	for idx, tx := range transactions {
+		transactionsHashes[idx] = computeHash(tx, marshalizer, hasher)
+
+		dataPool.Transactions().AddData(
+			transactionsHashes[idx],
+			tx,
+			process.ShardCacherIdentifier(senderShardId, destinationShardId),
+		)
+	}
+
+	//add some random data
+	txRandom := &transaction.Transaction{Nonce: 4}
+	dataPool.Transactions().AddData(
+		computeHash(txRandom, marshalizer, hasher),
+		txRandom,
+		process.ShardCacherIdentifier(3, 4),
+	)
+
+	bp, _ := blproc.NewBlockProcessor(
+		dataPool,
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, txHash []byte) {},
+	)
+
+	mb := &block.MiniBlock{
+		SenderShardID:   senderShardId,
+		ReceiverShardID: destinationShardId,
+		TxHashes:        transactionsHashes,
+	}
+
+	txsRetrieved, txHashesRetrieved, err := bp.GetAllTxsFromMiniBlock(mb, func() bool {
+		return true
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, len(transactions), len(txsRetrieved))
+	assert.Equal(t, len(transactions), len(txHashesRetrieved))
+	for idx, tx := range transactions {
+		//txReceived should be all txs in the same order
+		assert.Equal(t, txsRetrieved[idx], tx)
+		//verify corresponding transaction hashes
+		assert.Equal(t, txHashesRetrieved[idx], computeHash(tx, marshalizer, hasher))
+	}
+
+}
+
+func computeHash(data interface{}, marshalizer marshal.Marshalizer, hasher hashing.Hasher) []byte {
+	buff, _ := marshalizer.Marshal(data)
+	return hasher.Compute(string(buff))
+}
+
+//------- receivedTransaction
+
+func TestBlockProcessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+
+	bp, _ := blproc.NewBlockProcessor(
+		dataPool,
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, miniblockHash []byte) {},
+	)
+
+	//add 3 tx hashes on requested list
+	txHash1 := []byte("tx hash 1")
+	txHash2 := []byte("tx hash 2")
+	txHash3 := []byte("tx hash 3")
+
+	bp.AddTxHashToRequestedList(txHash1)
+	bp.AddTxHashToRequestedList(txHash2)
+	bp.AddTxHashToRequestedList(txHash3)
+
+	//received txHash2
+	bp.ReceivedTransaction(txHash2)
+
+	assert.True(t, bp.IsTxHashRequested(txHash1))
+	assert.False(t, bp.IsTxHashRequested(txHash2))
+	assert.True(t, bp.IsTxHashRequested(txHash3))
+}
+
+//------- receivedMiniBlock
+
+func TestBlockProcessor_ReceivedMiniBlockShouldRequestMissingTransactions(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+
+	//we will have a miniblock that will have 3 tx hashes
+	//1 tx hash will be in cache
+	//2 will be requested on network
+
+	txHash1 := []byte("tx hash 1 found in cache")
+	txHash2 := []byte("tx hash 2")
+	txHash3 := []byte("tx hash 3")
+
+	senderShardId := uint32(1)
+	receiverShardId := uint32(2)
+
+	miniBlock := block.MiniBlock{
+		SenderShardID:   senderShardId,
+		ReceiverShardID: receiverShardId,
+		TxHashes:        [][]byte{txHash1, txHash2, txHash3},
+	}
+
+	//put this miniblock inside datapool
+	miniBlockHash := []byte("miniblock hash")
+	dataPool.MiniBlocks().Put(miniBlockHash, miniBlock)
+
+	//put the existing tx inside datapool
+	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
+	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{}, cacheId)
+
+	txHash1Requested := int32(0)
+	txHash2Requested := int32(0)
+	txHash3Requested := int32(0)
+
+	bp, _ := blproc.NewBlockProcessor(
+		dataPool,
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+			if bytes.Equal(txHash1, txHash) {
+				atomic.AddInt32(&txHash1Requested, 1)
+			}
+			if bytes.Equal(txHash2, txHash) {
+				atomic.AddInt32(&txHash2Requested, 1)
+			}
+			if bytes.Equal(txHash3, txHash) {
+				atomic.AddInt32(&txHash3Requested, 1)
+			}
+		},
+		func(destShardID uint32, miniblockHash []byte) {},
+	)
+
+	bp.ReceivedMiniBlock(miniBlockHash)
+
+	//we have to wait to be sure txHash1Requested is not incremented by a late call
+	time.Sleep(time.Second)
+
+	assert.Equal(t, int32(0), atomic.LoadInt32(&txHash1Requested))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&txHash2Requested))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&txHash2Requested))
+}
+
+//------- receivedMetaBlock
+
+func TestBlockProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+
+	//we will have a metablock that will return 3 miniblock hashes
+	//1 miniblock hash will be in cache
+	//2 will be requested on network
+
+	miniBlockHash1 := []byte("miniblock hash 1 found in cache")
+	miniBlockHash2 := []byte("miniblock hash 2")
+	miniBlockHash3 := []byte("miniblock hash 3")
+
+	metaBlock := mock.HeaderHandlerStub{
+		GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+			return map[string]uint32{
+				string(miniBlockHash1): 0,
+				string(miniBlockHash2): 0,
+				string(miniBlockHash3): 0,
+			}
+		},
+	}
+
+	//put this metaBlock inside datapool
+	metaBlockHash := []byte("metablock hash")
+	dataPool.MetaBlocks().Put(metaBlockHash, &metaBlock)
+
+	//put the existing miniblock inside datapool
+	dataPool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
+
+	miniBlockHash1Requested := int32(0)
+	miniBlockHash2Requested := int32(0)
+	miniBlockHash3Requested := int32(0)
+
+	bp, _ := blproc.NewBlockProcessor(
+		dataPool,
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, miniblockHash []byte) {
+			if bytes.Equal(miniBlockHash1, miniblockHash) {
+				atomic.AddInt32(&miniBlockHash1Requested, 1)
+			}
+			if bytes.Equal(miniBlockHash2, miniblockHash) {
+				atomic.AddInt32(&miniBlockHash2Requested, 1)
+			}
+			if bytes.Equal(miniBlockHash3, miniblockHash) {
+				atomic.AddInt32(&miniBlockHash3Requested, 1)
+			}
+		},
+	)
+
+	bp.ReceivedMetaBlock(metaBlockHash)
+
+	//we have to wait to be sure txHash1Requested is not incremented by a late call
+	time.Sleep(time.Second)
+
+	assert.Equal(t, int32(0), atomic.LoadInt32(&miniBlockHash1Requested))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&miniBlockHash2Requested))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&miniBlockHash2Requested))
+}
+
+//------- processMiniBlockComplete
+
+func TestBlockProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNotRevertAccntState(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+
+	//we will have a miniblock that will have 3 tx hashes
+	//all txs will be in datapool and none of them will return err when processed
+	//so, tx processor will return nil on processing tx
+
+	txHash1 := []byte("tx hash 1")
+	txHash2 := []byte("tx hash 2")
+	txHash3 := []byte("tx hash 3")
+
+	senderShardId := uint32(1)
+	receiverShardId := uint32(2)
+
+	miniBlock := block.MiniBlock{
+		SenderShardID:   senderShardId,
+		ReceiverShardID: receiverShardId,
+		TxHashes:        [][]byte{txHash1, txHash2, txHash3},
+	}
+
+	tx1Nonce := uint64(45)
+	tx2Nonce := uint64(46)
+	tx3Nonce := uint64(47)
+
+	//put the existing tx inside datapool
+	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
+	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
+		Nonce: tx1Nonce,
+		Data:  txHash1,
+	}, cacheId)
+	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
+		Nonce: tx2Nonce,
+		Data:  txHash2,
+	}, cacheId)
+	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
+		Nonce: tx3Nonce,
+		Data:  txHash3,
+	}, cacheId)
+
+	tx1ExecutionResult := uint64(0)
+	tx2ExecutionResult := uint64(0)
+	tx3ExecutionResult := uint64(0)
+
+	bp, _ := blproc.NewBlockProcessor(
+		dataPool,
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round int32) error {
+				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
+				if bytes.Equal(transaction.Data, txHash1) {
+					tx1ExecutionResult = transaction.Nonce
+				}
+				if bytes.Equal(transaction.Data, txHash2) {
+					tx2ExecutionResult = transaction.Nonce
+				}
+				if bytes.Equal(transaction.Data, txHash3) {
+					tx3ExecutionResult = transaction.Nonce
+				}
+
+				return nil
+			},
+		},
+		&mock.AccountsStub{
+			RevertToSnapshotCalled: func(snapshot int) error {
+				assert.Fail(t, "revert should have not been called")
+				return nil
+			},
+			JournalLenCalled: func() int {
+				return 0
+			},
+		},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, miniblockHash []byte) {},
+	)
+
+	err := bp.ProcessMiniBlockComplete(&miniBlock, 0, func() bool {
+		return true
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
+	assert.Equal(t, tx2Nonce, tx2ExecutionResult)
+	assert.Equal(t, tx3Nonce, tx3ExecutionResult)
+}
+
+func TestBlockProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallRevertAccntState(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+
+	//we will have a miniblock that will have 3 tx hashes
+	//all txs will be in datapool and none of them will return err when processed
+	//so, tx processor will return nil on processing tx
+
+	txHash1 := []byte("tx hash 1")
+	txHash2 := []byte("tx hash 2 - this will cause the tx processor to err")
+	txHash3 := []byte("tx hash 3")
+
+	senderShardId := uint32(1)
+	receiverShardId := uint32(2)
+
+	miniBlock := block.MiniBlock{
+		SenderShardID:   senderShardId,
+		ReceiverShardID: receiverShardId,
+		TxHashes:        [][]byte{txHash1, txHash2, txHash3},
+	}
+
+	tx1Nonce := uint64(45)
+	tx2Nonce := uint64(46)
+	tx3Nonce := uint64(47)
+
+	errTxProcessor := errors.New("tx processor failing")
+
+	//put the existing tx inside datapool
+	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
+	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
+		Nonce: tx1Nonce,
+		Data:  txHash1,
+	}, cacheId)
+	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
+		Nonce: tx2Nonce,
+		Data:  txHash2,
+	}, cacheId)
+	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
+		Nonce: tx3Nonce,
+		Data:  txHash3,
+	}, cacheId)
+
+	currentJournalLen := 445
+	revertAccntStateCalled := false
+
+	bp, _ := blproc.NewBlockProcessor(
+		dataPool,
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round int32) error {
+				if bytes.Equal(transaction.Data, txHash2) {
+					return errTxProcessor
+				}
+
+				return nil
+			},
+		},
+		&mock.AccountsStub{
+			RevertToSnapshotCalled: func(snapshot int) error {
+				if snapshot == currentJournalLen {
+					revertAccntStateCalled = true
+				}
+
+				return nil
+			},
+			JournalLenCalled: func() int {
+				return currentJournalLen
+			},
+		},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, miniblockHash []byte) {},
+	)
+
+	err := bp.ProcessMiniBlockComplete(&miniBlock, 0, func() bool {
+		return true
+	})
+
+	assert.Equal(t, errTxProcessor, err)
+	assert.True(t, revertAccntStateCalled)
+}
+
+//------- createMiniBlocks
+
+func TestBlockProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+
+	//we will have a 3 txs in pool
+
+	txHash1 := []byte("tx hash 1")
+	txHash2 := []byte("tx hash 2")
+	txHash3 := []byte("tx hash 3")
+
+	senderShardId := uint32(0)
+	receiverShardId := uint32(0)
+
+	tx1Nonce := uint64(45)
+	tx2Nonce := uint64(46)
+	tx3Nonce := uint64(47)
+
+	//put the existing tx inside datapool
+	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
+	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
+		Nonce: tx1Nonce,
+		Data:  txHash1,
+	}, cacheId)
+	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
+		Nonce: tx2Nonce,
+		Data:  txHash2,
+	}, cacheId)
+	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
+		Nonce: tx3Nonce,
+		Data:  txHash3,
+	}, cacheId)
+
+	tx1ExecutionResult := uint64(0)
+	tx2ExecutionResult := uint64(0)
+	tx3ExecutionResult := uint64(0)
+
+	bp, _ := blproc.NewBlockProcessor(
+		dataPool,
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction, round int32) error {
+				//execution, in this context, means moving the tx nonce to itx corresponding execution result variable
+				if bytes.Equal(transaction.Data, txHash1) {
+					tx1ExecutionResult = transaction.Nonce
+				}
+				if bytes.Equal(transaction.Data, txHash2) {
+					tx2ExecutionResult = transaction.Nonce
+				}
+				if bytes.Equal(transaction.Data, txHash3) {
+					tx3ExecutionResult = transaction.Nonce
+				}
+
+				return nil
+			},
+		},
+		&mock.AccountsStub{
+			RevertToSnapshotCalled: func(snapshot int) error {
+				assert.Fail(t, "revert should have not been called")
+				return nil
+			},
+			JournalLenCalled: func() int {
+				return 0
+			},
+		},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, miniblockHash []byte) {},
+	)
+
+	blockBody, err := bp.CreateMiniBlocks(1, 15000, 0, func() bool {
+		return true
+	})
+
+	assert.Nil(t, err)
+	//testing execution
+	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
+	assert.Equal(t, tx2Nonce, tx2ExecutionResult)
+	assert.Equal(t, tx3Nonce, tx3ExecutionResult)
+	//one miniblock output
+	assert.Equal(t, 1, len(blockBody))
+	//miniblock should have 3 txs
+	assert.Equal(t, 3, len(blockBody[0].TxHashes))
+	//testing all 3 hashes are present in block body
+	assert.True(t, isInTxHashes(txHash1, blockBody[0].TxHashes))
+	assert.True(t, isInTxHashes(txHash2, blockBody[0].TxHashes))
+	assert.True(t, isInTxHashes(txHash3, blockBody[0].TxHashes))
+}
+
+func isInTxHashes(searched []byte, list [][]byte) bool {
+	for _, txHash := range list {
+		if bytes.Equal(txHash, searched) {
+			return true
+		}
+	}
+	return false
+}
+
+//------- removeMetaBlockFromPool
+
+func TestBlockProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
+	t.Parallel()
+
+	//we have 3 metablocks in pool each containing 2 miniblocks.
+	//blockbody will have 2 + 1 miniblocks from 2 out of the 3 metablocks
+	//The test should remove only one metablock
+
+	destShardId := uint32(2)
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	dataPool := mock.NewPoolsHolderFake()
+
+	miniblocks := make([]*block.MiniBlock, 6)
+	miniblockHashes := make([][]byte, 6)
+
+	destShards := []uint32{1, 3, 4}
+	for i := 0; i < 6; i++ {
+		mb, hash := createDummyMiniBlock(fmt.Sprintf("tx hash %d", i), marshalizer, hasher, destShardId, destShards[i/2])
+		miniblocks[i] = mb
+		miniblockHashes[i] = hash
+	}
+
+	//put 3 metablocks in pool
+	mb1Hash := []byte("meta block 1")
+	dataPool.MetaBlocks().Put(
+		mb1Hash,
+		createDummyMetaBlock(destShardId, destShards[0], miniblockHashes[0], miniblockHashes[1]),
+	)
+	mb2Hash := []byte("meta block 2")
+	dataPool.MetaBlocks().Put(
+		mb2Hash,
+		createDummyMetaBlock(destShardId, destShards[1], miniblockHashes[2], miniblockHashes[3]),
+	)
+	mb3Hash := []byte("meta block 3")
+	dataPool.MetaBlocks().Put(
+		mb3Hash,
+		createDummyMetaBlock(destShardId, destShards[2], miniblockHashes[4], miniblockHashes[5]),
+	)
+
+	wasCalledPut := false
+
+	blkc := &mock.BlockChainMock{
+		StorageService: &mock.ChainStorerMock{
+			PutCalled: func(unitType data.UnitType, key []byte, value []byte) error {
+				if bytes.Equal(key, mb1Hash) {
+					wasCalledPut = true
+				}
+
+				return nil
+			},
+		},
+	}
+
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	shardCoordinator.CurrentShard = destShardId
+	shardCoordinator.SetNoShards(destShardId + 1)
+
+	bp, _ := blproc.NewBlockProcessor(
+		dataPool,
+		hasher,
+		marshalizer,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		shardCoordinator,
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, miniblockHash []byte) {},
+	)
+
+	//create block body with first 3 miniblocks from miniblocks var
+	blockBody := block.Body{miniblocks[0], miniblocks[1], miniblocks[2]}
+
+	err := bp.RemoveMetaBlockFromPool(blockBody, blkc)
+
+	assert.Nil(t, err)
+	assert.True(t, wasCalledPut)
+	//check WasMiniBlockProcessed for remaining metablocks
+	metaBlock2Recov, _ := dataPool.MetaBlocks().Get(mb2Hash)
+	assert.True(t, (metaBlock2Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[2]))
+	assert.False(t, (metaBlock2Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[3]))
+
+	metaBlock3Recov, _ := dataPool.MetaBlocks().Get(mb3Hash)
+	assert.False(t, (metaBlock3Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[4]))
+	assert.False(t, (metaBlock3Recov.(data.HeaderHandler)).GetMiniBlockProcessed(miniblockHashes[5]))
+}
+
+func createDummyMiniBlock(
+	txHash string,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	destShardId uint32,
+	senderShardId uint32) (*block.MiniBlock, []byte) {
+
+	miniblock := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte(txHash)},
+		ReceiverShardID: destShardId,
+		SenderShardID:   senderShardId,
+	}
+
+	buff, _ := marshalizer.Marshal(miniblock)
+	hash := hasher.Compute(string(buff))
+
+	return miniblock, hash
+}
+
+func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHashes ...[]byte) data.HeaderHandler {
+	metaBlock := &block.MetaBlock{
+		ShardInfo: []block.ShardData{
+			{
+				ShardMiniBlockHeaders: make([]block.ShardMiniBlockHeader, len(miniBlockHashes)),
+			},
+		},
+	}
+
+	for idx, mbHash := range miniBlockHashes {
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].ReceiverShardId = destShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].SenderShardId = senderShardId
+		metaBlock.ShardInfo[0].ShardMiniBlockHeaders[idx].Hash = mbHash
+	}
+
+	return metaBlock
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
 )
@@ -70,7 +71,9 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 		txHashes = append(txHashes, key)
 
-		dataStore := dPool.Transactions().ShardDataStore(0)
+		dataStore := dPool.Transactions().ShardDataStore(
+			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+		)
 		val, _ := dataStore.Get(key)
 
 		if val == nil {
@@ -119,7 +122,9 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	bitmap := make([]bool, noOfTx+int(startingNonce))
 	//set for each nonce from found tx a true flag in bitmap
 	for i := 0; i < noOfTx; i++ {
-		val, _ := dPool.Transactions().ShardDataStore(0).Get(txHashes[i])
+		val, _ := dPool.Transactions().ShardDataStore(
+			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+		).Get(txHashes[i])
 
 		if val == nil {
 			continue

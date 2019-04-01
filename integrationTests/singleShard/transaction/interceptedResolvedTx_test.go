@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/stretchr/testify/assert"
@@ -83,7 +84,9 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	//step 2. wire up a received handler for requestor
 	dPoolRequestor.Transactions().RegisterHandler(func(key []byte) {
-		txStored, _ := dPoolRequestor.Transactions().ShardDataStore(0).Get(key)
+		txStored, _ := dPoolRequestor.Transactions().ShardDataStore(
+			process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+		).Get(key)
 
 		if reflect.DeepEqual(txStored, &tx) && tx.Signature != nil {
 			chanDone <- true
@@ -94,7 +97,11 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	})
 
 	//Step 3. add the transaction in resolver pool
-	dPoolResolver.Transactions().AddData(txHash, &tx, 0)
+	dPoolResolver.Transactions().AddData(
+		txHash,
+		&tx,
+		process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+	)
 
 	//Step 4. request tx
 	txResolver, _ := resolversFinder.IntraShardResolver(factory.TransactionTopic)

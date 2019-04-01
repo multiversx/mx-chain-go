@@ -29,7 +29,7 @@ var ErrCouldNotStopNode = errors.New("could not stop node")
 var ErrBadInitOfNode = errors.New("bad init of node")
 
 // ErrCouldNotParsePubKey signals that a given public key could not be parsed
-var ErrCouldNotParsePubKey = errors.New("cound not parse node's public key")
+var ErrCouldNotParsePubKey = errors.New("could not parse node's public key")
 
 // ErrValidation signals an error in validation
 var ErrValidation = errors.New("validation error")

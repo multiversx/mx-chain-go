@@ -1096,7 +1096,7 @@ func TestBelNevSigner_SetAggregatedSigInvalidScalarShouldErr(t *testing.T) {
 	t.Parallel()
 
 	multiSigner, _, _ := createAggregatedSig()
-	aggSig := []byte("invalid agg signature")
+	aggSig := []byte("invalid agg signature xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 	err := multiSigner.SetAggregatedSig(aggSig)
 
 	assert.Equal(t, err, crypto.ErrAggSigNotValid)

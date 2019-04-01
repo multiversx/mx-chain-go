@@ -36,12 +36,10 @@ import (
 const WaitTime = time.Duration(2000 * time.Millisecond)
 
 // ConsensusTopic is the topic used in consensus algorithm
-const ConsensusTopic topicName = "consensus"
+const ConsensusTopic = "consensus"
 
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
-
-type topicName string
 
 var log = logger.NewDefaultLogger()
 
@@ -80,6 +78,8 @@ type Node struct {
 	blkc             data.ChainHandler
 	dataPool         data.PoolsHolder
 	shardCoordinator sharding.Coordinator
+
+	consensusTopic string
 
 	isRunning bool
 }
@@ -171,10 +171,18 @@ func (n *Node) CreateShardedStores() error {
 	}
 
 	shards := n.shardCoordinator.NumberOfShards()
+	currentShardId := n.shardCoordinator.SelfId()
+	//TODO - change headers to plain cacher
+	// for now we just need one cacher for headers
+	headersDataStore.CreateShardStore(process.ShardCacherIdentifier(currentShardId, currentShardId))
 
+	transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(currentShardId, currentShardId))
 	for i := uint32(0); i < shards; i++ {
-		transactionsDataStore.CreateShardStore(i)
-		headersDataStore.CreateShardStore(i)
+		if i == n.shardCoordinator.SelfId() {
+			continue
+		}
+		transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(i, currentShardId))
+		transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(currentShardId, i))
 	}
 
 	return nil
@@ -235,7 +243,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	err = n.createConsensusTopic(worker)
+	err = n.createConsensusTopic(worker, n.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -334,6 +342,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		return ErrNilShardCoordinator
 	}
 	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
+	fmt.Printf("Sender shard Id: %d\n", senderShardId)
 
 	receiverAddress, err := n.addrConverter.CreateAddressFromHex(receiverHex)
 	if err != nil {
@@ -399,6 +408,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 
 	//the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + n.shardCoordinator.CommunicationIdentifier(senderShardId)
+	fmt.Printf("Identifier: %s\n", identifier)
 
 	for i := 0; i < len(transactions); i++ {
 		n.messenger.BroadcastOnChannel(
@@ -406,10 +416,6 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 			identifier,
 			transactions[i],
 		)
-
-		if err != nil {
-			return errors.New("could not broadcast transaction: " + err.Error())
-		}
 	}
 
 	return nil
@@ -529,19 +535,27 @@ func (n *Node) createValidatorGroupSelector() (consensus.ValidatorGroupSelector,
 }
 
 // createConsensusTopic creates a consensus topic for node
-func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error {
-	if n.messenger.HasTopicValidator(string(ConsensusTopic)) {
+func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor, shardCoordinator sharding.Coordinator) error {
+	if shardCoordinator == nil {
+		return ErrNilShardCoordinator
+	}
+	if messageProcessor == nil {
+		return ErrNilMessenger
+	}
+
+	n.consensusTopic = ConsensusTopic + shardCoordinator.CommunicationIdentifier(shardCoordinator.SelfId())
+	if n.messenger.HasTopicValidator(n.consensusTopic) {
 		return ErrValidatorAlreadySet
 	}
 
-	if !n.messenger.HasTopic(string(ConsensusTopic)) {
-		err := n.messenger.CreateTopic(string(ConsensusTopic), true)
+	if !n.messenger.HasTopic(n.consensusTopic) {
+		err := n.messenger.CreateTopic(n.consensusTopic, true)
 		if err != nil {
 			return err
 		}
 	}
 
-	return n.messenger.RegisterMessageProcessor(string(ConsensusTopic), messageProcessor)
+	return n.messenger.RegisterMessageProcessor(n.consensusTopic, messageProcessor)
 }
 
 func (n *Node) generateAndSignTx(
@@ -738,7 +752,7 @@ func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
 	}
 
 	n.messenger.Broadcast(
-		string(ConsensusTopic),
+		n.consensusTopic,
 		cnsDtaBuff)
 }
 
@@ -771,7 +785,7 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 		return err
 	}
 
-	msgMapBlockBody, err := n.blockProcessor.MarshalizedDataForCrossShard(blockBody)
+	msgMapBlockBody, msgMapTx, err := n.blockProcessor.MarshalizedDataForCrossShard(blockBody)
 	if err != nil {
 		return err
 	}
@@ -789,6 +803,15 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	for k, v := range msgMapBlockBody {
 		go n.messenger.Broadcast(factory.MiniBlocksTopic+
 			n.shardCoordinator.CommunicationIdentifier(k), v)
+	}
+
+	for k, v := range msgMapTx {
+		// for on values as those are list of txs with dest to K.
+		for _, tx := range v {
+			// TODO optimize this to send bulk transactions
+			go n.messenger.Broadcast(factory.TransactionTopic+
+				n.shardCoordinator.CommunicationIdentifier(k), tx)
+		}
 	}
 
 	return nil

@@ -2,9 +2,9 @@ package block
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"io"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block/capnp"
 	"github.com/glycerine/go-capnproto"
 )
@@ -88,6 +88,7 @@ type Header struct {
 	PeerChanges      []PeerChange      `capid:"12"`
 	RootHash         []byte            `capid:"13"`
 	TxCount          uint32            `capid:"14"`
+	processedMBs     map[string]bool   // TODO remove this field when metachain processing is running
 }
 
 // Save saves the serialized data of a Block Header into a stream through Capnp protocol
@@ -165,7 +166,7 @@ func HeaderGoToCapn(seg *capn.Segment, src *Header) capnp.HeaderCapn {
 		pList := capn.PointerList(miniBlockList)
 
 		for i, elem := range src.MiniBlockHeaders {
-			pList.Set(i, capn.Object(MiniBlockHeaderGoToCapn(seg, &elem)))
+			_ = pList.Set(i, capn.Object(MiniBlockHeaderGoToCapn(seg, &elem)))
 		}
 		dest.SetMiniBlockHeaders(miniBlockList)
 	}
@@ -432,6 +433,33 @@ func (h *Header) SetTimeStamp(ts uint64) {
 // SetTxCount sets the transaction count of the block associated with this header
 func (h *Header) SetTxCount(txCount uint32) {
 	h.TxCount = txCount
+}
+
+// GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
+func (h *Header) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
+	hashDst := make(map[string]uint32, 0)
+	for _, val := range h.MiniBlockHeaders {
+		if val.ReceiverShardID == destId && val.SenderShardID != destId {
+			hashDst[string(val.Hash)] = val.SenderShardID
+		}
+	}
+	return hashDst
+}
+
+// GetMiniBlockProcessed verifies if miniblock from header was processed
+func (h *Header) GetMiniBlockProcessed(hash []byte) bool {
+	if h.processedMBs == nil {
+		h.processedMBs = make(map[string]bool, 0)
+	}
+	return h.processedMBs[string(hash)]
+}
+
+// SetMiniBlockProcessed set that miniblock with hash to processed
+func (h *Header) SetMiniBlockProcessed(hash []byte) {
+	if h.processedMBs == nil {
+		h.processedMBs = make(map[string]bool, 0)
+	}
+	h.processedMBs[string(hash)] = true
 }
 
 // IntegrityAndValidity checks if data is valid

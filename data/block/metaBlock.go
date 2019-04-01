@@ -70,6 +70,7 @@ type MetaBlock struct {
 	RandSeed      []byte      `capid:"10"`
 	StateRootHash []byte      `capid:"11"`
 	TxCount       uint32      `capid:"12"`
+	processedMBs  map[string]bool
 }
 
 // MetaBlockBody hold the data for metablock body
@@ -409,6 +410,38 @@ func (m *MetaBlock) SetTimeStamp(ts uint64) {
 // SetTxCount sets the transaction count of the current meta block
 func (m *MetaBlock) SetTxCount(txCount uint32) {
 	m.TxCount = txCount
+}
+
+// GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
+func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
+	hashDst := make(map[string]uint32, 0)
+	for i := 0; i < len(m.ShardInfo); i++ {
+		for _, val := range m.ShardInfo[i].ShardMiniBlockHeaders {
+			if val.ReceiverShardId == destId && val.SenderShardId != destId {
+				hashDst[string(val.Hash)] = val.SenderShardId
+			}
+		}
+	}
+	return hashDst
+}
+
+// GetMiniBlockProcessed verifies if miniblock from header was processed
+func (m *MetaBlock) GetMiniBlockProcessed(hash []byte) bool {
+	if m.processedMBs == nil {
+		m.processedMBs = make(map[string]bool, 0)
+	}
+	if m.processedMBs[string(hash)] {
+		return true
+	}
+	return false
+}
+
+// SetMiniBlockProcessed set that miniblock with hash to processed
+func (m *MetaBlock) SetMiniBlockProcessed(hash []byte) {
+	if m.processedMBs == nil {
+		m.processedMBs = make(map[string]bool, 0)
+	}
+	m.processedMBs[string(hash)] = true
 }
 
 // IntegrityAndValidity return true as block is nil for metablock.

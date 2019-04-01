@@ -261,17 +261,16 @@ func (txProc *txProcessor) callSCHandler(tx *transaction.Transaction) error {
 }
 
 func (txProc *txProcessor) checkTxValues(acntSrc state.JournalizedAccountWrapper, value *big.Int, nonce uint64) error {
-	//TODO: undo this for nonce checking and un-skip tests
+	// TODO order transactions - than uncomment this
 	//if acntSrc.BaseAccount().Nonce < nonce {
 	//	return process.ErrHigherNonceInTransaction
 	//}
-	//
+
 	//if acntSrc.BaseAccount().Nonce > nonce {
 	//	return process.ErrLowerNonceInTransaction
 	//}
 
 	//negative balance test is done in transaction interceptor as the transaction is invalid and thus shall not disseminate
-
 	if acntSrc.BaseAccount().Balance.Cmp(value) < 0 {
 		return process.ErrInsufficientFunds
 	}

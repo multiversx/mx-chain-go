@@ -95,12 +95,12 @@ func createMockPools() *mock.PoolsHolderStub {
 	pools := &mock.PoolsHolderStub{}
 	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{
-			AddDataCalled:         func(key []byte, data interface{}, destShardID uint32) {},
+			AddDataCalled:         func(key []byte, data interface{}, cacherId string) {},
 			RegisterHandlerCalled: func(func(key []byte)) {},
 			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
-			RemoveDataCalled: func(key []byte, destShardID uint32) {
+			RemoveDataCalled: func(key []byte, cacherId string) {
 				return
 			},
 		}
@@ -150,9 +150,9 @@ func createBlockProcessor() *mock.BlockProcessorMock {
 
 func createHeadersDataPool(removedHashCompare []byte, remFlags *removedFlags) data.ShardedDataCacherNotifier {
 	sds := &mock.ShardedDataStub{
-		AddDataCalled:         func(key []byte, data interface{}, destShardID uint32) {},
+		AddDataCalled:         func(key []byte, data interface{}, cacherId string) {},
 		RegisterHandlerCalled: func(func(key []byte)) {},
-		RemoveDataCalled: func(key []byte, destShardID uint32) {
+		RemoveDataCalled: func(key []byte, cacherId string) {
 			if bytes.Equal(key, removedHashCompare) {
 				remFlags.flagHdrRemovedFromHeaders = true
 			}
@@ -723,7 +723,7 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
 		sds := &mock.ShardedDataStub{}
 
-		sds.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+		sds.AddDataCalled = func(key []byte, data interface{}, cacherId string) {
 			assert.Fail(t, "should have not reached this point")
 		}
 
@@ -1266,7 +1266,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
 		}
-		sds.RemoveDataCalled = func(key []byte, destShardID uint32) {
+		sds.RemoveDataCalled = func(key []byte, cacherId string) {
 		}
 
 		return sds
