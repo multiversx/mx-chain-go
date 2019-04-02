@@ -19,8 +19,8 @@ func TestLeafNode_newLeafNode(t *testing.T) {
 		hash:  nil,
 		dirty: true,
 	}
-	en := newLeafNode([]byte("dog"), []byte("dog"))
-	assert.Equal(t, expectedLn, en)
+	ln := newLeafNode([]byte("dog"), []byte("dog"))
+	assert.Equal(t, expectedLn, ln)
 }
 
 func TestLeafNode_getHash(t *testing.T) {
@@ -31,10 +31,10 @@ func TestLeafNode_getHash(t *testing.T) {
 
 func TestLeafNode_isDirty(t *testing.T) {
 	t.Parallel()
-	ln := &extensionNode{dirty: true}
+	ln := &leafNode{dirty: true}
 	assert.Equal(t, true, ln.isDirty())
 
-	ln = &extensionNode{dirty: false}
+	ln = &leafNode{dirty: false}
 	assert.Equal(t, false, ln.isDirty())
 }
 

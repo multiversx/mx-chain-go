@@ -171,8 +171,8 @@ func TestExtensionNode_hashChildrenCollapsedNode(t *testing.T) {
 	err := collapsedEn.hashChildren(marsh, hasher)
 	assert.Nil(t, err)
 
-	_, collapsedBn2 := getEnAndCollapsedEn()
-	assert.Equal(t, collapsedBn2, collapsedEn)
+	_, collapsedEn2 := getEnAndCollapsedEn()
+	assert.Equal(t, collapsedEn2, collapsedEn)
 }
 
 func TestExtensionNode_hashNode(t *testing.T) {
@@ -477,10 +477,10 @@ func TestExtensionNode_delete(t *testing.T) {
 func TestExtendedNode_deleteEmptyNode(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
-	bn := &extensionNode{}
+	en := &extensionNode{}
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newNode, err := bn.delete([]byte{100, 111, 103}, db, marsh)
+	dirty, newNode, err := en.delete([]byte{100, 111, 103}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrEmptyNode, err)
 	assert.Nil(t, newNode)
@@ -492,10 +492,10 @@ func TestExtensionNode_deleteNilNode(t *testing.T) {
 	var en *extensionNode
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := en.delete([]byte{100, 111, 103}, db, marsh)
+	dirty, newNode, err := en.delete([]byte{100, 111, 103}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrNilNode, err)
-	assert.Nil(t, newBn)
+	assert.Nil(t, newNode)
 }
 
 func TestExtensionNode_deleteEmptykey(t *testing.T) {
@@ -504,10 +504,10 @@ func TestExtensionNode_deleteEmptykey(t *testing.T) {
 	en, _ := getEnAndCollapsedEn()
 	marsh, _ := getTestMarshAndHasher()
 
-	dirty, newBn, err := en.delete([]byte{}, db, marsh)
+	dirty, newNode, err := en.delete([]byte{}, db, marsh)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrValueTooShort, err)
-	assert.Nil(t, newBn)
+	assert.Nil(t, newNode)
 }
 
 func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
