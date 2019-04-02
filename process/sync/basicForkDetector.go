@@ -11,7 +11,7 @@ type headerInfo struct {
 	nonce       uint64
 	hash        []byte
 	isProcessed bool
-	isEmpty     bool
+	isSigned    bool
 }
 
 // basicForkDetector defines a struct with necessary data needed for fork detection
@@ -37,8 +37,8 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isPro
 		return ErrNilHash
 	}
 
-	isEmpty := isEmpty(header)
-	if !isEmpty && isProcessed {
+	isSigned := isSigned(header)
+	if isSigned && isProcessed {
 		// create a check point
 		bfd.checkpointNonce = header.Nonce
 	}
@@ -47,7 +47,7 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isPro
 		nonce:       header.Nonce,
 		hash:        hash,
 		isProcessed: isProcessed,
-		isEmpty:     isEmpty,
+		isSigned:    isSigned,
 	})
 
 	return nil
@@ -67,7 +67,7 @@ func (bfd *basicForkDetector) ResetProcessedHeader(nonce uint64) error {
 	for _, hdrInfoStored := range hdrInfosStored {
 		if hdrInfoStored.isProcessed {
 			hdrInfoStored.isProcessed = false
-			if !hdrInfoStored.isEmpty {
+			if hdrInfoStored.isSigned {
 				bfd.checkpointNonce = bfd.getLastCheckpointNonce()
 			}
 			break
@@ -120,7 +120,7 @@ func (bfd *basicForkDetector) CheckFork() bool {
 		}
 
 		selfHdrInfo = nil
-		foundNotEmptyBlock := false
+		foundSignedBlock := false
 
 		for i := 0; i < len(hdrInfos); i++ {
 			if hdrInfos[i].isProcessed {
@@ -128,19 +128,18 @@ func (bfd *basicForkDetector) CheckFork() bool {
 				continue
 			}
 
-			if !hdrInfos[i].isEmpty {
-				foundNotEmptyBlock = true
+			if hdrInfos[i].isSigned {
+				foundSignedBlock = true
 			}
 		}
 
-		if selfHdrInfo == nil || !selfHdrInfo.isEmpty {
+		if selfHdrInfo == nil || selfHdrInfo.isSigned {
 			// if current nonce has not been processed yet or it is processed and signed, then skipping and checking the next one
 			continue
 		}
 
-		if foundNotEmptyBlock {
-			// detected a fork: self has an unsigned header, it also received a signed block
-			// with the same nonce
+		if foundSignedBlock {
+			// fork detected: self has a processed unsigned block, and it received a signed block with the same nonce
 			return true
 		}
 	}
@@ -151,22 +150,19 @@ func (bfd *basicForkDetector) CheckFork() bool {
 // GetHighestSignedBlockNonce gets the highest stored nonce of one signed block received/processed
 func (bfd *basicForkDetector) GetHighestSignedBlockNonce() uint64 {
 	bfd.mutHeaders.RLock()
-
 	highestNonce := bfd.checkpointNonce
 	for nonce, hdrInfos := range bfd.headers {
 		if nonce <= highestNonce {
 			continue
 		}
 		for i := 0; i < len(hdrInfos); i++ {
-			if !hdrInfos[i].isEmpty {
+			if hdrInfos[i].isSigned {
 				highestNonce = nonce
 				break
 			}
 		}
 	}
-
 	bfd.mutHeaders.RUnlock()
-
 	return highestNonce
 }
 
@@ -178,7 +174,7 @@ func (bfd *basicForkDetector) getLastCheckpointNonce() uint64 {
 			continue
 		}
 		for i := 0; i < len(hdrInfos); i++ {
-			if !hdrInfos[i].isEmpty && hdrInfos[i].isProcessed {
+			if hdrInfos[i].isSigned && hdrInfos[i].isProcessed {
 				lastCheckpointNonce = nonce
 				break
 			}

@@ -632,14 +632,14 @@ func (boot *Bootstrap) forkChoice() error {
 		return err
 	}
 
-	isEmpty := isEmpty(header)
-	if !isEmpty && header.Nonce >= boot.forkDetector.GetHighestSignedBlockNonce() {
-		return &ErrNotEmptyHeader{
+	isSigned := isSigned(header)
+	if isSigned && header.Nonce >= boot.forkDetector.GetHighestSignedBlockNonce() {
+		return &ErrSignedBlock{
 			CurrentNonce: header.Nonce}
 	}
 
 	msg := ""
-	if !isEmpty {
+	if isSigned {
 		msg = " from a signed block"
 	}
 
@@ -752,11 +752,13 @@ func (boot *Bootstrap) getTxBlockBody(header *block.Header) (block.Body, error) 
 	return block.Body(bodyMiniBlocks), nil
 }
 
-// IsEmpty verifies if a block is empty
-func isEmpty(header *block.Header) bool {
+// isSigned verifies if a block is signed
+func isSigned(header *block.Header) bool {
+	// TODO: Later, here it should be done a more complex verification (signature for this round matches with the bitmap,
+	// and validators which signed here, were in this round consensus group)
 	bitmap := header.PubKeysBitmap
-	areEqual := bytes.Equal(bitmap, make([]byte, len(bitmap)))
-	return areEqual
+	isBitmapEmpty := bytes.Equal(bitmap, make([]byte, len(bitmap)))
+	return !isBitmapEmpty
 }
 
 func toB64(buff []byte) string {

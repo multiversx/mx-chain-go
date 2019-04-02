@@ -846,7 +846,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 
 	r := bs.SyncBlock()
 
-	assert.Equal(t, &sync.ErrNotEmptyHeader{CurrentNonce: hdr.Nonce}, r)
+	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, r)
 }
 
 func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
@@ -1349,7 +1349,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 	err := bs.SyncBlock()
 
-	assert.Equal(t, &sync.ErrNotEmptyHeader{
+	assert.Equal(t, &sync.ErrSignedBlock{
 		CurrentNonce: hdr.Nonce}, err)
 }
 
@@ -1953,7 +1953,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 	}
 
 	err := bs.ForkChoice()
-	assert.Equal(t, reflect.TypeOf(&sync.ErrNotEmptyHeader{}), reflect.TypeOf(err))
+	assert.Equal(t, reflect.TypeOf(&sync.ErrSignedBlock{}), reflect.TypeOf(err))
 }
 
 func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {

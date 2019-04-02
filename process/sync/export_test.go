@@ -70,8 +70,8 @@ func (hi *headerInfo) IsProcessed() bool {
 	return hi.isProcessed
 }
 
-func (hi *headerInfo) IsEmpty() bool {
-	return hi.isEmpty
+func (hi *headerInfo) IsSigned() bool {
+	return hi.isSigned
 }
 
 func (boot *Bootstrap) NotifySyncStateListeners() {
