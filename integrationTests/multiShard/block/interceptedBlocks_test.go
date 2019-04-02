@@ -3,6 +3,7 @@ package block
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -53,7 +54,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
 	time.Sleep(time.Second * 5)
 
-	fmt.Println("Generating and header and block body...")
+	fmt.Println("Generating header and block body...")
 	body, hdr := generateHeaderAndBody(senderShard, recvShards...)
 	err := nodes[0].node.BroadcastBlock(body, hdr)
 	assert.Nil(t, err)
@@ -64,8 +65,10 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 		isSenderShard := n.shardId == senderShard
 		isRecvShard := uint32InSlice(n.shardId, recvShards)
 
+		assert.Equal(t, int32(1), atomic.LoadInt32(&n.metachainHdrRecv))
+
 		if isSenderShard {
-			assert.Equal(t, int32(1), n.headersRecv)
+			assert.Equal(t, int32(1), atomic.LoadInt32(&n.headersRecv))
 
 			shards := []uint32{senderShard}
 			shards = append(shards, recvShards...)
@@ -76,18 +79,19 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 		}
 
 		if isRecvShard && !isSenderShard {
-			assert.Equal(t, int32(0), n.headersRecv)
+			assert.Equal(t, int32(0), atomic.LoadInt32(&n.headersRecv))
 			expectedMiniblocks := getMiniBlocksHashesFromShardIds(body.(block.Body), n.shardId)
 			assert.True(t, equalSlices(expectedMiniblocks, n.miniblocksHashes))
-			continue
 		}
 
 		if !isSenderShard && !isRecvShard {
 			//other nodes should have not received neither the header nor the miniblocks
-			assert.Equal(t, int32(0), n.headersRecv)
-			assert.Equal(t, int32(0), n.miniblocksRecv)
+			assert.Equal(t, int32(0), atomic.LoadInt32(&n.headersRecv))
+			assert.Equal(t, int32(0), atomic.LoadInt32(&n.miniblocksRecv))
 		}
 	}
+
+	fmt.Println(makeDisplayTable(nodes))
 }
 
 func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyHandler, data.HeaderHandler) {
@@ -107,7 +111,8 @@ func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyH
 
 	body := block.Body{
 		&block.MiniBlock{
-			ShardID: senderShard,
+			SenderShardID: senderShard,
+			ReceiverShardID: senderShard,
 			TxHashes: [][]byte{
 				testHasher.Compute("tx1"),
 			},
@@ -118,7 +123,8 @@ func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyH
 		body = append(
 			body,
 			&block.MiniBlock{
-				ShardID: recvShard,
+				SenderShardID: senderShard,
+				ReceiverShardID: recvShard,
 				TxHashes: [][]byte{
 					testHasher.Compute(fmt.Sprintf("tx%d", i)),
 				},

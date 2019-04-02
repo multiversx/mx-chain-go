@@ -44,6 +44,7 @@ type ShardMiniBlockHeader struct {
 	Hash            []byte `capid:"0"`
 	ReceiverShardId uint32 `capid:"1"`
 	SenderShardId   uint32 `capid:"2"`
+	TxCount         uint32 `capid:"3"`
 }
 
 // ShardData holds the block information sent by the shards to the metachain
@@ -51,6 +52,7 @@ type ShardData struct {
 	ShardId               uint32                 `capid:"0"`
 	HeaderHash            []byte                 `capid:"1"`
 	ShardMiniBlockHeaders []ShardMiniBlockHeader `capid:"2"`
+	TxCount               uint32                 `capid:"3"`
 }
 
 // MetaBlock holds the data that will be saved to the metachain each round
@@ -67,6 +69,8 @@ type MetaBlock struct {
 	PrevRandSeed  []byte      `capid:"9"`
 	RandSeed      []byte      `capid:"10"`
 	StateRootHash []byte      `capid:"11"`
+	TxCount       uint32      `capid:"12"`
+	processedMBs  map[string]bool
 }
 
 // MetaBlockBody hold the data for metablock body
@@ -168,6 +172,7 @@ func ShardMiniBlockHeaderGoToCapn(seg *capn.Segment, src *ShardMiniBlockHeader) 
 	dest.SetHash(src.Hash)
 	dest.SetReceiverShardId(src.ReceiverShardId)
 	dest.SetSenderShardId(src.SenderShardId)
+	dest.SetTxCount(src.TxCount)
 
 	return dest
 }
@@ -181,6 +186,7 @@ func ShardMiniBlockHeaderCapnToGo(src capnp.ShardMiniBlockHeaderCapn, dest *Shar
 	dest.Hash = src.Hash()
 	dest.ReceiverShardId = src.ReceiverShardId()
 	dest.SenderShardId = src.SenderShardId()
+	dest.TxCount = src.TxCount()
 
 	return dest
 }
@@ -202,6 +208,7 @@ func ShardDataGoToCapn(seg *capn.Segment, src *ShardData) capnp.ShardDataCapn {
 		}
 		dest.SetShardMiniBlockHeaders(typedList)
 	}
+	dest.SetTxCount(src.TxCount)
 
 	return dest
 }
@@ -219,6 +226,7 @@ func ShardDataCapnToGo(src capnp.ShardDataCapn, dest *ShardData) *ShardData {
 	for i := 0; i < n; i++ {
 		dest.ShardMiniBlockHeaders[i] = *ShardMiniBlockHeaderCapnToGo(src.ShardMiniBlockHeaders().At(i), nil)
 	}
+	dest.TxCount = src.TxCount()
 
 	return dest
 }
@@ -258,6 +266,7 @@ func MetaBlockGoToCapn(seg *capn.Segment, src *MetaBlock) capnp.MetaBlockCapn {
 	dest.SetPrevRandSeed(src.PrevRandSeed)
 	dest.SetRandSeed(src.RandSeed)
 	dest.SetStateRootHash(src.StateRootHash)
+	dest.SetTxCount(src.TxCount)
 
 	return dest
 }
@@ -288,6 +297,7 @@ func MetaBlockCapnToGo(src capnp.MetaBlockCapn, dest *MetaBlock) *MetaBlock {
 	dest.PrevRandSeed = src.PrevRandSeed()
 	dest.RandSeed = src.RandSeed()
 	dest.StateRootHash = src.StateRootHash()
+	dest.TxCount = src.TxCount()
 
 	return dest
 }
@@ -342,6 +352,11 @@ func (m *MetaBlock) GetSignature() []byte {
 	return m.Signature
 }
 
+// GetTxCount returns transaction count in the current meta block
+func (m *MetaBlock) GetTxCount() uint32 {
+	return m.TxCount
+}
+
 // SetNonce sets header nonce
 func (m *MetaBlock) SetNonce(n uint64) {
 	m.Nonce = n
@@ -390,6 +405,43 @@ func (m *MetaBlock) SetSignature(sg []byte) {
 // SetTimeStamp sets header timestamp
 func (m *MetaBlock) SetTimeStamp(ts uint64) {
 	m.TimeStamp = ts
+}
+
+// SetTxCount sets the transaction count of the current meta block
+func (m *MetaBlock) SetTxCount(txCount uint32) {
+	m.TxCount = txCount
+}
+
+// GetMiniBlockHeadersWithDst as a map of hashes and sender IDs
+func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
+	hashDst := make(map[string]uint32, 0)
+	for i := 0; i < len(m.ShardInfo); i++ {
+		for _, val := range m.ShardInfo[i].ShardMiniBlockHeaders {
+			if val.ReceiverShardId == destId && val.SenderShardId != destId {
+				hashDst[string(val.Hash)] = val.SenderShardId
+			}
+		}
+	}
+	return hashDst
+}
+
+// GetMiniBlockProcessed verifies if miniblock from header was processed
+func (m *MetaBlock) GetMiniBlockProcessed(hash []byte) bool {
+	if m.processedMBs == nil {
+		m.processedMBs = make(map[string]bool, 0)
+	}
+	if m.processedMBs[string(hash)] {
+		return true
+	}
+	return false
+}
+
+// SetMiniBlockProcessed set that miniblock with hash to processed
+func (m *MetaBlock) SetMiniBlockProcessed(hash []byte) {
+	if m.processedMBs == nil {
+		m.processedMBs = make(map[string]bool, 0)
+	}
+	m.processedMBs[string(hash)] = true
 }
 
 // IntegrityAndValidity return true as block is nil for metablock.

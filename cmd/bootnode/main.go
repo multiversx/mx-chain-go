@@ -23,9 +23,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/multisig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kv2/singlesig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
@@ -166,7 +166,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	}
 	log.Info(fmt.Sprintf("Initialized with config from: %s", configurationFile))
 
-	p2pConfig, err := loadP2PConfig(p2pConfigurationFile, log)
+	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFile)
 	if err != nil {
 		return err
 	}
@@ -246,15 +246,6 @@ func loadMainConfig(filepath string, log *logger.Logger) (*config.Config, error)
 	return cfg, nil
 }
 
-func loadP2PConfig(filepath string, log *logger.Logger) (*config.P2PConfig, error) {
-	cfg := &config.P2PConfig{}
-	err := core.LoadTomlFile(cfg, filepath, log)
-	if err != nil {
-		return nil, err
-	}
-	return cfg, nil
-}
-
 func createNode(
 	ctx *cli.Context,
 	config *config.Config,
@@ -289,8 +280,24 @@ func createNode(
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	// TODO: Constructor parameters should be changed when node assignment in the sharding package is implemented
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), 0)
+	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
+	if err != nil {
+		return nil, err
+	}
+
+	initialPubKeys := genesisConfig.InitialNodesPubKeys()
+
+	publickKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	selfShardId, err := genesisConfig.GetShardIDFromPubKey(publickKey)
+	if err != nil {
+		return nil, err
+	}
+
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -315,13 +322,7 @@ func createNode(
 	// TODO save config, and move this creation into another place for node movement
 	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig
 
-	initialPubKeys := genesisConfig.InitialNodesPubKeys()
-	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
-	if err != nil {
-		return nil, err
-	}
-
-	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator.SelfId())
+	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
 	if err != nil {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
@@ -407,6 +408,7 @@ func createNode(
 		shardCoordinator,
 		forkDetector,
 		createRequestTransactionHandler(resolversFinder, log),
+		createRequestMiniBlocksHandler(resolversFinder, log),
 	)
 
 	if err != nil {
@@ -455,7 +457,7 @@ func createNode(
 
 func createRequestTransactionHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
-		log.Debug(fmt.Sprintf("Requesting tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+		log.Debug(fmt.Sprintf("Requesting tx from shard %d with hash %s from network\n", destShardID, toB64(txHash)))
 		resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
 		if err != nil {
 			log.Error(fmt.Sprintf("missing resolver to transaction topic to shard %d", destShardID))
@@ -463,6 +465,22 @@ func createRequestTransactionHandler(resolversFinder process.ResolversFinder, lo
 		}
 
 		err = resolver.RequestDataFromHash(txHash)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+}
+
+func createRequestMiniBlocksHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+	return func(shardId uint32, mbHash []byte) {
+		log.Debug(fmt.Sprintf("Requesting miniblock from shard %d with hash %s from network\n", shardId, toB64(mbHash)))
+		resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to miniblock topic to shard %d", shardId))
+			return
+		}
+
+		err = resolver.RequestDataFromHash(mbHash)
 		if err != nil {
 			log.Debug(err.Error())
 		}
@@ -532,7 +550,7 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 		return nil, nil, nil, err
 	}
 
-	suite := kv2.NewBlakeSHA256Ed25519()
+	suite := kyber.NewBlakeSHA256Ed25519()
 	keyGen = signing.NewKeyGenerator(suite)
 	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
 
@@ -685,7 +703,7 @@ func createShardDataPoolFromConfig(
 }
 
 func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error) {
-	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit *storage.Unit
+	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit *storage.Unit
 	var err error
 
 	defer func() {
@@ -703,6 +721,9 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 			if txUnit != nil {
 				_ = txUnit.DestroyUnit()
 			}
+			if metachainHeaderUnit != nil {
+				_ = metachainHeaderUnit.DestroyUnit()
+			}
 		}
 	}()
 
@@ -718,7 +739,6 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		getCacherFromConfig(config.TxStorage.Cache),
 		getDBFromConfig(config.TxStorage.DB),
 		getBloomFromConfig(config.TxStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
@@ -727,7 +747,6 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		getCacherFromConfig(config.MiniBlocksStorage.Cache),
 		getDBFromConfig(config.MiniBlocksStorage.DB),
 		getBloomFromConfig(config.MiniBlocksStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
@@ -736,7 +755,6 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		getCacherFromConfig(config.PeerBlockBodyStorage.Cache),
 		getDBFromConfig(config.PeerBlockBodyStorage.DB),
 		getBloomFromConfig(config.PeerBlockBodyStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
@@ -745,7 +763,14 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		getCacherFromConfig(config.BlockHeaderStorage.Cache),
 		getDBFromConfig(config.BlockHeaderStorage.DB),
 		getBloomFromConfig(config.BlockHeaderStorage.Bloom))
+	if err != nil {
+		return nil, err
+	}
 
+	metachainHeaderUnit, err = storage.NewStorageUnitFromConf(
+		getCacherFromConfig(config.MetaBlockStorage.Cache),
+		getDBFromConfig(config.MetaBlockStorage.DB),
+		getBloomFromConfig(config.MetaBlockStorage.Bloom))
 	if err != nil {
 		return nil, err
 	}
@@ -755,7 +780,9 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		txUnit,
 		miniBlockUnit,
 		peerBlockUnit,
-		headerUnit)
+		headerUnit,
+		metachainHeaderUnit,
+	)
 
 	if err != nil {
 		return nil, err

@@ -607,7 +607,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 
 func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx := transaction.Transaction{}
-	tx.Nonce = 1
+	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
@@ -640,7 +640,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 
 func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *testing.T) {
 	tx := transaction.Transaction{}
-	tx.Nonce = 1
+	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
@@ -673,7 +673,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	tx := transaction.Transaction{}
-	tx.Nonce = 1
+	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
@@ -767,7 +767,6 @@ func TestTxProcessor_ProcessTransactionRegisterTxShouldWork(t *testing.T) {
 
 func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	t.Skip()
-
 	//these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
 	tx.Nonce = 1

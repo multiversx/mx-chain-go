@@ -12,9 +12,9 @@ import (
 
 type HeaderCapn C.Struct
 
-func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(32, 8)) }
-func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(32, 8)) }
-func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(32, 8)) }
+func NewHeaderCapn(s *C.Segment) HeaderCapn      { return HeaderCapn(s.NewStruct(40, 8)) }
+func NewRootHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewRootStruct(40, 8)) }
+func AutoNewHeaderCapn(s *C.Segment) HeaderCapn  { return HeaderCapn(s.NewStructAR(40, 8)) }
 func ReadRootHeaderCapn(s *C.Segment) HeaderCapn { return HeaderCapn(s.Root(0).ToStruct()) }
 func (s HeaderCapn) Nonce() uint64               { return C.Struct(s).Get64(0) }
 func (s HeaderCapn) SetNonce(v uint64)           { C.Struct(s).Set64(0, v) }
@@ -50,6 +50,8 @@ func (s HeaderCapn) PeerChanges() PeerChangeCapn_List {
 func (s HeaderCapn) SetPeerChanges(v PeerChangeCapn_List) { C.Struct(s).SetObject(6, C.Object(v)) }
 func (s HeaderCapn) RootHash() []byte                     { return C.Struct(s).GetObject(7).ToData() }
 func (s HeaderCapn) SetRootHash(v []byte)                 { C.Struct(s).SetObject(7, s.Segment.NewData(v)) }
+func (s HeaderCapn) TxCount() uint32                      { return C.Struct(s).Get32(32) }
+func (s HeaderCapn) SetTxCount(v uint32)                  { C.Struct(s).Set32(32, v) }
 func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -340,6 +342,25 @@ func (s HeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.RootHash()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"txCount\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.TxCount()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -660,6 +681,25 @@ func (s HeaderCapn) WriteCapLit(w io.Writer) error {
 			return err
 		}
 	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("txCount = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.TxCount()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
 	err = b.WriteByte(')')
 	if err != nil {
 		return err
@@ -676,7 +716,7 @@ func (s HeaderCapn) MarshalCapLit() ([]byte, error) {
 type HeaderCapn_List C.PointerList
 
 func NewHeaderCapnList(s *C.Segment, sz int) HeaderCapn_List {
-	return HeaderCapn_List(s.NewCompositeList(32, 8, sz))
+	return HeaderCapn_List(s.NewCompositeList(40, 8, sz))
 }
 func (s HeaderCapn_List) Len() int            { return C.PointerList(s).Len() }
 func (s HeaderCapn_List) At(i int) HeaderCapn { return HeaderCapn(C.PointerList(s).At(i).ToStruct()) }
@@ -693,13 +733,13 @@ func (s HeaderCapn_List) Set(i int, item HeaderCapn) { C.PointerList(s).Set(i, C
 type MiniBlockHeaderCapn C.Struct
 
 func NewMiniBlockHeaderCapn(s *C.Segment) MiniBlockHeaderCapn {
-	return MiniBlockHeaderCapn(s.NewStruct(8, 1))
+	return MiniBlockHeaderCapn(s.NewStruct(16, 1))
 }
 func NewRootMiniBlockHeaderCapn(s *C.Segment) MiniBlockHeaderCapn {
-	return MiniBlockHeaderCapn(s.NewRootStruct(8, 1))
+	return MiniBlockHeaderCapn(s.NewRootStruct(16, 1))
 }
 func AutoNewMiniBlockHeaderCapn(s *C.Segment) MiniBlockHeaderCapn {
-	return MiniBlockHeaderCapn(s.NewStructAR(8, 1))
+	return MiniBlockHeaderCapn(s.NewStructAR(16, 1))
 }
 func ReadRootMiniBlockHeaderCapn(s *C.Segment) MiniBlockHeaderCapn {
 	return MiniBlockHeaderCapn(s.Root(0).ToStruct())
@@ -710,6 +750,8 @@ func (s MiniBlockHeaderCapn) ReceiverShardID() uint32     { return C.Struct(s).G
 func (s MiniBlockHeaderCapn) SetReceiverShardID(v uint32) { C.Struct(s).Set32(0, v) }
 func (s MiniBlockHeaderCapn) SenderShardID() uint32       { return C.Struct(s).Get32(4) }
 func (s MiniBlockHeaderCapn) SetSenderShardID(v uint32)   { C.Struct(s).Set32(4, v) }
+func (s MiniBlockHeaderCapn) TxCount() uint32             { return C.Struct(s).Get32(8) }
+func (s MiniBlockHeaderCapn) SetTxCount(v uint32)         { C.Struct(s).Set32(8, v) }
 func (s MiniBlockHeaderCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -763,6 +805,25 @@ func (s MiniBlockHeaderCapn) WriteJSON(w io.Writer) error {
 	}
 	{
 		s := s.SenderShardID()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"txCount\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.TxCount()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -846,6 +907,25 @@ func (s MiniBlockHeaderCapn) WriteCapLit(w io.Writer) error {
 			return err
 		}
 	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("txCount = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.TxCount()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
 	err = b.WriteByte(')')
 	if err != nil {
 		return err
@@ -862,7 +942,7 @@ func (s MiniBlockHeaderCapn) MarshalCapLit() ([]byte, error) {
 type MiniBlockHeaderCapn_List C.PointerList
 
 func NewMiniBlockHeaderCapnList(s *C.Segment, sz int) MiniBlockHeaderCapn_List {
-	return MiniBlockHeaderCapn_List(s.NewCompositeList(8, 1, sz))
+	return MiniBlockHeaderCapn_List(s.NewCompositeList(16, 1, sz))
 }
 func (s MiniBlockHeaderCapn_List) Len() int { return C.PointerList(s).Len() }
 func (s MiniBlockHeaderCapn_List) At(i int) MiniBlockHeaderCapn {
@@ -888,8 +968,10 @@ func AutoNewMiniBlockCapn(s *C.Segment) MiniBlockCapn  { return MiniBlockCapn(s.
 func ReadRootMiniBlockCapn(s *C.Segment) MiniBlockCapn { return MiniBlockCapn(s.Root(0).ToStruct()) }
 func (s MiniBlockCapn) TxHashes() C.DataList           { return C.DataList(C.Struct(s).GetObject(0)) }
 func (s MiniBlockCapn) SetTxHashes(v C.DataList)       { C.Struct(s).SetObject(0, C.Object(v)) }
-func (s MiniBlockCapn) ShardID() uint32                { return C.Struct(s).Get32(0) }
-func (s MiniBlockCapn) SetShardID(v uint32)            { C.Struct(s).Set32(0, v) }
+func (s MiniBlockCapn) ReceiverShardID() uint32        { return C.Struct(s).Get32(0) }
+func (s MiniBlockCapn) SetReceiverShardID(v uint32)    { C.Struct(s).Set32(0, v) }
+func (s MiniBlockCapn) SenderShardID() uint32          { return C.Struct(s).Get32(4) }
+func (s MiniBlockCapn) SetSenderShardID(v uint32)      { C.Struct(s).Set32(4, v) }
 func (s MiniBlockCapn) WriteJSON(w io.Writer) error {
 	b := bufio.NewWriter(w)
 	var err error
@@ -936,12 +1018,31 @@ func (s MiniBlockCapn) WriteJSON(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("\"shardID\":")
+	_, err = b.WriteString("\"receiverShardID\":")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.ShardID()
+		s := s.ReceiverShardID()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	err = b.WriteByte(',')
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("\"senderShardID\":")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.SenderShardID()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err
@@ -1009,12 +1110,31 @@ func (s MiniBlockCapn) WriteCapLit(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = b.WriteString("shardID = ")
+	_, err = b.WriteString("receiverShardID = ")
 	if err != nil {
 		return err
 	}
 	{
-		s := s.ShardID()
+		s := s.ReceiverShardID()
+		buf, err = json.Marshal(s)
+		if err != nil {
+			return err
+		}
+		_, err = b.Write(buf)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = b.WriteString(", ")
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString("senderShardID = ")
+	if err != nil {
+		return err
+	}
+	{
+		s := s.SenderShardID()
 		buf, err = json.Marshal(s)
 		if err != nil {
 			return err

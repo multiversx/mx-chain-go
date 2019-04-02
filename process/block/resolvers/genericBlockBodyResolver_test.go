@@ -128,7 +128,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 	wasSent := false
 
 	cache := &mock.CacherStub{}
-	cache.GetCalled = func(key []byte) (value interface{}, ok bool) {
+	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(key, mbHash) {
 			wasResolved = true
 			return &block.MiniBlock{}, true
@@ -136,9 +136,6 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolShouldRetValA
 
 		return nil, false
 	}
-
-
-
 
 	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
 		&mock.TopicResolverSenderStub{
@@ -185,15 +182,13 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageFoundInPoolMarshalizerFa
 	requestedBuff, _ := goodMarshalizer.Marshal(miniBlockList)
 
 	cache := &mock.CacherStub{}
-	cache.GetCalled = func(key []byte) (value interface{}, ok bool) {
+	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(key, mbHash) {
 			return &block.MiniBlock{}, true
 		}
 
 		return nil, false
 	}
-
-
 
 	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
 		&mock.TopicResolverSenderStub{},
@@ -229,7 +224,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 	wasSend := false
 
 	cache := &mock.CacherStub{}
-	cache.GetCalled = func(key []byte) (value interface{}, ok bool) {
+	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}
 
@@ -239,8 +234,6 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageNotFoundInPoolShouldRetF
 		mb, _ := marshalizer.Marshal(&block.MiniBlock{})
 		return mb, nil
 	}
-
-
 
 	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(
 		&mock.TopicResolverSenderStub{
@@ -275,7 +268,7 @@ func TestGenericBlockBodyResolver_ProcessReceivedMessageMissingDataShouldNotSend
 	wasSent := false
 
 	cache := &mock.CacherStub{}
-	cache.GetCalled = func(key []byte) (value interface{}, ok bool) {
+	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}
 

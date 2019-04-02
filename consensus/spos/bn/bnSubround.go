@@ -76,8 +76,11 @@ func (sr *subround) DoWork(rounder consensus.Rounder) bool {
 		return false
 	}
 
-	sr.job()
+	startTime := time.Time{}
+	startTime = rounder.TimeStamp()
+	maxTime := rounder.TimeDuration() * maxThresholdPercent / 100
 
+	sr.job()
 	if sr.check() {
 		return true
 	}
@@ -88,7 +91,7 @@ func (sr *subround) DoWork(rounder consensus.Rounder) bool {
 			if sr.check() {
 				return true
 			}
-		case <-time.After(rounder.RemainingTimeInRound(maxThresholdPercent)):
+		case <-time.After(rounder.RemainingTime(startTime, maxTime)):
 			if sr.extend != nil {
 				sr.extend(sr.current)
 			}

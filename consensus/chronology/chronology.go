@@ -12,6 +12,9 @@ import (
 
 var log = logger.NewDefaultLogger()
 
+// srBeforeStartRound defines the state which exist before the start of the round
+const srBeforeStartRound = -1
+
 // chronology defines the data needed by the chronology
 type chronology struct {
 	genesisTime time.Time
@@ -47,7 +50,7 @@ func NewChronology(
 		rounder:     rounder,
 		syncTimer:   syncTimer}
 
-	chr.subroundId = -1
+	chr.subroundId = srBeforeStartRound
 
 	chr.subrounds = make(map[int]int)
 	chr.subroundHandlers = make([]consensus.SubroundHandler, 0)
@@ -101,7 +104,9 @@ func (chr *chronology) StartRounds() {
 
 // startRound calls the current subround, given by the finished tasks in this round
 func (chr *chronology) startRound() {
-	chr.updateRound()
+	if chr.subroundId == srBeforeStartRound {
+		chr.updateRound()
+	}
 
 	if chr.rounder.Index() < 0 {
 		return
@@ -117,6 +122,7 @@ func (chr *chronology) startRound() {
 	log.Info(log.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
 
 	if !sr.DoWork(chr.rounder) {
+		chr.subroundId = srBeforeStartRound
 		return
 	}
 
@@ -138,11 +144,13 @@ func (chr *chronology) updateRound() {
 
 // initRound is called when a new round begins and it does the necessary initialization
 func (chr *chronology) initRound() {
-	chr.subroundId = -1
+	chr.subroundId = srBeforeStartRound
 
 	chr.mutSubrounds.RLock()
 
-	if len(chr.subroundHandlers) > 0 {
+	hasSubroundsAndGenesisTimePassed := chr.rounder.Index() >= 0 && len(chr.subroundHandlers) > 0
+
+	if hasSubroundsAndGenesisTimePassed {
 		chr.subroundId = chr.subroundHandlers[0].Current()
 	}
 

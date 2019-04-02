@@ -479,7 +479,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 		DataField: buff,
 	}
 
-	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+	txPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
 		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
 			wasAdded++
 		}
@@ -540,7 +540,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 		DataField: buff,
 	}
 
-	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+	txPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
 		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
 			wasAdded++
 		}
@@ -608,7 +608,7 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 		DataField: buff,
 	}
 
-	txPool.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+	txPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
 		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
 			wasAdded++
 		}

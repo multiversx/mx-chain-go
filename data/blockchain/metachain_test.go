@@ -153,8 +153,8 @@ func TestMetaChain_IsBadBlock(t *testing.T) {
 		sharddataUnit,
 		peerdataUnit)
 
-	isBadBlock := b.IsBadBlock([]byte("test"))
-	assert.True(t, isBadBlock)
+	hasBadBlock := b.HasBadBlock([]byte("test"))
+	assert.True(t, hasBadBlock)
 }
 
 func TestMetaChain_PutBadBlock(t *testing.T) {

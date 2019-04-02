@@ -63,11 +63,18 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *process.RequestData) erro
 		return process.ErrNoConnectedPeerToSendRequest
 	}
 
+	messageSent := false
 	for _, peer := range peersToSend {
 		err = trs.messenger.SendToConnectedPeer(topicToSendRequest, buff, peer)
 		if err != nil {
 			log.Debug(err.Error())
+		} else {
+			messageSent = true
 		}
+	}
+
+	if !messageSent {
+		return err
 	}
 
 	return nil

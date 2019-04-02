@@ -125,6 +125,15 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 		return nil, err
 	}
 
+	keys, interceptorSlice, err = icf.generateMetachainHeaderInterceptors()
+	if err != nil {
+		return nil, err
+	}
+	err = container.AddMultiple(keys, interceptorSlice)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
@@ -288,6 +297,38 @@ func (icf *interceptorsContainerFactory) createOnePeerChBlockBodyInterceptor(ide
 		icf.marshalizer,
 		icf.dataPool.PeerChangesBlocks(),
 		peerBlockBodyStorer,
+		icf.hasher,
+		icf.shardCoordinator,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+}
+
+//------- MetachainHeader interceptors
+
+func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptors() ([]string, []process.Interceptor, error) {
+	identifierHdr := MetachainHeadersTopic
+
+	interceptor, err := icf.createOneMetachainHeaderInterceptor(identifierHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
+}
+
+func (icf *interceptorsContainerFactory) createOneMetachainHeaderInterceptor(identifier string) (process.Interceptor, error) {
+	metachainHeaderStorer := icf.blockchain.GetStorer(data.MetaBlockUnit)
+
+	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
+		icf.marshalizer,
+		icf.dataPool.MetaBlocks(),
+		metachainHeaderStorer,
+		icf.multiSigner,
 		icf.hasher,
 		icf.shardCoordinator,
 	)

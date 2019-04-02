@@ -50,7 +50,11 @@ func TestInterceptedTxBlockBody_IntegrityMiniblockWithNilTxHashesShouldErr(t *te
 	t.Parallel()
 
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
-		{ShardID: 0, TxHashes: nil},
+		{
+			ReceiverShardID: 0,
+			SenderShardID: 0,
+			TxHashes: nil,
+		},
 	}}
 
 	assert.Equal(t, process.ErrNilTxHashes, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
@@ -60,7 +64,11 @@ func TestInterceptedTxBlockBody_IntegrityMiniblockWithInvalidTxHashShouldErr(t *
 	t.Parallel()
 
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
-		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0), nil}},
+		{
+			ReceiverShardID: 0,
+			SenderShardID: 0,
+			TxHashes: [][]byte{make([]byte, 0), nil},
+		},
 	}}
 
 	assert.Equal(t, process.ErrNilTxHash, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
@@ -78,7 +86,11 @@ func TestInterceptedTxBlockBody_IntegrityNilShardCoordinatorShouldErr(t *testing
 	t.Parallel()
 
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
-		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0)}},
+		{
+			ReceiverShardID: 0,
+			SenderShardID: 0,
+			TxHashes: [][]byte{make([]byte, 0)},
+		},
 	}}
 
 	assert.Equal(t, process.ErrNilShardCoordinator, txBlk.Integrity(nil))
@@ -88,7 +100,11 @@ func TestInterceptedTxBlockBody_IntegrityMiniblockWithInvalidShardIdsShouldErr(t
 	t.Parallel()
 
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
-		{ShardID: 4, TxHashes: [][]byte{make([]byte, 0)}},
+		{
+			ReceiverShardID: 4,
+			SenderShardID: 0,
+			TxHashes: [][]byte{make([]byte, 0)},
+		},
 	}}
 	assert.Equal(t, process.ErrInvalidShardId, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
 }
@@ -97,7 +113,11 @@ func TestInterceptedTxBlockBody_IntegrityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
-		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0)}},
+		{
+			ReceiverShardID: 0,
+			SenderShardID: 0,
+			TxHashes: [][]byte{make([]byte, 0)},
+		},
 	}}
 
 	assert.Nil(t, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
@@ -107,7 +127,11 @@ func TestInterceptedTxBlockBody_IntegrityAndValidityOkValsShouldWork(t *testing.
 	t.Parallel()
 
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
-		{ShardID: 0, TxHashes: [][]byte{make([]byte, 0)}},
+		{
+			ReceiverShardID: 0,
+			SenderShardID: 0,
+			TxHashes: [][]byte{make([]byte, 0)},
+		},
 	}}
 
 	assert.Nil(t, txBlk.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))

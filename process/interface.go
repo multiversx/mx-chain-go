@@ -31,7 +31,7 @@ type BlockProcessor interface {
 	RemoveBlockInfoFromPool(body data.BodyHandler) error
 	CheckBlockValidity(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
 	CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error)
-	MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, error)
+	MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -108,8 +108,8 @@ type Bootstrapper interface {
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header *block.Header, hash []byte, isReceived bool) error
-	RemoveHeaders(nonce uint64)
+	AddHeader(header *block.Header, hash []byte, isProcessed bool) error
+	RemoveProcessedHeader(nonce uint64) error
 	CheckFork() bool
 }
 

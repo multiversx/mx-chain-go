@@ -2,9 +2,9 @@ package block_test
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,6 +16,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		Hash:            []byte("mini block hash"),
 		ReceiverShardID: uint32(0),
 		SenderShardID:   uint32(10),
+		TxCount:         uint32(10),
 	}
 
 	pc := block.PeerChange{
@@ -38,6 +39,7 @@ func TestHeader_SaveLoad(t *testing.T) {
 		MiniBlockHeaders: []block.MiniBlockHeader{mb},
 		PeerChanges:      []block.PeerChange{pc},
 		RootHash:         []byte("root hash"),
+		TxCount:          uint32(10),
 	}
 
 	var b bytes.Buffer
@@ -88,8 +90,9 @@ func TestMiniBlock_SaveLoad(t *testing.T) {
 	t.Parallel()
 
 	mb := block.MiniBlock{
-		TxHashes: [][]byte{[]byte("tx hash1"), []byte("tx hash2")},
-		ShardID:  uint32(0),
+		TxHashes:        [][]byte{[]byte("tx hash1"), []byte("tx hash2")},
+		ReceiverShardID: uint32(0),
+		SenderShardID:   uint32(0),
 	}
 
 	var b bytes.Buffer
@@ -200,6 +203,17 @@ func TestHeader_GetSignature(t *testing.T) {
 	assert.Equal(t, signature, h.GetSignature())
 }
 
+func TestHeader_GetTxCount(t *testing.T) {
+	t.Parallel()
+
+	txCount := uint32(10)
+	h := block.Header{
+		TxCount: txCount,
+	}
+
+	assert.Equal(t, txCount, h.GetTxCount())
+}
+
 func TestHeader_SetEpoch(t *testing.T) {
 	t.Parallel()
 
@@ -300,12 +314,22 @@ func TestHeader_SetTimeStamp(t *testing.T) {
 	assert.Equal(t, timeStamp, h.GetTimestamp())
 }
 
+func TestHeader_SetTxCount(t *testing.T) {
+	t.Parallel()
+
+	txCount := uint32(10)
+	h := block.Header{}
+	h.SetTxCount(txCount)
+
+	assert.Equal(t, txCount, h.GetTxCount())
+}
+
 func TestBody_IntegrityAndValidityNil(t *testing.T) {
 	t.Parallel()
 
 	body := block.Body{}
 	body = nil
-	assert.Equal(t, data.ErrBlockBodyEmpty, body.IntegrityAndValidity())
+	assert.Equal(t, data.ErrNilBlockBody, body.IntegrityAndValidity())
 }
 
 func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.T) {
@@ -313,8 +337,9 @@ func TestBody_IntegrityAndValidityEmptyMiniblockShouldThrowException(t *testing.
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 
 	mb1 := block.MiniBlock{}
@@ -331,12 +356,50 @@ func TestBody_IntegrityAndValidityOK(t *testing.T) {
 
 	txHash0 := []byte("txHash0")
 	mb0 := block.MiniBlock{
-		ShardID:  0,
-		TxHashes: [][]byte{[]byte(txHash0)},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		TxHashes:        [][]byte{[]byte(txHash0)},
 	}
 
 	body := make(block.Body, 0)
 	body = append(body, &mb0)
 
 	assert.Equal(t, nil, body.IntegrityAndValidity())
+}
+
+func TestHeader_GetMiniBlockHeadersWithDstShouldWork(t *testing.T) {
+	hash_0_0 := []byte("hash_0_0")
+	hash_0_1 := []byte("hash_0_1")
+	hash1_0_2 := []byte("hash_0_2")
+	hash2_0_2 := []byte("hash2_0_2")
+
+	hdr := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			block.MiniBlockHeader{
+				SenderShardID:   0,
+				ReceiverShardID: 0,
+				Hash:            hash_0_0,
+			},
+			block.MiniBlockHeader{
+				SenderShardID:   0,
+				ReceiverShardID: 1,
+				Hash:            hash_0_1,
+			},
+			block.MiniBlockHeader{
+				SenderShardID:   0,
+				ReceiverShardID: 2,
+				Hash:            hash1_0_2,
+			},
+			block.MiniBlockHeader{
+				SenderShardID:   0,
+				ReceiverShardID: 2,
+				Hash:            hash2_0_2,
+			},
+		},
+	}
+
+	hashesWithDest2 := hdr.GetMiniBlockHeadersWithDst(2)
+
+	assert.Equal(t, uint32(0), hashesWithDest2[string(hash1_0_2)])
+	assert.Equal(t, uint32(0), hashesWithDest2[string(hash2_0_2)])
 }
