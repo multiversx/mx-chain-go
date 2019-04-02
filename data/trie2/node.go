@@ -48,15 +48,6 @@ type leafNode struct {
 	dirty bool
 }
 
-func newLeafNode(key, value []byte) *leafNode {
-	return &leafNode{
-		Key:   key,
-		Value: value,
-		hash:  nil,
-		dirty: true,
-	}
-}
-
 func hashChildrenAndNode(n node, marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
 	err := n.hashChildren(marshalizer, hasher)
 	if err != nil {
@@ -80,6 +71,13 @@ func encodeNodeAndGetHash(n node, marshalizer marshal.Marshalizer, hasher hashin
 
 func encodeNodeAndCommitToDB(n node, db DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
 	key := n.getHash()
+	if key == nil {
+		err := n.setHash(marshalizer, hasher)
+		if err != nil {
+			return err
+		}
+		key = n.getHash()
+	}
 	n, err := n.getCollapsed(marshalizer, hasher)
 	if err != nil {
 		return err
@@ -112,16 +110,6 @@ func resolveIfCollapsed(n node, pos byte, db DBWriteCacher, marshalizer marshal.
 		}
 	}
 	return nil
-}
-
-func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {
-	for i := range &n.children {
-		if n.children[i] != nil || n.EncodedChildren[i] != nil {
-			nrOfChildren++
-			childPos = i
-		}
-	}
-	return
 }
 
 func concat(s1 []byte, s2 ...byte) []byte {
@@ -174,7 +162,7 @@ func getEmptyNodeOfType(t byte) (node, error) {
 }
 
 func childPosOutOfRange(pos byte) bool {
-	if pos < 0 || pos >= nrOfChildren {
+	if pos >= nrOfChildren {
 		return true
 	}
 	return false

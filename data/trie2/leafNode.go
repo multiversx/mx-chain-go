@@ -7,12 +7,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 )
 
+func newLeafNode(key, value []byte) *leafNode {
+	return &leafNode{
+		Key:   key,
+		Value: value,
+		hash:  nil,
+		dirty: true,
+	}
+}
+
 func (ln *leafNode) getHash() []byte {
 	return ln.hash
 }
 
 func (ln *leafNode) isDirty() bool {
-
 	return ln.dirty
 }
 
@@ -21,6 +29,10 @@ func (ln *leafNode) getCollapsed(marshalizer marshal.Marshalizer, hasher hashing
 }
 
 func (ln *leafNode) setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
 	hash, err := hashChildrenAndNode(ln, marshalizer, hasher)
 	if err != nil {
 		return err
@@ -34,10 +46,18 @@ func (ln *leafNode) hashChildren(marshalizer marshal.Marshalizer, hasher hashing
 }
 
 func (ln *leafNode) hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error) {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return nil, err
+	}
 	return encodeNodeAndGetHash(ln, marshalizer, hasher)
 }
 
 func (ln *leafNode) commit(db DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
 	if !ln.dirty {
 		return nil
 	}
@@ -46,6 +66,10 @@ func (ln *leafNode) commit(db DBWriteCacher, marshalizer marshal.Marshalizer, ha
 }
 
 func (ln *leafNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, error) {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return nil, err
+	}
 	marshaledNode, err := marshalizer.Marshal(ln)
 	if err != nil {
 		return nil, err
@@ -55,13 +79,6 @@ func (ln *leafNode) getEncodedNode(marshalizer marshal.Marshalizer) ([]byte, err
 }
 
 func (ln *leafNode) resolveCollapsed(pos byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
-	node, err := getNodeFromDBAndDecode(ln.Value, db, marshalizer)
-	if err != nil {
-		return err
-	}
-	if node, ok := node.(*leafNode); ok {
-		*ln = *node
-	}
 	return nil
 }
 
@@ -70,6 +87,10 @@ func (ln *leafNode) isCollapsed() bool {
 }
 
 func (ln *leafNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
+	err = ln.isEmptyOrNil()
+	if err != nil {
+		return nil, err
+	}
 	if bytes.Equal(key, ln.Key) {
 		return ln.Value, nil
 	}
@@ -77,6 +98,10 @@ func (ln *leafNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Mar
 }
 
 func (ln *leafNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return false, nil, err
+	}
 	if bytes.Equal(n.Key, ln.Key) {
 		ln.Value = n.Value
 		ln.dirty = true
@@ -88,6 +113,9 @@ func (ln *leafNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Ma
 	branch.dirty = true
 	oldChildPos := ln.Key[keyMatchLen]
 	newChildPos := n.Key[keyMatchLen]
+	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
+		return false, nil, ErrChildPosOutOfRange
+	}
 
 	branch.children[oldChildPos] = newLeafNode(ln.Key[keyMatchLen+1:], ln.Value)
 	branch.children[newChildPos] = newLeafNode(n.Key[keyMatchLen+1:], n.Value)

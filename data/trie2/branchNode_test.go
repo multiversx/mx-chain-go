@@ -16,7 +16,7 @@ func getTestMarshAndHasher() (marshal.Marshalizer, hashing.Hasher) {
 	return marsh, hasher
 }
 
-func getTestBnAndCollapsedBn() (*branchNode, *branchNode) {
+func getBnAndCollapsedBn() (*branchNode, *branchNode) {
 	var children [nrOfChildren]node
 	var EncodedChildren [nrOfChildren][]byte
 	marsh, hasher := getTestMarshAndHasher()
@@ -33,18 +33,23 @@ func getTestBnAndCollapsedBn() (*branchNode, *branchNode) {
 }
 
 func TestBranchNode_getHash(t *testing.T) {
+	t.Parallel()
 	bn := &branchNode{hash: []byte("test hash")}
 	assert.Equal(t, bn.hash, bn.getHash())
 }
 
 func TestBranchNode_isDirty(t *testing.T) {
+	t.Parallel()
 	bn := &branchNode{dirty: true}
 	assert.Equal(t, true, bn.isDirty())
 
+	bn = &branchNode{dirty: false}
+	assert.Equal(t, false, bn.isDirty())
 }
 
 func TestBranchNode_getCollapsed(t *testing.T) {
-	bn, collapsedBn := getTestBnAndCollapsedBn()
+	t.Parallel()
+	bn, collapsedBn := getBnAndCollapsedBn()
 	collapsedBn.dirty = true
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -54,6 +59,7 @@ func TestBranchNode_getCollapsed(t *testing.T) {
 }
 
 func TestBranchNode_getCollapsedEmptyNode(t *testing.T) {
+	t.Parallel()
 	marsh, hasher := getTestMarshAndHasher()
 	bn := &branchNode{}
 
@@ -63,6 +69,7 @@ func TestBranchNode_getCollapsedEmptyNode(t *testing.T) {
 }
 
 func TestBranchNode_getCollapsedNilNode(t *testing.T) {
+	t.Parallel()
 	marsh, hasher := getTestMarshAndHasher()
 	var bn *branchNode
 
@@ -72,7 +79,8 @@ func TestBranchNode_getCollapsedNilNode(t *testing.T) {
 }
 
 func TestBranchNode_getCollapsedCollapsedNode(t *testing.T) {
-	_, collapsedBn := getTestBnAndCollapsedBn()
+	t.Parallel()
+	_, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
 	collapsed, err := collapsedBn.getCollapsed(marsh, hasher)
@@ -81,7 +89,8 @@ func TestBranchNode_getCollapsedCollapsedNode(t *testing.T) {
 }
 
 func TestBranchNode_setHash(t *testing.T) {
-	bn, collapsedBn := getTestBnAndCollapsedBn()
+	t.Parallel()
+	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
 	hash, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
@@ -92,6 +101,7 @@ func TestBranchNode_setHash(t *testing.T) {
 }
 
 func TestBranchNode_setHashEmptyNode(t *testing.T) {
+	t.Parallel()
 	marsh, hasher := getTestMarshAndHasher()
 	bn := &branchNode{}
 
@@ -101,6 +111,7 @@ func TestBranchNode_setHashEmptyNode(t *testing.T) {
 }
 
 func TestBranchNode_setHashNilNode(t *testing.T) {
+	t.Parallel()
 	marsh, hasher := getTestMarshAndHasher()
 	var bn *branchNode
 
@@ -110,7 +121,8 @@ func TestBranchNode_setHashNilNode(t *testing.T) {
 }
 
 func TestBranchNode_setHashCollapsedNode(t *testing.T) {
-	_, collapsedBn := getTestBnAndCollapsedBn()
+	t.Parallel()
+	_, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
 	hash, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
@@ -122,7 +134,8 @@ func TestBranchNode_setHashCollapsedNode(t *testing.T) {
 }
 
 func TestBranchNode_hashChildren(t *testing.T) {
-	bn, _ := getTestBnAndCollapsedBn()
+	t.Parallel()
+	bn, _ := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
 	for i := range bn.children {
@@ -142,6 +155,7 @@ func TestBranchNode_hashChildren(t *testing.T) {
 }
 
 func TestBranchNode_hashChildrenEmptyNode(t *testing.T) {
+	t.Parallel()
 	bn := &branchNode{}
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -150,6 +164,7 @@ func TestBranchNode_hashChildrenEmptyNode(t *testing.T) {
 }
 
 func TestBranchNode_hashChildrenNilNode(t *testing.T) {
+	t.Parallel()
 	var bn *branchNode
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -158,18 +173,20 @@ func TestBranchNode_hashChildrenNilNode(t *testing.T) {
 }
 
 func TestBranchNode_hashChildrenCollapsedNode(t *testing.T) {
-	_, collapsedBn := getTestBnAndCollapsedBn()
+	t.Parallel()
+	_, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
 	err := collapsedBn.hashChildren(marsh, hasher)
 	assert.Nil(t, err)
 
-	_, collapsedBn2 := getTestBnAndCollapsedBn()
+	_, collapsedBn2 := getBnAndCollapsedBn()
 	assert.Equal(t, collapsedBn2, collapsedBn)
 }
 
 func TestBranchNode_hashNode(t *testing.T) {
-	_, collapsedBn := getTestBnAndCollapsedBn()
+	t.Parallel()
+	_, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
 	expectedHash, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
@@ -179,6 +196,7 @@ func TestBranchNode_hashNode(t *testing.T) {
 }
 
 func TestBranchNode_hashNodeEmptyNode(t *testing.T) {
+	t.Parallel()
 	bn := &branchNode{}
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -188,6 +206,7 @@ func TestBranchNode_hashNodeEmptyNode(t *testing.T) {
 }
 
 func TestBranchNode_hashNodeNilNode(t *testing.T) {
+	t.Parallel()
 	var bn *branchNode
 	marsh, hasher := getTestMarshAndHasher()
 
@@ -197,8 +216,9 @@ func TestBranchNode_hashNodeNilNode(t *testing.T) {
 }
 
 func TestBranchNode_commit(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, collapsedBn := getTestBnAndCollapsedBn()
+	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
 	hash, _ := encodeNodeAndGetHash(collapsedBn, marsh, hasher)
@@ -213,6 +233,7 @@ func TestBranchNode_commit(t *testing.T) {
 }
 
 func TestBranchNode_commitEmptyNode(t *testing.T) {
+	t.Parallel()
 	bn := &branchNode{}
 	db, _ := memorydb.New()
 	marsh, hasher := getTestMarshAndHasher()
@@ -222,6 +243,7 @@ func TestBranchNode_commitEmptyNode(t *testing.T) {
 }
 
 func TestBranchNode_commitNilNode(t *testing.T) {
+	t.Parallel()
 	var bn *branchNode
 	db, _ := memorydb.New()
 	marsh, hasher := getTestMarshAndHasher()
@@ -231,7 +253,8 @@ func TestBranchNode_commitNilNode(t *testing.T) {
 }
 
 func TestBranchNode_getEncodedNode(t *testing.T) {
-	bn, _ := getTestBnAndCollapsedBn()
+	t.Parallel()
+	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
 	expectedEncodedNode, _ := marsh.Marshal(bn)
@@ -243,6 +266,7 @@ func TestBranchNode_getEncodedNode(t *testing.T) {
 }
 
 func TestBranchNode_getEncodedNodeEmpty(t *testing.T) {
+	t.Parallel()
 	bn := &branchNode{}
 	marsh, _ := getTestMarshAndHasher()
 
@@ -252,6 +276,7 @@ func TestBranchNode_getEncodedNodeEmpty(t *testing.T) {
 }
 
 func TestBranchNode_getEncodedNodeNil(t *testing.T) {
+	t.Parallel()
 	var bn *branchNode
 	marsh, _ := getTestMarshAndHasher()
 
@@ -261,8 +286,9 @@ func TestBranchNode_getEncodedNodeNil(t *testing.T) {
 }
 
 func TestBranchNode_resolveCollapsed(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, collapsedBn := getTestBnAndCollapsedBn()
+	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 
 	bn.setHash(marsh, hasher)
@@ -275,6 +301,7 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 }
 
 func TestBranchNode_resolveCollapsedEmptyNode(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
 	bn := &branchNode{}
 	marsh, _ := getTestMarshAndHasher()
@@ -284,6 +311,7 @@ func TestBranchNode_resolveCollapsedEmptyNode(t *testing.T) {
 }
 
 func TestBranchNode_resolveCollapsedENilNode(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
 	var bn *branchNode
 	marsh, _ := getTestMarshAndHasher()
@@ -293,8 +321,9 @@ func TestBranchNode_resolveCollapsedENilNode(t *testing.T) {
 }
 
 func TestBranchNode_resolveCollapsedPosOutOfRange(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, _ := getTestBnAndCollapsedBn()
+	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
 	err := bn.resolveCollapsed(17, db, marsh)
@@ -302,7 +331,8 @@ func TestBranchNode_resolveCollapsedPosOutOfRange(t *testing.T) {
 }
 
 func TestBranchNode_isCollapsed(t *testing.T) {
-	bn, collapsedBn := getTestBnAndCollapsedBn()
+	t.Parallel()
+	bn, collapsedBn := getBnAndCollapsedBn()
 
 	assert.True(t, collapsedBn.isCollapsed())
 	assert.False(t, bn.isCollapsed())
@@ -312,8 +342,9 @@ func TestBranchNode_isCollapsed(t *testing.T) {
 }
 
 func TestBranchNode_tryGet(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, _ := getTestBnAndCollapsedBn()
+	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
 	key := []byte{2, 100, 111, 103}
@@ -323,8 +354,9 @@ func TestBranchNode_tryGet(t *testing.T) {
 }
 
 func TestBranchNode_tryGetEmptyKey(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, _ := getTestBnAndCollapsedBn()
+	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
 	var key []byte
@@ -334,8 +366,9 @@ func TestBranchNode_tryGetEmptyKey(t *testing.T) {
 }
 
 func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, _ := getTestBnAndCollapsedBn()
+	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
 	key := []byte{100, 111, 103}
@@ -345,8 +378,9 @@ func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
 }
 
 func TestBranchNode_tryGetNilChild(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, _ := getTestBnAndCollapsedBn()
+	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
 	key := []byte{3}
@@ -356,8 +390,9 @@ func TestBranchNode_tryGetNilChild(t *testing.T) {
 }
 
 func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, collapsedBn := getTestBnAndCollapsedBn()
+	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 	bn.setHash(marsh, hasher)
 	bn.commit(db, marsh, hasher)
@@ -369,6 +404,7 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 }
 
 func TestBranchNode_tryGetEmptyNode(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
 	bn := &branchNode{}
 	marsh, _ := getTestMarshAndHasher()
@@ -380,6 +416,7 @@ func TestBranchNode_tryGetEmptyNode(t *testing.T) {
 }
 
 func TestBranchNode_tryGetNilNode(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
 	var bn *branchNode
 	marsh, _ := getTestMarshAndHasher()
@@ -391,8 +428,9 @@ func TestBranchNode_tryGetNilNode(t *testing.T) {
 }
 
 func TestBranchNode_insert(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, _ := getTestBnAndCollapsedBn()
+	bn, _ := getBnAndCollapsedBn()
 	node := &leafNode{Key: []byte{0, 2, 3}, Value: []byte("dogs")}
 	marsh, _ := getTestMarshAndHasher()
 
@@ -404,8 +442,9 @@ func TestBranchNode_insert(t *testing.T) {
 }
 
 func TestBranchNode_insertEmptyKey(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, _ := getTestBnAndCollapsedBn()
+	bn, _ := getBnAndCollapsedBn()
 	node := &leafNode{Key: []byte{}, Value: []byte("dogs")}
 	marsh, _ := getTestMarshAndHasher()
 
@@ -416,8 +455,9 @@ func TestBranchNode_insertEmptyKey(t *testing.T) {
 }
 
 func TestBranchNode_insertChildPosOutOfRange(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, _ := getTestBnAndCollapsedBn()
+	bn, _ := getBnAndCollapsedBn()
 	node := &leafNode{Key: []byte{100, 111, 103}, Value: []byte("dogs")}
 	marsh, _ := getTestMarshAndHasher()
 
@@ -428,8 +468,9 @@ func TestBranchNode_insertChildPosOutOfRange(t *testing.T) {
 }
 
 func TestBranchNode_insertCollapsedNode(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, collapsedBn := getTestBnAndCollapsedBn()
+	bn, collapsedBn := getBnAndCollapsedBn()
 	node := &leafNode{Key: []byte{2, 100, 111, 103}, Value: []byte("dogs")}
 	marsh, hasher := getTestMarshAndHasher()
 	bn.setHash(marsh, hasher)
@@ -443,6 +484,7 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 }
 
 func TestBranchNode_insertInNilNode(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
 	var bn *branchNode
 	node := &leafNode{Key: []byte{0, 2, 3}, Value: []byte("dogs")}
@@ -455,8 +497,9 @@ func TestBranchNode_insertInNilNode(t *testing.T) {
 }
 
 func TestBranchNode_delete(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, _ := getTestBnAndCollapsedBn()
+	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
 	var children [nrOfChildren]node
@@ -471,6 +514,7 @@ func TestBranchNode_delete(t *testing.T) {
 }
 
 func TestBranchNode_deleteEmptyNode(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
 	bn := &branchNode{}
 	marsh, _ := getTestMarshAndHasher()
@@ -482,6 +526,7 @@ func TestBranchNode_deleteEmptyNode(t *testing.T) {
 }
 
 func TestBranchNode_deleteNilNode(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
 	var bn *branchNode
 	marsh, _ := getTestMarshAndHasher()
@@ -493,8 +538,9 @@ func TestBranchNode_deleteNilNode(t *testing.T) {
 }
 
 func TestBranchNode_deleteEmptykey(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, _ := getTestBnAndCollapsedBn()
+	bn, _ := getBnAndCollapsedBn()
 	marsh, _ := getTestMarshAndHasher()
 
 	dirty, newBn, err := bn.delete([]byte{}, db, marsh)
@@ -504,8 +550,9 @@ func TestBranchNode_deleteEmptykey(t *testing.T) {
 }
 
 func TestBranchNode_deleteCollapsedNode(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
-	bn, collapsedBn := getTestBnAndCollapsedBn()
+	bn, collapsedBn := getBnAndCollapsedBn()
 	marsh, hasher := getTestMarshAndHasher()
 	bn.setHash(marsh, hasher)
 	bn.commit(db, marsh, hasher)
@@ -518,6 +565,7 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 }
 
 func TestBranchNode_deleteAndReduceBn(t *testing.T) {
+	t.Parallel()
 	db, _ := memorydb.New()
 	marsh, _ := getTestMarshAndHasher()
 
@@ -534,6 +582,7 @@ func TestBranchNode_deleteAndReduceBn(t *testing.T) {
 }
 
 func TestBranchNode_reduceNode(t *testing.T) {
+	t.Parallel()
 	var children [nrOfChildren]node
 	children[2] = &leafNode{Key: []byte("dog"), Value: []byte("dog"), dirty: true}
 	bn := &branchNode{children: children, dirty: true}
@@ -542,14 +591,52 @@ func TestBranchNode_reduceNode(t *testing.T) {
 	assert.Equal(t, en, node)
 }
 
+func TestBranchNode_nextChild(t *testing.T) {
+	t.Parallel()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, hasher := getTestMarshAndHasher()
+	bn.setHash(marsh, hasher)
+
+	state := &nodeIteratorState{
+		hash:    bn.getHash(),
+		node:    bn,
+		parent:  nil,
+		index:   -1,
+		pathlen: 0,
+	}
+	expectedState := &nodeIteratorState{
+		hash:    bn.children[2].getHash(),
+		node:    bn.children[2],
+		parent:  bn.getHash(),
+		index:   -1,
+		pathlen: 0,
+	}
+	expectedPath := []byte{2, 100, 111, 103}
+
+	newState, newPath, ok := bn.nextChild(state, nil)
+	assert.Equal(t, expectedState, newState)
+	assert.Equal(t, expectedPath, newPath)
+	assert.True(t, ok)
+}
+
+func TestBranchNode_getChildPosition(t *testing.T) {
+	t.Parallel()
+	bn, _ := getBnAndCollapsedBn()
+	nr, pos := getChildPosition(bn)
+	assert.Equal(t, 3, nr)
+	assert.Equal(t, 13, pos)
+}
+
 func TestBranchNode_clone(t *testing.T) {
-	bn, _ := getTestBnAndCollapsedBn()
+	t.Parallel()
+	bn, _ := getBnAndCollapsedBn()
 	clone := bn.clone()
 	assert.False(t, bn == clone)
 	assert.Equal(t, bn, clone)
 }
 
 func TestBranchNode_isEmptyOrNil(t *testing.T) {
+	t.Parallel()
 	bn := &branchNode{}
 	assert.Equal(t, ErrEmptyNode, bn.isEmptyOrNil())
 

@@ -10,7 +10,6 @@ func (bn *branchNode) getHash() []byte {
 }
 
 func (bn *branchNode) isDirty() bool {
-
 	return bn.dirty
 }
 
@@ -223,6 +222,9 @@ func (bn *branchNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.M
 		return false, nil, ErrValueTooShort
 	}
 	childPos := key[firstByte]
+	if childPosOutOfRange(childPos) {
+		return false, nil, ErrChildPosOutOfRange
+	}
 	key = key[1:]
 	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
 	if err != nil {
@@ -280,6 +282,16 @@ func (bn *branchNode) nextChild(previousState *nodeIteratorState, path []byte) (
 		}
 	}
 	return previousState, path, false
+}
+
+func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {
+	for i := range &n.children {
+		if n.children[i] != nil || n.EncodedChildren[i] != nil {
+			nrOfChildren++
+			childPos = i
+		}
+	}
+	return
 }
 
 func (bn *branchNode) clone() *branchNode {
