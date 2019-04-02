@@ -386,7 +386,7 @@ func createNodes(
 				atomic.AddInt32(&testNode.headersRecv, 1)
 				testNode.mutHeaders.Lock()
 				testNode.headersHashes = append(testNode.headersHashes, key)
-				header, _ := testNode.dPool.Headers().SearchFirstData(key)
+				header, _ := testNode.dPool.Headers().Peek(key)
 				testNode.headers = append(testNode.headers, header.(data.HeaderHandler))
 				testNode.mutHeaders.Unlock()
 			})

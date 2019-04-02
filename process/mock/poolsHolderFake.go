@@ -10,7 +10,7 @@ import (
 
 type PoolsHolderFake struct {
 	transactions      data.ShardedDataCacherNotifier
-	headers           data.ShardedDataCacherNotifier
+	headers           storage.Cacher
 	metaBlocks        storage.Cacher
 	hdrNonces         data.Uint64Cacher
 	miniBlocks        storage.Cacher
@@ -20,7 +20,7 @@ type PoolsHolderFake struct {
 func NewPoolsHolderFake() *PoolsHolderFake {
 	phf := &PoolsHolderFake{}
 	phf.transactions, _ = shardedData.NewShardedData(storage.CacheConfig{Size: 10000, Type: storage.LRUCache})
-	phf.headers, _ = shardedData.NewShardedData(storage.CacheConfig{Size: 10000, Type: storage.LRUCache})
+	phf.headers, _ = storage.NewCache(storage.LRUCache, 10000)
 	phf.metaBlocks, _ = storage.NewCache(storage.LRUCache, 10000)
 	cacheHdrNonces, _ := storage.NewCache(storage.LRUCache, 10000)
 	phf.hdrNonces, _ = dataPool.NewNonceToHashCacher(
@@ -36,7 +36,7 @@ func (phf *PoolsHolderFake) Transactions() data.ShardedDataCacherNotifier {
 	return phf.transactions
 }
 
-func (phf *PoolsHolderFake) Headers() data.ShardedDataCacherNotifier {
+func (phf *PoolsHolderFake) Headers() storage.Cacher {
 	return phf.headers
 }
 
