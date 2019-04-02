@@ -1091,14 +1091,15 @@ func (bp *blockProcessor) displayLogInfo(
 	}
 
 	txCounterMutex.Lock()
-	tblString = tblString + fmt.Sprintf("\nCurrent shard ID: %d of %d\n",
-		bp.shardCoordinator.SelfId(), bp.shardCoordinator.NumberOfShards())
-	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\nTotal txs "+
-		"processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n",
+	tblString = tblString + fmt.Sprintf("\nHeader hash: %s\n\n"+
+		"Total txs processed until now: %d. Total txs processed for this block: %d. Total txs remained in pool: %d\n\n"+
+		"Total shards: %d. Current shard id: %d\n",
 		toB64(headerHash),
 		txsTotalProcessed,
 		txsCurrentBlockProcessed,
-		bp.getNrTxsWithDst(header.ShardId))
+		bp.getNrTxsWithDst(header.ShardId),
+		bp.shardCoordinator.NumberOfShards(),
+		bp.shardCoordinator.SelfId())
 	txCounterMutex.Unlock()
 
 	log.Info(tblString)
