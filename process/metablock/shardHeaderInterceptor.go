@@ -2,8 +2,8 @@ package metablock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -12,11 +12,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
+var log = logger.NewDefaultLogger()
+
 // ShardHeaderInterceptor represents an interceptor used for shard block headers by metachain nodes
 type ShardHeaderInterceptor struct {
-	*messageChecker
 	marshalizer      marshal.Marshalizer
-	headers          data.ShardedDataCacherNotifier
+	headers          storage.Cacher
 	storer           storage.Storer
 	multiSigVerifier crypto.MultiSigVerifier
 	hasher           hashing.Hasher
@@ -27,7 +28,7 @@ type ShardHeaderInterceptor struct {
 // Fetched block headers will be placed in a data pool
 func NewShardHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
-	headers data.ShardedDataCacherNotifier,
+	headers storage.Cacher,
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
@@ -53,7 +54,6 @@ func NewShardHeaderInterceptor(
 	}
 
 	hdrIntercept := &ShardHeaderInterceptor{
-		messageChecker:   &messageChecker{},
 		marshalizer:      marshalizer,
 		headers:          headers,
 		storer:           storer,
@@ -68,13 +68,15 @@ func NewShardHeaderInterceptor(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (shi *ShardHeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	err := shi.checkMessage(message)
-	if err != nil {
-		return err
+	if message == nil {
+		return process.ErrNilMessage
+	}
+	if message.Data() == nil {
+		return process.ErrNilDataToProcess
 	}
 
 	hdrIntercepted := block.NewInterceptedHeader(shi.multiSigVerifier)
-	err = shi.marshalizer.Unmarshal(hdrIntercepted, message.Data())
+	err := shi.marshalizer.Unmarshal(hdrIntercepted, message.Data())
 	if err != nil {
 		return err
 	}
@@ -98,6 +100,6 @@ func (shi *ShardHeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P
 		return nil
 	}
 
-	shi.headers.AddData(hashWithSig, hdrIntercepted.GetHeader(), hdrIntercepted.Shard())
+	_, _ = shi.headers.HasOrAdd(hashWithSig, hdrIntercepted.GetHeader())
 	return nil
 }

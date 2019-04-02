@@ -27,7 +27,7 @@ const sleepTime = time.Duration(5 * time.Millisecond)
 
 // Bootstrap implements the boostrsap mechanism
 type Bootstrap struct {
-	headers          data.ShardedDataCacherNotifier
+	headers          storage.Cacher
 	headersNonces    data.Uint64Cacher
 	miniBlocks       storage.Cacher
 	blkc             data.ChainHandler
@@ -248,7 +248,7 @@ func (boot *Bootstrap) getHeader(hash []byte) *block.Header {
 }
 
 func (boot *Bootstrap) getHeaderFromPool(hash []byte) *block.Header {
-	hdr, ok := boot.headers.SearchFirstData(hash)
+	hdr, ok := boot.headers.Peek(hash)
 
 	if !ok {
 		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
@@ -511,7 +511,7 @@ func (boot *Bootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.Header 
 		return nil
 	}
 
-	hdr, ok := boot.headers.SearchFirstData(hash)
+	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
 		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
@@ -646,8 +646,8 @@ func (boot *Bootstrap) forkChoice() error {
 func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore storage.Storer) {
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 	boot.headersNonces.Remove(header.Nonce)
-	boot.headers.RemoveData(hash, header.ShardId)
-	boot.forkDetector.RemoveProcessedHeader(header.Nonce)
+	boot.headers.Remove(hash)
+	_ = boot.forkDetector.RemoveProcessedHeader(header.Nonce)
 	_ = headerStore.Remove(hash)
 }
 
@@ -695,7 +695,7 @@ func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
 	if !isEmpty(currentHeader) {
 		hash, _ := boot.headersNonces.Get(header.Nonce)
 		boot.headersNonces.Remove(header.Nonce)
-		boot.headers.RemoveData(hash, header.ShardId)
+		boot.headers.Remove(hash)
 	}
 }
 

@@ -48,8 +48,8 @@ func createDataPools() data.PoolsHolder {
 	pools.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
 	}
 	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		return &mock.Uint64CacherStub{}
@@ -381,11 +381,8 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverMiniBlocks := noOfShards
 	numResolverPeerChanges := 1
 	numResolverMetachainShardHeaders := 1
+	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverPeerChanges +
+		numResolverMetachainShardHeaders
 
-	assert.Equal(t,
-		numResolverTxs+
-			numResolverHeaders+
-			numResolverMiniBlocks+
-			numResolverPeerChanges+
-			numResolverMetachainShardHeaders, container.Len())
+	assert.Equal(t, totalResolvers, container.Len())
 }

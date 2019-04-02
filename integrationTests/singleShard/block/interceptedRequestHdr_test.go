@@ -75,14 +75,14 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithMemMessenger(t *testing.T) {
 	hdrHash := hasher.Compute(string(hdrBuff))
 
 	//Step 2. resolver has the header
-	dPoolResolver.Headers().AddData(hdrHash, &hdr, 0)
+	dPoolResolver.Headers().HasOrAdd(hdrHash, &hdr)
 	dPoolResolver.HeadersNonces().HasOrAdd(0, hdrHash)
 
 	//Step 3. wire up a received handler
 	chanDone := make(chan bool)
 
 	dPoolRequestor.Headers().RegisterHandler(func(key []byte) {
-		hdrStored, _ := dPoolRequestor.Headers().ShardDataStore(0).Get(key)
+		hdrStored, _ := dPoolRequestor.Headers().Peek(key)
 
 		if reflect.DeepEqual(hdrStored, &hdr) && hdr.Signature != nil {
 			chanDone <- true

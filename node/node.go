@@ -174,7 +174,6 @@ func (n *Node) CreateShardedStores() error {
 
 	for i := uint32(0); i < shards; i++ {
 		transactionsDataStore.CreateShardStore(i)
-		headersDataStore.CreateShardStore(i)
 	}
 
 	return nil
@@ -406,10 +405,6 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 			identifier,
 			transactions[i],
 		)
-
-		if err != nil {
-			return errors.New("could not broadcast transaction: " + err.Error())
-		}
 	}
 
 	return nil

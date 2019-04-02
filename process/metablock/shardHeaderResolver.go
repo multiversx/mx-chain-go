@@ -3,7 +3,6 @@ package metablock
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -14,7 +13,7 @@ import (
 // used by metachain nodes
 type ShardHeaderResolver struct {
 	process.TopicResolverSender
-	headers     data.ShardedDataCacherNotifier
+	headers     storage.Cacher
 	hdrStorage  storage.Storer
 	marshalizer marshal.Marshalizer
 }
@@ -22,7 +21,7 @@ type ShardHeaderResolver struct {
 // NewShardHeaderResolver creates a new shard header resolver
 func NewShardHeaderResolver(
 	senderResolver process.TopicResolverSender,
-	headers data.ShardedDataCacherNotifier,
+	headers storage.Cacher,
 	hdrStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 ) (*ShardHeaderResolver, error) {
@@ -58,12 +57,10 @@ func (shdrRes *ShardHeaderResolver) ProcessReceivedMessage(message p2p.MessageP2
 	if err != nil {
 		return err
 	}
-
 	buff, err := shdrRes.resolveHdrRequest(rd)
 	if err != nil {
 		return err
 	}
-
 	if buff == nil {
 		log.Debug(fmt.Sprintf("missing data: %v", rd))
 		return nil
@@ -80,10 +77,9 @@ func (shdrRes *ShardHeaderResolver) resolveHdrRequest(rd *process.RequestData) (
 	var buff []byte
 	var err error
 
-	switch rd.Type {
-	case process.HashType:
+	if rd.Type == process.HashType {
 		buff, err = shdrRes.resolveHeaderFromHash(rd.Value)
-	default:
+	} else {
 		return nil, process.ErrResolveTypeUnknown
 	}
 
@@ -91,7 +87,7 @@ func (shdrRes *ShardHeaderResolver) resolveHdrRequest(rd *process.RequestData) (
 }
 
 func (shdrRes *ShardHeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) {
-	value, ok := shdrRes.headers.SearchFirstData(key)
+	value, ok := shdrRes.headers.Peek(key)
 
 	if !ok {
 		return shdrRes.hdrStorage.Get(key)

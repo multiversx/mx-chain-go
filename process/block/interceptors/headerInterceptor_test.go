@@ -18,7 +18,7 @@ import (
 func TestNewHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 
@@ -57,7 +57,7 @@ func TestNewHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 func TestNewHeaderInterceptor_NilHeadersNoncesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	storer := &mock.StorerStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
@@ -76,7 +76,7 @@ func TestNewHeaderInterceptor_NilHeadersNoncesShouldErr(t *testing.T) {
 func TestNewHeaderInterceptor_NilStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 
 	hi, err := interceptors.NewHeaderInterceptor(
@@ -95,7 +95,7 @@ func TestNewHeaderInterceptor_NilStorerShouldErr(t *testing.T) {
 func TestNewHeaderInterceptor_NilMultiSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 
@@ -115,7 +115,7 @@ func TestNewHeaderInterceptor_NilMultiSignerShouldErr(t *testing.T) {
 func TestNewHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 
@@ -135,7 +135,7 @@ func TestNewHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
 func TestNewHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 
@@ -155,7 +155,7 @@ func TestNewHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 
@@ -177,7 +177,7 @@ func TestNewHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 
@@ -196,7 +196,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.
 func TestHeaderInterceptor_ProcessReceivedMessageNilDataToProcessShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 
@@ -219,7 +219,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarshaling
 
 	errMarshalizer := errors.New("marshalizer error")
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 
@@ -246,7 +246,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarshaling
 func TestHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	headersNonces := &mock.Uint64CacherStub{}
 	storer := &mock.StorerStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -279,7 +279,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 
 	testedNonce := uint64(67)
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
 
 	headersNonces := &mock.Uint64CacherStub{}
@@ -321,11 +321,12 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 		DataField: buff,
 	}
 
-	headers.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+	headers.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
 		if bytes.Equal(aaaHash, key) {
 			wasCalled++
 		}
+		return false, false
 	}
 
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))
@@ -341,7 +342,7 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 
 	testedNonce := uint64(67)
 
-	headers := &mock.ShardedDataStub{}
+	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
 
 	headersNonces := &mock.Uint64CacherStub{}
@@ -383,11 +384,12 @@ func TestHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t *test
 		DataField: buff,
 	}
 
-	headers.AddDataCalled = func(key []byte, data interface{}, destShardID uint32) {
+	headers.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 		aaaHash := mock.HasherMock{}.Compute(string(buff))
 		if bytes.Equal(aaaHash, key) {
 			wasCalled++
 		}
+		return false, false
 	}
 
 	assert.Nil(t, hi.ProcessReceivedMessage(msg))

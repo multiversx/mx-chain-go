@@ -16,7 +16,7 @@ import (
 type HeaderInterceptor struct {
 	*messageChecker
 	marshalizer      marshal.Marshalizer
-	headers          data.ShardedDataCacherNotifier
+	headers          storage.Cacher
 	storer           storage.Storer
 	headersNonces    data.Uint64Cacher
 	multiSigVerifier crypto.MultiSigVerifier
@@ -28,37 +28,32 @@ type HeaderInterceptor struct {
 // Fetched block headers will be placed in a data pool
 func NewHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
-	headers data.ShardedDataCacherNotifier,
+	headers storage.Cacher,
 	headersNonces data.Uint64Cacher,
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
 ) (*HeaderInterceptor, error) {
+
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
 	}
-
 	if headers == nil {
 		return nil, process.ErrNilHeadersDataPool
 	}
-
 	if headersNonces == nil {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
-
 	if storer == nil {
 		return nil, process.ErrNilHeadersStorage
 	}
-
 	if multiSigVerifier == nil {
 		return nil, process.ErrNilMultiSigVerifier
 	}
-
 	if hasher == nil {
 		return nil, process.ErrNilHasher
 	}
-
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
@@ -111,7 +106,11 @@ func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) erro
 		return nil
 	}
 
-	hi.headers.AddData(hashWithSig, hdrIntercepted.GetHeader(), hdrIntercepted.Shard())
+	found, _ := hi.headers.HasOrAdd(hashWithSig, hdrIntercepted.GetHeader())
+	if found {
+		return nil
+	}
+
 	if hi.checkHeaderForCurrentShard(hdrIntercepted) {
 		_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hashWithSig)
 	}

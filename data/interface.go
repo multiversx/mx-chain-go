@@ -64,7 +64,7 @@ type Uint64Cacher interface {
 // PoolsHolder defines getters for data pools
 type PoolsHolder interface {
 	Transactions() ShardedDataCacherNotifier
-	Headers() ShardedDataCacherNotifier
+	Headers() storage.Cacher
 	HeadersNonces() Uint64Cacher
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher

@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -817,8 +818,8 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return nil
 	}
-	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+	dataPool.HeadersCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
 	}
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -844,7 +845,7 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	dataPool.HeadersCalled = func() storage.Cacher {
 		return nil
 	}
 	n, _ := node.NewNode(
@@ -875,15 +876,11 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	txShardedData.CreateShardStoreCalled = func(destShardID uint32) {
 		txShardedDataResult = destShardID
 	}
-	var headerShardedDataResult uint32
-	headerShardedData := &mock.ShardedDataStub{}
-	headerShardedData.CreateShardStoreCalled = func(destShardID uint32) {
-		headerShardedDataResult = destShardID
-	}
+	headerShardedData := &mock.CacherStub{}
 	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return txShardedData
 	}
-	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	dataPool.HeadersCalled = func() storage.Cacher {
 		return headerShardedData
 	}
 	n, _ := node.NewNode(
@@ -901,7 +898,6 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	err = n.CreateShardedStores()
 	assert.Nil(t, err)
 	assert.Equal(t, txShardedDataResult, nrOfShards-1)
-	assert.Equal(t, headerShardedDataResult, nrOfShards-1)
 }
 
 func getMessenger() *mock.MessengerStub {

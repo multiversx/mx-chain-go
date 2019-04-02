@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,7 +50,7 @@ func TestNewHeaderResolver_NilHeadersPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createDataPool()
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools.HeadersCalled = func() storage.Cacher {
 		return nil
 	}
 
@@ -187,10 +188,10 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 	sendWasCalled := false
 
 	pools := createDataPool()
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		headers := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		headers := &mock.CacherStub{}
 
-		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(requestedData, key) {
 				searchWasCalled = true
 				return make([]byte, 0), true
@@ -231,10 +232,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 	errExpected := errors.New("MarshalizerMock generic error")
 
 	pools := createDataPool()
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		headers := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		headers := &mock.CacherStub{}
 
-		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(requestedData, key) {
 				return resolvedData, true
 			}
@@ -276,10 +277,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 	requestedData := []byte("aaaa")
 
 	pools := createDataPool()
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		headers := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		headers := &mock.CacherStub{}
 
-		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		}
 
@@ -326,10 +327,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageCheckRetError
 	requestedData := []byte("aaaa")
 
 	pools := createDataPool()
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		headers := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		headers := &mock.CacherStub{}
 
-		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		}
 
@@ -424,10 +425,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	wasSent := false
 
 	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		headers := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		headers := &mock.CacherStub{}
 
-		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(key, []byte("aaaa")) {
 				wasResolved = true
 				return make([]byte, 0), true
@@ -485,10 +486,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	wasSend := false
 
 	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		headers := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		headers := &mock.CacherStub{}
 
-		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		}
 
@@ -550,10 +551,10 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	errExpected := errors.New("expected error")
 
 	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		headers := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		headers := &mock.CacherStub{}
 
-		headers.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		}
 

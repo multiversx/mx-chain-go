@@ -74,7 +74,7 @@ func (rcf *resolversContainerFactory) Create() (process.ResolversContainer, erro
 		return nil, err
 	}
 
-	keys, resolverSlice, err = rcf.generateHdrResolvers()
+	keys, resolverSlice, err = rcf.generateHdrResolver()
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (rcf *resolversContainerFactory) Create() (process.ResolversContainer, erro
 		return nil, err
 	}
 
-	keys, resolverSlice, err = rcf.generatePeerChBlockBodyResolvers()
+	keys, resolverSlice, err = rcf.generatePeerChBlockBodyResolver()
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (rcf *resolversContainerFactory) Create() (process.ResolversContainer, erro
 		return nil, err
 	}
 
-	keys, resolverSlice, err = rcf.generateMetachainShardHeaderResolvers()
+	keys, resolverSlice, err = rcf.generateMetachainShardHeaderResolver()
 	if err != nil {
 		return nil, err
 	}
@@ -181,34 +181,22 @@ func (rcf *resolversContainerFactory) createOneTxResolver(identifier string) (pr
 		false)
 }
 
-//------- Hdr resolvers
+//------- Hdr resolver
 
-func (rcf *resolversContainerFactory) generateHdrResolvers() ([]string, []process.Resolver, error) {
+func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []process.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
 	//only one intrashard header topic
 	identifierHdr := HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-
-	resolver, err := rcf.createOneHdrResolver(identifierHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return []string{identifierHdr}, []process.Resolver{resolver}, nil
-}
-
-func (rcf *resolversContainerFactory) createOneHdrResolver(identifier string) (process.Resolver, error) {
 	hdrStorer := rcf.blockchain.GetStorer(data.BlockHeaderUnit)
-
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
-		identifier,
+		identifierHdr,
 		rcf.marshalizer,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
 	resolver, err := resolvers.NewHeaderResolver(
 		resolverSender,
 		rcf.dataPools,
@@ -217,23 +205,25 @@ func (rcf *resolversContainerFactory) createOneHdrResolver(identifier string) (p
 		rcf.uint64ByteSliceConverter,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
 	//add on the request topic
-	return rcf.createTopicAndAssignHandler(
-		identifier+resolverSender.TopicRequestSuffix(),
+	_, err = rcf.createTopicAndAssignHandler(
+		identifierHdr+resolverSender.TopicRequestSuffix(),
 		resolver,
 		false)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []string{identifierHdr}, []process.Resolver{resolver}, nil
 }
 
 //------- MiniBlocks resolvers
 
 func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, []process.Resolver, error) {
 	shardC := rcf.shardCoordinator
-
 	noOfShards := shardC.NumberOfShards()
-
 	keys := make([]string, noOfShards)
 	resolverSlice := make([]process.Resolver, noOfShards)
 
@@ -283,13 +273,35 @@ func (rcf *resolversContainerFactory) createOneMiniBlocksResolver(identifier str
 
 //------- PeerChBlocks resolvers
 
-func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolvers() ([]string, []process.Resolver, error) {
+func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolver() ([]string, []process.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
 	//only one intrashard peer change blocks topic
 	identifierPeerCh := PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	peerBlockBodyStorer := rcf.blockchain.GetStorer(data.PeerChangesUnit)
 
-	resolver, err := rcf.createOnePeerChBlockBodyResolver(identifierPeerCh)
+	resolverSender, err := topicResolverSender.NewTopicResolverSender(
+		rcf.messenger,
+		identifierPeerCh,
+		rcf.marshalizer,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	resolver, err := resolvers.NewGenericBlockBodyResolver(
+		resolverSender,
+		rcf.dataPools.MiniBlocks(),
+		peerBlockBodyStorer,
+		rcf.marshalizer,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+	//add on the request topic
+	_, err = rcf.createTopicAndAssignHandler(
+		identifierPeerCh+resolverSender.TopicRequestSuffix(),
+		resolver,
+		false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -297,63 +309,22 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolvers() ([]stri
 	return []string{identifierPeerCh}, []process.Resolver{resolver}, nil
 }
 
-func (rcf *resolversContainerFactory) createOnePeerChBlockBodyResolver(identifier string) (process.Resolver, error) {
-	peerBlockBodyStorer := rcf.blockchain.GetStorer(data.PeerChangesUnit)
-
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(
-		rcf.messenger,
-		identifier,
-		rcf.marshalizer,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	peerChResolver, err := resolvers.NewGenericBlockBodyResolver(
-		resolverSender,
-		rcf.dataPools.MiniBlocks(),
-		peerBlockBodyStorer,
-		rcf.marshalizer,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	//add on the request topic
-	return rcf.createTopicAndAssignHandler(
-		identifier+resolverSender.TopicRequestSuffix(),
-		peerChResolver,
-		false)
-}
-
 //------- MetachainShardHeaderResolvers
 
-func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolvers() ([]string, []process.Resolver, error) {
+func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]string, []process.Resolver, error) {
 	shardC := rcf.shardCoordinator
 
 	//only one metachain header topic
 	identifierHdr := MetachainShardHeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-
-	resolver, err := rcf.createOneMetachainShardHdrResolver(identifierHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return []string{identifierHdr}, []process.Resolver{resolver}, nil
-}
-
-func (rcf *resolversContainerFactory) createOneMetachainShardHdrResolver(identifier string) (process.Resolver, error) {
 	hdrStorer := rcf.blockchain.GetStorer(data.BlockHeaderUnit)
-
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
-		identifier,
+		identifierHdr,
 		rcf.marshalizer,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
 	resolver, err := metablock.NewShardHeaderResolver(
 		resolverSender,
 		rcf.dataPools.Headers(),
@@ -361,12 +332,16 @@ func (rcf *resolversContainerFactory) createOneMetachainShardHdrResolver(identif
 		rcf.marshalizer,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
 	//add on the request topic
-	return rcf.createTopicAndAssignHandler(
-		identifier+resolverSender.TopicRequestSuffix(),
+	_, err = rcf.createTopicAndAssignHandler(
+		identifierHdr+resolverSender.TopicRequestSuffix(),
 		resolver,
 		false)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return []string{identifierHdr}, []process.Resolver{resolver}, nil
 }

@@ -14,9 +14,7 @@ import (
 
 func createRequestMsg(dataType process.RequestDataType, val []byte) p2p.MessageP2P {
 	marshalizer := &mock.MarshalizerMock{}
-
 	buff, _ := marshalizer.Marshal(&process.RequestData{Type: dataType, Value: val})
-
 	return &mock.P2PMessageMock{DataField: buff}
 }
 
@@ -27,7 +25,7 @@ func TestNewShardHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
 
 	shardHdrRes, err := metablock.NewShardHeaderResolver(
 		nil,
-		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)
@@ -55,7 +53,7 @@ func TestNewShardHeaderResolver_NilHeadersStorageShouldErr(t *testing.T) {
 
 	shardHdrRes, err := metablock.NewShardHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
 		nil,
 		&mock.MarshalizerMock{},
 	)
@@ -69,7 +67,7 @@ func TestNewShardHeaderResolver_NilMarshalizerShouldErr(t *testing.T) {
 
 	shardHdrRes, err := metablock.NewShardHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
 		&mock.StorerStub{},
 		nil,
 	)
@@ -83,7 +81,7 @@ func TestNewShardHeaderResolver_OkValsShouldWork(t *testing.T) {
 
 	shardHdrRes, err := metablock.NewShardHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)
@@ -99,7 +97,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.
 
 	shardHdrRes, _ := metablock.NewShardHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)
@@ -113,7 +111,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t
 
 	shardHdrRes, _ := metablock.NewShardHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)
@@ -127,12 +125,10 @@ func TestShardHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAn
 	t.Parallel()
 
 	requestedData := []byte("aaaa")
-
 	searchWasCalled := false
 	sendWasCalled := false
-
-	headers := &mock.ShardedDataStub{
-		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+	headers := &mock.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(requestedData, key) {
 				searchWasCalled = true
 				return make([]byte, 0), true
@@ -141,7 +137,6 @@ func TestShardHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAn
 		},
 	}
 	marshalizer := &mock.MarshalizerMock{}
-
 	shardHdrRes, _ := metablock.NewShardHeaderResolver(
 		&mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer p2p.PeerID) error {
@@ -165,11 +160,9 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPool
 
 	requestedData := []byte("aaaa")
 	resolvedData := []byte("bbbb")
-
 	errExpected := errors.New("MarshalizerMock generic error")
-
-	headers := &mock.ShardedDataStub{
-		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+	headers := &mock.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(requestedData, key) {
 				return resolvedData, true
 			}
@@ -185,7 +178,6 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPool
 			return marshalizerMock.Unmarshal(obj, buff)
 		},
 	}
-
 	shardHdrRes, _ := metablock.NewShardHeaderResolver(
 		&mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer p2p.PeerID) error {
@@ -205,16 +197,13 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRe
 	t.Parallel()
 
 	requestedData := []byte("aaaa")
-
-	headers := &mock.ShardedDataStub{
-		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+	headers := &mock.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
 	}
-
 	wasGotFromStorage := false
 	wasSent := false
-
 	store := &mock.StorerStub{}
 	store.GetCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal(key, requestedData) {
@@ -224,9 +213,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRe
 
 		return nil, nil
 	}
-
 	marshalizer := &mock.MarshalizerMock{}
-
 	shardHdrRes, _ := metablock.NewShardHeaderResolver(
 		&mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer p2p.PeerID) error {
@@ -249,14 +236,12 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestRetFromStorageCheckRet
 	t.Parallel()
 
 	requestedData := []byte("aaaa")
-
-	headers := &mock.ShardedDataStub{
-		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+	headers := &mock.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		},
 	}
 	errExpected := errors.New("expected error")
-
 	store := &mock.StorerStub{}
 	store.GetCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal(key, requestedData) {
@@ -265,9 +250,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestRetFromStorageCheckRet
 
 		return nil, nil
 	}
-
 	marshalizer := &mock.MarshalizerMock{}
-
 	shardHdrRes, _ := metablock.NewShardHeaderResolver(
 		&mock.TopicResolverSenderStub{},
 		headers,
@@ -284,7 +267,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestNonceTypeShouldErr(t *
 
 	shardHdrRes, _ := metablock.NewShardHeaderResolver(
 		&mock.TopicResolverSenderStub{},
-		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)
@@ -299,9 +282,7 @@ func TestShardHeaderResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	t.Parallel()
 
 	buffRequested := []byte("aaaa")
-
 	wasRequested := false
-
 	shardHdrRes, _ := metablock.NewShardHeaderResolver(
 		&mock.TopicResolverSenderStub{
 			SendOnRequestTopicCalled: func(rd *process.RequestData) error {
@@ -312,7 +293,7 @@ func TestShardHeaderResolver_RequestDataFromHashShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		&mock.ShardedDataStub{},
+		&mock.CacherStub{},
 		&mock.StorerStub{},
 		&mock.MarshalizerMock{},
 	)

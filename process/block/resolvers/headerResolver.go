@@ -17,7 +17,7 @@ var log = logger.NewDefaultLogger()
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
 	process.TopicResolverSender
-	hdrPool        data.ShardedDataCacherNotifier
+	hdrPool        storage.Cacher
 	hdrNonces      data.Uint64Cacher
 	hdrStorage     storage.Storer
 	marshalizer    marshal.Marshalizer
@@ -118,7 +118,7 @@ func (hdrRes *HeaderResolver) resolveHdrRequest(rd *process.RequestData) ([]byte
 }
 
 func (hdrRes *HeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) {
-	value, ok := hdrRes.hdrPool.SearchFirstData(key)
+	value, ok := hdrRes.hdrPool.Peek(key)
 
 	if !ok {
 		return hdrRes.hdrStorage.Get(key)
@@ -148,7 +148,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 	}
 
 	//Step 3. search header by key (hash)
-	value, ok := hdrRes.hdrPool.SearchFirstData(hash)
+	value, ok := hdrRes.hdrPool.Peek(hash)
 	if !ok {
 		return hdrRes.hdrStorage.Get(hash)
 	}
