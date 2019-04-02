@@ -366,3 +366,40 @@ func TestBody_IntegrityAndValidityOK(t *testing.T) {
 
 	assert.Equal(t, nil, body.IntegrityAndValidity())
 }
+
+func TestHeader_GetMiniBlockHeadersWithDstShouldWork(t *testing.T) {
+	hash_0_0 := []byte("hash_0_0")
+	hash_0_1 := []byte("hash_0_1")
+	hash1_0_2 := []byte("hash_0_2")
+	hash2_0_2 := []byte("hash2_0_2")
+
+	hdr := &block.Header{
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			block.MiniBlockHeader{
+				SenderShardID:   0,
+				ReceiverShardID: 0,
+				Hash:            hash_0_0,
+			},
+			block.MiniBlockHeader{
+				SenderShardID:   0,
+				ReceiverShardID: 1,
+				Hash:            hash_0_1,
+			},
+			block.MiniBlockHeader{
+				SenderShardID:   0,
+				ReceiverShardID: 2,
+				Hash:            hash1_0_2,
+			},
+			block.MiniBlockHeader{
+				SenderShardID:   0,
+				ReceiverShardID: 2,
+				Hash:            hash2_0_2,
+			},
+		},
+	}
+
+	hashesWithDest2 := hdr.GetMiniBlockHeadersWithDst(2)
+
+	assert.Equal(t, uint32(0), hashesWithDest2[string(hash1_0_2)])
+	assert.Equal(t, uint32(0), hashesWithDest2[string(hash2_0_2)])
+}

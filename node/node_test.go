@@ -871,10 +871,11 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	nrOfShards := uint32(2)
 	shardCoordinator.SetNoShards(nrOfShards)
 	dataPool := &mock.PoolsHolderStub{}
-	var txShardedDataResult uint32
+
+	var txShardedStores []string
 	txShardedData := &mock.ShardedDataStub{}
-	txShardedData.CreateShardStoreCalled = func(destShardID uint32) {
-		txShardedDataResult = destShardID
+	txShardedData.CreateShardStoreCalled = func(cacherId string) {
+		txShardedStores = append(txShardedStores, cacherId)
 	}
 	headerShardedData := &mock.CacherStub{}
 	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
@@ -897,7 +898,20 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	defer func() { _ = n.Stop() }()
 	err = n.CreateShardedStores()
 	assert.Nil(t, err)
-	assert.Equal(t, txShardedDataResult, nrOfShards-1)
+
+	assert.True(t, containString(process.ShardCacherIdentifier(0, 0), txShardedStores))
+	assert.True(t, containString(process.ShardCacherIdentifier(0, 1), txShardedStores))
+	assert.True(t, containString(process.ShardCacherIdentifier(1, 0), txShardedStores))
+}
+
+func containString(search string, list []string) bool {
+	for _, str := range list {
+		if str == search {
+			return true
+		}
+	}
+
+	return false
 }
 
 func getMessenger() *mock.MessengerStub {
@@ -919,8 +933,8 @@ func getMessenger() *mock.MessengerStub {
 func TestNode_BroadcastBlockShouldFailWhenTxBlockBodyNil(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
-		return make(map[uint32][]byte, 1), nil
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
 
 	_ = n.ApplyOptions(
@@ -947,8 +961,8 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalTxBlockBodyErr(t *testing.T) {
 
 		return []byte("marshalized ok"), nil
 	}
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
-		return make(map[uint32][]byte, 1), nil
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
 
 	_ = n.ApplyOptions(
@@ -981,8 +995,8 @@ func (wr wrongBody) IntegrityAndValidity() error {
 func TestNode_BroadcastBlockShouldFailWhenBlockIsNotGoodType(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
-		return nil, process.ErrWrongTypeAssertion
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+		return nil, nil, process.ErrWrongTypeAssertion
 	}}
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
@@ -999,8 +1013,8 @@ func TestNode_BroadcastBlockShouldFailWhenBlockIsNotGoodType(t *testing.T) {
 func TestNode_BroadcastBlockShouldFailWhenHeaderNil(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
-		return make(map[uint32][]byte, 1), nil
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
@@ -1038,8 +1052,8 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 		return []byte("marshalized ok"), nil
 	}
 
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
-		return make(map[uint32][]byte, 1), nil
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
 
 	_ = n.ApplyOptions(
@@ -1066,8 +1080,8 @@ func TestNode_BroadcastBlockShouldFailWhenMarshalHeaderErr(t *testing.T) {
 func TestNode_BroadcastBlockShouldWorkWithOneShard(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
-		return make(map[uint32][]byte, 0), nil
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+		return make(map[uint32][]byte, 1), make(map[uint32][][]byte, 1), nil
 	}}
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),
@@ -1093,8 +1107,8 @@ func TestNode_BroadcastBlockShouldWorkWithOneShard(t *testing.T) {
 func TestNode_BroadcastBlockShouldWorkMultiShard(t *testing.T) {
 	n, _ := node.NewNode()
 	messenger := getMessenger()
-	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, e error) {
-		return make(map[uint32][]byte, 0), nil
+	bp := &mock.BlockProcessorStub{MarshalizedDataForCrossShardCalled: func(body data.BodyHandler) (bytes map[uint32][]byte, tx map[uint32][][]byte, e error) {
+		return make(map[uint32][]byte, 0), make(map[uint32][][]byte, 1), nil
 	}}
 	_ = n.ApplyOptions(
 		node.WithMessenger(messenger),

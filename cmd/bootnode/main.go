@@ -280,8 +280,24 @@ func createNode(
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	// TODO: Constructor parameters should be changed when node assignment in the sharding package is implemented
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), 0)
+	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
+	if err != nil {
+		return nil, err
+	}
+
+	initialPubKeys := genesisConfig.InitialNodesPubKeys()
+
+	publickKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	selfShardId, err := genesisConfig.GetShardIDFromPubKey(publickKey)
+	if err != nil {
+		return nil, err
+	}
+
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -306,13 +322,7 @@ func createNode(
 	// TODO save config, and move this creation into another place for node movement
 	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig
 
-	initialPubKeys := genesisConfig.InitialNodesPubKeys()
-	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
-	if err != nil {
-		return nil, err
-	}
-
-	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator.SelfId())
+	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
 	if err != nil {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
@@ -398,6 +408,7 @@ func createNode(
 		shardCoordinator,
 		forkDetector,
 		createRequestTransactionHandler(resolversFinder, log),
+		createRequestMiniBlocksHandler(resolversFinder, log),
 	)
 
 	if err != nil {
@@ -446,7 +457,7 @@ func createNode(
 
 func createRequestTransactionHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
-		log.Debug(fmt.Sprintf("Requesting tx for shard %d with hash %s from network\n", destShardID, toB64(txHash)))
+		log.Debug(fmt.Sprintf("Requesting tx from shard %d with hash %s from network\n", destShardID, toB64(txHash)))
 		resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
 		if err != nil {
 			log.Error(fmt.Sprintf("missing resolver to transaction topic to shard %d", destShardID))
@@ -454,6 +465,22 @@ func createRequestTransactionHandler(resolversFinder process.ResolversFinder, lo
 		}
 
 		err = resolver.RequestDataFromHash(txHash)
+		if err != nil {
+			log.Debug(err.Error())
+		}
+	}
+}
+
+func createRequestMiniBlocksHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+	return func(shardId uint32, mbHash []byte) {
+		log.Debug(fmt.Sprintf("Requesting miniblock from shard %d with hash %s from network\n", shardId, toB64(mbHash)))
+		resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
+		if err != nil {
+			log.Error(fmt.Sprintf("missing resolver to miniblock topic to shard %d", shardId))
+			return
+		}
+
+		err = resolver.RequestDataFromHash(mbHash)
 		if err != nil {
 			log.Debug(err.Error())
 		}

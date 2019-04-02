@@ -217,7 +217,7 @@ func createMessenger(ctx context.Context, port int) p2p.Messenger {
 
 func getConnectableAddress(mes p2p.Messenger) string {
 	for _, addr := range mes.Addresses() {
-		if strings.Contains(addr, "circuit") {
+		if strings.Contains(addr, "circuit") || strings.Contains(addr, "169.254") {
 			continue
 		}
 

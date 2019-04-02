@@ -93,24 +93,20 @@ func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) erro
 	if err != nil {
 		return err
 	}
-
 	err = hdrIntercepted.VerifySig()
 	if err != nil {
 		return err
 	}
 
 	isHeaderInStorage, _ := hi.storer.Has(hashWithSig)
-
 	if isHeaderInStorage {
 		log.Debug("intercepted block header already processed")
 		return nil
 	}
-
 	found, _ := hi.headers.HasOrAdd(hashWithSig, hdrIntercepted.GetHeader())
 	if found {
 		return nil
 	}
-
 	if hi.checkHeaderForCurrentShard(hdrIntercepted) {
 		_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hashWithSig)
 	}

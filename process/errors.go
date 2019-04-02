@@ -43,6 +43,9 @@ var ErrNilValue = errors.New("nil value")
 // ErrNilBlockChain signals that an operation has been attempted to or with a nil blockchain
 var ErrNilBlockChain = errors.New("nil block chain")
 
+// ErrNilMetaBlockHeader signals that an operation has been attempted to or with a nil metablock
+var ErrNilMetaBlockHeader = errors.New("nil metablock header")
+
 // ErrNilTxBlockBody signals that an operation has been attempted to or with a nil block body
 var ErrNilTxBlockBody = errors.New("nil block body")
 
@@ -209,6 +212,15 @@ var ErrNilBlockBodyStorage = errors.New("nil block body storage")
 // ErrNilTransactionPool signals that a nil transaction pool was used
 var ErrNilTransactionPool = errors.New("nil transaction pool")
 
+// ErrNilMiniBlockPool signals that a nil mini blocks pool was used
+var ErrNilMiniBlockPool = errors.New("nil mini block pool")
+
+// ErrNilMetaBlockPool signals that a nil meta blocks pool was used
+var ErrNilMetaBlockPool = errors.New("nil meta block pool")
+
+// ErrMiniBlockHeaderBlockMismatch signals that mini block header data is not equal with mini block
+var ErrMiniBlockHeaderBlockMismatch = errors.New("mini block header and body mismatch")
+
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
 
@@ -238,6 +250,9 @@ var ErrNilResolverContainer = errors.New("nil resolver container")
 
 // ErrNilTransactionHandler signals that a nil transaction handler func was provided
 var ErrNilTransactionHandler = errors.New("nil request transaction handler")
+
+// ErrNilMiniBlocksRequestHandler signals that a nil mini block request handler func was provided
+var ErrNilMiniBlocksRequestHandler = errors.New("nil request miniblock handler")
 
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")
