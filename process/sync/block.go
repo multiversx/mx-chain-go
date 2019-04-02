@@ -436,7 +436,6 @@ func (boot *Bootstrap) SyncBlock() error {
 		isForkDetected := err == process.ErrInvalidBlockHash || err == process.ErrRootStateMissmatch
 		if isForkDetected {
 			log.Info(err.Error())
-			boot.removeHeaderFromPools(hdr)
 			err = boot.forkChoice()
 		}
 
@@ -656,7 +655,7 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 		hash,
 		process.ShardCacherIdentifier(header.ShardId, header.ShardId),
 	)
-	boot.forkDetector.ResetProcessedHeader(header.Nonce)
+	_ = boot.forkDetector.ResetProcessedHeader(header.Nonce)
 	_ = headerStore.Remove(hash)
 }
 
@@ -720,14 +719,6 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 
 	boot.cleanCachesOnRollback(header, headerStore)
 	return err
-}
-
-func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
-	hash, _ := boot.headersNonces.Get(header.Nonce)
-	boot.headersNonces.Remove(header.Nonce)
-	boot.headers.RemoveData(hash,
-		process.ShardCacherIdentifier(header.ShardId, header.ShardId),
-	)
 }
 
 func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {
