@@ -14,14 +14,10 @@ import (
 
 // HeaderInterceptor represents an interceptor used for block headers
 type HeaderInterceptor struct {
-	*messageChecker
-	marshalizer      marshal.Marshalizer
-	headers          storage.Cacher
-	storer           storage.Storer
-	headersNonces    data.Uint64Cacher
-	multiSigVerifier crypto.MultiSigVerifier
-	hasher           hashing.Hasher
-	shardCoordinator sharding.Coordinator
+	hdrInterceptorBase *HeaderInterceptorBase
+	headers            storage.Cacher
+	headersNonces      data.Uint64Cacher
+	shardCoordinator   sharding.Coordinator
 }
 
 // NewHeaderInterceptor hooks a new interceptor for block headers
@@ -36,37 +32,28 @@ func NewHeaderInterceptor(
 	shardCoordinator sharding.Coordinator,
 ) (*HeaderInterceptor, error) {
 
-	if marshalizer == nil {
-		return nil, process.ErrNilMarshalizer
+	if headersNonces == nil {
+		return nil, process.ErrNilHeadersNoncesDataPool
 	}
 	if headers == nil {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if headersNonces == nil {
-		return nil, process.ErrNilHeadersNoncesDataPool
-	}
-	if storer == nil {
-		return nil, process.ErrNilHeadersStorage
-	}
-	if multiSigVerifier == nil {
-		return nil, process.ErrNilMultiSigVerifier
-	}
-	if hasher == nil {
-		return nil, process.ErrNilHasher
-	}
-	if shardCoordinator == nil {
-		return nil, process.ErrNilShardCoordinator
+	hdrBaseInterceptor, err := NewHeaderInterceptorBase(
+		marshalizer,
+		storer,
+		multiSigVerifier,
+		hasher,
+		shardCoordinator,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	hdrIntercept := &HeaderInterceptor{
-		messageChecker:   &messageChecker{},
-		marshalizer:      marshalizer,
-		headers:          headers,
-		headersNonces:    headersNonces,
-		storer:           storer,
-		multiSigVerifier: multiSigVerifier,
-		hasher:           hasher,
-		shardCoordinator: shardCoordinator,
+		hdrInterceptorBase: hdrBaseInterceptor,
+		headers:            headers,
+		headersNonces:      headersNonces,
+		shardCoordinator:   shardCoordinator,
 	}
 
 	return hdrIntercept, nil
@@ -75,41 +62,20 @@ func NewHeaderInterceptor(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	err := hi.checkMessage(message)
-	if err != nil {
-		return err
-	}
-
-	hdrIntercepted := block.NewInterceptedHeader(hi.multiSigVerifier)
-	err = hi.marshalizer.Unmarshal(hdrIntercepted, message.Data())
-	if err != nil {
-		return err
-	}
-
-	hashWithSig := hi.hasher.Compute(string(message.Data()))
-	hdrIntercepted.SetHash(hashWithSig)
-
-	err = hdrIntercepted.IntegrityAndValidity(hi.shardCoordinator)
-	if err != nil {
-		return err
-	}
-	err = hdrIntercepted.VerifySig()
-	if err != nil {
-		return err
-	}
-
-	isHeaderInStorage, _ := hi.storer.Has(hashWithSig)
-	if isHeaderInStorage {
+	hdrIntercepted, err := hi.hdrInterceptorBase.ParseReceivedMessage(message)
+	if err == process.ErrHeaderIsInStorage {
 		log.Debug("intercepted block header already processed")
 		return nil
 	}
-	found, _ := hi.headers.HasOrAdd(hashWithSig, hdrIntercepted.GetHeader())
-	if found {
+	if err != nil {
+		return err
+	}
+	if !hi.checkHeaderForCurrentShard(hdrIntercepted) {
 		return nil
 	}
-	if hi.checkHeaderForCurrentShard(hdrIntercepted) {
-		_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hashWithSig)
-	}
+
+	_, _ = hi.headers.HasOrAdd(hdrIntercepted.Hash(), hdrIntercepted.GetHeader())
+	_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hdrIntercepted.Hash())
 	return nil
 }
 

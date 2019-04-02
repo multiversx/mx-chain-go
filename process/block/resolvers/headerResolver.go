@@ -16,11 +16,9 @@ var log = logger.NewDefaultLogger()
 
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
-	process.TopicResolverSender
-	hdrPool        storage.Cacher
+	*HeaderResolverBase
 	hdrNonces      data.Uint64Cacher
-	hdrStorage     storage.Storer
-	marshalizer    marshal.Marshalizer
+	headers        storage.Cacher
 	nonceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -36,40 +34,35 @@ func NewHeaderResolver(
 	if senderResolver == nil {
 		return nil, process.ErrNilResolverSender
 	}
-
 	if pools == nil {
 		return nil, process.ErrNilPoolsHolder
 	}
-
 	headers := pools.Headers()
 	if headers == nil {
 		return nil, process.ErrNilHeadersDataPool
 	}
-
 	headersNonces := pools.HeadersNonces()
 	if headersNonces == nil {
 		return nil, process.ErrNilHeadersNoncesDataPool
 	}
-
-	if hdrStorage == nil {
-		return nil, process.ErrNilHeadersStorage
-	}
-
-	if marshalizer == nil {
-		return nil, process.ErrNilMarshalizer
-	}
-
 	if nonceConverter == nil {
 		return nil, process.ErrNilNonceConverter
 	}
+	hdrResolverBase, err := NewHeaderResolverBase(
+		senderResolver,
+		headers,
+		hdrStorage,
+		marshalizer,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	hdrResolver := &HeaderResolver{
-		TopicResolverSender: senderResolver,
-		hdrPool:             pools.Headers(),
-		hdrNonces:           pools.HeadersNonces(),
-		hdrStorage:          hdrStorage,
-		marshalizer:         marshalizer,
-		nonceConverter:      nonceConverter,
+		hdrNonces:          pools.HeadersNonces(),
+		headers:            headers,
+		nonceConverter:     nonceConverter,
+		HeaderResolverBase: hdrResolverBase,
 	}
 
 	return hdrResolver, nil
@@ -78,58 +71,29 @@ func NewHeaderResolver(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
 func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	rd := &process.RequestData{}
-	err := rd.Unmarshal(hdrRes.marshalizer, message)
+	rd, err := hdrRes.HeaderResolverBase.ParseReceivedMessage(message)
 	if err != nil {
 		return err
 	}
+	var buff []byte
 
-	buff, err := hdrRes.resolveHdrRequest(rd)
+	switch rd.Type {
+	case process.HashType:
+		buff, err = hdrRes.HeaderResolverBase.ResolveHeaderFromHash(rd.Value)
+	case process.NonceType:
+		buff, err = hdrRes.resolveHeaderFromNonce(rd.Value)
+	default:
+		return process.ErrResolveTypeUnknown
+	}
 	if err != nil {
 		return err
 	}
-
 	if buff == nil {
 		log.Debug(fmt.Sprintf("missing data: %v", rd))
 		return nil
 	}
 
 	return hdrRes.Send(buff, message.Peer())
-}
-
-func (hdrRes *HeaderResolver) resolveHdrRequest(rd *process.RequestData) ([]byte, error) {
-	if rd.Value == nil {
-		return nil, process.ErrNilValue
-	}
-
-	var buff []byte
-	var err error
-
-	switch rd.Type {
-	case process.HashType:
-		buff, err = hdrRes.resolveHeaderFromHash(rd.Value)
-	case process.NonceType:
-		buff, err = hdrRes.resolveHeaderFromNonce(rd.Value)
-	default:
-		return nil, process.ErrResolveTypeUnknown
-	}
-
-	return buff, err
-}
-
-func (hdrRes *HeaderResolver) resolveHeaderFromHash(key []byte) ([]byte, error) {
-	value, ok := hdrRes.hdrPool.Peek(key)
-
-	if !ok {
-		return hdrRes.hdrStorage.Get(key)
-	}
-
-	buff, err := hdrRes.marshalizer.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
-
-	return buff, nil
 }
 
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error) {
@@ -148,7 +112,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 	}
 
 	//Step 3. search header by key (hash)
-	value, ok := hdrRes.hdrPool.Peek(hash)
+	value, ok := hdrRes.headers.Peek(hash)
 	if !ok {
 		return hdrRes.hdrStorage.Get(hash)
 	}
@@ -160,14 +124,6 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error)
 	}
 
 	return buff, nil
-}
-
-// RequestDataFromHash requests a header from other peers having input the hdr hash
-func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte) error {
-	return hdrRes.SendOnRequestTopic(&process.RequestData{
-		Type:  process.HashType,
-		Value: hash,
-	})
 }
 
 // RequestDataFromNonce requests a header from other peers having input the hdr nonce

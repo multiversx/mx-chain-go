@@ -34,48 +34,6 @@ func TestNewShardHeaderResolver_NilSenderResolverShouldErr(t *testing.T) {
 	assert.Nil(t, shardHdrRes)
 }
 
-func TestNewShardHeaderResolver_NilHeadersShouldErr(t *testing.T) {
-	t.Parallel()
-
-	shardHdrRes, err := metablock.NewShardHeaderResolver(
-		&mock.TopicResolverSenderStub{},
-		nil,
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-	)
-
-	assert.Equal(t, process.ErrNilHeadersDataPool, err)
-	assert.Nil(t, shardHdrRes)
-}
-
-func TestNewShardHeaderResolver_NilHeadersStorageShouldErr(t *testing.T) {
-	t.Parallel()
-
-	shardHdrRes, err := metablock.NewShardHeaderResolver(
-		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		nil,
-		&mock.MarshalizerMock{},
-	)
-
-	assert.Equal(t, process.ErrNilHeadersStorage, err)
-	assert.Nil(t, shardHdrRes)
-}
-
-func TestNewShardHeaderResolver_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	shardHdrRes, err := metablock.NewShardHeaderResolver(
-		&mock.TopicResolverSenderStub{},
-		&mock.CacherStub{},
-		&mock.StorerStub{},
-		nil,
-	)
-
-	assert.Equal(t, process.ErrNilMarshalizer, err)
-	assert.Nil(t, shardHdrRes)
-}
-
 func TestNewShardHeaderResolver_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -116,7 +74,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t
 		&mock.MarshalizerMock{},
 	)
 
-	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(254, make([]byte, 0)))
+	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, make([]byte, 0)))
 	assert.Equal(t, process.ErrResolveTypeUnknown, err)
 
 }
@@ -155,6 +113,38 @@ func TestShardHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAn
 	assert.True(t, sendWasCalled)
 }
 
+func TestShardHeaderResolver_NotFoundShouldReturnNilAndNotSend(t *testing.T) {
+	t.Parallel()
+
+	sendWasCalled := false
+	requestedData := []byte("aaaa")
+	headers := &mock.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
+			return nil, false
+		},
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	shardHdrRes, _ := metablock.NewShardHeaderResolver(
+		&mock.TopicResolverSenderStub{
+			SendCalled: func(buff []byte, peer p2p.PeerID) error {
+				sendWasCalled = true
+				return nil
+			},
+		},
+		headers,
+		&mock.StorerStub{
+			GetCalled: func(key []byte) (i []byte, e error) {
+				return nil, nil
+			},
+		},
+		marshalizer,
+	)
+
+	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
+	assert.Nil(t, err)
+	assert.False(t, sendWasCalled)
+}
+
 func TestShardHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarshalizerFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -191,45 +181,6 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPool
 
 	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
 	assert.Equal(t, errExpected, err)
-}
-
-func TestShardHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValAndSend(t *testing.T) {
-	t.Parallel()
-
-	requestedData := []byte("aaaa")
-	headers := &mock.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			return nil, false
-		},
-	}
-	wasGotFromStorage := false
-	wasSent := false
-	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
-		if bytes.Equal(key, requestedData) {
-			wasGotFromStorage = true
-			return make([]byte, 0), nil
-		}
-
-		return nil, nil
-	}
-	marshalizer := &mock.MarshalizerMock{}
-	shardHdrRes, _ := metablock.NewShardHeaderResolver(
-		&mock.TopicResolverSenderStub{
-			SendCalled: func(buff []byte, peer p2p.PeerID) error {
-				wasSent = true
-				return nil
-			},
-		},
-		headers,
-		store,
-		marshalizer,
-	)
-
-	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
-	assert.Nil(t, err)
-	assert.True(t, wasGotFromStorage)
-	assert.True(t, wasSent)
 }
 
 func TestShardHeaderResolver_ProcessReceivedMessageRequestRetFromStorageCheckRetError(t *testing.T) {

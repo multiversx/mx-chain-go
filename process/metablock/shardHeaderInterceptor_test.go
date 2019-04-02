@@ -2,7 +2,6 @@ package metablock_test
 
 import (
 	"bytes"
-	"errors"
 	"testing"
 
 	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -48,73 +47,6 @@ func TestNewShardHeaderInterceptor_NilHeadersShouldErr(t *testing.T) {
 	assert.Nil(t, hi)
 }
 
-func TestNewShardHeaderInterceptor_NilStorerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	headers := &mock.CacherStub{}
-	hi, err := metablock.NewShardHeaderInterceptor(
-		&mock.MarshalizerMock{},
-		headers,
-		nil,
-		mock.NewMultiSigner(),
-		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
-
-	assert.Equal(t, process.ErrNilHeadersStorage, err)
-	assert.Nil(t, hi)
-}
-
-func TestNewShardHeaderInterceptor_NilMultiSignerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	headers := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
-	hi, err := metablock.NewShardHeaderInterceptor(
-		&mock.MarshalizerMock{},
-		headers,
-		storer,
-		nil,
-		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
-
-	assert.Nil(t, hi)
-	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
-}
-
-func TestNewShardHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
-
-	headers := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
-	hi, err := metablock.NewShardHeaderInterceptor(
-		&mock.MarshalizerMock{},
-		headers,
-		storer,
-		mock.NewMultiSigner(),
-		nil,
-		mock.NewOneShardCoordinatorMock())
-
-	assert.Equal(t, process.ErrNilHasher, err)
-	assert.Nil(t, hi)
-}
-
-func TestNewShardHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	headers := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
-	hi, err := metablock.NewShardHeaderInterceptor(
-		&mock.MarshalizerMock{},
-		headers,
-		storer,
-		mock.NewMultiSigner(),
-		mock.HasherMock{},
-		nil)
-
-	assert.Equal(t, process.ErrNilShardCoordinator, err)
-	assert.Nil(t, hi)
-}
-
 func TestNewShardHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -148,74 +80,6 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *tes
 		mock.NewOneShardCoordinatorMock())
 
 	assert.Equal(t, process.ErrNilMessage, hi.ProcessReceivedMessage(nil))
-}
-
-func TestShardHeaderInterceptor_ProcessReceivedMessageNilDataToProcessShouldErr(t *testing.T) {
-	t.Parallel()
-
-	headers := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
-	hi, _ := metablock.NewShardHeaderInterceptor(
-		&mock.MarshalizerMock{},
-		headers,
-		storer,
-		mock.NewMultiSigner(),
-		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
-
-	msg := &mock.P2PMessageMock{}
-
-	assert.Equal(t, process.ErrNilDataToProcess, hi.ProcessReceivedMessage(msg))
-}
-
-func TestShardHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarshalingShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errMarshalizer := errors.New("marshalizer error")
-
-	headers := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
-	hi, _ := metablock.NewShardHeaderInterceptor(
-		&mock.MarshalizerStub{
-			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return errMarshalizer
-			},
-		},
-		headers,
-		storer,
-		mock.NewMultiSigner(),
-		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
-
-	msg := &mock.P2PMessageMock{
-		DataField: make([]byte, 0),
-	}
-
-	assert.Equal(t, errMarshalizer, hi.ProcessReceivedMessage(msg))
-}
-
-func TestShardHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShouldErr(t *testing.T) {
-	t.Parallel()
-
-	headers := &mock.CacherStub{}
-	storer := &mock.StorerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	multisigner := mock.NewMultiSigner()
-	hi, _ := metablock.NewShardHeaderInterceptor(
-		marshalizer,
-		headers,
-		storer,
-		multisigner,
-		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
-
-	hdr := block.NewInterceptedHeader(multisigner)
-	buff, _ := marshalizer.Marshal(hdr)
-	msg := &mock.P2PMessageMock{
-		DataField: buff,
-	}
-
-	assert.Equal(t, process.ErrNilPubKeysBitmap, hi.ProcessReceivedMessage(msg))
 }
 
 func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) {

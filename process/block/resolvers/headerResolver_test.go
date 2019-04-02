@@ -101,21 +101,6 @@ func TestNewHeaderResolver_NilHeadersStorageShouldErr(t *testing.T) {
 	assert.Nil(t, hdrRes)
 }
 
-func TestNewHeaderResolver_NilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrRes, err := resolvers.NewHeaderResolver(
-		&mock.TopicResolverSenderStub{},
-		createDataPool(),
-		&mock.StorerStub{},
-		nil,
-		mock.NewNonceHashConverterMock(),
-	)
-
-	assert.Equal(t, process.ErrNilMarshalizer, err)
-	assert.Nil(t, hdrRes)
-}
-
 func TestNewHeaderResolver_NilNonceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -319,47 +304,6 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 	assert.Nil(t, err)
 	assert.True(t, wasGotFromStorage)
 	assert.True(t, wasSent)
-}
-
-func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageCheckRetError(t *testing.T) {
-	t.Parallel()
-
-	requestedData := []byte("aaaa")
-
-	pools := createDataPool()
-	pools.HeadersCalled = func() storage.Cacher {
-		headers := &mock.CacherStub{}
-
-		headers.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			return nil, false
-		}
-
-		return headers
-	}
-
-	errExpected := errors.New("expected error")
-
-	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
-		if bytes.Equal(key, requestedData) {
-			return nil, errExpected
-		}
-
-		return nil, nil
-	}
-
-	marshalizer := &mock.MarshalizerMock{}
-
-	hdrRes, _ := resolvers.NewHeaderResolver(
-		&mock.TopicResolverSenderStub{},
-		pools,
-		store,
-		marshalizer,
-		mock.NewNonceHashConverterMock(),
-	)
-
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
-	assert.Equal(t, errExpected, err)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShouldErr(t *testing.T) {
@@ -605,35 +549,6 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 }
 
 //------- Requests
-
-func TestHeaderResolver_RequestDataFromHashShouldWork(t *testing.T) {
-	t.Parallel()
-
-	buffRequested := []byte("aaaa")
-
-	wasRequested := false
-
-	nonceConverter := mock.NewNonceHashConverterMock()
-
-	hdrRes, _ := resolvers.NewHeaderResolver(
-		&mock.TopicResolverSenderStub{
-			SendOnRequestTopicCalled: func(rd *process.RequestData) error {
-				if bytes.Equal(rd.Value, buffRequested) {
-					wasRequested = true
-				}
-
-				return nil
-			},
-		},
-		createDataPool(),
-		&mock.StorerStub{},
-		&mock.MarshalizerMock{},
-		nonceConverter,
-	)
-
-	assert.Nil(t, hdrRes.RequestDataFromHash(buffRequested))
-	assert.True(t, wasRequested)
-}
 
 func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 	t.Parallel()
