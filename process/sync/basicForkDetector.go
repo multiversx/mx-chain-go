@@ -8,9 +8,10 @@ import (
 )
 
 type headerInfo struct {
-	header      *block.Header
+	nonce       uint64
 	hash        []byte
 	isProcessed bool
+	isEmpty     bool
 }
 
 // basicForkDetector defines a struct with necessary data needed for fork detection
@@ -36,15 +37,17 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isPro
 		return ErrNilHash
 	}
 
-	if !isEmpty(header) && isProcessed {
+	isEmpty := isEmpty(header)
+	if !isEmpty && isProcessed {
 		// create a check point
 		bfd.checkpointNonce = header.Nonce
 	}
 
 	bfd.append(&headerInfo{
-		header:      header,
+		nonce:       header.Nonce,
 		hash:        hash,
 		isProcessed: isProcessed,
+		isEmpty:     isEmpty,
 	})
 
 	return nil
@@ -64,7 +67,7 @@ func (bfd *basicForkDetector) ResetProcessedHeader(nonce uint64) error {
 	for _, hdrInfoStored := range hdrInfosStored {
 		if hdrInfoStored.isProcessed {
 			hdrInfoStored.isProcessed = false
-			if !isEmpty(hdrInfoStored.header) {
+			if !hdrInfoStored.isEmpty {
 				bfd.checkpointNonce = bfd.getLastCheckpointNonce()
 			}
 			break
@@ -80,10 +83,10 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
-	hdrInfos := bfd.headers[hdrInfo.header.Nonce]
+	hdrInfos := bfd.headers[hdrInfo.nonce]
 	isHdrInfosNilOrEmpty := hdrInfos == nil || len(hdrInfos) == 0
 	if isHdrInfosNilOrEmpty {
-		bfd.headers[hdrInfo.header.Nonce] = []*headerInfo{hdrInfo}
+		bfd.headers[hdrInfo.nonce] = []*headerInfo{hdrInfo}
 		return
 	}
 
@@ -99,7 +102,7 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 		}
 	}
 
-	bfd.headers[hdrInfo.header.Nonce] = append(bfd.headers[hdrInfo.header.Nonce], hdrInfo)
+	bfd.headers[hdrInfo.nonce] = append(bfd.headers[hdrInfo.nonce], hdrInfo)
 }
 
 // CheckFork method checks if the node could be on the fork
@@ -125,12 +128,12 @@ func (bfd *basicForkDetector) CheckFork() bool {
 				continue
 			}
 
-			if !isEmpty(hdrInfos[i].header) {
+			if !hdrInfos[i].isEmpty {
 				foundNotEmptyBlock = true
 			}
 		}
 
-		if selfHdrInfo == nil || !isEmpty(selfHdrInfo.header) {
+		if selfHdrInfo == nil || !selfHdrInfo.isEmpty {
 			// if current nonce has not been processed yet or it is processed and signed, then skipping and checking the next one
 			continue
 		}
@@ -155,7 +158,7 @@ func (bfd *basicForkDetector) GetHighestSignedBlockNonce() uint64 {
 			continue
 		}
 		for i := 0; i < len(hdrInfos); i++ {
-			if !isEmpty(hdrInfos[i].header) {
+			if !hdrInfos[i].isEmpty {
 				highestNonce = nonce
 				break
 			}
@@ -175,7 +178,7 @@ func (bfd *basicForkDetector) getLastCheckpointNonce() uint64 {
 			continue
 		}
 		for i := 0; i < len(hdrInfos); i++ {
-			if !isEmpty(hdrInfos[i].header) && hdrInfos[i].isProcessed {
+			if !hdrInfos[i].isEmpty && hdrInfos[i].isProcessed {
 				lastCheckpointNonce = nonce
 				break
 			}

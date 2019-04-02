@@ -38,7 +38,6 @@ func TestBasicForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 
 	hInfos := bfd.GetHeaders(0)
 	assert.Equal(t, 1, len(hInfos))
-	assert.Equal(t, hdr, hInfos[0].Header())
 	assert.Equal(t, hash, hInfos[0].Hash())
 }
 
@@ -56,9 +55,7 @@ func TestBasicForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 
 	hInfos := bfd.GetHeaders(0)
 	assert.Equal(t, 2, len(hInfos))
-	assert.Equal(t, hdr1, hInfos[0].Header())
 	assert.Equal(t, hash1, hInfos[0].Hash())
-	assert.Equal(t, hdr2, hInfos[1].Header())
 	assert.Equal(t, hash2, hInfos[1].Hash())
 }
 
@@ -83,7 +80,6 @@ func TestBasicForkDetector_AddHeaderPresentShouldNotRewriteWhenSameHash(t *testi
 
 	hInfos := bfd.GetHeaders(0)
 	assert.Equal(t, 1, len(hInfos))
-	assert.Equal(t, hdr1, hInfos[0].Header())
 	assert.Equal(t, hash, hInfos[0].Hash())
 }
 

@@ -58,8 +58,8 @@ func (bfd *basicForkDetector) GetLastCheckpointNonce() uint64 {
 	return bfd.getLastCheckpointNonce()
 }
 
-func (hi *headerInfo) Header() *block.Header {
-	return hi.header
+func (hi *headerInfo) Nonce() uint64 {
+	return hi.nonce
 }
 
 func (hi *headerInfo) Hash() []byte {
@@ -68,6 +68,10 @@ func (hi *headerInfo) Hash() []byte {
 
 func (hi *headerInfo) IsProcessed() bool {
 	return hi.isProcessed
+}
+
+func (hi *headerInfo) IsEmpty() bool {
+	return hi.isEmpty
 }
 
 func (boot *Bootstrap) NotifySyncStateListeners() {

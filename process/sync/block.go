@@ -656,7 +656,7 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 		hash,
 		process.ShardCacherIdentifier(header.ShardId, header.ShardId),
 	)
-	boot.forkDetector.RemoveProcessedHeader(header.Nonce)
+	boot.forkDetector.ResetProcessedHeader(header.Nonce)
 	_ = headerStore.Remove(hash)
 }
 
