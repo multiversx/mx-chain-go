@@ -83,6 +83,7 @@ func (txRes *TxResolver) resolveTxRequest(rd *process.RequestData) ([]byte, erro
 		return nil, process.ErrNilValue
 	}
 
+	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
 	value, ok := txRes.txPool.SearchFirstData(rd.Value)
 	if !ok {
 		return txRes.txStorage.Get(rd.Value)

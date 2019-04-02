@@ -35,7 +35,7 @@ func (rf *resolversFinder) IntraShardResolver(baseTopic string) (process.Resolve
 	return rf.Get(topic)
 }
 
-// CrossShardResolver fetches the crossshard Resolver starting from a baseTopic and a cross shard id
+// CrossShardResolver fetches the cross shard Resolver starting from a baseTopic and a cross shard id
 // baseTopic will be one of the constants defined in factory.go: TransactionTopic, HeadersTopic and so on
 func (rf *resolversFinder) CrossShardResolver(baseTopic string, crossShard uint32) (process.Resolver, error) {
 	topic := baseTopic + rf.coordinator.CommunicationIdentifier(crossShard)

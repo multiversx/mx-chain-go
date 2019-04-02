@@ -1,10 +1,12 @@
 package sharding_test
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"github.com/ElrondNetwork/elrond-go-sandbox/sharding/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -105,7 +107,7 @@ func TestGenesis_InitialNodesPubKeysFromNil(t *testing.T) {
 	assert.Nil(t, inPubKeys)
 }
 
-func TestGenesis_GenesisWithUncomlpeteData(t *testing.T) {
+func TestGenesis_ProcessConfigGenesisWithIncompleteDataShouldErr(t *testing.T) {
 	g := sharding.Genesis{}
 
 	g.InitialNodes = make([]*sharding.InitialNode, 2)
@@ -117,22 +119,104 @@ func TestGenesis_GenesisWithUncomlpeteData(t *testing.T) {
 	err := g.ProcessConfig()
 
 	assert.NotNil(t, g)
-	assert.NotNil(t, err)
+	assert.Equal(t, sharding.ErrCouldNotParsePubKey, err)
 }
 
-func TestGenesis_GenesisWithUncomlpeteBalance(t *testing.T) {
-	g := sharding.Genesis{}
+func TestGenesis_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize: 0,
+		MinNodesPerShard:   0,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 2)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrNegativeOrZeroConsensusGroupSize, err)
+}
+
+func TestGenesis_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize: 3,
+		MinNodesPerShard:   0,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 2)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrNotEnoughValidators, err)
+}
+
+func TestGenesis_ProcessConfigInvalidMinNodesPerShardShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize: 2,
+		MinNodesPerShard:   0,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 2)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrMinNodesPerShardSmallerThanConsensusSize, err)
+}
+
+func TestGenesis_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardShouldErr(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize: 2,
+		MinNodesPerShard:   3,
+	}
+
+	g.InitialNodes = make([]*sharding.InitialNode, 2)
+	g.InitialNodes[0] = &sharding.InitialNode{}
+	g.InitialNodes[1] = &sharding.InitialNode{}
+
+	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
+	g.InitialNodes[1].PubKey = "3336b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
+
+	err := g.ProcessConfig()
+
+	assert.NotNil(t, g)
+	assert.Equal(t, sharding.ErrNodesSizeSmallerThanMinNoOfNodes, err)
+}
+
+func TestGenesis_GenesisWithIncompleteBalance(t *testing.T) {
+	g := sharding.Genesis{
+		ConsensusGroupSize: 1,
+		MinNodesPerShard:   1,
+	}
 
 	g.InitialNodes = make([]*sharding.InitialNode, 1)
 	g.InitialNodes[0] = &sharding.InitialNode{}
 
 	g.InitialNodes[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 
-	err := g.ProcessConfig()
+	_ = g.ProcessConfig()
 	g.ProcessShardAssignment()
 	g.CreateInitialNodesPubKeys()
 
-	inBal, err := g.InitialNodesBalances(0)
+	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
+	adrConv := mock.NewAddressConverterFake(32, "")
+
+	inBal, err := g.InitialNodesBalances(shardCoordinator, adrConv)
 
 	assert.NotNil(t, g)
 	assert.Nil(t, err)
@@ -143,25 +227,40 @@ func TestGenesis_GenesisWithUncomlpeteBalance(t *testing.T) {
 
 func TestGenesis_InitialNodesBalancesNil(t *testing.T) {
 	genesis := sharding.Genesis{}
-	inBalance, err := genesis.InitialNodesBalances(0)
+	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
+	adrConv := mock.NewAddressConverterFake(32, "")
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
 
 	assert.NotNil(t, genesis)
-	assert.Nil(t, inBalance)
-	assert.NotNil(t, err)
+	assert.Equal(t, 0, len(inBalance))
+	assert.Nil(t, err)
 }
 
-func TestGenesis_InitialNodesBalancesWrongShard(t *testing.T) {
+func TestGenesis_InitialNodesBalancesNilShardCoordinatorShouldErr(t *testing.T) {
 	genesis := createGenesisOneShardOneNode()
-	inBalance, err := genesis.InitialNodesBalances(1)
+	adrConv := mock.NewAddressConverterFake(32, "")
+	inBalance, err := genesis.InitialNodesBalances(nil, adrConv)
 
 	assert.NotNil(t, genesis)
 	assert.Nil(t, inBalance)
-	assert.NotNil(t, err)
+	assert.Equal(t, sharding.ErrNilShardCoordinator, err)
+}
+
+func TestGenesis_InitialNodesBalancesNilAddrConverterShouldErr(t *testing.T) {
+	genesis := createGenesisOneShardOneNode()
+	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, nil)
+
+	assert.NotNil(t, genesis)
+	assert.Nil(t, inBalance)
+	assert.Equal(t, sharding.ErrNilAddressConverter, err)
 }
 
 func TestGenesis_InitialNodesBalancesGood(t *testing.T) {
 	genesis := createGenesisTwoShardTwoNodes()
-	inBalance, err := genesis.InitialNodesBalances(1)
+	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(2, 1)
+	adrConv := mock.NewAddressConverterFake(32, "")
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
 
 	assert.NotNil(t, genesis)
 	assert.Equal(t, 2, len(inBalance))
@@ -197,9 +296,31 @@ func TestGenesis_InitialNodesPubKeysForShardGood(t *testing.T) {
 
 func TestGenesis_Initial5NodesBalancesGood(t *testing.T) {
 	genesis := createGenesisTwoShard5Nodes()
-	inBalance, err := genesis.InitialNodesBalances(1)
+	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(2, 1)
+	adrConv := mock.NewAddressConverterFake(32, "")
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
 
 	assert.NotNil(t, genesis)
-	assert.Equal(t, 2, len(inBalance))
+	assert.Equal(t, 3, len(inBalance))
 	assert.Nil(t, err)
+}
+
+func TestGenesis_PublicKeyNotGood(t *testing.T) {
+	genesis := createGenesisTwoShard5Nodes()
+
+	_, err := genesis.GetShardIDFromPubKey([]byte("5126b6505a73e59a994caa8f956f8c335d4399229de42102bb4814ca261c7419"))
+
+	assert.NotNil(t, genesis)
+	assert.NotNil(t, err)
+}
+
+func TestGenesis_PublicKeyGood(t *testing.T) {
+	genesis := createGenesisTwoShard5Nodes()
+	publicKey, err := hex.DecodeString("5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7417")
+
+	selfId, err := genesis.GetShardIDFromPubKey(publicKey)
+
+	assert.NotNil(t, genesis)
+	assert.Nil(t, err)
+	assert.Equal(t, uint32(1), selfId)
 }

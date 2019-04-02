@@ -652,8 +652,11 @@ func (boot *Bootstrap) forkChoice() error {
 func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore storage.Storer) {
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 	boot.headersNonces.Remove(header.Nonce)
-	boot.headers.RemoveData(hash, header.ShardId)
-	boot.forkDetector.ResetProcessedHeader(header.Nonce)
+	boot.headers.RemoveData(
+		hash,
+		process.ShardCacherIdentifier(header.ShardId, header.ShardId),
+	)
+	boot.forkDetector.RemoveProcessedHeader(header.Nonce)
 	_ = headerStore.Remove(hash)
 }
 
@@ -722,7 +725,9 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 	boot.headersNonces.Remove(header.Nonce)
-	boot.headers.RemoveData(hash, header.ShardId)
+	boot.headers.RemoveData(hash,
+		process.ShardCacherIdentifier(header.ShardId, header.ShardId),
+	)
 }
 
 func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {

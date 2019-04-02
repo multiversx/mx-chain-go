@@ -33,17 +33,17 @@ type Notifier interface {
 type ShardedDataCacherNotifier interface {
 	Notifier
 
-	ShardDataStore(shardID uint32) (c storage.Cacher)
-	AddData(key []byte, data interface{}, destShardID uint32)
+	ShardDataStore(cacheId string) (c storage.Cacher)
+	AddData(key []byte, data interface{}, cacheId string)
 	SearchFirstData(key []byte) (value interface{}, ok bool)
-	RemoveData(key []byte, destShardID uint32)
-	RemoveSetOfDataFromPool(keys [][]byte, destShardID uint32)
+	RemoveData(key []byte, cacheId string)
+	RemoveSetOfDataFromPool(keys [][]byte, cacheId string)
 	RemoveDataFromAllShards(key []byte)
-	MergeShardStores(sourceShardID, destShardID uint32)
-	MoveData(sourceShardID, destShardID uint32, key [][]byte)
+	MergeShardStores(sourceCacheID, destCacheID string)
+	MoveData(sourceCacheID, destCacheID string, key [][]byte)
 	Clear()
-	ClearShardStore(shardID uint32)
-	CreateShardStore(destShardID uint32)
+	ClearShardStore(cacheId string)
+	CreateShardStore(cacheId string)
 }
 
 // Uint64Cacher defines a cacher-type struct that uses uint64 keys and []byte values (usually hashes)
@@ -103,6 +103,11 @@ type HeaderHandler interface {
 	SetPubKeysBitmap(pkbm []byte)
 	SetSignature(sg []byte)
 	SetTxCount(txCount uint32)
+
+	// miniblock headers data
+	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
+	GetMiniBlockProcessed(hash []byte) bool
+	SetMiniBlockProcessed(hash []byte)
 }
 
 // BodyHandler interface for a block body

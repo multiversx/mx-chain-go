@@ -111,7 +111,11 @@ func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) erro
 		return nil
 	}
 
-	hi.headers.AddData(hashWithSig, hdrIntercepted.GetHeader(), hdrIntercepted.Shard())
+	hi.headers.AddData(
+		hashWithSig,
+		hdrIntercepted.GetHeader(),
+		process.ShardCacherIdentifier(hdrIntercepted.Shard(), hdrIntercepted.Shard()),
+	)
 	if hi.checkHeaderForCurrentShard(hdrIntercepted) {
 		_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hashWithSig)
 	}

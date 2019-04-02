@@ -190,7 +190,7 @@ func createTestTopicAndWaitForAnnouncements(t *testing.T, peers []p2p.Messenger)
 
 func chooseNonCircuitAddress(addresses []string) string {
 	for _, adr := range addresses {
-		if strings.Contains(adr, "circuit") {
+		if strings.Contains(adr, "circuit") || strings.Contains(adr, "169.254") {
 			continue
 		}
 
