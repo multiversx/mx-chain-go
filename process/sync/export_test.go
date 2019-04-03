@@ -42,8 +42,12 @@ func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	return newHeaders
 }
 
-func (bfd *basicForkDetector) SetCheckpointNonce(checkpointNonce uint64) {
-	bfd.checkpointNonce = checkpointNonce
+func (bfd *basicForkDetector) SetCheckpointNonce(nonce uint64) {
+	bfd.checkpointNonce = nonce
+}
+
+func (bfd *basicForkDetector) SetLastCheckpointNonce(nonce uint64) {
+	bfd.lastCheckpointNonce = nonce
 }
 
 func (bfd *basicForkDetector) CheckpointNonce() uint64 {
@@ -54,8 +58,8 @@ func (bfd *basicForkDetector) Append(hdrInfo *headerInfo) {
 	bfd.append(hdrInfo)
 }
 
-func (bfd *basicForkDetector) GetLastCheckpointNonce() uint64 {
-	return bfd.getLastCheckpointNonce()
+func (bfd *basicForkDetector) RemovePastHeaders(nonce uint64) {
+	bfd.removePastHeaders(nonce)
 }
 
 func (hi *headerInfo) Nonce() uint64 {

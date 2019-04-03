@@ -436,6 +436,7 @@ func (boot *Bootstrap) SyncBlock() error {
 		isForkDetected := err == process.ErrInvalidBlockHash || err == process.ErrRootStateMissmatch
 		if isForkDetected {
 			log.Info(err.Error())
+			boot.removeHeaderFromPools(hdr)
 			err = boot.forkChoice()
 		}
 
@@ -632,18 +633,20 @@ func (boot *Bootstrap) forkChoice() error {
 	}
 
 	isSigned := isSigned(header)
-	if isSigned && header.Nonce >= boot.forkDetector.GetHighestSignedBlockNonce() {
-		return &ErrSignedBlock{
-			CurrentNonce: header.Nonce}
+	if isSigned {
+		canRevertBlock := header.Nonce > boot.forkDetector.GetHighestFinalityBlockNonce()
+		if !canRevertBlock {
+			return &ErrSignedBlock{CurrentNonce: header.Nonce}
+		}
 	}
 
 	msg := ""
 	if isSigned {
-		msg = " from a signed block"
+		msg = fmt.Sprintf(" from a signed block, as the highest finality block nonce is %d",
+			boot.forkDetector.GetHighestFinalityBlockNonce())
 	}
-
-	log.Info(fmt.Sprintf("roll back to header with hash %s%s\n",
-		toB64(header.PrevHash), msg))
+	log.Info(fmt.Sprintf("roll back to header with nonce %d and hash %s%s\n",
+		header.Nonce-1, toB64(header.PrevHash), msg))
 
 	return boot.rollback(header)
 }
@@ -655,7 +658,7 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 		hash,
 		process.ShardCacherIdentifier(header.ShardId, header.ShardId),
 	)
-	_ = boot.forkDetector.ResetProcessedHeader(header.Nonce)
+	_ = boot.forkDetector.RemoveProcessedHeader(header.Nonce)
 	_ = headerStore.Remove(hash)
 }
 
@@ -719,6 +722,26 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 
 	boot.cleanCachesOnRollback(header, headerStore)
 	return err
+}
+
+func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
+	currentHeader, err := boot.getCurrentHeader()
+	if err != nil {
+		log.Info(err.Error())
+		return
+	}
+
+	isSigned := isSigned(currentHeader)
+	if isSigned {
+		canRevertBlock := currentHeader.Nonce > boot.forkDetector.GetHighestFinalityBlockNonce()
+		if !canRevertBlock {
+			hash, _ := boot.headersNonces.Get(header.Nonce)
+			boot.headersNonces.Remove(header.Nonce)
+			boot.headers.RemoveData(hash,
+				process.ShardCacherIdentifier(header.ShardId, header.ShardId),
+			)
+		}
+	}
 }
 
 func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {

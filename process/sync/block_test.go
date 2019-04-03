@@ -187,7 +187,7 @@ func createHeadersNoncesDataPool(
 
 func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.ForkDetector {
 	return &mock.ForkDetectorMock{
-		ResetProcessedHeaderCalled: func(nonce uint64) error {
+		RemoveProcessedHeaderCalled: func(nonce uint64) error {
 			if nonce == removedNonce {
 				remFlags.flagHdrRemovedFromForkDetector = true
 			}
@@ -195,6 +195,9 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 		},
 		GetHighestSignedBlockNonceCalled: func() uint64 {
 			return uint64(0)
+		},
+		GetHighestFinalityBlockNonceCalled: func() uint64 {
+			return uint64(removedNonce)
 		},
 	}
 }
@@ -810,11 +813,14 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	forkDetector.CheckForkCalled = func() bool {
 		return true
 	}
-	forkDetector.ResetProcessedHeaderCalled = func(nonce uint64) error {
+	forkDetector.RemoveProcessedHeaderCalled = func(nonce uint64) error {
 		return nil
 	}
 	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
 		return uint64(0)
+	}
+	forkDetector.GetHighestFinalityBlockNonceCalled = func() uint64 {
+		return uint64(hdr.Nonce)
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1004,6 +1010,9 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
 		return uint64(0)
 	}
+	forkDetector.GetHighestFinalityBlockNonceCalled = func() uint64 {
+		return uint64(hdr.Nonce)
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1109,7 +1118,10 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return false
 	}
 	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
-		return 0
+		return uint64(0)
+	}
+	forkDetector.GetHighestFinalityBlockNonceCalled = func() uint64 {
+		return uint64(hdr.Nonce)
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1319,6 +1331,9 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	}
 	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
 		return uint64(0)
+	}
+	forkDetector.GetHighestFinalityBlockNonceCalled = func() uint64 {
+		return uint64(hdr.Nonce)
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
