@@ -42,6 +42,9 @@ func newIteratorState(hash []byte, node node, parent []byte, pathlen int) *nodeI
 
 // Next moves the iterator to the next node
 func (it *nodeIterator) Next() (bool, error) {
+	if it.trie.root == nil {
+		return false, ErrNilNode
+	}
 	if it.trie.root.getHash() == nil {
 		err := it.trie.root.setHash(it.trie.marshalizer, it.trie.hasher)
 		if err != nil {

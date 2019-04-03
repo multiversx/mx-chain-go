@@ -42,6 +42,9 @@ func (tr *patriciaMerkleTrie) NewNodeIterator() NodeIterator {
 // Get starts at the root and searches for the given key.
 // If the key is present in the tree, it returns the corresponding value
 func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {
+	if tr.root == nil {
+		return nil, ErrNilNode
+	}
 	hexKey := keyBytesToHex(key)
 	value, err := tr.root.tryGet(hexKey, tr.db, tr.marshalizer)
 	return value, err
@@ -92,6 +95,9 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 
 // Root returns the hash of the root node
 func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
+	if tr.root == nil {
+		return nil, ErrNilNode
+	}
 	hash := tr.root.getHash()
 	if !tr.root.isDirty() && hash != nil {
 		return hash, nil
@@ -162,6 +168,9 @@ func (tr *patriciaMerkleTrie) VerifyProof(proofs [][]byte, key []byte) (bool, er
 
 // Commit adds all the dirty nodes to the database
 func (tr *patriciaMerkleTrie) Commit() error {
+	if tr.root == nil {
+		return ErrNilNode
+	}
 	if tr.root.isCollapsed() {
 		return nil
 	}

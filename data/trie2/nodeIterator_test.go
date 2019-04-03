@@ -3,6 +3,11 @@ package trie2_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie2"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -156,4 +161,15 @@ func TestNodeIterator_Next(t *testing.T) {
 	}
 	assert.False(t, ok)
 	assert.NotNil(t, err)
+}
+
+func TestNodeIterator_NextEmptyTrie(t *testing.T) {
+	db, _ := memorydb.New()
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
+
+	it := tr.NewNodeIterator()
+
+	ok, err := it.Next()
+	assert.False(t, ok)
+	assert.Equal(t, trie2.ErrNilNode, err)
 }

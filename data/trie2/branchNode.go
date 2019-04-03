@@ -148,10 +148,7 @@ func (bn *branchNode) resolveCollapsed(pos byte, db DBWriteCacher, marshalizer m
 
 func (bn *branchNode) isCollapsed() bool {
 	for i := range bn.children {
-		if bn.children[i] != nil && bn.EncodedChildren[i] == nil {
-			return false
-		}
-		if bn.children[i] != nil && bn.EncodedChildren[i] != nil {
+		if bn.children[i] != nil {
 			return false
 		}
 	}

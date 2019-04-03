@@ -70,6 +70,15 @@ func TestPatriciaMerkleTree_Get(t *testing.T) {
 	}
 }
 
+func TestPatriciaMerkleTree_GetEmptyTrie(t *testing.T) {
+	db, _ := memorydb.New()
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
+
+	val, err := tr.Get([]byte("dog"))
+	assert.Equal(t, trie2.ErrNilNode, err)
+	assert.Nil(t, val)
+}
+
 func TestPatriciaMerkleTree_Update(t *testing.T) {
 	tr := testTrie()
 
@@ -109,12 +118,29 @@ func TestPatriciaMerkleTree_Delete(t *testing.T) {
 	assert.Equal(t, empty, v)
 }
 
+func TestPatriciaMerkleTree_DeleteEmptyTrie(t *testing.T) {
+	db, _ := memorydb.New()
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
+
+	err := tr.Delete([]byte("dog"))
+	assert.Nil(t, err)
+}
+
 func TestPatriciaMerkleTree_Root(t *testing.T) {
 	tr := testTrie()
 
 	root, err := tr.Root()
 	assert.NotNil(t, root)
 	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTree_NilRoot(t *testing.T) {
+	db, _ := memorydb.New()
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
+
+	root, err := tr.Root()
+	assert.Equal(t, trie2.ErrNilNode, err)
+	assert.Nil(t, root)
 }
 
 func TestPatriciaMerkleTree_Prove(t *testing.T) {
@@ -135,7 +161,15 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 
 	assert.Equal(t, proof1, proof2)
 	assert.Nil(t, err)
+}
 
+func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
+	db, _ := memorydb.New()
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
+
+	proof, err := tr.Prove([]byte("dog"))
+	assert.Nil(t, proof)
+	assert.Equal(t, trie2.ErrNilNode, err)
 }
 
 func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
@@ -153,6 +187,22 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 		assert.False(t, ok)
 	}
 
+}
+
+func TestPatriciaMerkleTree_VerifyProofNilProofs(t *testing.T) {
+	tr := testTrie()
+
+	ok, err := tr.VerifyProof(nil, []byte("dog"))
+	assert.False(t, ok)
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTree_VerifyProofEmptyProofs(t *testing.T) {
+	tr := testTrie()
+
+	ok, err := tr.VerifyProof([][]byte{}, []byte("dog"))
+	assert.False(t, ok)
+	assert.Nil(t, err)
 }
 
 func TestPatriciaMerkleTree_NodeIterator(t *testing.T) {
@@ -181,6 +231,22 @@ func TestPatriciaMerkleTree_Commit(t *testing.T) {
 
 	err := tr.Commit()
 	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTree_CommitAfterCommit(t *testing.T) {
+	tr := testTrie()
+
+	tr.Commit()
+	err := tr.Commit()
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTree_CommitEmptyRoot(t *testing.T) {
+	db, _ := memorydb.New()
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
+
+	err := tr.Commit()
+	assert.Equal(t, trie2.ErrNilNode, err)
 }
 
 func TestPatriciaMerkleTree_GetAfterCommit(t *testing.T) {
