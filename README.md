@@ -26,7 +26,7 @@ Run in .../eldond-go-sandbox/cmd/bootnode folder the following command to build 
 ```
 
 For the network customization please take a look in the p2p.toml<br />
-For the consensus group customization pleas take a look in the .../cmd/bootnode/genesis.json<br />
+For the consensus group customization please take a look in the .../cmd/bootnode/genesis.json<br />
 To run multiple nodes take a look at the end of this document.
 
 ### Running the tests
