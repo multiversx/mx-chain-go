@@ -223,6 +223,16 @@ func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 	assert.False(t, ln.isCollapsed())
 }
 
+func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	marsh, _ := getTestMarshAndHasher()
+	var node *extensionNode
+
+	err := resolveIfCollapsed(node, 0, db, marsh)
+	assert.Equal(t, ErrNilNode, err)
+}
+
 func TestNode_concat(t *testing.T) {
 	t.Parallel()
 	a := []byte{1, 2, 3}
@@ -247,6 +257,15 @@ func TestNode_hasValidHash(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, ok)
 }
+
+func TestNode_hasValidHashNilNode(t *testing.T) {
+	t.Parallel()
+	var node *branchNode
+	ok, err := hasValidHash(node)
+	assert.Equal(t, ErrNilNode, err)
+	assert.False(t, ok)
+}
+
 func TestNode_decodeNodeBranchNode(t *testing.T) {
 	t.Parallel()
 	marsh, _ := getTestMarshAndHasher()
@@ -285,6 +304,30 @@ func TestNode_decodeNodeLeafNode(t *testing.T) {
 	assert.Nil(t, err)
 	ln.dirty = false
 	assert.Equal(t, ln, node)
+}
+
+func TestNode_decodeNodeInvalidNode(t *testing.T) {
+	t.Parallel()
+	marsh, _ := getTestMarshAndHasher()
+	ln := getLn()
+
+	encNode, _ := marsh.Marshal(ln)
+	encNode = append(encNode, 6)
+
+	node, err := decodeNode(encNode, marsh)
+	assert.Nil(t, node)
+	assert.Equal(t, ErrInvalidNode, err)
+}
+
+func TestNode_decodeNodeInvalidEncoding(t *testing.T) {
+	t.Parallel()
+	marsh, _ := getTestMarshAndHasher()
+
+	var encNode []byte
+
+	node, err := decodeNode(encNode, marsh)
+	assert.Nil(t, node)
+	assert.Equal(t, ErrInvalidEncoding, err)
 }
 
 func TestNode_getEmptyNodeOfTypeBranchNode(t *testing.T) {

@@ -113,11 +113,8 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 	it := newNodeIterator(tr)
 
-	ok, err := it.Next()
-	if err != nil {
-		return nil, err
-	}
-	for ok {
+	err := it.Next()
+	for err == nil {
 		if it.Leaf() {
 			leafKey, err := it.LeafKey()
 			if err != nil {
@@ -127,12 +124,9 @@ func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
 				return it.LeafProof()
 			}
 		}
-		ok, err = it.Next()
-		if err != nil {
-			return nil, err
-		}
+		err = it.Next()
 	}
-	return nil, ErrProve
+	return nil, err
 }
 
 // VerifyProof checks Merkle proofs.

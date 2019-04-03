@@ -148,13 +148,13 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 	it := tr.NewNodeIterator()
 	var proof1 [][]byte
 
-	ok, _ := it.Next()
-	for ok {
+	err := it.Next()
+	for err == nil {
 		if it.Leaf() {
 			proof1, _ = it.LeafProof()
 			break
 		}
-		ok, _ = it.Next()
+		err = it.Next()
 	}
 
 	proof2, err := tr.Prove([]byte("doe"))

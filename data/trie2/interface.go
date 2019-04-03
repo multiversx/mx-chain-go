@@ -15,7 +15,7 @@ type Trie interface {
 // NodeIterator is an iterator to traverse the trie pre-order.
 type NodeIterator interface {
 	// Next moves the iterator to the next node.
-	Next() (bool, error)
+	Next() error
 
 	// Hash returns the hash of the current node.
 	Hash() []byte

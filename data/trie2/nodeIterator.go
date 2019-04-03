@@ -41,21 +41,21 @@ func newIteratorState(hash []byte, node node, parent []byte, pathlen int) *nodeI
 }
 
 // Next moves the iterator to the next node
-func (it *nodeIterator) Next() (bool, error) {
+func (it *nodeIterator) Next() error {
 	if it.trie.root == nil {
-		return false, ErrNilNode
+		return ErrNilNode
 	}
 	if it.trie.root.getHash() == nil {
 		err := it.trie.root.setHash(it.trie.marshalizer, it.trie.hasher)
 		if err != nil {
-			return false, err
+			return err
 		}
 	}
 	err := it.peek()
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 // peek creates the next state of the iterator.
@@ -133,6 +133,9 @@ func (it *nodeIterator) LeafBlob() ([]byte, error) {
 
 // LeafProof returns the Merkle proof of the leaf. Iterator must be positioned at leaf
 func (it *nodeIterator) LeafProof() ([][]byte, error) {
+	if it.trie.root == nil {
+		return nil, ErrNilNode
+	}
 	if it.trie.root.getHash() == nil {
 		err := it.trie.root.setHash(it.trie.marshalizer, it.trie.hasher)
 		if err != nil {

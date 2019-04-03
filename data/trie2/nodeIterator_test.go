@@ -73,20 +73,27 @@ func TestNodeIterator_LeafKey(t *testing.T) {
 
 	searchedKey := []byte("doe")
 	var key []byte
-	var err error
 
-	ok, _ := it.Next()
-
-	for ok {
+	err := it.Next()
+	for err == nil {
 		if it.Leaf() {
 			key, err = it.LeafKey()
 			break
 		}
-		ok, _ = it.Next()
+		err = it.Next()
 	}
 
 	assert.Equal(t, searchedKey, key)
 	assert.Nil(t, err)
+}
+
+func TestNodeIterator_LeafKeyNotAtLeaf(t *testing.T) {
+	tr := testTrie()
+	it := tr.NewNodeIterator()
+
+	key, err := it.LeafKey()
+	assert.Nil(t, key)
+	assert.Equal(t, trie2.ErrNotAtLeaf, err)
 }
 
 func TestNodeIterator_LeafBlob(t *testing.T) {
@@ -95,20 +102,27 @@ func TestNodeIterator_LeafBlob(t *testing.T) {
 
 	searchedVal := []byte("reindeer")
 	var val []byte
-	var err error
 
-	ok, _ := it.Next()
-
-	for ok {
+	err := it.Next()
+	for err == nil {
 		if it.Leaf() {
 			val, err = it.LeafBlob()
 			break
 		}
-		ok, _ = it.Next()
+		err = it.Next()
 	}
 
 	assert.Equal(t, searchedVal, val)
 	assert.Nil(t, err)
+}
+
+func TestNodeIterator_LeafBlobNotAtLeaf(t *testing.T) {
+	tr := testTrie()
+	it := tr.NewNodeIterator()
+
+	val, err := it.LeafBlob()
+	assert.Nil(t, val)
+	assert.Equal(t, trie2.ErrNotAtLeaf, err)
 }
 
 func TestNodeIterator_LeafProof(t *testing.T) {
@@ -117,15 +131,14 @@ func TestNodeIterator_LeafProof(t *testing.T) {
 
 	var proofs [][][]byte
 
-	ok, _ := it.Next()
-
-	for ok {
+	err := it.Next()
+	for err == nil {
 		if it.Leaf() {
 			proof, err := it.LeafProof()
 			assert.Nil(t, err)
 			proofs = append(proofs, proof)
 		}
-		ok, _ = it.Next()
+		err = it.Next()
 	}
 
 	assert.NotNil(t, proofs)
@@ -149,17 +162,35 @@ func TestNodeIterator_LeafProof(t *testing.T) {
 
 }
 
+func TestNodeIterator_LeafProofNilRoot(t *testing.T) {
+	db, _ := memorydb.New()
+	tr, _ := trie2.NewTrie(db, marshal.JsonMarshalizer{}, keccak.Keccak{})
+
+	it := tr.NewNodeIterator()
+
+	proof, err := it.LeafProof()
+	assert.Nil(t, proof)
+	assert.Equal(t, trie2.ErrNilNode, err)
+}
+
+func TestNodeIterator_LeafProofNotAtLeaf(t *testing.T) {
+	tr := testTrie()
+	it := tr.NewNodeIterator()
+
+	proof, err := it.LeafProof()
+	assert.Nil(t, proof)
+	assert.Equal(t, trie2.ErrNotAtLeaf, err)
+}
+
 func TestNodeIterator_Next(t *testing.T) {
 	tr := testTrie()
 	it := tr.NewNodeIterator()
 
-	ok, err := it.Next()
-	for ok {
+	err := it.Next()
+	for err == nil {
 		assert.Nil(t, err)
-		assert.True(t, ok)
-		ok, err = it.Next()
+		err = it.Next()
 	}
-	assert.False(t, ok)
 	assert.NotNil(t, err)
 }
 
@@ -169,7 +200,6 @@ func TestNodeIterator_NextEmptyTrie(t *testing.T) {
 
 	it := tr.NewNodeIterator()
 
-	ok, err := it.Next()
-	assert.False(t, ok)
+	err := it.Next()
 	assert.Equal(t, trie2.ErrNilNode, err)
 }

@@ -10,9 +10,6 @@ var ErrNotAtLeaf = errors.New("iterator not positioned at leaf")
 // ErrIterationEnd is raised when the trie iteration has reached an end
 var ErrIterationEnd = errors.New("end of iteration")
 
-// ErrProve is raised when a proof can't be provided
-var ErrProve = errors.New("can't provide proof")
-
 // ErrInvalidNode is raised when we reach an invalid node
 var ErrInvalidNode = errors.New("invalid node")
 

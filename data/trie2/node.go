@@ -24,6 +24,7 @@ type node interface {
 	delete(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
 	nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool)
 	reduceNode(pos int) node
+	isEmptyOrNil() error
 }
 
 type branchNode struct {
@@ -103,6 +104,10 @@ func getNodeFromDBAndDecode(n []byte, db DBWriteCacher, marshalizer marshal.Mars
 }
 
 func resolveIfCollapsed(n node, pos byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
+	err := n.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
 	if n.isCollapsed() {
 		err := n.resolveCollapsed(pos, db, marshalizer)
 		if err != nil {
@@ -120,6 +125,10 @@ func concat(s1 []byte, s2 ...byte) []byte {
 }
 
 func hasValidHash(n node) (bool, error) {
+	err := n.isEmptyOrNil()
+	if err != nil {
+		return false, err
+	}
 	childHash := n.getHash()
 	childIsDirty := n.isDirty()
 	if childHash == nil || childIsDirty {
