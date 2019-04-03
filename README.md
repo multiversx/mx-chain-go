@@ -2,18 +2,20 @@
 
 The go implementation for the Elrond Network testnet
 
-#Getting started
+# Getting started
 
-###Prerequisites
+### Prerequisites
 
 Building the repository requires Go (version 1.12 or later)
 
-###Installation
+### Installation
 
 You need to run in .../eldond-go-sandbox/cmd/bootnode folder:
- 
+
+```
 ./go build<br />
 ./go install
+```
 
 Then you have to put in {FOLDER} the files bellow:
  
@@ -21,18 +23,19 @@ Then you have to put in {FOLDER} the files bellow:
 {FOLDER}/config/config.testnet.json<br />
 {FOLDER}/genesis.json
 
-###Running the tests
+### Running the tests
+```
 ./go test ./...
+```
 
-
-###Running a node
+### Running a node
 With the text below could be created a start.sh file in the same 
 {FOLDER} and run it. This is all! 
-
+```
 gnome-terminal -- ./bootnode -port 23000 -private-key "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f"
-
-#Progress
-###Done
+```
+# Progress
+### Done
 - [x] Cryptography
   - [x] Schnorr Signature
   - [x] Belare-Neven Signature
@@ -47,7 +50,7 @@ gnome-terminal -- ./bootnode -port 23000 -private-key "b5671723b8c64b16b3d4f5a2d
 - [x] Peer2Peer - libp2p
 - [x] Consensus - SPoS
 
-###In progress
+### In progress
 - [ ] Sharding - fixed number
   - [x] Transaction
   - [x] State
@@ -58,7 +61,7 @@ gnome-terminal -- ./bootnode -port 23000 -private-key "b5671723b8c64b16b3d4f5a2d
 - [ ] Fee structure
 - [ ] Governance
 
-###Future work
+### Future work
 - [ ] Adaptive State Sharding
   - [ ] Splitting
   - [ ] Merging 
