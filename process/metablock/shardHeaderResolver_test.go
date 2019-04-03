@@ -76,7 +76,6 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t
 
 	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, make([]byte, 0)))
 	assert.Equal(t, process.ErrResolveTypeUnknown, err)
-
 }
 
 func TestShardHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend(t *testing.T) {

@@ -9,8 +9,8 @@ const (
 	MiniBlocksTopic = "txBlockBodies"
 	// PeerChBodyTopic is used for sharing peer change block bodies
 	PeerChBodyTopic = "peerChangeBlockBodies"
-	// MetachainHeadersTopic is used for sharing metachain block headers between shards
-	MetachainHeadersTopic = "metachainHeaders"
-	// MetachainShardHeadersTopic is used for sharing metachain block headers between shards
-	MetachainShardHeadersTopic = "metachainShardHeaders"
+	// MetachainBlocksTopic is used for sharing metachain block headers between shards
+	MetachainBlocksTopic = "metachainBlocks"
+	// ShardHeadersForMetachainTopic is used for sharing shards block headers to the metachain nodes
+	ShardHeadersForMetachainTopic = "shardHeadersForMetachain"
 )

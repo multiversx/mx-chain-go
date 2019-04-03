@@ -117,14 +117,10 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-
 	wasCalled := 0
-
 	testedNonce := uint64(67)
-
 	headers := &mock.CacherStub{}
 	multisigner := mock.NewMultiSigner()
-
 	headersNonces := &mock.Uint64CacherStub{}
 	headersNonces.HasOrAddCalled = func(u uint64, i []byte) (b bool, b2 bool) {
 		if u == testedNonce {
@@ -133,7 +129,6 @@ func TestHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) 
 
 		return
 	}
-
 	storer := &mock.StorerStub{}
 	storer.HasCalled = func(key []byte) (bool, error) {
 		return false, nil

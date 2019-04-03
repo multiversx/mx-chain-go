@@ -55,8 +55,8 @@ func NewHeaderInterceptorBase(
 	return hdrIntercept, nil
 }
 
-// ParseReceivedMessage will transform the received p2p.Message in an InterceptedHeader. If the header hash is
-// present in storage it will output an error
+// ParseReceivedMessage will transform the received p2p.Message in an InterceptedHeader.
+// If the header hash is present in storage it will output an error
 func (hib *HeaderInterceptorBase) ParseReceivedMessage(message p2p.MessageP2P) (*block.InterceptedHeader, error) {
 	if message == nil {
 		return nil, process.ErrNilMessage

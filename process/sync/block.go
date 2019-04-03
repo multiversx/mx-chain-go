@@ -239,7 +239,6 @@ func (boot *Bootstrap) requestedHeaderNonce() (nonce *uint64) {
 
 func (boot *Bootstrap) getHeader(hash []byte) *block.Header {
 	hdr := boot.getHeaderFromPool(hash)
-
 	if hdr != nil {
 		return hdr
 	}
@@ -249,14 +248,12 @@ func (boot *Bootstrap) getHeader(hash []byte) *block.Header {
 
 func (boot *Bootstrap) getHeaderFromPool(hash []byte) *block.Header {
 	hdr, ok := boot.headers.Peek(hash)
-
 	if !ok {
 		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
 	}
 
 	header, ok := hdr.(*block.Header)
-
 	if !ok {
 		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
@@ -286,17 +283,14 @@ func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 
 func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 	header := boot.getHeader(headerHash)
-
 	if header != nil && header.Nonce > boot.highestNonceReceived {
 		boot.highestNonceReceived = header.Nonce
 	}
-
 	if header != nil {
 		log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
 	}
 
 	err := boot.forkDetector.AddHeader(header, headerHash, false)
-
 	if err != nil {
 		log.Info(err.Error())
 	}

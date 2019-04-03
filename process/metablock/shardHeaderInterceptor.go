@@ -34,6 +34,7 @@ func NewShardHeaderInterceptor(
 	if headers == nil {
 		return nil, process.ErrNilHeadersDataPool
 	}
+
 	hdrBaseInterceptor, err := interceptors.NewHeaderInterceptorBase(
 		marshalizer,
 		storer,

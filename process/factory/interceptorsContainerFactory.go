@@ -294,7 +294,7 @@ func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptor() ([
 //------- MetachainHeader interceptors
 
 func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([]string, []process.Interceptor, error) {
-	identifierHdr := MetachainHeadersTopic
+	identifierHdr := MetachainBlocksTopic
 	metachainHeaderStorer := icf.blockchain.GetStorer(data.MetaBlockUnit)
 
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(

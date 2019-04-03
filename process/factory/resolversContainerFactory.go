@@ -288,6 +288,7 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolver() ([]strin
 	if err != nil {
 		return nil, nil, err
 	}
+
 	resolver, err := resolvers.NewGenericBlockBodyResolver(
 		resolverSender,
 		rcf.dataPools.MiniBlocks(),
@@ -315,7 +316,7 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 	shardC := rcf.shardCoordinator
 
 	//only one metachain header topic
-	identifierHdr := MetachainShardHeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	identifierHdr := ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 	hdrStorer := rcf.blockchain.GetStorer(data.BlockHeaderUnit)
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
