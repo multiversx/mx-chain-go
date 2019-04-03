@@ -25,7 +25,8 @@ Run in .../eldond-go-sandbox/cmd/bootnode folder the following command to build 
 ./bootnode -port 23000 -private-key "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f"
 ```
 
-For the network customization please take a look in the p2p.toml
+For the network customization please take a look in the p2p.toml<br />
+For the consensus group customization pleas take a look in the .../cmd/bootnode/genesis.json<br />
 To run multiple nodes take a look at the end of this document.
 
 ### Running the tests
