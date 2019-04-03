@@ -26,6 +26,7 @@ Run in .../eldond-go-sandbox/cmd/bootnode folder the following command to build 
 ```
 
 For the network customization please take a look in the p2p.toml
+To run multiple nodes take a look at the end of this document.
 
 ### Running the tests
 ```
