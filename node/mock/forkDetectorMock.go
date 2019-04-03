@@ -18,7 +18,7 @@ func (f *ForkDetectorMock) AddHeader(header *block.Header, hash []byte, isProces
 	return f.AddHeaderCalled(header, hash, isProcessed)
 }
 
-// ResetProcessedHeader is a mock implementation for ResetProcessedHeader
+// RemoveProcessedHeader is a mock implementation for RemoveProcessedHeader
 func (f *ForkDetectorMock) RemoveProcessedHeader(nonce uint64) error {
 	return f.RemoveProcessedHeaderCalled(nonce)
 }
