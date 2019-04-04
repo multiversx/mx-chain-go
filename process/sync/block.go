@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -61,6 +62,7 @@ type Bootstrap struct {
 
 	highestNonceReceived uint64
 	isForkDetected       bool
+	forkNonce            uint64
 
 	BroadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
@@ -142,6 +144,8 @@ func NewBootstrap(
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
+
+	boot.forkNonce = math.MaxUint64
 
 	return &boot, nil
 }
@@ -386,7 +390,7 @@ func (boot *Bootstrap) SyncBlock() error {
 	}
 
 	if boot.isForkDetected {
-		log.Info("fork detected\n")
+		log.Info(fmt.Sprintf("fork detected at nonce %d\n", boot.forkNonce))
 		return boot.forkChoice()
 	}
 
@@ -625,30 +629,42 @@ func (boot *Bootstrap) waitForMiniBlocks() {
 
 // forkChoice decides if rollback must be called
 func (boot *Bootstrap) forkChoice() error {
-	log.Info(fmt.Sprintf("starting fork choice\n"))
+	log.Info("starting fork choice\n")
+	isForkResolved := false
+	for !isForkResolved {
+		header, err := boot.getCurrentHeader()
+		if err != nil {
+			return err
+		}
 
-	header, err := boot.getCurrentHeader()
-	if err != nil {
-		return err
-	}
+		isSigned := isSigned(header)
+		if isSigned {
+			canRevertBlock := header.Nonce > boot.forkDetector.GetHighestFinalityBlockNonce()
+			if !canRevertBlock {
+				return &ErrSignedBlock{CurrentNonce: header.Nonce}
+			}
+		}
 
-	isSigned := isSigned(header)
-	if isSigned {
-		canRevertBlock := header.Nonce > boot.forkDetector.GetHighestFinalityBlockNonce()
-		if !canRevertBlock {
-			return &ErrSignedBlock{CurrentNonce: header.Nonce}
+		msg := ""
+		if isSigned {
+			msg = fmt.Sprintf(" from a signed block, as the highest finality block nonce is %d",
+				boot.forkDetector.GetHighestFinalityBlockNonce())
+		}
+		log.Info(fmt.Sprintf("roll back to header with nonce %d and hash %s%s\n",
+			header.Nonce-1, toB64(header.PrevHash), msg))
+
+		err = boot.rollback(header)
+		if err != nil {
+			return err
+		}
+
+		if header.Nonce <= boot.forkNonce {
+			isForkResolved = true
 		}
 	}
 
-	msg := ""
-	if isSigned {
-		msg = fmt.Sprintf(" from a signed block, as the highest finality block nonce is %d",
-			boot.forkDetector.GetHighestFinalityBlockNonce())
-	}
-	log.Info(fmt.Sprintf("roll back to header with nonce %d and hash %s%s\n",
-		header.Nonce-1, toB64(header.PrevHash), msg))
-
-	return boot.rollback(header)
+	log.Info("ending fork choice\n")
+	return nil
 }
 
 func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore storage.Storer) {
@@ -658,7 +674,7 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 		hash,
 		process.ShardCacherIdentifier(header.ShardId, header.ShardId),
 	)
-	_ = boot.forkDetector.RemoveProcessedHeader(header.Nonce)
+	boot.forkDetector.RemoveHeaders(header.Nonce)
 	_ = headerStore.Remove(hash)
 }
 
@@ -792,7 +808,7 @@ func (boot *Bootstrap) ShouldSync() bool {
 		return false
 	}
 
-	boot.isForkDetected = boot.forkDetector.CheckFork()
+	boot.isForkDetected, boot.forkNonce = boot.forkDetector.CheckFork()
 
 	if boot.blkc.GetCurrentBlockHeader() == nil {
 		boot.hasLastBlock = boot.rounder.Index() <= 0

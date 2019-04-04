@@ -2,6 +2,7 @@ package sync
 
 import (
 	"bytes"
+	"math"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -62,7 +63,7 @@ func (bfd *basicForkDetector) removePastHeaders(nonce uint64) {
 	bfd.mutHeaders.Lock()
 
 	for storedNonce := range bfd.headers {
-		if storedNonce <= nonce {
+		if storedNonce < nonce {
 			delete(bfd.headers, storedNonce)
 		}
 	}
@@ -70,36 +71,15 @@ func (bfd *basicForkDetector) removePastHeaders(nonce uint64) {
 	bfd.mutHeaders.Unlock()
 }
 
-// RemoveProcessedHeader removes the processed stored header with a given nonce
-func (bfd *basicForkDetector) RemoveProcessedHeader(nonce uint64) error {
+// RemoveHeaders removes all the stored headers with a given nonce
+func (bfd *basicForkDetector) RemoveHeaders(nonce uint64) {
+	if nonce == bfd.checkpointNonce {
+		bfd.checkpointNonce = bfd.lastCheckpointNonce
+	}
+
 	bfd.mutHeaders.Lock()
-	defer bfd.mutHeaders.Unlock()
-
-	hdrInfosStored := bfd.headers[nonce]
-	isHdrInfosStoredNilOrEmpty := hdrInfosStored == nil || len(hdrInfosStored) == 0
-	if isHdrInfosStoredNilOrEmpty {
-		return ErrNilOrEmptyInfoStored
-	}
-
-	var newHdrInfosStored []*headerInfo
-	for _, hdrInfoStored := range hdrInfosStored {
-		if hdrInfoStored.isProcessed {
-			if hdrInfoStored.isSigned {
-				bfd.checkpointNonce = bfd.lastCheckpointNonce
-			}
-			continue
-		}
-
-		newHdrInfosStored = append(newHdrInfosStored, hdrInfoStored)
-	}
-
 	delete(bfd.headers, nonce)
-	isNewHdrInfosStoredNilOrEmpty := newHdrInfosStored == nil || len(newHdrInfosStored) == 0
-	if !isNewHdrInfosStoredNilOrEmpty {
-		bfd.headers[nonce] = newHdrInfosStored
-	}
-
-	return nil
+	bfd.mutHeaders.Unlock()
 }
 
 // append adds a new header in the slice found in nonce position
@@ -131,11 +111,15 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 }
 
 // CheckFork method checks if the node could be on the fork
-func (bfd *basicForkDetector) CheckFork() bool {
+func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
+	var lowestForkNonce uint64
 	var selfHdrInfo *headerInfo
+	lowestForkNonce = math.MaxUint64
+	forkDetected := false
+
 	for nonce, hdrInfos := range bfd.headers {
 		if len(hdrInfos) == 1 {
 			continue
@@ -169,11 +153,14 @@ func (bfd *basicForkDetector) CheckFork() bool {
 
 		if foundSignedBlock {
 			// fork detected: self has a processed unsigned block, and it received a signed block with the same nonce
-			return true
+			forkDetected = true
+			if nonce < lowestForkNonce {
+				lowestForkNonce = nonce
+			}
 		}
 	}
 
-	return false
+	return forkDetected, lowestForkNonce
 }
 
 // GetHighestSignedBlockNonce gets the highest stored nonce of one signed block received/processed
