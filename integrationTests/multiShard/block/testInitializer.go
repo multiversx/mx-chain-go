@@ -38,6 +38,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -176,7 +177,7 @@ func createNetNode(
 	blkc := createTestBlockChain()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
-	interceptorContainerFactory, _ := factory.NewInterceptorsContainerFactory(
+	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		messenger,
 		blkc,
@@ -193,7 +194,7 @@ func createNetNode(
 		fmt.Println(err.Error())
 	}
 
-	resolversContainerFactory, _ := factory.NewResolversContainerFactory(
+	resolversContainerFactory, _ := shard.NewResolversContainerFactory(
 		shardCoordinator,
 		messenger,
 		blkc,

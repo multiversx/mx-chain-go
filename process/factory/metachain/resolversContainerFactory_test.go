@@ -1,4 +1,4 @@
-package factory_test
+package metachain_test
 
 import (
 	"strings"
@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/stretchr/testify/assert"
@@ -43,26 +44,20 @@ func createStubTopicMessageHandler(matchStrToErrOnCreate string, matchStrToErrOn
 	return tmhs
 }
 
-func createDataPools() data.PoolsHolder {
-	pools := &mock.PoolsHolderStub{}
-	pools.TransactionsCalled = func() data.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
-	}
-	pools.HeadersCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
-		return &mock.Uint64CacherStub{}
-	}
-	pools.MiniBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-	pools.PeerChangesBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
-	}
-
-	pools.MetaBlocksCalled = func() storage.Cacher {
-		return &mock.CacherStub{}
+func createDataPools() data.MetaPoolsHolder {
+	pools := &mock.MetaPoolsHolderStub{
+		MetaBlockNoncesCalled: func() data.Uint64Cacher {
+			return &mock.Uint64CacherStub{}
+		},
+		ShardHeadersCalled: func() storage.Cacher {
+			return &mock.CacherStub{}
+		},
+		MiniBlockHashesCalled: func() data.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{}
+		},
+		MetaChainBlocksCalled: func() storage.Cacher {
+			return &mock.CacherStub{}
+		},
 	}
 
 	return pools
@@ -83,7 +78,7 @@ func createBlockchain() data.ChainHandler {
 func TestNewResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rcf, err := factory.NewResolversContainerFactory(
+	rcf, err := metachain.NewResolversContainerFactory(
 		nil,
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
@@ -99,7 +94,7 @@ func TestNewResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T)
 func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rcf, err := factory.NewResolversContainerFactory(
+	rcf, err := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		createBlockchain(),
@@ -115,7 +110,7 @@ func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 func TestNewResolversContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rcf, err := factory.NewResolversContainerFactory(
+	rcf, err := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", ""),
 		nil,
@@ -131,7 +126,7 @@ func TestNewResolversContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rcf, err := factory.NewResolversContainerFactory(
+	rcf, err := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
@@ -147,7 +142,7 @@ func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rcf, err := factory.NewResolversContainerFactory(
+	rcf, err := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
@@ -163,7 +158,7 @@ func TestNewResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 func TestNewResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rcf, err := factory.NewResolversContainerFactory(
+	rcf, err := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
@@ -179,7 +174,7 @@ func TestNewResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testin
 func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	rcf, err := factory.NewResolversContainerFactory(
+	rcf, err := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
@@ -194,12 +189,12 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 
 //------- Create
 
-func TestResolversContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testing.T) {
+func TestResolversContainerFactory_CreateTopicShardHeadersForMetachainFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rcf, _ := factory.NewResolversContainerFactory(
+	rcf, _ := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler(factory.TransactionTopic, ""),
+		createStubTopicMessageHandler(factory.ShardHeadersForMetachainTopic, ""),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
@@ -212,120 +207,12 @@ func TestResolversContainerFactory_CreateTopicCreationTxFailsShouldErr(t *testin
 	assert.Equal(t, errExpected, err)
 }
 
-func TestResolversContainerFactory_CreateTopicCreationHdrFailsShouldErr(t *testing.T) {
+func TestResolversContainerFactory_CreateRegisterShardHeadersForMetachainFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rcf, _ := factory.NewResolversContainerFactory(
+	rcf, _ := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler(factory.HeadersTopic, ""),
-		createBlockchain(),
-		&mock.MarshalizerMock{},
-		createDataPools(),
-		&mock.Uint64ByteSliceConverterMock{},
-	)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestResolversContainerFactory_CreateTopicCreationMiniBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	rcf, _ := factory.NewResolversContainerFactory(
-		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler(factory.MiniBlocksTopic, ""),
-		createBlockchain(),
-		&mock.MarshalizerMock{},
-		createDataPools(),
-		&mock.Uint64ByteSliceConverterMock{},
-	)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestResolversContainerFactory_CreateTopicCreationPeerChBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	rcf, _ := factory.NewResolversContainerFactory(
-		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler(factory.PeerChBodyTopic, ""),
-		createBlockchain(),
-		&mock.MarshalizerMock{},
-		createDataPools(),
-		&mock.Uint64ByteSliceConverterMock{},
-	)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestResolversContainerFactory_CreateRegisterTxFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	rcf, _ := factory.NewResolversContainerFactory(
-		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler("", factory.TransactionTopic),
-		createBlockchain(),
-		&mock.MarshalizerMock{},
-		createDataPools(),
-		&mock.Uint64ByteSliceConverterMock{},
-	)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestResolversContainerFactory_CreateRegisterHdrFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	rcf, _ := factory.NewResolversContainerFactory(
-		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler("", factory.HeadersTopic),
-		createBlockchain(),
-		&mock.MarshalizerMock{},
-		createDataPools(),
-		&mock.Uint64ByteSliceConverterMock{},
-	)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestResolversContainerFactory_CreateRegisterMiniBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	rcf, _ := factory.NewResolversContainerFactory(
-		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler("", factory.MiniBlocksTopic),
-		createBlockchain(),
-		&mock.MarshalizerMock{},
-		createDataPools(),
-		&mock.Uint64ByteSliceConverterMock{},
-	)
-
-	container, err := rcf.Create()
-
-	assert.Nil(t, container)
-	assert.Equal(t, errExpected, err)
-}
-
-func TestResolversContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	rcf, _ := factory.NewResolversContainerFactory(
-		mock.NewOneShardCoordinatorMock(),
-		createStubTopicMessageHandler("", factory.PeerChBodyTopic),
+		createStubTopicMessageHandler("", factory.ShardHeadersForMetachainTopic),
 		createBlockchain(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
@@ -341,7 +228,7 @@ func TestResolversContainerFactory_CreateRegisterPeerChBlocksFailsShouldErr(t *t
 func TestResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
-	rcf, _ := factory.NewResolversContainerFactory(
+	rcf, _ := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
@@ -365,7 +252,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	shardCoordinator.SetNoShards(uint32(noOfShards))
 	shardCoordinator.CurrentShard = 1
 
-	rcf, _ := factory.NewResolversContainerFactory(
+	rcf, _ := metachain.NewResolversContainerFactory(
 		shardCoordinator,
 		createStubTopicMessageHandler("", ""),
 		createBlockchain(),
@@ -376,13 +263,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 	container, _ := rcf.Create()
 
-	numResolverTxs := noOfShards
-	numResolverHeaders := 1
-	numResolverMiniBlocks := noOfShards
-	numResolverPeerChanges := 1
-	numResolverMetachainShardHeaders := 1
-	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverPeerChanges +
-		numResolverMetachainShardHeaders
+	numInterceptorsShardHeadersForMetachain := noOfShards
 
-	assert.Equal(t, totalResolvers, container.Len())
+	assert.Equal(t, numInterceptorsShardHeadersForMetachain, container.Len())
 }

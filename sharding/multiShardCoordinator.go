@@ -85,15 +85,21 @@ func (msc *multiShardCoordinator) SameShard(firstAddress, secondAddress state.Ad
 }
 
 // CommunicationIdentifier returns the identifier between current shard ID and destination shard ID
-// identifier is generated such as the first shard from identifier is always smaller than the last
+// identifier is generated such as the first shard from identifier is always smaller or equal than the last
 func (msc *multiShardCoordinator) CommunicationIdentifier(destShardID uint32) string {
-	if destShardID == msc.selfId {
-		return fmt.Sprintf("_%d", msc.selfId)
+	return CommunicationIdentifierBetweenShards(msc.selfId, destShardID)
+}
+
+// CommunicationIdentifierBetweenShards is used to generate the identifier between shardID1 and shardID2
+// identifier is generated such as the first shard from identifier is always smaller or equal than the last
+func CommunicationIdentifierBetweenShards(shardID1 uint32, shardID2 uint32) string {
+	if shardID1 == shardID2 {
+		return fmt.Sprintf("_%d", shardID1)
 	}
 
-	if destShardID < msc.selfId {
-		return fmt.Sprintf("_%d_%d", destShardID, msc.selfId)
+	if shardID1 < shardID2 {
+		return fmt.Sprintf("_%d_%d", shardID1, shardID2)
 	}
 
-	return fmt.Sprintf("_%d_%d", msc.selfId, destShardID)
+	return fmt.Sprintf("_%d_%d", shardID2, shardID1)
 }
