@@ -659,12 +659,13 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
-	hdrPool, err := shardedData.NewShardedData(getCacherFromConfig(config.BlockHeaderDataPool))
+	cacherCfg := getCacherFromConfig(config.BlockHeaderDataPool)
+	hdrPool, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
 	}
 
-	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
+	cacherCfg = getCacherFromConfig(config.MetaBlockBodyDataPool)
 	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err

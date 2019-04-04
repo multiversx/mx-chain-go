@@ -5,12 +5,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 func createDataPool() *mock.PoolsHolderStub {
 	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
 	}
 	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		return &mock.Uint64CacherStub{}

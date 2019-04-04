@@ -105,9 +105,10 @@ func createMemUnit() storage.Storer {
 
 func createTestDataPool() data.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
-	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
+	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	cacherCfg := storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
@@ -385,7 +386,7 @@ func createNodes(
 				atomic.AddInt32(&testNode.headersRecv, 1)
 				testNode.mutHeaders.Lock()
 				testNode.headersHashes = append(testNode.headersHashes, key)
-				header, _ := testNode.dPool.Headers().SearchFirstData(key)
+				header, _ := testNode.dPool.Headers().Peek(key)
 				testNode.headers = append(testNode.headers, header.(data.HeaderHandler))
 				testNode.mutHeaders.Unlock()
 			})

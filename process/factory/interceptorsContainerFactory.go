@@ -98,7 +98,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = icf.generateHdrInterceptors()
+	keys, interceptorSlice, err = icf.generateHdrInterceptor()
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = icf.generatePeerChBlockBodyInterceptors()
+	keys, interceptorSlice, err = icf.generatePeerChBlockBodyInterceptor()
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 		return nil, err
 	}
 
-	keys, interceptorSlice, err = icf.generateMetachainHeaderInterceptors()
+	keys, interceptorSlice, err = icf.generateMetachainHeaderInterceptor()
 	if err != nil {
 		return nil, err
 	}
@@ -195,25 +195,14 @@ func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier strin
 	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
 
-//------- Hdr interceptors
+//------- Hdr interceptor
 
-func (icf *interceptorsContainerFactory) generateHdrInterceptors() ([]string, []process.Interceptor, error) {
+func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
 	//only one intrashard header topic
 	identifierHdr := HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-
-	interceptor, err := icf.createOneHdrInterceptor(identifierHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
-}
-
-func (icf *interceptorsContainerFactory) createOneHdrInterceptor(identifier string) (process.Interceptor, error) {
 	headerStorer := icf.blockchain.GetStorer(data.BlockHeaderUnit)
-
 	interceptor, err := interceptors.NewHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.Headers(),
@@ -223,21 +212,22 @@ func (icf *interceptorsContainerFactory) createOneHdrInterceptor(identifier stri
 		icf.hasher,
 		icf.shardCoordinator,
 	)
-
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
 }
 
 //------- MiniBlocks interceptors
 
 func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
-
 	noOfShards := shardC.NumberOfShards()
-
 	keys := make([]string, noOfShards)
 	interceptorSlice := make([]process.Interceptor, noOfShards)
 
@@ -274,23 +264,13 @@ func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifi
 	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
 
-//------- PeerChBlocks interceptors
+//------- PeerChBlocks interceptor
 
-func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptors() ([]string, []process.Interceptor, error) {
+func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptor() ([]string, []process.Interceptor, error) {
 	shardC := icf.shardCoordinator
 
 	//only one intrashard peer change blocks topic
 	identifierPeerCh := PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-
-	interceptor, err := icf.createOnePeerChBlockBodyInterceptor(identifierPeerCh)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return []string{identifierPeerCh}, []process.Interceptor{interceptor}, nil
-}
-
-func (icf *interceptorsContainerFactory) createOnePeerChBlockBodyInterceptor(identifier string) (process.Interceptor, error) {
 	peerBlockBodyStorer := icf.blockchain.GetStorer(data.PeerChangesUnit)
 
 	interceptor, err := interceptors.NewPeerBlockBodyInterceptor(
@@ -298,30 +278,23 @@ func (icf *interceptorsContainerFactory) createOnePeerChBlockBodyInterceptor(ide
 		icf.dataPool.PeerChangesBlocks(),
 		peerBlockBodyStorer,
 		icf.hasher,
-		icf.shardCoordinator,
+		shardC,
 	)
-
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
-}
-
-//------- MetachainHeader interceptors
-
-func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptors() ([]string, []process.Interceptor, error) {
-	identifierHdr := MetachainHeadersTopic
-
-	interceptor, err := icf.createOneMetachainHeaderInterceptor(identifierHdr)
+	_, err = icf.createTopicAndAssignHandler(identifierPeerCh, interceptor, true)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
+	return []string{identifierPeerCh}, []process.Interceptor{interceptor}, nil
 }
 
-func (icf *interceptorsContainerFactory) createOneMetachainHeaderInterceptor(identifier string) (process.Interceptor, error) {
+//------- MetachainHeader interceptors
+
+func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([]string, []process.Interceptor, error) {
+	identifierHdr := MetachainBlocksTopic
 	metachainHeaderStorer := icf.blockchain.GetStorer(data.MetaBlockUnit)
 
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
@@ -332,10 +305,13 @@ func (icf *interceptorsContainerFactory) createOneMetachainHeaderInterceptor(ide
 		icf.hasher,
 		icf.shardCoordinator,
 	)
-
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return icf.createTopicAndAssignHandler(identifier, interceptor, true)
+	return []string{identifierHdr}, []process.Interceptor{interceptor}, nil
 }
