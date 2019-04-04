@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/node/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -817,8 +818,8 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return nil
 	}
-	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		return &mock.ShardedDataStub{}
+	dataPool.HeadersCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
 	}
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
@@ -844,7 +845,7 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
-	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	dataPool.HeadersCalled = func() storage.Cacher {
 		return nil
 	}
 	n, _ := node.NewNode(
@@ -876,16 +877,11 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	txShardedData.CreateShardStoreCalled = func(cacherId string) {
 		txShardedStores = append(txShardedStores, cacherId)
 	}
-
-	var headerShardedStores []string
-	headerShardedData := &mock.ShardedDataStub{}
-	headerShardedData.CreateShardStoreCalled = func(cacherId string) {
-		headerShardedStores = append(headerShardedStores, cacherId)
-	}
+	headerShardedData := &mock.CacherStub{}
 	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
 		return txShardedData
 	}
-	dataPool.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	dataPool.HeadersCalled = func() storage.Cacher {
 		return headerShardedData
 	}
 	n, _ := node.NewNode(
@@ -906,8 +902,6 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	assert.True(t, containString(process.ShardCacherIdentifier(0, 0), txShardedStores))
 	assert.True(t, containString(process.ShardCacherIdentifier(0, 1), txShardedStores))
 	assert.True(t, containString(process.ShardCacherIdentifier(1, 0), txShardedStores))
-
-	assert.True(t, containString(process.ShardCacherIdentifier(0, 0), headerShardedStores))
 }
 
 func containString(search string, list []string) bool {

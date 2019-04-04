@@ -39,7 +39,7 @@
     Enabled = true
 
     #RefreshIntervalInSec represents the time in seconds between querying for new peers
-    RefreshIntervalInSec = 2
+    RefreshIntervalInSec = 10
 
     #RandezVous represents the meeting point that this node will advertize itself
     #To connect to other nodes, those nodes should have the same RandezVous string
@@ -55,4 +55,4 @@
     #
     #If the initial peers list is left empty, the node will not try to connect to other peers during initial bootstrap
     #phase but will accept connections and will do the network discovery if another peer connects to it
-    InitialPeerList = []
+    InitialPeerList = ["/ip4/127.0.0.1/tcp/10000/p2p/16Uiu2HAmAzokH1ozUF52Vy3RKqRfCMr9ZdNDkUQFEkXRs9DqvmKf"]

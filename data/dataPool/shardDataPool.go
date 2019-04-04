@@ -7,7 +7,7 @@ import (
 
 type shardedDataPool struct {
 	transactions      data.ShardedDataCacherNotifier
-	headers           data.ShardedDataCacherNotifier
+	headers           storage.Cacher
 	metaBlocks        storage.Cacher
 	hdrNonces         data.Uint64Cacher
 	miniBlocks        storage.Cacher
@@ -17,7 +17,7 @@ type shardedDataPool struct {
 // NewShardedDataPool creates a data pools holder object
 func NewShardedDataPool(
 	transactions data.ShardedDataCacherNotifier,
-	headers data.ShardedDataCacherNotifier,
+	headers storage.Cacher,
 	hdrNonces data.Uint64Cacher,
 	miniBlocks storage.Cacher,
 	peerChangesBlocks storage.Cacher,
@@ -27,23 +27,18 @@ func NewShardedDataPool(
 	if transactions == nil {
 		return nil, data.ErrNilTxDataPool
 	}
-
 	if headers == nil {
 		return nil, data.ErrNilHeadersDataPool
 	}
-
 	if hdrNonces == nil {
 		return nil, data.ErrNilHeadersNoncesDataPool
 	}
-
 	if miniBlocks == nil {
 		return nil, data.ErrNilTxBlockDataPool
 	}
-
 	if peerChangesBlocks == nil {
 		return nil, data.ErrNilPeerChangeBlockDataPool
 	}
-
 	if metaBlocks == nil {
 		return nil, data.ErrNilMetaBlockPool
 	}
@@ -64,7 +59,7 @@ func (tdp *shardedDataPool) Transactions() data.ShardedDataCacherNotifier {
 }
 
 // Headers returns the holder for headers
-func (tdp *shardedDataPool) Headers() data.ShardedDataCacherNotifier {
+func (tdp *shardedDataPool) Headers() storage.Cacher {
 	return tdp.headers
 }
 

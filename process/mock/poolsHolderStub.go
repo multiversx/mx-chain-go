@@ -6,7 +6,7 @@ import (
 )
 
 type PoolsHolderStub struct {
-	HeadersCalled           func() data.ShardedDataCacherNotifier
+	HeadersCalled           func() storage.Cacher
 	HeadersNoncesCalled     func() data.Uint64Cacher
 	PeerChangesBlocksCalled func() storage.Cacher
 	TransactionsCalled      func() data.ShardedDataCacherNotifier
@@ -14,7 +14,7 @@ type PoolsHolderStub struct {
 	MetaBlocksCalled        func() storage.Cacher
 }
 
-func (phs *PoolsHolderStub) Headers() data.ShardedDataCacherNotifier {
+func (phs *PoolsHolderStub) Headers() storage.Cacher {
 	return phs.HeadersCalled()
 }
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -28,7 +27,7 @@ const sleepTime = time.Duration(5 * time.Millisecond)
 
 // Bootstrap implements the boostrsap mechanism
 type Bootstrap struct {
-	headers          data.ShardedDataCacherNotifier
+	headers          storage.Cacher
 	headersNonces    data.Uint64Cacher
 	miniBlocks       storage.Cacher
 	blkc             data.ChainHandler
@@ -145,8 +144,6 @@ func NewBootstrap(
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
 
-	boot.forkNonce = math.MaxUint64
-
 	return &boot, nil
 }
 
@@ -243,7 +240,6 @@ func (boot *Bootstrap) requestedHeaderNonce() (nonce *uint64) {
 
 func (boot *Bootstrap) getHeader(hash []byte) *block.Header {
 	hdr := boot.getHeaderFromPool(hash)
-
 	if hdr != nil {
 		return hdr
 	}
@@ -252,15 +248,13 @@ func (boot *Bootstrap) getHeader(hash []byte) *block.Header {
 }
 
 func (boot *Bootstrap) getHeaderFromPool(hash []byte) *block.Header {
-	hdr, ok := boot.headers.SearchFirstData(hash)
-
+	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
 		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
 	}
 
 	header, ok := hdr.(*block.Header)
-
 	if !ok {
 		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
@@ -290,17 +284,14 @@ func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 
 func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 	header := boot.getHeader(headerHash)
-
 	if header != nil && header.Nonce > boot.highestNonceReceived {
 		boot.highestNonceReceived = header.Nonce
 	}
-
 	if header != nil {
 		log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
 	}
 
 	err := boot.forkDetector.AddHeader(header, headerHash, false)
-
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -515,7 +506,7 @@ func (boot *Bootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.Header 
 		return nil
 	}
 
-	hdr, ok := boot.headers.SearchFirstData(hash)
+	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
 		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
@@ -670,10 +661,7 @@ func (boot *Bootstrap) forkChoice() error {
 func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore storage.Storer) {
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 	boot.headersNonces.Remove(header.Nonce)
-	boot.headers.RemoveData(
-		hash,
-		process.ShardCacherIdentifier(header.ShardId, header.ShardId),
-	)
+	boot.headers.Remove(hash)
 	boot.forkDetector.RemoveHeaders(header.Nonce)
 	_ = headerStore.Remove(hash)
 }
@@ -753,9 +741,7 @@ func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
 		if !canRevertBlock {
 			hash, _ := boot.headersNonces.Get(header.Nonce)
 			boot.headersNonces.Remove(header.Nonce)
-			boot.headers.RemoveData(hash,
-				process.ShardCacherIdentifier(header.ShardId, header.ShardId),
-			)
+			boot.headers.Remove(hash)
 		}
 	}
 }

@@ -72,9 +72,10 @@ func createMemUnit() storage.Storer {
 
 func createTestDataPool() data.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
-	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
+	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	cacherCfg := storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 

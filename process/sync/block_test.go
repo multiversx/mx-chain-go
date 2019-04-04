@@ -94,14 +94,16 @@ func createMockResolversFinderNilMiniBlocks() *mock.ResolversFinderStub {
 
 func createMockPools() *mock.PoolsHolderStub {
 	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		sds := &mock.ShardedDataStub{
-			AddDataCalled:         func(key []byte, data interface{}, cacherId string) {},
-			RegisterHandlerCalled: func(func(key []byte)) {},
-			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{
+			HasOrAddCalled: 		func(key []byte, value interface{}) (ok, evicted bool) {
+				return false, false
+			},
+			RegisterHandlerCalled: 	func(func(key []byte)) {},
+			PeekCalled: 			func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
-			RemoveDataCalled: func(key []byte, cacherId string) {
+			RemoveCalled: 			func(key []byte) {
 				return
 			},
 		}
@@ -149,11 +151,13 @@ func createBlockProcessor() *mock.BlockProcessorMock {
 	return blockProcessorMock
 }
 
-func createHeadersDataPool(removedHashCompare []byte, remFlags *removedFlags) data.ShardedDataCacherNotifier {
-	sds := &mock.ShardedDataStub{
-		AddDataCalled:         func(key []byte, data interface{}, cacherId string) {},
-		RegisterHandlerCalled: func(func(key []byte)) {},
-		RemoveDataCalled: func(key []byte, cacherId string) {
+func createHeadersDataPool(removedHashCompare []byte, remFlags *removedFlags) storage.Cacher {
+	sds := &mock.CacherStub{
+		HasOrAddCalled: 		func(key []byte, value interface{}) (ok, evicted bool) {
+			return false, false
+		},
+		RegisterHandlerCalled: 	func(func(key []byte)) {},
+		RemoveCalled: 			func(key []byte) {
 			if bytes.Equal(key, removedHashCompare) {
 				remFlags.flagHdrRemovedFromHeaders = true
 			}
@@ -254,7 +258,7 @@ func TestNewBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools.HeadersCalled = func() storage.Cacher {
 		return nil
 	}
 
@@ -726,11 +730,12 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 	wasCalled := 0
 
 	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		sds := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
 
-		sds.AddDataCalled = func(key []byte, data interface{}, cacherId string) {
+		sds.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
 			assert.Fail(t, "should have not reached this point")
+			return false, false
 		}
 
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
@@ -917,10 +922,10 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 	}
 
 	pools := createMockPools()
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		sds := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
 
-		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("aaa"), key) {
 				return &block.Header{Nonce: 2}, true
 			}
@@ -1056,10 +1061,10 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	dataAvailable := false
 
 	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		sds := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
 
-		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			mutDataAvailable.RLock()
 			defer mutDataAvailable.RUnlock()
 
@@ -1175,10 +1180,10 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	}
 
 	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		sds := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
 
-		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("aaa"), key) {
 				return &block.Header{
 					Nonce:         2,
@@ -1270,10 +1275,10 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	}
 
 	pools := &mock.PoolsHolderStub{}
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		sds := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
 
-		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("aaa"), key) {
 				return &block.Header{
 					Nonce:         2,
@@ -1287,7 +1292,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
 		}
-		sds.RemoveDataCalled = func(key []byte, cacherId string) {
+		sds.RemoveCalled = func(key []byte) {
 		}
 
 		return sds
@@ -1551,10 +1556,10 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 	hdr := &block.Header{Nonce: 0}
 
 	pools := createMockPools()
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		sds := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
 
-		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("aaa"), key) {
 				return hdr, true
 			}
@@ -1664,11 +1669,11 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 	addedHdr := &block.Header{}
 
 	pools := createMockPools()
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		sds := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
 		}
-		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(key, addedHash) {
 				return addedHdr, true
 			}
@@ -1803,11 +1808,11 @@ func TestBootstrap_ReceivedHeadersShouldSetHighestNonceReceived(t *testing.T) {
 	addedHdr := &block.Header{Nonce: 100}
 
 	pools := createMockPools()
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
-		sds := &mock.ShardedDataStub{}
+	pools.HeadersCalled = func() storage.Cacher {
+		sds := &mock.CacherStub{}
 		sds.RegisterHandlerCalled = func(func(key []byte)) {
 		}
-		sds.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
+		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal(key, addedHash) {
 				return addedHdr, true
 			}
@@ -1927,7 +1932,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 	remFlags := &removedFlags{}
 
 	pools := createMockPools()
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools.HeadersCalled = func() storage.Cacher {
 		return createHeadersDataPool(newHdrHash, remFlags)
 	}
 	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
@@ -1996,7 +2001,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	pools := createMockPools()
 
 	//data pool headers
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools.HeadersCalled = func() storage.Cacher {
 		return createHeadersDataPool(currentHdrHash, remFlags)
 	}
 	//data pool headers-nonces
@@ -2104,7 +2109,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 	pools := createMockPools()
 
 	//data pool headers
-	pools.HeadersCalled = func() data.ShardedDataCacherNotifier {
+	pools.HeadersCalled = func() storage.Cacher {
 		return createHeadersDataPool(currentHdrHash, remFlags)
 	}
 	//data pool headers-nonces

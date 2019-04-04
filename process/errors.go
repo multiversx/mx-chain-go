@@ -94,9 +94,6 @@ var ErrMissingTransaction = errors.New("missing transaction")
 // ErrMarshalWithoutSuccess signals that marshal some data was not done with success
 var ErrMarshalWithoutSuccess = errors.New("marshal without success")
 
-// ErrPersistWithoutSuccess signals that persist some data was not done with success
-var ErrPersistWithoutSuccess = errors.New("persist without success")
-
 // ErrRootStateMissmatch signals that persist some data was not done with success
 var ErrRootStateMissmatch = errors.New("root state does not match")
 
@@ -218,9 +215,6 @@ var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 // ErrNilMetaBlockPool signals that a nil meta blocks pool was used
 var ErrNilMetaBlockPool = errors.New("nil meta block pool")
 
-// ErrMiniBlockHeaderBlockMismatch signals that mini block header data is not equal with mini block
-var ErrMiniBlockHeaderBlockMismatch = errors.New("mini block header and body mismatch")
-
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
 
@@ -274,3 +268,6 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 
 // ErrWrongTypeAssertion signals that an type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrHeaderIsInStorage signals that the header is already in storage
+var ErrHeaderIsInStorage = errors.New("header is already in storage")
