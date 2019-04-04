@@ -97,6 +97,17 @@ func (ln *leafNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Mar
 	return nil, ErrNodeNotFound
 }
 
+func (ln *leafNode) getNext(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return nil, nil, err
+	}
+	if bytes.Equal(key, ln.Key) {
+		return nil, nil, nil
+	}
+	return nil, nil, ErrNodeNotFound
+}
+
 func (ln *leafNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {

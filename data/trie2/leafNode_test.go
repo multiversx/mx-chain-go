@@ -253,6 +253,45 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 	assert.Nil(t, val)
 }
 
+func TestLeafNode_getNext(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	ln := getLn()
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{100, 111, 103}
+
+	node, key, err := ln.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Nil(t, err)
+}
+
+func TestLeafNode_getNextWrongKey(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	ln := getLn()
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{2, 100, 111, 103}
+
+	node, key, err := ln.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Equal(t, ErrNodeNotFound, err)
+}
+
+func TestLeafNode_getNextNilNode(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	var ln *leafNode
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{2, 100, 111, 103}
+
+	node, key, err := ln.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Equal(t, ErrNilNode, err)
+}
+
 func TestLeafNode_insertAtSameKey(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()

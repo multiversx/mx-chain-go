@@ -151,25 +151,41 @@ func (en *extensionNode) isCollapsed() bool {
 }
 
 func (en *extensionNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
-	err = en.isEmptyOrNil()
+	err = en.checkNodeAndKey(key, db, marshalizer)
 	if err != nil {
 		return nil, err
+	}
+	key = key[len(en.Key):]
+	return en.child.tryGet(key, db, marshalizer)
+}
+
+func (en *extensionNode) getNext(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
+	err := en.checkNodeAndKey(key, db, marshalizer)
+	if err != nil {
+		return nil, nil, err
+	}
+	key = key[len(en.Key):]
+	return en.child, key, nil
+}
+
+func (en *extensionNode) checkNodeAndKey(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return err
 	}
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
-		return nil, ErrNodeNotFound
+		return ErrNodeNotFound
 	}
 	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
 	if keysDontMatch {
-		return nil, ErrNodeNotFound
+		return ErrNodeNotFound
 	}
-	key = key[len(en.Key):]
 	err = resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	value, err = en.child.tryGet(key, db, marshalizer)
-	return value, err
+	return nil
 }
 
 func (en *extensionNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
@@ -221,7 +237,7 @@ func (en *extensionNode) delete(key []byte, db DBWriteCacher, marshalizer marsha
 	}
 	keyMatchLen := prefixLen(key, en.Key)
 	if keyMatchLen < len(en.Key) {
-		return false, en, nil // don't replace n on mismatch
+		return false, en, nil
 	}
 	err = resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {

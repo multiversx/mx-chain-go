@@ -20,6 +20,7 @@ type node interface {
 	hashNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) ([]byte, error)
 	hashChildren(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
 	tryGet(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) ([]byte, error)
+	getNext(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error)
 	insert(n *leafNode, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
 	delete(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
 	nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool)

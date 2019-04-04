@@ -427,6 +427,46 @@ func TestBranchNode_tryGetNilNode(t *testing.T) {
 	assert.Nil(t, val)
 }
 
+func TestBranchNode_getNext(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, _ := getTestMarshAndHasher()
+	nextNode := &leafNode{Key: []byte("dog"), Value: []byte("dog"), dirty: true}
+	key := []byte{2, 100, 111, 103}
+
+	node, key, err := bn.getNext(key, db, marsh)
+	assert.Equal(t, nextNode, node)
+	assert.Equal(t, []byte{100, 111, 103}, key)
+	assert.Nil(t, err)
+}
+
+func TestBranchNode_getNextWrongKey(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{100, 111, 103}
+
+	node, key, err := bn.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Equal(t, ErrChildPosOutOfRange, err)
+}
+
+func TestBranchNode_getNextNilChild(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	bn, _ := getBnAndCollapsedBn()
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{4, 100, 111, 103}
+
+	node, key, err := bn.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Equal(t, ErrNodeNotFound, err)
+}
+
 func TestBranchNode_insert(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()

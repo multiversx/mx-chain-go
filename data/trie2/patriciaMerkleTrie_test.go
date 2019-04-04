@@ -145,22 +145,21 @@ func TestPatriciaMerkleTree_NilRoot(t *testing.T) {
 
 func TestPatriciaMerkleTree_Prove(t *testing.T) {
 	tr := testTrie()
-	it := tr.NewNodeIterator()
-	var proof1 [][]byte
 
-	err := it.Next()
-	for err == nil {
-		if it.Leaf() {
-			proof1, _ = it.LeafProof()
-			break
-		}
-		err = it.Next()
-	}
-
-	proof2, err := tr.Prove([]byte("doe"))
-
-	assert.Equal(t, proof1, proof2)
+	proof, err := tr.Prove([]byte("dog"))
 	assert.Nil(t, err)
+	ok, _ := tr.VerifyProof(proof, []byte("dog"))
+	assert.True(t, ok)
+}
+
+func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
+	tr := testTrie()
+	tr.Commit()
+
+	proof, err := tr.Prove([]byte("dog"))
+	assert.Nil(t, err)
+	ok, _ := tr.VerifyProof(proof, []byte("dog"))
+	assert.True(t, ok)
 }
 
 func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {

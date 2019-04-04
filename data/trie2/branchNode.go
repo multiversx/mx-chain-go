@@ -156,46 +156,40 @@ func (bn *branchNode) isCollapsed() bool {
 }
 
 func (bn *branchNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
-	err = bn.isEmptyOrNil()
+	err = bn.checkNodeAndKey(key, db, marshalizer)
 	if err != nil {
 		return nil, err
-	}
-	if len(key) == 0 {
-		return nil, ErrValueTooShort
 	}
 	childPos := key[firstByte]
-	if childPosOutOfRange(childPos) {
-		return nil, ErrChildPosOutOfRange
-	}
 	key = key[1:]
-	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
-	if err != nil {
-		return nil, err
-	}
+
 	if bn.children[childPos] == nil {
 		return nil, ErrNodeNotFound
 	}
-	value, err = bn.children[childPos].tryGet(key, db, marshalizer)
-	return value, err
+	return bn.children[childPos].tryGet(key, db, marshalizer)
+}
+
+func (bn *branchNode) getNext(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
+	err := bn.checkNodeAndKey(key, db, marshalizer)
+	if err != nil {
+		return nil, nil, err
+	}
+	childPos := key[firstByte]
+	key = key[1:]
+
+	if bn.children[childPos] == nil {
+		return nil, nil, ErrNodeNotFound
+	}
+	return bn.children[childPos], key, nil
 }
 
 func (bn *branchNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
-	err := bn.isEmptyOrNil()
+	err := bn.checkNodeAndKey(n.Key, db, marshalizer)
 	if err != nil {
 		return false, nil, err
-	}
-	if len(n.Key) == 0 {
-		return false, nil, ErrValueTooShort
 	}
 	childPos := n.Key[firstByte]
-	if childPosOutOfRange(childPos) {
-		return false, nil, ErrChildPosOutOfRange
-	}
 	n.Key = n.Key[1:]
-	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
-	if err != nil {
-		return false, nil, err
-	}
 
 	if bn.children[childPos] != nil {
 		dirty, newNode, err := bn.children[childPos].insert(n, db, marshalizer)
@@ -211,22 +205,13 @@ func (bn *branchNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.
 }
 
 func (bn *branchNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
-	err := bn.isEmptyOrNil()
+	err := bn.checkNodeAndKey(key, db, marshalizer)
 	if err != nil {
 		return false, nil, err
-	}
-	if len(key) == 0 {
-		return false, nil, ErrValueTooShort
 	}
 	childPos := key[firstByte]
-	if childPosOutOfRange(childPos) {
-		return false, nil, ErrChildPosOutOfRange
-	}
 	key = key[1:]
-	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
-	if err != nil {
-		return false, nil, err
-	}
+
 	dirty, newNode, err := bn.children[childPos].delete(key, db, marshalizer)
 	if !dirty || err != nil {
 		return false, nil, err
@@ -258,6 +243,25 @@ func (bn *branchNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.M
 
 	bn.dirty = dirty
 	return true, bn, nil
+}
+
+func (bn *branchNode) checkNodeAndKey(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return err
+	}
+	if len(key) == 0 {
+		return ErrValueTooShort
+	}
+	childPos := key[firstByte]
+	if childPosOutOfRange(childPos) {
+		return ErrChildPosOutOfRange
+	}
+	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (bn *branchNode) reduceNode(pos int) node {

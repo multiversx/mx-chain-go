@@ -111,22 +111,35 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 
 // Prove returns the Merkle proof for the given key
 func (tr *patriciaMerkleTrie) Prove(key []byte) ([][]byte, error) {
-	it := newNodeIterator(tr)
-
-	err := it.Next()
-	for err == nil {
-		if it.Leaf() {
-			leafKey, err := it.LeafKey()
-			if err != nil {
-				return nil, err
-			}
-			if bytes.Equal(leafKey, key) {
-				return it.LeafProof()
-			}
-		}
-		err = it.Next()
+	if tr.root == nil {
+		return nil, ErrNilNode
 	}
-	return nil, err
+
+	var proof [][]byte
+	hexKey := keyBytesToHex(key)
+	node := tr.root
+
+	err := node.setHash(tr.marshalizer, tr.hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	for len(hexKey) >= 0 {
+		encNode, err := node.getEncodedNode(tr.marshalizer)
+		if err != nil {
+			return nil, err
+		}
+		proof = append(proof, encNode)
+
+		node, hexKey, err = node.getNext(hexKey, tr.db, tr.marshalizer)
+		if err != nil {
+			return nil, err
+		}
+		if node == nil {
+			return proof, nil
+		}
+	}
+	return nil, ErrNodeNotFound
 }
 
 // VerifyProof checks Merkle proofs.

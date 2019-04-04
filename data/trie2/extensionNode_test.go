@@ -415,6 +415,33 @@ func TestExtensionNode_tryGetNilNode(t *testing.T) {
 	assert.Nil(t, val)
 }
 
+func TestExtensionNode_getNext(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	en, _ := getEnAndCollapsedEn()
+	marsh, _ := getTestMarshAndHasher()
+	nextNode, _ := getBnAndCollapsedBn()
+	key := []byte{100, 2, 100, 111, 103}
+
+	node, key, err := en.getNext(key, db, marsh)
+	assert.Equal(t, nextNode, node)
+	assert.Equal(t, []byte{2, 100, 111, 103}, key)
+	assert.Nil(t, err)
+}
+
+func TestExtensionNode_getNextWrongKey(t *testing.T) {
+	t.Parallel()
+	db, _ := memorydb.New()
+	en, _ := getEnAndCollapsedEn()
+	marsh, _ := getTestMarshAndHasher()
+	key := []byte{2, 100, 111, 103}
+
+	node, key, err := en.getNext(key, db, marsh)
+	assert.Nil(t, node)
+	assert.Nil(t, key)
+	assert.Equal(t, ErrNodeNotFound, err)
+}
+
 func TestExtensionNode_insert(t *testing.T) {
 	t.Parallel()
 	db, _ := memorydb.New()
