@@ -725,25 +725,13 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 	}
 
 	boot.cleanCachesOnRollback(header, headerStore)
-	return err
+	return nil
 }
 
 func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
-	//currentHeader, err := boot.getCurrentHeader()
-	//if err != nil {
-	//	log.Info(err.Error())
-	//	return
-	//}
-	//
-	//isSigned := isSigned(currentHeader)
-	//if isSigned {
-	//	canRevertBlock := currentHeader.Nonce > boot.forkDetector.GetHighestFinalityBlockNonce()
-	//	if !canRevertBlock {
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 	boot.headersNonces.Remove(header.Nonce)
 	boot.headers.Remove(hash)
-	//	}
-	//}
 }
 
 func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {
