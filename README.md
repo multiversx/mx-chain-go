@@ -10,15 +10,15 @@ Building the repository requires Go (version 1.12 or later)
 
 ### Installation and running
 
-Run in .../eldond-go-sandbox/cmd/seednode folder the following command to build a seednode (first node in the network
+Run in  %project_folder%/cmd/seednode folder the following command to build a seednode (first node in the network
  used for bootstrapping the bootnodes):
  
  ```
- ./go build
- ./seednode
+ $ ./go build
+ $ ./seednode
  ```
  
-Run in .../eldond-go-sandbox/cmd/bootnode folder the following command to build a bootnode:
+Run in  %project_folder%/cmd/bootnode folder the following command to build a bootnode:
 
 ```
 ./go build
@@ -26,12 +26,12 @@ Run in .../eldond-go-sandbox/cmd/bootnode folder the following command to build 
 ```
 
 For the network customization please take a look in the p2p.toml<br />
-For the consensus group customization please take a look in the .../cmd/bootnode/genesis.json<br />
+For the consensus group customization please take a look in the /cmd/bootnode/genesis.json<br />
 To run multiple nodes take a look at the end of this document.
 
 ### Running the tests
 ```
-./go test ./...
+$ go test ./...
 ```
 
 # Progress
