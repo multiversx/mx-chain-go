@@ -71,7 +71,7 @@ func NewHeaderResolver(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
 func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	rd, err := hdrRes.HeaderResolverBase.ParseReceivedMessage(message)
+	rd, err := hdrRes.ParseReceivedMessage(message)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P) err
 
 	switch rd.Type {
 	case process.HashType:
-		buff, err = hdrRes.HeaderResolverBase.ResolveHeaderFromHash(rd.Value)
+		buff, err = hdrRes.ResolveHeaderFromHash(rd.Value)
 	case process.NonceType:
 		buff, err = hdrRes.resolveHeaderFromNonce(rd.Value)
 	default:

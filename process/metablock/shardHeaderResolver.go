@@ -40,7 +40,7 @@ func NewShardHeaderResolver(
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
 func (shdrRes *ShardHeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P) error {
-	rd, err := shdrRes.HeaderResolverBase.ParseReceivedMessage(message)
+	rd, err := shdrRes.ParseReceivedMessage(message)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (shdrRes *ShardHeaderResolver) ProcessReceivedMessage(message p2p.MessageP2
 		return process.ErrResolveTypeUnknown
 	}
 
-	buff, err := shdrRes.HeaderResolverBase.ResolveHeaderFromHash(rd.Value)
+	buff, err := shdrRes.ResolveHeaderFromHash(rd.Value)
 	if err != nil {
 		return err
 	}
@@ -58,5 +58,5 @@ func (shdrRes *ShardHeaderResolver) ProcessReceivedMessage(message p2p.MessageP2
 		return nil
 	}
 
-	return shdrRes.HeaderResolverBase.Send(buff, message.Peer())
+	return shdrRes.Send(buff, message.Peer())
 }
