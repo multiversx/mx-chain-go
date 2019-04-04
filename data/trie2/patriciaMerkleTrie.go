@@ -34,11 +34,6 @@ func NewTrie(db DBWriteCacher, msh marshal.Marshalizer, hsh hashing.Hasher) (*pa
 	return &patriciaMerkleTrie{db: db, marshalizer: msh, hasher: hsh}, nil
 }
 
-// NewNodeIterator returns a new node iterator for the current trie
-func (tr *patriciaMerkleTrie) NewNodeIterator() NodeIterator {
-	return newNodeIterator(tr)
-}
-
 // Get starts at the root and searches for the given key.
 // If the key is present in the tree, it returns the corresponding value
 func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, error) {

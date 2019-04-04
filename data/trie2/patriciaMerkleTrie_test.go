@@ -204,13 +204,6 @@ func TestPatriciaMerkleTree_VerifyProofEmptyProofs(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestPatriciaMerkleTree_NodeIterator(t *testing.T) {
-	tr := testTrie()
-	it := tr.NewNodeIterator()
-
-	assert.NotNil(t, it)
-}
-
 func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 	tr := testTrie()
 	root1, _ := tr.Root()

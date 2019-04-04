@@ -563,34 +563,6 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 	assert.Equal(t, expected, node)
 }
 
-func TestExtensionNode_nextChild(t *testing.T) {
-	t.Parallel()
-	en, _ := getEnAndCollapsedEn()
-	marsh, hasher := getTestMarshAndHasher()
-	en.setHash(marsh, hasher)
-
-	state := &nodeIteratorState{
-		hash:    en.getHash(),
-		node:    en,
-		parent:  nil,
-		index:   -1,
-		pathlen: 0,
-	}
-	expectedState := &nodeIteratorState{
-		hash:    en.child.getHash(),
-		node:    en.child,
-		parent:  en.getHash(),
-		index:   -1,
-		pathlen: 0,
-	}
-	expectedPath := []byte("d")
-
-	newState, newPath, ok := en.nextChild(state, nil)
-	assert.Equal(t, expectedState, newState)
-	assert.Equal(t, expectedPath, newPath)
-	assert.True(t, ok)
-}
-
 func TestExtensionNode_clone(t *testing.T) {
 	t.Parallel()
 	en, _ := getEnAndCollapsedEn()

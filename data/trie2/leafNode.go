@@ -150,10 +150,6 @@ func (ln *leafNode) reduceNode(pos int) node {
 	return newLeafNode(k, ln.Value)
 }
 
-func (ln *leafNode) nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool) {
-	return previousState, path, false
-}
-
 func (ln *leafNode) isEmptyOrNil() error {
 	if ln == nil {
 		return ErrNilNode

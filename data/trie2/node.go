@@ -23,7 +23,6 @@ type node interface {
 	getNext(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error)
 	insert(n *leafNode, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
 	delete(key []byte, dbw DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error)
-	nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool)
 	reduceNode(pos int) node
 	isEmptyOrNil() error
 }

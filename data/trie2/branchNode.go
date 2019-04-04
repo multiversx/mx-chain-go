@@ -268,23 +268,6 @@ func (bn *branchNode) reduceNode(pos int) node {
 	return newExtensionNode([]byte{byte(pos)}, bn.children[pos])
 }
 
-func (bn *branchNode) nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool) {
-	for i := previousState.index + 1; i < len(bn.children); i++ {
-		child := bn.children[i]
-		if child != nil {
-			hash := child.getHash()
-			state := newIteratorState(hash, child, previousState.hash, len(path))
-			newPath := append(path, byte(i))
-			if child, ok := child.(*leafNode); ok {
-				newPath = append(newPath, child.Key...)
-			}
-			previousState.index = i - 1
-			return state, newPath, true
-		}
-	}
-	return previousState, path, false
-}
-
 func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {
 	for i := range &n.children {
 		if n.children[i] != nil || n.EncodedChildren[i] != nil {

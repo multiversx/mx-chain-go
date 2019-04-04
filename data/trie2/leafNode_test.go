@@ -367,26 +367,6 @@ func TestLeafNode_reduceNode(t *testing.T) {
 	assert.Equal(t, expected, node)
 }
 
-func TestLeafNode_nextChild(t *testing.T) {
-	t.Parallel()
-	ln := getLn()
-	marsh, hasher := getTestMarshAndHasher()
-	ln.setHash(marsh, hasher)
-
-	state := &nodeIteratorState{
-		hash:    ln.getHash(),
-		node:    ln,
-		parent:  nil,
-		index:   -1,
-		pathlen: 0,
-	}
-
-	newState, newPath, ok := ln.nextChild(state, nil)
-	assert.Equal(t, state, newState)
-	assert.Nil(t, newPath)
-	assert.False(t, ok)
-}
-
 func TestLeafNode_isEmptyOrNil(t *testing.T) {
 	t.Parallel()
 	ln := &leafNode{}

@@ -264,16 +264,6 @@ func (en *extensionNode) reduceNode(pos int) node {
 	return newExtensionNode(k, en.child)
 }
 
-func (en *extensionNode) nextChild(previousState *nodeIteratorState, path []byte) (newState *nodeIteratorState, newPath []byte, ok bool) {
-	if previousState.index < 0 {
-		hash := en.child.getHash()
-		state := newIteratorState(hash, en.child, previousState.hash, len(path))
-		newPath := append(path, en.Key...)
-		return state, newPath, true
-	}
-	return previousState, path, false
-}
-
 func (en *extensionNode) clone() *extensionNode {
 	nodeClone := *en
 	return &nodeClone

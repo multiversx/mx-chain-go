@@ -631,34 +631,6 @@ func TestBranchNode_reduceNode(t *testing.T) {
 	assert.Equal(t, en, node)
 }
 
-func TestBranchNode_nextChild(t *testing.T) {
-	t.Parallel()
-	bn, _ := getBnAndCollapsedBn()
-	marsh, hasher := getTestMarshAndHasher()
-	bn.setHash(marsh, hasher)
-
-	state := &nodeIteratorState{
-		hash:    bn.getHash(),
-		node:    bn,
-		parent:  nil,
-		index:   -1,
-		pathlen: 0,
-	}
-	expectedState := &nodeIteratorState{
-		hash:    bn.children[2].getHash(),
-		node:    bn.children[2],
-		parent:  bn.getHash(),
-		index:   -1,
-		pathlen: 0,
-	}
-	expectedPath := []byte{2, 100, 111, 103}
-
-	newState, newPath, ok := bn.nextChild(state, nil)
-	assert.Equal(t, expectedState, newState)
-	assert.Equal(t, expectedPath, newPath)
-	assert.True(t, ok)
-}
-
 func TestBranchNode_getChildPosition(t *testing.T) {
 	t.Parallel()
 	bn, _ := getBnAndCollapsedBn()
