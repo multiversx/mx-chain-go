@@ -14,15 +14,15 @@ Run in  %project_folder%/cmd/seednode folder the following command to build a se
  used for bootstrapping the bootnodes):
  
  ```
- $ ./go build
+ $ go build
  $ ./seednode
  ```
  
 Run in  %project_folder%/cmd/bootnode folder the following command to build a bootnode:
 
 ```
-./go build
-./bootnode -port 23000 -private-key "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f"
+$ go build
+$ ./bootnode -port 23000 -private-key "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f"
 ```
 
 For the network customization please take a look in the p2p.toml<br />
