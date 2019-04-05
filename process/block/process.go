@@ -266,6 +266,60 @@ func (bp *blockProcessor) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 	return nil
 }
 
+// RestoreBlockInfoIntoPool restores the TxBlock transactions into associated tx pools
+func (bp *blockProcessor) RestoreBlockInfoIntoPool(blockChain data.ChainHandler, body data.BodyHandler) error {
+	if blockChain == nil {
+		return process.ErrNilBlockChain
+	}
+	if body == nil {
+		return process.ErrNilTxBlockBody
+	}
+
+	blockBody, ok := body.(block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	transactionPool := bp.dataPool.Transactions()
+	if transactionPool == nil {
+		return process.ErrNilTransactionPool
+	}
+
+	miniBlockPool := bp.dataPool.MiniBlocks()
+	if miniBlockPool == nil {
+		return process.ErrNilMiniBlockPool
+	}
+
+	for i := 0; i < len(blockBody); i++ {
+		currentMiniBlock := blockBody[i]
+		strCache := process.ShardCacherIdentifier(currentMiniBlock.SenderShardID, currentMiniBlock.ReceiverShardID)
+		marshTxs, err := blockChain.GetAll(data.TransactionUnit, currentMiniBlock.TxHashes)
+		if err != nil {
+			return err
+		}
+
+		for txHash, marshTx := range marshTxs {
+			tx := transaction.Transaction{}
+			err = bp.marshalizer.Unmarshal(&tx, marshTx)
+			if err != nil {
+				return err
+			}
+
+			transactionPool.AddData([]byte(txHash), tx, strCache)
+		}
+
+		buff, err := bp.marshalizer.Marshal(currentMiniBlock)
+		if err != nil {
+			return err
+		}
+
+		miniBlockHash := bp.hasher.Compute(string(buff))
+		miniBlockPool.Put(miniBlockHash, currentMiniBlock)
+	}
+
+	return nil
+}
+
 // verifyStateRoot verifies the state root hash given as parameter against the
 // Merkle trie root hash stored for accounts and returns if equal or not
 func (bp *blockProcessor) verifyStateRoot(rootHash []byte) bool {

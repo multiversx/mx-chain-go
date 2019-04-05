@@ -679,15 +679,6 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 	_ = headerStore.Remove(hash)
 }
 
-func (boot *Bootstrap) set() {
-
-}
-
-//This function has duplicated code.
-//As I see you have the same mechanism for header.Nonce ==1 as for header.Nonce!=1, the only difference are the parameters : header and blockbody which for nonce ==1 are nil.
-//You also only set the currentheader hash for header != nil
-//So you can initialize with initialize header and body with nil, then have the condition for Nonce != 1 to get real header and body parameters and set the current header, and then do the setting and the stuff which is common.
-
 func (boot *Bootstrap) rollback(header *block.Header) error {
 	headerStore := boot.blkc.GetStorer(data.BlockHeaderUnit)
 	if headerStore == nil {
@@ -695,46 +686,52 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 	}
 
 	var newHeader *block.Header
-	var newTxBlockBody block.Body
-	var prevHash []byte
-	var rootHash []byte
-	var err error
+	var newBody block.Body
+	var newHeaderHash []byte
+	var newRootHash []byte
 
 	if header.Nonce != 1 {
-		newHeader, err = boot.getPrevHeader(headerStore, header)
+		newHeader, err := boot.getPrevHeader(headerStore, header)
 		if err != nil {
 			return err
 		}
 
-		newTxBlockBody, err = boot.getTxBlockBody(newHeader)
+		newBody, err = boot.getTxBlockBody(newHeader)
 		if err != nil {
 			return err
 		}
 
-		prevHash = header.PrevHash
-		rootHash = newHeader.RootHash
-	} else {
-		rootHash = boot.blkc.GetGenesisHeader().GetRootHash()
+		newHeaderHash = header.PrevHash
+		newRootHash = newHeader.RootHash
+	} else { // rollback to genesis block
+		newRootHash = boot.blkc.GetGenesisHeader().GetRootHash()
 	}
 
-	err = boot.blkc.SetCurrentBlockHeader(newHeader)
+	err := boot.blkc.SetCurrentBlockHeader(newHeader)
 	if err != nil {
 		return err
 	}
 
-	err = boot.blkc.SetCurrentBlockBody(newTxBlockBody)
+	err = boot.blkc.SetCurrentBlockBody(newBody)
 	if err != nil {
 		return err
 	}
 
-	boot.blkc.SetCurrentBlockHeaderHash(prevHash)
+	boot.blkc.SetCurrentBlockHeaderHash(newHeaderHash)
 
-	err = boot.accounts.RecreateTrie(rootHash)
+	err = boot.accounts.RecreateTrie(newRootHash)
+	if err != nil {
+		return err
+	}
+
+	body, err := boot.getTxBlockBody(header)
 	if err != nil {
 		return err
 	}
 
 	boot.cleanCachesOnRollback(header, headerStore)
+	boot.blkExecutor.RestoreBlockInfoIntoPool(boot.blkc, body)
+
 	return nil
 }
 

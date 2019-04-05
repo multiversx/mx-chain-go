@@ -14,6 +14,7 @@ type BlockProcessorMock struct {
 	CreateGenesisBlockCalled           func(balances map[string]*big.Int) (rootHash []byte, err error)
 	CreateBlockCalled                  func(round int32, haveTime func() bool) (data.BodyHandler, error)
 	RemoveBlockInfoFromPoolCalled      func(body data.BodyHandler) error
+	RestoreBlockInfoIntoPoolCalled     func(blockChain data.ChainHandler, body data.BodyHandler) error
 	GetRootHashCalled                  func() []byte
 	noShards                           uint32
 	SetOnRequestTransactionCalled      func(f func(destShardID uint32, txHash []byte))
@@ -45,6 +46,10 @@ func (blProcMock BlockProcessorMock) CreateBlockBody(round int32, haveTime func(
 func (blProcMock BlockProcessorMock) RemoveBlockInfoFromPool(body data.BodyHandler) error {
 	// pretend we removed the data
 	return blProcMock.RemoveBlockInfoFromPoolCalled(body)
+}
+
+func (blProcMock BlockProcessorMock) RestoreBlockInfoIntoPool(blockChain data.ChainHandler, body data.BodyHandler) error {
+	return blProcMock.RestoreBlockInfoIntoPoolCalled(blockChain, body)
 }
 
 func (blProcMock BlockProcessorMock) GetRootHash() []byte {
