@@ -210,7 +210,7 @@ func DefaultLogFile() (*os.File, error) {
 		return nil, err
 	}
 	return os.OpenFile(
-		filepath.Join(absPath, time.Now().Format("2006-01-02 15:04")+".log"),
+		filepath.Join(absPath, fmt.Sprintf("%d", time.Now().Unix())+".log"),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
 		0666)
 }

@@ -5,11 +5,11 @@ import (
 )
 
 type ForkDetectorMock struct {
-	AddHeaderCalled                    func(header *block.Header, hash []byte, isProcessed bool) error
-	RemoveHeadersCalled                func(nonce uint64)
-	CheckForkCalled                    func() (bool, uint64)
-	GetHighestSignedBlockNonceCalled   func() uint64
-	GetHighestFinalityBlockNonceCalled func() uint64
+	AddHeaderCalled                  func(header *block.Header, hash []byte, isProcessed bool) error
+	RemoveHeadersCalled              func(nonce uint64)
+	CheckForkCalled                  func() (bool, uint64)
+	GetHighestSignedBlockNonceCalled func() uint64
+	GetHighestFinalBlockNonceCalled  func() uint64
 }
 
 func (fdm *ForkDetectorMock) AddHeader(header *block.Header, hash []byte, isProcessed bool) error {
@@ -28,6 +28,6 @@ func (fdm *ForkDetectorMock) GetHighestSignedBlockNonce() uint64 {
 	return fdm.GetHighestSignedBlockNonceCalled()
 }
 
-func (fdm *ForkDetectorMock) GetHighestFinalityBlockNonce() uint64 {
-	return fdm.GetHighestFinalityBlockNonceCalled()
+func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
+	return fdm.GetHighestFinalBlockNonceCalled()
 }

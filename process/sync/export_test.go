@@ -87,11 +87,11 @@ func (boot *Bootstrap) SyncStateListeners() []func(bool) {
 }
 
 func (boot *Bootstrap) HighestNonceReceived() uint64 {
-	return boot.highestNonceReceived
+	return boot.rcvHdrInfo.highestNonce
 }
 
 func (boot *Bootstrap) SetHighestNonceReceived(highestNonceReceived uint64) {
-	boot.highestNonceReceived = highestNonceReceived
+	boot.rcvHdrInfo.highestNonce = highestNonceReceived
 }
 
 func (boot *Bootstrap) SetIsForkDetected(isForkDetected bool) {

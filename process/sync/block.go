@@ -25,6 +25,15 @@ var log = logger.NewDefaultLogger()
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = time.Duration(5 * time.Millisecond)
 
+// maxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
+// block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
+const maxRoundsToWait = 3
+
+type receivedHeaderInfo struct {
+	highestNonce uint64
+	roundIndex   int32
+}
+
 // Bootstrap implements the boostrsap mechanism
 type Bootstrap struct {
 	headers          storage.Cacher
@@ -59,9 +68,9 @@ type Bootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 
-	highestNonceReceived uint64
-	isForkDetected       bool
-	forkNonce            uint64
+	rcvHdrInfo     receivedHeaderInfo
+	isForkDetected bool
+	forkNonce      uint64
 
 	BroadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
@@ -284,8 +293,9 @@ func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 
 func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 	header := boot.getHeader(headerHash)
-	if header != nil && header.Nonce > boot.highestNonceReceived {
-		boot.highestNonceReceived = header.Nonce
+	if header != nil && header.Nonce > boot.rcvHdrInfo.highestNonce {
+		boot.rcvHdrInfo.highestNonce = header.Nonce
+		boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
 	}
 	if header != nil {
 		log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
@@ -301,8 +311,9 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 // in the block headers pool
 func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	//TODO: make sure that header validation done on interceptors do not add headers with wrong nonces/round numbers
-	if nonce > boot.highestNonceReceived {
-		boot.highestNonceReceived = nonce
+	if nonce > boot.rcvHdrInfo.highestNonce {
+		boot.rcvHdrInfo.highestNonce = nonce
+		boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
 	}
 
 	headerHash, _ := boot.headersNonces.Get(nonce)
@@ -316,7 +327,7 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 
 	if *n == nonce {
-		log.Info(fmt.Sprintf("received requested header with nonce %d from network and higher nonce received until now is %d\n", nonce, boot.highestNonceReceived))
+		log.Info(fmt.Sprintf("received requested header with nonce %d from network and higher nonce received until now is %d\n", nonce, boot.rcvHdrInfo.highestNonce))
 		boot.setRequestedHeaderNonce(nil)
 		boot.chRcvHdr <- true
 	}
@@ -454,8 +465,11 @@ func (boot *Bootstrap) shouldCreateEmptyBlock(nonce uint64) bool {
 		return false
 	}
 
-	if nonce <= boot.highestNonceReceived {
-		return false
+	if nonce <= boot.rcvHdrInfo.highestNonce {
+		roundsWithoutReceivedHeader := boot.rounder.Index() - boot.rcvHdrInfo.roundIndex
+		if roundsWithoutReceivedHeader <= maxRoundsToWait {
+			return false
+		}
 	}
 
 	return true
@@ -628,21 +642,20 @@ func (boot *Bootstrap) forkChoice() error {
 			return err
 		}
 
+		msg := fmt.Sprintf("roll back to header with nonce %d and hash %s",
+			header.Nonce-1, toB64(header.PrevHash))
+
 		isSigned := isSigned(header)
 		if isSigned {
-			canRevertBlock := header.Nonce > boot.forkDetector.GetHighestFinalityBlockNonce()
+			msg += fmt.Sprintf(" from a signed block, as the highest final block nonce is %d",
+				boot.forkDetector.GetHighestFinalBlockNonce())
+			canRevertBlock := header.Nonce > boot.forkDetector.GetHighestFinalBlockNonce()
 			if !canRevertBlock {
 				return &ErrSignedBlock{CurrentNonce: header.Nonce}
 			}
 		}
 
-		msg := ""
-		if isSigned {
-			msg = fmt.Sprintf(" from a signed block, as the highest finality block nonce is %d",
-				boot.forkDetector.GetHighestFinalityBlockNonce())
-		}
-		log.Info(fmt.Sprintf("roll back to header with nonce %d and hash %s%s\n",
-			header.Nonce-1, toB64(header.PrevHash), msg))
+		log.Info(msg + "\n")
 
 		err = boot.rollback(header)
 		if err != nil {
@@ -666,44 +679,42 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 	_ = headerStore.Remove(hash)
 }
 
+func (boot *Bootstrap) set() {
+
+}
+
+//This function has duplicated code.
+//As I see you have the same mechanism for header.Nonce ==1 as for header.Nonce!=1, the only difference are the parameters : header and blockbody which for nonce ==1 are nil.
+//You also only set the currentheader hash for header != nil
+//So you can initialize with initialize header and body with nil, then have the condition for Nonce != 1 to get real header and body parameters and set the current header, and then do the setting and the stuff which is common.
+
 func (boot *Bootstrap) rollback(header *block.Header) error {
 	headerStore := boot.blkc.GetStorer(data.BlockHeaderUnit)
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
 	}
 
-	// genesis block is treated differently
-	if header.Nonce == 1 {
-		err := boot.blkc.SetCurrentBlockHeader(nil)
+	var newHeader *block.Header
+	var newTxBlockBody block.Body
+	var prevHash []byte
+	var rootHash []byte
+	var err error
+
+	if header.Nonce != 1 {
+		newHeader, err = boot.getPrevHeader(headerStore, header)
 		if err != nil {
 			return err
 		}
 
-		err = boot.blkc.SetCurrentBlockBody(nil)
+		newTxBlockBody, err = boot.getTxBlockBody(newHeader)
 		if err != nil {
 			return err
 		}
 
-		boot.blkc.SetCurrentBlockHeaderHash(nil)
-
-		rootHash := boot.blkc.GetGenesisHeader().GetRootHash()
-		err = boot.accounts.RecreateTrie(rootHash)
-		if err != nil {
-			return err
-		}
-
-		boot.cleanCachesOnRollback(header, headerStore)
-		return err
-	}
-
-	newHeader, err := boot.getPrevHeader(headerStore, header)
-	if err != nil {
-		return err
-	}
-
-	newTxBlockBody, err := boot.getTxBlockBody(newHeader)
-	if err != nil {
-		return err
+		prevHash = header.PrevHash
+		rootHash = newHeader.RootHash
+	} else {
+		rootHash = boot.blkc.GetGenesisHeader().GetRootHash()
 	}
 
 	err = boot.blkc.SetCurrentBlockHeader(newHeader)
@@ -716,9 +727,8 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 		return err
 	}
 
-	boot.blkc.SetCurrentBlockHeaderHash(header.PrevHash)
+	boot.blkc.SetCurrentBlockHeaderHash(prevHash)
 
-	rootHash := boot.blkc.GetCurrentBlockHeader().GetRootHash()
 	err = boot.accounts.RecreateTrie(rootHash)
 	if err != nil {
 		return err

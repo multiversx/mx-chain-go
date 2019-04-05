@@ -17,9 +17,10 @@ type headerInfo struct {
 
 // basicForkDetector defines a struct with necessary data needed for fork detection
 type basicForkDetector struct {
-	headers                              map[uint64][]*headerInfo
-	mutHeaders                           sync.RWMutex
-	lastCheckpointNonce, checkpointNonce uint64
+	headers             map[uint64][]*headerInfo
+	mutHeaders          sync.RWMutex
+	lastCheckpointNonce uint64
+	checkpointNonce     uint64
 }
 
 // NewBasicForkDetector method creates a new BasicForkDetector object
@@ -140,7 +141,7 @@ func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
 		}
 
 		if selfHdrInfo == nil {
-			// if current nonce has not been processed yet, then skipping and checking the next one
+			// if current nonce has not been processed yet, then skip and check the next one.
 			continue
 		}
 
@@ -182,7 +183,7 @@ func (bfd *basicForkDetector) GetHighestSignedBlockNonce() uint64 {
 	return highestNonce
 }
 
-// GetHighestFinalityBlockNonce gets the highest nonce of the block which is final and it can not be reverted anymore
-func (bfd *basicForkDetector) GetHighestFinalityBlockNonce() uint64 {
+// GetHighestFinalBlockNonce gets the highest nonce of the block which is final and it can not be reverted anymore
+func (bfd *basicForkDetector) GetHighestFinalBlockNonce() uint64 {
 	return bfd.lastCheckpointNonce
 }

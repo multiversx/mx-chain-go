@@ -41,6 +41,7 @@ func TestBasicForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 	hdr := &block.Header{}
 	hash := make([]byte, 0)
 	bfd := sync.NewBasicForkDetector()
+
 	err := bfd.AddHeader(hdr, hash, true)
 	assert.Nil(t, err)
 
@@ -83,6 +84,7 @@ func TestBasicForkDetector_AddHeaderPresentShouldNotRewriteWhenSameHash(t *testi
 	hdr2 := &block.Header{}
 	bfd := sync.NewBasicForkDetector()
 	_ = bfd.AddHeader(hdr1, hash, true)
+
 	err := bfd.AddHeader(hdr2, hash, true)
 	assert.Nil(t, err)
 
@@ -93,18 +95,15 @@ func TestBasicForkDetector_AddHeaderPresentShouldNotRewriteWhenSameHash(t *testi
 
 func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 	t.Parallel()
-
 	hdr1 := &block.Header{}
 	hash := []byte("hash1")
-
 	bfd := sync.NewBasicForkDetector()
-
 	_ = bfd.AddHeader(hdr1, hash, true)
+
 	hInfos := bfd.GetHeaders(0)
 	assert.Equal(t, 1, len(hInfos))
 
 	bfd.RemoveHeaders(0)
-
 	hInfos = bfd.GetHeaders(0)
 	assert.Nil(t, hInfos)
 }
@@ -150,20 +149,16 @@ func TestBasicForkDetector_CheckForkNodeHasOnlyReceivedShouldRettrue(t *testing.
 
 func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
 	t.Parallel()
-
 	hdr1 := &block.Header{Nonce: 1}
 	hash1 := []byte("hash1")
 	hdr2 := &block.Header{Nonce: 2}
 	hash2 := []byte("hash2")
 	hdr3 := &block.Header{Nonce: 3}
 	hash3 := []byte("hash3")
-
 	bfd := sync.NewBasicForkDetector()
-
 	_ = bfd.AddHeader(hdr1, hash1, false)
 	_ = bfd.AddHeader(hdr2, hash2, false)
 	_ = bfd.AddHeader(hdr3, hash3, false)
-
 	bfd.RemovePastHeaders(4)
 
 	hInfos := bfd.GetHeaders(3)
@@ -225,7 +220,7 @@ func TestBasicForkDetector_GetHighestSignedBlockNonce(t *testing.T) {
 	assert.Equal(t, uint64(6), bfd.GetHighestSignedBlockNonce())
 }
 
-func TestBasicForkDetector_GetHighestFinalityBlockNonce(t *testing.T) {
+func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {
 	t.Parallel()
 	bfd := sync.NewBasicForkDetector()
 
@@ -233,23 +228,23 @@ func TestBasicForkDetector_GetHighestFinalityBlockNonce(t *testing.T) {
 	hdr1 := &block.Header{Nonce: 2, PubKeysBitmap: pubKeysBitmap}
 	hash1 := []byte("hash1")
 	_ = bfd.AddHeader(hdr1, hash1, true)
-	assert.Equal(t, uint64(0), bfd.GetHighestFinalityBlockNonce())
+	assert.Equal(t, uint64(0), bfd.GetHighestFinalBlockNonce())
 
 	pubKeysBitmap = []byte("X")
 	hdr2 := &block.Header{Nonce: 3, PubKeysBitmap: pubKeysBitmap}
 	hash2 := []byte("hash2")
 	_ = bfd.AddHeader(hdr2, hash2, true)
-	assert.Equal(t, uint64(0), bfd.GetHighestFinalityBlockNonce())
+	assert.Equal(t, uint64(0), bfd.GetHighestFinalBlockNonce())
 
 	pubKeysBitmap = make([]byte, 0)
 	hdr3 := &block.Header{Nonce: 4, PubKeysBitmap: pubKeysBitmap}
 	hash3 := []byte("hash3")
 	_ = bfd.AddHeader(hdr3, hash3, true)
-	assert.Equal(t, uint64(0), bfd.GetHighestFinalityBlockNonce())
+	assert.Equal(t, uint64(0), bfd.GetHighestFinalBlockNonce())
 
 	pubKeysBitmap = []byte("X")
 	hdr4 := &block.Header{Nonce: 5, PubKeysBitmap: pubKeysBitmap}
 	hash4 := []byte("hash4")
 	_ = bfd.AddHeader(hdr4, hash4, true)
-	assert.Equal(t, uint64(3), bfd.GetHighestFinalityBlockNonce())
+	assert.Equal(t, uint64(3), bfd.GetHighestFinalBlockNonce())
 }

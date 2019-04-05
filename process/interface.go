@@ -112,7 +112,7 @@ type ForkDetector interface {
 	RemoveHeaders(nonce uint64)
 	CheckFork() (bool, uint64)
 	GetHighestSignedBlockNonce() uint64
-	GetHighestFinalityBlockNonce() uint64
+	GetHighestFinalBlockNonce() uint64
 }
 
 // ResolversContainer defines a resolvers holder data type with basic functionality
