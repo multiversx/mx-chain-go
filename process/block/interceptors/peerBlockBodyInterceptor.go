@@ -38,17 +38,17 @@ func NewPeerBlockBodyInterceptor(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (pbbi *PeerBlockBodyInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (pbbi *PeerBlockBodyInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte, error) {
 	err := pbbi.checkMessage(message)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	peerBlockBody := block.NewInterceptedPeerBlockBody()
 	err = pbbi.marshalizer.Unmarshal(peerBlockBody, message.Data())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return pbbi.processBlockBody(message.Data(), peerBlockBody)
+	return nil, pbbi.processBlockBody(message.Data(), peerBlockBody)
 }

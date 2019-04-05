@@ -10,7 +10,7 @@ import (
 // MessageProcessor is the interface used to describe what a receive message processor should do
 // All implementations that will be called from Messenger implementation will need to satisfy this interface
 type MessageProcessor interface {
-	ProcessReceivedMessage(message MessageP2P) error
+	ProcessReceivedMessage(message MessageP2P) ([]byte, error)
 }
 
 // SendableData represents the struct used in data throttler implementation

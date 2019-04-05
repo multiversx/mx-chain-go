@@ -408,6 +408,8 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	fmt.Printf("Identifier: %s\n", identifier)
 
 	for i := 0; i < len(transactions); i++ {
+		//TODO optimize this to send bulk transactions
+		// This should be made in future subtasks belonging to EN-1520 story
 		n.messenger.BroadcastOnChannel(
 			SendTransactionsPipe,
 			identifier,
@@ -589,8 +591,12 @@ func (n *Node) generateAndSignTx(
 		return nil, nil, errors.New("could not sign the transaction")
 	}
 	tx.Signature = sig
+	txBuff, err := n.marshalizer.Marshal(&tx)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	signedMarshalizedTx, err := n.marshalizer.Marshal(&tx)
+	signedMarshalizedTx, err := n.marshalizer.Marshal([][]byte{txBuff})
 	if err != nil {
 		return nil, nil, errors.New("could not marshal signed transaction")
 	}
@@ -666,8 +672,12 @@ func (n *Node) SendTransaction(
 		Data:      []byte(transactionData),
 		Signature: signature,
 	}
+	txBuff, err := n.marshalizer.Marshal(&tx)
+	if err != nil {
+		return nil, err
+	}
 
-	marshalizedTx, err := n.marshalizer.Marshal(&tx)
+	marshalizedTx, err := n.marshalizer.Marshal([][]byte{txBuff})
 	if err != nil {
 		return nil, errors.New("could not marshal transaction")
 	}
@@ -805,9 +815,14 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	for k, v := range msgMapTx {
 		// for on values as those are list of txs with dest to K.
 		for _, tx := range v {
-			// TODO optimize this to send bulk transactions
+			//TODO optimize this to send bulk transactions
+			// This should be made in future subtasks belonging to EN-1520 story
+			txsBuff, err := n.marshalizer.Marshal([][]byte{tx})
+			if err != nil {
+				return err
+			}
 			go n.messenger.Broadcast(factory.TransactionTopic+
-				n.shardCoordinator.CommunicationIdentifier(k), tx)
+				n.shardCoordinator.CommunicationIdentifier(k), txsBuff)
 		}
 	}
 

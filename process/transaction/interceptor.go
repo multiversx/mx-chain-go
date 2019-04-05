@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -39,35 +40,24 @@ func NewTxInterceptor(
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
 	}
-
 	if txPool == nil {
 		return nil, process.ErrNilTxDataPool
 	}
-
 	if txStorer == nil {
 		return nil, process.ErrNilTxStorage
 	}
-
 	if addrConverter == nil {
 		return nil, process.ErrNilAddressConverter
 	}
-
 	if hasher == nil {
 		return nil, process.ErrNilHasher
 	}
-
 	if singleSigner == nil {
 		return nil, process.ErrNilSingleSigner
 	}
-
-	if singleSigner == nil {
-		return nil, process.ErrNilSingleSigner
-	}
-
 	if keyGen == nil {
 		return nil, process.ErrNilKeyGen
 	}
-
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
@@ -88,62 +78,93 @@ func NewTxInterceptor(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte, error) {
 	if message == nil {
-		return process.ErrNilMessage
+		return nil, process.ErrNilMessage
 	}
 
 	if message.Data() == nil {
-		return process.ErrNilDataToProcess
+		return nil, process.ErrNilDataToProcess
 	}
 
-	txIntercepted := NewInterceptedTransaction(txi.singleSigner)
-	err := txi.marshalizer.Unmarshal(txIntercepted, message.Data())
+	txsBuff := make([][]byte, 0)
+	err := txi.marshalizer.Unmarshal(&txsBuff, message.Data())
 	if err != nil {
-		return err
+		return nil, err
+	}
+	if len(txsBuff) == 0 {
+		return nil, process.ErrNoTransactionInMessage
 	}
 
-	txIntercepted.SetAddressConverter(txi.addrConverter)
-	txIntercepted.SetSingleSignKeyGen(txi.keyGen)
-	hashWithSig := txi.hasher.Compute(string(message.Data()))
-	txIntercepted.SetHash(hashWithSig)
+	filteredTxsBuffs := make([][]byte, 0)
+	lastErrEncountered := error(nil)
+	for _, txBuff := range txsBuff {
+		tx := &transaction.Transaction{}
+		err := txi.marshalizer.Unmarshal(tx, txBuff)
+		if err != nil {
+			lastErrEncountered = err
+			continue
+		}
 
-	copiedTx := *txIntercepted.GetTransaction()
-	copiedTx.Signature = nil
+		txIntercepted := NewInterceptedTransaction(txi.singleSigner)
+		txIntercepted.Transaction = tx
+		txIntercepted.SetAddressConverter(txi.addrConverter)
+		txIntercepted.SetSingleSignKeyGen(txi.keyGen)
 
-	buffCopiedTx, err := txi.marshalizer.Marshal(&copiedTx)
-	if err != nil {
-		return err
+		copiedTx := *txIntercepted.GetTransaction()
+		copiedTx.Signature = nil
+		buffCopiedTx, err := txi.marshalizer.Marshal(&copiedTx)
+		if err != nil {
+			lastErrEncountered = err
+			continue
+		}
+		txIntercepted.SetTxBuffWithoutSig(buffCopiedTx)
+		hashWithSig := txi.hasher.Compute(string(txBuff))
+		txIntercepted.SetHash(hashWithSig)
+		err = txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
+		if err != nil {
+			lastErrEncountered = err
+			continue
+		}
+
+		err = txIntercepted.VerifySig()
+		if err != nil {
+			lastErrEncountered = err
+			continue
+		}
+
+		//at this point, the tx is ok, we add it to filtered out txs
+		filteredTxsBuffs = append(filteredTxsBuffs, txBuff)
+
+		if txIntercepted.IsAddressedToOtherShards() {
+			log.Debug("intercepted tx is for other shards")
+
+			continue
+		}
+
+		isTxInStorage, _ := txi.txStorer.Has(hashWithSig)
+
+		if isTxInStorage {
+			log.Debug("intercepted tx already processed")
+			continue
+		}
+
+		cacherIdentifier := process.ShardCacherIdentifier(txIntercepted.SndShard(), txIntercepted.RcvShard())
+		txi.txPool.AddData(
+			hashWithSig,
+			txIntercepted.GetTransaction(),
+			cacherIdentifier,
+		)
 	}
-	txIntercepted.SetTxBuffWithoutSig(buffCopiedTx)
 
-	err = txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
-	if err != nil {
-		return err
+	var buffToSend []byte
+	filteredOutTxsNeedToBeSend := len(filteredTxsBuffs) > 0 && lastErrEncountered != nil
+	if filteredOutTxsNeedToBeSend {
+		buffToSend, err = txi.marshalizer.Marshal(filteredTxsBuffs)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	err = txIntercepted.VerifySig()
-	if err != nil {
-		return err
-	}
-
-	if txIntercepted.IsAddressedToOtherShards() {
-		log.Debug("intercepted tx is for other shards")
-		return nil
-	}
-
-	isTxInStorage, _ := txi.txStorer.Has(hashWithSig)
-
-	if isTxInStorage {
-		log.Debug("intercepted tx already processed")
-		return nil
-	}
-
-	cacherIdentifier := process.ShardCacherIdentifier(txIntercepted.SndShard(), txIntercepted.RcvShard())
-	txi.txPool.AddData(
-		hashWithSig,
-		txIntercepted.GetTransaction(),
-		cacherIdentifier,
-	)
-	return nil
+	return buffToSend, lastErrEncountered
 }

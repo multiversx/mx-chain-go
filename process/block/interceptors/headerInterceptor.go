@@ -61,22 +61,22 @@ func NewHeaderInterceptor(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte, error) {
 	hdrIntercepted, err := hi.hdrInterceptorBase.ParseReceivedMessage(message)
 	if err == process.ErrHeaderIsInStorage {
 		log.Debug("intercepted block header already processed")
-		return nil
+		return nil, nil
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !hi.checkHeaderForCurrentShard(hdrIntercepted) {
-		return nil
+		return nil, nil
 	}
 
 	_, _ = hi.headers.HasOrAdd(hdrIntercepted.Hash(), hdrIntercepted.GetHeader())
 	_, _ = hi.headersNonces.HasOrAdd(hdrIntercepted.GetHeader().Nonce, hdrIntercepted.Hash())
-	return nil
+	return nil, nil
 }
 
 func (hi *HeaderInterceptor) checkHeaderForCurrentShard(header *block.InterceptedHeader) bool {

@@ -368,10 +368,12 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		err := handler.ProcessReceivedMessage(NewMessage(message))
-
+		newBuff, err := handler.ProcessReceivedMessage(NewMessage(message))
 		if err != nil {
 			log.Debug(err.Error())
+			if newBuff != nil {
+				netMes.Broadcast(topic, newBuff)
+			}
 		}
 
 		return err == nil
@@ -424,7 +426,8 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P) err
 	}
 
 	go func(msg p2p.MessageP2P) {
-		err := processor.ProcessReceivedMessage(msg)
+		//no need of re-broadcasting here
+		_, err := processor.ProcessReceivedMessage(msg)
 
 		if err != nil {
 			log.Debug(err.Error())

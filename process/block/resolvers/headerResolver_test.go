@@ -144,7 +144,7 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, nil))
+	_, err := hdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, nil))
 	assert.Equal(t, process.ErrNilValue, err)
 }
 
@@ -159,7 +159,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *tes
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(254, make([]byte, 0)))
+	_, err := hdrRes.ProcessReceivedMessage(createRequestMsg(254, make([]byte, 0)))
 	assert.Equal(t, process.ErrResolveTypeUnknown, err)
 
 }
@@ -202,7 +202,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
+	_, err := hdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
 	assert.Nil(t, err)
 	assert.True(t, searchWasCalled)
 	assert.True(t, sendWasCalled)
@@ -252,7 +252,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
+	_, err := hdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
 	assert.Equal(t, errExpected, err)
 }
 
@@ -300,7 +300,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
+	_, err := hdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
 	assert.Nil(t, err)
 	assert.True(t, wasGotFromStorage)
 	assert.True(t, wasSent)
@@ -317,7 +317,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShould
 		mock.NewNonceHashConverterMock(),
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, []byte("aaa")))
+	_, err := hdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, []byte("aaa")))
 	assert.Equal(t, process.ErrInvalidNonceByteSlice, err)
 }
 
@@ -353,7 +353,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 		nonceConverter,
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(
+	_, err := hdrRes.ProcessReceivedMessage(createRequestMsg(
 		process.NonceType,
 		nonceConverter.ToByteSlice(requestedNonce)))
 	assert.Nil(t, err)
@@ -412,7 +412,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		nonceConverter,
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(
+	_, err := hdrRes.ProcessReceivedMessage(createRequestMsg(
 		process.NonceType,
 		nonceConverter.ToByteSlice(requestedNonce)))
 
@@ -478,7 +478,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		nonceConverter,
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(
+	_, err := hdrRes.ProcessReceivedMessage(createRequestMsg(
 		process.NonceType,
 		nonceConverter.ToByteSlice(requestedNonce)))
 
@@ -541,7 +541,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 		nonceConverter,
 	)
 
-	err := hdrRes.ProcessReceivedMessage(createRequestMsg(
+	_, err := hdrRes.ProcessReceivedMessage(createRequestMsg(
 		process.NonceType,
 		nonceConverter.ToByteSlice(requestedNonce)))
 

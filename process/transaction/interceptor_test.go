@@ -248,7 +248,9 @@ func TestTransactionInterceptor_ProcessReceivedMessageNilMesssageShouldErr(t *te
 		keyGen,
 		oneSharder)
 
-	assert.Equal(t, process.ErrNilMessage, txi.ProcessReceivedMessage(nil))
+	_, err := txi.ProcessReceivedMessage(nil)
+
+	assert.Equal(t, process.ErrNilMessage, err)
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageMilMessageDataShouldErr(t *testing.T) {
@@ -273,7 +275,9 @@ func TestTransactionInterceptor_ProcessReceivedMessageMilMessageDataShouldErr(t 
 
 	msg := &mock.P2PMessageMock{}
 
-	assert.Equal(t, process.ErrNilDataToProcess, txi.ProcessReceivedMessage(msg))
+	_, err := txi.ProcessReceivedMessage(msg)
+
+	assert.Equal(t, process.ErrNilDataToProcess, err)
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarshalingShouldErr(t *testing.T) {
@@ -306,13 +310,13 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtUnmarsha
 		DataField: make([]byte, 0),
 	}
 
-	assert.Equal(t, errMarshalizer, txi.ProcessReceivedMessage(msg))
+	_, err := txi.ProcessReceivedMessage(msg)
+
+	assert.Equal(t, errMarshalizer, err)
 }
 
-func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtMarshalingShouldErr(t *testing.T) {
+func TestTransactionInterceptor_ProcessReceivedMessageNoTransactionInMessageShouldErr(t *testing.T) {
 	t.Parallel()
-
-	errMarshalizer := errors.New("marshalizer error")
 
 	txPool := &mock.ShardedDataStub{}
 	addrConv := &mock.AddressConverterMock{}
@@ -327,7 +331,7 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtMarshali
 				return nil
 			},
 			MarshalCalled: func(obj interface{}) (bytes []byte, e error) {
-				return nil, errMarshalizer
+				return nil, nil
 			},
 		},
 		txPool,
@@ -342,7 +346,9 @@ func TestTransactionInterceptor_ProcessReceivedMessageMarshalizerFailsAtMarshali
 		DataField: make([]byte, 0),
 	}
 
-	assert.Equal(t, errMarshalizer, txi.ProcessReceivedMessage(msg))
+	_, err := txi.ProcessReceivedMessage(msg)
+
+	assert.Equal(t, process.ErrNoTransactionInMessage, err)
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t *testing.T) {
@@ -372,13 +378,86 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t
 	txNewer.Challenge = make([]byte, 0)
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
+	txNewerBuff, _ := marshalizer.Marshal(txNewer)
 
-	buff, _ := marshalizer.Marshal(txNewer)
+	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
 	}
 
-	assert.Equal(t, process.ErrNilSignature, txi.ProcessReceivedMessage(msg))
+	_, err := txi.ProcessReceivedMessage(msg)
+
+	assert.Equal(t, process.ErrNilSignature, err)
+}
+
+func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsShouldErrAndFilter(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	txPool := &mock.ShardedDataStub{
+		AddDataCalled: func(key []byte, data interface{}, cacheId string) {},
+	}
+	addrConv := &mock.AddressConverterMock{}
+	keyGen := &mock.SingleSignKeyGenMock{
+		PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, e error) {
+			return nil, nil
+		},
+	}
+	oneSharder := mock.NewOneShardCoordinatorMock()
+	storer := &mock.StorerStub{
+		HasCalled: func(key []byte) (b bool, e error) {
+			return false, nil
+		},
+	}
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
+
+	txi, _ := transaction.NewTxInterceptor(
+		marshalizer,
+		txPool,
+		storer,
+		addrConv,
+		mock.HasherMock{},
+		signer,
+		keyGen,
+		oneSharder)
+
+	tx1 := transaction.NewInterceptedTransaction(signer)
+	tx1.Signature = nil
+	tx1.Challenge = make([]byte, 0)
+	tx1.RcvAddr = make([]byte, 0)
+	tx1.SndAddr = make([]byte, 0)
+	tx1.Nonce = 10
+	tx1Buff, _ := marshalizer.Marshal(tx1)
+
+	tx2 := transaction.NewInterceptedTransaction(signer)
+	tx2.Signature = make([]byte, 0)
+	tx2.Challenge = make([]byte, 0)
+	tx2.RcvAddr = make([]byte, 0)
+	tx2.SndAddr = make([]byte, 0)
+	tx2.Value = big.NewInt(0)
+	tx2.Nonce = 20
+	tx2Buff, _ := marshalizer.Marshal(tx2)
+
+	buff, _ := marshalizer.Marshal([][]byte{tx1Buff, tx2Buff})
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+	}
+
+	buff, err := txi.ProcessReceivedMessage(msg)
+
+	assert.Equal(t, process.ErrNilSignature, err)
+	//unmarshal data and check there is only tx2 inside
+	txBuffRecovered := make([][]byte, 0)
+	_ = marshalizer.Unmarshal(&txBuffRecovered, buff)
+	assert.Equal(t, 1, len(txBuffRecovered))
+	txRecovered := transaction.NewInterceptedTransaction(signer)
+	_ = marshalizer.Unmarshal(txRecovered, txBuffRecovered[0])
+	assert.Equal(t, tx2.Transaction, txRecovered.Transaction)
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t *testing.T) {
@@ -420,13 +499,16 @@ func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t 
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
 	txNewer.Value = big.NewInt(0)
+	txNewerBuff, _ := marshalizer.Marshal(txNewer)
 
-	buff, _ := marshalizer.Marshal(txNewer)
+	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
 	}
 
-	assert.Equal(t, errExpected, txi.ProcessReceivedMessage(msg))
+	_, err := txi.ProcessReceivedMessage(msg)
+
+	assert.Equal(t, errExpected, err)
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(t *testing.T) {
@@ -473,19 +555,23 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
 	txNewer.Value = big.NewInt(0)
+	txNewerBuff, _ := marshalizer.Marshal(txNewer)
 
-	buff, _ := marshalizer.Marshal(txNewer)
+	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
 	}
+	txBuff, _ := marshalizer.Marshal(txNewer)
 
 	txPool.AddDataCalled = func(key []byte, data interface{}, cacheId string) {
-		if bytes.Equal(mock.HasherMock{}.Compute(string(buff)), key) {
+		if bytes.Equal(mock.HasherMock{}.Compute(string(txBuff)), key) {
 			wasAdded++
 		}
 	}
 
-	assert.Nil(t, txi.ProcessReceivedMessage(msg))
+	_, err := txi.ProcessReceivedMessage(msg)
+
+	assert.Nil(t, err)
 	assert.Equal(t, 1, wasAdded)
 }
 
@@ -534,8 +620,9 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
 	txNewer.Value = big.NewInt(0)
+	txNewerBuff, _ := marshalizer.Marshal(txNewer)
 
-	buff, _ := marshalizer.Marshal(txNewer)
+	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
 	}
@@ -546,7 +633,9 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 		}
 	}
 
-	assert.Nil(t, txi.ProcessReceivedMessage(msg))
+	_, err := txi.ProcessReceivedMessage(msg)
+
+	assert.Nil(t, err)
 	assert.Equal(t, 0, wasAdded)
 }
 
@@ -602,8 +691,9 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 	txNewer.RcvAddr = make([]byte, 0)
 	txNewer.SndAddr = make([]byte, 0)
 	txNewer.Value = big.NewInt(0)
+	txNewerBuff, _ := marshalizer.Marshal(txNewer)
 
-	buff, _ := marshalizer.Marshal(txNewer)
+	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
 	}
@@ -613,7 +703,8 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 			wasAdded++
 		}
 	}
+	_, err := txi.ProcessReceivedMessage(msg)
 
-	assert.Nil(t, txi.ProcessReceivedMessage(msg))
+	assert.Nil(t, err)
 	assert.Equal(t, 0, wasAdded)
 }

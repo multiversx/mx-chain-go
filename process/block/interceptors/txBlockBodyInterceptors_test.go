@@ -63,7 +63,9 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *tes
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	assert.Equal(t, process.ErrNilMessage, tbbi.ProcessReceivedMessage(nil))
+	_, err := tbbi.ProcessReceivedMessage(nil)
+
+	assert.Equal(t, process.ErrNilMessage, err)
 }
 
 func TestTxBlockBodyInterceptor_ProcessReceivedMessageNilMessageDataShouldErr(t *testing.T) {
@@ -80,8 +82,9 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageNilMessageDataShouldErr(t 
 		mock.NewOneShardCoordinatorMock())
 
 	msg := &mock.P2PMessageMock{}
+	_, err := tbbi.ProcessReceivedMessage(msg)
 
-	assert.Equal(t, process.ErrNilDataToProcess, tbbi.ProcessReceivedMessage(msg))
+	assert.Equal(t, process.ErrNilDataToProcess, err)
 }
 
 func TestTxBlockBodyInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarshalingShouldErr(t *testing.T) {
@@ -106,8 +109,9 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarsh
 	msg := &mock.P2PMessageMock{
 		DataField: make([]byte, 0),
 	}
+	_, err := tbbi.ProcessReceivedMessage(msg)
 
-	assert.Equal(t, errMarshalizer, tbbi.ProcessReceivedMessage(msg))
+	assert.Equal(t, errMarshalizer, err)
 }
 
 func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing.T) {
@@ -151,7 +155,8 @@ func TestTxBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing
 
 		return false, false
 	}
+	_, err := tbbi.ProcessReceivedMessage(msg)
 
-	assert.Nil(t, tbbi.ProcessReceivedMessage(msg))
+	assert.Nil(t, err)
 	assert.True(t, putInCacheWasCalled)
 }

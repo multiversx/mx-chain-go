@@ -271,3 +271,6 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrHeaderIsInStorage signals that the header is already in storage
 var ErrHeaderIsInStorage = errors.New("header is already in storage")
+
+// ErrNoTransactionInMessage signals that no transaction was found after parsing received p2p message
+var ErrNoTransactionInMessage = errors.New("no transaction found in received message")

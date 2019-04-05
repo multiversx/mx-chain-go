@@ -54,27 +54,29 @@ func NewTxResolver(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte, error) {
 	rd := &process.RequestData{}
 	err := rd.Unmarshal(txRes.marshalizer, message)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	buff, err := txRes.resolveTxRequest(rd)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if buff == nil {
 		log.Debug(fmt.Sprintf("missing data: %v", rd))
-		return nil
+		return nil, nil
 	}
 
-	return txRes.Send(buff, message.Peer())
+	return nil, txRes.Send(buff, message.Peer())
 }
 
 func (txRes *TxResolver) resolveTxRequest(rd *process.RequestData) ([]byte, error) {
+	//TODO - implement other types such as HashArrayType for an array of transaction
+	// This should be made in future subtasks belonging to EN-1520 story
 	if rd.Type != process.HashType {
 		return nil, process.ErrResolveNotHashType
 	}
@@ -84,17 +86,28 @@ func (txRes *TxResolver) resolveTxRequest(rd *process.RequestData) ([]byte, erro
 	}
 
 	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
+	txsBuff := make([][]byte, 0)
 	value, ok := txRes.txPool.SearchFirstData(rd.Value)
-	if !ok {
-		return txRes.txStorage.Get(rd.Value)
+	if ok {
+		txBuff, err := txRes.marshalizer.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		txsBuff = append(txsBuff, txBuff)
+	} else {
+		buff, err := txRes.txStorage.Get(rd.Value)
+		if err != nil {
+			return nil, err
+		}
+		txsBuff = append(txsBuff, buff)
 	}
 
-	buff, err := txRes.marshalizer.Marshal(value)
+	buffToSend, err := txRes.marshalizer.Marshal(txsBuff)
 	if err != nil {
 		return nil, err
 	}
 
-	return buff, nil
+	return buffToSend, nil
 }
 
 // RequestDataFromHash requests a transaction from other peers having input the tx hash

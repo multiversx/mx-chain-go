@@ -60,7 +60,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.
 		&mock.MarshalizerMock{},
 	)
 
-	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, nil))
+	_, err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, nil))
 	assert.Equal(t, process.ErrNilValue, err)
 }
 
@@ -74,7 +74,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t
 		&mock.MarshalizerMock{},
 	)
 
-	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, make([]byte, 0)))
+	_, err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, make([]byte, 0)))
 	assert.Equal(t, process.ErrResolveTypeUnknown, err)
 }
 
@@ -106,7 +106,7 @@ func TestShardHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAn
 		marshalizer,
 	)
 
-	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
+	_, err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
 	assert.Nil(t, err)
 	assert.True(t, searchWasCalled)
 	assert.True(t, sendWasCalled)
@@ -139,7 +139,7 @@ func TestShardHeaderResolver_NotFoundShouldReturnNilAndNotSend(t *testing.T) {
 		marshalizer,
 	)
 
-	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
+	_, err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
 	assert.Nil(t, err)
 	assert.False(t, sendWasCalled)
 }
@@ -178,7 +178,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPool
 		marshalizerStub,
 	)
 
-	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
+	_, err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
 	assert.Equal(t, errExpected, err)
 }
 
@@ -208,7 +208,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestRetFromStorageCheckRet
 		marshalizer,
 	)
 
-	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
+	_, err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.HashType, requestedData))
 	assert.Equal(t, errExpected, err)
 }
 
@@ -222,7 +222,7 @@ func TestShardHeaderResolver_ProcessReceivedMessageRequestNonceTypeShouldErr(t *
 		&mock.MarshalizerMock{},
 	)
 
-	err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, []byte("aaa")))
+	_, err := shardHdrRes.ProcessReceivedMessage(createRequestMsg(process.NonceType, []byte("aaa")))
 	assert.Equal(t, process.ErrResolveTypeUnknown, err)
 }
 

@@ -74,7 +74,7 @@ type IntRandomizer interface {
 // Resolver defines what a data resolver should do
 type Resolver interface {
 	RequestDataFromHash(hash []byte) error
-	ProcessReceivedMessage(message p2p.MessageP2P) error
+	ProcessReceivedMessage(message p2p.MessageP2P) ([]byte, error)
 }
 
 // HeaderResolver defines what a block header resolver should do
@@ -152,7 +152,7 @@ type ResolversContainerFactory interface {
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P) error
+	ProcessReceivedMessage(message p2p.MessageP2P) ([]byte, error)
 }
 
 // MessageHandler defines the functionality needed by structs to send data to other peers

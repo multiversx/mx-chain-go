@@ -70,10 +70,10 @@ func NewHeaderResolver(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte, error) {
 	rd, err := hdrRes.ParseReceivedMessage(message)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var buff []byte
 
@@ -83,17 +83,17 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P) err
 	case process.NonceType:
 		buff, err = hdrRes.resolveHeaderFromNonce(rd.Value)
 	default:
-		return process.ErrResolveTypeUnknown
+		return nil, process.ErrResolveTypeUnknown
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if buff == nil {
 		log.Debug(fmt.Sprintf("missing data: %v", rd))
-		return nil
+		return nil, nil
 	}
 
-	return hdrRes.Send(buff, message.Peer())
+	return nil, hdrRes.Send(buff, message.Peer())
 }
 
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(key []byte) ([]byte, error) {

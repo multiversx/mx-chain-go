@@ -5,9 +5,9 @@ import (
 )
 
 type InterceptorStub struct {
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P) ([]byte, error)
 }
 
-func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte, error) {
 	return is.ProcessReceivedMessageCalled(message)
 }

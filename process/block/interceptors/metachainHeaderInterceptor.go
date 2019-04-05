@@ -64,17 +64,17 @@ func NewMetachainHeaderInterceptor(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
+func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte, error) {
 	err := mhi.checkMessage(message)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	//TODO: modify this to actually fetch metachain blocks. For now, we place shard headers on this topic
 	hdrIntercepted := block.NewInterceptedHeader(mhi.multiSigVerifier)
 	err = mhi.marshalizer.Unmarshal(hdrIntercepted, message.Data())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	hashWithSig := mhi.hasher.Compute(string(message.Data()))
@@ -82,20 +82,20 @@ func (mhi *MetachainHeaderInterceptor) ProcessReceivedMessage(message p2p.Messag
 
 	err = hdrIntercepted.IntegrityAndValidity(mhi.shardCoordinator)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = hdrIntercepted.VerifySig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	isHeaderInStorage, _ := mhi.storer.Has(hashWithSig)
 	if isHeaderInStorage {
 		log.Debug("intercepted block header already processed")
-		return nil
+		return nil, nil
 	}
 
 	mhi.metachainHeaders.HasOrAdd(hashWithSig, hdrIntercepted.GetHeader())
-	return nil
+	return nil, nil
 }
