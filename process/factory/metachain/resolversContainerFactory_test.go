@@ -21,7 +21,6 @@ func createStubTopicMessageHandler(matchStrToErrOnCreate string, matchStrToErrOn
 		if matchStrToErrOnCreate == "" {
 			return nil
 		}
-
 		if strings.Contains(name, matchStrToErrOnCreate) {
 			return errExpected
 		}
@@ -33,7 +32,6 @@ func createStubTopicMessageHandler(matchStrToErrOnCreate string, matchStrToErrOn
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}
-
 		if strings.Contains(topic, matchStrToErrOnRegister) {
 			return errExpected
 		}
@@ -247,7 +245,6 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	noOfShards := 4
-
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.SetNoShards(uint32(noOfShards))
 	shardCoordinator.CurrentShard = 1
@@ -262,7 +259,6 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	)
 
 	container, _ := rcf.Create()
-
 	numInterceptorsShardHeadersForMetachain := noOfShards
 
 	assert.Equal(t, numInterceptorsShardHeadersForMetachain, container.Len())

@@ -21,7 +21,6 @@ func createStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegiste
 			if matchStrToErrOnCreate == "" {
 				return nil
 			}
-
 			if strings.Contains(name, matchStrToErrOnCreate) {
 				return errExpected
 			}
@@ -32,7 +31,6 @@ func createStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegiste
 			if matchStrToErrOnRegister == "" {
 				return nil
 			}
-
 			if strings.Contains(topic, matchStrToErrOnRegister) {
 				return errExpected
 			}

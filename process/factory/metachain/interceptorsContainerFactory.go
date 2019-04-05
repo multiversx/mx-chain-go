@@ -95,7 +95,8 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 func (icf *interceptorsContainerFactory) createTopicAndAssignHandler(
 	topic string,
 	interceptor process.Interceptor,
-	createChannel bool) (process.Interceptor, error) {
+	createChannel bool,
+) (process.Interceptor, error) {
 
 	err := icf.messenger.CreateTopic(topic, createChannel)
 	if err != nil {
@@ -105,7 +106,7 @@ func (icf *interceptorsContainerFactory) createTopicAndAssignHandler(
 	return interceptor, icf.messenger.RegisterMessageProcessor(topic, interceptor)
 }
 
-//------- Metablocks interceptor
+//------- Metablock interceptor
 
 func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]string, []process.Interceptor, error) {
 	identifierHdr := factory.MetachainBlocksTopic
@@ -122,6 +123,7 @@ func (icf *interceptorsContainerFactory) generateMetablockInterceptor() ([]strin
 	if err != nil {
 		return nil, nil, err
 	}
+
 	_, err = icf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
 	if err != nil {
 		return nil, nil, err
@@ -138,10 +140,9 @@ func (icf *interceptorsContainerFactory) generateShardHeaderInterceptors() ([]st
 	keys := make([]string, noOfShards)
 	interceptorSlice := make([]process.Interceptor, noOfShards)
 
+	//wire up to topics: shardHeadersForMetachain_0, shardHeadersForMetachain_1 ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		//wire up to topics: shardHeadersForMetachain_0, shardHeadersForMetachain_1 ...
-		identifierHeader := factory.ShardHeadersForMetachainTopic + sharding.CommunicationIdentifierBetweenShards(idx, idx)
-
+		identifierHeader := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(idx)
 		interceptor, err := icf.createOneShardHeaderInterceptor(identifierHeader)
 		if err != nil {
 			return nil, nil, err
@@ -156,7 +157,6 @@ func (icf *interceptorsContainerFactory) generateShardHeaderInterceptors() ([]st
 
 func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identifier string) (process.Interceptor, error) {
 	hdrStorer := icf.blockchain.GetStorer(data.BlockHeaderUnit)
-
 	interceptor, err := metablock.NewShardHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.ShardHeaders(),
@@ -165,7 +165,6 @@ func (icf *interceptorsContainerFactory) createOneShardHeaderInterceptor(identif
 		icf.hasher,
 		icf.shardCoordinator,
 	)
-
 	if err != nil {
 		return nil, err
 	}

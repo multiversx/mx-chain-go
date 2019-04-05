@@ -233,3 +233,14 @@ func TestCommunicationIdentifierBetweenShards(t *testing.T) {
 		}
 	}
 }
+
+func TestCommunicationIdentifierBetweenShards_Metachain(t *testing.T) {
+	//print some shard identifiers and check that they match the current defined pattern
+
+	assert.Equal(t, "_0_META", sharding.CommunicationIdentifierBetweenShards(0, sharding.MetachainShardId))
+	assert.Equal(t, "_1_META", sharding.CommunicationIdentifierBetweenShards(sharding.MetachainShardId, 1))
+	assert.Equal(t, "_META", sharding.CommunicationIdentifierBetweenShards(
+		sharding.MetachainShardId,
+		sharding.MetachainShardId,
+	))
+}

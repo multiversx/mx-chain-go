@@ -94,6 +94,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -103,6 +104,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -112,6 +114,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -121,6 +124,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -130,6 +134,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -141,7 +146,8 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 func (icf *interceptorsContainerFactory) createTopicAndAssignHandler(
 	topic string,
 	interceptor process.Interceptor,
-	createChannel bool) (process.Interceptor, error) {
+	createChannel bool,
+) (process.Interceptor, error) {
 
 	err := icf.messenger.CreateTopic(topic, createChannel)
 	if err != nil {
