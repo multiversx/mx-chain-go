@@ -680,18 +680,22 @@ func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore s
 }
 
 func (boot *Bootstrap) rollback(header *block.Header) error {
+	if header.Nonce == 0 {
+		return process.ErrRollbackFromGenesis
+	}
 	headerStore := boot.blkc.GetStorer(data.BlockHeaderUnit)
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
 	}
 
+	var err error
 	var newHeader *block.Header
 	var newBody block.Body
 	var newHeaderHash []byte
 	var newRootHash []byte
 
-	if header.Nonce != 1 {
-		newHeader, err := boot.getPrevHeader(headerStore, header)
+	if header.Nonce > 1 {
+		newHeader, err = boot.getPrevHeader(headerStore, header)
 		if err != nil {
 			return err
 		}
@@ -707,7 +711,7 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 		newRootHash = boot.blkc.GetGenesisHeader().GetRootHash()
 	}
 
-	err := boot.blkc.SetCurrentBlockHeader(newHeader)
+	err = boot.blkc.SetCurrentBlockHeader(newHeader)
 	if err != nil {
 		return err
 	}
