@@ -49,6 +49,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -356,7 +357,7 @@ func createNode(
 		return nil, err
 	}
 
-	interceptorContainerFactory, err := factory.NewInterceptorsContainerFactory(
+	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		netMessenger,
 		blkc,
@@ -378,7 +379,7 @@ func createNode(
 		return nil, err
 	}
 
-	resolversContainerFactory, err := factory.NewResolversContainerFactory(
+	resolversContainerFactory, err := shard.NewResolversContainerFactory(
 		shardCoordinator,
 		netMessenger,
 		blkc,
@@ -386,6 +387,9 @@ func createNode(
 		datapool,
 		uint64ByteSliceConverter,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	resolversContainer, err := resolversContainerFactory.Create()
 	if err != nil {
@@ -807,7 +811,8 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	shardHeaders, err := shardedData.NewShardedData(getCacherFromConfig(config.ShardHeadersDataPool))
+	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
+	shardHeaders, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
 	}

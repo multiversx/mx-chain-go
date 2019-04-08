@@ -8,7 +8,7 @@ import (
 type metaDataPool struct {
 	metaBlocks      storage.Cacher
 	miniBlockHashes data.ShardedDataCacherNotifier
-	shardHeaders    data.ShardedDataCacherNotifier
+	shardHeaders    storage.Cacher
 	metaBlockNonces data.Uint64Cacher
 }
 
@@ -16,7 +16,7 @@ type metaDataPool struct {
 func NewMetaDataPool(
 	metaBlocks storage.Cacher,
 	miniBlockHashes data.ShardedDataCacherNotifier,
-	shardHeaders data.ShardedDataCacherNotifier,
+	shardHeaders storage.Cacher,
 	metaBlockNonces data.Uint64Cacher,
 ) (*metaDataPool, error) {
 
@@ -55,7 +55,7 @@ func (mdp *metaDataPool) MiniBlockHashes() data.ShardedDataCacherNotifier {
 }
 
 // ShardHeaders returns the holder for shard headers
-func (mdp *metaDataPool) ShardHeaders() data.ShardedDataCacherNotifier {
+func (mdp *metaDataPool) ShardHeaders() storage.Cacher {
 	return mdp.shardHeaders
 }
 
