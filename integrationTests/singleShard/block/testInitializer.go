@@ -21,6 +21,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -29,9 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
@@ -132,7 +133,7 @@ func createNetNode(port int,
 	*node.Node,
 	p2p.Messenger,
 	crypto.PrivateKey,
-	process.ResolversFinder) {
+	dataRetriever.ResolversFinder) {
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -163,7 +164,7 @@ func createNetNode(port int,
 	)
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
 
-	resolversContainerFactory, _ := factory.NewResolversContainerFactory(
+	resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		messenger,
 		blkc,
@@ -172,7 +173,7 @@ func createNetNode(port int,
 		uint64Converter,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
-	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
+	resolversFinder, _ := resolvers.NewResolversFinder(resolversContainer, shardCoordinator)
 
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),
