@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/resourceStatistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
@@ -78,6 +79,9 @@ var p2pConfigurationFile = "./config/p2p.toml"
 
 //TODO remove uniqueID
 var uniqueID = ""
+
+var durBetweenStatsSaves = time.Second * 30
+var rm *resourceStatistics.ResourceMonitor
 
 type seedRandReader struct {
 	index int
@@ -234,6 +238,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	log.Info("Application is now running...")
 	<-stop
 
+	err = rm.Close()
+	log.LogIfError(err)
 	return nil
 }
 
@@ -317,6 +323,24 @@ func createNode(
 	if err != nil {
 		return nil, errors.New("could not create shard data pools: " + err.Error())
 	}
+
+	pkBuff, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	rm, err = resourceStatistics.NewResourceMonitor(hex.EncodeToString(pkBuff))
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		for {
+			err = rm.SaveStatistics()
+			log.LogIfError(err)
+			time.Sleep(durBetweenStatsSaves)
+		}
+	}()
 
 	// TODO create metachain / blockchain
 	// TODO save config, and move this creation into another place for node movement
@@ -562,10 +586,7 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 
 	pk, _ := pubKey.ToByteArray()
 
-	skEncoded := encodeAddress(sk)
 	pkEncoded := encodeAddress(pk)
-
-	log.Info("starting with private key: " + skEncoded)
 	log.Info("starting with public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
