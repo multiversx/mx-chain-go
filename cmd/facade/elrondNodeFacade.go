@@ -70,7 +70,7 @@ func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	ef.log.Info("Starting web server...")
-	err := api.Start(ef)
+	err := api.Start(struct{*ElrondNodeFacade}{ef})
 	if err != nil {
 		ef.log.Error("Could not start webserver", err.Error())
 	}

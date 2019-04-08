@@ -3,6 +3,7 @@ package crypto_test
 import (
 	"crypto/cipher"
 	"crypto/sha512"
+	"encoding/hex"
 	"fmt"
 	"hash"
 	"math/rand"
@@ -256,6 +257,7 @@ func BenchmarkSingleSig(b *testing.B) {
 	b.Run("Schnorr sign", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			sigSch, err = schnorr.Sign(suiteSch, kpSchnorr.Private, []byte(msg))
+			fmt.Println(hex.EncodeToString(sigSch))
 			sigsSch = append(sigsSch, sigSch)
 			if err != nil {
 				fmt.Println("error signing")
