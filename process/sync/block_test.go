@@ -1973,8 +1973,6 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 }
 
 func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
-	t.Skip("unskip this test after the fix is applied on rollback, storer not erasing header")
-
 	t.Parallel()
 
 	//retain if the remove process from different storage locations has been called
@@ -2015,9 +2013,27 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	}
 
 	//a mock blockchain with special header and tx block bodies stubs (defined above)
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainMock{
+		StorageService: &mock.ChainStorerMock{
+			GetStorerCalled: func(unitType data.UnitType) storage.Storer {
+				return &mock.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return prevHdrBytes, nil
+					},
+					RemoveCalled: func(key []byte) error {
+						remFlags.flagHdrRemovedFromStorage = true
+						return nil
+					},
+				}
+			},
+		},
+	}
 	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
+	blkExec := &mock.BlockProcessorMock{
+		RestoreBlockIntoPoolsCalled: func(blockChain data.ChainHandler, body data.BodyHandler) error {
+			return nil
+		},
+	}
 
 	hasher := &mock.HasherMock{}
 
@@ -2044,7 +2060,11 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 
 	forkDetector := createForkDetector(currentHdrNonce, remFlags)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
+	account := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
 
 	bs, _ := sync.NewBootstrap(
 		pools,
@@ -2060,13 +2080,36 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 		account,
 	)
 
-	//this is the block we want to revert
+	bs.SetForkNonce(currentHdrNonce)
+
+	hdr := &block.Header{
+		Nonce: currentHdrNonce,
+		//empty bitmap
+		PrevHash: prevHdrHash,
+	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &block.Header{
-			Nonce: currentHdrNonce,
-			//empty bitmap
-			PrevHash: prevHdrHash,
-		}
+		return hdr
+	}
+	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
+		hdr = prevHdr
+		return nil
+	}
+
+	body := make(block.Body, 0)
+	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
+		return body
+	}
+	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
+		body = prevTxBlockBody
+		return nil
+	}
+
+	hdrHash := make([]byte, 0)
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return hdrHash
+	}
+	blkc.SetCurrentBlockHeaderHashCalled = func(i []byte) {
+		hdrHash = i
 	}
 
 	err := bs.ForkChoice()
@@ -2081,8 +2124,6 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 }
 
 func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T) {
-	t.Skip("unskip this test after the fix is applied on rollback, storer not erasing header")
-
 	t.Parallel()
 
 	//retain if the remove process from different storage locations has been called
@@ -2123,9 +2164,30 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 	}
 
 	//a mock blockchain with special header and tx block bodies stubs (defined above)
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainMock{
+		StorageService: &mock.ChainStorerMock{
+			GetStorerCalled: func(unitType data.UnitType) storage.Storer {
+				return &mock.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return prevHdrBytes, nil
+					},
+					RemoveCalled: func(key []byte) error {
+						remFlags.flagHdrRemovedFromStorage = true
+						return nil
+					},
+				}
+			},
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return prevHdr
+		},
+	}
 	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
+	blkExec := &mock.BlockProcessorMock{
+		RestoreBlockIntoPoolsCalled: func(blockChain data.ChainHandler, body data.BodyHandler) error {
+			return nil
+		},
+	}
 
 	hasher := &mock.HasherMock{}
 
@@ -2152,7 +2214,11 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 
 	forkDetector := createForkDetector(currentHdrNonce, remFlags)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
+	account := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
 
 	bs, _ := sync.NewBootstrap(
 		pools,
@@ -2168,13 +2234,36 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 		account,
 	)
 
-	//this is the block we want to revert
+	bs.SetForkNonce(currentHdrNonce)
+
+	hdr := &block.Header{
+		Nonce: currentHdrNonce,
+		//empty bitmap
+		PrevHash: prevHdrHash,
+	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &block.Header{
-			Nonce: currentHdrNonce,
-			//empty bitmap
-			PrevHash: prevHdrHash,
-		}
+		return hdr
+	}
+	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
+		hdr = nil
+		return nil
+	}
+
+	body := make(block.Body, 0)
+	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
+		return body
+	}
+	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
+		body = nil
+		return nil
+	}
+
+	hdrHash := make([]byte, 0)
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return hdrHash
+	}
+	blkc.SetCurrentBlockHeaderHashCalled = func(i []byte) {
+		hdrHash = nil
 	}
 
 	err := bs.ForkChoice()

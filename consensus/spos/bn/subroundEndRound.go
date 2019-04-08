@@ -146,12 +146,6 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 
 	sr.consensusState.SetStatus(SrEndRound, spos.SsFinished)
 
-	err = sr.blockProcessor.RemoveBlockInfoFromPool(sr.consensusState.BlockBody)
-
-	if err != nil {
-		log.Error(err.Error())
-	}
-
 	// broadcast block body and header
 	err = sr.broadcastBlock(sr.consensusState.BlockBody, sr.consensusState.Header)
 

@@ -121,3 +121,7 @@ func (boot *Bootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
 func (boot *Bootstrap) SetRoundIndex(roundIndex int32) {
 	boot.roundIndex = roundIndex
 }
+
+func (boot *Bootstrap) SetForkNonce(nonce uint64) {
+	boot.forkNonce = nonce
+}

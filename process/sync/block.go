@@ -72,6 +72,7 @@ type Bootstrap struct {
 	isForkDetected bool
 	forkNonce      uint64
 
+	mutRcvHdrInfo  sync.RWMutex
 	BroadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
 
@@ -292,12 +293,15 @@ func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 }
 
 func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
+	boot.mutRcvHdrInfo.Lock()
+	defer boot.mutRcvHdrInfo.Unlock()
+
 	header := boot.getHeader(headerHash)
-	if header != nil && header.Nonce > boot.rcvHdrInfo.highestNonce {
-		boot.rcvHdrInfo.highestNonce = header.Nonce
-		boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
-	}
 	if header != nil {
+		if header.Nonce > boot.rcvHdrInfo.highestNonce {
+			boot.rcvHdrInfo.highestNonce = header.Nonce
+			boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
+		}
 		log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
 	}
 
@@ -310,6 +314,9 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
+	boot.mutRcvHdrInfo.Lock()
+	defer boot.mutRcvHdrInfo.Unlock()
+
 	//TODO: make sure that header validation done on interceptors do not add headers with wrong nonces/round numbers
 	if nonce > boot.rcvHdrInfo.highestNonce {
 		boot.rcvHdrInfo.highestNonce = nonce
@@ -461,6 +468,9 @@ func (boot *Bootstrap) SyncBlock() error {
 }
 
 func (boot *Bootstrap) shouldCreateEmptyBlock(nonce uint64) bool {
+	boot.mutRcvHdrInfo.RLock()
+	defer boot.mutRcvHdrInfo.RUnlock()
+
 	if boot.isForkDetected {
 		return false
 	}
@@ -734,7 +744,7 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 	}
 
 	boot.cleanCachesOnRollback(header, headerStore)
-	boot.blkExecutor.RestoreBlockInfoIntoPool(boot.blkc, body)
+	boot.blkExecutor.RestoreBlockIntoPools(boot.blkc, body)
 
 	return nil
 }
