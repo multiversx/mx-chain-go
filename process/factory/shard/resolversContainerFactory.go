@@ -317,6 +317,7 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 	shardC := rcf.shardCoordinator
 
 	//only one metachain header topic
+	//example: shardHeadersForMetachain_0
 	identifierHdr := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	hdrStorer := rcf.blockchain.GetStorer(data.BlockHeaderUnit)
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(

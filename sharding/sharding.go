@@ -5,7 +5,7 @@ import (
 )
 
 // MetachainShardId will be used to identify a shard ID as metachain
-const MetachainShardId = uint32((1 << 32) - 1)
+const MetachainShardId = uint32(0xFFFFFFFF)
 
 // Coordinator defines what a shard state coordinator should hold
 type Coordinator interface {
