@@ -178,6 +178,9 @@ var ErrNilPoolsHolder = errors.New("nil pools holder")
 // ErrNilTxStorage signals that a nil transaction storage has been provided
 var ErrNilTxStorage = errors.New("nil transaction storage")
 
+// ErrInvalidTxInPool signals an invalid transaction in the transactions pool
+var ErrInvalidTxInPool = errors.New("invalid transaction in transaction pool")
+
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
 

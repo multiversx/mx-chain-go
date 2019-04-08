@@ -307,7 +307,7 @@ func (bp *blockProcessor) RestoreBlockIntoPools(blockChain data.ChainHandler, bo
 				return err
 			}
 
-			transactionPool.AddData([]byte(txHash), tx, strCache)
+			transactionPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
 		buff, err := bp.marshalizer.Marshal(miniBlock)
@@ -657,7 +657,11 @@ func (bp *blockProcessor) getTransactionFromPool(senderShardID, destShardID uint
 		return nil
 	}
 
-	v := val.(*transaction.Transaction)
+	v, ok := val.(*transaction.Transaction)
+	if !ok {
+		log.Error(process.ErrInvalidTxInPool.Error())
+	}
+
 	return v
 }
 
