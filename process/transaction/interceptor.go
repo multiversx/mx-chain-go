@@ -118,6 +118,7 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte
 			lastErrEncountered = err
 			continue
 		}
+
 		txIntercepted.SetTxBuffWithoutSig(buffCopiedTx)
 		hashWithSig := txi.hasher.Compute(string(txBuff))
 		txIntercepted.SetHash(hashWithSig)
@@ -133,9 +134,8 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte
 			continue
 		}
 
-		//at this point, the tx is ok, we add it to filtered out txs
+		//tx is validated, add it to filtered out txs
 		filteredTxsBuffs = append(filteredTxsBuffs, txBuff)
-
 		if txIntercepted.IsAddressedToOtherShards() {
 			log.Debug("intercepted tx is for other shards")
 
@@ -143,7 +143,6 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte
 		}
 
 		isTxInStorage, _ := txi.txStorer.Has(hashWithSig)
-
 		if isTxInStorage {
 			log.Debug("intercepted tx already processed")
 			continue
