@@ -32,7 +32,7 @@ const (
 // Logger represents the application logger.
 type Logger struct {
 	logger          *log.Logger
-	file            *LazyFileWriter
+	file            *LogFileWriter
 	stackTraceDepth int
 }
 
@@ -47,7 +47,7 @@ func NewElrondLogger(opts ...Option) *Logger {
 	el := &Logger{
 		logger:          log.New(),
 		stackTraceDepth: defaultStackTraceDepth,
-		file:            &LazyFileWriter{},
+		file:            &LogFileWriter{},
 	}
 
 	for _, opt := range opts {
