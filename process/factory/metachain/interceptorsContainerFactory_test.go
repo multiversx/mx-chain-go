@@ -4,11 +4,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,6 +40,35 @@ func createStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegiste
 			}
 
 			return nil
+		},
+	}
+}
+
+func createDataPools() data.MetaPoolsHolder {
+	pools := &mock.MetaPoolsHolderStub{
+		MetaBlockNoncesCalled: func() data.Uint64Cacher {
+			return &mock.Uint64CacherStub{}
+		},
+		ShardHeadersCalled: func() storage.Cacher {
+			return &mock.CacherStub{}
+		},
+		MiniBlockHashesCalled: func() data.ShardedDataCacherNotifier {
+			return &mock.ShardedDataStub{}
+		},
+		MetaChainBlocksCalled: func() storage.Cacher {
+			return &mock.CacherStub{}
+		},
+	}
+
+	return pools
+}
+
+func createBlockchain() data.ChainHandler {
+	return &mock.BlockChainMock{
+		StorageService: &mock.ChainStorerMock{
+			GetStorerCalled: func(unitType data.UnitType) storage.Storer {
+				return &mock.StorerStub{}
+			},
 		},
 	}
 }

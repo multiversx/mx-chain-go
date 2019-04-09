@@ -7,9 +7,6 @@ import (
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
 
-// ErrNoConnectedPeerToSendRequest signals that the connected peers list is empty and can not send request
-var ErrNoConnectedPeerToSendRequest = errors.New("connected peers list is empty. Can not send request")
-
 // ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
@@ -187,19 +184,6 @@ var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
 // ErrNilResolverSender signals that a nil resolver sender object has been provided
 var ErrNilResolverSender = errors.New("nil resolver sender")
 
-// ErrNilNonceConverter signals that a nil nonce converter has been provided
-var ErrNilNonceConverter = errors.New("nil nonce converter")
-
-// ErrInvalidNonceByteSlice signals that an invalid byte slice has been provided
-// and an uint64 can not be decoded from that byte slice
-var ErrInvalidNonceByteSlice = errors.New("invalid nonce byte slice")
-
-// ErrResolveNotHashType signals that an expected resolve type was other than hash type
-var ErrResolveNotHashType = errors.New("expected resolve type was hash type")
-
-// ErrResolveTypeUnknown signals that an unknown resolve type was provided
-var ErrResolveTypeUnknown = errors.New("unknown resolve type")
-
 // ErrNilBlockBodyPool signals that a nil block body pool has been provided
 var ErrNilBlockBodyPool = errors.New("nil block body pool")
 
@@ -236,9 +220,6 @@ var ErrInvalidContainerKey = errors.New("element does not exist in container")
 // ErrContainerKeyAlreadyExists signals that an element was already set in the container's map
 var ErrContainerKeyAlreadyExists = errors.New("provided key already exists in container")
 
-// ErrNilUint64ByteSliceConverter signals that a nil byte slice converter was provided
-var ErrNilUint64ByteSliceConverter = errors.New("nil byte slice converter")
-
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
 
@@ -250,12 +231,6 @@ var ErrNilMiniBlocksRequestHandler = errors.New("nil request miniblock handler")
 
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")
-
-// ErrUnmarshalMBHashes signals the value is nil
-var ErrUnmarshalMBHashes = errors.New("could not unmarshal miniblock hashes")
-
-// ErrInvalidRequestType signals that a request on a topic sends an invalid type
-var ErrInvalidRequestType = errors.New("invalid request type")
 
 // ErrCouldNotDecodeUnderlyingBody signals that an InterceptedBlockBody could not be decoded to a block.Body using type assertion
 var ErrCouldNotDecodeUnderlyingBody = errors.New("could not decode InterceptedBlockBody to block.Body")

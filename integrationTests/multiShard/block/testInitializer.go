@@ -25,6 +25,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
+	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/multiShard/mock"
@@ -37,7 +40,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -67,7 +69,7 @@ type testNode struct {
 	sk               crypto.PrivateKey
 	pk               crypto.PublicKey
 	dPool            data.PoolsHolder
-	resFinder        process.ResolversFinder
+	resFinder        dataRetriever.ResolversFinder
 	headersRecv      int32
 	miniblocksRecv   int32
 	mutHeaders       sync.Mutex
@@ -152,7 +154,7 @@ func createNetNode(
 	*node.Node,
 	p2p.Messenger,
 	crypto.PrivateKey,
-	process.ResolversFinder,
+	dataRetriever.ResolversFinder,
 	process.BlockProcessor,
 	data.ChainHandler) {
 
@@ -194,7 +196,7 @@ func createNetNode(
 		fmt.Println(err.Error())
 	}
 
-	resolversContainerFactory, _ := shard.NewResolversContainerFactory(
+	resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		messenger,
 		blkc,
