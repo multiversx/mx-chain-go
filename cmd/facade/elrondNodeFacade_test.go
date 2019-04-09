@@ -364,7 +364,7 @@ func TestElrondNodeFacade_SetLogger(t *testing.T) {
 	node := &mock.NodeMock{}
 
 	ef := facade.NewElrondNodeFacade(node)
-	log := logger.NewDefaultLogger()
+	log := logger.DefaultLogger()
 	ef.SetLogger(log)
 	assert.Equal(t, log, ef.GetLogger())
 }

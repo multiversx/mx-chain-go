@@ -117,7 +117,7 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 }
 
 func main() {
-	log := logger.NewDefaultLogger()
+	log := logger.DefaultLogger()
 	log.SetLevel(logger.LogInfo)
 
 	app := cli.NewApp()
@@ -127,6 +127,18 @@ func main() {
 	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode, flags.Shards}
 
 	app.Action = func(c *cli.Context) error {
+		port := strconv.Itoa(c.GlobalInt(flags.Port.Name))
+		logFile, err := logger.MakeLogFile(port)
+
+		if err != nil {
+			return err
+		}
+
+		err = log.ApplyOptions(logger.WithFile(logFile))
+		if err != nil {
+			return err
+		}
+
 		return startNode(c, log)
 	}
 

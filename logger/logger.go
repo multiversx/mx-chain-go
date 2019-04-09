@@ -1,12 +1,14 @@
 package logger
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -54,10 +56,7 @@ func NewElrondLogger(opts ...Option) *Logger {
 		}
 	}
 
-	if el.file != nil {
-		el.logger.SetOutput(el.file)
-		el.logger.AddHook(&printerHook{Writer: os.Stdout})
-	} else {
+	if el.file == nil {
 		el.logger.SetOutput(os.Stdout)
 	}
 
@@ -67,14 +66,35 @@ func NewElrondLogger(opts ...Option) *Logger {
 	return el
 }
 
-// NewDefaultLogger is a shorthand for instantiating a new logger with default settings.
+var defaultLogger *Logger
+var defaultLoggerMutex = sync.RWMutex{}
+
+// DefaultLogger is a shorthand for instantiating a new logger with default settings.
 // If it fails to open the default log file it will return a logger with os.Stdout output.
-func NewDefaultLogger() *Logger {
-	file, err := DefaultLogFile()
-	if err != nil {
-		return NewElrondLogger()
+func DefaultLogger() *Logger {
+	defaultLoggerMutex.RLock()
+	dl := defaultLogger
+	defaultLoggerMutex.RUnlock()
+
+	if dl == nil {
+		defaultLoggerMutex.Lock()
+		defaultLogger = NewElrondLogger()
+		dl = defaultLogger
+		defaultLoggerMutex.Unlock()
 	}
-	return NewElrondLogger(WithFile(file))
+
+	return dl
+}
+
+// ApplyOptions can set up different configurable options of a Logger instance
+func (el *Logger) ApplyOptions(opts ...Option) error {
+	for _, opt := range opts {
+		err := opt(el)
+		if err != nil {
+			return errors.New("error applying option: " + err.Error())
+		}
+	}
+	return nil
 }
 
 // File returns the current Logger file
@@ -185,6 +205,12 @@ func (el *Logger) defaultFields() *log.Entry {
 // WithFile sets up the file option for the Logger
 func WithFile(file io.Writer) Option {
 	return func(el *Logger) error {
+		el.logger.SetOutput(file)
+
+		if el.file == nil {
+			el.logger.AddHook(&printerHook{Writer: os.Stdout})
+		}
+
 		el.file = file
 		return nil
 	}
@@ -198,9 +224,8 @@ func WithStackTraceDepth(depth int) Option {
 	}
 }
 
-// DefaultLogFile returns the default output for the application logger.
-// The client package can always use another output and provide it in the logger constructor.
-func DefaultLogFile() (*os.File, error) {
+// MakeLogFile opens or creates a file relative to the default log path
+func MakeLogFile(prefix string) (*os.File, error) {
 	absPath, err := filepath.Abs(defaultLogPath)
 	if err != nil {
 		return nil, err
@@ -209,8 +234,14 @@ func DefaultLogFile() (*os.File, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fileName := time.Now().Format("2006-02-01")
+	if prefix != "" {
+		fileName = prefix + "-" + fileName
+	}
+
 	return os.OpenFile(
-		filepath.Join(absPath, time.Now().Format("2006-02-01")+".log"),
+		filepath.Join(absPath, fileName + ".log"),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
 		0666)
 }

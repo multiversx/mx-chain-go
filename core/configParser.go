@@ -5,7 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // LoadP2PConfig returns a P2PConfig by reading the config file provided
 func LoadP2PConfig(filepath string) (*config.P2PConfig, error) {

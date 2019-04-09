@@ -122,13 +122,13 @@ func TestSetLevel(t *testing.T) {
 
 func TestWithFile(t *testing.T) {
 	t.Parallel()
-	log := logger.NewDefaultLogger()
+	log := logger.DefaultLogger()
 	log.Warn("This test should pass if the file was opened in the correct mode")
 }
 
 func TestConcurrencyWithFileWriter(t *testing.T) {
 	t.Parallel()
-	log := logger.NewDefaultLogger()
+	log := logger.DefaultLogger()
 
 	wg := sync.WaitGroup{}
 	wg.Add(999)

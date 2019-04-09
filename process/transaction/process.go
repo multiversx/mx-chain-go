@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {

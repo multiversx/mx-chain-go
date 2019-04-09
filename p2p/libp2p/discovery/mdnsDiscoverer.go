@@ -13,7 +13,7 @@ import (
 
 const mdnsName = "mdns peer discovery"
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // MdnsPeerDiscoverer is the mdns discovery type implementation
 type MdnsPeerDiscoverer struct {
