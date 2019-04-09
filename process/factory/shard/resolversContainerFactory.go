@@ -1,4 +1,4 @@
-package factory
+package shard
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/resolvers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/metablock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/topicResolverSender"
@@ -138,7 +139,7 @@ func (rcf *resolversContainerFactory) generateTxResolvers() ([]string, []process
 	resolverSlice := make([]process.Resolver, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierTx := TransactionTopic + shardC.CommunicationIdentifier(idx)
+		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
 
 		resolver, err := rcf.createOneTxResolver(identifierTx)
 		if err != nil {
@@ -187,7 +188,7 @@ func (rcf *resolversContainerFactory) generateHdrResolver() ([]string, []process
 	shardC := rcf.shardCoordinator
 
 	//only one intrashard header topic
-	identifierHdr := HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 	hdrStorer := rcf.blockchain.GetStorer(data.BlockHeaderUnit)
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
@@ -228,7 +229,7 @@ func (rcf *resolversContainerFactory) generateMiniBlocksResolvers() ([]string, [
 	resolverSlice := make([]process.Resolver, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierMiniBlocks := MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
+		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
 
 		resolver, err := rcf.createOneMiniBlocksResolver(identifierMiniBlocks)
 		if err != nil {
@@ -277,7 +278,7 @@ func (rcf *resolversContainerFactory) generatePeerChBlockBodyResolver() ([]strin
 	shardC := rcf.shardCoordinator
 
 	//only one intrashard peer change blocks topic
-	identifierPeerCh := PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	identifierPeerCh := factory.PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 	peerBlockBodyStorer := rcf.blockchain.GetStorer(data.PeerChangesUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
@@ -316,7 +317,8 @@ func (rcf *resolversContainerFactory) generateMetachainShardHeaderResolver() ([]
 	shardC := rcf.shardCoordinator
 
 	//only one metachain header topic
-	identifierHdr := ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	//example: shardHeadersForMetachain_0
+	identifierHdr := factory.ShardHeadersForMetachainTopic + shardC.CommunicationIdentifier(sharding.MetachainShardId)
 	hdrStorer := rcf.blockchain.GetStorer(data.BlockHeaderUnit)
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,
