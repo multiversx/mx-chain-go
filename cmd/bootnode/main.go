@@ -35,8 +35,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -397,7 +397,7 @@ func createNode(
 		return nil, err
 	}
 
-	resolversFinder, err := resolvers.NewResolversFinder(resolversContainer, shardCoordinator)
+	resolversFinder, err := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 	if err != nil {
 		return nil, err
 	}

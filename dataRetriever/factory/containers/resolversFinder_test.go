@@ -1,4 +1,4 @@
-package resolvers
+package containers
 
 import (
 	"strconv"

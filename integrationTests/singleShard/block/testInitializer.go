@@ -22,8 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -173,7 +173,7 @@ func createNetNode(port int,
 		uint64Converter,
 	)
 	resolversContainer, _ := resolversContainerFactory.Create()
-	resolversFinder, _ := resolvers.NewResolversFinder(resolversContainer, shardCoordinator)
+	resolversFinder, _ := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 
 	n, _ := node.NewNode(
 		node.WithMessenger(messenger),

@@ -1,4 +1,4 @@
-package resolvers
+package containers
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
