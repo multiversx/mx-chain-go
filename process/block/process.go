@@ -331,6 +331,7 @@ func (bp *blockProcessor) restoreTxBlockIntoPools(blockChain data.ChainHandler,
 		if miniBlock.SenderShardID != bp.shardCoordinator.SelfId() {
 			miniBlockHashes[i] = miniBlockHash
 		}
+		txsTotalProcessed -= len(miniBlock.TxHashes)
 	}
 
 	return nil
