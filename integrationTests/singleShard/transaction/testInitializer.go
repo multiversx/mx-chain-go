@@ -32,6 +32,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
@@ -165,7 +168,7 @@ func createNetNode(
 	blkc := createTestBlockChain()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
-	interceptorContainerFactory, _ := factory.NewInterceptorsContainerFactory(
+	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		messenger,
 		blkc,
@@ -180,6 +183,7 @@ func createNetNode(
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
 
 	resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
+	resolversContainerFactory, _ := shard.NewResolversContainerFactory(
 		shardCoordinator,
 		messenger,
 		blkc,

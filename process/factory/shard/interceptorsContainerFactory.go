@@ -1,4 +1,4 @@
-package factory
+package shard
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/interceptors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -93,6 +94,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -102,6 +104,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -111,6 +114,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -120,6 +124,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -129,6 +134,7 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 	if err != nil {
 		return nil, err
 	}
+
 	err = container.AddMultiple(keys, interceptorSlice)
 	if err != nil {
 		return nil, err
@@ -140,7 +146,8 @@ func (icf *interceptorsContainerFactory) Create() (process.InterceptorsContainer
 func (icf *interceptorsContainerFactory) createTopicAndAssignHandler(
 	topic string,
 	interceptor process.Interceptor,
-	createChannel bool) (process.Interceptor, error) {
+	createChannel bool,
+) (process.Interceptor, error) {
 
 	err := icf.messenger.CreateTopic(topic, createChannel)
 	if err != nil {
@@ -161,7 +168,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 	interceptorSlice := make([]process.Interceptor, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierTx := TransactionTopic + shardC.CommunicationIdentifier(idx)
+		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
 
 		interceptor, err := icf.createOneTxInterceptor(identifierTx)
 		if err != nil {
@@ -201,7 +208,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 	shardC := icf.shardCoordinator
 
 	//only one intrashard header topic
-	identifierHdr := HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 	headerStorer := icf.blockchain.GetStorer(data.BlockHeaderUnit)
 	interceptor, err := interceptors.NewHeaderInterceptor(
 		icf.marshalizer,
@@ -232,7 +239,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 	interceptorSlice := make([]process.Interceptor, noOfShards)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		identifierMiniBlocks := MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
+		identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(idx)
 
 		interceptor, err := icf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 		if err != nil {
@@ -270,7 +277,7 @@ func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptor() ([
 	shardC := icf.shardCoordinator
 
 	//only one intrashard peer change blocks topic
-	identifierPeerCh := PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	identifierPeerCh := factory.PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 	peerBlockBodyStorer := icf.blockchain.GetStorer(data.PeerChangesUnit)
 
 	interceptor, err := interceptors.NewPeerBlockBodyInterceptor(
@@ -294,7 +301,7 @@ func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptor() ([
 //------- MetachainHeader interceptors
 
 func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([]string, []process.Interceptor, error) {
-	identifierHdr := MetachainBlocksTopic
+	identifierHdr := factory.MetachainBlocksTopic
 	metachainHeaderStorer := icf.blockchain.GetStorer(data.MetaBlockUnit)
 
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
