@@ -5,16 +5,19 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/metachain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
-func createStubTopicMessageHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicMessageHandler {
+var errExpected = errors.New("expected error")
+
+func createStubTopicMessageHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) dataRetriever.TopicMessageHandler {
 	tmhs := mock.NewTopicMessageHandlerStub()
 
 	tmhs.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
@@ -86,7 +89,7 @@ func TestNewResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T)
 	)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, process.ErrNilShardCoordinator, err)
+	assert.Equal(t, dataRetriever.ErrNilShardCoordinator, err)
 }
 
 func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
@@ -102,7 +105,7 @@ func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, process.ErrNilMessenger, err)
+	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
 }
 
 func TestNewResolversContainerFactory_NilBlockchainShouldErr(t *testing.T) {
@@ -118,7 +121,7 @@ func TestNewResolversContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, process.ErrNilBlockChain, err)
+	assert.Equal(t, dataRetriever.ErrNilBlockChain, err)
 }
 
 func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
@@ -134,7 +137,7 @@ func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, process.ErrNilMarshalizer, err)
+	assert.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 }
 
 func TestNewResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
@@ -150,7 +153,7 @@ func TestNewResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, process.ErrNilDataPoolHolder, err)
+	assert.Equal(t, dataRetriever.ErrNilDataPoolHolder, err)
 }
 
 func TestNewResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testing.T) {
@@ -166,7 +169,7 @@ func TestNewResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testin
 	)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, process.ErrNilUint64ByteSliceConverter, err)
+	assert.Equal(t, dataRetriever.ErrNilUint64ByteSliceConverter, err)
 }
 
 func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {

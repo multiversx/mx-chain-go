@@ -3,18 +3,18 @@ package metachain
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/metablock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 type resolversContainerFactory struct {
 	shardCoordinator         sharding.Coordinator
-	messenger                process.TopicMessageHandler
+	messenger                dataRetriever.TopicMessageHandler
 	blockchain               data.ChainHandler
 	marshalizer              marshal.Marshalizer
 	dataPools                data.MetaPoolsHolder
@@ -24,7 +24,7 @@ type resolversContainerFactory struct {
 // NewResolversContainerFactory creates a new container filled with topic resolvers
 func NewResolversContainerFactory(
 	shardCoordinator sharding.Coordinator,
-	messenger process.TopicMessageHandler,
+	messenger dataRetriever.TopicMessageHandler,
 	blockchain data.ChainHandler,
 	marshalizer marshal.Marshalizer,
 	dataPools data.MetaPoolsHolder,
@@ -32,22 +32,22 @@ func NewResolversContainerFactory(
 ) (*resolversContainerFactory, error) {
 
 	if shardCoordinator == nil {
-		return nil, process.ErrNilShardCoordinator
+		return nil, dataRetriever.ErrNilShardCoordinator
 	}
 	if messenger == nil {
-		return nil, process.ErrNilMessenger
+		return nil, dataRetriever.ErrNilMessenger
 	}
 	if blockchain == nil {
-		return nil, process.ErrNilBlockChain
+		return nil, dataRetriever.ErrNilBlockChain
 	}
 	if marshalizer == nil {
-		return nil, process.ErrNilMarshalizer
+		return nil, dataRetriever.ErrNilMarshalizer
 	}
 	if dataPools == nil {
-		return nil, process.ErrNilDataPoolHolder
+		return nil, dataRetriever.ErrNilDataPoolHolder
 	}
 	if uint64ByteSliceConverter == nil {
-		return nil, process.ErrNilUint64ByteSliceConverter
+		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
 
 	return &resolversContainerFactory{
@@ -61,7 +61,7 @@ func NewResolversContainerFactory(
 }
 
 // Create returns an interceptor container that will hold all interceptors in the system
-func (rcf *resolversContainerFactory) Create() (process.ResolversContainer, error) {
+func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer, error) {
 	container := containers.NewResolversContainer()
 
 	keys, interceptorSlice, err := rcf.generateShardHeaderResolvers()
@@ -78,9 +78,9 @@ func (rcf *resolversContainerFactory) Create() (process.ResolversContainer, erro
 
 func (rcf *resolversContainerFactory) createTopicAndAssignHandler(
 	topicName string,
-	resolver process.Resolver,
+	resolver dataRetriever.Resolver,
 	createChannel bool,
-) (process.Resolver, error) {
+) (dataRetriever.Resolver, error) {
 
 	err := rcf.messenger.CreateTopic(topicName, createChannel)
 	if err != nil {
@@ -92,11 +92,11 @@ func (rcf *resolversContainerFactory) createTopicAndAssignHandler(
 
 //------- Shard header resolvers
 
-func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, []process.Resolver, error) {
+func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, []dataRetriever.Resolver, error) {
 	shardC := rcf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 	keys := make([]string, noOfShards)
-	resolverSlice := make([]process.Resolver, noOfShards)
+	resolverSlice := make([]dataRetriever.Resolver, noOfShards)
 
 	//wire up to topics: shardHeadersForMetachain_0, shardHeadersForMetachain_1 ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
@@ -113,7 +113,7 @@ func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, 
 	return keys, resolverSlice, nil
 }
 
-func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier string) (process.Resolver, error) {
+func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier string) (dataRetriever.Resolver, error) {
 	hdrStorer := rcf.blockchain.GetStorer(data.BlockHeaderUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
@@ -125,7 +125,7 @@ func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier st
 		return nil, err
 	}
 
-	resolver, err := metablock.NewShardHeaderResolver(
+	resolver, err := resolvers.NewShardHeaderResolver(
 		resolverSender,
 		rcf.dataPools.ShardHeaders(),
 		hdrStorer,
