@@ -6,10 +6,10 @@ import (
 )
 
 type MiniBlocksResolverMock struct {
-	RequestDataFromHashCalled    func(hash []byte) error
-	RequestDataFromHashArrayCalled  func(hashes [][]byte) error
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
-	GetMiniBlocksCalled func(hashes [][]byte) block.MiniBlockSlice
+	RequestDataFromHashCalled      func(hash []byte) error
+	RequestDataFromHashArrayCalled func(hashes [][]byte) error
+	ProcessReceivedMessageCalled   func(message p2p.MessageP2P) error
+	GetMiniBlocksCalled            func(hashes [][]byte) block.MiniBlockSlice
 }
 
 func (hrm *MiniBlocksResolverMock) RequestDataFromHash(hash []byte) error {

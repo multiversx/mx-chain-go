@@ -27,9 +27,8 @@ func (osc *OneShardCoordinator) SameShard(firstAddress, secondAddress state.Addr
 	return true
 }
 
-
 // CommunicationIdentifier returns the identifier between current shard ID and destination shard ID
 // for this implementation, it will always return "_0" as there is a single shard
 func (osc *OneShardCoordinator) CommunicationIdentifier(destShardID uint32) string {
-	return "_0"
+	return communicationIdentifierBetweenShards(0, 0)
 }

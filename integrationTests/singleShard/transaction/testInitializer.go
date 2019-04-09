@@ -20,6 +20,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
+	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -28,9 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
@@ -147,7 +148,7 @@ func createNetNode(
 	*node.Node,
 	p2p.Messenger,
 	crypto.PrivateKey,
-	process.ResolversFinder) {
+	dataRetriever.ResolversFinder) {
 
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.JsonMarshalizer{}
@@ -164,7 +165,7 @@ func createNetNode(
 	blkc := createTestBlockChain()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
-	interceptorContainerFactory, _ := factory.NewInterceptorsContainerFactory(
+	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		messenger,
 		blkc,
@@ -178,7 +179,7 @@ func createNetNode(
 	)
 	interceptorsContainer, _ := interceptorContainerFactory.Create()
 
-	resolversContainerFactory, _ := factory.NewResolversContainerFactory(
+	resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		messenger,
 		blkc,
