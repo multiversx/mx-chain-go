@@ -186,7 +186,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			}
 		}
 	}
-	fmt.Println(makeDisplayTable(nodes))
 
 	fmt.Println("Step 11. Test nodes from receiver shards to have the correct balances...")
 	for _, n := range nodes {

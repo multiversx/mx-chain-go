@@ -79,9 +79,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *tes
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	_, err := hi.ProcessReceivedMessage(nil)
-
-	assert.Equal(t, process.ErrNilMessage, err)
+	assert.Equal(t, process.ErrNilMessage, hi.ProcessReceivedMessage(nil))
 }
 
 func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) {
@@ -128,9 +126,7 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testin
 		return false, false
 	}
 
-	_, err := hi.ProcessReceivedMessage(msg)
-
-	assert.Nil(t, err)
+	assert.Nil(t, hi.ProcessReceivedMessage(msg))
 	assert.Equal(t, 1, wasCalled)
 }
 
@@ -178,8 +174,6 @@ func TestShardHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAdd(t 
 		return false, false
 	}
 
-	_, err := hi.ProcessReceivedMessage(msg)
-
-	assert.Nil(t, err)
+	assert.Nil(t, hi.ProcessReceivedMessage(msg))
 	assert.Equal(t, 0, wasCalled)
 }

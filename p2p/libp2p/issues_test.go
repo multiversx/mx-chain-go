@@ -74,7 +74,7 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 
 	mes2.CreateTopic(topic, false)
 	mes2.RegisterMessageProcessor(topic, &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P) ([]byte, error) {
+		ProcessMessageCalled: func(message p2p.MessageP2P) error {
 			if bytes.Equal(message.Data(), largePacket) {
 				largePacketReceived.Store(true)
 			}
@@ -83,7 +83,7 @@ func TestIssueEN898_StreamResetError(t *testing.T) {
 				smallPacketReceived.Store(true)
 			}
 
-			return nil, nil
+			return nil
 		},
 	})
 

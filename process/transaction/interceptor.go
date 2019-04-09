@@ -15,14 +15,15 @@ import (
 
 // TxInterceptor is used for intercepting transaction and storing them into a datapool
 type TxInterceptor struct {
-	marshalizer      marshal.Marshalizer
-	txPool           data.ShardedDataCacherNotifier
-	txStorer         storage.Storer
-	addrConverter    state.AddressConverter
-	hasher           hashing.Hasher
-	singleSigner     crypto.SingleSigner
-	keyGen           crypto.KeyGenerator
-	shardCoordinator sharding.Coordinator
+	marshalizer              marshal.Marshalizer
+	txPool                   data.ShardedDataCacherNotifier
+	txStorer                 storage.Storer
+	addrConverter            state.AddressConverter
+	hasher                   hashing.Hasher
+	singleSigner             crypto.SingleSigner
+	keyGen                   crypto.KeyGenerator
+	shardCoordinator         sharding.Coordinator
+	broadcastCallbackHandler func(buffToSend []byte)
 }
 
 // NewTxInterceptor hooks a new interceptor for transactions
@@ -78,22 +79,22 @@ func NewTxInterceptor(
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte, error) {
+func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	if message == nil {
-		return nil, process.ErrNilMessage
+		return process.ErrNilMessage
 	}
 
 	if message.Data() == nil {
-		return nil, process.ErrNilDataToProcess
+		return process.ErrNilDataToProcess
 	}
 
 	txsBuff := make([][]byte, 0)
 	err := txi.marshalizer.Unmarshal(&txsBuff, message.Data())
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if len(txsBuff) == 0 {
-		return nil, process.ErrNoTransactionInMessage
+		return process.ErrNoTransactionInMessage
 	}
 
 	filteredTxsBuffs := make([][]byte, 0)
@@ -161,9 +162,18 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte
 	if filteredOutTxsNeedToBeSend {
 		buffToSend, err = txi.marshalizer.Marshal(filteredTxsBuffs)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return buffToSend, lastErrEncountered
+	if txi.broadcastCallbackHandler != nil {
+		txi.broadcastCallbackHandler(buffToSend)
+	}
+
+	return lastErrEncountered
+}
+
+// SetBroadcastCallback sets the callback method to send filtered out message
+func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte)) {
+	txi.broadcastCallbackHandler = callback
 }

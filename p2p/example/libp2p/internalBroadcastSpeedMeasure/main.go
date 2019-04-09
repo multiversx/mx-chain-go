@@ -41,26 +41,26 @@ func main() {
 
 	_ = mes1.RegisterMessageProcessor("test1",
 		&mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P) ([]byte, error) {
+			ProcessMessageCalled: func(message p2p.MessageP2P) error {
 				atomic.AddInt64(&bytesReceived1, int64(len(message.Data())))
 
-				return nil, nil
+				return nil
 			},
 		})
 
 	_ = mes1.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P) ([]byte, error) {
+		ProcessMessageCalled: func(message p2p.MessageP2P) error {
 			atomic.AddInt64(&bytesReceived2, int64(len(message.Data())))
 
-			return nil, nil
+			return nil
 		},
 	})
 
 	_ = mes1.RegisterMessageProcessor("test3", &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P) ([]byte, error) {
+		ProcessMessageCalled: func(message p2p.MessageP2P) error {
 			atomic.AddInt64(&bytesReceived3, int64(len(message.Data())))
 
-			return nil, nil
+			return nil
 		},
 	})
 

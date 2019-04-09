@@ -64,9 +64,7 @@ func TestPeerBlockBodyInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *t
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	_, err := pbbi.ProcessReceivedMessage(nil)
-
-	assert.Equal(t, process.ErrNilMessage, err)
+	assert.Equal(t, process.ErrNilMessage, pbbi.ProcessReceivedMessage(nil))
 }
 
 func TestPeerBlockBodyInterceptor_ProcessReceivedMessageNilMessageDataShouldErr(t *testing.T) {
@@ -83,9 +81,8 @@ func TestPeerBlockBodyInterceptor_ProcessReceivedMessageNilMessageDataShouldErr(
 		mock.NewOneShardCoordinatorMock())
 
 	msg := &mock.P2PMessageMock{}
-	_, err := pbbi.ProcessReceivedMessage(msg)
 
-	assert.Equal(t, process.ErrNilDataToProcess, err)
+	assert.Equal(t, process.ErrNilDataToProcess, pbbi.ProcessReceivedMessage(msg))
 }
 
 func TestPeerBlockBodyInterceptor_ValidateMarshalizerErrorsAtUnmarshalingShouldErr(t *testing.T) {
@@ -110,9 +107,8 @@ func TestPeerBlockBodyInterceptor_ValidateMarshalizerErrorsAtUnmarshalingShouldE
 	msg := &mock.P2PMessageMock{
 		DataField: make([]byte, 0),
 	}
-	_, err := pbbi.ProcessReceivedMessage(msg)
 
-	assert.Equal(t, errMarshalizer, err)
+	assert.Equal(t, errMarshalizer, pbbi.ProcessReceivedMessage(msg))
 }
 
 func TestPeerBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testing.T) {
@@ -153,8 +149,7 @@ func TestPeerBlockBodyInterceptor_ProcessReceivedMessageBlockShouldWork(t *testi
 		}
 		return false
 	}
-	_, err := pbbi.ProcessReceivedMessage(msg)
 
-	assert.Nil(t, err)
+	assert.Nil(t, pbbi.ProcessReceivedMessage(msg))
 	assert.True(t, putInCacheWasCalled)
 }

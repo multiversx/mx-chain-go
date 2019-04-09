@@ -155,9 +155,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t 
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	_, err := mhi.ProcessReceivedMessage(nil)
-
-	assert.Equal(t, process.ErrNilMessage, err)
+	assert.Equal(t, process.ErrNilMessage, mhi.ProcessReceivedMessage(nil))
 }
 
 func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilDataToProcessShouldErr(t *testing.T) {
@@ -175,9 +173,8 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilDataToProcessShould
 		mock.NewOneShardCoordinatorMock())
 
 	msg := &mock.P2PMessageMock{}
-	_, err := mhi.ProcessReceivedMessage(msg)
 
-	assert.Equal(t, process.ErrNilDataToProcess, err)
+	assert.Equal(t, process.ErrNilDataToProcess, mhi.ProcessReceivedMessage(msg))
 }
 
 func TestMetachainHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnmarshalingShouldErr(t *testing.T) {
@@ -202,9 +199,8 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnm
 	msg := &mock.P2PMessageMock{
 		DataField: make([]byte, 0),
 	}
-	_, err := mhi.ProcessReceivedMessage(msg)
 
-	assert.Equal(t, errMarshalizer, err)
+	assert.Equal(t, errMarshalizer, mhi.ProcessReceivedMessage(msg))
 }
 
 func TestMetachainHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShouldErr(t *testing.T) {
@@ -228,9 +224,8 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShoul
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
 	}
-	_, err := mhi.ProcessReceivedMessage(msg)
 
-	assert.Equal(t, process.ErrNilPubKeysBitmap, err)
+	assert.Equal(t, process.ErrNilPubKeysBitmap, mhi.ProcessReceivedMessage(msg))
 }
 
 func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *testing.T) {
@@ -278,9 +273,8 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 		}
 		return
 	}
-	_, err := mhi.ProcessReceivedMessage(msg)
 
-	assert.Nil(t, err)
+	assert.Nil(t, mhi.ProcessReceivedMessage(msg))
 	assert.Equal(t, 1, wasCalled)
 }
 
@@ -329,8 +323,6 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 		return
 	}
 
-	_, err := mhi.ProcessReceivedMessage(msg)
-
-	assert.Nil(t, err)
+	assert.Nil(t, mhi.ProcessReceivedMessage(msg))
 	assert.Equal(t, 0, wasCalled)
 }

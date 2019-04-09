@@ -198,49 +198,49 @@ func (wrk *worker) getCleanedList(cnsDataList []*spos.ConsensusMessage) []*spos.
 }
 
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
-func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) ([]byte, error) {
+func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	if message == nil {
-		return nil, ErrNilMessage
+		return ErrNilMessage
 	}
 
 	if message.Data() == nil {
-		return nil, ErrNilDataToProcess
+		return ErrNilDataToProcess
 	}
 
 	cnsDta := &spos.ConsensusMessage{}
 	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	log.Debug(fmt.Sprintf("received %s from %s\n", MessageType(cnsDta.MsgType).String(), hex.EncodeToString(cnsDta.PubKey)))
 
 	if wrk.consensusState.RoundCanceled && wrk.consensusState.RoundIndex == cnsDta.RoundIndex {
-		return nil, ErrRoundCanceled
+		return ErrRoundCanceled
 	}
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
-		return nil, ErrSenderNotOk
+		return ErrSenderNotOk
 	}
 
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
-		return nil, ErrMessageForPastRound
+		return ErrMessageForPastRound
 	}
 
 	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) {
 		//in this case should return nil but do not process the message
 		//nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
-		return nil, nil
+		return nil
 	}
 
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
-		return nil, ErrInvalidSignature
+		return ErrInvalidSignature
 	}
 
 	go wrk.executeReceivedMessages(cnsDta)
-	return nil, nil
+	return nil
 }
 
 func (wrk *worker) checkSignature(cnsDta *spos.ConsensusMessage) error {
