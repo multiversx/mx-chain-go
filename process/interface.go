@@ -66,37 +66,6 @@ type InterceptedBlockBody interface {
 	GetUnderlyingObject() interface{}
 }
 
-// IntRandomizer interface provides functionality over generating integer numbers
-type IntRandomizer interface {
-	Intn(n int) int
-}
-
-// Resolver defines what a data resolver should do
-type Resolver interface {
-	RequestDataFromHash(hash []byte) error
-	ProcessReceivedMessage(message p2p.MessageP2P) error
-}
-
-// HeaderResolver defines what a block header resolver should do
-type HeaderResolver interface {
-	Resolver
-	RequestDataFromNonce(nonce uint64) error
-}
-
-// MiniBlocksResolver defines what a mini blocks resolver should do
-type MiniBlocksResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte) error
-	GetMiniBlocks(hashes [][]byte) block.MiniBlockSlice
-}
-
-// TopicResolverSender defines what sending operations are allowed for a topic resolver
-type TopicResolverSender interface {
-	SendOnRequestTopic(rd *RequestData) error
-	Send(buff []byte, peer p2p.PeerID) error
-	TopicRequestSuffix() string
-}
-
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
@@ -113,22 +82,6 @@ type ForkDetector interface {
 	CheckFork() bool
 }
 
-// ResolversContainer defines a resolvers holder data type with basic functionality
-type ResolversContainer interface {
-	Get(key string) (Resolver, error)
-	Add(key string, val Resolver) error
-	AddMultiple(keys []string, resolvers []Resolver) error
-	Replace(key string, val Resolver) error
-	Remove(key string)
-	Len() int
-}
-
-type ResolversFinder interface {
-	ResolversContainer
-	IntraShardResolver(baseTopic string) (Resolver, error)
-	CrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
-}
-
 // InterceptorsContainer defines an interceptors holder data type with basic functionality
 type InterceptorsContainer interface {
 	Get(key string) (Interceptor, error)
@@ -142,11 +95,6 @@ type InterceptorsContainer interface {
 // InterceptorsContainerFactory defines the functionality to create an interceptors container
 type InterceptorsContainerFactory interface {
 	Create() (InterceptorsContainer, error)
-}
-
-// ResolversContainerFactory defines the functionality to create a resolvers container
-type ResolversContainerFactory interface {
-	Create() (ResolversContainer, error)
 }
 
 // Interceptor defines what a data interceptor should do

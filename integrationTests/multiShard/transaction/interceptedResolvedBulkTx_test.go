@@ -83,11 +83,11 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	//only sender shard (all 3 nodes from shard 0) have the transactions
 	for _, n := range nodes {
 		if n.shardId == 0 {
-			assert.Equal(t, atomic.LoadInt32(&n.txRecv), maxTxReceived)
+			assert.Equal(t, maxTxReceived, atomic.LoadInt32(&n.txRecv))
 			continue
 		}
 
-		assert.Equal(t, atomic.LoadInt32(&n.txRecv), int32(0))
+		assert.Equal(t, int32(0), atomic.LoadInt32(&n.txRecv))
 	}
 }
 
