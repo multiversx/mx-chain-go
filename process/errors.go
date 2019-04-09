@@ -277,6 +277,3 @@ var ErrHeaderIsInStorage = errors.New("header is already in storage")
 
 // ErrRollbackFromGenesis signals that a rollback from genesis is called
 var ErrRollbackFromGenesis = errors.New("roll back from genesis is not supported")
-
-// ErrTxNotFoundInPool signals that a transaction was not found in the transactions pool
-var ErrTxNotFoundInPool = errors.New("transaction was not found in the transactions pool")

@@ -673,7 +673,6 @@ func (bp *blockProcessor) getTransactionFromPool(senderShardID, destShardID uint
 
 	val, ok := txStore.Peek(txHash)
 	if !ok {
-		log.Error(process.ErrTxNotFoundInPool.Error())
 		return nil
 	}
 
