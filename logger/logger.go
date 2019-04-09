@@ -32,7 +32,7 @@ const (
 // Logger represents the application logger.
 type Logger struct {
 	logger          *log.Logger
-	file            io.Writer
+	file            *LazyFileWriter
 	stackTraceDepth int
 }
 
@@ -47,6 +47,7 @@ func NewElrondLogger(opts ...Option) *Logger {
 	el := &Logger{
 		logger:          log.New(),
 		stackTraceDepth: defaultStackTraceDepth,
+		file:            &LazyFileWriter{},
 	}
 
 	for _, opt := range opts {
@@ -56,10 +57,8 @@ func NewElrondLogger(opts ...Option) *Logger {
 		}
 	}
 
-	if el.file == nil {
-		el.logger.SetOutput(os.Stdout)
-	}
-
+	el.logger.SetOutput(el.file)
+	el.logger.AddHook(&printerHook{Writer: os.Stdout})
 	el.logger.SetFormatter(&log.JSONFormatter{})
 	el.logger.SetLevel(log.DebugLevel)
 
@@ -99,7 +98,7 @@ func (el *Logger) ApplyOptions(opts ...Option) error {
 
 // File returns the current Logger file
 func (el *Logger) File() io.Writer {
-	return el.file
+	return el.file.Writer()
 }
 
 // StackTraceDepth returns the current Logger stackTraceDepth
@@ -205,13 +204,7 @@ func (el *Logger) defaultFields() *log.Entry {
 // WithFile sets up the file option for the Logger
 func WithFile(file io.Writer) Option {
 	return func(el *Logger) error {
-		el.logger.SetOutput(file)
-
-		if el.file == nil {
-			el.logger.AddHook(&printerHook{Writer: os.Stdout})
-		}
-
-		el.file = file
+		el.file.SetWriter(file)
 		return nil
 	}
 }

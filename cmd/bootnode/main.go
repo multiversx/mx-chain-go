@@ -127,18 +127,6 @@ func main() {
 	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode, flags.Shards}
 
 	app.Action = func(c *cli.Context) error {
-		port := strconv.Itoa(c.GlobalInt(flags.Port.Name))
-		logFile, err := logger.MakeLogFile(port)
-
-		if err != nil {
-			return err
-		}
-
-		err = log.ApplyOptions(logger.WithFile(logFile))
-		if err != nil {
-			return err
-		}
-
 		return startNode(c, log)
 	}
 
@@ -300,6 +288,17 @@ func createNode(
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 
 	publickKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	hexPublicKey := hex.EncodeToString(publickKey)
+	logFile, err := logger.MakeLogFile(hexPublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	err = log.ApplyOptions(logger.WithFile(logFile))
 	if err != nil {
 		return nil, err
 	}

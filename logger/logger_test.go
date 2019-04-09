@@ -140,6 +140,13 @@ func TestConcurrencyWithFileWriter(t *testing.T) {
 		}(i)
 	}
 
+	wg.Add(1)
+	var str bytes.Buffer
+	go func() {
+		log.ApplyOptions(logger.WithFile(&str))
+		wg.Done()
+	}()
+
 	wg.Wait()
 }
 
@@ -148,6 +155,16 @@ func TestWithOptions(t *testing.T) {
 	log := logger.NewElrondLogger(logger.WithStackTraceDepth(1), logger.WithFile(&str))
 	assert.Equal(t, log.StackTraceDepth(), 1, "WithStackTraceDepth does not set the correct option")
 	assert.Equal(t, log.File(), &str)
+}
+
+func TestLazyFileWriter_WriteSomeLinesBeforeProvidingFile(t *testing.T) {
+	var str bytes.Buffer
+	expectedString := "expectedString"
+	log := logger.NewElrondLogger(logger.WithStackTraceDepth(1))
+	log.Warn(expectedString)
+	log.ApplyOptions(logger.WithFile(&str))
+	log.Warn("this is a warning")
+	assert.Contains(t, str.String(), expectedString)
 }
 
 func swallowPanicLog(t *testing.T, logMsg string, panicMsg string, log *logger.Logger) {
