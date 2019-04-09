@@ -984,8 +984,8 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 			processedMbs++
 		}
 
-		if processedMbs >= len(hashSnd) {
-			log.Info(fmt.Sprintf("All miniblocks processed with dest current shard from header with nonce %d\n",
+		if processedMbs > 0 && processedMbs >= len(hashSnd) {
+			log.Info(fmt.Sprintf("All miniblocks with destination in current shard, from meta header with nonce %d, were successfully processed\n",
 				hdr.GetNonce()))
 		}
 	}
