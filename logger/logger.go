@@ -75,12 +75,17 @@ func DefaultLogger() *Logger {
 	dl := defaultLogger
 	defaultLoggerMutex.RUnlock()
 
-	if dl == nil {
-		defaultLoggerMutex.Lock()
+	if dl != nil{
+		return dl
+	}
+
+	defaultLoggerMutex.Lock()
+	dl = defaultLogger
+	if dl == nil{
 		defaultLogger = NewElrondLogger()
 		dl = defaultLogger
-		defaultLoggerMutex.Unlock()
 	}
+	defaultLoggerMutex.Unlock()
 
 	return dl
 }
@@ -223,6 +228,7 @@ func MakeLogFile(prefix string) (*os.File, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	err = os.MkdirAll(absPath, os.ModePerm)
 	if err != nil {
 		return nil, err

@@ -31,7 +31,7 @@ func (zfw *LazyFileWriter) SetWriter(writer io.Writer) {
 	zfw.writer = writer
 }
 
-// Write hadles the output of this writer
+// Write handles the output of this writer
 func (zfw *LazyFileWriter) Write(p []byte) (n int, err error) {
 	zfw.lock.RLock()
 	writer := zfw.writer
@@ -48,7 +48,6 @@ func (zfw *LazyFileWriter) Write(p []byte) (n int, err error) {
 
 	for _, logEntry := range zfw.buffer {
 		_, err = writer.Write(logEntry)
-
 		if err != nil {
 			fmt.Println(err.Error())
 		}
