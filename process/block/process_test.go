@@ -87,9 +87,6 @@ func initDataPool() *mock.PoolsHolderStub {
 					}
 					return nil, false
 				},
-				AddDataCalled: func(key []byte, data interface{}, cacheId string) {
-					return
-				},
 			}
 		},
 		HeadersNoncesCalled: func() data.Uint64Cacher {
@@ -142,9 +139,6 @@ func initDataPool() *mock.PoolsHolderStub {
 			}
 			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
 			cs.RemoveCalled = func(key []byte) {}
-			cs.PutCalled = func(key []byte, value interface{}) (evicted bool) {
-				return false
-			}
 			return cs
 		},
 	}
@@ -2750,10 +2744,12 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.
 
 func TestBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	t.Parallel()
-	tdp := initDataPool()
+	dataPool := mock.NewPoolsHolderFake()
 	marshalizerMock := &mock.MarshalizerMock{}
+	hasherMock := &mock.HasherStub{}
 	be, _ := blproc.NewBlockProcessor(
-		tdp, &mock.HasherStub{},
+		dataPool,
+		hasherMock,
 		marshalizerMock,
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
@@ -2761,21 +2757,27 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.ForkDetectorMock{},
 		func(destShardID uint32, txHash []byte) {
 		},
-		func(destShardID uint32, txHash []byte) {},
+		func(destShardID uint32, txHash []byte) {
+		},
 	)
 
 	body := make(block.Body, 0)
 	tx := transaction.Transaction{Nonce: 1}
 	buffTx, _ := marshalizerMock.Marshal(tx)
-	txHash := []byte("txHash")
+	txHash := []byte("tx hash 1")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
 	miniblock := block.MiniBlock{
 		ReceiverShardID: 0,
-		SenderShardID:   0,
+		SenderShardID:   1,
 		TxHashes:        txHashes,
 	}
 	body = append(body, &miniblock)
+
+	miniblockHash := []byte("mini block hash 1")
+	hasherMock.ComputeCalled = func(s string) []byte {
+		return miniblockHash
+	}
 
 	blkc := &mock.BlockChainMock{
 		GetAllCalled: func(unitType data.UnitType, keys [][]byte) (map[string][]byte, error) {
@@ -2785,6 +2787,22 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		},
 	}
 
+	metablockHash := []byte("meta block hash 1")
+	metablockHeader := createDummyMetaBlock(0, 1, miniblockHash)
+	metablockHeader.SetMiniBlockProcessed(metablockHash, true)
+	dataPool.MetaBlocks().Put(
+		metablockHash,
+		metablockHeader,
+	)
+
 	err := be.RestoreBlockIntoPools(blkc, body)
+
+	miniblockFromPool, _ := dataPool.MiniBlocks().Get(miniblockHash)
+	txFromPool, _ := dataPool.Transactions().SearchFirstData(txHash)
+	metablockFromPool, _ := dataPool.MetaBlocks().Get(metablockHash)
+	metablock := metablockFromPool.(*block.MetaBlock)
 	assert.Nil(t, err)
+	assert.Equal(t, &miniblock, miniblockFromPool)
+	assert.Equal(t, &tx, txFromPool)
+	assert.Equal(t, false, metablock.GetMiniBlockProcessed(miniblockHash))
 }

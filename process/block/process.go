@@ -275,6 +275,24 @@ func (bp *blockProcessor) RestoreBlockIntoPools(blockChain data.ChainHandler, bo
 		return process.ErrWrongTypeAssertion
 	}
 
+	miniBlockHashes := make(map[int][]byte, 0)
+	err := bp.restoreTxBlockIntoPools(blockChain, blockBody, miniBlockHashes)
+	if err != nil {
+		return err
+	}
+
+	err = bp.restoreMetaBlockIntoPool(miniBlockHashes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bp *blockProcessor) restoreTxBlockIntoPools(blockChain data.ChainHandler,
+	blockBody block.Body,
+	miniBlockHashes map[int][]byte,
+) error {
 	transactionPool := bp.dataPool.Transactions()
 	if transactionPool == nil {
 		return process.ErrNilTransactionPool
@@ -284,13 +302,6 @@ func (bp *blockProcessor) RestoreBlockIntoPools(blockChain data.ChainHandler, bo
 	if miniBlockPool == nil {
 		return process.ErrNilMiniBlockPool
 	}
-
-	metaBlockPool := bp.dataPool.MetaBlocks()
-	if metaBlockPool == nil {
-		return process.ErrNilMetaBlockPool
-	}
-
-	miniBlockHashes := make(map[int][]byte, 0)
 
 	for i := 0; i < len(blockBody); i++ {
 		miniBlock := blockBody[i]
@@ -320,6 +331,15 @@ func (bp *blockProcessor) RestoreBlockIntoPools(blockChain data.ChainHandler, bo
 		if miniBlock.SenderShardID != bp.shardCoordinator.SelfId() {
 			miniBlockHashes[i] = miniBlockHash
 		}
+	}
+
+	return nil
+}
+
+func (bp *blockProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][]byte) error {
+	metaBlockPool := bp.dataPool.MetaBlocks()
+	if metaBlockPool == nil {
+		return process.ErrNilMetaBlockPool
 	}
 
 	for _, metaBlockKey := range metaBlockPool.Keys() {
@@ -619,7 +639,6 @@ func (bp *blockProcessor) removeMetaBlockFromPool(blockBody block.Body, blockCha
 
 		// TODO: The final block should be given by metachain
 		blockIsFinal := hdr.GetNonce() <= bp.forkDetector.GetHighestFinalBlockNonce()
-
 		if processedAll && blockIsFinal {
 			// metablock was processed adn finalized
 			buff, err := bp.marshalizer.Marshal(hdr)
@@ -654,15 +673,17 @@ func (bp *blockProcessor) getTransactionFromPool(senderShardID, destShardID uint
 
 	val, ok := txStore.Peek(txHash)
 	if !ok {
+		log.Error(process.ErrTxNotFoundInPool.Error())
 		return nil
 	}
 
-	v, ok := val.(*transaction.Transaction)
+	tx, ok := val.(*transaction.Transaction)
 	if !ok {
 		log.Error(process.ErrInvalidTxInPool.Error())
+		return nil
 	}
 
-	return v
+	return tx
 }
 
 // receivedTransaction is a call back function which is called when a new transaction

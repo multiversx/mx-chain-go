@@ -179,7 +179,7 @@ var ErrNilPoolsHolder = errors.New("nil pools holder")
 var ErrNilTxStorage = errors.New("nil transaction storage")
 
 // ErrInvalidTxInPool signals an invalid transaction in the transactions pool
-var ErrInvalidTxInPool = errors.New("invalid transaction in transaction pool")
+var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
 
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
@@ -277,3 +277,6 @@ var ErrHeaderIsInStorage = errors.New("header is already in storage")
 
 // ErrRollbackFromGenesis signals that a rollback from genesis is called
 var ErrRollbackFromGenesis = errors.New("roll back from genesis is not supported")
+
+// ErrTxNotFoundInPool signals that a transaction was not found in the transactions pool
+var ErrTxNotFoundInPool = errors.New("transaction was not found in the transactions pool")
