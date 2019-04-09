@@ -80,7 +80,6 @@ var p2pConfigurationFile = "./config/p2p.toml"
 //TODO remove uniqueID
 var uniqueID = ""
 
-var durBetweenStatsSaves = time.Second * 30
 var rm *resourceStatistics.ResourceMonitor
 
 type seedRandReader struct {
@@ -238,8 +237,10 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	log.Info("Application is now running...")
 	<-stop
 
-	err = rm.Close()
-	log.LogIfError(err)
+	if rm != nil {
+		err = rm.Close()
+		log.LogIfError(err)
+	}
 	return nil
 }
 
@@ -324,23 +325,10 @@ func createNode(
 		return nil, errors.New("could not create shard data pools: " + err.Error())
 	}
 
-	pkBuff, err := pubKey.ToByteArray()
+	err = startStatisticsMonitor(pubKey, config.ResourceStats, log)
 	if err != nil {
 		return nil, err
 	}
-
-	rm, err = resourceStatistics.NewResourceMonitor(hex.EncodeToString(pkBuff))
-	if err != nil {
-		return nil, err
-	}
-
-	go func() {
-		for {
-			err = rm.SaveStatistics()
-			log.LogIfError(err)
-			time.Sleep(durBetweenStatsSaves)
-		}
-	}()
 
 	// TODO create metachain / blockchain
 	// TODO save config, and move this creation into another place for node movement
@@ -927,4 +915,34 @@ func toB64(buff []byte) string {
 		return "<NIL>"
 	}
 	return base64.StdEncoding.EncodeToString(buff)
+}
+
+func startStatisticsMonitor(pubKey crypto.PublicKey, config config.ResourceStatsConfig, log *logger.Logger) error {
+	pkBuff, err := pubKey.ToByteArray()
+	if err != nil {
+		return err
+	}
+
+	if !config.Enabled {
+		return nil
+	}
+
+	if config.RefreshIntervalInSec < 1 {
+		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
+	}
+
+	rm, err = resourceStatistics.NewResourceMonitor(hex.EncodeToString(pkBuff))
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for {
+			err = rm.SaveStatistics()
+			log.LogIfError(err)
+			time.Sleep(time.Second * time.Duration(config.RefreshIntervalInSec))
+		}
+	}()
+
+	return nil
 }
