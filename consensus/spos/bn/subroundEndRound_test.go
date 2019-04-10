@@ -11,8 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/pkg/errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/stretchr/testify/assert"
 )
 
