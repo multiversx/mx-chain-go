@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -24,7 +22,6 @@ const (
 )
 
 const (
-	defaultLogPath         = "logs"
 	defaultStackTraceDepth = 2
 	maxHeadlineLength      = 100
 )
@@ -75,13 +72,13 @@ func DefaultLogger() *Logger {
 	dl := defaultLogger
 	defaultLoggerMutex.RUnlock()
 
-	if dl != nil{
+	if dl != nil {
 		return dl
 	}
 
 	defaultLoggerMutex.Lock()
 	dl = defaultLogger
-	if dl == nil{
+	if dl == nil {
 		defaultLogger = NewElrondLogger()
 		dl = defaultLogger
 	}
@@ -220,27 +217,4 @@ func WithStackTraceDepth(depth int) Option {
 		el.stackTraceDepth = depth
 		return nil
 	}
-}
-
-// MakeLogFile opens or creates a file relative to the default log path
-func MakeLogFile(prefix string) (*os.File, error) {
-	absPath, err := filepath.Abs(defaultLogPath)
-	if err != nil {
-		return nil, err
-	}
-
-	err = os.MkdirAll(absPath, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
-
-	fileName := time.Now().Format("2006-02-01")
-	if prefix != "" {
-		fileName = prefix + "-" + fileName
-	}
-
-	return os.OpenFile(
-		filepath.Join(absPath, fileName + ".log"),
-		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
-		0666)
 }

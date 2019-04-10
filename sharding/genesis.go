@@ -7,8 +7,8 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
 var log = logger.DefaultLogger()

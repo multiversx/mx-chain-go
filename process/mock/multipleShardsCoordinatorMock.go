@@ -7,9 +7,9 @@ import (
 )
 
 type multipleShardsCoordinatorMock struct {
-	noShards                     uint32
+	noShards        uint32
 	ComputeIdCalled func(address state.AddressContainer) uint32
-	CurrentShard                 uint32
+	CurrentShard    uint32
 }
 
 func NewMultipleShardsCoordinatorMock() *multipleShardsCoordinatorMock {

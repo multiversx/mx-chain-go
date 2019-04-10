@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -21,6 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
@@ -40,7 +43,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
@@ -58,9 +60,13 @@ import (
 	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
-	"github.com/pkg/errors"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
+)
+
+const (
+	defaultLogPath   = "logs"
+	defaultStatsPath = "stats"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -80,6 +86,8 @@ var p2pConfigurationFile = "./config/p2p.toml"
 
 //TODO remove uniqueID
 var uniqueID = ""
+
+var rm *statistics.ResourceMonitor
 
 type seedRandReader struct {
 	index int
@@ -236,6 +244,10 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	log.Info("Application is now running...")
 	<-stop
 
+	if rm != nil {
+		err = rm.Close()
+		log.LogIfError(err)
+	}
 	return nil
 }
 
@@ -295,12 +307,21 @@ func createNode(
 	}
 
 	hexPublicKey := hex.EncodeToString(publickKey)
-	logFile, err := logger.MakeLogFile(hexPublicKey)
+	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, err
 	}
 
 	err = log.ApplyOptions(logger.WithFile(logFile))
+	if err != nil {
+		return nil, err
+	}
+
+	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
+	if err != nil {
+		return nil, err
+	}
+	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
 	if err != nil {
 		return nil, err
 	}
@@ -578,10 +599,7 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 
 	pk, _ := pubKey.ToByteArray()
 
-	skEncoded := encodeAddress(sk)
 	pkEncoded := encodeAddress(pk)
-
-	log.Info("starting with private key: " + skEncoded)
 	log.Info("starting with public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
@@ -923,4 +941,29 @@ func toB64(buff []byte) string {
 		return "<NIL>"
 	}
 	return base64.StdEncoding.EncodeToString(buff)
+}
+
+func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, log *logger.Logger) error {
+	if !config.Enabled {
+		return nil
+	}
+
+	if config.RefreshIntervalInSec < 1 {
+		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
+	}
+
+	rm, err := statistics.NewResourceMonitor(file)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for {
+			err = rm.SaveStatistics()
+			log.LogIfError(err)
+			time.Sleep(time.Second * time.Duration(config.RefreshIntervalInSec))
+		}
+	}()
+
+	return nil
 }

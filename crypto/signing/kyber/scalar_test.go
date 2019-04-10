@@ -276,9 +276,11 @@ func TestKyberScalar_MulOK(t *testing.T) {
 	scalar2 := suite.CreateScalar()
 	scalar2.SetInt64(4)
 	res, err := scalar1.Mul(scalar2)
-	eq, _ := res.Equal(scalar2)
 
 	assert.Nil(t, err)
+
+	eq, _ := res.Equal(scalar2)
+
 	assert.True(t, eq)
 }
 
@@ -313,9 +315,11 @@ func TestKyberScalar_DivOK(t *testing.T) {
 	scalar2 := suite.CreateScalar()
 	scalar2.SetInt64(4)
 	res, err := scalar2.Div(scalar1)
-	eq, _ := res.Equal(scalar2)
 
 	assert.Nil(t, err)
+
+	eq, _ := res.Equal(scalar2)
+
 	assert.True(t, eq)
 }
 

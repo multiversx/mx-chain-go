@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
@@ -17,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"

@@ -1,6 +1,7 @@
 package shard_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -17,6 +17,7 @@ var ErrLowerNonceInBlock = errors.New("lower nonce in block")
 // ErrNilOrEmptyInfoStored signals that info stored si nil or empty
 var ErrNilOrEmptyInfoStored = errors.New("info stored is nil or empty")
 
+// ErrNotEmptyHeader signals the header is not an empty block
 type ErrNotEmptyHeader struct {
 	CurrentNonce uint64
 }

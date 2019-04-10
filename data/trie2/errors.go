@@ -1,7 +1,7 @@
 package trie2
 
 import (
-	"github.com/pkg/errors"
+	"errors"
 )
 
 // ErrNotAtLeaf is raised when the iterator is not positioned at a leaf

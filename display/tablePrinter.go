@@ -2,6 +2,7 @@ package display
 
 import (
 	"strings"
+	"unicode/utf8"
 )
 
 // LineData represents a displayable table line
@@ -101,12 +102,13 @@ func computeColumnsWidths(header []string, data []*LineData) []int {
 
 		for j := 0; j < len(line.Values); j++ {
 			if len(widths) <= j {
-				widths = append(widths, len(line.Values[j]))
+				widths = append(widths, utf8.RuneCountInString(line.Values[j]))
 				continue
 			}
 
-			if widths[j] < len(line.Values[j]) {
-				widths[j] = len(line.Values[j])
+			width := utf8.RuneCountInString(line.Values[j])
+			if widths[j] < width {
+				widths[j] = width
 			}
 		}
 	}
@@ -135,7 +137,7 @@ func drawLine(builder *strings.Builder, columnsWidths []int, strings []string) {
 		lenStr := 0
 
 		if i < len(strings) {
-			lenStr = len(strings[i])
+			lenStr = utf8.RuneCountInString(strings[i])
 			builder.WriteString(strings[i])
 		}
 
