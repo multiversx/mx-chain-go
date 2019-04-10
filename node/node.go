@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	gosync "sync"
@@ -14,14 +15,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -29,7 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
-	"github.com/pkg/errors"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
@@ -41,7 +42,7 @@ const ConsensusTopic = "consensus"
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -66,7 +67,7 @@ type Node struct {
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer    process.InterceptorsContainer
-	resolversFinder          process.ResolversFinder
+	resolversFinder          dataRetriever.ResolversFinder
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey
@@ -172,9 +173,6 @@ func (n *Node) CreateShardedStores() error {
 
 	shards := n.shardCoordinator.NumberOfShards()
 	currentShardId := n.shardCoordinator.SelfId()
-	//TODO - change headers to plain cacher
-	// for now we just need one cacher for headers
-	headersDataStore.CreateShardStore(process.ShardCacherIdentifier(currentShardId, currentShardId))
 
 	transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(currentShardId, currentShardId))
 	for i := uint32(0); i < shards; i++ {
@@ -798,7 +796,7 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 
 	//TODO - for now, on MetachainHeaderTopic we will broadcast shard headers
 	// Later, this call should be done by metachain nodes when they agree upon a metachain header
-	go n.messenger.Broadcast(factory.MetachainHeadersTopic, msgHeader)
+	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
 
 	for k, v := range msgMapBlockBody {
 		go n.messenger.Broadcast(factory.MiniBlocksTopic+

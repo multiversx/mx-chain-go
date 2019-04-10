@@ -375,22 +375,22 @@ func TestHeader_GetMiniBlockHeadersWithDstShouldWork(t *testing.T) {
 
 	hdr := &block.Header{
 		MiniBlockHeaders: []block.MiniBlockHeader{
-			block.MiniBlockHeader{
+			{
 				SenderShardID:   0,
 				ReceiverShardID: 0,
 				Hash:            hash_0_0,
 			},
-			block.MiniBlockHeader{
+			{
 				SenderShardID:   0,
 				ReceiverShardID: 1,
 				Hash:            hash_0_1,
 			},
-			block.MiniBlockHeader{
+			{
 				SenderShardID:   0,
 				ReceiverShardID: 2,
 				Hash:            hash1_0_2,
 			},
-			block.MiniBlockHeader{
+			{
 				SenderShardID:   0,
 				ReceiverShardID: 2,
 				Hash:            hash2_0_2,

@@ -158,6 +158,18 @@ func genBigData(rdm *rand.Rand) ([]string, []*LineData) {
 	return header, dataLines
 }
 
+func TestCreateTableString_SpecialCharacters(t *testing.T) {
+	header := []string{"column1", "column2"}
+	data := make([]*LineData, 0)
+	data = append(data, NewLineData(false, []string{"value1", "65.047µs"}))
+	data = append(data, NewLineData(false, []string{"value1µµµµµµµµµµµµ", "65µs"}))
+
+	str, err := CreateTableString(header, data)
+
+	assert.Nil(t, err)
+	fmt.Println(str)
+}
+
 func BenchmarkCreateTableString(b *testing.B) {
 	rdm := rand.New(rand.NewSource(1000))
 	hdr, lines := genBigData(rdm)

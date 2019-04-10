@@ -2,24 +2,22 @@ package storage
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/lrucache"
-
-	"github.com/pkg/errors"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // CacheType represents the type of the supported caches
 type CacheType string

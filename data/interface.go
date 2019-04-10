@@ -64,7 +64,7 @@ type Uint64Cacher interface {
 // PoolsHolder defines getters for data pools
 type PoolsHolder interface {
 	Transactions() ShardedDataCacherNotifier
-	Headers() ShardedDataCacherNotifier
+	Headers() storage.Cacher
 	HeadersNonces() Uint64Cacher
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
@@ -75,7 +75,7 @@ type PoolsHolder interface {
 type MetaPoolsHolder interface {
 	MetaChainBlocks() storage.Cacher
 	MiniBlockHashes() ShardedDataCacherNotifier
-	ShardHeaders() ShardedDataCacherNotifier
+	ShardHeaders() storage.Cacher
 	MetaBlockNonces() Uint64Cacher
 }
 
@@ -104,7 +104,6 @@ type HeaderHandler interface {
 	SetSignature(sg []byte)
 	SetTxCount(txCount uint32)
 
-	// miniblock headers data
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
 	GetMiniBlockProcessed(hash []byte) bool
 	SetMiniBlockProcessed(hash []byte)

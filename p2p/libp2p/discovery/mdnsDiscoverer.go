@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/libp2p/go-libp2p-peerstore"
@@ -13,7 +13,7 @@ import (
 
 const mdnsName = "mdns peer discovery"
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // MdnsPeerDiscoverer is the mdns discovery type implementation
 type MdnsPeerDiscoverer struct {

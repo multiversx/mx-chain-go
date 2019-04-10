@@ -25,6 +25,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
+	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/multiShard/mock"
@@ -37,7 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -66,7 +69,7 @@ type testNode struct {
 	sk               crypto.PrivateKey
 	pk               crypto.PublicKey
 	dPool            data.PoolsHolder
-	resFinder        process.ResolversFinder
+	resFinder        dataRetriever.ResolversFinder
 	headersRecv      int32
 	miniblocksRecv   int32
 	mutHeaders       sync.Mutex
@@ -105,9 +108,10 @@ func createMemUnit() storage.Storer {
 
 func createTestDataPool() data.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
-	hdrPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
+	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
+	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
-	cacherCfg := storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
+	cacherCfg = storage.CacheConfig{Size: 100000, Type: storage.LRUCache}
 	hdrNoncesCacher, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	hdrNonces, _ := dataPool.NewNonceToHashCacher(hdrNoncesCacher, uint64ByteSlice.NewBigEndianConverter())
 
@@ -150,7 +154,7 @@ func createNetNode(
 	*node.Node,
 	p2p.Messenger,
 	crypto.PrivateKey,
-	process.ResolversFinder,
+	dataRetriever.ResolversFinder,
 	process.BlockProcessor,
 	data.ChainHandler) {
 
@@ -175,7 +179,7 @@ func createNetNode(
 	blkc := createTestBlockChain()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
-	interceptorContainerFactory, _ := factory.NewInterceptorsContainerFactory(
+	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		messenger,
 		blkc,
@@ -192,7 +196,7 @@ func createNetNode(
 		fmt.Println(err.Error())
 	}
 
-	resolversContainerFactory, _ := factory.NewResolversContainerFactory(
+	resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		messenger,
 		blkc,
@@ -385,7 +389,7 @@ func createNodes(
 				atomic.AddInt32(&testNode.headersRecv, 1)
 				testNode.mutHeaders.Lock()
 				testNode.headersHashes = append(testNode.headersHashes, key)
-				header, _ := testNode.dPool.Headers().SearchFirstData(key)
+				header, _ := testNode.dPool.Headers().Peek(key)
 				testNode.headers = append(testNode.headers, header.(data.HeaderHandler))
 				testNode.mutHeaders.Unlock()
 			})

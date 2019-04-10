@@ -2,6 +2,7 @@ package transaction_test
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

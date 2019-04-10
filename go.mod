@@ -31,7 +31,6 @@ require (
 	github.com/multiformats/go-multiaddr v0.0.2
 	github.com/multiformats/go-multistream v0.0.1
 	github.com/pelletier/go-toml v1.2.0
-	github.com/pkg/errors v0.8.1
 	github.com/pkg/profile v1.3.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.4.0
@@ -43,5 +42,4 @@ require (
 	go.dedis.ch/kyber/v3 v3.0.2
 	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c
 	gopkg.in/go-playground/validator.v8 v8.18.2
-	gotest.tools v0.0.0-20181223230014-1083505acf35
 )

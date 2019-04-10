@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
@@ -20,14 +21,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = time.Duration(5 * time.Millisecond)
 
 // Bootstrap implements the boostrsap mechanism
 type Bootstrap struct {
-	headers          data.ShardedDataCacherNotifier
+	headers          storage.Cacher
 	headersNonces    data.Uint64Cacher
 	miniBlocks       storage.Cacher
 	blkc             data.ChainHandler
@@ -49,9 +50,9 @@ type Bootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	resolversFinder   process.ResolversFinder
-	hdrRes            process.HeaderResolver
-	miniBlockResolver process.MiniBlocksResolver
+	resolversFinder   dataRetriever.ResolversFinder
+	hdrRes            dataRetriever.HeaderResolver
+	miniBlockResolver dataRetriever.MiniBlocksResolver
 
 	isNodeSynchronized    bool
 	hasLastBlock          bool
@@ -75,7 +76,7 @@ func NewBootstrap(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
-	resolversFinder process.ResolversFinder,
+	resolversFinder dataRetriever.ResolversFinder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 ) (*Bootstrap, error) {
@@ -125,8 +126,8 @@ func NewBootstrap(
 	}
 
 	//placed in struct fields for performance reasons
-	boot.hdrRes = hdrResolver.(process.HeaderResolver)
-	boot.miniBlockResolver = miniBlocksResolver.(process.MiniBlocksResolver)
+	boot.hdrRes = hdrResolver.(dataRetriever.HeaderResolver)
+	boot.miniBlockResolver = miniBlocksResolver.(dataRetriever.MiniBlocksResolver)
 
 	boot.chRcvHdr = make(chan bool)
 	boot.chRcvMiniBlocks = make(chan bool)
@@ -155,7 +156,7 @@ func checkBootstrapNilParameters(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	forkDetector process.ForkDetector,
-	resolversFinder process.ResolversContainer,
+	resolversFinder dataRetriever.ResolversContainer,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 ) error {
@@ -239,7 +240,6 @@ func (boot *Bootstrap) requestedHeaderNonce() (nonce *uint64) {
 
 func (boot *Bootstrap) getHeader(hash []byte) *block.Header {
 	hdr := boot.getHeaderFromPool(hash)
-
 	if hdr != nil {
 		return hdr
 	}
@@ -248,15 +248,13 @@ func (boot *Bootstrap) getHeader(hash []byte) *block.Header {
 }
 
 func (boot *Bootstrap) getHeaderFromPool(hash []byte) *block.Header {
-	hdr, ok := boot.headers.SearchFirstData(hash)
-
+	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
 		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
 	}
 
 	header, ok := hdr.(*block.Header)
-
 	if !ok {
 		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
@@ -286,17 +284,14 @@ func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 
 func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 	header := boot.getHeader(headerHash)
-
 	if header != nil && header.Nonce > boot.highestNonceReceived {
 		boot.highestNonceReceived = header.Nonce
 	}
-
 	if header != nil {
 		log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
 	}
 
 	err := boot.forkDetector.AddHeader(header, headerHash, false)
-
 	if err != nil {
 		log.Info(err.Error())
 	}
@@ -511,7 +506,7 @@ func (boot *Bootstrap) getHeaderFromPoolHavingNonce(nonce uint64) *block.Header 
 		return nil
 	}
 
-	hdr, ok := boot.headers.SearchFirstData(hash)
+	hdr, ok := boot.headers.Peek(hash)
 	if !ok {
 		log.Debug(fmt.Sprintf("header with hash %v not found in headers cache\n", hash))
 		return nil
@@ -646,11 +641,8 @@ func (boot *Bootstrap) forkChoice() error {
 func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore storage.Storer) {
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 	boot.headersNonces.Remove(header.Nonce)
-	boot.headers.RemoveData(
-		hash,
-		process.ShardCacherIdentifier(header.ShardId, header.ShardId),
-	)
-	boot.forkDetector.RemoveProcessedHeader(header.Nonce)
+	boot.headers.Remove(hash)
+	_ = boot.forkDetector.RemoveProcessedHeader(header.Nonce)
 	_ = headerStore.Remove(hash)
 }
 
@@ -698,9 +690,7 @@ func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
 	if !isEmpty(currentHeader) {
 		hash, _ := boot.headersNonces.Get(header.Nonce)
 		boot.headersNonces.Remove(header.Nonce)
-		boot.headers.RemoveData(hash,
-			process.ShardCacherIdentifier(header.ShardId, header.ShardId),
-		)
+		boot.headers.Remove(hash)
 	}
 }
 

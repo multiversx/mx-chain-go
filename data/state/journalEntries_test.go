@@ -1,12 +1,12 @@
 package state_test
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

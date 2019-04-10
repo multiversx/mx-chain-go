@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
@@ -273,7 +274,7 @@ func WithInterceptorsContainer(interceptorsContainer process.InterceptorsContain
 }
 
 // WithResolversFinder sets up the resolvers finder option for the Node
-func WithResolversFinder(resolversFinder process.ResolversFinder) Option {
+func WithResolversFinder(resolversFinder dataRetriever.ResolversFinder) Option {
 	return func(n *Node) error {
 		if resolversFinder == nil {
 			return ErrNilResolversFinder
