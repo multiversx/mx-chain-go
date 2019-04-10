@@ -32,9 +32,12 @@ var seedNodeHelpTemplate = `NAME:
 USAGE:
    {{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}
    {{if len .Authors}}
+AUTHOR:
+   {{range .Authors}}{{ . }}{{end}}
+   {{end}}{{if .Commands}}
 GLOBAL OPTIONS:
    {{range .VisibleFlags}}{{.}}
-   {{end}}{{end}}{{if .Copyright }}
+   {{end}}
 VERSION:
    {{.Version}}
    {{end}}
@@ -86,6 +89,13 @@ func main() {
 	app.Name = "SeedNode CLI App"
 	app.Usage = "This is the entry point for starting a new seed node - the app will help bootnodes connect to the network"
 	app.Flags = []cli.Flag{flags.Port, flags.P2PSeed}
+	app.Version = "v0.0.1"
+	app.Authors = []cli.Author{
+		{
+			Name:  "The Elrond Team",
+			Email: "contact@elrond.com",
+		},
+	}
 
 	app.Action = func(c *cli.Context) error {
 		return startNode(c)
