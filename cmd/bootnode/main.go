@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -74,15 +73,19 @@ var bootNodeHelpTemplate = `NAME:
 USAGE:
    {{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}
    {{if len .Authors}}
+AUTHOR:
+   {{range .Authors}}{{ . }}{{end}}
+   {{end}}{{if .Commands}}
 GLOBAL OPTIONS:
    {{range .VisibleFlags}}{{.}}
-   {{end}}{{end}}{{if .Copyright }}
+   {{end}}
 VERSION:
    {{.Version}}
    {{end}}
 `
 var configurationFile = "./config/config.toml"
 var p2pConfigurationFile = "./config/p2p.toml"
+var privKeyPemFile = "./config/privkey.pem"
 
 //TODO remove uniqueID
 var uniqueID = ""
@@ -133,8 +136,15 @@ func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
+	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode, flags.Shards}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode}
+	app.Authors = []cli.Author{
+		{
+			Name:  "The Elrond Team",
+			Email: "contact@elrond.com",
+		},
+	}
 
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
@@ -561,17 +571,18 @@ func createNetMessenger(
 	return nm, nil
 }
 
-func getSk(ctx *cli.Context) ([]byte, error) {
-	if !ctx.GlobalIsSet(flags.PrivateKey.Name) {
-		if ctx.GlobalString(flags.PrivateKey.Name) == "" {
-			return nil, errors.New("no private key file provided")
-		}
+func getSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
+	//if flag is defined, it shall overwrite what was read from pem file
+	if ctx.GlobalIsSet(flags.PrivateKey.Name) {
+		encodedSk := []byte(ctx.GlobalString(flags.PrivateKey.Name))
+		return decodeAddress(string(encodedSk))
 	}
 
-	encodedSk, err := ioutil.ReadFile(ctx.GlobalString(flags.PrivateKey.Name))
+	encodedSk, err := core.LoadSkFromPemFile(privKeyPemFile, log)
 	if err != nil {
-		encodedSk = []byte(ctx.GlobalString(flags.PrivateKey.Name))
+		return nil, err
 	}
+
 	return decodeAddress(string(encodedSk))
 }
 
@@ -581,7 +592,7 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 	pubKey crypto.PublicKey,
 	err error,
 ) {
-	sk, err := getSk(ctx)
+	sk, err := getSk(ctx, log)
 
 	if err != nil {
 		return nil, nil, nil, err

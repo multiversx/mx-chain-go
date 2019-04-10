@@ -13,7 +13,7 @@ var (
 	PrivateKey = cli.StringFlag{
 		Name:  "private-key",
 		Usage: "Private key that the node will load on startup and will sign transactions - temporary until we have a wallet that can do that",
-		Value: "b5671723b8c64b16b3d4f5a2db9a2e3b61426e87c945b5453279f0701a10c70f",
+		Value: "",
 	}
 	// WithUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
 	WithUI = cli.BoolTFlag{
@@ -31,12 +31,6 @@ var (
 		Name:  "profile-mode",
 		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
 		Value: "",
-	}
-	// Shards defines a flag for setting the number of shards the application will run
-	Shards = cli.IntFlag{
-		Name:  "shards",
-		Usage: "Number of shards the application will bootstrap with",
-		Value: 1,
 	}
 	// P2PSeed defines a flag to be used as a seed when generating P2P credentials. Useful for seed nodes.
 	P2PSeed = cli.StringFlag{

@@ -3,7 +3,6 @@ package logger
 import (
 	"fmt"
 	"io"
-	"os"
 	"sync"
 )
 
@@ -42,7 +41,7 @@ func (lfw *LogFileWriter) Write(p []byte) (n int, err error) {
 		lfw.bufferLock.Lock()
 		lfw.buffer = append(lfw.buffer, p)
 		lfw.bufferLock.Unlock()
-		return os.Stdout.Write(p)
+		return 0, nil
 	}
 
 	if lfw.buffer == nil {
