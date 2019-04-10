@@ -357,9 +357,9 @@ func (bp *blockProcessor) restoreMetaBlockIntoPool(miniBlockHashes map[int][]byt
 			return process.ErrWrongTypeAssertion
 		}
 
-		headerHashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
+		miniBlockHashesInHeader := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
-			_, ok := headerHashSnd[string(miniBlockHashes[key])]
+			_, ok := miniBlockHashesInHeader[string(miniBlockHashes[key])]
 			if !ok {
 				continue
 			}
@@ -619,9 +619,9 @@ func (bp *blockProcessor) removeMetaBlockFromPool(blockBody block.Body, blockCha
 			return process.ErrWrongTypeAssertion
 		}
 
-		headerHashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
+		miniBlockHashesInHeader := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
 		for key := range miniBlockHashes {
-			_, ok := headerHashSnd[string(miniBlockHashes[key])]
+			_, ok := miniBlockHashesInHeader[string(miniBlockHashes[key])]
 			if !ok {
 				continue
 			}
@@ -631,7 +631,7 @@ func (bp *blockProcessor) removeMetaBlockFromPool(blockBody block.Body, blockCha
 		}
 
 		processedAll := true
-		for key := range headerHashSnd {
+		for key := range miniBlockHashesInHeader {
 			if !hdr.GetMiniBlockProcessed([]byte(key)) {
 				processedAll = false
 				break
@@ -732,11 +732,11 @@ func (bp *blockProcessor) receivedMetaBlock(metaBlockHash []byte) {
 	// TODO validate the metaheader, through metaprocessor
 	// TODO save only headers with nonce higher than current
 
-	hashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
-	for k, senderShardId := range hashSnd {
-		miniVal, _ := miniBlockCache.Peek([]byte(k))
+	miniBlockHashesInHeader := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
+	for key, senderShardId := range miniBlockHashesInHeader {
+		miniVal, _ := miniBlockCache.Peek([]byte(key))
 		if miniVal == nil {
-			go bp.OnRequestMiniBlock(senderShardId, []byte(k))
+			go bp.OnRequestMiniBlock(senderShardId, []byte(key))
 		}
 	}
 }
@@ -944,20 +944,20 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 			continue
 		}
 
-		// get mini block hashes and senders id with destination to me
-		hashSnd := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
+		// get mini block hashes which contain cross shard txs with destination in self shard
+		miniBlockHashesInHeader := hdr.GetMiniBlockHeadersWithDst(bp.shardCoordinator.SelfId())
 		processedMbs := 0
-		for k := range hashSnd {
+		for key := range miniBlockHashesInHeader {
 			if !haveTime() {
 				break
 			}
 
-			if hdr.GetMiniBlockProcessed([]byte(k)) {
+			if hdr.GetMiniBlockProcessed([]byte(key)) {
 				processedMbs++
 				continue
 			}
 
-			miniVal, _ := miniBlockCache.Peek([]byte(k))
+			miniVal, _ := miniBlockCache.Peek([]byte(key))
 			if miniVal == nil {
 				continue
 			}
@@ -984,7 +984,7 @@ func (bp *blockProcessor) createAndProcessCrossMiniBlocksDstMe(noShards uint32, 
 			processedMbs++
 		}
 
-		if processedMbs > 0 && processedMbs >= len(hashSnd) {
+		if processedMbs > 0 && processedMbs >= len(miniBlockHashesInHeader) {
 			log.Info(fmt.Sprintf("All miniblocks with destination in current shard, from meta header with nonce %d, were successfully processed\n",
 				hdr.GetNonce()))
 		}
