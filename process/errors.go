@@ -246,3 +246,9 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrHeaderIsInStorage signals that the header is already in storage
 var ErrHeaderIsInStorage = errors.New("header is already in storage")
+
+// ErrNilRequestHeaderHandler signals that a nil header request handler func was provided
+var ErrNilRequestHeaderHandler = errors.New("nil request header handler")
+
+// ErrNilRequestMiniblockHeaderHandler signals that a nil miniblock header request handler func was provided
+var ErrNilRequestMiniblockHeaderHandler = errors.New("nil request miniblock header handler")
