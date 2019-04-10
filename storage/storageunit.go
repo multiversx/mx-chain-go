@@ -19,7 +19,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // CacheType represents the type of the supported caches
 type CacheType string

@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // NonceToHashCacher is a wrapper over a storage.Cacher interface that has the key of type uint64
 // and value of type byte slice

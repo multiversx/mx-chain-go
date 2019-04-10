@@ -75,7 +75,7 @@ type PoolsHolder interface {
 type MetaPoolsHolder interface {
 	MetaChainBlocks() storage.Cacher
 	MiniBlockHashes() ShardedDataCacherNotifier
-	ShardHeaders() ShardedDataCacherNotifier
+	ShardHeaders() storage.Cacher
 	MetaBlockNonces() Uint64Cacher
 }
 

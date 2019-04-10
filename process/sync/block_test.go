@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
@@ -33,7 +34,7 @@ type removedFlags struct {
 
 func createMockResolversFinder() *mock.ResolversFinderStub {
 	return &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver process.Resolver, e error) {
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.HeadersTopic) {
 				return &mock.HeaderResolverMock{
 					RequestDataFromNonceCalled: func(nonce uint64) error {
@@ -60,7 +61,7 @@ func createMockResolversFinder() *mock.ResolversFinderStub {
 
 func createMockResolversFinderNilMiniBlocks() *mock.ResolversFinderStub {
 	return &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver process.Resolver, e error) {
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.HeadersTopic) {
 				return &mock.HeaderResolverMock{
 					RequestDataFromNonceCalled: func(nonce uint64) error {
@@ -95,14 +96,14 @@ func createMockPools() *mock.PoolsHolderStub {
 	pools := &mock.PoolsHolderStub{}
 	pools.HeadersCalled = func() storage.Cacher {
 		sds := &mock.CacherStub{
-			HasOrAddCalled: 		func(key []byte, value interface{}) (ok, evicted bool) {
+			HasOrAddCalled: func(key []byte, value interface{}) (ok, evicted bool) {
 				return false, false
 			},
-			RegisterHandlerCalled: 	func(func(key []byte)) {},
-			PeekCalled: 			func(key []byte) (value interface{}, ok bool) {
+			RegisterHandlerCalled: func(func(key []byte)) {},
+			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
-			RemoveCalled: 			func(key []byte) {
+			RemoveCalled: func(key []byte) {
 				return
 			},
 		}
@@ -152,11 +153,11 @@ func createBlockProcessor() *mock.BlockProcessorMock {
 
 func createHeadersDataPool(removedHashCompare []byte, remFlags *removedFlags) storage.Cacher {
 	sds := &mock.CacherStub{
-		HasOrAddCalled: 		func(key []byte, value interface{}) (ok, evicted bool) {
+		HasOrAddCalled: func(key []byte, value interface{}) (ok, evicted bool) {
 			return false, false
 		},
-		RegisterHandlerCalled: 	func(func(key []byte)) {},
-		RemoveCalled: 			func(key []byte) {
+		RegisterHandlerCalled: func(func(key []byte)) {},
+		RemoveCalled: func(key []byte) {
 			if bytes.Equal(key, removedHashCompare) {
 				remFlags.flagHdrRemovedFromHeaders = true
 			}
@@ -630,7 +631,7 @@ func TestNewBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 	errExpected := errors.New("expected error")
 
 	resFinder := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver process.Resolver, e error) {
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.HeadersTopic) {
 				return nil, errExpected
 			}
@@ -678,7 +679,7 @@ func TestNewBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 	errExpected := errors.New("expected error")
 
 	resFinder := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver process.Resolver, e error) {
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.HeadersTopic) {
 				return &mock.HeaderResolverMock{}, errExpected
 			}

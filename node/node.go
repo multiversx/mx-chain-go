@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -41,7 +42,7 @@ const ConsensusTopic = "consensus"
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -66,7 +67,7 @@ type Node struct {
 	addrConverter            state.AddressConverter
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer    process.InterceptorsContainer
-	resolversFinder          process.ResolversFinder
+	resolversFinder          dataRetriever.ResolversFinder
 
 	privateKey       crypto.PrivateKey
 	publicKey        crypto.PublicKey

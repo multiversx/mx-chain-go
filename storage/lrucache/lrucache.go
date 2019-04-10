@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/golang-lru"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // LRUCache implements a Least Recently Used eviction cache
 type LRUCache struct {

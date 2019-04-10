@@ -19,3 +19,7 @@ func (g *Genesis) ProcessShardAssignment() {
 func (g *Genesis) CreateInitialNodesPubKeys() {
 	g.createInitialNodesPubKeys()
 }
+
+func CommunicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) string {
+	return communicationIdentifierBetweenShards(shardId1, shardId2)
+}

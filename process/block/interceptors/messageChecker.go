@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 type messageChecker struct {
 }

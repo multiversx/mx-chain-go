@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 var txCounterMutex = sync.RWMutex{}
 var txsCurrentBlockProcessed = 0

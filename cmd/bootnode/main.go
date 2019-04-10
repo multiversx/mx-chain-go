@@ -35,6 +35,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
+	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -46,10 +49,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -120,7 +122,7 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 }
 
 func main() {
-	log := logger.NewDefaultLogger()
+	log := logger.DefaultLogger()
 	log.SetLevel(logger.LogInfo)
 
 	app := cli.NewApp()
@@ -299,6 +301,17 @@ func createNode(
 		return nil, err
 	}
 
+	hexPublicKey := hex.EncodeToString(publickKey)
+	logFile, err := logger.MakeLogFile(hexPublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	err = log.ApplyOptions(logger.WithFile(logFile))
+	if err != nil {
+		return nil, err
+	}
+
 	selfShardId, err := genesisConfig.GetShardIDFromPubKey(publickKey)
 	if err != nil {
 		return nil, err
@@ -368,7 +381,7 @@ func createNode(
 		return nil, err
 	}
 
-	interceptorContainerFactory, err := factory.NewInterceptorsContainerFactory(
+	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		netMessenger,
 		blkc,
@@ -390,7 +403,7 @@ func createNode(
 		return nil, err
 	}
 
-	resolversContainerFactory, err := factory.NewResolversContainerFactory(
+	resolversContainerFactory, err := factoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		netMessenger,
 		blkc,
@@ -398,6 +411,9 @@ func createNode(
 		datapool,
 		uint64ByteSliceConverter,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	resolversContainer, err := resolversContainerFactory.Create()
 	if err != nil {
@@ -467,7 +483,7 @@ func createNode(
 	return nd, nil
 }
 
-func createRequestTransactionHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+func createRequestTransactionHandler(resolversFinder dataRetriever.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
 		log.Debug(fmt.Sprintf("Requesting tx from shard %d with hash %s from network\n", destShardID, toB64(txHash)))
 		resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
@@ -483,7 +499,7 @@ func createRequestTransactionHandler(resolversFinder process.ResolversFinder, lo
 	}
 }
 
-func createRequestMiniBlocksHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+func createRequestMiniBlocksHandler(resolversFinder dataRetriever.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(shardId uint32, mbHash []byte) {
 		log.Debug(fmt.Sprintf("Requesting miniblock from shard %d with hash %s from network\n", shardId, toB64(mbHash)))
 		resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
@@ -816,7 +832,8 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	shardHeaders, err := shardedData.NewShardedData(getCacherFromConfig(config.ShardHeadersDataPool))
+	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
+	shardHeaders, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
 	}
