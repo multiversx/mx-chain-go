@@ -86,6 +86,10 @@ func (ln *leafNode) isCollapsed() bool {
 	return false
 }
 
+func (ln *leafNode) posIsCollapsed(pos int) bool {
+	return false
+}
+
 func (ln *leafNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {

@@ -626,9 +626,9 @@ func TestBranchNode_reduceNode(t *testing.T) {
 	var children [nrOfChildren]node
 	children[2] = &leafNode{Key: []byte("dog"), Value: []byte("dog"), dirty: true}
 	bn := &branchNode{children: children, dirty: true}
-	en := &extensionNode{Key: []byte{2}, child: children[2], dirty: true}
+	ln := &leafNode{Key: []byte{2, 100, 111, 103}, Value: []byte("dog"), dirty: true}
 	node := bn.reduceNode(2)
-	assert.Equal(t, en, node)
+	assert.Equal(t, ln, node)
 }
 
 func TestBranchNode_getChildPosition(t *testing.T) {

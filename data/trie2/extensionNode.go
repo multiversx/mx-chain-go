@@ -150,42 +150,52 @@ func (en *extensionNode) isCollapsed() bool {
 	return false
 }
 
+func (en *extensionNode) posIsCollapsed(pos int) bool {
+	return en.isCollapsed()
+}
+
 func (en *extensionNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
-	err = en.checkNodeAndKey(key, db, marshalizer)
+	err = en.isEmptyOrNil()
 	if err != nil {
 		return nil, err
 	}
-	key = key[len(en.Key):]
-	return en.child.tryGet(key, db, marshalizer)
-}
-
-func (en *extensionNode) getNext(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
-	err := en.checkNodeAndKey(key, db, marshalizer)
-	if err != nil {
-		return nil, nil, err
-	}
-	key = key[len(en.Key):]
-	return en.child, key, nil
-}
-
-func (en *extensionNode) checkNodeAndKey(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return err
-	}
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
-		return ErrNodeNotFound
+		return nil, ErrNodeNotFound
 	}
 	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
 	if keysDontMatch {
-		return ErrNodeNotFound
+		return nil, ErrNodeNotFound
+	}
+	key = key[len(en.Key):]
+	err = resolveIfCollapsed(en, 0, db, marshalizer)
+	if err != nil {
+		return nil, err
+	}
+	value, err = en.child.tryGet(key, db, marshalizer)
+	return value, err
+}
+
+func (en *extensionNode) getNext(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
+	err := en.isEmptyOrNil()
+	if err != nil {
+		return nil, nil, err
+	}
+	keyTooShort := len(key) < len(en.Key)
+	if keyTooShort {
+		return nil, nil, ErrNodeNotFound
+	}
+	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
+	if keysDontMatch {
+		return nil, nil, ErrNodeNotFound
 	}
 	err = resolveIfCollapsed(en, 0, db, marshalizer)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	return nil
+
+	key = key[len(en.Key):]
+	return en.child, key, nil
 }
 
 func (en *extensionNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
@@ -218,6 +228,9 @@ func (en *extensionNode) insert(n *leafNode, db DBWriteCacher, marshalizer marsh
 		return false, nil, ErrChildPosOutOfRange
 	}
 	branch.children[oldChildPos] = newExtensionNode(en.Key[keyMatchLen+1:], en.child)
+	if len(en.Key) == 1 {
+		branch.children[oldChildPos] = en.child
+	}
 	n.Key = n.Key[keyMatchLen+1:]
 	branch.children[newChildPos] = n
 

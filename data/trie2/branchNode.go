@@ -155,27 +155,54 @@ func (bn *branchNode) isCollapsed() bool {
 	return true
 }
 
+func (bn *branchNode) posIsCollapsed(pos int) bool {
+	if bn.children[pos] == nil && bn.EncodedChildren[pos] != nil {
+		return true
+	}
+	return false
+}
+
 func (bn *branchNode) tryGet(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (value []byte, err error) {
-	err = bn.checkNodeAndKey(key, db, marshalizer)
+	err = bn.isEmptyOrNil()
 	if err != nil {
 		return nil, err
 	}
+	if len(key) == 0 {
+		return nil, ErrValueTooShort
+	}
 	childPos := key[firstByte]
+	if childPosOutOfRange(childPos) {
+		return nil, ErrChildPosOutOfRange
+	}
 	key = key[1:]
-
+	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
+	if err != nil {
+		return nil, err
+	}
 	if bn.children[childPos] == nil {
 		return nil, ErrNodeNotFound
 	}
-	return bn.children[childPos].tryGet(key, db, marshalizer)
+	value, err = bn.children[childPos].tryGet(key, db, marshalizer)
+	return value, err
 }
 
 func (bn *branchNode) getNext(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (node, []byte, error) {
-	err := bn.checkNodeAndKey(key, db, marshalizer)
+	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, err
 	}
+	if len(key) == 0 {
+		return nil, nil, ErrValueTooShort
+	}
 	childPos := key[firstByte]
+	if childPosOutOfRange(childPos) {
+		return nil, nil, ErrChildPosOutOfRange
+	}
 	key = key[1:]
+	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	if bn.children[childPos] == nil {
 		return nil, nil, ErrNodeNotFound
@@ -184,12 +211,22 @@ func (bn *branchNode) getNext(key []byte, db DBWriteCacher, marshalizer marshal.
 }
 
 func (bn *branchNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
-	err := bn.checkNodeAndKey(n.Key, db, marshalizer)
+	err := bn.isEmptyOrNil()
 	if err != nil {
 		return false, nil, err
 	}
+	if len(n.Key) == 0 {
+		return false, nil, ErrValueTooShort
+	}
 	childPos := n.Key[firstByte]
+	if childPosOutOfRange(childPos) {
+		return false, nil, ErrChildPosOutOfRange
+	}
 	n.Key = n.Key[1:]
+	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
+	if err != nil {
+		return false, nil, err
+	}
 
 	if bn.children[childPos] != nil {
 		dirty, newNode, err := bn.children[childPos].insert(n, db, marshalizer)
@@ -205,12 +242,22 @@ func (bn *branchNode) insert(n *leafNode, db DBWriteCacher, marshalizer marshal.
 }
 
 func (bn *branchNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) (bool, node, error) {
-	err := bn.checkNodeAndKey(key, db, marshalizer)
+	err := bn.isEmptyOrNil()
 	if err != nil {
 		return false, nil, err
 	}
+	if len(key) == 0 {
+		return false, nil, ErrValueTooShort
+	}
 	childPos := key[firstByte]
+	if childPosOutOfRange(childPos) {
+		return false, nil, ErrChildPosOutOfRange
+	}
 	key = key[1:]
+	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
+	if err != nil {
+		return false, nil, err
+	}
 
 	dirty, newNode, err := bn.children[childPos].delete(key, db, marshalizer)
 	if !dirty || err != nil {
@@ -231,7 +278,7 @@ func (bn *branchNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.M
 			return false, nil, err
 		}
 		if childPos != 16 {
-			newNode := bn.children[pos].reduceNode(pos)
+			newNode := bn.reduceNode(pos)
 			return true, newNode, nil
 		}
 		child := bn.children[pos]
@@ -245,26 +292,10 @@ func (bn *branchNode) delete(key []byte, db DBWriteCacher, marshalizer marshal.M
 	return true, bn, nil
 }
 
-func (bn *branchNode) checkNodeAndKey(key []byte, db DBWriteCacher, marshalizer marshal.Marshalizer) error {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return err
-	}
-	if len(key) == 0 {
-		return ErrValueTooShort
-	}
-	childPos := key[firstByte]
-	if childPosOutOfRange(childPos) {
-		return ErrChildPosOutOfRange
-	}
-	err = resolveIfCollapsed(bn, childPos, db, marshalizer)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (bn *branchNode) reduceNode(pos int) node {
+	if child, ok := bn.children[pos].(*leafNode); ok {
+		return newLeafNode(concat([]byte{byte(pos)}, child.Key...), child.Value)
+	}
 	return newExtensionNode([]byte{byte(pos)}, bn.children[pos])
 }
 

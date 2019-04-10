@@ -13,6 +13,7 @@ type node interface {
 	setHash(marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
 	getCollapsed(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) // a collapsed node is a node that instead of the children holds the children hashes
 	isCollapsed() bool
+	posIsCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode(marshal.Marshalizer) ([]byte, error)
 	commit(dbw DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) error
@@ -108,7 +109,7 @@ func resolveIfCollapsed(n node, pos byte, db DBWriteCacher, marshalizer marshal.
 	if err != nil {
 		return err
 	}
-	if n.isCollapsed() {
+	if n.posIsCollapsed(int(pos)) {
 		err := n.resolveCollapsed(pos, db, marshalizer)
 		if err != nil {
 			return err
