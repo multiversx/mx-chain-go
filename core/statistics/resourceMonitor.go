@@ -1,4 +1,4 @@
-package resourceStatistics
+package statistics
 
 import (
 	"errors"

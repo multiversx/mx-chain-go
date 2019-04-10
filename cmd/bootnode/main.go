@@ -23,7 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/resourceStatistics"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
@@ -87,7 +87,7 @@ var p2pConfigurationFile = "./config/p2p.toml"
 //TODO remove uniqueID
 var uniqueID = ""
 
-var rm *resourceStatistics.ResourceMonitor
+var rm *statistics.ResourceMonitor
 
 type seedRandReader struct {
 	index int
@@ -952,7 +952,7 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
 	}
 
-	rm, err := resourceStatistics.NewResourceMonitor(file)
+	rm, err := statistics.NewResourceMonitor(file)
 	if err != nil {
 		return err
 	}
