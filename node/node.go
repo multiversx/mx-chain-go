@@ -42,7 +42,7 @@ const ConsensusTopic = "consensus"
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.

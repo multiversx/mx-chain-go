@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // InitialNode holds data from json and decoded data from genesis process
 type InitialNode struct {

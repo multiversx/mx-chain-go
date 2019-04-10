@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {

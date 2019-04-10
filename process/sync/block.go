@@ -21,7 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = time.Duration(5 * time.Millisecond)

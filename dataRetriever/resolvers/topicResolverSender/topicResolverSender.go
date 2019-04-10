@@ -16,7 +16,7 @@ const topicRequestSuffix = "_REQUEST"
 // NumPeersToQuery number of peers to send the message
 const NumPeersToQuery = 2
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 type topicResolverSender struct {
 	messenger   dataRetriever.MessageHandler

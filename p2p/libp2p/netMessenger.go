@@ -22,7 +22,7 @@ const durationBetweenSends = time.Duration(time.Microsecond * 10)
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 type networkMessenger struct {
 	ctxProvider *Libp2pContext

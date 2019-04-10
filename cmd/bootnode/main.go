@@ -119,7 +119,7 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 }
 
 func main() {
-	log := logger.NewDefaultLogger()
+	log := logger.DefaultLogger()
 	log.SetLevel(logger.LogInfo)
 
 	app := cli.NewApp()
@@ -290,6 +290,17 @@ func createNode(
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 
 	publickKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	hexPublicKey := hex.EncodeToString(publickKey)
+	logFile, err := logger.MakeLogFile(hexPublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	err = log.ApplyOptions(logger.WithFile(logFile))
 	if err != nil {
 		return nil, err
 	}
