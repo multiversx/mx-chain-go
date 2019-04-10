@@ -60,10 +60,6 @@ func NewTxInterceptor(
 		return nil, process.ErrNilSingleSigner
 	}
 
-	if singleSigner == nil {
-		return nil, process.ErrNilSingleSigner
-	}
-
 	if keyGen == nil {
 		return nil, process.ErrNilKeyGen
 	}

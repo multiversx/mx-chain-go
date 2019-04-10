@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/pelletier/go-toml"
 )
 
@@ -58,4 +59,27 @@ func LoadJsonFile(dest interface{}, relativePath string, log *logger.Logger) err
 	}()
 
 	return json.NewDecoder(f).Decode(dest)
+}
+
+// CreateFile opens or creates a file relative to the default path
+func CreateFile(prefix string, subfolder string, fileExtension string) (*os.File, error) {
+	absPath, err := filepath.Abs(subfolder)
+	if err != nil {
+		return nil, err
+	}
+
+	err = os.MkdirAll(absPath, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	fileName := time.Now().Format("2006-02-01-15-04-05")
+	if prefix != "" {
+		fileName = prefix + "-" + fileName
+	}
+
+	return os.OpenFile(
+		filepath.Join(absPath, fileName+"."+fileExtension),
+		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
+		0666)
 }

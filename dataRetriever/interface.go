@@ -43,6 +43,7 @@ type ResolversContainer interface {
 	Len() int
 }
 
+// ResolversFinder extends a container resolver and have 2 additional functionality
 type ResolversFinder interface {
 	ResolversContainer
 	IntraShardResolver(baseTopic string) (Resolver, error)

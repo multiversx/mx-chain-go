@@ -52,8 +52,8 @@ func TestInterceptedTxBlockBody_IntegrityMiniblockWithNilTxHashesShouldErr(t *te
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{
 			ReceiverShardID: 0,
-			SenderShardID: 0,
-			TxHashes: nil,
+			SenderShardID:   0,
+			TxHashes:        nil,
 		},
 	}}
 
@@ -66,8 +66,8 @@ func TestInterceptedTxBlockBody_IntegrityMiniblockWithInvalidTxHashShouldErr(t *
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{
 			ReceiverShardID: 0,
-			SenderShardID: 0,
-			TxHashes: [][]byte{make([]byte, 0), nil},
+			SenderShardID:   0,
+			TxHashes:        [][]byte{make([]byte, 0), nil},
 		},
 	}}
 
@@ -88,8 +88,8 @@ func TestInterceptedTxBlockBody_IntegrityNilShardCoordinatorShouldErr(t *testing
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{
 			ReceiverShardID: 0,
-			SenderShardID: 0,
-			TxHashes: [][]byte{make([]byte, 0)},
+			SenderShardID:   0,
+			TxHashes:        [][]byte{make([]byte, 0)},
 		},
 	}}
 
@@ -102,8 +102,8 @@ func TestInterceptedTxBlockBody_IntegrityMiniblockWithInvalidShardIdsShouldErr(t
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{
 			ReceiverShardID: 4,
-			SenderShardID: 0,
-			TxHashes: [][]byte{make([]byte, 0)},
+			SenderShardID:   0,
+			TxHashes:        [][]byte{make([]byte, 0)},
 		},
 	}}
 	assert.Equal(t, process.ErrInvalidShardId, txBlk.Integrity(mock.NewOneShardCoordinatorMock()))
@@ -115,8 +115,8 @@ func TestInterceptedTxBlockBody_IntegrityOkValsShouldWork(t *testing.T) {
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{
 			ReceiverShardID: 0,
-			SenderShardID: 0,
-			TxHashes: [][]byte{make([]byte, 0)},
+			SenderShardID:   0,
+			TxHashes:        [][]byte{make([]byte, 0)},
 		},
 	}}
 
@@ -129,8 +129,8 @@ func TestInterceptedTxBlockBody_IntegrityAndValidityOkValsShouldWork(t *testing.
 	txBlk := &block.InterceptedTxBlockBody{TxBlockBody: dataBlock.Body{
 		{
 			ReceiverShardID: 0,
-			SenderShardID: 0,
-			TxHashes: [][]byte{make([]byte, 0)},
+			SenderShardID:   0,
+			TxHashes:        [][]byte{make([]byte, 0)},
 		},
 	}}
 

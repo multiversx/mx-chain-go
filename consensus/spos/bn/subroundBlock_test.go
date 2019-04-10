@@ -1,6 +1,7 @@
 package bn_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

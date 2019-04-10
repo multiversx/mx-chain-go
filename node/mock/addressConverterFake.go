@@ -2,10 +2,10 @@ package mock
 
 import (
 	"encoding/hex"
+	"errors"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/pkg/errors"
 )
 
 type AddressConverterFake struct {

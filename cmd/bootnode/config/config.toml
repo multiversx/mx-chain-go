@@ -127,7 +127,7 @@
    Type = "json"
 
 # ResourceStats, if enabled, will output in a folder called "stats"
-# resource statistics. Just to mention: number of active go routines, memory allocation, number of GC sweeps, etc.
+# resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
 # RefreshIntervalInSec will tell how often a new line containing stats should be added in stats file
 [ResourceStats]
    Enabled = true

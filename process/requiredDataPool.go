@@ -61,7 +61,7 @@ func (rh *RequiredDataPool) ReceivedAll() bool {
 	for i := 0; i < bitmapLength; i++ {
 		flags += bits.OnesCount8(rh.receivedBitmap[i])
 	}
-    rh.dataLock.Unlock()
+	rh.dataLock.Unlock()
 	return flags >= dataLength
 }
 

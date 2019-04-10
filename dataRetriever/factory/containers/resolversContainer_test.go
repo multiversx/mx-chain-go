@@ -1,12 +1,12 @@
 package containers_test
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 )
 

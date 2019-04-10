@@ -1,7 +1,7 @@
 package validators
 
 import (
-	"github.com/pkg/errors"
+	"errors"
 )
 
 // ErrNilStake signals that a nil stake structure has been provided

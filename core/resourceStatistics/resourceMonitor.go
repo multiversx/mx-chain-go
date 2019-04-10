@@ -1,17 +1,15 @@
 package resourceStatistics
 
 import (
+	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 )
-
-const defaultStatPath = "stats"
 
 var errNilFileToWriteStats = errors.New("nil file to write statistics")
 
@@ -23,18 +21,15 @@ type ResourceMonitor struct {
 }
 
 // NewResourceMonitor creates a new ResourceMonitor instance
-func NewResourceMonitor(fileId string) (*ResourceMonitor, error) {
-	rm := &ResourceMonitor{
+func NewResourceMonitor(file *os.File) (*ResourceMonitor, error) {
+	if file == nil {
+		return nil, errNilFileToWriteStats
+	}
+
+	return &ResourceMonitor{
 		startTime: time.Now(),
-	}
-
-	var err error
-	rm.file, err = newStatsFile(fileId)
-	if err != nil {
-		return nil, err
-	}
-
-	return rm, nil
+		file:      file,
+	}, nil
 }
 
 // GenerateStatistics creates a new statistic string
@@ -46,9 +41,9 @@ func (rm *ResourceMonitor) GenerateStatistics() string {
 		time.Now().Unix(),
 		time.Duration(time.Now().UnixNano()-rm.startTime.UnixNano()).Round(time.Second),
 		runtime.NumGoroutine(),
-		convertBytes(memStats.Alloc),
-		convertBytes(memStats.Sys),
-		convertBytes(memStats.TotalAlloc),
+		core.ConvertBytes(memStats.Alloc),
+		core.ConvertBytes(memStats.Sys),
+		core.ConvertBytes(memStats.TotalAlloc),
 		memStats.NumGC,
 	)
 }
@@ -66,10 +61,6 @@ func (rm *ResourceMonitor) SaveStatistics() error {
 	if err != nil {
 		return err
 	}
-	_, err = rm.file.WriteString("")
-	if err != nil {
-		return err
-	}
 
 	err = rm.file.Sync()
 	if err != nil {
@@ -77,51 +68,6 @@ func (rm *ResourceMonitor) SaveStatistics() error {
 	}
 
 	return nil
-}
-
-func convertBytes(bytes uint64) string {
-	if bytes < 1024 {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	if bytes < 1024*1024 {
-		return fmt.Sprintf("%.2f kiB", float64(bytes)/1024.0)
-	}
-	if bytes < 1024*1024*1025 {
-		return fmt.Sprintf("%.2f MB", float64(bytes)/1024.0/1024.0)
-	}
-	return fmt.Sprintf("%.2f GB", float64(bytes)/1024.0/1024.0/1024.0)
-}
-
-// newStatsFile returns new output for the application logger.
-func newStatsFile(fileId string) (*os.File, error) {
-	absPath, err := filepath.Abs(defaultStatPath)
-	if err != nil {
-		return nil, err
-	}
-
-	err = os.MkdirAll(absPath, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
-
-	filename := fmt.Sprintf("stat_%s_%s.txt", fileId, time.Now().Format("2006-02-01"))
-	fileWithPath := filepath.Join(absPath, filename)
-
-	_, err = os.Stat(fileWithPath)
-	if !os.IsNotExist(err) {
-		//save the existing file with another name
-		filenameOld := fmt.Sprintf("stat_%s_%s.old", fileId, time.Now().Format("2006-02-01-15-04-05"))
-		oldFileWithPath := filepath.Join(absPath, filenameOld)
-
-		err = os.Rename(fileWithPath, oldFileWithPath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return os.OpenFile(fileWithPath,
-		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
-		0666)
 }
 
 // Close closes the file used for statistics

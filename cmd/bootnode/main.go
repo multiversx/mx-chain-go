@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -21,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/resourceStatistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
@@ -41,7 +43,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
@@ -59,9 +60,13 @@ import (
 	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
-	"github.com/pkg/errors"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
+)
+
+const (
+	defaultLogPath   = "logs"
+	defaultStatsPath = "stats"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -302,12 +307,21 @@ func createNode(
 	}
 
 	hexPublicKey := hex.EncodeToString(publickKey)
-	logFile, err := logger.MakeLogFile(hexPublicKey)
+	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
 		return nil, err
 	}
 
 	err = log.ApplyOptions(logger.WithFile(logFile))
+	if err != nil {
+		return nil, err
+	}
+
+	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
+	if err != nil {
+		return nil, err
+	}
+	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
 	if err != nil {
 		return nil, err
 	}
@@ -336,11 +350,6 @@ func createNode(
 	datapool, err := createShardDataPoolFromConfig(config, uint64ByteSliceConverter)
 	if err != nil {
 		return nil, errors.New("could not create shard data pools: " + err.Error())
-	}
-
-	err = startStatisticsMonitor(pubKey, config.ResourceStats, log)
-	if err != nil {
-		return nil, err
 	}
 
 	// TODO create metachain / blockchain
@@ -934,12 +943,7 @@ func toB64(buff []byte) string {
 	return base64.StdEncoding.EncodeToString(buff)
 }
 
-func startStatisticsMonitor(pubKey crypto.PublicKey, config config.ResourceStatsConfig, log *logger.Logger) error {
-	pkBuff, err := pubKey.ToByteArray()
-	if err != nil {
-		return err
-	}
-
+func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, log *logger.Logger) error {
 	if !config.Enabled {
 		return nil
 	}
@@ -948,7 +952,7 @@ func startStatisticsMonitor(pubKey crypto.PublicKey, config config.ResourceStats
 		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
 	}
 
-	rm, err = resourceStatistics.NewResourceMonitor(hex.EncodeToString(pkBuff))
+	rm, err := resourceStatistics.NewResourceMonitor(file)
 	if err != nil {
 		return err
 	}

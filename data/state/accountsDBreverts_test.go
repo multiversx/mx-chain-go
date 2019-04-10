@@ -2,6 +2,7 @@ package state_test
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state/mock"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

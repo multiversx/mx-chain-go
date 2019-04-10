@@ -17,13 +17,13 @@
 package trie
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/pkg/errors"
 )
 
 // DBWriteCache is an intermediate write layer between the trie data structures and
