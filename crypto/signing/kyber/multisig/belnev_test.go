@@ -748,7 +748,7 @@ func TestBelNevSigner_CreateSignatureShareNotSetCommSecretShouldErr(t *testing.T
 	hasher := &mock.HasherMock{}
 	privKey, _, pubKeys, kg := genMultiSigParams(4, ownIndex)
 
-	multiSig, err := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
+	multiSig, _ := multisig.NewBelNevMultisig(hasher, pubKeys, privKey, kg, ownIndex)
 	_, comm := multiSig.CreateCommitment()
 	_ = multiSig.StoreCommitment(ownIndex, comm)
 

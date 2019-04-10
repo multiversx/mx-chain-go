@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -23,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 

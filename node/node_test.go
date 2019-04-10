@@ -1,6 +1,7 @@
 package node_test
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -18,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

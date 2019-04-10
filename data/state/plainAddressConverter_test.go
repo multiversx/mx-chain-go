@@ -65,6 +65,7 @@ func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesOkValsShouldWork(t
 
 	adr, err := ac.CreateAddressFromPublicKeyBytes(buff)
 
+	assert.Nil(t, err)
 	assert.Equal(t, buff, adr.Bytes())
 }
 
@@ -81,6 +82,7 @@ func TestPlainAddressConverter_CreateAddressFromPublicKeyBytesOkValsTrimShouldWo
 
 	adr, err := ac.CreateAddressFromPublicKeyBytes(buff)
 
+	assert.Nil(t, err)
 	assert.Equal(t, buff[320-32:], adr.Bytes())
 }
 

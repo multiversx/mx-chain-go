@@ -3,6 +3,7 @@ package sync_test
 import (
 	"bytes"
 	"math"
+	"errors"
 	"reflect"
 	"strings"
 	goSync "sync"
@@ -13,12 +14,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +35,7 @@ type removedFlags struct {
 
 func createMockResolversFinder() *mock.ResolversFinderStub {
 	return &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver process.Resolver, e error) {
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.HeadersTopic) {
 				return &mock.HeaderResolverMock{
 					RequestDataFromNonceCalled: func(nonce uint64) error {
@@ -61,7 +62,7 @@ func createMockResolversFinder() *mock.ResolversFinderStub {
 
 func createMockResolversFinderNilMiniBlocks() *mock.ResolversFinderStub {
 	return &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver process.Resolver, e error) {
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.HeadersTopic) {
 				return &mock.HeaderResolverMock{
 					RequestDataFromNonceCalled: func(nonce uint64) error {
@@ -636,7 +637,7 @@ func TestNewBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 	errExpected := errors.New("expected error")
 
 	resFinder := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver process.Resolver, e error) {
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.HeadersTopic) {
 				return nil, errExpected
 			}
@@ -684,7 +685,7 @@ func TestNewBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 	errExpected := errors.New("expected error")
 
 	resFinder := &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver process.Resolver, e error) {
+		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if strings.Contains(baseTopic, factory.HeadersTopic) {
 				return &mock.HeaderResolverMock{}, errExpected
 			}

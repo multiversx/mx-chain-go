@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -22,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

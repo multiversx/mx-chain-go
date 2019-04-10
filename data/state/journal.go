@@ -67,7 +67,7 @@ func (j *Journal) Len() int {
 	return length
 }
 
-// Clears the data from this journal.
+// Clear clears the data from this journal.
 func (j *Journal) Clear() {
 	j.mutDirtyAddress.Lock()
 	j.entries = make([]JournalEntry, 0)

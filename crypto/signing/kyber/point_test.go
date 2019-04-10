@@ -269,9 +269,10 @@ func TestKyberPoint_SubOK(t *testing.T) {
 
 	sum, _ := point1.Add(point2)
 	point3, err := sum.Sub(point2)
+	assert.Nil(t, err)
+
 	eq, _ := point3.Equal(point1)
 
-	assert.Nil(t, err)
 	assert.True(t, eq)
 }
 
