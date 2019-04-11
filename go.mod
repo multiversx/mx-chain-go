@@ -30,6 +30,7 @@ require (
 	github.com/mr-tron/base58 v1.1.1
 	github.com/multiformats/go-multiaddr v0.0.2
 	github.com/multiformats/go-multistream v0.0.1
+	github.com/orcaman/concurrent-map v0.0.0-20190314100340-2693aad1ed75
 	github.com/pelletier/go-toml v1.2.0
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/profile v1.3.0
