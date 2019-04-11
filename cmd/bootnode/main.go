@@ -6,9 +6,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -21,6 +21,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
@@ -34,10 +36,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
+	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/node"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
@@ -45,10 +49,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	factoryP2P "github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory/shard"
 	processSync "github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
@@ -56,9 +59,13 @@ import (
 	beevikntp "github.com/beevik/ntp"
 	"github.com/btcsuite/btcd/btcec"
 	crypto2 "github.com/libp2p/go-libp2p-crypto"
-	"github.com/pkg/errors"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli"
+)
+
+const (
+	defaultLogPath   = "logs"
+	defaultStatsPath = "stats"
 )
 
 var bootNodeHelpTemplate = `NAME:
@@ -66,18 +73,24 @@ var bootNodeHelpTemplate = `NAME:
 USAGE:
    {{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}
    {{if len .Authors}}
+AUTHOR:
+   {{range .Authors}}{{ . }}{{end}}
+   {{end}}{{if .Commands}}
 GLOBAL OPTIONS:
    {{range .VisibleFlags}}{{.}}
-   {{end}}{{end}}{{if .Copyright }}
+   {{end}}
 VERSION:
    {{.Version}}
    {{end}}
 `
 var configurationFile = "./config/config.toml"
 var p2pConfigurationFile = "./config/p2p.toml"
+var privKeyPemFile = "./config/privkey.pem"
 
 //TODO remove uniqueID
 var uniqueID = ""
+
+var rm *statistics.ResourceMonitor
 
 type seedRandReader struct {
 	index int
@@ -117,14 +130,21 @@ func (srr *seedRandReader) Read(p []byte) (n int, err error) {
 }
 
 func main() {
-	log := logger.NewDefaultLogger()
+	log := logger.DefaultLogger()
 	log.SetLevel(logger.LogInfo)
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = bootNodeHelpTemplate
 	app.Name = "BootNode CLI App"
+	app.Version = "v0.0.1"
 	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode, flags.Shards}
+	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode}
+	app.Authors = []cli.Author{
+		{
+			Name:  "The Elrond Team",
+			Email: "contact@elrond.com",
+		},
+	}
 
 	app.Action = func(c *cli.Context) error {
 		return startNode(c, log)
@@ -234,6 +254,10 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	log.Info("Application is now running...")
 	<-stop
 
+	if rm != nil {
+		err = rm.Close()
+		log.LogIfError(err)
+	}
 	return nil
 }
 
@@ -288,6 +312,26 @@ func createNode(
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 
 	publickKey, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	hexPublicKey := hex.EncodeToString(publickKey)
+	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
+	if err != nil {
+		return nil, err
+	}
+
+	err = log.ApplyOptions(logger.WithFile(logFile))
+	if err != nil {
+		return nil, err
+	}
+
+	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
+	if err != nil {
+		return nil, err
+	}
+	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
 	if err != nil {
 		return nil, err
 	}
@@ -356,7 +400,7 @@ func createNode(
 		return nil, err
 	}
 
-	interceptorContainerFactory, err := factory.NewInterceptorsContainerFactory(
+	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		netMessenger,
 		blkc,
@@ -378,7 +422,7 @@ func createNode(
 		return nil, err
 	}
 
-	resolversContainerFactory, err := factory.NewResolversContainerFactory(
+	resolversContainerFactory, err := factoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		netMessenger,
 		blkc,
@@ -386,6 +430,9 @@ func createNode(
 		datapool,
 		uint64ByteSliceConverter,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	resolversContainer, err := resolversContainerFactory.Create()
 	if err != nil {
@@ -455,7 +502,7 @@ func createNode(
 	return nd, nil
 }
 
-func createRequestTransactionHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+func createRequestTransactionHandler(resolversFinder dataRetriever.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(destShardID uint32, txHash []byte) {
 		log.Debug(fmt.Sprintf("Requesting tx from shard %d with hash %s from network\n", destShardID, toB64(txHash)))
 		resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
@@ -471,7 +518,7 @@ func createRequestTransactionHandler(resolversFinder process.ResolversFinder, lo
 	}
 }
 
-func createRequestMiniBlocksHandler(resolversFinder process.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
+func createRequestMiniBlocksHandler(resolversFinder dataRetriever.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
 	return func(shardId uint32, mbHash []byte) {
 		log.Debug(fmt.Sprintf("Requesting miniblock from shard %d with hash %s from network\n", shardId, toB64(mbHash)))
 		resolver, err := resolversFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
@@ -524,17 +571,18 @@ func createNetMessenger(
 	return nm, nil
 }
 
-func getSk(ctx *cli.Context) ([]byte, error) {
-	if !ctx.GlobalIsSet(flags.PrivateKey.Name) {
-		if ctx.GlobalString(flags.PrivateKey.Name) == "" {
-			return nil, errors.New("no private key file provided")
-		}
+func getSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
+	//if flag is defined, it shall overwrite what was read from pem file
+	if ctx.GlobalIsSet(flags.PrivateKey.Name) {
+		encodedSk := []byte(ctx.GlobalString(flags.PrivateKey.Name))
+		return decodeAddress(string(encodedSk))
 	}
 
-	encodedSk, err := ioutil.ReadFile(ctx.GlobalString(flags.PrivateKey.Name))
+	encodedSk, err := core.LoadSkFromPemFile(privKeyPemFile, log)
 	if err != nil {
-		encodedSk = []byte(ctx.GlobalString(flags.PrivateKey.Name))
+		return nil, err
 	}
+
 	return decodeAddress(string(encodedSk))
 }
 
@@ -544,7 +592,7 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 	pubKey crypto.PublicKey,
 	err error,
 ) {
-	sk, err := getSk(ctx)
+	sk, err := getSk(ctx, log)
 
 	if err != nil {
 		return nil, nil, nil, err
@@ -562,10 +610,7 @@ func getSigningParams(ctx *cli.Context, log *logger.Logger) (
 
 	pk, _ := pubKey.ToByteArray()
 
-	skEncoded := encodeAddress(sk)
 	pkEncoded := encodeAddress(pk)
-
-	log.Info("starting with private key: " + skEncoded)
 	log.Info("starting with public key: " + pkEncoded)
 
 	return keyGen, privKey, pubKey, err
@@ -807,7 +852,8 @@ func createMetaDataPoolFromConfig(
 		return nil, err
 	}
 
-	shardHeaders, err := shardedData.NewShardedData(getCacherFromConfig(config.ShardHeadersDataPool))
+	cacherCfg = getCacherFromConfig(config.ShardHeadersDataPool)
+	shardHeaders, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
 		return nil, err
 	}
@@ -906,4 +952,29 @@ func toB64(buff []byte) string {
 		return "<NIL>"
 	}
 	return base64.StdEncoding.EncodeToString(buff)
+}
+
+func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, log *logger.Logger) error {
+	if !config.Enabled {
+		return nil
+	}
+
+	if config.RefreshIntervalInSec < 1 {
+		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
+	}
+
+	rm, err := statistics.NewResourceMonitor(file)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for {
+			err = rm.SaveStatistics()
+			log.LogIfError(err)
+			time.Sleep(time.Second * time.Duration(config.RefreshIntervalInSec))
+		}
+	}()
+
+	return nil
 }

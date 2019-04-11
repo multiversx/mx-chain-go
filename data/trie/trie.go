@@ -18,11 +18,11 @@ package trie
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -58,6 +58,7 @@ func (t *Trie) SetCacheLimit(l uint16) {
 	t.cachelimit = l
 }
 
+// GetEmptyRoot returns the empty root hash
 func GetEmptyRoot(hasher hashing.Hasher) encoding.Hash {
 	if bytes.Equal(emptyRoot.Bytes(), encoding.Hash{}.Bytes()) {
 		emptyRoot.SetBytes(hasher.Compute("ROOT_NODE"))
@@ -72,7 +73,7 @@ func (t *Trie) newFlag() nodeFlag {
 	return nodeFlag{dirty: true, gen: t.cachegen}
 }
 
-// New creates a trie with an existing root node from db.
+// NewTrie creates a trie with an existing root node from db.
 //
 // If root is the zero hash or the sha3 hash of an empty string, the
 // trie is initially empty and does not require a database. Otherwise,
@@ -436,10 +437,12 @@ func (t *Trie) hashRoot(db DBWriteCacher, onleaf LeafCallback) (Node, Node, erro
 	return h.hash(t.root, db, true)
 }
 
+// DBW returns underlying DB manager object
 func (t *Trie) DBW() DBWriteCacher {
 	return t.dbw
 }
 
+// Recreate creates a new trie starting from root and having underlying DB that holds the data
 func (t *Trie) Recreate(root []byte, dbw DBWriteCacher) (PatriciaMerkelTree, error) {
 	return NewTrie(root, dbw, t.hsh)
 }

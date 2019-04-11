@@ -3,11 +3,11 @@ package lrucache
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/hashicorp/golang-lru"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // LRUCache implements a Least Recently Used eviction cache
 type LRUCache struct {

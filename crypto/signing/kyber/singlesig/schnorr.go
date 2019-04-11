@@ -6,6 +6,7 @@ import (
 	"go.dedis.ch/kyber/v3/sign/schnorr"
 )
 
+// SchnorrSigner is a SingleSigner implementation that uses a Schnorr signature scheme
 type SchnorrSigner struct {
 }
 

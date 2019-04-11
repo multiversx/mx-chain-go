@@ -1,13 +1,13 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 )
 
 type PublicKeyMock struct {
-	SuiteCalled  func() crypto.Suite
-	PointCalled  func() crypto.Point
+	SuiteCalled func() crypto.Suite
+	PointCalled func() crypto.Point
 }
 
 type PrivateKeyStub struct {

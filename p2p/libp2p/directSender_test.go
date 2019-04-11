@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -18,7 +19,6 @@ import (
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/libp2p/go-libp2p-protocol"
 	"github.com/libp2p/go-libp2p-pubsub/pb"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

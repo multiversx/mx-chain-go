@@ -9,7 +9,7 @@ import (
 // InterceptedPeerBlockBody represents the wrapper over PeerBlockBodyWrapper struct.
 type InterceptedPeerBlockBody struct {
 	PeerBlockBody []*block.PeerChange
-	hash []byte
+	hash          []byte
 }
 
 // NewInterceptedPeerBlockBody creates a new instance of InterceptedPeerBlockBody struct

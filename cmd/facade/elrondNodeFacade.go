@@ -5,9 +5,9 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 )
 

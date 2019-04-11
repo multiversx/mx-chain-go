@@ -22,11 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-// IdealBatchSize
-// Code using batches should try to add this much data to the batch.
-// The value was determined empirically.
-const IdealBatchSize = 100 * 1024
-
 // LeafCallback is a callback type invoked when a trie operation reaches a leaf
 // node. It's used by state sync and commit to allow handling external references
 // between account and storage tries.

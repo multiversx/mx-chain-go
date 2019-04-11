@@ -3,13 +3,12 @@ package crypto_test
 import (
 	"crypto/cipher"
 	"crypto/sha512"
-	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
 	"math/rand"
 	"testing"
 
-	"github.com/pkg/errors"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/group/edwards25519"
 	"go.dedis.ch/kyber/v3/pairing"
@@ -65,7 +64,7 @@ func cosiSign(message []byte, privates []kyber.Scalar, n int, f int, masks []*co
 	aggV, aggMask, err := cosi.AggregateCommitments(testSuite, V, byteMasks)
 	if err != nil {
 		fmt.Println("Cosi commitment aggregation failed", err)
-		return nil, errors.New("Cosi commitment aggregation failed")
+		return nil, errors.New("cosi commitment aggregation failed")
 	}
 
 	// Set aggregate mask in nodes
@@ -257,7 +256,6 @@ func BenchmarkSingleSig(b *testing.B) {
 	b.Run("Schnorr sign", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			sigSch, err = schnorr.Sign(suiteSch, kpSchnorr.Private, []byte(msg))
-			fmt.Println(hex.EncodeToString(sigSch))
 			sigsSch = append(sigsSch, sigSch)
 			if err != nil {
 				fmt.Println("error signing")

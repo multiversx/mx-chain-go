@@ -3,13 +3,12 @@ package hashing_test
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	blake2b "github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
-	sha256 "github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 )
 
 func TestSha256(t *testing.T) {

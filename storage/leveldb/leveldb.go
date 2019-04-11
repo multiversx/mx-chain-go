@@ -2,10 +2,10 @@ package leveldb
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -77,7 +77,7 @@ func (s *DB) Remove(key []byte) error {
 
 // Destroy removes the storage medium stored data
 func (s *DB) Destroy() error {
-	s.db.Close()
+	_ = s.db.Close()
 	err := os.RemoveAll(s.path)
 	return err
 }
