@@ -4,11 +4,11 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/orcaman/concurrent-map"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 var mapKeys = []string{}
 
