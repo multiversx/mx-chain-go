@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -18,7 +19,6 @@ import (
 	tr "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

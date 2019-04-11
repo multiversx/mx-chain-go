@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/pkg/errors"
+	"errors"
 )
 
 // Facade is the mock implementation of a node router handler

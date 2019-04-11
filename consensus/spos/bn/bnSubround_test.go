@@ -43,6 +43,8 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 		ch,
 	)
 
+	assert.Nil(t, err)
+
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -50,7 +52,6 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 		return false
 	})
 
-	assert.Nil(t, err)
 	assert.NotNil(t, sr)
 }
 

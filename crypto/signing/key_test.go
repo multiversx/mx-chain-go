@@ -164,9 +164,11 @@ func TestKeyGenerator_PrivateKeyFromByteArrayOK(t *testing.T) {
 	kg := signing.NewKeyGenerator(suite)
 	privKeyBytes := []byte("valid key")
 	privKey, err := kg.PrivateKeyFromByteArray(privKeyBytes)
-	sc, _ := privKey.Scalar().(*mock.ScalarMock)
 
 	assert.Nil(t, err)
+
+	sc, _ := privKey.Scalar().(*mock.ScalarMock)
+
 	assert.Equal(t, sc.X, 4)
 }
 
@@ -212,9 +214,11 @@ func TestKeyGenerator_PublicKeyFromByteArrayOK(t *testing.T) {
 	kg := signing.NewKeyGenerator(suite)
 	pubKeyBytes := []byte("valid key")
 	pubKey, err := kg.PublicKeyFromByteArray(pubKeyBytes)
-	sc, _ := pubKey.Point().(*mock.PointMock)
 
 	assert.Nil(t, err)
+
+	sc, _ := pubKey.Point().(*mock.PointMock)
+
 	assert.Equal(t, 4, sc.X)
 	assert.Equal(t, 5, sc.Y)
 }
