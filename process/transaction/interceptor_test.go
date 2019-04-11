@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	dataTransaction "github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/transaction"
@@ -373,11 +374,16 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedShouldErr(t
 		keyGen,
 		oneSharder)
 
-	txNewer := transaction.NewInterceptedTransaction(signer)
-	txNewer.Signature = nil
-	txNewer.Challenge = make([]byte, 0)
-	txNewer.RcvAddr = make([]byte, 0)
-	txNewer.SndAddr = make([]byte, 0)
+	txNewer := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: nil,
+	}
 	txNewerBuff, _ := marshalizer.Marshal(txNewer)
 
 	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})
@@ -426,21 +432,28 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 		keyGen,
 		oneSharder)
 
-	tx1 := transaction.NewInterceptedTransaction(signer)
-	tx1.Signature = nil
-	tx1.Challenge = make([]byte, 0)
-	tx1.RcvAddr = make([]byte, 0)
-	tx1.SndAddr = make([]byte, 0)
-	tx1.Nonce = 10
+	tx1 := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: nil,
+	}
 	tx1Buff, _ := marshalizer.Marshal(tx1)
 
-	tx2 := transaction.NewInterceptedTransaction(signer)
-	tx2.Signature = make([]byte, 0)
-	tx2.Challenge = make([]byte, 0)
-	tx2.RcvAddr = make([]byte, 0)
-	tx2.SndAddr = make([]byte, 0)
-	tx2.Value = big.NewInt(0)
-	tx2.Nonce = 20
+	tx2 := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
 	tx2Buff, _ := marshalizer.Marshal(tx2)
 
 	buff, _ := marshalizer.Marshal([][]byte{tx1Buff, tx2Buff})
@@ -458,9 +471,9 @@ func TestTransactionInterceptor_ProcessReceivedMessageIntegrityFailedWithTwoTxsS
 	txBuffRecovered := make([][]byte, 0)
 	_ = marshalizer.Unmarshal(&txBuffRecovered, buff)
 	assert.Equal(t, 1, len(txBuffRecovered))
-	txRecovered := transaction.NewInterceptedTransaction(signer)
+	txRecovered := &dataTransaction.Transaction{}
 	_ = marshalizer.Unmarshal(txRecovered, txBuffRecovered[0])
-	assert.Equal(t, tx2.Transaction, txRecovered.Transaction)
+	assert.Equal(t, tx2, txRecovered)
 }
 
 func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t *testing.T) {
@@ -496,12 +509,16 @@ func TestTransactionInterceptor_ProcessReceivedMessageVerifySigFailsShouldErr(t 
 		keyGen,
 		oneSharder)
 
-	txNewer := transaction.NewInterceptedTransaction(signer)
-	txNewer.Signature = make([]byte, 0)
-	txNewer.Challenge = make([]byte, 0)
-	txNewer.RcvAddr = make([]byte, 0)
-	txNewer.SndAddr = make([]byte, 0)
-	txNewer.Value = big.NewInt(0)
+	txNewer := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
 	txNewerBuff, _ := marshalizer.Marshal(txNewer)
 
 	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})
@@ -552,12 +569,16 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsSameShardShouldWork(
 		keyGen,
 		oneSharder)
 
-	txNewer := transaction.NewInterceptedTransaction(signer)
-	txNewer.Signature = make([]byte, 0)
-	txNewer.Challenge = make([]byte, 0)
-	txNewer.RcvAddr = make([]byte, 0)
-	txNewer.SndAddr = make([]byte, 0)
-	txNewer.Value = big.NewInt(0)
+	txNewer := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
 	txNewerBuff, _ := marshalizer.Marshal(txNewer)
 
 	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})
@@ -617,12 +638,16 @@ func TestTransactionInterceptor_ProcessReceivedMessageOkValsOtherShardsShouldWor
 		keyGen,
 		multiSharder)
 
-	txNewer := transaction.NewInterceptedTransaction(signer)
-	txNewer.Signature = make([]byte, 0)
-	txNewer.Challenge = make([]byte, 0)
-	txNewer.RcvAddr = make([]byte, 0)
-	txNewer.SndAddr = make([]byte, 0)
-	txNewer.Value = big.NewInt(0)
+	txNewer := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
 	txNewerBuff, _ := marshalizer.Marshal(txNewer)
 
 	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})
@@ -688,12 +713,16 @@ func TestTransactionInterceptor_ProcessReceivedMessagePresentInStorerShouldNotAd
 		keyGen,
 		multiSharder)
 
-	txNewer := transaction.NewInterceptedTransaction(signer)
-	txNewer.Signature = make([]byte, 0)
-	txNewer.Challenge = make([]byte, 0)
-	txNewer.RcvAddr = make([]byte, 0)
-	txNewer.SndAddr = make([]byte, 0)
-	txNewer.Value = big.NewInt(0)
+	txNewer := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
 	txNewerBuff, _ := marshalizer.Marshal(txNewer)
 
 	buff, _ := marshalizer.Marshal([][]byte{txNewerBuff})

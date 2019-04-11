@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -100,36 +99,15 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	filteredTxsBuffs := make([][]byte, 0)
 	lastErrEncountered := error(nil)
 	for _, txBuff := range txsBuff {
-		tx := &transaction.Transaction{}
-		err := txi.marshalizer.Unmarshal(tx, txBuff)
-		if err != nil {
-			lastErrEncountered = err
-			continue
-		}
+		txIntercepted, err := NewInterceptedTransaction(
+			txBuff,
+			txi.marshalizer,
+			txi.hasher,
+			txi.keyGen,
+			txi.singleSigner,
+			txi.addrConverter,
+			txi.shardCoordinator)
 
-		txIntercepted := NewInterceptedTransaction(txi.singleSigner)
-		txIntercepted.Transaction = tx
-		txIntercepted.SetAddressConverter(txi.addrConverter)
-		txIntercepted.SetSingleSignKeyGen(txi.keyGen)
-
-		copiedTx := *txIntercepted.GetTransaction()
-		copiedTx.Signature = nil
-		buffCopiedTx, err := txi.marshalizer.Marshal(&copiedTx)
-		if err != nil {
-			lastErrEncountered = err
-			continue
-		}
-
-		txIntercepted.SetTxBuffWithoutSig(buffCopiedTx)
-		hashWithSig := txi.hasher.Compute(string(txBuff))
-		txIntercepted.SetHash(hashWithSig)
-		err = txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
-		if err != nil {
-			lastErrEncountered = err
-			continue
-		}
-
-		err = txIntercepted.VerifySig()
 		if err != nil {
 			lastErrEncountered = err
 			continue
@@ -143,7 +121,7 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 			continue
 		}
 
-		isTxInStorage, _ := txi.txStorer.Has(hashWithSig)
+		isTxInStorage, _ := txi.txStorer.Has(txIntercepted.Hash())
 		if isTxInStorage {
 			log.Debug("intercepted tx already processed")
 			continue
@@ -151,8 +129,8 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 		cacherIdentifier := process.ShardCacherIdentifier(txIntercepted.SndShard(), txIntercepted.RcvShard())
 		txi.txPool.AddData(
-			hashWithSig,
-			txIntercepted.GetTransaction(),
+			txIntercepted.Hash(),
+			txIntercepted.Transaction(),
 			cacherIdentifier,
 		)
 	}

@@ -249,3 +249,6 @@ var ErrHeaderIsInStorage = errors.New("header is already in storage")
 
 // ErrNoTransactionInMessage signals that no transaction was found after parsing received p2p message
 var ErrNoTransactionInMessage = errors.New("no transaction found in received message")
+
+// ErrNilBuffer signals that a provided byte buffer is nil
+var ErrNilBuffer = errors.New("provided byte buffer is nil")
