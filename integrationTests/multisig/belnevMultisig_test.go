@@ -2,6 +2,7 @@ package multisig
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
@@ -10,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

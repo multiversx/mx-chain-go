@@ -2,6 +2,7 @@ package sync_test
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 	"strings"
 	goSync "sync"
@@ -18,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

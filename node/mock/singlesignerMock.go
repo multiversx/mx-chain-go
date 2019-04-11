@@ -1,9 +1,10 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"bytes"
-	"github.com/pkg/errors"
+	"errors"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 )
 
 type SinglesignMock struct {

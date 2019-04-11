@@ -2,13 +2,13 @@ package topicResolverSender_test
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

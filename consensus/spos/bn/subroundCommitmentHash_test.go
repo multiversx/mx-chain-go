@@ -1,12 +1,12 @@
 package bn_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -111,7 +111,7 @@ func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyH
 
 	body := block.Body{
 		&block.MiniBlock{
-			SenderShardID: senderShard,
+			SenderShardID:   senderShard,
 			ReceiverShardID: senderShard,
 			TxHashes: [][]byte{
 				testHasher.Compute("tx1"),
@@ -123,7 +123,7 @@ func generateHeaderAndBody(senderShard uint32, recvShards ...uint32) (data.BodyH
 		body = append(
 			body,
 			&block.MiniBlock{
-				SenderShardID: senderShard,
+				SenderShardID:   senderShard,
 				ReceiverShardID: recvShard,
 				TxHashes: [][]byte{
 					testHasher.Compute(fmt.Sprintf("tx%d", i)),
