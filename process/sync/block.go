@@ -294,15 +294,15 @@ func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 }
 
 func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
-	boot.mutRcvHdrInfo.Lock()
-	defer boot.mutRcvHdrInfo.Unlock()
-
 	header := boot.getHeader(headerHash)
 	if header != nil {
+		boot.mutRcvHdrInfo.Lock()
 		if header.Nonce > boot.rcvHdrInfo.highestNonce {
+			log.Info(fmt.Sprintf("receivedHeaders: received header with nonce %d from network, which is the highest nonce received until now\n", header.Nonce))
 			boot.rcvHdrInfo.highestNonce = header.Nonce
 			boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
 		}
+		boot.mutRcvHdrInfo.Unlock()
 		log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
 	}
 
@@ -315,14 +315,14 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
-	boot.mutRcvHdrInfo.Lock()
-	defer boot.mutRcvHdrInfo.Unlock()
-
 	//TODO: make sure that header validation done on interceptors do not add headers with wrong nonces/round numbers
+	boot.mutRcvHdrInfo.Lock()
 	if nonce > boot.rcvHdrInfo.highestNonce {
+		log.Info(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d from network, which is the highest nonce received until now\n", nonce))
 		boot.rcvHdrInfo.highestNonce = nonce
 		boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
 	}
+	boot.mutRcvHdrInfo.Unlock()
 
 	headerHash, _ := boot.headersNonces.Get(nonce)
 	if headerHash != nil {
@@ -335,7 +335,7 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 
 	if *n == nonce {
-		log.Info(fmt.Sprintf("received requested header with nonce %d from network and higher nonce received until now is %d\n", nonce, boot.rcvHdrInfo.highestNonce))
+		log.Info(fmt.Sprintf("received requested header with nonce %d from network\n", nonce))
 		boot.setRequestedHeaderNonce(nil)
 		boot.chRcvHdr <- true
 	}
@@ -470,19 +470,19 @@ func (boot *Bootstrap) SyncBlock() error {
 }
 
 func (boot *Bootstrap) shouldCreateEmptyBlock(nonce uint64) bool {
-	boot.mutRcvHdrInfo.RLock()
-	defer boot.mutRcvHdrInfo.RUnlock()
-
 	if boot.isForkDetected {
 		return false
 	}
 
+	boot.mutRcvHdrInfo.RLock()
 	if nonce <= boot.rcvHdrInfo.highestNonce {
 		roundsWithoutReceivedHeader := boot.rounder.Index() - boot.rcvHdrInfo.roundIndex
 		if roundsWithoutReceivedHeader <= maxRoundsToWait {
+			boot.mutRcvHdrInfo.RUnlock()
 			return false
 		}
 	}
+	boot.mutRcvHdrInfo.RUnlock()
 
 	return true
 }
@@ -659,7 +659,8 @@ func (boot *Bootstrap) forkChoice() error {
 
 		isSigned := isSigned(header)
 		if isSigned {
-			msg += fmt.Sprintf(" from a signed block, as the highest final block nonce is %d",
+			msg = fmt.Sprintf("%s from a signed block, as the highest final block nonce is %d",
+				msg,
 				boot.forkDetector.GetHighestFinalBlockNonce())
 			canRevertBlock := header.Nonce > boot.forkDetector.GetHighestFinalBlockNonce()
 			if !canRevertBlock {
