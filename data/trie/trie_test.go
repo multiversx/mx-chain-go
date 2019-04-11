@@ -780,6 +780,5 @@ func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
 		b.StartTimer()
 
 		tr.Commit(nil)
-		tr.Commit(nil)
 	}
 }
