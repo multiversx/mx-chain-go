@@ -451,6 +451,7 @@ func (boot *Bootstrap) SyncBlock() error {
 		if isForkDetected {
 			log.Info(err.Error())
 			boot.removeHeaderFromPools(hdr)
+			boot.forkNonce = boot.forkDetector.GetHighestFinalBlockNonce() + 1
 			err = boot.forkChoice()
 		}
 
