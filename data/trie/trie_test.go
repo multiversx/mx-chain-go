@@ -651,136 +651,135 @@ func deleteString(trie *trie.Trie, k string) {
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
-	var values [][]byte
 
-	for i := 0; i < 1000000; i++ {
+	nrValuesInTrie := 1000000
+	nrValuesNotInTrie := 9000000
+	values := make([][]byte, nrValuesNotInTrie)
+
+	for i := 0; i < nrValuesInTrie; i++ {
 		val := hsh.Compute(strconv.Itoa(i))
 		tr.Update(val, val)
 	}
-	for i := 1000000; i < 10000000; i++ {
-		values = append(values, hsh.Compute(strconv.Itoa(i)))
+	for i := 0; i < nrValuesNotInTrie; i++ {
+		values[i] = hsh.Compute(strconv.Itoa(i + nrValuesInTrie))
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err := tr.Update(values[i%9000000], values[i%9000000])
-		assert.Nil(b, err)
+		tr.Update(values[i%nrValuesNotInTrie], values[i%nrValuesNotInTrie])
 	}
 }
 
 func BenchmarkPatriciaMerkleTree_InsertCollapsedTrie(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
-	var values [][]byte
 
-	for i := 0; i < 1000000; i++ {
+	nrValuesInTrie := 1000000
+	nrValuesNotInTrie := 9000000
+	values := make([][]byte, nrValuesNotInTrie)
+
+	for i := 0; i < nrValuesInTrie; i++ {
 		val := hsh.Compute(strconv.Itoa(i))
 		tr.Update(val, val)
 	}
-	for i := 1000000; i < 10000000; i++ {
-		values = append(values, hsh.Compute(strconv.Itoa(i)))
+	for i := 0; i < nrValuesNotInTrie; i++ {
+		values[i] = hsh.Compute(strconv.Itoa(i + nrValuesInTrie))
 	}
-	_, err := tr.Commit(nil)
-	assert.Nil(b, err)
+	tr.Commit(nil)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err := tr.Update(values[i%9000000], values[i%9000000])
-		assert.Nil(b, err)
+		tr.Update(values[i%nrValuesNotInTrie], values[i%nrValuesNotInTrie])
 	}
 }
 
 func BenchmarkPatriciaMerkleTree_Delete(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
-	var values [][]byte
 
-	for i := 0; i < 3000000; i++ {
-		hash := hsh.Compute(strconv.Itoa(i))
-		values = append(values, hash)
-		tr.Update(hash, hash)
+	nrValuesInTrie := 3000000
+	values := make([][]byte, nrValuesInTrie)
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		values[i] = hsh.Compute(strconv.Itoa(i))
+		tr.Update(values[i], values[i])
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err := tr.Delete(values[i%3000000])
-		assert.Nil(b, err)
+		tr.Delete(values[i%nrValuesInTrie])
 	}
 }
 
 func BenchmarkPatriciaMerkleTree_DeleteCollapsedTrie(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
-	var values [][]byte
 
-	for i := 0; i < 3000000; i++ {
-		hash := hsh.Compute(strconv.Itoa(i))
-		values = append(values, hash)
-		tr.Update(hash, hash)
+	nrValuesInTrie := 3000000
+	values := make([][]byte, nrValuesInTrie)
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		values[i] = hsh.Compute(strconv.Itoa(i))
+		tr.Update(values[i], values[i])
 	}
-	_, err := tr.Commit(nil)
-	assert.Nil(b, err)
+	tr.Commit(nil)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err := tr.Delete(values[i%3000000])
-		assert.Nil(b, err)
+		tr.Delete(values[i%nrValuesInTrie])
 	}
 }
 
 func BenchmarkPatriciaMerkleTree_Get(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
-	var values [][]byte
 
-	for i := 0; i < 3000000; i++ {
-		hash := hsh.Compute(strconv.Itoa(i))
-		values = append(values, hash)
-		tr.Update(hash, hash)
+	nrValuesInTrie := 3000000
+	values := make([][]byte, nrValuesInTrie)
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		values[i] = hsh.Compute(strconv.Itoa(i))
+		tr.Update(values[i], values[i])
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		val, err := tr.Get(values[i%3000000])
-		assert.Nil(b, err)
-		assert.Equal(b, values[i%3000000], val)
+		tr.Get(values[i%nrValuesInTrie])
 	}
 }
 
 func BenchmarkPatriciaMerkleTree_GetCollapsedTrie(b *testing.B) {
 	tr := newEmpty()
 	hsh := keccak.Keccak{}
-	var values [][]byte
 
-	for i := 0; i < 3000000; i++ {
-		hash := hsh.Compute(strconv.Itoa(i))
-		values = append(values, hash)
-		tr.Update(hash, hash)
+	nrValuesInTrie := 3000000
+	values := make([][]byte, nrValuesInTrie)
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		values[i] = hsh.Compute(strconv.Itoa(i))
+		tr.Update(values[i], values[i])
 	}
-	_, err := tr.Commit(nil)
-	assert.Nil(b, err)
+	tr.Commit(nil)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		val, err := tr.Get(values[i%3000000])
-		assert.Nil(b, err)
-		assert.Equal(b, values[i%3000000], val)
+		tr.Get(values[i%nrValuesInTrie])
 	}
 }
 
 func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
+	nrValuesInTrie := 1000000
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		hsh := keccak.Keccak{}
 		tr := newEmpty()
-		for i := 0; i < 1000000; i++ {
+		for i := 0; i < nrValuesInTrie; i++ {
 			hash := hsh.Compute(strconv.Itoa(i))
-			err := tr.Update(hash, hash)
-			assert.Nil(b, err)
+			tr.Update(hash, hash)
 		}
 		b.StartTimer()
 
-		_, err := tr.Commit(nil)
-		assert.Nil(b, err)
+		tr.Commit(nil)
+		tr.Commit(nil)
 	}
 }

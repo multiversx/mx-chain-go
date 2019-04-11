@@ -155,7 +155,7 @@ func (bn *branchNode) isCollapsed() bool {
 	return true
 }
 
-func (bn *branchNode) posIsCollapsed(pos int) bool {
+func (bn *branchNode) isPosCollapsed(pos int) bool {
 	if bn.children[pos] == nil && bn.EncodedChildren[pos] != nil {
 		return true
 	}

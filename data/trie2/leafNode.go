@@ -86,7 +86,7 @@ func (ln *leafNode) isCollapsed() bool {
 	return false
 }
 
-func (ln *leafNode) posIsCollapsed(pos int) bool {
+func (ln *leafNode) isPosCollapsed(pos int) bool {
 	return false
 }
 

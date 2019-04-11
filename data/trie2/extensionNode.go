@@ -150,7 +150,7 @@ func (en *extensionNode) isCollapsed() bool {
 	return false
 }
 
-func (en *extensionNode) posIsCollapsed(pos int) bool {
+func (en *extensionNode) isPosCollapsed(pos int) bool {
 	return en.isCollapsed()
 }
 
