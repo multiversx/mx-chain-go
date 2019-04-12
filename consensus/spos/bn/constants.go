@@ -1,5 +1,7 @@
 package bn
 
+import "github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+
 const (
 	// SrStartRound defines ID of subround "Start round"
 	SrStartRound = iota
@@ -19,7 +21,7 @@ const (
 
 const (
 	// MtUnknown defines ID of a message that has unknown Data inside
-	MtUnknown MessageType = iota
+	MtUnknown spos.MessageType = iota
 	// MtBlockBody defines ID of a message that has a block body inside
 	MtBlockBody
 	// MtBlockHeader defines ID of a message that has a block header inside

@@ -12,10 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-// MessageType specifies what type of message was received
-type MessageType int
-
-func GetStringValue(msgType MessageType) string {
+func GetStringValue(msgType spos.MessageType) string {
 	switch msgType {
 	case MtBlockBody:
 		return "(BLOCK_BODY)"
