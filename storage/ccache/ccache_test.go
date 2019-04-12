@@ -2,10 +2,14 @@ package ccache_test
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/ccache"
 	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func TestCCache_Clear(t *testing.T) {
@@ -72,6 +76,130 @@ func TestCCache_PutRewrite(t *testing.T) {
 	assert.True(t, ok)
 
 	assert.Equal(t, val2, newVal, "key new value should be %s, got %s", val2, newVal)
+}
+
+func TestCCache_PutConcurrent(t *testing.T) {
+	t.Parallel()
+
+	const iterations = 1000
+	c, err := ccache.NewCCache(iterations)
+
+	assert.Nil(t, err, "no error expected but got %v", err)
+
+	ch := make(chan int)
+	var arr [iterations]int
+
+	// Using go routines insert 1000 ints into our map.
+	go func() {
+		for i := 0; i < iterations/2; i++ {
+			c.Put([]byte(strconv.Itoa(i)), i)
+
+			val, _ := c.Get([]byte(strconv.Itoa(i)))
+
+			ch <- val.(int)
+		}
+	}()
+
+	go func() {
+		for i := iterations / 2; i < iterations; i++ {
+			c.Put([]byte(strconv.Itoa(i)), i)
+
+			val, _ := c.Get([]byte(strconv.Itoa(i)))
+
+			ch <- val.(int)
+		}
+	}()
+
+	// Wait for all go routines to finish.
+	idx := 0
+	for elem := range ch {
+		arr[idx] = elem
+		idx++
+		if idx == iterations {
+			break
+		}
+	}
+
+	// Sorts array, will make is simpler to verify all inserted values we're returned.
+	sort.Ints(arr[0:iterations])
+
+	// Make sure map contains 1000 elements.
+	l := c.Len()
+	assert.Equal(t, l, iterations, "expected map size: 1000, got %d", l)
+
+	// Make sure all inserted values we're fetched from map.
+	for i := 0; i < iterations; i++ {
+		assert.Equal(t, i, arr[i], "the value %v is missing from the map", i)
+	}
+}
+
+func TestCCache_PutConcurrentWaitGroup(t *testing.T) {
+	t.Parallel()
+
+	const iterations = 1000
+	c, err := ccache.NewCCache(iterations)
+
+	assert.Nil(t, err, "no error expected but got %v", err)
+
+	ch := make(chan int)
+	done := make(chan bool)
+	var arr [iterations]int
+
+	var wg sync.WaitGroup
+
+	wg.Add(iterations)
+
+	// Using go routines to insert 1000 items into the map
+	for i := 0; i < iterations/2; i++ {
+		go func(i int) {
+			defer wg.Done()
+			c.Put([]byte(strconv.Itoa(i)), i)
+
+			val, _ := c.Get([]byte(strconv.Itoa(i)))
+			ch <- val.(int)
+		}(i)
+	}
+
+	for i := iterations / 2; i < iterations; i++ {
+		go func(i int) {
+			defer wg.Done()
+			c.Put([]byte(strconv.Itoa(i)), i)
+
+			val, _ := c.Get([]byte(strconv.Itoa(i)))
+			ch <- val.(int)
+		}(i)
+	}
+
+	go func() {
+		wg.Wait()
+		close(ch) // close the channel
+		done <- true // signal completion
+	}()
+
+	idx := 0
+	for elem := range ch {
+		arr[idx] = elem
+		idx++
+	}
+
+	// Sorts array, will make is simpler to verify all inserted values we're returned.
+	sort.Ints(arr[:iterations])
+
+	// Make sure map contains 1000 elements.
+	l := c.Len()
+	assert.Equal(t, l, iterations, "expected map size: 1000, got %d", l)
+
+	// Make sure all inserted values we're fetched from map.
+	for i := 0; i < iterations; i++ {
+		assert.Equal(t, i, arr[i], "the value %v is missing from the map", i)
+	}
+
+	select {
+	case <-done:
+	case <- time.After(time.Second):
+		assert.Fail(t, "should have been called")
+		return
+	}
 }
 
 func TestCCache_GetNotPresent(t *testing.T) {
@@ -196,6 +324,34 @@ func TestCCache_RemovePresent(t *testing.T) {
 	found := c.Has([]byte(key))
 
 	assert.False(t, found, "not expected to find a key %s", key)
+}
+
+func TestCCache_RemoveConcurrent(t *testing.T) {
+	t.Parallel()
+
+	size := 100
+	c, err := ccache.NewCCache(size)
+
+	assert.Nil(t, err, "no error expected, but got %v", err)
+
+	var ch = make(chan int)
+
+	go func() {
+		for i := 0; i < size; i++ {
+			c.Put([]byte(strconv.Itoa(i)), i)
+
+			val, _ := c.Get([]byte(strconv.Itoa(i)))
+
+			ch <- val.(int)
+		}
+		close(ch) // close the channel
+	}()
+
+	for elem := range ch {
+		c.Remove([]byte(strconv.Itoa(elem)))
+	}
+
+	assert.Equal(t, 0, c.Len(), "expected map size: 0, got %d", c.Len())
 }
 
 func TestCCache_RemoveOldestPresent(t *testing.T) {

@@ -172,7 +172,7 @@ func (c *CCache) callAddedDataHandlers(key []byte) {
 	c.mutAddedDataHandlers.RUnlock()
 }
 
-// removeMapKey checks if a key from the cache exists in the keys slice and removes it
+// removeMapKey removes the corresponding map key from the keys slice
 func (c *CCache) removeMapKey(key []byte) {
 	if len(mapKeys) > 0 {
 		for i := 0; i < len(mapKeys); i++ {
