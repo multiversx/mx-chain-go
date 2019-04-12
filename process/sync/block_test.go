@@ -988,6 +988,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 
 	bs.RequestHeader(2)
 
+	bs.SetHighestNonceReceived(2)
 	r := bs.SyncBlock()
 
 	assert.Equal(t, process.ErrMissingBody, r)
@@ -1367,6 +1368,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		account,
 	)
 
+	bs.SetHighestNonceReceived(2)
 	err := bs.SyncBlock()
 
 	assert.Equal(t, &sync.ErrSignedBlock{
@@ -1437,6 +1439,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		account,
 	)
 
+	bs.SetHighestNonceReceived(1)
 	assert.True(t, bs.ShouldSync())
 }
 

@@ -1182,10 +1182,12 @@ func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	executed := int32(0)
-	wrk.BroadcastBlock = func(data.BodyHandler, data.HeaderHandler) error {
-		atomic.AddInt32(&executed, 1)
-		return nil
+	blockProcessor := &mock.BlockProcessorMock{
+		RevertAccountStateCalled: func() {
+			atomic.AddInt32(&executed, 1)
+		},
 	}
+	wrk.SetBlockProcessor(blockProcessor)
 	wrk.ConsensusState().SetProcessingBlock(true)
 	n := 10
 	go func() {
@@ -1205,10 +1207,12 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	executed := int32(0)
-	wrk.BroadcastBlock = func(data.BodyHandler, data.HeaderHandler) error {
-		atomic.AddInt32(&executed, 1)
-		return nil
+	blockProcessor := &mock.BlockProcessorMock{
+		RevertAccountStateCalled: func() {
+			atomic.AddInt32(&executed, 1)
+		},
 	}
+	wrk.SetBlockProcessor(blockProcessor)
 	wrk.Extend(0)
 	time.Sleep(1000 * time.Millisecond)
 
