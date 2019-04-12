@@ -200,11 +200,11 @@ func (wrk *worker) getCleanedList(cnsDataList []*spos.ConsensusMessage) []*spos.
 // ProcessReceivedMessage method redirects the received message to the channel which should handle it
 func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	if message == nil {
-		return ErrNilMessage
+		return spos.ErrNilMessage
 	}
 
 	if message.Data() == nil {
-		return ErrNilDataToProcess
+		return spos.ErrNilDataToProcess
 	}
 
 	cnsDta := &spos.ConsensusMessage{}
@@ -213,19 +213,19 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return err
 	}
 
-	log.Debug(fmt.Sprintf("received %s from %s\n", MessageType(cnsDta.MsgType).String(), hex.EncodeToString(cnsDta.PubKey)))
+	log.Debug(fmt.Sprintf("received %s from %s\n", GetStringValue(MessageType(cnsDta.MsgType)), hex.EncodeToString(cnsDta.PubKey)))
 
 	if wrk.consensusState.RoundCanceled && wrk.consensusState.RoundIndex == cnsDta.RoundIndex {
-		return ErrRoundCanceled
+		return spos.ErrRoundCanceled
 	}
 
 	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
 	if !senderOK {
-		return ErrSenderNotOk
+		return spos.ErrSenderNotOk
 	}
 
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
-		return ErrMessageForPastRound
+		return spos.ErrMessageForPastRound
 	}
 
 	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) {
@@ -236,7 +236,7 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 
 	sigVerifErr := wrk.checkSignature(cnsDta)
 	if sigVerifErr != nil {
-		return ErrInvalidSignature
+		return spos.ErrInvalidSignature
 	}
 
 	go wrk.executeReceivedMessages(cnsDta)

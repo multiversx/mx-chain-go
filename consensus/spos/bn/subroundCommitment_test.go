@@ -10,8 +10,8 @@ import (
 )
 
 func initSubroundCommitment() bn.SubroundCommitment {
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -43,8 +43,8 @@ func initSubroundCommitment() bn.SubroundCommitment {
 func TestSubroundCommitment_NewSubroundCommitmentNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -65,7 +65,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSubroundShouldFail(t *testin
 func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -98,7 +98,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *
 func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -131,8 +131,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *tes
 func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
 	ch := make(chan bool, 1)
@@ -164,8 +164,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing
 func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 
 	ch := make(chan bool, 1)
@@ -197,8 +197,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testi
 func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -231,8 +231,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunction
 func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
