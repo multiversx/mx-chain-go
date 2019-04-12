@@ -1,15 +1,16 @@
 package ccache_test
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/ccache"
 	"github.com/stretchr/testify/assert"
-	"time"
 )
 
 func TestCCache_Clear(t *testing.T) {
@@ -172,7 +173,7 @@ func TestCCache_PutConcurrentWaitGroup(t *testing.T) {
 
 	go func() {
 		wg.Wait()
-		close(ch) // close the channel
+		close(ch)    // close the channel
 		done <- true // signal completion
 	}()
 
@@ -196,7 +197,7 @@ func TestCCache_PutConcurrentWaitGroup(t *testing.T) {
 
 	select {
 	case <-done:
-	case <- time.After(time.Second):
+	case <-time.After(time.Second):
 		assert.Fail(t, "should have been called")
 		return
 	}
@@ -431,4 +432,49 @@ func TestCCache_Len(t *testing.T) {
 	}
 
 	assert.Equal(t, c.Len(), 10, "expected map size: 10, got %d", c.Len())
+}
+
+func TestCCache_CacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
+	t.Parallel()
+
+	c, err := ccache.NewCCache(100)
+	assert.Nil(t, err)
+	c.RegisterHandler(nil)
+
+	assert.Equal(t, 0, len(c.AddedDataHandlers()))
+}
+
+func TestLRUCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	chDone := make(chan bool, 0)
+
+	f := func(key []byte) {
+		if !bytes.Equal([]byte("aaaa"), key) {
+			return
+		}
+
+		wg.Done()
+	}
+
+	go func() {
+		wg.Wait()
+		chDone <- true
+	}()
+
+	c, err := ccache.NewCCache(100)
+	assert.Nil(t, err)
+	c.RegisterHandler(f)
+	c.Put([]byte("aaaa"), "bbbb")
+
+	select {
+	case <-chDone:
+	case <-time.After(time.Second):
+		assert.Fail(t, "should have been called")
+		return
+	}
+
+	assert.Equal(t, 1, len(c.AddedDataHandlers()))
 }
