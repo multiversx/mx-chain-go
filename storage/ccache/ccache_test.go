@@ -3,13 +3,23 @@ package ccache_test
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/fnv"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage/ccache"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/leveldb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -444,7 +454,7 @@ func TestCCache_CacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.
 	assert.Equal(t, 0, len(c.AddedDataHandlers()))
 }
 
-func TestLRUCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
+func TestCCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	wg := sync.WaitGroup{}
@@ -477,4 +487,201 @@ func TestLRUCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
 	}
 
 	assert.Equal(t, 1, len(c.AddedDataHandlers()))
+}
+
+const (
+	valuesInDb = 100000
+	bfSize     = 100000
+)
+
+func initSUWithNilBloomFilter(cSize int) *storage.Unit {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	ldb, err1 := leveldb.NewDB(dir + "/levelDB")
+	cache, err2 := ccache.NewCCache(cSize)
+
+	if err1 != nil {
+		fmt.Println(err1)
+	}
+	if err2 != nil {
+		fmt.Println(err2)
+	}
+
+	sUnit, err := storage.NewStorageUnit(cache, ldb)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return sUnit
+
+}
+
+func initSUWithBloomFilter(cSize int, bfSize uint) *storage.Unit {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	ldb, err1 := leveldb.NewDB(dir + "/levelDB")
+	cache, err2 := ccache.NewCCache(cSize)
+	bf, err3 := bloom.NewFilter(bfSize, []hashing.Hasher{keccak.Keccak{}, blake2b.Blake2b{}, fnv.Fnv{}})
+
+	if err1 != nil {
+		fmt.Println(err1)
+	}
+	if err2 != nil {
+		fmt.Println(err2)
+	}
+	if err3 != nil {
+		fmt.Println(err3)
+	}
+
+	sUnit, err := storage.NewStorageUnitWithBloomFilter(cache, ldb, bf)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return sUnit
+}
+
+func BenchmarkStorageUnit_PutWithNilBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithNilBloomFilter(1)
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb)
+		b.StartTimer()
+
+		err := s.Put([]byte(strconv.Itoa(nr)), []byte(strconv.Itoa(nr)))
+		logError(err)
+	}
+}
+
+func BenchmarkStorageUnit_PutWithBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithBloomFilter(100, bfSize)
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb)
+		b.StartTimer()
+
+		err := s.Put([]byte(strconv.Itoa(nr)), []byte(strconv.Itoa(nr)))
+		logError(err)
+	}
+}
+
+func BenchmarkStorageUnit_GetPresentWithNilBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithNilBloomFilter(1)
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
+	for i := 0; i < valuesInDb; i++ {
+		err := s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		logError(err)
+	}
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb)
+		b.StartTimer()
+
+		_, err := s.Get([]byte(strconv.Itoa(nr)))
+		logError(err)
+	}
+}
+
+func BenchmarkStorageUnit_GetPresentWithBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithBloomFilter(1, bfSize)
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
+	for i := 0; i < valuesInDb; i++ {
+		err := s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		logError(err)
+	}
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb)
+		b.StartTimer()
+
+		_, err := s.Get([]byte(strconv.Itoa(nr)))
+		logError(err)
+	}
+}
+
+func BenchmarkStorageUnit_GetNotPresentWithNilBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithNilBloomFilter(1)
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
+	for i := 0; i < valuesInDb; i++ {
+		err := s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		logError(err)
+	}
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb) + valuesInDb
+		b.StartTimer()
+
+		_, err := s.Get([]byte(strconv.Itoa(nr)))
+		logError(err)
+	}
+}
+
+func BenchmarkStorageUnit_GetNotPresentWithBloomFilter(b *testing.B) {
+	b.StopTimer()
+	s := initSUWithBloomFilter(1, bfSize)
+	defer func() {
+		err := s.DestroyUnit()
+		logError(err)
+	}()
+	for i := 0; i < valuesInDb; i++ {
+		err := s.Put([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+		logError(err)
+	}
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		nr := rand.Intn(valuesInDb) + valuesInDb
+		b.StartTimer()
+
+		_, err := s.Get([]byte(strconv.Itoa(nr)))
+		logError(err)
+	}
+}
+
+func logError(err error) {
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return
 }
