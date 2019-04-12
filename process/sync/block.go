@@ -26,9 +26,9 @@ var log = logger.DefaultLogger()
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = time.Duration(5 * time.Millisecond)
 
-// maxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
-// block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
-const maxRoundsToWait = 3
+//// maxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
+//// block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
+//const maxRoundsToWait = 100
 
 type receivedHeaderInfo struct {
 	highestNonce uint64
@@ -298,12 +298,13 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 	if header != nil {
 		boot.mutRcvHdrInfo.Lock()
 		if header.Nonce > boot.rcvHdrInfo.highestNonce {
-			log.Info(fmt.Sprintf("receivedHeaders: received header with nonce %d from network, which is the highest nonce received until now\n", header.Nonce))
+			log.Info(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network, which is the highest nonce received until now\n",
+				header.Nonce,
+				toB64(headerHash)))
 			boot.rcvHdrInfo.highestNonce = header.Nonce
 			boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
 		}
 		boot.mutRcvHdrInfo.Unlock()
-		log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
 	}
 
 	err := boot.forkDetector.AddHeader(header, headerHash, false)
@@ -315,19 +316,17 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 // receivedHeaderNonce method is a call back function which is called when a new header is added
 // in the block headers pool
 func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
+	headerHash, _ := boot.headersNonces.Get(nonce)
 	//TODO: make sure that header validation done on interceptors do not add headers with wrong nonces/round numbers
 	boot.mutRcvHdrInfo.Lock()
 	if nonce > boot.rcvHdrInfo.highestNonce {
-		log.Info(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d from network, which is the highest nonce received until now\n", nonce))
+		log.Info(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network, which is the highest nonce received until now\n",
+			nonce,
+			toB64(headerHash)))
 		boot.rcvHdrInfo.highestNonce = nonce
 		boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
 	}
 	boot.mutRcvHdrInfo.Unlock()
-
-	headerHash, _ := boot.headersNonces.Get(nonce)
-	if headerHash != nil {
-		log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n", nonce, toB64(headerHash)))
-	}
 
 	n := boot.requestedHeaderNonce()
 	if n == nil {
@@ -335,7 +334,9 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 
 	if *n == nonce {
-		log.Info(fmt.Sprintf("received requested header with nonce %d from network\n", nonce))
+		log.Info(fmt.Sprintf("received requested header with nonce %d and hash %s from network\n",
+			nonce,
+			toB64(headerHash)))
 		boot.setRequestedHeaderNonce(nil)
 		boot.chRcvHdr <- true
 	}
@@ -411,12 +412,12 @@ func (boot *Bootstrap) SyncBlock() error {
 
 	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
 	if err != nil {
-		if err == process.ErrMissingHeader {
-			if boot.shouldCreateEmptyBlock(nonce) {
-				log.Info(err.Error())
-				err = boot.createAndBroadcastEmptyBlock()
-			}
-		}
+		//if err == process.ErrMissingHeader {
+		//	if boot.shouldCreateEmptyBlock(nonce) {
+		//		log.Info(err.Error())
+		//		err = boot.createAndBroadcastEmptyBlock()
+		//	}
+		//}
 
 		return err
 	}
@@ -451,7 +452,7 @@ func (boot *Bootstrap) SyncBlock() error {
 		if isForkDetected {
 			log.Info(err.Error())
 			boot.removeHeaderFromPools(hdr)
-			boot.forkNonce = boot.forkDetector.GetHighestFinalBlockNonce() + 1
+			//boot.forkNonce = boot.forkDetector.GetHighestFinalBlockNonce() + 1
 			err = boot.forkChoice()
 		}
 
@@ -469,50 +470,50 @@ func (boot *Bootstrap) SyncBlock() error {
 	return nil
 }
 
-func (boot *Bootstrap) shouldCreateEmptyBlock(nonce uint64) bool {
-	if boot.isForkDetected {
-		return false
-	}
+//func (boot *Bootstrap) shouldCreateEmptyBlock(nonce uint64) bool {
+//	if boot.isForkDetected {
+//		return false
+//	}
+//
+//	boot.mutRcvHdrInfo.RLock()
+//	if nonce <= boot.rcvHdrInfo.highestNonce {
+//		roundsWithoutReceivedHeader := boot.rounder.Index() - boot.rcvHdrInfo.roundIndex
+//		if roundsWithoutReceivedHeader <= maxRoundsToWait {
+//			boot.mutRcvHdrInfo.RUnlock()
+//			return false
+//		}
+//	}
+//	boot.mutRcvHdrInfo.RUnlock()
+//
+//	return true
+//}
 
-	boot.mutRcvHdrInfo.RLock()
-	if nonce <= boot.rcvHdrInfo.highestNonce {
-		roundsWithoutReceivedHeader := boot.rounder.Index() - boot.rcvHdrInfo.roundIndex
-		if roundsWithoutReceivedHeader <= maxRoundsToWait {
-			boot.mutRcvHdrInfo.RUnlock()
-			return false
-		}
-	}
-	boot.mutRcvHdrInfo.RUnlock()
+//func (boot *Bootstrap) createAndBroadcastEmptyBlock() error {
+//	txBlockBody, header, err := boot.CreateAndCommitEmptyBlock(boot.shardCoordinator.SelfId())
+//
+//	if err == nil {
+//		log.Info(fmt.Sprintf("body and header with root hash %s and nonce %d were created and commited through the recovery mechanism\n",
+//			toB64(header.GetRootHash()),
+//			header.GetNonce()))
+//
+//		err = boot.broadcastEmptyBlock(txBlockBody.(block.Body), header.(*block.Header))
+//	}
+//
+//	return err
+//}
 
-	return true
-}
-
-func (boot *Bootstrap) createAndBroadcastEmptyBlock() error {
-	txBlockBody, header, err := boot.CreateAndCommitEmptyBlock(boot.shardCoordinator.SelfId())
-
-	if err == nil {
-		log.Info(fmt.Sprintf("body and header with root hash %s and nonce %d were created and commited through the recovery mechanism\n",
-			toB64(header.GetRootHash()),
-			header.GetNonce()))
-
-		err = boot.broadcastEmptyBlock(txBlockBody.(block.Body), header.(*block.Header))
-	}
-
-	return err
-}
-
-func (boot *Bootstrap) broadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
-	log.Info(fmt.Sprintf("broadcasting an empty block\n"))
-
-	// broadcast block body and header
-	err := boot.BroadcastBlock(txBlockBody, header)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+//func (boot *Bootstrap) broadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
+//	log.Info(fmt.Sprintf("broadcasting an empty block\n"))
+//
+//	// broadcast block body and header
+//	err := boot.BroadcastBlock(txBlockBody, header)
+//
+//	if err != nil {
+//		return err
+//	}
+//
+//	return nil
+//}
 
 func (boot *Bootstrap) notifySyncStateListeners() {
 	boot.mutSyncStateListeners.RLock()
@@ -808,11 +809,15 @@ func (boot *Bootstrap) ShouldSync() bool {
 
 	boot.isForkDetected, boot.forkNonce = boot.forkDetector.CheckFork()
 
+	boot.mutRcvHdrInfo.RLock()
 	if boot.blkc.GetCurrentBlockHeader() == nil {
-		boot.hasLastBlock = boot.rounder.Index() <= 0
+		//boot.hasLastBlock = boot.rounder.Index() <= 0
+		boot.hasLastBlock = boot.rcvHdrInfo.highestNonce <= 0
 	} else {
-		boot.hasLastBlock = boot.blkc.GetCurrentBlockHeader().GetRound()+1 >= uint32(boot.rounder.Index())
+		//boot.hasLastBlock = boot.blkc.GetCurrentBlockHeader().GetRound()+1 >= uint32(boot.rounder.Index())
+		boot.hasLastBlock = boot.blkc.GetCurrentBlockHeader().GetNonce() >= boot.rcvHdrInfo.highestNonce
 	}
+	boot.mutRcvHdrInfo.RUnlock()
 
 	isNodeSynchronized := !boot.isForkDetected && boot.hasLastBlock
 
@@ -827,76 +832,76 @@ func (boot *Bootstrap) ShouldSync() bool {
 	return !isNodeSynchronized
 }
 
-func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
-	currentRoundIndex := boot.rounder.Index()
-	currentRoundTimeStamp := boot.rounder.TimeStamp()
-	roundDuration := boot.rounder.TimeDuration()
+//func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
+//	currentRoundIndex := boot.rounder.Index()
+//	currentRoundTimeStamp := boot.rounder.TimeStamp()
+//	roundDuration := boot.rounder.TimeDuration()
+//
+//	diff := int32(roundIndex) - currentRoundIndex
+//
+//	roundTimeStamp := currentRoundTimeStamp.Add(roundDuration * time.Duration(diff))
+//
+//	return roundTimeStamp
+//}
 
-	diff := int32(roundIndex) - currentRoundIndex
+//func (boot *Bootstrap) createHeader() (data.HeaderHandler, error) {
+//	hdr := &block.Header{}
+//
+//	var prevHeaderHash []byte
+//
+//	if boot.blkc.GetCurrentBlockHeader() == nil {
+//		hdr.Nonce = 1
+//		hdr.Round = 0
+//		prevHeaderHash = boot.blkc.GetGenesisHeaderHash()
+//		hdr.PrevRandSeed = boot.blkc.GetGenesisHeader().GetSignature()
+//	} else {
+//		hdr.Nonce = boot.blkc.GetCurrentBlockHeader().GetNonce() + 1
+//		hdr.Round = boot.blkc.GetCurrentBlockHeader().GetRound() + 1
+//		prevHeaderHash = boot.blkc.GetCurrentBlockHeaderHash()
+//		hdr.PrevRandSeed = boot.blkc.GetCurrentBlockHeader().GetSignature()
+//	}
+//
+//	hdr.RandSeed = []byte{0}
+//	hdr.TimeStamp = uint64(boot.getTimeStampForRound(hdr.Round).Unix())
+//	hdr.PrevHash = prevHeaderHash
+//	hdr.RootHash = boot.accounts.RootHash()
+//	hdr.PubKeysBitmap = make([]byte, 0)
+//	hdr.MiniBlockHeaders = make([]block.MiniBlockHeader, 0)
+//
+//	return hdr, nil
+//}
 
-	roundTimeStamp := currentRoundTimeStamp.Add(roundDuration * time.Duration(diff))
-
-	return roundTimeStamp
-}
-
-func (boot *Bootstrap) createHeader() (data.HeaderHandler, error) {
-	hdr := &block.Header{}
-
-	var prevHeaderHash []byte
-
-	if boot.blkc.GetCurrentBlockHeader() == nil {
-		hdr.Nonce = 1
-		hdr.Round = 0
-		prevHeaderHash = boot.blkc.GetGenesisHeaderHash()
-		hdr.PrevRandSeed = boot.blkc.GetGenesisHeader().GetSignature()
-	} else {
-		hdr.Nonce = boot.blkc.GetCurrentBlockHeader().GetNonce() + 1
-		hdr.Round = boot.blkc.GetCurrentBlockHeader().GetRound() + 1
-		prevHeaderHash = boot.blkc.GetCurrentBlockHeaderHash()
-		hdr.PrevRandSeed = boot.blkc.GetCurrentBlockHeader().GetSignature()
-	}
-
-	hdr.RandSeed = []byte{0}
-	hdr.TimeStamp = uint64(boot.getTimeStampForRound(hdr.Round).Unix())
-	hdr.PrevHash = prevHeaderHash
-	hdr.RootHash = boot.accounts.RootHash()
-	hdr.PubKeysBitmap = make([]byte, 0)
-	hdr.MiniBlockHeaders = make([]block.MiniBlockHeader, 0)
-
-	return hdr, nil
-}
-
-// CreateAndCommitEmptyBlock creates and commits an empty block
-func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
-	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
-
-	blk := make(block.Body, 0)
-
-	hdr, err := boot.createHeader()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// TODO: decide the signature for the empty block
-	headerStr, err := boot.marshalizer.Marshal(hdr)
-	if err != nil {
-		return nil, nil, err
-	}
-	hdrHash := boot.hasher.Compute(string(headerStr))
-	hdr.SetSignature(hdrHash)
-
-	// Commit the block (commits also the account state)
-	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	msg := fmt.Sprintf("Added empty block with nonce  %d  in blockchain", hdr.GetNonce())
-	log.Info(log.Headline(msg, "", "*"))
-
-	return blk, hdr, nil
-}
+//// CreateAndCommitEmptyBlock creates and commits an empty block
+//func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
+//	log.Info(fmt.Sprintf("creating and commiting an empty block\n"))
+//
+//	blk := make(block.Body, 0)
+//
+//	hdr, err := boot.createHeader()
+//	if err != nil {
+//		return nil, nil, err
+//	}
+//
+//	// TODO: decide the signature for the empty block
+//	headerStr, err := boot.marshalizer.Marshal(hdr)
+//	if err != nil {
+//		return nil, nil, err
+//	}
+//	hdrHash := boot.hasher.Compute(string(headerStr))
+//	hdr.SetSignature(hdrHash)
+//
+//	// Commit the block (commits also the account state)
+//	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
+//
+//	if err != nil {
+//		return nil, nil, err
+//	}
+//
+//	msg := fmt.Sprintf("Added empty block with nonce  %d  in blockchain", hdr.GetNonce())
+//	log.Info(log.Headline(msg, "", "*"))
+//
+//	return blk, hdr, nil
+//}
 
 func (boot *Bootstrap) emptyChannel(ch chan bool) {
 	for len(ch) > 0 {

@@ -1,8 +1,6 @@
 package sync
 
 import (
-	"time"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
@@ -98,21 +96,21 @@ func (boot *Bootstrap) SetIsForkDetected(isForkDetected bool) {
 	boot.isForkDetected = isForkDetected
 }
 
-func (boot *Bootstrap) GetTimeStampForRound(roundIndex uint32) time.Time {
-	return boot.getTimeStampForRound(roundIndex)
-}
+//func (boot *Bootstrap) GetTimeStampForRound(roundIndex uint32) time.Time {
+//	return boot.getTimeStampForRound(roundIndex)
+//}
 
-func (boot *Bootstrap) ShouldCreateEmptyBlock(nonce uint64) bool {
-	return boot.shouldCreateEmptyBlock(nonce)
-}
+//func (boot *Bootstrap) ShouldCreateEmptyBlock(nonce uint64) bool {
+//	return boot.shouldCreateEmptyBlock(nonce)
+//}
 
-func (boot *Bootstrap) CreateAndBroadcastEmptyBlock() error {
-	return boot.createAndBroadcastEmptyBlock()
-}
+//func (boot *Bootstrap) CreateAndBroadcastEmptyBlock() error {
+//	return boot.createAndBroadcastEmptyBlock()
+//}
 
-func (boot *Bootstrap) BroadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
-	return boot.broadcastEmptyBlock(txBlockBody, header)
-}
+//func (boot *Bootstrap) BroadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
+//	return boot.broadcastEmptyBlock(txBlockBody, header)
+//}
 
 func (boot *Bootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
 	boot.isNodeSynchronized = isNodeSyncronized
