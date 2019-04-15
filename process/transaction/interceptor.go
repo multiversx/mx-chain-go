@@ -14,14 +14,15 @@ import (
 
 // TxInterceptor is used for intercepting transaction and storing them into a datapool
 type TxInterceptor struct {
-	marshalizer      marshal.Marshalizer
-	txPool           data.ShardedDataCacherNotifier
-	txStorer         storage.Storer
-	addrConverter    state.AddressConverter
-	hasher           hashing.Hasher
-	singleSigner     crypto.SingleSigner
-	keyGen           crypto.KeyGenerator
-	shardCoordinator sharding.Coordinator
+	marshalizer              marshal.Marshalizer
+	txPool                   data.ShardedDataCacherNotifier
+	txStorer                 storage.Storer
+	addrConverter            state.AddressConverter
+	hasher                   hashing.Hasher
+	singleSigner             crypto.SingleSigner
+	keyGen                   crypto.KeyGenerator
+	shardCoordinator         sharding.Coordinator
+	broadcastCallbackHandler func(buffToSend []byte)
 }
 
 // NewTxInterceptor hooks a new interceptor for transactions
@@ -39,31 +40,24 @@ func NewTxInterceptor(
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
 	}
-
 	if txPool == nil {
 		return nil, process.ErrNilTxDataPool
 	}
-
 	if txStorer == nil {
 		return nil, process.ErrNilTxStorage
 	}
-
 	if addrConverter == nil {
 		return nil, process.ErrNilAddressConverter
 	}
-
 	if hasher == nil {
 		return nil, process.ErrNilHasher
 	}
-
 	if singleSigner == nil {
 		return nil, process.ErrNilSingleSigner
 	}
-
 	if keyGen == nil {
 		return nil, process.ErrNilKeyGen
 	}
-
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
@@ -93,53 +87,71 @@ func (txi *TxInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return process.ErrNilDataToProcess
 	}
 
-	txIntercepted := NewInterceptedTransaction(txi.singleSigner)
-	err := txi.marshalizer.Unmarshal(txIntercepted, message.Data())
+	txsBuff := make([][]byte, 0)
+	err := txi.marshalizer.Unmarshal(&txsBuff, message.Data())
 	if err != nil {
 		return err
 	}
-
-	txIntercepted.SetAddressConverter(txi.addrConverter)
-	txIntercepted.SetSingleSignKeyGen(txi.keyGen)
-	hashWithSig := txi.hasher.Compute(string(message.Data()))
-	txIntercepted.SetHash(hashWithSig)
-
-	copiedTx := *txIntercepted.GetTransaction()
-	copiedTx.Signature = nil
-
-	buffCopiedTx, err := txi.marshalizer.Marshal(&copiedTx)
-	if err != nil {
-		return err
-	}
-	txIntercepted.SetTxBuffWithoutSig(buffCopiedTx)
-
-	err = txIntercepted.IntegrityAndValidity(txi.shardCoordinator)
-	if err != nil {
-		return err
+	if len(txsBuff) == 0 {
+		return process.ErrNoTransactionInMessage
 	}
 
-	err = txIntercepted.VerifySig()
-	if err != nil {
-		return err
+	filteredTxsBuffs := make([][]byte, 0)
+	lastErrEncountered := error(nil)
+	for _, txBuff := range txsBuff {
+		txIntercepted, err := NewInterceptedTransaction(
+			txBuff,
+			txi.marshalizer,
+			txi.hasher,
+			txi.keyGen,
+			txi.singleSigner,
+			txi.addrConverter,
+			txi.shardCoordinator)
+
+		if err != nil {
+			lastErrEncountered = err
+			continue
+		}
+
+		//tx is validated, add it to filtered out txs
+		filteredTxsBuffs = append(filteredTxsBuffs, txBuff)
+		if txIntercepted.IsAddressedToOtherShards() {
+			log.Debug("intercepted tx is for other shards")
+
+			continue
+		}
+
+		isTxInStorage, _ := txi.txStorer.Has(txIntercepted.Hash())
+		if isTxInStorage {
+			log.Debug("intercepted tx already processed")
+			continue
+		}
+
+		cacherIdentifier := process.ShardCacherIdentifier(txIntercepted.SndShard(), txIntercepted.RcvShard())
+		txi.txPool.AddData(
+			txIntercepted.Hash(),
+			txIntercepted.Transaction(),
+			cacherIdentifier,
+		)
 	}
 
-	if txIntercepted.IsAddressedToOtherShards() {
-		log.Debug("intercepted tx is for other shards")
-		return nil
+	var buffToSend []byte
+	filteredOutTxsNeedToBeSend := len(filteredTxsBuffs) > 0 && lastErrEncountered != nil
+	if filteredOutTxsNeedToBeSend {
+		buffToSend, err = txi.marshalizer.Marshal(filteredTxsBuffs)
+		if err != nil {
+			return err
+		}
 	}
 
-	isTxInStorage, _ := txi.txStorer.Has(hashWithSig)
-
-	if isTxInStorage {
-		log.Debug("intercepted tx already processed")
-		return nil
+	if txi.broadcastCallbackHandler != nil {
+		txi.broadcastCallbackHandler(buffToSend)
 	}
 
-	cacherIdentifier := process.ShardCacherIdentifier(txIntercepted.SndShard(), txIntercepted.RcvShard())
-	txi.txPool.AddData(
-		hashWithSig,
-		txIntercepted.GetTransaction(),
-		cacherIdentifier,
-	)
-	return nil
+	return lastErrEncountered
+}
+
+// SetBroadcastCallback sets the callback method to send filtered out message
+func (txi *TxInterceptor) SetBroadcastCallback(callback func(buffToSend []byte)) {
+	txi.broadcastCallbackHandler = callback
 }
