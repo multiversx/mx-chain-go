@@ -359,12 +359,19 @@ func TestCCache_RemoveConcurrent(t *testing.T) {
 		close(ch) // close the channel
 	}()
 
+	wg := sync.WaitGroup{}
+
 	// Remove cache value concurrently
-	go func() {
-		for elem := range ch {
+	for elem := range ch {
+		wg.Add(1)
+
+		go func(elem int) {
+			defer wg.Done()
 			c.Remove([]byte(strconv.Itoa(elem)))
-		}
-	}()
+		}(elem)
+
+		wg.Wait()
+	}
 
 	assert.Equal(t, 0, c.Len(), "expected map size: 0, got %d", c.Len())
 }
