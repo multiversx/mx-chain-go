@@ -55,7 +55,10 @@ func (c *CCache) Put(key []byte, value interface{}) (evicted bool) {
 	}
 
 	// Save the keys into a separate slice prior inserting the key/value into the map
+	c.mkGuard.Lock()
 	c.mapKeys = append(c.mapKeys, string(key))
+	c.mkGuard.Unlock()
+
 	c.cache.Set(string(key), value)
 
 	c.callAddedDataHandlers(key)
