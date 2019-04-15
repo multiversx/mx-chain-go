@@ -305,7 +305,7 @@ func (bp *blockProcessor) restoreTxBlockIntoPools(blockChain data.ChainHandler,
 	for i := 0; i < len(blockBody); i++ {
 		miniBlock := blockBody[i]
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-		txsBuff, err := blockChain.GetAll(data.TransactionUnit, miniBlock.TxHashes)
+		txsBuff, err := bp.store.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
 			return err
 		}

@@ -75,7 +75,6 @@ func createTestBlockChain() *blockchain.BlockChain {
 func createMemUnit() storage.Storer {
 	cache, _ := storage.NewCache(storage.LRUCache, 10)
 	persist, _ := memorydb.New()
-
 	unit, _ := storage.NewStorageUnit(cache, persist)
 	return unit
 }

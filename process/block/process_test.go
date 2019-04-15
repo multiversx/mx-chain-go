@@ -2842,11 +2842,31 @@ func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHas
 	return metaBlock
 }
 
+func createMemUnit() storage.Storer {
+	cache, _ := storage.NewCache(storage.LRUCache, 10)
+	persist, _ := memorydb.New()
+	unit, _ := storage.NewStorageUnit(cache, persist)
+	return unit
+}
+
+func createTestStore() dataRetriever.StorageService {
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+	return store
+}
+
 func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockChain(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
+
 	be, _ := blproc.NewBlockProcessor(
-		tdp, &mock.HasherStub{},
+		tdp,
+		createTestStore(),
+		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
@@ -2865,7 +2885,9 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.
 	t.Parallel()
 	tdp := initDataPool()
 	be, _ := blproc.NewBlockProcessor(
-		tdp, &mock.HasherStub{},
+		tdp,
+		createTestStore(),
+		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
@@ -2888,8 +2910,23 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	dataPool := mock.NewPoolsHolderFake()
 	marshalizerMock := &mock.MarshalizerMock{}
 	hasherMock := &mock.HasherStub{}
+
+	body := make(block.Body, 0)
+	tx := transaction.Transaction{Nonce: 1}
+	buffTx, _ := marshalizerMock.Marshal(tx)
+	txHash := []byte("tx hash 1")
+
+	store := &mock.ChainStorerMock{
+		GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+			m := make(map[string][]byte, 0)
+			m[string(txHash)] = buffTx
+			return m, nil
+		},
+	}
+
 	be, _ := blproc.NewBlockProcessor(
 		dataPool,
+		store,
 		hasherMock,
 		marshalizerMock,
 		&mock.TxProcessorMock{},
@@ -2902,10 +2939,6 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		},
 	)
 
-	body := make(block.Body, 0)
-	tx := transaction.Transaction{Nonce: 1}
-	buffTx, _ := marshalizerMock.Marshal(tx)
-	txHash := []byte("tx hash 1")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
 	miniblock := block.MiniBlock{
@@ -2920,13 +2953,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		return miniblockHash
 	}
 
-	blkc := &mock.BlockChainMock{
-		GetAllCalled: func(unitType data.UnitType, keys [][]byte) (map[string][]byte, error) {
-			m := make(map[string][]byte, 0)
-			m[string(txHash)] = buffTx
-			return m, nil
-		},
-	}
+	blkc := &mock.BlockChainMock{}
 
 	metablockHash := []byte("meta block hash 1")
 	metablockHeader := createDummyMetaBlock(0, 1, miniblockHash)

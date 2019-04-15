@@ -2105,21 +2105,22 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	}
 
 	//a mock blockchain with special header and tx block bodies stubs (defined above)
-	blkc := &mock.BlockChainMock{
-		StorageService: &mock.ChainStorerMock{
-			GetStorerCalled: func(unitType data.UnitType) storage.Storer {
-				return &mock.StorerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						return prevHdrBytes, nil
-					},
-					RemoveCalled: func(key []byte) error {
-						remFlags.flagHdrRemovedFromStorage = true
-						return nil
-					},
-				}
-			},
+	blkc := &mock.BlockChainMock{}
+
+	store := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return prevHdrBytes, nil
+				},
+				RemoveCalled: func(key []byte) error {
+					remFlags.flagHdrRemovedFromStorage = true
+					return nil
+				},
+			}
 		},
 	}
+
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{
 		RestoreBlockIntoPoolsCalled: func(blockChain data.ChainHandler, body data.BodyHandler) error {
@@ -2160,7 +2161,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
-		createStore(),
+		store,
 		blkc,
 		rnd,
 		blkExec,
@@ -2258,21 +2259,21 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 
 	//a mock blockchain with special header and tx block bodies stubs (defined above)
 	blkc := &mock.BlockChainMock{
-		StorageService: &mock.ChainStorerMock{
-			GetStorerCalled: func(unitType data.UnitType) storage.Storer {
-				return &mock.StorerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						return prevHdrBytes, nil
-					},
-					RemoveCalled: func(key []byte) error {
-						remFlags.flagHdrRemovedFromStorage = true
-						return nil
-					},
-				}
-			},
-		},
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return prevHdr
+		},
+	}
+	store := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return prevHdrBytes, nil
+				},
+				RemoveCalled: func(key []byte) error {
+					remFlags.flagHdrRemovedFromStorage = true
+					return nil
+				},
+			}
 		},
 	}
 	rnd := &mock.RounderMock{}
@@ -2315,7 +2316,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 
 	bs, _ := sync.NewBootstrap(
 		pools,
-		createStore(),
+		store,
 		blkc,
 		rnd,
 		blkExec,
