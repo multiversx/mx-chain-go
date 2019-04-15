@@ -86,3 +86,24 @@ const srEndStartTime = 0.65
 
 // srEndEndTime specifies the end time, from the total time of the round, of subround End
 const srEndEndTime = 0.75
+
+func getStringValue(msgType spos.MessageType) string {
+	switch msgType {
+	case MtBlockBody:
+		return "(BLOCK_BODY)"
+	case MtBlockHeader:
+		return "(BLOCK_HEADER)"
+	case MtCommitmentHash:
+		return "(COMMITMENT_HASH)"
+	case MtBitmap:
+		return "(BITMAP)"
+	case MtCommitment:
+		return "(COMMITMENT)"
+	case MtSignature:
+		return "(SIGNATURE)"
+	case MtUnknown:
+		return "(UNKNOWN)"
+	default:
+		return "Undefined message type"
+	}
+}

@@ -626,3 +626,7 @@ func (sr *subroundEndRound) SetBroadcastBlock(broadcastBlock func(data.BodyHandl
 func (sr *subroundStartRound) InitCurrentRound() bool {
 	return sr.initCurrentRound()
 }
+
+func GetStringValue(messageType spos.MessageType) string {
+	return getStringValue(messageType)
+}

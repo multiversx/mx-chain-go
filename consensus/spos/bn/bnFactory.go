@@ -12,27 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-func GetStringValue(msgType spos.MessageType) string {
-	switch msgType {
-	case MtBlockBody:
-		return "(BLOCK_BODY)"
-	case MtBlockHeader:
-		return "(BLOCK_HEADER)"
-	case MtCommitmentHash:
-		return "(COMMITMENT_HASH)"
-	case MtBitmap:
-		return "(BITMAP)"
-	case MtCommitment:
-		return "(COMMITMENT)"
-	case MtSignature:
-		return "(SIGNATURE)"
-	case MtUnknown:
-		return "(UNKNOWN)"
-	default:
-		return "Undefined message type"
-	}
-}
-
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
 // functionality
 type factory struct {

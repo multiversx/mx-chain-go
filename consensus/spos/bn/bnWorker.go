@@ -213,7 +213,7 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return err
 	}
 
-	log.Debug(fmt.Sprintf("received %s from %s\n", GetStringValue(spos.MessageType(cnsDta.MsgType)), hex.EncodeToString(cnsDta.PubKey)))
+	log.Debug(fmt.Sprintf("received %s from %s\n", getStringValue(spos.MessageType(cnsDta.MsgType)), hex.EncodeToString(cnsDta.PubKey)))
 
 	if wrk.consensusState.RoundCanceled && wrk.consensusState.RoundIndex == cnsDta.RoundIndex {
 		return spos.ErrRoundCanceled
