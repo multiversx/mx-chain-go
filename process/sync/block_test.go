@@ -2,7 +2,8 @@ package sync_test
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
+	"errors"
+	"math"
 	"reflect"
 	"strings"
 	goSync "sync"
@@ -19,7 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/pkg/errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -215,11 +216,16 @@ func createHeadersNoncesDataPool(
 
 func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.ForkDetector {
 	return &mock.ForkDetectorMock{
-		RemoveProcessedHeaderCalled: func(nonce uint64) error {
+		RemoveHeadersCalled: func(nonce uint64) {
 			if nonce == removedNonce {
 				remFlags.flagHdrRemovedFromForkDetector = true
 			}
-			return nil
+		},
+		GetHighestSignedBlockNonceCalled: func() uint64 {
+			return uint64(0)
+		},
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return uint64(removedNonce)
 		},
 	}
 }
@@ -879,11 +885,16 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() bool {
-		return true
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return true, math.MaxUint64
 	}
-	forkDetector.RemoveProcessedHeaderCalled = func(nonce uint64) error {
-		return nil
+	forkDetector.RemoveHeadersCalled = func(nonce uint64) {
+	}
+	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
+		return uint64(0)
+	}
+	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
+		return uint64(hdr.Nonce)
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -916,7 +927,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 
 	r := bs.SyncBlock()
 
-	assert.Equal(t, &sync.ErrNotEmptyHeader{CurrentNonce: hdr.Nonce}, r)
+	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, r)
 }
 
 func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
@@ -933,8 +944,8 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() bool {
-		return false
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return false, math.MaxUint64
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1016,8 +1027,8 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() bool {
-		return false
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return false, math.MaxUint64
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1070,9 +1081,14 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-
-	forkDetector.CheckForkCalled = func() bool {
-		return false
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return false, math.MaxUint64
+	}
+	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
+		return uint64(0)
+	}
+	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
+		return uint64(hdr.Nonce)
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1176,9 +1192,14 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-
-	forkDetector.CheckForkCalled = func() bool {
-		return false
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return false, math.MaxUint64
+	}
+	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
+		return uint64(0)
+	}
+	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
+		return uint64(hdr.Nonce)
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1286,8 +1307,8 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() bool {
-		return false
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return false, math.MaxUint64
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1385,8 +1406,14 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() bool {
-		return false
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return false, math.MaxUint64
+	}
+	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
+		return uint64(0)
+	}
+	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
+		return uint64(hdr.Nonce)
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1418,7 +1445,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 	err := bs.SyncBlock()
 
-	assert.Equal(t, &sync.ErrNotEmptyHeader{
+	assert.Equal(t, &sync.ErrSignedBlock{
 		CurrentNonce: hdr.Nonce}, err)
 }
 
@@ -1429,8 +1456,8 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	forkDetector := &mock.ForkDetectorMock{CheckForkCalled: func() bool {
-		return false
+	forkDetector := &mock.ForkDetectorMock{CheckForkCalled: func() (bool, uint64) {
+		return false, math.MaxUint64
 	}}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1464,9 +1491,8 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-
-	forkDetector.CheckForkCalled = func() bool {
-		return false
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return false, math.MaxUint64
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1505,9 +1531,8 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-
-	forkDetector.CheckForkCalled = func() bool {
-		return false
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return false, math.MaxUint64
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1546,8 +1571,8 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.CheckForkCalled = func() bool {
-		return false
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return false, math.MaxUint64
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1580,9 +1605,8 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 	forkDetector := &mock.ForkDetectorMock{}
-
-	forkDetector.CheckForkCalled = func() bool {
-		return false
+	forkDetector.CheckForkCalled = func() (bool, uint64) {
+		return false, math.MaxUint64
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -2037,12 +2061,10 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 	}
 
 	err := bs.ForkChoice()
-	assert.Equal(t, reflect.TypeOf(&sync.ErrNotEmptyHeader{}), reflect.TypeOf(err))
+	assert.Equal(t, reflect.TypeOf(&sync.ErrSignedBlock{}), reflect.TypeOf(err))
 }
 
 func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
-	t.Skip("unskip this test after the fix is applied on rollback, storer not erasing header")
-
 	t.Parallel()
 
 	//retain if the remove process from different storage locations has been called
@@ -2083,9 +2105,27 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 	}
 
 	//a mock blockchain with special header and tx block bodies stubs (defined above)
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainMock{
+		StorageService: &mock.ChainStorerMock{
+			GetStorerCalled: func(unitType data.UnitType) storage.Storer {
+				return &mock.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return prevHdrBytes, nil
+					},
+					RemoveCalled: func(key []byte) error {
+						remFlags.flagHdrRemovedFromStorage = true
+						return nil
+					},
+				}
+			},
+		},
+	}
 	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
+	blkExec := &mock.BlockProcessorMock{
+		RestoreBlockIntoPoolsCalled: func(blockChain data.ChainHandler, body data.BodyHandler) error {
+			return nil
+		},
+	}
 
 	hasher := &mock.HasherMock{}
 
@@ -2112,7 +2152,11 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 
 	forkDetector := createForkDetector(currentHdrNonce, remFlags)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
+	account := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
 
 	bs, _ := sync.NewBootstrap(
 		pools,
@@ -2129,13 +2173,36 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 		account,
 	)
 
-	//this is the block we want to revert
+	bs.SetForkNonce(currentHdrNonce)
+
+	hdr := &block.Header{
+		Nonce: currentHdrNonce,
+		//empty bitmap
+		PrevHash: prevHdrHash,
+	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &block.Header{
-			Nonce: currentHdrNonce,
-			//empty bitmap
-			PrevHash: prevHdrHash,
-		}
+		return hdr
+	}
+	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
+		hdr = prevHdr
+		return nil
+	}
+
+	body := make(block.Body, 0)
+	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
+		return body
+	}
+	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
+		body = prevTxBlockBody
+		return nil
+	}
+
+	hdrHash := make([]byte, 0)
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return hdrHash
+	}
+	blkc.SetCurrentBlockHeaderHashCalled = func(i []byte) {
+		hdrHash = i
 	}
 
 	err := bs.ForkChoice()
@@ -2150,8 +2217,6 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 }
 
 func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T) {
-	t.Skip("unskip this test after the fix is applied on rollback, storer not erasing header")
-
 	t.Parallel()
 
 	//retain if the remove process from different storage locations has been called
@@ -2192,9 +2257,30 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 	}
 
 	//a mock blockchain with special header and tx block bodies stubs (defined above)
-	blkc := &mock.BlockChainMock{}
+	blkc := &mock.BlockChainMock{
+		StorageService: &mock.ChainStorerMock{
+			GetStorerCalled: func(unitType data.UnitType) storage.Storer {
+				return &mock.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return prevHdrBytes, nil
+					},
+					RemoveCalled: func(key []byte) error {
+						remFlags.flagHdrRemovedFromStorage = true
+						return nil
+					},
+				}
+			},
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return prevHdr
+		},
+	}
 	rnd := &mock.RounderMock{}
-	blkExec := &mock.BlockProcessorMock{}
+	blkExec := &mock.BlockProcessorMock{
+		RestoreBlockIntoPoolsCalled: func(blockChain data.ChainHandler, body data.BodyHandler) error {
+			return nil
+		},
+	}
 
 	hasher := &mock.HasherMock{}
 
@@ -2221,7 +2307,11 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 
 	forkDetector := createForkDetector(currentHdrNonce, remFlags)
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
+	account := &mock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
 
 	bs, _ := sync.NewBootstrap(
 		pools,
@@ -2238,13 +2328,36 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 		account,
 	)
 
-	//this is the block we want to revert
+	bs.SetForkNonce(currentHdrNonce)
+
+	hdr := &block.Header{
+		Nonce: currentHdrNonce,
+		//empty bitmap
+		PrevHash: prevHdrHash,
+	}
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return &block.Header{
-			Nonce: currentHdrNonce,
-			//empty bitmap
-			PrevHash: prevHdrHash,
-		}
+		return hdr
+	}
+	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
+		hdr = nil
+		return nil
+	}
+
+	body := make(block.Body, 0)
+	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
+		return body
+	}
+	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
+		body = nil
+		return nil
+	}
+
+	hdrHash := make([]byte, 0)
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return hdrHash
+	}
+	blkc.SetCurrentBlockHeaderHashCalled = func(i []byte) {
+		hdrHash = nil
 	}
 
 	err := bs.ForkChoice()

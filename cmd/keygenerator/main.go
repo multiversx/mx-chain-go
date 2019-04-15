@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
 )
@@ -21,17 +22,32 @@ func main() {
 		return
 	}
 
-	fsk, err := os.OpenFile(path+"/sk", os.O_CREATE|os.O_WRONLY, 0644)
+	fskPlain, err := os.OpenFile(path+"/skPlainText", os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	defer func() {
+		_ = fskPlain.Close()
+	}()
 
-	fpk, err := os.OpenFile(path+"/pk", os.O_CREATE|os.O_WRONLY, 0644)
+	fskPem, err := os.OpenFile(path+"/skPem", os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	defer func() {
+		_ = fskPem.Close()
+	}()
+
+	fpk, err := os.OpenFile(path+"/pkPlainText", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer func() {
+		_ = fpk.Close()
+	}()
 
 	suite := kyber.NewBlakeSHA256Ed25519()
 
@@ -50,20 +66,19 @@ func main() {
 		skHex := []byte(hex.EncodeToString(skBytes))
 		pkHex := []byte(hex.EncodeToString(pkBytes))
 
-		if _, err3 := fsk.Write(append(skHex, '\n')); err3 != nil {
-			fmt.Println(err3)
+		_, err := fskPlain.Write(append(skHex, '\n'))
+		if err != nil {
+			fmt.Println(err)
 		}
 
-		if _, err3 := fpk.Write(append(pkHex, '\n')); err3 != nil {
-			fmt.Println(err3)
+		_, err = fpk.Write(append(pkHex, '\n'))
+		if err != nil {
+			fmt.Println(err)
 		}
-	}
 
-	if err4 := fsk.Close(); err4 != nil {
-		fmt.Println(err4)
-	}
-
-	if err4 := fpk.Close(); err4 != nil {
-		fmt.Println(err4)
+		err = core.SaveSkToPemFile(fskPem, string(pkHex), skHex)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }

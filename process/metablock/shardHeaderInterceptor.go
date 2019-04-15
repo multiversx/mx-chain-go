@@ -1,9 +1,9 @@
 package metablock
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // ShardHeaderInterceptor represents an interceptor used for shard block headers by metachain nodes
 type ShardHeaderInterceptor struct {

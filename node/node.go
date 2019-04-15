@@ -2,6 +2,7 @@ package node
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	gosync "sync"
@@ -14,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -22,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -30,7 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/sync"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
-	"github.com/pkg/errors"
 )
 
 // WaitTime defines the time in milliseconds until node waits the requested info from the network
@@ -42,7 +42,7 @@ const ConsensusTopic = "consensus"
 // SendTransactionsPipe is the pipe used for sending new transactions
 const SendTransactionsPipe = "send transactions pipe"
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -410,6 +410,8 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 	fmt.Printf("Identifier: %s\n", identifier)
 
 	for i := 0; i < len(transactions); i++ {
+		//TODO optimize this to send bulk transactions
+		// This should be made in future subtasks belonging to EN-1520 story
 		n.messenger.BroadcastOnChannel(
 			SendTransactionsPipe,
 			identifier,
@@ -592,8 +594,12 @@ func (n *Node) generateAndSignTx(
 		return nil, nil, errors.New("could not sign the transaction")
 	}
 	tx.Signature = sig
+	txBuff, err := n.marshalizer.Marshal(&tx)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	signedMarshalizedTx, err := n.marshalizer.Marshal(&tx)
+	signedMarshalizedTx, err := n.marshalizer.Marshal([][]byte{txBuff})
 	if err != nil {
 		return nil, nil, errors.New("could not marshal signed transaction")
 	}
@@ -669,8 +675,12 @@ func (n *Node) SendTransaction(
 		Data:      []byte(transactionData),
 		Signature: signature,
 	}
+	txBuff, err := n.marshalizer.Marshal(&tx)
+	if err != nil {
+		return nil, err
+	}
 
-	marshalizedTx, err := n.marshalizer.Marshal(&tx)
+	marshalizedTx, err := n.marshalizer.Marshal([][]byte{txBuff})
 	if err != nil {
 		return nil, errors.New("could not marshal transaction")
 	}
@@ -808,9 +818,14 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	for k, v := range msgMapTx {
 		// for on values as those are list of txs with dest to K.
 		for _, tx := range v {
-			// TODO optimize this to send bulk transactions
+			//TODO optimize this to send bulk transactions
+			// This should be made in future subtasks belonging to EN-1520 story
+			txsBuff, err := n.marshalizer.Marshal([][]byte{tx})
+			if err != nil {
+				return err
+			}
 			go n.messenger.Broadcast(factory.TransactionTopic+
-				n.shardCoordinator.CommunicationIdentifier(k), tx)
+				n.shardCoordinator.CommunicationIdentifier(k), txsBuff)
 		}
 	}
 

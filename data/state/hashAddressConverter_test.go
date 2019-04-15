@@ -76,6 +76,7 @@ func TestAddressConverterCreateAddressFromPublicKeyBytesOkValsShouldWork(t *test
 
 	adr, err := ac.CreateAddressFromPublicKeyBytes(buff)
 
+	assert.Nil(t, err)
 	assert.Equal(t, hashExpected, adr.Bytes())
 }
 
@@ -96,6 +97,7 @@ func TestAddressConverterCreateAddressFromPublicKeyBytesOkValsTrimShouldWork(t *
 
 	adr, err := ac.CreateAddressFromPublicKeyBytes(buff)
 
+	assert.Nil(t, err)
 	assert.Equal(t, hashExpected[len(hashExpected)-32:], adr.Bytes())
 
 	fmt.Printf("Address %v has the hash %v\n", hex.EncodeToString(adr.Bytes()), hex.EncodeToString(mock.HasherMock{}.Compute(string(adr.Bytes()))))

@@ -9,7 +9,7 @@ import (
 // InterceptedTxBlockBody represents the wrapper over TxBlockBodyWrapper struct.
 type InterceptedTxBlockBody struct {
 	TxBlockBody block.Body
-	hash []byte
+	hash        []byte
 }
 
 // NewInterceptedTxBlockBody creates a new instance of InterceptedTxBlockBody struct

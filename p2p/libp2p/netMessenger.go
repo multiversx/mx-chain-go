@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-crypto"
@@ -22,7 +22,7 @@ const durationBetweenSends = time.Duration(time.Microsecond * 10)
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
 const DirectSendID = protocol.ID("/directsend/1.0.0")
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 type networkMessenger struct {
 	ctxProvider *Libp2pContext
@@ -368,8 +368,14 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		err := handler.ProcessReceivedMessage(NewMessage(message))
+		broadcastCallbackHandler, ok := handler.(p2p.BroadcastCallbackHandler)
+		if ok {
+			broadcastCallbackHandler.SetBroadcastCallback(func(buffToSend []byte) {
+				netMes.Broadcast(topic, buffToSend)
+			})
+		}
 
+		err := handler.ProcessReceivedMessage(NewMessage(message))
 		if err != nil {
 			log.Debug(err.Error())
 		}

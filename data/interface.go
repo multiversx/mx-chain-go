@@ -25,10 +25,9 @@ type HeaderHandler interface {
 	SetSignature(sg []byte)
 	SetTxCount(txCount uint32)
 
-	// miniblock headers data
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
 	GetMiniBlockProcessed(hash []byte) bool
-	SetMiniBlockProcessed(hash []byte)
+	SetMiniBlockProcessed(hash []byte, processed bool)
 }
 
 // BodyHandler interface for a block body

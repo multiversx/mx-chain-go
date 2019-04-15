@@ -42,8 +42,12 @@ func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	return newHeaders
 }
 
-func (bfd *basicForkDetector) SetCheckpointNonce(checkpointNonce uint64) {
-	bfd.checkpointNonce = checkpointNonce
+func (bfd *basicForkDetector) SetCheckpointNonce(nonce uint64) {
+	bfd.checkpointNonce = nonce
+}
+
+func (bfd *basicForkDetector) SetLastCheckpointNonce(nonce uint64) {
+	bfd.lastCheckpointNonce = nonce
 }
 
 func (bfd *basicForkDetector) CheckpointNonce() uint64 {
@@ -58,8 +62,8 @@ func (bfd *basicForkDetector) RemovePastHeaders(nonce uint64) {
 	bfd.removePastHeaders(nonce)
 }
 
-func (hi *headerInfo) Header() *block.Header {
-	return hi.header
+func (hi *headerInfo) Nonce() uint64 {
+	return hi.nonce
 }
 
 func (hi *headerInfo) Hash() []byte {
@@ -68,6 +72,10 @@ func (hi *headerInfo) Hash() []byte {
 
 func (hi *headerInfo) IsProcessed() bool {
 	return hi.isProcessed
+}
+
+func (hi *headerInfo) IsSigned() bool {
+	return hi.isSigned
 }
 
 func (boot *Bootstrap) NotifySyncStateListeners() {
@@ -79,11 +87,11 @@ func (boot *Bootstrap) SyncStateListeners() []func(bool) {
 }
 
 func (boot *Bootstrap) HighestNonceReceived() uint64 {
-	return boot.highestNonceReceived
+	return boot.rcvHdrInfo.highestNonce
 }
 
 func (boot *Bootstrap) SetHighestNonceReceived(highestNonceReceived uint64) {
-	boot.highestNonceReceived = highestNonceReceived
+	boot.rcvHdrInfo.highestNonce = highestNonceReceived
 }
 
 func (boot *Bootstrap) SetIsForkDetected(isForkDetected bool) {
@@ -112,4 +120,8 @@ func (boot *Bootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
 
 func (boot *Bootstrap) SetRoundIndex(roundIndex int32) {
 	boot.roundIndex = roundIndex
+}
+
+func (boot *Bootstrap) SetForkNonce(nonce uint64) {
+	boot.forkNonce = nonce
 }

@@ -1,6 +1,7 @@
 package node_test
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"math/big"
@@ -19,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -680,16 +680,23 @@ func TestGenerateAndSendBulkTransactions_ShouldWork(t *testing.T) {
 
 			if topic == identifier {
 				//handler to capture sent data
-				tx := transaction.Transaction{}
+				txsBuff := make([][]byte, 0)
 
-				err := marshalizer.Unmarshal(&tx, buff)
+				err := marshalizer.Unmarshal(&txsBuff, buff)
 				if err != nil {
 					assert.Fail(t, err.Error())
 				}
+				for _, txBuff := range txsBuff {
+					tx := transaction.Transaction{}
+					err := marshalizer.Unmarshal(&tx, txBuff)
+					if err != nil {
+						assert.Fail(t, err.Error())
+					}
 
-				mutRecoveredTransactions.Lock()
-				recoveredTransactions[tx.Nonce] = &tx
-				mutRecoveredTransactions.Unlock()
+					mutRecoveredTransactions.Lock()
+					recoveredTransactions[tx.Nonce] = &tx
+					mutRecoveredTransactions.Unlock()
+				}
 			}
 		},
 	}

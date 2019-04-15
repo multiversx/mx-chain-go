@@ -2,8 +2,8 @@ package resolvers
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
@@ -74,6 +74,8 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P) error {
 }
 
 func (txRes *TxResolver) resolveTxRequest(rd *dataRetriever.RequestData) ([]byte, error) {
+	//TODO - implement other types such as HashArrayType for an array of transaction
+	// This should be made in future subtasks belonging to EN-1520 story
 	if rd.Type != dataRetriever.HashType {
 		return nil, dataRetriever.ErrResolveNotHashType
 	}
@@ -83,17 +85,28 @@ func (txRes *TxResolver) resolveTxRequest(rd *dataRetriever.RequestData) ([]byte
 	}
 
 	//TODO this can be optimized by searching in corresponding datapool (taken by topic name)
+	txsBuff := make([][]byte, 0)
 	value, ok := txRes.txPool.SearchFirstData(rd.Value)
-	if !ok {
-		return txRes.txStorage.Get(rd.Value)
+	if ok {
+		txBuff, err := txRes.marshalizer.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		txsBuff = append(txsBuff, txBuff)
+	} else {
+		buff, err := txRes.txStorage.Get(rd.Value)
+		if err != nil {
+			return nil, err
+		}
+		txsBuff = append(txsBuff, buff)
 	}
 
-	buff, err := txRes.marshalizer.Marshal(value)
+	buffToSend, err := txRes.marshalizer.Marshal(txsBuff)
 	if err != nil {
 		return nil, err
 	}
 
-	return buff, nil
+	return buffToSend, nil
 }
 
 // RequestDataFromHash requests a transaction from other peers having input the tx hash

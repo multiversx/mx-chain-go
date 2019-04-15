@@ -10,8 +10,8 @@ type SingleSignKeyGenMock struct {
 }
 
 type SingleSignPublicKey struct {
-	SuiteCalled  func() crypto.Suite
-	PointCalled  func() crypto.Point
+	SuiteCalled func() crypto.Suite
+	PointCalled func() crypto.Point
 }
 
 //------- SingleSignKeyGenMock

@@ -8,9 +8,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade/mock"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -364,7 +364,7 @@ func TestElrondNodeFacade_SetLogger(t *testing.T) {
 	node := &mock.NodeMock{}
 
 	ef := facade.NewElrondNodeFacade(node)
-	log := logger.NewDefaultLogger()
+	log := logger.DefaultLogger()
 	ef.SetLogger(log)
 	assert.Equal(t, log, ef.GetLogger())
 }

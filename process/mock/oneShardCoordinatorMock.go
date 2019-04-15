@@ -5,7 +5,7 @@ import (
 )
 
 type oneShardCoordinatorMock struct {
-	noShards                     uint32
+	noShards        uint32
 	ComputeIdCalled func(state.AddressContainer) uint32
 }
 
