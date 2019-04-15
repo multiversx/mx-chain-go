@@ -10,12 +10,12 @@ import (
 
 var log = logger.DefaultLogger()
 
-var mapKeys = []string{}
-
 // CCache implements a Concurrency type cache
 type CCache struct {
 	maxSize              int
+	mapKeys              []string
 	cache                cmap.ConcurrentMap
+	mkGuard              sync.RWMutex
 	mutAddedDataHandlers sync.RWMutex
 	addedDataHandlers    []func([]byte)
 }
@@ -26,12 +26,13 @@ func NewCCache(maxSize int) (*CCache, error) {
 		return nil, errors.New("must provide a positive value for cache size")
 	}
 
-	mapKeys = nil
 	cache := cmap.New()
 
 	return &CCache{
 		maxSize:              maxSize,
+		mapKeys:              nil,
 		cache:                cache,
+		mkGuard:              sync.RWMutex{},
 		mutAddedDataHandlers: sync.RWMutex{},
 		addedDataHandlers:    make([]func(key []byte), 0),
 	}, nil
@@ -42,7 +43,7 @@ func (c *CCache) Clear() {
 	for key := range c.cache.Items() {
 		c.cache.Remove(key)
 	}
-	mapKeys = nil
+	c.mapKeys = nil
 }
 
 // Put inserts a new element into the cache.
@@ -54,7 +55,7 @@ func (c *CCache) Put(key []byte, value interface{}) (evicted bool) {
 	}
 
 	// Save the keys into a separate slice prior inserting the key/value into the map
-	mapKeys = append(mapKeys, string(key))
+	c.mapKeys = append(c.mapKeys, string(key))
 	c.cache.Set(string(key), value)
 
 	c.callAddedDataHandlers(key)
@@ -82,28 +83,21 @@ func (c *CCache) Has(key []byte) bool {
 // Peek is identical with the Get method.
 // It has been implemented only to satisfy the interface method signatures.
 func (c *CCache) Peek(key []byte) (interface{}, bool) {
-	item, ok := c.cache.Items()[string(key)]
-	if !ok {
-		return nil, false
-	}
-	return item, ok
+	return c.Get(key)
 }
 
 // HasOrAdd checks if a key exists in the cache map and if not inserts the value.
-// In case the cache size exeeds the maximum allowed value, it removes the oldest entries.
+// In case the cache size exceeds the maximum allowed value, it removes the oldest entries.
 func (c *CCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool) {
-	if c.cache.Has(string(key)) {
-		return true, false
+	if ok = c.cache.SetIfAbsent(string(key), value); ok {
+		return ok, false
 	}
 
+	c.callAddedDataHandlers(key)
 	if c.cache.Count() > c.maxSize {
 		c.RemoveOldest()
 	}
 
-	ok = c.cache.SetIfAbsent(string(key), value)
-	if !ok {
-		c.callAddedDataHandlers(key)
-	}
 	return ok, false
 }
 
@@ -127,12 +121,11 @@ func (c *CCache) RemoveOldest() {
 
 // FindOldest finds the oldest entry
 func (c *CCache) FindOldest() []byte {
-	for item := range c.cache.IterBuffered() {
-		if item.Key == mapKeys[0] {
-			return []byte(item.Key)
-		}
+	key := c.mapKeys[0]
+	if _, ok := c.Get([]byte(key)); ok {
+		return []byte(key)
 	}
-	return []byte{}
+	return nil
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest
@@ -174,13 +167,16 @@ func (c *CCache) callAddedDataHandlers(key []byte) {
 
 // removeMapKey removes the corresponding map key from the keys slice
 func (c *CCache) removeMapKey(key []byte) {
-	if len(mapKeys) > 0 {
-		for i := 0; i < len(mapKeys); i++ {
-			if string(key) == mapKeys[i] {
+	c.mkGuard.Lock()
+
+	if len(c.mapKeys) > 0 {
+		for i := 0; i < len(c.mapKeys); i++ {
+			if string(key) == c.mapKeys[i] {
 				// delete key from keys slice
-				copy(mapKeys[i:], mapKeys[i+1:])
-				mapKeys = mapKeys[:len(mapKeys)-1]
+				copy(c.mapKeys[i:], c.mapKeys[i+1:])
+				c.mapKeys = c.mapKeys[:len(c.mapKeys)-1]
 			}
 		}
 	}
+	c.mkGuard.Unlock()
 }

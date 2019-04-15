@@ -92,7 +92,7 @@ func TestCCache_PutRewrite(t *testing.T) {
 func TestCCache_PutConcurrent(t *testing.T) {
 	t.Parallel()
 
-	const iterations = 1000
+	const iterations = 10000
 	c, err := ccache.NewCCache(iterations)
 
 	assert.Nil(t, err, "no error expected but got %v", err)
@@ -100,7 +100,7 @@ func TestCCache_PutConcurrent(t *testing.T) {
 	ch := make(chan int)
 	var arr [iterations]int
 
-	// Using go routines insert 1000 ints into our map.
+	// Using go routines insert 10000 ints into our map.
 	go func() {
 		for i := 0; i < iterations/2; i++ {
 			c.Put([]byte(strconv.Itoa(i)), i)
@@ -134,9 +134,9 @@ func TestCCache_PutConcurrent(t *testing.T) {
 	// Sorts array, will make is simpler to verify all inserted values we're returned.
 	sort.Ints(arr[0:iterations])
 
-	// Make sure map contains 1000 elements.
+	// Make sure map contains 10000 elements.
 	l := c.Len()
-	assert.Equal(t, l, iterations, "expected map size: 1000, got %d", l)
+	assert.Equal(t, l, iterations, "expected map size: %d, got %d", iterations, l)
 
 	// Make sure all inserted values we're fetched from map.
 	for i := 0; i < iterations; i++ {
@@ -147,7 +147,7 @@ func TestCCache_PutConcurrent(t *testing.T) {
 func TestCCache_PutConcurrentWaitGroup(t *testing.T) {
 	t.Parallel()
 
-	const iterations = 1000
+	const iterations = 10000
 	c, err := ccache.NewCCache(iterations)
 
 	assert.Nil(t, err, "no error expected but got %v", err)
@@ -196,9 +196,9 @@ func TestCCache_PutConcurrentWaitGroup(t *testing.T) {
 	// Sorts array, will make is simpler to verify all inserted values we're returned.
 	sort.Ints(arr[:iterations])
 
-	// Make sure map contains 1000 elements.
+	// Make sure map contains 10000 elements.
 	l := c.Len()
-	assert.Equal(t, l, iterations, "expected map size: 1000, got %d", l)
+	assert.Equal(t, l, iterations, "expected map size: %d, got %d", iterations, l)
 
 	// Make sure all inserted values we're fetched from map.
 	for i := 0; i < iterations; i++ {
@@ -340,13 +340,14 @@ func TestCCache_RemovePresent(t *testing.T) {
 func TestCCache_RemoveConcurrent(t *testing.T) {
 	t.Parallel()
 
-	size := 100
+	size := 1000
 	c, err := ccache.NewCCache(size)
 
 	assert.Nil(t, err, "no error expected, but got %v", err)
 
 	var ch = make(chan int)
 
+	// Put/Get cache value concurrently
 	go func() {
 		for i := 0; i < size; i++ {
 			c.Put([]byte(strconv.Itoa(i)), i)
@@ -358,9 +359,12 @@ func TestCCache_RemoveConcurrent(t *testing.T) {
 		close(ch) // close the channel
 	}()
 
-	for elem := range ch {
-		c.Remove([]byte(strconv.Itoa(elem)))
-	}
+	// Remove cache value concurrently
+	go func() {
+		for elem := range ch {
+			c.Remove([]byte(strconv.Itoa(elem)))
+		}
+	}()
 
 	assert.Equal(t, 0, c.Len(), "expected map size: 0, got %d", c.Len())
 }
@@ -549,7 +553,7 @@ func initSUWithBloomFilter(cSize int, bfSize uint) *storage.Unit {
 	return sUnit
 }
 
-func BenchmarkStorageUnit_PutWithNilBloomFilter(b *testing.B) {
+func BenchmarkCCacheStorageUnit_PutWithNilBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithNilBloomFilter(1)
 	defer func() {
@@ -568,7 +572,7 @@ func BenchmarkStorageUnit_PutWithNilBloomFilter(b *testing.B) {
 	}
 }
 
-func BenchmarkStorageUnit_PutWithBloomFilter(b *testing.B) {
+func BenchmarkCCacheStorageUnit_PutWithBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithBloomFilter(100, bfSize)
 	defer func() {
@@ -587,7 +591,7 @@ func BenchmarkStorageUnit_PutWithBloomFilter(b *testing.B) {
 	}
 }
 
-func BenchmarkStorageUnit_GetPresentWithNilBloomFilter(b *testing.B) {
+func BenchmarkCCacheStorageUnit_GetPresentWithNilBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithNilBloomFilter(1)
 	defer func() {
@@ -610,7 +614,7 @@ func BenchmarkStorageUnit_GetPresentWithNilBloomFilter(b *testing.B) {
 	}
 }
 
-func BenchmarkStorageUnit_GetPresentWithBloomFilter(b *testing.B) {
+func BenchmarkCCacheStorageUnit_GetPresentWithBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithBloomFilter(1, bfSize)
 	defer func() {
@@ -633,7 +637,7 @@ func BenchmarkStorageUnit_GetPresentWithBloomFilter(b *testing.B) {
 	}
 }
 
-func BenchmarkStorageUnit_GetNotPresentWithNilBloomFilter(b *testing.B) {
+func BenchmarkCCacheStorageUnit_GetNotPresentWithNilBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithNilBloomFilter(1)
 	defer func() {
@@ -651,12 +655,11 @@ func BenchmarkStorageUnit_GetNotPresentWithNilBloomFilter(b *testing.B) {
 		nr := rand.Intn(valuesInDb) + valuesInDb
 		b.StartTimer()
 
-		_, err := s.Get([]byte(strconv.Itoa(nr)))
-		logError(err)
+		s.Get([]byte(strconv.Itoa(nr)))
 	}
 }
 
-func BenchmarkStorageUnit_GetNotPresentWithBloomFilter(b *testing.B) {
+func BenchmarkCCacheStorageUnit_GetNotPresentWithBloomFilter(b *testing.B) {
 	b.StopTimer()
 	s := initSUWithBloomFilter(1, bfSize)
 	defer func() {
@@ -674,8 +677,7 @@ func BenchmarkStorageUnit_GetNotPresentWithBloomFilter(b *testing.B) {
 		nr := rand.Intn(valuesInDb) + valuesInDb
 		b.StartTimer()
 
-		_, err := s.Get([]byte(strconv.Itoa(nr)))
-		logError(err)
+		s.Get([]byte(strconv.Itoa(nr)))
 	}
 }
 
