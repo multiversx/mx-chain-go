@@ -22,6 +22,9 @@ var ErrNilAddressConverter = errors.New("trying to set nil address converter")
 // ErrNilBlockchain signals that a nil blockchain structure has been provided
 var ErrNilBlockchain = errors.New("nil blockchain")
 
+// ErrNilStore signals that a nil store has been provided
+var ErrNilStore = errors.New("nil data store")
+
 // ErrNilPrivateKey signals that a nil private key has been provided
 var ErrNilPrivateKey = errors.New("trying to set nil private key")
 

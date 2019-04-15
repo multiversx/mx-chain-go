@@ -28,15 +28,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -314,6 +314,11 @@ func createNode(
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
+	store, err := createShardDataStoreFromConfig(config)
+	if err != nil {
+		return nil, errors.New("could not create local data store: " + err.Error())
+	}
+
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 	datapool, err := createShardDataPoolFromConfig(config, uint64ByteSliceConverter)
 	if err != nil {
@@ -322,7 +327,7 @@ func createNode(
 
 	// TODO create metachain / blockchain
 	// TODO save config, and move this creation into another place for node movement
-	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig
+	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig and createMetaChainDataStoreFromConfig
 
 	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
 	if err != nil {
@@ -361,7 +366,7 @@ func createNode(
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		netMessenger,
-		blkc,
+		store,
 		marshalizer,
 		hasher,
 		keyGen,
@@ -383,7 +388,7 @@ func createNode(
 	resolversContainerFactory, err := factoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		netMessenger,
-		blkc,
+		store,
 		marshalizer,
 		datapool,
 		uint64ByteSliceConverter,
@@ -406,6 +411,7 @@ func createNode(
 
 	blockProcessor, err := block.NewBlockProcessor(
 		datapool,
+		store,
 		hasher,
 		marshalizer,
 		transactionProcessor,
@@ -429,6 +435,7 @@ func createNode(
 		node.WithAddressConverter(addressConverter),
 		node.WithAccountsAdapter(accountsAdapter),
 		node.WithBlockChain(blkc),
+		node.WithDataStore(store),
 		node.WithRoundDuration(genesisConfig.RoundDuration),
 		node.WithConsensusGroupSize(int(genesisConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
@@ -657,7 +664,7 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 func createShardDataPoolFromConfig(
 	config *config.Config,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-) (data.PoolsHolder, error) {
+) (dataRetriever.PoolsHolder, error) {
 
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
@@ -709,6 +716,24 @@ func createShardDataPoolFromConfig(
 }
 
 func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error) {
+	badBlockCache, err := storage.NewCache(
+		storage.CacheType(config.BadBlocksCache.Type),
+		config.BadBlocksCache.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	blockChain, err := blockchain.NewBlockChain(
+		badBlockCache,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockChain, err
+}
+
+func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
 	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit *storage.Unit
 	var err error
 
@@ -732,14 +757,6 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 			}
 		}
 	}()
-
-	badBlockCache, err := storage.NewCache(
-		storage.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size)
-
-	if err != nil {
-		return nil, err
-	}
 
 	txUnit, err = storage.NewStorageUnitFromConf(
 		getCacherFromConfig(config.TxStorage.Cache),
@@ -781,26 +798,20 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		return nil, err
 	}
 
-	blockChain, err := blockchain.NewBlockChain(
-		badBlockCache,
-		txUnit,
-		miniBlockUnit,
-		peerBlockUnit,
-		headerUnit,
-		metachainHeaderUnit,
-	)
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
+	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
+	store.AddStorer(dataRetriever.PeerChangesUnit, peerBlockUnit)
+	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
+	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
 
-	if err != nil {
-		return nil, err
-	}
-
-	return blockChain, err
+	return store, err
 }
 
 func createMetaDataPoolFromConfig(
 	config *config.Config,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-) (data.MetaPoolsHolder, error) {
+) (dataRetriever.MetaPoolsHolder, error) {
 	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
 	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
@@ -832,6 +843,24 @@ func createMetaDataPoolFromConfig(
 }
 
 func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, error) {
+	badBlockCache, err := storage.NewCache(
+		storage.CacheType(config.BadBlocksCache.Type),
+		config.BadBlocksCache.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	metaChain, err := blockchain.NewMetaChain(
+		badBlockCache,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return metaChain, err
+}
+
+func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
 	var peerDataUnit, shardDataUnit, metaBlockUnit *storage.Unit
 	var err error
 
@@ -850,19 +879,10 @@ func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, er
 		}
 	}()
 
-	badBlockCache, err := storage.NewCache(
-		storage.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size)
-
-	if err != nil {
-		return nil, err
-	}
-
 	metaBlockUnit, err = storage.NewStorageUnitFromConf(
 		getCacherFromConfig(config.MetaBlockStorage.Cache),
 		getDBFromConfig(config.MetaBlockStorage.DB),
 		getBloomFromConfig(config.MetaBlockStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
@@ -871,7 +891,6 @@ func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, er
 		getCacherFromConfig(config.ShardDataStorage.Cache),
 		getDBFromConfig(config.ShardDataStorage.DB),
 		getBloomFromConfig(config.ShardDataStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
@@ -880,23 +899,16 @@ func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, er
 		getCacherFromConfig(config.PeerDataStorage.Cache),
 		getDBFromConfig(config.PeerDataStorage.DB),
 		getBloomFromConfig(config.PeerDataStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
 
-	metaChain, err := blockchain.NewMetaChain(
-		badBlockCache,
-		metaBlockUnit,
-		shardDataUnit,
-		peerDataUnit,
-	)
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
+	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
+	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
 
-	if err != nil {
-		return nil, err
-	}
-
-	return metaChain, err
+	return store, err
 }
 
 func decodeAddress(address string) ([]byte, error) {

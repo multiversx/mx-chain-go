@@ -2,6 +2,7 @@ package sync_test
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage/memorydb"
 	"reflect"
 	"strings"
 	goSync "sync"
@@ -109,7 +110,7 @@ func createMockPools() *mock.PoolsHolderStub {
 		}
 		return sds
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		hnc := &mock.Uint64CacherStub{
 			GetCalled: func(u uint64) (bytes []byte, b bool) {
 				return nil, false
@@ -132,6 +133,28 @@ func createMockPools() *mock.PoolsHolderStub {
 	}
 
 	return pools
+}
+
+func createStore() *mock.ChainStorerMock {
+	return &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{}
+		},
+	}
+}
+
+func generateTestCache() storage.Cacher {
+	cache, _ := storage.NewCache(storage.LRUCache, 1000)
+	return cache
+}
+
+func generateTestUnit() storage.Storer {
+	memDB, _ := memorydb.New()
+	storer, _ := storage.NewStorageUnit(
+		generateTestCache(),
+		memDB,
+	)
+	return storer
 }
 
 func createBlockProcessor() *mock.BlockProcessorMock {
@@ -170,7 +193,7 @@ func createHeadersNoncesDataPool(
 	getNonceCompare uint64,
 	getRetHash []byte,
 	removedNonce uint64,
-	remFlags *removedFlags) data.Uint64Cacher {
+	remFlags *removedFlags) dataRetriever.Uint64Cacher {
 
 	hnc := &mock.Uint64CacherStub{
 		RegisterHandlerCalled: func(handler func(nonce uint64)) {},
@@ -233,6 +256,7 @@ func TestNewBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		nil,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -268,6 +292,7 @@ func TestNewBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -288,7 +313,7 @@ func TestNewBootstrap_PoolsHolderRetNilOnHeadersNoncesShouldErr(t *testing.T) {
 	t.Parallel()
 
 	pools := createMockPools()
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		return nil
 	}
 	blkc := initBlockchain()
@@ -302,6 +327,7 @@ func TestNewBootstrap_PoolsHolderRetNilOnHeadersNoncesShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -336,6 +362,7 @@ func TestNewBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -352,6 +379,37 @@ func TestNewBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilTxBlockBody, err)
 }
 
+func TestNewBootstrap_NilStoreShouldErr(t *testing.T) {
+	t.Parallel()
+	blkc := initBlockchain()
+	pools := createMockPools()
+	rnd := &mock.RounderMock{}
+	blkExec := &mock.BlockProcessorMock{}
+	hasher := &mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	forkDetector := &mock.ForkDetectorMock{}
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	account := &mock.AccountsStub{}
+
+	bs, err := sync.NewBootstrap(
+		pools,
+		nil,
+		blkc,
+		rnd,
+		blkExec,
+		waitTime,
+		hasher,
+		marshalizer,
+		forkDetector,
+		&mock.ResolversFinderStub{},
+		shardCoordinator,
+		account,
+	)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilTxStorage, err)
+}
+
 func TestNewBootstrap_NilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -366,6 +424,7 @@ func TestNewBootstrap_NilBlockchainShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		nil,
 		rnd,
 		blkExec,
@@ -396,6 +455,7 @@ func TestNewBootstrap_NilRounderShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		nil,
 		blkExec,
@@ -426,6 +486,7 @@ func TestNewBootstrap_NilBlockProcessorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		nil,
@@ -456,6 +517,7 @@ func TestNewBootstrap_NilHasherShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -486,6 +548,7 @@ func TestNewBootstrap_NilMarshalizerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -516,6 +579,7 @@ func TestNewBootstrap_NilForkDetectorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -547,6 +611,7 @@ func TestNewBootstrap_NilResolversContainerShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -577,6 +642,7 @@ func TestNewBootstrap_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -607,6 +673,7 @@ func TestNewBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -655,6 +722,7 @@ func TestNewBootstrap_NilHeaderResolverShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -703,6 +771,7 @@ func TestNewBootstrap_NilTxBlockBodyResolverShouldErr(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -738,7 +807,7 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 
 		return sds
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		hnc := &mock.Uint64CacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 			wasCalled++
@@ -766,6 +835,7 @@ func TestNewBootstrap_OkValsShouldWork(t *testing.T) {
 
 	bs, err := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -794,13 +864,12 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 			return nil, nil
 		},
 	}
+
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.MiniBlockUnit, blockBodyUnit)
+
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.StorerStub{},
-		blockBodyUnit,
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
 	)
 
 	blkc.CurrentBlockHeader = &hdr
@@ -826,6 +895,7 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		store,
 		blkc,
 		rnd,
 		blockProcessorMock,
@@ -879,6 +949,7 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		&blkc,
 		rnd,
 		blockProcessorMock,
@@ -928,7 +999,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 
 		return sds
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		hnc := &mock.Uint64CacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
@@ -959,6 +1030,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		&blkc,
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1010,6 +1082,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		&blkc,
 		rnd,
 		ebm,
@@ -1069,7 +1142,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 		return sds
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		hnc := &mock.Uint64CacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
@@ -1119,6 +1192,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		&blkc,
 		rnd,
 		ebm,
@@ -1180,7 +1254,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 
 		return sds
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		hnc := &mock.Uint64CacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
@@ -1226,6 +1300,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		&blkc,
 		rnd,
 		ebm,
@@ -1277,7 +1352,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 		return sds
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		hnc := &mock.Uint64CacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
@@ -1328,6 +1403,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		&blkc,
 		rnd,
 		ebm,
@@ -1364,6 +1440,7 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1399,6 +1476,7 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1439,6 +1517,7 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		&blkc,
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1478,6 +1557,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		&blkc,
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1512,6 +1592,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1548,7 +1629,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 
 		return sds
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		hnc := &mock.Uint64CacherStub{}
 		hnc.RegisterHandlerCalled = func(handler func(nonce uint64)) {
 		}
@@ -1573,6 +1654,7 @@ func TestBootstrap_GetHeaderFromPoolShouldReturnHeader(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1617,6 +1699,7 @@ func TestGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1688,6 +1771,7 @@ func TestBootstrap_ReceivedHeadersFoundInPoolShouldAddToForkDetector(t *testing.
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1748,19 +1832,22 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 		return nil, nil
 	}
 
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, headerStorage)
+
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		headerStorage,
-		&mock.StorerStub{},
 	)
 
 	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		store,
 		blkc,
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1813,6 +1900,7 @@ func TestBootstrap_ReceivedHeadersShouldSetHighestNonceReceived(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		initBlockchain(),
 		rnd,
 		&mock.BlockProcessorMock{},
@@ -1849,6 +1937,7 @@ func TestBootstrap_ForkChoiceNilBlockchainHeaderShouldErr(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -1880,6 +1969,7 @@ func TestBootstrap_ForkChoiceNilParamHeaderShouldErr(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -1912,7 +2002,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 	pools.HeadersCalled = func() storage.Cacher {
 		return createHeadersDataPool(newHdrHash, remFlags)
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		return createHeadersNoncesDataPool(newHdrNonce, newHdrHash, newHdrNonce, remFlags)
 	}
 	blkc := initBlockchain()
@@ -1926,6 +2016,7 @@ func TestBootstrap_ForkChoiceIsNotEmptyShouldErr(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -1982,7 +2073,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 		return createHeadersDataPool(currentHdrHash, remFlags)
 	}
 	//data pool headers-nonces
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		return createHeadersNoncesDataPool(
 			currentHdrNonce,
 			currentHdrHash,
@@ -2025,6 +2116,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2090,7 +2182,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 		return createHeadersDataPool(currentHdrHash, remFlags)
 	}
 	//data pool headers-nonces
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		return createHeadersNoncesDataPool(
 			currentHdrNonce,
 			currentHdrHash,
@@ -2133,6 +2225,7 @@ func TestBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testing.T
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2190,11 +2283,6 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	}
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
 	)
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
@@ -2206,6 +2294,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2239,12 +2328,15 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.StorerStub{},
-		txBlockUnit,
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
 	)
+
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, txBlockUnit)
+	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
 	hasher := &mock.HasherMock{}
@@ -2255,6 +2347,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetNil(t *t
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		store,
 		blkc,
 		rnd,
 		blkExec,
@@ -2297,12 +2390,14 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.StorerStub{},
-		txBlockUnit,
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
 	)
+
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, txBlockUnit)
+	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
 
 	rnd := &mock.RounderMock{}
 	blkExec := &mock.BlockProcessorMock{}
@@ -2312,6 +2407,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		store,
 		blkc,
 		rnd,
 		blkExec,
@@ -2345,6 +2441,7 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenMarshalErr(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2387,6 +2484,7 @@ func TestBootstrap_CreateEmptyBlockShouldReturnNilWhenCommitBlockErr(t *testing.
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2420,6 +2518,7 @@ func TestBootstrap_CreateEmptyBlockShouldWork(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2453,6 +2552,7 @@ func TestBootstrap_AddSyncStateListenerShouldAppendAnotherListener(t *testing.T)
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2492,6 +2592,7 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2558,6 +2659,7 @@ func TestNewBootstrap_GetTimeStampForRoundShouldWork(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2600,6 +2702,7 @@ func TestNewBootstrap_ShouldCreateEmptyBlockShouldReturnFalseWhenForkIsDetected(
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2632,6 +2735,7 @@ func TestNewBootstrap_ShouldCreateEmptyBlockShouldReturnFalseWhenNonceIsSmallerO
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2664,6 +2768,7 @@ func TestNewBootstrap_ShouldCreateEmptyBlockShouldReturnTrue(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2699,6 +2804,7 @@ func TestNewBootstrap_CreateAndBroadcastEmptyBlockShouldReturnErr(t *testing.T) 
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2731,6 +2837,7 @@ func TestNewBootstrap_CreateAndBroadcastEmptyBlockShouldReturnNil(t *testing.T) 
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2767,6 +2874,7 @@ func TestNewBootstrap_BroadcastEmptyBlockShouldErrWhenBroadcastBlockErr(t *testi
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,
@@ -2804,6 +2912,7 @@ func TestNewBootstrap_BroadcastEmptyBlockShouldReturnNil(t *testing.T) {
 
 	bs, _ := sync.NewBootstrap(
 		pools,
+		createStore(),
 		blkc,
 		rnd,
 		blkExec,

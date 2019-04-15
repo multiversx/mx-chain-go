@@ -2,7 +2,7 @@ package interceptors
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -16,7 +16,7 @@ import (
 type HeaderInterceptor struct {
 	hdrInterceptorBase *HeaderInterceptorBase
 	headers            storage.Cacher
-	headersNonces      data.Uint64Cacher
+	headersNonces      dataRetriever.Uint64Cacher
 	shardCoordinator   sharding.Coordinator
 }
 
@@ -25,7 +25,7 @@ type HeaderInterceptor struct {
 func NewHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	headers storage.Cacher,
-	headersNonces data.Uint64Cacher,
+	headersNonces dataRetriever.Uint64Cacher,
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,

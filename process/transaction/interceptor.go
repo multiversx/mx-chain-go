@@ -2,8 +2,8 @@ package transaction
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -15,7 +15,7 @@ import (
 // TxInterceptor is used for intercepting transaction and storing them into a datapool
 type TxInterceptor struct {
 	marshalizer      marshal.Marshalizer
-	txPool           data.ShardedDataCacherNotifier
+	txPool           dataRetriever.ShardedDataCacherNotifier
 	txStorer         storage.Storer
 	addrConverter    state.AddressConverter
 	hasher           hashing.Hasher
@@ -27,7 +27,7 @@ type TxInterceptor struct {
 // NewTxInterceptor hooks a new interceptor for transactions
 func NewTxInterceptor(
 	marshalizer marshal.Marshalizer,
-	txPool data.ShardedDataCacherNotifier,
+	txPool dataRetriever.ShardedDataCacherNotifier,
 	txStorer storage.Storer,
 	addrConverter state.AddressConverter,
 	hasher hashing.Hasher,
@@ -39,35 +39,27 @@ func NewTxInterceptor(
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
 	}
-
 	if txPool == nil {
 		return nil, process.ErrNilTxDataPool
 	}
-
 	if txStorer == nil {
 		return nil, process.ErrNilTxStorage
 	}
-
 	if addrConverter == nil {
 		return nil, process.ErrNilAddressConverter
 	}
-
 	if hasher == nil {
 		return nil, process.ErrNilHasher
 	}
-
 	if singleSigner == nil {
 		return nil, process.ErrNilSingleSigner
 	}
-
 	if singleSigner == nil {
 		return nil, process.ErrNilSingleSigner
 	}
-
 	if keyGen == nil {
 		return nil, process.ErrNilKeyGen
 	}
-
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}

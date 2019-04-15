@@ -15,7 +15,6 @@ import (
 // The BlockChain also holds pointers to the Genesis block header, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {
-	data.StorageService
 	GenesisHeader          *block.Header  // Genesis Block Header pointer
 	genesisHeaderHash      []byte         // Genesis Block Header hash
 	CurrentBlockHeader     *block.Header  // Current Block Header pointer
@@ -30,30 +29,10 @@ type BlockChain struct {
 // It uses a config file to setup it's supported storage units map
 func NewBlockChain(
 	badBlocksCache storage.Cacher,
-	txUnit storage.Storer,
-	miniBlockUnit storage.Storer,
-	peerChangesBlockUnit storage.Storer,
-	headerUnit storage.Storer,
-	metachainHeadersUnit storage.Storer,
 ) (*BlockChain, error) {
 
 	if badBlocksCache == nil {
 		return nil, ErrBadBlocksCacheNil
-	}
-	if txUnit == nil {
-		return nil, ErrTxUnitNil
-	}
-	if miniBlockUnit == nil {
-		return nil, ErrMiniBlockUnitNil
-	}
-	if peerChangesBlockUnit == nil {
-		return nil, ErrPeerBlockUnitNil
-	}
-	if headerUnit == nil {
-		return nil, ErrHeaderUnitNil
-	}
-	if metachainHeadersUnit == nil {
-		return nil, ErrMetachainHeaderUnitNil
 	}
 
 	blockChain := &BlockChain{
@@ -62,15 +41,6 @@ func NewBlockChain(
 		localHeight:        -1,
 		networkHeight:      -1,
 		badBlocks:          badBlocksCache,
-		StorageService: &ChainStorer{
-			chain: map[data.UnitType]storage.Storer{
-				data.TransactionUnit: txUnit,
-				data.MiniBlockUnit:   miniBlockUnit,
-				data.PeerChangesUnit: peerChangesBlockUnit,
-				data.BlockHeaderUnit: headerUnit,
-				data.MetaBlockUnit:   metachainHeadersUnit,
-			},
-		},
 	}
 
 	return blockChain, nil
