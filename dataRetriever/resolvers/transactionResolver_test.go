@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -148,15 +149,16 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *te
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-
 	searchWasCalled := false
 	sendWasCalled := false
-
+	txReturned := &transaction.Transaction{
+		Nonce: 10,
+	}
 	txPool := &mock.ShardedDataStub{}
 	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal([]byte("aaa"), key) {
 			searchWasCalled = true
-			return make([]byte, 0), true
+			return txReturned, true
 		}
 
 		return nil, false
@@ -199,11 +201,13 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetN
 			return marshalizerMock.Unmarshal(obj, buff)
 		},
 	}
-
+	txReturned := &transaction.Transaction{
+		Nonce: 10,
+	}
 	txPool := &mock.ShardedDataStub{}
 	txPool.SearchFirstDataCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal([]byte("aaa"), key) {
-			return "value", true
+			return txReturned, true
 		}
 
 		return nil, false
@@ -235,15 +239,17 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageShouldRetValAndSend(t 
 		//not found in txPool
 		return nil, false
 	}
-
 	searchWasCalled := false
 	sendWasCalled := false
-
+	txReturned := &transaction.Transaction{
+		Nonce: 10,
+	}
+	txReturnedAsBuffer, _ := marshalizer.Marshal(txReturned)
 	txStorage := &mock.StorerStub{}
 	txStorage.GetCalled = func(key []byte) (i []byte, e error) {
 		if bytes.Equal([]byte("aaa"), key) {
 			searchWasCalled = true
-			return make([]byte, 0), nil
+			return txReturnedAsBuffer, nil
 		}
 
 		return nil, nil

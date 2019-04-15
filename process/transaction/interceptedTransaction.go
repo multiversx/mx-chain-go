@@ -6,115 +6,155 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
+	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 // InterceptedTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedTransaction struct {
-	*transaction.Transaction
-
-	txBuffWithoutSig         []byte
+	tx                       *transaction.Transaction
+	marshalizer              marshal.Marshalizer
+	hasher                   hashing.Hasher
+	keyGen                   crypto.KeyGenerator
+	singleSigner             crypto.SingleSigner
+	addrConv                 state.AddressConverter
+	coordinator              sharding.Coordinator
 	hash                     []byte
 	rcvShard                 uint32
 	sndShard                 uint32
 	isAddressedToOtherShards bool
-	addrConv                 state.AddressConverter
-	singleSigner             crypto.SingleSigner
-	keyGen                   crypto.KeyGenerator
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
-func NewInterceptedTransaction(signer crypto.SingleSigner) *InterceptedTransaction {
-	return &InterceptedTransaction{
-		Transaction:  &transaction.Transaction{},
-		singleSigner: signer,
-	}
-}
+func NewInterceptedTransaction(
+	txBuff []byte,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	keyGen crypto.KeyGenerator,
+	signer crypto.SingleSigner,
+	addrConv state.AddressConverter,
+	coordinator sharding.Coordinator,
+) (*InterceptedTransaction, error) {
 
-// IntegrityAndValidity returns a non nil error if transaction failed some checking tests
-func (inTx *InterceptedTransaction) IntegrityAndValidity(coordinator sharding.Coordinator) error {
+	if txBuff == nil {
+		return nil, process.ErrNilBuffer
+	}
+	if marshalizer == nil {
+		return nil, process.ErrNilMarshalizer
+	}
+	if hasher == nil {
+		return nil, process.ErrNilHasher
+	}
+	if keyGen == nil {
+		return nil, process.ErrNilKeyGen
+	}
+	if signer == nil {
+		return nil, process.ErrNilSingleSigner
+	}
+	if addrConv == nil {
+		return nil, process.ErrNilAddressConverter
+	}
 	if coordinator == nil {
-		return process.ErrNilShardCoordinator
+		return nil, process.ErrNilShardCoordinator
 	}
 
-	err := inTx.Integrity(coordinator)
+	tx := &transaction.Transaction{}
+	err := marshalizer.Unmarshal(tx, txBuff)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if inTx.addrConv == nil {
-		return process.ErrNilAddressConverter
+	inTx := &InterceptedTransaction{
+		tx:           tx,
+		marshalizer:  marshalizer,
+		hasher:       hasher,
+		singleSigner: signer,
+		addrConv:     addrConv,
+		keyGen:       keyGen,
+		coordinator:  coordinator,
 	}
 
-	sndAddr, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.SndAddr)
+	txBuffWithoutSig, err := inTx.processFields(txBuff)
 	if err != nil {
-		return process.ErrInvalidSndAddr
+		return nil, err
 	}
 
-	rcvAddr, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.RcvAddr)
+	err = inTx.integrity()
 	if err != nil {
-		return process.ErrInvalidRcvAddr
+		return nil, err
 	}
 
-	inTx.rcvShard = coordinator.ComputeId(rcvAddr)
-	inTx.sndShard = coordinator.ComputeId(sndAddr)
+	err = inTx.verifySig(txBuffWithoutSig)
+	if err != nil {
+		return nil, err
+	}
 
-	inTx.isAddressedToOtherShards = inTx.rcvShard != coordinator.SelfId() && inTx.sndShard != coordinator.SelfId()
-
-	return nil
+	return inTx, nil
 }
 
-// Integrity checks for not nil fields and negative value
-func (inTx *InterceptedTransaction) Integrity(coordinator sharding.Coordinator) error {
-	if inTx.Transaction == nil {
-		return process.ErrNilTransaction
+func (inTx *InterceptedTransaction) processFields(txBuffWithSig []byte) ([]byte, error) {
+	copiedTx := *inTx.Transaction()
+	copiedTx.Signature = nil
+	buffCopiedTx, err := inTx.marshalizer.Marshal(&copiedTx)
+	if err != nil {
+		return nil, err
+	}
+	inTx.hash = inTx.hasher.Compute(string(txBuffWithSig))
+
+	sndAddr, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.SndAddr)
+	if err != nil {
+		return nil, process.ErrInvalidSndAddr
 	}
 
-	if inTx.Signature == nil {
+	rcvAddr, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.RcvAddr)
+	if err != nil {
+		return nil, process.ErrInvalidRcvAddr
+	}
+
+	inTx.rcvShard = inTx.coordinator.ComputeId(rcvAddr)
+	inTx.sndShard = inTx.coordinator.ComputeId(sndAddr)
+
+	inTx.isAddressedToOtherShards = inTx.rcvShard != inTx.coordinator.SelfId() &&
+		inTx.sndShard != inTx.coordinator.SelfId()
+
+	return buffCopiedTx, nil
+}
+
+// integrity checks for not nil fields and negative value
+func (inTx *InterceptedTransaction) integrity() error {
+	if inTx.tx.Signature == nil {
 		return process.ErrNilSignature
 	}
 
-	if inTx.RcvAddr == nil {
+	if inTx.tx.RcvAddr == nil {
 		return process.ErrNilRcvAddr
 	}
 
-	if inTx.SndAddr == nil {
+	if inTx.tx.SndAddr == nil {
 		return process.ErrNilSndAddr
 	}
 
-	if inTx.Transaction.Value == nil {
+	if inTx.tx.Value == nil {
 		return process.ErrNilValue
 	}
 
-	if inTx.Transaction.Value.Cmp(big.NewInt(0)) < 0 {
+	if inTx.tx.Value.Cmp(big.NewInt(0)) < 0 {
 		return process.ErrNegativeValue
 	}
 
 	return nil
 }
 
-// VerifySig checks if the tx is correctly signed
-func (inTx *InterceptedTransaction) VerifySig() error {
-	if inTx.Transaction == nil {
-		return process.ErrNilTransaction
-	}
-
-	if inTx.keyGen == nil {
-		return process.ErrNilKeyGen
-	}
-
-	if inTx.singleSigner == nil {
-		return process.ErrNilSingleSigner
-	}
-
-	senderPubKey, err := inTx.keyGen.PublicKeyFromByteArray(inTx.SndAddr)
+// verifySig checks if the tx is correctly signed
+func (inTx *InterceptedTransaction) verifySig(txBuffWithoutSig []byte) error {
+	senderPubKey, err := inTx.keyGen.PublicKeyFromByteArray(inTx.tx.SndAddr)
 	if err != nil {
 		return err
 	}
 
-	err = inTx.singleSigner.Verify(senderPubKey, inTx.txBuffWithoutSig, inTx.Signature)
-
+	err = inTx.singleSigner.Verify(senderPubKey, txBuffWithoutSig, inTx.tx.Signature)
 	if err != nil {
 		return err
 	}
@@ -137,49 +177,12 @@ func (inTx *InterceptedTransaction) IsAddressedToOtherShards() bool {
 	return inTx.isAddressedToOtherShards
 }
 
-// SetAddressConverter sets the AddressConverter implementation used in address processing
-func (inTx *InterceptedTransaction) SetAddressConverter(converter state.AddressConverter) {
-	inTx.addrConv = converter
-}
-
-// AddressConverter returns the AddressConverter implementation used in address processing
-func (inTx *InterceptedTransaction) AddressConverter() state.AddressConverter {
-	return inTx.addrConv
-}
-
-// GetTransaction returns the transaction pointer that actually holds the data
-func (inTx *InterceptedTransaction) GetTransaction() *transaction.Transaction {
-	return inTx.Transaction
-}
-
-// SetHash sets the hash of this transaction. The hash will also be the ID of this object
-func (inTx *InterceptedTransaction) SetHash(hash []byte) {
-	inTx.hash = hash
+// Transaction returns the transaction pointer that actually holds the data
+func (inTx *InterceptedTransaction) Transaction() *transaction.Transaction {
+	return inTx.tx
 }
 
 // Hash gets the hash of this transaction
 func (inTx *InterceptedTransaction) Hash() []byte {
 	return inTx.hash
-}
-
-// SetTxBuffWithoutSig sets the byte slice buffer of this transaction having nil in Signature field.
-func (inTx *InterceptedTransaction) SetTxBuffWithoutSig(txBuffWithoutSig []byte) {
-	inTx.txBuffWithoutSig = txBuffWithoutSig
-}
-
-// TxBuffWithoutSig gets the byte slice buffer of this transaction having nil in Signature field
-func (inTx *InterceptedTransaction) TxBuffWithoutSig() []byte {
-	return inTx.txBuffWithoutSig
-}
-
-// SingleSignKeyGen returns the key generator that is used to create a new public key verifier that will be used
-// for validating transaction's signature
-func (inTx *InterceptedTransaction) SingleSignKeyGen() crypto.KeyGenerator {
-	return inTx.keyGen
-}
-
-// SetSingleSignKeyGen sets the key generator that is used to create a new public key verifier that will be used
-// for validating transaction's signature
-func (inTx *InterceptedTransaction) SetSingleSignKeyGen(generator crypto.KeyGenerator) {
-	inTx.keyGen = generator
 }
