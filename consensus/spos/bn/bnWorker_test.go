@@ -117,7 +117,6 @@ func initChronologyHandlerMock() consensus.ChronologyHandler {
 
 func initBlockProcessorMock() *mock.BlockProcessorMock {
 	blockProcessorMock := &mock.BlockProcessorMock{}
-	blockProcessorMock.RemoveBlockInfoFromPoolCalled = func(body data.BodyHandler) error { return nil }
 	blockProcessorMock.CreateBlockCalled = func(round int32, haveTime func() bool) (data.BodyHandler, error) {
 		emptyBlock := make(block.Body, 0)
 

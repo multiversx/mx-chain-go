@@ -23,6 +23,7 @@ type BlockChainMock struct {
 	SetNetworkHeightCalled          func(int64)
 	HasBadBlockCalled               func([]byte) bool
 	PutBadBlockCalled               func([]byte)
+	GetAllCalled                    func(unitType data.UnitType, keys [][]byte) (map[string][]byte, error)
 }
 
 // GetGenesisHeader returns the genesis block header pointer
@@ -146,4 +147,12 @@ func (bc *BlockChainMock) PutBadBlock(blockHash []byte) {
 	if bc.PutBadBlockCalled != nil {
 		bc.PutBadBlockCalled(blockHash)
 	}
+}
+
+func (bc *BlockChainMock) GetAll(unitType data.UnitType, keys [][]byte) (map[string][]byte, error) {
+	if bc.GetAllCalled != nil {
+		return bc.GetAllCalled(unitType, keys)
+	}
+
+	return nil, nil
 }

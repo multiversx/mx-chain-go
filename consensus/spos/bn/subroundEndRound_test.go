@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -412,24 +411,6 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 
 	r := sr.DoEndRoundJob()
 	assert.False(t, r)
-}
-
-func TestSubroundEndRound_DoEndRoundJobErrRemBlockTxOK(t *testing.T) {
-	t.Parallel()
-
-	sr := *initSubroundEndRound()
-
-	blProcMock := initBlockProcessorMock()
-
-	blProcMock.RemoveBlockInfoFromPoolCalled = func(body data.BodyHandler) error {
-		return process.ErrNilBlockBodyPool
-	}
-
-	sr.SetBlockProcessor(blProcMock)
-	sr.ConsensusState().Header = &block.Header{}
-
-	r := sr.DoEndRoundJob()
-	assert.True(t, r)
 }
 
 func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {

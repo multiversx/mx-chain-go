@@ -436,12 +436,12 @@ func (m *MetaBlock) GetMiniBlockProcessed(hash []byte) bool {
 	return false
 }
 
-// SetMiniBlockProcessed set that miniblock with hash to processed
-func (m *MetaBlock) SetMiniBlockProcessed(hash []byte) {
+// SetMiniBlockProcessed set that miniblock with hash to processed or not processed
+func (m *MetaBlock) SetMiniBlockProcessed(hash []byte, processed bool) {
 	if m.processedMBs == nil {
 		m.processedMBs = make(map[string]bool, 0)
 	}
-	m.processedMBs[string(hash)] = true
+	m.processedMBs[string(hash)] = processed
 }
 
 // IntegrityAndValidity return true as block is nil for metablock.

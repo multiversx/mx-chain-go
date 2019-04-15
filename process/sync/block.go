@@ -26,6 +26,15 @@ var log = logger.DefaultLogger()
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = time.Duration(5 * time.Millisecond)
 
+// maxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
+// block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
+const maxRoundsToWait = 3
+
+type receivedHeaderInfo struct {
+	highestNonce uint64
+	roundIndex   int32
+}
+
 // Bootstrap implements the boostrsap mechanism
 type Bootstrap struct {
 	headers          storage.Cacher
@@ -60,9 +69,11 @@ type Bootstrap struct {
 	syncStateListeners    []func(bool)
 	mutSyncStateListeners sync.RWMutex
 
-	highestNonceReceived uint64
-	isForkDetected       bool
+	rcvHdrInfo     receivedHeaderInfo
+	isForkDetected bool
+	forkNonce      uint64
 
+	mutRcvHdrInfo  sync.RWMutex
 	BroadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
 
@@ -284,10 +295,14 @@ func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 
 func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 	header := boot.getHeader(headerHash)
-	if header != nil && header.Nonce > boot.highestNonceReceived {
-		boot.highestNonceReceived = header.Nonce
-	}
 	if header != nil {
+		boot.mutRcvHdrInfo.Lock()
+		if header.Nonce > boot.rcvHdrInfo.highestNonce {
+			log.Info(fmt.Sprintf("receivedHeaders: received header with nonce %d from network, which is the highest nonce received until now\n", header.Nonce))
+			boot.rcvHdrInfo.highestNonce = header.Nonce
+			boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
+		}
+		boot.mutRcvHdrInfo.Unlock()
 		log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.Nonce, toB64(headerHash)))
 	}
 
@@ -301,9 +316,13 @@ func (boot *Bootstrap) receivedHeaders(headerHash []byte) {
 // in the block headers pool
 func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	//TODO: make sure that header validation done on interceptors do not add headers with wrong nonces/round numbers
-	if nonce > boot.highestNonceReceived {
-		boot.highestNonceReceived = nonce
+	boot.mutRcvHdrInfo.Lock()
+	if nonce > boot.rcvHdrInfo.highestNonce {
+		log.Info(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d from network, which is the highest nonce received until now\n", nonce))
+		boot.rcvHdrInfo.highestNonce = nonce
+		boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
 	}
+	boot.mutRcvHdrInfo.Unlock()
 
 	headerHash, _ := boot.headersNonces.Get(nonce)
 	if headerHash != nil {
@@ -316,7 +335,7 @@ func (boot *Bootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 
 	if *n == nonce {
-		log.Info(fmt.Sprintf("received requested header with nonce %d from network and higher nonce received until now is %d\n", nonce, boot.highestNonceReceived))
+		log.Info(fmt.Sprintf("received requested header with nonce %d from network\n", nonce))
 		boot.setRequestedHeaderNonce(nil)
 		boot.chRcvHdr <- true
 	}
@@ -381,7 +400,7 @@ func (boot *Bootstrap) SyncBlock() error {
 	}
 
 	if boot.isForkDetected {
-		log.Info("fork detected\n")
+		log.Info(fmt.Sprintf("fork detected at nonce %d\n", boot.forkNonce))
 		return boot.forkChoice()
 	}
 
@@ -454,9 +473,15 @@ func (boot *Bootstrap) shouldCreateEmptyBlock(nonce uint64) bool {
 		return false
 	}
 
-	if nonce <= boot.highestNonceReceived {
-		return false
+	boot.mutRcvHdrInfo.RLock()
+	if nonce <= boot.rcvHdrInfo.highestNonce {
+		roundsWithoutReceivedHeader := boot.rounder.Index() - boot.rcvHdrInfo.roundIndex
+		if roundsWithoutReceivedHeader <= maxRoundsToWait {
+			boot.mutRcvHdrInfo.RUnlock()
+			return false
+		}
 	}
+	boot.mutRcvHdrInfo.RUnlock()
 
 	return true
 }
@@ -620,78 +645,116 @@ func (boot *Bootstrap) waitForMiniBlocks() {
 
 // forkChoice decides if rollback must be called
 func (boot *Bootstrap) forkChoice() error {
-	log.Info(fmt.Sprintf("starting fork choice\n"))
+	log.Info("starting fork choice\n")
+	isForkResolved := false
+	for !isForkResolved {
+		header, err := boot.getCurrentHeader()
+		if err != nil {
+			return err
+		}
 
-	header, err := boot.getCurrentHeader()
-	if err != nil {
-		return err
+		msg := fmt.Sprintf("roll back to header with nonce %d and hash %s",
+			header.Nonce-1, toB64(header.PrevHash))
+
+		isSigned := isSigned(header)
+		if isSigned {
+			msg = fmt.Sprintf("%s from a signed block, as the highest final block nonce is %d",
+				msg,
+				boot.forkDetector.GetHighestFinalBlockNonce())
+			canRevertBlock := header.Nonce > boot.forkDetector.GetHighestFinalBlockNonce()
+			if !canRevertBlock {
+				return &ErrSignedBlock{CurrentNonce: header.Nonce}
+			}
+		}
+
+		log.Info(msg + "\n")
+
+		err = boot.rollback(header)
+		if err != nil {
+			return err
+		}
+
+		if header.Nonce <= boot.forkNonce {
+			isForkResolved = true
+		}
 	}
 
-	if !isEmpty(header) {
-		return &ErrNotEmptyHeader{
-			CurrentNonce: header.Nonce}
-	}
-
-	log.Info(fmt.Sprintf("roll back to header with hash %s\n",
-		toB64(header.PrevHash)))
-
-	return boot.rollback(header)
+	log.Info("ending fork choice\n")
+	return nil
 }
 
 func (boot *Bootstrap) cleanCachesOnRollback(header *block.Header, headerStore storage.Storer) {
 	hash, _ := boot.headersNonces.Get(header.Nonce)
 	boot.headersNonces.Remove(header.Nonce)
 	boot.headers.Remove(hash)
-	_ = boot.forkDetector.RemoveProcessedHeader(header.Nonce)
+	boot.forkDetector.RemoveHeaders(header.Nonce)
 	_ = headerStore.Remove(hash)
 }
 
 func (boot *Bootstrap) rollback(header *block.Header) error {
+	if header.Nonce == 0 {
+		return process.ErrRollbackFromGenesis
+	}
 	headerStore := boot.blkc.GetStorer(data.BlockHeaderUnit)
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
 	}
 
-	// genesis block is treated differently
-	if header.Nonce == 1 {
-		err := boot.blkc.SetCurrentBlockHeader(nil)
-		err = boot.blkc.SetCurrentBlockBody(nil)
-		boot.blkc.SetCurrentBlockHeaderHash(nil)
-		boot.cleanCachesOnRollback(header, headerStore)
+	var err error
+	var newHeader *block.Header
+	var newBody block.Body
+	var newHeaderHash []byte
+	var newRootHash []byte
 
-		return err
-	}
+	if header.Nonce > 1 {
+		newHeader, err = boot.getPrevHeader(headerStore, header)
+		if err != nil {
+			return err
+		}
 
-	newHeader, err := boot.getPrevHeader(headerStore, header)
-	if err != nil {
-		return err
-	}
+		newBody, err = boot.getTxBlockBody(newHeader)
+		if err != nil {
+			return err
+		}
 
-	newTxBlockBody, err := boot.getTxBlockBody(newHeader)
-	if err != nil {
-		return err
+		newHeaderHash = header.PrevHash
+		newRootHash = newHeader.RootHash
+	} else { // rollback to genesis block
+		newRootHash = boot.blkc.GetGenesisHeader().GetRootHash()
 	}
 
 	err = boot.blkc.SetCurrentBlockHeader(newHeader)
-	err = boot.blkc.SetCurrentBlockBody(newTxBlockBody)
-	boot.blkc.SetCurrentBlockHeaderHash(header.PrevHash)
-	boot.cleanCachesOnRollback(header, headerStore)
+	if err != nil {
+		return err
+	}
 
-	return err
+	err = boot.blkc.SetCurrentBlockBody(newBody)
+	if err != nil {
+		return err
+	}
+
+	boot.blkc.SetCurrentBlockHeaderHash(newHeaderHash)
+
+	err = boot.accounts.RecreateTrie(newRootHash)
+	if err != nil {
+		return err
+	}
+
+	body, err := boot.getTxBlockBody(header)
+	if err != nil {
+		return err
+	}
+
+	boot.cleanCachesOnRollback(header, headerStore)
+	boot.blkExecutor.RestoreBlockIntoPools(boot.blkc, body)
+
+	return nil
 }
 
 func (boot *Bootstrap) removeHeaderFromPools(header *block.Header) {
-	currentHeader, err := boot.getCurrentHeader()
-	if err != nil {
-		log.Info(err.Error())
-		return
-	}
-
-	if !isEmpty(currentHeader) {
-		hash, _ := boot.headersNonces.Get(header.Nonce)
-		boot.headersNonces.Remove(header.Nonce)
-		boot.headers.Remove(hash)
-	}
+	hash, _ := boot.headersNonces.Get(header.Nonce)
+	boot.headersNonces.Remove(header.Nonce)
+	boot.headers.Remove(hash)
 }
 
 func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.Header) (*block.Header, error) {
@@ -716,11 +779,13 @@ func (boot *Bootstrap) getTxBlockBody(header *block.Header) (block.Body, error) 
 	return block.Body(bodyMiniBlocks), nil
 }
 
-// IsEmpty verifies if a block is empty
-func isEmpty(header *block.Header) bool {
+// isSigned verifies if a block is signed
+func isSigned(header *block.Header) bool {
+	// TODO: Later, here it should be done a more complex verification (signature for this round matches with the bitmap,
+	// and validators which signed here, were in this round consensus group)
 	bitmap := header.PubKeysBitmap
-	areEqual := bytes.Equal(bitmap, make([]byte, len(bitmap)))
-	return areEqual
+	isBitmapEmpty := bytes.Equal(bitmap, make([]byte, len(bitmap)))
+	return !isBitmapEmpty
 }
 
 func toB64(buff []byte) string {
@@ -740,7 +805,7 @@ func (boot *Bootstrap) ShouldSync() bool {
 		return false
 	}
 
-	boot.isForkDetected = boot.forkDetector.CheckFork()
+	boot.isForkDetected, boot.forkNonce = boot.forkDetector.CheckFork()
 
 	if boot.blkc.GetCurrentBlockHeader() == nil {
 		boot.hasLastBlock = boot.rounder.Index() <= 0
