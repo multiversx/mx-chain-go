@@ -347,7 +347,7 @@ func TestCCache_RemoveConcurrent(t *testing.T) {
 
 	var ch = make(chan int)
 
-	// Put/Get cache value concurrently
+	// Insert cache value concurrently
 	go func() {
 		for i := 0; i < size; i++ {
 			c.Put([]byte(strconv.Itoa(i)), i)
@@ -359,19 +359,51 @@ func TestCCache_RemoveConcurrent(t *testing.T) {
 		close(ch) // close the channel
 	}()
 
-	wg := sync.WaitGroup{}
+	done := make(chan struct{})
 
 	// Remove cache value concurrently
 	for elem := range ch {
-		wg.Add(1)
-
 		go func(elem int) {
-			defer wg.Done()
+			done <- struct{}{}
 			c.Remove([]byte(strconv.Itoa(elem)))
 		}(elem)
 
-		wg.Wait()
+		<- done
 	}
+
+	assert.Equal(t, 0, c.Len(), "expected map size: 0, got %d", c.Len())
+}
+
+
+func TestCCache_RemoveConcurrentWaitGroup(t *testing.T) {
+	t.Parallel()
+
+	size := 1000
+	c, err := ccache.NewCCache(size)
+
+	assert.Nil(t, err, "no error expected, but got %v", err)
+
+	var wg sync.WaitGroup
+	wg.Add(size)
+
+	// Insert cache value concurrently
+	for i := 0; i < size; i++ {
+		go func(idx int) {
+			c.Put([]byte(strconv.Itoa(idx)), idx)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	wg.Add(size)
+	// Remove cache value concurrently
+	for i := 0; i < size; i++ {
+		go func(idx int) {
+			c.Remove([]byte(strconv.Itoa(idx)))
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
 
 	assert.Equal(t, 0, c.Len(), "expected map size: 0, got %d", c.Len())
 }
