@@ -121,7 +121,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilTxStorage, err)
+	assert.Equal(t, process.ErrNilStore, err)
 }
 
 func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {

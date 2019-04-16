@@ -41,7 +41,7 @@ func NewInterceptorsContainerFactory(
 		return nil, process.ErrNilMessenger
 	}
 	if store == nil {
-		return nil, process.ErrNilTxStorage
+		return nil, process.ErrNilStore
 	}
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer

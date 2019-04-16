@@ -216,7 +216,7 @@ func checkBootstrapNilParameters(
 		return process.ErrNilAccountsAdapter
 	}
 	if store == nil {
-		return process.ErrNilTxStorage
+		return process.ErrNilStore
 	}
 
 	return nil

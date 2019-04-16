@@ -413,7 +413,7 @@ func TestNewBootstrap_NilStoreShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, bs)
-	assert.Equal(t, process.ErrNilTxStorage, err)
+	assert.Equal(t, process.ErrNilStore, err)
 }
 
 func TestNewBootstrap_NilBlockchainShouldErr(t *testing.T) {

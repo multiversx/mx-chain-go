@@ -105,7 +105,7 @@ func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
 }
 
-func TestNewResolversContainerFactory_NilBlockchainShouldErr(t *testing.T) {
+func TestNewResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rcf, err := metachain.NewResolversContainerFactory(
@@ -118,7 +118,7 @@ func TestNewResolversContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilTxStorage, err)
+	assert.Equal(t, dataRetriever.ErrNilStore, err)
 }
 
 func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {

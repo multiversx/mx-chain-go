@@ -8,10 +8,6 @@ import (
 
 // MetaChain holds the block information for the beacon chain
 //
-// The MetaChain through it's Storage units map manages the storage,
-// retrieval search of blocks (body), transactions, block headers,
-// bad blocks.
-//
 // The MetaChain also holds pointers to the Genesis block, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type MetaChain struct {

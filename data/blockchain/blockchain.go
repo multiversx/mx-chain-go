@@ -8,10 +8,6 @@ import (
 
 // BlockChain holds the block information for the current shard.
 //
-// The BlockChain through it's Storage units map manages the storage,
-// retrieval search of blocks (body), transactions, block headers,
-// bad blocks.
-//
 // The BlockChain also holds pointers to the Genesis block header, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type BlockChain struct {

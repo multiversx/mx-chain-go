@@ -37,7 +37,7 @@ func NewResolversContainerFactory(
 		return nil, dataRetriever.ErrNilMessenger
 	}
 	if store == nil {
-		return nil, dataRetriever.ErrNilTxStorage
+		return nil, dataRetriever.ErrNilStore
 	}
 	if marshalizer == nil {
 		return nil, dataRetriever.ErrNilMarshalizer

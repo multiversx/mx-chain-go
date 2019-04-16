@@ -49,6 +49,9 @@ var ErrInvalidShardId = errors.New("invalid shard id")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
+// ErrNilStore signals that the provided storage service is nil
+var ErrNilStore = errors.New("nil data storage service")
+
 // ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
 var ErrNilRounder = errors.New("nil Rounder")
 

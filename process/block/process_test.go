@@ -886,11 +886,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 			return errPersister
 		},
 	}
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
+	store := initStore()
 	store.AddStorer(dataRetriever.BlockHeaderUnit, hdrUnit)
 
 	be, _ := blproc.NewBlockProcessor(
@@ -947,12 +943,8 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 			return errPersister
 		},
 	}
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
+	store := initStore()
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
-	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
 
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
@@ -1001,13 +993,7 @@ func TestBlockProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 		RootHash:      rootHash,
 	}
 	body := make(block.Body, 0)
-
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+	store := initStore()
 
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
@@ -1069,13 +1055,7 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	hasher.ComputeCalled = func(s string) []byte {
 		return hdrHash
 	}
-
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+	store := initStore()
 
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
@@ -1162,13 +1142,7 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	hasher.ComputeCalled = func(s string) []byte {
 		return hdrHash
 	}
-
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+	store := initStore()
 
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
@@ -1241,13 +1215,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 			return rootHash
 		},
 	}
-
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
+	store := initStore()
 
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
@@ -2842,30 +2810,13 @@ func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHas
 	return metaBlock
 }
 
-func createMemUnit() storage.Storer {
-	cache, _ := storage.NewCache(storage.LRUCache, 10)
-	persist, _ := memorydb.New()
-	unit, _ := storage.NewStorageUnit(cache, persist)
-	return unit
-}
-
-func createTestStore() dataRetriever.StorageService {
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
-	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
-	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
-	return store
-}
-
 func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockChain(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
 
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
-		createTestStore(),
+		initStore(),
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
@@ -2886,7 +2837,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.
 	tdp := initDataPool()
 	be, _ := blproc.NewBlockProcessor(
 		tdp,
-		createTestStore(),
+		initStore(),
 		&mock.HasherStub{},
 		&mock.MarshalizerMock{},
 		&mock.TxProcessorMock{},
