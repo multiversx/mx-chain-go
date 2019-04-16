@@ -11,8 +11,8 @@ import (
 )
 
 func initSubroundBitmap() bn.SubroundBitmap {
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
+	blockProcessorMock := mock.InitBlockProcessorMock()
+	consensusState := mock.InitConsensusState()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -44,8 +44,8 @@ func initSubroundBitmap() bn.SubroundBitmap {
 func TestSubroundBitmap_NewSubroundBitmapNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
+	blockProcessorMock := mock.InitBlockProcessorMock()
+	consensusState := mock.InitConsensusState()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -66,7 +66,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilSubroundShouldFail(t *testing.T) {
 func TestSubroundBitmap_NewSubroundBitmapNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -99,7 +99,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilBlockProcessorShouldFail(t *testing.
 func TestSubroundBitmap_NewSubroundBitmapNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -132,8 +132,8 @@ func TestSubroundBitmap_NewSubroundBitmapNilConsensusStateShouldFail(t *testing.
 func TestSubroundBitmap_NewSubroundBitmapNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
+	blockProcessorMock := mock.InitBlockProcessorMock()
+	consensusState := mock.InitConsensusState()
 	syncTimerMock := mock.SyncTimerMock{}
 
 	ch := make(chan bool, 1)
@@ -165,8 +165,8 @@ func TestSubroundBitmap_NewSubroundBitmapNilRounderShouldFail(t *testing.T) {
 func TestSubroundBitmap_NewSubroundBitmapNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
+	blockProcessorMock := mock.InitBlockProcessorMock()
+	consensusState := mock.InitConsensusState()
 	rounderMock := initRounderMock()
 
 	ch := make(chan bool, 1)
@@ -198,8 +198,8 @@ func TestSubroundBitmap_NewSubroundBitmapNilSyncTimerShouldFail(t *testing.T) {
 func TestSubroundBitmap_NewSubroundBitmapNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
+	blockProcessorMock := mock.InitBlockProcessorMock()
+	consensusState := mock.InitConsensusState()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -232,8 +232,8 @@ func TestSubroundBitmap_NewSubroundBitmapNilSendConsensusMessageFunctionShouldFa
 func TestSubroundBitmap_NewSubroundBitmapShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorMock := initBlockProcessorMock()
-	consensusState := initConsensusState()
+	blockProcessorMock := mock.InitBlockProcessorMock()
+	consensusState := mock.InitConsensusState()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 

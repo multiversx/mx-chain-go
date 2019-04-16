@@ -2,8 +2,8 @@ package sync_test
 
 import (
 	"bytes"
-	"math"
 	"errors"
+	"math"
 	"reflect"
 	"strings"
 	goSync "sync"
