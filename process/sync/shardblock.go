@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -20,20 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
-
-var log = logger.DefaultLogger()
-
-// sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
-const sleepTime = time.Duration(5 * time.Millisecond)
-
-// maxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
-// block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
-const maxRoundsToWait = 3
-
-type receivedHeaderInfo struct {
-	highestNonce uint64
-	roundIndex   int32
-}
 
 // Bootstrap implements the boostrsap mechanism
 type Bootstrap struct {
@@ -174,51 +159,39 @@ func checkBootstrapNilParameters(
 	if pools == nil {
 		return process.ErrNilPoolsHolder
 	}
-
 	if pools.Headers() == nil {
 		return process.ErrNilHeadersDataPool
 	}
-
 	if pools.HeadersNonces() == nil {
 		return process.ErrNilHeadersNoncesDataPool
 	}
-
 	if pools.MiniBlocks() == nil {
 		return process.ErrNilTxBlockBody
 	}
-
 	if blkc == nil {
 		return process.ErrNilBlockChain
 	}
-
 	if rounder == nil {
 		return process.ErrNilRounder
 	}
-
 	if blkExecutor == nil {
 		return process.ErrNilBlockExecutor
 	}
-
 	if hasher == nil {
 		return process.ErrNilHasher
 	}
-
 	if marshalizer == nil {
 		return process.ErrNilMarshalizer
 	}
-
 	if forkDetector == nil {
 		return process.ErrNilForkDetector
 	}
-
 	if resolversFinder == nil {
 		return process.ErrNilResolverContainer
 	}
-
 	if shardCoordinator == nil {
 		return process.ErrNilShardCoordinator
 	}
-
 	if accounts == nil {
 		return process.ErrNilAccountsAdapter
 	}
@@ -276,7 +249,6 @@ func (boot *Bootstrap) getHeaderFromPool(hash []byte) *block.Header {
 
 func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 	headerStore := boot.blkc.GetStorer(data.BlockHeaderUnit)
-
 	if headerStore == nil {
 		log.Error(process.ErrNilHeadersStorage.Error())
 		return nil
@@ -442,10 +414,13 @@ func (boot *Bootstrap) SyncBlock() error {
 
 	//TODO remove type assertions and implement a way for block executor to process
 	//TODO all kinds of headers
-	blockBody := block.Body(blk.(block.MiniBlockSlice))
+	miniBlockSlice, ok := blk.(block.MiniBlockSlice)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
 
+	blockBody := block.Body(miniBlockSlice)
 	err = boot.blkExecutor.ProcessBlock(boot.blkc, hdr, blockBody, haveTime)
-
 	if err != nil {
 		isForkDetected := err == process.ErrInvalidBlockHash || err == process.ErrRootStateMissmatch
 		if isForkDetected {
@@ -458,13 +433,11 @@ func (boot *Bootstrap) SyncBlock() error {
 	}
 
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blockBody)
-
 	if err != nil {
 		return err
 	}
 
 	log.Info(fmt.Sprintf("block with nonce %d was synced successfully\n", hdr.Nonce))
-
 	return nil
 }
 
@@ -505,7 +478,6 @@ func (boot *Bootstrap) broadcastEmptyBlock(txBlockBody block.Body, header *block
 
 	// broadcast block body and header
 	err := boot.BroadcastBlock(txBlockBody, header)
-
 	if err != nil {
 		return err
 	}
@@ -583,6 +555,7 @@ func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
 		log.Error("Could not marshal MiniBlock hashes: ", err.Error())
 		return
 	}
+
 	boot.setRequestedMiniBlocks(hashes)
 	err = boot.miniBlockResolver.RequestDataFromHashArray(hashes)
 
@@ -599,7 +572,6 @@ func (boot *Bootstrap) requestMiniBlocks(hashes [][]byte) {
 // what kind of block body received.
 func (boot *Bootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (interface{}, error) {
 	miniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
-
 	if miniBlocks == nil {
 		boot.emptyChannel(boot.chRcvMiniBlocks)
 		boot.requestMiniBlocks(hashes)
@@ -761,6 +733,7 @@ func (boot *Bootstrap) getPrevHeader(headerStore storage.Storer, header *block.H
 	prevHash := header.PrevHash
 	buffHeader, _ := headerStore.Get(prevHash)
 	newHeader := &block.Header{}
+
 	err := boot.marshalizer.Unmarshal(newHeader, buffHeader)
 	if err != nil {
 		return nil, err
@@ -776,6 +749,7 @@ func (boot *Bootstrap) getTxBlockBody(header *block.Header) (block.Body, error) 
 		hashes[i] = header.MiniBlockHeaders[i].Hash
 	}
 	bodyMiniBlocks := boot.miniBlockResolver.GetMiniBlocks(hashes)
+
 	return block.Body(bodyMiniBlocks), nil
 }
 
@@ -785,6 +759,7 @@ func isSigned(header *block.Header) bool {
 	// and validators which signed here, were in this round consensus group)
 	bitmap := header.PubKeysBitmap
 	isBitmapEmpty := bytes.Equal(bitmap, make([]byte, len(bitmap)))
+
 	return !isBitmapEmpty
 }
 
@@ -792,6 +767,7 @@ func toB64(buff []byte) string {
 	if buff == nil {
 		return "<NIL>"
 	}
+
 	return base64.StdEncoding.EncodeToString(buff)
 }
 
@@ -800,7 +776,6 @@ func toB64(buff []byte) string {
 // synched and it can participate to the consensus, if it is in the jobDone group of this rounder
 func (boot *Bootstrap) ShouldSync() bool {
 	isNodeSynchronizedInCurrentRound := boot.roundIndex == boot.rounder.Index() && boot.isNodeSynchronized
-
 	if isNodeSynchronizedInCurrentRound {
 		return false
 	}
@@ -814,7 +789,6 @@ func (boot *Bootstrap) ShouldSync() bool {
 	}
 
 	isNodeSynchronized := !boot.isForkDetected && boot.hasLastBlock
-
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Info(fmt.Sprintf("node has changed its synchronized state to %v\n", isNodeSynchronized))
 		boot.isNodeSynchronized = isNodeSynchronized
@@ -832,16 +806,14 @@ func (boot *Bootstrap) getTimeStampForRound(roundIndex uint32) time.Time {
 	roundDuration := boot.rounder.TimeDuration()
 
 	diff := int32(roundIndex) - currentRoundIndex
-
 	roundTimeStamp := currentRoundTimeStamp.Add(roundDuration * time.Duration(diff))
 
 	return roundTimeStamp
 }
 
 func (boot *Bootstrap) createHeader() (data.HeaderHandler, error) {
-	hdr := &block.Header{}
-
 	var prevHeaderHash []byte
+	hdr := &block.Header{}
 
 	if boot.blkc.GetCurrentBlockHeader() == nil {
 		hdr.Nonce = 1
@@ -886,7 +858,6 @@ func (boot *Bootstrap) CreateAndCommitEmptyBlock(shardForCurrentNode uint32) (da
 
 	// Commit the block (commits also the account state)
 	err = boot.blkExecutor.CommitBlock(boot.blkc, hdr, blk)
-
 	if err != nil {
 		return nil, nil, err
 	}
@@ -905,7 +876,6 @@ func (boot *Bootstrap) emptyChannel(ch chan bool) {
 
 func (boot *Bootstrap) getCurrentHeader() (*block.Header, error) {
 	blockHeader := boot.blkc.GetCurrentBlockHeader()
-
 	if blockHeader == nil {
 		return nil, process.ErrNilBlockHeader
 	}
