@@ -68,7 +68,7 @@ const (
 )
 
 var (
-	bootNodeHelpTemplate = `NAME:
+	nodeHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
 USAGE:
    {{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}
@@ -172,10 +172,10 @@ func main() {
 	log.SetLevel(logger.LogInfo)
 
 	app := cli.NewApp()
-	cli.AppHelpTemplate = bootNodeHelpTemplate
-	app.Name = "BootNode CLI App"
+	cli.AppHelpTemplate = nodeHelpTemplate
+	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
-	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
+	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{genesisFile, port, privateKey, profileMode, privateKeyIndex}
 	app.Authors = []cli.Author{
 		{
