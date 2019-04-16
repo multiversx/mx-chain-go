@@ -13,6 +13,12 @@ type MessageProcessor interface {
 	ProcessReceivedMessage(message MessageP2P) error
 }
 
+// BroadcastCallbackHandler will be implemented by those message processor instances that need to send back
+// a subset of received message (after filtering occurs)
+type BroadcastCallbackHandler interface {
+	SetBroadcastCallback(callback func(buffToSend []byte))
+}
+
 // SendableData represents the struct used in data throttler implementation
 type SendableData struct {
 	Buff  []byte

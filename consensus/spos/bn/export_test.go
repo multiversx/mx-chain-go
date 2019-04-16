@@ -239,14 +239,14 @@ func (wrk *worker) ReceivedSyncState(isNodeSynchronized bool) {
 	wrk.receivedSyncState(isNodeSynchronized)
 }
 
-func (wrk *worker) ReceivedMessages() map[MessageType][]*spos.ConsensusMessage {
+func (wrk *worker) ReceivedMessages() map[spos.MessageType][]*spos.ConsensusMessage {
 	wrk.mutReceivedMessages.RLock()
 	defer wrk.mutReceivedMessages.RUnlock()
 
 	return wrk.receivedMessages
 }
 
-func (wrk *worker) SetReceivedMessages(messageType MessageType, cnsDta []*spos.ConsensusMessage) {
+func (wrk *worker) SetReceivedMessages(messageType spos.MessageType, cnsDta []*spos.ConsensusMessage) {
 	wrk.mutReceivedMessages.Lock()
 	wrk.receivedMessages[messageType] = cnsDta
 	wrk.mutReceivedMessages.Unlock()
@@ -258,14 +258,14 @@ func (wrk *worker) NilReceivedMessages() {
 	wrk.mutReceivedMessages.Unlock()
 }
 
-func (wrk *worker) ReceivedMessagesCalls() map[MessageType]func(*spos.ConsensusMessage) bool {
+func (wrk *worker) ReceivedMessagesCalls() map[spos.MessageType]func(*spos.ConsensusMessage) bool {
 	wrk.mutReceivedMessagesCalls.RLock()
 	defer wrk.mutReceivedMessagesCalls.RUnlock()
 
 	return wrk.receivedMessagesCalls
 }
 
-func (wrk *worker) SetReceivedMessagesCalls(messageType MessageType, f func(*spos.ConsensusMessage) bool) {
+func (wrk *worker) SetReceivedMessagesCalls(messageType spos.MessageType, f func(*spos.ConsensusMessage) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
 	wrk.receivedMessagesCalls[messageType] = f
 	wrk.mutReceivedMessagesCalls.Unlock()
@@ -633,4 +633,8 @@ func (sr *subroundEndRound) SetBroadcastBlock(broadcastBlock func(data.BodyHandl
 
 func (sr *subroundStartRound) InitCurrentRound() bool {
 	return sr.initCurrentRound()
+}
+
+func GetStringValue(messageType spos.MessageType) string {
+	return getStringValue(messageType)
 }

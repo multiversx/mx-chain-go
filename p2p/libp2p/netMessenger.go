@@ -368,8 +368,14 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	}
 
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
-		err := handler.ProcessReceivedMessage(NewMessage(message))
+		broadcastCallbackHandler, ok := handler.(p2p.BroadcastCallbackHandler)
+		if ok {
+			broadcastCallbackHandler.SetBroadcastCallback(func(buffToSend []byte) {
+				netMes.Broadcast(topic, buffToSend)
+			})
+		}
 
+		err := handler.ProcessReceivedMessage(NewMessage(message))
 		if err != nil {
 			log.Debug(err.Error())
 		}

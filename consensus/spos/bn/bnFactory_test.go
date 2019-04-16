@@ -12,14 +12,14 @@ import (
 
 func initFactory() bn.Factory {
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
@@ -48,41 +48,41 @@ func initFactory() bn.Factory {
 func TestFactory_GetMessageTypeName(t *testing.T) {
 	t.Parallel()
 
-	r := bn.MtBlockBody.String()
+	r := bn.GetStringValue(bn.MtBlockBody)
 	assert.Equal(t, "(BLOCK_BODY)", r)
 
-	r = bn.MtBlockHeader.String()
+	r = bn.GetStringValue(bn.MtBlockHeader)
 	assert.Equal(t, "(BLOCK_HEADER)", r)
 
-	r = bn.MtCommitmentHash.String()
+	r = bn.GetStringValue(bn.MtCommitmentHash)
 	assert.Equal(t, "(COMMITMENT_HASH)", r)
 
-	r = bn.MtBitmap.String()
+	r = bn.GetStringValue(bn.MtBitmap)
 	assert.Equal(t, "(BITMAP)", r)
 
-	r = bn.MtCommitment.String()
+	r = bn.GetStringValue(bn.MtCommitment)
 	assert.Equal(t, "(COMMITMENT)", r)
 
-	r = bn.MtSignature.String()
+	r = bn.GetStringValue(bn.MtSignature)
 	assert.Equal(t, "(SIGNATURE)", r)
 
-	r = bn.MtUnknown.String()
+	r = bn.GetStringValue(bn.MtUnknown)
 	assert.Equal(t, "(UNKNOWN)", r)
 
-	r = bn.MessageType(-1).String()
+	r = bn.GetStringValue(spos.MessageType(-1))
 	assert.Equal(t, "Undefined message type", r)
 }
 
 func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
@@ -114,11 +114,11 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
@@ -149,12 +149,12 @@ func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	blockProcessorMock := mock.InitBlockProcessorMock()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
@@ -185,12 +185,12 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
@@ -221,12 +221,12 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := initChronologyHandlerMock()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
@@ -257,12 +257,12 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
@@ -293,12 +293,12 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
@@ -329,10 +329,10 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	rounderMock := initRounderMock()
@@ -365,13 +365,13 @@ func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -401,13 +401,13 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -437,13 +437,13 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -473,13 +473,13 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}
@@ -509,13 +509,13 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := initBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := initChronologyHandlerMock()
-	consensusState := initConsensusState()
+	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := mock.SyncTimerMock{}

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
@@ -44,8 +43,8 @@ func initWorker() bn.Worker {
 		},
 	}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	keyGeneratorMock, privateKeyMock, _ := initKeys()
+	consensusState := mock.InitConsensusState()
+	keyGeneratorMock, privateKeyMock, _ := mock.InitKeys()
 	marshalizerMock := mock.MarshalizerMock{}
 	rounderMock := initRounderMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
@@ -75,115 +74,6 @@ func initWorker() bn.Worker {
 	return wrk
 }
 
-func initConsensusState() *spos.ConsensusState {
-	consensusGroupSize := 9
-	eligibleList := createEligibleList(consensusGroupSize)
-	indexLeader := 1
-	rcns := spos.NewRoundConsensus(
-		eligibleList,
-		consensusGroupSize,
-		eligibleList[indexLeader])
-
-	rcns.SetConsensusGroup(eligibleList)
-	rcns.ResetRoundState()
-
-	PBFTThreshold := consensusGroupSize*2/3 + 1
-
-	rthr := spos.NewRoundThreshold()
-	rthr.SetThreshold(bn.SrBlock, 1)
-	rthr.SetThreshold(bn.SrCommitmentHash, PBFTThreshold)
-	rthr.SetThreshold(bn.SrBitmap, PBFTThreshold)
-	rthr.SetThreshold(bn.SrCommitment, PBFTThreshold)
-	rthr.SetThreshold(bn.SrSignature, PBFTThreshold)
-
-	rstatus := spos.NewRoundStatus()
-	rstatus.ResetRoundStatus()
-
-	cns := spos.NewConsensusState(
-		rcns,
-		rthr,
-		rstatus,
-	)
-
-	cns.Data = []byte("X")
-	cns.RoundIndex = 0
-	return cns
-}
-
-func initChronologyHandlerMock() consensus.ChronologyHandler {
-	chr := &mock.ChronologyHandlerMock{}
-	return chr
-}
-
-func initBlockProcessorMock() *mock.BlockProcessorMock {
-	blockProcessorMock := &mock.BlockProcessorMock{}
-	blockProcessorMock.CreateBlockCalled = func(round int32, haveTime func() bool) (data.BodyHandler, error) {
-		emptyBlock := make(block.Body, 0)
-
-		return emptyBlock, nil
-	}
-	blockProcessorMock.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
-		return nil
-	}
-	blockProcessorMock.RevertAccountStateCalled = func() {}
-	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return nil
-	}
-	blockProcessorMock.GetRootHashCalled = func() []byte {
-		return []byte{}
-	}
-	blockProcessorMock.CreateBlockHeaderCalled = func(body data.BodyHandler) (header data.HeaderHandler, e error) {
-		return &block.Header{RootHash: blockProcessorMock.GetRootHashCalled()}, nil
-	}
-	return blockProcessorMock
-}
-
-func initMultiSignerMock() *mock.BelNevMock {
-	multiSigner := mock.NewMultiSigner()
-	multiSigner.CreateCommitmentMock = func() ([]byte, []byte) {
-		return []byte("commSecret"), []byte("commitment")
-	}
-	multiSigner.VerifySignatureShareMock = func(index uint16, sig []byte, bitmap []byte) error {
-		return nil
-	}
-	multiSigner.VerifyMock = func(bitmap []byte) error {
-		return nil
-	}
-	multiSigner.AggregateSigsMock = func(bitmap []byte) ([]byte, error) {
-		return []byte("aggregatedSig"), nil
-	}
-	multiSigner.AggregateCommitmentsMock = func(bitmap []byte) error {
-		return nil
-	}
-	multiSigner.CreateSignatureShareMock = func(bitmap []byte) ([]byte, error) {
-		return []byte("partialSign"), nil
-	}
-	return multiSigner
-}
-
-func initKeys() (*mock.KeyGenMock, *mock.PrivateKeyMock, *mock.PublicKeyMock) {
-	toByteArrayMock := func() ([]byte, error) {
-		return []byte("byteArray"), nil
-	}
-	privKeyMock := &mock.PrivateKeyMock{
-		ToByteArrayMock: toByteArrayMock,
-	}
-	pubKeyMock := &mock.PublicKeyMock{
-		ToByteArrayMock: toByteArrayMock,
-	}
-	privKeyFromByteArr := func(b []byte) (crypto.PrivateKey, error) {
-		return privKeyMock, nil
-	}
-	pubKeyFromByteArr := func(b []byte) (crypto.PublicKey, error) {
-		return pubKeyMock, nil
-	}
-	keyGenMock := &mock.KeyGenMock{
-		PrivateKeyFromByteArrayMock: privKeyFromByteArr,
-		PublicKeyFromByteArrayMock:  pubKeyFromByteArr,
-	}
-	return keyGenMock, privKeyMock, pubKeyMock
-}
-
 func initRounderMock() *mock.RounderMock {
 	return &mock.RounderMock{
 		RoundIndex:        0,
@@ -192,18 +82,10 @@ func initRounderMock() *mock.RounderMock {
 	}
 }
 
-func createEligibleList(size int) []string {
-	eligibleList := make([]string, 0)
-	for i := 0; i < size; i++ {
-		eligibleList = append(eligibleList, string(i+65))
-	}
-	return eligibleList
-}
-
 func TestWorker_NewWorkerBlockprocessorNilShouldFail(t *testing.T) {
 	t.Parallel()
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -229,7 +111,7 @@ func TestWorker_NewWorkerBlockprocessorNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -282,7 +164,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
@@ -308,7 +190,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
@@ -334,7 +216,7 @@ func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	rounderMock := initRounderMock()
@@ -360,7 +242,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -386,7 +268,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -412,7 +294,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -438,7 +320,7 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -596,7 +478,7 @@ func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
-	assert.Equal(t, bn.ErrNilMessage, err)
+	assert.Equal(t, spos.ErrNilMessage, err)
 }
 
 func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T) {
@@ -606,7 +488,7 @@ func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T)
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
-	assert.Equal(t, bn.ErrNilDataToProcess, err)
+	assert.Equal(t, spos.ErrNilDataToProcess, err)
 }
 
 func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.T) {
@@ -628,7 +510,7 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
-	assert.Equal(t, bn.ErrSenderNotOk, err)
+	assert.Equal(t, spos.ErrSenderNotOk, err)
 }
 
 func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.T) {
@@ -650,7 +532,7 @@ func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
-	assert.Equal(t, bn.ErrMessageForPastRound, err)
+	assert.Equal(t, spos.ErrMessageForPastRound, err)
 }
 
 func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNotProcess(t *testing.T) {
@@ -694,7 +576,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bn.MtBlockBody]))
-	assert.Equal(t, bn.ErrInvalidSignature, err)
+	assert.Equal(t, spos.ErrInvalidSignature, err)
 }
 
 func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
@@ -768,7 +650,7 @@ func TestWorker_CheckSignatureShouldReturnErrNilSignature(t *testing.T) {
 func TestWorker_CheckSignatureShouldReturnPublicKeyFromByteArrayErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	keyGeneratorMock, _, _ := initKeys()
+	keyGeneratorMock, _, _ := mock.InitKeys()
 	err := errors.New("error public key from byte array")
 	keyGeneratorMock.PublicKeyFromByteArrayMock = func(b []byte) (crypto.PublicKey, error) {
 		return nil, err
@@ -846,7 +728,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := bn.MessageType(cnsMsg.MsgType)
+	msgType := spos.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, nil)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -870,7 +752,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *tes
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		-1,
 	)
-	msgType := bn.MessageType(cnsMsg.MsgType)
+	msgType := spos.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -894,7 +776,7 @@ func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinis
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := bn.MessageType(cnsMsg.MsgType)
+	msgType := spos.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -918,7 +800,7 @@ func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFin
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := bn.MessageType(cnsMsg.MsgType)
+	msgType := spos.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -942,7 +824,7 @@ func TestWorker_ExecuteCommitmentHashMessagesShouldNotExecuteWhenBlockIsNotFinis
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := bn.MessageType(cnsMsg.MsgType)
+	msgType := spos.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -966,7 +848,7 @@ func TestWorker_ExecuteBitmapMessagesShouldNotExecuteWhenBlockIsNotFinished(t *t
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := bn.MessageType(cnsMsg.MsgType)
+	msgType := spos.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -990,7 +872,7 @@ func TestWorker_ExecuteCommitmentMessagesShouldNotExecuteWhenBitmapIsNotFinished
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := bn.MessageType(cnsMsg.MsgType)
+	msgType := spos.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -1014,7 +896,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBitmapIsNotFinished(
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := bn.MessageType(cnsMsg.MsgType)
+	msgType := spos.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
@@ -1038,7 +920,7 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 		uint64(wrk.Rounder().TimeStamp().Unix()),
 		0,
 	)
-	msgType := bn.MessageType(cnsMsg.MsgType)
+	msgType := spos.MessageType(cnsMsg.MsgType)
 	cnsDataList := wrk.ReceivedMessages()[msgType]
 	cnsDataList = append(cnsDataList, cnsMsg)
 	wrk.SetReceivedMessages(msgType, cnsDataList)
