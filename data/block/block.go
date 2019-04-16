@@ -454,12 +454,12 @@ func (h *Header) GetMiniBlockProcessed(hash []byte) bool {
 	return h.processedMBs[string(hash)]
 }
 
-// SetMiniBlockProcessed set that miniblock with hash to processed
-func (h *Header) SetMiniBlockProcessed(hash []byte) {
+// SetMiniBlockProcessed set that miniblock with hash to processed or not processed
+func (h *Header) SetMiniBlockProcessed(hash []byte, processed bool) {
 	if h.processedMBs == nil {
 		h.processedMBs = make(map[string]bool, 0)
 	}
-	h.processedMBs[string(hash)] = true
+	h.processedMBs[string(hash)] = processed
 }
 
 // IntegrityAndValidity checks if data is valid

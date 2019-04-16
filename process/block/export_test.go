@@ -82,3 +82,7 @@ func (bp *blockProcessor) CreateMiniBlocks(noShards uint32, maxTxInBlock int, ro
 func (bp *blockProcessor) RemoveMetaBlockFromPool(blockBody block.Body, blockChain data.ChainHandler) error {
 	return bp.removeMetaBlockFromPool(blockBody, blockChain)
 }
+
+func (bp *blockProcessor) RemoveTxBlockFromPools(blockBody block.Body) error {
+	return bp.removeTxBlockFromPools(blockBody)
+}

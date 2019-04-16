@@ -2,22 +2,25 @@ package sync
 
 import (
 	"bytes"
+	"math"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 )
 
 type headerInfo struct {
-	header      *block.Header
+	nonce       uint64
 	hash        []byte
 	isProcessed bool
+	isSigned    bool
 }
 
 // basicForkDetector defines a struct with necessary data needed for fork detection
 type basicForkDetector struct {
-	headers         map[uint64][]*headerInfo
-	mutHeaders      sync.Mutex
-	checkpointNonce uint64
+	headers             map[uint64][]*headerInfo
+	mutHeaders          sync.RWMutex
+	lastCheckpointNonce uint64
+	checkpointNonce     uint64
 }
 
 // NewBasicForkDetector method creates a new BasicForkDetector object
@@ -35,20 +38,23 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isPro
 	if hash == nil {
 		return ErrNilHash
 	}
-	if header.Nonce < bfd.checkpointNonce {
+	if header.Nonce < bfd.lastCheckpointNonce {
 		return ErrLowerNonceInBlock
 	}
 
-	if !isEmpty(header) && isProcessed {
+	isSigned := isSigned(header)
+	if isSigned && isProcessed {
 		// create a check point and remove all the past headers
+		bfd.lastCheckpointNonce = bfd.checkpointNonce
 		bfd.checkpointNonce = header.Nonce
-		bfd.removePastHeaders(header.Nonce)
+		bfd.removePastHeaders(bfd.lastCheckpointNonce)
 	}
 
 	bfd.append(&headerInfo{
-		header:      header,
+		nonce:       header.Nonce,
 		hash:        hash,
 		isProcessed: isProcessed,
+		isSigned:    isSigned,
 	})
 
 	return nil
@@ -58,7 +64,7 @@ func (bfd *basicForkDetector) removePastHeaders(nonce uint64) {
 	bfd.mutHeaders.Lock()
 
 	for storedNonce := range bfd.headers {
-		if storedNonce <= nonce {
+		if storedNonce < nonce {
 			delete(bfd.headers, storedNonce)
 		}
 	}
@@ -66,32 +72,15 @@ func (bfd *basicForkDetector) removePastHeaders(nonce uint64) {
 	bfd.mutHeaders.Unlock()
 }
 
-// RemoveProcessedHeader removes all stored headers with a given nonce
-func (bfd *basicForkDetector) RemoveProcessedHeader(nonce uint64) error {
+// RemoveHeaders removes all the stored headers with a given nonce
+func (bfd *basicForkDetector) RemoveHeaders(nonce uint64) {
+	if nonce == bfd.checkpointNonce {
+		bfd.checkpointNonce = bfd.lastCheckpointNonce
+	}
+
 	bfd.mutHeaders.Lock()
-	defer bfd.mutHeaders.Unlock()
-
-	hdrInfosStored := bfd.headers[nonce]
-	isHdrInfosStoredNilOrEmpty := hdrInfosStored == nil || len(hdrInfosStored) == 0
-	if isHdrInfosStoredNilOrEmpty {
-		return ErrNilOrEmptyInfoStored
-	}
-
-	var newHdrInfosStored []*headerInfo
-	for _, hdrInfoStored := range hdrInfosStored {
-		if !hdrInfoStored.isProcessed {
-			newHdrInfosStored = append(newHdrInfosStored, hdrInfoStored)
-		}
-	}
-
-	isNewHdrInfosStoredNilOrEmpty := newHdrInfosStored == nil || len(newHdrInfosStored) == 0
-	if isNewHdrInfosStoredNilOrEmpty {
-		delete(bfd.headers, nonce)
-	} else {
-		bfd.headers[nonce] = newHdrInfosStored
-	}
-
-	return nil
+	delete(bfd.headers, nonce)
+	bfd.mutHeaders.Unlock()
 }
 
 // append adds a new header in the slice found in nonce position
@@ -100,10 +89,10 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
-	hdrInfos := bfd.headers[hdrInfo.header.Nonce]
+	hdrInfos := bfd.headers[hdrInfo.nonce]
 	isHdrInfosNilOrEmpty := hdrInfos == nil || len(hdrInfos) == 0
 	if isHdrInfosNilOrEmpty {
-		bfd.headers[hdrInfo.header.Nonce] = []*headerInfo{hdrInfo}
+		bfd.headers[hdrInfo.nonce] = []*headerInfo{hdrInfo}
 		return
 	}
 
@@ -119,22 +108,26 @@ func (bfd *basicForkDetector) append(hdrInfo *headerInfo) {
 		}
 	}
 
-	bfd.headers[hdrInfo.header.Nonce] = append(bfd.headers[hdrInfo.header.Nonce], hdrInfo)
+	bfd.headers[hdrInfo.nonce] = append(bfd.headers[hdrInfo.nonce], hdrInfo)
 }
 
 // CheckFork method checks if the node could be on the fork
-func (bfd *basicForkDetector) CheckFork() bool {
+func (bfd *basicForkDetector) CheckFork() (bool, uint64) {
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
+	var lowestForkNonce uint64
 	var selfHdrInfo *headerInfo
+	lowestForkNonce = math.MaxUint64
+	forkDetected := false
+
 	for nonce, hdrInfos := range bfd.headers {
 		if len(hdrInfos) == 1 {
 			continue
 		}
 
 		selfHdrInfo = nil
-		foundNotEmptyBlock := false
+		foundSignedBlock := false
 
 		for i := 0; i < len(hdrInfos); i++ {
 			if hdrInfos[i].isProcessed {
@@ -142,29 +135,55 @@ func (bfd *basicForkDetector) CheckFork() bool {
 				continue
 			}
 
-			if !isEmpty(hdrInfos[i].header) {
-				foundNotEmptyBlock = true
+			if hdrInfos[i].isSigned {
+				foundSignedBlock = true
 			}
 		}
 
 		if selfHdrInfo == nil {
-			//current nonce has not been (yet) processed, skipping, trying the next one
+			// if current nonce has not been processed yet, then skip and check the next one.
 			continue
 		}
 
-		if !isEmpty(selfHdrInfo.header) {
-			//keep it clean so next time this position will be processed faster
+		if selfHdrInfo.isSigned {
+			// keep it clean so next time this position will be processed faster
 			delete(bfd.headers, nonce)
 			bfd.headers[nonce] = []*headerInfo{selfHdrInfo}
 			continue
 		}
 
-		if foundNotEmptyBlock {
-			//detected a fork: self has an unsigned header, it also received a signed block
-			//with the same nonce
-			return true
+		if foundSignedBlock {
+			// fork detected: self has a processed unsigned block, and it received a signed block with the same nonce
+			forkDetected = true
+			if nonce < lowestForkNonce {
+				lowestForkNonce = nonce
+			}
 		}
 	}
 
-	return false
+	return forkDetected, lowestForkNonce
+}
+
+// GetHighestSignedBlockNonce gets the highest stored nonce of one signed block received/processed
+func (bfd *basicForkDetector) GetHighestSignedBlockNonce() uint64 {
+	bfd.mutHeaders.RLock()
+	highestNonce := bfd.checkpointNonce
+	for nonce, hdrInfos := range bfd.headers {
+		if nonce <= highestNonce {
+			continue
+		}
+		for i := 0; i < len(hdrInfos); i++ {
+			if hdrInfos[i].isSigned {
+				highestNonce = nonce
+				break
+			}
+		}
+	}
+	bfd.mutHeaders.RUnlock()
+	return highestNonce
+}
+
+// GetHighestFinalBlockNonce gets the highest nonce of the block which is final and it can not be reverted anymore
+func (bfd *basicForkDetector) GetHighestFinalBlockNonce() uint64 {
+	return bfd.lastCheckpointNonce
 }

@@ -175,6 +175,9 @@ var ErrNilPoolsHolder = errors.New("nil pools holder")
 // ErrNilTxStorage signals that a nil transaction storage has been provided
 var ErrNilTxStorage = errors.New("nil transaction storage")
 
+// ErrInvalidTxInPool signals an invalid transaction in the transactions pool
+var ErrInvalidTxInPool = errors.New("invalid transaction in the transactions pool")
+
 // ErrNilHeadersStorage signals that a nil header storage has been provided
 var ErrNilHeadersStorage = errors.New("nil headers storage")
 
@@ -246,6 +249,9 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrHeaderIsInStorage signals that the header is already in storage
 var ErrHeaderIsInStorage = errors.New("header is already in storage")
+
+// ErrRollbackFromGenesis signals that a rollback from genesis is called
+var ErrRollbackFromGenesis = errors.New("roll back from genesis is not supported")
 
 // ErrNoTransactionInMessage signals that no transaction was found after parsing received p2p message
 var ErrNoTransactionInMessage = errors.New("no transaction found in received message")

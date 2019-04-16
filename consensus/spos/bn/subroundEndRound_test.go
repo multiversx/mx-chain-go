@@ -414,24 +414,6 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	assert.False(t, r)
 }
 
-func TestSubroundEndRound_DoEndRoundJobErrRemBlockTxOK(t *testing.T) {
-	t.Parallel()
-
-	sr := *initSubroundEndRound()
-
-	blProcMock := mock.InitBlockProcessorMock()
-
-	blProcMock.RemoveBlockInfoFromPoolCalled = func(body data.BodyHandler) error {
-		return process.ErrNilBlockBodyPool
-	}
-
-	sr.SetBlockProcessor(blProcMock)
-	sr.ConsensusState().Header = &block.Header{}
-
-	r := sr.DoEndRoundJob()
-	assert.True(t, r)
-}
-
 func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 	t.Parallel()
 

@@ -1377,7 +1377,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
-	err := be.RemoveBlockInfoFromPool(nil)
+	err := be.RemoveTxBlockFromPools(nil)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
@@ -1406,7 +1406,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		TxHashes:        txHashes,
 	}
 	body = append(body, &miniblock)
-	err := be.RemoveBlockInfoFromPool(body)
+	err := be.RemoveTxBlockFromPools(body)
 	assert.Nil(t, err)
 }
 
@@ -2638,7 +2638,11 @@ func TestBlockProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.AccountsStub{},
 		shardCoordinator,
-		&mock.ForkDetectorMock{},
+		&mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
+		},
 		func(destShardID uint32, txHash []byte) {},
 		func(destShardID uint32, miniblockHash []byte) {},
 	)
@@ -2695,4 +2699,110 @@ func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHas
 	}
 
 	return metaBlock
+}
+
+func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockChain(t *testing.T) {
+	t.Parallel()
+	tdp := initDataPool()
+	be, _ := blproc.NewBlockProcessor(
+		tdp, &mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+		func(destShardID uint32, txHash []byte) {},
+	)
+	err := be.RestoreBlockIntoPools(nil, nil)
+	assert.NotNil(t, err)
+	assert.Equal(t, err, process.ErrNilBlockChain)
+}
+
+func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.T) {
+	t.Parallel()
+	tdp := initDataPool()
+	be, _ := blproc.NewBlockProcessor(
+		tdp, &mock.HasherStub{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+		func(destShardID uint32, txHash []byte) {},
+	)
+
+	blkc := &mock.BlockChainMock{}
+
+	err := be.RestoreBlockIntoPools(blkc, nil)
+	assert.NotNil(t, err)
+	assert.Equal(t, err, process.ErrNilTxBlockBody)
+}
+
+func TestBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
+	t.Parallel()
+	dataPool := mock.NewPoolsHolderFake()
+	marshalizerMock := &mock.MarshalizerMock{}
+	hasherMock := &mock.HasherStub{}
+	be, _ := blproc.NewBlockProcessor(
+		dataPool,
+		hasherMock,
+		marshalizerMock,
+		&mock.TxProcessorMock{},
+		&mock.AccountsStub{},
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ForkDetectorMock{},
+		func(destShardID uint32, txHash []byte) {
+		},
+		func(destShardID uint32, txHash []byte) {
+		},
+	)
+
+	body := make(block.Body, 0)
+	tx := transaction.Transaction{Nonce: 1}
+	buffTx, _ := marshalizerMock.Marshal(tx)
+	txHash := []byte("tx hash 1")
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	body = append(body, &miniblock)
+
+	miniblockHash := []byte("mini block hash 1")
+	hasherMock.ComputeCalled = func(s string) []byte {
+		return miniblockHash
+	}
+
+	blkc := &mock.BlockChainMock{
+		GetAllCalled: func(unitType data.UnitType, keys [][]byte) (map[string][]byte, error) {
+			m := make(map[string][]byte, 0)
+			m[string(txHash)] = buffTx
+			return m, nil
+		},
+	}
+
+	metablockHash := []byte("meta block hash 1")
+	metablockHeader := createDummyMetaBlock(0, 1, miniblockHash)
+	metablockHeader.SetMiniBlockProcessed(metablockHash, true)
+	dataPool.MetaBlocks().Put(
+		metablockHash,
+		metablockHeader,
+	)
+
+	err := be.RestoreBlockIntoPools(blkc, body)
+
+	miniblockFromPool, _ := dataPool.MiniBlocks().Get(miniblockHash)
+	txFromPool, _ := dataPool.Transactions().SearchFirstData(txHash)
+	metablockFromPool, _ := dataPool.MetaBlocks().Get(metablockHash)
+	metablock := metablockFromPool.(*block.MetaBlock)
+	assert.Nil(t, err)
+	assert.Equal(t, &miniblock, miniblockFromPool)
+	assert.Equal(t, &tx, txFromPool)
+	assert.Equal(t, false, metablock.GetMiniBlockProcessed(miniblockHash))
 }

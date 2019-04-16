@@ -225,6 +225,9 @@ func createNetNode(
 			AddHeaderCalled: func(header *dataBlock.Header, hash []byte, isProcessed bool) error {
 				return nil
 			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
 		},
 		func(destShardID uint32, txHash []byte) {
 			resolver, err := resolversFinder.CrossShardResolver(factory.TransactionTopic, destShardID)
