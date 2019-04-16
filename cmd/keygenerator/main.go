@@ -56,11 +56,11 @@ func main() {
 		sk, pk := generator.GeneratePair()
 		skBytes, err2 := sk.ToByteArray()
 		if err2 != nil {
-			fmt.Println("Cound not convert sk to byte array")
+			fmt.Println("Could not convert sk to byte array")
 		}
 		pkBytes, err2 := pk.ToByteArray()
 		if err2 != nil {
-			fmt.Println("Cound not convert pk to byte array")
+			fmt.Println("Could not convert pk to byte array")
 		}
 
 		skHex := []byte(hex.EncodeToString(skBytes))
