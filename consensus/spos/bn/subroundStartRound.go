@@ -5,48 +5,21 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 type subroundStartRound struct {
 	*subround
-
-	blockChain             data.ChainHandler
-	bootstraper            process.Bootstrapper
-	consensusState         *spos.ConsensusState
-	multiSigner            crypto.MultiSigner
-	rounder                consensus.Rounder
-	syncTimer              ntp.SyncTimer
-	validatorGroupSelector consensus.ValidatorGroupSelector
 }
 
 // NewSubroundStartRound creates a SubroundStartRound object
 func NewSubroundStartRound(
 	subround *subround,
-	blockChain data.ChainHandler,
-	bootstraper process.Bootstrapper,
-	consensusState *spos.ConsensusState,
-	multiSigner crypto.MultiSigner,
-	rounder consensus.Rounder,
-	syncTimer ntp.SyncTimer,
-	validatorGroupSelector consensus.ValidatorGroupSelector,
 	extend func(subroundId int),
 ) (*subroundStartRound, error) {
 
 	err := checkNewSubroundStartRoundParams(
 		subround,
-		blockChain,
-		bootstraper,
-		consensusState,
-		multiSigner,
-		rounder,
-		syncTimer,
-		validatorGroupSelector,
 	)
 
 	if err != nil {
@@ -55,13 +28,6 @@ func NewSubroundStartRound(
 
 	srStartRound := subroundStartRound{
 		subround,
-		blockChain,
-		bootstraper,
-		consensusState,
-		multiSigner,
-		rounder,
-		syncTimer,
-		validatorGroupSelector,
 	}
 
 	srStartRound.job = srStartRound.doStartRoundJob
@@ -73,44 +39,9 @@ func NewSubroundStartRound(
 
 func checkNewSubroundStartRoundParams(
 	subround *subround,
-	blockChain data.ChainHandler,
-	bootstraper process.Bootstrapper,
-	consensusState *spos.ConsensusState,
-	multiSigner crypto.MultiSigner,
-	rounder consensus.Rounder,
-	syncTimer ntp.SyncTimer,
-	validatorGroupSelector consensus.ValidatorGroupSelector,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
-	}
-
-	if blockChain == nil {
-		return spos.ErrNilBlockChain
-	}
-
-	if bootstraper == nil {
-		return spos.ErrNilBlootstraper
-	}
-
-	if consensusState == nil {
-		return spos.ErrNilConsensusState
-	}
-
-	if multiSigner == nil {
-		return spos.ErrNilMultiSigner
-	}
-
-	if rounder == nil {
-		return spos.ErrNilRounder
-	}
-
-	if syncTimer == nil {
-		return spos.ErrNilSyncTimer
-	}
-
-	if validatorGroupSelector == nil {
-		return spos.ErrNilValidatorGroupSelector
 	}
 
 	return nil
@@ -118,19 +49,19 @@ func checkNewSubroundStartRoundParams(
 
 // doStartRoundJob method does the job of the start round subround
 func (sr *subroundStartRound) doStartRoundJob() bool {
-	sr.consensusState.ResetConsensusState()
-	sr.consensusState.RoundIndex = sr.rounder.Index()
-	sr.consensusState.RoundTimeStamp = sr.rounder.TimeStamp()
+	sr.GetConsensusState().ResetConsensusState()
+	sr.GetConsensusState().RoundIndex = sr.GetRounder().Index()
+	sr.GetConsensusState().RoundTimeStamp = sr.GetRounder().TimeStamp()
 	return true
 }
 
 // doStartRoundConsensusCheck method checks if the consensus is achieved in the start subround.
 func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
-	if sr.consensusState.RoundCanceled {
+	if sr.GetConsensusState().RoundCanceled {
 		return false
 	}
 
-	if sr.consensusState.Status(SrStartRound) == spos.SsFinished {
+	if sr.GetConsensusState().Status(SrStartRound) == spos.SsFinished {
 		return true
 	}
 
@@ -142,90 +73,90 @@ func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
 }
 
 func (sr *subroundStartRound) initCurrentRound() bool {
-	if sr.bootstraper.ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+	if sr.GetBootStrapper().ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
 	}
 
-	err := sr.generateNextConsensusGroup(sr.rounder.Index())
+	err := sr.generateNextConsensusGroup(sr.GetRounder().Index())
 
 	if err != nil {
 		log.Error(err.Error())
 
-		sr.consensusState.RoundCanceled = true
+		sr.GetConsensusState().RoundCanceled = true
 
 		return false
 	}
 
-	leader, err := sr.consensusState.GetLeader()
+	leader, err := sr.GetConsensusState().GetLeader()
 
 	if err != nil {
 		log.Info(err.Error())
 
-		sr.consensusState.RoundCanceled = true
+		sr.GetConsensusState().RoundCanceled = true
 
 		return false
 	}
 
 	msg := ""
-	if leader == sr.consensusState.SelfPubKey() {
+	if leader == sr.GetConsensusState().SelfPubKey() {
 		msg = " (my turn)"
 	}
 
 	log.Info(fmt.Sprintf("%sStep 0: preparing for this round with leader %s%s\n",
-		sr.syncTimer.FormattedCurrentTime(), hex.EncodeToString([]byte(leader)), msg))
+		sr.GetSyncTimer().FormattedCurrentTime(), hex.EncodeToString([]byte(leader)), msg))
 
-	pubKeys := sr.consensusState.ConsensusGroup()
+	pubKeys := sr.GetConsensusState().ConsensusGroup()
 
-	selfIndex, err := sr.consensusState.SelfConsensusGroupIndex()
+	selfIndex, err := sr.GetConsensusState().SelfConsensusGroupIndex()
 
 	if err != nil {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, not in the consensus group\n",
-			sr.syncTimer.FormattedCurrentTime(), sr.rounder.Index(), getSubroundName(SrStartRound)))
+			sr.GetSyncTimer().FormattedCurrentTime(), sr.GetRounder().Index(), getSubroundName(SrStartRound)))
 
-		sr.consensusState.RoundCanceled = true
+		sr.GetConsensusState().RoundCanceled = true
 
 		return false
 	}
 
-	err = sr.multiSigner.Reset(pubKeys, uint16(selfIndex))
+	err = sr.GetMultiSigner().Reset(pubKeys, uint16(selfIndex))
 
 	if err != nil {
 		log.Error(err.Error())
 
-		sr.consensusState.RoundCanceled = true
+		sr.GetConsensusState().RoundCanceled = true
 
 		return false
 	}
 
 	startTime := time.Time{}
-	startTime = sr.consensusState.RoundTimeStamp
-	maxTime := sr.rounder.TimeDuration() * syncThresholdPercent / 100
-	if sr.rounder.RemainingTime(startTime, maxTime) < 0 {
+	startTime = sr.GetConsensusState().RoundTimeStamp
+	maxTime := sr.GetRounder().TimeDuration() * syncThresholdPercent / 100
+	if sr.GetRounder().RemainingTime(startTime, maxTime) < 0 {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, time is out\n",
-			sr.syncTimer.FormattedCurrentTime(), sr.rounder.Index(), getSubroundName(SrStartRound)))
+			sr.GetSyncTimer().FormattedCurrentTime(), sr.GetRounder().Index(), getSubroundName(SrStartRound)))
 
-		sr.consensusState.RoundCanceled = true
+		sr.GetConsensusState().RoundCanceled = true
 
 		return false
 	}
 
-	sr.consensusState.SetStatus(SrStartRound, spos.SsFinished)
+	sr.GetConsensusState().SetStatus(SrStartRound, spos.SsFinished)
 
 	return true
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error {
 	// TODO: replace random source with last block signature
-	headerHash := sr.blockChain.GetCurrentBlockHeaderHash()
-	if sr.blockChain.GetCurrentBlockHeaderHash() == nil {
-		headerHash = sr.blockChain.GetGenesisHeaderHash()
+	headerHash := sr.GetChainHandler().GetCurrentBlockHeaderHash()
+	if sr.GetChainHandler().GetCurrentBlockHeaderHash() == nil {
+		headerHash = sr.GetChainHandler().GetGenesisHeaderHash()
 	}
 
 	randomSource := fmt.Sprintf("%d-%s", roundIndex, toB64(headerHash))
 
 	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
 
-	nextConsensusGroup, err := sr.consensusState.GetNextConsensusGroup(randomSource, sr.validatorGroupSelector)
+	nextConsensusGroup, err := sr.GetConsensusState().GetNextConsensusGroup(randomSource, sr.GetValidatorGroupSelector())
 
 	if err != nil {
 		return err
@@ -240,7 +171,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 
 	log.Info(fmt.Sprintf("\n"))
 
-	sr.consensusState.SetConsensusGroup(nextConsensusGroup)
+	sr.GetConsensusState().SetConsensusGroup(nextConsensusGroup)
 
 	return nil
 }

@@ -3,23 +3,12 @@ package bn
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
 type subroundEndRound struct {
 	*subround
-
-	blockChain     data.ChainHandler
-	blockProcessor process.BlockProcessor
-	consensusState *spos.ConsensusState
-	multiSigner    crypto.MultiSigner
-	rounder        consensus.Rounder
-	syncTimer      ntp.SyncTimer
 
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error
 }
@@ -27,24 +16,12 @@ type subroundEndRound struct {
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
 	subround *subround,
-	blockChain data.ChainHandler,
-	blockProcessor process.BlockProcessor,
-	consensusState *spos.ConsensusState,
-	multiSigner crypto.MultiSigner,
-	rounder consensus.Rounder,
-	syncTimer ntp.SyncTimer,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 	extend func(subroundId int),
 ) (*subroundEndRound, error) {
 
 	err := checkNewSubroundEndRoundParams(
 		subround,
-		blockChain,
-		blockProcessor,
-		consensusState,
-		multiSigner,
-		rounder,
-		syncTimer,
 		broadcastBlock,
 	)
 
@@ -54,12 +31,6 @@ func NewSubroundEndRound(
 
 	srEndRound := subroundEndRound{
 		subround,
-		blockChain,
-		blockProcessor,
-		consensusState,
-		multiSigner,
-		rounder,
-		syncTimer,
 		broadcastBlock,
 	}
 
@@ -72,40 +43,10 @@ func NewSubroundEndRound(
 
 func checkNewSubroundEndRoundParams(
 	subround *subround,
-	blockChain data.ChainHandler,
-	blockProcessor process.BlockProcessor,
-	consensusState *spos.ConsensusState,
-	multiSigner crypto.MultiSigner,
-	rounder consensus.Rounder,
-	syncTimer ntp.SyncTimer,
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
-	}
-
-	if blockChain == nil {
-		return spos.ErrNilBlockChain
-	}
-
-	if blockProcessor == nil {
-		return spos.ErrNilBlockProcessor
-	}
-
-	if consensusState == nil {
-		return spos.ErrNilConsensusState
-	}
-
-	if multiSigner == nil {
-		return spos.ErrNilMultiSigner
-	}
-
-	if rounder == nil {
-		return spos.ErrNilRounder
-	}
-
-	if syncTimer == nil {
-		return spos.ErrNilSyncTimer
 	}
 
 	if broadcastBlock == nil {
@@ -117,7 +58,7 @@ func checkNewSubroundEndRoundParams(
 
 // doEndRoundJob method does the job of the end round subround
 func (sr *subroundEndRound) doEndRoundJob() bool {
-	bitmap := sr.consensusState.GenerateBitmap(SrBitmap)
+	bitmap := sr.GetConsensusState().GenerateBitmap(SrBitmap)
 
 	err := sr.checkSignaturesValidity(bitmap)
 
@@ -127,41 +68,41 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	}
 
 	// Aggregate sig and add it to the block
-	sig, err := sr.multiSigner.AggregateSigs(bitmap)
+	sig, err := sr.GetMultiSigner().AggregateSigs(bitmap)
 
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	sr.consensusState.Header.SetSignature(sig)
+	sr.GetConsensusState().Header.SetSignature(sig)
 
 	// Commit the block (commits also the account state)
-	err = sr.blockProcessor.CommitBlock(sr.blockChain, sr.consensusState.Header, sr.consensusState.BlockBody)
+	err = sr.GetBlockProcessor().CommitBlock(sr.GetChainHandler(), sr.GetConsensusState().Header, sr.GetConsensusState().BlockBody)
 
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	sr.consensusState.SetStatus(SrEndRound, spos.SsFinished)
+	sr.GetConsensusState().SetStatus(SrEndRound, spos.SsFinished)
 
 	// broadcast block body and header
-	err = sr.broadcastBlock(sr.consensusState.BlockBody, sr.consensusState.Header)
+	err = sr.broadcastBlock(sr.GetConsensusState().BlockBody, sr.GetConsensusState().Header)
 
 	if err != nil {
 		log.Error(err.Error())
 	}
 
-	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been commited and broadcasted \n", sr.syncTimer.FormattedCurrentTime()))
+	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been commited and broadcasted \n", sr.GetSyncTimer().FormattedCurrentTime()))
 
 	actionMsg := "synchronized"
-	if sr.consensusState.IsSelfLeaderInCurrentRound() {
+	if sr.GetConsensusState().IsSelfLeaderInCurrentRound() {
 		actionMsg = "proposed"
 	}
 
-	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.consensusState.Header.GetNonce())
-	log.Info(log.Headline(msg, sr.syncTimer.FormattedCurrentTime(), "+"))
+	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.GetConsensusState().Header.GetNonce())
+	log.Info(log.Headline(msg, sr.GetSyncTimer().FormattedCurrentTime(), "+"))
 
 	return true
 }
@@ -169,11 +110,11 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 // doEndRoundConsensusCheck method checks if the consensus is achieved in each subround from first subround to the given
 // subround. If the consensus is achieved in one subround, the subround status is marked as finished
 func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
-	if sr.consensusState.RoundCanceled {
+	if sr.GetConsensusState().RoundCanceled {
 		return false
 	}
 
-	if sr.consensusState.Status(SrEndRound) == spos.SsFinished {
+	if sr.GetConsensusState().Status(SrEndRound) == spos.SsFinished {
 		return true
 	}
 
@@ -182,7 +123,7 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 
 func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 	nbBitsBitmap := len(bitmap) * 8
-	consensusGroup := sr.consensusState.ConsensusGroup()
+	consensusGroup := sr.GetConsensusState().ConsensusGroup()
 	consensusGroupSize := len(consensusGroup)
 	size := consensusGroupSize
 
@@ -198,7 +139,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 		}
 
 		pubKey := consensusGroup[i]
-		isSigJobDone, err := sr.consensusState.JobDone(pubKey, SrSignature)
+		isSigJobDone, err := sr.GetConsensusState().JobDone(pubKey, SrSignature)
 
 		if err != nil {
 			return err
@@ -208,14 +149,14 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 			return spos.ErrNilSignature
 		}
 
-		signature, err := sr.multiSigner.SignatureShare(uint16(i))
+		signature, err := sr.GetMultiSigner().SignatureShare(uint16(i))
 
 		if err != nil {
 			return err
 		}
 
 		// verify partial signature
-		err = sr.multiSigner.VerifySignatureShare(uint16(i), signature, bitmap)
+		err = sr.GetMultiSigner().VerifySignatureShare(uint16(i), signature, bitmap)
 
 		if err != nil {
 			return err

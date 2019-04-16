@@ -1,65 +1,46 @@
 package bn
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
+	"time"
 )
+
+func GetStringValue(msgType spos.MessageType) string {
+	switch msgType {
+	case MtBlockBody:
+		return "(BLOCK_BODY)"
+	case MtBlockHeader:
+		return "(BLOCK_HEADER)"
+	case MtCommitmentHash:
+		return "(COMMITMENT_HASH)"
+	case MtBitmap:
+		return "(BITMAP)"
+	case MtCommitment:
+		return "(COMMITMENT)"
+	case MtSignature:
+		return "(SIGNATURE)"
+	case MtUnknown:
+		return "(UNKNOWN)"
+	default:
+		return "Undefined message type"
+	}
+}
 
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
 // functionality
 type factory struct {
-	blockChain             data.ChainHandler
-	blockProcessor         process.BlockProcessor
-	bootstraper            process.Bootstrapper
-	chronologyHandler      consensus.ChronologyHandler
-	consensusState         *spos.ConsensusState
-	hasher                 hashing.Hasher
-	marshalizer            marshal.Marshalizer
-	multiSigner            crypto.MultiSigner
-	rounder                consensus.Rounder
-	shardCoordinator       sharding.Coordinator
-	syncTimer              ntp.SyncTimer
-	validatorGroupSelector consensus.ValidatorGroupSelector
-	worker                 *worker
+	consensusDataContainer *spos.ConsensusDataContainer
+	worker                 *spos.SPOSWorker
 }
 
 // NewFactory creates a new consensusState object
 func NewFactory(
-	blockChain data.ChainHandler,
-	blockProcessor process.BlockProcessor,
-	bootstraper process.Bootstrapper,
-	chronologyHandler consensus.ChronologyHandler,
-	consensusState *spos.ConsensusState,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	multiSigner crypto.MultiSigner,
-	rounder consensus.Rounder,
-	shardCoordinator sharding.Coordinator,
-	syncTimer ntp.SyncTimer,
-	validatorGroupSelector consensus.ValidatorGroupSelector,
-	worker *worker,
+	consensusDataContainer *spos.ConsensusDataContainer,
+	worker *spos.SPOSWorker,
 ) (*factory, error) {
 
 	err := checkNewFactoryParams(
-		blockChain,
-		blockProcessor,
-		bootstraper,
-		chronologyHandler,
-		consensusState,
-		hasher,
-		marshalizer,
-		multiSigner,
-		rounder,
-		shardCoordinator,
-		syncTimer,
-		validatorGroupSelector,
+		consensusDataContainer,
 		worker,
 	)
 
@@ -68,18 +49,7 @@ func NewFactory(
 	}
 
 	fct := factory{
-		blockChain:             blockChain,
-		blockProcessor:         blockProcessor,
-		bootstraper:            bootstraper,
-		chronologyHandler:      chronologyHandler,
-		consensusState:         consensusState,
-		hasher:                 hasher,
-		marshalizer:            marshalizer,
-		multiSigner:            multiSigner,
-		rounder:                rounder,
-		shardCoordinator:       shardCoordinator,
-		syncTimer:              syncTimer,
-		validatorGroupSelector: validatorGroupSelector,
+		consensusDataContainer: consensusDataContainer,
 		worker:                 worker,
 	}
 
@@ -87,66 +57,12 @@ func NewFactory(
 }
 
 func checkNewFactoryParams(
-	blockChain data.ChainHandler,
-	blockProcessor process.BlockProcessor,
-	bootstraper process.Bootstrapper,
-	chronologyHandler consensus.ChronologyHandler,
-	consensusState *spos.ConsensusState,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	multiSigner crypto.MultiSigner,
-	rounder consensus.Rounder,
-	shardCoordinator sharding.Coordinator,
-	syncTimer ntp.SyncTimer,
-	validatorGroupSelector consensus.ValidatorGroupSelector,
-	worker *worker,
+	container *spos.ConsensusDataContainer,
+	worker *spos.SPOSWorker,
 ) error {
-	if blockChain == nil {
-		return spos.ErrNilBlockChain
-	}
-
-	if blockProcessor == nil {
-		return spos.ErrNilBlockProcessor
-	}
-
-	if bootstraper == nil {
-		return spos.ErrNilBlootstraper
-	}
-
-	if chronologyHandler == nil {
-		return spos.ErrNilChronologyHandler
-	}
-
-	if consensusState == nil {
-		return spos.ErrNilConsensusState
-	}
-
-	if hasher == nil {
-		return spos.ErrNilHasher
-	}
-
-	if marshalizer == nil {
-		return spos.ErrNilMarshalizer
-	}
-
-	if multiSigner == nil {
-		return spos.ErrNilMultiSigner
-	}
-
-	if rounder == nil {
-		return spos.ErrNilRounder
-	}
-
-	if shardCoordinator == nil {
-		return spos.ErrNilShardCoordinator
-	}
-
-	if syncTimer == nil {
-		return spos.ErrNilSyncTimer
-	}
-
-	if validatorGroupSelector == nil {
-		return spos.ErrNilValidatorGroupSelector
+	err := spos.ValidateConsensusDataContainer(container)
+	if err != nil {
+		return err
 	}
 
 	if worker == nil {
@@ -159,7 +75,7 @@ func checkNewFactoryParams(
 // GenerateSubrounds will generate the subrounds used in Belare & Naveen Cns
 func (fct *factory) GenerateSubrounds() error {
 	fct.initConsensusThreshold()
-	fct.chronologyHandler.RemoveAllSubrounds()
+	fct.consensusDataContainer.GetChronology().RemoveAllSubrounds()
 	fct.worker.RemoveAllReceivedMessagesCalls()
 
 	err := fct.generateStartRoundSubround()
@@ -207,15 +123,20 @@ func (fct *factory) GenerateSubrounds() error {
 	return nil
 }
 
+func (fct *factory) getTimeDuration() time.Duration {
+	return fct.consensusDataContainer.GetRounder().TimeDuration()
+}
+
 func (fct *factory) generateStartRoundSubround() error {
 	subround, err := NewSubround(
 		-1,
 		SrStartRound,
 		SrBlock,
-		int64(float64(fct.rounder.TimeDuration())*srStartStartTime),
-		int64(float64(fct.rounder.TimeDuration())*srStartEndTime),
+		int64(float64(fct.getTimeDuration())*srStartStartTime),
+		int64(float64(fct.getTimeDuration())*srStartEndTime),
 		getSubroundName(SrStartRound),
-		fct.worker.consensusStateChangedChannels,
+		fct.worker.ConsensusStateChangedChannels,
+		fct.consensusDataContainer,
 	)
 
 	if err != nil {
@@ -224,21 +145,14 @@ func (fct *factory) generateStartRoundSubround() error {
 
 	subroundStartRound, err := NewSubroundStartRound(
 		subround,
-		fct.blockChain,
-		fct.bootstraper,
-		fct.consensusState,
-		fct.multiSigner,
-		fct.rounder,
-		fct.syncTimer,
-		fct.validatorGroupSelector,
-		fct.worker.extend,
+		fct.worker.Extend,
 	)
 
 	if err != nil {
 		return err
 	}
 
-	fct.chronologyHandler.AddSubround(subroundStartRound)
+	fct.consensusDataContainer.GetChronology().AddSubround(subroundStartRound)
 
 	return nil
 }
@@ -249,10 +163,11 @@ func (fct *factory) generateBlockSubround() error {
 		SrStartRound,
 		SrBlock,
 		SrCommitmentHash,
-		int64(float64(fct.rounder.TimeDuration())*srBlockStartTime),
-		int64(float64(fct.rounder.TimeDuration())*srBlockEndTime),
+		int64(float64(fct.getTimeDuration())*srBlockStartTime),
+		int64(float64(fct.getTimeDuration())*srBlockEndTime),
 		getSubroundName(SrBlock),
-		fct.worker.consensusStateChangedChannels,
+		fct.worker.ConsensusStateChangedChannels,
+		fct.consensusDataContainer,
 	)
 
 	if err != nil {
@@ -261,17 +176,8 @@ func (fct *factory) generateBlockSubround() error {
 
 	subroundBlock, err := NewSubroundBlock(
 		subround,
-		fct.blockChain,
-		fct.blockProcessor,
-		fct.consensusState,
-		fct.hasher,
-		fct.marshalizer,
-		fct.multiSigner,
-		fct.rounder,
-		fct.shardCoordinator,
-		fct.syncTimer,
-		fct.worker.sendConsensusMessage,
-		fct.worker.extend,
+		fct.worker.SendConsensusMessage,
+		fct.worker.Extend,
 	)
 
 	if err != nil {
@@ -280,7 +186,7 @@ func (fct *factory) generateBlockSubround() error {
 
 	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.receivedBlockBody)
 	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.receivedBlockHeader)
-	fct.chronologyHandler.AddSubround(subroundBlock)
+	fct.consensusDataContainer.GetChronology().AddSubround(subroundBlock)
 
 	return nil
 }
@@ -290,10 +196,11 @@ func (fct *factory) generateCommitmentHashSubround() error {
 		SrBlock,
 		SrCommitmentHash,
 		SrBitmap,
-		int64(float64(fct.rounder.TimeDuration())*srCommitmentHashStartTime),
-		int64(float64(fct.rounder.TimeDuration())*srCommitmentHashEndTime),
+		int64(float64(fct.getTimeDuration())*srCommitmentHashStartTime),
+		int64(float64(fct.getTimeDuration())*srCommitmentHashEndTime),
 		getSubroundName(SrCommitmentHash),
-		fct.worker.consensusStateChangedChannels,
+		fct.worker.ConsensusStateChangedChannels,
+		fct.consensusDataContainer,
 	)
 
 	if err != nil {
@@ -302,13 +209,8 @@ func (fct *factory) generateCommitmentHashSubround() error {
 
 	subroundCommitmentHash, err := NewSubroundCommitmentHash(
 		subround,
-		fct.consensusState,
-		fct.hasher,
-		fct.multiSigner,
-		fct.rounder,
-		fct.syncTimer,
-		fct.worker.sendConsensusMessage,
-		fct.worker.extend,
+		fct.worker.SendConsensusMessage,
+		fct.worker.Extend,
 	)
 
 	if err != nil {
@@ -316,7 +218,7 @@ func (fct *factory) generateCommitmentHashSubround() error {
 	}
 
 	fct.worker.AddReceivedMessageCall(MtCommitmentHash, subroundCommitmentHash.receivedCommitmentHash)
-	fct.chronologyHandler.AddSubround(subroundCommitmentHash)
+	fct.consensusDataContainer.GetChronology().AddSubround(subroundCommitmentHash)
 
 	return nil
 }
@@ -326,10 +228,11 @@ func (fct *factory) generateBitmapSubround() error {
 		SrCommitmentHash,
 		SrBitmap,
 		SrCommitment,
-		int64(float64(fct.rounder.TimeDuration())*srBitmapStartTime),
-		int64(float64(fct.rounder.TimeDuration())*srBitmapEndTime),
+		int64(float64(fct.getTimeDuration())*srBitmapStartTime),
+		int64(float64(fct.getTimeDuration())*srBitmapEndTime),
 		getSubroundName(SrBitmap),
-		fct.worker.consensusStateChangedChannels,
+		fct.worker.ConsensusStateChangedChannels,
+		fct.consensusDataContainer,
 	)
 
 	if err != nil {
@@ -338,12 +241,8 @@ func (fct *factory) generateBitmapSubround() error {
 
 	subroundBitmap, err := NewSubroundBitmap(
 		subround,
-		fct.blockProcessor,
-		fct.consensusState,
-		fct.rounder,
-		fct.syncTimer,
-		fct.worker.sendConsensusMessage,
-		fct.worker.extend,
+		fct.worker.SendConsensusMessage,
+		fct.worker.Extend,
 	)
 
 	if err != nil {
@@ -351,7 +250,7 @@ func (fct *factory) generateBitmapSubround() error {
 	}
 
 	fct.worker.AddReceivedMessageCall(MtBitmap, subroundBitmap.receivedBitmap)
-	fct.chronologyHandler.AddSubround(subroundBitmap)
+	fct.consensusDataContainer.GetChronology().AddSubround(subroundBitmap)
 
 	return nil
 }
@@ -361,10 +260,11 @@ func (fct *factory) generateCommitmentSubround() error {
 		SrBitmap,
 		SrCommitment,
 		SrSignature,
-		int64(float64(fct.rounder.TimeDuration())*srCommitmentStartTime),
-		int64(float64(fct.rounder.TimeDuration())*srCommitmentEndTime),
+		int64(float64(fct.getTimeDuration())*srCommitmentStartTime),
+		int64(float64(fct.getTimeDuration())*srCommitmentEndTime),
 		getSubroundName(SrCommitment),
-		fct.worker.consensusStateChangedChannels,
+		fct.worker.ConsensusStateChangedChannels,
+		fct.consensusDataContainer,
 	)
 
 	if err != nil {
@@ -373,12 +273,8 @@ func (fct *factory) generateCommitmentSubround() error {
 
 	subroundCommitment, err := NewSubroundCommitment(
 		subround,
-		fct.consensusState,
-		fct.multiSigner,
-		fct.rounder,
-		fct.syncTimer,
-		fct.worker.sendConsensusMessage,
-		fct.worker.extend,
+		fct.worker.SendConsensusMessage,
+		fct.worker.Extend,
 	)
 
 	if err != nil {
@@ -386,7 +282,7 @@ func (fct *factory) generateCommitmentSubround() error {
 	}
 
 	fct.worker.AddReceivedMessageCall(MtCommitment, subroundCommitment.receivedCommitment)
-	fct.chronologyHandler.AddSubround(subroundCommitment)
+	fct.consensusDataContainer.GetChronology().AddSubround(subroundCommitment)
 
 	return nil
 }
@@ -396,10 +292,11 @@ func (fct *factory) generateSignatureSubround() error {
 		SrCommitment,
 		SrSignature,
 		SrEndRound,
-		int64(float64(fct.rounder.TimeDuration())*srSignatureStartTime),
-		int64(float64(fct.rounder.TimeDuration())*srSignatureEndTime),
+		int64(float64(fct.getTimeDuration())*srSignatureStartTime),
+		int64(float64(fct.getTimeDuration())*srSignatureEndTime),
 		getSubroundName(SrSignature),
-		fct.worker.consensusStateChangedChannels,
+		fct.worker.ConsensusStateChangedChannels,
+		fct.consensusDataContainer,
 	)
 
 	if err != nil {
@@ -408,13 +305,8 @@ func (fct *factory) generateSignatureSubround() error {
 
 	subroundSignature, err := NewSubroundSignature(
 		subround,
-		fct.consensusState,
-		fct.hasher,
-		fct.multiSigner,
-		fct.rounder,
-		fct.syncTimer,
-		fct.worker.sendConsensusMessage,
-		fct.worker.extend,
+		fct.worker.SendConsensusMessage,
+		fct.worker.Extend,
 	)
 
 	if err != nil {
@@ -422,7 +314,7 @@ func (fct *factory) generateSignatureSubround() error {
 	}
 
 	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignature.receivedSignature)
-	fct.chronologyHandler.AddSubround(subroundSignature)
+	fct.consensusDataContainer.GetChronology().AddSubround(subroundSignature)
 
 	return nil
 }
@@ -432,10 +324,11 @@ func (fct *factory) generateEndRoundSubround() error {
 		SrSignature,
 		SrEndRound,
 		-1,
-		int64(float64(fct.rounder.TimeDuration())*srEndStartTime),
-		int64(float64(fct.rounder.TimeDuration())*srEndEndTime),
+		int64(float64(fct.getTimeDuration())*srEndStartTime),
+		int64(float64(fct.getTimeDuration())*srEndEndTime),
 		getSubroundName(SrEndRound),
-		fct.worker.consensusStateChangedChannels,
+		fct.worker.ConsensusStateChangedChannels,
+		fct.consensusDataContainer,
 	)
 
 	if err != nil {
@@ -444,31 +337,25 @@ func (fct *factory) generateEndRoundSubround() error {
 
 	subroundEndRound, err := NewSubroundEndRound(
 		subround,
-		fct.blockChain,
-		fct.blockProcessor,
-		fct.consensusState,
-		fct.multiSigner,
-		fct.rounder,
-		fct.syncTimer,
 		fct.worker.BroadcastBlock,
-		fct.worker.extend,
+		fct.worker.Extend,
 	)
 
 	if err != nil {
 		return err
 	}
 
-	fct.chronologyHandler.AddSubround(subroundEndRound)
+	fct.consensusDataContainer.GetChronology().AddSubround(subroundEndRound)
 
 	return nil
 }
 
 func (fct *factory) initConsensusThreshold() {
-	pbftThreshold := fct.consensusState.ConsensusGroupSize()*2/3 + 1
+	pbftThreshold := fct.consensusDataContainer.GetConsensusState().ConsensusGroupSize()*2/3 + 1
 
-	fct.consensusState.SetThreshold(SrBlock, 1)
-	fct.consensusState.SetThreshold(SrCommitmentHash, pbftThreshold)
-	fct.consensusState.SetThreshold(SrBitmap, pbftThreshold)
-	fct.consensusState.SetThreshold(SrCommitment, pbftThreshold)
-	fct.consensusState.SetThreshold(SrSignature, pbftThreshold)
+	fct.consensusDataContainer.GetConsensusState().SetThreshold(SrBlock, 1)
+	fct.consensusDataContainer.GetConsensusState().SetThreshold(SrCommitmentHash, pbftThreshold)
+	fct.consensusDataContainer.GetConsensusState().SetThreshold(SrBitmap, pbftThreshold)
+	fct.consensusDataContainer.GetConsensusState().SetThreshold(SrCommitment, pbftThreshold)
+	fct.consensusDataContainer.GetConsensusState().SetThreshold(SrSignature, pbftThreshold)
 }

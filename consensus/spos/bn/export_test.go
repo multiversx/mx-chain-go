@@ -280,35 +280,35 @@ func (wrk *worker) SetConsensusStateChangedChannels(consensusStateChangedChannel
 type SubroundStartRound *subroundStartRound
 
 func (sr *subroundStartRound) Bootstraper() process.Bootstrapper {
-	return sr.bootstraper
+	return sr.GetBootstrapper()
 }
 
 func (sr *subroundStartRound) SetBootsraper(bootstraper process.Bootstrapper) {
-	sr.bootstraper = bootstraper
+	sr.GetBootstrapper() = bootstraper
 }
 
 func (sr *subroundStartRound) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
+	return sr.GetConsensusState()
 }
 
 func (sr *subroundStartRound) SetConsensusState(consensusState *spos.ConsensusState) {
-	sr.consensusState = consensusState
+	sr.GetConsensusState() = consensusState
 }
 
 func (sr *subroundStartRound) Rounder() consensus.Rounder {
-	return sr.rounder
+	return sr.GetRounder()
 }
 
 func (sr *subroundStartRound) SetRounder(rounder consensus.Rounder) {
-	sr.rounder = rounder
+	sr.GetRounder() = rounder
 }
 
 func (sr *subroundStartRound) SyncTimer() ntp.SyncTimer {
-	return sr.syncTimer
+	return sr.GetSyncTimer()
 }
 
 func (sr *subroundStartRound) SetSyncTimer(syncTimer ntp.SyncTimer) {
-	sr.syncTimer = syncTimer
+	sr.GetSyncTimer() = syncTimer
 }
 
 func (sr *subroundStartRound) DoStartRoundJob() bool {
@@ -328,43 +328,43 @@ func (sr *subroundStartRound) GenerateNextConsensusGroup(roundIndex int32) error
 type SubroundBlock *subroundBlock
 
 func (sr *subroundBlock) BlockChain() data.ChainHandler {
-	return sr.blockChain
+	return sr.GetChainHandler()
 }
 
 func (sr *subroundBlock) SetBlockChain(blockChain data.ChainHandler) {
-	sr.blockChain = blockChain
+	sr.GetChainHandler() = blockChain
 }
 
 func (sr *subroundBlock) BlockProcessor() process.BlockProcessor {
-	return sr.blockProcessor
+	return sr.GetBlockProcessor()
 }
 
 func (sr *subroundBlock) SetBlockProcessor(blockProcessor process.BlockProcessor) {
-	sr.blockProcessor = blockProcessor
+	sr.GetBlockProcessor() = blockProcessor
 }
 
 func (sr *subroundBlock) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
+	return sr.GetConsensusState()
 }
 
 func (sr *subroundBlock) SetConsensusState(consensusState *spos.ConsensusState) {
-	sr.consensusState = consensusState
+	sr.GetConsensusState() = consensusState
 }
 
 func (sr *subroundBlock) Rounder() consensus.Rounder {
-	return sr.rounder
+	return sr.GetRounder()
 }
 
 func (sr *subroundBlock) SetRounder(rounder consensus.Rounder) {
-	sr.rounder = rounder
+	sr.GetRounder() = rounder
 }
 
 func (sr *subroundBlock) SyncTimer() ntp.SyncTimer {
-	return sr.syncTimer
+	return sr.GetSyncTimer()
 }
 
 func (sr *subroundBlock) SetSyncTimer(syncTimer ntp.SyncTimer) {
-	sr.syncTimer = syncTimer
+	sr.GetSyncTimer() = syncTimer
 }
 
 func (sr *subroundBlock) DoBlockJob() bool {
@@ -408,27 +408,27 @@ func (sr *subroundBlock) CreateHeader() (data.HeaderHandler, error) {
 type SubroundCommitmentHash *subroundCommitmentHash
 
 func (sr *subroundCommitmentHash) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
+	return sr.GetConsensusState()
 }
 
 func (sr *subroundCommitmentHash) SetConsensusState(consensusState *spos.ConsensusState) {
-	sr.consensusState = consensusState
+	sr.GetConsensusState() = consensusState
 }
 
 func (sr *subroundCommitmentHash) MultiSigner() crypto.MultiSigner {
-	return sr.multiSigner
+	return sr.GetMultiSigner()
 }
 
 func (sr *subroundCommitmentHash) SetMultiSigner(multiSigner crypto.MultiSigner) {
-	sr.multiSigner = multiSigner
+	sr.GetMultiSigner() = multiSigner
 }
 
 func (sr *subroundCommitmentHash) Rounder() consensus.Rounder {
-	return sr.rounder
+	return sr.GetRounder()
 }
 
 func (sr *subroundCommitmentHash) SetRounder(rounder consensus.Rounder) {
-	sr.rounder = rounder
+	sr.GetRounder() = rounder
 }
 
 func (sr *subroundCommitmentHash) DoCommitmentHashJob() bool {
@@ -460,19 +460,19 @@ func (sr *subroundCommitmentHash) GenCommitmentHash() ([]byte, error) {
 type SubroundBitmap *subroundBitmap
 
 func (sr *subroundBitmap) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
+	return sr.GetConsensusState()
 }
 
 func (sr *subroundBitmap) SetConsensusState(consensusState *spos.ConsensusState) {
-	sr.consensusState = consensusState
+	sr.GetConsensusState() = consensusState
 }
 
 func (sr *subroundBitmap) Rounder() consensus.Rounder {
-	return sr.rounder
+	return sr.GetRounder()
 }
 
 func (sr *subroundBitmap) SetRounder(rounder consensus.Rounder) {
-	sr.rounder = rounder
+	sr.GetRounder() = rounder
 }
 
 func (sr *subroundBitmap) DoBitmapJob() bool {
@@ -496,19 +496,19 @@ func (sr *subroundBitmap) IsBitmapReceived(threshold int) bool {
 type SubroundCommitment *subroundCommitment
 
 func (sr *subroundCommitment) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
+	return sr.GetConsensusState()
 }
 
 func (sr *subroundCommitment) SetConsensusState(consensusState *spos.ConsensusState) {
-	sr.consensusState = consensusState
+	sr.GetConsensusState() = consensusState
 }
 
 func (sr *subroundCommitment) Rounder() consensus.Rounder {
-	return sr.rounder
+	return sr.GetRounder()
 }
 
 func (sr *subroundCommitment) SetRounder(rounder consensus.Rounder) {
-	sr.rounder = rounder
+	sr.GetRounder() = rounder
 }
 
 func (sr *subroundCommitment) DoCommitmentJob() bool {
@@ -532,27 +532,27 @@ func (sr *subroundCommitment) CommitmentsCollected(threshold int) bool {
 type SubroundSignature *subroundSignature
 
 func (sr *subroundSignature) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
+	return sr.GetConsensusState()
 }
 
 func (sr *subroundSignature) SetConsensusState(consensusState *spos.ConsensusState) {
-	sr.consensusState = consensusState
+	sr.GetConsensusState() = consensusState
 }
 
 func (sr *subroundSignature) MultiSigner() crypto.MultiSigner {
-	return sr.multiSigner
+	return sr.GetMultiSigner()
 }
 
 func (sr *subroundSignature) SetMultiSigner(multiSigner crypto.MultiSigner) {
-	sr.multiSigner = multiSigner
+	sr.GetMultiSigner() = multiSigner
 }
 
 func (sr *subroundSignature) Rounder() consensus.Rounder {
-	return sr.rounder
+	return sr.GetRounder()
 }
 
 func (sr *subroundSignature) SetRounder(rounder consensus.Rounder) {
-	sr.rounder = rounder
+	sr.GetRounder() = rounder
 }
 
 func (sr *subroundSignature) DoSignatureJob() bool {
@@ -580,27 +580,27 @@ func (sr *subroundSignature) SignaturesCollected(threshold int) bool {
 type SubroundEndRound *subroundEndRound
 
 func (sr *subroundEndRound) BlockProcessor() process.BlockProcessor {
-	return sr.blockProcessor
+	return sr.GetBlockProcessor()
 }
 
 func (sr *subroundEndRound) SetBlockProcessor(blockProcessor process.BlockProcessor) {
-	sr.blockProcessor = blockProcessor
+	sr.GetBlockProcessor() = blockProcessor
 }
 
 func (sr *subroundEndRound) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
+	return sr.GetConsensusState()
 }
 
 func (sr *subroundEndRound) SetConsensusState(consensusState *spos.ConsensusState) {
-	sr.consensusState = consensusState
+	sr.GetConsensusState() = consensusState
 }
 
 func (sr *subroundEndRound) MultiSigner() crypto.MultiSigner {
-	return sr.multiSigner
+	return sr.GetMultiSigner()
 }
 
 func (sr *subroundEndRound) SetMultiSigner(multiSigner crypto.MultiSigner) {
-	sr.multiSigner = multiSigner
+	sr.GetMultiSigner() = multiSigner
 }
 
 func (sr *subroundEndRound) DoEndRoundJob() bool {

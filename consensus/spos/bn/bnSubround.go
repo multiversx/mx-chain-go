@@ -12,6 +12,8 @@ import (
 // which should be set. job function will be the main function of this subround, extend function will handle the overtime
 // situation of the subround and check function will decide if in this subround the consensus is achieved
 type subround struct {
+	*spos.ConsensusDataContainer
+
 	previous  int
 	current   int
 	next      int
@@ -35,10 +37,12 @@ func NewSubround(
 	endTime int64,
 	name string,
 	consensusStateChangedChannel chan bool,
+	container *spos.ConsensusDataContainer,
 ) (*subround, error) {
 
 	err := checkNewSubroundParams(
 		consensusStateChangedChannel,
+		container,
 	)
 
 	if err != nil {
@@ -60,7 +64,13 @@ func NewSubround(
 
 func checkNewSubroundParams(
 	consensusStateChangedChannel chan bool,
+	container *spos.ConsensusDataContainer,
 ) error {
+	err := spos.ValidateConsensusDataContainer(container)
+	if err!=nil{
+		return err
+	}
+
 	if consensusStateChangedChannel == nil {
 		return spos.ErrNilChannel
 	}
@@ -87,7 +97,7 @@ func (sr *subround) DoWork(rounder consensus.Rounder) bool {
 
 	for {
 		select {
-		case <-sr.consensusStateChangedChannel:
+		case <-sr.GetConsensusState()ChangedChannel:
 			if sr.check() {
 				return true
 			}
@@ -130,3 +140,4 @@ func (sr *subround) EndTime() int64 {
 func (sr *subround) Name() string {
 	return sr.name
 }
+
