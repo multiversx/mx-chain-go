@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"math/big"
 	gosync "sync"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
@@ -752,7 +752,7 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 	return header, blockHeaderHash, nil
 }
 
-func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
+func (n *Node) sendMessage(cnsDta *consensus.ConsensusMessage) {
 	cnsDtaBuff, err := n.marshalizer.Marshal(cnsDta)
 	if err != nil {
 		log.Debug(err.Error())

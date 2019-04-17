@@ -1,6 +1,7 @@
 package bn_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -10,11 +11,7 @@ import (
 )
 
 func initSubroundCommitment() bn.SubroundCommitment {
-	consensusState := mock.InitConsensusState()
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
-
+	container := mock.InitContainer()
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -25,14 +22,11 @@ func initSubroundCommitment() bn.SubroundCommitment {
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
 		ch,
+		container,
 	)
 
 	srCommitment, _ := bn.NewSubroundCommitment(
 		sr,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -43,17 +37,8 @@ func initSubroundCommitment() bn.SubroundCommitment {
 func TestSubroundCommitment_NewSubroundCommitmentNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
-
 	srCommitment, err := bn.NewSubroundCommitment(
 		nil,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -65,10 +50,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSubroundShouldFail(t *testin
 func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
-
+	container := mock.InitContainer()
+	container.SetConsensusState(nil)
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -79,14 +62,11 @@ func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
 		ch,
+		container,
 	)
 
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
-		nil,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -98,10 +78,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *
 func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
-
+	container := mock.InitContainer()
+	container.SetMultiSigner(nil)
 	ch := make(chan bool, 1)
 
 	sr, _ := bn.NewSubround(
@@ -112,14 +90,11 @@ func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *tes
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
 		ch,
+		container,
 	)
 
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
-		consensusState,
-		nil,
-		rounderMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -131,9 +106,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *tes
 func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	multiSignerMock := mock.InitMultiSignerMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetRounder(nil)
 
 	ch := make(chan bool, 1)
 
@@ -145,14 +119,11 @@ func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
 		ch,
+		container,
 	)
 
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
-		consensusState,
-		multiSignerMock,
-		nil,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -164,9 +135,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing
 func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
+	container := mock.InitContainer()
+	container.SetSyncTimer(nil)
 
 	ch := make(chan bool, 1)
 
@@ -178,14 +148,11 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testi
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
 		ch,
+		container,
 	)
 
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		nil,
 		sendConsensusMessage,
 		extend,
 	)
@@ -197,10 +164,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testi
 func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
 
 	ch := make(chan bool, 1)
 
@@ -212,14 +176,11 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunction
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
 		ch,
+		container,
 	)
 
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		nil,
 		extend,
 	)
@@ -231,10 +192,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunction
 func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
 
 	ch := make(chan bool, 1)
 
@@ -246,14 +204,11 @@ func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
 		int64(70*roundTimeDuration/100),
 		"(COMMITMENT)",
 		ch,
+		container,
 	)
 
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
-		consensusState,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -307,7 +262,7 @@ func TestSubroundCommitment_ReceivedCommitment(t *testing.T) {
 
 	commitment := []byte("commitment")
 
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		sr.ConsensusState().Data,
 		commitment,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
@@ -421,7 +376,7 @@ func TestSubroundCommitment_ReceivedCommitmentReturnFalseWhenConsensusDataIsNotE
 
 	sr := *initSubroundCommitment()
 
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		append(sr.ConsensusState().Data, []byte("X")...),
 		[]byte("commitment"),
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),

@@ -1,55 +1,59 @@
 package spos
 
-func ValidateConsensusDataContainer(container *ConsensusDataContainer) error {
+type ConsensusContainerValidator struct {
+}
+
+func (cdv *ConsensusContainerValidator) ValidateConsensusDataContainer(
+	container ConsensusDataContainerInterface) error {
 	if container == nil {
 		return ErrNilConsensusDataContainer
 	}
 
-	if container.GetChainHandler() == nil {
+	if container.Blockchain() == nil {
 		return ErrNilBlockChain
 	}
 
-	if container.GetBlockProcessor() == nil {
+	if container.BlockProcessor() == nil {
 		return ErrNilBlockProcessor
 	}
 
-	if container.GetBootStrapper() == nil {
+	if container.BootStrapper() == nil {
 		return ErrNilBlootstraper
 	}
 
-	if container.GetChronology() == nil {
+	if container.Chronology() == nil {
 		return ErrNilChronologyHandler
 	}
 
-	if container.GetConsensusState() == nil {
+	if container.ConsensusState() == nil {
 		return ErrNilConsensusState
 	}
 
-	if container.GetHasher() == nil {
+	if container.Hasher() == nil {
 		return ErrNilHasher
 	}
 
-	if container.GetMarshalizer() == nil {
+	if container.Marshalizer() == nil {
 		return ErrNilMarshalizer
 	}
 
-	if container.GetMultiSigner() == nil {
+	if container.MultiSigner() == nil {
 		return ErrNilMultiSigner
 	}
 
-	if container.GetRounder() == nil {
+	if container.Rounder() == nil {
 		return ErrNilRounder
 	}
 
-	if container.GetShardCoordinator() == nil {
+	if container.ShardCoordinator() == nil {
 		return ErrNilShardCoordinator
 	}
 
-	if container.GetSyncTimer() == nil {
+	if container.SyncTimer() == nil {
 		return ErrNilSyncTimer
 	}
 
-	if container.GetValidatorGroupSelector() == nil {
+	if container.ValidatorGroupSelector() == nil {
 		return ErrNilValidatorGroupSelector
 	}
 

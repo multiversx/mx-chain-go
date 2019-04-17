@@ -2,10 +2,10 @@ package spos_test
 
 import (
 	"errors"
-	"testing"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -381,7 +381,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsR
 
 	cns := initConsensusState()
 
-	cnsDta := &spos.ConsensusMessage{
+	cnsDta := &consensus.ConsensusMessage{
 		RoundIndex: 0,
 		PubKey:     []byte(cns.SelfPubKey()),
 	}
@@ -394,7 +394,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsR
 
 	cns := initConsensusState()
 
-	cnsDta := &spos.ConsensusMessage{
+	cnsDta := &consensus.ConsensusMessage{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}
@@ -407,7 +407,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenJobIsDone(
 
 	cns := initConsensusState()
 
-	cnsDta := &spos.ConsensusMessage{
+	cnsDta := &consensus.ConsensusMessage{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}
@@ -422,7 +422,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenCurrentRou
 
 	cns := initConsensusState()
 
-	cnsDta := &spos.ConsensusMessage{
+	cnsDta := &consensus.ConsensusMessage{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}
@@ -437,7 +437,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnTrue(t *testing.T) 
 
 	cns := initConsensusState()
 
-	cnsDta := &spos.ConsensusMessage{
+	cnsDta := &consensus.ConsensusMessage{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}

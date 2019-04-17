@@ -31,14 +31,14 @@ type worker struct {
 	shardCoordinator sharding.Coordinator
 	singleSigner     crypto.SingleSigner
 
-	receivedMessages      map[spos.MessageType][]*spos.ConsensusMessage
-	receivedMessagesCalls map[spos.MessageType]func(*spos.ConsensusMessage) bool
+	receivedMessages      map[spos.MessageType][]*consensus.ConsensusMessage
+	receivedMessagesCalls map[spos.MessageType]func(*consensus.ConsensusMessage) bool
 
-	executeMessageChannel         chan *spos.ConsensusMessage
+	executeMessageChannel         chan *consensus.ConsensusMessage
 	consensusStateChangedChannels chan bool
 
 	BroadcastBlock func(data.BodyHandler, data.HeaderHandler) error
-	SendMessage    func(consensus *spos.ConsensusMessage)
+	SendMessage    func(consensus *consensus.ConsensusMessage)
 
 	mutReceivedMessages      sync.RWMutex
 	mutReceivedMessagesCalls sync.RWMutex
@@ -84,8 +84,8 @@ func NewWorker(
 		singleSigner:     singleSigner,
 	}
 
-	wrk.executeMessageChannel = make(chan *spos.ConsensusMessage)
-	wrk.receivedMessagesCalls = make(map[spos.MessageType]func(*spos.ConsensusMessage) bool)
+	wrk.executeMessageChannel = make(chan *consensus.ConsensusMessage)
+	wrk.receivedMessagesCalls = make(map[spos.MessageType]func(*consensus.ConsensusMessage) bool)
 	wrk.consensusStateChangedChannels = make(chan bool, 1)
 	wrk.bootstraper.AddSyncStateListener(wrk.receivedSyncState)
 	wrk.initReceivedMessages()
@@ -154,19 +154,19 @@ func (wrk *worker) receivedSyncState(isNodeSynchronized bool) {
 func (wrk *worker) initReceivedMessages() {
 	wrk.mutReceivedMessages.Lock()
 
-	wrk.receivedMessages = make(map[spos.MessageType][]*spos.ConsensusMessage)
-	wrk.receivedMessages[MtBlockBody] = make([]*spos.ConsensusMessage, 0)
-	wrk.receivedMessages[MtBlockHeader] = make([]*spos.ConsensusMessage, 0)
-	wrk.receivedMessages[MtCommitmentHash] = make([]*spos.ConsensusMessage, 0)
-	wrk.receivedMessages[MtBitmap] = make([]*spos.ConsensusMessage, 0)
-	wrk.receivedMessages[MtCommitment] = make([]*spos.ConsensusMessage, 0)
-	wrk.receivedMessages[MtSignature] = make([]*spos.ConsensusMessage, 0)
+	wrk.receivedMessages = make(map[spos.MessageType][]*consensus.ConsensusMessage)
+	wrk.receivedMessages[MtBlockBody] = make([]*consensus.ConsensusMessage, 0)
+	wrk.receivedMessages[MtBlockHeader] = make([]*consensus.ConsensusMessage, 0)
+	wrk.receivedMessages[MtCommitmentHash] = make([]*consensus.ConsensusMessage, 0)
+	wrk.receivedMessages[MtBitmap] = make([]*consensus.ConsensusMessage, 0)
+	wrk.receivedMessages[MtCommitment] = make([]*consensus.ConsensusMessage, 0)
+	wrk.receivedMessages[MtSignature] = make([]*consensus.ConsensusMessage, 0)
 
 	wrk.mutReceivedMessages.Unlock()
 }
 
 // AddReceivedMessageCall adds a new handler function for a received messege type
-func (wrk *worker) AddReceivedMessageCall(messageType spos.MessageType, receivedMessageCall func(cnsDta *spos.ConsensusMessage) bool) {
+func (wrk *worker) AddReceivedMessageCall(messageType spos.MessageType, receivedMessageCall func(cnsDta *consensus.ConsensusMessage) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
 	wrk.receivedMessagesCalls[messageType] = receivedMessageCall
 	wrk.mutReceivedMessagesCalls.Unlock()
@@ -175,12 +175,12 @@ func (wrk *worker) AddReceivedMessageCall(messageType spos.MessageType, received
 // RemoveAllReceivedMessagesCalls removes all the functions handlers
 func (wrk *worker) RemoveAllReceivedMessagesCalls() {
 	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.receivedMessagesCalls = make(map[spos.MessageType]func(*spos.ConsensusMessage) bool)
+	wrk.receivedMessagesCalls = make(map[spos.MessageType]func(*consensus.ConsensusMessage) bool)
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
-func (wrk *worker) getCleanedList(cnsDataList []*spos.ConsensusMessage) []*spos.ConsensusMessage {
-	cleanedCnsDataList := make([]*spos.ConsensusMessage, 0)
+func (wrk *worker) getCleanedList(cnsDataList []*consensus.ConsensusMessage) []*consensus.ConsensusMessage {
+	cleanedCnsDataList := make([]*consensus.ConsensusMessage, 0)
 
 	for i := 0; i < len(cnsDataList); i++ {
 		if cnsDataList[i] == nil {
@@ -207,7 +207,7 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 		return spos.ErrNilDataToProcess
 	}
 
-	cnsDta := &spos.ConsensusMessage{}
+	cnsDta := &consensus.ConsensusMessage{}
 	err := wrk.marshalizer.Unmarshal(cnsDta, message.Data())
 	if err != nil {
 		return err
@@ -243,7 +243,7 @@ func (wrk *worker) ProcessReceivedMessage(message p2p.MessageP2P) error {
 	return nil
 }
 
-func (wrk *worker) checkSignature(cnsDta *spos.ConsensusMessage) error {
+func (wrk *worker) checkSignature(cnsDta *consensus.ConsensusMessage) error {
 	if cnsDta == nil {
 		return spos.ErrNilConsensusData
 	}
@@ -273,7 +273,7 @@ func (wrk *worker) checkSignature(cnsDta *spos.ConsensusMessage) error {
 	return err
 }
 
-func (wrk *worker) executeReceivedMessages(cnsDta *spos.ConsensusMessage) {
+func (wrk *worker) executeReceivedMessages(cnsDta *consensus.ConsensusMessage) {
 	wrk.mutReceivedMessages.Lock()
 
 	msgType := spos.MessageType(cnsDta.MsgType)
@@ -295,7 +295,7 @@ func (wrk *worker) executeReceivedMessages(cnsDta *spos.ConsensusMessage) {
 	wrk.mutReceivedMessages.Unlock()
 }
 
-func (wrk *worker) executeMessage(cnsDtaList []*spos.ConsensusMessage) {
+func (wrk *worker) executeMessage(cnsDtaList []*consensus.ConsensusMessage) {
 	for i, cnsDta := range cnsDtaList {
 		if cnsDta == nil {
 			continue
@@ -358,7 +358,7 @@ func (wrk *worker) checkChannels() {
 }
 
 // sendConsensusMessage sends the consensus message
-func (wrk *worker) sendConsensusMessage(cnsDta *spos.ConsensusMessage) bool {
+func (wrk *worker) sendConsensusMessage(cnsDta *consensus.ConsensusMessage) bool {
 	signature, err := wrk.genConsensusDataSignature(cnsDta)
 	if err != nil {
 		log.Error(err.Error())
@@ -377,7 +377,7 @@ func (wrk *worker) sendConsensusMessage(cnsDta *spos.ConsensusMessage) bool {
 	return true
 }
 
-func (wrk *worker) genConsensusDataSignature(cnsDta *spos.ConsensusMessage) ([]byte, error) {
+func (wrk *worker) genConsensusDataSignature(cnsDta *consensus.ConsensusMessage) ([]byte, error) {
 	cnsDtaStr, err := wrk.marshalizer.Marshal(cnsDta)
 	if err != nil {
 		return nil, err

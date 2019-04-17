@@ -2,10 +2,10 @@ package spos
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
@@ -94,7 +94,8 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
 // source for the new selection
-func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs consensus.ValidatorGroupSelector) ([]string, error) {
+func (cns *ConsensusState) GetNextConsensusGroup(randomSource string, vgs consensus.ValidatorGroupSelector) ([]string,
+	error) {
 	validatorsGroup, err := vgs.ComputeValidatorsGroup([]byte(randomSource))
 
 	if err != nil {
@@ -188,7 +189,8 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 }
 
 // CanProcessReceivedMessage method returns true if the message received can be processed and false otherwise
-func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *ConsensusMessage, currentRoundIndex int32, currentSubroundId int) bool {
+func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *consensus.ConsensusMessage, currentRoundIndex int32,
+	currentSubroundId int) bool {
 	if cns.IsNodeSelf(string(cnsDta.PubKey)) {
 		return false
 	}
@@ -246,4 +248,8 @@ func (cns *ConsensusState) SetProcessingBlock(processingBlock bool) {
 	cns.mutProcessingBlock.Lock()
 	cns.processingBlock = processingBlock
 	cns.mutProcessingBlock.Unlock()
+}
+
+func (cns *ConsensusState) GetData() []byte {
+	return cns.Data
 }

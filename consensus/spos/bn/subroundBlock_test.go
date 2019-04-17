@@ -2,6 +2,7 @@ package bn_test
 
 import (
 	"errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"testing"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initSubroundBlock(blockChain data.ChainHandler) bn.SubroundBlock {
+func initSubroundBlock(blockChain data.ChainHandler, container *mock.ConsensusDataContainerMock) bn.SubroundBlock {
 	if blockChain == nil {
 		blockChain = &mock.BlockChainMock{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
@@ -31,15 +32,11 @@ func initSubroundBlock(blockChain data.ChainHandler) bn.SubroundBlock {
 			},
 		}
 	}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+
 	ch := make(chan bool, 1)
+
+	container.SetBlockchain(blockChain)
+
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
@@ -48,26 +45,19 @@ func initSubroundBlock(blockChain data.ChainHandler) bn.SubroundBlock {
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, _ := bn.NewSubroundBlock(
 		sr,
-		blockChain,
-		blockProcessorMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
 	return srBlock
 }
 
-func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock) bn.SubroundBlock {
-	blockChain := mock.BlockChainMock{
+func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock, container *mock.ConsensusDataContainerMock) bn.
+	SubroundBlock {
+	blockChain := &mock.BlockChainMock{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Nonce:     uint64(0),
@@ -79,14 +69,11 @@ func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock) bn.Subroun
 		},
 	}
 	blockProcessorMock := bp
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+
+	container.SetBlockchain(blockChain)
+	container.SetBlockProcessor(blockProcessorMock)
 	ch := make(chan bool, 1)
+
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),
@@ -95,18 +82,10 @@ func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock) bn.Subroun
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, _ := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -115,26 +94,9 @@ func initSubroundBlockWithBlockProcessor(bp *mock.BlockProcessorMock) bn.Subroun
 
 func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+
 	srBlock, err := bn.NewSubroundBlock(
 		nil,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -144,14 +106,8 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetBlockchain(nil)
 	ch := make(chan bool, 1)
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -161,18 +117,10 @@ func TestSubroundBlock_NewSubroundBlockNilBlockchainShouldFail(t *testing.T) {
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, err := bn.NewSubroundBlock(
 		sr,
-		nil,
-		blockProcessorMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -182,14 +130,8 @@ func TestSubroundBlock_NewSubroundBlockNilBlockchainShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
-	blockChain := mock.BlockChainMock{}
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetBlockProcessor(nil)
 	ch := make(chan bool, 1)
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -199,18 +141,10 @@ func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T)
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, err := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
-		nil,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -220,14 +154,8 @@ func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T)
 
 func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetConsensusState(nil)
 	ch := make(chan bool, 1)
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -237,18 +165,10 @@ func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T)
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, err := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		nil,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -258,14 +178,8 @@ func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T)
 
 func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	consensusState := mock.InitConsensusState()
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetHasher(nil)
 	ch := make(chan bool, 1)
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -275,18 +189,10 @@ func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, err := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		nil,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -296,14 +202,8 @@ func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetMarshalizer(nil)
 	ch := make(chan bool, 1)
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -313,18 +213,10 @@ func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, err := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		hasherMock,
-		nil,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -334,14 +226,8 @@ func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetMultiSigner(nil)
 	ch := make(chan bool, 1)
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -351,18 +237,10 @@ func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, err := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		nil,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -372,14 +250,8 @@ func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetRounder(nil)
 	ch := make(chan bool, 1)
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -389,18 +261,10 @@ func TestSubroundBlock_NewSubroundBlockNilRounderShouldFail(t *testing.T) {
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, err := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		nil,
-		shardCoordinatorMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -410,14 +274,8 @@ func TestSubroundBlock_NewSubroundBlockNilRounderShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetShardCoordinator(nil)
 	ch := make(chan bool, 1)
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -427,18 +285,10 @@ func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, err := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		nil,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -448,14 +298,8 @@ func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.
 
 func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	container := mock.InitContainer()
+	container.SetSyncTimer(nil)
 	ch := make(chan bool, 1)
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -465,18 +309,10 @@ func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, err := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		nil,
 		sendConsensusMessage,
 		extend,
 	)
@@ -486,15 +322,7 @@ func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
 	t.Parallel()
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
 	ch := make(chan bool, 1)
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -504,18 +332,10 @@ func TestSubroundBlock_NewSubroundBlockNilSendConsensusMessageFunctionShouldFail
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, err := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
 		nil,
 		extend,
 	)
@@ -525,15 +345,8 @@ func TestSubroundBlock_NewSubroundBlockNilSendConsensusMessageFunctionShouldFail
 
 func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 	t.Parallel()
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+
 	ch := make(chan bool, 1)
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
@@ -543,18 +356,10 @@ func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
 		ch,
+		container,
 	)
 	srBlock, err := bn.NewSubroundBlock(
 		sr,
-		&blockChain,
-		blockProcessorMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -564,7 +369,8 @@ func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 
 func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	r := sr.DoBlockJob()
 	assert.False(t, r)
 
@@ -588,12 +394,13 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	bpm.CreateBlockCalled = func(round int32, remainingTime func() bool) (data.BodyHandler, error) {
 		return nil, err
 	}
-	sr.SetBlockProcessor(bpm)
+	container.SetBlockProcessor(bpm)
+
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
 	bpm = mock.InitBlockProcessorMock()
-	sr.SetBlockProcessor(bpm)
+	container.SetBlockProcessor(bpm)
 	r = sr.DoBlockJob()
 	assert.True(t, r)
 	assert.Equal(t, uint64(1), sr.ConsensusState().Header.GetNonce())
@@ -601,11 +408,12 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 
 func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	blockProcessorMock := mock.InitBlockProcessorMock()
 	blBody := make(block.Body, 0)
 	blBodyStr, _ := mock.MarshalizerMock{}.Marshal(blBody)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		blBodyStr,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
@@ -636,7 +444,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	hdr.Nonce = 2
 	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	hdrHash := mock.HasherMock{}.Compute(string(hdrStr))
-	cnsMsg = spos.NewConsensusMessage(
+	cnsMsg = consensus.NewConsensusMessage(
 		hdrHash,
 		hdrStr,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
@@ -666,7 +474,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	blockProcessorMock.CheckBlockValidityCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool {
 		return false
 	}
-	sr.SetBlockProcessor(blockProcessorMock)
+	container.SetBlockProcessor(blockProcessorMock)
 	sr.ConsensusState().SetStatus(bn.SrBlock, spos.SsNotFinished)
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
@@ -674,7 +482,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	blockProcessorMock.CheckBlockValidityCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool {
 		return true
 	}
-	sr.SetBlockProcessor(blockProcessorMock)
+	container.SetBlockProcessor(blockProcessorMock)
 	sr.ConsensusState().Data = nil
 	sr.ConsensusState().Header = nil
 	hdr = &block.Header{}
@@ -689,7 +497,8 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 
 func TestSubroundBlock_DecodeBlockBody(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	body := make(block.Body, 0)
 	body = append(body, &block.MiniBlock{ReceiverShardID: 69})
 	message, err := mock.MarshalizerMock{}.Marshal(body)
@@ -705,7 +514,8 @@ func TestSubroundBlock_DecodeBlockBody(t *testing.T) {
 
 func TestSubroundBlock_DecodeBlockHeader(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	hdr := &block.Header{}
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(sr.Rounder().TimeStamp().Unix())
@@ -726,10 +536,11 @@ func TestSubroundBlock_DecodeBlockHeader(t *testing.T) {
 
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAreNotSet(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
@@ -743,17 +554,18 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFails(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	blProcMock := mock.InitBlockProcessorMock()
 	err := errors.New("error process block")
 	blProcMock.ProcessBlockCalled = func(data.ChainHandler, data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
 		return err
 	}
-	sr.SetBlockProcessor(blProcMock)
+	container.SetBlockProcessor(blProcMock)
 	hdr := &block.Header{}
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
@@ -769,11 +581,12 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockReturnsInNextRound(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	hdr := &block.Header{}
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
@@ -788,18 +601,19 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 	blockProcessorMock.ProcessBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errors.New("error")
 	}
-	sr.SetBlockProcessor(blockProcessorMock)
-	sr.SetRounder(&mock.RounderMock{RoundIndex: 1})
+	container.SetBlockProcessor(blockProcessorMock)
+	container.SetRounder(&mock.RounderMock{RoundIndex: 1})
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	hdr := &block.Header{}
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
@@ -815,7 +629,8 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 
 func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	remainingTimeInThisRound := func() time.Duration {
 		roundStartTime := sr.Rounder().TimeStamp()
 		currentTime := sr.SyncTimer().CurrentTime()
@@ -824,19 +639,19 @@ func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
 
 		return time.Duration(remainingTime)
 	}
-	sr.SetSyncTimer(mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
+	container.SetSyncTimer(mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
 		return time.Unix(0, 0).Add(roundTimeDuration * 84 / 100)
 	}})
 	ret := remainingTimeInThisRound()
 	assert.True(t, ret > 0)
 
-	sr.SetSyncTimer(mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
+	container.SetSyncTimer(mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
 		return time.Unix(0, 0).Add(roundTimeDuration * 85 / 100)
 	}})
 	ret = remainingTimeInThisRound()
 	assert.True(t, ret == 0)
 
-	sr.SetSyncTimer(mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
+	container.SetSyncTimer(mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
 		return time.Unix(0, 0).Add(roundTimeDuration * 86 / 100)
 	}})
 	ret = remainingTimeInThisRound()
@@ -845,21 +660,24 @@ func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
 
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	sr.ConsensusState().RoundCanceled = true
 	assert.False(t, sr.DoBlockConsensusCheck())
 }
 
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenSubroundIsFinished(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	sr.ConsensusState().SetStatus(bn.SrBlock, spos.SsFinished)
 	assert.True(t, sr.DoBlockConsensusCheck())
 }
 
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenBlockIsReceivedReturnTrue(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	for i := 0; i < sr.ConsensusState().Threshold(bn.SrBlock); i++ {
 		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBlock, true)
 	}
@@ -868,13 +686,15 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenBlockIsReceivedR
 
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnFalseWhenBlockIsReceivedReturnFalse(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	assert.False(t, sr.DoBlockConsensusCheck())
 }
 
 func TestSubroundBlock_IsBlockReceived(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
 		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBlock, false)
 		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrCommitmentHash, false)
@@ -898,7 +718,8 @@ func TestSubroundBlock_IsBlockReceived(t *testing.T) {
 
 func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	haveTimeInCurrentSubound := func() bool {
 		roundStartTime := sr.Rounder().TimeStamp()
 		currentTime := sr.SyncTimer().CurrentTime()
@@ -915,15 +736,16 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 	syncTimerMock.CurrentTimeCalled = func() time.Time {
 		return time.Unix(0, timeElapsed)
 	}
-	sr.SetRounder(rounderMock)
-	sr.SetSyncTimer(syncTimerMock)
+	container.SetRounder(rounderMock)
+	container.SetSyncTimer(syncTimerMock)
 
 	assert.True(t, haveTimeInCurrentSubound())
 }
 
 func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 	t.Parallel()
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	haveTimeInCurrentSubound := func() bool {
 		roundStartTime := sr.Rounder().TimeStamp()
 		currentTime := sr.SyncTimer().CurrentTime()
@@ -940,8 +762,8 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 	syncTimerMock.CurrentTimeCalled = func() time.Time {
 		return time.Unix(0, timeElapsed)
 	}
-	sr.SetRounder(rounderMock)
-	sr.SetSyncTimer(syncTimerMock)
+	container.SetRounder(rounderMock)
+	container.SetSyncTimer(syncTimerMock)
 
 	assert.False(t, haveTimeInCurrentSubound())
 }
@@ -962,7 +784,8 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 			return []byte("genesis header hash")
 		},
 	}
-	sr := *initSubroundBlock(blockChain)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(blockChain, container)
 	sr.BlockChain().SetCurrentBlockHeader(nil)
 	header, _ := sr.CreateHeader()
 	bp := mock.InitBlockProcessorMock()
@@ -981,7 +804,8 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 }
 
 func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
-	sr := *initSubroundBlock(nil)
+	container := mock.InitContainer()
+	sr := *initSubroundBlock(nil, container)
 	sr.BlockChain().SetCurrentBlockHeader(&block.Header{
 		Nonce: 1,
 	})
@@ -1017,8 +841,9 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 	bp.CreateBlockHeaderCalled = func(body data.BodyHandler) (header data.HeaderHandler, e error) {
 		return &block.Header{MiniBlockHeaders: mbHeaders, RootHash: bp.GetRootHash()}, nil
 	}
-	sr := *initSubroundBlockWithBlockProcessor(bp)
-	sr.SetBlockChain(&blockChainMock)
+	container := mock.InitContainer()
+	sr := *initSubroundBlockWithBlockProcessor(bp, container)
+	container.SetBlockchain(&blockChainMock)
 	header, _ := sr.CreateHeader()
 	expectedHeader := &block.Header{
 		Round:            uint32(sr.Rounder().Index()),
@@ -1039,7 +864,8 @@ func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	bp.CreateBlockHeaderCalled = func(body data.BodyHandler) (header data.HeaderHandler, e error) {
 		return nil, expectedErr
 	}
-	sr := *initSubroundBlockWithBlockProcessor(bp)
+	container := mock.InitContainer()
+	sr := *initSubroundBlockWithBlockProcessor(bp, container)
 	sr.BlockChain().SetCurrentBlockHeader(&block.Header{
 		Nonce: 1,
 	})

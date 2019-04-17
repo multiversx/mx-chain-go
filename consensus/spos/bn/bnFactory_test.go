@@ -10,39 +10,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initFactory() bn.Factory {
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+func initFactoryWithContainer(container *mock.ConsensusDataContainerMock) bn.Factory {
 	worker := initWorker()
 
 	fct, _ := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		container,
 		worker,
 	)
 
 	return fct
+}
+
+func initFactory() bn.Factory {
+	container := mock.InitContainer()
+	return initFactoryWithContainer(container)
 }
 
 func TestFactory_GetMessageTypeName(t *testing.T) {
@@ -73,35 +54,29 @@ func TestFactory_GetMessageTypeName(t *testing.T) {
 	assert.Equal(t, "Undefined message type", r)
 }
 
-func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
+func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 	worker := initWorker()
 
 	fct, err := bn.NewFactory(
 		nil,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, err, spos.ErrNilConsensusDataContainer)
+}
+
+func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitContainer()
+	worker := initWorker()
+	container.SetBlockchain(nil)
+
+	fct, err := bn.NewFactory(
+		container,
 		worker,
 	)
 
@@ -112,32 +87,12 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	container := mock.InitContainer()
 	worker := initWorker()
+	container.SetBlockProcessor(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		nil,
-		bootstraperMock,
-		chronologyHandlerMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		container,
 		worker,
 	)
 
@@ -148,32 +103,12 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	container := mock.InitContainer()
 	worker := initWorker()
+	container.SetBootStrapper(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		nil,
-		chronologyHandlerMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		container,
 		worker,
 	)
 
@@ -184,32 +119,12 @@ func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	container := mock.InitContainer()
 	worker := initWorker()
+	container.SetChronology(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		nil,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		container,
 		worker,
 	)
 
@@ -220,32 +135,12 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	container := mock.InitContainer()
 	worker := initWorker()
+	container.SetConsensusState(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		nil,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		container,
 		worker,
 	)
 
@@ -256,32 +151,12 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	container := mock.InitContainer()
 	worker := initWorker()
+	container.SetHasher(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		consensusState,
-		nil,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		container,
 		worker,
 	)
 
@@ -292,32 +167,12 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	container := mock.InitContainer()
 	worker := initWorker()
+	container.SetMarshalizer(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		consensusState,
-		hasherMock,
-		nil,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		container,
 		worker,
 	)
 
@@ -328,32 +183,12 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	container := mock.InitContainer()
 	worker := initWorker()
+	container.SetMultiSigner(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		nil,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		container,
 		worker,
 	)
 
@@ -364,32 +199,12 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	container := mock.InitContainer()
 	worker := initWorker()
+	container.SetRounder(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		nil,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
+		container,
 		worker,
 	)
 
@@ -400,32 +215,12 @@ func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	container := mock.InitContainer()
 	worker := initWorker()
+	container.SetShardCoordinator(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		nil,
-		syncTimerMock,
-		validatorGroupSelector,
+		container,
 		worker,
 	)
 
@@ -436,32 +231,12 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	container := mock.InitContainer()
 	worker := initWorker()
+	container.SetSyncTimer(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		nil,
-		validatorGroupSelector,
+		container,
 		worker,
 	)
 
@@ -472,32 +247,12 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
 	worker := initWorker()
+	container.SetBlockchain(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		nil,
+		container,
 		worker,
 	)
 
@@ -508,33 +263,13 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockChain := mock.BlockChainMock{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
-	bootstraperMock := &mock.BootstraperMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := mock.SyncTimerMock{}
-	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
+	container := mock.InitContainer()
+	worker := initWorker()
+	container.SetBlockchain(nil)
 
 	fct, err := bn.NewFactory(
-		&blockChain,
-		blockProcessorMock,
-		bootstraperMock,
-		chronologyHandlerMock,
-		consensusState,
-		hasherMock,
-		marshalizerMock,
-		multiSignerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		syncTimerMock,
-		validatorGroupSelector,
-		nil,
+		container,
+		worker,
 	)
 
 	assert.Nil(t, fct)
@@ -563,8 +298,9 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *test
 func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.SetSyncTimer(nil)
+	container := mock.InitContainer()
+	container.SetSyncTimer(nil)
+	fct := *initFactoryWithContainer(container)
 
 	err := fct.GenerateStartRoundSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -583,8 +319,9 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T
 func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.SetSyncTimer(nil)
+	container := mock.InitContainer()
+	container.SetSyncTimer(nil)
+	fct := *initFactoryWithContainer(container)
 
 	err := fct.GenerateBlockSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -603,8 +340,9 @@ func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundFail(t *
 func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundCommitmentHashFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.SetSyncTimer(nil)
+	container := mock.InitContainer()
+	container.SetSyncTimer(nil)
+	fct := *initFactoryWithContainer(container)
 
 	err := fct.GenerateCommitmentHashSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -623,8 +361,9 @@ func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundFail(t *testing.
 func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundBitmapFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.SetSyncTimer(nil)
+	container := mock.InitContainer()
+	container.SetSyncTimer(nil)
+	fct := *initFactoryWithContainer(container)
 
 	err := fct.GenerateBitmapSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -643,8 +382,9 @@ func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundFail(t *test
 func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundCommitmentFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.SetSyncTimer(nil)
+	container := mock.InitContainer()
+	container.SetSyncTimer(nil)
+	fct := *initFactoryWithContainer(container)
 
 	err := fct.GenerateCommitmentSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -663,8 +403,9 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testi
 func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.SetSyncTimer(nil)
+	container := mock.InitContainer()
+	container.SetSyncTimer(nil)
+	fct := *initFactoryWithContainer(container)
 
 	err := fct.GenerateSignatureSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -683,8 +424,9 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testin
 func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.SetSyncTimer(nil)
+	container := mock.InitContainer()
+	container.SetSyncTimer(nil)
+	fct := *initFactoryWithContainer(container)
 
 	err := fct.GenerateEndRoundSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -693,8 +435,6 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t
 func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-
 	subroundHandlers := 0
 
 	chrm := &mock.ChronologyHandlerMock{}
@@ -702,7 +442,9 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 		subroundHandlers++
 	}
 
-	fct.SetChronologyHandler(chrm)
+	container := mock.InitContainer()
+	container.SetChronology(chrm)
+	fct := *initFactoryWithContainer(container)
 
 	fct.GenerateSubrounds()
 

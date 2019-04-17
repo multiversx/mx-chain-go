@@ -1,4 +1,4 @@
-package spos
+package consensus
 
 // ConsensusMessage defines the data needed by spos to communicate between nodes over network in all subrounds
 type ConsensusMessage struct {

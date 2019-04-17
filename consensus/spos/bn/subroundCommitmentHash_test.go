@@ -2,6 +2,7 @@ package bn_test
 
 import (
 	"errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
@@ -10,12 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initSubroundCommitmentHash() bn.SubroundCommitmentHash {
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+func initSubroundCommitmentHashWithContainer(container *mock.ConsensusDataContainerMock) bn.SubroundCommitmentHash {
 
 	ch := make(chan bool, 1)
 
@@ -27,15 +23,11 @@ func initSubroundCommitmentHash() bn.SubroundCommitmentHash {
 		int64(55*roundTimeDuration/100),
 		"(COMMITMENT_HASH)",
 		ch,
+		container,
 	)
 
 	srCommitmentHash, _ := bn.NewSubroundCommitmentHash(
 		sr,
-		consensusState,
-		hasherMock,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -43,22 +35,20 @@ func initSubroundCommitmentHash() bn.SubroundCommitmentHash {
 	return srCommitmentHash
 }
 
+func initSubroundCommitmentHash() bn.SubroundCommitmentHash {
+	container := mock.InitContainer()
+
+	return initSubroundCommitmentHashWithContainer(container)
+}
+
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetConsensusState(nil)
 
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		nil,
-		consensusState,
-		hasherMock,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -70,10 +60,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSubroundShouldFail(t
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	hasherMock := mock.HasherMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetConsensusState(nil)
 
 	ch := make(chan bool, 1)
 
@@ -85,15 +73,11 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShould
 		int64(55*roundTimeDuration/100),
 		"(COMMITMENT_HASH)",
 		ch,
+		container,
 	)
 
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		nil,
-		hasherMock,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -105,10 +89,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShould
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetHasher(nil)
 
 	ch := make(chan bool, 1)
 
@@ -120,15 +102,11 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilHasherShouldFail(t *
 		int64(55*roundTimeDuration/100),
 		"(COMMITMENT_HASH)",
 		ch,
+		container,
 	)
 
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		consensusState,
-		nil,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -140,10 +118,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilHasherShouldFail(t *
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetMultiSigner(nil)
 
 	ch := make(chan bool, 1)
 
@@ -155,15 +131,11 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilMultisignerShouldFai
 		int64(55*roundTimeDuration/100),
 		"(COMMITMENT_HASH)",
 		ch,
+		container,
 	)
 
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		consensusState,
-		hasherMock,
-		nil,
-		rounderMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -175,10 +147,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilMultisignerShouldFai
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
+	container.SetRounder(nil)
 
 	ch := make(chan bool, 1)
 
@@ -190,15 +160,11 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilRounderShouldFail(t 
 		int64(55*roundTimeDuration/100),
 		"(COMMITMENT_HASH)",
 		ch,
+		container,
 	)
 
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		consensusState,
-		hasherMock,
-		multiSignerMock,
-		nil,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -210,10 +176,8 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilRounderShouldFail(t 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
+	container := mock.InitContainer()
+	container.SetSyncTimer(nil)
 
 	ch := make(chan bool, 1)
 
@@ -225,15 +189,11 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSyncTimerShouldFail(
 		int64(55*roundTimeDuration/100),
 		"(COMMITMENT_HASH)",
 		ch,
+		container,
 	)
 
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		consensusState,
-		hasherMock,
-		multiSignerMock,
-		rounderMock,
-		nil,
 		sendConsensusMessage,
 		extend,
 	)
@@ -245,11 +205,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSyncTimerShouldFail(
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
 
 	ch := make(chan bool, 1)
 
@@ -261,15 +217,11 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSendConsensusMessage
 		int64(55*roundTimeDuration/100),
 		"(COMMITMENT_HASH)",
 		ch,
+		container,
 	)
 
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		consensusState,
-		hasherMock,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		nil,
 		extend,
 	)
@@ -281,11 +233,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSendConsensusMessage
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashShouldWork(t *testing.T) {
 	t.Parallel()
 
-	consensusState := mock.InitConsensusState()
-	hasherMock := mock.HasherMock{}
-	multiSignerMock := mock.InitMultiSignerMock()
-	rounderMock := initRounderMock()
-	syncTimerMock := mock.SyncTimerMock{}
+	container := mock.InitContainer()
 
 	ch := make(chan bool, 1)
 
@@ -297,15 +245,11 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashShouldWork(t *testing.T
 		int64(55*roundTimeDuration/100),
 		"(COMMITMENT_HASH)",
 		ch,
+		container,
 	)
 
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
-		consensusState,
-		hasherMock,
-		multiSignerMock,
-		rounderMock,
-		syncTimerMock,
 		sendConsensusMessage,
 		extend,
 	)
@@ -356,7 +300,7 @@ func TestSubroundCommitmentHash_ReceivedCommitmentHash(t *testing.T) {
 
 	commitment := []byte("commitment")
 
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		sr.ConsensusState().Data,
 		commitment,
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
@@ -547,7 +491,8 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnIndexSelfConsen
 func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnAddCommitment(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundCommitmentHash()
+	container := mock.InitContainer()
+	sr := *initSubroundCommitmentHashWithContainer(container)
 
 	multiSignerMock := mock.InitMultiSignerMock()
 
@@ -561,7 +506,7 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnAddCommitment(t
 		return err
 	}
 
-	sr.SetMultiSigner(multiSignerMock)
+	container.SetMultiSigner(multiSignerMock)
 
 	_, err2 := sr.GenCommitmentHash()
 	assert.Equal(t, err, err2)
@@ -570,7 +515,8 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnAddCommitment(t
 func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunNil(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundCommitmentHash()
+	container := mock.InitContainer()
+	sr := *initSubroundCommitmentHashWithContainer(container)
 
 	multiSignerMock := mock.InitMultiSignerMock()
 
@@ -582,7 +528,7 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunNil(t *testing.T) {
 		return nil
 	}
 
-	sr.SetMultiSigner(multiSignerMock)
+	container.SetMultiSigner(multiSignerMock)
 
 	_, err := sr.GenCommitmentHash()
 	assert.Equal(t, nil, err)
@@ -593,7 +539,7 @@ func TestSubroundCommitmentHash_ReceivedCommitmentHashReturnFalseWhenConsensusDa
 
 	sr := *initSubroundCommitmentHash()
 
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		append(sr.ConsensusState().Data, []byte("X")...),
 		[]byte("commitment"),
 		[]byte(sr.ConsensusState().ConsensusGroup()[0]),

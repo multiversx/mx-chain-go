@@ -16,7 +16,7 @@ type ConsensusDataContainer struct {
 	blockProcessor         process.BlockProcessor
 	bootstraper            process.Bootstrapper
 	chronologyHandler      consensus.ChronologyHandler
-	consensusState         *ConsensusState
+	consensusState         ConsensusState
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
 	multiSigner            crypto.MultiSigner
@@ -26,155 +26,39 @@ type ConsensusDataContainer struct {
 	validatorGroupSelector consensus.ValidatorGroupSelector
 }
 
-func NewConsensusDataContainer(
-	blockChain data.ChainHandler,
-	blockProcessor process.BlockProcessor,
-	bootstraper process.Bootstrapper,
-	chronologyHandler consensus.ChronologyHandler,
-	consensusState *ConsensusState,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	multiSigner crypto.MultiSigner,
-	rounder consensus.Rounder,
-	shardCoordinator sharding.Coordinator,
-	syncTimer ntp.SyncTimer,
-	validatorGroupSelector consensus.ValidatorGroupSelector) *ConsensusDataContainer {
-
-	err := checkNewFactoryParams(
-		blockChain,
-		blockProcessor,
-		bootstraper,
-		chronologyHandler,
-		consensusState,
-		hasher,
-		marshalizer,
-		multiSigner,
-		rounder,
-		shardCoordinator,
-		syncTimer,
-		validatorGroupSelector,
-	)
-
-	if err != nil {
-		return nil
-	}
-
-	consensusDataContainer := ConsensusDataContainer{
-		blockChain:             blockChain,
-		blockProcessor:         blockProcessor,
-		bootstraper:            bootstraper,
-		chronologyHandler:      chronologyHandler,
-		consensusState:         consensusState,
-		hasher:                 hasher,
-		marshalizer:            marshalizer,
-		multiSigner:            multiSigner,
-		rounder:                rounder,
-		shardCoordinator:       shardCoordinator,
-		syncTimer:              syncTimer,
-		validatorGroupSelector: validatorGroupSelector,
-	}
-
-	return &consensusDataContainer
-}
-
-func checkNewFactoryParams(
-	blockChain data.ChainHandler,
-	blockProcessor process.BlockProcessor,
-	bootstraper process.Bootstrapper,
-	chronologyHandler consensus.ChronologyHandler,
-	consensusState *ConsensusState,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	multiSigner crypto.MultiSigner,
-	rounder consensus.Rounder,
-	shardCoordinator sharding.Coordinator,
-	syncTimer ntp.SyncTimer,
-	validatorGroupSelector consensus.ValidatorGroupSelector,
-) error {
-	if blockChain == nil {
-		return ErrNilBlockChain
-	}
-
-	if blockProcessor == nil {
-		return ErrNilBlockProcessor
-	}
-
-	if bootstraper == nil {
-		return ErrNilBlootstraper
-	}
-
-	if chronologyHandler == nil {
-		return ErrNilChronologyHandler
-	}
-
-	if consensusState == nil {
-		return ErrNilConsensusState
-	}
-
-	if hasher == nil {
-		return ErrNilHasher
-	}
-
-	if marshalizer == nil {
-		return ErrNilMarshalizer
-	}
-
-	if multiSigner == nil {
-		return ErrNilMultiSigner
-	}
-
-	if rounder == nil {
-		return ErrNilRounder
-	}
-
-	if shardCoordinator == nil {
-		return ErrNilShardCoordinator
-	}
-
-	if syncTimer == nil {
-		return ErrNilSyncTimer
-	}
-
-	if validatorGroupSelector == nil {
-		return ErrNilValidatorGroupSelector
-	}
-
-	return nil
-}
-
-func (cdc *ConsensusDataContainer) GetChainHandler() data.ChainHandler {
+func (cdc *ConsensusDataContainer) Blockchain() data.ChainHandler {
 	return cdc.blockChain
 }
-func (cdc *ConsensusDataContainer) GetBlockProcessor() process.BlockProcessor {
+func (cdc *ConsensusDataContainer) BlockProcessor() process.BlockProcessor {
 	return cdc.blockProcessor
 }
-func (cdc *ConsensusDataContainer) GetBootStrapper() process.Bootstrapper {
+func (cdc *ConsensusDataContainer) BootStrapper() process.Bootstrapper {
 	return cdc.bootstraper
 }
-func (cdc *ConsensusDataContainer) GetChronology() consensus.ChronologyHandler {
+func (cdc *ConsensusDataContainer) Chronology() consensus.ChronologyHandler {
 	return cdc.chronologyHandler
 }
-func (cdc *ConsensusDataContainer) GetConsensusState() *ConsensusState {
+func (cdc *ConsensusDataContainer) ConsensusState() ConsensusState {
 	return cdc.consensusState
 }
-func (cdc *ConsensusDataContainer) GetHasher() hashing.Hasher {
+func (cdc *ConsensusDataContainer) Hasher() hashing.Hasher {
 	return cdc.hasher
 }
-func (cdc *ConsensusDataContainer) GetMarshalizer() marshal.Marshalizer {
+func (cdc *ConsensusDataContainer) Marshalizer() marshal.Marshalizer {
 	return cdc.marshalizer
 }
-func (cdc *ConsensusDataContainer) GetMultiSigner() crypto.MultiSigner {
+func (cdc *ConsensusDataContainer) MultiSigner() crypto.MultiSigner {
 	return cdc.multiSigner
 }
-func (cdc *ConsensusDataContainer) GetRounder() consensus.Rounder {
+func (cdc *ConsensusDataContainer) Rounder() consensus.Rounder {
 	return cdc.rounder
 }
-func (cdc *ConsensusDataContainer) GetShardCoordinator() sharding.Coordinator {
+func (cdc *ConsensusDataContainer) ShardCoordinator() sharding.Coordinator {
 	return cdc.shardCoordinator
 }
-func (cdc *ConsensusDataContainer) GetSyncTimer() ntp.SyncTimer {
+func (cdc *ConsensusDataContainer) SyncTimer() ntp.SyncTimer {
 	return cdc.syncTimer
 }
-func (cdc *ConsensusDataContainer) GetValidatorGroupSelector() consensus.ValidatorGroupSelector {
+func (cdc *ConsensusDataContainer) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return cdc.validatorGroupSelector
 }
