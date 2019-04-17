@@ -23,7 +23,6 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 	}
 
 	kScalar, ok := scalar.GetUnderlyingObj().(kyber.Scalar)
-
 	if !ok {
 		return nil, crypto.ErrInvalidPrivateKey
 	}
@@ -34,7 +33,6 @@ func (s *BlsSingleSigner) Sign(private crypto.PrivateKey, msg []byte) ([]byte, e
 	}
 
 	kSuite, ok := suite.GetUnderlyingSuite().(pairing.Suite)
-
 	if !ok {
 		return nil, crypto.ErrInvalidSuite
 	}
@@ -62,7 +60,6 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 	}
 
 	kSuite, ok := suite.GetUnderlyingSuite().(pairing.Suite)
-
 	if !ok {
 		return crypto.ErrInvalidSuite
 	}
@@ -73,7 +70,6 @@ func (s *BlsSingleSigner) Verify(public crypto.PublicKey, msg []byte, sig []byte
 	}
 
 	kPoint, ok := point.GetUnderlyingObj().(kyber.Point)
-
 	if !ok {
 		return crypto.ErrInvalidPublicKey
 	}
