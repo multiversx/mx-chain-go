@@ -43,7 +43,9 @@ func (c *CCache) Clear() {
 	for key := range c.cache.Items() {
 		c.cache.Remove(key)
 	}
+	c.mkGuard.Lock()
 	c.mapKeys = nil
+	c.mkGuard.Unlock()
 }
 
 // Put inserts a new element into the cache.
