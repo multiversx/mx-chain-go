@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
-	"github.com/orcaman/concurrent-map"
+	"github.com/ElrondNetwork/concurrent-map"
 )
 
 var log = logger.DefaultLogger()
