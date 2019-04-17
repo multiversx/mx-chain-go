@@ -259,7 +259,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	)
 
 	container, _ := rcf.Create()
-	numInterceptorsShardHeadersForMetachain := noOfShards
+	numInterceptorsShardHeadersForMetachain := noOfShards + 1
 
 	assert.Equal(t, numInterceptorsShardHeadersForMetachain, container.Len())
 }

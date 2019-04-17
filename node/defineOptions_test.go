@@ -470,6 +470,32 @@ func TestWithDataPool_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithMetaDataPool_NilDataPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithMetaDataPool(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.dataPool)
+	assert.Equal(t, ErrNilDataPool, err)
+}
+
+func TestWithMetaDataPool_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	dataPool := &mock.MetaPoolsHolderStub{}
+
+	opt := WithMetaDataPool(dataPool)
+	err := opt(node)
+
+	assert.True(t, node.metaDataPool == dataPool)
+	assert.Nil(t, err)
+}
+
 func TestWithShardCoordinator_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
