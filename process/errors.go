@@ -46,6 +46,9 @@ var ErrNilMetaBlockHeader = errors.New("nil metablock header")
 // ErrNilTxBlockBody signals that an operation has been attempted to or with a nil block body
 var ErrNilTxBlockBody = errors.New("nil block body")
 
+// ErrNilStore signals that the provided storage service is nil
+var ErrNilStore = errors.New("nil data storage service")
+
 // ErrNilPeerBlockBody signals that an operation has been attempted to or with a nil block body
 var ErrNilPeerBlockBody = errors.New("nil block body")
 
@@ -186,9 +189,6 @@ var ErrNilMetachainHeadersStorage = errors.New("nil metachain headers storage")
 
 // ErrNilResolverSender signals that a nil resolver sender object has been provided
 var ErrNilResolverSender = errors.New("nil resolver sender")
-
-// ErrNilBlockBodyPool signals that a nil block body pool has been provided
-var ErrNilBlockBodyPool = errors.New("nil block body pool")
 
 // ErrNilBlockBodyStorage signals that a nil block body storage has been provided
 var ErrNilBlockBodyStorage = errors.New("nil block body storage")

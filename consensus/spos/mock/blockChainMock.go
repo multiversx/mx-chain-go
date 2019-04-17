@@ -6,7 +6,6 @@ import (
 
 // BlockChainMock is a mock implementation of the blockchain interface
 type BlockChainMock struct {
-	data.StorageService
 	GetGenesisHeaderCalled          func() data.HeaderHandler
 	SetGenesisHeaderCalled          func(handler data.HeaderHandler) error
 	GetGenesisHeaderHashCalled      func() []byte
