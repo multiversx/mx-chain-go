@@ -93,6 +93,10 @@ func (c *CCache) Peek(key []byte) (interface{}, bool) {
 // In case the cache size exceeds the maximum allowed value, it removes the oldest entries.
 func (c *CCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool) {
 	if ok = c.cache.SetIfAbsent(string(key), value); ok {
+		c.mkGuard.Lock()
+		c.mapKeys = append(c.mapKeys, string(key))
+		c.mkGuard.Unlock()
+
 		return ok, false
 	}
 

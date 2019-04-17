@@ -160,7 +160,7 @@ func TestCCache_PutConcurrentWaitGroup(t *testing.T) {
 
 	wg.Add(iterations)
 
-	// Using go routines to insert 1000 items into the map
+	// Using go routines to insert 10000 items into the map
 	for i := 0; i < iterations/2; i++ {
 		go func(i int) {
 			defer wg.Done()
@@ -302,6 +302,96 @@ func TestCCache_PeekPresent(t *testing.T) {
 	assert.Equal(t, val, v, "value %s was expected to be found, got %s", val, v)
 }
 
+func TestCCache_HasOrAddNotPresent(t *testing.T) {
+	c, err := ccache.NewCCache(10)
+
+	assert.Nil(t, err, "no error expected, but got %v", err)
+
+	key, val := []byte("key"), []byte("val")
+
+	assert.Equal(t, 0, c.Len(), "expected map size: 0, got %d", c.Len())
+	c.HasOrAdd(key, val)
+
+	assert.Equal(t, 1, c.Len(), "expected map size: 1, got %d", c.Len())
+}
+
+func TestCCache_HasOrAddPresent(t *testing.T) {
+	c, err := ccache.NewCCache(10)
+
+	assert.Nil(t, err, "no error expected, but got %v", err)
+
+	key, val := []byte("key0"), []byte("val0")
+
+	c.Put(key, val)
+
+	assert.Equal(t, 1, c.Len(), "expected map size: 1, got %d", c.Len())
+
+	newVal := []byte("val1")
+	c.HasOrAdd(key, newVal)
+
+	assert.Equal(t, 1, c.Len(), "expected map size: 1, got %d", c.Len())
+
+	if val, ok := c.Get(key); ok {
+		assert.NotEqual(t, "val1", string(val.([]byte)), "expected key value: val1, got %d", string(val.([]byte)))
+	}
+}
+
+func TestCCache_HasOrAddPresentConcurrent(t *testing.T) {
+	t.Parallel()
+
+	const iterations = 1000
+	c, err := ccache.NewCCache(iterations)
+
+	assert.Nil(t, err, "no error expected but got %v", err)
+
+	var arr [iterations]int
+	var wg sync.WaitGroup
+
+	// Using go routines to insert 1000 items into the map
+	wg.Add(iterations)
+
+	for i := 0; i < iterations; i++ {
+		go func(i int) {
+			c.HasOrAdd([]byte(strconv.Itoa(i)), i)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	wg.Add(iterations)
+	for i := 0; i < iterations; i++ {
+		go func(i int) {
+			// HasOrAdd should avoid inserting new values if the key exists.
+			c.HasOrAdd([]byte(strconv.Itoa(i)), i+iterations)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	wg.Add(iterations)
+	for i := 0; i < iterations; i++ {
+		go func(idx int) {
+			if val, ok := c.Get([]byte(strconv.Itoa(idx))); ok {
+				arr[idx] = val.(int)
+			}
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	// Sorts array, will make is simpler to verify all inserted values we're returned.
+	sort.Ints(arr[:iterations])
+
+	l := c.Len()
+	assert.Equal(t, l, iterations, "expected map size: %d, got %d", iterations, l)
+
+	// Make sure all inserted values we're fetched from map.
+	for i := 0; i < iterations; i++ {
+		// The array values should contains the values inserted in the first loop.
+		assert.NotEqual(t, i, arr[i]+iterations, "the value %v is missing from the map")
+	}
+}
+
 func TestCCache_RemoveNotPresent(t *testing.T) {
 	c, err := ccache.NewCCache(10)
 
@@ -337,7 +427,7 @@ func TestCCache_RemovePresent(t *testing.T) {
 	assert.False(t, found, "not expected to find a key %s", key)
 }
 
-func TestCCache_RemoveConcurrent(t *testing.T) {
+func TestCCache_PutRemoveConcurrent(t *testing.T) {
 	t.Parallel()
 
 	size := 1000
@@ -368,14 +458,13 @@ func TestCCache_RemoveConcurrent(t *testing.T) {
 			c.Remove([]byte(strconv.Itoa(elem)))
 		}(elem)
 
-		<- done
+		<-done
 	}
 
 	assert.Equal(t, 0, c.Len(), "expected map size: 0, got %d", c.Len())
 }
 
-
-func TestCCache_RemoveConcurrentWaitGroup(t *testing.T) {
+func TestCCache_PutRemoveConcurrentWaitGroup(t *testing.T) {
 	t.Parallel()
 
 	size := 1000
@@ -396,6 +485,7 @@ func TestCCache_RemoveConcurrentWaitGroup(t *testing.T) {
 	wg.Wait()
 
 	wg.Add(size)
+
 	// Remove cache value concurrently
 	for i := 0; i < size; i++ {
 		go func(idx int) {
