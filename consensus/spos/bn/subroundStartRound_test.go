@@ -15,8 +15,8 @@ import (
 func initSubroundStartRound() bn.SubroundStartRound {
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -53,8 +53,8 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testin
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -79,8 +79,8 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *test
 	t.Parallel()
 
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -117,8 +117,8 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBootstraperShouldFail(t *tes
 	t.Parallel()
 
 	blockChain := mock.BlockChainMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -156,7 +156,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -194,7 +194,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *tes
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -232,8 +232,8 @@ func TestSubroundStartRound_NewSubroundStartRoundNilRounderShouldFail(t *testing
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 
@@ -270,8 +270,8 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testi
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 
@@ -308,8 +308,8 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -346,8 +346,8 @@ func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -385,8 +385,8 @@ func TestSubroundStartRound_DoStartRoundShouldReturnTrue(t *testing.T) {
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -476,8 +476,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenShouldSyncRetur
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -519,8 +519,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -563,8 +563,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -606,8 +606,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenIsNotInTheConse
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -647,8 +647,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenCreateErr(t *te
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -691,8 +691,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *te
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -734,8 +734,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
@@ -777,8 +777,8 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 
 	blockChain := mock.BlockChainMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}

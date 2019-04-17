@@ -1,10 +1,10 @@
-package blockchain_test
+package dataRetriever_test
 
 import (
 	"errors"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,11 +12,11 @@ import (
 func TestHas_ErrorWhenStorerIsMissing(t *testing.T) {
 	s := &mock.StorerStub{}
 
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
 	has, err := b.Has(2, []byte("whatever"))
 	assert.False(t, has)
-	assert.Equal(t, blockchain.ErrNoSuchStorageUnit, err)
+	assert.Equal(t, dataRetriever.ErrNoSuchStorageUnit, err)
 }
 
 func TestHas_ReturnsCorrectly(t *testing.T) {
@@ -25,7 +25,7 @@ func TestHas_ReturnsCorrectly(t *testing.T) {
 		return true, nil
 	}
 
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
 	has, err := b.Has(1, []byte("whatever"))
 	assert.True(t, has)
@@ -35,11 +35,11 @@ func TestHas_ReturnsCorrectly(t *testing.T) {
 func TestGet_ErrorWhenStorerIsMissing(t *testing.T) {
 	s := &mock.StorerStub{}
 
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
 	obj, err := b.Get(2, []byte("whatever"))
 	assert.Nil(t, obj)
-	assert.Equal(t, blockchain.ErrNoSuchStorageUnit, err)
+	assert.Equal(t, dataRetriever.ErrNoSuchStorageUnit, err)
 }
 
 func TestGet_ReturnsCorrectly(t *testing.T) {
@@ -49,7 +49,7 @@ func TestGet_ReturnsCorrectly(t *testing.T) {
 		return getResult, nil
 	}
 
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
 	obj, err := b.Get(1, []byte("whatever"))
 	assert.Nil(t, err)
@@ -59,11 +59,11 @@ func TestGet_ReturnsCorrectly(t *testing.T) {
 func TestPut_ErrorWhenStorerIsMissing(t *testing.T) {
 	s := &mock.StorerStub{}
 
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
 	err := b.Put(2, []byte("whatever"), []byte("whatever value"))
 
-	assert.Equal(t, blockchain.ErrNoSuchStorageUnit, err)
+	assert.Equal(t, dataRetriever.ErrNoSuchStorageUnit, err)
 }
 
 func TestPut_ReturnsCorrectly(t *testing.T) {
@@ -73,7 +73,7 @@ func TestPut_ReturnsCorrectly(t *testing.T) {
 		return putErr
 	}
 
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
 	err := b.Put(1, []byte("whatever"), []byte("whatever value"))
 	assert.Equal(t, putErr, err)
@@ -82,12 +82,12 @@ func TestPut_ReturnsCorrectly(t *testing.T) {
 func TestGetAll_ErrorWhenStorerIsMissing(t *testing.T) {
 	s := &mock.StorerStub{}
 
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
 	ret, err := b.GetAll(2, [][]byte{[]byte("whatever"), []byte("whatever 2")})
 
 	assert.Nil(t, ret)
-	assert.Equal(t, blockchain.ErrNoSuchStorageUnit, err)
+	assert.Equal(t, dataRetriever.ErrNoSuchStorageUnit, err)
 }
 
 func TestGetAll_ErrorWhenStorersGetErrors(t *testing.T) {
@@ -97,7 +97,7 @@ func TestGetAll_ErrorWhenStorersGetErrors(t *testing.T) {
 		return nil, getErr
 	}
 
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
 	ret, err := b.GetAll(1, [][]byte{[]byte("whatever"), []byte("whatever 2")})
 
@@ -121,7 +121,7 @@ func TestGetAll_ReturnsCorrectly(t *testing.T) {
 		return m[string(key)], nil
 	}
 
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
 	t1, err := b.GetAll(1, [][]byte{[]byte(key1)})
 	assert.Nil(t, err)
@@ -137,7 +137,7 @@ func TestDestroy_ErrrorsWhenStorerDestroyErrors(t *testing.T) {
 	s.DestroyUnitCalled = func() error {
 		return destroyError
 	}
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
 	b.AddStorer(1, s)
 	err := b.Destroy()
 	assert.Equal(t, destroyError, err)
@@ -150,9 +150,11 @@ func TestDestroy_ReturnsCorrectly(t *testing.T) {
 		destroyCalled = true
 		return nil
 	}
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
+
 	b.AddStorer(1, s)
 	err := b.Destroy()
+
 	assert.Nil(t, err)
 	assert.True(t, destroyCalled)
 }
@@ -166,7 +168,7 @@ func TestBlockChain_GetStorer(t *testing.T) {
 	peerBlockUnit := &mock.StorerStub{}
 	headerUnit := &mock.StorerStub{}
 
-	b := blockchain.NewChainStorer()
+	b := dataRetriever.NewChainStorer()
 	b.AddStorer(0, txUnit)
 	b.AddStorer(1, txBlockUnit)
 	b.AddStorer(2, stateBlockUnit)

@@ -1,15 +1,15 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 type PoolsHolderStub struct {
 	HeadersCalled           func() storage.Cacher
-	HeadersNoncesCalled     func() data.Uint64Cacher
+	HeadersNoncesCalled     func() dataRetriever.Uint64Cacher
 	PeerChangesBlocksCalled func() storage.Cacher
-	TransactionsCalled      func() data.ShardedDataCacherNotifier
+	TransactionsCalled      func() dataRetriever.ShardedDataCacherNotifier
 	MiniBlocksCalled        func() storage.Cacher
 	MetaBlocksCalled        func() storage.Cacher
 }
@@ -18,7 +18,7 @@ func (phs *PoolsHolderStub) Headers() storage.Cacher {
 	return phs.HeadersCalled()
 }
 
-func (phs *PoolsHolderStub) HeadersNonces() data.Uint64Cacher {
+func (phs *PoolsHolderStub) HeadersNonces() dataRetriever.Uint64Cacher {
 	return phs.HeadersNoncesCalled()
 }
 
@@ -26,7 +26,7 @@ func (phs *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
 	return phs.PeerChangesBlocksCalled()
 }
 
-func (phs *PoolsHolderStub) Transactions() data.ShardedDataCacherNotifier {
+func (phs *PoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	return phs.TransactionsCalled()
 }
 

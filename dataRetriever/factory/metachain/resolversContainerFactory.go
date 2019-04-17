@@ -1,7 +1,6 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
@@ -15,9 +14,9 @@ import (
 type resolversContainerFactory struct {
 	shardCoordinator         sharding.Coordinator
 	messenger                dataRetriever.TopicMessageHandler
-	blockchain               data.ChainHandler
+	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
-	dataPools                data.MetaPoolsHolder
+	dataPools                dataRetriever.MetaPoolsHolder
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
@@ -25,9 +24,9 @@ type resolversContainerFactory struct {
 func NewResolversContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	messenger dataRetriever.TopicMessageHandler,
-	blockchain data.ChainHandler,
+	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
-	dataPools data.MetaPoolsHolder,
+	dataPools dataRetriever.MetaPoolsHolder,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (*resolversContainerFactory, error) {
 
@@ -37,8 +36,8 @@ func NewResolversContainerFactory(
 	if messenger == nil {
 		return nil, dataRetriever.ErrNilMessenger
 	}
-	if blockchain == nil {
-		return nil, dataRetriever.ErrNilBlockChain
+	if store == nil {
+		return nil, dataRetriever.ErrNilStore
 	}
 	if marshalizer == nil {
 		return nil, dataRetriever.ErrNilMarshalizer
@@ -53,7 +52,7 @@ func NewResolversContainerFactory(
 	return &resolversContainerFactory{
 		shardCoordinator:         shardCoordinator,
 		messenger:                messenger,
-		blockchain:               blockchain,
+		store:                    store,
 		marshalizer:              marshalizer,
 		dataPools:                dataPools,
 		uint64ByteSliceConverter: uint64ByteSliceConverter,
@@ -114,7 +113,7 @@ func (rcf *resolversContainerFactory) generateShardHeaderResolvers() ([]string, 
 }
 
 func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier string) (dataRetriever.Resolver, error) {
-	hdrStorer := rcf.blockchain.GetStorer(data.BlockHeaderUnit)
+	hdrStorer := rcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(
 		rcf.messenger,

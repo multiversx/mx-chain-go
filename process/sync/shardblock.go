@@ -23,7 +23,7 @@ import (
 // Bootstrap implements the boostrsap mechanism
 type Bootstrap struct {
 	headers          storage.Cacher
-	headersNonces    data.Uint64Cacher
+	headersNonces    dataRetriever.Uint64Cacher
 	miniBlocks       storage.Cacher
 	blkc             data.ChainHandler
 	rounder          consensus.Rounder
@@ -33,6 +33,7 @@ type Bootstrap struct {
 	forkDetector     process.ForkDetector
 	shardCoordinator sharding.Coordinator
 	accounts         state.AccountsAdapter
+	store            dataRetriever.StorageService
 
 	mutHeader   sync.RWMutex
 	headerNonce *uint64
@@ -64,7 +65,8 @@ type Bootstrap struct {
 
 // NewBootstrap creates a new Bootstrap object
 func NewBootstrap(
-	poolsHolder data.PoolsHolder,
+	poolsHolder dataRetriever.PoolsHolder,
+	store dataRetriever.StorageService,
 	blkc data.ChainHandler,
 	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
@@ -88,6 +90,7 @@ func NewBootstrap(
 		resolversFinder,
 		shardCoordinator,
 		accounts,
+		store,
 	)
 
 	if err != nil {
@@ -107,6 +110,7 @@ func NewBootstrap(
 		forkDetector:     forkDetector,
 		shardCoordinator: shardCoordinator,
 		accounts:         accounts,
+		store:            store,
 	}
 
 	//there is one header topic so it is ok to save it
@@ -145,7 +149,7 @@ func NewBootstrap(
 
 // checkBootstrapNilParameters will check the imput parameters for nil values
 func checkBootstrapNilParameters(
-	pools data.PoolsHolder,
+	pools dataRetriever.PoolsHolder,
 	blkc data.ChainHandler,
 	rounder consensus.Rounder,
 	blkExecutor process.BlockProcessor,
@@ -155,6 +159,7 @@ func checkBootstrapNilParameters(
 	resolversFinder dataRetriever.ResolversContainer,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
+	store dataRetriever.StorageService,
 ) error {
 	if pools == nil {
 		return process.ErrNilPoolsHolder
@@ -194,6 +199,9 @@ func checkBootstrapNilParameters(
 	}
 	if accounts == nil {
 		return process.ErrNilAccountsAdapter
+	}
+	if store == nil {
+		return process.ErrNilStore
 	}
 
 	return nil
@@ -248,7 +256,8 @@ func (boot *Bootstrap) getHeaderFromPool(hash []byte) *block.Header {
 }
 
 func (boot *Bootstrap) getHeaderFromStorage(hash []byte) *block.Header {
-	headerStore := boot.blkc.GetStorer(data.BlockHeaderUnit)
+	headerStore := boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
+
 	if headerStore == nil {
 		log.Error(process.ErrNilHeadersStorage.Error())
 		return nil
@@ -667,7 +676,7 @@ func (boot *Bootstrap) rollback(header *block.Header) error {
 	if header.Nonce == 0 {
 		return process.ErrRollbackFromGenesis
 	}
-	headerStore := boot.blkc.GetStorer(data.BlockHeaderUnit)
+	headerStore := boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	if headerStore == nil {
 		return process.ErrNilHeadersStorage
 	}

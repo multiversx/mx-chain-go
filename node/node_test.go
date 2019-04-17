@@ -3,6 +3,7 @@ package node_test
 import (
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -822,7 +823,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	dataPool := &mock.PoolsHolderStub{}
-	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
+	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
 	dataPool.HeadersCalled = func() storage.Cacher {
@@ -849,7 +850,7 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 	messenger := getMessenger()
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	dataPool := &mock.PoolsHolderStub{}
-	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
+	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{}
 	}
 	dataPool.HeadersCalled = func() storage.Cacher {
@@ -885,7 +886,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 		txShardedStores = append(txShardedStores, cacherId)
 	}
 	headerShardedData := &mock.CacherStub{}
-	dataPool.TransactionsCalled = func() data.ShardedDataCacherNotifier {
+	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return txShardedData
 	}
 	dataPool.HeadersCalled = func() storage.Cacher {
