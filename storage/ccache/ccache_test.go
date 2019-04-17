@@ -92,7 +92,7 @@ func TestCCache_PutRewrite(t *testing.T) {
 func TestCCache_PutConcurrent(t *testing.T) {
 	t.Parallel()
 
-	const iterations = 10000
+	const iterations = 5000
 	c, err := ccache.NewCCache(iterations)
 
 	assert.Nil(t, err, "no error expected but got %v", err)
@@ -100,7 +100,7 @@ func TestCCache_PutConcurrent(t *testing.T) {
 	ch := make(chan int)
 	var arr [iterations]int
 
-	// Using go routines insert 10000 ints into our map.
+	// Using go routines insert 5000 ints into our map.
 	go func() {
 		for i := 0; i < iterations/2; i++ {
 			c.Put([]byte(strconv.Itoa(i)), i)
@@ -134,7 +134,7 @@ func TestCCache_PutConcurrent(t *testing.T) {
 	// Sorts array, will make is simpler to verify all inserted values we're returned.
 	sort.Ints(arr[0:iterations])
 
-	// Make sure map contains 10000 elements.
+	// Make sure map contains 5000 elements.
 	l := c.Len()
 	assert.Equal(t, l, iterations, "expected map size: %d, got %d", iterations, l)
 
@@ -147,7 +147,7 @@ func TestCCache_PutConcurrent(t *testing.T) {
 func TestCCache_PutConcurrentWaitGroup(t *testing.T) {
 	t.Parallel()
 
-	const iterations = 10000
+	const iterations = 5000
 	c, err := ccache.NewCCache(iterations)
 
 	assert.Nil(t, err, "no error expected but got %v", err)
@@ -160,7 +160,7 @@ func TestCCache_PutConcurrentWaitGroup(t *testing.T) {
 
 	wg.Add(iterations)
 
-	// Using go routines to insert 10000 items into the map
+	// Using go routines to insert 5000 items into the map
 	for i := 0; i < iterations/2; i++ {
 		go func(i int) {
 			defer wg.Done()
@@ -196,7 +196,7 @@ func TestCCache_PutConcurrentWaitGroup(t *testing.T) {
 	// Sorts array, will make is simpler to verify all inserted values we're returned.
 	sort.Ints(arr[:iterations])
 
-	// Make sure map contains 10000 elements.
+	// Make sure map contains 5000 elements.
 	l := c.Len()
 	assert.Equal(t, l, iterations, "expected map size: %d, got %d", iterations, l)
 

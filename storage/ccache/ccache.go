@@ -128,7 +128,10 @@ func (c *CCache) RemoveOldest() {
 
 // FindOldest finds the oldest entry
 func (c *CCache) FindOldest() []byte {
+	c.mkGuard.Lock()
 	key := c.mapKeys[0]
+	c.mkGuard.Unlock()
+
 	if _, ok := c.Get([]byte(key)); ok {
 		return []byte(key)
 	}
