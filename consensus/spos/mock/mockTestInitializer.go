@@ -89,7 +89,6 @@ func InitContainer() *ConsensusDataContainerMock {
 	bootstraperMock := &BootstraperMock{}
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
-	//consensusState := &ConsensusStateMock{}
 	hasherMock := HasherMock{}
 	marshalizerMock := MarshalizerMock{}
 	multiSignerMock := InitMultiSignerMock()
@@ -103,7 +102,6 @@ func InitContainer() *ConsensusDataContainerMock {
 		blockProcessorMock,
 		bootstraperMock,
 		chronologyHandlerMock,
-		nil,
 		hasherMock,
 		marshalizerMock,
 		multiSignerMock,

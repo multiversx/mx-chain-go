@@ -28,6 +28,7 @@ type subround struct {
 	endTime   int64
 	name      string
 
+	consensusState               *spos.ConsensusState
 	consensusStateChangedChannel chan bool
 
 	job    func() bool          // method does the subround job and send the result to the peers
@@ -43,11 +44,13 @@ func NewSubround(
 	startTime int64,
 	endTime int64,
 	name string,
+	consensusState *spos.ConsensusState,
 	consensusStateChangedChannel chan bool,
 	container spos.ConsensusDataContainerInterface,
 ) (*subround, error) {
 
 	err := checkNewSubroundParams(
+		consensusState,
 		consensusStateChangedChannel,
 		container,
 	)
@@ -65,12 +68,14 @@ func NewSubround(
 		name:                         name,
 		consensusStateChangedChannel: consensusStateChangedChannel,
 		consensusDataContainer:       container,
+		consensusState:               consensusState,
 	}
 
 	return &sr, nil
 }
 
 func checkNewSubroundParams(
+	state *spos.ConsensusState,
 	consensusStateChangedChannel chan bool,
 	container spos.ConsensusDataContainerInterface,
 ) error {
@@ -82,6 +87,10 @@ func checkNewSubroundParams(
 
 	if consensusStateChangedChannel == nil {
 		return spos.ErrNilChannel
+	}
+
+	if state == nil {
+		return spos.ErrNilConsensusState
 	}
 
 	return nil
@@ -172,7 +181,7 @@ func (sr *subround) Chronology() consensus.ChronologyHandler {
 
 //ConsensusState gets the ConsensusState stored in the ConsensusDataContainer
 func (sr *subround) ConsensusState() *spos.ConsensusState {
-	return sr.consensusDataContainer.ConsensusState()
+	return sr.consensusState
 }
 
 //Hasher gets the Hasher stored in the ConsensusDataContainer

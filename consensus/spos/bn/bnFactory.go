@@ -9,17 +9,20 @@ import (
 // functionality
 type factory struct {
 	consensusDataContainer spos.ConsensusDataContainerInterface
+	consensusState         *spos.ConsensusState
 	worker                 *worker
 }
 
 // NewFactory creates a new consensusState object
 func NewFactory(
 	consensusDataContainer spos.ConsensusDataContainerInterface,
+	consensusState *spos.ConsensusState,
 	worker *worker,
 ) (*factory, error) {
 
 	err := checkNewFactoryParams(
 		consensusDataContainer,
+		consensusState,
 		worker,
 	)
 
@@ -29,6 +32,7 @@ func NewFactory(
 
 	fct := factory{
 		consensusDataContainer: consensusDataContainer,
+		consensusState:         consensusState,
 		worker:                 worker,
 	}
 
@@ -37,6 +41,7 @@ func NewFactory(
 
 func checkNewFactoryParams(
 	container spos.ConsensusDataContainerInterface,
+	state *spos.ConsensusState,
 	worker *worker,
 ) error {
 	consensusDataContainerValidator := spos.ConsensusContainerValidator{}
@@ -44,6 +49,10 @@ func checkNewFactoryParams(
 	err := consensusDataContainerValidator.ValidateConsensusDataContainer(container)
 	if err != nil {
 		return err
+	}
+
+	if state == nil {
+		return spos.ErrNilConsensusState
 	}
 
 	if worker == nil {
@@ -116,6 +125,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		int64(float64(fct.getTimeDuration())*srStartStartTime),
 		int64(float64(fct.getTimeDuration())*srStartEndTime),
 		getSubroundName(SrStartRound),
+		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
 		fct.consensusDataContainer,
 	)
@@ -147,6 +157,7 @@ func (fct *factory) generateBlockSubround() error {
 		int64(float64(fct.getTimeDuration())*srBlockStartTime),
 		int64(float64(fct.getTimeDuration())*srBlockEndTime),
 		getSubroundName(SrBlock),
+		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
 		fct.consensusDataContainer,
 	)
@@ -180,6 +191,7 @@ func (fct *factory) generateCommitmentHashSubround() error {
 		int64(float64(fct.getTimeDuration())*srCommitmentHashStartTime),
 		int64(float64(fct.getTimeDuration())*srCommitmentHashEndTime),
 		getSubroundName(SrCommitmentHash),
+		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
 		fct.consensusDataContainer,
 	)
@@ -212,6 +224,7 @@ func (fct *factory) generateBitmapSubround() error {
 		int64(float64(fct.getTimeDuration())*srBitmapStartTime),
 		int64(float64(fct.getTimeDuration())*srBitmapEndTime),
 		getSubroundName(SrBitmap),
+		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
 		fct.consensusDataContainer,
 	)
@@ -244,6 +257,7 @@ func (fct *factory) generateCommitmentSubround() error {
 		int64(float64(fct.getTimeDuration())*srCommitmentStartTime),
 		int64(float64(fct.getTimeDuration())*srCommitmentEndTime),
 		getSubroundName(SrCommitment),
+		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
 		fct.consensusDataContainer,
 	)
@@ -276,6 +290,7 @@ func (fct *factory) generateSignatureSubround() error {
 		int64(float64(fct.getTimeDuration())*srSignatureStartTime),
 		int64(float64(fct.getTimeDuration())*srSignatureEndTime),
 		getSubroundName(SrSignature),
+		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
 		fct.consensusDataContainer,
 	)
@@ -308,6 +323,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		int64(float64(fct.getTimeDuration())*srEndStartTime),
 		int64(float64(fct.getTimeDuration())*srEndEndTime),
 		getSubroundName(SrEndRound),
+		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
 		fct.consensusDataContainer,
 	)
@@ -332,11 +348,11 @@ func (fct *factory) generateEndRoundSubround() error {
 }
 
 func (fct *factory) initConsensusThreshold() {
-	pbftThreshold := fct.consensusDataContainer.ConsensusState().ConsensusGroupSize()*2/3 + 1
+	pbftThreshold := fct.consensusState.ConsensusGroupSize()*2/3 + 1
 
-	fct.consensusDataContainer.ConsensusState().SetThreshold(SrBlock, 1)
-	fct.consensusDataContainer.ConsensusState().SetThreshold(SrCommitmentHash, pbftThreshold)
-	fct.consensusDataContainer.ConsensusState().SetThreshold(SrBitmap, pbftThreshold)
-	fct.consensusDataContainer.ConsensusState().SetThreshold(SrCommitment, pbftThreshold)
-	fct.consensusDataContainer.ConsensusState().SetThreshold(SrSignature, pbftThreshold)
+	fct.consensusState.SetThreshold(SrBlock, 1)
+	fct.consensusState.SetThreshold(SrCommitmentHash, pbftThreshold)
+	fct.consensusState.SetThreshold(SrBitmap, pbftThreshold)
+	fct.consensusState.SetThreshold(SrCommitment, pbftThreshold)
+	fct.consensusState.SetThreshold(SrSignature, pbftThreshold)
 }

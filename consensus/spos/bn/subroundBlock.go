@@ -58,7 +58,10 @@ func checkNewSubroundBlockParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	return nil
+	containerValidator := spos.ConsensusContainerValidator{}
+	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
+
+	return err
 }
 
 // doBlockJob method does the job of the block subround

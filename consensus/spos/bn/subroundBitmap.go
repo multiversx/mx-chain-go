@@ -53,7 +53,10 @@ func checkNewSubroundBitmapParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	return nil
+	containerValidator := spos.ConsensusContainerValidator{}
+	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
+
+	return err
 }
 
 // doBitmapJob method does the job of the bitmap subround

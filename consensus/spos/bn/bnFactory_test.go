@@ -12,9 +12,11 @@ import (
 
 func initFactoryWithContainer(container *mock.ConsensusDataContainerMock) bn.Factory {
 	worker := initWorker()
+	consensusState := initConsensusState()
 
 	fct, _ := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
@@ -57,223 +59,245 @@ func TestFactory_GetMessageTypeName(t *testing.T) {
 func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	worker := initWorker()
 
 	fct, err := bn.NewFactory(
+		nil,
+		consensusState,
+		worker,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, spos.ErrNilConsensusDataContainer, err)
+}
+
+func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
+	t.Parallel()
+	container := mock.InitContainer()
+	worker := initWorker()
+
+	fct, err := bn.NewFactory(
+		container,
 		nil,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilConsensusDataContainer)
+	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
-
 func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 	worker := initWorker()
 	container.SetBlockchain(nil)
 
 	fct, err := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilBlockChain)
+	assert.Equal(t, spos.ErrNilBlockChain, err)
 }
 
 func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 	worker := initWorker()
 	container.SetBlockProcessor(nil)
 
 	fct, err := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilBlockProcessor)
+	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
 func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 	worker := initWorker()
 	container.SetBootStrapper(nil)
 
 	fct, err := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilBlootstraper)
+	assert.Equal(t, spos.ErrNilBlootstraper, err)
 }
 
 func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 	worker := initWorker()
 	container.SetChronology(nil)
 
 	fct, err := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilChronologyHandler)
-}
-
-func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
-	t.Parallel()
-
-	container := mock.InitContainer()
-	worker := initWorker()
-	container.SetConsensusState(nil)
-
-	fct, err := bn.NewFactory(
-		container,
-		worker,
-	)
-
-	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilConsensusState)
+	assert.Equal(t, spos.ErrNilChronologyHandler, err)
 }
 
 func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 	worker := initWorker()
 	container.SetHasher(nil)
 
 	fct, err := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilHasher)
+	assert.Equal(t, spos.ErrNilHasher, err)
 }
 
 func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 	worker := initWorker()
 	container.SetMarshalizer(nil)
 
 	fct, err := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilMarshalizer)
+	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
 func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 	worker := initWorker()
 	container.SetMultiSigner(nil)
 
 	fct, err := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilMultiSigner)
+	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
 func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 	worker := initWorker()
 	container.SetRounder(nil)
 
 	fct, err := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilRounder)
+	assert.Equal(t, spos.ErrNilRounder, err)
 }
 
 func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 	worker := initWorker()
 	container.SetShardCoordinator(nil)
 
 	fct, err := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilShardCoordinator)
+	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
 
 func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 	worker := initWorker()
 	container.SetSyncTimer(nil)
 
 	fct, err := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilSyncTimer)
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 	worker := initWorker()
-	container.SetBlockchain(nil)
+	container.SetValidatorGroupSelector(nil)
 
 	fct, err := bn.NewFactory(
 		container,
+		consensusState,
 		worker,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilValidatorGroupSelector)
+	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
 }
 
 func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
-	worker := initWorker()
-	container.SetBlockchain(nil)
 
 	fct, err := bn.NewFactory(
 		container,
-		worker,
+		consensusState,
+		nil,
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, err, spos.ErrNilWorker)
+	assert.Equal(t, spos.ErrNilWorker, err)
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
@@ -299,9 +323,9 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFa
 	t.Parallel()
 
 	container := mock.InitContainer()
-	container.SetSyncTimer(nil)
 	fct := *initFactoryWithContainer(container)
 
+	container.SetSyncTimer(nil)
 	err := fct.GenerateStartRoundSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
@@ -320,9 +344,9 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *test
 	t.Parallel()
 
 	container := mock.InitContainer()
-	container.SetSyncTimer(nil)
 	fct := *initFactoryWithContainer(container)
 
+	container.SetSyncTimer(nil)
 	err := fct.GenerateBlockSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
@@ -341,9 +365,9 @@ func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundCommitme
 	t.Parallel()
 
 	container := mock.InitContainer()
-	container.SetSyncTimer(nil)
 	fct := *initFactoryWithContainer(container)
 
+	container.SetSyncTimer(nil)
 	err := fct.GenerateCommitmentHashSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
@@ -362,8 +386,9 @@ func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundBitmapFail(t *te
 	t.Parallel()
 
 	container := mock.InitContainer()
-	container.SetSyncTimer(nil)
+
 	fct := *initFactoryWithContainer(container)
+	container.SetSyncTimer(nil)
 
 	err := fct.GenerateBitmapSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -383,9 +408,9 @@ func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundCommitmentFa
 	t.Parallel()
 
 	container := mock.InitContainer()
-	container.SetSyncTimer(nil)
 	fct := *initFactoryWithContainer(container)
 
+	container.SetSyncTimer(nil)
 	err := fct.GenerateCommitmentSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
@@ -404,8 +429,8 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail
 	t.Parallel()
 
 	container := mock.InitContainer()
-	container.SetSyncTimer(nil)
 	fct := *initFactoryWithContainer(container)
+	container.SetSyncTimer(nil)
 
 	err := fct.GenerateSignatureSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -425,8 +450,8 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t
 	t.Parallel()
 
 	container := mock.InitContainer()
-	container.SetSyncTimer(nil)
 	fct := *initFactoryWithContainer(container)
+	container.SetSyncTimer(nil)
 
 	err := fct.GenerateEndRoundSubround()
 	assert.Equal(t, spos.ErrNilSyncTimer, err)

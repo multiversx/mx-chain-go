@@ -11,7 +11,6 @@ func initConsensusDataContainer() *ConsensusDataContainer {
 	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	consensusState := &mock.ConsensusStateMock{}
 	multiSignerMock := mock.NewMultiSigner()
 	hasherMock := mock.HasherMock{}
 	marshalizerMock := mock.MarshalizerMock{}
@@ -25,7 +24,6 @@ func initConsensusDataContainer() *ConsensusDataContainer {
 		blockProcessorMock,
 		bootstraperMock,
 		chronologyHandlerMock,
-		consensusState,
 		hasherMock,
 		marshalizerMock,
 		multiSignerMock,
@@ -82,18 +80,6 @@ func TestConsensusContainerValidator_ValidateNilChronologyShouldFail(t *testing.
 	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
 
 	assert.Equal(t, err, ErrNilChronologyHandler)
-}
-
-func TestConsensusContainerValidator_ValidateNilConsensusStateShouldFail(t *testing.T) {
-	t.Parallel()
-
-	consensusContainerValidator := &ConsensusContainerValidator{}
-	container := initConsensusDataContainer()
-	container.consensusState = nil
-
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
-
-	assert.Equal(t, err, ErrNilConsensusState)
 }
 
 func TestConsensusContainerValidator_ValidateNilHasherShouldFail(t *testing.T) {

@@ -255,19 +255,26 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := bn.NewFactory(
+	consensusDataContainer, err := spos.NewConsensusDataContainer(
 		n.blkc,
 		n.blockProcessor,
 		bootstraper,
 		chronologyHandler,
-		consensusState,
 		n.hasher,
 		n.marshalizer,
 		n.multisig,
 		rounder,
 		n.shardCoordinator,
 		n.syncer,
-		validatorGroupSelector,
+		validatorGroupSelector)
+
+	if err != nil {
+		return err
+	}
+
+	fct, err := bn.NewFactory(
+		consensusDataContainer,
+		consensusState,
 		worker,
 	)
 

@@ -25,10 +25,6 @@ func (cdv *ConsensusContainerValidator) ValidateConsensusDataContainer(
 		return ErrNilChronologyHandler
 	}
 
-	if container.ConsensusState() == nil {
-		return ErrNilConsensusState
-	}
-
 	if container.Hasher() == nil {
 		return ErrNilHasher
 	}

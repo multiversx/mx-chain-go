@@ -21,8 +21,6 @@ type ConsensusDataContainerInterface interface {
 	BootStrapper() process.Bootstrapper
 	//Chronology gets the ChronologyHandler stored in the ConsensusDataContainer
 	Chronology() consensus.ChronologyHandler
-	//ConsensusState gets the ConsensusState stored in the ConsensusDataContainer
-	ConsensusState() *ConsensusState
 	//Hasher gets the Hasher stored in the ConsensusDataContainer
 	Hasher() hashing.Hasher
 	//Marshalizer gets the Marshalizer stored in the ConsensusDataContainer

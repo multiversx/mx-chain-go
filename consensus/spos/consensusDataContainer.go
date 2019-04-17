@@ -16,7 +16,6 @@ type ConsensusDataContainer struct {
 	blockProcessor         process.BlockProcessor
 	bootstraper            process.Bootstrapper
 	chronologyHandler      consensus.ChronologyHandler
-	consensusState         ConsensusState
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
 	multiSigner            crypto.MultiSigner
@@ -24,6 +23,42 @@ type ConsensusDataContainer struct {
 	shardCoordinator       sharding.Coordinator
 	syncTimer              ntp.SyncTimer
 	validatorGroupSelector consensus.ValidatorGroupSelector
+}
+
+func NewConsensusDataContainer(
+	blockChain data.ChainHandler,
+	blockProcessor process.BlockProcessor,
+	bootstraper process.Bootstrapper,
+	chronologyHandler consensus.ChronologyHandler,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+	multiSigner crypto.MultiSigner,
+	rounder consensus.Rounder,
+	shardCoordinator sharding.Coordinator,
+	syncTimer ntp.SyncTimer,
+	validatorGroupSelector consensus.ValidatorGroupSelector) (*ConsensusDataContainer, error) {
+
+	consensusContainer := &ConsensusDataContainer{
+		blockChain,
+		blockProcessor,
+		bootstraper,
+		chronologyHandler,
+		hasher,
+		marshalizer,
+		multiSigner,
+		rounder,
+		shardCoordinator,
+		syncTimer,
+		validatorGroupSelector,
+	}
+
+	consensusContainerValidator := ConsensusContainerValidator{}
+	err := consensusContainerValidator.ValidateConsensusDataContainer(consensusContainer)
+
+	if err != nil {
+		return nil, err
+	}
+	return consensusContainer, nil
 }
 
 func (cdc *ConsensusDataContainer) Blockchain() data.ChainHandler {
@@ -37,9 +72,6 @@ func (cdc *ConsensusDataContainer) BootStrapper() process.Bootstrapper {
 }
 func (cdc *ConsensusDataContainer) Chronology() consensus.ChronologyHandler {
 	return cdc.chronologyHandler
-}
-func (cdc *ConsensusDataContainer) ConsensusState() ConsensusState {
-	return cdc.consensusState
 }
 func (cdc *ConsensusDataContainer) Hasher() hashing.Hasher {
 	return cdc.hasher

@@ -2,7 +2,6 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
@@ -17,7 +16,6 @@ type ConsensusDataContainerMock struct {
 	blockProcessor         process.BlockProcessor
 	bootstraper            process.Bootstrapper
 	chronologyHandler      consensus.ChronologyHandler
-	consensusState         *spos.ConsensusState
 	hasher                 hashing.Hasher
 	marshalizer            marshal.Marshalizer
 	multiSigner            crypto.MultiSigner
@@ -38,9 +36,6 @@ func (cdc *ConsensusDataContainerMock) BootStrapper() process.Bootstrapper {
 }
 func (cdc *ConsensusDataContainerMock) Chronology() consensus.ChronologyHandler {
 	return cdc.chronologyHandler
-}
-func (cdc *ConsensusDataContainerMock) ConsensusState() *spos.ConsensusState {
-	return cdc.consensusState
 }
 func (cdc *ConsensusDataContainerMock) Hasher() hashing.Hasher {
 	return cdc.hasher
@@ -75,9 +70,6 @@ func (cdc *ConsensusDataContainerMock) SetBootStrapper(bootstraper process.Boots
 }
 func (cdc *ConsensusDataContainerMock) SetChronology(chronologyHandler consensus.ChronologyHandler) {
 	cdc.chronologyHandler = chronologyHandler
-}
-func (cdc *ConsensusDataContainerMock) SetConsensusState(consensusState *spos.ConsensusState) {
-	cdc.consensusState = consensusState
 }
 func (cdc *ConsensusDataContainerMock) SetHasher(hasher hashing.Hasher) {
 	cdc.hasher = hasher

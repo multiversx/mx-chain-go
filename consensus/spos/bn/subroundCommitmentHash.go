@@ -53,7 +53,10 @@ func checkNewSubroundCommitmentHashParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	return nil
+	containerValidator := spos.ConsensusContainerValidator{}
+	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
+
+	return err
 }
 
 // doCommitmentHashJob method does the job of the commitment hash subround

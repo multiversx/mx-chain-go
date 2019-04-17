@@ -11,9 +11,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestSubround_NewSubroundNilConsensusStateShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitContainer()
+	ch := make(chan bool, 1)
+
+	sr, err := bn.NewSubround(
+		int(-1),
+		int(bn.SrStartRound),
+		int(bn.SrBlock),
+		int64(0*roundTimeDuration/100),
+		int64(5*roundTimeDuration/100),
+		"(START_ROUND)",
+		nil,
+		ch,
+		container,
+	)
+
+	assert.Equal(t, spos.ErrNilConsensusState, err)
+	assert.Nil(t, sr)
+}
+
 func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	container := mock.InitContainer()
 
 	sr, err := bn.NewSubround(
@@ -23,6 +46,7 @@ func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		nil,
 		container,
 	)
@@ -34,6 +58,7 @@ func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
 func TestSubround_NewSubroundNilContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, err := bn.NewSubround(
@@ -43,6 +68,7 @@ func TestSubround_NewSubroundNilContainerShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		nil,
 	)
@@ -54,6 +80,7 @@ func TestSubround_NewSubroundNilContainerShouldFail(t *testing.T) {
 func TestSubround_NilContainerBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	container.SetBlockchain(nil)
@@ -65,17 +92,19 @@ func TestSubround_NilContainerBlockchainShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
 
-	assert.NotNil(t, sr)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilBlockChain, err)
 }
 
 func TestSubround_NilContainerBlockprocessorShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	container.SetBlockProcessor(nil)
@@ -87,17 +116,19 @@ func TestSubround_NilContainerBlockprocessorShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
 
-	assert.NotNil(t, sr)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
 func TestSubround_NilContainerBootstrapperShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	container.SetBootStrapper(nil)
@@ -109,17 +140,19 @@ func TestSubround_NilContainerBootstrapperShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
 
-	assert.NotNil(t, sr)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilBlootstraper, err)
 }
 
 func TestSubround_NilContainerChronologyShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	container.SetChronology(nil)
@@ -131,39 +164,19 @@ func TestSubround_NilContainerChronologyShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
 
-	assert.NotNil(t, sr)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilChronologyHandler, err)
-}
-
-func TestSubround_NilContainerConsensusStateShouldFail(t *testing.T) {
-	t.Parallel()
-
-	ch := make(chan bool, 1)
-	container := mock.InitContainer()
-	container.SetConsensusState(nil)
-
-	sr, err := bn.NewSubround(
-		int(-1),
-		int(bn.SrStartRound),
-		int(bn.SrBlock),
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		ch,
-		container,
-	)
-
-	assert.NotNil(t, sr)
-	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
 func TestSubround_NilContainerHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	container.SetHasher(nil)
@@ -175,17 +188,19 @@ func TestSubround_NilContainerHasherShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
 
-	assert.NotNil(t, sr)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilHasher, err)
 }
 
 func TestSubround_NilContainerMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	container.SetMarshalizer(nil)
@@ -197,17 +212,19 @@ func TestSubround_NilContainerMarshalizerShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
 
-	assert.NotNil(t, sr)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
 func TestSubround_NilContainerMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	container.SetMultiSigner(nil)
@@ -219,17 +236,19 @@ func TestSubround_NilContainerMultisignerShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
 
-	assert.NotNil(t, sr)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
 func TestSubround_NilContainerRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	container.SetRounder(nil)
@@ -241,17 +260,19 @@ func TestSubround_NilContainerRounderShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
 
-	assert.NotNil(t, sr)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilRounder, err)
 }
 
 func TestSubround_NilContainerShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	container.SetShardCoordinator(nil)
@@ -263,17 +284,19 @@ func TestSubround_NilContainerShardCoordinatorShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
 
-	assert.NotNil(t, sr)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
 
 func TestSubround_NilContainerSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	container.SetSyncTimer(nil)
@@ -285,17 +308,19 @@ func TestSubround_NilContainerSyncTimerShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
 
-	assert.NotNil(t, sr)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	container.SetValidatorGroupSelector(nil)
@@ -307,17 +332,19 @@ func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
 
-	assert.NotNil(t, sr)
+	assert.Nil(t, sr)
 	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
 }
 
 func TestSubround_NewSubroundShouldWork(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 	sr, err := bn.NewSubround(
@@ -327,6 +354,7 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
@@ -346,6 +374,7 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 
@@ -356,6 +385,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
@@ -379,6 +409,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 
@@ -389,6 +420,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
@@ -412,6 +444,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 
@@ -422,6 +455,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
@@ -447,6 +481,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 
@@ -457,6 +492,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
@@ -483,6 +519,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhile(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 
@@ -493,6 +530,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
+		consensusState,
 		ch,
 		container,
 	)
@@ -538,6 +576,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 func TestSubround_Previous(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 
@@ -548,6 +587,7 @@ func TestSubround_Previous(t *testing.T) {
 		int64(5*roundTimeDuration/100),
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
+		consensusState,
 		ch,
 		container,
 	)
@@ -565,6 +605,7 @@ func TestSubround_Previous(t *testing.T) {
 func TestSubround_Current(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 
@@ -575,6 +616,7 @@ func TestSubround_Current(t *testing.T) {
 		int64(5*roundTimeDuration/100),
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
+		consensusState,
 		ch,
 		container,
 	)
@@ -592,6 +634,7 @@ func TestSubround_Current(t *testing.T) {
 func TestSubround_Next(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 
@@ -602,6 +645,7 @@ func TestSubround_Next(t *testing.T) {
 		int64(5*roundTimeDuration/100),
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
+		consensusState,
 		ch,
 		container,
 	)
@@ -619,6 +663,7 @@ func TestSubround_Next(t *testing.T) {
 func TestSubround_StartTime(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 
@@ -629,6 +674,7 @@ func TestSubround_StartTime(t *testing.T) {
 		int64(25*roundTimeDuration/100),
 		int64(40*roundTimeDuration/100),
 		"(COMMITMENT_HASH)",
+		consensusState,
 		ch,
 		container,
 	)
@@ -646,6 +692,7 @@ func TestSubround_StartTime(t *testing.T) {
 func TestSubround_EndTime(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 
@@ -656,6 +703,7 @@ func TestSubround_EndTime(t *testing.T) {
 		int64(5*roundTimeDuration/100),
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
+		consensusState,
 		ch,
 		container,
 	)
@@ -674,6 +722,7 @@ func TestSubround_EndTime(t *testing.T) {
 func TestSubround_Name(t *testing.T) {
 	t.Parallel()
 
+	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
 
@@ -684,6 +733,7 @@ func TestSubround_Name(t *testing.T) {
 		int64(5*roundTimeDuration/100),
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
+		consensusState,
 		ch,
 		container,
 	)

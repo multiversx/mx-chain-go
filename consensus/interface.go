@@ -66,35 +66,3 @@ type ValidatorGroupSelector interface {
 type PublicKeysSelector interface {
 	GetSelectedPublicKeys(selection []byte) (publicKeys []string, err error)
 }
-
-//
-//type ConsensusState interface {
-//	ResetConsensusState()
-//	IsNodeLeaderInCurrentRound(node string) bool
-//	IsSelfLeaderInCurrentRound() bool
-//	GetLeader() (string, error)
-//	GetNextConsensusGroup(randomSource string, vgs ValidatorGroupSelector) ([]string, error)
-//	IsConsensusDataSet() bool
-//	IsConsensusDataEqual(data []byte) bool
-//	IsJobDone(node string, currentSubroundId int) bool
-//	IsSelfJobDone(currentSubroundId int) bool
-//	IsCurrentSubroundFinished(currentSubroundId int) bool
-//	IsNodeSelf(node string) bool
-//	IsBlockBodyAlreadyReceived() bool
-//	IsHeaderAlreadyReceived() bool
-//	CanDoSubroundJob(currentSubroundId int) bool
-//	CanProcessReceivedMessage(cnsDta ConsensusMessage, currentRoundIndex int32, currentSubroundId int) bool
-//	GenerateBitmap(subroundId int) []byte
-//	ProcessingBlock() bool
-//	SetProcessingBlock(processingBlock bool)
-//	ConsensusGroupSize() int
-//	SetThreshold(subroundId int, threshold int)
-//	Threshold(threshold int) int
-//	ConsensusGroup() []string
-//	SetJobDone(key string, subroundId int, value bool) error
-//	ComputeSize(subroundId int) int
-//	SelfPubKey() string
-//	SetSelfPubKey(selfPubKey string)
-//	GetData()  []byte
-//	SetSelfJobDone(subroundId int, value bool) error
-//}

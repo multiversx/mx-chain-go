@@ -52,7 +52,10 @@ func checkNewSubroundEndRoundParams(
 		return spos.ErrNilBroadcastBlockFunction
 	}
 
-	return nil
+	containerValidator := spos.ConsensusContainerValidator{}
+	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
+
+	return err
 }
 
 // doEndRoundJob method does the job of the end round subround

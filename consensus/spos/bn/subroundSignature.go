@@ -54,7 +54,10 @@ func checkNewSubroundSignatureParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	return nil
+	containerValidator := spos.ConsensusContainerValidator{}
+	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
+
+	return err
 }
 
 // doSignatureJob method does the job of the signatuure subround

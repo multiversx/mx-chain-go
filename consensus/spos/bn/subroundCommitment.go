@@ -53,7 +53,10 @@ func checkNewSubroundCommitmentParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	return nil
+	containerValidator := spos.ConsensusContainerValidator{}
+	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
+
+	return err
 }
 
 // doCommitmentJob method does the job of the commitment subround

@@ -43,8 +43,10 @@ func checkNewSubroundStartRoundParams(
 	if subround == nil {
 		return spos.ErrNilSubround
 	}
+	containerValidator := spos.ConsensusContainerValidator{}
+	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
 
-	return nil
+	return err
 }
 
 // doStartRoundJob method does the job of the start round subround
