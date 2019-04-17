@@ -77,7 +77,8 @@ type Node struct {
 	forkDetector     process.ForkDetector
 
 	blkc             data.ChainHandler
-	dataPool         data.PoolsHolder
+	dataPool         dataRetriever.PoolsHolder
+	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
 
 	consensusTopic string
@@ -449,6 +450,7 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
 	bootstrap, err := sync.NewBootstrap(
 		n.dataPool,
+		n.store,
 		n.blkc,
 		rounder,
 		n.blockProcessor,
