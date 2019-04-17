@@ -114,7 +114,7 @@ type Suite interface {
 
 // Generator generates a scalar
 type Generator interface {
-	CreateKey(cipher.Stream) Scalar
+	CreateKeyPair(cipher.Stream) (Scalar, Point)
 }
 
 // KeyGenerator is an interface for generating different types of cryptographic keys

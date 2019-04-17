@@ -1,28 +1,28 @@
 package singlesig_test
 
 import (
-	"testing"
+"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
-	mock2 "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
-	"github.com/stretchr/testify/assert"
+"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
+"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing"
+"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
+mock2 "github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/mock"
+"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
+"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/mock"
+"github.com/stretchr/testify/assert"
 )
 
-func TestSchnorrSigner_SignNilPrivateKeyShouldErr(t *testing.T) {
+func TestBLSSigner_SignNilPrivateKeyShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
+	signer := &singlesig.BlsSingleSigner{}
 	signature, err := signer.Sign(nil, msg)
 
 	assert.Nil(t, signature)
 	assert.Equal(t, crypto.ErrNilPrivateKey, err)
 }
 
-func TestSchnorrSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
-	suite := kyber.NewBlakeSHA256Ed25519()
+func TestBLSSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
+	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
@@ -36,15 +36,15 @@ func TestSchnorrSigner_SignPrivateKeyNilSuiteShouldErr(t *testing.T) {
 	}
 
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
+	signer := &singlesig.BlsSingleSigner{}
 	signature, err := signer.Sign(privKeyNilSuite, msg)
 
 	assert.Nil(t, signature)
 	assert.Equal(t, crypto.ErrNilSuite, err)
 }
 
-func TestSchnorrSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
-	suite := kyber.NewBlakeSHA256Ed25519()
+func TestBLSSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
+	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
@@ -58,15 +58,15 @@ func TestSchnorrSigner_SignPrivateKeyNilScalarShouldErr(t *testing.T) {
 	}
 
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
+	signer := &singlesig.BlsSingleSigner{}
 	signature, err := signer.Sign(privKeyNilSuite, msg)
 
 	assert.Nil(t, signature)
 	assert.Equal(t, crypto.ErrNilPrivateKeyScalar, err)
 }
 
-func TestSchnorrSigner_SignInvalidScalarShouldErr(t *testing.T) {
-	suite := kyber.NewBlakeSHA256Ed25519()
+func TestBLSSigner_SignInvalidScalarShouldErr(t *testing.T) {
+	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
@@ -80,15 +80,15 @@ func TestSchnorrSigner_SignInvalidScalarShouldErr(t *testing.T) {
 	}
 
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
+	signer := &singlesig.BlsSingleSigner{}
 	signature, err := signer.Sign(privKeyNilSuite, msg)
 
 	assert.Nil(t, signature)
 	assert.Equal(t, crypto.ErrInvalidPrivateKey, err)
 }
 
-func TestSchnorrSigner_SignInvalidSuiteShouldErr(t *testing.T) {
-	suite := kyber.NewBlakeSHA256Ed25519()
+func TestBLSSigner_SignInvalidSuiteShouldErr(t *testing.T) {
+	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, _ := kg.GeneratePair()
 
@@ -108,7 +108,7 @@ func TestSchnorrSigner_SignInvalidSuiteShouldErr(t *testing.T) {
 	}
 
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
+	signer := &singlesig.BlsSingleSigner{}
 
 	signature, err := signer.Sign(privKeyNilSuite, msg)
 
@@ -116,13 +116,13 @@ func TestSchnorrSigner_SignInvalidSuiteShouldErr(t *testing.T) {
 	assert.Equal(t, crypto.ErrInvalidSuite, err)
 }
 
-func signSchnorr(msg []byte, signer crypto.SingleSigner, t *testing.T) (
+func signBLS(msg []byte, signer crypto.SingleSigner, t *testing.T) (
 	pubKey crypto.PublicKey,
 	privKey crypto.PrivateKey,
 	signature []byte,
 	err error) {
 
-	suite := kyber.NewBlakeSHA256Ed25519()
+	suite := kyber.NewSuitePairingBn256()
 	kg := signing.NewKeyGenerator(suite)
 	privKey, pubKey = kg.GeneratePair()
 
@@ -134,20 +134,20 @@ func signSchnorr(msg []byte, signer crypto.SingleSigner, t *testing.T) (
 	return pubKey, privKey, signature, err
 }
 
-func TestSchnorrSigner_SignOK(t *testing.T) {
+func TestBLSSigner_SignOK(t *testing.T) {
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	signer := &singlesig.BlsSingleSigner{}
+	pubKey, _, signature, err := signBLS(msg, signer, t)
 
 	err = signer.Verify(pubKey, msg, signature)
 
 	assert.Nil(t, err)
 }
 
-func TestSchnorrSigner_VerifyNilSuiteShouldErr(t *testing.T) {
+func TestBLSSigner_VerifyNilSuiteShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	signer := &singlesig.BlsSingleSigner{}
+	pubKey, _, signature, err := signBLS(msg, signer, t)
 
 	pubKeyNilSuite := &mock2.PublicKeyStub{
 		SuiteStub: func() crypto.Suite {
@@ -162,40 +162,40 @@ func TestSchnorrSigner_VerifyNilSuiteShouldErr(t *testing.T) {
 	assert.Equal(t, crypto.ErrNilSuite, err)
 }
 
-func TestSchnorrSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
+func TestBLSSigner_VerifyNilPublicKeyShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
-	_, _, signature, err := signSchnorr(msg, signer, t)
+	signer := &singlesig.BlsSingleSigner{}
+	_, _, signature, err := signBLS(msg, signer, t)
 
 	err = signer.Verify(nil, msg, signature)
 
 	assert.Equal(t, crypto.ErrNilPublicKey, err)
 }
 
-func TestSchnorrSigner_VerifyNilMessageShouldErr(t *testing.T) {
+func TestBLSSigner_VerifyNilMessageShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	signer := &singlesig.BlsSingleSigner{}
+	pubKey, _, signature, err := signBLS(msg, signer, t)
 
 	err = signer.Verify(pubKey, nil, signature)
 
 	assert.Equal(t, crypto.ErrNilMessage, err)
 }
 
-func TestSchnorrSigner_VerifyNilSignatureShouldErr(t *testing.T) {
+func TestBLSSigner_VerifyNilSignatureShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, _, err := signSchnorr(msg, signer, t)
+	signer := &singlesig.BlsSingleSigner{}
+	pubKey, _, _, err := signBLS(msg, signer, t)
 
 	err = signer.Verify(pubKey, msg, nil)
 
 	assert.Equal(t, crypto.ErrNilSignature, err)
 }
 
-func TestSchnorrSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
+func TestBLSSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	signer := &singlesig.BlsSingleSigner{}
+	pubKey, _, signature, err := signBLS(msg, signer, t)
 
 	invalidSuite := &mock.SuiteMock{
 		GetUnderlyingSuiteStub: func() interface{} {
@@ -216,10 +216,10 @@ func TestSchnorrSigner_VerifyInvalidSuiteShouldErr(t *testing.T) {
 	assert.Equal(t, crypto.ErrInvalidSuite, err)
 }
 
-func TestSchnorrSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
+func TestBLSSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	signer := &singlesig.BlsSingleSigner{}
+	pubKey, _, signature, err := signBLS(msg, signer, t)
 
 	pubKeyInvalidSuite := &mock2.PublicKeyStub{
 		SuiteStub:       pubKey.Suite,
@@ -234,10 +234,10 @@ func TestSchnorrSigner_VerifyPublicKeyInvalidPointShouldErr(t *testing.T) {
 	assert.Equal(t, crypto.ErrNilPublicKeyPoint, err)
 }
 
-func TestSchnorrSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
+func TestBLSSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	signer := &singlesig.BlsSingleSigner{}
+	pubKey, _, signature, err := signBLS(msg, signer, t)
 
 	pubKeyInvalidSuite := &mock2.PublicKeyStub{
 		SuiteStub:       pubKey.Suite,
@@ -252,10 +252,10 @@ func TestSchnorrSigner_VerifyInvalidPublicKeyShouldErr(t *testing.T) {
 	assert.Equal(t, crypto.ErrInvalidPublicKey, err)
 }
 
-func TestSchnorrSigner_VerifyOK(t *testing.T) {
+func TestBLSSigner_VerifyOK(t *testing.T) {
 	msg := []byte("message to be signed")
-	signer := &singlesig.SchnorrSigner{}
-	pubKey, _, signature, err := signSchnorr(msg, signer, t)
+	signer := &singlesig.BlsSingleSigner{}
+	pubKey, _, signature, err := signBLS(msg, signer, t)
 
 	err = signer.Verify(pubKey, msg, signature)
 
