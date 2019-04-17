@@ -13,9 +13,9 @@ import (
 )
 
 func initSubroundSignature() bn.SubroundSignature {
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -48,9 +48,9 @@ func initSubroundSignature() bn.SubroundSignature {
 func TestSubroundSignature_NewSubroundSignatureNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -73,7 +73,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 	t.Parallel()
 
 	hasherMock := mock.HasherMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -107,8 +107,8 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
-	multiSignerMock := initMultiSignerMock()
+	consensusState := mock.InitConsensusState()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -142,7 +142,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
@@ -177,9 +177,9 @@ func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testi
 func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
 	ch := make(chan bool, 1)
@@ -212,9 +212,9 @@ func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T
 func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 
 	ch := make(chan bool, 1)
@@ -247,9 +247,9 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 func TestSubroundSignature_NewSubroundSignatureNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -283,9 +283,9 @@ func TestSubroundSignature_NewSubroundSignatureNilSendConsensusMessageFunctionSh
 func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := mock.InitConsensusState()
 	hasherMock := mock.HasherMock{}
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	rounderMock := initRounderMock()
 	syncTimerMock := mock.SyncTimerMock{}
 
@@ -353,7 +353,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	sr.ConsensusState().Data = dta
 	sr.ConsensusState().Header = &block.Header{}
 
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 
 	multiSignerMock.CommitmentMock = func(uint16) ([]byte, error) {
 		return dta, nil
@@ -388,7 +388,7 @@ func TestSubroundSignature_CheckCommitmentsValidityShouldErrInvalidIndex(t *test
 
 	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrCommitment, true)
 
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 	multiSignerMock.CommitmentMock = func(u uint16) ([]byte, error) {
 		return nil, crypto.ErrIndexOutOfBounds
 	}
@@ -404,7 +404,7 @@ func TestSubroundSignature_CheckCommitmentsValidityShouldErrOnCommitmentHash(t *
 
 	sr := *initSubroundSignature()
 
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 
 	err := errors.New("error commitment hash")
 	multiSignerMock.CommitmentHashMock = func(uint16) ([]byte, error) {
@@ -424,7 +424,7 @@ func TestSubroundSignature_CheckCommitmentsValidityShouldErrCommitmentHashDoesNo
 
 	sr := *initSubroundSignature()
 
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 
 	multiSignerMock.CommitmentHashMock = func(uint16) ([]byte, error) {
 		return []byte("X"), nil
@@ -443,7 +443,7 @@ func TestSubroundSignature_CheckCommitmentsValidityShouldReturnNil(t *testing.T)
 
 	sr := *initSubroundSignature()
 
-	multiSignerMock := initMultiSignerMock()
+	multiSignerMock := mock.InitMultiSignerMock()
 
 	multiSignerMock.CommitmentMock = func(uint16) ([]byte, error) {
 		return []byte("X"), nil

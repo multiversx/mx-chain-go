@@ -16,16 +16,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/multisig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -56,7 +55,7 @@ type testNode struct {
 	shardId      uint32
 	sk           crypto.PrivateKey
 	pk           crypto.PublicKey
-	dPool        data.PoolsHolder
+	dPool        dataRetriever.PoolsHolder
 	resFinder    dataRetriever.ResolversFinder
 	txRecv       int32
 	mutNeededTxs sync.Mutex
@@ -68,11 +67,6 @@ func createTestBlockChain() *blockchain.BlockChain {
 	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
 	)
 
 	return blockChain
@@ -81,12 +75,22 @@ func createTestBlockChain() *blockchain.BlockChain {
 func createMemUnit() storage.Storer {
 	cache, _ := storage.NewCache(storage.LRUCache, 10)
 	persist, _ := memorydb.New()
-
 	unit, _ := storage.NewStorageUnit(cache, persist)
 	return unit
 }
 
-func createTestDataPool() data.PoolsHolder {
+func createTestStore() dataRetriever.StorageService {
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+
+	return store
+}
+
+func createTestDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
@@ -171,7 +175,7 @@ func createMultiSigner(
 
 func createNetNode(
 	port int,
-	dPool data.PoolsHolder,
+	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	targetShardId uint32,
@@ -205,12 +209,13 @@ func createNetNode(
 
 	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
 	blkc := createTestBlockChain()
+	store := createTestStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		messenger,
-		blkc,
+		store,
 		marshalizer,
 		hasher,
 		keyGen,
@@ -224,7 +229,7 @@ func createNetNode(
 	resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		messenger,
-		blkc,
+		store,
 		marshalizer,
 		dPool,
 		uint64Converter,
@@ -249,6 +254,7 @@ func createNetNode(
 		node.WithPublicKey(pk),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
+		node.WithDataStore(store),
 	)
 
 	return n, messenger, sk, resolversFinder

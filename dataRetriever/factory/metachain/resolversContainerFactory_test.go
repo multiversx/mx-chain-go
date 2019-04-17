@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/mock"
@@ -45,15 +44,15 @@ func createStubTopicMessageHandler(matchStrToErrOnCreate string, matchStrToErrOn
 	return tmhs
 }
 
-func createDataPools() data.MetaPoolsHolder {
+func createDataPools() dataRetriever.MetaPoolsHolder {
 	pools := &mock.MetaPoolsHolderStub{
-		MetaBlockNoncesCalled: func() data.Uint64Cacher {
+		MetaBlockNoncesCalled: func() dataRetriever.Uint64Cacher {
 			return &mock.Uint64CacherStub{}
 		},
 		ShardHeadersCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
 		},
-		MiniBlockHashesCalled: func() data.ShardedDataCacherNotifier {
+		MiniBlockHashesCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{}
 		},
 		MetaChainBlocksCalled: func() storage.Cacher {
@@ -64,12 +63,10 @@ func createDataPools() data.MetaPoolsHolder {
 	return pools
 }
 
-func createBlockchain() data.ChainHandler {
-	return &mock.BlockChainMock{
-		StorageService: &mock.ChainStorerMock{
-			GetStorerCalled: func(unitType data.UnitType) storage.Storer {
-				return &mock.StorerStub{}
-			},
+func createStore() dataRetriever.StorageService {
+	return &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{}
 		},
 	}
 }
@@ -82,7 +79,7 @@ func TestNewResolversContainerFactory_NilShardCoordinatorShouldErr(t *testing.T)
 	rcf, err := metachain.NewResolversContainerFactory(
 		nil,
 		createStubTopicMessageHandler("", ""),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
@@ -98,7 +95,7 @@ func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 	rcf, err := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		nil,
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
@@ -108,7 +105,7 @@ func TestNewResolversContainerFactory_NilMessengerShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilMessenger, err)
 }
 
-func TestNewResolversContainerFactory_NilBlockchainShouldErr(t *testing.T) {
+func TestNewResolversContainerFactory_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rcf, err := metachain.NewResolversContainerFactory(
@@ -121,7 +118,7 @@ func TestNewResolversContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, rcf)
-	assert.Equal(t, dataRetriever.ErrNilBlockChain, err)
+	assert.Equal(t, dataRetriever.ErrNilStore, err)
 }
 
 func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
@@ -130,7 +127,7 @@ func TestNewResolversContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	rcf, err := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", ""),
-		createBlockchain(),
+		createStore(),
 		nil,
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
@@ -146,7 +143,7 @@ func TestNewResolversContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 	rcf, err := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", ""),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		nil,
 		&mock.Uint64ByteSliceConverterMock{},
@@ -162,7 +159,7 @@ func TestNewResolversContainerFactory_NilUint64SliceConverterShouldErr(t *testin
 	rcf, err := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", ""),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		nil,
@@ -178,7 +175,7 @@ func TestNewResolversContainerFactory_ShouldWork(t *testing.T) {
 	rcf, err := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", ""),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
@@ -196,7 +193,7 @@ func TestResolversContainerFactory_CreateTopicShardHeadersForMetachainFailsShoul
 	rcf, _ := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler(factory.ShardHeadersForMetachainTopic, ""),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
@@ -214,7 +211,7 @@ func TestResolversContainerFactory_CreateRegisterShardHeadersForMetachainFailsSh
 	rcf, _ := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", factory.ShardHeadersForMetachainTopic),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
@@ -232,7 +229,7 @@ func TestResolversContainerFactory_CreateShouldWork(t *testing.T) {
 	rcf, _ := metachain.NewResolversContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicMessageHandler("", ""),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},
@@ -255,7 +252,7 @@ func TestResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	rcf, _ := metachain.NewResolversContainerFactory(
 		shardCoordinator,
 		createStubTopicMessageHandler("", ""),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		createDataPools(),
 		&mock.Uint64ByteSliceConverterMock{},

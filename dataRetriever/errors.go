@@ -49,6 +49,9 @@ var ErrInvalidShardId = errors.New("invalid shard id")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
+// ErrNilStore signals that the provided storage service is nil
+var ErrNilStore = errors.New("nil data storage service")
+
 // ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
 var ErrNilRounder = errors.New("nil Rounder")
 
@@ -133,3 +136,27 @@ var ErrWrongTypeInContainer = errors.New("wrong type of object inside container"
 
 // ErrLenMismatch signals that 2 or more slices have different lengths
 var ErrLenMismatch = errors.New("lengths mismatch")
+
+// ErrNilPeerChangeBlockDataPool signals that a nil peer change pool has been provided
+var ErrNilPeerChangeBlockDataPool = errors.New("nil peer change block data pool")
+
+// ErrNilTxBlockDataPool signals that a nil tx block body pool has been provided
+var ErrNilTxBlockDataPool = errors.New("nil tx block data pool")
+
+// ErrNilCacher signals that a nil cache has been provided
+var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilMetaBlockPool signals that a nil meta block data pool was provided
+var ErrNilMetaBlockPool = errors.New("nil meta block data pool")
+
+// ErrNilMiniBlockHashesPool signals that a nil meta block data pool was provided
+var ErrNilMiniBlockHashesPool = errors.New("nil meta block mini block hashes data pool")
+
+// ErrNilShardHeaderPool signals that a nil meta block data pool was provided
+var ErrNilShardHeaderPool = errors.New("nil meta block shard header data pool")
+
+// ErrNilMetaBlockNouncesPool signals that a nil meta block data pool was provided
+var ErrNilMetaBlockNouncesPool = errors.New("nil meta block nounces data pool")
+
+// ErrNoSuchStorageUnit defines the error for using an invalid storage unit
+var ErrNoSuchStorageUnit = errors.New("no such unit type")
