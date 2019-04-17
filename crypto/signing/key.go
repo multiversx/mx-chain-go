@@ -89,11 +89,18 @@ func newKeyPair(suite crypto.Suite) (private crypto.Scalar, public crypto.Point,
 
 	if g, ok := suite.(crypto.Generator); ok {
 		private, public = g.CreateKeyPair(random)
-	} else {
-		privateKey, _ := suite.CreateScalar().Pick(random)
-		private = privateKey
-		pubKey, _ := suite.CreatePoint().Mul(private)
-		public = pubKey
+
+		return private, public, nil
+	}
+
+	private, err = suite.CreateScalar().Pick(random)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	public, err = suite.CreatePoint().Mul(private)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return private, public, nil

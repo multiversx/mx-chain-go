@@ -112,7 +112,7 @@ type Suite interface {
 	GetUnderlyingSuite() interface{}
 }
 
-// Generator generates a scalar
+// Generator generates a (Scalar, Point) key pair
 type Generator interface {
 	CreateKeyPair(cipher.Stream) (Scalar, Point)
 }
