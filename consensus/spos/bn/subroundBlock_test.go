@@ -686,6 +686,9 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
 	t.Parallel()
 	container := mock.InitContainer()
+	rounderMock := initRounderMock()
+	container.SetRounder(rounderMock)
+
 	sr := *initSubroundBlock(nil, container)
 	remainingTimeInThisRound := func() time.Duration {
 		roundStartTime := sr.Rounder().TimeStamp()

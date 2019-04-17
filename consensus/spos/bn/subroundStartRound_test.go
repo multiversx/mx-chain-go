@@ -363,8 +363,9 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitC
 
 	container := mock.InitContainer()
 	container.SetBootStrapper(bootstraperMock)
+	container.SetRounder(initRounderMock())
 
-	sr := *initSubroundStartRound()
+	sr := *initSubroundStartRoundWithContainer(container)
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.False(t, ok)
