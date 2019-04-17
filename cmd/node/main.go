@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/facade"
-	"github.com/ElrondNetwork/elrond-go-sandbox/cmd/flags"
 	"github.com/ElrondNetwork/elrond-go-sandbox/config"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
@@ -30,15 +29,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
@@ -68,7 +67,8 @@ const (
 	defaultStatsPath = "stats"
 )
 
-var bootNodeHelpTemplate = `NAME:
+var (
+	nodeHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
 USAGE:
    {{.HelpName}} {{if .VisibleFlags}}[global options]{{end}}
@@ -83,14 +83,52 @@ VERSION:
    {{.Version}}
    {{end}}
 `
-var configurationFile = "./config/config.toml"
-var p2pConfigurationFile = "./config/p2p.toml"
-var privKeyPemFile = "./config/privkey.pem"
 
-//TODO remove uniqueID
-var uniqueID = ""
+	// genesisFile defines a flag for the path of the bootstrapping file.
+	genesisFile = cli.StringFlag{
+		Name:  "genesis-file",
+		Usage: "The node will extract bootstrapping info from the genesis.json",
+		Value: "genesis.json",
+	}
+	// privateKey defines a flag for the path of the private key used when starting the node
+	privateKey = cli.StringFlag{
+		Name:  "private-key",
+		Usage: "Private key that the node will load on startup and will sign transactions - temporary until we have a wallet that can do that",
+		Value: "",
+	}
+	// withUI defines a flag for choosing the option of starting with/without UI. If false, the node will start automatically
+	withUI = cli.BoolTFlag{
+		Name:  "with-ui",
+		Usage: "If true, the application will be accompanied by a UI. The node will have to be manually started from the UI",
+	}
+	// port defines a flag for setting the port on which the node will listen for connections
+	port = cli.IntFlag{
+		Name:  "port",
+		Usage: "Port number on which the application will start",
+		Value: 32000,
+	}
+	// profileMode defines a flag for profiling the binary
+	profileMode = cli.StringFlag{
+		Name:  "profile-mode",
+		Usage: "Profiling mode. Available options: cpu, mem, mutex, block",
+		Value: "",
+	}
+	// privateKeyIndex defines a flag that specify the 0-th based index of the private key to be used from privkeys.pem file.
+	privateKeyIndex = cli.IntFlag{
+		Name:  "private-key-index",
+		Usage: "PrivateKeyIndex defines a flag that specify the 0-th based index of the private key to be used from privkeys.pem file.",
+		Value: 0,
+	}
 
-var rm *statistics.ResourceMonitor
+	configurationFile    = "./config/config.toml"
+	p2pConfigurationFile = "./config/p2p.toml"
+	privKeysPemFile      = "./config/privkeys.pem"
+
+	//TODO remove uniqueID
+	uniqueID = ""
+
+	rm *statistics.ResourceMonitor
+)
 
 type seedRandReader struct {
 	index int
@@ -134,11 +172,11 @@ func main() {
 	log.SetLevel(logger.LogInfo)
 
 	app := cli.NewApp()
-	cli.AppHelpTemplate = bootNodeHelpTemplate
-	app.Name = "BootNode CLI App"
+	cli.AppHelpTemplate = nodeHelpTemplate
+	app.Name = "Elrond Node CLI App"
 	app.Version = "v0.0.1"
-	app.Usage = "This is the entry point for starting a new bootstrap node - the app will start after the genesis timestamp"
-	app.Flags = []cli.Flag{flags.GenesisFile, flags.Port, flags.PrivateKey, flags.ProfileMode}
+	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
+	app.Flags = []cli.Flag{genesisFile, port, privateKey, profileMode, privateKeyIndex}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -158,7 +196,7 @@ func main() {
 }
 
 func startNode(ctx *cli.Context, log *logger.Logger) error {
-	profileMode := ctx.GlobalString(flags.ProfileMode.Name)
+	profileMode := ctx.GlobalString(profileMode.Name)
 	switch profileMode {
 	case "cpu":
 		p := profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook)
@@ -191,8 +229,8 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 	log.Info(fmt.Sprintf("Initialized with p2p config from: %s", p2pConfigurationFile))
-	if ctx.IsSet(flags.Port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalInt(flags.Port.Name)
+	if ctx.IsSet(port.Name) {
+		p2pConfig.Node.Port = ctx.GlobalInt(port.Name)
 	}
 	uniqueID = strconv.Itoa(p2pConfig.Node.Port)
 
@@ -201,11 +239,11 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 		return err
 	}
 
-	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(flags.GenesisFile.Name))
+	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name))
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(flags.GenesisFile.Name)))
+	log.Info(fmt.Sprintf("Initialized with genesis config from: %s", ctx.GlobalString(genesisFile.Name)))
 
 	syncer := ntp.NewSyncTime(time.Hour, beevikntp.Query)
 	go syncer.StartSync()
@@ -236,7 +274,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	go ef.StartBackgroundServices(&wg)
 	wg.Wait()
 
-	if !ctx.Bool(flags.WithUI.Name) {
+	if !ctx.Bool(withUI.Name) {
 		log.Info("Bootstrapping node....")
 		err = ef.StartNode()
 		if err != nil {
@@ -356,6 +394,11 @@ func createNode(
 		return nil, errors.New("could not create block chain: " + err.Error())
 	}
 
+	store, err := createShardDataStoreFromConfig(config)
+	if err != nil {
+		return nil, errors.New("could not create local data store: " + err.Error())
+	}
+
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 	datapool, err := createShardDataPoolFromConfig(config, uint64ByteSliceConverter)
 	if err != nil {
@@ -364,7 +407,7 @@ func createNode(
 
 	// TODO create metachain / blockchain
 	// TODO save config, and move this creation into another place for node movement
-	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig
+	// TODO call createMetaChainFromConfig and createMetaDataPoolFromConfig and createMetaChainDataStoreFromConfig
 
 	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
 	if err != nil {
@@ -403,7 +446,7 @@ func createNode(
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		netMessenger,
-		blkc,
+		store,
 		marshalizer,
 		hasher,
 		keyGen,
@@ -425,7 +468,7 @@ func createNode(
 	resolversContainerFactory, err := factoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		netMessenger,
-		blkc,
+		store,
 		marshalizer,
 		datapool,
 		uint64ByteSliceConverter,
@@ -448,6 +491,7 @@ func createNode(
 
 	blockProcessor, err := block.NewBlockProcessor(
 		datapool,
+		store,
 		hasher,
 		marshalizer,
 		transactionProcessor,
@@ -471,6 +515,7 @@ func createNode(
 		node.WithAddressConverter(addressConverter),
 		node.WithAccountsAdapter(accountsAdapter),
 		node.WithBlockChain(blkc),
+		node.WithDataStore(store),
 		node.WithRoundDuration(genesisConfig.RoundDuration),
 		node.WithConsensusGroupSize(int(genesisConfig.ConsensusGroupSize)),
 		node.WithSyncer(syncer),
@@ -573,12 +618,13 @@ func createNetMessenger(
 
 func getSk(ctx *cli.Context, log *logger.Logger) ([]byte, error) {
 	//if flag is defined, it shall overwrite what was read from pem file
-	if ctx.GlobalIsSet(flags.PrivateKey.Name) {
-		encodedSk := []byte(ctx.GlobalString(flags.PrivateKey.Name))
+	if ctx.GlobalIsSet(privateKey.Name) {
+		encodedSk := []byte(ctx.GlobalString(privateKey.Name))
 		return decodeAddress(string(encodedSk))
 	}
 
-	encodedSk, err := core.LoadSkFromPemFile(privKeyPemFile, log)
+	privateKeyIndex := ctx.GlobalInt(privateKeyIndex.Name)
+	encodedSk, err := core.LoadSkFromPemFile(privKeysPemFile, log, privateKeyIndex)
 	if err != nil {
 		return nil, err
 	}
@@ -697,7 +743,7 @@ func getBloomFromConfig(cfg config.BloomFilterConfig) storage.BloomConfig {
 func createShardDataPoolFromConfig(
 	config *config.Config,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-) (data.PoolsHolder, error) {
+) (dataRetriever.PoolsHolder, error) {
 
 	txPool, err := shardedData.NewShardedData(getCacherFromConfig(config.TxDataPool))
 	if err != nil {
@@ -749,6 +795,24 @@ func createShardDataPoolFromConfig(
 }
 
 func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error) {
+	badBlockCache, err := storage.NewCache(
+		storage.CacheType(config.BadBlocksCache.Type),
+		config.BadBlocksCache.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	blockChain, err := blockchain.NewBlockChain(
+		badBlockCache,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return blockChain, err
+}
+
+func createShardDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
 	var headerUnit, peerBlockUnit, miniBlockUnit, txUnit, metachainHeaderUnit *storage.Unit
 	var err error
 
@@ -772,14 +836,6 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 			}
 		}
 	}()
-
-	badBlockCache, err := storage.NewCache(
-		storage.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size)
-
-	if err != nil {
-		return nil, err
-	}
 
 	txUnit, err = storage.NewStorageUnitFromConf(
 		getCacherFromConfig(config.TxStorage.Cache),
@@ -821,26 +877,20 @@ func createBlockChainFromConfig(config *config.Config) (data.ChainHandler, error
 		return nil, err
 	}
 
-	blockChain, err := blockchain.NewBlockChain(
-		badBlockCache,
-		txUnit,
-		miniBlockUnit,
-		peerBlockUnit,
-		headerUnit,
-		metachainHeaderUnit,
-	)
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
+	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
+	store.AddStorer(dataRetriever.PeerChangesUnit, peerBlockUnit)
+	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
+	store.AddStorer(dataRetriever.MetaBlockUnit, metachainHeaderUnit)
 
-	if err != nil {
-		return nil, err
-	}
-
-	return blockChain, err
+	return store, err
 }
 
 func createMetaDataPoolFromConfig(
 	config *config.Config,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-) (data.MetaPoolsHolder, error) {
+) (dataRetriever.MetaPoolsHolder, error) {
 	cacherCfg := getCacherFromConfig(config.MetaBlockBodyDataPool)
 	metaBlockBody, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	if err != nil {
@@ -872,6 +922,24 @@ func createMetaDataPoolFromConfig(
 }
 
 func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, error) {
+	badBlockCache, err := storage.NewCache(
+		storage.CacheType(config.BadBlocksCache.Type),
+		config.BadBlocksCache.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	metaChain, err := blockchain.NewMetaChain(
+		badBlockCache,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return metaChain, err
+}
+
+func createMetaChainDataStoreFromConfig(config *config.Config) (dataRetriever.StorageService, error) {
 	var peerDataUnit, shardDataUnit, metaBlockUnit *storage.Unit
 	var err error
 
@@ -890,19 +958,10 @@ func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, er
 		}
 	}()
 
-	badBlockCache, err := storage.NewCache(
-		storage.CacheType(config.BadBlocksCache.Type),
-		config.BadBlocksCache.Size)
-
-	if err != nil {
-		return nil, err
-	}
-
 	metaBlockUnit, err = storage.NewStorageUnitFromConf(
 		getCacherFromConfig(config.MetaBlockStorage.Cache),
 		getDBFromConfig(config.MetaBlockStorage.DB),
 		getBloomFromConfig(config.MetaBlockStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
@@ -911,7 +970,6 @@ func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, er
 		getCacherFromConfig(config.ShardDataStorage.Cache),
 		getDBFromConfig(config.ShardDataStorage.DB),
 		getBloomFromConfig(config.ShardDataStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
@@ -920,23 +978,16 @@ func createMetaChainFromConfig(config *config.Config) (*blockchain.MetaChain, er
 		getCacherFromConfig(config.PeerDataStorage.Cache),
 		getDBFromConfig(config.PeerDataStorage.DB),
 		getBloomFromConfig(config.PeerDataStorage.Bloom))
-
 	if err != nil {
 		return nil, err
 	}
 
-	metaChain, err := blockchain.NewMetaChain(
-		badBlockCache,
-		metaBlockUnit,
-		shardDataUnit,
-		peerDataUnit,
-	)
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
+	store.AddStorer(dataRetriever.MetaShardDataUnit, shardDataUnit)
+	store.AddStorer(dataRetriever.MetaPeerDataUnit, peerDataUnit)
 
-	if err != nil {
-		return nil, err
-	}
-
-	return metaChain, err
+	return store, err
 }
 
 func decodeAddress(address string) ([]byte, error) {

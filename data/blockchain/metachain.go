@@ -8,14 +8,9 @@ import (
 
 // MetaChain holds the block information for the beacon chain
 //
-// The MetaChain through it's Storage units map manages the storage,
-// retrieval search of blocks (body), transactions, block headers,
-// bad blocks.
-//
 // The MetaChain also holds pointers to the Genesis block, the current block
 // the height of the local chain and the perceived height of the chain in the network.
 type MetaChain struct {
-	data.StorageService
 	GenesisBlock     *block.MetaBlock // Genesys Block pointer
 	genesisBlockHash []byte           // Genesis Block hash
 	CurrentBlock     *block.MetaBlock // Current Block pointer
@@ -28,34 +23,13 @@ type MetaChain struct {
 // NewMetaChain will initialize a new metachain instance
 func NewMetaChain(
 	badBlocksCache storage.Cacher,
-	metaBlockUnit storage.Storer,
-	shardDataUnit storage.Storer,
-	peerDataUnit storage.Storer) (*MetaChain, error) {
+) (*MetaChain, error) {
 	if badBlocksCache == nil {
 		return nil, ErrBadBlocksCacheNil
 	}
 
-	if metaBlockUnit == nil {
-		return nil, ErrMetaBlockUnitNil
-	}
-
-	if shardDataUnit == nil {
-		return nil, ErrShardDataUnitNil
-	}
-
-	if peerDataUnit == nil {
-		return nil, ErrPeerDataUnitNil
-	}
-
 	return &MetaChain{
 		badBlocks: badBlocksCache,
-		StorageService: &ChainStorer{
-			chain: map[data.UnitType]storage.Storer{
-				data.MetaBlockUnit:     metaBlockUnit,
-				data.MetaShardDataUnit: shardDataUnit,
-				data.MetaPeerDataUnit:  peerDataUnit,
-			},
-		},
 	}, nil
 }
 

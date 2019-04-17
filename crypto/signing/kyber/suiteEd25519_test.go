@@ -64,9 +64,10 @@ func TestSuiteEd25519_CreateKey(t *testing.T) {
 	suite := kyber.NewBlakeSHA256Ed25519()
 
 	stream := suite.RandomStream()
-	key := suite.CreateKey(stream)
+	private, public := suite.CreateKeyPair(stream)
 
-	assert.NotNil(t, key)
+	assert.NotNil(t, private)
+	assert.NotNil(t, public)
 }
 
 func TestSuiteEd25519_GetUnderlyingSuite(t *testing.T) {
