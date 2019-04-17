@@ -3,7 +3,6 @@ package resolvers
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -13,7 +12,7 @@ import (
 // TxResolver is a wrapper over Resolver that is specialized in resolving transaction requests
 type TxResolver struct {
 	dataRetriever.TopicResolverSender
-	txPool      data.ShardedDataCacherNotifier
+	txPool      dataRetriever.ShardedDataCacherNotifier
 	txStorage   storage.Storer
 	marshalizer marshal.Marshalizer
 }
@@ -21,7 +20,7 @@ type TxResolver struct {
 // NewTxResolver creates a new transaction resolver
 func NewTxResolver(
 	senderResolver dataRetriever.TopicResolverSender,
-	txPool data.ShardedDataCacherNotifier,
+	txPool dataRetriever.ShardedDataCacherNotifier,
 	txStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 ) (*TxResolver, error) {

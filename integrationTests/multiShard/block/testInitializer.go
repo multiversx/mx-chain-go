@@ -20,14 +20,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/integrationTests/multiShard/mock"
@@ -68,7 +68,7 @@ type testNode struct {
 	blkProcessor     process.BlockProcessor
 	sk               crypto.PrivateKey
 	pk               crypto.PublicKey
-	dPool            data.PoolsHolder
+	dPool            dataRetriever.PoolsHolder
 	resFinder        dataRetriever.ResolversFinder
 	headersRecv      int32
 	miniblocksRecv   int32
@@ -87,11 +87,6 @@ func createTestBlockChain() *blockchain.BlockChain {
 	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
 	)
 	blockChain.GenesisHeader = &dataBlock.Header{}
 
@@ -106,7 +101,18 @@ func createMemUnit() storage.Storer {
 	return unit
 }
 
-func createTestDataPool() data.PoolsHolder {
+func createTestStore() dataRetriever.StorageService {
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+
+	return store
+}
+
+func createTestDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100000, Type: storage.LRUCache})
 	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
@@ -145,7 +151,7 @@ func createAccountsDB() *state.AccountsDB {
 
 func createNetNode(
 	port int,
-	dPool data.PoolsHolder,
+	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	targetShardId uint32,
@@ -177,12 +183,13 @@ func createNetNode(
 	fmt.Printf("Found pk: %s\n", hex.EncodeToString(pkBuff))
 
 	blkc := createTestBlockChain()
+	store := createTestStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		messenger,
-		blkc,
+		store,
 		testMarshalizer,
 		testHasher,
 		keyGen,
@@ -199,7 +206,7 @@ func createNetNode(
 	resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		messenger,
-		blkc,
+		store,
 		testMarshalizer,
 		dPool,
 		uint64Converter,
@@ -216,6 +223,7 @@ func createNetNode(
 
 	blockProcessor, _ := block.NewBlockProcessor(
 		dPool,
+		store,
 		testHasher,
 		testMarshalizer,
 		txProcessor,
@@ -273,6 +281,7 @@ func createNetNode(
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
 		node.WithBlockProcessor(blockProcessor),
+		node.WithDataStore(store),
 	)
 
 	if err != nil {

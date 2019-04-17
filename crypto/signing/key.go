@@ -35,12 +35,12 @@ func (kg *keyGenerator) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 	}
 
 	return &privateKey{
-			suite: kg.suite,
-			sk:    private,
-		}, &publicKey{
-			suite: kg.suite,
-			pk:    public,
-		}
+		suite: kg.suite,
+		sk:    private,
+	}, &publicKey{
+		suite: kg.suite,
+		pk:    public,
+	}
 }
 
 // PrivateKeyFromByteArray generates a private key given a byte array
@@ -88,14 +88,20 @@ func newKeyPair(suite crypto.Suite) (private crypto.Scalar, public crypto.Point,
 	random := suite.RandomStream()
 
 	if g, ok := suite.(crypto.Generator); ok {
-		private = g.CreateKey(random)
-	} else {
-		privateKey, _ := suite.CreateScalar().Pick(random)
-		private = privateKey
+		private, public = g.CreateKeyPair(random)
+
+		return private, public, nil
 	}
 
-	pubKey, _ := suite.CreatePoint().Mul(private)
-	public = pubKey
+	private, err = suite.CreateScalar().Pick(random)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	public, err = suite.CreatePoint().Mul(private)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return private, public, nil
 }
