@@ -81,13 +81,10 @@ func (boot *baseBootstrap) setRequestedHeaderNonce(nonce *uint64) {
 }
 
 // requestedHeaderNonce method gets the header nonce requested by the sync mechanism
-func (boot *baseBootstrap) requestedHeaderNonce() (nonce *uint64) {
-	defer boot.mutHeader.RUnlock()
-
+func (boot *baseBootstrap) requestedHeaderNonce() *uint64 {
 	boot.mutHeader.RLock()
-	nonce = boot.headerNonce
-
-	return nonce
+	defer boot.mutHeader.RUnlock()
+	return boot.headerNonce
 }
 
 func (boot *baseBootstrap) processReceivedHeader(header data.HeaderHandler, headerHash []byte) {

@@ -871,9 +871,5 @@ func (n *Node) BroadcastMetaBlock(blockBody data.BodyHandler, header data.Header
 
 	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
 
-	for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
-		go n.messenger.Broadcast(factory.MetachainBlocksTopic+n.shardCoordinator.CommunicationIdentifier(i), msgHeader)
-	}
-
 	return nil
 }
