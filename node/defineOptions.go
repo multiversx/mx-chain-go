@@ -207,6 +207,17 @@ func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 	}
 }
 
+// WithMetaDataPool sets up the data pools option for the Node
+func WithMetaDataPool(dataPool dataRetriever.MetaPoolsHolder) Option {
+	return func(n *Node) error {
+		if dataPool == nil {
+			return ErrNilDataPool
+		}
+		n.metaDataPool = dataPool
+		return nil
+	}
+}
+
 // WithShardCoordinator sets up the shard coordinator for the Node
 func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	return func(n *Node) error {

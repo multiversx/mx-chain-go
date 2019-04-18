@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -77,7 +76,7 @@ type Bootstrapper interface {
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header *block.Header, hash []byte, isProcessed bool) error
+	AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error
 	RemoveHeaders(nonce uint64)
 	CheckFork() (bool, uint64)
 	GetHighestSignedBlockNonce() uint64
