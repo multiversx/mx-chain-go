@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initFactoryWithContainer(container *mock.ConsensusDataContainerMock) bn.Factory {
+func initFactoryWithContainer(container *mock.ConsensusCoreMock) bn.Factory {
 	worker := initWorker()
 	consensusState := initConsensusState()
 

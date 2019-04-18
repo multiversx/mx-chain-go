@@ -112,7 +112,7 @@ func (sr *subround) SetCheckFunction(check func() bool) {
 }
 
 func (sr *subround) SetConsensusState(state *spos.ConsensusState) {
-	sr.consensusState = state
+	sr.ConsensusState = state
 }
 
 // worker
@@ -235,22 +235,6 @@ func (wrk *worker) SetConsensusStateChangedChannels(consensusStateChangedChannel
 
 type SubroundStartRound *subroundStartRound
 
-func (sr *subroundStartRound) Bootstraper() process.Bootstrapper {
-	return sr.consensusDataContainer.BootStrapper()
-}
-
-func (sr *subroundStartRound) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
-}
-
-func (sr *subroundStartRound) Rounder() consensus.Rounder {
-	return sr.consensusDataContainer.Rounder()
-}
-
-func (sr *subroundStartRound) SyncTimer() ntp.SyncTimer {
-	return sr.consensusDataContainer.SyncTimer()
-}
-
 func (sr *subroundStartRound) DoStartRoundJob() bool {
 	return sr.doStartRoundJob()
 }
@@ -269,22 +253,6 @@ type SubroundBlock *subroundBlock
 
 func (sr *subroundBlock) BlockChain() data.ChainHandler {
 	return sr.Blockchain()
-}
-
-func (sr *subroundBlock) BlockProcessor() process.BlockProcessor {
-	return sr.consensusDataContainer.BlockProcessor()
-}
-
-func (sr *subroundBlock) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
-}
-
-func (sr *subroundBlock) Rounder() consensus.Rounder {
-	return sr.consensusDataContainer.Rounder()
-}
-
-func (sr *subroundBlock) SyncTimer() ntp.SyncTimer {
-	return sr.consensusDataContainer.SyncTimer()
 }
 
 func (sr *subroundBlock) DoBlockJob() bool {
@@ -327,18 +295,6 @@ func (sr *subroundBlock) CreateHeader() (data.HeaderHandler, error) {
 
 type SubroundCommitmentHash *subroundCommitmentHash
 
-func (sr *subroundCommitmentHash) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
-}
-
-func (sr *subroundCommitmentHash) MultiSigner() crypto.MultiSigner {
-	return sr.consensusDataContainer.MultiSigner()
-}
-
-func (sr *subroundCommitmentHash) Rounder() consensus.Rounder {
-	return sr.consensusDataContainer.Rounder()
-}
-
 func (sr *subroundCommitmentHash) DoCommitmentHashJob() bool {
 	return sr.doCommitmentHashJob()
 }
@@ -367,14 +323,6 @@ func (sr *subroundCommitmentHash) GenCommitmentHash() ([]byte, error) {
 
 type SubroundBitmap *subroundBitmap
 
-func (sr *subroundBitmap) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
-}
-
-func (sr *subroundBitmap) Rounder() consensus.Rounder {
-	return sr.consensusDataContainer.Rounder()
-}
-
 func (sr *subroundBitmap) DoBitmapJob() bool {
 	return sr.doBitmapJob()
 }
@@ -395,14 +343,6 @@ func (sr *subroundBitmap) IsBitmapReceived(threshold int) bool {
 
 type SubroundCommitment *subroundCommitment
 
-func (sr *subroundCommitment) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
-}
-
-func (sr *subroundCommitment) Rounder() consensus.Rounder {
-	return sr.consensusDataContainer.Rounder()
-}
-
 func (sr *subroundCommitment) DoCommitmentJob() bool {
 	return sr.doCommitmentJob()
 }
@@ -422,18 +362,6 @@ func (sr *subroundCommitment) CommitmentsCollected(threshold int) bool {
 // subroundSignature
 
 type SubroundSignature *subroundSignature
-
-func (sr *subroundSignature) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
-}
-
-func (sr *subroundSignature) MultiSigner() crypto.MultiSigner {
-	return sr.consensusDataContainer.MultiSigner()
-}
-
-func (sr *subroundSignature) Rounder() consensus.Rounder {
-	return sr.consensusDataContainer.Rounder()
-}
 
 func (sr *subroundSignature) DoSignatureJob() bool {
 	return sr.doSignatureJob()
@@ -458,18 +386,6 @@ func (sr *subroundSignature) SignaturesCollected(threshold int) bool {
 // subroundEndRound
 
 type SubroundEndRound *subroundEndRound
-
-func (sr *subroundEndRound) BlockProcessor() process.BlockProcessor {
-	return sr.consensusDataContainer.BlockProcessor()
-}
-
-func (sr *subroundEndRound) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
-}
-
-func (sr *subroundEndRound) MultiSigner() crypto.MultiSigner {
-	return sr.consensusDataContainer.MultiSigner()
-}
 
 func (sr *subroundEndRound) DoEndRoundJob() bool {
 	return sr.doEndRoundJob()

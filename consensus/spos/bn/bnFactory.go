@@ -9,14 +9,14 @@ import (
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
 // functionality
 type factory struct {
-	consensusDataContainer spos.ConsensusDataContainerInterface
+	consensusDataContainer spos.ConsensusCore
 	consensusState         *spos.ConsensusState
 	worker                 *worker
 }
 
 // NewFactory creates a new consensusState object
 func NewFactory(
-	consensusDataContainer spos.ConsensusDataContainerInterface,
+	consensusDataContainer spos.ConsensusCore,
 	consensusState *spos.ConsensusState,
 	worker *worker,
 ) (*factory, error) {
@@ -41,13 +41,11 @@ func NewFactory(
 }
 
 func checkNewFactoryParams(
-	container spos.ConsensusDataContainerInterface,
+	container spos.ConsensusCore,
 	state *spos.ConsensusState,
 	worker *worker,
 ) error {
-	consensusDataContainerValidator := spos.ConsensusContainerValidator{}
-
-	err := consensusDataContainerValidator.ValidateConsensusDataContainer(container)
+	err := spos.ValidateConsensusCore(container)
 	if err != nil {
 		return err
 	}
@@ -70,43 +68,36 @@ func (fct *factory) GenerateSubrounds() error {
 	fct.worker.RemoveAllReceivedMessagesCalls()
 
 	err := fct.generateStartRoundSubround()
-
 	if err != nil {
 		return err
 	}
 
 	err = fct.generateBlockSubround()
-
 	if err != nil {
 		return err
 	}
 
 	err = fct.generateCommitmentHashSubround()
-
 	if err != nil {
 		return err
 	}
 
 	err = fct.generateBitmapSubround()
-
 	if err != nil {
 		return err
 	}
 
 	err = fct.generateCommitmentSubround()
-
 	if err != nil {
 		return err
 	}
 
 	err = fct.generateSignatureSubround()
-
 	if err != nil {
 		return err
 	}
 
 	err = fct.generateEndRoundSubround()
-
 	if err != nil {
 		return err
 	}

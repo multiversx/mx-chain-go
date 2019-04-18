@@ -5,13 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
-	"github.com/ElrondNetwork/elrond-go-sandbox/process"
-	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
 // subround struct contains the needed data for one subround and the subround properties. It defines a subround
@@ -19,7 +12,8 @@ import (
 // which should be set. job function will be the main function of this subround, extend function will handle the overtime
 // situation of the subround and check function will decide if in this subround the consensus is achieved
 type subround struct {
-	consensusDataContainer spos.ConsensusDataContainerInterface
+	spos.ConsensusCore
+	*spos.ConsensusState
 
 	previous  int
 	current   int
@@ -28,7 +22,6 @@ type subround struct {
 	endTime   int64
 	name      string
 
-	consensusState               *spos.ConsensusState
 	consensusStateChangedChannel chan bool
 
 	job    func() bool          // method does the subround job and send the result to the peers
@@ -46,29 +39,30 @@ func NewSubround(
 	name string,
 	consensusState *spos.ConsensusState,
 	consensusStateChangedChannel chan bool,
-	container spos.ConsensusDataContainerInterface,
+	container spos.ConsensusCore,
 ) (*subround, error) {
-
 	err := checkNewSubroundParams(
 		consensusState,
 		consensusStateChangedChannel,
 		container,
 	)
-
 	if err != nil {
 		return nil, err
 	}
 
 	sr := subround{
-		previous:                     previous,
-		current:                      current,
-		next:                         next,
-		endTime:                      endTime,
-		startTime:                    startTime,
-		name:                         name,
-		consensusStateChangedChannel: consensusStateChangedChannel,
-		consensusDataContainer:       container,
-		consensusState:               consensusState,
+		container,
+		consensusState,
+		previous,
+		current,
+		next,
+		startTime,
+		endTime,
+		name,
+		consensusStateChangedChannel,
+		nil,
+		nil,
+		nil,
 	}
 
 	return &sr, nil
@@ -77,18 +71,15 @@ func NewSubround(
 func checkNewSubroundParams(
 	state *spos.ConsensusState,
 	consensusStateChangedChannel chan bool,
-	container spos.ConsensusDataContainerInterface,
+	container spos.ConsensusCore,
 ) error {
-	containerValidator := spos.ConsensusContainerValidator{}
-	err := containerValidator.ValidateConsensusDataContainer(container)
+	err := spos.ValidateConsensusCore(container)
 	if err != nil {
 		return err
 	}
-
 	if consensusStateChangedChannel == nil {
 		return spos.ErrNilChannel
 	}
-
 	if state == nil {
 		return spos.ErrNilConsensusState
 	}
@@ -157,64 +148,4 @@ func (sr *subround) EndTime() int64 {
 // Name method returns the name of the subround
 func (sr *subround) Name() string {
 	return sr.name
-}
-
-//Blockchain gets the ChainHandler stored in the ConsensusDataContainer
-func (sr *subround) Blockchain() data.ChainHandler {
-	return sr.consensusDataContainer.Blockchain()
-}
-
-//BlockProcessor gets the BlockProcessor stored in the ConsensusDataContainer
-func (sr *subround) BlockProcessor() process.BlockProcessor {
-	return sr.consensusDataContainer.BlockProcessor()
-}
-
-//GetBootStrapper gets the Bootstrapper stored in the ConsensusDataContainer
-func (sr *subround) BootStrapper() process.Bootstrapper {
-	return sr.consensusDataContainer.BootStrapper()
-}
-
-//Chronology gets the ChronologyHandler stored in the ConsensusDataContainer
-func (sr *subround) Chronology() consensus.ChronologyHandler {
-	return sr.consensusDataContainer.Chronology()
-}
-
-//ConsensusState gets the ConsensusState stored in the ConsensusDataContainer
-func (sr *subround) ConsensusState() *spos.ConsensusState {
-	return sr.consensusState
-}
-
-//Hasher gets the Hasher stored in the ConsensusDataContainer
-func (sr *subround) Hasher() hashing.Hasher {
-	return sr.consensusDataContainer.Hasher()
-}
-
-//Marshalizer gets the Marshalizer stored in the ConsensusDataContainer
-func (sr *subround) Marshalizer() marshal.Marshalizer {
-	return sr.consensusDataContainer.Marshalizer()
-}
-
-//MultiSigner gets the MultiSigner stored in the ConsensusDataContainer
-func (sr *subround) MultiSigner() crypto.MultiSigner {
-	return sr.consensusDataContainer.MultiSigner()
-}
-
-//Rounder gets the Rounder stored in the ConsensusDataContainer
-func (sr *subround) Rounder() consensus.Rounder {
-	return sr.consensusDataContainer.Rounder()
-}
-
-//ShardCoordinator gets the Coordinator stored in the ConsensusDataContainer
-func (sr *subround) ShardCoordinator() sharding.Coordinator {
-	return sr.consensusDataContainer.ShardCoordinator()
-}
-
-//SyncTimer gets the SyncTimer stored in the ConsensusDataContainer
-func (sr *subround) SyncTimer() ntp.SyncTimer {
-	return sr.consensusDataContainer.SyncTimer()
-}
-
-//ValidatorGroupSelector gets the ValidatorGroupSelector stored in the ConsensusDataContainer
-func (sr *subround) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
-	return sr.consensusDataContainer.ValidatorGroupSelector()
 }

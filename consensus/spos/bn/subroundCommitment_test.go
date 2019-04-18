@@ -51,7 +51,6 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSubroundShouldFail(t *testin
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *testing.T) {
-	t.SkipNow()
 	t.Parallel()
 
 	container := mock.InitContainer()
@@ -239,31 +238,31 @@ func TestSubroundCommitment_DoCommitmentJob(t *testing.T) {
 	r := sr.DoCommitmentJob()
 	assert.False(t, r)
 
-	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsFinished)
-	sr.ConsensusState().SetStatus(bn.SrCommitment, spos.SsFinished)
+	sr.SetStatus(bn.SrBitmap, spos.SsFinished)
+	sr.SetStatus(bn.SrCommitment, spos.SsFinished)
 
 	r = sr.DoCommitmentJob()
 	assert.False(t, r)
 
-	sr.ConsensusState().SetStatus(bn.SrCommitment, spos.SsNotFinished)
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().SelfPubKey(), bn.SrCommitment, true)
+	sr.SetStatus(bn.SrCommitment, spos.SsNotFinished)
+	sr.SetJobDone(sr.SelfPubKey(), bn.SrCommitment, true)
 
 	r = sr.DoCommitmentJob()
 	assert.False(t, r)
 
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().SelfPubKey(), bn.SrCommitment, false)
+	sr.SetJobDone(sr.SelfPubKey(), bn.SrCommitment, false)
 
 	r = sr.DoCommitmentJob()
 	assert.False(t, r)
 
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().SelfPubKey(), bn.SrBitmap, true)
-	sr.ConsensusState().Data = nil
+	sr.SetJobDone(sr.SelfPubKey(), bn.SrBitmap, true)
+	sr.Data = nil
 
 	r = sr.DoCommitmentJob()
 	assert.False(t, r)
 
 	dta := []byte("X")
-	sr.ConsensusState().Data = dta
+	sr.Data = dta
 
 	r = sr.DoCommitmentJob()
 	assert.True(t, r)
@@ -277,35 +276,35 @@ func TestSubroundCommitment_ReceivedCommitment(t *testing.T) {
 	commitment := []byte("commitment")
 
 	cnsMsg := consensus.NewConsensusMessage(
-		sr.ConsensusState().Data,
+		sr.Data,
 		commitment,
-		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
+		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtCommitment),
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		0)
 
-	sr.ConsensusState().Data = nil
+	sr.Data = nil
 	r := sr.ReceivedCommitment(cnsMsg)
 	assert.False(t, r)
 
-	sr.ConsensusState().Data = []byte("X")
-	sr.ConsensusState().SetStatus(bn.SrCommitment, spos.SsFinished)
+	sr.Data = []byte("X")
+	sr.SetStatus(bn.SrCommitment, spos.SsFinished)
 
 	r = sr.ReceivedCommitment(cnsMsg)
 	assert.False(t, r)
 
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrBitmap, true)
-	sr.ConsensusState().SetStatus(bn.SrCommitment, spos.SsFinished)
+	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrBitmap, true)
+	sr.SetStatus(bn.SrCommitment, spos.SsFinished)
 
 	r = sr.ReceivedCommitment(cnsMsg)
 	assert.False(t, r)
 
-	sr.ConsensusState().SetStatus(bn.SrCommitment, spos.SsNotFinished)
+	sr.SetStatus(bn.SrCommitment, spos.SsNotFinished)
 
 	r = sr.ReceivedCommitment(cnsMsg)
 	assert.True(t, r)
-	isCommJobDone, _ := sr.ConsensusState().JobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrCommitment)
+	isCommJobDone, _ := sr.JobDone(sr.ConsensusGroup()[0], bn.SrCommitment)
 	assert.True(t, isCommJobDone)
 }
 
@@ -313,7 +312,7 @@ func TestSubroundCommitment_DoCommitmentConsensusCheckShouldReturnFalseWhenRound
 	t.Parallel()
 
 	sr := *initSubroundCommitment()
-	sr.ConsensusState().RoundCanceled = true
+	sr.RoundCanceled = true
 	assert.False(t, sr.DoCommitmentConsensusCheck())
 }
 
@@ -321,7 +320,7 @@ func TestSubroundCommitment_DoCommitmentConsensusCheckShouldReturnTrueWhenSubrou
 	t.Parallel()
 
 	sr := *initSubroundCommitment()
-	sr.ConsensusState().SetStatus(bn.SrCommitment, spos.SsFinished)
+	sr.SetStatus(bn.SrCommitment, spos.SsFinished)
 	assert.True(t, sr.DoCommitmentConsensusCheck())
 }
 
@@ -330,9 +329,9 @@ func TestSubroundCommitment_DoCommitmentConsensusCheckShouldReturnTrueWhenCommit
 
 	sr := *initSubroundCommitment()
 
-	for i := 0; i < sr.ConsensusState().Threshold(bn.SrBitmap); i++ {
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBitmap, true)
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrCommitment, true)
+	for i := 0; i < sr.Threshold(bn.SrBitmap); i++ {
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBitmap, true)
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitment, true)
 	}
 
 	assert.True(t, sr.DoCommitmentConsensusCheck())
@@ -350,37 +349,37 @@ func TestSubroundCommitment_CommitmentsCollected(t *testing.T) {
 
 	sr := *initSubroundCommitment()
 
-	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBlock, false)
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrCommitmentHash, false)
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBitmap, false)
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrCommitment, false)
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrSignature, false)
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBlock, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitmentHash, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBitmap, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitment, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrSignature, false)
 	}
 
 	ok := sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.ConsensusState().SetJobDone("A", bn.SrBitmap, true)
-	sr.ConsensusState().SetJobDone("C", bn.SrBitmap, true)
-	isJobDone, _ := sr.ConsensusState().JobDone("C", bn.SrBitmap)
+	sr.SetJobDone("A", bn.SrBitmap, true)
+	sr.SetJobDone("C", bn.SrBitmap, true)
+	isJobDone, _ := sr.JobDone("C", bn.SrBitmap)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.ConsensusState().SetJobDone("B", bn.SrCommitment, true)
-	isJobDone, _ = sr.ConsensusState().JobDone("B", bn.SrCommitment)
+	sr.SetJobDone("B", bn.SrCommitment, true)
+	isJobDone, _ = sr.JobDone("B", bn.SrCommitment)
 	assert.True(t, isJobDone)
 
 	ok = sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.ConsensusState().SetJobDone("C", bn.SrCommitment, true)
+	sr.SetJobDone("C", bn.SrCommitment, true)
 	ok = sr.CommitmentsCollected(2)
 	assert.False(t, ok)
 
-	sr.ConsensusState().SetJobDone("A", bn.SrCommitment, true)
+	sr.SetJobDone("A", bn.SrCommitment, true)
 	ok = sr.CommitmentsCollected(2)
 	assert.True(t, ok)
 }
@@ -391,15 +390,15 @@ func TestSubroundCommitment_ReceivedCommitmentReturnFalseWhenConsensusDataIsNotE
 	sr := *initSubroundCommitment()
 
 	cnsMsg := consensus.NewConsensusMessage(
-		append(sr.ConsensusState().Data, []byte("X")...),
+		append(sr.Data, []byte("X")...),
 		[]byte("commitment"),
-		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
+		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtCommitment),
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		0)
 
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrBitmap, true)
+	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrBitmap, true)
 
 	assert.False(t, sr.ReceivedCommitment(cnsMsg))
 }

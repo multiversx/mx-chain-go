@@ -256,7 +256,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	consensusDataContainer, err := spos.NewConsensusDataContainer(
+	consensusDataContainer, err := spos.NewConsensusCore(
 		n.blkc,
 		n.blockProcessor,
 		bootstraper,

@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initSubroundStartRoundWithContainer(container spos.ConsensusDataContainerInterface) bn.SubroundStartRound {
+func initSubroundStartRoundWithContainer(container spos.ConsensusCore) bn.SubroundStartRound {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -112,7 +112,6 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBootstraperShouldFail(t *tes
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *testing.T) {
-	t.SkipNow()
 	t.Parallel()
 
 	container := mock.InitContainer()
@@ -171,7 +170,6 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *tes
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilRounderShouldFail(t *testing.T) {
-	t.SkipNow()
 	t.Parallel()
 
 	container := mock.InitContainer()
@@ -321,7 +319,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenRound
 
 	sr := *initSubroundStartRound()
 
-	sr.ConsensusState().RoundCanceled = true
+	sr.RoundCanceled = true
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.False(t, ok)
@@ -332,7 +330,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundI
 
 	sr := *initSubroundStartRound()
 
-	sr.ConsensusState().SetStatus(bn.SrStartRound, spos.SsFinished)
+	sr.SetStatus(bn.SrStartRound, spos.SsFinished)
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.True(t, ok)

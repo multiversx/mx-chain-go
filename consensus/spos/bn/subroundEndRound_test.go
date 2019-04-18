@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initSubroundEndRoundWithContainer(container *mock.ConsensusDataContainerMock) bn.SubroundEndRound {
+func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bn.SubroundEndRound {
 	ch := make(chan bool, 1)
 
 	consensusState := initConsensusState()
@@ -118,7 +118,6 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *testing.T) {
-	t.SkipNow()
 	t.Parallel()
 
 	container := mock.InitContainer()
@@ -309,7 +308,7 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	}
 
 	container.SetMultiSigner(multiSignerMock)
-	sr.ConsensusState().Header = &block.Header{}
+	sr.Header = &block.Header{}
 
 	r := sr.DoEndRoundJob()
 	assert.False(t, r)
@@ -332,7 +331,7 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	}
 
 	container.SetBlockProcessor(blProcMock)
-	sr.ConsensusState().Header = &block.Header{}
+	sr.Header = &block.Header{}
 
 	r := sr.DoEndRoundJob()
 	assert.False(t, r)
@@ -347,7 +346,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 		return spos.ErrNilBroadcastBlockFunction
 	})
 
-	sr.ConsensusState().Header = &block.Header{}
+	sr.Header = &block.Header{}
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
@@ -358,7 +357,7 @@ func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
 
 	sr := *initSubroundEndRound()
 
-	sr.ConsensusState().Header = &block.Header{}
+	sr.Header = &block.Header{}
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
@@ -369,7 +368,7 @@ func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnFalseWhenRoundIsCa
 
 	sr := *initSubroundEndRound()
 
-	sr.ConsensusState().RoundCanceled = true
+	sr.RoundCanceled = true
 
 	ok := sr.DoEndRoundConsensusCheck()
 	assert.False(t, ok)
@@ -380,7 +379,7 @@ func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnTrueWhenRoundIsFin
 
 	sr := *initSubroundEndRound()
 
-	sr.ConsensusState().SetStatus(bn.SrEndRound, spos.SsFinished)
+	sr.SetStatus(bn.SrEndRound, spos.SsFinished)
 
 	ok := sr.DoEndRoundConsensusCheck()
 	assert.True(t, ok)
@@ -412,7 +411,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrIndexOutOfBounds(t *te
 
 	_, _ = sr.MultiSigner().Create(nil, 0)
 
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrSignature, true)
+	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
 
 	multiSignerMock := mock.InitMultiSignerMock()
 	multiSignerMock.SignatureShareMock = func(index uint16) ([]byte, error) {
@@ -439,7 +438,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(
 
 	container.SetMultiSigner(multiSignerMock)
 
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrSignature, true)
+	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
 
 	err2 := sr.CheckSignaturesValidity([]byte(string(1)))
 	assert.Equal(t, err, err2)
@@ -450,7 +449,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldRetunNil(t *testing.T) {
 
 	sr := *initSubroundEndRound()
 
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[0], bn.SrSignature, true)
+	sr.SetJobDone(sr.ConsensusGroup()[0], bn.SrSignature, true)
 
 	err := sr.CheckSignaturesValidity([]byte(string(1)))
 	assert.Equal(t, nil, err)

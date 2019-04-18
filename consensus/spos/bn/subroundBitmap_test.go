@@ -83,7 +83,6 @@ func TestSubroundBitmap_NewSubroundBitmapNilBlockProcessorShouldFail(t *testing.
 }
 
 func TestSubroundBitmap_NewSubroundBitmapNilConsensusStateShouldFail(t *testing.T) {
-	t.SkipNow()
 	t.Parallel()
 
 	ch := make(chan bool, 1)
@@ -237,42 +236,42 @@ func TestSubroundBitmap_DoBitmapJob(t *testing.T) {
 
 	sr := *initSubroundBitmap()
 
-	sr.ConsensusState().Header = &block.Header{}
+	sr.Header = &block.Header{}
 
 	r := sr.DoBitmapJob()
 	assert.False(t, r)
 
-	sr.ConsensusState().SetStatus(bn.SrCommitmentHash, spos.SsFinished)
-	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsFinished)
+	sr.SetStatus(bn.SrCommitmentHash, spos.SsFinished)
+	sr.SetStatus(bn.SrBitmap, spos.SsFinished)
 
 	r = sr.DoBitmapJob()
 	assert.False(t, r)
 
-	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsNotFinished)
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().SelfPubKey(), bn.SrBitmap, true)
+	sr.SetStatus(bn.SrBitmap, spos.SsNotFinished)
+	sr.SetJobDone(sr.SelfPubKey(), bn.SrBitmap, true)
 
 	r = sr.DoBitmapJob()
 	assert.False(t, r)
 
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().SelfPubKey(), bn.SrBitmap, false)
-	sr.ConsensusState().SetSelfPubKey(sr.ConsensusState().ConsensusGroup()[1])
+	sr.SetJobDone(sr.SelfPubKey(), bn.SrBitmap, false)
+	sr.SetSelfPubKey(sr.ConsensusGroup()[1])
 
 	r = sr.DoBitmapJob()
 	assert.False(t, r)
 
-	sr.ConsensusState().SetSelfPubKey(sr.ConsensusState().ConsensusGroup()[0])
-	sr.ConsensusState().Data = nil
+	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+	sr.Data = nil
 
 	r = sr.DoBitmapJob()
 	assert.False(t, r)
 
 	dta := []byte("X")
-	sr.ConsensusState().Data = dta
-	sr.ConsensusState().SetJobDone(sr.ConsensusState().SelfPubKey(), bn.SrCommitmentHash, true)
+	sr.Data = dta
+	sr.SetJobDone(sr.SelfPubKey(), bn.SrCommitmentHash, true)
 
 	r = sr.DoBitmapJob()
 	assert.True(t, r)
-	isBitmapJobDone, _ := sr.ConsensusState().JobDone(sr.ConsensusState().SelfPubKey(), bn.SrBitmap)
+	isBitmapJobDone, _ := sr.JobDone(sr.SelfPubKey(), bn.SrBitmap)
 	assert.True(t, isBitmapJobDone)
 }
 
@@ -281,41 +280,41 @@ func TestSubroundBitmap_ReceivedBitmap(t *testing.T) {
 
 	sr := *initSubroundBitmap()
 
-	sr.ConsensusState().Header = &block.Header{}
+	sr.Header = &block.Header{}
 
 	commitment := []byte("commitment")
 
 	cnsMsg := consensus.NewConsensusMessage(
-		sr.ConsensusState().Data,
+		sr.Data,
 		commitment,
-		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
+		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtCommitmentHash),
 		uint64(sr.Rounder().TimeStamp().Unix()),
 		0,
 	)
 
-	sr.ConsensusState().Data = nil
+	sr.Data = nil
 	r := sr.ReceivedBitmap(cnsMsg)
 	assert.False(t, r)
 
-	sr.ConsensusState().Data = []byte("X")
-	cnsMsg.PubKey = []byte(sr.ConsensusState().ConsensusGroup()[0] + "X")
+	sr.Data = []byte("X")
+	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[0] + "X")
 	r = sr.ReceivedBitmap(cnsMsg)
 	assert.False(t, r)
 
-	cnsMsg.PubKey = []byte(sr.ConsensusState().ConsensusGroup()[0])
-	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsFinished)
+	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[0])
+	sr.SetStatus(bn.SrBitmap, spos.SsFinished)
 	r = sr.ReceivedBitmap(cnsMsg)
 	assert.False(t, r)
 
-	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsNotFinished)
+	sr.SetStatus(bn.SrBitmap, spos.SsNotFinished)
 
 	bitmap := make([]byte, 3)
 
-	cnGroup := sr.ConsensusState().ConsensusGroup()
+	cnGroup := sr.ConsensusGroup()
 
-	selfIndexInConsensusGroup, _ := sr.ConsensusState().SelfConsensusGroupIndex()
+	selfIndexInConsensusGroup, _ := sr.SelfConsensusGroupIndex()
 
 	// fill ony few of the signers in bitmap
 	for i := 0; i < 5; i++ {
@@ -341,7 +340,7 @@ func TestSubroundBitmap_ReceivedBitmap(t *testing.T) {
 	assert.False(t, r)
 
 	//fill self
-	sr.ConsensusState().ResetRoundState()
+	sr.ResetRoundState()
 	bitmap[selfIndexInConsensusGroup/8] |= 1 << uint16(selfIndexInConsensusGroup%8)
 
 	cnsMsg.SubRoundData = bitmap
@@ -353,7 +352,7 @@ func TestSubroundBitmap_DoBitmapConsensusCheckShouldReturnFalseWhenRoundIsCancel
 	t.Parallel()
 
 	sr := *initSubroundBitmap()
-	sr.ConsensusState().RoundCanceled = true
+	sr.RoundCanceled = true
 	assert.False(t, sr.DoBitmapConsensusCheck())
 }
 
@@ -361,7 +360,7 @@ func TestSubroundBitmap_DoBitmapConsensusCheckShouldReturnTrueWhenSubroundIsFini
 	t.Parallel()
 
 	sr := *initSubroundBitmap()
-	sr.ConsensusState().SetStatus(bn.SrBitmap, spos.SsFinished)
+	sr.SetStatus(bn.SrBitmap, spos.SsFinished)
 	assert.True(t, sr.DoBitmapConsensusCheck())
 }
 
@@ -370,8 +369,8 @@ func TestSubroundBitmap_DoBitmapConsensusCheckShouldReturnTrueWhenBitmapIsReceiv
 
 	sr := *initSubroundBitmap()
 
-	for i := 0; i < sr.ConsensusState().Threshold(bn.SrBitmap); i++ {
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBitmap, true)
+	for i := 0; i < sr.Threshold(bn.SrBitmap); i++ {
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBitmap, true)
 	}
 
 	assert.True(t, sr.DoBitmapConsensusCheck())
@@ -389,29 +388,29 @@ func TestSubroundBitmap_IsBitmapReceived(t *testing.T) {
 
 	sr := *initSubroundBitmap()
 
-	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBlock, false)
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrCommitmentHash, false)
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrBitmap, false)
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrCommitment, false)
-		sr.ConsensusState().SetJobDone(sr.ConsensusState().ConsensusGroup()[i], bn.SrSignature, false)
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBlock, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitmentHash, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrBitmap, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrCommitment, false)
+		sr.SetJobDone(sr.ConsensusGroup()[i], bn.SrSignature, false)
 	}
 
 	ok := sr.IsBitmapReceived(2)
 	assert.False(t, ok)
 
-	sr.ConsensusState().SetJobDone("A", bn.SrBitmap, true)
-	isJobDone, _ := sr.ConsensusState().JobDone("A", bn.SrBitmap)
+	sr.SetJobDone("A", bn.SrBitmap, true)
+	isJobDone, _ := sr.JobDone("A", bn.SrBitmap)
 	assert.True(t, isJobDone)
 
 	ok = sr.IsBitmapReceived(2)
 	assert.False(t, ok)
 
-	sr.ConsensusState().SetJobDone("B", bn.SrBitmap, true)
+	sr.SetJobDone("B", bn.SrBitmap, true)
 	ok = sr.IsBitmapReceived(2)
 	assert.True(t, ok)
 
-	sr.ConsensusState().SetJobDone("C", bn.SrBitmap, true)
+	sr.SetJobDone("C", bn.SrBitmap, true)
 	ok = sr.IsBitmapReceived(2)
 	assert.True(t, ok)
 }
@@ -421,12 +420,12 @@ func TestSubroundBitmap_ReceivedBitmapReturnFalseWhenConsensusDataIsNotEqual(t *
 
 	sr := *initSubroundBitmap()
 
-	sr.ConsensusState().Header = &block.Header{}
+	sr.Header = &block.Header{}
 
 	cnsMsg := consensus.NewConsensusMessage(
-		append(sr.ConsensusState().Data, []byte("X")...),
+		append(sr.Data, []byte("X")...),
 		[]byte("commitment"),
-		[]byte(sr.ConsensusState().ConsensusGroup()[0]),
+		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
 		int(bn.MtBitmap),
 		uint64(sr.Rounder().TimeStamp().Unix()),

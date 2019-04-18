@@ -54,27 +54,30 @@ func checkNewSubroundBlockParams(
 		return spos.ErrNilSubround
 	}
 
+	if subround.ConsensusState == nil {
+		return spos.ErrNilConsensusState
+	}
+
 	if sendConsensusMessage == nil {
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	containerValidator := spos.ConsensusContainerValidator{}
-	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
+	err := spos.ValidateConsensusCore(subround.ConsensusCore)
 
 	return err
 }
 
 // doBlockJob method does the job of the block subround
 func (sr *subroundBlock) doBlockJob() bool {
-	if !sr.ConsensusState().IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
+	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
 	}
 
-	if sr.ConsensusState().IsSelfJobDone(SrBlock) {
+	if sr.IsSelfJobDone(SrBlock) {
 		return false
 	}
 
-	if sr.ConsensusState().IsCurrentSubroundFinished(SrBlock) {
+	if sr.IsCurrentSubroundFinished(SrBlock) {
 		return false
 	}
 
@@ -83,14 +86,14 @@ func (sr *subroundBlock) doBlockJob() bool {
 		return false
 	}
 
-	err := sr.ConsensusState().SetSelfJobDone(SrBlock, true)
+	err := sr.SetSelfJobDone(SrBlock, true)
 
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	sr.MultiSigner().SetMessage(sr.ConsensusState().GetData())
+	sr.MultiSigner().SetMessage(sr.GetData())
 
 	return true
 }
@@ -98,7 +101,7 @@ func (sr *subroundBlock) doBlockJob() bool {
 // sendBlockBody method job the proposed block body in the Block subround
 func (sr *subroundBlock) sendBlockBody() bool {
 	startTime := time.Time{}
-	startTime = sr.ConsensusState().RoundTimeStamp
+	startTime = sr.RoundTimeStamp
 	maxTime := time.Duration(sr.EndTime())
 	haveTimeInCurrentSubround := func() bool {
 		return sr.Rounder().RemainingTime(startTime, maxTime) > 0
@@ -124,7 +127,7 @@ func (sr *subroundBlock) sendBlockBody() bool {
 	msg := consensus.NewConsensusMessage(
 		nil,
 		blkStr,
-		[]byte(sr.ConsensusState().SelfPubKey()),
+		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockBody),
 		uint64(sr.Rounder().TimeStamp().Unix()),
@@ -136,7 +139,7 @@ func (sr *subroundBlock) sendBlockBody() bool {
 
 	log.Info(fmt.Sprintf("%sStep 1: block body has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
-	sr.ConsensusState().BlockBody = blockBody
+	sr.BlockBody = blockBody
 
 	return true
 }
@@ -161,7 +164,7 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 	msg := consensus.NewConsensusMessage(
 		hdrHash,
 		hdrStr,
-		[]byte(sr.ConsensusState().SelfPubKey()),
+		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockHeader),
 		uint64(sr.Rounder().TimeStamp().Unix()),
@@ -174,14 +177,14 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been sent\n",
 		sr.SyncTimer().FormattedCurrentTime(), hdr.GetNonce(), toB64(hdrHash)))
 
-	sr.ConsensusState().Data = hdrHash
-	sr.ConsensusState().Header = hdr
+	sr.Data = hdrHash
+	sr.Header = hdr
 
 	return true
 }
 
 func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
-	hdr, err := sr.BlockProcessor().CreateBlockHeader(sr.ConsensusState().BlockBody)
+	hdr, err := sr.BlockProcessor().CreateBlockHeader(sr.BlockBody)
 
 	if err != nil {
 		return nil, err
@@ -212,21 +215,21 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.ConsensusMessage) bool {
 	node := string(cnsDta.PubKey)
 
-	if sr.ConsensusState().IsBlockBodyAlreadyReceived() {
+	if sr.IsBlockBodyAlreadyReceived() {
 		return false
 	}
 
-	if !sr.ConsensusState().IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
 		return false
 	}
 
-	if !sr.ConsensusState().CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), SrBlock) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), SrBlock) {
 		return false
 	}
 
-	sr.ConsensusState().BlockBody = sr.decodeBlockBody(cnsDta.SubRoundData)
+	sr.BlockBody = sr.decodeBlockBody(cnsDta.SubRoundData)
 
-	if sr.ConsensusState().BlockBody == nil {
+	if sr.BlockBody == nil {
 		return false
 	}
 
@@ -261,33 +264,33 @@ func (sr *subroundBlock) decodeBlockBody(dta []byte) block.Body {
 func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.ConsensusMessage) bool {
 	node := string(cnsDta.PubKey)
 
-	if sr.ConsensusState().IsConsensusDataSet() {
+	if sr.IsConsensusDataSet() {
 		return false
 	}
 
-	if sr.ConsensusState().IsHeaderAlreadyReceived() {
+	if sr.IsHeaderAlreadyReceived() {
 		return false
 	}
 
-	if !sr.ConsensusState().IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
 		return false
 	}
 
-	if !sr.ConsensusState().CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), SrBlock) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), SrBlock) {
 		return false
 	}
 
-	sr.ConsensusState().Data = cnsDta.BlockHeaderHash
-	sr.ConsensusState().Header = sr.decodeBlockHeader(cnsDta.SubRoundData)
+	sr.Data = cnsDta.BlockHeaderHash
+	sr.Header = sr.decodeBlockHeader(cnsDta.SubRoundData)
 
-	if sr.ConsensusState().Header == nil {
+	if sr.Header == nil {
 		return false
 	}
 
 	log.Info(fmt.Sprintf("%sStep 1: block header with nonce %d and hash %s has been received\n",
-		sr.SyncTimer().FormattedCurrentTime(), sr.ConsensusState().Header.GetNonce(), toB64(cnsDta.BlockHeaderHash)))
+		sr.SyncTimer().FormattedCurrentTime(), sr.Header.GetNonce(), toB64(cnsDta.BlockHeaderHash)))
 
-	if !sr.BlockProcessor().CheckBlockValidity(sr.Blockchain(), sr.ConsensusState().Header, nil) {
+	if !sr.BlockProcessor().CheckBlockValidity(sr.Blockchain(), sr.Header, nil) {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, invalid block\n",
 			sr.Rounder().Index(), getSubroundName(SrBlock)))
 
@@ -318,21 +321,21 @@ func (sr *subroundBlock) decodeBlockHeader(dta []byte) *block.Header {
 }
 
 func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.ConsensusMessage) bool {
-	if sr.ConsensusState().BlockBody == nil ||
-		sr.ConsensusState().Header == nil {
+	if sr.BlockBody == nil ||
+		sr.Header == nil {
 		return false
 	}
 
 	defer func() {
-		sr.ConsensusState().SetProcessingBlock(false)
+		sr.SetProcessingBlock(false)
 	}()
 
-	sr.ConsensusState().SetProcessingBlock(true)
+	sr.SetProcessingBlock(true)
 
 	node := string(cnsDta.PubKey)
 
 	startTime := time.Time{}
-	startTime = sr.ConsensusState().RoundTimeStamp
+	startTime = sr.RoundTimeStamp
 	maxTime := sr.Rounder().TimeDuration() * processingThresholdPercent / 100
 	remainingTimeInCurrentRound := func() time.Duration {
 		return sr.Rounder().RemainingTime(startTime, maxTime)
@@ -340,8 +343,8 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.ConsensusMessage
 
 	err := sr.BlockProcessor().ProcessBlock(
 		sr.Blockchain(),
-		sr.ConsensusState().Header,
-		sr.ConsensusState().BlockBody,
+		sr.Header,
+		sr.BlockBody,
 		remainingTimeInCurrentRound,
 	)
 
@@ -355,13 +358,13 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.ConsensusMessage
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
 			sr.Rounder().Index(), getSubroundName(SrBlock), err.Error()))
 		if err == process.ErrTimeIsOut {
-			sr.ConsensusState().RoundCanceled = true
+			sr.RoundCanceled = true
 		}
 		return false
 	}
 
-	sr.MultiSigner().SetMessage(sr.ConsensusState().Data)
-	err = sr.ConsensusState().SetJobDone(node, SrBlock, true)
+	sr.MultiSigner().SetMessage(sr.Data)
+	err = sr.SetJobDone(node, SrBlock, true)
 	if err != nil {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, %s\n",
 			sr.Rounder().Index(), getSubroundName(SrBlock), err.Error()))
@@ -373,18 +376,18 @@ func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.ConsensusMessage
 
 // doBlockConsensusCheck method checks if the consensus in the <BLOCK> subround is achieved
 func (sr *subroundBlock) doBlockConsensusCheck() bool {
-	if sr.ConsensusState().RoundCanceled {
+	if sr.RoundCanceled {
 		return false
 	}
 
-	if sr.ConsensusState().Status(SrBlock) == spos.SsFinished {
+	if sr.Status(SrBlock) == spos.SsFinished {
 		return true
 	}
 
-	threshold := sr.ConsensusState().Threshold(SrBlock)
+	threshold := sr.Threshold(SrBlock)
 	if sr.isBlockReceived(threshold) {
 		log.Info(fmt.Sprintf("%sStep 1: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
-		sr.ConsensusState().SetStatus(SrBlock, spos.SsFinished)
+		sr.SetStatus(SrBlock, spos.SsFinished)
 		return true
 	}
 
@@ -395,9 +398,9 @@ func (sr *subroundBlock) doBlockConsensusCheck() bool {
 func (sr *subroundBlock) isBlockReceived(threshold int) bool {
 	n := 0
 
-	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
-		node := sr.ConsensusState().ConsensusGroup()[i]
-		isJobDone, err := sr.ConsensusState().JobDone(node, SrBlock)
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		node := sr.ConsensusGroup()[i]
+		isJobDone, err := sr.JobDone(node, SrBlock)
 
 		if err != nil {
 			log.Error(err.Error())

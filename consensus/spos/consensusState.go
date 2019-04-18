@@ -250,6 +250,7 @@ func (cns *ConsensusState) SetProcessingBlock(processingBlock bool) {
 	cns.mutProcessingBlock.Unlock()
 }
 
+// GetData gets the Data of the consensusState
 func (cns *ConsensusState) GetData() []byte {
 	return cns.Data
 }

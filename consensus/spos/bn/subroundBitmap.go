@@ -49,32 +49,35 @@ func checkNewSubroundBitmapParams(
 		return spos.ErrNilSubround
 	}
 
+	if subround.ConsensusState == nil {
+		return spos.ErrNilConsensusState
+	}
+
 	if sendConsensusMessage == nil {
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	containerValidator := spos.ConsensusContainerValidator{}
-	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
+	err := spos.ValidateConsensusCore(subround.ConsensusCore)
 
 	return err
 }
 
 // doBitmapJob method does the job of the bitmap subround
 func (sr *subroundBitmap) doBitmapJob() bool {
-	if !sr.ConsensusState().IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
+	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
 	}
 
-	if !sr.ConsensusState().CanDoSubroundJob(SrBitmap) {
+	if !sr.CanDoSubroundJob(SrBitmap) {
 		return false
 	}
 
-	bitmap := sr.ConsensusState().GenerateBitmap(SrCommitmentHash)
+	bitmap := sr.GenerateBitmap(SrCommitmentHash)
 
 	msg := consensus.NewConsensusMessage(
-		sr.ConsensusState().Data,
+		sr.Data,
 		bitmap,
-		[]byte(sr.ConsensusState().SelfPubKey()),
+		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBitmap),
 		uint64(sr.Rounder().TimeStamp().Unix()),
@@ -86,9 +89,9 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 
 	log.Info(fmt.Sprintf("%sStep 3: bitmap has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
-	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
-		pubKey := sr.ConsensusState().ConsensusGroup()[i]
-		isJobCommHashJobDone, err := sr.ConsensusState().JobDone(pubKey, SrCommitmentHash)
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		pubKey := sr.ConsensusGroup()[i]
+		isJobCommHashJobDone, err := sr.JobDone(pubKey, SrCommitmentHash)
 
 		if err != nil {
 			log.Error(err.Error())
@@ -96,7 +99,7 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 		}
 
 		if isJobCommHashJobDone {
-			err = sr.ConsensusState().SetJobDone(pubKey, SrBitmap, true)
+			err = sr.SetJobDone(pubKey, SrBitmap, true)
 
 			if err != nil {
 				log.Error(err.Error())
@@ -105,7 +108,7 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 		}
 	}
 
-	sr.ConsensusState().Header.SetPubKeysBitmap(bitmap)
+	sr.Header.SetPubKeysBitmap(bitmap)
 
 	return true
 }
@@ -116,19 +119,19 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 func (sr *subroundBitmap) receivedBitmap(cnsDta *consensus.ConsensusMessage) bool {
 	node := string(cnsDta.PubKey)
 
-	if !sr.ConsensusState().IsConsensusDataSet() {
+	if !sr.IsConsensusDataSet() {
 		return false
 	}
 
-	if !sr.ConsensusState().IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
 		return false
 	}
 
-	if !sr.ConsensusState().IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
 		return false
 	}
 
-	if !sr.ConsensusState().CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), SrBitmap) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), SrBitmap) {
 		return false
 	}
 
@@ -137,14 +140,14 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *consensus.ConsensusMessage) boo
 	// count signers
 	nbSigners := countBitmapFlags(signersBitmap)
 
-	if int(nbSigners) < sr.ConsensusState().Threshold(SrBitmap) {
+	if int(nbSigners) < sr.Threshold(SrBitmap) {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, too few signers in bitmap\n",
 			sr.Rounder().Index(), getSubroundName(SrBitmap)))
 
 		return false
 	}
 
-	publicKeys := sr.ConsensusState().ConsensusGroup()
+	publicKeys := sr.ConsensusGroup()
 
 	for i := 0; i < len(publicKeys); i++ {
 		byteNb := i / 8
@@ -152,7 +155,7 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *consensus.ConsensusMessage) boo
 		isNodeSigner := (signersBitmap[byteNb] & (1 << uint8(bitNb))) != 0
 
 		if isNodeSigner {
-			err := sr.ConsensusState().SetJobDone(publicKeys[i], SrBitmap, true)
+			err := sr.SetJobDone(publicKeys[i], SrBitmap, true)
 
 			if err != nil {
 				log.Error(err.Error())
@@ -161,20 +164,20 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *consensus.ConsensusMessage) boo
 		}
 	}
 
-	n := sr.ConsensusState().ComputeSize(SrBitmap)
+	n := sr.ComputeSize(SrBitmap)
 	log.Info(fmt.Sprintf("%sStep 3: received bitmap from leader and it got %d from %d commitment hashes\n",
-		sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusState().ConsensusGroup())))
+		sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusGroup())))
 
-	if !sr.ConsensusState().IsSelfJobDone(SrBitmap) {
+	if !sr.IsSelfJobDone(SrBitmap) {
 		log.Info(fmt.Sprintf("canceled round %d in subround %s, not included in the bitmap\n",
 			sr.Rounder().Index(), getSubroundName(SrBitmap)))
 
-		sr.ConsensusState().RoundCanceled = true
+		sr.RoundCanceled = true
 
 		return false
 	}
 
-	sr.ConsensusState().Header.SetPubKeysBitmap(signersBitmap)
+	sr.Header.SetPubKeysBitmap(signersBitmap)
 
 	return true
 }
@@ -196,18 +199,18 @@ func countBitmapFlags(bitmap []byte) uint16 {
 
 // doBitmapConsensusCheck method checks if the consensus in the <BITMAP> subround is achieved
 func (sr *subroundBitmap) doBitmapConsensusCheck() bool {
-	if sr.ConsensusState().RoundCanceled {
+	if sr.RoundCanceled {
 		return false
 	}
 
-	if sr.ConsensusState().Status(SrBitmap) == spos.SsFinished {
+	if sr.Status(SrBitmap) == spos.SsFinished {
 		return true
 	}
 
-	threshold := sr.ConsensusState().Threshold(SrBitmap)
+	threshold := sr.Threshold(SrBitmap)
 	if sr.isBitmapReceived(threshold) {
 		log.Info(fmt.Sprintf("%sStep 3: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
-		sr.ConsensusState().SetStatus(SrBitmap, spos.SsFinished)
+		sr.SetStatus(SrBitmap, spos.SsFinished)
 		return true
 	}
 
@@ -218,9 +221,9 @@ func (sr *subroundBitmap) doBitmapConsensusCheck() bool {
 func (sr *subroundBitmap) isBitmapReceived(threshold int) bool {
 	n := 0
 
-	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
-		node := sr.ConsensusState().ConsensusGroup()[i]
-		isJobDone, err := sr.ConsensusState().JobDone(node, SrBitmap)
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		node := sr.ConsensusGroup()[i]
+		isJobDone, err := sr.JobDone(node, SrBitmap)
 
 		if err != nil {
 			log.Error(err.Error())

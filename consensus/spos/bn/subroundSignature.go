@@ -50,27 +50,30 @@ func checkNewSubroundSignatureParams(
 		return spos.ErrNilSubround
 	}
 
+	if subround.ConsensusState == nil {
+		return spos.ErrNilConsensusState
+	}
+
 	if sendConsensusMessage == nil {
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	containerValidator := spos.ConsensusContainerValidator{}
-	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
+	err := spos.ValidateConsensusCore(subround.ConsensusCore)
 
 	return err
 }
 
 // doSignatureJob method does the job of the signatuure subround
 func (sr *subroundSignature) doSignatureJob() bool {
-	if !sr.ConsensusState().IsSelfJobDone(SrBitmap) { // is NOT self in the leader's bitmap?
+	if !sr.IsSelfJobDone(SrBitmap) { // is NOT self in the leader's bitmap?
 		return false
 	}
 
-	if !sr.ConsensusState().CanDoSubroundJob(SrSignature) {
+	if !sr.CanDoSubroundJob(SrSignature) {
 		return false
 	}
 
-	bitmap := sr.ConsensusState().GenerateBitmap(SrBitmap)
+	bitmap := sr.GenerateBitmap(SrBitmap)
 
 	err := sr.checkCommitmentsValidity(bitmap)
 
@@ -95,9 +98,9 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	}
 
 	msg := consensus.NewConsensusMessage(
-		sr.ConsensusState().GetData(),
+		sr.GetData(),
 		sigPart,
-		[]byte(sr.ConsensusState().SelfPubKey()),
+		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtSignature),
 		uint64(sr.Rounder().TimeStamp().Unix()),
@@ -109,7 +112,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 	log.Info(fmt.Sprintf("%sStep 5: signature has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
-	err = sr.ConsensusState().SetSelfJobDone(SrSignature, true)
+	err = sr.SetSelfJobDone(SrSignature, true)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -121,7 +124,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 	nbBitsBitmap := len(bitmap) * 8
-	consensusGroup := sr.ConsensusState().ConsensusGroup()
+	consensusGroup := sr.ConsensusGroup()
 	consensusGroupSize := len(consensusGroup)
 	size := consensusGroupSize
 
@@ -137,7 +140,7 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 		}
 
 		pubKey := consensusGroup[i]
-		isCommJobDone, err := sr.ConsensusState().JobDone(pubKey, SrCommitment)
+		isCommJobDone, err := sr.JobDone(pubKey, SrCommitment)
 
 		if err != nil {
 			return err
@@ -174,23 +177,23 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 func (sr *subroundSignature) receivedSignature(cnsDta *consensus.ConsensusMessage) bool {
 	node := string(cnsDta.PubKey)
 
-	if !sr.ConsensusState().IsConsensusDataSet() {
+	if !sr.IsConsensusDataSet() {
 		return false
 	}
 
-	if !sr.ConsensusState().IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
 		return false
 	}
 
-	if !sr.ConsensusState().IsJobDone(node, SrBitmap) { // is NOT this node in the bitmap group?
+	if !sr.IsJobDone(node, SrBitmap) { // is NOT this node in the bitmap group?
 		return false
 	}
 
-	if !sr.ConsensusState().CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), SrSignature) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), SrSignature) {
 		return false
 	}
 
-	index, err := sr.ConsensusState().ConsensusGroupIndex(node)
+	index, err := sr.ConsensusGroupIndex(node)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -204,18 +207,18 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.ConsensusMessag
 		return false
 	}
 
-	err = sr.ConsensusState().SetJobDone(node, SrSignature, true)
+	err = sr.SetJobDone(node, SrSignature, true)
 
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	threshold := sr.ConsensusState().Threshold(SrSignature)
+	threshold := sr.Threshold(SrSignature)
 	if sr.signaturesCollected(threshold) {
-		n := sr.ConsensusState().ComputeSize(SrSignature)
+		n := sr.ComputeSize(SrSignature)
 		log.Info(fmt.Sprintf("%sStep 5: received %d from %d signatures\n",
-			sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusState().ConsensusGroup())))
+			sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusGroup())))
 	}
 
 	return true
@@ -223,18 +226,18 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.ConsensusMessag
 
 // doSignatureConsensusCheck method checks if the consensus in the <SIGNATURE> subround is achieved
 func (sr *subroundSignature) doSignatureConsensusCheck() bool {
-	if sr.ConsensusState().RoundCanceled {
+	if sr.RoundCanceled {
 		return false
 	}
 
-	if sr.ConsensusState().Status(SrSignature) == spos.SsFinished {
+	if sr.Status(SrSignature) == spos.SsFinished {
 		return true
 	}
 
-	threshold := sr.ConsensusState().Threshold(SrSignature)
+	threshold := sr.Threshold(SrSignature)
 	if sr.signaturesCollected(threshold) {
 		log.Info(fmt.Sprintf("%sStep 5: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
-		sr.ConsensusState().SetStatus(SrSignature, spos.SsFinished)
+		sr.SetStatus(SrSignature, spos.SsFinished)
 		return true
 	}
 
@@ -246,9 +249,9 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 func (sr *subroundSignature) signaturesCollected(threshold int) bool {
 	n := 0
 
-	for i := 0; i < len(sr.ConsensusState().ConsensusGroup()); i++ {
-		node := sr.ConsensusState().ConsensusGroup()[i]
-		isBitmapJobDone, err := sr.ConsensusState().JobDone(node, SrBitmap)
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		node := sr.ConsensusGroup()[i]
+		isBitmapJobDone, err := sr.JobDone(node, SrBitmap)
 
 		if err != nil {
 			log.Error(err.Error())
@@ -256,7 +259,7 @@ func (sr *subroundSignature) signaturesCollected(threshold int) bool {
 		}
 
 		if isBitmapJobDone {
-			isSignJobDone, err := sr.ConsensusState().JobDone(node, SrSignature)
+			isSignJobDone, err := sr.JobDone(node, SrSignature)
 
 			if err != nil {
 				log.Error(err.Error())

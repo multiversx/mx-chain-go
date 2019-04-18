@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initConsensusDataContainer() *ConsensusDataContainer {
+func initConsensusDataContainer() *SPOSConsensusCore {
 	blockChain := &mock.BlockChainMock{}
 	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
@@ -20,7 +20,7 @@ func initConsensusDataContainer() *ConsensusDataContainer {
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 
-	return &ConsensusDataContainer{
+	return &SPOSConsensusCore{
 		blockChain,
 		blockProcessorMock,
 		bootstraperMock,
@@ -38,11 +38,10 @@ func initConsensusDataContainer() *ConsensusDataContainer {
 func TestConsensusContainerValidator_ValidateNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusContainerValidator := &ConsensusContainerValidator{}
 	container := initConsensusDataContainer()
 	container.blockChain = nil
 
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
+	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, err, ErrNilBlockChain)
 }
@@ -50,11 +49,10 @@ func TestConsensusContainerValidator_ValidateNilBlockchainShouldFail(t *testing.
 func TestConsensusContainerValidator_ValidateNilProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusContainerValidator := &ConsensusContainerValidator{}
 	container := initConsensusDataContainer()
 	container.blockProcessor = nil
 
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
+	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, err, ErrNilBlockProcessor)
 }
@@ -62,11 +60,10 @@ func TestConsensusContainerValidator_ValidateNilProcessorShouldFail(t *testing.T
 func TestConsensusContainerValidator_ValidateNilBootstrapperShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusContainerValidator := &ConsensusContainerValidator{}
 	container := initConsensusDataContainer()
 	container.bootstraper = nil
 
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
+	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, err, ErrNilBlootstraper)
 }
@@ -74,11 +71,10 @@ func TestConsensusContainerValidator_ValidateNilBootstrapperShouldFail(t *testin
 func TestConsensusContainerValidator_ValidateNilChronologyShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusContainerValidator := &ConsensusContainerValidator{}
 	container := initConsensusDataContainer()
 	container.chronologyHandler = nil
 
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
+	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, err, ErrNilChronologyHandler)
 }
@@ -86,11 +82,10 @@ func TestConsensusContainerValidator_ValidateNilChronologyShouldFail(t *testing.
 func TestConsensusContainerValidator_ValidateNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusContainerValidator := &ConsensusContainerValidator{}
 	container := initConsensusDataContainer()
 	container.hasher = nil
 
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
+	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, err, ErrNilHasher)
 }
@@ -98,11 +93,10 @@ func TestConsensusContainerValidator_ValidateNilHasherShouldFail(t *testing.T) {
 func TestConsensusContainerValidator_ValidateNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusContainerValidator := &ConsensusContainerValidator{}
 	container := initConsensusDataContainer()
 	container.marshalizer = nil
 
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
+	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, err, ErrNilMarshalizer)
 }
@@ -110,11 +104,10 @@ func TestConsensusContainerValidator_ValidateNilMarshalizerShouldFail(t *testing
 func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusContainerValidator := &ConsensusContainerValidator{}
 	container := initConsensusDataContainer()
 	container.multiSigner = nil
 
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
+	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, err, ErrNilMultiSigner)
 }
@@ -122,11 +115,10 @@ func TestConsensusContainerValidator_ValidateNilMultiSignerShouldFail(t *testing
 func TestConsensusContainerValidator_ValidateNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusContainerValidator := &ConsensusContainerValidator{}
 	container := initConsensusDataContainer()
 	container.rounder = nil
 
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
+	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, err, ErrNilRounder)
 }
@@ -134,11 +126,10 @@ func TestConsensusContainerValidator_ValidateNilRounderShouldFail(t *testing.T) 
 func TestConsensusContainerValidator_ValidateNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusContainerValidator := &ConsensusContainerValidator{}
 	container := initConsensusDataContainer()
 	container.shardCoordinator = nil
 
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
+	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, err, ErrNilShardCoordinator)
 }
@@ -146,11 +137,10 @@ func TestConsensusContainerValidator_ValidateNilShardCoordinatorShouldFail(t *te
 func TestConsensusContainerValidator_ValidateNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusContainerValidator := &ConsensusContainerValidator{}
 	container := initConsensusDataContainer()
 	container.syncTimer = nil
 
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
+	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, err, ErrNilSyncTimer)
 }
@@ -158,11 +148,10 @@ func TestConsensusContainerValidator_ValidateNilSyncTimerShouldFail(t *testing.T
 func TestConsensusContainerValidator_ValidateNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusContainerValidator := &ConsensusContainerValidator{}
 	container := initConsensusDataContainer()
 	container.validatorGroupSelector = nil
 
-	err := consensusContainerValidator.ValidateConsensusDataContainer(container)
+	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, err, ErrNilValidatorGroupSelector)
 }

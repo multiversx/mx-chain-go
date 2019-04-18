@@ -43,27 +43,31 @@ func checkNewSubroundStartRoundParams(
 	if subround == nil {
 		return spos.ErrNilSubround
 	}
-	containerValidator := spos.ConsensusContainerValidator{}
-	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
+
+	if subround.ConsensusState == nil {
+		return spos.ErrNilConsensusState
+	}
+
+	err := spos.ValidateConsensusCore(subround.ConsensusCore)
 
 	return err
 }
 
 // doStartRoundJob method does the job of the start round subround
 func (sr *subroundStartRound) doStartRoundJob() bool {
-	sr.ConsensusState().ResetConsensusState()
-	sr.ConsensusState().RoundIndex = sr.Rounder().Index()
-	sr.ConsensusState().RoundTimeStamp = sr.Rounder().TimeStamp()
+	sr.ResetConsensusState()
+	sr.RoundIndex = sr.Rounder().Index()
+	sr.RoundTimeStamp = sr.Rounder().TimeStamp()
 	return true
 }
 
 // doStartRoundConsensusCheck method checks if the consensus is achieved in the start subround.
 func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
-	if sr.ConsensusState().RoundCanceled {
+	if sr.RoundCanceled {
 		return false
 	}
 
-	if sr.ConsensusState().Status(SrStartRound) == spos.SsFinished {
+	if sr.Status(SrStartRound) == spos.SsFinished {
 		return true
 	}
 
@@ -84,38 +88,38 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	if err != nil {
 		log.Error(err.Error())
 
-		sr.ConsensusState().RoundCanceled = true
+		sr.RoundCanceled = true
 
 		return false
 	}
 
-	leader, err := sr.ConsensusState().GetLeader()
+	leader, err := sr.GetLeader()
 
 	if err != nil {
 		log.Info(err.Error())
 
-		sr.ConsensusState().RoundCanceled = true
+		sr.RoundCanceled = true
 
 		return false
 	}
 
 	msg := ""
-	if leader == sr.ConsensusState().SelfPubKey() {
+	if leader == sr.SelfPubKey() {
 		msg = " (my turn)"
 	}
 
 	log.Info(fmt.Sprintf("%sStep 0: preparing for this round with leader %s%s\n",
 		sr.SyncTimer().FormattedCurrentTime(), hex.EncodeToString([]byte(leader)), msg))
 
-	pubKeys := sr.ConsensusState().ConsensusGroup()
+	pubKeys := sr.ConsensusGroup()
 
-	selfIndex, err := sr.ConsensusState().SelfConsensusGroupIndex()
+	selfIndex, err := sr.SelfConsensusGroupIndex()
 
 	if err != nil {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, not in the consensus group\n",
 			sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(), getSubroundName(SrStartRound)))
 
-		sr.ConsensusState().RoundCanceled = true
+		sr.RoundCanceled = true
 
 		return false
 	}
@@ -125,24 +129,24 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	if err != nil {
 		log.Error(err.Error())
 
-		sr.ConsensusState().RoundCanceled = true
+		sr.RoundCanceled = true
 
 		return false
 	}
 
 	startTime := time.Time{}
-	startTime = sr.ConsensusState().RoundTimeStamp
+	startTime = sr.RoundTimeStamp
 	maxTime := sr.Rounder().TimeDuration() * syncThresholdPercent / 100
 	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, time is out\n",
 			sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(), getSubroundName(SrStartRound)))
 
-		sr.ConsensusState().RoundCanceled = true
+		sr.RoundCanceled = true
 
 		return false
 	}
 
-	sr.ConsensusState().SetStatus(SrStartRound, spos.SsFinished)
+	sr.SetStatus(SrStartRound, spos.SsFinished)
 
 	return true
 }
@@ -158,7 +162,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 
 	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
 
-	nextConsensusGroup, err := sr.ConsensusState().GetNextConsensusGroup(randomSource, sr.ValidatorGroupSelector())
+	nextConsensusGroup, err := sr.GetNextConsensusGroup(randomSource, sr.ValidatorGroupSelector())
 
 	if err != nil {
 		return err
@@ -173,7 +177,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 
 	log.Info(fmt.Sprintf("\n"))
 
-	sr.ConsensusState().SetConsensusGroup(nextConsensusGroup)
+	sr.SetConsensusGroup(nextConsensusGroup)
 
 	return nil
 }

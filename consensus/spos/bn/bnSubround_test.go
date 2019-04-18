@@ -666,7 +666,7 @@ func TestSubround_StartTime(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
-
+	container.SetRounder(initRounderMock())
 	sr, _ := bn.NewSubround(
 		int(bn.SrBlock),
 		int(bn.SrCommitmentHash),
@@ -695,7 +695,7 @@ func TestSubround_EndTime(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitContainer()
-
+	container.SetRounder(initRounderMock())
 	sr, _ := bn.NewSubround(
 		int(bn.SrStartRound),
 		int(bn.SrBlock),

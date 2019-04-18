@@ -49,19 +49,22 @@ func checkNewSubroundEndRoundParams(
 		return spos.ErrNilSubround
 	}
 
+	if subround.ConsensusState == nil {
+		return spos.ErrNilConsensusState
+	}
+
 	if broadcastBlock == nil {
 		return spos.ErrNilBroadcastBlockFunction
 	}
 
-	containerValidator := spos.ConsensusContainerValidator{}
-	err := containerValidator.ValidateConsensusDataContainer(subround.consensusDataContainer)
+	err := spos.ValidateConsensusCore(subround.ConsensusCore)
 
 	return err
 }
 
 // doEndRoundJob method does the job of the end round subround
 func (sr *subroundEndRound) doEndRoundJob() bool {
-	bitmap := sr.ConsensusState().GenerateBitmap(SrBitmap)
+	bitmap := sr.GenerateBitmap(SrBitmap)
 
 	err := sr.checkSignaturesValidity(bitmap)
 
@@ -78,20 +81,20 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 		return false
 	}
 
-	sr.ConsensusState().Header.SetSignature(sig)
+	sr.Header.SetSignature(sig)
 
 	// Commit the block (commits also the account state)
-	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.ConsensusState().Header, sr.ConsensusState().BlockBody)
+	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
 
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	sr.ConsensusState().SetStatus(SrEndRound, spos.SsFinished)
+	sr.SetStatus(SrEndRound, spos.SsFinished)
 
 	// broadcast block body and header
-	err = sr.broadcastBlock(sr.ConsensusState().BlockBody, sr.ConsensusState().Header)
+	err = sr.broadcastBlock(sr.BlockBody, sr.Header)
 
 	if err != nil {
 		log.Error(err.Error())
@@ -100,11 +103,11 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	log.Info(fmt.Sprintf("%sStep 6: TxBlockBody and Header has been commited and broadcasted \n", sr.SyncTimer().FormattedCurrentTime()))
 
 	actionMsg := "synchronized"
-	if sr.ConsensusState().IsSelfLeaderInCurrentRound() {
+	if sr.IsSelfLeaderInCurrentRound() {
 		actionMsg = "proposed"
 	}
 
-	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.ConsensusState().Header.GetNonce())
+	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", actionMsg, sr.Header.GetNonce())
 	log.Info(log.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	return true
@@ -113,11 +116,11 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 // doEndRoundConsensusCheck method checks if the consensus is achieved in each subround from first subround to the given
 // subround. If the consensus is achieved in one subround, the subround status is marked as finished
 func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
-	if sr.ConsensusState().RoundCanceled {
+	if sr.RoundCanceled {
 		return false
 	}
 
-	if sr.ConsensusState().Status(SrEndRound) == spos.SsFinished {
+	if sr.Status(SrEndRound) == spos.SsFinished {
 		return true
 	}
 
@@ -126,7 +129,7 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 
 func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 	nbBitsBitmap := len(bitmap) * 8
-	consensusGroup := sr.ConsensusState().ConsensusGroup()
+	consensusGroup := sr.ConsensusGroup()
 	consensusGroupSize := len(consensusGroup)
 	size := consensusGroupSize
 
@@ -142,7 +145,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 		}
 
 		pubKey := consensusGroup[i]
-		isSigJobDone, err := sr.ConsensusState().JobDone(pubKey, SrSignature)
+		isSigJobDone, err := sr.JobDone(pubKey, SrSignature)
 
 		if err != nil {
 			return err

@@ -1,10 +1,6 @@
 package spos
 
-type ConsensusContainerValidator struct {
-}
-
-func (cdv *ConsensusContainerValidator) ValidateConsensusDataContainer(
-	container ConsensusDataContainerInterface) error {
+func ValidateConsensusCore(container ConsensusCore) error {
 	if container == nil {
 		return ErrNilConsensusDataContainer
 	}
