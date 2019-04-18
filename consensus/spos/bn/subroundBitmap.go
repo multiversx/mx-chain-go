@@ -10,13 +10,13 @@ import (
 type subroundBitmap struct {
 	*subround
 
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool
+	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundBitmap creates a subroundBitmap object
 func NewSubroundBitmap(
 	subround *subround,
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool,
+	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundBitmap, error) {
 
@@ -43,7 +43,7 @@ func NewSubroundBitmap(
 
 func checkNewSubroundBitmapParams(
 	subround *subround,
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool,
+	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
@@ -116,7 +116,7 @@ func (sr *subroundBitmap) doBitmapJob() bool {
 // receivedBitmap method is called when a bitmap is received through the bitmap channel.
 // If the bitmap is valid, than the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Bitmap
-func (sr *subroundBitmap) receivedBitmap(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundBitmap) receivedBitmap(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {

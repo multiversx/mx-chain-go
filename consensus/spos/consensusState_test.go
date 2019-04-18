@@ -382,7 +382,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsR
 
 	cns := initConsensusState()
 
-	cnsDta := &consensus.ConsensusMessage{
+	cnsDta := &consensus.Message{
 		RoundIndex: 0,
 		PubKey:     []byte(cns.SelfPubKey()),
 	}
@@ -395,7 +395,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsR
 
 	cns := initConsensusState()
 
-	cnsDta := &consensus.ConsensusMessage{
+	cnsDta := &consensus.Message{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}
@@ -408,7 +408,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenJobIsDone(
 
 	cns := initConsensusState()
 
-	cnsDta := &consensus.ConsensusMessage{
+	cnsDta := &consensus.Message{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}
@@ -423,7 +423,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenCurrentRou
 
 	cns := initConsensusState()
 
-	cnsDta := &consensus.ConsensusMessage{
+	cnsDta := &consensus.Message{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}
@@ -438,7 +438,7 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnTrue(t *testing.T) 
 
 	cns := initConsensusState()
 
-	cnsDta := &consensus.ConsensusMessage{
+	cnsDta := &consensus.Message{
 		RoundIndex: 0,
 		PubKey:     []byte("1"),
 	}

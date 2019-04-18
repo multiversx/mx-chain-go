@@ -786,7 +786,7 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 	return header, blockHeaderHash, nil
 }
 
-func (n *Node) sendMessage(cnsDta *consensus.ConsensusMessage) {
+func (n *Node) sendMessage(cnsDta *consensus.Message) {
 	cnsDtaBuff, err := n.marshalizer.Marshal(cnsDta)
 	if err != nil {
 		log.Debug(err.Error())

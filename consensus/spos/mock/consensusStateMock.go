@@ -17,7 +17,7 @@ type ConsensusStateMock struct {
 	IsBlockBodyAlreadyReceivedCalled func() bool
 	IsHeaderAlreadyReceivedCalled    func() bool
 	CanDoSubroundJobCalled           func(currentSubroundId int) bool
-	CanProcessReceivedMessageCalled  func(cnsDta consensus.ConsensusMessage, currentRoundIndex int32,
+	CanProcessReceivedMessageCalled  func(cnsDta consensus.Message, currentRoundIndex int32,
 		currentSubroundId int) bool
 	GenerateBitmapCalled     func(subroundId int) []byte
 	ProcessingBlockCalled    func() bool
@@ -84,7 +84,7 @@ func (cnsm *ConsensusStateMock) CanDoSubroundJob(currentSubroundId int) bool {
 	return cnsm.CanDoSubroundJobCalled(currentSubroundId)
 }
 
-func (cnsm *ConsensusStateMock) CanProcessReceivedMessage(cnsDta consensus.ConsensusMessage, currentRoundIndex int32,
+func (cnsm *ConsensusStateMock) CanProcessReceivedMessage(cnsDta consensus.Message, currentRoundIndex int32,
 	currentSubroundId int) bool {
 	return cnsm.CanProcessReceivedMessageCalled(cnsDta, currentRoundIndex, currentSubroundId)
 }

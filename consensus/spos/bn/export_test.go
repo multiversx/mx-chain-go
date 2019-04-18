@@ -159,11 +159,11 @@ func (wrk *worker) SetRounder(rounder consensus.Rounder) {
 	wrk.rounder = rounder
 }
 
-func (wrk *worker) CheckSignature(cnsData *consensus.ConsensusMessage) error {
+func (wrk *worker) CheckSignature(cnsData *consensus.Message) error {
 	return wrk.checkSignature(cnsData)
 }
 
-func (wrk *worker) ExecuteMessage(cnsDtaList []*consensus.ConsensusMessage) {
+func (wrk *worker) ExecuteMessage(cnsDtaList []*consensus.Message) {
 	wrk.executeMessage(cnsDtaList)
 }
 
@@ -175,7 +175,7 @@ func (wrk *worker) InitReceivedMessages() {
 	wrk.initReceivedMessages()
 }
 
-func (wrk *worker) SendConsensusMessage(cnsDta *consensus.ConsensusMessage) bool {
+func (wrk *worker) SendConsensusMessage(cnsDta *consensus.Message) bool {
 	return wrk.sendConsensusMessage(cnsDta)
 }
 
@@ -187,14 +187,14 @@ func (wrk *worker) ReceivedSyncState(isNodeSynchronized bool) {
 	wrk.receivedSyncState(isNodeSynchronized)
 }
 
-func (wrk *worker) ReceivedMessages() map[spos.MessageType][]*consensus.ConsensusMessage {
+func (wrk *worker) ReceivedMessages() map[spos.MessageType][]*consensus.Message {
 	wrk.mutReceivedMessages.RLock()
 	defer wrk.mutReceivedMessages.RUnlock()
 
 	return wrk.receivedMessages
 }
 
-func (wrk *worker) SetReceivedMessages(messageType spos.MessageType, cnsDta []*consensus.ConsensusMessage) {
+func (wrk *worker) SetReceivedMessages(messageType spos.MessageType, cnsDta []*consensus.Message) {
 	wrk.mutReceivedMessages.Lock()
 	wrk.receivedMessages[messageType] = cnsDta
 	wrk.mutReceivedMessages.Unlock()
@@ -206,20 +206,20 @@ func (wrk *worker) NilReceivedMessages() {
 	wrk.mutReceivedMessages.Unlock()
 }
 
-func (wrk *worker) ReceivedMessagesCalls() map[spos.MessageType]func(*consensus.ConsensusMessage) bool {
+func (wrk *worker) ReceivedMessagesCalls() map[spos.MessageType]func(*consensus.Message) bool {
 	wrk.mutReceivedMessagesCalls.RLock()
 	defer wrk.mutReceivedMessagesCalls.RUnlock()
 
 	return wrk.receivedMessagesCalls
 }
 
-func (wrk *worker) SetReceivedMessagesCalls(messageType spos.MessageType, f func(*consensus.ConsensusMessage) bool) {
+func (wrk *worker) SetReceivedMessagesCalls(messageType spos.MessageType, f func(*consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
 	wrk.receivedMessagesCalls[messageType] = f
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
-func (wrk *worker) ExecuteMessageChannel() chan *consensus.ConsensusMessage {
+func (wrk *worker) ExecuteMessageChannel() chan *consensus.Message {
 	return wrk.executeMessageChannel
 }
 
@@ -259,7 +259,7 @@ func (sr *subroundBlock) DoBlockJob() bool {
 	return sr.doBlockJob()
 }
 
-func (sr *subroundBlock) ReceivedBlockBody(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockBody(cnsDta)
 }
 
@@ -267,7 +267,7 @@ func (sr *subroundBlock) DecodeBlockBody(dta []byte) block.Body {
 	return sr.decodeBlockBody(dta)
 }
 
-func (sr *subroundBlock) ReceivedBlockHeader(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockHeader(cnsDta)
 }
 
@@ -275,7 +275,7 @@ func (sr *subroundBlock) DecodeBlockHeader(dta []byte) *block.Header {
 	return sr.decodeBlockHeader(dta)
 }
 
-func (sr *subroundBlock) ProcessReceivedBlock(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundBlock) ProcessReceivedBlock(cnsDta *consensus.Message) bool {
 	return sr.processReceivedBlock(cnsDta)
 }
 
@@ -299,7 +299,7 @@ func (sr *subroundCommitmentHash) DoCommitmentHashJob() bool {
 	return sr.doCommitmentHashJob()
 }
 
-func (sr *subroundCommitmentHash) ReceivedCommitmentHash(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundCommitmentHash) ReceivedCommitmentHash(cnsDta *consensus.Message) bool {
 	return sr.receivedCommitmentHash(cnsDta)
 }
 
@@ -327,7 +327,7 @@ func (sr *subroundBitmap) DoBitmapJob() bool {
 	return sr.doBitmapJob()
 }
 
-func (sr *subroundBitmap) ReceivedBitmap(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundBitmap) ReceivedBitmap(cnsDta *consensus.Message) bool {
 	return sr.receivedBitmap(cnsDta)
 }
 
@@ -347,7 +347,7 @@ func (sr *subroundCommitment) DoCommitmentJob() bool {
 	return sr.doCommitmentJob()
 }
 
-func (sr *subroundCommitment) ReceivedCommitment(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundCommitment) ReceivedCommitment(cnsDta *consensus.Message) bool {
 	return sr.receivedCommitment(cnsDta)
 }
 
@@ -367,7 +367,7 @@ func (sr *subroundSignature) DoSignatureJob() bool {
 	return sr.doSignatureJob()
 }
 
-func (sr *subroundSignature) ReceivedSignature(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundSignature) ReceivedSignature(cnsDta *consensus.Message) bool {
 	return sr.receivedSignature(cnsDta)
 }
 

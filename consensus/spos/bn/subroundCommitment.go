@@ -10,13 +10,13 @@ import (
 type subroundCommitment struct {
 	*subround
 
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool
+	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundCommitment creates a subroundCommitment object
 func NewSubroundCommitment(
 	subround *subround,
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool,
+	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundCommitment, error) {
 
@@ -43,7 +43,7 @@ func NewSubroundCommitment(
 
 func checkNewSubroundCommitmentParams(
 	subround *subround,
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool,
+	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
@@ -115,7 +115,7 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 // receivedCommitment method is called when a commitment is received through the commitment channel.
 // If the commitment is valid, than the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Commitment
-func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {

@@ -15,13 +15,13 @@ import (
 type subroundBlock struct {
 	*subround
 
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool
+	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundBlock creates a subroundBlock object
 func NewSubroundBlock(
 	subround *subround,
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool,
+	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundBlock, error) {
 
@@ -48,7 +48,7 @@ func NewSubroundBlock(
 
 func checkNewSubroundBlockParams(
 	subround *subround,
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool,
+	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
@@ -212,7 +212,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 }
 
 // receivedBlockBody method is called when a block body is received through the block body channel.
-func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundBlock) receivedBlockBody(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if sr.IsBlockBodyAlreadyReceived() {
@@ -261,7 +261,7 @@ func (sr *subroundBlock) decodeBlockBody(dta []byte) block.Body {
 // receivedBlockHeader method is called when a block header is received through the block header channel.
 // If the block header is valid, than the validatorRoundStates map corresponding to the node which sent it,
 // is set on true for the subround Block
-func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundBlock) receivedBlockHeader(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if sr.IsConsensusDataSet() {
@@ -320,7 +320,7 @@ func (sr *subroundBlock) decodeBlockHeader(dta []byte) *block.Header {
 	return &hdr
 }
 
-func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundBlock) processReceivedBlock(cnsDta *consensus.Message) bool {
 	if sr.BlockBody == nil ||
 		sr.Header == nil {
 		return false

@@ -11,13 +11,13 @@ import (
 type subroundSignature struct {
 	*subround
 
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool
+	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundSignature creates a subroundSignature object
 func NewSubroundSignature(
 	subround *subround,
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool,
+	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundSignature, error) {
 
@@ -44,7 +44,7 @@ func NewSubroundSignature(
 
 func checkNewSubroundSignatureParams(
 	subround *subround,
-	sendConsensusMessage func(*consensus.ConsensusMessage) bool,
+	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
@@ -174,7 +174,7 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 // receivedSignature method is called when a Signature is received through the Signature channel.
 // If the Signature is valid, than the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Signature
-func (sr *subroundSignature) receivedSignature(cnsDta *consensus.ConsensusMessage) bool {
+func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {

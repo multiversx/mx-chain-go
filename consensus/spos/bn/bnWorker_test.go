@@ -62,11 +62,11 @@ func initConsensusState() *spos.ConsensusState {
 	return cns
 }
 
-func sendMessage(cnsMsg *consensus.ConsensusMessage) {
+func sendMessage(cnsMsg *consensus.Message) {
 	fmt.Println(cnsMsg.Signature)
 }
 
-func sendConsensusMessage(cnsMsg *consensus.ConsensusMessage) bool {
+func sendConsensusMessage(cnsMsg *consensus.Message) bool {
 	fmt.Println(cnsMsg)
 	return true
 }
@@ -439,7 +439,7 @@ func TestWorker_InitReceivedMessagesShouldInitMap(t *testing.T) {
 func TestWorker_AddReceivedMessageCallShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	receivedMessageCall := func(*consensus.ConsensusMessage) bool {
+	receivedMessageCall := func(*consensus.Message) bool {
 		return true
 	}
 	wrk.AddReceivedMessageCall(bn.MtBlockBody, receivedMessageCall)
@@ -453,7 +453,7 @@ func TestWorker_AddReceivedMessageCallShouldWork(t *testing.T) {
 func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	receivedMessageCall := func(*consensus.ConsensusMessage) bool {
+	receivedMessageCall := func(*consensus.Message) bool {
 		return true
 	}
 	wrk.AddReceivedMessageCall(bn.MtBlockBody, receivedMessageCall)
@@ -977,7 +977,7 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	wrk.SetReceivedMessagesCalls(bn.MtBlockHeader, func(cnsMsg *consensus.ConsensusMessage) bool {
+	wrk.SetReceivedMessagesCalls(bn.MtBlockHeader, func(cnsMsg *consensus.Message) bool {
 		wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bn.SrBlock, true)
 		return true
 	})

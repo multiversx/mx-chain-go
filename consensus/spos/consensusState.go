@@ -189,7 +189,7 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 }
 
 // CanProcessReceivedMessage method returns true if the message received can be processed and false otherwise
-func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *consensus.ConsensusMessage, currentRoundIndex int32,
+func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *consensus.Message, currentRoundIndex int32,
 	currentSubroundId int) bool {
 	if cns.IsNodeSelf(string(cnsDta.PubKey)) {
 		return false
