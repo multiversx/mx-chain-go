@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
@@ -15,8 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"sync"
-	"time"
 )
 
 var log = logger.DefaultLogger()
@@ -89,6 +90,11 @@ func (boot *baseBootstrap) requestedHeaderNonce() (nonce *uint64) {
 }
 
 func (boot *baseBootstrap) processReceivedHeaders(header data.HeaderHandler, headerHash []byte) {
+	if header == nil {
+		log.Info(ErrNilHeader.Error())
+		return
+	}
+
 	if header != nil {
 		boot.mutRcvHdrInfo.Lock()
 		if header.GetNonce() > boot.rcvHdrInfo.highestNonce {

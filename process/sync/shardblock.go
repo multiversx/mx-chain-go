@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-// Bootstrap implements the boostrsap mechanism
+// ShardBootstrap implements the boostrsap mechanism
 type ShardBootstrap struct {
 	*baseBootstrap
 
@@ -30,7 +30,7 @@ type ShardBootstrap struct {
 	miniBlockResolver dataRetriever.MiniBlocksResolver
 }
 
-// NewBootstrap creates a new Bootstrap object
+// NewShardBootstrap creates a new Bootstrap object
 func NewShardBootstrap(
 	poolsHolder dataRetriever.PoolsHolder,
 	store dataRetriever.StorageService,
@@ -75,22 +75,25 @@ func NewShardBootstrap(
 		return nil, err
 	}
 
+	base := &baseBootstrap{
+		blkc:             blkc,
+		blkExecutor:      blkExecutor,
+		store:            store,
+		headers:          poolsHolder.Headers(),
+		headersNonces:    poolsHolder.HeadersNonces(),
+		rounder:          rounder,
+		waitTime:         waitTime,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		forkDetector:     forkDetector,
+		shardCoordinator: shardCoordinator,
+		accounts:         accounts,
+	}
+
 	boot := ShardBootstrap{
-		baseBootstrap: &baseBootstrap{},
+		baseBootstrap: base,
 		miniBlocks:    poolsHolder.MiniBlocks(),
 	}
-	boot.blkc = blkc
-	boot.blkExecutor = blkExecutor
-	boot.store = store
-	boot.headers = poolsHolder.Headers()
-	boot.headersNonces = poolsHolder.HeadersNonces()
-	boot.rounder = rounder
-	boot.waitTime = waitTime
-	boot.hasher = hasher
-	boot.marshalizer = marshalizer
-	boot.forkDetector = forkDetector
-	boot.shardCoordinator = shardCoordinator
-	boot.accounts = accounts
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.IntraShardResolver(factory.HeadersTopic)

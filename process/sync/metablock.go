@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-// MetaBootstrap implements the boostrsap mechanism
+// MetaBootstrap implements the bootstrap mechanism
 type MetaBootstrap struct {
 	*baseBootstrap
 
@@ -25,7 +25,7 @@ type MetaBootstrap struct {
 	hdrRes          dataRetriever.HeaderResolver
 }
 
-// NewBootstrap creates a new Bootstrap object
+// NewMetaBootstrap creates a new Bootstrap object
 func NewMetaBootstrap(
 	poolsHolder dataRetriever.MetaPoolsHolder,
 	store dataRetriever.StorageService,
@@ -67,22 +67,24 @@ func NewMetaBootstrap(
 		return nil, err
 	}
 
-	boot := MetaBootstrap{
-		baseBootstrap: &baseBootstrap{},
+	base := &baseBootstrap{
+		blkc:             blkc,
+		blkExecutor:      blkExecutor,
+		store:            store,
+		headers:          poolsHolder.MetaChainBlocks(),
+		headersNonces:    poolsHolder.MetaBlockNonces(),
+		rounder:          rounder,
+		waitTime:         waitTime,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		forkDetector:     forkDetector,
+		shardCoordinator: shardCoordinator,
+		accounts:         accounts,
 	}
 
-	boot.headers = poolsHolder.MetaChainBlocks()
-	boot.headersNonces = poolsHolder.MetaBlockNonces()
-	boot.blkc = blkc
-	boot.blkExecutor = blkExecutor
-	boot.store = store
-	boot.rounder = rounder
-	boot.waitTime = waitTime
-	boot.hasher = hasher
-	boot.marshalizer = marshalizer
-	boot.forkDetector = forkDetector
-	boot.shardCoordinator = shardCoordinator
-	boot.accounts = accounts
+	boot := MetaBootstrap{
+		baseBootstrap: base,
+	}
 
 	//there is one header topic so it is ok to save it
 	hdrResolver, err := resolversFinder.MetaChainResolver(factory.MetachainBlocksTopic)
@@ -101,7 +103,7 @@ func NewMetaBootstrap(
 
 	boot.setRequestedHeaderNonce(nil)
 	boot.headersNonces.RegisterHandler(boot.receivedHeaderNonce)
-	boot.headers.RegisterHandler(boot.receivedHeaders)
+	boot.headers.RegisterHandler(boot.receivedHeader)
 
 	boot.chStopSync = make(chan bool)
 
@@ -154,7 +156,7 @@ func (boot *MetaBootstrap) getHeaderFromStorage(hash []byte) *block.MetaBlock {
 	return header
 }
 
-func (boot *MetaBootstrap) receivedHeaders(headerHash []byte) {
+func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
 	header := boot.getHeader(headerHash)
 	boot.processReceivedHeaders(header, headerHash)
 }

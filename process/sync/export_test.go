@@ -27,7 +27,7 @@ func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) interface{} {
 }
 
 func (boot *MetaBootstrap) ReceivedHeaders(key []byte) {
-	boot.receivedHeaders(key)
+	boot.receivedHeader(key)
 }
 
 func (boot *ShardBootstrap) ReceivedHeaders(key []byte) {

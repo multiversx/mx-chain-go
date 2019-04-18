@@ -207,7 +207,7 @@ func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 	}
 }
 
-// WithDataPool sets up the data pools option for the Node
+// WithMetaDataPool sets up the data pools option for the Node
 func WithMetaDataPool(dataPool dataRetriever.MetaPoolsHolder) Option {
 	return func(n *Node) error {
 		if dataPool == nil {

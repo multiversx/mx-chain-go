@@ -72,7 +72,7 @@ func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer
 		return nil, err
 	}
 
-	metaKeys, metaInterceptorSlice, err := rcf.generateMetaChainHeaderResolver()
+	metaKeys, metaInterceptorSlice, err := rcf.generateMetaChainHeaderResolvers()
 	err = container.AddMultiple(metaKeys, metaInterceptorSlice)
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func (rcf *resolversContainerFactory) createOneShardHeaderResolver(identifier st
 
 //------- Meta header resolvers
 
-func (rcf *resolversContainerFactory) generateMetaChainHeaderResolver() ([]string, []dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) generateMetaChainHeaderResolvers() ([]string, []dataRetriever.Resolver, error) {
 	identifierHeader := factory.MetachainBlocksTopic
 	resolver, err := rcf.createMetaChainHeaderResolver(identifierHeader)
 	if err != nil {
