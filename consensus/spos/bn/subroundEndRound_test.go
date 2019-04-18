@@ -41,7 +41,7 @@ func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bn.Sub
 }
 
 func initSubroundEndRound() bn.SubroundEndRound {
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	return initSubroundEndRoundWithContainer(container)
 }
 
@@ -60,7 +60,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -90,7 +90,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -120,7 +120,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -149,7 +149,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -179,7 +179,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -209,7 +209,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -239,7 +239,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastBlockFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -269,7 +269,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBroadcastBlockFunctionShouldFail
 func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -298,7 +298,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 
 func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T) {
 	t.Parallel()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container)
 
 	multiSignerMock := mock.InitMultiSignerMock()
@@ -317,7 +317,7 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container)
 
 	blProcMock := mock.InitBlockProcessorMock()
@@ -406,7 +406,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrNilSignature(t *testin
 func TestSubroundEndRound_CheckSignaturesValidityShouldErrIndexOutOfBounds(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container)
 
 	_, _ = sr.MultiSigner().Create(nil, 0)
@@ -426,7 +426,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrIndexOutOfBounds(t *te
 
 func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(t *testing.T) {
 	t.Parallel()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	sr := *initSubroundEndRoundWithContainer(container)
 
 	multiSignerMock := mock.InitMultiSignerMock()

@@ -37,7 +37,7 @@ func initSubroundCommitmentHashWithContainer(container *mock.ConsensusCoreMock) 
 }
 
 func initSubroundCommitmentHash() bn.SubroundCommitmentHash {
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	return initSubroundCommitmentHashWithContainer(container)
 }
@@ -58,7 +58,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSubroundShouldFail(t
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -87,7 +87,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShould
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -117,7 +117,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilHasherShouldFail(t *
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -147,7 +147,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilMultisignerShouldFai
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -177,7 +177,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilRounderShouldFail(t 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -207,7 +207,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSyncTimerShouldFail(
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -237,7 +237,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSendConsensusMessage
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashShouldWork(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -497,7 +497,7 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnIndexSelfConsen
 func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnAddCommitment(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	sr := *initSubroundCommitmentHashWithContainer(container)
 
 	multiSignerMock := mock.InitMultiSignerMock()
@@ -521,7 +521,7 @@ func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunErrOnAddCommitment(t
 func TestSubroundCommitmentHash_GenCommitmentHashShouldRetunNil(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	sr := *initSubroundCommitmentHashWithContainer(container)
 
 	multiSignerMock := mock.InitMultiSignerMock()

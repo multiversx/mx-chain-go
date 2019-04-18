@@ -83,7 +83,7 @@ func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
 	return keyGenMock, privKeyMock, pubKeyMock
 }
 
-func InitContainer() *ConsensusCoreMock {
+func InitConsensusCore() *ConsensusCoreMock {
 
 	blockChain := &BlockChainMock{}
 	blockProcessorMock := InitBlockProcessorMock()

@@ -15,7 +15,7 @@ func initSubroundBitmap() bn.SubroundBitmap {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(bn.SrCommitmentHash),
@@ -56,7 +56,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilBlockProcessorShouldFail(t *testing.
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(bn.SrCommitmentHash),
@@ -86,7 +86,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilConsensusStateShouldFail(t *testing.
 	t.Parallel()
 
 	ch := make(chan bool, 1)
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	consensusState := initConsensusState()
 
 	sr, _ := bn.NewSubround(
@@ -116,7 +116,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilRounderShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(bn.SrCommitmentHash),
@@ -147,7 +147,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilSyncTimerShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(bn.SrCommitmentHash),
@@ -178,7 +178,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilSendConsensusMessageFunctionShouldFa
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(bn.SrCommitmentHash),
@@ -207,7 +207,7 @@ func TestSubroundBitmap_NewSubroundBitmapShouldWork(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	sr, _ := bn.NewSubround(
 		int(bn.SrCommitmentHash),

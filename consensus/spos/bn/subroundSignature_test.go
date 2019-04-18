@@ -40,7 +40,7 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bn.Su
 }
 
 func initSubroundSignature() bn.SubroundSignature {
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	return initSubroundSignatureWithContainer(container)
 }
@@ -61,7 +61,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSubroundShouldFail(t *testing.
 func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -90,7 +90,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -120,7 +120,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -150,7 +150,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testi
 func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -181,7 +181,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T
 func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -211,7 +211,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 func TestSubroundSignature_NewSubroundSignatureNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -241,7 +241,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSendConsensusMessageFunctionSh
 func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -271,7 +271,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	sr := *initSubroundSignatureWithContainer(container)
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
@@ -335,7 +335,7 @@ func TestSubroundSignature_CheckCommitmentsValidityShouldErrNilCommitmet(t *test
 func TestSubroundSignature_CheckCommitmentsValidityShouldErrInvalidIndex(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	sr := *initSubroundSignatureWithContainer(container)
 
 	_ = sr.MultiSigner().Reset(nil, 0)
@@ -356,7 +356,7 @@ func TestSubroundSignature_CheckCommitmentsValidityShouldErrInvalidIndex(t *test
 func TestSubroundSignature_CheckCommitmentsValidityShouldErrOnCommitmentHash(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	sr := *initSubroundSignatureWithContainer(container)
 
 	multiSignerMock := mock.InitMultiSignerMock()
@@ -377,7 +377,7 @@ func TestSubroundSignature_CheckCommitmentsValidityShouldErrOnCommitmentHash(t *
 func TestSubroundSignature_CheckCommitmentsValidityShouldErrCommitmentHashDoesNotMatch(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	sr := *initSubroundSignatureWithContainer(container)
 
 	multiSignerMock := mock.InitMultiSignerMock()
@@ -397,7 +397,7 @@ func TestSubroundSignature_CheckCommitmentsValidityShouldErrCommitmentHashDoesNo
 func TestSubroundSignature_CheckCommitmentsValidityShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	sr := *initSubroundSignatureWithContainer(container)
 
 	multiSignerMock := mock.InitMultiSignerMock()

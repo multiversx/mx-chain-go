@@ -24,7 +24,7 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bn.Factory {
 }
 
 func initFactory() bn.Factory {
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	return initFactoryWithContainer(container)
 }
 
@@ -75,7 +75,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 
 	fct, err := bn.NewFactory(
@@ -91,7 +91,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 	container.SetBlockchain(nil)
 
@@ -109,7 +109,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 	container.SetBlockProcessor(nil)
 
@@ -127,7 +127,7 @@ func TestFactory_NewFactoryNilBootstraperShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 	container.SetBootStrapper(nil)
 
@@ -145,7 +145,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 	container.SetChronology(nil)
 
@@ -163,7 +163,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 	container.SetHasher(nil)
 
@@ -181,7 +181,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 	container.SetMarshalizer(nil)
 
@@ -199,7 +199,7 @@ func TestFactory_NewFactoryNilMultiSignerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 	container.SetMultiSigner(nil)
 
@@ -217,7 +217,7 @@ func TestFactory_NewFactoryNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 	container.SetRounder(nil)
 
@@ -235,7 +235,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 	container.SetShardCoordinator(nil)
 
@@ -253,7 +253,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 	container.SetSyncTimer(nil)
 
@@ -271,7 +271,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	worker := initWorker()
 	container.SetValidatorGroupSelector(nil)
 
@@ -289,7 +289,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	fct, err := bn.NewFactory(
 		container,
@@ -323,7 +323,7 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *test
 func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
@@ -346,7 +346,7 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T
 func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
@@ -369,7 +369,7 @@ func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundFail(t *
 func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundCommitmentHashFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
@@ -392,7 +392,7 @@ func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundFail(t *testing.
 func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundBitmapFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
@@ -415,7 +415,7 @@ func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundFail(t *test
 func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundCommitmentFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
@@ -438,7 +438,7 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testi
 func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
@@ -461,7 +461,7 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testin
 func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
@@ -479,7 +479,7 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	chrm.AddSubroundCalled = func(subroundHandler consensus.SubroundHandler) {
 		subroundHandlers++
 	}
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	container.SetChronology(chrm)
 	fct := *initFactoryWithContainer(container)
 

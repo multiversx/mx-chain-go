@@ -11,7 +11,7 @@ import (
 )
 
 func initSubroundCommitment() bn.SubroundCommitment {
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -53,7 +53,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSubroundShouldFail(t *testin
 func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -83,7 +83,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *
 func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -113,7 +113,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *tes
 func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -143,7 +143,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing
 func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -173,7 +173,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testi
 func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -203,7 +203,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunction
 func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitContainer()
+	container := mock.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
