@@ -2,6 +2,7 @@ package mock
 
 import (
 	"crypto/cipher"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 )
 
@@ -17,7 +18,7 @@ type SuiteMock struct {
 
 type GeneratorSuite struct {
 	SuiteMock
-	CreateKeyStub func(cipher.Stream) crypto.Scalar
+	CreateKeyStub func(cipher.Stream) (crypto.Scalar, crypto.Point)
 }
 
 func (s *SuiteMock) String() string {
@@ -49,6 +50,6 @@ func (s *SuiteMock) GetUnderlyingSuite() interface{} {
 	return s.GetUnderlyingSuiteStub()
 }
 
-func (gs *GeneratorSuite) CreateKey(c cipher.Stream) crypto.Scalar {
+func (gs *GeneratorSuite) CreateKeyPair(c cipher.Stream) (crypto.Scalar, crypto.Point) {
 	return gs.CreateKeyStub(c)
 }

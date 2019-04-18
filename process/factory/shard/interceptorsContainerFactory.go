@@ -2,8 +2,8 @@ package shard
 
 import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -17,13 +17,13 @@ import (
 type interceptorsContainerFactory struct {
 	shardCoordinator sharding.Coordinator
 	messenger        process.TopicHandler
-	blockchain       data.ChainHandler
+	store            dataRetriever.StorageService
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
 	keyGen           crypto.KeyGenerator
 	singleSigner     crypto.SingleSigner
 	multiSigner      crypto.MultiSigner
-	dataPool         data.PoolsHolder
+	dataPool         dataRetriever.PoolsHolder
 	addrConverter    state.AddressConverter
 }
 
@@ -31,13 +31,13 @@ type interceptorsContainerFactory struct {
 func NewInterceptorsContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	messenger process.TopicHandler,
-	blockchain data.ChainHandler,
+	store dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	keyGen crypto.KeyGenerator,
 	singleSigner crypto.SingleSigner,
 	multiSigner crypto.MultiSigner,
-	dataPool data.PoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
 	addrConverter state.AddressConverter,
 ) (*interceptorsContainerFactory, error) {
 
@@ -47,7 +47,7 @@ func NewInterceptorsContainerFactory(
 	if messenger == nil {
 		return nil, process.ErrNilMessenger
 	}
-	if blockchain == nil {
+	if store == nil {
 		return nil, process.ErrNilBlockChain
 	}
 	if marshalizer == nil {
@@ -75,7 +75,7 @@ func NewInterceptorsContainerFactory(
 	return &interceptorsContainerFactory{
 		shardCoordinator: shardCoordinator,
 		messenger:        messenger,
-		blockchain:       blockchain,
+		store:            store,
 		marshalizer:      marshalizer,
 		hasher:           hasher,
 		keyGen:           keyGen,
@@ -183,7 +183,7 @@ func (icf *interceptorsContainerFactory) generateTxInterceptors() ([]string, []p
 }
 
 func (icf *interceptorsContainerFactory) createOneTxInterceptor(identifier string) (process.Interceptor, error) {
-	txStorer := icf.blockchain.GetStorer(data.TransactionUnit)
+	txStorer := icf.store.GetStorer(dataRetriever.TransactionUnit)
 
 	interceptor, err := transaction.NewTxInterceptor(
 		icf.marshalizer,
@@ -209,7 +209,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 
 	//only one intrashard header topic
 	identifierHdr := factory.HeadersTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-	headerStorer := icf.blockchain.GetStorer(data.BlockHeaderUnit)
+	headerStorer := icf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	interceptor, err := interceptors.NewHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.Headers(),
@@ -254,7 +254,7 @@ func (icf *interceptorsContainerFactory) generateMiniBlocksInterceptors() ([]str
 }
 
 func (icf *interceptorsContainerFactory) createOneMiniBlocksInterceptor(identifier string) (process.Interceptor, error) {
-	txBlockBodyStorer := icf.blockchain.GetStorer(data.MiniBlockUnit)
+	txBlockBodyStorer := icf.store.GetStorer(dataRetriever.MiniBlockUnit)
 
 	interceptor, err := interceptors.NewMiniBlocksInterceptor(
 		icf.marshalizer,
@@ -278,7 +278,7 @@ func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptor() ([
 
 	//only one intrashard peer change blocks topic
 	identifierPeerCh := factory.PeerChBodyTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-	peerBlockBodyStorer := icf.blockchain.GetStorer(data.PeerChangesUnit)
+	peerBlockBodyStorer := icf.store.GetStorer(dataRetriever.PeerChangesUnit)
 
 	interceptor, err := interceptors.NewPeerBlockBodyInterceptor(
 		icf.marshalizer,
@@ -302,7 +302,7 @@ func (icf *interceptorsContainerFactory) generatePeerChBlockBodyInterceptor() ([
 
 func (icf *interceptorsContainerFactory) generateMetachainHeaderInterceptor() ([]string, []process.Interceptor, error) {
 	identifierHdr := factory.MetachainBlocksTopic
-	metachainHeaderStorer := icf.blockchain.GetStorer(data.MetaBlockUnit)
+	metachainHeaderStorer := icf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
 	interceptor, err := interceptors.NewMetachainHeaderInterceptor(
 		icf.marshalizer,

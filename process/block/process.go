@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/display"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -34,7 +35,8 @@ const maxTransactionsInBlock = 15000
 
 // blockProcessor implements blockProcessor interface and actually it tries to execute block
 type blockProcessor struct {
-	dataPool             data.PoolsHolder
+	dataPool             dataRetriever.PoolsHolder
+	store                dataRetriever.StorageService
 	hasher               hashing.Hasher
 	marshalizer          marshal.Marshalizer
 	txProcessor          process.TransactionProcessor
@@ -52,7 +54,8 @@ type blockProcessor struct {
 
 // NewBlockProcessor creates a new blockProcessor object
 func NewBlockProcessor(
-	dataPool data.PoolsHolder,
+	dataPool dataRetriever.PoolsHolder,
+	store dataRetriever.StorageService,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	txProcessor process.TransactionProcessor,
@@ -66,37 +69,32 @@ func NewBlockProcessor(
 	if dataPool == nil {
 		return nil, process.ErrNilDataPoolHolder
 	}
-
 	if hasher == nil {
 		return nil, process.ErrNilHasher
 	}
-
 	if marshalizer == nil {
 		return nil, process.ErrNilMarshalizer
 	}
-
 	if txProcessor == nil {
 		return nil, process.ErrNilTxProcessor
 	}
-
 	if accounts == nil {
 		return nil, process.ErrNilAccountsAdapter
 	}
-
 	if shardCoordinator == nil {
 		return nil, process.ErrNilShardCoordinator
 	}
-
 	if forkDetector == nil {
 		return nil, process.ErrNilForkDetector
 	}
-
 	if requestTransactionHandler == nil {
 		return nil, process.ErrNilTransactionHandler
 	}
-
 	if requestMiniBlockHandler == nil {
 		return nil, process.ErrNilMiniBlocksRequestHandler
+	}
+	if store == nil {
+		return nil, process.ErrNilTxStorage
 	}
 
 	bp := blockProcessor{
@@ -107,6 +105,7 @@ func NewBlockProcessor(
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
 		forkDetector:     forkDetector,
+		store:            store,
 	}
 
 	bp.ChRcvAllTxs = make(chan bool)
@@ -306,7 +305,7 @@ func (bp *blockProcessor) restoreTxBlockIntoPools(blockChain data.ChainHandler,
 	for i := 0; i < len(blockBody); i++ {
 		miniBlock := blockBody[i]
 		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-		txsBuff, err := blockChain.GetAll(data.TransactionUnit, miniBlock.TxHashes)
+		txsBuff, err := bp.store.GetAll(dataRetriever.TransactionUnit, miniBlock.TxHashes)
 		if err != nil {
 			return err
 		}
@@ -486,7 +485,7 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 	}
 
 	headerHash := bp.hasher.Compute(string(buff))
-	err = blockChain.Put(data.BlockHeaderUnit, headerHash, buff)
+	err = bp.store.Put(dataRetriever.BlockHeaderUnit, headerHash, buff)
 	if err != nil {
 		return err
 	}
@@ -510,7 +509,7 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 		}
 
 		miniBlockHash := bp.hasher.Compute(string(buff))
-		err = blockChain.Put(data.MiniBlockUnit, miniBlockHash, buff)
+		err = bp.store.Put(dataRetriever.MiniBlockUnit, miniBlockHash, buff)
 		if err != nil {
 			return err
 		}
@@ -539,7 +538,7 @@ func (bp *blockProcessor) CommitBlock(blockChain data.ChainHandler, header data.
 				return err
 			}
 
-			err = blockChain.Put(data.TransactionUnit, txHash, buff)
+			err = bp.store.Put(dataRetriever.TransactionUnit, txHash, buff)
 			if err != nil {
 				return err
 			}
@@ -646,7 +645,7 @@ func (bp *blockProcessor) removeMetaBlockFromPool(blockBody block.Body, blockCha
 			if err != nil {
 				return err
 			}
-			err = blockChain.Put(data.MetaBlockUnit, metaBlockKey, buff)
+			err = bp.store.Put(dataRetriever.MetaBlockUnit, metaBlockKey, buff)
 			if err != nil {
 				return err
 			}
@@ -818,7 +817,7 @@ func (bp *blockProcessor) computeMissingTxsForShards(body block.Body) map[uint32
 func (bp *blockProcessor) processAndRemoveBadTransaction(
 	transactionHash []byte,
 	transaction *transaction.Transaction,
-	txPool data.ShardedDataCacherNotifier,
+	txPool dataRetriever.ShardedDataCacherNotifier,
 	round int32,
 	sndShardId uint32,
 	dstShardId uint32,

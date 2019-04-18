@@ -58,14 +58,19 @@ func (s *suiteEd25519) PointLen() int {
 	return s.suite.Curve.PointLen()
 }
 
-// CreateKey returns a formatted Ed25519 key (avoiding subgroup attack by requiring
-// it to be a multiple of 8). NewKey implements the crypto.KeyGenerator interface.
-func (s *suiteEd25519) CreateKey(stream cipher.Stream) crypto.Scalar {
+// CreateKeyPair returns a pair of a formatted Ed25519 key (avoiding subgroup attack by requiring
+// it to be a multiple of 8) and the associated Point. NewKey implements the crypto.KeyGenerator interface.
+func (s *suiteEd25519) CreateKeyPair(stream cipher.Stream) (crypto.Scalar, crypto.Point) {
 	sc := kyberScalar{}
+	p := kyberPoint{}
+
 	s1 := s.suite.Curve.NewKey(stream)
 	sc.Scalar = s1
 
-	return &sc
+	p1 := s.suite.Curve.Point().Base().Mul(s1, nil)
+	p.Point = p1
+
+	return &sc, &p
 }
 
 // GetUnderlyingSuite returns the underlying suite

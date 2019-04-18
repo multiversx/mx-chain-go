@@ -159,17 +159,38 @@ func TestWithBlockChain_ShouldWork(t *testing.T) {
 
 	blkc, _ := blockchain.NewBlockChain(
 		&mock.CacherStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
-		&mock.StorerStub{},
 	)
 
 	opt := WithBlockChain(blkc)
 	err := opt(node)
 
 	assert.True(t, node.blkc == blkc)
+	assert.Nil(t, err)
+}
+
+func TestWithDataStore_NilStoreShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithDataStore(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.privateKey)
+	assert.Equal(t, ErrNilStore, err)
+}
+
+func TestWithDataStore_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	store := &mock.ChainStorerMock{}
+
+	opt := WithDataStore(store)
+	err := opt(node)
+
+	assert.True(t, node.store == store)
 	assert.Nil(t, err)
 }
 
@@ -446,6 +467,32 @@ func TestWithDataPool_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.dataPool == dataPool)
+	assert.Nil(t, err)
+}
+
+func TestWithMetaDataPool_NilDataPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithMetaDataPool(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.dataPool)
+	assert.Equal(t, ErrNilDataPool, err)
+}
+
+func TestWithMetaDataPool_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	dataPool := &mock.MetaPoolsHolderStub{}
+
+	opt := WithMetaDataPool(dataPool)
+	err := opt(node)
+
+	assert.True(t, node.metaDataPool == dataPool)
 	assert.Nil(t, err)
 }
 

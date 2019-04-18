@@ -99,3 +99,15 @@ var ErrNilBroadcastBlockFunction = errors.New("broadcast block function is nil")
 
 // ErrNilChannel is raised when a valid channel is expected but nil used
 var ErrNilChannel = errors.New("channel is nil")
+
+// ErrRoundCanceled is raised when round is canceled
+var ErrRoundCanceled = errors.New("round is canceled")
+
+// ErrSenderNotOk is raised when sender is invalid
+var ErrSenderNotOk = errors.New("sender is invalid")
+
+// ErrMessageForPastRound is raised when message is for past round
+var ErrMessageForPastRound = errors.New("message is for past round")
+
+// ErrInvalidSignature is raised when signature is invalid
+var ErrInvalidSignature = errors.New("signature is invalid")

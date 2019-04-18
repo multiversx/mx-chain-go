@@ -1,39 +1,39 @@
 package dataPool
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 type metaDataPool struct {
 	metaBlocks      storage.Cacher
-	miniBlockHashes data.ShardedDataCacherNotifier
+	miniBlockHashes dataRetriever.ShardedDataCacherNotifier
 	shardHeaders    storage.Cacher
-	metaBlockNonces data.Uint64Cacher
+	metaBlockNonces dataRetriever.Uint64Cacher
 }
 
 // NewMetaDataPool creates a data pools holder object
 func NewMetaDataPool(
 	metaBlocks storage.Cacher,
-	miniBlockHashes data.ShardedDataCacherNotifier,
+	miniBlockHashes dataRetriever.ShardedDataCacherNotifier,
 	shardHeaders storage.Cacher,
-	metaBlockNonces data.Uint64Cacher,
+	metaBlockNonces dataRetriever.Uint64Cacher,
 ) (*metaDataPool, error) {
 
 	if metaBlocks == nil {
-		return nil, data.ErrNilMetaBlockPool
+		return nil, dataRetriever.ErrNilMetaBlockPool
 	}
 
 	if miniBlockHashes == nil {
-		return nil, data.ErrNilMiniBlockHashesPool
+		return nil, dataRetriever.ErrNilMiniBlockHashesPool
 	}
 
 	if shardHeaders == nil {
-		return nil, data.ErrNilShardHeaderPool
+		return nil, dataRetriever.ErrNilShardHeaderPool
 	}
 
 	if metaBlockNonces == nil {
-		return nil, data.ErrNilMetaBlockNouncesPool
+		return nil, dataRetriever.ErrNilMetaBlockNouncesPool
 	}
 
 	return &metaDataPool{
@@ -50,7 +50,7 @@ func (mdp *metaDataPool) MetaChainBlocks() storage.Cacher {
 }
 
 // MiniBlockHashes returns the holder for meta mini block hashes
-func (mdp *metaDataPool) MiniBlockHashes() data.ShardedDataCacherNotifier {
+func (mdp *metaDataPool) MiniBlockHashes() dataRetriever.ShardedDataCacherNotifier {
 	return mdp.miniBlockHashes
 }
 
@@ -60,6 +60,6 @@ func (mdp *metaDataPool) ShardHeaders() storage.Cacher {
 }
 
 // MetaBlockNonces returns the holder for meta block nonces
-func (mdp *metaDataPool) MetaBlockNonces() data.Uint64Cacher {
+func (mdp *metaDataPool) MetaBlockNonces() dataRetriever.Uint64Cacher {
 	return mdp.metaBlockNonces
 }

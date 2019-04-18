@@ -1,46 +1,46 @@
 package dataPool
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
 type shardedDataPool struct {
-	transactions      data.ShardedDataCacherNotifier
+	transactions      dataRetriever.ShardedDataCacherNotifier
 	headers           storage.Cacher
 	metaBlocks        storage.Cacher
-	hdrNonces         data.Uint64Cacher
+	hdrNonces         dataRetriever.Uint64Cacher
 	miniBlocks        storage.Cacher
 	peerChangesBlocks storage.Cacher
 }
 
 // NewShardedDataPool creates a data pools holder object
 func NewShardedDataPool(
-	transactions data.ShardedDataCacherNotifier,
+	transactions dataRetriever.ShardedDataCacherNotifier,
 	headers storage.Cacher,
-	hdrNonces data.Uint64Cacher,
+	hdrNonces dataRetriever.Uint64Cacher,
 	miniBlocks storage.Cacher,
 	peerChangesBlocks storage.Cacher,
 	metaBlocks storage.Cacher,
 ) (*shardedDataPool, error) {
 
 	if transactions == nil {
-		return nil, data.ErrNilTxDataPool
+		return nil, dataRetriever.ErrNilTxDataPool
 	}
 	if headers == nil {
-		return nil, data.ErrNilHeadersDataPool
+		return nil, dataRetriever.ErrNilHeadersDataPool
 	}
 	if hdrNonces == nil {
-		return nil, data.ErrNilHeadersNoncesDataPool
+		return nil, dataRetriever.ErrNilHeadersNoncesDataPool
 	}
 	if miniBlocks == nil {
-		return nil, data.ErrNilTxBlockDataPool
+		return nil, dataRetriever.ErrNilTxBlockDataPool
 	}
 	if peerChangesBlocks == nil {
-		return nil, data.ErrNilPeerChangeBlockDataPool
+		return nil, dataRetriever.ErrNilPeerChangeBlockDataPool
 	}
 	if metaBlocks == nil {
-		return nil, data.ErrNilMetaBlockPool
+		return nil, dataRetriever.ErrNilMetaBlockPool
 	}
 
 	return &shardedDataPool{
@@ -54,7 +54,7 @@ func NewShardedDataPool(
 }
 
 // Transactions returns the holder for transactions
-func (tdp *shardedDataPool) Transactions() data.ShardedDataCacherNotifier {
+func (tdp *shardedDataPool) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	return tdp.transactions
 }
 
@@ -64,7 +64,7 @@ func (tdp *shardedDataPool) Headers() storage.Cacher {
 }
 
 // HeadersNonces returns the holder for (nonce, header hash) pairs
-func (tdp *shardedDataPool) HeadersNonces() data.Uint64Cacher {
+func (tdp *shardedDataPool) HeadersNonces() dataRetriever.Uint64Cacher {
 	return tdp.hdrNonces
 }
 
