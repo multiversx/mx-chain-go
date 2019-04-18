@@ -34,9 +34,6 @@ var ErrNilKeyGenerator = errors.New("key generator is nil")
 // ErrNilSingleSigner is raised when a valid singleSigner is expected but nil used
 var ErrNilSingleSigner = errors.New("singleSigner is nil")
 
-// ErrNillConsensusProcessor is raised when a valid consensusProcessor is expected but nil used
-var ErrNillConsensusProcessor = errors.New("consensusProcessor is nil")
-
 // ErrNilMultiSigner is raised when a valid multiSigner is expected but nil used
 var ErrNilMultiSigner = errors.New("multiSigner is nil")
 

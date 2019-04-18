@@ -2,8 +2,8 @@ package bn
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
 

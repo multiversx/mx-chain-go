@@ -1,9 +1,10 @@
 package spos
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func initConsensusDataContainer() *ConsensusDataContainer {

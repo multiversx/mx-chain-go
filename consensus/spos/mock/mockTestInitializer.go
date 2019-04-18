@@ -1,11 +1,12 @@
 package mock
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"time"
 )
 
 func InitChronologyHandlerMock() consensus.ChronologyHandler {

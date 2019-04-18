@@ -2,9 +2,9 @@ package bn_test
 
 import (
 	"errors"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
@@ -12,7 +12,6 @@ import (
 )
 
 func initSubroundCommitmentHashWithContainer(container *mock.ConsensusDataContainerMock) bn.SubroundCommitmentHash {
-
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 

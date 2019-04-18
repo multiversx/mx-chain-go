@@ -1,9 +1,9 @@
 package bn_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"

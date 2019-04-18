@@ -1,8 +1,9 @@
 package bn
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 )
 
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
