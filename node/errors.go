@@ -81,3 +81,6 @@ var ErrNilBlockHeader = errors.New("block header is nil")
 
 // ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
 var ErrNilTxBlockBody = errors.New("tx block body is nil")
+
+// ErrNilMetaBlockHeader is raised when a valid metablock is expected but nil was provided
+var ErrNilMetaBlockHeader = errors.New("meta block header is nil")

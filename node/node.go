@@ -78,6 +78,7 @@ type Node struct {
 
 	blkc             data.ChainHandler
 	dataPool         dataRetriever.PoolsHolder
+	metaDataPool     dataRetriever.MetaPoolsHolder
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
 
@@ -191,7 +192,6 @@ func (n *Node) CreateShardedStores() error {
 func (n *Node) StartConsensus() error {
 
 	genesisHeader, genesisHeaderHash, err := n.createGenesisBlock()
-
 	if err != nil {
 		return err
 	}
@@ -204,25 +204,21 @@ func (n *Node) StartConsensus() error {
 	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
 
 	rounder, err := n.createRounder()
-
 	if err != nil {
 		return err
 	}
 
 	chronologyHandler, err := n.createChronologyHandler(rounder)
-
 	if err != nil {
 		return err
 	}
 
-	bootstraper, err := n.createBootstraper(rounder)
-
+	bootstraper, err := n.createShardBootstraper(rounder)
 	if err != nil {
 		return err
 	}
 
 	consensusState, err := n.createConsensusState()
-
 	if err != nil {
 		return err
 	}
@@ -447,9 +443,39 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 	return chr, nil
 }
 
-func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	bootstrap, err := sync.NewBootstrap(
+func (n *Node) createShardBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	bootstrap, err := sync.NewShardBootstrap(
 		n.dataPool,
+		n.store,
+		n.blkc,
+		rounder,
+		n.blockProcessor,
+		WaitTime,
+		n.hasher,
+		n.marshalizer,
+		n.forkDetector,
+		n.resolversFinder,
+		n.shardCoordinator,
+		n.accounts,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	bootstrap.BroadcastBlock = n.BroadcastBlock
+	bootstrap.StartSync()
+
+	return bootstrap, nil
+}
+
+func (n *Node) createMetaChainBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	// TODO make sure metachain blockprocessor is used here in constructor
+	// TODO make sure metachain is used here as blockchain
+	// TODO make sure metachain store is used here as store
+	// TODO make sure accounts merkle tree is for metachain state
+
+	bootstrap, err := sync.NewMetaBootstrap(
+		n.metaDataPool,
 		n.store,
 		n.blkc,
 		rounder,
@@ -467,8 +493,7 @@ func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrappe
 		return nil, err
 	}
 
-	bootstrap.BroadcastBlock = n.BroadcastBlock
-
+	bootstrap.BroadcastBlock = n.BroadcastMetaBlock
 	bootstrap.StartSync()
 
 	return bootstrap, nil
@@ -828,6 +853,23 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 				n.shardCoordinator.CommunicationIdentifier(k), txsBuff)
 		}
 	}
+
+	return nil
+}
+
+// BroadcastMetaBlock will send on meta shard topics the header and on meta-to-shard topics
+// the header. This func needs to be exported as it is tested in integrationTests package.
+func (n *Node) BroadcastMetaBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+	if header == nil {
+		return ErrNilMetaBlockHeader
+	}
+
+	msgHeader, err := n.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
 
 	return nil
 }
