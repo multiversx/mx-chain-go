@@ -173,7 +173,7 @@ func (rcf *resolversContainerFactory) createMetaChainHeaderResolver(identifier s
 
 	resolver, err := resolvers.NewShardHeaderResolver(
 		resolverSender,
-		rcf.dataPools.ShardHeaders(),
+		rcf.dataPools.MetaChainBlocks(),
 		hdrStorer,
 		rcf.marshalizer,
 	)

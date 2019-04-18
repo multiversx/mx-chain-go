@@ -175,7 +175,7 @@ func (boot *ShardBootstrap) getHeaderFromStorage(hash []byte) *block.Header {
 
 func (boot *ShardBootstrap) receivedHeaders(headerHash []byte) {
 	header := boot.getHeader(headerHash)
-	boot.processReceivedHeaders(header, headerHash)
+	boot.processReceivedHeader(header, headerHash)
 }
 
 // setRequestedMiniBlocks method sets the body hash requested by the sync mechanism

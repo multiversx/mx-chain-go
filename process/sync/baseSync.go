@@ -82,29 +82,28 @@ func (boot *baseBootstrap) setRequestedHeaderNonce(nonce *uint64) {
 
 // requestedHeaderNonce method gets the header nonce requested by the sync mechanism
 func (boot *baseBootstrap) requestedHeaderNonce() (nonce *uint64) {
+	defer boot.mutHeader.RUnlock()
+
 	boot.mutHeader.RLock()
 	nonce = boot.headerNonce
-	boot.mutHeader.RUnlock()
 
-	return
+	return nonce
 }
 
-func (boot *baseBootstrap) processReceivedHeaders(header data.HeaderHandler, headerHash []byte) {
+func (boot *baseBootstrap) processReceivedHeader(header data.HeaderHandler, headerHash []byte) {
 	if header == nil {
 		log.Info(ErrNilHeader.Error())
 		return
 	}
 
-	if header != nil {
-		boot.mutRcvHdrInfo.Lock()
-		if header.GetNonce() > boot.rcvHdrInfo.highestNonce {
-			log.Info(fmt.Sprintf("receivedHeaders: received header with nonce %d from network, which is the highest nonce received until now\n", header.GetNonce()))
-			boot.rcvHdrInfo.highestNonce = header.GetNonce()
-			boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
-		}
-		boot.mutRcvHdrInfo.Unlock()
-		log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.GetNonce(), toB64(headerHash)))
+	boot.mutRcvHdrInfo.Lock()
+	if header.GetNonce() > boot.rcvHdrInfo.highestNonce {
+		log.Info(fmt.Sprintf("receivedHeaders: received header with nonce %d from network, which is the highest nonce received until now\n", header.GetNonce()))
+		boot.rcvHdrInfo.highestNonce = header.GetNonce()
+		boot.rcvHdrInfo.roundIndex = boot.rounder.Index()
 	}
+	boot.mutRcvHdrInfo.Unlock()
+	log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.GetNonce(), toB64(headerHash)))
 
 	err := boot.forkDetector.AddHeader(header, headerHash, false)
 	if err != nil {

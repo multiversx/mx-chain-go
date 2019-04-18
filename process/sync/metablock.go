@@ -158,7 +158,7 @@ func (boot *MetaBootstrap) getHeaderFromStorage(hash []byte) *block.MetaBlock {
 
 func (boot *MetaBootstrap) receivedHeader(headerHash []byte) {
 	header := boot.getHeader(headerHash)
-	boot.processReceivedHeaders(header, headerHash)
+	boot.processReceivedHeader(header, headerHash)
 }
 
 // StartSync method will start SyncBlocks as a go routine

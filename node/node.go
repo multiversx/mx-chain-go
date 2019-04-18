@@ -469,6 +469,11 @@ func (n *Node) createShardBootstraper(rounder consensus.Rounder) (process.Bootst
 }
 
 func (n *Node) createMetaChainBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	// TODO make sure metachain blockprocessor is used here in constructor
+	// TODO make sure metachain is used here as blockchain
+	// TODO make sure metachain store is used here as store
+	// TODO make sure accounts merkle tree is for metachain state
+
 	bootstrap, err := sync.NewMetaBootstrap(
 		n.metaDataPool,
 		n.store,
@@ -488,7 +493,7 @@ func (n *Node) createMetaChainBootstraper(rounder consensus.Rounder) (process.Bo
 		return nil, err
 	}
 
-	bootstrap.BroadcastBlock = n.BroadcastBlock
+	bootstrap.BroadcastBlock = n.BroadcastMetaBlock
 	bootstrap.StartSync()
 
 	return bootstrap, nil
@@ -847,6 +852,27 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 			go n.messenger.Broadcast(factory.TransactionTopic+
 				n.shardCoordinator.CommunicationIdentifier(k), txsBuff)
 		}
+	}
+
+	return nil
+}
+
+// BroadcastMetaBlock will send on meta shard topics the header and on meta-to-shard topics
+// the header. This func needs to be exported as it is tested in integrationTests package.
+func (n *Node) BroadcastMetaBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+	if header == nil {
+		return ErrNilMetaBlockHeader
+	}
+
+	msgHeader, err := n.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+
+	for i := uint32(0); i < n.shardCoordinator.NumberOfShards(); i++ {
+		go n.messenger.Broadcast(factory.MetachainBlocksTopic+n.shardCoordinator.CommunicationIdentifier(i), msgHeader)
 	}
 
 	return nil
