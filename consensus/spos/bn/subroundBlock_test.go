@@ -105,7 +105,7 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 		extend,
 	)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, err, spos.ErrNilSubround)
+	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilBlockchainShouldFail(t *testing.T) {
@@ -135,7 +135,7 @@ func TestSubroundBlock_NewSubroundBlockNilBlockchainShouldFail(t *testing.T) {
 		extend,
 	)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, err, spos.ErrNilBlockChain)
+	assert.Equal(t, spos.ErrNilBlockChain, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T) {
@@ -165,7 +165,7 @@ func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T)
 		extend,
 	)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, err, spos.ErrNilBlockProcessor)
+	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T) {
@@ -194,7 +194,7 @@ func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T)
 		extend,
 	)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, err, spos.ErrNilConsensusState)
+	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
@@ -223,7 +223,7 @@ func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
 		extend,
 	)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, err, spos.ErrNilHasher)
+	assert.Equal(t, spos.ErrNilHasher, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
@@ -252,7 +252,7 @@ func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 		extend,
 	)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, err, spos.ErrNilMarshalizer)
+	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
@@ -281,7 +281,7 @@ func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
 		extend,
 	)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, err, spos.ErrNilMultiSigner)
+	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilRounderShouldFail(t *testing.T) {
@@ -310,7 +310,7 @@ func TestSubroundBlock_NewSubroundBlockNilRounderShouldFail(t *testing.T) {
 		extend,
 	)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, err, spos.ErrNilRounder)
+	assert.Equal(t, spos.ErrNilRounder, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.T) {
@@ -339,7 +339,7 @@ func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.
 		extend,
 	)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, err, spos.ErrNilShardCoordinator)
+	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
@@ -368,7 +368,7 @@ func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 		extend,
 	)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, err, spos.ErrNilSyncTimer)
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
@@ -394,7 +394,7 @@ func TestSubroundBlock_NewSubroundBlockNilSendConsensusMessageFunctionShouldFail
 		extend,
 	)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, err, spos.ErrNilSendConsensusMessageFunction)
+	assert.Equal(t, spos.ErrNilSendConsensusMessageFunction, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {

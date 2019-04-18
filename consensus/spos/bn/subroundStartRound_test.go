@@ -50,7 +50,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testin
 	)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, err, spos.ErrNilSubround)
+	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *testing.T) {
@@ -79,7 +79,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *test
 	)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, err, spos.ErrNilBlockChain)
+	assert.Equal(t, spos.ErrNilBlockChain, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilBootstraperShouldFail(t *testing.T) {
@@ -108,7 +108,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBootstraperShouldFail(t *tes
 	)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, err, spos.ErrNilBlootstraper)
+	assert.Equal(t, spos.ErrNilBlootstraper, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *testing.T) {
@@ -137,7 +137,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 	)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, err, spos.ErrNilConsensusState)
+	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *testing.T) {
@@ -167,7 +167,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerShouldFail(t *tes
 	)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, err, spos.ErrNilMultiSigner)
+	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilRounderShouldFail(t *testing.T) {
@@ -197,7 +197,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilRounderShouldFail(t *testing
 	)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, err, spos.ErrNilRounder)
+	assert.Equal(t, spos.ErrNilRounder, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testing.T) {
@@ -226,7 +226,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testi
 	)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, err, spos.ErrNilSyncTimer)
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShouldFail(t *testing.T) {
@@ -255,7 +255,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 	)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, err, spos.ErrNilValidatorGroupSelector)
+	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {

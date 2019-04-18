@@ -55,7 +55,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSubroundShouldFail(t *testing.
 	)
 
 	assert.Nil(t, srSignature)
-	assert.Equal(t, err, spos.ErrNilSubround)
+	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
 func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *testing.T) {
@@ -85,7 +85,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 	)
 
 	assert.Nil(t, srSignature)
-	assert.Equal(t, err, spos.ErrNilConsensusState)
+	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
 func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T) {
@@ -115,7 +115,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 	)
 
 	assert.Nil(t, srSignature)
-	assert.Equal(t, err, spos.ErrNilHasher)
+	assert.Equal(t, spos.ErrNilHasher, err)
 }
 
 func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testing.T) {
@@ -145,7 +145,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testi
 	)
 
 	assert.Nil(t, srSignature)
-	assert.Equal(t, err, spos.ErrNilMultiSigner)
+	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
 func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T) {
@@ -176,7 +176,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T
 	)
 
 	assert.Nil(t, srSignature)
-	assert.Equal(t, err, spos.ErrNilRounder)
+	assert.Equal(t, spos.ErrNilRounder, err)
 }
 
 func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing.T) {
@@ -206,7 +206,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 	)
 
 	assert.Nil(t, srSignature)
-	assert.Equal(t, err, spos.ErrNilSyncTimer)
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestSubroundSignature_NewSubroundSignatureNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
@@ -236,7 +236,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSendConsensusMessageFunctionSh
 	)
 
 	assert.Nil(t, srSignature)
-	assert.Equal(t, err, spos.ErrNilSendConsensusMessageFunction)
+	assert.Equal(t, spos.ErrNilSendConsensusMessageFunction, err)
 }
 
 func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {

@@ -149,7 +149,7 @@ func TestWorker_NewWorkerBlockprocessorNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilBlockProcessor)
+	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
 func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
@@ -175,7 +175,7 @@ func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilBlootstraper)
+	assert.Equal(t, spos.ErrNilBlootstraper, err)
 }
 
 func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
@@ -201,7 +201,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilConsensusState)
+	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
 func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
@@ -227,7 +227,7 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilKeyGenerator)
+	assert.Equal(t, spos.ErrNilKeyGenerator, err)
 }
 
 func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
@@ -253,7 +253,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilMarshalizer)
+	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
 func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
@@ -279,7 +279,7 @@ func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilPrivateKey)
+	assert.Equal(t, spos.ErrNilPrivateKey, err)
 }
 
 func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
@@ -305,7 +305,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilRounder)
+	assert.Equal(t, spos.ErrNilRounder, err)
 }
 
 func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
@@ -331,7 +331,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilShardCoordinator)
+	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
 
 func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
@@ -357,7 +357,7 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilSingleSigner)
+	assert.Equal(t, spos.ErrNilSingleSigner, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {

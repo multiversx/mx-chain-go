@@ -53,7 +53,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSubroundShouldFail(t
 	)
 
 	assert.Nil(t, srCommitmentHash)
-	assert.Equal(t, err, spos.ErrNilSubround)
+	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShouldFail(t *testing.T) {
@@ -83,7 +83,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShould
 	)
 
 	assert.Nil(t, srCommitmentHash)
-	assert.Equal(t, err, spos.ErrNilConsensusState)
+	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilHasherShouldFail(t *testing.T) {
@@ -113,7 +113,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilHasherShouldFail(t *
 	)
 
 	assert.Nil(t, srCommitmentHash)
-	assert.Equal(t, err, spos.ErrNilHasher)
+	assert.Equal(t, spos.ErrNilHasher, err)
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilMultisignerShouldFail(t *testing.T) {
@@ -143,7 +143,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilMultisignerShouldFai
 	)
 
 	assert.Nil(t, srCommitmentHash)
-	assert.Equal(t, err, spos.ErrNilMultiSigner)
+	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilRounderShouldFail(t *testing.T) {
@@ -173,7 +173,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilRounderShouldFail(t 
 	)
 
 	assert.Nil(t, srCommitmentHash)
-	assert.Equal(t, err, spos.ErrNilRounder)
+	assert.Equal(t, spos.ErrNilRounder, err)
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSyncTimerShouldFail(t *testing.T) {
@@ -203,7 +203,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSyncTimerShouldFail(
 	)
 
 	assert.Nil(t, srCommitmentHash)
-	assert.Equal(t, err, spos.ErrNilSyncTimer)
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
@@ -233,7 +233,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilSendConsensusMessage
 	)
 
 	assert.Nil(t, srCommitmentHash)
-	assert.Equal(t, err, spos.ErrNilSendConsensusMessageFunction)
+	assert.Equal(t, spos.ErrNilSendConsensusMessageFunction, err)
 }
 
 func TestSubroundCommitmentHash_NewSubroundCommitmentHashShouldWork(t *testing.T) {

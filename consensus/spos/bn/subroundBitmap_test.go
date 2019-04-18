@@ -48,7 +48,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilSubroundShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, srBitmap)
-	assert.Equal(t, err, spos.ErrNilSubround)
+	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
 func TestSubroundBitmap_NewSubroundBitmapNilBlockProcessorShouldFail(t *testing.T) {
@@ -140,7 +140,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilRounderShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, srBitmap)
-	assert.Equal(t, err, spos.ErrNilRounder)
+	assert.Equal(t, spos.ErrNilRounder, err)
 }
 
 func TestSubroundBitmap_NewSubroundBitmapNilSyncTimerShouldFail(t *testing.T) {
@@ -171,7 +171,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilSyncTimerShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, srBitmap)
-	assert.Equal(t, err, spos.ErrNilSyncTimer)
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestSubroundBitmap_NewSubroundBitmapNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
@@ -200,7 +200,7 @@ func TestSubroundBitmap_NewSubroundBitmapNilSendConsensusMessageFunctionShouldFa
 	)
 
 	assert.Nil(t, srBitmap)
-	assert.Equal(t, err, spos.ErrNilSendConsensusMessageFunction)
+	assert.Equal(t, spos.ErrNilSendConsensusMessageFunction, err)
 }
 
 func TestSubroundBitmap_NewSubroundBitmapShouldWork(t *testing.T) {

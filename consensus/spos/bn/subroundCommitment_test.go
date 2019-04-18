@@ -47,7 +47,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSubroundShouldFail(t *testin
 	)
 
 	assert.Nil(t, srCommitment)
-	assert.Equal(t, err, spos.ErrNilSubround)
+	assert.Equal(t, spos.ErrNilSubround, err)
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *testing.T) {
@@ -78,7 +78,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *
 	)
 
 	assert.Nil(t, srCommitment)
-	assert.Equal(t, err, spos.ErrNilConsensusState)
+	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *testing.T) {
@@ -108,7 +108,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilMultisignerShouldFail(t *tes
 	)
 
 	assert.Nil(t, srCommitment)
-	assert.Equal(t, err, spos.ErrNilMultiSigner)
+	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing.T) {
@@ -138,7 +138,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilRounderShouldFail(t *testing
 	)
 
 	assert.Nil(t, srCommitment)
-	assert.Equal(t, err, spos.ErrNilRounder)
+	assert.Equal(t, spos.ErrNilRounder, err)
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testing.T) {
@@ -168,7 +168,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSyncTimerShouldFail(t *testi
 	)
 
 	assert.Nil(t, srCommitment)
-	assert.Equal(t, err, spos.ErrNilSyncTimer)
+	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunctionShouldFail(t *testing.T) {
@@ -198,7 +198,7 @@ func TestSubroundCommitment_NewSubroundCommitmentNilSendConsensusMessageFunction
 	)
 
 	assert.Nil(t, srCommitment)
-	assert.Equal(t, err, spos.ErrNilSendConsensusMessageFunction)
+	assert.Equal(t, spos.ErrNilSendConsensusMessageFunction, err)
 }
 
 func TestSubroundCommitment_NewSubroundCommitmentShouldWork(t *testing.T) {
