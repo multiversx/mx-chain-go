@@ -44,20 +44,48 @@ func (bfd *basicForkDetector) SetCheckpointNonce(nonce uint64) {
 	bfd.checkpointNonce = nonce
 }
 
+func (bfd *basicForkDetector) CheckpointNonce() uint64 {
+	return bfd.checkpointNonce
+}
+
 func (bfd *basicForkDetector) SetLastCheckpointNonce(nonce uint64) {
 	bfd.lastCheckpointNonce = nonce
 }
 
-func (bfd *basicForkDetector) CheckpointNonce() uint64 {
-	return bfd.checkpointNonce
+func (bfd *basicForkDetector) LastCheckpointNonce() uint64 {
+	return bfd.lastCheckpointNonce
+}
+
+func (bfd *basicForkDetector) SetCheckpointRound(round int32) {
+	bfd.checkpointRound = round
+}
+
+func (bfd *basicForkDetector) CheckpointRound() int32 {
+	return bfd.checkpointRound
+}
+
+func (bfd *basicForkDetector) SetLastCheckpointRound(round int32) {
+	bfd.lastCheckpointRound = round
+}
+
+func (bfd *basicForkDetector) LastCheckpointRound() int32 {
+	return bfd.lastCheckpointRound
 }
 
 func (bfd *basicForkDetector) Append(hdrInfo *headerInfo) {
 	bfd.append(hdrInfo)
 }
 
-func (bfd *basicForkDetector) RemovePastHeaders(nonce uint64) {
-	bfd.removePastHeaders(nonce)
+func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header) error {
+	return bfd.checkBlockValidity(header)
+}
+
+func (bfd *basicForkDetector) RemovePastHeaders() {
+	bfd.removePastHeaders()
+}
+
+func (bfd *basicForkDetector) RemoveInvalidHeaders() {
+	bfd.removeInvalidHeaders()
 }
 
 func (hi *headerInfo) Nonce() uint64 {
@@ -70,10 +98,6 @@ func (hi *headerInfo) Hash() []byte {
 
 func (hi *headerInfo) IsProcessed() bool {
 	return hi.isProcessed
-}
-
-func (hi *headerInfo) IsSigned() bool {
-	return hi.isSigned
 }
 
 func (boot *Bootstrap) NotifySyncStateListeners() {
@@ -95,22 +119,6 @@ func (boot *Bootstrap) SetHighestNonceReceived(highestNonceReceived uint64) {
 func (boot *Bootstrap) SetIsForkDetected(isForkDetected bool) {
 	boot.isForkDetected = isForkDetected
 }
-
-//func (boot *Bootstrap) GetTimeStampForRound(roundIndex uint32) time.Time {
-//	return boot.getTimeStampForRound(roundIndex)
-//}
-
-//func (boot *Bootstrap) ShouldCreateEmptyBlock(nonce uint64) bool {
-//	return boot.shouldCreateEmptyBlock(nonce)
-//}
-
-//func (boot *Bootstrap) CreateAndBroadcastEmptyBlock() error {
-//	return boot.createAndBroadcastEmptyBlock()
-//}
-
-//func (boot *Bootstrap) BroadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
-//	return boot.broadcastEmptyBlock(txBlockBody, header)
-//}
 
 func (boot *Bootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
 	boot.isNodeSynchronized = isNodeSyncronized
