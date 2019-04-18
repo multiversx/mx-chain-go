@@ -16,6 +16,8 @@ import (
 
 var errPemFileIsInvalid = errors.New("pem file is invalid")
 var errNilFile = errors.New("nil file provided")
+var errEmptyFile = errors.New("empty file provided")
+var errInvalidIndex = errors.New("invalid private key index")
 
 // OpenFile method opens the file from given path - does not close the file
 func OpenFile(relativePath string, log *logger.Logger) (*os.File, error) {
@@ -91,7 +93,11 @@ func CreateFile(prefix string, subfolder string, fileExtension string) (*os.File
 }
 
 // LoadSkFromPemFile loads the secret key bytes stored in the file
-func LoadSkFromPemFile(relativePath string, log *logger.Logger) ([]byte, error) {
+func LoadSkFromPemFile(relativePath string, log *logger.Logger, skIndex int) ([]byte, error) {
+	if skIndex < 0 {
+		return nil, errInvalidIndex
+	}
+
 	file, err := OpenFile(relativePath, log)
 	if err != nil {
 		return nil, err
@@ -106,10 +112,22 @@ func LoadSkFromPemFile(relativePath string, log *logger.Logger) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
+	if len(buff) == 0 {
+		return nil, errEmptyFile
+	}
 
-	blkRecovered, _ := pem.Decode(buff)
-	if blkRecovered == nil {
-		return nil, errPemFileIsInvalid
+	var blkRecovered *pem.Block
+
+	for i := 0; i <= skIndex; i++ {
+		if len(buff) == 0 {
+			//less private keys present in the file than required
+			return nil, errInvalidIndex
+		}
+
+		blkRecovered, buff = pem.Decode(buff)
+		if blkRecovered == nil {
+			return nil, errPemFileIsInvalid
+		}
 	}
 
 	return blkRecovered.Bytes, nil
