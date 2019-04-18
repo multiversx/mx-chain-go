@@ -74,6 +74,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 
 func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
+
 	container := mock.InitContainer()
 	worker := initWorker()
 
@@ -312,10 +313,10 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *test
 	t.Parallel()
 
 	fct := *initFactory()
-
 	fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateStartRoundSubround()
+
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -324,9 +325,10 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFa
 
 	container := mock.InitContainer()
 	fct := *initFactoryWithContainer(container)
-
 	container.SetSyncTimer(nil)
+
 	err := fct.GenerateStartRoundSubround()
+
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -337,6 +339,7 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T
 	fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateBlockSubround()
+
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -345,9 +348,10 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *test
 
 	container := mock.InitContainer()
 	fct := *initFactoryWithContainer(container)
-
 	container.SetSyncTimer(nil)
+
 	err := fct.GenerateBlockSubround()
+
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -358,6 +362,7 @@ func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundFail(t *
 	fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateCommitmentHashSubround()
+
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -366,9 +371,10 @@ func TestFactory_GenerateSubroundCommitmentHashShouldFailWhenNewSubroundCommitme
 
 	container := mock.InitContainer()
 	fct := *initFactoryWithContainer(container)
-
 	container.SetSyncTimer(nil)
+
 	err := fct.GenerateCommitmentHashSubround()
+
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -379,6 +385,7 @@ func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundFail(t *testing.
 	fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateBitmapSubround()
+
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -386,11 +393,11 @@ func TestFactory_GenerateSubroundBitmapShouldFailWhenNewSubroundBitmapFail(t *te
 	t.Parallel()
 
 	container := mock.InitContainer()
-
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
 	err := fct.GenerateBitmapSubround()
+
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -401,6 +408,7 @@ func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundFail(t *test
 	fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateCommitmentSubround()
+
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -409,9 +417,10 @@ func TestFactory_GenerateSubroundCommitmentShouldFailWhenNewSubroundCommitmentFa
 
 	container := mock.InitContainer()
 	fct := *initFactoryWithContainer(container)
-
 	container.SetSyncTimer(nil)
+
 	err := fct.GenerateCommitmentSubround()
+
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -422,6 +431,7 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testi
 	fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateSignatureSubround()
+
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -433,6 +443,7 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail
 	container.SetSyncTimer(nil)
 
 	err := fct.GenerateSignatureSubround()
+
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -443,6 +454,7 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testin
 	fct.Worker().SetConsensusStateChangedChannels(nil)
 
 	err := fct.GenerateEndRoundSubround()
+
 	assert.Equal(t, spos.ErrNilChannel, err)
 }
 
@@ -454,6 +466,7 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t
 	container.SetSyncTimer(nil)
 
 	err := fct.GenerateEndRoundSubround()
+
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
@@ -466,12 +479,11 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	chrm.AddSubroundCalled = func(subroundHandler consensus.SubroundHandler) {
 		subroundHandlers++
 	}
-
 	container := mock.InitContainer()
 	container.SetChronology(chrm)
 	fct := *initFactoryWithContainer(container)
 
-	fct.GenerateSubrounds()
+	_ = fct.GenerateSubrounds()
 
 	assert.Equal(t, 7, subroundHandlers)
 }

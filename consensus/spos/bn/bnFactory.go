@@ -9,9 +9,9 @@ import (
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
 // functionality
 type factory struct {
-	consensusDataContainer spos.ConsensusCore
-	consensusState         *spos.ConsensusState
-	worker                 *worker
+	consensusCore  spos.ConsensusCore
+	consensusState *spos.ConsensusState
+	worker         *worker
 }
 
 // NewFactory creates a new consensusState object
@@ -32,9 +32,9 @@ func NewFactory(
 	}
 
 	fct := factory{
-		consensusDataContainer: consensusDataContainer,
-		consensusState:         consensusState,
-		worker:                 worker,
+		consensusCore:  consensusDataContainer,
+		consensusState: consensusState,
+		worker:         worker,
 	}
 
 	return &fct, nil
@@ -64,7 +64,7 @@ func checkNewFactoryParams(
 // GenerateSubrounds will generate the subrounds used in Belare & Naveen Cns
 func (fct *factory) GenerateSubrounds() error {
 	fct.initConsensusThreshold()
-	fct.consensusDataContainer.Chronology().RemoveAllSubrounds()
+	fct.consensusCore.Chronology().RemoveAllSubrounds()
 	fct.worker.RemoveAllReceivedMessagesCalls()
 
 	err := fct.generateStartRoundSubround()
@@ -106,7 +106,7 @@ func (fct *factory) GenerateSubrounds() error {
 }
 
 func (fct *factory) getTimeDuration() time.Duration {
-	return fct.consensusDataContainer.Rounder().TimeDuration()
+	return fct.consensusCore.Rounder().TimeDuration()
 }
 
 func (fct *factory) generateStartRoundSubround() error {
@@ -119,7 +119,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		getSubroundName(SrStartRound),
 		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
-		fct.consensusDataContainer,
+		fct.consensusCore,
 	)
 
 	if err != nil {
@@ -135,13 +135,12 @@ func (fct *factory) generateStartRoundSubround() error {
 		return err
 	}
 
-	fct.consensusDataContainer.Chronology().AddSubround(subroundStartRound)
+	fct.consensusCore.Chronology().AddSubround(subroundStartRound)
 
 	return nil
 }
 
 func (fct *factory) generateBlockSubround() error {
-
 	subround, err := NewSubround(
 		SrStartRound,
 		SrBlock,
@@ -151,9 +150,8 @@ func (fct *factory) generateBlockSubround() error {
 		getSubroundName(SrBlock),
 		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
-		fct.consensusDataContainer,
+		fct.consensusCore,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -163,14 +161,13 @@ func (fct *factory) generateBlockSubround() error {
 		fct.worker.sendConsensusMessage,
 		fct.worker.extend,
 	)
-
 	if err != nil {
 		return err
 	}
 
 	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlock.receivedBlockBody)
 	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlock.receivedBlockHeader)
-	fct.consensusDataContainer.Chronology().AddSubround(subroundBlock)
+	fct.consensusCore.Chronology().AddSubround(subroundBlock)
 
 	return nil
 }
@@ -185,9 +182,8 @@ func (fct *factory) generateCommitmentHashSubround() error {
 		getSubroundName(SrCommitmentHash),
 		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
-		fct.consensusDataContainer,
+		fct.consensusCore,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -197,13 +193,12 @@ func (fct *factory) generateCommitmentHashSubround() error {
 		fct.worker.sendConsensusMessage,
 		fct.worker.extend,
 	)
-
 	if err != nil {
 		return err
 	}
 
 	fct.worker.AddReceivedMessageCall(MtCommitmentHash, subroundCommitmentHash.receivedCommitmentHash)
-	fct.consensusDataContainer.Chronology().AddSubround(subroundCommitmentHash)
+	fct.consensusCore.Chronology().AddSubround(subroundCommitmentHash)
 
 	return nil
 }
@@ -218,9 +213,8 @@ func (fct *factory) generateBitmapSubround() error {
 		getSubroundName(SrBitmap),
 		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
-		fct.consensusDataContainer,
+		fct.consensusCore,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -230,13 +224,12 @@ func (fct *factory) generateBitmapSubround() error {
 		fct.worker.sendConsensusMessage,
 		fct.worker.extend,
 	)
-
 	if err != nil {
 		return err
 	}
 
 	fct.worker.AddReceivedMessageCall(MtBitmap, subroundBitmap.receivedBitmap)
-	fct.consensusDataContainer.Chronology().AddSubround(subroundBitmap)
+	fct.consensusCore.Chronology().AddSubround(subroundBitmap)
 
 	return nil
 }
@@ -251,9 +244,8 @@ func (fct *factory) generateCommitmentSubround() error {
 		getSubroundName(SrCommitment),
 		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
-		fct.consensusDataContainer,
+		fct.consensusCore,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -263,13 +255,12 @@ func (fct *factory) generateCommitmentSubround() error {
 		fct.worker.sendConsensusMessage,
 		fct.worker.extend,
 	)
-
 	if err != nil {
 		return err
 	}
 
 	fct.worker.AddReceivedMessageCall(MtCommitment, subroundCommitment.receivedCommitment)
-	fct.consensusDataContainer.Chronology().AddSubround(subroundCommitment)
+	fct.consensusCore.Chronology().AddSubround(subroundCommitment)
 
 	return nil
 }
@@ -284,9 +275,8 @@ func (fct *factory) generateSignatureSubround() error {
 		getSubroundName(SrSignature),
 		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
-		fct.consensusDataContainer,
+		fct.consensusCore,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -296,13 +286,12 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.worker.sendConsensusMessage,
 		fct.worker.extend,
 	)
-
 	if err != nil {
 		return err
 	}
 
 	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignature.receivedSignature)
-	fct.consensusDataContainer.Chronology().AddSubround(subroundSignature)
+	fct.consensusCore.Chronology().AddSubround(subroundSignature)
 
 	return nil
 }
@@ -317,9 +306,8 @@ func (fct *factory) generateEndRoundSubround() error {
 		getSubroundName(SrEndRound),
 		fct.consensusState,
 		fct.worker.consensusStateChangedChannels,
-		fct.consensusDataContainer,
+		fct.consensusCore,
 	)
-
 	if err != nil {
 		return err
 	}
@@ -329,19 +317,17 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.worker.BroadcastBlock,
 		fct.worker.extend,
 	)
-
 	if err != nil {
 		return err
 	}
 
-	fct.consensusDataContainer.Chronology().AddSubround(subroundEndRound)
+	fct.consensusCore.Chronology().AddSubround(subroundEndRound)
 
 	return nil
 }
 
 func (fct *factory) initConsensusThreshold() {
 	pbftThreshold := fct.consensusState.ConsensusGroupSize()*2/3 + 1
-
 	fct.consensusState.SetThreshold(SrBlock, 1)
 	fct.consensusState.SetThreshold(SrCommitmentHash, pbftThreshold)
 	fct.consensusState.SetThreshold(SrBitmap, pbftThreshold)

@@ -18,19 +18,19 @@ import (
 type Factory *factory
 
 func (fct *factory) BlockChain() data.ChainHandler {
-	return fct.consensusDataContainer.Blockchain()
+	return fct.consensusCore.Blockchain()
 }
 
 func (fct *factory) BlockProcessor() process.BlockProcessor {
-	return fct.consensusDataContainer.BlockProcessor()
+	return fct.consensusCore.BlockProcessor()
 }
 
 func (fct *factory) Bootstraper() process.Bootstrapper {
-	return fct.consensusDataContainer.BootStrapper()
+	return fct.consensusCore.BootStrapper()
 }
 
 func (fct *factory) ChronologyHandler() consensus.ChronologyHandler {
-	return fct.consensusDataContainer.Chronology()
+	return fct.consensusCore.Chronology()
 }
 
 func (fct *factory) ConsensusState() *spos.ConsensusState {
@@ -38,31 +38,31 @@ func (fct *factory) ConsensusState() *spos.ConsensusState {
 }
 
 func (fct *factory) Hasher() hashing.Hasher {
-	return fct.consensusDataContainer.Hasher()
+	return fct.consensusCore.Hasher()
 }
 
 func (fct *factory) Marshalizer() marshal.Marshalizer {
-	return fct.consensusDataContainer.Marshalizer()
+	return fct.consensusCore.Marshalizer()
 }
 
 func (fct *factory) MultiSigner() crypto.MultiSigner {
-	return fct.consensusDataContainer.MultiSigner()
+	return fct.consensusCore.MultiSigner()
 }
 
 func (fct *factory) Rounder() consensus.Rounder {
-	return fct.consensusDataContainer.Rounder()
+	return fct.consensusCore.Rounder()
 }
 
 func (fct *factory) ShardCoordinator() sharding.Coordinator {
-	return fct.consensusDataContainer.ShardCoordinator()
+	return fct.consensusCore.ShardCoordinator()
 }
 
 func (fct *factory) SyncTimer() ntp.SyncTimer {
-	return fct.consensusDataContainer.SyncTimer()
+	return fct.consensusCore.SyncTimer()
 }
 
 func (fct *factory) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
-	return fct.consensusDataContainer.ValidatorGroupSelector()
+	return fct.consensusCore.ValidatorGroupSelector()
 }
 
 func (fct *factory) Worker() *worker {

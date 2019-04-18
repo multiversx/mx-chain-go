@@ -67,7 +67,6 @@ func NewWorker(
 		shardCoordinator,
 		singleSigner,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +89,7 @@ func NewWorker(
 	wrk.bootstraper.AddSyncStateListener(wrk.receivedSyncState)
 	wrk.initReceivedMessages()
 	go wrk.checkChannels()
+
 	return &wrk, nil
 }
 

@@ -389,20 +389,19 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 		ch,
 		container,
 	)
-
 	sr.SetJobFunction(nil)
 	sr.SetCheckFunction(func() bool {
 		return true
 	})
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
 	}
 
 	r := sr.DoWork(rounderMock)
+
 	assert.False(t, r)
 }
 
@@ -424,14 +423,12 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 		ch,
 		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
 	sr.SetCheckFunction(nil)
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
@@ -459,7 +456,6 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 		ch,
 		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -468,7 +464,6 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 	})
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
@@ -496,17 +491,14 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 		ch,
 		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
-
 	sr.SetCheckFunction(func() bool {
 		return true
 	})
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
@@ -536,7 +528,6 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	)
 
 	var mut sync.RWMutex
-
 	mut.Lock()
 	checkSuccess := false
 	mut.Unlock()
@@ -544,7 +535,6 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	sr.SetJobFunction(func() bool {
 		return true
 	})
-
 	sr.SetCheckFunction(func() bool {
 		mut.RLock()
 		defer mut.RUnlock()
@@ -552,7 +542,6 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	})
 
 	maxTime := time.Now().Add(2000 * time.Millisecond)
-
 	rounderMock := &mock.RounderMock{}
 	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return maxTime.Sub(time.Now())
@@ -591,7 +580,6 @@ func TestSubround_Previous(t *testing.T) {
 		ch,
 		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -620,7 +608,6 @@ func TestSubround_Current(t *testing.T) {
 		ch,
 		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -649,7 +636,6 @@ func TestSubround_Next(t *testing.T) {
 		ch,
 		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -678,7 +664,6 @@ func TestSubround_StartTime(t *testing.T) {
 		ch,
 		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -707,7 +692,6 @@ func TestSubround_EndTime(t *testing.T) {
 		ch,
 		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
@@ -737,7 +721,6 @@ func TestSubround_Name(t *testing.T) {
 		ch,
 		container,
 	)
-
 	sr.SetJobFunction(func() bool {
 		return true
 	})
