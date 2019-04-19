@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/mock"
@@ -18,11 +19,54 @@ import (
 
 const roundTimeDuration = time.Duration(100 * time.Millisecond)
 
-func sendMessage(cnsMsg *spos.ConsensusMessage) {
+func createEligibleList(size int) []string {
+	eligibleList := make([]string, 0)
+	for i := 0; i < size; i++ {
+		eligibleList = append(eligibleList, string(i+65))
+	}
+	return eligibleList
+}
+
+func initConsensusState() *spos.ConsensusState {
+	consensusGroupSize := 9
+	eligibleList := createEligibleList(consensusGroupSize)
+	indexLeader := 1
+	rcns := spos.NewRoundConsensus(
+		eligibleList,
+		consensusGroupSize,
+		eligibleList[indexLeader])
+
+	rcns.SetConsensusGroup(eligibleList)
+	rcns.ResetRoundState()
+
+	PBFTThreshold := consensusGroupSize*2/3 + 1
+
+	rthr := spos.NewRoundThreshold()
+	rthr.SetThreshold(1, 1)
+	rthr.SetThreshold(2, PBFTThreshold)
+	rthr.SetThreshold(3, PBFTThreshold)
+	rthr.SetThreshold(4, PBFTThreshold)
+	rthr.SetThreshold(5, PBFTThreshold)
+
+	rstatus := spos.NewRoundStatus()
+	rstatus.ResetRoundStatus()
+
+	cns := spos.NewConsensusState(
+		rcns,
+		rthr,
+		rstatus,
+	)
+
+	cns.Data = []byte("X")
+	cns.RoundIndex = 0
+	return cns
+}
+
+func sendMessage(cnsMsg *consensus.Message) {
 	fmt.Println(cnsMsg.Signature)
 }
 
-func sendConsensusMessage(cnsMsg *spos.ConsensusMessage) bool {
+func sendConsensusMessage(cnsMsg *consensus.Message) bool {
 	fmt.Println(cnsMsg)
 	return true
 }
@@ -43,7 +87,7 @@ func initWorker() bn.Worker {
 		},
 	}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := mock.InitConsensusState()
+	consensusState := initConsensusState()
 	keyGeneratorMock, privateKeyMock, _ := mock.InitKeys()
 	marshalizerMock := mock.MarshalizerMock{}
 	rounderMock := initRounderMock()
@@ -85,7 +129,7 @@ func initRounderMock() *mock.RounderMock {
 func TestWorker_NewWorkerBlockprocessorNilShouldFail(t *testing.T) {
 	t.Parallel()
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := mock.InitConsensusState()
+	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -105,13 +149,13 @@ func TestWorker_NewWorkerBlockprocessorNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilBlockProcessor)
+	assert.Equal(t, spos.ErrNilBlockProcessor, err)
 }
 
 func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
-	consensusState := mock.InitConsensusState()
+	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -131,7 +175,7 @@ func TestWorker_NewWorkerBoostraperNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilBlootstraper)
+	assert.Equal(t, spos.ErrNilBlootstraper, err)
 }
 
 func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
@@ -157,14 +201,14 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilConsensusState)
+	assert.Equal(t, spos.ErrNilConsensusState, err)
 }
 
 func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := mock.InitConsensusState()
+	consensusState := initConsensusState()
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
@@ -183,14 +227,14 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilKeyGenerator)
+	assert.Equal(t, spos.ErrNilKeyGenerator, err)
 }
 
 func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := mock.InitConsensusState()
+	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	rounderMock := initRounderMock()
@@ -209,14 +253,14 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilMarshalizer)
+	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
 func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := mock.InitConsensusState()
+	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	rounderMock := initRounderMock()
@@ -235,14 +279,14 @@ func TestWorker_NewWorkerPrivateKeyNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilPrivateKey)
+	assert.Equal(t, spos.ErrNilPrivateKey, err)
 }
 
 func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := mock.InitConsensusState()
+	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -261,14 +305,14 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilRounder)
+	assert.Equal(t, spos.ErrNilRounder, err)
 }
 
 func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := mock.InitConsensusState()
+	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -287,14 +331,14 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilShardCoordinator)
+	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
 
 func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := mock.InitConsensusState()
+	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -313,14 +357,14 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, wrk)
-	assert.Equal(t, err, spos.ErrNilSingleSigner)
+	assert.Equal(t, spos.ErrNilSingleSigner, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	t.Parallel()
 	blockProcessor := &mock.BlockProcessorMock{}
 	bootstraperMock := &mock.BootstraperMock{}
-	consensusState := mock.InitConsensusState()
+	consensusState := initConsensusState()
 	keyGeneratorMock := &mock.KeyGenMock{}
 	marshalizerMock := mock.MarshalizerMock{}
 	privateKeyMock := &mock.PrivateKeyMock{}
@@ -395,7 +439,7 @@ func TestWorker_InitReceivedMessagesShouldInitMap(t *testing.T) {
 func TestWorker_AddReceivedMessageCallShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	receivedMessageCall := func(*spos.ConsensusMessage) bool {
+	receivedMessageCall := func(*consensus.Message) bool {
 		return true
 	}
 	wrk.AddReceivedMessageCall(bn.MtBlockBody, receivedMessageCall)
@@ -409,7 +453,7 @@ func TestWorker_AddReceivedMessageCallShouldWork(t *testing.T) {
 func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	receivedMessageCall := func(*spos.ConsensusMessage) bool {
+	receivedMessageCall := func(*consensus.Message) bool {
 		return true
 	}
 	wrk.AddReceivedMessageCall(bn.MtBlockBody, receivedMessageCall)
@@ -431,7 +475,7 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	wrk := *initWorker()
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -455,7 +499,7 @@ func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
 	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
 	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	message, _ = mock.MarshalizerMock{}.Marshal(hdr)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -496,7 +540,7 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 	wrk := *initWorker()
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte("X"),
@@ -518,7 +562,7 @@ func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.
 	wrk := *initWorker()
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -540,7 +584,7 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 	wrk := *initWorker()
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().SelfPubKey()),
@@ -562,7 +606,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	wrk := *initWorker()
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -584,7 +628,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	wrk := *initWorker()
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -614,7 +658,7 @@ func TestWorker_CheckSignatureShouldReturnErrNilPublicKey(t *testing.T) {
 	wrk := *initWorker()
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		nil,
@@ -633,7 +677,7 @@ func TestWorker_CheckSignatureShouldReturnErrNilSignature(t *testing.T) {
 	wrk := *initWorker()
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -658,7 +702,7 @@ func TestWorker_CheckSignatureShouldReturnPublicKeyFromByteArrayErr(t *testing.T
 	wrk.SetKeyGenerator(keyGeneratorMock)
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -680,7 +724,7 @@ func TestWorker_CheckSignatureShouldReturnMarshalizerErr(t *testing.T) {
 	wrk.SetMarshalizer(marshalizerMock)
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -699,7 +743,7 @@ func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
 	wrk := *initWorker()
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -719,7 +763,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -743,7 +787,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *tes
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -767,7 +811,7 @@ func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinis
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -791,7 +835,7 @@ func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFin
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -815,7 +859,7 @@ func TestWorker_ExecuteCommitmentHashMessagesShouldNotExecuteWhenBlockIsNotFinis
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -839,7 +883,7 @@ func TestWorker_ExecuteBitmapMessagesShouldNotExecuteWhenBlockIsNotFinished(t *t
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -863,7 +907,7 @@ func TestWorker_ExecuteCommitmentMessagesShouldNotExecuteWhenBitmapIsNotFinished
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -887,7 +931,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBitmapIsNotFinished(
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -911,7 +955,7 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 	blk := make(block.Body, 0)
 	message, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
@@ -933,7 +977,7 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
-	wrk.SetReceivedMessagesCalls(bn.MtBlockHeader, func(cnsMsg *spos.ConsensusMessage) bool {
+	wrk.SetReceivedMessagesCalls(bn.MtBlockHeader, func(cnsMsg *consensus.Message) bool {
 		wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bn.SrBlock, true)
 		return true
 	})
@@ -945,7 +989,7 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
 	message, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		message,
 		[]byte(cnsGroup[0]),
@@ -974,7 +1018,7 @@ func TestWorker_SendConsensusMessage(t *testing.T) {
 	assert.Nil(t, err)
 
 	message, _ = mock.MarshalizerMock{}.Marshal(hdr)
-	cnsMsg := spos.NewConsensusMessage(
+	cnsMsg := consensus.NewConsensusMessage(
 		message,
 		nil,
 		[]byte(wrk.ConsensusState().SelfPubKey()),

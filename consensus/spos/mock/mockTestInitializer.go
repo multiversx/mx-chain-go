@@ -1,13 +1,12 @@
 package mock
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
-	"time"
 )
 
 func InitChronologyHandlerMock() consensus.ChronologyHandler {
@@ -84,45 +83,34 @@ func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
 	return keyGenMock, privKeyMock, pubKeyMock
 }
 
-func CreateEligibleList(size int) []string {
-	eligibleList := make([]string, 0)
-	for i := 0; i < size; i++ {
-		eligibleList = append(eligibleList, string(i+65))
+func InitConsensusCore() *ConsensusCoreMock {
+
+	blockChain := &BlockChainMock{}
+	blockProcessorMock := InitBlockProcessorMock()
+	bootstraperMock := &BootstraperMock{}
+
+	chronologyHandlerMock := InitChronologyHandlerMock()
+	hasherMock := HasherMock{}
+	marshalizerMock := MarshalizerMock{}
+	multiSignerMock := InitMultiSignerMock()
+	rounderMock := &RounderMock{}
+	shardCoordinatorMock := ShardCoordinatorMock{}
+	syncTimerMock := SyncTimerMock{}
+	validatorGroupSelector := ValidatorGroupSelectorMock{}
+
+	container := &ConsensusCoreMock{
+		blockChain,
+		blockProcessorMock,
+		bootstraperMock,
+		chronologyHandlerMock,
+		hasherMock,
+		marshalizerMock,
+		multiSignerMock,
+		rounderMock,
+		shardCoordinatorMock,
+		syncTimerMock,
+		validatorGroupSelector,
 	}
-	return eligibleList
-}
 
-func InitConsensusState() *spos.ConsensusState {
-	consensusGroupSize := 9
-	eligibleList := CreateEligibleList(consensusGroupSize)
-	indexLeader := 1
-	rcns := spos.NewRoundConsensus(
-		eligibleList,
-		consensusGroupSize,
-		eligibleList[indexLeader])
-
-	rcns.SetConsensusGroup(eligibleList)
-	rcns.ResetRoundState()
-
-	PBFTThreshold := consensusGroupSize*2/3 + 1
-
-	rthr := spos.NewRoundThreshold()
-	rthr.SetThreshold(bn.SrBlock, 1)
-	rthr.SetThreshold(bn.SrCommitmentHash, PBFTThreshold)
-	rthr.SetThreshold(bn.SrBitmap, PBFTThreshold)
-	rthr.SetThreshold(bn.SrCommitment, PBFTThreshold)
-	rthr.SetThreshold(bn.SrSignature, PBFTThreshold)
-
-	rstatus := spos.NewRoundStatus()
-	rstatus.ResetRoundStatus()
-
-	cns := spos.NewConsensusState(
-		rcns,
-		rthr,
-		rstatus,
-	)
-
-	cns.Data = []byte("X")
-	cns.RoundIndex = 0
-	return cns
+	return container
 }
