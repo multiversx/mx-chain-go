@@ -1,12 +1,12 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 )
 
 // ForkDetectorMock is a mock implementation for the ForkDetector interface
 type ForkDetectorMock struct {
-	AddHeaderCalled                  func(header *block.Header, hash []byte, isProcessed bool) error
+	AddHeaderCalled                  func(header data.HeaderHandler, hash []byte, isProcessed bool) error
 	RemoveHeadersCalled              func(nonce uint64)
 	CheckForkCalled                  func() (bool, uint64)
 	GetHighestSignedBlockNonceCalled func() uint64
@@ -14,7 +14,7 @@ type ForkDetectorMock struct {
 }
 
 // AddHeader is a mock implementation for AddHeader
-func (f *ForkDetectorMock) AddHeader(header *block.Header, hash []byte, isProcessed bool) error {
+func (f *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error {
 	return f.AddHeaderCalled(header, hash, isProcessed)
 }
 

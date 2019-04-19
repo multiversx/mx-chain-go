@@ -40,6 +40,9 @@ var ErrNilMultiSigner = errors.New("multiSigner is nil")
 // ErrNilConsensusState is raised when a valid consensus is expected but nil used
 var ErrNilConsensusState = errors.New("consensus state is nil")
 
+// ErrNilConsensusCore is raised when a valid ConsensusCore is expected but nil used
+var ErrNilConsensusCore = errors.New("consensusCore is nil")
+
 // ErrNilBlockChain is raised when a valid blockchain is expected but nil used
 var ErrNilBlockChain = errors.New("blockchain is nil")
 

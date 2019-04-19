@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/factory"
@@ -44,15 +44,15 @@ func createStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegiste
 	}
 }
 
-func createDataPools() data.MetaPoolsHolder {
+func createDataPools() dataRetriever.MetaPoolsHolder {
 	pools := &mock.MetaPoolsHolderStub{
-		MetaBlockNoncesCalled: func() data.Uint64Cacher {
+		MetaBlockNoncesCalled: func() dataRetriever.Uint64Cacher {
 			return &mock.Uint64CacherStub{}
 		},
 		ShardHeadersCalled: func() storage.Cacher {
 			return &mock.CacherStub{}
 		},
-		MiniBlockHashesCalled: func() data.ShardedDataCacherNotifier {
+		MiniBlockHashesCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{}
 		},
 		MetaChainBlocksCalled: func() storage.Cacher {
@@ -63,12 +63,10 @@ func createDataPools() data.MetaPoolsHolder {
 	return pools
 }
 
-func createBlockchain() data.ChainHandler {
-	return &mock.BlockChainMock{
-		StorageService: &mock.ChainStorerMock{
-			GetStorerCalled: func(unitType data.UnitType) storage.Storer {
-				return &mock.StorerStub{}
-			},
+func createStore() *mock.ChainStorerMock {
+	return &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{}
 		},
 	}
 }
@@ -81,7 +79,7 @@ func TestNewInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing
 	icf, err := metachain.NewInterceptorsContainerFactory(
 		nil,
 		&mock.TopicHandlerStub{},
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
@@ -98,7 +96,7 @@ func TestNewInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) 
 	icf, err := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		nil,
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
@@ -123,7 +121,7 @@ func TestNewInterceptorsContainerFactory_NilBlockchainShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilBlockChain, err)
+	assert.Equal(t, process.ErrNilStore, err)
 }
 
 func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
@@ -132,7 +130,7 @@ func TestNewInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	icf, err := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createBlockchain(),
+		createStore(),
 		nil,
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
@@ -149,7 +147,7 @@ func TestNewInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 	icf, err := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		nil,
 		mock.NewMultiSigner(),
@@ -166,7 +164,7 @@ func TestNewInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 	icf, err := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		nil,
@@ -183,7 +181,7 @@ func TestNewInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 	icf, err := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
@@ -200,7 +198,7 @@ func TestNewInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	icf, err := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		&mock.TopicHandlerStub{},
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
@@ -219,7 +217,7 @@ func TestInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *tes
 	icf, _ := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler(factory.MetachainBlocksTopic, ""),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
@@ -238,7 +236,7 @@ func TestInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFailsSh
 	icf, _ := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler(factory.ShardHeadersForMetachainTopic, ""),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
@@ -257,7 +255,7 @@ func TestInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShouldErr(
 	icf, _ := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler("", factory.MetachainBlocksTopic),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
@@ -276,7 +274,7 @@ func TestInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachainFail
 	icf, _ := metachain.NewInterceptorsContainerFactory(
 		mock.NewOneShardCoordinatorMock(),
 		createStubTopicHandler("", factory.ShardHeadersForMetachainTopic),
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
@@ -302,7 +300,7 @@ func TestInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),
@@ -334,7 +332,7 @@ func TestInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		createBlockchain(),
+		createStore(),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewMultiSigner(),

@@ -16,14 +16,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto/signing/kyber/singlesig"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/dataPool"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/containers"
 	factoryDataRetriever "github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/factory/shard"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -47,21 +47,25 @@ func init() {
 }
 
 func createTestBlockChain() data.ChainHandler {
-
 	cfgCache := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
-
 	badBlockCache, _ := storage.NewCache(cfgCache.Type, cfgCache.Size)
 
 	blockChain, _ := blockchain.NewBlockChain(
 		badBlockCache,
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
-		createMemUnit(),
 	)
 
 	return blockChain
+}
+
+func createTestStore() dataRetriever.StorageService {
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TransactionUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MiniBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
+	store.AddStorer(dataRetriever.PeerChangesUnit, createMemUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+
+	return store
 }
 
 func createMemUnit() storage.Storer {
@@ -72,7 +76,7 @@ func createMemUnit() storage.Storer {
 	return unit
 }
 
-func createTestDataPool() data.PoolsHolder {
+func createTestDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := shardedData.NewShardedData(storage.CacheConfig{Size: 100, Type: storage.LRUCache})
 	cacherCfg := storage.CacheConfig{Size: 100, Type: storage.LRUCache}
 	hdrPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
@@ -126,7 +130,7 @@ func createAccountsDB() *state.AccountsDB {
 }
 
 func createNetNode(port int,
-	dPool data.PoolsHolder,
+	dPool dataRetriever.PoolsHolder,
 	accntAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 ) (
@@ -148,12 +152,13 @@ func createNetNode(port int,
 	sk, pk := keyGen.GeneratePair()
 	multiSigner, _ := createMultiSigner(sk, pk, keyGen, hasher)
 	blkc := createTestBlockChain()
+	store := createTestStore()
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	interceptorContainerFactory, _ := shard.NewInterceptorsContainerFactory(
 		shardCoordinator,
 		messenger,
-		blkc,
+		store,
 		marshalizer,
 		hasher,
 		keyGen,
@@ -167,7 +172,7 @@ func createNetNode(port int,
 	resolversContainerFactory, _ := factoryDataRetriever.NewResolversContainerFactory(
 		shardCoordinator,
 		messenger,
-		blkc,
+		store,
 		marshalizer,
 		dPool,
 		uint64Converter,
@@ -192,6 +197,7 @@ func createNetNode(port int,
 		node.WithUint64ByteSliceConverter(uint64Converter),
 		node.WithInterceptorsContainer(interceptorsContainer),
 		node.WithResolversFinder(resolversFinder),
+		node.WithDataStore(store),
 	)
 
 	return n, messenger, sk, resolversFinder

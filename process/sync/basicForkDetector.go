@@ -2,6 +2,7 @@ package sync
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"math"
 	"sync"
 
@@ -48,7 +49,7 @@ func NewBasicForkDetector(rounder consensus.Rounder,
 }
 
 // AddHeader method adds a new header to headers map
-func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isProcessed bool) error {
+func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error {
 	if header == nil {
 		return ErrNilHeader
 	}
@@ -65,14 +66,14 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isPro
 		// create a check point and remove all the past headers
 		bfd.lastCheckpointNonce = bfd.checkpointNonce
 		bfd.lastCheckpointRound = bfd.checkpointRound
-		bfd.checkpointNonce = header.Nonce
-		bfd.checkpointRound = int32(header.Round)
+		bfd.checkpointNonce = header.GetNonce()
+		bfd.checkpointRound = int32(header.GetRound())
 		bfd.removePastHeaders()
 		bfd.removeInvalidHeaders()
 	}
 
 	bfd.append(&headerInfo{
-		nonce:       header.Nonce,
+		nonce:       header.GetNonce(),
 		round:       header.Round,
 		hash:        hash,
 		isProcessed: isProcessed,

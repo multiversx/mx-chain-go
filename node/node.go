@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"math/big"
 	gosync "sync"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/round"
-	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos/bn"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/validators/groupSelectors"
@@ -77,7 +77,9 @@ type Node struct {
 	forkDetector     process.ForkDetector
 
 	blkc             data.ChainHandler
-	dataPool         data.PoolsHolder
+	dataPool         dataRetriever.PoolsHolder
+	metaDataPool     dataRetriever.MetaPoolsHolder
+	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
 
 	consensusTopic string
@@ -190,7 +192,6 @@ func (n *Node) CreateShardedStores() error {
 func (n *Node) StartConsensus() error {
 
 	genesisHeader, genesisHeaderHash, err := n.createGenesisBlock()
-
 	if err != nil {
 		return err
 	}
@@ -203,25 +204,21 @@ func (n *Node) StartConsensus() error {
 	n.blkc.SetGenesisHeaderHash(genesisHeaderHash)
 
 	rounder, err := n.createRounder()
-
 	if err != nil {
 		return err
 	}
 
 	chronologyHandler, err := n.createChronologyHandler(rounder)
-
 	if err != nil {
 		return err
 	}
 
-	bootstraper, err := n.createBootstraper(rounder)
-
+	bootstraper, err := n.createShardBootstraper(rounder)
 	if err != nil {
 		return err
 	}
 
 	consensusState, err := n.createConsensusState()
-
 	if err != nil {
 		return err
 	}
@@ -255,19 +252,26 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	fct, err := bn.NewFactory(
+	consensusDataContainer, err := spos.NewConsensusCore(
 		n.blkc,
 		n.blockProcessor,
 		bootstraper,
 		chronologyHandler,
-		consensusState,
 		n.hasher,
 		n.marshalizer,
 		n.multisig,
 		rounder,
 		n.shardCoordinator,
 		n.syncer,
-		validatorGroupSelector,
+		validatorGroupSelector)
+
+	if err != nil {
+		return err
+	}
+
+	fct, err := bn.NewFactory(
+		consensusDataContainer,
+		consensusState,
 		worker,
 	)
 
@@ -446,9 +450,40 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder) (consensus.Chr
 	return chr, nil
 }
 
-func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
-	bootstrap, err := sync.NewBootstrap(
+func (n *Node) createShardBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	bootstrap, err := sync.NewShardBootstrap(
 		n.dataPool,
+		n.store,
+		n.blkc,
+		rounder,
+		n.blockProcessor,
+		WaitTime,
+		n.hasher,
+		n.marshalizer,
+		n.forkDetector,
+		n.resolversFinder,
+		n.shardCoordinator,
+		n.accounts,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	bootstrap.BroadcastBlock = n.BroadcastBlock
+	bootstrap.StartSync()
+
+	return bootstrap, nil
+}
+
+func (n *Node) createMetaChainBootstraper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	// TODO make sure metachain blockprocessor is used here in constructor
+	// TODO make sure metachain is used here as blockchain
+	// TODO make sure metachain store is used here as store
+	// TODO make sure accounts merkle tree is for metachain state
+
+	bootstrap, err := sync.NewMetaBootstrap(
+		n.metaDataPool,
+		n.store,
 		n.blkc,
 		rounder,
 		n.blockProcessor,
@@ -465,8 +500,7 @@ func (n *Node) createBootstraper(rounder consensus.Rounder) (process.Bootstrappe
 		return nil, err
 	}
 
-	bootstrap.BroadcastBlock = n.BroadcastBlock
-
+	bootstrap.BroadcastBlock = n.BroadcastMetaBlock
 	bootstrap.StartSync()
 
 	return bootstrap, nil
@@ -752,7 +786,7 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 	return header, blockHeaderHash, nil
 }
 
-func (n *Node) sendMessage(cnsDta *spos.ConsensusMessage) {
+func (n *Node) sendMessage(cnsDta *consensus.Message) {
 	cnsDtaBuff, err := n.marshalizer.Marshal(cnsDta)
 	if err != nil {
 		log.Debug(err.Error())
@@ -826,6 +860,23 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 				n.shardCoordinator.CommunicationIdentifier(k), txsBuff)
 		}
 	}
+
+	return nil
+}
+
+// BroadcastMetaBlock will send on meta shard topics the header and on meta-to-shard topics
+// the header. This func needs to be exported as it is tested in integrationTests package.
+func (n *Node) BroadcastMetaBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
+	if header == nil {
+		return ErrNilMetaBlockHeader
+	}
+
+	msgHeader, err := n.marshalizer.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
 
 	return nil
 }
