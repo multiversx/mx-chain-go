@@ -4,8 +4,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/concurrent-map"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 )
 
 var log = logger.DefaultLogger()
@@ -13,9 +13,7 @@ var log = logger.DefaultLogger()
 // CCache implements a Concurrency type cache
 type CCache struct {
 	maxSize              int
-	mapKeys              []string
 	cache                cmap.ConcurrentMap
-	mkGuard              sync.RWMutex
 	mutAddedDataHandlers sync.RWMutex
 	addedDataHandlers    []func([]byte)
 }
@@ -26,13 +24,11 @@ func NewCCache(maxSize int) (*CCache, error) {
 		return nil, errors.New("must provide a positive value for cache size")
 	}
 
-	cache := cmap.New()
+	cache := cmap.New(maxSize)
 
 	return &CCache{
 		maxSize:              maxSize,
-		mapKeys:              nil,
 		cache:                cache,
-		mkGuard:              sync.RWMutex{},
 		mutAddedDataHandlers: sync.RWMutex{},
 		addedDataHandlers:    make([]func(key []byte), 0),
 	}, nil
@@ -43,9 +39,6 @@ func (c *CCache) Clear() {
 	for key := range c.cache.Items() {
 		c.cache.Remove(key)
 	}
-	c.mkGuard.Lock()
-	c.mapKeys = nil
-	c.mkGuard.Unlock()
 }
 
 // Put inserts a new element into the cache.
@@ -55,14 +48,7 @@ func (c *CCache) Put(key []byte, value interface{}) (evicted bool) {
 	if c.cache.Count() > c.maxSize {
 		c.RemoveOldest()
 	}
-
-	// Save the keys into a separate slice prior inserting the key/value into the map
-	c.mkGuard.Lock()
-	c.mapKeys = append(c.mapKeys, string(key))
-	c.mkGuard.Unlock()
-
 	c.cache.Set(string(key), value)
-
 	c.callAddedDataHandlers(key)
 
 	return false
@@ -70,11 +56,7 @@ func (c *CCache) Put(key []byte, value interface{}) (evicted bool) {
 
 // Get retrieves a cache element based on the provided key
 func (c *CCache) Get(key []byte) (interface{}, bool) {
-	item, ok := c.cache.Get(string(key))
-	if !ok {
-		return nil, false
-	}
-	return item, ok
+	return c.cache.Get(string(key))
 }
 
 // Has checks if the cache contains the key
@@ -95,24 +77,14 @@ func (c *CCache) Peek(key []byte) (interface{}, bool) {
 // In case the cache size exceeds the maximum allowed value, it removes the oldest entries.
 func (c *CCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool) {
 	if ok = c.cache.SetIfAbsent(string(key), value); ok {
-		c.mkGuard.Lock()
-		c.mapKeys = append(c.mapKeys, string(key))
-		c.mkGuard.Unlock()
-
 		return ok, false
 	}
-
 	c.callAddedDataHandlers(key)
-	if c.cache.Count() > c.maxSize {
-		c.RemoveOldest()
-	}
-
 	return ok, false
 }
 
 // Remove removes the cache item based on the key
 func (c *CCache) Remove(key []byte) {
-	c.removeMapKey(key)
 	c.cache.Remove(string(key))
 }
 
@@ -121,18 +93,12 @@ func (c *CCache) RemoveOldest() {
 	if c.cache.IsEmpty() {
 		return
 	}
-
-	oldest := c.FindOldest()
-	c.cache.Remove(string(oldest))
-
-	c.removeMapKey(oldest)
+	c.cache.RemoveOldest()
 }
 
 // FindOldest finds the oldest entry
 func (c *CCache) FindOldest() []byte {
-	c.mkGuard.Lock()
-	key := c.mapKeys[0]
-	c.mkGuard.Unlock()
+	key := c.cache.FindOldest()
 
 	if _, ok := c.Get([]byte(key)); ok {
 		return []byte(key)
@@ -175,20 +141,4 @@ func (c *CCache) callAddedDataHandlers(key []byte) {
 		go handler(key)
 	}
 	c.mutAddedDataHandlers.RUnlock()
-}
-
-// removeMapKey removes the corresponding map key from the keys slice
-func (c *CCache) removeMapKey(key []byte) {
-	c.mkGuard.Lock()
-
-	if len(c.mapKeys) > 0 {
-		for i := 0; i < len(c.mapKeys); i++ {
-			if string(key) == c.mapKeys[i] {
-				// delete key from keys slice
-				copy(c.mapKeys[i:], c.mapKeys[i+1:])
-				c.mapKeys = c.mapKeys[:len(c.mapKeys)-1]
-			}
-		}
-	}
-	c.mkGuard.Unlock()
 }
