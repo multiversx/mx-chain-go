@@ -26,7 +26,9 @@ func TestNewMetachainHeaderInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, mhi)
@@ -43,7 +45,9 @@ func TestNewMetachainHeaderInterceptor_NilMetachainHeadersShouldErr(t *testing.T
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilMetachainHeadersDataPool, err)
 	assert.Nil(t, mhi)
@@ -60,7 +64,9 @@ func TestNewMetachainHeaderInterceptor_NilMetachainStorerShouldErr(t *testing.T)
 		nil,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilMetachainHeadersStorage, err)
 	assert.Nil(t, mhi)
@@ -78,7 +84,9 @@ func TestNewMetachainHeaderInterceptor_NilMultiSignerShouldErr(t *testing.T) {
 		metachainStorer,
 		nil,
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Nil(t, mhi)
 	assert.Equal(t, process.ErrNilMultiSigVerifier, err)
@@ -96,7 +104,9 @@ func TestNewMetachainHeaderInterceptor_NilHasherShouldErr(t *testing.T) {
 		metachainStorer,
 		mock.NewMultiSigner(),
 		nil,
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
 	assert.Nil(t, mhi)
@@ -114,7 +124,9 @@ func TestNewMetachainHeaderInterceptor_NilShardCoordinatorShouldErr(t *testing.T
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		nil)
+		nil,
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 	assert.Nil(t, mhi)
@@ -132,7 +144,9 @@ func TestNewMetachainHeaderInterceptor_OkValsShouldWork(t *testing.T) {
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, mhi)
@@ -152,7 +166,9 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilMessageShouldErr(t 
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	assert.Equal(t, process.ErrNilMessage, mhi.ProcessReceivedMessage(nil))
 }
@@ -169,7 +185,9 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageNilDataToProcessShould
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	msg := &mock.P2PMessageMock{}
 
@@ -193,7 +211,9 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageMarshalizerErrorsAtUnm
 		metachainStorer,
 		mock.NewMultiSigner(),
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		&mock.ChronologyValidatorStub{},
+	)
 
 	msg := &mock.P2PMessageMock{
 		DataField: make([]byte, 0),
@@ -209,16 +229,22 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShoul
 	metachainStorer := &mock.StorerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	multisigner := mock.NewMultiSigner()
-
+	chronologyValidator := &mock.ChronologyValidatorStub{
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+			return nil
+		},
+	}
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		marshalizer,
 		metachainHeaders,
 		metachainStorer,
 		multisigner,
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		chronologyValidator,
+	)
 
-	hdr := block.NewInterceptedMetaHeader(multisigner)
+	hdr := block.NewInterceptedMetaHeader(multisigner, chronologyValidator)
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
@@ -240,22 +266,30 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 		},
 	}
 	multisigner := mock.NewMultiSigner()
-
+	chronologyValidator := &mock.ChronologyValidatorStub{
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+			return nil
+		},
+	}
 	mhi, _ := interceptors.NewMetachainHeaderInterceptor(
 		marshalizer,
 		metachainHeaders,
 		metachainStorer,
 		multisigner,
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		chronologyValidator,
+	)
 
-	hdr := block.NewInterceptedMetaHeader(multisigner)
+	hdr := block.NewInterceptedMetaHeader(multisigner, chronologyValidator)
 	hdr.Nonce = testedNonce
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
@@ -281,6 +315,11 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 	wasCalled := 0
 	testedNonce := uint64(67)
 	multisigner := mock.NewMultiSigner()
+	chronologyValidator := &mock.ChronologyValidatorStub{
+		ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+			return nil
+		},
+	}
 	metachainHeaders := &mock.CacherStub{}
 	metachainStorer := &mock.StorerStub{
 		HasCalled: func(key []byte) (b bool, e error) {
@@ -293,15 +332,19 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 		metachainStorer,
 		multisigner,
 		mock.HasherMock{},
-		mock.NewOneShardCoordinatorMock())
+		mock.NewOneShardCoordinatorMock(),
+		chronologyValidator,
+	)
 
-	hdr := block.NewInterceptedMetaHeader(multisigner)
+	hdr := block.NewInterceptedMetaHeader(multisigner, chronologyValidator)
 	hdr.Nonce = testedNonce
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{

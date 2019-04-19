@@ -85,5 +85,5 @@ var ErrNilTxBlockBody = errors.New("tx block body is nil")
 // ErrNilMetaBlockHeader is raised when a valid metablock is expected but nil was provided
 var ErrNilMetaBlockHeader = errors.New("meta block header is nil")
 
-// ErrAssertionToShardHeader is raised when a type assertion occurs
-var ErrAssertionToShardHeader = errors.New("assertion error from data.HeaderHandler to data.Header")
+// ErrWrongTypeAssertion is raised when a type assertion occurs
+var ErrWrongTypeAssertion = errors.New("wrong type assertion: expected *block.Header")

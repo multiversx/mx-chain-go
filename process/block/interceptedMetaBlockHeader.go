@@ -11,15 +11,21 @@ import (
 // It implements Newer and Hashed interfaces
 type InterceptedMetaHeader struct {
 	*block.MetaBlock
-	multiSigVerifier crypto.MultiSigVerifier
-	hash             []byte
+	multiSigVerifier    crypto.MultiSigVerifier
+	chronologyValidator process.ChronologyValidator
+	hash                []byte
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
-func NewInterceptedMetaHeader(multiSigVerifier crypto.MultiSigVerifier) *InterceptedMetaHeader {
+func NewInterceptedMetaHeader(
+	multiSigVerifier crypto.MultiSigVerifier,
+	chronologyValidator process.ChronologyValidator,
+) *InterceptedMetaHeader {
+
 	return &InterceptedMetaHeader{
-		MetaBlock:        &block.MetaBlock{},
-		multiSigVerifier: multiSigVerifier,
+		MetaBlock:           &block.MetaBlock{},
+		multiSigVerifier:    multiSigVerifier,
+		chronologyValidator: chronologyValidator,
 	}
 }
 
@@ -68,7 +74,12 @@ func (imh *InterceptedMetaHeader) Integrity(coordinator sharding.Coordinator) er
 	if imh.StateRootHash == nil {
 		return process.ErrNilRootHash
 	}
-	//TODO add checks for rand seed/prev rand seed. Also in InterceptedBlock
+	if imh.RandSeed == nil {
+		return process.ErrNilRandSeed
+	}
+	if imh.PrevRandSeed == nil {
+		return process.ErrNilPrevRandSeed
+	}
 
 	for _, sd := range imh.ShardInfo {
 		if sd.ShardId >= coordinator.NumberOfShards() {
@@ -88,8 +99,16 @@ func (imh *InterceptedMetaHeader) Integrity(coordinator sharding.Coordinator) er
 }
 
 func (imh *InterceptedMetaHeader) validityCheck() error {
-	// TODO: need to check epoch is round - timestamp - epoch - nonce - requires chronology
-	return nil
+	if imh.chronologyValidator == nil {
+		return process.ErrNilChronologyValidator
+	}
+
+	return imh.chronologyValidator.ValidateReceivedBlock(
+		sharding.MetachainShardId,
+		imh.Epoch,
+		imh.Nonce,
+		imh.Round,
+	)
 }
 
 // VerifySig verifies a signature

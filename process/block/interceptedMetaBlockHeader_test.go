@@ -10,12 +10,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createTestInterceptedMetaHeader() *block.InterceptedMetaHeader {
+	return block.NewInterceptedMetaHeader(
+		mock.NewMultiSigner(),
+		&mock.ChronologyValidatorStub{
+			ValidateReceivedBlockCalled: func(shardID uint32, epoch uint32, nonce uint64, round uint32) error {
+				return nil
+			},
+		},
+	)
+}
+
 func TestInterceptedMetaHeader_NewShouldNotCreateNilHeader(t *testing.T) {
 	t.Parallel()
 
-	multiSig := mock.NewMultiSigner()
-
-	hdr := block.NewInterceptedMetaHeader(multiSig)
+	hdr := createTestInterceptedMetaHeader()
 
 	assert.NotNil(t, hdr.MetaBlock)
 }
@@ -23,8 +32,7 @@ func TestInterceptedMetaHeader_NewShouldNotCreateNilHeader(t *testing.T) {
 func TestInterceptedMetaHeader_GetHeaderShouldReturnHeader(t *testing.T) {
 	t.Parallel()
 
-	multiSig := mock.NewMultiSigner()
-	hdr := block.NewInterceptedMetaHeader(multiSig)
+	hdr := createTestInterceptedMetaHeader()
 
 	assert.True(t, hdr.GetMetaHeader() == hdr.MetaBlock)
 }
@@ -34,8 +42,7 @@ func TestInterceptedMetaHeader_GetterSetterHash(t *testing.T) {
 
 	hash := []byte("hash")
 
-	multiSig := mock.NewMultiSigner()
-	hdr := block.NewInterceptedMetaHeader(multiSig)
+	hdr := createTestInterceptedMetaHeader()
 	hdr.SetHash(hash)
 
 	assert.Equal(t, hash, hdr.Hash())
@@ -44,12 +51,13 @@ func TestInterceptedMetaHeader_GetterSetterHash(t *testing.T) {
 func TestInterceptedMetaHeader_IntegrityNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, hdr.Integrity(nil))
 }
@@ -57,12 +65,13 @@ func TestInterceptedMetaHeader_IntegrityNilShardCoordinatorShouldErr(t *testing.
 func TestInterceptedMetaHeader_IntegrityNilPubKeysBitmapShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = nil
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 
 	assert.Equal(t, process.ErrNilPubKeysBitmap, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
@@ -70,12 +79,13 @@ func TestInterceptedMetaHeader_IntegrityNilPubKeysBitmapShouldErr(t *testing.T) 
 func TestInterceptedMetaHeader_IntegrityNilPrevHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = nil
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 
 	assert.Equal(t, process.ErrNilPreviousBlockHash, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
@@ -83,12 +93,13 @@ func TestInterceptedMetaHeader_IntegrityNilPrevHashShouldErr(t *testing.T) {
 func TestInterceptedMetaHeader_IntegrityNilSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = nil
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 
 	assert.Equal(t, process.ErrNilSignature, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
@@ -96,25 +107,55 @@ func TestInterceptedMetaHeader_IntegrityNilSignatureShouldErr(t *testing.T) {
 func TestInterceptedMetaHeader_IntegrityNilRootHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = nil
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 
 	assert.Equal(t, process.ErrNilRootHash, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
+}
+
+func TestInterceptedMetaHeader_IntegrityNilPrevRandHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdr := createTestInterceptedMetaHeader()
+	hdr.PreviousHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.Signature = make([]byte, 0)
+	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = nil
+	hdr.RandSeed = make([]byte, 0)
+
+	assert.Equal(t, process.ErrNilPrevRandSeed, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
+}
+
+func TestInterceptedMetaHeader_IntegrityNilRandHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdr := createTestInterceptedMetaHeader()
+	hdr.PreviousHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.Signature = make([]byte, 0)
+	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = nil
+
+	assert.Equal(t, process.ErrNilRandSeed, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
 func TestInterceptedMetaHeader_IntegrityNilInvalidShardIdOnShardedDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
 		{
 			ShardId: 1,
@@ -133,12 +174,13 @@ func TestInterceptedMetaHeader_IntegrityNilInvalidShardIdOnShardedDataShouldErr(
 func TestInterceptedMetaHeader_IntegrityNilInvalidRecvShardIdOnShardedDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
 		{
 			ShardId: 0,
@@ -157,12 +199,13 @@ func TestInterceptedMetaHeader_IntegrityNilInvalidRecvShardIdOnShardedDataShould
 func TestInterceptedMetaHeader_IntegrityNilInvalidSenderShardIdOnShardedDataShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
 		{
 			ShardId: 0,
@@ -189,12 +232,13 @@ func TestInterceptedMetaHeader_IntegrityNilHeaderShouldErr(t *testing.T) {
 func TestInterceptedMetaHeader_IntegrityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 	hdr.ShardInfo = []block2.ShardData{
 		{
 			ShardId: 0,
@@ -213,12 +257,13 @@ func TestInterceptedMetaHeader_IntegrityOkValsShouldWork(t *testing.T) {
 func TestInterceptedMetaHeader_IntegrityOkValsWithEmptyShardDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 
 	assert.Nil(t, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
@@ -232,19 +277,39 @@ func TestInterceptedMetaHeader_IntegrityAndValidityIntegrityDoesNotPassShouldErr
 	hdr.PubKeysBitmap = nil
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 
 	assert.Equal(t, process.ErrNilPubKeysBitmap, hdr.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
+}
+
+func TestInterceptedMetaHeader_IntegrityAndValidityNilChronologyValidatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdr := block.NewInterceptedMetaHeader(
+		mock.NewMultiSigner(),
+		nil,
+	)
+	hdr.PreviousHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.Signature = make([]byte, 0)
+	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
+
+	assert.Equal(t, process.ErrNilChronologyValidator, hdr.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
 }
 
 func TestInterceptedMetaHeader_IntegrityAndValidityOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 
 	assert.Nil(t, hdr.IntegrityAndValidity(mock.NewOneShardCoordinatorMock()))
 }
@@ -252,12 +317,13 @@ func TestInterceptedMetaHeader_IntegrityAndValidityOkValsShouldWork(t *testing.T
 func TestInterceptedMetaHeader_VerifySigOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hdr := &block.InterceptedMetaHeader{MetaBlock: &block2.MetaBlock{}}
-
+	hdr := createTestInterceptedMetaHeader()
 	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
 	hdr.Signature = make([]byte, 0)
 	hdr.StateRootHash = make([]byte, 0)
+	hdr.PrevRandSeed = make([]byte, 0)
+	hdr.RandSeed = make([]byte, 0)
 
 	assert.Nil(t, hdr.VerifySig())
 }

@@ -766,6 +766,8 @@ func (n *Node) createGenesisBlock() (*block.Header, []byte, error) {
 		BlockBodyType: block.StateBlock,
 		Signature:     rootHash,
 		RootHash:      rootHash,
+		PrevRandSeed:  rootHash,
+		RandSeed:      rootHash,
 	}
 
 	marshalizedHeader, err := n.marshalizer.Marshal(header)
@@ -832,8 +834,7 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 
 	//TODO - for now, on MetachainHeaderTopic we will broadcast shard headers
 	// Later, this call should be done by metachain nodes when they agree upon a metachain header
-	// createMetablockContainingShardHeaderData func will be deleted when metachain will be fully implemented
-	msgMetablockBuff, err := n.createMetablockContainingShardHeaderData(header, msgHeader)
+	msgMetablockBuff, err := n.createMetaBlockFromBlockHeader(header, msgHeader)
 	go n.messenger.Broadcast(factory.MetachainBlocksTopic, msgMetablockBuff)
 
 	for k, v := range msgMapBlockBody {
@@ -858,10 +859,13 @@ func (n *Node) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHand
 	return nil
 }
 
-func (n *Node) createMetablockContainingShardHeaderData(hdrHandler data.HeaderHandler, hdrBuff []byte) ([]byte, error) {
+// createMetaBlockFromBlockHeader func will be deleted when metachain will be fully implemented as its functionality
+// will be fdone by metachain nodes
+//TODO - delete this func when metachain is fully implemented
+func (n *Node) createMetaBlockFromBlockHeader(hdrHandler data.HeaderHandler, hdrBuff []byte) ([]byte, error) {
 	hdr, ok := hdrHandler.(*block.Header)
 	if !ok {
-		return nil, ErrAssertionToShardHeader
+		return nil, ErrWrongTypeAssertion
 	}
 
 	hdrHash := n.hasher.Compute(string(hdrBuff))
