@@ -13,6 +13,9 @@ var ErrInvalidPrivateKey = errors.New("private key is invalid")
 // ErrNilPrivateKeyScalar is raised when a private key with nil scalar is used
 var ErrNilPrivateKeyScalar = errors.New("private key holds a nil scalar")
 
+// ErrInvalidScalar is raised when an invalid scalar is used
+var ErrInvalidScalar = errors.New("scalar is invalid")
+
 // ErrNilPublicKeys is raised when public keys are expected but received nil
 var ErrNilPublicKeys = errors.New("public keys are nil")
 
@@ -60,6 +63,9 @@ var ErrInvalidSuite = errors.New("crypto suite is invalid")
 
 // ErrNilSignature is raised for a nil signature
 var ErrNilSignature = errors.New("signature is nil")
+
+// ErrNilSignaturesList is raised when a nil list of signatures is provided
+var ErrNilSignaturesList = errors.New("signature list is nil")
 
 // ErrNilMessage is raised when trying to verify a nil signed message or trying to sign a nil message
 var ErrNilMessage = errors.New("message to be signed or to be verified is nil")
