@@ -24,7 +24,6 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 	}
 
 	noOfPeers := 20
-
 	netw := mocknet.New(context.Background())
 
 	//Step 1. Create advertiser
@@ -46,9 +45,7 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 				[]string{chooseNonCircuitAddress(advertiser.Addresses())},
 			),
 		)
-
 		peers[i] = node
-
 	}
 
 	//cleanup function that closes all messengers
@@ -64,6 +61,7 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 		}
 	}()
 
+	//link all peers so they can connect to each other
 	netw.LinkAll()
 
 	//Step 3. Call bootstrap on all peers
@@ -86,7 +84,6 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 			netw.DisconnectPeers(getPeerId(disconnectedPeer), getPeerId(p))
 		}
 	}
-
 	for i := 0; i < 5; i++ {
 		waitForBootstrapAndShowConnected(peers)
 	}
@@ -103,7 +100,6 @@ func TestPeerDisconnectionWithOneAdvertiser(t *testing.T) {
 	//Step 5. Re-link and test connections
 	fmt.Println("--- Re-linking ---")
 	netw.LinkAll()
-
 	for i := 0; i < 5; i++ {
 		waitForBootstrapAndShowConnected(peers)
 	}
@@ -133,7 +129,6 @@ func chooseNonCircuitAddress(addresses []string) string {
 		if strings.Contains(adr, "circuit") || strings.Contains(adr, "169.254") {
 			continue
 		}
-
 		return adr
 	}
 
