@@ -198,11 +198,11 @@ func createForkDetector(removedNonce uint64, remFlags *removedFlags) process.For
 				remFlags.flagHdrRemovedFromForkDetector = true
 			}
 		},
-		GetHighestSignedBlockNonceCalled: func() uint64 {
-			return uint64(0)
-		},
 		GetHighestFinalBlockNonceCalled: func() uint64 {
 			return uint64(removedNonce)
+		},
+		ProbableHighestNonceCalled: func() uint64 {
+			return uint64(0)
 		},
 	}
 }
@@ -821,9 +821,6 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	}
 	forkDetector.RemoveHeadersCalled = func(nonce uint64) {
 	}
-	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
-		return uint64(0)
-	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
 	}
@@ -1013,9 +1010,6 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return false, math.MaxUint64
 	}
-	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
-		return uint64(0)
-	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
 	}
@@ -1122,9 +1116,6 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return false, math.MaxUint64
-	}
-	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
-		return uint64(0)
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
@@ -1334,9 +1325,6 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return false, math.MaxUint64
-	}
-	forkDetector.GetHighestSignedBlockNonceCalled = func() uint64 {
-		return uint64(0)
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)

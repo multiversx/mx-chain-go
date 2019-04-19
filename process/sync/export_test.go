@@ -88,6 +88,10 @@ func (bfd *basicForkDetector) RemoveInvalidHeaders() {
 	bfd.removeInvalidHeaders()
 }
 
+func (bfd *basicForkDetector) ComputeProbableHighestNonce() uint64 {
+	return bfd.computeProbableHighestNonce()
+}
+
 func (hi *headerInfo) Nonce() uint64 {
 	return hi.nonce
 }

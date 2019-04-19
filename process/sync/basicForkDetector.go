@@ -71,14 +71,14 @@ func (bfd *basicForkDetector) AddHeader(header *block.Header, hash []byte, isPro
 		bfd.removeInvalidHeaders()
 	}
 
-	bfd.probableHighestNonce = bfd.computeProbableHighestNonce()
-
 	bfd.append(&headerInfo{
 		nonce:       header.Nonce,
 		round:       header.Round,
 		hash:        hash,
 		isProcessed: isProcessed,
 	})
+
+	bfd.probableHighestNonce = bfd.computeProbableHighestNonce()
 
 	return nil
 }
@@ -156,6 +156,7 @@ func (bfd *basicForkDetector) computeProbableHighestNonce() uint64 {
 func (bfd *basicForkDetector) RemoveHeaders(nonce uint64) {
 	if nonce == bfd.checkpointNonce {
 		bfd.checkpointNonce = bfd.lastCheckpointNonce
+		bfd.checkpointRound = bfd.lastCheckpointRound
 	}
 
 	bfd.mutHeaders.Lock()
