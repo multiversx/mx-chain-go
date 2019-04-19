@@ -131,8 +131,8 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *consensus.Messa
 		log.Error(err.Error())
 		return false
 	}
-
-	err = sr.MultiSigner().StoreCommitmentHash(uint16(index), cnsDta.SubRoundData)
+	currentMultiSigner := sr.MultiSigner()
+	err = currentMultiSigner.StoreCommitmentHash(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -258,7 +258,8 @@ func (sr *subroundCommitmentHash) genCommitmentHash() ([]byte, error) {
 
 	commitmentHash := sr.Hasher().Compute(string(commitment))
 
-	err = sr.MultiSigner().StoreCommitmentHash(uint16(selfIndex), commitmentHash)
+	currentMultiSigner := sr.MultiSigner()
+	err = currentMultiSigner.StoreCommitmentHash(uint16(selfIndex), commitmentHash)
 	if err != nil {
 		return nil, err
 	}

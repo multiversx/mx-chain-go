@@ -64,33 +64,43 @@ func NewConsensusCore(
 func (cdc *ConsensusCore) Blockchain() data.ChainHandler {
 	return cdc.blockChain
 }
+
 func (cdc *ConsensusCore) BlockProcessor() process.BlockProcessor {
 	return cdc.blockProcessor
 }
+
 func (cdc *ConsensusCore) BootStrapper() process.Bootstrapper {
 	return cdc.bootstraper
 }
+
 func (cdc *ConsensusCore) Chronology() consensus.ChronologyHandler {
 	return cdc.chronologyHandler
 }
+
 func (cdc *ConsensusCore) Hasher() hashing.Hasher {
 	return cdc.hasher
 }
+
 func (cdc *ConsensusCore) Marshalizer() marshal.Marshalizer {
 	return cdc.marshalizer
 }
+
 func (cdc *ConsensusCore) MultiSigner() crypto.MultiSigner {
 	return cdc.multiSigner
 }
+
 func (cdc *ConsensusCore) Rounder() consensus.Rounder {
 	return cdc.rounder
 }
+
 func (cdc *ConsensusCore) ShardCoordinator() sharding.Coordinator {
 	return cdc.shardCoordinator
 }
+
 func (cdc *ConsensusCore) SyncTimer() ntp.SyncTimer {
 	return cdc.syncTimer
 }
+
 func (cdc *ConsensusCore) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return cdc.validatorGroupSelector
 }

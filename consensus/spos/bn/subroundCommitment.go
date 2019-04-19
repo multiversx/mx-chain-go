@@ -136,8 +136,8 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool
 		log.Info(err.Error())
 		return false
 	}
-
-	err = sr.MultiSigner().StoreCommitment(uint16(index), cnsDta.SubRoundData)
+	currentMultiSigner := sr.MultiSigner()
+	err = currentMultiSigner.StoreCommitment(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
 		log.Info(err.Error())
 		return false
