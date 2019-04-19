@@ -69,7 +69,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, spos.ErrNilConsensusDataContainer, err)
+	assert.Equal(t, spos.ErrNilConsensusCore, err)
 }
 
 func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {

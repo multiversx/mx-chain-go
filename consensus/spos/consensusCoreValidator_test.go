@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initConsensusDataContainer() *SPOSConsensusCore {
+func initConsensusDataContainer() *ConsensusCore {
 	blockChain := &mock.BlockChainMock{}
 	blockProcessorMock := mock.InitBlockProcessorMock()
 	bootstraperMock := &mock.BootstraperMock{}
@@ -20,7 +20,7 @@ func initConsensusDataContainer() *SPOSConsensusCore {
 	syncTimerMock := mock.SyncTimerMock{}
 	validatorGroupSelector := mock.ValidatorGroupSelectorMock{}
 
-	return &SPOSConsensusCore{
+	return &ConsensusCore{
 		blockChain,
 		blockProcessorMock,
 		bootstraperMock,

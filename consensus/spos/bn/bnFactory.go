@@ -9,14 +9,14 @@ import (
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
 // functionality
 type factory struct {
-	consensusCore  spos.ConsensusCore
+	consensusCore  spos.ConsensusCoreHandler
 	consensusState *spos.ConsensusState
 	worker         *worker
 }
 
 // NewFactory creates a new consensusState object
 func NewFactory(
-	consensusDataContainer spos.ConsensusCore,
+	consensusDataContainer spos.ConsensusCoreHandler,
 	consensusState *spos.ConsensusState,
 	worker *worker,
 ) (*factory, error) {
@@ -41,7 +41,7 @@ func NewFactory(
 }
 
 func checkNewFactoryParams(
-	container spos.ConsensusCore,
+	container spos.ConsensusCoreHandler,
 	state *spos.ConsensusState,
 	worker *worker,
 ) error {

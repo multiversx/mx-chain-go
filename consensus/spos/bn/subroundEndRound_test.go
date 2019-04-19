@@ -135,7 +135,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		ch,
 		container,
 	)
-	sr.SetConsensusState(nil)
+
+	sr.ConsensusState = nil
 	srEndRound, err := bn.NewSubroundEndRound(
 		sr,
 		broadcastBlock,

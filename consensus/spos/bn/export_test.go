@@ -111,10 +111,6 @@ func (sr *subround) SetCheckFunction(check func() bool) {
 	sr.check = check
 }
 
-func (sr *subround) SetConsensusState(state *spos.ConsensusState) {
-	sr.ConsensusState = state
-}
-
 // worker
 
 type Worker *worker

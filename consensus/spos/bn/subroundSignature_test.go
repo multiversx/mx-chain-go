@@ -76,7 +76,8 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		ch,
 		container,
 	)
-	sr.SetConsensusState(nil)
+
+	sr.ConsensusState = nil
 	srSignature, err := bn.NewSubroundSignature(
 		sr,
 		sendConsensusMessage,

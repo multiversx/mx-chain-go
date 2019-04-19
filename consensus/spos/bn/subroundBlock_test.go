@@ -185,7 +185,7 @@ func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T)
 		container,
 	)
 
-	sr.SetConsensusState(nil)
+	sr.ConsensusState = nil
 
 	srBlock, err := bn.NewSubroundBlock(
 		sr,

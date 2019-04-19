@@ -68,8 +68,8 @@ func TestSubroundCommitment_NewSubroundCommitmentNilConsensusStateShouldFail(t *
 		ch,
 		container,
 	)
-	sr.SetConsensusState(nil)
 
+	sr.ConsensusState = nil
 	srCommitment, err := bn.NewSubroundCommitment(
 		sr,
 		sendConsensusMessage,

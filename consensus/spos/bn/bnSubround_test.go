@@ -73,7 +73,7 @@ func TestSubround_NewSubroundNilContainerShouldFail(t *testing.T) {
 		nil,
 	)
 
-	assert.Equal(t, spos.ErrNilConsensusDataContainer, err)
+	assert.Equal(t, spos.ErrNilConsensusCore, err)
 	assert.Nil(t, sr)
 }
 

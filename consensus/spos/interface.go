@@ -11,28 +11,28 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-//ConsensusCore encapsulates all needed Data for the Consensus
-type ConsensusCore interface {
-	//Blockchain gets the ChainHandler stored in the SPOSConsensusCore
+//ConsensusCoreHandler encapsulates all needed Data for the Consensus
+type ConsensusCoreHandler interface {
+	//Blockchain gets the ChainHandler stored in the ConsensusCore
 	Blockchain() data.ChainHandler
-	//BlockProcessor gets the BlockProcessor stored in the SPOSConsensusCore
+	//BlockProcessor gets the BlockProcessor stored in the ConsensusCore
 	BlockProcessor() process.BlockProcessor
-	//BootStrapper gets the Bootstrapper stored in the SPOSConsensusCore
+	//BootStrapper gets the Bootstrapper stored in the ConsensusCore
 	BootStrapper() process.Bootstrapper
-	//Chronology gets the ChronologyHandler stored in the SPOSConsensusCore
+	//Chronology gets the ChronologyHandler stored in the ConsensusCore
 	Chronology() consensus.ChronologyHandler
-	//Hasher gets the Hasher stored in the SPOSConsensusCore
+	//Hasher gets the Hasher stored in the ConsensusCore
 	Hasher() hashing.Hasher
-	//Marshalizer gets the Marshalizer stored in the SPOSConsensusCore
+	//Marshalizer gets the Marshalizer stored in the ConsensusCore
 	Marshalizer() marshal.Marshalizer
-	//MultiSigner gets the MultiSigner stored in the SPOSConsensusCore
+	//MultiSigner gets the MultiSigner stored in the ConsensusCore
 	MultiSigner() crypto.MultiSigner
-	//Rounder gets the Rounder stored in the SPOSConsensusCore
+	//Rounder gets the Rounder stored in the ConsensusCore
 	Rounder() consensus.Rounder
-	//ShardCoordinator gets the Coordinator stored in the SPOSConsensusCore
+	//ShardCoordinator gets the Coordinator stored in the ConsensusCore
 	ShardCoordinator() sharding.Coordinator
-	//SyncTimer gets the SyncTimer stored in the SPOSConsensusCore
+	//SyncTimer gets the SyncTimer stored in the ConsensusCore
 	SyncTimer() ntp.SyncTimer
-	//ValidatorGroupSelector gets the ValidatorGroupSelector stored in the SPOSConsensusCore
+	//ValidatorGroupSelector gets the ValidatorGroupSelector stored in the ConsensusCore
 	ValidatorGroupSelector() consensus.ValidatorGroupSelector
 }

@@ -100,7 +100,8 @@ func TestSubroundBitmap_NewSubroundBitmapNilConsensusStateShouldFail(t *testing.
 		ch,
 		container,
 	)
-	sr.SetConsensusState(nil)
+
+	sr.ConsensusState = nil
 	srBitmap, err := bn.NewSubroundBitmap(
 		sr,
 		sendConsensusMessage,

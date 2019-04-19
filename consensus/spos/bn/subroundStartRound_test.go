@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func initSubroundStartRoundWithContainer(container spos.ConsensusCore) bn.SubroundStartRound {
+func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bn.SubroundStartRound {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -129,7 +129,8 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 		ch,
 		container,
 	)
-	sr.SetConsensusState(nil)
+
+	sr.ConsensusState = nil
 	srStartRound, err := bn.NewSubroundStartRound(
 		sr,
 		extend,

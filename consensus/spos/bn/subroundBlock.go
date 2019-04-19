@@ -60,7 +60,7 @@ func checkNewSubroundBlockParams(
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	err := spos.ValidateConsensusCore(subround.ConsensusCore)
+	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
 
 	return err
 }

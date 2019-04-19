@@ -1,8 +1,8 @@
 package spos
 
-func ValidateConsensusCore(container ConsensusCore) error {
+func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if container == nil {
-		return ErrNilConsensusDataContainer
+		return ErrNilConsensusCore
 	}
 
 	if container.Blockchain() == nil {

@@ -73,7 +73,7 @@ func TestSubroundCommitmentHash_NewSubroundCommitmentHashNilConsensusStateShould
 		ch,
 		container,
 	)
-	sr.SetConsensusState(nil)
+	sr.ConsensusState = nil
 	srCommitmentHash, err := bn.NewSubroundCommitmentHash(
 		sr,
 		sendConsensusMessage,

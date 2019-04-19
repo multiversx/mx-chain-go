@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/sharding"
 )
 
-type SPOSConsensusCore struct {
+type ConsensusCore struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
 	bootstraper            process.Bootstrapper
@@ -25,7 +25,7 @@ type SPOSConsensusCore struct {
 	validatorGroupSelector consensus.ValidatorGroupSelector
 }
 
-//NewConsensusCore creates a new SPOSConsensusCore instance
+//NewConsensusCore creates a new ConsensusCore instance
 func NewConsensusCore(
 	blockChain data.ChainHandler,
 	blockProcessor process.BlockProcessor,
@@ -37,9 +37,9 @@ func NewConsensusCore(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	syncTimer ntp.SyncTimer,
-	validatorGroupSelector consensus.ValidatorGroupSelector) (*SPOSConsensusCore, error) {
+	validatorGroupSelector consensus.ValidatorGroupSelector) (*ConsensusCore, error) {
 
-	consensusCore := &SPOSConsensusCore{
+	consensusCore := &ConsensusCore{
 		blockChain,
 		blockProcessor,
 		bootstraper,
@@ -61,36 +61,36 @@ func NewConsensusCore(
 	return consensusCore, nil
 }
 
-func (cdc *SPOSConsensusCore) Blockchain() data.ChainHandler {
+func (cdc *ConsensusCore) Blockchain() data.ChainHandler {
 	return cdc.blockChain
 }
-func (cdc *SPOSConsensusCore) BlockProcessor() process.BlockProcessor {
+func (cdc *ConsensusCore) BlockProcessor() process.BlockProcessor {
 	return cdc.blockProcessor
 }
-func (cdc *SPOSConsensusCore) BootStrapper() process.Bootstrapper {
+func (cdc *ConsensusCore) BootStrapper() process.Bootstrapper {
 	return cdc.bootstraper
 }
-func (cdc *SPOSConsensusCore) Chronology() consensus.ChronologyHandler {
+func (cdc *ConsensusCore) Chronology() consensus.ChronologyHandler {
 	return cdc.chronologyHandler
 }
-func (cdc *SPOSConsensusCore) Hasher() hashing.Hasher {
+func (cdc *ConsensusCore) Hasher() hashing.Hasher {
 	return cdc.hasher
 }
-func (cdc *SPOSConsensusCore) Marshalizer() marshal.Marshalizer {
+func (cdc *ConsensusCore) Marshalizer() marshal.Marshalizer {
 	return cdc.marshalizer
 }
-func (cdc *SPOSConsensusCore) MultiSigner() crypto.MultiSigner {
+func (cdc *ConsensusCore) MultiSigner() crypto.MultiSigner {
 	return cdc.multiSigner
 }
-func (cdc *SPOSConsensusCore) Rounder() consensus.Rounder {
+func (cdc *ConsensusCore) Rounder() consensus.Rounder {
 	return cdc.rounder
 }
-func (cdc *SPOSConsensusCore) ShardCoordinator() sharding.Coordinator {
+func (cdc *ConsensusCore) ShardCoordinator() sharding.Coordinator {
 	return cdc.shardCoordinator
 }
-func (cdc *SPOSConsensusCore) SyncTimer() ntp.SyncTimer {
+func (cdc *ConsensusCore) SyncTimer() ntp.SyncTimer {
 	return cdc.syncTimer
 }
-func (cdc *SPOSConsensusCore) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
+func (cdc *ConsensusCore) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return cdc.validatorGroupSelector
 }
