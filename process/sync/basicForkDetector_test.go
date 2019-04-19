@@ -1,6 +1,7 @@
 package sync_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
@@ -51,7 +52,7 @@ func TestBasicForkDetector_AddHeaderUnsignedBlockShouldErr(t *testing.T) {
 
 func TestBasicForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 	t.Parallel()
-	hdr := &block.Header{}
+	hdr := &block.Header{PubKeysBitmap: []byte("X")}
 	hash := make([]byte, 0)
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
@@ -66,9 +67,9 @@ func TestBasicForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 
 func TestBasicForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 	t.Parallel()
-	hdr1 := &block.Header{}
+	hdr1 := &block.Header{PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
-	hdr2 := &block.Header{}
+	hdr2 := &block.Header{PubKeysBitmap: []byte("X")}
 	hash2 := []byte("hash2")
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
@@ -85,7 +86,7 @@ func TestBasicForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 
 func TestBasicForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *testing.T) {
 	t.Parallel()
-	hdr1 := &block.Header{Nonce: 69, PubKeysBitmap: []byte("X")}
+	hdr1 := &block.Header{Nonce: 69, Round: 72, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
@@ -93,21 +94,22 @@ func TestBasicForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 	assert.Equal(t, hdr1.Nonce, bfd.CheckpointNonce())
 }
 
-func TestBasicForkDetector_AddHeaderPresentShouldNotRewriteWhenSameHash(t *testing.T) {
+func TestBasicForkDetector_AddHeaderPresentShouldRewriteIsProcessed(t *testing.T) {
 	t.Parallel()
-	hdr1 := &block.Header{}
+	hdr1 := &block.Header{PubKeysBitmap: []byte("X")}
 	hash := []byte("hash1")
-	hdr2 := &block.Header{}
+	hdr2 := &block.Header{PubKeysBitmap: []byte("X")}
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-	_ = bfd.AddHeader(hdr1, hash, true)
 
+	_ = bfd.AddHeader(hdr1, hash, false)
 	err := bfd.AddHeader(hdr2, hash, true)
 	assert.Nil(t, err)
 
 	hInfos := bfd.GetHeaders(0)
 	assert.Equal(t, 1, len(hInfos))
 	assert.Equal(t, hash, hInfos[0].Hash())
+	assert.Equal(t, true, hInfos[0].IsProcessed())
 }
 
 func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testing.T) {
@@ -115,8 +117,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testi
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
 	bfd.SetLastCheckpointRound(1)
-
-	err := bfd.CheckBlockValidity(&block.Header{})
+	err := bfd.CheckBlockValidity(&block.Header{PubKeysBitmap: []byte("X")})
 	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
 }
 
@@ -125,17 +126,15 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testi
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
 	bfd.SetLastCheckpointNonce(1)
-
-	err := bfd.CheckBlockValidity(&block.Header{})
+	err := bfd.CheckBlockValidity(&block.Header{PubKeysBitmap: []byte("X")})
 	assert.Equal(t, sync.ErrLowerNonceInBlock, err)
 }
 
 func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *testing.T) {
 	t.Parallel()
-	rounderMock := &mock.RounderMock{RoundIndex: 100}
+	rounderMock := &mock.RounderMock{RoundIndex: 0}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-
-	err := bfd.CheckBlockValidity(&block.Header{Round: 1})
+	err := bfd.CheckBlockValidity(&block.Header{Round: 1, PubKeysBitmap: []byte("X")})
 	assert.Equal(t, sync.ErrHigherRoundInBlock, err)
 }
 
@@ -143,8 +142,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherNonceInBlock(t *test
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-
-	err := bfd.CheckBlockValidity(&block.Header{Nonce: 2})
+	err := bfd.CheckBlockValidity(&block.Header{Nonce: 2, PubKeysBitmap: []byte("X")})
 	assert.Equal(t, sync.ErrHigherNonceInBlock, err)
 }
 
@@ -152,7 +150,6 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrBlockIsNotSigned(t *testin
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-
 	err := bfd.CheckBlockValidity(&block.Header{})
 	assert.Equal(t, sync.ErrBlockIsNotSigned, err)
 }
@@ -161,19 +158,18 @@ func TestBasicForkDetector_CheckBlockValidityShouldWork(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-
 	err := bfd.CheckBlockValidity(&block.Header{PubKeysBitmap: []byte("X")})
 	assert.Nil(t, err)
 }
 
 func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 	t.Parallel()
-	hdr1 := &block.Header{}
+	hdr1 := &block.Header{PubKeysBitmap: []byte("X")}
 	hash := []byte("hash1")
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-	_ = bfd.AddHeader(hdr1, hash, true)
 
+	_ = bfd.AddHeader(hdr1, hash, true)
 	hInfos := bfd.GetHeaders(0)
 	assert.Equal(t, 1, len(hInfos))
 
@@ -182,56 +178,73 @@ func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 	assert.Nil(t, hInfos)
 }
 
-func TestBasicForkDetector_CheckForkOnlyOneHeaderOnANonceShouldRettrue(t *testing.T) {
+func TestBasicForkDetector_CheckForkOnlyOneHeaderOnANonceShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), true)
-	_ = bfd.AddHeader(&block.Header{Nonce: 1}, []byte("hash2"), true)
-	isFork, _ := bfd.CheckFork()
-	assert.False(t, isFork)
+	_ = bfd.AddHeader(&block.Header{Nonce: 0, PubKeysBitmap: []byte("X")}, []byte("hash1"), true)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}, []byte("hash2"), true)
+	forkDetected, lowestForkNonce := bfd.CheckFork()
+	assert.False(t, forkDetected)
+	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
 }
 
-func TestBasicForkDetector_CheckForkNodeHasNonEmptyBlockShouldRettrue(t *testing.T) {
+func TestBasicForkDetector_CheckForkHeaderNotProcessedYetShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), true)
-	_ = bfd.AddHeader(&block.Header{Nonce: 1}, []byte("hash2"), false)
-	_ = bfd.AddHeader(&block.Header{Nonce: 1, PubKeysBitmap: []byte{1}}, []byte("hash3"), true)
-	isFork, _ := bfd.CheckFork()
-	assert.False(t, isFork)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, []byte("hash1"), false)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")}, []byte("hash2"), false)
+	forkDetected, lowestForkNonce := bfd.CheckFork()
+	assert.False(t, forkDetected)
+	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
 }
 
-func TestBasicForkDetector_CheckForkNodeHasEmptyBlockShouldRetfalse(t *testing.T) {
+func TestBasicForkDetector_CheckForkHeaderProcessedShouldReturnFalseWhenLowestRound(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), true)
-	_ = bfd.AddHeader(&block.Header{Nonce: 1}, []byte("hash2"), true)
-	_ = bfd.AddHeader(&block.Header{Nonce: 1, PubKeysBitmap: []byte{1}}, []byte("hash3"), false)
-	isFork, _ := bfd.CheckFork()
-	assert.True(t, isFork)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 4, PubKeysBitmap: []byte("X")}, []byte("hash1"), false)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, []byte("hash2"), false)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")}, []byte("hash3"), true)
+
+	hInfos := bfd.GetHeaders(1)
+	assert.Equal(t, 3, len(hInfos))
+
+	forkDetected, lowestForkNonce := bfd.CheckFork()
+	assert.False(t, forkDetected)
+	assert.Equal(t, uint64(math.MaxUint64), lowestForkNonce)
+
+	hInfos = bfd.GetHeaders(1)
+	assert.Equal(t, 1, len(hInfos))
 }
 
-func TestBasicForkDetector_CheckForkNodeHasOnlyReceivedShouldRettrue(t *testing.T) {
+func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
-	_ = bfd.AddHeader(&block.Header{Nonce: 0}, []byte("hash1"), true)
-	_ = bfd.AddHeader(&block.Header{Nonce: 1}, []byte("hash2"), false)
-	_ = bfd.AddHeader(&block.Header{Nonce: 1, PubKeysBitmap: []byte{1}}, []byte("hash3"), false)
-	isFork, _ := bfd.CheckFork()
-	assert.False(t, isFork)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, []byte("hash1"), false)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")}, []byte("hash2"), false)
+	_ = bfd.AddHeader(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, []byte("hash3"), true)
+
+	hInfos := bfd.GetHeaders(1)
+	assert.Equal(t, 3, len(hInfos))
+
+	forkDetected, lowestForkNonce := bfd.CheckFork()
+	assert.True(t, forkDetected)
+	assert.Equal(t, uint64(1), lowestForkNonce)
+
+	hInfos = bfd.GetHeaders(1)
+	assert.Equal(t, 3, len(hInfos))
 }
 
 func TestBasicForkDetector_RemovePastHeadersShouldWork(t *testing.T) {
 	t.Parallel()
-	hdr1 := &block.Header{Nonce: 1}
+	hdr1 := &block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
-	hdr2 := &block.Header{Nonce: 2}
+	hdr2 := &block.Header{Nonce: 2, PubKeysBitmap: []byte("X")}
 	hash2 := []byte("hash2")
-	hdr3 := &block.Header{Nonce: 3}
+	hdr3 := &block.Header{Nonce: 3, PubKeysBitmap: []byte("X")}
 	hash3 := []byte("hash3")
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
@@ -267,7 +280,6 @@ func TestBasicForkDetector_RemoveInvalidHeadersShouldWork(t *testing.T) {
 	_ = bfd.AddHeader(hdr1, hash1, false)
 	_ = bfd.AddHeader(hdr2, hash2, false)
 	_ = bfd.AddHeader(hdr3, hash3, false)
-
 	bfd.SetLastCheckpointNonce(9)
 	bfd.SetLastCheckpointRound(12)
 	bfd.RemoveInvalidHeaders()
@@ -283,15 +295,13 @@ func TestBasicForkDetector_RemoveInvalidHeadersShouldWork(t *testing.T) {
 
 	hInfos = bfd.GetHeaders(10)
 	assert.NotNil(t, hInfos)
-
 	assert.Equal(t, uint64(13), bfd.ProbableHighestNonce())
 	assert.Equal(t, uint64(10), bfd.ComputeProbableHighestNonce())
 }
 
 func TestBasicForkDetector_RemoveCheckpointHeaderNonceShouldResetCheckpoint(t *testing.T) {
 	t.Parallel()
-	pubKeysBitmap := []byte("X")
-	hdr1 := &block.Header{Nonce: 2, Round: 1, PubKeysBitmap: pubKeysBitmap}
+	hdr1 := &block.Header{Nonce: 2, Round: 1, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
@@ -309,26 +319,22 @@ func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
 
-	pubKeysBitmap := make([]byte, 0)
-	hdr1 := &block.Header{Nonce: 2, PubKeysBitmap: pubKeysBitmap}
+	hdr1 := &block.Header{Nonce: 2, Round: 0, PubKeysBitmap: []byte("X")}
 	hash1 := []byte("hash1")
 	_ = bfd.AddHeader(hdr1, hash1, true)
 	assert.Equal(t, uint64(0), bfd.GetHighestFinalBlockNonce())
 
-	pubKeysBitmap = []byte("X")
-	hdr2 := &block.Header{Nonce: 3, PubKeysBitmap: pubKeysBitmap}
+	hdr2 := &block.Header{Nonce: 3, Round: 2, PubKeysBitmap: []byte("X")}
 	hash2 := []byte("hash2")
 	_ = bfd.AddHeader(hdr2, hash2, true)
 	assert.Equal(t, uint64(0), bfd.GetHighestFinalBlockNonce())
 
-	pubKeysBitmap = make([]byte, 0)
-	hdr3 := &block.Header{Nonce: 4, PubKeysBitmap: pubKeysBitmap}
+	hdr3 := &block.Header{Nonce: 4, Round: 3, PubKeysBitmap: []byte("X")}
 	hash3 := []byte("hash3")
 	_ = bfd.AddHeader(hdr3, hash3, true)
-	assert.Equal(t, uint64(0), bfd.GetHighestFinalBlockNonce())
+	assert.Equal(t, uint64(3), bfd.GetHighestFinalBlockNonce())
 
-	pubKeysBitmap = []byte("X")
-	hdr4 := &block.Header{Nonce: 5, PubKeysBitmap: pubKeysBitmap}
+	hdr4 := &block.Header{Nonce: 6, Round: 4, PubKeysBitmap: []byte("X")}
 	hash4 := []byte("hash4")
 	_ = bfd.AddHeader(hdr4, hash4, true)
 	assert.Equal(t, uint64(3), bfd.GetHighestFinalBlockNonce())
