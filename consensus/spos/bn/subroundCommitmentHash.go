@@ -19,12 +19,10 @@ func NewSubroundCommitmentHash(
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundCommitmentHash, error) {
-
 	err := checkNewSubroundCommitmentHashParams(
 		subround,
 		sendConsensusMessage,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +31,6 @@ func NewSubroundCommitmentHash(
 		subround,
 		sendConsensusMessage,
 	}
-
 	srCommitmentHash.job = srCommitmentHash.doCommitmentHashJob
 	srCommitmentHash.check = srCommitmentHash.doCommitmentHashConsensusCheck
 	srCommitmentHash.extend = extend
@@ -69,7 +66,6 @@ func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
 	}
 
 	commitmentHash, err := sr.genCommitmentHash()
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -91,7 +87,6 @@ func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
 	log.Info(fmt.Sprintf("%sStep 2: commitment hash has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
 	err = sr.SetSelfJobDone(SrCommitmentHash, true)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -132,21 +127,18 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *consensus.Messa
 	}
 
 	index, err := sr.ConsensusGroupIndex(node)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
 	err = sr.MultiSigner().StoreCommitmentHash(uint16(index), cnsDta.SubRoundData)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
 	err = sr.SetJobDone(node, SrCommitmentHash, true)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -234,7 +226,6 @@ func (sr *subroundCommitmentHash) commitmentHashesCollected(threshold int) bool 
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		node := sr.ConsensusGroup()[i]
 		isBitmapJobDone, err := sr.JobDone(node, SrBitmap)
-
 		if err != nil {
 			log.Error(err.Error())
 			continue
@@ -242,7 +233,6 @@ func (sr *subroundCommitmentHash) commitmentHashesCollected(threshold int) bool 
 
 		if isBitmapJobDone {
 			isCommHashJobDone, err := sr.JobDone(node, SrCommitmentHash)
-
 			if err != nil {
 				log.Error(err.Error())
 				continue
@@ -262,7 +252,6 @@ func (sr *subroundCommitmentHash) genCommitmentHash() ([]byte, error) {
 	_, commitment := sr.MultiSigner().CreateCommitment()
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
-
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +259,6 @@ func (sr *subroundCommitmentHash) genCommitmentHash() ([]byte, error) {
 	commitmentHash := sr.Hasher().Compute(string(commitment))
 
 	err = sr.MultiSigner().StoreCommitmentHash(uint16(selfIndex), commitmentHash)
-
 	if err != nil {
 		return nil, err
 	}

@@ -24,12 +24,10 @@ func NewSubroundBlock(
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundBlock, error) {
-
 	err := checkNewSubroundBlockParams(
 		subround,
 		sendConsensusMessage,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +85,6 @@ func (sr *subroundBlock) doBlockJob() bool {
 	}
 
 	err := sr.SetSelfJobDone(SrBlock, true)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -111,14 +108,12 @@ func (sr *subroundBlock) sendBlockBody() bool {
 		sr.Rounder().Index(),
 		haveTimeInCurrentSubround,
 	)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
 	blkStr, err := sr.Marshalizer().Marshal(blockBody)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -153,7 +148,6 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 	}
 
 	hdrStr, err := sr.Marshalizer().Marshal(hdr)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -185,7 +179,6 @@ func (sr *subroundBlock) sendBlockHeader() bool {
 
 func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	hdr, err := sr.BlockProcessor().CreateBlockHeader(sr.BlockBody)
-
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +242,6 @@ func (sr *subroundBlock) decodeBlockBody(dta []byte) block.Body {
 	var blk block.Body
 
 	err := sr.Marshalizer().Unmarshal(&blk, dta)
-
 	if err != nil {
 		log.Error(err.Error())
 		return nil

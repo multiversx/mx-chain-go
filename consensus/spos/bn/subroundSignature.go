@@ -20,12 +20,10 @@ func NewSubroundSignature(
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundSignature, error) {
-
 	err := checkNewSubroundSignatureParams(
 		subround,
 		sendConsensusMessage,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +32,6 @@ func NewSubroundSignature(
 		subround,
 		sendConsensusMessage,
 	}
-
 	srSignature.job = srSignature.doSignatureJob
 	srSignature.check = srSignature.doSignatureConsensusCheck
 	srSignature.extend = extend
@@ -76,7 +73,6 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	bitmap := sr.GenerateBitmap(SrBitmap)
 
 	err := sr.checkCommitmentsValidity(bitmap)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -84,14 +80,12 @@ func (sr *subroundSignature) doSignatureJob() bool {
 
 	// first compute commitment aggregation
 	err = sr.MultiSigner().AggregateCommitments(bitmap)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
 	sigPart, err := sr.MultiSigner().CreateSignatureShare(bitmap)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -113,7 +107,6 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	log.Info(fmt.Sprintf("%sStep 5: signature has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
 	err = sr.SetSelfJobDone(SrSignature, true)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -141,7 +134,6 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 
 		pubKey := consensusGroup[i]
 		isCommJobDone, err := sr.JobDone(pubKey, SrCommitment)
-
 		if err != nil {
 			return err
 		}
@@ -151,7 +143,6 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 		}
 
 		commitment, err := sr.MultiSigner().Commitment(uint16(i))
-
 		if err != nil {
 			return err
 		}
@@ -162,7 +153,6 @@ func (sr *subroundSignature) checkCommitmentsValidity(bitmap []byte) error {
 		if err != nil {
 			return err
 		}
-
 		if !bytes.Equal(computedCommitmentHash, receivedCommitmentHash) {
 			return spos.ErrCommitmentHashDoesNotMatch
 		}
@@ -194,21 +184,18 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	}
 
 	index, err := sr.ConsensusGroupIndex(node)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
 	err = sr.MultiSigner().StoreSignatureShare(uint16(index), cnsDta.SubRoundData)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
 	err = sr.SetJobDone(node, SrSignature, true)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -252,7 +239,6 @@ func (sr *subroundSignature) signaturesCollected(threshold int) bool {
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		node := sr.ConsensusGroup()[i]
 		isBitmapJobDone, err := sr.JobDone(node, SrBitmap)
-
 		if err != nil {
 			log.Error(err.Error())
 			continue

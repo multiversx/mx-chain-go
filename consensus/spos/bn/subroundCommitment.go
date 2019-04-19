@@ -73,7 +73,6 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 	}
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -81,7 +80,6 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 
 	// commitment
 	commitment, err := sr.MultiSigner().Commitment(uint16(selfIndex))
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -103,7 +101,6 @@ func (sr *subroundCommitment) doCommitmentJob() bool {
 	log.Info(fmt.Sprintf("%sStep 4: commitment has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
 	err = sr.SetSelfJobDone(SrCommitment, true)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -135,21 +132,18 @@ func (sr *subroundCommitment) receivedCommitment(cnsDta *consensus.Message) bool
 	}
 
 	index, err := sr.ConsensusGroupIndex(node)
-
 	if err != nil {
 		log.Info(err.Error())
 		return false
 	}
 
 	err = sr.MultiSigner().StoreCommitment(uint16(index), cnsDta.SubRoundData)
-
 	if err != nil {
 		log.Info(err.Error())
 		return false
 	}
 
 	err = sr.SetJobDone(node, SrCommitment, true)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -193,7 +187,6 @@ func (sr *subroundCommitment) commitmentsCollected(threshold int) bool {
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		node := sr.ConsensusGroup()[i]
 		isBitmapJobDone, err := sr.JobDone(node, SrBitmap)
-
 		if err != nil {
 			log.Error(err.Error())
 			continue

@@ -19,12 +19,10 @@ func NewSubroundEndRound(
 	broadcastBlock func(data.BodyHandler, data.HeaderHandler) error,
 	extend func(subroundId int),
 ) (*subroundEndRound, error) {
-
 	err := checkNewSubroundEndRoundParams(
 		subround,
 		broadcastBlock,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +31,6 @@ func NewSubroundEndRound(
 		subround,
 		broadcastBlock,
 	}
-
 	srEndRound.job = srEndRound.doEndRoundJob
 	srEndRound.check = srEndRound.doEndRoundConsensusCheck
 	srEndRound.extend = extend
@@ -65,9 +62,7 @@ func checkNewSubroundEndRoundParams(
 // doEndRoundJob method does the job of the end round subround
 func (sr *subroundEndRound) doEndRoundJob() bool {
 	bitmap := sr.GenerateBitmap(SrBitmap)
-
 	err := sr.checkSignaturesValidity(bitmap)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -75,7 +70,6 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 
 	// Aggregate sig and add it to the block
 	sig, err := sr.MultiSigner().AggregateSigs(bitmap)
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -84,8 +78,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.Header.SetSignature(sig)
 
 	// Commit the block (commits also the account state)
-	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.BlockBody)
-
+	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.ConsensusState.Header, sr.ConsensusState.BlockBody)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -94,8 +87,7 @@ func (sr *subroundEndRound) doEndRoundJob() bool {
 	sr.SetStatus(SrEndRound, spos.SsFinished)
 
 	// broadcast block body and header
-	err = sr.broadcastBlock(sr.BlockBody, sr.Header)
-
+	err = sr.broadcastBlock(sr.ConsensusState.BlockBody, sr.ConsensusState.Header)
 	if err != nil {
 		log.Error(err.Error())
 	}
@@ -145,8 +137,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 		}
 
 		pubKey := consensusGroup[i]
-		isSigJobDone, err := sr.JobDone(pubKey, SrSignature)
-
+		isSigJobDone, err := sr.ConsensusState.JobDone(pubKey, SrSignature)
 		if err != nil {
 			return err
 		}
@@ -156,14 +147,12 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 		}
 
 		signature, err := sr.MultiSigner().SignatureShare(uint16(i))
-
 		if err != nil {
 			return err
 		}
 
 		// verify partial signature
 		err = sr.MultiSigner().VerifySignatureShare(uint16(i), signature, bitmap)
-
 		if err != nil {
 			return err
 		}

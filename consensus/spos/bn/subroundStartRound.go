@@ -17,7 +17,6 @@ func NewSubroundStartRound(
 	subround *subround,
 	extend func(subroundId int),
 ) (*subroundStartRound, error) {
-
 	err := checkNewSubroundStartRoundParams(
 		subround,
 	)
@@ -25,11 +24,9 @@ func NewSubroundStartRound(
 	if err != nil {
 		return nil, err
 	}
-
 	srStartRound := subroundStartRound{
 		subround,
 	}
-
 	srStartRound.job = srStartRound.doStartRoundJob
 	srStartRound.check = srStartRound.doStartRoundConsensusCheck
 	srStartRound.extend = extend
@@ -84,7 +81,6 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	err := sr.generateNextConsensusGroup(sr.Rounder().Index())
-
 	if err != nil {
 		log.Error(err.Error())
 
@@ -94,7 +90,6 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	leader, err := sr.GetLeader()
-
 	if err != nil {
 		log.Info(err.Error())
 
@@ -114,7 +109,6 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	pubKeys := sr.ConsensusGroup()
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
-
 	if err != nil {
 		log.Info(fmt.Sprintf("%scanceled round %d in subround %s, not in the consensus group\n",
 			sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(), getSubroundName(SrStartRound)))
@@ -125,7 +119,6 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	err = sr.MultiSigner().Reset(pubKeys, uint16(selfIndex))
-
 	if err != nil {
 		log.Error(err.Error())
 
@@ -163,7 +156,6 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int32) error
 	log.Info(fmt.Sprintf("random source used to determine the next consensus group is: %s\n", randomSource))
 
 	nextConsensusGroup, err := sr.GetNextConsensusGroup(randomSource, sr.ValidatorGroupSelector())
-
 	if err != nil {
 		return err
 	}

@@ -19,12 +19,10 @@ func NewSubroundBitmap(
 	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundBitmap, error) {
-
 	err := checkNewSubroundBitmapParams(
 		subround,
 		sendConsensusMessage,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +31,6 @@ func NewSubroundBitmap(
 		subround,
 		sendConsensusMessage,
 	}
-
 	srBitmap.job = srBitmap.doBitmapJob
 	srBitmap.check = srBitmap.doBitmapConsensusCheck
 	srBitmap.extend = extend
@@ -156,7 +153,6 @@ func (sr *subroundBitmap) receivedBitmap(cnsDta *consensus.Message) bool {
 
 		if isNodeSigner {
 			err := sr.SetJobDone(publicKeys[i], SrBitmap, true)
-
 			if err != nil {
 				log.Error(err.Error())
 				return false
