@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	dataBlock "github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process/block/interceptors"
@@ -219,7 +218,7 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageSanityCheckFailedShoul
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	hdr := block.NewInterceptedHeader(multisigner)
+	hdr := block.NewInterceptedMetaHeader(multisigner)
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
 		DataField: buff,
@@ -250,16 +249,13 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageValsOkShouldWork(t *te
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	hdr := block.NewInterceptedHeader(multisigner)
+	hdr := block.NewInterceptedMetaHeader(multisigner)
 	hdr.Nonce = testedNonce
-	hdr.ShardId = 0
-	hdr.PrevHash = make([]byte, 0)
+	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
-	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
-	hdr.RootHash = make([]byte, 0)
-	hdr.MiniBlockHeaders = make([]dataBlock.MiniBlockHeader, 0)
+	hdr.StateRootHash = make([]byte, 0)
 
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{
@@ -299,16 +295,13 @@ func TestMetachainHeaderInterceptor_ProcessReceivedMessageIsInStorageShouldNotAd
 		mock.HasherMock{},
 		mock.NewOneShardCoordinatorMock())
 
-	hdr := block.NewInterceptedHeader(multisigner)
+	hdr := block.NewInterceptedMetaHeader(multisigner)
 	hdr.Nonce = testedNonce
-	hdr.ShardId = 0
-	hdr.PrevHash = make([]byte, 0)
+	hdr.PreviousHash = make([]byte, 0)
 	hdr.PubKeysBitmap = make([]byte, 0)
-	hdr.BlockBodyType = dataBlock.TxBlock
 	hdr.Signature = make([]byte, 0)
-	hdr.RootHash = make([]byte, 0)
+	hdr.StateRootHash = make([]byte, 0)
 	hdr.SetHash([]byte("aaa"))
-	hdr.MiniBlockHeaders = make([]dataBlock.MiniBlockHeader, 0)
 
 	buff, _ := marshalizer.Marshal(hdr)
 	msg := &mock.P2PMessageMock{

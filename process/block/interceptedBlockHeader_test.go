@@ -133,6 +133,21 @@ func TestInterceptedHeader_IntegrityNilSignatureShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilSignature, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
 }
 
+func TestInterceptedHeader_IntegrityNilRootHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdr := &block.InterceptedHeader{Header: &block2.Header{}}
+
+	hdr.PrevHash = make([]byte, 0)
+	hdr.PubKeysBitmap = make([]byte, 0)
+	hdr.BlockBodyType = block2.PeerBlock
+	hdr.Signature = make([]byte, 0)
+	hdr.ShardId = 0
+	hdr.RootHash = nil
+
+	assert.Equal(t, process.ErrNilRootHash, hdr.Integrity(mock.NewOneShardCoordinatorMock()))
+}
+
 func TestInterceptedHeader_IntegrityNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
