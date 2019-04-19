@@ -61,46 +61,57 @@ func NewConsensusCore(
 	return consensusCore, nil
 }
 
+//Blockchain gets the ChainHandler stored in the ConsensusCore
 func (cdc *ConsensusCore) Blockchain() data.ChainHandler {
 	return cdc.blockChain
 }
 
+//BlockProcessor gets the BlockProcessor stored in the ConsensusCore
 func (cdc *ConsensusCore) BlockProcessor() process.BlockProcessor {
 	return cdc.blockProcessor
 }
 
+//BootStrapper gets the Bootstrapper stored in the ConsensusCore
 func (cdc *ConsensusCore) BootStrapper() process.Bootstrapper {
 	return cdc.bootstraper
 }
 
+//Chronology gets the ChronologyHandler stored in the ConsensusCore
 func (cdc *ConsensusCore) Chronology() consensus.ChronologyHandler {
 	return cdc.chronologyHandler
 }
 
+//Hasher gets the Hasher stored in the ConsensusCore
 func (cdc *ConsensusCore) Hasher() hashing.Hasher {
 	return cdc.hasher
 }
 
+//Marshalizer gets the Marshalizer stored in the ConsensusCore
 func (cdc *ConsensusCore) Marshalizer() marshal.Marshalizer {
 	return cdc.marshalizer
 }
 
+//MultiSigner gets the MultiSigner stored in the ConsensusCore
 func (cdc *ConsensusCore) MultiSigner() crypto.MultiSigner {
 	return cdc.multiSigner
 }
 
+//Rounder gets the Rounder stored in the ConsensusCore
 func (cdc *ConsensusCore) Rounder() consensus.Rounder {
 	return cdc.rounder
 }
 
+//ShardCoordinator gets the Coordinator stored in the ConsensusCore
 func (cdc *ConsensusCore) ShardCoordinator() sharding.Coordinator {
 	return cdc.shardCoordinator
 }
 
+//SyncTimer gets the SyncTimer stored in the ConsensusCore
 func (cdc *ConsensusCore) SyncTimer() ntp.SyncTimer {
 	return cdc.syncTimer
 }
 
+//ValidatorGroupSelector gets the ValidatorGroupSelector stored in the ConsensusCore
 func (cdc *ConsensusCore) ValidatorGroupSelector() consensus.ValidatorGroupSelector {
 	return cdc.validatorGroupSelector
 }

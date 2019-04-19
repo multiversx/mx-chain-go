@@ -131,6 +131,7 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *consensus.Messa
 		log.Error(err.Error())
 		return false
 	}
+
 	currentMultiSigner := sr.MultiSigner()
 	err = currentMultiSigner.StoreCommitmentHash(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
