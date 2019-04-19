@@ -1,8 +1,6 @@
 package state
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 )
 
@@ -25,10 +23,21 @@ type AddressContainer interface {
 	Bytes() []byte
 }
 
+// AccountInterface models what an account struct should do
+type AccountInterface interface {
+	IntegrityAndValidity() error
+}
+
+// AccountFactory creates an account of different types
+type AccountFactory interface {
+	CreateAccount()
+}
+
 // AccountWrapper models what an AccountWrap struct should do
 // It knows about code and data, as data structures not hashes
 type AccountWrapper interface {
-	BaseAccount() *Account
+	TrackableDataTrieInterface
+
 	AddressContainer() AddressContainer
 	Code() []byte
 	SetCode(code []byte)
@@ -37,13 +46,16 @@ type AccountWrapper interface {
 	AppendRegistrationData(data *RegistrationData) error
 	CleanRegistrationData() error
 	TrimLastRegistrationData() error
+
+	GetRootHash() []byte
+	SetRootHash([]byte)
+	GetCodeHash() []byte
+	SetCodeHash([]byte)
 }
 
 // TrackableDataAccountWrapper models what an AccountWrap struct should do
 // It knows how to manipulate data held by a SC account
-type TrackableDataAccountWrapper interface {
-	AccountWrapper
-
+type TrackableDataTrieInterface interface {
 	ClearDataCaches()
 	DirtyData() map[string][]byte
 	OriginalValue(key []byte) []byte
@@ -51,36 +63,28 @@ type TrackableDataAccountWrapper interface {
 	SaveKeyValue(key []byte, value []byte)
 }
 
-// JournalizedAccountWrapper models what an AccountWrap struct should do
-// It knows how to journalize changes
-type JournalizedAccountWrapper interface {
-	TrackableDataAccountWrapper
-
-	SetNonceWithJournal(uint64) error
-	SetBalanceWithJournal(*big.Int) error
-	SetCodeHashWithJournal([]byte) error
-	SetRootHashWithJournal([]byte) error
-	AppendDataRegistrationWithJournal(*RegistrationData) error
-}
-
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
 // implementation
 type AccountsAdapter interface {
-	AddJournalEntry(je JournalEntry)
-	Commit() ([]byte, error)
-	GetJournalizedAccount(addressContainer AddressContainer) (JournalizedAccountWrapper, error)
+	SaveAccount(accountWrapper AccountWrapper) error
+	GetAccountWithJournal(addressContainer AddressContainer) (AccountWrapper, error) // will create if it not exist
 	GetExistingAccount(addressContainer AddressContainer) (AccountWrapper, error)
 	HasAccount(addressContainer AddressContainer) (bool, error)
-	JournalLen() int
-	PutCode(journalizedAccountWrapper JournalizedAccountWrapper, code []byte) error
 	RemoveAccount(addressContainer AddressContainer) error
+
+	Commit() ([]byte, error)
+	JournalLen() int
+
+	PutCode(accountWrapper AccountWrapper, code []byte) error
 	RemoveCode(codeHash []byte) error
+
 	LoadDataTrie(accountWrapper AccountWrapper) error
-	RevertToSnapshot(snapshot int) error
-	SaveJournalizedAccount(journalizedAccountWrapper JournalizedAccountWrapper) error
-	SaveData(journalizedAccountWrapper JournalizedAccountWrapper) error
-	RootHash() []byte
 	RecreateTrie(rootHash []byte) error
+
+	RevertToSnapshot(snapshot int) error
+
+	SaveData(accountWrapper AccountWrapper) error
+	RootHash() []byte
 }
 
 // JournalEntry will be used to implement different state changes to be able to easily revert them

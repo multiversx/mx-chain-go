@@ -184,22 +184,21 @@ func (txProc *txProcessor) setBalanceToTrie(addr []byte, balance *big.Int) error
 	}
 
 	addrContainer, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(addr)
-
 	if err != nil {
 		return err
 	}
-
 	if addrContainer == nil {
 		return process.ErrNilAddressContainer
 	}
 
 	account, err := txProc.accounts.GetJournalizedAccount(addrContainer)
-
 	if err != nil {
 		return err
 	}
 
-	return account.SetBalanceWithJournal(balance)
+	account.Balance = balance
+
+	return txProc.accounts.SaveJurnalized(account)
 }
 
 func (txProc *txProcessor) getAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {

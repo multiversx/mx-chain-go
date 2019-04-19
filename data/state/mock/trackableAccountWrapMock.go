@@ -27,7 +27,7 @@ func (tawm *TrackableAccountWrapMock) TrimLastRegistrationData() error {
 	panic("implement me")
 }
 
-func (tawm *TrackableAccountWrapMock) BaseAccount() *state.Account {
+func (tawm *TrackableAccountWrapMock) BaseAccount() state.AccountInterface {
 	return tawm.Account
 }
 

@@ -48,7 +48,7 @@ func (jawm *JournalizedAccountWrapMock) AppendDataRegistrationWithJournal(data *
 	return jawm.AppendDataRegistrationWithJournalCalled(data)
 }
 
-func (jawm *JournalizedAccountWrapMock) BaseAccount() *state.Account {
+func (jawm *JournalizedAccountWrapMock) BaseAccount() state.AccountInterface {
 	return jawm.Account
 }
 

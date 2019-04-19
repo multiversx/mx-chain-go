@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
@@ -81,11 +82,16 @@ func (jec *JournalEntryCreation) DirtiedAddress() AddressContainer {
 //------- JournalEntryNonce
 
 // NewJournalEntryNonce outputs a new JournalEntry implementation used to revert a nonce change
-func NewJournalEntryNonce(jurnalizedAccount JournalizedAccountWrapper, oldNonce uint64) *JournalEntryNonce {
+func NewJournalEntryNonce(jurnalizedAccount JournalizedAccountWrapper, oldNonce uint64) (*JournalEntryNonce, error) {
+	_, ok := jurnalizedAccount.(*JournalizedAccountWrap)
+	if !ok {
+		return nil, data.ErrWrongTypeAssertion
+	}
+
 	return &JournalEntryNonce{
 		jurnalizedAccount: jurnalizedAccount,
 		oldNonce:          oldNonce,
-	}
+	}, nil
 }
 
 // Revert applies undo operation
@@ -93,17 +99,20 @@ func (jen *JournalEntryNonce) Revert(accountsAdapter AccountsAdapter) error {
 	if accountsAdapter == nil {
 		return ErrNilAccountsAdapter
 	}
-
 	if jen.jurnalizedAccount == nil {
 		return ErrNilJurnalizingAccountWrapper
 	}
-
 	if jen.jurnalizedAccount.AddressContainer() == nil {
 		return ErrNilAddressContainer
 	}
 
-	//access nonce through implicit func as to not re-register the modification
-	jen.jurnalizedAccount.BaseAccount().Nonce = jen.oldNonce
+	account, ok := jen.jurnalizedAccount.BaseAccount().(*Account)
+	if !ok {
+		return data.ErrWrongTypeAssertion
+	}
+
+	account.Nonce = jen.oldNonce
+
 	return accountsAdapter.SaveJournalizedAccount(jen.jurnalizedAccount)
 }
 
@@ -115,11 +124,16 @@ func (jen *JournalEntryNonce) DirtiedAddress() AddressContainer {
 //------- JournalEntryBalance
 
 // NewJournalEntryBalance outputs a new JournalEntry implementation used to revert a balance change
-func NewJournalEntryBalance(jurnalizedAccount JournalizedAccountWrapper, oldBalance *big.Int) *JournalEntryBalance {
+func NewJournalEntryBalance(jurnalizedAccount JournalizedAccountWrapper, oldBalance *big.Int) (*JournalEntryBalance, error) {
+	_, ok := jurnalizedAccount.(*JournalizedAccountWrap)
+	if !ok {
+		return nil, data.ErrWrongTypeAssertion
+	}
+
 	return &JournalEntryBalance{
 		jurnalizedAccount: jurnalizedAccount,
 		oldBalance:        oldBalance,
-	}
+	}, nil
 }
 
 // Revert applies undo operation

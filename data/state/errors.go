@@ -109,3 +109,6 @@ var ErrNotSupportedAccountsRegistration = errors.New("operation not supported on
 
 // ErrTrimOperationNotSupported signals an invalid trim operation on an empty slice
 var ErrTrimOperationNotSupported = errors.New("trim operation not supported on an empty slice")
+
+// ErrNilAccountFactory signals that a nil account factory was provided
+var ErrNilAccountFactory = errors.New("Account factory is nil")

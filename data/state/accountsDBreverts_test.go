@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"math/big"
 	"testing"
 	"time"
@@ -22,8 +23,18 @@ func accountsDBRevertCreateAccountsDB() *state.AccountsDB {
 
 func accountsDBRevertEmulateBalanceTxExecution(acntSrc, acntDest state.JournalizedAccountWrapper, value *big.Int) error {
 
-	srcVal := acntSrc.BaseAccount().Balance
-	destVal := acntDest.BaseAccount().Balance
+	accountSrcReal, ok := acntSrc.BaseAccount().(*state.Account)
+	if !ok {
+		return data.ErrWrongTypeAssertion
+	}
+
+	accountDstReal, ok := acntSrc.BaseAccount().(*state.Account)
+	if !ok {
+		return data.ErrWrongTypeAssertion
+	}
+
+	srcVal := accountSrcReal.Balance
+	destVal := accountDstReal.Balance
 
 	if srcVal.Cmp(value) < 0 {
 		return errors.New("not enough funds")
@@ -68,12 +79,17 @@ func adbrEmulateBalanceTxSafeExecution(acntSrc, acntDest state.JournalizedAccoun
 }
 
 func adbrPrintAccount(journalizedAccountWrap state.JournalizedAccountWrapper, tag string) {
-	bal := journalizedAccountWrap.BaseAccount().Balance
+	accountReal, ok := journalizedAccountWrap.BaseAccount().(*state.Account)
+	if !ok {
+		return
+	}
+
+	bal := accountReal.Balance
 	fmt.Printf("%s address: %s\n", tag, base64.StdEncoding.EncodeToString(journalizedAccountWrap.AddressContainer().Bytes()))
-	fmt.Printf("     Nonce: %d\n", journalizedAccountWrap.BaseAccount().Nonce)
+	fmt.Printf("     Nonce: %d\n", accountReal.Nonce)
 	fmt.Printf("     Balance: %d\n", bal.Uint64())
-	fmt.Printf("     Code hash: %v\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.BaseAccount().CodeHash))
-	fmt.Printf("     Root hash: %v\n\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.BaseAccount().RootHash))
+	fmt.Printf("     Code hash: %v\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.GetCodeHash()))
+	fmt.Printf("     Root hash: %v\n\n", base64.StdEncoding.EncodeToString(journalizedAccountWrap.GetRootHash()))
 }
 
 func TestAccountsDBRevertNonceStepByStepAccountDataShouldWork(t *testing.T) {

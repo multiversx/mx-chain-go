@@ -17,7 +17,7 @@ type AccountWrapperStub struct {
 	TrimLastRegistrationDataHandler func() error
 }
 
-func (aw AccountWrapperStub) BaseAccount() *state.Account {
+func (aw AccountWrapperStub) BaseAccount() state.AccountInterface {
 	return aw.BaseAccountHandler()
 }
 func (aw AccountWrapperStub) AddressContainer() state.AddressContainer {

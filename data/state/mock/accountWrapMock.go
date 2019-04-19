@@ -25,7 +25,7 @@ func NewAccountWrapMock() *AccountWrapMock {
 	return &AccountWrapMock{}
 }
 
-func (awm *AccountWrapMock) BaseAccount() *state.Account {
+func (awm *AccountWrapMock) BaseAccount() state.AccountInterface {
 	panic("implement me")
 }
 

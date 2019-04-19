@@ -419,10 +419,13 @@ func TestAccountsDBGetJournalizedAccountNotFoundShouldCreateEmpty(t *testing.T) 
 	account, err := adb.GetJournalizedAccount(adr)
 	assert.Nil(t, err)
 
-	assert.Equal(t, uint64(0), account.BaseAccount().Nonce)
-	assert.Equal(t, big.NewInt(0), account.BaseAccount().Balance)
-	assert.Equal(t, []byte(nil), account.BaseAccount().CodeHash)
-	assert.Equal(t, []byte(nil), account.BaseAccount().RootHash)
+	accountReal, ok := account.BaseAccount().(*state.Account)
+	assert.Equal(t, true, ok)
+
+	assert.Equal(t, uint64(0), accountReal.Nonce)
+	assert.Equal(t, big.NewInt(0), accountReal.Balance)
+	assert.Equal(t, []byte(nil), account.GetCodeHash())
+	assert.Equal(t, []byte(nil), account.GetRootHash())
 	assert.Equal(t, adr, account.AddressContainer())
 }
 
@@ -490,7 +493,11 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	account, err := adb.GetExistingAccount(adr)
 	assert.Nil(t, err)
 	assert.NotNil(t, account)
-	assert.Equal(t, uint64(45), account.BaseAccount().Nonce)
+
+	accountReal, ok := account.BaseAccount().(*state.Account)
+	assert.Equal(t, true, ok)
+
+	assert.Equal(t, uint64(45), accountReal.Nonce)
 	//no journal entry shall be created
 	assert.Equal(t, 0, adb.JournalLen())
 }
@@ -862,8 +869,11 @@ func TestAccountsDBTestCreateModifyComitSaveGet(t *testing.T) {
 	recoveredAccount, err := adb.GetJournalizedAccount(adr)
 	assert.Nil(t, err)
 
-	assert.Equal(t, uint64(34), recoveredAccount.BaseAccount().Nonce)
-	assert.Equal(t, big.NewInt(45), recoveredAccount.BaseAccount().Balance)
+	accountReal, ok := recoveredAccount.BaseAccount().(*state.Account)
+	assert.Equal(t, true, ok)
+
+	assert.Equal(t, uint64(34), accountReal.Nonce)
+	assert.Equal(t, big.NewInt(45), accountReal.Balance)
 	assert.Equal(t, []byte("Test SC code to be executed"), recoveredAccount.Code())
 	value, err := recoveredAccount.RetrieveValue([]byte("a key"))
 	assert.Nil(t, err)

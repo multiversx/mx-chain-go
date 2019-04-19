@@ -76,7 +76,6 @@ func (pac *PlainAddressConverter) CreateAddressFromHex(hexAddress string) (Addre
 	//decode hex
 	buff := make([]byte, pac.addressLen)
 	_, err := hex.Decode(buff, []byte(hexAddress))
-
 	if err != nil {
 		return nil, err
 	}

@@ -43,7 +43,7 @@ func (jawm *JournalizedAccountWrapMock) AppendDataRegistrationWithJournal(*state
 	panic("implement me")
 }
 
-func (jawm *JournalizedAccountWrapMock) BaseAccount() *state.Account {
+func (jawm *JournalizedAccountWrapMock) BaseAccount() state.AccountInterface {
 	return jawm.Account
 }
 
