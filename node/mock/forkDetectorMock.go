@@ -11,7 +11,6 @@ type ForkDetectorMock struct {
 	CheckForkCalled                 func() (bool, uint64)
 	GetHighestFinalBlockNonceCalled func() uint64
 	ProbableHighestNonceCalled      func() uint64
-	ResetProbableHighestNonceCalled func()
 }
 
 // AddHeader is a mock implementation for AddHeader
@@ -34,12 +33,7 @@ func (f *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
 	return f.GetHighestFinalBlockNonceCalled()
 }
 
-// ProbableHighestNonce is a mock implementation for ProbableHighestNonce
+// GetProbableHighestNonce is a mock implementation for GetProbableHighestNonce
 func (f *ForkDetectorMock) ProbableHighestNonce() uint64 {
 	return f.ProbableHighestNonceCalled()
-}
-
-// ResetProbableHighestNonce is a mock implementation for ResetProbableHighestNonce
-func (f *ForkDetectorMock) ResetProbableHighestNonce() {
-	f.ResetProbableHighestNonceCalled()
 }

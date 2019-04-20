@@ -8,10 +8,6 @@ func (boot *ShardBootstrap) RequestHeader(nonce uint64) {
 	boot.requestHeader(nonce)
 }
 
-func (boot *MetaBootstrap) RequestHeader(nonce uint64) {
-	boot.requestHeader(nonce)
-}
-
 func (boot *ShardBootstrap) GetHeaderFromPool(nonce uint64) *block.Header {
 	return boot.getHeaderFromPoolHavingNonce(nonce)
 }
@@ -56,40 +52,20 @@ func (bfd *basicForkDetector) GetHeaders(nonce uint64) []*headerInfo {
 	return newHeaders
 }
 
-func (bfd *basicForkDetector) SetCheckpointNonce(nonce uint64) {
-	bfd.checkpointNonce = nonce
-}
-
 func (bfd *basicForkDetector) CheckpointNonce() uint64 {
-	return bfd.checkpointNonce
+	return bfd.fork.checkpointNonce
 }
 
 func (bfd *basicForkDetector) SetLastCheckpointNonce(nonce uint64) {
-	bfd.lastCheckpointNonce = nonce
-}
-
-func (bfd *basicForkDetector) LastCheckpointNonce() uint64 {
-	return bfd.lastCheckpointNonce
-}
-
-func (bfd *basicForkDetector) SetCheckpointRound(round int32) {
-	bfd.checkpointRound = round
+	bfd.fork.lastCheckpointNonce = nonce
 }
 
 func (bfd *basicForkDetector) CheckpointRound() int32 {
-	return bfd.checkpointRound
+	return bfd.fork.checkpointRound
 }
 
 func (bfd *basicForkDetector) SetLastCheckpointRound(round int32) {
-	bfd.lastCheckpointRound = round
-}
-
-func (bfd *basicForkDetector) LastCheckpointRound() int32 {
-	return bfd.lastCheckpointRound
-}
-
-func (bfd *basicForkDetector) Append(hdrInfo *headerInfo) {
-	bfd.append(hdrInfo)
+	bfd.fork.lastCheckpointRound = round
 }
 
 func (bfd *basicForkDetector) CheckBlockValidity(header *block.Header) error {
@@ -106,10 +82,6 @@ func (bfd *basicForkDetector) RemoveInvalidHeaders() {
 
 func (bfd *basicForkDetector) ComputeProbableHighestNonce() uint64 {
 	return bfd.computeProbableHighestNonce()
-}
-
-func (hi *headerInfo) Nonce() uint64 {
-	return hi.nonce
 }
 
 func (hi *headerInfo) Hash() []byte {
@@ -134,30 +106,6 @@ func (boot *ShardBootstrap) SyncStateListeners() []func(bool) {
 
 func (boot *MetaBootstrap) SyncStateListeners() []func(bool) {
 	return boot.syncStateListeners
-}
-
-func (boot *ShardBootstrap) SetIsForkDetected(isForkDetected bool) {
-	boot.isForkDetected = isForkDetected
-}
-
-func (boot *MetaBootstrap) SetIsForkDetected(isForkDetected bool) {
-	boot.isForkDetected = isForkDetected
-}
-
-func (boot *ShardBootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
-	boot.isNodeSynchronized = isNodeSyncronized
-}
-
-func (boot *MetaBootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
-	boot.isNodeSynchronized = isNodeSyncronized
-}
-
-func (boot *ShardBootstrap) SetRoundIndex(roundIndex int32) {
-	boot.roundIndex = roundIndex
-}
-
-func (boot *MetaBootstrap) SetRoundIndex(roundIndex int32) {
-	boot.roundIndex = roundIndex
 }
 
 func (boot *ShardBootstrap) SetForkNonce(nonce uint64) {

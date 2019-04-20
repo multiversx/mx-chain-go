@@ -26,7 +26,7 @@ const sleepTime = time.Duration(5 * time.Millisecond)
 
 // maxRoundsToWait defines the maximum rounds to wait, when bootstrapping, after which the node will add an empty
 // block through recovery mechanism, if its block request is not resolved and no new block header is received meantime
-const maxRoundsToWait = 3
+const maxRoundsToWait = 5
 
 type baseBootstrap struct {
 	headers       storage.Cacher
@@ -52,10 +52,9 @@ type baseBootstrap struct {
 	chStopSync chan bool
 	waitTime   time.Duration
 
-	isNodeSynchronized    bool
-	hasLastBlock          bool
-	roundIndex            int32
-	roundWithLastRcvBlock int32
+	isNodeSynchronized bool
+	hasLastBlock       bool
+	roundIndex         int32
 
 	isForkDetected bool
 	forkNonce      uint64
@@ -87,9 +86,10 @@ func (boot *baseBootstrap) processReceivedHeader(header data.HeaderHandler, head
 		return
 	}
 
-	log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n", header.GetNonce(), toB64(headerHash)))
+	log.Debug(fmt.Sprintf("receivedHeaders: received header with nonce %d and hash %s from network\n",
+		header.GetNonce(),
+		toB64(headerHash)))
 
-	boot.roundWithLastRcvBlock = boot.rounder.Index()
 	err := boot.forkDetector.AddHeader(header, headerHash, false)
 	if err != nil {
 		log.Info(err.Error())
@@ -100,9 +100,10 @@ func (boot *baseBootstrap) processReceivedHeader(header data.HeaderHandler, head
 // in the block headers pool
 func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64) {
 	headerHash, _ := boot.headersNonces.Get(nonce)
-	if headerHash != nil {
-		log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n", nonce, toB64(headerHash)))
-	}
+
+	log.Debug(fmt.Sprintf("receivedHeaderNonce: received header with nonce %d and hash %s from network\n",
+		nonce,
+		toB64(headerHash)))
 
 	n := boot.requestedHeaderNonce()
 	if n == nil {

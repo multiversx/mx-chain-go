@@ -209,13 +209,6 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 	hdr, err := boot.getHeaderRequestingIfMissing(nonce)
 	if err != nil {
-		if err == process.ErrMissingHeader {
-			roundsWithoutReceivedBlock := boot.rounder.Index() - boot.roundWithLastRcvBlock
-			if roundsWithoutReceivedBlock > maxRoundsToWait {
-				boot.forkDetector.ResetProbableHighestNonce()
-			}
-		}
-
 		return err
 	}
 
