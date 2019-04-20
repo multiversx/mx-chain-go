@@ -111,7 +111,9 @@ func (boot *baseBootstrap) receivedHeaderNonce(nonce uint64) {
 	}
 
 	if *n == nonce {
-		log.Info(fmt.Sprintf("received requested header with nonce %d from network\n", nonce))
+		log.Info(fmt.Sprintf("received requested header with nonce %d from network and probable highest nonce is %d\n",
+			nonce,
+			boot.forkDetector.ProbableHighestNonce()))
 		boot.setRequestedHeaderNonce(nil)
 		boot.chRcvHdr <- true
 	}

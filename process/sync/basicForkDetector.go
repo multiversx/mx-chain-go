@@ -2,7 +2,6 @@ package sync
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 	"sync"
 
@@ -90,7 +89,6 @@ func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, 
 	})
 
 	probableHighestNonce := bfd.computeProbableHighestNonce()
-	log.Info(fmt.Sprintf("probable highest nonce is %d\n", probableHighestNonce))
 
 	bfd.mutFork.RLock()
 	bfd.fork.lastBlockRound = bfd.rounder.Index()
@@ -290,14 +288,11 @@ func (bfd *basicForkDetector) ProbableHighestNonce() uint64 {
 	bfd.mutFork.Lock()
 	// TODO: This fallback mechanism should be improved
 	// If after maxRoundsToWait nothing is received, the probableHighestNonce will be set to checkpoint,
-	// so the node will act as synchronized, and then if stil nothing is received,
-	// it will will be set to checkpoint + 1, so the node will act as not synchronized
+	// so the node will act as synchronized
 	roundsWithoutReceivedBlock := bfd.rounder.Index() - bfd.fork.lastBlockRound
 	if roundsWithoutReceivedBlock > maxRoundsToWait {
 		if bfd.fork.probableHighestNonce > bfd.fork.checkpointNonce {
 			bfd.fork.probableHighestNonce = bfd.fork.checkpointNonce
-		} else {
-			bfd.fork.probableHighestNonce = bfd.fork.checkpointNonce + 1
 		}
 	}
 	probableHighestNonce := bfd.fork.probableHighestNonce

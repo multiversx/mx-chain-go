@@ -357,7 +357,9 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 	_ = bfd.AddHeader(&block.Header{PubKeysBitmap: []byte("X"), Nonce: 10, Round: 14}, []byte("hash3"), true)
 	assert.Equal(t, uint64(10), bfd.ProbableHighestNonce())
 
-	rounderMock.RoundIndex = 106
+	_ = bfd.AddHeader(&block.Header{PubKeysBitmap: []byte("X"), Nonce: 11, Round: 15}, []byte("hash3"), false)
 	assert.Equal(t, uint64(11), bfd.ProbableHighestNonce())
+
+	rounderMock.RoundIndex = 106
 	assert.Equal(t, uint64(10), bfd.ProbableHighestNonce())
 }
