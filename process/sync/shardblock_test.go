@@ -903,6 +903,9 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
 	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 100
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -930,8 +933,6 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 		return nil
 	}
 
-	bs.SetHighestNonceReceived(100)
-
 	r := bs.SyncBlock()
 
 	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, r)
@@ -953,6 +954,9 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return false, math.MaxUint64
+	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 100
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -983,8 +987,6 @@ func TestBootstrap_ShouldReturnMissingHeader(t *testing.T) {
 	bs.BroadcastBlock = func(body data.BodyHandler, header data.HeaderHandler) error {
 		return nil
 	}
-
-	bs.SetHighestNonceReceived(100)
 
 	r := bs.SyncBlock()
 
@@ -1037,6 +1039,9 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return false, math.MaxUint64
 	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 2
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1066,10 +1071,7 @@ func TestBootstrap_ShouldReturnMissingBody(t *testing.T) {
 	}
 
 	bs.RequestHeader(2)
-
-	bs.SetHighestNonceReceived(2)
 	r := bs.SyncBlock()
-
 	assert.Equal(t, process.ErrMissingBody, r)
 }
 
@@ -1094,6 +1096,9 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
+	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 1
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1202,6 +1207,9 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	}
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
+	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 2
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1312,6 +1320,9 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return false, math.MaxUint64
 	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 2
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1414,6 +1425,9 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	forkDetector.GetHighestFinalBlockNonceCalled = func() uint64 {
 		return uint64(hdr.Nonce)
 	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 2
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1442,11 +1456,8 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		account,
 	)
 
-	bs.SetHighestNonceReceived(2)
 	err := bs.SyncBlock()
-
-	assert.Equal(t, &sync.ErrSignedBlock{
-		CurrentNonce: hdr.Nonce}, err)
+	assert.Equal(t, &sync.ErrSignedBlock{CurrentNonce: hdr.Nonce}, err)
 }
 
 func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndexIsZero(t *testing.T) {
@@ -1456,9 +1467,13 @@ func TestBootstrap_ShouldSyncShouldReturnFalseWhenCurrentBlockIsNilAndRoundIndex
 
 	hasher := &mock.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	forkDetector := &mock.ForkDetectorMock{CheckForkCalled: func() (bool, uint64) {
-		return false, math.MaxUint64
-	}}
+	forkDetector := &mock.ForkDetectorMock{
+		CheckForkCalled: func() (bool, uint64) {
+			return false, math.MaxUint64
+		},
+		ProbableHighestNonceCalled: func() uint64 {
+			return 0
+		}}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1494,6 +1509,9 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return false, math.MaxUint64
 	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 1
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1515,7 +1533,6 @@ func TestBootstrap_ShouldReturnTrueWhenCurrentBlockIsNilAndRoundIndexIsGreaterTh
 		account,
 	)
 
-	bs.SetHighestNonceReceived(1)
 	assert.True(t, bs.ShouldSync())
 }
 
@@ -1534,6 +1551,9 @@ func TestBootstrap_ShouldReturnFalseWhenNodeIsSynced(t *testing.T) {
 	forkDetector := &mock.ForkDetectorMock{}
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return false, math.MaxUint64
+	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 0
 	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
@@ -1575,6 +1595,9 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 	forkDetector.CheckForkCalled = func() (bool, uint64) {
 		return false, math.MaxUint64
 	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 1
+	}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	account := &mock.AccountsStub{}
@@ -1596,7 +1619,7 @@ func TestBootstrap_ShouldReturnTrueWhenNodeIsNotSynced(t *testing.T) {
 		account,
 	)
 
-	assert.False(t, bs.ShouldSync())
+	assert.True(t, bs.ShouldSync())
 }
 
 func TestBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
@@ -1884,61 +1907,6 @@ func TestBootstrap_ReceivedHeadersNotFoundInPoolButFoundInStorageShouldAddToFork
 	bs.ReceivedHeaders(addedHash)
 
 	assert.True(t, wasAdded)
-}
-
-func TestBootstrap_ReceivedHeadersShouldSetHighestNonceReceived(t *testing.T) {
-	t.Parallel()
-
-	addedHash := []byte("hash")
-	addedHdr := &block.Header{Nonce: 100}
-
-	pools := createMockPools()
-	pools.HeadersCalled = func() storage.Cacher {
-		sds := &mock.CacherStub{}
-		sds.RegisterHandlerCalled = func(func(key []byte)) {
-		}
-		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-			if bytes.Equal(key, addedHash) {
-				return addedHdr, true
-			}
-
-			return nil, false
-		}
-		return sds
-	}
-
-	hasher := &mock.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	forkDetector := &mock.ForkDetectorMock{}
-	forkDetector.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, isProcessed bool) error {
-		return nil
-	}
-
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	account := &mock.AccountsStub{}
-
-	rnd, _ := round.NewRound(time.Now(), time.Now(), time.Duration(100*time.Millisecond), mock.SyncTimerMock{})
-
-	bs, _ := sync.NewShardBootstrap(
-		pools,
-		createStore(),
-		initBlockchain(),
-		rnd,
-		&mock.BlockProcessorMock{},
-		waitTime,
-		hasher,
-		marshalizer,
-		forkDetector,
-		createMockResolversFinder(),
-		shardCoordinator,
-		account,
-	)
-
-	bs.SetHighestNonceReceived(25)
-
-	bs.ReceivedHeaders(addedHash)
-
-	assert.Equal(t, uint64(100), bs.HighestNonceReceived())
 }
 
 //------- ForkChoice

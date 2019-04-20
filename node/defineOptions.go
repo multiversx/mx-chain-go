@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
@@ -169,6 +170,17 @@ func WithSyncer(syncer ntp.SyncTimer) Option {
 	}
 }
 
+// WithRounder sets up the rounder option for the Node
+func WithRounder(rounder consensus.Rounder) Option {
+	return func(n *Node) error {
+		if rounder == nil {
+			return ErrNilRounder
+		}
+		n.rounder = rounder
+		return nil
+	}
+}
+
 // WithBlockProcessor sets up the block processor option for the Node
 func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	return func(n *Node) error {
@@ -184,14 +196,6 @@ func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 func WithGenesisTime(genesisTime time.Time) Option {
 	return func(n *Node) error {
 		n.genesisTime = genesisTime
-		return nil
-	}
-}
-
-// WithElasticSubrounds sets up the elastic subround option for the Node
-func WithElasticSubrounds(elasticSubrounds bool) Option {
-	return func(n *Node) error {
-		n.elasticSubrounds = elasticSubrounds
 		return nil
 	}
 }

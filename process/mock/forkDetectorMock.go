@@ -10,6 +10,7 @@ type ForkDetectorMock struct {
 	CheckForkCalled                 func() (bool, uint64)
 	GetHighestFinalBlockNonceCalled func() uint64
 	ProbableHighestNonceCalled      func() uint64
+	ResetProbableHighestNonceCalled func()
 }
 
 func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error {
@@ -30,4 +31,8 @@ func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
 
 func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {
 	return fdm.ProbableHighestNonceCalled()
+}
+
+func (fdm *ForkDetectorMock) ResetProbableHighestNonce() {
+	fdm.ResetProbableHighestNonceCalled()
 }

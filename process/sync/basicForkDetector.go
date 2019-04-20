@@ -2,12 +2,12 @@ package sync
 
 import (
 	"bytes"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"math"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
 )
 
@@ -74,7 +74,7 @@ func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, 
 
 	bfd.append(&headerInfo{
 		nonce:       header.GetNonce(),
-		round:       header.Round,
+		round:       header.GetRound(),
 		hash:        hash,
 		isProcessed: isProcessed,
 	})
@@ -84,9 +84,9 @@ func (bfd *basicForkDetector) AddHeader(header data.HeaderHandler, hash []byte, 
 	return nil
 }
 
-func (bfd *basicForkDetector) checkBlockValidity(header *block.Header) error {
-	roundDif := int32(header.Round) - bfd.lastCheckpointRound
-	nonceDif := int64(header.Nonce - bfd.lastCheckpointNonce)
+func (bfd *basicForkDetector) checkBlockValidity(header data.HeaderHandler) error {
+	roundDif := int32(header.GetRound()) - bfd.lastCheckpointRound
+	nonceDif := int64(header.GetNonce() - bfd.lastCheckpointNonce)
 
 	if roundDif < 0 {
 		return ErrLowerRoundInBlock
@@ -94,7 +94,7 @@ func (bfd *basicForkDetector) checkBlockValidity(header *block.Header) error {
 	if nonceDif < 0 {
 		return ErrLowerNonceInBlock
 	}
-	if int32(header.Round) > bfd.rounder.Index() {
+	if int32(header.GetRound()) > bfd.rounder.Index() {
 		return ErrHigherRoundInBlock
 	}
 	if int64(roundDif) < nonceDif {
@@ -251,4 +251,9 @@ func (bfd *basicForkDetector) GetHighestFinalBlockNonce() uint64 {
 // ProbableHighestNonce gets the probable highest nonce
 func (bfd *basicForkDetector) ProbableHighestNonce() uint64 {
 	return bfd.probableHighestNonce
+}
+
+// ResetProbableHighestNonce sets the probable highest nonce to the value of checkpoint nonce
+func (bfd *basicForkDetector) ResetProbableHighestNonce() {
+	bfd.probableHighestNonce = bfd.checkpointNonce
 }

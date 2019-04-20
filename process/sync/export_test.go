@@ -120,7 +120,7 @@ func (hi *headerInfo) IsProcessed() bool {
 	return hi.isProcessed
 }
 
-func (boot *Bootstrap) NotifySyncStateListeners() {
+func (boot *ShardBootstrap) NotifySyncStateListeners() {
 	boot.notifySyncStateListeners()
 }
 
@@ -136,60 +136,12 @@ func (boot *MetaBootstrap) SyncStateListeners() []func(bool) {
 	return boot.syncStateListeners
 }
 
-func (boot *MetaBootstrap) HighestNonceReceived() uint64 {
-	return boot.rcvHdrInfo.highestNonce
-}
-
-func (boot *ShardBootstrap) HighestNonceReceived() uint64 {
-	return boot.rcvHdrInfo.highestNonce
-}
-
-func (boot *ShardBootstrap) SetHighestNonceReceived(highestNonceReceived uint64) {
-	boot.rcvHdrInfo.highestNonce = highestNonceReceived
-}
-
-func (boot *MetaBootstrap) SetHighestNonceReceived(highestNonceReceived uint64) {
-	boot.rcvHdrInfo.highestNonce = highestNonceReceived
-}
-
 func (boot *ShardBootstrap) SetIsForkDetected(isForkDetected bool) {
 	boot.isForkDetected = isForkDetected
 }
 
 func (boot *MetaBootstrap) SetIsForkDetected(isForkDetected bool) {
 	boot.isForkDetected = isForkDetected
-}
-
-func (boot *ShardBootstrap) GetTimeStampForRound(roundIndex uint32) time.Time {
-	return boot.getTimeStampForRound(roundIndex)
-}
-
-func (boot *MetaBootstrap) GetTimeStampForRound(roundIndex uint32) time.Time {
-	return boot.getTimeStampForRound(roundIndex)
-}
-
-func (boot *ShardBootstrap) ShouldCreateEmptyBlock(nonce uint64) bool {
-	return boot.shouldCreateEmptyBlock(nonce)
-}
-
-func (boot *MetaBootstrap) ShouldCreateEmptyBlock(nonce uint64) bool {
-	return boot.shouldCreateEmptyBlock(nonce)
-}
-
-func (boot *ShardBootstrap) CreateAndBroadcastEmptyBlock() error {
-	return boot.createAndBroadcastEmptyBlock()
-}
-
-func (boot *MetaBootstrap) CreateAndBroadcastEmptyBlock() error {
-	return boot.createAndBroadcastEmptyBlock()
-}
-
-func (boot *ShardBootstrap) BroadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
-	return boot.broadcastEmptyBlock(txBlockBody, header)
-}
-
-func (boot *MetaBootstrap) BroadcastEmptyBlock(txBlockBody block.Body, header *block.Header) error {
-	return boot.broadcastEmptyBlock(txBlockBody, header)
 }
 
 func (boot *ShardBootstrap) SetIsNodeSynchronized(isNodeSyncronized bool) {
