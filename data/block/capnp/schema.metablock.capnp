@@ -36,7 +36,7 @@ struct MetaBlockCapn {
     previousHash  @8:  Data;
     prevRandSeed  @9:  Data;
     randSeed      @10: Data;
-    stateRootHash @11: Data;
+    rootHash      @11: Data;
     txCount       @12: UInt32;
 }
 

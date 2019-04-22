@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -17,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/process"
@@ -154,11 +154,11 @@ func initStore() *dataRetriever.ChainStorer {
 	return store
 }
 
-//------- NewBlockProcessor
+//------- NewShardProcessor
 
 func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
-	be, err := blproc.NewBlockProcessor(
+	be, err := blproc.NewShardProcessor(
 		nil,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -177,7 +177,7 @@ func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
 func TestNewBlockProcessor_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, err := blproc.NewBlockProcessor(
+	be, err := blproc.NewShardProcessor(
 		tdp,
 		nil,
 		&mock.HasherStub{},
@@ -196,7 +196,7 @@ func TestNewBlockProcessor_NilStoreShouldErr(t *testing.T) {
 func TestNewBlockProcessor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, err := blproc.NewBlockProcessor(
+	be, err := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		nil,
@@ -216,7 +216,7 @@ func TestNewBlockProcessor_NilHasherShouldErr(t *testing.T) {
 func TestNewBlockProcessor_NilMarshalizerShouldWork(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, err := blproc.NewBlockProcessor(
+	be, err := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -236,7 +236,7 @@ func TestNewBlockProcessor_NilMarshalizerShouldWork(t *testing.T) {
 func TestNewBlockProcessor_NilTxProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, err := blproc.NewBlockProcessor(
+	be, err := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -256,7 +256,7 @@ func TestNewBlockProcessor_NilTxProcessorShouldErr(t *testing.T) {
 func TestNewBlockProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, err := blproc.NewBlockProcessor(
+	be, err := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -276,7 +276,7 @@ func TestNewBlockProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 func TestNewBlockProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, err := blproc.NewBlockProcessor(
+	be, err := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -296,7 +296,7 @@ func TestNewBlockProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewBlockProcessor_NilForkDetectorShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, err := blproc.NewBlockProcessor(
+	be, err := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -316,7 +316,7 @@ func TestNewBlockProcessor_NilForkDetectorShouldErr(t *testing.T) {
 func TestNewBlockProcessor_NilRequestTransactionHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, err := blproc.NewBlockProcessor(
+	be, err := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -338,7 +338,7 @@ func TestNewBlockProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
-	be, err := blproc.NewBlockProcessor(
+	be, err := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -358,7 +358,7 @@ func TestNewBlockProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 func TestNewBlockProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, err := blproc.NewBlockProcessor(
+	be, err := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -380,7 +380,7 @@ func TestNewBlockProcessor_OkValsShouldWork(t *testing.T) {
 func TestBlockProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -401,7 +401,7 @@ func TestBlockProcessor_ProcessBlockWithNilBlockchainShouldErr(t *testing.T) {
 func TestBlockProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -415,14 +415,14 @@ func TestBlockProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 		func(destShardID uint32, txHash []byte) {},
 	)
 	body := make(block.Body, 0)
-	err := be.ProcessBlock(createTestBlockchain(), nil, body, haveTime)
+	err := be.ProcessBlock(&blockchain.BlockChain{}, nil, body, haveTime)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
 func TestBlockProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -435,14 +435,14 @@ func TestBlockProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 		},
 		func(destShardID uint32, txHash []byte) {},
 	)
-	err := be.ProcessBlock(createTestBlockchain(), &block.Header{}, nil, haveTime)
+	err := be.ProcessBlock(&blockchain.BlockChain{}, &block.Header{}, nil, haveTime)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
 }
 
 func TestBlockProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -456,7 +456,7 @@ func TestBlockProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 		func(destShardID uint32, txHash []byte) {},
 	)
 	blk := make(block.Body, 0)
-	err := be.ProcessBlock(createTestBlockchain(), &block.Header{}, blk, nil)
+	err := be.ProcessBlock(&blockchain.BlockChain{}, &block.Header{}, blk, nil)
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
 }
 
@@ -476,7 +476,7 @@ func TestBlockProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 		RootHash:      []byte("roothash"),
 	}
 	body := make(block.Body, 0)
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -531,7 +531,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	rootHashCalled := func() []byte {
 		return []byte("rootHash")
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -559,7 +559,7 @@ func TestBlockProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 func TestBlockProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -589,7 +589,7 @@ func TestBlockProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 func TestBlockProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -619,7 +619,7 @@ func TestBlockProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 func TestBlockProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -691,7 +691,7 @@ func TestBlockProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	rootHashCalled := func() []byte {
 		return []byte("rootHash")
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -757,7 +757,7 @@ func TestBlockProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	rootHashCalled := func() []byte {
 		return []byte("rootHashX")
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -792,7 +792,7 @@ func TestBlockProcessor_CommitBlockNilBlockchainShouldErr(t *testing.T) {
 	accounts.RevertToSnapshotCalled = func(snapshot int) error {
 		return nil
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -841,7 +841,7 @@ func TestBlockProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 			return []byte("obj"), nil
 		},
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -889,7 +889,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	store := initStore()
 	store.AddStorer(dataRetriever.BlockHeaderUnit, hdrUnit)
 
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		store,
 		&mock.HasherStub{},
@@ -946,7 +946,7 @@ func TestBlockProcessor_CommitBlockStorageFailsForBodyShouldErr(t *testing.T) {
 	store := initStore()
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
 
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		store,
 		&mock.HasherStub{},
@@ -995,7 +995,7 @@ func TestBlockProcessor_CommitBlockNilNoncesDataPoolShouldErr(t *testing.T) {
 	body := make(block.Body, 0)
 	store := initStore()
 
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		store,
 		&mock.HasherStub{},
@@ -1057,7 +1057,7 @@ func TestBlockProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 	}
 	store := initStore()
 
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		store,
 		hasher,
@@ -1144,7 +1144,7 @@ func TestBlockProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 	store := initStore()
 
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		store,
 		hasher,
@@ -1217,7 +1217,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 	}
 	store := initStore()
 
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		store,
 		&mock.HasherStub{},
@@ -1236,7 +1236,7 @@ func TestVerifyStateRoot_ShouldWork(t *testing.T) {
 func TestBlockProc_GetTransactionFromPool(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -1258,7 +1258,7 @@ func TestBlockProc_GetTransactionFromPool(t *testing.T) {
 func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -1290,7 +1290,7 @@ func TestBlockProc_CreateTxBlockBodyWithDirtyAccStateShouldErr(t *testing.T) {
 	tpm := mock.TxProcessorMock{}
 	journalLen := func() int { return 3 }
 	revToSnapshot := func(snapshot int) error { return nil }
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -1321,7 +1321,7 @@ func TestBlockProcessor_CreateTxBlockBodyWithNoTimeShouldEmptyBlock(t *testing.T
 	journalLen := func() int { return 0 }
 	rootHashfunc := func() []byte { return []byte("roothash") }
 	revToSnapshot := func(snapshot int) error { return nil }
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -1363,7 +1363,7 @@ func TestBlockProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	haveTime := func() bool {
 		return true
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		&mock.ChainStorerMock{},
 		&mock.HasherStub{},
@@ -1397,7 +1397,7 @@ func TestBlockProcessor_CreateGenesisBlockBodyWithFailSetBalanceShouldErr(t *tes
 		ProcessTransactionCalled: txProcess,
 		SetBalancesToTrieCalled:  setBalances,
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -1421,13 +1421,13 @@ func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 		return nil
 	}
 	setBalances := func(accBalance map[string]*big.Int) (rootHash []byte, err error) {
-		return []byte("stateRootHash"), nil
+		return []byte("rootHash"), nil
 	}
 	txProc := mock.TxProcessorMock{
 		ProcessTransactionCalled: txProcess,
 		SetBalancesToTrieCalled:  setBalances,
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -1443,13 +1443,13 @@ func TestBlockProcessor_CreateGenesisBlockBodyOK(t *testing.T) {
 	rootHash, err := be.CreateGenesisBlock(nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, rootHash)
-	assert.Equal(t, rootHash, []byte("stateRootHash"))
+	assert.Equal(t, rootHash, []byte("rootHash"))
 }
 
 func TestBlockProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -1470,7 +1470,7 @@ func TestBlockProcessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
 func TestBlockProcessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -1503,7 +1503,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 	t.Parallel()
 	tdp := initDataPool()
 	marshalizer := &mock.MarshalizerStub{}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -1537,7 +1537,7 @@ func TestNode_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	tdp := initDataPool()
 	marshalizer := &mock.MarshalizerStub{}
 	hasher := &mock.HasherStub{}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		hasher,
@@ -1626,7 +1626,7 @@ func TestBlockProcessor_DisplayLogInfo(t *testing.T) {
 	tdp := initDataPool()
 	hasher := mock.HasherMock{}
 	hdr, txBlock := createTestHdrTxBlockBody()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -1640,7 +1640,7 @@ func TestBlockProcessor_DisplayLogInfo(t *testing.T) {
 		func(destShardID uint32, txHash []byte) {},
 	)
 	hdr.PrevHash = hasher.Compute("prev hash")
-	be.DisplayLogInfo(hdr, txBlock, hasher.Compute("header hash"))
+	be.DisplayShardBlock(hdr, txBlock)
 }
 
 //------- SortTxByNonce
@@ -1810,7 +1810,7 @@ func BenchmarkSortTxByNonce1(b *testing.B) {
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherMock{},
@@ -1870,7 +1870,7 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 
 func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
 	t.Parallel()
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		initDataPool(),
 		initStore(),
 		&mock.HasherStub{},
@@ -1891,7 +1891,7 @@ func TestBlockProcessor_CreateBlockHeaderShouldNotReturnNil(t *testing.T) {
 
 func TestBlockProcessor_CreateBlockHeaderShouldErrWhenMarshalizerErrors(t *testing.T) {
 	t.Parallel()
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		initDataPool(),
 		initStore(),
 		&mock.HasherStub{},
@@ -1928,7 +1928,7 @@ func TestBlockProcessor_CreateBlockHeaderShouldErrWhenMarshalizerErrors(t *testi
 
 func TestBlockProcessor_CreateBlockHeaderReturnsOK(t *testing.T) {
 	t.Parallel()
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		initDataPool(),
 		initStore(),
 		&mock.HasherStub{},
@@ -1971,7 +1971,7 @@ func TestBlockProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T)
 		journalEntries = 0
 		return nil
 	}
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		initDataPool(),
 		initStore(),
 		&mock.HasherStub{},
@@ -2014,7 +2014,7 @@ func TestBlockProcessor_MarshalizedDataForCrossShardShouldWork(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{
 		Fail: false,
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -2054,7 +2054,7 @@ func TestBlockProcessor_MarshalizedDataWrongType(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{
 		Fail: false,
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -2080,7 +2080,7 @@ func TestBlockProcessor_MarshalizedDataNilInput(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{
 		Fail: false,
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -2115,7 +2115,7 @@ func TestBlockProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 			return nil, process.ErrMarshalWithoutSuccess
 		},
 	}
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -2171,7 +2171,7 @@ func TestBlockProcessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		process.ShardCacherIdentifier(3, 4),
 	)
 
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		dataPool,
 		initStore(),
 		hasher,
@@ -2220,7 +2220,7 @@ func TestBlockProcessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
 	marshalizer := &mock.MarshalizerMock{}
 	dataPool := mock.NewPoolsHolderFake()
 
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		dataPool,
 		initStore(),
 		hasher,
@@ -2288,7 +2288,7 @@ func TestBlockProcessor_ReceivedMiniBlockShouldRequestMissingTransactions(t *tes
 	txHash2Requested := int32(0)
 	txHash3Requested := int32(0)
 
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		dataPool,
 		initStore(),
 		hasher,
@@ -2359,7 +2359,7 @@ func TestBlockProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	miniBlockHash2Requested := int32(0)
 	miniBlockHash3Requested := int32(0)
 
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		dataPool,
 		initStore(),
 		hasher,
@@ -2441,7 +2441,7 @@ func TestBlockProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	tx2ExecutionResult := uint64(0)
 	tx3ExecutionResult := uint64(0)
 
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		dataPool,
 		initStore(),
 		hasher,
@@ -2535,7 +2535,7 @@ func TestBlockProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	currentJournalLen := 445
 	revertAccntStateCalled := false
 
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		dataPool,
 		initStore(),
 		hasher,
@@ -2616,7 +2616,7 @@ func TestBlockProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	tx2ExecutionResult := uint64(0)
 	tx3ExecutionResult := uint64(0)
 
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		dataPool,
 		initStore(),
 		hasher,
@@ -2739,7 +2739,7 @@ func TestBlockProcessor_RemoveMetaBlockFromPoolShouldWork(t *testing.T) {
 	shardCoordinator.CurrentShard = destShardId
 	shardCoordinator.SetNoShards(destShardId + 1)
 
-	bp, _ := blproc.NewBlockProcessor(
+	bp, _ := blproc.NewShardProcessor(
 		dataPool,
 		store,
 		hasher,
@@ -2814,7 +2814,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockChain(t *testing.T
 	t.Parallel()
 	tdp := initDataPool()
 
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -2835,7 +2835,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockChain(t *testing.T
 func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool()
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		tdp,
 		initStore(),
 		&mock.HasherStub{},
@@ -2875,7 +2875,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		},
 	}
 
-	be, _ := blproc.NewBlockProcessor(
+	be, _ := blproc.NewShardProcessor(
 		dataPool,
 		store,
 		hasherMock,

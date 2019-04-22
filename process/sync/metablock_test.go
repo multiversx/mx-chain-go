@@ -857,9 +857,9 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 			if bytes.Equal([]byte("aaa"), key) && dataAvailable {
 				return &block.MetaBlock{
-					Nonce:         2,
-					Round:         1,
-					StateRootHash: []byte("bbb")}, true
+					Nonce:    2,
+					Round:    1,
+					RootHash: []byte("bbb")}, true
 			}
 
 			return nil, false
@@ -959,9 +959,9 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("aaa"), key) {
 				return &block.MetaBlock{
-					Nonce:         2,
-					Round:         1,
-					StateRootHash: []byte("bbb")}, true
+					Nonce:    2,
+					Round:    1,
+					RootHash: []byte("bbb")}, true
 			}
 
 			return nil, false
@@ -1040,9 +1040,9 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 		sds.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("aaa"), key) {
 				return &block.MetaBlock{
-					Nonce:         2,
-					Round:         1,
-					StateRootHash: []byte("bbb")}, true
+					Nonce:    2,
+					Round:    1,
+					RootHash: []byte("bbb")}, true
 			}
 
 			return nil, false
@@ -1699,8 +1699,8 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
 	prevHdr := &block.MetaBlock{
-		Signature:     []byte("sig of the prev header as to be unique in this context"),
-		StateRootHash: prevHdrRootHash,
+		Signature: []byte("sig of the prev header as to be unique in this context"),
+		RootHash:  prevHdrRootHash,
 	}
 
 	pools := createMockMetaPools()
@@ -1752,7 +1752,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackOkValsShouldWork(t *testing.
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj.(*block.MetaBlock).Signature = prevHdr.Signature
-				obj.(*block.MetaBlock).StateRootHash = prevHdrRootHash
+				obj.(*block.MetaBlock).RootHash = prevHdrRootHash
 				return nil
 			}
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {
@@ -1852,8 +1852,8 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 	prevHdrBytes := []byte("prev header bytes")
 	prevHdrRootHash := []byte("prev header root hash")
 	prevHdr := &block.MetaBlock{
-		Signature:     []byte("sig of the prev header as to be unique in this context"),
-		StateRootHash: prevHdrRootHash,
+		Signature: []byte("sig of the prev header as to be unique in this context"),
+		RootHash:  prevHdrRootHash,
 	}
 
 	pools := createMockMetaPools()
@@ -1907,7 +1907,7 @@ func TestMetaBootstrap_ForkChoiceIsEmptyCallRollBackToGenesisShouldWork(t *testi
 				//bytes represent a header (strings are returns from hdrUnit.Get which is also a stub here)
 				//copy only defined fields
 				obj.(*block.MetaBlock).Signature = prevHdr.Signature
-				obj.(*block.MetaBlock).StateRootHash = prevHdrRootHash
+				obj.(*block.MetaBlock).RootHash = prevHdrRootHash
 				return nil
 			}
 			if bytes.Equal(buff, prevTxBlockBodyBytes) {

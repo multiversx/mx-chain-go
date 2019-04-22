@@ -221,7 +221,7 @@ func createNetNode(
 		shardCoordinator,
 	)
 
-	blockProcessor, _ := block.NewBlockProcessor(
+	blockProcessor, _ := block.NewShardProcessor(
 		dPool,
 		store,
 		testHasher,

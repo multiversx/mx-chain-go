@@ -489,7 +489,7 @@ func createNode(
 
 	forkDetector := processSync.NewBasicForkDetector()
 
-	blockProcessor, err := block.NewBlockProcessor(
+	blockProcessor, err := block.NewShardProcessor(
 		datapool,
 		store,
 		hasher,
