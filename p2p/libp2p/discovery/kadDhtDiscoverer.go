@@ -167,3 +167,8 @@ func (kdd *KadDhtDiscoverer) ApplyContext(ctxProvider p2p.ContextProvider) error
 	kdd.contextProvider = ctx
 	return nil
 }
+
+// ReconnectToNetwork will try to connect to one peer from the initial peer list
+func (kdd *KadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
+	return kdd.connectToOnePeerFromInitialPeersList(kdd.refreshInterval, kdd.initialPeersList)
+}
