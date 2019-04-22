@@ -164,18 +164,29 @@ func TestBasicForkDetector_CheckBlockValidityShouldWork(t *testing.T) {
 
 func TestBasicForkDetector_RemoveHeadersShouldWork(t *testing.T) {
 	t.Parallel()
-	hdr1 := &block.Header{PubKeysBitmap: []byte("X")}
-	hash := []byte("hash1")
+	hdr1 := &block.Header{Nonce: 1, Round: 0, PubKeysBitmap: []byte("X")}
+	hash1 := []byte("hash1")
+	hdr2 := &block.Header{Nonce: 2, Round: 1, PubKeysBitmap: []byte("X")}
+	hash2 := []byte("hash2")
 	rounderMock := &mock.RounderMock{RoundIndex: 100}
 	bfd, _ := sync.NewBasicForkDetector(rounderMock)
 
-	_ = bfd.AddHeader(hdr1, hash, true)
-	hInfos := bfd.GetHeaders(0)
+	_ = bfd.AddHeader(hdr1, hash1, true)
+	_ = bfd.AddHeader(hdr2, hash2, true)
+
+	hInfos := bfd.GetHeaders(1)
 	assert.Equal(t, 1, len(hInfos))
 
-	bfd.RemoveHeaders(0)
-	hInfos = bfd.GetHeaders(0)
+	hInfos = bfd.GetHeaders(2)
+	assert.Equal(t, 1, len(hInfos))
+
+	bfd.RemoveHeaders(1)
+
+	hInfos = bfd.GetHeaders(1)
 	assert.Nil(t, hInfos)
+
+	hInfos = bfd.GetHeaders(2)
+	assert.Equal(t, 1, len(hInfos))
 }
 
 func TestBasicForkDetector_CheckForkOnlyOneHeaderOnANonceShouldReturnFalse(t *testing.T) {
