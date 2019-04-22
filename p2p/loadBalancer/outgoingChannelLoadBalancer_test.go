@@ -1,13 +1,13 @@
 package loadBalancer_test
 
 import (
+	"errors"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/loadBalancer"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 

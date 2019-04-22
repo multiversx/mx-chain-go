@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 )
@@ -16,7 +16,7 @@ const topicRequestSuffix = "_REQUEST"
 // NumPeersToQuery number of peers to send the message
 const NumPeersToQuery = 2
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 type topicResolverSender struct {
 	messenger   dataRetriever.MessageHandler

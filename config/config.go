@@ -73,22 +73,24 @@ type Config struct {
 	Hasher         TypeConfig
 	MultisigHasher TypeConfig
 	Marshalizer    TypeConfig
+
+	ResourceStats ResourceStatsConfig
 }
 
-//NodeConfig will hold basic p2p settings
+// NodeConfig will hold basic p2p settings
 type NodeConfig struct {
 	Port int
 	Seed string
 }
 
-//MdnsPeerDiscoveryConfig will hold the mdns discovery config settings
+// MdnsPeerDiscoveryConfig will hold the mdns discovery config settings
 type MdnsPeerDiscoveryConfig struct {
 	Enabled              bool
 	RefreshIntervalInSec int
 	ServiceTag           string
 }
 
-//KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
+// KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
 type KadDhtPeerDiscoveryConfig struct {
 	Enabled              bool
 	RefreshIntervalInSec int
@@ -96,9 +98,15 @@ type KadDhtPeerDiscoveryConfig struct {
 	InitialPeerList      []string
 }
 
-//P2PConfig will hold all the P2P settings
+// P2PConfig will hold all the P2P settings
 type P2PConfig struct {
 	Node                NodeConfig
 	MdnsPeerDiscovery   MdnsPeerDiscoveryConfig
 	KadDhtPeerDiscovery KadDhtPeerDiscoveryConfig
+}
+
+// ResourceStatsConfig will hold all resource stats settings
+type ResourceStatsConfig struct {
+	Enabled              bool
+	RefreshIntervalInSec int
 }

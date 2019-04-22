@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data"
-	"github.com/ElrondNetwork/elrond-go-sandbox/data/block"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -28,7 +27,7 @@ type BlockProcessor interface {
 	RevertAccountState()
 	CreateGenesisBlock(balances map[string]*big.Int) ([]byte, error)
 	CreateBlockBody(round int32, haveTime func() bool) (data.BodyHandler, error)
-	RemoveBlockInfoFromPool(body data.BodyHandler) error
+	RestoreBlockIntoPools(blockChain data.ChainHandler, body data.BodyHandler) error
 	CheckBlockValidity(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) bool
 	CreateBlockHeader(body data.BodyHandler) (data.HeaderHandler, error)
 	MarshalizedDataForCrossShard(body data.BodyHandler) (map[uint32][]byte, map[uint32][][]byte, error)
@@ -77,9 +76,11 @@ type Bootstrapper interface {
 // ForkDetector is an interface that defines the behaviour of a struct that is able
 // to detect forks
 type ForkDetector interface {
-	AddHeader(header *block.Header, hash []byte, isProcessed bool) error
-	RemoveProcessedHeader(nonce uint64) error
-	CheckFork() bool
+	AddHeader(header data.HeaderHandler, hash []byte, isProcessed bool) error
+	RemoveHeaders(nonce uint64)
+	CheckFork() (bool, uint64)
+	GetHighestSignedBlockNonce() uint64
+	GetHighestFinalBlockNonce() uint64
 }
 
 // InterceptorsContainer defines an interceptors holder data type with basic functionality

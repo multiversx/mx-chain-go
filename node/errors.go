@@ -22,6 +22,9 @@ var ErrNilAddressConverter = errors.New("trying to set nil address converter")
 // ErrNilBlockchain signals that a nil blockchain structure has been provided
 var ErrNilBlockchain = errors.New("nil blockchain")
 
+// ErrNilStore signals that a nil store has been provided
+var ErrNilStore = errors.New("nil data store")
+
 // ErrNilPrivateKey signals that a nil private key has been provided
 var ErrNilPrivateKey = errors.New("trying to set nil private key")
 
@@ -78,3 +81,6 @@ var ErrNilBlockHeader = errors.New("block header is nil")
 
 // ErrNilTxBlockBody is raised when a valid tx block body is expected but nil was used
 var ErrNilTxBlockBody = errors.New("tx block body is nil")
+
+// ErrNilMetaBlockHeader is raised when a valid metablock is expected but nil was provided
+var ErrNilMetaBlockHeader = errors.New("meta block header is nil")

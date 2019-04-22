@@ -2,9 +2,9 @@ package mock
 
 import (
 	"bytes"
+	"errors"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/pkg/errors"
 )
 
 // BelNevMock is used to mock belare neven multisignature scheme

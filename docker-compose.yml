@@ -6,7 +6,7 @@ services:
       context: ./
       dockerfile: ./docker/elrond/Dockerfile
 
-    command: bash -c "go run cmd/bootnode/main.go -port 4000 -max-allowed-peers 4 -private-key \"ZBis8aK5I66x1hwD+fE8sIw2nwQR5EBlTM8EiAOLZwE=\""
+    command: bash -c "go run cmd/node/main.go -port 4000 -max-allowed-peers 4 -private-key \"ZBis8aK5I66x1hwD+fE8sIw2nwQR5EBlTM8EiAOLZwE=\""
     ports:
       - 8080:8080
   elrond2:
@@ -14,7 +14,7 @@ services:
       context: ./
       dockerfile: ./docker/elrond/Dockerfile
 
-    command: bash -c "go run cmd/bootnode/main.go -port 4001 -max-allowed-peers 4 -private-key \"unkVM1J1JvlNFqY3uo/CvAay6BsIL3IzDH9GDgmfUAA=\""
+    command: bash -c "go run cmd/node/main.go -port 4001 -max-allowed-peers 4 -private-key \"unkVM1J1JvlNFqY3uo/CvAay6BsIL3IzDH9GDgmfUAA=\""
     ports:
       - 8081:8080
   elrond3:
@@ -22,7 +22,7 @@ services:
       context: ./
       dockerfile: ./docker/elrond/Dockerfile
 
-    command: bash -c "go run cmd/bootnode/main.go -port 4002 -max-allowed-peers 4 -private-key \"Or0C7+gvlr/kIZLS+tiBBQfbUQ+pqS9FTE3dXfs5Swg=\""
+    command: bash -c "go run cmd/node/main.go -port 4002 -max-allowed-peers 4 -private-key \"Or0C7+gvlr/kIZLS+tiBBQfbUQ+pqS9FTE3dXfs5Swg=\""
     ports:
       - 8082:8080
   filebeat:

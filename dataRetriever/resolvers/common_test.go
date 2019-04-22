@@ -1,7 +1,6 @@
 package resolvers_test
 
 import (
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
@@ -13,7 +12,7 @@ func createDataPool() *mock.PoolsHolderStub {
 	pools.HeadersCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
-	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
+	pools.HeadersNoncesCalled = func() dataRetriever.Uint64Cacher {
 		return &mock.Uint64CacherStub{}
 	}
 

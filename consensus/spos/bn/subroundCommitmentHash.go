@@ -5,59 +5,32 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus"
 	"github.com/ElrondNetwork/elrond-go-sandbox/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
-	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
 )
 
 type subroundCommitmentHash struct {
 	*subround
 
-	consensusState *spos.ConsensusState
-	hasher         hashing.Hasher
-	multiSigner    crypto.MultiSigner
-	rounder        consensus.Rounder
-	syncTimer      ntp.SyncTimer
-
-	sendConsensusMessage func(*spos.ConsensusMessage) bool
+	sendConsensusMessage func(*consensus.Message) bool
 }
 
 // NewSubroundCommitmentHash creates a subroundCommitmentHash object
 func NewSubroundCommitmentHash(
 	subround *subround,
-	consensusState *spos.ConsensusState,
-	hasher hashing.Hasher,
-	multiSigner crypto.MultiSigner,
-	rounder consensus.Rounder,
-	syncTimer ntp.SyncTimer,
-	sendConsensusMessage func(*spos.ConsensusMessage) bool,
+	sendConsensusMessage func(*consensus.Message) bool,
 	extend func(subroundId int),
 ) (*subroundCommitmentHash, error) {
-
 	err := checkNewSubroundCommitmentHashParams(
 		subround,
-		consensusState,
-		hasher,
-		multiSigner,
-		rounder,
-		syncTimer,
 		sendConsensusMessage,
 	)
-
 	if err != nil {
 		return nil, err
 	}
 
 	srCommitmentHash := subroundCommitmentHash{
 		subround,
-		consensusState,
-		hasher,
-		multiSigner,
-		rounder,
-		syncTimer,
 		sendConsensusMessage,
 	}
-
 	srCommitmentHash.job = srCommitmentHash.doCommitmentHashJob
 	srCommitmentHash.check = srCommitmentHash.doCommitmentHashConsensusCheck
 	srCommitmentHash.extend = extend
@@ -67,74 +40,53 @@ func NewSubroundCommitmentHash(
 
 func checkNewSubroundCommitmentHashParams(
 	subround *subround,
-	consensusState *spos.ConsensusState,
-	hasher hashing.Hasher,
-	multiSigner crypto.MultiSigner,
-	rounder consensus.Rounder,
-	syncTimer ntp.SyncTimer,
-	sendConsensusMessage func(*spos.ConsensusMessage) bool,
+	sendConsensusMessage func(*consensus.Message) bool,
 ) error {
 	if subround == nil {
 		return spos.ErrNilSubround
 	}
 
-	if consensusState == nil {
+	if subround.ConsensusState == nil {
 		return spos.ErrNilConsensusState
-	}
-
-	if hasher == nil {
-		return spos.ErrNilHasher
-	}
-
-	if multiSigner == nil {
-		return spos.ErrNilMultiSigner
-	}
-
-	if rounder == nil {
-		return spos.ErrNilRounder
-	}
-
-	if syncTimer == nil {
-		return spos.ErrNilSyncTimer
 	}
 
 	if sendConsensusMessage == nil {
 		return spos.ErrNilSendConsensusMessageFunction
 	}
 
-	return nil
+	err := spos.ValidateConsensusCore(subround.ConsensusCoreHandler)
+
+	return err
 }
 
 // doCommitmentHashJob method does the job of the commitment hash subround
 func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
-	if !sr.consensusState.CanDoSubroundJob(SrCommitmentHash) {
+	if !sr.CanDoSubroundJob(SrCommitmentHash) {
 		return false
 	}
 
 	commitmentHash, err := sr.genCommitmentHash()
-
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	msg := spos.NewConsensusMessage(
-		sr.consensusState.Data,
+	msg := consensus.NewConsensusMessage(
+		sr.Data,
 		commitmentHash,
-		[]byte(sr.consensusState.SelfPubKey()),
+		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtCommitmentHash),
-		uint64(sr.rounder.TimeStamp().Unix()),
-		sr.rounder.Index())
+		uint64(sr.Rounder().TimeStamp().Unix()),
+		sr.Rounder().Index())
 
 	if !sr.sendConsensusMessage(msg) {
 		return false
 	}
 
-	log.Info(fmt.Sprintf("%sStep 2: commitment hash has been sent\n", sr.syncTimer.FormattedCurrentTime()))
+	log.Info(fmt.Sprintf("%sStep 2: commitment hash has been sent\n", sr.SyncTimer().FormattedCurrentTime()))
 
-	err = sr.consensusState.SetSelfJobDone(SrCommitmentHash, true)
-
+	err = sr.SetSelfJobDone(SrCommitmentHash, true)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -146,70 +98,68 @@ func (sr *subroundCommitmentHash) doCommitmentHashJob() bool {
 // receivedCommitmentHash method is called when a commitment hash is received through the commitment hash
 // channel. If the commitment hash is valid, than the jobDone map corresponding to the node which sent it,
 // is set on true for the subround CommitmentHash
-func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *spos.ConsensusMessage) bool {
+func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
-	if !sr.consensusState.IsConsensusDataSet() {
+	if !sr.IsConsensusDataSet() {
 		return false
 	}
 
-	if !sr.consensusState.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
 		return false
 	}
 
-	if !sr.consensusState.IsNodeInConsensusGroup(node) { // is NOT this node in the consensus group?
+	if !sr.IsNodeInConsensusGroup(node) { // is NOT this node in the consensus group?
 		return false
 	}
 
-	if !sr.consensusState.CanProcessReceivedMessage(cnsDta, sr.rounder.Index(), SrCommitmentHash) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), SrCommitmentHash) {
 		return false
 	}
 
 	// if this node is leader in this round and it already received 2/3 + 1 of commitment hashes
 	// it will ignore any others received later
-	if sr.consensusState.IsSelfLeaderInCurrentRound() {
-		threshold := sr.consensusState.Threshold(SrCommitmentHash)
+	if sr.IsSelfLeaderInCurrentRound() {
+		threshold := sr.Threshold(SrCommitmentHash)
 		if sr.isCommitmentHashReceived(threshold) {
 			return false
 		}
 	}
 
-	index, err := sr.consensusState.ConsensusGroupIndex(node)
-
+	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	err = sr.multiSigner.StoreCommitmentHash(uint16(index), cnsDta.SubRoundData)
-
+	currentMultiSigner := sr.MultiSigner()
+	err = currentMultiSigner.StoreCommitmentHash(uint16(index), cnsDta.SubRoundData)
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	err = sr.consensusState.SetJobDone(node, SrCommitmentHash, true)
-
+	err = sr.SetJobDone(node, SrCommitmentHash, true)
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	threshold := sr.consensusState.Threshold(SrCommitmentHash)
-	if !sr.consensusState.IsSelfLeaderInCurrentRound() {
-		threshold = len(sr.consensusState.ConsensusGroup())
+	threshold := sr.Threshold(SrCommitmentHash)
+	if !sr.IsSelfLeaderInCurrentRound() {
+		threshold = len(sr.ConsensusGroup())
 	}
 
 	if sr.isCommitmentHashReceived(threshold) {
-		n := sr.consensusState.ComputeSize(SrCommitmentHash)
+		n := sr.ComputeSize(SrCommitmentHash)
 		log.Info(fmt.Sprintf("%sStep 2: received %d from %d commitment hashes\n",
-			sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
+			sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusGroup())))
 	} else {
-		threshold = sr.consensusState.Threshold(SrBitmap)
+		threshold = sr.Threshold(SrBitmap)
 		if sr.commitmentHashesCollected(threshold) {
-			n := sr.consensusState.ComputeSize(SrCommitmentHash)
+			n := sr.ComputeSize(SrCommitmentHash)
 			log.Info(fmt.Sprintf("%sStep 2: received %d from %d commitment hashes\n",
-				sr.syncTimer.FormattedCurrentTime(), n, len(sr.consensusState.ConsensusGroup())))
+				sr.SyncTimer().FormattedCurrentTime(), n, len(sr.ConsensusGroup())))
 		}
 	}
 
@@ -218,29 +168,29 @@ func (sr *subroundCommitmentHash) receivedCommitmentHash(cnsDta *spos.ConsensusM
 
 // doCommitmentHashConsensusCheck method checks if the consensus in the <COMMITMENT_HASH> subround is achieved
 func (sr *subroundCommitmentHash) doCommitmentHashConsensusCheck() bool {
-	if sr.consensusState.RoundCanceled {
+	if sr.RoundCanceled {
 		return false
 	}
 
-	if sr.consensusState.Status(SrCommitmentHash) == spos.SsFinished {
+	if sr.Status(SrCommitmentHash) == spos.SsFinished {
 		return true
 	}
 
-	threshold := sr.consensusState.Threshold(SrCommitmentHash)
-	if !sr.consensusState.IsSelfLeaderInCurrentRound() {
-		threshold = len(sr.consensusState.ConsensusGroup())
+	threshold := sr.Threshold(SrCommitmentHash)
+	if !sr.IsSelfLeaderInCurrentRound() {
+		threshold = len(sr.ConsensusGroup())
 	}
 
 	if sr.isCommitmentHashReceived(threshold) {
-		log.Info(fmt.Sprintf("%sStep 2: subround %s has been finished\n", sr.syncTimer.FormattedCurrentTime(), sr.Name()))
-		sr.consensusState.SetStatus(SrCommitmentHash, spos.SsFinished)
+		log.Info(fmt.Sprintf("%sStep 2: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
+		sr.SetStatus(SrCommitmentHash, spos.SsFinished)
 		return true
 	}
 
-	threshold = sr.consensusState.Threshold(SrBitmap)
+	threshold = sr.Threshold(SrBitmap)
 	if sr.commitmentHashesCollected(threshold) {
-		log.Info(fmt.Sprintf("%sStep 2: subround %s has been finished\n", sr.syncTimer.FormattedCurrentTime(), sr.Name()))
-		sr.consensusState.SetStatus(SrCommitmentHash, spos.SsFinished)
+		log.Info(fmt.Sprintf("%sStep 2: subround %s has been finished\n", sr.SyncTimer().FormattedCurrentTime(), sr.Name()))
+		sr.SetStatus(SrCommitmentHash, spos.SsFinished)
 		return true
 	}
 
@@ -252,9 +202,9 @@ func (sr *subroundCommitmentHash) doCommitmentHashConsensusCheck() bool {
 func (sr *subroundCommitmentHash) isCommitmentHashReceived(threshold int) bool {
 	n := 0
 
-	for i := 0; i < len(sr.consensusState.ConsensusGroup()); i++ {
-		node := sr.consensusState.ConsensusGroup()[i]
-		isJobDone, err := sr.consensusState.JobDone(node, SrCommitmentHash)
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		node := sr.ConsensusGroup()[i]
+		isJobDone, err := sr.JobDone(node, SrCommitmentHash)
 
 		if err != nil {
 			log.Error(err.Error())
@@ -274,18 +224,16 @@ func (sr *subroundCommitmentHash) isCommitmentHashReceived(threshold int) bool {
 func (sr *subroundCommitmentHash) commitmentHashesCollected(threshold int) bool {
 	n := 0
 
-	for i := 0; i < len(sr.consensusState.ConsensusGroup()); i++ {
-		node := sr.consensusState.ConsensusGroup()[i]
-		isBitmapJobDone, err := sr.consensusState.JobDone(node, SrBitmap)
-
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		node := sr.ConsensusGroup()[i]
+		isBitmapJobDone, err := sr.JobDone(node, SrBitmap)
 		if err != nil {
 			log.Error(err.Error())
 			continue
 		}
 
 		if isBitmapJobDone {
-			isCommHashJobDone, err := sr.consensusState.JobDone(node, SrCommitmentHash)
-
+			isCommHashJobDone, err := sr.JobDone(node, SrCommitmentHash)
 			if err != nil {
 				log.Error(err.Error())
 				continue
@@ -302,18 +250,17 @@ func (sr *subroundCommitmentHash) commitmentHashesCollected(threshold int) bool 
 }
 
 func (sr *subroundCommitmentHash) genCommitmentHash() ([]byte, error) {
-	_, commitment := sr.multiSigner.CreateCommitment()
+	_, commitment := sr.MultiSigner().CreateCommitment()
 
-	selfIndex, err := sr.consensusState.SelfConsensusGroupIndex()
-
+	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
 		return nil, err
 	}
 
-	commitmentHash := sr.hasher.Compute(string(commitment))
+	commitmentHash := sr.Hasher().Compute(string(commitment))
 
-	err = sr.multiSigner.StoreCommitmentHash(uint16(selfIndex), commitmentHash)
-
+	currentMultiSigner := sr.MultiSigner()
+	err = currentMultiSigner.StoreCommitmentHash(uint16(selfIndex), commitmentHash)
 	if err != nil {
 		return nil, err
 	}

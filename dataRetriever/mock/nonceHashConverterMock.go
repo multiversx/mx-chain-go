@@ -2,8 +2,7 @@ package mock
 
 import (
 	"encoding/binary"
-
-	"github.com/pkg/errors"
+	"errors"
 )
 
 type nonceHashConverterMock struct {

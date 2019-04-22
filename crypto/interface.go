@@ -112,9 +112,9 @@ type Suite interface {
 	GetUnderlyingSuite() interface{}
 }
 
-// Generator generates a scalar
+// Generator generates a (Scalar, Point) key pair
 type Generator interface {
-	CreateKey(cipher.Stream) Scalar
+	CreateKeyPair(cipher.Stream) (Scalar, Point)
 }
 
 // KeyGenerator is an interface for generating different types of cryptographic keys

@@ -2,22 +2,21 @@ package resolvers
 
 import (
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/data"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-sandbox/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 )
 
-var log = logger.NewDefaultLogger()
+var log = logger.DefaultLogger()
 
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
 	*HeaderResolverBase
-	hdrNonces      data.Uint64Cacher
+	hdrNonces      dataRetriever.Uint64Cacher
 	headers        storage.Cacher
 	nonceConverter typeConverters.Uint64ByteSliceConverter
 }
@@ -25,7 +24,7 @@ type HeaderResolver struct {
 // NewHeaderResolver creates a new header resolver
 func NewHeaderResolver(
 	senderResolver dataRetriever.TopicResolverSender,
-	pools data.PoolsHolder,
+	pools dataRetriever.PoolsHolder,
 	hdrStorage storage.Storer,
 	marshalizer marshal.Marshalizer,
 	nonceConverter typeConverters.Uint64ByteSliceConverter,

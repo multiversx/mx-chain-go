@@ -190,7 +190,7 @@ func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (*Account, 
 	return acnt, err
 }
 
-// HasAccountState searches for an account based on the address. Errors if something went wrong and
+// HasAccount searches for an account based on the address. Errors if something went wrong and
 // outputs if the account exists or not
 func (adb *AccountsDB) HasAccount(addressContainer AddressContainer) (bool, error) {
 	if adb.mainTrie == nil {

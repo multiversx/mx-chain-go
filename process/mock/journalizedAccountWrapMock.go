@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/pkg/errors"
+	"errors"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
