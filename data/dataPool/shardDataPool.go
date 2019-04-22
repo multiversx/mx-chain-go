@@ -12,6 +12,7 @@ type shardedDataPool struct {
 	hdrNonces         data.Uint64Cacher
 	miniBlocks        storage.Cacher
 	peerChangesBlocks storage.Cacher
+	headerStatistics  storage.Cacher
 }
 
 // NewShardedDataPool creates a data pools holder object
@@ -22,6 +23,7 @@ func NewShardedDataPool(
 	miniBlocks storage.Cacher,
 	peerChangesBlocks storage.Cacher,
 	metaBlocks storage.Cacher,
+	headerStatistics storage.Cacher,
 ) (*shardedDataPool, error) {
 
 	if transactions == nil {
@@ -50,6 +52,7 @@ func NewShardedDataPool(
 		miniBlocks:        miniBlocks,
 		peerChangesBlocks: peerChangesBlocks,
 		metaBlocks:        metaBlocks,
+		headerStatistics:  headerStatistics,
 	}, nil
 }
 
@@ -81,4 +84,9 @@ func (tdp *shardedDataPool) PeerChangesBlocks() storage.Cacher {
 // MetaBlocks returns the holder for meta blocks
 func (tdp *shardedDataPool) MetaBlocks() storage.Cacher {
 	return tdp.metaBlocks
+}
+
+// HeaderStatistics returns the cacher that holds the latest blocks independent of the current shard
+func (tdp *shardedDataPool) HeaderStatistics() storage.Cacher {
+	return tdp.headerStatistics
 }

@@ -88,6 +88,9 @@ func createTestDataPool() data.PoolsHolder {
 	peerChangeBlockBody, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 	metaPool, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
 
+	cacherCfg = storage.CacheConfig{Size: 10, Type: storage.LRUCache}
+	headerStatistics, _ := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+
 	dPool, _ := dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
@@ -95,6 +98,7 @@ func createTestDataPool() data.PoolsHolder {
 		txBlockBody,
 		peerChangeBlockBody,
 		metaPool,
+		headerStatistics,
 	)
 
 	return dPool

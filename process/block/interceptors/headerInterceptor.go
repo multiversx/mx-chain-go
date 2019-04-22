@@ -25,6 +25,7 @@ type HeaderInterceptor struct {
 func NewHeaderInterceptor(
 	marshalizer marshal.Marshalizer,
 	headers storage.Cacher,
+	headerStatistics storage.Cacher,
 	headersNonces data.Uint64Cacher,
 	storer storage.Storer,
 	multiSigVerifier crypto.MultiSigVerifier,
@@ -41,6 +42,7 @@ func NewHeaderInterceptor(
 	hdrBaseInterceptor, err := NewHeaderInterceptorBase(
 		marshalizer,
 		storer,
+		headerStatistics,
 		multiSigVerifier,
 		hasher,
 		shardCoordinator,
@@ -70,6 +72,7 @@ func (hi *HeaderInterceptor) ProcessReceivedMessage(message p2p.MessageP2P) erro
 	if err != nil {
 		return err
 	}
+
 	if !hi.checkHeaderForCurrentShard(hdrIntercepted) {
 		return nil
 	}

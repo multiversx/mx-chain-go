@@ -50,6 +50,9 @@ func createDataPools() data.PoolsHolder {
 	pools.HeadersCalled = func() storage.Cacher {
 		return &mock.CacherStub{}
 	}
+	pools.HeaderStatisticsCalled = func() storage.Cacher {
+		return &mock.CacherStub{}
+	}
 	pools.HeadersNoncesCalled = func() data.Uint64Cacher {
 		return &mock.Uint64CacherStub{}
 	}

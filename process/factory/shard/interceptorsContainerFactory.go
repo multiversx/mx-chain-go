@@ -213,6 +213,7 @@ func (icf *interceptorsContainerFactory) generateHdrInterceptor() ([]string, []p
 	interceptor, err := interceptors.NewHeaderInterceptor(
 		icf.marshalizer,
 		icf.dataPool.Headers(),
+		icf.dataPool.HeaderStatistics(),
 		icf.dataPool.HeadersNonces(),
 		headerStorer,
 		icf.multiSigner,

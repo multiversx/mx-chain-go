@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/api"
 	"github.com/ElrondNetwork/elrond-go-sandbox/core/logger"
+	"github.com/ElrondNetwork/elrond-go-sandbox/core/statistics"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/state"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/transaction"
 	"github.com/ElrondNetwork/elrond-go-sandbox/ntp"
@@ -13,9 +14,10 @@ import (
 
 // ElrondNodeFacade represents a facade for grouping the functionality for node, transaction and address
 type ElrondNodeFacade struct {
-	node   NodeWrapper
-	syncer ntp.SyncTimer
-	log    *logger.Logger
+	node         NodeWrapper
+	syncer       ntp.SyncTimer
+	log          *logger.Logger
+	tpsBenchmark *statistics.TpsBenchmark
 }
 
 // NewElrondNodeFacade creates a new Facade with a NodeWrapper
@@ -37,6 +39,16 @@ func (ef *ElrondNodeFacade) SetLogger(log *logger.Logger) {
 // SetSyncer sets the current syncer
 func (ef *ElrondNodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 	ef.syncer = syncer
+}
+
+// SetTpsBenchmark sets the tps benchmark handler
+func (ef *ElrondNodeFacade) SetTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) {
+	ef.tpsBenchmark = tpsBenchmark
+}
+
+// TpsBenchmark returns the tps benchmark handler
+func (ef *ElrondNodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
+	return ef.tpsBenchmark
 }
 
 // StartNode starts the underlying node
@@ -70,7 +82,9 @@ func (ef *ElrondNodeFacade) startRest(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	ef.log.Info("Starting web server...")
-	err := api.Start(struct{*ElrondNodeFacade}{ef})
+	err := api.Start(struct{
+		*ElrondNodeFacade
+	}{ef})
 	if err != nil {
 		ef.log.Error("Could not start webserver", err.Error())
 	}

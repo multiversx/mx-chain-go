@@ -67,6 +67,7 @@ type Config struct {
 	MiniBlockHeaderHashesDataPool CacheConfig
 	ShardHeadersDataPool          CacheConfig
 	MetaHeaderNoncesDataPool      CacheConfig
+	HeaderStatisticsDataPool      CacheConfig
 
 	Logger         LoggerConfig
 	Address        AddressConfig

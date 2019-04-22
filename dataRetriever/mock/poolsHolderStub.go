@@ -12,6 +12,7 @@ type PoolsHolderStub struct {
 	TransactionsCalled      func() data.ShardedDataCacherNotifier
 	MiniBlocksCalled        func() storage.Cacher
 	MetaBlocksCalled        func() storage.Cacher
+	HeaderStatisticsCalled  func() storage.Cacher
 }
 
 func (phs *PoolsHolderStub) Headers() storage.Cacher {
@@ -36,4 +37,8 @@ func (phs *PoolsHolderStub) MiniBlocks() storage.Cacher {
 
 func (phs *PoolsHolderStub) MetaBlocks() storage.Cacher {
 	return phs.MetaBlocksCalled()
+}
+
+func (phs *PoolsHolderStub) HeaderStatistics() storage.Cacher {
+	return phs.HeaderStatisticsCalled()
 }

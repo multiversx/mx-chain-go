@@ -221,7 +221,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 	startTime := time.Unix(genesisConfig.StartTime, 0)
 	log.Info(fmt.Sprintf("Start time in seconds: %d", startTime.Unix()))
 
-	currentNode, err := createNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, log)
+	currentNode, tpsBenchmark, err := createNode(ctx, generalConfig, genesisConfig, p2pConfig, syncer, log)
 
 	if err != nil {
 		return err
@@ -231,6 +231,7 @@ func startNode(ctx *cli.Context, log *logger.Logger) error {
 
 	ef.SetLogger(log)
 	ef.SetSyncer(syncer)
+	ef.SetTpsBenchmark(tpsBenchmark)
 
 	wg := sync.WaitGroup{}
 	go ef.StartBackgroundServices(&wg)
@@ -277,89 +278,89 @@ func createNode(
 	p2pConfig *config.P2PConfig,
 	syncer ntp.SyncTimer,
 	log *logger.Logger,
-) (*node.Node, error) {
+) (*node.Node, *statistics.TpsBenchmark, error) {
 
 	hasher, err := getHasherFromConfig(config)
 	if err != nil {
-		return nil, errors.New("could not create hasher: " + err.Error())
+		return nil, nil, errors.New("could not create hasher: " + err.Error())
 	}
 
 	marshalizer, err := getMarshalizerFromConfig(config)
 	if err != nil {
-		return nil, errors.New("could not create marshalizer: " + err.Error())
+		return nil, nil, errors.New("could not create marshalizer: " + err.Error())
 	}
 
 	tr, err := getTrie(config.AccountsTrieStorage, hasher)
 	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, errors.New("error creating node: " + err.Error())
 	}
 
 	addressConverter, err := state.NewPlainAddressConverter(config.Address.Length, config.Address.Prefix)
 	if err != nil {
-		return nil, errors.New("could not create address converter: " + err.Error())
+		return nil, nil, errors.New("could not create address converter: " + err.Error())
 	}
 
 	accountsAdapter, err := state.NewAccountsDB(tr, hasher, marshalizer)
 	if err != nil {
-		return nil, errors.New("could not create accounts adapter: " + err.Error())
+		return nil, nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
 	keyGen, privKey, pubKey, err := getSigningParams(ctx, log)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	initialPubKeys := genesisConfig.InitialNodesPubKeys()
 
 	publickKey, err := pubKey.ToByteArray()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hexPublicKey := hex.EncodeToString(publickKey)
 	logFile, err := core.CreateFile(hexPublicKey, defaultLogPath, "log")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = log.ApplyOptions(logger.WithFile(logFile))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	statsFile, err := core.CreateFile(hexPublicKey, defaultStatsPath, "txt")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	err = startStatisticsMonitor(statsFile, config.ResourceStats, log)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	selfShardId, err := genesisConfig.GetShardIDFromPubKey(publickKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(genesisConfig.NumberOfShards(), selfShardId)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	transactionProcessor, err := transaction.NewTxProcessor(accountsAdapter, hasher, addressConverter, marshalizer, shardCoordinator)
 	if err != nil {
-		return nil, errors.New("could not create transaction processor: " + err.Error())
+		return nil, nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
 	blkc, err := createBlockChainFromConfig(config)
 	if err != nil {
-		return nil, errors.New("could not create block chain: " + err.Error())
+		return nil, nil, errors.New("could not create block chain: " + err.Error())
 	}
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 	datapool, err := createShardDataPoolFromConfig(config, uint64ByteSliceConverter)
 	if err != nil {
-		return nil, errors.New("could not create shard data pools: " + err.Error())
+		return nil, nil, errors.New("could not create shard data pools: " + err.Error())
 	}
 
 	// TODO create metachain / blockchain
@@ -368,24 +369,24 @@ func createNode(
 
 	inBalanceForShard, err := genesisConfig.InitialNodesBalances(shardCoordinator, addressConverter)
 	if err != nil {
-		return nil, errors.New("initial balances could not be processed " + err.Error())
+		return nil, nil, errors.New("initial balances could not be processed " + err.Error())
 	}
 
 	singlesigner := &singlesig.SchnorrSigner{}
 
 	multisigHasher, err := getMultisigHasherFromConfig(config)
 	if err != nil {
-		return nil, errors.New("could not create multisig hasher: " + err.Error())
+		return nil, nil, errors.New("could not create multisig hasher: " + err.Error())
 	}
 
 	currentShardPubKeys, err := genesisConfig.InitialNodesPubKeysForShard(shardCoordinator.SelfId())
 	if err != nil {
-		return nil, errors.New("could not start creation of multisigner: " + err.Error())
+		return nil, nil, errors.New("could not start creation of multisigner: " + err.Error())
 	}
 
 	multisigner, err := multisig.NewBelNevMultisig(multisigHasher, currentShardPubKeys, privKey, keyGen, uint16(0))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var randReader io.Reader
@@ -397,7 +398,7 @@ func createNode(
 
 	netMessenger, err := createNetMessenger(p2pConfig, log, randReader)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	interceptorContainerFactory, err := shard.NewInterceptorsContainerFactory(
@@ -413,13 +414,13 @@ func createNode(
 		addressConverter,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	//TODO refactor all these factory calls
 	interceptorsContainer, err := interceptorContainerFactory.Create()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	resolversContainerFactory, err := factoryDataRetriever.NewResolversContainerFactory(
@@ -431,17 +432,17 @@ func createNode(
 		uint64ByteSliceConverter,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	resolversContainer, err := resolversContainerFactory.Create()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	resolversFinder, err := containers.NewResolversFinder(resolversContainer, shardCoordinator)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	forkDetector := processSync.NewBasicForkDetector()
@@ -459,7 +460,7 @@ func createNode(
 	)
 
 	if err != nil {
-		return nil, errors.New("could not create block processor: " + err.Error())
+		return nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
 	nd, err := node.NewNode(
@@ -491,15 +492,17 @@ func createNode(
 	)
 
 	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
+		return nil, nil, errors.New("error creating node: " + err.Error())
 	}
 
 	err = nd.CreateShardedStores()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return nd, nil
+	tpsBenchmark, _ := startTpsBenchmark(blkc, shardCoordinator, config.ResourceStats, datapool.HeaderStatistics())
+
+	return nd, tpsBenchmark, nil
 }
 
 func createRequestTransactionHandler(resolversFinder dataRetriever.ResolversFinder, log *logger.Logger) func(destShardID uint32, txHash []byte) {
@@ -738,6 +741,12 @@ func createShardDataPoolFromConfig(
 		return nil, err
 	}
 
+	cacherCfg = getCacherFromConfig(config.HeaderStatisticsDataPool)
+	headerStatisticsStorage, err := storage.NewCache(cacherCfg.Type, cacherCfg.Size)
+	if err != nil {
+		return nil, err
+	}
+
 	return dataPool.NewShardedDataPool(
 		txPool,
 		hdrPool,
@@ -745,6 +754,7 @@ func createShardDataPoolFromConfig(
 		txBlockBody,
 		peerChangeBlockBody,
 		metaBlockBody,
+		headerStatisticsStorage,
 	)
 }
 
@@ -977,4 +987,29 @@ func startStatisticsMonitor(file *os.File, config config.ResourceStatsConfig, lo
 	}()
 
 	return nil
+}
+
+func startTpsBenchmark(
+	blockChain data.ChainHandler,
+	shardCoordinator sharding.Coordinator,
+	config config.ResourceStatsConfig,
+	headerStatisticsPool storage.Cacher) (*statistics.TpsBenchmark, error) {
+	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), headerStatisticsPool)
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		for {
+			if blockChain.GetCurrentBlockHeader() == nil {
+				time.Sleep(time.Second * 2)
+				continue
+			}
+
+			tpsBenchmark.UpdateShardStatistics(blockChain.GetCurrentBlockHeader().GetNonce())
+			time.Sleep(time.Second * 2)
+		}
+	}()
+
+	return tpsBenchmark, nil
 }

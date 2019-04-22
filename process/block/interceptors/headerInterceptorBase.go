@@ -1,6 +1,8 @@
 package interceptors
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go-sandbox/crypto"
 	"github.com/ElrondNetwork/elrond-go-sandbox/hashing"
 	"github.com/ElrondNetwork/elrond-go-sandbox/marshal"
@@ -15,6 +17,7 @@ import (
 type HeaderInterceptorBase struct {
 	marshalizer      marshal.Marshalizer
 	storer           storage.Storer
+	headerStatistics storage.Cacher
 	multiSigVerifier crypto.MultiSigVerifier
 	hasher           hashing.Hasher
 	shardCoordinator sharding.Coordinator
@@ -24,6 +27,7 @@ type HeaderInterceptorBase struct {
 func NewHeaderInterceptorBase(
 	marshalizer marshal.Marshalizer,
 	storer storage.Storer,
+	headerStatistics storage.Cacher,
 	multiSigVerifier crypto.MultiSigVerifier,
 	hasher hashing.Hasher,
 	shardCoordinator sharding.Coordinator,
@@ -47,6 +51,7 @@ func NewHeaderInterceptorBase(
 	hdrIntercept := &HeaderInterceptorBase{
 		marshalizer:      marshalizer,
 		storer:           storer,
+		headerStatistics: headerStatistics,
 		multiSigVerifier: multiSigVerifier,
 		hasher:           hasher,
 		shardCoordinator: shardCoordinator,
@@ -83,6 +88,9 @@ func (hib *HeaderInterceptorBase) ParseReceivedMessage(message p2p.MessageP2P) (
 	if err != nil {
 		return nil, err
 	}
+
+	statKey := fmt.Sprintf("%d_%d", hdrIntercepted.GetHeader().ShardId, hdrIntercepted.GetHeader().Nonce)
+	_ = hib.headerStatistics.Put([]byte(statKey), hdrIntercepted.GetHeader())
 
 	isHeaderInStorage, _ := hib.storer.Has(hashWithSig)
 	if isHeaderInStorage {

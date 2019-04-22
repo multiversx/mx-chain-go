@@ -109,6 +109,10 @@
     Size = 10000
     Type = "LRU"
 
+[HeaderStatisticsDataPool]
+    Size = 50
+    Type = "LRU"
+
 [Logger]
     Path = "logs"
     StackTraceDepth = 2

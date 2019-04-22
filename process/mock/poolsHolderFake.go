@@ -15,6 +15,7 @@ type PoolsHolderFake struct {
 	hdrNonces         data.Uint64Cacher
 	miniBlocks        storage.Cacher
 	peerChangesBlocks storage.Cacher
+	headerStatistics  storage.Cacher
 }
 
 func NewPoolsHolderFake() *PoolsHolderFake {
@@ -29,6 +30,7 @@ func NewPoolsHolderFake() *PoolsHolderFake {
 	)
 	phf.miniBlocks, _ = storage.NewCache(storage.LRUCache, 10000)
 	phf.peerChangesBlocks, _ = storage.NewCache(storage.LRUCache, 10000)
+	phf.headerStatistics, _ = storage.NewCache(storage.LRUCache, 10)
 	return phf
 }
 
@@ -54,4 +56,8 @@ func (phf *PoolsHolderFake) PeerChangesBlocks() storage.Cacher {
 
 func (phf *PoolsHolderFake) MetaBlocks() storage.Cacher {
 	return phf.metaBlocks
+}
+
+func (phf *PoolsHolderFake) HeaderStatistics() storage.Cacher {
+	return phf.headerStatistics
 }
