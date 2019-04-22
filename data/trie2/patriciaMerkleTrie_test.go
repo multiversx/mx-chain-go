@@ -449,6 +449,7 @@ func BenchmarkPatriciaMerkleTree_ProveCollapsedTrie(b *testing.B) {
 }
 
 func BenchmarkPatriciaMerkleTree_VerifyProof(b *testing.B) {
+	var err error
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}
 
@@ -463,7 +464,8 @@ func BenchmarkPatriciaMerkleTree_VerifyProof(b *testing.B) {
 		tr.Update(values[i], values[i])
 	}
 	for i := 0; i < nrProofs; i++ {
-		proofs[i], _ = tr.Prove(values[i])
+		proofs[i], err = tr.Prove(values[i])
+		assert.Nil(b, err)
 	}
 
 	b.ResetTimer()
@@ -473,6 +475,7 @@ func BenchmarkPatriciaMerkleTree_VerifyProof(b *testing.B) {
 }
 
 func BenchmarkPatriciaMerkleTree_VerifyProofCollapsedTrie(b *testing.B) {
+	var err error
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}
 
@@ -487,7 +490,8 @@ func BenchmarkPatriciaMerkleTree_VerifyProofCollapsedTrie(b *testing.B) {
 		tr.Update(values[i], values[i])
 	}
 	for i := 0; i < nrProofs; i++ {
-		proofs[i], _ = tr.Prove(values[i])
+		proofs[i], err = tr.Prove(values[i])
+		assert.Nil(b, err)
 	}
 	tr.Commit()
 

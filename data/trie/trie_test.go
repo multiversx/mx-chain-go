@@ -28,17 +28,14 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/encoding"
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/mock"
-	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/ElrondNetwork/elrond-go-sandbox/data/trie/rlp"
-
+	"github.com/ElrondNetwork/elrond-go-sandbox/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go-sandbox/storage"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
