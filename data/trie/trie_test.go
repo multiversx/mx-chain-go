@@ -764,6 +764,97 @@ func BenchmarkPatriciaMerkleTree_GetCollapsedTrie(b *testing.B) {
 	}
 }
 
+func BenchmarkPatriciaMerkleTree_Prove(b *testing.B) {
+	tr := newEmpty()
+	hsh := keccak.Keccak{}
+
+	nrValuesInTrie := 3000000
+	values := make([][]byte, nrValuesInTrie)
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		values[i] = hsh.Compute(strconv.Itoa(i))
+		tr.Update(values[i], values[i])
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tr.Prove(values[i%nrValuesInTrie], 0)
+	}
+}
+
+func BenchmarkPatriciaMerkleTree_ProveCollapsedTrie(b *testing.B) {
+	tr := newEmpty()
+	hsh := keccak.Keccak{}
+
+	nrValuesInTrie := 2000000
+	values := make([][]byte, nrValuesInTrie)
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		values[i] = hsh.Compute(strconv.Itoa(i))
+		tr.Update(values[i], values[i])
+	}
+	tr.Commit(nil)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tr.Prove(values[i%nrValuesInTrie], 0)
+	}
+}
+
+func BenchmarkPatriciaMerkleTree_VerifyProof(b *testing.B) {
+	var err error
+	tr := newEmpty()
+	hsh := keccak.Keccak{}
+
+	nrProofs := 10
+	proofs := make([][][]byte, nrProofs)
+
+	nrValuesInTrie := 100000
+	values := make([][]byte, nrValuesInTrie)
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		values[i] = hsh.Compute(strconv.Itoa(i))
+		tr.Update(values[i], values[i])
+	}
+	for i := 0; i < nrProofs; i++ {
+		proofs[i], err = tr.Prove(values[i], 0)
+		assert.Nil(b, err)
+	}
+	root := tr.Root()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		trie.VerifyProof(root, values[i%nrProofs], proofs[i%nrProofs])
+	}
+}
+
+func BenchmarkPatriciaMerkleTree_VerifyProofCollapsedTrie(b *testing.B) {
+	var err error
+	tr := newEmpty()
+	hsh := keccak.Keccak{}
+
+	nrProofs := 10
+	proofs := make([][][]byte, nrProofs)
+
+	nrValuesInTrie := 100000
+	values := make([][]byte, nrValuesInTrie)
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		values[i] = hsh.Compute(strconv.Itoa(i))
+		tr.Update(values[i], values[i])
+	}
+	for i := 0; i < nrProofs; i++ {
+		proofs[i], err = tr.Prove(values[i], 0)
+		assert.Nil(b, err)
+	}
+	tr.Commit(nil)
+	root := tr.Root()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		trie.VerifyProof(root, values[i%nrProofs], proofs[i%nrProofs])
+	}
+}
+
 func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
 	nrValuesInTrie := 1000000
 	for i := 0; i < b.N; i++ {

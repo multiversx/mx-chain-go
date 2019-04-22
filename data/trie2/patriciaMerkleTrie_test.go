@@ -433,7 +433,7 @@ func BenchmarkPatriciaMerkleTree_ProveCollapsedTrie(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}
 
-	nrValuesInTrie := 3000000
+	nrValuesInTrie := 2000000
 	values := make([][]byte, nrValuesInTrie)
 
 	for i := 0; i < nrValuesInTrie; i++ {
